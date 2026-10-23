@@ -1,0 +1,367 @@
+{
+ "expert_role": "AEC technology analyst who evaluates design software. I reviewed P17 round 2 (revise-r1) against live vendor, City of Vancouver, competition and course-repo pages on 21 Oct 2026, this time with web search available.",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Autodesk Forma",
+   "issue": "access_for_vtc_team says UNKNOWN and the analysis list is kept as 'general knowledge, not citable'. Autodesk's own Forma blog (1 Nov 2024) says 'Students and educators get Forma for free', with a one-click sun study and 'noise, wind, and embodied carbon'. Search results for Autodesk's education page describe a free named-user seat on a renewable 1-year subscription that needs a school email. The product appears to be rebranded 'Forma Site Design' and there is a 30-day trial. Forma is the closest incumbent and probably the easiest free wind and sun route for a UBC team, so the packet currently steers entrants away from it.",
+   "fix": "Add the blog as a source (http://blogs.autodesk.com/forma/2024/11/01/architecture-student-projects-with-autodesk-forma/). Set access to 'FREE for students and educators (vendor statement); eligibility terms to be confirmed by a logged-in team member'. Move sun, wind, noise and embodied carbon from unverified_claims into what_it_does as vendor-stated. Keep daylight, microclimate and supertall validity UNVERIFIED. Record the 'Forma Site Design' name and the 30-day trial as seen in search results only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow/1b + flags (protected views)",
+   "issue": "Step 1b, step 0 and the UNVERIFIED flag name the 'View Protection Guidelines' as a governing input. Council minutes and reports of 10 July 2024 (council.vancouver.ca/20240710) and the City's guideline index say Council repealed the 1989 View Protection Guidelines and approved new Public Views Guidelines (guidelines.vancouver.ca/guidelines-public-views.pdf). The new set removed 14 of 38 views and amended 11, which fits the 24 records now in the open-data set. City search snippets for the Higher Buildings Policy Review also say the protected views approved in July 2024 'will be maintained and continue to guide where higher buildings may be considered'. That partly answers the packet's open question about which document governs.",
+   "fix": "Replace 'View Protection Guidelines' with 'Public Views Guidelines (Council-approved 10 July 2024; replaced the 1989 VPG)' in steps 0, 1b and 7b and in the flags. Add the Public Views Guidelines PDF and the City Higher Buildings Policy Review page as sources, marked opened:false (403). Say that the 24-record dataset matches the 2024 view set. Keep the height rules UNVERIFIED until a person opens the PDF."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Snaptrude",
+   "issue": "stops_at, license_cost and access_for_vtc_team say 'no student offer found' and that a 4-person team needs four accounts or a paid plan. Snaptrude's own pages (snaptrude.com/students; blog 13 Nov 2025, updated 22 Jun 2026) offer a free Student Plan: full professional features, unlimited projects, real-time collaboration, 120 AI credits a year, a 1-year renewable licence verified by school email, educational use only, workspace ready in 24-48 h.",
+   "fix": "Correct the three fields and the notes summary. Add snaptrude.com/students and /blog/free-student-plan as sources. Flag that 'educational use only' may conflict with a competition that carries prize money (UNVERIFIED; ask Snaptrude). Record that the earlier /education 404 was the wrong URL."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow (all steps)",
+   "issue": "The course rule asks every result to separate what code, AI and people decide. Each step has only one field, automatable_or_judgment, which puts deterministic code and LLM assistance in the same 'automatable' bucket. For example, step 0 calls brief-contradiction checking automatable, but demo D shows it is an LLM helper whose answer varies between runs, unlike an FSR calculation.",
+   "fix": "Replace automatable_or_judgment with three fields per step, decided_by_code, assisted_by_ai and decided_by_people, each with one line and a source or a team-assumption label. Do the same for ai_opportunity and ai_wont_improve in the case studies where the engine (code) and the LLM are mixed (TestFit MCP, Infrared)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow/0b",
+   "issue": "The cultural and reconciliation step carries 30% of the jury weight, yet its input says no source was opened. That breaks the cite-every-result rule on the most heavily weighted narrative step. A primary municipal source exists: the City of Vancouver UNDRIP Strategy, adopted 25 Oct 2022 and developed with the Musqueam, Squamish and Tsleil-Waututh Nations, with 79 calls to action and a 2024-2028 Action Plan endorsed 25 Jun 2024.",
+   "fix": "Add the UNDRIP Strategy (council.vancouver.ca/20221025/documents/p1.pdf) and the Nations' own published sites as inputs. Label them sources the team reads, not data the tool interprets. Keep interpretation and any engagement as human-only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow (time shares, pain points)",
+   "issue": "Two rounds on, every time share and most pain points are still team assumptions, and no team has been asked. The as-is workflow is the packet's core deliverable, and later modules will be prioritised from it.",
+   "fix": "Before 13 Nov, run at least two 15-minute interviews (VTC-registered SALA teams or past tall-building competition entrants), record answers per step with dates, and change the labels from TEAM_ASSUMPTION to 'interview n=2' where they are confirmed. If this is not possible, state that the step ranking must not drive module priority."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/flags/Infrared tier label (UNRESOLVED)",
+   "issue": "I re-checked https://www.infrared.city/pricing today. The Free tier carries 'Students & small studies' and Starter carries 'Small sites'. The reviser was right and the r1 critique was wrong.",
+   "fix": "Close the UNRESOLVED flag in the reviser's favour, cite this third read, and keep the S31 extract."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/case_studies/SimScale",
+   "issue": "'No academic plan listed' is incomplete. simscale.com/academic-program/ offers a Free Academic Plan (1,000 core hours, private projects, PWC excluded, thesis students 12 months) and says student design-competition teams should apply for an Academic Sponsorship Plan. Community-plan projects are public (private projects start at paid plans), which is a risk for an anonymous competition.",
+   "fix": "Add the academic page as a source. Set access to 'Community (public projects) or Academic Sponsorship Plan by application (terms and turnaround unknown)'. Add the warning that public projects can expose the scheme before judging."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources/P17-S01 + step 0/9",
+   "issue": "The fee is still described as unclear. The page says Student EUR 120 and Architect/Enthusiast/Company EUR 140, plus 4.5% VAT, payable once or in 3 monthly instalments. The page also lists a CAD 1,000 Sustainability Award and a Student Award, which bear on whether step 4b deserves time. The page names only the 'Higher Buildings Policy Review'; the 1997 policy is called 'named in the VTC brief', but the brief was never opened.",
+   "fix": "Correct S01 and steps 0 and 9. Add the awards to step 0's checklist and the 4b pain points. Change S62's 'named in the VTC brief' to 'assumed from the project description; brief not opened'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/case_studies/Rhino+Ladybug",
+   "issue": "The lab licence is still credited to 'the critic's read (not re-fetched)'. The buy page confirms USD 975 new and USD 495 upgrade for a 30-user lab, Rhino 8 only.",
+   "fix": "Replace the caveat with a verified 21 Oct 2026 read and add the upgrade price."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/flags/wind routes",
+   "issue": "Eddy3D is listed only as 'could not be opened (403)'. Its Food4Rhino listing shows an installer dated 2026-02-10 for Grasshopper on Rhino 8 (Windows), so it is maintained, unlike Butterfly (2017). Its licence was not found.",
+   "fix": "List Eddy3D as a maintained Grasshopper wind and outdoor-comfort candidate (Food4Rhino, Windows only), with the licence UNVERIFIED."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/case_studies/demo C and D",
+   "issue": "The notes describe one D run as eight schemes, so 'round 1: 4 of 12 failed; round 2: 12 of 12 passed' only works as a total across three runs, and the spec does not say so. In demo C, '180 vs 300 budget' is the spec's own sum of three of the six helpers. The notes report C5's 329 evaluations against a prompt asking for about 40 per strategy (about 240) and do not reconcile them.",
+   "fix": "Write 'totals across 3 runs (inferred)' for D. Rephrase C as 'the notes report 82, 80 and 18 for three helpers and a 300 cap, and do not reconcile; C5 ran 329 against about 240 requested'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/change_log + notes",
+   "issue": "The change log and notes still say web search was exhausted and that negative education results mean 'not found on pages opened'. Search worked in this round: it found the Forma, Snaptrude and SimScale programmes and found no Finch or TestFit student licence.",
+   "fix": "Log a round-2 search pass. Record Finch (no education offer found on the pricing page or by search) and TestFit (/solutions/universities: class enrolment, terms not stated; 'For Students' link not opened) as explicit negative or partial results."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources",
+   "issue": "There are 63 sources against roughly 40 in the guidance. Round 2 adds about 6 more, and five near-identical B_testfit file sources plus four Ladybug repo sources make the citations hard to audit.",
+   "fix": "Merge S04-S08 into one 'B_testfit/complete files' source and S20-S23 plus S61 into one 'Ladybug Tools repositories and LICENSE files' source, keeping the per-file notes in the extract."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Autodesk Forma access for a VTC student team is UNKNOWN, and its analyses (sun, wind, noise, carbon) can only be stated as uncitable general knowledge.",
+   "why_false": "Autodesk's Forma blog says students and educators get Forma free and names the sun study, noise, wind and embodied carbon. Search results for Autodesk's education page describe a free renewable 1-year named-user subscription for students at qualified institutions.",
+   "correction": "Forma is free for students and educators (vendor statement; a team member should confirm eligibility while logged in). Sun, noise, wind and embodied-carbon analyses are vendor-stated. Daylight and supertall validity remain unverified.",
+   "evidence": "http://blogs.autodesk.com/forma/2024/11/01/architecture-student-projects-with-autodesk-forma/ ; search snippets for https://www.autodesk.com/education/edu-software/forma (page itself 403)"
+  },
+  {
+   "claim": "Snaptrude has no student or education offer; a 4-person team needs four free single-user accounts or a paid plan.",
+   "why_false": "Snaptrude launched a free Student Plan in Nov 2025: full professional platform, unlimited projects, real-time collaboration, 1-year renewable, verified by school email, educational use only.",
+   "correction": "Snaptrude is free for enrolled architecture, design and engineering students and educators, with team collaboration. Whether 'educational use only' covers a prize competition is unverified.",
+   "evidence": "https://www.snaptrude.com/students ; https://www.snaptrude.com/blog/free-student-plan (dated 13 Nov 2025, updated 22 Jun 2026)"
+  },
+  {
+   "claim": "Vancouver's View Protection Guidelines (with the Higher Buildings Policy) govern the protected-view envelope for the VTC tower (step 1b, step 0, UNVERIFIED flag).",
+   "why_false": "On 10 July 2024 Council repealed the 1989 View Protection Guidelines and approved new Public Views Guidelines, removing 14 and amending 11 of 38 views. The City says the 2024 views will be maintained in the Higher Buildings Policy Review.",
+   "correction": "Use the Public Views Guidelines (2024) and the City's 24-record view-cone dataset as the current basis. Heights still need a person to open the PDF.",
+   "evidence": "Search results citing https://council.vancouver.ca/20240710/documents/pspc20240710min.pdf , https://council.vancouver.ca/20240710/documents/pspc1.pdf , https://guidelines.vancouver.ca/guidelines-public-views.pdf (all 403 to fetch); open-data view-cones records API returned 24 records today"
+  },
+  {
+   "claim": "SimScale has no academic or student plan (S58 case study).",
+   "why_false": "SimScale's academic programme page offers a Free Academic Plan and directs student design-competition teams to an Academic Sponsorship Plan.",
+   "correction": "Possible routes: Community (public projects, 10 quantitative simulations, no PWC) or the Academic Sponsorship Plan by application (terms unknown). The Free Academic Plan targets thesis students and excludes PWC.",
+   "evidence": "https://www.simscale.com/academic-program/"
+  },
+  {
+   "claim": "(r1 critique, logged UNRESOLVED) Infrared.city's 'Students & small studies' label belongs to the Starter tier, not the Free tier.",
+   "why_false": "A third read of the live pricing page on 21 Oct 2026 shows the label on the Free tier; Starter is labelled 'Small sites'.",
+   "correction": "Free tier: 'Students & small studies', 900 one-time tokens, 42-day expiry. Close the flag and keep the reviser's extract.",
+   "evidence": "https://www.infrared.city/pricing"
+  }
+ ],
+ "missing": [
+  "The Public Views Guidelines (10 July 2024) and the City Higher Buildings Policy Review page as sources (403; a person must open them), including the City statement that the 2024 protected views will be maintained.",
+  "Primary sources for step 0b: the City of Vancouver UNDRIP Strategy (Oct 2022) and 2024-2028 Action Plan, and the Musqueam, Squamish and Tsleil-Waututh Nations' own published material.",
+  "A three-way code / AI / people decision field on every as-is step and case study (course requirement).",
+  "Measured as-is evidence: at least two short team interviews or time logs.",
+  "Updated access_for_vtc_team entries for Forma (free education), Snaptrude (free Student Plan) and SimScale (Academic Sponsorship Plan), with the 'educational use only' versus prize-competition question noted.",
+  "Eddy3D as a maintained wind candidate (Food4Rhino 2026-02-10 installer); licence unverified.",
+  "An anonymity risk note for cloud tools that publish projects publicly by default (SimScale Community; check Speckle public links and Giraffe sharing).",
+  "Competition awards (Sustainability Award CAD 1,000, Student Award) in the step 0 checklist and step 4b priority; corrected fee schedule (student EUR 120, 3 instalments).",
+  "Hypar pricing and free tier are still unresolved (Product Hunt shows only a 'Free Options' label).",
+  "TestFit 'For Students' link not opened; TestFit and Finch student terms recorded as not found after search."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Correct Forma access and analyses with the Autodesk blog source; mark the eligibility details for a person to confirm.",
+   "Correct Snaptrude to its free Student Plan and SimScale to include its academic and competition sponsorship routes, with the public-project anonymity warning.",
+   "Replace 'View Protection Guidelines' with the 2024 Public Views Guidelines everywhere, and cite the Council decision and the Higher Buildings Policy Review page.",
+   "Close the Infrared UNRESOLVED flag in the reviser's favour.",
+   "Add sourced inputs (the UNDRIP Strategy and the Nations' own material) to step 0b.",
+   "Split automatable_or_judgment into code / AI / people fields.",
+   "Log the round-2 search pass and the negative results (Finch, TestFit)."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "cove.tool status resolved (analysis.tool, academic access ended)",
+   "status": "addressed"
+  },
+  {
+   "item": "Speckle academic route and 100-version cap",
+   "status": "addressed",
+   "residue": "Academic workspace terms still unverified, correctly flagged."
+  },
+  {
+   "item": "Giraffe free education licences",
+   "status": "addressed"
+  },
+  {
+   "item": "Demo evidence attribution (255 vs 223 to D, import bypass to C) and split into B/C/D",
+   "status": "addressed",
+   "residue": "D '4 of 12 / 12 of 12' are cross-run totals, and C's '180 vs 300' is the spec's own sum; both need rewording."
+  },
+  {
+   "item": "Ladybug AGPL-3.0 and the consequence for a hosted tool",
+   "status": "addressed",
+   "residue": "Stated carefully; the decision is handed to DATA."
+  },
+  {
+   "item": "As-is step for protected views and skyline",
+   "status": "partly",
+   "residue": "Step added, but it names the superseded 1989 View Protection Guidelines instead of the 2024 Public Views Guidelines."
+  },
+  {
+   "item": "As-is steps for cultural research, sustainability, plans and sections, policy reflection",
+   "status": "partly",
+   "residue": "Steps added; step 0b has no sources opened."
+  },
+  {
+   "item": "TestFit mixed-use claim and university route",
+   "status": "addressed"
+  },
+  {
+   "item": "Mapping to taxonomy codes, jury tags and as-is step ids",
+   "status": "addressed"
+  },
+  {
+   "item": "access_for_vtc_team field on every case study",
+   "status": "partly",
+   "residue": "Field added, but Forma (free for students), Snaptrude (free Student Plan) and SimScale (academic sponsorship) are wrong or incomplete."
+  },
+  {
+   "item": "Forma unsourced analysis list removed or labelled",
+   "status": "addressed",
+   "residue": "Now partly citable from Autodesk's blog; should be promoted to vendor-stated."
+  },
+  {
+   "item": "Infrared tier label (r1 MINOR)",
+   "status": "addressed",
+   "residue": "The reviser correctly declined; confirmed today that Free carries the student label. Flag should be closed."
+  },
+  {
+   "item": "Education-programme searches (r1 MINOR)",
+   "status": "not",
+   "residue": "Not done (search unavailable to the reviser); done in this review, and the results must be integrated."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P17-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Dates, team size, AI caution and missing brief links confirmed. Fee is clear: student EUR 120, others EUR 140, +4.5% VAT, 3 monthly instalments. Prizes include a Sustainability Award. Page names only the 'Higher Buildings Policy Review'."
+  },
+  {
+   "source_id": "P17-S31",
+   "url": "https://www.infrared.city/pricing",
+   "ok": true,
+   "note": "Free tier labelled 'Students & small studies'; prices and tokens match; solar, UTCI and daylight costs not listed."
+  },
+  {
+   "source_id": "P17-S30",
+   "url": "https://www.infrared.city/",
+   "ok": true,
+   "note": "Vendor claims (90%+, 1 s vs 3 days, 500K sims, 100+ cities), beta button, no height limits: matches the spec."
+  },
+  {
+   "source_id": "P17-S15",
+   "url": "https://www.speckle.systems/pricing",
+   "ok": true,
+   "note": "1 project, 3 users, 100 versions, 30-day history, free for students and educators: matches."
+  },
+  {
+   "source_id": "P17-S10",
+   "url": "https://www.testfit.io/pricing",
+   "ok": true,
+   "note": "Prices, add-ons, typologies and mixed-use FAQ match; no trial."
+  },
+  {
+   "source_id": "P17-S51",
+   "url": "https://www.testfit.io/solutions/universities",
+   "ok": true,
+   "note": "Class enrolment, 175+ universities, no licence terms: matches."
+  },
+  {
+   "source_id": "P17-S50",
+   "url": "https://www.giraffe.build/universities-and-education",
+   "ok": true,
+   "note": "Free licences for students and universities, no trial expiry, regions not stated: matches."
+  },
+  {
+   "source_id": "P17-S25",
+   "url": "https://www.rhino3d.com/buy/",
+   "ok": true,
+   "note": "Lab licence USD 975 new / 495 upgrade for 30 users verified; student 195/95; Rhino 8 only."
+  },
+  {
+   "source_id": "P17-S40",
+   "url": "https://www.shapediver.com/pricing",
+   "ok": true,
+   "note": "Matches; trial 14 days with 60 s computations; academic up to 50% off or a 3-month trial."
+  },
+  {
+   "source_id": "P17-S38",
+   "url": "https://www.finch3d.com/pricing",
+   "ok": true,
+   "note": "Matches; no education offer; search also found none."
+  },
+  {
+   "source_id": "P17-S58",
+   "url": "https://www.simscale.com/product/pricing/",
+   "ok": true,
+   "note": "Community limits and PWC add-on match; but see the academic page."
+  },
+  {
+   "source_id": "new",
+   "url": "https://www.simscale.com/academic-program/",
+   "ok": true,
+   "note": "Free Academic Plan (1,000 core hours, private, PWC excluded); Academic Sponsorship Plan for student competition teams. The spec missed both."
+  },
+  {
+   "source_id": "P17-S59",
+   "url": "https://buildingtransparency.org/",
+   "ok": true,
+   "note": "EC3 free and open access; tallyLCA cost not stated: matches."
+  },
+  {
+   "source_id": "P17-S61",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/ladybug/master/LICENSE",
+   "ok": true,
+   "note": "AGPL v3 confirmed."
+  },
+  {
+   "source_id": "P17-S54",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records?limit=30&select=view_number,view_cone_name,url",
+   "ok": true,
+   "note": "24 records including QE Park 3.2.1-3.2.4: matches. The count fits the 2024 set (38 minus 14 removed)."
+  },
+  {
+   "source_id": "P17-S09",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html",
+   "ok": true,
+   "note": "B, C and D figures match, apart from D '4/12 then 12/12' (cross-run totals) and the C '180 vs 300' framing."
+  },
+  {
+   "source_id": "P17-S43",
+   "url": "https://www.autodesk.com/education/edu-software/forma",
+   "ok": false,
+   "note": "403. Search snippets say it is free for students and educators, 1 named-user seat, renewable 1-year."
+  },
+  {
+   "source_id": "new",
+   "url": "http://blogs.autodesk.com/forma/2024/11/01/architecture-student-projects-with-autodesk-forma/",
+   "ok": true,
+   "note": "'Students and educators get Forma for free'; sun study, noise, wind, embodied carbon. Contradicts 'access UNKNOWN'."
+  },
+  {
+   "source_id": "new",
+   "url": "https://www.snaptrude.com/students",
+   "ok": true,
+   "note": "Free Student Plan: full features, collaboration, 1-year renewable, educational use only. Contradicts 'no student offer'."
+  },
+  {
+   "source_id": "new",
+   "url": "https://www.snaptrude.com/blog/free-student-plan",
+   "ok": true,
+   "note": "Dated 13 Nov 2025, updated 22 Jun 2026; eligibility and verification by school email."
+  },
+  {
+   "source_id": "P17-S62",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "403. Search says Public Views Guidelines approved 10 Jul 2024, replacing the 1989 VPG."
+  },
+  {
+   "source_id": "new",
+   "url": "https://council.vancouver.ca/20240710/documents/pspc20240710min.pdf",
+   "ok": false,
+   "note": "403; content known only through search snippets (repeal of VPG, approval of Public Views Guidelines)."
+  },
+  {
+   "source_id": "new",
+   "url": "https://vancouver.ca/home-property-development/higher-buildings-policy-review.aspx",
+   "ok": false,
+   "note": "403; search snippet: 1997 policy, updated 2011; protected views approved July 2024 to be maintained; Phase I engagement Apr-May 2026."
+  },
+  {
+   "source_id": "new",
+   "url": "https://shapeyourcity.ca/higher-buildings/news_feed/launch-of-vancouver-tall-ideas-competition",
+   "ok": true,
+   "note": "VTC is an ideas competition within the Higher Buildings Policy Review; no FSR or height figures; launch event 1 June."
+  },
+  {
+   "source_id": "new",
+   "url": "https://council.vancouver.ca/20221025/documents/p1.pdf",
+   "ok": false,
+   "note": "Not fetched; search confirms UNDRIP Strategy adopted 25 Oct 2022 with the three Nations, 79 calls to action, Action Plan endorsed 25 Jun 2024."
+  },
+  {
+   "source_id": "new",
+   "url": "https://www2.food4rhino.com/en/node/2863",
+   "ok": false,
+   "note": "Not fetched; search snippet shows an Eddy3D installer dated 2026-02-10 for Rhino 8 (Windows); licence not found."
+  }
+ ],
+ "verdict": "Round 2 is a large and honest improvement. Most r1 items are fixed, the derived numbers check out (11,468 m2, 103,200 m2, 40 days, 15:59 Pacific), and the reviser was right to reject the r1 critic's Infrared claim. It still fails the gate on facts an entrant would act on. Autodesk Forma is free for students and educators and has vendor-stated sun, wind and noise analyses, yet the packet calls its access unknown. Snaptrude has a free Student Plan. SimScale offers competition sponsorship. Step 1b cites the View Protection Guidelines, which the 2024 Public Views Guidelines replaced. The cultural step has no sources, the code/AI/people split is missing, and time shares are still unmeasured. All of these can be fixed in one short revision."
+}

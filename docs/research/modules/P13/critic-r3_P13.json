@@ -1,0 +1,202 @@
+{
+ "expert_role": "Graphic designer specialising in competition boards; gatekeeper auditing cited sources and VTC rules (round 3, packet P13)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P13-M01 (gates) / packet",
+   "issue": "There is no eligibility gate. The competition page lists juror Matthew Soules as 'Matthew Soules Architecture, UBC SALA'. Terms 3.3.5 disqualify anyone who is 'a current employee, intern, contractor, officer, or director of the Organizer or the Jury, or an associate or family member thereof', and the result is forfeiture of all prizes. The tool's first users are UBC SALA M.Arch students taking a course at SALA, and the term 'associate' is not defined. The page also says 'Participants who attempt to contact jury members, shall be disqualified', so a course review that shows the entry to that juror could also break the rules. The spec never mentions any of this, and the team plans to pay the fee and validate its UIC on 27 Oct, before the question can be answered.",
+   "fix": "Add gate G-00 'Eligibility (Terms 3.3)': each member attests to no employment, contract or associate relationship with the Organizer or any listed juror. Add C8 to the Q&A pack, sent to the organiser contact before paying (target 23-26 Oct): 'Are students of a school that employs a juror (UBC SALA) eligible under 3.3.5?' In the deny-list and the G-04 visibility rule, add the jury list and a rule that no board-linked asset is shown to a listed juror, including in course reviews. Keep G-00 red until the answer is logged."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01 (qa_question_budget, Q&A pack)",
+   "issue": "The Q&A plan sends the most important question (Nation names under the English-only rule, Q1) to 'Ask the Jury, single free slot', and the top-five vote is built in as a parameter. Terms 10.10.1 say Ask the Jury exists 'only for selected Competitions', and the VTC page does not offer it. The page routes all questions to Buildner staff ('All communication regarding the competition should only be carried out with Buildner staff') and closes Q&A on 3 Nov ('No new questions will be answered after this deadline'). The spec's own UNRESOLVED flag admits that availability is unconfirmed, yet the plan still depends on that channel.",
+   "fix": "Make the organiser contact form or email the default channel for Q1 and C1-C8. Use Ask the Jury only if it appears in the portal after registration, and log that observation. Change qa_question_budget so it reads the channel availability from the portal and has null behaviour when the feature is absent. Use 3 Nov as the deadline: the page counts as 'otherwise specified' under 10.10.4.1. Keep the 30 Oct send date."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M03",
+   "issue": "The encroachment report tests only the Queen Elizabeth Park cones 3.2.1-3.2.4. The City dataset (total_count 24, re-queried) contains many other protected-view cones whose far ends reach downtown and the CBD, for example Cambie Street 9.1/9.2, Granville Street 20, Heather Bay D, Charleson Seawall B2, Alder Terrace A, Creekside Park J1/J2 and Olympic Shipyard Pier G1. A 244-305 m tower in the CBD can sit inside one of them. The Shape Your City page says protected views 'will not be reviewed or updated' in the review, so these cones stay fixed constraints that the jury may expect entrants to address.",
+   "fix": "Clip the site footprint and the tower silhouette against all 24 polygons. Report each cone that intersects, with the same neutral fields (overlap in m2, ceiling or 'unknown', angular share, rationale link). Keep QE Park as the required skyline viewpoint but rename the metric to 'Protected view cones intersected (all 24)'. Add the dataset's view_number and view_cone_name to encroachment_report."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M03 / SITE interface",
+   "issue": "The brief describes a hypothetical full-block site, but M03 computes cone overlap, apex sight lines and compass labels from a 'site footprint' as if the site had surveyed coordinates. No parameter records where the hypothetical block is placed or who decided it. A placement 100 m off changes which cones intersect and the bearing from QE Park, so encroachment findings shown on boards and passed to the breach register could be artefacts of an unstated choice.",
+   "fix": "Add a parameter site_georeference {lon, lat, grid_rotation, source: brief_page | team_placement} that brief_register supplies. It stays amber 'team assumption' until it is transcribed from the brief's site plan with a page number. Show the placement on the M03 map, and add a sensitivity check: re-run cone intersection with the footprint shifted by one block in each direction and report any change."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01 (brief_register)",
+   "issue": "The previous BLOCKER is resolved on paper, but nothing has been done yet. P13-S01 is still opened:false. Every brief-derived rule (exact 4 panels, A2 landscape, 40/30/20/10 weights, the 20 items, award eligibility) is still a transcription of the project description, and the register is due 23-24 Oct. The competition page also says the brief can be downloaded in English, French, Italian, Spanish and Chinese, while the Terms contain no clause saying which language version governs.",
+   "fix": "Keep the release condition that the validator cannot ship without the register. In addition, brief_register must record the language version hashed (English) and its filename, and check figures against one other language version only if they appear to conflict. Add C9 to the organiser questions: does the English brief govern? On 24 Oct, publish the register's hash and page numbers in the changelog so entrants can check their own copy."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M05 (data_retention) / flags",
+   "issue": "The spec says the gpt-image-2.5 models are not ZDR-compatible ('the 2.5 models were not listed'). The OpenAI data-controls page, re-read 21 Oct 2026, lists gpt-image-2.5-sunburst and gpt-image-2.5-flare (including dated snapshots) as Zero Data Retention compatible, alongside gpt-image-2, -1.5, -1 and -1-mini. The 30-day default retention and the CSAM-scan exception still apply.",
+   "fix": "Correct the data_retention parameter, the S54 extract and the OpenAI UNVERIFIED flag, and raise a FALSE_ASSUMPTION flag. Record in the ledger whether ZDR is enabled for the organisation's project, because ZDR is an account setting and not the default."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13 (status model)",
+   "issue": "The fix is partial. Evidence and history now sit in the basis text, but the machine-read status field still holds 'false_assumption_corrected' for rules whose current evidence is unverified or a team assumption (HR-03, HR-04, M03 ground-view count, viewpoint offset). A typed downstream node that reads status cannot tell that HR-03 is unverified.",
+   "fix": "Add structured fields evidence_status (verified | unverified | team_assumption) and history[] (flag ids) to every metric and to the rule_registry, and have nodes read evidence_status. The colour that marks a FALSE ASSUMPTION can then come from history."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M01 (rule_registry)",
+   "issue": "The registry is described as 'HR-01..HR-06, G-01..G-04, D-01', but the metrics also use HR-02t, HR-03a, G-05, D-02, D-03, B-01, B-02 and R-01, and the checklist says '4 gates' while the upload-once gate is G-05. The ids the registry promises do not match the ids its consumers use.",
+   "fix": "Publish the complete id list with its classes (hard rule, gate, deadline, register, coverage, team target). Add a schema test that every metric's rule id exists in the registry, and update the gate count."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13 schedule",
+   "issue": "The 28 + 15% = 32 person-day plan does not count the human tasks it schedules between 21 Oct and 3 Nov: identity verification (government ID and biometric checks, Terms 3.6.C.2), double transcription of the brief, reading three City PDFs in a browser, drafting the Q&A pack and registering. These take time from the same two students in Tier A.",
+   "fix": "Budget about 2-3 person-days of human tasks inside Tier A, or state that the availability factor f already excludes them. Re-state the f thresholds."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M06v (deny-list)",
+   "issue": "The deny-list seeds (member names, UBC, SALA, ARCH 540, instructors) are specific to the course team. Since a juror is affiliated with UBC SALA, 'SALA' or a juror's name on a board is a direct identity and juror-contact risk for any SALA entrant. Other entrants need seeds for their own schools and firms, which the spec does not provide.",
+   "fix": "Have each team generate its seed list from its own registration data (school, firm, city, email domain). Add the juror names and practices as a separate warning class, because citing a juror's own building on a board can be read as an approach to the jury."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Ask the Jury gives one free question per registration for VTC, so the brief question (Nation names) uses that slot (qa_question_budget; Q&A pack Q1).",
+   "why_false": "Terms 10.10.1 make Ask the Jury available 'only for selected Competitions'. The VTC page has no Ask the Jury feature, directs all questions to Buildner staff, and forbids contacting jurors.",
+   "correction": "Send all questions, Q1 included, to the organiser contact by 30 Oct, before the 3 Nov Q&A close. Use Ask the Jury only if the portal shows it after registration.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/terms (10.10.1); https://architecturecompetitions.com/vancouvertallchallenge ('All communication regarding the competition should only be carried out with Buildner staff'; Q&A deadline 3 Nov 2026)."
+  },
+  {
+   "claim": "The gpt-image-2.5 models are not on OpenAI's zero-data-retention list (P13-M05 data_retention, S54, OpenAI UNVERIFIED flag).",
+   "why_false": "The data-controls page lists the gpt-image-2.5-sunburst and gpt-image-2.5-flare variants, including dated snapshots, as ZDR-compatible for image generation.",
+   "correction": "The 2.5 models are ZDR-eligible with limitations: 30-day abuse-monitoring retention by default, and CSAM-flagged inputs are retained even under ZDR. Log whether ZDR is actually enabled.",
+   "evidence": "https://developers.openai.com/api/docs/guides/your-data (read 21 Oct 2026)."
+  },
+  {
+   "claim": "Only the Queen Elizabeth Park cones 3.2.1-3.2.4 matter for a CBD tower's protected-view check.",
+   "why_false": "The City view-cones dataset holds 24 polygons, and several others end downtown (e.g. Cambie Street 9.1/9.2, Granville Street 20, Heather Bay D, Charleson Seawall B2, Creekside Park J1/J2). Protected views are explicitly excluded from the policy review.",
+   "correction": "Intersect the site and the tower with all 24 cones and report each one neutrally.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records (total_count 24, geometries read 21 Oct 2026); https://www.shapeyourcity.ca/higher-buildings ('Protected public views will not be reviewed or updated')."
+  },
+  {
+   "claim": "Entrant eligibility needs no check beyond identity verification and team size (G-01, G-02).",
+   "why_false": "Terms 3.3.5 exclude associates of the Jury, and juror Matthew Soules is listed with UBC SALA, the school of the first users.",
+   "correction": "Add an eligibility gate and get a written answer from the organiser before paying the fee.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/terms (3.3.5); https://architecturecompetitions.com/vancouvertallchallenge (jury list: 'Matthew Soules Architecture, UBC SALA')."
+  }
+ ],
+ "missing": [
+  "Eligibility gate G-00 (Terms 3.3.5, juror associates) and organiser question C8, due before registration payment",
+  "Rule that no entry asset is shown to listed jurors, including in course reviews (the page says contacting jurors disqualifies)",
+  "site_georeference parameter for the hypothetical block (source: brief page or team placement), with a placement sensitivity check",
+  "Protected-view check against all 24 City view cones, not only 3.2.1-3.2.4",
+  "Q&A channel availability as a portal-observed input (Ask the Jury may not exist for VTC)",
+  "brief_register field for the brief language version (the brief is published in 5 languages) and question C9 on which version governs",
+  "Structured evidence_status and history fields alongside status; a complete rule-id registry list",
+  "Human-task person-days inside the Tier A budget"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "G-00 eligibility gate added, and a written organiser answer on Terms 3.3.5 (UBC SALA students vs juror affiliation) logged before the registration fee is paid",
+   "Q&A pack re-routed to the organiser contact (Ask the Jury only if the portal shows it), sent by 30 Oct, with answers logged by 3 Nov",
+   "brief_register populated (English PDF SHA-256, page numbers, second check, language version) by 24 Oct, before any validator release; S01 statuses updated",
+   "M03 encroachment report extended to all 24 view cones and tied to a declared site_georeference",
+   "OpenAI ZDR statement corrected for the 2.5 models",
+   "Structured evidence_status field used by all typed nodes; rule-id registry complete"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: brief PDF not in register; validator must not ship with an empty register",
+   "status": "partly",
+   "residue": "Spec now has the brief_register, the gate and the 23-24 Oct task, but S01 is still 'opened:false' and every brief-derived rule is 'unverified until the register holds hash, page and second check'. The brief's language versions are not addressed."
+  },
+  {
+   "item": "MAJOR: dated human task list and Q&A pack; static registration banner",
+   "status": "partly",
+   "residue": "Task timeline, qa_pack and static banner have been added. Q1 is still routed to 'Ask the Jury, single free slot', a channel the VTC page does not offer."
+  },
+  {
+   "item": "MAJOR: M03 ceiling metric reframed as a neutral encroachment report",
+   "status": "addressed",
+   "residue": "Neutral report and breach-register link are in place. Scope is limited to cones 3.2.1-3.2.4 (new finding)."
+  },
+  {
+   "item": "MAJOR: core nodes depending on v1 nodes",
+   "status": "addressed",
+   "residue": "Optional ports with null behaviour and a port-contract build test are specified."
+  },
+  {
+   "item": "MAJOR: schedule saturated; validator-first split",
+   "status": "addressed",
+   "residue": "28 + 15% = 32 against 34 person-days, needing f >= 0.95 for full core, with a cut order. Human tasks are not budgeted (minor)."
+  }
+ ],
+ "sources_checked": [
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "source_id": "P13-S03",
+   "note": "Confirmed 3.2, 3.6.A.1-A.2 (verification before UIC validation or team joining, then payment), 3.6.C.2 (government ID and biometric checks), 4.7 '24.00, London Time', 4.8 JPEG, 10 MB, one to four panels per brief, 5.1, 8.4, 9.1, 10.10.1 ('only for selected Competitions'), 10.10.4.1, 10.10.8.3, 16.2. New: 3.3.5 juror-associate exclusion. No AI, pixel, naming or translation clause."
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "source_id": "P13-S02",
+   "note": "Dates match (29 Oct, 3 Nov, 30 Nov 23:59 London, 26 Jan). English-only. No Ask the Jury feature; contact Buildner staff. Jury includes Matthew Soules (UBC SALA). Brief in 5 languages. AI FAQ as quoted."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "source_id": "P13-S11",
+   "note": "2.5 model ids, quality values, size rules and prompt-based mask behaviour match the spec. Four-image example, no stated maximum."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": true,
+   "source_id": "P13-S14",
+   "note": "Token rates match ($5 / $8 / $30; batch half). No per-image prices."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "ok": false,
+   "source_id": "P13-S54",
+   "note": "Contradicts the spec: the 2.5 sunburst and flare models are listed as ZDR-compatible."
+  },
+  {
+   "url": "https://data.iana.org/time-zones/tzdb/NEWS",
+   "ok": true,
+   "source_id": "P13-S45",
+   "note": "Latest 2026e (2026-09-29). 2026b BC permanent -07. No later BC change."
+  },
+  {
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "source_id": "P13-S04",
+   "note": "Updated 13 Jul 2026, Phase 1 current, protected views not reviewed: matches."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "source_id": "P13-S47",
+   "note": "24 records. QE Park apex -123.112436, 49.242156 confirmed (3.2.2 slightly off). Other downtown-reaching cones exist and are not used by the spec."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "source_id": "P13-S07",
+   "note": "HTTP 403 to curl again; ceilings remain unverified."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "source_id": "P13-S05",
+   "note": "HTTP 403 to curl. The web-search budget was exhausted, so the amendment status could not be searched."
+  }
+ ],
+ "verdict": "Round 3 fixes most round-2 items in the spec text: the register gate, the neutral encroachment report, optional ports, the validator-first plan and the longOffset parsing. The gate still fails. A juror is listed with UBC SALA and Terms 3.3.5 exclude associates of the Jury, yet the spec has no eligibility gate and its first users are SALA students paying on 27 Oct. Q1 depends on an Ask the Jury channel that the VTC page does not offer. M03 checks 4 of 24 protected cones, on a hypothetical site whose placement is never declared. The brief register is still empty, and the statement on OpenAI ZDR for the 2.5 models is wrong. The web-search budget was exhausted; all checks used direct fetches."
+}

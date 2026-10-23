@@ -1,0 +1,101 @@
+{
+  "format": "tower-studio-registry@1",
+  "name": "Tower Design Toolkit community registry (local sample)",
+  "sample": true,
+  "note": "Development data shipped with the app so the Community tab can be tried without a server. Not real submissions. The real registry will be a public GitHub index repository (research P15-M05); it does not exist yet.",
+  "updated": "2026-10-22",
+  "repo": null,
+  "modules": [
+    {
+      "id": "community.example.tower-width",
+      "name": "Tower width & proportion (CDDG)",
+      "kind": "declarative",
+      "category": "PUBL",
+      "stage": "massing",
+      "author": { "name": "Tower Design Toolkit team (worked example)" },
+      "licence": "MIT",
+      "summary": "Compares the wider plan side with the draft CDDG 29.0 m tower dimension, and checks proportion and frontage tips. The worked example of the node-builder skill.",
+      "review": "unreviewed",
+      "tags": ["tower form", "CDDG", "worked example"],
+      "versions": [
+        {
+          "version": "0.1.0", "file": "packages/community.example.tower-width@0.1.0.json",
+          "sha256": "020bd6ce24ade30d2b257972e299dc14363520c83ce193bf49325346f4e3ac7c",
+          "published": "2026-10-22", "tier": "declarative", "permissions": [],
+          "evidence": { "verified": 1, "unverified": 2, "unresolved": 1, "false_assumption": 1 },
+          "yanked": false
+        }
+      ]
+    },
+    {
+      "id": "community.sample.plate-efficiency",
+      "name": "Floor-plate efficiency (sample)",
+      "kind": "declarative",
+      "category": "PROG",
+      "stage": "schematic",
+      "author": { "name": "Tower Design Toolkit sample registry" },
+      "licence": "MIT",
+      "summary": "Net-to-gross and net area on a typical tower floor, from the core Tower Design Toolkit sizes. Thresholds are team presets for demonstration.",
+      "review": "unreviewed",
+      "tags": ["core", "efficiency"],
+      "versions": [
+        {
+          "version": "0.1.0", "file": "packages/community.sample.plate-efficiency@0.1.0.json",
+          "sha256": "b578b50e259951467217b4c1086f3944eea11eaafabd417afe543e31509940c6",
+          "published": "2026-10-21", "tier": "declarative", "permissions": [],
+          "evidence": { "team_assumption": 1 },
+          "yanked": true, "reason": "Threshold direction reversed: a higher net-to-gross is better. Fixed in 0.2.0."
+        },
+        {
+          "version": "0.2.0", "file": "packages/community.sample.plate-efficiency@0.2.0.json",
+          "sha256": "3e485829ba9aaa704e0ec2048a083895dfc1d7b6856e3dd92f01b753b652cb81",
+          "published": "2026-10-22", "tier": "declarative", "permissions": [],
+          "evidence": { "team_assumption": 1, "unresolved": 1 },
+          "yanked": false
+        }
+      ]
+    },
+    {
+      "id": "community.sample.lease-depth",
+      "name": "Lease depth, core to facade (sample)",
+      "kind": "declarative",
+      "category": "SPAC",
+      "stage": "schematic",
+      "author": { "name": "Tower Design Toolkit sample registry" },
+      "licence": "CC-BY-4.0",
+      "summary": "Depth from a centred square core to the facade on the short side. Thresholds are team presets for demonstration.",
+      "review": "unreviewed",
+      "tags": ["daylight", "fit-out"],
+      "forkedFrom": null,
+      "versions": [
+        {
+          "version": "0.1.0", "file": "packages/community.sample.lease-depth@0.1.0.json",
+          "sha256": "6ed2e27356795b7f9ce230d4d40f33eb8279972593f7589d529587658455913c",
+          "published": "2026-10-22", "tier": "declarative", "permissions": [],
+          "evidence": { "team_assumption": 1 },
+          "yanked": false
+        }
+      ]
+    },
+    {
+      "id": "community.sample.wind-surrogate",
+      "name": "Pedestrian wind surrogate (code module)",
+      "kind": "code",
+      "category": "CLIM",
+      "stage": "massing",
+      "author": { "name": "Tower Design Toolkit sample registry" },
+      "licence": "Apache-2.0",
+      "summary": "An example of a code module: it would run a trained surrogate in JavaScript. Code nodes now run in the browser sandbox (research P15-M04, T1) after you allow them, but this sample has no code bundle yet, so it cannot be installed from here.",
+      "review": "unreviewed",
+      "tags": ["wind", "code module", "no bundle yet"],
+      "versions": [
+        {
+          "version": "0.1.0", "file": null, "sha256": null,
+          "published": "2026-10-22", "tier": "T1", "permissions": ["layer0:read"],
+          "evidence": { "unresolved": 1 },
+          "yanked": false
+        }
+      ]
+    }
+  ]
+}

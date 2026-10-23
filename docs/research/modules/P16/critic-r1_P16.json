@@ -1,0 +1,356 @@
+{
+ "expert_role": "AI engineer specialising in retrieval-augmented generation with citations (independent reviewer, round 1 of P16)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P16-M02",
+   "issue": "The rule-card strength model is built on a misreading, and it is the packet's main worked example. The City FAQ (P16-S37) says a '600 ft (183 m) height ceiling applies' within the policy area and that buildings 'up to that height may be considered'. It also says the Bay Parkade towers (783/889/1,034 ft) 'exceed the policy's height limits'. So 183 m is a ceiling: approval below it is discretionary, but going above it breaches the policy. The spec treats going above it as discretionary ('needs justification', not FAIL). It also maps shall/should/may onto LegalRuleML strict/defeasible/defeater. LegalRuleML defines those three as rule strength (defeasibility), while the deontic operators are separate: Obligation, Prohibition, Permission, Right. If this schema is built for the 13 Nov manual-card cut, every discretionary-ceiling clause will be mislabelled.",
+   "fix": "Split the card schema into two fields: deontic_type {obligation, prohibition, permission, right} and strength {strict, defeasible, defeater}. Encode the HBP figure as two rules: a Permission (discretionary) for heights up to 183 m, and a Prohibition above 183 m. Go-above results become 'breach of policy ceiling -> justified-departure record required (brief allows)'. Do not use 'needs justification as discretionary'. Rewrite the M02 parameter text and the M08 boundary-case expected answer to match."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P16-M05 / P16-M02 / P16-M08",
+   "issue": "The VTC competition brief is the primary governing document for the exercise, but it is not in the source list. 'Jury weights sum' is marked status 'verified' with source_ids []. That breaks the packet's own rule that verified requires a source plus a reviewer. M08 typical cases attribute brief facts (9.0 non-residential FSR, human-scale 40%) to P16-S37, the City FAQ, which states neither. M02 lists 'VTC brief facts' as an input with no Document record.",
+   "fix": "Add the VTC brief PDF (Buildner, 2026) as a source with status 'reference-only / academic exercise, not legal'. Ingest it into M01 and create rule cards for the 9.0 FSR minimum, the 244-305 m range, the jury weights and the board limits, all citing brief clauses. Leave the jury-weights metric as team_assumption until a person has opened the PDF and reviewed the cards. Re-point the M08 typical-case sources to the brief."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M06",
+   "issue": "Normalising OpenAI citations by string match will not work. In the OpenAI Responses API, file_citation.index is 'the index in the output text at which to insert the file citation'. It is not an offset into the source, and the annotation carries no quoted text. There is therefore nothing to match, so OpenAI-route claims can never reach clause level or become 'verified'. The +4-day normaliser estimate assumes a capability that does not exist.",
+   "fix": "For OpenAI, either (a) skip file_search and send Docling clause passages inline, asking for verbatim quotes in a strict json_schema field and then exact-matching each quote in code; or (b) set include:['file_search_call.results'] and align claims to the returned chunks, with a fuzzy-match tolerance. Report OpenAI-route claims as UNVERIFIED until they resolve. Re-estimate the normaliser effort."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M03",
+   "issue": "There are two kinds of 'verified'. CitedClaim.support = 'verified' comes from an exact-string re-find plus a cheaper LLM entailment call. Flag 'verified' requires a source plus human review (M03). Anthropic guarantees that pointers are valid, not that the quote entails the claim. A machine entailment check labelled 'verified' would let LLM judgments show as human-reviewed truth.",
+   "fix": "Rename the support values to {anchored, machine_entailed, not_supported}. Cap any LLM-only claim at UNVERIFIED in the flag system until a person accepts it. The 'verified' chip should only appear when a reviewer id is present."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M06 / notes privacy rules",
+   "issue": "The privacy rules leave out important retention facts. OpenAI keeps Responses application state for 30 days by default (store omitted or true). This is separate from the 30-day abuse logs, and vector stores, files and batches are not ZDR-eligible. Anthropic keeps flagged inputs/outputs for up to 2 years and feedback data for 5 years. Batch is not ZDR-eligible (29-day retention). Covered Models require 30-day retention. The spec routes evaluation and bulk ingest to batch and says only '30 days'.",
+   "fix": "Have the adapter set store:false on every OpenAI Responses call and never send feedback ratings to providers. Use batch only for public-source text and planted test data. Add a per-provider retention table to the CapabilityMatrix covering inference, batch, files/vector stores, flagged content and feedback. Add a scheduled job that deletes provider files and vector stores, logging each deletion."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M03",
+   "issue": "The state machine is underspecified at the point that matters most. FALSE ASSUMPTION is 'a terminal marker, not a rank', so propagation from a FALSE input to downstream results is undefined. A 'later contradicting source' moves a value straight to FALSE ASSUMPTION, which bypasses human review, although the human_judgment section says the tool never changes status on its own. The 'under review' state is mixed into the same enum as legal force: the Higher Buildings Policy is in force and under review at the same time.",
+   "fix": "Define: any result with a FALSE input gets the badge 'depends on FALSE ASSUMPTION' (blocking export to boards). A contradicting source moves a value to UNRESOLVED, and only a reviewer can set FALSE ASSUMPTION. Split document status into legal_force {in force, superseded, draft, reference-only} and review_state {none, under review}. Document why unresolved ranks below unverified."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01",
+   "issue": "Retrieval uses 'keyword plus embeddings', but no embedding model or provider is named. Anthropic offers no embeddings endpoint, so this hides a third-party data flow, a cost line and a licence decision. OWASP LLM08 (vector and embedding weaknesses) is cited but not addressed.",
+   "fix": "Name the embedding route: a local open-weight model (preferred for privacy and licence) or the OpenAI embeddings API with retention noted. Add it to the M06 price table and to the data-class policy. Store embedding model id and version in the Passage record so the index can be rebuilt reproducibly."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M06",
+   "issue": "Prompt injection appears only as an M08 test case. The pipeline itself has no mitigation, even though documents and modules come from a GitHub-like community (uploads, forks). An ingested PDF could steer answers, rule-card extraction or the entailment judge.",
+   "fix": "Specify concrete controls: no tools in cited-QA and extraction calls; document content goes only in document/search_result blocks, never in the system prompt; outputs are schema-validated; the LLM can never write flag status; provenance records the uploader of every document; community-uploaded documents default to 'reference-only, untrusted' until a maintainer reviews them. Add a canary-instruction scan at ingest."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M07",
+   "issue": "Route A covers only the read-only commands, but the codex-plugin-cc README also lists /codex:rescue and /codex:transfer, which delegate tasks that can modify code. It also warns the review gate 'may drain usage limits quickly'. The Codex docs advise against ChatGPT-managed auth for public or open-source repositories in automation, and this project is open source. Claude Code loads project-scoped .mcp.json servers without approval in `claude -p`, Agent SDK and cloud sessions.",
+   "fix": "Allow-list only /codex:review and /codex:adversarial-review. Require workspace-write and a separate branch or worktree for rescue/transfer. Turn off the review gate by default. Use per-person API keys, not ChatGPT sign-in, for any scripted or CI use. Forbid `claude -p` and CI runs from loading project MCP servers unless they are pinned in settings."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01",
+   "issue": "The clause granularity can be lost silently. If Docling clauses are sent as plain-text documents, Claude re-chunks them into sentences. char_location offsets are relative to each passage sent, not to the stored source. The 100% exact-match anchor target will also fail on ligatures, hyphenation and whitespace when the extractors differ.",
+   "fix": "Send one clause per content block (custom content or search_result blocks), map offsets back via a passage-to-source offset table, and define a normalisation spec (Unicode NFKC, de-hyphenation, whitespace collapse) applied before matching."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M06",
+   "issue": "The caching rule '<512 tokens (5.x models) not cached' is wrong for Claude Sonnet 5, which needs 1,024 tokens. Caches are also isolated per workspace, not only per organisation.",
+   "fix": "Store the minimum cacheable length per model id in the versioned price/capability table instead of per family. Note workspace isolation."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M06",
+   "issue": "The price table is incomplete. OpenAI cached input is missing (e.g. gpt-6.1-sol $0.10/MTok). The OpenAI long-context surcharge above 272K input tokens is missing. File search costs $2.50 per 1k calls and vector storage $0.10/GB-day, and neither is listed. The Haiku 5.5 long-context output price ($2.50) is missing, and the 100K threshold counts cache reads.",
+   "fix": "Add these rows to the versioned price table and include file-search and storage costs in the cost-per-cited-answer formula."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M03",
+   "issue": "The palette presets need checking. Orange #E69F00 on white is about 2.2:1, below the 3:1 that the spec itself requires. The Okabe-Ito page is internally inconsistent: it gives vermilion as 'RGB=100%,32%,0% or #FF2000', but 32% green is about #FF5200. Orange and vermilion are close hues, so they rely on the hatching.",
+   "fix": "Use a darker team-assumption tone or a dark outline (at least 3:1) in the light theme. Record the hex source as a team preset, not as Okabe-Ito. Test all five chips in both themes in CI."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01",
+   "issue": "The spec says the W3C Web Annotation model states that TextQuoteSelector 'survives re-pagination'. The Recommendation does not mention pagination. It says TextPositionSelector is 'very brittle' to edits and that prefix/suffix disambiguate repeated strings.",
+   "fix": "Reword the basis to match the source and keep 'survives re-pagination' as a team rationale."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M05 / P16-M08",
+   "issue": "Several source ids are wrong. M05 'Normalisation' cites P16-S03 (Claude pricing). The M08 typical-case basis cites S37 for brief facts. The M04 TARa@N metric requires re-running LLM steps, which contradicts M04's own 'replay stored output, do not re-run' principle.",
+   "fix": "Correct the source ids. Move TARa@N to M08 only, and in M04 measure 'stored output present for every LLM step'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M08",
+   "issue": "The suite cost leaves out the LLM-judge calls, the M01 entailment calls and the N=3 per-provider extraction samples. The core subset is 12 cases, while the cost example assumes 40. The Inspect reducer is named 'at_least', but the documented names are at_least_{n} and pass_at_{k}.",
+   "fix": "Recompute cost with judge and entailment calls included, give figures for both the 12-case core and the 40-case v1, and use the documented reducer names."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M07",
+   "issue": "The Codex CLI licence is marked unverified, but the openai/codex repository states Apache-2.0. Its Windows install option pipes a remote script (irm | iex). GitHub push protection covers only recent token versions, and default enablement is not stated.",
+   "fix": "Record Codex as Apache-2.0. Install on Windows via `npm install -g @openai/codex` with a pinned version. Turn on push protection for the repo explicitly and add a local pre-commit secret scanner."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "packet",
+   "issue": "Priority labels conflict with the stated 13 Nov cut. Core items total 18-22 person-days, and 23 calendar days remain for two students who also have other packets. M02's LLM extraction and the OpenAI normaliser are still listed within core effort.",
+   "fix": "Relabel priorities to match the cut: M01 without the provider normaliser, M02 manual cards only, M03, the M04 log, and M07 config as core; everything else v1. Show the burn-down against 13 Nov."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "OpenAI file_search citations (file_id, filename, text index) can be re-anchored to clause level by string match.",
+   "why_false": "The index is a position in the model's output text, not in the source, and the annotation contains no quoted text to match.",
+   "correction": "Request include:['file_search_call.results'] and align to the returned chunks, or have OpenAI return verbatim quotes in strict JSON over passages sent inline, then exact-match the quotes in code.",
+   "evidence": "https://developers.openai.com/api/reference/resources/responses/methods/create : FileCitation 'index' = 'The index in the output text at which to insert the file citation'. https://developers.openai.com/api/docs/guides/tools-file-search : annotations have no quoted text; search results are null unless included."
+  },
+  {
+   "claim": "Exceeding the Higher Buildings Policy 'may be considered' 600 ft (183 m) height is discretionary and returns 'needs justification', not a breach.",
+   "why_false": "The City FAQ calls 600 ft a ceiling within the policy area: buildings up to it may be considered, and towers above it 'exceed the policy's height limits'.",
+   "correction": "Below 183 m: permission (discretionary). Above 183 m: breach of the policy ceiling. Because the brief allows justified breaches, log it as a justified-departure record, not as discretionary compliance.",
+   "evidence": "https://shapeyourcity.ca/higher-buildings/faqs : '600 ft (183 m) height ceiling applies'; the Bay Parkade towers (783/889/1,034 ft) exceed the policy's height limits."
+  },
+  {
+   "claim": "LegalRuleML strict / defeasible / defeater correspond to deontic strength shall / should / may.",
+   "why_false": "LegalRuleML defines strict/defeasible/defeater as rule strength (defeasibility). Deontic specifications are Obligation, Prohibition, Permission and Right.",
+   "correction": "Keep two separate fields: deontic_type and strength.",
+   "evidence": "https://docs.oasis-open.org/legalruleml/legalruleml-core-spec/v1.0/legalruleml-core-spec-v1.0.html sections 3.4, 4.2.1 and 4.2.3."
+  },
+  {
+   "claim": "Prompts under 512 tokens are not cached on 5.x models (that is, all 5.x models have a 512 minimum).",
+   "why_false": "Claude Sonnet 5 has a 1,024-token minimum; 512 applies to Opus 5.5, Opus 5, Sonnet 5.5, Haiku 5.5, Fable/Mythos 5 and 5.1.",
+   "correction": "Keep the minimum cacheable length per model id in the capability table.",
+   "evidence": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching : the 1,024-token list includes Claude Sonnet 5."
+  },
+  {
+   "claim": "The provider retention to plan for is Anthropic 30-day deletion and OpenAI 30-day abuse-monitoring logs.",
+   "why_false": "OpenAI also keeps Responses application state for 30 days by default (store omitted or true). Anthropic keeps flagged content for up to 2 years and feedback for 5 years. Anthropic Batch has 29-day retention and is not ZDR-eligible.",
+   "correction": "Set store:false; avoid feedback endpoints; batch only public or planted data; add a per-feature retention table.",
+   "evidence": "https://developers.openai.com/api/docs/guides/your-data ; https://privacy.claude.com/en/articles/7996866 ; https://platform.claude.com/docs/en/manage-claude/api-and-data-retention (Batch: 29-day retention, ZDR No)."
+  },
+  {
+   "claim": "The jury weights 40/30/20/10 are 'verified'.",
+   "why_false": "No source id is attached, and the brief PDF is not in the source register. Under the packet's own rule, verified requires a source plus a reviewer.",
+   "correction": "Add the VTC brief as a source and review the card; until then the status is team_assumption or unverified.",
+   "evidence": "In the spec, P16-M05 metric 'Jury weights sum' has source_ids [] with the basis 'PDF not re-opened by this packet'."
+  },
+  {
+   "claim": "The W3C Web Annotation model establishes that TextQuoteSelector survives re-pagination.",
+   "why_false": "The Recommendation does not mention pagination. It states only that TextPositionSelector is brittle to edits and that prefix/suffix disambiguate repeated strings.",
+   "correction": "Present 'survives re-pagination' as team reasoning.",
+   "evidence": "https://www.w3.org/TR/annotation-model/ (Recommendation, 23 Feb 2017), Text Quote and Text Position Selector sections."
+  },
+  {
+   "claim": "The Okabe-Ito page gives vermilion as #FF2000 (a reliable hex anchor).",
+   "why_false": "The page gives 'RGB=100%,32%,0% or #FF2000', and the two values disagree (32% green is about #FF5200).",
+   "correction": "Treat all palette hexes, vermilion included, as team presets checked for contrast.",
+   "evidence": "https://jfly.uni-koeln.de/color/"
+  },
+  {
+   "claim": "The Codex CLI licence is unverified.",
+   "why_false": "The openai/codex repository states Apache-2.0.",
+   "correction": "Record Apache-2.0 and pin the version.",
+   "evidence": "https://github.com/openai/codex README Docs section."
+  }
+ ],
+ "missing": [
+  "The VTC brief itself as a KB Document, with clause-level rule cards for the 9.0 FSR non-residential minimum, the 244-305 m range, jury weights, board limits and the anonymity rule.",
+  "View-protection documents (Council-approved view cones, including the Queen Elizabeth Park view the brief requires) as KB documents. The FAQ does not cover them, so they need their own source.",
+  "Embedding model/provider choice, cost, retention and index versioning.",
+  "A per-provider retention and ZDR matrix by feature (inference, batch, files/vector stores, flagged content, feedback, Responses store) plus a deletion job.",
+  "OpenAI store:false default and data-residency choice (Canada is not a regional-processing option per OpenAI; relevant if BC FIPPA applies via UBC).",
+  "Prompt-injection controls in the pipeline (not only tests), and a trust level for community-uploaded documents and modules.",
+  "Sandboxing and budget isolation for community or forked modules that call the LLM adapter with the user's keys (key abuse, cost drain).",
+  "Propagation rule for results that depend on a FALSE ASSUMPTION, and export blocking.",
+  "Separate legal_force and review_state fields for documents.",
+  "A licence and copyright register for City of Vancouver documents before upload to provider stores.",
+  "Stripping of anonymised-board metadata (PDF/PNG XMP author fields, file names, embedded trace ids), not only author names.",
+  "Provider outage and rate-limit fallback (degraded mode: show stored citations, no new LLM calls).",
+  "A per-model capability table (cache minimum, citations, structured-output limits such as 24 optional params and 16 union params, no numeric constraints).",
+  "A policy on disclosing AI use in VTC entries (unresolved) and an export of an AI-use statement from the M04 trace.",
+  "Relationship: chunk granularity -> anchor resolution and claim support on the HBP text, to be measured once the PDF is obtainable (currently HTTP 403).",
+  "Note that the web search budget ran out during this review; the OpenAI pricing, OpenAI data controls and Codex pages were opened through WebFetch summaries only."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Redesign the rule-card schema with separate deontic_type and strength fields, and correct the HBP 183 m example and the M08 boundary answer to 'ceiling breach -> justified departure'.",
+   "Add the VTC brief as a source document; no metric or card may be 'verified' with empty source_ids; fix the misattributed source ids (M05, M08).",
+   "Replace the OpenAI string-match re-anchoring with a feasible route (include file_search results or inline passages with verbatim-quote JSON) and re-estimate the effort.",
+   "Separate machine entailment from human 'verified' status; LLM-only support is capped at UNVERIFIED.",
+   "Define propagation and export blocking for FALSE ASSUMPTION dependants; contradicting sources go to UNRESOLVED pending review.",
+   "Add privacy controls: OpenAI store:false, a per-feature retention table, batch limited to public or planted data, and a named embedding provider.",
+   "Add pipeline prompt-injection controls and restrict the Codex plugin to read-only commands by default."
+  ]
+ },
+ "verdict": "Not ready to pass. Most of the API facts check out against the live documentation: Claude citations and structured outputs conflict (HTTP 400), Claude prices and cache multipliers are correct, the codex mcp-server removal is real, and the Codex exec, plugin and Docs MCP details are accurate. Three design-level errors remain. First, the flagship rule card misreads the Higher Buildings Policy's 183 m ceiling as discretionary and conflates LegalRuleML strength with deontic type. Second, the VTC brief is missing from the sources while brief facts are marked verified. Third, OpenAI citations cannot be string-matched to clauses because the index points into the model's output text. The privacy rules also miss OpenAI's 30-day Responses storage and Anthropic's retention exceptions. Machine entailment is labelled 'verified', and FALSE ASSUMPTION propagation is undefined. All of these can be fixed within round 2.",
+ "sources_checked": [
+  {
+   "source_id": "P16-S01",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "ok": true,
+   "note": "Confirmed: all-or-none rule, HTTP 400 with structured outputs, sentence chunking, cited_text free, valid pointers guaranteed, works with caching and batch."
+  },
+  {
+   "source_id": "P16-S03",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "ok": true,
+   "note": "Confirmed Sonnet 5.5 $2/$10, Opus 5.5 $4/$20, Haiku 5.5 $0.10/$0.50 (over 100K: $0.50/$2.50), 0.05x cache reads on Sonnet/Opus 5.5, batch 50%, ~30% tokenizer increase. The $0.12/$0.15/$0.006 worked example is correct."
+  },
+  {
+   "source_id": "P16-S04",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+   "ok": false,
+   "note": "Mostly correct, but Sonnet 5 needs 1,024 tokens, not 512; caches are also isolated per workspace."
+  },
+  {
+   "source_id": "P16-S05",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+   "ok": true,
+   "note": "No numeric, string-length or recursive constraints; refusal and max_tokens can break the schema; limit of 24 optional params and 16 union params not mentioned in the spec."
+  },
+  {
+   "source_id": "P16-S07",
+   "url": "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+   "ok": true,
+   "note": "Batch: 29-day retention, not ZDR; Files API: not ZDR; Covered Models require 30-day retention; citations and search results are ZDR-eligible."
+  },
+  {
+   "source_id": "P16-S08",
+   "url": "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data",
+   "ok": true,
+   "note": "30-day deletion confirmed; the spec omits flagged content (up to 2 years) and feedback (5 years)."
+  },
+  {
+   "source_id": "P16-S10",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": true,
+   "note": "gpt-6.1-sol, luna and astra prices confirmed (via summary). Missing from the spec: cached input, long-context surcharge above 272K, file search $2.50/1k calls, storage $0.10/GB-day."
+  },
+  {
+   "source_id": "P16-S12",
+   "url": "https://developers.openai.com/api/docs/guides/tools-file-search",
+   "ok": false,
+   "note": "Annotations carry no quote; the index meaning comes from the API reference (position in the output text). Re-anchoring by string match is not possible as written."
+  },
+  {
+   "url": "https://developers.openai.com/api/reference/resources/responses/methods/create",
+   "ok": true,
+   "note": "FileCitation.index = 'The index in the output text at which to insert the file citation'."
+  },
+  {
+   "source_id": "P16-S14",
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "ok": true,
+   "note": "Abuse logs up to 30 days; Responses application state 30 days by default; vector stores, files and batches not ZDR-eligible; data residency needs approval."
+  },
+  {
+   "source_id": "P16-S15",
+   "url": "https://learn.chatgpt.com/docs/mcp-server",
+   "ok": true,
+   "note": "Removal of codex mcp-server confirmed; no version or date; replacement app server is JSON-RPC, experimental."
+  },
+  {
+   "source_id": "P16-S16",
+   "url": "https://learn.chatgpt.com/docs/non-interactive-mode.md",
+   "ok": true,
+   "note": "Read-only default, per-invocation CODEX_API_KEY, --json JSONL output, danger-full-access only in an isolated environment; ChatGPT auth not for public repos in automation."
+  },
+  {
+   "source_id": "P16-S17",
+   "url": "https://developers.openai.com/learn/docs-mcp.md",
+   "ok": true,
+   "note": "URL and add command confirmed; auth not documented."
+  },
+  {
+   "source_id": "P16-S18",
+   "url": "https://github.com/openai/codex-plugin-cc",
+   "ok": true,
+   "note": "Apache-2.0; install commands confirmed; also lists /codex:rescue and /codex:transfer (write-capable delegation), which the spec omits; review-gate usage warning."
+  },
+  {
+   "source_id": "P16-S20",
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Credential variables read as empty in remote url/headers; local scope is the default; project servers load without approval in -p, SDK and cloud sessions."
+  },
+  {
+   "source_id": "P16-S23",
+   "url": "https://docs.github.com/en/code-security/reference/secret-security/supported-secret-scanning-patterns",
+   "ok": true,
+   "note": "Both providers' patterns are push-protected; only recent token versions are covered."
+  },
+  {
+   "source_id": "P16-S28",
+   "url": "https://www.w3.org/TR/annotation-model/",
+   "ok": false,
+   "note": "Does not say 'survives re-pagination'; says TextPositionSelector is 'very brittle'."
+  },
+  {
+   "source_id": "P16-S29",
+   "url": "https://docs.oasis-open.org/legalruleml/legalruleml-core-spec/v1.0/legalruleml-core-spec-v1.0.html",
+   "ok": false,
+   "note": "strict/defeasible/defeater are strength, not deontic operators; the spec conflates them."
+  },
+  {
+   "source_id": "P16-S30",
+   "url": "https://arxiv.org/abs/2606.22402",
+   "ok": true,
+   "note": "Hallucinated-rules statement and 'up to 23.8%' tree-edit-distance reduction confirmed (abstract)."
+  },
+  {
+   "source_id": "P16-S33",
+   "url": "https://arxiv.org/abs/2405.20362",
+   "ok": true,
+   "note": "17-33% confirmed; arXiv v1 preprint."
+  },
+  {
+   "source_id": "P16-S34",
+   "url": "https://arxiv.org/abs/2408.04667",
+   "ok": true,
+   "note": "Up to 15% variation, 70% gap, 10 runs, TARr@N and TARa@N confirmed; v5 April 2025."
+  },
+  {
+   "source_id": "P16-S35",
+   "url": "https://arxiv.org/abs/2305.14627",
+   "ok": true,
+   "note": "'lack complete citation support 50% of the time' on ELI5 confirmed."
+  },
+  {
+   "source_id": "P16-S37",
+   "url": "https://shapeyourcity.ca/higher-buildings/faqs",
+   "ok": false,
+   "note": "Dates and timeline confirmed, but the FAQ calls 600 ft a ceiling and says the Bay Parkade towers exceed the limits; the spec's discretionary reading is wrong. The FAQ does not support the brief facts cited to it in M08."
+  },
+  {
+   "source_id": "P16-S41",
+   "url": "https://jfly.uni-koeln.de/color/",
+   "ok": false,
+   "note": "Only vermilion has a value, and it is internally inconsistent (RGB 100/32/0 vs #FF2000)."
+  },
+  {
+   "source_id": "P16-S51",
+   "url": "https://inspect.aisi.org.uk/options.html",
+   "ok": true,
+   "note": "Reducers are mean, median, mode, max, at_least_{n}, pass_at_{k}, pass_k_{k}."
+  },
+  {
+   "url": "https://github.com/openai/codex",
+   "ok": true,
+   "note": "Codex CLI is Apache-2.0; Windows PowerShell installer pipes a remote script; npm install is available."
+  }
+ ]
+}

@@ -1,0 +1,303 @@
+{
+ "expert_role": "Senior open-source developer auditing repositories for reuse (licence, maturity, real function)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "GenEnv/Thermal-Sandbox-Web (missed)",
+   "issue": "The research says GenEnv has 9 repos but never covers Thermal-Sandbox-Web (pushed 2026-07-21, no licence, live at genenv.github.io/Thermal-Sandbox-Web). This instructor-org web app is the most relevant one for our sun and energy modules. Two JSON files drive the whole app: geometry taken from .3dm, and Ladybug/Radiance annual irradiance at about 20k points from an EPW. The app compares a baseline with a scenario point by point and shows unit provenance (kWh/m2/yr, solar reduction = 1 - load/GHI).",
+   "fix": "Add it as a core reference for the sun/shadow and energy nodes. The pattern is to precompute with Ladybug in Python, emit typed JSON and render in the browser. Copy its meta/provenance block into our output schema. Ask Xun for a licence before reusing any code. Note that the site is Winnipeg, not Vancouver."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Licence status of course and student repos",
+   "issue": "The research flags licences as UNVERIFIED. I checked them: the GitHub API reports license=null, and there is no LICENSE, LICENSE.md or LICENSE.txt at the root of Arch540_2026, arch540-a1-toolkit, xubynii/dtmass, clcabana/massing-studio or xunliuDesign/AI4GH. Every GenEnv repo except rhino-gh-mcp also reports no licence. By default this means all rights are reserved, and the 13 Nov deadline leaves little time to wait for permission.",
+   "fix": "Upgrade the flag to a verified 'no licence'. Email Xun and each author now and ask for MIT. Set a fallback date (e.g. 1 Nov): if there is no reply by then, re-derive rules from the cited bylaws and use the repos only as a reading list of sources, with no copied code or tables."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Vista (RuijieLiu6/vancouver-tall-view-tool)",
+   "issue": "The research treats Vista as a classmate's tool that needs consent. The owner, Ruijie Liu (RuijieLiu6), appears to be a member of this team (it matches the requesting user's account). If so, the team can licence it themselves; right now it has no licence (last push 2026-10-02).",
+   "fix": "Confirm ownership. Then add an MIT LICENSE to Vista and reclassify it as an internal asset, the first port for the view-corridor node. This removes one consent dependency."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "text-to-cad Windows/Python risk",
+   "issue": "The research leaves two compatibility questions open, and both are partly answered. First, the plugin pins uv-managed Python 3.13 (cadgen==0.7.26), so the system Python version barely matters, but uv must be installed and it is not on this machine. Second, Smart App Control: the README says it has no per-app exception and that turning it off can only be undone by reinstalling Windows. On this machine it is already off (VerifiedAndReputablePolicyState=0), but teammates' machines are unknown, and WSL is not installed here. The research also misses the daily update check (api.texttocad.dev, CADGEN_UPDATE_CHECK=0).",
+   "fix": "Before any pilot, each teammate checks their own Smart App Control state. Do not ask anyone to turn it off; use WSL instead if it is on. Set CADGEN_TELEMETRY=0 and CADGEN_UPDATE_CHECK=0 in the team env. Install uv once."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "text-to-cad as v1 massing generator",
+   "issue": "text-to-cad's skills are mechanical (STEP parts, URDF, G-code, Bambu printing, DFM). Tower massing is mostly extruded floor plates, which needs no B-rep kernel. text-to-cad cannot write .3dm or IFC, which the platform's import/export path needs. Running it as a v1 node adds a CAD kernel and Node.",
+   "fix": "Move text-to-cad to the roadmap. For the v1 AI massing node, have Claude write a small Python generator: shapely for the floor plates, trimesh to export GLB, and rhino3dm (MIT) to write .3dm. Use the same deterministic-evaluator contract as Arch540."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Integration advice skews to desktop Rhino",
+   "issue": "The product is browser-based, but the integration paths recommended (rhino-gh-mcp, rhinomcp, RhinoAI) all need a licensed Rhino 8 session. The packet does not say that these are dev and Rhino-user conveniences, not the web import path. That path needs browser libraries (e.g. rhino3dm.js, web-ifc / That Open Engine, a node-canvas library such as xyflow/React Flow). I did not re-verify these in this round because the search budget was exhausted.",
+   "fix": "Mark the Rhino MCPs as 'optional bridge for Rhino users'. Hand the browser import, IFC and node-canvas libraries to the relevant packets, with licence checks."
+  },
+  {
+   "severity": "MINOR",
+   "item": "xunliuDesign account facts",
+   "issue": "The claim 'newest own repo update 11 Jun 2026 (false-creek-2100)' is wrong: des212-2026 was pushed 2026-07-17. Two of the 15 repos are forks (NotionNext, nextjs-notion-starter-kit, both MIT). des212-2026 is never mentioned, nor is GenEnv/des212-2026, a public UBC DES 212 Grasshopper course archive with .gh/.3dm tutorials.",
+   "fix": "Correct last_activity to 2026-07-17 (des212-2026) and note the 13 own repos versus 2 forks. Add des212-2026 as an onboarding resource for teammates learning Grasshopper."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Missing last-activity dates",
+   "issue": "Dates the packet lists as 'not shown' are available from the API: rhinomcp 2026-10-16, RhinoAI 2026-10-20, skills-for-architects 2026-10-20, anatomy-community 2026-10-20, Physalia 2026-09-10, dtmass/Vista/massing-studio 2026-10-02, codex-plugin-cc 2026-07-08. The codex-plugin-cc date means no push in about 3.5 months.",
+   "fix": "Fill in the dates. Note the slower cadence of codex-plugin-cc, and pin its version if it is adopted."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Node version requirement",
+   "issue": "For anatomy, the packet says Node 20.10+, but its README says the skills CLI 1.7.1 used to install it needs Node 22.20+. Hairline's monorepo declares engines node>=22. Neither Node nor uv is installed on this machine.",
+   "fix": "Install the current Node 22+ LTS and uv once (via winget) before any of the three tools. Record the versions in the project README."
+  },
+  {
+   "severity": "MINOR",
+   "item": "anatomy tier sizing for architecture",
+   "issue": "anatomy's SKILL.md defines Epic (6 hours or more, do not start without asking) as 'a whole vehicle, building or plant'. Any request for a tower explainer is likely to be classed as Epic. The '1h54m flagship' figure comes from one blog and is unverified.",
+   "fix": "Allow only single-mechanism Figure-tier subjects (e.g. a sun-path dial, a stack-effect shaft section) with an explicit time and token cap. Never ask for 'the tower'."
+  },
+  {
+   "severity": "MINOR",
+   "item": "anatomy-community licence",
+   "issue": "The packet records 'MIT'. GitHub reports the repo licence as NOASSERTION, and each figure is MIT or CC-BY-4.0. The licence of the CI/sandbox tooling you plan to copy is not established at repo level.",
+   "fix": "Read the repo's LICENSE and CONTRIBUTING before copying workflow files. Record per-file licences in the reuse log."
+  },
+  {
+   "severity": "MINOR",
+   "item": "hairline version drift",
+   "issue": "The GitHub description still says 'Six isometric line figures', while the README and package.json say thirty-three, so the metadata lags the code. With a single maintainer, a 3-week-old project and frequent releases, breaking changes are likely.",
+   "fix": "Pin hairline to an exact version (e.g. 0.5.1). Vendor the 3-5 chosen figures, or the hairline-create HTML output, rather than tracking latest."
+  },
+  {
+   "severity": "MINOR",
+   "item": "RhinoAI version claim",
+   "issue": "The README does not state which Rhino version is supported. The packet's 'Rhino 9.x branch' note implies a possible Rhino 9 WIP dependency, which the team may not have.",
+   "fix": "Confirm whether RhinoAI supports Rhino 8 before listing it as an alternative. Keep it on the roadmap until then."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Social-media and forum evidence",
+   "issue": "The user explicitly asked for social-media comment research. The packet has none of substance, and my search budget was also exhausted, so the hype versus real use of the three tools (anatomy went from 6.5k to 17.8k stars in about a week) is still uncorroborated.",
+   "fix": "Run a follow-up search (HN, Reddit r/ClaudeAI and r/architecture, X, McNeel forum) in a later turn, with a fresh search budget."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Unopened starred repos",
+   "issue": "liyupi/ai-guide, from Xun's 20 stars, is missing from the unresolved list. Other agent-tutorial stars are listed but unopened.",
+   "fix": "Add it to unresolved. It is low priority unless the team needs agent tutorials."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Newest own xunliuDesign repo update is 11 Jun 2026 (false-creek-2100).",
+   "why_false": "The API shows des212-2026 pushed later.",
+   "correction": "The newest own repo is des212-2026, pushed 2026-07-17 (AI4GH is from 2025-11-12). 2 of the 15 repos are forks.",
+   "evidence": "api.github.com/users/xunliuDesign/repos, pushed_at fields"
+  },
+  {
+   "claim": "The GenEnv repo set reviewed covers the org's relevant tools.",
+   "why_false": "Two of the 9 public repos were not mentioned, and one of them is directly relevant to the sun/energy modules.",
+   "correction": "Add GenEnv/Thermal-Sandbox-Web (Ladybug irradiance JSON driving a web viewer) and GenEnv/des212-2026 (Grasshopper course archive).",
+   "evidence": "api.github.com/orgs/GenEnv/repos; READMEs of both repos"
+  },
+  {
+   "claim": "Vista is a classmate's tool that needs author consent.",
+   "why_false": "Owner RuijieLiu6 (Ruijie Liu) appears to be a member of the requesting team.",
+   "correction": "Treat Vista as an internal asset and add a LICENSE now. Consent is self-granted once ownership is confirmed.",
+   "evidence": "github.com/RuijieLiu6/vancouver-tall-view-tool owner; requesting user's account identity"
+  },
+  {
+   "claim": "Course and student repo licences are only unverified because file listings were truncated.",
+   "why_false": "A direct check found no licence files and no licence detected by the API.",
+   "correction": "Verified: no licence on Arch540_2026, arch540-a1-toolkit, dtmass, massing-studio, Vista or AI4GH, nor on any GenEnv repo except rhino-gh-mcp. Default is all rights reserved.",
+   "evidence": "HTTP 404 for LICENSE, LICENSE.md and LICENSE.txt via raw.githubusercontent.com HEAD; API license=null"
+  },
+  {
+   "claim": "Python 3.13 compatibility of text-to-cad is unknown, and Smart App Control may block it on our machines.",
+   "why_false": "The plugin pins uv-managed Python 3.13 itself, and Smart App Control is already off on this machine.",
+   "correction": "Remaining requirements: install uv, and check Smart App Control per teammate (WSL if on). Turning it off cannot be undone without reinstalling Windows, so do not recommend that.",
+   "evidence": "text-to-cad README (args --managed-python --python 3.13 cadgen==0.7.26; Smart App Control section); registry VerifiedAndReputablePolicyState=0"
+  },
+  {
+   "claim": "anatomy needs Node 20.10+.",
+   "why_false": "The documented install path (skills CLI 1.7.1) needs a newer Node.",
+   "correction": "Install Node 22.20+ (current LTS). Hairline also declares node>=22.",
+   "evidence": "anatomy README install section; hairline package.json engines"
+  },
+  {
+   "claim": "anatomy-community is MIT-licensed.",
+   "why_false": "GitHub reports the repo licence as NOASSERTION; figures are MIT or CC-BY-4.0 individually.",
+   "correction": "Check the licence of the tooling and CI files before copying the submission pipeline.",
+   "evidence": "api.github.com/repos/wheresryan22/anatomy-community license.spdx_id=NOASSERTION; README contribution section"
+  }
+ ],
+ "missing": [
+  "GenEnv/Thermal-Sandbox-Web and GenEnv/des212-2026 analysis",
+  "Social-media/forum corroboration for hairline, anatomy, text-to-cad (search budget exhausted again this round)",
+  "Any statement by Xun on why she shared the three tools (only stars are verified)",
+  "Browser-side import and canvas libraries (rhino3dm.js, web-ifc/That Open, xyflow) as the real integration path for a web platform; licences unverified this round",
+  "Per-teammate environment check: Node 22+, uv, Smart App Control state, WSL",
+  "A dated fallback plan if licence permission from Xun or authors does not arrive before core due 13 Nov",
+  "RhinoAI supported Rhino version",
+  "11 unread arch540-a1-toolkit cards (carried over)"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Add Thermal-Sandbox-Web as a core reference for the sun/energy nodes",
+   "Mark all GenEnv (except rhino-gh-mcp) and student repos as verified no-licence; send permission emails now with a fallback date of 1 Nov",
+   "Confirm Vista ownership and add a LICENSE to it",
+   "Downgrade text-to-cad to roadmap; use shapely/trimesh/rhino3dm for the v1 massing node",
+   "Install Node 22+ LTS and uv before trying any of the three tools; check Smart App Control per machine and never ask anyone to disable it",
+   "Correct the xunliuDesign last-activity and fork facts and fill in the missing dates"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://api.github.com/repos/lucasmarkes/hairline",
+   "ok": true,
+   "note": "MIT, 2551 stars, pushed 2026-10-14; description still says 'Six'"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/lucasmarkes/hairline/HEAD/README.md",
+   "ok": true,
+   "note": "33 figures, shadcn registry, hairline-create/adopt skills, reduced-motion, shared rAF loop"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/lucasmarkes/hairline/HEAD/package.json",
+   "ok": true,
+   "note": "engines node>=22, pnpm 10.20"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/lucasmarkes/hairline/HEAD/skills/hairline-create/SKILL.md",
+   "ok": true,
+   "note": "look.mjs installs playwright-core; has a no-Node fallback"
+  },
+  {
+   "url": "https://api.github.com/repos/wheresryan22/anatomy",
+   "ok": true,
+   "note": "MIT, 17782 stars, pushed 2026-10-18"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy/HEAD/README.md",
+   "ok": true,
+   "note": "skills CLI needs Node 22.20+; A4 PDFs; audit.mjs, lines.mjs"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy/HEAD/SKILL.md",
+   "ok": true,
+   "note": "Figure/Hero/Epic tiers; building counts as Epic, 6h+"
+  },
+  {
+   "url": "https://api.github.com/repos/wheresryan22/anatomy-community",
+   "ok": true,
+   "note": "licence NOASSERTION, pushed 2026-10-20"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy-community/HEAD/README.md",
+   "ok": true,
+   "note": "sandbox CI, determinism, per-figure MIT/CC-BY-4.0"
+  },
+  {
+   "url": "https://api.github.com/repos/earthtojake/text-to-cad",
+   "ok": true,
+   "note": "MIT, 22052 stars, pushed 2026-10-20"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/earthtojake/text-to-cad/HEAD/README.md",
+   "ok": true,
+   "note": "uv-managed Py 3.13 pin, telemetry default on, update check, Smart App Control section, mechanical skill list"
+  },
+  {
+   "url": "https://github.com/xunliuDesign?tab=stars",
+   "ok": true,
+   "note": "20 stars; anatomy, hairline, text-to-cad are the top three"
+  },
+  {
+   "url": "https://api.github.com/users/xunliuDesign/repos",
+   "ok": true,
+   "note": "15 repos incl. 2 forks; des212-2026 newest (2026-07-17); none licensed except forks"
+  },
+  {
+   "url": "https://api.github.com/orgs/GenEnv/repos",
+   "ok": true,
+   "note": "9 repos; Thermal-Sandbox-Web and des212-2026 missed by the research"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Thermal-Sandbox-Web/HEAD/README.md",
+   "ok": true,
+   "note": "Ladybug/Radiance irradiance JSON driving a web viewer; Winnipeg site"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/des212-2026/HEAD/README.md",
+   "ok": true,
+   "note": "DES 212 Grasshopper course archive"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/rhino-gh-mcp/HEAD/README.md",
+   "ok": true,
+   "note": "v0.2.6, Rhino 8 only, five Scenarios confirmed; MIT"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/HEAD/README.md",
+   "ok": true,
+   "note": "agents_demo is a folder; no LICENSE file"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/xunliuDesign/AI4GH/HEAD/README.md",
+   "ok": true,
+   "note": "one-line README only; no licence"
+  },
+  {
+   "url": "https://api.github.com/repos/xubynii/dtmass",
+   "ok": true,
+   "note": "no licence, pushed 2026-10-02"
+  },
+  {
+   "url": "https://api.github.com/repos/RuijieLiu6/vancouver-tall-view-tool",
+   "ok": true,
+   "note": "no licence, pushed 2026-10-02"
+  },
+  {
+   "url": "https://api.github.com/repos/clcabana/massing-studio",
+   "ok": true,
+   "note": "no licence, pushed 2026-10-02"
+  },
+  {
+   "url": "https://api.github.com/repos/jingcheng-chen/rhinomcp",
+   "ok": true,
+   "note": "MIT, 1158 stars, pushed 2026-10-16"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mcneel/RhinoAI/HEAD/README.md",
+   "ok": true,
+   "note": "MIT (API); Rhino version not stated; pushed 2026-10-20"
+  },
+  {
+   "url": "https://api.github.com/repos/openai/codex-plugin-cc",
+   "ok": true,
+   "note": "Apache-2.0, pushed 2026-07-08"
+  },
+  {
+   "url": "https://api.github.com/repos/AlpacaLabsLLC/skills-for-architects",
+   "ok": true,
+   "note": "MIT, pushed 2026-10-20"
+  },
+  {
+   "url": "https://api.github.com/repos/aarcThom/Physalia",
+   "ok": true,
+   "note": "AGPL-3.0 confirmed, pushed 2026-09-10"
+  },
+  {
+   "url": "WebSearch (social/HN, Xun posts)",
+   "ok": false,
+   "note": "search budget exhausted; not performed"
+  }
+ ],
+ "verdict": "Round 1 is broadly accurate. I confirmed the key corrections: the three tools are third-party MIT repos that Xun starred, agents_demo is a folder rather than a repo, and the account is xunliuDesign. Licence and activity figures largely match the GitHub API. Four gaps remain. The packet missed GenEnv/Thermal-Sandbox-Web, the most relevant instructor tool for the sun and energy modules. Vista appears to be the team's own repo, not a classmate's. 'No licence' on the course and student repos is now verified, so permission needs a fallback date. text-to-cad is a poor fit for v1 massing: it targets mechanical parts and cannot write .3dm or IFC, so shapely, trimesh and rhino3dm are better. Social-media evidence is still missing because my search budget was also exhausted. The gate passes on the conditions listed."
+}

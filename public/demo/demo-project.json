@@ -1,0 +1,314 @@
+{
+  "format": "tower-studio-project@1",
+  "app": "Tower Design Toolkit 0.1.0",
+  "project": "vtc",
+  "site": {
+    "city": {
+      "datum": {
+        "basis": "Ground elevation entered by the user (editable); cone heights are geodetic",
+        "groundElevation": 15,
+        "vertical": "CGVD28 (assumed, as City LiDAR 2022)"
+      },
+      "frame": "EPSG:26910, local origin E 491300 N 5458600",
+      "north": {
+        "basis": "EPSG:26910 grid north (UTM 10N); grid convergence not applied",
+        "deg": 0
+      }
+    },
+    "vtc": {
+      "datum": {
+        "basis": "VTC model heights above grade; no geodetic datum supplied",
+        "groundElevation": null,
+        "vertical": "Local grade (0 m = site grade)"
+      },
+      "frame": "VTC model grid, metres, origin at the block centre",
+      "north": {
+        "basis": "Read from the VTC model's drawn north arrow; the file's own north setting is the grid (false assumption corrected)",
+        "deg": 45
+      }
+    }
+  },
+  "towers": {
+    "city": [
+      {
+        "bands": [
+          {
+            "share": 1,
+            "use": "office"
+          }
+        ],
+        "coreAuto": true,
+        "coreShare": 0.24,
+        "depth": 30,
+        "f2f": 4,
+        "height": 120,
+        "id": "c1",
+        "name": "Study tower",
+        "plantEvery": 0,
+        "podiumDepth": 30,
+        "podiumHeight": 0,
+        "podiumUse": "retail",
+        "podiumWidth": 30,
+        "rotation": 0,
+        "skyLobbies": [],
+        "width": 30,
+        "x": 336,
+        "y": 156
+      }
+    ],
+    "vtc": [
+      {
+        "bands": [
+          {
+            "share": 0.55,
+            "use": "office"
+          },
+          {
+            "share": 0.15,
+            "use": "hotel"
+          },
+          {
+            "share": 0.03,
+            "use": "amenity"
+          },
+          {
+            "share": 0.27,
+            "use": "residential"
+          }
+        ],
+        "coreAuto": true,
+        "coreShare": 0.275,
+        "depth": 46,
+        "f2f": 4.2,
+        "height": 285,
+        "id": "t1",
+        "name": "Tower 1 · mixed use",
+        "plantEvery": 0,
+        "podiumDepth": 64,
+        "podiumHeight": 18,
+        "podiumUse": "retail",
+        "podiumWidth": 100,
+        "rotation": 0,
+        "skyLobbies": [
+          40
+        ],
+        "skyRoom": {
+          "access": "shared",
+          "free": true,
+          "hoursOpen": 12,
+          "level": 40,
+          "loadBasis": "dining",
+          "postedLimit": null,
+          "visitMinutes": 60,
+          "visitorShare": 0.6
+        },
+        "width": 46,
+        "x": -20,
+        "y": 0
+      },
+      {
+        "bands": [
+          {
+            "share": 1,
+            "use": "residential"
+          }
+        ],
+        "coreAuto": true,
+        "coreShare": 0.26,
+        "depth": 30,
+        "f2f": 4.2,
+        "height": 250,
+        "id": "t2",
+        "name": "Tower 2 · residential",
+        "plantEvery": 0,
+        "podiumDepth": 64,
+        "podiumHeight": 0,
+        "podiumUse": "retail",
+        "podiumWidth": 100,
+        "rotation": 0,
+        "skyLobbies": [],
+        "skyRoom": null,
+        "width": 30,
+        "x": 45,
+        "y": 0
+      }
+    ]
+  },
+  "selectedTower": "t1",
+  "rules": {
+    "fsrTier": 2,
+    "transitLink": false
+  },
+  "sun": {
+    "day": 22,
+    "hour": 15,
+    "month": 9
+  },
+  "presets": {
+    "egress": {
+      "amenityFactor": 4.6,
+      "bedroomsPerHome": 1.5,
+      "officeCorridor": false,
+      "riser": 0.18,
+      "stairs": 2,
+      "tread": 0.28
+    },
+    "lifts": {
+      "accel": 1,
+      "carPersons": 21,
+      "doorTime": 5,
+      "firefighterSpeed": 6,
+      "homeM2": 75,
+      "hotelM2PerKey": 40,
+      "loadFactor": 0.8,
+      "lobbyM2PerCar": 4.5,
+      "maxFloorsPerRise": 15,
+      "officeM2PerPerson": 10,
+      "personsPerHome": 2,
+      "personsPerKey": 1.5,
+      "serviceCoreM2": 24,
+      "servicesM2": 40,
+      "shaftM2": 7.5,
+      "transferTime": 1.2,
+      "utilisation": 0.8,
+      "wallAllowance": 0.15
+    }
+  },
+  "publicRealm": {
+    "frontage": {
+      "east": {
+        "active": 0.5,
+        "canopy": 0.5,
+        "crossings": 1,
+        "entrances": 3
+      },
+      "north": {
+        "active": 0.6,
+        "canopy": 0.5,
+        "crossings": 1,
+        "entrances": 4
+      },
+      "south": {
+        "active": 0.9,
+        "canopy": 0.9,
+        "crossings": 0,
+        "entrances": 9
+      },
+      "west": {
+        "active": 0.7,
+        "canopy": 0.7,
+        "crossings": 0,
+        "entrances": 5
+      }
+    },
+    "link": {
+      "axis": "ns",
+      "enabled": true,
+      "offset": 50,
+      "openToSky": true,
+      "srw": true,
+      "width": 9.1
+    },
+    "openPublicShare": 0.85,
+    "station": {
+      "activeEdges": true,
+      "lifts": 1,
+      "stairs": 1
+    }
+  },
+  "cityInNature": {
+    "birdTreatedPct": null,
+    "canopyM2": null,
+    "engineeredRainwater": null,
+    "entersQEView": null,
+    "habitatAssessment": null,
+    "notes": {},
+    "pvg34": {
+      "lions": false,
+      "openSpaceCanopy": false,
+      "undrip": false
+    },
+    "retainedM3": null,
+    "siteType": "C",
+    "vegetatedM2": null
+  },
+  "windPresets": {
+    "f1": null,
+    "tunnelDefaultHeight": 180
+  },
+  "systemsPresets": {
+    "airReachFloors": 20,
+    "airShaftM2": 6,
+    "baseElectricalM2": 120,
+    "chuteM2": 1.5,
+    "commsRoomM2": 2,
+    "controlRoomM2": 15,
+    "electricalRoomM2": 5,
+    "emergencyRiserM2": 1.5,
+    "firePump": true,
+    "firePumpKw": 110,
+    "genM2PerKw": 0.1,
+    "hydronicRatingKpa": 1600,
+    "hydronicRiserM2": 2.5,
+    "lifeSafetyKw": 25,
+    "liftKw": 60,
+    "pMinKpa": 140,
+    "radioRoomM2": 10,
+    "runtimeH": 2,
+    "smokeFanKw": 40,
+    "stairFanKw": 15,
+    "washroomsM2": 20,
+    "waterRiserM2": 2
+  },
+  "nodes": {
+    "enabled": [
+      "built.city-in-nature",
+      "built.core-lifts",
+      "built.culture-claims",
+      "built.economics",
+      "built.egress",
+      "built.energy-carbon",
+      "built.facade",
+      "built.fsr",
+      "built.life-safety",
+      "built.mobility",
+      "built.pr-frontage",
+      "built.pr-ground",
+      "built.pr-streetwall",
+      "built.provenance",
+      "built.sky-room",
+      "built.solar-access",
+      "built.structure",
+      "built.sun",
+      "built.view-from",
+      "built.viewcones",
+      "built.vtc-rules",
+      "built.wind-procedure",
+      "built.wind-study"
+    ],
+    "known": [
+      "built.city-in-nature",
+      "built.core-lifts",
+      "built.culture-claims",
+      "built.economics",
+      "built.egress",
+      "built.energy-carbon",
+      "built.facade",
+      "built.fsr",
+      "built.life-safety",
+      "built.mobility",
+      "built.pr-frontage",
+      "built.pr-ground",
+      "built.pr-streetwall",
+      "built.provenance",
+      "built.sky-room",
+      "built.structure",
+      "built.sun",
+      "built.view-from",
+      "built.viewcones",
+      "built.vtc-rules",
+      "built.wind-procedure",
+      "built.wind-study"
+    ]
+  }
+}

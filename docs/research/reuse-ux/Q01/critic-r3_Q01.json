@@ -1,0 +1,202 @@
+{
+ "expert_role": "Gatekeeper auditor (open-source reuse, licensing and Vancouver sun/shadow method), round 3 of Q01",
+ "previous_round": [
+  {
+   "item": "MAJOR: Arch540 agents_demo is POSIX-only (fcntl, python3 hooks)",
+   "status": "addressed",
+   "residue": "Re-verified: evaluate.py line 33 `import fcntl`, line 215 `fcntl.flock`; all four settings.json call `python3`; locally python3 is the WindowsApps alias. One remaining gap: onFailure has no effect on Stop hooks, and A_writing's gate is a Stop hook (see the new MINOR finding)."
+  },
+  {
+   "item": "MAJOR: Python env, py defaults to 3.13t",
+   "status": "addressed",
+   "residue": "Re-verified: `py -0` marks 3.13t as the default; numpy 2.5.4, scipy 1.18.1, shapely 2.2.0 and rhino3dm 8.35.0 have cp313 Windows wheels but no cp313t ones; trimesh and pvlib are py3-none-any."
+  },
+  {
+   "item": "MAJOR: Sun node should reuse the Arch540 evaluator plus suncalc, not Ladybug-or-pvlib",
+   "status": "partly",
+   "residue": "Done as asked, but the packet now calls the demo's winter-solstice 9:00-15:00 solar-time average sun-hours metric the 'course-recognised' v1 metric and sizes the domain from it. For a downtown block, the governing test is the Downtown Solar Access Guidelines: new shadow on listed parks, fall equinox, 10:00-16:00 PDT clock time (see the new MAJOR finding)."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Sun/shadow node metric (recommendation 4, Arch540 C_design_space principle)",
+   "issue": "The packet makes the Arch540 demo metric (average winter-solstice sun hours, 9:00-15:00 solar time, on the lot plus a 15 m ring) the v1 sun node and calls it 'the course-recognised sun metric'. That metric is the objective of a teaching harness: an 80 x 60 m lot, buildings of at most 14 storeys, and a file headed 'Part of the protected harness: do not edit'. For a full downtown block, dtmass's README (line 38) lists the Solar Access Guidelines for the Downtown Peninsula (Council, 17 Sep 2025) with the test 'new shadow on listed parks, equinox 10:00-16:00'. City search results describe the same window as 10am-4pm PDT on the Fall Equinox, with Basic and Detailed study types. The packet already lists dtmass as the policy reading list but never connects the two. Its solar-time instruction also conflicts with a clock-time (PDT) window. The 2.0-2.5 km domain sizing is based on the solstice and overstates the regulatory domain. Our arithmetic for equinox at 10:00 PDT (about 08:55 apparent solar time) gives shadows of about 480-600 m, and about 280-355 m at noon.",
+   "fix": "Make the primary v1 sun output a no-new-shadow test on listed parks and public open space: fall equinox, 10:00-16:00 PDT clock time, real dates and longitude (suncalc does this natively), cited to the 2025 Downtown guideline. Keep Arch540 solstice sun hours as a secondary, labelled 'course teaching metric'. Size the domain per test, not from the solstice. Check whether the July 2025 Council motion to study a 10:00-14:00 window changed the adopted guideline. Re-open the guideline PDF, which returned 403 to our fetcher, before you encode any numbers."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Hook fail-closed advice (recommendation 3, B_testfit principle)",
+   "issue": "The hooks docs say onFailure 'has no effect on Stop, SubagentStop, TaskCompleted and TeammateIdle hooks' (verified 21 Oct). A_writing's guard is a Stop hook, so 'set onFailure to block' cannot make that gate fail closed. The docs also say exec form (`args`) on Windows needs `command` to resolve to a real .exe. That suits `.venv\\Scripts\\python.exe` but rules out .cmd shims.",
+   "fix": "Put every enforcing gate on PreToolUse (as B, C and D do), with exec form: command = `.venv/Scripts/python.exe`, args = [hook path], onFailure 'block'. Treat Stop-hook guards as advisory only and cover them with the CI exit-code test."
+  },
+  {
+   "severity": "MINOR",
+   "item": "rhino-gh-mcp risks",
+   "issue": "The row does not say that rhino-gh-mcp also needs uv. Its README lists `brew install uv` for Mac and an absolute uv path (lines 182 and 289), and uv is absent on the session machine.",
+   "fix": "Add 'needs uv' to the risks. The environment recommendation already installs uv, so cross-reference it."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Unscoped npm 'hairline' description",
+   "issue": "The packet calls it 'an unrelated 2022 CSS package'. The registry shows hairline 1.0.0 published 2019-05-07 (ufologist); 2022-05-04 is only the metadata 'modified' date.",
+   "fix": "Say 'unrelated 2019 package (ufologist/hairline 1.0.0)'. The advice to pin `@lucasmarkes/hairline@0.5.1` stands (registry: latest 0.5.1, MIT, published 14 Oct)."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Unopened starred Rhino MCPs",
+   "issue": "SerjoschDuering/rhino-mcp and alfredatnycu/grasshopper-mcp are listed as not opened. Checked now. SerjoschDuering/rhino-mcp has no LICENSE (404 on main and master); it runs arbitrary Python in Rhino and Grasshopper and calls Replicate for AI renders. alfredatnycu/grasshopper-mcp is MIT (c) 2025 Alfred Chen and supports Rhino 7 or higher, the only option here for teammates on Rhino 7, since rhino-gh-mcp is Rhino 8 only.",
+   "fix": "Add one-line rows. Reject SerjoschDuering/rhino-mcp for reuse because it has no licence and a broad execution surface; you may read it for its Replicate render wiring. Mark alfredatnycu/grasshopper-mcp as a Rhino 7 fallback, roadmap only."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Environment recommendation detail",
+   "issue": "'Node 22+ LTS' and 'winget package IDs unconfirmed' leave a teammate guessing. Node 22 is in maintenance and reaches end of life in April 2027. Node 24 is the current LTS line.",
+   "fix": "Recommend Node 24 LTS (22 is acceptable). Confirm `winget show OpenJS.NodeJS.LTS` and `winget show astral-sh.uv` on one machine before writing the setup doc. These IDs come from general knowledge and are not verified this round."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Packet length versus scope and token goal",
+   "issue": "There are still 29 findings, 15 principles and 10 recommendations, plus suncalc, rhino3dm, web-ifc and xyflow rows, for a question about one instructor's tools. Several rows repeat the same licence caveat.",
+   "fix": "Collapse the per-repo 'no licence' risks into the single licence recommendation. Keep the browser libraries as one combined pointer row."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The Arch540 C_design_space winter-solstice sun-hours method (9:00-15:00 solar time, lot plus 15 m ring) is the course-recognised sun metric for our tower node, and the domain must reach about 2-2.5 km.",
+   "why_false": "It is the objective of a teaching harness for an 80 x 60 m lot with buildings of at most 14 storeys. The City's governing test for a downtown site is new shadow on listed parks at the fall equinox, 10:00-16:00 PDT, which is clock time, not solar time.",
+   "correction": "Make the primary v1 test equinox 10:00-16:00 PDT no-new-shadow on listed parks and public open space, cited to the Downtown Peninsula Solar Access Guidelines (Council, 17 Sep 2025). Keep solstice sun hours as a secondary teaching metric, and size the domain per test (about 0.5-0.6 km at 10:00 PDT on the equinox).",
+   "evidence": "raw.githubusercontent.com/xubynii/dtmass/main/README.md line 38; evaluate.py docstring lines 23-25 and constants LOT_W/LOT_D 80/60, MAX_STOREYS 14; web search results for guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf (the PDF itself returned 403 to us)."
+  },
+  {
+   "claim": "Setting onFailure: block makes the demo-style gates fail closed.",
+   "why_false": "The hooks docs state that onFailure has no effect on Stop, SubagentStop, TaskCompleted or TeammateIdle hooks, and A_writing's gate is a Stop hook.",
+   "correction": "Enforce gates through PreToolUse hooks in exec form with the venv python.exe. Treat Stop hooks as advisory.",
+   "evidence": "code.claude.com/docs/en/hooks (command hook fields, onFailure, v2.1.295+); raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/A_writing/complete/.claude/settings.json"
+  }
+ ],
+ "missing": [
+  "Vancouver Downtown Solar Access Guidelines (17 Sep 2025): the adopted window, listed parks, and the outcome of the July 2025 motion on a 10:00-14:00 window, read from the PDF itself (403 to our fetcher)",
+  "A cross-check of suncalc against the re-implemented evaluator at equinox 10:00 and 16:00 PDT for Vancouver (49.28 N, 123.12 W)",
+  "Assessment rows for SerjoschDuering/rhino-mcp (no licence) and alfredatnycu/grasshopper-mcp (MIT, Rhino 7+)",
+  "The installed Claude Code version on team machines (onFailure needs v2.1.295+); `claude` was not on the session shell PATH",
+  "Still open from earlier rounds: Xun's intent for the three tools, the ARCH 540 policy on AI use and classmate reuse, and licence replies"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Rewrite recommendation 4 and the C_design_space principle: the primary sun test is fall equinox, 10:00-16:00 PDT, no new shadow on listed parks (2025 Downtown guideline), and Arch540 solstice sun hours are secondary; re-verify the guideline PDF before encoding numbers.",
+   "State that enforcing gates are PreToolUse hooks in exec form with .venv/Scripts/python.exe and onFailure block, and that Stop-hook guards are advisory.",
+   "Add uv to the rhino-gh-mcp risks and correct the unscoped hairline package date to 2019.",
+   "Add the two starred Rhino MCP rows (one with no licence, one MIT for Rhino 7)."
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://api.github.com/repos/{hairline,anatomy,text-to-cad,anatomy-community,rhino-gh-mcp,Arch540_2026,arch540-a1-toolkit,suncalc,RhinoAI,codex-plugin-cc,skills-for-architects,rhinomcp,AI4GH,Thermal-Sandbox-Web x2,vancouver-tall-view-tool}",
+   "ok": true,
+   "note": "Stars, forks, open counts, licences and pushed_at all match the packet as of 21 Oct; the GenEnv Thermal fork is confirmed as a fork"
+  },
+  {
+   "url": "https://api.github.com/users/xunliuDesign/starred",
+   "ok": true,
+   "note": "The top three stars are anatomy, hairline and text-to-cad, matching the packet"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/complete/tools/evaluate.py",
+   "ok": true,
+   "note": "fcntl at lines 33 and 215; LAT 49.25, DECL -23.44, HOURS 9-15, MARGIN 15, 80x60 lot, max 14 storeys"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/{A,B,C,D}/complete/.claude/settings.json",
+   "ok": true,
+   "note": "All use python3; A uses a Stop hook, B, C and D use PreToolUse"
+  },
+  {
+   "url": "https://code.claude.com/docs/en/hooks",
+   "ok": true,
+   "note": "onFailure v2.1.295+, no effect on Stop hooks; exec form args needs a real .exe on Windows; a hook that fails to start is non-blocking (first 100k characters read)"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/xubynii/dtmass/main/README.md",
+   "ok": true,
+   "note": "Line 38: Downtown solar access guideline, Council 17 Sep 2025, equinox 10:00-16:00"
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "ok": false,
+   "note": "403; content known only from search results (Fall Equinox, 10am-4pm PDT)"
+  },
+  {
+   "url": "https://vancouver.ca/files/cov/downtown-solar-access-decision-tree-a.pdf",
+   "ok": false,
+   "note": "403"
+  },
+  {
+   "url": "https://registry.npmjs.org/@lucasmarkes/hairline",
+   "ok": true,
+   "note": "latest 0.5.1, MIT, 14 Oct 2026"
+  },
+  {
+   "url": "https://registry.npmjs.org/hairline",
+   "ok": true,
+   "note": "ufologist 1.0.0, published 2019-05-07, modified 2022"
+  },
+  {
+   "url": "https://registry.npmjs.org/suncalc",
+   "ok": true,
+   "note": "2.1.1, 5 Oct 2026"
+  },
+  {
+   "url": "https://pypi.org/pypi/{numpy,scipy,shapely,rhino3dm,trimesh,pvlib,cadgen}/json",
+   "ok": true,
+   "note": "cp313 Windows wheels present, cp313t absent; trimesh and pvlib pure-Python; cadgen 0.7.26 requires Python >=3.11"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md",
+   "ok": true,
+   "note": "Ten rules (hit, order, reach, accent, rest, honesty, cost, clock, radius...) confirmed"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md",
+   "ok": true,
+   "note": "40-80 parts per Figure, Epic for a building, A4/Letter print and 'never a few slabs' confirmed"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/earthtojake/text-to-cad/main/README.md",
+   "ok": true,
+   "note": "Telemetry off command, CADGEN_UPDATE_CHECK, Smart App Control with no per-app exception, STEP/GLB/STL/3MF plus DXF skill confirmed"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/rhino-gh-mcp/main/README.md",
+   "ok": true,
+   "note": "Rhino 8 on Mac or Windows, Rhino 7 unsupported, facade-design skill; also requires uv (not in the packet)"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy-community/HEAD/LICENSE",
+   "ok": true,
+   "note": "MIT (c) 2026 Ryan and the Anatomy figure contributors"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/README.md",
+   "ok": true,
+   "note": "'Course materials that you can download and run'"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/SerjoschDuering/rhino-mcp/main/README.md",
+   "ok": true,
+   "note": "LICENSE 404; arbitrary Python execution; Replicate renders"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/alfredatnycu/grasshopper-mcp/master/README.md",
+   "ok": true,
+   "note": "MIT 2025, Rhino 7 or higher"
+  },
+  {
+   "url": "local: py -0, command -v python3/uv/node/claude, python --version",
+   "ok": true,
+   "note": "3.13t is the default; python3 is the WindowsApps alias; uv, node and claude are absent; python is 3.9.13"
+  }
+ ],
+ "verdict": "Round 3 is mostly sound. Repo stats, licences and the 3.13t wheel gap re-verified, along with the POSIX-only demos and the hairline, anatomy and text-to-cad facts. All earlier MAJORs are fixed except the sun node. The packet still treats the Arch540 demo's winter-solstice, solar-time sun hours as the main metric. For a downtown block, the governing test is no new shadow on listed parks at the fall equinox, 10:00-16:00 PDT (2025 guideline), which also changes the domain size. Smaller fixes: Stop hooks cannot fail closed with onFailure; rhino-gh-mcp also needs uv; the unscoped hairline package dates from 2019; two starred Rhino MCPs still need rows. The team can act now if the sun recommendation is rewritten."
+}

@@ -1,0 +1,308 @@
+{
+ "expert_role": "Senior City of Vancouver rezoning planner (downtown tall-building rezonings)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P01-M01",
+   "issue": "The VTC hard rules (244-305 m band, 9.0 non-residential FSR, site size, transit entrance) are marked 'verified', but their only source, P01-S02, is opened=false. The packet's own rule says nothing is verified without an opened source. The interpretation flags ('one or more towers', 'office, commercial') also depend on exact wording that nobody has quoted.",
+   "fix": "Register before 29 Oct 2026 if the team has not already, download the brief, site plan and 3D model, and set S02 opened=true with a page or clause reference for each rule. Quote the exact sentences for the height band and the 9.0 FSR minimum. Until then, downgrade the M01 and M07 brief-derived metrics to 'unverified'."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P01-M04",
+   "issue": "Height is measured differently in each module. M01 uses CTBUH architectural top above the pedestrian entrance (spires counted, rooftop equipment excluded). M04 uses geodetic cone elevations. M05 uses metres above sea level. The M05 precedent flag is 288 m 'above grade', but the source does not say which measure it uses. No node holds ground elevation, vertical datum or highest-point height. On downtown ground these offsets can be tens of metres, which can flip a pass to a fail.",
+   "fix": "Add a shared DATA/SITE 'Site georeference and datum' node: assumed block, lat/long, grid rotation, ground elevation, vertical datum (CGVD28 vs CGVD2013) and a conversion function. M04 and M05 must test the highest physical point (spire, antenna, rooftop plant, window-washing rig) in the cone's or surface's datum. M01 reports the CTBUH heights for the brief only."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P01-M02",
+   "issue": "The dependency graph has a cycle, so a Grasshopper-style canvas cannot run it. M02 depends on M04 and M04 depends on M02 (the policy-area flag). M02 also depends on M03, and M03 on M01.",
+   "fix": "Split M02 into two nodes. M02a, the policy register and site-in-policy-area flag, has no upstream dependencies. M02b, the departure log, sits downstream of M01 and M03-M08. Run a cycle check over the depends_on fields in CI."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "The metric 'Height <= 600 ft (183 m) for policy-area sites' is marked verified, but the FAQ applies 600 ft to the sites across the street from Bay Parkade. The packet's own sources (S08, S09) say policy heights are site-specific: about 700 ft on Georgia/Burrard/Granville, about 425-500 ft at the bridgeheads. A single 600 ft threshold misstates the policy for any other block.",
+   "fix": "Turn the threshold into a site-specific lookup from the policy's Figure 1, with status 'unverified' until the PDF is read. Keep 600 ft only as the FAQ value for sites next to Bay Parkade."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M07",
+   "issue": "The 9.0 non-residential test is biased by how areas are classified and allocated. (a) The strict reading drops hotel, but in ordinary and Vancouver usage hotel is commercial. From memory, the Zoning and Development By-law lists Hotel under Service Uses; this was not opened. (b) M01's 'broad' set leaves out amenity and M07's includes it, so the two modules disagree. 'Amenity' is often residential amenity and should never count. (c) Core and mechanical are separate tags and are never shared out to the uses they serve, which understates office FSR. (d) M01 does not say whether it uses the gross ledger or the zoning ledger.",
+   "fix": "Use three tiers: office only; office + retail + service including hotel; all non-residential, with residential amenity always excluded. Share core, circulation and mechanical out to uses by served floor area, and log that as a switch. Have M01 consume one named ledger, defaulting to gross until Buildner answers, and use the same tag sets in M01 and M07."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M03",
+   "issue": "Downtown land-use policy for the CBD was not researched. The Metro Core Jobs and Economy Land Use Plan (2009) and the CBD and CBD-shoulder rules restrict residential in the CBD core and protect job space; this is from memory and was not opened. If that applies, the brief's residential share is itself a policy departure. The VTC 9.0 minimum probably mirrors these rules.",
+   "fix": "Add a register row and an M03 parameter for the CBD land-use designation (residential permitted / conditional / not supported, plus any job-space replacement rule), status 'unverified' until read. Feed residential area from M07 into a departure record."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M08",
+   "issue": "The spec says it is unknown whether large-site rezoning policy applies. From memory, the Rezoning Policy for Sustainable Large Developments applies to sites of 0.8 ha (2 acres) or more, or to rezonings with 45,000 m2 or more of new floor area. VTC meets both (1.15 ha, over 103,000 m2). It requires sustainable site design, green mobility, rainwater, zero waste, low-carbon energy and affordable housing. The Green Buildings Policy for Rezonings (energy and emissions limits) and the Public Art Policy for rezonings would also apply. None is in the register.",
+   "fix": "Add register rows for: the large-developments policy (thresholds 0.8 ha / 45,000 m2, status unverified), the Green Buildings Policy for Rezonings (pointer to ENER), the public art requirement and the Bird Friendly Design Guidelines (pointer to ECOL). Add M08 benefit categories for public art and affordable housing."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M08",
+   "issue": "The 'statutory-tool mapping' (verified) treats cash CACs as a Charter tool under s.565.1/565.13. Those sections cover density-bonus zoning. Vancouver's rezoning CACs are negotiated under City policy, not a statutory charge. BC's 2023 housing legislation, which added amenity cost charges and transit-oriented areas, changes how CACs and ACCs interact, and the spec does not mention it.",
+   "fix": "Separate the categories: density bonus (s.565.1), payment in lieu (s.565.13), DCL (s.523D), ACC (s.523E), and policy-based CAC (negotiated, not statutory). Downgrade the CAC row to 'policy, unverified'. Add a row for the 2023 provincial changes (ACC and transit-oriented areas), unverified."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M03",
+   "issue": "The parking cap and loading minimum ignore the provincial transit-oriented-area rules. From memory, 2023 legislation removed minimum residential parking within about 800 m of a SkyTrain station; this was not opened. The VTC site sits beside a station. Below-grade levels and the transit-entrance geometry depend on this.",
+   "fix": "Add a parameter 'Transit-oriented area: in/out, distance to station', status unverified. When 'in', set residential parking minimums to zero and keep maximums and loading. Pointer to MOBI."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M05",
+   "issue": "The YVR zoning metric is marked 'verified', but the only source puts the outer limits in Richmond and along the Richmond-Vancouver boundary. The 2024 Gazette proposal describes a 4 km outer surface. The 1980 approach surfaces run along runway centrelines (east-west and 13/31), not over the downtown peninsula. Computing them for downtown is likely wasted effort, and a 'pass' could give false comfort while the 2026 proposal is still undefined.",
+   "fix": "Split the status: formula verified, applicability unknown. Default to 'outside current zoning (unverified)' for downtown and drop approach-surface computation to optional. Put the effort into the 2026 proposal placeholder and a request for the TC map. Explain how the 2024 Gazette proposal relates to the July 2026 consultation."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M05",
+   "issue": "The submission checklist has NAV CANADA and the TC map request but leaves out the Transport Canada aeronautical assessment, which is separate. NAV CANADA says Transport Canada reviews obstacles to be marked and lit, and that its portal does not connect to TC. Obstruction marking and lighting under CAR Standard 621 applies to structures above roughly 90 m AGL (from memory, verify), so it applies to every VTC tower and affects facade and crown design and bird safety.",
+   "fix": "Add the TC Aeronautical Assessment Form to the checklist and an output 'marking/lighting likely required', with the threshold unverified until Standard 621 is opened. Link it to SPAC (crown lighting) and ECOL (birds)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M05",
+   "issue": "Heliport metrics treat Standard 325 surfaces as a limit on buildings ('bad > 0 m', status verified). Standard 325 sets certification standards for the heliport operator. A building that penetrates them affects the heliport's certification and procedures; the building itself is not barred. Which heliport, its FATO, class and paths are all unknown. The real downtown constraint is probably instrument procedures and the harbour water aerodrome, and neither is modelled.",
+   "fix": "Relabel as 'heliport OLS conflict (operator impact)' with state 'flag', not fail. Default to unknown until the heliport (harbour heliport or a hospital pad) is identified. List NAV CANADA IFP obstacle clearance as the binding unknown."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M04",
+   "issue": "Cone-vintage logic misreads the sources. Storeys says QEP views 3.2.1-3.2.4 were kept and are not among the 11 updated cones, so pre-2024 geometry for those views may still be valid. The claim that pre-2024 data overstates restriction applies only to the eliminated cones. Global News reports a staff recommendation to cut the QEP cone bottom, but does not say which view or whether it was adopted. The status 'false_assumption_corrected' is also misused: it describes a flag, not a threshold's evidence.",
+   "fix": "Per cone, record retained / updated / eliminated (2024). Accept older geometry for retained cones only with an 'unverified, confirm unchanged' badge. Set the metric status to verified (vintage rule) and keep the false-assumption record in flags only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M04",
+   "issue": "The site is hypothetical, so most entrants cannot run M04. Yet the brief requires a QEP skyline view and probably expects cone engagement. The spec does not check whether the brief's 3D model or site plan already includes cones or a real location.",
+   "fix": "Check the brief package first. If cones or a location are given, use them as the default dataset (source S02). If not, provide a 'hypothetical cone' mode with an explicit editable cone-floor parameter shown as team assumption, and keep the QEP render without a pass/fail result."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M06",
+   "issue": "The candidate 24.4 m separation and 6,500 sq ft plate are residential rules from Downtown South / West End practice. Applying them to CBD office or hotel towers misapplies them, and no CBD floor-plate cap exists in the spec. Separation to towers across streets, and street-wall or podium height on Georgia-type streets, are missing.",
+   "fix": "Make thresholds use-specific: residential candidates apply only to residential level bands, with office and hotel left as unknown. Add a street-wall/podium height parameter and cross-street separation. Keep everything unverified until the guidelines are read."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M01",
+   "issue": "The transit-entrance test asks for a path to the 'station-side boundary segment'. The brief puts the station diagonally across, so the shared edge is a corner, and the connection must cross under the intersection or street outside the site polygon. The status 'verified' covers geometry the brief does not define.",
+   "fix": "Have the user place the station portal point from the brief's site plan. Test path continuity from the building to that point, allowing below-grade off-site segments, and report the off-site length (needing TransLink/City agreements) as a flag. Status: brief requirement verified; geometry test is a team method."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M01",
+   "issue": "'All above-grade volume inside the polygon' is marked verified, but the brief gives only an approximate size, not a containment or no-cantilever rule.",
+   "fix": "Set the status to team_assumption. Allow a switch for air-space encroachments over streets, flagged as a departure."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M05",
+   "issue": "The precedent flag 'top <= 288 m (m above grade)' attaches a measure the source does not state. Daily Hive gives 1,034 ft cut by 88 ft to 946 ft with no datum. The value is specific to Bay Parkade, a different site.",
+   "fix": "Label it 'height measure unstated', keep it as a display-only marker in M02's ladder, and remove it from M05's pass/fail cards."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M05",
+   "issue": "NAV CANADA timing is misquoted. The page says it tries to reply within 8-12 weeks, and that this 'can go up to 12 to 18 months pending necessary mitigations' for projects in or around an airport. It is not a standard near-airport time.",
+   "fix": "Correct the wording. Base the metric on whether a request was logged at the concept stage, not on a predicted duration."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M08",
+   "issue": "Bay Parkade benchmark context is missing. It is hotel plus residential with no office, sits outside the Higher Buildings policy area, and the storey counts conflict between sources (Storeys: north tower 63; Daily Hive: 68). It is no precedent for a 9.0 employment-FSR scheme.",
+   "fix": "Add a 'precedent fit' note: program mix, policy-area status, height measure. Record the 63 vs 68 storey conflict in flags."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M01",
+   "issue": "The 'VTC hard-rules checker' leaves out submission rules (four A2 landscape boards, max 10 MB each, English, no identifying information, deadline 30 Nov 2026) and the recommended deliverables list.",
+   "fix": "Add a pointer rule set to PRES, or a deliverables checklist row in M01, sourced to S02."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M02",
+   "issue": "The register has no pointers to policy-mandated shadow tests (City shadow criteria for named parks and plazas). The scope asks for pointers to the CLIM, ENER and wind packets, but none are recorded as register rows.",
+   "fix": "Add pointer rows (shadow, wind, energy) naming the governing documents, marked unverified and handed to the CLIM and ENER packets."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M04",
+   "issue": "Jury tags are loosely justified. M04 is tagged human_scale_40, and M01 is tagged design_excellence_20, without any link explained.",
+   "fix": "Tag M04 as cultural_context_30 (City in Nature views) and design_excellence_20 only, or explain the human-scale link."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M07",
+   "issue": "Licences: Claude skills are listed as libraries ('not checked'), but they are not redistributable open-source dependencies. d3-sankey is marked 'not checked' (d3 modules are normally ISC; verify).",
+   "fix": "Remove Claude skills from the libraries list, or move them to 'authoring aids'. Use openpyxl or SheetJS for the xlsx export and confirm d3-sankey's licence."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "P01-M02: 'Sites inside the policy area, buildings up to 600 ft may be considered' is a verified, general threshold.",
+   "why_false": "The FAQ says 600 ft for the sites across the street from Bay Parkade. The spec's own S08 and S09 summaries give site-specific heights (about 700 ft on Georgia/Burrard/Granville, 425-500 ft at bridgeheads).",
+   "correction": "The threshold is site-specific per the policy's Figure 1. 600 ft is verified only for the sites near Bay Parkade; elsewhere it is unverified.",
+   "evidence": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs : the policy area allows buildings up to 600 ft 'may be considered', in the context of sites across the street from Bay Parkade."
+  },
+  {
+   "claim": "P01-M05: The YVR zoning surface penetration metric is 'verified' for this tower.",
+   "why_false": "SOR/80-902 places the outer limits in Richmond and along the Richmond-Vancouver boundary on the North Arm. The 2024 Gazette proposal describes the outer surface as about a 4 km radius around the airport. No source puts the downtown peninsula inside.",
+   "correction": "Formula verified, applicability to downtown unknown (probably outside current zoning). The July 2026 proposal is undefined for downtown.",
+   "evidence": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html (Part II outer limits); https://gazette.gc.ca/rp-pr/p1/2024/2024-04-27/html/reg5-eng.html ('a radius of 4 km around the airport')"
+  },
+  {
+   "claim": "P01-M04: Pre-2024 cone data overstates restriction for the QEP tests.",
+   "why_false": "Storeys reports that QEP 3.2.1-3.2.4 were kept and are not among the 11 cones Council updated. Only 3.1 and 3.2.4a were eliminated. Global News reports a staff recommendation to reduce the QEP cone bottom, without saying which view or whether it was adopted.",
+   "correction": "For the retained QEP cones, pre-2024 geometry may be unchanged. Confirm cone by cone; do not assume it overstates restriction.",
+   "evidence": "https://storeys.com/vancouver-view-cones-policy-change/ ; https://globalnews.ca/news/10604105/protected-views-vancouver"
+  },
+  {
+   "claim": "P01-M05: The precedent screening flag is 288 m above grade.",
+   "why_false": "Daily Hive gives 1,034 ft cut by about 88 ft to 946 ft and does not state the datum or measure. NAV CANADA's concern is site-specific to 595 W Georgia.",
+   "correction": "Use it as a display marker with 'measure unstated', not as a screening threshold.",
+   "evidence": "https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation"
+  },
+  {
+   "claim": "P01-M05: NAV CANADA replies take 12-18 months near airports.",
+   "why_false": "The page says NAV CANADA tries to reply within 8-12 weeks, and that this can stretch to 12-18 months pending necessary mitigations for projects in or around an airport. It also says Transport Canada separately reviews obstacles to be marked and lit, through its own form.",
+   "correction": "Quote the conditional wording, and add the Transport Canada aeronautical assessment as a separate checklist item.",
+   "evidence": "https://www.navcanada.ca/en/aeronautical-information/land-use-program.aspx"
+  },
+  {
+   "claim": "P01-M01/M07: The brief rules are 'verified'.",
+   "why_false": "Source P01-S02 is opened=false. The packet's own convention forbids marking anything verified without an opened source.",
+   "correction": "Open the brief and cite page and clause, or downgrade to unverified.",
+   "evidence": "Spec notes and S02 record (opened=false)."
+  },
+  {
+   "claim": "P01-M08: Mapping benefits to 'cash CAC' is a verified Vancouver Charter statutory mapping (ss. 565.1, 565.13).",
+   "why_false": "s.565.1 covers density-bonus zoning and s.565.13 covers payment in place of conditions. Vancouver's negotiated rezoning CACs are policy-based, not a charge set by those sections.",
+   "correction": "List the policy-based CAC separately from density bonus, DCL and ACC, with status 'policy, unverified'.",
+   "evidence": "Spec's own S31 extract (s.565.1 base plus higher density for amenities, s.565.13 payment in place of conditions); City CAC policy not opened."
+  },
+  {
+   "claim": "P01-M08: Bay Parkade is a usable benchmark for a VTC employment-led tower.",
+   "why_false": "Bay Parkade is 100% hotel in the tallest tower plus two residential towers. Storeys does not mention office, and the site lies outside the Higher Buildings policy area.",
+   "correction": "Use it only as a precedent for height beyond policy, aviation risk and benefit scale, not for program or the 9.0 non-residential test.",
+   "evidence": "https://dailyhive.com/vancouver/holborn-vancouver-western-canada-tallest-tower-bay-parkade-redevelopment-approved ; https://storeys.com/holborn-vancouver-supertall-council-approved/ ; https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs"
+  }
+ ],
+ "missing": [
+  "A shared Site georeference and datum node (DATA/SITE): assumed block, lat/long, ground elevation, vertical datum, grid-to-north rotation, highest-point height. It feeds M01, M04, M05, M06 and the CLIM packets.",
+  "CBD land-use designation and job-space policy (Metro Core Jobs and Economy Plan / CBD residential restrictions) as an M03 parameter and register row.",
+  "Rezoning Policy for Sustainable Large Developments (thresholds from memory: 0.8 ha or 45,000 m2), Green Buildings Policy for Rezonings, Public Art Policy for rezonings and Bird Friendly Design Guidelines as register rows.",
+  "2023 BC housing legislation: transit-oriented-area parking and density rules, amenity cost charges, CAC changes.",
+  "Transport Canada Aeronautical Assessment Form and obstruction marking/lighting (CAR Standard 621) in M05.",
+  "NAV CANADA instrument flight procedure obstacle clearance and the Vancouver Harbour water aerodrome / heliport as named unknowns, with locations.",
+  "Use-specific tower separation and floor-plate thresholds (residential vs office/hotel), cross-street separation, and street-wall/podium height guidelines.",
+  "A three-tier non-residential classification, with core/mechanical shared out to uses, and residential amenity excluded.",
+  "Check whether the brief's 3D model or site plan includes view cones, a real location or a station portal point; if so, use them as the default dataset.",
+  "VTC submission rules (4 A2 boards, 10 MB, anonymity, English) as a checker or a pointer to PRES.",
+  "Pointer rows for policy-mandated shadow tests on named public spaces (to CLIM).",
+  "Relationship: highest physical point (spire, rooftop plant, crane) vs view-cone and aviation results, separate from the CTBUH architectural height.",
+  "Reviewer note: the shared WebSearch budget was used up during this review, so the large-sites, CBD jobs, TOA, Standard 621 and Vancouver use-classification points come from reviewer knowledge and are marked for verification."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Open the brief (register before 29 Oct 2026 if the team has not), cite page and clause for every M01/M07 rule, and only then keep 'verified'.",
+   "Add the georeference/datum node and make M04 and M05 test the highest physical point in the correct datum.",
+   "Remove the M02<->M04 dependency cycle (split M02 into register and departure log).",
+   "Make the Higher Buildings height threshold site-specific and unverified, not a universal verified 600 ft.",
+   "Revise the 9.0 FSR classification (hotel tier, residential amenity excluded, core shared out) and send the wording question to Buildner before 3 Nov 2026.",
+   "Correct the M05 statuses (YVR applicability unknown; heliport as an operator-impact flag) and add the TC aeronautical assessment and marking/lighting.",
+   "Add register rows for the CBD land-use policy, large-developments policy, green buildings and public art, all marked unverified."
+  ]
+ },
+ "previous_round": [],
+ "sources_checked": [
+  {
+   "source_id": "P01-S04",
+   "url": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+   "ok": true,
+   "note": "Confirms 600 ft 'may be considered', but in the context of sites across from Bay Parkade. Bay Parkade towers are 238.59, 270.97 and 314.89 m and outside the policy area. Confirms the May 2023 direction to rezoning. The generalisation to all policy-area sites is not supported."
+  },
+  {
+   "source_id": "P01-S03",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Confirms adoption in 1997, the phases (draft fall 2026-winter 2027, hearing spring 2027), protected views excluded from the review, competition to 30 Nov 2026."
+  },
+  {
+   "source_id": "P01-S07",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403 for the reviewer as well; clause text still unverified."
+  },
+  {
+   "source_id": "P01-S21",
+   "url": "https://tc.canada.ca/en/corporate-services/consultations/updating-vancouver-international-airport-zoning-regulations",
+   "ok": true,
+   "note": "Confirms the area 'much of the City of Vancouver north of the Fraser', west to the English Bay shoreline; consultation 14 Jul-12 Sep 2026, closed; no surface heights published; aviation.pac@tc.gc.ca."
+  },
+  {
+   "source_id": "P01-S23",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "ok": true,
+   "note": "Confirms reference point at 2 m, outer surface 45 m above it, approach 1:50 with 15% divergence to 15,000 m, transitional 1:7, s.5 prohibition, outer limits in Richmond and on the Vancouver boundary. Downtown not shown to be covered."
+  },
+  {
+   "source_id": "P01-S22",
+   "url": "https://gazette.gc.ca/rp-pr/p1/2024/2024-04-27/html/reg5-eng.html",
+   "ok": true,
+   "note": "Outer surface described as about a 4 km radius; existing taller buildings become legally non-conforming; bump-outs in Richmond/Marpole/East Fraser Lands/Burnaby/Delta; downtown not mentioned. Read the first 100k characters."
+  },
+  {
+   "source_id": "P01-S24",
+   "url": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-325-heliports-canadian-aviation-regulations-cars",
+   "ok": true,
+   "note": "Table 4-1 values match the spec (245 m at 6/8/10%, 830 m at 16%, transitional 50% to 45 m; H1 critical-obstacle line). It is a heliport certification standard, not a limit on buildings."
+  },
+  {
+   "source_id": "P01-S25",
+   "url": "https://www.navcanada.ca/en/aeronautical-information/land-use-program.aspx",
+   "ok": true,
+   "note": "8-12 weeks; 'up to 12 to 18 months pending necessary mitigations' near airports; not a permit; Transport Canada reviews marking and lighting through a separate form, and the portal does not connect to TC."
+  },
+  {
+   "source_id": "P01-S27",
+   "url": "https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation",
+   "ok": true,
+   "note": "Hotel tower 1,034 ft (315 m), possible cut of about 88 ft to 946 ft; datum unstated; YVR crane concern at Oakridge confirmed; YVR not named as the constraint for this project; dated 24 Jul 2026."
+  },
+  {
+   "source_id": "P01-S28",
+   "url": "https://dailyhive.com/vancouver/holborn-vancouver-western-canada-tallest-tower-bay-parkade-redevelopment-approved",
+   "ok": true,
+   "note": "Confirms 27 Jul 2026, 7-3; $20M cash CAC; about $184M in-kind; about $305M package; free resident deck access; Granville Station entrances. Program is hotel plus residential, with no office."
+  },
+  {
+   "source_id": "P01-S29",
+   "url": "https://storeys.com/holborn-vancouver-supertall-council-approved/",
+   "ok": true,
+   "note": "Confirms 27.4 FSR consolidated (31.29 original). North tower 63 storeys, which conflicts with Daily Hive's 68. No office mentioned."
+  },
+  {
+   "source_id": "P01-S14",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "ok": true,
+   "note": "Confirms 10 Jul 2024, 38 to 24 cones, QEP 3.1 and 3.2.4a eliminated, 3.2.1-3.2.4 retained, and no QEP cone among the 11 updated. This undercuts the claim that pre-2024 data overstates restriction."
+  },
+  {
+   "source_id": "P01-S15",
+   "url": "https://globalnews.ca/news/10604105/protected-views-vancouver",
+   "ok": true,
+   "note": "Staff recommended reducing the bottom of the QEP cone (more than a million sq ft); no view number or heights; downtown not named."
+  }
+ ],
+ "verdict": "The packet is careful with its sources and honest about gaps, but it is not safe to release. Rules from the unopened brief are marked 'verified', against the packet's own convention. Height is measured differently in M01, M04 and M05, with no shared datum or highest-point node. M02 and M04 depend on each other, so the canvas cannot run them. The Higher Buildings 600 ft threshold is applied to every site, though the source gives it only for sites near Bay Parkade. The YVR and heliport metrics treat formulas as rules that apply downtown. The 9.0 FSR classification leaves out hotel and never shares core space out to uses. Several policies that very likely apply (CBD jobs policy, large-developments policy, TC marking and lighting) are missing. All of these can be fixed in one round."
+}

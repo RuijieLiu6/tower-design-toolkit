@@ -1,0 +1,1068 @@
+{
+ "packet_id": "Q04",
+ "findings": [
+  {
+   "name": "Context7 (upstash/context7) and DeepWiki MCP",
+   "url": "https://github.com/upstash/context7",
+   "kind": "mcp_server",
+   "what_it_does": "Context7 fetches current, version-specific library docs into the agent's context (resolve-library-id, query-docs); npx ctx7 setup --claude installs a skill or MCP mode. DeepWiki is a free, keyless remote MCP (mcp.deepwiki.com/mcp) answering questions about public GitHub repos.",
+   "how_we_use_it": "Node 24 LTS first. Each member runs npx ctx7 setup once: OAuth sign-in creates a personal account and API key, kept in an environment variable. Prefer CLI plus skill over always-on MCP; CLAUDE.md rule for three.js, React, web-ifc APIs. DeepWiki optional: claude mcp add -t http deepwiki https://mcp.deepwiki.com/mcp.",
+   "saves": "Fewer retry loops from outdated APIs and no doc pasting; no measured saving published. DeepWiki gives repo-level answers without an API key.",
+   "risks": "Docs are community-contributed and the README disclaims accuracy; hosted private backend; sign-in ties queries to a personal key; free-tier limits unstated. DeepWiki states no terms or privacy details and answers are AI-generated. Queries leave the machine for both.",
+   "license": "Context7 MIT; DeepWiki hosted service, terms not stated",
+   "maintainer": "Upstash; Devin (DeepWiki)",
+   "popularity": "Context7 63.4k stars, 3.1k forks; 20 open issues and 29 open PRs (GitHub API and README, 21 Oct 2026; earlier packet said 53 issues). DeepWiki popularity not shown",
+   "last_activity": "2026-10-21 (Context7 push); DeepWiki live docs 21 Oct 2026",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Browser-test MCPs: Playwright MCP / playwright-cli and Chrome DevTools MCP",
+   "url": "https://github.com/microsoft/playwright-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Playwright MCP (Microsoft) drives a real browser from accessibility snapshots, no vision model; playwright-cli is the lower-token route. Chrome DevTools MCP (Google) adds performance traces, console and network inspection, screenshots and Puppeteer automation; usage statistics are on by default.",
+   "how_we_use_it": "Playwright (CLI plus skills) for end-to-end tests of the node canvas, module switches and board export. DevTools MCP to profile three.js frame time, started --slim --headless --no-usage-statistics --no-performance-crux with update checks off. Run one browser MCP at a time; both need Node.",
+   "saves": "README says the CLI avoids loading large tool schemas and snapshots into context (no figures); DevTools findings arrive as text and --slim cuts the tool set.",
+   "risks": "Playwright README says it is not a security boundary and browser_run_code_unsafe is RCE-equivalent. DevTools exposes browser contents, sends stats and CrUX lookups unless opted out, Chrome only. WebGL canvas probably invisible to snapshots (my inference).",
+   "license": "Apache-2.0 (both)",
+   "maintainer": "Microsoft; Google Chrome DevTools team",
+   "popularity": "Playwright MCP 38.5k stars, 3.3k forks, 1 open issue, 0 PRs (playwright-cli 14.4k stars); DevTools MCP 53.9k stars, 6.5k forks, 98 open issues and 26 PRs (GitHub API, 21 Oct 2026)",
+   "last_activity": "2026-10-19 (Playwright push); 2026-10-21 (DevTools push)",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "Anthropic skills repo (anthropics/skills) incl. frontend-design",
+   "url": "https://github.com/anthropics/skills",
+   "kind": "skill",
+   "what_it_does": "Anthropic's public skills repo of SKILL.md folders, installable as a Claude Code plugin marketplace. frontend-design (read in full) pushes domain-grounded, distinctive UI and lists generic AI-look anti-patterns, sparing motion and plain-language copy.",
+   "how_we_use_it": "Run /plugin marketplace add anthropics/skills and invoke frontend-design on every UI task; use its anti-pattern list as a review checklist. claude-plugins-official is the companion channel for vetted partner plugins.",
+   "saves": "Skill bodies load only when invoked, so cost is one description line per turn; fewer redesign rounds.",
+   "risks": "Repo says examples may differ from Claude's real behaviour; document skills are source-available, not open source; per-skill licences vary; 1,014 open PRs show a review backlog.",
+   "license": "Mixed: many Apache-2.0; docx, pdf, pptx, xlsx source-available",
+   "maintainer": "Anthropic",
+   "popularity": "182.6k stars, 21.6k forks; 411 open issues and 1,014 PRs (GitHub API, 21 Oct 2026; earlier packet said 1,425 issues)",
+   "last_activity": "2026-10-09 (push)",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Speckle blog, Design Explorer and Speckle community threads",
+   "url": "https://speckle.systems/blog/ai-in-aec-has-an-access-problem-solved-and-a-trust-problem-unsolved",
+   "kind": "article",
+   "what_it_does": "Vendor essay (Virginia Senf, 4 Sep 2026): AI reaches AEC data but is not trusted; single-tool MCPs make an LLM rediscover meaning each query. Design Explorer (28 May 2026) is a hosted options board; design-explorer-react (MIT, 7 stars) is a local open build.",
+   "how_we_use_it": "Every module output shows query, inputs, sources, run status. Build our options board from design-explorer-react ideas (parallel coordinates, sortable table, image gallery) and fix its gaps: keep text variables, no 50-image cap, process locally and say so. Our MCP exposes cross-module queries, not thin wrappers.",
+   "saves": "A tested interaction pattern and an MIT starting point for the options board, so no from-scratch chart work.",
+   "risks": "Essay is vendor marketing. design-explorer-react: last commit 22 Feb 2026, author said in Aug it is unmaintained for now; early versions dropped text variables; one user doubted where uploads go. Self-hosted Speckle Intelligence needs Enterprise Server.",
+   "license": "Essay n/a; design-explorer-react MIT",
+   "maintainer": "Speckle Systems; ZhengrongTao (GitHub LoftyTao) for design-explorer-react",
+   "popularity": "design-explorer-react 7 stars, 1 fork, 32 commits. Speckle community (browser pane, 21 Oct 2026, posts after 1 Jun 2025): MCP 4 topics, LLM 9, Claude 4, ChatGPT 3; four non-staff builders (Gab, David_Moreira, arsy, Willhl) share LLM-on-Speckle work; staff warned assistants suggest legacy connectors from old docs",
+   "last_activity": "2026-09-04 (essay); 2026-05-28 (Design Explorer); 2026-02-22 (design-explorer-react commit); Speckle community live 21 Oct 2026",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "McNeel Discourse AI, rendering and Rhino MCP threads (staff tagged)",
+   "url": "https://discourse.mcneel.com/t/rhino-mcp-server/216568",
+   "kind": "discussion",
+   "what_it_does": "Topic JSON, 21 Oct 2026, staff excluded: Rhino MCP Server 30 participants (26 non-staff), AI-in-CAD 42 (40), Runchat renders 28 (26), Claude first try 23 (20), product renders 11 (9), credits 10 (7), room renders 5 (3). search.json works from a browser pane.",
+   "how_we_use_it": "Best corroborated sentiment source, still a signal. Weekly search.json scan with paced requests (2.5 s) and a logged query list. Design for low-token loops, one-click install, optional AI, unit-aware inputs. Prior art: Aperture Shadow presets, Polymere browser wind (one post each, no replies).",
+   "saves": "Early warning of adoption pain before we build.",
+   "risks": "Self-selected Rhino users; staff join most threads, so tag voices; non-staff counts are upper bounds; no TestFit thread, one Forma webinar post, no tall-building topic; Aperture Shadow is paid (CAD$79 a month); plugin authors post often.",
+   "license": "n/a",
+   "maintainer": "McNeel forum community",
+   "popularity": "Threads of 5 to 100 posts. Paced search since 2025 (topics with the literal word): ComfyUI 14 of 14 hits, Midjourney 11 of 11, Krea 4 of 4, Veras 5 of 12; mostly incidental mentions",
+   "last_activity": "2026-10-17 (latest Rhino.Inside topic); 2026-10-13 (local-model Rhino MCP thread); 2026-10-08 (room-render thread)",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Buildner Vancouver Tall Challenge page, terms, Skyscraper Center and CTBUH",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "kind": "other",
+   "what_it_does": "Buildner runs the challenge with the City and UBC SALA: registration closes 29 Oct, Q&A 3 Nov, submission 30 Nov 23:59 London time, winners 26 Jan 2027. Terms page: JPEG panels up to 10 MB, up to four, no author marks, original unpublished work; AI not addressed.",
+   "how_we_use_it": "Weekly: organiser page for addenda and Q&A, then a teammate opens CTBUH and Skyscraper Center by hand. Board export: anonymous JPEG panels under 10 MB, AI-use label, no team or tool marks, nothing published early (check the brief). Cite CTBUH for any Skyscraper Center data; reuse no images.",
+   "saves": "Rules and reference data from the source; avoids building to a wrong brief or an export format the portal rejects.",
+   "risks": "Brief download links were placeholders and board size is unstated; the terms page may be platform-level. FAQ says check each AI tool's terms. CTBUH site 403; London conference dates (26-29 Oct) rest on a vendor page. Skyscraper Center has no CSV or API.",
+   "license": "n/a; Skyscraper Center data free for public use and research with CTBUH credit, images not licensed",
+   "maintainer": "Buildner; CTBUH",
+   "popularity": "Jury of 7 incl. UBC SALA; prize fund CAD 15,000; teams of 2 to 4",
+   "last_activity": "organiser page live 21 Oct 2026",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "GenEnv Lab org and xunliuDesign profile (instructor channel)",
+   "url": "https://github.com/GenEnv",
+   "kind": "repo",
+   "what_it_does": "GenEnv Lab, 9 public repos: arch540-a1-toolkit (15 student Vancouver-regulation tools), Arch540_2026 demos, ai-agents-for-architects, sala-tech-knowledge-tree (PR-reviewed), ai4dm-site, rhino-gh-mcp, Thermal-Sandbox-Web fork. Profile xunliuDesign adds false-creek-2100 and AI4GH.",
+   "how_we_use_it": "First pool of reusable modules and course rules: ask Xun for licences (only rhino-gh-mcp shows one) and student permission before copying. Copy the one-JSON-file pull-request pattern for community module uploads.",
+   "saves": "Local Vancouver-specific starting material; contribution workflow already proven in class.",
+   "risks": "Mostly no licences; student work belongs to students; hairline, anatomy and text-to-cad were not found here; org membership private; 0-8 stars each, so little outside review.",
+   "license": "mixed; rhino-gh-mcp MIT, most others not shown",
+   "maintainer": "GenEnv Lab; Xun Liu profile xunliuDesign (15 repos)",
+   "popularity": "9 public repos, 0-8 stars each",
+   "last_activity": "2026-10-14 (arch540-a1-toolkit)",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "GitHub MCP Server (github/github-mcp-server)",
+   "url": "https://github.com/github/github-mcp-server",
+   "kind": "mcp_server",
+   "what_it_does": "GitHub's official MCP server (remote api.githubcopilot.com/mcp or local Docker). Toolsets cover repos, issues, pull requests and more; --read-only exposes only read tools; --lockdown-mode withholds content from authors without push access.",
+   "how_we_use_it": "Connect with a fine-grained token, --read-only first, for issue triage and PR review (gh CLI is not installed). Add --lockdown-mode on public repos. Later prototype our module fork-and-comment flow against a test repo.",
+   "saves": "Replaces hand-written git and API scripts; toolsets load only what is needed.",
+   "risks": "Issues and PRs from strangers are a prompt-injection path. Lockdown mode filters untrusted-author content but is explicitly not an authorization boundary; write tools can alter repositories; keep the token in an environment variable, not a command line.",
+   "license": "MIT",
+   "maintainer": "GitHub",
+   "popularity": "33.8k stars, 5.2k forks; 194 open issues and 185 PRs (GitHub API and README, 21 Oct 2026; earlier packet said 381, which mixed in PRs)",
+   "last_activity": "2026-10-21 (push)",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "McNeel RhinoAI / Rhino MCP Platform (mcneel/RhinoAI)",
+   "url": "https://github.com/mcneel/rhinoai",
+   "kind": "mcp_server",
+   "what_it_does": "McNeel's Rhino MCP plugin and server (MIT). README quick start installs a Claude Desktop connector (connector.mcpb); docs cover Claude Code, Codex, Copilot, Gemini CLI, local models. Forum: Yak package Rhino-MCP-Platform; a McNeel admin says the AI panel ships with Rhino 9 Beta.",
+   "how_we_use_it": "Optional bridge for Rhino teammates only. Test on the lab's Rhino 8 service release before listing it. Generate .3dm and OBJ fixtures with rhino3dm scripts in CI. Study its low-token tool design. Never a platform dependency; keep its local HTTP port (default 10500) off any network.",
+   "saves": "Avoids writing our own Rhino bridge; fixture generation by prompt for teammates who have Rhino.",
+   "risks": "No Rhino version stated (branch rhino-9.x). Ten non-staff users reported install, connect or execute failures; two threads fixed a missing command by switching Rhino to .NET Core. A user reading the source reports MCP 2024-11-05, local-only HTTP, no auth. No Intel Mac build.",
+   "license": "MIT",
+   "maintainer": "McNeel (developer Callum Sykes on the forum)",
+   "popularity": "371 stars, 59 forks; 10 open issues and 7 PRs (GitHub API, 21 Oct 2026); docs at mcneel.github.io/RhinoAI/docs",
+   "last_activity": "2026-10-20 (push)",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "rhino-gh-mcp (GenEnv Lab) and community Rhino/Grasshopper MCPs",
+   "url": "https://github.com/GenEnv/rhino-gh-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "rhino-gh-mcp v0.2.6 (MIT, Rhino 8 only): five Scenario levels from Inspect to Author, four skills. Community bridges rhinomcp (Rhino 8), Cordyceps and lamcp (Grasshopper), all MIT, use unauthenticated localhost sockets or HTTP.",
+   "how_we_use_it": "Adopt the five-level ladder for module AI: Tune edits team assumptions only, Execute writes only manifest-declared outputs. Ask the lab whether ladybug-environmental (draft) can seed sun modules and which licence covers the skills. Other three: design references for typed port names, canvas queries and lamcp's two-process split (Rhino 8 CPython 3.9).",
+   "saves": "Ready permission-gating pattern, starter skills and reference schemas for canvas query tools.",
+   "risks": "rhino-gh-mcp: 8 stars, last push 17 Jul 2026, needs Python 3.11 or 3.12, soft gate, skills carry no separate licence. Community bridges overlap McNeel's server and run unsandboxed Python; Cordyceps logs requests to Rhino history; lamcp can crash Rhino; one thread says SR34 broke rhinomcp.",
+   "license": "MIT (all four)",
+   "maintainer": "GenEnv Lab (UBC SALA-linked); Jingcheng Chen; Brook Talley; ETH Gramazio Kohler org",
+   "popularity": "rhino-gh-mcp 8 stars, 2 forks, 1 open item; rhinomcp 1,158 stars (earlier read); Cordyceps 105 stars, 25 issues; lamcp 21 stars, 4 forks",
+   "last_activity": "2026-07-17 rhino-gh-mcp; commit feeds 21 Oct 2026: rhinomcp 2026-10-16, Cordyceps 2026-09-07, lamcp 2026-08-27",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "OpenAI developer docs MCP and Codex CLI (openai/codex)",
+   "url": "https://developers.openai.com/learn/docs-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Docs MCP: public read-only search of OpenAI developer docs at developers.openai.com/mcp, no API calls. Codex CLI (Apache-2.0): terminal coding agent with a Windows installer; MCP via stdio or Streamable HTTP, OAuth, config in ~/.codex/config.toml or per project (trusted projects only).",
+   "how_we_use_it": "Add the docs MCP so Claude checks current gpt-image limits (3840 px edge, 8.3 MP cap, approximate masks, organisation verification). Use Codex as second reviewer and quota fallback; keep rules in a tool-neutral file; one agent edits a file at a time.",
+   "saves": "Avoids stale image-API code and wasted paid test calls; Codex gives quota resilience (one forum user found it faster, anecdotal).",
+   "risks": "Docs change fast (gpt-image-2.5 models now); no docs-MCP auth documented, so treat fetched text as untrusted. Codex has 23.7k open issues, separate billing; its MCP docs moved to learn.chatgpt.com and name no protocol revision. Image models need organisation verification.",
+   "license": "Docs: hosted service; Codex: Apache-2.0",
+   "maintainer": "OpenAI",
+   "popularity": "Codex 130k stars; 23,744 open issues and 163 PRs (GitHub API, 21 Oct 2026)",
+   "last_activity": "2026-10-21 (Codex push; docs live)",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "Hugging Face Trending Papers and Hugging Face MCP",
+   "url": "https://huggingface.co/papers/trending",
+   "kind": "other",
+   "what_it_does": "Daily, weekly and monthly ranked papers with GitHub links and an email digest; paperswithcode.com redirects here (HTTP 302). Hugging Face's MCP server (huggingface.co/mcp) searches models, datasets, Spaces, papers and docs after login.",
+   "how_we_use_it": "Fifteen-minute weekly scan of the Weekly tab for 3D, CAD, layout and image-editing papers with code; log date and licence. Optional: connect the HF MCP with read-only tools; leave Contribute Repos, Jobs and Sandboxes off.",
+   "saves": "One timeboxed feed replaces ad hoc paper hunting.",
+   "risks": "Rankings skew to hype; stars are not quality; code licences vary; preprints not peer-reviewed. HF MCP can also write repos and run Jobs if enabled; community Gradio Spaces added as tools are third-party code.",
+   "license": "site, n/a",
+   "maintainer": "Hugging Face",
+   "popularity": "stars up to 112k on listed repos",
+   "last_activity": "live, through Oct 2026",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "MCP discovery: official registry (modelcontextprotocol/registry) and punkpeye/awesome-mcp-servers",
+   "url": "https://registry.modelcontextprotocol.io/",
+   "kind": "other",
+   "what_it_does": "Registry: REST search at /v0.1/servers (frozen since 2025-10-24; still preview, no GA date). awesome-mcp-servers: MIT list; a grep of its 1.5 MB README finds no Rhino, Grasshopper, Speckle or IFC entries, but has Revit, Blender, FreeCAD and gpt-image servers.",
+   "how_we_use_it": "Search the registry by keyword (rhino, ifc, revit, blender), then open the repo and read the code. Browse the list's Architecture and Design and Art and Culture sections for CAD and image servers; use Awesome-AECO for AEC-specific ones. Never auto-install; treat glama grades as a hint.",
+   "saves": "One place to check for existing servers before building our own; no token cost.",
+   "risks": "Name search for rhino returns only io.rhinorank.app, a link-building service: concrete noise. Ownership checks are not safety reviews; list entries are unvetted; registry has 135 open issues and 54 PRs.",
+   "license": "awesome list MIT; registry licence type not named in README",
+   "maintainer": "MCP community and Anthropic-led steering group; Frank Fiegel (punkpeye)",
+   "popularity": "Registry 7.4k stars (recounted 21 Oct); awesome-mcp-servers 96.7k stars (earlier read, not recounted)",
+   "last_activity": "2026-10-14 (registry push); 2026-10-18 (list latest commit, feed)",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "AEC awesome lists: Awesome-AECO, Awesome-AIGC4AEC and IDS MCP Server",
+   "url": "https://github.com/osama-ata/Awesome-AECO",
+   "kind": "repo",
+   "what_it_does": "Small, young lists exist. Awesome-AECO (CC0, 21 sections) lists IFC, rhino3dm, Rhino.Compute, web-ifc, Speckle and AI entries, including IDS MCP Server. Awesome-AIGC4AEC (about 165 entries by my count) covers AIGC for AEC at object, room and city scale.",
+   "how_we_use_it": "Add both to the monthly scan. Mine Awesome-AECO for prior art per module category. Try vinnividivicci/ifc-ids-mcp (MIT, 17 tools incl. validate_ifc_model through IfcOpenShell ifctester) for the policy and IFC-check modules. Treat awesome-bim as an archive.",
+   "saves": "A starting map of AEC open source per module category; IDS checking without writing a validator.",
+   "risks": "Lists are tiny and unvetted; Awesome-AIGC4AEC shows no licence and is research-heavy, with no tall-building scope. ifc-ids-mcp: 28 stars, 4 commits, README clone URL names a different owner, no security notes. awesome-bim stale since 2019.",
+   "license": "Awesome-AECO CC0-1.0; Awesome-AIGC4AEC not shown; ifc-ids-mcp MIT; awesome-bim MIT; awesome-computational-design AGPL-3.0",
+   "maintainer": "osama-ata; THUCBIMS; vinnividivicci; mitevpi; CameronBrooks11",
+   "popularity": "Awesome-AECO 33 stars, 19 forks; Awesome-AIGC4AEC 30 stars; ifc-ids-mcp 28 stars, 5 forks; awesome-bim 195 stars; awesome-computational-design 3 stars, 57 tools, no Grasshopper or IFC entries",
+   "last_activity": "Latest commits: Awesome-AIGC4AEC 2026-10-21; Awesome-AECO 2026-10-03; awesome-computational-design 2026-08-23; ifc-ids-mcp 2026-04-06; awesome-bim 2019-12-12",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "UI lint skills: Impeccable (pbakaus) and Vercel agent-skills",
+   "url": "https://github.com/pbakaus/impeccable",
+   "kind": "skill",
+   "what_it_does": "Impeccable: one design skill, 24 commands and 61 deterministic detectors for AI-design tells, run by npx or a downloaded binary with no LLM. Vercel agent-skills (MIT): web-design-guidelines accessibility and UX rules plus react-best-practices.",
+   "how_we_use_it": "Run Impeccable detectors in CI or pre-commit and its critique before each UI milestone and board export; record PRODUCT.md once. Use Vercel's web-design-guidelines as a PR lint; skip its deploy and optimise skills. Rejected: ui-ux-pro-max-skill.",
+   "saves": "Detectors cost zero tokens; critique loop catches rework early; rule checks replace long prompts.",
+   "risks": "No independent evaluation of Impeccable; 24 commands add context when loaded; opinions may clash with architecture-board aesthetics; some Vercel rules assume Next.js; npx needs Node; Vercel licence is a README line, no LICENSE file.",
+   "license": "Impeccable Apache-2.0; Vercel agent-skills MIT (README statement)",
+   "maintainer": "Paul Bakaus; Vercel Labs",
+   "popularity": "Impeccable 84.1k stars, 36 issues, 13 PRs; Vercel 32.7k stars, 67 issues, 114 PRs (GitHub API, 21 Oct 2026)",
+   "last_activity": "2026-10-21 (Impeccable push); 2026-10-14 (Vercel push)",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "Skill directories: skills.sh and travisvn/awesome-claude-skills",
+   "url": "https://skills.sh/",
+   "kind": "other",
+   "what_it_does": "skills.sh ranks agent skills by per-skill installs (top: find-skills, 4.0M) with Trending, topic tabs and an Audits page whose auditors and method are not stated. awesome-claude-skills (15.5k stars) lists no AEC, CAD or 3D skills.",
+   "how_we_use_it": "Weekly look at skills.sh Design and UI and Testing topics from known publishers; read SKILL.md and scripts before installing. Treat the missing AEC category as a gap: package our evaluation modules as forkable skills. Cite per-skill counts only.",
+   "saves": "Ready-made skills instead of writing prompts from scratch.",
+   "risks": "Install counts can reflect promotion (a reddit-automation skill sits in the top 10); the Audits label is not a security review; skills run arbitrary code (README warns); awesome list last commit 28 Apr 2026, licence not shown; ComposioHQ list is vendor-promotional.",
+   "license": "directory n/a; awesome list licence not shown",
+   "maintainer": "Vercel Labs ecosystem (inferred); Travis Van Nimwegen",
+   "popularity": "find-skills 4.0M installs; awesome list 15.5k stars, 2.1k forks. The header figure 1,425,712 is unexplained and is not used",
+   "last_activity": "skills.sh live 21 Oct 2026; awesome-claude-skills latest commit 2026-04-28",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Thermal-Sandbox-Web (christinachiu; GenEnv fork)",
+   "url": "https://github.com/christinachiu/Thermal-Sandbox-Web",
+   "kind": "repo",
+   "what_it_does": "Vanilla JavaScript plus three.js (CDN), no build step, JSON-driven solar-load and shade sandbox. Upstream README lists King's Road (Manitoba) and UBC Lee Square sites; the GenEnv fork README lists only King's Road. Sun data are precomputed Ladybug/Radiance runs.",
+   "how_we_use_it": "Reference for a browser-native sun module: precomputed irradiance JSON read by a three.js viewer, shade fraction derived from open-sky load. Ask Xun and Christina Chiu for a licence before copying code; otherwise borrow the data-flow idea only.",
+   "saves": "A working pattern for a no-build sun viewer; avoids a Ladybug install for end users (my inference).",
+   "risks": "No licence (README says add one before publishing); 0 stars upstream, 1 on the fork; README may lag the files; data tied to fixed sites, not our Vancouver block; producing new data still needs desktop Ladybug/Radiance.",
+   "license": "none yet (README TODO)",
+   "maintainer": "Christina Chiu; fork by GenEnv Lab",
+   "popularity": "upstream 0 stars, 1 fork, 30 commits; GenEnv fork 1 star, 4 commits",
+   "last_activity": "Latest commits (feeds, 21 Oct 2026): upstream 2026-08-14; GenEnv fork 2026-07-21",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "Hypar functions and Elements (hypar-io)",
+   "url": "https://github.com/hypar-io",
+   "kind": "repo",
+   "what_it_does": "Hypar's open-source layer: Elements (MIT, 'smallest useful BIM'), HyparSpace and BuildingBlocks function repos (MIT). AEC Magazine: Hypar 2.0 (Sep 2024) narrowed to space planning; longtime users asked if it was now only a space-planning tool.",
+   "how_we_use_it": "Prior art for our forkable typed module manifest: study how function inputs, outputs and JSON-schema elements are declared. Lesson: a broad function platform confused users, so keep module scope and categories tight.",
+   "saves": "Avoids reinventing a typed-function schema; shows what not to over-broaden.",
+   "risks": "No primary spec for the function manifest opened; function future in Hypar 2.0 left open by the co-founder; C# stack; BuildingBlocks untouched since Jan 2024; the 'big bet against schema' article was not found.",
+   "license": "MIT (Elements, HyparSpace, BuildingBlocks); others not shown",
+   "maintainer": "Hypar Inc.",
+   "popularity": "Elements 420 stars, HyparSpace 32, BuildingBlocks 27; 71 repos in org",
+   "last_activity": "Default-branch commit feeds, 21 Oct 2026: Elements 2026-05-26; HyparSpace 2026-03-31; BuildingBlocks 2024-01-09 (earlier read of 18 Oct likely reflected other branches)",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Browser geometry stack: That Open web-ifc and engine_components, rhino3dm, three.js forum",
+   "url": "https://github.com/ThatOpen/engine_web-ifc",
+   "kind": "library",
+   "what_it_does": "web-ifc: C++ to WebAssembly IFC reader and writer (MPL-2.0, 1.1k stars). engine_components: three.js BIM components (MIT). rhino3dm (McNeel, MIT): reads and writes .3dm in browser, Node and Python without Rhino. The three.js forum is an active viewer community.",
+   "how_we_use_it": "Primary candidate stack for browser import: test web-ifc schema coverage and load time on a real tower IFC; generate and read .3dm fixtures with rhino3dm in CI, no Rhino needed. Watch the three.js forum for WebGPU and large-scene techniques; borrow ideas, not unlicensed demo code.",
+   "saves": "Skips writing IFC and .3dm parsers and a Rhino-dependent fixture pipeline; free peer review of viewer techniques.",
+   "risks": "MPL-2.0 is file-level copyleft; web-ifc schema support not stated on its page; rhino3dm has no full Rhino kernel (heavy geometry goes to Rhino.Compute, not opened); That Open community site needs a login; three.js APIs change often.",
+   "license": "web-ifc MPL-2.0; engine_components MIT; rhino3dm MIT; three.js MIT; demos vary",
+   "maintainer": "That Open Company; McNeel; three.js community",
+   "popularity": "web-ifc 1.1k stars, 70 issues, 9 PRs; engine_components 716 stars, 19 issues, 6 PRs; rhino3dm 766 stars, 155 forks, 16 issues, 2 PRs; three.js forum 86 replies on busiest topic",
+   "last_activity": "Latest commits (feeds): web-ifc 2026-10-21; rhino3dm 2026-10-20; engine_components 2026-10-19; three.js forum live 2026-10-21",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "OSArch Community (community.osarch.org)",
+   "url": "https://community.osarch.org/",
+   "kind": "discussion",
+   "what_it_does": "Main open-source AEC forum. Active 20 Oct 2026 with Bonsai, IfcOpenShell, BonsaiViewer and clash threads. 'Text to IFC in the browser' (InfraStudio, 9-14 Oct) drew 3 commenters besides the author. Forum text is CC BY 4.0 per its footer.",
+   "how_we_use_it": "Add to the weekly scan and post our IFC import and module manifest for feedback. Lesson from the text-to-IFC thread: users asked the tool to ask clarifying questions and follow a massing-to-detail staged process; generation took about six minutes.",
+   "saves": "Early feedback from the open-BIM community at no cost.",
+   "risks": "Skews to open-BIM and Blender users, not tower designers; on the first page of 32 titles only the text-to-IFC thread concerned AI; older AI threads date from 2022-24; counts come from page summaries.",
+   "license": "forum text CC BY 4.0",
+   "maintainer": "OSArch community",
+   "popularity": "32 discussions on page 1; busiest threads 469 and 441 comments",
+   "last_activity": "2026-10-21 (threads active that morning)",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "AEC Magazine AI coverage, newsletter and AI Spotlight Directory",
+   "url": "https://www.aecmag.com/ai/",
+   "kind": "article",
+   "what_it_does": "Trade site with a free newsletter (aecmag.com/subscriptions) and an AI directory (18 tools, demo). Recent: Autodesk AI and agents plus Revit write-MCP preview (16 Oct, updated 20 Oct), GPT-6 Astra BIM analysis (11 Oct), Formas.AI agentic modeller (2 Oct).",
+   "how_we_use_it": "Weekly skim. The Astra article frames our acceptance test (hand edits become the agent's starting point) but reports no revision test: write our own edit-then-rerun test. Augmenta v2, which reruns only changed areas without an LLM, is prior art. Keep MCP connectors read-only until editing is understood.",
+   "saves": "One feed covers vendor moves and sceptical analysis.",
+   "risks": "Sponsored by HP and NVIDIA (editorial independence stated); vendor claims; the Astra article itself calls the evidence unverified and limited; directory is a demo; Autodesk licence terms for MCP may change.",
+   "license": "n/a",
+   "maintainer": "AEC Magazine (Future Build Media)",
+   "popularity": "28 pages of AI archive",
+   "last_activity": "2026-10-20 (Autodesk article updated); 2026-10-16 (latest AI article date seen earlier)",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Hacker News threads on text-to-CAD, AI building design and drawing review",
+   "url": "https://news.ycombinator.com/item?id=47970497",
+   "kind": "discussion",
+   "what_it_does": "Four 2025-26 threads (Algolia): text-to-CAD (186 points, 48 comments), 'is text-to-CAD BS' (5), Drafted layouts (60 points, 63), InspectMind drawing review (59 points, 56). Praise for image-feedback loops; complaints about spatial reasoning, cherry-picked demos, missing zoning, code and structure.",
+   "how_we_use_it": "List of what sceptics test first: code and FAR constraints, multi-body consistency, honest demos, a public benchmark, data handling. Ship sample projects with real Vancouver site data, failure cases included, and cite each rule.",
+   "saves": "Pre-empts predictable criticism.",
+   "risks": "HN skews to developers, few architects; none concern tall buildings; voice counts rough (InspectMind about 13 commenters, 5 to 6 in construction); Algolia recheck 21 Oct finds no 2025-26 thread on TestFit or Autodesk Forma; earthtojake/text-to-cad (22k stars, MIT) may not be the instructor's tool.",
+   "license": "n/a",
+   "maintainer": "HN community",
+   "popularity": "186 points; 60 points (Drafted); 59 points (InspectMind)",
+   "last_activity": "2026-06 (Drafted), 2026-05 (text-to-cad), 2025-12 (InspectMind)",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "Ladybug Tools forum: AI use, MCP threads and install pain",
+   "url": "https://discourse.ladybug.tools/t/ladybug-tools-mcp-is-ready/40355",
+   "kind": "discussion",
+   "what_it_does": "Paced searches (21 Oct 2026, posts after 1 Jun 2025): MCP 7 hits, 3 of them AI-tool threads; LLM 4; Claude 5; ChatGPT 12; agent 3. Praise: what-if tests on resolved models. Complaints: token use, copy-paste steps, installs. About 10 of 30 newest topics are install failures.",
+   "how_we_use_it": "Use as energy-side sentiment, hypotheses only. Keep sun, daylight and wind modules browser-native or containerised, Ladybug an optional backend. Use the 15 Oct two-tower wind thread as a test case: state domain, assumptions, limits. At least 8 non-staff users already use ChatGPT or Claude here; show how to verify output.",
+   "saves": "Avoids building on a hard-to-install stack for the 13 Nov core.",
+   "risks": "Search and title counts, not a survey; skews to power users on Windows and Grasshopper; ladybug-core is AGPL-3.0 (section 13 source offer if a modified version serves web users); staff identified by post flag only.",
+   "license": "ladybug-core AGPL-3.0",
+   "maintainer": "Ladybug Tools community",
+   "popularity": "Design Explore React thread 23 posts, 1,847 views; Ladybug Tools MCP 9 posts, 1,367 views; Honeybee-MCP beta 9 posts, 396 views",
+   "last_activity": "2026-10-20",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Ladybug Tools MCP, Honeybee-MCP and EnergyPlus/OpenStudio MCPs",
+   "url": "https://github.com/LoftyTao/ladybug-tools-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Ladybug Tools MCP (GPL-3.0, v1.2.3, Python 3.12, Windows primary) and Honeybee-MCP (GPL-3.0, superseded) drive Ladybug without CAD. Energy prior art: idfkit-mcp (MIT, 37 tools), LBNL EnergyPlus-MCP (35 tools), openstudio-mcp (150+ tools, Docker).",
+   "how_we_use_it": "Prior art for energy, carbon and sun module tools and skills, not dependencies. GPL-3.0 only at arm's length: call as a separate process, never bundle or copy code. idfkit-mcp (MIT) is the cleanest EnergyPlus reference; read each repo's code before running anything.",
+   "saves": "Shows the token trap (large EnergyPlus warning reports) and tool and skill naming before we hit it.",
+   "risks": "Single-author projects (5 to 121 stars); GPL-3.0 copyleft; installer edits client config and launches simulators; idfkit HTTP mode documents no authentication; LBT MCP has no security notes; openstudio-mcp licence is custom BSD-style.",
+   "license": "LBT MCP and Honeybee-MCP GPL-3.0; idfkit-mcp MIT; EnergyPlus-MCP modified BSD (README); openstudio-mcp custom BSD-style (LICENSE.txt)",
+   "maintainer": "ZhengrongTao (GitHub LoftyTao); samuelduchesne (idfkit, self-disclosed); LBNL-ETA; NatLabRockies org",
+   "popularity": "LBT MCP 12 stars, 0 forks; Honeybee-MCP 17 stars, 4 forks; idfkit-mcp 5 stars; EnergyPlus-MCP 121 stars; openstudio-mcp 51 stars, 11 forks, 14 issues, 1 PR (GitHub pages, 21 Oct 2026)",
+   "last_activity": "Commit feeds 21 Oct 2026: idfkit-mcp 2026-10-19; openstudio-mcp 2026-10-16 (develop); LBT MCP 2026-09-24; Honeybee-MCP 2026-03-10; EnergyPlus-MCP date not shown",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true
+  },
+  {
+   "name": "Autodesk Community Forma forum and TestFit review sites (search snippets only)",
+   "url": "https://forums.autodesk.com/t5/forma-for-design-forum/wind-analysis-radius-at-500-m-or-800-m/td-p/13354060",
+   "kind": "discussion",
+   "what_it_does": "Pages return HTTP 403, so only search snippets were read: ten 2023-25 Forma threads on wind and noise analysis limited to a circular domain (radius cap near 350 m) and Rhino import as generic; TestFit shows 4 Capterra reviews at 4.0/5.",
+   "how_we_use_it": "Treat as hypotheses about Forma limits for a full-block supertall: our wind module states its domain and terrain assumptions openly. Ask a teammate with an Autodesk login to open and date these threads. McNeel's forum adds nothing: one Forma webinar post, no TestFit thread.",
+   "saves": "Pre-empts a known tool gap at no cost.",
+   "risks": "Snippets only, not opened; threads dated 2023-25 so the 2026 release may differ; TestFit criticisms (mapping, customisation, interface) from a search summary of 4 reviews; no first-hand tall-building evidence.",
+   "license": "n/a",
+   "maintainer": "Autodesk community; TestFit reviewers",
+   "popularity": "about 10 threads; 4 Capterra reviews",
+   "last_activity": "threads 2023-2025 (snippets)",
+   "priority": "v1",
+   "status": "unverified",
+   "verified_opened": false
+  },
+  {
+   "name": "Blender MCPs: mcp-for-blender (ahujasid/blender-mcp) and Bonsai_mcp (IFC)",
+   "url": "https://github.com/ahujasid/blender-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "ahujasid's Blender add-on plus MCP server (MIT, renamed mcp-for-blender) runs Python, captures the viewport and generates or imports 3D assets. Bonsai_mcp (MIT) forks it for IFC: about fifteen IFC tools via Bonsai and IfcOpenShell, plus a legacy Execute Code tool.",
+   "how_we_use_it": "Roadmap only. Blender MCP: scripted depth or line passes of the massing for gpt-image or diffusion workflows, with BLENDER_MCP_SAFE_MODE=1 and DISABLE_TELEMETRY=true. Bonsai_mcp: IFC test fixtures; needs Python 3.12+, Blender 4.0+, uv. Run either only in a throwaway Blender profile or VM.",
+   "saves": "Skips building a render pipeline early; IFC fixtures by prompt instead of manual modelling.",
+   "risks": "Blender socket (port 9876) has no authentication; SAFE_MODE is a pre-run check, not a sandbox. Bonsai's README documents no way to disable Execute Code (arbitrary Python); its REST API has no authentication and allows all CORS origins, so never run it with a browser open. 66 stars, one maintainer.",
+   "license": "MIT (both)",
+   "maintainer": "Siddharth Ahuja (individual); Jota de Rodriguez (individual)",
+   "popularity": "Blender MCP 31.8k stars, 31 open issues and 26 PRs (earlier packet said 54, which mixed in PRs); Bonsai_mcp 66 stars, 25 forks, 1 issue, 1 PR (21 Oct 2026)",
+   "last_activity": "2026-10-20 (Blender MCP push); 2026-09-06 (Bonsai_mcp)",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Autodesk Revit MCP Server (Revit 2027 technical preview)",
+   "url": "https://blog.autodesk.io/revit-mcp-server-update/",
+   "kind": "mcp_server",
+   "what_it_does": "Autodesk Revit 2027 add-ons (technical preview, local stdio). Update post (29 Sep 2026): Read, Write and Experimental installers, Revit 2027.2 or later; the release post lists seven read tools. AEC Magazine quotes an Autodesk executive saying Trusted Write changes can be undone.",
+   "how_we_use_it": "Optional read-only bridge for teammates holding Revit 2027: export views and element data as ground truth for Revit and IFC import tests. Never bundle or require it. Keep Write and Experimental off; back up models as Autodesk advises. Confirm education entitlement before listing it.",
+   "saves": "Avoids writing a Revit bridge; real model data for importer tests.",
+   "risks": "Autodesk's post advises backups and does not claim undo; undo rests on one executive interview. AEC Magazine: licensed for customers' own internal business purposes, commercial apps use APS, terms may change. Education entitlement unconfirmed. Docs show Claude Desktop and Cursor, not Claude Code.",
+   "license": "Autodesk technical preview; the update post states no licence; terms page not opened",
+   "maintainer": "Autodesk",
+   "popularity": "closed-source add-on; no counts. APS blog (15 Apr 2026) also lists Product Help, Fusion and Fusion Data MCPs; no Forma MCP",
+   "last_activity": "2026-09-29 (update post); Write preview covered before AU 2026 (AEC Magazine, 16 Oct, updated 20 Oct)",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Figma MCP server guide (figma/mcp-server-guide)",
+   "url": "https://github.com/figma/mcp-server-guide",
+   "kind": "mcp_server",
+   "what_it_does": "Figma's remote MCP (mcp.figma.com/mcp) gives agents design context, variables and components, plus write-to-canvas (beta). Read-tool limits: View and Collab seats 20 calls a month; Full and Dev 200 a day on Professional; Education matches Professional. Write tools are exempt.",
+   "how_we_use_it": "Roadmap on scope grounds, not cost: pull board layouts and design tokens into code if the team designs in Figma. Each member applies for the free Education plan (verified student, Professional tier), then rechecks the live rate-limit page. Fallback: Framelink MCP (MIT, personal token).",
+   "saves": "Design-to-code without screenshots, if seats allow.",
+   "risks": "Limits may change at any time; write-to-canvas turns paid; generate_image and send_prompt use AI credits; Education eligibility per member unverified; Starter Full and Dev allowance not listed; repo shows no licence; the Figma connector in this workspace needs authorising.",
+   "license": "not stated in repo",
+   "maintainer": "Figma",
+   "popularity": "2.1k stars, 206 forks; 12 open items (GitHub API, 21 Oct 2026)",
+   "last_activity": "2026-10-20 (push)",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "AI renderers: Veras, LookX, Krea, Midjourney, ComfyUI and Krita AI Diffusion",
+   "url": "https://www.evolvelab.io/veras",
+   "kind": "app",
+   "what_it_does": "Veras (Chaos) plugs into Revit, Rhino, SketchUp and Forma, no API listed. Krea has a REST API; Midjourney terms unreadable (403). ComfyUI (GPL-3.0) is a node-based local diffusion GUI. Krita AI Diffusion (GPL-3.0) edits images through a local or remote ComfyUI backend.",
+   "how_we_use_it": "Do not integrate commercial tools; copy valued controls: Veras's geometry-override slider and same-seed re-render. Roadmap after 10 Dec: send depth or line passes to local ComfyUI over HTTP (GPL at arm's length, --disable-partner-nodes); test Krita AI Diffusion the same way. For now gpt-image via API; keep a Google image option.",
+   "saves": "Borrowed controls avoid a rendering UX experiment; ComfyUI gives free local rendering after setup.",
+   "risks": "Vendor pages and aggregators only. Of 12 McNeel Veras search hits only 5 mention it: one vendor thread, two plugin-load or side-effect reports, one positive. ComfyUI and Krita are GPL-3.0; custom nodes run arbitrary code; heavy compute.",
+   "license": "commercial (Veras, LookX, Krea, Midjourney); ComfyUI GPL-3.0; Krita AI Diffusion GPL-3.0",
+   "maintainer": "EvolveLAB (Chaos), LookX, Krea, Comfy-Org, Acly",
+   "popularity": "ComfyUI 141.2k stars, 16.7k forks (recounted 21 Oct 2026); Krita AI Diffusion 10.8k stars, 647 forks, 110 issues, 18 PRs (needs about 6 GB VRAM for local use); McNeel paced search since 2025: ComfyUI 14 topics, Midjourney 11, Krea 4, Veras 5 of 12 hits, mostly incidental",
+   "last_activity": "ComfyUI latest commit 2026-10-21; Krita AI Diffusion 2026-10-03; Veras lists Revit 2026 support",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true
+  },
+  {
+   "name": "Rejected MCPs: bimgeek/speckle-mcp and Autodesk APS MCP (aps-mcp-server-nodejs)",
+   "url": "https://github.com/bimgeek/speckle-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "speckle-mcp: community Python server to list Speckle projects and query objects with a personal token. APS MCP: Autodesk's Node server for ACC data via a server-to-server app; archived by its owner on 7 May 2026 (MIT).",
+   "how_we_use_it": "Adopt neither. For Speckle data call specklepy (Apache-2.0) from our backend with a narrow token and publish provenance with each result. Record APS as unusable for students without ACC. Autodesk's newer official Revit MCP is a separate finding.",
+   "saves": "Avoids dependencies that would need replacing.",
+   "risks": "speckle-mcp: 14 stars, no licence file visible, last push Aug 2025, broad-token leak path. APS MCP: archived, needs ACC plus a secure service account private key. No official Speckle MCP found among the ten most recently updated repos.",
+   "license": "speckle-mcp none visible; APS MCP MIT",
+   "maintainer": "bimgeek (individual); Autodesk Platform Services (archived)",
+   "popularity": "speckle-mcp 14 stars, 2 open issues; APS MCP 25 stars, 8 forks",
+   "last_activity": "2025-08-23 (speckle-mcp); 2026-05-07 (APS archive)",
+   "priority": "reject",
+   "status": "verified",
+   "verified_opened": true
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Reachability is not trust: trade and vendor sources argue users want to see where an AI answer came from and how clean the data was (Speckle essay, AEC Magazine Astra analysis; n=2 sources). Ladybug forum users (at least 8 non-staff) already use ChatGPT or Claude as helpers and tell each other to check output against the schema; one discloses AI authorship in the post; a Speckle staff member warned that assistants suggest legacy connectors from old docs. Hypothesis, not a measured preference.",
+   "rule_for_our_tool": "Every module output shows inputs, source citation, run status and the exact assumption values used. Team assumptions are editable, and a wrong claim stays visible as FALSE ASSUMPTION in its own colour. Keep module docs current and retire legacy pages from anything an AI assistant reads.",
+   "source_urls": [
+    "https://speckle.systems/blog/ai-in-aec-has-an-access-problem-solved-and-a-trust-problem-unsolved",
+    "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/",
+    "https://speckle.community/t/20083",
+    "https://discourse.ladybug.tools/t/39661",
+    "https://discourse.ladybug.tools/t/40716"
+   ]
+  },
+  {
+   "principle": "Whether agreed decisions survive the next edit matters more than a first draft. Signal, n=1 trade article (AEC Magazine, 11 Oct 2026) that states the requirement, reports no revision test and rates the evidence unverified; Augmenta v2 (no LLM) reruns only changed areas. Hypothesis.",
+   "rule_for_our_tool": "Let users lock decisions (site, height band, program split). Write our own edit-then-rerun acceptance test per module, and rerun only modules whose inputs changed (cache by input hash). Re-runs must not overwrite locked values silently. Keep agent connectors read-only until editing is understood.",
+   "source_urls": [
+    "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/"
+   ]
+  },
+  {
+   "principle": "Install friction ends adoption. Signal: 10 distinct non-staff users reported install, connect or tool-execution failures with McNeel's Rhino MCP across three McNeel threads (May to Sep 2026; an eleventh report was retracted); two Jul-Aug 2026 threads fixed a missing command by switching Rhino to .NET Core; about 10 of 30 newest Ladybug topics and 19 of 50 Rhino.Inside 2026 topics are install or platform failures (title counts; not a survey).",
+   "rule_for_our_tool": "Browser-first with zero required desktop installs. Rhino, Grasshopper, Revit or Blender bridges are optional extras. Show one-click sample projects before any account or setup step.",
+   "source_urls": [
+    "https://discourse.ladybug.tools/latest",
+    "https://discourse.mcneel.com/t/rhino-mcp-server/216568",
+    "https://discourse.mcneel.com/t/rhino-mcp-server/216568?page=2",
+    "https://discourse.mcneel.com/t/yak-plugin-not-showing-in-package-manager/221267",
+    "https://discourse.mcneel.com/t/cannot-find-mcpconnect-even-after-installing-rhino-mcp-platform/221570"
+   ]
+  },
+  {
+   "principle": "Cost surprises are plausible with MCP-driven CAD. Signal: 2 non-staff users report quota burn (jokamm, May 2026; Bogdan_Chipara, Aug to Oct 2026) and 3 more complain about credit pricing (3dsynergy, diegodx, brvdln). McNeel staff report it too: Kyle Houchens ran out of Claude credits; scottd (McNeel admin) cites 650K to 1M tokens per render or model in one Codex session, a staff anecdote; Callum Sykes says many connected servers raise baseline cost. The Ladybug MCP author delayed EnergyPlus measure tools because warning reports burn tokens. Claude Code defers MCP tool definitions; large outputs and screenshots cost most (25,000-token cap). Not a frequency claim.",
+   "rule_for_our_tool": "Show an estimated cost before any AI step, offer step-in versus run-all, cache module results, keep deterministic modules free of LLM calls, return compact structured outputs, cap image sizes and write long results to files read on demand.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/claude-is-quickly-running-out-of-credits/221827",
+    "https://discourse.mcneel.com/t/rhino-mcp-server/216568",
+    "https://discourse.mcneel.com/t/using-ai-for-virtual-room-rendering/223330",
+    "https://discourse.ladybug.tools/t/ladybug-tools-mcp-is-ready/40355",
+    "https://code.claude.com/docs/en/mcp",
+    "https://code.claude.com/docs/en/skills"
+   ]
+  },
+  {
+   "principle": "Sceptics dismiss generated architecture when zoning, code and structure are missing and demos look cherry-picked. Signals: about 10 to 12 voices in one HN thread on residential layouts; about 13 commenters on an HN drawing-review launch (Dec 2025, 5 to 6 in construction). In McNeel's AI-in-CAD thread (Feb to Aug 2026; 42 participants, at most 40 non-staff) my read of first posts gives about 15 sceptical and 9 positive, with weak edits to existing work, data security and credit pricing as recurring worries; one user called a stadium-from-a-prompt result joke-level (Aug 2026). Aperture Shadow ships jurisdiction presets and Polymere labels its browser wind solver conceptual (one post each, no replies). Hypotheses; none concern supertalls.",
+   "rule_for_our_tool": "Label generative output as concept, never compliant. Ship a Vancouver preset for the sun module (dates, times, colour conventions, cited rule), label the wind module conceptual with its stated domain, and publish a test set with expected outputs per module. Put cited zoning, height and FSR checks ahead of any AI rendering.",
+   "source_urls": [
+    "https://news.ycombinator.com/item?id=48543908",
+    "https://news.ycombinator.com/item?id=46219386",
+    "https://discourse.mcneel.com/t/the-future-of-cad-in-the-age-of-ai-is-there-one/216046",
+    "https://discourse.mcneel.com/t/aperture-shadow-net-added-shadow-studies/222519",
+    "https://discourse.mcneel.com/t/real-time-webgpu-cfd-thermal-simulator-feedback-wanted/216120"
+   ]
+  },
+  {
+   "principle": "Deterministic engines compute; the LLM directs. Signals: TestFit's page (vendor) says its assistant only directs; HN text-to-CAD threads (48 and 5 comments) cite weak spatial reasoning but good image-feedback loops; one user (n=1) of a community Rhino MCP found units ignored, so a 10x10x5 box became inches (thread 215629; the tool is probably GOLEM-3DMCP, inferred); in the AI-in-CAD thread one non-staff user finds AI weak at adjusting existing work and a forum moderator (mathieu1) expects deterministic control with hybrid workflows. Ladybug: one Honeybee-MCP user praised what-if tests on a resolved model; a regular tells others to check LLM EMS scripts against the IDD file.",
+   "rule_for_our_tool": "Deterministic geometry modules compute, with explicit units on every input; the LLM orchestrates and explains. Give each module a snapshot output so agents and testers can inspect multi-angle images. Validate any AI-written parameter file against the engine's schema before running.",
+   "source_urls": [
+    "https://www.testfit.io/blog/testfit-mcp-feasibility-studies-in-plain-language",
+    "https://news.ycombinator.com/item?id=47970497",
+    "https://news.ycombinator.com/item?id=47894977",
+    "https://discourse.mcneel.com/t/local-mcp-server-to-drive-rhino-inside-revit-workflows-with-ai/215629",
+    "https://discourse.mcneel.com/t/the-future-of-cad-in-the-age-of-ai-is-there-one/216046",
+    "https://discourse.ladybug.tools/t/using-ai-agents-to-assist-in-modeling-honeybee-mcp-beta/39876",
+    "https://discourse.ladybug.tools/t/39661"
+   ]
+  },
+  {
+   "principle": "Graded AI permission levels build trust; rhino-gh-mcp defines five (Inspect, Tune, Coach default, Execute, Author), and Autodesk ships its Revit MCP as separate Read, Write and Experimental installers (29 Sep 2026 post). Pattern from two vendors or repos, not a community finding.",
+   "rule_for_our_tool": "Adopt all five. Inspect is read-only; Tune edits team assumptions only; Coach proposes highlighted edits; Execute writes only outputs the module manifest declares; Author needs explicit confirm and an undo entry. Default is Inspect or Coach.",
+   "source_urls": [
+    "https://github.com/GenEnv/rhino-gh-mcp",
+    "https://aecmag.com/ai/autodesks-most-ambitious-ai-play-yet/",
+    "https://blog.autodesk.io/revit-mcp-server-update/"
+   ]
+  },
+  {
+   "principle": "Local MCP bridges are unauthenticated code-execution surfaces and their READMEs say so (rhinomcp, lamcp, Blender MCP, Bonsai_mcp, whose Execute Code tool cannot be disabled; Playwright says it is not a security boundary). Documentation fact, n=5 repos. McNeel's own plugin accepts local connections only; its developer said remote access needs a security review first (15 Sep 2026).",
+   "rule_for_our_tool": "Bind to loopback only, disable execution tools by default, pin versions, and never expose a bridge beyond localhost. Run unavoidable execution tools only in a throwaway profile or VM. Our own backend never executes user-uploaded module code outside a sandbox.",
+   "source_urls": [
+    "https://github.com/jingcheng-chen/rhinomcp",
+    "https://github.com/gramaziokohler/lamcp",
+    "https://github.com/ahujasid/blender-mcp",
+    "https://github.com/JotaDeRodriguez/Bonsai_mcp",
+    "https://github.com/microsoft/playwright-mcp",
+    "https://discourse.mcneel.com/t/rhino-mcp-server/216568?page=4"
+   ]
+  },
+  {
+   "principle": "Directories and registries are for discovery, not vetting: a registry search for rhino returns only an unrelated SEO service, the 1.5 MB awesome-mcp-servers README has no Rhino, Grasshopper, Speckle or IFC entry, and the AEC-specific lists that do exist are tiny (30 to 33 stars). Documentation fact.",
+   "rule_for_our_tool": "Our community module hub shows licence, last update, source link and install count, and labels unreviewed modules. Same rule for our own tooling: read code before adding any server or skill.",
+   "source_urls": [
+    "https://registry.modelcontextprotocol.io/v0.1/servers?search=rhino",
+    "https://github.com/punkpeye/awesome-mcp-servers",
+    "https://github.com/travisvn/awesome-claude-skills",
+    "https://github.com/osama-ata/Awesome-AECO"
+   ]
+  },
+  {
+   "principle": "Comparing many options needs a grid plus parallel coordinates with sortable metrics, not a single hero render. Sources: Speckle Design Explorer post (vendor, 28 May 2026) and the MIT design-explorer-react build. Its Ladybug thread (5 participants, 3 non-staff) shows what users ask for: keep text variables, adjustable font size, no 50-image cap, and clarity on whether files leave the machine. One pattern, not a survey.",
+   "rule_for_our_tool": "Options board: thumbnail grid sortable by any metric plus parallel-coordinates chart that highlights Pareto candidates and links back to the module run that produced each number. Keep categorical variables, process locally, and state plainly where data goes.",
+   "source_urls": [
+    "https://speckle.systems/blog/design-explorer-beta-browse-compare-and-share-all-of-your-grasshopper-options-in-one-place",
+    "https://github.com/LoftyTao/design-explorer-react",
+    "https://discourse.ladybug.tools/t/the-react-version-of-design-explore-is-now-available/39973"
+   ]
+  },
+  {
+   "principle": "Direct manipulation with live metrics and honest disclaimers keeps people engaged; AI must stay optional because opinion is polarised. Signal: McNeel threads with at most 20 non-staff voices (Claude first try, Oct 2026) and 26 (Runchat renders, Oct 2025): worries about lost skill, authorship, subscriptions, energy and IP, set against users pleased with fast renders and McNeel staff calling AI an art supply (staff view, not counted).",
+   "rule_for_our_tool": "Brush-like massing edits, live dashboard, PNG export stamped with scenario and metrics for working exports (the competition board export carries no author or tool marks), a plain not-engineering-advice note, and every AI step opt-in with a visible off switch. No streaks, nags or gamified scores.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/rhino-mcp-claude-first-try/223183",
+    "https://discourse.mcneel.com/t/whats-the-latest-on-ai-and-grasshopper/212902",
+    "https://discourse.mcneel.com/t/runchat-ai-rendering/211382",
+    "https://github.com/xunliuDesign/false-creek-2100",
+    "https://architecturecompetitions.com/VancouverTallChallenge/terms"
+   ]
+  },
+  {
+   "principle": "Generic AI aesthetics are detectable and unwelcome; identity should come from the subject (tall buildings, Vancouver) with one orchestrated motion moment. Guidance from Anthropic's frontend-design skill, not community evidence.",
+   "rule_for_our_tool": "Define a small palette and type scale from the domain, respect reduced-motion, avoid stock card grids, and run deterministic design detectors in CI before UI milestones.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/SKILL.md",
+    "https://github.com/pbakaus/impeccable"
+   ]
+  },
+  {
+   "principle": "Users already run non-Claude engines with Rhino MCP, and McNeel staff say they want more engines (vendor intent, not user demand). Signal: at least 6 non-staff users (Bogdan_Chipara, C_Dav, Jean-Go, yang, tmason80, Julian_Raxworthy) use or recommend ChatGPT or Codex (Aug to Oct 2026); Bogdan found Codex better after Claude ran out of credits (anecdote); 2 users run local models (altamiro.aj, mi.land); 2 users (skysurfer, Lagom) rate Google's image model above ChatGPT for faithful edits. scottd (McNeel admin, 8 Oct 2026): the AI panel connects to Claude and Codex and more engines are wanted.",
+   "rule_for_our_tool": "Put every LLM and image call behind a provider interface that can also reach a Google image model and a local model. Keep tool-neutral project rules and standard MCP or skill formats so Claude, OpenAI or a local model can drive the tool.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/claude-is-quickly-running-out-of-credits/221827",
+    "https://discourse.mcneel.com/t/using-ai-for-virtual-room-rendering/223330",
+    "https://discourse.mcneel.com/t/ai-to-show-rendered-product-in-different-contexts/219926",
+    "https://discourse.mcneel.com/t/rhino-mcp-server/216568",
+    "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/"
+   ]
+  },
+  {
+   "principle": "Low-friction contribution works (students edit one JSON file by pull request and the site rebuilds in about a minute), but breadth can erode usability: Hypar narrowed from a function platform to space planning in Sep 2024 after users found the scope confusing. One class repo plus one trade article.",
+   "rule_for_our_tool": "Community module upload starts as a single manifest file (inputs, outputs, sources, licence) with automated validation, fork and comment like GitHub, and a reviewer other than the author. Keep module categories few and tight.",
+   "source_urls": [
+    "https://github.com/GenEnv/arch540-a1-toolkit",
+    "https://github.com/GenEnv/sala-tech-knowledge-tree",
+    "https://aecmag.com/features/hypar-2-0/"
+   ]
+  },
+  {
+   "principle": "AI renders must declare how far they may depart from the model. Signal: in two McNeel threads (product renders, Jun to Jul 2026, 9 non-staff at most; room renders, Oct 2026, 3 non-staff) 3 users (Lagom, skysurfer, Alan_Farkas) reported unrequested changes to perspective, scale, a lamp shade, a door and furniture details. Those came from Vizcom, Gemini and Krita AI outputs, not Veras or RhinoAI; one user praised a plugin that keeps geometry. A RhinoAI model built from a guessed sketch plan came out too small. Aggregator-only Veras claims; OpenAI docs say masks are approximate.",
+   "rule_for_our_tool": "Board renderer gets a geometry-override control, same-seed re-render and a fidelity note on each image. Pass viewport captures as reference images and test fidelity; precise control needs depth or line conditioning (roadmap). Buildner says check each AI tool's terms, so add an AI-use label per panel.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/using-ai-for-virtual-room-rendering/223330",
+    "https://discourse.mcneel.com/t/ai-to-show-rendered-product-in-different-contexts/219926",
+    "https://developers.openai.com/api/docs/guides/image-generation",
+    "https://architecturecompetitions.com/VancouverTallChallenge",
+    "https://tooliverse.ai/tools/veras"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Do this first (my hour estimates, about 7 h for two people before 13 Nov): (1) Node 24 LTS plus .nvmrc and package.json engines, 0.5 h; (2) the four core MCPs at project scope (Context7 CLI plus skill, each member signs in once and keeps the key in an environment variable; playwright-cli plus skills; GitHub read-only with lockdown; OpenAI docs MCP), 2.25 h; (3) disabledMcpjsonServers, CODEOWNERS for .mcp.json and .claude/settings.json, ${ENV} secrets, minimum Claude Code version 2.1.246 in the README, 1.5 h; (4) /plugin marketplace add anthropics/skills and a CLAUDE.md line to run frontend-design on UI tasks, 0.5 h; (5) dates and accounts: start OpenAI organisation verification, check Buildner registration (closes 29 Oct) and Q&A (closes 3 Nov), read the brief download, 1.5 h; (6) name the owner and backup of the signal log by 22 Oct and have the owner register Reddit and YouTube API access under their own account, 0.75 h. Defer everything else until after 13 Nov.",
+   "rationale": "Readers have 23 days to the core milestone; each item removes a known blocker (Node missing, stale API code, headless-run security, UI quality, verification delay, a closing registration, an ownerless evidence gap). Hour figures are estimates, not measurements.",
+   "alternatives_rejected": "Installing the full MCP and skill catalogue now; reading all channels before building; deferring OpenAI verification."
+  },
+  {
+   "decision": "Core-sprint MCP set: Context7 (CLI plus skill first; needs a personal account and key), Playwright (playwright-cli plus skills first), GitHub (read-only, fine-grained token, lockdown on) and the OpenAI docs MCP. Optional: DeepWiki (keyless) and Chrome DevTools MCP (--slim --headless --no-usage-statistics --no-performance-crux). Install Node 24 LTS first (22 is in maintenance until April 2027; Node 26 becomes LTS on 28 Oct), add servers at project scope in .mcp.json, keep the always-on set to the four core ones.",
+   "rationale": "Each was opened and checked. Claude Code defers MCP tool definitions by default, so server count costs little context; large outputs and screenshots cost the most. Node 24 meets every requirement found (18+, 22.13+) and is supported to April 2028.",
+   "alternatives_rejected": "Node 22 (maintenance only), Node 26 before it is LTS and tested against the tools, Blender MCP before 13 Nov, community Speckle MCP (14 stars, no licence), installing anything straight from registry results."
+  },
+  {
+   "decision": "Treat McNeel's RhinoAI (Rhino) and Autodesk's Revit MCP Read installer (Revit 2027, technical preview) as optional teammate-side bridges only, never platform dependencies. Generate .3dm and OBJ test fixtures with rhino3dm scripts in CI. Keep Bonsai_mcp (MIT) for roadmap IFC fixtures in a throwaway Blender profile or VM. Keep Autodesk Write and Experimental installers off.",
+   "rationale": "rhino3dm (MIT) reads and writes .3dm without Rhino, so fixtures need no install friction. RhinoAI is MIT with Claude Code, Codex and Gemini docs and an active developer, but its README routes installs through a Claude Desktop connector, its AI panel ships with the Rhino 9 Beta, no Rhino version is stated, and 10 non-staff users reported install or connect failures. Autodesk's Read tools leave model data unchanged, but its terms limit use to customers' own internal workflows and may change.",
+   "alternatives_rejected": "jingcheng-chen/rhinomcp, Cordyceps and lamcp as primary bridges (small projects, no authentication; keep as design references); Autodesk APS MCP (archived 7 May 2026, needs ACC and a service-account key); building our own Rhino or Revit bridge."
+  },
+  {
+   "decision": "Plan our own MCP server at design level, built after the 13 Nov core: expose cross-module queries (options, metrics, assumptions, provenance) rather than thin per-module wrappers; every result carries query, inputs, sources and run status; apply the five permission levels, default read-only. Build on the official SDK against revision 2026-07-28: stateless (no sessions or initialize), implement server/discover, carry handles as tool arguments, return tools in a deterministic order with ttlMs and cacheScope, and avoid the deprecated Roots, Sampling, Logging, SSE transport and Dynamic Client Registration (use Client ID Metadata Documents). Test against both Claude Code and Codex.",
+   "rationale": "Official changelog (read 21 Oct): 2026-07-28 removes sessions, the initialize handshake and SSE resumability, replaces server-initiated requests with multi round-trip requests, and deprecates Roots, Sampling and Logging with a 12-month window. Claude Code's v2 runtime (v2.1.232 or later with feature flags, default from v2.1.274) uses it with servers that support it and treats others as v1; Codex docs name no revision. A McNeel forum user reports the stock RhinoAI plugin speaks 2024-11-05 and patched his copy to 2026-07-28, which shows older bridges linger. Speckle argues single-tool MCPs make an LLM rediscover meaning each query, and TestFit and McNeel already ship MCPs.",
+   "alternatives_rejected": "Designing from pre-July tutorials or older community bridges, thin one-tool wrappers, exposing raw code-execution tools, and depending on Autodesk's MCP terms."
+  },
+  {
+   "decision": "Keep the front-edge scan small: until 13 Nov, 20 minutes a week over 4 channels: (1) Discourse forums via paced search.json (McNeel, Ladybug, Speckle community; terms MCP, LLM, Claude, ChatGPT, agent; 2.5 s between calls, because unpaced calls return empty pages that look like zero hits; log query string, date and result count), (2) AEC Magazine AI plus newsletter, (3) Hugging Face Weekly papers, (4) Buildner organiser page with CTBUH and Skyscraper Center opened by hand. After 13 Nov widen to 45 minutes: OSArch, That Open docs, Speckle blog, skills.sh Trending, Awesome-AECO and Awesome-AIGC4AEC, MCP registry keyword queries via /v0.1/servers, GitHub topics grasshopper and ifc. Name an owner and keep a dated log. Newsletters opened on their pages 21 Oct: TLDR AI (free, weekdays, 1.1M readers stated), PA Daily (frequency and cost not stated), AEC Magazine.",
+   "rationale": "Papers with Code redirects to Hugging Face; the awesome-aec and awesome-bim topic tags are empty, but small lists exist by repository name (Awesome-AECO, Awesome-AIGC4AEC; awesome-bim stale since 2019). The only tall-building-specific channels are CTBUH and the organiser page, so a person must open them by hand. CTBUH London conference 26-29 Oct is a vendor-page lead only.",
+   "alternatives_rejected": "Passive following of social feeds (not reachable by our tools), a 45-minute scan before the core milestone, and trusting star counts or raw search-hit counts as quality signals."
+  },
+  {
+   "decision": "Make the social-signal gap a dated deliverable, due 3 Nov 2026: a shared log of 25 or more dated signals from 4 or more platforms plus 5 to 8 short UBC peer interviews. Owner: Student A, backup Student B (the two names go in the log header by 22 Oct). The owner registers Reddit and YouTube API access under their own account and accepts the terms; the agent creates no accounts. If Reddit declines or delays past 28 Oct, read the threads by hand with the same template. Pull search results from r/Architects, r/rhino, r/Revit and r/computationaldesign, and comments on 5 to 10 Forma, TestFit and Veras videos (video IDs chosen by hand; commentThreads.list costs 1 unit, default 10,000 units a day). Template: tool, praise, frustration, unmet need, voice type (user, vendor staff, plugin author), n voices, query string, date, link. Count voices from topic data with staff excluded. Add tall-building terms (wind, vertical transport, outrigger, slenderness). A teammate with an Autodesk login opens the Forma threads. Label results hypotheses; no design decision rests on these principles alone until the log lands.",
+   "rationale": "HN Algolia (21 Oct) returns no 2025-26 threads on TestFit or Autodesk Forma, so HN cannot fill the gap. Round 3 read McNeel, Ladybug and Speckle community threads in full through topic JSON, but Reddit, X, LinkedIn and YouTube need credentials. The YouTube Data API route is documented and cheap; Reddit's current terms were unreadable (403), so the owner checks them at registration.",
+   "alternatives_rejected": "Scraping or using proxy or archive services to bypass blocks; quoting posts verbatim; counting vendor aggregators such as Tooliverse as independent reviews; having the agent register accounts."
+  },
+  {
+   "decision": "Adopt a tooling security policy: project-scoped .mcp.json (people get approval prompts), but claude -p, Agent SDK, workflow-subagent and cloud sessions, and sessions in bypassPermissions mode with skipDangerousModePermissionPrompt set, load project servers without any prompt. So list every non-core server in disabledMcpjsonServers, use --strict-mcp-config (v2.1.246 or later, else background sessions stall) or exclude project settings in automated runs, require CODEOWNERS review of .mcp.json and .claude/settings.json changes, and keep secrets as ${ENV} expansions. Also: pinned versions, read code before install, execution tools off, loopback-only bridges, BLENDER_MCP_SAFE_MODE=1, DISABLE_TELEMETRY=true, Chrome DevTools opt-out flags, GitHub --read-only plus lockdown (not an authorization boundary), Bonsai and Blender only in a throwaway profile or VM, Autodesk Write and Experimental installers off. Minimum Claude Code version in the README: 2.1.246, and 2.1.274 or later for the default v2 MCP runtime.",
+   "rationale": "Every bridge README opened carries an unauthenticated code-execution warning, Bonsai's execute tool cannot be switched off, skill and plugin repos disclaim vetting, and the Claude Code docs (read 21 Oct) say headless and bypass sessions skip the approval prompt, so the prompt is not a safeguard for our automated runs.",
+   "alternatives_rejected": "Relying on approval prompts, global user-scope installs of many servers, and putting API keys in committed config."
+  },
+  {
+   "decision": "Use GenEnv Lab and xunliuDesign repos as the first reuse pool, after asking Xun in writing about licences and where hairline, anatomy and text-to-cad live. Add Thermal-Sandbox-Web (ask Xun and Christina Chiu for a licence), Hypar's MIT Elements and function repos (manifest prior art) and That Open's web-ifc (MPL-2.0) and engine_components (MIT) to the evaluation. For energy and sun modules read the Ladybug Tools MCP (GPL-3.0, arm's length only), idfkit-mcp (MIT), EnergyPlus-MCP and openstudio-mcp as prior art, never as bundled code.",
+   "rationale": "These are local or open, and proven in class or in production: 15 regulation tools, PR-based contributions, rhino-gh-mcp, a no-build three.js sun sandbox with a UBC Lee Square site upstream. Most GenEnv repos state no licence. The Ladybug forum shows an energy-side MCP ecosystem exists, with user praise for what-if tests and complaints about tokens and installs.",
+   "alternatives_rejected": "Copying code without licence clarity, bundling GPL-3.0 servers, or assuming earthtojake/text-to-cad is the instructor's tool."
+  },
+  {
+   "decision": "Model strategy: Claude Code builds; Codex is quota fallback and second reviewer; start OpenAI API organisation verification now; keep a provider interface that can also reach a Google image model. For 13 Nov demonstrate one gpt-image draft render only. The A2 boards (submission 30 Nov, course review 10 Dec) are composed as vector layout plus AI panels at or below 2560x1440, since gpt-image caps an edge at 3840 px and 8.3 MP and calls larger sizes experimental. Export each board as an anonymous JPEG under 10 MB (Buildner terms page; confirm in the brief) and label each AI panel (Buildner does not ban AI imagery but says to check each tool's terms). Revisit ComfyUI and Krita AI Diffusion after 10 Dec; both need a supported GPU or Apple Silicon.",
+   "rationale": "A2 at 300 dpi is 4961x7016 px (34.8 MP, 4.2 times the cap); at 150 dpi it is 2480x3508 (8.7 MP). Masks are prompt-based and approximate, so fidelity to the massing needs reference images now and depth or line conditioning later. Two forum users rate Google's image model above ChatGPT for faithful edits (anecdote, untested here). Upscalers were not evaluated. OpenAI docs require organisation verification, which can delay a deadline.",
+   "alternatives_rejected": "Generating whole boards in one call, integrating Veras or LookX (no documented API), Midjourney (terms unreadable), building on a single provider."
+  },
+  {
+   "decision": "Engagement pattern for the UI: direct manipulation with live metrics, an options board (grid plus parallel coordinates) started from design-explorer-react (MIT) and the Speckle Design Explorer pattern, honest disclaimers, opt-in AI steps and no streaks or notification nags. Take false-creek-2100 as the interaction starting point.",
+   "rationale": "Both are shipped, verifiable interaction patterns that keep attention on the design decision, and users of the React build asked for text variables, font sizes and local processing, which we can meet from day one. A polarised AI debate on the McNeel forum (two threads, up to 46 non-staff voices) argues for visible off switches. They match the focus and no-dark-patterns goal.",
+   "alternatives_rejected": "Gamified progress scores, onboarding streaks and auto-playing AI renders on first load; depending on an unmaintained upstream (design-explorer-react) rather than borrowing its ideas."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 'rhinomcp' that search results surface (jingcheng-chen/rhinomcp and its forks) is McNeel's official Rhino MCP.",
+   "correction": "McNeel's official server is mcneel/RhinoAI (mcneel/RhinoMCP is now a pointer to it), MIT, docs at mcneel.github.io/RhinoAI/docs. jingcheng-chen/rhinomcp is a separate third-party MIT project.",
+   "detail": "A McNeel forum summariser output and a search snippet conflated the two; the older RhinoMCP name is the McNeel project's former name.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "hairline, anatomy and text-to-cad are repositories on Xun Liu's xunliuDesign GitHub account.",
+   "correction": "None of the three appears in xunliuDesign (15 repos) or the GenEnv Lab org (9 repos); /hairline and /anatomy return 404. earthtojake/text-to-cad exists (22.1k stars, MIT) but a link to the instructor is unconfirmed. Ask Xun for the exact URLs.",
+   "detail": "The account holds false-creek-2100 and AI4GH (no licence stated); GenEnv Lab holds arch540-a1-toolkit, rhino-gh-mcp and a Thermal-Sandbox-Web fork.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Papers with Code is a current channel for finding papers with code.",
+   "correction": "paperswithcode.com answers with an HTTP 302 redirect to huggingface.co/papers/trending, which now serves that role.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Curated awesome-aec or awesome-bim lists exist on GitHub topics.",
+   "correction": "Both topic pages state the topic is unused. Nearest list found: Frank-ZY-Dou/awesome-ai-3d-modeling-robotics (84 stars). Topic pages grasshopper (373 repos) and ifc (571 repos) are the practical feeds. A grep of awesome-mcp-servers finds no Rhino, Grasshopper, Speckle or IFC entries.",
+   "detail": "Round 1 checked only topic tags; round 2 found lists by repository name.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "An entry in the official MCP registry or an awesome list means the server is vetted and safe.",
+   "correction": "The registry verifies namespace ownership only. Searches returned spam-like site servers and many near-duplicates; a rhino search returns only io.rhinorank.app, an unrelated SEO service. The README warns of preview status and data resets.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Speckle publishes an official MCP server.",
+   "correction": "None found among the ten most recently updated of 120 specklesystems repos; only community servers (bimgeek, Daviidro) appear. Speckle's own AI layer is hosted Speckle Intelligence, and its essay argues against single-tool MCPs.",
+   "detail": "GitHub API rate limit blocked deeper checks.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Adding many MCP servers permanently bloats Claude Code's context.",
+   "correction": "Claude Code docs say tool search is on by default and defers MCP tool definitions, so only names and instructions load at start. Cost comes from large tool outputs and screenshots (default 25,000-token output cap).",
+   "detail": "A McNeel developer notes many connected servers raise baseline cost in Claude Desktop-style setups; keep the always-on set small anyway.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The official McNeel server supports both Rhino 8 and 9 and full Grasshopper.",
+   "correction": "Repo branch is rhino-9.x and docs do not state versions. The McNeel developer answered yes to GH 1 and GH 2 and said GH 1 works well; GH 2 is affirmed but not evidenced. A McNeel admin says the AI panel ships with the Rhino 9 Beta (8 Oct 2026). Test before promising anything.",
+   "detail": "Forum users installed Rhino-MCP-Platform on Rhino 8; two threads fixed a missing command by switching Rhino to the .NET Core runtime, root cause unconfirmed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Figma MCP will be usable on student or free plans.",
+   "correction": "Superseded in round 2: Education plans match Professional Full and Dev limits (200 calls a day). Whether each UBC team member qualifies is still unverified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Python 3.13 and a Node-free setup are enough for the dev stack.",
+   "correction": "rhino-gh-mcp needs Python 3.11 or 3.12; Bonsai_mcp 3.12+; Ladybug Tools MCP 3.12; lamcp's server 3.10+ and its Rhino 8 bridge runs on CPython 3.9; Context7 CLI needs Node 22.13+. Install Node 24 LTS and keep Python versions per tool in uv environments.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "gpt-image can be called as soon as we have an API key.",
+   "correction": "OpenAI docs say API Organization Verification may be needed before GPT Image models, and current model names (gpt-image-2.5-sunburst, gpt-image-2.5-flare) differ from older tutorials. Start verification now.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Four McNeel forum users reported outdated or failing Rhino MCP install steps.",
+   "detail": "May 2026 Rhino MCP Server thread: nxakt retracted his report on 29 May as AI-generated and wrong. Round 3 recount from post text (non-staff, May to Sep 2026, three threads): Jeff_Willden, Olav1, Piotr, Philippe_HAMON, f.frederico, user1582, vikas_venkatesha1, Nithin_Cheluva_Mavin, alina_turean and siemen. Callum Sykes supplied a workaround and confirmed no Intel Mac build.",
+   "correction": "One retracted; ten distinct non-staff users reported connect, install or execute problems (a floor from keyword scanning). Base the browser-first principle on these plus Ladybug and Rhino.Inside title counts, and label it a signal.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "rhino-gh-mcp offers an Inspect, Coach, Author permission ladder.",
+   "detail": "The README lists five Scenario levels, with Coach as the default.",
+   "correction": "Inspect (read-only), Tune (parameters only), Coach (curated edits, every change highlighted), Execute (only what the active Skill declares), Author (free hands). Adopt all five: Tune maps to editing team assumptions, Execute to manifest-declared outputs.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Speckle trust essay says self-hosted open-source users stay on the current viewer.",
+   "detail": "The 4 Sep 2026 essay (Virginia Senf) and the 28 May Design Explorer post (Bjorn Steinhagen) do not discuss self-hosting; the essay argues tool-specific MCPs make an LLM rediscover data meaning on each query.",
+   "correction": "Claim removed. Speckle docs say Intelligence on a self-hosted server needs Speckle Enterprise Server and 2026.9-format data. Engage with the essay's critique of single-tool MCPs in our own MCP design.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Grasshopper 2 support in McNeel's server is only planned.",
+   "detail": "A fetch summariser read the 13 May reply as planned. The reply says yes to GH 1 and GH 2 and that GH 1 works well; it affirms both without evidencing GH 2.",
+   "correction": "Treat GH 2 as affirmed by the developer but unverified; GH 1 works. Test before relying on it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Project-scoped .mcp.json approval prompts protect against unwanted servers.",
+   "detail": "Claude Code docs (re-read 21 Oct 2026): claude -p, Agent SDK and cloud sessions cannot show the prompt and load project servers without asking; so does a bypassPermissions session with skipDangerousModePermissionPrompt set. Workflow subagents like ours fall in the first group.",
+   "correction": "Use disabledMcpjsonServers (blocks in every permission mode), --strict-mcp-config (v2.1.246 or later) or settingSources to exclude project settings in headless runs, CODEOWNERS review of .mcp.json changes, and ${ENV} secrets.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "anthropics/skills has about 1,425 open issues, github-mcp-server 381, the MCP registry 188, Blender MCP 54 and Context7 53.",
+   "detail": "GitHub's open-issue counter includes pull requests. Search API recount on 21 Oct 2026 (issues / PRs): skills 411 / 1,014; github-mcp-server 194 / 185; registry 135 / 54; Blender MCP 31 / 26; Context7 20 / 29; Chrome DevTools MCP 98 / 26; Codex 23,744 / 163; RhinoAI 10 / 7.",
+   "correction": "Report issues and PRs separately; counts updated in the affected findings.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "gpt-image can serve the '13 Nov boards' directly.",
+   "detail": "13 Nov is the working-core milestone; boards are due 30 Nov and 10 Dec. gpt-image output is capped at a 3840 px edge and 8.3 MP, with sizes above 2560x1440 experimental; A2 at 300 dpi needs 4961x7016 px.",
+   "correction": "Compose boards from vector layout plus AI panels at native size, or add an upscaling or tiling step; masks are approximate, so use reference images and test fidelity.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The GenEnv Thermal-Sandbox-Web fork includes a UBC Lee Square site.",
+   "correction": "The fork README (4 commits) lists only King's Road, University of Manitoba. The upstream christinachiu repo (30 commits) lists King's Road and UBC Lee Square, no build step, three.js from a CDN, no licence yet.",
+   "detail": "Reuse requires a licence from Christina Chiu and Xun.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Autodesk's APS MCP (aps-mcp-server-nodejs) is experimental and usable for a student team.",
+   "correction": "The README does not say experimental; the repo was archived by its owner on 7 May 2026 (MIT). It needs an APS server-to-server app, ACC provisioning and a secure service account private key. Rejected.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Sentiment on Forma, TestFit, Hypar, Veras, LookX, Krea, Midjourney and ComfyUI for tall-building massing has been gathered from 4 or more platforms.",
+   "correction": "Still not met for the named tools. Round 3 added full reads of McNeel, Ladybug and Speckle community threads and a corrected search method (word-in-post checks, paced requests); Forma has one McNeel webinar post, TestFit none, Hypar only the shape, LookX nothing. Reddit, X, LinkedIn, YouTube, G2 and Capterra remain unread; recommendation 6 fixes that with owned API access. Principles stay hypotheses.",
+   "detail": "One tall-building item exists: a 15 Oct 2026 Ladybug thread on a two-tower wind problem (2 voices).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "AEC Magazine published a Hypar article titled 'big bet against schema' that describes the function manifest.",
+   "correction": "Not found. Found instead: Hypar text-to-BIM and beyond (updated May 2025) and Hypar 2.0 (Feb 2025: narrowed to space planning). Neither describes a manifest; no primary manifest spec was opened.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Figma Starter or View seats are limited to 6 MCP tool calls a month, so Figma MCP is impractical for the team.",
+   "detail": "Rate-limits page (re-read 21 Oct 2026): View and Collab 20 a month; Full and Dev on Professional 200 a day and 10 a minute; Starter Full and Dev not listed; Education plans get the Professional limits; write tools are exempt; generate_image and send_prompt use AI credits; limits can change at any time.",
+   "correction": "Rejection rests on scope, not cost: Figma MCP stays roadmap, viable if each member verifies Figma Education status.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Autodesk MCP details are second-hand only; AEC Magazine reports internal workflows only; no primary Autodesk page was readable.",
+   "detail": "Autodesk's APS blog (15 Apr 2026) lists tech-preview Revit, Product Help, Fusion and Fusion Data MCPs (no Forma MCP) and Autodesk's developer blog documents the Revit 2027 MCP Server. AEC Magazine (updated 20 Oct) says the public MCP is licensed for customers' own internal business purposes and terms may change: a use restriction, not proof the servers are internal.",
+   "correction": "Autodesk ships official tech-preview MCP servers, including one for Revit. Evaluate the Read installer as an optional teammate-side bridge, never bundled; confirm education entitlement and terms first. APS server-to-server MCP stays rejected.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "No curated awesome-aec or awesome-bim list exists, so no single curated AEC list exists.",
+   "detail": "osama-ata/Awesome-AECO (CC0, 33 stars, latest commit 2026-10-03), THUCBIMS/Awesome-AIGC4AEC (30 stars, 2026-10-21, no licence shown), CameronBrooks11/awesome-computational-design (3 stars, AGPL-3.0) and mitevpi/awesome-bim (195 stars, last commit 2019-12-12).",
+   "correction": "Small, young lists exist. Add Awesome-AECO and Awesome-AIGC4AEC to the scan, mark awesome-bim stale, and mine Awesome-AECO for the IDS MCP Server.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "ComfyUI needs an NVIDIA GPU.",
+   "detail": "README (read 21 Oct): NVIDIA via CUDA; AMD via ROCm on Linux and AMD PyTorch packages on Windows 11 (RDNA 2 to 4); Intel Arc via XPU; Apple Silicon; the Windows portable build bundles Python 3.13. Flags --disable-partner-nodes and --offline switch off paid API nodes.",
+   "correction": "ComfyUI needs a supported discrete GPU or Apple Silicon for practical speed. Start it with --disable-partner-nodes or --offline.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The AEC Magazine Astra article contains a revision test that the team can adopt as an acceptance test.",
+   "detail": "Article (11 Oct 2026, Martyn Day): hand edits should become the agent's starting point; no controlled revision test is reported; evidence called unverified and limited; Augmenta v2 reruns only changed areas (no LLM); it advises keeping MCP connectors read-only until editing is understood.",
+   "correction": "Cite the article as framing only. Write our own edit-then-rerun acceptance test and use Augmenta's partial rerun as prior art for locked decisions.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Bonsai_mcp's Execute Code tool can be kept disabled.",
+   "detail": "README: the tool is legacy and runs arbitrary Python, with no setting to disable it; the REST API shows no authentication setting and enables CORS for all origins; the README says eleven IFC tools but lists fifteen.",
+   "correction": "Fork it to remove the tool, or run it only in a throwaway Blender profile or VM, and never run REST mode while a browser is open on the same machine.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "skills.sh shows about 1.4M installs in total.",
+   "detail": "The page header reads All Time (1,425,712) without saying what it counts, while the top skill alone shows 4.0M installs. The Audits page names no auditor or method.",
+   "correction": "Drop any total. Cite per-skill counts only, and do not treat the Audits label as a security review.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Hypar Elements and HyparSpace were active on 18 Oct 2026.",
+   "detail": "Default-branch commit feeds read on 21 Oct 2026 show Elements 2026-05-26, HyparSpace 2026-03-31 and BuildingBlocks 2024-01-09; the 18 Oct date probably reflects other branches.",
+   "correction": "Report default-branch dates; treat BuildingBlocks as stale and Elements as maintained at a slower pace.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Install Node LTS 22.x (round 1), or Node 24 is the active LTS (critique).",
+   "detail": "Node release schedule (read 21 Oct 2026): Node 22 in Maintenance since 2025-10-21 (end of life 2027-04-30); Node 24 entered Maintenance on 2026-10-20 (end of life 2028-04-30); Node 26 becomes Active LTS on 2026-10-28.",
+   "correction": "Install Node 24 now (supported to April 2028, meets every requirement found) and pin it in .nvmrc; consider Node 26 after 28 Oct once the core tools are tested on it.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "RhinoAI installs on Rhino 8 through the Package Manager once the Include pre-releases box is ticked.",
+   "detail": "Forum threads confirm the package name Rhino-MCP-Platform on Rhino 8 and Rhino 9 Beta; the README quick start instead uses a Claude Desktop connector (connector.mcpb). No source opened mentions a pre-release checkbox.",
+   "correction": "Record both install routes and the .NET Core runtime check; test on the lab's Rhino 8 service release before listing RhinoAI as the team bridge. Pre-release checkbox unconfirmed.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "An MCP server planned from older tutorials or older community bridges will work unchanged in late 2026.",
+   "detail": "Official changelog for 2026-07-28 (read 21 Oct): sessions and the initialize handshake removed, server/discover required, SSE resumability removed, Roots, Sampling and Logging deprecated (12-month window), Dynamic Client Registration deprecated for Client ID Metadata Documents. The spec keeps a fallback for earlier revisions.",
+   "correction": "Build our server on the official SDK against 2026-07-28 and test with Claude Code and Codex; older bridges still connect through fallback but their revision is not recorded.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The MCP servers we adopt all speak the 2026-07-28 revision.",
+   "detail": "No server README opened states a protocol revision. Claude Code asks servers whether they support 2026-07-28 and otherwise connects as v1; Codex docs name no revision; Python mcp 2.3.0 page does not state its support. One forum user reports McNeel's plugin speaks 2024-11-05 (see the round 3 flag).",
+   "correction": "Treat revision support as unknown per server; test each with /mcp and record the result in the module or tooling log.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Ladybug Tools forum has no AI topics since June 2025 (a search for AI returns 50 topics, none about AI).",
+   "detail": "A two-letter query matches substrings. Paced searches on 21 Oct 2026 (posts after 1 Jun 2025): MCP 7 hits, LLM 4, Claude 5, ChatGPT 12, agent 3. Three 2026 AI threads: Honeybee-MCP beta (23 Jan, 3 participants), Design Explore React (12 Feb, 5), Ladybug Tools MCP (7 May, 4). Users praise what-if tests on a resolved model; complain about token use on EnergyPlus warnings, copy-paste steps into GHPython and data-sovereignty doubts.",
+   "correction": "Retracted. Added a finding on the LBT and Honeybee MCPs plus idfkit-mcp, EnergyPlus-MCP and openstudio-mcp (GPL-3.0 only at arm's length); design-explorer-react (MIT) added to the Speckle finding, principle 10 and recommendation 10.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "One Oct 2026 poster (a user) wants the Rhino AI panel connected to more engines, and a poster claims 650K to 1M tokens per render.",
+   "detail": "Both are by scottd (Scott Davidson), a McNeel admin, in thread 223330 (posts 8 and 17). Staff also post in every key thread: CallumSykes and Japhy (216568, 221827), theoutside (Kyle Houchens) in 223183, 223330, 211382 and 219926, Gijs in 223183 and 219926.",
+   "correction": "Tagged as vendor staff and excluded from n. Principle 13 now says McNeel states intent to add engines while at least 6 non-staff users use OpenAI engines with Rhino MCP; the token figure is a staff anecdote.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Runchat render thread has about 8 voices and the AI-in-CAD thread about 15 voices.",
+   "detail": "Counts covered page 1 only. Topic JSON, 21 Oct 2026 (participants, non-staff upper bound): Runchat 28 (26); AI-in-CAD 42 (40); Rhino MCP Server 30 (26); Claude first try 23 (20); product renders 11 (9); credits 10 (7); room renders 5 (3). Staff come from the forum's admin and moderator list plus post flags; unlisted staff would lower the numbers. The Rhino MCP Server thread was created 3 Mar 2026, not May.",
+   "correction": "Principles 3, 4, 5, 11, 13 and 15 restated from topic JSON with staff excluded.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "In principle 15, the 'door altered' fidelity complaint is evidence about RhinoAI renders.",
+   "detail": "In thread 223330 the altered door, odd chair legs and a lamp from a plant were pointed out by Alan_Farkas (post 19) in a Krita AI image by bimolicense (post 18). The RhinoAI-specific issue is a model that came out too small from a guessed sketch plan (post 11).",
+   "correction": "Attributed to Krita AI Diffusion, now logged in the renderer finding as a roadmap option; principle 15 restated.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Autodesk's Revit 2027 MCP release post documents separate Write and Experimental installers, and writes are undoable.",
+   "detail": "The release post lists seven read tools. The Read, Write and Experimental installers and the Revit 2027.2 requirement come from blog.autodesk.io/revit-mcp-server-update/ (29 Sep 2026), which advises backing up and does not claim undo. Undo is attributed to Amy Bunszel (Autodesk) in AEC Magazine's Trusted Write coverage.",
+   "correction": "Finding now cites the update post as primary source and attributes undo to the AEC Magazine interview; backup advice kept.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "McNeel search tallies (Veras 12, ComfyUI 14, Krea 4, Midjourney 11) count each tool's mentions; the critique found they do not reproduce (Veras 8, ComfyUI 13, Krea 3, Midjourney 0).",
+   "detail": "Re-run 21 Oct 2026 in a browser pane with 2.5 s pacing (queries with after:2025-01-01) reproduces the packet's counts; unpaced calls returned empty pages (rate limiting), which probably explains the critique's zeros. But search over-matches: reading every post, ComfyUI 14 of 14 topics, Midjourney 11 of 11 and Krea 4 of 4 contain the word, Veras only 5 of 12. Of those 5, one is the vendor's own release thread; the geometry-drift complaints belong to Vizcom, Gemini and Krita, not Veras.",
+   "correction": "Tallies restated as search hits plus literal-word topics; drift voices re-attributed in principle 15; searches need pacing and a word-in-post check.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "openstudio-mcp has no root LICENSE file (critique).",
+   "detail": "NatLabRockies/openstudio-mcp has LICENSE.txt at the root of develop; its text is a custom BSD-style licence (Alliance for Energy Innovation, LLC copyright) that matches no standard SPDX identifier exactly.",
+   "correction": "Recorded as custom BSD-style; read it before reuse.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "speckle.community cannot be read (HTTP 403, including latest.json).",
+   "detail": "WebFetch gets 403, but the browser pane reads the site's Discourse JSON: five paced searches and five threads read on 21 Oct 2026 (MCP 4 topics, LLM 9, Claude 4, ChatGPT 3 after 1 Jun 2025).",
+   "correction": "Speckle community is now a read channel; findings and the scan list updated. G2, Capterra, Autodesk Community and ctbuh.org stay unreadable.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "McNeel's Rhino MCP plugin speaks MCP 2024-11-05 over a local-only HTTP server.",
+   "correction": "Treat as a user report: mikeJM (non-staff, 10 Sep 2026) says he read the source; Callum Sykes (staff, 15 Sep) said remote access needs a security review; mikeJM patched his copy to the 2026-07-28 stateless transport on 21 Sep. Test with /mcp in Claude Code and read the source before relying on it.",
+   "detail": "I did not open the plugin source; the README states no revision.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The 3 Nov social-signal log can use Reddit's official Data API.",
+   "correction": "Reddit's current terms and approval process were unreadable (support and policy pages returned 403 or were blocked; only a 2015 archived wiki, which requires OAuth2 and 60 requests a minute, was readable). The owner checks the live terms at registration; fall back to hand export if refused or if approval is not through by 28 Oct.",
+   "detail": "YouTube Data API v3 is documented: API key for public data, commentThreads.list 1 unit, default 10,000 units a day.",
+   "raised_in_round": 3
+  }
+ ],
+ "unresolved": [
+  "Reddit (r/architecture, r/Architects, r/rhino, r/Revit, r/computationaldesign, r/threejs): fetch refuses reddit.com and WebSearch cannot query it (the shared search budget also ran out in round 3), so no Reddit sentiment was gathered and no proxy or archive route was used. Plan: owner-registered official Data API or hand export by 3 Nov (recommendation 6); Reddit's current terms could not be read (403).",
+  "X/Twitter, LinkedIn and Discord not reachable or not attempted; no signal gathered. YouTube comments are reachable only through the YouTube Data API with a key (docs read, not yet used). Bluesky public search returned 403.",
+  "G2, Capterra, Software Advice, Product Hunt, Autodesk Community forums and ctbuh.org (redirects to verticalurbanism.org, 403) returned 403 or 404 on fetch. TestFit and Forma views rest on search snippets only; Tooliverse's Veras tallies (395 reviews, 8.74/10) are an unverifiable aggregator. HN Algolia (21 Oct) has no 2025-26 thread on TestFit or Autodesk Forma.",
+  "Practitioner sentiment on Hypar, LookX, Krea, Midjourney and ComfyUI stays thin: McNeel mentions are mostly incidental (ComfyUI 14 topics, Midjourney 11, Krea 4, Veras 5 literal of 12 hits); no dedicated thread for Hypar (company), LookX, TestFit or Forma beyond one webinar post. Midjourney API and terms unreadable (403).",
+  "Tall-building-specific sentiment (structure, wind, vertical transport, supertall massing) is almost absent: one Ladybug two-tower wind thread. CTBUH journal and research were not opened; Skyscraper Center has no terms page (404) and its FAQ gives citation, no-CSV and no-API rules only; the CTBUH 2026 London conference (26-29 Oct) rests on a vendor page and no AI session is confirmed.",
+  "McNeel, Ladybug and Speckle counts now come from topic JSON (participant_count and every post read), but Discourse shows only 24 named participants per topic, staff are identified from the forum's admin and moderator list plus post flags (unlisted staff would lower non-staff counts), overlap between threads is not computed, and stance in the AI-in-CAD thread was classified by me from each user's first post (about 15 sceptical, 9 positive). Install-failure counts (10 users) come from keyword scanning and are a floor.",
+  "GitHub API rate limit was hit again; dates came from commit atom feeds and stars from repository pages. Stars were not recounted for awesome-mcp-servers (96.7k), awesome-claude-skills (15.5k) and rhinomcp (1,158); issue counts for web-ifc, engine_components and lamcp are earlier reads; open-issue counts for the Ladybug, idfkit and Krita-adjacent repos other than openstudio-mcp and Krita were not shown on the pages.",
+  "Official McNeel server: supported Rhino versions, Grasshopper 2 status, Intel Mac plans, the pre-release checkbox and its MCP revision (a forum user reports 2024-11-05) remain unconfirmed; the Rhino-MCP-Platform package name and the .NET Core fix come from forum threads, the connector route from the README.",
+  "Which 'text-to-cad', 'hairline' and 'anatomy' tools the instructor meant, and their licences, are unknown; ask Xun for URLs. Licences for Thermal-Sandbox-Web and most GenEnv repos are unknown.",
+  "MCP revision 2026-07-28: Codex's revision support, Python SDK support and each adopted server's revision are not recorded; the Ladybug, idfkit, EnergyPlus and openstudio MCPs were not checked for revision or authentication behaviour.",
+  "Autodesk Revit MCP: the Write and Experimental tool lists, education entitlement for the add-on, Autodesk's education terms and whether a student competition entry counts as 'internal business purposes' are unknown; the update post states no licence and the AEC blog returned 403. Product Help MCP not read.",
+  "Hypar's function manifest format and the current status of functions in Hypar 2.0 are not confirmed from a primary source; the 'big bet against schema' article was not found.",
+  "No A2 upscaling or tiling tool was evaluated; gpt-image fidelity to a massing reference is untested; a Google image model's fidelity versus gpt-image rests on two forum users; Krea API pricing and gpt-image competition-use terms not read (Buildner says check each tool's terms).",
+  "Whether Speckle Design Explorer is available on self-hosted servers is unknown; Speckle docs mention Intelligence on Enterprise Server only. design-explorer-react is MIT but its author said in Aug 2026 he had not maintained it for some time (latest release 1.3.0 beta per the forum).",
+  "OSArch registry search for ifc timed out, so IFC servers in the official registry were not enumerated; OSArch AI threads are mostly 2022-24 except the Oct 2026 text-to-IFC thread.",
+  "Newsletters not verified: Archinect, AEC+Tech, NXT BLD and NXT DEV content; PA Daily frequency and cost not stated on its page.",
+  "Buildner: the brief download links were placeholders on the page, so board format, panel count and height range are unread; the terms page (JPEG panels under 10 MB, up to four, anonymous, original unpublished work, teams of 2 to 4) may be platform-level, with the brief governing; fee figures (EUR 140 and 120, 4.5% VAT) are not mapped to options; whether each member has registered is unknown.",
+  "Figma: whether each UBC team member qualifies for the free Education plan, and whether it counts as a Full seat for MCP limits (the education page names the Professional tier only), is unverified.",
+  "rhino3dm is MIT and browser-capable, but Rhino.Compute (listed in Awesome-AECO) was not opened; web-ifc schema coverage on a real tower IFC is untested; Node 26 compatibility with the core tools is untested.",
+  "ifc-ids-mcp: README clone URL names a different owner (Quasar-Consulting-Group), handling of untrusted IDS or IFC input is undocumented, and its Python 3.8+ claim was not tested against our 3.13.",
+  "Names of the signal-log owner and backup (recommendation 6) are not in this packet's context; the team must write them into the log header by 22 Oct. Registration of Reddit and YouTube API access is not started.",
+  "GPL-3.0 'arm's length' use of the Ladybug Tools MCP and Honeybee-MCP (separate process, no bundling) is a working policy, not legal advice; ask the instructor or UBC counsel before any bundling decision."
+ ],
+ "change_log": [
+  "r1: Re-read both pages of the McNeel Rhino MCP thread. Install claim restated: three users with standing connect or install problems (Jeff_Willden, Olav1, Piotr), one retracted (nxakt), workaround from the McNeel developer, router Apple Silicon only. Added FALSE_ASSUMPTION flag; RhinoAI and McNeel Discourse findings marked false_assumption_corrected.",
+  "r1: Token and quota principle rewritten without 'top complaint': n=4 McNeel voices (May to Oct 2026) plus a McNeel developer note on baseline cost; merged with the context-cost principle.",
+  "r1: Corrected rhino-gh-mcp to five permission levels (Inspect, Tune, Coach, Execute, Author), mapped Tune and Execute to team assumptions and manifest-declared outputs; added flag.",
+  "r1: Corrected Speckle attribution after re-reading both posts: neither mentions self-hosting. Self-hosting facts now cite Speckle docs (Enterprise Server only). Recommendation 3 now addresses the essay's critique of single-tool MCPs; added flag.",
+  "r1: GH 2 wording corrected to affirmed but unevidenced; docs URL, Intel Mac and router details updated; added flag.",
+  "r1: Security policy amended for headless, Agent SDK and subagent runs: disabledMcpjsonServers, --strict-mcp-config or settingSources, CODEOWNERS review, ${ENV} secrets; added Blender safe mode, telemetry opt-outs and GitHub lockdown (verified as not an authorization boundary).",
+  "r1: Recounted open issues and PRs separately via GitHub search API (skills 411 / 1,014; github-mcp-server 194 / 185; registry 135 / 54; Blender 31 / 26; Context7 20 / 29; Chrome DevTools 98 / 26; Codex 23,744 / 163; RhinoAI 10 / 7); statuses updated and flag added.",
+  "r1: Fixed the board milestone (13 Nov is the core; boards due 30 Nov and 10 Dec), added A2 pixel maths (4961x7016 px at 300 dpi vs 8.3 MP cap), approximate masks and a panel-plus-vector-layout plan; added flag.",
+  "r1: Added findings: OSArch Community, That Open Company (web-ifc, engine_components), Hypar functions and Elements, Thermal-Sandbox-Web, Bonsai_mcp, DeepWiki MCP, Autodesk Community Forma forum (snippets only). Added Hugging Face MCP to the HF finding. APS MCP rejected: it is archived (7 May 2026), not 'experimental'.",
+  "r1: Merged findings to stay at 30: Chrome DevTools kept separate; OpenAI docs MCP with Codex; skills.sh with awesome-claude-skills; Impeccable with Vercel agent-skills; Cordyceps, rhinomcp and lamcp; registry with awesome-mcp-servers; speckle-mcp with APS MCP; ComfyUI with AI renderers; Ladybug forum kept alone.",
+  "r1: Sentiment gate: gathered about 44 McNeel handles (7 threads), about 30 Ladybug topics, 4 OSArch voices, 3 HN threads, 19 Rhino.Inside install threads and Forma and TestFit snippets. Numeric threshold met only on generic signals; for the named tools it is not, so every sentiment principle is relabelled signal (n, source) and treated as a hypothesis; flag added.",
+  "r1: Awesome-mcp-servers README body read via a raw download and grep: no Rhino, Grasshopper, Speckle or IFC entries; Revit, Blender, FreeCAD, ComfyUI and gpt-image servers exist. Registry rhino search returns only io.rhinorank.app; API v0.1 frozen since 2025-10-24.",
+  "r1: TestFit MCP restated precisely (included in Site Solver, add-on for Parking Solver self-serve, desktop-only, acts on the live study, vendor says the assistant only directs). Ladybug AGPL note corrected to section 13 (network users of a modified version). Chrome DevTools flags (--slim, --headless, --no-usage-statistics, --no-performance-crux, update-check env var) and Blender SAFE_MODE and DISABLE_TELEMETRY added.",
+  "r1: Thermal-Sandbox-Web checked: Lee Square appears in the upstream repo README, not the GenEnv fork README; no licence. Newsletters verified on their pages (TLDR AI 1.1M readers stated, PA Daily, AEC Magazine); Archinect and AEC+Tech remain unverified. Added a flag for the unfound Hypar article and updated the unresolved list.",
+  "r2: Added finding 'Autodesk Revit MCP Server (Revit 2027 technical preview)' from Autodesk's developer blog (seven read tools, separate Write and Experimental installers needing Revit 2027.2), the APS blog (15 Apr 2026) and AEC Magazine (16 Oct, updated 20 Oct). Removed the 'second-hand' and 'no primary page' claims; kept the nuance that AEC Magazine says the public MCP is licensed for internal workflows and terms may change. Flag added.",
+  "r2: Figma corrected from 6 calls a month to View and Collab 20 a month, Full and Dev 200 a day on Professional, Education plans equal to Professional (rate-limits page and figma.com/education read). Figma re-rated roadmap on scope grounds; flag added; rejection rationale in recommendation 2 removed.",
+  "r2: Replaced 'no curated AEC list' with Awesome-AECO (CC0, 33 stars, latest commit 2026-10-03) and Awesome-AIGC4AEC (30 stars, latest commit 2026-10-21) as small, young lists; awesome-bim marked stale (last commit 2019-12-12); awesome-computational-design (3 stars) has no Grasshopper or IFC entries. New finding added, including ifc-ids-mcp (MIT, 17 tools, 28 stars, last commit 2026-04-06) for the policy and IFC-check modules; flag added.",
+  "r2: Read the official MCP 2026-07-28 changelog (stateless, no initialize or sessions, server/discover, multi round-trip requests, Roots, Sampling and Logging deprecated, SSE and Dynamic Client Registration deprecated). Recorded Claude Code's v2 runtime (v2.1.232 or later with feature flags, default from v2.1.274), that Codex docs name no revision, and TypeScript SDK 2.x versus Python mcp 2.3.0. Recommendation 4 rewritten; two flags added.",
+  "r2: ComfyUI corrected: supports NVIDIA, AMD (ROCm; Windows RDNA 2 to 4), Intel Arc and Apple Silicon; added --disable-partner-nodes and --offline; recounted 141.2k stars and 16.7k forks; flag added.",
+  "r2: AEC Magazine Astra finding reworded: the article frames the requirement and reports no revision test; Augmenta v2 partial rerun added as prior art; read-only MCP advice added; principle 2 and flag updated.",
+  "r2: Merged Blender MCP with Bonsai_mcp; stated that Bonsai's Execute Code cannot be disabled (README gives no setting), REST API unauthenticated with open CORS, so use a throwaway profile or VM; flag added.",
+  "r2: McNeel RhinoAI finding gains the Yak package name (Rhino-MCP-Platform), two forum threads where the missing-command error cleared after switching Rhino to the .NET Core runtime, and a note to test on Rhino 8. The pre-release checkbox claim was not found in any source and is recorded as UNVERIFIED.",
+  "r2: Added rhino3dm (MIT, 766 stars, latest commit 2026-10-20, browser and Node and Python) to the That Open finding as the Rhino-free route for .3dm fixtures and import; recommendation 3 now generates fixtures with rhino3dm in CI and keeps RhinoAI for interactive teammate use.",
+  "r2: Added finding 'Buildner Vancouver Tall Challenge page, Skyscraper Center and CTBUH': registration closes 29 Oct, Q&A 3 Nov, submission 30 Nov 23:59 London time, AI imagery not banned (check tool terms), brief is a download. CTBUH site redirects to verticalurbanism.org (403) so it is listed as a hand-open channel; scan list and sentiment search terms updated.",
+  "r2: Node recommendation changed from 22.x to Node 24 LTS after reading the Node release schedule: 22 is in maintenance (end of life 2027-04-30), 24 entered maintenance 2026-10-20 (end of life 2028-04-30), 26 becomes LTS 2026-10-28; flag added.",
+  "r2: skills.sh total dropped (header 1,425,712 unexplained; top skill 4.0M); per-skill counts only; Audits label not treated as a review; flag added. awesome-claude-skills last commit 2026-04-28.",
+  "r2: Hypar last_activity corrected to default-branch commit feeds (Elements 2026-05-26, HyparSpace 2026-03-31, BuildingBlocks 2024-01-09); flag added. Filled missing commit dates from atom feeds for web-ifc, engine_components, lamcp, Thermal-Sandbox-Web upstream, rhino3dm, Cordyceps, rhinomcp and the awesome lists.",
+  "r2: Merged DeepWiki into the Context7 finding and Chrome DevTools MCP into the Playwright finding to stay at 30 findings while adding three new ones.",
+  "r2: New sentiment evidence, all labelled signals: McNeel search.json gave ComfyUI 14, Midjourney 11, Veras 12, Krea 4 topics; read Runchat renders, room rendering, AI-in-CAD, Aperture Shadow and Polymere; HN InspectMind drawing review (about 13 commenters); Ladybug search for AI. Principles 4, 5, 11 and 15 updated.",
+  "r2: Added a do-this-first action list (five items with hour estimates, about 6 h) as recommendation 1; scan cut to 20 minutes over 4 channels until 13 Nov; recommendation 6 now a dated deliverable (25 or more signals, 4 or more platforms, 5 to 8 interviews, fixed template, named owner, 3 Nov); recommendations renumbered, total 10.",
+  "r2: Updated unresolved list: removed resolved items (MCP revision check, Autodesk 'no primary page'), added per-server MCP revision, Autodesk education entitlement and terms, Buildner brief, Figma Education eligibility, Rhino.Compute, Node 26 compatibility and ifc-ids-mcp provenance.",
+  "r3: Retracted 'no AI topics on the Ladybug forum' (FALSE_ASSUMPTION flag). Paced searches (MCP 7 hits, LLM 4, Claude 5, ChatGPT 12, agent 3) and full reads of the Honeybee-MCP (3 participants), Ladybug Tools MCP (4) and Design Explore React (5) threads. Ladybug forum finding rewritten; new finding on LBT and Honeybee MCPs plus idfkit-mcp (MIT, 37 tools), EnergyPlus-MCP (modified BSD, 35 tools) and openstudio-mcp (custom BSD-style, 150+ tools), all opened; GPL-3.0 servers limited to arm's length.",
+  "r3: Fixed McNeel attribution from topic JSON and a forum admin list: scottd (McNeel admin) wrote the 650K to 1M token anecdote and the 'more engines' statement; staff (CallumSykes, Japhy, theoutside, Gijs, scottd) excluded from every n and tagged. Principles 4 and 13 restated: 2 non-staff quota-burn users plus 3 pricing complainers; at least 6 non-staff users on OpenAI engines, 2 on local models, 2 rating Google's image model above ChatGPT.",
+  "r3: Replaced page-1 voice counts with participant_count (non-staff upper bounds): Rhino MCP Server 30 (26), AI-in-CAD 42 (40), Runchat 28 (26), Claude first try 23 (20), product renders 11 (9), credits 10 (7), room renders 5 (3). Rhino MCP Server thread dated 3 Mar 2026, not May. Principle 3 recounted from post text: 10 distinct non-staff users with install, connect or execute failures across three threads.",
+  "r3: Moved the door, chair and lamp complaint to Krita AI Diffusion (not RhinoAI); principle 15 and the renderer finding restated (3 users on unrequested changes from Vizcom, Gemini and Krita; Veras mentions are 5 of 12 search hits, one vendor thread). Added Krita AI Diffusion (GPL-3.0, 10.8k stars, about 6 GB VRAM, ComfyUI backend) as a roadmap renderer.",
+  "r3: Reproduced McNeel search tallies with 2.5 s pacing (Veras 12, ComfyUI 14, Krea 4, Midjourney 11 hits); the critique's lower numbers were not reproduced and unpaced calls return empty pages. Added a word-in-post check (ComfyUI 14 of 14, Midjourney 11 of 11, Krea 4 of 4, Veras 5 of 12). Logged queries and date in findings and recommendation 5; flag added.",
+  "r3: Recommendation 6 rewritten: named roles (owner Student A, backup Student B, names due 22 Oct), official YouTube Data API v3 (docs read: API key for public data, commentThreads.list 1 unit, default 10,000 units a day) and owner-registered Reddit API (current terms unreadable, 403; hand-export fallback after 28 Oct), voice-type template, no agent-created accounts. HN Algolia recheck: no 2025-26 threads on TestFit or Autodesk Forma.",
+  "r3: Autodesk Revit finding now cites the 29 Sep 2026 update post (Read, Write and Experimental installers, Revit 2027.2, backup advice, no licence or undo statement); undo attributed to Amy Bunszel in AEC Magazine; flag added.",
+  "r3: Context7 finding and recommendations 1 and 2: npx ctx7 setup signs in through OAuth and creates a personal account and API key (README), so each member does it once and keeps the key in an environment variable; item 2 raised to 2.25 h and the first-do list to about 7 h.",
+  "r3: Security policy (recommendation 7) gains the bypassPermissions plus skipDangerousModePermissionPrompt silent-load case, --strict-mcp-config needing v2.1.246 or later, and minimum Claude Code versions (2.1.246; 2.1.274 for the default v2 MCP runtime), all read from the Claude Code MCP docs.",
+  "r3: RhinoAI finding: README quick start installs through a Claude Desktop connector (connector.mcpb, release connector-v0.1.6; no Yak package in the README); AI panel ships with Rhino 9 Beta (scottd, 8 Oct); a user reading the source reports MCP 2024-11-05, local-only HTTP, default port 10500 (UNVERIFIED flag); the McNeel developer says remote access needs a security review. Merged the community Rhino and Grasshopper MCPs into the rhino-gh-mcp finding to stay at 30 findings.",
+  "r3: Speckle finding now includes design-explorer-react (MIT, 7 stars, local React 18, Vite, Tailwind; last commit 22 Feb 2026; author said in Aug 2026 it is unmaintained for now) and user requirements from its Ladybug thread (keep text variables, font size, no 50-image cap, local processing). Principle 10 and recommendation 10 updated. Speckle community read through a browser pane (flag added): 4 non-staff builders and a staff warning that assistants suggest legacy connectors.",
+  "r3: Buildner finding gains the terms page (JPEG panels under 10 MB, up to four, anonymous, original unpublished work, teams of 2 to 4; AI not addressed), jury and prize facts, and Skyscraper Center FAQ data rules (citation required, no CSV or API, images not licensed). Principle 11 and recommendation 9 now keep working-export stamps off the competition export.",
+  "r3: Figma finding: write tools are exempt from limits, generate_image and send_prompt use AI credits (re-read rate-limits page). Added openstudio-mcp licence flag: LICENSE.txt exists at the repo root (custom BSD-style), contrary to the critique.",
+  "r3: Findings reordered by priority (core, v1, roadmap, reject); superseded flag details shortened without removing any earlier FALSE_ASSUMPTION flag; unresolved list reworked."
+ ]
+}

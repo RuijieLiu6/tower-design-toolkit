@@ -1,0 +1,4 @@
+Saved: [test_clay_tower_01.png](<F:/UBC Master of Architecture/ARCH540 AI Studio/04 Tool Plan/renders/test_clay_tower_01.png>)
+
+Model: gpt-image-2 (built-in imagegen)  
+Size: 1536 × 1024 pixels

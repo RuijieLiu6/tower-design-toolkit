@@ -1,0 +1,2960 @@
+{
+ "packet_id": "P12",
+ "modules": [
+  {
+   "module_id": "P12-M01",
+   "name": "Isovist and visibility graph analysis (space syntax)",
+   "phase": "advanced",
+   "category": "SPAC",
+   "design_question": "Where can people see and be seen in lobbies, sky lobbies, atria and public floors, and how legible and connected are those spaces?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M (8-12 person-days); depthmapXcli cross-check about 2 days; cell caps and two-graph build about 1 day",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "Layer0:floor_geometry",
+    "Layer0:program_tags (selects floors to analyse)",
+    "P12-M04 (optional occupied-area mask)"
+   ],
+   "inputs": [
+    "Layer 0: floor-plate polygons for tagged public, lobby, sky-lobby and atrium floors only (Polygon2D[])",
+    "Layer 0: core, stair and void polygons used as obstacles (Polygon2D[])",
+    "Layer 0: program tags (public, cultural/civic, retail, amenity, office, hotel, residential) used to group results",
+    "Advanced mode: user-drawn partition segments, each flagged opaque, glazed (visible, not walkable) or open (Segment2D[] with type flag)",
+    "Open stairs and voids that link floors (Link[])",
+    "Upstream P12-M04: occupied-area mask (optional)"
+   ],
+   "outputs": [
+    "VGAField (visibility graph at eye height, glass transparent): per-cell connectivity, clustering coefficient, mean shortest path, integration, isovist area, perimeter, occlusivity, level, tag",
+    "PermeabilityField (accessibility graph at floor height, glass a barrier): mean shortest path and integration",
+    "ZoneStats: percentiles and means per program tag within each connected graph (feeds P12-M05 and boards)",
+    "SightLinks: pairs of (entry or lift lobby, public zone) that are mutually visible (feeds MOBI wayfinding)",
+    "IsovistPolygons: Polygon2D[] for user-selected viewpoints"
+   ],
+   "parameters": [
+    {
+     "name": "Grid spacing",
+     "unit": "m",
+     "relationship": "A finer grid gives a more faithful field but pair tests grow with cells squared. Turner et al. (2001) used 1.0 m at eye level (Villa Mairea) and 0.5 m on a small pavilion; default 1.0 m, coarser on large floors.",
+     "source_ids": [
+      "P12-S10"
+     ]
+    },
+    {
+     "name": "Plan cut / eye height",
+     "unit": "m above finished floor",
+     "relationship": "Cut height decides which furniture, balustrades and partitions block sight; a lower cut leaves fewer obstacles and larger isovists. Team preset recorded as a judgement, not a sourced value.",
+     "source_ids": []
+    },
+    {
+     "name": "Partition type flag (opaque / glazed / open)",
+     "unit": "binary flag per segment",
+     "relationship": "A visibility edge exists or not, so no fractions. Glazed is visible but a barrier in the accessibility graph; opaque blocks both; open passes both. Glass raises isovist area and lowers visual privacy.",
+     "source_ids": [
+      "P12-S10"
+     ]
+    },
+    {
+     "name": "Analysis radius (local vs global)",
+     "unit": "m or graph steps",
+     "relationship": "A small radius emphasises legibility inside one room or lobby; an unlimited radius measures visibility from the whole connected graph. Turner et al. distinguish local and global properties.",
+     "source_ids": [
+      "P12-S10"
+     ]
+    },
+    {
+     "name": "Vertical links (atrium, open stair, void)",
+     "unit": "count and m2",
+     "relationship": "Linking nodes across open stairs, as Turner et al. did at Villa Mairea, merges levels into one connected graph: integration rises for connected floors and falls for isolated ones.",
+     "source_ids": [
+      "P12-S10"
+     ]
+    },
+    {
+     "name": "Floors analysed and cell cap",
+     "unit": "floors; cells",
+     "relationship": "Pair tests grow with cells squared: one full-block floor at 1.0 m is about 11,500 cells (about 6.6e7 pairs); 60-80 merged tower floors reach about 1e5 cells (about 1e10 pairs). Analyse tagged public floors only; cap cells; send big jobs to depthmapXcli.",
+     "source_ids": [
+      "P12-S15"
+     ]
+    },
+    {
+     "name": "Core position and shape",
+     "unit": "m from plate edge",
+     "relationship": "A central core with a ring corridor breaks long sight lines and raises occlusivity at corners; an edge or split core opens deeper views from the lobby (geometric consequence, tested per scheme).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Mean visual integration by program tag and level",
+     "unit": "relative index (normalised within each connected graph)",
+     "good": "Lobbies, sky lobbies and public floors in the upper quartile of the project's own distribution",
+     "bad": "The same zones in the lower quartile",
+     "basis": "[team_assumption] No absolute threshold published. Tate Gallery room occupancy fitted mean shortest path length by an exponential curve (R2 = 0.63; Turner et al. 2001): evidence of relative use, not a threshold. Quartile rule is a team preset.",
+     "method": "Normalised mean shortest-path length per connected visibility graph; ranks never mixed across graphs",
+     "source_ids": [
+      "P12-S10"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Visual clustering coefficient",
+     "unit": "0 to 1",
+     "good": "Low values at entrances and lift-lobby decision points (multidirectional field); high values acceptable inside enclosed rooms",
+     "bad": "High values at decision points",
+     "basis": "[team_assumption] Turner et al. (2001) associate low clustering with multidirectional junctions and decision points and high clustering with private rooms (Villa Mairea). The pass rule is a team preset.",
+     "method": "Share of a cell's visible neighbours that can see each other",
+     "source_ids": [
+      "P12-S10"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Isovist occlusivity",
+     "unit": "0 to 1 (occlusive edge length / perimeter)",
+     "good": "Below the floor median at entry sequences so destinations are seen on approach",
+     "bad": "Above the 75th percentile at entries",
+     "basis": "[team_assumption] Definition from isovists.org after Benedikt (1979, full text unopened). Thresholds are team presets; no published numbers found.",
+     "method": "Sum of occlusive edges divided by isovist perimeter",
+     "source_ids": [
+      "P12-S11",
+      "P12-S13"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Entry / lift-lobby visibility from public floor area",
+     "unit": "% of public-tagged floor area",
+     "good": "80% or more (editable preset)",
+     "bad": "Below 50% (editable preset)",
+     "basis": "[team_assumption] Presets chosen by the team to test wayfinding legibility; no source.",
+     "method": "Share of public cells whose isovist contains an entry or lift-lobby node",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    }
+   ],
+   "method": "1) Select tagged public, lobby, sky-lobby and atrium floors; slice each at the cut height. 2) Build two graphs on a 1.0 m grid: a visibility graph at eye height (glass transparent) and an accessibility graph at floor height (glass a barrier), using binary obstacle flags. 3) Link floors only where open stairs or voids connect them. 4) Per cell compute 2D isovist area, perimeter, occlusivity, connectivity, clustering coefficient, mean shortest path and integration (Turner et al. 2001). 5) Normalise integration per connected graph and rank tags within that graph only. 6) Enforce a cell cap; larger jobs run in depthmapXcli as a separate process and are compared with the in-browser field. 7) Optionally correlate with user-supplied movement counts.",
+   "visualization": [
+    "Paired plans per floor: visibility field at eye height and accessibility field at floor height, perceptually uniform ramp, legend shows the project's own min, quartiles and max",
+    "Live isovist polygon under the cursor with area, perimeter and occlusivity read-out",
+    "Scatter of integration vs connectivity coloured by program tag, brushed to highlight cells on the plan",
+    "Vertical strip showing mean integration per connected graph, with sky lobbies and atria marked"
+   ],
+   "human_judgment": "Whether high visibility is desirable for a space (public lobby versus private amenity or prayer room); the privacy/prospect-refuge trade-off; which partitions are glass; which zones count as public; how much the human-scale criterion favours legibility over intimacy.",
+   "limits": "2D slice at one eye height; furniture, reflections, lighting and human field of view (about 120-180 degrees) are ignored. Massing-only models have no interior partitions, so results mean nothing until a partition layer exists. No absolute thresholds are published: results are relative to the project and to one connected graph. Cost grows with cells squared; a cap applies.",
+   "libraries": [
+    {
+     "name": "depthmapX (and depthmapXcli)",
+     "license": "GPL-3.0",
+     "role": "Reference implementation for VGA and isovists; run as a separate process for cross-checking and large jobs, do not link into permissively licensed code",
+     "url": "https://github.com/SpaceGroupUCL/depthmapX"
+    },
+    {
+     "name": "topologicpy",
+     "license": "LGPL-3.0 (repository page also lists GPL-3.0)",
+     "role": "Graph analytics and IFC-to-graph extraction (needs IfcOpenShell for IFC)",
+     "url": "https://github.com/wassimj/topologicpy"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause (GEOS LGPL-2.1)",
+     "role": "Plan polygons, obstacle segments, cell masks",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "visibility-polygon-js",
+     "license": "Public domain",
+     "role": "Browser-side 2D visibility polygons, O(N log N) per viewpoint",
+     "url": "https://github.com/byronknoll/visibility-polygon-js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "license": "MIT",
+     "role": "Accelerated ray casting for 3D isovists in the browser",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "Isovist_App (isovists.org)",
+     "license": "Free to use; licence terms not stated on the page opened",
+     "role": "Independent check of isovist measures",
+     "url": "https://isovists.org/user-guide/4-2-4-occlusivity/"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M02",
+   "name": "View access to mountains, water and landmarks (LEED views and EN 17037 view out)",
+   "phase": "basic",
+   "category": "SPAC",
+   "design_question": "Which floors and facades see the North Shore Mountains, Burrard Inlet, Stanley Park and landmarks past neighbouring towers, and do those views meet recognised view levels, given an assumed real location for the hypothetical site?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "L (10-14 person-days). First v1 slice (about 5 days): proxy-block azimuth sectors, context ray casting, per-point EN 17037 and LEED view share, sensitivity runs. Later v1: DEM ridgeline, water polygons, panoramas.",
+   "jury_criteria": [
+    "cultural_context_30",
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "Layer0:massing",
+    "Layer0:program_tags",
+    "Layer0:context_massing",
+    "SITE: georeferenced proxy block and true-north rotation (recorded team assumption)",
+    "P12-M04 (occupied-area weights)",
+    "P12-M06 (glazing layout, optional)"
+   ],
+   "inputs": [
+    "Layer 0: floor plates, floor heights and facade faces with outward normals (Mesh, Polygon3D[])",
+    "Context massing of existing and approved towers in the 244-305 m range, imported or from open data (Mesh)",
+    "SITE packet: georeferenced proxy block, true-north rotation and alternative proxy blocks for sensitivity runs (team assumption)",
+    "Target markers from the site plan (Stanley Park, BC Place, Entertainment District, Burrard Inlet, North Shore Mountains) converted to azimuth sectors from the proxy block (Point3D / azimuth sector)",
+    "Optional: ridgeline polyline from a DEM (HRDEM, OGL-Canada) and water polygons (OSM, ODbL)",
+    "Optional from P12-M06: window and spandrel layout (default continuous vision glazing); from P12-M04: regularly occupied zones and use"
+   ],
+   "outputs": [
+    "ViewPointField: per eye point and level, targets visible, LEED view type, horizontal sight angle, outside distance, layers seen, EN 17037 level",
+    "FloorViewTable: per floor and use, % of area with LEED view and by target seen; EN 17037 levels per point with area share labelled a tool convention",
+    "PremiumViewFloors: floor ranges seeing both mountains and water (feeds PROG value stacking and P12-M05)",
+    "FacadeViewScores: per orientation (feeds P12-M06 WWR decisions)",
+    "SensitivityTable: target-view share per proxy block and rotation",
+    "ViewPanorama: image strips with ridgeline and water highlighted (feeds PRES boards)"
+   ],
+   "parameters": [
+    {
+     "name": "Eye height",
+     "unit": "m above finished floor",
+     "relationship": "1.2 m (seated) and 1.7 m (standing) are team presets; an arXiv summary (unopened) reports both in computational EN 17037 studies. A higher eye point clears sills and furniture, slightly changing layers seen and distance.",
+     "source_ids": [
+      "P12-S09"
+     ]
+    },
+    {
+     "name": "Proxy block location and rotation range",
+     "unit": "georeferenced block; degrees",
+     "relationship": "Target azimuths, ridgeline and water visibility depend on the real block the hypothetical site is assumed to occupy. Moving the proxy or rotating it shifts which floors and faces see each target; all target results are conditional on it.",
+     "source_ids": []
+    },
+    {
+     "name": "Context tower height and spacing on the mountain side",
+     "unit": "m",
+     "relationship": "Taller or closer towers between site and mountains raise the lowest floor that sees the ridgeline and shorten outside distance, so premium-view floors move up.",
+     "source_ids": []
+    },
+    {
+     "name": "Facade orientation (true north corrected)",
+     "unit": "degrees",
+     "relationship": "A facade whose normal falls inside a target's azimuth sector sees that target; rotating the footprint shifts which faces see mountains or water. The site plan's north arrow is skewed from the street grid.",
+     "source_ids": []
+    },
+    {
+     "name": "Floor level",
+     "unit": "m above grade",
+     "relationship": "Higher floors see over the context and gain a larger visible ridgeline arc and longer outside distance, until the floor is above all neighbours.",
+     "source_ids": []
+    },
+    {
+     "name": "Vision glazing width / WWR",
+     "unit": "% and m",
+     "relationship": "Wider glazing increases the horizontal sight angle; EN 17037 grades it at 14, 28 and 54 degrees for minimum, medium and high levels.",
+     "source_ids": [
+      "P12-S07",
+      "P12-S08"
+     ]
+    },
+    {
+     "name": "Target definition and weights",
+     "unit": "azimuth sector, ridgeline, polygon; weight 0-1",
+     "relationship": "User weights decide whether mountain, water or park views dominate the premium-floor ranking; weights are subjective and stored as judgement records.",
+     "source_ids": []
+    },
+    {
+     "name": "Ray step and minimum visible fraction",
+     "unit": "degrees; % of target arc",
+     "relationship": "A smaller step finds narrow gaps between towers but costs more rays; the minimum fraction decides when a floor 'has' a view of a target. Both are editable presets.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Regularly occupied area with a LEED-style view through vision glazing",
+     "unit": "% of regularly occupied area",
+     "good": "90% or more (3 points) or 75% or more (2 points) under LEED v5 EQc2 Option 1 Path 2",
+     "bad": "Below 75%",
+     "basis": "[verified_secondary] LEEDuser quotes v5: 75% (2 pts) or 90% (3 pts), VLT above 40%, view within 3 x head height. USGBC text unopened. v4.1 (CaGBC) and v4 are legacy_version. M02 owns the LEED views result.",
+     "method": "Fraction of occupied area whose eye points have an unobstructed ray through vision glazing to a qualifying view type",
+     "source_ids": [
+      "P12-S56",
+      "P12-S57",
+      "P12-S05",
+      "P12-S04"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary (v5); legacy_version (v4.1, v4)"
+    },
+    {
+     "name": "LEED view type present at each counted point",
+     "unit": "count of types",
+     "good": "At least one of nature, urban landmark, art, or objects 7.5 m or more away",
+     "bad": "None",
+     "basis": "[verified_secondary] v5 (LEEDuser) and v4.1 (CaGBC) list these types. Mapping mountain, water and park targets to 'nature' and BC Place-type targets to 'urban landmark' is the team's judgement.",
+     "method": "Classify rays: hit on a target polygon (nature, landmark) or on any object 7.5 m or more away",
+     "source_ids": [
+      "P12-S56",
+      "P12-S05"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "EN 17037 horizontal sight angle (per point)",
+     "unit": "degrees",
+     "good": "28 degrees or more (medium); 54 degrees or more (high)",
+     "bad": "Below 14 degrees (fails minimum)",
+     "basis": "[verified_secondary] REHVA Journal and ClimateStudio give identical table values; standard text unopened. View out is a point-in-space method (Annex C); area share is a software convention.",
+     "method": "Total horizontal angle subtended by windows seen from the eye point",
+     "source_ids": [
+      "P12-S07",
+      "P12-S08"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "EN 17037 outside distance of view (per point)",
+     "unit": "m",
+     "good": "20 m or more (medium); 50 m or more (high)",
+     "bad": "Below 6 m (fails minimum)",
+     "basis": "[verified_secondary] Same two sources. ClimateStudio defines it as the median distance to objects seen through windows. Standard text unopened.",
+     "method": "Median ray distance through windows",
+     "source_ids": [
+      "P12-S07",
+      "P12-S08"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "EN 17037 layers seen (sky, landscape, ground)",
+     "unit": "count",
+     "good": "2 layers (medium) to 3 layers (high)",
+     "bad": "Fewer than 1 layer (fails minimum)",
+     "basis": "[verified_secondary] REHVA gives 1/2/3 layers; ClimateStudio says minimum needs the landscape layer, medium landscape plus one, high all three. Nuance unresolved.",
+     "method": "Classify rays through windows as sky, ground or landscape (other objects)",
+     "source_ids": [
+      "P12-S07",
+      "P12-S08"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "Share of occupied area seeing at least one priority target (mountain ridgeline, water, Stanley Park)",
+     "unit": "% of occupied area, by use",
+     "good": "At or above the user's per-use target (placeholder 50%, editable)",
+     "bad": "Below the target",
+     "basis": "[team_assumption] No sourced benchmark. Ulrich (1984) reports better recovery for patients with a natural view; it supports the value of nature views but gives no threshold.",
+     "method": "Count eye points with a visible target fraction above the minimum",
+     "source_ids": [
+      "P12-S39"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Target-view share range across proxy-block and rotation runs",
+     "unit": "percentage points",
+     "good": "Range within the user's stated tolerance (no preset)",
+     "bad": "Wider than tolerance: show the result as conditional on the proxy",
+     "basis": "[team_assumption] The site is hypothetical; target directions come from site-plan labels, not georeferenced points. The tolerance is a team judgement.",
+     "method": "Repeat target tests for alternative proxy blocks and +/- rotation; report min-max",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    }
+   ],
+   "method": "1) Take the SITE packet's georeferenced proxy block and true-north rotation; derive target azimuth sectors; repeat for alternative proxies or +/- rotation (sensitivity). 2) For each level sample eye points at 1.2 m and 1.7 m (team presets) in regularly occupied zones near glazing. 3) Cast rays through each window opening at a preset step against the context mesh (BVH); classify each as sky, ground, landscape or target hit. 4) Per point: sight angle, median outside distance, layers; EN 17037 level = worst of three. 5) LEED: share of occupied area with a clear ray to a qualifying view type. 6) Later v1: ridgeline test (ray elevation above DEM samples) and water test (sea-level plane inside water polygons). 7) Aggregate by floor, facade and use; label area shares a tool convention and every target result 'conditional on proxy'.",
+   "visualization": [
+    "Unrolled facade 'view matrix': x = true-north azimuth, y = floor level, colour = target seen (mountain, water, park, none) with the context skyline overlaid and a 'conditional on proxy' stamp",
+    "Plan map per level in four categorical colours: fail, minimum, medium, high EN 17037 level per point (fixed legend, clause linked)",
+    "Panorama strip from a chosen floor with ridgeline and water highlighted, exportable for boards",
+    "Stacked bar of % area by use with LEED view result and view types, shown as reference line until the source is verified"
+   ],
+   "human_judgment": "Which views matter and why (mountains and water as place-based and Indigenous relationships to land); how to weigh premium view against glare, solar gain and privacy, including overlook between towers; whether to orient a tower to a view or shelter the public realm; how culturally significant views appear on boards; which proxy block is plausible.",
+   "limits": "Results are conditional on the assumed proxy block and on context massing; approved-but-unbuilt towers are uncertain. Trees, haze and reflections are ignored. EN 17037 is a European standard and LEED a voluntary credit, neither a Vancouver requirement; tiers rate window geometry, not scenic value. HRDEM coverage of North Shore ridgelines is unverified. Public view cones protect views from public places, not from inside the tower.",
+   "libraries": [
+    {
+     "name": "three-mesh-bvh",
+     "license": "MIT",
+     "role": "Browser ray casting against context meshes",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "trimesh (+ optional embreex)",
+     "license": "MIT",
+     "role": "Server-side ray queries and mesh loading (OBJ, GLB, STL)",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "rhino3dm",
+     "license": "MIT",
+     "role": "Read .3dm massing and context in Python or JS/WASM",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "web-ifc",
+     "license": "MPL-2.0",
+     "role": "Read IFC context and massing in the browser",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0-or-later",
+     "role": "Server-side IFC geometry",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "HRDEM CanElevation (data)",
+     "license": "Open Government Licence - Canada",
+     "role": "Ridgeline elevations (coverage to be checked)",
+     "url": "https://open.canada.ca/data/en/dataset/957782bf-847c-4644-a757-e383c0057995"
+    },
+    {
+     "name": "OpenStreetMap water polygons (data)",
+     "license": "ODbL (share-alike, attribution)",
+     "role": "Burrard Inlet / English Bay / False Creek polygons",
+     "url": "https://www.openstreetmap.org/copyright"
+    },
+    {
+     "name": "rhinomcp (MCP server)",
+     "license": "MIT",
+     "role": "Lets Claude drive Rhino/Grasshopper to cross-check results; unauthenticated loopback link, local use only",
+     "url": "https://github.com/jingcheng-chen/rhinomcp"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M03",
+   "name": "Depth from glazing, daylight reach and glare (CLIM ingest)",
+   "phase": "advanced",
+   "category": "SPAC",
+   "design_question": "How far is each regularly occupied area from the nearest vision glazing, and does the plate stay within recognised daylight, view-proximity and glare levels?",
+   "nature": "objective",
+   "priority": "v1",
+   "effort": "S-M (4-6 person-days); glare ingest adds about 1 day",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "Layer0:floor_geometry",
+    "P12-M04 (occupied mask)",
+    "P12-M06 (glazing, head height, VLT)",
+    "CLIM daylight outputs (sDA, ASE, DGP), optional"
+   ],
+   "inputs": [
+    "Layer 0: floor-plate and core polygons per level (Polygon2D[])",
+    "Layer 0: floor-to-floor height; program tags",
+    "P12-M06: glazing segments, window head height, visible light transmittance (FacadeSchedule)",
+    "P12-M04: regularly occupied area mask",
+    "Optional CLIM packet: sDA, ASE, illuminance and DGP/DGPe rasters per level"
+   ],
+   "outputs": [
+    "DepthField: distance-to-glazing raster per level",
+    "DeepPlanZones: polygons beyond the chosen reach (feeds P12-M04 reallocation to storage, core, MEP or non-regular occupancy)",
+    "OccupiableAreaStats: % of occupied area per distance band (feeds ENER lighting and daylight controls)",
+    "DaylightComplianceFlags: per level result against cited tests, shown as reference lines until sources are verified",
+    "GlareFlags: perimeter zones above the DGPe levels (feeds P12-M06 shading)"
+   ],
+   "parameters": [
+    {
+     "name": "Window head height",
+     "unit": "m",
+     "relationship": "LEED counts unobstructed views within 3 x head height of vision glazing, so higher heads enlarge the area that counts; taller floor-to-floor also adds facade area and cost.",
+     "source_ids": [
+      "P12-S04",
+      "P12-S05",
+      "P12-S56"
+     ]
+    },
+    {
+     "name": "Plate depth (glazing-to-core dimension)",
+     "unit": "m",
+     "relationship": "A wider plate or larger core increases the share of floor beyond reach, shrinking the share of occupied area inside the 3 x head-height and 6 m bands (geometric consequence).",
+     "source_ids": []
+    },
+    {
+     "name": "Core location and split",
+     "unit": "m from facade",
+     "relationship": "A central core leaves a perimeter ring of depth (half plate width minus half core width); a side or split core makes single-sided deep plates. Both change the distance field directly.",
+     "source_ids": []
+    },
+    {
+     "name": "Vision glazing transmittance (VLT)",
+     "unit": "%",
+     "relationship": "LEED v4.1 and v5 pages quote 40% or more for view glazing; tinted or fritted glass lowers VLT and the daylight reaching deeper zones.",
+     "source_ids": [
+      "P12-S05",
+      "P12-S56"
+     ]
+    },
+    {
+     "name": "Interior surface reflectance (from P12-M07 lightness)",
+     "unit": "0-1",
+     "relationship": "Daylight factor adds an internally reflected component, so lighter ceilings and walls push usable daylight deeper.",
+     "source_ids": [
+      "P12-S45"
+     ]
+    },
+    {
+     "name": "External obstruction angle (neighbouring towers)",
+     "unit": "degrees",
+     "relationship": "Closer or taller neighbours reduce the sky component at lower floors, shortening usable daylight reach regardless of plan depth.",
+     "source_ids": [
+      "P12-S45"
+     ]
+    },
+    {
+     "name": "Lighting-control daylight-zone factor k (zone depth = k x head height)",
+     "unit": "dimensionless",
+     "relationship": "Larger k classes more of the plate as daylit. k = 2.0 mirrors ASHRAE 90.1 primary plus secondary sidelighted areas (one head height each), a lighting-control convention, not a daylight-adequacy test; simulated sDA replaces it.",
+     "source_ids": [
+      "P12-S61",
+      "P12-S60"
+     ]
+    },
+    {
+     "name": "Shading depth and glazing (from P12-M06)",
+     "unit": "m; %",
+     "relationship": "Deeper shading or lower transmittance lowers DGPe at the facade but also cuts view and daylight; the effect is simulated in CLIM, not computed here.",
+     "source_ids": [
+      "P12-S07"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Occupied area within 3 x head height of vision glazing (diagnostic for the M02 LEED views result)",
+     "unit": "% of regularly occupied area",
+     "good": "75% or more (reference line)",
+     "bad": "Below 75% (reference line)",
+     "basis": "[proxy] LEED v4/v4.1 views test counts unobstructed views within 3 x head height; v5 repeats it (LEEDuser). Reading it as an area share is the team's interpretation. M02 owns the badge; M03 only explains it.",
+     "method": "Raster area inside the 3 x head-height band divided by occupied area",
+     "source_ids": [
+      "P12-S04",
+      "P12-S05",
+      "P12-S56"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Occupied area within 6 m of envelope glazing (LEED v5 EQc2 Option 5 Path 3)",
+     "unit": "% of regularly occupied area",
+     "good": "30% or more, with glazing VLT above 40%",
+     "bad": "Below 30%",
+     "basis": "[verified_secondary] LEEDuser quotes v5 Path 3 (1 pt): at least 30% of regularly occupied area within 20 ft (6 m) of envelope glazing. USGBC text unopened.",
+     "method": "Raster area within 6 m of vision glazing divided by occupied area",
+     "source_ids": [
+      "P12-S56"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "Spatial daylight autonomy sDA (ingested from CLIM)",
+     "unit": "% of regularly occupied area",
+     "good": "75% or more (top of v5 scale, 4 pts; v4 3 pts)",
+     "bad": "Below 40% (below first v5 point); below 55% (v4)",
+     "basis": "[legacy_version] LEEDuser: v5 averages sDA300/50% or sDA150/50% (IES LM-83-23), 40% = 1 pt to 75% = 4 pts; v4 gave 55% = 2 pts, 75% = 3 pts. USGBC v5 text unopened.",
+     "method": "Read simulated raster; compute area above 300 lx (or 150 lx) for 50% of hours",
+     "source_ids": [
+      "P12-S56",
+      "P12-S06"
+     ],
+     "status": "unverified",
+     "status_detail": "legacy_version (v4); verified_secondary (v5)"
+    },
+    {
+     "name": "Annual sunlight exposure ASE1000,250 (ingested from CLIM)",
+     "unit": "% of daylit area",
+     "good": "At or below 10% (v4 reference); at or below 20% with no glare explanation (v5 as quoted)",
+     "bad": "Above 10% (v4); above 20% needs a glare explanation (v5)",
+     "basis": "[legacy_version] v4 EQc7 Option 1 limit 10%; LEEDuser quotes v5: spaces with ASE above 20% must explain glare treatment. USGBC v5 text unopened.",
+     "method": "Area above 1000 lx for 250 or more occupied hours",
+     "source_ids": [
+      "P12-S56",
+      "P12-S06"
+     ],
+     "status": "unverified",
+     "status_detail": "legacy_version (v4); verified_secondary (v5)"
+    },
+    {
+     "name": "EN 17037 daylight provision (ingested from CLIM)",
+     "unit": "lx on reference plane",
+     "good": "300 lx over 50% of the plane and 100 lx over 95% (minimum); 500/300 (medium); 750/500 (high)",
+     "bad": "Below the minimum level",
+     "basis": "[verified_secondary] REHVA Journal summary of the EN 17037 table; targets hold for half of daylight hours (2190 h). Standard text unopened.",
+     "method": "Read simulated illuminance raster; compute area fractions",
+     "source_ids": [
+      "P12-S07"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "EN 17037 glare protection, DGPe (ingested from CLIM)",
+     "unit": "DGPe, dimensionless",
+     "good": "Below 0.35 (high), 0.40 (medium) or 0.45 (minimum)",
+     "bad": "0.45 or above",
+     "basis": "[verified_secondary] REHVA table lists DGPe below 0.45/0.40/0.35. Time and view-direction conditions and the standard text were not read. Ingested from CLIM, not computed here.",
+     "method": "Read simulated DGP/DGPe at occupied eye points; compare with levels",
+     "source_ids": [
+      "P12-S07"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "Distance to glazing against lighting-control zone depth (proxy)",
+     "unit": "m",
+     "good": "At or below k x head height with k = 2.0 (editable)",
+     "bad": "Above k x head height",
+     "basis": "[team_assumption] k = 2.0 mirrors ASHRAE 90.1 sidelighted areas (draft addendum text seen, unopened). Reinhart (2005) abstract: simulations largely support the head-height rule for standard variants. k stays a preset until sDA replaces it.",
+     "method": "Euclidean or visibility distance from each occupied cell to the nearest glazing segment",
+     "source_ids": [
+      "P12-S61",
+      "P12-S60"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    }
+   ],
+   "method": "1) Rasterise each floor at 0.5 m; mask core, voids and non-occupied tags. 2) Compute distance from each occupied cell to the nearest vision-glazing segment (Euclidean distance transform; optionally limited to cells with a sight line using P12-M01). 3) Classify cells into bands: within 3 x head height (diagnostic), within 6 m (LEED v5 proximity), within k x head height (lighting-control proxy), beyond. 4) Report area shares per level and use. 5) Ingest CLIM sDA, ASE, illuminance and DGP rasters; overlay and test against the cited levels; show disagreements with the proxy. 6) Output deep-plan polygons for reallocation and glare flags for P12-M06 shading. The LEED views result stays in P12-M02.",
+   "visualization": [
+    "Plan heat map per level: distance-to-glazing contours at 3 m steps with the 3 x head-height line, 6 m line and k x head-height line drawn bold",
+    "Section sketch showing head height, 3 x head-height reach and k x head-height reach",
+    "Floor-by-floor bar of % occupied area in each band with the reference lines",
+    "Toggle overlay of simulated sDA and DGPe rasters against the geometric proxy"
+   ],
+   "human_judgment": "Whether a deep zone is acceptable for its use (trading floor, meeting rooms, hotel corridor); whether an atrium or light well compensates; occupant preference for views versus density; the trade-off against core efficiency; how much glare control to accept at the cost of view.",
+   "limits": "A distance proxy, not a daylight simulation: it ignores sky condition (Vancouver winter overcast), orientation, obstruction, glazing and shading. k is a team preset. LEED and EN 17037 values come from secondary pages and v4 values are legacy; both are voluntary benchmarks, not VBBL requirements. Hotel and residential units need room-level depth rules.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Glazing segments, offsets and distance queries",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "trimesh",
+     "license": "MIT",
+     "role": "Raster and ray queries when visibility-limited distance is used",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "Ladybug / Honeybee (core libraries)",
+     "license": "AGPL-3.0",
+     "role": "Out-of-process engine for sDA, ASE and DGP cross-checks; AGPL means a networked service must publish its source",
+     "url": "https://github.com/ladybug-tools/ladybug"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M04",
+   "name": "Activity-based program: occupancy bases, schedules and people counts",
+   "phase": "advanced",
+   "category": "PROG",
+   "design_question": "How many people use each activity at each hour, and which population (egress, design, energy, vertical transportation) should egress, elevators and energy modules use?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M (6-8 person-days) including area-basis tags and the fourth basis",
+   "jury_criteria": [
+    "design_excellence_20",
+    "urban_integration_10",
+    "human_scale_40"
+   ],
+   "depends_on": [
+    "Layer0:program_tags",
+    "Layer0:areas",
+    "P12-M03 (optional)"
+   ],
+   "inputs": [
+    "Layer 0: gross area per program tag and floor (office, residential, hotel, retail, cultural/civic, public, amenity, mechanical, core, below-grade)",
+    "Unit counts: hotel keys, dwelling units, bedrooms and sleeping rooms",
+    "Area-basis tag for each density (GFA, zone floor area, net usable)",
+    "Activity-setting table: workstations, collaboration, focus, meeting, amenity, dining, assembly, with user-sourced densities",
+    "Workplace-strategy inputs: attendance factor, utilisation scenario, event-load multipliers",
+    "Optional P12-M03: occupied-area share after deep-plan reallocation"
+   ],
+   "outputs": [
+    "PopulationTable: persons by floor x use x basis (egress, design, energy, vertical transportation), each with its area basis, typed for SYST egress and lifts",
+    "HourlySchedule: occupancy fraction by use x day type x hour (feeds ENER internal gains and ventilation)",
+    "PeakCoincident: coincident peak population by core, lift bank and stair (feeds SYST)",
+    "TripGenerationInputs: arrivals and departures by hour (feeds MOBI)",
+    "FSRRange: non-residential FSR, strict and inclusive counts, with the toggles used"
+   ],
+   "parameters": [
+    {
+     "name": "Area basis of each density (GFA / zone floor area / net usable)",
+     "unit": "tag",
+     "relationship": "DOE/PNNL densities are per zone floor area, not net usable area. Applying a net-to-gross factor to them understates population; the tag decides whether efficiency applies.",
+     "source_ids": [
+      "P12-S19"
+     ]
+    },
+    {
+     "name": "Net-to-gross efficiency by use (net-basis densities only)",
+     "unit": "%",
+     "relationship": "Higher efficiency leaves more net area per gross, raising population only for net-basis densities. No sourced Vancouver supertall values found (unresolved).",
+     "source_ids": []
+    },
+    {
+     "name": "Occupant density by activity and basis",
+     "unit": "m2 per person",
+     "relationship": "Lower m2/person raises persons per floor, so egress width, lift demand, ventilation and gains. Four bases stay apart: egress (code), design, energy and vertical transportation; energy density never feeds lifts.",
+     "source_ids": [
+      "P12-S19",
+      "P12-S51"
+     ]
+    },
+    {
+     "name": "Persons per sleeping room and dwelling",
+     "unit": "persons",
+     "relationship": "Egress uses 2 persons per bedroom or sleeping area (VBBL 2019 Part 9 text; Part 3 wording to verify). Design and energy use DOE 1.5 per hotel room and 2.5 per apartment, changing populations without changing area.",
+     "source_ids": [
+      "P12-S51",
+      "P12-S19"
+     ]
+    },
+    {
+     "name": "Attendance / desk-sharing factor (design, energy, vertical bases only)",
+     "unit": "0-1 (default 1.0)",
+     "relationship": "Lower attendance reduces average and sometimes peak office population, lowering energy gains and lift demand. Egress stays at 1.0; every change is logged as a judgement.",
+     "source_ids": []
+    },
+    {
+     "name": "Activity-setting densities and utilisation scenario",
+     "unit": "m2 per person by setting; % utilisation",
+     "relationship": "Per-setting densities (desk, collaboration, focus, amenity) and a utilisation scenario change design and energy populations only; each change is a judgement record. Egress keeps 1.0.",
+     "source_ids": []
+    },
+    {
+     "name": "Lift-planning density and five-minute handling target",
+     "unit": "m2 per person (net); % of population per 5 min",
+     "relationship": "Lift demand follows the vertical basis. Reference points: 10, 14 and 19 m2 per person; 15% historic versus about 6-7% surveyed peak. CIBSE Guide D not opened.",
+     "source_ids": [
+      "P12-S62",
+      "P12-S70"
+     ]
+    },
+    {
+     "name": "Hourly schedule fractions",
+     "unit": "fraction of peak, by hour",
+     "relationship": "Peak hours that differ between uses (office, hotel, retail) spread demand in shared cores; sums of peaks overstate simultaneous population.",
+     "source_ids": [
+      "P12-S20",
+      "P12-S17"
+     ]
+    },
+    {
+     "name": "Event-load multiplier for cultural/assembly space",
+     "unit": "x typical",
+     "relationship": "Scheduled events lift population above the typical day and can govern egress and lift sizing for public floors.",
+     "source_ids": []
+    },
+    {
+     "name": "FSR counting toggles (strict or inclusive)",
+     "unit": "tags counted",
+     "relationship": "Counting only office and retail/commercial gives the strict FSR; adding hotel or cultural/civic raises it by their area. Each toggle needs a judgement record; mechanical, core and below-grade are excluded by default.",
+     "source_ids": [
+      "P12-S48"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Design occupant density by activity (reference)",
+     "unit": "m2 per person (zone floor area basis)",
+     "good": "Uses the reference value or a documented, sourced override",
+     "bad": "Undocumented override",
+     "basis": "[legacy_version] PNNL scorecard, 90.1-2004 rows, Buffalo, per zone floor area: office 18.58; hotel room 26.01 and 16.35; lobby 3.1; retail 6.19; dining 1.33; apartment 35.3. Energy-model loads, not VBBL values, not for lifts.",
+     "method": "Lookup by program tag and zone type",
+     "source_ids": [
+      "P12-S17",
+      "P12-S19"
+     ],
+     "status": "unverified",
+     "status_detail": "legacy_version"
+    },
+    {
+     "name": "Egress-basis population against VBBL occupant load",
+     "unit": "persons per floor",
+     "good": "Egress sized to the larger of the VBBL table load and the egress-basis designed number",
+     "bad": "Sized to the table load while the designed number is larger",
+     "basis": "[unverified] VBBL 2025 Part 3 Table 3.1.17.1 and Article 3.1.17.1 not read. VBBL 2019 Part 9 text: designed number, not fewer than the table. Office factor 9.3 m2/person is recalled, unverified.",
+     "method": "Compute both loads per floor; show the larger; flag floors where design exceeds table",
+     "source_ids": [
+      "P12-S49",
+      "P12-S51"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    },
+    {
+     "name": "Non-residential (employment) FSR, strict and inclusive",
+     "unit": "FSR on a site of about 11,468 m2 (79.2 x 144.8 m)",
+     "good": "Strict count (office plus retail/commercial) at or above 9.0 (about 103,200 m2); inclusive count shown as a separate bar",
+     "bad": "Strict count below 9.0 even if the inclusive count passes",
+     "basis": "[team_assumption] 9.0 FSR of non-residential, high-employment (office, commercial) floor area is the team's summary of the VTC brief; brief PDF not opened. Floor-area definition and Vancouver exclusions unresolved.",
+     "method": "Sum strict-tag area divided by site area; add toggled tags for the inclusive bar; exclude mechanical, core, below-grade by default",
+     "source_ids": [
+      "P12-S48",
+      "P12-S69"
+     ],
+     "status": "team_assumption",
+     "status_detail": "unverified (brief not opened); team_assumption (counting rule)"
+    },
+    {
+     "name": "Implied persons per key / dwelling (design basis)",
+     "unit": "persons",
+     "good": "Matches reference (hotel 1.5, dwelling 2.5) or a documented override",
+     "bad": "Undocumented override",
+     "basis": "[legacy_version] Derived from PNNL scorecard room area divided by m2 per person (39.02/26.01 and 88.25/35.3), 90.1-2004 rows. Egress uses 2 persons per sleeping area instead.",
+     "method": "Rooms x persons per room",
+     "source_ids": [
+      "P12-S19",
+      "P12-S51"
+     ],
+     "status": "unverified",
+     "status_detail": "legacy_version"
+    },
+    {
+     "name": "Vertical-transportation population basis",
+     "unit": "m2 per person (net); % per 5 min",
+     "good": "Documented values stated against 10-19 m2 per person and 7-15% references",
+     "bad": "Energy-basis density reused for lifts, or undocumented values",
+     "basis": "[verified_secondary] Designing Buildings wiki summarises BCO and NAO densities and the Stanhope 2004 survey (6% observed morning peak). CIBSE Guide D (2025) not opened.",
+     "method": "Population = net area / density x attendance; handling target applied by lift bank",
+     "source_ids": [
+      "P12-S62",
+      "P12-S70"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    }
+   ],
+   "method": "Per (floor, tag, activity): N = area x density x attendance, with each density's area basis tagged; apply net-to-gross only to net-basis densities. Four bases: egress = larger of the VBBL table load and the designed number (attendance 1.0; dwellings and hotels at 2 persons per sleeping area x bedrooms); design = DOE/PNNL density or sourced override; energy = design population x ASHRAE 90.1-derived schedules; vertical transportation = lift-planning density and five-minute handling target. Aggregate by core, lift bank, stair and hour with a coincidence factor. FSR: strict = office plus retail/commercial area; inclusive adds hotel and cultural/civic by toggle; exclude mechanical, core and below-grade by default; show both. Never feed the energy density to lifts. Export typed tables.",
+   "visualization": [
+    "Vertical people profile: horizontal stacked bars per floor by use, with a basis toggle (egress, design, energy, vertical transportation)",
+    "24 h x use heat map of schedule fractions for weekday, weekend and event day",
+    "Waterfall from GFA to zone area to net area to people for each basis, showing both area bases",
+    "FSR bars: strict versus inclusive against 9.0, with toggles listed",
+    "Badge row linking each density and schedule to its source row or clause"
+   ],
+   "human_judgment": "The workplace strategy (activity-based working, desk sharing, hybrid attendance); whether to design for code maxima or expected use; which uses count towards the 9.0 FSR; tenant mix; hotel and household sizes; how public and cultural programs are used across day and year.",
+   "limits": "Reference densities are US prototype loads (2004 rows) and lift-planning figures are secondary; neither is a Vancouver tower survey, and post-2020 hybrid work is not captured. The VBBL table and area basis must be read by a professional before use. This is not a code check; the brief says its documents are not legal documents.",
+   "libraries": [
+    {
+     "name": "honeybee-energy-standards (schedule and program-type library)",
+     "license": "AGPL-3.0",
+     "role": "ASHRAE 90.1 / DOE schedules and program types as JSON (data from the OpenStudio Standards Gem)",
+     "url": "https://github.com/ladybug-tools/honeybee-energy-standards"
+    },
+    {
+     "name": "DOE/PNNL commercial prototype building models and scorecard",
+     "license": "Public download; licence terms not stated on the page opened",
+     "role": "Reference densities, WWRs and schedule names",
+     "url": "https://www.energycodes.gov/prototype-building-models"
+    },
+    {
+     "name": "EnergyPlus",
+     "license": "BSD-3-like",
+     "role": "Consumes occupancy schedules for energy modelling",
+     "url": "https://github.com/NREL/EnergyPlus"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0-or-later",
+     "role": "Write occupancy properties to IfcSpace/IfcZone for IFC export",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M05",
+   "name": "Adjacency matrix and vertical stacking",
+   "phase": "advanced",
+   "category": "PROG",
+   "design_question": "Which uses must sit near or apart from each other, and does the vertical stack of public, office, hotel, residential and mechanical floors satisfy those relationships, the physical drivers of a mixed-use supertall and the brief?",
+   "nature": "subjective",
+   "priority": "v1",
+   "effort": "S-M (4-5 person-days) including physical-driver checks",
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "Layer0:program_tags",
+    "P12-M04",
+    "P12-M01 (optional)",
+    "SYST/STRC: floor-to-floor heights, cores, transfer and outrigger floors"
+   ],
+   "inputs": [
+    "Layer 0: program blocks (tag x floor range) with areas",
+    "User relationship ratings per pair of uses (entered in the matrix)",
+    "P12-M04: schedules and populations (peak-hour overlap, shared lift demand)",
+    "SYST/STRC: core and shaft locations, floor-to-floor height by use, transfer and outrigger floors",
+    "P12-M03: plate depth by use"
+   ],
+   "outputs": [
+    "AdjacencyMatrix: typed pair ratings with author and rationale",
+    "StackingOrder: floor-range sequence with two score sets (subjective ratings; physical checks)",
+    "ConflictList: violated pairs, shared-core conflicts, schedule overlaps, stack-alignment and entry-path conflicts (feeds SYST lift zoning, MOBI servicing, P12-M01)"
+   ],
+   "parameters": [
+    {
+     "name": "Closeness rating per use pair (A, E, I, O, U, X)",
+     "unit": "ordinal",
+     "relationship": "Higher ratings force pairs closer or onto a shared core; X forces separation. A ('absolutely necessary') and X ('necessary to keep apart') appear on a lecture page; E, I, O, U meanings are team presets. Muther's text not opened.",
+     "source_ids": [
+      "P12-S63"
+     ]
+    },
+    {
+     "name": "Vertical distance between related uses",
+     "unit": "floors",
+     "relationship": "More floors between related uses lowers the pair's satisfaction and raises vertical travel; a shared sky lobby can shorten effective distance.",
+     "source_ids": []
+    },
+    {
+     "name": "Schedule overlap between uses on a shared lift bank",
+     "unit": "hours of overlapping peak",
+     "relationship": "More overlap raises simultaneous demand on shared lifts and lobbies and raises the conflict score.",
+     "source_ids": []
+    },
+    {
+     "name": "Public-use continuity",
+     "unit": "floors without public-facing use",
+     "relationship": "The VTC brief (team summary) wants public-facing uses to extend vertically; a longer gap lowers the continuity score and flags podium-only public programs.",
+     "source_ids": [
+      "P12-S48"
+     ]
+    },
+    {
+     "name": "Floor-to-floor height by use",
+     "unit": "m (from SYST/STRC)",
+     "relationship": "Office, hotel, residential and cultural floors need different heights; mixing them changes stack height and where transfers fall. Values come from SYST/STRC, not set here.",
+     "source_ids": []
+    },
+    {
+     "name": "Plate or lease depth by use",
+     "unit": "m (from P12-M03/SYST)",
+     "relationship": "Deep office plates versus shallow hotel and residential plates decide where each use can sit; a mismatch forces setbacks or transfer floors.",
+     "source_ids": []
+    },
+    {
+     "name": "Stack alignment (wet stacks, columns, shafts, transfer and outrigger floors)",
+     "unit": "conflict count",
+     "relationship": "Misaligned wet stacks, columns or shafts between uses add transfer structure and MEP offsets; transfer and outrigger floors are fixed floors in the search.",
+     "source_ids": []
+    },
+    {
+     "name": "Separate entry, lobby and lift path per use",
+     "unit": "count of uses with own path",
+     "relationship": "Hotel, residential, office and cultural uses normally need separate entries and lift banks; a shared path raises conflicts, lift demand and security issues.",
+     "source_ids": []
+    },
+    {
+     "name": "Separation requirements between major occupancies",
+     "unit": "hours of fire resistance",
+     "relationship": "VBBL separations add slab and shaft constraints between hotel, residential and office floors; values are not in the tool until the by-law is read (unresolved).",
+     "source_ids": [
+      "P12-S49"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Count of X-rated pairs that are adjacent or share a core",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "[team_assumption] X means 'necessary to keep apart' in the chart, so zero is success by definition; the pairs themselves are subjective.",
+     "method": "Check pair distance against the X rule",
+     "source_ids": [
+      "P12-S63"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Share of A-rated pairs satisfied",
+     "unit": "%",
+     "good": "100%",
+     "bad": "Below 100%",
+     "basis": "[team_assumption] A means 'absolutely necessary'; satisfaction means within the distance the user set for A pairs.",
+     "method": "Count A pairs within their distance limit",
+     "source_ids": [
+      "P12-S63"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Weighted adjacency score",
+     "unit": "0-1",
+     "good": "0.8 or more (editable)",
+     "bad": "Below 0.5 (editable)",
+     "basis": "[team_assumption] Weights and cut-offs are team presets; the chart is qualitative and comes from factory layout practice.",
+     "method": "Sum of rating weight x proximity over pairs, divided by the maximum",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Vertical continuity of public-facing uses",
+     "unit": "largest gap in floors",
+     "good": "Public-tagged floors in base, mid and upper tower zones",
+     "bad": "Public uses only in the podium",
+     "basis": "[team_assumption] VTC brief (team summary, PDF unopened) says public-facing uses should extend vertically; the gap limit is the team's reading.",
+     "method": "Largest run of floors with no public-facing tag",
+     "source_ids": [
+      "P12-S48"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Uses with their own entry and lift path",
+     "unit": "count of uses",
+     "good": "Every use has its own path",
+     "bad": "Any use shares a path with an incompatible use",
+     "basis": "[team_assumption] Team rule from mixed-use tower practice; no source opened. Scored apart from the subjective ratings.",
+     "method": "Check lobby, entry and lift-bank assignment per use",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Stack-alignment conflicts",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "[team_assumption] Wet-stack, column and shaft alignment between uses and transfer-floor positions; thresholds are the team's and need SYST/STRC input.",
+     "method": "Compare shaft and stack positions between adjacent use blocks",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Plate-depth fit by use",
+     "unit": "m",
+     "good": "Within the user-set depth range for each use",
+     "bad": "Outside the range",
+     "basis": "[team_assumption] No sourced plate-depth ranges; the user sets them from P12-M03 and SYST results.",
+     "method": "Compare plate depth per floor range with the range for its use",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    }
+   ],
+   "method": "1) Define program blocks from Layer 0 tags and floor ranges. 2) Show a triangular relationship chart; the user rates each pair with a short reason, stored as a judgement record. 3) Convert ratings to weights; compute proximity from floor distance and shared-core membership. 4) Score subjective items (pair ratings, A and X rules, public continuity) separately from physical checks (floor-to-floor height, plate depth, wet-stack and transfer alignment, own entry and lift path per use, schedule overlap from P12-M04). 5) Optionally search stack orders (simulated annealing) with fixed floors (mechanical, transfer, outrigger, sky lobbies). 6) Output the matrix, both score sets and a conflict list. No rating weights are sourced; all are editable.",
+   "visualization": [
+    "Triangular relationship chart with rating colours and satisfied/violated outlines",
+    "Tower section with coloured program blocks and arcs between related blocks; X pairs in red; transfer and outrigger floors marked",
+    "Conflict list with links to the pair's recorded rationale, split into subjective and physical",
+    "Side-by-side comparison of two stack variants"
+   ],
+   "human_judgment": "All pair ratings; acceptable exceptions and justified breaches; operator needs (hotel sky lobby, residential privacy); where cultural and civic programs sit and what community engagement says; priorities between public benefit and commercial stacking.",
+   "limits": "Ratings have no empirical basis and come from factory layout practice. Floor heights, plate depths, outriggers and MEP zones come from other packets. VBBL separations between major occupancies were not read. The score ranks options; it does not prove one better.",
+   "libraries": [
+    {
+     "name": "topologicpy",
+     "license": "LGPL-3.0 (page also lists GPL-3.0)",
+     "role": "Weighted graph of program blocks and connectivity",
+     "url": "https://github.com/wassimj/topologicpy"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0-or-later",
+     "role": "Read IfcSpace/IfcZone program tags",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M06",
+   "name": "Facade and envelope: WWR, shading, thermal performance, bird-friendly glazing",
+   "phase": "advanced",
+   "category": "SPAC",
+   "design_question": "How much glazing, shading and thermal performance does each facade orientation need, and does the glass treatment meet bird-friendly and view requirements for a 300 m tower on the Pacific Flyway?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M (6-8 person-days). Core cut (about 4 days): WWR by orientation, bird-collision-zone quantities and treated share, VLT check. v1: fly-through and corner checks, shading and U-value roll-up.",
+   "jury_criteria": [
+    "design_excellence_20",
+    "cultural_context_30",
+    "human_scale_40"
+   ],
+   "depends_on": [
+    "Layer0:massing",
+    "Layer0:program_tags",
+    "P12-M02 (view scores)",
+    "CLIM solar and daylight outputs (optional)",
+    "ECOL vegetation and green-roof heights (optional)",
+    "P12-M07 (assembly build-ups)"
+   ],
+   "inputs": [
+    "Layer 0: facade faces with area, outward normal and true-north rotation; floor heights",
+    "Parametric facade module: bay width, spandrel height, mullion width, glazing split (or user-drawn facade)",
+    "P12-M02: view score per orientation",
+    "CLIM (optional): incident radiation, sDA and DGP per facade",
+    "ECOL (optional): heights and positions of trees, green roofs, sky gardens, podium planting and water features near glass",
+    "Glazing and opaque assembly properties from P12-M07 or the user (U, SHGC, VLT, effective U)"
+   ],
+   "outputs": [
+    "FacadeSchedule: face id, orientation, gross area, glazing area, WWR, glazing U/SHGC/VLT, bird treatment (feeds P12-M07, ENER, cost)",
+    "BirdZoneReport: collision-zone glass area, treated area (overhang credit shown), share, pattern spacing, fly-through and corner conditions, night-lighting flag (feeds ECOL)",
+    "EnvelopeModel: honeybee JSON or gbXML (feeds ENER modelling against the City's TEUI/TEDI/GHGI metrics)",
+    "ShadingGeometry: devices as Mesh (feeds CLIM)",
+    "WindowOpenings: segments with head height (feeds P12-M02 and P12-M03)"
+   ],
+   "parameters": [
+    {
+     "name": "WWR per orientation and floor band",
+     "unit": "%",
+     "relationship": "Higher WWR increases daylight and views but also solar gain, conductive loss and glazing embodied carbon, and raises glass area in the bird zone. Optimal WWR is climate-dependent (Goia 2016, European climates; not opened).",
+     "source_ids": [
+      "P12-S34",
+      "P12-S18"
+     ]
+    },
+    {
+     "name": "Glazing U-factor, SHGC and VLT",
+     "unit": "W/m2K; -; %",
+     "relationship": "Lower SHGC cuts cooling load but usually lowers VLT, trading against daylight and the 40% VLT quoted for LEED view glazing; lower U cuts heat loss and radiant asymmetry.",
+     "source_ids": [
+      "P12-S05",
+      "P12-S56"
+     ]
+    },
+    {
+     "name": "Opaque assembly effective U with thermal bridging",
+     "unit": "W/m2K",
+     "relationship": "Slab edges, balconies and curtain-wall transitions reduce effective insulation, so a nominal U understates heat loss; the BC Housing Thermal Envelope database supplies bridging scenarios.",
+     "source_ids": [
+      "P12-S35"
+     ]
+    },
+    {
+     "name": "Shading depth and fin spacing",
+     "unit": "m",
+     "relationship": "Deeper overhangs or closer fins cut solar gain and glare on south and west faces but reduce view angle and daylight and add structure and cost; effect comes from CLIM.",
+     "source_ids": []
+    },
+    {
+     "name": "Bird-collision zone height (local to vegetation)",
+     "unit": "m above grade or above local vegetation",
+     "relationship": "UBC: treat glazing up to 16 m or 4 m above the tallest vegetation, whichever is greater; a CSA summary says 16-25 m. For sky gardens the vegetation rule applies locally around each planted area (team reading), not as one tower-wide height.",
+     "source_ids": [
+      "P12-S31",
+      "P12-S32"
+     ]
+    },
+    {
+     "name": "Marker spacing and pattern type",
+     "unit": "mm",
+     "relationship": "Tighter markers are more visible to birds but cut visible clear area; markers 50 mm apart or closer follow the '2 x 2 rule' in the CSA summary.",
+     "source_ids": [
+      "P12-S31",
+      "P12-S32"
+     ]
+    },
+    {
+     "name": "Fly-through conditions and glass corners",
+     "unit": "count; m treated each direction",
+     "relationship": "Parallel panes and glass corners create an apparent void birds fly through; UBC requires eliminating them and treating corners 5 m each direction, so they add treated area and constrain corner glazing.",
+     "source_ids": [
+      "P12-S31",
+      "P12-S59"
+     ]
+    },
+    {
+     "name": "Overhang credit",
+     "unit": "ratio of shaded area counted as treated",
+     "relationship": "UBC, citing CSA A460-2019, counts overhang shading as treated area up to 1:1, less effective than markers; it lowers the glass needing patterns but adds structure and cost.",
+     "source_ids": [
+      "P12-S31",
+      "P12-S59"
+     ]
+    },
+    {
+     "name": "Exterior night lighting",
+     "unit": "flag",
+     "relationship": "Artificial light at night attracts migrating birds; UBC requires Dark Sky compliant exterior lighting, which limits illuminated crowns and facade lighting; the flag feeds ECOL.",
+     "source_ids": [
+      "P12-S31"
+     ]
+    },
+    {
+     "name": "Facade orientation",
+     "unit": "degrees from true north",
+     "relationship": "Orientation sets solar exposure and view targets; the site plan's north arrow is skewed from the grid, so rotate to true north before assigning N/E/S/W bins.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "WWR against reference lines",
+     "unit": "%",
+     "good": "At or below the reference line (office 40%, hotel 34%): informational, no badge",
+     "bad": "Above the reference line: judge by the ENER result, not by WWR",
+     "basis": "[proxy] ASHRAE 90.1 Appendix G baseline WWR is the reference model's value for performance comparison, not a limit; PNNL Table 30 column read by inference. Shown as reference lines only.",
+     "method": "Glazing area divided by gross wall area, by orientation and overall",
+     "source_ids": [
+      "P12-S18"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Envelope energy result against City energy and emissions metrics (TEUI, TEDI, GHGI)",
+     "unit": "kWh/m2/yr; kgCO2e/m2/yr (from ENER)",
+     "good": "At or below the VBBL limit for the occupancy, read from the by-law once opened (no number here)",
+     "bad": "Above that limit",
+     "basis": "[unverified] VBBL 2025 (in force from 15 Sep 2025, per City guide snippet) and the Green Buildings Policy for Rezonings use TEUI, TEDI and GHGI. By-law tables not read (City PDFs HTTP 403).",
+     "method": "Run the EnvelopeModel in ENER; compare TEUI, TEDI and GHGI with by-law limits",
+     "source_ids": [
+      "P12-S49",
+      "P12-S50",
+      "P12-S46",
+      "P12-S66"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    },
+    {
+     "name": "Share of glazing treated in the bird-collision zone",
+     "unit": "%",
+     "good": "90% or more (UBC Tier 1, aligned with CSA)",
+     "bad": "Below 55% (below UBC Tier 3); Tier 2 is 85%",
+     "basis": "[proxy] UBC campus tiers (document read; applies to UBC, not Vancouver rezonings). CSA A460-2019 text and City Bird Friendly Design Guidelines (2017) unopened. Overhangs count up to 1:1 per UBC citing CSA.",
+     "method": "(Treated glass + overhang credit) in zone divided by all glass in zone, plus all glass beside vegetation or water",
+     "source_ids": [
+      "P12-S31",
+      "P12-S32",
+      "P12-S33",
+      "P12-S59"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Collision-zone height",
+     "unit": "m",
+     "good": "Treatment to 16 m above grade or 4 m above the tallest vegetation, applied locally around each planted terrace or sky garden",
+     "bad": "Treatment stops below that line",
+     "basis": "[proxy] UBC policy (Tiers 1-3); CSA summary says 16-25 m. Local application to sky gardens is the team's reading. City guideline match unresolved.",
+     "method": "Mask facade faces below the line, using local vegetation heights from ECOL",
+     "source_ids": [
+      "P12-S31",
+      "P12-S32"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Fly-through conditions and untreated glass corners",
+     "unit": "count",
+     "good": "0 fly-through conditions; corners treated 5 m each direction",
+     "bad": "Any fly-through condition or untreated corner",
+     "basis": "[proxy] UBC Backgrounder requires eliminating fly-through conditions and treating glass corners 5 m each direction in all tiers; it names CSA A460-2019 for parallel glass and corners. Standard text unopened.",
+     "method": "Detect parallel or corner glass pairs with clear sight lines through the building; check corner treatment",
+     "source_ids": [
+      "P12-S31",
+      "P12-S59"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Night-lighting flag (feeds ECOL)",
+     "unit": "flag",
+     "good": "Exterior lighting Dark Sky compliant; interior lights off or shielded at night",
+     "bad": "Not met",
+     "basis": "[proxy] UBC Backgrounder: all exterior lighting Dark Sky compliant; interior blinds and lights-off reduce collisions. No City requirement found; LEED v5 folds bird-collision prevention into its exterior lighting credit (secondary).",
+     "method": "Ask for lighting strategy per facade and crown; record answer as a judgement",
+     "source_ids": [
+      "P12-S31",
+      "P12-S58"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Pattern spacing",
+     "unit": "mm",
+     "good": "Markers 50 mm or closer; linear elements 5 cm horizontal and 10 cm vertical at most; mullion subdivisions 100 x 100 mm at most",
+     "bad": "Larger untreated gaps",
+     "basis": "[proxy] CSA summary ('2 x 2 rule', 100 x 100 mm) and UBC Backgrounder citing Klem for 5 cm and 10 cm. CSA text unopened.",
+     "method": "Check the chosen pattern against spacing limits",
+     "source_ids": [
+      "P12-S31",
+      "P12-S32"
+     ],
+     "status": "team_assumption",
+     "status_detail": "proxy"
+    },
+    {
+     "name": "Vision glazing visible light transmittance",
+     "unit": "%",
+     "good": "40% or more (v5: above 40%)",
+     "bad": "Below 40%",
+     "basis": "[verified_secondary] CaGBC (v4.1) and LEEDuser (v5) give 40%. CaGBC says v4.1 clarified frit and pattern wording to align with bird deterrence; v4 barred frits. Residual VLT and clarity trade-off is a judgement.",
+     "method": "Read VLT from the glazing specification",
+     "source_ids": [
+      "P12-S05",
+      "P12-S56",
+      "P12-S04"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary (v4.1, v5); legacy_version (v4)"
+    },
+    {
+     "name": "Opaque effective U-value including thermal bridging",
+     "unit": "W/m2K",
+     "good": "Set by the whole-building energy model against City metrics (no per-assembly threshold found)",
+     "bad": "Not applicable",
+     "basis": "[unverified] No Vancouver per-assembly limit was opened; the City's energy limits are whole-building (TEUI, TEDI, GHGI). The BC Step Code does not apply in Vancouver.",
+     "method": "Area-weighted U with psi-values and chi-values from the thermal envelope database or THERM",
+     "source_ids": [
+      "P12-S35",
+      "P12-S36",
+      "P12-S21"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    }
+   ],
+   "method": "1) Rotate each face to true north and bin orientation. 2) Build glazing from the facade module or user layout; WWR by orientation, floor band and overall; draw DOE/PNNL reference lines only. 3) Bird zone: select glass below max(16 m above grade, 4 m above local vegetation) around each planted terrace or sky garden, plus all glass beside vegetation or water; treated share = (treated glass + overhang area counted up to 1:1) / glass in zone; check marker spacing. 4) Flag fly-through conditions, glass corners (5 m each direction) and exterior night lighting. 5) Check VLT of vision glazing. 6) Area-weighted effective U with psi- and chi-values. 7) Analytic shadow angles; gains from CLIM. 8) Export a facade schedule and honeybee/gbXML envelope to ENER for TEUI, TEDI and GHGI checks against the VBBL.",
+   "visualization": [
+    "Unrolled four-side facade elevation: glazing, spandrel and treated glass in different fills, bold line at the local bird-zone height, red hatch on untreated zone glass and corners",
+    "Bar or radar chart of WWR by orientation with the DOE/PNNL reference line marked",
+    "Waterfall of area-weighted U-value from nominal to effective including bridging",
+    "Reference-line row linked to each source clause or table; no pass/fail badge unless the source is verified"
+   ],
+   "human_judgment": "Facade expression, rhythm and materiality; whether to exceed reference WWR for views and light; accepting fritted glass over clear views; choice of bird-friendly product; night-lighting strategy; how the facade speaks to place and City in Nature.",
+   "limits": "WWR references are US baseline and prototype values, not Vancouver limits. City bird guideline, CSA A460-2019 and VBBL energy tables were not opened; UBC tiers are campus policy used as proxy. Thermal bridging needs 2D/3D modelling (THERM is free but Windows-only, not open source). Condensation, wind-driven rain, fire spread over facades and noise are not covered.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Facade polygon areas and zone masks",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "Ladybug / Honeybee ecosystem and honeybee-energy-standards",
+     "license": "AGPL-3.0",
+     "role": "Envelope export and construction sets; AGPL obligations apply to hosted use",
+     "url": "https://github.com/ladybug-tools/honeybee-energy-standards"
+    },
+    {
+     "name": "EnergyPlus",
+     "license": "BSD-3-like",
+     "role": "Downstream whole-building model",
+     "url": "https://github.com/NREL/EnergyPlus"
+    },
+    {
+     "name": "web-ifc / IfcOpenShell",
+     "license": "MPL-2.0 / LGPL-3.0-or-later",
+     "role": "Read IfcWindow and IfcCurtainWall data",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "LBNL THERM",
+     "license": "Free to use, not open source; Windows-only; v7.8.80 (May 2025)",
+     "role": "2D thermal bridging for key details, outside the browser tool",
+     "url": "https://windows.lbl.gov/software/therm"
+    },
+    {
+     "name": "BC Housing Thermal Envelope database",
+     "license": "Free web database; terms not stated on page opened",
+     "role": "Effective U and psi-value scenarios",
+     "url": "https://thermalenvelope.ca/"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M07",
+   "name": "Materials, colour and embodied carbon (material library and mood boards)",
+   "phase": "advanced",
+   "category": "SPAC",
+   "design_question": "Which materials, textures and colours express the project's place, what embodied carbon do they carry within a stated life-cycle scope, and how are those choices recorded and justified?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "L (8-12 person-days); a manual-entry material library with scope-labelled kgCO2e/m2 roll-up (about 3 days) can ship earlier",
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "depends_on": [
+    "P12-M06 (areas by assembly)",
+    "STRC quantities (concrete, steel, timber)",
+    "P12-M04 (finish areas)",
+    "P12-M03 (reflectance feedback)",
+    "CULT (items routed as 'not proposed')"
+   ],
+   "inputs": [
+    "P12-M06 FacadeSchedule: m2 per assembly and glazing type",
+    "STRC packet: volumes or masses of concrete, rebar, structural steel, mass timber",
+    "P12-M04: finish areas by program tag",
+    "EPD data: EC3 records via API, openEPD JSON uploads, CLF BC sourcing guide values (link, not bundled), CLF Material Baselines",
+    "User material library entries (supplier, EPD id, colour, texture, origin tag)",
+    "Mood-board images with attribution and licence",
+    "User-stated life-cycle stages, building elements and GFA basis"
+   ],
+   "outputs": [
+    "MaterialLibrary: typed Material {id, name, GWP, declared unit, EPD ref, stage scope, colour Lab, PBR maps, origin tag, licence}",
+    "EmbodiedCarbonReport: kgCO2e by element and per m2 GFA, always labelled with stage scope, element scope and data sources; no pass/fail badge",
+    "PaletteSpec: Lab values, lightness and contrast pairs (feeds P12-M03 reflectance, PRES style selection, renders)",
+    "DecisionRecords: judgement records for every subjective choice (feeds PRES board text and CULT review)"
+   ],
+   "parameters": [
+    {
+     "name": "Material quantity",
+     "unit": "m3, kg or m2",
+     "relationship": "Embodied carbon rises in direct proportion to quantity times the EPD's GWP per declared unit; structure and facade quantities come from other modules.",
+     "source_ids": [
+      "P12-S25"
+     ]
+    },
+    {
+     "name": "GWP factor per declared unit",
+     "unit": "kgCO2e per unit",
+     "relationship": "Compare at equal strength and curing age: BC 25 MPa baseline 220 kgCO2e/m3 (28 d) against Butler 109 (28 d). Heidelberg 90 is a 91-day EPD, not like-for-like. Rebar 0.85 (N. American average) to 0.44 kgCO2e/kg (Cascade).",
+     "source_ids": [
+      "P12-S25"
+     ]
+    },
+    {
+     "name": "Life-cycle scope and stage toggles",
+     "unit": "stages",
+     "relationship": "City scope (CLF BC webinar): A1-A5, B1-B5, C1-C4 over 60 years; structure and shell required; D and biogenic reported apart. Toggles add A4-A5, B, C (City placeholders 4, 6, 10, 5% of A1-A3). A1-A3 alone understates the total.",
+     "source_ids": [
+      "P12-S53",
+      "P12-S25"
+     ]
+    },
+    {
+     "name": "GFA basis for kgCO2e/m2",
+     "unit": "m2",
+     "relationship": "A larger GFA lowers kgCO2e/m2; the City's absolute-path slide says 'excluding parkade'. Exact wording to confirm in the guideline.",
+     "source_ids": [
+      "P12-S53"
+     ]
+    },
+    {
+     "name": "Data source and licence",
+     "unit": "source type",
+     "relationship": "ICE is educational-only; EC3/openEPD and CLF baselines (CC BY 4.0) can ship; the CLF BC guide shows an all-rights-reserved notice, so link to it and do not bundle its values.",
+     "source_ids": [
+      "P12-S27",
+      "P12-S26",
+      "P12-S30",
+      "P12-S25"
+     ]
+    },
+    {
+     "name": "Colour lightness (CIE L*) and reflectance",
+     "unit": "L* 0-100; 0-1",
+     "relationship": "Lighter interior surfaces raise internally reflected daylight and brightness, shifting daylight reach in P12-M03; dark finishes lower it.",
+     "source_ids": [
+      "P12-S45"
+     ]
+    },
+    {
+     "name": "Local-material share (BC origin tag)",
+     "unit": "% of mass or cost",
+     "relationship": "A higher BC share tends to cut transport emissions and supports local supply; BC EPDs are in the CLF BC guide and the naturally:wood directory. Effect size not sourced here.",
+     "source_ids": [
+      "P12-S25",
+      "P12-S47"
+     ]
+    },
+    {
+     "name": "Cultural sensitivity flag",
+     "unit": "flag + fixed status",
+     "relationship": "Indigenous-related motifs, names, patterns or materials get the fixed status 'no consultation possible in this exercise'; generation and library tagging of Coast Salish motifs are blocked and the item goes to CULT as 'not proposed'.",
+     "source_ids": [
+      "P12-S48"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Whole-building embodied carbon against City reference lines (scope-labelled)",
+     "unit": "kgCO2e/m2 GFA, with stage and element scope shown",
+     "good": "Scope complete (A1-C4, structure and shell) and below the reference line: shown as 'within reference', not 'pass'",
+     "bad": "Scope partial: label 'A1-A3 partial; cap scope unverified' and show no comparison",
+     "basis": "[legacy_version] 800 kgCO2e/m2 is the 2023 absolute limit (2 x 400), stages A-C, structure and shell (CLF BC webinar, secondary). 2025 proposal: 360; adoption unconfirmed; VBBL text unopened.",
+     "method": "Sum quantity x GWP over in-scope elements divided by GFA; compare only when the scope matches",
+     "source_ids": [
+      "P12-S23",
+      "P12-S52",
+      "P12-S53"
+     ],
+     "status": "unverified",
+     "status_detail": "legacy_version"
+    },
+    {
+     "name": "Reduction against baseline (2025 proposal)",
+     "unit": "% below functionally equivalent baseline",
+     "good": "10% below baseline (5-10% whole-building plus 0-5% industry-leadership credits) for Part 3 buildings over 1,800 m2",
+     "bad": "Less than the required reduction",
+     "basis": "[unverified] City/CLF BC workshop slides (May 2024) show the revised proposal; the 2022 scheme gave 20% for 1-6 storey wood and 10% for others. Whether VBBL 2025 adopted it is unconfirmed.",
+     "method": "1 - (project / baseline), baseline per the City's Embodied Carbon Guidelines",
+     "source_ids": [
+      "P12-S52",
+      "P12-S24",
+      "P12-S54"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified (proposal)"
+    },
+    {
+     "name": "GWP per material against best like-for-like BC EPD",
+     "unit": "kgCO2e per declared unit (A1-A3)",
+     "good": "At or near the lowest like-for-like EPD: concrete 25 MPa 109 kgCO2e/m3 (Butler, 28 d); rebar 0.44 kgCO2e/kg (Cascade)",
+     "bad": "Above the BC industry baseline: concrete 220/259/294 kgCO2e/m3 at 25/30/35 MPa; rebar 0.85",
+     "basis": "[verified] CLF BC Low-Carbon Material Sourcing Guide (updated 9 Feb 2026), EC3 GWP, A1-A3 only, glass not covered. Copyright notice all rights reserved: link, do not bundle.",
+     "method": "Lookup by material, strength and curing age; compare project choice",
+     "source_ids": [
+      "P12-S25"
+     ],
+     "status": "verified",
+     "status_detail": "verified (guide values); licence not stated"
+    },
+    {
+     "name": "Embodied-carbon data source eligibility",
+     "unit": "licence check",
+     "good": "EC3 / openEPD EPDs or CLF baselines (CC BY 4.0); ICE only as user-supplied data in teaching mode",
+     "bad": "ICE bundled or used for non-educational project calculations",
+     "basis": "ICE Database Educational V5.0 (June 2026) is educational-only; tools, software, reporting and project calculations are excluded; non-educational use not permitted from 30 Sept 2026.",
+     "method": "Per-record licence field checked before export",
+     "source_ids": [
+      "P12-S27",
+      "P12-S26",
+      "P12-S30"
+     ],
+     "status": "false_assumption_corrected",
+     "status_detail": "false_assumption_corrected"
+    },
+    {
+     "name": "Interior surface lightness",
+     "unit": "CIE L* or LRV",
+     "good": "User-set target; no sourced threshold",
+     "bad": "Not applicable",
+     "basis": "[unverified] Accessibility contrast values (for example CSA B651 light-reflectance difference) were not opened.",
+     "method": "Convert sRGB to CIELAB; lightness and CIEDE2000 between adjacent surfaces",
+     "source_ids": [],
+     "status": "unverified",
+     "status_detail": "unverified"
+    },
+    {
+     "name": "Indigenous-related items with fixed 'no consultation possible' status",
+     "unit": "% of items",
+     "good": "100% carry the fixed status, are not generated, and board text says no consultation took place",
+     "bad": "Any item claims consultation or is generated",
+     "basis": "[team_assumption] Entrants are anonymous, have weeks and no relationship with the Musqueam, Squamish or Tsleil-Waututh Nations, so a consultation record would be false. Tool rule.",
+     "method": "Scan library and mood-board items tagged Indigenous-related; check status and routing to CULT",
+     "source_ids": [
+      "P12-S48"
+     ],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Decision-record completeness",
+     "unit": "% of palette and material choices with rationale, author, source and licence",
+     "good": "100% (tool rule)",
+     "bad": "Below 100%",
+     "basis": "[team_assumption] Team rule for the course requirement that results cite sources and separate delegated from human judgement.",
+     "method": "Count records with all required fields",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    }
+   ],
+   "method": "Objective part: embodied carbon = sum of quantity x GWP per declared unit over in-scope elements, divided by GFA. Default A1-A3 from EC3/openEPD records, CLF BC guide values or CLF baselines with a data-quality flag; the user ticks stages A4-A5, B, C (Brightway or City placeholders) and elements, and the report always prints that scope. No pass/fail badge: reference lines (800 legacy, 360 proposed) show only when scope is A-C, structure and shell. ICE is blocked outside teaching mode. Subjective part: each library item and mood-board image carries source, licence, colour (sRGB to CIELAB), PBR maps (CC0), origin tag and a decision record (author, date, alternatives, rationale, jury criteria, status). Indigenous-related items get the fixed status and are not generated. Palettes are clustered and checked with CIEDE2000.",
+   "visualization": [
+    "Stacked bar of kgCO2e/m2 by element (structure, envelope, interiors) with a scope label and reference lines only when scope matches",
+    "Lollipop chart per material: project choice versus lowest like-for-like BC EPD and BC baseline",
+    "Palette swatch strip with Lab values and lightness, plus contrast pairs",
+    "Material cards with provenance badges (EPD id, source, licence) and PBR preview",
+    "Mood-board grid with captions, attributions and linked decision records"
+   ],
+   "human_judgment": "All palette, mood, texture, tectonic and symbolic choices; what 'City in Nature' means materially; whether to use local timber or stone; Indigenous-informed expression is not proposed because no consultation is possible here; trade-offs between embodied carbon, durability, cost and expression; which life-cycle scope to state.",
+   "limits": "EPD coverage has gaps (glass not in the CLF BC guide; much BC rebar is imported). GWP varies by plant and year. The by-law's current scope, 2025 text and guideline version were not read; the City's PDFs returned HTTP 403. VTC is an ideas competition, so VBBL and policy values serve only as benchmarks. EC3 API terms not opened. Screen colour differs from built colour.",
+   "libraries": [
+    {
+     "name": "EC3 (Building Transparency) with openEPD",
+     "license": "EC3 free to use; openEPD specification Apache-2.0; API terms not opened",
+     "role": "EPD search and GWP data",
+     "url": "https://www.open-epd-forum.org/"
+    },
+    {
+     "name": "CLF Material Baselines (data)",
+     "license": "CC BY 4.0",
+     "role": "Generic factors when no product EPD exists",
+     "url": "https://carbonleadershipforum.org/clf-material-baselines/"
+    },
+    {
+     "name": "CLF BC Low-Carbon Material Sourcing Guide (data)",
+     "license": "Not stated; page shows (c) 2026 ZEIC All Rights Reserved. Link only, do not bundle",
+     "role": "BC concrete, rebar and insulation GWP reference values",
+     "url": "https://clfbritishcolumbia.com/low-carbon-material-sourcing-guide/"
+    },
+    {
+     "name": "City of Vancouver Embodied Carbon Design Report (spreadsheet template)",
+     "license": "Not stated; not opened",
+     "role": "Reference for City reporting scope and placeholders",
+     "url": "https://vancouver.ca/files/cov/embodied-carbon-design-report.xlsx"
+    },
+    {
+     "name": "Brightway 2.5",
+     "license": "BSD-3-Clause",
+     "role": "LCA engine for stages A4-A5, B and C",
+     "url": "https://github.com/brightway-lca/brightway25"
+    },
+    {
+     "name": "colour-science",
+     "license": "BSD-3-Clause",
+     "role": "CIELAB conversion and CIEDE2000 colour difference",
+     "url": "https://github.com/colour-science/colour"
+    },
+    {
+     "name": "three.js",
+     "license": "MIT",
+     "role": "WebGL/WebGPU material previews",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "Poly Haven and ambientCG textures",
+     "license": "CC0 (both)",
+     "role": "Free PBR textures, HDRIs and models",
+     "url": "https://polyhaven.com/license"
+    },
+    {
+     "name": "blender-mcp (MCP server)",
+     "license": "MIT",
+     "role": "Lets Claude apply Poly Haven textures and build materials in Blender for boards",
+     "url": "https://github.com/ahujasid/blender-mcp"
+    },
+    {
+     "name": "ICE Database Educational V5.0",
+     "license": "Educational use only; non-educational use not permitted from 30 Sep 2026",
+     "role": "Teaching mode only, user-supplied",
+     "url": "https://circularecology.com/embodied-carbon-footprint-database.html"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-M08",
+   "name": "Interior comfort: thermal, acoustic and supertall-specific (roadmap)",
+   "phase": "advanced",
+   "category": "SPAC",
+   "design_question": "Will typical interior zones be thermally, acoustically and physically comfortable given the envelope, occupancy, adjacencies, finishes and the wind and stack effects of a 300 m tower?",
+   "nature": "mixed",
+   "priority": "roadmap",
+   "effort": "XL (18-24 person-days with supertall items)",
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "depends_on": [
+    "P12-M06 (envelope)",
+    "P12-M04 (occupancy, schedules)",
+    "ENER whole-building model",
+    "P12-M05 (noise-sensitive vs noisy pairs)",
+    "P12-M07 (finishes)",
+    "STRC (wind-induced motion)",
+    "SYST (lifts, pressurisation, stack effect)"
+   ],
+   "inputs": [
+    "ENER EnergyPlus results: zone air and radiant temperatures by hour",
+    "P12-M06 envelope properties and window areas",
+    "P12-M04 occupancy and activity (metabolic rate proxy)",
+    "P12-M05 adjacency pairs and noise sources",
+    "STRC: peak wind-induced acceleration by floor and return period",
+    "SYST: stack-effect pressure differences across doors and shafts, lift noise",
+    "Finish absorption data (not yet in the material library)"
+   ],
+   "outputs": [
+    "ComfortReport: PMV/PPD or adaptive comfort by zone and hour; hours outside the range",
+    "AcousticRequirementMatrix: required sound isolation per adjacent pair (feeds P12-M05, P12-M06 glazing, P12-M07 finishes)",
+    "MotionAndPressureFlags: floors where reported acceleration or door pressure exceeds the criterion chosen (values from STRC and SYST)"
+   ],
+   "parameters": [
+    {
+     "name": "Operative temperature, air speed, humidity, clothing, metabolic rate",
+     "unit": "degC, m/s, %, clo, met",
+     "relationship": "These set PMV; the CBE tool and pythermalcomfort compute PMV and PPD from them under ASHRAE 55, ISO 7730 and EN 16798.",
+     "source_ids": [
+      "P12-S37",
+      "P12-S38"
+     ]
+    },
+    {
+     "name": "Glazing U and WWR on a perimeter zone",
+     "unit": "W/m2K; %",
+     "relationship": "Colder window surfaces lower mean radiant temperature in winter and increase radiant asymmetry near glazing; higher SHGC raises it in summer (physical relationship, simulated by ENER).",
+     "source_ids": []
+    },
+    {
+     "name": "Radiant asymmetry and downdraft at full-height glazing",
+     "unit": "K; m/s",
+     "relationship": "Cold glass drives downdraft and asymmetric radiation on occupants near it; stronger glazing, perimeter heating or a larger setback reduce both. ASHRAE 55 limits not read; no numbers.",
+     "source_ids": [
+      "P12-S37",
+      "P12-S38"
+     ]
+    },
+    {
+     "name": "Perceived wind-induced building motion (residential, hotel floors)",
+     "unit": "peak acceleration, milli-g, with return period",
+     "relationship": "Higher upper-floor acceleration raises motion perception and discomfort; stiffer structure or damping lowers it. ISO 10137 is the standard to open; no numbers until read; value from STRC.",
+     "source_ids": [
+      "P12-S64",
+      "P12-S67"
+     ]
+    },
+    {
+     "name": "Stack-effect pressure across doors and shafts",
+     "unit": "Pa",
+     "relationship": "A tall building's stack effect raises door-opening force, can stop lift doors closing and cause whistling and draughts at doors; vestibules and compartmentation lower it. Values from SYST.",
+     "source_ids": [
+      "P12-S65",
+      "P12-S68"
+     ]
+    },
+    {
+     "name": "Sound isolation between adjacent uses",
+     "unit": "STC or similar",
+     "relationship": "Higher required isolation between a noisy use (venue, plant) and a quiet one (hotel, dwelling) increases slab and wall mass and affects stacking in P12-M05.",
+     "source_ids": [
+      "P12-S49"
+     ]
+    },
+    {
+     "name": "Finish absorption and reverberation",
+     "unit": "sabins or alpha",
+     "relationship": "Hard finishes raise reverberation time and background speech level in open spaces; absorptive ceilings lower them. Needs finish data not yet in the library.",
+     "source_ids": []
+    },
+    {
+     "name": "Exterior noise at the arterial street, and lift and wind noise",
+     "unit": "dBA",
+     "relationship": "Higher street, lift-shaft or wind noise raises the glazing and facade sound-reduction needed, linking back to P12-M06 and SYST.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "PMV comfort band",
+     "unit": "PMV",
+     "good": "Between -0.5 and +0.5",
+     "bad": "Outside that band",
+     "basis": "[verified_secondary] CBE Thermal Comfort Tool states the comfort zone is PMV -0.5 to +0.5 according to ASHRAE 55; standard text unopened.",
+     "method": "pythermalcomfort PMV/PPD per zone and hour",
+     "source_ids": [
+      "P12-S37",
+      "P12-S38"
+     ],
+     "status": "unverified",
+     "status_detail": "verified_secondary"
+    },
+    {
+     "name": "Hours outside the comfort band",
+     "unit": "% of occupied hours",
+     "good": "Set by the team (no sourced limit)",
+     "bad": "Not applicable",
+     "basis": "[unverified] No VBBL or ASHRAE hour-count limit opened; the CBE tool reports 80% and 90% acceptability limits for adaptive comfort.",
+     "method": "Count occupied hours with |PMV| above 0.5",
+     "source_ids": [
+      "P12-S38"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    },
+    {
+     "name": "Peak wind-induced acceleration against occupant-motion criterion",
+     "unit": "milli-g at stated return period",
+     "good": "At or below the criterion the STRC wind engineer adopts from ISO 10137 or a named alternative (no number given)",
+     "bad": "Above that criterion",
+     "basis": "[unverified] ISO 10137:2007 covers serviceability against vibration; Annex D wind-motion limits, ISO 6897 and any other criterion were not read.",
+     "method": "Read STRC acceleration by floor; compare with the chosen criterion",
+     "source_ids": [
+      "P12-S64",
+      "P12-S67"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    },
+    {
+     "name": "Stack-effect door pressure difference",
+     "unit": "Pa",
+     "good": "At or below the door-operation limit SYST adopts (no number given)",
+     "bad": "Above that limit",
+     "basis": "[unverified] A 1968 ASHRAE paper and a 2025 thesis describe stack-effect door and elevator problems; neither opened and no limit read.",
+     "method": "Read SYST pressure differences by floor and door type",
+     "source_ids": [
+      "P12-S65",
+      "P12-S68"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    },
+    {
+     "name": "Sound isolation between adjacent dwellings or hotel rooms",
+     "unit": "STC",
+     "good": "Value from the Vancouver Building By-law (not opened)",
+     "bad": "Below the by-law value",
+     "basis": "[unverified] Acoustic limits in VBBL 2025, WELL and ISO 3382-3 were not opened; BCBC does not apply in Vancouver. No numbers until read.",
+     "method": "Lookup by assembly",
+     "source_ids": [
+      "P12-S49",
+      "P12-S21"
+     ],
+     "status": "unverified",
+     "status_detail": "unverified"
+    }
+   ],
+   "method": "1) Read hourly zone results from the ENER EnergyPlus run, including operative temperature, mean radiant temperature and humidity. 2) Compute PMV and PPD with pythermalcomfort for each zone-hour, using schedules and metabolic and clothing presets from P12-M04; use the adaptive method where windows are operable. 3) Report hours outside the comfort band by zone and orientation; flag perimeter zones for radiant asymmetry and downdraft. 4) Read STRC wind-motion and SYST stack-effect results and compare with criteria chosen by those packets. 5) Acoustics (later): for each adjacent pair in P12-M05, look up required isolation, compare with assembly ratings, and use an image-source simulation for reverberation. 6) Return requirements to P12-M05, P12-M06 and P12-M07.",
+   "visualization": [
+    "Zone x hour heat map of PMV on a diverging scale with the +/-0.5 band marked",
+    "Plan coloured by hours outside the comfort band, perimeter zones highlighted",
+    "Tower elevation with acceleration and door-pressure flags by floor (values from STRC and SYST)",
+    "Acoustic adjacency matrix with required versus provided isolation"
+   ],
+   "human_judgment": "What comfort and quiet mean for each program (lively civic hall versus hotel room); window-opening policy; accepting wider temperature swings for lower energy; which motion criterion suits residential and hotel floors; occupant surveys and post-occupancy feedback.",
+   "limits": "Depends on ENER, STRC and SYST outputs and finish data that do not exist yet. Local discomfort limits, motion criteria and acoustic limits were not read, so no thresholds are given. Occupant adaptation is not covered. Roadmap only.",
+   "libraries": [
+    {
+     "name": "pythermalcomfort",
+     "license": "MIT",
+     "role": "PMV, PPD, adaptive comfort, SET, UTCI under ASHRAE 55 / ISO 7730 / EN 16798",
+     "url": "https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort"
+    },
+    {
+     "name": "CBE Thermal Comfort Tool",
+     "license": "Source on GitHub (CenterForTheBuiltEnvironment/comfort_tool); licence not stated on page opened",
+     "role": "Reference tool for validation",
+     "url": "https://comfort.cbe.berkeley.edu/"
+    },
+    {
+     "name": "EnergyPlus",
+     "license": "BSD-3-like",
+     "role": "Hourly zone temperatures",
+     "url": "https://github.com/NREL/EnergyPlus"
+    },
+    {
+     "name": "pyroomacoustics",
+     "license": "MIT",
+     "role": "Image-source and ray-tracing room impulse responses for reverberation",
+     "url": "https://github.com/LCAV/pyroomacoustics"
+    }
+   ]
+  },
+  {
+   "module_id": "P12-X01",
+   "name": "Evidence-status and badge consistency gate",
+   "phase": "cross-cutting",
+   "category": "DATA",
+   "design_question": "Does every metric's pass/fail badge match what its source supports, and does each status agree with the flags register?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "S (2-3 person-days)",
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "All P12 metric records (status, source_ids, opened flag)",
+    "Flags register"
+   ],
+   "inputs": [
+    "Metric records: status, status_detail, source_ids",
+    "Source records: type (primary or secondary), opened, edition currency",
+    "Flags register: FALSE_ASSUMPTION, UNVERIFIED, UNRESOLVED, TEAM_ASSUMPTION"
+   ],
+   "outputs": [
+    "BadgeDecision per metric: show pass/fail, reference line only, or hide",
+    "ConsistencyReport: metrics whose status contradicts a flag, a source flag or a missing source id"
+   ],
+   "parameters": [
+    {
+     "name": "Status vocabulary (verified, verified_secondary, proxy, legacy_version, team_assumption, unverified, false_assumption_corrected)",
+     "unit": "enum",
+     "relationship": "Only 'verified' (current official text opened) unlocks a pass/fail badge; every other status renders a labelled reference line, so a user cannot read a proxy as a compliance result.",
+     "source_ids": []
+    },
+    {
+     "name": "Source opened flag and source type",
+     "unit": "boolean; primary or secondary",
+     "relationship": "A source with opened = false can never support 'verified'; a secondary source caps status at verified_secondary, so a trade-press summary cannot produce a badge.",
+     "source_ids": []
+    },
+    {
+     "name": "Edition currency (in force, superseded, proposed)",
+     "unit": "enum",
+     "relationship": "A threshold from a superseded or proposed edition is tagged legacy_version and cannot show a badge, which stops v4 LEED or 2023 embodied-carbon limits appearing as current tests.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Pass/fail badges shown on non-verified metrics",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "[team_assumption] Tool rule from the course requirement to cite sources, show work and separate what code, AI and people decide; raised in critique round 1.",
+     "method": "Scan metric records: status != verified and badge rendered",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Metrics whose status contradicts a flag or source record",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "[team_assumption] Round 1 found 'verified' metrics with UNVERIFIED flags, unopened sources or superseded editions.",
+     "method": "Join metrics to flags and sources; report mismatches",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    },
+    {
+     "name": "Metrics without a source id (excluding team presets)",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "[team_assumption] Every threshold must be verified, a team assumption or unverified, with a source record where one exists.",
+     "method": "Count metrics with empty source_ids and status other than team_assumption",
+     "source_ids": [],
+     "status": "team_assumption",
+     "status_detail": "team_assumption"
+    }
+   ],
+   "method": "On every build, load all metric, source and flag records. Rule 1: status 'verified' requires every cited source to have opened = true, be primary, and be the edition in force; otherwise downgrade and tag verified_secondary, proxy or legacy_version. Rule 2: a metric cited by an UNVERIFIED or FALSE_ASSUMPTION flag cannot be 'verified'. Rule 3: badge state follows status (verified: pass/fail; others: labelled reference line). Rule 4: report mismatches and block export of boards until zero remain or a judgement record explains the exception.",
+   "visualization": [
+    "Table of metrics by status with badge state; red row when status and flag disagree",
+    "Counts of metrics per status by module"
+   ],
+   "human_judgment": "Whether a secondary source is acceptable for a reference line; who may promote a metric to 'verified' after opening the official text; which exceptions to allow.",
+   "limits": "Checks only the records, not whether a cited source says what the record claims; a human must still open the source.",
+   "libraries": []
+  }
+ ],
+ "sources": [
+  {
+   "id": "P12-S01",
+   "title": "Vancouver view cones policy change (Public Views Guidelines approved 10 July 2024)",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "publisher": "Storeys",
+   "year": "2024",
+   "type": "news (secondary)",
+   "opened": true,
+   "extract": "On 10 July 2024 Council repealed the view-cone policy and replaced it with Public Views Guidelines: 14 of 38 cones and 2 of 18 origin points removed; 24 remain. Queen Elizabeth Park views 3.2.1-3.2.4 remain; 3.1 and 3.2.4a removed."
+  },
+  {
+   "id": "P12-S02",
+   "title": "City of Vancouver Public Views Guidelines",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "municipal guideline",
+   "opened": false,
+   "extract": "Fetch returned HTTP 403. Search snippet only: view cones are mapped in VanMap; Queen Elizabeth Park views 3.2.1-3.2.4 named."
+  },
+  {
+   "id": "P12-S03",
+   "title": "Higher Buildings Policy Review (Shape Your City)",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "engagement page",
+   "opened": true,
+   "extract": "Updated 13 July 2026: ideas competition to 30 Nov 2026, winner announced January 2027; draft policies fall 2026-winter 2027; adoption spring 2027. The 1997 Higher Buildings Policy still applies. Protected public views are not being reviewed."
+  },
+  {
+   "id": "P12-S04",
+   "title": "LEEDuser: NC-v4 EQc8 Quality Views",
+   "url": "https://leeduser.buildinggreen.com/credit/NC-v4/EQc8",
+   "publisher": "BuildingGreen / LEEDuser",
+   "year": "",
+   "type": "credit guidance (legacy version)",
+   "opened": true,
+   "extract": "v4: direct line of sight for 75% of regularly occupied area; two of four view types (multiple lines of sight; rich views; unobstructed views within 3 x head height; view factor 3 or more); vision glazing not obstructed by frits or patterns."
+  },
+  {
+   "id": "P12-S05",
+   "title": "CaGBC: Quality Views addenda (LEED v4.1)",
+   "url": "https://www.cagbc.org/news-resources/cagbc-news/quality-views-addenda/",
+   "publisher": "Canada Green Building Council",
+   "year": "2021",
+   "type": "summary of rating-system addenda (legacy version)",
+   "opened": true,
+   "extract": "Opened in r1 (28 Apr 2021): 75% of regularly occupied area; unobstructed views within 3 x head height; VLT at least 40%; one of objects beyond 7.5 m, nature, urban landmarks or art; frit and pattern wording aligned with bird-collision deterrence; lines-of-sight and view-factor options removed."
+  },
+  {
+   "id": "P12-S06",
+   "title": "LEEDuser: NC-v4 EQc7 Daylight",
+   "url": "https://leeduser.buildinggreen.com/credit/NC-v4/EQc7",
+   "publisher": "BuildingGreen / LEEDuser",
+   "year": "",
+   "type": "credit guidance (legacy version)",
+   "opened": true,
+   "extract": "v4 Option 1: sDA300/50% 55% = 2 points, 75% = 3 points; ASE1000,250 no more than 10%; hourly TMY simulation; grid at most 600 mm at 760 mm height."
+  },
+  {
+   "id": "P12-S07",
+   "title": "EN 17037: a step forward - new computational methods with sunlight, daylight and quality views",
+   "url": "https://www.rehva.eu/rehva-journal/chapter/en-17037-a-step-forward-new-computational-methods-with-sunlight-daylight-and-quality-views-for-regenerative-design",
+   "publisher": "REHVA Journal",
+   "year": "",
+   "type": "trade journal summary of a standard",
+   "opened": true,
+   "extract": "Levels minimum/medium/high: sunlight 1.5/3/4 h; daylight 300/500/750 lx over 50% and 100/300/500 lx over 95%, half of daylight hours; view out angle 14/28/54 degrees, distance 6/20/50 m, layers 1/2/3; DGPe below 0.45/0.40/0.35. View out is point-in-space (Annex C)."
+  },
+  {
+   "id": "P12-S08",
+   "title": "ClimateStudio documentation: EN 17037 View Out",
+   "url": "https://climatestudiodocs.com/docs/viewEN17037.html",
+   "publisher": "Solemma",
+   "year": "",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Sight angle 14/28/54 degrees; outside distance 6/20/50 m (median distance seen); layers: minimum needs landscape, medium landscape plus one, high all three; overall level is worst of three; results summarised as % of occupied area (software convention)."
+  },
+  {
+   "id": "P12-S09",
+   "title": "A Computational Approach for Checking Compliance with European View and Sunlight Exposure Criteria",
+   "url": "https://arxiv.org/pdf/2109.11037",
+   "publisher": "arXiv",
+   "year": "2021",
+   "type": "preprint",
+   "opened": false,
+   "extract": "Unopened (PDF not decoded). Search summary only: view-out computed on grids at 1.2 m (seated) and 1.7 m (standing). Values are used as team presets, not as sourced thresholds."
+  },
+  {
+   "id": "P12-S10",
+   "title": "From isovists to visibility graphs: a methodology for the analysis of architectural space",
+   "url": "https://discovery.ucl.ac.uk/id/eprint/160/1/turner-doxa-osullivan-penn-2001.pdf",
+   "publisher": "Environment and Planning B 28(1), 103-121 (Turner, Doxa, O'Sullivan, Penn)",
+   "year": "2001",
+   "type": "peer-reviewed paper",
+   "opened": true,
+   "extract": "Re-read in r1: Villa Mairea 1.0 m eye-level grid linked across stairs; Barcelona Pavilion 0.5 m grid with separate eye-height visibility and floor-height permeability graphs; low clustering at junctions; Tate Gallery occupancy vs mean shortest path, exponential fit R2 = 0.63 (Fig. 13); no absolute thresholds."
+  },
+  {
+   "id": "P12-S11",
+   "title": "To take hold of space: isovists and isovist fields",
+   "url": "https://doi.org/10.1068/b060047",
+   "publisher": "Environment and Planning B 6(1), 47-65 (Benedikt)",
+   "year": "1979",
+   "type": "peer-reviewed paper",
+   "opened": false,
+   "extract": "Citation confirmed through Crossref metadata only; full text not read. Introduces isovist measures (area, perimeter, occlusivity) per secondary sources."
+  },
+  {
+   "id": "P12-S12",
+   "title": "Natural movement: or, configuration and attraction in urban pedestrian movement",
+   "url": "https://doi.org/10.1068/b200029",
+   "publisher": "Environment and Planning B 20(1), 29-66 (Hillier, Penn, Hanson, Grajewski, Xu)",
+   "year": "1993",
+   "type": "peer-reviewed paper",
+   "opened": false,
+   "extract": "Citation confirmed through Crossref and Semantic Scholar metadata; the open-access PDF is a scanned image that could not be read, so no correlation figures are quoted. No longer cited by a metric in r1."
+  },
+  {
+   "id": "P12-S13",
+   "title": "Isovists.org user guide: Occlusivity and isovist measure list",
+   "url": "https://isovists.org/user-guide/4-2-4-occlusivity/",
+   "publisher": "isovists.org",
+   "year": "2024",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Occlusivity = summed length of occlusive edges divided by isovist perimeter, 0 to 1. Lists area, perimeter, compactness, occlusivity, vista length, average radial, drift, variance, skewness."
+  },
+  {
+   "id": "P12-S14",
+   "title": "Isovist (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Isovist",
+   "publisher": "Wikipedia",
+   "year": "",
+   "type": "encyclopedia (secondary)",
+   "opened": true,
+   "extract": "Definition after Benedikt (1979); history (Tandy 1967); applications and software including VisiLibity (free C++ library)."
+  },
+  {
+   "id": "P12-S15",
+   "title": "depthmapX (GitHub)",
+   "url": "https://github.com/SpaceGroupUCL/depthmapX",
+   "publisher": "UCL Space Syntax / Bartlett",
+   "year": "",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Multi-platform spatial network analysis software, GPLv3; visibility graph and space syntax; v0.9.1 ships command-line depthmapXcli builds."
+  },
+  {
+   "id": "P12-S16",
+   "title": "topologicpy (GitHub)",
+   "url": "https://github.com/wassimj/topologicpy",
+   "publisher": "Wassim Jabi",
+   "year": "",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Open-source Python library for spatial modelling and graph analysis; LGPL-3.0 (page also lists GPL-3.0); IFC support via IfcOpenShell; page does not document isovist generation."
+  },
+  {
+   "id": "P12-S17",
+   "title": "Prototype Building Models (US DOE Building Energy Codes Program)",
+   "url": "https://www.energycodes.gov/prototype-building-models",
+   "publisher": "US DOE / PNNL",
+   "year": "2024",
+   "type": "dataset page",
+   "opened": true,
+   "extract": "16 commercial prototypes including large office, large hotel, high-rise apartment; 90.1 versions 2013-2022; scorecard spreadsheet summarises internal loads and schedules; licence terms not stated."
+  },
+  {
+   "id": "P12-S18",
+   "title": "Commercial Building Prototypes Based on ANSI/ASHRAE/IES Standard 90.1-2019 Appendix G PRM (technical support document)",
+   "url": "https://www.energycodes.gov/sites/default/files/2024-06/Commercial_Prototypes_ASHRAE901-2019AppGPRM.pdf",
+   "publisher": "PNNL for US DOE",
+   "year": "2024",
+   "type": "technical report",
+   "opened": true,
+   "extract": "Table 30 (decoded locally): large office prototype WWR 40%, Appendix G baseline 40%; large hotel 30% and 34%; restaurant 17% and 24%; retail 7% and 11%. Column order read by inference. Baseline is a reference model value, not a limit."
+  },
+  {
+   "id": "P12-S19",
+   "title": "PNNL Prototype Scorecards (spreadsheet)",
+   "url": "https://www.energycodes.gov/sites/default/files/2023-10/PNNL_Prototype_Scorecards.xlsx",
+   "publisher": "PNNL for US DOE",
+   "year": "2023",
+   "type": "dataset (legacy vintage)",
+   "opened": true,
+   "extract": "raw_data sheet, 90.1-2004 rows, Buffalo: design density m2/person per zone floor area: large office 18.58; hotel rooms 26.01 (39.02 m2) and 16.35 (24.52 m2); lobby 3.1; retail core 6.19; dining and banquet 1.33; apartments 35.3 (88.25 m2)."
+  },
+  {
+   "id": "P12-S20",
+   "title": "honeybee-energy-standards (GitHub)",
+   "url": "https://github.com/ladybug-tools/honeybee-energy-standards",
+   "publisher": "Ladybug Tools",
+   "year": "",
+   "type": "software repository",
+   "opened": true,
+   "extract": "AGPL-3.0 library of constructions, schedules and program types; data from the OpenStudio Standards Gem (NREL), DOE Commercial Reference Buildings and ASHRAE 90.1 (2004 to present). Does not cover the Canadian NECB."
+  },
+  {
+   "id": "P12-S21",
+   "title": "BC Building Code 2024",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes",
+   "publisher": "Province of British Columbia",
+   "year": "2024",
+   "type": "building code page",
+   "opened": true,
+   "extract": "Re-opened in r1: 'BC Codes don't apply in the City of Vancouver which has its own building bylaw.' 2024 BC Building Code in effect 8 March 2024. Kept only as the source of the corrected false assumption; not a governing code here."
+  },
+  {
+   "id": "P12-S22",
+   "title": "BC Energy Step Code",
+   "url": "https://www.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes/step-codes/energy",
+   "publisher": "Province of British Columbia",
+   "year": "2025",
+   "type": "provincial code page",
+   "opened": true,
+   "extract": "Step Code established 2017; May 2023 increase about 20% better than 2018 minimums; goal net-zero energy ready by 2032. A BC Codes instrument, so not the City of Vancouver's energy path (see P12-S21). No longer cited by a metric."
+  },
+  {
+   "id": "P12-S23",
+   "title": "CLF British Columbia: Vancouver embodied carbon requirement",
+   "url": "https://clfbritishcolumbia.com/?p=730",
+   "publisher": "Carbon Leadership Forum British Columbia",
+   "year": "2023",
+   "type": "industry summary (secondary; Nov 2023 webinar snapshot)",
+   "opened": true,
+   "extract": "Effective 1 Oct 2023, Vancouver Building By-law Part 3: absolute path at most 800 kgCO2e/m2 (2 x 400 benchmark); baseline path at most twice a baseline. No life-cycle stages or 2025 changes stated."
+  },
+  {
+   "id": "P12-S24",
+   "title": "Webinar: The City of Vancouver's Embodied Carbon Guidelines (CLF community post)",
+   "url": "https://community.carbonleadershipforum.org/t/webinar-the-city-of-vancouvers-embodied-carbon-guidelines/7371",
+   "publisher": "Carbon Leadership Forum community",
+   "year": "2023",
+   "type": "industry post (secondary)",
+   "opened": true,
+   "extract": "Posted 17 Nov 2023: guidelines v1.0 published; two pathways; at most twice baseline at start; from January 2025, 10% or 20% below baseline by building type (a 2022 scheme, later revised in the proposal in P12-S52)."
+  },
+  {
+   "id": "P12-S25",
+   "title": "CLF BC Low-Carbon Material Sourcing Guide",
+   "url": "https://clfbritishcolumbia.com/low-carbon-material-sourcing-guide/",
+   "publisher": "CLF BC / Zero Emissions Innovation Centre",
+   "year": "2026",
+   "type": "data guide",
+   "opened": true,
+   "extract": "Updated 9 Feb 2026; GWP from EC3, A1-A3 only. Concrete BC baseline 220/259/294 kgCO2e/m3 at 25/30/35 MPa (28 d); Heidelberg 90 (91 d); Butler 109 (28 d); Burnco 166. Rebar 0.44 (Cascade) vs 0.85 (CRSI). Glass not covered. Notice: (c) 2026 ZEIC All Rights Reserved."
+  },
+  {
+   "id": "P12-S26",
+   "title": "CLF Material Baselines",
+   "url": "https://carbonleadershipforum.org/clf-material-baselines/",
+   "publisher": "Carbon Leadership Forum",
+   "year": "2025",
+   "type": "dataset report",
+   "opened": true,
+   "extract": "Industry-average GWP for North American construction materials; 2023 report v2, 2025 edition (June 2025) is latest; CC BY 4.0; EPD snapshot from EC3."
+  },
+  {
+   "id": "P12-S27",
+   "title": "ICE Database (Inventory of Carbon and Energy)",
+   "url": "https://circularecology.com/embodied-carbon-footprint-database.html",
+   "publisher": "Circular Ecology",
+   "year": "2026",
+   "type": "database terms",
+   "opened": true,
+   "extract": "Educational V5.0 released June 2026; free but educational-only: tools, software, project calculations and reporting excluded; non-educational use not permitted from 30 Sept 2026; commercial users directed to IC+."
+  },
+  {
+   "id": "P12-S28",
+   "title": "Building Transparency documentation (EC3)",
+   "url": "https://docs.buildingtransparency.org/",
+   "publisher": "Building Transparency",
+   "year": "",
+   "type": "documentation",
+   "opened": true,
+   "extract": "EC3 labelled 'Free to use | Open access'; GWP in kgCO2e; API details are on linked pages not read."
+  },
+  {
+   "id": "P12-S29",
+   "title": "EC3 getting started",
+   "url": "https://docs.buildingtransparency.org/ec3/getting-started.md",
+   "publisher": "Building Transparency",
+   "year": "",
+   "type": "documentation",
+   "opened": true,
+   "extract": "Account tiers: Private (personal email, public materials, up to 5 private buildings) and Professional (business or educational email). API terms and rate limits not stated."
+  },
+  {
+   "id": "P12-S30",
+   "title": "openEPD Forum",
+   "url": "https://www.open-epd-forum.org/",
+   "publisher": "openEPD Forum",
+   "year": "",
+   "type": "specification",
+   "opened": true,
+   "extract": "openEPD is a RESTful open API for exchanging digital EPDs, offered free under Apache 2.0."
+  },
+  {
+   "id": "P12-S31",
+   "title": "UBC Bird Backgrounder",
+   "url": "https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf",
+   "publisher": "UBC Campus and Community Planning",
+   "year": "2024",
+   "type": "institutional policy backgrounder",
+   "opened": true,
+   "extract": "Re-read in r1: Tier 1 (aligned with CSA) 90% treated up to 16 m or 4 m above tallest vegetation; Tier 2 85%; Tier 3 55%. All tiers: eliminate fly-through, treat glass corners 5 m each direction, Dark Sky lighting. Overhangs count up to 1:1; cites CSA A460-2019; markers 5 cm."
+  },
+  {
+   "id": "P12-S32",
+   "title": "A national standard for bird-friendly building design",
+   "url": "https://www.constructioncanada.net/a-national-standard-for-bird-friendly-building-design/2/",
+   "publisher": "Construction Canada",
+   "year": "2019",
+   "type": "trade press summary of CSA standard",
+   "opened": true,
+   "extract": "At least 90% of sheet glass treated where fly-through or reflective risk exists; non-vision glass fully treated; treatment 16 to 25 m above grade; markers at most 50 mm apart ('2 x 2 rule'); mullion subdivisions at most 100 x 100 mm. Does not name the standard number."
+  },
+  {
+   "id": "P12-S33",
+   "title": "City of Vancouver Bird Friendly Design Guidelines (amended May 2017)",
+   "url": "https://guidelines.vancouver.ca/guidelines-bird-friendly-design.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2017",
+   "type": "municipal guideline",
+   "opened": false,
+   "extract": "Fetch returned HTTP 403. Only search snippets seen (glass invisible to birds); numeric treatment zone and spacing not confirmed."
+  },
+  {
+   "id": "P12-S34",
+   "title": "Search for the optimal window-to-wall ratio in office buildings in different European climates",
+   "url": "https://doi.org/10.1016/j.solener.2016.03.031",
+   "publisher": "Solar Energy 132, 467-492 (Goia)",
+   "year": "2016",
+   "type": "peer-reviewed paper",
+   "opened": false,
+   "extract": "Citation confirmed through Crossref; abstract could not be read, so the optimal WWR range is not quoted."
+  },
+  {
+   "id": "P12-S35",
+   "title": "Thermal Envelope database (BC Housing)",
+   "url": "https://thermalenvelope.ca/",
+   "publisher": "BC Housing",
+   "year": "",
+   "type": "database",
+   "opened": true,
+   "extract": "Tool for thermal bridging with hundreds of scenarios; no licence, U-values or psi-values read."
+  },
+  {
+   "id": "P12-S36",
+   "title": "LBNL THERM",
+   "url": "https://windows.lbl.gov/software/therm",
+   "publisher": "Lawrence Berkeley National Laboratory",
+   "year": "2026",
+   "type": "software page",
+   "opened": true,
+   "extract": "2D conduction and radiation analysis; free, no open-source licence stated; Windows-only; stable 7.8.80 (13 May 2025), beta 8.1.68 (8 Oct 2026)."
+  },
+  {
+   "id": "P12-S37",
+   "title": "pythermalcomfort (GitHub)",
+   "url": "https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort",
+   "publisher": "UC Berkeley Center for the Built Environment",
+   "year": "",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT Python package for PMV/PPD, adaptive comfort, SET, UTCI, based on ASHRAE 55, ISO 7730 and EN 16798; Python 3.10 or later."
+  },
+  {
+   "id": "P12-S38",
+   "title": "CBE Thermal Comfort Tool",
+   "url": "https://comfort.cbe.berkeley.edu/",
+   "publisher": "UC Berkeley Center for the Built Environment",
+   "year": "",
+   "type": "online tool",
+   "opened": true,
+   "extract": "Implements ASHRAE 55 (PMV and adaptive) and EN 16798; states comfort zone is PMV -0.5 to +0.5 according to the standard; reports 80% and 90% acceptability limits; source on GitHub."
+  },
+  {
+   "id": "P12-S39",
+   "title": "View through a window may influence recovery from surgery",
+   "url": "https://europepmc.org/article/MED/6143402",
+   "publisher": "Science 224(4647), 420-421 (Ulrich)",
+   "year": "1984",
+   "type": "peer-reviewed paper",
+   "opened": true,
+   "extract": "23 gallbladder-surgery patients with a nature view versus 23 matched with a brick-wall view; nature-view patients had shorter stays, fewer negative nursing notes and fewer strong analgesics."
+  },
+  {
+   "id": "P12-S40",
+   "title": "High Resolution Digital Elevation Model (HRDEM) - CanElevation Series",
+   "url": "https://open.canada.ca/data/en/dataset/957782bf-847c-4644-a757-e383c0057995",
+   "publisher": "Natural Resources Canada",
+   "year": "",
+   "type": "open dataset",
+   "opened": true,
+   "extract": "1 m or 2 m LiDAR GeoTIFF; Open Government Licence - Canada; national coverage 'gradually being established', so Metro Vancouver and North Shore coverage must be checked."
+  },
+  {
+   "id": "P12-S41",
+   "title": "Open Government Licence - Canada",
+   "url": "https://open.canada.ca/en/open-government-licence-canada",
+   "publisher": "Government of Canada",
+   "year": "",
+   "type": "licence",
+   "opened": true,
+   "extract": "Free, non-exclusive right to use, adapt and distribute the information including commercially; attribution statement required."
+  },
+  {
+   "id": "P12-S42",
+   "title": "OpenStreetMap copyright and licence",
+   "url": "https://www.openstreetmap.org/copyright",
+   "publisher": "OpenStreetMap Foundation",
+   "year": "",
+   "type": "licence",
+   "opened": true,
+   "extract": "Data under the Open Database Licence (ODbL); credit OpenStreetMap and state the licence; derived databases must be shared under the same licence."
+  },
+  {
+   "id": "P12-S43",
+   "title": "Ladybug core library (GitHub)",
+   "url": "https://github.com/ladybug-tools/ladybug",
+   "publisher": "Ladybug Tools",
+   "year": "",
+   "type": "software repository",
+   "opened": true,
+   "extract": "AGPL-3.0; EPW weather analysis and sun-path calculation; page does not mention view analysis."
+  },
+  {
+   "id": "P12-S44",
+   "title": "Systematic layout planning (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Systematic_layout_planning",
+   "publisher": "Wikipedia",
+   "year": "",
+   "type": "encyclopedia (secondary)",
+   "opened": true,
+   "extract": "Describes SLP, cites R. Muther's 1984 book; does not list the A/E/I/O/U/X closeness ratings. No longer cited for definitions in r1 (see P12-S63)."
+  },
+  {
+   "id": "P12-S45",
+   "title": "Daylight factor (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Daylight_factor",
+   "publisher": "Wikipedia",
+   "year": "",
+   "type": "encyclopedia (secondary)",
+   "opened": true,
+   "extract": "DF = Ei/Eo x 100%; components are sky, externally reflected and internally reflected; citing CIBSE LG10 (1999), average DF under 2 is not adequately lit and over 5 is well lit."
+  },
+  {
+   "id": "P12-S46",
+   "title": "City of Vancouver Green Buildings Policy for Rezonings",
+   "url": "https://guidelines.vancouver.ca/policy-green-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2023",
+   "type": "municipal policy",
+   "opened": false,
+   "extract": "Fetch returned HTTP 403 (again in r1). Snippets: embodied carbon section; two pathways (near-zero emissions, low-emissions green buildings); a later version applies to applications from 27 Nov 2024 per a secondary summary. Not read."
+  },
+  {
+   "id": "P12-S47",
+   "title": "naturally:wood (Forestry Innovation Investment)",
+   "url": "https://www.naturallywood.com/",
+   "publisher": "Forestry Innovation Investment (BC)",
+   "year": "",
+   "type": "industry directory",
+   "opened": true,
+   "extract": "BC wood information resource with supplier directory, design guidance, mass timber and tall wood pages; no species data or CLT specifics."
+  },
+  {
+   "id": "P12-S48",
+   "title": "Vancouver Tall Challenge: Building Higher Downtown (competition page and brief link)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "publisher": "Buildner with City of Vancouver and UBC SALA",
+   "year": "2026",
+   "type": "competition page",
+   "opened": false,
+   "extract": "Summary page opened: anonymous judging; registration closes 29 Oct 2026; Q&A 3 Nov; submissions 30 Nov 2026 23:59 London; winners 26 Jan 2027. Brief PDF behind a download link not opened: 9.0 FSR, site, jury weights come from the team's brief summary."
+  },
+  {
+   "id": "P12-S49",
+   "title": "Vancouver Building By-law 2025, Book I: General (Volume 2), By-law 14343, consolidated to 20 May 2025",
+   "url": "https://vancouver.ca/files/cov/vbbl-2025-volume-2-v1-0.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "municipal by-law (convenience copy)",
+   "opened": false,
+   "extract": "HTTP 403 on fetch; search snippet shows table of contents only. Table 3.1.17.1, separations, acoustics and energy tables not read. Governing code for a Vancouver tower in place of BCBC."
+  },
+  {
+   "id": "P12-S50",
+   "title": "Guide to the 2025 Vancouver Building By-law",
+   "url": "https://vancouver.ca/files/cov/guide-to-2025-vbbl-updates.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "municipal guide",
+   "opened": false,
+   "extract": "HTTP 403; search snippets: 2025 VBBL adopted by Council 20 May 2025, effective 15 Sep 2025, applies to permit applications after that date. Guide content covers 1-3 storey residential; Part 3 energy limits not read."
+  },
+  {
+   "id": "P12-S51",
+   "title": "Vancouver Building By-law 2019, Division B, Section 9.9 Means of Egress (consolidated to 7 Mar 2023)",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/2099100982",
+   "publisher": "City of Vancouver / BC Publications",
+   "year": "2023",
+   "type": "municipal by-law (legacy edition, Part 9)",
+   "opened": true,
+   "extract": "Occupant load is the number of persons the area is designed for, not fewer than Table 3.1.17.1; dwelling units 'based on 2 persons per bedroom or sleeping area'. Part 9 and 2019 edition: Part 3 wording to verify in VBBL 2025."
+  },
+  {
+   "id": "P12-S52",
+   "title": "Embodied Carbon in Vancouver Building Bylaw 2025 (City and CLF BC workshop slides, 6 May 2024)",
+   "url": "https://clfbritishcolumbia.com/wp-content/uploads/2024/08/2024.05.06_Embodied-Carbon-in-VBBL-2025_Workshop-Consolidated-PPTs.pdf",
+   "publisher": "CLF BC with City of Vancouver",
+   "year": "2024",
+   "type": "workshop slides (secondary, proposal)",
+   "opened": true,
+   "extract": "2023 limit 800 (2 x baseline). Revised 2025 proposal: Part 3 new buildings except up to 1,800 m2; whole-building LCA plus 10% reduction (5-10% plus 0-5% credits); absolute 360 (or 380 with maximum credits); 400 benchmark may be revised. Adoption not shown."
+  },
+  {
+   "id": "P12-S53",
+   "title": "The City of Vancouver's New Embodied Carbon Guidelines (CLF BC webinar slides, 29 Nov 2023)",
+   "url": "https://clfbritishcolumbia.com/wp-content/uploads/2023/12/CLF-BC-CoV-Embodied-Carbon-Guidelines-2023-112923.pdf",
+   "publisher": "CLF BC",
+   "year": "2023",
+   "type": "webinar slides on City guidelines v1.0 (secondary)",
+   "opened": true,
+   "extract": "Stages A-C required, D reported separately; 60-year life; structure and shell required, interiors, services, site optional; placeholders A4 4%, A5 6%, B 10%, C 5% of A1-A3; absolute limits 'excluding parkade'; 800 (2023) and proposed 2025 limits."
+  },
+  {
+   "id": "P12-S54",
+   "title": "Embodied Carbon for Part 3 and Part 9 Buildings: Vancouver's Building By-Law (VBBL) Compliance",
+   "url": "https://www.buildneutral.ca/journal/embodied-carbon-for-part-3-and-part-9-buildings-vancouvers-building-by-law-compliance",
+   "publisher": "Build Neutral",
+   "year": "",
+   "type": "consultancy article (secondary)",
+   "opened": true,
+   "extract": "Cradle-to-grave wbLCA boundary; current limit not more than double the baseline; January 2025 anticipated 20% (wood, up to 6 storeys) and 10% (others); does not confirm the change took effect; no 800 figure; no element scope."
+  },
+  {
+   "id": "P12-S55",
+   "title": "City of Vancouver bulletin: Green Buildings Policy for Rezoning",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-green-buildings-policy-for-rezoning.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "municipal bulletin",
+   "opened": false,
+   "extract": "HTTP 403. Search snippets: rezoning submissions need an Embodied Carbon Design Report (wbLCA) and must show the project is on track for VBBL embodied carbon limits expected at first Building Permit; Energy & Emissions Design Report required."
+  },
+  {
+   "id": "P12-S56",
+   "title": "LEEDuser: NC-v5 EQc2 Occupant Experience",
+   "url": "https://leeduser.buildinggreen.com/credit/NC-v5/EQc2",
+   "publisher": "BuildingGreen / LEEDuser",
+   "year": "2025",
+   "type": "credit guidance (secondary)",
+   "opened": true,
+   "extract": "v5: views 75% (2 pts) or 90% (3 pts), VLT above 40%, within 3 x head height, nature/landmarks/art or objects 7.5 m or more; Option 5: 30% of area within 6 m of glazing; sDA300/50% or sDA150/50% (LM-83-23) 40-75%; ASE above 20% explain glare. Page internally inconsistent on points."
+  },
+  {
+   "id": "P12-S57",
+   "title": "USGBC: LEED v5",
+   "url": "https://www.usgbc.org/leed/v5",
+   "publisher": "U.S. Green Building Council",
+   "year": "2025",
+   "type": "rating-system page",
+   "opened": true,
+   "extract": "LEED v5 available for BD+C, ID+C and O+M (April 2025 launch edition reference guide linked); themes Decarbonization, Quality of life, Ecological conservation and restoration. Credit text is behind dynamic credit-library pages not opened."
+  },
+  {
+   "id": "P12-S58",
+   "title": "LEED v5 launched with expanded climate and health focus",
+   "url": "https://inside.lighting/news/25-04/leed-v5-launched-expanded-climate-health-focus",
+   "publisher": "inside.lighting",
+   "year": "2025",
+   "type": "trade news (secondary)",
+   "opened": false,
+   "extract": "Search snippet only: v5 consolidates lighting and daylighting into a Lighting Environment credit under Occupant Experience, adds solar glare mitigation and a proximity-to-windows path, and folds bird-collision prevention into exterior lighting."
+  },
+  {
+   "id": "P12-S59",
+   "title": "CSA A460:19 Bird-friendly building design (SCC standards database record)",
+   "url": "https://scc-ccn.ca/standardsdb/standards/4029805",
+   "publisher": "Standards Council of Canada / CSA Group",
+   "year": "2019",
+   "type": "standard record",
+   "opened": false,
+   "extract": "Search snippet only: scope covers new and existing buildings, glazing, building-integrated structures and site design, bird strikes only; no certification. Standard text not opened; UBC cites it for overhang credit, fly-through, corners."
+  },
+  {
+   "id": "P12-S60",
+   "title": "A simulation-based review of the ubiquitous window-head-height to daylit zone depth rule-of-thumb (Reinhart)",
+   "url": "https://aivc.org/node/33610",
+   "publisher": "Building Simulation 2005, Montreal (IBPSA)",
+   "year": "2005",
+   "type": "conference paper (abstract opened)",
+   "opened": true,
+   "extract": "Abstract only: Radiance simulations of side-lit rooms across climates and orientations; 'Simulation results largely support predictions made by DRT for standard design variants'; shows limits and recommends simulation for advanced daylighting. Full paper and tabulated factors not read."
+  },
+  {
+   "id": "P12-S61",
+   "title": "ASHRAE 90.1-2025 Addendum d (daylight diagram), public review draft",
+   "url": "https://osr.ashrae.org/Online-Comment-Database/ShowDoc2/Table/DocumentAttachments/FileName/4807-90.1-2025%20Addendum%20d%20Daylight%20Diagram%20PPR%201%20.pdf/download/false",
+   "publisher": "ASHRAE",
+   "year": "2025",
+   "type": "draft addendum (secondary)",
+   "opened": false,
+   "extract": "Search snippet only: primary sidelighted area depth is the smaller of one head height or the obstruction distance; secondary adds another head height. A draft, may differ from the edition in force."
+  },
+  {
+   "id": "P12-S62",
+   "title": "Lifts for office buildings (Designing Buildings wiki)",
+   "url": "https://www.designingbuildings.co.uk/wiki/Lifts_for_office_buildings",
+   "publisher": "Designing Buildings Ltd",
+   "year": "",
+   "type": "wiki (secondary)",
+   "opened": true,
+   "extract": "Densities 10 m2 (conservative), 14 m2 (BCO, net lettable) and 19 m2 (NAO audits) per person with 15% absenteeism allowance; five-minute capacity 15% historic, 7% suggested; Stanhope 2004 survey of nine London offices found 6%. CIBSE Guide D not quoted."
+  },
+  {
+   "id": "P12-S63",
+   "title": "Layout planning lecture notes (HKUST IEDA, IEEM513)",
+   "url": "https://ieda.ust.hk/dfaculty/ajay/courses/ieem513/Layout/lecLayout.html",
+   "publisher": "HKUST",
+   "year": "",
+   "type": "lecture notes (secondary)",
+   "opened": true,
+   "extract": "REL chart: A 'absolutely necessary', U unnecessary, X 'necessary to keep apart'; E, I, O not defined; example numeric values (A=81, E=27, I=9, O=3, U=1) are illustrative. Muther linked to SLP generally; primary text unopened."
+  },
+  {
+   "id": "P12-S64",
+   "title": "ISO 10137:2007 Bases for design of structures: serviceability of buildings and walkways against vibrations",
+   "url": "https://www.iso.org/standard/37070.html",
+   "publisher": "ISO",
+   "year": "2007",
+   "type": "standard record",
+   "opened": false,
+   "extract": "Search snippet only: recommendations on serviceability against vibrations for occupants, contents and structure; reviewed and confirmed 2024. Wind-motion limits not read."
+  },
+  {
+   "id": "P12-S65",
+   "title": "Barrett and Locklin (1968), stack-effect problems in tall buildings (ASHRAE paper via AIVC airbase)",
+   "url": "https://www.aivc.org/sites/default/files/members_area/medias/pdf/Airbase/airbase_00124.pdf",
+   "publisher": "ASHRAE / AIVC",
+   "year": "1968",
+   "type": "conference paper (legacy)",
+   "opened": false,
+   "extract": "Search snippet only: lists drafts and wind noise near doors and elevators as stack-effect problems; large pressure differentials build up across the building."
+  },
+  {
+   "id": "P12-S66",
+   "title": "ZEBX Technical Primer: City of Vancouver Energy Targets for Part 3 Buildings",
+   "url": "https://zebx.org/wp-content/uploads/2020/08/ZEBX-Technical-Primer-City-of-Vancouver-Energy-Targets-for-Part-3-Buildings.pdf",
+   "publisher": "ZEBx",
+   "year": "2020",
+   "type": "industry primer (secondary, legacy)",
+   "opened": false,
+   "extract": "HTTP 403. Search snippet: TEUI, TEDI and GHGI limits by occupancy under the 2019 and 2021 by-law editions; column alignment unclear; values not used."
+  },
+  {
+   "id": "P12-S67",
+   "title": "Springer chapter citing ISO 10137 Annex D on perception of wind-induced motion",
+   "url": "https://link.springer.com/chapter/10.1007/978-3-032-02098-7_10",
+   "publisher": "Springer",
+   "year": "2025",
+   "type": "book chapter (secondary)",
+   "opened": false,
+   "extract": "Login redirect; search snippet only: Annex D evaluates human perception of wind-induced motion with limits on peak acceleration at natural frequency by principal direction. No numbers read."
+  },
+  {
+   "id": "P12-S68",
+   "title": "Stack effect and elevator door performance (RIT thesis, CFD and Dubai field data)",
+   "url": "https://repository.rit.edu/theses/12370",
+   "publisher": "Rochester Institute of Technology",
+   "year": "2025",
+   "type": "thesis (secondary)",
+   "opened": false,
+   "extract": "Search snippet only: pressure difference across elevator doors affects door operation and can cause malfunction; aerodynamic force peaks during initial opening."
+  },
+  {
+   "id": "P12-S69",
+   "title": "City of Vancouver CD-1 by-law examples (floor area computation clauses)",
+   "url": "https://cd1-bylaws.vancouver.ca/CD-1(478).pdf",
+   "publisher": "City of Vancouver",
+   "year": "",
+   "type": "site-specific by-law (secondary use)",
+   "opened": false,
+   "extract": "HTTP 403; search snippets only: site by-laws often exclude parking, loading, bicycle storage and sometimes mechanical space below base surface from floor area. Citywide floor-area definition and the competition's definition not read."
+  },
+  {
+   "id": "P12-S70",
+   "title": "CIBSE Guide D chapter slides (lift traffic design)",
+   "url": "https://www.cibse.org/media/5a4lpbwp/chapter-3-4-9-a2.pdf",
+   "publisher": "CIBSE",
+   "year": "2025",
+   "type": "seminar deck (secondary)",
+   "opened": false,
+   "extract": "Search snippet only: Guide D was updated in 2025 and the deck discusses up-peak recommendations; office density and percentage values were not in the excerpt."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Embodied carbon per material can come from EC3 and ICE in the open-source tool.",
+   "correction": "ICE Database Educational V5.0 (June 2026) is educational-only; software, tools, reporting and project calculations are excluded and non-educational use is no longer permitted from 30 Sept 2026. Use EC3/openEPD EPDs and CLF baselines (CC BY 4.0); ICE only as user-supplied data in teaching mode.",
+   "detail": "Raised from the packet scope text 'EC3/ICE'. Source P12-S27. EC3 is labelled free and open access, but API terms and rate limits were not read (P12-S28, P12-S29).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vancouver's older view-cone policy with 38 cones, including Queen Elizabeth Park cones 3.1 and 3.2.4a, is still in force.",
+   "correction": "On 10 July 2024 Council repealed it and adopted Public Views Guidelines with 24 cones; Queen Elizabeth Park 3.2.1-3.2.4 remain, 3.1 and 3.2.4a were removed. The Higher Buildings Policy Review says protected views are not being reviewed.",
+   "detail": "Facts come from a news article (P12-S01) and the review page (P12-S03); the official guidelines PDF returned HTTP 403 (P12-S02). Verify cone numbers in VanMap before citing on boards.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "BC Building Code 2024 (occupant loads, separations, acoustics) and the BC Energy Step Code govern a tower in downtown Vancouver.",
+   "correction": "The City of Vancouver has its own building by-law. Use the Vancouver Building By-law (2025 edition, in force from 15 Sep 2025 per City guide snippets) and the City's energy and emissions metrics (TEUI, TEDI, GHGI), values unverified until read.",
+   "detail": "Province page (P12-S21), re-opened in r1: 'BC Codes don't apply in the City of Vancouver which has its own building bylaw.' VBBL 2025 itself (P12-S49) returned HTTP 403; every BCBC reference and 'Step Code' export was replaced.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "No source resolves how bird-friendly patterned glass and LEED view glazing can both be satisfied.",
+   "correction": "CaGBC says the LEED v4.1 addenda clarified frit and pattern wording to align with bird-collision deterrence; the LEEDuser v5 page says frits, patterns or tints must preserve the view. Only the VLT and view-clarity trade-off remains, as a judgement.",
+   "detail": "Sources P12-S05 (opened r1) and P12-S56. Official v4.1 and v5 credit text not opened; the allowed frit or pattern density is not stated.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "LEED v4/v4.1 credit thresholds (EQc7 sDA/ASE, EQc8 views) are the current LEED benchmark.",
+   "correction": "LEED v5 (April 2025 launch edition) is available for BD+C. Label v4 and v4.1 values legacy_version; v5 values come from a secondary page (LEEDuser) and stay unverified until the USGBC text is opened.",
+   "detail": "P12-S57 (USGBC v5 page, opened) and P12-S56 (LEEDuser v5 EQc2). v5 moves views, daylight, thermal and sound into Occupant Experience; bird-collision prevention moves into exterior lighting (P12-S58, snippet).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Turner et al. (2001) report only qualitative correspondence between visibility-graph measures and use.",
+   "correction": "The paper reports an exponential fit (R2 = 0.63) between observed Tate Gallery room occupancy and mean shortest path length. It is evidence for relative use in one building, not a threshold.",
+   "detail": "P12-S10 re-read in r1 (Fig. 13); the paper itself also says 'qualitative correspondence' for movement patterns and 'some quantitative correspondence' in its conclusion.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "EN 17037 view-out levels are an area-share criterion ('% of area by EN 17037 level').",
+   "correction": "The standard's view-out methods are point-in-space assessments (Annex C). Report per-point levels; the area share is a ClimateStudio-style convention and is labelled so.",
+   "detail": "REHVA Journal (P12-S07) says view out methods refer to point-in-space assessments; ClimateStudio docs (P12-S08) summarise results as a percentage of regularly occupied floor area.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "BC 25 MPa concrete ranges from 220 to 90 kgCO2e/m3 (like-for-like), and CLF BC guide values can be used as open data.",
+   "correction": "The 90 figure is a 91-day EPD and the 220 baseline is at 28 days; compare Butler 109 (28 d) with 220. The guide carries an all-rights-reserved notice and no licence, so link to it and do not bundle its values.",
+   "detail": "P12-S25: Heidelberg 90 at 91 d, Butler 109 at 28 d, '(c) 2026 ZEIC All Rights Reserved'.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "An A1-A3 embodied-carbon sum can be tested pass/fail against Vancouver's 800 kgCO2e/m2 cap.",
+   "correction": "800 is the City's 2023 absolute limit over stages A-C (60 years) for structure and shell, so an A1-A3 sum is a partial scope. A 10% reduction (360 absolute) was proposed for 2025; adoption is unconfirmed. Show scope-labelled reference lines, no badge.",
+   "detail": "Scope from the CLF BC webinar on City guidelines v1.0 (P12-S53) and workshop slides (P12-S52); official guidelines and VBBL 2025 text unopened (HTTP 403).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The ASHRAE 90.1 Appendix G baseline WWR (office 40%, hotel 34%) is a limit that a facade must stay under.",
+   "correction": "It is the reference model's WWR used for performance comparison. Show 40% and 34% only as reference lines (proxy) and judge the facade by the ENER result against the City's TEDI, TEUI and GHGI.",
+   "detail": "P12-S18 (PNNL TSD Table 30, column read by inference). A prescriptive 90.1 WWR cap was not opened and is not a Vancouver requirement.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A visibility-graph partition can have fractional transparency (0 to 1).",
+   "correction": "A visibility edge exists or not. Use binary flags (opaque, glazed, open) and two graphs: visibility at eye height, accessibility at floor height with glass as a barrier, as Turner et al. built for the Barcelona Pavilion.",
+   "detail": "P12-S10 (Barcelona Pavilion 0.5 m grid, eye-height and floor-height graphs).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A net-to-gross factor can be applied to DOE/PNNL densities and the energy 'design' population can size lifts.",
+   "correction": "PNNL densities are per zone floor area, so efficiency applies only to net-basis densities. Lifts use their own vertical-transportation basis; egress uses the VBBL table and 2 persons per sleeping area, not DOE 2.5 per unit.",
+   "detail": "P12-S19 (zone area basis), P12-S51 (VBBL 2019 Part 9 sleeping-area rule), P12-S62 (lift-planning densities, secondary).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Competition entrants can record Indigenous consultation status as obtained or in progress.",
+   "correction": "Entrants are anonymous, have weeks and no relationship with the Musqueam, Squamish or Tsleil-Waututh Nations. The fixed status is 'no consultation possible in this exercise'; motif generation is blocked and items go to CULT as 'not proposed'.",
+   "detail": "P12-S48 (anonymous judging, 30 Nov 2026 deadline). A consultation field could invite a false claim on boards.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "City of Vancouver Bird Friendly Design Guidelines (2015, amended May 2017) set a numeric glazing-treatment zone and spacing.",
+   "correction": "Not confirmed. The City PDF returned HTTP 403. UBC tiers (P12-S31) and a CSA summary (P12-S32) are used as proxies and flagged.",
+   "detail": "UBC's policy applies to the UBC campus, not Vancouver rezonings. CSA A460-2019 text (P12-S59) not opened.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "VBBL 2025 Part 3 Table 3.1.17.1 occupant load factors (office recalled as 9.3 m2 per person) and the sleeping-room rule.",
+   "correction": "Not confirmed. The VBBL 2025 PDF returned HTTP 403. VBBL 2019 Part 9 text says 2 persons per bedroom or sleeping area; the Part 3 wording and area basis must be read.",
+   "detail": "The M04 egress metric depends on it (P12-S49, P12-S51). BCBC no longer cited.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "ASHRAE 90.1 prescriptive path caps vertical glazing at 40% of gross wall area.",
+   "correction": "Not confirmed; only DOE/PNNL prototype and Appendix G baseline WWR were read (P12-S18).",
+   "detail": "Vancouver towers are judged against the City's energy and emissions limits in the VBBL, so a hard WWR cap may not apply.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Vancouver embodied carbon limit is 800 kgCO2e/m2, with a 10% reduction from 2025 for a supertall.",
+   "correction": "800 is the 2023 limit (A-C stages, structure and shell). The 10% reduction (360 absolute) is a 2024 revised proposal for Part 3 buildings over 1,800 m2; whether VBBL 2025 adopted it, and the guideline version, are unconfirmed.",
+   "detail": "P12-S52, P12-S53, P12-S54 are secondary; City PDFs unopened (P12-S46, P12-S49, P12-S55). The Policy bulletin snippet says rezonings show readiness for VBBL limits at first Building Permit.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "LEED v5 view, daylight and glare criteria as quoted by LEEDuser apply as written.",
+   "correction": "Only LEEDuser (secondary) and a USGBC overview were opened; the USGBC credit text was not. The LEEDuser page is internally inconsistent on Option 5 points.",
+   "detail": "P12-S56, P12-S57. Check USGBC v5 text before any badge; v4/v4.1 values stay legacy_version.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "VBBL 2025 energy and emissions limits (TEUI, TEDI, GHGI) by occupancy for Part 3 towers.",
+   "correction": "Not read. City PDFs returned HTTP 403 and the 2019/2021 primer (P12-S66) was not opened; no numbers are given and ENER results show without a limit line.",
+   "detail": "P12-M06 envelope energy metric.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "CIBSE Guide D (2025) office population densities and five-minute handling capacities.",
+   "correction": "Not opened. A wiki summary (P12-S62) gives 10/14/19 m2 per person and 15% historic versus 7% suggested; treat as secondary reference points.",
+   "detail": "P12-M04 vertical-transportation basis.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "ISO 10137 and other criteria for perceived wind-induced motion, and ASHRAE 55 radiant asymmetry and stack-effect door limits.",
+   "correction": "Sources named, none read; no numbers are given.",
+   "detail": "P12-M08 roadmap parameters (P12-S64, P12-S65, P12-S67, P12-S68).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "HRDEM covers the North Shore ridgelines at usable resolution.",
+   "correction": "The dataset page says coverage is still being established and gives no regional list.",
+   "detail": "P12-S40; check the footprint files, otherwise use a coarser DEM or manual ridgeline.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Goia (2016) gives an optimal WWR range for offices.",
+   "correction": "Only the citation was confirmed; the abstract and results were not read, and the study covers European climates.",
+   "detail": "P12-S34.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Acoustic thresholds (STC between dwellings or hotel rooms, open-plan speech metrics).",
+   "correction": "Not read from VBBL, WELL or ISO 3382-3; no numbers are given.",
+   "detail": "P12-M08 acoustic metric is unverified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "EN 17037 'layers seen' criterion.",
+   "correction": "REHVA gives layer counts 1/2/3; ClimateStudio says minimum requires the landscape layer, medium landscape plus one, high all three.",
+   "detail": "Standard text not opened; P12-M02 shows counts and notes the nuance.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Residual trade-off between bird-friendly pattern density and view clarity or VLT.",
+   "correction": "The frit and pattern wording is aligned with bird deterrence in v4.1 and v5 summaries (see FALSE_ASSUMPTION above); the allowed density and the visual effect on a 300 m tower's views are not stated.",
+   "detail": "Recorded as a human judgement in P12-M06.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Floor-area definition and Vancouver floor-area exclusions for the 9.0 FSR non-residential test.",
+   "correction": "The competition brief's definition and the citywide Zoning and Development By-law exclusions were not read; site by-laws often exclude below-grade parking and sometimes mechanical space (snippets only).",
+   "detail": "P12-S48, P12-S69. The tool shows strict and inclusive FSR and defaults to excluding mechanical, core and below-grade.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "EN 17037 view-out levels and LEED view tests are the benchmark for view access in a Vancouver tower.",
+   "correction": "No BC or Vancouver view-out standard was found. EN 17037 is European and LEED a voluntary credit; both are editable benchmarks.",
+   "detail": "P12-M02 and P12-M03.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Daylight-zone depth equals 2.0 x window head height, as a lighting-control proxy.",
+   "correction": "Mirrors ASHRAE 90.1 primary plus secondary sidelighted areas (draft text, unopened); Reinhart (2005) abstract supports the head-height rule for standard variants. Replace with simulated sDA from CLIM.",
+   "detail": "P12-M03 preset k = 2.0 (P12-S60, P12-S61).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Isovist and VGA good/bad is judged by quartiles of the project's own results, with 80% and 50% visibility cut-offs for entries.",
+   "correction": "No published absolute thresholds were found; Turner et al. (2001) interpret measures relatively.",
+   "detail": "P12-M01.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Occupancy is kept in four bases (egress, design, energy, vertical transportation) with attendance factor 1.0 by default and 1.0 always for egress.",
+   "correction": "A design decision to avoid hiding the difference between code loads, typical use and lift demand; the default 1.0 avoids inventing an unsourced hybrid-work reduction.",
+   "detail": "P12-M04.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The hypothetical site occupies a georeferenced proxy block supplied by the SITE packet, and target views are derived from it.",
+   "correction": "Site-plan labels (Stanley Park, BC Place, North Shore Mountains) are directions, not points. Every target result is conditional on the proxy and shown with a sensitivity range.",
+   "detail": "P12-M02. The SITE packet must record the proxy choice and rotation range.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "VBBL, Green Buildings Policy and LEED values are used as benchmarks, not compliance tests, for an ideas competition.",
+   "correction": "VTC is not a rezoning or permit application; the brief says its documents are not legal documents. Thresholds are editable reference lines.",
+   "detail": "All P12 modules; P12-X01 enforces badge rules.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The 9.0 FSR test counts only office and retail/commercial area by default; hotel and cultural/civic count by recorded toggle.",
+   "correction": "The brief wording 'non-residential, high-employment (office, commercial)' is the team's summary; inclusive counts are shown separately and never replace the strict count.",
+   "detail": "P12-M04; brief PDF not opened (P12-S48).",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Quantitative relationship between plan depth, window head height and daylight penetration (the k in k x head height): ASHRAE 90.1 sidelighted-area text and Reinhart (2005) abstract seen, tabulated factors and full text not opened.",
+  "How isovist and VGA measures relate to perceived legibility, wayfinding and use in supertall podiums and sky lobbies: Turner et al. (2001) show an exponential fit (R2 = 0.63) of room occupancy to mean shortest path length in one gallery; no thresholds and no supertall evidence.",
+  "Relationship between floor height, mountain or water view and rent premium in Vancouver towers: no source found.",
+  "How target-view results change with the assumed georeferenced proxy block and rotation for the hypothetical site: depends on the SITE packet's choice; sensitivity runs report the range.",
+  "Quantitative effect of WWR on total energy in Vancouver's climate: Goia (2016) covers European climates and was not read; a project-specific ENER model against the City's TEUI, TEDI and GHGI is needed.",
+  "How bird-friendly frit or pattern density trades against view clarity and VLT for LEED v4.1/v5 and the City of Vancouver: wording is aligned in summaries, allowed density not stated.",
+  "Effect of hybrid work and desk sharing on peak and average office occupancy and lift demand in downtown Vancouver: no source opened; CIBSE Guide D (2025) not opened.",
+  "Net-to-gross efficiency by use for supertall mixed-use towers in Vancouver: no sourced values found.",
+  "Basis for numeric weights in the A/E/I/O/U/X adjacency scale and for public-continuity limits: the scale is qualitative; Muther's primary text not opened; no calibration found.",
+  "Plate or lease depth, floor-to-floor height and stack alignment effects on stacking by use: no sourced ranges; values must come from SYST/STRC.",
+  "Fire separation and sound isolation required between major occupancies in the Vancouver Building By-law 2025: not read (City PDFs HTTP 403).",
+  "VBBL 2025 Part 3 occupant-load table, its area basis (net or gross) and the sleeping-room rule: Part 9 2019 text read only.",
+  "Life-cycle stages, elements, GFA basis and reduction factor of Vancouver's embodied carbon requirement as adopted in VBBL 2025, and its interaction with the Green Buildings Policy for Rezonings: official texts not opened; a 10% reduction (360 absolute) was proposed.",
+  "VBBL 2025 energy and emissions limits (TEUI, TEDI, GHGI) by occupancy for Part 3 towers: not read.",
+  "Floor-area definition and exclusions that govern the 9.0 FSR non-residential test: competition brief and citywide by-law not read.",
+  "Accessibility colour-contrast (light reflectance value) thresholds applicable in BC (for example CSA B651): not opened.",
+  "Whether City of Vancouver's Bird Friendly Design Guidelines (2017) use the same collision-zone height (16 m) and spacing as CSA and UBC: City PDF HTTP 403; CSA A460-2019 text not opened.",
+  "Perceived wind-induced motion criteria (ISO 10137 Annex D, ISO 6897 or others) for residential and hotel floors near 300 m, radiant asymmetry and downdraft limits at full-height glazing, and stack-effect door forces: sources named, none read.",
+  "Missing from this packet and routed to other packets: visual privacy and overlook between towers, interior biophilia and sky gardens (ECOL), balcony and winter-garden wind policy, universal design and wayfinding signage.",
+  "Schema gap: the module-metric status enum lacks verified_secondary, proxy and legacy_version; they are carried in status_detail and a bracket tag at the start of basis (proxy maps to team_assumption; verified_secondary and legacy_version map to unverified) until the orchestrator extends the enum."
+ ],
+ "change_log": [
+  "Round 1 (21 Oct 2026): first specification of packet P12 with 8 modules (M01 isovist/VGA, M02 view access, M03 depth from glazing, M04 occupancy and schedules, M05 adjacency and stacking, M06 facade and envelope, M07 materials, colour and embodied carbon, M08 comfort).",
+  "Corrected the packet scope's 'embodied carbon via EC3/ICE': ICE Educational V5.0 is educational-only and non-educational use ends 30 Sept 2026, so EC3/openEPD and CLF data are the tool defaults (FALSE_ASSUMPTION recorded).",
+  "Corrected view-protection assumptions: the old view-cone policy was replaced by Public Views Guidelines on 10 July 2024 (FALSE_ASSUMPTION recorded, from a secondary source).",
+  "Split 'depth from glazing' (P12-M03) from 'view access' (P12-M02) because they use different thresholds and priorities.",
+  "Placed adjacency and stacking in its own module (P12-M05) so subjective ratings are recorded separately from objective occupancy counts (P12-M04).",
+  "Replaced remembered numbers with team_assumption or unverified labels wherever the source could not be opened (occupant load, ASHRAE WWR cap, acoustic limits, daylight k factor).",
+  "Added derived figures from the DOE/PNNL scorecard and the brief's site arithmetic (79.2 m x 144.8 m is about 11,468 m2; 9.0 FSR is about 103,200 m2).",
+  "r1: Replaced every BCBC 2024 and BC Energy Step Code reference with the Vancouver Building By-law 2025 (in force 15 Sep 2025 per City guide snippets; text unread) and the City's TEUI/TEDI/GHGI metrics, all unverified; recorded a corrected FALSE_ASSUMPTION and added sources P12-S49, S50, S51, S55, S66.",
+  "r1: M04: tagged every density with its area basis and limited net-to-gross to net-basis densities; added a fourth basis, vertical transportation (lift-planning density and five-minute target, secondary P12-S62); egress now uses the VBBL table and 2 persons per sleeping area; DOE densities no longer feed lifts.",
+  "r1: M04: FSR test now counts office and retail/commercial only by default (strict), shows an inclusive range with hotel and cultural/civic toggles, excludes mechanical, core and below-grade, and lists the floor-area definition as unresolved; added the VTC brief as source P12-S48.",
+  "r1: M04: added an activity-setting table and utilisation scenario that change design and energy bases only; egress stays at attendance 1.0.",
+  "r1: Status handling: replaced blanket 'verified' with evidence-based statuses (verified only when current official text was opened); verified_secondary, proxy and legacy_version carried in status_detail and in a bracket tag in basis because the status enum has no such values; no pass/fail badge for non-verified metrics.",
+  "r1: Added P12-X01, a cross-cutting evidence-status and badge consistency gate that downgrades statuses and blocks board export on mismatches.",
+  "r1: M07: removed the embodied-carbon pass badge; the result is scope-labelled ('A1-A3 partial; cap scope unverified'). Recorded the City scope (A-C, 60 years, structure and shell; D and biogenic apart), that 800 is the 2023 limit, and a 10% reduction (360 absolute) as a 2024 proposal with adoption unconfirmed (P12-S52, S53, S54). Added stage toggles through Brightway and City placeholders.",
+  "r1: M07: concrete comparison now at equal curing age (Butler 109 against 220, both 28 d); CLF BC guide listed with licence 'not stated, all rights reserved; link only'.",
+  "r1: M07: added the fixed status 'no consultation possible in this exercise' for Indigenous-related items, blocked motif generation and library tagging, routed items to CULT as 'not proposed', and required board text to say no consultation took place.",
+  "r1: M01: replaced fractional partition transparency with binary opaque/glazed/open flags and two graphs (visibility at eye height, accessibility at floor height); normalisation is per connected graph; default analysis limited to tagged public floors at 1.0 m with a cell cap and depthmapXcli for big jobs.",
+  "r1: M01: corrected the Turner et al. (2001) extract after re-reading it: Tate Gallery occupancy vs mean shortest path, exponential fit R2 = 0.63 (evidence of relative use, not a threshold); removed the unopened Hillier et al. citation from the integration metric.",
+  "r1: M02: added a SITE-supplied georeferenced proxy block as a recorded team assumption, a sensitivity metric and a 'conditional on proxy' label; M02 now owns the LEED views result and adds a view-type check mapped to LEED view types (CaGBC and LEEDuser v5); moved to v1 with ridgeline and water tests later; eye heights set as team presets with the arXiv source marked unopened; EN 17037 area share labelled a tool convention.",
+  "r1: M03: LEED v5 (LEEDuser, secondary) added alongside v4/v4.1 marked legacy_version, including the 6 m window-proximity path and v5 sDA/ASE wording; added an EN 17037 glare metric (DGPe 0.45/0.40/0.35) ingested from CLIM; the 3 x head-height band is now a diagnostic only; k = 2.0 is named a lighting-control proxy with ASHRAE 90.1 sidelighted-area text and the Reinhart (2005) abstract as candidate sources, still team_assumption.",
+  "r1: M05: added floor-to-floor height and plate depth by use, stack alignment, transfer and outrigger floors, and own-entry-and-lift-path checks, scored apart from subjective ratings; replaced the Wikipedia citation for A/E/I/O/U/X with a lecture page for A and X only and marked the rest as team presets.",
+  "r1: M06: WWR 40% and 34% are now reference lines (proxy, team_assumption) and the facade is judged by ENER against the City's metrics; added metrics for fly-through and glass corners, night lighting (feeds ECOL) and the overhang credit; named CSA A460-2019; applied the vegetation rule locally around each sky garden; narrowed the bird/view conflict to the residual VLT and clarity trade-off with a FALSE_ASSUMPTION recorded.",
+  "r1: M08: added supertall comfort parameters and metrics (wind-induced motion perception, radiant asymmetry and downdraft at full-height glazing, stack-effect door pressure, lift and wind noise) linked to STRC and SYST, with ISO 10137 and other sources named and no numbers until read; re-keyed the acoustic metric from BCBC to the VBBL.",
+  "r1: Priorities: core release narrowed to M04 (corrected bases), the M06 WWR and bird-zone cut, and the P12-X01 gate; M02 moved to v1 (first slice about 5 days, ridgeline and water later); M01, M03, M05, M07 stay v1; M08 stays roadmap.",
+  "r1: Not completed: the City's PDFs (VBBL 2025, Embodied Carbon Guidelines, Green Buildings Policy, bulletin) returned HTTP 403 and the web-search budget ran out, so the VBBL occupant-load table, energy limits and adopted embodied-carbon text remain unverified; USGBC v5 credit text, CIBSE Guide D, ISO 10137 and CSA A460-2019 were not opened."
+ ],
+ "notes": "r1 revision of P12 after independent critique. Governing code corrected to the Vancouver Building By-law (2025 edition, in force 15 Sep 2025 per City guide snippets) in place of BCBC and the Step Code; its tables could not be read (City PDFs HTTP 403) and the web-search budget ran out during this round, so VBBL values stay unverified. PDFs fetched by the tool (CLF BC slides, UBC backgrounder, Turner et al., VBBL 2019 s.9.9) were decoded to stdout only; no files were created.\n\nStatus mapping (the schema enum has four values): verified = current official text opened; unverified = sourced but secondary, legacy or unread (tags verified_secondary, legacy_version carried in status_detail and as a bracket tag in basis); team_assumption = team preset or proxy; false_assumption_corrected = corrected claim. Pass/fail badges only for 'verified'; the new gate P12-X01 enforces this. Only the CLF BC material guide values and the ICE correction use verified or corrected status.\n\nObjective versus subjective is unchanged: geometry, ray casting, graph measures, population arithmetic and kgCO2e sums are objective; adjacency ratings, palette, view weights, public/private visibility and every team_assumption threshold are judgements saved as JudgementRecords. Indigenous-related items are never generated and always carry 'no consultation possible in this exercise'.\n\nDates and priorities: core for 13 Nov 2026 is M04, the M06 WWR and bird-zone cut and P12-X01; v1 by 10 Dec 2026 is M01, M02 (first slice), M03, M05, M07; M08 is roadmap. The 1997 Higher Buildings Policy still governs; the brief says its documents are not legal documents, so all thresholds are benchmarks."
+}

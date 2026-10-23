@@ -1,0 +1,1973 @@
+{
+ "packet_id": "P09",
+ "notes": "Method and constraints. (1) City of Vancouver hosts (vancouver.ca, bylaws.vancouver.ca, council.vancouver.ca, guidelines.vancouver.ca, syc.vancouver.ca) returned HTTP 403 or a bot-challenge page to automated clients. I did not try to bypass this. Every City by-law, council-report and guideline entry is therefore opened=false, and its content reaches this packet only through search-engine extracts, which can be wrong. All numbers taken from them are marked unverified. (2) The shared web-search budget ran out part-way through, so ITE, NFPA 130, CIBSE, Metro Vancouver waste guidelines and the City's Transportation 2040 were not searched. (3) Design consequence: P09-M02 is a data-driven rule-pack. The user imports by-law rows from the downloaded PDFs, each row carries clause, version date and status, and the tool never depends on a live fetch. (4) Sources opened with usable text: Global News, Storeys, TfL Pedestrian Comfort Guidance, FHWA Signal Timing Manual, VTPI (3 chapters), Memon 2009, TransLink 2023 Trip Diary technical report, BC TOA page, Vancouver Open Data metadata, and the GitHub/docs pages of the libraries named. (5) TransLink mode-share values live only in a Tableau dashboard, so the baseline must be loaded by hand for CBD sub-regions 21 and 22. (6) Governing documents as of 21 Oct 2026: Parking By-law No. 6059 (consolidations dated Feb, May and June 2026 appear in search results), with minimum parking removed citywide on 30 June 2024. Whether the Higher Buildings Policy (1997) has been replaced by the Review could not be confirmed. The brief says its documents are not legal documents, so all compliance results are indicative.",
+ "sources": [
+  {
+   "id": "P09-S01",
+   "title": "Vancouver eliminates minimum parking requirements (news report on the 26 June 2024 Council vote)",
+   "url": "https://globalnews.ca/news/10590288/vancouver-parking-minimums/amp",
+   "publisher": "Global News",
+   "year": "2024",
+   "type": "news",
+   "opened": true,
+   "extract": "Council voted 26 June 2024 to drop minimum parking for all uses citywide. Downtown peninsula minimums were removed in 2018, West End and Broadway Plan in 2023. Accessible, visitor, bike and loading spaces remain required. By-law cut from 33 to 17 pages."
+  },
+  {
+   "id": "P09-S02",
+   "title": "Vancouver eliminates minimum parking requirements",
+   "url": "https://storeys.com/vancouver-eliminates-minimum-parking-requirements/",
+   "publisher": "Storeys",
+   "year": "2024",
+   "type": "news",
+   "opened": true,
+   "extract": "Removal took effect 30 June 2024, going beyond Bills 44 and 47. Visitor and accessible parking still required. The City's TDM policy was unchanged at the time."
+  },
+  {
+   "id": "P09-S03",
+   "title": "Council report, Parking By-law amendments (report date 30 May 2024; Council 26 June 2024)",
+   "url": "https://council.vancouver.ca/20240626/documents/cfsc2.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "council report",
+   "opened": false,
+   "extract": "Not opened (HTTP 403). Search extract: effective 30 June 2024; adds child day care bicycle rates (Class A one per 17 employees, Class B one per 6 FTE child-care spaces)."
+  },
+  {
+   "id": "P09-S04",
+   "title": "Report, Elimination of Minimum Parking Requirements (Council 15 Nov 2023)",
+   "url": "https://council.vancouver.ca/20231115/documents/cfsc1.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2023",
+   "type": "council report",
+   "opened": false,
+   "extract": "Not opened (HTTP 403). Search extract: Nov 2023 amendment struck 'No Requirement' from some Class A bicycle rows, effective 1 Jan 2024."
+  },
+  {
+   "id": "P09-S05",
+   "title": "Parking By-law No. 6059, Section 4 Off-street parking space regulations (June 2026 consolidation)",
+   "url": "https://bylaws.vancouver.ca/parking/Sec04.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "by-law",
+   "opened": false,
+   "extract": "Not opened (bot challenge). Search extract: maximum-parking table applies in Downtown and Broadway Plan areas; non-residential rate shown as one space per 115 m2 GFA at s.4.2.5. Treat as unverified."
+  },
+  {
+   "id": "P09-S06",
+   "title": "Parking By-law No. 6059, Section 5 Off-street loading space regulations (May 2026 consolidation)",
+   "url": "https://bylaws.vancouver.ca/parking/sec05.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "by-law",
+   "opened": false,
+   "extract": "Not opened (bot challenge). Search extract: s.5.2 table of Class A/B/C requirements by use; Class B bay 10.2 m x 3.4 m in this version versus 8.5 x 3.0 x 3.8 m in 2012; Class C aisle at least 14 m. Unverified."
+  },
+  {
+   "id": "P09-S07",
+   "title": "Parking By-law No. 6059, Section 6 Off-street bicycle space regulations (Feb 2026 consolidation)",
+   "url": "https://bylaws.vancouver.ca/parking/sec06.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "by-law",
+   "opened": false,
+   "extract": "Not opened (bot challenge). Search extract: Class A bicycle spaces in a separate secured room inside the building; Class B racks at least 0.6 m per bicycle. Rate table not captured."
+  },
+  {
+   "id": "P09-S08",
+   "title": "Bulletin: Parking and Loading Design Supplement (effective 12 July 1988; superseded version also published)",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-parking-loading-design-supplement.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1988",
+   "type": "guideline",
+   "opened": false,
+   "extract": "Not opened (HTTP 403). A separate 'superseded' copy exists, so the 1988 values may be outdated. Used only as a pointer to ramp, headroom and clearance criteria."
+  },
+  {
+   "id": "P09-S09",
+   "title": "Loading Requirement Standards for New Development (Council policy report, 7 Oct 2003)",
+   "url": "https://council.vancouver.ca/20031007/p2.htm",
+   "publisher": "City of Vancouver",
+   "year": "2003",
+   "type": "council report",
+   "opened": false,
+   "extract": "Not opened (HTTP 403). Search extract: office use then had a high Class B requirement and no Class A requirement; residential Class B started at 100 dwellings. Old; check the current table."
+  },
+  {
+   "id": "P09-S10",
+   "title": "Review of Off-Street Bicycle Parking Requirements (Council, 13 May 2008)",
+   "url": "https://council.vancouver.ca/20080513/documents/tt2.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2008",
+   "type": "council report",
+   "opened": false,
+   "extract": "Not opened (HTTP 403). Search extract: proposed raising office and retail Class A from 1 per 750 m2 to 1 per 500 m2. Historical only."
+  },
+  {
+   "id": "P09-S11",
+   "title": "City memo on 720 Beatty Street (downtown application) giving loading and bicycle deficiencies",
+   "url": "https://vancouver.ca/files/cov/720-beatty-st.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2021",
+   "type": "development memo",
+   "opened": false,
+   "extract": "Not opened (HTTP 403). Search extract: requirements stated 'prior to any TDM variance', showing TDM plans can vary loading and bicycle requirements case by case. Year approximate."
+  },
+  {
+   "id": "P09-S12",
+   "title": "City of Vancouver Parking By-Law: A Recital of Sustainable Parking Policies (W. Memon, TAC conference paper)",
+   "url": "https://www.tac-atc.ca/wp-content/uploads/Memon.pdf",
+   "publisher": "Transportation Association of Canada",
+   "year": "2009",
+   "type": "conference paper",
+   "opened": true,
+   "extract": "Describes the Transportation Plan hierarchy (pedestrians, cyclists, transit, goods, then cars), the 1997 downtown commuter-parking basis of about one in four driving to work, Class A (secured) and Class B (visitor racks) bicycle spaces, and car-share provisions. Dated; the by-law has changed since."
+  },
+  {
+   "id": "P09-S13",
+   "title": "Vancouver bicycle parking requirements (vendor summary, partial list)",
+   "url": "https://cyclesafe.com/bike-parking-regulations/vancouver-bc/",
+   "publisher": "CycleSafe (vendor)",
+   "year": "n.d.",
+   "type": "secondary web page",
+   "opened": true,
+   "extract": "Lists Class A rates (dwelling 1.5, 2.5 or 3 per unit by size; office 1 per 170 m2; retail 1 per 340 m2; hotel 1 per 30 units) and Class B minima. States it is partial and gives no by-law version date. Secondary only."
+  },
+  {
+   "id": "P09-S14",
+   "title": "Vancouver bike parking requirements: 1.25 Class A spaces per unit explained",
+   "url": "https://bikeracks.ca/blog/vancouver-bike-parking-requirements-1-25-class-a",
+   "publisher": "BikeRacks.ca (vendor)",
+   "year": "2026",
+   "type": "secondary web page",
+   "opened": true,
+   "extract": "Claims 1.25 Class A per dwelling unit with no clause citation. Conflicts with S13; shows why the official table must be loaded."
+  },
+  {
+   "id": "P09-S15",
+   "title": "2023 Regional Trip Diary Survey: Methodological (Technical) Report",
+   "url": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2023-regional-trip-diary-technical-report.pdf",
+   "publisher": "TransLink / Ipsos",
+   "year": "2024",
+   "type": "survey report",
+   "opened": true,
+   "extract": "Weekday diary, 11 Sep to 8 Dec 2023, 15,879 retained households, Metro Vancouver plus Fraser Valley. 58 sub-regions including CBD - West End (21) and CBD - False Creek (22). Contains no mode-share results; those are in the dashboard."
+  },
+  {
+   "id": "P09-S16",
+   "title": "TransLink Research and Insights: Regional Trip Diary resources",
+   "url": "https://www.translink.ca/plans-and-projects/data-and-information/research-and-insights",
+   "publisher": "TransLink",
+   "year": "2025",
+   "type": "data portal page",
+   "opened": true,
+   "extract": "Links the 2023 Trip Diary Tableau dashboard and the 2017 re-weighted dashboard for comparison, plus the 2011, 2008 and 2004 reports. Mode shares are only inside the dashboards."
+  },
+  {
+   "id": "P09-S17",
+   "title": "Pedestrian Comfort Guidance for London (Pedestrian Comfort Level Guidance, First Edition)",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "publisher": "Transport for London / Atkins",
+   "year": "2010",
+   "type": "guidance",
+   "opened": true,
+   "extract": "Comfort bands by pedestrians per metre of clear width per minute: A+ under 3, A 3-5, A- 6-8, B+ 9-11, B 12-14, B- 15-17, C+ 18-20, C 21-23, C- 24-26, D 27-35, E over 35. B+ is the recommended minimum for all area types, with stricter handling for high street, office and retail, and transport interchange areas."
+  },
+  {
+   "id": "P09-S18",
+   "title": "Signal Timing Manual, Chapter 3 Signalized intersection measures (FHWA-HOP-08-024)",
+   "url": "https://ops.fhwa.dot.gov/publications/fhwahop08024/chapter3.htm",
+   "publisher": "US Federal Highway Administration",
+   "year": "2008",
+   "type": "technical manual",
+   "opened": true,
+   "extract": "Table 3-3 gives control-delay LOS bands (HCM 2000): A up to 10 s, B to 20, C to 35, D to 55, E to 80, F above 80. Section 3.3.5 and Table 3-2 give v/c bands: under 0.85 stable, 0.85-1.00 near capacity, over 1.00 oversaturated."
+  },
+  {
+   "id": "P09-S19",
+   "title": "Commute Trip Reduction, TDM Encyclopedia",
+   "url": "https://www.vtpi.org/tdm/tdm9.htm",
+   "publisher": "Victoria Transport Policy Institute",
+   "year": "2024",
+   "type": "practice review",
+   "opened": true,
+   "extract": "Summarises CTR evidence: 100% transit subsidy predicted -35% CBD commute travel (Ewing 1993 model); comprehensive worksite bundles 4-20% of peak auto trips; bundles with incentives about 15% versus about 7% for information only; office TDM plans 34-37% below ITE rates. Many figures are predictions."
+  },
+  {
+   "id": "P09-S20",
+   "title": "Parking Management, TDM Encyclopedia",
+   "url": "https://www.vtpi.org/tdm/tdm28.htm",
+   "publisher": "Victoria Transport Policy Institute",
+   "year": "2024",
+   "type": "practice review",
+   "opened": true,
+   "extract": "Typical 10-30% requirement reduction per management measure and 30-50% for a package; shared parking lets 20-40% more users per space; price elasticity -0.1 to -0.3; commuter cash-out cuts auto commuting 15-25%. Text truncated after 100,000 characters."
+  },
+  {
+   "id": "P09-S21",
+   "title": "Land Use Impacts on Transport, TDM Encyclopedia",
+   "url": "https://www.vtpi.org/tdm/tdm20.htm",
+   "publisher": "Victoria Transport Policy Institute",
+   "year": "2024",
+   "type": "practice review",
+   "opened": true,
+   "extract": "Tabulates elasticities of vehicle travel, walking and transit with respect to density, mix, design and distance to transit (Ewing and Cervero 2002; Vernez Moudon and Stewart 2013). Signs for distance-to-transit entries are inconsistent in the table."
+  },
+  {
+   "id": "P09-S22",
+   "title": "M/M/c queue",
+   "url": "https://en.wikipedia.org/wiki/M/M/c_queue",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "reference",
+   "opened": true,
+   "extract": "Stability needs rho = lambda/(c mu) below 1. Gives the Erlang C probability of waiting and mean wait in queue Wq = C/(c mu - lambda), the formulas used for dock sizing."
+  },
+  {
+   "id": "P09-S23",
+   "title": "SkyTrain (Vancouver)",
+   "url": "https://en.wikipedia.org/wiki/SkyTrain_(Vancouver)",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "reference",
+   "opened": true,
+   "extract": "Peak headways: Expo 2-5 min, Millennium 3-4 min, Canada 6 min. Ridership 149.1 million trips in 2024. No per-direction capacity figure given."
+  },
+  {
+   "id": "P09-S24",
+   "title": "Transit-Oriented Areas (Province of BC)",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "type": "provincial policy page",
+   "opened": true,
+   "extract": "Local governments cannot require off-street residential parking in TOAs; accessible spaces, commercial uses and loading can still be required. TOAs lie within 800 m of rapid transit. 104 TOAs listed in OIC 678-2023. Page updated 22 July 2026."
+  },
+  {
+   "id": "P09-S25",
+   "title": "Policy and planning tools for housing (links Metro Vancouver 'How much parking?' apartment study)",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/policy-and-planning-tools-for-housing",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "type": "provincial policy page",
+   "opened": true,
+   "extract": "Lists the Metro Vancouver apartment parking study and summary booklet. The study PDFs were not readable here (size limit), so no study figures are used."
+  },
+  {
+   "id": "P09-S26",
+   "title": "Lanes (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lanes",
+   "publisher": "City of Vancouver Open Data",
+   "year": "2026",
+   "type": "dataset",
+   "opened": true,
+   "extract": "7,856 lane centreline records with block and street name, updated weekly, Open Government Licence - Vancouver. No width or surface fields."
+  },
+  {
+   "id": "P09-S27",
+   "title": "Intersection traffic movement counts (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/intersection-traffic-movement-counts",
+   "publisher": "City of Vancouver Open Data",
+   "year": "2020",
+   "type": "dataset",
+   "opened": true,
+   "extract": "659 intersections with links to staff counts by lane and direction. Static, locations approximate, last modified 19 Nov 2020."
+  },
+  {
+   "id": "P09-S28",
+   "title": "Directional traffic count locations (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/directional-traffic-count-locations",
+   "publisher": "City of Vancouver Open Data",
+   "year": "2020",
+   "type": "dataset",
+   "opened": true,
+   "extract": "6,680 automated counter locations with 2004-2013 data, viewable only in Legacy VanMap, so volumes are not downloadable from this dataset."
+  },
+  {
+   "id": "P09-S29",
+   "title": "Rapid transit stations (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/rapid-transit-stations",
+   "publisher": "City of Vancouver Open Data",
+   "year": "2023",
+   "type": "dataset",
+   "opened": true,
+   "extract": "22 stations inside City limits for the three lines, with local area and point geometry. No capacity attributes."
+  },
+  {
+   "id": "P09-S30",
+   "title": "Bikeways (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/bikeways",
+   "publisher": "City of Vancouver Open Data",
+   "year": "2026",
+   "type": "dataset",
+   "opened": true,
+   "extract": "3,763 segments, 23 fields including bikeway type, AAA network flag, direction and speed limit. Updated weekly."
+  },
+  {
+   "id": "P09-S31",
+   "title": "Open data catalogue listing (traffic signals, public streets, one-way streets, parking meters, accessible parking, bike racks)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets",
+   "publisher": "City of Vancouver Open Data",
+   "year": "2026",
+   "type": "dataset catalogue",
+   "opened": true,
+   "extract": "A keyword listing returned traffic-signals, public-streets, one-way-streets, parking-meters, disability-parking, bike-racks and lanes datasets. Pedestrian-count and signal-timing datasets did not appear for those keywords."
+  },
+  {
+   "id": "P09-S32",
+   "title": "Eclipse SUMO (Simulation of Urban MObility)",
+   "url": "https://github.com/eclipse-sumo/sumo",
+   "publisher": "Eclipse Foundation / DLR",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "Open-source microscopic traffic simulator, EPL-2.0, with intermodal and pedestrian support."
+  },
+  {
+   "id": "P09-S33",
+   "title": "SUMO documentation: Pedestrians",
+   "url": "https://sumo.dlr.de/docs/Simulation/Pedestrians.html",
+   "publisher": "DLR",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Striping model (0.65 m stripes), JuPedSim coupling, crossings and walking areas, detector outputs, and caveats such as one sidewalk per edge and forced release of jammed pedestrians after a timeout."
+  },
+  {
+   "id": "P09-S34",
+   "title": "JuPedSim",
+   "url": "https://github.com/PedestrianDynamics/jupedsim",
+   "publisher": "Forschungszentrum Julich / community",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "Pedestrian dynamics library, LGPL-3.0, pip install jupedsim."
+  },
+  {
+   "id": "P09-S35",
+   "title": "PedPy",
+   "url": "https://github.com/PedestrianDynamics/PedPy",
+   "publisher": "PedestrianDynamics",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "MIT-licensed analysis of trajectory data: density, speed, flow, Voronoi methods; loads JuPedSim and Vadere output."
+  },
+  {
+   "id": "P09-S36",
+   "title": "OSMnx",
+   "url": "https://github.com/gboeing/osmnx",
+   "publisher": "G. Boeing",
+   "year": "2025",
+   "type": "software",
+   "opened": true,
+   "extract": "MIT-licensed Python package to download, model and analyse street networks, building footprints and amenities from OpenStreetMap."
+  },
+  {
+   "id": "P09-S37",
+   "title": "UXsim",
+   "url": "https://github.com/toruseo/UXsim",
+   "publisher": "T. Seo",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "MIT-licensed macroscopic and mesoscopic network traffic simulator with signals, dynamic assignment, snapshots and animations; pip install uxsim."
+  },
+  {
+   "id": "P09-S38",
+   "title": "gtfs_kit",
+   "url": "https://github.com/mrcagney/gtfs_kit",
+   "publisher": "MRCagney",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "MIT-licensed Pandas/GeoPandas toolkit for GTFS feeds (Python 3.10+). Repository archived; development moved to Codeberg."
+  },
+  {
+   "id": "P09-S39",
+   "title": "deck.gl",
+   "url": "https://github.com/visgl/deck.gl",
+   "publisher": "vis.gl",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "MIT-licensed WebGL2 layered visualisation framework for large datasets."
+  },
+  {
+   "id": "P09-S40",
+   "title": "Shapely",
+   "url": "https://github.com/shapely/shapely",
+   "publisher": "Shapely contributors",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "BSD-3-Clause planar geometry library on GEOS (LGPL-2.1): buffers, areas, intersections."
+  },
+  {
+   "id": "P09-S41",
+   "title": "SimPy",
+   "url": "https://gitlab.com/team-simpy/simpy",
+   "publisher": "SimPy team",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "Discrete-event simulation library. The page shows an MIT licence link but did not load its description fully."
+  },
+  {
+   "id": "P09-S42",
+   "title": "Higher Buildings Policy for Rezonings (1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "policy",
+   "opened": false,
+   "extract": "Named in the VTC brief. Not opened (HTTP 403). Whether it still governs or has been replaced after the Review could not be confirmed."
+  },
+  {
+   "id": "P09-S43",
+   "title": "Higher Buildings Policy Review (engagement document)",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "policy review",
+   "opened": false,
+   "extract": "Named in the VTC brief. Not opened (HTTP 403). Year approximate."
+  },
+  {
+   "id": "P09-S44",
+   "title": "Transit Capacity and Quality of Service Manual, Third Edition (TCRP Report 165), Chapter 10 Station Capacity",
+   "url": "https://www.nationalacademies.org/read/24766/chapter/11",
+   "publisher": "Transportation Research Board",
+   "year": "2013",
+   "type": "technical manual",
+   "opened": true,
+   "extract": "Chapter 10 (pp. 618-716) covers station capacity. The reader page returned no table text, so no thresholds from it are used."
+  },
+  {
+   "id": "P09-S45",
+   "title": "NCHRP Report 684: Enhancing Internal Trip Capture Estimation for Mixed-Use Developments",
+   "url": "https://nap.nationalacademies.org/catalog/14489",
+   "publisher": "Transportation Research Board",
+   "year": "2011",
+   "type": "technical report",
+   "opened": false,
+   "extract": "Not opened (HTTP 429). Known to provide an internal-capture method and spreadsheet for mixed-use sites; pair rates were not read."
+  },
+  {
+   "id": "P09-S46",
+   "title": "Trip generation",
+   "url": "https://en.wikipedia.org/wiki/Trip_generation",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "reference",
+   "opened": true,
+   "extract": "ITE rates take the form a + b x area or a + b ln(area) and ignore location and transport cost. Supports using local survey data for downtown sites."
+  }
+ ],
+ "modules": [
+  {
+   "module_id": "P09-M01",
+   "name": "Person-trip generation and mode split",
+   "phase": "basic",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M (about 2 weeks; extracting Trip Diary baselines by hand dominates)",
+   "design_question": "How many person-trips will the tagged program generate per day and in the peak hour, by purpose and mode, and does the resulting split meet downtown sustainable-mode expectations?",
+   "inputs": [
+    "Layer 0: GFA by program tag (office, residential, hotel, retail, cultural/civic, public, amenity)",
+    "Layer 0: dwelling units, unit mix, hotel keys",
+    "Site location key for the Trip Diary baseline (CBD sub-regions 21 and 22)",
+    "Optional SITE output: distance to nearest rapid-transit station"
+   ],
+   "parameters": [
+    {
+     "name": "GFA per use (Layer 0)",
+     "unit": "m2",
+     "relationship": "More office or retail GFA raises employees and visitors, so daily person-trips rise roughly in proportion. More residential GFA raises resident trips through persons per unit.",
+     "source_ids": [
+      "P09-S46"
+     ]
+    },
+    {
+     "name": "Floor area per employee",
+     "unit": "m2 per job",
+     "relationship": "Lower area per job (denser office) raises employee count and commute trips for the same GFA. No Vancouver value was sourced, so it is an editable team assumption.",
+     "source_ids": []
+    },
+    {
+     "name": "Trip rate per person, unit or room by purpose",
+     "unit": "trips per day",
+     "relationship": "Higher rates scale every downstream flow linearly. Weekday Trip Diary rates for CBD sub-regions are the preferred local source; values live in the Tableau dashboard and must be loaded by hand.",
+     "source_ids": [
+      "P09-S15",
+      "P09-S16"
+     ]
+    },
+    {
+     "name": "Internal capture between uses",
+     "unit": "% of trips",
+     "relationship": "Higher capture among co-located residential, office, retail and hotel keeps trips inside the site, lowering external vehicle and transit trips at the boundary. Pair rates come from NCHRP 684, which was not opened.",
+     "source_ids": [
+      "P09-S45"
+     ]
+    },
+    {
+     "name": "Mode split vector by purpose",
+     "unit": "% of trips",
+     "relationship": "Moving share from auto driver to walk or transit lowers vehicle trips, parking demand and kerb pressure but raises station and footway flows, which feed P09-M03 and P09-M04.",
+     "source_ids": [
+      "P09-S15",
+      "P09-S16",
+      "P09-S12"
+     ]
+    },
+    {
+     "name": "Distance to nearest rapid-transit stop",
+     "unit": "m",
+     "relationship": "Greater distance is associated with less transit and walking use; cited elasticity magnitudes are 0.29 (transit) and 0.15 (walking). Signs are inconsistent in the source table, so use magnitudes with a direction rule.",
+     "source_ids": [
+      "P09-S21"
+     ]
+    },
+    {
+     "name": "Land-use mix and street connectivity",
+     "unit": "index",
+     "relationship": "Higher mix and intersection density are associated with more walking (elasticities 0.15 and 0.39) and less vehicle travel (-0.09 and -0.12). Use as sensitivity tests, not stacked multipliers.",
+     "source_ids": [
+      "P09-S21"
+     ]
+    },
+    {
+     "name": "Parking supply per use (from P09-M02)",
+     "unit": "stalls",
+     "relationship": "Fewer or priced stalls lower drive-alone share; parking-management measures typically cut requirements 10-30% each. Treat as a scenario, not a default.",
+     "source_ids": [
+      "P09-S20"
+     ]
+    },
+    {
+     "name": "Auto occupancy",
+     "unit": "persons per vehicle",
+     "relationship": "Higher occupancy turns the same auto-person trips into fewer vehicle trips. No sourced local value; editable team assumption.",
+     "source_ids": []
+    },
+    {
+     "name": "Peak-hour factor and directional split",
+     "unit": "% of daily trips",
+     "relationship": "A higher peak share raises station, entry and kerb loads. Office is inbound in the AM and residential outbound, so the governing direction differs by use. Default factor is a team assumption.",
+     "source_ids": [
+      "P09-S15"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Sustainable-mode share (walk + bike + transit) versus CBD baseline",
+     "unit": "% of external person-trips",
+     "good": "At or above the CBD sub-region 21/22 share in the 2023 Trip Diary (value to be loaded)",
+     "bad": "Below the Metro Vancouver average share in the 2023 Trip Diary (value to be loaded)",
+     "status": "unverified",
+     "basis": "Data exist in the TransLink dashboard but numbers could not be read here.",
+     "method": "Compare modelled share with baseline loaded from the dashboard.",
+     "source_ids": [
+      "P09-S15",
+      "P09-S16"
+     ]
+    },
+    {
+     "name": "Sustainable-mode share versus City target",
+     "unit": "% of external person-trips",
+     "good": "66.7% or more (two-thirds, recalled City target)",
+     "bad": "Below 50% (editable preset)",
+     "status": "unverified",
+     "basis": "The City's Transportation 2040 and climate-plan targets were not opened. The 1997 plan targets in Memon 2009 are historical.",
+     "method": "Compare modelled share with target; show target year and source badge.",
+     "source_ids": [
+      "P09-S12"
+     ]
+    },
+    {
+     "name": "Auto-driver share of office commute trips",
+     "unit": "%",
+     "good": "25% or less (about one in four, the 1997 downtown planning basis)",
+     "bad": "Above 40% (editable preset)",
+     "status": "team_assumption",
+     "basis": "Good value is the 1997 Transportation Plan basis as reported by Memon (2009), possibly superseded. Bad value is a preset.",
+     "method": "Auto-driver commute trips divided by office commute trips.",
+     "source_ids": [
+      "P09-S12"
+     ]
+    },
+    {
+     "name": "Internal capture share of all trips",
+     "unit": "%",
+     "good": "Inside the NCHRP 684 pair ranges for the use mix (ranges to be loaded)",
+     "bad": "Above the upper bound of those ranges (over-claiming)",
+     "status": "unverified",
+     "basis": "Report not opened.",
+     "method": "Internal trips divided by total trips from the pair matrix.",
+     "source_ids": [
+      "P09-S45"
+     ]
+    }
+   ],
+   "visualization": [
+    "Stacked bars of daily external person-trips by mode for each use, with the Trip Diary CBD baseline drawn as a tick on each bar",
+    "24-hour stacked area of person-trips by mode with the peak hour shaded and an in/out toggle",
+    "Sankey from use to purpose to mode; link width is trips; hover shows factor value, source badge and status colour (verified, team assumption, FALSE ASSUMPTION)",
+    "Gauge of sustainable share with baseline and City-target marks and a P10-P90 whisker from the Monte Carlo run"
+   ],
+   "outputs": [
+    "PersonTripTable (use x purpose x mode x hour, in/out)",
+    "PeakHourDemand {transit_in/out, walk_in/out, bike, auto_driver, taxi_TNC, servicing_vehicles}",
+    "ModeShareSummary with provenance per factor",
+    "ParkingDemandEstimate (auto-driver commuters x occupancy) for P09-M02 and P09-M07"
+   ],
+   "method": "1) For each use u, daily person-trips T_u = driver_u x rate_u, where the driver is employees (GFA / m2 per job), residents (units x persons per unit), occupied hotel keys, or programmed visitors for civic and public uses. 2) Remove internal trips with a pair matrix that follows the NCHRP 684 worksheet logic for office, retail, residential and hotel. 3) Split external trips by a purpose-specific mode vector. The default is the 2023 Trip Diary weekday share for CBD sub-regions 21 and 22, loaded by the user from the TransLink dashboard. Optional sensitivity shifts shares with the cited elasticities. 4) Auto-driver trips = auto-person trips / occupancy. Peak hour = daily x peak factor x directional split. 5) A 1,000-draw Monte Carlo over low, base and high factor values gives P10-P90 bands. Every factor carries a source id and a status colour; unsourced factors appear as editable team assumptions.",
+   "human_judgment": "Choice of benchmark zone and whether to claim a better split than the CBD baseline; attendance assumptions for civic, cultural and public uses that have no standard rate; the narrative linking mode split to design moves.",
+   "limits": "Weekday resident-diary data under-represent visitors, tourists and event crowds. The Trip Diary does not publish trips per square metre, so employees and households must be derived from program areas. Mode shares are zone averages, not site-specific. Changes after 2023 are not reflected. ITE rates are paywalled and not bundled.",
+   "libraries": [
+    {
+     "name": "pandas",
+     "license": "BSD-3-Clause",
+     "role": "Trip tables and mode-split arithmetic",
+     "url": "https://github.com/pandas-dev/pandas"
+    },
+    {
+     "name": "SALib",
+     "license": "MIT",
+     "role": "Sensitivity and Monte Carlo sampling of factor ranges",
+     "url": "https://github.com/SALib/SALib"
+    },
+    {
+     "name": "gtfs_kit",
+     "license": "MIT",
+     "role": "Transit frequency around the site for context",
+     "url": "https://github.com/mrcagney/gtfs_kit"
+    }
+   ],
+   "depends_on": [],
+   "jury_criteria": [
+    "urban_integration_10",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P09-M02",
+   "name": "Parking, loading and bicycle by-law check",
+   "phase": "basic",
+   "category": "MOBI",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "M (rule-pack transcription and validation dominate; computation is trivial)",
+   "design_question": "Does the scheme provide the accessible, visitor, loading and bicycle spaces the Vancouver Parking By-law requires and stay within any downtown parking maximum, with every rule traceable to a clause?",
+   "inputs": [
+    "Layer 0: GFA by use, dwelling units and sizes, hotel keys, child-care capacity if tagged",
+    "Employee count from P09-M01",
+    "Provided counts or modelled spaces: car, accessible, Class A/B/C loading, Class A/B bicycle",
+    "User-imported rule pack (JSON) transcribed from the current by-law PDFs"
+   ],
+   "parameters": [
+    {
+     "name": "Minimum off-street parking",
+     "unit": "stalls",
+     "relationship": "No minimum applies downtown (since 2018) or citywide (since 30 June 2024), so supplying fewer stalls cannot create a by-law deficiency. Accessible and visitor stalls still count.",
+     "source_ids": [
+      "P09-S01",
+      "P09-S02",
+      "P09-S03"
+     ]
+    },
+    {
+     "name": "Downtown maximum for non-residential parking",
+     "unit": "stalls per m2 GFA",
+     "relationship": "More non-residential GFA raises the permitted ceiling in proportion; stalls above it need a relaxation. A search extract gives 1 per 115 m2 (s.4.2.5); the text was not opened.",
+     "source_ids": [
+      "P09-S05"
+     ]
+    },
+    {
+     "name": "Class B and C loading requirement by use, GFA and units",
+     "unit": "bays",
+     "relationship": "More units or GFA triggers extra Class B or C bays in steps. The 2012 text had none under 100 dwellings and one at 100-299 (older; current table not opened).",
+     "source_ids": [
+      "P09-S06",
+      "P09-S09"
+     ]
+    },
+    {
+     "name": "Loading bay dimensions by class",
+     "unit": "m",
+     "relationship": "A larger required bay (Class B 10.2 x 3.4 m in a May 2026 extract versus 8.5 x 3.0 x 3.8 m in 2012) enlarges the dock footprint and headroom, pushing the dock deeper into the floor plate.",
+     "source_ids": [
+      "P09-S06",
+      "P09-S08"
+     ]
+    },
+    {
+     "name": "Class A bicycle rate",
+     "unit": "spaces per unit, m2 or room",
+     "relationship": "Higher rates enlarge the secured bicycle room. Vendor summaries give 1.5-3 per dwelling by size and 1 per 170 m2 office but conflict with each other and with a 2008 City proposal.",
+     "source_ids": [
+      "P09-S07",
+      "P09-S13",
+      "P09-S14",
+      "P09-S10"
+     ]
+    },
+    {
+     "name": "Class B (visitor) bicycle rate",
+     "unit": "spaces",
+     "relationship": "Triggered at size thresholds (vendor: 6 spaces at 2,000 m2 office). More spaces lengthen the rack frontage near entries, competing with footway width.",
+     "source_ids": [
+      "P09-S07",
+      "P09-S13"
+     ]
+    },
+    {
+     "name": "Child-care capacity",
+     "unit": "FTE spaces",
+     "relationship": "Adding a child-care facility adds Class A 1 per 17 employees and Class B 1 per 6 FTE spaces, per a June 2024 report extract.",
+     "source_ids": [
+      "P09-S03"
+     ]
+    },
+    {
+     "name": "TDM variance",
+     "unit": "% relief",
+     "relationship": "An accepted TDM plan can vary loading and bicycle counts case by case, as a downtown memo implies. The allowable reduction was not found, so it is left as a user entry.",
+     "source_ids": [
+      "P09-S11"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Parking provided versus downtown maximum",
+     "unit": "ratio",
+     "good": "At or below 1.0 (at or under the maximum)",
+     "bad": "Above 1.0 (relaxation needed)",
+     "status": "unverified",
+     "basis": "Section 4 (June 2026) not opened; rate from a search extract.",
+     "method": "Provided stalls divided by maximum from the rule pack.",
+     "source_ids": [
+      "P09-S05"
+     ]
+    },
+    {
+     "name": "Minimum-parking deficiency test",
+     "unit": "flag",
+     "good": "No minimum applies; fewer stalls is compliant",
+     "bad": "Reporting a parking shortfall as a deficiency (corrected false assumption)",
+     "status": "false_assumption_corrected",
+     "basis": "Minimums removed 2018 downtown and 30 June 2024 citywide.",
+     "method": "Rule is switched off; shows a corrected-assumption badge if a user rule row tries to enable it.",
+     "source_ids": [
+      "P09-S01",
+      "P09-S02"
+     ]
+    },
+    {
+     "name": "Loading bays provided versus required, per class",
+     "unit": "ratio",
+     "good": "1.0 or more in each of A, B and C",
+     "bad": "Below 1.0 in any class without a documented relaxation",
+     "status": "unverified",
+     "basis": "Section 5.2 table not opened.",
+     "method": "Provided bays divided by required bays from the rule pack.",
+     "source_ids": [
+      "P09-S06"
+     ]
+    },
+    {
+     "name": "Class A bicycle spaces provided versus required",
+     "unit": "ratio",
+     "good": "1.0 or more",
+     "bad": "Below 1.0",
+     "status": "unverified",
+     "basis": "Official table not opened; secondary rates conflict.",
+     "method": "Provided divided by required.",
+     "source_ids": [
+      "P09-S07",
+      "P09-S13",
+      "P09-S14"
+     ]
+    },
+    {
+     "name": "Class B bicycle spaces provided versus required",
+     "unit": "ratio",
+     "good": "1.0 or more",
+     "bad": "Below 1.0",
+     "status": "unverified",
+     "basis": "Official table not opened.",
+     "method": "Provided divided by required.",
+     "source_ids": [
+      "P09-S07"
+     ]
+    },
+    {
+     "name": "Bay dimension check",
+     "unit": "pass/fail",
+     "good": "Every modelled bay meets the by-law length, width and height for its class",
+     "bad": "Any bay smaller than its class envelope",
+     "status": "unverified",
+     "basis": "Dimensions differ between 2012 and 2026 extracts.",
+     "method": "Compare bay rectangles with the class envelope.",
+     "source_ids": [
+      "P09-S06",
+      "P09-S08"
+     ]
+    },
+    {
+     "name": "Accessible parking provided versus required",
+     "unit": "ratio",
+     "good": "1.0 or more",
+     "bad": "Below 1.0",
+     "status": "unverified",
+     "basis": "Requirement confirmed to remain (S01, S02, S24); the rate was not found.",
+     "method": "Provided divided by required.",
+     "source_ids": [
+      "P09-S01",
+      "P09-S24"
+     ]
+    }
+   ],
+   "visualization": [
+    "Compliance table, one row per rule: required, provided, deficiency, and a pass/fail badge linking to the clause, version date and status colour",
+    "Paired horizontal bars of required versus provided for loading A/B/C, bicycle A/B and parking against the maximum, with a line at 100%",
+    "Plan overlay of bays and bicycle rooms: green outline for compliant dimensions, red hatch for undersized, clause label on hover",
+    "Version diff view highlighting rule rows that changed between by-law consolidations"
+   ],
+   "outputs": [
+    "ParkingLoadingBikeLedger (required, provided, deficiency per rule)",
+    "LoadingBayCount by class for P09-M05",
+    "BicycleRoomArea requirement for SPAC and PRES",
+    "ParkingStallCount for P09-M07 and P09-M08",
+    "RelaxationList for the policy-reflection board"
+   ],
+   "method": "Rule-pack engine. Each rule row stores use, class, formula type (per m2, per unit, per room, per employee, step threshold), parameters, rounding rule, clause id, by-law version date and verification status. Required count = formula result rounded as the row states, summed over uses. Provided counts come from Layer 0 tags or entry fields. A dimension check intersects each modelled bay rectangle (Shapely) with the by-law envelope for its class and tests ramp slope and headroom against Design Supplement values the user enters. The output is a ledger of required, provided and deficiency with a badge linked to the clause. Because City pages block automated access, the user imports rule rows from the downloaded PDFs and ticks 'transcription checked'; unchecked rows render as team assumptions and cannot produce a green badge.",
+   "human_judgment": "Whether to seek or argue a relaxation (the brief says justified breaches may be rewarded), reading ambiguous clauses, how much parking to supply when none is required, and trading bay area against active frontage.",
+   "limits": "The by-law was consolidated again in Feb, May and June 2026, so rule rows go stale quickly. Required counts depend on GFA definitions at permit stage. Site-specific CD-1 or district rules can override. The VTC brief calls its documents non-legal, so results are indicative. Passenger-loading rules were not located.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Bay and envelope geometry tests",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "pdfplumber",
+     "license": "MIT",
+     "role": "Assist table extraction from user-supplied by-law PDFs (not opened here)",
+     "url": "https://github.com/jsvine/pdfplumber"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0-or-later",
+     "role": "Read tagged parking and loading spaces from IFC (not opened here)",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ],
+   "depends_on": [
+    "P09-M01"
+   ],
+   "jury_criteria": [
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P09-M03",
+   "name": "Transit connection and station-entrance capacity",
+   "phase": "basic",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M (passage graph and comfort calculation are small; validation runs add time)",
+   "design_question": "Can the below-grade secondary station connection and its passages carry the tower's peak transit flows at acceptable pedestrian comfort, and how much entrance capacity does the tower use?",
+   "inputs": [
+    "PeakHourDemand transit_in/out from P09-M01 (or P09-M07 adjusted)",
+    "Layer 0: polyline or polygon of the connection (stairs, escalators, lifts, fare line) with clear widths",
+    "Station location from the SITE module (City rapid-transit-stations dataset)",
+    "Train headways from a GTFS feed",
+    "User-entered platform and gate capacities from TransLink (not public in sources opened)"
+   ],
+   "parameters": [
+    {
+     "name": "Clear passage width",
+     "unit": "m",
+     "relationship": "Wider clear width lowers pedestrians per metre per minute and improves the comfort band. Required width for B+ equals peak-minute flow divided by 11 ppmm.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Peak-minute surge from train arrivals (platoon factor)",
+     "unit": "ratio to 15-min average",
+     "relationship": "Larger platoons from longer headways or bunching raise the one-minute peak above the 15-minute average and push the same corridor into a worse comfort band. Default factor is a preset.",
+     "source_ids": [
+      "P09-S23",
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Tower share of boardings and alightings using the new entrance",
+     "unit": "%",
+     "relationship": "A higher share loads the new passage and unloads existing entrances. Share falls as walking distance to the platform rises, with cited elasticity magnitude about 0.15-0.29.",
+     "source_ids": [
+      "P09-S21"
+     ]
+    },
+    {
+     "name": "Counter-flow fraction",
+     "unit": "%",
+     "relationship": "More opposing flow reduces effective capacity; TfL notes that bi-directional movement becomes difficult from comfort level C.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Effective-width deduction (shy distance, columns, furniture)",
+     "unit": "m",
+     "relationship": "Each obstruction narrows clear width and raises ppmm. TfL's method uses clear footway width after removing buffers beside furniture and walls.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Stair, escalator and lift throughput",
+     "unit": "persons per min",
+     "relationship": "Lower vertical throughput creates queues where the passage meets the platform. Capacities are in TCQSM chapter 10, which could not be read, so values are editable assumptions.",
+     "source_ids": [
+      "P09-S44"
+     ]
+    },
+    {
+     "name": "Fare-gate throughput",
+     "unit": "persons per min per gate",
+     "relationship": "More or faster gates shorten the fare-line queue. No sourced rate was found.",
+     "source_ids": []
+    },
+    {
+     "name": "Train headway",
+     "unit": "min",
+     "relationship": "Shorter headways shrink platoon size and platform crowding. Peak headways are 2-5 min on the Expo Line and 3-4 min on the Millennium Line.",
+     "source_ids": [
+      "P09-S23"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Pedestrian Comfort Level on the critical passage link",
+     "unit": "ppmm (pedestrians per metre width per minute)",
+     "good": "11 ppmm or less (PCL B+ or better)",
+     "bad": "18 ppmm or more (PCL C+ or worse)",
+     "status": "verified",
+     "basis": "TfL bands; B+ is its recommended minimum for all areas. London guidance applied to Vancouver is a team choice.",
+     "method": "Peak-minute flow divided by effective width, mapped to TfL bands.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Required width for B+ divided by provided width",
+     "unit": "ratio",
+     "good": "1.0 or less (provided width suffices)",
+     "bad": "Above 1.0",
+     "status": "verified",
+     "basis": "Derived from the 11 ppmm B+ limit.",
+     "method": "W_req = q / 11, compared with effective width.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Queue area per person at stair or fare line",
+     "unit": "m2 per person",
+     "good": "1.4 or more (Fruin LOS A-C)",
+     "bad": "Below 0.9 (Fruin LOS E or F)",
+     "status": "unverified",
+     "basis": "Fruin 1971 values recalled; not opened. TCQSM chapter 10 could not be read.",
+     "method": "Queue length from the cumulative diagram times area per person.",
+     "source_ids": [
+      "P09-S44"
+     ]
+    }
+   ],
+   "visualization": [
+    "Plan-view false-colour of each passage link by PCL band, A+ dark green to E red, with legend ticks at 3, 5, 8, 11, 14, 17, 20, 23, 26 and 35 ppmm",
+    "Line chart of queue length at the stair or fare line over a 10-minute train-arrival cycle with storage capacity as a dashed line",
+    "Width-versus-PCL curve with the design point and the B+ target marked",
+    "Optional animated agents coloured by local density from JuPedSim trajectories"
+   ],
+   "outputs": [
+    "PassageComfortReport {link_id, flow, ppmm, PCL, required_width}",
+    "StationEntranceLoad (persons per hour by direction) for liaison with the station owner and the policy reflection",
+    "ConnectionGeometry (typed polyline with widths) for STRC, SYST and SPAC"
+   ],
+   "method": "Build a passage graph from the Layer 0 centreline and give each link an effective width (clear width minus deductions). Convert tower transit_in and transit_out to peak-minute flow q = peak-hour flow x entrance share / 60 x platoon factor. Flow per metre width = q / effective width in ppmm; counter-flow adds opposing flow on the same width. Map ppmm to the TfL bands (A+ under 3 to E over 35). Required width for B+ = q / 11. Queue at stairs or fare line comes from a cumulative-arrival minus cumulative-service diagram over a 10-minute window; area = queue x area per person. Optional validation: export the walkable area to JuPedSim and read density and flow with PedPy, or to SUMO's pedestrian model. Station-wide platform capacity is not computed; user-entered station data are compared with the tower's added load.",
+   "human_judgment": "Agreement with the station owner on entrance location and share of flow, wayfinding and arrival experience, whether the connection is a public amenity or a back-of-house shortcut, structural conflicts, and life-safety egress, which this module does not assess.",
+   "limits": "TfL comfort bands are calibrated to London footways, not stations or Vancouver. No platform, gate or train-load data were found, so station-wide capacity is untested. Building-code and rail-station egress rules are out of scope. The peak-minute surge uses a preset unless GTFS and counts are supplied.",
+   "libraries": [
+    {
+     "name": "JuPedSim",
+     "license": "LGPL-3.0",
+     "role": "Agent-based passage validation",
+     "url": "https://github.com/PedestrianDynamics/jupedsim"
+    },
+    {
+     "name": "PedPy",
+     "license": "MIT",
+     "role": "Density, speed and flow analysis of trajectories",
+     "url": "https://github.com/PedestrianDynamics/PedPy"
+    },
+    {
+     "name": "SUMO",
+     "license": "EPL-2.0",
+     "role": "Alternative pedestrian model with crossings and walking areas",
+     "url": "https://github.com/eclipse-sumo/sumo"
+    },
+    {
+     "name": "gtfs_kit",
+     "license": "MIT",
+     "role": "Headways and arrival platoons from GTFS",
+     "url": "https://github.com/mrcagney/gtfs_kit"
+    }
+   ],
+   "depends_on": [
+    "P09-M01"
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P09-M04",
+   "name": "Entry flows and forecourt comfort",
+   "phase": "advanced",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M",
+   "design_question": "Do entrances, lobbies and adjacent footways stay comfortable at peak arrival, and where do queues spill into the public realm?",
+   "inputs": [
+    "PeakHourDemand (walk, transit, taxi arrivals) from P09-M01 or P09-M07",
+    "Layer 0: entrance openings (position, clear width, door count) and the program each serves",
+    "SITE: footway and forecourt polygons and street classes (arterial, retail high street, lane)",
+    "Optional: pedestrian counts on adjacent footways supplied by the user"
+   ],
+   "parameters": [
+    {
+     "name": "Entrance clear width and door count",
+     "unit": "m",
+     "relationship": "More clear width raises entry service rate and shortens queues. Fewer doors for the same arrivals push the queue out onto the footway.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Arrival peaking (15-minute factor, shift-start alignment)",
+     "unit": "ratio",
+     "relationship": "Aligned shift starts concentrate arrivals; a higher peak factor raises peak ppmm and queue spill. No sourced Vancouver factor was found, so it is a preset.",
+     "source_ids": []
+    },
+    {
+     "name": "Screening or turnstile throughput",
+     "unit": "persons per min",
+     "relationship": "Slower screening lowers entry service rate, so queues form earlier. No sourced rate was found.",
+     "source_ids": []
+    },
+    {
+     "name": "Footway clear width after furniture and buffers",
+     "unit": "m",
+     "relationship": "Narrower clear width raises ppmm for through-pedestrians plus entering flow. TfL deducts buffers beside furniture and building faces from clear width.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Background through-flow on the footway",
+     "unit": "persons per min",
+     "relationship": "More passer-by flow adds to tower flow on the same width and lowers PCL. TfL applies stricter acceptance for high street, office and retail, and interchange areas.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Queueing area per person in lobby",
+     "unit": "m2",
+     "relationship": "More area per waiting person keeps queues inside the lobby and cuts spill onto the footway. Area standards (Fruin) were not opened.",
+     "source_ids": []
+    },
+    {
+     "name": "Entry share by frontage (arterial, high street, lane)",
+     "unit": "%",
+     "relationship": "Putting more entries on the retail high street loads that footway and lowers its PCL; putting them on the lane relieves the frontage but weakens public-facing activity. A design judgement, not a sourced rule.",
+     "source_ids": []
+    },
+    {
+     "name": "Taxi and ride-hail drop-off bays",
+     "unit": "bays",
+     "relationship": "More kerb bays shorten vehicle queues in the lane or street but take footway or frontage. Sized with the queue model in P09-M05.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "PCL on adjacent footway at peak",
+     "unit": "ppmm",
+     "good": "11 ppmm or less (B+ or better)",
+     "bad": "18 ppmm or more (C+ or worse)",
+     "status": "verified",
+     "basis": "TfL bands and area-type guidance (high street, office and retail, interchange).",
+     "method": "(through-flow + entering flow) / effective width, mapped to bands.",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Entrance clear width divided by width required for B+",
+     "unit": "ratio",
+     "good": "1.0 or more",
+     "bad": "Below 1.0",
+     "status": "verified",
+     "basis": "Derived from the 11 ppmm B+ limit.",
+     "method": "Provided width / (flow / 11).",
+     "source_ids": [
+      "P09-S17"
+     ]
+    },
+    {
+     "name": "Queue spill outside the property line",
+     "unit": "m2",
+     "good": "0 m2 at design peak",
+     "bad": "More than 0 m2",
+     "status": "team_assumption",
+     "basis": "Editable preset; no source.",
+     "method": "Queue area beyond lobby polygon intersected with forecourt or footway.",
+     "source_ids": []
+    },
+    {
+     "name": "95th-percentile screening wait",
+     "unit": "min",
+     "good": "2 min or less",
+     "bad": "More than 5 min",
+     "status": "team_assumption",
+     "basis": "Editable preset; no source.",
+     "method": "Poisson arrivals, 200 replications.",
+     "source_ids": []
+    }
+   ],
+   "visualization": [
+    "Ground-plane heat-map of predicted ppmm on footways and forecourt using the TfL A+ to E legend, with entry arrows scaled to flow",
+    "Entry badges showing PCL band and pass/fail linked to the TfL band table",
+    "Small-multiple queue-length time series per entry with the lobby capacity line",
+    "Spill polygons outlined red where the queue exceeds the lobby"
+   ],
+   "outputs": [
+    "EntryFlowMatrix (entry x minute, in/out)",
+    "SpilloverPolygons for PUBL modules and SPAC",
+    "FootwayPCL by segment for human-scale scoring",
+    "TaxiTNC kerb demand for P09-M05"
+   ],
+   "method": "Assign each entry its arrivals per minute from PeakHourDemand using a program-to-entry map and a 15-minute peak factor. Entry service capacity = clear width x ppmm capacity at the chosen comfort band (default 11) or the turnstile rate where screened. Run a deterministic cumulative-arrival and service diagram per entry to get queue length, then convert to area with the queueing-area preset; overflow beyond the lobby polygon is assigned to the forecourt or footway polygon. Add through-flow and tower flow on each footway segment, divide by effective width (clear width minus buffers) to get ppmm and PCL. Optional stochastic run (Poisson arrivals, 200 replications) gives the 95th-percentile queue. Export walkable polygons to JuPedSim or SUMO for validation.",
+   "human_judgment": "Entry sequence and sense of welcome, whether queues are acceptable as gathering space, cultural protocols for arrival and gathering, security stance, activation of ground-floor edges, and balancing comfort bands against an intimate street character.",
+   "limits": "TfL bands are for London. No pedestrian-count dataset appeared among City open data matched by street, bike, parking, lane, traffic, loading and transit keywords, so through-flow must be supplied or assumed. Peaking and screening rates are unsourced presets. Static peak only; events and weather are not modelled.",
+   "libraries": [
+    {
+     "name": "JuPedSim",
+     "license": "LGPL-3.0",
+     "role": "Agent-based entry validation",
+     "url": "https://github.com/PedestrianDynamics/jupedsim"
+    },
+    {
+     "name": "PedPy",
+     "license": "MIT",
+     "role": "Density and flow measurement on simulated trajectories",
+     "url": "https://github.com/PedestrianDynamics/PedPy"
+    },
+    {
+     "name": "SUMO",
+     "license": "EPL-2.0",
+     "role": "Pedestrian and vehicle interaction at crossings",
+     "url": "https://github.com/eclipse-sumo/sumo"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Lobby, forecourt and footway polygon operations",
+     "url": "https://github.com/shapely/shapely"
+    }
+   ],
+   "depends_on": [
+    "P09-M01"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P09-M05",
+   "name": "Lane servicing, loading dock and access placement",
+   "phase": "basic",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M for placement checks and Erlang sizing; L for swept-path analysis",
+   "design_question": "Can deliveries, passenger pick-up and servicing be handled from lanes, with enough bays and storage that trucks do not queue onto streets or cross the retail high street?",
+   "inputs": [
+    "Layer 0: massing, program, core and ground-floor footprint",
+    "SITE: block edges with street class (arterial, retail high street, lane) and mid-block connections",
+    "LoadingBayCount by class from P09-M02",
+    "Servicing, waste and move-in demand from P09-M06",
+    "Taxi and ride-hail kerb demand from P09-M01 and P09-M04",
+    "City open data: lanes, one-way streets and bikeways (centrelines only)"
+   ],
+   "parameters": [
+    {
+     "name": "Number of loading bays c (by class)",
+     "unit": "bays",
+     "relationship": "More bays lower utilisation and the probability that an arriving truck waits (Erlang C). Stability requires arrival rate below c times service rate.",
+     "source_ids": [
+      "P09-S22"
+     ]
+    },
+    {
+     "name": "Truck arrival rate lambda in the busiest hour",
+     "unit": "trucks per hour",
+     "relationship": "Rises with retail, hotel and residential GFA and unit count, and raises utilisation and queue length. No sourced Vancouver rate was found, so it is an editable preset.",
+     "source_ids": []
+    },
+    {
+     "name": "Dwell time per truck",
+     "unit": "min",
+     "relationship": "Longer dwell (move-ins, bulk deliveries) raises utilisation in proportion; consolidation or booking shortens it.",
+     "source_ids": [
+      "P09-S22"
+     ]
+    },
+    {
+     "name": "Access position along the lane (distance from nearest intersection)",
+     "unit": "m",
+     "relationship": "Closer to the intersection leaves less on-site storage for waiting trucks, so queues spill onto the street sooner. No Vancouver spacing standard was obtained.",
+     "source_ids": []
+    },
+    {
+     "name": "Vehicle-access frontage by street class",
+     "unit": "m",
+     "relationship": "More access width on the retail high street breaks the retail edge and adds conflict points; lane access protects the public realm but loads the lane. The 1997 plan sought better truck access to downtown lanes.",
+     "source_ids": [
+      "P09-S12"
+     ]
+    },
+    {
+     "name": "Lane width and turning radii for the design vehicle",
+     "unit": "m",
+     "relationship": "Narrower lanes or smaller radii raise the setback or turntable needed to enter the dock. The City lane dataset has no widths, so site-plan widths are required.",
+     "source_ids": [
+      "P09-S26"
+     ]
+    },
+    {
+     "name": "Dock clear height and ramp slope",
+     "unit": "m, %",
+     "relationship": "Taller design vehicles need more structure and floor-to-floor height at dock level. By-law envelope values are in the 2012/2026 text and the 1988 supplement, none opened.",
+     "source_ids": [
+      "P09-S06",
+      "P09-S08"
+     ]
+    },
+    {
+     "name": "Number of curb cuts crossing footways",
+     "unit": "count",
+     "relationship": "Each added crossing adds a pedestrian-vehicle conflict point and lowers footway comfort and safety along that frontage.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Dock utilisation rho = lambda / (c x mu)",
+     "unit": "ratio",
+     "good": "Below 0.70 (preset)",
+     "bad": "1.0 or more (queue grows without bound)",
+     "status": "team_assumption",
+     "basis": "Instability at rho of 1 or more is queueing theory (S22); the 0.70 comfort level is a preset.",
+     "method": "Arrival rate over service capacity.",
+     "source_ids": [
+      "P09-S22"
+     ]
+    },
+    {
+     "name": "Probability that a truck must wait (Erlang C)",
+     "unit": "probability",
+     "good": "0.10 or less",
+     "bad": "More than 0.30",
+     "status": "team_assumption",
+     "basis": "Editable presets; formula from S22.",
+     "method": "Erlang C formula.",
+     "source_ids": [
+      "P09-S22"
+     ]
+    },
+    {
+     "name": "95th-percentile truck queue versus on-site storage",
+     "unit": "trucks",
+     "good": "Queue no longer than on-site storage",
+     "bad": "Queue longer than storage (spills onto street or lane)",
+     "status": "team_assumption",
+     "basis": "Geometric logic; storage length from the plan.",
+     "method": "SimPy run with lognormal dwell.",
+     "source_ids": [
+      "P09-S41"
+     ]
+    },
+    {
+     "name": "Vehicle access on the retail high street",
+     "unit": "m of curb cut",
+     "good": "0 m",
+     "bad": "Any curb cut on that frontage",
+     "status": "team_assumption",
+     "basis": "Preset; Vancouver downtown lane-access guidance was not opened.",
+     "method": "Sum of access widths by edge class.",
+     "source_ids": []
+    },
+    {
+     "name": "Swept-path clearance",
+     "unit": "pass/fail",
+     "good": "Design-vehicle envelope clears all structure and lane edges",
+     "bad": "Any intersection of envelope and obstruction",
+     "status": "team_assumption",
+     "basis": "Geometric test; clearance margin is editable.",
+     "method": "Shapely intersection of swept envelope with obstacles.",
+     "source_ids": [
+      "P09-S40"
+     ]
+    }
+   ],
+   "visualization": [
+    "Block plan with edges coloured by street class and candidate access points as pins: green on lane, amber on side street, red on high street",
+    "Swept-path polygons for each design vehicle over the dock plan, red fill where the envelope hits structure",
+    "Bar chart of probability of waiting versus number of bays with the design point and thresholds marked",
+    "Gantt strip of dock occupancy across the day with queue length overlay"
+   ],
+   "outputs": [
+    "ServicingPlan {access_points[], bay_assignments[], P_wait, queue_p95, conflict_points[]}",
+    "FrontageOccupancy by street class for PUBL",
+    "DockFootprint and ramp envelope for STRC and SPAC",
+    "ServicingVehicleSchedule for P09-M08"
+   ],
+   "method": "Placement check: classify every block edge from the SITE module (lane, arterial, high street), list candidate access points, and score them by street class and distance from the intersection. Sizing: treat the dock as an M/M/c queue with arrival rate lambda and mean dwell 1/mu; compute utilisation, Erlang C probability of waiting and mean wait Wq = C/(c mu - lambda). A SimPy discrete-event run with lognormal dwell gives the 95th-percentile queue for comparison with on-site storage. Geometry: build the design-vehicle envelope from the class dimensions entered in P09-M02, sweep it along the entry path with a minimum turning radius, and intersect with lane edges, columns and ramps using Shapely. Count curb cuts and conflict points per frontage and output a ranked list of access options with their metrics.",
+   "human_judgment": "Where servicing sits relative to the public realm and the lane's character, whether lanes become activated shared spaces, operating regime (booking, hours), neighbour effects, and how much conflict is acceptable against a larger dock footprint.",
+   "limits": "Arrival rates, dwell times and queue thresholds are presets; no sourced Vancouver freight-trip rates were found. Lane widths are not in the City dataset. Swept path is a simplified kinematic envelope, not a certified vehicle-tracking analysis. By-law envelopes came from unopened pages and need checking.",
+   "libraries": [
+    {
+     "name": "SimPy",
+     "license": "MIT",
+     "role": "Discrete-event dock queue simulation",
+     "url": "https://gitlab.com/team-simpy/simpy"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Swept-path and clearance geometry",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "OSMnx",
+     "license": "MIT",
+     "role": "Street and lane network for edge classification",
+     "url": "https://github.com/gboeing/osmnx"
+    }
+   ],
+   "depends_on": [
+    "P09-M01",
+    "P09-M02",
+    "P09-M06"
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P09-M06",
+   "name": "Waste, recycling and move-in logistics",
+   "phase": "advanced",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M",
+   "design_question": "Are garbage, recycling and organics storage, vertical transfer and move-in or move-out capacity sized for the program without conflicting with deliveries or public frontages?",
+   "inputs": [
+    "Layer 0: program GFA, dwelling units, hotel keys, food and retail GFA",
+    "Layer 0: core, service lift and waste-room tags with heights",
+    "LoadingBayCount from P09-M02",
+    "User-selected collection frequency and container types"
+   ],
+   "parameters": [
+    {
+     "name": "Waste generation rate by use",
+     "unit": "kg or m3 per day per 100 m2, unit or room",
+     "relationship": "Higher rates raise storage volume, container count and pickups. No Vancouver or Metro Vancouver rate was opened, so values are editable placeholders.",
+     "source_ids": []
+    },
+    {
+     "name": "Stream split (garbage, recyclables, organics, bulky)",
+     "unit": "%",
+     "relationship": "A larger recycling and organics share lowers garbage volume but adds container types and room area. City stream rules were not opened.",
+     "source_ids": []
+    },
+    {
+     "name": "Collection frequency",
+     "unit": "pickups per week",
+     "relationship": "More frequent pickup reduces storage volume but raises truck visits at the dock.",
+     "source_ids": []
+    },
+    {
+     "name": "Container type and footprint",
+     "unit": "m2 per container",
+     "relationship": "Larger containers cut handling trips but need wider doors, more headroom and heavier truck access.",
+     "source_ids": []
+    },
+    {
+     "name": "Vertical transfer method (chute, service lift, other)",
+     "unit": "category",
+     "relationship": "Taller buildings make chutes or dedicated service lifts more necessary. Ties to vertical transportation in SYST.",
+     "source_ids": []
+    },
+    {
+     "name": "Move-in and move-out events",
+     "unit": "events per year",
+     "relationship": "Events = units x turnover rate. Higher turnover (rental, short stay) raises freight-lift and dock bookings, peaking at month-end.",
+     "source_ids": []
+    },
+    {
+     "name": "Freight lift car and door size",
+     "unit": "m",
+     "relationship": "Smaller cars lengthen move times and restrict furniture. Sized in SYST; lift standards were not opened.",
+     "source_ids": []
+    },
+    {
+     "name": "Dock hours available per day",
+     "unit": "h",
+     "relationship": "Fewer dock hours concentrate pickups and moves into the same slots, raising conflict with deliveries.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Waste room area provided versus required",
+     "unit": "ratio",
+     "good": "1.0 or more",
+     "bad": "Below 1.0",
+     "status": "team_assumption",
+     "basis": "Required area derives from placeholder rates.",
+     "method": "Containers x footprint x circulation factor versus modelled room area.",
+     "source_ids": []
+    },
+    {
+     "name": "Share of dock hours used by waste and move-ins",
+     "unit": "ratio",
+     "good": "0.25 or less",
+     "bad": "Above 0.50",
+     "status": "team_assumption",
+     "basis": "Editable presets; no source.",
+     "method": "Weekly dock-hours demand divided by available dock-hours.",
+     "source_ids": []
+    },
+    {
+     "name": "Move-in events per peak day versus freight-lift capacity",
+     "unit": "ratio",
+     "good": "0.70 or less",
+     "bad": "Above 1.0",
+     "status": "team_assumption",
+     "basis": "Editable presets; lift capacity from SYST.",
+     "method": "Events x duration over lift operating hours.",
+     "source_ids": []
+    }
+   ],
+   "visualization": [
+    "Stacked bar of weekly waste volume by stream and by use",
+    "Plan overlay of the waste room with container footprints and service aisle, red where area is short",
+    "Weekly heat-map (hour x weekday) of dock occupancy from waste and move-ins",
+    "Sankey from use to stream to container count"
+   ],
+   "outputs": [
+    "WasteStorageRequirement {m2, m3, containers}",
+    "DockScheduleDemand (hour x day) for P09-M05",
+    "FreightLiftDemand (moves per day) for SYST vertical transportation",
+    "ZeroWasteStrategyNotes for ENER and PRES"
+   ],
+   "method": "Weekly volume per stream = sum over uses of rate x quantity x stream share. Storage volume = weekly volume / collection frequency x peak factor, converted to containers with a preset capacity; room area = containers x footprint x circulation factor. Move-in demand = units x annual turnover / 365 x peak-day factor; freight-lift and dock hours = events x mean duration. Pickups and moves form a weekly dock schedule (hour x day) passed to the lane-servicing module. All rates are placeholders until City or Metro Vancouver guideline values are attached; each shows an editable team-assumption badge and changes to verified only when a source id is added by a user.",
+   "human_judgment": "Waste and circularity strategy (reuse, organics, community recycling), operator and hours, the look and hygiene of back-of-house, and move-in policy.",
+   "limits": "No sourced rates, container sizes or room standards were available, so every number is a placeholder. Vancouver waste by-laws and design guidelines were not opened. Chutes, compactors and automated systems are not modelled. Lifts are sized in SYST and fire separations are not checked.",
+   "libraries": [
+    {
+     "name": "pandas",
+     "license": "BSD-3-Clause",
+     "role": "Volume, container and schedule tables",
+     "url": "https://github.com/pandas-dev/pandas"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Room and aisle area checks",
+     "url": "https://github.com/shapely/shapely"
+    }
+   ],
+   "depends_on": [
+    "P09-M02"
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P09-M07",
+   "name": "Transportation demand management scenarios",
+   "phase": "advanced",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "S",
+   "design_question": "Which transportation demand management measures could this tower credibly adopt, how far do they cut auto trips and parking demand, and what by-law relief might they support?",
+   "inputs": [
+    "ModeShareSummary and PeakHourDemand from P09-M01",
+    "ParkingLoadingBikeLedger from P09-M02",
+    "User-selected TDM measures and intensity (subsidy %, parking price, and so on)",
+    "Layer 0: end-of-trip facilities (bike rooms, showers) and car-share stalls"
+   ],
+   "parameters": [
+    {
+     "name": "Transit or rideshare subsidy level",
+     "unit": "% of fare",
+     "relationship": "Higher subsidy lowers commute auto trips. A model predicted -35% commute travel in CBDs for a 100% subsidy and -20% for 50% (Sacramento model, predicted not observed).",
+     "source_ids": [
+      "P09-S19"
+     ]
+    },
+    {
+     "name": "Parking price or cash-out",
+     "unit": "$ per month",
+     "relationship": "Higher price lowers driving: elasticity -0.1 to -0.3, so a 10% rise cuts driving 1-3%. Commuter cash-out reduces automobile commuting 15-25%.",
+     "source_ids": [
+      "P09-S20"
+     ]
+    },
+    {
+     "name": "Cost-recovery (full-price) parking",
+     "unit": "$ per month",
+     "relationship": "Moving from free to cost-based parking reduces parking demand 10-30% and drive-alone commuting 10-30%.",
+     "source_ids": [
+      "P09-S20"
+     ]
+    },
+    {
+     "name": "Programme bundle (information, services, incentives)",
+     "unit": "category",
+     "relationship": "Bundles with incentives cut about 15% of trips; information and services alone about 7%; programmes without financial incentives usually under 10%; comprehensive worksite bundles 4-20% of peak auto trips.",
+     "source_ids": [
+      "P09-S19"
+     ]
+    },
+    {
+     "name": "Shared parking and unbundling",
+     "unit": "% of requirement",
+     "relationship": "Sharing lets 20-40% more users per space. Each management measure typically trims requirements 10-30%, and a full package 30-50%.",
+     "source_ids": [
+      "P09-S20"
+     ]
+    },
+    {
+     "name": "End-of-trip facilities and car-share",
+     "unit": "stalls or rooms",
+     "relationship": "Secure Class A rooms, showers and car-share stalls support cycling and low-car living. The City has required car-share provisions since at least 2009. No quantified effect found; used as qualitative toggles.",
+     "source_ids": [
+      "P09-S12"
+     ]
+    },
+    {
+     "name": "Overlap discount between measures",
+     "unit": "factor",
+     "relationship": "Measure effects overlap, so summing overstates results. The combined reduction is capped at the evidence range for the chosen bundle type, not added.",
+     "source_ids": [
+      "P09-S19"
+     ]
+    },
+    {
+     "name": "Delivery consolidation",
+     "unit": "% fewer truck arrivals",
+     "relationship": "Fewer, consolidated deliveries lower arrival rate lambda and dock utilisation in P09-M05. No sourced percentage was found.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Claimed reduction in peak-hour auto-driver commute trips",
+     "unit": "% of baseline",
+     "good": "4-20% (comprehensive worksite bundles)",
+     "bad": "Above 37% (above the highest office TDM result cited); 20-37% shown amber",
+     "status": "verified",
+     "basis": "Bundles 4-20% (Rye 2002; Boarnet et al. 2014); office TDM plans 34-37% below ITE (Spack and Finkelstein 2014). Mostly predictions; US and UK contexts.",
+     "method": "Compare capped combined effect with evidence bands.",
+     "source_ids": [
+      "P09-S19"
+     ]
+    },
+    {
+     "name": "Claimed parking-demand reduction",
+     "unit": "% of baseline",
+     "good": "30% or less (typical per measure 10-30%)",
+     "bad": "Above 50% (top of the 30-50% package range)",
+     "status": "verified",
+     "basis": "VTPI parking management ranges.",
+     "method": "Adjusted parking demand versus baseline.",
+     "source_ids": [
+      "P09-S20"
+     ]
+    },
+    {
+     "name": "Financial-incentive content of the bundle",
+     "unit": "flag",
+     "good": "At least one price, cash-out or subsidy measure included",
+     "bad": "Information-only bundle (about 7% effect)",
+     "status": "verified",
+     "basis": "Best Workplaces for Commuters survey figures as cited by VTPI.",
+     "method": "Check measure list for incentive types.",
+     "source_ids": [
+      "P09-S19"
+     ]
+    }
+   ],
+   "visualization": [
+    "Waterfall from baseline auto-driver trips through each measure to the adjusted value, whiskers for low-high effect, and a red band beyond 37%",
+    "Before-and-after stacked mode-share bars with the City target line",
+    "Evidence table: measure, effect range, source badge, status colour, predicted versus observed",
+    "Line chart of parking demand versus stalls supplied"
+   ],
+   "outputs": [
+    "AdjustedModeSplit and PeakHourDemand_TDM for P09-M03, M04 and M08",
+    "ParkingDemandAdjusted for P09-M02",
+    "TDMPlan (measures, effects, sources) for the policy-reflection board",
+    "DeliveryConsolidationFactor for P09-M05"
+   ],
+   "method": "Start from baseline auto-driver commute trips and parking demand in P09-M01. For each selected measure take low, central and high effect values from the cited ranges (a table of measures with source ids). Combine multiplicatively with an overlap discount, then cap at the evidence range of the chosen bundle type. Apply the reduction to commute trips only; visitor and servicing trips are unchanged. Recompute auto-driver trips, parking demand and the Class A bicycle uplift, and report the parking and loading relief that could be argued in a variance. Output a TDM plan skeleton listing each measure, its evidence and the claimed effect. A 1,000-draw Monte Carlo between low and high values gives P10-P90 bands.",
+   "human_judgment": "Which measures fit the operator and tenants, commitments the design team will make, equity of parking pricing and subsidies, and whether to argue for a by-law variance.",
+   "limits": "Most effect sizes are predictions or non-Vancouver case results and are not additive. They apply to commute trips, not visitors. Vancouver's current TDM requirements for rezonings were not opened. Measures need an operator; the tool cannot enforce commitments.",
+   "libraries": [
+    {
+     "name": "pandas",
+     "license": "BSD-3-Clause",
+     "role": "Measure tables and scenario arithmetic",
+     "url": "https://github.com/pandas-dev/pandas"
+    },
+    {
+     "name": "SALib",
+     "license": "MIT",
+     "role": "Monte Carlo sampling of effect ranges",
+     "url": "https://github.com/SALib/SALib"
+    }
+   ],
+   "depends_on": [
+    "P09-M01",
+    "P09-M02"
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P09-M08",
+   "name": "Traffic impact and mobility visualization",
+   "phase": "advanced",
+   "category": "MOBI",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "L (static tier M; simulation tier L)",
+   "design_question": "What do the tower's vehicle, servicing and drop-off trips add to adjacent intersections and lanes at peak, and where do queues or conflicts reach pedestrians, cyclists or transit?",
+   "inputs": [
+    "Vehicle peak-hour trips from P09-M01 or P09-M07",
+    "ServicingPlan access points and truck schedule from P09-M05",
+    "Pedestrian PCL results from P09-M04",
+    "Street network from OpenStreetMap (OSMnx) and City open data (public streets, lanes, one-way streets, bikeways)",
+    "User-supplied background volumes, signal timings and lane geometry",
+    "Rapid-transit stations and lines"
+   ],
+   "parameters": [
+    {
+     "name": "Added peak-hour vehicle volume by approach",
+     "unit": "veh per h",
+     "relationship": "Higher added volume raises v/c and control delay at the receiving intersection, moving LOS toward E or F once v/c nears 0.85 to 1.0.",
+     "source_ids": [
+      "P09-S18"
+     ]
+    },
+    {
+     "name": "Signal cycle length and green split",
+     "unit": "s",
+     "relationship": "More green for the loaded movement raises its capacity and cuts its delay. Effects on pedestrian waiting are a design judgement to check in P09-M04.",
+     "source_ids": [
+      "P09-S18"
+     ]
+    },
+    {
+     "name": "Trip distribution to approaches (set by access position)",
+     "unit": "%",
+     "relationship": "Access on a lane near an arterial pushes more turns onto that intersection; access on a side street spreads turns but loads a quieter street.",
+     "source_ids": []
+    },
+    {
+     "name": "Background traffic and growth",
+     "unit": "veh per h",
+     "relationship": "Higher background volume leaves less spare capacity, so the same tower trips cause a larger delay increase. City counts are historical or link-only.",
+     "source_ids": [
+      "P09-S27",
+      "P09-S28"
+     ]
+    },
+    {
+     "name": "Pedestrian and cyclist crossing volumes",
+     "unit": "persons per h",
+     "relationship": "More crossings at a curb cut or intersection raise conflict exposure and cut vehicle capacity during crossing phases.",
+     "source_ids": []
+    },
+    {
+     "name": "Bikeway type on adjacent streets",
+     "unit": "category",
+     "relationship": "Protected or AAA bikeways beside access points add conflict points and may need driveway redesign. The bikeways dataset carries type and AAA flags.",
+     "source_ids": [
+      "P09-S30"
+     ]
+    },
+    {
+     "name": "Taxi, ride-hail and delivery vehicle share",
+     "unit": "% of vehicle trips",
+     "relationship": "More ride-hail and delivery vehicles raise kerb occupancy and add trips even when parking supply is small. Scales with P09-M01 and P09-M05 outputs.",
+     "source_ids": []
+    },
+    {
+     "name": "Transit stations and frequency near the site",
+     "unit": "stations, min",
+     "relationship": "Nearby rapid-transit stations and short headways support a higher transit share in P09-M01. The City dataset gives 22 station points; headways come from GTFS.",
+     "source_ids": [
+      "P09-S29",
+      "P09-S23"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Intersection control delay (LOS)",
+     "unit": "s per vehicle",
+     "good": "55 s or less (LOS A-D)",
+     "bad": "Above 80 s (LOS F); 55-80 s (LOS E) shown amber",
+     "status": "team_assumption",
+     "basis": "LOS bands are verified (FHWA Table 3-3, HCM 2000); treating LOS D as acceptable is a team choice, since Vancouver ranks walking, cycling and transit first.",
+     "method": "Control delay from signal timing and volumes, then banded.",
+     "source_ids": [
+      "P09-S18",
+      "P09-S12"
+     ]
+    },
+    {
+     "name": "Critical volume-to-capacity ratio",
+     "unit": "ratio",
+     "good": "Below 0.85",
+     "bad": "Above 1.00",
+     "status": "verified",
+     "basis": "FHWA Signal Timing Manual s.3.3.5 and Table 3-2.",
+     "method": "Volume over capacity for the critical movement.",
+     "source_ids": [
+      "P09-S18"
+     ]
+    },
+    {
+     "name": "Queue spill from the site access onto the street",
+     "unit": "m",
+     "good": "0 m",
+     "bad": "Any spill",
+     "status": "team_assumption",
+     "basis": "Geometric preset; storage from P09-M05.",
+     "method": "Simulated 95th-percentile queue minus storage length.",
+     "source_ids": [
+      "P09-S41"
+     ]
+    },
+    {
+     "name": "Mode-priority check",
+     "unit": "flag",
+     "good": "No mitigation worsens pedestrian PCL, cycling or transit access in order to cut vehicle delay",
+     "bad": "Any such trade-off",
+     "status": "verified",
+     "basis": "The Transportation Plan hierarchy (pedestrians, cyclists, transit, goods, then cars) as reported by Memon (2009); current plan not opened.",
+     "method": "Compare P09-M04 PCL and bikeway conflicts before and after mitigation.",
+     "source_ids": [
+      "P09-S12"
+     ]
+    }
+   ],
+   "visualization": [
+    "Map with street edges coloured by v/c on a diverging 0-1.2 scale with ticks at 0.85 and 1.0, and intersections as discs sized by delay and coloured by LOS A (green) to F (red)",
+    "Difference map (with minus without project) of delay in seconds",
+    "deck.gl animated trips layer for simulation output with queue bars at site access",
+    "Mode-priority panel showing pedestrian PCL, bikeway conflicts and transit delay beside vehicle LOS",
+    "Chord diagram of project trips by origin zone and mode"
+   ],
+   "outputs": [
+    "IntersectionPerformance {id, volume, v/c, delay, LOS} with and without project",
+    "NetworkFlowDelta (GeoJSON edges)",
+    "QueueSpillFlags for P09-M05 and PUBL",
+    "SimulationConfig (SUMO files) for reuse by forks"
+   ],
+   "method": "Tier 1, static: distribute project peak-hour vehicle trips onto approaches using access positions and shortest paths on the OSM network; add background volumes; compute v/c per movement from saturation flow and green split, and delay from uniform plus incremental terms in the usual HCM form with user-supplied timings; classify LOS with the FHWA/HCM delay bands. Tier 2, simulation: export the network and demand to SUMO (netconvert) or UXsim for dynamic queues, and read edge delays and queue lengths from detectors. Compare with-project and without-project runs. A mode-priority check reads pedestrian PCL from P09-M04 and flags mitigation that trades pedestrian comfort for vehicle delay. Every input shows its provenance and status colour; placeholder signal data are labelled.",
+   "human_judgment": "How much vehicle delay to accept against pedestrian, cycle and transit priority, whether to propose street changes, how to narrate impact in the policy reflection, and whether assumed signal timings are credible.",
+   "limits": "City data provide link-only intersection counts (2020) and 2004-2013 counters viewable only in a legacy tool; no signal timings or lane widths were found. The HCM is paywalled, so delay formulas are generic. The site is hypothetical, so trips are scenario inputs. Microsimulation needs calibration; results are comparative and not a traffic impact study.",
+   "libraries": [
+    {
+     "name": "SUMO",
+     "license": "EPL-2.0",
+     "role": "Microscopic vehicle and pedestrian simulation",
+     "url": "https://github.com/eclipse-sumo/sumo"
+    },
+    {
+     "name": "UXsim",
+     "license": "MIT",
+     "role": "Fast mesoscopic network simulation and animation",
+     "url": "https://github.com/toruseo/UXsim"
+    },
+    {
+     "name": "OSMnx",
+     "license": "MIT",
+     "role": "Street network and routing",
+     "url": "https://github.com/gboeing/osmnx"
+    },
+    {
+     "name": "deck.gl",
+     "license": "MIT",
+     "role": "Web map layers and animated trips",
+     "url": "https://github.com/visgl/deck.gl"
+    },
+    {
+     "name": "gtfs_kit",
+     "license": "MIT",
+     "role": "Transit frequency context",
+     "url": "https://github.com/mrcagney/gtfs_kit"
+    }
+   ],
+   "depends_on": [
+    "P09-M01",
+    "P09-M04",
+    "P09-M05",
+    "P09-M07"
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "human_scale_40"
+   ]
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Downtown Vancouver, or any Vancouver site, must provide a minimum number of off-street parking spaces.",
+   "correction": "No minimum parking applies for any use citywide since 30 June 2024; the downtown peninsula was exempt from 2018. Accessible, visitor, bicycle and loading spaces are still required.",
+   "detail": "Sources S01 and S02 (opened) agree. The Province's TOA rules also bar required residential parking near rapid transit (S24). The tool must never score a parking shortfall as a deficiency.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Downtown maximum for non-residential parking is 1 space per 115 m2 GFA (s.4.2.5).",
+   "detail": "Seen only in a search-engine extract of the June 2026 Section 4, which could not be opened (bot challenge). Whether the hypothetical VTC block falls inside the by-law's Downtown area is also unconfirmed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Loading rules: Class A, B and C requirements by use and GFA, and bay dimensions (Class B 8.5 x 3.0 x 3.8 m in 2012; 10.2 x 3.4 m in a May 2026 extract).",
+   "detail": "Section 5 and the Design Supplement could not be opened. The 1988 supplement has a 'superseded' copy. The 2003 and 2012 residential thresholds (none under 100 dwellings) are old. Load the current table by hand.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Bicycle parking rates (dwelling 1.5/2.5/3 per unit by size; office 1 per 170 m2; retail 1 per 340 m2; hotel 1 per 30 units; Class B minima).",
+   "detail": "Only from a vendor's partial list (S13). Another vendor claims 1.25 per dwelling (S14), and a 2008 City report proposed 1 per 500 m2 for office (S10). The Feb 2026 Section 6 was not opened. Treat all as placeholders.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "City of Vancouver sustainable-mode target of two-thirds of trips and any newer 2050 target.",
+   "detail": "Transportation 2040, the climate plan and the Vancouver Plan were not opened. The 1997 plan targets in Memon 2009 are historical and have been exceeded.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "2023 Trip Diary mode shares for CBD sub-regions 21 and 22.",
+   "detail": "The technical report (opened) contains no results; shares exist only in TransLink's Tableau dashboard (S16). Users must read and enter them, with the date accessed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Fruin pedestrian LOS thresholds for queue area (1.4 and 0.9 m2 per person).",
+   "detail": "Recalled from Fruin (1971) as reproduced in the HCM and TCQSM; TCQSM chapter 10 returned no text. Keep unverified until read from a primary copy.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The VTC site lies inside a Provincial Transit-Oriented Area.",
+   "detail": "The TOA page (S24) says 104 areas exist within 800 m of rapid transit, but Vancouver's list was not read, and the site is hypothetical. If it applies, residential parking cannot be required there.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the Parking By-law requires passenger loading spaces and at what rate.",
+   "detail": "No extract captured a passenger-loading clause. P09-M05 sizes kerb bays by queue model instead, as an editable preset.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which document governs tall-building mobility criteria: the Higher Buildings Policy (1997) or the output of the Higher Buildings Policy Review.",
+   "detail": "Both are named in the brief but returned HTTP 403, so any status change since 1997 is unknown. Parking By-law No. 6059 is the governing instrument for parking, loading and bicycle spaces.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Servicing, waste and entry presets: truck arrival rates, dwell times, waste generation, container sizes, screening rates, arrival peaking, utilisation and wait thresholds.",
+   "detail": "No sourced Vancouver values were found. All appear as editable team-assumption badges and become verified only when a user attaches a source.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "TfL Pedestrian Comfort Levels (London footways, 2010) are an acceptable threshold system for Vancouver passages, entries and footways.",
+   "detail": "B+ as the recommended minimum is TfL's rule, not a City of Vancouver standard. Teams may substitute another comfort scale.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "LOS D is the acceptable level for vehicle delay at downtown intersections.",
+   "detail": "LOS delay bands are verified (S18), but acceptability is a choice. The City ranks walking, cycling and transit above cars, so a poorer vehicle LOS may be justified.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Dock count and truck arrival rate versus GFA by use under the 2024-2026 by-law: no sourced freight-trip rate for Vancouver mixed-use towers was found.",
+  "Passenger loading requirement versus hotel keys or GFA: no clause located.",
+  "Internal capture rate versus use-pair mix: NCHRP 684 was not opened, so pair rates are unknown.",
+  "Stair, escalator, lift and fare-gate throughput versus width: TCQSM chapter 10 returned no text.",
+  "Share of tower transit trips using a new below-grade entrance versus walking distance: the elasticity signs in the VTPI table are inconsistent, so only magnitudes (0.15-0.29) are usable.",
+  "Waste and recycling generation per m2 or unit, container and room standards: no City or Metro Vancouver guideline opened.",
+  "Combined effect of several TDM measures: VTPI gives ranges but no overlap formula, so the cap rule is a design choice.",
+  "Pedestrian arrival peaking versus staggered shift starts at office entries: no sourced factor.",
+  "Effect of lane access position and lane width on queue spill and swept path: no Vancouver spacing or lane-width standard found.",
+  "How downtown mode share changes with building height or proximity to a station beyond the Trip Diary zone baseline: not sourced."
+ ],
+ "change_log": [
+  "R1, 21 Oct 2026: first full draft of packet P09 with 8 modules (P09-M01 to P09-M08) and 46 sources.",
+  "R1: City of Vancouver sites blocked automated access, so P09-M02 was designed as an importable rule-pack with per-row clause, version date and status instead of hard-coded by-law numbers. No bot-protection bypass was attempted.",
+  "R1: Added a corrected false assumption (minimum parking) and made the tool treat a parking shortfall as compliant. Minimums were removed downtown in 2018 and citywide on 30 June 2024.",
+  "R1: Thresholds with a sourced basis (TfL PCL bands, FHWA LOS and v/c bands, VTPI TDM ranges) are marked verified. Anything resting on unopened City pages, vendor lists or recalled values is marked unverified or team_assumption.",
+  "R1: The shared web-search budget ran out mid-run; later sources were fetched directly. ITE, NFPA 130, CIBSE, Metro Vancouver waste guidance and Transportation 2040 remain unsearched and are listed in unresolved_relationships and flags."
+ ]
+}

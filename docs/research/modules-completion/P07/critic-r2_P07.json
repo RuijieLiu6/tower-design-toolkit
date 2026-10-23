@@ -1,0 +1,363 @@
+{
+ "expert_role": "Researcher in AI ethics and authorship in architecture. Independent round-2 review of P07 (cultural context, reconciliation and ethics), focused on competition-rule compliance, authorship and provenance, and whether sources are current.",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07-M01",
+   "issue": "The contact guard covers only one juror (K̓ESU+CO). Terms cl. 5.2 bars approaching any juror or the 'Commissioning Party' (left undefined). Cl. 8.3 voids prizes for contact with jurors. The jury includes Matthew Soules (Matthew Soules Architecture, UBC SALA). The platform is built in a SALA course and aimed first at entrants, many of whom will be UBC students who normally ask faculty for desk crits. The other five jurors and their firms (MVRDV, AS+GG, James K.M. Cheng Architects, Focal Engineering, PWL Partnership) are also not listed. City of Vancouver staff, as a likely commissioning party, are not covered either. Entrants who ask a SALA instructor or a City planner for feedback could be disqualified.",
+   "fix": "List all seven jurors and their firms in the guard. Add an explicit line: no feedback on your entry from Matthew Soules or in SALA reviews he attends. Add 'Commissioning Party (undefined; may include City of Vancouver and UBC SALA)', so entrants use only published City documents and never contact City staff about the entry. Ask Buildner to define 'Commissioning Party'. Require the acknowledgement before any export."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07-M07",
+   "issue": "Anonymity is protected only at export. The platform is web-first and community-forkable, and platform mode keeps handles and fork authors. A competition project, its fork graph or its gallery images visible before results (26 Jan 2027) can link an entry to its authors (Terms cl. 5.1 and 5.3). Cl. 4.1 also requires that visual materials have not been previously published, and a public project page may count as publication.",
+   "fix": "Add a competition-project mode, on by default whenever the VTC entry flag is set. In this mode the project is private, cannot be forked, is excluded from galleries and search, and has handles hidden until 26 Jan 2027. Block public sharing of any board image before then, and warn on attempts. Add a metric 'entry assets publicly reachable before results = 0' (team_assumption backed by cl. 4.1, 5.1 and 5.3)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M01",
+   "issue": "Eligibility risk is unaddressed. Terms cl. 3.3.5 excludes employees, interns and contractors of the Jury and any 'associate or family member thereof'. 'Associate' is undefined. SALA students who are research or teaching assistants or employees of a juror's practice (Soules) may be ineligible. This may include the platform's own authors if they enter.",
+   "fix": "Add an eligibility self-check card that quotes cl. 3.3.5 and asks about employment or contracts with any juror or juror firm. Route uncertain cases to Buildner staff, not to the juror. Record the authors' own status in the platform README."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M01",
+   "issue": "The plan to resolve the Nation-contact question 'through the portal before 3 Nov' is unlikely to get an answer. Terms cl. 10.10 gives one free question per registration. Only the five most-voted free questions reach the jury. Questions are due 'no later than three days after the registration deadline' (29 Oct + 3 = 1 Nov), which conflicts with the 3 Nov date on the page. Asking also requires registration, which closes 29 Oct.",
+   "fix": "Show both dates and treat 1 Nov as binding unless the portal says otherwise. Draft the question now and say that it may not reach the jury. State that if no answer comes, N0 stays the permanent default for this competition. Do not imply that a sanctioned Nation channel will exist."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M08",
+   "issue": "The release gate is keyed to the CULT category, but cultural content also ships in non-CULT modules. M06 (ECOL, core) shows Nation and City names for mountains and water side by side, along with skyline-identity prompt cards. M01 stage A ships an unreviewed ban list to entrants. M07 (DATA) applies cultural-text rules. Entrants would see unreviewed cultural content.",
+   "fix": "Key review_state to content, not category. Any module that renders a Nation-language string, a cultural prompt card or a cultural phrase list is gated. Until sign-off, M06 shows City names and geometry only. Label the stage A ban list as an unreviewed platform rule, limited to the duty-sense 'consulted' and 'endorsed/approved by' without reference."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07 (packet)",
+   "issue": "The release plan is not honest about timing. No reviewer, budget or contact has been identified. Registration closes in 8 days, the core checkpoint is in 23 days and submission is in 40 days. M08's limits concede that most CULT modules may be off until after 30 Nov, yet modules still name the 30% jury criterion as their target. The packet also does not consider that user tests with 2-3 student teams, and an Indigenous reviewer working within a course, may fall under UBC research-ethics jurisdiction. The Panel on Research Ethics treats course-based research as within REB jurisdiction, and TCPS 2 Ch. 9 applies when Indigenous people take part.",
+   "fix": "State at packet level that for VTC 2026 the entrant product is M01 stage A, M06 geometry and M07, and that CULT cards and lists are post-competition. Check with the course instructor and UBC BREB whether testing and review need ethics approval or can be framed as paid consulting. Name a budget line and a contact deadline for the reviewer, with the fallback written down."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M06",
+   "issue": "The r1 FALSE_ASSUMPTION ('dataset may be partial; numbering gaps') rests on a wrong premise. On 10 Jul 2024 Council removed 14 views and amended 11, leaving 24. It also repealed the View Protection Guidelines and replaced them with the Public Views Guidelines. The dataset's 24 records match the retained set. Queen Elizabeth Park 3.2.1-3.2.4 were kept, and 3.1 and 3.2.4a were removed. The gaps are legacy numbering, not missing records.",
+   "fix": "Rewrite the flag. Cite the Public Views Guidelines (2024) as the governing document, to be opened in a browser. Keep 'zero intersections is not clearance' for the right reasons: there are no heights in the data, and heights depend on origin points and the downtown height caps set by the QE Park views. Drop the claims that 1-2, 4-8 and the rest are 'missing'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M02",
+   "issue": "S36 is mis-titled and the UNVERIFIED flag can now be resolved. The City's current document is the 'Higher Buildings Policy' (adopted 6 May 1997, amended several times, most recently in July 2018, when it was renamed from 'General Policy for Higher Buildings'), not 'Higher Buildings Policy for Rezonings (1997)'. The City's review page (via search) says the policy was last comprehensively reviewed in 2011. Phase I engagement ran April-May 2026 and ends with an ideas competition. Policy approaches come in early 2027, and protected public views 'will be maintained'. So the 1997 policy as amended still governs during the competition.",
+   "fix": "Retitle S36 and set document_status to 'current (amended 2018), under review'. Add the review's statement that protected views are maintained. Have a person confirm guideline H005 and the review page in a browser."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M02",
+   "issue": "S02 (DRIPA) has no current-status badge, although M02 promises one for every item. In Dec 2025 the BC Court of Appeal (Gitxaała, 2-1) held DRIPA gives UNDRIP immediate legal effect for testing provincial laws. The Province appealed and the Supreme Court of Canada agreed to hear it (reported 22 May 2026). In April 2026 the government proposed suspending key DRIPA sections, and the outcome is unverified. An entrant's policy reflection could misstate the law.",
+   "fix": "Set S02's document_status to 'in force; under appeal at SCC; suspension proposed Apr 2026 (outcome unverified)' with an as-of date. Add the BCCA decision and SCC docket as sources. Keep the government-duty tag."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M07",
+   "issue": "Authorship is under-specified for a course that requires separating what code, AI and people decide. ai_involvement records only the AI level. It never records what a human contributed per element, and the board appendix lists modules but not decision ownership. Canadian law on AI authorship is unsettled: CIPO registered an AI co-author (SURYAST), and CIPPIC's July 2024 Federal Court application to expunge it is pending. The packet says 'not researched'. Terms 4.1 requires original work, 12.3 keeps authorship with the participant, and the Buildner FAQ cautions against presenting AI images as sole work.",
+   "fix": "Add a per-element human_contribution field (concept, selection, edit, none) and a decided_by field (code, AI, person) to the PROV records. Show it in the export checklist, not on the boards. Add CIPPIC v. Sahni and the ISED generative-AI copyright consultation as sources marked 'unsettled'. The tool must never state copyright status."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M02/M08",
+   "issue": "The VTC brief (S35) is still unopened after two rounds. Jury weights, the cultural-context criterion wording, the anonymity clause and the site location all come from project context. The public page states no weights and lists 'SITE PLANS & 3D MODEL' in the brief. Registered entrants can get the brief.",
+   "fix": "Before the 13 Nov core date, a registered team member downloads the brief, records its version and date, and confirms weights, criterion text, anonymity wording and any site coordinates. Until then show every brief-derived value as 'from supplied summary'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M04",
+   "issue": "The flag 'no source describes a services agreement with the City' is wrong. The City and the Squamish Nation signed a services agreement for Sen̓áḵw on 25 May 2022 (water, utilities, fire, police, in exchange for fees). It was published in Aug 2022. Reports state the project needs no City approvals because it is reserve land. The Wikipedia height-exemption claim can be replaced with this.",
+   "fix": "Add the agreement as a sourced fact (Global News, and the City news release once opened in a browser). Tag tenure 'reserve; City provides services by agreement; no City land-use approvals'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M04",
+   "issue": "The downtown naming precedent stays UNVERIFIED although it can be verified. On 18 Jun 2018 the City and Province renamed the Vancouver Art Gallery north plaza šxʷƛ̓ənəq Xwtl'e7énḵ Square and the Queen Elizabeth Theatre plaza šxʷƛ̓exən Xwtl'a7shn. A committee with Musqueam, Squamish and Tsleil-Waututh representatives chose the names, which combine all three languages. Sources say 'chose', not 'gifted'.",
+   "fix": "Add both as precedents with 'names chosen by a three-Nation committee; City and Province renamed', ownership unverified, and strings re-copied by a person and NFC-checked. Avoid the word 'gifted' unless a Nation source uses it."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M08",
+   "issue": "Terms cl. 10.4 says shortlisting uses Buildner's in-house jury and unnamed 'budget, technical, and cultural advisors'. The reviewer_independence rule checks Nations' referral offices and jurors but not these advisors. Entrants also cannot know who the advisors are.",
+   "fix": "Have the reviewer declare that they are not a Buildner adviser or in-house juror for VTC 2026. Add the advisors to the contact-guard text as unknown persons whom entrants should not seek out about their entry."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07",
+   "issue": "Benchmarks are out of date. The EU Art. 50 extract says it applies from 2 Aug 2026. A provisional Omnibus deal (7 May 2026) moves the Art. 50(2) marking duty to 2 Dec 2026, and formal adoption was not confirmed. C2PA 2.2 is cited as current, but 2.3 (dated 5 Jan 2026) has been published.",
+   "fix": "Update the S42 extract to 'Art. 50(2) reportedly 2 Dec 2026 after the Omnibus; adoption to be checked in the Official Journal'. Re-read section 14 (signing and certificates) in C2PA 2.3 and cite 2.3."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07",
+   "issue": "The ai_involvement enum (none, assistive edit, composite, generated) has no stated mapping to IPTC URIs. AI-drafted non-cultural board text has no label rule. The platform's own content (card paraphrases, crosswalk summaries, phrase lists) is drafted by AI research agents through a summarising fetch tool, and this is not declared to users.",
+   "fix": "Publish the enum-to-IPTC mapping (for example, generated maps to trainedAlgorithmicMedia and composite maps to compositeWithTrainedAlgorithmicMedia). Add a label rule for AI text on boards. Add a provenance badge on every tool-authored card or list saying AI-drafted, human-checked (who and when, platform-side)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07",
+   "issue": "Platform-signed Content Credentials still embed a signer organisation (the certificate's O attribute shown as 'Issued by') and a claim-generator string. If the platform is identifiably a UBC SALA student project, this could signal origin to a SALA juror. The risk is low because many entrants would share the platform signer, but the residue is undocumented.",
+   "fix": "Keep Content Credentials off for competition mode. If they are on, use a neutral organisation name and generic claim-generator text, and list both in the before-and-after metadata panel."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M01",
+   "issue": "The S10 extract says 'No fees'. The Musqueam page does not mention fees. Silence is not a no-fee statement.",
+   "fix": "Change it to 'fees not mentioned on page'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M01",
+   "issue": "Rung N1 ('read that Nation's own published material') unlocks 'informed by Nation-published sources' wording. Reading websites is not engagement, and on boards the phrase can read as engagement. The phrase list has no explicit ban on 'in collaboration with', 'co-designed', 'with the blessing of', 'honouring ... with permission'.",
+   "fix": "Rename N1 to 'desk research only (not engagement)'. Allow only wording that names the documents cited. Add those phrases to the stage A ban list for N0-N3."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The City view-cone dataset may be partial because view numbers 1-2, 4-8, 11-19, 23-26 and letters C, F, I are absent (r1 FALSE_ASSUMPTION flag and M06 metric basis).",
+   "why_false": "In July 2024 Council removed 14 views and amended 11, leaving 24 protected views, and replaced the 1989 View Protection Guidelines with the Public Views Guidelines. Removed views include C1, C2.1, C2.2, E1, E2.2, E3, F1.1-F1.3, 12.1, 3.1, 3.2.4a, 9.2.2 and 20.2. The numbering gaps come from the original 1989 scheme and these removals.",
+   "correction": "The 24-record dataset is consistent with the current set under the Public Views Guidelines (2024). Zero intersections is still not clearance, because heights and origin points are not in the data.",
+   "evidence": "https://storeys.com/vancouver-view-cones-policy-change/ ; https://globalnews.ca/news/10616897/vancouver-city-council-removes-view-cones/amp (14 removed, 24 remain, 11 amended, 10 Jul 2024)"
+  },
+  {
+   "claim": "The governing document is the 'Higher Buildings Policy for Rezonings (1997)', and whether it has been amended is unverified (S36, UNVERIFIED flag).",
+   "why_false": "The policy was amended several times, most recently in July 2018, when it was renamed the Higher Buildings Policy and made to apply to applications from 1 Nov 2018. The City's review says it was last comprehensively reviewed in 2011. The current review (Phase I spring 2026, next engagement early 2027) has not replaced it, and it states that protected public views will be maintained.",
+   "correction": "Cite 'Higher Buildings Policy (adopted 1997, amended to July 2018), under review 2026-27'.",
+   "evidence": "Search results for guidelines.vancouver.ca/H005.pdf (HTTP 403 to direct fetch) and the City Higher Buildings Policy Review page and memo of 2 Apr 2026 (search summary); a browser check is still needed."
+  },
+  {
+   "claim": "No source describes a services agreement between Sen̓áḵw and the City (UNVERIFIED flag; M04 field marked unverified).",
+   "why_false": "The City of Vancouver and the Squamish Nation signed a services agreement on 25 May 2022, covering water, utilities, fire and police services for fees, and it was made public in August 2022.",
+   "correction": "Record the agreement as fact. Tenure: reserve land, no City land-use approvals required, City services by agreement.",
+   "evidence": "https://globalnews.ca/news/8870661/sen%CC%93a%E1%B8%B5w-vancouver-services-agreement/"
+  },
+  {
+   "claim": "The downtown plaza naming precedent could not be found, and the critic's Vancouver Art Gallery example is unverified.",
+   "why_false": "On 18 Jun 2018 the City and Province renamed the Art Gallery north plaza šxʷƛ̓ənəq Xwtl'e7énḵ Square and the Queen Elizabeth Theatre plaza šxʷƛ̓exən Xwtl'a7shn. A committee with Musqueam, Squamish and Tsleil-Waututh representatives chose the names.",
+   "correction": "Add the precedent with the process as reported ('chosen by a committee', not 'gifted'). Ownership is still unverified.",
+   "evidence": "https://salishseasentinel.ca/2018/07/coast-salish-names-given-to-2-vancouver-plazas/ ; https://ssl.straight.com/news/1091511/videos-teach-how-pronounce-indigenous-named-plazas-vancouver-art-gallery-and-queen"
+  },
+  {
+   "claim": "EU AI Act Article 50 applies from 2 Aug 2026 (S42 extract).",
+   "why_false": "A provisional AI Omnibus agreement of 7 May 2026 postpones the Art. 50(2) machine-readable marking obligation to 2 Dec 2026. Formal adoption is reported by some sources but was not confirmed.",
+   "correction": "Art. 50(2) is reportedly from 2 Dec 2026, to be checked in the Official Journal. It remains a benchmark only.",
+   "evidence": "https://www.williamfry.com/knowledge/eu-ai-act-omnibus-deal-reached-postponed-deadlines-watermarking-compromise-and-the-nudificiation-prohibition/"
+  },
+  {
+   "claim": "The Q&A route closes 3 Nov 2026 and can settle whether a Nation-contact channel exists (UNRESOLVED flag, M01 method).",
+   "why_false": "Terms cl. 10.10.4.1 sets the question deadline at three days after registration closes (1 Nov), unless the portal says otherwise. Cl. 10.10.3.1 allows one free question per registration, and cl. 10.10.5.2 sends only the five most-voted free questions to the jury.",
+   "correction": "Show both dates. An answer is not assured, so N0 is the standing default.",
+   "evidence": "https://architecturecompetitions.com/VancouverTallChallenge/terms (as summarised by the fetch tool; a browser check is still needed)"
+  },
+  {
+   "claim": "Contacting the one Coast Salish juror and her firm is the juror-contact risk (M01 contact_guard).",
+   "why_false": "Cl. 5.2 bars approaching any juror and the 'Commissioning Party'. The jury has seven members, including UBC SALA's Matthew Soules.",
+   "correction": "The guard must cover all seven jurors and their firms, the commissioning party and Buildner's cultural advisors.",
+   "evidence": "https://architecturecompetitions.com/VancouverTallChallenge (jury list); Terms cl. 5.2, 8.3"
+  }
+ ],
+ "missing": [
+  "A competition-project privacy mode (private, not forkable, no gallery or search) until results on 26 Jan 2027, so entries are not previously published (Terms 4.1) and not de-anonymised (5.1, 5.3)",
+  "A full juror list (7) with firms, the undefined 'Commissioning Party' and Buildner cultural advisors in the contact guard; explicit SALA desk-crit warning",
+  "Eligibility self-check against Terms 3.3.5 (employees, contractors and 'associates' of jurors)",
+  "The VTC brief PDF itself: criteria weights, anonymity clause, site coordinates (S35 still unopened after two rounds)",
+  "Public Views Guidelines (2024) as the governing view document; current Higher Buildings Policy (amended 2018) status",
+  "DRIPA litigation and suspension status (Gitxaała BCCA Dec 2025; SCC leave 2026; proposed suspension Apr 2026)",
+  "Per-element human_contribution and decided_by fields; Canadian AI-authorship status (CIPPIC v. Sahni pending) and ISED consultation",
+  "Mapping of the ai_involvement enum to IPTC digital source type URIs; label rule for AI-drafted non-cultural board text; AI-drafting disclosure on the tool's own cards and lists",
+  "Release gate keyed to content (Nation strings, cultural prompts), not module category",
+  "Named reviewer route, budget and deadline; check with the course instructor or UBC BREB on whether user testing and review need ethics approval",
+  "Sen̓áḵw services agreement (2022) and the 2018 plaza naming precedents in M04",
+  "City UNDRIP Action Plan 2024-2028 opened in a browser (search summary: endorsed 25 Jun 2024, 32 of 79 actions, 88 deliverables; annual reports since 2025)",
+  "C2PA 2.3 certificate and subject rules re-read"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Extend the contact guard to all seven jurors and their firms (including UBC SALA / Matthew Soules), the Commissioning Party and Buildner cultural advisors; add a Terms 3.3.5 eligibility check",
+   "Add a competition-project privacy mode so no entry asset, handle or fork is public before 26 Jan 2027",
+   "Gate any module that renders Nation-language strings or cultural prompts (including M06) on Indigenous review, regardless of category; state plainly which modules entrants get before 30 Nov",
+   "Correct the view-cone flag (Public Views Guidelines 2024, 24 retained views) and the Higher Buildings Policy title and status",
+   "Add DRIPA current status to M02; update the EU Art. 50 and C2PA versions",
+   "Revise the Q&A plan to Terms 10.10 (1 Nov vs 3 Nov, one free question, top-5 vote) with N0 as the standing default",
+   "Open the VTC brief as a registered entrant and confirm weights, the anonymity clause and site location before 13 Nov",
+   "Add human_contribution and decided_by authorship fields and the IPTC mapping in M07",
+   "Fix the Sen̓áḵw services-agreement and plaza-naming flags"
+  ]
+ },
+ "verdict": "Not ready, but much improved. The r1 revision fixed the referral checklist, the per-Nation ladder, the charter claim, Unicode handling and export-time anonymity. Two compliance gaps could still get entrants disqualified. First, the contact guard names one juror but omits UBC SALA's Matthew Soules, the other jurors and the 'Commissioning Party'. Second, a forkable, public platform can publish or de-anonymise entries before results. The release gate is keyed to module category, so M06 can show Nation names without review. Several flags are now contradicted by evidence: the gaps in the view-cone data are explained by the 2024 Public Views Guidelines, the Higher Buildings Policy was amended in 2018, and the Sen̓áḵw services agreement and the 2018 plaza names are on record. DRIPA status, AI-authorship fields and the brief itself are still missing.",
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: Musqueam referral checklist in entrant flow marked verified",
+   "status": "addressed",
+   "residue": "Reference-only in real-project mode; S10 'No fees' overstates the page."
+  },
+  {
+   "item": "BLOCKER M01: single E0-E3 ladder conflating Nations, counterpart and authority",
+   "status": "addressed",
+   "residue": "N1 'read published material' still unlocks engagement-like wording; ban list lacks 'in collaboration with', 'co-designed' and similar."
+  },
+  {
+   "item": "BLOCKER packet: no release gate requiring Indigenous review",
+   "status": "partly",
+   "residue": "Gate covers the CULT category only; M06 (ECOL, core) shows Nation names unreviewed; no reviewer, budget or deadline; no ethics-jurisdiction check."
+  },
+  {
+   "item": "MAJOR M01: juror contact warning (K̓ESU+CO); E2 names non-existent channel",
+   "status": "partly",
+   "residue": "Only one of seven jurors covered; UBC SALA juror, Commissioning Party and cultural advisors omitted; Q&A plan ignores Terms 10.10 limits."
+  },
+  {
+   "item": "MAJOR M03: charter principles wrongly called unretrievable; no channel locks",
+   "status": "addressed",
+   "residue": "Lock rule remains a team reading of an Australian-led charter, as disclosed."
+  },
+  {
+   "item": "MAJOR M05: form-level appropriation and img2img missed",
+   "status": "addressed",
+   "residue": "M05 is v1, so the borrowed-form lint will likely not reach entrants before 30 Nov."
+  },
+  {
+   "item": "MAJOR M03: forkable cards can impersonate Nation authorship",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M07: anonymity leaks via handles, fork authors and C2PA signer",
+   "status": "partly",
+   "residue": "Export is stripped, but public platform-mode projects and forks before results can de-anonymise entries or count as prior publication (Terms 4.1)."
+  },
+  {
+   "item": "MAJOR M06: no georeference for hypothetical block",
+   "status": "addressed",
+   "residue": "Brief still unopened, so the source of coordinates is unknown."
+  },
+  {
+   "item": "MAJOR M06: view-cone dataset gaps; zero intersections as clearance",
+   "status": "addressed",
+   "residue": "Revised flag rests on a wrong premise: the gaps are 2024 removals under the Public Views Guidelines, and the 24 records are the retained set."
+  },
+  {
+   "item": "MAJOR M01/M05: Unicode normalization and glyph coverage",
+   "status": "addressed",
+   "residue": "Font coverage untested; Hiy̓ám̓ orthography still needs a human codepoint check."
+  },
+  {
+   "item": "MAJOR M02: FPIC claimable by entrants; urban Indigenous omitted",
+   "status": "addressed",
+   "residue": "S02 DRIPA lacks current litigation and suspension status."
+  },
+  {
+   "item": "MAJOR M04: no downtown or City-led precedents",
+   "status": "partly",
+   "residue": "Murals added, but the verifiable 2018 plaza names are left unverified and the Sen̓áḵw services agreement is wrongly said to be undocumented; M04 moved to roadmap."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P07-S34",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "ok": true,
+   "note": "Dates confirmed (reg 29 Oct, Q&A 3 Nov, submit 30 Nov, winners 26 Jan 2027). Jury of seven includes Matthew Soules (UBC SALA). No weights or Indigenous content on the page; AI FAQ as stated."
+  },
+  {
+   "source_id": "P07-S47",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge/terms",
+   "ok": true,
+   "note": "Clauses 5.1, 5.2 (jury AND Commissioning Party), 5.3, 8.3, 4.1-4.3, 4.1.4.2, 12.2, 12.3 exist. 3.3.5 excludes associates of the Jury. 10.10: one free question, top-5 vote, deadline 3 days after registration close. 10.4: cultural advisors in shortlisting. Fetch-tool summary."
+  },
+  {
+   "source_id": "P07-S10",
+   "url": "https://www.musqueam.bc.ca/departments/title-and-rights/iga/",
+   "ok": true,
+   "note": "Addressed to proponents and regulators; items confirmed; no mention of student or competition projects; fees not mentioned (not 'no fees')."
+  },
+  {
+   "source_id": "P07-S13",
+   "url": "https://www.squamish.net/partnerships-entities/",
+   "ok": true,
+   "note": "Fetch tool again reads Hiy̓ám̓ with the mark; no referral page. Human codepoint check still needed."
+  },
+  {
+   "source_id": "P07-S50",
+   "url": "https://unicode.org/reports/tr15/",
+   "ok": true,
+   "note": "Unicode 18.0.0, revision 58, 2026-08-12 confirmed."
+  },
+  {
+   "source_id": "P07-S36",
+   "url": "https://guidelines.vancouver.ca/H005.pdf",
+   "ok": false,
+   "note": "HTTP 403. Search summary: adopted 6 May 1997, amended to July 2018, renamed Higher Buildings Policy."
+  },
+  {
+   "source_id": "P07-S37",
+   "url": "https://vancouver.ca/home-property-development/higher-buildings-policy-review.aspx",
+   "ok": false,
+   "note": "HTTP 403. Search summary: Phase I Apr-May 2026, policy approaches early 2027, protected views maintained, ends with an ideas competition."
+  },
+  {
+   "source_id": "new",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "ok": true,
+   "note": "10 Jul 2024: 14 removed, 11 amended, Public Views Guidelines replace the old guidelines; QE Park 3.2.1-3.2.4 retained."
+  },
+  {
+   "source_id": "new",
+   "url": "https://globalnews.ca/news/10616897/vancouver-city-council-removes-view-cones/amp",
+   "ok": true,
+   "note": "Confirms 14 removed, 24 remain."
+  },
+  {
+   "source_id": "new",
+   "url": "https://globalnews.ca/news/8870661/sen%CC%93a%E1%B8%B5w-vancouver-services-agreement/",
+   "ok": true,
+   "note": "Services agreement signed 25 May 2022; no City approvals needed on reserve land."
+  },
+  {
+   "source_id": "new",
+   "url": "https://salishseasentinel.ca/2018/07/coast-salish-names-given-to-2-vancouver-plazas/",
+   "ok": true,
+   "note": "2018 plaza names chosen by a committee with three-Nation representatives."
+  },
+  {
+   "source_id": "new",
+   "url": "https://ssl.straight.com/news/1091511/videos-teach-how-pronounce-indigenous-named-plazas-vancouver-art-gallery-and-queen",
+   "ok": true,
+   "note": "18 Jun 2018; City and Province with Nation representatives; names and meanings; ownership not stated."
+  },
+  {
+   "source_id": "new",
+   "url": "https://nationalmagazine.ca/en-ca/articles/hot-topics-in-law/2026/supreme-court-to-hear-appeal-on-undrip-s-reach-in-domestic-law",
+   "ok": true,
+   "note": "22 May 2026: SCC to hear BC appeal of the Gitxaała BCCA decision on DRIPA; amendment not confirmed enacted."
+  },
+  {
+   "source_id": "P07-S42",
+   "url": "https://www.williamfry.com/knowledge/eu-ai-act-omnibus-deal-reached-postponed-deadlines-watermarking-compromise-and-the-nudificiation-prohibition/",
+   "ok": true,
+   "note": "Provisional deal 7 May 2026: Art. 50(2) from 2 Dec 2026; formal adoption pending at time of writing."
+  },
+  {
+   "source_id": "P07-S39",
+   "url": "https://spec.c2pa.org/specifications/specifications/2.3/specs/_attachments/C2PA_Specification.pdf",
+   "ok": false,
+   "note": "Not opened; search shows 2.3 dated 2026-01-05 supersedes the cited 2.2. CAI docs say the certificate O attribute is displayed as the signer organisation."
+  },
+  {
+   "source_id": "P07-S09",
+   "url": "https://council.vancouver.ca/20240625/documents/r1.pdf",
+   "ok": false,
+   "note": "Not opened (City domain). Search summary: endorsed 25 Jun 2024, 32 of 79 actions, 88 deliverables, annual reporting."
+  },
+  {
+   "source_id": "new",
+   "url": "https://nortonrosefulbright.com/en/knowledge/publications/ad12aba2/can-ai-be-an-author-federal-court-asked-to-decide-in-new-copyright-case",
+   "ok": false,
+   "note": "Search result only: CIPPIC filed July 2024 to expunge the AI co-author registration; no ruling found."
+  }
+ ]
+}

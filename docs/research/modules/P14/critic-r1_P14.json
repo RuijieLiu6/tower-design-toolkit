@@ -1,0 +1,370 @@
+{
+ "expert_role": "AEC interoperability engineer (IFC/BIM, georeferencing, web geometry pipelines)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P14-M01",
+   "issue": "The data model has no way to turn massing volumes into per-storey floor area. In BASIC mode a ProgramVolume is usually one extrusion spanning 10 to 60 floors. The spec stores 'level membership as a relation', maps ProgramVolume to a single IfcSpace under one IfcBuildingStorey, and promises a 'per-level, per-tag floor-area table', but gives no slicing method. IfcSpace decomposes a single storey, and BOT says a space spanning several storeys should use intersectsZone, not hasStorey. Without this, the 9.0 FSR employment check, the core ratio and every per-floor metric have nothing to compute from.",
+   "fix": "Add a Storey-slicing step to the Layer 0 method. Users define storeys as elevations with floor-to-floor heights per program zone. Each ProgramVolume is intersected with the storey slabs (manifold-3d) to make per-storey FloorPlate records with area and tag. Export each FloorPlate as IfcSpace under its IfcBuildingStorey, and the parent volume as IfcSpatialZone grouping its plates (IfcRelReferencedInSpatialStructure). Use bot:intersectsZone for the multi-storey zone. Add a metric for the area-sum error between plates and the volume/floor-to-floor cross-check."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P14-M01",
+   "issue": "The Layer 0 classes (Site, Tower, Level, ProgramVolume, ContextBuilding, Assumption) cannot represent what 40% of the jury score (human scale) and 10% (urban integration) evaluate. There is no podium or shared base, no below-grade levels or the secondary transit entrance, no open space or plaza, no streets, lanes or mid-block connections, and no loading or servicing points. Multi-tower schemes on a shared podium also have no clean Tower = IfcBuilding mapping.",
+   "fix": "Add these classes: Podium/BuildingPart (IfcBuilding with IfcBuildingStorey shared, or IfcSpatialZone), BelowGradeLevel (negative elevations, flagged excluded or included per FSR rules), OpenSpace/PublicRealm (IfcSpace with an external flag, or IfcSite-level IfcSpatialZone), Edge/Frontage (street type: arterial, retail high street, lane), AccessPoint (pedestrian entrance, transit connection, loading, parking ramp), and Viewpoint (camera for the QE Park skyline view and the mid-city view). Map each to IFC, BOT and Speckle in the coverage matrix."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "There is a datum and CRS mismatch. The spec standardises on EPSG:26910 (NAD83 original) defined with +datum=NAD83, which proj4js defines as towgs84 0,0,0, so WGS84 to NAD83 is a null transform. City LiDAR 2022 is in NAD83(CSRS) 4.0.0.BC.1.GVRD. epsg.io's 26910 remarks say to use NAD83(CSRS) / UTM 10N for accuracy better than 1 m. The '2-4 m shift' the spec warns about is therefore never modelled, and the 0.5 m parcel-agreement metric is checked against the wrong frame.",
+   "fix": "Use EPSG:3157 (NAD83(CSRS) / UTM 10N, towgs84 -0.991,1.9072,0.5129,...) as the project CRS, and register it in proj4js from the epsg.io PROJ string. Record the CSRS epoch, state that City GeoJSON arrives in WGS84 from the portal, and reconcile with the parcels before claiming sub-metre agreement. Keep EPSG:26910 only as an accepted import alias, with a warning."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "'A local Z = 0 at the entrance floor sidesteps vertical datum mixing' is wrong for this site. The footprint baseelev_m and topelev_m are geodetic, LiDAR is CGVD28GVRD (Metro Vancouver geoid), and protected view limits are set in by-laws as elevations. A model with only a local Z0 cannot be tested against view cones or stacked onto context correctly.",
+   "fix": "Make Z0_geodetic_elevation and vertical_datum (CGVD28GVRD or CGVD2013) required fields of the georeference record. Default the value from LiDAR ground at the site entrance, require the user to confirm it, and export it as IfcMapConversion.OrthogonalHeight with IfcProjectedCRS.VerticalDatum."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "The spec contradicts itself on IFC 4.3. M01 exports IFC 4.3 and its CI round-trips through IfcOpenShell. M02 states, correctly per the README, that IfcOpenShell claims extensive geometry support only for IFC2x3 TC1 and IFC4 Add2 TC1, yet M02 then routes IFC4X3 files to an IfcOpenShell server fallback. The round-trip metric's status hides this risk.",
+   "fix": "Pick one export baseline. Either use IFC4 ADD2 TC1 as the default export with IFC4X3 optional, or keep IFC4X3 and add a CI spike now that exports a tower with IfcTriangulatedFaceSet geometry and re-meshes it in IfcOpenShell 0.8.x and web-ifc. Record the result as a verified or failed assumption. Note that the Revit IFC exporter (revit-ifc 25.4+ and 27.3) now writes IFC4.3 and map-conversion scale, so authoring-tool input in 4.3 is realistic."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "Program semantics travel only in a custom property set. This makes the 9 tags unreadable to any IFC tool, and nothing separates gross area from the floor area that counts toward FSR. The brief's 9.0 FSR minimum depends on what is excluded (mechanical, below grade, amenity), and the spec leaves that undefined.",
+   "fix": "Write each tag as IfcClassificationReference (for example OmniClass Table 13 or Uniclass SL) plus IfcSpace.ObjectType or LongName. Write areas in Qto_SpaceBaseQuantities (GrossFloorArea, NetFloorArea) and use Pset_SpaceCommon where it applies. Keep only VTC-specific flags (counts_to_employment_FSR, fsr_exclusion_reason) in a custom pset whose name does not use the reserved 'Pset_' prefix. Add an FSR-area definition as a team assumption linked to the PROG packet."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M04",
+   "issue": "Stage 2 floor detection clusters the Z of horizontal faces. Competition massing (a single extrusion per tower) has no slab faces, so it would detect only the bottom and top and produce one or two storeys. The method is valid only for detailed IFC or Revit exports.",
+   "fix": "Split the design into two paths. Path 1 (massing): generate storeys from a user floor-to-floor schedule per program band and slice (see the M01 fix). Path 2 (detailed models): read IfcBuildingStorey, Revit levels, or slab faces. Show which path ran on the result card, and gate auto-detection on at least 3 horizontal-face clusters."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M05",
+   "issue": "The tower-height metric is marked status 'verified', but its basis says 'VTC brief height range (PDF not independently opened)', and source P14-S54 has opened=false. This breaks the course rule that status must match evidence. It also adopts CTBUH measurement although the brief's 244-305 m may be measured differently (City by-laws use base surface or geodetic elevations).",
+   "fix": "Downgrade the status to unverified until the brief PDF is read. Add a parameter 'height measurement convention' (CTBUH entrance-to-architectural-top versus City base surface versus geodetic top) and show the height under each convention."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "The Speckle mapping and M06 storage cite the pre-2026.9 data-schema page, which the Speckle docs now label as covering only versions published before 2026.9. The 2026.9 bundle format has no root object, no Level and no proxies, and pre-2026.9 SDKs get a 404 on new versions. File-upload compatibility mode ends 1 Nov 2026, 11 days from today, so the spec designs to a target that is about to disappear.",
+   "fix": "Map Layer 0 only to the 2026.9 object model (per-object units, ON_LEVEL and HAS_MATERIAL relations, send3/receive3) and pin the 2026.9 SDK version. Drop the citations of the legacy page (P14-S09) for design decisions, or mark them historical. Make the Speckle export v1, not core, so core does not depend on a format that changed last month."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M02",
+   "issue": "The format and CRS of the organiser's 'Site plans & 3D model' are unknown, and the Q&A window closes 3 Nov 2026. Every core module assumes a readable, georeferenced base model. If the download is .skp or .dwg (common for Buildner), the core adapters (3dm, OBJ, IFC, glb) cannot read it.",
+   "fix": "Before 3 Nov, download the registrant package or submit the Q&A question (formats, units, north type, datum, origin). Add a DWG/DXF 2D site-plan route (for example a dxf parser) or a documented Rhino 8 conversion step. Add the organiser model as a named test fixture in CI."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M06",
+   "issue": "Exports and the provenance ledger embed author identity: IfcOwnerHistory, Speckle version author, the PROV Agent, AI-call logs and source file paths. The VTC requires submissions with no identifying information, and the spec has no anonymised export.",
+   "fix": "Add an 'anonymise for submission' export option. It strips or replaces the IfcOwnerHistory person and organisation, file paths, Speckle author and PROV agents with a pseudonym, and the tool reports any residual identifiers found in GLB extras, IFC headers (FILE_NAME author and organization) and image EXIF."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "The true-north tolerance uses a 100 m shadow to justify 0.5-2 degrees. For a 300 m tower at Vancouver (about 49.3 N), sun altitude at noon on the winter solstice is about 17.3 degrees (derived), so the shadow is about 965 m long. A 1 degree error moves the tip about 17 m, ten times the stated value, and noon on the equinox gives about 350 m and 6 m.",
+   "fix": "Restate the derivation with the brief's tower heights and Vancouver sun angles. Consider good <= 0.25 degrees for shadow studies on neighbouring parks and plazas. Label it a team assumption that depends on the CLIM packets."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "Which north the plan shows matters a lot. Magnetic declination at Vancouver is roughly 15 degrees east (general knowledge, not opened) and the downtown street grid is strongly skewed. The spec treats grid convergence (about 0.1 degrees) carefully but leaves out the two large terms.",
+   "fix": "Add a magnetic declination parameter taken from the NRCan geomagnetic calculator, with date and source. Compute the street-grid bearing from City parcel edges (dominant-direction histogram) and show it as a derived value. Make north type (true, grid or magnetic) a required, user-confirmed field before any CLIM module runs."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M08",
+   "issue": "The view-cone ingest stops at 2D polygons. The dataset has no height fields and points to the by-laws, yet a QE Park skyline view is a required deliverable and height limits inside the cones bind supertall proposals. Context ingest also needs the approved-tower list and the street-level context that the human-scale criteria judge.",
+   "fix": "Add a ViewCone record with an origin viewpoint (geodetic XYZ), its plane or limit elevation taken from the by-law or view guidelines (entered by hand, with a source and status), and an intersection test against Layer 0. Store the QE Park and mid-city viewpoints as Viewpoint objects shared with PRES."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "The schedule is not credible. Core effort is about 22 person-days with a 13 Nov 2026 target, about 17 working days from 21 Oct, and the same two students also own the other packets. VTC registration closes 29 Oct, so entrants would arrive before the import, georeference and validation chain is tested.",
+   "fix": "Cut core to: Layer 0 JSON plus storey slicing, 3dm/OBJ/GLB/IFC import, unit and north confirmation, a manual tagging UI, closed-volume checks and JSON/GLB export. Move IFC export, BOT, Speckle and the AI stage to v1. Publish a dated 'supported today' list for entrants."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "'Speckle keys objects by applicationId' is inaccurate. The Speckle docs say objects are identified by content hash, and applicationId gives stable tracking across versions.",
+   "fix": "Reword the claim: identity = content hash; tracking across versions = applicationId. Store IFC GlobalId, source applicationId and the Layer 0 UUID separately."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "Axis convention is missing. glTF is +Y up and +Z forward, while Rhino, IFC and Speckle are Z-up, and the spec mentions only units.",
+   "fix": "Declare Layer 0 as Z-up, right-handed, metres. Make the glTF exporter apply a fixed -90 degree X rotation at the root node, and add an axis assertion to the round-trip tests."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M02",
+   "issue": "The web-ifc benchmark is misquoted. The source shows 55 MB executed in 2.05 s, 47 MB in 0.52 s and 30 MB in 5.3 s; '29-70 MB meshed in 4.6-7.6 s' picks a subset. The test machine had about 137 MB of free RAM, and file size does not predict time.",
+   "fix": "Quote the full range, or the files closest to tower massing, and base the threshold on your own measurement of a VTC-sized test model on a mid-range Windows laptop."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M07",
+   "issue": "The 'wasm32 4 GiB ceiling' is unverified, and as a 'bad' threshold it is unreachable: a module crashes at its compiled maximum memory, often lower. Memory64 has shipped in Chrome 133, Firefox 134 and Node 24, while Safari has it only in a Technical Preview.",
+   "fix": "Set 'bad' to 80% of each WASM module's declared maximum memory, read at runtime from memory.buffer.byteLength and the module's max. Cite the WebAssembly features table, and note Safari as the binding constraint."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M08",
+   "issue": "The unresolved item about avght_m, maxht_m and the datum is answerable. The dataset page defines baseelev_m and topelev_m as geodetic, hgt_agl as essentially topelev minus baseelev, and maxht_m and minht_m as the max and min across all elements sharing a BLDGID. That explains the sample maxht 208.63 versus a part height of 188.59.",
+   "fix": "Move this item to resolved with the citation, and use maxht_m only for building-level summaries."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "Unit auto-detection by matching the site bounding box to 79.2 x 144.8 m within 2% fails when the file contains context, streets or only a tower. It will pick no scale, or the wrong one.",
+   "fix": "Detect on the user-selected site polygon or tower object, add plausibility tests on floor-to-floor (2.5-6 m) and tower height, and always require one-click confirmation."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M07",
+   "issue": "The Rhino.Compute limits overgeneralise. The McNeel page says core-hour billing is incompatible with Educational and Commercial licences and that Windows Server cannot use single-computer keys. It does not cover workstation use (for example, local Compute through Hops).",
+   "fix": "Reword the limit to cite exactly what the page says, and record workstation licensing as unverified."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "EXT_structural_metadata is cited from a CesiumGS fork branch (3d-tiles-next), which may be stale. A canonical Khronos path could not be confirmed (404).",
+   "fix": "Cite the current canonical location (the Khronos glTF repo or the 3D Tiles spec) with its status line. Until then, use plain glTF extras for v0."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "Jury tag design_excellence_20 on a georeferencing module is weakly justified. Its outputs mainly feed CLIM (environmental performance) and the PRES skyline view.",
+   "fix": "Either leave the module untagged like the other DATA modules, or explain the link to the criterion in one line."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "EPSG:26910 (proj4 +datum=NAD83) is the right CRS for City of Vancouver data, and mixing it with WGS84 shifts positions 2-4 m",
+   "why_false": "City LiDAR 2022 is NAD83(CSRS) 4.0.0.BC.1.GVRD, not NAD83 original. proj4js defines NAD83 with towgs84 0,0,0, so the pipeline would apply no shift at all. EPSG's own remarks recommend NAD83(CSRS) / UTM 10N in Canada for accuracy better than 1 m.",
+   "correction": "Use EPSG:3157 NAD83(CSRS) / UTM zone 10N (towgs84 -0.991,1.9072,0.5129,...). The NAD83(CSRS)-WGS84 offset is about 1-2 m (EPSG 1946 accuracy 1.0 m).",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022 (horizontal NAD 83 (CSRS) 4.0.0.BC.1.GVRD, vertical CGVD28GVRD); https://epsg.io/26910 (towgs84=0; remarks: for better than 1 m use NAD83(CSRS)); https://epsg.io/3157; proj4js lib/constants/Datum.js (nad83 towgs84 '0,0,0')"
+  },
+  {
+   "claim": "A local Z = 0 at the entrance floor sidesteps vertical datum mixing",
+   "why_false": "Context heights are geodetic and protected-view limits are elevation-based, so the local frame must carry a geodetic offset and datum to be compared against them.",
+   "correction": "Store Z0 geodetic elevation and the vertical datum (CGVD28GVRD) as required georeference fields and export them in IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009 (baseelev_m and topelev_m 'geodetic'); LiDAR 2022 page (CGVD28GVRD, Metro Vancouver geoid)"
+  },
+  {
+   "claim": "Speckle keys objects by applicationId",
+   "why_false": "Speckle identifies objects by content hash, and applicationId is only the stable tracking key. That page also now covers only pre-2026.9 data.",
+   "correction": "Identity = content hash; cross-version tracking = applicationId. Map to the 2026.9 object model (ON_LEVEL relations, per-object units, no proxies).",
+   "evidence": "https://docs.speckle.systems/developers/data-schema/overview ('Objects identified by content hash for deduplication; applicationId provides stable version tracking'; scoped to versions before 2026.9)"
+  },
+  {
+   "claim": "The meaning of avght_m, maxht_m and the datum of topelev_m in Building footprints 2009 is undocumented",
+   "why_false": "The dataset page documents them.",
+   "correction": "baseelev_m and topelev_m are geodetic lowest and highest elevations of the element; hgt_agl is essentially topelev minus baseelev; maxht_m and minht_m are the max and min over all elements sharing a BLDGID.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009"
+  },
+  {
+   "claim": "web-ifc benchmark: 29-70 MB files open in 0.45-1.2 s and mesh in 4.6-7.6 s",
+   "why_false": "This picks a subset. In the same table, a 55 MB file executed in 2.05 s, a 47 MB file in 0.52 s and a 30 MB file in 5.34 s. Time does not scale with size, and the machine had about 137 MB of free RAM.",
+   "correction": "Quote the full range (0.5-7.6 s for 26-70 MB) and set thresholds from your own measurements on VTC-sized models.",
+   "evidence": "https://github.com/ThatOpen/engine_web-ifc/blob/main/benchmark.md"
+  },
+  {
+   "claim": "A 1 degree true-north error moves a shadow tip about 1.7 m, which justifies a 0.5 degree target",
+   "why_false": "The geometry is right but the scale is wrong. A 244-305 m tower casts shadows of about 350 m at equinox noon and about 965 m at winter-solstice noon in Vancouver (derived from latitude 49.3 N).",
+   "correction": "1 degree corresponds to about 6 m (equinox) to about 17 m (winter solstice) at the shadow tip of a 300 m tower. Restate the tolerance on that basis.",
+   "evidence": "Derived: noon altitude = 90 - 49.3 - 23.44 = 17.3 deg; 300/tan(17.3 deg) = about 965 m; 965 x tan(1 deg) = about 16.8 m"
+  },
+  {
+   "claim": "The wasm32 4 GiB memory ceiling is the browser limit for imports",
+   "why_false": "Memory64 has shipped in Chrome 133, Firefox 134 and Node 24, with Safari only in a Technical Preview. In practice, each module's compiled maximum memory, not 4 GiB, is the crash point.",
+   "correction": "Use each module's declared maximum memory as the limit, and treat Safari as the constraining browser.",
+   "evidence": "https://raw.githubusercontent.com/WebAssembly/website/main/features.json (memory64: Chrome 133, Firefox 134, Safari TP 251 flag, Node 24)"
+  },
+  {
+   "claim": "Rhino.Compute is not available to Educational licences (in general)",
+   "why_false": "The page says only that core-hour billing is incompatible with Educational and Commercial licences, and that Windows Server cannot take single-computer keys. Workstation use is not addressed.",
+   "correction": "Narrow the claim to what the page says, and mark workstation licensing as unverified.",
+   "evidence": "https://developer.rhino3d.com/guides/compute/core-hour-billing/"
+  },
+  {
+   "claim": "Tower height (244-305 m) threshold status is 'verified'",
+   "why_false": "The source P14-S54 is marked opened=false, and the metric's own basis says the PDF was not independently opened.",
+   "correction": "Set the status to unverified until the brief PDF is read and its measurement convention confirmed.",
+   "evidence": "Internal inconsistency in the spec (P14-M05 metric versus P14-S54)"
+  }
+ ],
+ "missing": [
+  "Storey slicing of massing volumes into per-storey floor plates (method, tolerance, area cross-check) and the IfcSpace/IfcSpatialZone/bot:intersectsZone pattern for multi-storey volumes",
+  "FSR-countable area definition (gross versus counted, exclusions for mechanical, below grade, amenity) as a Layer 0 field linked to PROG",
+  "Layer 0 classes for podium or shared base, below-grade levels, secondary transit entrance, public open space and plaza, street frontages (arterial, retail high street, lanes, mid-block), access points (pedestrian, loading, parking ramp), and viewpoints (QE Park skyline, mid-city)",
+  "Standard IFC semantics: IfcClassificationReference for program tags, Qto_SpaceBaseQuantities and Pset_SpaceCommon, and a non-reserved custom pset name",
+  "Axis convention (Z-up Layer 0 versus Y-up glTF) and handedness tests",
+  "Magnetic declination parameter and derived street-grid bearing from City parcels",
+  "Required Z0 geodetic elevation and vertical datum (CGVD28GVRD or CGVD2013) in the georeference record",
+  "Project CRS EPSG:3157 (NAD83(CSRS)) with epoch, plus the WGS84 handling of the City portal",
+  "View-cone height and limit data from by-laws and an intersection test, not 2D polygons only",
+  "Anonymised export mode for the VTC no-identification rule (IfcOwnerHistory, IFC header, Speckle author, PROV agents, file paths)",
+  "DWG/DXF 2D site-plan import route, and the organiser's model as a CI fixture",
+  "Height measurement convention parameter (CTBUH versus City by-law base surface versus geodetic)",
+  "Extrusion and SubD objects in .3dm (not only B-reps), with Extrusion.GetMesh and render-mesh absence reported",
+  "Data-retention and confidentiality terms for the hosted LLM in M04, and an opt-out or local fallback",
+  "A dated 'supported today' list for entrants before the 29 Oct registration close"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Add storey slicing and per-storey FloorPlate records, and remap ProgramVolume to IfcSpatialZone plus per-storey IfcSpace (BLOCKER 1)",
+   "Extend Layer 0 with podium, below-grade, public realm, frontage, access point and viewpoint classes, or explicitly reassign them to named packets with typed ports (BLOCKER 2)",
+   "Switch the project CRS to EPSG:3157 and make the geodetic Z0 and vertical datum required fields",
+   "Resolve the IFC4 versus IFC4X3 export baseline with a tested spike, and fix status labels (tower height to unverified)",
+   "Retarget the Speckle mapping to the 2026.9 object model or move it to v1",
+   "Submit the organiser Q&A on file formats, north type and datum before 3 Nov 2026",
+   "Add an anonymised export and re-scope core to fit the time remaining before 13 Nov"
+  ]
+ },
+ "sources_checked": [
+  {
+   "source_id": "P14-S05",
+   "url": "https://github.com/IfcOpenShell/IfcOpenShell",
+   "ok": true,
+   "note": "Confirmed: parsing for IFC2x3 through IFC4x3 Add2; extensive geometry support stated only for IFC2x3 TC1 and IFC4 Add2 TC1. This contradicts the M02 'IfcOpenShell fallback for IFC4X3' and the M01 IFC4.3 round-trip CI."
+  },
+  {
+   "source_id": "P14-S08",
+   "url": "https://github.com/ThatOpen/engine_web-ifc/blob/main/benchmark.md",
+   "ok": false,
+   "note": "The numbers in the spec pick a subset; 55 MB took 2.05 s and 47 MB took 0.52 s. The M1 had about 137 MB free."
+  },
+  {
+   "source_id": "P14-S09",
+   "url": "https://docs.speckle.systems/developers/data-schema/overview",
+   "ok": false,
+   "note": "Now scoped to pre-2026.9 versions; identity is a content hash, not applicationId."
+  },
+  {
+   "source_id": "P14-S10",
+   "url": "https://docs.speckle.systems/developers/object-model/overview",
+   "ok": true,
+   "note": "Confirmed bundles, per-object units, ON_LEVEL, no proxies, compatibility mode until 1 Nov 2026, and a 404 for pre-2026.9 SDKs."
+  },
+  {
+   "source_id": "P14-S14",
+   "url": "https://speckle.systems/pricing/",
+   "ok": true,
+   "note": "Free: 1 project, 3 users, 100 versions, 30-day history; free for students and educators (scope unspecified)."
+  },
+  {
+   "source_id": "P14-S21",
+   "url": "https://raw.githubusercontent.com/mcneel/rhino3dm/main/src/bindings/bnd_mesh.cpp",
+   "ok": true,
+   "note": "Confirmed: no CreateFromBrep binding; only createFromSubDControlNet and createFromThreejsJSON."
+  },
+  {
+   "source_id": "P14-S23",
+   "url": "https://developer.rhino3d.com/guides/compute/core-hour-billing/",
+   "ok": true,
+   "note": "USD 0.10 per core-hour confirmed. The Educational incompatibility applies to core-hour billing on Windows Server; the spec overgeneralises it."
+  },
+  {
+   "source_id": "P14-S30",
+   "url": "https://epsg.io/26910",
+   "ok": true,
+   "note": "towgs84=0; the remarks recommend NAD83(CSRS) / UTM 10N for accuracy better than 1 m, which undermines the choice of 26910."
+  },
+  {
+   "source_id": "",
+   "url": "https://epsg.io/3157",
+   "ok": true,
+   "note": "NAD83(CSRS) / UTM 10N, the correct CRS for City LiDAR; note that EPSG:2955 is zone 11N."
+  },
+  {
+   "source_id": "P14-S33",
+   "url": "https://raw.githubusercontent.com/proj4js/proj4js/master/lib/constants/Datum.js",
+   "ok": true,
+   "note": "nad83 towgs84 '0,0,0', a null transform to WGS84."
+  },
+  {
+   "source_id": "P14-S31",
+   "url": "https://proj.org/en/stable/about.html",
+   "ok": true,
+   "note": "PROJ licence X/MIT confirmed (this is P14-S31's library entry, PROJ)."
+  },
+  {
+   "source_id": "P14-S34",
+   "url": "https://skyscrapercenter.com/criteria",
+   "ok": true,
+   "note": "Entrance definition, architectural top (spires included; antennas, signage and flagpoles excluded) and floor-counting rules match the spec."
+  },
+  {
+   "source_id": "P14-S35",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009",
+   "ok": true,
+   "note": "Not updated; fields are documented (geodetic elevations; maxht_m is the max over BLDGID). The spec's 'undocumented' claim is wrong."
+  },
+  {
+   "source_id": "P14-S36",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "NAD83(CSRS) 4.0.0.BC.1.GVRD, CGVD28GVRD, 0.081 m at 95%, about 49 pts/m2, 181 tiles up to 2.74 GB, confirmed."
+  },
+  {
+   "source_id": "P14-S37",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 polygons, no height fields, by-laws authoritative."
+  },
+  {
+   "source_id": "P14-S19",
+   "url": "https://w3c-lbd-cg.github.io/bot/",
+   "ok": true,
+   "note": "Public Draft (CG). Zone is the superclass of Site, Building, Storey and Space. A multi-storey space uses intersectsZone, not hasStorey."
+  },
+  {
+   "source_id": "P14-S53",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Dates confirmed (registration 29 Oct, Q&A 3 Nov, submission 30 Nov 2026); 3D model formats not stated."
+  },
+  {
+   "source_id": "P14-S55",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403 again; still unverified."
+  },
+  {
+   "source_id": "P14-S27",
+   "url": "https://github.com/Autodesk/revit-ifc/releases",
+   "ok": true,
+   "note": "Releases 24.3.40 to 27.3 add IFC4.3 Reference View and IFC4x3 fixes; 25.4.3 exports the map conversion scale and improves EPSG support."
+  },
+  {
+   "source_id": "P14-S29",
+   "url": "https://aps.autodesk.com/en/docs/model-derivative/v2/developers_guide/supported-translations/",
+   "ok": false,
+   "note": "Script-rendered; no table retrieved. RVT-to-IFC remains unverified."
+  },
+  {
+   "source_id": "P14-S18",
+   "url": "https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Vendor/EXT_structural_metadata",
+   "ok": false,
+   "note": "404 at the guessed canonical path; status not confirmed."
+  },
+  {
+   "source_id": "",
+   "url": "https://raw.githubusercontent.com/WebAssembly/website/main/features.json",
+   "ok": true,
+   "note": "Memory64: Chrome 133, Firefox 134, Node 24; Safari TP only."
+  }
+ ],
+ "verdict": "P14 is careful about sources, but it does not pass yet. Two gaps block it. First, Layer 0 cannot turn massing volumes into per-storey floor plates, so the FSR check, per-floor area and IFC export all break. Second, it has no classes for the podium, below-grade levels, public realm, frontages, access points or viewpoints, which the human-scale (40%) and urban-integration (10%) criteria evaluate. Other problems: the CRS should be NAD83(CSRS) EPSG:3157 (the City LiDAR datum) rather than EPSG:26910, Z0 needs a geodetic elevation and datum, and the IFC4.3 export target conflicts with IfcOpenShell's stated geometry support. The Speckle mapping targets a superseded schema, one status label overstates its evidence, and there is no anonymised export. The schedule is also tight. Note: the web-search budget ran out, so several checks (magnetic declination, APS translations, the glTF extension's status) remain unverified.",
+ "previous_round": []
+}

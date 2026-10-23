@@ -1,0 +1,30 @@
+# modules / P06: research log
+
+## research: draft saved as `research_P06.json`
+  - R1: Created packet P06 with eight modules: ground-floor frontage (M01), streetwall and enclosure (M02), public open space with sun, wind link and access (M03), permeability (M04), sidewalk capacity and pedestrian comfort (M05), inclusive access at grade (M06), vertical public realm (M07), Gehl-type public-life triage (M08).
+  - R1: Servicing and loading frontage impact folded into M01 (service share, vehicle crossings); Gehl indicators placed in M08 as a computed-versus-judged matrix.
+  - R1: Read the City-wide Design and Development Guidelines (draft Appendix A in Council report RTS 18459, 28 Jul 2026) as the governing guideline from 27 Oct 2026; flagged legacy downtown guidelines as repealed.
+  - R1: Corrected the 'Higher Buildings Policy 1997' assumption: last updated 2011, caps about 183 m (one site 213 m), review open.
+  - R1: Built sun metrics on the Downtown Peninsula solar guidelines (22 Sep, 10:00-16:00, 15-minute steps, coverage formula) and amended PDT to PT wording.
+  - R1: Could not open guidelines.vancouver.ca, bylaws.vancouver.ca, london.gov.uk, tandfonline, Gehl sites or BRE; used same-site Council and City PDFs instead; web search budget was exhausted, so remaining gaps are listed as unresolved.
+
+## critic-r1: Urban designer specialising in public life studies (independent reviewer, round 1, packet P06)
+- Gate pass: **False**
+  - condition: Fix the protected-space solar table: add the 4.1-4.3 special cases and an 11 Nov date, make no-new-shadow spaces fail by default with a justified-exception path, and offer both Basic (2-hour) and Detailed (15-minute) studies.
+  - condition: Define the shadow analysis domain from tower height (about 600 m on 22 Sep, about 1.3 km on 11 Nov for 300 m) and switch protected-space take-offs to shadow-polygon projection. State where the computation runs.
+  - condition: Set the VTC open-space preset to 20% public open space (S1.9.1), with POPS of about 10% as a component. Remove the mid-sized 10% option. Open the Large Developments policy.
+  - condition: Set the mid-block link minimum to 9.1 m face to face for the VTC preset (S1.12.2c).
+  - condition: Transcribe the full Table 1.5, add G1.5.1, and measure intra-site tower pairs.
+  - condition: Add the 'external_benchmark' and 'derived' statuses and relabel the NYC, TfL and DfT rows and the derived ratios.
+  - condition: Add wind-at-grade linkage for entrances, sidewalks, transit plaza and links; add active-use depth and lobby class to M01; add below-grade station link quality metrics.
+  - condition: Use UTC-7 in the solar engine and fix the 6.25 h sun-hours arithmetic.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: New shadow on urban plazas only needs to be 'actively minimised' (P06-M03 protected-space metric). → Dilawri Square South, Jack Poole Plaza and Robson Square fall under 3.1 (no new shadow, 22 Sep, 10:00-16:00). Dr Sun Yat-Sen Gardens and Park: no new shadow 10:00-16:00. Victory Square Cenotaph circle: no shadow 10:00-12:00 on 11 November. Other urban plazas and West End miniparks: minimise where possible.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Vancouver's shadow test is the 10:00-16:00 run in 15-minute steps. → Run the Basic study (2-hour intervals) by default. Run the Detailed study (15 minutes, 25 instants, coverage formula) when a protected space is shadowed and an exception is argued.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: The 10% public open space target for mid-sized sites (S1.9.2) is a valid passing target for the VTC block. → S1.9.2 does not apply. Use S1.9.1 (20%, large site, pending confirmation of the Large Developments policy trigger) with S1.10.2 POPS of about 10% as a component.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Mid-block connections of 5.4 m (non-residential), 7.3 m or 4.5 m (half share) are acceptable on the VTC block. → For the VTC preset the minimum is 9.1 m face to face with a 2.4 m clear path. Narrower widths are only possible as a G1.12.1 case-by-case variation.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: CDDG Table 1.5 tower separation is employment-employment 15.2, employment-hotel 15.2, employment-residential 18.3 and residential-residential 24.4 m. → Use the full 3x3 matrix with the S1.5.2 and S1.5.3 conditional reductions and a G1.5.1 flag for very tall towers.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Transport interchanges and tourist areas tolerate less crowding than residential streets (TfL). → Encode the Figure 9 tolerance per area type. B+ is the recommended level for all areas, and C+ is the floor even with compensations such as cafe seating.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: TfL Appendix B gives 5.3 m total footway width for any flow above 1,200 pph. → Above 2,000 pph, derive the required clear width from ppmm at B+ (flow / 60 / 11) plus buffers.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Solar tests run in 'local Pacific time', which implies seasonal PST/PDT switching. → Use UTC-7 year-round in the solar engine. Flag the Victory Square 'PST' wording as unresolved.
+- Findings: {'BLOCKER': 2, 'MAJOR': 11, 'MINOR': 10}
+- Verdict: Not ready. P06 is well structured and honest about its gaps, and most CDDG, EDM, TfL and DfT figures match what I opened. But several 'verified' checks would give entrants wrong verdicts on the 40% criterion. The shadow test leaves out the no-new-shadow special cases (Jack Poole, Robson Square, Dilawri South, Victory Square on 11 Nov) and has no analysis domain to cover 600 m to 1.3 km shadows. The open-space target allows a 10% mid-sized-site option that cannot apply to an 11,468 m2 block. The mid-block link should be 9.1 m. Table 1.5 is incomplete. External benchmarks are labelled 'verified'. Wind at grade, active depth and the below-grade station link are missing. All of these are fixable in one round.

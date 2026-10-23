@@ -1,0 +1,334 @@
+{
+ "expert_role": "Urban planning professor specialising in Vancouverism and tall-building policy (independent reviewer, round 2)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P01-M01",
+   "issue": "Every VTC hard rule still comes from the unopened brief (S02 opened=false): the 244-305 m band, 9.0 non-residential FSR, site size, transit link, board rules and jury weights. I re-opened the competition page and it states none of them, and no jury weights either. It does list a 'SITE PLANS & 3D MODEL' download and 'a reference image of Queen Elizabeth View tower heights'. Registration closes 29 Oct 2026, 8 days from now, and Q&A closes 3 Nov. The downgrade to unverified is correct, but a checker built on rules nobody has quoted cannot go to entrants.",
+   "fix": "Register this week. Set S02 opened=true with page and clause for each rule, and quote the exact height-band, 9.0 FSR, 'one or more towers' and board-size sentences. Send the five Buildner questions before 3 Nov and log the answers as a source (S02a). Until then, M01 output carries a banner saying 'brief unread' on every badge."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M05",
+   "issue": "False claim in the key findings and M05: 'above 150 m AGL daytime marking is always required'. Standard 621 makes that true only for red systems and medium-intensity white (CL-865) systems. With high-intensity white (s.4.2(4)(b)) or high-intensity dual systems at any height (s.4.2(5)(b)), 'the marking ... may be omitted'. The strobe note in s.6.2 covers CL-865 units only. High-intensity white in residential neighbourhoods may need an environmental evaluation (s.2.4) and shielding against glare (s.4.6). Shielding (s.2.2) and equivalent marking (s.2.1) are decided by Transport Canada. The 'Marking and lighting plan' metric is still 'verified', yet the packet's own flags call the Standard 621 details unverified.",
+   "fix": "Offer three configurations: (A) red CL-810/864 plus paint; (B) medium-intensity white plus paint (required above 150 m); (C) high-intensity white or dual, no paint, with an environmental/glare evaluation flag. Each carries its clause and a crown and facade consequence for SPAC/ECOL. Say that Transport Canada decides the final scheme. Set the metric to 'verified (CAR 601.23-601.24); configuration rules unverified until the clause text is quoted'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "The parking logic uses the wrong rule. It treats provincial transit-oriented areas (TOAs) as the operative constraint and says commercial parking may still be required. In Vancouver, Council removed minimum vehicle parking for all land uses citywide in June 2024 (staff recommended effect from 30 Jun 2024). Downtown minimums were already gone in 2018/2019. Accessible, visitor, bicycle, loading and passenger-loading requirements stay, and the Downtown ODP sets parking maximums. TOA status is therefore irrelevant to parking on this site.",
+   "fix": "Replace the TOA-parking relationship with: residential and commercial minimum = 0 (City Parking By-law, June 2024); maximum from the Downtown ODP/Parking By-law (typed); accessible, visitor, bicycle, loading and passenger-loading minimums retained (typed). Keep the TOA row only as context. Point MOBI to the parking maximum and the loading counts that set below-grade levels."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "The Rezoning Policy for Sustainable Large Developments row still says 'recalled, unverified' with empty source_ids, but it can now be checked. A City bulletin and the policy (via search; the PDF is HTTP 403) set the triggers as a site of 8,000 m2 (1.98 ac) or more, or 45,000 m2 or more of new floor area. It was adopted 25 Jul 2018, effective 1 Sep 2018, with amendments to Apr 2024, and 2026 Council reports still apply it. The VTC block (about 11,468 m2, over 103,000 m2) meets both triggers.",
+   "fix": "Add a source with URL guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf (opened=false, 'search summary') and bulletin R019. Store both thresholds with the OR logic, set the status to 'applies (thresholds from summary)', and list the components the policy requires as M08 obligation lines (sustainable site design, green mobility, rainwater, zero waste, low-carbon energy, affordable housing) for a person to confirm."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "The CBD land-use row still has empty source_ids, even though evidence exists. A 2022 Council report (1075 W Georgia, council.vancouver.ca/20220705/documents/r9.pdf, found by search, host 403) says 'Residential uses are not permitted in this area [Area A] under the DODP'. The 2009 Metro Core amendments raised non-residential density in Areas A, B, C1 and F and proposed removing residential from C1 and F. On any Area A block, the brief's residential share is a zoning departure, not a nuance.",
+   "fix": "Turn the parameter into a per-sub-area lookup with fields residential_permitted (yes/conditional/no) and nonres_fsr_max, typed from the DODP. Pre-fill Area A = 'no (search summary, r9 2022)'. M09's chosen block then decides it, and M08 logs a departure automatically when residential area > 0 in a 'no' sub-area. Also ask whether the 9.0 minimum mirrors the Area A density."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "The Higher Buildings Policy is the policy the competition feeds, yet the spec reduces it to a height lookup. Search summaries of the 2011 and 2018 texts give its substantive tests: highest architectural excellence with an enhanced Urban Design Panel review (augmented by international architects); a lasting public legacy (community-significant uses or public amenity); on-site open space adding to the downtown plaza network; no adverse microclimate, shadow or view impacts; energy leadership (Passive House or energy targets plus a Low Carbon Energy System connection, 2018); and Council approval. These map directly onto the 40/30/20 jury criteria and are missing.",
+   "fix": "Add a 'Higher Buildings qualitative criteria' checklist (M02 register rows, M08 evidence slots), each row sourced to S08/S09 (unopened, summary), with the people who judge it named (human_judgment). Point energy to ENER and shadow and wind to CLIM. Do not score these by code."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "Cultural context and reconciliation carry 30% of the jury score, but the policy register has no reconciliation row. Missing are the City's UNDRIP Strategy (2022), its City of Reconciliation framework (2014), and expectations for engaging xʷməθkʷəy̓əm, Sḵwx̱wú7mesh and səl̓ilw̓ətaʔɬ in rezonings. Sen̓áḵw is the reference precedent for tall towers built under Nation jurisdiction outside City zoning. The only cultural_context_30 tag in P01 is M04's mountain-view occlusion, which risks reducing cultural context to view protection. (I could not open sources for this; reviewer knowledge, unverified.)",
+   "fix": "Add unverified register rows for the UNDRIP Strategy, the City of Reconciliation framework, and Nation engagement in rezoning, with pointers to CULT. Remove cultural_context_30 from M04 unless a person writes the link. Add an M08 benefit category for Nation partnership and benefits (human-entered only)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M04",
+   "issue": "The cone-status method cannot run as written. The City open data (opened: 24 records, modified 19 Oct 2026) uses IDs J1, J2, G1, G2, E, 9.2, 20 and 28 (Clinton Park). Storeys lists E2.1, G1.1, G1.2, J1.1, J1.2, 9.2.1, 20.1 and 12.2. Cone 28 appears in neither of Storeys' retained or updated lists, and 12.2 is missing from the open data. Matching 'cone id against the Storeys list' will mis-tag cones or return no match.",
+   "fix": "Treat the City open-data set as the in-force geometry (its date is after 10 Jul 2024). Build a crosswalk from the Public Views Guidelines (hand-read). Use Storeys only for history. Set status to 'in force per City data' and flag any ID with no match as unknown. The four QEP records (3.2.1-3.2.4) do match."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M04",
+   "issue": "The competition page lists 'a reference image of Queen Elizabeth View tower heights' in the brief package. For a hypothetical block this is probably the intended source of cone floors, but the spec still defaults to hand-typed floors or a City View Cone Assessment that no entrant will get before 30 Nov.",
+   "fix": "Method step 1: read the brief's QE View height image and type its floors with source S02, page and figure. Hypothetical-cone mode then defaults to those values (status 'brief value'), and the City assessment route moves to optional."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01 (all)",
+   "issue": "Scope does not fit the schedule. Core-priority effort in P01 alone is about 28-31 person-days (M01 4, M02 5, M04-core 4, M06 3-4, M07 5-7, M08-core 3, M09 4); the whole packet is about 39-48. The working core is due 13 Nov, 23 days away, for two students who also carry 12 other packets and the competition boards (30 Nov). M06 is 'core' with no opened source at all.",
+   "fix": "Reduce core to M09, M07, M01 and M02 as static JSON (about 12-14 person-days). Move M06, M08's benefit ledger and Sankey, M04's ray-casting and M05's heightfields to v1. Make M06 report-only with no grading until a guideline is read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M01",
+   "issue": "The band is stored as 244-305 m, but 800-1000 ft is 243.84-304.80 m. A 304.9 m tower passes in metres and fails in feet, and 243.9 m does the reverse.",
+   "fix": "Store the threshold in the brief's own unit, exact (243.84 / 304.80 m if the brief says feet), and show the rounding."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M09",
+   "issue": "The 'AGL ground point' question is partly answered in a source the team already holds. Standard 621 s.4.8(4) uses the tops of adjacent buildings in congested areas as ground level for counting light levels. CAR 601.23 itself does not define AGL on a slope.",
+   "fix": "Add s.4.8(4) to the AGL parameter as the lighting-level rule. Keep the 150 m obstacle test on the lowest adjacent grade (conservative) as a team assumption until Transport Canada confirms."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M09",
+   "issue": "The datum offset is labelled 'assumed sub-metre, unverified'. Secondary sources put CGVD2013 minus CGVD28 near Vancouver at about 15-17 cm. That is immaterial for 100 m cone margins but material near a cone floor.",
+   "fix": "Record about 0.15-0.2 m as an order of magnitude (secondary), and require NRCan GPS-H at the chosen block before any margin under 1 m is reported."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M04",
+   "issue": "The 2022 West End staff presentation is quoted as 361 ft for view 3.2.1. A search summary of the same deck gives about 110.3 m (362 ft).",
+   "fix": "Store 110.3 m (362 ft), site-specific and historical, unverified until the PDF is read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M07",
+   "issue": "The use tiers are ad hoc and do not match the Zoning and Development By-law use groups (Office, Retail, Service, Cultural and Recreational, Institutional), which the Downtown ODP sub-area permitted-use lists rely on. Hotel-as-Service-Use is still recalled.",
+   "fix": "Tag Layer 0 program with by-law use-group codes so that tiers and the M02 permitted-use lookup share one vocabulary. Confirm the hotel group when the by-law is hand-read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M01",
+   "issue": "Board rules: the spec says '10 MB each', but the project context says '<=10 MB' and could mean per board or total. The competition page confirms only English and anonymity, not board count, size or MB.",
+   "fix": "Mark English and anonymity as verified from S01. Keep the board count, A2 and the MB limit unverified, and ask whether 10 MB is per board or per submission."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M05",
+   "issue": "Under 601.23(1)(b), the Harbour water aerodrome (CYHC) and the harbour heliport are within 6 km of any CBD block, so the 90 m test applies as well. The spec mentions the test but never computes the distance.",
+   "fix": "Compute the distance from P01-M09 to the CYHC and heliport coordinates (typed, sourced) and report which paragraphs of 601.23(1) trigger."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M05",
+   "issue": "The 2026 Transport Canada proposal also covers parts of Burnaby, and its stated purpose is that planes 'can safely arrive and depart'. No surface type is named. The spec's description is otherwise accurate.",
+   "fix": "Add Burnaby to the S21 extract and keep the surface type 'unknown' rather than implying an outer or approach surface."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "P01 key findings / P01-M05: 'Above 150 m AGL daytime marking is always required' for every VTC tower, and strobe-type lights are not recommended in urban areas.",
+   "why_false": "Standard 621 requires day marking above 150 m only with red or medium-intensity white (CL-865) systems. With high-intensity white or high-intensity dual systems, marking may be omitted at any height. The urban strobe note applies to CL-865 units only.",
+   "correction": "Day marking is required above 150 m AGL unless a high-intensity white or dual system is used. High-intensity white near residences may need an environmental evaluation and shielding. Transport Canada decides the final scheme through the Aeronautical Assessment Form.",
+   "evidence": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-621-obstruction-marking-lighting-canadian-aviation-regulations-cars : s.4.2(3)(b) Info note 1; s.4.2(4)(b) 'the markings and the other lights ... may be omitted'; s.4.2(5)(b); s.6.4(6); s.6.2 Info note (CL-865 strobes); s.2.4; s.2.2; s.2.1 Info note 1 (read through a summarising fetch)."
+  },
+  {
+   "claim": "P01-M02: Inside a transit-oriented area residential parking minimums are zero, but commercial parking may still be required (TOA is the operative parking rule).",
+   "why_false": "Vancouver Council eliminated minimum vehicle parking for all land uses citywide in June 2024 (downtown peninsula already in 2018). This goes beyond the provincial TOA rule.",
+   "correction": "No vehicle parking minimum for any use. Accessible, visitor, bicycle, loading and passenger-loading requirements remain, and the Downtown ODP parking maximums still apply.",
+   "evidence": "https://www.ctvnews.ca/vancouver/article/vancouver-council-votes-to-eliminate-minimum-parking-requirements-city-wide (26 Jun 2024); search summary of https://council.vancouver.ca/20240626/documents/cfsc2.pdf (all land uses, effective 30 Jun 2024; accessible, visitor, bike and loading retained); BC TOA page (residential only) https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas"
+  },
+  {
+   "claim": "P01-M04: Cone status can be tagged by checking the open-data cone id against the Storeys retained/updated/eliminated list.",
+   "why_false": "The open-data IDs (J1, J2, G1, G2, E, 9.2, 20, 28) do not match Storeys' IDs (J1.1, J1.2, G1.1, G1.2, E2.1, 9.2.1, 20.1, 12.2). Cone 28 Clinton Park is in neither Storeys list.",
+   "correction": "Use the City dataset as the in-force geometry, with a crosswalk from the Public Views Guidelines. Only the QEP IDs 3.2.1-3.2.4 match directly.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records (24 records listed 21 Oct 2026); https://storeys.com/vancouver-view-cones-policy-change/"
+  },
+  {
+   "claim": "P01-M02/M08: Large-sites policy thresholds (0.8 ha / 45,000 m2) and CBD residential restriction are reviewer recollections only, with no sourced evidence.",
+   "why_false": "Both have public evidence. The large-developments policy applies to sites of 8,000 m2 or more OR 45,000 m2 or more of new floor area (adopted 2018, amended Apr 2024). A 2022 Council report states residential uses are not permitted in DODP Area A.",
+   "correction": "Cite them as search-summary evidence (City PDFs 403), mark both triggers as met for the VTC block, and make Area A residential a departure.",
+   "evidence": "Search summaries of https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf , https://guidelines.vancouver.ca/bulletins/R019.pdf , https://council.vancouver.ca/20220705/documents/r9.pdf , https://council.vancouver.ca/20090421/documents/ph1summary.pdf"
+  }
+ ],
+ "missing": [
+  "The brief package itself: S02 page and clause references, the site plan, the 3D model and the 'Queen Elizabeth View tower heights' reference image named on the competition page.",
+  "Higher Buildings Policy qualitative criteria (architectural excellence and enhanced UDP review, public legacy/amenity, open space, microclimate, energy leadership, Council approval) as checklist rows.",
+  "Reconciliation and UNDRIP register rows (City UNDRIP Strategy 2022, City of Reconciliation 2014, Nation engagement in rezonings, Sen̓áḵw precedent) with pointers to CULT, given the 30% jury weight.",
+  "Correct Vancouver parking rule (no minimums for any use since June 2024; accessible, visitor, bicycle and loading retained; Downtown ODP maximums).",
+  "Per-sub-area residential-permitted and non-residential FSR lookup (Area A residential not permitted).",
+  "Standard 621 configuration options (red, medium white, high-intensity white/dual) with their marking consequences, plus shielding (s.2.2) and the adjacent-building ground rule (s.4.8(4)).",
+  "Crosswalk between open-data cone IDs and the Public Views Guidelines numbering.",
+  "Distance from the block to CYHC and the harbour heliport for the 601.23(1)(b) test.",
+  "Zoning By-law use-group codes for program tags, shared by M07 tiers and the M02 permitted-use lookup.",
+  "A re-scoped core plan that fits 13 Nov with two people and 12 other packets.",
+  "Reviewer note: the shared WebSearch budget ran out mid-review, so UNDRIP, the hotel use classification and the full Higher Buildings text could not be opened; WebFetch of City hosts still returns 403."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Register by 29 Oct 2026, open the brief, cite page and clause for every M01/M07 rule, and read the QE View heights image; send Buildner questions before 3 Nov 2026.",
+   "Correct the Standard 621 marking claim (high-intensity white or dual systems may omit marking) and reconcile the M05 metric status with the unverified flag.",
+   "Replace the TOA-based parking logic with Vancouver's citywide elimination of minimums plus retained accessible, visitor, bicycle and loading requirements.",
+   "Cite the large-developments thresholds (8,000 m2 or 45,000 m2) and the DODP Area A residential prohibition as sourced (summary) rows, with automatic departure logging.",
+   "Add Higher Buildings qualitative criteria and reconciliation/UNDRIP register rows.",
+   "Fix the M04 cone-status method with an ID crosswalk.",
+   "Cut core scope to fit the 13 Nov 2026 milestone (M09, M07, M01, M02 static register)."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: brief rules marked verified from unopened S02",
+   "status": "partly",
+   "residue": "Correctly downgraded, but the brief is still unopened with registration closing 29 Oct; no clause is cited."
+  },
+  {
+   "item": "BLOCKER M04: no shared datum or height-measure node",
+   "status": "addressed",
+   "residue": "M09 added; the AGL ground point on a slope and the datum offset are still open (Standard 621 s.4.8(4) partly answers the first)."
+  },
+  {
+   "item": "BLOCKER M02: dependency cycle M02<->M04",
+   "status": "addressed",
+   "residue": "Graph checked: acyclic (M02, M07, M09 roots; M08 sink). The CI cycle check is promised but not specified."
+  },
+  {
+   "item": "MAJOR M02: universal verified 600 ft threshold",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M07: FSR classification (hotel, amenity, core allocation, ledger)",
+   "status": "addressed",
+   "residue": "Tiers are not aligned with by-law use groups; hotel as a Service Use still recalled."
+  },
+  {
+   "item": "MAJOR M03: CBD land-use/job-space policy missing",
+   "status": "partly",
+   "residue": "Row added with empty source_ids; available evidence (Area A residential not permitted) not cited or used."
+  },
+  {
+   "item": "MAJOR M08: large-sites, green buildings, public art, bird-friendly policies missing",
+   "status": "partly",
+   "residue": "Rows added but left as recollection; the large-sites thresholds are now verifiable and should drive M08 obligations."
+  },
+  {
+   "item": "MAJOR M08: CAC treated as a Charter tool",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: transit-oriented-area parking ignored",
+   "status": "partly",
+   "residue": "TOA added but the framing is wrong for Vancouver (citywide elimination of minimums, all uses, June 2024)."
+  },
+  {
+   "item": "MAJOR M05: YVR zoning marked verified",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M05: TC aeronautical assessment and marking/lighting missing",
+   "status": "partly",
+   "residue": "Added, but now overstates that day marking is always required above 150 m; high-intensity options omitted."
+  },
+  {
+   "item": "MAJOR M05: heliport surfaces treated as building limits",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M04: cone-vintage logic misread",
+   "status": "partly",
+   "residue": "Per-cone status added, but the ID matching against Storeys fails for several open-data records."
+  },
+  {
+   "item": "MAJOR M04: hypothetical site, brief package not checked",
+   "status": "partly",
+   "residue": "Hypothetical mode added; the brief's named QE View heights image is not targeted."
+  },
+  {
+   "item": "MAJOR M06: residential separation and plate rules misapplied to office/hotel",
+   "status": "addressed",
+   "residue": "Still no opened source; module should be v1 or report-only."
+  },
+  {
+   "item": "MAJOR M01: transit test to the station-side boundary",
+   "status": "addressed"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P01-S41",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.23.html",
+   "ok": true,
+   "note": "601.23(1)(a)-(e) and (2) match the spec; (d) is above 150 m AGL; (b) 90 m within 6 km of an aerodrome centre is also triggered by CYHC and the harbour heliport."
+  },
+  {
+   "source_id": "P01-S43",
+   "url": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-621-obstruction-marking-lighting-canadian-aviation-regulations-cars",
+   "ok": false,
+   "note": "90 days notice (s.2.5(1)) confirmed. The spec's claim that 'marking is always required above 150 m' is wrong: high-intensity white or dual systems may omit marking (s.4.2(4)(b), 4.2(5)(b)). Strobe note is CL-865 only. Shielding s.2.2; congested-area ground rule s.4.8(4). Read through a summarising fetch."
+  },
+  {
+   "source_id": "P01-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "note": "Dates confirmed (29 Oct, 3 Nov, 30 Nov 23:59 London, 26 Jan 2027). No height, FSR, site, board or jury-weight rules. Lists site plans, 3D model and a QE View tower-heights reference image; English and anonymity confirmed."
+  },
+  {
+   "source_id": "P01-S04",
+   "url": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+   "ok": true,
+   "note": "600 ft only for sites across from Bay Parkade; Bay Parkade outside the policy area; May 2023 direction; competition will not determine policy. Spec is accurate."
+  },
+  {
+   "source_id": "P01-S07",
+   "url": "https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245",
+   "ok": false,
+   "note": "Download stub only; policy text not retrievable by fetch."
+  },
+  {
+   "source_id": "P01-S40",
+   "url": "https://www.shapeyourcity.ca/odp",
+   "ok": true,
+   "note": "Vancouver ODP adopted 31 Mar 2026 (hearing 11 Mar), effect subject to Metro Vancouver RCS; no downtown detail. Spec is accurate."
+  },
+  {
+   "source_id": "P01-S45",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 records, modified 19 Oct 2026, no elevation fields. IDs do not match the Storeys numbering (J1/J2, G1/G2, E, 9.2, 20, 28 Clinton Park)."
+  },
+  {
+   "source_id": "P01-S21",
+   "url": "https://tc.canada.ca/en/corporate-services/consultations/updating-vancouver-international-airport-zoning-regulations",
+   "ok": true,
+   "note": "Confirms the added area north of the Fraser to English Bay (also Burnaby); no surface type or heights; closed 12 Sep 2026; aviation.pac@tc.gc.ca."
+  },
+  {
+   "source_id": "P01-S27",
+   "url": "https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation",
+   "ok": true,
+   "note": "88 ft (27 m) possible cut on the 1,034 ft, 68-storey hotel tower to 946 ft; no datum; 24 Jul 2026. Spec is accurate."
+  },
+  {
+   "source_id": "P01-S44",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas",
+   "ok": true,
+   "note": "800 m / 400 m; residential parking cannot be required; commercial parking and loading may be. Accurate, but superseded in Vancouver by the City's own 2024 citywide elimination of minimums."
+  },
+  {
+   "source_id": "NEW-parking",
+   "url": "https://www.ctvnews.ca/vancouver/article/vancouver-council-votes-to-eliminate-minimum-parking-requirements-city-wide",
+   "ok": true,
+   "note": "26 Jun 2024 unanimous vote to eliminate parking minimums citywide. Council report cfsc2 (via search): all land uses, effective 30 Jun 2024, accessible, visitor, bike and loading retained; downtown minimums removed 2018."
+  },
+  {
+   "source_id": "NEW-largesites",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "ok": false,
+   "note": "HTTP 403. Search summary: 8,000 m2 (1.98 ac) site OR 45,000 m2 new floor area; adopted 25 Jul 2018, effective 1 Sep 2018, amended to Apr 2024."
+  },
+  {
+   "source_id": "NEW-AreaA",
+   "url": "https://council.vancouver.ca/20220705/documents/r9.pdf",
+   "ok": false,
+   "note": "HTTP 403. Search summary: 'Residential uses are not permitted in this area [Area A] under the DODP'; 2009 amendments raised non-residential FSR in A, B, C1, F."
+  },
+  {
+   "source_id": "P01-S08",
+   "url": "https://guidelines.vancouver.ca/H005.pdf",
+   "ok": false,
+   "note": "Not fetched (City host 403). Search summary: architectural excellence, enhanced UDP review, public legacy/amenity, open space, microclimate/shadow, Passive House or energy targets plus LCES, Council approval: all missing from the spec."
+  },
+  {
+   "source_id": "P01-S19",
+   "url": "https://council.vancouver.ca/20220705/documents/r8staffpresentation.pdf",
+   "ok": false,
+   "note": "Not opened; search summary gives view 3.2.1 at about 110.3 m (362 ft) for that site, not 361 ft."
+  }
+ ],
+ "verdict": "Round 1 fixed the structural faults: no dependency cycle, a datum node, an honest status split and a corrected 600 ft rule. P01 still cannot ship. Every hard rule rests on a brief nobody has opened, and registration closes in 8 days. New errors: day marking is not always required above 150 m (high-intensity white or dual systems may omit it), and parking follows the provincial TOA rule when Vancouver removed minimums for all uses in 2024. Available evidence goes unused: large-sites thresholds, the Area A residential ban, the Higher Buildings qualitative tests. Reconciliation, worth 30% of the jury score, has no policy row. Cone-ID matching fails against the City's own data. Core scope (about 30 person-days) does not fit 13 Nov."
+}

@@ -1,0 +1,348 @@
+{
+ "expert_role": "Practising architect at a tall-building design firm. I reviewed P17 (tool case studies and the current, as-is competition workflow) against the live vendor, course-repo and competition pages on 21 Oct 2026.",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/cove.tool",
+   "issue": "cove.tool is left UNRESOLVED and the spec says the SaaS is 'not described anywhere'. The cove.inc footer links that answer the question were never opened. https://cove.inc/analysis-client-support/ shows the platform still runs as 'analysis.tool' for existing clients, with login, Assembly Builder and Carbon. https://cove.inc/education-resources/ says educational licences stopped being issued on 1 Oct 2025, academic access ended on 31 Dec 2025, and there is no replacement.",
+   "fix": "Change the status from UNRESOLVED to resolved. The product survives as analysis.tool for paying existing clients only, and there is no student or academic access, so VTC student teams cannot use it. Add P17-S47 and P17-S48 for the two pages and update license_cost, how_used and the flag."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Speckle",
+   "issue": "stops_at says a 4-person VTC team would exceed the free plan's user cap. The pricing page also says Speckle is free for students and educators. The academia programme at https://www.speckle.systems/academia offers educational institutions a free workspace, applied for by email at academia@speckle.systems. The Explore plan is also capped at 100 versions across the workspace, which the spec leaves out.",
+   "fix": "Rewrite stops_at and license_cost: the Explore plan has 1 project, up to 3 users counting external collaborators, 100 versions and 30-day history, and a separate free academic workspace exists. Mark the academic terms UNVERIFIED until UBC applies. Remove the '4-person team exceeds cap' conclusion from the notes."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Giraffe",
+   "issue": "The spec says no education pricing was seen and lists free-plan and education terms as unconfirmed. https://www.giraffe.build/universities-and-education says Giraffe provides free licences to students and universities, with no trial expiry. It also describes a semester studio framework covering site, zoning, massing and feasibility. That changes whether Giraffe is reachable for a student entrant.",
+   "fix": "Add the education page as a source. Set license_cost to free for students and universities (vendor statement). Keep 'Vancouver data layers unconfirmed' as UNVERIFIED, because the page does not name covered regions."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Arch540 agents_demo",
+   "issue": "Evidence is attributed to the wrong demo, and the repo's relevance is understated. In agents_notes.html, the '255 homes estimated vs 223 measured' result comes from demo D step 3, not B_testfit. The 'reached the scoring code by another route' bypass comes from demo C. The notes also show demo C working on an 80 x 60 m Vancouver lot, trading floor area against winter sun on open ground and compactness, with a Pareto front. Demo D is a mixed-use 100 x 70 m block with a hidden contradiction: at least 250 homes required, but the FSR allows about 239. Calling the whole repo a '2D residential toy' hides the two patterns closest to the VTC: the 9.0 FSR check and trade-off fronts.",
+   "fix": "Split the case study into B, C and D with the correct source for each claim. Attribute 255 vs 223 to D and the bypass to C. Add demo C (winter-sun trade-off front) and demo D (constraints reader catches an FSR contradiction before design starts) as templates for the PROG and CLIM modules."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Ladybug Tools",
+   "issue": "The licence is flagged UNRESOLVED and treated as 'copyleft either way'. The ladybug core LICENSE file is the GNU Affero GPL v3, and so are ladybug-grasshopper and honeybee-radiance; the about page says GPL v3. For a web-based platform the difference decides the architecture. Under AGPL section 13, running the code server-side for remote users obliges the operator to offer source to those users, and community forks inherit this.",
+   "fix": "Record that the core libraries are AGPL-3.0, confirmed from the LICENSE file. Add an explicit consequence: if CLIM modules call ladybug or honeybee on a server, the platform (or at least that service) must be AGPL-compatible and publish its source. Otherwise run the libraries client-side or in a separately licensed service. Hand the decision to the DATA packet."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow",
+   "issue": "The as-is workflow has no step for protected public views and the skyline. Vancouver's tall-building envelope is governed first by its protected view cones, and the brief requires a skyline view from Queen Elizabeth Park. A 244-305 m downtown massing is checked against view corridors before anything else. The spec treats the QE Park view only as a render camera in step 7. Neither policy PDF could be opened (HTTP 403 again today), so this remains unconfirmed against the documents.",
+   "fix": "Add step 1b, 'Protected views and skyline envelope': who does it, View Protection Guidelines and Higher Buildings Policy as inputs, a permissible-height envelope and skyline sketch as outputs, automatable view-cone clipping versus the judgement of a justified breach. Mark the policy facts UNVERIFIED until the PDFs are opened by hand, and link the step to SITE and CLIM."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow",
+   "issue": "Steps for the two heaviest-weighted jury criteria and several required deliverables are missing. There is no step for cultural context and reconciliation research (30%): Musqueam, Squamish and Tsleil-Waututh context, 'City in Nature', precedent study, narrative. There is no sustainability, energy or carbon study (listed in the brief's deliverables). There is no production of plans and sections (typical lower, mid and upper plans; at least two sections). The policy reflection appears only as an input to the boards.",
+   "fix": "Add steps for (a) cultural, site and precedent research and narrative, (b) sustainability, energy and carbon strategy, (c) drawing production of plans and sections, and (d) writing the policy reflection. Give each the same fields as the other steps, and state that interpreting Indigenous perspectives must not be delegated to the tool."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/TestFit",
+   "issue": "stops_at says tall mixed-use towers are not shown. The pricing FAQ says the Site Solver subscription gives detailed typology solutions suitable for mixed-use developments. The pricing page also links 'For Universities' and 'For Students' pages that the spec does not mention (the /universities URL returned 404 today). Office is indeed absent from the typology list.",
+   "fix": "Rewrite stops_at as: mixed-use claimed for Site Solver only (from USD 15,000/yr); office and high-rise not listed; tower height capability unverified. Record that a university or student route exists with unknown terms, and add the FAQ as a source."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies (all)",
+   "issue": "workflow_step is free text and is not mapped to the project's own taxonomy codes (SITE, PROG, CLIM, ...) or the jury tags. The as-is steps are not mapped either. Later packets therefore cannot trace which tool or pain point motivates which module. The scope's 'which workflow step it serves' should point to as_is_workflow step numbers.",
+   "fix": "Add three fields to every case study and as-is step: as_is_step_ids (for example [2,4]), taxonomy codes (for example CLIM, ENER) and jury_tags (for example human_scale_40)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies",
+   "issue": "The packet never answers the question a VTC entrant actually has: which of these tools can a 2-4 person student team get, learn and use between now and 30 Nov 2026 (40 days; registration closes 29 Oct). Availability is scattered across license_cost, and some of it is wrong (Speckle, Giraffe, cove.tool).",
+   "fix": "Add an access_for_vtc_team field to each case study: free, student, trial length or paid; seats; setup time (team assumption); usable before 30 Nov yes/no; plus the source for each part."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/Autodesk Forma",
+   "issue": "The closest incumbent comparator is almost entirely 'general knowledge'. The text lists sun, wind, daylight, noise and carbon analyses without a source, which breaks the course rule to cite every result. The only evidence is GitHub extension repos. One of them is an MIT shadow-study sample, https://github.com/autodesk-platform-services/aps-forma-extension-shadow-study, which shows a sun or shadow extension point exists.",
+   "fix": "Remove the unsourced analysis list from what_it_does, or move it into a clearly labelled UNVERIFIED field. Ask a team member to open the Forma overview, education and help pages in a logged-in browser and record the results. Cite the shadow-study sample as verified evidence of SDK sun-position access."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/case_studies/Rhino+Ladybug",
+   "issue": "'The dominant competition modelling stack' is stated as fact with no source. Butterfly (OpenFOAM) is presented as the wind route. The about page dates its release to March 2017 and gives no maintenance status. Student teams more commonly use other routes such as Eddy3D, SimScale or a surrogate tool; that observation is a team assumption.",
+   "fix": "Relabel 'dominant stack' as a team assumption. Note that Butterfly dates from 2017 and its maintenance status is unknown. List alternative wind routes as unverified candidates for a future packet."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources/P17-S31",
+   "issue": "The S31 extract says the Infrared free tier is aimed at students. The pricing page describes the Starter tier (EUR 240/yr) as for 'Students & small studies'. Tokens per analysis are stated only for standard runs (10) and pedestrian wind (50), so the solar, UTCI and daylight costs behind '90 standard runs' are unverified.",
+   "fix": "Correct the extract to the Starter tier. Note that token costs for the other analyses are not on the page."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/flags/Infrared token arithmetic",
+   "issue": "Saying that sign-up on 19 Oct keeps tokens 'valid through 30 Nov' assumes inclusive day counting and an expiry time that is not stated. Day 42 is 30 Nov, and the submission deadline is 23:59 London. The phrasing implies tokens will last to submission, but wind studies are needed weeks earlier.",
+   "fix": "State 'expires on or about 30 Nov (exact expiry time not stated)'. Recommend running wind studies by mid-November and not relying on the free grant for revisions in the last week."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/case_studies/Archistar",
+   "issue": "The FALSE_ASSUMPTION is attributed to an 'implicit' claim in the scope. In addition, the homepage footer links 'For Property Developers' and 'For Architects' pages that were not opened, so the conclusion that there is no feasibility product rests on the products page alone.",
+   "fix": "Open the two audience pages before keeping the flag. Reword the flag as 'the current product line shows only AI PreCheck (plan review)' rather than correcting a claim no one wrote."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/as_is_workflow/step 3",
+   "issue": "The derived figure of 103,000 m2 non-residential is not turned into what it means for the design. At typical office plates it implies roughly 40-50 office floors, which sets the stacking, the core and the height of the residential and hotel above. The causal link to the massing decision is missing.",
+   "fix": "Add a derived note labelled team assumption: non-residential area divided by an assumed office floor plate gives the number of office floors and their share of the 244-305 m height. Expose the floor plate as an editable team assumption."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/change_log",
+   "issue": "The change log says the WebSearch budget was exhausted. That limit also applied in this review, so vendor education programmes (Snaptrude, Finch, Autodesk) were not searched for, only fetched where the URL was known.",
+   "fix": "In round 2, run targeted searches for 'education' or 'student' programmes for Snaptrude, Finch, TestFit and Autodesk Forma, and record negative results explicitly."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The cove.tool SaaS is not described anywhere on the cove.inc pages, and its availability cannot be confirmed.",
+   "why_false": "The cove.inc footer links to a client hub for the platform, now called analysis.tool, and to an education page that states the end of academic access.",
+   "correction": "analysis.tool is still live for existing clients. Educational licences stopped on 1 Oct 2025 and academic access ended on 31 Dec 2025, so it is not available to student VTC teams.",
+   "evidence": "https://cove.inc/analysis-client-support/ (analysis.tool Client Hub, login, Carbon, Assembly Builder); https://cove.inc/education-resources/ (programme ended, no replacement)"
+  },
+  {
+   "claim": "Speckle's free plan caps at 3 users, so a 4-person VTC team would exceed it (implying it must pay).",
+   "why_false": "Speckle's pricing page says it is free for students and educators and links to an academia programme that gives a free workspace to educational institutions.",
+   "correction": "For a UBC team, apply to the academia programme (academia@speckle.systems). Explore plan limits are 1 project, 3 users including external collaborators, 100 versions and 30-day history.",
+   "evidence": "https://www.speckle.systems/pricing ; https://www.speckle.systems/academia"
+  },
+  {
+   "claim": "Giraffe has no education pricing, and its free-plan and education terms are unconfirmed.",
+   "why_false": "Giraffe's education page states it provides free licences to students and universities.",
+   "correction": "Giraffe is free for education (vendor statement). Coverage of Vancouver data remains unverified.",
+   "evidence": "https://www.giraffe.build/universities-and-education"
+  },
+  {
+   "claim": "In B_testfit, hand estimates were wrong (255 vs 223 homes measured), and the guard was bypassed by a counter import.",
+   "why_false": "agents_notes.html places the 255 vs 223 result in demo D step 3 and the scoring-code bypass in demo C.",
+   "correction": "Attribute each claim to demo D and demo C respectively. B_testfit's own evidence is the three runs of 16,272, 13,968 and 15,552 m2 and the gate.py block (R2 gap 12.0 m, needs 26.9 m).",
+   "evidence": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html"
+  },
+  {
+   "claim": "The Ladybug licence is unresolved, and the AGPL/GPL difference does not matter ('copyleft either way').",
+   "why_false": "The core repository's LICENSE file is the GNU Affero GPL v3. AGPL adds a network-use source obligation that GPL v3 lacks, which is decisive for a web platform.",
+   "correction": "Treat ladybug, ladybug-grasshopper and honeybee-radiance as AGPL-3.0. Server-side use in the web tool triggers source-offer obligations.",
+   "evidence": "https://raw.githubusercontent.com/ladybug-tools/ladybug/master/LICENSE (title: GNU AFFERO GENERAL PUBLIC LICENSE)"
+  },
+  {
+   "claim": "TestFit does not show tall mixed-use buildings (it is only parking, multi-family and similar).",
+   "why_false": "The TestFit pricing FAQ says Site Solver provides typology solutions suitable for mixed-use developments.",
+   "correction": "Mixed-use is claimed for Site Solver (from USD 15,000/yr). Office and high-rise or tower are not listed; tower capability is unverified.",
+   "evidence": "https://www.testfit.io/pricing (FAQ on mixed-use)"
+  },
+  {
+   "claim": "Infrared.city's free tier is aimed at students and small studies (S31 extract).",
+   "why_false": "The pricing page labels the paid Starter tier, not the free tier, 'Students & small studies'.",
+   "correction": "Free: 900 one-time tokens that expire 42 days after sign-up. Starter: EUR 240/yr, described as for students and small studies.",
+   "evidence": "https://www.infrared.city/pricing"
+  }
+ ],
+ "missing": [
+  "As-is step: protected public views and Queen Elizabeth Park skyline envelope check (View Protection Guidelines and Higher Buildings Policy). The policy PDFs still return 403 and must be opened by hand.",
+  "As-is step: cultural context, reconciliation and precedent research and narrative (30% of jury weight), with Musqueam, Squamish and Tsleil-Waututh context kept as human judgement.",
+  "As-is step: sustainability, energy and embodied-carbon study (a brief deliverable).",
+  "As-is steps: drawing production of site and ground plans, typical lower, mid and upper plans and at least two sections; writing the policy reflection.",
+  "As-is step 0: a time plan working back from 30 Nov, and the deadlines for registration (29 Oct), Q&A (3 Nov) and the final upload.",
+  "A field on every case study and as-is step mapping it to taxonomy codes (SITE, CLIM, ...), jury tags and as_is step ids.",
+  "A field on every case study giving access for a VTC student team before 30 Nov (free, student, trial or paid; seats; setup time).",
+  "A licence-compatibility decision for the open-source web tool (AGPL Ladybug vs Apache Speckle vs MIT Hypar), handed off to the DATA packet.",
+  "Case studies for demos C (Vancouver winter-sun trade-off front) and D (mixed-use block with an FSR contradiction check) in the course repo.",
+  "Candidate tools not in scope but used in the as-is workflow: Pollination (separately), rendering tools (Enscape, Twinmotion, D5), AI image tools (in light of Buildner's AI-image caution), SketchUp, Revit, wind routes (Eddy3D, SimScale), and City of Vancouver open data or VanMap for context models. All unverified.",
+  "Measured evidence for time shares: interviews or time logs with 2-3 real VTC or comparable teams. Every time share is currently a team assumption.",
+  "Relationship: required non-residential area (about 103,000 m2) to number of office floors to share of tower height and core size (a parameter that drives the massing)."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Correct the seven false assumptions (cove.tool status, Speckle academic, Giraffe education, demo attribution, Ladybug AGPL, TestFit mixed-use, Infrared tier label) and cite the new sources.",
+   "Add the as-is steps for protected views and skyline, cultural and reconciliation research, sustainability and carbon, plans and sections, and the policy reflection.",
+   "Map each case study and step to taxonomy codes, jury tags and as-is step ids.",
+   "Add access for a VTC student team before 30 Nov to every case study.",
+   "Remove the unsourced Forma analysis list from verified fields, or have a person open the Autodesk pages and record what they show.",
+   "Record the AGPL consequence for a web-hosted tool and hand the decision to the DATA packet."
+  ]
+ },
+ "previous_round": [],
+ "sources_checked": [
+  {
+   "source_id": "P17-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Confirmed: registration 29 Oct, Q&A 3 Nov, submission 30 Nov 23:59 London, teams of up to 4, EUR 140/120 + 4.5% VAT (also payable in three instalments), no software specified, AI-image caution."
+  },
+  {
+   "source_id": "P17-S41",
+   "url": "https://cove.inc/",
+   "ok": false,
+   "note": "Redirect confirmed, but the footer links to an analysis.tool client hub and an education page that the spec missed."
+  },
+  {
+   "source_id": "new",
+   "url": "https://cove.inc/analysis-client-support/",
+   "ok": true,
+   "note": "analysis.tool client hub is live for existing customers."
+  },
+  {
+   "source_id": "new",
+   "url": "https://cove.inc/education-resources/",
+   "ok": true,
+   "note": "Educational licences ended: new ones stopped 1 Oct 2025, access ended 31 Dec 2025."
+  },
+  {
+   "source_id": "P17-S43",
+   "url": "https://www.autodesk.com/products/forma/overview",
+   "ok": false,
+   "note": "HTTP 403 again; the features page, forma.autodesk.com redirect, APS page and npm SDK page also 403 or 404."
+  },
+  {
+   "source_id": "P17-S44",
+   "url": "https://github.com/spacemakerai",
+   "ok": true,
+   "note": "Matches the spec; the archived Christmas-town extension is forked from an MIT shadow-study sample."
+  },
+  {
+   "source_id": "new",
+   "url": "https://github.com/autodesk-platform-services/aps-forma-extension-shadow-study",
+   "ok": true,
+   "note": "MIT shadow-study extension using the Forma SDK. Does not document the built-in analyses."
+  },
+  {
+   "source_id": "P17-S27",
+   "url": "https://www.archistar.ai/",
+   "ok": true,
+   "note": "Only AI PreCheck is listed; Vancouver office; Burnaby logo; property-developer and architect audience pages not opened."
+  },
+  {
+   "source_id": "P17-S10",
+   "url": "https://www.testfit.io/pricing",
+   "ok": false,
+   "note": "Prices correct, but the FAQ claims mixed-use support for Site Solver; university and student links exist."
+  },
+  {
+   "source_id": "P17-S11",
+   "url": "https://www.testfit.io/",
+   "ok": true,
+   "note": "'4x faster' and other figures are testimonials; office and tower not mentioned."
+  },
+  {
+   "source_id": "P17-S15",
+   "url": "https://www.speckle.systems/pricing",
+   "ok": false,
+   "note": "Limits confirmed, plus 100 versions. States free for students and educators, which the spec omitted."
+  },
+  {
+   "source_id": "new",
+   "url": "https://www.speckle.systems/academia",
+   "ok": true,
+   "note": "Free workspace for educational institutions; apply by email."
+  },
+  {
+   "source_id": "P17-S31",
+   "url": "https://www.infrared.city/pricing",
+   "ok": false,
+   "note": "Prices and tokens correct; the student label belongs to Starter, not Free."
+  },
+  {
+   "source_id": "P17-S30",
+   "url": "https://www.infrared.city/",
+   "ok": true,
+   "note": "Claims of 1 s vs 3 days, 100x, 90%+, 500k simulations and 100+ cities are vendor marketing; no height limits stated."
+  },
+  {
+   "source_id": "P17-S19",
+   "url": "https://www.ladybug.tools/about.html",
+   "ok": true,
+   "note": "GPL v3 unless stated; Butterfly released March 2017, maintenance not stated."
+  },
+  {
+   "source_id": "P17-S20",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/ladybug/master/LICENSE",
+   "ok": true,
+   "note": "GNU Affero GPL v3 confirmed."
+  },
+  {
+   "source_id": "P17-S23",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/butterfly/master/README.md",
+   "ok": true,
+   "note": "No deprecation notice and no OpenFOAM versions or release notes."
+  },
+  {
+   "source_id": "P17-S25",
+   "url": "https://www.rhino3d.com/buy/",
+   "ok": true,
+   "note": "USD 995/595 commercial, 195/95 student; lab licence (30 users) USD 975."
+  },
+  {
+   "source_id": "P17-S38",
+   "url": "https://www.finch3d.com/pricing",
+   "ok": true,
+   "note": "Matches the spec."
+  },
+  {
+   "source_id": "P17-S40",
+   "url": "https://www.shapediver.com/pricing",
+   "ok": true,
+   "note": "Matches the spec; the trial allows computations up to 60 s."
+  },
+  {
+   "source_id": "P17-S36",
+   "url": "https://www.snaptrude.com/pricing",
+   "ok": true,
+   "note": "Matches the spec; no education offer on the page."
+  },
+  {
+   "source_id": "new",
+   "url": "https://www.giraffe.build/universities-and-education",
+   "ok": true,
+   "note": "Free licences for students and universities; regions not stated."
+  },
+  {
+   "source_id": "P17-S06",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/rules.md",
+   "ok": true,
+   "note": "Five rules match the spec."
+  },
+  {
+   "source_id": "P17-S09",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html",
+   "ok": false,
+   "note": "255 vs 223 belongs to demo D and the bypass to demo C. Demo C is on a Vancouver 80 x 60 m lot with a winter-sun front; demo D has a hidden FSR contradiction."
+  },
+  {
+   "source_id": "P17-S03",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/README.md",
+   "ok": true,
+   "note": "Durations and warnings match; no licence text."
+  },
+  {
+   "source_id": "new",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/lot.json",
+   "ok": true,
+   "note": "6-vertex lot of about 92 x 70 m; street on the south edge."
+  },
+  {
+   "source_id": "P17-S13",
+   "url": "https://hypar.io/pricing",
+   "ok": false,
+   "note": "Renders a title only, consistent with the spec."
+  },
+  {
+   "source_id": "brief-policy",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403; the view-cone content could not be verified."
+  }
+ ],
+ "verdict": "The packet is careful and honestly flagged, and its prices check out. It still fails round 1. Seven claims are contradicted by evidence the authors could have opened: cove.tool's academic access ended in December 2025; Speckle and Giraffe are free for education; the demo evidence is attributed to the wrong demos; Ladybug is AGPL, which matters for a web tool; TestFit claims mixed-use; and the Infrared tier is mislabelled. The as-is workflow leaves out protected views and the skyline, cultural and reconciliation research (30% of the jury weight), sustainability, and plans and sections. Its time shares are unmeasured. Nothing is mapped to the module taxonomy or jury tags, and there is no field for what a student team can access before 30 Nov. My web-search budget was exhausted, so Forma and the policy PDFs remain unverified."
+}

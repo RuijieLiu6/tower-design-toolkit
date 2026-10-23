@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+# Competition base model and anything derived from it: owned by Buildner, never published
+public/local/
+*.3dm
+.DS_Store
+test-results/
+playwright-report/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+# Local-only scratch from tests and builds
+.vitest-cache/
+.offline-e2e/

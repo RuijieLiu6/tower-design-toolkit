@@ -1,0 +1,326 @@
+{
+ "expert_role": "Computational design developer (Rhino/Grasshopper, rhino3dm, IFC/IfcOpenShell, Speckle, web geometry), independent reviewer of round 2 of packet P14",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "The north model can rotate every CLIM result by about 45 degrees without any warning. (a) City parcel 669 Howe St / 801 W Georgia (opendata property-parcel-polygons, returned as lon/lat) has edges at bearings 44.6 and 134.7 degrees from true north (derived). So the downtown street grid is skewed by about 45 degrees, and the spec's claim that 'no source gives the skew' is wrong: its own cited dataset gives it. (b) The north-type enum 'true / grid / magnetic' uses 'grid' in the surveying sense (UTM grid north, convergence about 0.09 degrees). A Vancouver designer will read it as 'street-grid / plan north', and the brief itself says the arrow is rotated relative to the street grid. Picking 'grid' would apply 0.09 degrees where about 45 degrees is needed. (c) The true-north-error metric compares the converted arrow against 'confirmed true north', which is usually derived from that same arrow, so the check is circular.",
+   "fix": "Rename the enum to: true north / magnetic north / projection (UTM) grid north / project or street-grid north. Use plain-language labels and show a small diagram for each. Compute the street-grid bearing from parcel edges (dominant-direction histogram over CBD parcels, default about 44.6 / 134.7 degrees, derived) and show it beside the arrow. Redefine the true-north error as an independent check: after the chosen rotation, the model's street-facing site edges must align with the parcel-derived street bearings (good <= 0.25 degrees, bad >= 1 degree). Move the street-grid skew from unresolved to derived, citing P14-S38."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "The plan to 'register EPSG:3157 in proj4js from the epsg.io string' brings in a parameter error. The epsg.io string carries the EPSG 1946 rotations as raw radians (-1.25033e-07, -4.6785e-08, -5.6529e-08), and EPSG 1946 uses the Coordinate Frame method. PROJ and proj4js read +towgs84 rotations as arc-seconds in the Position Vector convention. The rotations are therefore effectively dropped. That is an error of up to about 0.8 m (6.37e6 m x 1.25e-7 rad), and the sign convention is also wrong. The parcel-agreement 'good' threshold (1.0 m) equals the transformation's own stated accuracy, so it cannot tell a correct pipeline from a broken one. EPSG 1946 also ignores the 2002-to-2026 epoch difference.",
+   "fix": "For City-to-City work (portal GeoJSON, parcels, LiDAR), use one consistent frame: test whether the portal's lon/lat is NAD83(CSRS) relabelled, by comparing reprojected footprint corners with LiDAR building edges. If so, use a null datum shift. If a WGS84 transform is truly needed, write the 7 parameters converted to arc-seconds and Position Vector: +towgs84=-0.991,1.9072,0.5129,0.025790,0.009650,0.011660,0 (derived). Unit-test both options against a pyproj/PROJ pipeline for EPSG:1946 at three site points to under 1 cm. Restate parcel agreement as good <= 0.3 m and bad > 1.0 m relative to LiDAR-derived edges, as a team assumption."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M02",
+   "issue": "Core .3dm import depends on render meshes cached in the file, but the spec treats the extrusion and SubD route as unknown. The bindings resolve it: bnd_beam.cpp binds Extrusion getMesh/setMesh/toBrep, and bnd_mesh.cpp binds Mesh.createFromSubDControlNet. All of these return cached meshes or a control-net approximation, and openNURBS has no Brep mesher. Typical competition massing (ExtrudeCrv extrusions, Grasshopper bakes, 'Save Small', files saved from wireframe sessions) often has no render meshes. Those objects would be skipped or empty, and the core FSR and height checks would then run on missing towers.",
+   "fix": "Add a deterministic mesher that needs no cached mesh. (1) Extrusion: build an exact prism from profile3d plus pathLineCurve when the profiles are polylines, and sample curved profiles at the tessellation tolerance. (2) Planar-faced Breps: triangulate each face from its edge loops (earcut) in face-plane coordinates. (3) SubD: use createFromSubDControlNet and label it 'control-net approximation, volume biased'. (4) Anything else: a 'Mesh in Rhino (_Mesh or save with render meshes)' how-to card, or the IfcOpenShell/rhino3dm.py server route. Make the 'no render mesh' count a blocking line in the import report for ProgramVolumes. Close the UNVERIFIED flag with these citations."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "The node graph contains cycles and mismatched dependencies, although the canvas needs a DAG of typed ports. M01 declares depends_on [] but takes inputs from M03 (georeference), M04 (storeys, FloorPlates) and M08 (site and access points). M04 depends on M05 (trust level), while M05 stage B consumes M04's FloorPlates. Priorities are also inconsistent: M04 is 'core' in its JSON, but the change log says core = M01, M02, M03, M05, M07 and v1 includes M04.",
+   "fix": "Split M01 into a schema definition with no ports and a 'Layer 0 assembler' node placed after M03 and M04. Split M05 into M05a (pre-slice health, feeds M04) and M05b (post-slice overlap and coverage, consumes M04). Make each depends_on equal the set of producers of its inputs, and add a CI check that the module graph is acyclic. Fix M04's priority, or the change log, so one is consistent with the other."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M04",
+   "issue": "Slicing every ProgramVolume at every storey elevation turns atria, double-height lobbies, sky gardens and the vertically extended public spaces the brief asks for into stacked 'floor plates'. This inflates gross and FSR-counted area and distorts the 9.0 employment-FSR check. Mezzanines, which CTBUH counts, are also not represented. Human scale is worth 40% of the jury score, so vertical public space is exactly where entrants will design.",
+   "fix": "Add an 'open to below / void' flag and a per-volume storey override (floor levels present or absent) to ProgramVolume, plus a FloorPlate.has_floor boolean. Count only floored plates in gross_area and counted_fsr_area, and list void area separately. Map mezzanine or split levels to IfcBuildingStorey with CompositionType PARTIAL, which the IFC4.3 IfcBuildingStorey page documents. Add a metric: void share per volume shown on the area table."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "There is no schema version or migration path, although the spec says 'schema v0 will change after VTC test models'. Community modules fork against typed ports, and M06 hashes canonical Layer 0 JSON. Every schema change will break stored snapshots, result-card replays (the Reproducibility metric) and forked modules, with no way of telling which schema produced which result.",
+   "fix": "Add schema_version (semver) to every Layer 0 document and port type. Add pure migration functions vN to vN+1 that are tested in CI against stored fixtures. Pin the port schema version in each module manifest. Make M06 replay migrate first and then compare output hashes, and record the migration in the provenance graph."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M06",
+   "issue": "Visibility and sharing are not specified for a GitHub-like platform whose first users are competition entrants. If snapshots, forks or comments are public by default before 30 Nov 2026, entrants' designs can leak or be copied, and their authorship becomes traceable. That conflicts with the anonymous judging and with the anonymised-export purpose. The Speckle Free plan also makes public links stop working after 30 days.",
+   "fix": "Add a visibility parameter (private by default, team, public). Block public forks of design states until the competition deadline unless the owner opts in. Separate shareable modules (code and thresholds) from design states (geometry). State the licence that applies to uploaded modules and to the project itself."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M02",
+   "issue": "The organiser package is still not in hand, and the window is now set by registration, not by the Q&A. The public page (re-checked) still links the brief and the 'Site plans & 3D model' to '#'. Registration closes 29 Oct 2026, 8 days from now, and Q&A closes 3 Nov. The page also shows an image titled 'Reference Photo - Queen Elizabeth View Tower Heights', which suggests the Queen Elizabeth Park view governs heights. The CI fixture, unit, north, datum and height-convention items all depend on this package.",
+   "fix": "By 28 Oct, get the package through a team member or course contact who registers (or ask Buildner directly), read the brief PDF, set P14-S54 to opened, and re-derive the status of every brief-based threshold. Submit the Q&A list by 31 Oct. In M08, give priority to the four Queen Elizabeth Park cones (3.2.1-3.2.4) and the brief's view-height reference."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "The schedule is still optimistic and the numbers do not reconcile. Core estimates add up to M01 3 + M02 5 + M03 2 + M04 3 (+1.5 detailed path) + M05 2 + M07 2.5 = 17.5-19 person-days, not 'about 17'. From Wed 21 Oct to Fri 13 Nov there are 18 weekdays, and 11 Nov (Remembrance Day) is a BC statutory holiday, leaving 17. That time is for two students who also own other packets, so the rhino3dm fallback mesher and the north-check fixes above add more. Entrants would get the tool with 17 days left before submission.",
+   "fix": "Recompute effort from the module JSON. Move the M04 detailed-model path (Path B), FBX, and M07's performance HUD out of core. Define a smaller 'entrant-ready by 6 Nov' slice: 3dm/OBJ/GLB import with fallback mesher, unit and north confirmation, storey slicing, manual tags, the area/FSR table, and JSON/GLB export. Publish the dated supported-formats list on 28 Oct as planned."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M05",
+   "issue": "Status labels still do not match the evidence. The tower-height metric is labelled 'false_assumption_corrected', but its basis says the range is UNVERIFIED (brief not opened). The previous critique asked for 'unverified'. The same label sits on current team presets (M02 import time, M02/M07 memory, M03 true-north error, M03 parcel agreement), so the UI will paint valid current presets in the FALSE ASSUMPTION colour. The old wrong claims belong in the assumption log, not on the live metric.",
+   "fix": "Add 'unverified' to the status vocabulary and use it for the 244-305 m range. Set corrected metrics to their current evidence status (team_assumption, or verified where sourced) and keep the FALSE ASSUMPTION entry in the append-only log with a link to the metric."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "The IFC4 ADD2 export writes storey elevation only in the placement. The 'Elevation is deprecated' rule comes from the IFC4.3 IfcBuildingStorey page, which says to use Pset_BuildingStoreyCommon ElevationOfSSLRelative/FFLRelative instead. In IFC4 ADD2 the Elevation attribute is current and many viewers and checkers read it. Z0 is also not written to IfcSite.RefElevation or IfcBuilding.ElevationOfRefHeight.",
+   "fix": "For IFC4 ADD2, write IfcBuildingStorey.Elevation plus the Pset_BuildingStoreyCommon elevations, IfcBuilding.ElevationOfRefHeight = Z0 geodetic, and IfcSite.RefElevation. Add these to the round-trip diff."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "The plan to 'store the [ground-to-grid] scale for IfcMapConversion' misuses the attribute. IfcMapConversion.Scale is for unit conversion between the engineering and map CRS and multiplies x, y and z (P14-S59). Writing 0.9996 there would also shrink heights, by about 0.12 m on 300 m, and make viewers rescale the model. IFC4.3 moves coordinate scaling to IfcMapConversionScaled.",
+   "fix": "Keep Scale = 1.0 (metres to metres) in the IFC4 ADD2 export. Store the grid scale factor in the custom VTC pset and in Layer 0. For the IFC4X3 export, use IfcMapConversionScaled with a Z factor of 1."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "The method gives IFC and BOT targets only for Site, Podium/Tower, Level, ProgramVolume, FloorPlate and OpenSpace. Frontage, AccessPoint, Viewpoint, ViewCone, ContextBuilding and Assumption have no stated target, and BOT has no classes for them. The IfcClassification source for the 9 tags is unnamed.",
+   "fix": "Propose targets now: OpenSpace to IfcExternalSpatialElement (IFC4) or an external IfcSpace; Frontage, AccessPoint, Viewpoint and ViewCone to IfcAnnotation or IfcVirtualElement with a custom pset; ContextBuilding to IfcBuilding under a separate context IfcSite; Assumption to IfcDocumentReference or custom JSON. Use a project namespace (vtc:) for BOT extensions. Declare an IfcClassification 'VTC Layer0 tags v0' (edition, source URL), with optional OmniClass Table 13 cross-references."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "Two UNVERIFIED items can be closed. The IFC4.3 IfcSpatialZone page says spaces referenced by the zone use IfcRelReferencedInSpatialStructure (zone = RelatingStructure, spaces = RelatedElements), and the zone itself can be referenced by another spatial element. The manifold-3d JS types (bindings/wasm/manifold-encapsulated-types.d.ts) expose slice(height), volume(), surfaceArea(), trimByPlane and splitByPlane. The BOT link from each plate to its program zone is unspecified.",
+   "fix": "Move both items to resolved with citations. Also reference each IfcSpatialZone from its IfcBuilding, and add bot:containsZone from the ProgramVolume zone to its FloorPlate spaces."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "Magnetic declination is still uncomputed. The NOAA calculator rejects requests without a registered API key ('Bad request. Either the key parameter is missing or it is wrong'), which explains the earlier HTTP 400. The spec has not chosen a WMM implementation or its licence.",
+   "fix": "Choose an offline WMM2025 implementation (coefficient file from NCEI plus a small MIT-licensed evaluator), check one value by hand against the NOAA web calculator, store the model, epoch and uncertainty, and replace the informal '15 degrees east' with the computed value."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M07",
+   "issue": "Several 'verified' statuses verify the source but not its fit to this use. RAIL (2020) targets mobile page loads, not a WASM CAD canvas. The web-ifc multithreaded build needs SharedArrayBuffer, which requires cross-origin isolation (COOP/COEP headers), and static hosts such as GitHub Pages cannot set those headers (general knowledge, not opened).",
+   "fix": "Keep the thresholds but mark their applicability to a desktop design tool as a team assumption. Add a hosting parameter (cross-origin isolated or not) and fall back to the single-thread web-ifc build when it is not."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M07",
+   "issue": "Licensing for distribution is incomplete. opencascade.js (LGPL-2.1) shipped as a statically linked WASM bundle has relinking obligations. LibreDWG is GPL-3.0. The project's own licence is not stated, so the compatibility of community-forked modules is undefined.",
+   "fix": "State the project licence, keep LGPL and GPL components as separately loaded or server-side units with source links, and add a licence column check in CI."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "EPSG:3157 can be registered in proj4js directly from the epsg.io PROJ string",
+   "why_false": "The string carries the EPSG 1946 rotation parameters in radians, in the Coordinate Frame convention. PROJ and proj4js read +towgs84 rotations as arc-seconds in the Position Vector convention, so the rotations are effectively dropped (up to about 0.8 m) and their sign convention is wrong.",
+   "correction": "Use a null shift for City-to-City data once tested against LiDAR. Otherwise use +towgs84=-0.991,1.9072,0.5129,0.025790,0.009650,0.011660,0 (radians converted to arc-seconds, sign flipped for Position Vector; derived), validated against PROJ.",
+   "evidence": "https://epsg.io/3157 (string +towgs84=-0.991,1.9072,0.5129,-1.25033e-07,-4.6785e-08,-5.6529e-08,0); https://epsg.io/1946 (rotations in radian, method Coordinate Frame rotation EPSG 9607, accuracy 1.0 m, ignores static/dynamic CRS differences)"
+  },
+  {
+   "claim": "Extrusion and SubD mesh access in rhino3dm is unconfirmed, and no Extrusion binding file exists",
+   "why_false": "Extrusion is bound in bnd_beam.cpp, with GetMesh/SetMesh/ToBrep exposed to JS as getMesh/setMesh/toBrep. bnd_mesh.cpp binds Mesh.CreateFromSubDControlNet (JS createFromSubDControlNet).",
+   "correction": "Extrusions can return cached meshes or convert to Brep. SubDs can be meshed from the control net (an approximation). Neither generates a fresh mesh of a Brep, so a fallback mesher (exact prism or planar-face triangulation) is still needed.",
+   "evidence": "https://raw.githubusercontent.com/mcneel/rhino3dm/main/src/bindings/bnd_beam.cpp (lines 173, 240, 258, 283); https://raw.githubusercontent.com/mcneel/rhino3dm/main/src/bindings/bnd_mesh.cpp (line 127 CreateFromSubDControlNet)"
+  },
+  {
+   "claim": "No source I could open gives the downtown street-grid skew",
+   "why_false": "The City parcel polygons cited as P14-S38 give it directly. Parcel 669 Howe St has edges at 44.6 and 134.7 degrees from true north (derived from the returned lon/lat).",
+   "correction": "The downtown CBD street grid is rotated about 45 degrees from true north (derived; confirm across more parcels). Show it as a derived value, and separate street-grid north from UTM grid north (about 0.09 degrees).",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons/records (site_id BCS4101, 669 Howe St polygon: edges 76.1 m at 44.6/224.6 deg and 36.5 m at 134.7/314.7 deg, derived)"
+  },
+  {
+   "claim": "Tower-height metric status 'false_assumption_corrected' reflects the evidence",
+   "why_false": "The range was never shown to be false. It is unverified because the brief PDF has not been opened, and the public page still links the brief to '#'.",
+   "correction": "Status 'unverified'. Keep the earlier wrong 'verified' label as a FALSE ASSUMPTION entry in the assumption log.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/ (brief and 'Site plans & 3D model' buttons link to '#'; no height range in the page text)"
+  },
+  {
+   "claim": "The direction of IfcRelReferencedInSpatialStructure between zone and spaces is unconfirmed",
+   "why_false": "The IFC4.3 IfcSpatialZone page states that spaces referenced by the zone use this relationship, and that IfcSpatialZone is new in IFC4.",
+   "correction": "IfcSpatialZone is the RelatingStructure and its IfcSpaces are the RelatedElements. Confirm only the IFC4 ADD2 entity in the round-trip spike.",
+   "evidence": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/core/IfcProductExtension/Entities/IfcSpatialZone.md"
+  }
+ ],
+ "missing": [
+  "FloorPlate void, open-to-below and mezzanine handling (has_floor flag, PARTIAL storeys) for atria and vertically extended public uses",
+  "Layer 0 schema_version, migration functions, and versioned port types for community modules",
+  "Design-state visibility and sharing controls, and a project licence for uploaded modules",
+  "Fallback mesher for .3dm extrusions and planar Breps without cached render meshes",
+  "Derived street-grid bearing (about 44.6/134.7 deg) and a renamed north-type enum distinguishing UTM grid north from street-grid north",
+  "FSR denominator definition (site area source: brief dimensions, polygon or parcel net area) recorded beside counted_fsr_area",
+  "IFC and BOT targets for Frontage, AccessPoint, Viewpoint, ViewCone, ContextBuilding and Assumption; a named IfcClassification for the 9 tags",
+  "Hosting constraint for multithreaded WASM (cross-origin isolation) and a single-thread fallback",
+  "Sandboxing or execution policy for community-uploaded module code (may belong to another platform packet)",
+  "CI test that the module dependency graph is acyclic and that depends_on matches input producers"
+ ],
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: no storey slicing or per-storey floor area",
+   "status": "addressed",
+   "residue": "FloorPlate slicing plus IfcSpatialZone and bot:intersectsZone are added; voids and double-height spaces are still sliced as floors."
+  },
+  {
+   "item": "BLOCKER M01: missing podium, below-grade, public realm, frontage, access and viewpoint classes",
+   "status": "partly",
+   "residue": "Classes added, but the method gives no IFC or BOT target for Frontage, AccessPoint, Viewpoint, ViewCone, ContextBuilding or Assumption; 'shared podium becomes its own building (to confirm)'."
+  },
+  {
+   "item": "MAJOR M03: switch CRS to EPSG:3157",
+   "status": "addressed",
+   "residue": "The epsg.io towgs84 string to be registered has its rotations in radians and the Coordinate Frame convention."
+  },
+  {
+   "item": "MAJOR M03: geodetic Z0 and vertical datum required",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M01: IFC4 vs IFC4X3 baseline",
+   "status": "addressed",
+   "residue": "Spike not yet run; IFC4 ADD2 storey Elevation and RefElevation not written."
+  },
+  {
+   "item": "MAJOR M01: tags only in a custom pset; gross vs FSR area",
+   "status": "addressed",
+   "residue": "Classification source unnamed."
+  },
+  {
+   "item": "MAJOR M04: floor detection fails on extrusions",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M05: tower height status 'verified'",
+   "status": "partly",
+   "residue": "Relabelled 'false_assumption_corrected' instead of unverified, although the basis says 'UNVERIFIED'."
+  },
+  {
+   "item": "MAJOR M01: Speckle mapping to pre-2026.9 model",
+   "status": "addressed",
+   "residue": "Hierarchy mapping in 2026.9 still open; Speckle moved to v1."
+  },
+  {
+   "item": "MAJOR M02: organiser model format unknown, Q&A by 3 Nov",
+   "status": "partly",
+   "residue": "Not yet obtained or asked; registration closes 29 Oct; download links still '#'."
+  },
+  {
+   "item": "MAJOR M06: anonymised export",
+   "status": "addressed",
+   "residue": "No visibility or privacy default for design states shared before the deadline."
+  },
+  {
+   "item": "MAJOR M03: true-north tolerance scale",
+   "status": "addressed",
+   "residue": "Arithmetic checked (965 m and 349 m shadows); the metric's method is circular."
+  },
+  {
+   "item": "MAJOR M03: declination and street-grid skew; north type required",
+   "status": "partly",
+   "residue": "North type is required, but 'grid' is ambiguous; declination not computed; skew left 'unresolved' although derivable (about 45 deg)."
+  },
+  {
+   "item": "MAJOR M08: view cones 2D only",
+   "status": "addressed",
+   "residue": "Limits hand-entered; the competition page's 'Queen Elizabeth View Tower Heights' reference is not yet used."
+  },
+  {
+   "item": "MAJOR M01: schedule not credible",
+   "status": "partly",
+   "residue": "Core sums to 17.5-19 person-days against 17 working days (Remembrance Day) for two people with other packets; M04 core/v1 inconsistent."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Rename the north-type enum (UTM grid vs street-grid/project north), derive the street-grid bearing from parcels, and replace the circular true-north metric",
+   "Fix the EPSG:3157 transform (null shift tested against LiDAR, or arc-second Position Vector parameters validated against PROJ)",
+   "Add a fallback mesher for .3dm extrusions and planar Breps without render meshes, and block on unmeshed ProgramVolumes",
+   "Make the module graph acyclic (split M01 assembler and M05a/M05b) and reconcile M04's priority",
+   "Add void/has_floor handling to FloorPlates before the FSR table is trusted",
+   "Add schema_version plus migrations, and a private-by-default visibility setting for design states",
+   "Get the organiser package and brief before 29 Oct, then restate the tower-height status as unverified or verified from the PDF",
+   "Recompute core effort and publish an entrant-ready subset date"
+  ]
+ },
+ "sources_checked": [
+  {
+   "source_id": "P14-S57",
+   "url": "https://epsg.io/3157",
+   "ok": false,
+   "note": "PROJ string matches the spec, but its rotations are the EPSG 1946 radian values in Coordinate Frame form, so they cannot be used directly as +towgs84 (arc-seconds, Position Vector)."
+  },
+  {
+   "source_id": "(new) EPSG 1946",
+   "url": "https://epsg.io/1946",
+   "ok": true,
+   "note": "Rotations in radians; Coordinate Frame (9607); accuracy 1.0 m; ignores static/dynamic differences."
+  },
+  {
+   "source_id": "P14-S03",
+   "url": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/core/IfcProductExtension/Entities/IfcSpatialZone.md",
+   "ok": true,
+   "note": "Spaces referenced by the zone via IfcRelReferencedInSpatialStructure; new in IFC4. This resolves the direction question."
+  },
+  {
+   "source_id": "P14-S03",
+   "url": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/core/IfcProductExtension/Entities/IfcBuildingStorey.md",
+   "ok": true,
+   "note": "Elevation deprecated in 4.3 (use Pset_BuildingStoreyCommon); PARTIAL storeys supported."
+  },
+  {
+   "source_id": "P14-S59",
+   "url": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/resource/IfcRepresentationResource/Entities/IfcMapConversion.md",
+   "ok": true,
+   "note": "Scale is for unit differences; IfcMapConversionScaled is for coordinate scaling. Do not store the grid scale factor in Scale."
+  },
+  {
+   "source_id": "P14-S21",
+   "url": "https://github.com/mcneel/rhino3dm/tree/main/src/bindings",
+   "ok": false,
+   "note": "Spec's 'no Extrusion binding' is wrong: bnd_beam.cpp binds Extrusion getMesh/toBrep, and bnd_mesh.cpp binds createFromSubDControlNet."
+  },
+  {
+   "source_id": "P14-S48",
+   "url": "https://raw.githubusercontent.com/elalish/manifold/master/bindings/wasm/manifold-encapsulated-types.d.ts",
+   "ok": true,
+   "note": "JS exposes slice, volume, surfaceArea, trimByPlane, splitByPlane."
+  },
+  {
+   "source_id": "P14-S10",
+   "url": "https://docs.speckle.systems/developers/object-model/overview",
+   "ok": true,
+   "note": "2026.9 bundles keyed by applicationId, ON_LEVEL, compatibility mode until 1 Nov 2026, 2026.9 SDK required; matches the spec."
+  },
+  {
+   "source_id": "P14-S36",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "NAD83(CSRS) 4.0.0.BC.1.GVRD, UTM 10, CGVD28GVRD, 49 pts/m2, 0.081 m at 95%, 16.45 MB-2.74 GB zipped; matches the spec."
+  },
+  {
+   "source_id": "P14-S38",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons/records",
+   "ok": true,
+   "note": "Returns lon/lat GeoJSON; the parcel at 669 Howe St gives a street-grid bearing of about 44.6/134.7 deg (derived)."
+  },
+  {
+   "source_id": "P14-S53",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Dates confirmed (registration 29 Oct, Q&A 3 Nov, submission 30 Nov); brief and model links still '#'; image 'Reference Photo - Queen Elizabeth View Tower Heights'."
+  },
+  {
+   "source_id": "P14-S63",
+   "url": "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data",
+   "ok": true,
+   "note": "30-day default deletion confirmed (page dated 1 July 2026)."
+  },
+  {
+   "source_id": "P14-S55",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "Still HTTP 403; supersession status unverified. The shared web-search budget was exhausted, so no further policy search was possible."
+  },
+  {
+   "source_id": "P14-S62",
+   "url": "https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination",
+   "ok": false,
+   "note": "Requires a registered API key; declination not computed."
+  }
+ ],
+ "verdict": "Round 2 fixes both blockers in substance: storey slicing with FloorPlates and IfcSpatialZone, an extended Layer 0 schema, EPSG:3157, a geodetic Z0, IFC4 ADD2 as the baseline, and Speckle moved to v1. The arithmetic checks out. Some things are still not safe for entrants. 'Grid north' is ambiguous while the street grid is skewed about 45 degrees (derived from City parcels). The epsg.io towgs84 string is wrong for PROJ/proj4js. Core .3dm import silently depends on cached render meshes. The module graph has cycles. Voids are sliced as floor area. There is no schema versioning or private-by-default visibility. Status labels still misuse 'false_assumption_corrected'. The organiser package must be obtained before registration closes on 29 Oct. The web-search budget was exhausted mid-review; the remaining checks used direct fetches."
+}

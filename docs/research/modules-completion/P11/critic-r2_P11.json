@@ -1,0 +1,359 @@
+{
+ "expert_role": "BC building code and fire/life-safety consultant for high buildings (Vancouver by-law practice), reviewing round 2 of packet P11",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M05, P11-M06, P11-M07, P11-M09, P11-M03",
+   "issue": "The edition base is two editions out of date when it does not need to be. The spec takes its Part 3 presets from VBBL 2007. Yet the same free.bcpublications.ca site carries VBBL 2019 Division B Part 3 (Sections 3.1-3.8, consolidated to 1 July 2024), VBBL 2019 Appendix C (climate and seismic) and the Vancouver Plumbing By-law 2019. VBBL 2019 is the direct predecessor of VBBL 2025, and city summaries say VBBL 2025 kept its accessibility, fire and energy provisions. I checked VBBL 2019: the values for firefighter elevators, travel distance, exit width, the 1100 mm minimum, non-cumulative width and stretcher size all match. The edition stamps and several clause numbers do not.",
+   "fix": "Re-read every Part 3 preset from VBBL 2019 (vbbl2019 ids 519280133, 59509560, 758782467, 463712062, 681033337, 369101801). Re-stamp each one as 'VBBL 2019 (consolidated 2024-07-01), check VBBL 2025'. Keep VBBL 2007 only in the edition map."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M07",
+   "issue": "M07 still rests on the BCBC 2024 provincial bulletin and labels the Vancouver rules 'unverified, request from City'. VBBL 2019 Section 3.8 already contains Vancouver's own rules. 3.8.5 'Adaptable Dwelling Units' applies to dwelling units in residential occupancy buildings, and hotels are exempt. 3.8.2.7 requires power door operators at accessible entrances serving a hotel, or assembly, business or mercantile buildings over 500 m2. 3.8.2.12 sets accessible hotel rooms at 1 per 40 plus visual-alarm rooms at 1 per 20. Tactile indicators are required at the tops of stair flights. 3.8.2.2.(5) requires an accessible path through any walkway connecting two buildings, which covers the transit link.",
+   "fix": "Rebuild the M07 rule table on VBBL 2019 3.8 with clause links. Show the provincial bulletin only as a comparison. Add the 3.8.2.2.(5) connected-building check to the transit route graph. Keep 'check VBBL 2025' stamps."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M05",
+   "issue": "New false item. M05 adds 'Protected zones in accessible floor areas (3.3.1.7)' with 'red: not assessed', based on the provincial checklist. Vancouver deletes this article: VBBL 2019 Section 3.3 reads '3.3.1.7. Deleted.', and VBBL 2007 deleted it too. The cross-reference to 3.8.3.19 no longer points to egress (in VBBL 2019, 3.8.3.19 is 'Counters'). On a Vancouver checklist the item would show red for a provision that does not exist.",
+   "fix": "Mark 3.3.1.7 as 'deleted in VBBL 2007 and VBBL 2019; confirm VBBL 2025'. Turn the metric into an information item. Keep the refuge or assisted-evacuation area only as an alternative-solution option tied to P11-M08."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M03, P11-M02, P11-M05",
+   "issue": "Emergency power for building services is missing, although it drives generator size, fuel storage and plant space. VBBL 2019 3.2.7.9 requires a generator that runs at full load for at least 2 h for every elevator serving storeys above the first in buildings over 18 m. It must also cover firefighting water supply, the fans for 3.2.6.2 and 3.2.6.6, and the fans for interconnected floor spaces. 3.2.7.9.(2) requires all firefighter elevators plus one more to run at the same time, unless all elevators can be recalled within 5 min to the firefighter-entrance storey or a transfer lobby. 3.2.7.10 requires 1 h conductor protection. M03 sizes generators only from 'area-per-kW presets'.",
+   "fix": "Add an EmergencyLoad node to M03 that sums the 3.2.7.9 loads from the M01 and M02 lift groups (firefighter elevators plus one more, or the 5-min recall check, including recall to sky-lobby transfer floors), smoke-control fans and the fire pump. Size generator and fuel area from that sum. Add 3.2.7.9 and 3.2.7.10 to the M05 checklist."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M03",
+   "issue": "The domestic-water zoning formula is wrong. 'Zone height = 550 kPa / 9.81 ≈ 56 m' treats 550 kPa as the whole usable head. Vancouver Plumbing By-law 2019 Sentence 2.6.3.3.(1) limits static pressure 'at any fixture' to 550 kPa by a PRV. So zone height depends on (a) the minimum residual pressure needed at the highest fixture and (b) whether PRVs are on each floor branch or at zone stations, with pipe, valve and pump ratings as further limits. The cited trade source itself uses a differential (30 psi gives about 69 ft). The spec also cites the clause as 'BC Plumbing Code 6.3.3.(1)' through a 1997 appeal decision.",
+   "fix": "Use zone height = (P_max_at_fixture − P_min_residual_at_top_fixture) / 9.81, with a P_min preset (team assumption) and a branch-PRV option. Add a pipe/valve pressure-rating preset. Cite VBBL 2019 Book II Sentence 2.6.3.3.(1) with a check against VBBL 2025 (NPC 2020-based). Keep BCAB 1454 as history only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M04",
+   "issue": "The GHGI/TEUI/TEDI screen compares the tower with one 'loaded row'. Note (1) to Table 10.2.2.5.A1 (VBBL 2019, consolidated to 27 Feb 2025) says buildings with several occupancies follow Section 5 of the City Energy Modelling Guidelines, which in effect is an area-weighted composite limit. The VTC tower mixes office (at least 9.0 FSR non-residential), hotel, residential and retail, so a single row gives the wrong limit. The spec also leaves out Table 10.2.2.5.B (Group C alternative path: TEUI 100, TEDI 15, no GHGI limit) and the Passive House deemed-to-comply path (10.2.2.5.(4)).",
+   "fix": "Compute an area-weighted limit per metric from the M09 occupancy areas, labelled 'method per CoV EMG Section 5, unread' until the guideline is opened. Add Table B and the Passive House route as selectable paths. Keep the edition stamps."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M06, P11-M02",
+   "issue": "The spec gets stair re-entry wrong. M06 says 3.4.6.18 'crossover' must not be confused with stair re-entry doors. In VBBL 2019, 3.4.6.18 'Emergency Crossover Access to Floor Areas' is the re-entry rule: stair doors must not lock against entry where the travel up or down to an unlocked door is more than 2 storeys. Electromagnetic locks are allowed only into a public corridor or a floor area the CBO accepts, and the unlocked floor must give access to another exit. This conflicts directly with M02's security separation of tenant floors from public and observation floors.",
+   "fix": "Rewrite the parameter from VBBL 2019 3.4.6.18 (one unlocked re-entry floor in every 3 storeys or fewer, maglock conditions). Add a check in M02 and M06 that flags secured tenant or hotel floors violating the re-entry spacing. Remove the 'do not confuse' sentence."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M05, P11-M08, P11-M07",
+   "issue": "The transit-link provisions are still incomplete. VBBL 2019 keeps 3.2.6.3 Connected Buildings, which settles the 'absent from the 2024 checklist' question for Vancouver. It also has 3.2.6.2.(4): limit smoke movement from a fire below the lowest exit storey (concourse, parking) into upper storeys, with the vestibule note. The spec models only 3.2.6.2.(2) and (3). It also misses the fire-alarm treatment of connected buildings in 3.2.4 and the accessible-walkway rule in 3.8.2.2.(5).",
+   "fix": "Add 3.2.6.2.(4) as a separate below-grade item, linked to the transit and parking levels, with a vestibule or pressurisation option in M08. Cite 3.2.6.3 from VBBL 2019 (exists) and keep its applicability as a consultant question. Add the 3.2.4 connected-building alarm note and 3.8.2.2.(5)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "all",
+   "issue": "The effort does not fit the schedule. The stated efforts add up to about 55 person-days for P11 alone: M09 2, M01 14-16, M02 5, M03 5, M04 8-10, M05 6-7, M06 6, M07 4, plus M08 at 15+ on the roadmap. The working core is due 13 Nov 2026, 23 days from today, and two students are building 12 other categories. The core-priority items alone (M09, M01, M05, M06) come to about 30 person-days.",
+   "fix": "Set a 13 Nov cut: M09, M06 (load, width, travel distance), the M05 checklist table and the M01 equal-floor up-peak hand calculation with its express term, unit-tested against one published case. Move M02, M03, M04 and M07 automation to the final release, and keep M08 on the roadmap."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M04, P11-M05",
+   "issue": "The '403, so VBBL 2025 unread' limit is a bot-check problem, not an access problem. A single scripted request to vancouver.ca/files/cov/vbbl-part-10-unofficial-wording-effective-sept-15-2025.pdf and to bylaws.vancouver.ca/consolidated/14343.pdf returned HTTP 200 PDFs (about 0.45 MB and 16 MB) before a Cloudflare browser check blocked further requests. I did not try to get around it. A team member can download both in a normal browser. Without them, every energy and code limit stays an edition-mismatched preset at the core deadline.",
+   "fix": "Have a student download By-law 14343 (consolidated) and the Part 10 unofficial wording by hand, store them in the project's source folder, and re-check Table 10.2.2.5.A1, 3.2.6, 3.4.2.5, 3.4.3.2, 3.4.6.18, 3.3.1.7 and 3.8.5 before 13 Nov."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M01",
+   "issue": "The r1 applicability fix is only partly done. UK and Australian targets (HC5 13%, 30 s interval, residential 7%/60 s, 15 floors per rise, NTG 75%) still carry status 'verified'. Applicability sits in free-text basis, not a field the UI can badge. For residential, the laxer Arup band (7%, 60 s) was picked over UQ (8%, 40 s) without saying why.",
+   "fix": "Add a machine-readable 'applicability' enum (code/institutional/project_example/marketing) and render it next to 'verified'. Show both residential bands, or state why 7%/60 s is the default."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M09",
+   "issue": "Sprinkler status is a per-storey 'team assumption' switch whose 'off' setting cuts travel limits to 30/40 m. For a 244-305 m tower that setting is not a legitimate option: VBBL 3.2.5.12 requires NFPA 13, and (from code knowledge, not re-read here) the 3.2.2 construction articles that allow unlimited height require 'sprinklered throughout'. The occupancy map also has no F-3 (parking, 60 m travel in 3.4.2.5.(1)(e)), no Group A divisions and no transit-concourse tag.",
+   "fix": "Lock sprinklers to 'required' for a high building, citing the governing 3.2.2 article once read, and allow 'off' only as a flagged alternative solution. Add F-3 parking, A-1 to A-4 subdivisions and a concourse tag to the mapping table."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M08, P11-M04",
+   "issue": "The design temperature is still 'not retrieved, user entry'. VBBL 2019 Appendix C Table C-2 gives Vancouver (General) January 2.5% = -6 °C, 1% = -8 °C, and future-climate rows: 2020s -4 °C, 2050s -2 °C, July 2.5% dry bulb 28/30/32 °C. With -6 °C outside and 21 °C inside, the stack difference over 300 m is about 340 Pa (about 170 Pa at each end with a mid-height neutral plane), so door-force checks matter.",
+   "fix": "Preset -6 °C (VBBL 2019 Table C-2, check VBBL 2025) for 3.2.6.2.(2) and stack screening. Offer the 2050s rows to M04 for cooling and plant sizing over the building's life. Add a door-opening-force check once the limit clause is read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M05",
+   "issue": "Vancouver-specific high-building amendments are missing from the checklist. 3.2.6.4 requires automatic as well as manual recall, triggered by smoke detectors in lobbies, the hoistway, the machine room or control rooms, with recall to an alternate floor. 3.2.6.2.(6) says corridor make-up air for Group C must not shut down on alarm. VBBL 2019 also requires an in-building emergency radio antenna system (ANSI/CAN/UL 2524) with 98% coverage in exit stairs, elevator lobbies, hoistways, machine rooms and the generator, fire-pump and electrical rooms.",
+   "fix": "Add these three items to the clause list with VBBL 2019 stamps. Link the radio system and recall detectors to M01/M03 spaces, and the corridor make-up air rule to M03 residential riser and plant logic."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M05",
+   "issue": "The visualisation draws an 18 m and a 36 m trigger line. Vancouver (VBBL 2007 and VBBL 2019 3.2.6.1) uses 18 m for every building, measured to the uppermost floor level of the top storey, so the 36 m line is irrelevant here. The trigger metric's basis still cites the NBC 36 m rule as if it might apply.",
+   "fix": "Draw only the 18 m Vancouver line, with the NBC 36 m rule noted in the edition map."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M01, P11-M02",
+   "issue": "The seismic and wind flags are all 'unverified' with no hazard input, although VBBL 2019 Appendix C gives Vancouver seismic spectral values and wind pressures (q1/50 = 0.45 kPa for Vancouver General). CSA B44-16 (in force in BC since 30 Apr 2020, confirmed by Technical Safety BC) has seismic provisions the spec does not cite.",
+   "fix": "Feed Appendix C seismic and wind values into the regulatory flags as context. Name the CSA B44-16 seismic requirements section as 'to be read' rather than a generic flag."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M05",
+   "issue": "The firefighter-elevator closure metric reads 3.2.6.5.(3) as 'closure ≥ 1 h AND (vestibule 45 min OR corridor 1 h)'. The by-law lists (a), (b) 'or' (c), and whether (a) must be met together with (b) or (c) is an interpretation, not stated.",
+   "fix": "Show the three clauses verbatim and mark the combination as 'interpretation, code consultant to confirm'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "sources",
+   "issue": "Several source records are stale. P11-S44 to S48 say 'edition inferred from URL id', but the BC Publications index names it 'Vancouver Building ByLaw 2007'. P11-S50 (BCIT) confirms VBBL 2025 took effect 15 Sep 2025, yet the matching flag is still fully UNVERIFIED. P11-S49 (1997) is used where a current by-law clause exists.",
+   "fix": "Update the edition labels, partly verify the effective date from S50, and add the VBBL 2019 Part 3, Book II Section 2.6 and Appendix C documents as new sources."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Protected zones in accessible floor areas (3.3.1.7) are a current checklist item for this tower, typically met by sprinklers.",
+   "why_false": "Vancouver deletes the article. VBBL 2019 Section 3.3 (consolidated 2024) reads '3.3.1.7. Deleted.', as did VBBL 2007. The VBBL 2007 cross-reference target 3.8.3.19 is 'Counters' in VBBL 2019.",
+   "correction": "Mark it as deleted in Vancouver editions up to VBBL 2019, confirm against VBBL 2025, and treat refuge or assisted-evacuation areas as an alternative-solution option.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/758782467 (Section 3.3: '3.3.1.7. Deleted.')"
+  },
+  {
+   "claim": "Emergency crossover access (3.4.6.18) is a different provision from stair re-entry doors.",
+   "why_false": "In VBBL 2019, Article 3.4.6.18 'Emergency Crossover Access to Floor Areas' is the re-entry rule: no locking against entry where travel to an unlocked door is more than 2 storeys, with electromagnetic locks allowed only into public corridors or floor areas the CBO accepts.",
+   "correction": "Model 3.4.6.18 as the stair re-entry rule (an unlocked floor at least every 3 storeys) and check it against secured tenant, hotel and public floors.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/463712062 (3.4.6.18.(1)-(5))"
+  },
+  {
+   "claim": "Vancouver's rules on adaptable units, power door operators, tactile indicators and accessible hotel rooms are unknown, so only provincial BCBC 2024 references can be shown.",
+   "why_false": "VBBL 2019 Section 3.8 contains Vancouver's own rules: 3.8.5 Adaptable Dwelling Units (applies to dwelling units in residential occupancy buildings, hotels exempt), 3.8.2.7 power door operators, tactile indicators at the tops of stair flights, and 3.8.2.12 hotel rooms (1 per 40 accessible, plus 1 per 20 with visual alarms).",
+   "correction": "Base M07 on VBBL 2019 3.8 with VBBL 2025 check stamps, and show the provincial rules only as a comparison.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/369101801"
+  },
+  {
+   "claim": "The domestic-water pressure zone height is 550 kPa / 9.81 kPa per m, about 56 m.",
+   "why_false": "The by-law limits static pressure at any fixture to 550 kPa. A zone also needs a minimum residual pressure at its top fixture, and floor-branch PRVs can extend a zone. The spec's own trade source uses a pressure differential (30 psi for about 69 ft), not the full 80 psi.",
+   "correction": "Zone height = (P_max − P_min_residual) / 9.81, with branch-PRV and pipe-rating options. Cite Vancouver Plumbing By-law 2019 Sentence 2.6.3.3.(1).",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vpbl2019/238839733 (2.6.3.3 Static Pressure: 'Where the static pressure at any fixture may exceed 550 kPa, a pressure-reducing valve shall be installed')"
+  },
+  {
+   "claim": "A single Table 10.2.2.5.A1 row (office, hotel or Group C) is the limit to test the tower's GHGI, TEUI and TEDI against.",
+   "why_false": "Note (1) to Table 10.2.2.5.A1 sends buildings with multiple occupancies to the procedures in Section 5 of the City Energy Modelling Guidelines. Table B (Group C alternative path) and the Passive House path also exist.",
+   "correction": "Use an area-weighted composite limit from the M09 areas (method per CoV EMG Section 5, still to be read), and add the alternative paths.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486 (Notes to Table 10.2.2.5.A1; Sentences 10.2.2.5.(3)-(5))"
+  },
+  {
+   "claim": "The Vancouver January 2.5% design temperature for 3.2.6.2.(2) has not been retrieved and must be a user entry.",
+   "why_false": "VBBL 2019 Appendix C Table C-2 lists it.",
+   "correction": "Vancouver (General) January 2.5% = -6 °C (1% = -8 °C); future rows 2020s -4 °C and 2050s -2 °C. Re-check VBBL 2025.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/1180713887 (Table C-2)"
+  },
+  {
+   "claim": "VBBL 2007 is the most recent Vancouver Part 3 text that can be read, so its values are the presets.",
+   "why_false": "VBBL 2019 Part 3, consolidated to 1 July 2024, is on the same BC Publications site, and the team already used its Part 10.",
+   "correction": "Re-stamp the presets to VBBL 2019 (values I checked are unchanged) and download VBBL 2025 by hand.",
+   "evidence": "https://free.bcpublications.ca/civix/content/public/vbbl2019/624368142/920835785/?xsl=/templates/browse.xsl"
+  }
+ ],
+ "missing": [
+  "Emergency power (VBBL 3.2.7.9, 3.2.7.10): 2 h generator for elevators, firefighter elevators plus one more or 5-min recall, smoke-control fans, fire pump; generator and fuel space in M03",
+  "3.2.6.2.(4) smoke movement from below the lowest exit storey (transit concourse and parking) into upper storeys",
+  "3.4.6.18 stair re-entry spacing check against secured tenant, hotel and public floors",
+  "Vancouver 3.2.6.4 automatic recall (detectors in lobby, hoistway, machine room) and alternate-floor recall",
+  "In-building emergency radio antenna system (ANSI/CAN/UL 2524, 98% coverage in stairs, hoistways, lobbies, plant rooms)",
+  "3.2.6.2.(6) Group C corridor make-up air not shut down on alarm (M03 residential HVAC)",
+  "Area-weighted mixed-occupancy Part 10 limit; Table 10.2.2.5.B and Passive House paths",
+  "Vancouver accessibility rules from VBBL 2019 3.8: 3.8.5 adaptable units, 3.8.2.7 power doors, 3.8.2.12 hotel rooms, 3.8.2.2.(5) connected walkway",
+  "Minimum residual pressure and branch-PRV option in domestic-water zoning",
+  "Vancouver climate (Table C-2) and future-climate rows for stack and energy screening",
+  "F-3 parking, Group A divisions and transit-concourse tags in the occupancy map",
+  "Manual download of VBBL 2025 (By-law 14343) and the Part 10 unofficial wording; CoV Energy Modelling Guidelines v3 emission factors still unread",
+  "A 13 Nov delivery cut for P11 that fits two students' remaining time"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Re-base all Part 3 and plumbing presets on VBBL 2019 (consolidated 2024) text with VBBL 2025 check stamps; download VBBL 2025 and Part 10 2025 by hand before 13 Nov",
+   "Correct the 3.3.1.7 (deleted in Vancouver) and 3.4.6.18 (re-entry) items",
+   "Rebuild M07 on VBBL 2019 Section 3.8 rather than the provincial bulletin",
+   "Add 3.2.7.9 emergency power to M03 and M05, and 3.2.6.2.(4) to the transit-link checks",
+   "Fix the M03 zone-height formula and the M04 mixed-occupancy limit",
+   "Publish a 13 Nov scope cut (M09, M06, M05 checklist, M01 hand calculation with unit test) and move the rest to 10 Dec or the roadmap"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: BCBC 2024 and Step Codes treated as governing in Vancouver",
+   "status": "partly",
+   "residue": "Re-labelled correctly, but the Part 3 presets still come from VBBL 2007 while VBBL 2019 (consolidated 2024) is freely readable, and M07 still uses provincial rules although VBBL 2019 3.8 has Vancouver's own."
+  },
+  {
+   "item": "BLOCKER: 3.2.6.2 stair smoke-control split (1%/2 h below the lowest exit level; vent above)",
+   "status": "addressed",
+   "residue": "Confirmed verbatim in VBBL 2019 and VBBL 2007. Sentence (4) (smoke from below the lowest exit storey) and the -6 °C design temperature are still missing."
+  },
+  {
+   "item": "BLOCKER: RTT engine (no express term, P undefined, misattributed formula)",
+   "status": "addressed",
+   "residue": "Method rewritten with the express term and P defined; validation still pending implementation, and the Peters 2000 paper remains unread."
+  },
+  {
+   "item": "MAJOR: up-peak only vs residential two-way criterion",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: core area counts passenger shafts only",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: status mixes 'source says' with 'applies in Vancouver'; BCO currency; 1:8 density",
+   "status": "partly",
+   "residue": "Applicability is in free text only; UK/AU targets keep a 'verified' status; the density default is fixed."
+  },
+  {
+   "item": "MAJOR: PeakDemandByEntrance without inputs",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: residential and hotel population from area density",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: plant-floor causal chain (PRV vs hydronic)",
+   "status": "partly",
+   "residue": "The chain is separated, but zone height = 550/9.81 ignores residual pressure and branch PRVs; the clause is cited through a 1997 decision instead of VPBL 2019 2.6.3.3.(1)."
+  },
+  {
+   "item": "MAJOR: M05/M06 circular dependency",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: refuge over-correction; add 3.3.1.7 and evacuation lifts",
+   "status": "partly",
+   "residue": "3.3.1.7 was added, but it is deleted in Vancouver (VBBL 2007 and 2019), so the new metric is itself wrong."
+  },
+  {
+   "item": "MAJOR: missing minimum stair widths and cumulative-width rule",
+   "status": "addressed",
+   "residue": "Confirmed in VBBL 2019 Table 3.4.3.2.-A and 3.4.3.2.(4)/(6); re-stamp the edition."
+  },
+  {
+   "item": "MAJOR: travel-distance clause misattributed",
+   "status": "addressed",
+   "residue": "VBBL 2019 3.4.2.5 confirms 25/40/45/105/60/30 m."
+  },
+  {
+   "item": "MAJOR: SimPy effort and validation risk",
+   "status": "addressed",
+   "residue": "Per-module efforts were raised, but the packet total (about 55 person-days) does not fit the 13 Nov core."
+  },
+  {
+   "item": "MAJOR: Vancouver seismic, sway and regulator constraints on lifts",
+   "status": "partly",
+   "residue": "Flags were added but have no hazard inputs; CSA B44-16 seismic content is not cited, and VBBL Appendix C seismic and wind data are unused."
+  },
+  {
+   "item": "MAJOR: natural gas factor missing; 0.011 confused with the grid factor",
+   "status": "partly",
+   "residue": "Structure fixed, but the 0.179 and 0.011 values are still recalled rather than read from the CoV Energy Modelling Guidelines v3 (403)."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P11-S44",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2007/building_b_p3_3.2",
+   "ok": true,
+   "note": "Verbatim: 18 m trigger for all buildings (Vancouver amendment), 3.2.6.2.(2)-(5), 3.2.6.3, and 3.2.6.5 values (2.2 m2, 900 kg, 1 min, one change, 1 h, 45 min). Edition is VBBL 2007 per the site index."
+  },
+  {
+   "source_id": "NEW VBBL2019 3.2",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/59509560",
+   "ok": true,
+   "note": "Consolidated to 1 Jul 2024. Same 3.2.6.2 and 3.2.6.5 values; 3.2.6.3 present; adds 3.2.6.2.(6), automatic recall detectors in 3.2.6.4, the radio antenna system, and 3.2.7.9 emergency power (2 h; firefighter elevators plus one more, or 5-min recall)."
+  },
+  {
+   "source_id": "NEW VBBL2019 3.4",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/463712062",
+   "ok": true,
+   "note": "3.4.2.5 limits match; 3.4.3.2 6.1/8/9.2 mm, (4) non-cumulative, (6) interconnected, (7) half rule, Table A stairs 1100 mm; 3.4.6.18 is the re-entry rule (more than 2 storeys)."
+  },
+  {
+   "source_id": "NEW VBBL2019 3.3",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/758782467",
+   "ok": false,
+   "note": "3.3.1.7 Deleted: contradicts the spec's protected-zone metric. 3.3.1.6 travel within suites confirmed."
+  },
+  {
+   "source_id": "NEW VBBL2019 3.1",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/519280133",
+   "ok": true,
+   "note": "3.1.17.1: 2 persons per sleeping room; Table 3.1.17.1 present (office value consistent with 9.30 as far as the column layout can be read)."
+  },
+  {
+   "source_id": "NEW VBBL2019 3.5",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/681033337",
+   "ok": true,
+   "note": "Stretcher 2010 x 610 mm; Elevating Devices Safety Regulation; passenger elevators to Appendix E of ASME A17.1/CSA B44; high-building elevators to 3.2.6.4-3.2.6.6."
+  },
+  {
+   "source_id": "NEW VBBL2019 3.8",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/369101801",
+   "ok": false,
+   "note": "Vancouver adaptable dwelling units (3.8.5), power doors, tactile indicators, hotel rooms 1/40 and walkway rule 3.8.2.2.(5) exist; the spec calls these unknown."
+  },
+  {
+   "source_id": "P11-S43",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486",
+   "ok": true,
+   "note": "Table A1 values match (office 100/20/3.0; hotel 140/20/4.0; D/E 120/20/3.0). Spec omits Note (1) on multiple occupancies, Table B and the Passive House path."
+  },
+  {
+   "source_id": "P11-S49 (replace)",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vpbl2019/238839733",
+   "ok": true,
+   "note": "Vancouver Plumbing By-law 2019 2.6.3.3.(1): PRV where static pressure at any fixture may exceed 550 kPa (consolidated Jan 2024)."
+  },
+  {
+   "source_id": "NEW VBBL2019 App C",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/1180713887",
+   "ok": true,
+   "note": "Vancouver January 2.5% -6 °C, 1% -8 °C; future rows -4 and -2 °C; July 2.5% 28/30/32 °C; wind q1/50 0.45 kPa; seismic hazard section."
+  },
+  {
+   "source_id": "P11-S51",
+   "url": "https://www.technicalsafetybc.ca/technologies/elevating-devices",
+   "ok": true,
+   "note": "CSA B44-16 in effect since 30 Apr 2020; silent on seismic and novel systems."
+  },
+  {
+   "source_id": "P11-S50",
+   "url": "https://libguides.bcit.ca/mechanical/BCcodes",
+   "ok": true,
+   "note": "VBBL 2025 took effect 15 Sep 2025; Book II based on NPC 2020."
+  },
+  {
+   "source_id": "P11-S61",
+   "url": "https://vancouver.ca/files/cov/vbbl-part-10-unofficial-wording-effective-sept-15-2025.pdf",
+   "ok": false,
+   "note": "First request returned an HTTP 200 PDF (about 0.45 MB); later requests hit a Cloudflare browser check, which I did not bypass. Obtainable by manual download; not read."
+  },
+  {
+   "source_id": "P11-S14",
+   "url": "https://bylaws.vancouver.ca/consolidated/14343.pdf",
+   "ok": false,
+   "note": "First request returned an HTTP 200 PDF (about 16 MB), then the browser check. Manual download needed; not read."
+  },
+  {
+   "source_id": "P11-S58",
+   "url": "https://vancouver.ca/files/cov/guidelines-energy-modelling-v3.0-tracked%20changes.pdf",
+   "ok": false,
+   "note": "HTTP 403; emission factors still unverified."
+  },
+  {
+   "source_id": "P11-S23 / P11-S54",
+   "url": "https://liftescalatorlibrary.org/paper_indexing/papers/00000157.pdf",
+   "ok": false,
+   "note": "Connection failed (also peters-research.com); r1 critic readings relied on."
+  }
+ ],
+ "verdict": "Not passed, but close. All three r1 blockers are fixed and most MAJOR items are addressed. The main remaining problem is the code base: the presets come from VBBL 2007 although VBBL 2019 Part 3, the Plumbing By-law and Appendix C (consolidated 2024) are free on the same site. That text shows several spec claims are wrong. 3.3.1.7 protected zones are deleted in Vancouver. 3.4.6.18 is the stair re-entry rule. Vancouver already has its own adaptable-unit, power-door and hotel-room rules. Emergency power (3.2.7.9), the mixed-occupancy energy limit and the PRV zone formula are missing or wrong. The VBBL 2025 PDFs need a manual browser download. The scope cannot be delivered by 13 Nov. The web-search budget was exhausted, so these checks used direct document fetches."
+}

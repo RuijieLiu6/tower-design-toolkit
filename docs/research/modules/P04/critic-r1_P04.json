@@ -1,0 +1,321 @@
+{
+ "expert_role": "Building energy modeller with Vancouver rezoning experience (Energy and Emissions Design Reports, VBBL Part 10, Embodied Carbon Design Reports)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P04-M01",
+   "issue": "Every TEUI/TEDI/GHGI limit metric is labelled 'verified', but the governing table (VBBL 2025 Part 10, in force since 15 Sep 2025, so 13 months before today) was never opened. The values come from a June 2021 consultant page (S03, checked: the values match it) and a 2022 City deck (S02). The spec's own basis text says 'confirm before use', which contradicts the 'verified' label. Entrants will read the green chip as current law.",
+   "fix": "Get the 'Part 10 unofficial wording effective September 15, 2025'. The City's 403 blocks the bot fetcher, so download it in a normal browser or request it from the Chief Building Official's office. Transcribe Tables A1, B and C into the versioned registry with clause numbers. Until that is done, set the status to 'unverified: 2021 table + Jan 2025 approved amendments' and show a banner on the module."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P04-M01",
+   "issue": "The rezoning instruments that actually govern a VTC tower are unopened or missing. (1) The Green Buildings Policy for Rezonings (S01, 403). (2) The sustainability clause of the Higher Buildings Policy, which the brief names: higher-building rezonings must show leadership in sustainable design, and the spec never checks what this requires today. (3) The Rezoning Policy for Sustainable Large Developments. The site is 79.2 x 144.8 m = 1.15 ha with more than 100,000 m2 of floor area, so in my experience this policy applies (at least 0.8 ha or 45,000 m2). It requires a low-carbon energy supply feasibility study. The module currently computes VBBL limits only.",
+   "fix": "Open all three PDFs in a browser and add a 'rezoning layer' to the registry: HBP sustainability expectations, GBPR submission items (EEDR, ECDR) and SLD low-carbon energy supply requirements. Feed the SLD energy study into P04-M06 as a required deliverable. Mark any HBP-specific target as 'policy under review (S37)'."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P04-M07",
+   "issue": "The embodied-carbon pass/fail logic is wrong and over-labelled. The CLF BC slides (S08, opened) show 800 kgCO2e/m2 as the Oct 2023 cap (2x benchmark) and mark the 2025 values (360 / -10%) 'approved in principle'. Under the 2025 rules a design at 750-850 passes if it is at least 10% below its functionally equivalent baseline. A supertall's baseline can exceed 800, so 'fails in any case above 800' gives false FAILs. Labelling 360 'verified' is also unsupported.",
+   "fix": "Implement the regime by permit date. Oct 2023 rule: design <= 2x baseline. 2025 rule: absolute <= 360, OR reduction >= 10% plus one responsible-materials category, OR reduction >= 20%. Remove the 800 line from the 2025 regime. Set the status to 'unverified (approved in principle)' until the VBBL 2025 text and the Embodied Carbon Guidelines version in force are opened."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M01",
+   "issue": "Cultural/civic space is mishandled. The spec applies the 2018-20 'all other' rule (TEUI 35% better than baseline, GHGI = baseline) and calls the current rule unverified. Its own opened source S02 states: 'For industrial/care/assembly (Group A, B, F major occupancies): 85% lower than the GHGI of the reference building modelled using only fossil-fuel systems', effective Jan 2025 (50% from July 2023). VTC requires cultural/civic and public uses throughout the tower, so every entry is affected. Restaurants are likely Group A as well.",
+   "fix": "Map Layer 0 tags to VBBL major occupancy groups (A, C, D, E, F) rather than to the program labels. Implement the Group A rule (GHGI limit = 0.15 x GHGI of a fossil-only reference model), with a manual-entry fallback in BASIC mode. Mark the superseded 2018-20 rule as FALSE ASSUMPTION."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M01",
+   "issue": "The 'residential-portion TEDI sub-limit' misstates the rule. S12 says the portions of the building that have a TEDI target must also meet their combined TEDI target. The residential-only sub-check in that paper arises only because residential was the only portion with a table TEDI target. In a VTC tower, office, retail, hotel and residential all have TEDI targets.",
+   "fix": "Compute one area-weighted TEDI sub-check over all occupancies that have a table TEDI target, excluding reference-model occupancies. Keep per-occupancy readouts as information only. Confirm against the current Energy Modelling Guidelines section 5.2 (referenced by S14)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M01",
+   "issue": "Denominators are inconsistent. Limits are weighted by Layer 0 GFA (which may include core and mechanical by option), but VBBL metrics are per modelled floor area as defined in the Energy Modelling Guidelines, and the embodied metric is per GFA excluding parkade. Parkade, mechanical and core treatment changes both the weights and the intensities.",
+   "fix": "Add an explicit MFA field computed with the EMG rules: parkade handling, mechanical floors, unconditioned space. Weight limits by MFA. Keep GFA-excl-parkade for P04-M07. Label each number with its denominator."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M03",
+   "issue": "GHGI cannot be computed as specified. There are no default emission factors (EMG electricity, gas and steam factors are 'not seen'), no refrigerant inputs for GHGI-R (type and GWP, charge, leak rate) even though GHGI-R has counted inside the limit since Jan 2025, and no domestic hot water demand or source. DHW is a major share of residential and hotel TEUI and GHGI, and gas DHW alone can break GHGI 3-4.",
+   "fix": "Add inputs for refrigerant (GWP, charge per kW, annual and end-of-life leak rates as the EMG prescribes), DHW demand by occupancy, and DHW plant/source. Add a versioned emission-factor table sourced to the EMG version in force. Until it is opened, show electricity and gas factors as amber team assumptions, never blank."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M02",
+   "issue": "Thermal bridging is missing. Balcony slab edges, slab bypasses at window-wall and spandrel panels are the dominant TEDI driver in Vancouver concrete towers, and the City's guidelines require effective (bridged) U-values. A clear-field UA proxy will understate TEDI badly for typical window-wall towers.",
+   "fix": "Add parameters for slab-edge/balcony linear transmittance (psi x length per storey) and spandrel effective U, with presets from the BC Hydro Building Envelope Thermal Bridging Guide (cite once opened). Pass effective U-values to P04-M03."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M02",
+   "issue": "The 'TEDI proxy vs P04-M01 TEDI limit' metric carries status 'verified' although the proxy is unvalidated. HDD18 steady-state UA with 'usable gains' is crude for high-internal-gain offices, which have balance points well below 18 C. A green 'verified' pass from an uncalibrated proxy will mislead entrants.",
+   "fix": "Set the status to 'team_assumption (proxy)'. Show a band, not a point. Add a calibration record against P04-M03 runs per occupancy. Grey out the pass/fail badge until the proxy is calibrated."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M03",
+   "issue": "The screening model diverges from the compliance ruleset it is compared against. It invents unsourced height-band stack/wind infiltration multipliers and uses the 2026 TMYx (ERA5) weather file. Vancouver compliance modelling prescribes the infiltration assumptions, the weather file, schedules and the corridor-pressurization treatment through the EMG. Results will not be comparable with the limits.",
+   "fix": "Offer two modes. 'EMG mode' copies EMG inputs (infiltration rate, weather file, schedules, ventilation credits) and is the only mode compared with P04-M01 limits. 'Physics mode' (stack/wind, TMYx, future climate) is exploratory and has no pass/fail."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M06",
+   "issue": "The spec implicitly assumes downtown district steam would qualify as a City-recognised LCES for Table C relief. The LCES policy (S41) is unopened, the electrode-boiler status is unknown (S22, opened: conditional wording, no date or MW rating), and S21 dates from 2021. Showing Table C relief (office TEUI +30, TEDI +10) for district steam may grant relief that does not exist.",
+   "fix": "Turn Table C relief off by default. Enable it only when the user attests to City LCES recognition and cites a document. Show district steam as Table A1 with a user-entered factor until the LCES policy and the utility's status are confirmed."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M05",
+   "issue": "PV is not linked to compliance. The spec never states whether, or how, on-site generation is credited in TEUI or GHGI under the EMG, so the PV share has no effect on M01 and the module's design consequence is unclear.",
+   "fix": "Open the EMG renewables clause and add the rule (deductible or not, any cap) to M01 inputs. If it is not deductible, say so explicitly on the PV card."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M01",
+   "issue": "Missing incentive with a direct massing effect. UDI (S07, opened) reports proposed voluntary high-performance incentives: a floor-area exclusion raised from 5% to 10% for larger buildings and extended to 2030. This changes achievable floor area and the energy targets a designer might adopt.",
+   "fix": "Add an 'incentive pathway' record with its status (proposed, July 2025 hearing; adoption unverified) and pass the floor-area exclusion to PROG modules."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M08",
+   "issue": "The 540 kgCO2e/m2 'indicative ceiling' adds embodied carbon per GFA excluding parkade to GHGI (per MFA, including GHGI-R, under EMG factors) x 60 years at constant factors. It is shown as a ceiling, so entrants will treat it as a target.",
+   "fix": "Convert both terms to the same denominator. Show operational carbon under a stated grid scenario. Rename it 'illustrative sum at limits', never a ceiling, and show no pass/fail."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M04",
+   "issue": "Weak references are used as benchmarks. Toronto Hydro planning kVA values (S24, opened: planning estimates for Toronto, end uses not stated) and a forum-quoted 50 W/m2 are compared with a probably all-electric Vancouver supertall with active cooling in every unit (required since 2025). Such a building will exceed the 'over 500 units' class by design. Missing: Vancouver is its own electrical authority (Electrical By-law), and BC Hydro's large-load service process is not described.",
+   "fix": "Show the Toronto values as context only, not as good/bad. Add an electrified-load preset set (heat pump at design-day COP, unit cooling, EV) labelled team assumption. Cite the City Electrical By-law and BC Hydro service requirements once opened."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M02",
+   "issue": "The relationship 'Corridor-pressurization credit halved from 2023' is incomplete. S04 says the TEDI/TEUI credit drops by 50% and the GHGI credit is removed entirely.",
+   "fix": "Update the text and the registry entry to include the GHGI credit removal."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M01",
+   "issue": "GHGI-R timing conflict. S02 (City) puts GHGI-R inside the limit from Jan 2025; S04 says EMG v2.0 adds GHGI-R by 2023. The spec states only Jan 2025.",
+   "fix": "Record both sources in the registry and resolve against the EMG version in force."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M01",
+   "issue": "The input 'storeys above grade per tagged volume' can misclassify, because the 6-storey limit class applies to the building, not to a tagged podium volume.",
+   "fix": "Derive the storey class per building (tower plus podium as one building, unless separated by a firewall per code) and let the user override."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M03",
+   "issue": "The overheating 200 h threshold is labelled 'verified' but comes from the 2018 EMG via a 2020 paper. S04 says VBBL 2023 sets overheating hours per ASHRAE 55 Section 5.3 and may require mechanical cooling for vulnerable-occupancy spaces.",
+   "fix": "Set the status to 'unverified (2018 EMG)' and confirm the current hour limit, comfort model and weather file in the EMG in force."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M02",
+   "issue": "The WWR 40% basis transfers a 14-storey pool/recreation case to a supertall. The NECB prescriptive FDWR maximum for HDD below 4000 (Vancouver about 2,800-3,000) is in my understanding 40%, a stronger anchor, but it is unopened. The 'vertical envelope/GFA' relationship cites S12 and the unopened S39, neither of which shows it.",
+   "fix": "Cite the NECB 2020 FDWR clause once opened. Reword the S12 use as an example. Drop S39 or mark the relationship as engineering reasoning (team assumption)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "ICE handling is not tight enough. S28 (opened) excludes use in tools, software and reporting, and non-educational use ends 30 Sep 2026. A public open-source tool used by competition entrants is 'tool' use even if the authors are students.",
+   "fix": "Do not bundle or query ICE data in the hosted tool at all. Allow only user-typed factors with the user's own licence attestation."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M03",
+   "issue": "Vertical transportation and parkade ventilation/lighting energy are missing. For a 244-305 m tower these are material TEUI components, and they link SYST and MOBI decisions to energy.",
+   "fix": "Add elevator energy (per car, rise and trips, with regenerative-drive option) and parkade fan/lighting loads as inputs. Check how the EMG counts parkade energy and area."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "Height and lateral-system quantity presets are placeholders with no supertall benchmarks (CTBUH or CLF studies not opened), yet structure dominates the result.",
+   "fix": "Label all intensity presets 'team assumption' with a range. Prioritise opening a tall-building embodied-carbon benchmark."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M01",
+   "issue": "S03 (opened) also gives residential 6 storeys or fewer as 110/25/5.5 and shows the Table C GHGI for hotel (8) and residential (6) unchanged. The spec says the Table C GHGI 'fell' from an unopened consultation.",
+   "fix": "Store the Table C GHGI cells separately with the Jan 2025 step marked unverified until the VBBL 2025 Table C is opened."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Current energy rule for cultural/civic ('all other') space is unknown, so the 2018-20 rule (TEUI 35% better than baseline, TEDI and GHGI equal to baseline) is used",
+   "why_false": "The City's approved-changes deck (S02), already opened by the authors, sets a specific GHGI rule for assembly occupancies.",
+   "correction": "For Group A, B, F major occupancies the GHGI limit is 50% below a fossil-fuel-only reference building from July 2023 and 85% below from January 2025. The 2018-20 rule is superseded for GHGI.",
+   "evidence": "https://bcbec.com/wp-content/uploads/2022/11/CEAP-changes-for-new-and-existing-BCBEC-2022-11-04.pdf slide 12: 'For industrial/care/assembly (Group A, B, F major occupancies): 85% lower than the GHGI of the reference building modelled using only fossil-fuel systems' (effective Jan 2025)."
+  },
+  {
+   "claim": "In a mixed-use building only the residential portion must separately meet its own TEDI limit",
+   "why_false": "The cited paper states the rule for all portions that have a TEDI target. The residential-only check in that case study came from it being the only such portion.",
+   "correction": "All portions of the building that have a table TEDI target must together meet their combined (area-weighted) TEDI target, in addition to the whole-building limits.",
+   "evidence": "https://publications.ibpsa.org/proceedings/esim/2020/papers/esim2020_1164.pdf (Mixed-Use Buildings section): 'The portions of the building that have a TEDI target must also meet their combined TEDI target.'"
+  },
+  {
+   "claim": "Embodied carbon above 800 kgCO2e/m2 fails in any case",
+   "why_false": "800 is the Oct 2023 cap (2x benchmark). The 2025 regime uses an absolute path (360) OR a baseline path (-10%, or -20% without a responsible-materials category). It has no universal 800 ceiling.",
+   "correction": "For 2025-regime permits a design passes if it is <= 360 or at least 10% below its functionally equivalent baseline (plus one responsible-materials category), whatever its absolute value.",
+   "evidence": "https://clfbritishcolumbia.com/wp-content/uploads/2023/12/CLF-BC-CoV-Embodied-Carbon-Guidelines-2023-112923.pdf compliance-paths slides: 'Oct 2023 (2x baseline) 800'; 'Jan 2025 (10% reduction) (All other buildings) 360'; '2. Baseline Path ... -10%'; '* Approved in principle.'"
+  },
+  {
+   "claim": "The 2025 absolute embodied-carbon limits (360/320) and the 2021-table TEUI/TEDI values are 'verified'",
+   "why_false": "The sources are 'approved in principle' slides and a 2021 consultant page. The VBBL 2025 text in force since 15 Sep 2025 was not opened.",
+   "correction": "Status must be 'unverified' until the VBBL 2025 Part 10 wording and the current Embodied Carbon Guidelines are opened.",
+   "evidence": "CLF BC slides: '** Approved in principle. The City Council will approve the final 2025 code changes in 2024.' https://edgesustainability.com/updates-to-energy-efficiency-section-of-vbbl-2019-code/ is dated to permits from 1 Jun 2021."
+  },
+  {
+   "claim": "The City halved the TEDI/TEUI credit for corridor pressurization (complete description of the 2023 change)",
+   "why_false": "The source also removes the GHGI credit.",
+   "correction": "TEDI and TEUI corridor-pressurization credit reduced 50%; GHGI credit removed entirely (EMG v2.0, 2023).",
+   "evidence": "https://sa-footprint.com/moving-toward-more-zero-carbon-goals/ : the credit for corridor pressurization drops by 50% for TEDI/TEUI and the GHGI credit is removed."
+  }
+ ],
+ "missing": [
+  "VBBL 2025 Part 10 Tables A1/B/C (opened, transcribed, clause-cited); Table B values for path 1.1",
+  "Higher Buildings Policy sustainability clause and current interpretation for higher-building rezonings",
+  "Rezoning Policy for Sustainable Large Developments: applicability to the 1.15 ha site and its low-carbon energy supply study requirement",
+  "Green Buildings Policy for Rezonings current text (EEDR/ECDR content, timing)",
+  "Occupancy mapping from Layer 0 tags to VBBL major occupancy groups (A, C, D, E, F) and the Group A 85%-below-fossil-reference GHGI rule",
+  "Modelled floor area (EMG) definition and its use as the weighting denominator",
+  "Default emission factors (electricity, natural gas, district steam) from the EMG in force",
+  "GHGI-R inputs: refrigerant type/GWP, charge, leak rates",
+  "Domestic hot water demand and heating source (a major residential/hotel TEUI and GHGI driver)",
+  "Thermal bridging parameters (balcony/slab-edge psi, spandrel effective U) for TEDI",
+  "EMG-conformant screening mode (weather file, infiltration, schedules) separate from exploratory physics mode",
+  "How on-site PV is credited (or not) in TEUI/GHGI under the EMG",
+  "City LCES recognition status of downtown district steam; LCES policy text",
+  "Inter-use heat recovery (office/retail cooling heat to residential/hotel DHW and heating), a key mixed-use supertall lever",
+  "Vertical transportation energy and parkade ventilation/lighting energy as TEUI components",
+  "Future-climate weather files for overheating and cooling-load checks (resilience)",
+  "Voluntary high-performance building floor-area-exclusion incentive (5% to 10%, status to confirm)",
+  "Supertall embodied-carbon benchmarks by structural system and height",
+  "City of Vancouver Electrical By-law and BC Hydro large-load service process for M04",
+  "Note: the web search budget for this run was exhausted, so several City PDFs (403) and the policies above could not be checked by search; the gaps above need a follow-up pass with a normal browser."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Open the VBBL 2025 Part 10 wording (effective 15 Sep 2025) and re-key every limit cell with clause and date; downgrade all limits to 'unverified' until done",
+   "Open the Higher Buildings Policy, the Green Buildings Policy for Rezonings and the Sustainable Large Developments policy; add their energy/carbon requirements or document that none apply",
+   "Implement the Group A/B/F GHGI rule (85% below fossil-only reference from Jan 2025) and occupancy-group mapping",
+   "Correct the combined TEDI sub-check and use MFA as the denominator",
+   "Fix the M07 regime logic (remove the universal 800 fail; separate 2023 and 2025 regimes) and set 360/320 to 'unverified (approved in principle)'",
+   "Add emission-factor defaults, GHGI-R refrigerant inputs and DHW to M03 before any GHGI pass/fail is shown",
+   "Relabel the M02 TEDI proxy pass/fail as team assumption until calibrated",
+   "Default Table C (LCES) relief to off unless the user attests City recognition"
+  ]
+ },
+ "verdict": "The packet does not pass. The structure is sound and the authors were honest about their gaps. But the core modules M01 and M07 show 'verified' limits that rest on a 2021 consultant page and 'approved in principle' slides, while VBBL 2025 has been in force for 13 months. Sources the authors already opened contradict three claims: the assembly-occupancy GHGI rule (85% below a fossil-only reference), the combined TEDI sub-check, and the universal 800 embodied-carbon fail. The rezoning instruments that govern a VTC tower are unopened: the Higher Buildings Policy sustainability clause, the Green Buildings Policy for Rezonings and the Sustainable Large Developments policy. GHGI also cannot yet be computed reliably: there are no emission factors, refrigerant inputs, DHW or thermal-bridging inputs. My web searches ran out during this review, so these gaps still need a browser pass.",
+ "sources_checked": [
+  {
+   "source_id": "P04-S03",
+   "url": "https://edgesustainability.com/updates-to-energy-efficiency-section-of-vbbl-2019-code/",
+   "ok": true,
+   "note": "Confirms 2021 Table A values (office 100/20/3, retail 120/20/3, hotel 140/20/8, residential >6 storeys 120/30/6, residential up to 6 storeys 110/25/5.5) and Table C (office 130/30/3, retail 170/30/3, hotel 170/30/8, residential >6 storeys 130/40/6). Applies to permits from 1 Jun 2021, so it may be superseded by VBBL 2025."
+  },
+  {
+   "source_id": "P04-S02",
+   "url": "https://bcbec.com/wp-content/uploads/2022/11/CEAP-changes-for-new-and-existing-BCBEC-2022-11-04.pdf",
+   "ok": true,
+   "note": "Text extracted locally. Confirms Jan 2025 residential 7+ storeys GHGI 3, hotel 4, GHGI-R, active cooling to 26 C, embodied carbon 10%/20% plus responsible materials, existing-building limits and baseline assumptions. Also gives the Group A/B/F rule (50% then 85% below fossil reference), which the spec missed."
+  },
+  {
+   "source_id": "P04-S08",
+   "url": "https://clfbritishcolumbia.com/wp-content/uploads/2023/12/CLF-BC-CoV-Embodied-Carbon-Guidelines-2023-112923.pdf",
+   "ok": true,
+   "note": "Confirms the 400 benchmark, the 800 cap as the Oct 2023 2x rule, 360/320 for 2025 'approved in principle', placeholders 4/6/10/5%, 60-year life, parkade baseline options and accepted tools. Contradicts the spec's '>800 fails in any case'."
+  },
+  {
+   "source_id": "P04-S12",
+   "url": "https://publications.ibpsa.org/proceedings/esim/2020/papers/esim2020_1164.pdf",
+   "ok": true,
+   "note": "Confirms area weighting, the 200 h overheating limit (2018 EMG), the 35%-better rule for 'all other', WWR 57% to 40% and the pool load share. The TEDI sub-check is for all portions with TEDI targets, not residential only. Its 2018 rezoning table differs from the VBBL 2021 table (office 100/27/3, retail 170/21/3, hotel 170/25/8)."
+  },
+  {
+   "source_id": "P04-S04",
+   "url": "https://sa-footprint.com/moving-toward-more-zero-carbon-goals/",
+   "ok": true,
+   "note": "Confirms paths 1.1/1.2/1.3 and that Table B waives GHGI (values in images only). Corridor-pressurization GHGI credit is removed, not only halved. Overheating is set per ASHRAE 55."
+  },
+  {
+   "source_id": "P04-S13",
+   "url": "https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/construction-industry/building-codes-and-standards/bulletins/b23-03_zero_carbon_step_code.pdf",
+   "ok": true,
+   "note": "Confirms 0.011 kgCO2e/kWh as the Part 9 prescriptive EL-2 to EL-4 heating-source threshold, district-energy factors set by the AHJ with the utility, and Part 10 Vancouver referencing the EMG. It is not a Vancouver electricity factor."
+  },
+  {
+   "source_id": "P04-S07",
+   "url": "https://udi.org/advocacy/updates/city-of-vancouver-green-building-requirements",
+   "ok": true,
+   "note": "Confirms VBBL 2025 effective 15 Sep 2025 and commissioning under 10.2.2.22. Adds proposed voluntary incentive changes (5% to 10% floor-area exclusion, to 2030), which the spec missed. No numeric limits."
+  },
+  {
+   "source_id": "P04-S20",
+   "url": "https://news.gov.bc.ca/releases/2026ECS0052-001048",
+   "ok": true,
+   "note": "Confirms West End (as early as 2032) and East Vancouver (as early as 2031) substations, about 50,000 customers each, no MW figure."
+  },
+  {
+   "source_id": "P04-S22",
+   "url": "https://hhangus.com/creative-energy-vancouver-decarbonization-project-2/",
+   "ok": true,
+   "note": "Confirms 720 Beatty, 38,000 t/yr avoided, about 12 million ft2 of capacity. Conditional wording, no MW or commissioning date, so LCES status is unsupported."
+  },
+  {
+   "source_id": "P04-S28",
+   "url": "https://circularecology.com/embodied-carbon-footprint-database.html",
+   "ok": true,
+   "note": "Confirms ICE Educational is education-only, excludes tools and reporting, and non-educational use ends 30 Sep 2026."
+  },
+  {
+   "source_id": "P04-S24",
+   "url": "https://www.torontohydro.com/en/contractors-and-developers/typical-residential-peak-demand-values",
+   "ok": true,
+   "note": "Values match (166/499, 410/962, 903/3,024 kVA, Sept 2025). Planning-level Toronto data; end uses and electric heating not stated."
+  },
+  {
+   "source_id": "P04-S37",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Confirms the review timeline. No energy requirements, and the page does not describe the current HBP sustainability clause."
+  },
+  {
+   "source_id": "P04-S05",
+   "url": "https://vancouver.ca/files/cov/vbbl-part-10-unofficial-wording-effective-july-1-2023.pdf",
+   "ok": false,
+   "note": "HTTP 403 to the fetcher; could not verify."
+  },
+  {
+   "source_id": "HBP",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403; the sustainability clause is unverified and needs a browser download."
+  },
+  {
+   "source_id": "HBP-review",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "ok": false,
+   "note": "HTTP 403."
+  },
+  {
+   "source_id": "SLD",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "ok": false,
+   "note": "HTTP 403. Applicability thresholds are from my professional knowledge and must be confirmed."
+  },
+  {
+   "source_id": "CoV-ZEB",
+   "url": "https://vancouver.ca/green-vancouver/zero-emissions-buildings.aspx",
+   "ok": false,
+   "note": "HTTP 403."
+  }
+ ]
+}

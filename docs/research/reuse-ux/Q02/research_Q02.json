@@ -1,0 +1,775 @@
+{
+ "packet_id": "Q02",
+ "findings": [
+  {
+   "name": "shadcn/ui (CLI, registries, MCP server, skill)",
+   "url": "https://github.com/shadcn-ui/ui",
+   "kind": "library",
+   "what_it_does": "Copy-in React components (Radix or Base UI plus Tailwind) delivered by a CLI and registries. Ships an MCP server and a Claude-readable skill that look up and install components. You own and edit the source.",
+   "how_we_use_it": "Base component layer: dialog, popover, tabs, resizable, command, toasts. Run 'shadcn mcp init --client claude' and 'skills add shadcn/ui' so Claude installs real components instead of writing them. Theme with our own tokens.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "shadcn-ui org",
+   "license": "MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "126k stars, 1,777 open issues",
+   "saves": "Less boilerplate to write and review; CLI/MCP return canonical code, so fewer fix-up loops and tokens.",
+   "risks": "Copied code becomes ours to maintain. Default look is generic without custom tokens. 1,777 open issues. Needs Node and pnpm, which are not installed yet."
+  },
+  {
+   "name": "Tailwind CSS",
+   "url": "https://github.com/tailwindlabs/tailwindcss",
+   "kind": "library",
+   "what_it_does": "Utility-first CSS framework: style components with small classes directly in markup. It is the styling layer that shadcn/ui and React Flow UI assume.",
+   "how_we_use_it": "Style layer. Map our design tokens (colour, spacing, type, motion) into the Tailwind theme so Claude writes short, token-consistent class strings. Light/dark switch via an attribute on the root element.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "tailwindlabs",
+   "license": "MIT",
+   "last_activity": "2026-10-19 (GitHub API pushed_at)",
+   "popularity": "97.9k stars, 90 open issues",
+   "saves": "Compact class strings cost fewer tokens than bespoke CSS files and keep generated UI consistent.",
+   "risks": "Long class lists hurt readability. Needs token discipline or the UI drifts. README page showed no release date and nothing on theme variables or dark mode."
+  },
+  {
+   "name": "Radix Primitives",
+   "url": "https://github.com/radix-ui/primitives",
+   "kind": "library",
+   "what_it_does": "Low-level, accessibility-focused React component library maintained by WorkOS; the default base under shadcn/ui components.",
+   "how_we_use_it": "Accept as a transitive dependency through shadcn/ui. Use directly only for custom widgets such as port popovers. Watch Base UI (MIT, from Radix/Floating UI/MUI creators) as the alternative base if Radix maintenance slows.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "WorkOS",
+   "license": "MIT",
+   "last_activity": "2026-10-14 (GitHub API pushed_at)",
+   "popularity": "19.4k stars, 240 open issues",
+   "saves": "Focus management, keyboard and ARIA behaviour for overlays and menus come prebuilt.",
+   "risks": "Single corporate maintainer. README says nothing about ARIA or keyboard specifics. Base UI release status was not confirmed (page showed no version)."
+  },
+  {
+   "name": "React Flow (xyflow)",
+   "url": "https://github.com/xyflow/xyflow",
+   "kind": "library",
+   "what_it_does": "MIT library for node-based UIs: custom nodes, edges, handles, minimap, controls, backgrounds. Docs list keyboard navigation (Tab, Enter/Space, arrows), ARIA roles, and an assertive live region announcing node moves.",
+   "how_we_use_it": "Canvas engine for the Grasshopper-like graph. Custom node cards per module category, typed ports via isValidConnection, dagre for auto-tidy, keyboard accessibility on. Our module manifest generates node definitions.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "xyflow",
+   "license": "MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "38.7k stars, 161 open issues",
+   "saves": "Avoids building pan/zoom, selection, wiring, minimap and a11y plumbing from scratch.",
+   "risks": "Valid/invalid target styling needs custom CSS (docs unclear). Layout is a separate library (elkjs is large). Large graphs need performance care. Pro examples are paid but not required."
+  },
+  {
+   "name": "React Flow UI (shadcn-based components and templates)",
+   "url": "https://reactflow.dev/ui",
+   "kind": "library",
+   "what_it_does": "Components for React Flow built on shadcn/ui and Tailwind: base node, status indicator, labelled handles, edges with buttons, zoom slider, node search, devtools, and Workflow Editor and AI Workflow Editor templates.",
+   "how_we_use_it": "Start from the Workflow Editor template. Adopt base node, labelled handle and status indicator for run states and assumption badges. Node search feeds the command palette. Install through the shadcn CLI.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "xyflow",
+   "license": "Not stated on the page (xyflow itself is MIT)",
+   "last_activity": "unknown (page shows no date)",
+   "popularity": "unknown",
+   "saves": "Prebuilt, styled node and edge parts that already match shadcn tokens; saves days of node-card design.",
+   "risks": "Licence of these components is not stated on the page; verify per component before copying. Templates are opinionated. Newer than core React Flow, with fewer references."
+  },
+  {
+   "name": "cmdk",
+   "url": "https://github.com/dip/cmdk",
+   "kind": "library",
+   "what_it_does": "Unstyled React command-menu component with filtering, sorting, keyword aliases and a dialog wrapper. shadcn's Command is built on it. Good to roughly 2-3k items, no virtualization.",
+   "how_we_use_it": "Ctrl/Cmd+K palette exposing every action and module. Each module manifest registers its commands; show shortcuts and group by phase. Follow the editable-combobox pattern (aria-activedescendant).",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "dip (Paco Coursey)",
+   "license": "MIT",
+   "last_activity": "2025-10-29 (GitHub API pushed_at)",
+   "popularity": "13.0k stars, 76 open issues",
+   "saves": "Fuzzy matching, keyboard handling and dialog wiring done; Command in shadcn is one CLI call.",
+   "risks": "Last push a year before today with 76 open issues; React 18 and client-only. Fallbacks: kbar (MIT, pushed 2026-08-10) or React Aria ComboBox."
+  },
+  {
+   "name": "react-resizable-panels",
+   "url": "https://github.com/bvaughn/react-resizable-panels",
+   "kind": "library",
+   "what_it_does": "MIT React components for resizable, collapsible panel layouts with keyboard-friendly separators and layout save/restore callbacks. shadcn's Resizable wraps it.",
+   "how_we_use_it": "App shell: phase rail left, canvas/viewport centre, inspector and sources right. Collapse everything for Present mode and persist the layout per phase.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Brian Vaughn (bvaughn)",
+   "license": "MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "5.4k stars, 0 open issues",
+   "saves": "Resizable, collapsible, persisted panels without custom drag code.",
+   "risks": "Single maintainer. API has changed between versions (layout props). No tabbed docking or pop-out windows; dockview (MIT except enterprise package) would be the upgrade."
+  },
+  {
+   "name": "Impeccable (design skill, 24 commands, detector)",
+   "url": "https://github.com/pbakaus/impeccable",
+   "kind": "skill",
+   "what_it_does": "Design skill for AI coding agents: 24 commands (critique, audit, polish, onboard, animate, typeset, colorize and more), live browser iteration, and 61 deterministic rules that flag AI-looking UI without an LLM or API key.",
+   "how_we_use_it": "Install via /plugin marketplace. Run /impeccable init once to write PRODUCT.md (audience, tone). Use critique, audit and polish before each demo. Enable the edit hook so anti-patterns are caught for free.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Paul Bakaus",
+   "license": "Apache-2.0",
+   "last_activity": "2026-10-21 (GitHub API pushed_at)",
+   "popularity": "84k stars, 46 open issues",
+   "saves": "Rule detection costs zero tokens; PRODUCT.md avoids restating the brief each session; fewer redesign loops.",
+   "risks": "Opinionated (discourages Inter, nested cards) and may clash with a dense-tool look. 24 commands add context. Hook edits .claude/settings.local.json. Young project; popularity figures not independently checked."
+  },
+  {
+   "name": "Anthropic frontend-design skill (anthropics/skills)",
+   "url": "https://github.com/anthropics/skills/tree/main/skills/frontend-design",
+   "kind": "skill",
+   "what_it_does": "Short skill steering Claude toward deliberate typography, a 4-6 colour named palette, one orchestrated motion moment, visible focus states, and away from generic rounded SaaS cards and gradient washes.",
+   "how_we_use_it": "First-pass generation for presentation-mode boards, landing and community pages. Combine with our tokens; do not apply its marketing-page flourishes to the dense canvas UI.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Anthropic",
+   "license": "Apache-2.0 (LICENSE.txt in the skill folder; repo root shows none)",
+   "last_activity": "2026-10-09 (repo pushed_at)",
+   "popularity": "182k stars (repo)",
+   "saves": "Small single SKILL.md, cheap to load; first drafts need fewer aesthetic revisions.",
+   "risks": "Targets marketing-style pages, not analysis tools; may push decorative choices against focus goals. Repo licence field is empty, so rely on the per-skill Apache file."
+  },
+  {
+   "name": "Vercel web-design-guidelines skill and Web Interface Guidelines",
+   "url": "https://github.com/vercel-labs/web-interface-guidelines",
+   "kind": "guideline",
+   "what_it_does": "A skill that reviews UI files against 100+ rules (visible focus, keyboard handlers, reduced motion, transform/opacity-only animation, color-scheme, undo for destructive actions) and prints terse file:line findings. Rules live in an MIT repo.",
+   "how_we_use_it": "Run on changed UI files before merges. Vendor a pinned copy of command.md into the project instead of fetching main at review time. Add our canvas-specific rules beside it.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Vercel (vercel-labs)",
+   "license": "MIT (README; GitHub API shows no licence field for agent-skills)",
+   "last_activity": "2026-10-14 (agent-skills pushed_at)",
+   "popularity": "agent-skills 32.7k stars; guidelines about 1k stars",
+   "saves": "Terse file:line output keeps review cost low; replaces writing our own checklist.",
+   "risks": "Skill fetches rules from GitHub main at run time (reproducibility, injection risk) so vendor and pin. Some rules are Next.js/Vercel-specific."
+  },
+  {
+   "name": "IBM Carbon (design system and data-viz guidance)",
+   "url": "https://github.com/carbon-design-system/carbon",
+   "kind": "repo",
+   "what_it_does": "Apache-2.0 design system with React and web-component packages and concrete guidance for data-dense UI: data-viz palettes, chart anatomy, status indicators, notification and empty-state patterns, light/dark theme tokens.",
+   "how_we_use_it": "Reference, not a second component library. Borrow its status-indicator rules for Sourced / Team assumption / FALSE ASSUMPTION, notification persistence rules, categorical colour ordering, chart-anatomy checklist and empty-state structure.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "IBM",
+   "license": "Apache-2.0",
+   "last_activity": "2026-10-21 (GitHub API pushed_at)",
+   "popularity": "9.6k stars, 1,075 open issues",
+   "saves": "Ready-made, tested wording and rules for status, notifications, legends; avoids researching them from scratch.",
+   "risks": "Mixing Carbon components with shadcn gives two visual languages. Chart pages are work in progress (annotations, empty/error states not covered). 1,075 open issues."
+  },
+  {
+   "name": "Scientific colour maps (Crameri) and cmcrameri",
+   "url": "https://www.fabiocrameri.ch/colourmaps/",
+   "kind": "dataset",
+   "what_it_does": "Perceptually uniform, colour-vision-deficiency-friendly maps that stay readable in black and white; versioned on Zenodo (8.0.1). The cmcrameri Python wrapper is MIT; the site lists Python, Plotly and d3 support.",
+   "how_we_use_it": "Default sequential and diverging ramps for sun, shadow, wind and energy heatmaps. Export colour stops as JSON for the web, always draw the legend from the same stops, and cite Crameri et al. 2020 in module sources.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Fabio Crameri",
+   "license": "Original maps: not stated on pages read (cmcrameri wrapper: MIT)",
+   "last_activity": "Maps v8.0.1 dated 2023-10-05 (site)",
+   "popularity": "unknown",
+   "saves": "Avoids designing and testing colour ramps; citable for the sources panel.",
+   "risks": "Original-map licence not confirmed (check the Zenodo record). JavaScript packaging not verified. Categorical maps are limited."
+  },
+  {
+   "name": "Culori",
+   "url": "https://github.com/Evercoder/culori",
+   "kind": "library",
+   "what_it_does": "MIT JavaScript colour library supporting CSS Color 4 spaces, conversion, interpolation, colour-difference formulas and blending.",
+   "how_we_use_it": "Generate neutral, accent and status scales in OKLCH from three inputs (base, accent, contrast), interpolate legend stops, and check contrast ratios in CI so tokens never ship below target.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Evercoder (Dan Burzo)",
+   "license": "MIT",
+   "last_activity": "2026-10-15 (GitHub API pushed_at)",
+   "popularity": "1.2k stars",
+   "saves": "Programmatic palettes cut manual colour iteration and keep light/dark themes consistent.",
+   "risks": "README did not confirm gamut mapping, colour-blindness simulation or WCAG contrast helpers. OKLCH lightness is not a contrast guarantee. Small community."
+  },
+  {
+   "name": "Observable Plot",
+   "url": "https://github.com/observablehq/plot",
+   "kind": "library",
+   "what_it_does": "ISC-licensed concise JavaScript API for exploratory charts built from layered marks (grammar of graphics), from Observable.",
+   "how_we_use_it": "Chart layer for results panels and board exports (SVG). Share one colour-scale object across compared options. Observable Framework (ISC, static data apps) is an optional route for shareable reports.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Observable",
+   "license": "ISC",
+   "last_activity": "2026-09-01 (GitHub API pushed_at)",
+   "popularity": "5.4k stars, 350 open issues",
+   "saves": "Few lines per chart means fewer tokens than hand-written SVG or d3.",
+   "risks": "Docs pages returned HTTP 429, so legend, facet and interval-mark features are unverified here. 350 open issues. No built-in 3D."
+  },
+  {
+   "name": "d3-scale-chromatic",
+   "url": "https://github.com/d3/d3-scale-chromatic",
+   "kind": "library",
+   "what_it_does": "Sequential, diverging and categorical colour scales for d3-scale, mostly from ColorBrewer, interpolated with uniform B-splines. Licence file combines ISC and Apache-2.0 (ColorBrewer).",
+   "how_we_use_it": "Fallback ramps when a Crameri map is not wanted (categorical sets, familiar diverging pairs). Wrap behind our token layer and keep the ColorBrewer attribution.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "d3 / Mike Bostock",
+   "license": "ISC + Apache-2.0 (ColorBrewer)",
+   "last_activity": "2024-06-16 (GitHub API pushed_at)",
+   "popularity": "817 stars, 8 open issues",
+   "saves": "Ready scales; no need to author categorical sets.",
+   "risks": "README says nothing on colour-blind safety, so test each scale. Needs attribution. Stable but static (last push mid-2024)."
+  },
+  {
+   "name": "Radix Colors",
+   "url": "https://github.com/radix-ui/colors",
+   "kind": "library",
+   "what_it_does": "MIT colour system by Colm Tuite and Vlad Moroz, described as accessible; installed as @radix-ui/colors, with docs on radix-ui.com.",
+   "how_we_use_it": "Alternative source for neutral and status scales with light/dark pairs. Compare with Culori-generated OKLCH tokens in a one-hour spike, then pick one source only.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "WorkOS (Radix team)",
+   "license": "MIT",
+   "last_activity": "2025-12-17 (GitHub API pushed_at)",
+   "popularity": "1.7k stars, 6 open issues",
+   "saves": "Prebuilt light/dark scales avoid palette tuning.",
+   "risks": "README did not show scale design (step roles, alpha variants) so those claims are unverified. Overlaps with a Culori approach; two palette sources would confuse."
+  },
+  {
+   "name": "Inter and Geist (Mono) typefaces",
+   "url": "https://github.com/rsms/inter",
+   "kind": "other",
+   "what_it_does": "OFL-1.1 fonts. Inter: variable UI font for screens with tabular numbers and slashed zero. Geist: Sans plus a Mono companion for code-like text, installable with npm 'geist'.",
+   "how_we_use_it": "Inter for UI and body with tabular figures in tables and legends; Geist Mono for IDs, units and citations. Self-host the files; avoid a CDN dependency in the competition build.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Rasmus Andersson (Inter); Vercel (Geist)",
+   "license": "OFL-1.1 (both)",
+   "last_activity": "Inter 2024-11-19; Geist 2026-10-19 (GitHub API pushed_at)",
+   "popularity": "Inter 20k stars; Geist 3.7k stars",
+   "saves": "Two free fonts settle type decisions early; tabular numerals make numeric panels readable.",
+   "risks": "Impeccable flags Inter as overused (brand-feel risk). Inter README says a Display cut is in the works while Linear cites it; unresolved. Geist variable-font support not confirmed."
+  },
+  {
+   "name": "Motion (motion.dev)",
+   "url": "https://github.com/motiondivision/motion",
+   "kind": "library",
+   "what_it_does": "MIT animation library for React, JS and Vue: springs, gestures, layout transitions, scroll-linked effects. MotionConfig reducedMotion='user' disables transform and layout animation while keeping opacity and colour.",
+   "how_we_use_it": "Panel and phase transitions, node run-state pulses and board reveal. Wrap the app in MotionConfig reducedMotion='user'. Keep durations to 100-300 ms with ease-out entrances; no bounce.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Matt Perry / motiondivision",
+   "license": "MIT",
+   "last_activity": "2026-10-21 (GitHub API pushed_at)",
+   "popularity": "34.4k stars, 32 open issues",
+   "saves": "Declarative variants reduce hand-written animation code and review tokens.",
+   "risks": "Layout animations on a big canvas can cost frames; test. Motion+ paid tier is optional. 'Tiny footprint' claim is unquantified in the README."
+  },
+  {
+   "name": "axe-core",
+   "url": "https://github.com/dequelabs/axe-core",
+   "kind": "library",
+   "what_it_does": "MPL-2.0 accessibility rules engine. README says it finds about 57% of WCAG issues automatically and includes WCAG 2.0, 2.1 and 2.2 A/AA/AAA rules plus best-practice checks.",
+   "how_we_use_it": "Run in the browser-test pipeline on canvas shell, command palette, panels and legends. Fail PRs on critical violations; do a manual keyboard and screen-reader pass for the rest.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Deque Systems",
+   "license": "MPL-2.0",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "7.7k stars, 444 open issues",
+   "saves": "Catches a large share of a11y defects without LLM tokens.",
+   "risks": "Misses roughly 43% of issues; cannot inspect WebGL/canvas content. MPL-2.0 is file-level copyleft, fine as a dev dependency. README did not mention Playwright integration."
+  },
+  {
+   "name": "Playwright MCP",
+   "url": "https://github.com/microsoft/playwright-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Microsoft's Apache-2.0 MCP server that drives a browser through Playwright's accessibility tree instead of pixels. Install: claude mcp add playwright npx @playwright/mcp@latest. README notes the Playwright CLI with skills can be more token-efficient.",
+   "how_we_use_it": "Self-check loop for Claude: open the local app, tab through the canvas, capture screenshots at phone and desktop widths, read console errors. Prefer the CLI mode for token savings.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Microsoft",
+   "license": "Apache-2.0",
+   "last_activity": "2026-10-19 (GitHub API pushed_at)",
+   "popularity": "38.4k stars",
+   "saves": "Accessibility snapshots avoid vision-model screenshots; automated UI checks replace manual relaying.",
+   "risks": "README says it is not a security boundary; one tool runs arbitrary JavaScript. Needs Node 18+, not installed yet. Screenshots still cost vision tokens."
+  },
+  {
+   "name": "UI UX Pro Max skill",
+   "url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+   "kind": "skill",
+   "what_it_does": "MIT skill with a Python stdlib search engine over 79 styles, 192 palettes, 74 font pairings, 119 UX guidelines and 25 chart types, plus a design-system generator producing pattern, palette, typography and a pre-delivery checklist.",
+   "how_we_use_it": "One-off: generate palette, type and chart shortlists for 'professional AEC analysis tool', record choices in tokens and PRODUCT.md, then stop loading it. Do not run alongside Impeccable.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "nextlevelbuilder",
+   "license": "MIT",
+   "last_activity": "2026-10-15 (GitHub API pushed_at)",
+   "popularity": "138k stars, 91 open issues",
+   "saves": "Prebuilt lookup tables replace long research prompts for palettes and font pairings.",
+   "risks": "Overlaps Impeccable and adds context. Advertises a paid Premium tier. README warns of output-token limits and past install quirks; its quality examples are community-contributed, not benchmarked."
+  },
+  {
+   "name": "Driver.js",
+   "url": "https://github.com/nilbuild/driver.js",
+   "kind": "library",
+   "what_it_does": "MIT, dependency-free library (about 5 kB gzipped per README) for highlighting elements and showing popover steps; README claims everything is keyboard controllable.",
+   "how_we_use_it": "Optional, re-launchable hints (first canvas open, first phase switch) triggered by user pull, not forced tours. Pair with empty states and a persistent Help entry.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Kamran Ahmed (repo owner shown as nilbuild)",
+   "license": "MIT",
+   "last_activity": "2026-10-18 (GitHub API pushed_at)",
+   "popularity": "26.9k stars, 1 open issue",
+   "saves": "Small, no-dependency tour helper avoids building overlay code.",
+   "risks": "Tours are weakly remembered (NN/g). README makes no screen-reader claim. Overlays can hide focused elements (WCAG 2.4.11). Repo ownership moved; check the canonical URL."
+  },
+  {
+   "name": "Style Dictionary and DTCG token format",
+   "url": "https://github.com/style-dictionary/style-dictionary",
+   "kind": "library",
+   "what_it_does": "Apache-2.0 build system turning design tokens into CSS, JS, iOS and Android outputs. DTCG token format has a stable 2025.10 release; Figma, Tokens Studio and Style Dictionary are listed adopters.",
+   "how_we_use_it": "One tokens file for colour, type, spacing, motion and viewport themes, emitted as CSS variables and the Tailwind theme. Forked community modules can ship their own token overrides safely.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Style Dictionary org (DTCG: W3C community group)",
+   "license": "Apache-2.0",
+   "last_activity": "unknown (API returned 403; page showed no release)",
+   "popularity": "unknown",
+   "saves": "A single source of truth stops Claude hard-coding colours; theme changes are one-file edits.",
+   "risks": "DTCG support in this repo not confirmed on its page. Adds a build step; plain CSS variables may be enough for the 13 Nov core."
+  },
+  {
+   "name": "Rerun (viewer blueprint pattern)",
+   "url": "https://github.com/rerun-io/rerun",
+   "kind": "repo",
+   "what_it_does": "Apache-2.0/MIT multimodal data viewer. Its blueprint concept separates logged data from layout and view settings, can be saved and shared as .rbl files, and offers reset to a heuristic or default layout.",
+   "how_we_use_it": "Pattern only: store view layouts (panels, legends, camera, compared sets) as shareable JSON separate from model data, with 'reset to default' and 'auto layout'. Community users can fork layouts like modules.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Rerun (rerun-io)",
+   "license": "Apache-2.0 OR MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "11.6k stars, 1,240 open issues",
+   "saves": "Borrowed layout-versus-data separation avoids a later refactor of saved views.",
+   "risks": "Robotics-focused; the UI toolkit was not confirmed from pages read. Do not embed the viewer. 1,240 open issues."
+  },
+  {
+   "name": "React Aria (Adobe)",
+   "url": "https://github.com/adobe/react-spectrum",
+   "kind": "library",
+   "what_it_does": "Apache-2.0 library of 50+ unstyled accessible components (ComboBox, ListBox, drag and drop, overlays) with tested keyboard, screen-reader and focus behaviour, 30+ languages and RTL.",
+   "how_we_use_it": "Fallback where Radix or cmdk fall short: an accessible palette combobox or drag-and-drop reorder for node lists. Evaluate in a v1 spike only.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Adobe",
+   "license": "Apache-2.0",
+   "last_activity": "2026-10-21 (GitHub API pushed_at)",
+   "popularity": "16k stars, 642 open issues",
+   "saves": "Strong a11y defaults for complex widgets if we need them.",
+   "risks": "Different styling model than shadcn; a second primitives set to learn. Autodesk-style Tree and ColorPicker components were not confirmed on the page read."
+  },
+  {
+   "name": "Speckle viewer (speckle-server monorepo)",
+   "url": "https://github.com/specklesystems/speckle-server",
+   "kind": "repo",
+   "what_it_does": "Monorepo with a Nuxt/Vue frontend, a three.js viewer (@speckle/viewer) and an object loader. README says code is Apache-2.0 unless a folder states otherwise. Docs cover Viewer 2 and say Viewer 3 is unreleased.",
+   "how_we_use_it": "Benchmark for BIM-data viewing UX and a candidate viewer for Speckle or IFC imports. Study its filtering and extension model; coordinate with the viewer research packet.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Speckle Systems",
+   "license": "Apache-2.0 by default; per-folder exceptions (GitHub shows NOASSERTION)",
+   "last_activity": "2026-10-14 (GitHub API pushed_at)",
+   "popularity": "853 stars, 75 open issues",
+   "saves": "Reusing the viewer could save weeks of three.js work if the licence fits.",
+   "risks": "Mixed per-folder licences; Viewer 2 to 3 transition; feature list (filters, sections, themes) not verified from the docs read; heavy stack."
+  },
+  {
+   "name": "tldraw (SDK and workflow starter kit)",
+   "url": "https://github.com/tldraw/tldraw",
+   "kind": "library",
+   "what_it_does": "Infinite-canvas React SDK under the tldraw licence: development use free, production use needs a licence key (trial or commercial; pricing page mentions a hobby licence). Starter kits, including a node workflow editor, are MIT.",
+   "how_we_use_it": "Not a dependency. Read the MIT workflow starter kit for port-bound connections and click-output-to-open-node-picker, then reimplement those ideas on React Flow.",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "tldraw",
+   "license": "tldraw licence (source-available; GitHub reports NOASSERTION); starter kits MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "51k stars, 560 open issues",
+   "saves": "Reading the starter kit saves design time for node-picker interactions.",
+   "risks": "A public deployment is production and needs a key; terms for coursework or open-source competition were not found. Licence mentions usage-data collection. Lock-in."
+  },
+  {
+   "name": "ComfyUI frontend (UX reference only)",
+   "url": "https://github.com/Comfy-Org/ComfyUI_frontend",
+   "kind": "repo",
+   "what_it_does": "Official ComfyUI web UI under GPL-3.0. Docs describe a node library sidebar with search and bookmarks, templates, subgraphs and an App Mode that hides the graph behind a simple form. Its litegraph.js base (MIT) is archived.",
+   "how_we_use_it": "Copy ideas, not code: starter templates, App Mode-style linear view, subgraph collapse and a bookmarkable node library as the beginner on-ramp for our graph.",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Comfy-Org",
+   "license": "GPL-3.0",
+   "last_activity": "2026-10-21 (GitHub API pushed_at)",
+   "popularity": "about 2.1k stars (frontend repo; ComfyUI itself 141k), 3,056 open issues",
+   "saves": "Studying proven beginner on-ramps saves usability iteration.",
+   "risks": "GPL-3.0 copyleft would infect our code if copied. 3,056 open issues. Reviews cite custom-node breakage and dense graphs."
+  },
+  {
+   "name": "WCAG 2.2 (W3C Recommendation)",
+   "url": "https://www.w3.org/TR/WCAG22/",
+   "kind": "guideline",
+   "what_it_does": "Adds 2.4.11 Focus Not Obscured, 2.5.7 Dragging Movements, 2.5.8 Target Size (24 px), 3.2.6 Consistent Help, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication; removes 4.1.1 Parsing.",
+   "how_we_use_it": "AA acceptance checklist. Map to rules: click-click wiring, numeric input beside sliders, 24 px port hit areas, floating panels never fully covering focus, 3:1 for ports, wires and chart marks, colour never sole cue.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "W3C WAI",
+   "license": "W3C document licence (not checked)",
+   "last_activity": "2.2 published; living errata (date not checked)",
+   "popularity": "n/a",
+   "saves": "Concrete pass/fail criteria prevent late accessibility rework.",
+   "risks": "Canvas and WebGL content needs custom semantics; automated tools cover only part. Page read in two chunks (first 100k characters of 270k)."
+  },
+  {
+   "name": "deceptive.design (deceptive pattern types)",
+   "url": "https://www.deceptive.design/types",
+   "kind": "guideline",
+   "what_it_does": "Catalogue of 18 deceptive pattern types, including nagging, fake urgency, fake social proof, confirmshaming, addictive design, comparison prevention, hard to cancel, preselection and visual interference.",
+   "how_we_use_it": "Turn into a PR checklist and a short 'no dark patterns' rule. Apply to notifications, community counters, deadline banners, default selections and any rewards or progress UI.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Harry Brignull (deceptive.design)",
+   "license": "not checked",
+   "last_activity": "unknown",
+   "popularity": "n/a",
+   "saves": "A ready taxonomy avoids debating each borderline UI choice.",
+   "risks": "Written mainly for commerce; needs adaptation to an academic community. A checklist, not enforcement."
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Progressive disclosure, two levels maximum. Show the few controls most users need, reveal the rest on request, and avoid a third level. Use a staged (wizard) flow only for steps that do not depend on each other. Evidence: NN/g article and Figma's UI3 write-up; a ComfyUI discussion had one commenter against a hide-nodes Beginner mode (thin evidence).",
+   "rule_for_our_tool": "Every module shows an Essentials level plus one Advanced drawer, nothing deeper. Basic -> Advanced -> Present is a persistent phase rail users can jump around, not a locked wizard, because massing, evaluation and design loop back on each other. Essentials modules default on; nothing is hidden from the command palette. Counts like 'seven essentials' are team assumptions.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/progressive-disclosure/",
+    "https://www.figma.com/blog/behind-our-redesign-ui3/",
+    "https://github.com/Comfy-Org/ComfyUI/discussions/13312"
+   ]
+  },
+  {
+   "principle": "The chrome recedes and the canvas is the hero. Figma's UI3 moved attention to the canvas with resizable, collapsible panels and a slim bottom toolbar; Linear cut visual noise and simplified navigation.",
+   "rule_for_our_tool": "One persistent canvas/viewport. Side panels are resizable and collapsible, with layout remembered per phase. Present mode hides all panels by default. Keep one inspector open at a time; restrained accent colour so data colours stand out.",
+   "source_urls": [
+    "https://www.figma.com/blog/behind-our-redesign-ui3/",
+    "https://linear.app/now/how-we-redesigned-the-linear-ui"
+   ]
+  },
+  {
+   "principle": "Protect flow with fast feedback and tiered waits. Flow needs clear goals, immediate feedback and challenge matched to skill. NN/g's response-time limits: about 0.1 s feels instant, 1 s keeps thought unbroken, 10 s needs progress, estimate and a way out. A CHI 2008 study on interrupted work could not be read here, so interruption-cost claims are unverified.",
+   "rule_for_our_tool": "Parameter edits show a cheap preview within about 100 ms. Any run over 1 s shows a busy state on the node; over 10 s shows percent progress, ETA and Cancel, and runs in the background. No modals during runs, no focus stealing; stale results are labelled out-of-date rather than silently recomputed.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/response-times-3-important-limits/",
+    "https://www.nngroup.com/articles/skeleton-screens/",
+    "https://en.wikipedia.org/wiki/Flow_(psychology)",
+    "https://lawsofux.com/"
+   ]
+  },
+  {
+   "principle": "Wires and density are the main readability problem in node editors. In my reading: a McNeel thread with 6 replying contributors recommends coloured, named groups, faint wires between groups, relays and notes; one McNeel post wishes for alternative wire styles; one Unreal post asks for reroute-duplicating shortcuts; one ComfyUI review I opened (first-party, so weak) and several snippets cite density and steep learning. Nearly all are single-source signals.",
+   "rule_for_our_tool": "Wires faint by default and solid for the selected node's connections. Frames auto-created per module category with colour and name. Collapse-to-cluster for subgraphs, a Tidy button (dagre first; elkjs only if edge routing is needed), reroutes that duplicate with their connection, and switchable link style. Ports carry colour, shape and label. Click-click wiring as well as dragging.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/grasshopper-best-practices/86120",
+    "https://discourse.mcneel.com/t/wish-alternative-wire-path-styles/95163",
+    "https://forums.unrealengine.com/t/reroute-nodes-extra-features-to-avoid-node-spaghetti-more-easily/2677927",
+    "https://jdn.dev/avoiding-blueprint-spaghetti/",
+    "https://www.promptquorum.com/power-local-llm/comfyui-review",
+    "https://reactflow.dev/learn/layouting/layouting"
+   ]
+  },
+  {
+   "principle": "Inspect at the wire and give nodes live previews. TouchDesigner docs describe animated wires, interactive node viewers and an info popup; Houdini docs describe flags, status badges and a node-info window. Blender socket inspection and the Viewer node are known only from a search snippet (manual page body not read), so treat as unverified.",
+   "rule_for_our_tool": "Hover on any port shows value, type, unit, source module and last-run time. Every output has 'pin to viewport'. Nodes show a tiny thumbnail or sparkline, run time and warning badge. Animate wire flow only while a run is active.",
+   "source_urls": [
+    "https://docs.derivative.ca/Network_Editor",
+    "https://www.sidefx.com/docs/houdini/network/index.html",
+    "https://docs.blender.org/manual/en/latest/modeling/geometry_nodes/inspection.html"
+   ]
+  },
+  {
+   "principle": "Onboard by templates, a linear app view, pull-based help and useful empty states. NN/g found tutorials are mostly forgotten and recommends help shown on user signal plus a persistent entry point. ComfyUI docs describe templates, App Mode and subgraphs as its on-ramp. Empty states should show status, a learning cue and a direct action.",
+   "rule_for_our_tool": "Ship three starter graphs on the real Vancouver block (Basic, Advanced, Present). Provide a form-and-results 'App view' over any graph. Help is pulled (hover '?', first-open hint) with one persistent Help/What's new entry; any tour is optional and re-launchable. Every empty panel has a title, why it is empty, a primary action (import or load sample block) and a docs link; loading never renders as empty.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/onboarding-tutorials/",
+    "https://www.nngroup.com/articles/empty-state-interface-design/",
+    "https://carbondesignsystem.com/patterns/empty-states-pattern/",
+    "https://docs.comfy.org/interface/overview"
+   ]
+  },
+  {
+   "principle": "Keyboard-first command palette. A good palette opens from anywhere, covers nearly every action, forgives typos, ranks by context, and teaches shortcuts. The ARIA pattern closest to a palette is an editable combobox with a listbox popup.",
+   "rule_for_our_tool": "Ctrl/Cmd+K toggles the palette and returns focus to its origin. Every action is a command (add node, toggle module, run all, switch phase, open sources, export board), with fuzzy search, aliases, context ranking and visible shortcuts. Implement with aria-activedescendant on the input.",
+   "source_urls": [
+    "https://blog.superhuman.com/how-to-build-a-remarkable-command-palette/",
+    "https://www.w3.org/WAI/ARIA/apg/patterns/combobox/",
+    "https://github.com/dip/cmdk"
+   ]
+  },
+  {
+   "principle": "Colour scales and legends must read at a glance. Use perceptually uniform, colour-vision-safe maps; separate sequential from diverging by data meaning; direct-label where possible; light/dark variants flip which end means high. Colour must not be the only cue (WCAG 1.4.1) and graphics need 3:1 contrast (1.4.11).",
+   "rule_for_our_tool": "Crameri-style sequential maps by default; a diverging map only when data has a meaningful midpoint; no rainbow. Legend always on the canvas with units and threshold ticks. Compared options share one scale. Add patterns, labels or values alongside colour; verify 3:1 for marks and outlines.",
+   "source_urls": [
+    "https://www.fabiocrameri.ch/colourmaps/",
+    "https://carbondesignsystem.com/data-visualization/color-palettes/",
+    "https://carbondesignsystem.com/data-visualization/chart-anatomy/",
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
+   ]
+  },
+  {
+   "principle": "Show uncertainty and assumption sensitivity, but test the display. Midwest Uncertainty Collective work uses hypothetical outcome plots and quantile dotplots; one controlled study found quantile dotplots gave less variable probability estimates than density plots. Google PAIR warns numeric confidence can be misread or backfire.",
+   "rule_for_our_tool": "Where a result depends on editable assumptions, show a range band or sample-based view (quantile dots) instead of a single number, and name the assumptions that drive the spread. Pilot each uncertainty display with 3-5 teammates before shipping it.",
+   "source_urls": [
+    "https://mucollective.northwestern.edu/",
+    "https://mucollective.northwestern.edu/project/when-ish-is-my-bus",
+    "https://pair.withgoogle.com/chapter/explainability-trust/"
+   ]
+  },
+  {
+   "principle": "Compare options side by side with limits. NN/g comparison guidance: keep to roughly five items, aligned attributes, scannable cells, sticky headers, and let users hide identical attributes and highlight differences.",
+   "rule_for_our_tool": "Compare view for up to five options: one column per option, aligned metric rows, sticky headers, 'show differences only' toggle, shared legends and scales, optional linked cameras. Five is NN/g's guide; camera linking is a team assumption.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/comparison-tables/"
+   ]
+  },
+  {
+   "principle": "Explainability panels calibrate trust. PAIR advises explaining data sources, favouring partial explanations with progressive disclosure, and prompting verification when confidence is low. Carbon's status pattern uses at least two cues (colour, shape, symbol) plus a text label, and keeps about five or six indicators per screen.",
+   "rule_for_our_tool": "Every metric opens a 'Why this number?' panel: formula, inputs, source citation (title, link, retrieval date, section), status Sourced / Team assumption / FALSE ASSUMPTION (distinct colour plus icon plus word), editable value with diff from default, and change history. Flagged claims stay visible; never colour alone; cap status chips per screen.",
+   "source_urls": [
+    "https://pair.withgoogle.com/chapter/explainability-trust/",
+    "https://carbondesignsystem.com/patterns/status-indicator-pattern/",
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html"
+   ]
+  },
+  {
+   "principle": "Notification restraint and ethical engagement. NN/g and Carbon: match interruption to urgency, prefer contextual indicators, never time out critical messages. deceptive.design lists 18 patterns (nagging, fake urgency, fake social proof, confirmshaming, addictive design). Evidence on gamification is mixed in a secondary source that itself carries an unverified-text warning.",
+   "rule_for_our_tool": "Default to no toasts; show run status inline on the node. Toasts only for non-critical events, auto-dismiss only when there is no action. No streaks, points, leaderboards, fake urgency or social proof, confirmshaming or nagging; use the deceptive.design list as a PR checklist. Community notifications are opt-in digests. 'Progress' means evidence completeness, not a score; deadlines are shown factually.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/indicators-validations-notifications/",
+    "https://carbondesignsystem.com/patterns/notification-pattern/",
+    "https://www.deceptive.design/types",
+    "https://en.wikipedia.org/wiki/Gamification_of_learning",
+    "https://humanebydesign.com/"
+   ]
+  },
+  {
+   "principle": "Motion explains state; it does not decorate. NN/g: about 100-300 ms for most UI, 400 ms only for large movements, ease-out for entering and ease-in for exiting, avoid parallax and long motion, honour reduced-motion settings. Vercel's rules limit animation to transform and opacity.",
+   "rule_for_our_tool": "Duration tokens of 100, 200 and 300 ms; ease-out in, ease-in out; animate only transform and opacity; no bounce or elastic. One orchestrated moment per phase change. Wrap the app in MotionConfig reducedMotion='user' and replace movement with fades when reduce is set.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/animation-duration/",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion",
+    "https://motion.dev/docs/react-accessibility",
+    "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md"
+   ]
+  },
+  {
+   "principle": "Themes, type and tokens from a small set of inputs. Linear generates themes in LCH from three variables (base, accent, contrast). OKLCH keeps perceived lightness consistent but is not a contrast guarantee. NN/g found light mode generally reads better for normal vision and recommends offering dark mode as a user choice, not a default.",
+   "rule_for_our_tool": "One DTCG tokens file generates CSS variables. Neutral, accent and status scales come from three inputs in OKLCH, with a contrast control. Offer light, dark and high-contrast by user choice. Keep chrome low-chroma so analysis colours are the only saturated hues; theme the 3D viewport background separately. One UI sans with tabular figures plus one mono, five type sizes.",
+   "source_urls": [
+    "https://linear.app/now/how-we-redesigned-the-linear-ui",
+    "https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl",
+    "https://www.nngroup.com/articles/dark-mode/",
+    "https://www.designtokens.org/",
+    "https://github.com/rsms/inter"
+   ]
+  },
+  {
+   "principle": "WCAG 2.2 AA is achievable in a canvas tool if designed in. New criteria that bite node editors: dragging needs a single-pointer alternative (2.5.7), targets are at least 24 px or spaced (2.5.8), focused items are not fully covered by floating panels (2.4.11). React Flow already supports Tab, Enter/Space, arrows and a live region.",
+   "rule_for_our_tool": "Click-click wiring and numeric inputs next to sliders; 24 px minimum or spaced port hit areas; scroll-padding so panels never hide focus; 3:1 for ports, wires, focus rings and chart marks; React Flow keyboard support on by default; axe-core in CI plus a manual keyboard and screen-reader pass.",
+   "source_urls": [
+    "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html",
+    "https://reactflow.dev/learn/advanced-use/accessibility",
+    "https://github.com/dequelabs/axe-core"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Adopt React + TypeScript, Tailwind, shadcn/ui (Radix base) and React Flow with React Flow UI as the front-end stack. Install Node LTS and pnpm first on Windows 11.",
+   "rationale": "All MIT and actively pushed within days of 21 Oct 2026 (Radix 14 Oct). shadcn ships a CLI, MCP server and skill that cut Claude's token use; React Flow ships typed-connection hooks and keyboard accessibility; React Flow UI supplies node parts already styled for shadcn.",
+   "alternatives_rejected": "tldraw (production licence key); ComfyUI frontend and litegraph (GPL-3.0, litegraph archived); Rete.js (MIT but README showed no plugin detail; revisit if React Flow limits us); Blueprint or Carbon React (second visual system)."
+  },
+  {
+   "decision": "Install a minimal Claude design toolchain: Impeccable (with PRODUCT.md and the detector hook), the shadcn skill and MCP, and the Vercel guidelines as a vendored checklist. Use Anthropic's frontend-design for first-pass pages. Use UI UX Pro Max once, for palette and type shortlists, then drop it.",
+   "rationale": "Deterministic detector rules and CLI-installed components cost no LLM tokens. PRODUCT.md avoids restating the brief. Loading all design skills at once adds overlapping context.",
+   "alternatives_rejected": "Installing every design skill together; letting Vercel's skill fetch rules from GitHub main at run time (unpinned); Playwright MCP as default (README says its CLI with skills can be more token-efficient)."
+  },
+  {
+   "decision": "Make the phase journey a persistent, free-to-jump rail (Basic, Advanced, Present) with two disclosure levels per module, Essentials default on, and everything searchable in the command palette.",
+   "rationale": "NN/g supports two-level progressive disclosure and warns staged flows fit independent steps; our phases are interdependent. Figma and Linear keep focus on the canvas.",
+   "alternatives_rejected": "A locked wizard; a Beginner mode that hides nodes (one ComfyUI commenter objected that hidden nodes frustrate people; evidence thin, so test before building)."
+  },
+  {
+   "decision": "Write a node-canvas contract: typed ports (colour, shape, label), faint wires with selected-node highlighting, auto-framed categories, collapse-to-cluster, Tidy via dagre, hover inspection, mini previews, click-click wiring, keyboard navigation.",
+   "rationale": "Wire clutter and density recur across Grasshopper, Unreal and ComfyUI sources (mostly single-voice or review-site signals). WCAG 2.5.7 needs a non-drag path. React Flow supplies most hooks.",
+   "alternatives_rejected": "Free-form wiring with no categories; elkjs from day one (large bundle, React Flow docs rarely recommend it); drag-only connection."
+  },
+  {
+   "decision": "Build one reusable SourceChip and 'Why this number?' panel with three statuses: Sourced, Team assumption, FALSE ASSUMPTION. Define the status colours as tokens that pass 3:1 in light and dark, always paired with icon and word.",
+   "rationale": "PAIR advises explaining sources and favouring partial explanations; Carbon's pattern uses two cues plus text and caps indicators at about five or six per screen; WCAG 1.4.1 forbids colour-only meaning.",
+   "alternatives_rejected": "Footnote-only citations; colour-only flags; hiding falsified claims (the brief requires they stay visible)."
+  },
+  {
+   "decision": "Create the token system in three steps: OKLCH scales via Culori, tokens in DTCG JSON built with Style Dictionary (v1; plain CSS variables for the 13 Nov core), Inter plus Geist Mono self-hosted. Use Crameri maps for analysis colour and keep UI chrome low-chroma.",
+   "rationale": "Linear shows three inputs can generate a whole theme; OKLCH gives consistent lightness; Crameri maps are uniform and CVD-friendly. Reserving saturation for data keeps results readable.",
+   "alternatives_rejected": "Hand-picked hex values; rainbow colour maps; two palette sources (Radix Colors and Culori both) in parallel; dark-only default."
+  },
+  {
+   "decision": "Standardise results readability: Observable Plot for charts, always-visible legends with units, uncertainty bands where assumptions are editable, shared scales and a five-option compare view.",
+   "rationale": "NN/g comparison rules, Carbon chart-anatomy guidance and MUC uncertainty work give concrete patterns; Plot's concise API keeps chart code (and tokens) small.",
+   "alternatives_rejected": "Single-number KPIs without ranges; per-chart auto-scaling that breaks cross-option comparison; hand-written SVG charts."
+  },
+  {
+   "decision": "Adopt an engagement-ethics policy: no streaks, points, leaderboards, fake urgency or social proof, nagging or confirmshaming; opt-in community digests; inline status instead of toasts; 'progress' means evidence completeness.",
+   "rationale": "deceptive.design gives 18 named patterns; NN/g and Carbon say to match interruption to urgency. Gamification evidence is mixed and the source read carries an unverified-text warning, so adding game mechanics risks harm without proven benefit.",
+   "alternatives_rejected": "Badges and XP for module uploads; countdown banners presented as pressure; push-style tours."
+  },
+  {
+   "decision": "Set quality gates: WCAG 2.2 AA target, axe-core in CI, Vercel guideline review on changed UI files, Playwright (CLI preferred) screenshots at phone and desktop widths, and task-based tests with 3-5 classmates.",
+   "rationale": "Automated tools catch about 57% of WCAG issues per axe-core; the aesthetic-usability effect can make a pretty UI look usable when it is not, so judge by task completion rather than ratings.",
+   "alternatives_rejected": "Visual taste checks only; relying on Impeccable's detector alone (it targets AI-looking design, not WCAG)."
+  },
+  {
+   "decision": "Sequence the UI work: by 13 Nov build shell and panels, tokens, canvas with typed ports, command palette, empty states with three starter graphs, and the sources panel. By 10 Dec add compare view, uncertainty displays, motion, presentation polish, onboarding hints and CI accessibility. Later: docking and pop-outs, community theme tokens, Speckle viewer extensions.",
+   "rationale": "Core items directly serve the module canvas, evidence and focus goals; visual polish and onboarding extras depend on stable components. Dates are the course deadlines supplied in the brief.",
+   "alternatives_rejected": "Starting with Presentation-mode boards; building docking or community theming before the core canvas works."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "tldraw is open source and can be embedded freely because it is on GitHub.",
+   "correction": "The SDK is under the tldraw licence: development free, production requires a licence key (trial or commercial; pricing page mentions a hobby licence whose terms were not read). Only the starter kits are MIT.",
+   "detail": "Sources: tldraw LICENSE.md, README, pricing page, all opened 21 Oct 2026. A public deployment counts as production.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "ComfyUI's open-source node UI can be reused as code in our tool.",
+   "correction": "The frontend is GPL-3.0; copying code would force GPL on ours. litegraph.js (MIT) is archived. Use it as UX reference only.",
+   "detail": "Sources: GitHub API and README for Comfy-Org/ComfyUI_frontend and Comfy-Org/litegraph.js.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Numeric UI thresholds in our rules (for example, at most seven Essentials per module, node-count warnings, linked cameras in Compare) are unsourced.",
+   "detail": "NN/g supports two disclosure levels and about five comparison items; the rest are our judgement. Mark them as editable team assumptions in the tool.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Interrupted work raises stress and cost (Mark et al., CHI 2008).",
+   "detail": "The ACM page returned 403 and the PDF was compressed binary I could not read; a fetch-tool summary recalled 'faster but more stressed' from memory. Do not cite as evidence until the paper is read.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Gamification improves learning outcomes (effect sizes reported in a Wikipedia article).",
+   "detail": "The article carries a banner about possibly unverified LLM-generated text; originals not checked. Evidence is mixed and structural gamification may not raise outcomes.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Blender socket inspection tooltips, the Viewer node and node timings behave as described.",
+   "detail": "Taken from a search-result summary of the Blender manual and tracker issue 85251; the manual page body was not readable (navigation only, twice).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Autodesk Forma's analysis and compare UX.",
+   "detail": "autodesk.com returned 403; help.autodesk.com and Wikipedia returned 404. No Forma claims are made in this packet.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Crameri colour maps are free to use in our code.",
+   "detail": "The cmcrameri wrapper states MIT; the maps site pages did not state a licence. Check the Zenodo record (doi 10.5281/zenodo.1243862) before bundling files.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Spline benchmark: open-source status.",
+   "detail": "The vendor page calls it free but does not say open source; treated as inspiration only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "GitHub star, issue and push-date figures.",
+   "detail": "Taken from api.github.com through a summarising fetch tool; the API began returning 403 after about 45 calls, so later repos were checked via HTML README pages only. Spot-check before quoting numbers publicly.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "React Flow UI component licence.",
+   "detail": "The page links xyflow's MIT licence but does not state a licence for these components.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved": [
+  "Social media signals (Reddit, Hacker News, X, LinkedIn, YouTube comments, Discord): not collected. Reddit fetch was blocked and WebSearch hit its 200-per-turn budget after four searches (node-editor UX complaints, ComfyUI usability, Grasshopper readability, Blender socket inspection). A follow-up message or a higher CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION is needed to continue.",
+  "Autodesk Forma UX details: autodesk.com 403, help.autodesk.com 404, Wikipedia 404.",
+  "Mark et al. CHI 2008 paper and the Cognitive Dimensions of Notations tutorial: PDFs were compressed binaries with no text extraction available (no PDF library installed); not cited as evidence.",
+  "Blender node editor conventions (socket colours and shapes, frames, reroutes): manual pages were too large and returned navigation only.",
+  "Speckle viewer features and visual design (filtering, sections, themes): docs read covered only the Viewer 2 overview; Viewer 3 unreleased per docs.",
+  "tldraw hobby-licence terms and any educational or open-source exemption: /community/license and hobby page not fetched; pricing page implies hobby use only.",
+  "Licences of Crameri original maps, colorcet code and colormaps (LICENSE.txt shows CC BY 4.0 text but not scope), React Flow UI, DTCG and deceptive.design content.",
+  "Observable Plot docs (legends, facets, interval marks): docs pages returned HTTP 429.",
+  "Xun Liu's GitHub account and her shared tools: outside Q02 scope and the user API call returned 403; not opened here.",
+  "Microsoft HAX Toolkit's 18 guidelines were not listed on the page fetched; PAIR chapter read only for the explainability and trust chapter.",
+  "Laws of UX numbers (for example Miller's 7 plus or minus 2) were deliberately not used as rules; no primary source read.",
+  "Whether Inter ships a Display cut: Inter README says in the works while Linear's write-up says it uses Inter Display."
+ ],
+ "change_log": [
+  "Round 1 initial packet for Q02, researched 21 Oct 2026. Opened about 100 pages: 40 GitHub repos or API records, W3C WCAG 2.2 pages, NN/g, Carbon, PAIR, MUC, McNeel, Unreal and ComfyUI threads.",
+  "Corrected two assumptions: tldraw needs a production licence key; ComfyUI frontend is GPL-3.0. Both moved to priority reject with UX-only reuse.",
+  "Limited evidence on social platforms because of WebSearch budget exhaustion and a Reddit block; social items are listed in unresolved rather than invented.",
+  "All numeric UI thresholds not found in a source are labelled team assumptions."
+ ]
+}

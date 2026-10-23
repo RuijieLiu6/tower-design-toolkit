@@ -1,0 +1,50 @@
+{
+  "name": "tower-design-toolkit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source, web-first platform for designing a Vancouver tall building: context, evaluation nodes, presentation.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12 <25"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "build:pages": "tsc -p . && vite build --mode pages",
+    "icons": "node tools/make_icons.mjs public/icons",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:a11y": "playwright test e2e/a11y.e2e.ts",
+    "test:offline": "playwright test --config playwright.offline.config.ts",
+    "eval": "node tools/run_eval.mjs",
+    "context:vtc": "python tools/build_vtc_context.py"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "@xyflow/react": "^12.12.0",
+    "ajv": "^8.17.1",
+    "fflate": "^0.8.3",
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "rhino3dm": "8.35.0",
+    "three": "^0.186.1",
+    "web-ifc": "0.0.78",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

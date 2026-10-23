@@ -1,0 +1,3020 @@
+{
+ "packet_id": "P05",
+ "modules": [
+  {
+   "module_id": "P05-M01",
+   "name": "City in Nature scorecard and evidence ledger",
+   "phase": "cross-cutting",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "Core for 13 Nov: ledger table with manual-entry fallbacks, about 2 person-days. Later: radar, two-half panel and views card, about 3 more days.",
+   "design_question": "Does the scheme give space for nature on buildings and sites and keep views and connections to mountains and water, and which claims rest on binding rules versus targets, guidelines, comparators or team assumptions?",
+   "inputs": [
+    "Typed metric records from P05-M02..M08: {value, unit, good, bad, status, force, source_ids}; manual-entry form when a module is not built",
+    "Layer 0: site polygon (default 79.2 x 144.8 m = 11,468 m2), storey levels and program tags",
+    "SITE public-views module: each Public Views Guidelines Table 1 cone kept or entered, with view type; manual toggles if SITE is absent",
+    "User settings: target set, R019 site type A/B/C, optional weights (default none), Park Board dedication flag, frontage flags (West Georgia, Burrard, Granville)"
+   ],
+   "outputs": [
+    "P05.Scorecard JSON (per indicator: value, threshold, status, force, source id, ODP direction, jury tag)",
+    "Ledger table, then radar and two-half City in Nature panel SVG for the policy-reflection board",
+    "Evidence ledger CSV (course requirement: every result cites its source)",
+    "RPSLD checklist flags: tree and soils strategy and habitat assessment (A.4.1), park dedication (A.3.1), food assets (B), water balance (D), groundwater (E), arborist report (Trees By-law 7.2)",
+    "Exceptional Downtown Site checklist (Public Views Guidelines 3.4) and human-judgment cards CSV (rationale, author)"
+   ],
+   "depends_on": [
+    "P05-M02",
+    "P05-M03",
+    "P05-M04",
+    "P05-M05",
+    "P05-M06",
+    "P05-M07",
+    "P05-M08",
+    "SITE: public views",
+    "PUBL: park dedication"
+   ],
+   "parameters": [
+    {
+     "name": "Indicator set",
+     "relationship": "Each indicator maps to L2.3.1 half (a) space for nature and an ODP Ecology direction (4.1 embed, 4.2 make space, 4.3 protect, 4.4 access); removing one removes the evidence the board can claim for that direction.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S01",
+      "P05-S41"
+     ]
+    },
+    {
+     "name": "Protected views input (L2.3.1 half b)",
+     "relationship": "Massing decides which view cones are entered. Narrow ridgeline and landmark cones are expected clear; entering the QE Park cone is the Higher Buildings pathway, so it is a pathway card with a skyline judgment, not a failure.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S50",
+      "P05-S06",
+      "P05-S41",
+      "P05-S48"
+     ]
+    },
+    {
+     "name": "Exceptional Downtown Site criteria (PVG 3.4)",
+     "relationship": "A parcel of at least 8,000 m2 may encroach into the QE Park cone and views B1, B2, D, 12.2 if it keeps the Lions views, adds public open space and canopy, and shows design leadership; failing these removes the pathway.",
+     "unit": "m2; checklist",
+     "source_ids": [
+      "P05-S50",
+      "P05-S06"
+     ]
+    },
+    {
+     "name": "Force class of each indicator",
+     "relationship": "Sets how a result is drawn: by-law and rezoning-policy requirements count as pass/fail; targets, guidelines and City aspirations are reference rings; comparators, heuristics and team assumptions are dashed rings with origin.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S04",
+      "P05-S10",
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Site type (R019 A/B/C)",
+     "relationship": "R019 describes Type C as a single parcel over an excavated parkade that occasionally qualifies under the Higher Buildings Policy (10-15% canopy); several towers under separate permits suggest Type B (15-20%), so classification can flip pass or fail.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Target set / jurisdiction preset",
+     "relationship": "Switching from Vancouver-only to comparators (Toronto, UBC) changes thresholds and relabels them comparator or team assumption, because Vancouver has no equivalent numeric rule.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S21",
+      "P05-S34",
+      "P05-S32"
+     ]
+    },
+    {
+     "name": "Weights",
+     "relationship": "Raising one weight moves the composite toward that indicator; no City source assigns weights, so any composite is a team assumption and is hidden by default.",
+     "unit": "0-1",
+     "source_ids": []
+    },
+    {
+     "name": "Park dedication flag (RPSLD A.3.1)",
+     "relationship": "The Park Board decides dedication case by case and may require it on a site this size; dedicated land removes buildable area and changes soil, canopy and access results, so the flag links to PUBL.",
+     "unit": "m2; flag",
+     "source_ids": [
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Cultural-evidence rule",
+     "relationship": "The cultural_context_30 tag shows only where a Nation-authored or co-developed source, or a human-judgment card with author, backs it; unevidenced tags would overstate reconciliation on the board.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S51",
+      "P05-S52",
+      "P05-S25"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Binding-requirement indicators passed",
+     "unit": "count of n",
+     "good": "All by-law and rezoning-policy-requirement indicators pass",
+     "bad": "Any such indicator fails (red with clause link)",
+     "basis": "Force: team_assumption (tool rule). Counts only bylaw_requirement and rezoning_policy_requirement records, so targets, guidelines and heuristics never read as compliance.",
+     "method": "Count pass flags from M02-M08 where force is bylaw_requirement or rezoning_policy_requirement",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Reference indicators shown (not pass/fail)",
+     "unit": "count of n",
+     "good": "Every target, guideline, aspiration, comparator and heuristic drawn with force label and origin",
+     "bad": "Any shown without a force label, or scored as compliance",
+     "basis": "Force: team_assumption (tool rule). rezoning_target, voluntary_guideline and city_aspiration are dotted rings; comparator, heuristic and team items are dashed.",
+     "method": "Group records by force; ring style follows force",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Source coverage of displayed thresholds",
+     "unit": "%",
+     "good": "100% carry a source id or an explicit TEAM ASSUMPTION label",
+     "bad": "Any threshold shown unlabelled",
+     "basis": "Force: team_assumption (tool rule). Course rule: cite sources, show work, separate delegated from human judgment. Status describes source text only; bindingness sits in force.",
+     "method": "Lint the ledger before export",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "ODP Ecology direction coverage (4.1-4.4)",
+     "unit": "directions covered of 4",
+     "good": "Each direction has at least one evidenced indicator or a written human-judgment note",
+     "bad": "A direction with neither",
+     "basis": "Force: team_assumption (tool rule). Directions are verified ODP text; the coverage rule is the team's.",
+     "method": "Join indicator-to-direction table",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S01"
+     ]
+    },
+    {
+     "name": "Protected view cones outside the Exceptional-Site list kept clear",
+     "unit": "cones kept of n",
+     "good": "No encroachment (PVG 3.1.1), or only minor elements allowed by 3.1.2-3.1.5 (2 m limit under hardship)",
+     "bad": "Encroachment into any other cone with no written rationale",
+     "basis": "Force: voluntary_guideline. Council-approved guideline with discretion; PVG 3.1.1 says no part of a building should enter a cone. Cones in 3.4.2 are handled by the pathway metric.",
+     "method": "Read SITE result per Table 1 cone; classify against the 3.4.2 list",
+     "status": "verified",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S50"
+     ]
+    },
+    {
+     "name": "QE Park view (view 3) entry: pathway, not intrusion",
+     "unit": "entering or clear",
+     "good": "Entry shown as 'entering via Higher Buildings pathway' with the 3.4 checklist and a skyline-contribution card",
+     "bad": "Entry scored red as an intrusion, or entry with no checklist",
+     "basis": "Force: voluntary_guideline. HBPR p.9: the policy invited exceptional core projects to enter the QE view to enhance the view of the city in nature. Earlier spec scored entry as failure; every VTC tower would fail.",
+     "method": "Read SITE view-3 result; attach 3.4 checklist and HBP design-excellence card",
+     "status": "false_assumption_corrected",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S41",
+      "P05-S06",
+      "P05-S50"
+     ]
+    },
+    {
+     "name": "Exceptional Downtown Site criteria addressed (PVG 3.4)",
+     "unit": "of 8 (3.4.1-3.4.8)",
+     "good": "All 8 addressed. 3.4.1 (site 8,000 m2 or more; block 11,468 m2) and 3.4.2 (listed views only) set eligibility; 3.4.3-3.4.8 need written responses",
+     "bad": "3.4.1 or 3.4.2 unmet, or entry outside the listed views",
+     "basis": "Force: voluntary_guideline. PVG 3.4 also asks Lions views kept, open space and canopy strategy (3.4.6), UNDRIP strategy (3.4.8), plus Higher Buildings Policy except 2.1(b).",
+     "method": "Checklist with clause links and author-signed response per item",
+     "status": "verified",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S50",
+      "P05-S06"
+     ]
+    },
+    {
+     "name": "Cultural-evidence lint",
+     "unit": "% of tags",
+     "good": "100% of cultural_context_30 tags link to a Nation-authored or co-developed source id or a human-judgment card with author",
+     "bad": "Any tag with neither",
+     "basis": "Force: team_assumption (tool rule). Critique found cultural tags on indicators with no Nation source. Nation sources opened: Tsleil-Waututh Burrard Inlet Action Plan summary, UNDRIP Action Plan, UFS excerpts.",
+     "method": "Lint the scorecard before export; drop unevidenced tags",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S51",
+      "P05-S52",
+      "P05-S25"
+     ]
+    }
+   ],
+   "method": "Collect each module's records with force and status. Plot uncapped signed margin m = (value - threshold) / threshold, sign flipped where lower is better; zero-threshold counts plot pass/fail. Draw by-law and policy thresholds solid, targets and guidelines dotted, comparators, heuristics and team assumptions dashed, each labelled with origin. Default view is the ledger with raw values; a weighted composite exists only if the user sets weights and is labelled TEAM ASSUMPTION. Views: classify each SITE cone as expected-clear or Exceptional-Site list (view 3, B1, B2, D, 12.2); the list shows the PVG 3.4 checklist and a pathway card, never red. Map each indicator to L2.3.1 half (a) and an ODP direction. List park dedication, food assets, soils, habitat assessment, groundwater and arborist report as checklist flags. Non-computable items become human-judgment cards with rationale and author; drop unevidenced cultural tags.",
+   "visualization": [
+    "Ledger table first: indicator | value | threshold | force | status badge | clickable source clause",
+    "Radar of signed margins (later): solid ring = by-law or policy, dotted = target or guideline, dashed = comparator, heuristic or team; FALSE ASSUMPTION entries in flag colour, kept visible",
+    "Two-half City in Nature panel: space for nature (M02-M07), views and connections (SITE, M08) with a pathway card for QE view entry, ODP 4.1-4.4 coverage strip and gaps"
+   ],
+   "human_judgment": "Whether the scheme achieves City in Nature is a cultural and design judgment: reconciliation, Stanley Park, water and mountains, whether entering the QE Park view improves the skyline, and whether a justified breach deserves reward.",
+   "limits": "L2.3.1 is quoted at HBPR p.6 but not found in the ODP text. The Higher Buildings Policy tops out near 700 ft (213 m); VTC towers are 244-305 m, so height needs the policy review. Composite and weights are team constructs.",
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ],
+   "libraries": [
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Declarative radar/bar/ledger charts, exportable SVG",
+     "url": "https://github.com/vega/vega-lite"
+    },
+    {
+     "name": "three.js",
+     "license": "MIT",
+     "role": "3D overlays of indicator results on the massing",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M02",
+   "name": "Tree canopy, soil volume and vegetative cover",
+   "phase": "basic",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M-L: about 6-8 person-days in full; core scope (grade canopy % at maturity with preset crowns) about 3-4",
+   "design_question": "How much credited tree canopy and vegetation at maturity does the site carry at grade, podium and tower terraces, is there enough soil under each tree to earn that credit, and what happens to existing trees?",
+   "inputs": [
+    "Site.Boundary (Polygon2D, m)",
+    "Layer0.Planting[] (Polygon2D + level + onStructure flag + growing-medium depth + soffit/cantilever overlap flag)",
+    "Layer0.Trees[] (Point + species preset: mature crown diameter, size class, retained or new)",
+    "Baseline: survey of existing trees on site and within 2 m, City street trees, LiDAR 2022 canopy; required before any net-gain claim",
+    "SITE frontage flag (West Georgia, Burrard, Granville)"
+   ],
+   "outputs": [
+    "P05.Canopy {credited_canopy_m2 by level, canopy_pct, grade_canopy_pct, vegetative_cover_pct, tree_count, soil_volume_per_tree[], crown_credit_factor[]}",
+    "Landscaped-area polygons for P05-M04 and continuous-soil vs on-structure split (R019 1.2.3; RPSLD A.4.1 overlay sheets)",
+    "P05.TreeRetention {retained, removed, replacement_required}; shade polygons for P05-M06; planting patches for P05-M07"
+   ],
+   "depends_on": [
+    "SITE: site boundary, context and frontage",
+    "Optional CLIM: sun-hours (shade effect on tree viability)",
+    "Layer 0 storey levels (soffit test)"
+   ],
+   "parameters": [
+    {
+     "name": "Mature crown diameter / canopy area per tree",
+     "relationship": "Larger mature crowns raise canopy % but need more soil and edge clearance. Species presets drive the calculation; 50 m2 per tree is only a UFS Figure 13 assumption. West Georgia preset: 14 m high, 8-9 m spread.",
+     "unit": "m / m2",
+     "source_ids": [
+      "P05-S25",
+      "P05-S05",
+      "P05-S56"
+     ]
+    },
+    {
+     "name": "Soil volume and growing-medium depth",
+     "relationship": "More continuous soil and depth support larger, longer-lived crowns at a cost in parkade area. The City sets volumes case by case, often above CSLA depths (A.3.8); Toronto's 30 m3 per planting area is the comparator floor.",
+     "unit": "m3, mm",
+     "source_ids": [
+      "P05-S04",
+      "P05-S08",
+      "P05-S47",
+      "P05-S34",
+      "P05-S59"
+     ]
+    },
+    {
+     "name": "Soil-limited crown credit",
+     "relationship": "Counted crown = mature crown x min(1, soil available / 30 m3). Trees in thin or shared soil earn less canopy. Scaling above 30 m3 for very large crowns is an off-by-default team assumption; no Vancouver growth model found.",
+     "unit": "0-1",
+     "source_ids": [
+      "P05-S34",
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Planting level and soil continuity",
+     "relationship": "Trees at grade in continuous soil are the City's priority (CDDG G4.5.1b) and R019 splits continuous versus on-structure area. Podium and terrace crowns are reported separately; crowns under soffits or cantilevers earn no credit.",
+     "unit": "m2; level",
+     "source_ids": [
+      "P05-S08",
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Underground setback",
+     "relationship": "A wider setback frees continuous soil for trees and infiltration but cuts parkade efficiency. RPSLD A.3.3 says setbacks to some underground parking will be required, relaxed for highly urbanised sites; draft CDDG allows variation at 0.9 m minimum.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S04",
+      "P05-S08"
+     ]
+    },
+    {
+     "name": "Planted share of podium and roof",
+     "relationship": "More planted podium and roof area raises vegetative cover and rainwater retention but adds irrigation demand and structural load; CDDG asks for trees and planting at podium and roof levels.",
+     "unit": "m2, %",
+     "source_ids": [
+      "P05-S08",
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Site type A/B/C",
+     "relationship": "Type C single-parcel sites target 10-15% canopy, Type A 20-25%, Type B 15-20%; R019 also has a 22% sentence for A and B, so classification changes the pass line.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Existing tree retention and replacement",
+     "relationship": "Retaining healthy trees keeps canopy but constrains excavation. By-law 9958 needs a permit to remove trees of 20 cm or more, replacement trees or cash-in-lieu, and an arborist report with the development permit application.",
+     "unit": "count; cm",
+     "source_ids": [
+      "P05-S53",
+      "P05-S05",
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Street-tree frontage guideline",
+     "relationship": "West Georgia frontages follow the 1998 street tree guidelines (red maple cultivars, 14 m height); fixed species narrow crown choice and add maples to the genus share that M07 checks.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S56",
+      "P05-S08",
+      "P05-S25"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Credited canopy at maturity, % of total site area",
+     "unit": "%",
+     "good": ">= 10% (Type C band 10-15%; 15% or more exceeds the band)",
+     "bad": "< 10%",
+     "basis": "Force: rezoning_target. R019 targets table; RPSLD A.3.6 'should strive'. Block 11,468 m2 -> 1,147-1,720 m2. Credit uses soil-limited crowns, excludes soffit crowns, at maturity in plan view.",
+     "method": "Union of credited crown discs clipped to site / site area; existing canopy uses the greater of current or mature size",
+     "status": "verified",
+     "force": "rezoning_target",
+     "source_ids": [
+      "P05-S05",
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Canopy by level (grade continuous soil / podium on structure / tower terrace)",
+     "unit": "m2; %",
+     "good": "All three reported; grade canopy is the headline; no headline built from structure-only crowns",
+     "bad": "Only a blended total shown",
+     "basis": "Force: team_assumption. RPSLD A.4.1(g) asks separate calculations by cover type; CDDG G4.5.1(b) prioritises grade; R019 1.2.3 splits continuous and on-structure area.",
+     "method": "Group credited crown area by planting level and onStructure flag",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S04",
+      "P05-S08",
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Vegetative cover at maturity, % of site",
+     "unit": "%",
+     "good": "Reference lines 30% (Type A total site) and 40% (Type B private parcel)",
+     "bad": "Below the chosen reference line",
+     "basis": "Force: team_assumption. R019 gives no vegetative-cover target for Type C; the A and B values are editable reference lines only.",
+     "method": "Union(canopy, planted areas, green roofs) / site area",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "R019 Type A/B canopy: table band versus 22% sentence",
+     "unit": "%",
+     "good": "Show both lines: table (A 20-25%, B 15-20%) and the 22% minimum sentence; a City planner resolves",
+     "bad": "Using one without the other",
+     "basis": "Force: rezoning_target. R019 1.2.1 says Type A and B sites should target a minimum 22%; the 1.2.2 table gives B 15-20%. Both read; inconsistency stands. Type C unaffected.",
+     "method": "Preset toggle draws both lines",
+     "status": "verified",
+     "force": "rezoning_target",
+     "source_ids": [
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "City-wide canopy context (not a parcel threshold)",
+     "unit": "%",
+     "good": "30% city-wide by 2050",
+     "bad": "-",
+     "basis": "Force: city_aspiration. Park Board 7 Dec 2020; Urban Forest Strategy 2025; ODP policy 4.2.3. Downtown is among the three lowest-canopy neighbourhoods.",
+     "method": "Reference line only",
+     "status": "verified",
+     "force": "city_aspiration",
+     "source_ids": [
+      "P05-S25",
+      "P05-S01"
+     ]
+    },
+    {
+     "name": "Regional canopy context (Metro 2050)",
+     "unit": "%",
+     "good": "40% regional canopy within the Urban Containment Boundary by 2050 (from 32%)",
+     "bad": "-",
+     "basis": "Force: city_aspiration. Metro 2050 Action 3.2.1 as cited in the ODP regional table; UFS cites the Metro 2050 Roadmap 40% urban canopy target.",
+     "method": "Reference line only, next to the 30% city line",
+     "status": "verified",
+     "force": "city_aspiration",
+     "source_ids": [
+      "P05-S01",
+      "P05-S25"
+     ]
+    },
+    {
+     "name": "Superseded city-wide canopy goal 22% by 2050",
+     "unit": "%",
+     "good": "Do not use",
+     "bad": "Using 22% as the city-wide target",
+     "basis": "Force: city_aspiration. R019 text (July 2024) still quotes 22% city-wide; replaced by 30%. Kept visible and flagged.",
+     "method": "Struck-through legend entry",
+     "status": "false_assumption_corrected",
+     "force": "city_aspiration",
+     "source_ids": [
+      "P05-S05",
+      "P05-S25"
+     ]
+    },
+    {
+     "name": "Soil volume per tree and site total (Toronto EC 1.1 comparator)",
+     "unit": "m3",
+     "good": ">= 30 m3 per planting area for every tree; site total 40% x site area / 66 m2 x 30 m3 = about 2,085 m3 for 11,468 m2",
+     "bad": "< 30 m3 per tree, or site total unmet",
+     "basis": "Force: comparator_other_jurisdiction. EC 1.1 (Tier 1) is not size-scaled; earlier spec scaled small trees below 30 m3. Vancouver sets the standard case by case (A.3.8); CSLA unopened. Team calculation of 2,085 m3.",
+     "method": "Planting-area share x depth, per tree; compare with 30 m3; factor feeds crown credit",
+     "status": "false_assumption_corrected",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34",
+      "P05-S04",
+      "P05-S08",
+      "P05-S47",
+      "P05-S59"
+     ]
+    },
+    {
+     "name": "Illustrative tree count from 50 m2 per tree",
+     "unit": "trees",
+     "good": "Use only to size the illustration (about 23-34 trees); calculate with species crowns",
+     "bad": "Treating 50 m2 as a City planning standard",
+     "basis": "Force: team_assumption. UFS Figure 13 footnote assumes 50 m2 per tree for one figure; it is not a standard. The earlier spec called it the City's planning figure.",
+     "method": "1,147-1,720 m2 divided by 50 m2",
+     "status": "false_assumption_corrected",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S25"
+     ]
+    },
+    {
+     "name": "Existing trees: permit, replacement and arborist report (By-law 9958)",
+     "unit": "count; cm",
+     "good": "Every removal of a tree of 20 cm or more has a permit and replacement (1 Part 1 or 2 Part 2 Schedule D trees, s.6.3); arborist report filed (s.7.2)",
+     "bad": "Removal without permit or replacement plan",
+     "basis": "Force: bylaw_requirement. Cash-in-lieu ($1,000 per tree, s.6.2) needs the site to keep its Schedule C count (about 194 for 11,468 m2, team calculation), so assume planting. Park Board land is exempt (s.2.4). Schedule D not extracted.",
+     "method": "Count existing trees by trunk diameter at 1.4 m; match to permit and replacement list",
+     "status": "verified",
+     "force": "bylaw_requirement",
+     "source_ids": [
+      "P05-S53",
+      "P05-S05",
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Baseline canopy recorded before any net-gain claim",
+     "unit": "m2",
+     "good": "Existing canopy (greater of current or mature) recorded from survey, LiDAR or i-Tree before gain is claimed",
+     "bad": "Gain or 'net' claimed with no baseline",
+     "basis": "Force: team_assumption (tool rule). R019 says existing canopy uses the greater of current or mature size; RPSLD A.3.4-A.3.5 ask to retain healthy trees and high-value habitat.",
+     "method": "Baseline polygon layer; subtract from credited canopy to report net",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S05",
+      "P05-S04",
+      "P05-S30"
+     ]
+    }
+   ],
+   "method": "1) Read planting polygons, tree points and baseline survey from Layer 0 (level, on-structure flag, soil depth, retained or new). 2) For each tree take the crown preset, draw a disc, clip to the site and remove parts under soffits or cantilevers. 3) Soil check: credit factor = min(1, soil available / 30 m3); scale the disc. 4) Union credited discs so overlaps are not double counted; canopy % = union area / site area (R019 plan view at maturity; existing canopy uses the greater of current or mature). 5) Report canopy by level; grade canopy in continuous soil is the headline. 6) Vegetative cover = union(canopy, planted areas, green roofs) / site area. 7) Match removed trees of 20 cm or more to permits and replacements. Check: 11,468 m2 x 10% = 1,147 m2.",
+   "visualization": [
+    "Plan view: credited canopy discs at maturity (solid) vs today (outline), crown credit by fill density, ground plane coloured by soil-depth class",
+    "Stacked bar of canopy by level (grade, podium, terrace) with the 10-15% Type C band, 30% city and 40% Metro lines, each with a source badge",
+    "Section strip showing soil depth and volume per tree, red where below 30 m3"
+   ],
+   "human_judgment": "Species and climate suitability, crown growth in constrained soil, retention versus removal, irrigation and maintenance, and the A/B/C classification (separate permits suggest Type B). Indigenous plant knowledge needs Nation permission.",
+   "limits": "R019 canopy values are targets. Crowns are presets, not growth models; soil credit is a team rule. CSLA depth tables unopened. i-Tree and LiDAR give current canopy only. Type C is an assumption.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "libraries": [
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Polygon union, clipping and area for canopy and cover",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "Turf.js",
+     "license": "MIT",
+     "role": "Same geometry operations in the browser",
+     "url": "https://github.com/Turfjs/turf"
+    },
+    {
+     "name": "i-Tree Canopy / i-Tree suite",
+     "license": "Free to use; licence terms not stated on the page checked",
+     "role": "Baseline canopy estimate by point sampling (the City used i-Tree Canopy in 2022)",
+     "url": "https://www.itreetools.org/"
+    },
+    {
+     "name": "PDAL",
+     "license": "Not stated on the repository page checked",
+     "role": "Canopy height model from City LiDAR 2022 LAS tiles",
+     "url": "https://github.com/PDAL/PDAL"
+    },
+    {
+     "name": "Custom MCP wrapper for City Open Data Explore API v2.1",
+     "license": "To be written (public API, Open Government Licence - Vancouver data)",
+     "role": "Pull public trees, parks and greenways into Layer 0 context",
+     "url": "https://opendata.vancouver.ca/explore/dataset/public-trees/information/"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M03",
+   "name": "Greening at height (terraces, sky gardens, roofs)",
+   "phase": "advanced",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M-L: about 7-9 person-days; blocked until CLIM sun-hours and wind outputs exist; manual terrace list as fallback",
+   "design_question": "Can planting on podium terraces, sky gardens, facades and the tower roof survive and perform at height, and can trees and planters there be made safe, given sun, wind, irrigation, structure and glazing risk?",
+   "inputs": [
+    "Layer0.Roofs/Terraces[] (Polygon3D + height + accessibility + program tag); manual list if Layer 0 is incomplete",
+    "P05.Canopy planting polygons (M02)",
+    "CLIM: direct sun hours per surface; wind exposure ratio per terrace (unrated if absent)",
+    "STRC: slab live/dead load allowance and planter anchorage; SYST: maintenance access",
+    "P05.Rainwater supply (M04) and SPAC glazing adjacency"
+   ],
+   "outputs": [
+    "P05.HeightGreening {viability_class per patch, assembly type, runoff_reduction_pct, irrigation_deficit_mm, gate_checks[], lifesafety_checks[]}",
+    "Irrigation demand (m3/yr) to SYST and to P05-M04 water balance",
+    "Glazing-adjacent planting list to P05-M05"
+   ],
+   "depends_on": [
+    "P05-M02",
+    "P05-M04",
+    "CLIM: sun-hours module",
+    "CLIM: wind module",
+    "STRC: structural load and anchorage preset",
+    "SYST: gardener access"
+   ],
+   "parameters": [
+    {
+     "name": "Height above grade and wind exposure",
+     "relationship": "Wind exposure depends on height, nearby structures and funnelling; strong wind moves growing medium, limits species and adds uplift, so exposed terraces need windbreaks and wind-tolerant plants.",
+     "unit": "m; ratio",
+     "source_ids": [
+      "P05-S19"
+     ]
+    },
+    {
+     "name": "Growing-medium depth / assembly type",
+     "relationship": "Extensive 60-150 mm is light, low-diversity and retains less; intensive 300 mm or more supports shrubs and small trees, retains more, weighs more and needs irrigation.",
+     "unit": "mm",
+     "source_ids": [
+      "P05-S17",
+      "P05-S19"
+     ]
+    },
+    {
+     "name": "Plant water-use class",
+     "relationship": "Low-water plants (Kc 0.3) cut annual runoff about 29% with a summer deficit of 54 mm; high-water plants (Kc 0.6) cut about 58% but the deficit exceeds 200 mm, raising irrigation demand.",
+     "unit": "Kc; mm",
+     "source_ids": [
+      "P05-S18",
+      "P05-S19"
+     ]
+    },
+    {
+     "name": "Roof accessibility and program",
+     "relationship": "Non-accessible roofs should carry extensive green roof alongside solar or storage; accessible roofs favour common-use intensive green roof, so program tags drive assembly choice (RPSLD A.3.2).",
+     "unit": "-",
+     "source_ids": [
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Planting beside glass",
+     "relationship": "Vegetation next to glazing raises collision risk unless glass is treated; Vancouver prefers a set-back, else planting 0-1 m from glass or visible glass; Toronto treats glazing 4 m above and 2.5 m beside rooftop vegetation.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S21",
+      "P05-S23",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Assembly dead and live load",
+     "relationship": "Saturated weight rises with depth; the By-law requires loads per ASTM E2397, so deeper planting on towers competes with structure and tank space (see STRC packet).",
+     "unit": "kN/m2",
+     "source_ids": [
+      "P05-S20"
+     ]
+    },
+    {
+     "name": "Tree anchorage, falling objects and maintenance access",
+     "relationship": "Wind-throw, lost medium, falling branches over public space and gardener access decide whether planting at height is allowed; R019 prefers cast-in-place roof planters wherever possible, not containers.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S05",
+      "P05-S19",
+      "P05-S20"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Vegetated-roof code gates passed",
+     "unit": "of 5",
+     "good": "All 5: wind resistance per CAN/CSA-A123.24; loads per ASTM E2397; waterproof roof; root barrier; retention and drainage layers",
+     "bad": "Any gate unmet",
+     "basis": "Force: bylaw_requirement. VBBL 2025 Book I Art. 5.2.2.2(6) and 5.6.1.2(2); fire clause Art. 3.1.14.4 referenced.",
+     "method": "Checklist with clause links",
+     "status": "verified",
+     "force": "bylaw_requirement",
+     "source_ids": [
+      "P05-S20"
+     ]
+    },
+    {
+     "name": "Life-safety gates cleared at height",
+     "unit": "of 5",
+     "good": "All 5 signed off by a registered professional: tree anchorage for site wind; no trees on unrestrained edges; falling-object zone over public realm; planter type (cast in place where possible); safe gardener access",
+     "bad": "Any gate open",
+     "basis": "Force: team_assumption. R019 1.1 says roof tree planters should be cast in place wherever possible and container planting avoided: advisory, not a requirement. No Canadian tree-anchorage standard found; City guide asks wind uplift and lateral design.",
+     "method": "Checklist with sign-off field linked to STRC and SYST",
+     "status": "false_assumption_corrected",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S05",
+      "P05-S19",
+      "P05-S20"
+     ]
+    },
+    {
+     "name": "Annual rooftop runoff reduction",
+     "unit": "%",
+     "good": "29% (low-water plants) to 58% (high-water plants) at 150 mm medium",
+     "bad": "Assuming more than 58% for a 150 mm roof",
+     "basis": "Force: research_heuristic. Roehr and Kong (2010), modelled for Vancouver and reported by the City; not measured on towers.",
+     "method": "Lookup by plant class; scale by area",
+     "status": "verified",
+     "force": "research_heuristic",
+     "source_ids": [
+      "P05-S18",
+      "P05-S19"
+     ]
+    },
+    {
+     "name": "Summer irrigation deficit",
+     "unit": "mm",
+     "good": "<= 8.6 mm (low-water plants with 50 mm retention tray)",
+     "bad": "> 200 mm (high-water plants without tray)",
+     "basis": "Force: research_heuristic. Roehr and Kong summary table; low-water plants without tray 54.4 mm.",
+     "method": "Lookup; multiply by area for volume",
+     "status": "verified",
+     "force": "research_heuristic",
+     "source_ids": [
+      "P05-S18"
+     ]
+    },
+    {
+     "name": "Share of available roof area with green roof, PV or cool roof",
+     "unit": "%",
+     "good": "100% (comparator preset)",
+     "bad": "< 100%",
+     "basis": "Force: comparator_other_jurisdiction. Toronto TGS v4 EC 2.3 is voluntary for applications from 2 June 2026, not Tier 1. Vancouver says non-accessible roofs 'should' include extensive green roof (RPSLD A.3.2).",
+     "method": "Area share from roof tags",
+     "status": "false_assumption_corrected",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34",
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "Viability thresholds (sun hours, wind exposure)",
+     "unit": "h; ratio",
+     "good": "User-set per patch; no default until the CLIM wind study exists",
+     "bad": "Default values shown as if sourced",
+     "basis": "Force: team_assumption. No Vancouver numeric threshold for wind or sun at height; the City green roof guide is qualitative.",
+     "method": "Editable dashed lines on the sun-wind scatter",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S19"
+     ]
+    }
+   ],
+   "method": "For each tagged terrace or roof patch read height, accessibility, sun hours and wind exposure from upstream modules (or manual entry). Pick an assembly from program (extensive 60-150 mm, semi-intensive, intensive 300 mm or more) and filter the City plant palette (about 95 plants, mostly native) by sun, wind and drought tolerance. Look up runoff reduction and irrigation deficit by plant class (Roehr and Kong). Run the five code gates and five life-safety gates (anchorage, edge restraint, falling-object zone, planter type, gardener access); life-safety gates need registered-professional sign-off via STRC and SYST. Classify viability (viable / needs windbreak / not viable / unrated) with editable wind and sun thresholds, team assumptions. Flag glazing-adjacent patches for P05-M05.",
+   "visualization": [
+    "Tower elevation with terrace and roof patches coloured by viability class (green / amber / red / grey unrated) and a legend",
+    "Scatter of sun-hours vs wind exposure per patch with dashed team-assumption threshold lines",
+    "Gate checklist (code and life-safety gates) with clause links, sign-off field and pass/fail badges",
+    "Bar chart of irrigation demand by patch against available non-potable supply"
+   ],
+   "human_judgment": "Plant palette and ecological intent, tree anchorage and falling-object design by a registered professional, gardener access and safety, maintenance, whether a public terrace favours amenity over habitat, and Indigenous planting input.",
+   "limits": "No City numeric threshold for wind or sun at height. Runoff and irrigation figures are modelled at 150 mm medium, not measured on towers. No standard found for tree anchorage at height. Facade greening has no City source found.",
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "libraries": [
+    {
+     "name": "pvlib-python",
+     "license": "BSD-3-Clause",
+     "role": "Solar position for sun hours if CLIM module absent",
+     "url": "https://github.com/pvlib/pvlib-python"
+    },
+    {
+     "name": "trimesh",
+     "license": "MIT",
+     "role": "Ray casting for shading of terraces",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "three.js",
+     "license": "MIT",
+     "role": "Elevation and section rendering",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M04",
+   "name": "Rainwater management (Building By-law detention, Rain City retention, reuse, receiving water)",
+   "phase": "basic",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 6-7 person-days in full; core scope (C, V, first stage, 58.1 m3 unit test, July water baseline) about 3-4",
+   "design_question": "How much on-site rainwater detention, release control and reuse does the block need under the Vancouver Building By-law, how do green roofs, soil, tanks and groundwater limits change it, and what reaches Burrard Inlet or False Creek?",
+   "inputs": [
+    "Site.Boundary and net FSR",
+    "Layer0.Surfaces[] (roof, podium roof, green roof with depth and slope, paving, soft landscape, water) projected to plan; manual areas if tags are absent",
+    "P05.Canopy landscaped areas (M02), including planted landscapes on structure",
+    "Sewer type (combined or separated; user-entered, City map not located); optional SYST non-potable demand; optional geotechnical depth to water table"
+   ],
+   "outputs": [
+    "P05.Rainwater {pathway, C_composite, V_required_m3, V_first_stage_m3, Qo_Ls, retention_mm, harvestable_m3_per_yr, groundwater_flag, sewer_type, treated_area_share}",
+    "Tank volume and footprint to STRC / SYST (basement)",
+    "Water-balance table for rezoning submission (RPSLD D.3.1) and irrigation supply to P05-M03"
+   ],
+   "depends_on": [
+    "SITE: boundary",
+    "P05-M02",
+    "SYST: non-potable demand (optional)"
+   ],
+   "parameters": [
+    {
+     "name": "Site area and net FSR",
+     "relationship": "A site over 1,000 m2 or FSR over 1.0 follows the engineered pathway; maximum release scales at 25 L/s/ha, so a larger block may discharge more in total but still needs large absolute storage.",
+     "unit": "m2; ratio",
+     "source_ids": [
+      "P05-S10",
+      "P05-S11"
+     ]
+    },
+    {
+     "name": "Composite runoff coefficient C",
+     "relationship": "Roof and pavement (0.95) raise peak flow and detention; flat green roof 0.50 (>60-100 mm), 0.40 (>100-150), 0.30 (>150-250) and lawn 0.08-0.30 lower it; depths outside the table use the nearest band, flagged.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S12"
+     ]
+    },
+    {
+     "name": "Landscaped and vegetated-roof area",
+     "relationship": "First-stage volume equals 15 mm x site area without landscaping; more ground landscaping or vegetated roof shrinks that area and the volume. Overlapping tower, terrace and podium surfaces count once in plan.",
+     "unit": "m2",
+     "source_ids": [
+      "P05-S10",
+      "P05-S13"
+     ]
+    },
+    {
+     "name": "Design storm",
+     "relationship": "Intensity I = A x T^B (T in hours) from the 2100 IDF curve, 10-year return period (A 26.651, B -0.482); a longer duration lowers intensity but raises volume until V peaks.",
+     "unit": "mm/h",
+     "source_ids": [
+      "P05-S12",
+      "P05-S10"
+     ]
+    },
+    {
+     "name": "Green-roof depth and plant class",
+     "relationship": "Deeper medium lowers C and annual runoff by 29-58%; high-water plants raise retention but also irrigation, linking M04 to M03.",
+     "unit": "mm",
+     "source_ids": [
+      "P05-S12",
+      "P05-S18"
+     ]
+    },
+    {
+     "name": "Underground setback and infiltration offset",
+     "relationship": "Setbacks allow infiltration and trees (RPSLD A.3.3 requires some, relaxable); draft CDDG notes a 5.0 m infiltration offset from foundations and tanks out of setbacks where possible, trading parkade area against retention.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S04",
+      "P05-S08"
+     ]
+    },
+    {
+     "name": "Non-potable reuse and its permit",
+     "relationship": "Harvesting offsets potable use toward the 20% indoor and 50% outdoor cuts but needs an operating permit with two-monthly water-quality reporting; groundwater and perimeter drainage may not be harvested; detention credit for reuse storage is unstated.",
+     "unit": "m3/yr",
+     "source_ids": [
+      "P05-S04",
+      "P05-S10"
+     ]
+    },
+    {
+     "name": "Groundwater and infiltration limits",
+     "relationship": "RPSLD E bars permanent groundwater discharge to sewers and asks hydrogeological and geotechnical studies; a deep basement near the water table limits sub-drains, tank depth and infiltration. Coastal Floodplain is an area of concern.",
+     "unit": "m; L/s",
+     "source_ids": [
+      "P05-S04",
+      "P05-S10",
+      "P05-S54"
+     ]
+    },
+    {
+     "name": "Sewer type and receiving water",
+     "relationship": "On a combined sewer, runoff adds to overflows to Burrard Inlet and False Creek; reuse, detention and soil treatment cut that load. Tsleil-Waututh and the City name stormwater pollution as a priority.",
+     "unit": "flag; %",
+     "source_ids": [
+      "P05-S14",
+      "P05-S51",
+      "P05-S52",
+      "P05-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Compliance pathway",
+     "unit": "-",
+     "good": "Engineered pathway (site > 1,000 m2 or FSR > 1.0); the block is 11,468 m2",
+     "bad": "Treating the block as small-site (tank table)",
+     "basis": "Force: bylaw_requirement. VBBL 2025 Table 2.4.2.5.-A; City page.",
+     "method": "Rule lookup",
+     "status": "verified",
+     "force": "bylaw_requirement",
+     "source_ids": [
+      "P05-S10",
+      "P05-S11"
+     ]
+    },
+    {
+     "name": "Required detention volume V",
+     "unit": "m3",
+     "good": "Provided active storage >= V",
+     "bad": "Provided < V",
+     "basis": "Force: bylaw_requirement. VBBL 2.4.2.5(5): Modified Rational Method, 10-year 2100 IDF, V maximised over D. Team illustration: about 440 m3 at C 0.95, about 170 m3 at C 0.61. By-law example 0.25 ha, C 0.75, tc 5 min -> 58.1 m3.",
+     "method": "Iterate D (steps <= 15 min plus 60 min check); Qo = 25 L/s/ha x site area; tc = 5 min",
+     "status": "verified",
+     "force": "bylaw_requirement",
+     "source_ids": [
+      "P05-S10",
+      "P05-S12",
+      "P05-S13"
+     ]
+    },
+    {
+     "name": "Release rate, two stages",
+     "unit": "L/s/ha",
+     "good": "<= 5 for the first stage (15 mm x non-landscaped area); <= 25 thereafter; no orifice under 25 mm",
+     "bad": "Higher release or smaller orifice",
+     "basis": "Force: bylaw_requirement. VBBL 2.4.2.5(6); Project Summary form lines 4-5 (permits opened from 1 Jan 2026).",
+     "method": "Check outlet design against stage volumes",
+     "status": "verified",
+     "force": "bylaw_requirement",
+     "source_ids": [
+      "P05-S10",
+      "P05-S13"
+     ]
+    },
+    {
+     "name": "Retention depth vs Rain City 48 mm/day (reference only)",
+     "unit": "mm",
+     "good": ">= 48 mm retained (about 550 m3 for this block)",
+     "bad": "< 24 mm (earlier standard)",
+     "basis": "Force: city_aspiration. Rain City private-property standard 'by 2022' is valid text; the City's GRI summary says private targets are superseded by Building By-law requirements. Kept as a stretch target.",
+     "method": "Sum of retained depth x area / site area",
+     "status": "verified",
+     "force": "city_aspiration",
+     "source_ids": [
+      "P05-S14",
+      "P05-S16"
+     ]
+    },
+    {
+     "name": "Rain City 48 mm treated as binding on private sites",
+     "unit": "-",
+     "good": "Do not use",
+     "bad": "Presenting 48 mm as a compliance threshold",
+     "basis": "Force: city_aspiration. The number is valid; the false claim was that it binds the project. Kept visible, struck through, with the flag on bindingness only.",
+     "method": "Struck-through legend entry",
+     "status": "false_assumption_corrected",
+     "force": "city_aspiration",
+     "source_ids": [
+      "P05-S16",
+      "P05-S10",
+      "P05-S11"
+     ]
+    },
+    {
+     "name": "Indoor potable water reduction (rezoning large developments)",
+     "unit": "%",
+     "good": ">= 20% below baseline, with a signed water balance (commercial 23 m2 per capita; R019 Table 1 fixtures)",
+     "bad": "Below 20% or no water balance",
+     "basis": "Force: rezoning_policy_requirement. RPSLD D.3.2 and R019 4.1.1.1; same occupants and fixtures in baseline and proposed; non-potable flushing counts if quantified.",
+     "method": "Baseline vs proposed indoor water balance",
+     "status": "verified",
+     "force": "rezoning_policy_requirement",
+     "source_ids": [
+      "P05-S04",
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Outdoor potable water reduction (R019 July baseline)",
+     "unit": "%; L/month",
+     "good": ">= 50% below baseline; baseline (L/month) = 120 mm x total proposed landscaped area incl. planted structures, July peak; same area in proposed unless justified",
+     "bad": "Below 50%, or a baseline without period or area basis",
+     "basis": "Force: rezoning_policy_requirement. R019 4.1.1.2 uses LEED v4 calculator and Table 2 (July ETo 120 mm). RPSLD D.3.3 also requires Water Wise Landscape Guidelines. Earlier spec gave no period.",
+     "method": "120 mm x area = L/month; proposed from LEED 'Landscape Water Requirement' tab; unit test 1,000 m2 -> 120,000 L/month",
+     "status": "false_assumption_corrected",
+     "force": "rezoning_policy_requirement",
+     "source_ids": [
+      "P05-S05",
+      "P05-S04",
+      "P05-S55",
+      "P05-S58"
+     ]
+    },
+    {
+     "name": "No permanent groundwater discharge to City sewers",
+     "unit": "L/s",
+     "good": "0 from systems at or below the yearly high water table; hydrogeological study provided",
+     "bad": "Any permanent sub-drain discharge to sewer",
+     "basis": "Force: rezoning_policy_requirement. RPSLD E.3.1-E.3.2; Groundwater Management Bulletin (Feb 2026) applies to RPSLD sites; temporary dewatering excepted. Site water-table depth not modelled.",
+     "method": "Flag basement depth against user-entered water-table level",
+     "status": "verified",
+     "force": "rezoning_policy_requirement",
+     "source_ids": [
+      "P05-S04",
+      "P05-S54"
+     ]
+    },
+    {
+     "name": "Area share drained through soil or vegetated treatment",
+     "unit": "%",
+     "good": "Reported per surface class; trending toward Rain City aim of capturing and cleaning 90% of annual rainfall (context only)",
+     "bad": "Combined-sewer site with 0% treated and no rationale",
+     "basis": "Force: team_assumption. No site threshold exists. Rain City 90% is city-wide; Tsleil-Waututh action 3 targets stormwater pollution; UNDRIP Action 2.5 reviews stormwater and sewage outflows. Indicator is the team's.",
+     "method": "Area drained through green roof, soil or treatment before outlet / site area",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S14",
+      "P05-S15",
+      "P05-S51",
+      "P05-S52"
+     ]
+    },
+    {
+     "name": "Sewer type and overflow exposure flag",
+     "unit": "flag",
+     "good": "Type entered with source; if combined, reuse and detention reported as overflow-relief context",
+     "bad": "Type unknown and unflagged",
+     "basis": "Force: team_assumption. Rain City reports over 33 billion L of combined sewage discharged in 2018; RPSLD D.3.1 water balance lists outflows to sanitary, combined and storm sewers. Block-level sewer type not found.",
+     "method": "User entry plus water-balance outflow split",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S14",
+      "P05-S04"
+     ]
+    },
+    {
+     "name": "City-wide capture target (context)",
+     "unit": "% of annual rainfall",
+     "good": "90% captured and cleaned city-wide, long term",
+     "bad": "-",
+     "basis": "Force: city_aspiration. Rain City Strategy aspirational target, not a site pass/fail.",
+     "method": "Context line only",
+     "status": "verified",
+     "force": "city_aspiration",
+     "source_ids": [
+      "P05-S14",
+      "P05-S15"
+     ]
+    }
+   ],
+   "method": "Classify surfaces from Layer 0, projected to plan keeping only the uppermost interceptor per cell, so sum(A_i) equals site area. Composite C = sum(C_i x A_i)/sum(A_i) from EDM Table 5-2 (roof, pavement 0.95; flat green roof 0.50 for >60-100 mm, 0.40 for >100-150, 0.30 for >150-250); other depths take the nearest band, flagged; Table 5-1 (CBD 0.95) is the default before tagging. For D = 5 to n min: i = A x (D/60)^B, Qp = C x i x A_site / 3.6e6 m3/s, V = Qp x D - Qo x (D + tc)/2, Qo = 25 L/s/ha x site area, tc = 5 min; take the maximum. First-stage volume = 15 mm x (site area - landscaped - vegetated roof). Outdoor baseline = 120 mm x landscaped area (L/month, July). Unit tests: By-law Note A-2.4.2.5.(5) returns 58.1 m3; 1,000 m2 landscaped returns 120,000 L/month.",
+   "visualization": [
+    "Hydrograph: uncontrolled inflow vs two-stage controlled outflow with shaded storage volume and the critical-duration marker",
+    "Plan false-colour of runoff coefficient by surface (0.30 green to 0.95 red), with treated-area overlay",
+    "Basement section with tank volume as a box, the depth-of-cover constraint and a water-table line",
+    "Badge row (pathway, V, first-stage volume, release rates, outdoor and indoor water, groundwater, sewer type) each linked to its By-law or RPSLD clause"
+   ],
+   "human_judgment": "Engineering of tanks, orifices and overflows by registered professionals; relaxation under 2.4.2.5(9); detention versus infiltration versus reuse; reuse permit and reporting; groundwater and maintenance. The cultural tag applies to the receiving-water card only.",
+   "limits": "The binding rule is detention, not retention. Governing text: VBBL 2025 as amended by By-law 14488 for permits opened after 1 Jan 2026. Rezoning approvals may carry site conditions. Facade wind-driven rain, site groundwater levels, sea level and LEED calculator inputs are not modelled.",
+   "jury_criteria": [
+    "design_excellence_20",
+    "urban_integration_10",
+    "cultural_context_30"
+   ],
+   "libraries": [
+    {
+     "name": "PySWMM",
+     "license": "BSD-2-Clause",
+     "role": "Scripted SWMM runs to check two-stage routing in v1",
+     "url": "https://github.com/pyswmm/pyswmm"
+    },
+    {
+     "name": "EPA SWMM (Stormwater Management Model)",
+     "license": "Public domain (per repository)",
+     "role": "Hydrology engine behind PySWMM",
+     "url": "https://github.com/USEPA/Stormwater-Management-Model"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Surface-type areas and plan projection from Layer 0 polygons",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Hydrograph and bar charts",
+     "url": "https://github.com/vega/vega-lite"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M05",
+   "name": "Bird-friendly glazing and night lighting",
+   "phase": "advanced",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 5-7 person-days in full; core scope (zone top, treated %, flags) about 3, with manual terrace and habitat-distance fallbacks",
+   "design_question": "How much glazing sits in the collision zone, how much is treated, which corner, fly-through and planting-behind-glass conditions remain, and how are night, obstruction and migration-season lighting controlled?",
+   "inputs": [
+    "Layer0.Facade[] (Polygon3D + glazing flag + window-to-wall ratio from SPAC) and Layer 0 storey levels",
+    "Tree heights at maturity (M02), planted terraces and roofs (M02, M03; manual list if absent), interior planted spaces (SPAC / program tags)",
+    "Treatment preset (pattern type and spacing), glazing reflectance, lighting schedule (hours, CCT, shielding, obstruction-light type)",
+    "Distance to Stanley Park / habitat (M08; manual entry if absent)"
+   ],
+   "outputs": [
+    "P05.BirdRisk {zone_top_m, glazing_in_zone_m2, treated_pct, interior_planting_flags[], flags[], lighting_ok}",
+    "Treatment area and frit spec to SPAC (visible-light-transmission penalty to ENER daylight)",
+    "Annotated elevations for boards (PRES); management and monitoring card (Bird Friendly 2.3(d)-(e))"
+   ],
+   "depends_on": [
+    "SPAC: glazing ratio, interior planted spaces and facade materials",
+    "P05-M02",
+    "P05-M03 (optional)",
+    "P05-M08 (optional, habitat adjacency)"
+   ],
+   "parameters": [
+    {
+     "name": "Risk-zone height",
+     "relationship": "Vancouver's zone runs up to mature tree height or the fourth floor, whichever is highest, so tall podium storeys raise the zone and treated area; 12 m is only the Note's typical value, 16 m the Toronto and UBC comparator.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S21",
+      "P05-S22",
+      "P05-S32",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Marker spacing",
+     "relationship": "Vancouver asks gaps no greater than 5 cm vertically or 10 cm horizontally, on the exterior surface; UBC uses 5 x 5 cm and Toronto 50 x 50 mm. Tighter markers raise visibility but cut transparency and daylight.",
+     "unit": "cm",
+     "source_ids": [
+      "P05-S21",
+      "P05-S32",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Treated share of glazing in zone",
+     "relationship": "Raising the treated share lowers collision probability; Vancouver gives no percentage; Toronto uses 85%; UBC tiers use 90%, 85% and 55%.",
+     "unit": "%",
+     "source_ids": [
+      "P05-S34",
+      "P05-S32",
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Glass corners and see-through passages",
+     "relationship": "Glazed corners, railings and fly-through openings show sky or vegetation through the building; Vancouver asks to reduce clear passage; UBC treats corners 5 m each way and eliminates fly-through.",
+     "unit": "count; m",
+     "source_ids": [
+      "P05-S21",
+      "P05-S32"
+     ]
+    },
+    {
+     "name": "Exterior planting adjacent to glass",
+     "relationship": "Collisions are most acute near greenspace, so more planting needs more treatment. Vancouver asks first for landscaping at an appropriate distance from glass; 0-1 m or visible glass is the fallback; Toronto adds 4 m above rooftop vegetation, 2.5 m each side.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S23",
+      "P05-S21",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Glass reflectance",
+     "relationship": "Reflective glass shows habitat and sky; Vancouver asks to interrupt reflective glass with spandrels and mullions and to dampen reflections, without a numeric limit, so high reflectance in the zone raises the treatment needed.",
+     "unit": "flag",
+     "source_ids": [
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Interior planting behind glass",
+     "relationship": "Enclosed sky gardens and atria show or reflect vegetation at any height; Vancouver says avoid interior landscaping near windows (3.3(c)(ii)). Glazing within distance d of interior planting joins the zone; d is a team assumption.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Facade, crown and feature lighting",
+     "relationship": "Light spill attracts and disorients migrants; Vancouver asks shielding, downlighting and no floodlighting; Toronto EC 5.4 turns architectural lighting off 22:00-06:00 and limits unrated fixtures to 3,000 K.",
+     "unit": "h; K",
+     "source_ids": [
+      "P05-S21",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Aviation obstruction lighting (building options)",
+     "relationship": "Marking is required above 150 m. Flashing-only Configuration A' is for towers and skeletal structures, not buildings. Buildings use s.5.6 red (steady CL-810; flashing CL-864 only where early pilot warning is needed), Chapter 6 white CL-865, or Chapter 7 high-intensity white.",
+     "unit": "type",
+     "source_ids": [
+      "P05-S43"
+     ]
+    },
+    {
+     "name": "Upper-floor interior light spill",
+     "relationship": "Lit floorplates at 200-300 m can draw nocturnal migrants; automatic blinds or occupancy control after a set hour cut spill. Vancouver asks only to reduce unnecessary spill; the 23:00 hour is a team assumption.",
+     "unit": "h",
+     "source_ids": [
+      "P05-S21",
+      "P05-S31"
+     ]
+    },
+    {
+     "name": "Migration-season lights-out",
+     "relationship": "Spring and autumn migration raises night collision risk; switching off non-essential crown, feature and interior lighting in those windows should lower it. Dates are a team assumption; evidence cited by Machtans is a secondary press page.",
+     "unit": "dates",
+     "source_ids": [
+      "P05-S31",
+      "P05-S34",
+      "P05-S60"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Glazing treated within the risk zone",
+     "unit": "%",
+     "good": ">= 85% (Toronto EC 5.1); 90% (UBC Tier 1, aligned with CSA A460-2019) as stretch",
+     "bad": "< 55% (UBC Tier 3 minimum)",
+     "basis": "Force: comparator_other_jurisdiction. Vancouver sets no percentage. Toronto 85% and UBC tiers 90/85/55% read at source; CSA A460:19 not opened.",
+     "method": "Treated glazing area / glazing area in zone",
+     "status": "verified",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34",
+      "P05-S32",
+      "P05-S21",
+      "P05-S33"
+     ]
+    },
+    {
+     "name": "Marker gap compliance",
+     "unit": "cm",
+     "good": "Horizontal elements <= 5 cm apart vertically OR vertical elements <= 10 cm apart horizontally (dot patterns meet both), on the exterior surface",
+     "bad": "Gaps above both limits, or markers on the interior surface",
+     "basis": "Force: voluntary_guideline. Bird Friendly 3.3(a)(ii): gaps no greater than 5 cm vertically or 10 cm horizontally; use 'encouraged'. Earlier spec said AND; corrected. Unit test: a 5 cm horizontal-stripe frit must pass.",
+     "method": "Check pattern type and spacing against the OR rule",
+     "status": "false_assumption_corrected",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S21",
+      "P05-S22"
+     ]
+    },
+    {
+     "name": "Untreated corner / fly-through / glass-railing conditions in zone",
+     "unit": "count",
+     "good": "0",
+     "bad": ">= 1",
+     "basis": "Force: voluntary_guideline. Vancouver 3.3(a)(v) asks to reduce the appearance of clear passage; the zero count is stricter and follows UBC (fly-through eliminated, corners treated 5 m each way).",
+     "method": "Corner detection and ray test between glazed faces",
+     "status": "team_assumption",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S21",
+      "P05-S32"
+     ]
+    },
+    {
+     "name": "Untreated glazing near interior planting",
+     "unit": "count",
+     "good": "0",
+     "bad": ">= 1",
+     "basis": "Force: voluntary_guideline. Vancouver 3.3(c)(ii) says avoid interior landscaping near windows; no source gives a distance, so d is a team assumption.",
+     "method": "Buffer interior planted spaces by d; intersect with glazing at any height",
+     "status": "team_assumption",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Exterior planting set-back from glass",
+     "unit": "m",
+     "good": "Landscaping set back to reduce reflections; if not possible, planting 0-1 m from glass or glass made visible; Toronto adds 4 m above rooftop vegetation, 2.5 m each side",
+     "bad": "Planting reflected in untreated glass at an unplanned distance",
+     "basis": "Force: voluntary_guideline. Bird Friendly 3.3(c)(i) asks for an appropriate distance first; 0-1 m is the fallback. Earlier spec said Vancouver advises 0-1 m.",
+     "method": "Measure planting-to-glass distance; flag untreated glass in the buffer",
+     "status": "false_assumption_corrected",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S21",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Glazing reflectance recorded and flagged",
+     "unit": "flag",
+     "good": "Reflectance recorded per glazing type; reflective glass in zone or beside planting flagged and interrupted (3.3(a)(iii))",
+     "bad": "Reflectance not recorded",
+     "basis": "Force: team_assumption. Vancouver text is qualitative on reflectance (3.3(a)(iii), 3.3(b)); no numeric limit found; CSA A460 and threat-factor limits unopened.",
+     "method": "Schedule check of VLR by glazing type",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S21",
+      "P05-S33"
+     ]
+    },
+    {
+     "name": "Ventilation grate and open-pipe openings",
+     "unit": "cm",
+     "good": "<= 2 x 2 cm or <= 1 x 4 cm; open pipes capped",
+     "bad": "Larger openings",
+     "basis": "Force: voluntary_guideline. Vancouver 3.3(e); Toronto EC 5.3 uses below 20 x 20 mm or 10 x 50 mm.",
+     "method": "Schedule check",
+     "status": "verified",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S21",
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Night-lighting control (facade and roof)",
+     "unit": "h; K",
+     "good": "Rooftop and facade architectural lighting downward and off 22:00-06:00; full-cutoff or Dark Sky fixtures, <= 3,000 K if unrated",
+     "bad": "All-night or upward/flood lighting",
+     "basis": "Force: comparator_other_jurisdiction. Toronto EC 5.4 numbers read on its page; Vancouver guidance is qualitative (shield, downlight, no floodlights).",
+     "method": "Schedule and fixture check",
+     "status": "verified",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34",
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Obstruction lighting configuration",
+     "unit": "type",
+     "good": "Configuration chosen from building options (s.5.6, Chapter 6, Chapter 7); no steady CL-810 where Transport Canada accepts an alternative; written acceptance on file",
+     "bad": "A' assumed for a building, or the standard ignored",
+     "basis": "Force: bylaw_requirement (binding federal regulation). s.5.4 limits A' to towers and similar skeletal structures. Fig 5-3 calls steady CL-810 attractive to birds (guyed towers); for buildings that is by analogy. Read in part.",
+     "method": "Select configuration; flag for Transport Canada review",
+     "status": "false_assumption_corrected",
+     "force": "bylaw_requirement",
+     "source_ids": [
+      "P05-S43"
+     ]
+    },
+    {
+     "name": "Migration-season lights-out schedule",
+     "unit": "dates",
+     "good": "Non-essential crown, feature and interior lighting off through team-set spring and autumn windows",
+     "bad": "No schedule",
+     "basis": "Force: team_assumption. No Vancouver numeric source; windows are editable. The 83% Chicago figure is a secondary press page cited by Machtans; keep it out of thresholds.",
+     "method": "Schedule check",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S31",
+      "P05-S60"
+     ]
+    }
+   ],
+   "method": "Select glazed facade polygons. Zone top = max(top of 4th storey from Layer 0 levels, mature tree height at the facade); 12 m (Note) and 16 m (Toronto, UBC) are comparators. Add +4 m above each vegetated terrace or roof with a 2.5 m side buffer (Toronto). Add glazing within distance d of interior planting at any height. Clip glazed area to the zone and sum. Treated = markers meeting the OR rule on the exterior surface. Corner test: buffer glazed corners 5 m each way. Fly-through test: rays through paired glazed faces and railings. Flag high-reflectance glass and planting set-backs. Report treated %, untreated area, flags and lighting checks. Example: a 448 m podium perimeter gives 448 x 12 = 5,376, x 16 = 7,168 or x 24 = 10,752 m2 in the zone before openings.",
+   "visualization": [
+    "Unrolled facade elevations in false colour: red = untreated glazing in zone, amber = partly treated, green = treated, grey = opaque or outside zone, dashed line at the computed zone top",
+    "Terrace, set-back and interior-planting buffers outlined; table of flagged corners, fly-through, reflectance and interior-planting conditions",
+    "Pass/fail badges linked to clause text; 24-hour lighting schedule bar with migration windows and obstruction-light type"
+   ],
+   "human_judgment": "Treatment product and look, ornithologist review near habitat, view and daylight trade-offs, lighting design intent, Transport Canada negotiation, long-term management guide and monitoring (Bird Friendly 2.3(d)-(e)), and effects of night light on insects and bats.",
+   "limits": "Vancouver guidance is voluntary and sets no percentage; CDDG and RPSLD A.4.1(e) require a response, not a number. CSA A460:19 unopened. Collision extent not locally assessed. Machtans: buildings over 12 storeys cause under 1% of kills nationally, highest per structure; not a threshold. No reflectance model.",
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "libraries": [
+    {
+     "name": "trimesh",
+     "license": "MIT",
+     "role": "Ray queries for fly-through and reflection checks",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "rhino3dm",
+     "license": "MIT",
+     "role": "Read Rhino .3dm facades into the module",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0-or-later (core)",
+     "role": "Read IFC windows, curtain walls and spaces",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Clipping facade polygons to the zone",
+     "url": "https://github.com/shapely/shapely"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M06",
+   "name": "Urban heat island and cool surfaces",
+   "phase": "advanced",
+   "category": "CLIM",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M-L: about 5-7 person-days; needs the CLIM shadow module",
+   "design_question": "How much ground, podium and roof surface is shaded by vegetation, vegetated or reflective on a hot day, and does the scheme's own shadow cost public spaces their sun in cooler seasons?",
+   "inputs": [
+    "Layer0.Surfaces[] with material tag (solar reflectance, thermal emittance and SRI presets from SPAC)",
+    "CLIM: hourly shade fraction per surface on a hot design day, split into vegetation and designed shade versus building shade",
+    "P05.Canopy credited crowns (M02) and green roofs (M03)",
+    "CLIM: fall-equinox new-shadow result per Solar Access Table 1 space, Victory Square 11 Nov test and village sidewalks; Vancouver hot-day climate preset"
+   ],
+   "outputs": [
+    "P05.Heat {cooling_capacity_by_level (vegetation only), building_shade_reported, treated_hardscape_pct, roof_treated_pct, hot_cells[], sun_access_flags[]}",
+    "Surface temperature proxies to CLIM thermal-comfort module",
+    "Before/after maps for the boards"
+   ],
+   "depends_on": [
+    "CLIM: shadow / sun-hours module",
+    "P05-M02",
+    "P05-M03",
+    "SPAC: material presets"
+   ],
+   "parameters": [
+    {
+     "name": "Surface solar reflectance and thermal emittance",
+     "relationship": "Higher reflectance lowers surface temperature; stored separately because the cooling index uses reflectance while SRI blends reflectance and emittance. Toronto uses aged SRI 64 for low-slope roofs; paving needs reflectance 0.33 or SRI 29.",
+     "unit": "0-1; SRI",
+     "source_ids": [
+      "P05-S34",
+      "P05-S39"
+     ]
+    },
+    {
+     "name": "Vegetation and designed-shade fraction",
+     "relationship": "In InVEST the shade term is tree canopy 2 m or taller, weighted 0.6 against 0.2 for albedo, so canopy and designed shade structures are the strongest lever; building shade is not in the index.",
+     "unit": "0-1",
+     "source_ids": [
+      "P05-S39"
+     ]
+    },
+    {
+     "name": "Building (tower) shade, reported not credited",
+     "relationship": "The tower's shadow cools the plaza on hot days but removes sun in cool seasons; Solar Access Guidelines test new shadow on the fall equinox 10:00-16:00 PT, and the City lists greater shadowing as a harm of very tall buildings.",
+     "unit": "h; m2",
+     "source_ids": [
+      "P05-S42",
+      "P05-S41"
+     ]
+    },
+    {
+     "name": "Protected-space class and time basis",
+     "relationship": "The rule depends on the space: parks and school sites should get no new shadow; plazas and miniparks minimise where possible; special cases (Dr Sun Yat-Sen, Victory Square on 11 Nov in PST, village sidewalks) have their own tests.",
+     "unit": "class; PT",
+     "source_ids": [
+      "P05-S42"
+     ]
+    },
+    {
+     "name": "Evapotranspiration of green cover",
+     "relationship": "Vegetation cools by evapotranspiration (index Kc x ETo / ETmax); trees can lower ambient air by 1-5 degrees C, but high-water plants need more irrigation.",
+     "unit": "index",
+     "source_ids": [
+      "P05-S39",
+      "P05-S25"
+     ]
+    },
+    {
+     "name": "Hardscape / impervious share",
+     "relationship": "The hottest land surfaces in the June 2021 heat dome coincided with the highest impervious cover; more dark paving at grade and podium raises surface temperature.",
+     "unit": "%",
+     "source_ids": [
+      "P05-S25"
+     ]
+    },
+    {
+     "name": "Climate scenario",
+     "relationship": "2050s climate: average +2.4 degrees C and nine times as many days above 30 degrees C raise the baseline, so cooling measures matter more for later design years.",
+     "unit": "degrees C",
+     "source_ids": [
+      "P05-S26"
+     ]
+    },
+    {
+     "name": "Residential versus non-residential frontage",
+     "relationship": "Toronto sets 75% treated hardscape for residential uses; non-residential uses either treat 50% or provide at-grade soft landscaping of 20% of the lot. A mixed-use tower needs the line chosen per frontage.",
+     "unit": "%",
+     "source_ids": [
+      "P05-S34"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Treated share of non-roof hardscape",
+     "unit": "%",
+     "good": ">= 75% residential frontage; non-residential: >= 50% treated OR at-grade soft landscape >= 20% of lot (reflectance 0.33 or SRI 29; shade at solar noon 21 June by 10-year canopy)",
+     "bad": "Below the chosen line",
+     "basis": "Force: comparator_other_jurisdiction. Toronto TGS v4 EC 2.1 is voluntary from 2 June 2026, not Tier 1; the 20% soft-landscape option is non-residential only; building shade does not count. Vancouver has no numeric rule found.",
+     "method": "Treated area / non-roof hardscape area, by program tag",
+     "status": "false_assumption_corrected",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Roof area as green roof, PV or cool roof",
+     "unit": "%",
+     "good": "100% of available roof",
+     "bad": "< 100%",
+     "basis": "Force: comparator_other_jurisdiction. Toronto EC 2.3 is voluntary since 2 June 2026; low-slope cool roof aged SRI 64 or initial reflectance >= 0.65 with emittance >= 0.90.",
+     "method": "Roof area by treatment",
+     "status": "false_assumption_corrected",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Cooling capacity index CC (vegetation and designed shade only)",
+     "unit": "0-1 (relative)",
+     "good": "Proposal CC >= baseline CC at every level; hot-day index only",
+     "bad": "Proposal CC below baseline, or raised only by building shade",
+     "basis": "Force: team_assumption. InVEST factors method CC = 0.6 shade + 0.2 albedo + 0.2 ETI, shade = tree canopy 2 m or taller. Earlier spec let tower shadow count; corrected. No pass line exists.",
+     "method": "Per cell, area-weighted by level",
+     "status": "false_assumption_corrected",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S39"
+     ]
+    },
+    {
+     "name": "New shadow on protected public spaces by Table 1 class, fall equinox (counter-metric)",
+     "unit": "m2; % coverage",
+     "good": "0 new shadow 10:00-16:00 PT on 22 Sep: parks, school sites, Dr Sun Yat-Sen, Dilawri South, Jack Poole, Robson Square; minimised: plazas; Victory Square cenotaph clear 10:00-12:00 PST on 11 Nov; village north sidewalks (Davie 10-16, Robson 10-15)",
+     "bad": "New shadow on a park-class space with no exception rationale (3.1.2) or Detailed Study",
+     "basis": "Force: voluntary_guideline. Guidelines are discretionary, unlike regulations. Plazas fall under 3.2.1 minimise where possible; earlier spec applied should-not to all. Tree and public shade-structure shadows are excluded from the baseline.",
+     "method": "CLIM shadow per space at 2-hour steps (basic) or 15-min steps (detailed); coverage = sum of shadow area over 25 intervals / (space area x 25), my reading of 5.2.1(c); times in PT (UTC-7)",
+     "status": "false_assumption_corrected",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S42"
+     ]
+    },
+    {
+     "name": "Hot-day land-surface-temperature classes (map legend)",
+     "unit": "degrees C",
+     "good": "< 25",
+     "bad": "> 29 (classes 25-27, 27-29 between)",
+     "basis": "Force: team_assumption. Legend classes of the City's June 2021 heat-dome map; used for symbology only.",
+     "method": "Colour ramp",
+     "status": "verified",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S25"
+     ]
+    }
+   ],
+   "method": "For each surface polygon read vegetation and designed-shade fraction (tree canopy 2 m or taller, pergolas), solar reflectance from the material preset and ETI = Kc x ETo / ETmax. CC = 0.6 x shade + 0.2 x reflectance + 0.2 x ETI (InVEST factors); building shade is excluded and reported separately as hot-day shade 12:00-17:00. Area-weight CC by level against an asphalt and concrete baseline. Pair CC with the Solar Access check: classify each affected Table 1 space, apply its rule, and run the special cases. Treated hardscape follows Toronto EC 2.1 with the 75% or 50% (or 20% soft landscape) line by program tag, shade at solar noon on 21 June with 10-year crowns. Optional export to UMEP/SOLWEIG and pythermalcomfort for UTCI.",
+   "visualization": [
+    "False-colour plan for ground, podium and roof showing vegetation-only CC from 0 to 1 with a legend",
+    "Hot-day shade heat map 12:00-17:00 with vegetation shade and building shade as separate layers",
+    "Proposal minus baseline difference map and bar by level, paired with the fall-equinox new-shadow map per protected space and coverage %",
+    "Pass/fail chips for the Toronto-based treated-hardscape and roof checks, labelled voluntary since 2 June 2026"
+   ],
+   "human_judgment": "Shade versus reflectance trade-offs (glare and reflected heat onto facades), plant choice, comfort and sun-access priorities for public spaces and vulnerable users, whether an exception rationale meets 3.1.2, and reading CC as a relative index, not a temperature.",
+   "limits": "No Vancouver numeric heat-island requirement found; Toronto values are voluntary presets. CC is a hot-day index, not degrees C, and ignores winter sun. InVEST suits city rasters: a block needs 1-2 m cells and its 2 ha green-area rule cannot trigger on 1.15 ha.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "libraries": [
+    {
+     "name": "InVEST (Urban Cooling model)",
+     "license": "Apache-2.0",
+     "role": "Reference cooling-capacity and heat-mitigation index",
+     "url": "https://github.com/natcap/invest"
+    },
+    {
+     "name": "UMEP / SOLWEIG (QGIS plugin)",
+     "license": "GPL-3.0",
+     "role": "Mean radiant temperature and shadow tools for v1 validation",
+     "url": "https://github.com/UMEP-dev/UMEP"
+    },
+    {
+     "name": "pythermalcomfort",
+     "license": "MIT",
+     "role": "UTCI and other comfort indices",
+     "url": "https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort"
+    },
+    {
+     "name": "Ladybug",
+     "license": "AGPL-3.0",
+     "role": "EPW weather and sun path (check AGPL fit before bundling)",
+     "url": "https://github.com/ladybug-tools/ladybug"
+    },
+    {
+     "name": "pvlib-python",
+     "license": "BSD-3-Clause",
+     "role": "Solar position for shade timing",
+     "url": "https://github.com/pvlib/pvlib-python"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M07",
+   "name": "Habitat and native planting",
+   "phase": "advanced",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M: about 4-5 person-days (plant table curation dominates)",
+   "design_question": "How much layered, native, habitat-supporting planting and how many food assets does the scheme provide at ground, podium, roof and tower, how diverse is the tree palette, and does it follow City habitat guidance and wildlife law?",
+   "inputs": [
+    "Baseline survey: existing habitat and trees on site and in an adjacent buffer (City street trees from public-trees data)",
+    "P05.Canopy planting patches and trees (M02)",
+    "Plant palette table (species, native / culturally traditional flag, layer, pollinator or bird value, bloom period, water use, invasive flag)",
+    "Habitat feature tags (water, deadwood, perches, nesting, tower ledges and nest structures); lawn and turf areas; food-asset tags (type, planted or non-planted)"
+   ],
+   "outputs": [
+    "P05.Habitat {layers_per_patch, native_share, lawn_share, features_per_patch, food_assets, bloom_species, patch_class, diversity_shares}",
+    "Palette and water-use list to P05-M03 and M04",
+    "Habitat panel graphics for the boards"
+   ],
+   "depends_on": [
+    "P05-M02",
+    "P05-M03"
+   ],
+   "parameters": [
+    {
+     "name": "Existing habitat baseline",
+     "relationship": "Retaining and enhancing existing habitat and trees comes before new planting; RPSLD asks an assessment of high-value habitat on site and adjacent, and Bird Friendly 2.3(a) a survey of nesting and habitat.",
+     "unit": "count; m2",
+     "source_ids": [
+      "P05-S04",
+      "P05-S21",
+      "P05-S53"
+     ]
+    },
+    {
+     "name": "Vertical layers (ground, shrub, understorey, canopy)",
+     "relationship": "More distinct foliage layers, up to six, raise bird and insect habitat value; Vancouver research found bird diversity rises with foliage height diversity.",
+     "unit": "count",
+     "source_ids": [
+      "P05-S22",
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Native and culturally traditional share",
+     "relationship": "Higher native share supports local fauna and soil life; the City favours native and culturally traditional species, and Toronto asks at least 50% native at grade. Which species are culturally traditional needs Host Nation input.",
+     "unit": "%",
+     "source_ids": [
+      "P05-S25",
+      "P05-S34",
+      "P05-S52"
+     ]
+    },
+    {
+     "name": "Tree species diversity",
+     "relationship": "Concentrating on one genus raises pest and climate risk; the 10-20-30 rule limits species, genus and family shares. Maple is 25% of street and park trees, and West Georgia frontage prescribes red maple.",
+     "unit": "%",
+     "source_ids": [
+      "P05-S25",
+      "P05-S26",
+      "P05-S56"
+     ]
+    },
+    {
+     "name": "Lawn area",
+     "relationship": "Less lawn means more habitat and less water, fertiliser and fuel; the guidelines say to minimise lawn and limit artificial turf to high-traffic uses.",
+     "unit": "m2",
+     "source_ids": [
+      "P05-S21",
+      "P05-S08",
+      "P05-S55"
+     ]
+    },
+    {
+     "name": "Habitat features at grade",
+     "relationship": "Snags, downed wood, water, logs, boulders and perches add refuge and food; the draft CDDG asks for them where a site is next to an ecological corridor, blue-green network or ESA.",
+     "unit": "count",
+     "source_ids": [
+      "P05-S21",
+      "P05-S08"
+     ]
+    },
+    {
+     "name": "Habitat features on the tower",
+     "relationship": "Ledges, nest structures and roosts at height can serve peregrine falcons and swallows but invite gull and crow conflicts; BC Wildlife Act s.34 protects peregrine nests at all times, so each feature needs a management note.",
+     "unit": "count",
+     "source_ids": [
+      "P05-S46",
+      "P05-S23"
+     ]
+    },
+    {
+     "name": "Food assets",
+     "relationship": "RPSLD B.3.1 requires at least three food assets from R019's eight types; planted types (gardens, farm, edible landscaping) compete with habitat for terrace and roof area, while kitchens, markets and organics use none.",
+     "unit": "count",
+     "source_ids": [
+      "P05-S04",
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Bloom continuity",
+     "relationship": "At least two native flowering species with continuous bloom (Toronto EC 2.2 comparator) feed pollinators across seasons; fewer species leave seasonal gaps. No Vancouver numeric source.",
+     "unit": "count",
+     "source_ids": [
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Nesting-season timing and wildlife law",
+     "relationship": "Planting, clearing and roof works during nesting can harm nests; the Bird Friendly guidelines tell users to comply with the BC Wildlife Act and Migratory Birds Convention Act, so work windows need a qualified professional.",
+     "unit": "dates",
+     "source_ids": [
+      "P05-S21",
+      "P05-S44",
+      "P05-S45",
+      "P05-S46"
+     ]
+    },
+    {
+     "name": "Contiguity and patch size",
+     "relationship": "Larger contiguous patches hold more species; City habitat types need 3-8.5 ha (forest) or 0.5-3 ha (shrub), far above a 1.15 ha block, so the site acts as a stepping stone.",
+     "unit": "m2",
+     "source_ids": [
+      "P05-S22",
+      "P05-S08"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Existing habitat and trees assessed (on site and adjacent)",
+     "unit": "assessments filed of 2",
+     "good": "Habitat assessment on site and adjacent, plus tree strategy with arborist report; nesting and habitat survey by a qualified professional",
+     "bad": "Net-gain or habitat claim with no baseline assessment",
+     "basis": "Force: rezoning_policy_requirement. RPSLD A.4.1(d), A.4.1(h), A.4.2(c) require the assessment and arborist report; Bird Friendly 2.3(a) asks a survey. Earlier spec had no baseline.",
+     "method": "Checklist with clause links; baseline layer feeds M02",
+     "status": "verified",
+     "force": "rezoning_policy_requirement",
+     "source_ids": [
+      "P05-S04",
+      "P05-S21",
+      "P05-S53"
+     ]
+    },
+    {
+     "name": "Layers present in the main contiguous patch",
+     "unit": "of 4",
+     "good": "4 (ground, shrub, understorey, canopy)",
+     "bad": "<= 2",
+     "basis": "Force: team_assumption. Layers are named in Vancouver guidance; the count threshold is the team's reading.",
+     "method": "Palette layer attribute per patch",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S22",
+      "P05-S21"
+     ]
+    },
+    {
+     "name": "Native share of planted area",
+     "unit": "%",
+     "good": ">= 50% in each of trees, shrubs, herbaceous (at-grade landscape)",
+     "bad": "< 50%",
+     "basis": "Force: comparator_other_jurisdiction. Toronto TGS v4 EC 2.2 is voluntary for applications from 2 June 2026, not Tier 1; Vancouver gives no percentage but favours native and culturally traditional species.",
+     "method": "Area-weighted species flags",
+     "status": "false_assumption_corrected",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Tree species diversity (10-20-30)",
+     "unit": "%",
+     "good": "<= 10% any species, <= 20% any genus, <= 30% any family (planned plantings, not native stands)",
+     "bad": "Any limit exceeded, e.g. maple frontage planting adding to a 25% maple share",
+     "basis": "Force: research_heuristic. UFS 3.3.3 cites the rule (Santamour 1990, not opened); Vancouver street and park trees exceed the genus guideline for maples.",
+     "method": "Share of tree count by species, genus, family from the palette",
+     "status": "verified",
+     "force": "research_heuristic",
+     "source_ids": [
+      "P05-S25",
+      "P05-S26"
+     ]
+    },
+    {
+     "name": "Lawn share of planted area",
+     "unit": "%",
+     "good": "<= 10% (editable preset)",
+     "bad": "> 25% (editable preset)",
+     "basis": "Force: team_assumption. Guidelines say 'minimize lawn' without a number; Water Wise guidelines favour lawn alternatives, also without a number.",
+     "method": "Area share",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S21",
+      "P05-S55"
+     ]
+    },
+    {
+     "name": "Food assets delivered",
+     "unit": "count",
+     "good": ">= 3, each tagged planted or non-planted; edible landscaping with signage and public or resident access",
+     "bad": "< 3",
+     "basis": "Force: rezoning_policy_requirement. RPSLD B.3.1 minimum three; B.3.2 five-year programming applies above 40,470 m2, not this block. R019 section 2 lists eight asset types; edible landscaping must have signage.",
+     "method": "Count tagged assets; check signage and access",
+     "status": "verified",
+     "force": "rezoning_policy_requirement",
+     "source_ids": [
+      "P05-S04",
+      "P05-S05"
+     ]
+    },
+    {
+     "name": "Native flowering species with continuous bloom",
+     "unit": "count",
+     "good": ">= 2",
+     "bad": "< 2",
+     "basis": "Force: comparator_other_jurisdiction. Toronto EC 2.2 (voluntary since 2 June 2026) read on its page; no Vancouver number.",
+     "method": "Palette bloom-period attribute",
+     "status": "verified",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S34"
+     ]
+    },
+    {
+     "name": "Tower habitat features with management note",
+     "unit": "count",
+     "good": "Each feature tagged with species intent and a gull and crow management note",
+     "bad": "Features with no note, or none considered",
+     "basis": "Force: team_assumption. No City numeric source; context from Wildlife Act s.34 (peregrine nests protected) and the Bird Strategy (Barn Swallow decline).",
+     "method": "Feature tags and note field",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S46",
+      "P05-S23"
+     ]
+    },
+    {
+     "name": "Biodiversity units vs baseline (optional comparator)",
+     "unit": "units",
+     "good": "Net gain of at least 10% (England's rule; not applicable in Vancouver)",
+     "bad": "Net loss",
+     "basis": "Force: comparator_other_jurisdiction. England's statutory metric uses size, quality, location and type; metric inputs not opened. Shown only as a method example.",
+     "method": "Area x distinctiveness x condition x strategic significance (inputs not opened)",
+     "status": "unverified",
+     "force": "comparator_other_jurisdiction",
+     "source_ids": [
+      "P05-S37"
+     ]
+    }
+   ],
+   "method": "Join the plant palette to planting polygons and the baseline survey. For each contiguous patch (Shapely union) compute layers present, native share by area, lawn and turf share, habitat feature counts and invasive flags. Compute species, genus and family shares of trees. Compare patch area with City habitat-type minimum areas to label it stepping stone or core (a block is a stepping stone). Count food assets by type (planted or not), native flowering species with continuous bloom, and tower features with a gull and crow management note. Check works timing against nesting windows and wildlife law. Use the City green-roof plant list (about 95 plants, mostly native) as default palette; Host Nation guidance is added by the team only with a published source or permission. Optionally compute a BNG-style score for discussion.",
+   "visualization": [
+    "Plan: patches coloured by layer completeness (0-4), hatched where non-native dominates",
+    "Stacked bars of species by layer, bloom-period strip by month, genus share bar against the 20% line, and a section diagram of layers on podium and roof",
+    "Habitat feature and food-asset checklist with icons, counts and planted or non-planted tags; tower features marked with their management note"
+   ],
+   "human_judgment": "Which species are culturally traditional and appropriate (Host Nations' knowledge and permission; no Indigenous plant names or uses on boards without a published Nation source), ecological intent, maintenance, wildlife conflicts, food-asset programming, and amenity versus habitat priorities.",
+   "limits": "Native lists should come from the City green-roof guide appendix and Host Nation guidance. A 1.15 ha block cannot meet City habitat-type minimum areas. Vancouver has adopted no biodiversity index. The Re-Wilding Action Plan was not opened. Survival at height depends on M03.",
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ],
+   "libraries": [
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Patch union and area",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Layer, species and diversity charts",
+     "url": "https://github.com/vega/vega-lite"
+    },
+    {
+     "name": "Plant palette JSON curated from the City green-roof guide appendix",
+     "license": "To be curated (City document; check reuse terms)",
+     "role": "Default palette with native flag and water use",
+     "url": "https://vancouver.ca/files/cov/rain-city-green-roof-best-practices-guide.pdf"
+    }
+   ]
+  },
+  {
+   "module_id": "P05-M08",
+   "name": "Ecological connectivity and access to nature",
+   "phase": "basic",
+   "category": "ECOL",
+   "nature": "mixed",
+   "priority": "roadmap",
+   "effort": "M-L: about 5-7 person-days (a distance-only v1-lite with user-entered distances is about 2 days)",
+   "design_question": "How well does the block link to Stanley Park, the shoreline, the water and the mountains ecologically and visually, and who can reach nature within walking distance of it?",
+   "inputs": [
+    "Site geolocation and polygon (SITE); manual entry of distances to Stanley Park, nearest 1 ha park and shoreline as fallback",
+    "City Open Data: parks polygons, greenways, public trees",
+    "ODP Map 7 Ecological Network vision (image; corridors digitised by the team)",
+    "P05.Canopy and P05.Habitat patches (M02, M07)",
+    "SITE: public-views module for each Table 1 cone and view type; program tags (residential, office floors)"
+   ],
+   "outputs": [
+    "P05.Connectivity {distance_to_core_m, shoreline_distance_m, stepping_stones[], corridor_frontage_m, trees_in_view_per_floor_band[], nature_within_walk, views_kept, views_entered}",
+    "Link graph for the boards",
+    "Inputs to P05-M05 (habitat adjacency) and P05-M01 (L2.3.1 half b)"
+   ],
+   "depends_on": [
+    "SITE: site context",
+    "SITE: public views",
+    "P05-M02",
+    "P05-M07"
+   ],
+   "parameters": [
+    {
+     "name": "Distance to nearest core and stepping-stone habitat",
+     "relationship": "Shorter distance and continuous tree or planted links along streets and greenways improve connectivity; the City treats Stanley Park as a core and smaller natural areas as stepping stones.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S03",
+      "P05-S02",
+      "P05-S25"
+     ]
+    },
+    {
+     "name": "Frontage on an ecological corridor or greenway",
+     "relationship": "A frontage on an opportunity corridor lets site planting extend it; corridor alignments are conceptual and follow blue-green and greenway routes.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S01",
+      "P05-S03",
+      "P05-S27"
+     ]
+    },
+    {
+     "name": "Shoreline and nearshore link",
+     "relationship": "Distance to Burrard Inlet or False Creek and the stormwater route to them decide whether site planting and treatment support nearshore habitat that Tsleil-Waututh's plan asks to map and conserve.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S51",
+      "P05-S03"
+     ]
+    },
+    {
+     "name": "Publicly accessible planted area",
+     "relationship": "Counted natural spaces in the City's metric are larger than 0.5 ha, so a block contributes only if a contiguous accessible patch reaches that size; smaller patches act as stepping stones.",
+     "unit": "m2",
+     "source_ids": [
+      "P05-S24"
+     ]
+    },
+    {
+     "name": "Trees visible from dwellings and workplaces",
+     "relationship": "More mature trees within view raise the count; above about 10-15 storeys (team estimate) only terraces and sky gardens can supply trees, so the test counts crowns of at least 25 m2 within 30 m, per floor band.",
+     "unit": "count",
+     "source_ids": [
+      "P05-S36"
+     ]
+    },
+    {
+     "name": "Distance basis (straight-line versus network)",
+     "relationship": "Straight-line distance is shorter than the walking route, so a pass on one can fail on the other; both are computed and the network result is shown for the residential program only.",
+     "unit": "m",
+     "source_ids": [
+      "P05-S36"
+     ]
+    },
+    {
+     "name": "View framing to mountains and water",
+     "relationship": "Tower position and orientation set which cones stay clear; SITE computes it and M08 passes it to M01 by class: non-listed cones expected clear, QE Park and B1, B2, D, 12.2 via the Exceptional-Site pathway, Lions views kept.",
+     "unit": "-",
+     "source_ids": [
+      "P05-S50",
+      "P05-S41",
+      "P05-S08"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Distance to public green space of at least 1 ha (residential program)",
+     "unit": "m",
+     "good": "<= 300 m (network distance shown; straight-line also reported)",
+     "bad": "> 300 m",
+     "basis": "Force: research_heuristic. 3-30-300 rule citing WHO 2017 (green space of at least 1 ha within 300 m, about 5 minutes); designed for homes, not offices or hotels.",
+     "method": "Network and straight-line distance to parks polygons with area_hectare >= 1; residential tags only",
+     "status": "verified",
+     "force": "research_heuristic",
+     "source_ids": [
+      "P05-S36",
+      "P05-S29"
+     ]
+    },
+    {
+     "name": "Natural space larger than 0.5 ha within a 5-minute walk",
+     "unit": "yes/no; m",
+     "good": "Yes, within about 400 m (4.8 km/h x 5 min, editable)",
+     "bad": "No",
+     "basis": "Force: team_assumption. Biodiversity Strategy tracks this metric by neighbourhood without a pass line; the 400 m conversion is the team's.",
+     "method": "Distance to natural-area polygons",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S24"
+     ]
+    },
+    {
+     "name": "Mature trees in view per floor band",
+     "unit": "count",
+     "good": ">= 3 crowns of at least 25 m2 within a 30 m buffer, reported per floor band",
+     "bad": "< 3 in a floor band",
+     "basis": "Force: research_heuristic. Konijnendijk says the number 3 lacks scientific support, gives no viewing distance and ignores upper floors; 25 m2 and 30 m are an unpublished Dutch example.",
+     "method": "Count qualifying crowns in the buffer per floor band; terraces and sky gardens counted from M02 and M03",
+     "status": "false_assumption_corrected",
+     "force": "research_heuristic",
+     "source_ids": [
+      "P05-S36"
+     ]
+    },
+    {
+     "name": "Frontage on ODP opportunity corridor or City greenway",
+     "unit": "m",
+     "good": "Any frontage used to extend the corridor with trees and planting",
+     "bad": "Frontage present but planting breaks the link",
+     "basis": "Force: team_assumption. Corridor map is conceptual and image-only; greenways dataset is available.",
+     "method": "Overlay frontage with greenways and digitised corridors",
+     "status": "unverified",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S01",
+      "P05-S30"
+     ]
+    },
+    {
+     "name": "Distance to Burrard Inlet or False Creek shoreline",
+     "unit": "m",
+     "good": "Reported with the stormwater outfall route; no threshold",
+     "bad": "-",
+     "basis": "Force: team_assumption. Tsleil-Waututh actions 4-5 map and conserve nearshore habitat; no City distance threshold found. Value is a context input to M04, not a pass line.",
+     "method": "Straight-line and network distance to shoreline polygons",
+     "status": "team_assumption",
+     "force": "team_assumption",
+     "source_ids": [
+      "P05-S51",
+      "P05-S03"
+     ]
+    },
+    {
+     "name": "Protected-view result passed to M01",
+     "unit": "cones kept of n; cones entered",
+     "good": "Each cone reported kept or entered with source; QE Park (view 3), B1, B2, D, 12.2 entry reported as Exceptional-Site pathway, not failure; Lions views kept",
+     "bad": "Entry in a non-listed cone with no rationale, or QE entry passed as a failure",
+     "basis": "Force: voluntary_guideline. Passes SITE output by class (PVG 3.1.1, 3.4.2, 3.4.3). Earlier spec treated every cone entry as intrusion.",
+     "method": "Read the SITE views output; classify by Table 1 and 3.4.2",
+     "status": "false_assumption_corrected",
+     "force": "voluntary_guideline",
+     "source_ids": [
+      "P05-S50",
+      "P05-S41",
+      "P05-S06",
+      "P05-S08"
+     ]
+    }
+   ],
+   "method": "Compute straight-line and street-network distance from the site edges to (a) the Stanley Park polygon as core, (b) parks over 0.5 ha as stepping stones and (c) the Burrard Inlet or False Creek shoreline, using the City parks dataset. Overlay frontages on greenways and on corridors digitised from ODP Map 7. Run the trees-in-view heuristic per floor band: sample window points on each floor plate and count crowns of at least 25 m2 within the 30 m buffer (M02, public-trees data), terraces included. Build a link graph and report the shortest continuous green link. Read each cone from the SITE views module and pass it to M01 by class. v1-lite is user-entered distances and frontage only.",
+   "visualization": [
+    "Context map (about 1.5 km) with Stanley Park, parks, greenways, ODP corridors, shoreline and site; labelled distance lines; note that the site north arrow is rotated from the street grid",
+    "Link-graph overlay on the map",
+    "Trees-in-view count per floor band as a heat strip beside the tower elevation, with the above-10-15-storey caveat marked"
+   ],
+   "human_judgment": "Whether proposed links are real ecological connections or symbolic, the cultural meaning of Stanley Park, the water and the mountains, Indigenous naming and relationships (Stanley Park guided by a Nation working group), view trade-offs, and stewardship.",
+   "limits": "ODP Map 7 corridors are conceptual and not a dataset. 3-30-300 targets neighbourhoods and homes, not supertall floors. The City gives no stepping-stone distance threshold. Views depend on the SITE views module.",
+   "jury_criteria": [
+    "cultural_context_30",
+    "human_scale_40",
+    "urban_integration_10"
+   ],
+   "libraries": [
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause",
+     "role": "Distances, overlays and frontage lengths",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "Turf.js",
+     "license": "MIT",
+     "role": "In-browser distance and buffer analysis",
+     "url": "https://github.com/Turfjs/turf"
+    },
+    {
+     "name": "trimesh",
+     "license": "MIT",
+     "role": "Ray casting for trees-in-view",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "City of Vancouver Open Data Explore API v2.1",
+     "license": "Open Government Licence - Vancouver",
+     "role": "Parks, greenways, public trees, LiDAR index",
+     "url": "https://opendata.vancouver.ca/explore/dataset/parks-polygon-representation/information/"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P05-S01",
+   "title": "Vancouver Official Development Plan, plain-text version (adopted by by-law 31 March 2026)",
+   "url": "https://vancouver.ca/files/cov/odp-vancouver-plain-text-version.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "official development plan (by-law)",
+   "opened": true,
+   "extract": "Part 5 s.4 Ecology: 4.2.3 canopy 30% by 2050; 4.2.5 naturally managed areas; Map 7 corridors conceptual; Big Idea 3. Regional table cites Metro 2050 canopy 32% to 40% by 2050. No City in Nature or L2.3.1 text found in 235 pages."
+  },
+  {
+   "id": "P05-S02",
+   "title": "Ecology and land use planning (City page)",
+   "url": "https://vancouver.ca/home-property-development/ecology-and-land-use-planning.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "Core, stepping stone and corridor network approach; ESAs identified; Ecological Network map PDF; supports ODP Big Idea Climate Protection and Restored Ecosystems."
+  },
+  {
+   "id": "P05-S03",
+   "title": "Ecology and Land Use Planning FAQ",
+   "url": "https://vancouver.ca/files/cov/ecology-and-land-use-planning-faq.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "FAQ",
+   "opened": true,
+   "extract": "Cores are large natural areas such as Stanley Park; stepping stones such as Renfrew Ravine; corridors are linear park-like streets; corridor locations are general areas of opportunity; ESA identification adds no new regulation."
+  },
+  {
+   "id": "P05-S04",
+   "title": "Rezoning Policy for Sustainable Large Developments (amended 31 March 2026)",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "rezoning policy",
+   "opened": true,
+   "extract": "Block qualifies (8,000 m2 or 45,000 m2). A.3.1 park dedication; A.3.3 setbacks required, relaxable; A.3.4-3.5 habitat and tree retention; A.3.6 canopy; A.3.8 soil; A.4.1(d)(h)(i) assessments; B.3.1 three food assets; D.3.2-3.3 water; E.3.1-3.2 groundwater."
+  },
+  {
+   "id": "P05-S05",
+   "title": "Sustainable Large Developments Admin Bulletin (R019), last amended 12 July 2024",
+   "url": "https://guidelines.vancouver.ca/bulletins/R019.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "administrative bulletin",
+   "opened": true,
+   "extract": "Type C = single parcel over excavated parkade. Canopy A 20-25%, B 15-20%, C 10-15%; cover A 30%, B 40%. 1.1 roof planters cast in place wherever possible; 1.2.1 arborist report; 4.1.1.2 outdoor baseline L/month, July; 2.1 eight food asset types."
+  },
+  {
+   "id": "P05-S06",
+   "title": "Higher Buildings Policy (amended through 31 March 2026)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "policy",
+   "opened": true,
+   "extract": "s.1-2: applies to buildings entering the Queen Elizabeth Park or other view corridors; 2.1(a) design excellence; 2.1(c) highest buildings about 550-700 ft in the CBD; 2.2 energy or Passive House; no ecology, bird or rainwater clause."
+  },
+  {
+   "id": "P05-S07",
+   "title": "Green Buildings Policy for Rezonings (last amended 27 November 2024)",
+   "url": "https://guidelines.vancouver.ca/policy-green-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "rezoning policy",
+   "opened": true,
+   "extract": "Embodied carbon design report, resilient buildings worksheet, enhanced commissioning, sub-metering; no rainwater, bird or ecology requirement in this version."
+  },
+  {
+   "id": "P05-S08",
+   "title": "City-wide Design and Development Guidelines, Council report RTS 18459 with Appendix A (draft), 28 July 2026",
+   "url": "https://council.vancouver.ca/20260728/documents/r2.pdf",
+   "publisher": "City of Vancouver (Council)",
+   "year": "2026",
+   "type": "council report / design guidelines",
+   "opened": true,
+   "extract": "S4.5.1 CSLA depths; G4.5.1-4.5.7 planting, G4.5.6 maintenance plan; 4.6 Water Wise; 4.8 refer to Bird Friendly; 4.9 solar access; 4.10 views; 4.15 West Georgia trees; 4.18 Downtown character areas; S1.7.1 setback 0.9 m."
+  },
+  {
+   "id": "P05-S09",
+   "title": "City-wide Design and Development Guidelines (City page)",
+   "url": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "Council approved 28 July 2026; takes effect 27 October 2026; applies to most conditional development permit and rezoning applications; final guidelines to be posted (only the council report linked on 21 Oct 2026)."
+  },
+  {
+   "id": "P05-S10",
+   "title": "Vancouver Building By-law 2025, Book II insert pages (Art. 2.4.2.5 Rainwater Management and Notes)",
+   "url": "https://vancouver.ca/files/cov/2025-vbbl-book-II-insert-pages.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "by-law",
+   "opened": true,
+   "extract": "2.4.2.5 engineered pathway: detention by Modified Rational Method, 10-year 2100 IDF; 5 then 25 L/s/ha; orifice >= 25 mm; example 58.1 m3. Rainwater systems need an operating permit and two-monthly reporting; 2.7.1.2 bars harvesting groundwater."
+  },
+  {
+   "id": "P05-S11",
+   "title": "Rainwater management on private property (City page)",
+   "url": "https://vancouver.ca/home-property-development/rainwater-management.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "Engineered pathway for sites over 1,000 m2 or FSR over 1.0; permits opened after 1 Jan 2026 follow By-law 14343 as amended by 14488; rezoning-policy rainwater requirements removed from Zoning and Development By-law 1 Jan 2024; site conditions may continue."
+  },
+  {
+   "id": "P05-S12",
+   "title": "Engineering Design Manual, Section 5.2 amendment (11 February 2025)",
+   "url": "https://vancouver.ca/files/cov/amendment-to-section-5.2-engineering-design-manual.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "design manual",
+   "opened": true,
+   "extract": "Table 5-1 CBD C 0.95; Table 5-2 roofs, pavement 0.95; flat green roof 0.30 (>150-250 mm), 0.40 (>100-150), 0.50 (>60-100); lawns 0.08-0.30; 2100 IDF 10-year A 26.651, B -0.482; inlet time 5 min."
+  },
+  {
+   "id": "P05-S13",
+   "title": "Rainwater Management Project Summary form (permits opened in 2026)",
+   "url": "https://vancouver.ca/files/cov/rainwater-management-form-2026.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "form",
+   "opened": true,
+   "extract": "Engineered pathway form: first-stage capacity 15 mm x site area without landscaping; release <= 5 L/s/ha first stage, <= 25 L/s/ha second; sealed calculations and Schedule B."
+  },
+  {
+   "id": "P05-S14",
+   "title": "Rain City Strategy",
+   "url": "https://vancouver.ca/files/cov/rain-city-strategy.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2019",
+   "type": "strategy",
+   "opened": true,
+   "extract": "Capture and clean 90% of average annual rainfall; design standard 48 mm (private by 2022). Over 33 billion L combined sewage discharged in 2018; ILWRMP aims to prevent combined sewer overflows by 2050."
+  },
+  {
+   "id": "P05-S15",
+   "title": "Green rainwater infrastructure policies and reports (City page)",
+   "url": "https://vancouver.ca/home-property-development/green-rainwater-infrastructure-policies-and-reports.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "Target: capture and clean 90% of rainwater; performance standard 48 mm per day; links Green Buildings Policy, RPSLD, R019 and Groundwater Management Bulletin."
+  },
+  {
+   "id": "P05-S16",
+   "title": "GRI Pathways Study - Summary Sheet",
+   "url": "https://vancouver.ca/files/cov/gri-pathways-study-summary-sheet.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "study summary",
+   "opened": true,
+   "extract": "States Rain City performance targets (24 and 48 mm/day) are superseded on private property by Building By-law requirements; high-rise non-residential with full-site parkade has no landscape-based pathway at 48 mm."
+  },
+  {
+   "id": "P05-S17",
+   "title": "Green roofs (City page)",
+   "url": "https://vancouver.ca/green-vancouver/green-roofs.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "Extensive medium usually 150 mm or less; intensive 300-900 mm or more; semi-intensive 60-900 mm; layers; co-benefits; cites Roehr and Kong runoff reduction 29% and 58%."
+  },
+  {
+   "id": "P05-S18",
+   "title": "Green roofs with low and high water use plants: runoff and irrigation summary table (Roehr and Kong 2010)",
+   "url": "https://vancouver.ca/files/cov/green-roof-rainwater-runoff-and-irrigation-needs-summary-table.pdf",
+   "publisher": "City of Vancouver (citing Canadian Water Resources Journal 35(1))",
+   "year": "2010",
+   "type": "study summary (modelled)",
+   "opened": true,
+   "extract": "Traditional roof runoff 2,578 m3/ha/yr; low-water plants (Kc 0.3) cut 29%, summer deficit 54.4 mm (8.6 mm with 50 mm tray); high-water plants (Kc 0.6) cut 58%, deficit over 200 mm."
+  },
+  {
+   "id": "P05-S19",
+   "title": "Rain City Green Roof Best Practices Guide",
+   "url": "https://vancouver.ca/files/cov/rain-city-green-roof-best-practices-guide.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "guide",
+   "opened": true,
+   "extract": "Wind exposure rises with height; windbreaks; roofs must resist wind uplift and lateral pressure; extensive 60-150 mm, intensive over 300 mm; about 95 recommended plants; qualitative only on wind and sun."
+  },
+  {
+   "id": "P05-S20",
+   "title": "Vancouver Building By-law 2025, Book I (Volume 1)",
+   "url": "https://vancouver.ca/files/cov/vbbl-2025-volume-1-v1-0.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "by-law",
+   "opened": true,
+   "extract": "Art. 5.2.2.2(6): wind resistance of vegetated roof assemblies per CAN/CSA-A123.24. Art. 5.6.1.2(2): vegetated roof permitted if it meets Art. 3.1.14.4, loads per ASTM E2397, waterproof roof, root barrier, retention and drainage layers."
+  },
+  {
+   "id": "P05-S21",
+   "title": "Bird Friendly Design Guidelines - Considerations for Development Permit (adopted Jan 2015, amended 16 May 2017)",
+   "url": "https://guidelines.vancouver.ca/guidelines-bird-friendly-design.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2017",
+   "type": "guideline",
+   "opened": true,
+   "extract": "Use encouraged. 2.3(a) site survey, (d) management guide, (e) monitoring; 3.3(a)(i) zone to mature tree or 4th floor, (ii) exterior markers 5 cm / 10 cm, (iii) interrupt reflective glass; (c)(i) set-back first, 0-1 m fallback, (ii) no interior landscaping near windows; (d) light; (e) grates."
+  },
+  {
+   "id": "P05-S22",
+   "title": "Bird Friendly Design Guidelines: Explanatory Note (January 2015)",
+   "url": "https://guidelines.vancouver.ca/guidelines-bird-friendly-design-explanatory-note.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2015",
+   "type": "guideline commentary",
+   "opened": true,
+   "extract": "4th floor is about 12 m; high-rise offices with reflective glass near natural areas can cause disproportionate collisions; local collision extent not scientifically assessed; habitat table (forest 3-8.5 ha, shrub 0.5-3 ha); up to six foliage layers."
+  },
+  {
+   "id": "P05-S23",
+   "title": "Vancouver Bird Strategy (January 2015, updated December 2020)",
+   "url": "https://vancouver.ca/files/cov/vancouver-bird-strategy.pdf",
+   "publisher": "Vancouver Board of Parks and Recreation",
+   "year": "2020",
+   "type": "strategy",
+   "opened": true,
+   "extract": "Cover: January 2015 (Updated December 2020). 16-42 million birds collide with glass in Canada yearly; a 2017 study found the problem acute near greenspace; Barn Swallows down over 90% on the Pacific coast; names Rewilding Action Plan (2014)."
+  },
+  {
+   "id": "P05-S24",
+   "title": "Biodiversity Strategy",
+   "url": "https://vancouver.ca/files/cov/biodiversity-strategy.pdf",
+   "publisher": "Vancouver Board of Parks and Recreation",
+   "year": "2016",
+   "type": "strategy",
+   "opened": true,
+   "extract": "Goal: increase amount and ecological quality of natural areas. Target: restore or enhance 25 ha by 2020. Metric: percent of residents within a 5-minute walk of natural spaces over 0.5 ha. Green roofs recognised as urban habitat."
+  },
+  {
+   "id": "P05-S25",
+   "title": "2025 Urban Forest Strategy",
+   "url": "https://vancouver.ca/files/cov/2025-urban-forest-strategy.pdf",
+   "publisher": "City of Vancouver / Park Board",
+   "year": "2025",
+   "type": "strategy",
+   "opened": true,
+   "extract": "30% canopy by 2050; 25% in 2022; Downtown among lowest; Figure 13 50 m2 per tree assumption; Metro 40%; 3.3.1 street trees 25% maple, 19% cherry; 3.3.3 10-20-30 rule; pp.4-5 and 22 Nation-authored excerpts; Stanley Park working group with the three Nations."
+  },
+  {
+   "id": "P05-S26",
+   "title": "Climate Change Adaptation Strategy 2024-2025 Update and Action Plan",
+   "url": "https://vancouver.ca/files/cov/vancouver-climate-change-adaptation-strategy-2024-25.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "strategy",
+   "opened": true,
+   "extract": "2050s: about 2.4 degrees C warmer; three times as many days above 25 degrees C and nine times as many above 30; summer rainfall about -4%; one-day extreme rainfall +20% to 86 mm."
+  },
+  {
+   "id": "P05-S27",
+   "title": "Blue green systems (City page)",
+   "url": "https://vancouver.ca/home-property-development/blue-green-systems.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "Networks of connected park-like streets managing water and land; Rain City objectives incl. heat island mitigation; Typology Study with 9 types; designed for 1-in-10-year storms."
+  },
+  {
+   "id": "P05-S28",
+   "title": "Open Data: Public trees",
+   "url": "https://opendata.vancouver.ca/explore/dataset/public-trees/information/",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2026",
+   "type": "dataset",
+   "opened": true,
+   "extract": "184,268 records with species, height_m, diameter_cm, geometry; Open Government Licence - Vancouver; modified 19 Oct 2026 (read via the portal API metadata)."
+  },
+  {
+   "id": "P05-S29",
+   "title": "Open Data: Parks - polygon representation",
+   "url": "https://opendata.vancouver.ca/explore/dataset/parks-polygon-representation/information/",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2026",
+   "type": "dataset",
+   "opened": true,
+   "extract": "254 park polygons with area_hectare and classification; Open Government Licence - Vancouver."
+  },
+  {
+   "id": "P05-S30",
+   "title": "Open Data: LiDAR 2022 and Greenways",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/information/",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2023",
+   "type": "dataset",
+   "opened": true,
+   "extract": "LiDAR 2022 LAS tiles over 134 km2; Greenways dataset (24 records, updated weekly); catalogue search found no canopy raster, ecological-network or GRI layer."
+  },
+  {
+   "id": "P05-S31",
+   "title": "Machtans, Wedeles and Bayne (2013) Incidence of bird collisions with buildings, Canada",
+   "url": "https://www.ace-eco.org/vol8/iss2/art6/",
+   "publisher": "Avian Conservation and Ecology 8(2):6",
+   "year": "2013",
+   "type": "peer-reviewed paper",
+   "opened": true,
+   "extract": "About 25 million (16-42 million) birds a year; houses about 90%; tall buildings (over 12 storeys) under 1% but highest per-structure rates; 83% drop at McCormick Place comes from an inline Field Museum press page not in Literature Cited."
+  },
+  {
+   "id": "P05-S32",
+   "title": "UBC Bird Backgrounder (Campus and Community Planning)",
+   "url": "https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf",
+   "publisher": "UBC Campus and Community Planning",
+   "year": "2024",
+   "type": "institutional guideline",
+   "opened": true,
+   "extract": "Tiers 1/2/3 treat 90%/85%/55% of glazing up to 16 m or 4 m above tallest vegetation, plus glazing next to habitat; Tier 1 aligned with CSA; frit <= 5 x 5 cm; corners 5 m each way; grates 20x20 or 40x10 mm."
+  },
+  {
+   "id": "P05-S33",
+   "title": "CSA A460:19 Bird-friendly building design (standard)",
+   "url": "https://scc-ccn.ca/standards/notices-of-intent/csa-group/bird-friendly-building-design",
+   "publisher": "CSA Group / Standards Council of Canada",
+   "year": "2019",
+   "type": "standard (paywalled)",
+   "opened": false,
+   "extract": "Not opened; content known only through UBC and FLAP Canada summaries."
+  },
+  {
+   "id": "P05-S34",
+   "title": "Toronto Green Standard v4 (interim): Ecology and Biodiversity, mid-to-high-rise",
+   "url": "https://www.toronto.ca/city-government/planning-development/official-plan-guidelines/toronto-green-standard/toronto-green-standard-version-4/mid-to-high-rise-residential-non-residential-version-4/ecology-biodiversity/",
+   "publisher": "City of Toronto",
+   "year": "2026",
+   "type": "green standard (comparator)",
+   "opened": true,
+   "extract": "EC 1.1 (Tier 1): 30 m3 per planting area; site total 40% x site area / 66 m2 x 30 m3. EC 2.1 residential 75%, non-residential 50% or 20% soft landscape; EC 2.2; EC 2.3: voluntary from 2 June 2026. EC 5.1-5.4 bird items; modified 24 Aug 2026."
+  },
+  {
+   "id": "P05-S35",
+   "title": "Toronto Green Standard v4 (interim): Water Quality and Efficiency",
+   "url": "https://www.toronto.ca/city-government/planning-development/official-plan-guidelines/toronto-green-standard/toronto-green-standard-version-4/mid-to-high-rise-residential-non-residential-version-4/water-quality-efficiency/",
+   "publisher": "City of Toronto",
+   "year": "2026",
+   "type": "green standard (comparator)",
+   "opened": true,
+   "extract": "WQ 1.1 retain 50% of annual rainfall, about 5 mm per event; WQ 1.3 green roof 80% of available roof; Tier 2 irrigation potable reduction 60%. Retention-based comparator very different from Vancouver detention. Voluntary status not re-checked."
+  },
+  {
+   "id": "P05-S36",
+   "title": "Konijnendijk (2023) Evidence-based guidelines for greener, healthier, more resilient neighbourhoods: the 3-30-300 rule (Europe PMC full text)",
+   "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9415244/fullTextXML",
+   "publisher": "Journal of Forestry Research 34(3)",
+   "year": "2023",
+   "type": "peer-reviewed paper",
+   "opened": true,
+   "extract": "3 trees in view: the number is not supported by scientific evidence; no viewing distance; no upper floors. 30% canopy per neighbourhood. 300 m to green space of at least 1 ha (WHO 2017). Dutch example: 25 m2 canopy, 30 m buffer."
+  },
+  {
+   "id": "P05-S37",
+   "title": "Understanding biodiversity net gain (UK Government guidance)",
+   "url": "https://www.gov.uk/guidance/understanding-biodiversity-net-gain",
+   "publisher": "UK Government",
+   "year": "2026",
+   "type": "government guidance (comparator)",
+   "opened": true,
+   "extract": "Developers must deliver 10% net gain; units depend on size, quality, location and type; habitats maintained 30 years; developments of 0.2 ha or less exempt from 6 Aug 2026. Not Vancouver law."
+  },
+  {
+   "id": "P05-S38",
+   "title": "London Plan Policy G5 Urban Greening (Urban Greening Factor)",
+   "url": "https://www.london.gov.uk/programmes-strategies/planning/london-plan/new-london-plan/chapter-8-green-infrastructure-and-natural-environment/policy-g5-urban-greening",
+   "publisher": "Greater London Authority",
+   "year": "2021",
+   "type": "planning policy (comparator)",
+   "opened": false,
+   "extract": "Not opened: the site returned a bot challenge, which was not bypassed. Recalled, unverified: target scores 0.4 residential and 0.3 commercial."
+  },
+  {
+   "id": "P05-S39",
+   "title": "InVEST User Guide: Urban Cooling Model",
+   "url": "https://storage.googleapis.com/releases.naturalcapitalproject.org/invest-userguide/latest/en/urban_cooling_model.html",
+   "publisher": "Natural Capital Project",
+   "year": "2025",
+   "type": "tool documentation",
+   "opened": true,
+   "extract": "CC = 0.6 shade + 0.2 albedo + 0.2 ETI; shade = proportion covered by tree canopy 2 m or taller (building shade not included); ETI = Kc x ETo / ETmax; 2 ha green-area rule; cooling distance 450 m."
+  },
+  {
+   "id": "P05-S40",
+   "title": "Using Green Roofs to Reduce Heat Islands (US EPA)",
+   "url": "https://www.epa.gov/heatislands/using-green-roofs-reduce-heat-islands",
+   "publisher": "US Environmental Protection Agency",
+   "year": "2025",
+   "type": "government guidance (context)",
+   "opened": true,
+   "extract": "Green-roof surfaces can be 56 degrees F cooler; runoff reduction 60-100% (extensive to intensive, event-based). Not comparable with Vancouver's modelled annual 29-58%; context only."
+  },
+  {
+   "id": "P05-S41",
+   "title": "Higher Buildings Policy Review: public engagement exhibit",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "engagement exhibit (48 pp)",
+   "opened": true,
+   "extract": "p.6 City in Nature cites ODP L2.3.1. p.9 policy invited exceptional core projects to enter the QE view to enhance the view of the city in nature. p.12-13 highest allowed 700 ft; Bay Parkade 315 m application. Options early 2027."
+  },
+  {
+   "id": "P05-S42",
+   "title": "Solar Access Guidelines for the Downtown Peninsula (approved 17 Sept 2025, amended 29 July 2026)",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "guideline",
+   "opened": true,
+   "extract": "3.1.1 parks and school sites should get no new shadow 10:00-16:00 PT on 22 Sep; 3.2.1 plazas and miniparks minimise where possible; 3.3 village sidewalks; 4.1-4.3 special cases; 5.2 detailed study; PT = UTC-7; guidelines differ from regulations."
+  },
+  {
+   "id": "P05-S43",
+   "title": "Transport Canada Standard 621 - Obstacle Marking and Lighting (CARs)",
+   "url": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-621-obstacle-marking-lighting-canadian-aviation-regulations-cars",
+   "publisher": "Transport Canada",
+   "year": "2026",
+   "type": "federal standard",
+   "opened": true,
+   "extract": "Marking required above 150 m AGL. 5.4 Configuration A' (CL-864 only, to reduce bird fatalities) applies to towers and skeletal structures only; 5.6 prominent buildings (steady CL-810; flashing CL-864 exception); Ch.6 white CL-865; Ch.7 high-intensity white; Ch.8 dual. Read in part."
+  },
+  {
+   "id": "P05-S44",
+   "title": "Migratory Birds Convention Act, 1994 (S.C. 1994, c. 22)",
+   "url": "https://laws-lois.justice.gc.ca/eng/acts/M-7.01/FullText.html",
+   "publisher": "Government of Canada (Justice Laws)",
+   "year": "2026",
+   "type": "federal statute",
+   "opened": true,
+   "extract": "s.5 bars possession and trade of migratory birds and nests without authorization; s.13 offences; nest rules sit in the regulations (s.12). Current to 2026-09-30. First 100,000 characters read."
+  },
+  {
+   "id": "P05-S45",
+   "title": "Migratory Birds Regulations, 2022 (SOR/2022-105)",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-2022-105/FullText.html",
+   "publisher": "Government of Canada (Justice Laws)",
+   "year": "2022",
+   "type": "federal regulation",
+   "opened": true,
+   "extract": "s.5(1)(c) bars damaging, destroying, removing or disturbing a nest without authorization; s.5(1)(b) eggs; s.5(2) conditions for nests without live birds or viable eggs; Schedule 1 species have notice periods. First 100,000 characters read."
+  },
+  {
+   "id": "P05-S46",
+   "title": "Wildlife Act (BC), s.34 Wildlife protection",
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_96488_01",
+   "publisher": "Province of British Columbia (BC Laws)",
+   "year": "2026",
+   "type": "provincial statute",
+   "opened": true,
+   "extract": "s.34 protects birds and eggs; nests of eagle, peregrine falcon, gyrfalcon, osprey, heron and burrowing owl are protected at all times; other birds' nests protected while occupied. First 100,000 characters read."
+  },
+  {
+   "id": "P05-S47",
+   "title": "Integrated Stormwater Management Best Practice Toolkit, Volume II (Citywide Integrated Rainwater Management Plan, March 2016, marked FINAL DRAFT)",
+   "url": "https://vancouver.ca/files/cov/integrated-stormwater-management-best-practice-toolkit-volume-2.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2016",
+   "type": "design toolkit",
+   "opened": true,
+   "extract": "Absorbent landscapes: growing medium at least 300 mm for lawn to store 60 mm rain; organic matter 8% lawn, 15% beds; rain garden 450 mm minimum; tree well soil cells described without per-tree volumes."
+  },
+  {
+   "id": "P05-S48",
+   "title": "Public views (City page)",
+   "url": "https://vancouver.ca/home-property-development/protecting-public-views.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "web page",
+   "opened": true,
+   "extract": "10 July 2024 Council replaced the View Protection Guidelines with Public Views Guidelines; views of the North Shore Mountains remind us of our connection to nature; QE Park view among protected views. Guidelines PDF opened in r2 as P05-S50."
+  },
+  {
+   "id": "P05-S49",
+   "title": "Rewilding Vancouver Action Plan (2014), named in RPSLD A.4.1(e), the Bird Strategy and the Green Roof Guide",
+   "url": "https://vancouver.ca/files/cov/vancouver-bird-strategy.pdf",
+   "publisher": "City of Vancouver / Park Board",
+   "year": "2014",
+   "type": "action plan (not located)",
+   "opened": false,
+   "extract": "Not opened and URL not located; the link points to the Bird Strategy, which names the plan. Content unknown; RPSLD asks for a response to the Re-Wilding Strategy."
+  },
+  {
+   "id": "P05-S50",
+   "title": "Public Views Guidelines (approved 10 July 2024, last amended 4 February 2026)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "guideline",
+   "opened": true,
+   "extract": "3.1.1 no encroachment into view cones; 3.4 Exceptional Downtown Sites: parcel 8,000 m2 or more may encroach into QE Park view and B1, B2, D, 12.2; 3.4.3 keep Lions views; 3.4.6 open space and canopy; 3.4.8 UNDRIP strategy."
+  },
+  {
+   "id": "P05-S51",
+   "title": "Burrard Inlet Action Plan (Tsleil-Waututh Nation, 2017), Sacred Trust summary page",
+   "url": "https://twnsacredtrust.ca/burrard-inlet-action-plan/",
+   "publisher": "Tsleil-Waututh Nation Sacred Trust Initiative",
+   "year": "2017",
+   "type": "Nation-authored plan (summary page)",
+   "opened": true,
+   "extract": "Goal: improve inlet health by 2025. Six priority actions incl. characterise and reduce stormwater pollution, map and conserve nearshore habitat, recover shellfish beds. Full plan PDF not opened."
+  },
+  {
+   "id": "P05-S52",
+   "title": "UNDRIP Action Plan 2024-2028 (City of Vancouver with Musqueam, Squamish and Tsleil-Waututh)",
+   "url": "https://vancouver.ca/files/cov/undrip-action-plan-2024-2028.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "action plan (co-developed with the Nations)",
+   "opened": true,
+   "extract": "Action 2.4 engage the Nations on environmental initiatives; Action 2.5 review stormwater and sewage outflows and align City strategies with the Burrard Inlet Action Plan; includes Nation self-descriptions."
+  },
+  {
+   "id": "P05-S53",
+   "title": "Protection of Trees By-law No. 9958 (consolidated to 9 December 2025)",
+   "url": "https://bylaws.vancouver.ca/9958c.PDF",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "by-law",
+   "opened": true,
+   "extract": "s.2.2 exempts trunks under 20 cm at 1.4 m; s.2.4 Park Board exemption; s.4.1 permit to remove; s.6.2 cash-in-lieu $1,000; s.6.3 replacement; s.7.1-7.2 survey and arborist report; Schedule C count; Schedule D text not extracted."
+  },
+  {
+   "id": "P05-S54",
+   "title": "Groundwater Management Bulletin (last amended 17 February 2026)",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-groundwater-management.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "administrative bulletin",
+   "opened": true,
+   "extract": "Hydrogeological study for sites subject to RPSLD; areas of concern include Coastal Floodplain (Burrard Inlet, English Bay, False Creek); no permanent discharge to sewers; sewer system not designed for groundwater; overflow and ecosystem concerns."
+  },
+  {
+   "id": "P05-S55",
+   "title": "Water Wise Landscape Guidelines (adopted 2009, amended 20 July 2022)",
+   "url": "https://guidelines.vancouver.ca/guidelines-water-wise-landscape.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2022",
+   "type": "guideline",
+   "opened": true,
+   "extract": "Qualitative: native and adaptive plants, soil amendment to 150-300 mm continuous depth, lawn alternatives, plant lists in Appendix C; no numeric lawn share. Required reference in RPSLD D.3.3 and CDDG 4.6."
+  },
+  {
+   "id": "P05-S56",
+   "title": "West Georgia Street Tree and Sidewalk Design Guidelines (approved 14 May 1998)",
+   "url": "https://guidelines.vancouver.ca/guidelines-downtown-west-georgia-street.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1998",
+   "type": "guideline",
+   "opened": true,
+   "extract": "Street trees reach 14 m height with 8-9 m spread; two red maple cultivars (October Glory, Scanlon); Park Board gives final species approval; objective includes an ecological link to Stanley Park."
+  },
+  {
+   "id": "P05-S57",
+   "title": "DD (except Downtown South), C-5, C-6, HA-1 and HA-2 Character Area Descriptions (amended 17 September 2025)",
+   "url": "https://guidelines.vancouver.ca/guidelines-downtown-character-area-descriptions.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "guideline",
+   "opened": true,
+   "extract": "Character area roles, links to the waterfront, Georgia Street as ceremonial boulevard, tree canopy at Library Square; no numeric ecology rule found in the passages searched. CDDG 4.18 sends Downtown sites here."
+  },
+  {
+   "id": "P05-S58",
+   "title": "LEED v4 Outdoor Water Use Reduction Calculator (USGBC), named in R019 4.1.1.2",
+   "url": "https://www.usgbc.org/resources/outdoor-water-use-reduction-calculator",
+   "publisher": "U.S. Green Building Council",
+   "year": "2018",
+   "type": "calculator",
+   "opened": false,
+   "extract": "Not opened. R019 requires its Baseline Calculation and Landscape Water Requirement tabs for the outdoor water balance."
+  },
+  {
+   "id": "P05-S59",
+   "title": "Canadian Landscape Standard (CSLA / CNLA)",
+   "url": "https://www.csla-aapc.ca/standard",
+   "publisher": "Canadian Society of Landscape Architects",
+   "year": "2024",
+   "type": "standard (members or purchase)",
+   "opened": false,
+   "extract": "Not opened by me. Critique reported access for CSLA and CNLA members or by purchase; obtain through a member or the UBC library. RPSLD A.3.8 refers to it for soil depth."
+  },
+  {
+   "id": "P05-S60",
+   "title": "Field Museum press page on McCormick Place bird deaths (cited inline by Machtans et al. 2013)",
+   "url": "http://archive.fieldmuseum.org/museum_info/press/press_birds.htm",
+   "publisher": "Field Museum",
+   "year": "n.d.",
+   "type": "press page (secondary, non-peer-reviewed)",
+   "opened": false,
+   "extract": "Not opened. Machtans cites it for an 83% drop in mortality once lights were turned off; undated and not in the paper's Literature Cited."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rainwater requirements for the tower come through rezoning policy and the Rain City 48 mm/day standard binds private sites.",
+   "correction": "Rainwater rules were simplified in the rezoning policies in July 2023 and removed from the Zoning and Development By-law on 1 Jan 2024. The Vancouver Building By-law 2025, Book II Art. 2.4.2.5 now governs: engineered pathway for sites over 1,000 m2, detention with 10-year 2100 IDF, release 5 then 25 L/s/ha. The City says Rain City 48 mm targets are superseded on private property; they remain an aspiration.",
+   "detail": "Sources P05-S10, P05-S11, P05-S16, P05-S07. Governing text for permits opened after 1 Jan 2026 is By-law 14343 as amended by 14488. The 48 mm number is kept as a valid city_aspiration; only bindingness is struck through.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The city-wide canopy target is 22% by 2050.",
+   "correction": "30% by 2050 (Park Board 7 Dec 2020; Urban Forest Strategy 2025; ODP policy 4.2.3).",
+   "detail": "The R019 bulletin text (July 2024) still quotes 22%; its Type C site target of 10-15% canopy is separate and still stands. Sources P05-S05, P05-S25, P05-S01.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 1997 Higher Buildings Policy linked in the VTC brief is the governing text and sets ecology or City in Nature criteria.",
+   "correction": "The same URL now returns the policy amended through 31 March 2026. It sets design excellence, community benefit and energy/GHG (or Passive House) requirements and has no ecology, bird or rainwater clause; the Green Buildings Policy for Rezonings applies.",
+   "detail": "Ecology obligations come from the ODP (adopted 31 March 2026), RPSLD, R019 and the CDDG (effective 27 Oct 2026). The City in Nature framing sits in the engagement exhibit. Sources P05-S06, P05-S04, P05-S05, P05-S09, P05-S41.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "'City in Nature' has no official definition: the phrase is not in official text and the nearest framing is ODP Big Idea 3 plus Part 5 s.4 Ecology.",
+   "correction": "The City's Higher Buildings Policy Review exhibit has a section 'A City in Nature' citing ODP policy L2.3.1: buildings and sites provide space for nature, and views and connections to mountains, water and landscapes are protected. M01 has two halves: space for nature (M02-M07) and views (SITE, M08).",
+   "detail": "Read in full (48 pp) on 21 Oct 2026. L2.3.1 not found in the adopted ODP plain text (235 pp) or draft ODP (104 pp), so clause location is unverified. Sources P05-S41, P05-S01, P05-S48.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vancouver Bird Friendly Design Guidelines require marker gaps <= 5 cm vertical AND <= 10 cm horizontal (P05-M05 metric, status verified).",
+   "correction": "Clause 3.3(a)(ii) says no greater than 5 cm vertically or 10 cm horizontally, markers on the exterior surface; use is 'encouraged', not required. M05 passes a pattern meeting either limit (dots meet both); unit test: a 5 cm horizontal-stripe frit passes.",
+   "detail": "Read in the City PDF (May 2017 amendment) on 21 Oct 2026. Source P05-S21.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "'At least 3 mature trees visible from each dwelling or workplace' is a verified threshold (P05-M08).",
+   "correction": "The paper says the number 3 is not supported by scientific evidence, sets no viewing distance and ignores upper floors. M08 treats it as a research_heuristic with the paper's Dutch example (crowns of at least 25 m2 within a 30 m buffer), reported per floor band.",
+   "detail": "Konijnendijk 2023, Europe PMC full text. Not Vancouver policy. Above about 10-15 storeys only terraces and sky gardens can satisfy it (team estimate). Source P05-S36.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Toronto Green Standard v4 EC 2.1, EC 2.2 and EC 2.3 are current Toronto Tier 1 requirements, and EC 2.1 is 50% for a mixed-use tower.",
+   "correction": "Toronto marks EC 2.1, 2.2 and 2.3 voluntary for applications on or after 2 June 2026 (page modified 24 Aug 2026). EC 2.1 is 75% for residential uses and 50% for non-residential; M06 chooses the line per frontage.",
+   "detail": "EC 1.1 (30 m3) and EC 5.1-5.4 show no voluntary note. Re-check before use. Source P05-S34.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "50 m2 of canopy per tree is the City's own planning figure.",
+   "correction": "It is a footnote assumption for UFS Figure 13 (assumes 50 m2 of canopy per tree), not a standard. Calculations use species crowns; 50 m2 only sizes the illustrative tree count.",
+   "detail": "Source P05-S25.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "R019 quotes 22% only as the outdated city-wide canopy goal.",
+   "correction": "R019 1.2.1 also says larger sites (Type A and B) should target a minimum 22% canopy, which conflicts with its own Type B band of 15-20%. M02 shows both for Type A/B and flags the inconsistency; Type C (10-15%) is unaffected.",
+   "detail": "R019 July 2024, 1.2.1 and 1.2.2. Source P05-S05.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Vancouver Bird Strategy is a 2015 document.",
+   "correction": "The cover reads 'January 2015 (Updated December 2020)'; cite it as 2020 (update). The 2017 study it cites appears only in the update.",
+   "detail": "Source P05-S23.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A 'verified' status means a threshold binds the project.",
+   "correction": "Status records only whether the source says it (verified = read at source; unverified = not opened or partly read; team_assumption = no source gives the value). A required force field records bindingness; M01 pass/fail counts only bylaw_requirement and rezoning_policy_requirement.",
+   "detail": "Without force, 3-30-300, Roehr and Kong values, 'should strive' targets and voluntary guidelines read like by-law items. Sources P05-S04, P05-S10, P05-S21, P05-S36.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The InVEST cooling shade term can include the tower's own shadow, so shading by the tower raises cooling capacity.",
+   "correction": "InVEST defines shade as tree canopy 2 m or taller; building shade is not in the index. M06 credits only vegetation and designed shade, reports building shade separately, and pairs CC with the fall-equinox new-shadow check.",
+   "detail": "Solar Access Guidelines also exclude tree shadows from the shadow baseline. Sources P05-S39, P05-S42, P05-S41.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The bird-collision zone top is 12 m (4th floor, Explanatory Note).",
+   "correction": "Vancouver's clause says up to the fourth floor or mature tree height, whichever is highest. A supertall podium with tall retail, lobby and transit storeys can put the 4th storey top well above 12 m, so the zone is computed from Layer 0 storey levels; 12 m and 16 m are comparators.",
+   "detail": "Sources P05-S21, P05-S22. Team illustration: 24 m zone on a 448 m perimeter = 10,752 m2.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Bird-glazing percentages (Toronto 85%, UBC 90%, 85%, 55%) and marker spacings apply to the VTC tower.",
+   "correction": "Vancouver's guidelines are voluntary for development permits and set no percentage; only the risk-zone rule and marker gaps are Vancouver text. Toronto and UBC numbers were read at source; CSA A460:19 was not opened.",
+   "detail": "CDDG (effective 27 Oct 2026) and RPSLD A.4.1(e) require a response to the guidelines, not a number. Sources P05-S21, P05-S32, P05-S34, P05-S33, P05-S04.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The consolidated VTC block is R019 Site Type C (single parcel).",
+   "correction": "R019 defines Type C as a single-parcel large site that occasionally qualifies under the Higher Buildings Policy, usually over an excavated parkade, which supports the choice. Several towers under separate permits with most open space on structure suggest Type B (15-20% canopy, 40% cover).",
+   "detail": "Editable in P05-M01 and P05-M02. Source P05-S05.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Soil-limited crown credit, interior-planting distance d, the 23:00 interior-light hour, migration lights-out dates and the life-safety gate list are team constructs.",
+   "correction": "Each is editable and labelled TEAM ASSUMPTION; no Vancouver source gives these numbers. In r2 the soil rule uses Toronto's 30 m3 per tree as floor for all size classes; any scaling above it is off by default.",
+   "detail": "Affects P05-M02, M03 and M05. Sources P05-S34, P05-S21.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Vancouver uses an urban greening factor, biotope area factor or similar area-weighted index.",
+   "correction": "None found. No such index appears in the ODP, the draft CDDG, the Green Buildings Policy, RPSLD, R019 or the Building By-law; Vancouver uses canopy % and vegetative-cover % by site type, CSLA soil depths and the rainwater by-law. This is absence of evidence from text searches, so confirm with a City planner.",
+   "detail": "London UGF (recalled, unverified: 0.4 residential, 0.3 commercial), Berlin BAF, Seattle Green Factor and Singapore Green Plot Ratio pages could not be opened or were not located. Sources P05-S01, P05-S08, P05-S38.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The CDDG text read is final.",
+   "correction": "The text opened is Appendix A marked DRAFT in the 28 July 2026 Council report; the City says final guidelines will be posted and take effect 27 October 2026. Re-check clause numbers (S4.5.1, G4.5.x, S1.7.1, 4.6, 4.8-4.10, 4.15, 4.18) against the final.",
+   "detail": "Sources P05-S08, P05-S09.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "'City in Nature' has an official, measurable definition.",
+   "correction": "The City cites ODP policy L2.3.1 (space for nature; views and connections) in its engagement exhibit, but no numeric measure exists and the clause was not found in the adopted or draft ODP text, so its location is unverified. The M01 composite is a team construct and weights are team assumptions.",
+   "detail": "Sources P05-S41, P05-S01.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Green-roof runoff reductions can be applied to the tower podium and roofs directly.",
+   "correction": "Roehr and Kong (29% and 58% annual) is modelled for Vancouver at 150 mm medium. The EPA's 60-100% is event-based and US-centric. Do not mix them; use the City figures and state the depth.",
+   "detail": "Sources P05-S18, P05-S19, P05-S40.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "ODP Map 7 ecological corridors create site obligations or can be used as a dataset.",
+   "correction": "Corridor alignments are conceptual and subject to change; ESA identification adds no new regulation; the map is an image and the open-data catalogue returned no ecological-network layer.",
+   "detail": "Sources P05-S01, P05-S03, P05-S30.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A flashing-only obstruction-light configuration can be used on the VTC tower to reduce bird collisions.",
+   "correction": "Resolved in r2: Standard 621 s.5.4 limits Configuration A' to towers and similar skeletal structures, so it is not available to a building. See the r2 FALSE_ASSUMPTION on obstruction lighting.",
+   "detail": "Standard text read in part. Source P05-S43.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The Re-Wilding Strategy and the Public Views Guidelines add no further numeric ecology or view requirements for this block.",
+   "correction": "Public Views Guidelines opened in r2 (P05-S50): 3.1.1 no encroachment; 3.4 Exceptional Downtown Sites pathway; no numeric ecology content. RPSLD A.4.1(e) still asks a response to the Re-Wilding Strategy, whose 2014 Action Plan was not located.",
+   "detail": "Sources P05-S04, P05-S49, P05-S50, P05-S08.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Thresholds exist for wind and sun hours on terraces, tree anchorage at height, CSLA soil depths, and heat-island performance in Vancouver.",
+   "correction": "None found in the sources opened; the P05-M03 and P05-M06 values are editable presets or borrowed comparators and are labelled. The life-safety gates need a registered professional.",
+   "detail": "See unresolved_relationships.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Entering the Queen Elizabeth Park view cone is a protected-view intrusion that counts against City in Nature half (b) unless justified (M01, M08).",
+   "correction": "The Higher Buildings Policy is the pathway for buildings entering the QE Park view, and Public Views Guidelines 3.4 lets Exceptional Downtown Sites (parcel 8,000 m2 or more) encroach into view 3 and B1, B2, D, 12.2. Score only non-listed cones; report QE entry as a pathway card with a skyline-contribution judgment.",
+   "detail": "HBPR p.9: the policy invited exceptional core-downtown projects to enter the QE view to enhance the view of the city in nature. HBP s.1-2.1; PVG 3.1.1, 3.4. Sources P05-S41, P05-S06, P05-S50.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Standard 621 flashing-only Configuration A' is a possible bird-friendly obstruction-lighting option for the VTC building, pending Transport Canada acceptance (M05).",
+   "correction": "s.5.4 information note limits A' to towers and similar skeletal structures. Buildings fall under s.5.6 (steady CL-810; flashing CL-864 only where early or special pilot warning is needed), Chapter 6 (white CL-865) or Chapter 7 (high-intensity white, not for 150 m or less).",
+   "detail": "Fig 5-3 text calls steady CL-810 attractive to birds (guyed towers); applying it to buildings is by analogy. Standard read in part. Source P05-S43.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "R019 outdoor potable-water baseline = 120 mm x landscaped area, with no period stated (M04).",
+   "correction": "R019 4.1.1.2: baseline is monthly, in L/month, for July (ETo 120 mm): 120 mm x total proposed landscaped area (planted landscapes on structures included), with the LEED v4 calculator and Table 2 climate normals; RPSLD D.3.3 also requires the Water Wise Landscape Guidelines.",
+   "detail": "Same area in baseline and proposed unless justified. Unit test: 1,000 m2 gives 120,000 L/month. Sources P05-S05, P05-S04, P05-S55, P05-S58.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Solar Access Guidelines say development should cast zero new shadow on all listed parks and plazas on the fall equinox 10:00-16:00 PT (M06, force rezoning_target).",
+   "correction": "Only Community, Neighbourhood and Local parks and school sites get the should-not rule (3.1.1). Plazas and West End miniparks: minimise where possible (3.2.1). Special cases: 4.1-4.3 and village sidewalks (3.3). Guidelines are discretionary, so force is voluntary_guideline.",
+   "detail": "Times in PT (UTC-7); the Victory Square test uses PST on 11 Nov. Source P05-S42.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vancouver advises planting 0-1 m from glass (M05).",
+   "correction": "Bird Friendly 3.3(c)(i) asks first for landscaping at an appropriate distance from glass to reduce reflections; 0-1 m adjacent, or making glass visible, is the fallback.",
+   "detail": "Source P05-S21. 3.3(a)(iii) and 3.3(b) also ask to interrupt and dampen reflections; 2.3(d)-(e) ask a management guide and monitoring.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "R019 requires permanent cast-in-place roof planters and no containers (M03 life-safety gate).",
+   "correction": "R019 1.1 says roof tree planters should be permanent, substantial and cast in place wherever possible, and to avoid container planting: a design consideration. The gate is advisory; registered-professional anchorage design remains the binding judgment.",
+   "detail": "Source P05-S05.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Toronto EC 1.1 supports size-class soil presets below 30 m3 for small and medium trees at 0.6 m3 per m2 of crown (M02).",
+   "correction": "EC 1.1 gives 30 m3 per separate planting area regardless of tree size, plus a site total of 40% x site area / 66 m2 x 30 m3 (about 2,085 m3 for 11,468 m2). Use 30 m3 per tree as floor; any size scaling is a team assumption.",
+   "detail": "Page modified 24 Aug 2026; EC 1.1 is not marked voluntary. Team calculation of 2,085 m3. Source P05-S34.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "VTC towers of 244-305 m fit the current Higher Buildings Policy.",
+   "correction": "HBP 2.1(c) sets the highest buildings at about 550-700 ft (700 ft = 213 m); HBPR p.12 shows 700 ft as the highest allowed. VTC heights exceed it; the City's review (options early 2027) may change this.",
+   "detail": "The Bay Parkade application (315 m) sits just outside the current HBP boundary. SITE packet owns view and height checks. Sources P05-S06, P05-S41, P05-S50.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The cultural_context_30 jury tag can sit on any ecology indicator (r1 tagged M01, M02, M05, M07, M08).",
+   "correction": "Tag only where a Nation-authored or co-developed source, or a human-judgment card with author, backs it: M01 views card, M04 receiving-water card, M07 culturally traditional species card, M08. Removed from M02 and M05. No Indigenous plant names or knowledge on boards without a published Nation source or permission.",
+   "detail": "Sources: Tsleil-Waututh Burrard Inlet Action Plan summary page, UNDRIP Action Plan 2024-2028, UFS Nation excerpts. The rule is the team's. Sources P05-S51, P05-S52, P05-S25.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "An 83% drop in bird deaths after lights-out at a Chicago site is peer-reviewed evidence (M05).",
+   "correction": "Machtans cites it from an undated Field Museum press page that is not in its Literature Cited. Label it secondary and non-peer-reviewed and keep it out of any threshold. Tall buildings there are over 12 storeys, under 1% of kills nationally.",
+   "detail": "Sources P05-S31, P05-S60 (not opened).",
+   "raised_in_round": 2
+  }
+ ],
+ "unresolved_relationships": [
+  "Soil volume per tree versus achievable mature crown area for trees over structure: CSLA depths are members-or-purchase and unopened; the IRMP toolkit gives lawn and rain-garden depths only; RPSLD A.3.8 says staff set a case-by-case standard. Toronto's 30 m3 per tree is only a comparator floor; any crown-credit scaling is a team assumption.",
+  "Wind speed at terrace height versus plant survival and tree anchorage loads: the City Green Roof Guide is qualitative and no Canadian standard for tree anchorage at height was found; needs a CLIM wind study plus a wind or structural engineer.",
+  "Direct sun hours versus plant class (full sun, part shade): no Vancouver source found; presets would follow horticultural convention and must be flagged team assumption.",
+  "Effect of night lighting and obstruction-light type on bird collision rate for a 244-305 m building: Standard 621 limits flashing-only A' to towers; no source found on bird effects of the building options (s.5.6 red, Chapter 6 white CL-865, Chapter 7 high-intensity white); Machtans gives only national shares.",
+  "Quantified effect of podium and tower-top greening on pedestrian-level temperature on this site: InVEST weights are general; no Vancouver coefficient found; would need UMEP/SOLWEIG or ENVI-met style simulation.",
+  "Whether non-potable reuse storage can count toward the By-law detention volume: not stated in the by-law text opened; ask rainwater@vancouver.ca.",
+  "Minimum albedo, reflectance or SRI for Vancouver roofs and paving: no City requirement found; Toronto values (now voluntary) used as presets.",
+  "Stepping-stone distance or patch-size thresholds for a 1.15 ha block to function as ecological connection to Stanley Park: the City defines cores, stepping stones and corridors but gives no numeric criteria.",
+  "Species-specific mature crown growth rates and time to maturity in Vancouver conditions (R019 says forecast at maturity without a table).",
+  "Reflectance or threat-factor limits for glazing (for example ABC material threat factor, visible-light reflectance): not opened; CSA A460:19 is paywalled.",
+  "Location and wording of ODP policy L2.3.1 'City in nature, nature in the city': cited in the HBPR exhibit p.6 but not found in the adopted or draft ODP plain text; check the Vancouver Plan 2022 text or ask a City planner.",
+  "How to count trees in view from floors above about 10-15 storeys (team estimate): the 3-30-300 paper gives no viewing distance or upper-floor rule; an angular-size minimum is an alternative to the 30 m buffer.",
+  "QE Park view entry: partly resolved in r2 (Public Views Guidelines 3.4 and Higher Buildings Policy give the pathway). Still open: heights above 700 ft (213 m) fall outside HBP 2.1(c), the review reports options in early 2027, and the SITE packet owns the view calculation and how Council applies 3.4.",
+  "Park dedication area the Park Board would require for a 1.15 ha site (RPSLD A.3.1, 1.1 ha per 1,000 residents metric to be updated): case by case; affects buildable area and canopy base.",
+  "Content of the Re-Wilding Strategy / Rewilding Action Plan 2014 that RPSLD A.4.1(e) asks applicants to respond to: not located or opened.",
+  "Site water-table depth versus basement and tank depth (RPSLD E, Groundwater Management Bulletin): needs a hydrogeological study; not modelled in M04.",
+  "Which authority or program sets Vancouver migration-season lights-out dates: none found in the sources opened; dates in M05 are a team assumption.",
+  "Sewer type (combined or separated) at the VTC block and a City open-data source for it: Rain City reports combined sewers and overflows citywide, but no block-level layer was found.",
+  "Which Musqueam and Squamish authored ecological sources apply to a downtown block: only the Tsleil-Waututh Burrard Inlet Action Plan summary page, the UNDRIP Action Plan and UFS Nation excerpts were opened; outputs of the Stanley Park Intergovernmental Working Group were not found.",
+  "Solar Access 5.2.1(c) coverage formula: the text layout reads total shadow area over 25 intervals divided by (space area x 25); confirm the reading with a City planner. Which Table 1 spaces the block shadows depends on SITE geolocation and massing.",
+  "Effects of artificial light at night on insects, bats and shoreline fauna: no source opened; M05 covers birds only.",
+  "Protection of Trees By-law Schedule D (replacement tree types and sizes) was not extracted from the PDF; Schedule C implies about 194 trees for an 11,468 m2 site (team calculation), which makes the s.6.2 cash-in-lieu route unlikely.",
+  "LEED v4 Outdoor Water Use Reduction Calculator inputs (Landscape Water Requirement tab) were not opened, so the proposed outdoor demand cannot be reproduced offline until obtained.",
+  "Whether the block fronts West Georgia Street (1998 red maple guideline, CDDG 4.15) or another Downtown character area (CDDG 4.18): depends on SITE; DD Character Area Descriptions contain no numeric ecology rule in the passages searched."
+ ],
+ "change_log": [
+  "2026-10-21 v0.1: Packet P05 drafted. 8 modules (M01 scorecard, M02 canopy/soil/cover, M03 greening at height, M04 rainwater, M05 bird glazing and lighting, M06 heat island, M07 habitat, M08 connectivity), 40 sources of which 38 opened.",
+  "Mapped current governing documents: ODP adopted 31 Mar 2026 (Ecology Part 5 s.4), Higher Buildings Policy and Rezoning Policy for Sustainable Large Developments amended 31 Mar 2026, Green Buildings Policy for Rezonings (27 Nov 2024), CDDG approved 28 Jul 2026 and effective 27 Oct 2026, Building By-law 2025 rainwater rules for permits opened after 1 Jan 2026.",
+  "Corrected: rainwater is regulated by the Building By-law (detention, 5 and 25 L/s/ha) rather than rezoning policy or the Rain City 48 mm standard (kept visible as false_assumption_corrected). Corrected canopy goal 22% -> 30% by 2050.",
+  "Added verified quantitative anchors: R019 Type C canopy 10-15%; EDM 5.2 runoff coefficients and 2100 IDF (A 26.651, B -0.482); detention worked example reproduced independently (58.0-58.1 m3).",
+  "Marked as team assumptions: bird-glazing percentages, marker alternatives, Toronto-based heat-island and native-planting presets, lawn share, composite weights. London UGF and CSA A460:19 not opened (flagged).",
+  "r1: BLOCKER fixed. Opened the HBPR engagement exhibit (new S41); M01 re-anchored to both halves of ODP L2.3.1 (space for nature; views and connections), with a typed SITE views input, a protected-view metric tagged cultural context, and a two-half panel. Clause location marked unverified; UNRESOLVED flag rewritten; FALSE_ASSUMPTION added.",
+  "r1: BLOCKER fixed. M05 marker-gap rule corrected from AND to OR per Bird Friendly 3.3(a)(ii) (exterior surface kept); unit test added (5 cm horizontal-stripe frit passes); metric set to false_assumption_corrected; flag added.",
+  "r1: BLOCKER fixed. Added a required force field (8 classes) to every metric; status now means source verification only. M01 pass/fail counts only bylaw_requirement and rezoning_policy_requirement; targets and guidelines are dotted rings, comparators, heuristics and team items dashed. Radar uses uncapped signed margins; zero-threshold counts plot as pass/fail.",
+  "r1: M08 3-trees metric relabelled research_heuristic and false_assumption_corrected; defined as crowns of at least 25 m2 within a 30 m buffer, per floor band; 300 m metric limited to residential program, straight-line and network distance both computed.",
+  "r1: M05 zone top now computed from Layer 0 storey levels (max of 4th storey top and mature tree height); 12 m and 16 m kept as comparators; interior-planting check added (3.3(c)(ii)); example extended to 24 m.",
+  "r1: M05 night-lighting expanded: Transport Canada Standard 621 opened (obstruction lighting), upper-floor light spill, migration-season lights-out (team assumption), crown and feature lighting; Toronto EC 5.4 numbers re-read.",
+  "r1: M02 canopy now reported by level with grade canopy as headline, soil-limited crown credit, soffit exclusion, R019 1.2.3 continuous versus on-structure split, size-class soil presets (team), IRMP toolkit values (S47), 50 m2 reworded as UFS Figure 13 assumption, Metro 2050 40% line, R019 22% A/B sentence flagged, R019 Type C definition cited.",
+  "r1: M03 life-safety gates added (anchorage, edge restraint, falling-object zone, planters, gardener access; registered-professional sign-off linked to STRC and SYST); Toronto EC 2.1-2.3 presets relabelled voluntary since 2 June 2026; viability thresholds marked unverified.",
+  "r1: M06 InVEST shade corrected to tree canopy only (building shade excluded and reported separately), reflectance and emittance stored separately, residential 75% versus non-residential 50% line by program tag, CC labelled hot-day index, fall-equinox new-shadow counter-metric added from Solar Access Guidelines (S42).",
+  "r1: Rezoning items added: park dedication flag (M01, RPSLD A.3.1), three food assets (M07, B.3.1), groundwater constraint (M04, E.3.1-E.3.2), tree and soils strategy overlays (M01/M02, A.4.1), Re-Wilding response (named, S49 not opened).",
+  "r1: M04 Rain City 48 mm set to verified city_aspiration with a separate struck-through bindingness entry; EDM Table 5-2 depth bands encoded exactly; VBBL 2.7.5 operating permit, two-monthly reporting and no groundwater harvesting added.",
+  "r1: M07 tower habitat features, bloom continuity (Toronto EC 2.2 comparator), nesting-season timing, MBCA, Migratory Birds Regulations 2022 s.5 and Wildlife Act s.34 added as legal context; Machtans note added.",
+  "r1: Sources: S23 year corrected to 2020; S32 now opened and tiers verified; S36 re-opened via Europe PMC; S31, S34, S39 extracts updated; new S41-S49 (S49 not opened). Web search budget ran out, so later checks used direct fetches only.",
+  "r2: BLOCKER fixed. Opened the Public Views Guidelines (new S50) and re-read HBPR p.9 and p.12-13. M01 and M08 view metrics split by class: non-listed cones expected clear; QE Park (view 3) and B1, B2, D, 12.2 handled as the Exceptional Downtown Site pathway (PVG 3.4, 8 criteria, parcel 8,000 m2 or more; block 11,468 m2) with a skyline-contribution card; QE entry is no longer scored red. FALSE_ASSUMPTION flag added.",
+  "r2: MAJOR fixed. M05 obstruction lighting: Configuration A' is for towers and skeletal structures only (Standard 621 s.5.4 note); building options listed (s.5.6 red, Chapter 6 white CL-865, Chapter 7 high-intensity white, Chapter 8 dual); metric set to false_assumption_corrected; flag added; r1 UNVERIFIED flag marked resolved.",
+  "r2: MAJOR fixed. M06 shadow counter-metric rewritten per Solar Access Table 1 class: 3.1.1 parks and school sites, 3.2.1 plazas minimise, 4.1-4.3 special cases (Victory Square 10:00-12:00 PST on 11 Nov), 3.3 village sidewalks, 5.2 coverage formula; force changed to voluntary_guideline; flag added.",
+  "r2: MAJOR fixed. M04 outdoor water baseline corrected to L/month, July peak, 120 mm x total proposed landscaped area (R019 4.1.1.2, Table 2, LEED v4 tabs); indoor and outdoor metrics split; Water Wise Landscape Guidelines (S55) and LEED calculator (S58, not opened) added; unit test 1,000 m2 -> 120,000 L/month; flag added.",
+  "r2: MAJOR fixed. Existing-ecology baseline added: M02 baseline input, tree permit and replacement metric under Protection of Trees By-law 9958 (new S53), baseline-canopy rule; M07 existing habitat assessment metric (RPSLD A.3.4, A.4.1(d), A.4.2(c); Bird Friendly 2.3(a)).",
+  "r2: MAJOR fixed. Host Nation evidence: added Tsleil-Waututh Burrard Inlet Action Plan summary page (S51), UNDRIP Action Plan 2024-2028 (S52) and UFS Nation excerpts; cultural_context_30 kept only on M01 views card, M04 receiving-water card, M07 culturally traditional species card and M08; removed from M02 and M05; M01 cultural-evidence lint added; no Indigenous plant knowledge without published source or permission.",
+  "r2: MAJOR fixed. Receiving-water ecology: M04 sewer-type input, overflow-exposure flag and treated-area-share indicator (team); Rain City 33 billion L overflow figure, RPSLD E.1 and D.3.1 outflow split cited; M08 shoreline distance added.",
+  "r2: MAJOR fixed. Schedule: working core for 13 Nov is M04 calculator (58.1 m3 test), M02 grade canopy % at maturity, M05 zone top and treated %, M01 ledger only; about 11-13 person-days (team estimate) for 23 days. Every cross-module input has a manual fallback; radar, views card and M03, M06-M08 follow.",
+  "r2: Status semantics fixed within the four-value enum: verified = read at source (Toronto 85%, Toronto bloom, Toronto night lighting, R019 22% sentence now verified); unverified = not opened or partly read; team_assumption = no source gives the value; bindingness stays in force.",
+  "r2: MINOR fixed. M02 soil rule now 30 m3 per tree for all classes plus Toronto site total (about 2,085 m3); S56 West Georgia guidelines (14 m, 8-9 m spread) and S57 Character Areas added; RPSLD A.3.3 cited for setbacks. M03 cast-in-place gate made advisory. M05 set-back rewording, reflectance flag, management and monitoring card. M06 20% soft landscape non-residential only. M07 all eight R019 food types with planted tag and 10-20-30 diversity metric. M04 plan-projected surfaces. S60 Machtans 83% labelled secondary. S54 Groundwater Management Bulletin added.",
+  "r2: Four r1 UNVERIFIED flags updated, two to reflect r2 findings; no earlier FALSE_ASSUMPTION flag deleted. Seven FALSE_ASSUMPTION flags added with raised_in_round 2, plus UNVERIFIED (height cap, Machtans) and TEAM_ASSUMPTION (cultural tags) flags."
+ ],
+ "notes": "Round 2 revision. Web search budget was exhausted, so I used direct fetches only: WebFetch for Transport Canada Standard 621, Toronto, Tsleil-Waututh and the Machtans paper (summaries by a small model, so Standard 621 is read in part); City of Vancouver PDFs (vancouver.ca, guidelines.vancouver.ca, syc.vancouver.ca, council.vancouver.ca, bylaws.vancouver.ca) were read in my own Browser tab with pdf.js from cdnjs, same-origin from a 404 page, and the tab is closed. I did not touch other tabs. One navigation straight to a PDF URL triggered a browser save dialog (no file saved by me); I did not retry. I created no project files. Key new primary sources opened: Public Views Guidelines (S50), Solar Access (full text), Higher Buildings Policy, HBPR pp.9 and 12-13, R019 4.1.1.2 and Table 2, RPSLD A.3.3-A.4.2 and E, Bird Friendly guidelines, By-law 9958 (Schedule D not extracted), Groundwater Bulletin, Water Wise, West Georgia guidelines, UNDRIP Action Plan, UFS 3.3.3. Not opened: CSLA standard, LEED calculator, Field Museum page, Santamour 1990, Re-Wilding plan, full Burrard Inlet Action Plan PDF. Status uses the four-value enum (verified, unverified, team_assumption, false_assumption_corrected); the force key is an added field beyond the schema. Team calculations, not sourced: 2,085 m3 soil total, about 194 trees (By-law Schedule C), 120,000 L/month test, 11-13 person-day core estimate. Not done: gh auth login (credential action the user must run) and any keep-awake or screen setting; neither belongs to this packet task."
+}

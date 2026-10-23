@@ -1,0 +1,230 @@
+{
+ "expert_role": "Municipal reviewer and gatekeeper: pedestrian wind and microclimate submissions, source audit",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M01",
+   "issue": "The calm rule is wrong for the data the tool will actually read. In the ECCC hourly bulk CSV a calm hour has Wind Spd 0 and an empty Wind Dir; direction 0 never appears. Vancouver Int'l A, Jan 2000: 58 rows with speed 0, all with empty direction, none with direction 0. Vancouver Intl A, Jan 2025: 90 of 741 rows (12%) are like this, also none with direction 0. The rule 'direction code 0 with speed 0 -> calm class' therefore never fires. The calm hours become missing data and leave the denominator, so exceedance fractions rise: a true 17.6% of all hours would be reported as 20%, which can shift a comfort class. The DataQualityBadge would also call the record incomplete. The metric is marked 'verified' only because the glossary says so; the files contradict it.",
+   "fix": "Define a calm as speed = 0, whatever the direction field holds (empty, 0 or 00). Keep calm hours in the denominator of every exceedance fraction. Treat an empty direction with speed > 0 as missing. Add a regression test on real ECCC files from both station IDs. Change the metric status to false_assumption_corrected, with the CSV as evidence."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M01",
+   "issue": "No single 30-year YVR hourly record exists. ECCC lists VANCOUVER INT'L A (climate ID 1108447, hourly 1953-2013) and VANCOUVER INTL A (climate ID 1108395, hourly 2013-2026) as separate stations. M01's own rule, 'refuse to merge series with different ids', blocks any 30-year window that ends after 2013. The tool would then either fail the 30-year metric or fall back to a stale 1983-2012 record.",
+   "fix": "Add a StationSplice object that holds both climate IDs, the splice date, an overlap or continuity check (mean speed and direction distribution on either side of the splice), and an anemometer-change note. Its record id becomes the WindClimate record id. The no-merge rule then applies across time bases (30-year record versus TMYx), not across a documented splice."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M01",
+   "issue": "Vancouver Harbour CS cannot serve as the downtown wind cross-check that M01, the Station representativeness metric and the flags name. Its hourly files for Jul 1995 (743 rows), Jan 2010 (742) and Jul 2020 (744) contain no Wind Spd or Wind Dir value at all; every wind field is blank and flagged M. The files do hold temperature and humidity, and hourly precipitation in 2010 and 2020.",
+   "fix": "Remove Harbour CS as a wind source. Mark the cross-check as having no downtown station unless the newer VANCOUVER HARBOUR station (2023-2026) or another anemometer (for example the Metro Vancouver air-quality network) is shown to carry wind, which is unverified. Keep Harbour CS as a candidate hourly precipitation source for M06. Update the flag and the unresolved item."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M02",
+   "issue": "The central scope question, which criteria apply in Vancouver, is still unanswered. The PrecedentTable is empty, no City of Vancouver document was read, and the default is an Ontario analog. The spec states this honestly in M02, but nothing makes PRES boards or exported maps show it. An entrant could present Toronto classes as if they were Vancouver compliance.",
+   "fix": "Make every comfort or safety map, chip and board export carry a fixed label: 'Criteria: Toronto 2022 analog (team assumption); no City of Vancouver numeric criteria found; precedent table empty'. The label is removed only when the PrecedentTable holds at least 2 reports. Assign one named team member to download 2-3 downtown rezoning wind reports by hand before the 13 Nov core release."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "The stability proxy uses 'hour of day, cloud, temperature', but the ECCC hourly CSV has no cloud-amount column. Its columns are temperature, dew point, RH, precipitation, wind, visibility, pressure, Hmdx, wind chill and a free-text Weather field. The 30-year time base therefore cannot feed the proxy as specified.",
+   "fix": "Take sky cover from NOAA ISD for the same hours (time-aligned) or from EPW total sky cover for the TMYx base, or drop cloud from the proxy for the 30-year base. Log which input was used."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "Time bases are not aligned. ECCC times are Local Standard Time with no daylight saving; NOAA ISD is UTC; EPW uses local standard time. The 06:00-23:00 comfort window and the concurrency join between station, ISD and EPW series are undefined with respect to time zone. In summer, 06:00-23:00 LST is 07:00-00:00 clock time.",
+   "fix": "Store every series in UTC with an LST field. Define the comfort-hours window explicitly, as LST or as local clock time, and log the choice in the CriteriaSet. Make the time-base check compare time-zone metadata as well as tags."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "The inputs say 'station gust kept for QA only', but the ECCC hourly bulk CSV has no gust column. Gusts exist only in daily data (speed of max gust) or other products, so the QA step has no data source.",
+   "fix": "Name the gust source (ECCC daily max gust or ISD gust field), or remove the item."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "The text says the sampled 1- or 2-minute ECCC means carry 'no bias, only with extra scatter'. That holds for the mean but not for tail exceedances: extra variance raises the frequency of rare high hours (0.1% safety, 0.022% City Lawson). The effect is small and conservative, but its direction is not stated.",
+   "fix": "State that sampling scatter slightly overstates rare-event exceedance (conservative), keep the no-factor rule, and leave the size of the effect in unresolved_relationships."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M05",
+   "issue": "The compute budget is mis-derived. The S49 15 h 10 min run was a 263,919-cell laboratory cross-ventilation case: OpenFOAM 4.1 in Docker on Windows on one core, 3 non-orthogonal correctors, residuals to 1e-5, and 16 s per iteration (S49 text). That is roughly 3,400 iterations at about 60 s per million cells per iteration, several times typical simpleFoam cost. Calling 1,800-4,600 core-hours a 'lower bound' is unsupported; the true cost could be several times lower or higher, which decides whether entrants can run L2-lite before 30 Nov.",
+   "fix": "Re-label the figure 'order of magnitude, from one lab case (S49)'. Before promising L2-lite to entrants, time one direction of the L2-lite template on the target hardware and log cells, iterations, residual targets and wall time."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M05",
+   "issue": "The spec requires an inflow capped at gradient height, but OpenFOAM-12 atmBoundaryLayerInletVelocity, the only named inlet, is uncapped (S50). No implementation route is given for a capped U profile with consistent k and epsilon, so the requirement cannot be met as written.",
+   "fix": "Name the mechanism, for example a tabulated inlet (timeVaryingMappedFixedValue) or a codedFixedValue holding the capped profile and matching k and epsilon. Add it to the case template and to the homogeneity test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M06",
+   "issue": "The rain input will usually be empty. The YVR hourly precipitation column was empty for Jan 2025 and absent from the Jan 2000 file. Harbour CS does carry hourly precipitation (2010, 2020), but at a different site from the wind record.",
+   "fix": "Use Harbour CS hourly precipitation joined to YVR wind direction on concurrent hours, as a logged two-station composite, or ISD precipitation. Show coverage on the badge."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M04",
+   "issue": "The cycle-route parameter says 'Toronto and Hamilton give no cyclist rule'. Hamilton names cyclist areas and bicycle lanes as test locations and applies its pedestrian criteria to them, although it gives no separate cyclist threshold.",
+   "fix": "Reword: Hamilton includes bicycle lanes as test locations under its standard criteria; only City of London adds a cyclist-specific note (15 m/s, a probe at least every 40 m)."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "ECCC hourly data code calm as direction 0, so 'direction 0 with speed 0' identifies calm hours (M01 Calm hours handled, status verified).",
+   "why_false": "In the hourly bulk CSV that M01 ingests, calm hours have Wind Spd 0 and an empty Wind Dir. No row has direction 0.",
+   "correction": "Calm = speed 0, whatever the direction field holds. Keep calms in the denominator. An empty direction with speed > 0 is missing data.",
+   "evidence": "https://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=51442&Year=2025&Month=1&Day=1&timeframe=1 : 90 of 741 rows have speed 0, all with an empty direction, none with direction 0. stationID=889, Jan 2000: 58 rows with speed 0, all with an empty direction."
+  },
+  {
+   "claim": "Vancouver Harbour CS provides an hourly wind record usable as a downtown cross-check (hourly year options 1976-2026).",
+   "why_false": "The year options show only that some hourly file exists. The hourly files hold no wind values.",
+   "correction": "No downtown ECCC wind cross-check is established. Use Harbour CS for temperature, humidity and precipitation only.",
+   "evidence": "stationID=888 (VANCOUVER HARBOUR CS, climate ID 1108446) hourly CSV, Jul 1995, Jan 2010 and Jul 2020: 0 rows with Wind Spd; wind fields flagged M; precipitation filled in 2010 and 2020."
+  },
+  {
+   "claim": "A 30-year hourly WindClimate can carry one station record id, and series with different ids must never be merged.",
+   "why_false": "The YVR hourly record changed station and climate ID in 2013, so any 30-year window that ends after 2013 spans two IDs.",
+   "correction": "Allow a documented StationSplice (1108447 + 1108395) with a continuity check. Apply the no-merge rule between time bases, not within a documented splice.",
+   "evidence": "ECCC station search 'Vancouver Int': VANCOUVER INT'L A hourly 1953-2013; VANCOUVER INTL A hourly 2013-2026 (climate ID 1108395 in the CSV header)."
+  },
+  {
+   "claim": "About 57 core-hours per million cells per direction, scaled linearly, is a lower bound for L2-lite cost.",
+   "why_false": "The source case ran in Docker on Windows with OpenFOAM 4.1, 3 non-orthogonal correctors and residuals to 1e-5, at 16 s per iteration for 0.26 M cells. That is slow per cell, so the figure may overstate cost; it is not a bound in either direction.",
+   "correction": "Treat it as order of magnitude only and benchmark the actual template on the target hardware.",
+   "evidence": "https://publications.ibpsa.org/proceedings/esim/2018/papers/esim2018_1-2-A-4.pdf : Table 3 (coarse box case, simulation 15:10:47) and text ('16 s for the box-shaped case' per iteration; three non-orthogonal correctors; Docker; OpenFOAM 4.1)."
+  },
+  {
+   "claim": "Toronto and Hamilton give no cyclist rule.",
+   "why_false": "Hamilton names cyclist areas and bicycle lanes as test locations under its standard criteria.",
+   "correction": "Hamilton covers bicycle lanes with its pedestrian criteria; only City of London gives a cyclist-specific safety note.",
+   "evidence": "https://www.hamilton.ca/sites/default/files/2026-02/pedguidelines-wind-study-ph1proposed.pdf : scope names cyclist areas including bicycle routes; test locations include 'Bicycle lanes (adjacent to the proposed building(s)'."
+  }
+ ],
+ "missing": [
+  "A documented StationSplice for the YVR record (1108447 to 1108395) with a continuity test",
+  "A real downtown wind cross-check station; the Harbour CS hourly files hold no wind",
+  "Time-zone metadata (LST vs UTC) on every series, and an explicit time base for the comfort-hours window",
+  "A cloud or sky-cover source for the stability proxy on the 30-year base",
+  "A source for station gust QA (not in the ECCC hourly CSV)",
+  "A concurrent hourly precipitation source for M06 (Harbour CS is a candidate; the YVR hourly column is empty)",
+  "An implementation route for a capped inflow profile in OpenFOAM-12",
+  "A measured L2-lite benchmark (cells, iterations, wall time) on target hardware",
+  "A Vancouver PrecedentTable entry (still zero reports), and a mandatory analog-criteria label on board outputs"
+ ],
+ "previous_round": [
+  {
+   "item": "M01 averaging-time conversion removed",
+   "status": "addressed",
+   "residue": "The wording 'without bias' ignores tail inflation from sampling scatter (minor)"
+  },
+  {
+   "item": "M01 per-sector exposure with a named transfer model and a reference height of 100 m or more",
+   "status": "addressed",
+   "residue": "Per-sector z0 values are unsourced team estimates; ESDU 01008 not opened"
+  },
+  {
+   "item": "M05 ground roughness, wall functions and homogeneity test",
+   "status": "addressed",
+   "residue": "Sand-grain relation still recalled (S52 unopened); metric correctly marked unverified"
+  },
+  {
+   "item": "M05 inflow capped at gradient height and a top boundary",
+   "status": "partly",
+   "residue": "Requirement stated, but no implementation route for a capped profile in OpenFOAM-12, whose atmBoundaryLayer is uncapped"
+  },
+  {
+   "item": "M05 compute budget and L2-lite",
+   "status": "partly",
+   "residue": "L2-lite defined, but the 57 core-hours per million cells figure comes from one slow lab run and is wrongly called a 'lower bound'"
+  },
+  {
+   "item": "M05 replace the dispersion-model validation bands",
+   "status": "addressed",
+   "residue": "Identities of AIJ cases beyond case E and data access are unconfirmed; acceptance bands are placeholders"
+  },
+  {
+   "item": "M02 obtain Vancouver rezoning wind reports",
+   "status": "partly",
+   "residue": "Attempt reported as failed (HTTP 403); PrecedentTable empty; default stays the Toronto analog"
+  },
+  {
+   "item": "M06/M01 one WindClimate per time base",
+   "status": "addressed",
+   "residue": "Time-zone alignment between ECCC (LST), ISD (UTC) and EPW not specified"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P03-S43",
+   "url": "https://www.cityoflondon.gov.uk/assets/Services-Environment/wind-microclimate-guidelines.pdf",
+   "ok": true,
+   "note": "Text extracted. Confirmed: 5% comfort and 0.022% safety on mean and GEM; GEM = gust/1.85; tunnel means typically 10-15 min; 36 directions; 400 m context; 300 m and 40 m inclusion rules; landscape under 8 m ignored; 0.5 m features; 0.3 m cells, 10 cells across a canyon, 3 prism layers below 1.5 m; realisable k-epsilon, k-omega SST allowed; scale factors 0.96 (100 m) to 1.48 (600 m) at 120 m; worst season plus Jun-Aug; no hours window; cyclist note (15 m/s, a probe at least every 40 m); coefficients calibrated for the City of London only."
+  },
+  {
+   "source_id": "P03-S01",
+   "url": "https://www.toronto.ca/wp-content/uploads/2022/03/8f9c-CityPlanning-ToR-Wind-Guide.pdf",
+   "ok": true,
+   "note": "Confirmed: Table 1 Area 1 (>20 to <60, >60 to <100, >100 m); 3.b shifts; 350 m minimum plus tall buildings beyond; landscaping excluded; 16 CFD directions; COST 732; 30 years of hourly data, 600 m gradient example; 06:00-23:00 comfort, 24 h safety; Table 3 10/15/20 km/h at 80%, GEM = max(mean, gust/1.85), gust = mean + 3 RMS; note 3 refers to mean speed under 5 km/h; 90 km/h at 0.1%; sensors about every 10 m, at least 50."
+  },
+  {
+   "source_id": "P03-S02",
+   "url": "https://www.hamilton.ca/sites/default/files/2026-02/pedguidelines-wind-study-ph1proposed.pdf",
+   "ok": true,
+   "note": "Confirmed: triggers (20 m, 2x, 44 m, 2+ buildings, 3 ha); 30 years from Hamilton airport; 'four-season basis' while listing two seasons; 06:00-23:00; GEM/1.85 at 20%; 36 tunnel directions; 400 m; future case only if warranted. Bicycle lanes are named as test locations, which contradicts 'no cyclist rule'."
+  },
+  {
+   "source_id": "P03-S49",
+   "url": "https://publications.ibpsa.org/proceedings/esim/2018/papers/esim2018_1-2-A-4.pdf",
+   "ok": false,
+   "note": "The domain rule (6 Hmax high, 20 Hmax long, 3% blockage) is confirmed. The timing is a lab case: OpenFOAM 4.1 in Docker on one core, 3 non-orthogonal correctors, 16 s per iteration for 264k cells, residuals 1e-5. It does not support a 'lower bound' claim."
+  },
+  {
+   "source_id": "P03-S45",
+   "url": "https://climate.weather.gc.ca/historical_data/search_historic_data_stations_e.html",
+   "ok": true,
+   "note": "Vancouver Int'l A hourly 1953-2013 and Vancouver Intl A hourly 2013-2026 are separate entries; Vancouver Harbour CS hourly 1976-2026 and Vancouver Harbour 2023-2026 listed."
+  },
+  {
+   "source_id": "ECCC-CSV-YVR-2025",
+   "url": "https://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=51442&Year=2025&Month=1&Day=1&timeframe=1",
+   "ok": false,
+   "note": "Contradicts the spec: calm = speed 0 with an empty direction (90/741 rows), never direction 0. Times in LST; no gust column; Precip. Amount column empty; no cloud column. Climate ID 1108395."
+  },
+  {
+   "source_id": "ECCC-CSV-YVR-2000",
+   "url": "https://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=889&Year=2000&Month=1&Day=1&timeframe=1",
+   "ok": false,
+   "note": "Climate ID 1108447. 58 calm rows, all with an empty direction; no precipitation column."
+  },
+  {
+   "source_id": "ECCC-CSV-HarbourCS",
+   "url": "https://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=888&Year=2010&Month=1&Day=1&timeframe=1",
+   "ok": false,
+   "note": "Vancouver Harbour CS (climate ID 1108446): zero wind values in Jan 2010, Jul 2020 and Jul 1995; hourly precipitation present in 2010 and 2020. Not usable as a wind cross-check."
+  },
+  {
+   "source_id": "P03-S31/S32/S42/S48 (City of Vancouver)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "Not re-attempted this round: the shared WebSearch budget was exhausted, and earlier rounds recorded HTTP 403. The precedent gap remains."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Detect calms as speed = 0 whatever the direction field holds (the ECCC hourly CSV leaves direction empty), keep calms in the denominator, and add a regression test on real ECCC files",
+   "Allow a documented StationSplice of YVR climate IDs 1108447 and 1108395 so that a 30-year record ending after 2013 is possible",
+   "Remove Vancouver Harbour CS as a wind cross-check (its hourly files hold no wind) and re-scope it as a precipitation source",
+   "Put a fixed 'Ontario analog criteria, no City of Vancouver numeric criteria found' label on every comfort or safety output and board export until the PrecedentTable holds at least 2 reports",
+   "Re-label the M05 compute budget as order of magnitude and benchmark one L2-lite direction on the target hardware before offering L2-lite to entrants",
+   "Specify the time-zone handling (LST vs UTC) for the comfort window and cross-source joins, and a usable sky-cover source for the stability proxy"
+  ]
+ },
+ "verdict": "Round 3 fixes most of round 2's physics. Five of its eight MAJOR items are addressed; the capped inflow, the compute budget and the Vancouver precedent reports are partly addressed. Checking real ECCC files, however, shows that M01, the core input, fails as specified. Calm hours have an empty direction, not 0, so they would drop out and inflate exceedances. The YVR 30-year record spans two climate IDs, which the no-merge rule blocks. Vancouver Harbour CS hourly files hold no wind data. Vancouver criteria are still an unlabelled Ontario analog in board outputs, and the compute figure is not a lower bound. All of these fixes are small, but entrants should not rely on the spec until they are made. Web search budget was exhausted; checks used direct fetches only."
+}

@@ -1,0 +1,263 @@
+{
+ "expert_role": "City cultural planner acting as gatekeeper and source auditor (round 4, gate round)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07-M07",
+   "issue": "Core cut #1 (identity strip and scan) names ExifTool to 'strip author and GPS fields'. ExifTool's own PDF documentation says it writes PDFs by incremental update, that all edits are reversible, and that old information is never actually deleted from the file. A stripped board PDF therefore still holds the original Author, Creator and XMP values, and anyone can restore them with -PDF-update:all=. A scan that reads only the current values would report 0 identity fields, so the metric passes while names stay in the file. The method also leaves out two more leak paths: images embedded in the PDF keep their own EXIF and XMP (camera owner, GPS, creator), and XMP media-management history (xmpMM:History, DerivedFrom, DocumentID) often stores local file paths such as C:\\Users\\<name>\\.",
+   "fix": "After any metadata edit, rewrite the whole file (qpdf --linearize in.pdf out.pdf, or a full pikepdf save), then confirm that no incremental-update sections remain. Re-encode or strip every embedded image stream. Remove XMP history, DerivedFrom and DocumentID. Make the scan read raw bytes and all revisions, not only the current tags: search for author, creator, email, handle, user-path patterns and GPS. Add ExifTool's PDF page as a source and a test fixture: a PDF with a known author, stripped and then checked for recovery."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M08 / packet",
+   "issue": "The Buildner competition page and Terms returned HTTP 502 again on 21 Oct 2026. That makes three rounds in a row with no person read and no browser check. Registration, and with it access to the brief, closes 29 Oct, 8 days from now. The spec makes the brief and the verified Terms release preconditions, which is right, but it has no plan for the case where Buildner stays down or the team cannot register. That outcome now looks likely, and entrants are not told what it means.",
+   "fix": "Set a decision date (27 Oct). By then a person checks Buildner's status through its general support channel (never a juror or advisor). Pre-write the entrant_scope outcome: 'If the brief is not obtained, M07 export mode and the full contact guard do not ship for VTC 2026; entrants get M01 stage A (generic rule), M06 geometry and a standalone strip checker only.' Record the attempts with dates as S34/S35 evidence."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M07",
+   "issue": "M07 core depends on PRES export nodes from another packet. The as-is workflow says entrants lay out boards in InDesign or Illustrator and render in outside tools, so most final PDFs will never pass through the platform's export. Even if it ships on time, the identity strip and AI-label step would then miss the files that actually get submitted.",
+   "fix": "Ship the strip, scan and IPTC-label step as a standalone local or offline tool that accepts any PDF or JPG/PNG produced outside the platform, with no upload to the hosted service. Make that the first entrant deliverable, not something tied to PRES export."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M07 / platform",
+   "issue": "The VTC flag is now gated on a 'dated, passing private-mode test record', but the spec never says what the test must check. A shallow test could pass while assets stay public: board images served from public object-storage or CDN URLs, social-preview (OG) thumbnails, cached gallery thumbnails, sitemap or robots indexing, fork or clone APIs, and activity feeds that show handles.",
+   "fix": "Define the test cases in M08: a logged-out request to the project URL, direct asset and CDN URLs, OG preview, sitemap or robots plus a noindex header, the fork and clone API, search and gallery listings, and handle exposure in activity feeds. Each case records the tester, date and result. The flag stays blocked unless every case passes."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M01 / packet",
+   "issue": "The authors are UBC M.Arch (SALA) students building VTC-specific content in a SALA course. The City FAQ credits SALA as a collaborator, and juror Matthew Soules is SALA faculty. The open question is wider than students who assist a juror's practice: cl. 3.3.5 bars 'associates' of the Organizer, and if SALA counts as part of the Organizer, any SALA student may be an associate. The spec has authors record their own status in a README but does not require the question to be asked. It also does not stop the tool from looking endorsed by the City, Buildner or SALA, which a public tool built for a named competition inside a partner school can easily do.",
+   "fix": "Before release: (1) each author declares whether they will enter VTC; (2) send Buildner staff, never a juror, the question of whether SALA students or course projects are 'associates' under cl. 3.3.5; (3) the course instructor confirms in writing that no juror reviews VTC-specific work in this course; (4) add a fixed disclaimer on every page and export: not affiliated with or endorsed by the City of Vancouver, Buildner or UBC SALA."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M06 / M08",
+   "issue": "The brief_verification record pulls site coordinates, site-plan labels and possibly the downloadable 3D model into the platform, and the platform is a public, forkable open-source project. Brief materials are released to registrants and may carry Buildner copyright or use limits; the IP clauses of the Terms have not been read in a browser. Committing brief-derived geometry or text to a public repository could breach the Terms and would give brief content to non-registrants.",
+   "fix": "Until a person has read the Terms' IP and confidentiality clauses: keep brief-derived values only in each entrant's local or private project, never in public platform data. Ship only the georeference input field, empty. Record the clause reference in M08."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M02",
+   "issue": "The BC general election is on 24 Oct 2026, three days from now. The badge says the new government's DRIPA position is 'unknown', but S60 reports that the Conservative Party said it would repeal DRIPA. What is unknown is the election result, not the parties' positions. The 14-day chip and the 25 Nov re-check will not catch the result in time.",
+   "fix": "Change the badge to 'election 24 Oct; parties' stated positions differ (S60); outcome pending'. Add a one-off re-check on 25 to 27 Oct with Elections BC results as a source."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M02",
+   "issue": "The SCC docket and BCCA neutral citation are still missing. National Magazine links to an SCC 'item 21510', but SCC docket 21510 is an unrelated 1989 Manitoba case. Someone filling the gap could record it as the Gitxaała docket.",
+   "fix": "Add a note: 'National Magazine item 21510 is not the docket'. Keep the citation field empty until a person finds it on scc-csc.ca or bccourts.ca."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M06 / M01",
+   "issue": "The view-cone dataset tells users to email views@vancouver.ca to understand cone implications for individual sites. That is the only authoritative route, and entrants are barred from it. The Shape Your City page also invites concepts to higherbuildings@vancouver.ca and says submissions may appear on the City's website, which is a publication risk under cl. 4.1. The guard says the inbox 'is not a channel for entries' but does not name the publication risk.",
+   "fix": "In M06, state that entrants probably cannot get authoritative cone heights before 30 Nov, so cone output is information only. In M01, add a line warning that sending entry material to a City inbox may lead to publication on the City website before results."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07",
+   "issue": "The IPTC mapping sends every no-AI image to digitalCreation, with humanEdits for edited captures. A common board image, a render composited onto a site photo with no AI, then gets digitalCreation, which IPTC defines as made by a human with non-generative tools and which does not cover the captured photo. Unedited photos should be digitalCapture.",
+   "fix": "Add rows to the mapping: unedited photo -> digitalCapture; no-AI photomontage -> composite (or compositeCapture when every element is captured). Keep 'when unsure, use the term that discloses more'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07",
+   "issue": "Competition mode hides handles 'until 26 Jan 2027'. That date comes from an r2 fetch summary of the unreachable Buildner page. The City page says only 'January 2027'.",
+   "fix": "Key the unhide to 'results published (date from the verified snapshot)'. Unhiding needs a person's action, never a fixed date."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07 / M08",
+   "issue": "The library lists name skills that exist only in the authors' environment (anthropic-skills:pdf, anthropic-skills:vtc-multi-agent-runs), with 'not inspected' or 'unknown' licences. They are not available to open-source users and cannot be audited.",
+   "fix": "Move them to a 'development-only tooling' note, or replace them with inspected open-source equivalents (pikepdf, qpdf)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M01 / M08",
+   "issue": "M08 gates every cultural phrase list by content, but it exempts the stage A ban list and the auto-drafted N0 statement as 'platform rules'. The exemption is not justified in the spec, so a later change could add cultural wording that skips review.",
+   "fix": "State the exemption rule: stage A ships only claim-restricting rules and fixed text with no cultural content. Freeze the stage A list and the N0 text, and gate any addition."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "ExifTool can strip author and GPS fields from competition exports (M07 library role and the identity-field metric).",
+   "why_false": "For PDFs, ExifTool writes by incremental update. Edits are reversible and old metadata is never actually deleted from the file, so original author fields can be recovered.",
+   "correction": "Rewrite the PDF with qpdf --linearize (or a full pikepdf save) after editing. Strip embedded image metadata and XMP history. Scan raw bytes and earlier revisions.",
+   "evidence": "https://exiftool.org/TagNames/PDF.html (read 21 Oct 2026)"
+  },
+  {
+   "claim": "The new BC government's DRIPA position is unknown (M02 badge_states, S70/S71 flag).",
+   "why_false": "S60 reports that the Conservative Party said it would repeal DRIPA and that a Conservative MLA applied for a repeal initiative petition. The parties' positions are known; only the 24 Oct election result is not.",
+   "correction": "Badge reads: election 24 Oct; parties' stated positions differ; outcome pending; re-check 25 to 27 Oct.",
+   "evidence": "https://en.wikipedia.org/wiki/Declaration_on_the_Rights_of_Indigenous_Peoples_Act_(British_Columbia) (last edited 29 Sep 2026)"
+  }
+ ],
+ "missing": [
+  "A person's browser read of the Buildner page, Terms and brief (502 again on 21 Oct, r4), and a contingency if registration fails before 29 Oct",
+  "A test-case list for the private-mode test (asset/CDN URLs, OG previews, indexing, fork API, feeds)",
+  "A standalone offline strip/scan tool for PDFs made in InDesign or Illustrator",
+  "A PDF rewrite step (qpdf/pikepdf) and an embedded-image metadata strip",
+  "Authors' VTC entrant status and a Buildner answer on whether SALA students count as 'associates'",
+  "Non-endorsement disclaimer (City, Buildner, UBC SALA)",
+  "Terms IP/confidentiality clause covering brief-derived data in a public repository",
+  "Post-election (24 Oct) DRIPA badge re-check; SCC docket and BCCA neutral citation",
+  "The by-law or ODP that sets heights in each view cone; the Public Views Guidelines (2024)",
+  "City PDFs (UNDRIP Strategy, Action Plan, Higher Buildings H005)",
+  "Named, paid Indigenous reviewer and budget (the 28 Oct deadline is 7 days away)",
+  "UBC BREB/instructor answer on user tests"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "M07 strip rewrites PDFs (qpdf/pikepdf), strips embedded image and XMP history metadata, and scans raw bytes, tested on a fixture with a known author",
+   "A person reads the Buildner Terms, jury page and brief in a browser and records dated snapshots before 29 Oct, or the pre-written fallback scope is published to entrants",
+   "Private-mode test with defined cases passes and is dated; otherwise the VTC flag stays blocked and the local-only notice shows",
+   "Strip/scan/label tool works offline on externally produced PDFs and images",
+   "Authors declare entrant status; the 'associate' question goes to Buildner staff; the non-endorsement disclaimer is shipped",
+   "Terms IP clause checked before any brief-derived data enters public platform data",
+   "DRIPA badge re-checked after the 24 Oct election"
+  ]
+ },
+ "verdict": "The r3 spec answers last round's critique well. The IPTC mapping, view-cone ids (24, matched today), the Musqueam wording, BC Laws currency and the Legislature dissolution all check out against the live sources. It still fails the gate. The core anonymity feature uses ExifTool on PDFs, and those edits are reversible, so the original author fields stay in the submitted files. Buildner was unreachable again today (502), 8 days before registration closes, with no fallback plan. The strip tool would not reach boards laid out outside the platform. The private-mode test has no defined cases. The authors' own status with SALA, and the IP of brief data in a public repository, are unaddressed. An entrant cannot yet rely on M07 for anonymity.",
+ "previous_round": [
+  {
+   "item": "BLOCKER M07: no fallback if private mode is not built",
+   "status": "addressed",
+   "residue": "Release rule and local-only notice added. The test has no defined cases and no record exists yet."
+  },
+  {
+   "item": "MAJOR M07: IPTC mapping misuse",
+   "status": "addressed",
+   "residue": "Checked against the live vocabulary and correct. No-AI photomontage and unedited photos still map to digitalCreation (minor)."
+  },
+  {
+   "item": "MAJOR M06: by-law authority and stale cone set",
+   "status": "addressed",
+   "residue": "Dataset caveat and re-check added; 24 ids match today. The governing by-law is still unidentified, and entrants cannot use views@."
+  },
+  {
+   "item": "MAJOR M01: Terms/jury verification by a person",
+   "status": "partly",
+   "residue": "verified-by field and generic fallback added, but no person has verified anything; Buildner returned 502 again on 21 Oct."
+  },
+  {
+   "item": "MAJOR M08: brief unopened",
+   "status": "partly",
+   "residue": "Now a release precondition, but still unopened with 8 days to registration close and no contingency."
+  },
+  {
+   "item": "MAJOR packet: core capacity and cut order",
+   "status": "addressed",
+   "residue": "Cut order and dated panel published. 14 person-days in 23 days is still unvalidated, and M07 still depends on PRES export."
+  }
+ ],
+ "sources_checked": [
+  {
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "ok": false,
+   "source_id": "P07-S34",
+   "note": "HTTP 502 on 21 Oct 2026; third round unreachable"
+  },
+  {
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge/terms",
+   "ok": false,
+   "source_id": "P07-S47",
+   "note": "HTTP 502; clause numbers still unverified"
+  },
+  {
+   "url": "https://cv.iptc.org/newscodes/digitalsourcetype/",
+   "ok": true,
+   "source_id": "P07-S38",
+   "note": "20 concepts; definitions and retirements match the spec mapping; composite/compositeCapture/digitalCapture exist for non-AI cases"
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records?limit=100",
+   "ok": true,
+   "source_id": "P07-S32",
+   "note": "total_count 24; ids match the stored list exactly; no height field"
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "source_id": "P07-S32",
+   "note": "Modified 2026-10-19; 'authoritative source ... City's bylaws'; email views@ for site implications"
+  },
+  {
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "source_id": "P07-S66",
+   "note": "City hosts, Buildner platform; Dobson contact; concepts sent to inbox may be featured on the City website; views not reviewed; winners 'January 2027'"
+  },
+  {
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/19044",
+   "ok": true,
+   "source_id": "P07-S02",
+   "note": "Current to 13 Oct 2026; ss.3,4,6,7 as summarised"
+  },
+  {
+   "url": "https://www.musqueam.bc.ca/departments/title-and-rights/iga/",
+   "ok": true,
+   "source_id": "P07-S10",
+   "note": "Eight items plus additional documents; 'all projects within Musqueam territory'; no fees, student or academic mention"
+  },
+  {
+   "url": "https://www.leg.bc.ca/parliamentary-business/overview/43rd-parliament/",
+   "ok": true,
+   "source_id": "P07-S70",
+   "note": "Adjourned 28 May 2026; dissolved 22 Sep 2026; election 24 Oct 2026"
+  },
+  {
+   "url": "https://elections.bc.ca/",
+   "ok": true,
+   "source_id": "P07-S71",
+   "note": "Election Day 24 Oct 2026; advance voting from 16 Oct"
+  },
+  {
+   "url": "https://elections.bc.ca/initiative/",
+   "ok": false,
+   "note": "Connection refused; DRIPA repeal petition status unverified"
+  },
+  {
+   "url": "https://nationalmagazine.ca/en-ca/articles/hot-topics-in-law/2026/supreme-court-to-hear-appeal-on-undrip-s-reach-in-domestic-law",
+   "ok": true,
+   "source_id": "P07-S59",
+   "note": "22 May 2026; BCCA 2-1 Dec; no hearing date; links SCC 'item 21510'"
+  },
+  {
+   "url": "https://www.scc-csc.ca/case-dossier/info/dock-regi-eng.aspx?cas=21510",
+   "ok": true,
+   "note": "Docket 21510 is a 1989 Manitoba case, not Gitxaała; do not record it as the docket"
+  },
+  {
+   "url": "https://en.wikipedia.org/wiki/Declaration_on_the_Rights_of_Indigenous_Peoples_Act_(British_Columbia)",
+   "ok": true,
+   "source_id": "P07-S60",
+   "note": "April 2026 reversal; working group; repeal petition by 25 Jan 2027; Conservatives say they would repeal; no suspension"
+  },
+  {
+   "url": "https://www.williamfry.com/knowledge/eu-ai-act-omnibus-deal-reached-postponed-deadlines-watermarking-compromise-and-the-nudificiation-prohibition/",
+   "ok": true,
+   "source_id": "P07-S61",
+   "note": "Art. 50(2) from 2 Dec 2026; provisional, not adopted"
+  },
+  {
+   "url": "https://spec.c2pa.org/specifications/specifications/2.3/specs/C2PA_Specification.html",
+   "ok": true,
+   "source_id": "P07-S39",
+   "note": "2.3 December 2025; x5chain must carry signer and intermediates; claim_generator_info needs name; subject-field rules not found in text read"
+  },
+  {
+   "url": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter2-chapitre2.html",
+   "ok": true,
+   "source_id": "P07-S64",
+   "note": "Art. 2.1 includes course-based pedagogical research; Art. 2.5 QA/evaluation exclusion consistent with spec"
+  },
+  {
+   "url": "https://exiftool.org/TagNames/PDF.html",
+   "ok": true,
+   "note": "New source: PDF edits are incremental and reversible; old metadata stays; qpdf --linearize removes it permanently"
+  }
+ ]
+}

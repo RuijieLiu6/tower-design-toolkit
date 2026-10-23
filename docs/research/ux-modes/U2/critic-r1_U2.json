@@ -1,0 +1,171 @@
+{
+ "expert_role": "Professor of architectural representation (drawing, diagram, visualization). Read the v0.1 source, the registry and the team glyph repo, and re-opened the NN/g animation-duration and BIMForum LOD pages.",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "issue": "Advanced has nothing true to draw. The spec's signature moment (the core rises, lift banks, plant floors, the facade panel grid) needs geometry from P10-M05, P11-M01, P11-M03 and P12-M06a. None of these is built, and together they are costed L. Shipped this way, Advanced is a glass costume on an L100 box. That is the gimmick the user is already sensing.",
+   "fix": "Define a 'minimum Advanced' slice that can be built in 3 days or less from data that exists now: (1) floor plates from tower.f2f (floorLines already exist in Viewport.tsx); (2) mechanical floors from the existing 'mechanical' band; (3) one parametric core box (core % of plate as an editable input, flagged Team assumption). Leave out lift banks and the facade grid until their modules exist. Acceptance rule: every element drawn in Advanced traces to a named parameter or module and carries a flag."
+  },
+  {
+   "severity": "BLOCKER",
+   "issue": "The spec contradicts itself on LOD. It rejects 'an LOD 200 model switch', yet stage_model says 'Basic 100, Advanced 200-300' and the phase titles read 'Basic: Massing (development 100)' and 'Advanced: Schematic (development 200, some 300)'. This brings back the false assumption it claims to correct, and the BIMForum page says the spec 'does not prescribe what Levels of Development are to be reached at what point'.",
+   "fix": "Remove LOD numbers from every stage name, subtitle and stage_model line. Define each stage by which element classes the user authors in it. Development tags appear only on elements and result cards."
+  },
+  {
+   "severity": "BLOCKER",
+   "issue": "Present is reduced to 'lit render: no edges, no ghosting'. Competition boards are mostly drawings: section, exploded axonometric, plan, diagram. The spec's own process map lists 'Views > Section > Boards' while the Present viewport rules out drawing modes. A lit render (plus an AI-render command) of L100/L200 elements also breaks the spec's own 'fidelity never outruns reliability' rule.",
+   "fix": "Make Present 'frame and compose' rather than 'render'. Every shot picks a representation preset (clay diagram, x-ray, section, exploded axo, plan, lit render) and stamps that preset plus the development tags in its metadata. The lit render defaults to a neutral white/clay material, with no invented facade materials until the facade module reaches nominal-size geometry. AI-render output is watermarked and flagged as an image, not evidence."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "'Axonometric' is claimed but never delivered. Narrowing fov from 38 to 24 is still a perspective projection. The 'exploded axonometric' and 'perspective becomes drawing' would both be perspective views. Axonometric is parallel projection by definition, and this audience can tell the difference.",
+   "fix": "Add a real OrthographicCamera mode (drei) with standard presets (isometric, 30/60, plan oblique). Use the fov tween only to hide the swap to orthographic at the narrow end, or cross-fade. Keep perspective for Basic and for the street/skyline views in Present."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "Line conventions are misused, and the hierarchy is missing. Dashed hairlines are proposed to mean 'L200 generic', but in architectural drawing dashed means hidden, overhead or beyond. There is no line-weight hierarchy (cut, profile, projection, beyond) and no poché on the section cap. Those are the core of reading a technical drawing.",
+   "fix": "Show development level with grey value or weight, never dash pattern. Reserve dashed for hidden/overhead and dotted for exploded 'original position' ghosts. Specify three weights (for example, cut 2.5 px, profile 1.5 px, projection 0.75 px via drei Line lineWidth). Fill the section cap solid or hatched (poché), with the core and slabs cut darker than the envelope."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "Program identity disappears in Advanced. Shrinking band colour to floor-edge ticks on a 12% shell drops the encoding that Basic built. Heer and Robertson stress keeping encodings consistent across a transition. Program still drives Advanced decisions too: lift zoning by use, plant placement.",
+   "fix": "Keep each band's colour as a tinted shell fill (about 15-20% per band, not one neutral glass), or as full-saturation plate edges. Draw core and structure in a neutral grey/blue family so program stays the visual context and the new elements are the figure."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The process map's Advanced order (Core > Structure > Plates > Lifts > Plant > Facade) is not the dependency order of tall-building schematic design, and the map has no return loop. Plate depth and lift zoning size the core; structure follows the core. The team's own registry tags P10-M05 (core share) as phase 'basic'.",
+   "fix": "Reorder to Plates > Lifts > Core > Structure > Plant > Facade. Draw explicit feedback arrows from Advanced back to Massing (for example 'core share > 30% -> revise plate'). Show the map as a loop, not a rail, in onboarding and on the stage rail tooltip."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The labels Basic and Advanced still read as skill levels. The spec splits out a Guide level but keeps the expertise words on the stage tabs. That repeats the earlier critique it says it resolves.",
+   "fix": "Label the stages Massing / Schematic / Present now, with Guided/Open as a separate control in the user menu. Keep 'basic model / advanced model' only as tooltip text for continuity with the user's vocabulary."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The noun glyphs carry the wrong meanings. They come from a value catalogue: LV1 = 'Market condo', WK1 = 'Office, Class AAA / A', ST2 = 'Upscale / select-service hotel', GP6 = 'Museum / gallery' (mapped to civic), LE2 = 'Free public deck' (mapped to amenity), AM5 = 'Sky lobby / lift transfer floor' (mapped to lifts). tileColour also forces saturation to 0.72 or more and lightness to about 0.6, and turns greys beige. So the tile colour differs from the band colour in the viewport (residential #9bbf85, mechanical #a3a3a3 becomes beige).",
+   "fix": "Write a reviewed band-to-glyph table. Use SB1 for core and lifts; draw or choose generic residential, civic and amenity glyphs. Use one colour per program in the viewport, tile and legend: either fill tiles with USES[*].color and check ink contrast of 4.5:1 or better, or move the viewport palette to the tile colours."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The proposed icons collide with icons already in the UI. TopBar.tsx already uses Box for the '3D model' view toggle, and Basic would get Box in the same bar. TopBar uses CircleHelp for 'How it works', and the spec gives it to the 'unverified' evidence flag. In lucide-react 1.61 CircleHelp is exported only as an alias. 'layers' reads as the Rhino Layers panel to this audience.",
+   "fix": "Run an icon collision audit: one table of every Lucide import, its meaning and its location. Change either the view toggle or the Basic stage icon (bring the custom solid / ghost / framed tower trio forward). Give 'unverified' an unused shape (for example shield-question). Give the Program step stacked-band art rather than layers."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The motion budget is too long for a frequent action, and the timeline cannot fit. NN/g gives 100-500 ms and says at 500 ms animations 'start to feel like a real drag'. Keys 1/2/3 make stage switching frequent. The 350-800 ms interior window is 450 ms, but a 285 m tower at 4.2 m floor-to-floor has about 68 floors: 68 x 10 ms stagger = 680 ms, so the reveal ends at about 1030 ms, not 800. The 'core rises ground-up, follows load path' rationale is also wrong: load paths run top-down. Only construction sequence (core ahead of floors) supports a ground-up rise.",
+   "fix": "Stagger by band or element group (7-10 groups), or normalise the stagger to the window divided by n. Default the whole shift to 500 ms or less, with an optional longer 'first time per session' version. Test 400 / 600 / 800 ms. Justify the rise by construction sequence or drop it."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "Present uses a 'studio dark' ground (#14171a) to compose boards that print on white A2. Simultaneous contrast will make the team misjudge the values of light boards. The shutter accent #e8b84a is identical to the hotel band colour in types.ts.",
+   "fix": "Show the board crop as paper white inside a neutral mid-grey surround (about 18% grey), not black. Pick a shutter/accent colour that is not in the USES palette, and check all three stage palettes against the band colours."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The library fix is underspecified. Measured counts: Basic 60 (4 built), Advanced 58 (0 built); 28 of Basic's researched modules are SITE. The spec says both 'Basic shows 4 built plus roadmap chips' and 'eight core researched modules appear as roadmap chips'. The research note says 12 basic-phase modules are pushed into Advanced; the count is 11 basic plus 1 cross-cutting.",
+   "fix": "State the derivation rule exactly ('stage = highest element class read'). Publish a before/after count table per stage and category. Keep the Roadmap drawer collapsed with a count. Split the 28 SITE modules into 3-4 sub-steps. Settle P10-M02 and P10-M05 explicitly, since the registry says basic and the category rule says advanced."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The 15-minute test is overloaded, depends on unbuilt features and misses the main claim. 'Cut section at L40' depends on the v1 section tool. A 3-minute A/B with 5 users cannot discriminate. The icon quiz without labels tests icons out of context. There is no v0.1 baseline. Nothing tests whether users read Advanced as the same tower, or whether they can tell an approximate number from a reliable one.",
+   "fix": "Restructure: 0-2 setup; 2-6 one stage switch, then 'what changed, is it the same tower, what stage are you in' (unprompted); 6-11 two tasks using built features (find the mechanical floors; say which result is approximate and why); 11-13 icon naming in context; 13-15 debrief. Compare against a v0.1 recording. Run the transition-duration A/B as a separate session."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The 'L100/L200/L300' chips collide with floor-level notation. The test itself asks for a cut 'at L40'.",
+   "fix": "Use 'LOD 200' (or 'Dev 2' with bars) and keep 'L' for levels only."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "Type size changes per stage (14 px Basic, 12 px Advanced, larger in Present). That causes reflow and contradicts the spec's own 'keep panel widths constant' rule and the Grasshopper evidence it cites. Advanced decorative hairlines #b9c6d3 are 1.6:1 on #f4f7fa, so they must carry no information. Control borders are 4.1:1 on panels but 3.8:1 on the #e9eef3 ground, not '4:1'.",
+   "fix": "Keep one type scale and change density through spacing and line weight. Give contrast per surface in the token table."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "Advanced turns shadows off while Evaluate is described as a persistent lens that includes sun and shadow.",
+   "fix": "Keep cast shadows (or a shadow-footprint overlay) whenever the Sun check is enabled, in any stage."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "In the Basic signature moment, the band volume animates 120 ms behind a dragged slider. That adds lag to direct manipulation.",
+   "fix": "Follow the pointer at 0 ms during the drag. Animate only on keyboard or numeric entry."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The glyph licence and provenance are unresolved and the record contradicts itself. Tower Studio is MIT (package.json); the glyph repo licence is 'to be decided before release (G6)'. decisions.md (18 Oct) says the icons are 'drawn in the browser ... no external icon set', while the glyphs.js header says they were drawn by GPT and traced with vtracer.",
+   "fix": "Make it a gate condition: correct the provenance record, settle the licence, and add a NOTICE entry before any glyph is copied into Tower Studio."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Narrowing fov from 38 to 24 turns the perspective model into an axonometric drawing, and the Explode view is an exploded axonometric.",
+   "correction": "Any perspective fov is still a perspective. Axonometric means parallel projection and needs an orthographic camera.",
+   "evidence": "The spec keeps a PerspectiveCamera throughout (CameraRig writes fov and distance only). Axonometric drawing is defined by parallel projectors."
+  },
+  {
+   "claim": "Basic is development 100 and Advanced is 200-300 (stage_model and phase titles).",
+   "correction": "BIMForum sets no levels per phase or per model; the packet's own Reject pattern says so.",
+   "evidence": "BIMForum LOD resource page: the spec 'does not prescribe what Levels of Development are to be reached at what point in a project'."
+  },
+  {
+   "claim": "Present boards are lit renders.",
+   "correction": "Competition boards are mostly sections, axonometrics, plans and diagrams. Present must frame any representation, and the spec's own process map lists Section under Present.",
+   "evidence": "process_map: 'PRESENT: Views > Section > Boards' versus viewport_representation: 'Lit render ... no edges, no ghosting'."
+  },
+  {
+   "claim": "Team glyphs SE1, WK1, ST2, LV1, GP6, LE2 and AM5 stand for the generic bands and for lifts.",
+   "correction": "They are market-tier and specific programmes. AM5 is a sky lobby / transfer floor, not lifts.",
+   "evidence": "catalogue/programmes.json: LV1 'Market condo', WK1 'Office, Class AAA / A', ST2 'Upscale / select-service hotel', GP6 'Museum / gallery / exhibition', LE2 'Free public deck', AM5 'Sky lobby / lift transfer floor'."
+  },
+  {
+   "claim": "Each glyph tile takes its hue from the band colour, so tile and volume match.",
+   "correction": "tileColour forces saturation to 0.72 or more and lightness to about 0.6, and turns near-greys into a beige, so tiles differ from the viewport colours.",
+   "evidence": "app/icons/glyph_icons.js tileColour(); tower-studio src/engine/types.ts USES colours (for example residential #9bbf85, mechanical #a3a3a3)."
+  },
+  {
+   "claim": "Every Lucide icon named in the spec is free to take on its new meaning.",
+   "correction": "Box and CircleHelp are already used in the same top bar for other meanings, and CircleHelp exists only as an alias in 1.61.",
+   "evidence": "src/components/TopBar.tsx imports Box (3D model view) and CircleHelp (How it works). lucide-react 1.61.0 typings."
+  },
+  {
+   "claim": "The 800 ms timeline fits: interior reveal from 350 to 800 ms with a 10 ms per-floor stagger.",
+   "correction": "About 68 floors x 10 ms = 680 ms, which overruns the 450 ms window to about 1030 ms. The total also exceeds NN/g's range.",
+   "evidence": "store.ts default tower: height 285 m, f2f 4.2 m. NN/g animation-duration: 100-500 ms, and at 500 ms animations 'start to feel like a real drag'."
+  },
+  {
+   "claim": "A ground-up core rise 'follows load path'.",
+   "correction": "Gravity load paths run from the top down to the foundations. Only construction sequence supports a ground-up rise.",
+   "evidence": "Basic structural principle; the spec's transitions bullet 4."
+  },
+  {
+   "claim": "Dashed hairlines are a readable code for 'generic, approximate L200'.",
+   "correction": "In architectural drawing convention, dashed means hidden, overhead or beyond; this overloads that meaning for Rhino and Revit users.",
+   "evidence": "Standard drafting line-type conventions; the spec's 'Fidelity never outruns reliability' pattern."
+  },
+  {
+   "claim": "ADVANCED_CATS pushes 12 basic-phase modules into Advanced, and core share belongs to Advanced.",
+   "correction": "11 basic-phase and 1 cross-cutting module are pushed. The registry tags P10-M05 (core share) as phase 'basic'.",
+   "evidence": "Recomputed from research_registry.json with the stageOf rule: basic>advanced 11, cross-cutting>advanced 1. P10-M05 has phase 'basic', category STRC."
+  },
+  {
+   "claim": "The team icons have clear provenance and can be reused.",
+   "correction": "The provenance record contradicts itself and the licence is undecided.",
+   "evidence": "glyphs.js header: 'Drawn by GPT ... traced to vector with vtracer'. docs/decisions.md 18 Oct: 'drawn in the browser ... no external icon set, no licence'. README: 'Licence: To be decided before release (G6)'."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Define and cost a minimum Advanced slice whose every drawn element traces to a parameter or module and carries a flag (core box, plates, mechanical floors); no lift banks or facade grid until their modules exist.",
+   "Remove LOD numbers from stage names and stage_model; development tags appear only on elements.",
+   "Redefine Present as framing any representation preset, with a neutral-material default render and per-shot representation and development stamps.",
+   "Add a true orthographic camera for axonometric and exploded axonometric; specify line-weight hierarchy and poché; stop using dashed lines for development level.",
+   "Fix icon collisions (Box, CircleHelp) and the band-to-glyph semantics; use one colour per program across viewport, tile and legend.",
+   "Bring the stage transition to 500 ms or less by default, with a group-based stagger that fits its window; reorder the process map by dependency and show feedback loops.",
+   "Rewrite the 15-minute test around built features, a v0.1 baseline and same-model and trust comprehension.",
+   "Settle glyph licence and provenance before porting."
+  ]
+ },
+ "verdict": "The architecture is right: one stage state drives what is drawn, what the screen offers and how it looks, and expertise is separated from stage. But the spec fails its own standards. Advanced shows geometry that no module produces. Stage names bring back LOD numbers the spec rejects. Present throws away the drawings that boards are made of. 'Axonometric' is still a perspective. Dashed lines take over the hidden-line convention. Program colour disappears just when it matters. The glyphs carry market-tier meanings (Market condo, Class AAA). Icons collide with existing buttons. The motion timeline overruns its own budget. Fix the three blockers and the representation conventions, then test against v0.1 with built features only."
+}

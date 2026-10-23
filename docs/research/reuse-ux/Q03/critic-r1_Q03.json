@@ -1,0 +1,285 @@
+{
+ "expert_role": "Creative technologist / WebGL engineer who ships architectural web viewers (three.js/R3F, BIM viewers, browser CAD kernels)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "N8AO integration (pmndrs/postprocessing + N8AO findings, default-look recommendation)",
+   "issue": "The packet says the R3F postprocessing wrapper does not include N8AO and plans to wrap N8AOPostPass ourselves. That is wrong. @react-three/postprocessing 3.2.1 lists n8ao ^2.0.0 as a dependency and exports passes/N8AO. The custom wrapper is wasted build time.",
+   "fix": "Use <N8AO halfRes .../> from @react-three/postprocessing inside <EffectComposer>. Delete the custom-wrapper task. Lock the transitive n8ao version in the lockfile."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missing: georeferencing and float precision",
+   "issue": "Downtown Vancouver context data (City open data, 3D tiles, surveys) uses UTM 10N / EPSG:26910 coordinates, around 490,000 E and 5,458,000 N. At that magnitude float32 GPU positions step by about 0.5 m, which causes jitter, z-fighting and wrong BVH sun rays. The packet mentions xeokit's double precision but never applies the idea.",
+   "fix": "Choose a site origin (block centroid) and store the geo offset and EPSG code in the project file. Keep kernel and analysis maths in float64 in the worker. Send only local coordinates to three.js, and apply the offset again on export (IFC, 3dm, GeoJSON). Add a unit test that loads a context tile and checks vertex error is under 1 mm."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missing: A2 board export pipeline from the viewport",
+   "issue": "Four A2 boards at 300 dpi need about 7016x4961 px per full-board image. A single WebGL canvas on integrated GPUs often fails at that size, or runs out of memory once the N8AO, SMAA and outline buffers are added. Raster hairlines also lose their crispness when printed. The packet has no capture or vector-export plan.",
+   "fix": "Add a 'board capture' service. Render the raster underlay (clay, AO, shadows) in tiles with camera.setViewOffset and stitch them on the CPU. Export the linework as vector SVG/PDF from Manifold slices and three-edge-projection. Composite the two layers in the presentation module. Also export clean depth, normal and line passes for the gpt-image hand-off. Test on the weakest laptop before 13 Nov."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Shadows: R3F 9.8.2 + three r186",
+   "issue": "With a boolean `shadows` prop, R3F 9.8.2 sets THREE.PCFSoftShadowMap. three r186 deprecated it, and WebGLShadowMap now warns 'PCFSoftShadowMap has been removed. Using PCFShadowMap instead.' drei SoftShadows patches shader chunks, and CSM needs csm.setupMaterial on every material. None of this has been tested on r186, yet the packet recommends soft ground shadows and CSM together.",
+   "fix": "Use <Canvas shadows=\"percentage\"> or pass an explicit shadowMap object. Run a 1-day spike of CSM + AccumulativeShadows (and SoftShadows if wanted) on 0.186.1 before relying on them. Register materials with CSM through one material factory so none are missed."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "That Open components in an R3F app",
+   "issue": "@thatopen/components sets up its own world (worlds.create with SimpleScene, SimpleCamera and SimpleRenderer attached to a container div). Its docs do not show how to run it inside an existing three.js or R3F renderer. Putting it next to the R3F canvas risks two renderers, two cameras and two picking systems. The 'v1 IFC panel' assumes this integration is easy, and that was not checked.",
+   "fix": "Spike before committing to v1. Either load @thatopen/fragments + web-ifc directly into the R3F scene and use our own clipper and plan tools, or keep That Open in a separate lazily loaded 'BIM inspector' route. Record the outcome as a decision."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missed IFC alternative: ifc-lite",
+   "issue": "LTplus-AG/ifc-lite (MPL-2.0, 430 stars, pushed 2026-10-21; @ifc-lite/wasm 10.4.0 and @ifc-lite/parser 9.5.1 published Oct 2026) is a Rust/WASM IFC toolkit for parse, view, query, edit, validate and export. It claims IFC2x3/4/4x3/5 support and offers three.js templates. It goes straight at the unresolved items: schema coverage and IFC write-back.",
+   "fix": "Add it as a candidate next to web-ifc. Benchmark both on one real Revit IFC from the team for load time, geometry fidelity and IFC4x3 support. Check its export API for storeys and spaces. Treat its performance claims as unverified."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "IFC write-back via web-ifc",
+   "issue": "'Write IFC from our tagged massing (storeys, spaces) for Revit hand-off' is listed under core, but it was not checked. web-ifc's writer is a low-level entity API. Building IfcProject, IfcSite, IfcBuilding, IfcBuildingStorey and IfcSpace with placements, geometry and property sets by hand is several days of work and needs validation in Revit.",
+   "fix": "Move IFC export to v1. For the 13 Nov core, ship glTF and .3dm (rhino3dm) export. Then run a spike comparing web-ifc writing, ifc-lite export and offline IfcOpenShell (ifcopenshell.api), and validate the result by importing it into Revit."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Linework performance and quality (drei Edges)",
+   "issue": "drei Edges runs new THREE.EdgesGeometry on the main thread each time the geometry changes, and adds one Line2 per mesh. If Manifold re-meshes on every slider move this causes hitches, and context blocks add one draw call each. Edges with a 15-degree threshold also misses or over-draws edges on twisted or tapered towers.",
+   "fix": "Compute feature edges in the kernel worker from Manifold output: boundaries between different faceID/originalID values are the true architectural edges. Send them as one merged LineSegments2 per layer (subject / context / section). Merge context into BatchedMesh or merged geometry. Keep drei Edges only for small imported objects."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "FALSE_ASSUMPTION flag on CadQuery/build123d via Pyodide",
+   "issue": "The flag says there is no Pyodide route. In fact yeicor/OCP.wasm (MIT, 49 stars, pushed 2026-09-24) runs build123d in Pyodide in the browser, and build123d's own docs list it. Only the claim 'it is in the official Pyodide package list' is false. Overstated corrections undermine the FALSE ASSUMPTION mechanism the platform depends on.",
+   "fix": "Reword it: 'not in the official Pyodide distribution; a third-party OCP.wasm port runs build123d in Pyodide (young, single maintainer, heavy download)'. Keep it on the roadmap only, for in-browser STEP detail modules."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Program tags through booleans",
+   "issue": "Program tagging is the platform's core idea, yet the Manifold finding does not say how tags survive unions, subtractions and slices.",
+   "fix": "Use Manifold's originalID / runIndex / faceID (or per-vertex properties) to carry the program tag through booleans. Map it back to materials and per-floor GFA by program. Add one test: podium ∪ tower − site cut keeps its retail/office/residential tags."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Interaction principle sourcing",
+   "issue": "The interaction-polish principle cites raw.githubusercontent.com/kaushikhegde11/hairline-anatomy/interaction.md as 'Hairline's interaction rules'. That repo has 0 stars, was created 2026-10-15 and is a single commit by a third party, not lucasmarkes/hairline.",
+   "fix": "Re-source each rule to lucasmarkes/hairline or wheresryan22/anatomy where they actually say it. Otherwise label the rules as team assumptions."
+  },
+  {
+   "severity": "MINOR",
+   "item": "SunCalc v2 conventions",
+   "issue": "SunCalc v2 is a 'precision-focused rewrite with breaking changes to units and conventions', and azimuth is now measured clockwise from north. Most tutorials, and Claude's prior knowledge, use v1's south-based radians, so generated code will likely be wrong without anyone noticing.",
+   "fix": "Pin 2.1.1. Write a single wrapper with tests against NOAA solar-calculator values for Vancouver solstices and equinoxes. Handle time zones with IANA America/Vancouver. Add a note to CLAUDE.md that v2 conventions apply."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Text-to-massing evidence",
+   "issue": "All the cited evidence comes from mechanical-part benchmarks. Text2BIM (Du et al., arXiv 2408.08054) is architecture-specific: LLM agents generate building models and a rule-based checker feeds back fixes, which is close to the proposed design. It was missed.",
+   "fix": "Cite Text2BIM as precedent for the validate-and-repair loop. Use structured outputs / tool schemas (Claude tool use, OpenAI JSON schema) for the massing JSON so the output is valid without retries."
+  },
+  {
+   "severity": "MINOR",
+   "item": "WebGPU migration path",
+   "issue": "three r186 WebGPURenderer has a WebGL2 fallback backend, and ships TSL GTAO/SSAO/OIT nodes. postprocessing v7 is in beta (7.0.0-beta.16) and R3F v10 makes WebGPU the default. The GLSL post chain will become legacy, and shader patches (onBeforeCompile, drei SoftShadows) will not port.",
+   "fix": "Keep the WebGL2 pin for 13 Nov, but use stock materials only (no onBeforeCompile). Keep all post effects behind the renderer adapter. Schedule a WebGPURenderer and TSL spike after 10 Dec."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Stale 'not obtained' metadata",
+   "issue": "The packet says last-commit dates were unavailable for several repos. The GitHub API now returns them: text-to-cad pushed 2026-10-20 (22,073 stars), anatomy 2026-10-18 (17,838), hairline 2026-10-14 (2,554), three-edge-projection 2026-09-30.",
+   "fix": "Update last_activity for these entries."
+  },
+  {
+   "severity": "MINOR",
+   "item": "manifold-3d peer dependencies",
+   "issue": "manifold-3d 3.5.4 declares esbuild-wasm and @gltf-transform/* as peerDependencies, and peerDependenciesMeta does not mark them optional. npm 7+ installs them automatically, which bloats node_modules and risks version conflicts.",
+   "fix": "Check what npm install actually adds. If it is not needed, mark the peers optional via overrides or a pnpm peerDependencyRules ignore, and confirm the production bundle contains only the WASM kernel."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The @react-three/postprocessing effect list does not include N8AO, so we must wrap N8AOPostPass in our own R3F component.",
+   "why_false": "The wrapper depends on n8ao and exports an N8AO pass component.",
+   "correction": "Use the built-in <N8AO /> from @react-three/postprocessing.",
+   "evidence": "npm @react-three/postprocessing@3.2.1 dependencies {n8ao: ^2.0.0}; dist/index.d.ts line 'export * from ./passes/N8AO'"
+  },
+  {
+   "claim": "CadQuery/build123d cannot run in the browser via Pyodide (no route exists).",
+   "why_false": "A third-party port, yeicor/OCP.wasm (MIT), runs build123d in the Pyodide REPL and can be embedded in apps. build123d's external-tools docs list it.",
+   "correction": "Not in the official Pyodide package list, but available via OCP.wasm (49 stars, pushed 2026-09-24). Viable for a roadmap detail module, not for core.",
+   "evidence": "https://github.com/yeicor/OCP.wasm README; https://build123d.readthedocs.io/en/stable/external.html"
+  },
+  {
+   "claim": "The interaction rules (hit areas stay still, springs, rest pose, etc.) are Hairline's interaction rules.",
+   "why_false": "The cited file is in kaushikhegde11/hairline-anatomy, a separate third-party repo with 0 stars, created 2026-10-15 with a single push. It is not lucasmarkes/hairline.",
+   "correction": "Attribute the rules to their actual source, or record them as team assumptions.",
+   "evidence": "GitHub API repos/kaushikhegde11/hairline-anatomy: stargazers 0, created_at 2026-10-15T13:04:29Z"
+  },
+  {
+   "claim": "Pinned R3F 9.8.2 + three 0.186 gives working soft shadows out of the box (implied by 'Canvas shadows' and the soft-shadow recommendations).",
+   "why_false": "R3F maps shadows=true to PCFSoftShadowMap, which r186 deprecated. WebGLShadowMap warns and falls back to PCFShadowMap.",
+   "correction": "Set shadows='percentage' explicitly, or pass a shadowMap object. Test SoftShadows and AccumulativeShadows on r186.",
+   "evidence": "@react-three/fiber@9.8.2 dist events-e51d7528.esm.js lines 1718-1728; three@0.186.1 src/constants.js '@deprecated since r186' and WebGLShadowMap.js warning text"
+  }
+ ],
+ "missing": [
+  "Site coordinate system and georeferencing (EPSG:26910 offset, float64 kernel, local render origin)",
+  "Board export: tiled high-resolution raster capture plus vector SVG/PDF linework for four A2 boards; clean depth, normal and line passes for gpt-image",
+  "ifc-lite as an IFC parse/edit/export alternative to web-ifc",
+  "A realistic IFC write-back plan (web-ifc low-level writer versus ifc-lite versus IfcOpenShell), validated in Revit",
+  "Program-tag propagation through Manifold booleans (originalID/faceID)",
+  "Feature-edge generation in the kernel worker rather than per-mesh EdgesGeometry on the main thread",
+  "How the 2D node canvas (e.g. xyflow/React Flow) and the 3D viewport share state and render budget",
+  "Undo/redo and deterministic re-run of massing graphs (kernel results cached by parameter hash)",
+  "Architecture-specific text-to-model evidence (Text2BIM) and structured-output enforcement",
+  "JSCAD was rejected only in the recommendations and never opened as a finding",
+  "glTF export (GLTFExporter) for Blender/Twinmotion hand-off",
+  "WebGL context-loss handling and memory limits on integrated GPUs when the kernel, IFC and AO run together"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Correct the N8AO wrapper claim and the OCP.wasm/Pyodide flag before round 2",
+   "Add a georeferencing and precision rule (site origin + float64 kernel)",
+   "Add a board-export plan (tiled raster + vector linework) or explicitly assign it to the presentation packet with an owner",
+   "Demote IFC write-back to v1 and run the web-ifc versus ifc-lite spike on a real Revit IFC",
+   "Fix the shadow-map setting for r186 and verify CSM + AccumulativeShadows in a 1-day spike",
+   "Re-source the interaction principle away from the 0-star hairline-anatomy repo"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://registry.npmjs.org/three/latest",
+   "ok": true,
+   "note": "0.186.1 MIT, published 2026-09-24"
+  },
+  {
+   "url": "https://registry.npmjs.org/@react-three/fiber",
+   "ok": true,
+   "note": "9.8.2 latest; peers react >=19 <19.4; v10 alpha.6 2026-10-17"
+  },
+  {
+   "url": "https://registry.npmjs.org/postprocessing",
+   "ok": true,
+   "note": "6.39.5 Zlib, peer three >=0.168 <0.187; v7 beta.16 Feb 2026"
+  },
+  {
+   "url": "https://unpkg.com/@react-three/postprocessing@3.2.1/dist/index.d.ts",
+   "ok": false,
+   "note": "Exports passes/N8AO; depends on n8ao ^2.0.0, which contradicts the packet"
+  },
+  {
+   "url": "https://unpkg.com/@react-three/drei@10.7.9/core/Edges.js",
+   "ok": true,
+   "note": "Edges uses Line2 fat lines with threshold 15; EdgesGeometry built on the main thread"
+  },
+  {
+   "url": "https://github.com/mrdoob/three.js/releases/tag/r186",
+   "ok": true,
+   "note": "SunLight, SSAONode, OIT, Gaussian splats, PCFSoftShadowMap removal and minified-build removal all confirmed"
+  },
+  {
+   "url": "https://unpkg.com/three@0.186.1/src/renderers/webgl/WebGLShadowMap.js",
+   "ok": true,
+   "note": "Warns and falls back from PCFSoftShadowMap; R3F 9.8.2 still sets it for shadows=true"
+  },
+  {
+   "url": "https://github.com/N8python/n8ao",
+   "ok": true,
+   "note": "CC0-1.0 (GitHub API too); not WebGPU-compatible; N8AOPostPass"
+  },
+  {
+   "url": "https://registry.npmjs.org/manifold-3d/latest",
+   "ok": true,
+   "note": "3.5.4 Apache-2.0, 2.79 MB unpacked; non-optional peers esbuild-wasm and gltf-transform"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mcneel/rhino3dm/main/CHANGELOG.md",
+   "ok": true,
+   "note": "No Brep meshing or booleans in JS confirmed"
+  },
+  {
+   "url": "https://registry.npmjs.org/@thatopen/components/latest",
+   "ok": true,
+   "note": "3.4.9 MIT; peers three >=0.182, web-ifc >=0.0.77, camera-controls >=3.1.2"
+  },
+  {
+   "url": "https://docs.thatopen.com/Tutorials/Components/Core/Worlds",
+   "ok": true,
+   "note": "Creates its own SimpleRenderer and world; R3F integration not documented"
+  },
+  {
+   "url": "https://github.com/LTplus-AG/ifc-lite",
+   "ok": true,
+   "note": "MPL-2.0, 430 stars, pushed 2026-10-21; missed by the packet"
+  },
+  {
+   "url": "https://github.com/yeicor/OCP.wasm",
+   "ok": false,
+   "note": "build123d runs in Pyodide; contradicts the packet's FALSE_ASSUMPTION correction"
+  },
+  {
+   "url": "https://github.com/gkjohnson/three-gpu-pathtracer",
+   "ok": true,
+   "note": "README says WebGPU required, so the packet's claim holds"
+  },
+  {
+   "url": "https://github.com/mourner/suncalc",
+   "ok": true,
+   "note": "v2 breaking rewrite; azimuth clockwise from north; BSD-2-Clause; npm licence field blank"
+  },
+  {
+   "url": "https://registry.npmjs.org/opencascade.js",
+   "ok": true,
+   "note": "latest 1.1.1 (2020); beta 2.0.0 2023-03-23; stale confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/theatre-js/theatre",
+   "ok": true,
+   "note": "Pushed 2024-08-14; stalled confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/xeokit/xeokit-sdk",
+   "ok": true,
+   "note": "AGPL-3.0 confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/earthtojake/text-to-cad",
+   "ok": true,
+   "note": "MIT, 22,073 stars, pushed 2026-10-20"
+  },
+  {
+   "url": "https://api.github.com/repos/lucasmarkes/hairline",
+   "ok": true,
+   "note": "MIT, 2,554 stars, pushed 2026-10-14"
+  },
+  {
+   "url": "https://api.github.com/repos/wheresryan22/anatomy",
+   "ok": true,
+   "note": "MIT, 17,838 stars, pushed 2026-10-18"
+  },
+  {
+   "url": "https://api.github.com/repos/kaushikhegde11/hairline-anatomy",
+   "ok": false,
+   "note": "0 stars, created 2026-10-15; weak source for an interaction principle"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/gkjohnson/three-edge-projection/main/README.md",
+   "ok": true,
+   "note": "Y-axis only; installed from GitHub; pushed 2026-09-30"
+  },
+  {
+   "url": "https://registry.npmjs.org/@speckle/viewer",
+   "ok": true,
+   "note": "2.31.14 published 2026-06-15 confirmed"
+  },
+  {
+   "url": "https://arxiv.org/abs/2408.08054",
+   "ok": true,
+   "note": "Text2BIM: architecture-specific LLM-to-BIM with rule-checker loop; missed"
+  }
+ ],
+ "verdict": "The packet is solid and mostly accurate. I re-checked versions, peer ranges and licences, and the stale and AGPL rejections hold. Three corrections are needed. @react-three/postprocessing already ships N8AO. build123d does run in Pyodide via OCP.wasm. R3F's default soft shadows hit a mode that three r186 removed. Five gaps matter more than any one library choice: georeferencing and float precision, A2 board export, the unscoped IFC write-back, That Open's separate renderer inside R3F, and the missed ifc-lite. The WebGL2 pin, Manifold kernel, constrained text-to-massing and the restrained aesthetic are sound. It passes on the conditions listed: fix these items and run the shadow and IFC spikes before 13 Nov."
+}

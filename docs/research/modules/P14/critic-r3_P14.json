@@ -1,0 +1,332 @@
+{
+ "expert_role": "Software architect and licence/source gatekeeper (BIM interoperability, web geometry, open-data licensing)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M02",
+   "issue": "The core fallback mesher cannot work as written for Brep polysurfaces. The spec says 'planar Brep faces are triangulated from edge loops with earcut', but rhino3dm binds no BrepLoop or BrepTrim and no face-to-edge adjacency, in JS or Python. In bnd_brep.cpp, BrepFace exposes only underlyingSurface, createExtrusion, duplicateFace, duplicateSurface, getMesh, setMesh and orientationIsReversed, and BrepEdge is a bare CurveProxy. Closed polysurfaces from BooleanUnion, Cap or Grasshopper bakes with no saved render mesh are the usual massing case after extrusions. They would all land in the 'unmeshed, blocking' line, so the FSR and height checks never run for these entrants.",
+   "fix": "Use a route the bindings support. For each face, call isPlanar on its underlying surface. Then call face.duplicateFace(false), which returns a single-face Brep whose edges() are only that face's boundary. Sample each edge, chain the samples into loops by endpoint within a weld tolerance, and project them with frameAt. Take the largest |signed area| as the outer loop, then run earcut and the area-deviation check. Weld vertices across faces before handing the mesh to manifold-3d (Mesh.merge). Add a CI fixture: a BooleanUnion polysurface saved with no render meshes. Until this passes, mark the metric 'ProgramVolumes without usable mesh' as unverified."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M01",
+   "issue": "Speckle is listed as 'Apache-2.0' in M01, M02 and M06. The speckle-server LICENSE says code under packages/server/modules/workspaces/ and packages/server/modules/gatekeeper/ is under the Speckle Enterprise Edition licence, and only the rest is Apache-2.0. The GitHub API reports the licence as NOASSERTION. The M02 row 'Speckle connectors and file importers' also points at the speckle-server URL, so the connectors' own licence has not been checked.",
+   "fix": "Record the licence as 'Apache-2.0 except EE modules (workspaces, gatekeeper)'. State that a self-hosted server either excludes the EE directories or accepts the EE terms. Cite the connectors' own repository and its licence. Add these to the CI licence-column check."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M06",
+   "issue": "The platform's own licence, the inbound licence for community-uploaded modules, and the licence for shared design-state data are still undecided ('team decision'), but the spec ships public module upload and forking. Without these, nobody can lawfully fork a contributed module, and LGPL, GPL, MPL and ODbL pieces cannot be checked for compatibility. The previous round asked for this ('State the licence that applies to uploaded modules and to the project itself').",
+   "fix": "Before any public upload, choose a platform licence compatible with MPL-2.0 web-ifc (for example Apache-2.0 or MPL-2.0). Require an SPDX id and a DCO sign-off in every module manifest, and have CI reject GPL code in the browser bundle. Default design states to 'all rights reserved by owner', with an explicit CC choice when published. Tag ODbL-derived context layers so they never enter a fork without ODbL notice and share-alike."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M02",
+   "issue": "The brief and organiser package are still unread. Re-checked on 21 Oct 2026: every 'Download brief' button has href '#', and 'Site plans & 3D model' has no URL. The Buildner registration terms put 'Ask the Jury' questions 'no later than three (3) days after the registration deadline', which is 1 Nov when registration closes on 29 Oct, and answers 'within six (6) days' (about 4 Nov). The spec plans around a 3 Nov Q&A close. The registration page also shows unclear fees (0 EUR plus VAT, paid extras), and the spec names no payer.",
+   "fix": "Register through a team or course account by 28 Oct, or ask the UBC SALA partner for the brief, and record the fee and who pays. Send the Q&A list by 31 Oct, treating 1 Nov as the hard close. Plan to fold the answers (about 4 Nov) into the 6 Nov slice. Then set P14-S54 to opened and re-derive every brief-based status."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P14-M03",
+   "issue": "Status labels are still inconsistent, a residue of the previous round's item. Four live metrics keep 'false_assumption_corrected': true-north error, site position agreement, ProgramVolumes without usable mesh, and mapping coverage. Their thresholds are team presets. The TEAM_ASSUMPTION flag says r2 reset corrected metrics 'so the FALSE ASSUMPTION colour marks only the logged claims', which contradicts these four labels. One of the four now rests on the infeasible edge-loop route.",
+   "fix": "Set the four to team_assumption, or to verified where a threshold is sourced, and link each one to its FALSE_ASSUMPTION log entry. Reserve the special colour for log entries only."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "The UNVERIFIED flag on the IFC4 ADD2 attributes can be closed from a source the spec already cites (web-ifc ifc-schema.ts, P14-S07). Its IFC4 namespace has IfcBuildingStorey(..., CompositionType, Elevation), IfcBuilding(..., ElevationOfRefHeight, ElevationOfTerrain), IfcSite(..., RefElevation), IfcSpatialZone, IfcMapConversion(..., Scale) with no IfcMapConversionScaled, IfcProjectedCRS.VerticalDatum, and IfcRelReferencedInSpatialStructure with RelatingStructure typed IfcSpatialElement. IFC4 also has IfcExternalSpatialElement, the class intended for exterior space, yet OpenSpace maps to an 'external IfcSpace'.",
+   "fix": "Move the attribute existence to resolved, citing web-ifc's IFC4 schema, and keep only behaviour for the round-trip spike. Map OpenSpace to IfcExternalSpatialElement under IfcSite (PredefinedType EXTERNAL), with external IfcSpace as a fallback."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M08",
+   "issue": "The 'Agreement with organiser reference heights' check compares maxht_m with CTBUH heights, but maxht_m is not a part height. API query for bldgid 149845: the tallest part has hgt_agl 192.95 m (top 223.71, base 30.76), while maxht_m is 208.63, which implies a base about 15.1 m geodetic, well below the 30.7 m tower base. The 208.6 versus 201 m '3.8% agreement' mixes conventions.",
+   "fix": "Compute context heights as part topelev_m minus the ground or entrance elevation at the tower, which matches the CTBUH convention used elsewhere. Use maxht_m only as a flagged summary, and restate the r2 indicative check."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M06",
+   "issue": "Public forks unlock after 30 Nov, but terms 5.3 say the jury learns identities only after winners are selected, and results are due 26 Jan 2027. A named public fork in December or January can de-anonymise an entry. Separately, the organiser's resubmit page says previously published concepts may be reused if 'all presentation materials must be visually updated'. That narrows the 4.1 conflict to visual materials. The deadline is also 23:59 London (15:59 Vancouver).",
+   "fix": "Extend the default warning or block to 26 Jan 2027, with an owner override and a warning. Store deadlines in UTC. Add the resubmit page as a source and narrow the unresolved 4.1 question to rendered views and boards."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "Core modules M03 and M05 list the v1 module M08 in depends_on. The CI rule that 'each depends_on equals the producers of its inputs' then makes core builds depend on a v1 module.",
+   "fix": "Split depends_on into required and optional_inputs, and have CI check acyclicity over both but core completeness only over required."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "The FSR wording is wrong: '1% of the denominator is about 1,032 m2'. 1% of 11,468 m2 is about 115 m2. The intended claim is that a 1% change in the denominator moves the required employment area by about 1,032 m2.",
+   "fix": "Reword it that way, and show both numbers on the area table."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M01",
+   "issue": "The local IfcClassification for the 9 tags has no Name, Edition, EditionDate or Source, so IFC tools cannot tell which vocabulary version a tag comes from after a schema change.",
+   "fix": "Declare IfcClassification 'VTC Layer0 tags', with Edition equal to schema_version, an EditionDate, and Source set to the repository URL of the vocabulary file. Add these to the round-trip diff."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "The vertical datum is recorded as 'CGVD28GVRD or CGVD2013', but no conversion between them is specified. LiDAR is CGVD28GVRD, and view-limit and footprint datums are unknown, so a mixed-datum Z0 can hide inside the 1 m / 3 m Z0 thresholds.",
+   "fix": "Add a vertical-datum conversion parameter (geoid or height-transformation model, with source) and refuse to compare elevations across datums without it. Record the conversion in provenance."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M04",
+   "issue": "The hosted-API data-handling description is incomplete. Anthropic's structured-outputs page marks ZDR as eligible but 'Excludes Covered Models', and caches the JSON schema for up to 24 hours. The privacy page confirms 30-day default deletion.",
+   "fix": "Record the model id, its ZDR eligibility and the schema caching in the opt-in dialog and in P14-M06 provenance. Keep the rules-only mode as the default."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M07",
+   "issue": "opencascade.js is effectively unmaintained. The GitHub API shows pushed_at 2023-08-15, about three years ago, and no releases are listed. The spec only says 'maintenance unclear'.",
+   "fix": "State it as stale and keep it in the roadmap only. Evaluate maintained alternatives for STEP/B-rep reading (for example occt-import-js, which Online 3D Viewer uses) before committing, and record their licences."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M08",
+   "issue": "The City Open Government Licence text is still unread: the portal licence page is script-rendered and returned no text. The attribution-completeness metric therefore cites terms nobody has seen. ODbL layers are said to be 'separable', but the snapshot manifest hashes a single context_layer_hash that forks copy.",
+   "fix": "Have a person read the licence and record its attribution string. Hash City and ODbL layers separately in the manifest, and attach the ODbL notice to any fork that carries the ODbL hash."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P14-M03",
+   "issue": "proj4js is still marked 'MIT per project (LICENSE.md not read)'. The LICENSE.md is MIT-style (copyright 2014, Adair et al.). The datum code also confirms the r2 correction: datum.js multiplies params 3-5 by SEC_TO_RAD, and datumUtils uses position-vector formulas.",
+   "fix": "Mark the licence as verified, and cite the two code lines as evidence for the arc-second position-vector parameters."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The rhino3dm fallback mesher can triangulate planar Brep faces 'from edge loops with earcut'",
+   "why_false": "rhino3dm (JS and Python) exposes no BrepLoop or BrepTrim and no face-to-edge mapping. BrepFace binds only underlyingSurface, createExtrusion, duplicateFace, duplicateSurface, getMesh, setMesh and orientationIsReversed, and BrepEdge is a bare CurveProxy.",
+   "correction": "Rebuild each face's loops from face.duplicateFace(false).edges() by chaining endpoints, use the surface's isPlanar and frameAt, then run earcut and weld vertices across faces. Test on a BooleanUnion fixture with no render meshes.",
+   "evidence": "https://raw.githubusercontent.com/mcneel/rhino3dm/main/src/bindings/bnd_brep.cpp (lines 392-412 Python and 463-522 JS: no loop or trim classes); bnd_surface.cpp binds isPlanar, frameAt and normalAt"
+  },
+  {
+   "claim": "Speckle server and SDKs are licensed Apache-2.0",
+   "why_false": "The repository LICENSE puts packages/server/modules/workspaces/ and packages/server/modules/gatekeeper/ under the Speckle Enterprise Edition licence. Only the remaining code is Apache-2.0, and GitHub reports NOASSERTION.",
+   "correction": "Record a mixed licence (Apache-2.0 except EE modules). Self-hosting excludes those modules or accepts the EE terms. Verify the connectors' licence in their own repository.",
+   "evidence": "https://raw.githubusercontent.com/specklesystems/speckle-server/main/LICENSE (first lines: 'Portions of this software are licensed as follows ... Speckle Enterprise Edition (EE) license')"
+  },
+  {
+   "claim": "maxht_m for the Living Shangri-La footprint (208.6 m) can be compared with its 201 m labelled height as a height-agreement check",
+   "why_false": "The tallest part of bldgid 149845 has hgt_agl 192.95 m (topelev 223.71, baseelev 30.76). maxht_m 208.63 implies a base about 15.1 m geodetic, so it is measured from the lowest base of all elements, not from the tower's entrance.",
+   "correction": "Compare per-part topelev_m minus the entrance-level ground with CTBUH heights, and treat maxht_m as a summary field only.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009/records?where=within_distance(geom,geom'POINT(-123.1207 49.2827)',2.5km)&order_by=maxht_m desc (queried 21 Oct 2026)"
+  }
+ ],
+ "missing": [
+  "Declared platform licence, inbound licence or DCO for community modules (SPDX in each manifest), and a licence for shared design-state data",
+  "A typed split between required and optional dependencies for the module DAG and the CI checks",
+  "A fallback-mesh welding and watertightness step before manifold-3d intake, plus a BooleanUnion fixture with no render meshes",
+  "A vertical-datum conversion parameter (CGVD28GVRD to CGVD2013, or geoid model) with its source",
+  "Registration fee, payer, and the Ask-the-Jury hard close (1 Nov according to the registration terms) in the schedule",
+  "An anonymity window running to the results date (26 Jan 2027) for public forks, with deadlines stored in UTC",
+  "Name, Edition and Source for the local IfcClassification",
+  "Mapping of OpenSpace to IfcExternalSpatialElement (present in the IFC4 schema)",
+  "An explicit BOT target for FloorPlate (bot:Space) in the method text",
+  "Handling of CC BY-ND buildingSMART documentation text if schema clauses are shown in the tool (verbatim with attribution only)",
+  "The City Open Government Licence attribution string, read by a person"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Rewrite the planar-Brep fallback mesher using duplicateFace and edge chaining, and pass a CI fixture of a BooleanUnion polysurface with no render meshes",
+   "Obtain the brief and organiser package (register or go through UBC SALA) by 28 Oct, send the Q&A list by 31 Oct (hard close possibly 1 Nov), and update P14-S54 and every brief-based status",
+   "Declare the platform licence, the module inbound licence and the design-state data licence, and record Speckle's EE carve-out",
+   "Reset the four remaining 'false_assumption_corrected' metrics to their evidence status",
+   "Close the IFC4 ADD2 attribute flag using web-ifc's IFC4 schema and map OpenSpace to IfcExternalSpatialElement",
+   "Extend the public-fork warning or block for design states to the results date, or get organiser confirmation"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "M03 north model: enum ambiguity, street-grid skew, circular true-north check",
+   "status": "addressed",
+   "residue": "Four plain-language types, a parcel-derived 44.7/134.7 deg grid and an independent street-edge check are in. Only the arrow type is still waiting on the organiser."
+  },
+  {
+   "item": "M03 EPSG:3157 registration from the epsg.io string",
+   "status": "addressed",
+   "residue": "Arc-second position-vector parameters match the proj4js code I read (SEC_TO_RAD; position-vector formulas). The LiDAR frame test and the PROJ CI test are planned but not yet run."
+  },
+  {
+   "item": "M02 fallback mesher for .3dm files without render meshes",
+   "status": "partly",
+   "residue": "'planar Brep faces are triangulated from edge loops with earcut': rhino3dm binds no loops or trims."
+  },
+  {
+   "item": "M01 cyclic graph and M04 priority",
+   "status": "addressed",
+   "residue": "Staged documents and an acyclic order are in. Core M03 and M05 still list v1 M08 in depends_on."
+  },
+  {
+   "item": "M04 voids, atria and mezzanines (has_floor)",
+   "status": "addressed"
+  },
+  {
+   "item": "M01 schema_version and migrations",
+   "status": "addressed"
+  },
+  {
+   "item": "M06 visibility and licences",
+   "status": "partly",
+   "residue": "Private by default and blocked until 30 Nov, but 'The project's own licence is a team decision'. No licence for uploaded modules, and the block ends before the jury de-anonymises entries."
+  },
+  {
+   "item": "M02 organiser package before 29 Oct",
+   "status": "partly",
+   "residue": "The plan and dates are in, but P14-S54 is still opened=false, links are still '#' on 21 Oct, and the Q&A close may be 1 Nov rather than 3 Nov."
+  },
+  {
+   "item": "Schedule reconciliation and entrant-ready slice",
+   "status": "addressed",
+   "residue": "19.5 core person-days and an 18.0 slice by 6 Nov, which needs about 70% of both students' time (unconfirmed)."
+  },
+  {
+   "item": "M05 status labels (unverified vs false_assumption_corrected)",
+   "status": "partly",
+   "residue": "The height metric is now unverified, but four team-preset metrics still carry 'false_assumption_corrected'."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P14-S53",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Confirmed 21 Oct: brief buttons have href '#'; Site plans & 3D model has no URL; registration closes 29 Oct; the FAQ allows a previously published concept by its author."
+  },
+  {
+   "source_id": "P14-S64",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "Clauses 4.1, 4.8 (JPEG, 10 MB), 5.1, 5.3 and 12.2/12.3 confirmed; no AI clause."
+  },
+  {
+   "url": "https://architecturecompetitions.com/resubmit-your-design",
+   "ok": true,
+   "note": "Previously published concepts may be reused if presentation materials are visually updated. Not cited in the spec."
+  },
+  {
+   "url": "https://architecturecompetitions.com/registration/vancouvertallchallenge",
+   "ok": true,
+   "note": "Ask-the-Jury questions are due no later than 3 days after the registration deadline (about 1 Nov). Fees unclear. Not cited in the spec."
+  },
+  {
+   "source_id": "P14-S63",
+   "url": "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data",
+   "ok": true,
+   "note": "30-day default deletion confirmed."
+  },
+  {
+   "source_id": "P14-S45",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+   "ok": true,
+   "note": "GA; numeric and length constraints unsupported; ZDR eligible but excludes covered models; schema cached 24 h; Sonnet 5.5 listed."
+  },
+  {
+   "source_id": "P14-S19",
+   "url": "https://w3c-lbd-cg.github.io/bot/",
+   "ok": true,
+   "note": "Public Draft; no date or licence; containsZone, hasSpace and intersectsZone domains match the spec."
+  },
+  {
+   "source_id": "P14-S66",
+   "url": "https://epsg.io/1946",
+   "ok": true,
+   "note": "Coordinate Frame; radian rotations -1.25033E-07 etc.; PROJ pipeline shows -0.02579 arc-seconds with coordinate_frame. The spec's conversion is correct."
+  },
+  {
+   "source_id": "P14-S33",
+   "url": "https://raw.githubusercontent.com/proj4js/proj4js/master/lib/datum.js",
+   "ok": true,
+   "note": "datum_params[3..5] *= SEC_TO_RAD; datumUtils.js uses position-vector formulas; LICENSE.md is MIT."
+  },
+  {
+   "source_id": "P14-S21",
+   "url": "https://raw.githubusercontent.com/mcneel/rhino3dm/main/src/bindings/bnd_brep.cpp",
+   "ok": false,
+   "note": "No BrepLoop or BrepTrim bindings, so the edge-loop route is unsupported. Extrusion bindings (bnd_beam.cpp) confirmed: getMesh, setMesh, toBrep, profile3d, pathLineCurve."
+  },
+  {
+   "source_id": "P14-S07",
+   "url": "https://raw.githubusercontent.com/ThatOpen/engine_web-ifc/main/src/ts/ifc-schema.ts",
+   "ok": true,
+   "note": "The IFC4 namespace has Elevation, ElevationOfRefHeight, RefElevation, IfcSpatialZone, IfcMapConversion.Scale, IfcProjectedCRS.VerticalDatum and IfcExternalSpatialElement."
+  },
+  {
+   "source_id": "P14-S05",
+   "url": "https://raw.githubusercontent.com/IfcOpenShell/IfcOpenShell/v0.8.0/README.md",
+   "ok": true,
+   "note": "README: extensive geometric support only for IFC2x3 TC1 and IFC4 Add2 TC1. Licence LGPL-3.0."
+  },
+  {
+   "source_id": "P14-S15",
+   "url": "https://raw.githubusercontent.com/specklesystems/speckle-server/main/LICENSE",
+   "ok": false,
+   "note": "Mixed licence: EE licence for workspaces and gatekeeper, Apache-2.0 for the rest."
+  },
+  {
+   "source_id": "P14-S10",
+   "url": "https://docs.speckle.systems/developers/object-model/overview",
+   "ok": true,
+   "note": "applicationId identity; no Level object (ON_LEVEL); compatibility until 1 Nov 2026; send3/receive3."
+  },
+  {
+   "source_id": "P14-S13",
+   "url": "https://docs.speckle.systems/connectors/rhino",
+   "ok": true,
+   "note": "Rhino 7 and 8, Windows only."
+  },
+  {
+   "source_id": "P14-S27",
+   "url": "https://github.com/Autodesk/revit-ifc",
+   "ok": true,
+   "note": "README: Library GPL v2.0 plus a proprietary Autodesk DLL; no licence file detected by the GitHub API."
+  },
+  {
+   "source_id": "P14-S50",
+   "url": "https://api.github.com/repos/donalffons/opencascade.js",
+   "ok": true,
+   "note": "LGPL-2.1; last push 2023-08-15 (stale)."
+  },
+  {
+   "source_id": "P14-S70",
+   "url": "https://api.github.com/repos/boxpet/pygeomag",
+   "ok": true,
+   "note": "MIT confirmed; geomagnetism is Apache-2.0, last push Dec 2024."
+  },
+  {
+   "source_id": "P14-S46",
+   "url": "https://api.github.com/repos/jingcheng-chen/rhinomcp",
+   "ok": true,
+   "note": "MIT confirmed."
+  },
+  {
+   "url": "https://api.github.com/repos/connormanning/copc.js",
+   "ok": true,
+   "note": "copc.js MIT confirmed."
+  },
+  {
+   "source_id": "P14-S35",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009/records",
+   "ok": false,
+   "note": "Largest maxht_m 208.63 (bldgid 149845) confirmed, but its tallest part's hgt_agl is 192.95, so maxht_m is not part height above the tower base."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": false,
+   "note": "Script-rendered; licence text not retrievable."
+  },
+  {
+   "source_id": "P14-S03",
+   "url": "https://standards.buildingsmart.org/IFC/RELEASE/IFC4/ADD2_TC1/HTML/link/ifcspatialzone.htm",
+   "ok": false,
+   "note": "HTTP 403; the web-ifc IFC4 schema was used instead."
+  }
+ ],
+ "verdict": "Gate fails. Round 3 fixed most of the previous round's items: north types, the EPSG:3157 parameters (I confirmed them against the proj4js code), the acyclic graph, has_floor, schema_version and the schedule. Several problems remain. The core fallback mesher assumes Brep edge loops that rhino3dm does not bind, so typical Boolean polysurfaces would stay blocked. Speckle is not plain Apache-2.0: its workspaces and gatekeeper modules carry an Enterprise licence. The platform, module and design-state licences are still undecided. The brief and organiser package are still unread, and the Q&A close may be 1 Nov, not 3 Nov. Four metrics keep stale status labels. The IFC4 ADD2 attribute flag can now be closed from web-ifc's schema. My web-search budget ran out mid-audit, so I used direct fetches and API queries only."
+}

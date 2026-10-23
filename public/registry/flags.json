@@ -1,0 +1,31 @@
+{
+  "format": "tower-studio-flags@1",
+  "sample": true,
+  "note": "Flag records as the registry's Issue form would write them (research P15-M06). Entries are never deleted; a resolved flag keeps its history.",
+  "flags": [
+    {
+      "module": "community.example.tower-width",
+      "versions": "0.1.0",
+      "threshold": "height_to_width",
+      "claim": "The 6:1–8:1 proportion tip carries no clause number, and its wording was not re-read in the guideline.",
+      "evidenceUrl": null,
+      "currentStatus": "unverified",
+      "state": "open",
+      "history": [{ "date": "2026-10-22", "status": "unverified", "note": "Raised from the package's own source note." }]
+    },
+    {
+      "module": "community.example.tower-width",
+      "versions": "0.1.0",
+      "threshold": null,
+      "claim": "The 18.3 m Downtown podium height (S2.2.7) applies to every tower.",
+      "correctedValue": "S2.2.7 applies only to exclusively residential towers; mixed-use and non-residential podiums follow Table 2.2b (S2.2.6).",
+      "evidenceUrl": "https://council.vancouver.ca/20260728/documents/r2.pdf",
+      "currentStatus": "false_assumption",
+      "state": "resolved",
+      "history": [
+        { "date": "2026-10-21", "status": "unverified", "note": "Claim found in research packet P06, round 1." },
+        { "date": "2026-10-22", "status": "false_assumption", "note": "Corrected in research packet P06, rounds 1–2; the package lists it under falseAssumptions." }
+      ]
+    }
+  ]
+}

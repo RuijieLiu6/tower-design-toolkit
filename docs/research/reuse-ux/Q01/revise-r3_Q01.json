@@ -1,0 +1,886 @@
+{
+ "packet_id": "Q01",
+ "findings": [
+  {
+   "name": "xunliuDesign (Xun Liu) GitHub account",
+   "url": "https://github.com/xunliuDesign",
+   "kind": "other",
+   "what_it_does": "Xun Liu's account: 15 public repos (13 own, 2 MIT Notion forks), 12 followers, 20 stars. Own work: mapping, AI4GH, false-creek-2100. It hosts none of hairline, anatomy or text-to-cad (all 404 there); it only starred them.",
+   "how_we_use_it": "Read its stars list as Xun's curated tool shelf: the three tools lead it, then Rhino/Grasshopper MCPs, Claude skills and agent tutorials. Mine it for ideas; treat stars as pointers, not endorsements or licences.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "Newest push 2026-07-17 (des212-2026, a redirect-only stub pointing to GenEnv); newest substantive own repo false-creek-2100, 2026-06-11",
+   "license": "n/a (per repo; none of the 13 own repos has one; the 2 forks are MIT)",
+   "maintainer": "Xun Liu",
+   "popularity": "12 followers, 4 following, 20 stars given",
+   "risks": "Handle is xunliuDesign, not 'XunLiu Design'. GitHub org xlstudio belongs to someone else. Starring is not an endorsement. Pronoun and intent behind the stars unknown. GenAI_Visual_Examples is an empty repo (checked).",
+   "saves": "Avoids searching wrong accounts."
+  },
+  {
+   "name": "GenEnv (GenEnv Lab) organisation",
+   "url": "https://github.com/GenEnv",
+   "kind": "other",
+   "what_it_does": "Lab/course org, 9 public repos: rhino-gh-mcp, genenv-site, des212-2026, Thermal-Sandbox-Web (a fork), ai4dm-site, ai-agents-for-architects, sala-tech-knowledge-tree, Arch540_2026, arch540-a1-toolkit. No public members. agents_demo is a folder inside Arch540_2026, not a repo.",
+   "how_we_use_it": "Primary instructor-owned source for course patterns (agent demos, Rhino MCP, validators, sun data). Check weekly until 10 Dec for new student tools; log each reuse with licence status and who gave permission.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-14 (arch540-a1-toolkit)",
+   "license": "Only rhino-gh-mcp has a LICENSE (MIT). The other 8 have none (verified from full file trees and API licence=null; re-checked 21 Oct).",
+   "maintainer": "GenEnv / UBC SALA (Xun Liu per course context)",
+   "popularity": "Repos have 0-8 stars",
+   "risks": "Licences: see recommendation 2 (8 of 9 repos have none). Authorship per repo unconfirmed; one repo is a fork of a non-GenEnv user's work.",
+   "saves": "One org to check for course-approved building blocks."
+  },
+  {
+   "name": "hairline (lucasmarkes/hairline)",
+   "url": "https://github.com/lucasmarkes/hairline",
+   "kind": "library",
+   "what_it_does": "MIT library of 33 pointer-reactive isometric line-drawn SVG figures for React or any DOM; no runtime dependencies, one shared animation loop. Ships agent skills hairline-create (draws a new figure as one HTML file) and hairline-adopt (rebuilds an SVG).",
+   "how_we_use_it": "v1: install exactly @lucasmarkes/hairline@0.5.1 (never unscoped 'hairline', an unrelated 2019 CSS package) or vendor 3-5 figures for empty canvas, onboarding, module cards. Skip the shadcn URL route in CI. Adopt its ten rules as our linework spec.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-14 (v0.5.1; six releases from v0.1.0-rc.0 on 1 Oct)",
+   "license": "MIT (c) Lucas Marques; GitHub API and npm confirm MIT; monorepo package.json has no license field",
+   "maintainer": "Lucas Marques (lucasmarkes)",
+   "popularity": "2.57k stars, 157 forks, 5 open issues+PRs (21 Oct 2026); HN post 4 Oct: 2 points, 0 comments; 1 X post; 1 third-party article; 21st.dev listing; a second search for Reddit or LinkedIn reviews found nothing",
+   "risks": "Single maintainer; created 1 Oct, six releases since, so pin. GitHub description still says 'Six' figures (README: 33). Figures are generic, not architectural. shadcn route fetches from the author's own domain. Monorepo dev needs Node 22+.",
+   "saves": "Hours of hand-coded SVG animation."
+  },
+  {
+   "name": "anatomy (wheresryan22/anatomy)",
+   "url": "https://github.com/wheresryan22/anatomy",
+   "kind": "skill",
+   "what_it_does": "MIT agent skill that builds an interactive isometric SVG figure (optional WebGL shaders, beta 3D) explaining an idea as a real machine. Ships a drawing kit, geometry audit, headless-Chrome checks and A4/Letter print sheets. Slow by design.",
+   "how_we_use_it": "Roadmap, test first: build one Figure (sun path or stack-effect shaft) and check it against our hairline-derived calm style before spending more tokens; drop it if the dense-machine look clashes on boards. Never ask for 'the tower'. Reuse its geometry-audit and loose-line checks as drawing QA.",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-18",
+   "license": "MIT (c) 2026 Ryan",
+   "maintainer": "wheresryan22 (Ryan)",
+   "popularity": "18.0k stars, 1.4k forks, 61 open issues+PRs; created 8 Oct 2026; HN: 2 posts, 2 points, 0 comments; 4+ independent X, YouTube and Medium posts, enthusiastic but mostly descriptive",
+   "risks": "A whole building is Epic (6 h+, never started unasked). Even a Figure must be a dense 40-80 part machine, not slabs, which may clash with calm hairline style. CLI needs Node 22.20+; checks need Chrome. Print sheets are A4.",
+   "saves": "Design time only; Figure/Hero/Epic tiers help cap spend."
+  },
+  {
+   "name": "text-to-cad (earthtojake/text-to-cad)",
+   "url": "https://github.com/earthtojake/text-to-cad",
+   "kind": "skill",
+   "what_it_does": "MIT Claude Code plugin and skills letting agents generate STEP, GLB, STL, 3MF and DXF from text or images via build123d and Open CASCADE (cadgen), with viewer, drawings, DFM and printing skills. Mechanical focus: parts, robots, G-code.",
+   "how_we_use_it": "Roadmap: optional local experiment for odd-shaped massing or facade parts, GLB into our viewer. Not the v1 massing node: tower massing is extruded floor plates and it cannot write .3dm or IFC. Never bundle it in the browser app.",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-20 (release 0.7.26)",
+   "license": "MIT (c) 2026 Thompson Labs LLC",
+   "maintainer": "earthtojake / Thompson Labs LLC",
+   "popularity": "22.1k stars, 2.2k forks, 29 open issues+PRs; open-sourced 22 Apr 2026; HN thread 1 May: 186 points, 48 comments, mixed (about 5 of 17 commenters report supervised use, about 6 doubt spatial reasoning or the benchmarks)",
+   "risks": "Needs uv (not installed). Smart App Control blocks OCP unless off or under WSL; never turn it off (irreversible). Telemetry and daily update check default on: run uvx cadgen telemetry off once per machine; set CADGEN_UPDATE_CHECK=0.",
+   "saves": "Would avoid building a CAD kernel and viewer, but only for mechanical parts."
+  },
+  {
+   "name": "anatomy-community gallery",
+   "url": "https://github.com/wheresryan22/anatomy-community",
+   "kind": "repo",
+   "what_it_does": "Gallery where figures are submitted as source (build.mjs, figure.json) by agent script or Gist plus issue bot. CI rebuilds in a locked sandbox with a two-run determinism check, publishes previews on a branch; maintainer reviews.",
+   "how_we_use_it": "Model for our module hub: source-only submissions, sandboxed rebuild, preview, per-module licence field, takedown by deleting a folder. Read its CONTRIBUTING and workflow files before copying any. Design now, implement in v1.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-20",
+   "license": "Root LICENSE is MIT (c) Ryan and contributors, with CC-BY-4.0 for figures that say so in figure.json; GitHub API shows NOASSERTION because of that extra line",
+   "maintainer": "wheresryan22",
+   "popularity": "65 stars, 40 forks, 31 open issues+PRs",
+   "risks": "Open-PR backlog hints at review load. Sandbox hardening not audited by us. CI minutes and Node build dependency. Per-figure licences vary.",
+   "saves": "A proven moderation workflow instead of inventing one."
+  },
+  {
+   "name": "Thermal-Sandbox-Web (GenEnv fork of christinachiu)",
+   "url": "https://github.com/GenEnv/Thermal-Sandbox-Web",
+   "kind": "app",
+   "what_it_does": "Static app comparing annual solar load on a 215 x 130 m Winnipeg site (University of Manitoba), baseline vs scenario. Two JSON files drive it: Rhino-derived geometry and about 20k Ladybug/Radiance irradiance points. Three.js 0.160 viewer inside one 5 MB HTML file.",
+   "how_we_use_it": "v1, energy node only: precompute irradiance in Python (or user-side Ladybug), emit typed JSON, render in browser. Copy its meta-block idea (units, sources, notes, open-sky total, formulas); compare baseline and scenario point by point. Re-implement; copy no code.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-07-21 (fork); upstream christinachiu repo 2026-08-14",
+   "license": "None (5-path tree has no LICENSE; API null; upstream also none)",
+   "maintainer": "christinachiu (upstream author); GenEnv fork, 4 commits",
+   "popularity": "Fork: 1 star, 1 open PR; upstream: 0 stars, 1 fork",
+   "risks": "Permission must come from the upstream owner (licences: recommendation 2); author's affiliation unknown. Fork is 3 weeks behind. Winnipeg data, not Vancouver. Ladybug, the generating tool, is AGPL-3.0.",
+   "saves": "Output-schema and unit conventions (kWh/m2/yr; solar reduction = 1 - load / open-sky total) for the energy module."
+  },
+  {
+   "name": "suncalc (mourner/suncalc)",
+   "url": "https://github.com/mourner/suncalc",
+   "kind": "library",
+   "what_it_does": "Tiny dependency-free JavaScript library (v2.1.1) for sun position, sunlight phases and moon data, based on Meeus formulas. Altitude is refraction-corrected, azimuth is degrees clockwise from north. BSD-2-Clause.",
+   "how_we_use_it": "Core: browser sun vectors for three.js shadow views and the PDT time slider. Build 10:00 PDT as 17:00 UTC, never from the viewer's time zone. Unit-test against our own NOAA-style Python calculation at 10:00, 13:00 and 16:00 PDT on 22 Sep (not run yet). Pin 2.1.1.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-05 (v2.1.1)",
+   "license": "BSD-2-Clause (LICENSE file and API confirm)",
+   "maintainer": "Volodymyr Agafonkin (mourner)",
+   "popularity": "3.5k stars, 437 forks, 10 open issues+PRs",
+   "risks": "Single maintainer. Position only: no shadows or irradiance. It takes a UTC instant, so careless time-zone handling shifts the equinox window by hours. Tests need tolerances against other methods. Older tutorials may use other angle conventions.",
+   "saves": "Avoids writing sun-position astronomy in JavaScript."
+  },
+  {
+   "name": "des212-2026 (GenEnv)",
+   "url": "https://github.com/GenEnv/des212-2026",
+   "kind": "repo",
+   "what_it_does": "UBC DES 212 Design Media II archive: Grasshopper tutorial pages with video, lecture slides, assignment briefs and a syllabus PDF. README says tutorials include downloadable .gh and .3dm files (Module 1-3 folders; individual files not opened). Built from a Canvas export.",
+   "how_we_use_it": "Roadmap: onboarding path for teammates new to Grasshopper; link to it, do not copy. Use its module-by-module tutorial structure as a model for documenting our module cards.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-07-17 (7 commits)",
+   "license": "None (139-path tree has no LICENSE)",
+   "maintainer": "GenEnv",
+   "popularity": "1 star",
+   "risks": "Course material owned by the instructor (licences: recommendation 2). Build script is kept offline, so the site cannot be regenerated from the repo. The xunliuDesign copy is only a redirect stub.",
+   "saves": "Teammate onboarding time on Grasshopper."
+  },
+  {
+   "name": "rhino-gh-mcp (GenEnv)",
+   "url": "https://github.com/GenEnv/rhino-gh-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "MIT MCP server plus Rhino 8 and Grasshopper C# plugins (v0.2.6): an LLM reads and edits a live canvas and captures the viewport. Control presets (parameter, curated, full) and a Scenario dropdown gate AI access. Skills: landform, ladybug-environmental (draft), facade-design, bridge basics.",
+   "how_we_use_it": "v1, optional bridge for Rhino modellers: Claude tunes sliders and reads definitions. Not our web import path (use rhino3dm.js). Copy Scenario gating as per-node AI permission levels; use facade-design recipes for the facade module. Ask Xun first: massing, structural-grid and daylighting skills are planned.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-07-17",
+   "license": "MIT (LICENSE file present; API confirms)",
+   "maintainer": "GenEnv / Xun Liu's lab",
+   "popularity": "8 stars, 2 forks, 1 open issue/PR",
+   "risks": "Rhino 8 only (desktop; Rhino 7 unsupported). Quick start (Claude Desktop .mcpb plus Package Manager) needs no uv; the from-source, Claude Code path needs uv, .NET SDK and Python 3.11 or 3.12. Early v0.2.6. Only the draft ladybug skill needs Ladybug.",
+   "saves": "Skips writing a RhinoCommon plugin and MCP server; facade-design gives seven typology recipes with reference .gh files."
+  },
+  {
+   "name": "Arch540_2026 course repo (agents_demo)",
+   "url": "https://github.com/GenEnv/Arch540_2026",
+   "kind": "repo",
+   "what_it_does": "Four Claude Code demos (A writing, B test-fit, C design-space, D team of about 10 agents) with CLAUDE.md, check.py, evaluate.py, Pareto front, limits.json, hooks and a subagent. POSIX only as shipped (fcntl, python3 hooks); needs numpy, scipy, shapely, matplotlib.",
+   "how_we_use_it": "Core: copy patterns, not code: deterministic evaluator as the only source of numbers, JSON in/out, Pareto front, a blocking PreToolUse gate, UNRESOLVED after six revisions. Re-implement for Windows (venv interpreter, portable lock). Its sun hours are a teaching metric; the City guideline test governs. Ask Xun for a licence.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-09-29 (3 commits)",
+   "license": "None (verified: 394-path tree has no LICENSE; API null)",
+   "maintainer": "GenEnv / Xun Liu",
+   "popularity": "0 stars",
+   "risks": "Hooks call python3 (Store stub here), so gates silently skip; C imports fcntl. A's guard is a Stop hook, which onFailure cannot harden. Demo rules are teaching values (80 x 60 m lot, 14 storeys). D_team can exhaust a Pro allowance.",
+   "saves": "Large token saving: numbers come from scripts, not the LLM; also a ready sun-hours method for a secondary metric."
+  },
+  {
+   "name": "arch540-a1-toolkit (15 student Vancouver-regulation tools)",
+   "url": "https://github.com/GenEnv/arch540-a1-toolkit",
+   "kind": "repo",
+   "what_it_does": "Static index of 15 student tools on Vancouver rules (Curbside, Stair Core, R3 Feasibility, Solar Shading Explorer, MassShadeLight, Lotwise, Downtown Massing, Massing Studio, Vista...). Each is a JSON card with tool and repo links.",
+   "how_we_use_it": "Core: mine as a reading list for policy, sun, view and code modules and as collaborators to ask. Cards give tool_url and repo_url. Read the 11 unread cards before choosing what to port.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-14 (19 commits)",
+   "license": "None (verified: 37-path tree has no LICENSE)",
+   "maintainer": "GenEnv; tools by individual students",
+   "popularity": "0 stars",
+   "risks": "Many are one-person prototypes with unverified rules. Authors are classmates, so credit and consent matter (licences: recommendation 2).",
+   "saves": "Weeks of rule research if rules are re-verified from bylaws."
+  },
+  {
+   "name": "Downtown Massing Tool (xubynii/dtmass)",
+   "url": "https://github.com/xubynii/dtmass",
+   "kind": "app",
+   "what_it_does": "Static WebGL tool by Sinnie Choi checking downtown Vancouver tower massings against VBBL 2025, Downtown ODP 4912, floor-plate and solar access guidelines, views and parking; reads .3dm. Solar test: hourly equinox shadow on parks, 10:00-16:00 PDT. Inputs need manual verification.",
+   "how_we_use_it": "Core, reading list: seed the policy source list from its rule-to-document map. Its solar code (NOAA sun, UTC-7, existing shadow subtracted, 51 named spaces) is a spec to cross-check our node against, not to copy. Copy code or tables only with written permission.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-02 (26 commits)",
+   "license": "None (verified: 59-path tree has no LICENSE; API null)",
+   "maintainer": "Sinnie Choi (xubynii)",
+   "popularity": "0 stars",
+   "risks": "Student prototype. Park classes, 320 m search radius and 1 m2 tolerance are the author's choices, not checked against the guideline; 320 m is too short for 244-305 m towers (our arithmetic). ODP density, height and view-cone inputs are manual.",
+   "saves": "Rule discovery: a mapped list of governing documents for the block, and a second implementation of the equinox test to compare against."
+  },
+  {
+   "name": "Vista (RuijieLiu6/vancouver-tall-view-tool)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "kind": "app",
+   "what_it_does": "Browser tool testing a massing footprint against City of Vancouver mapped view corridors (open-data plan polygons only), rendering approximate views from estimated origins and exporting a PDF; imports .3dm and .obj locally (vendors rhino3dm.js). Public repo is a built bundle of a private project.",
+   "how_we_use_it": "Core, internal asset: first port for the view-corridor node. Reuse the open-data pipeline (view-cones, SRTM terrain, OSM buildings), .3dm import and PDF report; add cone height limits from the Public Views Guidelines. Add a LICENSE once ownership is confirmed.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-02 (release v09.16; created 25 Sep)",
+   "license": "None today (only vendored rhino3dm MIT). Data: Open Government Licence (Vancouver, BC), OSM ODbL, SRTM, Inter font OFL",
+   "maintainer": "Ruijie Liu (RuijieLiu6); handle matches the requesting user's account (to confirm)",
+   "popularity": "0 stars",
+   "risks": "Context model is derived from a supplied studio Rhino model; check permission before licensing it. ODbL and OGL data keep their own terms. Footprint overlap only, no heights; README disclaims compliance. Source is private.",
+   "saves": "A working view-cone data pipeline and import path, with no consent wait."
+  },
+  {
+   "name": "Massing Studio (clcabana/massing-studio)",
+   "url": "https://github.com/clcabana/massing-studio",
+   "kind": "app",
+   "what_it_does": "Python/FastAPI pydantic rule engine with a JS port: live VBBL 2025 Part 3 and Zoning By-law 3575 checks with clause citations (occupancy, fire separation, exits, washrooms, FSR, height); exports Excel and Rhino .3dm. Labelled a draft for professional review.",
+   "how_we_use_it": "Core, as a reading list for the MEP/code module: study its clause-cited rule structure and the 'draft for professional review' label; Python engine fits our stack. Copy code or tables only with written licence from the author.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-02 (20 commits)",
+   "license": "None (verified: 82-path tree has no LICENSE; API null)",
+   "maintainer": "Claudio Cabana (clcabana)",
+   "popularity": "0 stars",
+   "risks": "Which by-law governs our block must be verified (Downtown ODP vs 3575). Dual Python/JS engines can drift. Early.",
+   "saves": "Weeks of code-rule transcription, if licensed; built-in citations."
+  },
+  {
+   "name": "AI4GH (xunliuDesign)",
+   "url": "https://github.com/xunliuDesign/AI4GH",
+   "kind": "repo",
+   "what_it_does": "C# Grasshopper components bringing GenAI into Grasshopper via API (folders Robot_GH and 'Nano Banana_GH'). README is one line; models used and install not documented.",
+   "how_we_use_it": "Roadmap: reference for how Xun wires image-generation APIs into Grasshopper nodes; mirror its typed inputs and outputs in our AI-render node. Request the README and a licence.",
+   "priority": "roadmap",
+   "status": "unverified",
+   "verified_opened": true,
+   "last_activity": "2025-11-12 (5 commits)",
+   "license": "None (verified: 8-path tree has no LICENSE)",
+   "maintainer": "Xun Liu",
+   "popularity": "0 stars",
+   "risks": "Almost no documentation; Grasshopper/Rhino only; 11 months old.",
+   "saves": "Design reference for an AI-render node."
+  },
+  {
+   "name": "false-creek-2100 (xunliuDesign)",
+   "url": "https://github.com/xunliuDesign/false-creek-2100",
+   "kind": "app",
+   "what_it_does": "No-build static JS prototype: pixel sea-level-rise sandbox for South False Creek. Paint seawalls, marshes, canals; bathtub-plus-connectivity flood model; keyboard shortcuts; PNG export stamped with scenario and metrics. Python script builds OSM and Terrarium grid.",
+   "how_we_use_it": "Roadmap: pattern for a light, engaging interaction loop and metric-stamped exports in presentation mode; its 10 m grid data script could seed a flood/resilience module near False Creek.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-06-11 (1 commit)",
+   "license": "Code: none (verified: 19-path tree has no LICENSE); data ODbL and Terrarium",
+   "maintainer": "Xun Liu",
+   "popularity": "0 stars",
+   "risks": "v0.1 single commit. README says it is not a flood map or engineering advice. Near-shore terrain synthesised.",
+   "saves": "Small, readable example of interaction design and export stamping."
+  },
+  {
+   "name": "sala-tech-knowledge-tree",
+   "url": "https://github.com/GenEnv/sala-tech-knowledge-tree",
+   "kind": "repo",
+   "what_it_does": "Faculty-verified map of Grasshopper tutorials: one-file site, content-gh.json as source of truth with prerequisites and status, validate.py checking IDs and prerequisite cycles on each pull request, spreadsheet templates for bulk contributions, CLAUDE.md.",
+   "how_we_use_it": "v1: model our module manifest and CI validation on it (IDs, dependency cycles, source fields). Reuse the spreadsheet-to-JSON bulk contribution idea as a pattern. Also a Grasshopper learning path for onboarding.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-09-01 (1 commit)",
+   "license": "None (verified: 20-path tree has no LICENSE)",
+   "maintainer": "GenEnv (coordinator unnamed)",
+   "popularity": "1 star, 1 fork",
+   "risks": "Copy the design, not the code (licences: recommendation 2). Baked-in JSON blob needs regeneration to edit; public contribution page not yet enabled.",
+   "saves": "Ready validation design for module graphs."
+  },
+  {
+   "name": "ai4dm-site (GenEnv)",
+   "url": "https://github.com/GenEnv/ai4dm-site",
+   "kind": "repo",
+   "what_it_does": "Student-facing collections on generative AI in landscape representation (v1, v2). The v3 platform (atlas, gallery, prompt lab, studio taking your own API key) is in progress; its source is a separate private repo. build.py --public strips restricted images.",
+   "how_we_use_it": "Roadmap: ask Xun to show v3 UX as reference for our AI render step and bring-your-own-key flow; adopt the public-build filter that excludes copyrighted reference images.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-07",
+   "license": "None (verified: 756-path tree has no LICENSE)",
+   "maintainer": "GenEnv",
+   "popularity": "1 star",
+   "risks": "Platform code is private; static Notion exports; only the README was read.",
+   "saves": "UX reference; avoids rework on BYO-key handling."
+  },
+  {
+   "name": "ai-agents-for-architects (GenEnv)",
+   "url": "https://github.com/GenEnv/ai-agents-for-architects",
+   "kind": "repo",
+   "what_it_does": "Chinese-language DigitalFUTURES 2026 agent workshop kit: demos 00_anatomy to 09_design_tools, switchable between Claude and DeepSeek via config, cheatsheets and glossary, run_pipeline.py. Not the anatomy skill despite the folder name.",
+   "how_we_use_it": "Roadmap: copy the one-config provider switch idea for our Claude/OpenAI/other model layer; use its cheatsheet format for onboarding docs.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-09-05 (9 commits)",
+   "license": "None (verified: 97-path tree has no LICENSE)",
+   "maintainer": "GenEnv",
+   "popularity": "3 stars, 1 fork",
+   "risks": "Chinese-language; teaching demos, not production code.",
+   "saves": "Provider-switch pattern for multi-model calls."
+  },
+  {
+   "name": "skills-for-architects (AlpacaLabsLLC)",
+   "url": "https://github.com/AlpacaLabsLLC/skills-for-architects",
+   "kind": "skill",
+   "what_it_does": "MIT Claude Code/Codex plugin with 61 architecture skills (zoning-envelope with interactive 3D buildable envelope, occupancy-calculator, environmental-analysis, mobility-analysis, spec and EPD tools) plus 8 agents, 8 rules, 4 hooks. NYC-centric. Starred by Xun.",
+   "how_we_use_it": "v1: borrow skill structure, code-citation rules and 'marked for professional review' outputs; adapt zoning-envelope and occupancy-calculator ideas to Vancouver. Install only 4-5 skills to avoid context bloat.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-20 (release 1.5.2)",
+   "license": "MIT (c) 2026 Alpaca Labs, LLC",
+   "maintainer": "Alpaca Labs, LLC",
+   "popularity": "384 stars, 82 forks, 6 open issues+PRs",
+   "risks": "NYC data and rules; 61 skills can bloat context and tokens; many FF&E skills irrelevant; third-party maintenance.",
+   "saves": "Weeks of prompt design; token saving only if few skills are loaded."
+  },
+  {
+   "name": "rhinomcp (jingcheng-chen)",
+   "url": "https://github.com/jingcheng-chen/rhinomcp",
+   "kind": "mcp_server",
+   "what_it_does": "MIT Python MCP server (uvx rhinomcp@latest) plus RhinoCommon plugin: create and edit Rhino geometry, inspect/place/wire/solve Grasshopper, run RhinoScript or C#, capture viewports. Rhino 8 on Windows and Mac; TCP on 127.0.0.1:1999.",
+   "how_we_use_it": "Roadmap: alternative or complement to rhino-gh-mcp for Rhino users; uvx suits our Python-first Windows setup. Optional developer convenience, not the web import path.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-16 (309 commits)",
+   "license": "MIT",
+   "maintainer": "jingcheng-chen",
+   "popularity": "1.2k stars, 107 forks, 8 open issues+PRs",
+   "risks": "README states the TCP link is unauthenticated and execution tools are broad; keep loopback only. Rhino 8 licence needed. Needs uv (not installed).",
+   "saves": "A broader tool set than rhino-gh-mcp without writing a bridge."
+  },
+  {
+   "name": "RhinoAI (mcneel)",
+   "url": "https://github.com/mcneel/RhinoAI",
+   "kind": "mcp_server",
+   "what_it_does": "MIT official McNeel repo: MCP server and Rhino plugin connecting Claude Desktop/Code, Copilot, Codex and local models to Rhino. Plugin v0.3.0 (30 Sep) ships Windows and Mac packages named for Rhino 8.19; connector v0.1.6; docs site.",
+   "how_we_use_it": "Roadmap: track as the likely long-term supported Rhino-AI bridge; evaluate before locking in a community MCP. Packages are named for Rhino 8.19+ (inferred, not documented): test on Rhino 8 before recommending it to teammates.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-20",
+   "license": "MIT",
+   "maintainer": "McNeel",
+   "popularity": "371 stars, 59 forks, 17 open issues+PRs",
+   "risks": "Early (plugin v0.3.0). README and getting-started page state no Rhino version; default branch is rhino-9.x (rhino-9.0 and rhino-10.x branches exist), so Rhino 8 support rests on package names only.",
+   "saves": "Avoids maintaining our own Rhino bridge if it stabilises."
+  },
+  {
+   "name": "openai/codex-plugin-cc",
+   "url": "https://github.com/openai/codex-plugin-cc",
+   "kind": "skill",
+   "what_it_does": "Apache-2.0 plugin letting Claude Code call OpenAI Codex: /codex:review, /codex:adversarial-review, /codex:rescue, background jobs. Needs a ChatGPT account or OpenAI API key and Node 18.18+. Starred by Xun.",
+   "how_we_use_it": "v1 dev workflow: cheap second-opinion adversarial review of module logic and code using OpenAI, matching the wish to use both vendors. Pin a version and keep the optional Stop-hook review gate off.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-07-08 (no push for about 3.5 months)",
+   "license": "Apache-2.0",
+   "maintainer": "OpenAI",
+   "popularity": "34.4k stars, 2.4k forks, 536 open issues+PRs",
+   "risks": "Slower cadence and large issue backlog; spends OpenAI quota; review gate can loop usage; sends project code to a second vendor; Node needed (not installed).",
+   "saves": "Catches logic errors early, reducing rework tokens; adds cost per review."
+  },
+  {
+   "name": "Physalia (aarcThom)",
+   "url": "https://github.com/aarcThom/Physalia",
+   "kind": "repo",
+   "what_it_does": "Rhino 8 (Windows) plugin to build Grasshopper definitions by prompting LLMs (OpenAI, Anthropic, Gemini, Ollama, Claude Code SDK), with MCP, PDF context, presets and error-fixing loops. Install section says TODO.",
+   "how_we_use_it": "Read-only for ideas on staged builds and runtime-error repair loops. Do not copy code: AGPL-3.0 would force AGPL terms on our release.",
+   "priority": "reject",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-09-10 (613 commits)",
+   "license": "AGPL-3.0 (LICENSE file confirmed)",
+   "maintainer": "aarcThom",
+   "popularity": "27 stars, 0 forks",
+   "risks": "AGPL copyleft; install undocumented; Rhino-only; small community.",
+   "saves": "Nothing directly; avoids licence contamination if rejected."
+  },
+  {
+   "name": "rhino-grasshopper-mcp (dongwoosuk)",
+   "url": "https://github.com/dongwoosuk/rhino-grasshopper-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Beta (v0.1.0) MCP server for Rhino/Grasshopper with remote Python execution, .gh parsing, templates and scikit-learn 'ML auto-layout' (clustering, K-NN positions). Only 3 commits.",
+   "how_we_use_it": "Do not adopt. Better-maintained options exist (rhino-gh-mcp, rhinomcp, RhinoAI). Its auto-layout idea could inspire canvas tidy-up later.",
+   "priority": "reject",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-05-27 (3 commits)",
+   "license": "MIT (LICENSE file confirmed)",
+   "maintainer": "dongwoosuk",
+   "popularity": "17 stars, 4 forks",
+   "risks": "Very early; 'not found in any other tool' claim is unsupported; localhost:8080 listener; little maintenance evidence.",
+   "saves": "Avoids a dead-end dependency."
+  },
+  {
+   "name": "rhino-mcp (SerjoschDuering)",
+   "url": "https://github.com/SerjoschDuering/rhino-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Python MCP server plus Rhino 7+ socket script, adapted from blender-mcp: create and edit Rhino geometry, read and edit Grasshopper through an HTTP component, run arbitrary Python in Rhino and Grasshopper, and render images through Replicate (a Stable Diffusion variant).",
+   "how_we_use_it": "Reject for reuse. Read only its Replicate render-call wiring when designing our AI-render node (we call OpenAI gpt-image from our own server code). Rhino 7 teammates: see alfredatnycu/grasshopper-mcp, which has a LICENSE file.",
+   "priority": "reject",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2025-04-08 (about 6 months without a push)",
+   "license": "README says MIT, but no LICENSE file on main or master (404) and API licence is null; upstream blender-mcp is MIT (c) Siddharth Ahuja, so notices are missing. Treat as unlicensed until fixed.",
+   "maintainer": "SerjoschDuering",
+   "popularity": "65 stars, 16 forks, 0 open issues (API, 21 Oct 2026); starred by Xun",
+   "risks": "No LICENSE file; stale since April 2025; runs arbitrary Python (README warns it is dangerous); conda Python 3.10 install; Replicate token kept in .env. A star is not an endorsement.",
+   "saves": "Nothing; avoids an ambiguously licensed dependency."
+  },
+  {
+   "name": "grasshopper-mcp (alfredatnycu)",
+   "url": "https://github.com/alfredatnycu/grasshopper-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "MIT Grasshopper bridge v0.1.0: a .gha plugin runs a TCP server inside Grasshopper; a pip-installed Python bridge on localhost:8080 lets Claude Desktop create and connect components, using a built-in component knowledge base. Rhino 7 or higher; Python 3.8+.",
+   "how_we_use_it": "Roadmap, fallback only for teammates on Rhino 7, since rhino-gh-mcp needs Rhino 8. Test before recommending; not our web import path. On Rhino 8 prefer rhino-gh-mcp, rhinomcp or RhinoAI.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2025-03-22 (created 2025-03-19; no push for about 7 months)",
+   "license": "MIT (c) 2025 Alfred Chen (LICENSE file opened)",
+   "maintainer": "Alfred Chen (alfredatnycu)",
+   "popularity": "100 stars, 17 forks, 8 open issues+PRs (API, 21 Oct 2026); starred by Xun",
+   "risks": "Stale since March 2025; early v0.1.0; README does not discuss security of its TCP listener and port 8080; Claude Desktop focus; no test status stated.",
+   "saves": "Rhino 7 coverage without writing a bridge, if it still works."
+  },
+  {
+   "name": "Browser libraries: rhino3dm, web-ifc, xyflow",
+   "url": "https://github.com/mcneel/rhino3dm",
+   "kind": "library",
+   "what_it_does": "Pointers for the import and canvas packets: rhino3dm (MIT) reads and writes .3dm without Rhino, in Python and WASM; web-ifc (MPL-2.0, ThatOpen/engine_web-ifc) reads IFC in the browser; xyflow (MIT, xyflow/xyflow) is a node-canvas library with custom nodes and handles.",
+   "how_we_use_it": "Import and canvas packets decide. Browser .3dm via rhino3dm.js (Vista vendors it); Python .3dm export from a py -3.13 venv; IFC via web-ifc (v1); one xyflow custom node per module with typed ports. Read xyflow's commercial terms first.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-20 (rhino3dm, web-ifc); 2026-10-21 (xyflow)",
+   "license": "rhino3dm MIT; web-ifc MPL-2.0 (file-level copyleft; engine_components MIT); xyflow MIT",
+   "maintainer": "McNeel; That Open Company; xyflow (webkid)",
+   "popularity": "rhino3dm 766 stars; web-ifc 1.1k; xyflow 38.7k",
+   "risks": "Only metadata, README and licence files read; no load, size or large-IFC tests. rhino3dm Python wheels are GIL-build only (py default here is 3.13t). xyflow ties us to React or Svelte; maintainers ask commercial users for sponsorship.",
+   "saves": "Weeks of .3dm parsing, IFC parsing and canvas pan, zoom and wiring code."
+  },
+  {
+   "name": "Solar Access Guidelines for the Downtown Peninsula (City of Vancouver)",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "kind": "guideline",
+   "what_it_does": "City guideline limiting new shadow from downtown-peninsula proposals on public parks, plazas, school sites and key retail streets, tested on 22 Sep (fall equinox), 10:00-16:00 PDT, with a Basic or Detailed shadow study. The spring equinox test was dropped.",
+   "how_we_use_it": "Core: governing source for the primary sun/shadow node: new shadow on listed spaces by hour, PDT clock time, existing context subtracted, clause-cited, labelled draft. Open the PDF in a browser first (403 to our tools); never encode park lists or thresholds from secondary sources.",
+   "priority": "core",
+   "status": "unverified",
+   "verified_opened": false,
+   "last_activity": "Approved by Council 17 Sep 2025 (Daily Hive, dtmass README, search snippet of the PDF front matter); later amendments not checked",
+   "license": "City publication; reuse terms not checked",
+   "maintainer": "City of Vancouver, Planning, Urban Design and Sustainability",
+   "popularity": "Policy, not a repo. News: 3 Daily Hive articles, 1 Vancity Lookout piece; one student tool (dtmass) implements it",
+   "risks": "PDF unread: 403 to fetchers; the Browser pane offered a download, not retried. Exemptions, a Robson 10:00-15:00 window (July draft), study contents and listed spaces come from news and snippets. A guideline, not a by-law; staff interpretation governs.",
+   "saves": "Prevents building the wrong sun test (solstice, solar time) and sizing its domain wrongly."
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Hairline rule 'hit': pointer tests run against the resting pose, so hover never flickers.",
+   "rule_for_our_tool": "Canvas nodes, ports and wires use static hit areas, not animated geometry, so hover and drag stay stable.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md"
+   ]
+  },
+  {
+   "principle": "Hairline rules 'accent' and 'quiet': the stroke is the only highlight; no fills, glows or words inside the figure.",
+   "rule_for_our_tool": "Keep a small calm palette and reserve one signal colour for FALSE ASSUMPTION so it never loses meaning; no decorative glow or badge noise.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md"
+   ]
+  },
+  {
+   "principle": "Hairline rule 'rest': the resting state is composed with one bright mark showing where to look.",
+   "rule_for_our_tool": "Every screen has one focal point and one next action (for example 'run module'), which keeps users focused without nudging tricks.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md"
+   ]
+  },
+  {
+   "principle": "Hairline rules 'cost' and 'clock': animate only when needed, pause offscreen, long ease-out for discrete choices, springs for continuous tracking; reduced-motion lands instantly.",
+   "rule_for_our_tool": "Set a motion budget: one shared animation loop, pause when hidden, honour prefers-reduced-motion, skip redraws when values are unchanged (matters for large canvases).",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md",
+    "https://github.com/lucasmarkes/hairline"
+   ]
+  },
+  {
+   "principle": "Anatomy: 'the object is the explanation'; displayed numbers come from a running model and must be true.",
+   "rule_for_our_tool": "Every number on screen comes from a module's computed output and cites its source or is flagged a team assumption; no placeholder or invented figures.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md",
+    "https://github.com/wheresryan22/anatomy-community"
+   ]
+  },
+  {
+   "principle": "Anatomy verifies visuals mechanically: geometry audit, zero loose line ends, headless screenshots at desktop and 390 px, close-ups.",
+   "rule_for_our_tool": "Add automated visual QA (Playwright screenshots at desktop and phone width, overlap/clearance audit) before a module or board ships; cheaper in tokens than visual re-prompting.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md"
+   ]
+  },
+  {
+   "principle": "Anatomy sizes work in tiers (Figure 40-80 parts, often under an hour; Hero 2-4 h; Epic 6 h+, never started unasked; a whole building is Epic) and demands dense many-part machines, never a few slabs.",
+   "rule_for_our_tool": "Give AI-built visuals a size tier and time/token budget; ask before anything above the default tier; never request a whole-tower figure; test one figure against our calm hairline-derived style before committing to more.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md"
+   ]
+  },
+  {
+   "principle": "Arch540 C_design_space: a provided evaluator is the only trusted source of numbers and is never edited by the agent. Its sun objective belongs to a teaching harness (80 x 60 m housing lot, at most 14 storeys, winter solstice, 9:00-15:00 solar time), not to a Vancouver regulatory test.",
+   "rule_for_our_tool": "Each evaluation module is deterministic code with typed JSON outputs; the LLM orchestrates and explains but never invents metrics. The regulatory sun test is the City's equinox 10:00-16:00 PDT shadow test; the demo's solstice sun hours stay a secondary metric labelled 'course teaching metric'.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/complete/CLAUDE.md",
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/complete/tools/evaluate.py",
+    "https://raw.githubusercontent.com/xubynii/dtmass/main/README.md"
+   ]
+  },
+  {
+   "principle": "Arch540 B_testfit: a PreToolUse hook refuses failing output, at most six revisions, then stop and end with UNRESOLVED; never claim success without a passing check. A hook that cannot start is a non-blocking error unless onFailure is 'block' (Claude Code v2.1.295+), and onFailure has no effect on Stop-type hooks (A_writing's guard is one).",
+   "rule_for_our_tool": "Add an UNRESOLVED state and an iteration cap to every AI-assisted module run; gate outputs on a passing check, not the model's claim. Enforcing gates are PreToolUse hooks in exec form (venv python.exe, onFailure block); Stop-hook guards are advisory; a CI test checks hooks exit 0 or 2 on Windows.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/CLAUDE.md",
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/.claude/settings.json",
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/A_writing/complete/.claude/settings.json",
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/.claude/hooks/gate.py",
+    "https://code.claude.com/docs/en/hooks"
+   ]
+  },
+  {
+   "principle": "rhino-gh-mcp gates AI access with scenario modes: Inspect, Tune, Coach (default), Execute, Author.",
+   "rule_for_our_tool": "Give each node and the whole canvas an AI permission level, defaulting to read/suggest, so users stay in control and edits are traceable.",
+   "source_urls": [
+    "https://github.com/GenEnv/rhino-gh-mcp"
+   ]
+  },
+  {
+   "principle": "text-to-cad layering: skills are the product, shared core has no UI imports, apps never import apps, heavy kernel stays out of the server process, one pinned command per skill.",
+   "rule_for_our_tool": "Structure our repo as core (graph and module contracts), ui, and apps, with heavy geometry/solar code in separate workers and pinned, reproducible commands for every module.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/earthtojake/text-to-cad/main/AGENTS.md",
+    "https://github.com/earthtojake/text-to-cad"
+   ]
+  },
+  {
+   "principle": "anatomy-community submits source, not built output; CI rebuilds in a locked sandbox with a two-run determinism check, previews, human review, per-item licence.",
+   "rule_for_our_tool": "Community modules are uploaded as source plus manifest, rebuilt deterministically in a sandbox, previewed, reviewed, and carry a licence and source-citation field.",
+   "source_urls": [
+    "https://github.com/wheresryan22/anatomy-community",
+    "https://raw.githubusercontent.com/wheresryan22/anatomy-community/HEAD/LICENSE"
+   ]
+  },
+  {
+   "principle": "sala-tech-knowledge-tree keeps content as JSON with a validator for IDs and prerequisite cycles on every pull request, plus a verified-status field.",
+   "rule_for_our_tool": "Module manifests are schema-validated in CI (unique IDs, no dependency cycles, required sources); status fields show verified, team assumption or FALSE ASSUMPTION.",
+   "source_urls": [
+    "https://github.com/GenEnv/sala-tech-knowledge-tree"
+   ]
+  },
+  {
+   "principle": "Massing Studio and skills-for-architects mark code and zoning output as a draft for professional review and cite clauses.",
+   "rule_for_our_tool": "Every compliance result shows clause citation, edition date and a 'draft, not a compliance determination' label.",
+   "source_urls": [
+    "https://github.com/clcabana/massing-studio",
+    "https://github.com/AlpacaLabsLLC/skills-for-architects"
+   ]
+  },
+  {
+   "principle": "Thermal-Sandbox-Web ships its data with a meta block (units, sources, notes, open-sky total, derived formulas) and compares baseline with scenario point by point.",
+   "rule_for_our_tool": "Every module output carries a meta block (units, source citations, data version, derived formula, team-assumption flag) and supports baseline-vs-scenario comparison on identical points.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/GenEnv/Thermal-Sandbox-Web/main/README.md"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Treat hairline, anatomy and text-to-cad as third-party MIT repos that Xun starred, not as Xun's own tools. Email Xun once to ask why they were shared, plus for: licence statements on the GenEnv course repos, the ARCH 540 policy on AI use and on reusing classmates' A1 tools, the ai4dm v3 demo, D_team run notes and the AI4GH README.",
+   "rationale": "All three return 404 on xunliuDesign and lead its stars list; owners are lucasmarkes, wheresryan22, earthtojake. MIT lets us reuse with attribution, so the email is not blocking. No mention of them in six GenEnv READMEs checked.",
+   "alternatives_rejected": "Assuming Xun authored them (false); waiting on a reply before using them (they are MIT)."
+  },
+  {
+   "decision": "Two-track licence plan. (a) In-course local use: the Arch540_2026 description invites students to download and run the materials, so run the demos locally for ARCH 540 with credit; that implies use, not a licence. (b) Anything committed to our public repo or shown on boards needs MIT or written permission. Today email Xun, Sinnie Choi (dtmass), Claudio Cabana (Massing Studio) and christinachiu (Thermal-Sandbox-Web). No reply by 1 Nov: reading lists only; write our own code and re-derive rules from the cited bylaws. Log every reuse with licence and permission.",
+   "rationale": "Verified from full file trees: no LICENSE and API licence null on Arch540_2026, arch540-a1-toolkit, dtmass, massing-studio, Vista, AI4GH and every GenEnv repo except rhino-gh-mcp. Default is all rights reserved; redistribution is what needs a licence. Core is due 13 Nov. ARCH 540 AI-use and classmate-work rules were not found.",
+   "alternatives_rejected": "Copying code or rule tables into the public repo without permission; waiting past 1 Nov; re-transcribing all bylaws before asking."
+  },
+  {
+   "decision": "Core (by 13 Nov): adopt the Arch540 agents_demo pattern as our module contract, re-implemented for Windows: deterministic Python evaluator (numpy, scipy, shapely), JSON in/out, Pareto front, a gate that blocks failing output, UNRESOLVED after six revisions. Enforcing gates are PreToolUse hooks in exec form: command ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe, args [hook path], onFailure block (Claude Code v2.1.295+). Never python3, never .cmd shims. Stop-hook guards (A_writing style) are advisory. Portable file lock instead of fcntl; a CI test fails if any hook exits with anything but 0 or 2. If anyone runs Xun's demos as shipped, use WSL.",
+   "rationale": "Verified 21 Oct: A's guard is a Stop hook; B, C and D use PreToolUse; all call python3, C's evaluator imports fcntl, and python3 here is the Store alias (exit 49), so a gate would silently skip. Docs: onFailure has no effect on Stop, SubagentStop, TaskCompleted or TeammateIdle; exit 2 on a Stop hook still keeps Claude working when the hook runs, but a Stop hook that cannot start fails open. Exec form on Windows needs a real .exe; the venv path should qualify but is untested here.",
+   "alternatives_rejected": "Running the demos as-is on Windows; relying on onFailure for Stop-hook guards; LLM-computed metrics (hallucination and token cost); copying files before a licence; copying demo thresholds as Vancouver values (teaching values)."
+  },
+  {
+   "decision": "Core: the v1 primary sun/shadow node is the City's test. For each listed public park, plaza and school site, compute new shadow caused by the proposal (existing context subtracted) on 22 Sep, 10:00-16:00 PDT (UTC-7 clock time), cited to the Solar Access Guidelines for the Downtown Peninsula (Council 17 Sep 2025) and labelled draft, not a compliance determination. suncalc gives browser sun vectors; Python shapely projects floor-plate prisms per time step. Secondary, labelled 'course teaching metric': Arch540 solstice sun hours (9:00-15:00 solar time). Search domain per test, about 600 m for the equinox test. Energy precompute (Thermal-Sandbox pattern, Ladybug user-side only, pvlib candidate) stays optional.",
+   "rationale": "The guideline, not the teaching harness, governs a downtown block (adopted 17 Sep 2025 per Daily Hive, the dtmass README and a snippet of the PDF front matter; PDF unread). Our flat-ground arithmetic (NOAA formulas, 49.28 N, 123.12 W, 22 Sep 2026): 244-305 m towers cast about 470-590 m at 10:00 PDT, 450-560 m at 16:00 and 280-350 m near solar noon (about 13:05 PDT). So the 2.0-2.5 km solstice domain overstates the regulatory domain and dtmass's 320 m radius understates it. Not tested at tower scale; suncalc not cross-checked.",
+   "alternatives_rejected": "Solstice solar-time sun hours as the primary test; solar-time windows; Ladybug in-process (AGPL); copying the evaluator or dtmass code (no licence); a 320 m or 15 m search radius; encoding dtmass's park list or 1 m2 tolerance as fact."
+  },
+  {
+   "decision": "Browser path first: rhino3dm.js for .3dm, web-ifc for IFC, an MIT node-canvas library (xyflow candidate) and three.js for viewing; the import and canvas packets make the final choices. Rhino MCPs (rhino-gh-mcp, rhinomcp, RhinoAI) stay an optional bridge for teammates who model in Rhino 8; alfredatnycu/grasshopper-mcp (MIT, stale since March 2025) is the only fallback seen for Rhino 7.",
+   "rationale": "The product is browser-based; Rhino MCPs need a licensed Rhino session and do not feed the web import path. Licences checked this round; no browser tests run. SerjoschDuering/rhino-mcp has no LICENSE file despite a README MIT claim.",
+   "alternatives_rejected": "Making a Rhino MCP the import path; Physalia (AGPL-3.0); dongwoosuk's repo (3 commits); SerjoschDuering/rhino-mcp (no LICENSE file, stale)."
+  },
+  {
+   "decision": "v1 AI massing node: Claude writes a small Python generator (shapely floor plates, trimesh GLB for the viewer, rhino3dm .3dm export) under the Arch540 evaluator contract, run from a py -3.13 venv. Move text-to-cad to roadmap as an optional local experiment.",
+   "rationale": "Tower massing is mostly extruded plates, needing no B-rep kernel. text-to-cad targets mechanical parts, cannot write .3dm or IFC, and adds uv, OCP and a Smart App Control risk. trimesh is a pure-Python wheel; shapely and rhino3dm need the GIL build on Windows.",
+   "alternatives_rejected": "text-to-cad as v1 dependency; bundling it in the web client; hand-writing a CAD kernel."
+  },
+  {
+   "decision": "Visual assets: v1, use hairline for 3-5 figures (empty canvas, onboarding, module cards) via @lucasmarkes/hairline@0.5.1 exactly or vendored files, never unscoped npm 'hairline', and not the shadcn URL route in CI; its ten rules become our linework and motion spec. Roadmap, anatomy for one Figure-tier explainer (sun path or stack-effect shaft), tested against our hairline-derived style first and dropped if the languages clash on the boards; never a whole tower.",
+   "rationale": "Hairline is MIT, dependency-free and reduced-motion aware, but one maintainer and six releases in 14 days make pinning essential; the unscoped npm name is an unrelated 2019 package (ufologist, v1.0.0, published 2019-05-07). anatomy requires dense 40-80 part machines, rates a building as Epic (6 h+) and its sheets are A4.",
+   "alternatives_rejected": "Tracking hairline latest; generating all board diagrams with anatomy; hand-coded pointer-reactive SVG."
+  },
+  {
+   "decision": "v1: copy the anatomy-community submission pipeline and the sala-tech-knowledge-tree validator for our module hub (source-only upload, sandbox rebuild, preview, schema and cycle checks, per-module licence and source fields). Read the repo's CONTRIBUTING and workflow files before reusing any.",
+   "rationale": "Two working, open examples of moderated community contribution. anatomy-community root LICENSE is MIT with per-figure CC-BY-4.0 (verified); sala has no licence, so copy its design only.",
+   "alternatives_rejected": "Open uploads of built artifacts; unreviewed forks; building a custom marketplace before the first 10 modules exist."
+  },
+  {
+   "decision": "Environment before any pilot: install Node 24 LTS and uv with winget (OpenJS.NodeJS.LTS resolves to 24.20.0 and astral-sh.uv to 0.13.4 on the session machine; node -v goes in the README). Create the project venv with py -3.13 -m venv .venv (never plain py, whose default here is 3.13t, nor PATH python 3.9.13), keep a requirements lock and record python -VV; each teammate also runs py -0. Check Smart App Control (WSL if on; never disable). Before first text-to-cad use run uvx cadgen telemetry off and set CADGEN_UPDATE_CHECK=0. Add openai/codex-plugin-cc (Apache-2.0, pinned, review gate off) for second-opinion review; product-side OpenAI calls stay a separate API integration.",
+   "rationale": "Read-only checks on the session machine, 21 Oct: winget show confirmed both package IDs; py default is 3.13t; py -3.13 is the GIL build; latest numpy, scipy, shapely and rhino3dm have no cp313t Windows wheels; python3 is the Store alias; uv and Node are absent. Node release schedule: 24 is LTS (maintenance from 20 Oct 2026), 26 becomes LTS on 28 Oct 2026, 22 ends 30 Apr 2027, so the LTS ID may jump to 26. codex-plugin-cc has had no push since 8 Jul and 536 open issues+PRs, so pin it.",
+   "alternatives_rejected": "Disabling Smart App Control (irreversible without reinstalling Windows); relying on system or PATH Python; free-threaded Python; Node 22 for new setups (acceptable, but shorter support); running both vendors on every edit (cost)."
+  },
+  {
+   "decision": "Before coding the sun test, have a teammate save the Downtown solar guideline PDF from a normal browser and paste sections 5.1, 5.2 and 6.1, the protected-space list and any Robson Street window into our sources file; our tools get 403. Until then every number is an editable team assumption, flagged. If still unclear, email City planning.",
+   "rationale": "All current sun-test numbers come from news articles, one student tool and search snippets. The July 2025 draft reportedly had a Robson Street 10:00-15:00 window and a social-housing exemption that Council reportedly removed; both unconfirmed. A time step, tolerance and baseline are not in any source we opened.",
+   "alternatives_rejected": "Encoding secondary-source numbers as fact; encoding dtmass's 51-name space list or 1 m2 tolerance as the guideline; waiting for a City reply before building the node."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "hairline, anatomy and text-to-cad are open-source tools on Xun Liu's GitHub accounts.",
+   "correction": "They are third-party MIT repos: lucasmarkes/hairline, wheresryan22/anatomy, earthtojake/text-to-cad. They 404 on xunliuDesign; Xun's starred list has them as the top three.",
+   "detail": "'Sharing' is verified only as starring. No post, message or course page by Xun was found; six GenEnv READMEs checked do not mention them.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "GenEnv/agents_demo is a repository.",
+   "correction": "github.com/GenEnv/agents_demo returns 404. agents_demo is a folder inside GenEnv/Arch540_2026.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The account is named 'XunLiu Design' and the GitHub org xlstudio is Xun's.",
+   "correction": "The account is xunliuDesign (display name Xun Liu). The GitHub org xlstudio belongs to Xiphin (Hangzhou, PHP/Go repos), unrelated to Xun, though a SALA page says Xun leads a consultancy called xlstudio.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Newest own xunliuDesign repo update is 11 Jun 2026 (false-creek-2100).",
+   "correction": "The account's newest push is 2026-07-17 on des212-2026, but that repo is a redirect-only stub pointing to GenEnv/des212-2026. Newest substantive own repo is still false-creek-2100 (11 Jun). Also 2 of the 15 repos are MIT forks (NotionNext, nextjs-notion-starter-kit).",
+   "detail": "Checked via the GitHub API pushed_at fields on 21 Oct 2026.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The GenEnv repos reviewed in round 1 cover the org's relevant tools.",
+   "correction": "Thermal-Sandbox-Web (sun/energy data pattern) and des212-2026 (Grasshopper course archive) were missed; genenv-site is the org's own site. All 9 repos are now listed.",
+   "detail": "Nuance: Thermal-Sandbox-Web is a GenEnv fork of christinachiu/Thermal-Sandbox-Web, not an instructor-written repo, so permission must come from christinachiu.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vista (RuijieLiu6/vancouver-tall-view-tool) is a classmate's tool that needs author consent.",
+   "correction": "Owner RuijieLiu6 is Ruijie Liu, whose handle matches the requesting user's account, so Vista is likely a team asset: confirm ownership, then add a LICENSE. First check that the supplied-studio-model context and third-party data (OGL, ODbL) can be licensed.",
+   "detail": "Vista README: 'I made Vista' for ARCH 540 Assignment 1; the public repo is a bundle built from a private project.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Course and student repo licences are only unverified because file listings were truncated.",
+   "correction": "Verified no licence: full git trees (not truncated) show no LICENSE file and the API reports licence null for Arch540_2026, arch540-a1-toolkit, dtmass, massing-studio, Vista, AI4GH, false-creek-2100 and every GenEnv repo except rhino-gh-mcp. Default is all rights reserved.",
+   "detail": "Checked 21 Oct 2026 by GitHub tree API and raw LICENSE/LICENSE.md/LICENSE.txt requests (404); GenEnv org listing re-checked in round 2.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "text-to-cad's Python 3.13 compatibility is unknown and Smart App Control may block it on our machines.",
+   "correction": "The plugin pins uv-managed Python 3.13 (cadgen==0.7.26), so system Python barely matters; uv is required and not installed. Smart App Control is off on the session machine (registry value 0), WSL is not installed. Other teammates' machines are unchecked.",
+   "detail": "README: Smart App Control has no per-app exception; turning it off is irreversible without reinstalling Windows, so never recommend it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "anatomy needs only Node 20.10+.",
+   "correction": "The kit itself runs on Node 20.10+, but the documented skills CLI install (v1.7.1) asks for Node 22.20+. hairline's monorepo also declares node>=22. Install current Node LTS (24 as of 21 Oct 2026).",
+   "detail": "anatomy README requirements table and install section.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "anatomy-community is plainly MIT-licensed (as GitHub shows).",
+   "correction": "The root LICENSE is MIT (c) Ryan and the Anatomy figure contributors, with CC-BY-4.0 for figures that say so in figure.json; GitHub's API shows NOASSERTION because of that extra line. Record per-figure licences in our reuse log.",
+   "detail": "LICENSE opened 21 Oct 2026; this settles the question of repo-level terms for CI and sandbox files.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Arch540 agents_demo demos are runnable, and their hook-gated pattern can be adopted as-is on the team's Windows 11 setup.",
+   "correction": "The demos are POSIX-first. Run them under WSL, or re-implement: explicit venv interpreter in hook commands (never python3), a portable lock instead of fcntl, a CI test that hooks exit 0 or 2, and onFailure block where the installed Claude Code supports it (PreToolUse gates only; see the r3 flag on Stop hooks).",
+   "detail": "Verified 21 Oct: settings.json hooks in demos A, B, C and D all run python3; B's gate.py hardcodes PY = python3 for its checker subprocess; C_design_space evaluate.py (every step folder) has import fcntl at line 33 and fcntl.flock at line 215, while D_team's evaluator has none; README uses python3 -m pip, cp -r and ~/Desktop. Locally, python3 is the App Installer alias (exit 49, no output) and python is 3.9.13. Hooks docs: a hook that fails to start is a non-blocking error, so the gate is skipped. No demo was run by us.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Python 3.13 via the py launcher is ready for numpy, scipy, shapely and rhino3dm because cp313 Windows wheels exist.",
+   "correction": "py defaults to 3.13t (free-threaded), and none of the latest releases (numpy 2.5.4, scipy 1.18.1, shapely 2.2.0, rhino3dm 8.35.0) lists a cp313t Windows wheel. Create the venv with py -3.13 -m venv .venv (GIL build), pin a lock file and record python -VV; teammates also run py -0.",
+   "detail": "Checked 21 Oct: py -VV prints the free-threading build; py -3.13 reports Py_GIL_DISABLED=0; PyPI JSON file lists show cp313 win_amd64 but no cp313t Windows wheels; each package also has an sdist, so a bare install could fall back to source builds (not tried). trimesh 5.1.1 and pvlib 0.16.1 are pure-Python wheels and unaffected.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "rhino-gh-mcp requires Ladybug to be installed (and runs on Windows desktop only).",
+   "correction": "Only the draft ladybug-environmental skill needs the Ladybug Grasshopper plugin. The core bridge needs Rhino 8 on Windows or Mac; Rhino 7 is unsupported. The packet also omitted the facade-design skill (seven typology recipes with reference .gh files) and the planned massing, structural-grid and daylighting skills.",
+   "detail": "README lines 136-137 and 177-178 (Rhino 8, Mac or Windows), 354-357 (ladybug-environmental and facade-design), roadmap P5 (planned skills); skills folder lists landform, ladybug-environmental, facade-design, rhino-gh-bridge-basics. Coordinate with Xun before duplicating the planned skills. Round 3 re-read: the quick start (.mcpb plus Package Manager) needs no uv; the from-source path needs uv, .NET SDK and Python 3.11 or 3.12.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The sun/energy module must choose between Ladybug (AGPL-3.0) and an unevaluated pvlib.",
+   "correction": "The instructor's Arch540 C_design_space evaluator already computes Vancouver-latitude winter-solstice sun hours with numpy, so v1 needs no AGPL dependency: re-implement its method (cited), plus suncalc (BSD-2-Clause) for browser sun position. Ladybug or pvlib is only for irradiance and energy. (Round 3: the solstice method is now the secondary metric; the primary sun test is the City's equinox PDT shadow test, see the r3 flag.)",
+   "detail": "evaluate.py: lat 49.25 N, declination -23.44, hours 9-15 solar time with trapezoid weights totalling 6 h, per-cell ray-box shadow tests against each building box, open ground counted over the lot plus a 15 m ring (shadows falling there count; neighbouring buildings are not modelled), 80 x 60 m lot, 1 m cells. Our arithmetic gives 244-305 m shadows of about 780-980 m at solar noon and about 2.0-2.5 km at 9:00 and 15:00 on the winter solstice on flat ground; that solstice domain does not apply to the equinox guideline test.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "RuijieLiu6 is a member of the requesting team.",
+   "detail": "Inferred from the handle matching the requesting user's account identity; Vista's README is in the first person. Team should confirm before adding a licence.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Social-media or forum consensus on the three tools.",
+   "detail": "Read: HN thread on text-to-cad (186 points, 48 comments; mixed), HN posts on anatomy and hairline (2 points each, no comments), 4+ enthusiastic X/YouTube/Medium posts on anatomy, McNeel forum summaries on Rhino MCPs. A second round-2 search for Reddit or LinkedIn reviews of hairline found nothing. Reddit is blocked to our search tool; X posts, LinkedIn and forum threads seen only as search snippets. A third-party claim of 1.9M launch views is unverified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "text-to-cad, anatomy and hairline will run on every teammate's Windows 11 machine without extra setup.",
+   "detail": "Nothing was installed or run. Node and uv are absent on the session machine (re-checked 21 Oct); WSL absent; Smart App Control and WSL state of other machines unknown; default py is 3.13t.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Repository statistics are current and complete.",
+   "detail": "Stars, forks and last-push dates refreshed from the GitHub API on 21 Oct 2026 (round 2 re-checked hairline, anatomy, text-to-cad, anatomy-community, suncalc, RhinoAI, codex-plugin-cc and the GenEnv org; round 3 added SerjoschDuering/rhino-mcp and alfredatnycu/grasshopper-mcp). Open-issue counts include PRs. Numbers drift fast for these three repos.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The hook options onFailure: block and exec form (args) are available in the Claude Code version the team runs.",
+   "detail": "The hooks docs (read 21 Oct, first 100k of 270k characters, re-read in round 3 for exec form) say onFailure needs Claude Code v2.1.295 or later; the claude command was not on the session shell PATH, so the installed version was not checked. Until confirmed, rely on the CI test that hooks exit 0 or 2.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The Arch540 sun-hours method, re-implemented, is fast and accurate enough for a 244-305 m tower on a full downtown block.",
+   "detail": "Code read only. The demo loops cells x hours x boxes in numpy on 1 m cells; a domain of about 1-2.5 km would need coarser cells or a heightfield march. No runtime test, no comparison with suncalc or a published guideline value. Round 3: this is now the secondary metric; the same runtime question applies to the primary equinox test (about 600 m domain).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which Rhino version mcneel/RhinoAI supports.",
+   "detail": "README and getting-started page still state no version; default branch is rhino-9.x. New evidence (inference): plugin v0.3.0 (30 Sep) ships only rh8_19 Windows and Mac .yak packages, the wip release moved the target from 8.29 to 8.19, and a later change removed the Rhino 9.x package, so Rhino 8.19+ is likely. Test the connector and plugin on Rhino 8, or ask McNeel, before recommending it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether Ladybug/Honeybee (AGPL-3.0) can be used inside our platform.",
+   "detail": "LICENSE headers verified as AGPL-3.0; legal effect on our licence not assessed. Round 2 narrows the question to the optional energy precompute (user-side only): v1 sun hours do not need it. pvlib (BSD-3-Clause, pure-Python wheel) is a candidate, not evaluated. Radiance has its own BSD-style licence.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Arch540 C_design_space winter-solstice sun-hours method (9:00-15:00 solar time, lot plus 15 m ring) is the course-recognised sun metric for our tower node, and the node domain must reach about 2-2.5 km.",
+   "detail": "Evidence: evaluate.py docstring says 'Part of the protected harness: do not edit' and defines sun as winter-solstice hours at 49.25 N, 9:00-15:00 solar time (lines 2, 22-25, 52-54); constants LOT_W x LOT_D 80 x 60 m and MAX_STOREYS 14 (lines 42, 48); C_design_space/CLAUDE.md is titled 'Housing site study'. The City test, per Daily Hive (three articles), the dtmass README and sun.js header, and search snippets of the PDF: new shadow on public parks, plazas, school sites and key retail streets on 22 Sep, 10:00-16:00 PDT; spring equinox test dropped; Council approved unanimously 17 Sep 2025. The guideline PDF itself was not opened (403). The July 2025 draft reportedly gave Robson Street 10:00-15:00 and exempted 100% social housing (Council reportedly removed that exemption); unconfirmed. The 10:00-14:00 window study concerned areas outside the Downtown Peninsula; staff recommended keeping 10:00-16:00 (analysis: 570 vs 720 parcels, about 300 housing units); its date is July 2024 or July 2025 depending on the secondary source.",
+   "correction": "Make the primary v1 sun test the City's: no new shadow on listed public spaces, 22 Sep, 10:00-16:00 PDT clock time, real longitude. Keep solstice sun hours as a secondary 'course teaching metric'. Size the search domain per test: our flat-ground arithmetic gives about 470-590 m at 10:00 PDT, 450-560 m at 16:00 PDT and 280-350 m near solar noon (about 13:05 PDT) for 244-305 m towers.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Setting onFailure: block makes the demo-style gates fail closed.",
+   "detail": "Hooks docs (21 Oct): onFailure has no effect on Stop, SubagentStop, TaskCompleted and TeammateIdle hooks or on background hooks. A_writing's settings.json uses a Stop hook (python3 tools/guard.py); B, C and D use PreToolUse. Exec form on Windows needs command to resolve to a real .exe: .cmd and .bat shims fail; ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe should qualify but is untested here. Exit 2 on a Stop hook does keep Claude working when the hook runs; the gap is a Stop hook that cannot start. Docs read to 100k of 270k characters; installed Claude Code version unchecked.",
+   "correction": "Put enforcing gates on PreToolUse in exec form (command ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe, args [hook path], onFailure block, Claude Code v2.1.295+). Treat Stop-hook guards as advisory and cover every hook with the CI exit-0-or-2 test.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Content of the Downtown Peninsula Solar Access Guidelines (listed protected spaces, exemptions, study contents, any Robson Street window, tolerance).",
+   "detail": "Primary documents unreadable by our tools: the guideline PDF, the decision-tree PDFs, the Council 17 Sep 2025 memo, staff presentation and minutes, and the vancouver.ca solar page all return 403 to WebFetch and to curl with a browser user agent; the Browser pane tried to download the PDF instead of showing it (not retried); web.archive.org is blocked. Known only from Daily Hive, Vancity Lookout, the dtmass README, rules.js and sun.js, and search snippets (Basic study 5.1, Detailed study 5.2, exemption 6.1 for buildings of four storeys or fewer, models set to PDT with adjacent buildings and topography).",
+   "raised_in_round": 3
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Sun-test implementation choices: hourly or finer time steps, tolerance for 'no new shadow' (dtmass uses under 1 m2), baseline of existing-context shadow, about 600 m search domain, space classes.",
+   "detail": "None of these is stated in a source we opened as a guideline requirement. dtmass hourly steps, 1.5 m cells, a 2009 existing-building baseline and a 51-name space list with plaza, strict, strict4 and sys classes are its author's reading. Keep every one as an editable, flagged team assumption until the PDF is read.",
+   "raised_in_round": 3
+  }
+ ],
+ "unresolved": [
+  "What Xun said or intended about the three tools: not found. Searched GitHub org/account pages, six GenEnv READMEs (grep), web search for the course plus tool names (only the SALA ARCH 540 course page surfaced), genenv.ai. Ask Xun directly.",
+  "Licence replies: no emails have been sent (not done by this research). Permission status for Xun's repos, dtmass, Massing Studio and Thermal-Sandbox-Web is pending; fallback date proposed 1 Nov. In-course local use versus public redistribution is split in recommendation 2.",
+  "ARCH 540 (2026) policy on AI use and on reusing classmates' A1 tools in graded work: not found. Searched sala.ubc.ca; the only syllabus found is a two-page 2025-26 PDF (OS-F25-XL.pdf, Xun Liu, Winter Term 2) whose text our tools could not decode; the Arch540_2026 README states no policy. Ask Xun; Vancouver Tall Challenge rules on third-party code and AI content belong to another packet.",
+  "11 of 15 arch540-a1-toolkit student projects were not read (Curbside, Stair Core Tool, R3 Feasibility, Solar Shading Explorer, Lotwise, Pocket Studio, Root Room, R1-1 Permeability, Bikeway Designer, Broadway Corridor, SRO Conversions). Solar Shading Explorer and MassShadeLight may overlap our sun node.",
+  "Vista licensing prerequisites: provenance and permission for the studio-Rhino-model-derived context, and how OGL and ODbL attributions carry into a licensed repo. Source lives in a private project.",
+  "christinachiu's affiliation (UBC or University of Manitoba) and whether she granted GenEnv any licence for the fork; the fork is 3 weeks behind upstream.",
+  "Downtown Peninsula Solar Access Guidelines (adopted 17 Sep 2025): the PDF, decision trees, Council memo, presentation and minutes could not be opened (403 to WebFetch and curl with a browser user agent; Browser pane offered a download, not retried; web.archive.org blocked). Unconfirmed: the protected-space list and classes (dtmass's 51-name list is a student reading), the Robson Street 10:00-15:00 window (July 2025 draft only), the exemptions (Council's removal of the social-housing exemption comes from one Daily Hive article), Basic and Detailed study contents, tolerance, and later amendments. Searched: guidelines.vancouver.ca, council.vancouver.ca, vancouver.ca, Daily Hive, Vancity Lookout. Next step: recommendation 10.",
+  "Date of the Council motion to study a 10:00-14:00 window: secondary sources conflict (July 2024 or July 2025). All say it concerned areas outside the Downtown Peninsula and that staff recommended keeping 10:00-16:00; the downtown guideline keeps 10:00-16:00 on the fall equinox. Primary staff report not read.",
+  "Sun nodes at tower scale: runtime, cell size, context buildings and a suncalc-versus-NOAA cross-check at 10:00, 13:00 and 16:00 PDT on 22 Sep for 49.28 N, 123.12 W were not run (Node is absent; our shadow lengths come from a NOAA-formula Python calculation, flat ground, no terrain). Ladybug/Honeybee AGPL-3.0 implications and a pvlib alternative remain open for the optional energy precompute; a Vancouver weather file (EPW) source to cite is not chosen.",
+  "Windows behaviour of the Arch540 hooks was inferred from code, the hooks docs and a local python3 check (exit 49); no demo was run. Whether the team's Claude Code version supports onFailure (v2.1.295+) and exec-form hooks, and whether a ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe command resolves, is unchecked (claude is not on the session shell PATH).",
+  "mcneel/RhinoAI supported Rhino version: Rhino 8.19+ inferred from package names only; no explicit statement found.",
+  "Browser libraries (rhino3dm.js, web-ifc, That Open components, xyflow, three.js, suncalc) were checked only by API metadata, README or PyPI/licence files; no load, size or large-model tests; xyflow commercial terms only skimmed. Final choices belong to the import and canvas packets.",
+  "Per-teammate environment: Smart App Control state, WSL, Node, uv and the py -0 default (3.13t here). Only the session machine was checked (read-only). Round 3 confirmed with winget show on that machine that OpenJS.NodeJS.LTS (24.20.0) and astral-sh.uv (0.13.4) exist; the LTS ID may move to Node 26 after 28 Oct 2026.",
+  "Token and time cost of hairline-create and anatomy: no published token numbers; blogs report 30 min to about 2 h per anatomy figure; none measured by us. Whether anatomy's dense-machine look can sit beside the hairline style on A2 boards is untested.",
+  "AI4GH README contents (models used, install, licence) not retrievable; the repo has Robot_GH and 'Nano Banana_GH' items only.",
+  "Not opened: awesome-claude-code, hello-agents, awesome-agentic-ai-zh, prompt-eng-interactive-tutorial, liyupi/ai-guide, screenpipe, LandformGAN, GrasshopperHowtos (all from Xun's stars); xunliuDesign repos FluX, GAN, TheThirdVision, ImagingLandscapes, HongKongDataVis, HoustonSVIMapping_swa, SDI_21_CaseStudy_Mapping, xlstudioWeb, landscapearchitecture.ai; GenEnv/genenv-site beyond its file tree. Checked and closed: xunliuDesign/GenAI_Visual_Examples is an empty repo (API: Git Repository is empty, size 0, created 6 Feb 2026), so it is no AI-render reference. SerjoschDuering/rhino-mcp and alfredatnycu/grasshopper-mcp were opened in round 3 (README, LICENSE paths, API metadata); neither was installed or run.",
+  "Social corroboration gaps: Reddit not reachable by our search tool; LinkedIn, X and McNeel forum threads read only as search summaries, not opened; a second search for hairline discussion found nothing new; text-to-cad HN thread read via the Algolia API (about 17 comments), not fully.",
+  "Last-commit dates are now filled for all repos except the course-site pages (genenv-site pushed 2026-10-09 per API; commits not opened). The rhino-gh-mcp from-source path (uv, .NET SDK, Python 3.11 or 3.12) was read, not run."
+ ],
+ "change_log": [
+  "r1: Added GenEnv/Thermal-Sandbox-Web as a core reference for sun and energy nodes (JSON meta block, Ladybug/Radiance pipeline, three.js 0.160); noted it is a GenEnv fork of christinachiu's repo, no licence, 3 weeks behind upstream, Winnipeg site, and that Ladybug is AGPL-3.0.",
+  "r1: Added GenEnv/des212-2026 (Grasshopper course archive) as a roadmap onboarding resource; GenEnv org now lists all 9 repos including genenv-site.",
+  "r1: Upgraded licence status from UNVERIFIED to verified none for Arch540_2026, arch540-a1-toolkit, dtmass, massing-studio, Vista, AI4GH, false-creek-2100, ai4dm-site, sala-tech-knowledge-tree, ai-agents-for-architects, Thermal-Sandbox-Web and des212-2026 (full git trees, API licence null); replaced the old UNVERIFIED licence flag with a FALSE_ASSUMPTION flag; added dated plan (email 21 Oct, fallback 1 Nov, reading-list-only afterwards).",
+  "r1: Reclassified Vista as a likely internal team asset (handle matches the requesting user; TEAM_ASSUMPTION flag added) and recommended adding a LICENSE after checking the studio-model-derived context and OGL/ODbL data terms; noted it vendors rhino3dm.js and that the public repo is a bundle of a private project.",
+  "r1: Moved text-to-cad from v1 to roadmap; v1 AI massing node is now shapely + trimesh + rhino3dm under the Arch540 evaluator contract. Verified from README: uv required (not installed here), uv-managed Python 3.13 pin, Smart App Control blocks OCP with no per-app exception, WSL alternative, telemetry and daily update check on by default (CADGEN_TELEMETRY=0, CADGEN_UPDATE_CHECK=0). Read-only check: Smart App Control off, WSL not installed, uv and Node absent, PATH python is 3.9.13 on the session machine.",
+  "r1: Marked Rhino MCPs (rhino-gh-mcp, rhinomcp, RhinoAI) as optional bridges for Rhino users, demoted rhinomcp to roadmap, and added browser-path libraries with licences: rhino3dm (MIT, cp313 wheel, reads and writes .3dm), web-ifc (MPL-2.0), xyflow (MIT).",
+  "r1: Corrected xunliuDesign facts: 15 repos = 13 own + 2 MIT forks; newest push 2026-07-17 is des212-2026, a redirect-only stub, so the newest substantive repo remains false-creek-2100 (11 Jun).",
+  "r1: Filled missing last-activity dates from the API and commit feeds (rhinomcp 10-16, RhinoAI 10-20, skills-for-architects 10-20, anatomy-community 10-20, Physalia 09-10, dtmass/Vista/Massing Studio 10-02, codex-plugin-cc 07-08, dongwoosuk 05-27); refreshed stars and forks; noted codex-plugin-cc has had no push for about 3.5 months and 536 open issues+PRs.",
+  "r1: Corrected Node requirements (anatomy kit 20.10+, skills CLI 1.7.1 needs 22.20+; hairline monorepo node>=22); anatomy tiers: a whole building is Epic (6 h+), Figure under about an hour, so only single-mechanism Figure subjects are allowed.",
+  "r1: anatomy-community licence: root LICENSE opened, MIT with per-figure CC-BY-4.0; GitHub shows NOASSERTION because of the extra line; flagged as FALSE_ASSUMPTION with the nuance that the critique's concern is partly resolved.",
+  "r1: hairline: pinned to v0.5.1 and vendor figures (six releases in 14 days; GitHub description still says 'Six' while README and package.json say 33).",
+  "r1: Social evidence added: text-to-cad HN thread (186 points, 48 comments; mixed), anatomy and hairline HN posts (2 points, no comments), 4+ enthusiastic X/YouTube/Medium voices on anatomy, McNeel forum summaries; Reddit unreachable. Kept UNVERIFIED flag with updated detail.",
+  "r1: Added liyupi/ai-guide to unresolved (confirmed in Xun's 20 stars); added RhinoAI Rhino-version and Ladybug AGPL UNRESOLVED flags; recommendations rewritten (licence plan, Thermal pattern, browser libs, massing node, environment) and findings now 28.",
+  "r2: Arch540_2026 corrected (MAJOR): the demos are POSIX-first. Hooks in all four demos' settings.json run python3, B's gate.py hardcodes it, C_design_space evaluate.py imports fcntl (line 33, flock at line 215; D_team's evaluator does not), README uses python3, cp -r, ~/Desktop. Locally python3 is the App Installer alias (exit 49) and python is 3.9.13; per the hooks docs a hook that cannot start is non-blocking, so the gate silently skips. Added FALSE_ASSUMPTION flag, status false_assumption_corrected, rewrote the hook recommendation (explicit venv interpreter, portable lock, CI test for hook exit 0 or 2, onFailure block if supported, WSL fallback) and the B_testfit principle.",
+  "r2: Python environment (MAJOR): py defaults to 3.13t (free-threaded); numpy 2.5.4, scipy 1.18.1, shapely 2.2.0 and rhino3dm 8.35.0 list cp313 win_amd64 wheels but no cp313t Windows wheel (PyPI JSON, 21 Oct); trimesh 5.1.1 and pvlib 0.16.1 are pure-Python. New instruction: py -3.13 -m venv .venv, lock file, record python -VV, run py -0. FALSE_ASSUMPTION flag added; rhino3dm row corrected; massing and environment recommendations updated.",
+  "r2: Sun/shadow node (MAJOR): read evaluate.py and replaced the Ladybug-or-pvlib framing with a re-implemented Arch540 sun-hours method (lat 49.25 N, solstice, 9:00-15:00 solar time, trapezoid weights totalling 6 h, per-cell ray-box shadow tests) plus suncalc for browser sun vectors. Added suncalc finding (BSD-2-Clause, v2.1.1, degrees clockwise from north). Moved Thermal-Sandbox-Web from core to v1 as an optional energy precompute; added limits (15 m ring, 80 x 60 m lot, no context buildings, solar time) and our own shadow-length arithmetic (about 780-980 m at solar noon, 2.0-2.5 km at 9:00 and 15:00, winter solstice). FALSE_ASSUMPTION flag added; Thermal row status false_assumption_corrected; sun recommendation rewritten.",
+  "r2: rhino-gh-mcp corrected: Ladybug is needed only by the draft ladybug-environmental skill; README says Rhino 8 on Windows or Mac (the packet said Windows only); added the facade-design skill (seven typology recipes with reference .gh files) and the planned massing, structural-grid and daylighting skills (coordinate with Xun). FALSE_ASSUMPTION flag added; status false_assumption_corrected.",
+  "r2: hairline: named the real package @lucasmarkes/hairline@0.5.1 (latest on npm, MIT); the unscoped npm hairline is an unrelated CSS package (ufologist, v1.0.0); the shadcn route fetches from the author's own domain, so skip it in CI. Stars refreshed to 2.57k.",
+  "r2: text-to-cad: telemetry advice corrected: CADGEN_TELEMETRY=0 and DO_NOT_TRACK=1 are per process; the persistent opt-out is uvx cadgen telemetry off (also deletes sent data and queued files per README); sending starts at the first cadgen command. The environment recommendation now runs the persistent opt-out once per machine plus CADGEN_UPDATE_CHECK=0.",
+  "r2: Licence plan split into (a) in-course local use, implied by the Arch540_2026 description, and (b) public repo or board redistribution needing MIT or written permission; ARCH 540 policy on AI use and on reusing classmates' A1 work not found (only a two-page 2025-26 syllabus PDF whose text our tools could not decode) and added to the email list and to unresolved.",
+  "r2: RhinoAI: plugin v0.3.0 (30 Sep) ships only rh8_19 Windows and Mac packages and dropped the Rhino 9.x package, so Rhino 8.19+ is likely (inference, UNRESOLVED flag updated); Gemini was removed from its AI dropdown, so it is no longer listed; open issues 17.",
+  "r2: xunliuDesign/GenAI_Visual_Examples checked: empty repo (API 409 Git Repository is empty, size 0, created 6 Feb 2026); removed from the unopened list and noted in the account row.",
+  "r2: anatomy: SKILL.md requires dense 40-80 part machines even for a Figure and rejects abstract slabs, which may clash with hairline's calm style; how_we_use_it now says build one Figure and test it against our hairline-derived rules before spending more tokens; anatomy tiers principle updated.",
+  "r2: Trimmed rhino3dm, web-ifc and xyflow rows to one-line pointers to the import and canvas packets; merged the two environment recommendations and the codex-plugin-cc item into one environment recommendation; findings 29, principles 15, recommendations 9.",
+  "r2: Refreshed stats from the GitHub API on 21 Oct (anatomy 18.0k stars, anatomy-community 31 open, skills-for-architects 6 open, RhinoAI 17 open, hairline 2.57k stars); added UNVERIFIED flags for the onFailure hook option (needs Claude Code v2.1.295+ per docs; installed version unchecked) and for the sun method at tower scale; updated the Ladybug UNRESOLVED flag to the optional energy precompute only. Earlier FALSE_ASSUMPTION flags kept.",
+  "r3: Sun/shadow node (MAJOR): the primary v1 sun test is now the City of Vancouver Downtown Peninsula Solar Access Guidelines test (Council 17 Sep 2025): new shadow on listed parks, plazas and school sites, 22 Sep, 10:00-16:00 PDT clock time. The Arch540 solstice sun hours (9:00-15:00 solar time) are demoted to a secondary 'course teaching metric'; the 'course-recognised' wording is removed. Rewrote recommendation 4 and the C_design_space principle; added a FALSE_ASSUMPTION flag (round 3) and kept the r2 sun flag with a pointer.",
+  "r3: New row for the guideline itself (kind guideline, core, status unverified, verified_opened false): the PDF returns 403 to WebFetch and to curl with a browser user agent, the Browser pane offered a download (not retried), council report PDFs and the vancouver.ca page also 403, web.archive.org blocked. Facts come from Daily Hive (three articles), Vancity Lookout, the dtmass README, rules.js and sun.js, and search snippets. Added an UNRESOLVED flag, unresolved entries and recommendation 10 (a teammate opens the PDF in a normal browser).",
+  "r3: Domain sizing recomputed with NOAA formulas at 49.28 N, 123.12 W on 22 Sep 2026 (our arithmetic, flat ground): 244-305 m towers cast about 470-590 m at 10:00 PDT (sun altitude 27.4 degrees, shadow towards the north-west), 450-560 m at 16:00 PDT, 280-350 m near solar noon (about 13:05 PDT). The 2.0-2.5 km solstice domain no longer applies to the primary test; the search radius is about 600 m. dtmass's 320 m radius is too short for towers of this height.",
+  "r3: dtmass row updated from sun.js and rules.js: NOAA position, LAT 49.283, LON -123.118, day 265, UTC-7 (PDT), hours 10-16, 1.5 m cells, existing 2009 building shadow subtracted, pass if under 1 m2 of new shadow, 51 named spaces with plaza, strict, strict4 and sys classes, 320 m radius. These are the author's choices, kept as TEAM_ASSUMPTION flags, not guideline facts. Status set to false_assumption_corrected because the row now carries the correction.",
+  "r3: 10:00-14:00 window question (critique asked to check): per Daily Hive and Vancity Lookout it concerned areas outside the Downtown Peninsula; staff recommended keeping 10:00-16:00 (570 vs 720 parcels, about 300 housing units, annual park sunlight 25 to 17 percent). Its date conflicts between secondary sources (July 2024 or July 2025), so the critique's 'July 2025' is unconfirmed. Added to unresolved.",
+  "r3: Hook advice corrected: onFailure has no effect on Stop, SubagentStop, TaskCompleted or TeammateIdle hooks; A_writing's guard is a Stop hook; B, C and D use PreToolUse (re-verified). Rewrote the hook recommendation: enforcing gates on PreToolUse, exec form, command ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe, args [hook path], onFailure block. Nuance added: exit 2 on a Stop hook does keep Claude working when the hook runs; a Stop hook that cannot start fails open. .cmd and .bat shims cannot be used in exec form on Windows. FALSE_ASSUMPTION flag added; B_testfit principle and Arch540 row updated.",
+  "r3: rhino-gh-mcp uv: critique partly right. README (re-read) says the Quick start (Claude Desktop .mcpb plus Rhino Package Manager yak plugins, Python 3.11+) needs no uv or dotnet; the from-source and Claude Code path needs uv, .NET SDK and Python 3.11 or 3.12 (not 3.13). Control presets (parameter, curated, full) added. Risks rewritten accordingly.",
+  "r3: hairline: unscoped npm 'hairline' is an unrelated 2019 package (ufologist, 1.0.0, published 2019-05-07; 2022-05-04 is only the registry modified date). Corrected the 2022 wording in the row and recommendation 7. Pin of @lucasmarkes/hairline@0.5.1 re-confirmed (latest, MIT, 14 Oct).",
+  "r3: Added rows for two starred Rhino MCPs. SerjoschDuering/rhino-mcp: reject; README claims MIT but no LICENSE file on main or master and API licence null (upstream blender-mcp is MIT, Siddharth Ahuja); Rhino 7+; arbitrary Python; Replicate renders; 65 stars; last push 2025-04-08. alfredatnycu/grasshopper-mcp: roadmap fallback for Rhino 7; MIT (c) 2025 Alfred Chen, LICENSE file opened; Rhino 7+, Python 3.8+, TCP on localhost:8080; 100 stars; last push 2025-03-22. Removed both from the not-opened list; the licence statement is more precise than the critique's 'no licence' (README says MIT).",
+  "r3: Environment recommendation: Node 24 LTS (winget show confirmed OpenJS.NodeJS.LTS 24.20.0 and astral-sh.uv 0.13.4, read-only, session machine; the rhino-gh-mcp README also uses astral-sh.uv). Node release schedule: 24 is LTS, maintenance from 20 Oct 2026; 26 becomes LTS 28 Oct 2026; 22 ends 30 Apr 2027. Record node -v since the LTS ID may jump to 26. suncalc row: build PDT times as UTC instants (10:00 PDT is 17:00 UTC).",
+  "r3: Trimmed per the length note: merged rhino3dm, web-ifc and xyflow into one browser-libraries row; removed duplicated 'no licence' caveats from per-repo risks (kept in the licence field and recommendation 2); findings 30, principles 15, recommendations 10.",
+  "r3: Added TEAM_ASSUMPTION flag for sun-test implementation choices (time step, tolerance, baseline, domain, space classes) and updated the r2 flags (sun, hooks, rhino-gh-mcp, UNVERIFIED sun runtime) with round 3 pointers; no earlier FALSE_ASSUMPTION flag deleted."
+ ]
+}

@@ -1,0 +1,310 @@
+{
+ "expert_role": "City cultural planner acting as gatekeeper and source auditor (round 3, gate round)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07-M07",
+   "issue": "Competition-project mode (private, no forks, no gallery or search, handles hidden, public sharing blocked) is the only thing that protects entrants from Terms cl. 4.1 and 5.1/5.3. The spec admits it 'needs platform-packet support', but it gives no fallback. M07 is core and ships to entrants. If the platform packet has not built private, unforkable projects by 13 Nov, an entrant who sets the VTC flag is working in the default platform mode: public, forkable, with handles. That is a disqualification risk the tool would have invited.",
+   "fix": "Add a hard release rule. The VTC entry flag can be enabled only after the platform packet confirms that private, no-fork and no-index work and has been tested (record the test date in M08). Otherwise the tool shows a fixed notice: do not create the competition project on the hosted platform; use local or offline mode, and export only through the M07 strip step. Add a metric: 'VTC flag available without verified private mode = 0'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M07",
+   "issue": "The ai_involvement-to-IPTC mapping misuses the vocabulary. IPTC defines compositeWithTrainedAlgorithmicMedia as 'Edited using Generative AI' (inpainting or outpainting) and compositeSynthetic as a mix of elements of which at least one is generative AI. algorithmicallyEnhanced is non-generative correction only. So 'composite' (AI elements combined with renders) should map to compositeSynthetic. Any 'assistive edit' that uses generative fill or upscaling should map to compositeWithTrainedAlgorithmicMedia, not algorithmicallyEnhanced. As written, the most common board workflow (a render with AI fill or entourage) would get a label that understates AI use. The spec calls that a breach of trust itself.",
+   "fix": "Remap as follows. none -> digitalCreation (renders) or humanEdits (edited captures). assistive non-generative -> algorithmicallyEnhanced. assistive generative edit -> compositeWithTrainedAlgorithmicMedia. composite with AI elements -> compositeSynthetic. generated -> trainedAlgorithmicMedia. Split the 'assistive edit' enum into generative and non-generative. Cite each term's IPTC definition and URI, and re-read the vocabulary at release, because terms are retired (for example, minorHumanEdits on 2024-09-17)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M06",
+   "issue": "The spec treats the Public Views Guidelines (2024) as the place where per-view height rules live. The dataset's own metadata says the authoritative source for the corridors is the City's bylaws. The dataset was also modified on 19 Oct 2026 and is 'updated as needed', so the '24 records match the set kept on 10 Jul 2024' check is a snapshot that can go stale before 30 Nov. Entrants checking a touched cone would be pointed to the wrong instrument and could rely on an old cone set.",
+   "fix": "Point the 'rule to be checked' link to the applicable bylaw or official development plan as well as the Public Views Guidelines. Quote the dataset caveat ('authoritative source ... is the City's bylaws') on the cone table. Store the dataset modified date and the retrieval date with every run. Re-query total_count at each export and warn if it is not 24 or if the ids differ from the 10 Jul 2024 set."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M01",
+   "issue": "The contact guard, eligibility check and Q&A card all rest on a fetch-tool summary of the Buildner jury page and the Terms. In three rounds no person has read either in a browser, and this round both URLs timed out. Clause numbers (3.3.5, 5.2, 8.3, 10.4, 10.10), the 1 Nov / 3 Nov dates and the juror names and firms are load-bearing. A wrong name or date would steer entrants into contact or a missed deadline. The City page adds that the City is the host and that the review contact is a named City planner. This makes the City the most likely Commissioning Party.",
+   "fix": "Before release, a person opens the jury page and the Terms in a browser, saves a dated PDF copy, and confirms every clause number, date and juror and firm string quoted in M01. Add a 'verified-by/date' field to the contact-guard card and block the card's release without it. Name City of Vancouver staff (including the Higher Buildings review team) explicitly in the no-contact list."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M08 / packet",
+   "issue": "The VTC brief (S35) is still unopened after three rounds. The 30% weight, the cultural-context criterion wording, the anonymity clause and the site location all still come from the supplied summary. M07's strip rules and M08's three criterion items are built on that unread text. Registration closes 29 Oct, which is 8 days away, and only registered entrants can get the brief.",
+   "fix": "Make 'brief opened, version and date recorded' a release precondition for M07 export mode and M08, not a 13 Nov target. Register now if needed. If the brief's anonymity clause adds rules (for example file naming or board codes), add them to the M07 strip checklist before core."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07 (packet)",
+   "issue": "The scope is honest, but core capacity is not credible as stated. The core subset (M01 stage A 3 days, M06 georeference and cone intersection 2 days plus ray casting 5, M07 9 days) comes to 14-19 person-days in 23 calendar days for two students who also own other packets. M07 also depends on PRES export and platform features from other packets. Entrants would get the tool 17 days before submission at best. There is no stated cut order inside M07 and no message to entrants about what will not arrive.",
+   "fix": "Publish an ordered cut list inside the core. 1) metadata strip and identity scan, 2) AI visible label plus the corrected IPTC term, 3) source-id lint, 4) glyph check, 5) PROV human_contribution and decided_by. Ray casting is formally v1. Show entrants a dated 'available now / not before 30 Nov' panel driven by the M08 entrant_scope record."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M02",
+   "issue": "The claimable_by_entrant rationale says FPIC is obtained by States through Nations' institutions. TRC Call 92(i), which the packet already cites, asks the corporate sector to commit to meaningful consultation and to obtain FPIC before economic development projects. Entrants cannot claim FPIC because a hypothetical entry has no real project and no engagement. The reason is not that only States can obtain it.",
+   "fix": "Rewrite the rationale. UNDRIP Arts. 19 and 32(2) put the duty on States. TRC 92(i) asks companies to seek FPIC for real projects. A competition entry at N0-N3 has neither, so the FPIC claim stays locked. Keep the lock; correct the basis."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M02",
+   "issue": "Status badges will be stale before submission. Shape Your City puts Phase 2 'draft policies' in Fall 2026 to Winter 2027, so draft Higher Buildings directions may appear before 30 Nov. On DRIPA, the April 2026 working group was to report by the fall 2026 legislative session, which is under way. The Wikipedia source was last edited 29 Sep 2026 and records no session events. The SCC hearing date and the BCCA neutral citation are still missing.",
+   "fix": "Re-check both badges at each release and on 25 Nov. Add BC Legislature bill status and the SCC docket as sources. Show the as-of date prominently, with 'may have changed: check' after 14 days."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M01",
+   "issue": "S10 says the Musqueam page lists eight package items. The page also asks for 'additional documents' as Musqueam requires and says to contact Musqueam 'at the initial stages of project planning for all projects within Musqueam territory'. That sentence is the real reason applicability to ideas competitions is ambiguous, and the spec does not quote it.",
+   "fix": "Record nine items (eight named plus open-ended additional documents). Quote the 'all projects within Musqueam territory' line in the UNRESOLVED contact flag. Keep N0 as the default."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M04",
+   "issue": "S54 attribution and S16 internal conflicts. 'No City approvals needed' is the reporter's statement in Global News, not the City's or the Nation's. The services list is the Mayor's quote. Wikipedia gives the tallest Sen̓áḵw tower as both 58 storeys and 56 storeys ('exempt from local height restrictions'), but M04 shows 58 without the conflict chip that its own rule requires.",
+   "fix": "Tag S54 facts by speaker (reporter vs Mayor). Add a 58 vs 56 conflict chip, or cite the Dezeen 12-58 figure as the source of 58."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M01",
+   "issue": "S48 metadata is wrong. The page is 'Aboriginal Consultation and Accommodation - Updated Guidelines for Federal Officials to Fulfill the Duty to Consult - March 2011', a 2011 guideline for federal officials. It also says third parties 'do not have a legal obligation to consult', which is the clearest support for the 'consulted' ban and is not quoted.",
+   "fix": "Correct the title and year to 2011, mark it as federal-official guidance that may be dated, and quote the third-party line in the M01 ban-list basis."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M08",
+   "issue": "The ethics check cites TCPS 2 and UBC's general student page. That page links a separate UBC 'Indigenous Research and Ethics Review' resource, which the spec does not open. It is directly relevant to the Indigenous reviewer and any Indigenous participants.",
+   "fix": "Open and cite the UBC Indigenous research ethics resource and add it to the instructor/BREB question list."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "ai_involvement 'composite' maps to compositeWithTrainedAlgorithmicMedia and 'assistive edit' maps to algorithmicallyEnhanced (M07 team mapping).",
+   "why_false": "IPTC defines compositeWithTrainedAlgorithmicMedia as 'Edited using Generative AI' (inpainting/outpainting) and compositeSynthetic as a mix of elements, at least one of which is generative AI. algorithmicallyEnhanced covers non-generative correction only.",
+   "correction": "composite with AI elements -> compositeSynthetic. Generative edit -> compositeWithTrainedAlgorithmicMedia. algorithmicallyEnhanced only for non-generative enhancement.",
+   "evidence": "https://cv.iptc.org/newscodes/digitalsourcetype/ (read 21 Oct 2026)"
+  },
+  {
+   "claim": "Per-view height rules for the 24 cones sit in the Public Views Guidelines (2024), and the 24-record dataset is a fixed match to the July 2024 set (M06).",
+   "why_false": "The dataset metadata states that the authoritative source for the view corridors is the City's bylaws and that the extract is 'updated as needed'. It was modified on 19 Oct 2026.",
+   "correction": "Link touched cones to the governing bylaw/ODP as well as the guidelines. Treat the 24-record match as a dated snapshot and re-check it at each export.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones (metas: modified 2026-10-19; caveat on bylaws); records API total_count 24"
+  },
+  {
+   "claim": "FPIC is obtained only by States, so it is not claimable (M02 claimable_by_entrant basis).",
+   "why_false": "TRC Call 92(i) asks the corporate sector to obtain free, prior and informed consent before economic development projects.",
+   "correction": "FPIC is not claimable because a hypothetical entry has no real project and no engagement at N0-N3, not because only States can seek it.",
+   "evidence": "TRC Calls to Action PDF, Call 92(i), text extracted 21 Oct 2026"
+  },
+  {
+   "claim": "S48 is an undated CIRNAC page whose title was not captured.",
+   "why_false": "The page is titled 'Updated Guidelines for Federal Officials to Fulfill the Duty to Consult - March 2011'.",
+   "correction": "Cite it as federal-official guidance from 2011. Note that it says third parties have no legal obligation to consult.",
+   "evidence": "https://www.rcaanc-cirnac.gc.ca/eng/1100100014664/1609421824729"
+  }
+ ],
+ "missing": [
+  "Browser-verified copies (dated PDF) of the Buildner jury page and Terms; both timed out this round and have only ever been read through a fetch summary",
+  "The VTC brief (version, date, criterion wording, anonymity clause, site coordinates)",
+  "Governing bylaw/ODP references for view-cone heights, alongside the Public Views Guidelines (2024)",
+  "A fallback for entrants if platform private/no-fork mode is not ready by 13 Nov",
+  "Corrected IPTC mapping with per-term definitions and URIs",
+  "An ordered cut list for the core and a dated entrant-facing 'available now' panel",
+  "DRIPA fall-2026 legislative status, SCC docket and BCCA neutral citation",
+  "The UBC Indigenous Research and Ethics Review resource",
+  "Named Indigenous reviewer, budget line and contact (28 Oct deadline is 7 days away)",
+  "City UNDRIP Strategy and Action Plan PDFs (still HTTP 403 this round)",
+  "Note: WebSearch budget was exhausted this round; only direct fetches were used"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Platform packet confirms and tests private, no-fork, no-index competition projects before the VTC flag is offered; otherwise entrants are told to work local or offline (M07)",
+   "Correct the ai_involvement-to-IPTC mapping (compositeSynthetic; generative edits to compositeWithTrainedAlgorithmicMedia)",
+   "A person verifies the Terms clause numbers, Q&A dates and the seven juror and firm strings in a browser and records verified-by/date on the contact guard; name City staff in the no-contact list",
+   "Open the VTC brief before 29 Oct registration closes; confirm the anonymity clause and add any rule to the M07 strip checklist",
+   "M06 links touched cones to bylaw/ODP authority, quotes the dataset caveat and re-checks the 24-record set at each export",
+   "Publish the core cut order and the entrant-facing scope panel with dates"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: contact guard covered one juror only",
+   "status": "addressed",
+   "residue": "All seven jurors, the Commissioning Party, advisors and the SALA desk-crit rule are listed. The names and clause numbers are still unverified in a browser (pages timed out this round), and City staff are not named explicitly."
+  },
+  {
+   "item": "BLOCKER M07: anonymity only at export; no competition-project mode",
+   "status": "partly",
+   "residue": "The mode and metric were added, but they depend on unbuilt platform-packet features with no fallback if those are absent."
+  },
+  {
+   "item": "MAJOR M01: eligibility under cl. 3.3.5",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M01: Q&A plan (1 Nov vs 3 Nov, one question, top five)",
+   "status": "addressed",
+   "residue": "The dates come from a fetch summary and need a browser check."
+  },
+  {
+   "item": "MAJOR M08: review gate keyed to category, not content",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR packet: honest timing, reviewer plan, UBC ethics",
+   "status": "addressed",
+   "residue": "There is still no reviewer, budget or contact, and the UBC Indigenous research ethics resource is not consulted."
+  },
+  {
+   "item": "MAJOR M06: view-cone 'partial dataset' flag",
+   "status": "addressed",
+   "residue": "Storeys and the API confirm 24 records and the removed ids. The bylaw-authority caveat and the 19 Oct 2026 dataset update are not reflected."
+  },
+  {
+   "item": "MAJOR M02: Higher Buildings Policy title and status",
+   "status": "addressed",
+   "residue": "The City page confirms 1997 adoption and that protected views are not reviewed. The 2018 amendment remains unverified, and Phase 2 drafts are due fall 2026."
+  },
+  {
+   "item": "MAJOR M02: DRIPA status badge",
+   "status": "addressed",
+   "residue": "National Magazine (22 May 2026) and Wikipedia confirm the badge. The fall-2026 session status, SCC hearing date and neutral citation are missing."
+  },
+  {
+   "item": "MAJOR M07: human_contribution, decided_by, AI copyright unsettled",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M02/M08: VTC brief unopened",
+   "status": "not",
+   "residue": "Still unopened after three rounds. Only a plan to verify by 13 Nov exists, and registration closes 29 Oct."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P07-S34",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "ok": false,
+   "note": "Timed out twice; jury list and dates not re-verified this round"
+  },
+  {
+   "source_id": "P07-S47",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge/terms",
+   "ok": false,
+   "note": "Timed out twice; clause numbers remain from prior fetch summaries"
+  },
+  {
+   "source_id": "P07-S64",
+   "url": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter2-chapitre2.html",
+   "ok": true,
+   "note": "Art. 2.1 includes course-based pedagogical research; Art. 2.5 excludes assessment-only testing. The spec is accurate."
+  },
+  {
+   "source_id": "P07-S54",
+   "url": "https://globalnews.ca/news/8870661/sen%CC%93a%E1%B8%B5w-vancouver-services-agreement/",
+   "ok": true,
+   "note": "Signed 25 May 2022. Services list is the Mayor's quote; 'no City approvals' is the reporter's statement; no fees mentioned."
+  },
+  {
+   "source_id": "P07-S66",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Adopted 1997; City hosts the competition with Buildner as platform partner; protected views not reviewed; Phase 2 drafts fall 2026; contact inbox listed"
+  },
+  {
+   "source_id": "P07-S57",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "ok": true,
+   "note": "10 Jul 2024; 38 cones, 14 removed, 11 updated, 24 remain; QE Park 3.2.1-3.2.4 kept. The spec is accurate."
+  },
+  {
+   "source_id": "P07-S32",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records?limit=100&select=*",
+   "ok": true,
+   "note": "total_count 24; no height field; ids match the retained set"
+  },
+  {
+   "source_id": "P07-S32",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "Licence OGL-Vancouver; modified 2026-10-19; caveat: authoritative source is the City's bylaws; updated as needed"
+  },
+  {
+   "source_id": "P07-S59",
+   "url": "https://nationalmagazine.ca/en-ca/articles/hot-topics-in-law/2026/supreme-court-to-hear-appeal-on-undrip-s-reach-in-domestic-law",
+   "ok": true,
+   "note": "22 May 2026; SCC leave granted; BCCA Dec 2-1; no hearing date or citation; no suspension"
+  },
+  {
+   "source_id": "P07-S60",
+   "url": "https://en.wikipedia.org/wiki/Declaration_on_the_Rights_of_Indigenous_Peoples_Act_(British_Columbia)",
+   "ok": true,
+   "note": "Apr 2026 amendment plan reversed; working group for fall 2026 session; Aug 2026 repeal petition; last edited 29 Sep 2026"
+  },
+  {
+   "source_id": "P07-S16",
+   "url": "https://en.wikipedia.org/wiki/Sen%CC%93%C3%A1%E1%B8%B5w",
+   "ok": true,
+   "note": "Confirms 11.7 acres, June 2000 vs 2001, OPTrust 50% of Phases 1-2. Gives 58 and 56 storeys, an internal conflict."
+  },
+  {
+   "source_id": "P07-S48",
+   "url": "https://www.rcaanc-cirnac.gc.ca/eng/1100100014664/1609421824729",
+   "ok": true,
+   "note": "Title: Updated Guidelines for Federal Officials ... March 2011; duty not delegable; third parties have no legal obligation to consult"
+  },
+  {
+   "source_id": "P07-S10",
+   "url": "https://www.musqueam.bc.ca/departments/title-and-rights/iga/",
+   "ok": true,
+   "note": "Addressed to proponents and regulators; eight named items plus open-ended additional documents; 'all projects within Musqueam territory'; fees not mentioned"
+  },
+  {
+   "source_id": "P07-S04",
+   "url": "https://ehprnh2mwo3.exactdn.com/wp-content/uploads/2021/01/Calls_to_Action_English2.pdf",
+   "ok": true,
+   "note": "Call 92(i) asks the corporate sector to obtain FPIC; extracted locally from the PDF"
+  },
+  {
+   "source_id": "P07-S38",
+   "url": "https://cv.iptc.org/newscodes/digitalsourcetype/",
+   "ok": true,
+   "note": "20 concepts. compositeWithTrainedAlgorithmicMedia = generative edit; compositeSynthetic = mix with a generative element. The spec mapping is wrong."
+  },
+  {
+   "source_id": "P07-S61",
+   "url": "https://www.williamfry.com/knowledge/eu-ai-act-omnibus-deal-reached-postponed-deadlines-watermarking-compromise-and-the-nudificiation-prohibition/",
+   "ok": true,
+   "note": "12 May 2026; Art. 50(2) from 2 Dec 2026; adoption pending. The spec is accurate."
+  },
+  {
+   "source_id": "P07-S39",
+   "url": "https://spec.c2pa.org/specifications/specifications/2.3/specs/C2PA_Specification.html",
+   "ok": true,
+   "note": "Version 2.3, December 2025; claim_generator_info requires name. The spec is accurate."
+  },
+  {
+   "source_id": "P07-S05",
+   "url": "https://council.vancouver.ca/20221025/documents/p1.pdf",
+   "ok": false,
+   "note": "HTTP 403 again"
+  },
+  {
+   "source_id": "P07-S07",
+   "url": "https://twnation.ca/?p=8419",
+   "ok": true,
+   "note": "25 Oct 2022; 79 actions; committee of Host Nations, City and urban Indigenous; silent on private development"
+  },
+  {
+   "source_id": "P07-S55",
+   "url": "https://salishseasentinel.ca/2018/07/coast-salish-names-given-to-2-vancouver-plazas/",
+   "ok": true,
+   "note": "Three-Nation committee chose the names; City Council renamed; 'gifted' absent; ownership not stated"
+  },
+  {
+   "source_id": "P07-S65",
+   "url": "https://researchethics.ubc.ca/behavioural-research-ethics/student-researchers",
+   "ok": true,
+   "note": "Instructor applies for course-based work; above-minimal-risk needs its own application; links a UBC Indigenous research ethics resource not cited in the spec"
+  }
+ ],
+ "verdict": "Round 3 handles most of the round 2 critique honestly. The entrant scope is cut to M01 stage A, M06 geometry and M07, and the review gate, the contact guard and the authorship fields are in place. It still fails the gate. M07's privacy mode, which entrants depend on, rests on platform features that are not built and has no fallback. The IPTC mapping understates generative AI use. M06 sends entrants to guidelines when the dataset says bylaws are authoritative, and treats a dataset updated on 19 Oct as fixed. The Terms, the jury list and the brief have still not been read by a person; I could not open the Buildner pages this round either. Fix these six conditions before entrants rely on it."
+}

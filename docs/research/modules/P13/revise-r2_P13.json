@@ -1,0 +1,2936 @@
+{
+ "packet_id": "P13",
+ "modules": [
+  {
+   "module_id": "P13-M01",
+   "name": "Deliverables, hard-rules, gates and deadline tracker",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Which VTC hard rules, process gates and recommended deliverables are met, missing or at risk, and how long remains to the closing instant 2026-11-30T23:59Z (16:59 Vancouver)?",
+   "inputs": [
+    "brief_register: team copy of the brief PDF with SHA-256 plus transcribed rules {id, value, exact|max, page, transcribed_by, checked_by}; seeded from the project description (amber until page and second check are entered)",
+    "document_register (DATA-packet interface): brief, Terms HTML snapshot hash, 1997 Higher Buildings Policy, Public Views Guidelines, Open Government Licence - Vancouver text, each with SHA-256 and retrieval date",
+    "rule_registry: one record per rule id (HR-01..HR-06 hard rules, G-01..G-04 gates, D-01 deadline) with clause, value, evidence status and correction history; P13-M01 and P13-M06 both read it",
+    "board_layout from P13-M06a (frames, element tags, text frames) OR a manual placement list {item, board} typed by the team (optional port; null = manual list)",
+    "export_manifest from P13-M06v validator or P13-M06b composer (bytes, px, ratio, sha256, subsampling, scan mode, checks[], anonymity_findings[])",
+    "editable checklist: 6 hard rules (JPEG, size, panel count, A2 landscape ratio, English, anonymity), 4 gates (UIC validated and identity verified; N sign-offs; rights register and licence pack complete; no public board-linked asset) and 20 recommended items (3 diagrams: programme, structure, massing; 3 studies: wind, solar/shadow, sustainability; site plan; ground floor plan; 3 typical plans; 2 sections; skyline view; mid-city view; 4 ground-level perspectives; policy reflection)",
+    "module result cards from other packets (wind, shadow, sustainability, structure, programme)",
+    "rubric gaps from P13-M07 (optional port, advisory; null = no gaps)",
+    "rights_status and asset_visibility from P13-M08a",
+    "signoff_count N (default 2 for teams, 1 for individuals)",
+    "qa_register: questions sent, channel, answers with dates (non-binding)",
+    "current UTC time, deadline instant 2026-11-30T23:59:00Z, team time zone"
+   ],
+   "outputs": [
+    "submission_status (typed JSON: hard_rules[], gates[], coverage, missing[], days_left, blocking, brief_sha256, rule_registry_version)",
+    "blocking_issues list consumed by the release gate P13-M06c",
+    "dated rule changelog (Ask the Jury answers logged as non-binding clarifications; brief and Terms re-reads with hashes)",
+    "task_timeline: dated human tasks with owner and status (identity verification, brief register, Q&A pack, registration, re-reads, single upload)",
+    "qa_pack: one row per open flag {question, clause quoted, channel ask_the_jury|organiser_contact, owner, due, answer, answered_on}"
+   ],
+   "parameters": [
+    {
+     "name": "panel_count_rule",
+     "unit": "exact | max (boards)",
+     "relationship": "Terms 4.8 defer the count to the brief (one to four). Exact 4 fails a 3-board entry; a maximum reading passes it. Default exact 4, as transcribed from the brief, until the register is double-checked.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "recommended_item_set",
+     "unit": "items",
+     "relationship": "Each unplaced recommended item lowers coverage. Team mapping to jury criteria: missing ground-level views weakens human-scale evidence (40%); missing wind, solar or sustainability studies weakens design-excellence evidence (20%).",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "deadline_instant",
+     "unit": "UTC date-time",
+     "relationship": "Page: 23:59 London (GMT in November) = 2026-11-30T23:59Z = 16:59 Vancouver (UTC-7). Terms 4.7 says 24.00 London. The earlier instant is used because late entries are automatically disqualified (8.4).",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03",
+      "P13-S45",
+      "P13-S46"
+     ]
+    },
+    {
+     "name": "registration_close",
+     "unit": "date",
+     "relationship": "Registration closes 29 Oct 2026 (hour not stated). Terms 3.6.A.1-A.2 put identity verification before payment and UIC, so a late start removes the upload route. The warning is a static banner now, not a 6 Nov feature.",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03",
+      "P13-S49"
+     ]
+    },
+    {
+     "name": "upload_lock",
+     "unit": "uploads",
+     "relationship": "After the first upload, edits need a paid reactivation fee (Terms 4.7, 7.7) and the entry may go to early evaluation. Export early, but upload once, when every gate passes.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "file_size_margin",
+     "unit": "MB",
+     "relationship": "A bigger margin below 10 MB protects against MB/MiB ambiguity and portal overhead but forces lower JPEG quality or fewer pixels, which softens thin linework.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "aspect_ratio_tolerance",
+     "unit": "%",
+     "relationship": "A2 is 420 x 594 mm (ratio 1.414). A tighter tolerance prevents stretched or cropped boards; a looser one hides layout mistakes.",
+     "source_ids": [
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "language_allow_list",
+     "unit": "reviewed terms",
+     "relationship": "The page requires English; a literal check would reject Nation names. Explanatory text must be English; reviewed names pass with an English gloss. Spellings vary between sources, so each entry is reviewed and Unicode-normalised.",
+     "source_ids": [
+      "P13-S02",
+      "P13-S53"
+     ]
+    },
+    {
+     "name": "signoff_count",
+     "unit": "members",
+     "relationship": "Terms 3.2 define teams of two to four, but individual entry exists (2.4, 3.6.A.4). With N=2 no author can release alone; an individual sets N=1 and may add a second reader who sees no identifying data.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S02"
+     ]
+    },
+    {
+     "name": "terms_reread_interval",
+     "unit": "days",
+     "relationship": "The organiser may alter the Terms and the brief at any time (9.1, 16.2). A shorter interval catches changes sooner but costs reviewer time; each re-read stores a hash and logs differences.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "qa_question_budget",
+     "unit": "questions",
+     "relationship": "Ask the Jury gives one free question per registration; only the top five by participant vote reach the jury and answers are non-binding (10.10.3, 10.10.5, 10.10.8.3). Brief questions compete for that slot; portal and file questions go to the organiser contact.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Panel file format",
+     "good": "every panel is .jpg/.jpeg",
+     "bad": "any PDF, PNG, TIFF or other format",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Check extension and JPEG magic bytes (FF D8 FF) of each exported board.",
+     "basis": "[rule HR-01 | evidence: verified | history: none] Terms 4.8: each panel must be saved as JPEG (.jpg or .jpeg); non-compliance may lead to disqualification (8.2).",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Panel file size (hard limit)",
+     "good": "<= 10^7 bytes (stricter reading of 10 MB)",
+     "bad": "> 10^7 bytes (disqualification risk)",
+     "status": "verified",
+     "unit": "bytes",
+     "method": "Read byte length of each exported JPEG.",
+     "basis": "[rule HR-02 | evidence: verified | history: none] Terms 4.8: size must not exceed 10 megabytes (MB); MB is not defined, so the tool applies the stricter 10^7 bytes.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Panel file size (team target)",
+     "good": "<= 9.5 x 10^6 bytes",
+     "bad": "amber between 9.5 x 10^6 and 10^7 bytes; red above 10^7",
+     "status": "team_assumption",
+     "unit": "bytes",
+     "method": "Same byte count compared with a margin that is safe under either MB definition.",
+     "basis": "[rule HR-02t | evidence: team assumption] Team margin; editable."
+    },
+    {
+     "name": "Panel count upper bound",
+     "good": "1 to 4 panels",
+     "bad": "> 4 panels",
+     "status": "verified",
+     "unit": "boards",
+     "method": "Count exported boards.",
+     "basis": "[rule HR-03a | evidence: verified | history: none] Terms 4.8: the brief sets a single panel or up to four panels.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Panel count required by the brief",
+     "good": "equals the brief_register value (default exact 4)",
+     "bad": "differs from the register, or register empty (amber until the PDF is hashed)",
+     "status": "false_assumption_corrected",
+     "unit": "boards",
+     "method": "Compare board count with the brief_register panel rule (exact or max).",
+     "basis": "[rule HR-03 | evidence now: unverified until the register holds hash, page and second check | history: r1 'verified' from team text; r2 the team holds the PDF, so this is a due task (23-24 Oct), not a tool limit] Project description states four boards from the brief.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Board aspect ratio / orientation",
+     "good": "landscape, width:height = 1.414 +/- 0.005 (594 x 420 mm)",
+     "bad": "portrait or ratio outside +/- 0.02",
+     "status": "false_assumption_corrected",
+     "unit": "ratio",
+     "method": "width_px / height_px of each JPEG.",
+     "basis": "[rule HR-04 | evidence now: A2 = 420 x 594 mm verified (ISO 216); landscape unverified until register; tolerance is a team choice | history: r1 corrected; r2 same record shown in P13-M06] The same rule id is used in both modules.",
+     "source_ids": [
+      "P13-S41",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Language",
+     "good": "all explanatory text English; every non-English token on the reviewed allow-list with an English gloss",
+     "bad": "non-English explanatory text, or an unreviewed non-English token",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Attestation per text frame in P13-M06a (language='en', two members) plus allow-list, OCR-language and glyph checks from P13-M06v/b.",
+     "basis": "[rule HR-05 | evidence: page requirement verified; allow-list reading is a team assumption] The competition page requires English; admitting Nation names via an allow-list is the team's reading, to confirm in Q&A.",
+     "source_ids": [
+      "P13-S02"
+     ]
+    },
+    {
+     "name": "Anonymity of the exported boards",
+     "good": "0 findings in file name, metadata and OCR text, and a logged human visual check per board",
+     "bad": ">= 1 finding or a board without the visual check",
+     "status": "verified",
+     "unit": "count",
+     "method": "Read anonymity_findings[] from the manifest and the per-board visual-check flag from P13-M06c.",
+     "basis": "[rule HR-06 | evidence: verified rule | tool method is team design] Terms 5.1 bars marks, logos, symbols or signs that may identify the source; 5.3 says the jury learns identities only after winners are selected.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Upload prerequisites (UIC, identity)",
+     "good": "UIC validated and every member verified at the moment of UIC validation or team joining",
+     "bad": "any member unverified or no UIC",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Manual attestation of portal status by two members; stricter reading also asks for active status at release.",
+     "basis": "[rule G-01 | evidence: verified] Terms 3.6.A.1 and 3.6.C.1: verification on Architects' Network before UIC validation or team joining; 3.6.A.2: fee paid after verification; 3.6.C.1: active status is required only at that moment. The how-to-enter page says verification is required before upload.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S49"
+     ]
+    },
+    {
+     "name": "Sign-off count (release)",
+     "good": "N distinct members signed (N = signoff_count)",
+     "bad": "fewer than N signatures",
+     "status": "team_assumption",
+     "unit": "signatures",
+     "method": "Count signed entries in the release log.",
+     "basis": "[rule G-02 | evidence: tool design] Terms 3.2 (teams of two to four) and 2.4/3.6.A.4 (individual entry) set who can enter; the sign-off count is a team control.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Rights register and licence pack complete",
+     "good": "every placed raster has a known licence compatible with Terms 12.2 and 12.7",
+     "bad": "any unknown or restricted licence",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Read rights_status from P13-M08a.",
+     "basis": "[rule G-03 | evidence: verified] Terms 4.3 lets the organiser demand licences, failure may disqualify; 12.2 and 12.7 grant perpetual licences.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "No public board-linked asset before closing",
+     "good": "0 board-linked assets with visibility public before 2026-11-30T23:59Z",
+     "bad": ">= 1 public asset linked to a board element",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Join placements with P13-M08a asset_visibility.",
+     "basis": "[rule G-04 | evidence: tool design] Terms 4.1: visual materials must not have been previously published by any member; Buildner asks resubmissions to be newly prepared and visually distinct.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S48"
+     ]
+    },
+    {
+     "name": "Registration close warning",
+     "good": "> 8 days to 29 Oct, or UIC already validated",
+     "bad": "<= 8 days with no UIC: amber; <= 2 days: red",
+     "status": "team_assumption",
+     "unit": "days",
+     "method": "29 Oct 2026 minus now, shown only while no UIC is recorded; delivered as a static banner on 21 Oct, not as a 6 Nov widget.",
+     "basis": "[rule D-02 | evidence: team thresholds] 8 days is the time left on 21 Oct 2026; the closing hour is not stated on the page.",
+     "source_ids": [
+      "P13-S02"
+     ]
+    },
+    {
+     "name": "Upload-once gate",
+     "good": "first upload only after all hard rules and gates pass and N members sign",
+     "bad": "any upload attempted earlier",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "P13-M06c unlocks the package only when blocking=false, N sign-offs and visual checks are logged.",
+     "basis": "[rule G-05 | evidence: verified] Terms 4.7: after the first upload the participant may not modify, replace, edit or re-upload without the paid reactivation; the gate itself is tool design.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Recommended-item coverage",
+     "good": "20 of 20 items placed (counts met: 3 typical plans, >= 2 sections, >= 4 ground-level views)",
+     "bad": "any category with zero items placed",
+     "status": "team_assumption",
+     "unit": "items placed / 20",
+     "method": "Match checklist items to tagged board elements in board_layout, or to the manual placement list when M06a is absent.",
+     "basis": "[rule R-01 | evidence: item list from the project description, unverified until the register] Items are 'recommended', so a gap is not a rule breach and the cut-off is a team choice.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Days of buffer before closing",
+     "good": ">= 7 days between 'all hard rules pass' and the closing instant",
+     "bad": "<= 2 days, or any hard-rule failure within 7 days",
+     "status": "false_assumption_corrected",
+     "unit": "days",
+     "method": "deadline_instant minus now, shown in London (GMT) and Vancouver (UTC-7).",
+     "basis": "[rule D-01 | evidence: instant verified | history: r1 text converted the close to 15:59 PST; BC is on UTC-7, so 16:59] The 7-day and 2-day buffers are team choices; late entries are automatically disqualified (8.4).",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03",
+      "P13-S45",
+      "P13-S46"
+     ]
+    },
+    {
+     "name": "Time-zone data check",
+     "good": "offset parsed from Intl formatToParts (longOffset 'GMT-07:00' -> -420 min; 'GMT' = 0) equals -420 for America/Vancouver at 2026-11-30T23:59Z",
+     "bad": "any other value: browser tzdata predates 2026b, use fixed -07:00 and warn",
+     "status": "false_assumption_corrected",
+     "unit": "minutes",
+     "method": "Format the instant with timeZoneName 'longOffset', read the timeZoneName part, strip 'GMT', convert to minutes and compare with -420.",
+     "basis": "[rule D-03 | evidence: verified | history: r1 compared the string with '-07:00', which never matches because longOffset returns 'GMT-07:00'] tzdb 2026b put BC on permanent -07; latest release 2026e (2026-09-29) makes no further BC change.",
+     "source_ids": [
+      "P13-S45",
+      "P13-S46",
+      "P13-S58"
+     ]
+    },
+    {
+     "name": "Brief register integrity",
+     "good": "PDF stored with SHA-256, every rule has a page reference and a second-person check; Terms hash re-read within terms_reread_interval",
+     "bad": "any rule without page reference or second check, or a Terms hash that changed unread",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Validate the register JSON; compare Terms and brief hashes at each re-read.",
+     "basis": "[rule B-01 | evidence: team control] The organiser may alter Terms and brief (9.1, 16.2); Ask the Jury answers are not binding (10.10.8.3).",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Q&A pack coverage",
+     "good": "every open flag has a question, channel, owner and due date by Fri 30 Oct",
+     "bad": "any open flag without them",
+     "status": "team_assumption",
+     "unit": "flags",
+     "method": "Join qa_register with the UNRESOLVED flags.",
+     "basis": "[rule B-02 | evidence: team control] Terms 10.10.4 default deadline is three days after registration closes (1 Nov); the page says 3 Nov.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S02"
+     ]
+    }
+   ],
+   "visualization": [
+    "Checklist grid: 20 recommended-item rows x up to 4 board columns with green/amber/red chips; hard rules and gates as pass/fail badges linked to their clause (e.g., Terms 4.8) and to the rule id",
+    "Dual-time countdown (London GMT / Vancouver UTC-7) on a timeline with ticks for 29 Oct registration close, 30 Oct question deadline (team), 3 Nov Q&A close, 6/13 Nov deliveries, 30 Nov 16:59 Vancouver / 23:59 London; superseded text (15:59) shown struck through",
+    "Four board thumbnails with ghost slots for missing items, a byte gauge (bytes against 10^7 and the 9.5 x 10^6 target) and an upload-once panel listing open gates",
+    "Dated human-task list (identity verification, register, Q&A, re-reads) with owner and done/overdue chips"
+   ],
+   "method": "Load a versioned JSON: brief_register, rule_registry (6 hard rules, 4 gates, deadline), 20 items with jury tag and minimum count, qa_register and task_timeline. Hard rules read export_manifest from the validator or composer; language is attestation per text frame plus allow-list, OCR and glyph checks. Coverage = items whose minimum count is met in board tags or the manual placement list / 20. The deadline is a UTC instant; the Vancouver offset is parsed from formatToParts (strip 'GMT', empty = 0) and compared in minutes with -420, else a fixed offset and a warning. Any rule or gate failure sets blocking=true, which P13-M06c obeys. Optional ports (board_layout, M07 gaps) have defined null behaviour. Every threshold shows its source or an amber 'team assumption' tag; edits are logged; answers and re-read hashes become dated changelog entries.",
+   "human_judgment": "Reading the full brief and Terms and transcribing the rules twice; whether an item truly answers the brief (a wind study must be an analysis, not a label); which recommended items to omit and justify; writing and sending the questions; the single upload through the Buildner portal and the final sign-off.",
+   "limits": "The spec authors did not open the brief PDF; the team holds it, and the rules shown are the project description's transcription until the register is double-checked. The portal may apply undocumented checks (pixels, colour mode, MB vs MiB, progressive JPEG); a live test upload is unsafe (4.7). Ask the Jury answers are non-binding. Coverage counts presence, not quality.",
+   "libraries": [
+    {
+     "name": "Intl.DateTimeFormat (browser built-in)",
+     "role": "London/Vancouver conversion; longOffset parsed through formatToParts, offset self-check",
+     "license": "web platform",
+     "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat"
+    },
+    {
+     "name": "Web Crypto API (SubtleCrypto.digest, browser built-in)",
+     "role": "SHA-256 of brief, Terms snapshot and exported JPEGs",
+     "license": "web platform",
+     "url": "https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest"
+    }
+   ],
+   "depends_on": [
+    "P13-M06v",
+    "P13-M06a (optional)",
+    "P13-M06b (optional, v1)",
+    "P13-M08a",
+    "P13-M07 (optional, v1)",
+    "DATA packet: document_register"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "S-M: core 4.5 person-days: 3 by 6 Nov (rule registry, brief_register, hard rules from the validator, gates, deadline, manual placement list), 1.5 by 13 Nov (language and anonymity glue, qa_register, task timeline). The registration banner is static text today."
+  },
+  {
+   "module_id": "P13-M02",
+   "name": "Drawing extraction (plans, sections, make2d-style linework)",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Can plans, sections and the site plan be produced from the model as scaled, layered linework that fits the board frame, including a full-height tower section, and reconciles with programme areas?",
+   "inputs": [
+    "Layer 0 meshes / B-reps with program tags (from imports: Rhino 3dm, OBJ, IFC, SketchUp, Revit)",
+    "storey elevations, floor-to-floor heights and below-grade depth (programme / structure modules)",
+    "cut plane and section line definitions chosen by user",
+    "site north rotation angle (SITE packet)",
+    "frame size in mm and target scale from P13-M06a (board_layout)",
+    "optional: Rhino Make2D SVG/DXF exported by the user from desktop Rhino (v0 route)"
+   ],
+   "outputs": [
+    "drawing_set[]: {id, type plan|section|elevation|site_plan, svg, scale, cut_height, bbox_mm, fit_pct, layers by program tag, line classes} consumed by P13-M06b",
+    "gfa_by_storey reconciliation result for programme modules",
+    "DXF/SVG export for use in Rhino/Illustrator"
+   ],
+   "parameters": [
+    {
+     "name": "cut_height_above_floor",
+     "unit": "m",
+     "relationship": "Plans are conventionally cut about 1.2 m (4 ft) above finished floor, showing walls, openings and columns; a cut at slab level hides openings, one above head height loses wall and door relationships.",
+     "source_ids": [
+      "P13-S43"
+     ]
+    },
+    {
+     "name": "section_line_position",
+     "unit": "m",
+     "relationship": "A section through the core and public volumes shows how public-facing uses stack vertically through the tower, which the brief asks for; a section through blank floors hides it.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "plan_scale",
+     "unit": "1:n",
+     "relationship": "Printed extent = real size / n. The 144.8 m block side is 290 mm at 1:500 but 724 mm at 1:200, beyond the 420 mm board height; a smaller scale frees area but shrinks annotation legibility.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "section_scale",
+     "unit": "1:n",
+     "relationship": "Printed height = H/n. A 305 m tower plus about 20 m below grade (illustration) is 650 mm at 1:500, over the 420 mm board height, and 325 mm at 1:1000; podium sections at 1:200-1:500 need partial cuts.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "site_plan_extent",
+     "unit": "m",
+     "relationship": "A site plan with the block, arterial, high street, lanes and the transit plaza across is about 250-350 m (team estimate, to measure on the brief's site plan): 500-700 mm at 1:500 (over the board), 250-350 mm at 1:1000.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "hidden_lines_on",
+     "unit": "boolean",
+     "relationship": "Make2D writes hidden lines to separate layers that can be dashed or hidden. The browser route returns visible edges only; hidden edges there need a new, untested pass, so the class stays Make2D-only until a pilot comparison passes.",
+     "source_ids": [
+      "P13-S27",
+      "P13-S25",
+      "P13-S57"
+     ]
+    },
+    {
+     "name": "input_route",
+     "unit": "mesh | IFC | Make2D import",
+     "relationship": "Make2D runs in desktop Rhino; a server needs Rhino.Compute on Windows Server with core-hour billing (US$0.10 per core-hour), so v0 imports its SVG/DXF. The mesh route projects along one axis per view; IFC can use IfcOpenShell on a server.",
+     "source_ids": [
+      "P13-S25",
+      "P13-S27",
+      "P13-S29",
+      "P13-S50"
+     ]
+    },
+    {
+     "name": "reconciliation_level",
+     "unit": "floor level | cut level",
+     "relationship": "Summing areas at the 1.2 m cut measures wall lines and openings; slab-edge loops at floor level track floor area. The zoning floor-area definition is unsourced, so tolerances are team values.",
+     "source_ids": []
+    },
+    {
+     "name": "crease_angle_threshold",
+     "unit": "degrees",
+     "relationship": "UNRESOLVED: relationship between edge-angle threshold and drawing clarity on curved facades was not found in an opened source (see unresolved_relationships).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Plan cut height convention",
+     "good": "1.2 m (about 4 ft) above finished floor",
+     "bad": "cut at slab level (0 m) or above 1.8 m",
+     "status": "verified",
+     "unit": "m",
+     "method": "Compare chosen cut with the convention.",
+     "basis": "Good value is the stated convention; the bad bounds are the team's reading of 'approximately'.",
+     "source_ids": [
+      "P13-S43"
+     ]
+    },
+    {
+     "name": "Cut-loop closure ratio",
+     "good": "100% of cut polylines closed (poche can fill)",
+     "bad": "< 95% closed",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "closed cut loops / all cut loops after slicing Layer 0 with the cut plane.",
+     "basis": "Open loops indicate non-watertight Layer 0 geometry; thresholds are team-set."
+    },
+    {
+     "name": "Drawing fits allocated frame",
+     "good": "scaled bbox <= 100% of frame in both axes (sections use tower height plus below-grade depth)",
+     "bad": "> 100% in either axis",
+     "status": "verified",
+     "unit": "% of frame",
+     "method": "bbox_mm = model extent / scale, compared with the frame in mm on a 594 x 420 mm board; shown at preset selection, not only after export.",
+     "basis": "Arithmetic: 144.8 m at 1:500 = 290 mm; a 325 m section is 650 mm at 1:500 and 325 mm at 1:1000.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "Site plan extent fit",
+     "good": "site-plan window fits its frame (default 1:1000: 250-350 mm for 250-350 m) with a 1:500 inset of the block (290 mm for the 144.8 m side)",
+     "bad": "> 100% of frame in either axis, e.g. a 700 m window at 1:500 does not fit",
+     "status": "team_assumption",
+     "unit": "% of frame",
+     "method": "window_m / scale compared with the frame in mm; the window size is entered by the team from the brief's site plan.",
+     "basis": "Arithmetic is exact; the 250-350 m window is a team estimate until measured.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "Segments per drawing",
+     "good": "<= 250,000 line segments",
+     "bad": "> 1,000,000 segments",
+     "status": "team_assumption",
+     "unit": "segments",
+     "method": "Count after linework simplification.",
+     "basis": "No published budget; chosen so rasterising a board stays fast. Tune after testing."
+    },
+    {
+     "name": "Area reconciliation with programme tags",
+     "good": "|slab-edge area - tagged GFA| <= 1% per storey",
+     "bad": "> 3% difference",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Sum polygon areas of slab-edge loops at floor level per storey versus Layer 0 tag totals; state the GFA definition used.",
+     "basis": "Team tolerance; the Vancouver floor-area definition (zoning exclusions) was not opened, so it stays a team assumption until PROG sources it."
+    },
+    {
+     "name": "Line-weight hierarchy",
+     "good": "cut > silhouette > projected edge > hidden with each step about 2:1",
+     "bad": "two classes drawn at the same weight",
+     "status": "team_assumption",
+     "unit": "mm at print scale",
+     "method": "Class-to-weight table rendered in the SVG stroke-width.",
+     "basis": "Common drafting convention recalled from ISO 128-20, which was not opened; weights are editable presets."
+    },
+    {
+     "name": "Line classes available by route",
+     "good": "Make2D import: cut, silhouette, tangent and hidden layers; browser edge projection: cut, silhouette, crease and visible only",
+     "bad": "hidden class offered on the browser route without a tested method",
+     "status": "false_assumption_corrected",
+     "unit": "pass/fail",
+     "method": "List the line classes each route actually returns in the drawing_set.",
+     "basis": "[evidence now: verified from READMEs | history: r1 credited Make2D hidden layers to the browser route and cited pdf-lib (S30)] three-edge-projection returns visible lines only.",
+     "source_ids": [
+      "P13-S27",
+      "P13-S25"
+     ]
+    },
+    {
+     "name": "Hidden-line method validity (browser route)",
+     "good": "hidden = edge interval minus collinear visible sub-segments (tolerance), or open edges clipped against closed polygons of nearer faces (Clipper2 open subjects)",
+     "bad": "'difference of open paths from open paths' with Clipper2, which is not supported",
+     "status": "false_assumption_corrected",
+     "unit": "pass/fail",
+     "method": "Code review plus a unit test on a box-and-slab model with known hidden edges.",
+     "basis": "[evidence now: verified from Clipper2 docs | history: r1 proposed clipper2-js difference of segments] Clipper2: only subject paths may be open; clip paths must be closed. P13-S25 uses clipper2-js for silhouette polygons.",
+     "source_ids": [
+      "P13-S57",
+      "P13-S25"
+     ]
+    },
+    {
+     "name": "Hidden-line agreement with Make2D",
+     "good": "length-weighted agreement with a Make2D import of the same model is reported before the hidden class is offered",
+     "bad": "hidden class shown with no pilot comparison",
+     "status": "unverified",
+     "unit": "fraction",
+     "method": "Overlay browser hidden class on Make2D hidden layer; report matched length / total within a print-scale tolerance.",
+     "basis": "Method untested; thresholds are set after the first pilot, so no number is asserted.",
+     "source_ids": [
+      "P13-S25",
+      "P13-S27"
+     ]
+    }
+   ],
+   "visualization": [
+    "SVG preview with toggles per line class (cut, silhouette, crease, visible, hidden where available) and per program-tag layer, poche filled with the programme colour",
+    "Plan with cut-line markers, rotated site-north arrow and scale bar",
+    "Board-frame overlay showing each drawing at 1:n inside its allocated rectangle, with a red overflow warning; the site plan shows its window and the 1:500 inset",
+    "Scale ladder: horizontal bars for printed section height at 1:200, 1:500 and 1:1000 and site-plan windows at 1:500, 1:750 and 1:1000 against a vertical line at the 420 mm board height"
+   ],
+   "method": "v0 (core): the user exports Rhino Make2D SVG/DXF from desktop Rhino; the tool imports it, maps layers to program tags, fills closed cut loops as poche, scales to 1:n, checks fit (including site_plan_extent) against the M06a frame and writes drawing_set. v1 mesh route: index Layer 0 as meshes; slice plans at the cut height, chain segments, close loops, fill poche; project visible geometry with three-edge-projection (y-axis); sections: rotate so the view axis is y, clip, repeat; classify cut, silhouette, crease, visible; hidden = interval subtraction of visible sub-segments from each projected edge, or clipping against nearer-face polygons (untested, Make2D-only until a pilot passes). Output layered SVG with scale bar and rotated north arrow. Report closure, segments, reconciliation and fit. IFC via IfcOpenShell on a server (roadmap).",
+   "human_judgment": "Where to cut and section, which elements and levels represent the design, whether to use partial sections, the site-plan window, line weights, annotation and entourage, and whether the drawing tells the story of vertical public uses.",
+   "limits": "Mesh linework is faceted on curved facades; curtain-wall detail and below-slab structure are absent from Layer 0. three-edge-projection works along one axis, has 12 open issues and returns visible edges only; speed on a 300 m tower is untested. The hidden-line pass is a new, untested method. Make2D needs desktop Rhino or a billed Rhino.Compute server and stays the quality reference.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "scene, clipping, rendering",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "fast ray/clip queries, per-edge occlusion tests",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "three-edge-projection",
+     "role": "visible edge projection and flattening to 2D line segments (y-axis)",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-edge-projection"
+    },
+    {
+     "name": "clipper2-js",
+     "role": "polygon booleans and open-subject clipping against closed polygons (no open-minus-open)",
+     "license": "Boost Software License (Clipper2 family; JS port licence file not read)",
+     "url": "https://github.com/ErikSom/Clipper2-WASM"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "read .3dm geometry, layers and attributes in browser (WASM); no Make2D",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "web-ifc",
+     "role": "read IFC in browser (WASM)",
+     "license": "MPL-2.0",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "IFC geometry and server-side drawing generation (roadmap)",
+     "license": "LGPL-3.0-or-later (core); Bonsai GPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "Rhino 8 Make2D (desktop) / Rhino.Compute",
+     "role": "quality reference linework; Compute needs Windows Server and core-hour billing (US$0.10 per core-hour)",
+     "license": "commercial Rhino licence; Compute licence file not read",
+     "url": "https://developer.rhino3d.com/guides/compute/core-hour-billing/"
+    }
+   ],
+   "depends_on": [
+    "Layer 0 geometry and tags",
+    "SITE packet: site north angle",
+    "P13-M06a (frame size)"
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "M: core v0 (Make2D import, poche, fit and site-plan extent check) 4.5 person-days by 13 Nov; v1 mesh slicing, edge projection and hidden-line pilot +8-10 days by 10 Dec; IFC route roadmap +5 days"
+  },
+  {
+   "module_id": "P13-M03",
+   "name": "Camera presets and viewpoint library",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "From which sourced viewpoints and lenses must the tower be shown (Queen Elizabeth Park skyline, mid-city, four ground-level views), does the design read at those distances, and where does it encroach on protected views?",
+   "inputs": [
+    "site location and ground elevation, terrain and context models incl. existing and approved towers (SITE packet)",
+    "City of Vancouver Open Data 'View cones' polygons (cones 3.2.1-3.2.4)",
+    "tower heights and massing from Layer 0",
+    "site north rotation angle",
+    "sun date/time from CLIM packet for lighting",
+    "breach_register entries and rationale from P13-M08a (read back for the encroachment report)"
+   ],
+   "outputs": [
+    "camera_preset[]: {name, position_local, georef_origin, target, hfov, roll, shift, viewpoint_source, eye_height, azimuth} consumed by P13-M04, P13-M05, P13-M06b and CLIM image exports",
+    "cone_overlay: apex, bearings and polygon intersection with the site footprint",
+    "encroachment_report[]: {cone, site_overlap_m2, ceiling_m|null, tower_top_minus_ceiling_m|null, angular_share_of_cone} offered to P13-M08a as breach_register candidates",
+    "tower_share_of_frame and context_tower_visibility per preset",
+    "compass-labelled overlay data (Stanley Park, BC Place, Entertainment District, Burrard Inlet/North Shore Mountains)"
+   ],
+   "parameters": [
+    {
+     "name": "viewpoint_position",
+     "unit": "lat/lon",
+     "relationship": "The four cone polygons share an apex at 49.24216 N, 123.11244 W (re-computed in r2), about 186 m east of Wikipedia's park point. Using the park point shifts the sight line to the tower by up to about 2 degrees at 5 km.",
+     "source_ids": [
+      "P13-S47",
+      "P13-S09"
+     ]
+    },
+    {
+     "name": "viewpoint_elevation",
+     "unit": "m ASL",
+     "relationship": "Eye elevation = terrain at the apex (SITE packet) + eye height. Wikipedia's 125 m refers to the park and Little Mountain, not to the apex; a higher eye puts more of the tower above the horizon.",
+     "source_ids": [
+      "P13-S09"
+     ]
+    },
+    {
+     "name": "cone_fan",
+     "unit": "bearing, km",
+     "relationship": "Development inside a cone polygon is height-limited (dataset text). The four cones span bearings 341.4 to 19.5 degrees and run 5.50-6.20 km from the apex (computed in r2); overlap with the site must be shown in the skyline view.",
+     "source_ids": [
+      "P13-S47",
+      "P13-S05",
+      "P13-S07"
+     ]
+    },
+    {
+     "name": "viewing_distance",
+     "unit": "m",
+     "relationship": "Apparent height = atan(height difference / distance). Illustration: a 300 m tower at 5 km subtends about 3.4 degrees, so doubling distance halves its size in frame and forces a longer lens or a crop.",
+     "source_ids": []
+    },
+    {
+     "name": "focal_length_equivalent",
+     "unit": "mm (36 mm sensor)",
+     "relationship": "Horizontal field = 2 x atan(18/f): 50 mm gives 39.6 degrees, 85 mm gives 23.9 degrees. Longer lenses enlarge the distant tower in frame but narrow the visible context.",
+     "source_ids": []
+    },
+    {
+     "name": "eye_height",
+     "unit": "m",
+     "relationship": "Ground-level views at about 1.6 m show canopies and podium frontage at pedestrian scale, the scale the human-scale criterion judges; higher cameras read as aerial views.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "site_north_rotation",
+     "unit": "degrees",
+     "relationship": "The site plan's north arrow is rotated from the street grid, so view azimuths and compass labels must use the rotated north or the labels will point to the wrong landmarks.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "local_origin",
+     "unit": "m",
+     "relationship": "UTM 10N northings near 5.46 million m fall on 0.5 m steps in 32-bit floats (computed), so vertices jitter. Subtract a site-centred origin in double precision before building cameras and meshes.",
+     "source_ids": []
+    },
+    {
+     "name": "encroachment_treatment",
+     "unit": "report | breach entry",
+     "relationship": "The Higher Buildings Policy sets a process for select developments to encroach on view 3, and the brief says justified breaches may be rewarded. Encroachment is therefore reported neutrally and needs a rationale entry, not a red score.",
+     "source_ids": [
+      "P13-S05",
+      "P13-S01",
+      "P13-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tower share of frame height (QE Park skyline)",
+     "good": ">= 10% of image height",
+     "bad": "< 5% of image height",
+     "status": "team_assumption",
+     "unit": "% of frame height",
+     "method": "Project tower top and base to the image plane; (top_y - base_y)/frame height; auto-suggest focal length to reach the target.",
+     "basis": "Team legibility target; no source gives a value."
+    },
+    {
+     "name": "Viewpoint offset from the City cone apex",
+     "good": "<= 10 m from the dataset apex",
+     "bad": "> 50 m, or a park centroid used (about 186 m off)",
+     "status": "false_assumption_corrected",
+     "unit": "m",
+     "method": "Distance between the preset and the apex derived from the view-cones polygons in the local frame.",
+     "basis": "[evidence now: apex derived and re-checked in r2 (records total_count 24; cones 3.2.1, 3.2.3, 3.2.4 share 49.242156 N, 123.112436 W; 3.2.2 differs by about 0.3 m); apex-as-designated-origin is an inference | history: r1 text said the origin was unobtainable] Tolerances are team values.",
+     "source_ids": [
+      "P13-S47",
+      "P13-S07"
+     ]
+    },
+    {
+     "name": "Site intersection with QE Park cone polygons",
+     "good": "intersection computed and shown for each of 3.2.1-3.2.4",
+     "bad": "not computed",
+     "status": "verified",
+     "unit": "m2 / pass-fail",
+     "method": "Clip the site footprint against the four triangles in the local frame; any overlap adds an encroachment note to the skyline caption.",
+     "basis": "Polygon geometry from the City dataset (modified 2026-10-19).",
+     "source_ids": [
+      "P13-S47"
+     ]
+    },
+    {
+     "name": "View-cone encroachment report (neutral)",
+     "good": "report complete: tower top minus ceiling at the site, encroached area per cone 3.2.1-3.2.4 and angular share of the cone; every encroachment has a breach-register entry with rationale",
+     "bad": "amber only when an encroachment has no rationale or the ceiling is unknown; never red for the encroachment itself",
+     "status": "false_assumption_corrected",
+     "unit": "m / m2 / %",
+     "method": "Compare tower top with the ceiling once read from the Public Views Guidelines or confirmed by the City; compute overlap and angular share at the apex; push candidates to P13-M08a.",
+     "basis": "[evidence now: ceilings unverified | history: r1 scored a tower above the ceiling as bad] The 1997 policy (search excerpt, not opened) sets a process for select encroachment into view 3; the brief says justified breaches may be rewarded; the dataset has no height fields.",
+     "source_ids": [
+      "P13-S05",
+      "P13-S07",
+      "P13-S47",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Number of ground-level perspectives",
+     "good": ">= 4",
+     "bad": "< 4",
+     "status": "false_assumption_corrected",
+     "unit": "views",
+     "method": "Count presets of type ground.",
+     "basis": "[evidence now: unverified until register | history: r1 'verified' from team text] The figure comes from the brief as transcribed in the project description.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Ground-level eye height",
+     "good": "1.6 m +/- 0.1",
+     "bad": "> 2.0 m for a 'ground-level' view",
+     "status": "team_assumption",
+     "unit": "m",
+     "method": "Camera z minus local ground z.",
+     "basis": "Common adult eye height; team preset, editable."
+    },
+    {
+     "name": "Vertical convergence",
+     "good": "verticals within 0.5 degrees of vertical (shift lens, zero pitch)",
+     "bad": "> 2 degrees keystone",
+     "status": "team_assumption",
+     "unit": "degrees",
+     "method": "Check camera pitch/roll and lens shift.",
+     "basis": "Architectural-visualisation convention; team preset."
+    },
+    {
+     "name": "Context towers present in the context mesh",
+     "good": "every existing and approved tower in the frustum is in the mesh and visible or flagged occluded",
+     "bad": "any listed context tower missing",
+     "status": "team_assumption",
+     "unit": "towers",
+     "method": "Compare the SITE packet tower list with ray-cast visibility from each preset.",
+     "basis": "The brief (as transcribed) says context includes existing high-rises and future approved towers in the same range.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    }
+   ],
+   "visualization": [
+    "Plan map with rotated north arrow, the four QE Park cone triangles drawn from the apex (labelled 3.2.1-3.2.4, site footprint overlaid, overlap hatched), a wedge for each camera and a dashed line of sight to the tower top",
+    "Elevation profile from the viewpoint to the site: terrain line, horizon, tower silhouette, context towers; encroachment shown as a neutral grey band with its height value, never red",
+    "Thumbnail grid with 'tower % of frame' badge and burned-in compass labels",
+    "Encroachment table per cone (overlap m2, ceiling or 'unknown', rationale link)"
+   ],
+   "method": "Fetch the City view-cones polygons (cones 3.2.1-3.2.4) and take their shared vertex as the viewpoint origin. Convert lon/lat to EPSG:32610 with proj4js in doubles and subtract a site-centred origin before building three.js cameras. Elevation = terrain at the origin (SITE packet) + eye height. Aim at the tower centroid, zero roll, lens shift to keep verticals vertical; choose focal length so tower share meets the target. Clip the site footprint against the triangles; build the encroachment report (overlap, ceiling when known, angular share) and send candidates to the M08a breach register. Ray-cast camera to tower top and base against context meshes (three-mesh-bvh) to flag occlusion and list context towers. Ground presets sit at the site edges named in the brief, eye height 1.6 m. Output camera JSON and compass labels using the rotated north.",
+   "human_judgment": "Choosing the mid-city viewpoint, composition, season and time of day; confirming the apex as the designated origin and obtaining cone ceilings; deciding whether to encroach and writing the rationale; deciding which four ground-level views best show the public realm.",
+   "limits": "Cone ceiling heights, the Public Views Guidelines text and the policy's amendment status were not read (City guideline hosts returned 403 to fetch and curl); the dataset gives polygons only, and reading the apex as the origin is an inference. Terrain and context come from the SITE packet. Tree canopy and haze are not modelled. The brief does not define the mid-city viewpoint.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "camera, lens shift, frustum, ray-casting",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "proj4js",
+     "role": "WGS84 to EPSG:32610 (predefined EPSG:32601-32660)",
+     "license": "MIT (LICENSE.md and package.json read)",
+     "url": "https://github.com/proj4js/proj4js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "occlusion ray-casts",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "City of Vancouver Open Data API (Explore v2.1), view-cones dataset",
+     "role": "GeoJSON polygons for cones 3.2.1-3.2.4",
+     "license": "Open Government Licence - Vancouver (text not read)",
+     "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones"
+    }
+   ],
+   "depends_on": [
+    "SITE packet: site, terrain, context, north angle",
+    "City Open Data view-cones dataset",
+    "P13-M08a (breach register, read back)"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "M: 4-6 person-days; core slice 3.5 days by 10 Nov (presets, cone overlay, neutral encroachment report, ground presets); +1-3 days for occlusion and context checks (v1)"
+  },
+  {
+   "module_id": "P13-M04",
+   "name": "Viewport conditioning capture (depth, line, segmentation)",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "objective",
+   "design_question": "Which exact guides (clay beauty, depth, line, tag-colour segmentation) can be rendered from Layer 0 and context so AI renderings stay registered to the massing and its neighbours?",
+   "inputs": [
+    "camera_preset from P13-M03",
+    "Layer 0 and context meshes with program tags and existing/approved tower tags",
+    "palette mapping program tag and context class to flat colour",
+    "sun vector from CLIM packet",
+    "target pixel size"
+   ],
+   "outputs": [
+    "conditioning_pack: {beauty_png, depth_png, line_png, seg_png, palette_json, camera_json, sun_vector, sha256} consumed by P13-M05",
+    "pixel-aligned tower mask and context-tower masks used by the fidelity checks"
+   ],
+   "parameters": [
+    {
+     "name": "capture_size",
+     "unit": "px",
+     "relationship": "gpt-image sizes need multiples of 16, ratio between 1:3 and 3:1, edges <= 3840 px and 655,360-8,294,400 pixels; above 2560x1440 is experimental. Larger captures keep thin features but raise token cost.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "depth_range_normalisation",
+     "unit": "near/far m",
+     "relationship": "The diffusers examples min-max normalise depth to 0-1 per image, so the near/far range sets how many grey levels the tower receives; a range spanning the whole city leaves the tower few levels.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "line_threshold",
+     "unit": "Canny low/high",
+     "relationship": "The diffusers example uses Canny thresholds 100 and 200; lower thresholds keep more edges and tighten structural control, higher ones keep only strong outlines.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "segmentation_palette",
+     "unit": "class to RGB",
+     "relationship": "The original ControlNet segmentation model expects ADE20K classes; a custom palette (programme tags plus existing, approved and other context) needs a prompt legend or a fine-tuned model to be interpreted correctly.",
+     "source_ids": [
+      "P13-S17"
+     ]
+    },
+    {
+     "name": "controlnet_conditioning_scale",
+     "unit": "0-1+",
+     "relationship": "In diffusers examples a scale of 0.5 is used; higher values follow the guide image more strictly, lower values give the prompt more freedom and risk geometry drift.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "sun_vector",
+     "unit": "azimuth/elevation",
+     "relationship": "The sun in the clay capture sets the shadow direction the render is told to follow; an output with a different sun misstates shading and shadow length relative to the CLIM results.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Size rule compliance (OpenAI route)",
+     "good": "all size rules satisfied (multiples of 16; ratio 1:3 to 3:1; edge <= 3840; 655,360-8,294,400 px)",
+     "bad": "any rule violated (API error)",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Validate width, height, ratio and pixel count before sending; confirm with one pilot call that the validator matches the API's own error text.",
+     "basis": "[evidence: verified | history: r1 flagged as read through a summarising fetch] r2: the raw HTML of the guide (21 Oct 2026) states these constraints for the 2.5 models and for gpt-image-2.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "Registration between passes",
+     "good": "0 px offset (same camera, same render call)",
+     "bad": "> 1 px offset",
+     "status": "team_assumption",
+     "unit": "px",
+     "method": "Compare silhouette of the depth, line and segmentation passes.",
+     "basis": "By construction; checks protect against resize or crop mistakes."
+    },
+    {
+     "name": "Tagged-pixel completeness",
+     "good": "100% of tower pixels carry a program tag",
+     "bad": "< 98% (untagged geometry draws in 'unknown' colour)",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Count pixels of the 'unknown' colour inside the tower mask.",
+     "basis": "Team threshold."
+    },
+    {
+     "name": "Context-class completeness",
+     "good": "every context tower in frame carries an existing or approved tag",
+     "bad": "any context tower in 'unknown' colour",
+     "status": "team_assumption",
+     "unit": "towers",
+     "method": "Count towers in the ID pass by class against the SITE packet list.",
+     "basis": "Team rule so context towers can be checked in the AI output."
+    },
+    {
+     "name": "Pack completeness",
+     "good": "beauty present (OpenAI route); depth + line + segmentation + beauty present (ControlNet route)",
+     "bad": "any required pass missing",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Check files and sidecar JSON.",
+     "basis": "Route requirements from the ControlNet guide and OpenAI edit endpoint.",
+     "source_ids": [
+      "P13-S19",
+      "P13-S11"
+     ]
+    }
+   ],
+   "visualization": [
+    "2x2 contact sheet of beauty, depth (grey ramp with near/far legend), line and segmentation (palette legend by programme and context class)",
+    "Opacity slider that overlays any pass on the beauty capture"
+   ],
+   "method": "From the chosen camera render passes with identical size and camera in three.js: (1) clay beauty with ambient occlusion and the CLIM sun (core); (2) linear depth normalised between near and far values around tower plus site; (3) line pass from depth/normal discontinuities plus crease edges; (4) ID pass with flat unlit colour per class (programme tags plus existing-context, approved-tower and other-context classes), no anti-aliasing so tags survive. Passes 2-4 are v1. Save PNGs and a JSON sidecar with camera, sun vector, palette, tag counts and SHA-256. Validate size rules before any API call. For fidelity checks later, depth can be re-estimated from the AI output with Depth Anything V2 Small and compared with the exact depth pass.",
+   "human_judgment": "Which context to include or hide, time of day and sun angle, which landmarks must remain recognisable, and whether the clay capture is a fair representation of the design.",
+   "limits": "Only programme tags and the context classes above are semantic; trees, water and street furniture have none. ControlNet checkpoints in the cited examples are trained near 512-1024 px, far below board resolution. OpenAI image edits take reference images, not strict control maps, so passes beyond the beauty capture may be only weak hints.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "render passes",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "Depth Anything V2 (Small)",
+     "role": "depth re-estimation for fidelity check",
+     "license": "Apache-2.0 (Small); Base/Large CC-BY-NC-4.0",
+     "url": "https://github.com/DepthAnything/Depth-Anything-V2"
+    },
+    {
+     "name": "diffusers",
+     "role": "reference preprocessing code (Canny, depth)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/huggingface/diffusers"
+    }
+   ],
+   "depends_on": [
+    "P13-M03",
+    "CLIM packet: sun vector",
+    "SITE packet: context tower list"
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "priority": "core",
+   "effort": "M: core 1.5 person-days by 10 Nov (clay beauty, size check, sidecar); v1 +3 days (depth, line and ID passes) by 10 Dec"
+  },
+  {
+   "module_id": "P13-M05",
+   "name": "Style selection and AI rendering pipeline",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Which style and engine give faithful, site-specific, non-generic renderings from the conditioning pack, at what cost, with what fidelity checks, hosting and honest AI labelling?",
+   "inputs": [
+    "conditioning_pack from P13-M04",
+    "camera_preset metadata, context tower list and sun vector",
+    "programme and materials from ADVANCED mode",
+    "style preset and structured prompt fields",
+    "cultural and ecological cues from CULT/ECOL packets",
+    "engine choice and API credentials (user-supplied or server-side; never stored in the module)"
+   ],
+   "outputs": [
+    "render_asset: {image, role skyline|midcity|ground, camera_id, engine, model_snapshot, prompt, seed, size, quality, usage, cost_usd, fidelity{silhouette_iou, edge_match, context_towers_present}, lighting_check, logo_check, ai_label{caption, iptc_digital_source_type (archive copy only)}, accepted}",
+    "ai_ledger entry per call consumed by P13-M08a and P13-M06b, including data_retention_setting"
+   ],
+   "parameters": [
+    {
+     "name": "engine",
+     "unit": "openai | comfyui | diffusers",
+     "relationship": "OpenAI route: image edit from reference images, no explicit depth or line control. Open route (SDXL/Flux + ControlNet via ComfyUI or diffusers): explicit conditioning scale and local control, but licences and GPU needs differ.",
+     "source_ids": [
+      "P13-S11",
+      "P13-S19",
+      "P13-S20"
+     ]
+    },
+    {
+     "name": "openai_model",
+     "unit": "model id",
+     "relationship": "gpt-image-2.5-sunburst (snapshot 2026-09-08) is described for editing precision, gpt-image-2.5-flare for fast generation, gpt-image-2 (snapshot 2026-04-21) remains; all share token prices. A pinned snapshot id reproduces results.",
+     "source_ids": [
+      "P13-S11",
+      "P13-S12",
+      "P13-S13",
+      "P13-S14"
+     ]
+    },
+    {
+     "name": "quality",
+     "unit": "low|medium|high|xhigh|max|auto",
+     "relationship": "xhigh and max exist only for the 2.5 models; higher quality raises output tokens and cost. Counts of 272, 1,056 and 4,160 output tokens at 1024x1024 (low, medium, high) are published for models before gpt-image-2 only.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "size",
+     "unit": "px",
+     "relationship": "Custom sizes must be multiples of 16 with ratio <= 3:1; above 2560x1440 is experimental. A 3840x2160 output is about 164 px/inch across a 594 mm board, so large heroes may need upscaling.",
+     "source_ids": [
+      "P13-S11",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "reference_images",
+     "unit": "images",
+     "relationship": "gpt-image-2 processes every image input at high fidelity and input_fidelity must be omitted, so each extra reference raises input tokens and cost. The guide's edit example sends four references and states no maximum.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "mask_region",
+     "unit": "alpha mask",
+     "relationship": "Masked edits let sky, trees or foreground change while the tower stays; masking is prompt-based and may not follow the mask shape exactly, so protected pixels can still shift.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "conditioning_scale (open route)",
+     "unit": "0-1+",
+     "relationship": "Higher scale keeps output closer to the line/depth guide, lower gives more stylistic freedom; the diffusers examples use 0.5. Architecture-specific tuning evidence was not found.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "style_preset",
+     "unit": "preset id",
+     "relationship": "Style changes how generic an image looks; the brief says to avoid generic, placeless design, so presets should be anchored by site cues (City in Nature, mountains, water) chosen by the team. Effect on jury score is not evidenced.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "moderation",
+     "unit": "auto|low",
+     "relationship": "'auto' applies standard filtering; blocked requests return moderation_blocked and must not be retried without changing the inputs.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "deployment",
+     "unit": "proxy | BYO key | local",
+     "relationship": "A static page cannot hold an OpenAI key safely: a thin server proxy keeps it server-side; a user key in memory still sits in page scripts. SAM 2 and ComfyUI need a Python/GPU service, local or rented per second.",
+     "source_ids": [
+      "P13-S51",
+      "P13-S55",
+      "P13-S20"
+     ]
+    },
+    {
+     "name": "data_retention",
+     "unit": "days",
+     "relationship": "API abuse-monitoring logs are kept up to 30 days by default; zero data retention covers listed image models (gpt-image-2 and older), and the 2.5 models were not listed in what was read. Unpublished designs sent to the API are held for that period.",
+     "source_ids": [
+      "P13-S54"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tower silhouette IoU (fidelity)",
+     "good": ">= 0.90",
+     "bad": "< 0.75",
+     "status": "team_assumption",
+     "unit": "IoU",
+     "method": "Segment the AI output with SAM 2 prompted by the projected tower box, then compare with the tower mask from the conditioning segmentation pass (or use the depth-difference method alone).",
+     "basis": "No published benchmark for architectural fidelity; team thresholds, tune on pilot renders."
+    },
+    {
+     "name": "Line agreement",
+     "good": ">= 0.80 of conditioning line pixels within 3 px of an output edge",
+     "bad": "< 0.60",
+     "status": "team_assumption",
+     "unit": "fraction",
+     "method": "Edge-detect the output and compute the proportion of guide-line pixels with an output edge within a tolerance.",
+     "basis": "Team thresholds."
+    },
+    {
+     "name": "Storey / bay count match (hero views)",
+     "good": "visible storey lines equal the model",
+     "bad": "any difference",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Human tick in the review step, assisted by overlaying the model's floor lines.",
+     "basis": "A rendering must not misrepresent the design; team rule."
+    },
+    {
+     "name": "Context towers present in output",
+     "good": "all existing and approved towers in frame are present (box IoU >= 0.5 with the ID-pass mask) and none invented",
+     "bad": "any missing or invented tower",
+     "status": "team_assumption",
+     "unit": "towers",
+     "method": "SAM 2 masks prompted by each context-tower box, compared with the conditioning ID pass; list differences for the reviewer.",
+     "basis": "The brief (as transcribed) puts existing and approved towers of 244-305 m in the context; the 0.5 cut-off is a team value.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S51"
+     ]
+    },
+    {
+     "name": "No invented marks in output",
+     "good": "human check finds no logos, crests, signage text or watermarks in an accepted render",
+     "bad": "any invented mark, or check not logged",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Reviewer inspects the render at 100% zoom; result stored in render_asset.logo_check.",
+     "basis": "Terms 5.1 bars marks, logos, symbols or signs that may identify the source; AI renders can invent signage.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Lighting consistency",
+     "good": "shadows and highlights agree with the CLIM sun vector (human tick against an overlaid arrow)",
+     "bad": "visibly different sun direction",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Reviewer compares the output with the sun-vector overlay; no automated estimator is specified.",
+     "basis": "Renders can invent a sun direction; no sourced estimator was found (see unresolved_relationships)."
+    },
+    {
+     "name": "Cost per accepted image",
+     "good": "<= team budget set from pilot calls (>= 5 per quality level)",
+     "bad": "no pilot data, or > 2x budget",
+     "status": "team_assumption",
+     "unit": "USD",
+     "method": "(text_in x 5 + image_in x 8 + image_out x 30) / 10^6 per image at standard rates (batch is half); token counts read from the response usage object.",
+     "basis": "Token rates verified; per-image token counts for the 2.5 models are unpublished and edits with references raise input tokens, so the budget must come from logged pilots.",
+     "source_ids": [
+      "P13-S14",
+      "P13-S13",
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "AI label and ledger coverage",
+     "good": "100% of AI-derived images carry a visible caption and a ledger entry",
+     "bad": "any AI-derived image without both",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Join render_asset records with board placements.",
+     "basis": "Good practice from journal disclosure rules and EU Article 50 principles; Buildner's terms read contain no AI rule.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S39",
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "Retention setting logged",
+     "good": "every ledger row records the provider, data-retention setting and date",
+     "bad": "any row without it",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Check ledger fields.",
+     "basis": "Unpublished competition designs go to a third party; OpenAI documents 30-day abuse-monitoring retention by default and image inputs scanned for CSAM are retained even under ZDR.",
+     "source_ids": [
+      "P13-S54"
+     ]
+    },
+    {
+     "name": "Provenance signal present in API output",
+     "good": "C2PA and/or SynthID detected on the returned image",
+     "bad": "neither detected",
+     "status": "unverified",
+     "unit": "pass/fail",
+     "method": "Read manifest with a C2PA reader; check OpenAI's verification page manually.",
+     "basis": "Help-centre text (not opened; search excerpt) says API images carry C2PA metadata and SynthID, with coverage varying and metadata strippable; the image guide has no C2PA statement.",
+     "source_ids": [
+      "P13-S15",
+      "P13-S37",
+      "P13-S11"
+     ]
+    }
+   ],
+   "visualization": [
+    "Side-by-side slider of conditioning beauty and AI output with a difference overlay (line mismatches in red, silhouette misses in amber) and a sun-vector arrow",
+    "Metric badges (IoU, line agreement, context towers, cost) each linked to the threshold source or an amber 'team assumption' tag",
+    "Gallery with 'AI' badge, model snapshot, prompt, cost and retention setting on each card; running cost meter"
+   ],
+   "method": "1) User picks camera preset, style preset, engine and deployment. 2) A structured prompt is built from fields (materials, season, time of day, weather, entourage) with a block-list: no logos, signage, team names, real-person likenesses or imitation of Indigenous art. 3) OpenAI route (core): the proxy calls POST /v1/images/edits with a pinned snapshot, prompt, image[] = clay capture, size, quality; input_fidelity omitted on gpt-image-2. Open route (v1): ComfyUI /prompt (ControlNet depth + line) or diffusers; keep the seed. 4) Fidelity: SAM 2 masks, IoU, line agreement, context towers; sun-vector overlay for a human check; human check for invented marks. 5) Ledger row: snapshot, parameters, prompt, hashes, usage, cost, retention setting. 6) Caption. 7) Human accepts or rejects; rejected renders stay in the ledger.",
+   "human_judgment": "Whether to use AI imagery at all; style and prompt wording; accepting or rejecting each image; checking that nothing misrepresents the design, sun or context; cultural sensitivity and Indigenous perspectives; rights and tool terms, since Buildner advises against treating AI images as sole work.",
+   "limits": "OpenAI image edits are not geometry-locked: the guide notes weak layout precision and up to two minutes for complex prompts. Token counts for the 2.5 models are unpublished. Renders can invent sun, context or towers. FLUX [dev] weights are non-commercial; fit with Buildner's licence (Terms 12.2) is unchecked. GPU host is not chosen; per-run SAM 2 time is unmeasured, so hosting cost is unresolved.",
+   "libraries": [
+    {
+     "name": "openai-node (OpenAI SDK)",
+     "role": "Image API calls from the proxy",
+     "license": "Apache-2.0",
+     "url": "https://github.com/openai/openai-node"
+    },
+    {
+     "name": "diffusers",
+     "role": "ControlNet pipelines (SDXL, Flux)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/huggingface/diffusers"
+    },
+    {
+     "name": "ControlNet reference code",
+     "role": "canny, depth, seg, M-LSD conditioning",
+     "license": "Apache-2.0",
+     "url": "https://github.com/lllyasviel/ControlNet"
+    },
+    {
+     "name": "ComfyUI",
+     "role": "headless workflow server (POST /prompt, /ws, /history, /view); run as a separate service and call over HTTP, not linked into the tool",
+     "license": "GPL-3.0",
+     "url": "https://github.com/comfyanonymous/ComfyUI"
+    },
+    {
+     "name": "FLUX.1 [dev] weights",
+     "role": "open image model (card says outputs may be used commercially; licence text not read)",
+     "license": "FLUX.1 [dev] Non-Commercial License",
+     "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev"
+    },
+    {
+     "name": "Stable Diffusion XL base 1.0",
+     "role": "open image model",
+     "license": "CreativeML Open RAIL++-M (commercial use allowed subject to use-based restrictions that must be passed on)",
+     "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0"
+    },
+    {
+     "name": "SAM 2 (Segment Anything 2)",
+     "role": "tower and context-tower masks on AI output; Python >= 3.10, torch >= 2.5.1; CPU-only support not stated in the README",
+     "license": "Apache-2.0 (code and checkpoints; demo fonts SIL OFL)",
+     "url": "https://github.com/facebookresearch/sam2"
+    },
+    {
+     "name": "Depth Anything V2 (Small)",
+     "role": "depth re-estimation for fidelity",
+     "license": "Apache-2.0 (Small); Base/Large CC-BY-NC-4.0",
+     "url": "https://github.com/DepthAnything/Depth-Anything-V2"
+    },
+    {
+     "name": "c2pa-rs",
+     "role": "read and validate Content Credentials",
+     "license": "MIT OR Apache-2.0",
+     "url": "https://github.com/contentauth/c2pa-rs"
+    },
+    {
+     "name": "Modal (rented GPU example)",
+     "role": "per-second GPU for SAM 2 / ComfyUI; list rates read 21 Oct 2026: T4 $0.000164/s (about $0.59/h), L4 $0.000222/s (about $0.80/h), A10 $0.000306/s (about $1.10/h), A100 40 GB $0.000583/s (about $2.10/h); hourly figures computed",
+     "license": "commercial service",
+     "url": "https://modal.com/pricing"
+    }
+   ],
+   "depends_on": [
+    "P13-M04",
+    "P13-M03"
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "cultural_context_30",
+    "human_scale_40"
+   ],
+   "priority": "core",
+   "effort": "M: OpenAI route 4 person-days by 13 Nov (incl. proxy and retention logging); v1 +6-8 days (ComfyUI/ControlNet adapter, SAM 2 service, lighting and context checks) by 10 Dec"
+  },
+  {
+   "module_id": "P13-M06",
+   "name": "Board JPEG validator, layout, composer and release gate (nodes M06v, M06a, M06b, M06c)",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Does each exported board JPEG pass every Buildner hard rule, and how are drawings, images and text composed on up to four A2 landscape boards?",
+   "inputs": [
+    "M06v: any JPEG exported from desktop tools or from M06b; brief_register rules; team deny-list; language allow-list; optional team logo templates",
+    "M06a: element list, brief_register panel rule, frame and type-size plan; text_frames {board, frame_mm, language attestation, planned words, Nation names}",
+    "M06b (v1): board_layout; drawing_set from P13-M02; render_asset from P13-M05 and CLIM/ENER/STRC diagram exports; text_blocks from P13-M08b (optional port; null = text typed in M06a); ai captions and rights_register from P13-M08a; compass overlays from P13-M03",
+    "M06c: submission_status and blocking_issues from P13-M01; N member sign-offs; per-board human visual check"
+   ],
+   "outputs": [
+    "M06v: export_manifest per JPEG {bytes, px, dpi, ratio, sha256, subsampling, scan_mode, icc, metadata_fields, checks[], anonymity_findings[], ocr_language_findings[]} consumed by P13-M01",
+    "M06a: board_layout (frames in mm, element tags, text frames, planned text length) consumed by P13-M02, P13-M07 and P13-M01",
+    "M06b (v1): board_jpeg_candidate[1..4] (JPEG, sRGB, metadata scrubbed, neutral filenames) and board_proof.pdf at 594 x 420 mm for review only",
+    "M06c: upload_package (JPEGs, manifest, licence pack) released only when blocking=false, N members have signed and each board has a logged visual check; the tool never uploads"
+   ],
+   "parameters": [
+    {
+     "name": "export_dpi",
+     "unit": "dpi",
+     "relationship": "Pixels = mm / 25.4 x dpi: 150 dpi = 3508 x 2480 (9.2 bits/px available at 10^7 bytes), 200 dpi = 4677 x 3307 (5.2), 300 dpi = 7016 x 4961 (2.3; computed). Higher dpi keeps hairlines crisp but forces lower JPEG quality.",
+     "source_ids": [
+      "P13-S41",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "jpeg_quality_search",
+     "unit": "1-100",
+     "relationship": "The encoder searches the highest quality that stays under the byte target; lower quality shrinks bytes but adds ringing around thin linework and small type. The curve depends on content, so it is measured, not predicted.",
+     "source_ids": [
+      "P13-S32"
+     ]
+    },
+    {
+     "name": "chroma_subsampling",
+     "unit": "4:2:0 | 4:4:4",
+     "relationship": "4:2:0 halves chroma resolution and smears thin coloured linework and small coloured type; 4:4:4 keeps them but costs bytes. sharp defaults to 4:2:0; jSquash MozJPEG defaults to progressive with chroma_subsample 2, so set both explicitly.",
+     "source_ids": [
+      "P13-S31",
+      "P13-S32"
+     ]
+    },
+    {
+     "name": "jpeg_scan_mode",
+     "unit": "baseline | progressive",
+     "relationship": "Portal handling of progressive JPEG is undocumented, so baseline is the default. Bytes differ by mode and content; measure both on the real board before choosing.",
+     "source_ids": [
+      "P13-S32",
+      "P13-S59"
+     ]
+    },
+    {
+     "name": "type_scale",
+     "unit": "mm",
+     "relationship": "At fit-to-width on a 1920 px screen, 594 mm = 3.23 px/mm, so 2.5 mm lettering is about 8 px and 3.5 mm about 11 px; smaller text becomes unreadable if the jury views boards on screen (assumed).",
+     "source_ids": [
+      "P13-S42",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "placed_image_scale",
+     "unit": "px per inch",
+     "relationship": "Effective resolution = image width in px / placed width in inches; enlarging an AI render past its native pixels lowers effective dpi and softens detail.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "metadata_policy",
+     "unit": "strip all | keep IPTC source type",
+     "relationship": "Creator names, software strings and manifests can reveal authors, and Terms 5.1 bars identifying marks. sharp removes metadata by default and ExifTool -all= is not guaranteed complete, so every export is re-scanned.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S31",
+      "P13-S35"
+     ]
+    },
+    {
+     "name": "ai_label_placement",
+     "unit": "caption position",
+     "relationship": "A visible caption beside each AI-derived image is the operative label; metadata is stripped on export and can be removed anyway. EU AI Act Art. 50 asks for clear disclosure but is marked amended and is only a benchmark.",
+     "source_ids": [
+      "P13-S39",
+      "P13-S37"
+     ]
+    },
+    {
+     "name": "font_glyph_coverage",
+     "unit": "code points",
+     "relationship": "Nation names need combining marks and modifier letters; a font without them substitutes glyphs and misspells the name. Charis SIL is OFL-licensed and aimed at linguistic text, but coverage must be tested per code point.",
+     "source_ids": [
+      "P13-S52",
+      "P13-S53"
+     ]
+    },
+    {
+     "name": "deny_list_terms",
+     "unit": "terms",
+     "relationship": "Each added term (member names, university, school, course codes, instructor names, email domains) catches one more possible identifier (Terms 5.1) but can add OCR false positives that block export; reviewers clear a finding with a logged reason.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "visual_check",
+     "unit": "per board",
+     "relationship": "A text scan misses crests, logos, watermarks and invented signage, which Terms 5.1 also bars. A per-board human check at 100% zoom catches them; optional template matching only finds team-supplied logos.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Bytes per board (hard limit)",
+     "good": "<= 10^7 bytes",
+     "bad": "> 10^7 bytes (rule breach)",
+     "status": "verified",
+     "unit": "bytes",
+     "method": "Measure final file; loop quality and pixel size until under the target.",
+     "basis": "[rule HR-02 | same record as P13-M01] Terms 4.8 limit of 10 MB; MB not defined, so the stricter 10^7 bytes is used.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Bytes per board (team target)",
+     "good": "<= 9.5 x 10^6 bytes",
+     "bad": "between 9.5 x 10^6 and 10^7 bytes: amber",
+     "status": "team_assumption",
+     "unit": "bytes",
+     "method": "Same measurement against the margin.",
+     "basis": "[rule HR-02t] Team margin for MB/MiB and portal overhead; editable."
+    },
+    {
+     "name": "File format",
+     "good": "JPEG",
+     "bad": "anything else",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Magic bytes and extension.",
+     "basis": "[rule HR-01] Terms 4.8.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Pixel ratio",
+     "good": "1.414 +/- 0.005, landscape",
+     "bad": "outside +/- 0.02 or portrait",
+     "status": "false_assumption_corrected",
+     "unit": "ratio",
+     "method": "width_px / height_px.",
+     "basis": "[rule HR-04 | same record as P13-M01: A2 verified; landscape unverified until register; tolerance team-set | history: r1 corrected] One record, so M01 and M06 cannot disagree.",
+     "source_ids": [
+      "P13-S41",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "JPEG encoding settings",
+     "good": "baseline, 4:4:4, sRGB, no metadata",
+     "bad": "progressive or 4:2:0 used without a test",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Read SOF marker (FFC0 baseline, FFC2 progressive) and component sampling factors from the file.",
+     "basis": "Portal acceptance is undocumented; a live test upload is unsafe, so ask the organiser before 3 Nov.",
+     "source_ids": [
+      "P13-S59",
+      "P13-S31"
+     ]
+    },
+    {
+     "name": "Validator parser agreement",
+     "good": "own SOF parser agrees with sharp metadata() (chromaSubsampling, isProgressive) on fixtures for baseline/progressive x 4:2:0/4:4:4",
+     "bad": "any mismatch",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Unit test on four fixture JPEGs.",
+     "basis": "Wikipedia lists SOF0 = FFC0 and SOF2 = FFC2; the byte-level sampling encoding was not read, so the test settles it.",
+     "source_ids": [
+      "P13-S59",
+      "P13-S31"
+     ]
+    },
+    {
+     "name": "Effective resolution of each placed raster",
+     "good": ">= 150 px/inch at 594 mm board width",
+     "bad": "< 100 px/inch",
+     "status": "team_assumption",
+     "unit": "px/inch",
+     "method": "native px / placed inches for every image.",
+     "basis": "Team print/screen target; no jury requirement found."
+    },
+    {
+     "name": "Smallest text height",
+     "good": ">= 3.5 mm on the board (about 11 px at 1920 px width)",
+     "bad": "< 2.5 mm",
+     "status": "team_assumption",
+     "unit": "mm",
+     "method": "Scan text frames and SVG text; report min cap height.",
+     "basis": "2.5 mm and 3.5 mm are nominal lettering sizes in the technical-lettering series; they are not a legibility rule for boards.",
+     "source_ids": [
+      "P13-S42"
+     ]
+    },
+    {
+     "name": "Anonymity findings",
+     "good": "0 findings in file name, EXIF/XMP/ICC and OCR text matching the deny-list",
+     "bad": ">= 1 finding",
+     "status": "verified",
+     "unit": "count",
+     "method": "Re-read the exported JPEG metadata and OCR tiles of the raster for deny-list strings; seeds include member names, UBC, SALA, ARCH 540, instructors, email domains.",
+     "basis": "[rule HR-06] Terms 5.1: no marks that may identify authority or source; the scan method and seeds are the team's design.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S34",
+      "P13-S35"
+     ]
+    },
+    {
+     "name": "Visual anonymity check",
+     "good": "each board has a logged check at 100% zoom for logos, crests, watermarks and signage by a member who did not compose it",
+     "bad": "any board without the check",
+     "status": "team_assumption",
+     "unit": "boards",
+     "method": "Checkbox per board in the release strip; optional OpenCV template matching of team-supplied logos.",
+     "basis": "Terms 5.1 names marks, logos, symbols and signs; OCR cannot see them.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Glyph coverage",
+     "good": "100% of code points in text frames and the allow-list exist in the loaded fonts (NFC-normalised)",
+     "bad": "any missing glyph",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare each text run's code points with the font cmap before rasterising; on the validator route, the check is a human look at Nation names at 100% zoom.",
+     "basis": "Team rule to protect Nation names; OCR cannot be relied on for these orthographies."
+    },
+    {
+     "name": "AI-derived images with visible label",
+     "good": "100%",
+     "bad": "< 100%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare render_asset list with placements and caption frames.",
+     "basis": "Disclosure practice; Buildner terms read contain no AI rule.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S39"
+     ]
+    }
+   ],
+   "visualization": [
+    "Validator drop zone: one card per JPEG with pass/amber/fail chips per rule id, byte gauge (bytes against 10^7 and 9.5 x 10^6), pixel ratio, SOF scan and sampling, metadata fields found, OCR findings pinned on a thumbnail",
+    "WYSIWYG board canvas with snap grid and four-board overview strip (M06a thin form in core, composer v1)",
+    "Overlays: text-size heat map (red below 2.5 mm), per-image effective-dpi flags, glyph-fallback markers, anonymity findings pinned to the image",
+    "Side-by-side 'what the jury sees' preview at 1920 px width and at 100% zoom",
+    "Release strip per board showing gate state (open, passed, visual check done, signed N of N)"
+   ],
+   "method": "M06v (core, 6 Nov): drop one or more JPEGs; read magic bytes, byte length, pixel size, SOF marker, sampling factors, ICC and EXIF/XMP/IPTC fields (browser: own parser plus exifr; Node: sharp metadata and ExifTool); OCR tiles with tesseract.js against the deny-list and an English check; write export_manifest. M06a (core, thin): JSON scene in mm, element tags, text frames with language attestation, panel-rule check. M06b (v1): compose each scene into one 594 x 420 mm SVG, rasterise with resvg, convert to sRGB, encode MozJPEG baseline 4:4:4 without metadata, lowering quality from 95 toward 70 and then pixel size until under the target; proof PDF with pdf-lib. M06c: release the package only when P13-M01 reports blocking=false, N members signed and every board has a logged visual check; the tool never uploads.",
+   "human_judgment": "Composition, narrative order, visual hierarchy and what to show; final QA at 100% zoom including the visual anonymity check; whether captions and disclosures are placed well; font licences; the upload to the Buildner portal.",
+   "limits": "Buildner pixel, colour-mode, progressive and MB/MiB rules are not documented in the pages read; a live test upload is unsafe because the first upload locks edits. Browser canvas size limits were not verified, so use WASM or a server path for composing. JPEG is lossy near the size cap; PDF is a proof only. OCR of Nation-name orthographies is unreliable and logo detection finds only supplied templates.",
+   "libraries": [
+    {
+     "name": "resvg-js",
+     "role": "SVG to PNG rasteriser (Node and WASM), composer v1",
+     "license": "MPL-2.0",
+     "url": "https://github.com/thx/resvg-js"
+    },
+    {
+     "name": "sharp",
+     "role": "image encode, resize, metadata (chromaSubsampling, isProgressive, density, icc, exif, xmp; mozjpeg options)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/lovell/sharp"
+    },
+    {
+     "name": "jSquash (MozJPEG codec)",
+     "role": "browser/worker JPEG encoder",
+     "license": "Apache-2.0",
+     "url": "https://github.com/jamsinclair/jSquash"
+    },
+    {
+     "name": "exifr",
+     "role": "browser/Node parser for JPEG EXIF, XMP, ICC and IPTC (use the full bundle; IPTC and ICC need enabling)",
+     "license": "MIT",
+     "url": "https://github.com/MikeKovarik/exifr"
+    },
+    {
+     "name": "pdf-lib",
+     "role": "proof PDF at 594 x 420 mm",
+     "license": "MIT",
+     "url": "https://github.com/Hopding/pdf-lib"
+    },
+    {
+     "name": "tesseract.js",
+     "role": "OCR for identifying text (tiles; best effort)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/naptha/tesseract.js"
+    },
+    {
+     "name": "ExifTool",
+     "role": "write/delete and verify metadata",
+     "license": "same terms as Perl itself (Artistic or GPL)",
+     "url": "https://exiftool.org/"
+    },
+    {
+     "name": "OpenCV (opencv.js build, optional)",
+     "role": "multi-scale template matching of team-supplied logos; availability of the needed functions in a JS build to be confirmed",
+     "license": "Apache-2.0",
+     "url": "https://github.com/opencv/opencv"
+    },
+    {
+     "name": "Charis SIL",
+     "role": "candidate open font for Nation names (coverage to be tested)",
+     "license": "SIL Open Font License",
+     "url": "https://software.sil.org/charis/"
+    },
+    {
+     "name": "Claude Code skill anthropic-skills:pdf",
+     "role": "PDF creation and checks",
+     "license": "per skill listing",
+     "url": "https://claude.ai"
+    }
+   ],
+   "depends_on": [
+    "M06v: brief_register, P13-M01 rule_registry",
+    "M06a: P13-M01 brief_register",
+    "M06b: P13-M02, P13-M03, P13-M05, P13-M08a, P13-M08b (optional)",
+    "M06c: P13-M01 (which reads M06v/M06b)"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "M-L: core 7.5 person-days: M06v 3 by 6 Nov (format, size, ratio, SOF, metadata) + 1.5 by 13 Nov (OCR, deny-list, glyph warning), M06c 1 (6 Nov), M06a 1.5 and visual-check UI 0.5 (13 Nov). Composer M06b (scene to MozJPEG loop, proof PDF) moves to v1: +8-10 days by 10 Dec."
+  },
+  {
+   "module_id": "P13-M07",
+   "name": "Jury-criteria self-assessment rubric",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "subjective",
+   "design_question": "How well do the design and board set address each weighted jury criterion, and what cited evidence supports every self-score?",
+   "inputs": [
+    "jury criteria and sub-criteria with weights 40/30/20/10 (brief as transcribed; unverified until the register)",
+    "evidence links to module results from all packets, each with metric, threshold and source",
+    "board_layout tags and area share per criterion from P13-M06a (optional in core: area shares typed by hand)",
+    "human scores on a 0-4 scale",
+    "breach register (departures from policy and guidelines) with rationale from P13-M08a",
+    "award tracks: Sustainability Award and Student Award (eligibility text from the brief, not obtained)"
+   ],
+   "outputs": [
+    "rubric_state: {scores[], evidence[], gaps[], weighted_total, attention_ratio[], award_evidence[]} consumed by P13-M08b and, as optional advisory gaps, P13-M01",
+    "evidence table for the policy reflection"
+   ],
+   "parameters": [
+    {
+     "name": "criterion_weights",
+     "unit": "%",
+     "relationship": "One point on the 0-4 scale is worth 10 points of 100 for human-scale (40%) but 2.5 points for urban integration (10%), so effort and board space should follow the weights. Weights are unverified until the register.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "level_descriptors",
+     "unit": "0-4 scale",
+     "relationship": "UNRESOLVED: effect of descriptor wording on rater agreement was not found in an opened source (see unresolved_relationships).",
+     "source_ids": []
+    },
+    {
+     "name": "evidence_tier",
+     "unit": "A measured | B visual | C narrative",
+     "relationship": "Higher-tier evidence supports a higher score; a score of 3 or more without tier-A or tier-B evidence is flagged as unsupported (team rule).",
+     "source_ids": []
+    },
+    {
+     "name": "board_area_share",
+     "unit": "% of board area",
+     "relationship": "The share of board area used for a criterion should track its weight; a 30%-weight criterion with 5% area is under-communicated, which matters because the jury sees only the boards.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "breach_register",
+     "unit": "entries",
+     "relationship": "The brief says the jury may reward justified breaches of guidelines, so each departure needs a stated reason and evidence; unexplained departures count against the criterion they touch.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "award_tracks",
+     "unit": "tracks",
+     "relationship": "Sustainability and Student Awards (CAD 1,000 each) are separate prizes; an entry in the top three that wins either takes both prizes. Tracking their evidence (CLIM/ENER results) costs effort but can win a prize.",
+     "source_ids": [
+      "P13-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Weighted self-score",
+     "good": "no cut-off: shown as a plain number labelled 'team heuristic'",
+     "bad": "no cut-off",
+     "status": "team_assumption",
+     "unit": "points of 100",
+     "method": "sum over criteria of weight x score/4 x 100.",
+     "basis": "Weights from the brief as transcribed (unverified until the register); earlier 75/50 cut-offs had no anchor and are removed; the result is not a prediction of jury outcome."
+    },
+    {
+     "name": "Evidence coverage per criterion",
+     "good": ">= 3 items incl. >= 1 measured and >= 1 visual",
+     "bad": "0 items (score capped at 1)",
+     "status": "team_assumption",
+     "unit": "items",
+     "method": "Count linked evidence by tier.",
+     "basis": "Team rule supporting the course requirement to cite sources and show work."
+    },
+    {
+     "name": "Board attention ratio",
+     "good": "0.7 to 1.5",
+     "bad": "< 0.5",
+     "status": "team_assumption",
+     "unit": "ratio",
+     "method": "(area share of criterion) / (weight share).",
+     "basis": "Team heuristic."
+    },
+    {
+     "name": "Rater disagreement",
+     "good": "|score A - score B| <= 1 on the 0-4 scale",
+     "bad": "> 2",
+     "status": "team_assumption",
+     "unit": "points",
+     "method": "Two team members score independently; compare.",
+     "basis": "Team threshold; no reliability literature is relied on."
+    },
+    {
+     "name": "Site-specific evidence count (anti-generic)",
+     "good": ">= 3 items tied to the site (landscape, climate, history, Indigenous perspectives) per cultural-context sub-criterion",
+     "bad": "0 items",
+     "status": "team_assumption",
+     "unit": "items",
+     "method": "Count evidence tagged 'site-specific' by the author.",
+     "basis": "The brief asks to avoid generic, placeless design; threshold is team-set.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Award evidence (Sustainability Award)",
+     "good": ">= 3 linked items incl. >= 1 measured CLIM/ENER result",
+     "bad": "0 items",
+     "status": "team_assumption",
+     "unit": "items",
+     "method": "Count evidence tagged 'sustainability'.",
+     "basis": "Award exists (competition page); its judging text is in the brief and was not obtained; threshold is team-set.",
+     "source_ids": [
+      "P13-S02"
+     ]
+    }
+   ],
+   "visualization": [
+    "Four-axis radar chart plus a bar whose width follows weight (40/30/20/10); the total is printed as a plain number with a 'team heuristic' label, with no good/bad colouring",
+    "Stacked evidence bars per criterion by tier; evidence table with metric, threshold, source link",
+    "Board heat strip showing which criterion each element supports; version history of scores"
+   ],
+   "method": "Store criteria, sub-criteria, descriptors and evidence links as data. Each evidence item points to a module id, metric name, value, threshold and source id, or to a board element tagged in P13-M06a (core: area shares typed by hand if M06a is absent). Humans enter 0-4 scores with a one-line justification. The tool computes the weighted total, tier counts and board attention ratio and flags: score >= 3 without tier-A/B evidence, criterion with zero evidence, high weight with low area share, large gap between two raters, breaches without rationale (from the P13-M08a register). Optional award tracks list their evidence separately. Scores are never computed or filled by an AI; an optional assistant may only suggest existing results as evidence, and the suggestion is logged. Every threshold shows its source or an amber 'team assumption' tag.",
+   "human_judgment": "All scores and their interpretation, especially human-scale experience, cultural context and reconciliation, which need lived knowledge and Indigenous perspectives; deciding which breaches to make and justify; interpreting what the jury will value.",
+   "limits": "No published VTC scoring scale or past jury scores were found; weights are from the brief PDF as transcribed. The jury-panel page lists seven jurors and says nothing on scoring. Terms 10.4 describe a shortlist stage before Guest Jury ranking. Self-scores are biased and unvalidated; the rubric measures evidence coverage, not design quality. M07 is v1: core modules must not require it.",
+   "libraries": [
+    {
+     "name": "Chart.js",
+     "role": "radar and bar charts (radar support to confirm in its docs)",
+     "license": "MIT",
+     "url": "https://github.com/chartjs/Chart.js"
+    }
+   ],
+   "depends_on": [
+    "P13-M06a (optional)",
+    "P13-M08a",
+    "all packets that expose cited metrics"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "priority": "v1",
+   "effort": "M: 5-6 person-days, v1 by 10 Dec; a spreadsheet version of the weighted total can serve entrants before 30 Nov"
+  },
+  {
+   "module_id": "P13-M08",
+   "name": "Writing support, authorship, rights register and AI-disclosure ledger (nodes M08a, M08b)",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "subjective",
+   "design_question": "How can the tool help the team write the policy reflection from cited evidence while words stay human, every AI use is disclosed, every board image's licence is known and nothing is published early?",
+   "inputs": [
+    "module results and source lists from all packets",
+    "ai_ledger entries from P13-M05 (M08a)",
+    "asset metadata: source, author, licence, licence URL, evidence file, visibility for every raster (M08a)",
+    "breach entries typed by humans and encroachment_report candidates from P13-M03 (M08a)",
+    "rubric_state from P13-M07 (M08b only, optional)",
+    "team notes and drafts typed by humans",
+    "Higher Buildings Policy documents and Public Views Guidelines (reference list)"
+   ],
+   "outputs": [
+    "M08a: ai_ledger (JSONL), rights_register with exportable licence pack, asset_visibility, breach_register, plain-language AI-use statement, design-process explanation pack (Terms 4.1.5), AI captions and rights_status for P13-M06b and P13-M01",
+    "M08b (v1): text_blocks[]: {board_id, role policy_reflection|description|caption, text, language, claim_links[], provenance} consumed by P13-M06b through an optional port; unsupported-claim report"
+   ],
+   "parameters": [
+    {
+     "name": "assistance_level",
+     "unit": "L0-L3",
+     "relationship": "L0 evidence pack only, L1 outline and questions, L2 critique of a human draft, L3 AI-drafted text (off by default). Higher levels reduce the human share of authorship and raise the disclosure and originality risk.",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03",
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "claim_traceability",
+     "unit": "claims with source / claims",
+     "relationship": "Each number or policy claim must link to a module result and its source; untraceable numbers are shown as team assumptions or flagged FALSE ASSUMPTION if later disproved, so unsupported claims cannot enter boards silently.",
+     "source_ids": []
+    },
+    {
+     "name": "governing_policy_set",
+     "unit": "documents",
+     "relationship": "The 1997 Higher Buildings Policy is under review (Phase 1 early directions; Phase 2 draft policies fall 2026 to early 2027; no update adopted); protected views are not under review. The reflection must name the document it assesses against.",
+     "source_ids": [
+      "P13-S04",
+      "P13-S05",
+      "P13-S07",
+      "P13-S47"
+     ]
+    },
+    {
+     "name": "text_length",
+     "unit": "words",
+     "relationship": "More words per board lower the type size that fits; the board layout caps legible text, so length trades against the 2.5-3.5 mm text-height targets in P13-M06.",
+     "source_ids": [
+      "P13-S42"
+     ]
+    },
+    {
+     "name": "disclosure_detail",
+     "unit": "statement + caption",
+     "relationship": "Journal-style rules require disclosing AI tool use and keep humans responsible for output; a detailed ledger makes the statement accurate and supports the course rule to show work.",
+     "source_ids": [
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "identity_exposure",
+     "unit": "metadata fields",
+     "relationship": "A C2PA signing certificate identifies the signer, so signing exported boards with a personal identity would conflict with anonymity; labels use generic visible captions, with IPTC source-type fields kept only in archive copies.",
+     "source_ids": [
+      "P13-S37",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "licence_status",
+     "unit": "known | unknown | restricted",
+     "relationship": "Terms 4.3 lets Buildner demand image licences, and failure to supply them may disqualify; 12.2 and 12.7 grant Buildner perpetual promotional and publication licences, so each raster needs a licence that allows them. Unknown means blocking.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "ai_tool_terms",
+     "unit": "licence per model",
+     "relationship": "AI outputs carry tool terms and model licences: FLUX [dev] weights are non-commercial, SDXL's Open RAIL++-M allows commercial use with passed-on restrictions, OpenAI terms were not read. Buildner advises against treating AI images as sole work.",
+     "source_ids": [
+      "P13-S22",
+      "P13-S23",
+      "P13-S02"
+     ]
+    },
+    {
+     "name": "explanation_request",
+     "unit": "ledger entries",
+     "relationship": "If Buildner asks for the design process, sources of inspiration and evolution of ideas (Terms 4.1.5), a dated ledger and breach register can answer directly instead of being reconstructed.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "asset_visibility",
+     "unit": "entry-private | public",
+     "relationship": "Terms 4.1 bars visuals previously published by any member, and Buildner asks resubmissions to be newly prepared. Default is entry-private with a hard warning before any public share until 2026-11-30T23:59Z.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S48"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Rights register completeness",
+     "good": "100% of placed rasters have source, author, licence, licence URL or evidence hash, and a yes on 'licensable to Buildner under Terms 12.2 and 12.7'",
+     "bad": "any raster with unknown licence (blocks release)",
+     "status": "verified",
+     "unit": "%",
+     "method": "Join placements from P13-M06a with register rows; licence pack export lists evidence for each.",
+     "basis": "Terms 4.3 (licences on request, failure may disqualify) and 12.2/12.7; the register columns are team design.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Entry-private default",
+     "good": "0 board-linked assets with visibility public before 2026-11-30T23:59Z",
+     "bad": ">= 1",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Check asset_visibility on every asset linked to a board element; sharing needs a logged override.",
+     "basis": "Tool design to avoid the previous-publication risk (Terms 4.1); Buildner's own reading of 'published' is unresolved.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S48"
+     ]
+    },
+    {
+     "name": "Encroachment entries with rationale",
+     "good": "100% of view-cone encroachments from P13-M03 have a breach entry with a written reason",
+     "bad": "any encroachment without one",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Join encroachment_report with breach_register.",
+     "basis": "The brief (as transcribed) says justified breaches may be rewarded; unexplained ones are weak evidence.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S05"
+     ]
+    },
+    {
+     "name": "Traceable-claim ratio",
+     "good": "100% of numeric claims linked to a source or flagged team assumption",
+     "bad": "< 80%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Regex-detect numbers and policy names; check for a claim link.",
+     "basis": "Course requirement to cite sources; cut-offs are team values."
+    },
+    {
+     "name": "Human-authored share of final text",
+     "good": "100% of final prose typed or edited by a team member (levels L0-L2 only)",
+     "bad": "any AI-originated sentence not reviewed and disclosed",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare diff log provenance tags per paragraph.",
+     "basis": "Informed by journal guidance that AI is not an author and humans are accountable; not a Buildner rule.",
+     "source_ids": [
+      "P13-S40",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "AI-use ledger completeness",
+     "good": "100% of AI calls (text and image) logged with model, date, purpose, input/output hash and retention setting",
+     "bad": "any missing",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare API call log with ledger rows.",
+     "basis": "Disclosure principle from ICMJE guidance.",
+     "source_ids": [
+      "P13-S40",
+      "P13-S54"
+     ]
+    },
+    {
+     "name": "Breach rationale coverage",
+     "good": "100% of flagged breaches have a written justification",
+     "bad": "any breach without one",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Join breach register with text_blocks (v1) or the typed text frames in P13-M06a (core).",
+     "basis": "Brief says justified breaches may be rewarded (as transcribed).",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Identifying strings in text",
+     "good": "0 matches against the deny-list",
+     "bad": ">= 1",
+     "status": "verified",
+     "unit": "count",
+     "method": "String match; the OCR pass in P13-M06v repeats it on the raster.",
+     "basis": "Terms 5.1 bars identifying marks.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "IPTC source type on archive copies of AI images",
+     "good": "trainedAlgorithmicMedia for generated images; compositeWithTrainedAlgorithmicMedia for edits such as inpainting",
+     "bad": "absent or wrong in the archive copy",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Write and read XMP-iptcExt DigitalSourceType with ExifTool on the component images kept in the course archive; board JPEGs are scrubbed.",
+     "basis": "IPTC vocabulary definitions; the tag exists in ExifTool's XMP-iptcExt table; the visible caption is the operative label on boards; a human decides which value applies.",
+     "source_ids": [
+      "P13-S38",
+      "P13-S35"
+     ]
+    }
+   ],
+   "visualization": [
+    "Three-pane editor: evidence pack with source chips; human draft with provenance underline (none = human, amber = AI-suggested); ledger timeline",
+    "Claim linter badges beside each sentence (linked, team assumption, unsupported)",
+    "Rights table with a traffic light per board image (known, unknown, restricted) and a visibility column (entry-private, public), plus a licence-pack download",
+    "Policy checklist with pass / exceed / breach per policy item and a justification field; encroachment rows imported from P13-M03"
+   ],
+   "method": "M08a (core, upstream of P13-M07): 1) every AI call from P13-M05 writes a JSONL ledger row (model snapshot, date, purpose, input/output hashes, retention setting, reviewer); 2) rights register: each raster gets source, author, licence, licence URL, evidence hash, visibility (default entry-private) and a Terms 12.2 answer; unknown licences or public board-linked assets set blocking in P13-M01; 3) breach entries need a rationale; encroachment candidates from P13-M03 appear here; 4) captions for AI images, IPTC source type only in archive copies. M08b (v1, downstream of P13-M07): 5) evidence pack with source chips; 6) team-authored question templates; 7) provenance per paragraph, AI limited to L0-L2; 8) linter flags numbers or policy names without a claim link; 9) language attested English, Nation names via the allow-list with gloss; 10) text blocks go to P13-M06b through an optional port; in core the team types text frames in P13-M06a.",
+   "human_judgment": "All prose, positions and ethical stance; whether any AI text is used; reconciliation and Indigenous perspectives, which should draw on community knowledge, not generated text; the final policy reflection; whether to encroach and the rationale; the legal check on rights and tool terms; confirming the course's own AI rules.",
+   "limits": "No sourced benchmark defines a good policy reflection. Buildner's terms contain no AI rule and its FAQ advises caution, so the team's disclosure standard is a choice. UBC course guidance returned 404. EU AI Act Article 50 is a benchmark only (marked amended, Digital Omnibus changes not read; binding force for a Canadian entry assumed absent). Whether the organiser counts community-area posts as publication is unknown.",
+   "libraries": [
+    {
+     "name": "c2pa-rs",
+     "role": "read Content Credentials on AI images; avoid signing with personal identity",
+     "license": "MIT OR Apache-2.0",
+     "url": "https://github.com/contentauth/c2pa-rs"
+    },
+    {
+     "name": "ExifTool",
+     "role": "write XMP-iptcExt DigitalSourceType and verify strip",
+     "license": "same terms as Perl itself (Artistic or GPL)",
+     "url": "https://exiftool.org/"
+    },
+    {
+     "name": "Claude Code skill anthropic-skills:doc-coauthoring",
+     "role": "optional structured co-authoring workflow; use at L1-L2 only",
+     "license": "per skill listing",
+     "url": "https://claude.ai"
+    }
+   ],
+   "depends_on": [
+    "M08a: P13-M05, P13-M03 (encroachment candidates)",
+    "M08b: P13-M07 (optional), M08a"
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "priority": "core",
+   "effort": "M: 5-7 person-days in total; M08a ledger, rights register, visibility and breach register 2.5 days (core, by 10 Nov, protects against Terms 4.3 disqualification); M08b editor, evidence pack and linter 3-4 days (v1, by 10 Dec)"
+  }
+ ],
+ "sources": [
+  {
+   "id": "P13-S01",
+   "title": "Vancouver Tall Challenge competition brief (full brief PDF; facts as transcribed in the project description)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "publisher": "Buildner / City of Vancouver / UBC SALA",
+   "year": "2026",
+   "type": "competition brief",
+   "opened": false,
+   "extract": "r2: the project description states its brief facts come from the official PDF, so the team holds the file; the spec authors never opened it (the download form emails a link). Facts used: site 79.2 x 144.8 m, towers 244-305 m, 9.0 FSR non-residential minimum, jury weights 40/30/20/10, 20 recommended deliverables, four A2 landscape boards of at most 10 MB, English, no identifying information, justified-breach clause. Status stays unverified until the register holds the SHA-256, page numbers and a second check (due 23-24 Oct)."
+  },
+  {
+   "id": "P13-S02",
+   "title": "Vancouver Tall Challenge: Building Higher Downtown (competition page and jury-panel page)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition page",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Registration closes 29 Oct 2026; Q&A deadline 3 Nov ('No new questions will be answered after this deadline'); submission closes 30 Nov 2026 23:59 London time; winners 26 Jan 2027. Individuals or teams, 4 team members maximum. English only; judged anonymously; contacting jurors disqualifies. Prize fund CAD 15,000 incl. Student Award and Sustainability Award (CAD 1,000 each; a top-3 entry that wins either takes both). FAQ on AI images: check the tool's terms and do not treat AI images as sole work. Seven jurors listed, no scoring information. No board specs and no published Q&A answers or update notices on the page; organiser contact form; correspondence in English."
+  },
+  {
+   "id": "P13-S03",
+   "title": "Competition terms and conditions, Vancouver Tall Challenge",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition rules",
+   "opened": true,
+   "extract": "Re-read in r2. 2.4 individual or team participation; 3.2 teams of two to four; 3.6.A.1 and 3.6.C.1 identity verification on Architects' Network before UIC validation or team joining (active status required only at that moment), 3.6.A.2 fee paid after verification, 3.6.A.4 individuals choose One-Time Registration; 4.1 original work, visuals not previously published by any member; 4.1.5 design-process explanation may be requested; 4.3 licences on request; 4.5 submissions must conform to Terms and brief; 4.6 portal upload only; 4.7 uploads until '24.00, London Time', no edit or re-upload after first upload without paid reactivation (7.7); 4.8 each panel JPEG (.jpg/.jpeg), at most 10 megabytes (MB), brief sets one to four panels; 5.1 no marks, logos, symbols or signs that may identify the source; 5.3 jury learns identities after winners; 8.2, 8.4 late entries disqualified; 9.1 and 16.2 organiser may alter Terms and brief; 10.4 shortlist then Guest Jury; 10.10 Ask the Jury: one free question per registration, voted, top five forwarded, due three days after registration deadline unless the Portal says otherwise, answers published and not binding (10.10.8.3); 12.2 and 12.7 perpetual licences. No AI rule; no pixel, colour or MB definition."
+  },
+  {
+   "id": "P13-S04",
+   "title": "Higher Buildings Policy Review (project page; also names the review overview PDF)",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2026",
+   "type": "government project page",
+   "opened": true,
+   "extract": "Re-read r2: page last updated 13 July 2026. Phase 1 early directions (spring-summer 2026); Phase 2 draft policies fall 2026-winter 2027, engagement early 2027; online survey closed 31 May 2026; ideas competition to 30 Nov 2026, winner January 2027; hearing and adoption spring 2027. The 1997 policy is under review and no update is adopted; protected public views 'will not be reviewed or updated' in this work. higherbuildings@vancouver.ca takes non-formal ideas. The review overview PDF (syc.vancouver.ca) returned 403 to the fetch tool; with curl it alternated between a 6.4 MB PDF and a block page, and its text was never read."
+  },
+  {
+   "id": "P13-S05",
+   "title": "Policy: Higher Buildings Policy (approved by Council 6 May 1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "municipal policy",
+   "opened": false,
+   "extract": "HTTP 403 on fetch and on curl (r2). A search-engine excerpt of the City's guidelines says Council adopted the policy to set a rigorous process by which select developments may encroach into public view 3 (Queen Elizabeth Park). Another snippet mentioned an amendment dated 31 Mar 2026; not verified."
+  },
+  {
+   "id": "P13-S07",
+   "title": "Guidelines: Public Views Guidelines (approved by Council 10 July 2024)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "municipal guidelines",
+   "opened": false,
+   "extract": "HTTP 403 on fetch and on curl (r2). Title and date seen in a search listing; replaces the View Protection Guidelines. Cone ceiling heights and any viewpoint origin text were not read. A person with a browser should open it (human task by 24 Oct)."
+  },
+  {
+   "id": "P13-S09",
+   "title": "Queen Elizabeth Park, British Columbia (and Little Mountain)",
+   "url": "https://en.wikipedia.org/wiki/Queen_Elizabeth_Park,_British_Columbia",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Park coordinates 49.24222 N, -123.11500; about 125 m (410 ft) above sea level; on top of Little Mountain, listed at 49.24167 N, -123.11333 for the mountain as a whole. These are park and hill points, not a surveyed viewpoint."
+  },
+  {
+   "id": "P13-S11",
+   "title": "Image generation guide (OpenAI API)",
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Raw HTML read 21 Oct 2026. Models gpt-image-2.5-sunburst and gpt-image-2.5-flare; quality low, medium, high, xhigh, max, auto (xhigh and max added for 2.5; earlier models up to high); custom sizes multiples of 16, ratio 1:3 to 3:1, edge <= 3840, 655,360-8,294,400 px, above 2560x1440 experimental; output png (default), jpeg, webp; for gpt-image-2 omit input_fidelity (every image input at high fidelity, more input tokens for reference edits); token counts 272/1,056/4,160 at 1024x1024 are listed for models before gpt-image-2; edit example sends four references, no maximum; complex prompts up to 2 minutes; no C2PA or retention statement on the page."
+  },
+  {
+   "id": "P13-S12",
+   "title": "gpt-image-2 model page",
+   "url": "https://developers.openai.com/api/docs/models/gpt-image-2",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Snapshot gpt-image-2-2026-04-21 (only snapshot listed); endpoints images/generations, images/edits, batch; inpainting supported; high-fidelity image inputs. Read in r1 through a summarising fetch."
+  },
+  {
+   "id": "P13-S13",
+   "title": "gpt-image-2.5-sunburst model page",
+   "url": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Snapshot gpt-image-2.5-sunburst-2026-09-08; editing-precision focus; quality up to max; token prices: text in $5, image in $8, image out $30 per million (batch $15); no C2PA text on the page; the page's endpoint table and Responses-tool statement conflict. Read in r1 through a summarising fetch."
+  },
+  {
+   "id": "P13-S14",
+   "title": "API pricing (OpenAI)",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "price list",
+   "opened": true,
+   "extract": "Standard per 1M tokens for gpt-image-2.5-sunburst, gpt-image-2.5-flare and gpt-image-2: image in $8, image out $30, cached image in $2, text in $5, cached text $1.25; batch rates are half; per-image prices are not listed."
+  },
+  {
+   "id": "P13-S15",
+   "title": "C2PA in ChatGPT / images (OpenAI Help Center)",
+   "url": "https://help.openai.com/en/articles/8912793",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "help article",
+   "opened": false,
+   "extract": "HTTP 403 on fetch. Search-engine excerpt: images from ChatGPT, Codex and the API carry C2PA metadata and SynthID watermarks; coverage can vary; metadata can be stripped; verification at openai.com/verify. Treated as unverified."
+  },
+  {
+   "id": "P13-S17",
+   "title": "lllyasviel/ControlNet repository and paper (arXiv 2302.05543)",
+   "url": "https://github.com/lllyasviel/ControlNet",
+   "publisher": "GitHub / arXiv (Zhang, Rao, Agrawala)",
+   "year": "2023",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0 code; Stable Diffusion 1.5 ControlNets for depth, Canny, segmentation (ADE20K protocol with Uniformer) and M-LSD lines. The paper adds spatial conditioning to frozen diffusion models via zero-initialised convolutions."
+  },
+  {
+   "id": "P13-S19",
+   "title": "ControlNet guide (diffusers documentation) and diffusers repository",
+   "url": "https://huggingface.co/docs/diffusers/using-diffusers/controlnet",
+   "publisher": "Hugging Face",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "controlnet_conditioning_scale; Canny with thresholds 100/200; depth maps min-max normalised to 0-1; multi-ControlNet with per-net scales; examples use scale 0.5 for Flux and SDXL. The diffusers repository (github.com/huggingface/diffusers) is Apache-2.0 with ControlNet pipelines."
+  },
+  {
+   "id": "P13-S20",
+   "title": "ComfyUI repository and server routes",
+   "url": "https://github.com/comfyanonymous/ComfyUI",
+   "publisher": "GitHub / Comfy Org",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "GPL-3.0; node-graph engine with a local API; supports SD1.5/3.5, SDXL, Flux; ControlNet loadable as a model type. Server routes (docs.comfy.org): POST /prompt queues a workflow, /ws progress, /history, /view, /upload/image. How GPL applies to a network service is not explained on the page."
+  },
+  {
+   "id": "P13-S22",
+   "title": "FLUX.1 [dev] model card",
+   "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev",
+   "publisher": "Black Forest Labs / Hugging Face",
+   "year": "2024",
+   "type": "model card",
+   "opened": true,
+   "extract": "FLUX.1 [dev] Non-Commercial License; the card states generated outputs may be used for personal, scientific and commercial purposes; full licence text not read."
+  },
+  {
+   "id": "P13-S23",
+   "title": "Stable Diffusion XL base 1.0 (model card and LICENSE.md)",
+   "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+   "publisher": "Stability AI / Hugging Face",
+   "year": "2023",
+   "type": "model card and licence",
+   "opened": true,
+   "extract": "Card states research-purpose intent. LICENSE.md (CreativeML Open RAIL++-M, read in r1): perpetual, worldwide, royalty-free copyright and patent licence including distribution and hosting, subject to Attachment A use-based restrictions that must be included in downstream agreements and passed on."
+  },
+  {
+   "id": "P13-S24",
+   "title": "Depth Anything V2",
+   "url": "https://github.com/DepthAnything/Depth-Anything-V2",
+   "publisher": "GitHub",
+   "year": "2024",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Small model Apache-2.0; Base/Large CC-BY-NC-4.0 (re-confirmed in r1); relative depth output; metric depth variants in a separate folder."
+  },
+  {
+   "id": "P13-S25",
+   "title": "three-edge-projection",
+   "url": "https://github.com/gkjohnson/three-edge-projection",
+   "publisher": "GitHub (Garrett Johnson)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT; ProjectionGenerator with getVisibleLineGeometry extracts 'visible projected lines along the y-axis' using three-mesh-bvh; optional MeshVisibilityCuller; silhouette mesh generator uses clipper2-js; no hidden-line or per-edge occlusion output documented (re-read r2); examples include floor plan projection and planar intersection; 12 open issues; no benchmarks."
+  },
+  {
+   "id": "P13-S27",
+   "title": "Rhino 8 Make2D command",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/commands/make2d.htm",
+   "publisher": "McNeel",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Layouts (view, CPlane, 3rd/1st angle); hidden lines drawn on specified Hidden layers; tangent edges, scene silhouette, clipping-plane intersections; output is flat curves on World Top; the page does not mention Rhino.Compute or RhinoCommon use."
+  },
+  {
+   "id": "P13-S29",
+   "title": "IfcOpenShell repository",
+   "url": "https://github.com/IfcOpenShell/IfcOpenShell",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Core components LGPL-3.0-or-later; Bonsai GPL-3.0-or-later; IfcConvert; Pyodide WASM wheels; the page does not mention SVG drawing generation (its docs list an ifcopenshell.draw module; functions not read)."
+  },
+  {
+   "id": "P13-S30",
+   "title": "pdf-lib",
+   "url": "https://github.com/Hopding/pdf-lib",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT; create and modify PDFs; embedJpg/embedPng; custom page sizes. (Earlier spec cited this wrongly for Make2D hidden lines.)"
+  },
+  {
+   "id": "P13-S31",
+   "title": "sharp: input and output API documentation",
+   "url": "https://sharp.pixelplumbing.com/api-output/",
+   "publisher": "sharp (Lovell Fuller)",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "api-output: jpeg() chromaSubsampling default '4:2:0' ('4:4:4' prevents subsampling), progressive default false, mozjpeg option, quality default 80; metadata removed by default (keepMetadata, withMetadata, withIccProfile change that). api-input (r2): metadata() returns chromaSubsampling ('4:2:0' or '4:4:4' for RGB), isProgressive, density, hasProfile/icc, exif, xmp, width, height. Repository github.com/lovell/sharp is Apache-2.0."
+  },
+  {
+   "id": "P13-S32",
+   "title": "jSquash (repository and packages/jpeg meta.ts)",
+   "url": "https://github.com/jamsinclair/jSquash",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0; Squoosh codecs as WASM for browsers and workers. packages/jpeg uses MozJPEG; defaultOptions in meta.ts: quality 75, baseline false, progressive true, optimize_coding true, auto_subsample true, chroma_subsample 2. Meaning of chroma_subsample values not documented there."
+  },
+  {
+   "id": "P13-S34",
+   "title": "tesseract.js",
+   "url": "https://github.com/naptha/tesseract.js",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0; WASM OCR in browser and Node; 100+ languages; does not read PDFs."
+  },
+  {
+   "id": "P13-S35",
+   "title": "ExifTool by Phil Harvey",
+   "url": "https://exiftool.org/",
+   "publisher": "exiftool.org",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Licence: free software under the same terms as Perl itself. Deleting all metadata is not guaranteed complete (JPEG: APP segments except Adobe APP14 and trailers removed). The XMP-iptcExt tag table lists DigitalSourceType (string)."
+  },
+  {
+   "id": "P13-S37",
+   "title": "C2PA Technical Specification 2.2",
+   "url": "https://spec.c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html",
+   "publisher": "C2PA",
+   "year": "2025",
+   "type": "technical standard",
+   "opened": true,
+   "extract": "A manifest bundles assertions, a claim and a signature; the signer is identified by the subject of its X.509 certificate; manifests can be removed from an asset; soft bindings can re-match them; c2pa.actions carries digitalSourceType (first 500,000 characters of 579,297 read). c2pa-rs (MIT OR Apache-2.0, beta 0.x) is the Rust SDK."
+  },
+  {
+   "id": "P13-S38",
+   "title": "IPTC NewsCodes: Digital Source Type",
+   "url": "https://cv.iptc.org/newscodes/digitalsourcetype/",
+   "publisher": "IPTC",
+   "year": "2026",
+   "type": "controlled vocabulary",
+   "opened": true,
+   "extract": "trainedAlgorithmicMedia (created using generative AI); compositeWithTrainedAlgorithmicMedia (edited using generative AI, such as inpainting or outpainting); algorithmicMedia (pure algorithmic)."
+  },
+  {
+   "id": "P13-S39",
+   "title": "EU AI Act, Article 50: Transparency obligations",
+   "url": "https://artificialintelligenceact.eu/article/50/",
+   "publisher": "Future of Life Institute (AI Act explorer)",
+   "year": "2024",
+   "type": "regulation text",
+   "opened": true,
+   "extract": "Page marks the article 'amended' and shows application from 2 Aug 2026 (Article 113); deployers must disclose deep fakes with a narrowed duty for evidently artistic, creative or analogous works; providers must mark synthetic output machine-readably. The Digital Omnibus changes were not read; not binding on a Canadian entry (assumed)."
+  },
+  {
+   "id": "P13-S40",
+   "title": "Use of AI by authors (ICMJE recommendations)",
+   "url": "https://www.icmje.org/recommendations/browse/artificial-intelligence/ai-use-by-authors.html",
+   "publisher": "ICMJE",
+   "year": "2026",
+   "type": "publishing guideline",
+   "opened": true,
+   "extract": "AI tools should not be listed as authors; authors disclose AI use; humans remain accountable and must check AI output; used here as an analogy for authorship practice, not as a competition rule."
+  },
+  {
+   "id": "P13-S41",
+   "title": "ISO 216",
+   "url": "https://en.wikipedia.org/wiki/ISO_216",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "A2 = 420 x 594 mm; ratio sqrt(2); A0 = 1 m2."
+  },
+  {
+   "id": "P13-S42",
+   "title": "Technical lettering",
+   "url": "https://en.wikipedia.org/wiki/Technical_lettering",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Nominal lettering heights typically 2.5, 3.5, 5, 7, 10, 14, 20 mm; line-thickness-to-height ratios 1/14 and 1/10; does not state a minimum legible size."
+  },
+  {
+   "id": "P13-S43",
+   "title": "Floor plan",
+   "url": "https://en.wikipedia.org/wiki/Floor_plan",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Plans are usually drawn approximately 4 ft (1.2 m) above the finished floor; typical scales not given."
+  },
+  {
+   "id": "P13-S45",
+   "title": "tz database NEWS, release 2026b (British Columbia permanent -07) and later releases",
+   "url": "https://data.iana.org/time-zones/tzdb/NEWS",
+   "publisher": "IANA",
+   "year": "2026",
+   "type": "technical data release notes",
+   "opened": true,
+   "extract": "Release 2026b (2026-04-22): British Columbia moved to permanent -07, legally on 2026-03-09; its 2026-03-08 spring forward was the last foreseeable clock change; tzdb temporarily models the change at 2026-11-01 02:00 (PDT to MST, offset stays -07) because of a CLDR limitation. r2: the latest release is 2026e (2026-09-29); 2026c-2026e concern Alberta, Northwest Territories and Manitoba and make no further BC change. Software with older tz data would still show -08 in late November (inference)."
+  },
+  {
+   "id": "P13-S46",
+   "title": "Time in British Columbia",
+   "url": "https://en.wikipedia.org/wiki/Time_in_British_Columbia",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "BC on Pacific Time (PCT), UTC-07:00 year-round from the 8 March 2026 change; clocks are not turned back in November 2026; Premier's announcement 2 March 2026; legal basis in the 2019 Interpretation Amendment Act."
+  },
+  {
+   "id": "P13-S47",
+   "title": "View cones (open dataset), City of Vancouver Open Data",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "open dataset",
+   "opened": true,
+   "extract": "24 protected-view polygons ('Development within the polygons is limited in height'), Open Government Licence - Vancouver (text not read), modified 2026-10-19; fields object_id, view_number, view_cone_name, description, url, geom; no origin or height fields; contact views@vancouver.ca. r2 re-check with the records endpoint (total_count 24): cones 3.2.1-3.2.4 are triangles; 3.2.1, 3.2.3, 3.2.4 share the apex 49.242156 N, -123.112436; 3.2.2 differs by about 0.3 m; far vertices lie 5.50-6.20 km away at bearings 341.4 to 19.5 degrees; the apex is 186 m at bearing 92 from Wikipedia's park point (all computed by the spec author)."
+  },
+  {
+   "id": "P13-S48",
+   "title": "Resubmit your design (Buildner)",
+   "url": "https://architecturecompetitions.com/resubmit-your-design",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition guidance",
+   "opened": true,
+   "extract": "Previously published presentation materials must be visually updated before resubmission and 'newly prepared and visually distinct'; used as supporting evidence for the previous-publication risk under Terms 4.1."
+  },
+  {
+   "id": "P13-S49",
+   "title": "How to enter a competition (Buildner)",
+   "url": "https://architecturecompetitions.com/how-to-enter-a-competition",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition guidance",
+   "opened": true,
+   "extract": "After payment a UIC is emailed; create an Architects' Network account; identity verification can wait but is required before upload; log in and enter the UIC. No panel specs, pixel sizes or upload timing. Terms 3.6.A.1-A.2 put verification before payment and UIC, which is stricter; the tool follows the Terms."
+  },
+  {
+   "id": "P13-S50",
+   "title": "Rhino.Compute licensing and billing",
+   "url": "https://developer.rhino3d.com/guides/compute/core-hour-billing/",
+   "publisher": "McNeel",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "On Windows Server, Rhino.Compute needs a core-hour billing team (no standard licences); US$0.10 per core per hour, pro-rated per minute, billed on uptime; educational and commercial licences are incompatible; RHINO_TOKEN environment variable. No free tier mentioned."
+  },
+  {
+   "id": "P13-S51",
+   "title": "SAM 2 (Segment Anything 2) repository",
+   "url": "https://github.com/facebookresearch/sam2",
+   "publisher": "GitHub (Meta FAIR)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Checkpoints, demo and training code under Apache-2.0 (demo fonts SIL OFL; an optional connected-components module under a BSD licence file); SAM2ImagePredictor for image prompting; SAM 2.1 sizes tiny to large (38.9M-224.4M parameters). r2: requires python >= 3.10, torch >= 2.5.1, torchvision >= 0.20.1; CUDA kernel build needs nvcc and may fail without blocking use; the README does not state CPU-only support and benchmarks on an A100; image-predictor prompt types not confirmed on the README."
+  },
+  {
+   "id": "P13-S52",
+   "title": "Charis SIL font",
+   "url": "https://software.sil.org/charis/",
+   "publisher": "SIL",
+   "year": "2026",
+   "type": "font documentation",
+   "opened": true,
+   "extract": "Free under the SIL Open Font License; Latin and Cyrillic with more than 3900 glyphs including characters for linguistics and literacy work; per-code-point coverage is on a separate charset page that was not read."
+  },
+  {
+   "id": "P13-S53",
+   "title": "Tsleil-Waututh Nation",
+   "url": "https://en.wikipedia.org/wiki/Tsleil-Waututh_Nation",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Gives the Halkomelem name in two spellings on the same page, plus the Squamish and Musqueam names and the Downriver dialect name; shows that Nation-name spellings vary between entries, so allow-list entries need review against Nation-published forms."
+  },
+  {
+   "id": "P13-S54",
+   "title": "Your data (OpenAI API data controls)",
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Read 21 Oct 2026 through a summarising fetch. Abuse-monitoring logs kept up to 30 days by default; /v1/images/generations and /v1/images/edits show 30-day retention and Zero Data Retention 'yes, with limitations'; image generation is ZDR-compatible for gpt-image-2, gpt-image-1.5, gpt-image-1 and gpt-image-1-mini (the 2.5 models were not in that list); image inputs are scanned for CSAM and flagged images are retained even under ZDR; API data is not used for training by default."
+  },
+  {
+   "id": "P13-S55",
+   "title": "Modal pricing (per-second GPU rates)",
+   "url": "https://modal.com/pricing",
+   "publisher": "Modal Labs",
+   "year": "2026",
+   "type": "price list",
+   "opened": true,
+   "extract": "Raw page read 21 Oct 2026: Nvidia T4 $0.000164/s, L4 $0.000222/s, A10 $0.000306/s, A100 40 GB $0.000583/s, A100 80 GB $0.000694/s, H100 $0.001097/s; CPU $0.0000131 per core-second. Hourly figures in the spec are computed (x 3600). One example provider, not a recommendation."
+  },
+  {
+   "id": "P13-S56",
+   "title": "BC statutory holidays (Employment Standards)",
+   "url": "https://www2.gov.bc.ca/gov/content/employment-business/employment-standards-advice/employment-standards/statutory-holidays",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "type": "government page",
+   "opened": true,
+   "extract": "Remembrance Day is a BC statutory holiday; in 2026 it falls on Wednesday 11 November. Employers and employees may agree in writing to substitute another day. UBC's own closure page (ubc.ca key dates) returned 404, so UBC closure is assumed, not confirmed."
+  },
+  {
+   "id": "P13-S57",
+   "title": "Clipper2 documentation: Overview",
+   "url": "https://www.angusj.com/clipper2/Docs/Overview.htm",
+   "publisher": "Angus Johnson",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Only subject paths may be open; clip paths must be closed. Hence one set of open segments cannot be subtracted from another set of open segments (the second part is the spec author's inference from the rule)."
+  },
+  {
+   "id": "P13-S58",
+   "title": "Intl.DateTimeFormat constructor (MDN)",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat",
+   "publisher": "MDN Web Docs",
+   "year": "2026",
+   "type": "web platform documentation",
+   "opened": true,
+   "extract": "timeZoneName 'longOffset' gives the long localized GMT format, e.g. 'GMT-08:00' (example output '12/16/2021, GMT-08:00'), not '-08:00'. The page does not show UTC; a zero offset is expected to render as plain 'GMT' (unconfirmed, test in the target browser). formatToParts output was not shown on the page; the timeZoneName part is from ECMA-402 (not opened)."
+  },
+  {
+   "id": "P13-S59",
+   "title": "JPEG (Wikipedia): syntax and structure",
+   "url": "https://en.wikipedia.org/wiki/JPEG",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "SOF0 = FF C0 (baseline DCT); SOF2 = FF C2 (progressive DCT); Exif in APP1; JFIF in APP0. The first 100,000 characters were read; the page does not give the byte-level encoding of component sampling factors, so the validator confirms its parser against sharp metadata() on fixtures."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Boards can be delivered as PDF (implied by the scope line 'export (PDF/JPG)').",
+   "correction": "Each panel must be a JPEG (.jpg/.jpeg) of at most 10 MB; PDF is useful only as a team proof.",
+   "detail": "Buildner Terms section 4.8 (re-read r2); non-compliant format or size is a disqualification ground (section 8.2).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 30 Nov 2026 deadline is end of day in Vancouver.",
+   "correction": "Closing is 23:59 London time on 30 Nov 2026 and the tracker shows both time zones. [SUPERSEDED: the '15:59 Vancouver (PST)' conversion first written here is wrong; the correct value is 16:59 Vancouver (UTC-7), see the next flag.]",
+   "detail": "Buildner competition page key dates. superseded_by: the flag 'Closing at 23:59 London time on 30 Nov 2026 equals 15:59 Vancouver (PST)...' (correction 16:59). The UI shows the superseded text struck through.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Closing at 23:59 London time on 30 Nov 2026 equals 15:59 Vancouver (PST); the earlier flag on 'end of day Vancouver' gave this conversion as its correction.",
+   "correction": "23:59 London (GMT) on 30 Nov 2026 = 2026-11-30T23:59Z = 16:59 Vancouver (UTC-7). Store the UTC instant, use the earlier of 23:59 (page) and 24.00 (Terms 4.7), and check at runtime that the Intl offset for America/Vancouver parses to -420 minutes, with a fixed-offset fallback.",
+   "detail": "British Columbia moved to permanent UTC-7 (tzdb 2026b: legally 2026-03-09, last clock change 2026-03-08) and does not fall back in November 2026, so Vancouver is at -07:00 on 30 Nov. r2: the latest tzdb release is 2026e (2026-09-29) and changes nothing for BC. Browsers with tz data older than 2026b may still show -08:00. Evidence: IANA tzdb NEWS; Wikipedia 'Time in British Columbia'.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The exact Queen Elizabeth Park view-cone origin and azimuth cannot be obtained because City of Vancouver hosts returned 403.",
+   "correction": "Derive the origin and azimuths of cones 3.2.1-3.2.4 from the City Open Data 'View cones' dataset: shared apex near 49.24216 N, 123.11244 W; bearings 341.4 to 19.5 degrees; lengths 5.50-6.20 km (computed). Only ceiling heights remain unverified, and apex-as-designated-origin stays an inference until the Public Views Guidelines are read.",
+   "detail": "The Open Data portal publishes 24 view-cone polygons (Open Government Licence - Vancouver, modified 2026-10-19). The park point used earlier (49.24222 N, 123.11500 W, Wikipedia) lies about 186 m west of the apex (computed). The dataset has no height fields. r2: re-checked through the records endpoint (total_count 24); r1 text said 341.5 for the first bearing, the r2 recomputation gives 341.4. Evidence: opendata.vancouver.ca view-cones dataset and records endpoint.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Number of panels (4), number of ground-level perspectives (>= 4) and the landscape A2 rule are 'verified'.",
+   "correction": "Status is unverified (transcribed from the brief by the team) until the brief PDF is stored with a SHA-256 and two members check the transcription; panel count is modelled as a brief_register value (exact or maximum), default exact 4. Only the upper bound of four (Terms 4.8) and A2 = 420 x 594 mm (ISO 216) are verified.",
+   "detail": "Their only source is P13-S01, the brief PDF, which the spec authors never opened. Terms 4.8 defer the panel count to the brief ('single panel or up to four'), and the competition page lists no board count, size or weights. r2: see the new flag on the team holding the PDF. Evidence: Terms 4.8; competition page.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rhino Make2D supplies the hidden-line layers (cited as P13-S30), so the browser route can offer a hidden-line class.",
+   "correction": "Cite P13-S27 for Make2D. The browser route offers cut, silhouette, crease and visible classes; hidden lines come from imported Make2D output or a prototype hidden-line pass, marked untested.",
+   "detail": "P13-S30 is pdf-lib; Make2D is P13-S27. three-edge-projection returns visible projected lines along the y-axis only, and rhino3dm has no Make2D, so the browser route has no hidden class. Make2D needs desktop Rhino, or Rhino.Compute on Windows Server with core-hour billing (US$0.10 per core-hour).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The brief PDF 'could not be opened here', so board count, A2 landscape, jury weights and the 20 items must stay unverified and the 6 Nov validator can ship without them.",
+   "correction": "The team holds the PDF (the project description states its brief facts come from it). Only the spec authors' fetch tool could not reach it. By 23-24 Oct the team stores the PDF in the repo, records its SHA-256 and two members transcribe the rules with page numbers into brief_register; the statuses then flip to verified. The 6 Nov validator does not ship with an empty register.",
+   "detail": "Project description header: 'VTC BRIEF FACTS (from the official competition PDF)'. Terms 4.8 defer the panel count to the brief and 4.5 require conformity to it. The tool pre-fills brief_register from the project description and shows each rule amber until page and second check are entered. Evidence: Terms 4.5, 4.8; critique round 2.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A tower top above the Queen Elizabeth Park view-cone ceiling is 'bad' (P13-M03 metric).",
+   "correction": "Report encroachment neutrally (height above or below the ceiling, encroached area per cone, angular share) and require a breach-register rationale; only 'encroachment without rationale' or 'ceiling unknown' is amber, never red.",
+   "detail": "The competition explores higher buildings under the Higher Buildings Policy, which per the 1997 policy excerpt (search snippet, P13-S05, not opened) sets a process by which select developments may encroach into public view 3 (QE Park); the brief says justified breaches may be rewarded. The Review page says protected views are not being reviewed, so the cones stay fixed while encroachment is a design choice to justify.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "21 Oct to 13 Nov offers 18 working days (36 person-days), enough for the 29-34 person-day core.",
+   "correction": "11 Nov (Remembrance Day, BC statutory holiday) leaves 17 working days = 34 person-days at full time for two students (13 days to 6 Nov, 15 to 10 Nov). Core is re-planned validator-first: about 28 person-days plus 15% reserve = 32; it fits only at an availability factor of about 0.95, so M02 v0 and the M05 route are first to slip.",
+   "detail": "Calendar arithmetic (computed): weekdays 21 Oct-13 Nov = 18, minus 11 Nov = 17. Remembrance Day is listed as a BC statutory holiday; UBC's own closure was not confirmed (UBC page 404). Person-day estimates and the availability factor are team inputs.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Hidden lines can be obtained as 'all projected edges minus visible' with a clipper2-js difference.",
+   "correction": "Clip projected edges against the polygons of nearer occluding faces, or subtract collinear visible sub-segments from each edge by parameter intervals with a tolerance; keep the hidden class Make2D-only until a pilot comparison passes.",
+   "detail": "Clipper2: only subject paths may be open and clip paths must be closed, so a set of open segments cannot be subtracted from another set of open segments. P13-S25 uses clipper2-js for silhouette polygons, not for line differencing.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Vancouver offset check compares the Intl 'longOffset' output with the string '-07:00'.",
+   "correction": "Parse the timeZoneName part of formatToParts: strip 'GMT' (an empty remainder means +00:00), convert to minutes and compare with -420.",
+   "detail": "MDN: longOffset returns the long localized GMT format such as 'GMT-08:00', so a literal '-07:00' comparison never matches and always shows the fallback warning. The latest tzdb release is 2026e and the 2026b basis for BC still holds.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Board count (4), A2 landscape, jury weights 40/30/20/10 and the 20 recommended deliverables.",
+   "detail": "Transcribed from the brief by the team (project description). The spec authors never opened the PDF; the Buildner page and Terms do not list board size or weights, and Terms 4.8 say the brief sets the panel count (one to four). Store the PDF with a SHA-256, double-transcribe by 24 Oct, and re-check after Q&A closes on 3 Nov.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Buildner's 10 MB limit unit and extra portal checks (pixel size, colour mode, progressive JPEG).",
+   "detail": "Terms 4.8 say 10 megabytes (MB) per panel without defining MB vs MiB or other image specs (r2 re-read); the how-to-enter page has no panel specs. The tool targets <= 9.5 x 10^6 bytes and defaults to baseline 4:4:4 JPEG. A test upload on the live entry is unsafe (Terms 4.7). Ask through the organiser contact form by 30 Oct: this is a portal question, not a brief question for Ask the Jury.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OpenAI 2.5 model per-image token counts, the 2.5 models' zero-data-retention status and the model page's Responses-tool statement.",
+   "detail": "r2: model ids, quality values and size rules were confirmed from the raw HTML of the image guide (21 Oct 2026). Token counts shown on the guide are for models before gpt-image-2. The 2.5 models are not in the ZDR-compatible list read on the data-controls page. The 2.5 model page lists Responses as unsupported yet says it can be the Responses tool model. Budget from logged pilot calls.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OpenAI API images carry C2PA metadata and SynthID.",
+   "detail": "Only a search-engine excerpt of the Help Center article was seen (page returned 403); the image guide (raw HTML read r2) and 2.5 model page do not mention C2PA. Coverage may vary by model and export path, and metadata can be stripped.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Queen Elizabeth Park cone ceiling heights and the current Higher Buildings Policy amendment status.",
+   "detail": "Origin and azimuths are derived from the City open dataset, but the dataset has no heights. The 2024 Public Views Guidelines and the 1997 policy PDF returned 403 (fetch and curl); the Review overview PDF alternated between a PDF and a block page and was not read; the Review page (updated 13 July 2026) lists Phase 1 as current. A snippet suggested an amendment on 31 Mar 2026, not verified. A person with a browser should open the PDFs (due 24 Oct).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The shared apex of cones 3.2.1-3.2.4 is the City's designated viewpoint origin.",
+   "detail": "Inferred from geometry: the four triangles meet at one vertex (r2 re-check: three coincide, the fourth is 0.3 m away). The dataset has no origin field and the Guidelines text was not read.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Team browsers carry tz data 2026b or later.",
+   "detail": "tzdb 2026b (22 Apr 2026) records BC on -07; older tz data in a browser or OS would convert 23:59Z to 15:59 Vancouver. The tracker parses the Intl offset at load and falls back to a fixed -07:00 with a warning.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Open Government Licence - Vancouver permits reuse of the view-cones polygons on boards, and its attribution wording.",
+   "detail": "The dataset names the licence, but the portal licence page returned only navigation text (r2 retry: title 'Open data licence'), and data.vancouver.ca returned 403. Add the attribution once a person has read it in a browser (due 24 Oct).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "jSquash's chroma_subsample value 1 means 4:4:4.",
+   "detail": "meta.ts shows chroma_subsample 2 and auto_subsample true as defaults but does not document values; confirm by decoding the output with the validator and sharp metadata() before relying on it. sharp documents '4:4:4' directly.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "EU AI Act Article 50 applies from 2 Aug 2026 and is a fit benchmark for this entry.",
+   "detail": "The AI Act explorer marks Article 50 'amended' and still shows 2 Aug 2026; the linked Digital Omnibus changes were not read, so timing and scope may differ. The Act is not binding on a Canadian entry (assumed) and is used only as a disclosure benchmark.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "SAM 2 can run on CPU or in the browser for the fidelity checks.",
+   "detail": "The README states python >= 3.10, torch >= 2.5.1 and benchmarks on an A100 but does not state CPU-only support; a community ONNX export (onnx-community/sam2.1-hiera-tiny-ONNX) has no model card, licence or usage text. Treat a GPU service (local or rented) as the default and measure run time.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Fidelity, legibility, resolution, self-score and buffer thresholds (e.g., IoU >= 0.90, 150 px/inch, text >= 3.5 mm, 7-day buffer, 10 m viewpoint tolerance, registration warning at 8 days).",
+   "detail": "No published source; all shown as editable amber team assumptions and to be tuned on pilot boards.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The core slices of P13 fit before 13 Nov.",
+   "detail": "r2 re-plan (team person-day estimates): Tier A by 6 Nov 7 (M01 3, M06v 3, M06c 1); Tier B by 10 Nov 7.5 (M03 3.5, M04 1.5, M08a 2.5); Tier C by 13 Nov 13.5 (M01 1.5, M06v OCR 1.5, M06a 1.5, M06 visual check 0.5, M02 v0 4.5, M05 4); total 28 plus 15% reserve = 32. Capacity = 2 students x working days x availability factor f: 26 / 30 / 34 person-days at f = 1 to 6 / 10 / 13 Nov. Tier A+B (16.7 with reserve) needs f >= 0.56; everything needs f >= 0.95. Cut order if f is lower: M02 v0, then M05, then M06a. f is a team input.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The closing instant: page says 23:59 London time, Terms 4.7 says '24.00, London Time'.",
+   "detail": "The tool uses the earlier instant (2026-11-30T23:59:00Z, 16:59 Vancouver). Ask the organiser through the contact form by 30 Oct which text governs.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether 'all information in English' admits Nation names (hən̓q̓əmin̓əm̓, Sḵwx̱wú7mesh, səlilwətaɬ and others) with an English gloss.",
+   "detail": "The allow-list rule is the team's interpretation, which supports the reconciliation criterion. This is the strongest candidate for the single free Ask the Jury question (cultural context is 30%). Spellings differ even within one encyclopaedia page, so entries need review against Nation-published forms.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Posting renderings or boards in the tool's community area before 30 Nov 2026 may count as previous publication.",
+   "detail": "Terms 4.1 bars visuals previously published by any team member, and Buildner's resubmit page says previously published materials must be newly prepared and visually distinct. r2: default 'entry-private' is now a hard gate (G-04) in P13-M01 fed by P13-M08a asset_visibility; ask the organiser how it reads 'published'.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the jury will penalise or reward disclosed AI imagery.",
+   "detail": "Buildner terms contain no AI rule; the FAQ advises not treating AI images as sole work or IP. Disclosure is recommended as good practice; jury attitude is unknown. Ask the organiser what disclosure it expects.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "C2PA signing of exported boards.",
+   "detail": "The signer is identified by the X.509 certificate subject, which could identify the team and conflict with anonymity; the design avoids personal-identity signing and uses visible captions, with IPTC source-type fields kept only in archive copies.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether Buildner's perpetual promotional and publication licences (Terms 12.2, 12.7) fit FLUX.1 [dev], SDXL and OpenAI image terms.",
+   "detail": "The FLUX card says outputs may be used commercially but its licence text was not read; SDXL's licence was read (use-based restrictions pass downstream); OpenAI terms were not read. The rights register records each model licence per image.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Q&A deadline and channel: the page says 3 Nov, Terms 10.10.4 default to three days after the registration deadline (1 Nov, computed), and Ask the Jury is 'available only for selected competitions'.",
+   "detail": "One free question per registration; only the top five by participant vote reach the jury; answers are published, final and not binding (10.10.5, 10.10.8.3, 10.10.15). Plan: submit by Fri 30 Oct; brief questions go to Ask the Jury, portal and file questions to the organiser contact form. Whether VTC offers Ask the Jury and whether the organiser answers technical questions outside it is not confirmed.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the organiser may change the Terms or brief after entry and how changes are announced.",
+   "detail": "Terms 9.1 and 16.2 let the organiser alter the Terms and the brief at any time; no addenda clause was found. The tool stores hashes of the brief and a Terms snapshot and re-reads them at an interval (default weekly, plus 48 h before upload).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which GPU host runs SAM 2 and ComfyUI, and at what cost per fidelity run.",
+   "detail": "Local NVIDIA GPU (no extra cost, needs a machine) or rented per second (Modal list rates read 21 Oct: T4 $0.000164/s, L4 $0.000222/s, A10 $0.000306/s). Run time per image is unmeasured, so cost per run is not computed. The OpenAI key stays on a server proxy.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether UBC is closed on 11 Nov 2026 and whether a UBC midterm break falls in 9-13 Nov.",
+   "detail": "Remembrance Day is a BC statutory holiday (province page read); UBC's key-dates page returned 404, so closure and any break are not confirmed. The plan deducts 11 Nov only.",
+   "raised_in_round": 2
+  }
+ ],
+ "unresolved_relationships": [
+  "How strictly gpt-image edits preserve source geometry from a reference viewport capture: the OpenAI guide gives no geometry-preservation guidance and says masks are prompt-based.",
+  "Best ControlNet conditioning scale and conditioning type (depth, line, segmentation) for architectural massing at tower scale: only generic examples (scale 0.5) were found.",
+  "Effect of rendering style (photoreal, line-and-wash, clay) on jury scoring, including the 'avoid generic, placeless design' criterion: no evidence found.",
+  "Relationship between rubric self-scores and actual VTC jury outcomes: no published scoring scale or past results found.",
+  "Effect of rubric descriptor wording on rater agreement: the Jonsson and Svingby review was not read (only metadata), so it was dropped as a source.",
+  "Relationship between EdgesGeometry/crease-angle threshold and plan or elevation clarity on curved facades: three.js reference page was not opened.",
+  "Exact JPEG quality-to-bytes curve for A2 boards with fine linework, and bytes for baseline versus progressive: content-dependent, must be measured in the export loop (only the bits-per-pixel budget at 10^7 bytes is computed).",
+  "Minimum legible text size for boards viewed on screen by the jury: only nominal drafting letter heights (2.5-3.5 mm) were found, not a legibility rule.",
+  "Queen Elizabeth Park cone ceiling heights versus tower height, and whether the shared apex of cones 3.2.1-3.2.4 is the designated viewpoint origin: Public Views Guidelines not opened (403 to fetch and curl).",
+  "How the 1997 Higher Buildings Policy defines permissible encroachment into view 3 and what justification it asks for: the PDF was not opened, so the encroachment report cannot cite a test.",
+  "Mapping of the 20 recommended deliverables to the four weighted criteria: editorial judgment of the team, no source.",
+  "Whether Buildner's portal imposes pixel dimensions, colour profile, progressive/baseline limits or an MB/MiB definition on the 10 MB panels: Terms 4.8 re-read, none stated.",
+  "Floor-area (GFA) definition for area reconciliation: the Vancouver zoning by-law definition was not opened (403), so the P13-M02 tolerances are team values pending the PROG packet.",
+  "Automated estimate of sun direction in an AI image to compare with the CLIM sun vector: no sourced method found, so the check is a human tick.",
+  "Accuracy and run time of the hidden-line pass (interval subtraction or occluder clipping) on a 300 m tower, and its agreement with Make2D: untested.",
+  "Whether OpenCascade HLR (HLRBRep) is exposed in opencascade.js and works on meshes: the OCCT guide section and the repository page did not confirm it.",
+  "Whether Buildner reads the English-only rule as admitting Nation names with glosses, and OCR accuracy on those orthographies: unknown and untested.",
+  "Eligibility and judging text for the Student Award and Sustainability Award: in the brief, not obtained.",
+  "Terms of third-party base imagery (aerial or satellite) and the Open Government Licence - Vancouver text: not read.",
+  "Whether shortlist screening (Terms 10.4) applies the 40/30/20/10 weights or a separate pass, and how long a screener spends per board: not published.",
+  "Token counts and zero-data-retention status for gpt-image-2.5 models: not published in the pages read.",
+  "Run time of SAM 2 per image on CPU, T4 or L4, and therefore the hosting cost per fidelity check: unmeasured.",
+  "Whether the byte-level sampling-factor encoding in the JPEG SOF segment matches the validator's parser: settled by fixtures against sharp metadata(), not by a read source."
+ ],
+ "change_log": [
+  "R1: First specification of P13: 8 modules (M01 tracker, M02 drawing extraction, M03 camera presets, M04 conditioning capture, M05 AI render pipeline, M06 board layout and export, M07 jury rubric, M08 writing support and AI ledger).",
+  "R1: Added Buildner Terms rules not in the scope text: JPEG-only panels, 10 MB cap, portal upload only, no previous publication of visuals, no AI rule; flagged PDF-as-submission as a false assumption.",
+  "R1: Added deadline conversion (23:59 London = 15:59 Vancouver) and 40 days remaining from 21 Oct 2026.",
+  "R1: Found current OpenAI image models (gpt-image-2.5-sunburst, -flare, gpt-image-2) and token pricing; flagged names and C2PA statements as unverified.",
+  "R1: Added anonymity risks (EXIF/XMP, C2PA signer identity) and a re-scan step after metadata stripping.",
+  "R1: Research limits: the shared web-search budget ran out mid-task, so some searches were not repeated; City of Vancouver sites (vancouver.ca, guidelines.vancouver.ca, syc.vancouver.ca), the OpenAI Help Center and COPE returned 403 or 404 and are marked unopened or omitted.",
+  "r1: Corrected the Vancouver closing time from 15:59 PST to 16:59 (UTC-7) after reading tzdb 2026b and the BC time page; deadline stored as UTC instant 2026-11-30T23:59:00Z (earlier of page 23:59 and Terms 4.7 '24.00'); added a runtime Intl offset check and a UNRESOLVED flag for the 23:59 vs 24.00 wording; old 15:59 flag kept with an r1 note.",
+  "r1: Re-labelled panel count, A2 landscape and >= 4 ground-level views as unverified (team-supplied) with status false_assumption_corrected; M01 now reads a brief_register (PDF hash, page refs, two-person check, exact vs max panel rule, default exact 4) and keeps the Terms 4.8 upper bound of four as the only verified count.",
+  "r1: Added to M01 the upload prerequisites (UIC, identity verification, registration close warning at 8 days), an upload-once gate (Terms 4.7 lock) and a Q&A changelog; removed the 'export early lowers risk' wording and said that a live-entry test upload is unsafe.",
+  "r1: Changed the language rule to 'explanatory text in English' with a reviewed Nation-name allow-list plus a font glyph-coverage check (Charis SIL candidate) and NFC normalisation; flagged the interpretation for Q&A.",
+  "r1: M02: added section_scale (a 305 m tower section is 650 mm at 1:500, 325 mm at 1:1000, so full sections need 1:1000 or partial cuts) with a fit check at preset selection; corrected hidden-line sources from S30 to S27/S25, added a 'line classes by route' metric (false_assumption_corrected), made the Make2D import the v0 core route and noted Rhino.Compute needs Windows Server core-hour billing; reconciliation moved to slab-edge loops with the GFA definition marked unresolved.",
+  "r1: M03: replaced the Wikipedia park point with the apex of the City's view-cones polygons (cones 3.2.1-3.2.4: 49.24216 N, 123.11244 W, bearings 341.5-19.5 degrees, 5.5-6.2 km, about 186 m from the park point); added site-polygon intersection, a local-origin rule (float32 gives 0.5 m steps at UTM northings), a context-tower check; cone ceilings stay unverified.",
+  "r1: M05: named SAM 2 (Apache-2.0) for tower and context-tower masks, added context-tower presence and lighting-consistency checks, input_fidelity omission and reference-image cost note, pinned snapshot ids, a pilot-derived cost budget instead of US$2.00, and corrected licence wording (SDXL Open RAIL++-M permits commercial use with passed-on restrictions; ComfyUI GPL-3.0 run as a separate service).",
+  "r1: M04: split core (clay beauty) from v1 (depth, line, ID passes) and added existing/approved/other context classes and the sun vector.",
+  "r1: M06: split into M06a layout, M06b compose/encode/scan and M06c release gate; split the byte metric into verified limit (10^7 bytes) and team target; added chroma subsampling (4:4:4), baseline scan mode, glyph coverage and deny-list seeds (member names, UBC, SALA, ARCH 540, instructors, email domains); AI caption kept generic, IPTC source type kept only in archive copies.",
+  "r1: M08: added a rights/licence register with exportable licence pack (Terms 4.3, 12.2, 12.7), model-licence column, and an explanation-request pack (Terms 4.1.5); split into M08a (ledger, rights, breach register, upstream of M07) and M08b (writing editor, downstream of M07); priority raised to core for M08a only.",
+  "r1: M07: added Sustainability and Student Award tracks, removed the 75/50 good/bad colouring of the weighted total (now a plain number labelled team heuristic), noted the Terms 10.4 shortlist stage and the jury-panel page; dropped the unread rubric-review source.",
+  "r1: Broke the dependency cycles: acyclic order M02/M03 -> M04 -> M05 -> M08a; M06a -> M02; M06a + M08a -> M07 -> M08b -> M06b -> M01 -> M06c; M01 reads M06a, M08a and M07 (advisory) and sends nothing upstream.",
+  "r1: Re-planned scope by disqualification risk: 6 Nov validator slice (M06a/b, M01), 10 Nov (M03, M08a, M04 clay capture), 13 Nov (M02 v0, M05 OpenAI route, anonymity scan, release gate); v1 by 10 Dec (mesh M02, ControlNet route, SAM 2 fidelity, M07, M08b). Core slices total about 29-34 person-days against 36 available at full time; flagged as a team assumption.",
+  "r1: Flags: added four FALSE_ASSUMPTION flags (15:59 PST, unobtainable view-cone origin, 'verified' panel/perspective/landscape rules, Make2D hidden lines on the browser route); updated previous-publication, QE Park, C2PA/EU AI Act and 10 MB flags; added flags for tz data, licence texts not read, chroma mapping, English-only vs Nation names, model licences vs Buildner licence, and schedule capacity.",
+  "r1: Sources: removed S06, S08, S10, S16, S18, S21, S36 and S44 (content folded into S04, S09, S17, S19, S20, S37, or dropped as unread); added S45-S53 (tzdb, BC time, view-cones dataset, resubmit page, how-to-enter page, Rhino.Compute billing, SAM 2, Charis SIL, Tsleil-Waututh page); revised S01-S03, S11, S23, S25, S31, S32, S35, S39. Count is 45.",
+  "r1: Research limits in this round: the web-search budget was already exhausted, so every check used direct page fetches; the brief PDF form was not submitted (it needs a personal email address); City policy PDFs, the zoning by-law and the Open Government Licence text were not readable.",
+  "r2: Applied the round-2 critique. Research this round used direct page fetches only (the shared web-search budget was exhausted, so no search engine was queried): competition page, Terms (3.2, 3.6, 4.1, 4.7, 4.8, 5.1, 5.3, 9.1, 10.10), tzdb NEWS, MDN, Clipper2 overview, OpenAI image guide (raw HTML), OpenAI data-controls guide, Modal pricing, BC holidays page, sharp and exifr pages, SAM 2 and OpenCV repositories, Shape Your City Review page; the City view-cones records endpoint was queried directly and the apex, bearings and 186 m offset recomputed.",
+  "r2: BLOCKER: the brief PDF is treated as a team-held document, not a tool limit. M01 now pre-fills brief_register from the project description (amber until page and second check), adds a rule_registry and a DATA-packet document_register interface, and the 6 Nov validator may not ship with an empty register. Added FALSE_ASSUMPTION flag; S01-based statuses stay unverified until the register is checked (due 23-24 Oct).",
+  "r2: MAJOR: added dated human-task timeline and Q&A pack to M01 (outputs task_timeline and qa_pack, metric 'Q&A pack coverage', parameters qa_question_budget and terms_reread_interval). Read Terms 10.10: one free Ask the Jury question per registration, top five by vote, answers non-binding, default deadline three days after registration closes (1 Nov) versus 3 Nov on the page; brief questions and portal questions are split between channels. The registration warning leaves the 6 Nov scope and becomes a static banner.",
+  "r2: MAJOR: P13-M03 'Cone ceiling height versus tower top' replaced by a neutral 'View-cone encroachment report' (overlap per cone, ceiling when known, angular share) tied to the P13-M08a breach register; amber only without rationale or with unknown ceiling; new parameter encroachment_treatment; FALSE_ASSUMPTION flag added; M08a gets a matching metric.",
+  "r2: MAJOR: decoupled core from v1. M06 split into M06v (standalone JPEG validator, core), M06a (thin layout with text frames and language attestation, core), M06b (composer and encoder, now v1) and M06c (release gate). M07 and M08b are optional ports with null behaviour (no gaps; text typed in M06a). A port-contract test should fail the build if a core node has a required port fed by a v1 node.",
+  "r2: MAJOR: re-planned the schedule. 11 Nov (BC statutory holiday) leaves 17 working days = 34 person-days at full time; core is about 28 person-days plus 15% reserve = 32, tiered A (6 Nov), B (10 Nov), C (13 Nov), with a stated availability factor and cut order (M02 v0, M05, M06a). FALSE_ASSUMPTION flag added; the old schedule flag is replaced by the r2 TEAM_ASSUMPTION flag.",
+  "r2: M01 time-zone check corrected: parse formatToParts (strip 'GMT') and compare minutes with -420; cited tzdb 2026e as the latest release checked; FALSE_ASSUMPTION flag added; metric marked false_assumption_corrected.",
+  "r2: M01 gates extended to four (UIC and identity; N sign-offs with signoff_count default 2, 1 for individuals; rights and licence pack; no public board-linked asset before closing, fed by P13-M08a asset_visibility). Confirmed Terms 3.6.A.1, 3.6.A.2 and 3.6.C.1 (verification before payment and UIC; active status needed only at validation or joining) and individual entry (2.4, 3.6.A.4).",
+  "r2: Status model: each rule has an id in a single rule_registry shared by M01 and M06; evidence status and correction history are written separately inside each metric basis ('[rule ... | evidence ... | history ...]') while the status field keeps the permitted values. M06 'Pixel ratio' now matches M01's HR-04 record.",
+  "r2: M02: added site_plan_extent parameter and 'Site plan extent fit' metric (250-350 m window = 500-700 mm at 1:500, 250-350 mm at 1:1000); replaced the invalid clipper2 'difference' hidden-line method with interval subtraction or occluder clipping (Clipper2: only subject paths may be open), added 'Hidden-line method validity' (corrected) and 'Hidden-line agreement with Make2D' (unverified); hidden class stays Make2D-only until a pilot passes.",
+  "r2: M03: re-checked the view-cone dataset (24 records; apex 49.242156 N, 123.112436 W; bearings 341.4 to 19.5 degrees, corrected from 341.5; 5.50-6.20 km; 3.2.2 apex 0.3 m off).",
+  "r2: M04: 'Size rule compliance' set to verified after reading the raw HTML of the OpenAI guide; M05 quality parameter corrected (272/1,056/4,160 token counts are for models before gpt-image-2).",
+  "r2: M05: added deployment (server proxy for the key; SAM 2 and ComfyUI on a local or rented GPU, Modal list rates as an example) and data_retention parameters, ledger retention field, 'No invented marks in output' and 'Retention setting logged' metrics; effort raised to 4 person-days.",
+  "r2: M06: added per-board human visual anonymity check (logos, crests, watermarks, signage; optional OpenCV template matching), validator parser-agreement test against sharp metadata(), exifr for browser metadata, bits-per-pixel budget in export_dpi.",
+  "r2: M08a: added asset_visibility (default entry-private) and encroachment import; M01 gate G-04 reads it. Flag changes: added five FALSE_ASSUMPTION flags (brief PDF, view-cone ceiling, 18 working days, clipper2 hidden lines, longOffset string), marked the first '15:59' correction as superseded by the 16:59 flag, narrowed the OpenAI UNVERIFIED flag, and added UNRESOLVED flags for the Q&A channel, Terms alteration, GPU host and UBC closure.",
+  "r2: Sources: removed S26, S28 and S33 (library-only, not cited by any item); added S54 (OpenAI data controls), S55 (Modal pricing), S56 (BC statutory holidays), S57 (Clipper2), S58 (MDN Intl), S59 (JPEG markers); revised S01-S05, S07, S11, S25, S31, S45, S47, S49, S51. Count is 48, above the target of about 40 because every retained source is cited by a parameter, metric or flag.",
+  "r2: Research limits: City policy PDFs (1997 policy, Public Views Guidelines) returned 403 to fetch and curl; the Review overview PDF alternated between a PDF and a block page and was not read; the OGL-Vancouver licence page returned navigation only; UBC key dates returned 404; the OpenCascade HLR section was not reachable in the pages fetched."
+ ],
+ "notes": "r2 notes. No search engine was available (shared web-search budget used up); all checks were direct page fetches plus one direct call to the City view-cones records endpoint, with bearings, distances and calendar arithmetic computed by the spec author. Not opened: brief PDF (the team holds it), 1997 Higher Buildings Policy and Public Views Guidelines (403), Review overview PDF, Open Government Licence - Vancouver text, OpenAI Help Center article.\n\nModule DAG (acyclic, topological order): M02 and M03 -> M04 -> M05 -> M08a (M03 also -> M08a for encroachment candidates); M06a -> M02 (fit check); M06a + M08a + result cards -> M07 (v1, optional) -> M08b (v1, optional) -> M06b (v1 composer; also reads M02, M03, M05, M08a); M06v (validator, core) and M06b -> M01 (also reads M06a, M08a; M07 optional) -> M06c (release gate). Nothing flows back from M01 or M06c. Port contract: every input port is tagged required or optional with a defined null behaviour (M07 gaps = none; M08b text = typed in M06a; board_layout = manual placement list); a build test fails if a core node has a required port fed by a v1 node.\n\nDocument register (interface request to the DATA packet): entries {title, url, retrieved, sha256, pages, read_by} for the brief PDF, Terms HTML snapshot, 1997 Higher Buildings Policy, Public Views Guidelines, Open Government Licence - Vancouver; P13-M01 brief_register is a view of it, and SITE/PROG packets reuse it.\n\nDated human tasks (outside the tool; all dates 2026): Wed 21 Oct start identity verification for every member (Terms 3.6.A.1-A.2: verification precedes payment and UIC; may include ID or biometric checks and a fee, 3.6.C.2-C.3); Fri 23 Oct (latest Sat 24 Oct) store the brief PDF, record SHA-256, two members transcribe rules with page numbers, snapshot the Terms, and open the 1997 policy, Public Views Guidelines and OGL-Vancouver text in a browser; Mon 26 Oct draft the Q&A pack; Tue 27 Oct register, pay and validate the UIC (registration closes Thu 29 Oct, hour not stated); Fri 30 Oct send the Ask the Jury question and the organiser-contact questions (Terms 10.10.4 default deadline would be Sun 1 Nov; page says Tue 3 Nov); Tue 3 Nov Q&A closes, log answers as dated non-binding entries; Fri 6 Nov validator and M01 core ship; re-read Terms and brief (compare hashes) weekly and 48 h before upload; upload once, well before Mon 30 Nov 23:59Z (16:59 Vancouver).\n\nQ&A pack (one row per open flag, quote the clause). Ask the Jury, single free slot (brief interpretation): Q1 does 'all information in English' admit Nation names (hən̓q̓əmin̓əm̓, Sḵwx̱wú7mesh, səlilwətaɬ) with an English gloss. Organiser contact form (portal and rules): C1 is 10 MB (Terms 4.8) 10^6 or 2^20 bytes; C2 does the portal limit pixels, colour profile, progressive JPEG or file names; C3 which closing time governs, 23:59 (page) or 24.00 (4.7) London; C4 is the Q&A deadline 3 Nov (page) or three days after registration closes (10.10.4); C5 does posting work-in-progress in a community area count as previous publication (4.1); C6 is AI-generated imagery accepted and what disclosure is expected; C7 is 'four boards' exact or a maximum (if the brief text is not clear).\n\nDelivery plan (priority core = needed for the 13 Nov course core or for entrants before 30 Nov): Tier A 6 Nov: M06v validator, M01 hard rules, deadline, gates, M06c (7 person-days). Tier B 10 Nov: M03 presets, cone overlay and neutral encroachment report, M04 clay capture, M08a ledger, rights and visibility (7.5). Tier C 13 Nov: M01 language and Q&A, M06v OCR and glyph warning, M06a thin layout, visual-check UI, M02 v0 Make2D import, M05 OpenAI route (13.5). Total 28 + 15% reserve = 32 person-days against 34 at full availability (17 working days x 2 after Remembrance Day); at f = 0.6 capacity is about 20, so Tier C slips (cut order M02 v0, M05, M06a). v1 by 10 Dec: M06b composer, mesh-based M02, ControlNet route and SAM 2 service, M07, M08b. v1 items do not reach entrants before 30 Nov."
+}

@@ -1,0 +1,282 @@
+{
+ "expert_role": "Gatekeeper reviewer for geodesy, City of Vancouver view-protection data and browser 3D tooling (round 3, packet C04)",
+ "previous_round": [
+  {
+   "item": "MAJOR: Coordinate frame (grid and geodesic mixed)",
+   "status": "addressed",
+   "residue": "Recomputed here and matches: QE to 1060 Barclay geodesic 4,638.97 m at 346.900 deg; grid 4,637.11 m at 346.986 deg; Vista frame 4,613.06 m (25.91 m short). The 828 Cambie case now uses the address point as if it were the site (new finding F1)."
+  },
+  {
+   "item": "MAJOR: Per-cone ENU frame and render vs profile",
+   "status": "addressed",
+   "residue": "d^2/2R gives 0.227, 1.66 and 2.83 m. The (1-k) drop gives 15.36 m (0.059 deg) at 15 km and 42.67 m (0.098 deg) at 25 km. Both reproduce."
+  },
+  {
+   "item": "MAJOR: State machine had no limit-unknown or datum-unknown state",
+   "status": "addressed",
+   "residue": "The HeadroomMap governing rule can still show a clear where a per-cone result is uncertain (F2)."
+  },
+  {
+   "item": "MAJOR: U95 and thresholds",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: Tall Challenge hypothetical site",
+   "status": "addressed",
+   "residue": "The spec says the Brief is unread, but the team's own brief.json cites brief pp.15 and 19 (F6)."
+  },
+  {
+   "item": "MAJOR: Delivery scope vs 13 Nov and 30 Nov",
+   "status": "partly",
+   "residue": "The cut list is published, but its LiDAR heightfield and hypothetical-site items have no MVP share in M07 or M06 (F3). Most cones will read limit unknown at MVP and the spec does not say so (F4)."
+  },
+  {
+   "item": "MAJOR: Clause text, release gate and ViolationReport rename",
+   "status": "addressed",
+   "residue": "The gate is specified. The spec still says the 2026-02-04 text is unread, yet Vista's guideline.json records a local copy accessed 2026-09-22 (F5)."
+  },
+  {
+   "item": "MINOR: Fog and depth",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: Field of view for wide cones",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: Plan buffer and governing limit",
+   "status": "partly",
+   "residue": "Governing by smallest L + U95 is the wrong bound for headroom (F2)."
+  },
+  {
+   "item": "MINOR: Existing-skyline epoch",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: Warning copy hierarchy",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: PDF limits and costs",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: Licences",
+   "status": "addressed",
+   "residue": "The plan is stated, but no LICENSE file exists yet in any of the four repos. PVV README says 'To be decided before release (G6)'."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C04-M01/M04 validation case '828 Cambie against cone A (near edge)', the 'Plan-edge misses' metric and the r1 change-log line",
+   "issue": "The tested point is the address point (geo_point_2d), not the site. I fetched the parcel for 828 Cambie St (site_id 031375499; vertices -123.11530,49.27785 / -123.11453,49.27735 / -123.11425,49.27753 / -123.11503,49.27803) and projected it to the EPSG:3157 grid. Two vertices lie about 39-40 m inside the cone A east edge and two lie about 39-40 m outside. The parcel therefore overlaps cone A by about 40 m. This fits the booklet summary, which places vertex F (105.71 m) under cone A. 'State: near edge' and '828 Cambie lies 0.19 m outside cone A' are false for the site, and a designer reading them would be misled.",
+   "fix": "Rename the case 'P828 address-point frame fixture'. It still tests 0.191 m outside in the grid, 0.192 m geodesic, and 2.78 m inside under mixed frames. Add a parcel fixture: the 828 Cambie parcel against cone A gives an inside-plan overlap of about 40 m, and with the T1a 105.71 m limit (unverified) the state comes from height. Delete the r1 change-log claim. The Site port must test parcel or footprint polygons, never address points."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04-M04 governing limit and HeadroomMap",
+   "issue": "L_gov is the cone with the smallest L + U95, and the HeadroomMap shows L_gov minus grade. Take cone X with L 120 m and U95 0.01 m (T1a), and cone Y with L 118 m and U95 6 m (T1b). X governs, so the map shows 120 m. A 119 m design is clear for X but within uncertainty for Y. The drag-to-try map therefore shows a clear headroom where the per-cone card warns. This breaks the spec's own zero-silent-clears metric.",
+   "fix": "The HeadroomMap should show two surfaces. Clear-below is min_i(L_i - U95_i) minus grade. Surely-above is min_i(L_i + U95_i) minus grade. Hatch the band between them as 'within uncertainty'. Per-cone states stay authoritative. Add the X/Y example as a state fixture."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04 13 Nov MVP cut list against MVP effort (11.5 person-days)",
+   "issue": "The cut list includes 'LiDAR origin z and grade', 17 origin windows, a 5 m downtown grade field and hypothetical-site mode. M07 (heightfield pipeline) and M06 (import and placement) have no MVP share. LAS tiles run from 16.45 MB to 2.74 GB, the downtown tile sizes are unknown (HEAD returns 403), and no gridding tool (laspy or PDAL on Windows) is named. The `python` on this machine reports 3.9, while the brief says 3.13. The 11.5 figure understates the MVP.",
+   "fix": "Add an M07 MVP share (about 2 person-days: download 11 origin tiles plus the T1b reference-roof tiles, grid the bare-earth class, write int16) and an M06 MVP share (about 1 person-day: place a block, base z from LiDAR). Name the tool and Python version. Alternatively, cut the 5 m grade field and precompute only the origin z values and reference-roof z values. Restate the total at about 14-15 person-days against the 'bad' threshold of 16."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04-M04 MVP value: limit coverage",
+   "issue": "At 13 Nov, only cones A, E and 22 (T1b, if their LiDAR roofs are measured) and 3.2.1 (T1a 123.201 m, unverified search summary) can carry a limit L. The other 20 of 24 cones, including the downtown 3.2.x and 9.x cones that matter most to entrants, will read 'limit unknown'. The spec never states this expected coverage, so the team may present the MVP as a height checker.",
+   "fix": "Print the coverage (for example 'limits estimated for 4 of 24 cones') on the node and in the PDF. Today, email views@vancouver.ca, the address the view-cones dataset metadata gives for site implications, asking for L and the origin elevation for each downtown cone. Prioritise T1b for the cones that cross downtown."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04-M08 release gate and the Public Views Guidelines dataset entry",
+   "issue": "The spec says the 2026-02-04 text is 'unread by the team (HTTP 403)'. Vista's data/guideline.json records source.amended '2026-02-04', local_copy 'sources/guidelines-public-views.pdf', accessed '2026-09-22', and a 24-row Table 1 extract, including J2 'Amended 2024, 2025'. The team therefore downloaded the 2026 text a month ago. The sources/ folder is simply missing from the read-only copy. The gate is blocked only because the reviewers lack that file.",
+   "fix": "Recover sources/guidelines-public-views.pdf from the team's working tree. Hash it and diff it against the Jul 2024 (79d5face) and Jun 2025 (54cf65e8) copies. Have a named member sign guidelines.lock.json now. Settle the 9.1/9.2 origin text and the 27.1/27.2 subjects from that copy."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Tall Challenge Brief status (M04 'Buildner question', M08 AI policy, unresolved items)",
+   "issue": "The spec says the Brief was not read because it needs an email sign-up. The team's program-value-visualizer/briefs/vtc-2026/brief.json is labelled 'public brief', is dated as_of 2026-06-01, and cites pp.15 and 19 with grade A. The team holds the Brief. The competition page also shows a reference image titled 'Queen Elizabeth View Tower Heights' and links the challenge to the City's Higher Buildings Policy Review, so the Brief probably discusses view-cone heights.",
+   "fix": "Before the 3 Nov Q and A deadline, a team member searches their copy of the Brief for view, cone, Queen Elizabeth, height policy and AI, and records the pages. Ask Buildner only what the Brief leaves open. Update the AI-policy and view-cone-applicability flags with the page numbers."
+  },
+  {
+   "severity": "MINOR",
+   "item": "HRDEM North Shore coverage (M07 and dataset entry)",
+   "issue": "'Covers the North Shore peaks' is inferred from the item bbox (lat 49.00-49.51). LiDAR project footprints are irregular, and restricted watershed terrain may have no data. Coverage at the peaks is unverified.",
+   "fix": "Sample the DTM COG at the five peak coordinates and record any nodata. Fall back to CanElevation MRDEM (30 m, seamless) before SRTM, and record its CGVD2013 datum."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Backdrop resampling (M07 heightfield_bytes, M05 profile)",
+   "issue": "Averaging to 25-50 m cells lowers sharp summits. The Lions are rock pinnacles and are the named subject of several views. A 20-50 m loss at 24 km is 0.05-0.1 deg, the same size as the 0.02 deg render/profile test.",
+   "fix": "Use max-preserving downsampling, or keep 5 m tiles inside each cone's subject sector. Add a test: modelled summit z within 2 m of the source DTM maximum for the five peaks."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Backdrop extent (M07)",
+   "issue": "A fixed 20 x 15 km North Shore window is not derived from the cone sectors. Subjects lie 12.5-24.6 km from the origins, and the horizon ridge can lie beyond them.",
+   "fix": "Compute the extent as the union of each cone sector plus 2 deg, out to the first horizon-defining ridge (marched on MRDEM). Record it in the tile manifest."
+  },
+  {
+   "severity": "MINOR",
+   "item": "M07 origin heightfield window",
+   "issue": "The method says '1 m within 100 m of each origin', which is a 200 m square, 40,000 cells and 1.36 MB for 17 windows. The parameter uses a 100 m square and 0.34 MB.",
+   "fix": "Choose one radius, then restate the cells and bytes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Horizontal datum handling (M01 frame rule, proj4js definition)",
+   "issue": "'+proj=utm +zone=10 +ellps=GRS80' with no datum shift implicitly treats the portal's 'WGS84' lon/lat as NAD83(CSRS). That is probably right for City layers, but the spec never says so. OSM footprints and GNSS points are in an ITRF-based WGS84 and can sit about 1-2 m off.",
+   "fix": "State the policy: City layers get no datum shift; OSM and GNSS inputs are flagged as a different frame and carry sigma_hdatum. Verify by overlaying LiDAR-2022 building-class points on parcel and footprint edges, and record the residual."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Vista context heights (dataset entry for the Vista pack)",
+   "issue": "unified_manifest.json shows the supplied buildings were re-grounded on SRTM with z shifts of -12.24 to +21.61 m (median 0.48 m). Vista roof z therefore mixes SRTM error with OSM heights. The spec says only 'heights unverified'.",
+   "fix": "Record the shift range. Exclude Vista roof z from any parity test of absolute elevation; use the pack only for footprint and visual parity."
+  },
+  {
+   "severity": "MINOR",
+   "item": "M07 bytes_per_building basis",
+   "issue": "982 B per building is unified_buildings.bin (9,722,568 B) divided by the 9,897 supplied buildings only. The 51,510 extension buildings use about 320 B each. Across all buildings, bins plus indexes give about 515 B.",
+   "fix": "Restate as '982 B (supplied mesh) / 320 B (extension) / 515 B (overall incl. index)' against the 50-60 B LOD1 target."
+  },
+  {
+   "severity": "MINOR",
+   "item": "M04 banned-word lint",
+   "issue": "A lint that bans 'approved' and 'safe' in UI strings will hit legitimate data: the Table 1 'Date approved' column and 'Council-approved' citations.",
+   "fix": "Scope the lint to generated warning and card copy. Allow-list quoted source text and citation fields."
+  },
+  {
+   "severity": "MINOR",
+   "item": "M08 GPT-6 Astra facts",
+   "issue": "The model page (re-read) also lists cached input at $1, Batch and Flex at 50% of Standard, and Fast mode at 2x. It names no restricted release. The 'rejects some security prompts' line traces only to the community post's trusted-access cyber rollout.",
+   "fix": "Use Batch for bulk extraction and checks. Attribute the restriction note to S27, not S28."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "828 Cambie lies 0.19 m outside cone A; state: near edge.",
+   "why_false": "Only the address point lies 0.19 m outside. The 828 Cambie parcel straddles the cone A east edge, with vertices about 39-40 m inside and 39-40 m outside in EPSG:3157.",
+   "correction": "The parcel overlaps cone A by about 40 m, so the state depends on height (published vertex F 105.71 m, unverified). Keep the 0.19 m point only as a frame fixture.",
+   "evidence": "Explore API property-parcel-polygons record for civic_number 828 CAMBIE ST (fetched 2026-10-21). Kruger UTM 10 on GRS80, cross-track distance from the apex 49.2672429,-123.1319237 to the east vertex 49.28560294,-123.10179402."
+  },
+  {
+   "claim": "The 2026-02-04 Public Views Guidelines text is unread by the team.",
+   "why_false": "Vista data/guideline.json records amended 2026-02-04, local_copy sources/guidelines-public-views.pdf, accessed 2026-09-22, and a 24-row Table 1 extract.",
+   "correction": "Recover the team's copy, hash it and sign the lock. Only the reviewers' fetch failed (HTTP 403 again on 2026-10-21).",
+   "evidence": "vancouver-tall-view-tool/data/guideline.json, source block."
+  },
+  {
+   "claim": "The Tall Challenge Brief was not read (email sign-up needed).",
+   "why_false": "The team's brief.json is labelled 'public brief', is dated as_of 2026-06-01, and cites pages 15 and 19 with grade A, so the team holds it.",
+   "correction": "Read the team's copy for view-cone and AI rules before 3 Nov. The competition page also shows a 'Queen Elizabeth View Tower Heights' reference image.",
+   "evidence": "program-value-visualizer/briefs/vtc-2026/brief.json; architecturecompetitions.com/vancouvertallchallenge/ fetched 2026-10-21."
+  },
+  {
+   "claim": "The 13 Nov MVP fits in 11.5 person-days.",
+   "why_false": "The cut list includes LiDAR grade fields and hypothetical-site placement, but M07 and M06 contribute no MVP share.",
+   "correction": "About 14-15 person-days, or cut the 5 m grade field.",
+   "evidence": "Spec effort strings: M07 '5 person-days', M06 '4 person-days', no MVP share in either."
+  }
+ ],
+ "missing": [
+  "A parcel-polygon fixture set (828 Cambie, 1060 Barclay, the Shangri-La footprint) alongside the address-point frame fixtures",
+  "A two-surface HeadroomMap rule (L - U95 and L + U95) and its fixture",
+  "A stated MVP limit coverage (expected about 4 of 24 cones) and a dated request to views@vancouver.ca",
+  "The LAS-to-heightfield tool, Python version and per-tile byte list for the 11 origin tiles and the reference-roof tiles",
+  "A SHA-256 of the team's existing 2026-02-04 Guidelines copy and a diff against the 2024 and 2025 copies",
+  "Brief page references for any view-cone, height-policy or AI rule",
+  "An HRDEM nodata check at the peaks and an MRDEM fallback",
+  "A max-preserving backdrop downsampling rule and a summit-height test",
+  "An explicit horizontal-datum (no-shift) policy and a LiDAR-overlay residual"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Replace the 828 Cambie 'near edge' site claim with an address-point fixture plus a parcel fixture (inside cone A by about 40 m); the Site port tests polygons only",
+   "Change the HeadroomMap to clear-below = min(L - U95) and surely-above = min(L + U95), with the band hatched as within uncertainty",
+   "Add MVP shares for LiDAR gridding (M07) and block placement (M06), or cut the grade field; restate the total",
+   "State the expected MVP limit coverage and send the views@vancouver.ca request now",
+   "Hash and sign the team's existing 2026-02-04 Guidelines copy (accessed 2026-09-22) in guidelines.lock.json before release",
+   "Read the team's Brief for view-cone, height and AI rules before the 3 Nov Q and A"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "HTTP 403 on 2026-10-21. The local Jun 2025 copy (SHA-256 54cf65e8, 'Last amended June 4, 2025') and Jul 2024 copy (79d5face) match the spec. Vista guideline.json shows the team holds the 2026-02-04 copy."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "Modified 2026-10-19, 24 records, OGL-Vancouver, fields as listed including shapre_area. No height and no CRS stated. Metadata gives views@vancouver.ca for site implications."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "0.081 m (95% confidence level), about 49 pts/m2, flown 7 and 9 Sep 2022, NAD83(CSRS) 4.0.0.BC.1.GVRD, CGVD28GVRD with HTMVBC00, 181 tiles, modified 2023-04-18. Matches the spec."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons/records?where=civic_number=\"828\" and streetname like \"CAMBIE\"",
+   "ok": true,
+   "note": "Parcel straddles the cone A east edge by about 40 m; contradicts the 'near edge' site claim."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/models/gpt-6-astra.md",
+   "ok": true,
+   "note": "Text and image in, text out; 1.05 M context; 922 K max input; 128 K max output; cutoff 2026-04-30; $10/$50; over 272K tokens 2x input and 1.5x output; PDF input not listed. Batch and Flex at 50%."
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/build-with-claude/pdf-support",
+   "ok": true,
+   "note": "32 MB; 600 pages (100 when the context is under 1 M tokens). Matches."
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Dates match (29 Oct, 3 Nov, 30 Nov, 26 Jan). FAQ AI wording matches. Page shows a 'Queen Elizabeth View Tower Heights' image."
+  },
+  {
+   "url": "https://threejs.org/docs/pages/WebGLRenderer.html",
+   "ok": true,
+   "note": "reversedDepthBuffer requires EXT_clip_control; logarithmicDepthBuffer disables the early fragment test. Matches."
+  },
+  {
+   "url": "https://doc.esri.com/en/arcgis-pro/latest/tool-reference/spatial-analyst/viewshed-2.html",
+   "ok": true,
+   "note": "Refractivity default 0.13. The page gives no curvature formula, so the (1-k)d^2/2R form is the team's own."
+  },
+  {
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "ok": true,
+   "note": "1 GB site, 100 GB/month soft bandwidth, 10 builds/hour, 10-minute timeout. Matches."
+  },
+  {
+   "url": "https://arxiv.org/abs/2506.00203",
+   "ok": true,
+   "note": "GPT-4o and Gemini 2.0 Flash; geocoding offsets and underestimated elevations in Austria. Matches."
+  },
+  {
+   "url": "https://epsg.io/3157",
+   "ok": true,
+   "note": "GRS80, CM -123, k0 0.9996; transformations to WGS 84 at 1.0 m (1946, default) and 2.0 m (1842). Matches."
+  },
+  {
+   "url": "https://web.archive.org/ (Guidelines and Robson booklet)",
+   "ok": false,
+   "note": "The fetch tool cannot reach the archive. Web search budget exhausted this turn, so no further search was possible."
+  },
+  {
+   "url": "local: vancouver-tall-view-tool explorer.js, report.js, data/*.json, generated/*",
+   "ok": true,
+   "note": "Verified: observer far 45,000 m and fogFar 9,000 m (line 410); backdrop fog 42,000 m (line 433); fog cap 0.55; the hfov and pitch rule (report.js about lines 109-110); 161 function declarations; fixtures F1-F3; 38,684,239 B generated (38,656,461 B excluding labels and manifests); 9,897 plus 51,510 buildings; no LICENSE in any repo; 14 of 24 views at the 24 deg floor; 17 distinct origins. Recomputed QE-Barclay, cone A, ENU and drop figures, and the 2004 sheet rows."
+  }
+ ],
+ "verdict": "Round 3 fixes every BLOCKER and MAJOR item from the previous critique except delivery scope, which is only partly fixed. The geodesy reproduces exactly. The frame rule, the seven states, U95, the release gate and the hypothetical-site mode are sound. Four problems remain. The 828 Cambie 'near edge' case tests an address point, but the parcel overlaps cone A by about 40 m. The HeadroomMap's L + U95 governing rule can show clears that the per-cone card contradicts. The MVP budget leaves out LiDAR gridding and block placement. Two 'unread' claims are false: the team already holds the 2026 Guidelines (accessed 2026-09-22) and the Brief. The team can start building now if the named conditions are met before the MVP release."
+}

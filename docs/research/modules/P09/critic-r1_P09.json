@@ -1,0 +1,322 @@
+{
+ "expert_role": "Transportation engineer preparing transportation studies (TAMS/TIS, parking-loading-bicycle reviews, station-connection studies) for Vancouver rezonings",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P09-M01",
+   "issue": "The Trip Diary baseline is a household (residence-based) survey. Sub-regions 21 'CBD - West End' and 22 'CBD - False Creek' have sample targets of only a few hundred households each (S15 tables), so their mode shares describe trips made by people who live in the CBD. The spec applies them as the mode split for all uses, including office, retail and hotel trips attracted from across the region. Downtown residents walk far more and drive less than people commuting into the CBD. Office commute transit and auto trips would be badly misestimated, and that error carries into M02, M03, M04, M07 and M08.",
+   "fix": "Split the baseline by trip end. (a) Residential production trips use residence-based shares for sub-regions 21/22. (b) Office, retail, hotel and civic attraction trips use destination-based shares, i.e. trips ending in the CBD by purpose, from the dashboard if it offers a destination filter. Otherwise use Census place-of-work journey-to-work data for downtown census tracts, flagged as COVID-affected 2021 data, and City downtown cordon/screenline counts. Store the basis (residence, origin or destination), the sample size and the confidence interval with each loaded share, and refuse to run office attraction trips on a residence-based share without a red badge."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P09-M03",
+   "issue": "The passage is sized only for tower-generated transit trips. The brief calls it a secondary station entrance, so the public will use it as a station entrance and route through it from the whole catchment, and its share of station flow would likely exceed the tower's own demand. Emergency egress from the station (NFPA 130 platform-evacuation and point-of-safety criteria, which SkyTrain design applies) may govern width regardless of comfort. The module says egress is out of scope but still reports a pass/fail width.",
+   "fix": "Add station-entrance demand as a required input: TransLink entrance or boardings data, or a user scenario for the share of station flow captured by the new entrance. Size on tower plus station patrons plus through-pedestrians. Add an egress-check placeholder that hands off to SYST/NFPA 130, and block a green width badge until that check exists. Label the result 'comfort only, not egress-compliant'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The TfL PCL bands are applied to a peak-minute flow (peak hour / 60 x platoon factor). TfL calibrates ppmm as people per hour / 60 / clear footway width using peak-hour flow, and uses a separate 'Average of Maximum Activity' check based on the busiest 10-second samples. Inflating flow with a platoon factor and then reading it against hour-average bands double-counts peaking and is not the TfL method, yet the metric is labelled 'verified'.",
+   "fix": "Either compute ppmm on peak-hour flow and read it against TfL Figure 9 (peak and Ave-of-Max columns by area type), or use a station-design method built for platoon surges (TCQSM ch.10 / Fruin walkway LOS on a 1-5 min surge). Do not mix the two. Document which one runs and re-label the status."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The TfL guidance covers footways and road crossings ('Pedestrian Comfort Levels on Footways', Figure 8). It does not cover below-grade station passages, stairs, escalators or fare lines. Applying it there is outside the source's scope.",
+   "fix": "For station elements use transit-station standards: TCQSM 3rd ed. ch.10 walkway, stair and queuing LOS, escalator and fare-gate capacities, plus TransLink station design requirements. Keep TfL only for the street-level footways in M04. Mark any TfL use underground as team_assumption."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The Fruin queue-area thresholds are mislabelled. 1.4 m2/p and 0.9 m2/p are Fruin walkway LOS boundaries (C/D and D/E). On the queuing-area scale, roughly A >=1.2, B 0.9-1.2, C 0.7-0.9, D 0.3-0.7, E 0.2-0.3, F <0.2 m2/p. So 'below 0.9 = LOS E/F' is wrong for queues: on the queuing scale, 0.9 is roughly the B/C boundary.",
+   "fix": "Use the queuing-area table (TCQSM / HCM reproduction of Fruin) for stair and fare-line queues, keep the walkway table for moving links, and cite the exhibit number once it is read from a primary copy. Keep status unverified until then."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M04",
+   "issue": "The TfL area-type guidance is collapsed into a single good/bad pair (<=11 / >=18 ppmm), leaving 12-17 ppmm undefined. TfL Figure 9 rates B as 'acceptable' at peak only for High Street. For Office & Retail and Transport Interchange areas, B is 'at risk'. TfL also says PCL should not fall below C+ at peak even where vitality compensates. The metric is labelled 'verified' while the flags call TfL a TEAM_ASSUMPTION.",
+   "fix": "Encode Figure 9 as a lookup by area type (high street, office/retail, residential, tourist, interchange) and by peak vs Ave-of-Max, with explicit amber bands. Set status to team_assumption with the source value marked as sourced. Add a boundary rule for non-integer ppmm values that fall in the band gaps."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M07",
+   "issue": "Baseline mismatch. The VTPI reductions (Ewing 1993 Sacramento, a prediction; Spack & Finkelstein 2014, measured against ITE vehicle-trip rates; Rye/Boarnet bundles) are measured against US/UK car-oriented baselines. M07 applies them to a CBD baseline that already embeds low auto share, which double-counts the downtown effect. The metrics are still marked 'verified'.",
+   "fix": "Apply TDM effects only against a car-oriented baseline (ITE-type), or scale them by the remaining auto share. Show 'evidence context: US metro / predicted' beside each value. Change the metric status to team_assumption (value sourced, applicability assumed). Cap claims at a fraction of the CBD baseline auto share, not at an absolute 37%."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M07",
+   "issue": "The City of Vancouver's own TDM policy for developments is not modelled. Storeys (S02, opened) reports that 'the TDM policy is tied to the minimum parking requirements, which now no longer exist', and that staff intended to lower the financial expectation for Downtown, Broadway and TOAs. M02's 'TDM variance' relies on a c.2021 memo (S11) that predates the 2024 change.",
+   "fix": "Add a SITE/MOBI rule row for the City TDM requirement (plan, points or measures, any financial security) with version date and status 'unverified pending the City bulletin'. Mark the S11-based TDM variance logic as possibly superseded. In M07, report both the City-policy view and the evidence-based effect."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M01",
+   "issue": "Internal capture (NCHRP 684 logic) is removed before applying CBD zone mode shares. The zone shares already contain short walk trips between nearby uses, so this double-discounts external trips. NCHRP 684 was also calibrated on multi-use developments to adjust ITE vehicle-trip estimates, not on a single CBD tower under a local person-trip split.",
+   "fix": "Default internal capture to OFF in CBD mode, or apply it only in an ITE-based vehicle-trip pathway. Explain the double-counting risk in the node tooltip and keep NCHRP 684 marked unverified until it is read."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The tower's share of the new entrance is driven by a regional built-environment elasticity of transit use with respect to distance to a stop (VTPI table from Vernez Moudon & Stewart 2013). That elasticity describes mode choice, not choice among entrances of one station. In the source the sign is positive and the spec flips it by its own rule.",
+   "fix": "Model entrance choice with shortest walking time, or a simple logit on walking time across the station entrances, using the passage graph. Drop the elasticity here and mark any direction rule as a team assumption."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03,P09-M04,P09-M07,P09-M08",
+   "issue": "The status taxonomy is applied inconsistently. 'verified' is used where only the number is sourced and applicability is a team choice (TfL in Vancouver, VTPI ranges as acceptability thresholds). M08's mode-priority check is 'verified' from a 1997 hierarchy reported in a 2009 paper while the current plan was not opened. This breaks the course rule of separating sourced facts from human judgment.",
+   "fix": "Split status into two fields: value_status (sourced/unverified/assumed) and applicability_status (source-stated/team-applied). Allow 'verified' only when both are sourced and current. Re-label the affected metrics: M03 and M04 PCL and width metrics, all M07 metrics, and the M08 mode-priority check."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M02",
+   "issue": "There are no passenger-loading rule rows, and M05 sizes kerb bays only by a queue preset. From practice, the Vancouver Parking By-law (Section 5) includes passenger-space requirements by use, including hotels. This needs confirmation because City pages returned 403 and the search budget is exhausted. A hotel component in a supertall would trigger them.",
+   "fix": "Add passenger-space rule rows (class, use, rate, dimensions) to the rule-pack schema, with status 'unverified – load from Section 5'. Make M05 compare by-law-required passenger spaces with queue-model demand and take the larger value."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M05",
+   "issue": "The swept-path and dock checks name no design vehicles. Canadian practice uses the TAC Geometric Design Guide design vehicles (e.g. MSU/HSU single-unit trucks, WB-series tractor-trailers, the City garbage truck). Typical downtown Vancouver lane widths (~6 m) also have to be entered by the user, so results are not reproducible across entrants.",
+   "fix": "Ship a design-vehicle library (dimensions, wheelbase, minimum turning radius, height) citing TAC GDG. Map each loading class to a default design vehicle plus the City refuse vehicle. Require a lane-width input and default it to an editable, flagged team assumption."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M06",
+   "issue": "Every rate, container size and room standard is a placeholder, so the module cannot return a sourced judgement. The City's garbage and recycling storage design guidance and the Metro Vancouver disposal bans on organics and recyclables were not searched, and the stream split depends on them.",
+   "fix": "Demote M06 to 'experimental' until at least the City storage-facility guidance and the Metro Vancouver disposal-ban list are attached. Meanwhile output only relative comparisons (e.g. chute vs service lift) and no pass/fail badges."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09 (packet)",
+   "issue": "The schedule does not fit. Today is 21 Oct 2026 and the deadline is 30 Nov 2026 (about 6 weeks). The four 'core' modules are each estimated at M (about 2 weeks) or L, and they depend on hand-loaded dashboard values and transcribed by-law rows that do not exist yet. Entrants are likely to get untested or empty rule packs.",
+   "fix": "Define an MVP for the competition: M01 with the corrected baseline split, M02 with a single community-reviewed rule pack (versioned, checksummed, two-person transcription check), M05 placement plus Erlang C, and M04 at the street-level TfL footway check. Defer M06, M08 tier 2 and the JuPedSim validation."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M03",
+   "issue": "The headway inputs mislead for a CBD station. The Millennium Line does not serve downtown (its western terminus is VCC–Clark). Canada Line '6 min' is the per-branch headway; the Waterfront–Bridgeport trunk runs about 3 min. The Expo trunk runs 2–3 min at peak (S23).",
+   "fix": "Limit station lines to the Expo and Canada lines for a CBD site, use trunk headways, and read GTFS for the actual station. Note that the train on the neighbouring site is hypothetical."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M08",
+   "issue": "S18's Table 3-2 is misreported: it splits 0.85–0.95 (near capacity) from 0.95–1.00 (unstable). The LOS bands are cited from HCM 2000, which has been superseded. Under current HCM, a movement with v/c > 1.0 is LOS F whatever its delay.",
+   "fix": "Cite the Table 3-2 bands exactly, add the v/c > 1.0 → LOS F override, and label the method 'HCM-style (bands unchanged in later editions)'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "'Peak-hour factor' is used to mean the peak-hour share of daily trips (a K-factor). In traffic engineering, PHF means hourly volume / (4 x peak 15-minute volume). Entrants and reviewers will misread it.",
+   "fix": "Rename it 'peak-hour share of daily (K)' and keep PHF for the 15-minute peaking that M04 and M08 need."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "The City-target metric uses a recalled two-thirds target with no year. Transportation 2040 set its target for 2040, and the later climate plan reportedly moved two-thirds to 2030. The target is city-wide, not a site-level test, and 'bad <50%' is meaningless downtown.",
+   "fix": "Keep it unverified until read. Show target year and scope ('city-wide trips'), present it as context rather than pass/fail, and remove the 50% preset."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M02",
+   "issue": "The rule pack omits EV-charging and car-share provisions. Memon (S12, opened) documents that the by-law includes electrical outlets for EVs and car-share spaces. Any stalls a team chooses to supply carry EV-ready obligations that affect the electrical room in SYST.",
+   "fix": "Add rule-row types for EV-ready stalls (% energized by use) and car-share spaces or substitutions, with outputs to SYST. Mark them unverified until Section 4 is read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M02",
+   "issue": "Only a non-residential downtown maximum is listed. Residential maximums, and the 1997 downtown commuter-parking ceiling concept (about 34,000 peak vehicles, S12), are absent. Accessible parking rows have no van-accessible split.",
+   "fix": "Add residential maximum and accessible/van-accessible rows to the schema, each with clause and version date."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "A 1,000-draw Monte Carlo over unsourced low/base/high ranges gives P10–P90 whiskers that look like evidence-based uncertainty.",
+   "fix": "Label the whiskers 'scenario spread from assumed ranges' and grey them out when more than half the factor ranges are team assumptions."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "The spec repeats the claim that ITE rates ignore location (S46, Wikipedia). Recent ITE Trip Generation editions report data by site setting, including Center City Core and Dense Multi-Use Urban, and include person-trip data.",
+   "fix": "Correct the limits text: ITE is paywalled but does carry urban-setting and person-trip data; use it only as a cross-check if a user has a licence."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "The S21 attribution is mixed. The distance, mix and intersection-density elasticities come from the Vernez Moudon & Stewart (2013) table, not Ewing & Cervero 2002. The positive sign on distance to transit is shown as-is in the source.",
+   "fix": "Cite the table exactly, show the source sign, and label the 'direction rule' as a team assumption."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01,P09-M03,P09-M08",
+   "issue": "gtfs_kit's GitHub repository was archived on 5 May 2026 and development moved to Codeberg. Linking the archived repo invites stale installs.",
+   "fix": "Point the library entry to codeberg.org/araichev/gtfs_kit and pin a version."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The 2023 Trip Diary weekday shares for CBD sub-regions 21 and 22 are the right default mode split for all trips the tower generates (office, retail, hotel, residential).",
+   "why_false": "The survey samples households by residence. Sub-region figures describe trips by CBD residents, not trips attracted to CBD workplaces from across the region.",
+   "correction": "Use residence-based shares for residential trips and destination-based shares (trips ending in the CBD, Census place-of-work data or cordon counts) for attraction uses.",
+   "evidence": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2023-regional-trip-diary-technical-report.pdf: household recruitment and household-level weighting; sub-regions 21 'CBD - West End' and 22 'CBD - False Creek' listed with household sample targets in the hundreds."
+  },
+  {
+   "claim": "TfL PCL bands verified as thresholds for peak-minute flows in below-grade station passages, with B+ (<=11 ppmm) good and >=18 bad for all area types.",
+   "why_false": "TfL computes ppmm from people per hour / 60 / clear footway width using peak-hour flow, and the bands are titled 'Pedestrian Comfort Levels on Footways'. Figure 9 rates B as acceptable at peak only for High Street and 'at risk' for Office & Retail and Transport Interchange.",
+   "correction": "Use peak-hour flow against the Figure 9 area-type table for street footways only. Use transit-station methods (TCQSM ch.10 / Fruin) for passages, stairs and fare lines. Status: team_assumption.",
+   "evidence": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf: Step 1.5 crowding formula (people per hour / 60 / clear footway width); Figure 8 'Pedestrian Comfort Levels on Footways'; Figure 9 guidance by area type; PCL should not drop below C+ at peak."
+  },
+  {
+   "claim": "Queue area per person of 1.4 m2 or more is Fruin LOS A–C and below 0.9 m2 is LOS E–F at stairs and fare lines.",
+   "why_false": "1.4 and 0.9 m2/p are Fruin walkway-LOS boundaries. Queuing areas use a separate, much tighter scale (roughly A >=1.2, B 0.9–1.2, C 0.7–0.9, D 0.3–0.7, E 0.2–0.3, F <0.2 m2/p).",
+   "correction": "Apply the queuing-area LOS table to queues and the walkway table to moving links, and cite the TCQSM exhibit once it has been read.",
+   "evidence": "Fruin (1971) queuing and walkway LOS tables as reproduced in TCQSM 3rd ed. ch.10 (https://www.nationalacademies.org/read/24766/chapter/11). A primary copy could not be re-opened this round (the PDF download was truncated), so treat this as expert knowledge pending confirmation."
+  },
+  {
+   "claim": "Peak headways relevant to the station are Expo 2–5 min, Millennium 3–4 min and Canada 6 min.",
+   "why_false": "The Millennium Line terminates at VCC–Clark and does not serve the CBD. Canada Line '6 min' is the per-branch figure; the downtown trunk runs about 3 min. The Expo trunk runs 2–3 min.",
+   "correction": "For a CBD station use Expo trunk 2–3 min and Canada trunk about 3 min, read from GTFS.",
+   "evidence": "https://en.wikipedia.org/wiki/SkyTrain_(Vancouver): Millennium Line western terminus VCC–Clark; Canada Line Waterfront–Bridgeport trunk about 3 min peak, branches 6 min; Expo trunk 2–3 min."
+  },
+  {
+   "claim": "FHWA Table 3-2 gives v/c bands of under 0.85 stable, 0.85–1.00 near capacity and over 1.00 oversaturated.",
+   "why_false": "Table 3-2 splits the middle range: 0.85–0.95 is near capacity and 0.95–1.00 is unstable flow. The single 0.85–1.00 band comes from section 3.3.5, not the table.",
+   "correction": "Cite Table 3-2 bands exactly and add the LOS F override for v/c > 1.0.",
+   "evidence": "https://ops.fhwa.dot.gov/publications/fhwahop08024/chapter3.htm: Table 3-2 lists <0.85, 0.85–0.95, 0.95–1.00, >1.00."
+  },
+  {
+   "claim": "VTPI TDM reduction ranges (4–20%, about 15%, 34–37%) are verified thresholds for claimed reductions at a downtown Vancouver tower.",
+   "why_false": "The 35% figure is a Sacramento model prediction (Ewing 1993). The 34–37% figure is measured against ITE vehicle-trip averages in Minneapolis–St Paul (Spack & Finkelstein 2014). None is measured against a transit-rich CBD baseline.",
+   "correction": "Treat them as team-applied evidence ranges, applied only to a car-oriented baseline or scaled to the remaining auto share.",
+   "evidence": "https://www.vtpi.org/tdm/tdm9.htm: 'Values indicate how much commute travel is predicted to decline'; Spack and Finkelstein (2014) compares with ITE average trip generation rates."
+  },
+  {
+   "claim": "ITE trip rates do not consider location (S46), so local survey data are the only option.",
+   "why_false": "Recent ITE Trip Generation editions classify data by site setting, including Center City Core and Dense Multi-Use Urban, and report person trips. The Wikipedia wording is out of date.",
+   "correction": "ITE is paywalled but has urban-setting data; it can be an optional cross-check.",
+   "evidence": "https://en.wikipedia.org/wiki/Trip_generation repeats the 'do not consider location' wording. The ITE 10th/11th edition setting categories are from practitioner knowledge and could not be re-checked online because the search budget was exhausted."
+  }
+ ],
+ "missing": [
+  "Destination-based mode-share source for attraction uses (Census place-of-work journey-to-work data for downtown tracts; City downtown cordon/screenline counts)",
+  "Station-entrance demand from non-tower patrons, and the NFPA 130 egress interface for the below-grade connection (hand-off to SYST)",
+  "City of Vancouver TDM policy rows (plan, measures/points, financial security) and their post-June-2024 status",
+  "Passenger-loading rule rows (Parking By-law Section 5) for hotel and residential uses",
+  "EV-ready stall and car-share rule rows; residential parking maximum; accessible/van-accessible split",
+  "Design-vehicle library citing the TAC Geometric Design Guide, including the City refuse truck; lane-width input",
+  "City garbage/recycling storage design guidance and Metro Vancouver disposal-ban streams for M06",
+  "Construction traffic management module for a multi-year supertall build in the CBD (lane/sidewalk closures, crane and concrete-truck staging)",
+  "Cyclist access route from street to Class A room (ramps, bike-sized lifts, conflict with the dock), e-bike charging",
+  "Kerbside allocation across the arterial, retail high street and lane (taxi, ride-hail, couriers, accessible drop-off)",
+  "Event and weekend peaks (BC Place / Entertainment District labelled in the brief) and visitor/tourist trips to cultural/civic uses",
+  "Accessible route standard (CSA B651) for the station connection: lifts, slopes, wayfinding",
+  "Freight trip-generation source for dock arrival rates (e.g. NCFRP/NCHRP freight trip generation work) to replace presets",
+  "Explicit PHF (15-minute) parameter, separate from the daily-to-peak K share",
+  "Boundary rules for the PCL band gaps and area-type mapping of each Vancouver street class to a TfL area type"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "M01 separates residence-based and destination-based mode shares, records basis, sample size and date for every loaded share, and defaults internal capture to OFF in the CBD",
+   "M03 sizes the connection on station-entrance demand plus tower demand, uses station methods (TCQSM/Fruin queuing and walkway tables, correctly labelled) for passages, stairs and fare lines, and withholds pass badges until an egress hand-off exists",
+   "TfL PCL is used only for street footways, computed on peak-hour flow against Figure 9 by area type, with status team_assumption",
+   "The status model splits value and applicability, and M03, M04, M07 and M08 metrics are re-labelled accordingly",
+   "M07 applies TDM effects to a car-oriented baseline or scales them to the remaining CBD auto share, and the City TDM policy is added as an unverified rule row",
+   "M02 rule-pack schema includes passenger loading, EV-ready, car-share, residential maximum and accessible/van-accessible rows; one community-reviewed pack with version date ships before entrants use it",
+   "M05 has a design-vehicle library and a required lane-width input; M06 is demoted to experimental until sourced",
+   "A competition MVP scope is defined that fits the 30 Nov 2026 deadline"
+  ]
+ },
+ "verdict": "The spec is honest about its sources, and making M02 an importable rule-pack is the right call. It is not yet safe for entrants. Two problems are blockers. First, the core mode split takes household-residence shares for CBD residents and applies them to all trips, including office commuters coming in from elsewhere. Second, the station connection is sized on tower trips only, ignoring the public using it as a station entrance and egress. The TfL comfort bands are misapplied: they are used on peak-minute flows and underground passages, and graded 'verified'. The Fruin queue thresholds are mislabelled, the TDM evidence is applied to the wrong baseline, and the City's TDM, passenger-loading and EV rules are missing. Fix the gate conditions and cut an MVP that fits the six weeks left before the deadline. City by-law pages returned 403 and the web-search budget ran out, so several by-law points remain unverified.",
+ "sources_checked": [
+  {
+   "source_id": "P09-S01",
+   "url": "https://globalnews.ca/news/10590288/vancouver-parking-minimums/amp",
+   "ok": true,
+   "note": "Confirms the 26 Jun 2024 citywide vote, downtown peninsula minimums removed in 2018, and accessible, visitor, bike and loading still required. Silent on passenger loading and EV."
+  },
+  {
+   "source_id": "P09-S02",
+   "url": "https://storeys.com/vancouver-eliminates-minimum-parking-requirements/",
+   "ok": true,
+   "note": "Effective 30 Jun 2024. Visitor and accessible parking remain. Says the City TDM policy was tied to the minimums, with staff planning to lower expectations downtown; the spec does not model this."
+  },
+  {
+   "source_id": "P09-S06",
+   "url": "https://bylaws.vancouver.ca/parking/sec05.pdf",
+   "ok": false,
+   "note": "HTTP 403; no bypass attempted. Loading and passenger-space rows remain unverified."
+  },
+  {
+   "source_id": "P09-S12",
+   "url": "https://www.tac-atc.ca/wp-content/uploads/Memon.pdf",
+   "ok": true,
+   "note": "Text extracted. Confirms the 'one in four' downtown commuter-parking basis, a 34,000-vehicle commuter ceiling, the mode hierarchy, the 2021 targets, and by-law EV-outlet and car-share provisions (missing from M02)."
+  },
+  {
+   "source_id": "P09-S15",
+   "url": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2023-regional-trip-diary-technical-report.pdf",
+   "ok": true,
+   "note": "Sub-regions 21 'CBD - West End' and 22 'CBD - False Creek' confirmed. Household-based sampling and weighting with targets in the hundreds of households, so shares are residence-based."
+  },
+  {
+   "source_id": "P09-S17",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "ok": true,
+   "note": "Bands match. ppmm = people per hour / 60 / clear width on peak-hour flow; footway and crossing scope only; Figure 9 area-type acceptance differs from the spec's single pair; C+ floor at peak."
+  },
+  {
+   "source_id": "P09-S18",
+   "url": "https://ops.fhwa.dot.gov/publications/fhwahop08024/chapter3.htm",
+   "ok": true,
+   "note": "LOS delay bands match. Table 3-2 splits 0.85–0.95 and 0.95–1.00, which the spec misreports. HCM 2000 basis is dated."
+  },
+  {
+   "source_id": "P09-S19",
+   "url": "https://www.vtpi.org/tdm/tdm9.htm",
+   "ok": true,
+   "note": "Values match. The 35% figure is a predicted Sacramento model result; 34–37% is relative to ITE rates (Minneapolis–St Paul). The baseline does not transfer to a Vancouver CBD."
+  },
+  {
+   "source_id": "P09-S21",
+   "url": "https://www.vtpi.org/tdm/tdm20.htm",
+   "ok": true,
+   "note": "The elasticity table is attributed to Vernez Moudon & Stewart 2013. Distance to transit: VMT -0.05, walking +0.15, transit +0.29; the spec reverses the sign by its own rule."
+  },
+  {
+   "source_id": "P09-S23",
+   "url": "https://en.wikipedia.org/wiki/SkyTrain_(Vancouver)",
+   "ok": true,
+   "note": "Millennium Line terminates at VCC–Clark (not downtown). Canada Line trunk about 3 min, branches 6 min. Expo trunk 2–3 min. No capacity figures."
+  },
+  {
+   "source_id": "P09-S24",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas",
+   "ok": true,
+   "note": "Matches: no required residential parking in TOAs; accessible, commercial and loading may still be required; 800 m radius; updated 22 Jul 2026. TOA list not on the page."
+  },
+  {
+   "source_id": "P09-S34",
+   "url": "https://github.com/PedestrianDynamics/jupedsim",
+   "ok": true,
+   "note": "LGPLv3 confirmed."
+  },
+  {
+   "source_id": "P09-S38",
+   "url": "https://github.com/mrcagney/gtfs_kit",
+   "ok": true,
+   "note": "Archived 5 May 2026; development moved to Codeberg; MIT licence."
+  },
+  {
+   "source_id": "P09-S44",
+   "url": "https://onlinepubs.trb.org/onlinepubs/tcrp/tcrp_rpt_165ch-10.pdf",
+   "ok": false,
+   "note": "Download truncated or damaged (134 MB). Fruin and TCQSM thresholds could not be confirmed from the primary copy."
+  },
+  {
+   "source_id": "P09-S46",
+   "url": "https://en.wikipedia.org/wiki/Trip_generation",
+   "ok": true,
+   "note": "Says ITE rates 'do not consider location'. This wording is outdated relative to recent ITE editions with setting categories."
+  }
+ ]
+}

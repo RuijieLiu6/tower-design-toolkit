@@ -1,0 +1,1723 @@
+{
+ "packet_id": "C05",
+ "modules": [
+  {
+   "module_id": "C05-M01",
+   "name": "Tool inventory and interface audit",
+   "priority": "core",
+   "design_question": "What does each existing tool read, write, store, test and depend on today, and where do the tools already agree?",
+   "method": "Read-only audit of the four local repos at their single commits (Vista 2 Oct, the others 20 Oct 2026). For each tool: entry files, import and export code, storage keys, vendored libraries (version strings, SHA-256), data folders with byte sizes, test files, licence files. The two classmate tools were read only through their public GitHub pages, so their rows are lower confidence. Node is not installed here, so no test was run; test counts are static. Cross-checks: the City parcel and view-cone APIs were queried live and compared with copies stored in Vista and Form Studio; local-frame constants were recomputed against the WGS 84 ellipsoid (M03). Result: no tool reads another tool's file today (no cross-references in any repo); the only shared contract is PVV's floor list; three tools carry copies of the same City and OSM data.",
+   "inputs": [
+    "Vista: .3dm (render meshes only, up to 80 MB and 2,000,000 triangles, unit-scaled) or .obj; study JSON vancouver-site-study/1 (up to 1 MB, state restored from resume_hash); City addresses; BC geocoder text.",
+    "Form Studio: design JSON mountain-studio/1 (up to 1 MB: state, summary, checks); City parcel point query; four preset real sites; OSM raster tiles. No model import.",
+    "PVV: floor list JSON or CSV (up to 400 floors, area_m2 up to 100,000, height_m up to 30, shares of 112 programme ids); project JSON; brief id; typed settings.",
+    "Toolbench: none. One static page with a hard-coded TOOLS array (five tools, line 691) and a mailto feedback form.",
+    "Downtown Massing Tool (Sinnie Choi, xubynii/dtmass): parcel pick, brief, optional .3dm massing; internal project {schema, site, blocks, ramps} in local metres (page summaries, unverified).",
+    "Solar Shading Explorer (Willem Girard): NRC weather files, typology or blank block, floorplate, storeys, glazing, date and sky (README summary)."
+   ],
+   "outputs": [
+    "Vista: PDF report (existing and proposed views per overlapping corridor), study JSON, PNG views. No .3dm out.",
+    "Form Studio: JSON {schema, units, state, summary, checks}; .3dm with 11 to 16 layers and MountainStudio_* user strings in Vista-frame metres; PNG; SVG diagrams.",
+    "PVV: verdict, per-floor value and cost, City-charge ledger, FSR check; floor-results CSV, project JSON, SVG and PNG.",
+    "Toolbench: links to tools and an emailed feedback form. No data.",
+    "Downtown Massing Tool: live rule checks with clause links, version comparison, print-to-PDF report, DXF R12 inside a .zip (architecture review).",
+    "Solar: sun position, shading and gain charts; a .3dm written by src/export/rhino.js (contents not inspected)."
+   ],
+   "parameters": [
+    {
+     "name": "tests.vista",
+     "relationship": "Seven browser self-test scripts (?selftest=1, workflowtest, studytest, surfacetest, rooftest, flowtest, synthetic) plus fixtures F1 to F3; pages.yml only deploys, so nothing runs in CI.",
+     "source_ids": [
+      "C05-S02"
+     ]
+    },
+    {
+     "name": "tests.pvv",
+     "relationship": "13 files in tests/ with 118 test() calls counted statically; the README says 116; run by node --test, not executed here.",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "tests.form_studio_toolbench",
+     "relationship": "Form Studio public copy has no tests although export.js mentions round-trip tests; the toolbench has none, and the hub's 89/89 checks are not in the repo.",
+     "source_ids": [
+      "C05-S01",
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "libs.three",
+     "relationship": "Only Form Studio ships three.js: r128 (2021 build, classic script) plus classic OrbitControls. Vista draws with its own WebGL2; PVV and the toolbench have none. Current release is r186.",
+     "source_ids": [
+      "C05-S03",
+      "C05-S27"
+     ]
+    },
+    {
+     "name": "libs.rhino3dm",
+     "relationship": "Vista 8.35.0 (wasm SHA-256 18cb4b66); Form Studio a different wasm (c831ea5e, version unrecorded); Solar 8.4.0; DT Mass its own copy. npm latest is 8.35.0.",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S07",
+      "C05-S30"
+     ]
+    },
+    {
+     "name": "libs.leaflet",
+     "relationship": "Only Form Studio: Leaflet 1.9.4 with OSM raster tiles, the latest stable release; 2.0 exists only as alpha.",
+     "source_ids": [
+      "C05-S03",
+      "C05-S29"
+     ]
+    },
+    {
+     "name": "storage.keys",
+     "relationship": "pvv-project-v1, vancouver-tall-form-studio-current-v1 and -options-v1, vancouver-view-lab-intro-seen/1: all namespaced, so same-origin tools on ruijieliu6.github.io do not collide.",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Repos with a LICENSE file for their own code",
+     "good": "6 of 6",
+     "bad": "0 of 6",
+     "unit": "repos",
+     "basis": "Measured: 0 of 4 team repos (local check) and 0 of 2 classmate repos (GitHub page listings). Target is a policy choice.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S01",
+      "C05-S02",
+      "C05-S03",
+      "C05-S04",
+      "C05-S06",
+      "C05-S07"
+     ]
+    },
+    {
+     "name": "Distinct rhino3dm builds shipped",
+     "good": "1 pinned",
+     "bad": "4 or more",
+     "unit": "builds",
+     "basis": "Measured: Vista, Form Studio, Solar and DT Mass each ship a different or unrecorded build.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S07",
+      "C05-S30"
+     ]
+    },
+    {
+     "name": "Tools whose tests run automatically on push",
+     "good": "all",
+     "bad": "none",
+     "unit": "tools",
+     "basis": "Measured: no repo has a test workflow; only Vista has a workflow, and it deploys.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S04"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "three.js r128 + OrbitControls",
+     "license": "MIT",
+     "role": "Form Studio 3D viewer, vendored with LICENSE",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "rhino3dm 8.35.0",
+     "license": "MIT",
+     "role": "Vista .3dm reader, vendored with PROVENANCE.md",
+     "url": "https://registry.npmjs.org/rhino3dm"
+    },
+    {
+     "name": "Leaflet 1.9.4",
+     "license": "BSD-2-Clause",
+     "role": "Form Studio insertion map",
+     "url": "https://leafletjs.com"
+    },
+    {
+     "name": "Phosphor Icons 2.1.1 (regular)",
+     "license": "MIT (per PVV decisions log)",
+     "role": "PVV button icons",
+     "url": "https://phosphoricons.com"
+    }
+   ],
+   "visualization": [
+    "Tool-by-capability matrix (input, output, storage, test, licence) with unknown cells shaded"
+   ],
+   "limits": "Classmate tools audited from GitHub page summaries only. Hub v0.5 is not in the four repos. PVV tests not run.",
+   "effort": "Done in this packet; about 3 person-days if repeated by hand.",
+   "human_judgment": "Ruijie to supply the hub v0.5 project file so Layer 0 can be reconciled with it."
+  },
+  {
+   "module_id": "C05-M02",
+   "name": "Layer 0 project schema",
+   "priority": "core",
+   "design_question": "Which one JSON document lets Vista, Form Studio, PVV and the toolbench exchange site, context, massing, floors and programme mix without re-typing?",
+   "method": "Adopt PVV's floor record unchanged as the canonical floors array (level, elevation_m, height_m, area_m2, area_basis, mix of programme_id and share): it is already validated and tested, and its importer already reads a top-level floors array. Geometry stays optional: floors carry no plan; massing carries plan and 3D. Store the site as lon/lat (RFC 7946) and derive local metres from a declared frame (M03). Context layers are references (manifest URL, SHA-256, licence, attribution), never geometry copies. Every estimated number carries a basis (measured, derived, assumed, unknown), mirroring PVV grades and Vista height_source. Tool-native state goes under ext.<tool> so lossy round trips cannot destroy it (Vista resume_hash, Form Studio state, PVV settings). Reserve the top-level keys floors, settings and brief because PVV's importer reads them. Validate with JSON Schema 2020-12 through Ajv; version each port type by $id. Write export adapters first, import second. Offer a CityJSON 2.0.1 LoD1 exporter for outside tools; do not use CityJSON as the working format because it has no floors, programme or checks.",
+   "inputs": [
+    "Vista example study media/example-study.json (25,508 B) as the first fixture.",
+    "Form Studio design JSON and .3dm; PVV project JSON and CSV template.",
+    "City parcel and view-cone records; competition brief constants (79.2 x 144.8 m site, 9.0 FSR non-residential, 244 to 305 m)."
+   ],
+   "outputs": [
+    "layer0.schema.json (JSON Schema 2020-12) with one $id per port type: Frame, Site, ContextRef, Massing, Floors, Program, ViewStudy, Checks.",
+    "Three example files: Library Square site, Shangri-La replacement (from Vista's example), five-floor PVV template.",
+    "toLayer0 and fromLayer0 adapters per tool; a CityJSON LoD1 exporter."
+   ],
+   "parameters": [
+    {
+     "name": "schema",
+     "relationship": "String vtm-layer0/1. Minor changes add optional fields only; a breaking change bumps the major number.",
+     "source_ids": [
+      "C05-S38"
+     ]
+    },
+    {
+     "name": "frame",
+     "relationship": "{id, horizontal_crs EPSG:3157, origin_lonlat, vertical{datum, grade_z_m}, legacy flag}. See M03.",
+     "source_ids": [
+      "C05-S23"
+     ]
+    },
+    {
+     "name": "site",
+     "relationship": "{id, kind parcel|study|point|competition, boundary_lonlat ring, area_m2{value, method, nominal}, city_site_ids[], address, source{url, accessed, licence}}.",
+     "unit": "m2",
+     "source_ids": [
+      "C05-S22",
+      "C05-S09"
+     ]
+    },
+    {
+     "name": "context[]",
+     "relationship": "Layer references {id, type, manifest_url, sha256, bbox_lonlat, vertical_datum, licence, attribution}. Types: buildings_lod1, terrain, view_cones, parcels; later trees, traffic, zoning, airspace.",
+     "source_ids": [
+      "C05-S21"
+     ]
+    },
+    {
+     "name": "massing.parts[]",
+     "relationship": "{id, kind prism|mesh, footprint_xy, base_z, top_z, rotation_deg, mesh_ref, tool}. Prism covers Vista boxes and DT Mass blocks; mesh points to a hashed .3dm or OBJ.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S02",
+      "C05-S06"
+     ]
+    },
+    {
+     "name": "floors[]",
+     "relationship": "PVV record plus optional tower_id and plan_ref. Level 0 is skipped: 1 is the first floor above grade, -1 the first below (PVV template and DT Mass agree). elevation_m + height_m must equal the next floor's elevation_m.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S04",
+      "C05-S06"
+     ]
+    },
+    {
+     "name": "floors[].mix[]",
+     "relationship": "{programme_id from catalogue 0.2-neutral, share 0 to 1, sum 1}. Fractions only; PVV rescales percentages on import.",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "program.crosswalk",
+     "relationship": "Named mappings from foreign vocabularies (DT Mass eight uses, Form Studio residential or non-residential) to PVV ids, each with author and review status.",
+     "source_ids": [
+      "C05-S06",
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "views",
+     "relationship": "{observers[], plan_overlap[{view_number, relation}], ceiling{height_m, reference, status}} from Vista. A ceiling is a study value unless a cited cone-height source is attached.",
+     "source_ids": [
+      "C05-S02"
+     ]
+    },
+    {
+     "name": "checks[]",
+     "relationship": "{id, tool, status pass|review|block|unknown, clause, source_url, verified_on, values, limits}: one shape for Form Studio checks, DT Mass rules, PVV reasons and Vista overlaps.",
+     "source_ids": [
+      "C05-S03",
+      "C05-S06"
+     ]
+    },
+    {
+     "name": "provenance[]",
+     "relationship": "{tool, version, git_sha, exported_at, input_hashes[]} appended by each node, never rewritten.",
+     "source_ids": [
+      "C05-S02"
+     ]
+    },
+    {
+     "name": "ext.<tool>",
+     "relationship": "Opaque, validated only by its owner. Whole document capped at 1 MB, the limit Vista and Form Studio already enforce.",
+     "unit": "MB",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Fields changed by an export-import round trip",
+     "good": "0",
+     "bad": "1 or more",
+     "unit": "fields",
+     "basis": "CI target. Not yet measurable: Vista restores state from resume_hash, so field-level import is unproven.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C05-S02"
+     ]
+    },
+    {
+     "name": "Layer 0 document size without ext",
+     "good": "200 KB or less",
+     "bad": "over 1 MB",
+     "unit": "KB",
+     "basis": "Vista and Form Studio reject files over 1 MB; Vista's example study is 25.5 KB; 200 KB is our target.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "Ajv 8.20.0",
+     "license": "MIT",
+     "role": "Validate Layer 0 and every port in the browser",
+     "url": "https://registry.npmjs.org/ajv"
+    }
+   ],
+   "visualization": [
+    "Port map: tools as nodes, Layer 0 subtrees as typed edges",
+    "Side-by-side diff of two Layer 0 files"
+   ],
+   "limits": "Schema is a proposal; no tool reads it yet. DT Mass fields come from page summaries.",
+   "effort": "Schema plus three examples: about 2 person-days (team estimate).",
+   "human_judgment": "Decide level numbering, programme crosswalk meanings and whether area_basis gross follows the City's FSR floor-area rules."
+  },
+  {
+   "module_id": "C05-M03",
+   "name": "Shared frame, CRS and vertical datum",
+   "priority": "core",
+   "design_question": "Which coordinate frame and vertical datum should every tool share, so a point in one tool lands on the same ground in another?",
+   "method": "The team's local frame is x=(lon+123.1207)*111,320*cos(49.2827 deg), y=(lat-49.2827)*110,574. Vista, Form Studio (site-context.js) and PVV (basemap manifest) use it identically. 110,574 m is the length of a degree of latitude at the equator; at 49.28 deg N the WGS 84 series gives 111,215 m. N-S distances are therefore 0.58% short, E-W 0.19% short, areas 0.77% small (about 29 m at 5 km). Vista's check against eight OSM footprints (max residual 0.08 m) shows the supplied Rhino model was built with the same formula; it does not show agreement with the ground. Recommendation: master positions in lon/lat (EPSG:4326, RFC 7946); working frame EPSG:3157 (NAD83(CSRS) / UTM 10N) via proj4js with a local origin; keep a named legacy-vista-1 converter so old studies and the supplied model can be re-registered. Vertical: every document declares a datum and grade_z per site; GeoJSON altitude is an ellipsoid height, so heights stay outside coordinate arrays.",
+   "inputs": [
+    "City parcel point for 350 W Georgia St (site_id 019023251): lat 49.27970996853242, lon -123.11556575905009.",
+    "Eight OSM check points in Vista data/geo.json; view-cone vertices from the City API.",
+    "Form Studio parcel polygons (4 sites) for area comparison."
+   ],
+   "outputs": [
+    "frame.js: lonLatToFrame, frameToLonLat, legacyToFrame, with unit tests built from the validation cases.",
+    "A note on re-registering the supplied Rhino model and old Vista studies.",
+    "Layer 0 frame object and vertical-datum enumeration."
+   ],
+   "parameters": [
+    {
+     "name": "legacy.lon_scale",
+     "relationship": "111,320*cos(49.2827 deg) = 72,617.07 m per degree. WGS 84 value at that latitude is 72,756.7 m, so E-W is 0.19% short.",
+     "unit": "m/deg",
+     "source_ids": [
+      "C05-S03",
+      "C05-S37"
+     ]
+    },
+    {
+     "name": "legacy.lat_scale",
+     "relationship": "110,574 m per degree is the equatorial value. WGS 84 series 111132.95255 - 559.84957cos2p + 1.17514cos4p - 0.0023cos6p gives 111,215.2 m at 49.2827 deg N.",
+     "unit": "m/deg",
+     "source_ids": [
+      "C05-S37"
+     ]
+    },
+    {
+     "name": "legacy.ns_error",
+     "relationship": "Distance error = 0.00580 x N-S offset: 5.8 m per km, 29 m at 5 km, about 30 m at Vista's extent corners.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S02",
+      "C05-S37"
+     ]
+    },
+    {
+     "name": "legacy.area_error",
+     "relationship": "Area factor 1.00773. Library Square stored 11,823.97 m2 against about 11,916 m2 ellipsoidal; all four preset parcels are 0.77 to 0.79% small.",
+     "unit": "m2",
+     "source_ids": [
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "frame.horizontal",
+     "relationship": "EPSG:3157 NAD83(CSRS) / UTM zone 10N: transverse Mercator, central meridian -123 deg, scale 0.9996, metres, covers 126 W to 120 W.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S23"
+     ]
+    },
+    {
+     "name": "frame.vertical",
+     "relationship": "Enum local_grade | EGM96 | CGVD2013 (EPSG:6647) | CGVD28 (EPSG:5713) | unknown, plus grade_z_m. SRTM is EGM96. Vista's example site has z 40.52 m; Form Studio assumes grade z 0.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S24",
+      "C05-S25",
+      "C05-S02",
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "geojson.altitude",
+     "relationship": "RFC 7946 third coordinate is height above the WGS 84 ellipsoid, so it cannot carry CGVD2013 or EGM96 heights.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S22"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Horizontal distance error against the ellipsoid",
+     "good": "0.05% or less",
+     "bad": "0.5% or more",
+     "unit": "%",
+     "basis": "Measured today: 0.58% N-S, 0.19% E-W (arithmetic from WGS 84 series). Thresholds are our targets.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S37",
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "Parcel area error against ellipsoidal area",
+     "good": "0.05% or less",
+     "bad": "0.5% or more",
+     "unit": "%",
+     "basis": "Measured today: 0.77 to 0.79% low on four sites (computed). Matters for FSR near a limit.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S03",
+      "C05-S37"
+     ]
+    },
+    {
+     "name": "Height-bearing layers with a declared vertical datum",
+     "good": "100%",
+     "bad": "under 100%",
+     "unit": "%",
+     "basis": "Today every tool states the datum is unverified or assumed (z=0 grade, model-relative z, EGM96 in manifests only).",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S04"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "proj4js 2.22.0",
+     "license": "MIT",
+     "role": "EPSG:4326 to EPSG:3157 transforms in the browser",
+     "url": "https://registry.npmjs.org/proj4"
+    }
+   ],
+   "visualization": [
+    "Vector field of legacy-minus-EPSG:3157 offsets over the Vista extent: zero at the anchor, about 30 m at the corners"
+   ],
+   "limits": "Scale errors are arithmetic, not a survey; no proj run was available. Rhino model scale against ground is inferred from Vista's own check points.",
+   "effort": "frame.js and tests: about 1.5 person-days; re-registering old studies: 0.5 day (team estimate).",
+   "human_judgment": "Decide whether to re-register the 53 MB supplied Rhino model or rebuild the context from open data."
+  },
+  {
+   "module_id": "C05-M04",
+   "name": "Nodes with typed ports: minimal refactor",
+   "priority": "core",
+   "design_question": "What is the smallest change that lets each tool read and write Layer 0 through typed ports without a rewrite?",
+   "method": "Each tool gets one manifest (vtm-node.json: id, version, author, licence, entry URL, origin, input and output port types, transports) and two functions: read(layer0) and write() returning a patch of the subtrees it owns. A port is a JSON Pointer into Layer 0 typed by schema $id (Site, Massing, Floors, Program, Checks, ViewStudy); the host validates with Ajv before delivery. Transport 1, no code: file export and import. Transport 2: same-origin storage plus BroadcastChannel, usable among Ruijie's tools on ruijieliu6.github.io because storage keys are already namespaced. Transport 3: window.postMessage with an exact targetOrigin and an event.origin check, for classmates' origins, only after written consent. Pages already sends Access-Control-Allow-Origin * so packs load cross-origin. Order: PVV first (its importer already accepts a floors array), Form Studio, Vista, the toolbench shell, then classmate nodes. Replace PVV's window.claude calls (downloads, AI sampling) with a host-services interface.",
+   "inputs": [
+    "PVV consumes Floors, Program, Site.area_m2 and a brief id. Today only through its file importer; unknown ids such as O1 are rejected.",
+    "Vista consumes Site, Massing (prism or mesh) and views.ceiling. Today by hand: .3dm and .obj are read as-is and placement is declared by the user.",
+    "Form Studio consumes Site (parcel ring or point) and brief constants, from presets, map click or City lookup.",
+    "Toolbench shell consumes node manifests; today a hard-coded TOOLS array in index.html.",
+    "DT Mass would consume Site and offer Floors; Solar would consume Floors[0], rotation and storeys. Both only with consent."
+   ],
+   "outputs": [
+    "Form Studio produces Massing, Floors and Checks; its checks[] already hold id, status, clause, sourceUrl and verifiedOn.",
+    "Vista produces ViewStudy and Checks (plan overlap by view_number, study ceiling).",
+    "PVV produces Checks (verdict, FSR) and ledgers under ext.pvv.",
+    "DT Mass produces prisms (x, y, w, d, z0, floors, f2f), Floors and rule verdicts (pass, fail, review with clause).",
+    "Solar produces gain metrics and a .3dm placed in the Layer 0 frame."
+   ],
+   "parameters": [
+    {
+     "name": "refactor.pvv",
+     "relationship": "Add a Layer 0 envelope reader (take ext.pvv.settings), emit floors unchanged, swap window.claude for host services, point the map at the shared building pack. A Layer 0 file with valid ids imports today.",
+     "unit": "person-days",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "refactor.form_studio",
+     "relationship": "toLayer0 from model.floors (z, height, grossArea), siteContext and checks; embed Layer 0 JSON as a .3dm user string beside MountainStudio_*; move lonLatToVista to frame.js; load cones from the pack.",
+     "unit": "person-days",
+     "source_ids": [
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "refactor.vista",
+     "relationship": "Build Layer 0 from state (site, parts, observer, plan_overlap); read the Layer 0 string in imported .3dm for placement and grade; restore from fields, not only resume_hash.",
+     "unit": "person-days",
+     "source_ids": [
+      "C05-S02"
+     ]
+    },
+    {
+     "name": "refactor.toolbench",
+     "relationship": "Move TOOLS to tools.json; add a Layer 0 store (IndexedDB) and a launcher that passes ?layer0=.",
+     "unit": "person-days",
+     "source_ids": [
+      "C05-S01"
+     ]
+    },
+    {
+     "name": "refactor.classmates",
+     "relationship": "Adapters live in the authors' own repos, written by them or by us with consent; no code is copied.",
+     "unit": "person-days",
+     "source_ids": [
+      "C05-S05",
+      "C05-S06",
+      "C05-S07"
+     ]
+    },
+    {
+     "name": "transport.postmessage",
+     "relationship": "Give an exact targetOrigin, check event.origin, validate event.data against the schema before use.",
+     "source_ids": [
+      "C05-S31"
+     ]
+    },
+    {
+     "name": "transport.broadcastchannel",
+     "relationship": "Reaches only same-origin contexts; widely available since March 2022.",
+     "source_ids": [
+      "C05-S32"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Exported fields that pass the port schema",
+     "good": "100%",
+     "bad": "any failure",
+     "unit": "%",
+     "basis": "CI target on every adapter.",
+     "status": "team_assumption"
+    },
+    {
+     "name": "Person-days to first live port per tool",
+     "good": "2 or fewer",
+     "bad": "5 or more",
+     "unit": "days",
+     "basis": "Estimates: PVV 2 to 3, Form Studio 3 to 4, Vista 3 to 5, toolbench 2; not measured.",
+     "status": "team_assumption"
+    }
+   ],
+   "libraries": [
+    {
+     "name": "Ajv 8.20.0",
+     "license": "MIT",
+     "role": "Port validation in the host",
+     "url": "https://registry.npmjs.org/ajv"
+    }
+   ],
+   "visualization": [
+    "Node-and-port graph in the toolbench shell showing which ports are live and which are consent-pending"
+   ],
+   "limits": "Vista's 218 KB explorer.js and hash-based state make field-level import harder than for PVV. Estimates are not measured.",
+   "effort": "About 12 to 16 person-days for three tools plus the shell (team estimate).",
+   "human_judgment": "Order the work against 13 Nov and decide which classmate consents to wait for."
+  },
+  {
+   "module_id": "C05-M05",
+   "name": "Duplicates that become shared services",
+   "priority": "v1",
+   "design_question": "Which functions and data are re-implemented or copied across the tools and should become one shared service?",
+   "method": "Search and read across the four repos, plus file lists of the two classmate repos. For each duplicate: count copies, bytes and divergence. Divergence found: the same City view-cone dataset sits in Vista data/viewcones.json (snapshot modified 2026-09-21, two decimals) and inside Form Studio vancouver-sites.js (modified 2026-10-12, four decimals); the live record for view 10 now has object_id 1 where Vista stored 3. PVV's basemap was built by the same generator script as Vista's unified context. Rank services by copies x bytes x risk and by how little each tool must change.",
+   "inputs": [
+    "Vista explorer/, Form Studio root modules, PVV core/ and basemap/, DT Mass src/ file list, Solar package.json."
+   ],
+   "outputs": [
+    "1 Frame: lonLatToVista in Form Studio site-context.js; same constants in PVV's basemap manifest and Vista data/geo.json; Vista's builder script is private.",
+    "2 View-cone pack: Vista data/viewcones.json (37,707 B) and 24 polygons in Form Studio's 296,947 B vancouver-sites.js; DT Mass loads its own (unverified).",
+    "3 Site service: Vista address search (City addresses export plus BC geocoder), Form Studio parcel point lookup, DT Mass parcel pick, PVV click point.",
+    "4 Building LOD1 pack: Vista 9,897 plus 51,510 buildings as float32 meshes; PVV 5,247 as int16 rings; Form Studio convex-hull copies near four sites.",
+    "5 Rhino I/O: Vista reader (8.8 KB), Form Studio writer (27 KB), DT Mass reader, Solar writer; at least four rhino3dm builds, Vista's and Form Studio's wasm about 2.6 MB each.",
+    "6 2D map: Leaflet with OSM tiles (Form Studio), SVG plan (PVV), canvas map (DT Mass), WebGL2 inset (Vista). One component, one attribution string.",
+    "7 3D viewer: three.js r128 with classic OrbitControls (Form Studio) against Vista's custom WebGL2; r186 has no build/three.min.js. Decide per tool, not before 13 Nov.",
+    "8 Polygon utilities: area and point-in-polygon rewritten in at least six places (Vista site-geometry.js and proposal-geometry.js; Form Studio site-context.js, model-engine.js, export.js; PVV core/basemap.js).",
+    "9 Host services: PVV uses window.claude for downloads and AI; the others use Blob links; only Vista writes PDF. Fonts: Google Fonts in PVV, Vista, toolbench; vendored Barlow in Form Studio.",
+    "10 Checks record: Form Studio checks[], DT Mass rules, PVV reasons and Vista overlaps are four shapes of one record."
+   ],
+   "parameters": [
+    {
+     "name": "order",
+     "relationship": "Frame, view-cone pack and site service first (about 4 days, they unblock every port); building pack and Rhino I/O next (about 4 days); viewers and maps last.",
+     "unit": "person-days",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "object_id",
+     "relationship": "Portal object_id is not a stable key: view 10 was 3 in Vista's snapshot, 1 in the live API. Key cones on view_number plus polygon SHA-256.",
+     "source_ids": [
+      "C05-S08",
+      "C05-S02"
+     ]
+    },
+    {
+     "name": "viewer.version_gap",
+     "relationship": "three.js r128 to r186 crosses removal of examples/js (r148), import maps (r137) and build/three.min.js (r161); ESM and a new OrbitControls import are required.",
+     "source_ids": [
+      "C05-S27",
+      "C05-S28"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Copies of the view-cone dataset in the repos",
+     "good": "1",
+     "bad": "2 or more",
+     "unit": "copies",
+     "basis": "Measured: 2 verified (Vista, Form Studio); DT Mass copy suspected, not read.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S08"
+     ]
+    },
+    {
+     "name": "Polygon area implementations",
+     "good": "1",
+     "bad": "3 or more",
+     "unit": "implementations",
+     "basis": "Measured: at least 6 in 7 files across 3 tools.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S04"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "three.js 0.186.1",
+     "license": "MIT",
+     "role": "Candidate shared 3D viewer (ESM)",
+     "url": "https://registry.npmjs.org/three"
+    },
+    {
+     "name": "web-ifc 0.0.78",
+     "license": "MPL-2.0",
+     "role": "Candidate IFC import for the brief's IFC upload; file-level copyleft",
+     "url": "https://registry.npmjs.org/web-ifc"
+    }
+   ],
+   "visualization": [
+    "Matrix of services against tools showing copies, bytes and the owner of the surviving implementation"
+   ],
+   "limits": "DT Mass and Solar duplication judged from file lists and READMEs, not code.",
+   "effort": "About 10 person-days for the first eight services (team estimate).",
+   "human_judgment": "Keep or retire Vista's custom WebGL2 renderer; choose Leaflet or the SVG plan as the 2D standard."
+  },
+  {
+   "module_id": "C05-M06",
+   "name": "Context packs and storage budget",
+   "priority": "v1",
+   "design_question": "How should Layer 0 context data be packaged so every tool loads the same bytes once and the repository stays small?",
+   "method": "A pack is one .bin per layer plus a JSON manifest, as PVV already does (layer table of dtype, byte_offset, count; extent; quantum; attribution; caveats), and a release manifest with SHA-256, as Vista already does. Buildings: ring, height_dm, ground_dm, height_source, osm_way in int16 at 0.25 m. PVV's file holds 5,247 buildings in 261,080 B (49.8 B each); Vista's mesh holds 9,897 in 9,722,568 B (982 B each): 19.7 times smaller, with simplification explicit (one ring per building, holes and podium steps lost). Terrain stays a triangle mesh until the terrain packet decides. Host packs in one Pages repo (site 1 GB, 100 GB per month soft). Pages answers with Access-Control-Allow-Origin *, ETag and Accept-Ranges (checked 21 Oct 2026), so tiles can be fetched by byte range and cached by SHA-256. Keep ODbL packs in their own folder. Export CityJSON 2.0.1 for outside tools; its integer vertices with scale and translate follow the same idea.",
+   "inputs": [
+    "Vista generated/*.bin: 38,683,074 B of a 51,990,003 B release.",
+    "PVV basemap: 1,037,340 B bin plus a 1,383,120 B base64 copy.",
+    "Form Studio vancouver-sites.js: 296,947 B."
+   ],
+   "outputs": [
+    "pack.manifest.schema.json and a loader (fetch, verify SHA-256, cache).",
+    "A downtown buildings-lod1 pack (target under 1.5 MB).",
+    "A removal list: PVV .b64.txt, Vista demo.gif (9.2 MB) from the served tree."
+   ],
+   "parameters": [
+    {
+     "name": "quantum_m",
+     "relationship": "int16 at 0.25 m spans +/-8,192 m per tile (32,767 x 0.25); PVV's 4.4 km extent fits. Larger areas are tiled, each tile with its own centre.",
+     "unit": "m",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "height_source",
+     "relationship": "0 measured OSM tag, 1 floor count, 2 estimated by type, 3 unknown. PVV downtown subset: 24%, 45%, 30%.",
+     "unit": "code",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "hosting.limits",
+     "relationship": "Pages: published site 1 GB, repo 1 GB recommended, bandwidth 100 GB per month soft, 10 builds per hour soft, no commercial SaaS.",
+     "unit": "GB",
+     "source_ids": [
+      "C05-S18"
+     ]
+    },
+    {
+     "name": "http.headers",
+     "relationship": "Observed on ruijieliu6.github.io: Access-Control-Allow-Origin *, Cache-Control max-age=600, ETag, Accept-Ranges bytes.",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "cityjson.transform",
+     "relationship": "CityJSON stores integer vertices decoded as integer x scale + translate; metadata.referenceSystem and geographicalExtent describe frame and bounds.",
+     "source_ids": [
+      "C05-S21"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Bytes per building, LOD1 context",
+     "good": "60 B or less",
+     "bad": "500 B or more",
+     "unit": "B per building",
+     "basis": "Measured: PVV 49.8 B, Vista 982.4 B, ratio 19.7. Thresholds are targets.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "Downtown context pack size",
+     "good": "2 MB or less",
+     "bad": "10 MB or more",
+     "unit": "MB",
+     "basis": "Target for a cold load on a student connection; PVV's whole basemap is 1.04 MB.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C05-S04"
+     ]
+    }
+   ],
+   "libraries": [],
+   "visualization": [
+    "Bar chart of bytes per building by tool, and of repo size by data type"
+   ],
+   "limits": "Int16 rings drop holes and courtyards; LOD1 here means one prism per footprint. Terrain and trees need their own formats.",
+   "effort": "About 3 person-days for manifest, loader and one pack (team estimate).",
+   "human_judgment": "Decide which simplifications are acceptable for tall-tower design (merge podiums, keep holes)."
+  },
+  {
+   "module_id": "C05-M07",
+   "name": "Licence and attribution decisions",
+   "priority": "core",
+   "design_question": "Which licence applies to each part of the platform, and which decisions are still open?",
+   "method": "Start from facts. None of the four repos has a LICENSE file for its own code (PVV's README says to be decided before release). GitHub states that without a licence no one may reproduce, distribute or derive. List every component by type (code, schema, data packs, images, icons, fonts, vendored libraries) and attach the licence found in the repo or at source. Separate folders so share-alike data cannot reach code: OSM-derived packs stay ODbL. The Open Government Licence - Vancouver text could not be read (script-rendered page, 403 on vancouver.ca); the BC licence 2.0 is a likely template but that is unverified. Choose a code licence: Apache-2.0 adds an explicit patent grant, NOTICE file and a duty to mark changes; MIT is shortest. Our recommendation is Apache-2.0 for code, CC0 or CC BY 4.0 for the schema, and a per-pack licence file for data. Record each co-author's written agreement before the first public release.",
+   "inputs": [
+    "README and vendor licence files of the four repos.",
+    "Toolbench credit lines (CC BY 3.0, CC BY 4.0, CC BY-SA 2.0 and 4.0 photographs).",
+    "GitHub licensing and Pages documentation."
+   ],
+   "outputs": [
+    "LICENSE (code), LICENSE-DATA per pack, NOTICE and THIRD_PARTY_NOTICES, CONTRIBUTING.md with a contribution-licence statement, and the matrix below as docs/licences.md."
+   ],
+   "parameters": [
+    {
+     "name": "code",
+     "relationship": "Open decision. Apache-2.0 recommended for the platform core (patent grant, NOTICE); MIT acceptable. All four repos currently carry no licence.",
+     "source_ids": [
+      "C05-S17",
+      "C05-S19",
+      "C05-S20"
+     ]
+    },
+    {
+     "name": "schema and docs",
+     "relationship": "CC0 or CC BY 4.0. Precedent: the CityJSON specification is released under CC0.",
+     "source_ids": [
+      "C05-S21"
+     ]
+    },
+    {
+     "name": "OSM-derived packs",
+     "relationship": "ODbL 1.0 with credit to OpenStreetMap contributors. Share-alike applies when a derivative database is publicly used; Produced Works such as rendered views and PDFs are not databases.",
+     "source_ids": [
+      "C05-S14",
+      "C05-S15"
+     ]
+    },
+    {
+     "name": "City of Vancouver data",
+     "relationship": "Open Government Licence - Vancouver. Exact attribution string not yet read. Whether a database merging OGL-Vancouver and ODbL data is allowed is unanswered; keep sources in separate files and join in the browser.",
+     "source_ids": [
+      "C05-S08",
+      "C05-S13"
+     ]
+    },
+    {
+     "name": "PVV data pack",
+     "relationship": "Undecided. Market figures come from Altus, CBRE and Cushman & Wakefield reports; redistribution terms unverified. Keep only cited figures with source, page and date, as now.",
+     "source_ids": [
+      "C05-S04"
+     ]
+    },
+    {
+     "name": "images and pictograms",
+     "relationship": "Toolbench photographs keep their CC BY and CC BY-SA licences (not MIT). AI-drawn glyphs and pictograms: licence CC BY 4.0 with disclosure; authorship of AI output is unsettled in Canada.",
+     "source_ids": [
+      "C05-S01",
+      "C05-S04",
+      "C05-S36"
+     ]
+    },
+    {
+     "name": "vendored libraries",
+     "relationship": "three.js MIT, rhino3dm MIT, Leaflet BSD-2-Clause, Barlow SIL OFL, Phosphor MIT. Ship THIRD_PARTY_NOTICES with each release.",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03"
+     ]
+    },
+    {
+     "name": "classmate tools",
+     "relationship": "Neither repo has a licence: no code reuse without a written grant; integrate by Layer 0 contract only.",
+     "source_ids": [
+      "C05-S06",
+      "C05-S07",
+      "C05-S17"
+     ]
+    },
+    {
+     "name": "student copyright",
+     "relationship": "UBC's copyright office says undergraduates retain copyright in coursework; graduate students keep their own works unless a contract says otherwise; software and Policy LR11 not confirmed.",
+     "source_ids": [
+      "C05-S35"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Components with a licence recorded in a machine-readable manifest",
+     "good": "100%",
+     "bad": "under 100%",
+     "unit": "%",
+     "basis": "Today only PVV sources.json (data sources) and vendor LICENSE files exist.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S02",
+      "C05-S03",
+      "C05-S04"
+     ]
+    }
+   ],
+   "libraries": [],
+   "visualization": [
+    "Licence matrix: component rows, licence and attribution columns, open decisions highlighted"
+   ],
+   "limits": "Not legal advice. Canadian law applies to the authors; OGL and ODbL interplay needs a written answer from the City or the OSM Licensing Working Group.",
+   "effort": "One day to add files; weeks for external answers (team estimate).",
+   "human_judgment": "Authors choose MIT or Apache-2.0 and the CC options, and each co-author consents in writing."
+  },
+  {
+   "module_id": "C05-M08",
+   "name": "Permission, credit and migration plan",
+   "priority": "core",
+   "design_question": "How do we integrate the classmates' tools with permission and credit, and in what order do we migrate before 13 Nov 2026?",
+   "method": "Treat Sinnie Choi (Downtown Massing Tool, github.com/xubynii/dtmass) and Willem Girard (Solar Shading Explorer, github.com/willemgirard03/Shading-tool-test) as independent authors. Neither repo has a LICENSE file, so we may link and credit but not copy code. The class toolkit (GenEnv/arch540-a1-toolkit, 15 student tools) tells students to edit only their own file and states no reuse terms. Send each author a one-page request: what we want (link, screenshot, read their export, embed as a node, vendor code), what we give (credit line, repo link, right to withdraw, no edits to their code), and ask for a licence on their repo. Log replies as issues and in CONTRIBUTORS.md. Credit pattern: name, tool, repo URL, licence, date of permission. Technical order: freeze Layer 0 v1 in week 1; PVV and Form Studio adapters week 2; Vista and the shell week 3; classmate nodes only with consent. Conformance tests from M02 and M03 run in CI. Generative AI may draft adapters and tests under review; it never supplies coordinates, heights or licence terms.",
+   "inputs": [
+    "Toolbench credit lines: Vista and PVV by Ruijie Liu, Downtown Massing Tool by Sinnie Choi, Solar by Willem Girard.",
+    "Toolkit README rule and project files 04 and 08.",
+    "Competition terms and UBC copyright page."
+   ],
+   "outputs": [
+    "Permission request template (one page).",
+    "CONTRIBUTORS.md and NOTICE entries; node manifest author fields.",
+    "Dated plan to 13 Nov and a CI conformance suite."
+   ],
+   "parameters": [
+    {
+     "name": "deadline",
+     "relationship": "Course working core due 13 Nov 2026: 23 days from 21 Oct 2026.",
+     "unit": "days"
+    },
+    {
+     "name": "permission.dtmass",
+     "relationship": "Sinnie Choi is also toolbench co-author but DT Mass is a separate repo with no licence. Page summaries show a printable report and DXF zip; no project JSON export verified.",
+     "source_ids": [
+      "C05-S06",
+      "C05-S01"
+     ]
+    },
+    {
+     "name": "permission.solar",
+     "relationship": "Willem Girard. package.json is private, v6.0.0, rhino3dm 8.4.0, no licence field; 147 checks; exports .3dm. NRC weather data licence unverified.",
+     "source_ids": [
+      "C05-S07"
+     ]
+    },
+    {
+     "name": "credit",
+     "relationship": "Show author, repo URL, licence and permission date on the toolbench card and in the node manifest. The toolbench already credits Willem Girard and links his tool.",
+     "source_ids": [
+      "C05-S01"
+     ]
+    },
+    {
+     "name": "ai.gpt6_astra",
+     "relationship": "Launched 3 Sep 2026 with staged access, so plans must not depend on it. Use for adapters and tests only; geography comes from survey data.",
+     "source_ids": [
+      "C05-S39"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Written consents on file from classmate authors",
+     "good": "2 of 2 before any node ships",
+     "bad": "0",
+     "unit": "consents",
+     "basis": "Today none is recorded in the repos; the toolbench shows credit and screenshots but no consent evidence.",
+     "status": "verified",
+     "source_ids": [
+      "C05-S01",
+      "C05-S05"
+     ]
+    },
+    {
+     "name": "Days of float before 13 Nov",
+     "good": "5 or more",
+     "bad": "under 2",
+     "unit": "days",
+     "basis": "Plan: 3 weeks of work in 23 days; float depends on consent timing. Team estimate.",
+     "status": "team_assumption"
+    }
+   ],
+   "libraries": [],
+   "visualization": [
+    "Gantt to 13 Nov with consent milestones; credit card mock-up for the shell"
+   ],
+   "limits": "Massing Studio by Claudio Cabana (Rhino-based) is another classmate massing tool, not assessed. Other toolkit entries not reviewed.",
+   "effort": "About 2 person-days of coordination plus the adapter work in M04 (team estimate).",
+   "human_judgment": "Ruijie and Sinnie decide the joint licence and whether to approach other classmates later."
+  }
+ ],
+ "datasets": [
+  {
+   "name": "City of Vancouver view-cones",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/",
+   "use": "Plan polygons of the 24 protected-view cones; Layer 0 context type view_cones. Vista and Form Studio each hold a copy; DT Mass loads its own (unverified).",
+   "status": "verified",
+   "publisher": "City of Vancouver, Planning, Urban Design and Sustainability",
+   "licence": "Open Government Licence - Vancouver (full text not retrievable; see flags)",
+   "format": "Explore API v2.1 records and GeoJSON export; Polygon",
+   "key_fields": "object_id (unstable), view_number, view_cone_name, description, url, geom, geo_point_2d; no height field",
+   "crs_and_vertical_datum": "Lon/lat (GeoJSON, WGS 84 per RFC 7946); no vertical datum or height field",
+   "date": "Portal modified 2026-10-19; Vista snapshot 2026-09-21; Form Studio snapshot 2026-10-12",
+   "size": "24 records; Vista copy 37,707 B",
+   "accuracy": "Portal says corridors entered accurately but the by-law is authoritative (per Vista's stored description)",
+   "simplify_and_store": "Store once as a pack keyed by view_number plus polygon SHA-256; lon/lat to 7 decimals; derive frame coordinates at load; cone heights live in a separate surface layer."
+  },
+  {
+   "name": "City of Vancouver property-parcel-polygons",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/",
+   "use": "Site boundary for a parcel; Form Studio looks it up by map point; site_id links to zoning and assessment.",
+   "status": "verified",
+   "publisher": "City of Vancouver",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Polygon and MultiPolygon; API records, GeoJSON",
+   "key_fields": "civic_number, streetname, tax_coord, site_id, geom, geo_point_2d",
+   "crs_and_vertical_datum": "Lon/lat; no vertical datum",
+   "date": "Modified 2026-10-19; weekly extract; Form Studio accessed 2026-10-14",
+   "size": "99,698 records",
+   "accuracy": "Survey accuracy for much of the land base, not all features (portal note)",
+   "simplify_and_store": "Never copy citywide. Fetch by point or tile downtown; keep only the chosen ring (up to 512 vertices) with site_id and accessed date in site.source."
+  },
+  {
+   "name": "City of Vancouver property-addresses",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-addresses/",
+   "use": "Address search in Vista (full JSON export loaded once per visit).",
+   "status": "verified",
+   "publisher": "City of Vancouver",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Point records; JSON export",
+   "key_fields": "civic_number, std_street, p_parcel_id, pcoord, site_id, note, geo_local_area, geom",
+   "crs_and_vertical_datum": "Lon/lat; no vertical datum",
+   "date": "Modified 2026-10-19",
+   "size": "99,741 records",
+   "accuracy": "Not stated on the portal",
+   "simplify_and_store": "Build a downtown-only pack (civic number, street, lon/lat, site_id); measure size; drop the live full export and the BC geocoder call."
+  },
+  {
+   "name": "City of Vancouver Orthophotos_2022 tile service",
+   "url": "https://tiles.arcgis.com/tiles/qrcTTRTwUoS8N47o/arcgis/rest/services/Orthophotos_2022/MapServer",
+   "use": "Optional aerial texture in Vista (experimental layer).",
+   "status": "verified",
+   "publisher": "City of Vancouver via ArcGIS Online",
+   "licence": "Not shown in the service JSON; copyright text says City of Vancouver; terms unverified",
+   "format": "XYZ raster tiles, 256 px, levels 0 to 23, imagery for levels 11 to 21",
+   "key_fields": "Tile index only",
+   "crs_and_vertical_datum": "Web Mercator (WKID 102100 / 3857); no vertical datum",
+   "date": "2022 imagery; service read 2026-10-21",
+   "size": "Service; not stored",
+   "accuracy": "Not stated",
+   "simplify_and_store": "Load on demand, never store or prefetch; show City credit; keep the layer off by default."
+  },
+  {
+   "name": "OpenStreetMap extracts (buildings, roads, water, coastline) via Overpass",
+   "url": "https://www.openstreetmap.org/copyright",
+   "use": "Footprints, heights, coastline and roads for Vista, PVV, DT Mass and Form Studio hulls.",
+   "status": "verified",
+   "publisher": "OpenStreetMap contributors",
+   "licence": "ODbL 1.0; credit OpenStreetMap contributors; share-alike on public use of derivative databases",
+   "format": "Overpass JSON turned into team .bin files",
+   "key_fields": "way id, height tag, building:levels, building type, natural=coastline",
+   "crs_and_vertical_datum": "Lon/lat; building heights relative, no datum",
+   "date": "Vista coastline and extension 2026-09; supplied model heights from a 2022 extraction (user-reported)",
+   "size": "Vista 9,897 supplied plus 51,510 extension buildings; PVV 5,247",
+   "accuracy": "PVV subset: 24% measured, 45% from floor counts, 30% estimated by type",
+   "simplify_and_store": "Keep ring, height_dm, ground_dm, height_source and way id (49.8 B per building); ODbL pack in its own folder; never merge with OGL data."
+  },
+  {
+   "name": "NASA SRTM 1 arc-second via Open Topo Data",
+   "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1",
+   "use": "Ground and mountain terrain in Vista and PVV (team samples about 60 m).",
+   "status": "verified",
+   "publisher": "USGS EROS and NASA; served by Open Topo Data",
+   "licence": "Not stated on the USGS or Open Topo Data pages; PVV README says public domain (unverified)",
+   "format": "1-degree tiles; Open Topo Data JSON API (100 points per call, 1 call per second, 1,000 per day)",
+   "key_fields": "elevation",
+   "crs_and_vertical_datum": "WGS 84 horizontal; EGM96 heights in metres",
+   "date": "Team sampling 2026-09; mission date not on the page read",
+   "size": "Vista unified_terrain.bin 1,104,396 B; PVV 8,800 triangles",
+   "accuracy": "No accuracy statement on the page; some voids remain; the team samples every 60 m",
+   "simplify_and_store": "Keep the EGM96 label; convert to CGVD2013 only through the terrain packet's agreed offsets; store as int16 decimetre triangles."
+  },
+  {
+   "name": "BC Address Geocoder",
+   "url": "https://digital.gov.bc.ca/bcgov-common-components/bc-address-geocoder/",
+   "use": "Address suggestions typed in Vista.",
+   "status": "unverified",
+   "publisher": "Province of British Columbia (DataBC)",
+   "licence": "Not stated on the component page; Vista README says OGL-BC",
+   "format": "REST, GeoJSON (addresses.geojson)",
+   "key_fields": "Address text in; lat/lon out",
+   "crs_and_vertical_datum": "Lat/lon; SRID not specified; no vertical datum",
+   "date": "In service since 2013; no update date",
+   "size": "Service; not stored",
+   "accuracy": "Not stated",
+   "simplify_and_store": "Optional. Anonymous use is limited to 1,000 requests per minute; replace with the local addresses pack to avoid external calls."
+  },
+  {
+   "name": "Supplied studio model Vancouver DT context.3dm",
+   "url": "Local sources/ folder of the private Vista project (not published)",
+   "use": "Source of Vista's central context (11,316 objects, 33 layers, metres).",
+   "status": "unverified",
+   "publisher": "Not recorded (supplied to the ARCH 540 studio)",
+   "licence": "Unknown; heights described as OSM-derived",
+   "format": ".3dm (Brep, Extrusion, Mesh, PolylineCurve), SHA-256 c1614721...",
+   "key_fields": "Layers: Buildings by height source, Land, Water, Parks, Roads",
+   "crs_and_vertical_datum": "Legacy frame metres; earth anchor 49.2827 N, 123.1207 W; vertical datum unknown",
+   "date": "File modified 2026-09-22; heights extracted 2022 (user-reported)",
+   "size": "53,437,495 B",
+   "accuracy": "Matches the legacy formula within 0.08 m; 0.58% short N-S against the ground",
+   "simplify_and_store": "Do not publish. Rebuild from open sources; keep the SHA-256 in provenance."
+  },
+  {
+   "name": "Vista generated context packs",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/main/generated",
+   "use": "Vista's buildings, terrain, parks, roads, water, shoreline and mountain backdrop.",
+   "status": "verified",
+   "publisher": "Ruijie Liu (derived from the supplied model, OSM and SRTM)",
+   "licence": "Mixed: ODbL for OSM parts; supplied-model terms unknown",
+   "format": "float32 xyz plus uint32 indices .bin with JSON index and manifest",
+   "key_fields": "buildings 9,897; ext_buildings 51,510; terrain 41,336 triangles; parks 97,226; roads 20,096 segments",
+   "crs_and_vertical_datum": "Legacy frame metres; z datum unknown (SRTM part EGM96)",
+   "date": "Generated 2026-09-24",
+   "size": "38,683,074 B of a 51,990,003 B release",
+   "accuracy": "Visual context only, per the manifest caveats",
+   "simplify_and_store": "Convert buildings to the int16 LOD1 pack (about 20 times smaller); keep terrain until the terrain packet decides."
+  },
+  {
+   "name": "PVV downtown basemap",
+   "url": "https://github.com/RuijieLiu6/program-value-visualizer/tree/main/basemap",
+   "use": "PVV Map tab and neighbouring-roof estimate; the template for Layer 0 building packs.",
+   "status": "verified",
+   "publisher": "Ruijie Liu (derived from Vista's unified context)",
+   "licence": "ODbL as a derived OSM database; SRTM claimed public domain (unverified)",
+   "format": "Little-endian typed arrays .bin plus JSON manifest; a base64 copy",
+   "key_fields": "b_height_dm, b_ground_dm, b_height_source, b_osm_way, rings, terrain, water, parks, roads, shoreline",
+   "crs_and_vertical_datum": "Legacy frame, 0.25 m quantum, centre (-400, -50) m; heights in dm; ground EGM96",
+   "date": "Generator timestamp 2026-09-24; repo commit 2026-10-20",
+   "size": "1,037,340 B bin; 1,383,120 B base64 duplicate; 5,247 buildings",
+   "accuracy": "24% measured, 45% floor counts, 30% estimated by type",
+   "simplify_and_store": "Adopt as the pack format; drop the .b64.txt from the Pages build; add a holes flag and tiling."
+  },
+  {
+   "name": "Form Studio vancouver-sites.js",
+   "url": "https://github.com/RuijieLiu6/form-studio/blob/main/data/vancouver-sites.js",
+   "use": "Four preset sites with parcel rings, nearby building hulls and 24 view-cone polygons.",
+   "status": "verified",
+   "publisher": "Ruijie Liu (City parcels and cones, OSM-derived hulls)",
+   "licence": "OGL-Vancouver for parcels and cones; ODbL for hulls",
+   "format": "ES module of JSON constants",
+   "key_fields": "id, polygon, polygonLonLat, area, citySiteIds, sourceRecordSha256, nearbyBuildings; cones id, label, polygon",
+   "crs_and_vertical_datum": "Site-local metres from the legacy frame; lon/lat for parcels; grade z=0 assumed",
+   "date": "Parcels accessed 2026-10-14; cones modified 2026-10-12",
+   "size": "296,947 B",
+   "accuracy": "Hulls are approximate; stored areas are 0.77 to 0.79% below ellipsoidal",
+   "simplify_and_store": "Split into a site pack (four sites) and the shared view-cone pack; replace hulls with the building pack."
+  },
+  {
+   "name": "PVV Vancouver 2026 pack and programme catalogue",
+   "url": "https://github.com/RuijieLiu6/program-value-visualizer/tree/main/packs/vancouver-2026",
+   "use": "Values, costs, City charges and assumptions behind PVV's verdicts; 112 programmes.",
+   "status": "verified",
+   "publisher": "Ruijie Liu, compiling Altus Group, CBRE, Cushman & Wakefield and City charge bulletins",
+   "licence": "Undecided; third-party figures cited by source, page and date; redistribution terms unverified",
+   "format": "JSON: values (72 rows), costs, charges, assumptions, code_rules, sources (58); catalogue of 112 programmes",
+   "key_fields": "programme_id, family_id, grade A/B/C, as_of, value_ref",
+   "crs_and_vertical_datum": "Not spatial; CAD and m2",
+   "date": "as_of 2026-10-17",
+   "size": "packs 180,319 B; catalogue 116,369 B",
+   "accuracy": "Grade per row; indicative early-design estimates only",
+   "simplify_and_store": "Keep as a separate pack with its own licence file; Layer 0 stores only programme_id and shares."
+  },
+  {
+   "name": "Vancouver Tall Challenge brief constants",
+   "url": "https://github.com/RuijieLiu6/program-value-visualizer/blob/main/briefs/vtc-2026/brief.json",
+   "use": "Competition site, 9.0 FSR non-residential minimum, 244 to 305 m height range; also hard-coded in Form Studio.",
+   "status": "unverified",
+   "publisher": "Competition organisers (Buildner, City, UBC SALA); constants transcribed by the team",
+   "licence": "Competition terms say nothing about the brief or the site model",
+   "format": "JSON",
+   "key_fields": "site 79.2 x 144.8 m, area 11,468 m2, min non-residential FSR 9.0, height 244 to 305 m",
+   "crs_and_vertical_datum": "Local site; no verified geographic location or datum",
+   "date": "as_of 2026-06-01 (brief)",
+   "size": "1,507 B",
+   "accuracy": "Brief PDF not opened; page numbers in the file unchecked; Form Studio's Rhino site is 144.78 x 79.248 m",
+   "simplify_and_store": "Store as site.kind competition with nominal and measured areas; never commit the supplied 3D model."
+  },
+  {
+   "name": "NRC future-shifted weather files (Solar tool)",
+   "url": "https://nrc-digital-repository.canada.ca/eng/view/object/?id=bd339698-5eb8-4635-b411-63d4f670382b",
+   "use": "Hourly weather for the Solar Shading Explorer (Vancouver Intl A, +1.0 and +2.0 C files, 8,760 hours each, per its README).",
+   "status": "unverified",
+   "publisher": "National Research Council of Canada",
+   "licence": "Not stated on the ClimateData.ca page that links it; repository page not opened",
+   "format": "Text weather files packed into src/data/hourly.js",
+   "key_fields": "Hourly records",
+   "crs_and_vertical_datum": "Not spatial",
+   "date": "Baseline 1991 to 2021 per NRC description",
+   "size": "Unknown",
+   "accuracy": "Not assessed",
+   "simplify_and_store": "Leave in the Solar tool's repo; Layer 0 stores only a weather-file id and licence."
+  },
+  {
+   "name": "DT Mass city data modules",
+   "url": "https://github.com/xubynii/dtmass/tree/main/src",
+   "use": "Parcels, zoning, view cones and sub-areas for the Downtown Massing Tool.",
+   "status": "unverified",
+   "publisher": "Sinnie Choi (from City open data and OSM)",
+   "licence": "No licence in the repo; README names OGL-Vancouver and ODbL for sources",
+   "format": "JS data modules (city-data.js, osm-data.js); tools/fetch-osm.py",
+   "key_fields": "Not inspected",
+   "crs_and_vertical_datum": "Local metres from the parcel south-west corner (page summary); no datum known",
+   "date": "Unknown",
+   "size": "About 7 MB first load per README",
+   "accuracy": "Not stated",
+   "simplify_and_store": "Do not copy. Ask the author to export site and blocks as Layer 0 prisms."
+  },
+  {
+   "name": "Vista example study (fixture)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/blob/main/media/example-study.json",
+   "use": "First Layer 0 import fixture: Shangri-La replaced by a 29 x 43 x 201 m block, rooftop observer, overlap with view 3.2.1.",
+   "status": "verified",
+   "publisher": "Ruijie Liu",
+   "licence": "Team content, licence to be set; references OSM way ids",
+   "format": "JSON vancouver-site-study/1",
+   "key_fields": "schema, resume_hash, site{x,y,z}, study_area, blocks, observer, plan_overlap, study_ceiling",
+   "crs_and_vertical_datum": "Legacy frame metres; z model-relative, datum unverified (site z 40.52 m)",
+   "date": "Saved 2026-10-02",
+   "size": "25,508 B",
+   "accuracy": "Plan overlap only; labelled NOT ASSESSED",
+   "simplify_and_store": "Convert once to a Layer 0 example; keep the original as a regression fixture."
+  }
+ ],
+ "validation_cases": [
+  {
+   "case": "Library Square origin in the legacy frame",
+   "input": "City parcel site_id 019023251 (350 W Georgia St), geo_point_2d lat 49.27970996853242, lon -123.11556575905009; x=(lon+123.1207)*72,617.0736, y=(lat-49.2827)*110,574",
+   "expected": "x = 372.8336 m, y = -330.6197 m, equal to originRhino [372.833553, -330.619739] stored by Form Studio",
+   "source": "C05-S09; C05-S03"
+  },
+  {
+   "case": "Same point in EPSG:3157",
+   "input": "Same lat/lon; transverse Mercator, central meridian -123, scale 0.9996, GRS80",
+   "expected": "E 491,594.66, N 5,458,556.99 m; the anchor (49.2827 N, -123.1207) is E 491,221.77, N 5,458,889.98; offsets +372.89 and -332.99 against legacy +372.83 and -330.62 (2.4 m apart N-S). Computed by Kruger series, checked at lat 45 on the central meridian (N 4,982,950.40); recheck in proj4js",
+   "source": "C05-S23; own computation"
+  },
+  {
+   "case": "Parcel area bias",
+   "input": "Four-vertex polygonLonLat of Library Square in Form Studio vancouver-sites.js; area on the WGS 84 ellipsoid (QGIS ellipsoidal area or a geodesic polygon tool)",
+   "expected": "Stored 11,823.97 m2; ellipsoidal about 11,916 m2 (+0.78%). The City parcel dataset has no area field",
+   "source": "C05-S03; C05-S09; C05-S37"
+  },
+  {
+   "case": "Degree of latitude at Vancouver",
+   "input": "phi = 49.2827 deg in 111132.95255 - 559.84957cos(2phi) + 1.17514cos(4phi) - 0.00230cos(6phi)",
+   "expected": "111,215 m per degree against the team's 110,574 (ratio 1.0058). Vista check point w160286918 at y = -2,174.2 m would be about 12.6 m further south on the ground",
+   "source": "C05-S37; C05-S02"
+  },
+  {
+   "case": "Competition site arithmetic",
+   "input": "79.2 m x 144.8 m; 9.0 FSR; Form Studio's Rhino site 144.78 x 79.248 m",
+   "expected": "11,468.16 m2; 9.0 x = 103,213.44 m2 (the constant in Form Studio's check); Rhino site 11,473.53 m2 (+5.37 m2, 0.047%): Layer 0 keeps nominal and measured areas apart. Brief PDF not opened",
+   "source": "C05-S04; C05-S03"
+  },
+  {
+   "case": "Vista ceiling fixtures F1 to F3",
+   "input": "30 x 30 m footprint, base_z 10. F1 top 95, boundary 80; F2 top 80, boundary 80; F3 top 95, boundary null",
+   "expected": "F1 INTERSECTS, penetration 15 m, area 900 m2; F2 BOUNDARY_CONTACT, margin 0; F3 CANNOT_DETERMINE. Layer 0 checks must carry these enums unchanged",
+   "source": "C05-S02"
+  },
+  {
+   "case": "View-cone copies agree, key does not",
+   "input": "Live City record view_number 10 (Granville Island); Vista and Form Studio copies",
+   "expected": "Vertices (-123.1341528, 49.2724382), (-123.1461779, 49.2924804), (-123.1417992, 49.2933799) match Vista; apex in the legacy frame (-976.91, -1134.69) matches Form Studio (-976.9062, -1134.6877). object_id is 1 live, 3 in Vista",
+   "source": "C05-S08; C05-S02; C05-S03"
+  },
+  {
+   "case": "Bytes per building",
+   "input": "PVV: terrain offset 261,080 B before any terrain, 5,247 buildings. Vista: buildings.bin 9,722,568 B, 9,897 buildings",
+   "expected": "49.8 B and 982.4 B per building; ratio 19.7",
+   "source": "C05-S04; C05-S02"
+  },
+  {
+   "case": "PVV template floors and ids",
+   "input": "PVV TEMPLATE rows at levels -1, 1, 2, 3, 4 (elevation, height): (-3.5, 3.5), (0, 6), (6, 4.2), (10.2, 4.2), (14.4, 3.2); README example uses programme ids O1 and T4",
+   "expected": "Each elevation + height equals the next elevation (0, 6, 10.2, 14.4); all template ids exist (AM7, AM8, SE1, AM4, WK1, CH2, LV4, LV5). O1 and T4 are not catalogue ids and the importer rejects them",
+   "source": "C05-S04"
+  },
+  {
+   "case": "Layer 0 floors import into PVV unchanged",
+   "input": "A Layer 0 file whose top-level floors array is the five template floors (areas 4000, 4000, 2000, 2000, 1200) and no top-level settings key",
+   "expected": "PVV reports 5 floors loaded; gross area sums to 13,200 m2; a top-level settings key would instead be read as PVV settings",
+   "source": "C05-S04"
+  }
+ ],
+ "sources": [
+  {
+   "id": "C05-S01",
+   "title": "vancouver-tower-toolbench (local copy, commit 9c78eee)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tower-toolbench",
+   "publisher": "Ruijie Liu and Sinnie Choi",
+   "year": "2026",
+   "opened": true,
+   "extract": "Single index.html of 1,521 lines; TOOLS array at line 691; credits Willem Girard and Sinnie Choi; CC-licensed photos; hub v0.5 described but absent; no LICENSE file."
+  },
+  {
+   "id": "C05-S02",
+   "title": "Vista, vancouver-tall-view-tool v09.16 (local copy, commit 5dbce2f)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "publisher": "Ruijie Liu",
+   "year": "2026",
+   "opened": true,
+   "extract": "Study JSON vancouver-site-study/1 restored from resume_hash; generated/*.bin 38.7 MB; data/geo.json frame check; rhino3dm 8.35.0 vendored; seven browser self-tests; no LICENSE file."
+  },
+  {
+   "id": "C05-S03",
+   "title": "Form Studio (local copy, commit 71a58d1)",
+   "url": "https://github.com/RuijieLiu6/form-studio",
+   "publisher": "Ruijie Liu",
+   "year": "2026",
+   "opened": true,
+   "extract": "Schema mountain-studio/1; .3dm export with MountainStudio_* strings; lonLatToVista; vancouver-sites.js 296,947 B; three r128, Leaflet 1.9.4; no tests; no LICENSE file."
+  },
+  {
+   "id": "C05-S04",
+   "title": "Program Value Visualizer (local copy, commit 7d8c1f8; live Pages headers checked 21 Oct 2026)",
+   "url": "https://github.com/RuijieLiu6/program-value-visualizer",
+   "publisher": "Ruijie Liu",
+   "year": "2026",
+   "opened": true,
+   "extract": "Floor-list contract in app.js normaliseFloors; basemap derived from Vista's generator; 118 test() calls; licence to be decided; window.claude coupling; README example ids invalid."
+  },
+  {
+   "id": "C05-S05",
+   "title": "GenEnv/arch540-a1-toolkit: README, projects.json and project files",
+   "url": "https://github.com/GenEnv/arch540-a1-toolkit",
+   "publisher": "ARCH 540 course (UBC SALA)",
+   "year": "2026",
+   "opened": true,
+   "extract": "Fifteen student tools; project 08 Sinnie Choi (xubynii/dtmass), project 04 Willem Girard (willemgirard03/Shading-tool-test); students edit only their own file; no licence file."
+  },
+  {
+   "id": "C05-S06",
+   "title": "xubynii/dtmass, Downtown Massing Tool: README, docs, file lists",
+   "url": "https://github.com/xubynii/dtmass",
+   "publisher": "Sinnie Choi",
+   "year": "2026",
+   "opened": true,
+   "extract": "Static HTML/JS, no build; optional .3dm input; PDF via print and DXF zip; own rhino3dm copy; headless tests in tools/; no LICENSE; read through page summaries only."
+  },
+  {
+   "id": "C05-S07",
+   "title": "willemgirard03/Shading-tool-test, Vancouver Solar Shading Explorer",
+   "url": "https://github.com/willemgirard03/Shading-tool-test",
+   "publisher": "Willem Girard",
+   "year": "2026",
+   "opened": true,
+   "extract": "package.json v6.0.0, private, rhino3dm 8.4.0, no licence field; 147 checks in test/verify.mjs; .3dm export; NRC weather; no LICENSE file."
+  },
+  {
+   "id": "C05-S08",
+   "title": "City of Vancouver Open Data: view-cones (metadata and record query)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "24 polygons; fields object_id, view_number, view_cone_name, description, url, geom; OGL-Vancouver; modified 2026-10-19; view 10 has object_id 1; no height field."
+  },
+  {
+   "id": "C05-S09",
+   "title": "City of Vancouver Open Data: property-parcel-polygons",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "99,698 records; civic_number, streetname, tax_coord, site_id, geom; weekly extract; site_id 019023251 is 350 W Georgia St at lat 49.27970996853242, lon -123.11556575905009."
+  },
+  {
+   "id": "C05-S10",
+   "title": "City of Vancouver Open Data: property-addresses",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-addresses/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "99,741 point records; civic_number, std_street, p_parcel_id, site_id, geo_local_area; modified 2026-10-19; OGL-Vancouver."
+  },
+  {
+   "id": "C05-S11",
+   "title": "City of Vancouver Orthophotos_2022 tile service",
+   "url": "https://tiles.arcgis.com/tiles/qrcTTRTwUoS8N47o/arcgis/rest/services/Orthophotos_2022/MapServer",
+   "publisher": "City of Vancouver",
+   "year": "2022",
+   "opened": true,
+   "extract": "Web Mercator 256 px tiles, 24 levels, imagery for levels 11 to 21; copyright text City of Vancouver; no licence terms in the service JSON."
+  },
+  {
+   "id": "C05-S12",
+   "title": "Open Government Licence - British Columbia, version 2.0",
+   "url": "https://www2.gov.bc.ca/gov/content/data/open-data/open-government-licence-bc",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "opened": true,
+   "extract": "Worldwide, royalty-free, perpetual grant; attribution and non-endorsement; default attribution string; silent on compatibility. Likely template for the Vancouver licence (unverified)."
+  },
+  {
+   "id": "C05-S13",
+   "title": "OSM Help: is the Open Government Licence - Vancouver compatible with OSM?",
+   "url": "https://help.openstreetmap.org/questions/59890/is-the-open-government-licence-vancouver-compatible-with-osm/",
+   "publisher": "OpenStreetMap community",
+   "year": "2017",
+   "opened": true,
+   "extract": "Asked 30 Sep 2017; no definitive answer; advice is to ask the data provider whether downstream attribution satisfies them."
+  },
+  {
+   "id": "C05-S14",
+   "title": "OSM Wiki: Open Data License / Community Guidelines",
+   "url": "https://wiki.openstreetmap.org/wiki/Open_Data_License/Community_Guidelines",
+   "publisher": "OpenStreetMap community",
+   "year": "2026",
+   "opened": true,
+   "extract": "Endorsed guidelines: Collective Database, Produced Work, Substantial, Geocoding, Trivial Transformations; Horizontal Map Layers never formalised; wiki is not the OSMF's own position."
+  },
+  {
+   "id": "C05-S15",
+   "title": "OpenStreetMap copyright and licence",
+   "url": "https://www.openstreetmap.org/copyright",
+   "publisher": "OpenStreetMap Foundation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Credit OpenStreetMap and its contributors; data under ODbL; adapted data may be distributed only under the same licence."
+  },
+  {
+   "id": "C05-S16",
+   "title": "OSMF Tile Usage Policy",
+   "url": "https://operations.osmfoundation.org/policies/tiles/",
+   "publisher": "OpenStreetMap Foundation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Visible attribution, valid Referer, no bulk download or prefetch, honour caching; no numeric limit; heavy use may be blocked; GitHub Pages not mentioned."
+  },
+  {
+   "id": "C05-S17",
+   "title": "GitHub Docs: Licensing a repository",
+   "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository",
+   "publisher": "GitHub",
+   "year": "2026",
+   "opened": true,
+   "extract": "With no licence, default copyright applies: no one may reproduce, distribute or create derivative works; public repos can still be viewed and forked under GitHub's terms."
+  },
+  {
+   "id": "C05-S18",
+   "title": "GitHub Docs: GitHub Pages limits",
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "publisher": "GitHub",
+   "year": "2026",
+   "opened": true,
+   "extract": "Published site 1 GB; repo 1 GB recommended; 100 GB per month soft bandwidth; 10 builds per hour soft; no commercial SaaS."
+  },
+  {
+   "id": "C05-S19",
+   "title": "Choose a License: Apache License 2.0",
+   "url": "https://choosealicense.com/licenses/apache-2.0/",
+   "publisher": "GitHub Choose a License",
+   "year": "2026",
+   "opened": true,
+   "extract": "Patent grant, NOTICE file, state-changes duty, licence and copyright notices kept; no liability or warranty."
+  },
+  {
+   "id": "C05-S20",
+   "title": "Choose a License: MIT License",
+   "url": "https://choosealicense.com/licenses/mit/",
+   "publisher": "GitHub Choose a License",
+   "year": "2026",
+   "opened": true,
+   "extract": "Keep licence and copyright notice; no liability or warranty; page does not mention patents."
+  },
+  {
+   "id": "C05-S21",
+   "title": "CityJSON Specifications 2.0.1",
+   "url": "https://www.cityjson.org/specs/2.0.1/",
+   "publisher": "CityJSON / Ledoux and Dukai",
+   "year": "2024",
+   "opened": true,
+   "extract": "Integer vertices with transform scale and translate; metadata.referenceSystem and geographicalExtent; Building with Solid and LoD strings; extensions with + names; specification under CC0."
+  },
+  {
+   "id": "C05-S22",
+   "title": "RFC 7946: The GeoJSON Format",
+   "url": "https://datatracker.ietf.org/doc/html/rfc7946",
+   "publisher": "IETF",
+   "year": "2016",
+   "opened": true,
+   "extract": "WGS 84 only; third coordinate is height above the WGS 84 ellipsoid in metres; crs member removed; exterior rings counterclockwise."
+  },
+  {
+   "id": "C05-S23",
+   "title": "EPSG:3157 NAD83(CSRS) / UTM zone 10N",
+   "url": "https://epsg.io/3157",
+   "publisher": "EPSG registry via epsg.io",
+   "year": "2026",
+   "opened": true,
+   "extract": "Transverse Mercator, central meridian -123, scale 0.9996, metres; area of use 126 W to 120 W including British Columbia."
+  },
+  {
+   "id": "C05-S24",
+   "title": "EPSG:6647 CGVD2013(CGG2013) height",
+   "url": "https://epsg.io/6647",
+   "publisher": "EPSG registry via epsg.io",
+   "year": "2026",
+   "opened": true,
+   "extract": "Vertical CRS in metres; replaces CGVD28 (EPSG 5713); realised by the CGG2013 geoid model."
+  },
+  {
+   "id": "C05-S25",
+   "title": "USGS EROS: SRTM 1 Arc-Second Global",
+   "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1",
+   "publisher": "USGS",
+   "year": "2026",
+   "opened": true,
+   "extract": "1 arc-second tiles; vertical reference EGM96, horizontal WGS 84; NGA void filling, some voids remain; no accuracy or licence statement on the page."
+  },
+  {
+   "id": "C05-S26",
+   "title": "Open Topo Data",
+   "url": "https://www.opentopodata.org/",
+   "publisher": "Open Topo Data",
+   "year": "2026",
+   "opened": true,
+   "extract": "Public API 100 locations per request, 1 call per second, 1,000 calls per day; srtm30m covers 60 S to 60 N; datum and licence not stated on the page."
+  },
+  {
+   "id": "C05-S27",
+   "title": "three.js releases",
+   "url": "https://github.com/mrdoob/three.js/releases",
+   "publisher": "three.js authors",
+   "year": "2026",
+   "opened": true,
+   "extract": "Latest release r186 (24 Sep); npm latest 0.186.1 under MIT."
+  },
+  {
+   "id": "C05-S28",
+   "title": "three.js Migration Guide",
+   "url": "https://github.com/mrdoob/three.js/wiki/Migration-Guide",
+   "publisher": "three.js authors",
+   "year": "2026",
+   "opened": true,
+   "extract": "Import maps needed from r137; examples/js removed at r148; build/three.min.js removed at r161."
+  },
+  {
+   "id": "C05-S29",
+   "title": "Leaflet releases",
+   "url": "https://github.com/Leaflet/Leaflet/releases",
+   "publisher": "Leaflet",
+   "year": "2026",
+   "opened": true,
+   "extract": "1.9.4 is latest stable (1.x in maintenance); 2.0.0-alpha and alpha.1 are pre-releases."
+  },
+  {
+   "id": "C05-S30",
+   "title": "rhino3dm on the npm registry",
+   "url": "https://registry.npmjs.org/rhino3dm",
+   "publisher": "McNeel and contributors",
+   "year": "2026",
+   "opened": true,
+   "extract": "Latest 8.35.0 published 2026-09-15; MIT licence."
+  },
+  {
+   "id": "C05-S31",
+   "title": "MDN: Window.postMessage",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage",
+   "publisher": "Mozilla",
+   "year": "2026",
+   "opened": true,
+   "extract": "Cross-origin messaging; use an exact targetOrigin; verify event.origin; validate event.data even from trusted origins."
+  },
+  {
+   "id": "C05-S32",
+   "title": "MDN: BroadcastChannel",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel",
+   "publisher": "Mozilla",
+   "year": "2026",
+   "opened": true,
+   "extract": "Same-origin browsing contexts only; Baseline widely available since March 2022."
+  },
+  {
+   "id": "C05-S33",
+   "title": "Vancouver Tall Challenge: terms and conditions",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge/terms",
+   "publisher": "Buildner",
+   "year": "2026",
+   "opened": true,
+   "extract": "Template redistribution banned (7.5.5, 7.5.6); entry IP stays with entrants (12.3); anonymity (5.1, 5.3); nothing on the site model, tools or AI."
+  },
+  {
+   "id": "C05-S34",
+   "title": "Vancouver Tall Challenge: call for entries",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "publisher": "Buildner",
+   "year": "2026",
+   "opened": true,
+   "extract": "Lists site plans and 3D model without terms; AI images not advised as sole work; brief download link was a placeholder in the fetched page."
+  },
+  {
+   "id": "C05-S35",
+   "title": "UBC Copyright Office: who owns student work",
+   "url": "https://copyright.ubc.ca/?p=3440",
+   "publisher": "University of British Columbia",
+   "year": "2026",
+   "opened": true,
+   "extract": "Undergraduates retain copyright in works created during study; graduates keep their works unless a research contract says otherwise; page silent on software."
+  },
+  {
+   "id": "C05-S36",
+   "title": "Authorship in AI-generated works: who owns the copyright?",
+   "url": "https://www.mltaikins.com/insights/authorship-in-ai-generated-works-who-owns-the-copyright/",
+   "publisher": "MLT Aikins LLP",
+   "year": "2024",
+   "opened": true,
+   "extract": "Unsettled in Canada; CIPPIC challenges the Suryast registration; the Act does not expressly require a human author; article dated 30 Jul 2024, outcome not checked."
+  },
+  {
+   "id": "C05-S37",
+   "title": "Wikipedia: Geographic coordinate system (length of a degree)",
+   "url": "https://en.wikipedia.org/wiki/Geographic_coordinate_system",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "opened": true,
+   "extract": "WGS 84 degree of latitude in metres = 111132.95255 - 559.84957cos(2phi) + 1.17514cos(4phi) - 0.00230cos(6phi); equatorial value 110.6 km. Secondary source."
+  },
+  {
+   "id": "C05-S38",
+   "title": "JSON Schema specification",
+   "url": "https://json-schema.org/specification",
+   "publisher": "JSON Schema organisation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Current version is 2020-12. Keyword details for $id and $ref reuse not read on this page."
+  },
+  {
+   "id": "C05-S39",
+   "title": "OpenAI launches GPT-6 Astra",
+   "url": "https://www.constellationr.com/insights/news/openai-launches-gpt-6-astra",
+   "publisher": "Constellation Research",
+   "year": "2026",
+   "opened": true,
+   "extract": "Launched 3 Sep 2026; select customers first, then Plus, Pro, Business and Enterprise; $10 and $50 per million tokens; API access not stated."
+  },
+  {
+   "id": "C05-S40",
+   "title": "City of Vancouver Public Views Guidelines (PDF)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": false,
+   "extract": "Fetch returned HTTP 403. Clause and page references are taken from Vista data/guideline.json (team transcription) and were not checked against the PDF."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The four tools share three.js, Leaflet and rhino3dm.",
+   "correction": "Only Form Studio ships three.js (r128) and Leaflet (1.9.4). Vista renders with its own WebGL2; PVV and the toolbench use neither. rhino3dm appears as different builds in Vista and Form Studio.",
+   "detail": "Solar pins rhino3dm 8.4.0 and DT Mass ships its own copy, so shared libraries are not a ready basis for integration.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The local frame is accurate because eight OSM footprints match within 0.08 m (Vista data/geo.json).",
+   "correction": "The check shows the Rhino model was built with the same formula, not agreement with the ground. Scale is 0.58% short N-S and 0.19% short E-W; areas are 0.77% small.",
+   "detail": "110,574 m per degree is the equatorial value; 111,215 m applies at 49.28 N. Checks comparing true-metre massing with stored parcel polygons carry about 0.8% area bias. See M03.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The City's view-cone object_id is a stable key (Vista stores object_id 3 for view 10).",
+   "correction": "The live API returns object_id 1 for view 10. Key cones on view_number plus a polygon hash.",
+   "detail": "Polygon vertices for view 10 are identical in Vista and the live record, so only the id changed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "PVV's README floor-list example (programme ids O1 and T4) can be imported, and templates/ holds CSV and JSON templates.",
+   "correction": "O1 and T4 are value-row ids; the importer throws unknown programme. Valid ids come from the catalogue (WK1, SE1, AM4). templates/ holds only .gitkeep; the CSV template is a string at app.js line 859.",
+   "detail": "Fix the README before publishing any Layer 0 example that copies it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "PVV README: 116 automated tests.",
+   "detail": "118 test() calls were counted in 13 files. Node is not installed here, so nothing was run.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "NASA SRTM is public domain (PVV README).",
+   "detail": "The USGS and Open Topo Data pages state no licence or citation request. The USGS page gives EGM96 heights and no accuracy figure. Confirm before shipping terrain.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Hub v0.5 already reads tool exports into one project file (toolbench About page).",
+   "detail": "No hub code, schema or exports are in the four repos, so its 89/89 checks cannot be verified. A Structure Lab station is named in a caption but no such tool was found. Reconcile with Layer 0.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "City open data may be combined with OSM data in one published database.",
+   "detail": "The OGL-Vancouver text could not be read (script-rendered page; vancouver.ca returned 403) and the 2017 OSM help thread is inconclusive. Keep layers in separate files until the City answers in writing.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The supplied studio model and the competition base model may be redistributed in derived form.",
+   "detail": "Competition terms cover templates only (7.5.5, 7.5.6) and say nothing about site plans or the 3D model. Vista publishes 38.7 MB derived from the studio model whose owner and terms are unknown. Form Studio already omits the competition model.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Classmates are content to be linked and shown in the toolbench.",
+   "detail": "Credit lines exist but no consent record is in any repo. The toolbench links to class-toolkit anchors, not to the authors' own pages (xubynii.github.io/dtmass, willemgirard03.github.io/Shading-tool-test).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "OSM's tile server can carry the platform's map traffic (Form Studio calls tile.openstreetmap.org).",
+   "detail": "The policy sets no numeric limit, bans bulk download and prefetching, requires visible attribution and a Referer, and may block heavy use. GitHub Pages is not mentioned. Plan a fallback map.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Public Views Guidelines page and clause numbers quoted in Vista.",
+   "detail": "The PDF and vancouver.ca pages returned HTTP 403. References come from Vista data/guideline.json and are unchecked here.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The team can license AI-drawn glyphs, pictograms and AI-written code as its own.",
+   "detail": "Canadian law on AI authorship is unsettled (CIPPIC v Sahni; the article read dates from July 2024 and the outcome was not checked). Disclose AI use in NOTICE and prefer permissive licences.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "GPT-6 Astra is available to the team for adapter work.",
+   "detail": "Press reports a 3 Sep 2026 launch with staged access; API availability is not stated on the page read. Do not plan around it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "A Form Studio .3dm lands on the right ground in Vista.",
+   "detail": "Form Studio exports Vista-frame XY with grade z=0, but Vista's example site sits at z 40.52 m and its importer reports file coordinates as-is and leaves placement to the user. Layer 0 needs frame and grade_z on every massing.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Hub v0.5 project-file format: searched the four repos for schema, project file and workbench; only About-page text exists (toolbench index.html). Needs the file from Ruijie.",
+  "Structure Lab tool named in the hub v0.5 caption: not found in any repo or the toolkit's 15 projects; author unknown.",
+  "Open Government Licence - Vancouver full text and attribution string: licence page returned only navigation, vancouver.ca returned 403, two web searches found only other municipalities' versions.",
+  "ODbL and OGL-Vancouver compatibility in one merged database: OSM help thread (2017) inconclusive; no City statement found.",
+  "Terms for the supplied Vancouver DT context.3dm and the competition site plans and 3D model: competition terms silent; instructor and organiser not yet asked.",
+  "Public Views Guidelines PDF and the City's view-protection page: both returned 403, so clause numbers and cone-height datum wording are unchecked here.",
+  "DT Mass project and export formats: only README and architecture-review summaries read via page fetch; its model.js summary says no project import or export. Verify by reading the source with the author's permission.",
+  "Solar tool .3dm contents (layers, units, user strings): src/export/rhino.js not read.",
+  "Form Studio's rhino3dm version: no provenance file; wasm SHA-256 differs from Vista's; no version string found in the minified bundle.",
+  "Crosswalk from DT Mass's eight uses to PVV's 112 programme ids: needs design judgement; no mapping exists.",
+  "Tower identity in multi-tower clusters: Form Studio clusters hold several towers per level while PVV floors have no tower_id.",
+  "Whether PVV's gross area_basis matches City FSR floor-area definitions: the hub caption says City area definitions are not applied anywhere yet.",
+  "UBC or studio rules on open-sourcing coursework: UBC copyright page says students keep copyright; software and Policy LR11 not confirmed (innovation.ubc.ca page held no policy text).",
+  "Outcome of CIPPIC v Sahni: only a July 2024 article read.",
+  "Whether Vista's WebGL2 renderer can consume the shared building pack without rewriting explorer.js: not assessed at code level."
+ ],
+ "change_log": [
+  "Round 1: first pass on C05. Read all four local repos; read public pages of two classmate repos and the class toolkit; queried City APIs and GitHub Pages headers live; recomputed frame constants against WGS 84; drafted Layer 0, port map, duplicate list, pack budget, licence matrix and permission plan."
+ ],
+ "notes": "Main findings: (1) no repo has a licence for its own code, so classmates' code cannot be reused without written grants; (2) the shared local frame uses the equatorial latitude scale, so distances and parcel areas are 0.6 to 0.8% short and Layer 0 should master lon/lat with EPSG:3157; (3) PVV's floor record is the best canonical floors array, but its README example ids are invalid; (4) the same City and OSM data are copied three ways, and PVV's int16 pack is about 20 times smaller per building than Vista's mesh. Cone-height validation belongs to the view-cone packet; these cases test integration only. Node was unavailable, so no tests were run."
+}

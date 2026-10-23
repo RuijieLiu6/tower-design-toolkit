@@ -1,0 +1,224 @@
+{
+ "expert_role": "Studio reviewer and gatekeeper. I audit the cited sources in the P17 case study (existing tools and as-is workflow) for VTC entrants, checking whether the workflow stands on its own terms, whether delegation is clear and whether every claim has a source.",
+ "previous_round": [
+  {
+   "item": "BLOCKER: VTC brief, site plans and 3D model never opened; brief content stated as fact",
+   "status": "partly",
+   "residue": "Labelling is now honest: items are tagged brief-unopened and cited to S77/S78, and the 'earlier-round read' citations are gone. The brief is still unopened. I re-fetched S01 on 21 Oct: 'Download brief' is still '#', and the language and site-file links have no URL. Every core threshold (244-305 m, 9.0 FSR, jury weights, 4 x A2, 10 MB, transit link) still traces only to the team-supplied S78. A1 is open, and registration closes 29 Oct."
+  },
+  {
+   "item": "MAJOR: steps 8 and 9 cite S01 for board count, size and 10 MB",
+   "status": "addressed",
+   "residue": "S01 now covers only English, anonymity, dates, fees and prizes. I re-checked S01 on 21 Oct: no boards, sheet size, file size, heights, FSR or jury criteria."
+  },
+  {
+   "item": "MAJOR: SimScale presented as a usable free wind CFD route",
+   "status": "addressed",
+   "residue": "S58 and S76 re-read 21 Oct. LBM and PWC are excluded from Community and from Sponsorship, and are add-ons on Professional and Enterprise. The spec correctly goes further than the r3 critique: no free route exists."
+  },
+  {
+   "item": "MAJOR: delegation unclear; no owners, deadlines or source IDs",
+   "status": "partly",
+   "residue": "Actions table A1-A13 now has owners, deadlines and source IDs. The owners are placeholders ('Student A/B (proposed; team confirms)') that nobody has confirmed, no instructor is named, and the table is stored as a JSON-encoded string rather than an array."
+  },
+  {
+   "item": "MAJOR: block never georeferenced; S54 cone intersection not run",
+   "status": "partly",
+   "residue": "The API method is tested and six sample points were run. I verified the 24 records and view numbers on 21 Oct. The real block check (A4) is still blocked by A1."
+  },
+  {
+   "item": "MAJOR: competition-use caveat only on Snaptrude",
+   "status": "addressed",
+   "residue": "One UNVERIFIED flag now covers all education licences, and a competition_use field was added. Rhino's 'same as commercial except not transferable' and Snaptrude's 'educational purposes only' re-verified 21 Oct."
+  },
+  {
+   "item": "MAJOR: as-is workflow is all team assumption; ranking language",
+   "status": "partly",
+   "residue": "Retitled HYPOTHESIS, ranking language removed, interview plan dated. Interview n is still 0, and the recruits are unnamed with a recruit deadline of 26 Oct (5 days away)."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P17/sources S77, S78 + as_is_workflow 0, 1, 1b, 3, 6, 6b, 7, 8, 9",
+   "issue": "The competition brief, site plans and 3D model are still unopened after four rounds. I re-fetched S01 on 21 Oct 2026: 'Download brief' is '#', and the brief and site-file links have no URL. Every quantitative requirement an entrant would act on (244-305 m, 9.0 FSR non-residential and its basis, jury weights 40/30/20/10, 4 x A2, 10 MB, the below-grade transit link, site location) traces only to S78, a team-supplied text that is not independently verified. The labelling is honest, but an entrant cannot rely on any of it, and the protected-view check (A4) cannot run without site coordinates.",
+   "fix": "Before registration closes on 29 Oct, a registered member downloads the brief and site files (A1). Add the brief as an opened source with date and page numbers. Re-cite or correct every S78 figure. Record the street names, coordinates and true north. Then run A4 the same day. If registration is not paid, record that decision and mark the packet 'not usable by entrants'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow (all 16 steps) + action A12",
+   "issue": "The as-is workflow is this packet's main deliverable, and every step is still a hypothesis with interview n=0. The two interviewees are unnamed. The recruit deadline is 26 Oct, five days away, and no candidate list or channel is recorded. The interview protocol (per-step hours, tools, rework, skipped work, handover breaks) exists only as one sentence, with no question script or recording template.",
+   "fix": "Name the two candidates, or the channel (e.g. ARCH 540 class list, SALA VTC-registered teams) and who contacts them, by 24 Oct. Attach a one-page question script and a dated answer template per step_id. If the interviews are not done by 5 Nov, state in the packet that downstream packets must not use any step's pain points for module priority."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/sources S54 + as_is_workflow/1 (input)",
+   "issue": "Step 1 and S54 say City open data has 'no 3D massing or topography title'. On 21 Oct 2026 the City catalogue returned lidar-2022, lidar-2018, lidar-2013, digital-elevation-model, elevation-points and 1, 2 and 10 m contour datasets. LiDAR 2022 is under the Open Government Licence - Vancouver, has 181 tiles of zipped LAS, and is classified, including a 'buildings' class. This is a citable, free route to the context massing and topography that step 1 says is missing.",
+   "fix": "Add a source for opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022 (modified 18 Apr 2023, OGL-Vancouver, classified LAS incl. buildings) and the DEM. Correct S54 and the step 1 input. Note that the 2022 capture predates towers completed since, so recent context still needs checking."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/actions",
+   "issue": "Owners are 'Student A/B (proposed; team confirms)', and nothing records that the team confirmed them. 'Instructor' is unnamed. The actions table is serialised as a JSON string inside the spec, so tools and reviewers cannot filter or validate it. Several deadlines fall within 5-8 days (A10 28 Oct, A2 28 Oct, A7 29 Oct) and have no status updates.",
+   "fix": "Store actions as an array of objects. Add a 'confirmed_by_team' date field. Name the instructor role holder. Update the status of each action at the next round."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources S75 + flags (protected views)",
+   "issue": "The S75 extract says protected views are 'not addressed' in the FAQ. Re-read 21 Oct 2026, the FAQ lists 'the protection of public views and connections to the city's natural setting' as a consideration the review must balance. The 600 ft (183 m) statement applies to sites within the policy area, for example those across from the Bay Parkade. It is not a blanket cap that can be compared directly with the VTC block before the block is located.",
+   "fix": "Correct the S75 extract. In step 7b, say that 183 m is 'may be considered' within the current policy area, and that it applies to the VTC block only once A1 locates the block."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources S15 (Speckle)",
+   "issue": "'STL/FBX compatibility mode ends 1 Nov 2026' could not be found on the pricing page or the integrations page (re-read 21 Oct 2026). The integrations page lists STL and FBX as supported drag-and-drop formats, with no end date.",
+   "fix": "Cite the exact page that states the 1 Nov 2026 end date, or delete the claim."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/flags (derived numbers) + Infrared case study",
+   "issue": "'A grant activated 19 Oct runs to about 30 Nov' implies an Infrared account was opened on 19 Oct. No source or action records that anyone registered. The arithmetic (19 Oct + 42 days = 30 Nov; 21 Oct + 42 = 2 Dec) is correct, but the premise is unsupported.",
+   "fix": "Either record who registered and when (as an action outcome), or reword as 'if activated on date D, tokens expire D + 42 days' and leave the date to A9."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/case_studies + as_is_workflow (jury_tags)",
+   "issue": "Every jury_tag carries the weight in its name ('human_scale_40', 'cultural_context_30'). Those weights come only from the unverified S78, so the tags hard-code an unconfirmed number into downstream module metadata.",
+   "fix": "Use weight-free tags (human_scale, cultural_context, design_excellence, urban_integration). Keep the weights in one editable team-assumption table cited to S78 until the brief confirms them."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/as_is_workflow/4 (input)",
+   "issue": "Step 4 and the Ladybug and Eddy3D case studies rely on an EPW weather file and wind climate data, but no source is given for either. These inputs drive every sun, wind and comfort result in CLIM modules.",
+   "fix": "Add a sourced weather file (e.g. the Vancouver International EPW from a named repository, with station, period and licence). Flag the downtown-vs-airport wind difference as a team assumption."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources (second-hand)",
+   "issue": "S43, S62, S63, S69, S70 and S72 are still opened:false after four rounds. This reviewer's web-search budget was also exhausted on 21 Oct 2026, so the second-hand figures (14 of 38 views removed, UNDRIP dates, Forma seat terms) remain unconfirmed.",
+   "fix": "A5, A6 and A7 must be done by a person in a browser. Record the outcome in each source's extract and switch opened to true, or drop the source."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources (count)",
+   "issue": "49 sources against guidance of about 40. Several are thin or only point to other sources (S28 UpCodes, S59 EC3 unread terms, S27 superseded by S52).",
+   "fix": "Merge S27 into S52 and S67 into S66. Drop S28 unless jurisdiction coverage is confirmed."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "City of Vancouver open data has no 3D massing or topography dataset (S54 title search; step 1 input 'no 3D massing dataset appeared')",
+   "why_false": "On 21 Oct 2026 the City catalogue returned nine relevant datasets, including lidar-2022 (classified LAS point cloud with a buildings class, 181 tiles, about 134 km2), the digital elevation model, elevation points and 1/2/10 m contours, all under the Open Government Licence - Vancouver.",
+   "correction": "Context massing and topography can be derived from City LiDAR 2022 and the DEM. Cite them in step 1 and note the 2022 capture date.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets?where=search(\"lidar\") or search(\"3d\") or search(\"elevation\") ; https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022 (both fetched 21 Oct 2026)"
+  },
+  {
+   "claim": "The Higher Buildings Policy Review FAQ (S75) does not address protected views",
+   "why_false": "The FAQ names 'the protection of public views and connections to the city's natural setting' among the considerations the review must balance.",
+   "correction": "S75 mentions public-view protection as a consideration. It does not define protected views or say whether competition entries are binding.",
+   "evidence": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs (fetched 21 Oct 2026)"
+  }
+ ],
+ "missing": [
+  "The VTC brief, site plans and 3D model as an opened source, with page numbers, site coordinates, true north and the FSR basis (A1)",
+  "Result of the view-cone intersection for the real block (A4)",
+  "Any recorded interview (n=0), with no named recruits or question script",
+  "City LiDAR 2022 / DEM as a context-modelling source",
+  "A sourced weather (EPW) and wind-climate input for step 4",
+  "A source for the neighbouring transit station and the below-grade link (TransLink or brief)",
+  "Written confirmation of competition use from any education licence (A3, A8)",
+  "Team confirmation of action owners"
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P17-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "note": "Dates, prizes, VAT, '#' brief link and the unmapped EUR 120/140 match the spec. The page has no heights, FSR, boards, file size or jury criteria, as the spec says. The first fetch timed out; the second succeeded."
+  },
+  {
+   "source_id": "P17-S75",
+   "url": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+   "ok": false,
+   "note": "1997/2011, 'will not determine the policy' and 600 ft (183 m) confirmed. The extract's 'protected views not addressed' is wrong: the FAQ lists public-view protection as a consideration."
+  },
+  {
+   "source_id": "P17-S76",
+   "url": "https://www.simscale.com/student-competitions/",
+   "ok": true,
+   "note": "3,000 core hours, private projects, excludes Multi-purpose, LBM and PWC. Turnaround and duration not stated. Matches the spec."
+  },
+  {
+   "source_id": "P17-S58",
+   "url": "https://www.simscale.com/product/pricing/",
+   "ok": true,
+   "note": "Community: 10 simulations, up to 2,000 core hours, no private projects, incompressible flow Limited, LBM and PWC excluded (Optional on Professional/Enterprise). Matches the spec."
+  },
+  {
+   "source_id": "P17-S74",
+   "url": "https://docs.eddy3d.com/latest/",
+   "ok": true,
+   "note": "Free for all users, no licence named, OpenFOAM, Radiance, urbanMicroclimateFoam, Rhino 8.27, Docker Desktop paid for larger companies, no validation or limits stated. Matches the spec."
+  },
+  {
+   "source_id": "P17-S54",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "note": "total_count 24; view numbers and four QE Park views 3.2.1-3.2.4 match. The linked step 1 claim of no 3D or topography data is false: LiDAR and DEM datasets exist."
+  },
+  {
+   "source_id": "P17-S09",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html",
+   "ok": true,
+   "note": "Confirmed: B lot 5,276 m2 and 16,272/13,968/15,552; C0 7,308/3,680/8; C2 50 vs 61 of 75; C5 329 vs 300 as separate results with about 40 each; C6 5 vs 7; D 250+ vs about 239, 3 of 3; round counts under the heading 'Step 1. The whole team, three runs'; D3 255 vs 223. The spec's wording is accurate."
+  },
+  {
+   "source_id": "P17-S25",
+   "url": "https://www.rhino3d.com/buy/",
+   "ok": true,
+   "note": "995/595, 195/95, lab 975/495. Educational versions are the same as commercial except not transferable. Matches the spec."
+  },
+  {
+   "source_id": "P17-S31",
+   "url": "https://www.infrared.city/pricing",
+   "ok": true,
+   "note": "Free 900 tokens, 42-day expiry, label Students & small studies; Starter 240, Advanced 1,200, Pro 6,000; standard 10, PWC 50. Matches the spec."
+  },
+  {
+   "source_id": "P17-S66",
+   "url": "https://www.snaptrude.com/students",
+   "ok": true,
+   "note": "120 AI credits a year, 1-year licence, school email, 'educational purposes only', commercial use needs a professional licence, competitions not mentioned, Pro within hours vs workspace in 24-48 h. Matches the spec."
+  },
+  {
+   "source_id": "P17-S15",
+   "url": "https://www.speckle.systems/pricing",
+   "ok": false,
+   "note": "Explore limits and 'free for students and educators' confirmed. The STL/FBX compatibility end date of 1 Nov 2026 was not found here or on /integrations."
+  },
+  {
+   "source_id": "new",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "LiDAR 2022, OGL-Vancouver, classified LAS including buildings, modified 18 Apr 2023. Missing from the spec."
+  },
+  {
+   "source_id": "search",
+   "url": "WebSearch (VTC brief)",
+   "ok": false,
+   "note": "Web-search budget exhausted (shared limit) on 21 Oct 2026, so the brief and the second-hand items could not be searched."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "A1 done: brief and site files opened by a registered member before 29 Oct, added as an opened source with page numbers; every S78 figure confirmed or corrected; block coordinates and true north recorded",
+   "A4 done: view-cone intersection run for the real block corners and centre, with cone numbers recorded",
+   "At least two interviews recorded per step_id, or the packet states explicitly that no step ranking may be used downstream (owners and recruits named by 24 Oct)",
+   "Step 1 and S54 corrected to cite City LiDAR 2022 and the DEM",
+   "S75 extract and the S15 STL/FBX claim corrected or sourced",
+   "Action owners confirmed by the team and the actions table stored as structured data"
+  ]
+ },
+ "verdict": "Not passed. Round 4 fixed the r3 citation errors honestly. SimScale, S01 scoping, competition-use flags, demo attributions and an action table are all correct, and the 11 sources I spot-checked mostly match. An entrant still cannot rely on it. The brief has never been opened, so heights, FSR, jury weights, board limits and site location rest on an unverified team text. The block is not located, so the view-cone check cannot run. The as-is workflow, the packet's core, has no interviews behind it. One new factual error: City LiDAR 2022 and DEM data exist, but the spec says no 3D or topography data was found. The S75 'protected views not addressed' line is also wrong. The gate passes once A1 and A4 are done before 29 Oct and interviews are recorded."
+}

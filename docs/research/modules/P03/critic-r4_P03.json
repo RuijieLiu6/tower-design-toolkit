@@ -1,0 +1,222 @@
+{
+ "expert_role": "Municipal reviewer and gatekeeper: pedestrian wind and microclimate study requirements, auditing every cited source",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P03-M04",
+   "issue": "The only VAF route that entrants can use (an Eddy3D workflow guide plus an import template) fails the core classifier as specified. (1) The Eddy3D VAF component outputs only velocity ratios and EPW-driven wind series. Its page mentions no turbulent kinetic energy or turbulence intensity and no CSV export, so the default Toronto family and the Hamilton and RWDI families, all GEM-based, are blocked or fall back to an unsourced default turbulence intensity. Any default below 28% makes GEM equal the mean, which understates gusty corners. (2) Eddy3D normalises VAF to its ABL Zref (default 10 m, uncapped log law), while M01 releases U_ref at 120 m with a capped or Deaves-Harris profile. The reference gate therefore refuses by default, and the 'logged conversion' that would let it pass is never defined. (3) Eddy3D's own 8760-hour 'Wind Speed' and AVAF outputs scale uncorrected EPW airport wind, so importing them would bypass M01. As written, no entrant gets a valid comfort map from the core release.",
+   "fix": "Specify the conversion: VAF_zref = VAF_Zref,Eddy3D x U_inflow(Zref)/U_inflow(z_ref), evaluated with the declared inflow profile and z0, logged in MethodMetadata. Alternatively, ship an Eddy3D recipe that sets Zref to 120 m and the per-direction z0 and reference speed taken from M01. Publish the import template with required columns: probe id, x, y, z, direction, VAF, k or turbulence intensity (optional), Zref, z0, profile law. Refuse Eddy3D 'Wind Speed' and AVAF imports. For GEM families without k, show mean-based classes labelled 'GEM not computable', not a silent default turbulence intensity. Run one end-to-end test case (Eddy3D, then import, then M04) before 13 Nov."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M01",
+   "issue": "The core release cannot be delivered on time. Core effort for P03 alone is 24-31 person-days: M01 8-10, M02 5-6, M03 7-10, M04 core 4-5. Two students have about 36 person-days between 21 Oct and the 13 Nov core release, and they must cover every other packet as well. M05-M07 are v1 'by 10 Dec', after the 30 Nov VTC deadline, so entrants will never see them. M01 alone carries two ingestion routes, a splice, ISD comparison, stability tags, sky-cover badges and regression fixtures.",
+   "fix": "Cut core M01 to one route: the ECCC splice with the calm rule, LST to UTC conversion, a per-sector table with a capped log law, and the badge. Move ISD comparison, the stability proxy, the variable-direction class and the TMYx WindClimate to v1. Cut M03 to four rules (exposure height, windward width, corners, canopies). State explicitly that the v1 modules are not available to entrants."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M02",
+   "issue": "The scope question 'which criteria apply in Vancouver' is still unanswered, and the remedy has no owner. The PrecedentTable is empty. The 'named team member' is not actually named. City of Vancouver hosts still return 403 (re-checked 21 Oct 2026 for guidelines.vancouver.ca, syc.vancouver.ca and vancouver.ca rezoning requirements). Two cheap channels the spec ignores are open: the VTC Q&A (deadline 3 Nov 2026, S30) and the review contact address higherbuildings@vancouver.ca listed on Shape Your City (S28). The review's Phase 2 draft policies are due fall 2026 and are not yet published, but no watch item exists for them.",
+   "fix": "Name the person and date in human_judgment. Before 3 Nov, submit a VTC Q&A question asking which pedestrian wind criteria and study level the jury expects. Email higherbuildings@vancouver.ca for the criteria used in recent downtown rezonings. Add a watch item for the Phase 2 draft policy and re-check the microclimate wording when it appears."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M02",
+   "issue": "The AnalogCriteriaLabel export validator, the safeguard that stops Ontario or UK classes being read as Vancouver compliance on boards, is assigned to the PRES packet. No interface, no depends_on entry and no acceptance test exists in P03. If PRES does not implement it, labels disappear from boards.",
+   "fix": "Declare a cross-packet contract: the PRES export must call M02.validateExport(layers) and refuse exports without the label. Add it to depends_on as 'EXT: PRES board export' with a test fixture: a board containing a comfort layer and no label must fail."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "Route B relies on NOAA ISD. NCEI's GHCNh product page states that GHCNh replaces ISD. The spec's own isd-history extract lists 718920-99999 only to 24 Aug 2025, so the example 1996-2025 window cannot be completed through ISD. The spec records neither fact.",
+   "fix": "Record ISD as superseded by GHCNh and the station's end date. Limit ISD windows to complete years (end 2024), or switch route B to GHCNh after checking its YVR coverage and format."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "Licences of the data the open-source tool will cache or redistribute are unverified: ECCC is 'Not verified', ISD is 'Not verified', TMYx has no licence and includes ERA5 (Copernicus terms). A public GitHub-style platform that ships fixtures (the regression CSVs) redistributes the data.",
+   "fix": "Open the ECCC open-data licence page and the NCEI and Copernicus terms. Record the attribution text, and the redistribution rule for any fixture committed to the repo. Until then, keep fixtures as download scripts, not data files."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "Status mismatch: 'ReferenceSpec completeness' is marked verified, but its 120 m default and the minimum of 100 m are London's convention transferred to Vancouver, which the basis itself admits.",
+   "fix": "Split the metric: the required fields are verified (Toronto 6.4.4, London); the 120 m default is a team_assumption."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M05",
+   "issue": "Status mismatch: 'Domain and blockage logged' is marked verified, although the AIJ and COST 732 rules were read only second-hand (S49, S06) and S40 was never opened. The flags elsewhere call them 'not opened'.",
+   "fix": "Set the status to unverified (secondary source) until Tominaga et al. 2008 or COST 732 is opened."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M04",
+   "issue": "Boundary inequalities differ between families: Toronto uses at or below (10, 15 and 20 km/h), Hamilton uses strictly below (under 10, 14, 17 and 20). The spec's CriteriaSet schema does not store the comparison operator, and with integer-km/h inputs this matters exactly at the threshold.",
+   "fix": "Add an operator field (le or lt) to each CriteriaSet class and test it with probes sitting exactly at 10 and 20 km/h."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M06",
+   "issue": "M06 is v1, due by 10 Dec, so VTC entrants get no UTCI or rain output, yet jury_criteria and the brief's 'sustainability studies' imply entrant use. The rain composite also pairs Harbour CS precipitation with YVR wind 13 km apart with no test of whether rain timing agrees.",
+   "fix": "State in M06 limits that it is not available before 30 Nov. Add a check on rain-hour coincidence between Harbour CS and the YVR Weather text before the composite is used."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "The regression fixture claims '744 rows, 3 timestamp-only, 90 calm of 741' for station 51442, Jan 2025. A DictReader parse reports 744 rows with speed, because short rows are filled with None, not ''. The fixture passes only if the parser handles ragged rows explicitly.",
+   "fix": "Specify the parser rule: a row with fewer than 31 fields is timestamp-only. Assert 741 populated rows and 90 calms (re-verified 21 Oct 2026)."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "An Eddy3D workflow guide and import template are a sufficient minimal VAF path for the core M04 classifier with the default (GEM-based) Toronto criteria.",
+   "why_false": "The Eddy3D VAF component outputs only velocity ratios and EPW-driven wind series, with no TKE or turbulence intensity and no stated CSV export. Its reference is the ABL Zref (default 10 m), not the 120 m used by M01.",
+   "correction": "Define the VAF re-normalisation and an export recipe. Make k optional with explicit 'GEM not computable' labelling, and refuse Eddy3D's EPW-scaled wind outputs.",
+   "evidence": "https://docs.eddy3d.com/latest/components/Velocity_Amplification_Factors_VAF/ : outputs are Wind Speed (an 8760-hour series per probe), VAF ('local wind speed normalized by the reference (undisturbed) speed') and Annual VAF (requires EPW). No turbulence quantity and no export format are mentioned."
+  },
+  {
+   "claim": "NOAA ISD 718920-99999 is a current single-id route covering a 30-year window to 2025 (implied by the 1996-2025 example).",
+   "why_false": "NCEI states that GHCNh replaces ISD, and the spec's own isd-history extract ends the station listing on 24 Aug 2025.",
+   "correction": "Mark ISD as superseded. Use complete years to 2024 or move route B to GHCNh after checking coverage.",
+   "evidence": "https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly : GHCNh 'replaces the Integrated Surface Dataset (ISD)'. Spec S58 extract: 718920-99999 listed to 2025-08-24."
+  }
+ ],
+ "missing": [
+  "End-to-end test case (Eddy3D or tunnel CSV, then M04, then a labelled map) with an expected output, before the 13 Nov release",
+  "VAF re-normalisation formula between reference heights and profile laws (the 'logged conversion' named in the M04 gate)",
+  "Comparison-operator field (le or lt) in the CriteriaSet schema",
+  "Cross-packet interface contract for the PRES export validator",
+  "Data licence and attribution record for ECCC, NCEI (ISD or GHCNh) and ERA5 or TMYx, and a rule for committed fixtures",
+  "Watch item for the Higher Buildings Policy Review Phase 2 draft policies (fall 2026), and the VTC Q&A route (deadline 3 Nov) to ask about wind expectations",
+  "Explicit statement of what entrants get before 30 Nov (M01-M04 only, with M04 conditional on an imported VAF) in the packet notes and the UI",
+  "Named owner and date for the PrecedentTable task"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Define and test the full core chain: Eddy3D (or tunnel CSV) export recipe, import template with reference fields, VAF re-normalisation to the M01 z_ref, explicit handling of GEM families when no k is available, and refusal of Eddy3D EPW-scaled wind outputs",
+   "Re-scope the core so that M01-M04 fit the time available before 13 Nov, and state that M05-M07 are not available to VTC entrants",
+   "Name the PrecedentTable owner and date, submit the VTC Q&A question before 3 Nov, and email higherbuildings@vancouver.ca",
+   "Make the AnalogCriteriaLabel export check a declared cross-packet contract with a failing-export test",
+   "Record ISD as superseded by GHCNh and its 2025 end date, and record data licences before shipping fixtures"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "MAJOR M01: calm rule wrong for ECCC CSV (direction empty, never 0)",
+   "status": "addressed",
+   "residue": "Re-verified on 51442 Jan 2025: 741 populated rows, 90 calms, all with empty direction, none with direction 0. The fixture needs an explicit ragged-row rule."
+  },
+  {
+   "item": "MAJOR M01: no single 30-year YVR record; StationSplice needed",
+   "status": "addressed",
+   "residue": "Tolerances are user-set; anemometer history is undocumented."
+  },
+  {
+   "item": "MAJOR M01: Vancouver Harbour CS has no wind; remove as cross-check",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M02: no Vancouver criteria; label every output and assign a person to fetch precedents",
+   "status": "partly",
+   "residue": "The label is specified, but the validator is delegated to PRES with no contract. 'A named team member' is still unnamed. PrecedentTable has 0 reports."
+  },
+  {
+   "item": "MINOR M01: stability proxy assumed a cloud column",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M01: time-zone alignment",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M01: no gust source",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M01: sampling-scatter tail direction",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M05: compute budget mis-derived",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M05: no capped-inflow implementation route",
+   "status": "partly",
+   "residue": "fixedProfile named, not run; consistent k and epsilon unsourced"
+  },
+  {
+   "item": "MINOR M06: rain input empty",
+   "status": "addressed",
+   "residue": "The two-station composite has not been tested for rain timing."
+  },
+  {
+   "item": "MINOR M04: cycle-route wording",
+   "status": "addressed"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P03-S01",
+   "url": "https://www.toronto.ca/wp-content/uploads/2022/03/8f9c-CityPlanning-ToR-Wind-Guide.pdf",
+   "ok": true,
+   "note": "Text extracted. Table 1 (Area 1: Low 20-60 m, Moderate 60-100 m, High over 100 m), 6.4.4 (30 years, four seasons, 6:00-23:00 'e.g.', 600 m gradient example), Table 3 (10/15/20 km/h GEM at 80%; gust = mean + 3 RMS; GEM = max(mean, gust/1.85); note 3 on mean under 5 km/h; safety gust over 90 km/h at 0.1%, 24 h) and the CFD limits on gusts and safety all match the spec."
+  },
+  {
+   "source_id": "P03-S43",
+   "url": "https://www.cityoflondon.gov.uk/assets/Services-Environment/wind-microclimate-guidelines.pdf",
+   "ok": true,
+   "note": "Text extracted. City Lawson 2.5/4/6/8 m/s on mean and GEM at 5%; safety 15 m/s at 0.022%; 36 directions; 400 m, 300 m and 40 m rules; Harris-Deaves/ESDU 01008; scale factors 0.96 (100 m) to 1.48 (600 m) normalised at 120 m; worst season plus June-August; worse of mean and GEM governs; cyclist probe every 40 m; no hours window found. Matches."
+  },
+  {
+   "source_id": "P03-S02",
+   "url": "https://www.hamilton.ca/sites/default/files/2026-02/pedguidelines-wind-study-ph1proposed.pdf",
+   "ok": true,
+   "note": "Text extracted. Triggers at 20 m, 44 m, twice the surroundings and 2+ buildings; prevailing-only CFD; 36 tunnel directions; bicycle lanes as test locations; two seasons although the text says 'four-season basis'; 6:00-23:00; classes under 10/14/17/20 km/h (strict inequality); gust over 90 km/h at 0.1%. Matches. Note the strict versus inclusive inequalities."
+  },
+  {
+   "source_id": "P03-S55",
+   "url": "https://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=51442&Year=2025&Month=1&Day=1&timeframe=1",
+   "ok": true,
+   "note": "Downloaded 21 Oct 2026: 744 rows, 3 with 9 fields (timestamp-only), 741 populated, 90 calms all with empty direction, none with empty direction and speed above 0. Header Date/Time (LST); climate ID 1108395. Confirms the r3 correction."
+  },
+  {
+   "source_id": "P03-S22",
+   "url": "https://docs.eddy3d.com/latest/components/Velocity_Amplification_Factors_VAF/",
+   "ok": false,
+   "note": "Outputs only VAF and EPW-driven wind series; no TKE and no export format. Contradicts the sufficiency of the minimal VAF path for GEM families."
+  },
+  {
+   "source_id": "P03-S58",
+   "url": "https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly",
+   "ok": false,
+   "note": "States that GHCNh replaces ISD; the ISD route is not current. The ISD product page itself names no retirement date and no WMO Resolution 40 text."
+  },
+  {
+   "source_id": "P03-S28",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Last updated 13 Jul 2026. Phase 1 current; Phase 2 draft policies not yet published; no wind or microclimate wording; lists higherbuildings@vancouver.ca; competition open to 30 Nov 2026."
+  },
+  {
+   "source_id": "P03-S31",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403 again on 21 Oct 2026."
+  },
+  {
+   "source_id": "P03-S42",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "ok": false,
+   "note": "HTTP 403 again on 21 Oct 2026."
+  },
+  {
+   "url": "https://vancouver.ca/home-property-development/rezoning-application-requirements.aspx",
+   "ok": false,
+   "note": "HTTP 403. The question of a Vancouver wind-study requirement stays unverified."
+  }
+ ],
+ "verdict": "Fail. All three r3 data MAJORs are fixed, and I confirmed the calm rule on the live ECCC file. The Toronto, Hamilton and City of London thresholds match the primary texts. But an entrant still cannot rely on P03 before 30 Nov. The only VAF route, Eddy3D, has no turbulence output, normalises to a 10 m reference against M01's 120 m, and has no defined conversion. As written, M04 either refuses or silently reduces GEM to the mean speed. The core scope cannot fit the time left before 13 Nov. Vancouver criteria are still unknown and the precedent task has no owner. The ISD route is superseded by GHCNh. The web-search budget ran out during this review, and later fetches hit the session limit, so data licences remain unchecked."
+}

@@ -1,0 +1,1944 @@
+{
+ "packet_id": "P07",
+ "notes": "Method and limits of this review. (1) The shared web-search budget ran out after about 14 searches, so later items were fetched by direct URL only. (2) Every City of Vancouver web domain (vancouver.ca, council.vancouver.ca, guidelines.vancouver.ca, syc.vancouver.ca) returned HTTP 403 to automated fetches, and I did not work around the block. Sources P07-S05, S09, S20, S36, S37 are therefore opened=false. The 79-action count and the four themes were checked against two Nation/third-party pages that I did open (S06, S07, S08). The City's own open-data portal did open (S32, S33). (3) I found no design principles published by a Nation for tower design in downtown Vancouver, and no Canadian Indigenous design charter. Module M03 therefore ships as prompt cards that point to the Nations' own statements and say so openly. (4) Design stance: the packet returns checklists, status ladders and evidence registers, never a number for culture. The only numeric outputs are geometric facts (azimuth degrees, angular size, counts of view cones) and completeness counts for gates. Every zero-tolerance gate is a platform rule (team_assumption), not a sourced threshold. (5) The as_is_workflow is reconstructed from the brief and typical practice; it was not observed. (6) Dates: today is 21 Oct 2026; the City's second UNDRIP annual report (June 2026) appeared in search results but was not opened.",
+ "sources": [
+  {
+   "id": "P07-S01",
+   "title": "United Nations Declaration on the Rights of Indigenous Peoples (UNGA Res. 61/295)",
+   "url": "https://www.un.org/development/desa/indigenouspeoples/wp-content/uploads/sites/19/2018/11/UNDRIP_E_web.pdf",
+   "publisher": "United Nations",
+   "year": "2007",
+   "type": "international instrument",
+   "opened": true,
+   "extract": "Adopted 13 Sep 2007. Art. 11(1): right to maintain and develop manifestations of culture, including designs, ceremonies and visual arts. Art. 19: States consult through Indigenous representative institutions to obtain free, prior and informed consent before measures that affect them. Art. 31(1): right to control cultural heritage, traditional knowledge, cultural expressions (designs included) and IP over them. Art. 32(2): consent before approval of projects affecting lands or territories."
+  },
+  {
+   "id": "P07-S02",
+   "title": "Declaration on the Rights of Indigenous Peoples Act, SBC 2019, c. 44",
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/19044",
+   "publisher": "Province of British Columbia (BC Laws)",
+   "year": "2019",
+   "type": "statute",
+   "opened": true,
+   "extract": "Defines the Declaration as UNDRIP. s.3: government must align BC laws with it in consultation and cooperation with Indigenous peoples. s.4: action plan. ss.6-7: agreements with Indigenous governing bodies, including joint decision-making or consent agreements."
+  },
+  {
+   "id": "P07-S03",
+   "title": "United Nations Declaration on the Rights of Indigenous Peoples Act, S.C. 2021, c. 14",
+   "url": "https://laws-lois.justice.gc.ca/eng/acts/U-2.2/page-1.html",
+   "publisher": "Government of Canada (Justice Laws)",
+   "year": "2021",
+   "type": "statute",
+   "opened": true,
+   "extract": "Royal Assent 21 Jun 2021. s.4: affirms the Declaration as a human-rights instrument with application in Canadian law and provides a framework for implementation. s.5: align federal laws. s.6: action plan with monitoring and review."
+  },
+  {
+   "id": "P07-S04",
+   "title": "Truth and Reconciliation Commission of Canada: Calls to Action",
+   "url": "https://ehprnh2mwo3.exactdn.com/wp-content/uploads/2021/01/Calls_to_Action_English2.pdf",
+   "publisher": "Truth and Reconciliation Commission of Canada",
+   "year": "2015",
+   "type": "national commission report",
+   "opened": true,
+   "extract": "Call 92 asks the corporate sector to adopt UNDRIP as a reconciliation framework and to (i) commit to meaningful consultation, respectful relationships and free, prior and informed consent before economic development projects, (ii) ensure equitable access to jobs, training and education and long-term sustainable benefits, (iii) educate management and staff."
+  },
+  {
+   "id": "P07-S05",
+   "title": "City of Vancouver UNDRIP Strategy: Report of the UNDRIP Task Force (Council item P1, 25 Oct 2022)",
+   "url": "https://council.vancouver.ca/20221025/documents/p1.pdf",
+   "publisher": "City of Vancouver with Musqueam, Squamish and Tsleil-Waututh Nations",
+   "year": "2022",
+   "type": "municipal strategy",
+   "opened": false,
+   "extract": "NOT OPENED (HTTP 403). Facts used come from S06, S07, S08: 79 calls to action in four themes (social, cultural and economic well-being; ending Indigenous-specific racism; self-determination and self-government; rights and title), endorsed by Council 25 Oct 2022."
+  },
+  {
+   "id": "P07-S06",
+   "title": "UNDRIP Task Force Celebrates Unveiling of Historic Report",
+   "url": "https://twnation.ca/undrip-task-force-celebrates-unveiling-of-historic-report/",
+   "publisher": "Tsleil-Waututh Nation",
+   "year": "2022",
+   "type": "Nation news release",
+   "opened": true,
+   "extract": "Task Force met from 2021; report released 19 Oct 2022 and described as the first co-developed UNDRIP strategy in Canada. Co-chairs: Squamish Nation Chairperson Khelsilem and Councillor Christine Boyle. 79 calls to action under four themes. TWN councillors stress applying Coast Salish laws and revenue sharing."
+  },
+  {
+   "id": "P07-S07",
+   "title": "Vancouver City Council Passes Historic UNDRIP Strategy",
+   "url": "https://twnation.ca/?p=8419",
+   "publisher": "Tsleil-Waututh Nation",
+   "year": "2022",
+   "type": "Nation news release",
+   "opened": true,
+   "extract": "Council passed the Strategy on 25 Oct 2022; 79 actions across City departments; a new intergovernmental committee is to decide how each action is implemented and report back."
+  },
+  {
+   "id": "P07-S08",
+   "title": "Vancouver City Council adopts strategy for the implementation of UNDRIP (summary bulletin)",
+   "url": "https://www.cwilson.com/?p=29537",
+   "publisher": "cwilson.com (law-firm style bulletin; firm name inferred from domain)",
+   "year": "2022",
+   "type": "secondary summary",
+   "opened": true,
+   "extract": "Does not number the 79 actions. Topics include working with the three Nations on housing strategy, revenue sharing, identifying City lands for transfer, shared decision-making needing free, prior and informed consent, and cultural revitalization and cultural centres."
+  },
+  {
+   "id": "P07-S09",
+   "title": "City of Vancouver UNDRIP Action Plan 2024-2028",
+   "url": "https://vancouver.ca/files/cov/undrip-action-plan-2024-2028.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "municipal action plan",
+   "opened": false,
+   "extract": "NOT OPENED (HTTP 403). Search-result summary only: endorsed by Council in June 2024 and sequences a subset of 32 of the 79 actions for the first five-year phase. Verify manually."
+  },
+  {
+   "id": "P07-S10",
+   "title": "Musqueam Indian Band: Intergovernmental Affairs referral process",
+   "url": "https://www.musqueam.bc.ca/departments/title-and-rights/iga/",
+   "publisher": "Musqueam Indian Band",
+   "year": "2026",
+   "type": "Nation guidance page",
+   "opened": true,
+   "extract": "Asks proponents to contact Intergovernmental Affairs at the earliest stage of planning. Early dialogue helps shape the engagement approach, assess environmental, cultural and social impacts, and identify shared priorities. Referral package: project description, anticipated regulatory processes, archaeological or environmental studies, heritage permit information, prior correspondence, maps, GIS files, aerial imagery. No fees mentioned."
+  },
+  {
+   "id": "P07-S11",
+   "title": "Musqueam Indian Band: Our Territory",
+   "url": "https://www.musqueam.bc.ca/our-story/our-territory/",
+   "publisher": "Musqueam Indian Band",
+   "year": "2026",
+   "type": "Nation web page",
+   "opened": true,
+   "extract": "Ancestors stewarded the Fraser River estuary for thousands of years. The 1976 Musqueam Declaration asserts title within a boundary running around the watershed draining into English Bay, Burrard Inlet and Indian Arm. Points to an interactive Place Names Map."
+  },
+  {
+   "id": "P07-S12",
+   "title": "Musqueam Place Names Map",
+   "url": "https://www.musqueam.bc.ca/our-story/our-territory/place-names-map/",
+   "publisher": "Musqueam Indian Band",
+   "year": "2026",
+   "type": "Nation-run web tool",
+   "opened": true,
+   "extract": "Interactive map with Elder audio in the hən̓q̓əmin̓əm̓ language, photos by location and a children's book. States that it is currently under review and should not be considered final. Requests go to a listed email address; site-wide copyright is the Band's."
+  },
+  {
+   "id": "P07-S13",
+   "title": "Squamish Nation: Partnerships and Entities",
+   "url": "https://www.squamish.net/partnerships-entities/",
+   "publisher": "Squamish Nation",
+   "year": "2026",
+   "type": "Nation web page",
+   "opened": true,
+   "extract": "Lists entities (Hiy̓ám̓ Housing, Nch'ḵay̓ Development Corporation, Squamish Nation Trust) and partnerships (MST Development Corporation, Sen̓áḵw, Squamish Lil'wat Cultural Centre)."
+  },
+  {
+   "id": "P07-S14",
+   "title": "Tsleil-Waututh Nation Sacred Trust Initiative",
+   "url": "https://twnsacredtrust.ca/",
+   "publisher": "Tsleil-Waututh Nation",
+   "year": "2026",
+   "type": "Nation web page",
+   "opened": true,
+   "extract": "Names Burrard Inlet as səlilwət and describes it as a grandmother that has sustained the Nation. TWN's own assessment combined science with traditional TWN knowledge and rests on what it calls its unextinguished law. Shows how the Nation names and frames its place."
+  },
+  {
+   "id": "P07-S15",
+   "title": "Sen̓áḵw (official project site, home and About pages)",
+   "url": "https://senakw.com/about",
+   "publisher": "Nch'ḵay̓ West / Squamish Nation project",
+   "year": "2026",
+   "type": "project website",
+   "opened": true,
+   "extract": "Two phases named Mountain Towers and Long Towers. Mountain Towers are curved with rooftops pointing north toward the Twin Sisters; Long Towers reference longhouses with salmon-inspired screens. Coast Salish artwork for the pool is by a Squamish artist and another Squamish artist's work is featured. Claims net-zero carbon (developer claim, unverified)."
+  },
+  {
+   "id": "P07-S16",
+   "title": "Sen̓áḵw (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Sen%CC%93%C3%A1%E1%B8%B5w",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "secondary (encyclopedia)",
+   "opened": true,
+   "extract": "Part of Kitsilano Indian Reserve No. 6; 11.7 acres returned to Squamish control by a 2001 settlement (body text says June 2000; page does not reconcile). Led by Nch'ḵay̓ Development Corporation; Westbank sold its stake in Phases 1-2 to OPTrust in Aug 2025 (50/50 with the Nation; Nation holds 100% of Phases 3-4). At least 6,000 rental homes; tallest tower 58 storeys; Phase 1 towers of 26, 31 and 39 storeys."
+  },
+  {
+   "id": "P07-S17",
+   "title": "Dezeen: Revery Architecture's Sen̓áḵw towers",
+   "url": "https://www.dezeen.com/2023/10/18/skyscrapers-squamish-vancouver-revery-architecture/",
+   "publisher": "Dezeen",
+   "year": "2023",
+   "type": "trade press",
+   "opened": true,
+   "extract": "Revery Architecture is design architect, Kasian architect of record. More than 11 towers of 12 to 58 storeys. Concept 'village in the park'. Copper facades chosen for cultural significance; long towers raised to create a forest-like street level. Developer says Squamish members were consulted and a Cultural Working Group was formed (developer statements)."
+  },
+  {
+   "id": "P07-S18",
+   "title": "Jericho Lands policy statement approved by Vancouver council (Global News)",
+   "url": "https://globalnews.ca/news/10249284/jericho-approval-vancouver/",
+   "publisher": "Global News",
+   "year": "2024",
+   "type": "news",
+   "opened": true,
+   "extract": "Council approved the policy statement on 24 Jan 2024. About 13,000 homes for roughly 24,000 people in buildings of 4 to 49 storeys over 25-30 years. Partnership of MST Development Corporation and Canada Lands Company."
+  },
+  {
+   "id": "P07-S19",
+   "title": "Jericho Lands policy statement draft (Storeys)",
+   "url": "https://storeys.com/jericho-lands-policy-statement-draft/",
+   "publisher": "Storeys",
+   "year": "2023",
+   "type": "news",
+   "opened": true,
+   "extract": "Draft heights peak at 26-39 storeys centrally; three 'Sentinel' buildings on the western side represent the three Nations and rise to 49 storeys; podiums to soften scale and limit impact on views and sunlight. Draft stage; subject to change."
+  },
+  {
+   "id": "P07-S20",
+   "title": "Policy Statement: Heather Lands",
+   "url": "https://guidelines.vancouver.ca/policy-statement-heather-lands.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2018",
+   "type": "municipal policy statement",
+   "opened": false,
+   "extract": "NOT OPENED (HTTP 403). Search-result summary: approved by Council 15 May 2018, prepared at the request of the three Nations and Canada Lands Company, covering uses, density, height, form, parks and circulation."
+  },
+  {
+   "id": "P07-S21",
+   "title": "MST Development Corporation (About Us and Projects)",
+   "url": "https://www.mstdevelopment.ca/about-us/",
+   "publisher": "MST Development Corporation",
+   "year": "2026",
+   "type": "Nation-owned corporation website",
+   "opened": true,
+   "extract": "Partnership of the Musqueam Indian Band, Squamish Nation and Tsleil-Waututh Nation. Full or co-owners of six Metro Vancouver properties with over 160 developable acres. Jericho west parcel owned fully or partly by the Nations; east parcel co-owned with Canada Lands Company; Heather Street Lands co-owned with CLC. States no design principles on these pages."
+  },
+  {
+   "id": "P07-S22",
+   "title": "CARE principles for Indigenous data (University of Auckland)",
+   "url": "https://www.auckland.ac.nz/en/research/research-resources/research-data/research-data-policies-ethics-requirements/care-principles-indigenous-data.html",
+   "publisher": "University of Auckland",
+   "year": "2025",
+   "type": "institutional guidance",
+   "opened": true,
+   "extract": "Four CARE principles: Collective benefit; Authority to control (Indigenous governing bodies decide how they, their lands, territories, resources, knowledge and geographical indicators are represented and identified in data); Responsibility (share how data supports self-determination); Ethics (rights and wellbeing first across the data life cycle)."
+  },
+  {
+   "id": "P07-S23",
+   "title": "The CARE Principles for Indigenous Data Governance (Carroll et al.), Data Science Journal 19(1):43",
+   "url": "https://datascience.codata.org/articles/10.5334/dsj-2020-043",
+   "publisher": "CODATA / Data Science Journal",
+   "year": "2020",
+   "type": "peer-reviewed paper",
+   "opened": true,
+   "extract": "Authored with the Global Indigenous Data Alliance. CARE complements FAIR by adding people and purpose. Informed by OCAP, which was developed in Canada in the 1990s. Sub-principle wording was not visible on the page opened."
+  },
+  {
+   "id": "P07-S24",
+   "title": "OCAP principles summary (University of Toronto Map and Data Library)",
+   "url": "https://mdl.library.utoronto.ca/node/55614",
+   "publisher": "University of Toronto Libraries",
+   "year": "2024",
+   "type": "institutional summary",
+   "opened": true,
+   "extract": "OCAP, established 1998: Ownership (collective), Control (over the whole research process), Access (Nations reach data about themselves and set rules for others), Possession (physical custody protects ownership). Applied through each Nation's own laws, review committees and agreements."
+  },
+  {
+   "id": "P07-S25",
+   "title": "First Nations Information Governance Centre: OCAP",
+   "url": "https://fnigc.ca/ocap/",
+   "publisher": "First Nations Information Governance Centre (FNIGC)",
+   "year": "2026",
+   "type": "primary steward of OCAP",
+   "opened": false,
+   "extract": "NOT OPENED (HTTP 403 on both ocap and ocap-training pages). Secondary sources say OCAP is a registered trademark of FNIGC and that FNIGC offers a Fundamentals of OCAP course. Usage conditions unverified."
+  },
+  {
+   "id": "P07-S26",
+   "title": "Local Contexts: Traditional Knowledge (TK) Labels",
+   "url": "https://localcontexts.org/labels/traditional-knowledge-labels/",
+   "publisher": "Local Contexts",
+   "year": "2026",
+   "type": "Indigenous data governance framework",
+   "opened": true,
+   "extract": "TK Labels let Indigenous communities state conditions for access and use. Provenance labels (e.g. TK Attribution, TK Community Voice), protocol labels (e.g. TK Culturally Sensitive, TK Secret/Sacred) and permission labels (e.g. TK Non-Commercial, TK Community Use Only). Icons and template text are copyrighted by Local Contexts."
+  },
+  {
+   "id": "P07-S27",
+   "title": "Local Contexts: Notices",
+   "url": "https://localcontexts.org/notices/",
+   "publisher": "Local Contexts",
+   "year": "2026",
+   "type": "Indigenous data governance framework",
+   "opened": true,
+   "extract": "Notices are used by institutions and researchers to flag Indigenous interests (Open to Collaborate, Attribution Incomplete, TK, BC, Collections Care). Notice text cannot be changed. Communities then decide whether to add their own Labels."
+  },
+  {
+   "id": "P07-S28",
+   "title": "TCPS 2 (2022) Chapter 9: Research Involving the First Nations, Inuit and Metis Peoples of Canada",
+   "url": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter9-chapitre9.html",
+   "publisher": "Panel on Research Ethics (Government of Canada)",
+   "year": "2022",
+   "type": "federal research-ethics policy",
+   "opened": true,
+   "extract": "Art. 9.1: engage the community when research may affect its welfare, including research on cultural heritage. Art. 9.2: the form of engagement is determined jointly by researcher and community. Agreements should settle rights to knowledge and data, protect restricted knowledge and prevent unauthorized commercial use. It governs research, so it is used here by analogy."
+  },
+  {
+   "id": "P07-S29",
+   "title": "The International Indigenous Design Charter (ICoD news item)",
+   "url": "https://www.theicod.org/resources/news-archive/international-indigenous-design-charter-new-way-thinking",
+   "publisher": "International Council of Design (ICoD)",
+   "year": "2018",
+   "type": "design-body charter",
+   "opened": true,
+   "extract": "Launched internationally in Montreal in Oct 2017, built on the Australian Indigenous Design Charter with input from Sami, Inuit, North American, Maori and Australian practitioners. Self-regulated best-practice guide, open and iterative. Cited in an Australian parliamentary inquiry on inauthentic Indigenous 'style' art. The page does not list the charter's principles."
+  },
+  {
+   "id": "P07-S30",
+   "title": "Indigenous Protocol and Artificial Intelligence Position Paper",
+   "url": "https://www.indigenous-ai.net/position-paper",
+   "publisher": "Indigenous Protocol and AI Working Group (hosted via Concordia University)",
+   "year": "2020",
+   "type": "Indigenous-led position paper",
+   "opened": true,
+   "extract": "About 20 months of discussion among Indigenous participants from Aotearoa, Australia, North America and the Pacific. Guidelines are for anyone building AI ethically. Warns that data-hungry AI can expose traditional knowledge to appropriation and extraction. Publication year not confirmed on the page."
+  },
+  {
+   "id": "P07-S31",
+   "title": "Native Land Digital: About",
+   "url": "https://native-land.ca/about/",
+   "publisher": "Native Land Digital",
+   "year": "2026",
+   "type": "Indigenous-led mapping organization",
+   "opened": true,
+   "extract": "States its maps are not official sources, does not claim to define territories, treats borders as a colonial concept, and calls the map a starting point for deeper conversations with Indigenous communities. Nations define themselves."
+  },
+  {
+   "id": "P07-S32",
+   "title": "City of Vancouver Open Data: View cones (protected views)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/information/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "open dataset",
+   "opened": true,
+   "extract": "API record read 21 Oct 2026: 24 records, licence Open Government Licence - Vancouver, last modified 2026-10-19. Description: development within the polygons is height-limited to preserve public views. Fields: view_number, view_cone_name, description, url, geometry; no height field. Queen Elizabeth Park cones are 3.2.1 to 3.2.4. Descriptions name the Lions, Grouse, Crown, Seymour and other peaks."
+  },
+  {
+   "id": "P07-S33",
+   "title": "City of Vancouver Open Data: Public art",
+   "url": "https://opendata.vancouver.ca/explore/dataset/public-art/information/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "open dataset",
+   "opened": true,
+   "extract": "751 records, licence Open Government Licence - Vancouver. Fields include artists, primary material, site and year; there is no field recording an artist's Indigenous identity."
+  },
+  {
+   "id": "P07-S34",
+   "title": "Vancouver Tall Challenge (Buildner competition page and FAQ)",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition page",
+   "opened": true,
+   "extract": "Jury of seven including K̓esugwilakw Sierra Tasi Baker (K̓ESU+CO). Entries are judged anonymously and contact with jurors disqualifies. FAQ: Buildner has no specific AI policy, advises checking the terms of the AI tool used, and says AI images should not generally be treated as the entrant's sole work or IP without explicit permission."
+  },
+  {
+   "id": "P07-S35",
+   "title": "Vancouver Tall Challenge official brief (facts as supplied in the project context)",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "publisher": "Buildner with City of Vancouver and UBC SALA",
+   "year": "2026",
+   "type": "competition brief",
+   "opened": false,
+   "extract": "Brief PDF itself not opened by me; facts used come from the project description: jury weights (cultural context 30%), rotated north arrow on the site plan, labelled directions, no identifying information on boards, recommended QE Park skyline view and policy reflection."
+  },
+  {
+   "id": "P07-S36",
+   "title": "Higher Buildings Policy for Rezonings (1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "municipal policy",
+   "opened": false,
+   "extract": "NOT OPENED (HTTP 403). Named in the VTC brief. Under review via the Higher Buildings Policy Review; whether it has been amended is unverified."
+  },
+  {
+   "id": "P07-S37",
+   "title": "Higher Buildings Policy Review (engagement document)",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "municipal engagement document",
+   "opened": false,
+   "extract": "NOT OPENED (HTTP 403). Named in the VTC brief as the review the competition feeds."
+  },
+  {
+   "id": "P07-S38",
+   "title": "IPTC NewsCodes: Digital Source Type vocabulary",
+   "url": "https://cv.iptc.org/newscodes/digitalsourcetype/",
+   "publisher": "IPTC",
+   "year": "2025",
+   "type": "metadata standard",
+   "opened": true,
+   "extract": "Terms include trainedAlgorithmicMedia (created using generative AI), compositeWithTrainedAlgorithmicMedia (edited using generative AI), algorithmicMedia, compositeSynthetic and virtualRecording, each with a stable URI."
+  },
+  {
+   "id": "P07-S39",
+   "title": "C2PA Technical Specification 2.2",
+   "url": "https://spec.c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html",
+   "publisher": "Coalition for Content Provenance and Authenticity",
+   "year": "2025",
+   "type": "technical specification",
+   "opened": true,
+   "extract": "Licensed CC BY 4.0. A c2pa.created or c2pa.opened action is mandatory in a standard manifest since v2.1; a digitalSourceType field on actions since v1.2. Only the first 100,000 characters were read; the Actions section was not reached."
+  },
+  {
+   "id": "P07-S40",
+   "title": "Voluntary Code of Conduct on the Responsible Development and Management of Advanced Generative AI Systems",
+   "url": "https://ised-isde.canada.ca/site/ised/en/voluntary-code-conduct-responsible-development-and-management-advanced-generative-ai-systems",
+   "publisher": "Innovation, Science and Economic Development Canada",
+   "year": "2023",
+   "type": "federal voluntary code",
+   "opened": true,
+   "extract": "Six outcomes: accountability, safety, fairness and equity, transparency, human oversight and monitoring, validity and robustness. Developers of public generative systems are expected to provide a reliable detection method for AI-generated content, watermarking being one example. Launched Sept 2023."
+  },
+  {
+   "id": "P07-S41",
+   "title": "NIST AI Risk Management Framework",
+   "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+   "publisher": "NIST",
+   "year": "2023",
+   "type": "voluntary framework",
+   "opened": true,
+   "extract": "AI RMF 1.0 released 26 Jan 2023 with four functions: Govern, Map, Measure, Manage. Generative AI Profile (NIST AI 600-1) released 26 Jul 2024. The page notes AI RMF 1.0 is being revised."
+  },
+  {
+   "id": "P07-S42",
+   "title": "EU AI Act, Article 50: Transparency obligations (unofficial text site)",
+   "url": "https://artificialintelligenceact.eu/article/50/",
+   "publisher": "artificialintelligenceact.eu",
+   "year": "2024",
+   "type": "foreign regulation (benchmark only)",
+   "opened": true,
+   "extract": "50(2): providers of systems generating synthetic image, audio, video or text must mark outputs in a machine-readable way. 50(4): deployers of deepfakes must disclose; disclosure of AI text on public-interest matters is not needed where a person has editorial responsibility and reviewed it. The page says Article 50 applies from 2 Aug 2026; later amendments not checked. Not binding in BC."
+  },
+  {
+   "id": "P07-S43",
+   "title": "PIPEDA fair information principles",
+   "url": "https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/p_principle/",
+   "publisher": "Office of the Privacy Commissioner of Canada",
+   "year": "2024",
+   "type": "federal privacy guidance",
+   "opened": true,
+   "extract": "Ten principles including identifying purposes, consent, limiting collection, limiting use, disclosure and retention, safeguards and openness."
+  },
+  {
+   "id": "P07-S44",
+   "title": "Personal Information Protection Act, SBC 2003, c. 63",
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/03063_01",
+   "publisher": "Province of British Columbia (BC Laws)",
+   "year": "2003",
+   "type": "statute",
+   "opened": true,
+   "extract": "Sets rules for private organizations handling personal information; personal information is information that can identify a person, excluding business contact and work product; consent is generally required for collection, use or disclosure."
+  },
+  {
+   "id": "P07-S45",
+   "title": "PROV-O: The PROV Ontology (W3C Recommendation)",
+   "url": "https://www.w3.org/TR/prov-o/",
+   "publisher": "W3C",
+   "year": "2013",
+   "type": "web standard",
+   "opened": true,
+   "extract": "Published 30 Apr 2013. Core classes Entity, Activity and Agent; relations wasGeneratedBy, wasDerivedFrom, wasAttributedTo let provenance be exchanged as RDF."
+  },
+  {
+   "id": "P07-S46",
+   "title": "Mukurtu CMS: About",
+   "url": "https://mukurtu.org/about/",
+   "publisher": "Washington State University Center for Digital Scholarship and Curation",
+   "year": "2026",
+   "type": "open-source platform",
+   "opened": true,
+   "extract": "Open-source (GPL-3.0) platform for communities to manage and share digital heritage with cultural protocols as access levels, and integrated TK Labels."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Sen̓áḵw is an MST-led development (as framed in the packet scope).",
+   "correction": "Sen̓áḵw is a Squamish Nation project led by Nch'ḵay̓ Development Corporation, on Kitsilano Indian Reserve No. 6, with OPTrust as 50% partner in Phases 1-2. MST Development Corporation (Musqueam, Squamish and Tsleil-Waututh together) leads Jericho Lands and Heather Lands, with Canada Lands Company.",
+   "detail": "Sources: S13, S15, S16, S18, S21. Case studies must label tenure and decision authority separately for each precedent, because a Nation-controlled reserve and a City-rezoned site are not comparable approvals paths.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Canadian Indigenous design charters published by Nations or Indigenous design bodies exist for tall-building design.",
+   "correction": "None found. The closest instrument is the International Indigenous Design Charter (ICoD, launched 2017; Australian origin with North American input). Its principle list could not be retrieved, and no Nation-published design guideline for downtown towers was found.",
+   "detail": "Module M03 therefore links out to sources instead of paraphrasing principles, and says openly when no Nation-authored card exists.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "City of Vancouver policy documents (UNDRIP Strategy PDF, Action Plan 2024-2028, Higher Buildings Policy 1997 and Review, Heather Lands Policy Statement) say what the packet summarises.",
+   "detail": "All City web domains returned HTTP 403 to automated fetches. Facts about the 79 actions come from Tsleil-Waututh and third-party pages; the '32 of 79' figure and the Heather Lands approval date come only from search-result summaries. A teammate must open these in a normal browser before anything is cited as verified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The 1997 Higher Buildings Policy is still the governing policy.",
+   "detail": "The brief ties the competition to the Higher Buildings Policy Review, so the 1997 policy may be amended or replaced. Check the City's current page before citing it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "City view cones carry height limits that the tool can read.",
+   "detail": "The open dataset has 24 polygons and says development within them is height-limited, but it has no height field. Permitted heights sit in the City's per-view pages (linked in the dataset), which were not opened. Plan-intersection is only a trigger to check.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OCAP can be named, badged or implemented as a compliance label in the tool.",
+   "detail": "Secondary sources say OCAP is a registered trademark of the First Nations Information Governance Centre. FNIGC's pages returned HTTP 403. Do not display 'OCAP-compliant'; cite OCAP only as a set of principles and link to FNIGC.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "EU AI Act Article 50 labelling duties apply from 2 Aug 2026.",
+   "detail": "The unofficial text site states this date, but later amendments or delays were not checked, and the Act is not binding in BC. It is used only as a design benchmark for labelling.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Sen̓áḵw developer statements (consultation process, net-zero claim, below-market rents) are established facts.",
+   "detail": "They are the project's or developer's own statements as reported by senakw.com and Dezeen. Show them as 'stated by the developer' and keep the as-of date. Sources also differ on timing (Phase 4 by 2032-2033 in S16).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Zero-tolerance gates (no unsupported engagement claims, no unresolved cultural-content flags, no missing AI labels, no personal data on export).",
+   "detail": "These are platform rules chosen by the team, backed by principles in S01, S04, S22, S28 and the brief's anonymity rule, not by published numeric thresholds. They stay editable and are shown in the team-assumption colour.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The four-rung engagement ladder E0-E3 and the phrase-to-minimum-status map.",
+   "detail": "Team design, not a published standard. Rung names and wording should be reviewed with an Indigenous advisor before release.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The as-is workflow of entrants is reconstructed from the brief and typical practice.",
+   "detail": "Not observed or surveyed; test with two or three student teams before relying on pain points.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether entrants should contact the three Nations about a hypothetical competition entry, and through which channel.",
+   "detail": "No statement was found in the brief extracts or Buildner pages. Default in M01 is E0 (no contact; tool never sends messages). Ask Buildner or the City whether a sanctioned channel exists, so that Nations are not burdened by many student requests.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Squamish Nation and Tsleil-Waututh Nation published referral or engagement requirements comparable to Musqueam's.",
+   "detail": "Only Musqueam's referral package was readable. Squamish and TWN pages opened did not state proponent requirements.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Tower height, form or orientation -> effect on values the Nations attach to views of named mountains (e.g. the Twin Sisters/Lions) or to Burrard Inlet: no sourced relationship; the tool reports geometry only and must not infer cultural meaning.",
+  "Which of the City's 79 UNDRIP actions apply to a private rezoning or competition design, as opposed to City operations: the Strategy PDF was not readable.",
+  "Acceptable loss of mountain or water view at public-realm viewpoints: no numeric threshold found; view-cone permitted heights not read.",
+  "Design form, motif or material choice -> how Nations perceive authenticity or respect: no sourced relationship; deliberately not computed (see guardrails).",
+  "Share of 'local' material -> cultural or ecological benefit: no sourced threshold in this packet; embodied carbon belongs to the ENER packet.",
+  "Whether C2PA signing (keys, certificates) can be reconciled with the competition's no-identifying-information rule: not researched.",
+  "Ownership and copyright status of AI-generated imagery under Canadian law: not researched; Buildner only says to check the AI tool's terms.",
+  "Whether Local Contexts Hub API terms allow read-only display of Notices in a third-party open-source tool: not reviewed.",
+  "Whether engaging the Nations early, with a full referral pack, changes design outcomes for an ideas competition: Musqueam says early dialogue shapes engagement, but no evidence for competition entries."
+ ],
+ "change_log": [
+  "Round 1: first draft of 8 modules (M01-M08) for packet P07 with 46 sources, of which 6 are opened=false.",
+  "Round 1: scope correction recorded: Sen̓áḵw is Squamish-led, not MST-led; MST precedents are Jericho Lands and Heather Lands.",
+  "Round 1: no Canadian Indigenous design charter found; M03 built as source-locked prompt cards instead of a scored rubric.",
+  "Round 1: web-search budget exhausted mid-task; all City of Vancouver domains returned HTTP 403; verification of City documents deferred to a human in a normal browser.",
+  "Round 1: design decision: no module outputs a numeric 'culture score'; numeric outputs are limited to geometry and completeness counts."
+ ],
+ "case_studies": [
+  {
+   "tool": "Local Contexts (TK Labels, BC Labels, Notices, Hub)",
+   "what_it_does": "Lets Indigenous communities attach their own conditions to cultural material and data (Labels), and lets institutions and researchers flag Indigenous interests (Notices).",
+   "workflow_step": "Provenance and permission of any Indigenous-derived asset (M05)",
+   "how_used": "Tool shows Notices and community-applied Labels read-only; records the Hub project ID against an asset.",
+   "strengths": "Community-controlled; Labels cannot be altered; widely adopted in archives and repositories.",
+   "stops_at": "Cannot decide whether a use is permitted, and the tool cannot assign Labels on a community's behalf.",
+   "license_cost": "Icons and template text are copyrighted by Local Contexts; Hub terms not reviewed.",
+   "ai_opportunity": "Prompt the user when an asset is tagged cultural but has no Hub record; remind about missing attribution.",
+   "ai_wont_improve": "Deciding who holds authority over a piece of knowledge or whether permission is real.",
+   "source_ids": [
+    "P07-S26",
+    "P07-S27"
+   ]
+  },
+  {
+   "tool": "Mukurtu CMS",
+   "what_it_does": "Open-source platform where communities set cultural protocols as access levels for digital heritage, with TK Labels built in.",
+   "workflow_step": "Reference pattern for protocol-based access in M05",
+   "how_used": "Pattern only: Nation-held material stays in Nation-controlled systems and is linked, not copied.",
+   "strengths": "Designed with Indigenous communities; protocols are first-class.",
+   "stops_at": "A heritage-management system, not a design or evaluation tool; GPL-3.0 licence means embedding it would impose copyleft.",
+   "license_cost": "GPL-3.0; free.",
+   "ai_opportunity": "None identified.",
+   "ai_wont_improve": "Community decisions on protocols.",
+   "source_ids": [
+    "P07-S46"
+   ]
+  },
+  {
+   "tool": "Native Land Digital map",
+   "what_it_does": "Indigenous-led map of territories, treaties and languages as a starting point for conversation.",
+   "workflow_step": "Territory context card (M01)",
+   "how_used": "Link-out only; the tool never draws territory boundaries as authoritative.",
+   "strengths": "Accessible entry point; openly states it is not an official source.",
+   "stops_at": "Not authoritative, not a consultation tool, and does not define territories.",
+   "license_cost": "API and licence terms not stated on the page opened; unverified.",
+   "ai_opportunity": "None.",
+   "ai_wont_improve": "Which Nation to approach and how.",
+   "source_ids": [
+    "P07-S31"
+   ]
+  },
+  {
+   "tool": "Musqueam Place Names Map",
+   "what_it_does": "Nation-run interactive map with Elder audio in hən̓q̓əmin̓əm̓, photos and a children's book.",
+   "workflow_step": "Place-name and language strings (M01, M05)",
+   "how_used": "Link-out and a prompt to contact the Nation for requests; strings are never scraped or machine-translated.",
+   "strengths": "Nation-authored and authoritative for what it covers.",
+   "stops_at": "Marked 'under review, not final'; no stated citation or reuse rules.",
+   "license_cost": "Site copyright held by the Band; no reuse permission stated.",
+   "ai_opportunity": "None; avoid.",
+   "ai_wont_improve": "Pronunciation, meaning and appropriate use.",
+   "source_ids": [
+    "P07-S12"
+   ]
+  },
+  {
+   "tool": "C2PA Content Credentials with IPTC Digital Source Type",
+   "what_it_does": "Open standard for signed provenance records and a vocabulary for marking images as AI-generated or AI-edited.",
+   "workflow_step": "Labelling AI output on boards and exports (M07)",
+   "how_used": "Embed IPTC digital source type and an optional C2PA manifest in exported images; show a visible label.",
+   "strengths": "Open specification (CC BY 4.0); open-source SDK (MIT or Apache-2.0).",
+   "stops_at": "Labels are declared, easily stripped by platforms, and do not prove authorship or permission.",
+   "license_cost": "Spec CC BY 4.0; c2pa-rs MIT OR Apache-2.0; signing certificates may cost money (unverified).",
+   "ai_opportunity": "Auto-fill labels from the tool's own generation log.",
+   "ai_wont_improve": "Whether using AI for a given element is appropriate.",
+   "source_ids": [
+    "P07-S38",
+    "P07-S39"
+   ]
+  },
+  {
+   "tool": "City of Vancouver Open Data: View cones",
+   "what_it_does": "24 polygons of protected public views, with Queen Elizabeth Park views 3.2.1 to 3.2.4 and links to per-view pages.",
+   "workflow_step": "View-cone check in M06",
+   "how_used": "Plan-intersection of massing with polygons; lists touched cones with links.",
+   "strengths": "Official, open licence, API access, updated 19 Oct 2026.",
+   "stops_at": "No height field; cannot say how high a building may go.",
+   "license_cost": "Open Government Licence - Vancouver; free.",
+   "ai_opportunity": "Read the per-view documents and extract permitted heights for a human to check.",
+   "ai_wont_improve": "Judgement on whether a view loss is acceptable.",
+   "source_ids": [
+    "P07-S32"
+   ]
+  }
+ ],
+ "as_is_workflow": [
+  {
+   "step": "1. Read the brief and territory statement",
+   "who": "Each team member",
+   "software": "PDF reader, notes app",
+   "input": "VTC brief PDF",
+   "output": "Personal notes on the cultural-context criterion (30%)",
+   "handover": "Notes shared in chat or a doc",
+   "pain_points": "The criterion is broad; no checklist; the Nations' names and territory text are retyped from memory.",
+   "automatable_or_judgment": "Judgment"
+  },
+  {
+   "step": "2. Desk research on the Nations and City reconciliation frameworks",
+   "who": "One or two team members",
+   "software": "Web browser, notes app",
+   "input": "Nation websites, City reports, news",
+   "output": "Pasted links and summaries",
+   "handover": "Summary text pasted into the narrative",
+   "pain_points": "City sites block automated tools; sources not recorded; secondary summaries mistaken for primary documents.",
+   "automatable_or_judgment": "Collection partly automatable; interpretation is judgment"
+  },
+  {
+   "step": "3. Decide how to engage, or not engage, the Nations",
+   "who": "Team",
+   "software": "Email, chat",
+   "input": "Desk research",
+   "output": "A decision, often unwritten",
+   "handover": "Informal",
+   "pain_points": "Risk of implying consultation that did not happen; unclear whether a channel exists for a hypothetical project.",
+   "automatable_or_judgment": "Judgment"
+  },
+  {
+   "step": "4. Concept design including views and City in Nature",
+   "who": "Designers",
+   "software": "Rhino/Grasshopper, SketchUp, sketches",
+   "input": "Site plan, context massing",
+   "output": "Massing options and diagrams",
+   "handover": "Screenshots to board layout",
+   "pain_points": "View claims asserted rather than tested; the Queen Elizabeth Park view built late; rotated north arrow misread.",
+   "automatable_or_judgment": "Geometry automatable; meaning is judgment"
+  },
+  {
+   "step": "5. Decide cultural expression: names, art, form",
+   "who": "Designers",
+   "software": "Illustrator, Rhino",
+   "input": "Concept, research",
+   "output": "Forms, patterns, names on drawings",
+   "handover": "Graphics to boards",
+   "pain_points": "Temptation to borrow motifs; no provenance record; no check on who authored what.",
+   "automatable_or_judgment": "Judgment, with a gate for provenance"
+  },
+  {
+   "step": "6. Write the policy reflection and cultural narrative",
+   "who": "Writer on the team",
+   "software": "Word, InDesign",
+   "input": "Notes, frameworks",
+   "output": "Board text",
+   "handover": "Text to layout",
+   "pain_points": "Unsourced claims; wording that overstates engagement; frameworks cited from memory.",
+   "automatable_or_judgment": "Mixed"
+  },
+  {
+   "step": "7. Produce renderings and diagrams",
+   "who": "Designers",
+   "software": "Rendering engines, AI image tools, Photoshop",
+   "input": "Massing, prompts",
+   "output": "Images",
+   "handover": "Files to boards",
+   "pain_points": "AI use unlabelled; prompts may ask for Indigenous styles; image ownership terms unread.",
+   "automatable_or_judgment": "Labelling automatable; appropriateness is judgment"
+  },
+  {
+   "step": "8. Anonymity and export check",
+   "who": "Team lead",
+   "software": "PDF export, Buildner portal",
+   "input": "Four A2 boards",
+   "output": "PDFs under 10 MB each",
+   "handover": "Upload to Buildner",
+   "pain_points": "Author names left in file metadata or captions; no final check against the no-identifying-information rule.",
+   "automatable_or_judgment": "Automatable"
+  }
+ ],
+ "modules": [
+  {
+   "module_id": "P07-M01",
+   "name": "Territory, protocol and engagement-status guard",
+   "phase": "cross-cutting",
+   "category": "CULT",
+   "design_question": "What do the three Nations ask of people working in their territories, and what engagement status can this entry honestly claim on its boards?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "3-4 person-days",
+   "depends_on": [
+    "Layer 0 project metadata",
+    "P07-M05 (name-string registry)",
+    "PRES board text nodes (other packet)"
+   ],
+   "inputs": [
+    "Project metadata: site, competition entry flag",
+    "User-declared engagement status and evidence note",
+    "Board and narrative text from PRES nodes",
+    "Registry of Nation names and Indigenous-language strings (from M05)"
+   ],
+   "outputs": [
+    "engagement_status object (code E0-E3, date, declared-by, evidence note)",
+    "claims_lint_report (phrase, location, minimum status, pass/fail)",
+    "mandatory_statement_text (editable)",
+    "referral_pack_checklist (only if a contact is planned)",
+    "export_gate_M01 (pass/fail)"
+   ],
+   "parameters": [
+    {
+     "name": "engagement_status",
+     "unit": "enum E0 none, E1 desk review of Nation-published material, E2 contact made via organizer, E3 written Nation agreement to participate",
+     "relationship": "Higher declared status permits stronger board wording; wording above the declared status is blocked, because consultation and consent are run by Nations and governments, not by designers.",
+     "source_ids": [
+      "P07-S01",
+      "P07-S04",
+      "P07-S28"
+     ]
+    },
+    {
+     "name": "claim_vocabulary",
+     "unit": "phrase list mapped to minimum status",
+     "relationship": "Words such as consulted, co-designed or endorsed need E3; 'informed by Nation-published sources' needs only E1. Stronger wording than the status supports misleads readers and jurors. The mapping is a team design.",
+     "source_ids": [
+      "P07-S04",
+      "P07-S28"
+     ]
+    },
+    {
+     "name": "referral_pack_items",
+     "unit": "count 0-8",
+     "relationship": "Musqueam asks for early contact with a complete pack (description, studies, maps, GIS, imagery), so staff can shape engagement and assess impacts. Earlier and fuller packs leave room to change the design; late or thin ones do not.",
+     "source_ids": [
+      "P07-S10"
+     ]
+    },
+    {
+     "name": "nation_name_strings",
+     "unit": "list of strings with source URL and retrieval date",
+     "relationship": "Names and words copied verbatim from each Nation's own pages keep the Nation in charge of how it is named; typed, paraphrased or machine-translated strings risk misrepresenting both people and places.",
+     "source_ids": [
+      "P07-S22",
+      "P07-S12",
+      "P07-S14"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Unsupported engagement claims",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Platform rule derived from the principle that consent and consultation are decided by the Nations and governments, so a claim of them must be true.",
+     "method": "Phrase lint of board text against declared status.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S01",
+      "P07-S04",
+      "P07-S28"
+     ]
+    },
+    {
+     "name": "Engagement status declared at export",
+     "unit": "yes/no",
+     "good": "yes, with evidence note for E2 or E3",
+     "bad": "undeclared, or E2/E3 without evidence note",
+     "basis": "Course rule: every result shows its work.",
+     "method": "Check status object exists.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Referral-pack completeness (Musqueam list)",
+     "unit": "items present of 8",
+     "good": "8 of 8 before any contact",
+     "bad": "contact planned with fewer than 8",
+     "basis": "Eight items listed on Musqueam's referral page. Squamish and Tsleil-Waututh lists were not found.",
+     "method": "Checklist.",
+     "status": "verified",
+     "source_ids": [
+      "P07-S10"
+     ]
+    },
+    {
+     "name": "Indigenous-language strings with Nation source",
+     "unit": "percent",
+     "good": "100%",
+     "bad": "under 100%",
+     "basis": "Platform rule; authority over representation sits with the Nation. Musqueam's own place-names map warns it is not final.",
+     "method": "Count strings in registry with source URL.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S22",
+      "P07-S12"
+     ]
+    }
+   ],
+   "method": "1) The user picks an engagement status E0-E3 (default E0) and attaches an evidence note for E2 or E3. 2) Board and narrative text from PRES nodes is scanned with a phrase list (regular expressions plus stemming; no AI verdict). Each hit maps to a minimum status and is compared with the declared status. 3) The node generates an editable statement that matches the status; for E0 it says no consultation has been undertaken for this ideas-competition entry. 4) A referral-pack checklist (the eight Musqueam-listed items) appears only if the user records a planned contact. The tool never sends messages and never contacts any Nation. 5) Every Nation name or Indigenous-language string must come from the registry (verbatim text, source URL, retrieval date); free-typed strings are flagged. The node returns a pass/fail export gate and the status object.",
+   "visualization": [
+    "Four-rung status ladder (E0-E3) with the current rung filled and a tooltip naming the sources behind each rung",
+    "Claims-lint table: offending phrase highlighted in the board text, minimum status needed, link to the rule and source clause",
+    "Territory card: three Nation panels showing names verbatim with source link and retrieval date; no map boundaries drawn",
+    "Red export banner when any claim exceeds the status; assumption colour on team-defined rungs"
+   ],
+   "human_judgment": "Whether and how to contact any Nation, the acknowledgement wording, and whether a status is true. Only people can engage the Nations; the tool never does.",
+   "limits": "Only Musqueam's referral requirements were readable; Squamish and Tsleil-Waututh equivalents were not found. Phrase lint catches wording, not intent or false declarations. E3 is self-declared and cannot be verified. The ladder is a team design, not a published standard.",
+   "libraries": [
+    {
+     "name": "Ajv",
+     "license": "MIT",
+     "role": "JSON Schema validation of status and registry objects",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "remark / unified",
+     "license": "MIT (not verified this session)",
+     "role": "Parse board Markdown into a syntax tree for phrase scanning",
+     "url": "https://github.com/remarkjs/remark"
+    },
+    {
+     "name": "Project Claude Code skill 'p07-claims-guard' (to be written)",
+     "license": "team-chosen",
+     "role": "Instructs agents to refuse wording above the declared status; no existing verified skill or MCP server covers this"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30"
+   ]
+  },
+  {
+   "module_id": "P07-M02",
+   "name": "Reconciliation frameworks crosswalk and policy-reflection scaffold",
+   "phase": "basic",
+   "category": "CULT",
+   "design_question": "Which UNDRIP, reconciliation and City of Vancouver frameworks bear on this design, and which design decisions does each touch?",
+   "nature": "subjective",
+   "priority": "core",
+   "effort": "5 person-days (mostly content curation)",
+   "depends_on": [
+    "Layer 0 programme tags",
+    "P07-M01"
+   ],
+   "inputs": [
+    "Layer 0 programme tags and GFA by use",
+    "User design-intent notes and evidence links",
+    "engagement_status from M01"
+   ],
+   "outputs": [
+    "crosswalk.json (item, decision category, state, evidence link)",
+    "policy_reflection_outline.md (headings, citations, user notes only)",
+    "open_items list for M08"
+   ],
+   "parameters": [
+    {
+     "name": "framework_item",
+     "unit": "id (UNDRIP article, DRIPA section, TRC call, Strategy theme)",
+     "relationship": "Each item is tied to design-decision categories; selecting it shows which decisions the team must justify. The link is a curated prompt, not a computed result, and a human confirms it.",
+     "source_ids": [
+      "P07-S01",
+      "P07-S02",
+      "P07-S03",
+      "P07-S04",
+      "P07-S07",
+      "P07-S08"
+     ]
+    },
+    {
+     "name": "programme_mix",
+     "unit": "m2 GFA by use tag",
+     "relationship": "Commercial, hotel or cultural/civic floor area triggers TRC 92(ii) prompts about who gets jobs, tenancies and long-term benefit from that floor area; no such programme hides the prompt.",
+     "source_ids": [
+      "P07-S04"
+     ]
+    },
+    {
+     "name": "decision_category",
+     "unit": "enum programme, ground plane, tenure and benefit, naming and art, process",
+     "relationship": "Items are routed to the category where a design choice can respond; one item can touch several categories and then shows in several matrix cells. Team design.",
+     "source_ids": []
+    },
+    {
+     "name": "attestation_state",
+     "unit": "enum addressed, partly, not addressed, out of scope with reason",
+     "relationship": "'Addressed' needs an evidence link on a board or drawing; without it the cell shows 'claimed' and joins the open-items list passed to M08.",
+     "source_ids": []
+    },
+    {
+     "name": "document_status",
+     "unit": "enum current, superseded, under review, not opened",
+     "relationship": "A badge and as-of date stop users citing a policy that has changed; the 1997 Higher Buildings Policy is under review, and City documents not opened show 'not opened'.",
+     "source_ids": [
+      "P07-S36",
+      "P07-S37",
+      "P07-S35"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Attestations 'addressed' without evidence link",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Course rule: show the work.",
+     "method": "Count cells in state addressed with empty evidence.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Framework items with no recorded response",
+     "unit": "count",
+     "good": "0 (each answered or marked out of scope with reason)",
+     "bad": "1 or more silent items",
+     "basis": "Platform rule; the Strategy has four themes to cover or exclude openly.",
+     "method": "Count empty cells per item.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S06",
+      "P07-S08"
+     ]
+    },
+    {
+     "name": "Cited documents shown without status and as-of date",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Policies change; several City documents could not be opened by the research team.",
+     "method": "Check each item for status badge.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S36",
+      "P07-S37"
+     ]
+    }
+   ],
+   "method": "A versioned, community-forkable JSON knowledge base lists framework items (citation, as-of date, document status, source URL, decision categories). The node reads Layer 0 programme tags to pre-select relevant items, then shows a matrix. For each cell the user records a response, an evidence link (board panel, drawing, text) and a state. It drafts an outline for the VTC policy reflection containing headings, verbatim citation links and the user's own notes only; it writes nothing about what any Nation thinks. Items whose source could not be read show a 'document not opened' badge until a human has opened and confirmed it. The matrix colour shows completeness of evidence, not quality of response.",
+   "visualization": [
+    "Matrix: framework items as rows, decision categories as columns; cell colours grey (open), amber (claimed, no evidence), green (evidence linked), hatched (out of scope with reason); legend states colour means evidence status, not merit",
+    "Click a cell: side panel with clause text link, document status and as-of date",
+    "Open-items list with counts per state, no total score"
+   ],
+   "human_judgment": "How a policy applies to this design, whether a response is adequate, whether to depart from guidelines (the brief says justified breaches may be rewarded), and what the policy reflection argues.",
+   "limits": "The City Strategy, Action Plan and Higher Buildings documents could not be opened. Which of the 79 actions apply to private design is unresolved, as the Strategy is addressed to the City. Frameworks change; this is not legal advice, and the brief says its documents are not legal documents.",
+   "libraries": [
+    {
+     "name": "Ajv",
+     "license": "MIT",
+     "role": "Validate the knowledge-base schema",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "D3",
+     "license": "ISC (not verified this session)",
+     "role": "Draw the matrix",
+     "url": "https://d3js.org"
+    },
+    {
+     "name": "remark / unified",
+     "license": "MIT (not verified this session)",
+     "role": "Generate the outline Markdown",
+     "url": "https://github.com/remarkjs/remark"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30"
+   ]
+  },
+  {
+   "module_id": "P07-M03",
+   "name": "Indigenous design-principle prompt cards",
+   "phase": "basic",
+   "category": "CULT",
+   "design_question": "Which published Indigenous principles on culture, knowledge and authorship should shape how this design is conceived, and where does the design currently depart from them?",
+   "nature": "subjective",
+   "priority": "core",
+   "effort": "4 person-days (6 starter cards core; more in v1)",
+   "depends_on": [
+    "P07-M01",
+    "P07-M05",
+    "P07-M06"
+   ],
+   "inputs": [
+    "Layer 0 geometry and programme tags",
+    "Authorship declarations per element",
+    "engagement_status (M01)",
+    "Cultural-content flags (M05)"
+   ],
+   "outputs": [
+    "design_intent_register.json (card, response, evidence link, state)",
+    "nation_input_needed list for M01 and M08"
+   ],
+   "parameters": [
+    {
+     "name": "card_source_type",
+     "unit": "enum Nation-published, Indigenous design body, Indigenous-led project, professional body, team-authored",
+     "relationship": "Where a Nation-published card conflicts with another, the Nation's wins, because Indigenous peoples decide how they are represented. Currently no Nation-published design card exists for downtown towers, and the tool says so.",
+     "source_ids": [
+      "P07-S22",
+      "P07-S29"
+     ]
+    },
+    {
+     "name": "authorship_declaration",
+     "unit": "per form, pattern, story or name: designer, Nation-sourced with permission, none",
+     "relationship": "Any element declared Indigenous-derived triggers the M05 provenance gate; an element with no declared author is treated as designer-authored and cannot carry Indigenous attribution.",
+     "source_ids": [
+      "P07-S01",
+      "P07-S29"
+     ]
+    },
+    {
+     "name": "benefit_question",
+     "unit": "free text",
+     "relationship": "Asking who gains jobs, tenancy and long-term benefit from the commercial programme follows TRC 92(ii) and moves the discussion from imagery to who benefits.",
+     "source_ids": [
+      "P07-S04"
+     ]
+    },
+    {
+     "name": "form_versus_process_mode",
+     "unit": "enum process, commissioned work by Nation artists, material, form, naming",
+     "relationship": "At Sen̓áḵw the project attributes cultural expression to a working group, Squamish artists, copper and named concepts; each channel needs a different party's authority, so the card asks which one the entry relies on.",
+     "source_ids": [
+      "P07-S15",
+      "P07-S17"
+     ]
+    },
+    {
+     "name": "place_name_use",
+     "unit": "yes/no and source",
+     "relationship": "Using a Nation's place name needs the Nation's own published form; Musqueam marks its map as not final, so names are linked, not copied.",
+     "source_ids": [
+      "P07-S12",
+      "P07-S14"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Cards with a recorded state (including 'needs Nation input')",
+     "unit": "count of cards, display only",
+     "good": "all cards carry a state; 'needs Nation input' stays visible",
+     "bad": "cards skipped, or 'needs Nation input' converted into a claim",
+     "basis": "Honesty rule; no quality scoring of cultural responses.",
+     "method": "Count states in register.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S22"
+     ]
+    },
+    {
+     "name": "Indigenous-derived elements without declared provenance",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more (export blocked via M05)",
+     "basis": "UNDRIP Art. 31(1) puts control of cultural expressions, including designs, with Indigenous peoples; the ICoD charter page cites concern about inauthentic 'style' art.",
+     "method": "Join declarations with M05 register.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S01",
+      "P07-S29"
+     ]
+    }
+   ],
+   "method": "A card deck in YAML. Each card has a prompt, why it matters, a source badge with link (quotes under 15 words), a 'what the tool can check' line and a 'what only people or Nations can answer' line. Users respond with free text and one of four states: not considered, considering, responded with evidence, needs Nation input. There is no numeric aggregation. Cards from Nation-published sources are source-locked; team and community cards are labelled and can be forked. Cards on authorship, names or imagery call the M05 provenance gate; cards on land, water and views call M06. The starter deck covers whose knowledge, representation, form versus process, who benefits, place names, and what the team will not do. The International Indigenous Design Charter is linked rather than paraphrased because its principle list was not retrievable.",
+   "visualization": [
+    "Kanban board of cards in four columns (not considered, considering, responded with evidence, needs Nation input)",
+    "Source badge colour by type (Nation, Indigenous design body, professional body, team); Nation-authored cards locked with a padlock",
+    "No radar chart and no totals; a count of cards per column is shown only as a plain list"
+   ],
+   "human_judgment": "All of it: which principles apply, how to read them, what to change in the design, and when to stop and ask the Nations. The tool only prompts and records.",
+   "limits": "No Nation-published design guideline for tall buildings was found. The International Indigenous Design Charter is of Australian origin, and its local fit for Coast Salish peoples is not established. Cards can be mistaken for endorsement; every card carries the status 'prompt, not approval'.",
+   "libraries": [
+    {
+     "name": "js-yaml",
+     "license": "MIT (not verified this session)",
+     "role": "Load card decks",
+     "url": "https://github.com/nodeca/js-yaml"
+    },
+    {
+     "name": "dnd-kit",
+     "license": "MIT (not verified this session)",
+     "role": "Drag cards between columns",
+     "url": "https://dndkit.com"
+    },
+    {
+     "name": "Ajv",
+     "license": "MIT",
+     "role": "Validate deck schema and responses",
+     "url": "https://github.com/ajv-validator/ajv"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P07-M04",
+   "name": "Nation-led development case-study library",
+   "phase": "basic",
+   "category": "CULT",
+   "design_question": "What can entrants learn from Nation-led developments in Vancouver about process, land tenure, scale and expression, and what must not be copied?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "3 person-days",
+   "depends_on": [
+    "Layer 0 massing statistics",
+    "P07-M01",
+    "P07-M03"
+   ],
+   "inputs": [
+    "Layer 0 tower height, storeys, tower count, GFA by use",
+    "Floor-to-floor height (if supplied) to convert metres to storeys",
+    "engagement_status (M01)"
+   ],
+   "outputs": [
+    "precedent_facts.json (value, unit, source, as-of date)",
+    "comparability_flags.json",
+    "do_not_copy list for M03 and M08"
+   ],
+   "parameters": [
+    {
+     "name": "land_tenure_and_authority",
+     "unit": "enum Nation reserve land, Nation plus Crown corporation under City rezoning, hypothetical City-zoned block",
+     "relationship": "Who holds decision power over the land sets which approvals and governments apply, so a precedent on Nation-controlled reserve land cannot show what a City rezoning would accept.",
+     "source_ids": [
+      "P07-S16",
+      "P07-S18",
+      "P07-S21"
+     ]
+    },
+    {
+     "name": "scale_storeys",
+     "unit": "storeys",
+     "relationship": "Precedent heights are in storeys (Sen̓áḵw tallest 58; Jericho sentinels 49) while the competition range is in metres; the tool converts only when floor-to-floor height is supplied, so comparisons do not rest on a guessed ratio.",
+     "source_ids": [
+      "P07-S16",
+      "P07-S19",
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "cultural_expression_channel",
+     "unit": "enum process, commissioned art, material, form, naming",
+     "relationship": "At Sen̓áḵw expression is described through a Cultural Working Group, Squamish artists, copper facades and tower concepts; each channel needs a different party's authority, so copying a form does not copy the process behind it.",
+     "source_ids": [
+      "P07-S15",
+      "P07-S17"
+     ]
+    },
+    {
+     "name": "ownership_and_benefit_model",
+     "unit": "enum Nation-owned, Nation-led joint venture, partnership",
+     "relationship": "Nation ownership means development returns flow to the Nation, which speaks to TRC 92(ii) long-term benefit; it is unrelated to tower form and must not be presented as a design feature.",
+     "source_ids": [
+      "P07-S16",
+      "P07-S04"
+     ]
+    },
+    {
+     "name": "as_of_date",
+     "unit": "date",
+     "relationship": "Project facts change (a partner exit in Aug 2025, phase completions to 2027-2033); an old fact shown without its date can mislead.",
+     "source_ids": [
+      "P07-S16"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Precedent facts lacking source or as-of date",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Course rule; some developer claims are unverified.",
+     "method": "Validate dataset.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S15",
+      "P07-S16"
+     ]
+    },
+    {
+     "name": "Comparability flags acknowledged before a precedent is cited",
+     "unit": "flags acknowledged of flags raised (tenure, authority, scale, programme)",
+     "good": "all acknowledged",
+     "bad": "precedent cited as justification with any flag unacknowledged",
+     "basis": "Sen̓áḵw is reserve land and Jericho is a City rezoning with Crown corporation; neither equals the hypothetical block.",
+     "method": "Compare user tags with each precedent.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S16",
+      "P07-S18"
+     ]
+    },
+    {
+     "name": "Developer statements shown as stated, not as fact",
+     "unit": "count of unmarked statements",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Consultation process and net-zero claims come from the developer's own pages.",
+     "method": "Check fact type tag.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S15",
+      "P07-S17"
+     ]
+    }
+   ],
+   "method": "A curated JSON dataset holds precedent facts, each with value, unit, source id, as-of date and a type (verified fact, developer statement, news report). The node pulls the user's massing statistics from Layer 0 and plots them next to the precedents on shared axes (storeys, tower count, programme mix). It raises comparability flags for land tenure, authority, scale and programme and requires the user to acknowledge each before a precedent can be cited in the policy reflection. Lessons are written as questions by the team and labelled team-authored. A 'do not copy' panel states that precedent forms, artworks, names and the sentinel concept belong to the Nations and their artists, and that the Jericho sentinels are the Nations' own representational choice.",
+   "visualization": [
+    "Side-by-side elevation strips: each precedent drawn to a storeys scale, the user's tower drawn in the same strip only when floor-to-floor height is known",
+    "Comparability matrix (tenure, authority, scale, programme) with equal-sign and not-equal icons",
+    "Fact cards with source chip, as-of date and a 'developer statement' tag; no ranking or score"
+   ],
+   "human_judgment": "Whether a lesson transfers, how to describe a Nation's intentions (the tool does not), and whether to cite a precedent at all.",
+   "limits": "Facts come from public secondary sources and project websites; City documents were not opened. Unit counts and timelines vary by date. Jericho Lands figures come from news reports of a policy statement. Sen̓áḵw's reserve status differs from the hypothetical block, so scale comparisons say little about approvals.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "license": "MIT (not verified this session)",
+     "role": "Elevation strips",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause (not verified this session)",
+     "role": "Comparison charts",
+     "url": "https://vega.github.io/vega-lite/"
+    },
+    {
+     "name": "js-yaml",
+     "license": "MIT (not verified this session)",
+     "role": "Load dataset",
+     "url": "https://github.com/nodeca/js-yaml"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30"
+   ]
+  },
+  {
+   "module_id": "P07-M05",
+   "name": "Cultural-content and data-sovereignty guardrail gate",
+   "phase": "platform",
+   "category": "CULT",
+   "design_question": "Does any asset, prompt or output in this project use, reproduce or generate Indigenous cultural material or data without a recorded source and permission?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "6 person-days",
+   "depends_on": [
+    "P07-M07 (asset manifest)",
+    "P07-M03",
+    "AI-generation features in PRES (other packet)"
+   ],
+   "inputs": [
+    "Asset manifest (images, models, textures, text) with source and licence",
+    "AI-generation requests (prompt, model, user)",
+    "User-declared permission records",
+    "Authorship declarations (M03)"
+   ],
+   "outputs": [
+    "guardrail_report.json (asset, status, clause link)",
+    "blocked_actions_log",
+    "cultural_assets_register",
+    "export_gate_M05 (pass/fail)",
+    "name_string_registry for M01"
+   ],
+   "parameters": [
+    {
+     "name": "cultural_content_flag",
+     "unit": "human-set tag per asset, with keyword assist",
+     "relationship": "A flag moves an asset from design material to cultural material, which then needs a source and permission record before it can appear on a board.",
+     "source_ids": [
+      "P07-S01",
+      "P07-S22"
+     ]
+    },
+    {
+     "name": "permission_record",
+     "unit": "granted-by, date, scope, label or agreement reference",
+     "relationship": "A narrower permission (for example non-commercial or community use only) than the intended use blocks export; conditions come from the community's own labels or agreements.",
+     "source_ids": [
+      "P07-S26",
+      "P07-S28"
+     ]
+    },
+    {
+     "name": "generation_policy",
+     "unit": "fixed rule: Indigenous motif, pattern or sacred-image generation is blocked",
+     "relationship": "Machine generation of Indigenous motifs removes authorship, protocol and permission from the process, so the tool refuses rather than warns.",
+     "source_ids": [
+      "P07-S01",
+      "P07-S29",
+      "P07-S30"
+     ]
+    },
+    {
+     "name": "nation_held_data_mode",
+     "unit": "link-out only or copied",
+     "relationship": "Nation-held data (maps, audio, place names) is linked, not copied, so possession stays with the Nation; a Nation page marked 'under review' is never cached.",
+     "source_ids": [
+      "P07-S24",
+      "P07-S12"
+     ]
+    },
+    {
+     "name": "label_display",
+     "unit": "Notices shown; Labels shown only if applied by the community in the Hub",
+     "relationship": "Labels are applied by communities and Notices by institutions or researchers; the tool may display either but never assigns or edits them.",
+     "source_ids": [
+      "P07-S26",
+      "P07-S27"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Unresolved cultural-content flags at export",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Platform rule derived from UNDRIP Art. 31(1) and CARE 'Authority to control'.",
+     "method": "Count flagged assets without matching permission record.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S01",
+      "P07-S22",
+      "P07-S26"
+     ]
+    },
+    {
+     "name": "Indigenous-motif generation requests fulfilled",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Guardrail: the platform must not generate Indigenous motifs or art.",
+     "method": "Blocked-action log review.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S29",
+      "P07-S30"
+     ]
+    },
+    {
+     "name": "Assets with creator's Indigenous identity inferred by the tool",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Identity is the person's or Nation's to state; the City public-art dataset has an artists field but no identity field.",
+     "method": "Audit tags: only human-entered, source-cited values allowed.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S22",
+      "P07-S33",
+      "P07-S43"
+     ]
+    },
+    {
+     "name": "Nation-held data copied into the project",
+     "unit": "count",
+     "good": "0 (links only)",
+     "bad": "1 or more",
+     "basis": "OCAP 'possession' principle; the OCAP trademark steward's page was not opened, so no compliance claim is made.",
+     "method": "Manifest check on source type.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S24",
+      "P07-S25"
+     ]
+    }
+   ],
+   "method": "1) Every asset is listed in a manifest with hash, source URL, licence, author and AI-use field. 2) A human sets the cultural-content flag; keyword assist only suggests, never decides. 3) A flagged asset needs a permission record (who granted, scope, date, label reference) before the gate turns green. 4) AI prompts are checked against an editable term list for Indigenous styles, motifs or sacred imagery; matching requests are blocked with a clause link and logged. 5) Nation-held layers are stored as URL plus retrieval date only, and never cached. 6) If the user adds a Local Contexts Hub project ID, Notices and Labels are shown read-only. 7) The gate returns pass or block per asset and for the whole export. No classifier decides whether something is Indigenous.",
+   "visualization": [
+    "Per-asset traffic-light panel: green cleared with permission record, amber flagged awaiting permission, red blocked, each with a clause link",
+    "Provenance table with filters by flag, source and licence",
+    "Lock icon on blocked 'generate' actions with a plain 'why not' explanation and a pointer to the Nations' own channels"
+   ],
+   "human_judgment": "Deciding whether something is Indigenous cultural material, obtaining and judging permission, reading each Nation's protocols, and reviewing false positives and misses of the term list.",
+   "limits": "Keyword lists miss intent and produce false positives. The tool cannot verify that a permission is real. OCAP and CARE govern data, not design, and OCAP is a registered mark whose usage terms were not read. Local Contexts API and display terms were not reviewed.",
+   "libraries": [
+    {
+     "name": "Ajv",
+     "license": "MIT",
+     "role": "Validate manifest and records",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "c2pa-rs",
+     "license": "MIT OR Apache-2.0 (dual-licensed per repository page)",
+     "role": "Read provenance manifests on uploaded images",
+     "url": "https://github.com/contentauth/c2pa-rs"
+    },
+    {
+     "name": "Local Contexts Hub",
+     "license": "Labels and Notices icons copyrighted by Local Contexts; API terms not reviewed",
+     "role": "Read-only display of Notices and Labels",
+     "url": "https://localcontexts.org"
+    },
+    {
+     "name": "Mukurtu CMS (pattern reference only)",
+     "license": "GPL-3.0",
+     "role": "Protocol-based access design pattern; do not embed",
+     "url": "https://mukurtu.org"
+    },
+    {
+     "name": "Project Claude Code skill 'cultural-guardrails' (to be written)",
+     "license": "team-chosen",
+     "role": "Makes agent workflows refuse Indigenous motif generation; no verified MCP server exists for this"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P07-M06",
+   "name": "City in Nature and skyline identity prompts with view geometry",
+   "phase": "basic",
+   "category": "ECOL",
+   "design_question": "What does the design do for views to mountains and water, the Queen Elizabeth Park skyline and local nature and materials, and how is it shown, not asserted?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "Prompt cards 1 day (core); view geometry 5 days (may slip to v1)",
+   "depends_on": [
+    "Layer 0 massing and public-space tags",
+    "SITE context-massing node (other packet)",
+    "P07-M03",
+    "P07-M05"
+   ],
+   "inputs": [
+    "Layer 0 tower geometry, heights, public-space tags",
+    "Site boundary and the labelled directions on the VTC site plan (rotated north arrow)",
+    "Context massing: existing and approved towers (SITE)",
+    "City view-cone polygons (open data)",
+    "User-placed viewpoints: public plaza points, podium terraces, typical floors",
+    "Declared materials with origin, planting palette and water features"
+   ],
+   "outputs": [
+    "view_azimuth_report.json (per viewpoint, baseline vs proposal, degrees)",
+    "qe_park_silhouette.svg with angular extents",
+    "cone_intersections.json",
+    "materials_declaration.json",
+    "prompt-card answers to M08 and to PRES (QE Park skyline view, ground-level perspectives)"
+   ],
+   "parameters": [
+    {
+     "name": "viewpoint_set",
+     "unit": "points (x, y, eye height)",
+     "relationship": "Higher viewpoints see more azimuth toward mountains and water; ground-level plaza points are shielded by neighbouring towers, so public-realm views depend on podium height and tower spacing. Geometric, not a cultural claim.",
+     "source_ids": []
+    },
+    {
+     "name": "target_bearing_ranges",
+     "unit": "degrees from site-plan labels",
+     "relationship": "The brief's north arrow is rotated against the street grid, so bearings must come from the site plan's labelled directions (Stanley Park, BC Place, Entertainment District, Burrard Inlet and North Shore Mountains); assuming true north reports views toward the wrong landmark.",
+     "source_ids": [
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "obstruction_context",
+     "unit": "set of existing and approved towers",
+     "relationship": "More approved towers in the same height range narrow the unobstructed azimuth at public-realm viewpoints, so tower spacing and orientation change the views that public space keeps.",
+     "source_ids": [
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "tower_face_width_toward_viewpoint",
+     "unit": "m and degrees subtended",
+     "relationship": "A wider tower face toward the Queen Elizabeth Park bearing subtends a larger angle in the skyline view; a slimmer face or rotation subtends less.",
+     "source_ids": []
+    },
+    {
+     "name": "view_cone_intersection",
+     "unit": "which of the 24 cones the massing intersects in plan",
+     "relationship": "Development inside a cone polygon is height-limited to protect a public view, so an intersection means the City's height rules for that view must be checked; the dataset itself gives no height.",
+     "source_ids": [
+      "P07-S32"
+     ]
+    },
+    {
+     "name": "material_origin_and_nature_declaration",
+     "unit": "free text with source",
+     "relationship": "A declared origin and an evidence link turn 'local material' and 'City in Nature' from adjectives into checkable statements; no sourced numeric threshold was found.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Unobstructed azimuth toward target bearings, baseline versus proposal",
+     "unit": "degrees per viewpoint",
+     "good": "No net loss versus the context-only baseline, or loss documented with a mitigation note",
+     "bad": "Net loss with no note",
+     "basis": "No sourced threshold exists; this is an editable team preset that asks for explanation rather than scoring.",
+     "method": "Ray cast at 1-degree steps over context-only and context-plus-proposal models.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "View cones whose polygons the massing intersects in plan",
+     "unit": "count of 24, with ids",
+     "good": "0, or each listed with a note after the City's per-view height rule is checked",
+     "bad": "1 or more unlisted",
+     "basis": "City dataset states development within the polygons is height-limited; the height values are not in the dataset.",
+     "method": "Polygon intersection in plan.",
+     "status": "unverified",
+     "source_ids": [
+      "P07-S32"
+     ]
+    },
+    {
+     "name": "Queen Elizabeth Park silhouette reported",
+     "unit": "angular width and height in degrees, from user-entered viewpoint",
+     "good": "Reported for the viewpoint and compared with the four park cones 3.2.1-3.2.4",
+     "bad": "Not produced, or produced from a guessed viewpoint",
+     "basis": "The brief recommends a skyline view from the park; the cone ids come from the City dataset; viewpoint coordinates are not hard-coded.",
+     "method": "Perspective projection of baseline and proposal.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S32",
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "Prompt cards answered with an evidence link",
+     "unit": "count of cards, display only",
+     "good": "all cards carry an answer and an evidence link or 'needs input'",
+     "bad": "cards skipped",
+     "basis": "Course rule; no scoring of nature or culture.",
+     "method": "Count states.",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "method": "1) Import massing and context from Layer 0 and SITE. 2) Place viewpoints by hand or auto-grid them on surfaces tagged public. 3) Ray cast over a fan of azimuths at 1-degree steps (team preset) for context-only and context-plus-proposal models, using a mesh acceleration structure; record the clear azimuth arcs toward the labelled target bearings. 4) For the park view, the user enters the viewpoint coordinates and eye height (1.6 m is a team preset); the node renders baseline and proposal silhouettes and reports angular extents. 5) Intersect the massing outline with the 24 City view-cone polygons and list names, ids and links. 6) Show prompt cards for views, water, skyline identity, material origin, planting palette; each needs text plus an evidence link. Peak and water names are displayed only from City or Nation-sourced strings.",
+   "visualization": [
+    "Plan view: radial wedge per viewpoint, baseline arc in grey, proposal arc in teal, lost arc hatched orange, scale 0-360 degrees, site-plan north arrow used",
+    "Elevation silhouette: baseline outline versus proposal outline with an angular scale bar in degrees",
+    "Table of touched view cones with ids and links to the City pages",
+    "Prompt cards with evidence chips; no radar chart, no single score"
+   ],
+   "human_judgment": "Which views matter and to whom, what the mountains and water mean to the Nations (the tool does not infer it; Sen̓áḵw's north-pointing rooftops are the project's own choice), whether a loss is acceptable, and whether a material is local in a meaningful sense.",
+   "limits": "Layer 0 has no terrain by default, so ridge lines need a DEM. View-cone heights are not in the dataset. The park viewpoint must be entered from City documents. Geometry ignores weather and season. No validated cultural-significance data exists, so none is computed.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "license": "MIT (not verified this session)",
+     "role": "Scene and silhouette rendering",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "license": "MIT",
+     "role": "Fast ray casting on massing meshes",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "GDAL gdal_viewshed",
+     "license": "MIT/X (not verified this session)",
+     "role": "Terrain viewshed from a DEM (observer height, target height, max distance, curvature options)",
+     "url": "https://gdal.org/en/stable/programs/gdal_viewshed.html"
+    },
+    {
+     "name": "Turf.js",
+     "license": "MIT (not verified this session)",
+     "role": "Polygon intersection with view cones",
+     "url": "https://turfjs.org"
+    },
+    {
+     "name": "MapLibre GL JS",
+     "license": "BSD-3-Clause",
+     "role": "Site and cone map",
+     "url": "https://github.com/maplibre/maplibre-gl-js"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "human_scale_40",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P07-M07",
+   "name": "Ethical AI, authorship and provenance ledger",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "Can every result, image and sentence in the project show who or what made it, from which sources, with AI use labelled and no personal data stored?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "6 person-days",
+   "depends_on": [
+    "All module outputs",
+    "P07-M05",
+    "PRES export nodes (other packet)"
+   ],
+   "inputs": [
+    "Every node output (metrics, images, text)",
+    "Asset manifest",
+    "Contributor handles (pseudonymous)",
+    "AI-tool log: model, version, prompt hash, date",
+    "Module licences and source ids"
+   ],
+   "outputs": [
+    "provenance.jsonld (entities, activities, agents)",
+    "ai_label_manifest per image",
+    "board_appendix.md (AI use and sources)",
+    "export_gate_M07 (pass/fail)"
+   ],
+   "parameters": [
+    {
+     "name": "ai_involvement",
+     "unit": "enum none, assistive edit, composite, generated",
+     "relationship": "The declared level sets the visible label and the embedded IPTC term; under-declaring breaks trust, and generated imagery should not be presented as sole authorship without permission.",
+     "source_ids": [
+      "P07-S38",
+      "P07-S34"
+     ]
+    },
+    {
+     "name": "contributor_identity_mode",
+     "unit": "pseudonymous handle; real names stripped on export",
+     "relationship": "The brief requires no identifying information on boards, and privacy law favours collecting only what is needed, so export drops author fields and the tool stores no personal data beyond a handle.",
+     "source_ids": [
+      "P07-S35",
+      "P07-S43",
+      "P07-S44"
+     ]
+    },
+    {
+     "name": "source_citation_completeness",
+     "unit": "share of results with source ids",
+     "relationship": "A result without a source id cannot be checked, so it is shown as unsourced and its thresholds turn into editable team assumptions.",
+     "source_ids": []
+    },
+    {
+     "name": "module_licence_and_attribution_chain",
+     "unit": "SPDX id and upstream links",
+     "relationship": "A forked module inherits upstream attribution; an incompatible licence raises a merge warning. SPDX list not opened in this review.",
+     "source_ids": []
+    },
+    {
+     "name": "human_review_of_ai_text",
+     "unit": "named reviewer, date",
+     "relationship": "AI-drafted cultural text is published only after a named person reviews it; the EU rule excuses disclosure of AI text where a person with editorial responsibility reviewed it, and the Canadian code stresses human oversight.",
+     "source_ids": [
+      "P07-S42",
+      "P07-S40"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Results or claims without a source id",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Course rule: every result cites its source.",
+     "method": "Scan provenance graph.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "AI-involved images without both a visible label and an embedded digital source type",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "IPTC vocabulary gives the terms; the Canadian code expects transparency and detection; the EU Article 50 is a benchmark only, not binding in BC.",
+     "method": "Check metadata and overlay per image.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S38",
+      "P07-S40",
+      "P07-S42"
+     ]
+    },
+    {
+     "name": "Personal-data fields in exported boards and metadata",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "The brief's anonymity rule as supplied; competition page confirms anonymous judging.",
+     "method": "Strip and scan author, creator, name and email fields.",
+     "status": "verified",
+     "source_ids": [
+      "P07-S34",
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "Team assumptions shown without the editable-assumption flag",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Platform rule: unsourced thresholds are visible as editable team assumptions.",
+     "method": "Compare thresholds with source ids.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "AI-drafted cultural text without a named human reviewer",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Human oversight expectation and the editorial-responsibility exception in the EU text, used as a benchmark.",
+     "method": "Check review field.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S40",
+      "P07-S41",
+      "P07-S42"
+     ]
+    }
+   ],
+   "method": "Each node run writes a W3C PROV-style JSON-LD record: the output (entity), the node and version (activity), the human handle, tool or model (agent), and the inputs and source ids it used. On export the pipeline (a) strips identity fields; (b) embeds the IPTC digital source type and, if the user chooses, a C2PA manifest in each image; (c) draws an on-image AI label; (d) writes an 'AI use and sources' appendix for the boards; and (e) lints for missing source ids, unflagged assumptions and missing human review. Prompt text is hashed in the browser; prompts containing personal data are never stored. The export gate fails if any lint rule fails; fixes link back to the offending node. The FALSE ASSUMPTION colour state is preserved in the ledger.",
+   "visualization": [
+    "Lineage graph: output to activity to agent, nodes coloured human, AI-assisted or AI-generated",
+    "Corner provenance badge on every result card showing author type and source count",
+    "Export checklist with pass/fail rows and a fix link per failure; false assumptions kept visible in their special colour"
+   ],
+   "human_judgment": "Whether AI use is appropriate for each element, accountability for every statement, authorship claims, reading the competition's own rules and tool terms, and the decision to publish.",
+   "limits": "Labels are declared and are lost when platforms strip metadata; a C2PA record does not prove authorship or permission. The EU Act is not binding in BC and its dates may have changed. Buildner has no specific AI policy, so the entrant must check each tool's terms. Canadian copyright treatment of AI output was not researched.",
+   "libraries": [
+    {
+     "name": "c2pa-rs",
+     "license": "MIT OR Apache-2.0 (dual-licensed per repository page; beta 0.x)",
+     "role": "Read and write Content Credentials",
+     "url": "https://github.com/contentauth/c2pa-rs"
+    },
+    {
+     "name": "ExifTool",
+     "license": "Perl Artistic or GPL (not verified this session)",
+     "role": "Write IPTC digital source type and strip author fields",
+     "url": "https://exiftool.org"
+    },
+    {
+     "name": "jsonld.js",
+     "license": "BSD-3-Clause (not verified this session)",
+     "role": "Handle provenance JSON-LD",
+     "url": "https://github.com/digitalbazaar/jsonld.js"
+    },
+    {
+     "name": "W3C PROV-O vocabulary",
+     "license": "W3C document use terms (no specific licence stated on the page)",
+     "role": "Provenance model",
+     "url": "https://www.w3.org/TR/prov-o/"
+    },
+    {
+     "name": "Ajv",
+     "license": "MIT",
+     "role": "Validate ledger records",
+     "url": "https://github.com/ajv-validator/ajv"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P07-M08",
+   "name": "Cultural-context readiness register and board-statement builder",
+   "phase": "present",
+   "category": "CULT",
+   "design_question": "Which cultural-context claims can the boards honestly make today, what evidence backs each, and which items remain open or need Nation input?",
+   "nature": "subjective",
+   "priority": "v1",
+   "effort": "3 person-days",
+   "depends_on": [
+    "P07-M01",
+    "P07-M02",
+    "P07-M03",
+    "P07-M04",
+    "P07-M05",
+    "P07-M06",
+    "P07-M07",
+    "PRES board nodes (other packet)"
+   ],
+   "inputs": [
+    "Outputs and gates of M01-M07",
+    "Board outline from PRES",
+    "Jury criterion text for cultural context (City in Nature; cultural, geographic and environmental character; reconciliation and Indigenous perspectives)"
+   ],
+   "outputs": [
+    "board_text_blocks.md (mandatory blocks and placeholders)",
+    "open_items.json",
+    "export_gate_M08 (all gates M01, M05, M07 must pass)"
+   ],
+   "parameters": [
+    {
+     "name": "claim",
+     "unit": "text with evidence type",
+     "relationship": "A claim needs matching evidence (geometry from M06, source from M02 or M04, provenance from M05, status from M01); a claim without it is demoted to 'intent' wording.",
+     "source_ids": []
+    },
+    {
+     "name": "criterion_item",
+     "unit": "enum City in Nature, cultural-geographic-environmental character, reconciliation and Indigenous perspectives",
+     "relationship": "Each criterion item gets a coverage state, not a score: coverage is not quality, and the jury judges quality.",
+     "source_ids": [
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "needs_nation_input",
+     "unit": "list",
+     "relationship": "Items that only a Nation can answer stay open and visible, so the boards do not fill the gap with the team's own voice.",
+     "source_ids": [
+      "P07-S22",
+      "P07-S28"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Board claims without matching evidence",
+     "unit": "count",
+     "good": "0 (rewritten as intent or removed)",
+     "bad": "1 or more",
+     "basis": "Course rule: every result cites its source.",
+     "method": "Join claims with evidence.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Jury criterion items with no response",
+     "unit": "count of 3 items",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Criterion wording as supplied from the brief; not opened in the PDF.",
+     "method": "Coverage table.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S35"
+     ]
+    },
+    {
+     "name": "Prohibited wording in board text (see M01 rules)",
+     "unit": "count",
+     "good": "0",
+     "bad": "1 or more",
+     "basis": "Inherited from M01 lint.",
+     "method": "Re-run M01 lint on final text.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P07-S04",
+      "P07-S28"
+     ]
+    }
+   ],
+   "method": "The node collects state from M01-M07 and builds a three-column register: claim, evidence and source, status (evidenced, intent only, needs Nation input, out of scope). It generates board text skeletons with mandatory blocks: the engagement-status statement (M01), the AI-use and sources appendix (M07), the cultural-material provenance note (M05) and a 'limits of this analysis' statement. The user rewrites all narrative; the node inserts placeholders, not prose. The export gate refuses to pass if M01, M05 or M07 fail. No metric aggregates into a cultural-quality number; the register shows coverage and evidence status only.",
+   "visualization": [
+    "Three-column register board (claim, evidence, status) with chips for source and gate",
+    "Criterion map: the three cultural-context items with coverage chips and open-item counts, no totals",
+    "'Limits' box that cannot be removed from the export"
+   ],
+   "human_judgment": "Writing the narrative, choosing what to claim, any reflection on departures from policy, and how to describe the relationship to the Nations.",
+   "limits": "A coverage register can be gamed by filling cells with 'intent only' wording. Criterion wording comes from the supplied brief summary, not the PDF. The jury decides quality; nothing here predicts a jury result.",
+   "libraries": [
+    {
+     "name": "remark / unified",
+     "license": "MIT (not verified this session)",
+     "role": "Generate board text blocks",
+     "url": "https://github.com/remarkjs/remark"
+    },
+    {
+     "name": "Ajv",
+     "license": "MIT",
+     "role": "Validate register records",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "Claude skill anthropic-skills:vtc-multi-agent-runs",
+     "license": "unknown",
+     "role": "Team skill for critique rounds on claims, human-reviewed (listed in this environment; not inspected)"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30"
+   ]
+  }
+ ]
+}

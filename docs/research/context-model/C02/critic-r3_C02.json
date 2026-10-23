@@ -1,0 +1,275 @@
+{
+ "expert_role": "Gatekeeper reviewer for geodesy, open elevation and building data, and licensing (round 3, packet C02)",
+ "previous_round": [
+  {
+   "item": "C02-M01 conversion chain built on HTMVBC00 instead of the national HT2 grid",
+   "status": "partly",
+   "residue": "The method now uses HTMVBC00 through GDAL BYN, which is correct. The chain still mixes ellipsoidal-height epochs. LTSA 465C says HTGVRDBC00 is 'referenced to the 1997 epoch', and CSRS-PPP propagates heights to 1997.0 before applying HTv2.0. CGG2013an83 and the CGVD2013 layers are at epoch 2010, and no velocity-grid step is in the chain. Nothing has been computed yet because the download still awaits approval."
+  },
+  {
+   "item": "C02-M01 bridge metric tightened to 0.03 m plus a negative test",
+   "status": "partly",
+   "residue": "The threshold and the negative test are in place. HRDEM Spec Ed. 1.7 and the STAC items do not say how NRCan converted the City's CGVD28 2013 LiDAR. So the bridge measures NRCan's conversion choice, not the team's chain. Geodetic-control acceptance is still missing."
+  },
+  {
+   "item": "C02-M04/M01 cone test frame versus Earth curvature",
+   "status": "addressed",
+   "residue": "Geodetic H is compared directly and the curvature unit test was added. The City question is pending. The 5.1 km QE Park to Barclay distance comes out at about 4.8 km from approximate coordinates."
+  },
+  {
+   "item": "Thurlow/Haro ground inference",
+   "status": "addressed",
+   "residue": "The inference was deleted. The Barclay case still rests on unopened snippets. 12.1.1 does not appear in the 2024 Table 1, so that document predates the current view set."
+  },
+  {
+   "item": "3D BAG RMSE used as height accuracy",
+   "status": "addressed"
+  },
+  {
+   "item": "M03 class and spike rules: max_all",
+   "status": "partly",
+   "residue": "max_all was added. Its outward 0.5 m buffer on parcel-split or contiguous footprints picks up returns from neighbouring tower walls, and it includes noise classes. The regression would then flag false exceedances."
+  },
+  {
+   "item": "Packet scope versus 13 Nov",
+   "status": "partly",
+   "residue": "The core is cut to 6.0 + 1.0 person-days. M04's primary output still depends on cone heights from another packet, and the Guidelines PDF has never been opened directly. C02 uses about half of the 13.6 person-days available across all packets. M08 is labelled v1 but costed in core."
+  },
+  {
+   "item": "Water level from CHS 07735 (minor)",
+   "status": "addressed"
+  },
+  {
+   "item": "Microsoft heights, provenance rule, horizontal realisation test (minor)",
+   "status": "addressed"
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C02-M01 canonical chain H28 = H2013 + N_CGG2013a - N_HTMVBC00",
+   "issue": "The chain passes through ellipsoidal height but ignores epoch. LTSA Circular 465C (amended 2026-04-01) says HTGVRDBC00 (equivalent to HTMVBC00 per GeoBC) 'is referenced to the 1997 epoch'. It also says CSRS-PPP 'propagates elevations from the epoch of observation to epoch 1997.0' before applying HTv2.0. CGG2013an83 (NAD83(CSRS)v6) and the HRDEM, MRDEM and LidarBC CGVD2013(2010) layers sit at epoch 2010 or later. At a few mm/yr of vertical velocity, 13 years can consume the whole 0.03 m tolerance.",
+   "fix": "Insert h(2010 or layer epoch) to h(1997.0) using the NAD83(CSRS) velocity grid ca_nrc_NAD83v70VG.tif (present on cdn.proj.org, 1.1 MB) in a PROJ pipeline before subtracting N_HTMVBC00. Report the size of that step over the AOI as s_epoch. Record the horizontal realisation and epoch and the vertical-model epoch as separate registry fields."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M01 same-source bridge as the primary acceptance test",
+   "issue": "The 2013 pair is likely the same source: the STAC item VILLE_VANCOUVER-VILLE_VANCOUVER-1m has datetime 2013-02-19, the City's last 2013 collection day. However, HRDEM Spec Ed. 1.7 only says products are 'referenced to CGVD2013' and does not state how CGVD28 sources were converted or with which model. If NRCan used national HT2 plus CGG2013a, a perfect HTMVBC00 chain leaves a residual of N_HT2 - N_HTMVBC00. In that case the 0.03 m test fails a correct pipeline, or passes a wrong one that happens to mirror NRCan.",
+   "fix": "Precompute both predicted residual grids (the HTMVBC00 chain and the HT2_1997/2010 chain) and report which one the data match. Make the primary acceptance test geodetic control: downtown GeoNetBC monuments with published CGVD28 elevations and NAD83(CSRS) ellipsoidal heights, where h - H28 must reproduce N_HTMVBC00 within 0.02 m, and City DTM versus monument H on hard ground within 0.1 m. Ask NRCan (geoinfo) how VILLE_VANCOUVER was converted."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M03 max_all definition",
+   "issue": "'Every non-vegetation, non-water return inside footprint + 0.5 m, unfiltered' has two problems. (a) City 2015 polygons are split at parcel lines (portal text), so a podium or low-rise polygon next to a tower gains that tower's wall returns within 0.5 m. (b) It includes the Noise class (birds, multipath). The existing-tower regression, the main datum safeguard, would then report false exceedances that look like datum errors, and the manual gap list becomes unmanageable inside a 2-day core.",
+   "fix": "Assign points to the nearest footprint (a Voronoi or nearest-polygon partition) before buffering, so no polygon takes points closer to a neighbour. Exclude Noise from max_all and keep it in a separate max_noise. Require a cluster of at least 5 points within 1 m above max_bldg before raising max_all. Unit-test with a synthetic podium beside a 150 m wall."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M02/M03 core heights on unrepaired 2015 footprints",
+   "issue": "Core hand-traces only 15 towers. The automatic LiDAR-outline rule for roofs of 30 m or more is v1. The spec's own relief-displacement figure (7.9 m lean at 150 m and 3 degrees) means mid-rise towers outside the top 15 can have polygons offset several metres from their LiDAR roofs. P50 to P90 then mix street and podium points, and max_all can miss the true top. Nothing in core detects this.",
+   "fix": "Add a cheap core check for each footprint with P90 above 30 m. Compute the share of building-class points inside the shrunk polygon and the 2D offset between polygon centroid and building-point centroid. If the share is under 0.8 or the offset over 1 m, flag the building and either translate the polygon by the measured offset or add it to the hand-trace list."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Primary legal source (Public Views Guidelines) never opened by the packet",
+   "issue": "This is the third round in which guidelines.vancouver.ca returns 403 to fetch, and in this round a browser-pane attempt triggered a save dialog for the user. Every clause, the 'horizontal lower boundary' wording and the absence of datum or curvature text rest on the team's own guideline.json extract (accessed 2026-09-22). Its referenced local copy (sources/guidelines-public-views.pdf) is not in the read-only repo copy. The view-cones dataset changed again on 2026-10-19, after the stated 4 Feb 2026 amendment.",
+   "fix": "The team should open the PDF in a normal browser, record its edition, date and sha256, and search it for 'geodetic', 'datum', 'elevation', 'curvature' and 'origin'. Confirm whether an amendment after Feb 2026 exists. Move the cone diff from M08 v1 into core and diff it now."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M04 core deliverable depends on non-existent cone heights",
+   "issue": "The primary output is each cone's maximum geodetic elevation compared with max_all. Those heights come from another packet and from unopened PDFs, so the core M04 day cannot produce a verifiable result by 13 Nov.",
+   "fix": "Redefine core M04 as Z_ground(E,N) in CGVD28GVRD with sigma, plus an interface tested on synthetic cones (level and sloping). Mark any real-cone figure out of core and 'estimate' until the City answers."
+  },
+  {
+   "severity": "MINOR",
+   "item": "M08 attribution default for City data",
+   "issue": "The spec ships 'Contains information licensed under the Open Government Licence - British Columbia.' for City layers until the City string is confirmed. That names the wrong licensor. Vista's own README attributes City data to 'Open Government Licence – Vancouver', and the 2017 OSM forum (C02-S33) quotes the City string with 'Vancouver'.",
+   "fix": "Default to 'Contains information licensed under the Open Government Licence – Vancouver' with a link to opendata.vancouver.ca/pages/licence/. Use the OGL-BC string only for provincial layers (LidarBC, CDED, BC geocoder)."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Flag 'View 3.2.1 is 123.201 m geodetic (Barclay)'",
+   "issue": "The flag states '3.2.1 was amended in 2024'. Table 1 in the team's guideline extract lists 3.2.1 as '1989' with no amendment; 3.2.4 is the QE Park view amended (2025). Also, 12.1.1 (121.695 m in the Barclay snippet) is not in the 2024 Table 1, so the Barclay document uses a pre-2024 view set.",
+   "fix": "Correct the flag. Tag the Barclay figures 'pre-2024 view set, superseded numbering'. Since 3.2.1 is unchanged since 1989, test whether its lower boundary is sloped (as 1989 cones were) instead of assuming a horizontal plane, and make the M04 interface a surface H_cone(E,N), never a scalar per cone."
+  },
+  {
+   "severity": "MINOR",
+   "item": "M01 vgridshift sign derivation",
+   "issue": "EPSG:10617 and 10619 describe the grid as 'HT2 hybrid geoid model minus CGG2013a' with method 1126 and PROJ +multiplier=-1. PROJ defines Z_target = Z_source + multiplier x grid, which gives Z_2013 = Z_28 - (N_HT2 - N_CGG). From H = h - N, however, Z_2013 - Z_28 = +(N_HT2 - N_CGG). One of the labels must be inverted. A unit test alone may encode the wrong expectation if the CHS sign inference is also wrong.",
+   "fix": "Resolve the sign from the EPSG method 1126 formula (Guidance Note 7-2) and from a direct h - N computation with ca_nrc_HT2_1997.tif and ca_nrc_CGG2013an83.tif at CHS 07735. The unit test must agree with both, and the CHS +0.12 m is a third check."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Canonical datum justification",
+   "issue": "The spec rests the CGVD28GVRD choice on the City's answer alone. LTSA 465C also states that the Land Title Act (Part 9, s.138) defines 'geodetic elevation' as 'derived from a source approved by the Surveyor General', and that CGVD28 with HTGVRDBC00 in Metro Vancouver is the approved source. This supports the choice but is not cited.",
+   "fix": "Add LTSA 465C p.1 to M01 sources as supporting evidence. Still ask views@vancouver.ca, because the Guidelines are not made under the Land Title Act."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Curvature case 'QE Park to 1040 Barclay about 5.1 km'",
+   "issue": "From approximate coordinates (QE summit 49.2418,-123.1126; Barclay 49.2840,-123.1275) the distance is about 4.8 km, which gives 1.82 m of drop, not 2.04 m. The 5.1 km figure has no source.",
+   "fix": "Keep 5.1 km as a synthetic unit test. Compute the Barclay distance from the real origin coordinates once the Guidelines or City give them."
+  },
+  {
+   "severity": "MINOR",
+   "item": "HRDEM accuracy",
+   "issue": "The spec quotes 'generally better than 1 m'. Spec s.7.5 says per-project accuracy is recorded in the project metadata polygons (File Geodatabase).",
+   "fix": "Read the altimetric and planimetric accuracy attributes for VILLE_VANCOUVER 2013 and Lower Mainland 2016 and put them in the registry."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Schedule realism and labels",
+   "issue": "M08 is priority 'v1' but carries 0.5 person-day in core. C02 core (7 person-days) is about half of the 13.6 person-days available for all packets, and it includes manual browser downloads of about 13 GB of LAS.",
+   "fix": "Relabel M08 as a core slice. State a cut line: if the datum chain is not green by day 3, ship the City-only CGVD28 DTM and buildings, and leave CGVD2013 terrain unconverted, labelled and out of cone tests."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "HTMVBC00 and CGG2013a can be combined as H28 = H2013 + N_CGG2013a - N_HTMVBC00 through one ellipsoidal height, with epoch mixing only a residual note.",
+   "why_false": "The two models refer to different ellipsoidal-height epochs: 1997.0 for HTGVRDBC00/HTMVBC00, and 2010 for CGG2013an83 v6 and the CGVD2013(2010) layers. BC's prescribed workflow propagates heights to 1997.0 first.",
+   "correction": "Add an NAD83(CSRS) velocity-grid step (ca_nrc_NAD83v70VG) from the layer epoch to 1997.0 before applying N_HTMVBC00, and report its magnitude.",
+   "evidence": "LTSA Circular 465C (amended 2026-04-01), p.2: HTGVRDBC00 'is referenced to the 1997 epoch'; CSRS-PPP 'elevations are propagated from the epoch of observation to epoch 1997.0'. cdn.proj.org lists ca_nrc_NAD83v70VG.tif."
+  },
+  {
+   "claim": "City DTM minus converted HRDEM within 0.03 m demonstrates that the team's HTMVBC00 chain is correct.",
+   "why_false": "NRCan does not state how VILLE_VANCOUVER 2013 was converted from CGVD28. If it used national HT2, a correct HTMVBC00 chain leaves a residual of N_HT2 - N_HTMVBC00.",
+   "correction": "Treat the bridge as a diagnostic that shows which model NRCan used. Accept the chain against geodetic control monuments.",
+   "evidence": "HRDEM Product Specifications Ed. 1.7 (2026-05-19) s.6.2 says only 'referenced to CGVD2013 (EPSG:6647)', with no conversion text. STAC hrdem-lidar items have no vertical-datum field."
+  },
+  {
+   "claim": "View 3.2.1 was amended in 2024, so the Barclay edition and datum may differ.",
+   "why_false": "Table 1 of the 2024 Guidelines, as extracted by the team, lists 3.2.1 Queen Elizabeth Park as approved 1989 with no amendment.",
+   "correction": "3.2.1 is unchanged since 1989. 12.1.1 is absent from the 2024 Table 1, so the Barclay document uses the pre-2024 view set.",
+   "evidence": "vancouver-tall-view-tool data/guideline.json table_1: 3.2.1 date_approved '1989'; 3.2.4 '1989 (Amended 2025)'; no 12.1.1 row among 24 references."
+  },
+  {
+   "claim": "Default attribution for City layers should be 'Contains information licensed under the Open Government Licence - British Columbia.'",
+   "why_false": "City data are licensed under OGL-Vancouver. Even if that licence is modelled on OGL-BC, the statement names a different licensor.",
+   "correction": "Use 'Contains information licensed under the Open Government Licence – Vancouver' for City layers.",
+   "evidence": "Vista README line 57 attributes City data to 'Open Government Licence – Vancouver'. The OSM help forum (C02-S33) quotes the same City string."
+  }
+ ],
+ "missing": [
+  "Geodetic-control acceptance test: downtown GeoNetBC monuments (CGVD28 H plus NAD83(CSRS) h) to check N_HTMVBC00 and the City DTM",
+  "Epoch-propagation step (NAD83v70VG) and its measured magnitude over the AOI",
+  "NRCan statement of how VILLE_VANCOUVER 2013 and Lower Mainland 2016 were converted to CGVD2013",
+  "Direct reading of the Public Views Guidelines PDF (edition, sha256, datum and curvature text), and whether anything changed after Feb 2026 given the 2026-10-19 cone update",
+  "Neighbour-aware point assignment and noise exclusion for max_all",
+  "Core footprint-offset check for towers that are not hand-traced",
+  "HRDEM per-project accuracy attributes from the metadata polygons",
+  "Horizontal realisation epoch of NAD83(CSRS) 4.0.0.BC.1.GVRD (not stated on the portal; not verified, because the web-search budget was exhausted this round)",
+  "OGL-Vancouver full text (the licence page still renders navigation only)",
+  "Vista's own LICENSE file (absent from the local copy) and how ODbL applies to Vista's OSM-derived bins"
+ ],
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "WebFetch 403. A browser-pane attempt triggered a file-save dialog for the user (not retried; nothing read). Clause text checked only through the team's data/guideline.json."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "Confirms CGVD28GVRD, HTMVBC00_Abbbyn.zip, NAD83(CSRS) 4.0.0.BC.1.GVRD, 0.081 m (95%), 49 pts/m2, 7 and 9 Sep 2022, 8 class names, 181 records, modified 2023-04-18, OGL-Vancouver."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2018",
+   "ok": true,
+   "note": "Confirms CGVD28GVRD, HTMVBC00, 0.18 m and 0.36 m (95%), 30 pts/m2, 27 and 28 Aug 2018, 181 records."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2013",
+   "ok": true,
+   "note": "CGVD28 with HTMVBC00; 7, 15 and 19 Feb 2013; at least 12 pts/m2; 168 cells. Matches the STAC VILLE_VANCOUVER datetime of 2013-02-19."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 records; no heights or datum; modified 2026-10-19T13:35:34Z; OGL-Vancouver."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2015",
+   "ok": true,
+   "note": "154,124 records, geometry only, approximate, split at parcel lines, modified 2022-06-09; no CRS stated."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/digital-elevation-model",
+   "ok": true,
+   "note": "2013 LiDAR, about 1 m, UTM 10 NAD83(CSRS), vertical datum not stated, 1.91 GB, modified 2015-08-18."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": false,
+   "note": "Navigation only; no licence text or attribution string."
+  },
+  {
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "ok": true,
+   "note": "HTMVBC00 is an enhanced HTv2.0, equivalent to HTGVRDBC00, extended east; BYN 37.5 KB. No epoch, accuracy or licence stated."
+  },
+  {
+   "url": "https://ltsa.ca/wp-content/uploads/2021/04/CL-465C_Signed.pdf",
+   "ok": true,
+   "note": "Text extracted locally. CGVD28 approved; HTGVRDBC00 in Metro Vancouver is referenced to the 1997 epoch; CSRS-PPP propagates to 1997.0; GeoNetBC CGVD2013 values have unknown accuracy; Land Title Act s.138 definition of 'geodetic elevation'."
+  },
+  {
+   "url": "https://epsg.io/10617",
+   "ok": true,
+   "note": "Source CGVD28(HTv2.0), target CGVD2013a(1997); method 1126; accuracy 0.0; 'HT2_1997 hybrid minus CGG2013a'; +multiplier=-1; interpolation CRS NAD83(CSRS)v3."
+  },
+  {
+   "url": "https://epsg.io/10619",
+   "ok": true,
+   "note": "CGVD28(HTv2.0) to CGVD2013a(2010); accuracy 0.03 m; ca_nrc_HT2_2010v70_CGG2013a.tif; multiplier -1."
+  },
+  {
+   "url": "https://proj.org/en/stable/operations/transformations/vgridshift.html",
+   "ok": true,
+   "note": "Z_target = Z_source + multiplier x gridvalue; default -1.0."
+  },
+  {
+   "url": "https://cdn.proj.org/",
+   "ok": true,
+   "note": "HT2 variants, CGG2013(a) n83 and i08 grids, BC_93_05 and NAD83v70VG velocity grid present; no HTMVBC00 or HTGVRDBC00."
+  },
+  {
+   "url": "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/5cebf1de3d0f4a073c4bb943/metadata",
+   "ok": true,
+   "note": "Offsets CGVD2013 -2.88 and CGVD28 -3.0, with no sign or unit statement. Height values match the spec; type names not given on this endpoint."
+  },
+  {
+   "url": "https://datacube.services.geo.ca/stac/api/search?collections=hrdem-lidar&bbox=-123.2,49.25,-123.05,49.32",
+   "ok": true,
+   "note": "Three items, including VILLE_VANCOUVER-VILLE_VANCOUVER-1m (2013-02-19) and Lower_Mainland_2016; EPSG:3979; no vertical or provenance fields."
+  },
+  {
+   "url": "https://download-telecharger.services.geo.ca/pub/elevation/dem_mne/highresolution_hauteresolution/HRDEM_Product_Specification.pdf",
+   "ok": true,
+   "note": "Ed. 1.7 (2026-05-19): CGVD2013 (EPSG:6647), NAD83(CSRS) EPSG:6140; s.7.5 points to per-project accuracy in metadata; no CGVD28 conversion method stated."
+  },
+  {
+   "url": "https://open.canada.ca/data/en/dataset/18752265-bda3-498c-a4ba-9dfe68cb98da",
+   "ok": true,
+   "note": "MRDEM: CGVD2013, converted from EGM2008 with CGG2013; EPSG:3979; OGL-Canada; Copernicus and Airbus credit; modified 2026-07-16."
+  },
+  {
+   "url": "local: vancouver-tall-view-tool data/guideline.json, data/geo.json, data/viewcones.json, generated/unified_manifest.json, generated/manifest.json, README.md",
+   "ok": true,
+   "note": "Confirms the s.2 'horizontal lower boundary ... maximum geodetic height' wording, Table 1 (24 views; 3.2.1 1989 unamended; no 12.1.1), SRTM 60 m EGM96, z shifts +0.48/-12.24/+21.61 m, 110574 m/deg, a 0.08 m check-point residual (0.1 m in text), OSM height-source counts, and OGL-Vancouver attribution."
+  }
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Add the NAD83v70VG epoch-propagation step (layer epoch to 1997.0) to the HTMVBC00 chain and report its magnitude before any 0.03 m test is applied.",
+   "Accept the datum chain against GeoNetBC geodetic control monuments; use the HRDEM 2013 bridge only as a diagnostic, with both predicted residual grids (HTMVBC00 and HT2) computed.",
+   "Change max_all to nearest-footprint point assignment with Noise excluded and a point-cluster rule, before the existing-tower regression is run.",
+   "Add the core footprint-offset check (building-point share and centroid offset) for towers taller than 30 m that are not hand-traced.",
+   "The team opens the Public Views Guidelines PDF in a browser, records its edition and sha256, extracts any datum or curvature text, and diffs the 2026-10-19 view-cone update now.",
+   "Redefine core M04 as Z_ground plus an interface tested on synthetic cones; label every real height-limit figure 'estimate'.",
+   "Correct the City attribution string to OGL-Vancouver and the 3.2.1 amendment flag."
+  ]
+ },
+ "verdict": "Round 3 fixes most of the round-2 MAJOR items: the HTMVBC00 chain, the 0.03 m bridge and its negative test, direct comparison of geodetic H, max_all, and the 7-day core. The datum work still has two holes. The chain ignores the 1997.0 epoch that LTSA 465C states for the Metro Vancouver hybrid model. And the 2013 bridge tests NRCan's undocumented conversion rather than the team's chain, so the acceptance test should use geodetic control monuments. max_all's 0.5 m buffer picks up neighbouring tower walls on parcel-split polygons and includes noise. The Guidelines PDF has still not been opened directly, and the cones changed on 19 Oct 2026. The flag on view 3.2.1 is wrong: it was approved in 1989 and not amended. The City attribution names the wrong licence. Pass, provided the listed conditions are met."
+}

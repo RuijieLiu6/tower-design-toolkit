@@ -1,0 +1,26 @@
+# modules / P05: research log
+
+## research: draft saved as `research_P05.json`
+  - 2026-10-21 v0.1: Packet P05 drafted. 8 modules (M01 scorecard, M02 canopy/soil/cover, M03 greening at height, M04 rainwater, M05 bird glazing and lighting, M06 heat island, M07 habitat, M08 connectivity), 40 sources of which 38 opened.
+  - Mapped current governing documents: ODP adopted 31 Mar 2026 (Ecology Part 5 s.4), Higher Buildings Policy and Rezoning Policy for Sustainable Large Developments amended 31 Mar 2026, Green Buildings Policy for Rezonings (27 Nov 2024), CDDG approved 28 Jul 2026 and effective 27 Oct 2026, Building By-law 2025 rainwater rules for permits opened after 1 Jan 2026.
+  - Corrected: rainwater is regulated by the Building By-law (detention, 5 and 25 L/s/ha) rather than rezoning policy or the Rain City 48 mm standard (kept visible as false_assumption_corrected). Corrected canopy goal 22% -> 30% by 2050.
+  - Added verified quantitative anchors: R019 Type C canopy 10-15%; EDM 5.2 runoff coefficients and 2100 IDF (A 26.651, B -0.482); detention worked example reproduced independently (58.0-58.1 m3).
+  - Marked as team assumptions: bird-glazing percentages, marker alternatives, Toronto-based heat-island and native-planting presets, lawn share, composite weights. London UGF and CSA A460:19 not opened (flagged).
+
+## critic-r1: Landscape ecologist, urban biodiversity, Metro Vancouver (independent reviewer of P05 round 1)
+- Gate pass: **False**
+  - condition: Open the HBP Review engagement PDF, re-anchor M01 to 'City in nature, nature in the city' (L2.3.1), locate that clause, and add the public-views link
+  - condition: Correct the M05 marker-gap rule from AND to OR, with a passing unit test for horizontal stripes at 5 cm
+  - condition: Add a bindingness ('force') field and restrict M01 pass/fail counts to by-law and policy requirements
+  - condition: Relabel 3-30-300 items and the Toronto EC 2.x presets with their real status (heuristic; voluntary since 2 June 2026)
+  - condition: Report canopy by level, link it to soil volume, and compute the M05 zone from actual storey heights
+  - condition: Add the RPSLD items (food systems, park dedication, Re-Wilding, groundwater) and supertall lighting and at-height safety parameters
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: 'City in Nature' has no official definition; the phrase does not appear in official text and the nearest framing is ODP Big Idea 3 plus Part 5 s.4 Ecology. → Anchor P05-M01 to L2.3.1's two parts (space for nature; views and connections). Bring public-view retention into the City in Nature scorecard as a typed SITE input. Find the clause number (it was not found by text search in the adopted ODP plain-text PDF; it may follow the Vancouver Plan 2022 numbering).
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Vancouver Bird Friendly Design Guidelines require marker gaps <= 5 cm vertical AND <= 10 cm horizontal (P05-M05 metric, status verified). → Gaps no greater than 5 cm vertically or 10 cm horizontally, with markers on the exterior surface. Use is 'encouraged', not required.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: 'At least 3 mature trees visible from each dwelling or workplace' is a verified threshold (P05-M08). → Treat it as a research heuristic / team assumption, using an explicit buffer (for example the 30 m, 25 m2 canopy assessment method the paper cites) and per-floor reporting.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Toronto Green Standard v4 EC 2.1, EC 2.2 and EC 2.3 are current Toronto Tier 1 requirements usable as comparator presets. → Label them 'voluntary since 2 June 2026' and use the residential 75% value for residential components.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: 50 m2 of canopy per tree is the City's own planning figure. → Call it 'UFS Figure 13 assumption'; use species-based crowns.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: R019 quotes 22% only as the outdated city-wide canopy goal. → Show both statements in the A/B presets and flag the inconsistency; Type C (10-15%) is unaffected.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Vancouver Bird Strategy is a 2015 document (S23). → Year 2020 (update).
+- Findings: {'BLOCKER': 3, 'MAJOR': 10, 'MINOR': 12}
+- Verdict: The rainwater work is good: the VBBL 2.4.2.5 formula, the 58.1 m3 example, the EDM coefficients and IDF values all check out, and my calculation for this block (about 440 m3 at C 0.95) matches the spec. R019 site types and canopy bands are quoted correctly. The packet still fails on its own subject. It never opened the brief's Higher Buildings Policy Review reference, which defines 'City in Nature' (space for nature plus protected mountain and water views). It misquotes the one Vancouver bird clause it marks verified ('and' instead of 'or'). Its 'verified' status lumps by-laws together with voluntary guidelines and heuristics. Supertall-specific risks are largely absent: canopy at height not tied to soil, obstruction lighting, enclosed sky gardens, tree anchorage, and building shade scored as cooling. Fix the three blockers and the major findings before release.

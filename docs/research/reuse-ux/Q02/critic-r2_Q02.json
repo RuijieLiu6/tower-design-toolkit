@@ -1,0 +1,298 @@
+{
+ "expert_role": "HCI researcher on visual programming, attention and flow (independent reviewer, round 2)",
+ "previous_round": [
+  {
+   "item": "Stack recommendation: shadcn/ui (Radix base) + Radix Primitives",
+   "status": "addressed",
+   "residue": "The shadcn changelog lists 'Base UI as the Default' (July 2026). The '-t vite -b base' flags were not re-verified here."
+  },
+  {
+   "item": "React Flow UI (core)",
+   "status": "addressed",
+   "residue": "Downgraded to v1. The workflow-editor page confirms 'This is a Pro example' and states no component licence. The licence question to xyflow is still open."
+  },
+  {
+   "item": "WCAG 2.2 / node-canvas contract",
+   "status": "addressed",
+   "residue": "Keyboard Connect, the Edges list and View as table were added. The packet misstates React Flow's delete key (default is Backspace) and does not cover WCAG 2.2.2 for animated wires."
+  },
+  {
+   "item": "Benchmarks (Forma, Spline, Observable, tldraw, Speckle, Rerun)",
+   "status": "partly",
+   "residue": "Forma evidence was read only on a regional mirror, and no screenshots were reviewed. Observable is used only for Plot, not as a benchmark for reactive dataflow and liveness. The Spline editor and the Rerun UI were not analysed."
+  },
+  {
+   "item": "Missing professional-tool fundamentals",
+   "status": "addressed",
+   "residue": "No state or command architecture is chosen to underpin global undo, autosave, snapshots and diff (see findings)."
+  },
+  {
+   "item": "Evidence base for node-editor praise and complaints",
+   "status": "partly",
+   "residue": "About 25 informally coded forum items. No user sessions have run. No measurement instruments are defined for 'focused' or 'engaging'."
+  },
+  {
+   "item": "Presentation mode / A2 boards / AI renderings",
+   "status": "addressed",
+   "residue": "Brief PDF still unread (registration closes 29 Oct). The gap between AI-render resolution and the A2 pixel count is not turned into a rule."
+  },
+  {
+   "item": "Sequencing for 13 Nov core",
+   "status": "addressed",
+   "residue": "The core still bundles global undo and keyboard Connect while Node is not installed. It is only feasible if the state/command layer is decided first."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Execution and liveness model (principle 2 vs brief's run-all/step-in)",
+   "issue": "The packet is internally inconsistent. It promises a 'cheap preview within about 100 ms' and also says 'mark downstream stale instead of silently recomputing'. Grasshopper users expect auto-solve on every change, while wind, energy and daylight modules take seconds to minutes. The packet never says which nodes run live and which wait for Run, so stale badges will appear on everything or nothing. NN/g's 0.1 s limit applies to the UI's acknowledgement, not to analysis results.",
+   "fix": "Add a 'cost class' to each module manifest. Live nodes (<100 ms) auto-run. Interactive nodes (<1 s) auto-run after a 300 ms debounce. Batch nodes run on demand and show a stale badge. Add a global 'Auto-run cheap nodes' toggle (the Grasshopper solver-lock precedent). The 100 ms target becomes 'slider echo and geometry proxy', not 'result'. Benchmark Observable's reactive notebooks and cite Tanimoto's liveness levels (LIVE 2013) for the model."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Phase journey (principle 1, recommendation 3)",
+   "issue": "The rail 'Basic -> Advanced -> Present' mixes an expertise level (basic/advanced) with workflow stages. The brief's real journey is import/model massing -> tag program -> evaluate -> schematic design -> present. A beginner may be in Evaluate and an expert in Massing, so the rail cannot say where the user is. It also overlaps with the separate Essentials/Advanced drawer.",
+   "fix": "Make the rail the workflow stages (Massing, Program, Evaluate, Design, Present), each free to jump to and each with a completeness indicator. Make Essentials/Advanced a separate disclosure setting per module (or global). Document the mapping in PRODUCT.md. Test the two-axis model in the 3-task study."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missing state/command architecture",
+   "issue": "Global undo across canvas, inspector and assumptions, palette commands, autosave, named snapshots, deterministic JSON and later graph diff and Yjs presence all depend on one state and command layer. The packet never chooses one. Retrofitting undo after 13 Nov is the classic rewrite trap.",
+   "fix": "Before coding, decide on a single command bus: every user action (palette, keyboard, drag, AI edit) is a serialisable command applied to one store. Two options: a Zustand store with zundo (temporal undo), or a Yjs document with Y.UndoManager (this also enables presence later). Spike for half a day and record the choice in CLAUDE.md. Keep React Flow as a view of the store, not the source of truth."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Visual-programming evaluation framework absent",
+   "issue": "The packet lists the Cognitive Dimensions tutorial as an unreadable binary PDF, but its text extracts fine (Green and Blackwell, v1.2, 1998). Green and Petre (1996, JVLC 7(2):131-174) is the standard usability framework for dataflow languages, and it was not applied. Concretely, named Sender/Receiver relays create 'hidden dependencies', auto-reconnection is an 'error-proneness' issue, and frames and colours are 'secondary notation'.",
+   "fix": "Run a Cognitive Dimensions walkthrough of the node-canvas contract, at minimum covering viscosity, hidden dependencies, premature commitment, secondary notation, progressive evaluation and visibility. Add these rules: selecting a relay highlights all its partners and offers 'jump to'. Every module can run on partial inputs with placeholder warnings (progressive evaluation). Grouping, colour and notes never change semantics."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Attention and flow evidence (principles 2 and 11)",
+   "issue": "Flow is sourced from Wikipedia. Mark et al. (CHI 2008) is flagged unverified although an open PDF exists, and its finding is narrower than the packet implies. Notification timing has no empirical basis. Iqbal and Bailey (CHI 2008) showed that delivering notifications at task breakpoints lowered frustration and reaction time.",
+   "fix": "Cite Mark et al. correctly: interrupted email tasks were finished faster with equal quality, but with more stress, frustration, time pressure and effort, and interruption context made no difference. Add a rule to defer non-critical notifications and community activity to breakpoints (run finished, phase switch, save). Never interrupt during a drag, wire or text edit. Replace Wikipedia with Csikszentmihalyi's primary work, or drop the citation."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "No measures for 'focused' and 'engaging'",
+   "issue": "The goals are aesthetic and attentional, but the planned sessions record nothing comparable. The packet's line 'the aesthetic-usability effect can make a pretty UI look usable' has no source (Kurosu and Kashimura 1995).",
+   "fix": "For the five think-aloud sessions and the 3-task test, pre-define task success, time on task, errors and wrong turns, NASA-TLX (raw), UMUX-Lite or SUS, and a short flow scale (e.g. Rheinberg/Engeser Flow Short Scale). Repeat with the same tasks after 13 Nov to measure change. Cite the aesthetic-usability source or remove the claim."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Competing status systems on node cards",
+   "issue": "One node can show 7 run states, a warning badge and 3 evidence statuses, which is about 10 semantic colours, beyond Carbon's caution of five or six. The 'Team assumption' ochre (#8A5A00, dark #E3B341) sits in the same hue family as a typical 'warning' amber. The packet never assigns run-state colours, so this collision is likely.",
+   "fix": "Set a hierarchy. Run state is an icon plus word in the node header, using neutral or cool colours, with red reserved for failed. Evidence status is not shown per value on the card. Instead show one aggregate chip (e.g. '2 assumptions, 1 FALSE'), with detail in the inspector and in 'Why this number?'. Give 'warning' a triangle shape and a hue clearly separate from team-assumption ochre, and document the full semantic palette in one table."
+  },
+  {
+   "severity": "MINOR",
+   "item": "React Flow defaults vs planned shortcuts",
+   "issue": "The packet says 'Delete removes edges', but the default deleteKeyCode is 'Backspace'. Space is both panActivationKeyCode and the select key for focused nodes. zoomOnDoubleClick conflicts with 'canvas double-click opens search'. Shift is box-select. Grasshopper users expect the Delete key.",
+   "fix": "Write an explicit shortcut map and set the props: deleteKeyCode=['Delete','Backspace'], zoomOnDoubleClick=false, and a non-Space pan key or pan-on-drag only. Skip shortcuts while focus is inside text inputs. Publish one cheat sheet and test it in the keyboard pass."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Animated wires and motion accessibility",
+   "issue": "'Wire flow animates only during a run' can last longer than 5 s next to other content, which triggers WCAG 2.2.2 Pause, Stop, Hide (Level A). React Flow's animated edges are CSS animations, so MotionConfig reducedMotion='user' does not cover them.",
+   "fix": "Add a prefers-reduced-motion CSS rule that stops edge dash animation, provide a 'pause animations' control, and fall back to a static 'running' icon on the node. Add both to the a11y checklist."
+  },
+  {
+   "severity": "MINOR",
+   "item": "FALSE ASSUMPTION styling and colour-vision deficiency",
+   "issue": "Strikethrough lowers legibility of text that must stay readable, and most screen readers do not announce it. The three light-theme tokens have near-identical luminance (relative Y 0.108-0.127, computed), so they are indistinguishable in greyscale prints. A protanopia simulation (Machado 2009, CIELAB ΔE76) halves the blue-magenta difference, from about 66 to about 32.",
+   "fix": "Use the hatch, border, icon and the visible word 'FALSE ASSUMPTION' (also in the accessible name). Drop the strikethrough or apply it only to the superseded value, never to the explanation. Use different patterns for print and boards. Keep the computed contrast; the ≥5.4:1 claim holds (5.43-9.13)."
+  },
+  {
+   "severity": "MINOR",
+   "item": "AI-render resolution vs A2 boards",
+   "issue": "OpenAI's guide (read 21 Oct) caps output at 3840 px per edge and 8,294,400 px, and calls output above 2560x1440 experimental. A full A2 sheet at 300 dpi is about 34.8 MP. The packet records the cap but no layout rule. The guide now names gpt-image-2.5 variants, so model IDs drift.",
+   "fix": "Present-mode rule: show an AI render's effective dpi on the board and warn below about 150 dpi. Disclose any upscaling in the caption ('AI-assisted, upscaled'). Store the exact model ID and size request in the prompt log. Size hero images to available pixels instead of stretching them."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Viewport theme vs analysis colour maps",
+   "issue": "The packet themes the viewport separately but gives no rule linking background luminance to the ends of sequential maps. Light map ends vanish on white, and dark ends vanish on a dark viewport. Simultaneous contrast also shifts perceived values.",
+   "fix": "Use a mid-grey neutral viewport for analysis display in both themes, or ensure both ends of every shipped ramp reach 3:1 against the viewport background (check in CI with Culori). Draw the context and ground in neutral greys."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Gamification and engagement evidence",
+   "issue": "The packet relies on a Wikipedia article with an LLM-text warning. Sailer and Homner's meta-analysis (Educ Psychol Rev 2020, 32:77-112) finds small positive effects: g=.49 cognitive, .36 motivational, .25 behavioural. Game fiction and social interaction moderate the behavioural effects. The packet only lists bans and gives no positive, learning-supportive engagement design.",
+   "fix": "Cite Sailer and Homner. Label the ban on leaderboards and streaks as a values decision, not an evidence finding. Add positive mechanics: visible consequences after each run ('what changed' diff), progressive shortcut hints, evidence-completeness per stage, and attribution credit on forks."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Human-AI guidelines",
+   "issue": "The HAX 18 guidelines are marked unreadable (poster image), but Amershi et al., CHI 2019, list them in text. The AI principle therefore cites no specific guideline.",
+   "fix": "Map the AI rule to Amershi G1 and G2 (what the system can do, how well), G9 (support efficient correction), G11 (explain why), G15 (encourage feedback) and G18 (notify about changes), using the CHI 2019 paper."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Benchmark depth",
+   "issue": "The benchmarks are mostly text claims. There are no screenshots or annotated captures. Forma comes from a mirror, the Spline editor and Rerun UI were not viewed, and Observable's dataflow UX was not studied.",
+   "fix": "Add one annotated screenshot per benchmark (Figma, Linear, Speckle and Forma first), with 'copy' and 'avoid' callouts. Add Observable as a liveness and stale-state benchmark."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Mark et al. CHI 2008 cannot be read; interruption raises stress and cost (UNVERIFIED).",
+   "why_false": "An open PDF is available. The paper found that interrupted tasks were completed faster with no difference in quality, at the price of more stress, frustration, time pressure and effort. Interruption context made no difference.",
+   "correction": "Cite it as 'faster but more stressed', not as a time cost. Use it to justify protecting edit sessions from interruptions.",
+   "evidence": "https://www.interruptions.net/literature/Mark-CHI08.pdf (abstract extracted 21 Oct 2026); https://www.ics.uci.edu/~gmark/chi08-mark.pdf"
+  },
+  {
+   "claim": "The Cognitive Dimensions tutorial is a binary PDF that could not be read.",
+   "why_false": "The PDF's text extracts normally: Green and Blackwell, 'Cognitive Dimensions of Information Artefacts: a tutorial', v1.2, October 1998, 75 pages.",
+   "correction": "Apply the CD framework (Green and Petre 1996, JVLC 7(2)) to the node-canvas contract.",
+   "evidence": "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf (text extracted with pypdf, 21 Oct 2026)"
+  },
+  {
+   "claim": "React Flow: Delete removes edges.",
+   "why_false": "The React Flow API reference gives deleteKeyCode the default 'Backspace'. The accessibility page does not document deletion as a feature.",
+   "correction": "Set deleteKeyCode to ['Delete','Backspace'] explicitly. Also set zoomOnDoubleClick=false so double-click can open search.",
+   "evidence": "https://reactflow.dev/api-reference/react-flow (deleteKeyCode 'Backspace', panActivationKeyCode 'Space', connectOnClick true)"
+  },
+  {
+   "claim": "Microsoft HAX Toolkit's 18 guidelines are unreadable (poster image).",
+   "why_false": "The guidelines are published as text in Amershi et al., CHI 2019, and on Microsoft Research pages. They comprise 18 guidelines in four phases, starting with 'Make clear what the system can do'.",
+   "correction": "Cite the CHI 2019 paper and map specific guidelines to the AI-assistance rules.",
+   "evidence": "https://www.microsoft.com/en-us/research/blog/guidelines-for-human-ai-interaction-design"
+  },
+  {
+   "claim": "Gamification evidence for learning is 'mixed' (from Wikipedia).",
+   "why_false": "A peer-reviewed meta-analysis reports small but significant positive effects: g=.49 cognitive (stable in rigorous studies), .36 motivational and .25 behavioural (less stable).",
+   "correction": "Cite Sailer and Homner (2020). Frame the no-leaderboard policy as an ethical choice and allow learning-supportive feedback mechanics.",
+   "evidence": "https://link.springer.com/article/10.1007/s10648-019-09498-w"
+  }
+ ],
+ "missing": [
+  "A per-module execution and liveness policy (live, debounced or manual) and a global auto-run toggle",
+  "A state and command architecture (single command bus feeding undo, palette, autosave, snapshots, diff)",
+  "A workflow-stage rail (Massing, Program, Evaluate, Design, Present) kept separate from expertise disclosure",
+  "A Cognitive Dimensions walkthrough of the node canvas, including hidden dependencies created by relays",
+  "Interruption timing rules based on Iqbal and Bailey 2008 breakpoints",
+  "Measurement instruments for focus and engagement (task success, NASA-TLX, UMUX-Lite, flow short scale)",
+  "A full semantic colour table covering run states, evidence statuses, warnings and data ramps",
+  "A rule linking viewport background to colour-map ends",
+  "WCAG 2.2.2 handling for animated wires, and reduced motion for CSS edge animation",
+  "An explicit shortcut map that reconciles React Flow defaults with Grasshopper habits",
+  "A rule for AI-render effective dpi on boards, with upscaling disclosure",
+  "Annotated benchmark screenshots; Observable studied as a dataflow benchmark",
+  "Competition brief PDF (still unread; registration closes 29 Oct 2026)"
+ ],
+ "sources_checked": [
+  {
+   "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+   "ok": true,
+   "note": "Documents Tab focus, Enter/Space select, arrow-key moves and an assertive live region. Keyboard edge creation is not mentioned."
+  },
+  {
+   "url": "https://reactflow.dev/api-reference/react-flow",
+   "ok": true,
+   "note": "deleteKeyCode 'Backspace', connectOnClick true, onlyRenderVisibleElements false, panActivationKeyCode 'Space'."
+  },
+  {
+   "url": "https://reactflow.dev/ui/templates/workflow-editor",
+   "ok": true,
+   "note": "'This is a Pro example'. No licence stated. Uses Next.js, Zustand, ELKjs."
+  },
+  {
+   "url": "https://registry.npmjs.org/@xyflow/react/latest",
+   "ok": true,
+   "note": "12.12.0, react >=17"
+  },
+  {
+   "url": "https://ui.shadcn.com/docs/changelog",
+   "ok": true,
+   "note": "July 2026 entry 'Base UI as the Default'. Body of the entry not shown."
+  },
+  {
+   "url": "https://registry.npmjs.org/cmdk/latest",
+   "ok": true,
+   "note": "1.1.1, react ^18 || ^19"
+  },
+  {
+   "url": "https://github.com/pbakaus/impeccable",
+   "ok": true,
+   "note": "Apache-2.0, 24 commands, 61 rules. Binary downloaded into ~/.impeccable/bin. Hooks. Telemetry opt-out. Inter listed as overused."
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Registration closes 29 Oct, Q&A 3 Nov, submission 30 Nov 2026 23:59 London. Panel format only in the brief. AI FAQ wording confirmed."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "Max edge 3840 px and 8,294,400 px. Above 2560x1440 is experimental. Lists gpt-image-2.5 variants. No mention of C2PA."
+  },
+  {
+   "url": "https://www.nngroup.com/articles/animation-duration/",
+   "ok": true,
+   "note": "100-400 ms, ease-out to enter, ease-in to exit, parallax only with caution, respect reduced motion."
+  },
+  {
+   "url": "https://help.figma.com/hc/en-us/articles/360038006754-View-a-file-s-version-history",
+   "ok": true,
+   "note": "Checkpoint every 30 min. Restore is non-destructive. Starter plan keeps 30 days."
+  },
+  {
+   "url": "https://linear.app/now/how-we-redesigned-the-linear-ui",
+   "ok": true,
+   "note": "LCH colour, three variables (base, accent, contrast), Inter Display, feature-flag rollout. Dated 28 Mar 2024."
+  },
+  {
+   "url": "https://www.deceptive.design/types",
+   "ok": true,
+   "note": "18 types confirmed"
+  },
+  {
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html",
+   "ok": true,
+   "note": "Click-then-click connecting example satisfies 2.5.7."
+  },
+  {
+   "url": "https://www.interruptions.net/literature/Mark-CHI08.pdf",
+   "ok": true,
+   "note": "Abstract extracted: faster with more stress; context made no difference."
+  },
+  {
+   "url": "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf",
+   "ok": true,
+   "note": "Text extractable, Green and Blackwell 1998, 75 pages."
+  },
+  {
+   "url": "https://www.interruptions.net/literature/Iqbal-CHI08.pdf",
+   "ok": true,
+   "note": "Via search summary: notifications at breakpoints reduce frustration and reaction time. PDF body not read."
+  },
+  {
+   "url": "https://link.springer.com/article/10.1007/s10648-019-09498-w",
+   "ok": true,
+   "note": "Via search summary: g=.49/.36/.25."
+  },
+  {
+   "url": "https://www.microsoft.com/en-us/research/blog/guidelines-for-human-ai-interaction-design",
+   "ok": true,
+   "note": "Via search summary: 18 guidelines in 4 phases."
+  },
+  {
+   "url": "https://observablehq.com/documentation/notebooks/",
+   "ok": false,
+   "note": "HTTP 429"
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Define the execution and liveness policy per module cost class, and reconcile the 100 ms preview with stale propagation and run-all/step-in",
+   "Separate the workflow-stage rail (Massing to Present) from Essentials/Advanced disclosure",
+   "Choose and record the state/command architecture behind undo, palette, autosave and snapshots before 13 Nov",
+   "Run a Cognitive Dimensions walkthrough of the node contract, add a semantic colour table resolving run-state vs evidence-status collisions, and fix the React Flow shortcut defaults",
+   "Correct the attention, HAX and gamification citations (Mark 2008 finding, Iqbal and Bailey breakpoints, Amershi 2019, Sailer and Homner 2020), and define session metrics",
+   "Team downloads the competition brief before registration closes on 29 Oct 2026"
+  ]
+ },
+ "verdict": "Round 2 fixed most of round 1. The Base UI default, the React Flow UI Pro status, the keyboard wiring plan and the factual corrections all check out against sources, and the status-token contrast holds (5.43:1 or higher). What remains is design logic, not facts. The packet has no liveness model, so the 100 ms preview, stale propagation and Grasshopper's auto-solve habit conflict. The phase rail mixes expertise level with workflow stage. No state/command layer underpins undo and snapshots. Run states and evidence statuses compete on one node card. The visual-programming and attention research is thin: it skips Cognitive Dimensions and mis-cites or calls unreadable papers that are openly available. Fix these before coding the 13 Nov core."
+}

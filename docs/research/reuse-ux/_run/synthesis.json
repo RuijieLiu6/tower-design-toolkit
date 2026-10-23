@@ -1,0 +1,298 @@
+{
+ "stack": [
+  {
+   "layer": "Runtime and toolchain",
+   "choice": "Node 24.22.x LTS from the official MSI, installed system-wide and hash-checked, with node -v confirmed in both Claude Code shells. Use npm with a committed lockfile and npm ci. Vite 8.3 with React ~19.3.1 and TypeScript. Set engines to >=22.12 <25 and commit .node-version. For Python, create the venv with py -3.13 -m venv .venv (the GIL build) and record python -VV.",
+   "why": "Node is not installed yet. Node 24 is supported until April 2028, and winget's 'LTS' ID moves to Node 26 on 28 Oct, so pin the major version. Bare python on this machine is 3.9.13 and py defaults to 3.13t, which has no Windows wheels for numpy, shapely or rhino3dm. R3F 9.8.2 requires React below 19.4.",
+   "licence": "MIT (Node, Vite, React)",
+   "rejected": "Next.js; pnpm (one more tool); fnm as the default (its profile hook is missing in non-interactive agent shells); Volta (unmaintained); nvm-windows; Node 22; Node 26 before 13 Nov; free-threaded Python"
+  },
+  {
+   "layer": "UI components and styling",
+   "choice": "shadcn/ui CLI 4.22 initialised with 'init -t vite -b base' (Base UI), falling back to -b radix. Tailwind 4.3.x CSS-first, with tokens in '@theme inline' and a data-theme dark variant. Wrap cmdk in our own Palette component. Use react-resizable-panels for the shell.",
+   "why": "Since July 2026 Base UI is shadcn's default, so the docs, skill and MCP all follow it. Q05 chose Radix to match React Flow UI, but Q02 checked 11 React Flow UI registry files and none imports Radix, so the default path wins. Record the base in CLAUDE.md and tell Claude to use render, not asChild.",
+   "licence": "MIT",
+   "rejected": "Radix as the default (kept as fallback); Carbon React or Blueprint as a second visual system; tailwind.config.js themes; UI UX Pro Max"
+  },
+  {
+   "layer": "Node canvas",
+   "choice": "@xyflow/react 12.12.x as a view over our own store. Our own node cards carry typed handle IDs, isValidConnection, deleteKeyCode ['Delete','Backspace'], zoomOnDoubleClick false and panActivationKeyCode null. Add our own keyboard 'Connect...', an Edges list and counter-scaled 24 px port hit areas. Layout uses a topological executor with a dirty-flag cache and dagre for Tidy.",
+   "why": "This saves weeks of pan, zoom, selection and wiring work, and it is MIT. React Flow lacks keyboard edge creation, names every handle 'Handle', and its handles are 6 px and shrink with zoom, so the accessibility layer is ours to build.",
+   "licence": "MIT (keep the attribution badge; removing it is a sponsorship request, not a licence term)",
+   "rejected": "React Flow UI Pro templates and the Pro undo/redo example (paid); vendoring React Flow UI components while their licence is UNRESOLVED; tldraw (production licence key); ComfyUI frontend (GPL-3.0); litegraph (archived); Rete.js (stale); NodePen as a dependency (prior art only)"
+  },
+  {
+   "layer": "State and undo",
+   "choice": "One command bus over Zustand 5 with zundo 2.3.0, with partialize limited to nodes, edges and assumptions. Run a half-day spike against Yjs UndoManager and Immer patches before any canvas code. Persist to IndexedDB and export deterministic key-sorted JSON.",
+   "why": "Undo has to span canvas, inspector, palette and AI edits, so the store must come first. zundo is the smallest step, and React Flow already runs on Zustand. Flagged: zundo is dormant (last release Nov 2024, last main commit Apr 2025). Vendor it, or fall back to snapshot-only undo, which is a pre-approved cut.",
+   "licence": "MIT",
+   "rejected": "Choosing the state layer after the canvas exists; Yjs before multiplayer is actually wanted; Liveblocks; tldraw sync"
+  },
+  {
+   "layer": "3D viewport",
+   "choice": "three 0.186.1 with R3F 9.8.2 and drei 10.7.9 on WebGL2, using frameloop=demand, shadows='percentage' and a flat Canvas. Effects: postprocessing 6.39 and @react-three/postprocessing 3.2.1 with the built-in N8AO (n8ao locked to 2.0.1, halfRes, multisampling 0), SMAA, and NEUTRAL/AGX tone mapping as the last pass. Lighting is RoomEnvironment via PMREM; HDRIs are self-hosted only. Picking and rays use three-mesh-bvh 0.9.16. Add stencil section caps.",
+   "why": "This is the largest ecosystem and Claude knows it well. Q03 confirmed the peer ranges against source. R3F's shadows=true selects PCFSoftShadowMap, which r186 removed, and drei Environment presets load from a third-party CDN. Flags: n8ao is CC0 on GitHub but ISC on npm; vendor performance figures are unmeasured.",
+   "licence": "MIT; Zlib (postprocessing); CC0/ISC (n8ao)",
+   "rejected": "R3F v10 alpha (WebGPU-first); Babylon.js; xeokit (AGPL); Speckle viewer; drei Environment presets; drei Edges for massing; live drei Views for node thumbnails; CSM or SoftShadows by default"
+  },
+  {
+   "layer": "Massing kernel",
+   "choice": "manifold-3d 3.5.4 in a Web Worker, in Z-up metres and local coordinates. It handles extrude with twist and taper, booleans, gross floorplate area from a mid-storey slice(), volume, sections, program tags via reserveIDs/originalID, and progress and cancel via ExecutionContext. LLM text-to-massing returns a flat JSON node list through structured outputs, and Manifold validates it.",
+   "why": "One small WASM package covers stacks, per-floor GFA, sections and tag tracking, and it guarantees manifold output. Q01 proposed a Python shapely/trimesh generator instead. That stays an offline and CI tool (rhino3dm .3dm export), so the browser product needs no native installs.",
+   "licence": "Apache-2.0",
+   "rejected": "text-to-cad as the v1 massing node (mechanical parts, no .3dm or IFC output); opencascade.js (stale); JSCAD; replicad, occt-wasm and OCP.wasm before 10 Dec; free-form LLM CAD"
+  },
+  {
+   "layer": "Import and project frame",
+   "choice": "Core: the supplied Challenge site model as default context (format unknown until the brief is downloaded), .3dm via the three Rhino3dmLoader with locally hosted rhino3dm 8.35 wasm, and OBJ and glTF via three loaders. v1: IFC read through web-ifc 0.0.78 in a worker (unmodified), with an ifc-lite benchmark. The project frame stores metres, Z-up, block-centroid origin, CRS, vertical datum and northAngle, with float64 conversion at the boundary through proj4js. SketchUp and Revit come in through a documented OBJ, glTF or IFC export.",
+   "why": "No browser parser exists for SketchUp or Revit. Downtown streets run about 45 degrees off true north (Q03's own calculation, UNVERIFIED), so OBJ and glTF imports must ask for north before the sun module will run. Vancouver UTM coordinates break float32.",
+   "licence": "MIT (rhino3dm, three); MPL-2.0 (web-ifc; keep files unmodified)",
+   "rejected": "COORDINATE_TO_ORIGIN per file; raw UTM rendering; Speckle as a core dependency; Rhino Compute as a core server; promising IFC write-back by 13 Nov"
+  },
+  {
+   "layer": "Sun and shadow (primary evaluation)",
+   "choice": "suncalc 2.1.1 behind one tested wrapper using real America/Vancouver instants (10:00 PDT is 17:00 UTC), plus three-mesh-bvh raycasts from grid points. The primary test is new shadow on listed parks, plazas and school sites on 22 Sep, 10:00-16:00 PDT, with existing context subtracted, a search domain of about 600 m, and the label 'draft, not a compliance determination'. The secondary metric, labelled 'course teaching metric', is Arch540 winter-solstice sun hours.",
+   "why": "The City's Downtown Peninsula Solar Access Guidelines (Council, 17 Sep 2025) govern a downtown block; the teaching harness does not. This overrides Q03's solstice-sized 3.3 km domain. Flagged UNVERIFIED: the guideline PDF was never opened (403), the protected-space list, time step and tolerance are team assumptions, and the suncalc check against NOAA/JPL has not been run.",
+   "licence": "BSD-2-Clause (suncalc); MIT (three-mesh-bvh)",
+   "rejected": "Solstice solar-time sun hours as the primary test; dtmass's 320 m radius and 1 m2 tolerance as fact; copying dtmass or Arch540 code without a licence; Ladybug in-process (AGPL-3.0)"
+  },
+  {
+   "layer": "Other evaluation engines",
+   "choice": "v1: Pyodide 314 in a worker for first-party pvlib 0.16.1 (irradiance, using an uploaded EPW) and PyNite (structure screening). Energy, wind and carbon ship as 'not modelled' cards with editable team-assumption thresholds. Ladybug runs only as an optional local plugin at arm's length. FastAPI is an optional local sidecar for ifcopenshell and OpenStudio.",
+   "why": "No credible open browser engine exists for wind or energy, and inventing physics breaks the evidence rule. Flagged UNVERIFIED: no micropip spike has been run for pvlib or PyNite.",
+   "licence": "BSD-3 (pvlib); MIT (PyNite); MPL-2.0 (Pyodide); AGPL-3.0 (Ladybug, kept out of core)",
+   "rejected": "Hosted Python backend as a dependency; Hugging Face Docker or Fly.io as a 'free' backend; runtime EPW fetches; fake CFD or EUI numbers"
+  },
+  {
+   "layer": "Charts and results",
+   "choice": "Observable Plot 0.6.17 for result cards and boards, using one fixed-domain scale per metric shared across compared options, legends always visible, and View as table. Vega-Lite only as host-defined templates with validated data.",
+   "why": "A few lines per chart keeps token cost low, and the output is vector for print. Flag: the last Plot release is 14 Feb 2025, although main is active. Raw Vega specs carry 3 High advisories.",
+   "licence": "ISC (Plot); BSD-3 (Vega)",
+   "rejected": "Raw community Vega specs; ECharts as the default; hand-written SVG or d3"
+  },
+  {
+   "layer": "Evidence and citations",
+   "choice": "Claude Citations API through the Batch API. Text-extractable by-laws are sent as paragraph custom-content blocks (PDF pages only for tables and figures), and only citation JSON is committed (locator, short cited_text, URL, retrieval date). One provider-neutral evidence schema per output. OpenAI output renders as Team assumption until a source is attached. Docling handles scans in v1.",
+   "why": "No vector database is needed in core, citations cost no output tokens, and Batch gives 50% off. Q05 estimates about $3 for 12 batched module checks (its own arithmetic). Reuse terms for City by-law text are UNRESOLVED, so commit no full text.",
+   "licence": "Anthropic API terms; MIT (Docling)",
+   "rejected": "Vector DB or LlamaIndex now; prompt-only citation requests; committing full by-law or brief text"
+  },
+  {
+   "layer": "Hosting, keys and accounts",
+   "choice": "A 1-hour spike by 28 Oct: Cloudflare Workers static assets with _headers and SPA fallback, a separate sandbox-origin Worker, and a key-proxy Worker (run_worker_first ['/api/*'], origin allow-list, Supabase JWT verified via JWKS, AI Gateway, per-user limits in Worker code). GitHub Pages is the fallback and docs host. v1 adds Supabase (GitHub sign-in, projects, module metadata) with a keep-alive. No keys ever ship in the bundle; BYOK is opt-in and held in memory only.",
+   "why": "Only a header-capable host can send the CSP sandbox and COOP/COEP headers, and both vendor SDKs block browser use. Worker network wait does not count toward the 10 ms CPU limit.",
+   "licence": "Commercial free tiers; coi-serviceworker MIT (vendored only if needed)",
+   "rejected": "Cloudflare Pages (Cloudflare now steers new projects to Workers); keys in localStorage or the bundle; Render, Fly or HF Docker; Netlify"
+  },
+  {
+   "layer": "Community module hub",
+   "choice": "manifest.json (typed ports as JSON Schema, sources[], assumptions[], licence, permissions, sha256) plus a thin registry/modules.json updated by PR, with installs from tagged releases. CI checks the schema, ID uniqueness and dependency cycles (sala-tech-knowledge-tree design). Builds are deterministic and sandboxed with preview (anatomy-community pattern). giscus provides one thread per module, plus a labelling Action. From v1, third-party code runs in an opaque-origin iframe with a hardened CSP (default-src 'none', pinned script-src, img-src data: blob:, form-action and base-uri 'none') or in QuickJS. Code that touches geometry must be declarative or QuickJS.",
+   "why": "Moderation follows proven open patterns. A Web Worker shares the app origin and is not a sandbox, and connect-src 'none' alone still leaks data through image loads and WebRTC.",
+   "licence": "MIT (giscus, quickjs-emscripten); CC0 or MIT patterns only (sala has no licence, so copy its design, not its code)",
+   "rejected": "Plain Web Worker as a sandbox; uploads of built artefacts; installing from any git URL; star counts or trending lists"
+  },
+  {
+   "layer": "Testing and quality gates",
+   "choice": "Vitest 5 (manifest test fails on unsourced, unflagged thresholds), Playwright Test with @axe-core/playwright (fails on serious violations, plus forcedColors and reducedMotion runs and port hit-box checks at zoom 0.5, 0.75 and 1.0), a manual viewport keyboard script, and a CI test that every Claude hook exits 0 or 2.",
+   "why": "Checks run without spending LLM tokens. axe catches only about 57% of WCAG issues and cannot see WebGL.",
+   "licence": "MIT; Apache-2.0; MPL-2.0 (axe-core, test-only)",
+   "rejected": "Visual taste review alone; unpinned pre-1.0 @playwright/cli in CI"
+  },
+  {
+   "layer": "Presentation and boards",
+   "choice": "Boards authored in HTML/CSS with Plot SVG and a vector linework overlay (Manifold slices; three-edge-projection pinned to commit 3ac00e1 in v1). Panels export through Playwright page.screenshot as sRGB JPEG, with a quality loop that keeps each file under 10 MB and stripped metadata. page.pdf is only for course prints. AI renders use gpt-image-2.5-sunburst (edits) or -flare (drafts), pinned to the dated snapshot, take a clay+AO beauty render as reference, stay at or below 2560x1440, are upscaled locally with Real-ESRGAN (pinned by hash), and get a caption and a prompt log.",
+   "why": "Buildner terms require JPEG panels of at most 10 MB, one to four per the brief, anonymous. A2 at 300 dpi is 34.8 MP against gpt-image's 8.3 MP cap, and gpt-image has no depth conditioning. Panel count and size are UNVERIFIED until the brief is read.",
+   "licence": "OpenAI API terms; BSD-3 (Real-ESRGAN, unmaintained since 2024); MIT (three-edge-projection, GitHub-only)",
+   "rejected": "A2 300 dpi PDF as the deliverable; one-call full-board renders; sending depth or normal passes to gpt-image; Veras, LookX or Midjourney integration; ComfyUI before 10 Dec"
+  },
+  {
+   "layer": "Model layer",
+   "choice": "A provider interface: Claude (Sonnet 5.5 build, Opus for planning via opusplan, Haiku for read-only audits), OpenAI (gpt-image, Codex as second reviewer and quota fallback), with room for a Google image model and a local model. One-config provider switch (ai-agents-for-architects pattern).",
+   "why": "The team wants both vendors. Forum users already mix engines (Q04, UNVERIFIED sentiment). One vendor's quota should never stop the build.",
+   "licence": "Vendor API terms",
+   "rejected": "Single-provider lock-in; running both vendors on every edit"
+  }
+ ],
+ "instructor_tools_use": [
+  {
+   "repo": "GenEnv/Arch540_2026 (agents_demo A-D)",
+   "use": "Adopt as the module contract, copying the patterns rather than the code (no licence): a deterministic Python evaluator is the only source of numbers, JSON in and out, a Pareto front, and UNRESOLVED after six revisions. Re-implement the gates for Windows as PreToolUse hooks in exec form (command ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe, onFailure block, Claude Code v2.1.295+). Never call python3 or use .cmd shims, use a portable lock instead of fcntl, and treat Stop-hook guards as advisory. Run the shipped demos only under WSL.",
+   "priority": "core"
+  },
+  {
+   "repo": "GenEnv/arch540-a1-toolkit",
+   "use": "Reading list for the policy, sun, view and code modules, and the one-JSON-per-entry index format. Seed modules only from the two MIT tools (curbside, stair-core-tool). By 24 Oct, request licences from the authors of dtmass, Massing Studio and the shading tools; anything without a reply by 1 Nov is re-derived from the cited by-laws. dtmass's equinox solar code is a spec to cross-check against, not code to copy.",
+   "priority": "core"
+  },
+  {
+   "repo": "RuijieLiu6/vancouver-tall-view-tool (Vista)",
+   "use": "First port for the view-corridor node: open-data pipeline, .3dm import, PDF report. Likely a team asset (TEAM_ASSUMPTION that the handle matches the user). Confirm ownership and the provenance of the studio-model context, then add a LICENSE.",
+   "priority": "core"
+  },
+  {
+   "repo": "GenEnv/rhino-gh-mcp",
+   "use": "Copy its five-level AI permission ladder for every node and the canvas (Inspect, Tune = edit team assumptions only, Coach default, Execute = write only manifest-declared outputs, Author = confirm plus undo). Optional Rhino 8 bridge for teammates, never the web import path. Ask Xun about the planned massing, structural-grid and daylighting skills before duplicating them; the facade-design recipes can feed the facade module.",
+   "priority": "v1"
+  },
+  {
+   "repo": "GenEnv/sala-tech-knowledge-tree",
+   "use": "Design model for module-manifest CI validation (unique IDs, prerequisite-cycle checks, verified-status field) and for spreadsheet-to-JSON bulk contribution. Copy the design, not the code.",
+   "priority": "v1"
+  },
+  {
+   "repo": "GenEnv/Thermal-Sandbox-Web (fork of christinachiu)",
+   "use": "Copy the output meta-block idea (units, sources, notes, open-sky total, formulas) and point-by-point baseline-vs-scenario comparison for every module output. Permission must come from Christina Chiu.",
+   "priority": "v1"
+  },
+  {
+   "repo": "xunliuDesign/false-creek-2100",
+   "use": "Interaction reference: direct-manipulation paint tools, live metrics, PNG export stamped with scenario and metrics (working exports only, never competition panels), and its honest-disclaimer framing.",
+   "priority": "roadmap"
+  },
+  {
+   "repo": "GenEnv/ai-agents-for-architects",
+   "use": "One-config provider-switch pattern for the Claude, OpenAI and local model layer, and its cheatsheet format for onboarding docs.",
+   "priority": "roadmap"
+  },
+  {
+   "repo": "xunliuDesign/AI4GH and GenEnv/ai4dm-site",
+   "use": "Reference for typed inputs and outputs on the AI-render node and for the BYO-key UX. Ask Xun for the AI4GH README and a demo of the ai4dm v3 studio. ai4dm's public-build filter becomes our rule against shipping copyrighted reference images.",
+   "priority": "roadmap"
+  },
+  {
+   "repo": "GenEnv/des212-2026",
+   "use": "Link to it, without copying, as the Grasshopper onboarding path for teammates; its module-by-module tutorial structure is the model for our module cards.",
+   "priority": "roadmap"
+  },
+  {
+   "repo": "lucasmarkes/hairline (starred by Xun, third-party MIT)",
+   "use": "Install exactly @lucasmarkes/hairline@0.5.1 (never the unscoped 'hairline'), or vendor 3-5 figures for the empty canvas, onboarding and module cards. Its ten rules (static hit areas, one accent, motion budget, reduced motion) become our linework and motion spec. Unverified: that Xun intended this repo; he only starred it.",
+   "priority": "v1"
+  },
+  {
+   "repo": "wheresryan22/anatomy and anatomy-community (starred, third-party MIT)",
+   "use": "Copy the anatomy-community submission pipeline (source-only, sandboxed deterministic rebuild, preview, per-item licence) for the module hub, and reuse anatomy's geometry-audit and headless-screenshot QA ideas. Build one capped Figure (sun path) only after 13 Nov, and drop it if it clashes with the hairline style. Never a whole tower.",
+   "priority": "v1"
+  },
+  {
+   "repo": "earthtojake/text-to-cad (starred, third-party MIT)",
+   "use": "Developer-only experiment for small facade or connection details after 10 Dec. Needs uv; turn telemetry off with uvx cadgen telemetry off and set CADGEN_UPDATE_CHECK=0; never disable Smart App Control. Copy its packaging pattern (skills plus local MCP) for our module-authoring skill. Not the massing node.",
+   "priority": "roadmap"
+  }
+ ],
+ "ux_rules": [
+  "Every number on screen opens 'Why this number?' showing formula, inputs, a citation (title, link, retrieval date, section) and its status. The Vitest manifest test fails on any threshold that has neither a source nor a Team assumption flag. AI-suggested values always enter as Team assumption.",
+  "Evidence status is carried by colour, icon, word and border style together: Sourced = solid, Team assumption = dashed, FALSE ASSUMPTION = magenta hatch plus icon plus the words, also in the accessible name. A refuted claim stays visible as 'FALSE ASSUMPTION, corrected' with its history. Test: all three statuses stay distinguishable under Playwright forcedColors 'active' and in a greyscale export.",
+  "A FALSE ASSUMPTION flag on someone else's module must cite a source with a page pointer. It shows as a neutral 'Flag proposed' until a second person confirms it, the author can reply, and no points or ranks are awarded for flagging.",
+  "Each module manifest declares a cost class. Live: echo or proxy under 100 ms. Interactive: auto-run after a 300 ms debounce, with sliders evaluating on release. Batch: waits for Run and shows 'stale (upstream)' with its last result and a timestamp. A global Auto-run lock exists, and no batch module runs on project open.",
+  "Run states are always icon plus word (idle, queued, running, stale, failed, warning, done), and only 'failed' gets a hue. Over 1 s, show busy on the node; over 10 s, show percent, ETA and Cancel. No modals and no focus stealing. Errors name the cause and a fix, including the expected type on a refused wire drop.",
+  "The five-stage rail (Massing, Program, Evaluate, Design, Present) is persistent and free to jump. Each stage shows a checklist of named missing inputs, runs or sources, each linked. No percentage ring, no success colour, no reminders, and it never blocks navigation.",
+  "Every action is reachable from Ctrl/Cmd+K and from a visible Commands button. Every focused port offers a keyboard 'Connect...' listbox of type-compatible targets, and an Edges list allows delete and rewire. Single printable-key shortcuts are focus-scoped, live in one registry and can be switched off in Settings (WCAG 2.1.4).",
+  "Ports are labelled focusable buttons (for example 'Output, Shadow hours, number, h, connected to 2'). Their pointer hit areas measure at least 24 CSS px at zoom 0.5, 0.75 and 1.0 in a Playwright test; below zoom 0.75, nodes switch to compact mode with a 'Connect from...' button.",
+  "Port and value popovers open on both hover and focus, close with Esc without moving focus, stay open while the pointer moves onto them, and persist until dismissed (WCAG 1.4.13). Every value shows an SI unit after a space and 3 significant figures, with full precision on hover, focus and copy.",
+  "Every analysis has a legend with units drawn from the same colour stops as the shading, a 'View as table' alternative, and one fixed scale shared across compared options. The Compare view shows up to six named snapshots with linked camera and linked inspection, each with an off switch.",
+  "A node drag, a slider scrub and an AI edit each undo as exactly one labelled step, and undo spans canvas, inspector and assumptions. Restoring a version adds a checkpoint and deletes nothing. Batch and AI runs never overwrite locked decisions (site, height band, program split) silently.",
+  "Every AI step is opt-in. It shows an estimated cost before running, labels its output 'AI draft' with model and date, offers two or more alternatives for images, and is never auto-applied to the graph. A global AI off switch exists. The sun module refuses to run until true north is confirmed for OBJ, glTF and SKP imports.",
+  "No streaks, points, leaderboards, stars, trending lists, fake urgency or nag reminders. Community listings sort by evidence completeness, then recency. Non-critical notices wait for a breakpoint (save, stage switch, run end) and never appear during a drag, wire or text edit. Screen-reader announcements are polite and batched, and only blocking failures are assertive.",
+  "Motion uses only 100, 200 or 300 ms (400 ms for large panel moves), ease-out in and ease-in out, transform and opacity only, no bounce or parallax. prefers-reduced-motion and a global 'Pause animations' switch stop edge dash animations and swap running indicators for a static icon. The canvas renders on demand and pauses offscreen.",
+  "Present mode exports each competition panel as an sRGB JPEG under 10 MB, with metadata stripped and no team, tool or platform marks. Every AI image is captioned 'AI-assisted image, model, date' and has a prompt-log entry. Effective dpi is shown, with a warning below 150 dpi. CI fails a UI PR on any serious axe violation."
+ ],
+ "visual_language": "Calm 'clay and hairline'. The chrome is low-chroma neutral on a ladder of plate, hi, edge, mid, lo and accent tokens (hairline-derived, OKLCH-generated with Culori from base, accent and contrast inputs), with light, dark and high-contrast themes chosen by the user. Saturation is reserved for data and evidence. Crameri batlow is the sequential ramp and roma or vik the diverging one, only for signed deltas; analysed surfaces get a 1 px neutral edge. The evidence hues are team assumptions computed at 5.4:1 or better: Sourced blue #1D5FBF, Team assumption ochre #8A5A00, FALSE ASSUMPTION magenta #B0126F with a hatch, and failed deep red #6E0B0B. The single accent avoids all four. Typography is self-hosted Inter variable (opsz axis, tabular figures in tables and legends, five sizes) and Geist Mono for IDs, units and citations. The viewport shows matte white clay massing under a fixed RoomEnvironment rig with N8AO, NEUTRAL or AGX tone mapping and 1-1.5 px lines: darker silhouettes, lighter creases, faint context. Section, exploded-axon, analysis and diagram presets cover the rest, and every screen has one lit focal point and one next action. Motion is sparse and purposeful: 100-300 ms ease-out, one orchestrated moment, and an instant end state under reduced motion.",
+ "connectors_to_add": [
+  {
+   "name": "Context7 (CLI plus skill first, MCP optional)",
+   "purpose": "Current version-specific docs for React Flow 12, Tailwind 4, shadcn, Vite 8, R3F 9, three r186 and Pyodide, which are newer than most training data.",
+   "risk": "Hosted Upstash backend, so queries leave the machine and each member needs a personal key held in an environment variable. Docs are community-contributed. Never send project code."
+  },
+  {
+   "name": "shadcn MCP (shadcn mcp init --client claude)",
+   "purpose": "Canonical component installs and APIs that match the chosen Base UI base.",
+   "risk": "Low. Docs can drift between Base UI and Radix examples."
+  },
+  {
+   "name": "Playwright CLI and skills (Playwright MCP only when needed)",
+   "purpose": "End-to-end tests of the canvas, module switches and board export, plus Claude's self-checks through accessibility snapshots without spending vision tokens.",
+   "risk": "Not a security boundary: browser_run_code_unsafe is equivalent to remote code execution. WebGL canvas content is invisible to snapshots. Requires Node."
+  },
+  {
+   "name": "GitHub MCP server (read-only, --lockdown-mode, fine-grained token)",
+   "purpose": "Issue and PR triage and review, and later prototyping of the module fork-and-comment flow.",
+   "risk": "Stranger-authored issues and PRs are a prompt-injection path. Lockdown is not an authorisation boundary. Keep write tools off and the token in an environment variable."
+  },
+  {
+   "name": "OpenAI developer docs MCP",
+   "purpose": "Check current gpt-image-2.5 limits, IDs and organisation-verification rules before writing image code.",
+   "risk": "No auth documented, so treat fetched text as untrusted. Docs change fast."
+  },
+  {
+   "name": "Chrome DevTools MCP (optional, --slim --headless --no-usage-statistics --no-performance-crux)",
+   "purpose": "Profile three.js frame time, console and network.",
+   "risk": "Sends usage statistics and CrUX lookups unless opted out. Exposes browser contents. Run only one browser MCP at a time."
+  },
+  {
+   "name": "DeepWiki MCP (optional, keyless)",
+   "purpose": "Repo-level Q&A about xyflow, web-ifc, manifold and three-mesh-bvh internals.",
+   "risk": "No stated terms or privacy policy, and answers are AI-generated. Use for public repos only."
+  },
+  {
+   "name": "Teammate-side only: mcneel/RhinoAI or GenEnv/rhino-gh-mcp (Rhino 8); Autodesk Revit 2027 MCP Read installer",
+   "purpose": "Optional bridges for producing fixtures and ground-truth model data. Never platform dependencies.",
+   "risk": "Unauthenticated localhost execution surfaces; keep them loopback-only. RhinoAI's supported Rhino version is UNRESOLVED and 10 users reported install failures. Revit MCP is a technical preview with internal-use terms and unconfirmed education entitlement. Keep the Write and Experimental installers off."
+  }
+ ],
+ "skills_to_install": [
+  "claude-plugins-official: typescript-lsp and pyright-lsp (after running npm i -g pyright typescript typescript-language-server)",
+  "claude-plugins-official: frontend-design (UI and Present-mode tasks only)",
+  "claude-plugins-official: skill-creator",
+  "claude-plugins-official: security-guidance, but ONLY with env set first in the committed .claude/settings.json (ENABLE_CODE_SECURITY_REVIEW=0 for pattern-only warnings), with a manual /security-review on PRs that touch the Worker proxy, sandbox or auth. Its defaults run an Opus review on every Stop and commit.",
+  "anthropics/skills: webapp-testing and mcp-builder only",
+  "shadcn skill (npx skills add shadcn/ui)",
+  "Impeccable, installed with npx impeccable install --no-hooks on EVERY install or update and on both machines, with telemetry false committed in .impeccable/config.json and a weekly local grep of .claude/settings.local.json for a hook. Use it for critique and polish before demos, after 13 Nov.",
+  "Vercel web-interface-guidelines: vendor command.md (MIT) at a pinned commit with its LICENSE, rather than letting the skill fetch from main",
+  "Optional: openai/codex-plugin-cc (Apache-2.0), pinned, with the Stop-hook review gate off, for second-opinion adversarial review",
+  "Optional and selective: 3-5 skills from AlpacaLabsLLC/skills-for-architects (zoning-envelope, occupancy-calculator) as structure references, since the whole set is NYC-centric and bloats context",
+  "Limit: at most two design aids per session"
+ ],
+ "skills_to_write": [
+  "module-spec-writer: turns a module idea into manifest.json (typed ports as JSON Schema, cost class, sources[], assumptions[], licence, permission level) plus SPEC.md, refusing any threshold without a source or a Team assumption flag",
+  "module-scaffold: generates the evaluator (deterministic, JSON in and out), the xyflow node card, Vitest fixtures and a meta block (units, sources, formula, data version) from a manifest",
+  "evaluator-gate: writes and tests Windows-safe PreToolUse hooks in exec form (venv python.exe, onFailure block), the six-revision UNRESOLVED loop, and the CI check that hooks exit 0 or 2",
+  "vtc-solar-check: implements and verifies the City equinox test (22 Sep, 10:00-16:00 PDT, new shadow on listed spaces, about 600 m domain, north confirmed) and labels the solstice sun hours as the course metric. It must stop if the guideline sections have not been pasted into sources.",
+  "source-audit (context: fork, model: haiku, read-only): scans manifests and UI strings for unsourced numbers, stale citations and colour-only status, and outputs file:line findings",
+  "expert-critique-loop: runs a capped critique of module logic with Codex or a second model, records findings as Team assumption or FALSE ASSUMPTION, and stops at UNRESOLVED",
+  "board-export (manual-only, disable-model-invocation): HTML board to JPEG under 10 MB per panel with a quality loop, metadata strip, anonymity check, AI caption and prompt log, and dpi readout",
+  "cognitive-dimensions-walkthrough: runs the weekly node-canvas walkthrough table (hidden dependencies, viscosity, premature commitment, error-proneness and the rest) with the seven draft test tasks from Q02"
+ ],
+ "token_saving_practices": [
+  "Numbers come only from deterministic evaluators; the LLM orchestrates and explains (Arch540 pattern), which avoids hallucination and retry costs.",
+  "Keep CLAUDE.md under 200 lines. Put workflows in on-demand skills and path-scoped .claude/rules. Give Claude file paths, not pasted files.",
+  "Install typescript-lsp and pyright-lsp so diagnostics and symbol lookup replace exploratory file reads.",
+  "Prefer CLIs (gh, npm, playwright-cli) over always-on MCPs. Keep the always-on set to Context7 and shadcn and add the others per task. MCP tool definitions are deferred, but large outputs and screenshots are not.",
+  "Route models: opusplan for planning, Sonnet 5.5 at medium effort for building, and a project Explore subagent with model: haiku for search. Audit skills use context: fork with model: haiku. Set effort explicitly in API calls.",
+  "Choose model, effort and MCP set at session start and do not toggle them mid-task, since that breaks the prefix cache. Use /clear between unrelated tasks and /compact only at task boundaries.",
+  "Precompute static policy checks with the Batch API (50% off). Send text-extractable by-laws as text blocks rather than PDFs (no image tokens), run count_tokens first, and keep Haiku contexts under 100k tokens.",
+  "Configure security-guidance as pattern-only, and record /context and /usage before and after every plugin. Review /usage weekly with ccusage.",
+  "Add a Node PreToolUse hook that trims Vitest and Playwright output to failures (jq is absent).",
+  "Cache module results by input hash, rerun only dirty downstream nodes, and write long results to files that are read on demand.",
+  "Use Context7 for post-2025 APIs instead of trial-and-error. Pin versions so generated code matches the docs.",
+  "Treat the Vercel checklist, Impeccable detectors and axe as zero-token reviewers before any LLM review.",
+  "Use schema-constrained flat JSON for text-to-massing (one schema valid in both Claude and OpenAI strict mode) to cut retries.",
+  "Log tokens per gpt-image call from the usage field. Render drafts with -flare at 1536 px and final renders only once.",
+  "Reuse open MIT code and copy only patterns from unlicensed repos. Use subagents sparingly: agent teams and D_team-style runs burn quotas."
+ ],
+ "open_questions": [
+  "Competition logistics: has every member registered (closes 29 Oct) and started identity verification? What does the brief state for panel count, size, orientation and pixel or dpi, the site-model format, units and CRS, and AI-image rules? Send questions before Q&A closes on 3 Nov.",
+  "Solar guideline: can a teammate open the Downtown Peninsula Solar Access Guidelines PDF in a browser and paste sections 5.1, 5.2 and 6.1, the protected-space list and any Robson window into sources? Until then every sun-test number is an editable team assumption.",
+  "Xun Liu: did he intend lucasmarkes/hairline, wheresryan22/anatomy and earthtojake/text-to-cad (so far only shown as stars)? Will he grant licences for the GenEnv repos? What is the ARCH 540 policy on AI use and on reusing classmates' A1 tools? Are the think-aloud sessions exempt under TCPS2 2.5 or do they need a course-based BREB route?",
+  "Classmate licences: replies from Sinnie Choi (dtmass), Claudio Cabana (Massing Studio), Christina Chiu (Thermal-Sandbox-Web) and the other A1 authors by 1 Nov. Is Vista team-owned, and may its studio-derived context be licensed?",
+  "Which licence does the platform itself take (MIT or Apache-2.0 recommended, decided by about 30 Oct)? This fixes how Ladybug (AGPL), web-ifc (MPL) and OCCT WASM (LGPL) can be used.",
+  "Does the installed Claude Code version support onFailure: block and exec-form hooks (v2.1.295+), and does ${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe resolve on both machines? What do py -0p and the Smart App Control state show on the second student's machine?",
+  "Do the 28 Oct spikes pass: Workers _headers on the SPA fallback, top-level CSP sandbox, exfiltration tests in four browsers, JPEG panel under 10 MB, pvlib and PyNite under Pyodide, and suncalc vs NOAA/JPL at 10:00, 13:00 and 16:00 PDT on 22 Sep?",
+  "Base UI vs Radix: do the canvas popovers and palette behave under Base UI, or should the team fall back to -b radix? And will xyflow confirm the licence of React Flow UI components?",
+  "Who owns the signal log due 3 Nov, and the board-capture service? Sentiment principles from Q04 stay hypotheses until then.",
+  "Will OpenAI organisation verification finish before the first render? Do OpenAI output-ownership terms and Buildner Terms 4.1 ('not previously published') allow posting example boards or renders in the community before 26 Jan 2027?",
+  "Is a redistributable Vancouver EPW available (CWEC or PVGIS terms are unknown), or must users upload their own?",
+  "Which teammates have Rhino 8, Rhino 7 or Revit 2027, and do they qualify for Figma Education or Autodesk education entitlement?"
+ ],
+ "verdict": "Go, conditionally. Build a browser-first, MIT-leaning stack: Vite and React 19.3, shadcn on Base UI, xyflow over a Zustand command bus, three r186 and R3F 9 with Manifold, suncalc and BVH, and Plot. Reuse Xun's Arch540 evaluator and gate pattern (re-implemented for Windows) and rhino-gh-mcp's permission ladder; take only patterns from the unlicensed repos until permission arrives. The primary sun test is the City's 22 Sep, 10:00-16:00 PDT shadow test, which is still UNVERIFIED because the PDF is unread. Competition output is anonymous JPEG panels under 10 MB. Schedule buffer is about zero, so this week: register for the VTC and get the brief before 29 Oct, install Node 24 and the py -3.13 venv, send the licence emails, decide the state layer and run the hosting and sandbox spike, and set security-guidance to pattern-only. Use the pre-approved cut list, and treat Q04's sentiment findings as hypotheses only."
+}

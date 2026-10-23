@@ -1,0 +1,779 @@
+{
+ "packet_id": "Q03",
+ "findings": [
+  {
+   "name": "three.js (r186 / npm 0.186.1)",
+   "url": "https://github.com/mrdoob/three.js",
+   "kind": "library",
+   "what_it_does": "Core WebGL/WebGPU 3D engine. r186 adds SunLight (WebGPU), SSAO/GTAO/OIT nodes, Gaussian splats. Hub that R3F, That Open, Speckle viewer and the Rhino 3dm loader all build on.",
+   "how_we_use_it": "Pin 0.186.x with the WebGL2 renderer as the viewport. Use built-in loaders (OBJ, glTF, 3DM), clipping planes and CSM shadows. Keep the renderer behind a thin adapter so WebGPU can be adopted later.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Biggest ecosystem; Claude knows its API well (expected, not measured), so fewer tokens on docs and fixes.",
+   "risks": "Releases deprecate APIs (r186 removed PCFSoftShadowMap and minified builds); @types/three lags TSL; WebGPU path still maturing.",
+   "license": "MIT",
+   "maintainer": "mrdoob and contributors",
+   "popularity": "116.7k stars, 36.7k forks; GitHub API shows 393 open issues+PRs",
+   "last_activity": "Pushed 2026-10-21; r186 released 2026-09-24 (verified via GitHub API/npm on 21 Oct 2026)",
+   "verified_opened": true
+  },
+  {
+   "name": "react-three-fiber (R3F) v9.8.2",
+   "url": "https://github.com/pmndrs/react-three-fiber",
+   "kind": "library",
+   "what_it_does": "React renderer for three.js. v9 targets React 19. v10 alpha (alpha.6, 2026-10-17) makes WebGPU the default renderer and moves TSL hooks to @react-three/tsl.",
+   "how_we_use_it": "Build the viewport and node-canvas 3D previews declaratively. Pin R3F 9.8.x with react 19.3.x. Use frameloop=\"demand\" so idle scenes cost nothing. Do not adopt v10 alpha for the 13 Nov core.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Declarative scene code is shorter for Claude to write and review; drei supplies most helpers.",
+   "risks": "Peer range react >=19 <19.4 limits upgrades; v10 changes renderer defaults and GLSL libraries need a legacy entry; some community add-ons are stale (@react-three/a11y last 2022).",
+   "license": "MIT",
+   "maintainer": "Poimandres (pmndrs)",
+   "popularity": "33.1k stars, 2.0k forks",
+   "last_activity": "Pushed 2026-10-17; v9.8.2 on 2026-10-14",
+   "verified_opened": true
+  },
+  {
+   "name": "@react-three/drei 10.7.9",
+   "url": "https://github.com/pmndrs/drei",
+   "kind": "library",
+   "what_it_does": "Helper library for R3F: Edges (EdgesGeometry, default 15 degree threshold), Outlines (inverted hull), Line (Line2 fat lines), CameraControls, PerformanceMonitor, Bvh, Html, Grid, Sky, AccumulativeShadows, SoftShadows.",
+   "how_we_use_it": "Main viewport toolbox. Edges plus Line for thin architectural linework; Outlines for hover/selection; CameraControls for saved camera bookmarks; PerformanceMonitor to adapt DPR on weak laptops; Html for in-scene labels.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Replaces weeks of custom helpers; documented components keep prompts short.",
+   "risks": "Some docs are thin (Sky props not fully visible); 139 open issues+PRs; tied to R3F 9 and React 19; Edges per-mesh lines can add draw calls on big context models.",
+   "license": "MIT",
+   "maintainer": "Poimandres (pmndrs)",
+   "popularity": "10.0k stars, 855 forks",
+   "last_activity": "Pushed 2026-10-20; 10.7.9 on 2026-09-25",
+   "verified_opened": true
+  },
+  {
+   "name": "pmndrs/postprocessing 6.39.5 + @react-three/postprocessing 3.2.1",
+   "url": "https://github.com/pmndrs/postprocessing",
+   "kind": "library",
+   "what_it_does": "WebGL post-processing: Outline, SSAO, SMAA, tone mapping, depth. The R3F wrapper also lists Kuwahara (painterly), Halftone, Linocut and Ramp effects usable for diagrammatic or non-photorealistic looks.",
+   "how_we_use_it": "Default chain: SMAA, tone mapping, selection Outline. Optional presentation presets (halftone/Kuwahara) for board diagrams. Add N8AO through its postprocessing pass; the wrapper's effect list does not include it.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Ready-made effects instead of hand-written shaders.",
+   "risks": "Peer range three >=0.168 <0.187 blocks upgrading three past 0.186; v7 still alpha/beta; WebGPU not mentioned in README.",
+   "license": "Zlib (wrapper MIT)",
+   "maintainer": "Poimandres (pmndrs)",
+   "popularity": "postprocessing 2.9k stars; react-postprocessing 1.5k stars",
+   "last_activity": "Pushed 2026-10-05; 6.39.5 on 2026-09-09; wrapper 3.2.1 on 2026-10-19",
+   "verified_opened": true
+  },
+  {
+   "name": "N8AO 2.0.1",
+   "url": "https://github.com/N8python/n8ao",
+   "kind": "library",
+   "what_it_does": "Ambient-occlusion pass for three.js with quality presets, optional neural denoise, half-resolution mode (README claims 2x-4x speedup), accumulation for still cameras, and a postprocessing pass.",
+   "how_we_use_it": "Default AO for the clay-massing look. Use half-resolution plus still-camera accumulation on laptops; switch off in the Low quality tier. Wrap N8AOPostPass in our own R3F component.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Strong depth cues for the cost of one pass, no custom AO code.",
+   "risks": "WebGL2 only; README says not yet WebGPU-compatible. README licence CC0-1.0 but npm lists ISC (check before shipping). 503 stars, one maintainer. Speedup figures are vendor claims.",
+   "license": "CC0-1.0 per README (npm: ISC)",
+   "maintainer": "N8python",
+   "popularity": "503 stars, 26 forks",
+   "last_activity": "npm 2.0.1 on 2026-08-10",
+   "verified_opened": true
+  },
+  {
+   "name": "three-mesh-bvh 0.9.16",
+   "url": "https://github.com/gkjohnson/three-mesh-bvh",
+   "kind": "library",
+   "what_it_does": "Bounding-volume hierarchy for fast raycasts and spatial queries on three.js meshes; async/worker builds, BatchedMesh support, GPU SDF and path-tracing examples. Foundation for three-edge-projection and three-bvh-csg.",
+   "how_we_use_it": "Fast picking on large context meshes and imported BIM. Cast rays from grid points toward the sun for solar-access and shadow-hour analysis modules without a GPU readback.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Avoids writing spatial indexing; one dependency covers picking and analysis.",
+   "risks": "README performance claim (500 rays on 80k polygons at 60 fps) is untested on student laptops; BVH build time on huge IFC models; essentially one maintainer.",
+   "license": "MIT",
+   "maintainer": "gkjohnson",
+   "popularity": "about 3.5k stars, 339 forks",
+   "last_activity": "0.9.16 on 2026-10-08",
+   "verified_opened": true
+  },
+  {
+   "name": "Manifold (manifold-3d 3.5.4)",
+   "url": "https://github.com/elalish/manifold",
+   "kind": "library",
+   "what_it_does": "Guaranteed-manifold mesh boolean library in WASM. d.ts confirms extrude with twist and scaleTop, slice(height) to CrossSection, area(), volume(), surfaceArea(), project(), splitByPlane, trimByPlane, hull, offset.",
+   "how_we_use_it": "Run in a worker as the massing kernel: floorplate stacks (twist/taper/setbacks), podium plus tower unions, site subtractions, per-floor GFA via slice().area(), volume, footprint via project(), section cuts via splitByPlane.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "One robust kernel for massing, areas and sections; avoids heavy B-rep WASM (about 2.8 MB unpacked package).",
+   "risks": "Triangle meshes only, no NURBS; inputs must be manifold; WASM build is serial-only; STL export discouraged; manual memory cleanup in JS; imported Rhino/IFC meshes may need repair.",
+   "license": "Apache-2.0",
+   "maintainer": "Emmett Lalish and pca006132 (npm maintainers)",
+   "popularity": "2.4k stars, 272 forks; used by OpenSCAD, Blender, Godot, Babylon.js per README",
+   "last_activity": "Pushed 2026-10-21; npm 3.5.4 on 2026-09-25",
+   "verified_opened": true
+  },
+  {
+   "name": "rhino3dm.js 8.35.0 + three Rhino3dmLoader",
+   "url": "https://github.com/mcneel/rhino3dm",
+   "kind": "library",
+   "what_it_does": "openNURBS compiled to WASM: read/write .3dm, create geometry containers (breps, meshes, SubD), client for Rhino Compute. three.js ships Rhino3dmLoader that decodes in web workers and meshes SubD.",
+   "how_we_use_it": "Import .3dm massing through Rhino3dmLoader, with the wasm hosted locally rather than from a CDN. Optionally write a simple massing back to .3dm so Rhino users can round-trip.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Direct Rhino import with no server; avoids a custom parser.",
+   "risks": "README lists no booleans or meshing; advanced ops need Rhino Compute (server, cost). Loader docs pin 8.32.1 but npm is 8.35.0. Breps without stored render meshes are untested.",
+   "license": "MIT",
+   "maintainer": "McNeel",
+   "popularity": "765 stars, 155 forks",
+   "last_activity": "Pushed 2026-10-20; 8.35.0 on 2026-09-15",
+   "verified_opened": true
+  },
+  {
+   "name": "web-ifc 0.0.78",
+   "url": "https://github.com/ThatOpen/engine_web-ifc",
+   "kind": "library",
+   "what_it_does": "C++ IFC reader/writer compiled to WASM for browser and Node, with a multithreaded build. Reads and writes IFC at what the README calls native speeds; npm package web-ifc.",
+   "how_we_use_it": "Import IFC massing and context into the viewport. Write IFC from our tagged massing (storeys, spaces) for Revit hand-off. Run in a worker.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Replaces a custom IFC parser; same engine that That Open and many viewers use.",
+   "risks": "MPL-2.0 (file-level copyleft, fine for open source). Version 0.0.x pre-1.0; README states no schema versions (IFC2x3/IFC4/IFC4x3) or benchmarks; edge-case geometry unverified.",
+   "license": "MPL-2.0",
+   "maintainer": "That Open Company",
+   "popularity": "1.07k stars, 287 forks",
+   "last_activity": "Pushed 2026-10-20; 0.0.78 on 2026-09-21",
+   "verified_opened": true
+  },
+  {
+   "name": "That Open Engine: @thatopen/components 3.4.9 + fragments 3.4.8",
+   "url": "https://github.com/ThatOpen/engine_components",
+   "kind": "library",
+   "what_it_does": "MIT toolkit for BIM apps on three.js: floorplan navigation, dimensions, DXF export (README), plus Fragments, a FlatBuffers binary BIM format claimed to handle millions of elements in seconds. Peers: three >=0.182, web-ifc >=0.0.77.",
+   "how_we_use_it": "v1 IFC panel: clipper, plan views and element picking for imported Revit/IFC. Use Fragments for large models. Load lazily so it does not weigh down the massing path.",
+   "priority": "v1",
+   "status": "verified",
+   "saves": "Section/plan/measure tooling for imported BIM without custom code.",
+   "risks": "Fast-moving 3.x with docs gaps (component list not confirmed from README); performance claims untested; extra bundle weight; learning curve beyond plain three.js.",
+   "license": "MIT",
+   "maintainer": "That Open Company",
+   "popularity": "components 716 stars; fragments 220 stars",
+   "last_activity": "components pushed 2026-10-19, npm 3.4.9 on 2026-10-06",
+   "verified_opened": true
+  },
+  {
+   "name": "xeokit-sdk 2.6.114",
+   "url": "https://github.com/xeokit/xeokit-sdk",
+   "kind": "library",
+   "what_it_does": "Pure-WebGL 3D BIM/IFC viewer SDK with double precision and an XKT pre-converted format; plugins for glTF, CityJSON, LAS. Not built on three.js. Commercial licence sold by Creoox.",
+   "how_we_use_it": "Do not embed. Study its XKT and double-precision ideas only. Revisit only if the platform itself is released under AGPL-3.0.",
+   "priority": "reject",
+   "status": "verified",
+   "saves": "Nothing for our stack; avoids a licence trap.",
+   "risks": "AGPL-3.0 forces integrated code open under AGPL; separate renderer duplicates our viewport; ES5/UMD builds being dropped; 191 open issues.",
+   "license": "AGPL-3.0 (commercial option)",
+   "maintainer": "Creoox / xeokit",
+   "popularity": "945 stars, 332 forks",
+   "last_activity": "Pushed 2026-10-19; npm 2.6.114 on 2026-09-02",
+   "verified_opened": true
+  },
+  {
+   "name": "Speckle viewer (@speckle/viewer 2.31.14)",
+   "url": "https://github.com/specklesystems/speckle-server",
+   "kind": "library",
+   "what_it_does": "Apache-2.0 three.js extension for viewing Speckle data. Docs state Viewer 2 cannot render current parquet-bundle model versions without a bridge, and Viewer 3 is unreleased.",
+   "how_we_use_it": "Not in core. Possible later import path for Revit, Rhino or SketchUp users via Speckle connectors, loading data into our own viewport rather than using their viewer.",
+   "priority": "roadmap",
+   "status": "verified",
+   "saves": "Potential Revit/SketchUp connector reuse later.",
+   "risks": "Viewer API in flux; requires Speckle server for data; repo licence can vary per folder (GitHub shows NOASSERTION); last viewer publish 2026-06-15.",
+   "license": "Apache-2.0 by default (per README)",
+   "maintainer": "Speckle",
+   "popularity": "853 stars, 254 forks",
+   "last_activity": "Pushed 2026-10-14; viewer 2.31.14 on 2026-06-15",
+   "verified_opened": true
+  },
+  {
+   "name": "replicad + replicad-opencascadejs 1.1.0",
+   "url": "https://github.com/sgenoud/replicad",
+   "kind": "library",
+   "what_it_does": "Code-CAD library for the browser on an OpenCascade WASM build. Sketch, extrude, fillet, booleans and STEP/STL export per its tags and docs; web workbench at studio.replicad.xyz.",
+   "how_we_use_it": "v1 detail module for B-rep parts (facade brackets, connection details) and STEP export, in a worker. Not used for tower massing, where Manifold is lighter.",
+   "priority": "v1",
+   "status": "unverified",
+   "saves": "Maintained OCCT build and API; avoids building opencascade.js ourselves.",
+   "risks": "One maintainer, 706 stars. WASM package is LGPL-2.1 and about 48.8 MB unpacked incl. builds. README did not confirm feature list, worker setup or wasm size.",
+   "license": "MIT (library); LGPL-2.1 (WASM build)",
+   "maintainer": "sgenoud",
+   "popularity": "706 stars, 85 forks",
+   "last_activity": "Pushed 2026-09-04; 1.1.0 on 2026-09-04",
+   "verified_opened": true
+  },
+  {
+   "name": "occt-wasm 5.7.1",
+   "url": "https://github.com/andymai/occt-wasm",
+   "kind": "library",
+   "what_it_does": "OpenCascade 8.0.1 as WASM with a TypeScript API: booleans, fillet, chamfer, shell, sweeps, STEP/STL/glTF export, OcctWorker. About 4.5 MB brotli, roughly half opencascade.js per README.",
+   "how_we_use_it": "Watch only. Candidate replacement kernel for B-rep detail modules after 10 Dec if replicad proves heavy or stale. Prototype one module behind a flag, not in core.",
+   "priority": "roadmap",
+   "status": "verified",
+   "saves": "Smaller download if it matures.",
+   "risks": "First npm release 2026-03-27; one maintainer; 65 stars; manual shape release; needs WASM SIMD, tail calls and exception handling; no IGES; LGPL-2.1 WASM.",
+   "license": "MIT or Apache-2.0 tooling; WASM LGPL-2.1",
+   "maintainer": "andymai",
+   "popularity": "65 stars, 16 forks",
+   "last_activity": "npm 5.7.1 on 2026-10-12; 63 versions since 2026-03-27",
+   "verified_opened": true
+  },
+  {
+   "name": "opencascade.js 1.1.1",
+   "url": "https://github.com/donalffons/opencascade.js",
+   "kind": "library",
+   "what_it_does": "Original OCCT-to-WASM port (OCCT 7.6.2 badge). GitHub last pushed 2023-08-15; npm latest 1.1.1 dated 2020-09-27 and modified 2023-03-23. Replicad ships its own custom build.",
+   "how_we_use_it": "Do not adopt. Use replicad-opencascadejs or occt-wasm if a B-rep kernel is needed.",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "saves": "Avoids a stale dependency and its heavy build chain.",
+   "risks": "Unmaintained since 2023; about 9 MB wasm (per occt-wasm README); LGPL-2.1; 77 open issues.",
+   "license": "LGPL-2.1",
+   "maintainer": "donalffons (inactive)",
+   "popularity": "940 stars, 142 forks",
+   "last_activity": "Pushed 2023-08-15",
+   "verified_opened": true
+  },
+  {
+   "name": "CadQuery and build123d (Python B-rep)",
+   "url": "https://github.com/gumyr/build123d",
+   "kind": "library",
+   "what_it_does": "Python parametric B-rep libraries on OCP/OpenCASCADE, with STEP export. CadQuery pip supports Python 3.9-3.12 per README; build123d lists 3.11-3.14. Neither is in the Pyodide 314.0.7 package list.",
+   "how_we_use_it": "Roadmap only: an optional local Python worker for STEP export. Not a browser path. Prefer Manifold or replicad in-browser.",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "saves": "None now; avoids chasing a Pyodide route that does not exist in the official package list.",
+   "risks": "Native OCP wheels can be blocked on Windows 11 with Smart App Control (per text-to-cad README); Python 3.13 mismatch for CadQuery pip; students need installs.",
+   "license": "Apache-2.0 (both)",
+   "maintainer": "gumyr (build123d); CadQuery community",
+   "popularity": "build123d 3.5k stars; CadQuery 6.0k stars",
+   "last_activity": "Not shown on pages; not checked",
+   "verified_opened": true
+  },
+  {
+   "name": "earthtojake/text-to-cad",
+   "url": "https://github.com/earthtojake/text-to-cad",
+   "kind": "repo",
+   "what_it_does": "Plugin with 12 agent skills (CAD, DXF, drawings, URDF, DfAM, DFM, G-code) and a local MCP server (cadgen mcp) on build123d 0.11 and OCCT 7.9. Outputs STEP/STL/3MF/GLB; includes a local CAD viewer; installs in Claude Code.",
+   "how_we_use_it": "Dev-time Claude Code plugin for small mechanical details (brackets, connectors). Copy its packaging pattern (skills, local MCP, viewer) for our module-authoring skill. Not for tower massing.",
+   "priority": "v1",
+   "status": "verified",
+   "saves": "Ready CAD skills; its packaging pattern saves designing our own agent interface.",
+   "risks": "No architecture-scale examples; telemetry on by default (opt out with uvx cadgen telemetry off); Smart App Control blocks OCP on Windows 11; needs uv, Python 3.11+, Node 20+; first run downloads runtime.",
+   "license": "MIT",
+   "maintainer": "earthtojake",
+   "popularity": "22.0k stars, 2.2k forks, 1,462 commits",
+   "last_activity": "Commit date not shown (GitHub API returned 403)",
+   "verified_opened": true
+  },
+  {
+   "name": "Zoo Design Studio / Text-to-CAD (KittyCAD modeling-app)",
+   "url": "https://github.com/KittyCAD/modeling-app",
+   "kind": "app",
+   "what_it_does": "MIT desktop CAD app storing models as KCL code. README says the 3D view streams from Zoo's hosted geometry engine. Text-to-CAD/Zookeeper is a hosted service on monthly usage credits; @kittycad/kcl-wasm-lib is MIT.",
+   "how_we_use_it": "Not core. Optional API behind a feature flag later for mechanical parts. Do not depend on it for towers or offline use.",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "saves": "Nothing for the core path.",
+   "risks": "Hosted engine dependency and usage cost; no published benchmarks (marketing claims only); pricing tiers not visible; KCL licence and local execution not confirmed.",
+   "license": "MIT (app); hosted service terms apply",
+   "maintainer": "Zoo (KittyCAD)",
+   "popularity": "1.3k stars, 132 forks",
+   "last_activity": "kcl-wasm-lib 0.1.192 on 2026-10-14",
+   "verified_opened": true
+  },
+  {
+   "name": "LLM-to-CAD research: Text-to-CadQuery, CADCodeVerify, cad0",
+   "url": "https://arxiv.org/abs/2505.06507",
+   "kind": "article",
+   "what_it_does": "Text-to-CadQuery: best of six fine-tuned LLMs reached 69.3% top-1 exact match on an augmented Text2CAD set. CADCodeVerify (2410.05340): visual self-checks gave +5.0% success with GPT-4 on 200 prompts. cad0 reports 75% in-distribution, weak out-of-distribution.",
+   "how_we_use_it": "Evidence for a constrained text-to-massing design: LLM emits JSON parameters for our massing nodes, we render and verify, then a human edits. No free-form CAD generation in core.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Prevents spending build time on unreliable free-form text-to-CAD; JSON generation is cheap in tokens.",
+   "risks": "Benchmarks are single mechanical parts, not towers; numbers come from papers and are not reproduced by us; a blog source cites dimension drift without data.",
+   "license": "n/a",
+   "maintainer": "Xie and Ju (Text-to-CadQuery); Alrashedy et al. (CADCodeVerify); campedersen (cad0)",
+   "popularity": "n/a",
+   "last_activity": "Papers: May 2025 and Oct 2024 (rev. Feb 2025)",
+   "verified_opened": true
+  },
+  {
+   "name": "Hairline (lucasmarkes/hairline, npm 0.5.1)",
+   "url": "https://github.com/lucasmarkes/hairline",
+   "kind": "repo",
+   "what_it_does": "33 pointer-responsive isometric line figures as dependency-free SVG with a React entry. Six theme tokens (plate, hi, edge, mid, lo, stroke width 0.9px), one shared animation loop that sleeps when idle, reduced-motion support, plus hairline-create and hairline-adopt agent skills.",
+   "how_we_use_it": "Use tokens and rules for UI illustrations, module-card thumbnails, empty states and onboarding. Apply the same plate/edge/mid/lo ladder to 3D viewport colours. Generate custom figures with hairline-create sparingly.",
+   "priority": "v1",
+   "status": "verified",
+   "saves": "Ready-made calm visual language; skills avoid hand-drawing icons.",
+   "risks": "Needs a DOM (no SSR); plate colour set by hand on non-default backgrounds; About text says six figures vs README 33; commit date not shown; X post praising it is a single unverified voice.",
+   "license": "MIT",
+   "maintainer": "Lucas Marques",
+   "popularity": "2.6k stars, 155 forks",
+   "last_activity": "npm 0.5.1 on 2026-10-14",
+   "verified_opened": true
+  },
+  {
+   "name": "Anatomy (wheresryan22/anatomy)",
+   "url": "https://github.com/wheresryan22/anatomy",
+   "kind": "skill",
+   "what_it_does": "MIT agent skill that turns a concept into an interactive isometric machine in shaded SVG with optional WebGL shaders and a beta 3D mode. Node 20.10+, no runtime dependencies; documented example took about 1 h 54 min of agent time.",
+   "how_we_use_it": "Use for one or two hero explainers (landing page, onboarding), not per module. Borrow its audit idea (headless-Chrome geometry checks) and light-theme-first craft rules for our own figures.",
+   "priority": "roadmap",
+   "status": "verified",
+   "saves": "Hero illustrations without a designer, at a high one-off cost.",
+   "risks": "Slow and token-heavy by design (author says substantial, no figures); non-deterministic outputs; 3D mode beta; created 2026-10-08 so very young; abstract ideas give labelled boxes.",
+   "license": "MIT",
+   "maintainer": "Ryan (wheresryan22)",
+   "popularity": "17.8k stars, 1.4k forks",
+   "last_activity": "Created 2026-10-08 (third-party blog); 153 commits",
+   "verified_opened": true
+  },
+  {
+   "name": "three-edge-projection",
+   "url": "https://github.com/gkjohnson/three-edge-projection",
+   "kind": "library",
+   "what_it_does": "Projects visible mesh edges along the Y axis into 2D line segments with a silhouette generator, built on three-mesh-bvh. Step-based generator can spread work across frames. README does not mention SVG or section lines.",
+   "how_we_use_it": "v1 hidden-line plan and roof views for board figure-ground drawings. Use Manifold slice for section and floor-plan polygons instead.",
+   "priority": "v1",
+   "status": "verified",
+   "saves": "Hidden-line projection without writing a rasteriser.",
+   "risks": "Y-axis only per README; installs from GitHub rather than npm (npm lookup failed); 354 stars; 12 open issues; no benchmarks.",
+   "license": "MIT",
+   "maintainer": "gkjohnson",
+   "popularity": "354 stars, 22 forks",
+   "last_activity": "Not shown on page",
+   "verified_opened": true
+  },
+  {
+   "name": "three.js CSM addon and SunLight",
+   "url": "https://threejs.org/docs/pages/CSM.html",
+   "kind": "library",
+   "what_it_does": "CSM (cascaded shadow maps) works only with WebGLRenderer and splits the view frustum into cascades for large scenes. SunLight (r186 addon) is documented for WebGPURenderer with SunLightShadow cascades.",
+   "how_we_use_it": "Use CSM with a directional light placed from the SunCalc sun vector for crisp shadows across a block and tower in the WebGL viewport. Adopt SunLight when we move to WebGPU.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Built-in large-scene shadows; no custom cascade code.",
+   "risks": "Defaults need tuning (3 cascades, 2048 maps); every material needs csm.setupMaterial; heavy on integrated GPUs, so Low tier should drop to one map. SunLight WebGL support unconfirmed.",
+   "license": "MIT (part of three.js)",
+   "maintainer": "three.js contributors",
+   "popularity": "n/a",
+   "last_activity": "r186 on 2026-09-24",
+   "verified_opened": true
+  },
+  {
+   "name": "SunCalc (mourner/suncalc) 2.1.1",
+   "url": "https://github.com/mourner/suncalc",
+   "kind": "library",
+   "what_it_does": "Dependency-free JS for sun position (altitude and azimuth via getPosition(date, lat, lng)) and sun times; v2 is a precision rewrite. README says azimuth is clockwise from north.",
+   "how_we_use_it": "Drive viewport sun direction and the sun/shadow module for Vancouver (49.28 N). Wrap in one function with unit tests against known solstice and equinox values to lock the convention.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Tiny, well known; no astronomy code to write.",
+   "risks": "README says BSD-2-Clause but npm 2.1.1 licence field is blank; v2 changed behaviour versus v1 (azimuth convention); verify with tests. Time-zone/DST handling is on us.",
+   "license": "BSD-2-Clause per README",
+   "maintainer": "mourner (Volodymyr Agafonkin)",
+   "popularity": "3.5k stars, 437 forks",
+   "last_activity": "npm 2.1.1 on 2026-10-05",
+   "verified_opened": true
+  },
+  {
+   "name": "three.js clipping plus stencil caps (section-cut technique)",
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/webgl_clipping_stencil.html",
+   "kind": "other",
+   "what_it_does": "Official example: WebGLRenderer with stencil:true and localClippingEnabled; back faces increment, front faces decrement the stencil; a cap quad drawn where stencil is nonzero fills the cut, repositioned each frame on the plane.",
+   "how_we_use_it": "Implement the section-cut preset: movable section planes with solid poche caps on the massing. Combine with orthographic camera and thin Edges for the architectural section look.",
+   "priority": "core",
+   "status": "verified",
+   "saves": "Proven recipe; avoids geometry-based capping on every slider move.",
+   "risks": "Needs closed (watertight) meshes for correct caps; one cap pass per plane; WebGL-specific, so WebGPU port later; hatching still needs separate shader or Manifold slice.",
+   "license": "MIT (three.js)",
+   "maintainer": "three.js contributors",
+   "popularity": "n/a",
+   "last_activity": "dev branch, fetched 21 Oct 2026",
+   "verified_opened": true
+  },
+  {
+   "name": "three-cad-viewer 5.1.3",
+   "url": "https://github.com/bernhard-42/three-cad-viewer",
+   "kind": "library",
+   "what_it_does": "MIT three.js CAD viewer with navigation tree, explode, orthographic toggle, black edges, transparency, clipping stencils and part updates. Depends on n8ao, postprocessing and three. Takes its own shapes JSON.",
+   "how_we_use_it": "Reference implementation for explode, edge colouring and tree UI built on the same N8AO/postprocessing stack. Borrow patterns; do not embed wholesale.",
+   "priority": "roadmap",
+   "status": "verified",
+   "saves": "Working example of explode plus AO plus edges, so Claude can copy patterns.",
+   "risks": "Custom input format; README does not document measurement or clipping details; small (395 stars); one maintainer.",
+   "license": "MIT",
+   "maintainer": "bernhard-42",
+   "popularity": "395 stars, 69 forks",
+   "last_activity": "npm 5.1.3 on 2026-10-12",
+   "verified_opened": true
+  },
+  {
+   "name": "takram three-geospatial (three-atmosphere)",
+   "url": "https://github.com/takram-design-engineering/three-geospatial",
+   "kind": "library",
+   "what_it_does": "MIT monorepo: precomputed atmospheric scattering (beta), volumetric clouds (beta), core and effects (alpha). Active rewrite to a node-based WebGPU API that will be incompatible with the current one.",
+   "how_we_use_it": "Roadmap for a photoreal sky in presentation mode. For now use drei Sky or three Sky; do not take a dependency before the API settles.",
+   "priority": "roadmap",
+   "status": "verified",
+   "saves": "Realistic sky later without custom atmosphere shaders.",
+   "risks": "Beta/alpha parts and a breaking API rewrite; sun-position and 3D Tiles are not features of this repo; check Google 3D Tiles terms separately.",
+   "license": "MIT",
+   "maintainer": "Takram",
+   "popularity": "about 1.7k stars, 206 forks",
+   "last_activity": "@takram/three-atmosphere 0.19.1 on 2026-05-06",
+   "verified_opened": true
+  },
+  {
+   "name": "Babylon.js 9.31.2",
+   "url": "https://github.com/BabylonJS/Babylon.js",
+   "kind": "library",
+   "what_it_does": "Apache-2.0 full 3D engine with tooling, viewer package and exporters. Very active; uses Manifold for CSG per Manifold README.",
+   "how_we_use_it": "Reject as the viewport engine: our importers, R3F helpers and BIM tooling target three.js. Revisit only if we need its tooling.",
+   "priority": "reject",
+   "status": "verified",
+   "saves": "Avoids splitting effort across two engines.",
+   "risks": "Ecosystem mismatch (That Open, rhino3dm loader, drei); migration cost; fewer architecture-specific examples found in this pass.",
+   "license": "Apache-2.0",
+   "maintainer": "Microsoft-originated community project (BabylonJS)",
+   "popularity": "26.2k stars, 3.7k forks",
+   "last_activity": "Pushed 2026-10-21; @babylonjs/core 9.31.2 on 2026-10-20",
+   "verified_opened": true
+  },
+  {
+   "name": "Theatre.js (@theatre/core 0.7.2)",
+   "url": "https://github.com/theatre-js/theatre",
+   "kind": "library",
+   "what_it_does": "Animation library with a visual studio. Core is Apache-2.0; @theatre/studio is AGPL-3.0. README says development moved to a private repo for v1.0; public repo last pushed 2024-08-14; npm 0.7.2 dated 2024-05-19.",
+   "how_we_use_it": "Do not adopt. For camera tours and exploded-floor animations use drei CameraControls plus our own spring/tween code following Hairline's interaction rules.",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "saves": "Avoids a stale dependency and AGPL tooling.",
+   "risks": "Stalled public development; AGPL studio package must never ship; 141 open issues; future 1.0 licence unknown.",
+   "license": "Apache-2.0 core; AGPL-3.0 studio",
+   "maintainer": "Theatre.js team",
+   "popularity": "12.8k stars, 483 forks",
+   "last_activity": "Pushed 2024-08-14",
+   "verified_opened": true
+  },
+  {
+   "name": "xunliuDesign GitHub account",
+   "url": "https://github.com/xunliuDesign?tab=repositories",
+   "kind": "repo",
+   "what_it_does": "Xun Liu's account lists 15 public repos. Relevant: false-creek-2100 (pixel sea-level-rise sandbox for South False Creek, plain JS with no build step; code licence not stated) and AI4GH (C# GenAI-in-Grasshopper components incl. Nano Banana_GH). The three named tools are not in this list.",
+   "how_we_use_it": "Read false-creek-2100 as a Vancouver-specific engagement-UX reference (paint tools, PNG export with metrics, disclaimer framing). Check AI4GH for how Xun wires image APIs into Grasshopper.",
+   "priority": "v1",
+   "status": "verified",
+   "saves": "Course-aligned precedent and local context for tone and data sources.",
+   "risks": "No stated code licence on false-creek-2100; AI4GH has 5 commits and no visible README body; hairline, anatomy and text-to-cad belong to other authors.",
+   "license": "Not stated for the relevant repos",
+   "maintainer": "Xun Liu",
+   "popularity": "12 followers; top repos have 1-3 stars",
+   "last_activity": "Newest repo update 2026-07-17 (des212-2026); false-creek-2100 2026-06-11",
+   "verified_opened": true
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Pin a WebGL2 stack now, plan WebGPU later. The ecosystem is split: R3F v10 alpha is WebGPU-first, while postprocessing (three <0.187) and N8AO are WebGL-only and SunLight is WebGPU-only.",
+   "rule_for_our_tool": "Lock three 0.186.x, R3F 9.8.x, drei 10.7.x, react 19.3.x. Put the renderer behind one adapter module and avoid GLSL-only dependencies outside it. Re-evaluate WebGPU after 10 Dec.",
+   "source_urls": [
+    "https://github.com/pmndrs/react-three-fiber/releases",
+    "https://github.com/N8python/n8ao",
+    "https://threejs.org/docs/pages/SunLight.html"
+   ]
+  },
+  {
+   "principle": "Render only when something changes, and degrade quality gracefully. R3F docs recommend on-demand frames, instancing, and PerformanceMonitor-driven DPR.",
+   "rule_for_our_tool": "Use frameloop=\"demand\", PerformanceMonitor for adaptive DPR, instancing for repeated facade or floor elements, and accumulate AO and soft shadows only when the camera rests. Offer Low/Medium/High tiers the user can override.",
+   "source_urls": [
+    "https://r3f.docs.pmnd.rs/advanced/scaling-performance",
+    "https://drei.docs.pmnd.rs/performances/performance-monitor",
+    "https://github.com/N8python/n8ao"
+   ]
+  },
+  {
+   "principle": "Keep lines thin and calm. In Anatomy's craft rules the boldest tone is for the subject, secondary edges are fainter, and every line lands on a real edge or fades.",
+   "rule_for_our_tool": "Viewport linework: 1 to 1.5 px fat lines from Edges (15 degree threshold), silhouette darker than internal edges, context lighter still. No dashed or blueprint clutter in the default view; put dimensions in the legend/inspector.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/references/craft.md",
+    "https://drei.docs.pmnd.rs/abstractions/edges",
+    "https://discourse.threejs.org/t/depicting-edges/10927"
+   ]
+  },
+  {
+   "principle": "Monochrome with one lit accent keeps attention and makes meaningful colour stand out. Anatomy and Hairline both reserve colour for the subject.",
+   "rule_for_our_tool": "Default clay-and-hairline palette plus a single accent for selection and hover. Reserve the FALSE ASSUMPTION colour and analysis false-colour ramps so no UI chrome uses them (our inference from these rules).",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/references/craft.md",
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/README.md"
+   ]
+  },
+  {
+   "principle": "Design light theme first and define every colour as a token with light and dark values; filled plates hide what is behind them. Hairline exposes plate, hi, edge, mid, lo and stroke-width tokens.",
+   "rule_for_our_tool": "Map viewport and UI colours to a token ladder (plate/hi/edge/mid/lo/accent). Never darken a glow for dark mode; define separate dark values. Set the plate token to the viewport background.",
+   "source_urls": [
+    "https://github.com/lucasmarkes/hairline",
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/references/craft.md"
+   ]
+  },
+  {
+   "principle": "Interaction polish that respects attention: hit areas stay still, springs for continuous values and short eased tweens for discrete picks, one lit accent, a designed rest pose, the loop sleeps when idle, reach is clamped, reduced motion jumps to end state.",
+   "rule_for_our_tool": "Apply to explode sliders, camera bookmarks and node hover. Test picking against the target pose, not the moving pose. No autoplay beyond user-started tours; respect prefers-reduced-motion. This keeps engagement honest, with no dark patterns.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/kaushikhegde11/hairline-anatomy/main/interaction.md",
+    "https://github.com/lucasmarkes/hairline"
+   ]
+  },
+  {
+   "principle": "Use the right edge technique per job: EdgesGeometry lines for crisp permanent linework (a forum thread of 5 replies reports it works, a single voice); inverted-hull Outlines for hover and selection; post-process Outline for selected groups.",
+   "rule_for_our_tool": "Edges for all massing and context, Outlines (screenspace thickness) for hover, postprocessing Outline for multi-select. Avoid whole-scene screen-space edge detection in the default look: it costs a pass and is noisy.",
+   "source_urls": [
+    "https://drei.docs.pmnd.rs/abstractions/outlines",
+    "https://drei.docs.pmnd.rs/abstractions/edges",
+    "https://pmndrs.github.io/postprocessing/public/docs/"
+   ]
+  },
+  {
+   "principle": "Section cuts are a stencil-plus-clipping recipe, and plan/section drawing geometry should come from the mesh kernel, not the render pass.",
+   "rule_for_our_tool": "Viewport sections: clipping planes plus stencil caps (needs watertight meshes). Board drawings: Manifold slice(height) polygons to SVG for poche and floor plans; three-edge-projection for hidden-line roof/plan views (Y-axis only).",
+   "source_urls": [
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/webgl_clipping_stencil.html",
+    "https://github.com/gkjohnson/three-edge-projection"
+   ]
+  },
+  {
+   "principle": "For towers, mesh kernels beat B-rep kernels: massing needs extrude, twist, taper, booleans, area and volume. B-rep WASM is large (opencascade.js about 9 MB, occt-wasm about 4.5 MB brotli) and mainly serves detail parts.",
+   "rule_for_our_tool": "Massing nodes run on Manifold in a worker and report volume, GFA per floor and surface area. Offer replicad/occt-wasm only as optional v1 detail modules loaded on demand.",
+   "source_urls": [
+    "https://github.com/elalish/manifold",
+    "https://github.com/andymai/occt-wasm"
+   ]
+  },
+  {
+   "principle": "Heavy kernels and parsers belong in web workers, with manual memory management. Rhino3dmLoader decodes in workers; occt-wasm provides OcctWorker and requires release(); Manifold objects need explicit cleanup.",
+   "rule_for_our_tool": "One kernel worker pool with a typed message API. Each node result carries a dispose hook. Show a progress/cancel affordance for long operations so the canvas never freezes.",
+   "source_urls": [
+    "https://threejs.org/docs/pages/Rhino3dmLoader.html",
+    "https://github.com/andymai/occt-wasm",
+    "https://github.com/elalish/manifold"
+   ]
+  },
+  {
+   "principle": "AI geometry generation is unreliable for free-form CAD and is trained on mechanical parts. Reported figures: 69.3% exact match for a fine-tuned model on single parts, +5% from visual feedback. Vendor claims for Zoo have no published benchmarks.",
+   "rule_for_our_tool": "Text-to-massing: the LLM returns JSON against a typed massing schema (footprint, height, setbacks, twist, program split); we validate with Manifold (positive volume, manifold, bounds), render, and let the user edit parameters. Log every AI output as an editable team assumption.",
+   "source_urls": [
+    "https://arxiv.org/abs/2505.06507",
+    "https://arxiv.org/abs/2410.05340",
+    "https://huggingface.co/campedersen/cad0",
+    "https://zoo.dev/text-to-cad"
+   ]
+  },
+  {
+   "principle": "Make the 3D canvas accessible with a synced semantic DOM beside it, keyboard operation, status announcements and reduced motion (a forum thread with four substantive voices agreed; no one disputed it). Dedicated R3F a11y packages are stale.",
+   "rule_for_our_tool": "Mirror the node list, selected module and key metrics in a visually-hidden HTML layer with live regions. Full keyboard navigation of canvas nodes and camera bookmarks. Do not rely on @react-three/a11y (last published 2022).",
+   "source_urls": [
+    "https://discourse.threejs.org/t/accessibility-for-3d-websites/87092"
+   ]
+  },
+  {
+   "principle": "Licence hygiene decides what ships. AGPL (xeokit, Theatre Studio) and LGPL WASM (OCCT builds) carry obligations; MPL-2.0 (web-ifc) is file-level; Zlib, MIT, Apache-2.0 and CC0 are easy.",
+   "rule_for_our_tool": "Decide the platform's own licence first (open question for the team). Keep a THIRD_PARTY licence table in the repo; ship LGPL WASM with source/relink notice; never bundle AGPL code unless the platform is AGPL.",
+   "source_urls": [
+    "https://github.com/xeokit/xeokit-sdk",
+    "https://github.com/theatre-js/theatre",
+    "https://github.com/ThatOpen/engine_web-ifc"
+   ]
+  },
+  {
+   "principle": "Agent-generated art is slow and token-hungry: Anatomy's documented example took about 1 h 54 min, the author calls token use substantial, and two runs differ. Time-box it.",
+   "rule_for_our_tool": "Allow at most a few hero figures from anatomy/hairline-create, each with a spend cap. Use Hairline's static package and tokens for routine UI art. Cache generated figures in the repo so they are never regenerated per user.",
+   "source_urls": [
+    "https://www.kunalganglani.com/blog/anatomy-claude-code-skill",
+    "https://github.com/wheresryan22/anatomy"
+   ]
+  },
+  {
+   "principle": "Prefer in-browser WASM over native Python on student Windows machines. Smart App Control can block unsigned OCP, CadQuery pip supports Python 3.9-3.12, and Node is not yet installed on the team machines.",
+   "rule_for_our_tool": "Core runs in the browser with no native installs beyond Node LTS (v24 or v22 per nodejs.org listing). Any Python CAD stays optional behind a documented WSL/conda path and telemetry opt-out.",
+   "source_urls": [
+    "https://github.com/earthtojake/text-to-cad",
+    "https://github.com/CadQuery/cadquery",
+    "https://nodejs.org/en/about/previous-releases"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Adopt Vite + React 19.3 + TypeScript + three 0.186.1 + R3F 9.8.2 + drei 10.7.9 with the WebGL2 renderer, all pinned in a lockfile. Install Node LTS (24 or 22) first.",
+   "rationale": "Compatible peer ranges today: R3F needs react >=19 <19.4, postprocessing needs three <0.187, That Open needs three >=0.182. Pinning avoids upgrade breakage before 13 Nov. Claude handles this ecosystem well, saving tokens.",
+   "alternatives_rejected": "R3F v10 alpha/WebGPU-first (pre-release, N8AO and postprocessing are WebGL-only); Babylon.js (ecosystem mismatch); raw three.js without R3F (more boilerplate)."
+  },
+  {
+   "decision": "Default look 'Clay and Hairline': matte white massing, drei Edges plus fat lines (about 1 to 1.5 px), N8AO at half resolution, SMAA, tone mapping, Outlines for hover, one accent colour. Provide switchable presets: Section (ortho plus stencil caps), Exploded axon, Analysis (false colour), Diagram (halftone/Kuwahara).",
+   "rationale": "Matches the instructor-shared tools' restraint (thin lines, one accent, light first) and uses cheap existing components. Presets keep each view focused on one task.",
+   "alternatives_rejected": "Photoreal PBR as default (heavy on laptops, distracts from analysis); full-scene screen-space edge detection (extra pass, noisy)."
+  },
+  {
+   "decision": "Use Manifold (manifold-3d 3.5.4) in a worker as the massing and boolean kernel; expose nodes for extrude (twist/taper), union/subtract, slice-to-area, volume, project and section split.",
+   "rationale": "Covers tower massing, GFA per floor and sections with one 2.8 MB-unpacked package; guaranteed-manifold booleans reduce debugging. Replicad/occt-wasm only as optional v1 detail modules.",
+   "alternatives_rejected": "opencascade.js (stale since 2023); JSCAD (mesh CSG, no robustness advantage found); three-bvh-csg (experimental, needs manifold inputs, README points to Manifold for robustness); CadQuery in Pyodide (not in package list)."
+  },
+  {
+   "decision": "Importers: .3dm via three Rhino3dmLoader with local rhino3dm 8.35 wasm; IFC via web-ifc 0.0.78 in a worker; OBJ/glTF via three loaders. Add That Open components (clipper, plans) in v1. For SketchUp and Revit, ask users to export IFC or glTF now; consider Speckle connectors on the roadmap.",
+   "rationale": "All are MIT/MPL/Apache and run client-side, so no server cost. A verified browser reader for .skp was not found in this pass.",
+   "alternatives_rejected": "xeokit (AGPL-3.0); Speckle viewer as the viewport (Viewer 2 cannot render current bundles without a bridge, Viewer 3 unreleased)."
+  },
+  {
+   "decision": "Implement text-to-massing, not free-form text-to-CAD: LLM outputs JSON for typed massing nodes, validated by Manifold, with render-and-check feedback and editable assumptions. Install earthtojake/text-to-cad as a developer Claude Code plugin only for small details. Zoo API only as an optional flagged integration later.",
+   "rationale": "Published text-to-CAD results come from single mechanical parts (69.3% exact match at best); JSON generation is cheaper and verifiable. text-to-cad has no architecture-scale examples and Windows SAC issues.",
+   "alternatives_rejected": "Free-form LLM-to-CadQuery in core; Zoo Text-to-CAD as a dependency (hosted engine, credit cost, no benchmarks); cad0 (7B-class mechanical-part model)."
+  },
+  {
+   "decision": "Sun and shadow: SunCalc (wrapped and unit-tested) drives a CSM directional light in WebGL; drei Sky for the sky; accumulate soft ground shadows only when still. Compute shadow hours analytically by BVH raycasts from grid points, not from rendered pixels.",
+   "rationale": "Analysis must be reproducible and citable while the visual shadow is only illustrative. CSM is WebGL-only today; SunLight is WebGPU-documented. takram atmosphere is beta and its API is being rewritten.",
+   "alternatives_rejected": "SunLight addon now (WebGPU only); takram atmosphere now; AccumulativeShadows as the analysis source (planar ground catcher, not an analysis tool)."
+  },
+  {
+   "decision": "Performance budget: frameloop demand, PerformanceMonitor-driven DPR, instancing, BVH picking, N8AO half-res, Low/Medium/High tiers with a visible quality toggle, and a smoke test on the weakest team laptop before 13 Nov.",
+   "rationale": "Student laptops vary; vendor figures (N8AO 2x-4x, BVH 500 rays at 60 fps) are unverified here, so measure. Adaptive quality keeps the tool responsive and focused.",
+   "alternatives_rejected": "Fixed high quality for everyone; WebGPU path-tracing for the live view (three-gpu-pathtracer needs WebGPU and long convergence)."
+  },
+  {
+   "decision": "Aesthetic system: adopt Hairline's token ladder and the @lucasmarkes/hairline package for module cards, empty states and onboarding; generate at most a few hero figures with hairline-create or anatomy with a spend cap and cached outputs.",
+   "rationale": "Gives a consistent calm visual language cheaply; hero art is expensive (about 2 h agent time per Anatomy example). Hairline's interaction rules keep motion purposeful, not manipulative.",
+   "alternatives_rejected": "Per-module generated illustrations (token cost, inconsistent output); Theatre.js for motion (stalled, AGPL studio); animated attention-grabbing UI."
+  },
+  {
+   "decision": "Add a compatibility and licence file: version pins (three below 0.187, react below 19.4), a monthly upgrade check, and a licence table. Block AGPL dependencies in CI and ship LGPL WASM with source notices.",
+   "rationale": "Several peer ranges are tight and licences differ (MPL, LGPL, AGPL, CC0 vs npm ISC for N8AO). A small file prevents rework and legal surprises for an open-source platform.",
+   "alternatives_rejected": "Floating versions with caret ranges; deciding licences at release time."
+  },
+  {
+   "decision": "Treat hairline, anatomy and text-to-cad as dev-time and design resources, not runtime dependencies: install their skills for the team, read their rules, and verify with Xun which repositories she meant, since none sits in her xunliuDesign account.",
+   "rationale": "They are third-party MIT repos, very new (Anatomy created 2026-10-08) and fast-changing. Using them as references saves time without lock-in, and confirms we have the right projects.",
+   "alternatives_rejected": "Vendoring their code into the platform; waiting on upstream updates for core features."
+  }
+ ],
+ "flags": [
+  {
+   "type": "UNVERIFIED",
+   "claim": "The three tools Xun shared are lucasmarkes/hairline, wheresryan22/anatomy and earthtojake/text-to-cad.",
+   "correction": "Matched by name only. None is in the xunliuDesign account's 15 public repos; all three belong to other authors.",
+   "detail": "Hairline 2.6k stars, Anatomy 17.8k, text-to-cad 22.0k. Search also surfaced kaushikhegde11/hairline-anatomy (0 stars, 1 commit), a combination of the two. Confirm with Xun.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "opencascade.js is the maintained way to run OpenCascade in the browser.",
+   "correction": "Repo last pushed 2023-08-15; npm latest 1.1.1 is dated 2020-09-27 (OCCT 7.6.2). Use replicad-opencascadejs 1.1.0 (2026-09-04) or occt-wasm 5.7.1 (OCCT 8.0.1, 2026-10-12).",
+   "detail": "Sources: GitHub repo page, npm registry, occt-wasm README.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "CadQuery or build123d can run in the browser through Pyodide.",
+   "correction": "Neither cadquery, build123d nor OCP appear in the Pyodide 314.0.7 package list; CadQuery README says pip supports Python 3.9-3.12 only.",
+   "detail": "Browser B-rep needs a WASM OCCT build (replicad, occt-wasm). No verified Pyodide route found in this pass.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Zoo text-to-CAD is open-source and can run locally.",
+   "correction": "The modeling-app is MIT, but its README says the 3D view streams from Zoo's hosted geometry engine; Text-to-CAD/Zookeeper is a hosted service drawing on monthly usage credits.",
+   "detail": "Zoo's pages give no benchmarks or error rates. KCL licence and local execution not confirmed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Theatre.js is an actively maintained open-source animation stack.",
+   "correction": "Public repo last pushed 2024-08-14; README says development moved to a private repo for v1.0; npm 0.7.2 is from 2024-05-19; @theatre/studio is AGPL-3.0.",
+   "detail": "Core is Apache-2.0; only core ships in a bundle.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "xeokit can be embedded in an open-source or permissive project at no cost or constraint.",
+   "correction": "xeokit-sdk is AGPL-3.0; closed or proprietary use needs a commercial licence from Creoox.",
+   "detail": "Fine only if the platform adopts AGPL-3.0.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Speckle viewer can display any current Speckle model out of the box.",
+   "correction": "Speckle docs say Viewer 2 cannot render current parquet-bundle model versions without a bridge, and Viewer 3 is unreleased.",
+   "detail": "@speckle/viewer 2.31.14 last published 2026-06-15.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "three.js SunLight (r186) gives cascaded sun shadows in the WebGL renderer, and N8AO works with WebGPU.",
+   "correction": "SunLight docs show setup for WebGPURenderer only; use the CSM addon for WebGL. N8AO README says it is not yet WebGPU-compatible.",
+   "detail": "Sources: threejs.org SunLight and CSM docs; N8AO README.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "rhino3dm.js can perform booleans or meshing of Breps locally.",
+   "correction": "README lists geometry containers and .3dm I/O only; advanced operations go through Rhino Compute.",
+   "detail": "Whether Breps without stored render meshes display via Rhino3dmLoader was not tested.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Vendor performance figures: three-mesh-bvh (500 rays on 80k polygons at 60 fps), N8AO half-res 2x-4x speedup, Manifold faster than OpenSCAD, web-ifc native speeds, Fragments millions of elements in seconds.",
+   "correction": "All are author claims with no test setup; none was measured on student laptops.",
+   "detail": "Measure on the weakest team laptop before fixing quality tiers.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Social signal on Hairline from an X post (one voice) and Anatomy adoption (6,507 stars by 12 Oct per one blog; 17.8k on GitHub now).",
+   "correction": "X returned HTTP 402 so the post was seen only as a search snippet. The blog's numbers are author-reported but GitHub counts are consistent with fast growth.",
+   "detail": "Forum opinions gathered: three.js forum AI-3D-tool thread about 10 voices (no single best tool, LLM-coded primitives judged poor); accessibility thread 4 substantive voices (agree on semantic DOM); SSAO-in-Vite thread 1 user (import-path issue).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Student laptop target and quality tiers (frame-rate floor, DPR caps, AO and shadow settings).",
+   "correction": "No source sets these; the team must pick a reference laptop and thresholds and record them as editable assumptions.",
+   "detail": "Suggested start: 30 fps floor at DPR 1 on integrated graphics, 60 fps goal on discrete GPUs (team assumption).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Licence of the platform itself (open-source licence choice).",
+   "correction": "Needed before deciding on AGPL (xeokit), LGPL WASM (OCCT builds) and MPL (web-ifc) usage.",
+   "detail": "Affects the reject decision on xeokit only.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved": [
+  "Social and forum sweep is incomplete: the shared WebSearch budget (200 per turn) was exhausted mid-run; Reddit was blocked by the fetch tool, X returned HTTP 402, Speckle Community returned 403, ThatOpen discussions URL returned 404. Hacker News, YouTube, LinkedIn, Ladybug forum and Discord were not searched. Only three.js and McNeel forum pages were read.",
+  "GitHub REST API became rate-limited (403) for the sandbox IP after the first fetches, so last-commit dates were not obtained for text-to-cad, Anatomy, Hairline, CadQuery, build123d, JSCAD, three-edge-projection and three-cad-viewer; npm dates were used where available.",
+  "No verified browser-side reader for SketchUp (.skp) or direct Revit import was found; assumed export to IFC/glTF/OBJ or Speckle. Searched: Speckle docs, That Open docs, three.js loader docs.",
+  "web-ifc schema coverage (IFC2x3, IFC4, IFC4x3) and geometry edge cases were not stated in README or That Open intro; requires a test with a real Revit IFC. IfcOpenShell has Pyodide WASM wheels (badge seen) but browser usage and IFC4x3 geometry (parsing only per README) were not confirmed.",
+  "Whether Rhino3dmLoader shows Breps lacking stored render meshes, and how layers and userData map to three objects, was not documented; needs a test with team .3dm files.",
+  "replicad details not confirmed from pages opened: feature list, worker setup, WASM size, and release cadence. Manifold JS loading steps and worker pattern were not read; only d.ts signatures were verified.",
+  "SunCalc v2 azimuth convention (README: clockwise from north) and licence (README BSD-2-Clause vs blank npm field) need a unit test and licence check; time-zone and DST handling for Vancouver not examined.",
+  "Not covered in this packet: the OpenAI image-generation hand-off (whether clean viewport captures give good gpt-image results), Google Photorealistic 3D Tiles terms for Vancouver context, and City of Vancouver open 3D data; flagged for the relevant packets.",
+  "Exploded-axonometric and section-cut aesthetic references were limited to the three.js stencil example, three-cad-viewer and Anatomy/Hairline rules; no architecture-specific diagram style guide or Rhino Make2D line-weight convention was opened beyond the McNeel arch-line-weights thread (no replies, no licence named).",
+  "Node LTS status: nodejs.org page listed v24 (Krypton, 24.22.0) and v22 (Jod, 22.23.3) as LTS but its snapshot predates October 2026; confirm the Active LTS line at install time."
+ ],
+ "change_log": [
+  "Round 1 (21 Oct 2026): Opened GitHub pages, npm registry JSON and docs for 30 findings; recorded stars, licences, versions and last-activity dates, using GitHub API pushed_at values where it responded.",
+  "Identified the three instructor-shared tools as lucasmarkes/hairline, wheresryan22/anatomy and earthtojake/text-to-cad by name match; none is in xunliuDesign's 15 repos (flagged UNVERIFIED).",
+  "Corrected assumptions: opencascade.js stale since 2023; Theatre.js public repo stalled and studio AGPL; xeokit AGPL; CadQuery/build123d absent from Pyodide package list; Zoo hosted engine; SunLight WebGPU-only; N8AO WebGL-only; Speckle Viewer 2 bundle limitation.",
+  "Added version-compatibility findings from npm peer ranges: three 0.186.x with postprocessing (<0.187), R3F 9.8.2 (react >=19 <19.4), That Open (three >=0.182).",
+  "Recorded forum and social signals as summaries with voice counts; marked sweep incomplete because the search budget was exhausted."
+ ]
+}

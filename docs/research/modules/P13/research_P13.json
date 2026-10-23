@@ -1,0 +1,2014 @@
+{
+ "packet_id": "P13",
+ "modules": [
+  {
+   "module_id": "P13-M01",
+   "name": "Deliverables and hard-rules tracker",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Which VTC hard rules and recommended deliverables are met, missing or at risk, and how many days remain before the 30 Nov 2026 closing time?",
+   "inputs": [
+    "board scene JSON and export_manifest from P13-M06",
+    "editable checklist: 6 hard rules + 20 recommended items (programme, structure and massing diagrams; wind, solar/shadow and sustainability studies; site plan; ground floor plan; typical lower/mid/upper plans; 2 sections; skyline view; mid-city view; 4 ground-level perspectives; policy reflection)",
+    "module result cards from other packets (wind, shadow, sustainability, structure, programme)",
+    "rubric gaps from P13-M07",
+    "current date and team time zone"
+   ],
+   "outputs": [
+    "submission_status (typed JSON: hard_rules[], coverage, missing[], days_left, blocking)",
+    "blocking_issues list that disables the export-for-upload button in P13-M06",
+    "per-item evidence links for P13-M07"
+   ],
+   "parameters": [
+    {
+     "name": "panel_count",
+     "unit": "boards",
+     "relationship": "More boards give more room for the 20 recommended items (5 per board at 4 boards), but every JPEG must independently stay under 10 MB, so the total upload budget grows with each board.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "recommended_item_set",
+     "unit": "items",
+     "relationship": "Each unplaced recommended item lowers coverage. Items are tagged to jury criteria (team mapping): missing ground-level perspectives weakens human-scale evidence (40%); missing wind, solar or sustainability studies weakens design-excellence evidence (20%).",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "deadline_timestamp",
+     "unit": "date-time",
+     "relationship": "Closing is 23:59 London time on 30 Nov 2026 = 15:59 Vancouver (PST). Late entries are automatically disqualified and edits after first upload need a paid reactivation, so earlier export lowers both risks.",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "file_size_margin",
+     "unit": "MB",
+     "relationship": "A bigger safety margin below 10 MB protects against MB/MiB ambiguity and portal overhead but forces lower JPEG quality or fewer pixels, which softens thin linework on the board.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "aspect_ratio_tolerance",
+     "unit": "%",
+     "relationship": "A2 is 420 x 594 mm (ratio 1.414); a tighter tolerance prevents stretched or cropped boards, a looser one hides layout mistakes.",
+     "source_ids": [
+      "P13-S41"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Panel file format",
+     "good": "every panel is .jpg/.jpeg",
+     "bad": "any PDF, PNG, TIFF or other format",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Check extension and JPEG magic bytes of each exported board.",
+     "basis": "Buildner Terms section 4.8: each panel must be saved as JPEG; non-compliant format is a disqualification ground (sections 8.2).",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Panel file size (hard limit)",
+     "good": "<= 10 MB per panel",
+     "bad": "> 10 MB (disqualification risk)",
+     "status": "verified",
+     "unit": "MB",
+     "method": "Read byte length of each exported JPEG.",
+     "basis": "Terms section 4.8 sets 10 MB per panel; the brief (via team) repeats it. Unit (10^6 bytes vs MiB) is not defined in what was read.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Panel file size (safety target)",
+     "good": "<= 9.5 x 10^6 bytes",
+     "bad": "between 9.5 x 10^6 bytes and 10 MB: amber; above 10 MB: red",
+     "status": "team_assumption",
+     "unit": "bytes",
+     "method": "Same byte count compared with a margin that is safe under either MB definition.",
+     "basis": "Team margin; editable."
+    },
+    {
+     "name": "Number of panels",
+     "good": "1 to 4 panels; project plan uses exactly 4",
+     "bad": "> 4 panels",
+     "status": "verified",
+     "unit": "boards",
+     "method": "Count exported boards.",
+     "basis": "Terms: the brief sets the count, from a single panel up to four; project brief facts supplied by team say four A2 boards.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Board aspect ratio / orientation",
+     "good": "landscape, width:height = 1.414 +/- 0.005 (594 x 420 mm)",
+     "bad": "portrait or ratio outside +/- 0.02",
+     "status": "team_assumption",
+     "unit": "ratio",
+     "method": "width_px / height_px of each JPEG.",
+     "basis": "A2 = 420 x 594 mm (ISO 216) is verified; the landscape rule comes from the brief as supplied by the team; the tolerance is a team choice.",
+     "source_ids": [
+      "P13-S41",
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Language",
+     "good": "all text on boards declared English",
+     "bad": "any non-English text block",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Manual attestation per text block (P13-M08 sets language='en').",
+     "basis": "Buildner page: all information submitted by participants must be in English.",
+     "source_ids": [
+      "P13-S02"
+     ]
+    },
+    {
+     "name": "Recommended-item coverage",
+     "good": "20 of 20 items placed (counts met: 3 typical plans, >=2 sections, >=4 ground-level views)",
+     "bad": "any category with zero items placed",
+     "status": "team_assumption",
+     "unit": "items placed / 20",
+     "method": "Match checklist items to tagged board elements.",
+     "basis": "Item list and minimum counts come from the brief via the team; items are 'recommended', so a gap is not a rule breach and the cut-off is a team choice.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Days of buffer before closing",
+     "good": ">= 7 days between first complete valid export and 23:59 London time on 30 Nov",
+     "bad": "<= 2 days, or any hard-rule failure within 7 days",
+     "status": "team_assumption",
+     "unit": "days",
+     "method": "deadline(Europe/London) - now; shown in London and Vancouver time.",
+     "basis": "Deadline is verified; late entries are auto-disqualified (Terms section 8.4); the 7-day and 2-day buffers are team choices.",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03"
+     ]
+    }
+   ],
+   "visualization": [
+    "Checklist grid: 20 item rows x up to 4 board columns with green/amber/red chips; each hard rule is a pass/fail badge linked to its clause (e.g., Terms section 4.8)",
+    "Dual-timezone countdown (London / Vancouver) with milestone ticks for 29 Oct registration close, 3 Nov Q&A close, 13 Nov course core, 30 Nov submission",
+    "Four board thumbnails with ghost slots for missing items and a file-size gauge (MB against 10 MB)"
+   ],
+   "method": "Load a versioned checklist JSON with 6 hard rules and 20 recommended items. Each item has an id, label, jury tag, minimum count and the board elements that satisfy it; elements get tags in P13-M06 (for example type=section, view=skyline). Hard rules are evaluated from the export_manifest: extension, bytes, width/height ratio, panel count, anonymity findings; language is a manual attestation. Coverage = items whose minimum count is met / 20. days_left = deadline in Europe/London minus now. Any hard-rule failure sets blocking=true. Every threshold shows its source or an amber 'team assumption' tag and can be edited; each edit is logged. When Buildner answers Q&A (closes 3 Nov 2026) a rule change is recorded as a dated changelog entry.",
+   "human_judgment": "Whether an item really answers the brief (a wind study must be an analysis, not a diagram label); reading the full official brief and Q&A for changes; the final upload through the Buildner portal; deciding which recommended items to omit and justify.",
+   "limits": "The brief PDF itself could not be opened here; board count, A2 size and weights come from team-supplied text, and the Buildner pages read do not list them. The portal may apply checks (pixel size, colour mode, MB vs MiB) that are not documented. Coverage counts presence, not quality.",
+   "libraries": [
+    {
+     "name": "Intl.DateTimeFormat (browser built-in)",
+     "role": "London/Vancouver time conversion",
+     "license": "web platform",
+     "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat"
+    }
+   ],
+   "depends_on": [
+    "P13-M06",
+    "P13-M07"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "S: 3-4 person-days"
+  },
+  {
+   "module_id": "P13-M02",
+   "name": "Drawing extraction (plans, sections, make2d-style linework)",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Can plans, sections and elevations be generated from the 3D model as clean, scaled, layered linework that fits the board and reconciles with programme areas?",
+   "inputs": [
+    "Layer 0 meshes / B-reps with program tags (from imports: Rhino 3dm, OBJ, IFC, SketchUp, Revit)",
+    "storey elevations and floor-to-floor heights (programme / structure modules)",
+    "cut plane and section line definitions chosen by user",
+    "site north rotation angle (SITE packet)",
+    "target scale and frame size in mm from P13-M06"
+   ],
+   "outputs": [
+    "drawing_set[]: {id, type plan|section|elevation, svg, scale, cut_height, bbox_mm, layers by program tag, line classes} consumed by P13-M06",
+    "gfa_by_storey reconciliation result for programme modules",
+    "DXF/SVG export for use in Rhino/Illustrator"
+   ],
+   "parameters": [
+    {
+     "name": "cut_height_above_floor",
+     "unit": "m",
+     "relationship": "Plans are conventionally cut about 1.2 m (4 ft) above finished floor, showing walls, openings and columns; a cut at slab level hides openings, one above head height loses wall and door relationships.",
+     "source_ids": [
+      "P13-S43"
+     ]
+    },
+    {
+     "name": "section_line_position",
+     "unit": "m",
+     "relationship": "A section through the core and public volumes shows how public-facing uses stack vertically through the tower, which the brief asks for; a section through blank floors hides it.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "drawing_scale",
+     "unit": "1:n",
+     "relationship": "Printed extent = real size / n. The 144.8 m block side is 290 mm at 1:500 but 724 mm at 1:200, which exceeds the 420 mm board height; a smaller scale frees area but shrinks annotation legibility.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "hidden_lines_on",
+     "unit": "boolean",
+     "relationship": "Hidden lines add information (below-grade volumes, stacked cores) but add clutter; Rhino Make2D puts them on separate layers so they can be dashed or switched off.",
+     "source_ids": [
+      "P13-S30"
+     ]
+    },
+    {
+     "name": "input_route",
+     "unit": "mesh | IFC | Make2D import",
+     "relationship": "The mesh route projects along one axis at a time, so the model is rotated per view; the IFC route can use IfcOpenShell geometry; a Rhino Make2D result can be imported when NURBS-exact linework is needed.",
+     "source_ids": [
+      "P13-S25",
+      "P13-S29",
+      "P13-S30"
+     ]
+    },
+    {
+     "name": "crease_angle_threshold",
+     "unit": "degrees",
+     "relationship": "UNRESOLVED: relationship between edge-angle threshold and drawing clarity on curved facades was not found in an opened source (see unresolved_relationships).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Plan cut height convention",
+     "good": "1.2 m (about 4 ft) above finished floor",
+     "bad": "cut at slab level (0 m) or above 1.8 m",
+     "status": "verified",
+     "unit": "m",
+     "method": "Compare chosen cut with the convention.",
+     "basis": "Good value is the stated convention; the bad bounds are the team's reading of 'approximately'.",
+     "source_ids": [
+      "P13-S43"
+     ]
+    },
+    {
+     "name": "Cut-loop closure ratio",
+     "good": "100% of cut polylines closed (poche can fill)",
+     "bad": "< 95% closed",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "closed cut loops / all cut loops after slicing Layer 0 with the cut plane.",
+     "basis": "Open loops indicate non-watertight Layer 0 geometry; thresholds are team-set."
+    },
+    {
+     "name": "Drawing fits allocated frame",
+     "good": "scaled bbox <= 100% of frame in both axes",
+     "bad": "> 100% in either axis",
+     "status": "verified",
+     "unit": "% of frame",
+     "method": "bbox_mm = model extent / scale, compared with frame in mm on a 594 x 420 mm board.",
+     "basis": "Arithmetic from the brief's site size and the A2 dimensions.",
+     "source_ids": [
+      "P13-S01",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "Segments per drawing",
+     "good": "<= 250,000 line segments",
+     "bad": "> 1,000,000 segments",
+     "status": "team_assumption",
+     "unit": "segments",
+     "method": "Count after linework simplification.",
+     "basis": "No published budget; chosen so rasterising a board stays fast. Tune after testing."
+    },
+    {
+     "name": "Area reconciliation with programme tags",
+     "good": "|plan area - tagged GFA| <= 1% per storey",
+     "bad": "> 3% difference",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Sum polygon areas of cut slab loops per storey versus the Layer 0 tag totals.",
+     "basis": "Team tolerance."
+    },
+    {
+     "name": "Line-weight hierarchy",
+     "good": "cut > silhouette > projected edge > hidden with each step about 2:1",
+     "bad": "two classes drawn at the same weight",
+     "status": "team_assumption",
+     "unit": "mm at print scale",
+     "method": "Class-to-weight table rendered in the SVG stroke-width.",
+     "basis": "Common drafting convention recalled from ISO 128-20 but that standard was not opened; weights are editable presets."
+    }
+   ],
+   "visualization": [
+    "SVG preview with toggles per line class (cut, silhouette, crease, hidden) and per program-tag layer, poche filled with the programme colour",
+    "Plan with cut-line markers and rotated site north arrow; scale bar",
+    "Board-frame overlay showing the drawing at 1:n inside the allocated rectangle with an overflow warning in red"
+   ],
+   "method": "1) Normalise Layer 0 to indexed meshes (B-rep tessellated). 2) Plan: slice meshes with a horizontal plane at the cut height, chain intersection segments into polylines, close loops, and fill them as poche; project the visible geometry below the cut with BVH-based edge projection. 3) Section/elevation: rotate the scene so the view axis matches the projection axis, clip at the section plane, repeat. 4) Classify lines as cut, silhouette, crease or hidden; remove occluded edges. 5) Output SVG layered by program tag, plus scale bar and north arrow rotated by the site angle. For IFC inputs use IfcOpenShell on a server worker; for exact NURBS linework accept Rhino Make2D output as an imported SVG/DXF. Report closure ratio, segment count and area reconciliation.",
+   "human_judgment": "Where to cut and section, which elements and levels represent the design, line weights, annotation and entourage, and whether the drawing actually tells the story of vertical public uses.",
+   "limits": "Linework comes from tessellated meshes, not NURBS, so curved facades are faceted; thin curtain-wall detail and below-slab structure are absent from Layer 0. The edge-projection library works along one axis and shows 12 open issues; performance on a 300 m tower is untested. Rhino Make2D is the quality reference.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "scene, clipping, rendering",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "fast ray/clip queries, clipped-edge examples",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "three-edge-projection",
+     "role": "visible edge projection and flattening to 2D line segments",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-edge-projection"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "read .3dm geometry, layers and attributes in browser (WASM)",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "web-ifc",
+     "role": "read IFC in browser (WASM)",
+     "license": "MPL-2.0",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "IFC geometry and server-side drawing generation",
+     "license": "LGPL-3.0-or-later (core); Bonsai GPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "manifold-3d",
+     "role": "candidate mesh boolean/section engine (slice API not confirmed on the page read)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/elalish/manifold"
+    }
+   ],
+   "depends_on": [
+    "Layer 0 geometry and tags",
+    "SITE packet: site north angle"
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "priority": "core",
+   "effort": "L: 8-12 person-days for mesh-based plan and section (core); +5 days for IFC hidden-line route (v1)"
+  },
+  {
+   "module_id": "P13-M03",
+   "name": "Camera presets and viewpoint library",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "From which sourced viewpoints and lenses must the tower be shown (Queen Elizabeth Park skyline, mid-city, four ground-level views), and does the design read at those distances?",
+   "inputs": [
+    "site location and ground elevation, terrain and context models (SITE packet)",
+    "tower heights and massing from Layer 0",
+    "site north rotation angle",
+    "view-cone geometry if available from SITE packet",
+    "sun date/time from CLIM packet for lighting"
+   ],
+   "outputs": [
+    "camera_preset[]: {name, position, target, hfov, roll, shift, viewpoint_source, eye_height} consumed by P13-M04, P13-M05, P13-M06 and CLIM image exports",
+    "tower_share_of_frame per preset",
+    "compass-labelled overlay data (Stanley Park, BC Place, Entertainment District, Burrard Inlet/North Shore Mountains)"
+   ],
+   "parameters": [
+    {
+     "name": "viewpoint_position_and_elevation",
+     "unit": "lat/lon, m ASL",
+     "relationship": "Queen Elizabeth Park is listed at 49.2422 N 123.1150 W (Little Mountain 49.2417 N 123.1133 W) about 125 m above sea level; a high viewpoint puts more of the tower above the horizon and shows it against context rather than sky only.",
+     "source_ids": [
+      "P13-S09",
+      "P13-S10"
+     ]
+    },
+    {
+     "name": "viewing_distance",
+     "unit": "m",
+     "relationship": "Apparent height = atan(height difference / distance). Illustration: a 300 m tower at 5 km subtends about 3.4 degrees, so doubling distance halves its size in frame and forces a longer lens or a crop.",
+     "source_ids": []
+    },
+    {
+     "name": "focal_length_equivalent",
+     "unit": "mm (36 mm sensor)",
+     "relationship": "Horizontal field = 2 x atan(18/f): 50 mm gives 39.6 degrees, 85 mm gives 23.9 degrees. Longer lenses enlarge the distant tower in frame but narrow the visible context.",
+     "source_ids": []
+    },
+    {
+     "name": "eye_height",
+     "unit": "m",
+     "relationship": "Ground-level views at about 1.6 m show canopies and podium frontage at pedestrian scale, the scale the human-scale criterion judges; higher cameras read as aerial views.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "view_cone_status",
+     "unit": "pass/fail",
+     "relationship": "The City keeps four Queen Elizabeth Park cones (3.2.1 to 3.2.4); the Higher Buildings Policy allows only select sites to encroach through a special review, so a skyline image must honestly show any encroachment.",
+     "source_ids": [
+      "P13-S05",
+      "P13-S07",
+      "P13-S08"
+     ]
+    },
+    {
+     "name": "site_north_rotation",
+     "unit": "degrees",
+     "relationship": "The site plan's north arrow is rotated from the street grid, so view azimuths and compass labels must use the rotated north or the labels will point to the wrong landmarks.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tower share of frame height (QE Park skyline)",
+     "good": ">= 10% of image height",
+     "bad": "< 5% of image height",
+     "status": "team_assumption",
+     "unit": "% of frame height",
+     "method": "Project tower top and base to the image plane; (top_y - base_y)/frame height; auto-suggest focal length to reach the target.",
+     "basis": "Team legibility target; no source gives a value."
+    },
+    {
+     "name": "Viewpoint position error versus the City's designated origin",
+     "good": "within the tolerance of the origin published in the Public Views Guidelines (value not obtained)",
+     "bad": "viewpoint not traceable to a published origin",
+     "status": "unverified",
+     "unit": "m",
+     "method": "Distance between preset and published origin once obtained.",
+     "basis": "The 2024 Public Views Guidelines PDF returned HTTP 403; origin, azimuth and height not read.",
+     "source_ids": [
+      "P13-S07"
+     ]
+    },
+    {
+     "name": "Number of ground-level perspectives",
+     "good": ">= 4",
+     "bad": "< 4",
+     "status": "verified",
+     "unit": "views",
+     "method": "Count presets of type ground.",
+     "basis": "Brief recommends at least four ground-level perspectives (as supplied by team).",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Ground-level eye height",
+     "good": "1.6 m +/- 0.1",
+     "bad": "> 2.0 m for a 'ground-level' view",
+     "status": "team_assumption",
+     "unit": "m",
+     "method": "Camera z minus local ground z.",
+     "basis": "Common adult eye height; team preset, editable."
+    },
+    {
+     "name": "Vertical convergence",
+     "good": "verticals within 0.5 degrees of vertical (shift lens, zero pitch)",
+     "bad": "> 2 degrees keystone",
+     "status": "team_assumption",
+     "unit": "degrees",
+     "method": "Check camera pitch/roll and lens shift.",
+     "basis": "Architectural-visualisation convention; team preset."
+    }
+   ],
+   "visualization": [
+    "Plan map with north arrow (rotated), a wedge for each camera and a dashed line of sight to the tower top",
+    "Elevation profile from the viewpoint to the site: terrain line, horizon, tower silhouette, view-cone ceiling if available",
+    "Thumbnail grid with 'tower % of frame' badge and burned-in compass labels"
+   ],
+   "method": "Convert viewpoint lat/lon to the project's local frame (WGS84 to UTM zone 10N, EPSG:32610) with proj4js, add the terrain elevation from the SITE packet and the eye height. Point the camera at the tower centroid, set roll to zero and use lens shift to keep verticals vertical. Choose focal length so the tower share of frame meets the target, then ray-cast from the camera to tower top and base against context meshes to flag occlusion by existing towers. Ground-level presets are placed at the four site edges named in the brief (arterial side, retail high street, lane or mid-block connection, transit plaza and below-grade station entrance), eye height 1.6 m. Output camera JSON and burned-in compass labels using the rotated north.",
+   "human_judgment": "Choosing the mid-city viewpoint, composition, season and time of day; confirming the QE Park position against the City's designated origin; deciding which four ground-level views best show the public realm.",
+   "limits": "Terrain and city context must come from the SITE packet. The exact QE Park view-cone origin, azimuth and height were not obtained (City hosts returned 403). Tree canopy and haze at the park are not modelled. The brief does not define the mid-city viewpoint.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "camera, lens shift, frustum, ray-casting",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "proj4js",
+     "role": "WGS84 to EPSG:32610 (predefined EPSG:32601-32660)",
+     "license": "not stated on the page read; check LICENSE.md",
+     "url": "https://github.com/proj4js/proj4js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "occlusion ray-casts",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    }
+   ],
+   "depends_on": [
+    "SITE packet: site, terrain, context, north angle"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "M: 4-6 person-days"
+  },
+  {
+   "module_id": "P13-M04",
+   "name": "Viewport conditioning capture (depth, line, segmentation)",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "objective",
+   "design_question": "Which exact structural guides (clay beauty, depth, line, program-colour segmentation) can be rendered from Layer 0 so AI renderings stay registered to the massing?",
+   "inputs": [
+    "camera_preset from P13-M03",
+    "Layer 0 and context meshes with program tags",
+    "palette mapping program tag to flat colour",
+    "target pixel size"
+   ],
+   "outputs": [
+    "conditioning_pack: {beauty_png, depth_png, line_png, seg_png, palette_json, camera_json, sha256} consumed by P13-M05",
+    "pixel-aligned tower mask used by the fidelity check"
+   ],
+   "parameters": [
+    {
+     "name": "capture_size",
+     "unit": "px",
+     "relationship": "gpt-image sizes need multiples of 16, ratio <= 3:1, edges <= 3840 px and 655,360-8,294,400 pixels; above 2560x1440 is experimental. Larger captures keep thin features but raise token cost.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "depth_range_normalisation",
+     "unit": "near/far m",
+     "relationship": "The diffusers examples min-max normalise depth to 0-1 per image, so the near/far range sets how many grey levels the tower receives; a range spanning the whole city leaves the tower few levels.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "line_threshold",
+     "unit": "Canny low/high",
+     "relationship": "The diffusers example uses Canny thresholds 100 and 200; lower thresholds keep more edges and tighten structural control on the result, higher ones keep only strong outlines.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "segmentation_palette",
+     "unit": "tag to RGB",
+     "relationship": "The original ControlNet segmentation model expects ADE20K classes; a custom programme palette needs a prompt legend or a fine-tuned model to be interpreted correctly.",
+     "source_ids": [
+      "P13-S17"
+     ]
+    },
+    {
+     "name": "controlnet_conditioning_scale",
+     "unit": "0-1+",
+     "relationship": "In diffusers examples a scale of 0.5 is used; higher values follow the guide image more strictly, lower values give the prompt more freedom and risk geometry drift.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Size rule compliance (OpenAI route)",
+     "good": "all five size rules satisfied",
+     "bad": "any rule violated (API error)",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Validate width, height, ratio and pixel count before sending.",
+     "basis": "OpenAI image-generation guide size constraints.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "Registration between passes",
+     "good": "0 px offset (same camera, same render call)",
+     "bad": "> 1 px offset",
+     "status": "team_assumption",
+     "unit": "px",
+     "method": "Compare silhouette of the depth, line and segmentation passes.",
+     "basis": "By construction; checks protect against resize or crop mistakes."
+    },
+    {
+     "name": "Tagged-pixel completeness",
+     "good": "100% of tower pixels carry a program tag",
+     "bad": "< 98% (untagged geometry draws in 'unknown' colour)",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Count pixels of the 'unknown' colour inside the tower mask.",
+     "basis": "Team threshold."
+    },
+    {
+     "name": "Pack completeness",
+     "good": "depth + line + segmentation + beauty present (ControlNet route); beauty present (OpenAI route)",
+     "bad": "any required pass missing",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Check files and sidecar JSON.",
+     "basis": "Route requirements from the ControlNet guide and OpenAI edit endpoint.",
+     "source_ids": [
+      "P13-S19",
+      "P13-S11"
+     ]
+    }
+   ],
+   "visualization": [
+    "2x2 contact sheet of beauty, depth (grey ramp with near/far legend), line and segmentation (palette legend by programme)",
+    "Opacity slider that overlays any pass on the beauty capture"
+   ],
+   "method": "From the chosen camera render four passes with identical size and camera in three.js: (1) clay beauty with ambient occlusion and the sun from CLIM; (2) linear depth normalised between near and far values set around tower plus site; (3) line pass from depth/normal discontinuities plus crease edges; (4) ID pass with flat unlit colour per program tag, no anti-aliasing so tags survive. Save PNGs and a JSON sidecar with camera, palette, tag counts and SHA-256. Validate size rules before any API call. For fidelity checks later, depth can be re-estimated from the AI output with a small monocular model and compared with the exact depth pass.",
+   "human_judgment": "Which context to include or hide, time of day and sun angle, which landmarks must remain recognisable, and whether the clay capture is a fair representation of the design.",
+   "limits": "Programme tags are the only semantic classes; trees, water and street furniture have none. ControlNet checkpoints in the cited examples are trained near 512-1024 px, far below board resolution. OpenAI image edits take reference images, not strict control maps, so passes beyond the beauty capture may be only weak hints.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "render passes",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "Depth Anything V2 (Small)",
+     "role": "depth re-estimation for fidelity check",
+     "license": "Apache-2.0 (Small); Base/Large/Giant CC-BY-NC-4.0",
+     "url": "https://github.com/DepthAnything/Depth-Anything-V2"
+    },
+    {
+     "name": "diffusers",
+     "role": "reference preprocessing code (Canny, depth)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/huggingface/diffusers"
+    }
+   ],
+   "depends_on": [
+    "P13-M03"
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "priority": "core",
+   "effort": "M: 4-5 person-days"
+  },
+  {
+   "module_id": "P13-M05",
+   "name": "Style selection and AI rendering pipeline",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "Which style and engine give faithful, site-specific, non-generic renderings from the conditioning pack, at what cost, with what fidelity checks and with honest AI labelling?",
+   "inputs": [
+    "conditioning_pack from P13-M04",
+    "camera_preset metadata",
+    "programme and materials from ADVANCED mode",
+    "style preset and structured prompt fields",
+    "cultural and ecological cues from CULT/ECOL packets",
+    "engine choice and API credentials (user-supplied, never stored in the module)"
+   ],
+   "outputs": [
+    "render_asset: {image, role skyline|midcity|ground, camera_id, engine, model_snapshot, prompt, seed, size, quality, cost_usd, fidelity{silhouette_iou, edge_match}, ai_label{iptc_digital_source_type, caption}, accepted}",
+    "ai_ledger entry per call consumed by P13-M08 and P13-M06"
+   ],
+   "parameters": [
+    {
+     "name": "engine",
+     "unit": "openai | comfyui | diffusers",
+     "relationship": "OpenAI route: image edit from reference images, no explicit depth/line control. Open route (SDXL/Flux + ControlNet via ComfyUI or diffusers): explicit conditioning scale and local control, but licences and GPU needs differ.",
+     "source_ids": [
+      "P13-S11",
+      "P13-S19",
+      "P13-S20"
+     ]
+    },
+    {
+     "name": "openai_model",
+     "unit": "model id",
+     "relationship": "gpt-image-2.5-sunburst is described for editing precision, gpt-image-2.5-flare for fast everyday generation, gpt-image-2 remains available; all three share token prices. Snapshot ids pin results for reproducibility.",
+     "source_ids": [
+      "P13-S11",
+      "P13-S12",
+      "P13-S13",
+      "P13-S14"
+     ]
+    },
+    {
+     "name": "quality",
+     "unit": "low|medium|high|xhigh|max|auto",
+     "relationship": "Higher quality raises output tokens and cost; earlier models produced 272, 1,056 and 4,160 output tokens at 1024x1024 for low, medium, high, roughly a four-fold step each. Tokens for the 2.5 models are not published in what was read.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "size",
+     "unit": "px",
+     "relationship": "Custom sizes must be multiples of 16 with ratio <= 3:1; above 2560x1440 is experimental. A 3840x2160 output is about 164 px/inch across a 594 mm board, so large heroes may need upscaling.",
+     "source_ids": [
+      "P13-S11",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "mask_region",
+     "unit": "alpha mask",
+     "relationship": "Masked edits let sky, trees or foreground change while the tower stays; masking is prompt-based and may not follow the mask shape exactly, so protected pixels can still shift.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "conditioning_scale (open route)",
+     "unit": "0-1+",
+     "relationship": "Higher scale keeps output closer to the line/depth guide, lower scale gives more stylistic freedom; the diffusers examples use 0.5. Architecture-specific tuning evidence was not found.",
+     "source_ids": [
+      "P13-S19"
+     ]
+    },
+    {
+     "name": "style_preset",
+     "unit": "preset id",
+     "relationship": "Style changes how generic an image looks; the brief says to avoid generic, placeless design, so presets should be anchored by site cues (City in Nature, mountains, water) chosen by the team. Effect on jury score is not evidenced.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "moderation",
+     "unit": "auto|low",
+     "relationship": "'auto' applies standard filtering; blocked requests return moderation_blocked and must not be retried without changing the inputs.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tower silhouette IoU (fidelity)",
+     "good": ">= 0.90",
+     "bad": "< 0.75",
+     "status": "team_assumption",
+     "unit": "IoU",
+     "method": "Segment the AI output (tower class) and compare with the tower mask from the conditioning segmentation pass.",
+     "basis": "No published benchmark for architectural fidelity; team thresholds, tune on pilot renders."
+    },
+    {
+     "name": "Line agreement",
+     "good": ">= 0.80 of conditioning line pixels within 3 px of an output edge",
+     "bad": "< 0.60",
+     "status": "team_assumption",
+     "unit": "fraction",
+     "method": "Edge-detect the output and compute proportion of guide-line pixels with an output edge within a tolerance.",
+     "basis": "Team thresholds."
+    },
+    {
+     "name": "Storey / bay count match (hero views)",
+     "good": "visible storey lines equal the model",
+     "bad": "any difference",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Human tick in the review step, assisted by overlaying the model's floor lines.",
+     "basis": "A rendering must not misrepresent the design; team rule."
+    },
+    {
+     "name": "Cost per accepted image",
+     "good": "<= team budget (default US$ 2.00, editable)",
+     "bad": "> 2x budget",
+     "status": "team_assumption",
+     "unit": "USD",
+     "method": "(text_in x 5 + image_in x 8 + image_out x 30) / 10^6 per image at standard rates; batch rates are half; read token counts from the response usage when available.",
+     "basis": "Token rates verified; the usage field names were not seen in the docs read; the budget is a team value.",
+     "source_ids": [
+      "P13-S14",
+      "P13-S13"
+     ]
+    },
+    {
+     "name": "AI label and ledger coverage",
+     "good": "100% of AI-derived images carry a visible caption and a ledger entry",
+     "bad": "any AI-derived image without both",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Join render_asset records with board placements.",
+     "basis": "Good practice from journal disclosure rules and EU Article 50 principles; Buildner's terms read contain no AI rule.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S39",
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "Provenance signal present in API output",
+     "good": "C2PA and/or SynthID detected on the returned image",
+     "bad": "neither detected",
+     "status": "unverified",
+     "unit": "pass/fail",
+     "method": "Read manifest with a C2PA reader; check OpenAI's verification page manually.",
+     "basis": "Help-centre text (not opened; search excerpt) says API images carry C2PA metadata and SynthID, with coverage varying and metadata strippable.",
+     "source_ids": [
+      "P13-S15",
+      "P13-S37"
+     ]
+    }
+   ],
+   "visualization": [
+    "Side-by-side slider of conditioning beauty and AI output with a difference overlay (line mismatches in red, silhouette misses in amber)",
+    "Metric badges (IoU, line agreement, cost) each linked to the threshold source or an amber 'team assumption' tag",
+    "Gallery with 'AI' badge, model snapshot, prompt and cost on each card; running cost meter"
+   ],
+   "method": "1) User picks a camera preset, style preset and engine. 2) A structured prompt is built from fields (programme to materials, season, time of day, weather, entourage) with a block-list: no logos, signage, team names, real-person likenesses, or imitation of Indigenous art. 3) OpenAI route: POST /v1/images/edits with model, prompt, image[] = clay capture (optionally depth/line as extra references), size, quality. Open route: submit a ComfyUI workflow to /prompt (ControlNet depth + line) or call diffusers; keep the seed. 4) Compute fidelity metrics against the conditioning pack. 5) Write a ledger entry (model snapshot, parameters, prompt, input/output hashes, date). 6) Attach label text and IPTC digital source type. 7) Human accepts or rejects; rejected renders stay in the ledger.",
+   "human_judgment": "Whether to use AI imagery at all; style and prompt wording; accepting or rejecting each image; checking that nothing misrepresents the design; cultural sensitivity and Indigenous perspectives; checking rights and tool terms, since Buildner advises against treating AI images as sole work.",
+   "limits": "OpenAI image edits are not geometry-locked: the guide notes weak precision in layout-sensitive compositions and text, and complex prompts can take up to two minutes. Model names were read from OpenAI pages through a summarising fetch and look unusual; confirm before coding. FLUX.1 [dev] weights are under a non-commercial licence; SDXL is released under OpenRAIL++ for research-oriented use.",
+   "libraries": [
+    {
+     "name": "openai-node (OpenAI SDK)",
+     "role": "Image API / Responses calls",
+     "license": "Apache-2.0",
+     "url": "https://github.com/openai/openai-node"
+    },
+    {
+     "name": "diffusers",
+     "role": "ControlNet pipelines (SDXL, Flux)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/huggingface/diffusers"
+    },
+    {
+     "name": "ControlNet reference code",
+     "role": "canny, depth, seg, M-LSD conditioning",
+     "license": "Apache-2.0",
+     "url": "https://github.com/lllyasviel/ControlNet"
+    },
+    {
+     "name": "ComfyUI",
+     "role": "headless workflow server (POST /prompt, /ws, /history, /view)",
+     "license": "GPL-3.0",
+     "url": "https://github.com/comfyanonymous/ComfyUI"
+    },
+    {
+     "name": "FLUX.1 [dev] weights",
+     "role": "open image model (outputs may be used commercially per the model card)",
+     "license": "FLUX.1 [dev] Non-Commercial License",
+     "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev"
+    },
+    {
+     "name": "Stable Diffusion XL base 1.0",
+     "role": "open image model",
+     "license": "CreativeML Open RAIL++-M",
+     "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0"
+    },
+    {
+     "name": "Depth Anything V2 (Small)",
+     "role": "depth re-estimation for fidelity",
+     "license": "Apache-2.0",
+     "url": "https://github.com/DepthAnything/Depth-Anything-V2"
+    },
+    {
+     "name": "c2pa-rs",
+     "role": "read and validate Content Credentials",
+     "license": "MIT OR Apache-2.0",
+     "url": "https://github.com/contentauth/c2pa-rs"
+    }
+   ],
+   "depends_on": [
+    "P13-M04",
+    "P13-M03"
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "cultural_context_30",
+    "human_scale_40"
+   ],
+   "priority": "core",
+   "effort": "M: 4-5 person-days for the OpenAI route (core); +5-8 days for the ComfyUI/ControlNet adapter and fidelity metrics (v1)"
+  },
+  {
+   "module_id": "P13-M06",
+   "name": "Board layout engine and export",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "mixed",
+   "design_question": "How should drawings, images, diagrams and text be composed on up to four A2 landscape boards, and does each exported JPEG pass every Buildner hard rule?",
+   "inputs": [
+    "drawing_set from P13-M02",
+    "render_asset from P13-M05 and CLIM/ENER/STRC diagram exports",
+    "text_blocks and captions from P13-M08",
+    "checklist and blocking list from P13-M01",
+    "team deny-list of identifying strings (names, university, emails, logos)"
+   ],
+   "outputs": [
+    "board_jpeg[1..4] (JPEG, sRGB, metadata scrubbed, neutral filenames)",
+    "export_manifest: {bytes, px, dpi, ratio, sha256, checks[], anonymity_findings[]} consumed by P13-M01",
+    "board_proof.pdf at 594 x 420 mm for team review and printing only"
+   ],
+   "parameters": [
+    {
+     "name": "export_dpi",
+     "unit": "dpi",
+     "relationship": "Pixels = mm / 25.4 x dpi: 150 dpi = 3508 x 2480; 200 dpi = 4677 x 3307; 300 dpi = 7016 x 4961. Higher dpi keeps hairlines crisp but pushes JPEG bytes toward the 10 MB cap.",
+     "source_ids": [
+      "P13-S41",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "jpeg_quality_search",
+     "unit": "1-100",
+     "relationship": "The encoder searches the highest quality that keeps the file under target; lower quality shrinks bytes but adds ringing around thin linework and small type. The curve depends on content, so it is measured not predicted.",
+     "source_ids": [
+      "P13-S32"
+     ]
+    },
+    {
+     "name": "type_scale",
+     "unit": "mm",
+     "relationship": "At fit-to-width on a 1920 px screen, 594 mm = 3.23 px/mm, so 2.5 mm lettering is about 8 px and 3.5 mm about 11 px; smaller text becomes unreadable if the jury views boards on screen (assumed).",
+     "source_ids": [
+      "P13-S42",
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "placed_image_scale",
+     "unit": "px per inch",
+     "relationship": "Effective resolution = image width in px / placed width in inches; enlarging an AI render past its native pixels lowers effective dpi and softens detail.",
+     "source_ids": [
+      "P13-S11"
+     ]
+    },
+    {
+     "name": "metadata_policy",
+     "unit": "strip all | keep IPTC source type",
+     "relationship": "Creator names, software strings and manifests can reveal authors; the terms bar identifying marks. ExifTool warns that stripping is not guaranteed complete, so the exported file is re-scanned.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S35"
+     ]
+    },
+    {
+     "name": "ai_label_placement",
+     "unit": "caption position",
+     "relationship": "A visible caption beside each AI-derived image gives the 'clear and distinguishable' disclosure that EU Article 50 expects for synthetic images; hiding it in metadata alone is fragile because metadata can be stripped.",
+     "source_ids": [
+      "P13-S39",
+      "P13-S37"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Bytes per board",
+     "good": "<= 9.5 x 10^6 bytes",
+     "bad": "> 10 MB (rule breach)",
+     "status": "verified",
+     "unit": "bytes",
+     "method": "Measure final file; loop quality and pixel size until under target.",
+     "basis": "Terms section 4.8 limit is verified; the 9.5 x 10^6 target margin is a team choice.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "File format",
+     "good": "JPEG",
+     "bad": "anything else",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Magic bytes and extension.",
+     "basis": "Terms section 4.8.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "Pixel ratio",
+     "good": "1.414 +/- 0.005, landscape",
+     "bad": "outside +/- 0.02 or portrait",
+     "status": "team_assumption",
+     "unit": "ratio",
+     "method": "width_px / height_px.",
+     "basis": "A2 dimensions verified; tolerance team-set.",
+     "source_ids": [
+      "P13-S41"
+     ]
+    },
+    {
+     "name": "Effective resolution of each placed raster",
+     "good": ">= 150 px/inch at 594 mm board width",
+     "bad": "< 100 px/inch",
+     "status": "team_assumption",
+     "unit": "px/inch",
+     "method": "native px / placed inches for every image.",
+     "basis": "Team print/screen target; no jury requirement found."
+    },
+    {
+     "name": "Smallest text height",
+     "good": ">= 3.5 mm on the board (about 11 px at 1920 px width)",
+     "bad": "< 2.5 mm",
+     "status": "team_assumption",
+     "unit": "mm",
+     "method": "Scan text frames and SVG text; report min cap height.",
+     "basis": "2.5 mm and 3.5 mm are nominal lettering sizes in the technical-lettering series; they are not a legibility rule for boards.",
+     "source_ids": [
+      "P13-S42"
+     ]
+    },
+    {
+     "name": "Anonymity findings",
+     "good": "0 findings in file name, EXIF/XMP/ICC, and OCR text matching the deny-list",
+     "bad": ">= 1 finding",
+     "status": "verified",
+     "unit": "count",
+     "method": "Re-read the exported JPEG metadata and OCR it for deny-list strings.",
+     "basis": "Terms section 5.1: entries must not show identifying marks; scan method is the team's design.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S34",
+      "P13-S35"
+     ]
+    },
+    {
+     "name": "AI-derived images with visible label",
+     "good": "100%",
+     "bad": "< 100%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare render_asset list with placements and caption frames.",
+     "basis": "Disclosure practice; Buildner terms read contain no AI rule.",
+     "source_ids": [
+      "P13-S03",
+      "P13-S39"
+     ]
+    }
+   ],
+   "visualization": [
+    "WYSIWYG board canvas with snap grid and four-board overview strip",
+    "Overlays: text-size heat map (red below 2.5 mm), per-image effective-dpi flags, file-size gauge (MB vs 10 MB), anonymity findings pinned to the image",
+    "Side-by-side 'what the jury sees' preview at 1920 px width and at 100% zoom"
+   ],
+   "method": "Boards are stored as JSON scenes (frames, SVG drawings, raster images, text blocks) in millimetres. Each scene is composed into one SVG of 594 x 420 mm, rasterised with resvg at the chosen dpi, and encoded to JPEG with MozJPEG (through jSquash or sharp) in sRGB. A loop lowers quality from 95 toward 70, then reduces pixel dimensions, until the file is under the target. Metadata is stripped and the result is re-read with ExifTool; tesseract.js OCRs the raster for deny-list strings. A proof PDF (1683.8 x 1190.6 pt) is built with pdf-lib for printing only. The manifest (bytes, pixels, ratio, hash, checks) is returned to P13-M01. Export is blocked while blocking=true.",
+   "human_judgment": "Composition, narrative order, visual hierarchy and what to show; final QA at 100% zoom; deciding whether captions or disclosures are placed well; the upload to the Buildner portal and the final anonymity check.",
+   "limits": "Buildner pixel, colour-mode and MB/MiB rules are not documented in the pages read. Browser canvas size limits were not verified, so use the WASM or server path. JPEG is lossy and fine linework suffers near the size cap. PDF is a proof only: the terms require JPEG panels. Fonts must be licensed or open.",
+   "libraries": [
+    {
+     "name": "resvg-js",
+     "role": "SVG to PNG rasteriser (Node and WASM)",
+     "license": "MPL-2.0",
+     "url": "https://github.com/thx/resvg-js"
+    },
+    {
+     "name": "sharp",
+     "role": "image encode, resize, metadata",
+     "license": "Apache-2.0",
+     "url": "https://github.com/lovell/sharp"
+    },
+    {
+     "name": "jSquash (MozJPEG codec)",
+     "role": "browser/worker JPEG encoder",
+     "license": "Apache-2.0",
+     "url": "https://github.com/jamsinclair/jSquash"
+    },
+    {
+     "name": "pdf-lib",
+     "role": "proof PDF at 594 x 420 mm",
+     "license": "MIT",
+     "url": "https://github.com/Hopding/pdf-lib"
+    },
+    {
+     "name": "tesseract.js",
+     "role": "OCR for identifying text",
+     "license": "Apache-2.0",
+     "url": "https://github.com/naptha/tesseract.js"
+    },
+    {
+     "name": "ExifTool",
+     "role": "write/delete and verify metadata",
+     "license": "see exiftool.org (licence section not read)",
+     "url": "https://exiftool.org/"
+    },
+    {
+     "name": "Claude Code skill anthropic-skills:pdf",
+     "role": "PDF creation and checks",
+     "license": "per skill listing",
+     "url": "https://claude.ai"
+    }
+   ],
+   "depends_on": [
+    "P13-M02",
+    "P13-M05",
+    "P13-M08",
+    "P13-M01"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "priority": "core",
+   "effort": "L: 10-14 person-days"
+  },
+  {
+   "module_id": "P13-M07",
+   "name": "Jury-criteria self-assessment rubric",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "subjective",
+   "design_question": "How well do the design and board set address each weighted jury criterion, and what cited evidence supports every self-score?",
+   "inputs": [
+    "jury criteria and sub-criteria with weights 40/30/20/10 (brief)",
+    "evidence links to module results from all packets, each with metric, threshold and source",
+    "board placements from P13-M06 and area share per criterion",
+    "human scores on a 0-4 scale",
+    "breach register (departures from policy and guidelines) with rationale from P13-M08"
+   ],
+   "outputs": [
+    "rubric_state: {scores[], evidence[], gaps[], weighted_total, attention_ratio[]} consumed by P13-M01 and P13-M08",
+    "evidence table for the policy reflection"
+   ],
+   "parameters": [
+    {
+     "name": "criterion_weights",
+     "unit": "%",
+     "relationship": "One point on the 0-4 scale is worth 10 points of 100 for human-scale (40%) but 2.5 points for urban integration (10%), so effort and board space should follow the weights.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "level_descriptors",
+     "unit": "0-4 scale",
+     "relationship": "Written descriptors make scores comparable between team members; vague descriptors raise rater disagreement. The review of scoring rubrics concerns reliability and validity, but its findings were not read.",
+     "source_ids": [
+      "P13-S44"
+     ]
+    },
+    {
+     "name": "evidence_tier",
+     "unit": "A measured | B visual | C narrative",
+     "relationship": "Higher-tier evidence supports a higher score; a score of 3 or more without tier-A or tier-B evidence is flagged as unsupported (team rule).",
+     "source_ids": []
+    },
+    {
+     "name": "board_area_share",
+     "unit": "% of board area",
+     "relationship": "The share of board area used for a criterion should track its weight; a 30%-weight criterion with 5% area is under-communicated, which matters because the jury sees only the boards.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "breach_register",
+     "unit": "entries",
+     "relationship": "The brief says the jury may reward justified breaches of guidelines, so each departure needs a stated reason and evidence; unexplained departures count against the criterion they touch.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Weighted self-score",
+     "good": ">= 75 / 100",
+     "bad": "< 50 / 100",
+     "status": "team_assumption",
+     "unit": "points of 100",
+     "method": "sum over criteria of weight x score/4 x 100.",
+     "basis": "Weights from the brief; cut-offs are team values; the result is not a prediction of jury outcome."
+    },
+    {
+     "name": "Evidence coverage per criterion",
+     "good": ">= 3 items incl. >=1 measured and >=1 visual",
+     "bad": "0 items (score capped at 1)",
+     "status": "team_assumption",
+     "unit": "items",
+     "method": "Count linked evidence by tier.",
+     "basis": "Team rule supporting the course requirement to cite sources and show work."
+    },
+    {
+     "name": "Board attention ratio",
+     "good": "0.7 to 1.5",
+     "bad": "< 0.5",
+     "status": "team_assumption",
+     "unit": "ratio",
+     "method": "(area share of criterion) / (weight share).",
+     "basis": "Team heuristic."
+    },
+    {
+     "name": "Rater disagreement",
+     "good": "|score A - score B| <= 1 on the 0-4 scale",
+     "bad": "> 2",
+     "status": "team_assumption",
+     "unit": "points",
+     "method": "Two team members score independently; compare.",
+     "basis": "Team threshold; reliability literature is cited for context only.",
+     "source_ids": [
+      "P13-S44"
+     ]
+    },
+    {
+     "name": "Site-specific evidence count (anti-generic)",
+     "good": ">= 3 items tied to the site (landscape, climate, history, Indigenous perspectives) per cultural-context sub-criterion",
+     "bad": "0 items",
+     "status": "team_assumption",
+     "unit": "items",
+     "method": "Count evidence tagged 'site-specific' by the author.",
+     "basis": "The brief asks to avoid generic, placeless design; threshold is team-set.",
+     "source_ids": [
+      "P13-S01"
+     ]
+    }
+   ],
+   "visualization": [
+    "Four-axis radar chart plus a bar whose width follows weight (40/30/20/10)",
+    "Stacked evidence bars per criterion by tier; evidence table with metric, threshold, source link",
+    "Board heat strip showing which criterion each element supports; version history of scores"
+   ],
+   "method": "Store criteria, sub-criteria, descriptors and evidence links as data. Each evidence item points to a module id, metric name, value, threshold and source id, or to a board element. Humans enter 0-4 scores with a one-line justification. The tool computes the weighted total, tier counts, board attention ratio and flags: score >= 3 without tier-A/B evidence, criterion with zero evidence, high weight with low area share, large gap between two raters, breaches without rationale. Scores are never computed or filled by an AI; an optional assistant may only suggest which existing results could serve as evidence, and the suggestion is logged. Every threshold shows its source or an amber 'team assumption' tag.",
+   "human_judgment": "All scores and their interpretation, especially human-scale experience, cultural context and reconciliation, which need lived knowledge and Indigenous perspectives; deciding which breaches to make and justify; interpreting what the jury will value.",
+   "limits": "No published VTC scoring scale or past jury scores were found; the weights come from the brief as supplied by the team (Buildner pages read do not list them). Self-scores are biased and unvalidated against jury outcomes. The jury panel page was not opened. The rubric measures evidence coverage, not design quality.",
+   "libraries": [
+    {
+     "name": "Chart.js",
+     "role": "radar and bar charts (radar support to confirm in its docs)",
+     "license": "MIT",
+     "url": "https://github.com/chartjs/Chart.js"
+    }
+   ],
+   "depends_on": [
+    "P13-M06",
+    "P13-M01",
+    "all packets that expose cited metrics"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "priority": "v1",
+   "effort": "M: 5-6 person-days"
+  },
+  {
+   "module_id": "P13-M08",
+   "name": "Writing support, authorship and AI-disclosure ledger",
+   "phase": "present",
+   "category": "PRES",
+   "nature": "subjective",
+   "design_question": "How can the tool help the team write the policy reflection and project description from cited evidence while words and judgments stay human and every AI use is disclosed?",
+   "inputs": [
+    "module results and source lists from all packets",
+    "rubric_state and breach register from P13-M07",
+    "ai_ledger entries from P13-M05",
+    "team notes and drafts typed by humans",
+    "Higher Buildings Policy documents and Public Views Guidelines (reference list)"
+   ],
+   "outputs": [
+    "text_blocks[]: {board_id, role policy_reflection|description|caption, text, language, claim_links[], provenance} consumed by P13-M06",
+    "ai_ledger (JSONL) and a plain-language AI-use statement for course submission",
+    "unsupported-claim report"
+   ],
+   "parameters": [
+    {
+     "name": "assistance_level",
+     "unit": "L0-L3",
+     "relationship": "L0 evidence pack only, L1 outline and questions, L2 critique of a human draft, L3 AI-drafted text (off by default). Higher levels reduce the human share of authorship and raise the disclosure and originality risk.",
+     "source_ids": [
+      "P13-S02",
+      "P13-S03",
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "claim_traceability",
+     "unit": "claims with source / claims",
+     "relationship": "Each number or policy claim must link to a module result and its source; untraceable numbers are shown as team assumptions or flagged FALSE ASSUMPTION if later disproved, so unsupported claims cannot enter boards silently.",
+     "source_ids": []
+    },
+    {
+     "name": "governing_policy_set",
+     "unit": "documents",
+     "relationship": "The 1997 Higher Buildings Policy is under review (Phase 1 early directions, spring-summer 2026; no update adopted); Public Views Guidelines were approved 10 July 2024. The reflection must say which document it assesses against.",
+     "source_ids": [
+      "P13-S04",
+      "P13-S05",
+      "P13-S07",
+      "P13-S08"
+     ]
+    },
+    {
+     "name": "text_length",
+     "unit": "words",
+     "relationship": "More words per board lower the type size that fits; the board layout caps legible text, so length trades against the 2.5-3.5 mm text-height targets in P13-M06.",
+     "source_ids": [
+      "P13-S42"
+     ]
+    },
+    {
+     "name": "disclosure_detail",
+     "unit": "statement + caption",
+     "relationship": "Journal-style rules require disclosing AI tool use and keep humans responsible for output; a detailed ledger makes the statement accurate and supports the course rule to show work.",
+     "source_ids": [
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "identity_exposure",
+     "unit": "metadata fields",
+     "relationship": "A C2PA signing certificate identifies the signer, so signing exported boards with a personal identity would conflict with anonymity; labels should use plain captions and non-identifying IPTC source-type fields.",
+     "source_ids": [
+      "P13-S37",
+      "P13-S03"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Traceable-claim ratio",
+     "good": "100% of numeric claims linked to a source or flagged team assumption",
+     "bad": "< 80%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Regex-detect numbers and policy names; check for a claim link.",
+     "basis": "Course requirement to cite sources; cut-offs are team values."
+    },
+    {
+     "name": "Human-authored share of final text",
+     "good": "100% of final prose typed or edited by a team member (levels L0-L2 only)",
+     "bad": "any AI-originated sentence not reviewed and disclosed",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare diff log provenance tags per paragraph.",
+     "basis": "Informed by journal guidance that AI is not an author and humans are accountable; not a Buildner rule.",
+     "source_ids": [
+      "P13-S40",
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "AI-use ledger completeness",
+     "good": "100% of AI calls (text and image) logged with model, date, purpose, input/output hash",
+     "bad": "any missing",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Compare API call log with ledger rows.",
+     "basis": "Disclosure principle from ICMJE guidance.",
+     "source_ids": [
+      "P13-S40"
+     ]
+    },
+    {
+     "name": "Breach rationale coverage",
+     "good": "100% of flagged breaches have a written justification",
+     "bad": "any breach without one",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Join breach register with text_blocks.",
+     "basis": "Brief says justified breaches may be rewarded (as supplied by team).",
+     "source_ids": [
+      "P13-S01"
+     ]
+    },
+    {
+     "name": "Identifying strings in text",
+     "good": "0 matches against the deny-list",
+     "bad": ">= 1",
+     "status": "verified",
+     "unit": "count",
+     "method": "String match; the OCR pass in P13-M06 repeats it on the raster.",
+     "basis": "Terms section 5.1 bars identifying marks.",
+     "source_ids": [
+      "P13-S03"
+     ]
+    },
+    {
+     "name": "IPTC source type on AI images",
+     "good": "trainedAlgorithmicMedia set for generated images; compositeWithTrainedAlgorithmicMedia for edits such as inpainting",
+     "bad": "absent or wrong",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Read XMP of exported component images.",
+     "basis": "IPTC vocabulary definitions; human decides which applies.",
+     "source_ids": [
+      "P13-S38"
+     ]
+    }
+   ],
+   "visualization": [
+    "Three-pane editor: evidence pack with source chips; human draft with provenance underline (none = human, amber = AI-suggested); ledger timeline",
+    "Claim linter badges beside each sentence (linked, team assumption, unsupported)",
+    "Policy checklist with pass / exceed / breach per policy item and a justification field"
+   ],
+   "method": "1) Evidence pack: pull module results, thresholds and source citations into a collapsible panel. 2) Question templates (team-authored) prompt the writer: which policy items are met, exceeded or breached, and why. 3) A text editor records provenance per paragraph; AI features are limited to L0-L2 by default and every use writes a ledger row (model, version, date, purpose, hashes, reviewer). 4) A linter flags numbers or policy names without a claim link. 5) The tool builds captions such as 'AI-assisted image: model and snapshot, generated from a Rhino viewport capture' and sets the IPTC source type. 6) Language is attested as English. 7) Output text blocks go to P13-M06; ledger goes to the course submission.",
+   "human_judgment": "All prose, positions and ethical stance; whether any AI text is used; reconciliation and Indigenous perspectives, which should draw on community knowledge not generated text; the final policy reflection; the legal check on rights and tool terms; confirming the course's own AI rules.",
+   "limits": "No sourced benchmark defines a good policy reflection or project description. Buildner's terms contain no AI rule and its FAQ advises caution, so the team's own disclosure standard is a choice. UBC course guidance could not be opened (404). EU AI Act Article 50 is cited as a benchmark; its binding force for a Canadian entry and any later change to its application date were not checked.",
+   "libraries": [
+    {
+     "name": "c2pa-rs",
+     "role": "read Content Credentials on AI images; avoid signing with personal identity",
+     "license": "MIT OR Apache-2.0",
+     "url": "https://github.com/contentauth/c2pa-rs"
+    },
+    {
+     "name": "ExifTool",
+     "role": "write XMP-iptcExt DigitalSourceType (tag not confirmed on the page read) and verify strip",
+     "license": "see exiftool.org (licence section not read)",
+     "url": "https://exiftool.org/"
+    },
+    {
+     "name": "Claude Code skill anthropic-skills:doc-coauthoring",
+     "role": "optional structured co-authoring workflow; use at L1-L2 only",
+     "license": "per skill listing",
+     "url": "https://claude.ai"
+    }
+   ],
+   "depends_on": [
+    "P13-M05",
+    "P13-M07",
+    "P13-M06"
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "priority": "v1",
+   "effort": "M: 5-7 person-days (ledger and evidence pack first, linter and editor later)"
+  }
+ ],
+ "sources": [
+  {
+   "id": "P13-S01",
+   "title": "Vancouver Tall Challenge competition brief (full brief PDF linked from the competition page; facts as supplied in the project description)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "publisher": "Buildner / City of Vancouver / UBC SALA",
+   "year": "2026",
+   "type": "competition brief",
+   "opened": false,
+   "extract": "Brief PDF link resolves to '#' in the page text, so the PDF was not opened. Site size, 244-305 m towers, 9.0 FSR non-residential minimum, jury weights 40/30/20/10, recommended deliverables (20 items), four A2 boards and justified-breach clause are used as supplied by the team."
+  },
+  {
+   "id": "P13-S02",
+   "title": "Vancouver Tall Challenge: Building Higher Downtown (competition page)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition page",
+   "opened": true,
+   "extract": "English only; entries judged anonymously; teams up to 4; registration closes 29 Oct 2026; Q&A closes 3 Nov 2026; submission closes 30 Nov 2026 23:59 London time; winners 26 Jan 2027; FAQ on AI images: check the AI tool's terms and do not treat AI images as sole work or IP without permission. Board count, A2 size and weights are not on the page."
+  },
+  {
+   "id": "P13-S03",
+   "title": "Competition terms and conditions, Vancouver Tall Challenge",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition rules",
+   "opened": true,
+   "extract": "Section 4.8: each panel JPEG, 10 MB cap; brief sets panel count from one to four; section 4.6 portal upload only; section 4.7 edits after first upload need a paid reactivation; section 4.1 submissions original and visuals not previously published; section 5.1 no identifying marks; section 8.2 non-compliance leads to disqualification; section 8.4 late entries disqualified; no rules on AI-generated content."
+  },
+  {
+   "id": "P13-S04",
+   "title": "Higher Buildings Policy Review (project page)",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2026",
+   "type": "government project page",
+   "opened": true,
+   "extract": "Review is in Phase 1 (early directions, spring-summer 2026); the 1997 Higher Buildings Policy is the policy under review and no 2026 update adopted; protected public views will not be reviewed or updated in this work; competition closes 30 Nov 2026; policy approaches shared early 2027, hearing and adoption planned spring 2027."
+  },
+  {
+   "id": "P13-S05",
+   "title": "Policy: Higher Buildings Policy (approved by Council 6 May 1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "municipal policy",
+   "opened": false,
+   "extract": "HTTP 403 on fetch. A search-engine excerpt of the City's guidelines says Council adopted the policy to set a rigorous process by which select developments may encroach into public view 3 (Queen Elizabeth Park). Another snippet mentioned an amendment dated 31 Mar 2026; not verified."
+  },
+  {
+   "id": "P13-S06",
+   "title": "Higher Buildings Policy Review (overview PDF)",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "government document",
+   "opened": false,
+   "extract": "HTTP 403 on fetch; named in the brief as a policy reference."
+  },
+  {
+   "id": "P13-S07",
+   "title": "Guidelines: Public Views Guidelines (approved by Council 10 July 2024)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "municipal guidelines",
+   "opened": false,
+   "extract": "HTTP 403 on fetch. Title and date seen in a search listing; replaces the View Protection Guidelines. Viewpoint origins, azimuths and heights for Queen Elizabeth Park views were not read."
+  },
+  {
+   "id": "P13-S08",
+   "title": "Vancouver Relaxes View Cone Policy, Sparking Controversy",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "publisher": "Storeys",
+   "year": "2024",
+   "type": "news article",
+   "opened": true,
+   "extract": "Council approved the new Public Views Guidelines on 10 July 2024. Of six Queen Elizabeth Park cones, 3.1 and 3.2.4a were eliminated and 3.2.1-3.2.4 retained; none of these is among the 11 updated cones."
+  },
+  {
+   "id": "P13-S09",
+   "title": "Queen Elizabeth Park, British Columbia",
+   "url": "https://en.wikipedia.org/wiki/Queen_Elizabeth_Park,_British_Columbia",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Park coordinates 49 deg 14 min 32 s N, 123 deg 06 min 54 s W (49.24222, -123.11500); about 125 m (410 ft) above sea level; on top of Little Mountain."
+  },
+  {
+   "id": "P13-S10",
+   "title": "Little Mountain (Vancouver)",
+   "url": "https://en.wikipedia.org/wiki/Little_Mountain_(Vancouver)",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Elevation 125 m (410 ft); coordinates 49.24167 N, -123.11333 for the mountain as a whole, not a surveyed viewpoint."
+  },
+  {
+   "id": "P13-S11",
+   "title": "Image generation guide (OpenAI API)",
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Models gpt-image-2.5-sunburst and gpt-image-2.5-flare; Image API generations and edits, Responses image tool; sizes multiple of 16, ratio <= 3:1, max edge 3840, 655,360-8,294,400 px, above 2560x1440 experimental; quality low/medium/high/xhigh/max/auto; masks are prompt-based; moderation auto/low; limitations in layout and text; per-image figures. Fetched through a summarising tool; last ~14,000 characters read in a second pass."
+  },
+  {
+   "id": "P13-S12",
+   "title": "gpt-image-2 model page",
+   "url": "https://developers.openai.com/api/docs/models/gpt-image-2",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Snapshot gpt-image-2-2026-04-21; endpoints images/generations, images/edits, batch; inpainting; default rate limits by tier."
+  },
+  {
+   "id": "P13-S13",
+   "title": "gpt-image-2.5-sunburst model page",
+   "url": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "API documentation",
+   "opened": true,
+   "extract": "Snapshot gpt-image-2.5-sunburst-2026-09-08; editing-precision focus; quality up to max; token prices: text in $5, image in $8, image out $30 per million (batch $15); no C2PA text on the page; the page's endpoint table and Responses-tool statement conflict."
+  },
+  {
+   "id": "P13-S14",
+   "title": "API pricing (OpenAI)",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "price list",
+   "opened": true,
+   "extract": "Standard per 1M tokens for gpt-image-2.5-sunburst, gpt-image-2.5-flare and gpt-image-2: image in $8, image out $30, cached image in $2, text in $5, cached text $1.25; batch rates are half; per-image prices are not listed."
+  },
+  {
+   "id": "P13-S15",
+   "title": "C2PA in ChatGPT / images (OpenAI Help Center)",
+   "url": "https://help.openai.com/en/articles/8912793",
+   "publisher": "OpenAI",
+   "year": "2026",
+   "type": "help article",
+   "opened": false,
+   "extract": "HTTP 403 on fetch. Search-engine excerpt: images from ChatGPT, Codex and the API carry C2PA metadata and SynthID watermarks; coverage can vary; metadata can be stripped; verification at openai.com/verify. Treated as unverified."
+  },
+  {
+   "id": "P13-S16",
+   "title": "Adding Conditional Control to Text-to-Image Diffusion Models (ControlNet)",
+   "url": "https://arxiv.org/abs/2302.05543",
+   "publisher": "arXiv (Zhang, Rao, Agrawala)",
+   "year": "2023",
+   "type": "preprint",
+   "opened": true,
+   "extract": "Adds spatial conditioning (edges, depth, segmentation, pose) to frozen pretrained diffusion models via zero-initialised convolutions."
+  },
+  {
+   "id": "P13-S17",
+   "title": "lllyasviel/ControlNet repository",
+   "url": "https://github.com/lllyasviel/ControlNet",
+   "publisher": "GitHub",
+   "year": "2023",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0 code; Stable Diffusion 1.5 ControlNets for depth, Canny, segmentation (ADE20K protocol with Uniformer) and M-LSD lines."
+  },
+  {
+   "id": "P13-S18",
+   "title": "huggingface/diffusers repository",
+   "url": "https://github.com/huggingface/diffusers",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0; ControlNet pipelines available."
+  },
+  {
+   "id": "P13-S19",
+   "title": "ControlNet guide (diffusers documentation)",
+   "url": "https://huggingface.co/docs/diffusers/using-diffusers/controlnet",
+   "publisher": "Hugging Face",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "controlnet_conditioning_scale; Canny with thresholds 100/200; depth maps min-max normalised to 0-1; multi-ControlNet with per-net scales; examples use scale 0.5 for Flux and SDXL."
+  },
+  {
+   "id": "P13-S20",
+   "title": "ComfyUI repository",
+   "url": "https://github.com/comfyanonymous/ComfyUI",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "GPL-3.0; node-graph engine with a local API; supports SD1.5/3.5, SDXL, Flux.1/2, Flux Kontext; ControlNet loadable as a model type."
+  },
+  {
+   "id": "P13-S21",
+   "title": "ComfyUI server routes",
+   "url": "https://docs.comfy.org/development/comfyui-server/comms_routes",
+   "publisher": "Comfy Org",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "POST /prompt queues a workflow; /ws WebSocket for progress; /history, /view, /upload/image routes."
+  },
+  {
+   "id": "P13-S22",
+   "title": "FLUX.1 [dev] model card",
+   "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev",
+   "publisher": "Black Forest Labs / Hugging Face",
+   "year": "2024",
+   "type": "model card",
+   "opened": true,
+   "extract": "FLUX.1 [dev] Non-Commercial License; the card states generated outputs may be used for personal, scientific and commercial purposes; full licence text not read."
+  },
+  {
+   "id": "P13-S23",
+   "title": "Stable Diffusion XL base 1.0 model card",
+   "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+   "publisher": "Stability AI / Hugging Face",
+   "year": "2023",
+   "type": "model card",
+   "opened": true,
+   "extract": "CreativeML Open RAIL++-M licence; card states research-purpose intent; output rights not addressed on the page."
+  },
+  {
+   "id": "P13-S24",
+   "title": "Depth Anything V2",
+   "url": "https://github.com/DepthAnything/Depth-Anything-V2",
+   "publisher": "GitHub",
+   "year": "2024",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Small model Apache-2.0; Base/Large/Giant CC-BY-NC-4.0; relative depth output; metric depth variants in a separate folder."
+  },
+  {
+   "id": "P13-S25",
+   "title": "three-edge-projection",
+   "url": "https://github.com/gkjohnson/three-edge-projection",
+   "publisher": "GitHub (Garrett Johnson)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT; projects visible mesh edges to 2D along the y-axis using three-mesh-bvh; ProjectionGenerator and silhouette generator; depends on clipper2-js; no benchmarks given."
+  },
+  {
+   "id": "P13-S26",
+   "title": "three-mesh-bvh",
+   "url": "https://github.com/gkjohnson/three-mesh-bvh",
+   "publisher": "GitHub (Garrett Johnson)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT; BVH raycasting and shapecasting; examples for clipped edges, SDF generation, GPU path tracing; edge projection listed as an external project."
+  },
+  {
+   "id": "P13-S27",
+   "title": "Rhino 8 Make2D command",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/commands/make2d.htm",
+   "publisher": "McNeel",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Layouts (view, CPlane, 3rd/1st angle); options for hidden lines on separate layers, tangent edges, scene silhouette, clipping-plane intersections; output is flat curves on World Top; no object-object intersection lines."
+  },
+  {
+   "id": "P13-S28",
+   "title": "rhino3dm",
+   "url": "https://github.com/mcneel/rhino3dm",
+   "publisher": "GitHub (McNeel)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT; JavaScript/WASM; reads and writes .3dm geometry, layers, attributes, viewports; Make2D not mentioned."
+  },
+  {
+   "id": "P13-S29",
+   "title": "IfcOpenShell repository",
+   "url": "https://github.com/IfcOpenShell/IfcOpenShell",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Core components LGPL-3.0-or-later; Bonsai GPL-3.0-or-later; IfcConvert; Pyodide WASM wheels; the page does not mention SVG drawing generation."
+  },
+  {
+   "id": "P13-S30",
+   "title": "pdf-lib",
+   "url": "https://github.com/Hopding/pdf-lib",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT; create and modify PDFs; embedJpg/embedPng; custom page sizes."
+  },
+  {
+   "id": "P13-S31",
+   "title": "sharp",
+   "url": "https://github.com/lovell/sharp",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0; high-performance Node image processing; mozjpeg option appears in an example; metadata options not described on the page."
+  },
+  {
+   "id": "P13-S32",
+   "title": "jSquash",
+   "url": "https://github.com/jamsinclair/jSquash",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0; Squoosh codecs as WASM for browsers and workers, including MozJPEG, WebP, AVIF, JPEG XL, OxiPNG and a resize package."
+  },
+  {
+   "id": "P13-S33",
+   "title": "resvg-js",
+   "url": "https://github.com/thx/resvg-js",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MPL-2.0; Rust resvg with Node bindings and a WASM build; custom fonts supported; scaling through fitTo; no size limit stated."
+  },
+  {
+   "id": "P13-S34",
+   "title": "tesseract.js",
+   "url": "https://github.com/naptha/tesseract.js",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0; WASM OCR in browser and Node; 100+ languages; does not read PDFs."
+  },
+  {
+   "id": "P13-S35",
+   "title": "ExifTool by Phil Harvey",
+   "url": "https://exiftool.org/",
+   "publisher": "exiftool.org",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Writes and deletes EXIF, IPTC, XMP; -all= removes metadata but is not guaranteed to remove everything; licence section and DigitalSourceType tag not read."
+  },
+  {
+   "id": "P13-S36",
+   "title": "c2pa-rs",
+   "url": "https://github.com/contentauth/c2pa-rs",
+   "publisher": "GitHub (Content Authenticity Initiative)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT or Apache-2.0; Rust SDK to create, sign and validate C2PA manifests; beta 0.x; c2patool lives in a separate repository; supported formats not listed on the page."
+  },
+  {
+   "id": "P13-S37",
+   "title": "C2PA Technical Specification 2.2",
+   "url": "https://spec.c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html",
+   "publisher": "C2PA",
+   "year": "2025",
+   "type": "technical standard",
+   "opened": true,
+   "extract": "A manifest bundles assertions, a claim and a signature; the signer is identified by the subject of its X.509 certificate; manifests can be removed from an asset; soft bindings can re-match them; c2pa.actions carries digitalSourceType (first 500,000 characters of 579,297 read)."
+  },
+  {
+   "id": "P13-S38",
+   "title": "IPTC NewsCodes: Digital Source Type",
+   "url": "https://cv.iptc.org/newscodes/digitalsourcetype/",
+   "publisher": "IPTC",
+   "year": "2026",
+   "type": "controlled vocabulary",
+   "opened": true,
+   "extract": "trainedAlgorithmicMedia (created using generative AI); compositeWithTrainedAlgorithmicMedia (edited using generative AI, such as inpainting or outpainting); algorithmicMedia (pure algorithmic)."
+  },
+  {
+   "id": "P13-S39",
+   "title": "EU AI Act, Article 50: Transparency obligations",
+   "url": "https://artificialintelligenceact.eu/article/50/",
+   "publisher": "Future of Life Institute (AI Act explorer)",
+   "year": "2024",
+   "type": "regulation text",
+   "opened": true,
+   "extract": "Providers must mark synthetic image output machine-readably; deployers must disclose deep fakes, with a lighter duty for evidently artistic or creative works; disclosure must be clear and distinguishable; page states application from 2 Aug 2026. Later amendments to timing not checked; not binding on a Canadian entry (assumed)."
+  },
+  {
+   "id": "P13-S40",
+   "title": "Use of AI by authors (ICMJE recommendations)",
+   "url": "https://www.icmje.org/recommendations/browse/artificial-intelligence/ai-use-by-authors.html",
+   "publisher": "ICMJE",
+   "year": "2026",
+   "type": "publishing guideline",
+   "opened": true,
+   "extract": "AI tools should not be listed as authors; authors disclose AI use; humans remain accountable and must check AI output; used here as an analogy for authorship practice, not as a competition rule."
+  },
+  {
+   "id": "P13-S41",
+   "title": "ISO 216",
+   "url": "https://en.wikipedia.org/wiki/ISO_216",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "A2 = 420 x 594 mm; ratio sqrt(2); A0 = 1 m2."
+  },
+  {
+   "id": "P13-S42",
+   "title": "Technical lettering",
+   "url": "https://en.wikipedia.org/wiki/Technical_lettering",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Nominal lettering heights typically 2.5, 3.5, 5, 7, 10, 14, 20 mm; line-thickness-to-height ratios 1/14 and 1/10; does not state a minimum legible size."
+  },
+  {
+   "id": "P13-S43",
+   "title": "Floor plan",
+   "url": "https://en.wikipedia.org/wiki/Floor_plan",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Plans are usually drawn approximately 4 ft (1.2 m) above the finished floor; typical scales not given."
+  },
+  {
+   "id": "P13-S44",
+   "title": "The use of scoring rubrics: Reliability, validity and educational consequences (Jonsson and Svingby)",
+   "url": "https://doi.org/10.1016/j.edurev.2007.05.002",
+   "publisher": "Educational Research Review 2(2), 130-144",
+   "year": "2007",
+   "type": "peer-reviewed review",
+   "opened": true,
+   "extract": "Only Crossref metadata was read (title, authors, journal, pages); the abstract and findings were not read, so no result from it is relied on."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Boards can be delivered as PDF (implied by the scope line 'export (PDF/JPG)').",
+   "correction": "Each panel must be a JPEG (.jpg/.jpeg) of at most 10 MB; PDF is useful only as a team proof.",
+   "detail": "Buildner Terms section 4.8; non-compliant format or size is a disqualification ground (section 8.2).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 30 Nov 2026 deadline is end of day in Vancouver.",
+   "correction": "Closing is 23:59 London time = 15:59 Vancouver (PST) on 30 Nov 2026.",
+   "detail": "Buildner competition page key dates; the tracker shows both time zones.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Board count (4), A2 landscape, jury weights 40/30/20/10 and the 20 recommended deliverables.",
+   "detail": "Taken from team-supplied brief text. The brief PDF link did not resolve (href '#'), and the Buildner page and terms read do not list board size or weights; the terms say the brief sets the panel count.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Buildner's 10 MB limit unit and extra portal checks (pixel size, colour mode, progressive JPEG).",
+   "detail": "Terms say 10 MB per panel without defining MB vs MiB or other image specs; the 'how to enter' page has no panel specs. The tool targets <= 9.5 x 10^6 bytes as a team margin.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OpenAI model names gpt-image-2.5-sunburst, gpt-image-2.5-flare and gpt-image-2 and their pricing.",
+   "detail": "Read from three OpenAI pages through a summarising fetch; the 2.5 model page lists Responses as unsupported yet says it can be the Responses tool model. Re-check the exact ids, snapshots and token counts before coding.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OpenAI API images carry C2PA metadata and SynthID.",
+   "detail": "Only a search-engine excerpt of the Help Center article was seen (page returned 403); the image guide and 2.5 model page do not mention C2PA. Coverage may vary by model and export path, and metadata can be stripped.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Queen Elizabeth Park view-cone origin, azimuth and height; current Higher Buildings Policy amendment status.",
+   "detail": "City of Vancouver hosts returned 403, so the 2024 Public Views Guidelines and the 1997 policy PDF were not opened. A snippet suggested an amendment on 31 Mar 2026; not verified. The camera preset uses Wikipedia coordinates (125 m ASL) only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Fidelity, legibility, resolution, self-score and buffer thresholds (e.g., IoU >= 0.90, 150 px/inch, text >= 3.5 mm, 7-day buffer).",
+   "detail": "No published source; all shown as editable amber team assumptions and to be tuned on pilot boards.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Posting renderings or boards in the tool's community area before 30 Nov may count as previous publication.",
+   "detail": "Terms section 4.1 requires that visuals have not been previously published by the team. Default sharing for entry images should be private; the team should confirm with Buildner during Q&A (closes 3 Nov 2026).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the jury will penalise or reward disclosed AI imagery.",
+   "detail": "Buildner terms contain no AI rule; the FAQ advises not treating AI images as sole work or IP. Disclosure is recommended as good practice; jury attitude is unknown.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "C2PA signing of exported boards.",
+   "detail": "The signer is identified by the X.509 certificate subject, which could identify the team and conflict with anonymity; the design avoids personal-identity signing and uses visible captions plus non-identifying IPTC source-type fields.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "EU AI Act Article 50 applies from 2 Aug 2026 and is a fit benchmark for this entry.",
+   "detail": "Date taken from the AI Act explorer page; later legislative changes to timing were not checked; the Act is not binding on a Canadian entry (assumed) and is used only as a disclosure benchmark.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "How strictly gpt-image edits preserve source geometry from a reference viewport capture: the OpenAI guide gives no geometry-preservation guidance and says masks are prompt-based.",
+  "Best ControlNet conditioning scale and conditioning type (depth, line, segmentation) for architectural massing at tower scale: only generic examples (scale 0.5) were found.",
+  "Effect of rendering style (photoreal, line-and-wash, clay) on jury scoring, including the 'avoid generic, placeless design' criterion: no evidence found.",
+  "Relationship between rubric self-scores and actual VTC jury outcomes: no published scoring scale or past results found.",
+  "Relationship between EdgesGeometry/crease-angle threshold and plan or elevation clarity on curved facades: three.js reference page was not opened.",
+  "Exact JPEG quality-to-bytes curve for A2 boards with fine linework: content-dependent, must be measured in the export loop.",
+  "Minimum legible text size for boards viewed on screen by the jury: only nominal drafting letter heights (2.5-3.5 mm) were found, not a legibility rule.",
+  "QE Park view-cone origin, azimuth and ceiling height versus tower height (encroachment geometry): Public Views Guidelines not opened.",
+  "Mapping of the 20 recommended deliverables to the four weighted criteria: editorial judgment of the team, no source.",
+  "Whether Buildner's portal imposes pixel dimensions, colour profile or MB/MiB definition on the 10 MB panels."
+ ],
+ "change_log": [
+  "R1: First specification of P13: 8 modules (M01 tracker, M02 drawing extraction, M03 camera presets, M04 conditioning capture, M05 AI render pipeline, M06 board layout and export, M07 jury rubric, M08 writing support and AI ledger).",
+  "R1: Added Buildner Terms rules not in the scope text: JPEG-only panels, 10 MB cap, portal upload only, no previous publication of visuals, no AI rule; flagged PDF-as-submission as a false assumption.",
+  "R1: Added deadline conversion (23:59 London = 15:59 Vancouver) and 40 days remaining from 21 Oct 2026.",
+  "R1: Found current OpenAI image models (gpt-image-2.5-sunburst, -flare, gpt-image-2) and token pricing; flagged names and C2PA statements as unverified.",
+  "R1: Added anonymity risks (EXIF/XMP, C2PA signer identity) and a re-scan step after metadata stripping.",
+  "R1: Research limits: the shared web-search budget ran out mid-task, so some searches were not repeated; City of Vancouver sites (vancouver.ca, guidelines.vancouver.ca, syc.vancouver.ca), the OpenAI Help Center and COPE returned 403 or 404 and are marked unopened or omitted."
+ ],
+ "notes": "Research notes. Web search budget (shared) ran out partway; remaining checks used direct page fetches only. Fetches pass through a summarising model, so figures read that way (OpenAI model names, prices, size rules) should be re-checked against the live documentation before coding. All City of Vancouver policy PDFs (Higher Buildings Policy 1997, Public Views Guidelines 2024, review overview) returned HTTP 403, so view-cone details are unverified; the Higher Buildings Policy (1997) remains the policy under review (no 2026 update adopted, per the City's project page). Today's date 21 Oct 2026: 40 days to the 30 Nov 2026 closing; course core 13 Nov; v1 10 Dec. Priorities: core = M01-M06; v1 = M07-M08. Derived numbers (A2 pixels per dpi, 1:200 / 1:500 extents, angular size at 5 km, horizontal field of view per focal length, PDF points 1683.8 x 1190.6) are arithmetic from cited dimensions and are labelled as illustrations where inputs are assumed."
+}

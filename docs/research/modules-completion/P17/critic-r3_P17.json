@@ -1,0 +1,321 @@
+{
+ "expert_role": "Studio reviewer and source gatekeeper (round 3, packet P17: case study of existing tools and the as-is workflow)",
+ "previous_round": [
+  {
+   "item": "MAJOR Forma access and analyses (add Autodesk blog, set FREE as a vendor statement, move sun, wind, noise and carbon into what_it_does)",
+   "status": "addressed",
+   "residue": "Re-read the blog on 21 Oct 2026. It is by Arne Magnus Bassoe-Eriksen, 1 Nov 2024, and says Forma is free for students. It names sun, wind, noise and embodied carbon, and not daylight or microclimate. This matches S64. The terms of the educational licence (educational use only? prize competitions?) are still not flagged for Forma the way they are for Snaptrude."
+  },
+  {
+   "item": "MAJOR Replace View Protection Guidelines with the Public Views Guidelines (2024)",
+   "status": "addressed",
+   "residue": "The Council facts are still second-hand (403). S54 leaves out that the dataset metadata names the City's bylaws as the authoritative source for view corridors and links a 'Protecting Vancouver's views' page that nobody opened. The VTC block's location is still not georeferenced, so the cone intersection has not been run."
+  },
+  {
+   "item": "MAJOR Snaptrude free Student Plan",
+   "status": "addressed",
+   "residue": "Re-read /students: 120 credits a year, educational use only, a 24-48 h workspace against Pro access 'within a few hours'. Competitions are not mentioned. This matches S66."
+  },
+  {
+   "item": "MAJOR Split automatable_or_judgment into code / AI / people",
+   "status": "addressed",
+   "residue": "Each step now has all three fields. Most AI entries are labelled team assumptions with no sourced accuracy. That is honest, but it means the AI column for steps 0b, 1b, 4b, 5, 6, 6b, 7b and 8 is unsupported."
+  },
+  {
+   "item": "MAJOR Add sourced inputs to step 0b (UNDRIP Strategy, the Nations' own material)",
+   "status": "addressed",
+   "residue": "The UNDRIP Strategy (S72) is still 403 and second-hand, so the only opened cultural sources are three Nation homepages. Nobody is named to open the Council PDF before it is cited on boards."
+  },
+  {
+   "item": "MAJOR Interviews for time shares and pain points (or state that the ranking must not drive priority)",
+   "status": "partly",
+   "residue": "The fallback rule is stated and the plan is written, but interview n=0 in round 3. Nobody owns the interviews, they have no dates, and no recruits are named. The working core is due in 23 days."
+  },
+  {
+   "item": "MINOR Close the Infrared UNRESOLVED flag",
+   "status": "addressed",
+   "residue": "Re-read on 21 Oct 2026: Free is labelled 'Students & small studies', with 900 one-time tokens and a 42-day expiry. The flag is still typed UNRESOLVED with a '[CLOSED]' prefix."
+  },
+  {
+   "item": "MINOR SimScale academic routes and public-project warning",
+   "status": "partly",
+   "residue": "S68 was added. The academic page also excludes LBM, the transient solver used for urban wind, and S58 shows Community has no LBM or PWC either. The case study still calls SimScale 'a real CFD route' and 'usable for basic CFD on Community'."
+  },
+  {
+   "item": "MINOR S01 fee and awards; S62 wording",
+   "status": "partly",
+   "residue": "Awards were added and S62 was reworded. My fetch could not map EUR 120 and 140 to categories: the page lists both amounts under the single-payment and instalment options. The FAQ rule that a Student or Sustainability winner who places in the top 3 receives both prizes is missing."
+  },
+  {
+   "item": "MINOR Rhino lab licence verified",
+   "status": "addressed",
+   "residue": "Confirmed today: School 30-user lab USD 975 new / 495 upgrade; student USD 195 / 95."
+  },
+  {
+   "item": "MINOR Eddy3D as a maintained wind candidate",
+   "status": "addressed",
+   "residue": "The installer date is still second-hand and the licence is UNVERIFIED."
+  },
+  {
+   "item": "MINOR Demo C/D counts",
+   "status": "addressed",
+   "residue": "The notes state that round 1 (4 of 12) and round 2 (12 of 12) are counts across the three runs, so 'inferred' can be dropped. The D3 figure of 255 vs 223 comes from a single run (n=1), and the spec does not say so."
+  },
+  {
+   "item": "MINOR Log the search pass and the negative results",
+   "status": "addressed",
+   "residue": "Logged as the critic's search, used second-hand. Finch and TestFit negatives are recorded."
+  },
+  {
+   "item": "MINOR Merge redundant sources",
+   "status": "addressed",
+   "residue": "Now 52 sources, against roughly 40 in the guidance."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P17/as_is_workflow (steps 0, 1b, 4b, 6, 7, 7b, 8) + sources",
+   "issue": "Three rounds in, the VTC brief has never been opened. The competition page's brief and site-file links are '#' placeholders, probably behind registration. Even so, the as-is workflow states brief content as fact: four A2 boards at 10 MB or less, 'recommended deliverables' (sustainability studies, typical lower, mid and upper plans, two sections, four ground-level perspectives, a QE Park skyline view), site edges, the secondary transit entrance, 'documents are academic, not legal' and 'justified breaches may be rewarded'. These are labelled 'earlier-round read' or credited to the project description. Under the course rule that every result cites its source, none of these has a citable source.",
+   "fix": "A registered team member downloads the brief PDF and site files before registration closes on 29 Oct. Add the brief as P17-S0x with opened:true, the date and the page numbers. Re-cite every brief-derived item to it, or label each one 'project description, unverified'. Delete the 'earlier-round read' citations."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow/8, 9 + S01",
+   "issue": "Steps 8 and 9 say the size, language, metadata and dimension checks use 'limits from S01'. The competition page I re-read on 21 Oct 2026 gives no board count, sheet size or MB limit; it says only that correspondence and submissions are in English and judging is anonymous. The 4 x A2 and 10 MB figures come from the project description, so these citations point to the wrong source.",
+   "fix": "Re-cite the 4 x A2 and 10 MB limits to the brief once it is opened, labelled 'project description, unverified' until then. Keep S01 only for English, anonymity and the deadline."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies/SimScale + step 4",
+   "issue": "S68 (academic page) lists LBM, PWC, multi-purpose, SPH and other advanced solvers as excluded from the Free Academic Plan. S58 shows Community includes incompressible flow only as 'Limited' and has no LBM or PWC, which are add-ons on Professional and Enterprise. LBM is SimScale's transient urban-wind solver (inference). The spec drops LBM and still presents Community and the Academic plan as 'a real CFD route' and 'usable before 30 Nov for basic CFD'.",
+   "fix": "Add LBM to the exclusions. Say that pedestrian wind comfort and LBM are not available on Community or the Free Academic Plan, so the only route to SimScale urban wind is the Academic Sponsorship Plan, with terms and turnaround unknown. Downgrade access for tower wind to 'UNKNOWN pending sponsorship'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17 (delegation across flags, unresolved_relationships, notes)",
+   "issue": "Delegation is unclear. About fifteen actions are assigned to 'a person', 'a team member' or 'ask the instructor': open the brief, open the Public Views Guidelines PDF, open the UNDRIP Strategy, log in to the Autodesk education page, apply to Speckle academia, email Snaptrude about competition use, apply for SimScale sponsorship, ask Buildner the FSR-basis question before 3 Nov, ask the course owner about reuse of the demo code, run two interviews. None has a named owner, a deadline or the source ID to update. The project demands that people's decisions are separated out, yet nobody is accountable for them.",
+   "fix": "Add an action table with columns: action, owner (student A or student B, or instructor), hard deadline (29 Oct registration, 3 Nov Q&A, 13 Nov core), source ID to update, and status. Order by deadline: brief and Q&A questions first."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow/1, 1b",
+   "issue": "The block's real location is never identified. The spec calls it 'the hypothetical block', though the project describes a full CBD block linked below grade to a neighbouring station. Without coordinates, the deterministic step that is possible today cannot run: intersecting the site with the 24 open-data cone polygons (S54, GeoJSON verified). A cone-free result would make the 403 guidelines PDF far less urgent.",
+   "fix": "Record the site's streets and coordinates from the brief or site files, with a source. Run the polygon intersection with S54 and record which view numbers, if any, cover the block. Keep the height rule UNVERIFIED only for the cones that intersect."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/case_studies (Forma, Giraffe, ShapeDiver, Rhino) + notes summary",
+   "issue": "The educational-use question is raised only for Snaptrude. The notes summary recommends Forma ('free for students') and Giraffe without the same caveat. Forma's education terms are unread (403). Giraffe's EULA is linked but unread. ShapeDiver academic is explicitly non-commercial (S39). Rhino's buy page says educational versions are 'the same as the commercial versions' except non-transferable, which is the one tool with no stated use restriction. Entrants could rely on an educational licence that excludes a competition with CAD 15,000 in prizes.",
+   "fix": "Add one UNVERIFIED flag covering every education or academic licence (Forma, Giraffe, ShapeDiver, Speckle academia, SimScale academic, Snaptrude) on prize-competition use, citing the relevant pages. Note that Rhino's page states no such restriction. Add a column to the summary for whether competition use is confirmed."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P17/as_is_workflow (evidence_status on all 16 steps)",
+   "issue": "Every as-is step is still a team assumption with interview n=0. The as-is workflow is this packet's main deliverable. 'Believed largest' (step 2) and 'most likely to be skipped' (wind, step 4) are still written as findings.",
+   "fix": "Name the interviewer and two recruits (for example via SALA ARCH 540 or VTC-registered UBC teams), set dates before 6 Nov and record raw answers in an appendix. Until then, add 'HYPOTHESIS' to the as_is_workflow title and remove ranking language ('largest', 'most likely') from the pain points."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources/P17-S01 + steps 0, 9",
+   "issue": "My re-read of the page could not map EUR 120 and 140 to the student and other categories: both amounts appear under the single-payment and instalment options. Instalment amounts are not given. The page links student registration rules to beebreeders.com/competition-registration-types, which returned HTTP 521, and says student rates involve university staff. The FAQ rule that a Student or Sustainability Award winner who places in the top 3 receives both prizes is missing.",
+   "fix": "Have a logged-in member confirm the fee per category on the registration page. Add the student-registration requirement (university staff) as an action in step 0 with an owner, and add the combined-prize rule to step 0's checklist."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources/P17-S54",
+   "issue": "The dataset metadata says the City's bylaws are the authoritative source for view corridors, and that each record carries description and url fields. The spec omits the bylaw note and does not read the per-record descriptions or the linked 'Protecting Vancouver's views' page.",
+   "fix": "Add the bylaw-authority statement to S54. Read the description field of any cone that intersects the site. Add the Protecting Vancouver's views page as a source (opened or 403)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources/P17-S09 + demo D case study",
+   "issue": "The notes state that round 1 (4 of 12 failed) and round 2 (12 of 12 passed) are counts across the three runs, so 'inferred' is now inaccurate. The D3 estimate of 255 vs 223 measured is a single run (n=1), and the spec does not say so. In demo C, the notes give the complete project's budget as 300 against 329 used.",
+   "fix": "Drop 'inferred'. Add 'n=1' to D3. Restate C5 as '329 evaluations against a 300 budget in the complete project; the prompt asked about 40 per strategy'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/flags",
+   "issue": "Closed items are still typed UNRESOLVED ('[CLOSED in r2]' Infrared; cove.tool 'resolved by ... see FALSE_ASSUMPTION'). Ladybug licence is typed UNRESOLVED but is resolved. A reader filtering by type sees false open items.",
+   "fix": "Add a RESOLVED type, or delete the superseded flags and keep their FALSE_ASSUMPTION successors."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources + flags (readability)",
+   "issue": "Extracts and flags carry review history ('per the r2 critic', 'the spec's own sum', 'r1 critic's Starter reading was wrong'). Entrants cannot easily tell what the source says from what reviewers argued.",
+   "fix": "Move round history to change_log. Keep each extract to what the page says plus an opened or second-hand label."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/sources (count)",
+   "issue": "52 sources against roughly 40 in the guidance. Several are low-value for entrants (S55 title search, S60 APS overview, S65 headline list).",
+   "fix": "Merge S60 into S44, and S65 into S64. Drop S55 or fold it into step 1's input note."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P17/change_log + notes (search)",
+   "issue": "The reviser's search budget was exhausted in all three rounds. Every search-derived fact is second-hand. This reviewer's search budget was also exhausted (21 Oct 2026), so none of the second-hand items could be confirmed.",
+   "fix": "Schedule one session with a fresh search budget, or have a person open the 403 pages in a browser, and upgrade S43, S62, S63, S69, S70 and S72 to opened or drop them."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Board count, size and the 10 MB file limit used in the step 8 and 9 pre-flight checks come from the competition page (S01)",
+   "why_false": "Re-read on 21 Oct 2026, the competition page does not specify boards, sheet size or file-size limits. It names English-only submission and anonymous evaluation.",
+   "correction": "Cite 4 x A2 and 10 MB to the brief once a registered member opens it. Until then, label them 'project description, unverified'.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge (fetched 21 Oct 2026: 'The page doesn't specify boards, sheet size, or file size limits'; brief links are '#')"
+  },
+  {
+   "claim": "SimScale Community or the Free Academic Plan is a usable CFD route for the wind study ('a real CFD route if a surrogate is not trusted'; 'usable before 30 Nov: yes for basic CFD on Community')",
+   "why_false": "The academic page excludes LBM, PWC, multi-purpose and other advanced solvers. The pricing page shows LBM and pedestrian wind comfort only as add-ons on Professional and Enterprise, with Community incompressible flow 'Limited'.",
+   "correction": "Urban and pedestrian wind on SimScale needs the Academic Sponsorship Plan (terms unknown) or a paid plan. Community and Free Academic give at most limited steady incompressible CFD.",
+   "evidence": "https://www.simscale.com/academic-program/ ; https://www.simscale.com/product/pricing/ (both fetched 21 Oct 2026)"
+  },
+  {
+   "claim": "Demo D's round counts (4 of 12 failed, 12 of 12 passed) are inferred totals with no run count stated",
+   "why_false": "The course notes state both counts as across the three runs.",
+   "correction": "State as given: across three runs, 4 of 12 failed in round 1 (3 play-area sun, 1 park shadow) and 12 of 12 passed in round 2. Mark the 255 vs 223 comparison as n=1.",
+   "evidence": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html (fetched 21 Oct 2026, demo D section)"
+  }
+ ],
+ "missing": [
+  "The VTC brief and site files as an opened source: deliverables, site location, FSR basis, height range, legal status of the documents, recommended drawings.",
+  "The site's location and coordinates, and the result of intersecting it with the 24 view-cone polygons.",
+  "An action and owner table with deadlines tied to 29 Oct (registration), 3 Nov (Q&A) and 13 Nov (working core).",
+  "Draft wording of the Q&A questions to Buildner before 3 Nov: FSR basis, view-cone applicability, site georeference, whether entrants may use educational-licence tools.",
+  "Competition-use terms for every education or academic licence (Forma, Giraffe, ShapeDiver, Speckle, SimScale, Snaptrude).",
+  "Student-registration mechanics: the page says university staff are involved; the beebreeders page returned HTTP 521.",
+  "Any interview data (n=0) and the recruitment plan with named people.",
+  "Opened copies of the 403 City documents (Public Views Guidelines 2024, the 1997 Higher Buildings Policy, the UNDRIP Strategy), or a decision to stop citing them.",
+  "Default visibility and sharing settings for each cloud tool, checked rather than inferred."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Open the VTC brief and site files (registered member, before 29 Oct). Add them as a source and re-cite every brief-derived claim, including 4 x A2 and 10 MB, or label it unverified.",
+   "Fix the step 8 and 9 citations so that S01 is used only for what it states.",
+   "Correct SimScale: LBM and PWC are excluded from Community and the Free Academic Plan; wind needs the Sponsorship Plan.",
+   "Georeference the site and run the S54 cone intersection; record which cones apply.",
+   "Publish an owner, deadline and source-ID table for every 'a person must' action, including the Q&A questions due 3 Nov.",
+   "Add a competition-use UNVERIFIED flag covering all education and academic licences, not only Snaptrude.",
+   "Retitle the as-is workflow as a hypothesis until at least two interviews are recorded, and remove ranking language."
+  ]
+ },
+ "sources_checked": [
+  {
+   "source_id": "P17-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": false,
+   "note": "Dates, team of 4, VAT 4.5%, prizes and AI FAQ match. The page gives no board, size or MB limits, though steps 8 and 9 cite it for them. The EUR 120 / 140 category mapping is unclear in my read. Brief and site links are '#'. The combined-prize rule for Student and Sustainability winners is missing from the spec."
+  },
+  {
+   "source_id": "P17-S54",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 records, 9 fields, no height field, OGL-Vancouver, modified 19 Oct 2026. The spec omits that the metadata names City bylaws as the authoritative source."
+  },
+  {
+   "source_id": "P17-S64",
+   "url": "http://blogs.autodesk.com/forma/2024/11/01/architecture-student-projects-with-autodesk-forma/",
+   "ok": true,
+   "note": "Free for students; names sun, wind, noise and embodied carbon. No daylight or microclimate. Author Bassoe-Eriksen, 1 Nov 2024."
+  },
+  {
+   "source_id": "P17-S66",
+   "url": "https://www.snaptrude.com/students",
+   "ok": true,
+   "note": "Matches: 120 credits a year, educational use only, 24-48 h vs 'few hours'. Competitions not mentioned."
+  },
+  {
+   "source_id": "P17-S68",
+   "url": "https://www.simscale.com/academic-program/",
+   "ok": false,
+   "note": "Also excludes LBM, multi-purpose, SPH and Marc; the spec names only PWC. The Sponsorship Plan for competition teams is confirmed."
+  },
+  {
+   "source_id": "P17-S58",
+   "url": "https://www.simscale.com/product/pricing/",
+   "ok": false,
+   "note": "Community: incompressible flow only 'Limited'; LBM and PWC are add-ons on Professional and Enterprise only. This undercuts the 'real CFD route' claim for wind."
+  },
+  {
+   "source_id": "P17-S31",
+   "url": "https://www.infrared.city/pricing",
+   "ok": true,
+   "note": "Free tier labelled 'Students & small studies', 900 tokens, 42-day expiry; standard 10 and wind 50 tokens; other costs not listed."
+  },
+  {
+   "source_id": "P17-S15",
+   "url": "https://www.speckle.systems/pricing",
+   "ok": true,
+   "note": "1 project, 3 users, 100 versions, 30-day history; 'free for students and educators'."
+  },
+  {
+   "source_id": "P17-S09",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html",
+   "ok": true,
+   "note": "B, C and D figures match. D round counts are stated across three runs (not inferred); D3 is n=1; C5 used 329 against a 300 budget."
+  },
+  {
+   "source_id": "P17-S10",
+   "url": "https://www.testfit.io/pricing",
+   "ok": true,
+   "note": "Plans, add-ons, typology list and mixed-use FAQ match. No trial. For Students goes to /solutions/universities."
+  },
+  {
+   "source_id": "P17-S25",
+   "url": "https://www.rhino3d.com/buy/",
+   "ok": true,
+   "note": "995/595, 195/95, 30-user lab 975/495 confirmed. Educational licence is the same as commercial except non-transferable."
+  },
+  {
+   "source_id": "P17-S47",
+   "url": "https://cove.inc/education-resources/",
+   "ok": true,
+   "note": "Programme ended: no new licences from 1 Oct 2025, access to 31 Dec 2025, no replacement."
+  },
+  {
+   "source_id": "P17-S71",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Protected views not reviewed; competition details and phases match; updated 13 Jul 2026. Related documents also include a Bay Parkade rezoning FAQ (not in the spec)."
+  },
+  {
+   "source_id": "P17-S71 (news item)",
+   "url": "https://shapeyourcity.ca/higher-buildings/news_feed/launch-of-vancouver-tall-ideas-competition",
+   "ok": true,
+   "note": "Only 'specific locations downtown'; no site, FSR, heights or views."
+  },
+  {
+   "source_id": "P17-S20",
+   "url": "https://github.com/ladybug-tools/ladybug",
+   "ok": true,
+   "note": "AGPL-3.0, 228 stars, pip install ladybug-core."
+  },
+  {
+   "source_id": "P17-S50",
+   "url": "https://www.giraffe.build/universities-and-education",
+   "ok": true,
+   "note": "Free licences, no trial expiry, no card. No regions named; EULA linked but unread (competition use unknown)."
+  },
+  {
+   "source_id": "competition terms",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": false,
+   "note": "Timed out twice; submission and IP terms not verified."
+  },
+  {
+   "source_id": "student registration rules",
+   "url": "https://beebreeders.com/competition-registration-types",
+   "ok": false,
+   "note": "HTTP 521; student-registration requirements unverified."
+  },
+  {
+   "source_id": "web search",
+   "url": "(WebSearch)",
+   "ok": false,
+   "note": "This turn's search budget was exhausted, so no second-hand facts (S43, S62, S63, S69, S70, S72, S74) could be confirmed."
+  }
+ ],
+ "verdict": "Round 3 fixed every BLOCKER and MAJOR from round 2 except the interviews, and the vendor facts I re-read mostly hold. The packet is still not reliable for entrants. After three rounds the VTC brief has never been opened, yet steps 8 and 9 cite the 4 x A2 and 10 MB limits to S01, which does not state them. Other brief content carries no source at all. SimScale is presented as a wind route although LBM and PWC are excluded from both free plans. The site is not georeferenced, so the view-cone check, which could run today, has not. Every 'a person must' action lacks an owner and deadline, and registration closes on 29 Oct. The as-is workflow is still interview n=0. The gate fails until the brief is opened and the action owners are assigned."
+}

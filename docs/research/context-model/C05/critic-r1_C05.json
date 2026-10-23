@@ -1,0 +1,258 @@
+{
+ "expert_role": "Software architect for plug-in and node-based design platforms (schemas, typed ports, shared services, geodetic frames, licensing of open data)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "item": "C05-M02/M03 vertical datum in Layer 0",
+   "issue": "Height-bearing ports carry no datum. massing.parts base_z/top_z, views.ceiling{height_m, reference, status} and context packs have no vertical-datum field, and frame.vertical has no default. The guideline sets each cone by a 'maximum geodetic height' (Public Views Guidelines s.2, p.3, June 2025 edition read; Vista's Feb 2026 transcription has the same wording). City height data is CGVD28: the 2022 LiDAR is labelled 'CGVD28GVRD Metro Vancouver Geoid', and the 2009 footprints give topelev_m and baseelev_m as 'geodetic'. Meanwhile Form Studio assumes grade z=0, Vista's z is model-relative (site 40.52 m) and SRTM is EGM96. A Layer 0 file therefore cannot be compared with any cone ceiling, which is the platform's main purpose.",
+   "fix": "Make vertical datum part of Layer 0 v1. Default to CGVD28 (City geodetic, Metro Vancouver HT realisation) and label EGM96, CGVD2013 and model_relative explicitly. Require {datum, grade_z_m, grade_source} on every Massing, ViewStudy and ContextRef. Have Ajv reject an absolute-height comparison when the datums differ. Never store a geoid offset that is not computed from the NRCan or Metro Vancouver model."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M02/M04 floors contract vs PVV importer",
+   "issue": "Two claims are false: that the PVV floor record can be adopted 'unchanged plus optional tower_id and plan_ref', and that Layer 0 floors 'import into PVV unchanged'. normaliseFloors (app/app.js lines 52-77) throws 'level N appears twice' and rebuilds each floor from a fixed list of keys, dropping tower_id, plan_ref and any other extra field. A Form Studio multi-tower cluster (several towers per level) cannot import, and any PVV export-import loses fields, so the zero-change round-trip metric fails by construction.",
+   "fix": "Make floors[] unique on (tower_id, level). Have the PVV adapter either aggregate per level or filter to one tower_id, and record which it did in provenance. Pass foreign fields through ext.pvv or keep them on the host side. Add a round-trip fixture with two towers."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05 datasets / M06 building pack",
+   "issue": "Measured City height data is missing from the spec. City open data has building-footprints-2009: 124,181 LiDAR-derived polygons with topelev_m, baseelev_m (geodetic), hgt_agl, rooftype, and a bldgid that groups podium, tower and penthouse parts (OGL-Vancouver). It also has lidar-2022 (vertical accuracy 0.081 m at 95%, NAD83(CSRS) UTM10, CGVD28) and a 1 m DEM from the 2013 LiDAR. DT Mass already ships 6,319 of these footprints. The spec instead builds context from OSM (24% measured) and 60 m SRTM, and its int16 pack drops podium steps that the City data provides.",
+   "fix": "Add these datasets to the C05 dataset table. Extend height_source with a city_lidar_2009 code and a survey year. Keep parts per bldgid (multi-prism LOD1) in the pack. Use OSM only for buildings built after 2009, flagged as such. Hand the 1 m DEM and the LiDAR to the terrain packet."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M03 frame inventory",
+   "issue": "DT Mass uses a fourth frame. src/city-data.js meta has origin [-123.118, 49.283] and scale [72616.63, 110574.0]: the same equatorial latitude scale, but an anchor about 196 m east and 33 m north of the team's (-123.1207, 49.2827). The spec describes DT Mass as 'local metres from the parcel south-west corner' and calls its data 'unverified'.",
+   "fix": "Add a named legacy-dtmass-1 converter with its own validation case, and make the frame id mandatory on every prism that DT Mass produces. Confirm the frame with Sinnie Choi before writing her adapter."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M03 EPSG:3157 accuracy target",
+   "issue": "EPSG:3157 does not meet M03's own area target. At Vancouver (E about 491.6 km) the UTM point scale factor is about 0.99960, so grid distances are 0.040% short and grid areas 0.080% small. That fails the 'parcel area error 0.05% or less' metric the recommendation is meant to satisfy.",
+   "fix": "Use a local transverse Mercator as the working frame (+proj=tmerc +lat_0=49.2827 +lon_0=-123.1207 +k=1 +ellps=GRS80), or compute FSR and site areas geodesically from lon/lat. Keep EPSG:3157 for exchange with City LiDAR and the DEM. Add a scale-factor validation case."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M02/M03 horizontal datum of 'lon/lat'",
+   "issue": "Layer 0 masters positions in 'EPSG:4326 lon/lat', but the City's native data is NAD83(CSRS) (LiDAR, DEM) or NAD83 EPSG:26910 (orthophotos), and the portal serves it as WGS 84 lon/lat. proj4js's EPSG:3157 definition applies a zero datum shift. The NAD83(CSRS) to ITRF/WGS 84 difference in Vancouver is metre-level, which matters for checks with a 0 m margin (BOUNDARY_CONTACT) and a 2 m encroachment cap (clause 3.1.5).",
+   "fix": "Define Layer 0 lon/lat as 'NAD83(CSRS) as served by the City portal, no datum shift' and state that in the frame object. Reject or flag GNSS or WGS 84 (ITRF) inputs unless they come through an epoch-aware transform such as NRCan TRX. Record the transform used in provenance."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M02 checks[] vs guideline text",
+   "issue": "The checks record cannot represent what the guideline allows. Its clause numbering is internally inconsistent: clauses 3.1.1 to 3.1.5 sit under heading 3.2. Clause 3.1.2 allows minor encroachments by appurtenances and rooftop amenities, and 3.1.5 caps them at 2 m. Section 3.4.2 cites view 12.2 (Granville Bridge), which is not among the 24 open-data cones. The record shape {status, clause, source_url, verified_on} has no field for document edition, page, element class (appurtenance or building) or tolerance.",
+   "fix": "Add guideline_version (amended date), page, element_kind (building, appurtenance, rooftop_amenity, vegetation) and tolerance_m to checks[]. Add element kinds to massing.parts. Mark any cone that appears in policy but not in the dataset as status unknown, with a VanMap link."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M06/M07 already-published derived packs",
+   "issue": "Vista's public repo already serves 38.7 MB of generated/*.bin derived from the supplied studio model, whose owner and terms are unknown. The spec says 'do not publish' the model but leaves the derivative public and plans to reuse it in shared packs.",
+   "fix": "Before the platform links to it, either rebuild the context from City LiDAR footprints and OSM, or get written permission from the instructor or the model's supplier. Until then, mark the Vista packs as non-redistributable in their manifest and exclude them from Layer 0 ContextRefs."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M04/M08 schedule",
+   "issue": "Summed estimates are about 32 to 36 person-days: M02 2, M03 2, M04 12 to 16, M05 10, M06 3, M07 1, M08 2. Two students have 23 days, during which the cone-height and terrain packets that define the core component also have to be done. The 13 Nov working core is at risk.",
+   "fix": "Limit 13 Nov to Layer 0 v1 (frame, datum, Site, Floors, Massing, Checks), the PVV and Form Studio export adapters, and the shared cone pack. Defer viewer and map unification, the Vista field-level import and classmate nodes. Publish a dated cut list."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M01 rhino3dm builds metric",
+   "issue": "The 'four or more distinct builds' metric is wrong. Form Studio's vendor/rhino3dm.wasm and rhino3dm.min.js have the same git blob SHAs (34e610b5..., ef4e84ef...) as DT Mass src/rhino3dm.*, so there are three distinct builds: Vista 8.35.0, Form Studio and DT Mass (shared), and Solar 8.4.0.",
+   "fix": "Restate the metric as 3 distinct builds. Record the shared build's version, and note that it is MIT third-party code, not code copied from a classmate."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M05 object_id instability",
+   "issue": "The spec says only view 10 changed its object_id. In fact 19 of 24 cones changed it between Vista's snapshot and the live API, while all 24 polygons are vertex-identical.",
+   "fix": "Report 19 of 24 changed. Key cones on view_number plus polygon SHA-256, as already proposed."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 validation limits",
+   "issue": "PVV does not enforce the proposed floor rules: no check of elevation contiguity, mix shares summing to 1, or level 0. An unknown area_basis silently becomes 'gross'. JSON Schema cannot express contiguity or floating-point sums.",
+   "fix": "Ship a custom validator, run after Ajv, for contiguity (tolerance 0.01 m), share sums (tolerance 1e-6), level numbering and area_basis enumeration. Make PVV reject unknown area_basis values instead of coercing them."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M03 migration breaks tests",
+   "issue": "PVV tests/basemap.test.js line 87 asserts the 110574 constant, so moving to a new frame will fail the only real test suite.",
+   "fix": "Move the constant into frame.js as legacy-vista-1, and test the converter rather than the constant."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05 datasets: orthophotos",
+   "issue": "The spec says the orthophoto licence is 'not shown; unverified'. The open-data dataset orthophoto-imagery-2022 is published under OGL-Vancouver, in EPSG:26910, at 7.5 cm, captured 6 June to 1 July 2022. The ArcGIS tile service's own terms are still unconfirmed.",
+   "fix": "Cite the open-data dataset as the licence source and record EPSG:26910 (NAD83 original, not CSRS). Keep the tile layer off by default."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M04 model import georeferencing",
+   "issue": "IFC and OBJ uploads are in the brief, but the spec gives no rule for how they reach the Layer 0 frame. IFC has IfcMapConversion and IfcProjectedCRS, OBJ has nothing, and .3dm carries only an EarthAnchorPoint.",
+   "fix": "Define a Placement port {source_crs, anchor, rotation, unit_scale, z_datum}. Read IfcMapConversion when present, and otherwise require the user to declare placement with a visible 'unverified' badge."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Four or more distinct rhino3dm builds ship across Vista, Form Studio, Solar and DT Mass.",
+   "why_false": "Form Studio's and DT Mass's rhino3dm.wasm and rhino3dm.min.js are byte-identical.",
+   "correction": "There are three distinct builds: Vista 8.35.0, Form Studio and DT Mass (shared, version unrecorded), and Solar 8.4.0.",
+   "evidence": "git hash-object of form-studio/vendor/rhino3dm.wasm = 34e610b55b84..., which equals the blob SHA of xubynii/dtmass src/rhino3dm.wasm in the GitHub tree API. The .min.js matches as well (ef4e84ef...)."
+  },
+  {
+   "claim": "DT Mass works in local metres from the parcel south-west corner, and its view-cone copy is only suspected.",
+   "why_false": "DT Mass's data module declares a fixed city frame and contains the cones.",
+   "correction": "DT Mass's frame has origin (-123.118, 49.283) and scale [72616.63, 110574.0]. Its city-data.js holds 17 view cones, 6,319 City 2009 footprints with heights, 272 zoning polygons and 4,348 parcels.",
+   "evidence": "https://raw.githubusercontent.com/xubynii/dtmass/HEAD/src/city-data.js, meta block and layer counts (read 21 Oct 2026)."
+  },
+  {
+   "claim": "Only view 10's object_id changed (3 in Vista, 1 live).",
+   "why_false": "19 of the 24 records changed object_id.",
+   "correction": "object_id changed for 19 of 24 cones. All 24 polygons are vertex-identical to Vista's snapshot.",
+   "evidence": "Live API view-cones records compared with vancouver-tall-view-tool data/viewcones.json polygon_lonlat and object_id."
+  },
+  {
+   "claim": "Context building heights must come from OSM tags or estimates (PVV subset 24% measured), with terrain from 60 m SRTM.",
+   "why_false": "The City publishes measured, datum-referenced building and terrain data under OGL-Vancouver.",
+   "correction": "Use building-footprints-2009 (124,181 LiDAR parts, topelev_m and baseelev_m geodetic, bldgid groups) and lidar-2022 (0.081 m vertical accuracy at 95%, NAD83(CSRS) UTM10, CGVD28 Metro Vancouver geoid), plus the 1 m DEM from 2013, as primary sources. Keep OSM for buildings built after 2009.",
+   "evidence": "opendata.vancouver.ca catalog: building-footprints-2009, lidar-2022 and digital-elevation-model metadata (read 21 Oct 2026)."
+  },
+  {
+   "claim": "Switching to EPSG:3157 brings distance and area error within the 0.05% target.",
+   "why_false": "The UTM zone 10N scale factor near Vancouver is about 0.99960.",
+   "correction": "Grid distances come out 0.040% short and grid areas 0.080% small, so the area target fails. Use a local TM with k=1 at the frame origin, or compute geodesic areas.",
+   "evidence": "Own Kruger computation: the point E 491,594.66 lies 8.4 km from the central meridian, giving k = 0.9996 x (1 + 8.7e-7). This reproduces the spec's E and N values."
+  },
+  {
+   "claim": "The Orthophotos_2022 licence is not shown and its terms are unverified.",
+   "why_false": "The City's open-data record for the same imagery states its licence.",
+   "correction": "orthophoto-imagery-2022 is published under OGL-Vancouver, in EPSG:26910 at 7.5 cm. Only the separate ArcGIS tile endpoint's terms remain unconfirmed.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/orthophoto-imagery-2022"
+  }
+ ],
+ "missing": [
+  "A mandatory vertical datum (default CGVD28 City geodetic) and grade_z on every height-bearing Layer 0 port",
+  "City building-footprints-2009, lidar-2022 and the 1 m DEM in the dataset table and pack design",
+  "A legacy-dtmass-1 frame converter and a validation case for it",
+  "A floors key of (tower_id, level) plus a multi-tower round-trip fixture",
+  "A checks[] schema with guideline_version, page, element_kind and tolerance_m (2 m cap in 3.1.5)",
+  "A statement of which horizontal datum 'lon/lat' means (NAD83(CSRS) as served) and how GNSS or ITRF inputs are handled",
+  "A Placement port for IFC, OBJ and .3dm georeferencing",
+  "A dated cut list for 13 Nov given the 32 to 36 person-day estimate",
+  "A custom validator for rules JSON Schema cannot express (contiguity, share sums)",
+  "A decision on the already-public Vista packs derived from the supplied model",
+  "The current (Feb 2026) Public Views Guidelines PDF: still HTTP 403, so only a June 2025 edition and Vista's transcription were checked",
+  "The OGL-Vancouver full text and attribution string (still unreadable; a BC 2.0 basis is reported only by an archived copy)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Layer 0 v1 fixes the vertical datum (CGVD28 default) and requires datum and grade_z on Massing, ViewStudy and ContextRef",
+   "floors[] is keyed by (tower_id, level), and the PVV adapter's behaviour on multiple towers and extra fields is specified and tested",
+   "City 2009 LiDAR footprints and 2022 LiDAR are added as primary context sources, and the pack keeps parts per bldgid",
+   "DT Mass frame recorded and converter planned; EPSG:3157 scale factor handled (local TM k=1 or geodesic areas)",
+   "The checks schema carries guideline edition, page, element kind and tolerance",
+   "13 Nov scope cut to fit 2 people x 23 days",
+   "The public Vista derived packs are either cleared for redistribution or excluded from shared packs"
+  ]
+ },
+ "verdict": "Not ready. The audit is mostly accurate: PVV's 118 test() calls, the absence of licences, the legacy-frame arithmetic, the UTM values and the npm versions all reproduce. The schema, though, cannot yet support the platform's purpose. Height ports carry no vertical datum, while the guideline sets cones by geodetic height and City data is in CGVD28. PVV's importer drops tower_id and rejects repeated levels. The spec misses the City's LiDAR footprints with measured geodetic roof heights. DT Mass uses a fourth frame. EPSG:3157 still fails the spec's own 0.05% area target. Fix the datum, floor keying and data sources, and cut the 13 Nov scope (32 to 36 person-days estimated), before freezing Layer 0 v1.",
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "Still HTTP 403 with WebFetch and with a curl browser user agent. A June 2025 edition (8 pages, saved from an earlier round in scratchpad c03r/pv2025.pdf) was read instead. It confirms: approved 10 July 2024; a cone is two vertical boundaries plus a horizontal lower boundary at the 'maximum geodetic height'; clauses 3.1.1 to 3.1.5 sit under heading 3.2; 2 m encroachment cap; Table 1 lists 24 views; s.3.4.2 cites view 12.2. The Feb 2026 edition was not verified."
+  },
+  {
+   "url": "https://www.shapeyourcity.ca/trout-lake-views",
+   "ok": true,
+   "note": "Per search summary: Council to consider Public Views Guidelines amendments (Trout Lake) on 4 Feb 2026. Consistent with the 'last amended 4 Feb 2026' date; outcome not read directly."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "OGL-Vancouver; modified 2026-10-19; 24 records. Fields also include shape_length and 'shapre_area' (City typo), which the spec omits. No height field. Bylaws stated as authoritative."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "note": "View 10 has object_id 1. 19 of 24 object_ids differ from Vista's snapshot; all polygons identical."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009",
+   "ok": true,
+   "note": "124,181 LiDAR-derived parts; topelev_m and baseelev_m geodetic; hgt_agl, rooftype, bldgid; OGL-Vancouver; 2009, not updated."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2015",
+   "ok": true,
+   "note": "154,124 footprints with no height fields; OGL-Vancouver."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "Vertical accuracy 0.081 m at 95%; NAD83(CSRS) UTM10; vertical CGVD28GVRD Metro Vancouver geoid; 181 tiles."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/digital-elevation-model",
+   "ok": true,
+   "note": "1 m DEM from 2013 LiDAR, NAD83(CSRS) UTM10, 1.91 GB TIF."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/orthophoto-imagery-2022",
+   "ok": true,
+   "note": "OGL-Vancouver; EPSG:26910; 7.5 cm; captured June to July 2022."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": false,
+   "note": "Navigation only; licence text not rendered. vancouver.ca returns 403."
+  },
+  {
+   "url": "https://raw.githubusercontent.com/xubynii/dtmass/HEAD/src/city-data.js",
+   "ok": true,
+   "note": "Frame origin (-123.118, 49.283), scale [72616.63, 110574]; 17 cones; 6,319 City 2009 footprints; zoning; no licence text in the data."
+  },
+  {
+   "url": "https://api.github.com/repos/xubynii/dtmass/git/trees/HEAD?recursive=1",
+   "ok": true,
+   "note": "rhino3dm blobs identical to Form Studio's."
+  },
+  {
+   "url": "https://api.github.com/repos/willemgirard03/Shading-tool-test",
+   "ok": true,
+   "note": "license null; src/export/rhino.js is 11,197 B (not read)."
+  },
+  {
+   "url": "https://api.github.com/repos/RuijieLiu6/program-value-visualizer",
+   "ok": true,
+   "note": "license null; Vista likewise null."
+  },
+  {
+   "url": "https://ruijieliu6.github.io/program-value-visualizer/",
+   "ok": true,
+   "note": "Access-Control-Allow-Origin *, ETag, Cache-Control max-age=600, Accept-Ranges bytes: confirmed."
+  },
+  {
+   "url": "https://registry.npmjs.org/ajv",
+   "ok": true,
+   "note": "8.20.0, MIT. Also checked: proj4 2.22.0 MIT; web-ifc 0.0.78 MPL-2.0; three 0.186.1 MIT; rhino3dm 8.35.0 MIT; leaflet 1.9.4 BSD-2-Clause. All match the spec."
+  },
+  {
+   "url": "local: user-repos/program-value-visualizer/app/app.js",
+   "ok": true,
+   "note": "normaliseFloors rejects duplicate levels and strips extra fields; no contiguity check; importer reads top-level floors, settings and brief."
+  },
+  {
+   "url": "local: user-repos/*/ (frame constants, vendor, tests)",
+   "ok": true,
+   "note": "110574 and 111320*cos(49.2827) in Form Studio, Vista and PVV (including tests/basemap.test.js line 87); 118 test() calls; no LICENSE files; Vista rhino3dm wasm 18cb4b66."
+  },
+  {
+   "url": "https://help.openstreetmap.org/questions/59890/is-the-open-government-licence-vancouver-compatible-with-osm/",
+   "ok": true,
+   "note": "Seen via search; an archived copy says OGL-Vancouver is based on OGL-BC 2.0. Compatibility still unresolved."
+  }
+ ],
+ "previous_round": []
+}

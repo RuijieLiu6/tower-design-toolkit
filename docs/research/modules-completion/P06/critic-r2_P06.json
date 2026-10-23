@@ -1,0 +1,301 @@
+{
+ "expert_role": "Environmental psychologist researching public-space experience (independent reviewer, round 2, packet P06)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M02",
+   "issue": "The podium rule is misapplied to mixed-use towers. The spec applies the S2.2.7 18.3 m cap 'when residential floors sit above' and lists 'which of S2.2.6 or S2.2.7 governs a mixed tower' as UNRESOLVED. The CDDG glossary answers this: 'Residential development' means development containing exclusively residential uses (or choice-of-use at grade). S2.2.7 therefore covers only all-residential towers. A VTC tower with at least 9.0 FSR non-residential falls under S2.2.6 and Table 2.2b, and S2.2.8 raises the S2.2.6 maxima to 21.3 m. As written, the tool would fail a 23.0 m podium on a street over 30.5 m wide, or a 21.3 m S2.2.8b podium, whenever any residential floor is present.",
+   "fix": "Remove the S2.2.7 cap from mixed-use and non-residential towers, and apply it only when every tower use is residential. Close the UNRESOLVED flag with a citation to the glossary definitions of 'Residential development' and 'Non-residential tower'. Show S2.2.8b as an increase over the Table 2.2b value."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M03",
+   "issue": "The shadow-polygon method is wrong for stepped massing. The method takes the convex hull of each building's footprint and the same footprint shifted by H / tan(elevation). For a podium plus a 305 m tower, that sweeps the whole podium footprint to the tower's height. The shadow is overstated by up to the podium's plan extent, about 80-145 m, along a 600 m to 1.4 km reach. That could create false FAILs on no-new-shadow parks, which are 'verified' rows. The convex hull also fills re-entrant corners and L-shaped plans.",
+   "fix": "Project each storey slice or prism (or each mesh face) separately using its own top height, take the union, and only then intersect with the protected spaces. Add a test that compares the polygon result with a trimesh ray-cast check at sample points for one stepped massing. Report the error, which should be under 1 m2 per protected space."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M04",
+   "issue": "G4.4.1 is wrongly marked as applying only with a station overbuild ('the VTC brief may not include one'). G4.4.2a requires integrated station entrances to fully meet the form and massing guidelines for station overbuild and plaza fit-out in 4.4.1. The VTC's required secondary entrance therefore triggers the G4.4.1 checklist: complementary paving, seating, shade, extended weather protection, and integrated vents, grates and signage.",
+   "fix": "Make the G4.4.1 a-h checklist apply to any integrated station entrance through G4.4.2a. Cite both clauses and keep it as a manual evidence checklist."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M02",
+   "issue": "Human scale is measured only in plan and section, never from eye level. The CDDG design tip next to Table 2.2b says to evaluate legibility, rhythm and enclosure from typical sidewalk viewpoints rather than distant perspectives. The only perceptual metric is a cosine-weighted sky view factor. That is a radiative measure that underweights the near-horizon sky pedestrians actually see. Perceived openness and the 'oppressiveness' of tall buildings depend on sky and building solid angle within the eye-level field of view. Also, 500 Monte Carlo rays give a standard error of about 0.02, too noisy for the 'change from baseline' it is meant to report.",
+   "fix": "Add a reported-only eye-level view metric at the sampled sidewalk points. Within a horizontal-gaze cone (for example plus or minus 30 degrees vertical), report the shares of sky, podium, tower and context. Offer an unweighted (solid-angle) sky-openness value next to the cosine-weighted SVF. Use deterministic or stratified hemisphere sampling (for example Tregenza or Reinhart subdivisions with at least 2,000 patches), or an analytic view factor, so deltas are stable. Label any threshold unverified. Ewing and Handy 2009 and studies of perceived oppressiveness still need to be opened."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M03",
+   "issue": "Pedestrian wind at grade still has no criterion anywhere in the tool. Every wind row is 'unverified' and owned by CLIM, but for 244-305 m towers downwash and corner acceleration are the largest risk to comfort and safety at the sidewalk, entrances, transit plaza and POPS. The only City text is qualitative (CDDG G1.8.1b; the 1997 policy says no adverse microclimate). Meanwhile M03 and M01 can show green sun, seating and shelter badges for places that may be unsafe in wind.",
+   "fix": "Until CLIM supplies sourced criteria, require a status of 'not assessed: wind' on every M01, M03 and M04 badge at seating, entrances and the transit plaza, instead of green. Adopt one published external wind comfort and safety criterion set (for example City of Toronto Pedestrian Level Wind Study Terms of Reference, or Lawson/LDDC), labelled external benchmark, with the safety exceedance as a hard flag. Record which document CLIM opens."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M03",
+   "issue": "The cultural-context criterion (30%) is claimed but not operationalised. M03, M06, M07 and M08 list cultural_context_30 among their jury criteria, but no metric, input or output measures it. Solar Table 1 lists two downtown urban plazas with Indigenous names, šxʷƛ̓ənəq Xwtl'e7énḵ (formerly Vancouver Art Gallery North Plaza) and šxʷƛ̓exən Xwtl'a7shn (formerly Queen Elizabeth Theatre Plaza), plus a park, səθəqəlxenəm ts'exwts'áxwi7 (Rainbow Park). The spec does not name them, so they disappear into 'other urban plazas'. The CDDG text contains a land acknowledgement but no Indigenous design standard ('Indigenous' does not appear elsewhere in the text searched).",
+   "fix": "List each Table 1 space by its official name, with correct Unicode orthography and the former name, in the M03 shadow panel. Flag the Indigenous-named plazas as culturally significant: shadow on them is reported as 'minimise' (3.2.1) and also routed to human review. Either remove cultural_context_30 from modules that compute nothing for it, or add an explicit human-judgment protocol (Musqueam, Squamish and Tsleil-Waututh engagement, naming, art, wayfinding) with the evidence mode set to 'human' in M08. Do not imply that computed checks score reconciliation."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M01",
+   "issue": "The Granville Street Plan is described as 'not opened', but its new Urban Design Framework text (the CDDG 4.18 referral for that area) is reproduced in P06-S01 Appendix C pp.38-39. The text calls for a 24/7 destination; lighting, clear sightlines and inclusive features; queuing areas and resting spots; ground uses that complement future pedestrianisation; video screens at Robson and Granville, dimmed after 22:00 near residences; and towers that do not overshadow the fine grain. These bear directly on the night activation, queue and rest metrics, which are currently unverified or team assumptions.",
+   "fix": "Add P06-S01 Appendix C (Granville Street Plan amendments) as an opened source. When the user selects the Granville Street Plan area, load a preset set: night activation reported against the 24/7 principle, queuing areas (M05/M07), resting spots (M06), and a screen-dimming flag. Keep the DD character-area descriptions flagged as not opened."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M01",
+   "issue": "The core scope is not feasible before the working-core date. Effort for the five core modules alone (M01 8-10, M02 6-8, M03 9-11, M04 6-8, M07 4-5) is 33-42 person-days. Two students have 23 days until 13 Nov 2026, and P06 is one of 13 categories. Nothing in the spec says what ships first.",
+   "fix": "Define a minimum viable P06 for 13 Nov: M01 frontage classes plus entrance spacing, the M02 podium band and Table 1.5, the M03 Basic study on Table 1 spaces plus POPS area, and M04 link width. Push M03 Detailed, sun rasters, M05-M08 and the visual extras to the 10 Dec release. Put the split in the spec."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M03",
+   "issue": "The status labels still hide the evidence level. Metric rows use 'false_assumption_corrected' as their status (podium band, Table 1.5, open-space share, TfL PCL, TfL widths, solar study type). That says an earlier claim was wrong, not whether the current rule is verified, derived, external or unverified. For example, the 20% open-space row is 'false_assumption_corrected', yet its large-site trigger is still unverified. The external_benchmark and derived statuses requested in round 1 exist only as basis prefixes.",
+   "fix": "Record a correction in a separate field (corrected_in_round) and give each row its true evidence status. Add external_benchmark and derived to the status enum, or render the basis prefixes as distinct badges in the UI. Mark the 20% row 'verified (text) / trigger unverified'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "The S2.2.8b path (21.3 m podium where enhanced open space is provided) is tested only for presence of tagged open space. The glossary defines enhanced open space as at grade and free of buildings overhead. S3.9.1 requires at least 50% of it to be planted with trees, and G3.9.5 bars vehicles. Planted share is also the one sourced greenery number available for restorative quality.",
+   "fix": "Check enhanced open space eligibility: at grade, no overhead mass, at least 50% planted area with trees (S3.9.1), no vehicles. Only then show the S2.2.8b chip. Report planted share of all public open space as an output."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "S2.3.2 is missing: in mixed-use and non-residential contexts, towers wider than 29.0 m need clear volumetric articulation. The spec mentions only the residential 29.0 m limit. The CDDG design tip that towers wider than about 60% of the frontage read as slabs is also omitted.",
+   "fix": "Add an S2.3.2 flag (max dimension over 29.0 m means articulation required). Report tower width as a share of frontage (tip, derived), which is 60% of 79.2 m, or about 47.5 m."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M03",
+   "issue": "The exception path leaves out what staff weigh under 3.1.3(a) and 3.3.3(a): 'limiting impacts to vulnerable populations', together with the quality and function of the space at key times. The 4.3.2 exception clause also cross-refers to a non-existent '4.5.1' (a typo in the source), which the spec silently reads as 4.3.1.",
+   "fix": "Add 3.1.3 a-e as fields in the exception evidence form, including who uses the space and when, and vulnerable groups. Add a note that 4.3.2 says '4.5.1' and that the tool reads it as 4.3.1."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "Streetwall continuity is defined inconsistently. The metric says within 1 m of the build-to line, measured at 1.6 m and 12 m heights. The method says a 2 m buffer of the building line. Results will differ between the two.",
+   "fix": "Pick one tolerance (1 m) and use it in both the metric and the method. State how the two sample heights combine (both must be within tolerance)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M05",
+   "issue": "The TfL Figure 9 decoding is supported by the figure's own notes. High street and tourist columns say people are 'particularly sensitive to crowding', with the same peak and average-of-maximum guidance. Office/retail, interchange and residential set 'at risk' lower for average-of-maximum or short peaks. The spec encodes average-of-maximum only for interchange, and still marks the row 'false_assumption_corrected' and 'confirm visually'.",
+   "fix": "Encode both the peak and average-of-maximum columns for all five area types. Cite the Figure 9 column notes (p.14 text) as the confirmation. Set the status to external_benchmark (verified text)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M06",
+   "issue": "Rest spacing is marked 'verified' with good = '50 m apart along busy routes; 100-150 m acceptable'. EDM Table 8-2 gives distances by user group (50, 100, 150 m), not by route busyness, so the 'busy routes' condition is the team's own.",
+   "fix": "Report the gap against each Table 8-2 group (verified). Move the 'busy routes take 50 m' rule to team assumption, or use the DfT 50 m figure as an external benchmark."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M01",
+   "issue": "Night-time experience lacks the CDDG's own lighting clauses. G2.16.1-G2.16.2 ask lighting to reinforce entrances and lower levels while minimising glare and light spill onto open spaces. G3.1.1a asks for eyes on the street through clear sightlines. Perceived safety at night is reduced to an hours flag.",
+   "fix": "Add a lighting attribute per segment (integrated frontage lighting, glare/spill risk) linked to G3.1.1b and G2.16.1-2, and a sightline check from the sidewalk into active units at night. Keep illuminance values as human or consultant input."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M03",
+   "issue": "The own-POPS sun test runs only on 22 Sep from 10:00 to 16:00, the City's protected-space window, and wind and rain are handled separately. People use a POPS mostly at lunchtime and in late spring and summer. No combined outdoor thermal comfort measure (for example UTCI) exists, even as a CLIM link.",
+   "fix": "Allow extra study dates and windows for own POPS (for example 21 Jun and 21 Mar, 11:30-14:00), labelled team assumption. Request a combined thermal comfort output from CLIM as a reported layer."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "Protected public views (CDDG 4.10, Public Views Guidelines) are not cross-referenced. The April 2026 memo says view cones are an overlay that decides where higher buildings may go and will not be reviewed. Views from public places are part of the public-realm experience.",
+   "fix": "Add a dependency on SITE for the view-cone check. In M08 'opportunities to see', link view-cone status as context."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M01",
+   "issue": "Entrance spacing and unit width treat all active frontage alike. The glossary separates fine-grain active uses (cafes, small retail, transit entrances) from major active uses (hotel lobbies, cultural venues, grocery). A civic or cultural anchor would be flagged amber for spacing and width without the tool recognising that the CDDG anticipates it.",
+   "fix": "Add a fine-grain / major active-use attribute from the glossary. Apply the 7.6-15.3 m unit-width and 8-12 m spacing checks to fine-grain frontage. Report major active-use frontage separately with a 'justify' chip."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The S2.2.7 18.3 m Downtown podium cap applies to a mixed-use tower whenever residential floors sit above, and which of S2.2.6 or S2.2.7 governs a mixed tower is unresolved (P06-M02 podium metric, UNRESOLVED flag).",
+   "why_false": "S2.2.7 applies to tower podiums 'associated with residential developments', and the glossary defines a residential development as one containing exclusively residential uses or choice-of-use at grade. S2.2.6 covers mixed-use residential and non-residential developments, through Table 2.2b. S2.2.8 increases the S2.2.6 maxima.",
+   "correction": "For the VTC (at least 9.0 FSR non-residential), use Table 2.2b (S2.2.6), with S2.2.8b allowing 21.3 m where frontage exceeds 60.7 m and enhanced open space is provided. Apply S2.2.7 only to all-residential towers.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf Appendix A p.25 (S2.2.6-S2.2.8), p.26 (Table 2.2b), glossary 'Residential development', 'Non-residential development', 'Non-residential tower'."
+  },
+  {
+   "claim": "CDDG G4.4.1 (station overbuild and plaza checklist) applies only where a development includes a station overbuild or primary headhouse; the VTC brief may not include one (P06-M04).",
+   "why_false": "G4.4.2a says that where a development includes integrated station entrances, those entrances must be fully integrated to meet the form and massing guidelines for station overbuild and plaza fit-out in 4.4.1.",
+   "correction": "The required secondary station entrance triggers the G4.4.1 items through G4.4.2a. Run the checklist for any integrated station entrance.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf Appendix A p.69 (S4.4.1, G4.4.1 a-f, G4.4.2 a-e)."
+  },
+  {
+   "claim": "The shadow polygon of each building is the convex hull of its footprint and the footprint shifted by H / tan(elevation) (P06-M03 method step 4).",
+   "why_false": "This holds only for a convex prism of uniform height. For a podium-plus-tower mass it sweeps the full podium footprint to tower height, and it fills concave plan shapes, so the computed shadow is larger than the real one.",
+   "correction": "Project each storey slice, prism or mesh face at its own height, union the results, then intersect with the protected spaces.",
+   "evidence": "Geometry. For a 305 m tower on a 79.2 x 144.8 m podium at 26.9 degrees sun elevation, the error is a strip as wide as the podium beyond the tower footprint, extending up to about 600 m."
+  },
+  {
+   "claim": "The Granville Street Plan referred to by CDDG 4.18 was not available, so its content is unknown (P06-S40, UNRESOLVED flag).",
+   "why_false": "The Council report already used as P06-S01 reproduces the plan's new Urban Design Framework in Appendix C.",
+   "correction": "Use the Appendix C text: 24/7 destination; lighting, sightlines and inclusive features; queuing areas and resting spots; transit entries; screens dimmed after 22:00; towers that do not overshadow the fine grain. The DD Character Area Descriptions remain unopened.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf Appendix C pp.38-39 (10. Granville Street Plan)."
+  },
+  {
+   "claim": "(Round-1 critic's claim, kept as 'confirm visually' in the spec) TfL Figure 9 shows the high street as the most crowding-tolerant area type.",
+   "why_false": "The Figure 9 column notes say high street and tourist-area users are 'particularly sensitive to crowding', with the same peak and average-of-maximum guidance. Office/retail, interchange and residential relax the 'at risk' level for average-of-maximum or short peaks.",
+   "correction": "The spec's reading is right: high street and tourist are strictest, residential intermediate, office/retail and interchange most tolerant. Cite the p.14 notes and drop the visual-check caveat.",
+   "evidence": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf p.13 (Figure 8 bands) and p.14 (Figure 9 text and column notes)."
+  }
+ ],
+ "missing": [
+  "Eye-level perceptual measures: view-field shares of sky, podium and tower from sidewalk points, as the CDDG 'test at pedestrian speed' tip asks; unweighted sky openness next to the cosine-weighted SVF.",
+  "Any wind comfort or safety criterion at grade, even as a labelled external benchmark; a 'not assessed: wind' state on seating, entrance and plaza badges.",
+  "Official names, in correct orthography, of Indigenous-named Table 1 spaces (šxʷƛ̓ənəq Xwtl'e7énḵ, šxʷƛ̓exən Xwtl'a7shn, səθəqəlxenəm ts'exwts'áxwi7) and a human-judgment protocol for the cultural-context (30%) criterion.",
+  "Granville Street Plan Urban Design Framework (P06-S01 Appendix C pp.38-39) as a policy-area preset.",
+  "Enhanced open space eligibility (S3.9.1 at least 50% planted with trees, G3.9.5 no vehicles) for the S2.2.8b podium path; planted share of public open space.",
+  "S2.3.2 articulation trigger for towers over 29.0 m wide in mixed-use contexts; tower width as a share of frontage.",
+  "Solar exception evidence fields from 3.1.3 / 3.3.3 a-e (vulnerable populations, quality and function at key times).",
+  "Lighting and glare (G2.16.1-2) and night sightlines as inputs to night activation and perceived safety.",
+  "Cross-reference to protected public view cones (CDDG 4.10), which the April 2026 memo calls a fixed overlay for tall buildings.",
+  "Seasonal or lunchtime sun windows for own POPS, and a combined outdoor thermal comfort layer from CLIM.",
+  "A minimum viable P06 scope for the 13 Nov working core.",
+  "Still unopened: Rezoning Policy for Sustainable Large Developments (403 again), Gehl's twelve criteria, Ewing and Handy 2009, London Plan D9, DD Character Area Descriptions, VTC competition page (timed out). The web search budget was exhausted this round, so no new literature searches were possible."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Restrict S2.2.7 to all-residential towers and apply Table 2.2b / S2.2.8 to the VTC mixed-use tower; close the UNRESOLVED flag with the glossary citation.",
+   "Replace the convex-hull shadow projection with per-storey or per-face projection and union, and validate it against ray casts on one stepped massing.",
+   "Apply the G4.4.1 checklist to integrated station entrances through G4.4.2a.",
+   "Add a 'not assessed: wind' state so that no M01, M03 or M04 grade-level badge shows green without a CLIM wind result, and name the external wind criterion CLIM will use.",
+   "Either remove cultural_context_30 tags from modules without a metric, or add an explicit human-judgment protocol; name the Indigenous-named Table 1 spaces correctly.",
+   "Separate the correction history from evidence status (external_benchmark / derived / verified / unverified) on every metric row.",
+   "State the minimum viable P06 scope for the 13 Nov working core."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M03: urban plazas all 'minimise'; special cases 4.1-4.3 missing",
+   "status": "addressed",
+   "residue": "Rules match Appendix A text, which I opened. The Indigenous-named Table 1 plazas are still not named. The source's '4.5.1' typo in 4.3.2 is not noted, and the 3.1.3(a) vulnerable-populations factor is not captured."
+  },
+  {
+   "item": "BLOCKER M03: no shadow domain; ray grid cannot scale",
+   "status": "partly",
+   "residue": "Domain radius is correct (I recomputed: about 600 m on 22 Sep; 1.35 km and 0.92 km on 11 Nov). Polygon projection was adopted, but the convex-hull method overstates shadow for stepped massing. Performance is unbenchmarked."
+  },
+  {
+   "item": "MAJOR M03: 10% mid-sized-site option; 20% large-site target",
+   "status": "partly",
+   "residue": "20% default set and mid-sized option removed (S1.9.1/S1.9.2 text confirmed). The Large Developments policy still returns 403. The 'unique site' route (refer to area plan) is not considered. The status label hides the unverified trigger."
+  },
+  {
+   "item": "MAJOR M04: link widths 4.5/5.4/7.3 m passing",
+   "status": "addressed",
+   "residue": "9.1 m VTC preset with 2.4 m clear path; other widths shown as context only."
+  },
+  {
+   "item": "MAJOR M02: Table 1.5 incomplete; intra-site pairs; G1.5.1",
+   "status": "addressed",
+   "residue": "Full matrix, G1.5.1 flag, intra-site and half-separation tests added. I did not re-open Table 1.5 this round."
+  },
+  {
+   "item": "MAJOR M01: no active depth, lobby class, hours, separate entries",
+   "status": "addressed",
+   "residue": "G2.10.2c 9.1 m (confirmed, parking context) used as an analogue. Fine-grain versus major active-use classes from the glossary are not yet used."
+  },
+  {
+   "item": "MAJOR M03: wind linkage only at seating",
+   "status": "partly",
+   "residue": "Point sets were extended to entrances, sidewalks, transit plaza, links and terraces, but no criterion or safety flag exists anywhere, and badges can still show green without wind data."
+  },
+  {
+   "item": "MAJOR M04: below-grade station link unevaluated",
+   "status": "partly",
+   "residue": "G4.4.2 items and two-lift redundancy were added. G4.4.1 is wrongly treated as inapplicable; width and daylight are still unverified (TransLink not opened)."
+  },
+  {
+   "item": "MAJOR M02: CDDG 4.18 character areas / Granville Street Plan missing",
+   "status": "partly",
+   "residue": "Added as an unopened source and a SITE input. The Granville Plan Urban Design Framework text already in P06-S01 Appendix C was not used."
+  },
+  {
+   "item": "MAJOR M05: external benchmarks labelled 'verified'",
+   "status": "partly",
+   "residue": "Relabelled team_assumption with an [EXTERNAL BENCHMARK] prefix; no distinct status. 'false_assumption_corrected' is used as a row status, which hides the evidence level."
+  },
+  {
+   "item": "MAJOR M05: demand model, peak surges, >2,000 pph",
+   "status": "addressed",
+   "residue": "Peak 15-minute run, sensitivity band and ppmm derivation above 2,000 pph added. Generation rates remain unsourced presets, correctly labelled."
+  },
+  {
+   "item": "MAJOR M08: 0-100 per-criterion scores; merged criteria; unverified list",
+   "status": "partly",
+   "residue": "12 rows with counts and no composite. The criteria list is still unverified (no Gehl source opened; search budget exhausted this round)."
+  },
+  {
+   "item": "MAJOR M01: cyclist conflict at driveways",
+   "status": "addressed",
+   "residue": "bike_facility flag and separate crossing count added, with EDM Table 8-18 as context."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P06-S09",
+   "url": "https://council.vancouver.ca/20250917/documents/pspc9Memo.pdf",
+   "ok": true,
+   "note": "Text extracted in the browser (30 pp). Confirmed: Table 1 classes; 3.1.1-3.1.4; 3.2.1; 3.3.1-3.3.4 (Robson to 3 pm); 4.1.1 ('Despite' 3.1, no exception stated); 4.2.1; 4.3.1 (PST, Cenotaph 10-12 on 11 Nov); 5 (PDT UTC-7, proposed developments, topography, trees excluded); 5.1.1 two-hour Basic; 5.2.1 Detailed with the 25-interval formula; 6 exemptions. Found: Indigenous-named plazas in Table 1; 3.1.3(a) vulnerable populations; 4.3.2 cites the non-existent '4.5.1'."
+  },
+  {
+   "source_id": "P06-S01",
+   "url": "https://council.vancouver.ca/20260728/documents/r2.pdf",
+   "ok": true,
+   "note": "Text extracted (156 pp). Confirmed: S3.1.1 (8.0-12.0 m entrances, 'most' glazing); S3.2.1-S3.2.2 (3.0-4.5 m, ratio 0.4-0.7, at least 1.5 m); G3.2.1; S1.9.1-S1.9.2; S1.10.2; S1.11.1; S2.2.1 (25.0-45.7 m); S2.2.6-S2.2.10; Table 2.2b (four ROW rows, merged cells); Table 2.3 and design tips (6:1-8:1, 60% frontage); S2.3.1-S2.3.2; G2.10.2c (9.1 m); G2.11.1; G3.1.1-G3.1.3; G1.8.1; S3.9.1; S4.4.1; G4.4.1-G4.4.2; 4.9-4.10; 4.18; S4.11.1; G2.16. Glossary: residential development, active uses (fine-grain and major), enhanced open space, large and unique sites, tall and very tall towers. Appendix C pp.38-39: Granville Street Plan Urban Design Framework."
+  },
+  {
+   "source_id": "P06-S16",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "ok": true,
+   "note": "Pages 13-14 text extracted. The PCL bands match the spec. The Figure 9 column notes support the spec's area-type ordering (high street and tourist strictest) and contradict the round-1 critic."
+  },
+  {
+   "source_id": "P06-S04",
+   "url": "https://vancouver.ca/files/cov/2026-04-02-memo-higher-buildings-policy-review-and-public-engagement.pdf",
+   "ok": true,
+   "note": "Confirmed: last updated 2011; up to 600 ft with one location at 700 ft; Ideas Competition June 2026-January 2027; Phase Two late 2026; Lookout 'typically a ticketed venue'. Also says protected public views are a fixed overlay, and that design would prioritise a strong street-level experience."
+  },
+  {
+   "source_id": "P06-S03",
+   "url": "https://vancouver.ca/home-property-development/higher-buildings-policy-review.aspx",
+   "ok": true,
+   "note": "Policy adopted 1997; review tied to the Granville Street Plan; Ideas Competition live until 30 Nov 2026. Matches the spec."
+  },
+  {
+   "source_id": "P06-S36",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "ok": false,
+   "note": "403 again via WebFetch; the large-site trigger is still unverified."
+  },
+  {
+   "source_id": "P06-S26 (Gehl criteria)",
+   "url": "https://www.gehlpeople.com/",
+   "ok": false,
+   "note": "Guessed PDF path returned 404. The web search budget was exhausted this turn, so no search was possible."
+  },
+  {
+   "source_id": "VTC brief",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": false,
+   "note": "WebFetch timed out and browser navigation was denied; jury weights not re-checked."
+  },
+  {
+   "source_id": "Toronto ToR (wind, candidate external benchmark)",
+   "url": "https://www.toronto.ca/city-government/planning-development/application-forms-fees/building-toronto-together-a-development-guide/application-support-material-terms-of-reference/",
+   "ok": false,
+   "note": "The index page opened, but the first 100k characters held no wind criteria; not pursued further."
+  }
+ ],
+ "verdict": "Not ready yet, but close. Round 2 fixed most round-1 items, and the solar special cases, CDDG clause values and TfL bands now match the text I opened. Three errors would still give entrants wrong verdicts. First, the S2.2.7 residential podium cap is applied to mixed-use towers, although the glossary limits it to all-residential developments. Second, the convex-hull shadow method overstates shadow from podium-plus-tower massing and could falsely fail protected parks. Third, G4.4.1 is skipped for the station entrance, although G4.4.2a requires it. From a public-experience view, the 40% criterion still has no eye-level perceptual measure and no wind criterion at all. The 30% cultural criterion is tagged on modules without a metric. Core scope also exceeds the 13 Nov capacity."
+}

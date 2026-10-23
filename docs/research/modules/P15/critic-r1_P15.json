@@ -1,0 +1,367 @@
+{
+ "expert_role": "Maintainer of a large open-source plugin ecosystem (registry, sandboxing, governance), reviewing P15 round 1",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P15-M05/M06/M07",
+   "issue": "Templates, forks, comments and registry entries are public by default. This conflicts with the VTC terms that entrants depend on. Terms 4.1 say visuals must not have been previously published. Terms 5.1 and 5.3 require entries with no identifying marks and a jury that learns identities only after winners are chosen. giscus requires a public repository, comments are tied to GitHub identities, and public forks cannot be made private. An entrant who shares a project template, preview.png, RunRecord or discussion thread before judging could be identified or disqualified. The spec only protects export metadata.",
+   "fix": "Make user projects local or private by default (IndexedDB/OPFS, no server copy). Show a pre-deadline 'publishing may breach VTC 4.1/5.1' gate on every publish or fork action. Template export removes Layer 0 geometry, renders and RunRecord outputs unless the user opts in, with an embargo until VTC results. Tell entrants not to discuss their own scheme in giscus threads. Add a 'design-data leaves device' metric (target 0 before 30 Nov)."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P15-M04 (with M01/M02)",
+   "issue": "Every evaluation module returns 'a visualization', but the sandbox covers only computation. If a community module's SVG, HTML or image URLs are rendered in the host DOM, that is XSS. It is also an exfiltration channel: an img src carrying Layer 0 data in its query string bypasses the worker's connect-src.",
+   "fix": "Define visualization output as a declarative typed payload rendered by first-party components, for example a Vega-Lite subset with no data URLs, no external images and no expressions, or a fixed chart/mesh schema. Alternatively, render module UI only inside the sandbox iframe. Never inject module markup into the host. If any SVG is allowed, sanitise it with DOMPurify. Set host CSP img-src and connect-src to an allowlist. Add red-team cases for viz-based exfiltration."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M04",
+   "issue": "The worker-CSP design is not coherent. A worker created from an opaque-origin sandboxed iframe can in practice only be a blob: or data: worker (the HTML worker fetch is same-origin). This is an inference not opened this round. MDN says such workers inherit the creating document's CSP, so 'the worker response carries its own CSP' does not apply. Separately, the registry is hosted on GitHub Pages, which cannot set response headers (the spec's own coi-serviceworker source says so). Headers the sandbox needs (CSP, COOP/COEP) are therefore undeliverable on that host.",
+   "fix": "Put the CSP on the sandbox iframe document: default-src 'none'; script-src 'self' blob: 'wasm-unsafe-eval'; connect-src 'none'; worker-src blob:. Serve it from a header-capable host on a separate registrable domain, for example Cloudflare or Netlify _headers. Add a CI browser test in Chromium, Firefox and WebKit asserting that fetch, WebSocket, importScripts, nested Worker, eval and top navigation are all denied."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M04",
+   "issue": "connect-src 'none' plus default-deny also blocks Pyodide and quickjs-emscripten from fetching their .wasm and packages (loadPackage/micropip). A restrictive script-src needs 'wasm-unsafe-eval' to compile WebAssembly. As specified, the T1 and T2 runtimes will not start.",
+   "fix": "The host fetches pinned runtime and wheel bytes (SHA-256 checked) and transfers them as ArrayBuffers. The manifest declares the exact Pyodide version and package list. Disable micropip and network in T2. Document the exact CSP string per tier."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01",
+   "issue": "The metric 'Single-pointer or keyboard alternative to drag' misreads WCAG 2.2 SC 2.5.7. The Understanding page says keyboard equivalence does not automatically meet the criterion; a single-pointer, non-drag alternative is required. Also, handles that are 24 CSS px at 100% zoom fall below 24 CSS px when the canvas is zoomed out.",
+   "fix": "Rename the metric to 'single-pointer non-drag alternative' and evaluate keyboard support separately under SC 2.1.1. Provide click-source-then-target to connect; select then click destination or nudge buttons to move; numeric fields to resize. Keep a hit area of at least 24 CSS px independent of zoom, or space handles 24 px apart (spacing exception)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01/M02",
+   "issue": "The INP metrics are labelled 'verified', but web.dev defines the bands for field data at the 75th percentile of page loads. Lab INP depends on which interactions are scripted, and 'INP 75th percentile' of interactions in a test build is not INP. The basis already admits this is an adaptation, so the status contradicts the evidence.",
+   "fix": "Change status to team_assumption (bands borrowed from INP). Define a scripted interaction set: drag, connect, param edit, run-all on the reference VTC graph. Report Event Timing duration at p98 per session, with Total Blocking Time as a secondary lab proxy."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M03/M05",
+   "issue": "The SemVer lint ignores major version zero. SemVer item 4 says 0.y.z means anything may change at any time, and most student and community modules will start at 0.x. The breaking-diff rule also ignores variance. Narrowing an input schema is breaking, but so is widening an output schema, because consumers then receive values they do not expect.",
+   "fix": "Use caret semantics for 0.x (a MINOR bump in 0.x counts as breaking), or require 1.0.0 before a module is listed. Implement direction-aware diffs: contravariant for inputs, covariant for outputs. Add test fixtures for both directions."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01/M03",
+   "issue": "Nominal port-type ids are unversioned and carry no units or spatial reference. Changing Layer0.Geometry breaks every module silently. The brief mixes metres and feet. Sun, shadow and wind modules need the true-north rotation of Vancouver's skewed grid, but the spec leaves 'unit-compatible' to human judgment. No packet is named as owner of the Layer 0 schema.",
+   "fix": "Version type ids (for example layer0.geometry/v1) and add required units, a CRS or local site frame, and grid_to_true_north_deg to Layer 0. Make the connection rule check physical dimension and offer explicit converter nodes. Name the owning packet and a deprecation policy for type versions."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M02",
+   "issue": "Determinism and provenance are under-specified. ECMAScript defines Math.sin, exp and similar functions as implementation-approximated, so hashes can differ across browsers. Rounding to fixed precision still flips values at rounding boundaries. The RunRecord omits platform version, browser and engine, runtime (Pyodide) version, external dataset hashes and retrieval dates, and random seeds. The cache key ignores external data, yet 'provenance completeness 100%' is claimed.",
+   "fix": "Canonicalise with RFC 8785 (JCS). Compare numeric outputs with per-metric tolerances and keep exact hashes for the same engine only. Record environment fields, and model external data as hashed input nodes that are part of the cache key. Run the determinism CI on at least two engines."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15 packet (priorities/effort)",
+   "issue": "The schedule does not match the users. Core work (M01, M02, M03 and minimum M08) is about 5.5 dev-weeks and due 13 Nov, about 3 weeks away. All community features (M04-M07, about 9 dev-weeks) land after the VTC deadline of 30 Nov, so the first users get no sandbox, registry, comments or templates. The spec also never says what code may run before M04 exists.",
+   "fix": "State that before 30 Nov only first-party modules and T0 declarative manifests (thresholds as data, no code) may run. Prioritise T0 as the main contribution path, since most evaluation modules are formula plus threshold. Move the export anonymity scan into core. Defer M06 and the T2/T3 tiers explicitly. Re-baseline effort against two part-time students."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M08",
+   "issue": "The Indigenous data policy is thin. The CARE parameter names Responsibility and Ethics, but the cited page (P15-S61) was not read for them. The policy omits OCAP (FNIGC), BC's Declaration on the Rights of Indigenous Peoples Act, the City of Vancouver UNDRIP strategy, and the Musqueam, Squamish and Tsleil-Waututh Nations' own protocols. It leaves 'consent confirmed' to student maintainers. A cultural_context_30 tag can be self-assigned and may imply endorsement.",
+   "fix": "Add a hard rule: no module, dataset or template representing Musqueam, Squamish or Tsleil-Waututh cultural knowledge is listed without documented Nation-authorised involvement. The cultural_context_30 tag must carry a disclaimer that it does not imply Indigenous endorsement. Open and cite CARE and OCAP primary texts, or mark them unverified, and name an advisory route through UBC SALA."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M05",
+   "issue": "npm provenance applies to packages published to npm with --provenance. Registry bundles are files referenced by URL, not npm packages, so the cited mechanism does not apply. GitHub release assets can be deleted and re-uploaded under the same name.",
+   "fix": "Use Sigstore or GitHub artifact attestations on the bundle file, generated in Actions. CI verifies the attestation before accepting the index line. The client verifies the SHA-256 from the index before loading, like subresource integrity. Mirror accepted bundles into registry-controlled storage."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M08/M03",
+   "issue": "The licence policy covers only the VTC brief. Community SYST, ENER and CLIM modules will likely embed copyrighted standards text: NBC/VBBL tables, ASHRAE, CSA. Source 'extract' fields in manifests can also reproduce long quotations.",
+   "fix": "Add a content rule: cite clause numbers, store only derived numeric thresholds, never copy tables or clauses, and cap quotes in extract fields at about 25 words. Add a reviewer checklist item and a CI length check on extracts."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M02/M07",
+   "issue": "Toggle semantics are inconsistent and unsafe. M02 has bypass|block (descendants 'blocked'); M07 has bypass|block|remove (descendants 'stale'). Bypass forwards different data under the same port, so downstream pass/fail verdicts silently change meaning.",
+   "fix": "Define one enum in M02. Default to block. Allow bypass only through a passthrough port pair declared in the manifest. Stamp every downstream result 'computed with X bypassed' in the RunRecord and on the chip."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M06",
+   "issue": "The UNVERIFIED claim about giscus repository visibility can now be resolved: giscus.app says the repository must be public, with the giscus app installed and Discussions enabled. @giscus/react is cited as 'MIT per giscus repository', but it lives in giscus/giscus-component, and its npm metadata has no licence field. COEP require-corp on the same page would block the cross-origin giscus iframe.",
+   "fix": "Update the flag to verified (public required) and cite giscus-component (MIT shown on its page). Apply COOP/COEP only to the run/sandbox page, never to module pages with embeds."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01",
+   "issue": "isValidConnection only guards connections made through the UI. Paste, template import, undo/redo and programmatic setEdges bypass it, so the '0 invalid connections' metric tests only one path. P15-S05 does not show isValidConnection code; it refers back to the validation example.",
+   "fix": "Enforce the type, cycle and cardinality rules in the graph-model reducer and at load (M02). Extend the property test to the import and paste paths. Cite the React Flow validation example page."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M02",
+   "issue": "List and tree matching semantics are unspecified for when a list or tree output meets an item input (longest list, shortest list, cross reference, path matching). Determinism and run counts depend on this.",
+   "fix": "Specify a default matching rule per port (for example longest-list with explicit graft/flatten nodes) and include it in the manifest and the cache key."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M04",
+   "issue": "The Cyera summary is incomplete. Besides the two products that treated isolation as the deployer's job (stlite, cibuildwheel), cohere-terrarium's ctypes path is unpatched and the repo archived, and langchain-sandbox was archived. The fixes that did ship (n8n, Grist) moved execution out of in-process Pyodide to external runners or Deno.",
+   "fix": "Correct the limits text. Use the evidence to make T2 server-side or OS-isolated the long-term default for Python, with browser Pyodide as the dev tier."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M05",
+   "issue": "The fork-lineage relationship leans on 'upstream owners can read all forks', which concerns access, not lineage or licence continuity. Public forks are always public, which matters for anonymity.",
+   "fix": "Track lineage only through forked_from plus a CI licence-compatibility check. Note that forks of the public index cannot be private."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M08",
+   "issue": "The UNVERIFIED Contributor Covenant 2.1 licence claim remains open; the 2.1 page opened states no licence. Version 3.0 is CC BY-SA 4.0. The reporting contact for a student project is unspecified.",
+   "fix": "Adopt 3.0 with a CC BY-SA attribution notice. Use a role mailbox plus a backup recipient (for example course staff), not a student's personal address."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M07",
+   "issue": "The anonymity metric is labelled 'verified', but terms 5.1 concern marks in the submission; scanning metadata is the team's extension. The terms call for JPEG panels, while the scan targets image and PDF. Names visible in the drawings are not scanned.",
+   "fix": "Mark the metadata scan as a team_assumption implementation of 5.1. Cover JPEG EXIF/XMP and PDF. Add an OCR pass for visible team, school or author names, and remove the React Flow canvas badge from board exports."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01",
+   "issue": "No non-visual representation of the graph exists for screen-reader users. Ports distinguished by colour need 3:1 against the background but not against each other.",
+   "fix": "Provide an outline or table view of nodes, ports and edges that supports connect and disconnect, with ARIA names such as 'Daylight node, input Layer0.Geometry v1, connected from Massing'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M06",
+   "issue": "Votes parsed from discussion replies are easy to game (multiple replies per account, edited replies), and n >= 5 is a thin floor.",
+   "fix": "Count one vote per GitHub account per module major version, ignore edits after aggregation, show n, and never place crowd scores next to the verified-status chip."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "A keyboard alternative satisfies the drag requirement ('Single-pointer or keyboard alternative to drag', basis WCAG 2.5.7).",
+   "why_false": "SC 2.5.7 requires a single-pointer, non-drag alternative; keyboard equivalence is evaluated separately.",
+   "correction": "Require click/tap alternatives for connect, move and resize. Test keyboard support under SC 2.1.1.",
+   "evidence": "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html: keyboard equivalence 'does not automatically meet this success criterion' unless it also provides controls that can be clicked or tapped."
+  },
+  {
+   "claim": "The sandboxed community worker can carry its own CSP header (connect-src none) inside an opaque-origin iframe, with the registry served from GitHub Pages.",
+   "why_false": "Blob and data workers inherit the creating document's CSP rather than using their own response header. An opaque-origin iframe can in practice create only such workers (an inference from the same-origin worker fetch, not opened this round). GitHub Pages cannot set response headers.",
+   "correction": "Put the CSP (header or meta) on the sandbox iframe document and host it on a header-capable separate origin.",
+   "evidence": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers: 'if the worker script's origin is a globally unique identifier (for example, if its URL has a scheme of data or blob)... the worker does inherit the CSP'. https://github.com/gzuidhof/coi-serviceworker (spec's own P15-S27): for hosts such as GitHub Pages that cannot set headers."
+  },
+  {
+   "claim": "INP thresholds are 'verified' for measuring canvas interaction latency in a test build at the 75th percentile.",
+   "why_false": "The INP bands apply to field data at the 75th percentile of page loads. Lab INP depends on the scripted interactions, and per page INP uses the worst interaction or the 98th percentile, not the 75th percentile of interactions.",
+   "correction": "Reclassify as team_assumption, and define a scripted interaction set with Event Timing p98 plus TBT as a proxy.",
+   "evidence": "https://web.dev/articles/inp: thresholds at 'the 75th percentile of page loads recorded in the field'; TBT 'may be a reasonable proxy' in the lab."
+  },
+  {
+   "claim": "The VTC terms say nothing that restricts redistribution of competition materials, and only anonymity constrains entrants' publishing (P15-S60 extract; M07 limits).",
+   "why_false": "Section 7.5.5 prohibits redistribution, resale or sharing of the Presentation Template Package, and 7.5.6 says the Organizer keeps its IP. Section 4.1 requires visuals not previously published by the entrant.",
+   "correction": "Never host Buildner board templates in PRES modules or templates. Treat public sharing of design visuals before judging as a 4.1 risk.",
+   "evidence": "https://www.architecturecompetitions.com/vancouvertallchallenge/terms sections 4.1, 7.5.5, 7.5.6."
+  },
+  {
+   "claim": "Whether giscus needs a public repository is unknown (UNVERIFIED flag).",
+   "why_false": "giscus's own site states the requirement.",
+   "correction": "The repository must be public, have the giscus app installed and have Discussions enabled, so all comments are public and tied to GitHub accounts.",
+   "evidence": "https://giscus.app/: 'The repository is public, otherwise visitors will not be able to view the discussion.'"
+  },
+  {
+   "claim": "npm provenance provides signed provenance for registry module bundles (M04/M05 metrics).",
+   "why_false": "npm provenance is generated by npm publish --provenance for npm packages. The registry's bundles are files at URLs in a JSON-lines index, not npm packages.",
+   "correction": "Use Sigstore or GitHub artifact attestations on the bundle files, plus SHA-256 verification in the client.",
+   "evidence": "https://docs.npmjs.com/generating-provenance-statements: requires npm CLI >= 9.5.0, a supported CI and --provenance on npm publish."
+  },
+  {
+   "claim": "Two of the seven products in the Aug 2026 Pyodide disclosure received no fix (M04 limits).",
+   "why_false": "cohere-terrarium's ctypes path also remained unpatched (repository archived), and langchain-sandbox was archived with no described fix. The products that were fixed moved code out of in-process Pyodide.",
+   "correction": "State that at least three products had no code fix, and that the effective fixes were external runners or Deno with restricted permissions.",
+   "evidence": "https://www.cyera.com/research/sandcastles-not-sandboxes-how-one-architectural-flaw-exposed-seven-products: status table (cohere-terrarium unpatched/archived; n8n external runners; Grist moved to Deno)."
+  }
+ ],
+ "missing": [
+  "Project storage and privacy model: where user graphs, Layer 0 and RunRecords live (local-first IndexedDB/OPFS vs cloud), backup/export, and a UBC privacy impact check if any user data goes to US-hosted GitHub (not verified this round).",
+  "Team collaboration: concurrent editing of one graph by a 2-4 person VTC team (CRDT such as Yjs, or locking), and merging of graph diffs.",
+  "Ownership and versioning of the Layer 0 schema (units, CRS, grid-to-true-north angle, program tag enum) referenced by every port type.",
+  "Visualization output contract in the manifest (declarative types, size caps) and how it is rendered safely.",
+  "Output size and complexity caps (MB per output, max list or tree length) to stop memory or rendering denial of service from module outputs.",
+  "T0 declarative module format (formula plus thresholds as data, no code) as the safe default contribution path before the sandbox exists.",
+  "List/tree data-matching rules (longest list, cross reference, graft/flatten) and their effect on run count and determinism.",
+  "Undo/redo and graph history, and the link between a graph revision and the RunRecords it produced.",
+  "Screen-reader alternative (outline/table) view of the graph, and keyboard focus order across nodes and ports.",
+  "Policy on copyrighted standards text (NBC/VBBL, ASHRAE, CSA) and quote-length limits in manifest source extracts.",
+  "Indigenous governance sources: OCAP (FNIGC), BC DRIPA, City of Vancouver UNDRIP strategy, and the Musqueam, Squamish and Tsleil-Waututh Nations' protocols; an advisory route.",
+  "Vulnerability disclosure workflow and takedown SLA for a malicious module already installed in users' lockfiles (client-side kill switch via flags.json).",
+  "Licence audit for runtime-loaded WASM wheels and Pyodide packages, not only npm dependencies.",
+  "Link from RunRecord or provenance to PRES boards: how cited sources and threshold statuses flow onto the 4 A2 boards without identifying the authors.",
+  "Relationship: graph size vs RunRecord size and export time; and cross-browser numeric tolerance per metric type."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Add a private/local-first default and pre-deadline publishing safeguards that address VTC terms 4.1, 5.1, 5.3 and 7.5.5 across templates, forks, giscus threads and RunRecords.",
+   "Specify a safe visualization contract: declarative payloads rendered by first-party code, or rendering inside the sandbox; no module markup in the host DOM.",
+   "Rewrite the M04 isolation design so the CSP sits on the sandbox iframe document, on a header-capable separate origin, with an exact per-tier CSP that allows WASM and blocks the network. Add a cross-browser CI denial test.",
+   "Fix the metric statuses and bases: WCAG 2.5.7 as single-pointer; INP reclassified as team_assumption with a defined lab protocol; giscus public-repo requirement recorded as verified.",
+   "Handle SemVer 0.y.z and input/output variance in the manifest diff; version port-type ids and add units and true-north to Layer 0.",
+   "Re-plan priorities so that what runs before 30 Nov is explicit: first-party plus T0 declarative modules only."
+  ]
+ },
+ "verdict": "The packet is well researched and honest about its gaps: library choices, licences and most sources check out, and the npm versions were confirmed. It should not pass yet. The biggest risk is not technical. Defaults are public (giscus requires a public repository, forks are public, templates get shared), and that can breach VTC terms 4.1, 5.1 and 5.3 for the very entrants the tool serves. The sandbox protects computation but not module-supplied visualizations. The worker-CSP design does not match how sandboxed-iframe workers inherit CSP, and GitHub Pages cannot send the headers it needs. Several statuses overclaim: INP is labelled verified, a keyboard alternative is treated as meeting WCAG 2.5.7, and npm provenance is cited for files that are not npm packages. SemVer 0.x, units and true north, and the schedule relative to the 30 Nov deadline need fixing.",
+ "sources_checked": [
+  {
+   "source_id": "P15-S17",
+   "url": "https://www.cyera.com/research/sandcastles-not-sandboxes-how-one-architectural-flaw-exposed-seven-products",
+   "ok": true,
+   "note": "Date 7 Aug 2026, seven products and n8n CVE-2025-68668 CVSS 9.9 confirmed. Count of unfixed products understated (cohere-terrarium unpatched/archived)."
+  },
+  {
+   "source_id": "P15-S18",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers",
+   "ok": true,
+   "note": "Confirms workers are not governed by the creator's CSP and that blob/data workers inherit it. Undermines the 'worker response CSP' plan inside an opaque-origin iframe."
+  },
+  {
+   "source_id": "P15-S19",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe",
+   "ok": true,
+   "note": "allow-scripts plus allow-same-origin warning and separate-origin advice confirmed. Nothing on workers in sandboxed iframes."
+  },
+  {
+   "source_id": "P15-S04",
+   "url": "https://reactflow.dev/learn/troubleshooting/remove-attribution",
+   "ok": true,
+   "note": "Pro-only attribution removal and $169/$289 pricing confirmed; library stays MIT."
+  },
+  {
+   "source_id": "P15-S05",
+   "url": "https://reactflow.dev/examples/interaction/prevent-cycles",
+   "ok": true,
+   "note": "getOutgoers confirmed. isValidConnection is only referenced from the validation example, not shown here."
+  },
+  {
+   "source_id": "P15-S11",
+   "url": "https://registry.npmjs.org/",
+   "ok": true,
+   "note": "Versions and licences confirmed for ajv, pyodide, vitest, @xyflow/react, semver, dagre, quickjs-emscripten, ses and extism. @giscus/react has no licence field."
+  },
+  {
+   "source_id": "P15-S44",
+   "url": "https://giscus.app/",
+   "ok": true,
+   "note": "Repository must be public, with the app installed and Discussions enabled. Resolves the UNVERIFIED flag. giscus-component repo shows MIT."
+  },
+  {
+   "source_id": "P15-S47",
+   "url": "https://web.dev/articles/inp",
+   "ok": true,
+   "note": "Bands are correct but defined for field p75 of page loads; lab use is limited, with TBT as a proxy. 'Verified' status overclaims."
+  },
+  {
+   "source_id": "P15-S49",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+   "ok": true,
+   "note": "24 CSS px and the five exceptions confirmed, including the spacing exception."
+  },
+  {
+   "source_id": "P15-S50",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html",
+   "ok": true,
+   "note": "Keyboard alternative does not satisfy 2.5.7; contradicts the metric name."
+  },
+  {
+   "source_id": "P15-S48",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+   "ok": true,
+   "note": "3:1 applies to graphics needed for understanding, such as graph lines; inactive controls are exempt."
+  },
+  {
+   "source_id": "P15-S60",
+   "url": "https://www.architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "5.1, 5.3, 12.2 and 12.3 confirmed. Extract misses 4.1 (no prior publication of visuals) and 7.5.5/7.5.6 (template package redistribution prohibited)."
+  },
+  {
+   "source_id": "P15-S51",
+   "url": "https://www.contributor-covenant.org/version/3/0/code_of_conduct/",
+   "ok": true,
+   "note": "CC BY-SA 4.0 and the four-rung ladder confirmed."
+  },
+  {
+   "url": "https://www.contributor-covenant.org/version/2/1/code_of_conduct/",
+   "ok": false,
+   "note": "Page states no licence for 2.1; the UNVERIFIED flag remains open."
+  },
+  {
+   "source_id": "P15-S42",
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "ok": true,
+   "note": "1 GB, 100 GB/month soft and 10 builds/hour confirmed. Not for running an online business. No custom headers mentioned."
+  },
+  {
+   "source_id": "P15-S33",
+   "url": "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+   "ok": true,
+   "note": "Immutable entries except yanked; case-insensitive collisions; '-' vs '_' differences prevented."
+  },
+  {
+   "source_id": "P15-S28",
+   "url": "https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings",
+   "ok": true,
+   "note": "Extension is disabled until the user accepts the new permission. Confirmed."
+  },
+  {
+   "source_id": "P15-S35",
+   "url": "https://github.com/Homebrew/homebrew-core/blob/master/CONTRIBUTING.md",
+   "ok": true,
+   "note": "No merge with failing CI, org-member approval, BrewTestBot merge and AI disclosure all confirmed."
+  },
+  {
+   "source_id": "P15-S54",
+   "url": "https://github.com/ossf/scorecard",
+   "ok": true,
+   "note": "Weights 10/7.5/5/2.5 and the 0-10 scale confirmed."
+  },
+  {
+   "source_id": "P15-S55",
+   "url": "https://joss.readthedocs.io/en/latest/review_criteria.html",
+   "ok": true,
+   "note": "OSI licence file, tests strongly encouraged (manual tests acceptable), AI disclosure and sustained history confirmed."
+  },
+  {
+   "source_id": "P15-S32",
+   "url": "https://semver.org/",
+   "ok": true,
+   "note": "Item 4 says 0.y.z can change at any time; the lint ignores this."
+  },
+  {
+   "source_id": "P15-S15",
+   "url": "https://pyodide.org/en/stable/usage/webworker.html",
+   "ok": true,
+   "note": "Module-type worker required. No security claims."
+  },
+  {
+   "source_id": "P15-S43",
+   "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks",
+   "ok": true,
+   "note": "Quotes confirmed. Public forks are public, which is relevant to anonymity rather than lineage."
+  },
+  {
+   "source_id": "P15-S40",
+   "url": "https://docs.npmjs.com/generating-provenance-statements",
+   "ok": true,
+   "note": "Mechanism is specific to npm publish; it does not apply to URL bundles."
+  },
+  {
+   "source_id": "P15-S61",
+   "url": "https://www.gida-global.org/careprinciples",
+   "ok": false,
+   "note": "The page does not list or define the four principles. The CARE one-pager PDF could not be parsed and the OCAP (FNIGC) page returned 403. Web search budget was exhausted, so this stays unverified."
+  }
+ ]
+}

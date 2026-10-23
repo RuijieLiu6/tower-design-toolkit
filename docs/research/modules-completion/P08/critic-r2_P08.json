@@ -1,0 +1,367 @@
+{
+ "expert_role": "Quantity surveyor / cost consultant for high-rise towers (independent reviewer, round 2 of packet P08)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M06, P08-M05a",
+   "issue": "The DAG still has a hidden cycle. The M06 method says to 'capitalise foregone NOI at the M05a cap rate', and its metric 'public-use cost as share of GDV' needs GDV from M05a. M05a in turn consumes M06 PublicFloorAdjustment. depends_on for M06 lists only M01 and M03, so the published DAG claims 'no cycles' while the method needs M05a output. The canvas will either reject the wiring or quietly read stale values.",
+   "fix": "Move cap rates (and every other market parameter) into a shared assumption node, or into M01 ValueByUse, which both M05a and M06 read. Compute 'public-use cost / GDV' in M07 or M05b, not M06. Add a validator that compares each method's referenced outputs against depends_on."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M04",
+   "issue": "The City DCL rates are probably the wrong tier, and the largest City charge is missing. $49.88/m2 City-wide and $39.06/m2 Utilities come from a multiplex blog (S50). The blog gives no FSR tier, gives no commercial rate, and uses only multiplex examples. Vancouver's charges are tiered by density (the ACC has <=1.2, 1.2-1.5 and >1.5 FSR tiers), so these rates are very likely the low-density residential tier and do not fit a 9+ FSR tower. The worked 'about $18.1-18.4/sf' non-residential total leaves out the City DCL entirely, so the displayed charges per m2 are biased low.",
+   "fix": "Treat the S50 rates as not applicable to apartments above 1.5 FSR or to commercial floors. Leave the City-wide and Utilities DCL rows blank and show a blocking 'rate missing' flag, so the stacked bar cannot show a total without them. Get the rates from the DCL by-law schedules (By-law 9755 and 12183 text on the City by-law library) or the bulletin. Remove the 'excluding the City DCL' example total or label it as incomplete."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M01",
+   "issue": "Years-to-lease assumes the new tower captures all downtown net absorption and that there is no competing vacancy. CBRE Q2 2026 shows AAA 7.6% of 8,726,910 sf and A 9.1% of 7,844,662 sf, about 1.38 M sf vacant in the tower's competitive set, plus 576,482 sf of sublease vacancy. The anchor is also only two quarters (Q1 about +48,374, Q2 +54,688). The test uses all-class absorption (206k sf/yr) against an AAA+A inventory, although AAA+A absorbed +128,448 sf in H1 while B/C lost space.",
+   "fix": "Years to lease = (new rentable area + competing vacancy above a structural rate) / (class-matched net absorption x capture share). Make the structural vacancy rate and the capture share editable team assumptions. Show AAA+A (about 257k sf/yr) and all-class (about 206k sf/yr) anchors side by side. Mark the anchor 'two quarters only' until a multi-year series is loaded."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M03, P08-M08",
+   "issue": "The premise behind the AACE range is not enforced. RP 56R-08 says the ranges are the variation 'after application of appropriate contingency (typically to achieve a 50% probability of project overrun versus underrun)', and that the high side can be two to three times larger for complex or risky projects. In the spec, contingency is an unsourced editable % with no default, so P10/P90 can be applied around a base with zero contingency. This supertall is the textbook risky case: it sits in a high-seismic zone, runs 55-100 storeys beyond the 39-storey band, and has more than 80% of its GFA without a sourced unit cost. Yet the default stays at the plain Class 5 +30/+50%.",
+   "fix": "Require a non-zero contingency before any range is shown, and label the base plus contingency as P50. For supertall or extrapolated cases, default the high side to Class 5 high x 2 (at least +100%), with an editable multiplier and the 56R-08 clause as source. Show a warning when contingency = 0."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M03",
+   "issue": "The premium calibration contradicts its own base band and is labelled optimistically. With N_ref = 26 at the Altus midpoint ($407.5/sf), a 39-storey building, still inside the Altus band, gets (39/26)^0.56 = 1.255, or about $511/sf. That is above the band's own top of $455. Ahlfeldt and Barr state the elasticity is 'significantly larger at extreme heights' and that their sample is below supertall, so 0.26 and 0.56 are lower bounds at 55-100 storeys. The metric still rates '<= commercial line' as good. '+2%/floor gives +68%' is the linear reading; compounding gives 1.02^34 = +96%.",
+   "fix": "Anchor the premium at the top of the sourced band: apply it only above 39 storeys to the band's high end (or calibrate so that N = 13-39 reproduces $360-455). Relabel the 0.26 and 0.56 lines as lower bounds and drop the 'good' colour from the commercial line. Show the 2%/floor rule as linear (+68%) and compound (+96%) variants."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M03, P08-M05a",
+   "issue": "The time basis is mixed and escalation is off by default. Costs come from the Altus 2025 guide (late-2024 pricing, published March 2025). Rents are Q2 2026 asking rents, and charges step on 1 Jan 2027 and 30 Sep 2027-29. The valuation date is October 2026 and a supertall build runs 5-7 years. With escalation set to 'none', the pro forma prices 2024 costs against 2026 revenue, and no construction-period escalation is applied.",
+   "fix": "Default escalation from a public index: the Statistics Canada Building Construction Price Index (Table 18-10-0289-01, Vancouver CMA, by building type), from the cost vintage to the valuation date. Add a separate construction-period escalation line to the S-curve midpoint. Show the cost vintage on every ledger chip. (The StatCan site was unavailable during this review, so the index values were not read.)"
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M03, P08-M05a",
+   "issue": "The core feasibility output rests almost entirely on unsourced inputs. The brief forces at least 103,213 m2 of non-residential floor area (office, hotel, retail), and none of these uses has a sourced hard cost. There is also no sourced cap rate for new AAA office, hotel or rental (4.72% is CoStar Metro and barely moved, 4.67-4.72%, over five quarters while sale $/sf swung $477-733, which points to a modelled series). There is no strata price. RLV and profit traffic lights for entrants will therefore show user-typed guesses with a sourced look.",
+   "fix": "Make M05a's primary core output the break-even set: break-even office rent, strata $/sf, hotel ADR and maximum affordable hard cost, given the inputs that are sourced. Show RLV and profit only once every required input row is filled, and grey the badges while any row is a blank team assumption. Prioritise sourcing office and hotel $/sf from one public cost guide (Altus 2026 via free registration, RLB or Turner & Townsend market survey) and one investor cap-rate survey."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P08-M01, P08-M05a",
+   "issue": "Tax treatment by tenure is incomplete. The tenure choice between rental and strata is listed as a design lever, but the model has only 'GST as pass-through' for strata and the first-time-buyer rebate, which is a buyer benefit and does not reach the developer's pro forma. It omits GST self-supply on purpose-built rental and the federal GST relief on new purpose-built rental, and treats PTT as 'about 3%' without the further 2% on any residential-class portion above $3M (S47). Altus costs exclude GST, so ITC recovery on commercial and strata versus rental needs an explicit row.",
+   "fix": "Add a tax ledger by tenure: GST on strata sales (recoverable ITCs), GST self-supply and rental relief on rental (source: Department of Finance rental GST relief, to be opened), and PTT with the residential-portion surtax and any rental exemption. Remove the FTHB rebate from developer GDV, or show it only as a buyer-side note."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M04, P08-M05b",
+   "issue": "The ACC credit is applied to the wrong case. Daily Hive (9 Jul 2026) and Howard Chai (10 Jul 2026) describe ACC credits for projects that have already secured CAC obligations, full or partial depending on whether more density is sought. That is a transition rule. In M05b, Cash CAC = max(0, obligation - in-kind - ACC credit) treats it as a standing credit against a new rezoning's negotiated CAC.",
+   "fix": "Default the ACC-credit toggle to OFF for applications after 30 Sep 2026 and label it 'transition rule for previously secured CACs'. If it is on, deduct it from the ACC line in M04 rather than from the CAC, so totals stay traceable."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M01",
+   "issue": "The CBRE 'four-year' statement is misused as a demand horizon. CBRE says economic rents for new development are well above market rents, so no new downtown supply is anticipated for at least four years from construction start. That is a supply lag, not a years-to-lease benchmark, yet the gauge plots years to lease 'against the CBRE four-year no-new-supply horizon'.",
+   "fix": "Use the statement to set the earliest delivery date and the window without competing supply, and remove it as a gauge threshold."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M05a",
+   "issue": "The capitalised-value cross-check compares a new AAA tower with Class B trades. The Lee table lists three trades, all Class B: 1185 W Georgia $454.61, 5 E 8th Ave $541.86 and 93 Sixth St, New Westminster $359.49/sf. Two are outside downtown. The spec quotes '$455-542 (mostly Class B)'. A correctly valued AAA tower will often fail the 1.5/2.0 ratio against these trades.",
+   "fix": "Quote the full $359-542/sf range as all Class B. Make replacement cost (from M03) the primary cross-check and keep trades as a secondary, class-mismatched reference."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M04",
+   "issue": "Several items can be tightened from the opened sources. Daily Hive lists hotel under 'commercial and other uses' ($3.00/sf), which partly resolves the hotel ACC flag. The Class B waiver is tied to CMHC average rents 'for newer rental buildings'. McCarthy gives the 8,000 m2 site limit as an 'e.g.' example and requires Council approval by 15 Dec 2027. The Langley schedule labels the $0.56 row 'Other non-residential', not 'institutional', and Bylaw 159-2025 was adopted 3 Dec 2025.",
+   "fix": "Update the ledger wording, mark hotel ACC as commercial/other (press summary), and add the Council-approval deadline to the rental-relief eligibility test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M03",
+   "issue": "The floor-cost profile is labelled a pure team assumption, but the same paper's model assumes that the marginal cost of floor space rises with height at the use-specific elasticity. That implies a floor profile proportional to (1+eps)(s/N)^eps, consistent with the building-level estimate.",
+   "fix": "Offer the model-implied profile as the default, labelled 'model assumption from Ahlfeldt and Barr section 3', and keep the user profile as an alternative."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08 (status taxonomy)",
+   "issue": "'false_assumption_corrected' is used as a metric status even where the cut-offs are team assumptions (absorption load, years to lease, premium, AACE check). Round 1 asked for a two-part status (benchmark source vs threshold choice). Only the basis text separates them, so a validator cannot check it.",
+   "fix": "Add the fields benchmark_status (verified, secondary, transferable, none) and threshold_status (team_assumption, sourced). Keep FALSE ASSUMPTION as a flag link, not a status."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M01, P08-M02",
+   "issue": "Income area = GFA x NTG x (1 + load factor), but the load factor is blank with no defined behaviour. M01 either cannot compute or silently uses 0, which understates rentable area.",
+   "fix": "Use an explicit default of 0 with a red 'usable basis, load factor missing' flag on every value chip until the factor is entered."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08-M05a",
+   "issue": "The land finance factor f is a fixed add-on, while construction finance uses an S-curve. Land carry depends on the holding period (rezoning plus build) and the rate, so taller towers with longer schedules are not penalised consistently. There is also no IRR output, although numpy-financial is listed.",
+   "fix": "Derive f from the land holding months and the finance rate in the same cash flow. Add an unlevered IRR output beside profit on cost and profit on GDV."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08 (sources)",
+   "issue": "The S19 URL (Ilgin and Aslantamer, JAABE) returns HTTP 404, and the UUID appears truncated. This source carries the NTG and core benchmarks in M02.",
+   "fix": "Replace the URL with the DOI or the journal page and re-open it to confirm the 64-85% and 13-34% figures."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P08 (scope)",
+   "issue": "The core (M01-M05a) is estimated at 22-26 person-days for two students. Only about 23 calendar days remain to the 13 Nov working-core date, and other packets are running in parallel.",
+   "fix": "Ship the core as M02, M04 and an M05a break-even solver with simple ledgers for M01 and M03. Defer the lease-up schedule, hotel total-revenue model and evidence-freshness logic to v1."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Applying the height premium (N/N_ref)^eps from N_ref = 26 at the Altus band midpoint is consistent with the Altus 13-39-storey band.",
+   "why_false": "Within the sourced band the law gives costs above the band's own maximum: at 39 storeys, $407.5 x (39/26)^0.56 = about $511/sf, above Altus's $455 top.",
+   "correction": "Apply the premium only above 39 storeys from the band's high end, or calibrate it to reproduce the band; treat 0.26 and 0.56 as lower bounds above the sample heights.",
+   "evidence": "STOREYS 17 Apr 2025 (S13): Vancouver concrete high-rise 13-39 storeys $360-455/sf. Ahlfeldt and Barr WP (S16): 0.26 commercial, 0.56 residential for taller buildings; the elasticity is 'significantly larger at extreme heights'."
+  },
+  {
+   "claim": "Years to lease = new office GFA / downtown net absorption (the tower captures all absorption, with no competing vacancy).",
+   "why_false": "About 1.38 M sf of AAA/A space is already vacant, plus 576,482 sf of sublease vacancy, and that space competes for the same absorption first.",
+   "correction": "Add competing vacancy above a structural rate and a capture share. Use class-matched AAA+A absorption alongside all-class.",
+   "evidence": "CBRE Vancouver Office Figures Q2 2026 (S01), Figure 8a: AAA 8,726,910 sf at 7.6%; A 7,844,662 sf at 9.1%; AAA YTD +68,454, A +59,994, all classes +103,062. Page 3: downtown sublease vacancy 576,482 sf."
+  },
+  {
+   "claim": "The CBRE four-year statement is a years-to-lease horizon against which absorption can be gauged.",
+   "why_false": "CBRE describes a supply lag: no new downtown supply is anticipated for at least four years from construction start, because economic rents exceed market rents.",
+   "correction": "Use it for delivery timing and the window without competing supply, not as a gauge threshold.",
+   "evidence": "CBRE Q2 2026 (S01) p.2: economic rents needed for new development are significantly higher than market, so no new supply is anticipated downtown 'for a minimum of four years from construction commencement'."
+  },
+  {
+   "claim": "The ACC credit reduces the negotiated CAC of a new rezoning application.",
+   "why_false": "The credit is described for projects that have already secured CAC obligations (a transition rule), full or partial depending on whether more density is sought.",
+   "correction": "Default OFF for applications after 30 Sep 2026. If used, deduct it from the ACC line and label it transitional.",
+   "evidence": "Daily Hive 9 Jul 2026 (S23): projects that have already secured CAC obligations could receive ACC credits. Howard Chai 10 Jul 2026 (S43): full or partial credit depends on whether the project seeks additional density."
+  },
+  {
+   "claim": "Q2 2026 trade evidence is $455-542/sf, mostly Class B.",
+   "why_false": "The Lee table lists three trades, all Class B, including 93 Sixth St, New Westminster at $359.49/sf; two of the three are outside downtown.",
+   "correction": "Quote $359-542/sf, all Class B, mixed geography. Do not use it as a primary check on new AAA value.",
+   "evidence": "Lee & Associates Q2 2026 Vancouver Office (S02), top sale transactions table."
+  },
+  {
+   "claim": "AACE Class 5 ranges (+30/+50%) can be applied as P10/P90 around whatever base the user enters.",
+   "why_false": "The ranges assume appropriate contingency is already included (typically to a 50% probability), and the high side can be two to three times larger for complex or risky projects.",
+   "correction": "Require contingency to reach P50 before applying the range, and widen the high side for supertall extrapolation.",
+   "evidence": "AACE RP 56R-08 rev. 7 Aug 2020 (S21), text after Table 1: the range applies to actual costs from the estimate 'after application of appropriate contingency'; high ranges 'may be two to three times' for complex projects."
+  }
+ ],
+ "missing": [
+  "City-wide and Utilities DCL rates for residential above 1.2/1.5 FSR and for commercial (By-law 9755 and 12183 schedules); current rows are likely the low-density tier",
+  "Competing-vacancy and capture-share inputs for office absorption; a multi-year class-matched absorption series",
+  "Cost escalation index (StatCan BCPI Vancouver) and a construction-period escalation line",
+  "Sourced per-use hard costs for office, hotel, retail, below-grade parking and the transit link (Altus 2026, RLB or T&T)",
+  "Cap-rate survey evidence for new AAA office, full-service hotel and purpose-built rental",
+  "Tax ledger by tenure: GST self-supply and federal rental GST relief, ITC recovery, PTT further 2% on the residential portion, purpose-built rental PTT treatment",
+  "Supertall-specific cost risks: seismic performance-based design and peer review, wind tunnel and damping, deep foundations and dewatering, refuge or sky-lobby floors, vertical transport; none are captured by the Emporis elasticity",
+  "Building-permit fees, School Site Acquisition Charge applicability (Vancouver SD39) and the cost of the Green Buildings Policy for Rezonings and embodied-carbon requirements",
+  "Soft-cost and contingency percentage benchmarks for Vancouver high-rise (none sourced)",
+  "The VTC brief PDF itself (S39 still unopened); the 9.0 FSR wording must be confirmed before the 3 Nov Q&A deadline",
+  "IRR and land-holding-period-based land finance in M05a",
+  "Working URL or DOI for S19"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Remove the hidden M06-M05a dependency (shared cap-rate and market node; move the GDV-share metric) and validate methods against depends_on",
+   "Replace or blank the City-wide and Utilities DCL rows with the correct high-density and commercial tiers; block charge totals while the City DCL is missing",
+   "Add competing vacancy, a capture share and class-matched absorption to years to lease",
+   "Enforce the AACE premise: non-zero contingency to P50, and a widened high side for supertall extrapolation",
+   "Recalibrate the height premium to the Altus band (apply above 39 storeys), label the elasticities as lower bounds, and show linear and compound 2%/floor",
+   "Default cost escalation from a public index to the valuation date",
+   "Present M05a core results as break-even outputs and grey RLV and profit badges while required inputs are blank team assumptions",
+   "Add the tenure tax ledger (GST rental relief or self-supply, PTT residential portion)",
+   "Open the VTC brief and fix the S19 URL before the 3 Nov Q&A deadline"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: dependency cycles M04/M05/M06/M08",
+   "status": "partly",
+   "residue": "The M05a/M05b split and outer-wrapper M08 fix the declared DAG, but the M06 method reads the M05a cap rate and GDV, an undeclared dependency that closes a cycle."
+  },
+  {
+   "item": "BLOCKER: profit-on-GDV and RLV formulas (land, acquisition, land finance, GST)",
+   "status": "addressed",
+   "residue": "Hand check reproduces 138.9 / 150 / 15%. Land finance is still a fixed factor rather than derived from the holding period, and tenure tax treatment is incomplete."
+  },
+  {
+   "item": "BLOCKER: threshold status labels contradict evidence",
+   "status": "partly",
+   "residue": "Labels are now honest in the basis text, but no two-part status field exists; 'false_assumption_corrected' is used as a status where the cut-offs are team assumptions."
+  },
+  {
+   "item": "MAJOR: gross leasing treated as net absorption",
+   "status": "addressed",
+   "residue": "New gap: existing competing vacancy and capture share are ignored, and the class basis is mismatched."
+  },
+  {
+   "item": "MAJOR: Ahlfeldt-Barr elasticities misapplied per floor; stacking order",
+   "status": "addressed",
+   "residue": "Calibration against N_ref = 26 contradicts the Altus band; the elasticities are lower bounds at supertall heights but the commercial line is rated good."
+  },
+  {
+   "item": "MAJOR: AACE ranges as bounds; class by presets",
+   "status": "partly",
+   "residue": "P10/P90 and maturity class are fixed, but the contingency premise and the 2-3x high side for complex projects are not enforced by default."
+  },
+  {
+   "item": "MAJOR: area-basis mismatch (usable vs rentable; net vs drip-line inventory)",
+   "status": "addressed",
+   "residue": "The load factor is blank with undefined behaviour."
+  },
+  {
+   "item": "MAJOR: 'rental exempt' simplification; ACC deferral",
+   "status": "addressed",
+   "residue": "Minor wording: Class B is tied to CMHC rents for newer buildings; the 8,000 m2 limit is an 'e.g.' condition; Council approval is needed by 15 Dec 2027."
+  },
+  {
+   "item": "MAJOR: Utilities DCL missing; ACC rates pre-vote",
+   "status": "partly",
+   "residue": "The Utilities DCL line is added, but its rate (and the City-wide rate) comes from a multiplex blog and is likely the low-density tier. ACC adoption rests on search summaries of 403 pages."
+  },
+  {
+   "item": "MAJOR: CAC applied to the whole land lift",
+   "status": "addressed",
+   "residue": "The ACC-credit toggle is now misapplied to new rezonings (a transition rule)."
+  },
+  {
+   "item": "MAJOR: leasing costs and lease-up omitted",
+   "status": "addressed",
+   "residue": "All values are blank team assumptions."
+  },
+  {
+   "item": "MAJOR: 4.72% cap rate without cross-check",
+   "status": "partly",
+   "residue": "Cross-check added, but against Class B trades only; no cap-rate survey opened; 4.72% looks like a modelled series (4.67-4.72% over five quarters)."
+  },
+  {
+   "item": "MAJOR: rigid-frame 85% NTG as a structural lever",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: Altus residential band used for all uses",
+   "status": "addressed",
+   "residue": "Honest, but more than 80% of the program now has no sourced cost, so core outputs are user guesses; no escalation default."
+  },
+  {
+   "item": "MAJOR: residential market-depth test missing",
+   "status": "addressed",
+   "residue": "Parameters exist, with no data (presale series, lender thresholds)."
+  },
+  {
+   "item": "MAJOR: M07 grid has no geometry; NSGA-II misuse",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: VTC brief not a registered source",
+   "status": "partly",
+   "residue": "S38/S39 registered and cited, but the brief PDF is still unopened (S39 opened=false); the 9.0 FSR wording is unconfirmed with the Q&A closing 3 Nov."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P08-S01",
+   "url": "https://mktgdocs.cbre.com/2299/ea168423-f094-4e9c-af5a-587d64df5650-1568985709/Vancouver_Office_Figures_Q2_20.pdf",
+   "ok": true,
+   "note": "Text extracted. Downtown AAA $48.02/$26.13/7.6%, A $39.92/9.1%, B $33.02/20.2%, C $24.03/14.3%, all classes $34.93/12.2%; inventory AAA+A 16,571,572; YTD absorption AAA 68,454 + A 59,994 = 128,448; all classes 103,062 (Q2 54,688) all confirmed. The four-year statement is a supply lag from construction start, not a leasing horizon. Sublease vacancy 576,482 sf and about 1.38 M sf vacant AAA/A not used by the spec."
+  },
+  {
+   "source_id": "P08-S02",
+   "url": "https://www.lee-associates.com/wp-content/uploads/2026/07/2026-Q2-Vancouver-BC-Office.pdf",
+   "ok": true,
+   "note": "Metro Q2 2026: vacancy 9.9%, NNN $46.81, sale $477/sf, cap 4.72%, absorption -261,639 confirmed. Cap rate 4.67-4.72% over five quarters while $/sf ranged $477-733 (modelled). Three trades, all Class B, including $359.49 in New Westminster omitted by the spec."
+  },
+  {
+   "source_id": "P08-S13",
+   "url": "https://storeys.com/construction-costs-vancouver-toronto-altus/",
+   "ok": true,
+   "note": "17 Apr 2025: concrete high-rise 13-39 storeys $360-455/sf, hard costs only, excludes site servicing, consultants, development charges; GST not mentioned."
+  },
+  {
+   "source_id": "P08-S16",
+   "url": "https://personal.lse.ac.uk/ahlfeldg/WP/GA_JB_-_Skyskrapers.pdf",
+   "ok": true,
+   "note": "0.1 up to nine floors, 0.26 commercial, 0.56 residential for taller buildings; footnote 16 regression on log floor count; 2%/floor (DoE 1971); larger at extreme heights; rent 0.03/0.07 and 0.086-0.189 confirmed. The model assumes marginal floor cost rises with height, which implies a floor profile."
+  },
+  {
+   "source_id": "P08-S17",
+   "url": "https://researchportal.tuni.fi/en/publications/space-ef%EF%AC%81ciency-in-tapered-super-tall-towers/",
+   "ok": true,
+   "note": "40 cases, efficiency about 72% (55-84%), core about 26% (11-38%), outriggered frames prevailing, no significant function or system effect; Buildings 13(11) 2819, Nov 2023."
+  },
+  {
+   "source_id": "P08-S19",
+   "url": "https://ada.atilim.edu.tr/entities/publication/dedd7811-5f1c-486a-83fb-15d8c7abc5",
+   "ok": false,
+   "note": "HTTP 404; UUID appears truncated. Figures not re-verified."
+  },
+  {
+   "source_id": "P08-S21",
+   "url": "https://web.aacei.org/docs/default-source/toc/toc_56r-08.pdf",
+   "ok": true,
+   "note": "Rev. 7 Aug 2020 Table 1 confirmed (Class 5 -20/-30, +30/+50; Class 4 -10/-20, +20/+30; Class 3 -5/-15, +10/+20). Premise: after appropriate contingency (typically P50); high side two to three times for complex projects. Not enforced in the spec."
+  },
+  {
+   "source_id": "P08-S23",
+   "url": "https://dailyhive.com/vancouver/vancouver-amenity-cost-charge-dcls-introduction-changes",
+   "ok": true,
+   "note": "9 Jul 2026, pre-vote. Rates, phase-in, 3%/yr, deferral confirmed. Hotel listed under commercial/other $3. Class B tied to CMHC rents for newer buildings. ACC credits are for projects that already secured CACs. No DCL rates given."
+  },
+  {
+   "source_id": "P08-S27",
+   "url": "https://www.mccarthy.ca/en/insights/blogs/lay-land/vancouver-city-council-approves-measures-to-support-development-viability",
+   "ok": true,
+   "note": "14 Jan 2026. 20% discount on City-wide, Utilities and area DCL by-laws; deferral over $500k (25% at permit). Rental relief criteria include a site under 8,000 m2 as an 'e.g.'; cumulative application not stated; Council approval by 15 Dec 2027."
+  },
+  {
+   "source_id": "P08-S43",
+   "url": "https://howardchai.substack.com/p/vancouver-amenity-cost-charges-acc-program-dcl-update-2026",
+   "ok": true,
+   "note": "10 Jul 2026. ACC tiers confirmed. DCL rates 'not being changed much' but not listed. ACC credit full or partial for projects with secured CACs depending on added density."
+  },
+  {
+   "source_id": "P08-S45",
+   "url": "https://metrovancouver.org/about-us/development-cost-charges",
+   "ok": true,
+   "note": "Water, VSA sewer and parkland rates for three periods confirmed; non-residential total $13.94/sf and apartment $17,323 from 1 Jan 2027. Parkland applies to non-residential. Board adoption 24 Jul 2026; payable at building permit; in-stream rules to 24 Jul 2027."
+  },
+  {
+   "source_id": "P08-S46",
+   "url": "https://www.langleycity.ca/media/file/development-cost-charges-2026pdf-1",
+   "ok": true,
+   "note": "TransLink Bylaw 159-2025 adopted 3 Dec 2025, effective 1 Jan 2026. Apartment $1,774; values $1.44, $1.16, $0.34, $0.56 consistent with rows Retail, Office, Industrial, Other non-residential (the label is 'Other', not 'institutional')."
+  },
+  {
+   "source_id": "P08-S47",
+   "url": "https://www2.gov.bc.ca/gov/content/taxes/property-taxes/property-transfer-tax",
+   "ok": true,
+   "note": "1%/2%/3% confirmed; further 2% applies to the residential portion above $3M on mixed-class property, which the spec does not model."
+  },
+  {
+   "source_id": "P08-S50",
+   "url": "https://www.vanplex.ca/blog/vancouver-multiplex-city-fees-2026",
+   "ok": false,
+   "note": "31 Mar 2026 multiplex blog: $49.88 and $39.06/m2 with no FSR tier and no commercial rate; examples are multiplex only. Not supportable for a 9+ FSR tower."
+  },
+  {
+   "source_id": "P08-S34",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-development-cost-levies.pdf",
+   "ok": false,
+   "note": "HTTP 403 again; vancouver.ca DCL page also 403."
+  },
+  {
+   "url": "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810028901",
+   "ok": false,
+   "note": "StatCan BCPI table proposed as the escalation source; site unavailable during review."
+  },
+  {
+   "url": "https://www.translink.ca/plans-and-projects/development-cost-charge",
+   "ok": false,
+   "note": "HTTP 404; TransLink primary schedule not verified."
+  }
+ ],
+ "verdict": "Much improved. The round-1 structural blockers are fixed: the formulas, elasticity application, AACE P10/P90, absorption basis and charge ledger now match their sources (CBRE, Lee, Metro DCC, AACE, Ahlfeldt-Barr verified). Not yet safe for entrants, because the remaining errors all bias feasibility upward. City DCLs come from a likely low-density multiplex tier, and the largest City charge is missing. Years to lease ignores about 1.4 M sf of competing vacancy. AACE ranges are applied with no enforced contingency. The height premium is miscalibrated against the Altus band and treats lower-bound elasticities as good. Escalation is off despite 2024 costs. A hidden M06-M05a cycle remains. Core RLV rests on unsourced costs and cap rates, so it should ship as a break-even solver. The web search budget was exhausted; checks used direct fetches only."
+}

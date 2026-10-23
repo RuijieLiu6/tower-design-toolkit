@@ -1,0 +1,1278 @@
+{
+ "packet_id": "U1",
+ "patterns": [
+  {
+   "name": "Declared phase wins; Advanced adds to Basic",
+   "tool": "SketchUp toolbars + BIMForum LOD + Tower Studio code",
+   "how_it_works": "SketchUp's Large Tool Set contains every tool from Getting Started and four other toolbars, and users choose which toolbars show. BIMForum LOD definitions are cumulative. Grasshopper's GH_Exposure only orders ribbon sections; it is not a tier.",
+   "apply_to_tower_studio": "Move stageOf to src/data/stages.ts and delete ADVANCED_CATS (NodeLibrary.tsx:14,18) so declared phase wins; place the 20 cross-cutting nodes explicitly. Counts become Basic 72, Advanced-only 46, Advanced view 118. Review the DATA rule (line 17, 28 declared-basic nodes). Add a vitest: Advanced ids contain all Basic ids.",
+   "why_it_helps": "Advanced then reads as Basic plus more, so the count cannot invert again.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Counts computed from research_registry.json plus 4 built nodes. SketchUp Toolbars help and GH_Exposure API opened; BIMForum LOD 2015 s3.2.3 (earlier round). Mapping exposure ranks to tiers is interpretation, not documented.",
+   "source_urls": [
+    "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/../../../../../../../../../../../F:/UBC Master of Architecture/ARCH540 AI Studio/tower-studio/src/components/NodeLibrary.tsx",
+    "https://help.sketchup.com/en/sketchup/toolbars",
+    "https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_Kernel_GH_Exposure.htm",
+    "https://bimforum.org/wp-content/uploads/2022/06/BIMForum_LOD_2015_reprint.pdf"
+   ]
+  },
+  {
+   "name": "Ghost the roadmap: researched, not runnable",
+   "tool": "Grasshopper obscure + NN/g",
+   "how_it_works": "GH_Exposure.obscure marks rarely used components: they must pair with another exposure flag, vanish first when the ribbon narrows and sit at panel ends. NN/g advises disabling irrelevant menu items instead of hiding them, so users do not hunt for them.",
+   "apply_to_tower_studio": "Per category list runnable nodes first, then a collapsed 'Roadmap, N researched' group. Ghost rows get a flask-conical icon, muted readable text, aria-disabled and tooltip 'Researched, not runnable', reusing STATUS_BADGE (NodeLibrary.tsx:7). Keep 'Every phase' (line 58) as the one-click all-stages view.",
+   "why_it_helps": "Advanced shows its true state, a catalogue of methods, not a runnable toolset.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "GH_Exposure API, NN/g contextual menus and NN/g button states opened. Registry: only 4 of 180 nodes run, none in Advanced. No documented Grasshopper UI toggle for obscure was found.",
+   "source_urls": [
+    "https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_Kernel_GH_Exposure.htm",
+    "https://developer.rhino3d.com/api/grasshopper/html/P_Grasshopper_CentralSettings_RibbonShowObscure.htm",
+    "https://www.nngroup.com/articles/contextual-menus/",
+    "https://www.nngroup.com/articles/button-states-communicate-interaction/"
+   ]
+  },
+  {
+   "name": "Stage record: one setStage swaps the workspace",
+   "tool": "Rhino",
+   "how_it_works": "Rhino's Sidebar shows whichever container is linked to the active toolbar tab, and the Main toolbar's contents follow the Standard toolbar tab. The pages read describe no viewport or camera change when tabs change.",
+   "apply_to_tower_studio": "STAGES record per Phase: library scope, right-panel tab, look, default Detail, default view. setPhase (store.ts:78) applies it; RightPanel.tsx:13,20-22 reads it. Keys 1-3 stay (App.tsx:25-27). The record never writes cameraRequest.",
+   "why_it_helps": "One control moving library, panel and look together reads as changing rooms.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Rhino 8 'The Rhino window' (Sidebar) and 'UI in Detail'. Today setPhase only sets phase; Viewport.tsx and NodeCanvas.tsx never read it, so only the library, RightPanel and TopBar change.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/user_interface/rhino_window.htm",
+    "https://www.rhino3d.com/docs/guides/user-guide/introduction-ui-detail/"
+   ]
+  },
+  {
+   "name": "Look tokens per stage",
+   "tool": "Rhino display modes",
+   "how_it_works": "A Rhino display mode holds its own background, shading, visibility, lighting, grid, per-object and shadow settings. SetDisplayMode applies it to the active or all viewports. Rhino 8 lists eleven modes, from Wireframe to Raytraced.",
+   "apply_to_tower_studio": "LOOKS object in TypeScript, because three.js materials cannot read Tailwind variables: ground, background, fog, lights, context greys, band saturation, edge lines. Replace literals at Viewport.tsx:67-81,162-163,257-259. Mirror chrome colours to [data-look] CSS rules. Three looks: Basic, Advanced, Present.",
+   "why_it_helps": "Background, edges, light and colour changing together create the felt shift; recolouring alone does not.",
+   "cost": "M",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "Rhino 8 Display Modes options page, re-read r1. Tailwind v4 docs: theme variables are CSS variables that cannot nest under selectors; overriding in plain rules is my inference, to verify in the build.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/options/view_displaymode_options.htm",
+    "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm",
+    "https://tailwindcss.com/docs/theme"
+   ]
+  },
+  {
+   "name": "Detail chip: explicit Coarse and Medium",
+   "tool": "Revit",
+   "how_it_works": "Revit sets Detail Level per view: a new view takes it from a view-scale table, and users override it in the Properties palette or with the View Control Bar icon. Autodesk pages describe it as scale-dependent, with no zoom or camera-distance behaviour.",
+   "apply_to_tower_studio": "Viewport chip: Coarse (today's merged blocks) or Medium (floor outlines plus core). Stage sets the default (Basic Coarse, Advanced Medium); the user's choice sticks. No distance-driven Auto. Fine appears only when its geometry exists (L, later).",
+   "why_it_helps": "The tower itself gains resolution on a visible, predictable control.",
+   "cost": "M",
+   "priority": "now",
+   "status": "false_assumption_corrected",
+   "evidence": "Autodesk Detail Levels (2024), Specify the Detail Level, and structural-components help (framing drawn as sticks at Coarse). Stage defaults are my proposal, analogous to Revit's scale defaults.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-0BB861D5-27CB-4276-93AE-F2E949B0D466.htm",
+    "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-229C4AE8-9C31-422A-97B7-943607C55D1A.htm",
+    "https://help.autodesk.com/cloudhelp/2014/ENU/Revit/files/GUID-3FEAFCD6-1DBD-44B3-91A7-B3CC0E396689.htm"
+   ]
+  },
+  {
+   "name": "Advanced geometry: floor outlines and core",
+   "tool": "Revit Mass Floors",
+   "how_it_works": "Revit Mass Floors compute floor areas per level inside a mass, and Floor by Face turns chosen mass floors into real floors. Mass visibility is set per view.",
+   "apply_to_tower_studio": "Remove the selected-only guard on floor outlines (Viewport.tsx:184-185) so every tower draws per-floor lines from towerFloors(). Add a core box from two new Tower fields: an editable preset flagged team assumption. No structure grid or facade yet.",
+   "why_it_helps": "Gives Advanced real, honest content: visible floors and a core.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Autodesk Mass Floor and Floor by Face help. massing.ts exports towerFloors, gfaByUse and rectCorners only, so no core exists. Core size has no source.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-03EABD3A-4736-4762-97F8-F473FEE18162.htm",
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-616D0F96-C788-4741-A2A4-5982232A07D3.htm"
+   ]
+  },
+  {
+   "name": "Context greys become look tokens",
+   "tool": "Revit phase filters",
+   "how_it_works": "Revit gives each element a phase status, and a view's phase filter sets standard, overridden or hidden graphics per status. Overrides are defined once and shared across views.",
+   "apply_to_tower_studio": "Viewport.tsx already draws context in greys (#b9b6ae, #cfccc4, #f1efea, #e9dfcd, #dfe8dc). Move them into LOOKS.context (lines 77-81) with one halftone rule per look; the proposal stays full colour. No new override system.",
+   "why_it_helps": "Context versus proposal reads from one consistent graphic rule.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "Autodesk phase-filter help (Define the Graphic Display; Create Phase Filters). Viewport.tsx literals read r1. Default Revit override styles were not stated on the pages.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-DocumentPresent/files/GUID-92CF3963-780B-42FA-BAED-1265E3E57CA7.htm",
+    "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-DocumentPresent/files/GUID-66829195-1E29-493D-B24C-B25A5A099081.htm"
+   ]
+  },
+  {
+   "name": "No automatic camera moves; Frame button",
+   "tool": "SketchUp + Rhino",
+   "how_it_works": "SketchUp scenes save camera, style, tags, section planes and shadows, and selecting a scene restores its camera. Rhino's Sidebar page describes tab-linked panels with no viewport or camera change.",
+   "apply_to_tower_studio": "setPhase never writes cameraRequest. Add a 'Frame for this stage' chip using the existing request path (store.ts:47, Viewport.tsx:232). Present's presets (PresentPanel.tsx:53) stay user-triggered; saved scenes come later.",
+   "why_it_helps": "Massing and evaluation loop constantly; unrequested camera moves destroy the user's framing.",
+   "cost": "S",
+   "priority": "now",
+   "status": "false_assumption_corrected",
+   "evidence": "SketchUp Creating Scenes; Rhino 8 The Rhino window. Rhino's silence on camera is an absence in the docs, not a stated rule.",
+   "source_urls": [
+    "https://help.sketchup.com/en/sketchup/creating-scenes",
+    "https://docs.mcneel.com/rhino/8/help/en-us/user_interface/rhino_window.htm"
+   ]
+  },
+  {
+   "name": "Canvas stays a view choice, not an Advanced room",
+   "tool": "Grasshopper + Revit",
+   "how_it_works": "For Grasshopper users the node canvas is the primary way of working. Revit's conceptual design environment is entered and left by name, and Finish Mass returns to the project environment.",
+   "apply_to_tower_studio": "Reject 'Advanced raises a canvas drawer'. Keep 3D, split and canvas in the existing switcher (TopBar.tsx:13-17, store.ts:7). A stage sets the default view only until the user picks one; after that, stage changes never override the choice.",
+   "why_it_helps": "Grasshopper users keep the graph they expect, and modes stop fighting the switcher.",
+   "cost": "S",
+   "priority": "now",
+   "status": "false_assumption_corrected",
+   "evidence": "Autodesk In-Place Mass and Conceptual Design Environment help; TopBar.tsx and store.ts read r1. The Autodesk page re-read r1 says nothing about the environment's visual treatment.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2014/ENU/Revit/files/GUID-A180B32D-E7B8-474F-AB31-B15EDB874F6E.htm",
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-57C738E6-E96B-4275-8F7A-21A268F1576A.htm"
+   ]
+  },
+  {
+   "name": "Icon plus visible label, never icon-only",
+   "tool": "Grasshopper + Rhino + NN/g",
+   "how_it_works": "NN/g: few icons are universal; keep labels visible. Rhino 8 popup toolbars dropped text and users asked for it back (Nov 2023). Rutten (2009): finding a component by icon is hard, by name relatively easy; he personally prefers icon mode.",
+   "apply_to_tower_studio": "Node rows, stage tabs, chips and the library show lucide icon plus text; icons are aria-hidden by default in lucide-react 1.61.0, so labels carry meaning. Icon-only only below a width breakpoint, with title and aria-label. Recognition-test category icons with five students first.",
+   "why_it_helps": "Icons build the mental map; labels guarantee meaning.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "NN/g Icon Usability; McNeel Discourse popup-toolbar thread; Grasshopper forum comment 29877 (11 Nov 2009). No peer-reviewed icon study found.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/icon-usability/",
+    "https://discourse.mcneel.com/t/rh8-popup-toolbar-has-only-icons-instead-of-icons-and-text/168863",
+    "https://www.grasshopper3d.com/xn/detail/2985220:Comment:29877"
+   ]
+  },
+  {
+   "name": "Colour by task, shape by function",
+   "tool": "Rhino icon redesign + WCAG",
+   "how_it_works": "McNeel's Rhino beta redesign colour-codes icons by object type and task, colours only the changed part of each icon, simplifies detail and aligns with Grasshopper 2. One colour-blind user found greens, oranges and reds hard to tell apart.",
+   "apply_to_tower_studio": "Category icon = lucide shape in the CATEGORIES colour (registry.ts:7-21), label beside it. CLIM #d9a400 is 2.27:1 on white, below 3:1: use a darker stroke or an ink icon on a colour chip. Never let colour alone carry the category.",
+   "why_it_helps": "Colour groups, shape names, so colour-blind users still map the process.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "McNeel Discourse icon redesign (30 Oct 2025; first page only); WCAG 1.4.1 and 1.4.11. I computed contrast: 12 of 13 category colours reach 3:1 on white.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/rhino-beta-feature-icon-redesign/211696",
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
+   ]
+  },
+  {
+   "name": "Node state: colour plus corner glyph",
+   "tool": "Grasshopper + WCAG",
+   "how_it_works": "Teaching sources report green selected, grey disabled, orange warning, red error; McNeel docs found none. WCAG 1.4.1 requires a cue beyond colour; 1.4.11 asks 3:1 contrast for graphics needed to understand state.",
+   "apply_to_tower_studio": "NodeCanvas Card keeps its status text and adds a corner glyph per tone. Reuse the flag tokens (index.css:12-16), but outline team (2.74:1) and unresolved (2.39:1) in ink: both fail 3:1 on white. FlagChip white text on team is also 2.74:1; use ink.",
+   "why_it_helps": "State reads at a glance in greyscale and for colour-blind users.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Columbia module (secondary); WCAG Understanding 1.4.1 and 1.4.11; contrast computed against #fff and #f6f5f2. Tower Studio has one light theme, so there is no dark check.",
+   "source_urls": [
+    "https://smorgasbord.cdp.arch.columbia.edu/modules/4-grasshopper-intro/43-working-in-grasshopper",
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
+   ]
+  },
+  {
+   "name": "Short, interruptible stage motion without camera",
+   "tool": "NN/g + Material + Apple + WCAG",
+   "how_it_works": "NN/g: most UI animation runs 100-500 ms and should be shorter when repeated. Material medium durations are 250-400 ms. Apple: under Reduce Motion replace meaningful motion with a dissolve, highlight fade or colour shift. WCAG C39 honours prefers-reduced-motion.",
+   "apply_to_tower_studio": "Stage change: right-panel content cross-fades 150-200 ms; viewport look changes by cut. Floor outlines draw bottom-up over 300 ms once per Advanced entry. Reduced motion: instant swap or 100 ms dissolve. No camera motion, none during drags.",
+   "why_it_helps": "Stage switching is frequent, so motion stays small and skippable.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "NN/g Animation Duration; Material Android Motion.md; Apple reduced-motion criteria; WCAG 2.3.3 Understanding. Durations are starting points and untested here.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/animation-duration/",
+    "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md",
+    "https://developer.apple.com/help/app-store-connect/manage-app-accessibility/reduced-motion-evaluation-criteria",
+    "https://w3c.github.io/wcag/understanding/animation-from-interactions.html"
+   ]
+  },
+  {
+   "name": "Per-view control strip",
+   "tool": "Revit",
+   "how_it_works": "Revit's View Control Bar sits at the bottom of the drawing area and holds the Detail Level icon (Autodesk help). A course handout lists Scale, Visual Style, Sun Path, Cropping and visibility controls beside it.",
+   "apply_to_tower_studio": "Bottom viewport strip of icon plus label chips: Detail, Frame, Overlay, same place in every stage. Targets at least 24 px (WCAG 2.5.8), 32 px as my preference. Look is not a chip; it follows the stage.",
+   "why_it_helps": "One learnable place for how the view looks.",
+   "cost": "S",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Autodesk Specify the Detail Level (icon on the bar); CUNY handout (secondary). WCAG 2.5.8 sets 24 CSS px with spacing exceptions; the earlier 44 px figure was unsourced.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-229C4AE8-9C31-422A-97B7-943607C55D1A.htm",
+    "https://openlab.citytech.cuny.edu/novillo-arch2431-fa24-bt3/files/2021/01/BT3-AR.2431-Tutorial-1.01-Revit-Interface_.pdf",
+    "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html"
+   ]
+  },
+  {
+   "name": "Present looks: Arctic-clay and Programme-diagram",
+   "tool": "Rhino display modes",
+   "how_it_works": "Rhino describes Arctic as white objects and background with soft shadows, Pen as white with black lines, and Technical as real-time silhouettes, intersections, creases and borders with objects behind occluded. It lists no dotted hidden lines.",
+   "apply_to_tower_studio": "Two Present variants. Arctic-clay: white ground, off-white material, soft contact shadow (drei ContactShadows), thin Edges, faint programme tint. Programme-diagram: flat band colours with labels. Test both on a printed A2 board. Pen as export-only; dashed hidden lines would be our choice.",
+   "why_it_helps": "Jury boards need mood and programme legibility; a printed test decides.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Rhino 8 display-modes page re-read r1. drei Edges.js, ContactShadows.js and Outlines.js present in installed 10.7.9. A2 board rule from PresentPanel checklist (brief p.27, team-read). Variant split is untested.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm",
+    "https://docs.mcneel.com/rhino/8/help/en-us/options/view_displaymode_options.htm"
+   ]
+  },
+  {
+   "name": "Programme glyph tiles only for bands",
+   "tool": "Team assets",
+   "how_it_works": "Team repo: 112 GPT-drawn, vector-traced glyphs on a 256 box, drawn inside the middle 70%; glyphTile draws a coloured tile and glyphBare crops tight. The programme catalogue names each glyph. Lucide covers tools.",
+   "apply_to_tower_studio": "Map bands: retail SE1, office WK1, hotel ST2, residential LV1, civic GP6, amenity LE2, mechanical SB2. Use tiles at 24 px or more or bare glyphs at 20 px or more; use a plain band-colour square at 16 px. Copy about 4.5 KB of path data.",
+   "why_it_helps": "Content (programme) looks different from tools (lucide), so shape language separates them.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Team glyph files and catalogue read. My 1x raster check at 16 and 20 px: residential, civic and mechanical blur inside tiles. One viewer, no user test. Band colours from USES in types.ts.",
+   "source_urls": [
+    "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/app/icons/glyphs.js",
+    "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/catalogue/programmes.json"
+   ]
+  },
+  {
+   "name": "Search palette and outline tree",
+   "tool": "Rhino + Revit",
+   "how_it_works": "Rhino centres on its command prompt; Revit's Project Browser is a nested tree whose search narrows items and highlights matches at every level.",
+   "apply_to_tower_studio": "Ctrl/Cmd+K palette over nodes, stages and results; Enter selects the node. Later add an Outline tab listing tower elements with the same search. Hits show category icon plus label.",
+   "why_it_helps": "Name search is fastest for experts; icons help novices browse.",
+   "cost": "S",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Rhino UI in Detail; Autodesk Project Browser help (2026). The palette design itself is interpretation.",
+   "source_urls": [
+    "https://www.rhino3d.com/docs/guides/user-guide/introduction-ui-detail/",
+    "https://help.autodesk.com/cloudhelp/2026/ENU/Revit-GetStarted/files/GUID-C8D3E5A6-02A5-43A9-AFFC-D49DD27398B1.htm"
+   ]
+  },
+  {
+   "name": "Contextual selection UI plus Properties panel",
+   "tool": "Revit",
+   "how_it_works": "Selecting elements opens a contextual ribbon tab and Options Bar; the non-modal Properties palette shows the selection, or the active view's properties when nothing is selected. A setting stops the contextual tab taking focus.",
+   "apply_to_tower_studio": "Selecting a band shows a small in-viewport toolbar and fills right-panel Properties; nothing selected shows stage and view properties. Selection never changes stage. Results & evidence stays a separate tab.",
+   "why_it_helps": "Context appears where work happens while the stage map stays stable.",
+   "cost": "S",
+   "priority": "v1",
+   "status": "verified",
+   "evidence": "Autodesk Selection skill, Properties Palette and Options dialog help. The opt-out setting suggests focus-steal friction; that inference is mine.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-GetStarted/files/GUID-AC1CAA25-037D-4EA1-B357-D59CE29FE754.htm",
+    "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-GetStarted/files/GUID-A764EA7A-FE26-469B-857C-F3A70812FC34.htm",
+    "https://help.autodesk.com/cloudhelp/2023/ENU/RevitLT-Customize/files/GUID-C25E7343-0E12-4578-BB1F-77E4551109CA.htm"
+   ]
+  },
+  {
+   "name": "Scenes: saved camera, look and detail",
+   "tool": "SketchUp",
+   "how_it_works": "A SketchUp style bundles edge, face, background and modeling-cue settings. A scene stores camera, style, fog, visible tags, hidden geometry, shadows and active section planes, and selecting it restores them.",
+   "apply_to_tower_studio": "In Present, users save numbered scenes holding camera, look, Detail and overlay, and play them as a tour. Camera applies only when the user picks a scene. Stage defaults stay separate from scenes.",
+   "why_it_helps": "One record covers bookmarks and presentation sequence without hijacking the camera.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "verified",
+   "evidence": "SketchUp Help: Creating and Editing a Style; Creating Scenes (re-read r1). Scene transition timing page not read.",
+   "source_urls": [
+    "https://help.sketchup.com/en/sketchup/creating-and-editing-style",
+    "https://help.sketchup.com/en/sketchup/creating-scenes"
+   ]
+  },
+  {
+   "name": "Per-element LOD badge",
+   "tool": "BIMForum LOD",
+   "how_it_works": "BIMForum states there is no 'LOD ###' model: elements carry levels. LOD 100 is a symbol, 200 a generic placeholder or volume, 300 a specific system, and definitions are cumulative.",
+   "apply_to_tower_studio": "Defer. Add a 100/200/300 badge on tower elements only when an element is editable at 300 (core, structure). Never label the whole project Basic or Advanced.",
+   "why_it_helps": "Matches how AEC users talk about maturity, once elements truly differ in maturity.",
+   "cost": "M",
+   "priority": "later",
+   "status": "verified",
+   "evidence": "BIMForum LOD 2015 sections 1.1.2, 2.3.1-2.3.3, 3.2.3 (earlier round). Definitions are AIA-copyrighted; paraphrased only. No element is editable at 300 today.",
+   "source_urls": [
+    "https://bimforum.org/wp-content/uploads/2022/06/BIMForum_LOD_2015_reprint.pdf"
+   ]
+  },
+  {
+   "name": "Options with a primary, plus Compare",
+   "tool": "Revit Design Options + Forma",
+   "how_it_works": "Revit option sets have one primary option shown by default; secondary options appear only in dedicated views; finalising deletes the set. Forma's top bar switches Site Design, Compare and Board.",
+   "apply_to_tower_studio": "Tower options A/B/C as parameter snapshots, one starred primary, with a synced two-up Compare toggle. Commit collapses the set after confirmation. Keep the project switch in the top bar.",
+   "why_it_helps": "Side-by-side viewing supports comparison in exploratory design.",
+   "cost": "L",
+   "priority": "later",
+   "status": "verified",
+   "evidence": "Autodesk Design Options workflow; Autodesk Forma blog (Aug 2026); Cognitive Dimensions tutorial on juxtaposability.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-D6D4E961-8E43-498D-8405-EDE3BB11A4BD.htm",
+    "https://blogs.autodesk.com/forma/2026/08/28/forma-site-design-tools-overview/",
+    "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf"
+   ]
+  },
+  {
+   "name": "Promote massing to floorplate objects",
+   "tool": "Revit",
+   "how_it_works": "Mass floors compute floor areas per level; Floor by Face converts chosen mass floors into real floors. Mass visibility is per view, with Show Mass Form and Floors as a global override.",
+   "apply_to_tower_studio": "A 'Promote to floorplates' action creates per-floor objects from bands, tagged derived, with massing kept as an underlay. Show a stale badge when massing changes after promotion, with a one-click refresh. Heavier than the view-level outlines.",
+   "why_it_helps": "Makes the step from massing to building deliberate and visible.",
+   "cost": "M",
+   "priority": "later",
+   "status": "verified",
+   "evidence": "Autodesk help: Create a Floor from a Mass Floor; Control Visibility of Mass Instances.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-03EABD3A-4736-4762-97F8-F473FEE18162.htm",
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-616D0F96-C788-4741-A2A4-5982232A07D3.htm"
+   ]
+  },
+  {
+   "name": "Five-stage rail after testing",
+   "tool": "Forma + Revit",
+   "how_it_works": "Forma's top bar switches Site Design, Compare and Board (Autodesk blog, Aug 2026). Revit moves from mass floors to Floor by Face. None of these sources validates five stages.",
+   "apply_to_tower_studio": "If testing supports Massing, Program, Evaluate, Design, Present: keys 1-5, update Onboarding.tsx line 34 and STEPS copy, TopBar PHASES, and move RightPanel's Present logic into the stage record. Until then ship three stages.",
+   "why_it_helps": "Keeps the migration cost known without committing to unvalidated stages.",
+   "cost": "M",
+   "priority": "later",
+   "status": "interpretation",
+   "evidence": "Forma blog opened; Forma help centre returned 404. Onboarding.tsx, App.tsx and RightPanel.tsx read r1. The five-stage model remains a team assumption.",
+   "source_urls": [
+    "https://blogs.autodesk.com/forma/2026/08/28/forma-site-design-tools-overview/",
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-03EABD3A-4736-4762-97F8-F473FEE18162.htm"
+   ]
+  },
+  {
+   "name": "Semantic zoom on the node canvas",
+   "tool": "Grasshopper + React Flow",
+   "how_it_works": "Grasshopper draws highlights, icons and names less as you zoom out. Rutten's reply of 14 Mar 2014 (Grasshopper 1) gives 80%, 60% and 41% thresholds. The GH2 beta says more detail appears as you zoom in.",
+   "apply_to_tower_studio": "Later: tiers from useStore(s => s.transform[2]); far = frame plus icon, mid = icon plus title, near = ports and flags; text never below 12 px. NodeCanvas.tsx lays out about 7 cards today, so the problem does not exist yet.",
+   "why_it_helps": "Overview and detail from one gesture, once the canvas is large.",
+   "cost": "M",
+   "priority": "later",
+   "status": "verified",
+   "evidence": "Rutten reply (14 Mar 2014); ZoomFadeLow API; GH2 beta post; Pad++ paper; React Flow contextual zoom example. Thresholds are GH1-era, so direction only.",
+   "source_urls": [
+    "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1025973",
+    "https://developer.rhino3d.com/api/grasshopper/html/P_Grasshopper_GUI_Canvas_GH_Canvas_ZoomFadeLow.htm",
+    "https://discourse.mcneel.com/t/rhino-beta-feature-grasshopper-2-beta/221336",
+    "https://reactflow.dev/examples/interaction/contextual-zoom"
+   ]
+  },
+  {
+   "name": "Canvas structure: frames, wires, fixed footprint",
+   "tool": "Grasshopper",
+   "how_it_works": "A Grasshopper Group is a container drawn around components (Ctrl+G). Columbia's module describes single, double and dashed wires by data kind. Icon and name display options change component sizes, which the explainer author calls distracting when toggled.",
+   "apply_to_tower_studio": "Later, once users place nodes: category frames as React Flow parent nodes, edge styles by payload, full-path highlight on selection, and a fixed node size so stage changes never move nodes. NodeCanvas.tsx computes positions today and stores none.",
+   "why_it_helps": "Spatial memory and data kind become visible once the canvas has user layouts.",
+   "cost": "M",
+   "priority": "later",
+   "status": "interpretation",
+   "evidence": "Columbia module (secondary); Grasshopper forum explainer (Comment 1093001) and wire-fade thread; Cognitive Dimensions tutorial. No McNeel document for wire styles found.",
+   "source_urls": [
+    "https://smorgasbord.cdp.arch.columbia.edu/modules/4-grasshopper-intro/43-working-in-grasshopper",
+    "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1093001",
+    "https://www.grasshopper3d.com/forum/topics/wish-wire-no-fade",
+    "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf"
+   ]
+  },
+  {
+   "name": "Clusters as collapsed subgraphs",
+   "tool": "Grasshopper",
+   "how_it_works": "A Grasshopper Cluster wraps selected components into one component: entering wires become inputs, leaving wires outputs. Double-click opens the inner canvas, and copies stay linked.",
+   "apply_to_tower_studio": "Later: ship Structure, Energy and Climate subgraphs as single cluster nodes that expand to their internal graph. Needs cluster definitions with port mapping. Not before runnable Advanced nodes exist.",
+   "why_it_helps": "One node at two resolutions, without two node sets.",
+   "cost": "L",
+   "priority": "later",
+   "status": "verified",
+   "evidence": "Columbia module (cluster behaviour); GH_StandardIcons lists a cluster icon. React Flow sub-flow feasibility not tested.",
+   "source_urls": [
+    "https://smorgasbord.cdp.arch.columbia.edu/modules/4-grasshopper-intro/43-working-in-grasshopper",
+    "https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_GUI_GH_StandardIcons.htm"
+   ]
+  },
+  {
+   "name": "Flyouts for sub-tools",
+   "tool": "Rhino",
+   "how_it_works": "Many Rhino icons run a second command on right-click, with the tooltip describing both. A small triangle marks a flyout opened by click-and-hold or by clicking the triangle.",
+   "apply_to_tower_studio": "Later, only if the rail grows sub-tools: flyout triangle on stage icons. Reject right-click-only actions; expose each as a visible menu item. Tooltips supplement labels, never replace them.",
+   "why_it_helps": "Keeps the rail short without hiding functions from touch or first-time users.",
+   "cost": "S",
+   "priority": "later",
+   "status": "verified",
+   "evidence": "Rhino 8 Using toolbars and UI in Detail; NN/g Icon Usability on hover-only labels.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/user_interface/using_toolbars.htm",
+    "https://www.nngroup.com/articles/icon-usability/"
+   ]
+  },
+  {
+   "name": "Reject a Basic/Advanced expertise toggle",
+   "tool": "Grasshopper + SketchUp + McNeel",
+   "how_it_works": "In the Grasshopper, Rhino, Revit and SketchUp pages read, none sets a beginner or expert mode. Grasshopper exposure and SketchUp toolbars are opt-in arrangements, and McNeel names too many tools as the learning problem in Rhino.",
+   "apply_to_tower_studio": "Keep the two stages as design stages (concept, then development) with roadmap content ghosted, so no one is labelled a beginner. Revisit only if user tests show people want a simpler default.",
+   "why_it_helps": "Stages describe the work, not the person.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "evidence": "GH_Exposure API, SketchUp Toolbars help, McNeel icon-redesign post. Absence of an expertise mode comes from pages read, not an exhaustive survey.",
+   "source_urls": [
+    "https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_Kernel_GH_Exposure.htm",
+    "https://help.sketchup.com/en/sketchup/toolbars",
+    "https://discourse.mcneel.com/t/rhino-beta-feature-icon-redesign/211696"
+   ]
+  },
+  {
+   "name": "Dockable, floatable panel containers",
+   "tool": "Rhino 8",
+   "how_it_works": "Rhino 8 toolbars live in containers that can be docked, floated, linked and locked; forum threads (search results only) report command line and side panels vanishing, usually fixed by restoring the default layout.",
+   "apply_to_tower_studio": "Reject for v0.x. Use fixed regions per stage with simple resize. Offer 'Reset layout' only if resizing ships. Free layout would hide the stage structure we are trying to make legible.",
+   "why_it_helps": "Fixed regions keep the stage-to-layout mapping learnable.",
+   "cost": "L",
+   "priority": "reject",
+   "status": "interpretation",
+   "evidence": "Rhino 8 Using toolbars (docking). Vanishing-panel reports come from unopened forum snippets.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/user_interface/using_toolbars.htm",
+    "https://discourse.mcneel.com/t/rhino-8-ui-help-command-line-is-gone/168857"
+   ]
+  },
+  {
+   "name": "Linked presets (assigned view templates)",
+   "tool": "Revit",
+   "how_it_works": "Applying a Revit view template copies its properties once and leaves the view unlinked; assigning creates a persistent link so template edits flow to views. Forum reports (unopened) say assigned templates lock controls.",
+   "apply_to_tower_studio": "Reject linking. A stage default copies into viewport state once; user tweaks persist. Show a dot on chips that differ from the stage default and a 'Reset to stage default' button.",
+   "why_it_helps": "Avoids greyed-out controls and 'why can't I change this' moments.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "interpretation",
+   "evidence": "Autodesk help 'Apply a View Template' confirms apply versus assign; complaint evidence not opened (Autodesk forum returned 403).",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-DA062846-32C9-4FFF-9BC1-BBB548868ACA.htm"
+   ]
+  },
+  {
+   "name": "Wizard-style gating of stages",
+   "tool": "NN/g + Cognitive Dimensions",
+   "how_it_works": "NN/g says staged wizards suit steps with little interdependence; if users move back and forth, keep features together. Cognitive dimensions warns that forced order causes premature commitment.",
+   "apply_to_tower_studio": "Reject Next/Back gating. Any stage is open at any time; completion dots show data present, not access. Evaluation works on partial inputs and says what is missing.",
+   "why_it_helps": "Tower design loops between massing and evaluation; gating adds friction.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "verified",
+   "evidence": "NN/g Progressive Disclosure (staged-disclosure caveat); Cognitive Dimensions tutorial (premature commitment).",
+   "source_urls": [
+    "https://www.nngroup.com/articles/progressive-disclosure/",
+    "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "Grasshopper Icons guide (McNeel)",
+   "url": "https://developer.rhino3d.com/guides/grasshopper/grasshopper-icons/",
+   "opened": true
+  },
+  {
+   "title": "GH_StandardIcons API (McNeel)",
+   "url": "https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_GUI_GH_StandardIcons.htm",
+   "opened": true
+  },
+  {
+   "title": "GH_Exposure API (McNeel), re-read r1",
+   "url": "https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_Kernel_GH_Exposure.htm",
+   "opened": true
+  },
+  {
+   "title": "CentralSettings.RibbonShowObscure API (McNeel)",
+   "url": "https://developer.rhino3d.com/api/grasshopper/html/P_Grasshopper_CentralSettings_RibbonShowObscure.htm",
+   "opened": true
+  },
+  {
+   "title": "GH_Canvas ZoomFadeLow API (McNeel)",
+   "url": "https://developer.rhino3d.com/api/grasshopper/html/P_Grasshopper_GUI_Canvas_GH_Canvas_ZoomFadeLow.htm",
+   "opened": true
+  },
+  {
+   "title": "Your first component, Category/Subcategory (McNeel)",
+   "url": "https://developer.rhino3d.com/guides/grasshopper/your-first-component-windows/",
+   "opened": true
+  },
+  {
+   "title": "Grasshopper forum: Rutten on zoom thresholds (14 Mar 2014)",
+   "url": "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1025973",
+   "opened": true
+  },
+  {
+   "title": "Grasshopper forum: Rutten on icons versus names (11 Nov 2009)",
+   "url": "https://www.grasshopper3d.com/xn/detail/2985220:Comment:29877",
+   "opened": true
+  },
+  {
+   "title": "Grasshopper forum: Draw Icons / Fancy Wires / Full Names explainer",
+   "url": "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1093001",
+   "opened": true
+  },
+  {
+   "title": "Grasshopper forum: wish wire no fade",
+   "url": "https://www.grasshopper3d.com/forum/topics/wish-wire-no-fade",
+   "opened": true
+  },
+  {
+   "title": "Columbia GSAPP: Working in Grasshopper (teaching, secondary)",
+   "url": "https://smorgasbord.cdp.arch.columbia.edu/modules/4-grasshopper-intro/43-working-in-grasshopper",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: Grasshopper 2 beta",
+   "url": "https://discourse.mcneel.com/t/rhino-beta-feature-grasshopper-2-beta/221336",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: Grasshopper 2 UI wishes",
+   "url": "https://discourse.mcneel.com/t/grasshopper-2-ui-wishes/97749",
+   "opened": true
+  },
+  {
+   "title": "TU Delft textbook: component colours and errors",
+   "url": "https://interactivetextbooks.tudelft.nl/rhino-grasshopper/Grasshopper_Rhino_course/4_Troubleshooting/Troubleshooting_Grasshopper/Colours%26Errors/%21index.html",
+   "opened": false
+  },
+  {
+   "title": "Rhino 8: Viewport display modes, re-read r1",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm",
+   "opened": true
+  },
+  {
+   "title": "Rhino 8: Display Modes options, re-read r1",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/options/view_displaymode_options.htm",
+   "opened": true
+  },
+  {
+   "title": "Rhino user guide: Navigation & Display",
+   "url": "https://www.rhino3d.com/docs/guides/user-guide/navigation-display/",
+   "opened": true
+  },
+  {
+   "title": "Rhino 8: The Rhino window (Sidebar), re-read r1",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/user_interface/rhino_window.htm",
+   "opened": true
+  },
+  {
+   "title": "Rhino user guide: The Rhino UI in Detail, re-read r1",
+   "url": "https://www.rhino3d.com/docs/guides/user-guide/introduction-ui-detail/",
+   "opened": true
+  },
+  {
+   "title": "Rhino 8: Using toolbars",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/user_interface/using_toolbars.htm",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: Let's discuss Rhino's UI design",
+   "url": "https://discourse.mcneel.com/t/let-s-discuss-rhinos-ui-design/192746",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: Rhino BETA Feature: Icon redesign (McNeel post 30 Oct 2025)",
+   "url": "https://discourse.mcneel.com/t/rhino-beta-feature-icon-redesign/211696",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: RH8 popup toolbar has only icons (Nov 2023)",
+   "url": "https://discourse.mcneel.com/t/rh8-popup-toolbar-has-only-icons-instead-of-icons-and-text/168863",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: Rhino 8 UI issues, icon size (Apr 2024)",
+   "url": "https://discourse.mcneel.com/t/rhino-8-ui-issues-icon-size/180645",
+   "opened": true
+  },
+  {
+   "title": "McNeel Discourse: Rhino 8 command line is gone",
+   "url": "https://discourse.mcneel.com/t/rhino-8-ui-help-command-line-is-gone/168857",
+   "opened": false
+  },
+  {
+   "title": "Revit help: Detail Levels (2024)",
+   "url": "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-0BB861D5-27CB-4276-93AE-F2E949B0D466.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Specify the Detail Level for a View (2024)",
+   "url": "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-229C4AE8-9C31-422A-97B7-943607C55D1A.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Detail Levels and Display of Structural Components (2014)",
+   "url": "https://help.autodesk.com/cloudhelp/2014/ENU/Revit/files/GUID-3FEAFCD6-1DBD-44B3-91A7-B3CC0E396689.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Define the Graphic Display for Phase Filters",
+   "url": "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-DocumentPresent/files/GUID-92CF3963-780B-42FA-BAED-1265E3E57CA7.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Create Phase Filters",
+   "url": "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-DocumentPresent/files/GUID-66829195-1E29-493D-B24C-B25A5A099081.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Workflow: Design Options",
+   "url": "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-D6D4E961-8E43-498D-8405-EDE3BB11A4BD.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Creating an In-Place Mass",
+   "url": "https://help.autodesk.com/cloudhelp/2014/ENU/Revit/files/GUID-A180B32D-E7B8-474F-AB31-B15EDB874F6E.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: About the Conceptual Design Environment, re-read r1",
+   "url": "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-57C738E6-E96B-4275-8F7A-21A268F1576A.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Apply a View Template",
+   "url": "https://help.autodesk.com/cloudhelp/2024/ENU/Revit-Customize/files/GUID-DA062846-32C9-4FFF-9BC1-BBB548868ACA.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Project Browser (2026)",
+   "url": "https://help.autodesk.com/cloudhelp/2026/ENU/Revit-GetStarted/files/GUID-C8D3E5A6-02A5-43A9-AFFC-D49DD27398B1.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Selection essential skill",
+   "url": "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-GetStarted/files/GUID-AC1CAA25-037D-4EA1-B357-D59CE29FE754.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Options dialog, User Interface tab",
+   "url": "https://help.autodesk.com/cloudhelp/2023/ENU/RevitLT-Customize/files/GUID-C25E7343-0E12-4578-BB1F-77E4551109CA.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Properties Palette",
+   "url": "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-GetStarted/files/GUID-A764EA7A-FE26-469B-857C-F3A70812FC34.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Visual styles (2026)",
+   "url": "https://help.autodesk.com/cloudhelp/2026/ENU/Revit-DocumentPresent/files/GUID-12C2D6B0-71ED-490E-9CC6-AD3C635F092B.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Control Visibility of Mass Instances",
+   "url": "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-616D0F96-C788-4741-A2A4-5982232A07D3.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit help: Create a Floor from a Mass Floor",
+   "url": "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-Model/files/GUID-03EABD3A-4736-4762-97F8-F473FEE18162.htm",
+   "opened": true
+  },
+  {
+   "title": "CUNY CityTech Revit interface handout (View Control Toolbar)",
+   "url": "https://openlab.citytech.cuny.edu/novillo-arch2431-fa24-bt3/files/2021/01/BT3-AR.2431-Tutorial-1.01-Revit-Interface_.pdf",
+   "opened": true
+  },
+  {
+   "title": "Autodesk Forums: View and View template",
+   "url": "https://forums.autodesk.com/t5/revit-architecture-forum/view-and-view-template/m-p/6411215",
+   "opened": false
+  },
+  {
+   "title": "BIMForum LOD Specification 2015 reprint",
+   "url": "https://bimforum.org/wp-content/uploads/2022/06/BIMForum_LOD_2015_reprint.pdf",
+   "opened": true
+  },
+  {
+   "title": "SketchUp Help: Toolbars (Getting Started, Large Tool Set)",
+   "url": "https://help.sketchup.com/en/sketchup/toolbars",
+   "opened": true
+  },
+  {
+   "title": "SketchUp Help: Creating and Editing a Style",
+   "url": "https://help.sketchup.com/en/sketchup/creating-and-editing-style",
+   "opened": true
+  },
+  {
+   "title": "SketchUp Help: Creating Scenes, re-read r1",
+   "url": "https://help.sketchup.com/en/sketchup/creating-scenes",
+   "opened": true
+  },
+  {
+   "title": "Autodesk Forma blog: Site Design tools overview (Aug 2026)",
+   "url": "https://blogs.autodesk.com/forma/2026/08/28/forma-site-design-tools-overview/",
+   "opened": true
+  },
+  {
+   "title": "Autodesk Forma help center",
+   "url": "https://help.autodesk.com/view/FORMA/ENU/",
+   "opened": false
+  },
+  {
+   "title": "NN/g: Progressive Disclosure",
+   "url": "https://www.nngroup.com/articles/progressive-disclosure/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Icon Usability",
+   "url": "https://www.nngroup.com/articles/icon-usability/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Executing UX Animations (duration)",
+   "url": "https://www.nngroup.com/articles/animation-duration/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Between-subjects vs within-subjects study design",
+   "url": "https://www.nngroup.com/articles/between-within-subjects/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Why you only need to test with 5 users",
+   "url": "https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Beyond NPS: SUS, NASA-TLX, and the Single Ease Question",
+   "url": "https://www.nngroup.com/articles/measuring-perceived-usability/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Contextual Menus (disable rather than hide)",
+   "url": "https://www.nngroup.com/articles/contextual-menus/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Button States",
+   "url": "https://www.nngroup.com/articles/button-states-communicate-interaction/",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding 1.4.1 Use of Color",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding 1.4.11 Non-text Contrast",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding 2.5.8 Target Size (Minimum)",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+   "opened": true
+  },
+  {
+   "title": "WCAG Understanding 2.3.3 Animation from Interactions",
+   "url": "https://w3c.github.io/wcag/understanding/animation-from-interactions.html",
+   "opened": true
+  },
+  {
+   "title": "Apple HIG: Motion (read via data endpoint)",
+   "url": "https://developer.apple.com/design/human-interface-guidelines/motion",
+   "opened": true
+  },
+  {
+   "title": "Apple App Store Connect: Reduced Motion evaluation criteria",
+   "url": "https://developer.apple.com/help/app-store-connect/manage-app-accessibility/reduced-motion-evaluation-criteria",
+   "opened": true
+  },
+  {
+   "title": "Material Components Android: Motion",
+   "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md",
+   "opened": true
+  },
+  {
+   "title": "Material 3: Transition patterns",
+   "url": "https://m3.material.io/styles/motion/transitions/transition-patterns",
+   "opened": false
+  },
+  {
+   "title": "Bederson and Hollan, Pad++ (semantic zoom text, USENIX Tcl 95)",
+   "url": "https://static.usenix.org/publications/library/proceedings/tcl95/full_papers/bederson.txt",
+   "opened": true
+  },
+  {
+   "title": "Cognitive Dimensions of Notations tutorial (Green, Blackwell)",
+   "url": "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf",
+   "opened": true
+  },
+  {
+   "title": "React Flow: Contextual Zoom example",
+   "url": "https://reactflow.dev/examples/interaction/contextual-zoom",
+   "opened": true
+  },
+  {
+   "title": "Tailwind CSS v4: Theme variables",
+   "url": "https://tailwindcss.com/docs/theme",
+   "opened": true
+  },
+  {
+   "title": "Lucide icon design guide (search snippet only; fetch returned 404)",
+   "url": "https://lucide.dev/docs/icon-design-guide",
+   "opened": false
+  },
+  {
+   "title": "drei repository (component index only)",
+   "url": "https://github.com/pmndrs/drei",
+   "opened": true
+  },
+  {
+   "title": "Local: Tower Studio src (NodeLibrary, store, App, TopBar, RightPanel, Onboarding, NodeCanvas, Viewport, PresentPanel, Inspector, registry, index.css), read r1",
+   "url": "F:/UBC Master of Architecture/ARCH540 AI Studio/tower-studio/src",
+   "opened": true
+  },
+  {
+   "title": "Local: research_registry.json (node counts computed by script, r1)",
+   "url": "F:/UBC Master of Architecture/ARCH540 AI Studio/tower-studio/src/data/research_registry.json",
+   "opened": true
+  },
+  {
+   "title": "Local: lucide-react 1.61.0 installed source (defaults, absoluteStrokeWidth, icon files), r1",
+   "url": "F:/UBC Master of Architecture/ARCH540 AI Studio/tower-studio/node_modules/lucide-react/dist/esm",
+   "opened": true
+  },
+  {
+   "title": "Local: drei 10.7.9 Edges.js, ContactShadows.js, Outlines.js, r1",
+   "url": "F:/UBC Master of Architecture/ARCH540 AI Studio/tower-studio/node_modules/@react-three/drei/core",
+   "opened": true
+  },
+  {
+   "title": "Team repo icons: glyphs.js, ui_icons.js, glyph_icons.js (local, read-only)",
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/app/icons/",
+   "opened": true
+  },
+  {
+   "title": "Team repo catalogue: programmes.json, families.json (local, read-only), r1",
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/catalogue/",
+   "opened": true
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Basic and Advanced can behave as a model-wide level, like 'LOD 100 model' versus 'LOD 300 model'.",
+   "correction": "BIMForum says no such thing as an 'LOD ###' model: LOD is per element and cumulative. Revit Detail Level is per view; Rhino display mode is per viewport. Treat Basic/Advanced as an additive node and parameter tier, plus a per-viewport detail chip.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Icons alone let users tell tools and steps apart.",
+   "correction": "NN/g: few icons are universal and labels should stay visible. Grasshopper's developer finds components easier to locate by name than by icon; GH ships an icon/name switch. Use icon plus label, with recognition-testing of category icons.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Grasshopper state colours (green selected, orange warning, red error, grey disabled) and wire styles (single, double, dashed) are documented by McNeel.",
+   "correction": "Found only in teaching sites and forums (Columbia opened; TU Delft unreachable). McNeel's icon guide documents no colour or category convention. Sources disagree on default component colour (white versus light grey).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Grasshopper canvas thresholds of 80%, 60% and 41% zoom.",
+   "correction": "r1: Single forum reply dated 14 Mar 2014, so Grasshopper 1 behaviour; thresholds may have changed, and GH2 only documents 'more detail as you zoom in'. Use as direction, not as numbers to copy.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Revit's conceptual design environment looks visually distinct (for example a gradient background).",
+   "correction": "Only seen in a search snippet from an Arkance article that returned 403. Autodesk help confirms a separate environment and Finish Mass exit, but not its visual treatment. r1: Autodesk page re-read, still silent on visuals.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Revit users complain about the contextual tab stealing focus, locked assigned templates and template sprawl.",
+   "correction": "Forum pages were unopened or returned 403. Verified only that Autodesk offers an opt-out for contextual-tab focus and defines apply versus assign. Complaint evidence remains secondhand.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Material 3 web motion values and Apple's Reduce Motion behaviour.",
+   "correction": "r1: Apple's App Store Connect reduced-motion criteria opened: replace meaningful motion with a dissolve, highlight fade or colour shift. M3 web page still unrendered; durations come from Material Android docs and NN/g (100-500 ms). Reduced-motion rule also rests on WCAG C39.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Forma's mode switching and Help Center details.",
+   "correction": "Only an Autodesk Forma blog (Aug 2026) was opened: top bar modes Site Design, Compare, Board. Help Center returned 404. How modes transition is not described.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Rhino changes grid or background feel per display mode beyond the documented background and shading settings.",
+   "correction": "Pages read document background, shading, visibility, lighting and grid as configurable groups, but not what each built-in mode does to the grid.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Team glyph ids map to Tower Studio's seven programme bands and Phosphor has every icon named here.",
+   "correction": "r1: Phosphor was the wrong family: Tower Studio uses lucide-react 1.61.0 and every lucide name proposed here exists in it. A band-to-glyph mapping now exists but is untested with users (see the TEAM_ASSUMPTION flag).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "A five-stage rail (Massing, Program, Evaluate, Design, Present) is the right stage model.",
+   "correction": "Sources support separating stage from expertise (Rhino tab-to-workspace, Forma's three modes, Revit Mass to Mass Floors to Floor by Face) but none validates these five. Treat as a hypothesis to test.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "A felt mode shift (look, layout, motion) improves orientation or task success for architecture students.",
+   "correction": "No peer-reviewed evidence found for node editors or semantic zoom performance. Test five M.Arch students: recall current stage after 10 minutes and find where to add structure within 30 seconds, v0.1 versus rail build.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Why Basic lists more nodes than Advanced.",
+   "correction": "r1: Resolved by reading source: NodeLibrary.tsx:14-18 builds disjoint lists (Basic 60, Advanced 58), so nothing is inverted. See the FALSE_ASSUMPTION flag; fix and vitest test are in pattern 1.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Basic lists more nodes than Advanced probably because a filter is inverted or keyed to the wrong tier.",
+   "correction": "Disjoint lists by design: ADVANCED_CATS (NodeLibrary.tsx:14) overrides declared phase, giving Basic 60, Advanced 58. It moves 11 declared-basic nodes to Advanced, and the DATA rule on line 17 moves 28 more to Platform. Fix: declared phase wins, plus a superset test.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Revit Detail Level 'Auto' can follow camera distance.",
+   "correction": "Detail Level comes from the view scale when a view is created, is overridden in Properties or the View Control Bar, and is documented as scale-dependent. Autodesk pages mention no zoom or camera behaviour. Tower Studio uses an explicit chip.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Professional tools differentiate users with additive Basic/Advanced tiers, citing Grasshopper exposure ranks.",
+   "correction": "GH_Exposure orders ribbon sections and flags 'obscure' items that drop first; it is not an expertise tier. In pages read, no tool sets an expertise mode. Nearest analogue: SketchUp's opt-in Getting Started toolbar, contained in its Large Tool Set.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rhino Technical mode shows dotted hidden edges.",
+   "correction": "Rhino 8 lists silhouettes, intersections, creases and borders, with objects behind others occluded; no hidden or dotted lines. Dashed hidden lines would be Tower Studio's own choice, labelled as such.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rutten's zoom thresholds (80/60/41%) come from an undated reply.",
+   "correction": "The reply is dated 14 Mar 2014, 2:37 pm, in a thread about blank components. It describes Grasshopper 1, twelve years old. Use as direction only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Grasshopper's developer finds components easier to locate by name than by icon, as a general finding.",
+   "correction": "Rutten's 11 Nov 2009 reply discussed default settings: names suit overhead projectors; finding by icon is hard, by name relatively easy. He had no strong default preference and personally prefers icon mode. Not a findability study.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Tower Studio's UI icon family is Phosphor (ui_icons.js).",
+   "correction": "Tower Studio depends on lucide-react ^1.61.0 (1.61.0 installed) and imports it in NodeLibrary, TopBar, Inspector, PresentPanel and Onboarding. Phosphor lives in the separate value-visualizer repo. Use one stroke family.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Medium/Fine detail (core, structure grid, facade modules) is an M-cost viewport feature.",
+   "correction": "Coarse blocks exist; floor outlines exist for the selected tower only; no core, structure grid or facade geometry exists. Medium costs M with an editable core preset; Fine is L and later.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A felt shift into Advanced can wrap runnable content in motion and colour.",
+   "correction": "Of 180 nodes only 4 run (3 built, 1 preview), all Basic; all 58 Advanced nodes are researched. Viewport.tsx and NodeCanvas.tsx never read phase; only the library, RightPanel and TopBar do. The shift must be honest about roadmap content.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The camera should ease to a preset on every stage change.",
+   "correction": "SketchUp restores a camera only when the user picks a scene; Rhino's Sidebar page describes no camera change. Auto-moves would break framing in massing-evaluation loops. Use a Frame button; camera presets only in Present and scenes.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Advanced should raise the node canvas as a drawer.",
+   "correction": "The canvas is already a view choice (3D, split, canvas) in TopBar.tsx and store.ts. For Grasshopper users the graph is the basic way of working, so labelling it advanced misleads. A stage may set a default view; the user's choice persists.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "State colours can be checked against both light and dark themes.",
+   "correction": "Tower Studio has one light theme; src has no dark-mode code. Check against white (#fff) and paper (#f6f5f2). On white, flag team (2.74:1) and unresolved (2.39:1) fail 3:1, and the CLIM category colour #d9a400 is 2.27:1.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 20 cross-cutting nodes fall through to Basic, and only 4 of 176 nodes are built (critique figures).",
+   "correction": "Computed: of 20 cross-cutting nodes, 8 land in Basic, 11 in Platform (DATA rule) and 1 in Advanced (ENER rule). The registry holds 176 researched plus 4 built or preview nodes, so 4 of 180 run.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A wireframe-like Clay look keeps interaction fast, as Rhino's Wireframe does.",
+   "correction": "Rhino's speed note concerns its own renderer. A three.js clay material without shadows is not shown to be faster here. Justify Clay on legibility, and test performance only if frame rate becomes a problem.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Programme glyphs stay legible at 16 px inside tiles.",
+   "correction": "My 1x raster check: bed, briefcase, shop and eye read at 16 px; residential, civic and mechanical blur inside tiles because the glyph fills about 70% of the box. One viewer, not a user test. Use tiles at 24 px or more.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Grasshopper offers a user-facing 'show obscure' toggle that Tower Studio can copy.",
+   "correction": "Only the API property CentralSettings.RibbonShowObscure was found, described in terms of DropDown exposure, with no UI location. Treat obscure as ribbon behaviour documented in GH_Exposure, not as a feature users toggle.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "McNeel's Rhino icon-redesign thread represents how users feel about icons.",
+   "correction": "Read the first page of one beta thread: a McNeel post (30 Oct 2025) and a few replies, mixed, with one colour-blind complaint. Not a survey; it shows McNeel's stated reasons, not user consensus.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Core footprint preset, and the band-to-glyph mapping (retail SE1, office WK1, hotel ST2, residential LV1, civic GP6, amenity LE2, mechanical SB2).",
+   "correction": "Both are team choices, not sourced. Keep core size editable and flagged; confirm the mapping with five students. The visualizer's catalogue names each glyph, but its programmes are not Tower Studio's seven bands.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Keep 'Basic/Advanced' labels or rename the stages (Concept, Develop, Present); and whether Advanced should list a superset of Basic.",
+   "correction": "The user's request names Basic and Advanced; the expert critique advises dropping the expertise tier. Proposed reconciliation: keep two stages framed as design stages. The naming and superset decisions belong to the team and the user.",
+   "raised_in_round": 1
+  }
+ ],
+ "change_log": [
+  "r1: Read Tower Studio source (library, store, App, TopBar, RightPanel, Onboarding, NodeCanvas, Viewport, PresentPanel, Inspector, registry, index.css) and ran a script over research_registry.json. All counts and line numbers in patterns come from that.",
+  "r1: Replaced the 'inverted filter' diagnosis: Basic 60 and Advanced 58 are disjoint lists from ADVANCED_CATS. Found a second override (DATA rule, 28 nodes). Corrected the critique's cross-cutting split (8 Basic, 11 Platform, 1 Advanced) and 4-of-180 figure.",
+  "r1: Replaced the five-stage plus expertise-tier design with two axes: Stage (three stages now, five later) and Detail (explicit chip). Moved LOD badges, scenes, options, semantic zoom, frames, wires and clusters to v1 or later.",
+  "r1: Corrected Revit Detail Level (scale-defaulted, overridable, no camera link), dropped distance-driven Auto, and re-costed: Medium is M with an editable core preset, Fine is L and later.",
+  "r1: Re-read McNeel and Autodesk pages. Technical mode has no dotted lines; Rutten replies dated 14 Mar 2014 and 11 Nov 2009 now paraphrased accurately; GH_Exposure relabelled interpretation; Rhino panel named Sidebar; Rhino has eleven display modes.",
+  "r1: Rewrote the icon plan against lucide-react 1.61.0 (every proposed icon name exists in the installed package). Added a band-to-glyph mapping and a 1x-raster 16/20 px check. Found CLIM, flag-team and flag-unresolved colours below 3:1 on white.",
+  "r1: Removed automatic camera moves and the canvas drawer. Stage changes never write cameraRequest, and the user's view choice persists.",
+  "r1: New evidence opened: McNeel icon redesign (30 Oct 2025), Rhino 8 popup-toolbar and icon-size threads, SketchUp Getting Started versus Large Tool Set, GH RibbonShowObscure API, Autodesk Detail Level pages.",
+  "r1: New evidence opened: NN/g animation duration, within-subjects order effects, five-user limits, SEQ, disable-not-hide and button states; Apple reduced-motion criteria; WCAG 2.5.8; Tailwind v4 theme docs.",
+  "r1: Revised the user test: alternating build order, 7-point felt-change rating, SEQ per task, timed massing-to-structure round trip, formative only with no pass threshold.",
+  "r1: Dropped Auto detail, the 600 ms camera ease, 44 px targets, 'both themes' and the Clay speed rationale. Stage motion is now 150-300 ms. Cost scale (my estimate): S about a day or less, M two to four days, L over a week.",
+  "r1: Amended wording of five earlier flags (thresholds date, Revit environment, Apple motion, Phosphor, Basic-more-nodes); none deleted. Added 20 new flags, 14 of them FALSE_ASSUMPTION.",
+  "r1: Used a scratch browser tab only to render glyphs, then closed it; wrote glyph7.json to the session scratchpad (temporary). No project or repo files were created, edited or deleted.",
+  "r1: Still open: whether users feel the stage change; Basic/Advanced naming; five-stage rail; Revit environment visuals; Grasshopper state colours; glyph legibility with real users."
+ ],
+ "design_spec": {
+  "stage_model": "Two user-facing axes. Stage (Basic as concept, Advanced as development, Present) swaps a workspace record: library scope, right-panel tab, viewport look, default Detail. Detail (Coarse, Medium) is an explicit viewport chip. No expertise tier; canvas stays a view choice; the camera never auto-moves.",
+  "process_map": "Read left to right: stage tabs say where you are in the design; library category icons (13, fixed colour and shape) say which concern a node serves; the Detail chip says how resolved the tower is; evidence flags say how far to trust a number.",
+  "phases": [
+   {
+    "phase": "Basic (concept)",
+    "purpose": "Shape the tower, set program bands and run the four nodes that exist.",
+    "viewport_representation": "Coarse detail: merged programme blocks on the current pale ground, floor outlines only for the selected tower (today's look). Context in halftone greys.",
+    "ui_chrome": "Library at Basic scope, runnable nodes first; right panel on Design; bottom chips Detail and Frame; 3D view by default until the user picks another.",
+    "palette_and_type": "Current tokens: paper #f6f5f2, ink #1f2328, accent #1f5f8b, USES band colours; Inter 12 px body.",
+    "tools_shown": "Design panel (tower, podium, bands); VTC rules, Program and FSR, View-cone check, Sun preview.",
+    "signature_moment": "Tower reads as clay blocks coloured by programme, the simplest legible state."
+   },
+   {
+    "phase": "Advanced (development)",
+    "purpose": "See how the tower would be built up and browse the researched methods, honestly marked not runnable.",
+    "viewport_representation": "Medium detail: floor outlines on every floor of every tower plus a core box (editable preset, flagged team assumption); band colours at lower saturation with thin ink edges.",
+    "ui_chrome": "Library shows Basic plus Advanced (118), roadmap groups ghosted with a flask-conical badge; right panel opens on Results & evidence and method cards; same chips, Medium default.",
+    "palette_and_type": "Same type. Viewport on white; context greys from LOOKS.context; flag-palette outlines where states appear.",
+    "tools_shown": "Researched method cards for structure, systems, facade, energy and mobility; none runnable yet.",
+    "signature_moment": "On entry, floor outlines draw bottom-up over 300 ms and the core appears; cut under reduced motion."
+   },
+   {
+    "phase": "Present",
+    "purpose": "Prepare jury boards: views, captures and the VTC checklist.",
+    "viewport_representation": "Two variants: Arctic-clay (white ground, off-white material, soft contact shadow, thin edges, faint tint) and Programme-diagram (flat band colours with labels).",
+    "ui_chrome": "Library collapses to a thin rail (new); right panel on Present (camera presets, capture, checklist); Frame chip stays; canvas visibility is the user's choice.",
+    "palette_and_type": "White ground; ink lines; programme colour as tint or flat fill by variant; labels at 12 px or more.",
+    "tools_shown": "Camera presets, PNG capture, render command and board checklist (all exist in PresentPanel).",
+    "signature_moment": "Node chrome recedes and the ground turns white; the camera stays where the user left it until a preset is clicked."
+   }
+  ],
+  "icon_system": [
+   {
+    "item": "Stage: Basic",
+    "icon": "blocks",
+    "rationale": "Massing blocks; Box is already the 3D-view icon in TopBar."
+   },
+   {
+    "item": "Stage: Advanced",
+    "icon": "drafting-compass",
+    "rationale": "Setting out and development; distinct from every category icon."
+   },
+   {
+    "item": "Stage: Present",
+    "icon": "presentation",
+    "rationale": "Boards and jury; the PRES category uses image instead."
+   },
+   {
+    "item": "Hypothetical stage: Evaluate",
+    "icon": "gauge",
+    "rationale": "Only if the five-stage rail ships."
+   },
+   {
+    "item": "Hypothetical stage: Program",
+    "icon": "chart-pie",
+    "rationale": "Only if the five-stage rail ships; PROG category uses layers."
+   },
+   {
+    "item": "SITE",
+    "icon": "map-pin",
+    "rationale": "Site, context and policy."
+   },
+   {
+    "item": "PROG",
+    "icon": "layers",
+    "rationale": "Floors, density and economics read as stacked levels."
+   },
+   {
+    "item": "CLIM",
+    "icon": "sun",
+    "rationale": "Sun, shadow, daylight, wind. Stroke needs darkening: #d9a400 is 2.27:1 on white."
+   },
+   {
+    "item": "ENER",
+    "icon": "zap",
+    "rationale": "Energy, carbon and resources."
+   },
+   {
+    "item": "ECOL",
+    "icon": "trees",
+    "rationale": "Ecology and City in Nature."
+   },
+   {
+    "item": "PUBL",
+    "icon": "footprints",
+    "rationale": "Public realm and human scale."
+   },
+   {
+    "item": "CULT",
+    "icon": "landmark",
+    "rationale": "Culture, reconciliation and ethics."
+   },
+   {
+    "item": "MOBI",
+    "icon": "train-front",
+    "rationale": "Mobility, transit and servicing."
+   },
+   {
+    "item": "STRC",
+    "icon": "grid-3x3",
+    "rationale": "Structural grid; avoid columns icons because Columns2 is the split-view icon."
+   },
+   {
+    "item": "SYST",
+    "icon": "fan",
+    "rationale": "MEP, vertical transport and code; nearest mechanical cue in lucide."
+   },
+   {
+    "item": "SPAC",
+    "icon": "brick-wall",
+    "rationale": "Interior, facade and materials."
+   },
+   {
+    "item": "PRES",
+    "icon": "image",
+    "rationale": "Boards and renders."
+   },
+   {
+    "item": "DATA",
+    "icon": "database",
+    "rationale": "Data and platform."
+   },
+   {
+    "item": "Researched, not runnable badge",
+    "icon": "flask-conical",
+    "rationale": "Marks ghosted roadmap rows; pair with text and aria-disabled."
+   },
+   {
+    "item": "Frame chip",
+    "icon": "frame",
+    "rationale": "User-triggered framing; never automatic."
+   },
+   {
+    "item": "Detail chip",
+    "icon": "ruler-dimension-line",
+    "rationale": "Detail level; label always visible."
+   },
+   {
+    "item": "Band: retail",
+    "icon": "SE1 (team glyph)",
+    "rationale": "Street retail units; awning reads at 16 px."
+   },
+   {
+    "item": "Band: office",
+    "icon": "WK1 (team glyph)",
+    "rationale": "Office Class AAA/A; briefcase reads at 16 px."
+   },
+   {
+    "item": "Band: hotel",
+    "icon": "ST2 (team glyph)",
+    "rationale": "Upscale hotel rooms; bed reads at 16 px."
+   },
+   {
+    "item": "Band: residential",
+    "icon": "LV1 (team glyph)",
+    "rationale": "Market condo; window grid and tag blur below 20 px. Alternatives untested."
+   },
+   {
+    "item": "Band: civic",
+    "icon": "GP6 (team glyph)",
+    "rationale": "Museum or gallery; statue and frame split into blobs at 16 px."
+   },
+   {
+    "item": "Band: amenity",
+    "icon": "LE2 (team glyph)",
+    "rationale": "Free public deck; eye reads at 16 px. SB9 is resident-only, so not used."
+   },
+   {
+    "item": "Band: mechanical",
+    "icon": "SB2 (team glyph)",
+    "rationale": "Mechanical floor; fan is murky inside a tile at 16 px, clearer bare at 20."
+   },
+   {
+    "item": "Rendering rule",
+    "icon": "lucide size 16-20",
+    "rationale": "Default scaling gives about 1.33 px strokes at 16 px; absoluteStrokeWidth keeps 2 px. Choose by eye per size."
+   }
+  ],
+  "transitions": [
+   "Stage change: right-panel content cross-fades 150-200 ms and library groups re-sort; the viewport look changes by cut. The next click interrupts it.",
+   "Entering Advanced: floor outlines draw bottom-up over 300 ms once per entry and the core box fades in over 200 ms. Nodes and camera never move.",
+   "Entering Present: library collapses to a rail over 200 ms and the ground turns white; the camera stays until a preset is clicked.",
+   "Reduced motion: no slide or draw-on; a 100 ms dissolve or an instant swap."
+  ],
+  "user_test": "Five M.Arch students, each using both builds (v0.1, stage build) in alternating order. Tasks: massing to structure and back; name the current stage after a distraction. Record time, errors, SEQ per task, and a 7-point felt-change rating (team-made, unvalidated). Formative only: no pass threshold; fix, then retest.",
+  "accessibility_and_restraint": [
+   "Every state has a second cue (shape plus label). Check 3:1 against white and paper #f6f5f2; only one light theme exists today.",
+   "Honour prefers-reduced-motion with a 100 ms dissolve or instant swap; no camera motion; none during drags.",
+   "Only two user-facing axes, Stage and Detail. Look follows stage; LOD badges, scenes and options wait until elements are editable.",
+   "Targets at least 24 px (WCAG 2.5.8); every icon has a visible label; icons are aria-hidden so text carries meaning.",
+   "Use ink text on the team flag chip (white is 2.74:1); outline team and unresolved states in ink on white."
+  ]
+ }
+}

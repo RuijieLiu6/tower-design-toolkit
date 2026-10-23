@@ -1,0 +1,369 @@
+{
+ "expert_role": "Security engineer (third-party code sandboxing) acting as gatekeeper for licences and cited sources",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P15 packet (schedule, all core modules)",
+   "issue": "The r2 re-baseline treats about 3 dev-weeks as available to P15 alone. The same two students also build P14, the Layer 0 schema and importers that P15-M01 depends on. P14 r3 (P15-S108, read locally) budgets about 21 person-days of P14 core against 17 working days to 13 Nov, which is about 75% of both students' nominal 26 person-days. P15 core is about 3.3 dev-weeks (about 16.5 person-days) on top of that. Together they need about 37 person-days against 26, before any evaluation-module packets (P01-P13, P16, P17) and the starter-graph checks that P15-M09 needs by 6 Nov. Zero or negative slack inside P15 hides a much larger shortfall across packets.",
+   "fix": "Publish one capacity table across all packets for 21 Oct to 13 Nov, with named owners and person-days. Then cut P15 core to what remains after P14-M01/M03/M04 core: for example, outline view, typed ports with reducer checks, run-all with RunRecord, and the anonymity scan, with T0 auto mode and visual polish moved to v1. Alternatively, move the date when entrants first use the tool and say so on the first-run pilot banner."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M02/M03/M01 (decided_by vs VTC anonymity)",
+   "issue": "decided_by stores a person's name as actor on every person-decided value. It appears in the RunRecord, the 'download provenance' file and the node-card strip. A board that shows a provenance table, a shared graph or RunRecord, or a template could then carry entrants' names, against VTC 5.1 (no identifying marks) and 5.3. The core anonymity scan only checks JPEG/PDF metadata, and OCR for visible names is v1, so names printed on a board would pass the 'scan passed' stamp. Under terms 4.7 a submission cannot be changed after the first upload without a fee.",
+   "fix": "Store actor as a local pseudonymous id (Person A/B), keep the id-to-name map on the device only, and have every export and renderer show only roles or pseudonyms until the embargo end date. Add RunRecord and graph JSON to the scan scope. Add a core check that first-party provenance renderers never print actor names when the embargo is on."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M07 (anonymity scan, core)",
+   "issue": "The method says 'author, team and path metadata stripped', but the only listed library, exifr, is a reader (README: 'EXIF reading library'; its API is parse, gps, thumbnail and similar). No writer is named. Re-encoding through canvas would drop the ICC profile, change quality and size against the 10 MB per-panel cap (terms 4.8), and alter the image. No PDF library is listed, yet the spec claims PDF metadata scanning. Photoshop and InDesign XMP history (xmpMM:History, DerivedFrom, file paths) and embedded EXIF thumbnails of earlier versions are not named as scan targets.",
+   "fix": "Specify a lossless JPEG segment rewriter (first-party: drop APP1 EXIF/XMP, APP13 IPTC and COM; keep APP2 ICC and the image data byte for byte), re-scan after stripping, check each panel is 10 MB or less, and bind the stamp to the post-strip hash. Either drop PDF from core or name a PDF library and its licence. Add fixtures exported from Photoshop and InDesign that contain names and paths."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M03/M02 (T0 evaluator, core attack surface)",
+   "issue": "The spec says that before P15-M04 'only first-party and T0 modules run', treating T0 as safe. But T0 runs expressions held in JSON, and core accepts untrusted JSON through graph hand-off and import. mathjs is listed as an option even though its own security page warns of unknown parser vulnerabilities and advises a killable worker. Core sets no grammar, no AST depth or length caps, no worker, no deadline, no numeric output caps, and no rule against __proto__ or constructor keys. A shared graph file could freeze the editor or exploit the parser.",
+   "fix": "Write the T0 grammar into M03 core: numbers, + - * / ^, comparisons, min/max/abs/sqrt and named ports only; no member access, assignment, function definition or strings. Cap expression length and AST depth, evaluate in a dedicated worker with a deadline and Worker.terminate, and validate imports with Ajv (additionalProperties false, reject prototype keys). Add a fuzz/red-team fixture set to the core metrics. Drop mathjs from core."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M07/M01 (core network egress)",
+   "issue": "The core privacy claim of '0 bytes of project payload' leaving the device is only observed in a Playwright network log. Nothing in core enforces it: the main app has no CSP (host CSP appears only in v1 M04), the core host is unnamed, and if it is GitHub Pages it cannot send headers. Fonts, icons, CDN scripts and v1 tesseract.js language and wasm downloads (whose default load location could not be confirmed from the opened pages) are not constrained.",
+   "fix": "Ship a meta-tag CSP in core (default-src 'self'; connect-src 'self'; img-src 'self' blob: data:; object-src 'none'; no third-party script hosts). Self-host fonts, icons and any wasm or traineddata. Forbid dangerouslySetInnerHTML for user strings. Add a CI test that fails on any non-self origin request."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M08/M03 (licence compliance)",
+   "issue": "The licence audit checks manifests, not the shipped app. (a) MIT, ISC and Apache-2.0 require copyright and licence text, and Apache NOTICE files, in distributed copies, but minified bundles strip them and no third-party-notices step exists. (b) The project's code licence is still 'MIT or Apache-2.0' with LICENSE due in core, while P14 r3 states Apache-2.0. (c) The core RFC 8785 library is listed as 'licence unverified'; npm shows canonicalize 5.1.0 under Apache-2.0. (d) The Contributor Covenant 3.0 text is CC BY-SA 4.0 and must appear in the licence matrix as a separate share-alike file. (e) The M03 'code licence is OSI-approved' rule would fail CC BY 4.0 template content unless code and content are split.",
+   "fix": "Add a build step that writes THIRD_PARTY_NOTICES (for example a licence plugin for the bundler) and a CI check that every shipped package is on an SPDX allow-list. Adopt Apache-2.0 to match P14 and record that decision with its author. Record canonicalize 5.1.0 as Apache-2.0. Add per-file licence rows (CoC CC BY-SA 4.0, docs CC BY 4.0). Split the M03 rule into a code rule (OSI) and a content rule (CC)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M03/M05/M08/M01 (evidence labels)",
+   "issue": "The r2 fix that split 'criterion verified' from 'team design rule' (the 2.1.1 metric) was not carried to other metrics. Several metrics are still labelled 'verified' while their thresholds are policy. SemVer compliance applies the team's 0.x MINOR-as-breaking convention, which its own basis calls 'a team choice'; SemVer item 4 says anything may change in 0.y.z. 'Licence field validity' requires OSI approval as policy. 'CI gate before merge' borrows Homebrew's rule. 'Community-profile completeness' requires all six files. 'Pointer target size' applies 2.5.8 to canvas zoom 'by our reading'. The packet's own metrics also keep 'false_assumption_corrected' in the status field, which the M03 single-enum lint rejects.",
+   "fix": "Relabel each of these as team_assumption, with the verified part cited in basis. Move false_assumption_corrected into a history[] entry on each affected metric so the packet passes its own 'Single status vocabulary' lint."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15 packet (course rule: code / AI / person)",
+   "issue": "The spec requires decided_by with actor and date on every threshold, but applies it to none of its own presets: about 40 team assumptions (200/500 ms, 16.7/33.3 ms, 250 ms debounce, 24 h backup, Wilson 0.80/0.50, n >= 5, Scorecard 7/4, 25 words, <= 8 hues, usability bands, effort figures). The packet is produced by an AI critique and revision workflow, so many presets are in fact AI-drafted. Calling them 'team' presets with no named person breaks the course rule this packet enforces.",
+   "fix": "Add decided_by {ai|person, actor, date} to every preset in the packet. Mark AI-drafted ones 'ai, unconfirmed' until a named student confirms them, and show that count in the change log."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01 (Layer 0 dependency)",
+   "issue": "Partly addressed in r2. The owning packet is named (P14), but the person who owns the port-set freeze is still blank 23 days before core, with a fallback of 28 Oct. The 1 Nov freeze is a target only. Under the 0.y.z rule each MINOR creates new port type ids, so schema churn before the freeze forces graph migrations. The P14 schedule is itself over capacity.",
+   "fix": "Record the owner's name and the freeze date in both packets now. Ship layer0 at schema_version 1.0.0 at the freeze so that MINOR becomes additive. Add a migration fixture from the pilot graph to the frozen schema."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01 (drag inventory)",
+   "issue": "The React Flow API page lists selectionKeyCode defaulting to 'Shift', so Shift+drag marquee selection stays on even with selectionOnDrag off. The spec's 'shift-click' multi-select alternative therefore collides with the selection-box key. zoomOnPinch (default true) is a multipoint gesture under SC 2.5.1 and is not inventoried. The Playwright prop enumeration omits selectionKeyCode, zoomOnPinch and zoomOnScroll.",
+   "fix": "Set selectionKeyCode to null or list it with the outline-checkbox alternative. Use the documented multi-select key or the outline checkboxes for multi-select. Add pinch to the inventory with the Controls zoom buttons as the alternative, and extend the enumeration test to SC 2.5.1."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M02 (RunRecord canonicalisation)",
+   "issue": "RFC 8785 treats NaN and Infinity as errors. Evaluation formulas such as FSR over zero area or ratios on empty floors can produce them, so canonicalisation would throw and lose the RunRecord exactly when a fault needs logging.",
+   "fix": "Define an encoding before hashing (value null plus error code 'non_finite' and the raw kind), and add a fixture."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M02/M07 (dependency graph)",
+   "issue": "Core modules list v1 modules in depends_on: M02 depends on M04, and M07 on M05 and M06. A build order taken from depends_on would pull v1 work into core or block it.",
+   "fix": "Split each into depends_on_core and depends_on_v1, or remove the v1 edges and mention them in method text."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M04 (v1 sandbox messaging and CSP)",
+   "issue": "An opaque-origin iframe posts with origin 'null', so the host cannot check origin, and it must post with targetOrigin '*'. If the frame document is ever navigated, Layer 0 data is sent to whatever document is now in the frame. script-src 'self' on the sandbox origin also leaves importScripts GETs to the sandbox host open as a query-string channel. Whether 'self' matches at all in an opaque-origin document is untested.",
+   "fix": "After init, talk only over a transferred MessageChannel port and check event.source. Load the shim with a hash or nonce and leave 'self' out of script-src for the worker. Add frame self-navigation and same-origin importScripts cases to the red-team suite."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M04/M06/M07 (v1 licence rows)",
+   "issue": "The 'Claude Code skill-creator / mcp-builder' row points to github-mcp-server and has an unverified licence. @giscus/react 3.1.0 npm metadata has no licence field. vega-interpreter is BSD-3-Clause on npm (2.3.2) but is still marked 'not opened'. elkjs is 'EPL-2.0 OR GPL-3.0-or-later' with no election recorded. Pyodide packages carry their own licences. tesseract.js 7.0.0 is Apache-2.0, but its runtime downloads are unaudited.",
+   "fix": "Fix or remove the skills row. Record the vega-interpreter licence. Elect EPL-2.0 for elkjs in the matrix. Pin versions and add the Pyodide package and traineddata licences to the audit before v1."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M08 (Indigenous route)",
+   "issue": "Partly addressed. The CULT notice and hold rule now exist, but the owner of the SALA and First Nations House of Learning contact is still 'team to fill', and OCAP is unread for a third round.",
+   "fix": "Name the owner in the decision log this week. Keep OCAP listed as unverified and add the date of each retry."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15 sources",
+   "issue": "P15-S108 is a file:/// path on a student's drive, so entrants and reviewers cannot open it. P15-S90 is a McNeel labs page last modified 2020 that frames the matching algorithms under the Explicit History plug-in, Grasshopper's predecessor, which is weaker than 'Grasshopper's documented default'. The source count is 104 against a soft target of about 40.",
+   "fix": "Cite S108 by a repository URL and commit hash. Record S90's 2020 date and Explicit History framing in its extract. Apply the stated trim order."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M07/M09 (deadline handling)",
+   "issue": "Terms 4.7 close uploads at '24.00, London Time' on the deadline date, which is 16:00 in Vancouver on 30 Nov. The opened terms page (dated 14 Jul 2026) gives no deadline date, so the 30 Nov date is unsourced in this packet. Backup reminders and the scan-before-upload flow assume a full day.",
+   "fix": "Source the date from the competition portal and show the local cutoff time on the export screen."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M05 (attestations)",
+   "issue": "Plan and visibility eligibility for GitHub artifact attestations is still unverified. Neither the concepts page nor the how-to pages opened state it.",
+   "fix": "Keep the registry repository public. Add a fallback (Sigstore signing in CI with keyless cosign) if attestation is unavailable, and record the result."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "About 3 dev-weeks of capacity are available for P15 core before 13 Nov (r2 schedule flag).",
+   "why_false": "The same two students must build P14 core, which P15 depends on. P14 r3 budgets about 21 person-days against 17 working days, about 75% of the pair's nominal 26 person-days to 13 Nov.",
+   "correction": "Do capacity planning across all packets; P15 core must fit what remains after P14 core, or the entrant date moves.",
+   "evidence": "F:/UBC Master of Architecture/ARCH540 AI Studio/04 Tool Plan/research/modules/P14/revise-r3_P14.json notes: 'core about 21.0 person-days against 17 working days to 13 Nov ... about 75% of both students' nominal 26 person-days'."
+  },
+  {
+   "claim": "The core export flow strips author, team and path metadata using the listed library (exifr).",
+   "why_false": "exifr reads EXIF/XMP only. Its README calls it an 'EXIF reading library', and its API has no write or strip function.",
+   "correction": "Add a lossless JPEG segment rewriter, re-scan after stripping, and bind the stamp to the post-strip hash.",
+   "evidence": "https://github.com/MikeKovarik/exifr (opened 21 Oct 2026)."
+  },
+  {
+   "claim": "Setting selectionOnDrag off removes marquee drag, and shift-click can serve as the multi-select alternative.",
+   "why_false": "React Flow's selectionKeyCode defaults to 'Shift', so Shift+drag still draws a selection box. Shift is the selection-box key.",
+   "correction": "Set selectionKeyCode to null or document the outline-checkbox alternative, and use outline checkboxes or the multi-select key for click selection.",
+   "evidence": "https://reactflow.dev/api-reference/react-flow: selectionOnDrag false, selectionKeyCode 'Shift', zoomOnPinch true."
+  },
+  {
+   "claim": "The SemVer compliance metric (MINOR inside 0.y.z counts as breaking) is 'verified'.",
+   "why_false": "SemVer item 4 says only that anything may change in 0.y.z. Treating MINOR as the breaking bump is the node-semver caret convention, which the spec itself calls a team choice.",
+   "correction": "Relabel as team_assumption, citing SemVer for the MAJOR rule and node-semver for the caret convention.",
+   "evidence": "https://semver.org/ item 4; https://github.com/npm/node-semver caret ranges (as cited in P15-S32 and P15-S79)."
+  }
+ ],
+ "missing": [
+  "Capacity plan across all packets (P01-P17) with named owners and person-days to 13 Nov",
+  "Pseudonymised decided_by actors and an export redaction rule during the embargo",
+  "JPEG metadata stripping method (lossless) and a PDF library, or PDF removed from core",
+  "T0 expression grammar, caps, worker isolation and a fuzz suite in core",
+  "Main-app CSP (meta tag) and a self-hosting rule for fonts, icons and wasm in core; the core host named",
+  "THIRD_PARTY_NOTICES build step and an SPDX allow-list for shipped bundles",
+  "Project code licence decision (Apache-2.0 to match P14) and a contributor sign-off (DCO) between co-authors; UBC student-IP policy not checked",
+  "decided_by on the packet's own presets, with AI-drafted ones marked unconfirmed",
+  "Named owners: Layer 0 freeze, Indigenous advisory contact, pilot facilitator",
+  "Non-finite number encoding for RFC 8785 RunRecords",
+  "Submission deadline date sourced from the portal and the 24:00 London cutoff (16:00 Vancouver) shown in the export flow",
+  "SC 2.5.1 (pinch), 2.4.7 focus visible and 2.4.11 focus not obscured (Controls and minimap) for the canvas",
+  "City of Vancouver Open Government Licence attribution text for P15-S102 (licence page opened, no text)",
+  "GitHub artifact attestation eligibility and a signing fallback",
+  "postMessage channel hardening (MessageChannel, event.source checks) for the v1 sandbox"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Publish a capacity plan across all packets showing that P15 core plus P14 core fit the students' person-days to 13 Nov, or move the entrant date and say so in the product.",
+   "Pseudonymise decided_by actors on all exports and renderers until the embargo end, and bring RunRecord and graph JSON into the anonymity scan.",
+   "Specify lossless JPEG metadata stripping with a re-scan and a post-strip hash stamp; drop PDF from core or name a library and its licence.",
+   "Harden the T0 evaluator in core: first-party restricted grammar, caps, worker with deadline, Ajv-validated imports, fuzz tests.",
+   "Enforce core egress with a meta CSP and self-hosted assets, plus a CI test for non-self requests.",
+   "Ship third-party licence notices, decide the project licence, and record canonicalize (Apache-2.0) and the per-file CC BY-SA and CC BY rows.",
+   "Relabel the remaining policy thresholds marked 'verified' as team_assumption, move false_assumption_corrected into history[], and add decided_by to the packet's own presets.",
+   "Name the Layer 0 freeze owner and the Indigenous-route owner in the decision log."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: schedule infeasible (6.5-7 vs about 3 dev-weeks)",
+   "status": "partly",
+   "residue": "P15 re-baselined to 3.3 against 3, and the pilot status is stated, but capacity is counted for P15 alone while P14 core already claims about 21 of 26 person-days."
+  },
+  {
+   "item": "MAJOR: outline view could slip, breaking SC 2.1.1",
+   "status": "addressed",
+   "residue": "The outline view is in core and on the never-cut list; the metric labels are split."
+  },
+  {
+   "item": "MAJOR: drag inventory incomplete",
+   "status": "partly",
+   "residue": "Shift+drag marquee (selectionKeyCode default 'Shift') and pinch zoom (SC 2.5.1) are not covered; the enumeration test omits those props."
+  },
+  {
+   "item": "MAJOR: Event Timing cannot measure drag",
+   "status": "addressed",
+   "residue": "Discrete interactions use a 16 ms threshold with p98, and frame time is measured separately; verified against W3C WD 13 Oct 2026."
+  },
+  {
+   "item": "MAJOR: re-run bands unsourced and too loose",
+   "status": "addressed",
+   "residue": "Rebased on Nielsen 1993/2014 (verified), with progress and cancel coverage added."
+  },
+  {
+   "item": "MAJOR: no usability evaluation",
+   "status": "addressed",
+   "residue": "M09 added. It depends on other packets' T0 modules by 6 Nov, and the UBC ethics route is unconfirmed."
+  },
+  {
+   "item": "MAJOR: no code/AI/person separation",
+   "status": "partly",
+   "residue": "Added to the manifest and RunRecord, but not applied to the packet's own presets; actor names conflict with VTC anonymity."
+  },
+  {
+   "item": "MAJOR: status mixes current state and history",
+   "status": "partly",
+   "residue": "Enum fixed in M03, but the packet's metrics still use false_assumption_corrected as a status, and several policy thresholds remain labelled verified."
+  },
+  {
+   "item": "MAJOR: Layer 0 owner and true north",
+   "status": "partly",
+   "residue": "Owning packet named and true north marked unverified with a fixture, but no person is named and the freeze is a target only."
+  },
+  {
+   "item": "MAJOR: Indigenous governance route",
+   "status": "partly",
+   "residue": "CULT notice and hold rule added; contact owner unnamed; OCAP unread for a third round."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P15-S04",
+   "url": "https://reactflow.dev/learn/troubleshooting/remove-attribution",
+   "ok": true,
+   "note": "Remove the attribution only with Pro (Starter $169/mo, Professional $289/mo). The page does not call it a legal requirement. The spec matches."
+  },
+  {
+   "source_id": "P15-S77",
+   "url": "https://reactflow.dev/api-reference/react-flow",
+   "ok": true,
+   "note": "Defaults confirmed. selectionKeyCode 'Shift' and zoomOnPinch true are not handled in the drag inventory. The page does not say isValidConnection is UI-only; that is the spec's inference."
+  },
+  {
+   "source_id": "P15-S60",
+   "url": "https://www.architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "Clauses 4.1, 4.7, 4.8 (10 MB per panel), 5.1, 5.3, 7.5.5, 7.5.6 and 10.7 confirmed. Cutoff is 24:00 London time. Terms dated 14 Jul 2026 and give no deadline date. No AI clause."
+  },
+  {
+   "source_id": "P15-S17",
+   "url": "https://www.cyera.com/research/sandcastles-not-sandboxes-how-one-architectural-flaw-exposed-seven-products",
+   "ok": true,
+   "note": "7 Aug 2026; four of seven with no code fix; n8n CVE-2025-68668 CVSS 9.9. The spec matches."
+  },
+  {
+   "source_id": "P15-S87",
+   "url": "https://www.w3.org/TR/event-timing/",
+   "ok": true,
+   "note": "WD 13 Oct 2026; continuous events not exposed; 104/16 ms thresholds and 8 ms rounding. The spec matches."
+  },
+  {
+   "source_id": "P15-S47",
+   "url": "https://web.dev/articles/inp",
+   "ok": true,
+   "note": "Field p75, p98 in JS, and the lab caveats confirmed."
+  },
+  {
+   "source_id": "P15-S86",
+   "url": "https://www.nngroup.com/articles/response-times-3-important-limits/",
+   "ok": true,
+   "note": "0.1/1/10 s limits, percent-done indicator and interrupt confirmed; 1993 with a 2014 update."
+  },
+  {
+   "source_id": "P15-S90",
+   "url": "https://wiki.mcneel.com/labs/explicithistory/datastreammatchingalgorithms",
+   "ok": true,
+   "note": "States Longest List is the default and shorter streams are recycled. It is a legacy labs page (last modified 2020) framed under the Explicit History plug-in."
+  },
+  {
+   "source_id": "P15-S49",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+   "ok": true,
+   "note": "Overlap excluded except when overlapping targets do the same action; independent of zoom; five exceptions. The spec matches."
+  },
+  {
+   "source_id": "P15-S18",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers",
+   "ok": true,
+   "note": "Blob and data workers inherit the creator's CSP; others take their own header. The spec matches."
+  },
+  {
+   "source_id": "P15-S51",
+   "url": "https://www.contributor-covenant.org/version/3/0/code_of_conduct/",
+   "ok": true,
+   "note": "CC BY-SA 4.0 and the four-rung ladder confirmed."
+  },
+  {
+   "source_id": "P15-S64",
+   "url": "https://giscus.app/",
+   "ok": true,
+   "note": "Public repository required; no OAuth scopes or privacy statement listed."
+  },
+  {
+   "source_id": "P15-S78",
+   "url": "https://developers.cloudflare.com/pages/configuration/headers/",
+   "ok": true,
+   "note": "100 rules, 2,000 characters per line, not applied to Functions. The spec matches."
+  },
+  {
+   "source_id": "P15-S70",
+   "url": "https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds",
+   "ok": true,
+   "note": "Permissions and verify command confirmed; plan eligibility not stated (also absent from the how-to page)."
+  },
+  {
+   "source_id": "P15-S71",
+   "url": "https://docs.github.com/en/actions/concepts/security/artifact-attestations",
+   "ok": true,
+   "note": "Public repositories use Sigstore public good, private ones GitHub's instance; no plan note."
+  },
+  {
+   "source_id": "P15-S11",
+   "url": "https://registry.npmjs.org/pyodide/latest",
+   "ok": true,
+   "note": "314.0.7, MPL-2.0, 13,879,282 bytes confirmed."
+  },
+  {
+   "source_id": "P15-S11",
+   "url": "https://registry.npmjs.org/elkjs/latest",
+   "ok": true,
+   "note": "0.12.0, 'EPL-2.0 OR GPL-3.0-or-later' confirmed."
+  },
+  {
+   "source_id": "P15-S11",
+   "url": "https://registry.npmjs.org/@dagrejs/dagre/latest",
+   "ok": true,
+   "note": "3.1.1, MIT confirmed."
+  },
+  {
+   "source_id": "P15-S11",
+   "url": "https://registry.npmjs.org/@giscus/react/latest",
+   "ok": true,
+   "note": "3.1.0, no licence field, as the spec states."
+  },
+  {
+   "url": "https://registry.npmjs.org/canonicalize/latest",
+   "ok": true,
+   "note": "canonicalize 5.1.0 is Apache-2.0; the spec lists it as unverified."
+  },
+  {
+   "url": "https://registry.npmjs.org/vega-interpreter/latest",
+   "ok": true,
+   "note": "2.3.2, BSD-3-Clause; the spec says the licence was not opened."
+  },
+  {
+   "url": "https://registry.npmjs.org/tesseract.js/latest",
+   "ok": true,
+   "note": "7.0.0, Apache-2.0; default runtime asset locations are not stated on the opened pages."
+  },
+  {
+   "url": "https://github.com/MikeKovarik/exifr",
+   "ok": true,
+   "note": "MIT, reader only; does not support the spec's 'stripped' claim."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": false,
+   "note": "Heading only, no licence text (relates to P15-S102)."
+  },
+  {
+   "source_id": "P15-S108",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/04%20Tool%20Plan/research/modules/P14/revise-r3_P14.json",
+   "ok": true,
+   "note": "Read locally: P14 core about 21 person-days against 17 working days, about 75% of 26 nominal person-days; P14 code licence Apache-2.0. Not reachable by external readers."
+  }
+ ],
+ "verdict": "Fail. R3 fixes most r2 items: the latency method, the Nielsen bands, the outline view, decided_by, the single status enum and the M09 pilot. Entrants still cannot rely on the spec. Capacity is counted for P15 alone while P14 core already uses about 75% of both students' time to 13 Nov. Storing named actors in decided_by can expose entrants' identities, against VTC 5.1. The core anonymity scan cannot strip metadata, because exifr only reads it. The T0 evaluator and the main app's network egress have no hardening in core. Shipped bundles carry no licence notices, and the project licence is undecided. Several policy thresholds are still labelled verified, and the packet's own presets lack decided_by. Web search budget was exhausted, so checks used page fetches only."
+}

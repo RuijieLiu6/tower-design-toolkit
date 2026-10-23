@@ -1,0 +1,375 @@
+{
+ "expert_role": "Embodied and whole-life carbon LCA researcher (wbLCA to EN 15978 / NRC National wbLCA Practitioner's Guide, Vancouver ECDR practice)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P04-M01",
+   "issue": "The spec never opened the Higher Buildings Policy (HBP), which governs a VTC tower, and so misses its binding energy route. HBP s2.2 (amended 31 Mar 2026) requires higher buildings either (a) to achieve Passive House certification, or (b) to meet TEUI/TEDI/GHGI targets AND connect to an LCES under the LCES Policy. The targets are: residential 100/15/3, hotel 120/15/4, retail 100/15/1.5, office 100/15/1.5. 'Aggregating' GHG reductions from another LCES is not allowed, and the GBPR applies on top. These targets are much stricter than VBBL Table A (TEDI 15 everywhere; GHGI 1.5 for office and retail). Because LCES connection is mandatory, the Table C relief logic in M01/M06 does not apply to a higher building. HBP s2.1(c) also caps the CBD's highest buildings at about 550-700 ft. Every VTC tower (244-305 m, about 800-1,000 ft) exceeds that, and the spec does not say so.",
+   "fix": "Add an HBP row to the limits registry as the default target set for VTC (source: guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf, amended 31 Mar 2026; status: policy under review, S37). Make Passive House vs 'HBP targets + LCES' the first path choice. Draw the HBP lines on the M01 bullet bars next to VBBL. For Groups A/B/F, which the HBP table does not cover, state the gap as a team assumption. In M06, make LCES connection a requirement under HBP rather than optional relief, and block aggregation. Raise a cross-packet flag to SITE/PROG that 244-305 m exceeds the HBP height guidance."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M07",
+   "issue": "The regime selector is keyed to the regime 'in force at permit date', and the 2025 tightening is shown only as an overlay with no badge. But GBPR s3.1.1 (Nov 2024) and Bulletin s4.1.1 (Apr 2025) require the rezoning ECDR to show the project is 'on track to meet' the VBBL limits expected to be in force at the first Building Permit. A real VTC-type tower would reach BP in 2028 or later. By then the delayed 2025 proposal (360 / -10%), the 2027 'TBD' step and the 2030 '-40% vs baseline' step (S52) may apply, so f = 2 is likely not the binding case.",
+   "fix": "Add an 'expected first BP date' input, defaulting to 2028 or later. Show f = 2 as 'current by-law' and the S52 proposal and 2030 baseline-path step as 'expected-at-BP risk' badges (amber, sourced). Add per-building ECDR outputs, since GBPR requires one report per building and the Addendum requires one per parcel."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M07",
+   "issue": "At f = 2 the baseline-path check cannot fail at massing stage. NRC s5 requires the baseline to keep the proposed geometry, program, shape and orientation, using industry-average materials and Addendum parking defaults. A massing estimate built from the same presets therefore has a design/baseline ratio of about 1.0 by construction, which is always below 2.0. The green 'baseline path pass' badge carries no information, and it hides the fact that the intensity path (800) is the only test a supertall could fail.",
+   "fix": "Show the baseline path as a ratio with the note 'non-binding at f = 2 unless the design is less material-efficient than its functionally equivalent baseline'. Compute the baseline only from inputs that actually differ: parkade levels versus Addendum defaults, specified EPDs versus industry-wide EPDs, and structural efficiency. Make the headline metric intensity / 400 benchmark, alongside the expected-at-BP lines."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M07",
+   "issue": "The structural intensity presets rest on an outdated, unscaled source. The 468 kgCO2e/m2 anchor is team arithmetic on the 2019 Pak study (S59). That study used GU-10% SCM benchmark mixes from the old CRMCA EPD and a curtain-wall baseline, and its life-cycle stages are not stated. The study itself warns that this baseline inflates the reductions. The City-commissioned Morrison Hershfield study (2023, not cited) is better suited: it models a 30-storey archetype with A1-A5, B1-B4 and C1-C4 over 60 years, a 20% SCM baseline, window wall and a 4-level parkade, gets 97-424 kgCO2e/m2 (median 260), and underlies Embodied Carbon Pathfinder, a City-accepted rezoning tool. Neither study covers 244-305 m, where high-strength concrete, outriggers or mega-columns and deep foundations add a height premium.",
+   "fix": "Re-anchor the concrete presets to MH 2023 and Pathfinder, with ranges. Add a 'height premium' multiplier for more than 40 storeys as a team assumption with a wide band until a tall-building benchmark is opened (for example Foraboschi, Mercanzin and Trabucco 2014, Energy and Buildings 68:254-269; CTBUH or CLF work). Map concrete strength by height rather than using the NRC default 25/35/40 MPa. Keep S59 for lever ratios only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M07",
+   "issue": "Pass/fail badges are drawn from point estimates that are presets x area, with no uncertainty shown. NRC s4.2(b) says early-design assessments are for informing design, not for showing the final design complies, and Vancouver rezoning reports must use listed tools. The same packet already greys out the uncalibrated M02 TEDI proxy, so this is inconsistent.",
+   "fix": "Output a range for every result (minimum-maximum or P10-P90 across the preset bands). Grey out the badge unless quantities come from an imported BoM/IFC with EPDs. Label the result 'indicative, not an ECDR' and point to Pathfinder or One Click Carbon Designer for the rezoning submission."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M05",
+   "issue": "PV embodied carbon is ignored. The EMG electricity factor is 0.011 kgCO2e/kWh and the BC 2025 consumption factor is 0.0228. Published life-cycle intensities for crystalline PV are typically several times higher than either. On BC's grid, roof or facade PV, especially shaded vertical BIPV on a supertall, can therefore increase whole-life carbon while lowering TEUI and GHGI. M05 and M08 show only the operational offset.",
+   "fix": "Add PV embodied carbon (A1-A3, B4 inverter replacement, C) as a sourced or team-assumption factor per kWp. Report a carbon payback per surface class, and show PV in M08 both as an operational credit and as an embodied debit. Rank surfaces by net carbon as well as by yield."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M08",
+   "issue": "The operational carbon scenario uses only the EMG compliance factor (0.011, constant), and the text concludes that 'operational carbon is small'. The Province's consumption-based Integrated Grid factor is 9.9 t/GWh for 2024 and 22.8 t/GWh for 2025, because 2023-24 were net-import years. A whole-life (B6) estimate should not reuse a fixed compliance factor without stating so.",
+   "fix": "Separate the 'compliance factor' (EMG 0.011) from the 'LCA B6 scenario'. Offer BC 2025 0.0228 and a user-set decarbonisation path, and cite www2.gov.bc.ca/gov/content/environment/climate-change/data/electricity. Recompute the operational share under both."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M08",
+   "issue": "The module is labelled 'whole-life', but it excludes services (MEP) and interiors/tenant fit-out. In an office-heavy tower (at least 9.0 FSR non-residential), cyclic fit-out and MEP replacement (B4/B5) are a major share of whole-life carbon. The RICS WLCA 2nd edition and CIBSE TM65 cover them; the NRC guide makes them optional for compliance. Comparing the result with LETI or RIBA numbers later would mix scopes.",
+   "fix": "Rename the module 'structure + enclosure + operational carbon', or add optional placeholders for services (TM65-style kgCO2e/m2) and fit-out cycles (for example every 10-15 years) as team assumptions. State the scope on every chart. If services are added, keep refrigerant leakage only in GHGI-R; NRC excludes refrigerant emissions from embodied compliance."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M06",
+   "issue": "The spec treats the LCES rules as unopened or unresolved. The LCES Policy (Nov 2017) defines them. Type 3 (user-owned on-site) needs seasonal average COP > 2, modelled GHGI < (limit - 33%), a 2-year optimisation contract and a 5-year owner-funded maintenance contract. Type 2a/2b need a utility purchase, or a BCUC CPCN, a feasibility study and annual reporting. Type 4 (an existing utility such as Creative Energy) needs interim low-carbon supply, binding milestones and a title covenant. All LCES routes need an Energy Reporting Agreement, and no building permit may be applied for until the chosen type's requirements are met.",
+   "fix": "Implement the Type 1-4 checklists. For Type 3, test COP > 2 and GHGI <= 0.67 x limit (about 2.0 at a 3.0 limit). Model Creative Energy steam as Type 4 with its conditions. Close the UNRESOLVED flag on heat pumps as LCES, citing the policy."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M06",
+   "issue": "The SLD policy applies (the site is at least 8,000 m2), but its current text (amended 31 Mar 2026) contains no low-carbon energy supply study. Its sections cover site design and parks, food assets, green mobility (TDM; a fast-charging hub only on sites of 10 acres or more), potable water (indoor -20%, outdoor -50%, water balance), groundwater (hydrogeological study, no permanent discharge), zero waste, and 30% affordable housing. M06's output 'Draft low-carbon energy supply study inputs (SLD deliverable)' rests on the r1 critic's memory.",
+   "fix": "Remove the SLD energy deliverable from M06 and from the rezoning checklist. Route the SLD items to the PROG, ECOL and MOBI packets. Link the SLD groundwater rule to M07 substructure: a deep parkade below the water table drives tanked, heavier concrete."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P04-M05",
+   "issue": "The final EMG v3.0 (S17, effective Sep 2025) is now readable and settles several items the spec still marks unresolved. Equation 2 computes GHGI as (site energy use - site renewable generation) x factor / MFA, so PV does reduce GHGI. Section 1.4.1 lets purchased renewable energy, including RNG, use a zero factor when lifetime supply guarantees are given. Section 4 sets no passive-overheating hour limit and defers to the AHJ. The GHGI-R equation (2% annual and 10% end-of-life leakage) and the s5.1(e) sub-checks are confirmed.",
+   "fix": "Update M01/M05: PV deducts at the fuel factor in GHGI. Add a 'purchased renewable (RNG) with lifetime guarantee' path flag, with an LCA caveat (an accounting zero is not physically zero) and a separate line in M08. Relabel 200 h as a team assumption, noting that the final EMG has no limit. Mark S17 opened."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "The SCM lever is misdescribed. S59's 22.6% comes from switching GU-10% SCM to GUL-35% SCM, which combines a cement-type change with an SCM change, against a GU-10 baseline that is now obsolete in BC. The study itself says a local-practice baseline would shrink the saving. The spec also cites a '15% SCM' City example baseline from the 2022 deck, which neither the Addendum nor the NRC guide uses; NRC defaults to regional industry-wide EPDs.",
+   "fix": "Reword the lever to 'GU-10 to GUL-35 (cement type + SCM)', mark it 'vs 2019 baseline', and take the reduction band from MH 2023 instead. Remove the 15% SCM statement or cite it as the 2022 deck only."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "The 2030 aspiration line (240 = 0.6 x 400) does not match the City's proposal. S52's table lists 2030 as 'Absolute TBD / Baseline path -40%'. The good/bad bands also leave 240-400 undefined.",
+   "fix": "Show 2030 as '-40% vs functionally equivalent baseline (proposed), absolute TBD'. Drop the 240 absolute line or label it plainly as team arithmetic, and define a continuous band."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M08",
+   "issue": "The illustrative sum 980 = 800 + 3.0 x 60 adds an intensity per GFA (parkade excluded) to one per MFA without the MFA/GFA conversion the method itself requires. It also uses the 800 limit, which is 2 x the benchmark, so the illustration overstates embodied carbon relative to a typical tower (about 260-424 in MH 2023).",
+   "fix": "Apply the MFA/GFA conversion to the operational term. Show a 'typical' case (benchmark 400 or MH median) next to the 'at limits' case, and state the denominators on the tile."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "The GFA definition is ambiguous. NRC GFA is measured to the outside face of enclosing walls, excludes attached garages and balconies, and includes mechanical and refuge floors. This differs from zoning FSR floor area and from Layer 0 'GFA'. Supertall mechanical and refuge floors and cores can move the intensity by several percent.",
+   "fix": "Add GFA_NRC as its own computed field, separate from FSR area, with a tooltip citing the NRC definition. Exclude parkade and balconies and include mechanical floors."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "The NRC required scope includes balconies, canopies, stairs and below-grade floors. M07 inputs have no balcony or canopy quantities, even though balconies are a major lever for both embodied carbon and thermal bridging in Vancouver towers. The scope treatment of the required below-grade transit link is also undefined.",
+   "fix": "Add balcony area or length and canopy area inputs shared with M02, and a user choice on whether the transit link structure is inside the object of assessment, with the default and reason stated."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "Existing buildings on the block are not considered. NRC excludes demolition of removed portions, but reuse of retained structure counts (ILC reuse credits in Appendix I, and the NRC reused-portion rules). A full-block CBD redevelopment option that retains structure is a whole-life lever the packet omits.",
+   "fix": "Add an optional 'retained existing structure' input that credits avoided A1-A3, and link it to the ILC reuse credit, marked draft and unopened."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M01",
+   "issue": "Limits cite the City's 'unofficial wording' and Council copy, but an official consolidated VBBL is published. Its Tables 10.2.2.5.A/B/C and s10.4.1.2 ('not more than double an acceptable benchmark') match the spec's values.",
+   "fix": "Cite bylaws.vancouver.ca/consolidated/14343.pdf (pp. 801-812) as the primary source, keeping S42/S49 as corroboration, and remove the 'no legal force' caveat for these cells."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M01",
+   "issue": "The UNVERIFIED flag on GBPR adoption can be closed. The policy was last amended 27 Nov 2024 and is mandatory for applications from that date, and the Bulletin was amended 11 Apr 2025. For CD-1 rezonings it requires the ECDR and the Resilient Buildings Planning Worksheet at rezoning, plus letters of commitment for enhanced commissioning and sub-metering. Energy modelling is gone.",
+   "fix": "Mark it verified (policy and bulletin opened), add the ECDR and worksheet as deliverables, and list commissioning and sub-metering as commitments."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "Addendum parking defaults are quoted only for office (54.73 m2/space). The mixed-use tower also needs the defaults for mixed-use office and retail (52.23), 12+ storey residential (0.98 strata / 0.54 rental spaces per unit) and large hotel or assembly over 100,000 ft2 (145.44).",
+   "fix": "Key the baseline parkade quantity to Layer 0 program tags using the full Addendum table, which applies to the baseline path only."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P04-M07",
+   "issue": "EC3 API terms for an open-source hosted tool (caching or redistributing EPD values to other users) were not checked. Pathfinder, a free City-accepted rezoning tool built on the MH 2023 data, is not listed as a cross-check.",
+   "fix": "Check the EC3 ToS clauses on redistribution before any hosted query. Add Pathfinder as an external cross-check link, without scraping it."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The Sustainable Large Developments policy requires a low-carbon energy supply feasibility study, which M06 should feed as a rezoning deliverable",
+   "why_false": "The current SLD text has no energy section and no energy-supply study.",
+   "correction": "SLD (amended 31 Mar 2026) applies to sites of at least 8,000 m2 or 45,000 m2 of new floor area. It requires sustainable site design, food assets, green mobility, potable water reductions, a groundwater study, zero waste and affordable housing, but no energy study.",
+   "evidence": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf (Mar 2026): sections A-G only; applicability on p1."
+  },
+  {
+   "claim": "The Higher Buildings Policy's sustainability expectations are unknown, and VBBL Table A (or Table C with LCES) sets the energy targets for a VTC tower",
+   "why_false": "HBP s2.2 sets explicit energy targets and a mandatory LCES connection for higher buildings.",
+   "correction": "Higher buildings must achieve Passive House certification, or meet TEUI/TEDI/GHGI targets (residential 100/15/3, hotel 120/15/4, retail 100/15/1.5, office 100/15/1.5) AND connect to an LCES under the LCES Policy, with no aggregation of another LCES's reductions. The GBPR also applies.",
+   "evidence": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf (amended 31 Mar 2026), s2.2."
+  },
+  {
+   "claim": "Whether on-site PV lowers GHGI under EMG v3.0 is unresolved",
+   "why_false": "The final EMG v3.0 GHGI equation subtracts site renewable generation before applying the emission factor.",
+   "correction": "GHGI = sum over fuels of (site energy use - site renewable generation) x factor / MFA. PV therefore lowers GHGI at the electricity factor (0.011), which is small but nonzero.",
+   "evidence": "https://guidelines.vancouver.ca/guidelines-energy-modelling.pdf (v3.0, effective Sep 2025), Equation 2 and Table 1.3.1."
+  },
+  {
+   "claim": "Whether an all-electric heat-pump plant counts as an on-site LCES is unresolved",
+   "why_false": "The LCES Policy defines a user-owned on-site LCES (Type 3) with explicit criteria.",
+   "correction": "Type 3 qualifies if a qualified engineer verifies seasonal average COP > 2, modelled GHGI < (GHGI limit - 33%) and appropriately sized gas peaking, and the owner holds a 2-year optimisation contract and a 5-year maintenance contract.",
+   "evidence": "https://guidelines.vancouver.ca/policy-sustainability-low-carbon-energy-systems.pdf (Nov 2017), s7."
+  },
+  {
+   "claim": "BC electricity at 0.011 kgCO2e/kWh means operational carbon is small and embodied carbon dominates whole-life carbon (M08)",
+   "why_false": "0.011 is a fixed compliance factor. The Province's consumption-based grid factor has risen with net imports.",
+   "correction": "Use 0.011 for compliance only. For whole-life B6, the BC Integrated Grid factor is 22.8 tCO2e/GWh for 2025 (9.9 for 2024), so operational carbon is about twice what the EMG factor implies. Embodied carbon likely still dominates, but by less.",
+   "evidence": "https://www2.gov.bc.ca/gov/content/environment/climate-change/data/electricity (table: 2024 9.9; 2025 22.8; 2023-24 net-import years)."
+  },
+  {
+   "claim": "The City's 2030 embodied-carbon aspiration equals 240 kgCO2e/m2 (0.6 x 400)",
+   "why_false": "The City's proposal table sets 2030 on the baseline path, not as an absolute value.",
+   "correction": "2030 proposal: baseline path -40%, absolute path TBD. 240 is team arithmetic and should not be presented as a City line.",
+   "evidence": "https://vancouver.ca/files/cov/proposed-embodied-carbon-requirements-vancouver-building-by-law-2025.pdf, compliance-paths table: '2030 TBD -40%'."
+  },
+  {
+   "claim": "A massing-stage design passing the baseline path (<= 2 x baseline) is a meaningful compliance signal",
+   "why_false": "NRC requires the baseline to share the proposed geometry and program, so a preset-built design equals its own baseline (ratio about 1.0).",
+   "correction": "At f = 2 the baseline path is effectively non-binding at massing stage. Report the ratio, and test against the intensity path and the expected-at-BP limits.",
+   "evidence": "NRC National wbLCA Practitioner's Guide (2024), s5.2 'Geometrical Equivalence'; Addendum v1.0 p3 note on the baseline path removing parking, height, soil and shape variables."
+  }
+ ],
+ "missing": [
+  "HBP s2.2 energy targets (Passive House, or HBP targets + LCES) as the default VTC target set, plus the HBP height-guidance conflict (CBD maximum about 700 ft vs 800-1,000 ft towers)",
+  "LCES Policy Type 1-4 criteria (Type 3: COP > 2, GHGI < limit - 33%, maintenance contracts) in M06",
+  "An 'expected first Building Permit date' regime selector for M07, per GBPR s3.1.1",
+  "Morrison Hershfield 2023 City Embodied Carbon Reduction Study (30-storey archetype 97-424 kgCO2e/m2) as the preset anchor; a height-premium treatment for 244-305 m",
+  "Uncertainty ranges on all M07/M08 outputs; badges greyed for preset-only estimates",
+  "PV embodied carbon and carbon payback in M05/M08",
+  "A B6 grid scenario separate from the EMG compliance factor (BC 2025: 22.8 t/GWh)",
+  "Services (MEP) and tenant fit-out placeholders, or an explicit scope rename, in M08",
+  "Purchased-renewable/RNG zero-factor path (EMG s1.4.1) with an LCA caveat",
+  "GFA_NRC as a computed field; balcony and canopy quantities; scope decision for the below-grade transit link",
+  "Full Addendum parking-default table for mixed-use baselines",
+  "Existing-structure retention/reuse lever (ILC Appendix I is draft and unopened)",
+  "An opened tall-building embodied-carbon benchmark (CTBUH/CLF/academic) beyond 33 storeys",
+  "Note: the web search budget was exhausted after one attempt; sources were opened by direct URL through the browser pane (in-memory pdf.js extraction) and WebFetch."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Add the HBP s2.2 targets and LCES requirement to M01/M06 as the default VTC target set; flag the HBP height guidance to SITE/PROG",
+   "Remove the SLD energy-study deliverable; replace it with the actual SLD requirements, routed to the other packets",
+   "Implement the LCES Policy Type 3/4 criteria in M06 and close the related UNRESOLVED flags",
+   "Mark EMG v3.0 final as opened: PV deducts in GHGI, purchased-renewable path, no overheating hour limit",
+   "M07: add the expected-at-BP regime selector; show the baseline path as non-binding at f = 2; show output ranges with greyed badges for preset-only results; re-anchor presets to MH 2023 and add a labelled height premium",
+   "M05/M08: add PV embodied carbon and a separate B6 grid scenario; either convert M08 denominators and state its scope (no MEP or fit-out) or add placeholders"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: limits labelled verified without the VBBL 2025 text",
+   "status": "addressed",
+   "residue": "Values match the official consolidated VBBL (bylaws.vancouver.ca/consolidated/14343.pdf), which should be cited as primary."
+  },
+  {
+   "item": "BLOCKER M01: rezoning instruments (HBP, GBPR, SLD) unopened",
+   "status": "partly",
+   "residue": "A layer was added, but the texts were still unopened. Opening them shows HBP has hard energy targets plus LCES, SLD has no energy study, and GBPR is adopted."
+  },
+  {
+   "item": "BLOCKER M07: embodied-carbon regime logic and the 360 'verified' label",
+   "status": "addressed",
+   "residue": "The f = 2 regime is correct per Addendum and VBBL. Remaining issues: GBPR's expected-at-BP requirement and the degenerate baseline path."
+  },
+  {
+   "item": "MAJOR M01: Group A/B/F GHGI rule",
+   "status": "addressed",
+   "residue": "50% below fossil reference confirmed in the official Table 10.2.2.5.A; the r1 critic's 85% was rightly rejected."
+  },
+  {
+   "item": "MAJOR M01: combined TEDI sub-check",
+   "status": "addressed",
+   "residue": "Confirmed in final EMG s5.1(e)."
+  },
+  {
+   "item": "MAJOR M01: MFA denominator",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: emission factors, GHGI-R, DHW",
+   "status": "addressed",
+   "residue": "Factors and the GHGI-R equation confirmed in final EMG Table 1.3.1 and Equation 3."
+  },
+  {
+   "item": "MAJOR M02: thermal bridging",
+   "status": "partly",
+   "residue": "Parameters added; BETBG psi presets still unopened and labelled team assumption."
+  },
+  {
+   "item": "MAJOR M02: TEDI proxy labelled verified",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: EMG mode vs physics mode",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M06: Table C relief default off",
+   "status": "addressed",
+   "residue": "Under HBP, LCES is mandatory and stricter targets apply; LCES Type criteria still to be implemented."
+  },
+  {
+   "item": "MAJOR M05: PV not linked to compliance",
+   "status": "partly",
+   "residue": "TEUI deduction added; GHGI deduction still marked unresolved although EMG Equation 2 settles it; PV embodied carbon is missing."
+  },
+  {
+   "item": "MAJOR M01: floor-area incentive record",
+   "status": "partly",
+   "residue": "Record added; the ZEB page routes the incentive through a DP bulletin, so applicability to a CD-1 rezoning remains unverified."
+  },
+  {
+   "item": "MAJOR M08: 540 'ceiling' and mixed denominators",
+   "status": "partly",
+   "residue": "Renamed with no pass/fail, but 980/540 still add GFA-based and MFA-based terms without conversion and use only the EMG factor."
+  },
+  {
+   "item": "MAJOR M04: weak electrical references",
+   "status": "partly",
+   "residue": "Toronto values are now context only; the City Electrical By-law and BC Hydro large-load process are still unopened."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P04-S60",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "Opened (amended 31 Mar 2026). s2.2 requires Passive House, or TEUI/TEDI/GHGI targets (res 100/15/3, hotel 120/15/4, retail and office 100/15/1.5) plus LCES with no aggregation; s2.1(c) CBD heights about 550-700 ft. Contradicts the spec's treatment of HBP as unknown."
+  },
+  {
+   "source_id": "P04-S61",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "ok": false,
+   "note": "Opened (amended 31 Mar 2026). Threshold 8,000 m2 or 45,000 m2 confirmed; no low-carbon energy supply study, contrary to the spec."
+  },
+  {
+   "source_id": "P04-S41",
+   "url": "https://guidelines.vancouver.ca/policy-sustainability-low-carbon-energy-systems.pdf",
+   "ok": true,
+   "note": "Opened (Nov 2017). LCES Types 1-4; Type 3 on-site: COP > 2, GHGI < limit - 33%, 2-year and 5-year contracts; Type 4 interim district; BP blocked until requirements met."
+  },
+  {
+   "source_id": "P04-S01",
+   "url": "https://guidelines.vancouver.ca/policy-green-buildings-for-rezonings.pdf",
+   "ok": true,
+   "note": "Opened. Last amended 27 Nov 2024; s3.1.1 ECDR must show the project is on track for limits expected at first BP; resilience worksheet, commissioning, sub-metering; no energy modelling."
+  },
+  {
+   "source_id": "GBPR-bulletin",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-green-buildings-policy-for-rezoning.pdf",
+   "ok": true,
+   "note": "Opened (amended 11 Apr 2025). CD-1 rezonings submit ECDR and Resilient Buildings Planning Worksheet at rezoning; letters of commitment for Cx and sub-metering."
+  },
+  {
+   "source_id": "P04-S17",
+   "url": "https://guidelines.vancouver.ca/guidelines-energy-modelling.pdf",
+   "ok": true,
+   "note": "Final EMG v3.0 opened (27 pp). Factors 0.180/0.011; GHGI Equation 2 deducts site renewables; s1.4.1 purchased renewables at zero factor with lifetime guarantee; GHGI-R Equation 3 (2% / 10%); s4 no hour limit (AHJ); s5.1(e) sub-checks confirmed."
+  },
+  {
+   "source_id": "VBBL-consolidated",
+   "url": "https://bylaws.vancouver.ca/consolidated/14343.pdf",
+   "ok": true,
+   "note": "Official consolidation pp. 801-812: Tables 10.2.2.5.A/B/C match spec values (all-other: 50% below fossil reference); 10.4.1.2 'not more than double an acceptable benchmark'."
+  },
+  {
+   "source_id": "P04-S50",
+   "url": "https://vancouver.ca/files/cov/embodied-carbon-vancouver-addendum-national-wblca-practitioners-guide.pdf",
+   "ok": true,
+   "note": "Confirms ECI 400 on GFA, f = 2, EC_L = EC_BM x (f + ILC) with ILC up to 5%, cradle-to-grave, short-cycle biogenic deduction via ECDR, tools lists, Reported GWP over uaGWP, same tool for design and baseline, full parking-default table."
+  },
+  {
+   "source_id": "P04-S51",
+   "url": "https://nrc-publications.canada.ca/eng/view/ft/?id=533906ca-65eb-4118-865d-855030d91ef2",
+   "ok": true,
+   "note": "Confirms required scope (substructure; shell incl. balconies, canopies, below-grade floors), 60 years, placeholders 4/6/10/5% only when the tool lacks a stage, refrigerants excluded from EC compliance, GFA excludes attached garages, early-design results not for final compliance, geometric equivalence of baseline."
+  },
+  {
+   "source_id": "P04-S59",
+   "url": "https://vancouver.ca/files/cov/cov-concrete-high-rise-study.pdf",
+   "ok": true,
+   "note": "Numbers match (10,799 t; 23,060 + 9,515 m2; -22.6%, -11%, +2%, -6%, -9.3%). Baseline GU-10 with curtain wall (the study warns this inflates reductions); 22.6% combines a GU-to-GUL switch with SCM 10 to 35%; stages not stated."
+  },
+  {
+   "source_id": "MH-2023",
+   "url": "https://vancouver.ca/files/cov/vancouver-embodied-carbon-reduction-study-report-morrison-hershfield-2023.pdf",
+   "ok": true,
+   "note": "Not in spec. City study: 30-storey archetype 97-424 kgCO2e/m2 (median 260), A1-A5/B1-B4/C1-C4, 60 years, 20% SCM, window-wall and 4-level parkade baseline; basis of Pathfinder."
+  },
+  {
+   "source_id": "P04-S52",
+   "url": "https://vancouver.ca/files/cov/proposed-embodied-carbon-requirements-vancouver-building-by-law-2025.pdf",
+   "ok": true,
+   "note": "2023 800 / +100%; 2025 proposed 360 / -10% (380 / -5% with max ILC); 2027 TBD; 2030 absolute TBD, baseline -40%. Contradicts the 240 absolute line."
+  },
+  {
+   "source_id": "P04-S54",
+   "url": "https://vancouver.ca/green-vancouver/zero-emissions-buildings.aspx",
+   "ok": true,
+   "note": "Incentives to 31 Oct 2030 (10% larger buildings, ILFI ZE or PH) applied via DP/combined permit and bulletin; 2025 embodied reductions listed as delayed; links to current GBPR, SLD, HBP, LCES."
+  },
+  {
+   "source_id": "P04-S57",
+   "url": "https://vancouver.ca/files/cov/refrigerant-impact-ghgi-study.pdf",
+   "ok": true,
+   "note": "GHGI-R tables at 2%/10% leakage: 0.0-2.6 kgCO2e/m2.yr across systems; consistent with the spec's ranges."
+  },
+  {
+   "source_id": "BC-grid-factor",
+   "url": "https://www2.gov.bc.ca/gov/content/environment/climate-change/data/electricity",
+   "ok": true,
+   "note": "Integrated Grid consumption-based factors 2021 9.7, 2022 11.5, 2023 11.3, 2024 9.9, 2025 22.8 tCO2e/GWh; 2023-24 net-import years."
+  },
+  {
+   "source_id": "Foraboschi-2014",
+   "url": "https://api.crossref.org/works/10.1016/j.enbuild.2013.09.003",
+   "ok": true,
+   "note": "Metadata only (Energy and Buildings 68:254-269); content not opened. Suggested as a height-premium reference."
+  }
+ ],
+ "verdict": "Not passed. Round 2 fixed most r1 items: the VBBL tables, the 50% all-other rule, MFA, EMG mode and the f = 2 embodied-carbon regime are now confirmed against primary text. But the rezoning instruments, now readable, change the packet. The HBP requires Passive House, or much stricter targets plus an LCES connection. The SLD has no energy study. The LCES Policy and the final EMG settle questions the spec still marks unresolved. On embodied and whole-life carbon, M07 ignores the GBPR 'expected at first BP' test. Its baseline-path pass cannot fail at massing stage, and its presets rest on a 2019 study unscaled for 244-305 m. M08 omits PV embodied carbon, MEP and fit-out, and treats the EMG compliance factor as a B6 forecast."
+}

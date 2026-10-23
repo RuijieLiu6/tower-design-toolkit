@@ -1,0 +1,40 @@
+{
+ "trees": [
+  {
+   "x": -5.5,
+   "y": 289.9,
+   "feet": null,
+   "isClass": false,
+   "name": 2
+  },
+  {
+   "x": 30.9,
+   "y": 289.8,
+   "feet": null,
+   "isClass": false,
+   "name": 3
+  },
+  {
+   "x": -78.2,
+   "y": 290.0,
+   "feet": 25,
+   "isClass": true,
+   "name": 0
+  },
+  {
+   "x": -41.9,
+   "y": 289.9,
+   "feet": 10,
+   "isClass": false,
+   "name": 1
+  },
+  {
+   "x": -10300.0,
+   "y": -2600.0,
+   "feet": 15,
+   "isClass": true,
+   "name": 0
+  }
+ ],
+ "parcel_count": 3
+}

@@ -1,0 +1,260 @@
+{
+ "expert_role": "Gatekeeper planner and geodesy reviewer: protected-view height surfaces, vertical datums and aviation obstacle rules for Vancouver tall buildings",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Whole packet: effort versus the 13 Nov 2026 deadline",
+   "issue": "The module estimates add up to about 22-27.5 person-days (M01 1-1.5, M02 5-8, M03 3-4, M04 2, M05 4-5, M06 3, M07 2, M08 2), plus City turnaround. Today is 21 Oct, so 23 calendar days remain, and C01 is only one part of the first component; LOD1 context and terrain are other packets. As written, the plan cannot be delivered for the course deadline.",
+   "fix": "Define a minimum viable product for 13 Nov: M01 registry; M03 with the 8 parameterised cones and the INCOMPLETE mask; M05 with IN CONE - NO ESTIMATE and clause warnings; the M07 regression and structural tests; M04 CBD tiles only. Defer to after the deadline: the photogrammetric S4 route, view 20, curvature forms beyond a flag, M08 mountain curvature, and the aviation category logic beyond the CAR 601.23(1)(b) and (d) warnings."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C01-M02 critical path: getting parameters for the 16 unparameterised cones",
+   "issue": "79.7% of CBD cells are INCOMPLETE. The plan's main route is about 20 per-site View Cone Assessments. That service is meant for property enquiries and replies in 0.5-3 business days, so 20 requests for hypothetical points may be refused or slow. The ViewCone schema already has REFERENCE_LOCATION, REFERENCE_ELEVATION_M and REFERENCE_DISTANCE_M fields (verified, all null). They mirror the City's 2011 data model, so the City evidently holds one reference per cone.",
+   "fix": "Send one consolidated request this week to views@vancouver.ca and Planning.Data@vancouver.ca for those three values for all 24 cones, together with the vertical datum, the eye-height convention, the distance rule (radial or planar) and the posted values for H, J2 and 3.2.4. Keep per-site assessments for 3 to 5 held-out points only."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C01-M06 aviation caps: City-held NAV CANADA height layer not used",
+   "issue": "The City's public ArcGIS item 'YVR Flight Path and Land Use Regulations Analysis' (id d3ea7884b24c4bdcbb2069cefc26eb74, tags NavCan and LZR, modified Apr 2025) says it uses 'NavCan flight height limits (Feb 2023)' converted to heights above ground, plus a 45.7 m (150 ft) allowance for luffing cranes. Its feature service (Hosted/NavCan_Visualization_New) is not public. The spec says no aviation surface beyond AC 601-007 exists and treats NAV CANADA only as user-entered caps. For 244-305 m towers (the Holborn tower was cut about 27 m), this is the most relevant height cap and it is missing.",
+   "fix": "Ask the City (Planning.Data@vancouver.ca) whether the NAV CANADA layer covers downtown and on what terms it can be reused. Until then, show a 'NAV CANADA procedure surface: unknown' card on every tower over 90 m. Add a crane-allowance note: construction cranes may penetrate a surface that the finished building clears. Do not scrape the internal service."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M02 views H, J2 and 3.2.4 classed 'S1 printed, in force'",
+   "issue": "Council did carry Rec K on 16 Dec 2025 (vote 11268; confirmed). But the Rec only endorses 'the approach to administration', and Appendix K p.1 states the amendments 'will be prepared generally in accordance with the provisions listed below, subject to change and refinement prior to posting'. App K also gives the 'Current' H origin as 'the north end of the Olympic Village Plaza at Athletes Way', whereas Table 1 and the service say 'Centre of the stage'. The 58 m and 43.5 m values may have been refined when posted, and the GIS does not publish them.",
+   "fix": "Add the class S1e (endorsed; posted value unconfirmed). Check the H and J2 reference sheets on the City view pages for the posted lower line, and include H, J2 and 3.2.4 in the consolidated City request."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M02 / C01-M03 roof-aligned (S3) cones",
+   "issue": "The roof rule is now defined, but the 1008 Cambie test on cone A has not been run (status unverified). Nothing in M03 stops an S3 value from producing a 'clean' limit before the rule has passed that test.",
+   "fix": "Keep E, G1, G2, J1, 9.1, 9.2 and 22 as NO ESTIMATE until the A test passes within 2 m against LiDAR 2022. Record the result in the roof table and as a build flag."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M07 validation cases: new City statement for 27.1",
+   "issue": "RTS 19750 (14 Jul 2026, 2611 Victoria Dr) says the proposal 'significantly encroaches into the existing protected view cone above the 10th storey'. The building is 83 m and 26 storeys, inside view 27.1. This is an independent, held-out check on the parcel-derived 27.1 k (0.04533) and is not used.",
+   "fix": "Add it as an informational prediction case: the limit should sit near the top of floor 10, give or take one storey (about 3.2 m), above LiDAR ground at the 2611 Victoria parcel. Report it separately from the regression suite."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M06 Exceptional Downtown Site masks for B1 and D",
+   "issue": "PVG 3.4.2 allows encroachment into B1, B2 and D, but 3.4.3 requires developments 'to maintain existing views to' the Lions. The subject of B1 and D is the Lions, so enabling those masks without the 3.4.3 condition overstates the relief.",
+   "fix": "When the B1 or D mask is switched on, keep the cone visible as a 3.4.3 advisory with a warning that cites 3.4.3. Do not treat those cells as unconstrained."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M04 metric 'Model-to-geodetic alignment error'",
+   "issue": "The metric's basis is given as 'Guideline 3.1.5 tolerance is 2 m'. Clause 3.1.5 caps hardship encroachments by building elements at 2 m; it is not a positional tolerance.",
+   "fix": "Restate the basis as a team target. If tied to anything, tie it to the 0.081 m LiDAR accuracy and the user's survey control."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M06 AC 601-007 arithmetic",
+   "issue": "The validation case computes the surfaces from distances to the aerodrome centre (1.87 and 1.21 km, giving 37 m and 48 m). The AC measures from the channel or FATO edge, which is nearer, so these heights overstate the threshold and are non-conservative.",
+   "fix": "Use the distance to the nearest possible edge (centre distance minus the published channel or FATO half-extent, or 0 m while that is unknown), and label the result an upper bound."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M01 metric 'Distinct origins = 16'",
+   "issue": "The service has 17 exact distinct apex coordinates, because the 3.2.2 apex is 0.33 m from the other QE apexes. The count of 16 depends on a merge tolerance the spec does not state.",
+   "fix": "State the rule (merge apexes within 1 m), and still store the 3.2.2 apex separately."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M04 Lv versus ground",
+   "issue": "The evidence for eye height still compares Lv with 2002 integer-metre contours, and nobody has checked Lv for 9.x since the origin moved in 2026. LiDAR 2022 is CGVD28GVRD with 0.081 m vertical accuracy (verified), so the comparison is cheap to make properly.",
+   "fix": "Extract LiDAR bare-earth ground within 2 m of each of the 16 apexes, publish the Lv minus ground table, and only then fix the camera default."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M01 downtown/CBD question",
+   "issue": "The scope asks which views cross downtown and the CBD. The downtown test box runs south to latitude 49.268, about W 6th Ave, south of False Creek. So 'all cones except 21, 27.x, 28 touch it' comes from the box, not from the City boundary.",
+   "fix": "Digitise the Downtown ODP and CBD boundaries (and HBP Figure 1) first, then re-run membership and report it against those boundaries."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C01-M01 view_cones.dwg",
+   "issue": "Only the file header was read; the DWG may contain Z values or reference points that would answer the main question.",
+   "fix": "Open it once with ODA File Converter or ezdxf after conversion, and record whether it has Z content or extra attributes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Provenance rule for AI assistance",
+   "issue": "The context requires survey data, not a language model, as the source of geography. cone_params.json has provenance fields but no rule forbidding values generated by GPT-6 Astra or any other LLM.",
+   "fix": "Add a provenance enumeration (City print, City GIS, parcel-derived, LiDAR-derived, image-derived, fitted) and reject any numeric value whose provenance is a model output."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "No aviation height surface is available downtown beyond AC 601-007; NAV CANADA outcomes can only be entered by users per project.",
+   "why_false": "The City has assembled NAV CANADA flight height limits (Feb 2023), converted to heights above ground, for its own height-compliance analysis.",
+   "correction": "Request the layer and its coverage from the City. Until then, flag every tower over 90 m with a NAV CANADA procedure-surface warning and a crane-allowance note.",
+   "evidence": "ArcGIS item d3ea7884b24c4bdcbb2069cefc26eb74 'YVR Flight Path and Land Use Regulations Analysis' (public item; data sources text cites NavCan flight height limits Feb 2023 and a 45.7 m crane allowance); Hosted/NavCan_Visualization_New service returns 404 (not public)."
+  },
+  {
+   "claim": "View H 58 m and J2 43.5 m (Appendix K) are printed, in-force S1 parameters.",
+   "why_false": "Rec K endorses 'the approach to administration', and Appendix K says the amendments are 'subject to change and refinement prior to posting'. The GIS reference fields are null.",
+   "correction": "Class them as endorsed with the posted value unconfirmed. Confirm the posted lower lines from City reference sheets or by asking the City.",
+   "evidence": "phea20251209min.pdf Rec K and Vote 11268; phea1rr.pdf Appendix K p.1 (PDF p.165) note; ViewCone layer REFERENCE_* null for all 24."
+  },
+  {
+   "claim": "Guideline 3.1.5 sets a 2 m tolerance usable for model alignment.",
+   "why_false": "Clause 3.1.5 limits hardship encroachments by building elements to no more than 2 m. It is not a positional or survey tolerance.",
+   "correction": "Use a team target tied to LiDAR accuracy and the user's survey control.",
+   "evidence": "PVG Feb 2026, p.7, clause 3.1.5 (text re-read via pdf.js, SHA-256 597f0da2...b0ca)."
+  },
+  {
+   "claim": "The service yields exactly 16 distinct origins.",
+   "why_false": "There are 17 exact distinct apex coordinates; the 3.2.2 apex (491816.03, 5454382.11) is 0.33 m from the 3.2.1/3.2.3/3.2.4 apex.",
+   "correction": "16 holds only with a stated merge tolerance (for example 1 m).",
+   "evidence": "ViewCone FeatureServer/0 query, 21 Oct 2026."
+  }
+ ],
+ "missing": [
+  "A consolidated City request for the REFERENCE_LOCATION, REFERENCE_ELEVATION_M and REFERENCE_DISTANCE_M values of all 24 cones (the schema fields exist), with the datum, the eye-height and distance-rule conventions, and the posted H, J2 and 3.2.4 values.",
+  "The City's NAV CANADA flight height layer (Feb 2023) and its downtown coverage; a crane-allowance note for construction.",
+  "2611 Victoria Dr (RTS 19750, encroaches above the 10th storey of 26, 83 m) as a held-out 27.1 check.",
+  "A delivery cut for 13 Nov 2026 with the deferred modules named.",
+  "Lv minus LiDAR 2022 ground at all 16 apexes.",
+  "Downtown ODP, CBD and HBP Figure 1 boundaries digitised, so the scope question 'which views cross downtown and the CBD' is answered against City boundaries.",
+  "Results of the 1008 Cambie roof-rule test against LiDAR.",
+  "An inspection of view_cones.dwg for Z content.",
+  "CYHC channel and certification data and CBC7 FATO and IAP data from the CWAS and CFS (still secondary sources only).",
+  "Hypothesis to test for the 2004 rows: a constant local-datum offset (for example 100 ft) would bring Lv 205 ft near current ground; test only, never use for heights.",
+  "A provenance rule excluding numeric values generated by an LLM (GPT-6 Astra)."
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Cut the scope to a 13 Nov minimum viable product (M01, M03 with the 8 cones and the INCOMPLETE mask, M05 with NO ESTIMATE, the M07 regression and structural tests, M04 CBD tiles) and list the deferred items.",
+   "Send the consolidated City data request (REFERENCE_* for 24 cones, datum, eye height, distance rule, posted H, J2 and 3.2.4) before relying on per-site assessments.",
+   "Label H, J2 and 3.2.4 as endorsed with the posted value unconfirmed (App K 'subject to change and refinement'); never show their limits without that label.",
+   "Keep the S3 roof-aligned cones as NO ESTIMATE until the 1008 Cambie roof test passes within 2 m.",
+   "Add the 2611 Victoria Dr held-out case and the 3.4.3 Lions condition on the B1 and D masks.",
+   "Show a NAV CANADA procedure-surface warning on every tower over 90 m until the City layer is obtained."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER C01-M03/M05 cones without parameters (IN CONE - NO ESTIMATE)",
+   "status": "addressed",
+   "residue": "The coverage rule, INCOMPLETE mask and structural test cases are in place; S3 cones must stay NO ESTIMATE until the roof test passes."
+  },
+  {
+   "item": "MAJOR view 20 roof-aligned to terrain-referenced",
+   "status": "addressed",
+   "residue": "The reference XY for the 'English Properties' is still unpublished; correctly non-gating."
+  },
+  {
+   "item": "MAJOR curvature switch sign and refraction",
+   "status": "addressed",
+   "residue": "Both forms with kappa 0.13 and lowest-candidate default; the City's model is unknown; defer beyond the minimum product."
+  },
+  {
+   "item": "MAJOR view H 2011 versus Dec 2025",
+   "status": "addressed",
+   "residue": "Rec K and vote 11268 verified in the minutes. The Appendix K 'subject to change and refinement prior to posting' caveat and the origin-wording difference (north end at Athletes Way versus centre of the stage) are not reflected."
+  },
+  {
+   "item": "MAJOR roof rule (maximum elevation angle, penthouses, epoch)",
+   "status": "partly",
+   "residue": "The rule is defined, but the A (1008 Cambie) LiDAR test has not been run."
+  },
+  {
+   "item": "MAJOR S4 cones: photogrammetric route",
+   "status": "addressed",
+   "residue": "Method only; resection error unmeasured; labelled image-derived."
+  },
+  {
+   "item": "MINOR PVG versions and 12.2",
+   "status": "addressed",
+   "residue": "Feb 2026 hash 597f0da2...b0ca and 210,961 B verified; Jun 2025 and Jul 2024 local copies match the stated hashes."
+  },
+  {
+   "item": "MINOR AC 601-007 categories",
+   "status": "partly",
+   "residue": "Category logic encoded, but CWAS and CFS data were not obtained, and the arithmetic uses centre distances (non-conservative)."
+  },
+  {
+   "item": "MINOR gating suite rename",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR change signals",
+   "status": "addressed",
+   "residue": "editingInfo verified: dataLastEditDate equals schemaLastEditDate 1776247144052."
+  },
+  {
+   "item": "MINOR terrain encoding",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR worst-point definition",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR 2004 formula datum",
+   "status": "addressed"
+  }
+ ],
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": true,
+   "note": "Fetched same-origin in the browser: 210,961 B, Last-Modified 2026-03-02, SHA-256 597f0da2...b0ca as stated. 8 pages; s.2 'horizontal lower boundary ... maximum geodetic height'; Table 1 of 24 views (H '2011' with no amendment label, J2 'Amended 2024, 2025', 27.x 'Amended 2026'); clauses 3.1.1-3.1.5 under heading 3.2; 3.4.2 still names 12.2; 3.4.3 Lions condition."
+  },
+  {
+   "url": "https://services3.arcgis.com/qrcTTRTwUoS8N47o/arcgis/rest/services/ViewCone/FeatureServer/0",
+   "ok": true,
+   "note": "wkid 26910, no vcsWkid, hasZ false; REFERENCE_* null for all 24; EFFECTIVE_DATE 2024-07-10 except 28 (2026-02-04); apexes and Lv match the spec; cone 28 has 5 vertices; 9.x apex in whole metres; 17 exact distinct apexes."
+  },
+  {
+   "url": "https://council.vancouver.ca/20251209/documents/phea20251209min.pdf",
+   "ok": true,
+   "note": "Rec K text and 'CARRIED (Vote No. 11268)' confirmed; wording is 'endorse the approach to administration'."
+  },
+  {
+   "url": "https://council.vancouver.ca/20251209/documents/phea1rr.pdf",
+   "ok": true,
+   "note": "App K PDF pp.165-167: 58 m and 43.5 m at 492,487.44, 5,458,541.92 confirmed; note 'subject to change and refinement prior to posting'; H 'Current' origin at the north end of the plaza at Athletes Way."
+  },
+  {
+   "url": "https://council.vancouver.ca/20260714/documents/r26.pdf",
+   "ok": true,
+   "note": "Local copy: Trout Lake amendments referred back; 2611 Victoria Dr encroaches on 27.1 above the 10th storey; 83 m, 26 storeys."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": true,
+   "note": "Amended 31 Mar 2026; about 550-700 ft in the CBD, gateways about 400-515 ft; applies to entry into the QE corridor; confirmed as guidance, not a cap."
+  },
+  {
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.23.html",
+   "ok": true,
+   "note": "601.23(1)(a)-(e) as stated; current to 2026-09-30."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+   "ok": true,
+   "note": "NAD83(CSRS) 4.0.0.BC.1.GVRD, CGVD28GVRD, HTMVBC00 geoid, 0.081 m at 95%, about 49 pts/m2, flown 7 and 9 Sep 2022, OGL-Vancouver."
+  },
+  {
+   "url": "https://www.arcgis.com/sharing/rest/search?q=orgid:qrcTTRTwUoS8N47o",
+   "ok": true,
+   "note": "No published cone-height or 3D view surface; found the public 'YVR Flight Path and Land Use Regulations Analysis' item citing NAV CANADA flight height limits (Feb 2023)."
+  },
+  {
+   "url": "https://vancouver-bc.maps.arcgis.com/server/rest/services/Hosted/NavCan_Visualization_New/FeatureServer",
+   "ok": false,
+   "note": "404; not public; request from the City."
+  },
+  {
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/vancouver-tall-view-tool/data/guideline.json",
+   "ok": true,
+   "note": "Confirms '3.1.3' holds the second paragraph of 3.1.2; the true 3.1.3 is missing."
+  }
+ ],
+ "verdict": "Pass, with conditions. I re-checked the main sources and they hold: the Feb 2026 PDF hash, Table 1, the clause pages, the service fields and apexes, Council vote 11268 on Rec K, the Appendix K values, the Trout Lake referral, the LiDAR datum and CAR 601.23. The no-estimate status removes false CLEAR results. Three gaps remain. Delivery: about 25 person-days of work against 23 days to 13 Nov. Parameters: 16 cones have none, and one consolidated City request for the empty REFERENCE_* fields would help more than 20 site assessments. Aviation: the City holds an unused NAV CANADA height layer. The H, J2 and 3.2.4 values are endorsed but may be refined, so label them as unconfirmed. Keep roof-aligned cones blank until the 1008 Cambie test passes, and add the 2611 Victoria Dr check."
+}

@@ -1,0 +1,105 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.tstest.office-daylight-depth",
+  "version": "0.1.0",
+  "licence": "MIT",
+  "name": "Office Facade-to-Core Depth",
+  "author": {
+    "name": "Tower Design Toolkit test designer"
+  },
+  "category": "CLIM",
+  "stage": "massing",
+  "question": "Is the estimated distance from the facade to a centred square core small enough to support office daylight planning at the massing stage?",
+  "method": "Estimates the square core side length as the square root of tower.coreArea. Estimates short-side facade-to-core depth as (tower.minSide - sqrt(tower.coreArea)) / 2. Compares the estimated depth with designer-selected good and bad targets. These are geometric screening metrics, not daylight simulations.",
+  "human": "The architect decides whether actual daylight quality is acceptable; whether glazing, facade design or atria compensate for deeper plans; whether to redesign a floor plate even if it passes; and whether deep zones are suitable for their intended uses. Meeting rooms, storage and other uses may be appropriate in deeper areas. The node does not determine daylight compliance or design quality.",
+  "limits": "Assumes a rectangular floor plate and a centred square core. The estimated facade-to-core depth measures only the shorter axis and may understate the distance along the longer side of a rectangular plate. Actual cores may be rectangular, irregular or off-centre. Atria, light wells, facade design, glazing and surrounding conditions are not modelled. This is a geometric screening check, not a daylight simulation or compliance assessment. Evaluate every tower, but ignore the results for towers with tower.gfa_office equal to zero because the node format does not implement conditional not-available behaviour. A zero or negative calculated depth would indicate that the assumed square core does not fit within the shorter plate dimension and should be reviewed rather than interpreted as proof of good daylight. The remembered studio-lecture thresholds have not been verified against the original slides or a published standard.",
+  "inputs": [
+    "tower.minSide",
+    "tower.coreArea",
+    "tower.gfa_office"
+  ],
+  "metrics": [
+    {
+      "id": "short_side_facade_to_core_depth",
+      "label": "Short-side facade-to-core depth",
+      "unit": "m",
+      "per": "tower",
+      "expression": "(tower.minSide - sqrt(tower.coreArea)) / 2",
+      "decimals": 2,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 10,
+        "bad": 13.5,
+        "text": "Pass at or below 10 m; Check above 10 m through 13.5 m; Fail above 13.5 m. This is a designer-selected geometric screening target, not a verified daylight standard.",
+        "flag": "unverified",
+        "source": {
+          "label": "Studio lecture remembered by Tower Design Toolkit test designer, approximately 2025; original slides and reference not available or checked."
+        }
+      },
+      "note": "Estimates only the shorter-axis distance from the facade to the edge of a centred square core. Towers without office floor area must be ignored by the designer."
+    },
+    {
+      "id": "estimated_square_core_side",
+      "label": "Estimated square-core side length",
+      "unit": "m",
+      "per": "tower",
+      "expression": "sqrt(tower.coreArea)",
+      "decimals": 2,
+      "threshold": {
+        "text": "Informational only. No good or bad threshold is intended for this metric.",
+        "flag": "team_assumption",
+        "source": {
+          "label": "Team assumption: Tower Design Toolkit test designer, 2026-10-21; treat the reported core area as a centred square for a simplified geometric estimate."
+        }
+      },
+      "note": "Shows the side length of an equivalent square having the supplied core area. It does not establish the actual core shape or position."
+    }
+  ],
+  "tests": [
+    {
+      "fixture": "vtc-default",
+      "metric": "short_side_facade_to_core_depth",
+      "value": 9.99,
+      "state": "pass",
+      "tolerance": 0.02
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "estimated_square_core_side",
+      "value": 26.02,
+      "state": "unknown",
+      "tolerance": 0.02
+    },
+    {
+      "fixture": "city-study",
+      "metric": "short_side_facade_to_core_depth",
+      "value": 7.65,
+      "state": "pass",
+      "tolerance": 0.02
+    },
+    {
+      "fixture": "city-study",
+      "metric": "estimated_square_core_side",
+      "value": 14.7,
+      "state": "unknown",
+      "tolerance": 0.02
+    },
+    {
+      "fixture": "vtc-two-towers",
+      "tower": 1,
+      "metric": "short_side_facade_to_core_depth",
+      "value": 9.61,
+      "state": "pass",
+      "tolerance": 0.02
+    },
+    {
+      "fixture": "vtc-two-towers",
+      "tower": 1,
+      "metric": "estimated_square_core_side",
+      "value": 20.78,
+      "state": "unknown",
+      "tolerance": 0.02
+    }
+  ],
+  "createdWith": "ChatGPT with the Tower Design Toolkit node builder prompt v1"
+}

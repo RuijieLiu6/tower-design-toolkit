@@ -1,0 +1,268 @@
+{
+ "expert_role": "Architect who has worked with Musqueam, Squamish and Tsleil-Waututh Nations on public projects in BC. Reviewed P07 round 1 for cultural safety, protocol and evidence.",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07-M01",
+   "issue": "M01 ships an 8-item Musqueam referral-pack checklist marked 'verified' and treats '8 of 8 before any contact' as good. Musqueam's IGA page is written for proponents and regulators of real projects with regulatory processes (water licences, fisheries authorizations, environmental assessment). A hypothetical ideas-competition entry has none of these. The checklist steers hundreds of entrants toward a Nation's referral office, which uses up Nation staff time for no land-use decision, and it does this even though the spec's own UNRESOLVED flag says no channel is sanctioned.",
+   "fix": "Remove the referral checklist from the entrant flow. Mark the item 'not applicable to competition entries' and change its status from verified to unverified for applicability. Hard-default to E0 and send every question about contact to Buildner staff only, the channel the competition rules name. Keep the Musqueam list only as reference material for real projects, behind a clear 'not for this competition' banner."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07-M01",
+   "issue": "Collapsing the ladder E0-E3 conflates who was engaged and what kind of engagement it was. E3, 'written Nation agreement to participate', unlocks 'consulted', 'co-designed' and 'endorsed'. But endorsement needs a decision by an authorized Nation body, and 'consultation' is a Crown legal duty that designers never discharge. Talking to an individual Squamish artist, an Elder or a Nation development corporation is not engaging 'the Nation'. Engaging one Nation is not engaging all three.",
+   "fix": "Record engagement per Nation (Musqueam, Squamish, Tsleil-Waututh separately) and record the type of counterpart: individual community member, Indigenous consultant or artist, Nation staff, authorized Nation representative, Nation corporation. Permanently ban 'consulted' (duty-to-consult sense) and 'endorsed' for competition entries. Allow 'endorsed' only with a reference to an authorized Nation decision. Have an Indigenous advisor review the ladder before release."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P07 (packet)",
+   "issue": "There is no release gate requiring Indigenous review. Every ladder, phrase list, motif term list and card is a team assumption 'to be reviewed with an Indigenous advisor', yet nothing stops release without that review. Today is 21 Oct 2026, the deadline is 30 Nov 2026, and the packet estimates about 31-35 person-days for two students. Entrants will rely on unreviewed cultural guardrails.",
+   "fix": "Add a packet-level release gate: no CULT module goes live until a paid Indigenous reviewer (for example through UBC Indigenous initiatives or SALA Indigenous faculty, not the Nations' referral offices and not anyone tied to a juror) has signed off on the ladder, phrase list, motif terms and starter cards. Until then, ship only M07 (anonymity/AI labels) and the M01 E0 statement, labelled beta."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M01",
+   "issue": "The jury includes K̓esugwilakw Sierra Tasi Baker (K̓ESU+CO). The competition rules say jurors may under no circumstances be contacted and that attempts mean disqualification. Entrants looking for Coast Salish cultural input could reach her or her firm. The module does not warn about this. E2, 'contact made via organizer', names a channel that does not exist.",
+   "fix": "Add a hard warning card: do not contact jurors or their firms; all communication goes through Buildner staff. Rename E2 to 'question submitted to Buildner' until Buildner confirms a channel exists."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M03",
+   "issue": "False claim that the International Indigenous Design Charter's principles cannot be retrieved. The charter PDF on ICoD lists 10 protocols. Point 1, 'Indigenous led' (Indigenous stakeholders oversee creative development), and point 4, 'Deep listening' (recognized custodians actively involved and consulted), mean that a project representing Indigenous culture without Indigenous oversight goes against the charter. M03 and M05 treat representation as allowed once provenance is recorded. They do not restrict it at E0/E1.",
+   "fix": "Cite the charter's 10 protocols by name with a link and a paraphrase. The book is copyright and bars reproduction without consent, so do not reproduce it. Add a rule: at E0/E1 the cultural-expression channels 'form', 'naming' and 'commissioned art' are locked, and only 'process/acknowledgement' and 'benefit' responses are allowed. Note that the appendix names no First Nations contributors from Canada."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M05",
+   "issue": "The guardrail targets generation of 2D motifs from keyword prompts. In architecture competitions the dominant failure is form-level appropriation: massing or narrative 'inspired by' a longhouse, canoe, cedar hat, house post, spindle whorl or salmon. It also misses reference images uploaded for img2img. M04 even describes Sen̓áḵw's 'salmon-inspired screens' and longhouse references, which entrants could copy.",
+   "fix": "Extend M01's lint and M05's term list to cover metaphor phrases ('inspired by Coast Salish ...', 'evokes a longhouse/canoe', Coast Salish design-element terms). Have an Indigenous advisor curate the list. Apply the gate to reference-image uploads, not just text prompts. Add a 'do not derive form from' line to every M04 precedent."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M03",
+   "issue": "Cards are community-forkable on a GitHub-like platform, and a padlock marks 'Nation-authored' cards. Nothing establishes who may mark a card as Nation-published, so a fork can impersonate Nation authorship. No Nation-authored cards exist today.",
+   "fix": "Only a verified Nation account can set source_type 'Nation-published' (manual verification by maintainers with the Nation's communications office). Forks inherit 'team-authored' status automatically. Show the verification record."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M07",
+   "issue": "The anonymity leak paths are not closed. Pseudonymous GitHub-style handles and module-author attribution chains are written into provenance.jsonld and the board appendix. A C2PA manifest is signed with an X.509 certificate that identifies the signer. Either can break the brief's 'no identifying information' rule. The metric is marked 'verified' although the brief PDF (S35) was not opened.",
+   "fix": "For competition export, leave handles and fork authors out of the boards and appendix. Turn C2PA off by default, or sign with a platform certificate. Keep the IPTC digital source type plus a visible label. Change the metric status to team_assumption until a human has read the brief's anonymity clause."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M06",
+   "issue": "The VTC site is hypothetical, yet M06 intersects massing with real City view-cone polygons and real bearings to the North Shore mountains and Queen Elizabeth Park. The packet never says where the hypothetical block sits in real coordinates.",
+   "fix": "Add a required georeference parameter: the block placement, labelled as a team assumption or taken from the brief if the brief fixes it. Show it on every M06 output. Block the cone and azimuth outputs until it is set."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M06",
+   "issue": "The view-cone dataset (24 records) has numbering gaps: it has views 3.2.1-3.2.4, 9.1/9.2, 10, 20-22, 27.1/27.2, 28 and lettered views A-K, but no 1, 2, 3.1, 4-8, 11-19 or 23-26. It may not be the full set of protected views. A '0 intersections' result could be a false pass, and plan intersection says nothing about permitted height.",
+   "fix": "State that '0 intersections' is not clearance. Cross-check against the City's View Protection Guidelines in a browser. Change the metric 'good' from '0' to 'each touched or nearby cone listed with its checked height rule'. Note that the brief lets the jury reward justified breaches."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M01/M05",
+   "issue": "The name-string registry ignores Unicode. hən̓q̓əmin̓əm̓ and Sḵwx̱wú7mesh sníchim strings use combining marks. Copying 'verbatim' without NFC normalization, matching that respects normalization, and embedded fonts that cover these glyphs will produce missing-glyph boxes on boards and unreliable lint matches. The spec itself shows drift: it writes 'Hiy̓ám̓ Housing', where the Squamish page shows 'Hiyám̓ Housing'.",
+   "fix": "Store strings NFC-normalized and compare them that way. Require export fonts that cover the glyphs (for example Noto or BC Sans, licence to be checked) and embed them in the PDFs. Add a glyph-coverage check to the M07 export gate. Re-copy all strings from the Nation pages."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M02",
+   "issue": "Two errors in the framework crosswalk. First, the City's UNDRIP Strategy is addressed to City departments, and UNDRIP Arts. 19/32 and DRIPA bind governments. The crosswalk invites entrants to 'address' FPIC for a private tower, which pushes them toward false claims. Second, it leaves out urban Indigenous people. The Strategy's implementation committee includes urban Indigenous representatives (TWN release), and a downtown public realm serves a large urban Indigenous population that is distinct from the host Nations' rights and title.",
+   "fix": "Tag each item 'applies to: government / corporate (TRC 92) / design analogy'. Lock FPIC items as 'not claimable by entrants'. Add an urban-Indigenous public-realm card that is kept separate from the host-Nation rights cards."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P07-M04",
+   "issue": "The case-study library has no downtown or City-led examples. Sen̓áḵw is reserve land and Jericho/Heather are large-site rezonings, so none of them resembles a CBD block. Downtown examples of Nation-gifted naming on City public space (for example the Vancouver Art Gallery north plaza, šxʷƛ̓ənəq Xwtl'e7énḵ Square) are missing. They would show the naming and gifting protocol on a downtown site.",
+   "fix": "Add at least one downtown public-realm precedent where the Nations gifted names (verify in a browser; not verified this session) and one City public-art commission by Nation artists. Tag each with tenure, the decision-maker and how the name or work was gifted."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M01",
+   "issue": "The 'Referral-pack completeness' metric is labelled 'verified'. The source only verifies the list of items, not that it applies to this entry. 'Unsupported engagement claims = 0' mixes a phrase lint with honesty, and the lint cannot detect a false E3 declaration.",
+   "fix": "Change the status to unverified/not applicable. Rename the lint metric 'wording above declared status' and state plainly that the declaration itself is unverifiable."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M05",
+   "issue": "The S27 extract lists the Notice types as 'Open to Collaborate, Attribution Incomplete, TK, BC, Collections Care'. The live page now names an 'Engagement Notice', Disclosure Notices and Collections Care Notices, and points to Hub Agreements and Terms and Conditions that have not been reviewed.",
+   "fix": "Update the extract. Pull the Notice types from the Hub at run time rather than hard-coding them. Read the Hub terms before display, and fall back to link-out only until then."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M06",
+   "issue": "The viewpoint set mixes 'typical floors' and podium terraces, which are private amenity views, with public-realm viewpoints. City in Nature and view-protection arguments are about public views. Mountain names come from the City's descriptions ('the Lions') without Nation names (Squamish name for the Twin Sisters).",
+   "fix": "Report public and private viewpoints separately and give public ones priority. Show the Nation and City names side by side, each with its source, and never translate either."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M04",
+   "issue": "Sen̓áḵw facts conflict (Wikipedia gives a 2001 settlement in the lead and June 2000 in the body). Its relationship to City services or zoning (the page says buildings are exempt from local height limits) is described without a primary source.",
+   "fix": "Show both dates with a 'source conflict' chip. Add a 'services agreement with City' field marked unverified until a primary source is found."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07-M07",
+   "issue": "For EU AI Act Art. 50, the unofficial site tags the article 'amended' and lists a Digital Omnibus document. Paragraph 7 appears in two versions. Timing is not settled.",
+   "fix": "Keep it as a benchmark only. Remove the date from the user-facing text, or show it as 'as reported; amendments not checked'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P07 (as_is_workflow)",
+   "issue": "Step 2's pain point, 'City sites block automated tools', is a problem of the research agent, not of the entrants. The workflow was reconstructed, not observed.",
+   "fix": "Replace it with entrant-observed pain points after testing with 2-3 teams. Keep the TEAM_ASSUMPTION flag until then."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The International Indigenous Design Charter's principle list could not be retrieved, so M03 links rather than paraphrases (UNVERIFIED flag; M03 method and limits).",
+   "why_false": "The full charter book is public on ICoD and lists 10 protocols.",
+   "correction": "The protocols are: Indigenous led; Self-determined; Community specific; Deep listening; Indigenous knowledge; Shared knowledge; Shared benefits; Impact of design; Legal and moral; Charter implementation. The book is (c) 2018 Deakin University and bars reproduction without consent, so name them, link them and paraphrase briefly. Its appendix names Australian, Greenlandic Inuit and Sami contributors and no First Nations from Canada.",
+   "evidence": "https://www.theicod.org/storage/app/media/resources/International_IDC_book_small_web.pdf (linked from https://www.theicod.org/en/resources/international-indigenous-design-charter): Part 1 '10 step best practice protocols'; Appendix 4.2 Contributors."
+  },
+  {
+   "claim": "The ICoD charter was built 'with input from Sami, Inuit, North American, Maori and Australian practitioners' (S29 extract).",
+   "why_false": "The charter's own contributor appendix lists workshops in Australia, Denmark, Greenland and Sweden. It names no North American First Nations contributor. The ICoD news page mentions 'Turtle Island people' but names nobody.",
+   "correction": "Describe the charter as Australian-led with Inuit and Sami workshop input. Its relevance to Coast Salish protocol is unestablished.",
+   "evidence": "Charter PDF Appendix 4.2; ICoD news page names only Australian authors and students."
+  },
+  {
+   "claim": "Referral-pack completeness against the Musqueam list is a 'verified' metric for this entry (M01).",
+   "why_false": "The source verifies the list of items, not that it applies here. Musqueam addresses proponents and regulators of projects, and its examples are regulatory processes. A hypothetical competition entry has no regulatory process.",
+   "correction": "Status: unverified/not applicable for competition entries. Default is no contact; questions go through Buildner.",
+   "evidence": "https://www.musqueam.bc.ca/departments/title-and-rights/iga/ : contact at initial stages 'for all projects within Musqueam territory'; package item 2 is the anticipated regulatory processes (water licensing, fisheries authorization, environmental assessment)."
+  },
+  {
+   "claim": "Personal-data fields at export = 0 is a 'verified' threshold based on S34/S35 (M07).",
+   "why_false": "S35, the brief PDF, is opened=false. S34 confirms only anonymous evaluation, not the exact 'no identifying information' clause or how it applies to file metadata.",
+   "correction": "Status: team_assumption, pending a human reading of the brief's anonymity clause.",
+   "evidence": "https://architecturecompetitions.com/VancouverTallChallenge FAQ: 'Competition entries are evaluated anonymously'; no metadata rule shown."
+  },
+  {
+   "claim": "Local Contexts Notices are 'Open to Collaborate, Attribution Incomplete, TK, BC, Collections Care' (S27).",
+   "why_false": "The current page lists an Engagement Notice, Disclosure Notices (Attribution Incomplete, TK, BC) and three Collections Care Notices. It also points to Hub Agreements and Terms that govern use.",
+   "correction": "Update the names and pull them from the Hub at run time. Review the Hub Terms before displaying anything.",
+   "evidence": "https://localcontexts.org/notices/"
+  },
+  {
+   "claim": "The view-cone dataset gives the set of protected public views ('24 polygons of protected public views').",
+   "why_false": "Not contradicted outright, but the record numbering has large gaps (no 1, 2, 3.1, 4-8, 11-19, 23-26), so completeness is doubtful. 'Intersects 0 cones' may be a false clearance.",
+   "correction": "Treat the dataset as partial until it is checked against the View Protection Guidelines. Zero intersections is not clearance.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records : total_count 24, view_numbers listed (3.2.1-3.2.4, 9.1, 9.2, 10, 20-22, 27.1, 27.2, 28, A, B1, B2, D, E, G1, G2, H, J1, J2, K)."
+  }
+ ],
+ "missing": [
+  "Per-Nation engagement record (Musqueam, Squamish, Tsleil-Waututh separately) and a counterpart-type parameter (individual, artist or consultant, Nation staff, authorized representative, Nation corporation)",
+  "Juror-contact guard (K̓ESU+CO on jury; contact disqualifies) and Buildner-only communication channel",
+  "Packet release gate requiring paid Indigenous reviewer sign-off on ladder, phrase list, motif terms and starter cards",
+  "Georeference parameter placing the hypothetical block in real coordinates for view cones and bearings",
+  "Form/metaphor appropriation lint (longhouse, canoe, salmon, spindle whorl 'inspired by' claims) and reference-image gating",
+  "Unicode NFC normalization, glyph-coverage font check and font embedding for Indigenous-language strings",
+  "Urban Indigenous public-realm card, separate from host-Nation rights and title",
+  "Applicability tag per framework item (government vs corporate vs design analogy); FPIC locked as not claimable by entrants",
+  "Downtown precedent(s) of Nation-gifted naming or commissioned art in City public space (verify in browser)",
+  "Verified-Nation-account mechanism for 'Nation-published' cards on a forkable platform",
+  "Squamish and Tsleil-Waututh published policies on engagement (e.g. TWN stewardship policy) - not found; search budget was exhausted this session",
+  "Current status of the 1997 Higher Buildings Policy and the City UNDRIP Action Plan (City domains returned 403 again in this review)",
+  "Anonymity-safe provenance mode: handles and fork authors excluded from exports; C2PA off or platform-signed",
+  "Public versus private viewpoint separation in M06"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Remove the Musqueam referral checklist from the entrant flow; default to E0 and route all contact questions to Buildner only",
+   "Rebuild the engagement ladder per Nation with counterpart type; ban 'consulted' and 'endorsed' for competition entries",
+   "Add juror-contact warning (K̓ESU+CO)",
+   "Paid Indigenous reviewer sign-off before any CULT module is released; otherwise ship M07 plus the E0 statement only",
+   "Correct the ICoD charter claim, cite its 10 protocols, and lock form/naming/art channels at E0/E1",
+   "Close anonymity leaks in M07 (handles, fork authors, C2PA signer)",
+   "Add georeference and treat view-cone results as partial and not clearance",
+   "Fix status labels: referral metric and personal-data metric are not 'verified'",
+   "A human must open the City documents (UNDRIP Strategy, Action Plan, Higher Buildings Policy and Review) in a browser before citing them"
+  ]
+ },
+ "verdict": "Not ready. The packet is careful about numbers. It refuses culture scores and labels its assumptions. But it gets protocol wrong in ways that would harm the Nations and entrants. It points hundreds of students to Musqueam's referral process for a hypothetical entry. Its engagement ladder lets 'consulted' and 'endorsed' rest on self-declared agreement, without separating the three Nations or the authority of whoever was engaged. It does not warn about the Coast Salish juror. It wrongly says the Indigenous Design Charter cannot be retrieved, and it misses form-level appropriation. Anonymity leaks through handles and C2PA. Nothing should be released until an Indigenous reviewer signs off. Search budget ran out during this review and City domains still returned 403, so some checks remain manual.",
+ "sources_checked": [
+  {
+   "source_id": "P07-S10",
+   "url": "https://www.musqueam.bc.ca/departments/title-and-rights/iga/",
+   "ok": true,
+   "note": "8 items confirmed. Addressed to proponents and regulators of projects with regulatory processes, so it does not apply to a competition entry."
+  },
+  {
+   "source_id": "P07-S34",
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "ok": true,
+   "note": "Jury includes Kesugwilakw Sierra Tasi Baker (K̓ESU+CO); contacting jurors means disqualification; anonymous evaluation; AI FAQ as stated; no First Nations engagement statement on page."
+  },
+  {
+   "source_id": "P07-S32",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "note": "24 records; QE Park 3.2.1-3.2.4 confirmed; numbering gaps suggest the set is partial."
+  },
+  {
+   "source_id": "P07-S29",
+   "url": "https://www.theicod.org/resources/news-archive/international-indigenous-design-charter-new-way-thinking",
+   "ok": true,
+   "note": "No principles on the news page, but it links to the resource page and the PDF."
+  },
+  {
+   "source_id": "P07-S29b",
+   "url": "https://www.theicod.org/storage/app/media/resources/International_IDC_book_small_web.pdf",
+   "ok": true,
+   "note": "10 protocols listed; (c) 2018, reproduction barred without consent; contributors are Australian, Inuit and Sami, no named First Nations from Canada."
+  },
+  {
+   "source_id": "P07-S16",
+   "url": "https://en.wikipedia.org/wiki/Sen%CC%93%C3%A1%E1%B8%B5w",
+   "ok": true,
+   "note": "Spec extract matches, including the 2001/2000 conflict, OPTrust Aug 2025, 58 storeys and phase 1 storeys."
+  },
+  {
+   "source_id": "P07-S07",
+   "url": "https://twnation.ca/?p=8419",
+   "ok": true,
+   "note": "25 Oct 2022, 79 actions, four themes confirmed; committee includes urban Indigenous representatives (not in spec)."
+  },
+  {
+   "source_id": "P07-S13",
+   "url": "https://www.squamish.net/partnerships-entities/",
+   "ok": true,
+   "note": "Entities confirmed; page spells 'Hiyám̓ Housing', unlike the spec; no referral or design guidance."
+  },
+  {
+   "source_id": "P07-S27",
+   "url": "https://localcontexts.org/notices/",
+   "ok": true,
+   "note": "Notice types changed (Engagement Notice); Hub Agreements and Terms exist and were not reviewed."
+  },
+  {
+   "source_id": "P07-S42",
+   "url": "https://artificialintelligenceact.eu/article/50/",
+   "ok": true,
+   "note": "Says it applies 2 Aug 2026 but is tagged 'amended'; para 7 appears in two versions; timing unsettled."
+  },
+  {
+   "source_id": "P07-S25",
+   "url": "https://fnigc.ca/ocap-training/",
+   "ok": false,
+   "note": "HTTP 403; trademark status still unverified."
+  },
+  {
+   "source_id": "P07-S36",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403; current status unverified."
+  },
+  {
+   "source_id": "none",
+   "url": "https://en.wikipedia.org/wiki/Vancouver_Art_Gallery",
+   "ok": false,
+   "note": "First 100k characters had no plaza renaming; šxʷƛ̓ənəq Xwtl'e7énḵ Square precedent not verified this session (web search budget exhausted)."
+  }
+ ]
+}

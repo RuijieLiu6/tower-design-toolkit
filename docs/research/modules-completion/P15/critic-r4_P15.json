@@ -1,0 +1,266 @@
+{
+ "expert_role": "Security engineer for sandboxing third-party code, acting as gatekeeper for licences and cited sources (round 4 gate review of P15)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P15 packet (schedule, all core modules)",
+   "issue": "The capacity shortfall has been stated but not fixed. The spec's own figures for core work to 13 Nov are P14 21.0, P15 12.0, P13 about 30.5 and P16 about 10.5 person-days. That totals about 74 person-days against a nominal 34 (17 working days x 2 students), before P01-P12 and P17 are counted. I re-checked the sums against the local r3 packets and they are correct. The cross-packet plan is still marked UNRESOLVED. The first-run notice promises to 'show the later date', but no later date is named. M09 also needs starter-graph T0 modules from other packets by 6 Nov. An entrant cannot know when the tool becomes usable.",
+   "fix": "Before 23 Oct, publish one table covering all packets: module, owner, person-days, and the date each core slice lands. Then pick one of two options. (a) Cut core to the never-cut minimum across all packets so that it fits 34 person-days. (b) Set a dated 'reliable from' day for entrants (for example 20 Nov) and print it on the first-run notice now. The M09 pilot date must follow whichever date is chosen."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "Cross-packet (P15-M03/M06 vs P16-M03; P15-M02 vs P16-M04)",
+   "issue": "The packets define two incompatible status vocabularies and two run-provenance records, and P15 flags neither conflict. P16-M03 (r3, read locally) defines five statuses: verified, team assumption, unverified, unresolved and FALSE ASSUMPTION as a terminal marker. Its rules are also different: verified needs a recorded reviewer, team assumption needs a named owner, and a result takes the worst input. P15-M03 defines four statuses {verified, team_assumption, unverified, false}, treats 'unresolved' as a workflow state, and counts verified as satisfied by 'at least one opened source'. P16-M04 records runs as PROV-O JSON-LD with a 'by/proposer/reviewer' field. P15-M02 records runs as an RFC 8785 RunRecord with decided_by {code|ai|person}. The 'single status vocabulary' metric therefore holds only inside P15. Node chips would disagree with the P16 ledger and exports.",
+   "fix": "Name one owner for the status enum and one for the run record. Adopt one schema, for example P16-M03's statuses mapped onto P15's chips, with decided_by as a projection of PROV agents. Add a cross-packet contract test that fails when the two enums or field names diverge. Record the overlap in P15's flags."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M07 vs P13-M06v vs P16-M04 (board export)",
+   "issue": "Three packets now own board JPEG export, and their methods conflict. P15-M07 specifies a lossless allow-list segment rewriter so that pixel data is never re-encoded. P13-M06v validates the boards. P16-M04 (r3) 're-encodes panels as JPEG without metadata (sharp)' and draws superseded marks into the pixels. That is the lossy route P15 rejected, and it changes the file hash, which invalidates P15's 'scan passed' stamp bound to post-strip hashes. P15 flags only P13 and P14.",
+   "fix": "Choose one export pipeline with a fixed order: render marks, then a single re-encode if one is unavoidable, then the lossless strip, re-scan and stamp, all at the last step. Give it one owner and one stamp format. Add P16-M04 to the overlap flag."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M07 (core egress CSP)",
+   "issue": "The meta-tag CSP does not govern dedicated workers loaded from same-origin URLs. The spec's own source P15-S18 says workers take their CSP from the header on their script response. Only blob and data workers inherit the creator's policy. The core host is unnamed, and on GitHub Pages it cannot send headers. The T0 evaluator worker and the P14-M07 parser workers, which hold Layer 0 geometry, would therefore have unrestricted fetch, WebSocket and importScripts. A compromised dependency inside a worker could send design data out, and nothing would stop it. Separately, script-src lacks 'wasm-unsafe-eval'. Any WebAssembly in the document context (rhino3dm, web-ifc or manifold-3d in P14 core) would be blocked, so the CSP will either break Layer 0 import or be loosened ad hoc.",
+   "fix": "Name a header-capable host for core, such as Cloudflare Pages _headers, and send a CSP header on every worker script. Alternatively, start every worker from a blob: URL so that it inherits the document policy, and add blob: to worker-src. Add 'wasm-unsafe-eval' to script-src. Run P14's importers under the CSP in CI. Add a CI test that calls fetch, WebSocket and importScripts from inside each worker and expects denial."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M03 (T0 grammar on jsep)",
+   "issue": "jsep's default '^' is bitwise XOR at precedence 4. That is below the comparisons (7), + and - (9), and * and / (10). Only '**' (11) is right-associative. If the spec's grammar operator '^' is evaluated as a power, 'a + b^2' parses as '(a+b)^2', and 'x^2 >= 9' parses as 'x^(2>=9)'. T0 threshold formulas would return wrong numbers without any error, and these formulas are the main way modules compute pass/fail. jsep's defaults also include ||, ??, &, |, shifts, %, Compound, SequenceExpression, this, member access and array literals. The allow-list walker must reject all of them.",
+   "fix": "Call jsep.removeBinaryOp for every unlisted operator. Either use '**' for power or re-add '^' with addBinaryOp('^', 11, true). Define how unary minus binds relative to the power operator (-2^2). Add precedence fixtures, for example 'a+b^2', '2*a^2' and 'x^2>=9', each with an expected value. Have the evaluator reject every jsep node type outside the grammar."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15 packet (course rule: code / AI / person)",
+   "issue": "The packet breaks its own decided_by rules. M03 says 'no ai-drafted value is verified without a named person's confirmation'. Yet four metrics are marked status and evidence_status 'verified' with decided_by role ai and confirmed_by null: M01 keyboard operability, M01 non-text contrast, M02 scheduling cost, and M05 published registry size. M03 also requires decided_by on 100% of parameters, but most non-numeric parameters carry none, for example connection_rule, cycle_policy, storage_model and the licence rules.",
+   "fix": "Downgrade those four to team_assumption, or record a named student's confirmation with a pseudonym and date. Add decided_by to every parameter. Run the M03 lint over this packet and publish the pass/fail count in the change log."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15 packet (single status vocabulary)",
+   "issue": "This was an r3 condition and is only partly met. Twelve metrics still carry status 'false_assumption_corrected', a value outside the four-value enum. The packet's own 'Single status vocabulary' lint would reject them. The note explaining that 'status' is a history marker is an exception the schema does not allow.",
+   "fix": "Set status equal to evidence_status on every metric. Move 'false_assumption_corrected' into history[] entries of the form {was_false_in, corrected_in, evidence}."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01 / P14-M01 (Layer 0 freeze owner)",
+   "issue": "Still not addressed. No person owns the 1 Nov port-set freeze, the deprecation window, or the 1.0.0 tag proposal. The fallback ('P15 maintainers freeze', 28 Oct) also names no person. Every typed port id depends on that freeze, and P14 is at schema v0.",
+   "fix": "Record the name, as a pseudonym in exports, and the dates in both packets' decision logs by 23 Oct. Tag the Layer 0 schema 1.0.0 at the freeze. Add the migration fixture from the pilot graph."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01 (focus not obscured)",
+   "issue": "The spec says 'Whether React Flow pans focused nodes into view is undocumented'. The ReactFlow API reference, opened 21 Oct 2026, lists autoPanOnNodeFocus with default true. The drag/gesture enumeration also omits panActivationKeyCode (default 'Space', Space+drag pans) and zoomOnDoubleClick. React Flow's accessibility page also uses Space to select a node.",
+   "fix": "Cite autoPanOnNodeFocus and test whether the auto-pan clears the Controls, MiniMap and panels. If it does not, use setCenter with padding. Add panActivationKeyCode and zoomOnDoubleClick to the Playwright prop enumeration, and decide whether the Space key conflicts with node selection."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01/M02/M04 (Event Timing method)",
+   "issue": "Event Timing reports per event, not per interaction. A single click produces pointerdown, pointerup and click entries. Taking 'p98 over all scripted interactions' from raw entries double-counts interactions and mixes event types.",
+   "fix": "Group entries by interactionId and take the maximum duration per interaction before computing p98. Keep the 16 ms floor for interactions with no reported entry."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M02 (cancel coverage)",
+   "issue": "Cancel relies on Worker.terminate, but first-party module code may run on the main thread ('first-party code or the T0 evaluator in a worker'). A long first-party node cannot be cancelled, which breaks the 'Progress and cancel coverage' metric.",
+   "fix": "Require every evaluation node, first-party included, to run in a worker in core, or exclude main-thread nodes from the over-10 s class with a measured bound."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M08 vs P14-M07, P16-M06/M07 (licence audit, sandbox, repo hygiene)",
+   "issue": "Several pieces of work overlap without being flagged. P14-M07 core already budgets 'licence audit script and SPDX allow-list about 0.5'. P16-M06 outputs a SandboxReport with CSP and sandbox flags 'to confine community code', the same job as P15-M04. P16-M07 adds CODEOWNERS. Duplicated effort feeds the capacity BLOCKER.",
+   "fix": "Assign one owner per artefact (allow-list, notices, sandbox, CODEOWNERS) and remove the duplicate person-days from the other packets."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M08 (Indigenous route)",
+   "issue": "Still only partly addressed. The owner of the SALA and First Nations House of Learning contact is unnamed 14 days before the 4 Nov target. OCAP is still unread, with no retry dates logged.",
+   "fix": "Name the owner in the decision log this week and log the date of each OCAP retry. Keep the hold rule and the CULT notice."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15 sources and licence rows",
+   "issue": "P15-S108, S125 and S126 are file:/// paths that reviewers cannot open, so claims built on them (capacity, the Apache-2.0 proposal) cannot be verified externally. The cosign licence is still 'unverified in this session', although the project is well known to be Apache-2.0 and is easy to confirm on its repository. @giscus/react still has no npm licence field. The 'decided_by actor spec-workflow' value does not identify the model, while P16-M04 stores model ids.",
+   "fix": "Put the packets in a git repository and cite the URL plus commit. Open the cosign LICENSE and record it. Pin giscus to the MIT web component, or record the licence from its repository. Use the model id as the software-agent actor."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Whether React Flow pans focused nodes into view is undocumented (P15-M01 focus metric basis; UNVERIFIED flag).",
+   "why_false": "The ReactFlow component API reference documents autoPanOnNodeFocus with default true.",
+   "correction": "Cite the prop and test whether the auto-pan clears overlays (Controls, MiniMap, panels) under SC 2.4.11. Use setCenter with padding where it does not.",
+   "evidence": "https://reactflow.dev/api-reference/react-flow (opened 21 Oct 2026): autoPanOnNodeFocus true; panActivationKeyCode 'Space'; zoomOnDoubleClick true."
+  },
+  {
+   "claim": "T0 grammar '+ - * / ^' parsed by jsep gives correct arithmetic (P15-M03 t0_grammar_and_limits).",
+   "why_false": "In jsep's default table '^' is bitwise XOR at precedence 4, below comparison (7), additive (9) and multiplicative (10) operators. Only '**' (precedence 11) is right-associative.",
+   "correction": "Remove '^' and re-add it at precedence 11, right-associative, or use '**'. Add precedence fixtures with expected values.",
+   "evidence": "https://raw.githubusercontent.com/EricSmekens/jsep/master/src/jsep.js binary_ops: '^': 4, '+': 9, '*': 10, '**': 11; right_associative = {'**'}."
+  },
+  {
+   "claim": "P15 has one shared status vocabulary {verified, team_assumption, unverified, false} across the platform.",
+   "why_false": "P16-M03 r3 defines a different five-value vocabulary that includes UNRESOLVED, with different rules for 'verified' (a recorded reviewer is required). P16-M04 defines a separate PROV-O provenance ledger.",
+   "correction": "Agree one enum and one run-record schema across P15 and P16, with a contract test.",
+   "evidence": "Local packet 04 Tool Plan/research/modules/P16/revise-r3_P16.json, P16-M03 method and P16-M04 outputs (read 21 Oct 2026)."
+  },
+  {
+   "claim": "A meta-tag CSP plus self-hosted assets enforces 'no data leaves the device' in core (P15-M07).",
+   "why_false": "Dedicated workers loaded from same-origin URLs are not governed by the creating document's CSP; only blob and data workers inherit it. GitHub Pages cannot send headers.",
+   "correction": "Use a header-capable host with a worker CSP, or start workers from blob: URLs. Add 'wasm-unsafe-eval' for P14's WebAssembly. Add a CI test of network denial from inside each worker.",
+   "evidence": "Spec's own P15-S18 extract (MDN Using Web Workers) and P15-S27; P14-M07 r3 runs parsing in workers."
+  }
+ ],
+ "missing": [
+  "A cross-packet capacity table (owners, person-days, landing dates) and a named 'reliable from' date for entrants",
+  "An owner and contract between P15-M03/M02 and P16-M03/M04 for the status enum and the run provenance record",
+  "A single owner and pipeline order for board JPEG export across P13-M06v, P15-M07 and P16-M04",
+  "A named core host and worker-level CSP enforcement",
+  "jsep operator configuration and precedence fixtures for the T0 grammar",
+  "decided_by on the non-numeric parameters, and confirmation or downgrade of the four 'verified' AI-drafted metrics",
+  "Named owners: the Layer 0 freeze, the Indigenous advisory contact, and the pilot facilitator",
+  "Externally resolvable citations (repository URL plus commit) for the internal packets S108, S125 and S126",
+  "Verified VTC dates: the competition page timed out in this round, so registration 29 Oct, submission 30 Nov 23:59 London and results 26 Jan 2027 rest on the r3 reading"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Publish a cross-packet capacity plan that fits 34 person-days to 13 Nov, or print a dated later 'reliable from' day on the first-run notice",
+   "Unify the status enum and the run-provenance schema with P16-M03 and P16-M04, and name the owners",
+   "Choose one board-export pipeline (P13, P15 or P16) so that the post-strip hash stamp stays valid",
+   "Enforce egress for workers (header host or blob workers), add 'wasm-unsafe-eval', and test denial from inside workers in CI",
+   "Fix the jsep '^' precedence and restrict the default operators and node types, with value fixtures",
+   "Make the packet pass its own lint: status is the 4-value enum only, decided_by is on all parameters, and no unconfirmed AI value is marked 'verified'",
+   "Name the Layer 0 freeze owner and the Indigenous-route owner in the decision log"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: cross-packet capacity",
+   "status": "partly",
+   "residue": "The arithmetic is corrected and P15 core is cut to 12.0 person-days, but all packets together need about 74 person-days against 34. The plan is UNRESOLVED and no later entrant date is set."
+  },
+  {
+   "item": "MAJOR: decided_by actor names vs VTC anonymity",
+   "status": "addressed",
+   "residue": "Re-identification through timestamps and free-text labels is acknowledged as untested."
+  },
+  {
+   "item": "MAJOR: exifr cannot strip; lossless JPEG rewriter",
+   "status": "addressed",
+   "residue": "P16-M04 now proposes lossy re-encoding with sharp, which conflicts with this fix."
+  },
+  {
+   "item": "MAJOR: T0 evaluator hardening",
+   "status": "partly",
+   "residue": "The grammar, caps, worker and fuzz suite are specified, but jsep's default '^' precedence (XOR, 4) would silently corrupt formulas."
+  },
+  {
+   "item": "MAJOR: core network egress enforcement",
+   "status": "partly",
+   "residue": "A meta CSP is specified, but it does not reach same-origin workers. The host is unnamed and wasm-unsafe-eval is missing."
+  },
+  {
+   "item": "MAJOR: licence compliance (notices, project licence, canonicalize, CC rows, code/content split)",
+   "status": "addressed",
+   "residue": "Apache-2.0 awaits ratification. canonicalize 5.1.0 Apache-2.0 confirmed on npm; elkjs 0.12.0 'EPL-2.0 OR GPL-3.0-or-later' confirmed."
+  },
+  {
+   "item": "MAJOR: evidence labels relabelled; false_assumption_corrected moved to history[]",
+   "status": "partly",
+   "residue": "Six metrics were relabelled, but twelve still carry status 'false_assumption_corrected', which fails the packet's own enum lint."
+  },
+  {
+   "item": "MAJOR: decided_by on the packet's own presets",
+   "status": "partly",
+   "residue": "decided_by was added to all 91 metrics and 17 numeric parameters. Non-numeric parameters lack it, and four AI-unconfirmed metrics are still 'verified'."
+  },
+  {
+   "item": "MAJOR: Layer 0 freeze owner",
+   "status": "not",
+   "residue": "No person is named. The 1.0.0 tag is only a proposal."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P15-S04",
+   "url": "https://reactflow.dev/learn/troubleshooting/remove-attribution",
+   "ok": true,
+   "note": "Matches the spec: remove attribution only with Pro; Starter $169, Professional $289 per month."
+  },
+  {
+   "source_id": "P15-S77",
+   "url": "https://reactflow.dev/api-reference/react-flow",
+   "ok": false,
+   "note": "Defaults match (selectionKeyCode Shift, zoomOnPinch true, edgesReconnectable true, minZoom 0.5, maxZoom 2). It also documents autoPanOnNodeFocus true, which the spec calls undocumented, plus panActivationKeyCode Space and zoomOnDoubleClick true, which are missing from the inventory."
+  },
+  {
+   "source_id": "P15-S70",
+   "url": "https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds",
+   "ok": true,
+   "note": "Uses actions/attest@v4; no plan or visibility statement, consistent with the spec."
+  },
+  {
+   "source_id": "P15-S113",
+   "url": "https://github.com/EricSmekens/jsep",
+   "ok": true,
+   "note": "MIT; parser only; ternary built in; '**' included by default and right-associative."
+  },
+  {
+   "source_id": "P15-S113 (source)",
+   "url": "https://raw.githubusercontent.com/EricSmekens/jsep/master/src/jsep.js",
+   "ok": false,
+   "note": "'^' is XOR at precedence 4. Using it as power under the spec's grammar is wrong without reconfiguration. Default node types include Member, Call, This, Array and Compound."
+  },
+  {
+   "source_id": "P15-S11 (canonicalize)",
+   "url": "https://registry.npmjs.org/canonicalize/latest",
+   "ok": true,
+   "note": "5.1.0, Apache-2.0, no runtime dependencies."
+  },
+  {
+   "source_id": "P15-S11 (elkjs)",
+   "url": "https://registry.npmjs.org/elkjs/latest",
+   "ok": true,
+   "note": "0.12.0, 'EPL-2.0 OR GPL-3.0-or-later'."
+  },
+  {
+   "source_id": "P15-S82",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": false,
+   "note": "Timed out (60 s); the www retry was blocked by the session fetch limit. Dates unverified this round."
+  },
+  {
+   "source_id": "P15-S87",
+   "url": "https://www.w3.org/TR/event-timing/",
+   "ok": false,
+   "note": "Not fetched (session fetch limit)."
+  },
+  {
+   "source_id": "P15-S17",
+   "url": "https://www.cyera.com/research/sandcastles-not-sandboxes-how-one-architectural-flaw-exposed-seven-products",
+   "ok": false,
+   "note": "Not fetched (session fetch limit)."
+  },
+  {
+   "source_id": "P15-S108",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/04%20Tool%20Plan/research/modules/P14/revise-r3_P14.json",
+   "ok": true,
+   "note": "Core 21.0 person-days against 17 working days; 6 Nov slice 19.5 = 75% of 26. P14-M07 core includes its own licence audit and SPDX allow-list (overlap)."
+  },
+  {
+   "source_id": "P15-S125",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/04%20Tool%20Plan/research/modules/P13/revise-r3_P13.json",
+   "ok": true,
+   "note": "Core slices 5.5+4.5+4.5+1.5+4+7.5+3 = 30.5 person-days, confirmed."
+  },
+  {
+   "source_id": "P15-S126",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/04%20Tool%20Plan/research/modules/P16/revise-r3_P16.json",
+   "ok": true,
+   "note": "13 Nov slices confirmed. Also shows conflicts P15 does not flag: the P16-M03 five-status enum, the P16-M04 PROV ledger with lossy sharp JPEG re-encode, and the P16-M06 sandbox report."
+  }
+ ],
+ "verdict": "Not passable. Round 4 fixed most r3 items: pseudonymous actors, the lossless JPEG rewriter, the T0 hardening design, licence notices and the drag inventory. Entrants still cannot rely on the tool. Core work across all packets needs about 74 person-days against 34, and no dated fallback is given. P15 and P16 define conflicting status vocabularies, run-provenance records and board-export pipelines; P16's lossy re-encode would invalidate P15's hash stamp. The meta CSP does not cover same-origin workers, which hold Layer 0 data, and it lacks wasm-unsafe-eval. jsep's default '^' is XOR at low precedence, so T0 formulas would compute wrong values without any error. The packet fails its own lint: invalid status values, and AI-drafted 'verified' metrics with no confirmation. The Layer 0 freeze owner is still unnamed."
+}

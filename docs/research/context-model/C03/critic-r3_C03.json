@@ -1,0 +1,344 @@
+{
+ "expert_role": "Gatekeeper: open-geodata licensing, vertical datums and static web hosting (re-opened sources 21 Oct 2026)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C03-M08 / validation case 'Published geodetic heights, RTS 18292 App A' (27.2 coordinates)",
+   "issue": "The spec attaches the UTM point X 495,340.12 Y 5,456,431.39 to 27.2's CURRENT 54.3 m boundary, which is 'measured from' the NE corner of 1975 E 12th Avenue. In the RTS 18292 PDF (sha256 21cd965e... re-verified), that coordinate text sits in the Proposed Amendment column (x=322 pt on p.15), not the Current column (x=147 pt). Projected portal parcel geometry puts it 0.113 m from the NE vertex of 2670 Victoria Drive (the proposed 68.9 m reference). The nearest vertex of 1975 E 12th Ave is 76.6 m away. If the record is transcribed as the spec says, the current 54.3 m plane would be anchored about 77 m off its true reference point.",
+   "fix": "Re-transcribe 27.2: current = 54.3 m at NE corner of 1975 E 12th Ave (no coordinates given; take the corner from the parcel layer and record that it was derived); proposed = 68.9 m at NE corner of 2670 Victoria Dr = X 495,340.12 Y 5,456,431.39. Add a column-position check (current/proposed) to every transcription. Keep the horizontal-datum test, which is correct for 2670 Victoria Dr."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C03-M06 metric 'Minor-encroachment tolerance context' (cl. 3.1.5)",
+   "issue": "Adopted PDF p.7 (re-read): 3.1.5 says encroaching 'building elements' (the rooftop amenity items of 3.1.2-3.1.4) 'should be absolutely minimized except where a more stringent requirement or hardship can be demonstrated', and only then 'no greater than 2 m'. 3.1.1 (p.6) says no part of the building, including appurtenances, should encroach. Using 2 m as the yardstick that makes datum error 'far below' tolerable misreads the clause. For massing the bar is 0 m, so a +0.15 m datum offset, 0.081-0.18 m LiDAR error and model error all matter at the boundary.",
+   "fix": "Remove the 2 m framing. Compare every z error against 0 m for massing. Give each cone test an uncertainty band (datum + LiDAR + footprint + user-model georeference) and return three states: clear / within uncertainty / encroaches (unofficial estimate). Cite 3.1.5 only for rooftop-element warnings, quoting its hardship condition."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C03-M08 cov-public-views-params schema: cone geometry",
+   "issue": "The record holds {definition, value_m, reference_point}, but an analytic cone test also needs: origin x, y and ground elevation; eye height (1.68 m, C03-S52); left and right boundary references; and the lower-boundary geometry. The adopted PDF p.3 calls it 'a horizontal lower boundary that establishes the maximum geodetic height permitted', while council text says heights are 'measured from' a parcel corner. Whether the plane is level at value_m or slopes from the origin eye point through (corner, value_m) is not recorded anywhere, and the two readings give different height-limit surfaces.",
+   "fix": "Add origin {x, y, z_ground, z_ref, source}, eye_height_m, left_ref, right_ref, sub-section id, and lower_plane_model enum {horizontal_at_value | origin_to_reference_point | unknown}, with evidence. Default to unknown and show both surfaces until views@vancouver.ca answers."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C03-M03/M04 durable copy of built layers",
+   "issue": "Data 'never enters git', each Pages artifact deploy replaces the whole site, and the plan keeps the previous version's files 'one deploy cycle'. The spec never says where CI gets the unchanged and previous files when it assembles the next artifact. Release zips are 'for citation only'. Actions caches and artifacts expire. A failed portal fetch would then drop a layer from the site or force a full rebuild, which weakens the sha256 subscription model.",
+   "fix": "Make per-layer, per-version release assets (or another durable bucket) the store of record. CI restores the current and previous files by sha256 from it, verifies them, and then uploads the Pages artifact. Document retention and a rollback path."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Previous-round MAJOR residue: live Vista site",
+   "issue": "Re-checked 21 Oct 2026: Vista README line 59 still credits OSM only 'outside the supplied model'. unified_buildings.bin (9,722,568 B) is still public on Pages (206 verified). None of the four repos has a LICENSE. The VCM plan is correct, but the public assets are unchanged.",
+   "fix": "Fix the Vista credit now (central model is OSM-derived, ODbL). Decide whether to unpublish the supplied-model export until the supplier's rights are documented. Add the LICENSE and REUSE.toml files as a first commit, not at the end of M01."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M07 tree heights: outliers and mixed recording modes",
+   "issue": "Re-queried group-by: 84 values, ten classes = 176,200 (verified). The remaining 8,068 records include whole-metre values (14.0 m: 854; 11.0: 639; ...) that do not fit the 10 ft bins, plus implausible heights: 70.0 m x4, 63.0, 50.0, 40.0 m x5. The hygiene rule flags only zeros, so 60-70 m 'street trees' would enter shade studies.",
+   "fix": "Add height_mode {ft_class, metre_value, other}, with ±1.5 m only for ft_class. Flag heights above about 40 m, or above the LiDAR CHM at that point plus a margin, as suspect and exclude them from shadows by default."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M02/M01 GeoParquet CRS for LOD1",
+   "issue": "GeoParquet 1.1 (re-read) requires PROJJSON and says nothing about vertical or compound CRS. The LOD1 schema stores elevations as attribute columns (z_ground_m, z_roof_*), not as geometry Z. A compound CRS on 2D geometry would mislead GDAL and DuckDB readers, and the vertical datum of the attribute columns cannot be expressed in 'crs' anyway.",
+   "fix": "Write a 2D PROJJSON crs (EPSG:3157) on the geometry. Put the vertical datum, EPSG and z_offset per z column in the manifest and in Parquet key-value or column metadata. Use a compound CRS only for true Z geometries."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M06 vertical CRS realisation",
+   "issue": "epsg.io/9245: CGVD2013a(2010) height is 'for use with NAD83(CSRS)v6 and v7'; other epochs are EPSG 20034 and 20035. City LiDAR's horizontal frame is 'NAD 83 (CSRS) 4.0.0.BC.1.GVRD' (re-read), a BC realisation whose reference epoch is not stated in the spec (likely 2002; not verified, search budget exhausted). Making 9245 canonical without matching epochs mixes frames. The shift is probably centimetres, but it is undeclared.",
+   "fix": "Record horizontal realisation and epoch per layer. Register 9245, 20034 and 20035, and pick the CGVD2013a epoch that matches each layer's NAD83(CSRS) epoch. Confirm the BC epoch with GeoBC."
+  },
+  {
+   "severity": "MINOR",
+   "item": "ParcelMap BC offset interpretation",
+   "issue": "The CKAN note (re-read) gives deviations 'relative to results that were previously downloaded' (median 0.05576 m, max 21.43 m). That compares two products. It does not measure the NAD83 to NAD83(CSRS) offset between EPSG:3005 parcels and City data. The spec's 'Do not assume a 0.5-1 m offset: the published median is 0.056 m' does not follow from it.",
+   "fix": "Measure the offset directly: overlay ParcelMap and City parcel vertices at about 20 matched corners, after a declared NTv2 transform and without one. Record the result in accuracy."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Single shared origin for all team Pages sites",
+   "issue": "All project sites are served from ruijieliu6.github.io, so Vista, form-studio, PVV and VCM share one origin. Cache Storage, OPFS, IndexedDB and localStorage quota and keys are shared. One app's eviction or key collision can delete another app's cached layers. (Side benefit: same-origin range reads expose Content-Range, which avoids the missing Access-Control-Expose-Headers problem.)",
+   "fix": "Namespace every cache key and OPFS path (vcm/layers/<id>/<sha>) and use navigator.storage.persist(). Keep the data on the same origin as the app so Content-Range and ETag stay readable."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M01 provenance 'build {script, commit}' for inherited assets",
+   "issue": "The Vista README says the bundle is 'generated with tools/build_pages.py from a private working project'. Inherited assets cannot point to a public script and commit, so open-source provenance cannot be met for them.",
+   "fix": "CI should reject any layer whose build.script is not in a public repo at the recorded commit. Inherited Vista assets stay status hold until they are rebuilt with public scripts."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Policy-source register fields",
+   "issue": "Re-hashed in a browser: all four sha256 values and byte counts match. Last-Modified headers, however, are Higher Buildings 24 Jul 2026 (spec: amended 31 Mar 2026) and Solar Downtown 18 Aug 2026 (amended 29 Jul 2026). The register does not store the server date, so a later silent re-upload is hard to date.",
+   "fix": "Add last_modified_header and etag to each policy record. Treat any sha change as 'needs a person's reading' even when the amendment date is unchanged."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M03 'max size per layer file' parameter and metric",
+   "issue": "The bad threshold cites the git 50 MiB warning and 100 MiB block, but the spec itself says CI-built data never enters git. The binding limits are the 1 GB published site, the 10-minute deploy and browser memory, so the git thresholds are irrelevant.",
+   "fix": "Define the limit by the 20 MB latency budget and a browser memory test. Mention git thresholds only for files that are committed (manifests, small JSON)."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "RTS 18292 App A gives 27.2 Current 54.3 m with UTM X 495,340.12 Y 5,456,431.39",
+   "why_false": "The coordinates are printed in the Proposed Amendment column and match the NE corner of 2670 Victoria Drive (the proposed 68.9 m reference), not 1975 E 12th Avenue (the current reference).",
+   "correction": "Current 54.3 m: NE corner of 1975 E 12th Ave, no coordinates published. Proposed 68.9 m: NE corner of 2670 Victoria Dr, X 495,340.12 Y 5,456,431.39.",
+   "evidence": "cfsc2.pdf (sha256 21cd965e...) p.15 text items: coordinates at x=322 pt (Proposed column; Current column at x=147). Portal parcels: 2670 Victoria Dr NE vertex 0.113 m from the point; nearest 1975 E 12th Ave vertex 76.6 m."
+  },
+  {
+   "claim": "Cl. 3.1.5 sets a 2 m encroachment tolerance against which datum error is 'far below'",
+   "why_false": "3.1.1 allows no part of a building, including appurtenances, to encroach. 3.1.5 covers minor rooftop elements, 'absolutely minimized', with 2 m only where hardship or a stricter requirement is demonstrated.",
+   "correction": "Tolerance for massing is 0 m. Datum and LiDAR errors (0.08-0.18 m, +0.15 m offset) must be carried as an uncertainty band on every cone test.",
+   "evidence": "guidelines-public-views.pdf (sha256 597f0da2..., 210,961 B, 8 pp) p.6 cl. 3.1.1 and p.7 cl. 3.1.5, read in-browser 21 Oct 2026."
+  },
+  {
+   "claim": "ParcelMap BC's published median deviation (0.056 m) shows the NAD83 vs NAD83(CSRS) offset is small, so 0.5-1 m should not be assumed",
+   "why_false": "The statistics compare the new product with results 'previously downloaded from this page'. They do not measure the offset between EPSG:3005 coordinates and City NAD83(CSRS) data.",
+   "correction": "Treat the offset as unknown and measure it at matched parcel corners before any cross-check.",
+   "evidence": "catalogue.data.gov.bc.ca package_show parcelmap-bc-parcel-polygons-ogl notes, metadata_modified 2026-10-20."
+  },
+  {
+   "claim": "City tree heights are 10 ft class values with ±1.5 m uncertainty (all records)",
+   "why_false": "About 4.4% of records hold whole-metre or other values (14.0 m: 854, 11.0 m: 639, ...) and implausible outliers (70 m x4, 63 m, 50 m).",
+   "correction": "Record height_mode per tree, flag heights above about 40 m, and apply ±1.5 m only to ft-class values.",
+   "evidence": "public-trees records group_by height_m, 84 groups, queried 21 Oct 2026."
+  }
+ ],
+ "missing": [
+  "A durable copy of every built layer version that CI restores from (release assets or a bucket); the Pages artifact cannot be the only copy",
+  "Cone parameter fields: origin x, y and z_ground; eye height; left and right boundary references; sub-section id; lower_plane_model (horizontal vs origin-to-reference)",
+  "Uncertainty band and three-state result (clear / within uncertainty / encroaches) for cone tests",
+  "Tree height_mode field and outlier rule (heights above about 40 m)",
+  "Horizontal realisation and epoch per layer, with the matching CGVD2013a epoch code (9245 / 20034 / 20035)",
+  "last_modified_header and etag in policy-source records",
+  "Namespaced browser storage for the shared ruijieliu6.github.io origin",
+  "Public build scripts for any inherited asset (Vista's are in a private project)",
+  "Range probes for .parquet and .pmtiles on Pages, and in Firefox and WebKit (still not run)",
+  "A measured NAD83 vs NAD83(CSRS) offset for ParcelMap BC"
+ ],
+ "previous_round": [
+  {
+   "item": "Repository licensing (all four repos)",
+   "status": "partly",
+   "residue": "Design fixed (code-only LICENSE, REUSE.toml, CI rule; dep5 correctly avoided per REUSE 3.3), but 0 of 4 repos has a LICENSE as of 21 Oct 2026."
+  },
+  {
+   "item": "Supplied studio model and inherited Vista assets",
+   "status": "partly",
+   "residue": "VCM hold decision is sound, but the Vista README still credits OSM only outside the model, and unified_buildings.bin is still served publicly."
+  },
+  {
+   "item": "OGL-Vancouver non-endorsement disclaimer",
+   "status": "addressed",
+   "residue": "Licence page re-read: v1.0, non-endorsement and access-date versioning clauses match the spec."
+  },
+  {
+   "item": "cov-public-views-params legal status",
+   "status": "addressed",
+   "residue": "Status fields added, but the 27.2 coordinate transcription is wrong and the geometry fields are missing (new findings)."
+  },
+  {
+   "item": "Policy-source register coverage (adopted PDFs)",
+   "status": "addressed",
+   "residue": "All four adopted PDFs re-hashed in a browser and matched. Add Last-Modified and ETag to the records."
+  },
+  {
+   "item": "Licence object (SPDX, version, url, accessed)",
+   "status": "addressed"
+  },
+  {
+   "item": "TransLink GTFS characterisation",
+   "status": "addressed",
+   "residue": "Terms re-read: grant, legend, indemnity and fee clause match."
+  },
+  {
+   "item": "Tax report BC Assessment co-owner",
+   "status": "addressed"
+  },
+  {
+   "item": "ParcelMap BC CRS",
+   "status": "partly",
+   "residue": "EPSG:3005 correct; the deviation statistic is misread as the datum offset."
+  },
+  {
+   "item": "LidarBC licence conflict",
+   "status": "addressed",
+   "residue": "Re-read: 'Access Only' (id 22) vs OGL-BC notes; modified 2024-04-18."
+  },
+  {
+   "item": "Policy documents vs missing-licence CI rule",
+   "status": "addressed"
+  },
+  {
+   "item": "ODbL produced-work notices / OSM tiles",
+   "status": "partly",
+   "residue": "Design addressed; form-studio vancouver-map.js still loads tile.openstreetmap.org."
+  },
+  {
+   "item": "Refresh trigger",
+   "status": "addressed",
+   "residue": "public-trees shows data_processed = modified (2026-10-19); the footprint case stands as stated."
+  },
+  {
+   "item": "Overture City of Vancouver content",
+   "status": "addressed"
+  }
+ ],
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": true,
+   "note": "403 to WebFetch. Browser same-origin fetch: 200, 210,961 B, 8 pp, sha256 597f0da2...b0ca, LM 2 Mar 2026. Approved 10 Jul 2024, amended 4 Feb 2026. Table 1 has 24 refs; no heights. p.3 'horizontal lower boundary ... maximum geodetic height'. 3.1.1 p.6, 3.1.5 p.7 read."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "ok": true,
+   "note": "541,991 B, 11 pp, sha256 7b6915d7... matches; LM 18 Aug 2026."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-areas-outside-downtown.pdf",
+   "ok": true,
+   "note": "322,535 B, 5 pp, sha256 30e9951a... matches."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": true,
+   "note": "610,320 B, 5 pp, sha256 a5533f37... matches; LM 24 Jul 2026."
+  },
+  {
+   "url": "https://council.vancouver.ca/20260204/documents/cfsc2.pdf",
+   "ok": true,
+   "note": "3,562,353 B, 55 pp, sha256 21cd965e... matches. 59.8, 54.3, 68.9 and 65.7 m confirmed; 27.2 coordinates sit in the Proposed column (misattributed in spec)."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons/records",
+   "ok": true,
+   "note": "1975 E 12th Ave and 2670 Victoria Dr geometry; the point is 0.113 m from the 2670 Victoria NE vertex and 76.6 m from 1975 E 12th."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": true,
+   "note": "OGL-Vancouver v1.0 text matches the spec (attribution, exemptions, non-endorsement, access-date versioning)."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/public-trees",
+   "ok": true,
+   "note": "184,268 records; fields match; no height-range field; group-by gives 84 values, top-10 sum 176,200; outliers up to 70 m."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "181 tiles, 49 pts/m2, 0.081 m 95%, NAD83(CSRS) 4.0.0.BC.1.GVRD, CGVD28GVRD, 7 and 9 Sep 2022; modified 2023-04-18."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 records; no height field; 'shapre_area' typo confirmed; OGL-V; modified 2026-10-19."
+  },
+  {
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "ok": true,
+   "note": "1 GB site, 100 GB/mo soft, 10 builds/h not for custom Actions, 10-minute timeout, no commercial hosting: all match."
+  },
+  {
+   "url": "https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases",
+   "ok": true,
+   "note": "Under 2 GiB per file, 1000 assets, no total or bandwidth limit: matches."
+  },
+  {
+   "url": "https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github",
+   "ok": true,
+   "note": "50 MiB warning, 100 MiB block: matches."
+  },
+  {
+   "url": "https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage",
+   "ok": true,
+   "note": "'Git LFS cannot be used with GitHub Pages sites' confirmed."
+  },
+  {
+   "url": "https://docs.github.com/en/billing/concepts/product-billing/git-lfs",
+   "ok": true,
+   "note": "Free 10 GiB storage and 10 GiB bandwidth; fork pulls count against the parent: matches."
+  },
+  {
+   "url": "https://reuse.software/spec-3.3/",
+   "ok": true,
+   "note": "REUSE.toml version and [[annotations]]; DEP5 deprecated; 'mutually exclusive': matches."
+  },
+  {
+   "url": "https://geoparquet.org/releases/v1.1.0/",
+   "ok": true,
+   "note": "PROJJSON required, default CRS84, epoch, covering; no vertical or compound CRS guidance; no row-group advice: matches."
+  },
+  {
+   "url": "https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md",
+   "ok": true,
+   "note": "127-byte header; header plus compressed root within 16,384 B; gzip, brotli, zstd. Also lists tile type 0x06 MLT."
+  },
+  {
+   "url": "https://epsg.io/6647",
+   "ok": true,
+   "note": "Replaced by CGVD2013a(1997/2002/2010)."
+  },
+  {
+   "url": "https://epsg.io/9245",
+   "ok": true,
+   "note": "Epoch 2010, for use with NAD83(CSRS)v6/v7; other epochs 20034 and 20035."
+  },
+  {
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "ok": true,
+   "note": "ARP 2 m, outer 45 m with 9 m-above-ground floor, 1:50 over 15,000 m, 1:7, Plan BC 1280, current to 2026-09-30: matches."
+  },
+  {
+   "url": "https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/gtfs/gtfs-data",
+   "ok": true,
+   "note": "Limited, revocable, non-exclusive grant; legend; indemnity; fee clause: matches."
+  },
+  {
+   "url": "https://catalogue.data.gov.bc.ca/api/3/action/package_show?id=lidarbc-open-lidar-data-portal",
+   "ok": true,
+   "note": "'Access Only' id 22 vs OGL-BC in notes; 2024-04-18."
+  },
+  {
+   "url": "https://catalogue.data.gov.bc.ca/api/3/action/package_show?id=parcelmap-bc-parcel-polygons-ogl",
+   "ok": true,
+   "note": "OGL-BC; 3153 to 3005; stats are relative to the previous download, not a datum offset."
+  },
+  {
+   "url": "https://github.com/hyparam/hyparquet",
+   "ok": true,
+   "note": "MIT; passing byteLength saves a HEAD request: matches."
+  },
+  {
+   "url": "https://ruijieliu6.github.io/vancouver-tall-view-tool/generated/unified_buildings.bin",
+   "ok": true,
+   "note": "Chromium 152 same-origin: Range 206 0-99/9722568, no encoding, magic 85 23 83 c4; HEAD gzip 2,383,874; max-age=600; JSON range 206 raw."
+  },
+  {
+   "url": "https://docs.3dbag.nl/en/schema/attributes/",
+   "ok": false,
+   "note": "ECONNREFUSED; ground-statistic claim not re-verified."
+  },
+  {
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/",
+   "ok": true,
+   "note": "No LICENSE, COPYING or NOTICE in any repo (only vendor/leaflet). Vista README l.59 unchanged and says its builds come from a private project. form-studio still uses tile.openstreetmap.org."
+  }
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Re-transcribe RTS 18292 27.2: 54.3 m current at NE corner of 1975 E 12th Ave; the coordinate X 495,340.12 Y 5,456,431.39 belongs to the proposed 2670 Victoria Dr reference",
+   "Remove the 2 m cl. 3.1.5 tolerance framing; cone tests use 0 m tolerance for massing plus a declared uncertainty band and a three-state result",
+   "Extend cov-public-views-params with origin xyz, eye height, lateral refs, sub-section and lower_plane_model (default unknown) before any height-limit surface ships",
+   "Define a durable copy of built layers that CI restores from before the first Pages deploy of VCM data",
+   "Commit LICENSE and REUSE.toml to the repos and fix the Vista central-model OSM credit before VCM is public",
+   "Add tree height_mode and an outlier rule before any shade study uses tree heights",
+   "Keep every cone height unconfirmed and every warning labelled an unofficial estimate (as specified)"
+  ]
+ },
+ "verdict": "Pass with conditions. I re-opened the sources and they hold up: all four adopted PDF hashes, the GitHub Pages, LFS and release limits, REUSE 3.3, GeoParquet, PMTiles, OGL-Vancouver, TransLink, SOR/80-902 and the Pages range behaviour all match the spec. Of the previous round's issues, nine are fully fixed and four partly; the gaps are the still-missing LICENSE files and the unchanged Vista credit. Four new MAJOR errors: the 27.2 coordinate belongs to the proposed reference (2670 Victoria Dr), not the current one, 77 m off; clause 3.1.5's 2 m is misused as an error tolerance when massing allows 0 m; the cone record lacks origin and plane geometry; and no durable copy of built layers is defined. The store, formats and hosting can be built now; the cone-height work must wait for these fixes."
+}

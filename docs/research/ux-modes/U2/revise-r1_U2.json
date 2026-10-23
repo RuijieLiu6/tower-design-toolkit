@@ -1,0 +1,1358 @@
+{
+ "packet_id": "U2",
+ "patterns": [
+  {
+   "name": "One stage state drives four layers",
+   "tool": "Fusion workspaces, Blender workspaces, SketchUp scenes",
+   "how_it_works": "Fusion gives each workspace its own toolbar tabs. Blender workspaces are preset layouts per job. A SketchUp scene saves camera, style, visibility, section planes and shadows together. Each switch changes several layers at once.",
+   "why_it_helps": "One switch changes what you see, what you can do and how the screen is laid out, so the shift is felt, not just listed.",
+   "apply_to_tower_studio": "Create a StageScene config per stage: camera and projection, envelope opacity, element visibility, section, line set, CSS tokens. setStage tweens one stageT; Viewport, TopBar, library and panels read it. Today only NodeLibrary and RightPanel read phase.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: each help page describes the bundled layers. Interpretation: none of these tools couples representation, chrome and tools in one switch; Tower Studio would do so deliberately.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/ENU/Fusion-GetStarted/files/GS-WORKSPACES.htm",
+    "https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html",
+    "https://help.sketchup.com/en/sketchup/creating-scenes",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/NodeLibrary.tsx"
+   ]
+  },
+  {
+   "name": "Development tag per element, not per model",
+   "tool": "BIMForum LOD Specification 2025",
+   "how_it_works": "BIMForum levels belong to elements and are cumulative. Each element can carry Current LOD and Target LOD attributes. A Schematic Design model mixes 100, 200, 300 and more.",
+   "why_it_helps": "Tells users how far to trust each element and result, matching the evidence-flag culture already in the app.",
+   "apply_to_tower_studio": "Add lod to each element and result card. Chip text LOD 100, 200 or 300 plus one to three bars; never L100, which reads as a floor level. Envelope, plates, plant floors and a share-based core box are LOD 100; LOD 200 needs a module's recognizable geometry.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "Verified in the 2025 Part I PDF text: there is no such thing as an LOD model; LOD 100 includes space-reservation volumes and derived information is approximate; a 200 elevator needs shaft envelope, stops and machine location. Interpretation: which of our elements sit at which level.",
+   "source_urls": [
+    "https://bimforum.org/wp-content/uploads/2026/01/LOD-Spec-2025-Part-I-Official.pdf",
+    "https://bimforum.org/resource/lod-level-of-development-lod-specification/"
+   ]
+  },
+  {
+   "name": "Fidelity never outruns reliability",
+   "tool": "BIMForum LOD 100 and 200 definitions, Rhino display modes",
+   "how_it_works": "BIMForum: an element that is detailed but inaccurately located can be no higher than LOD 200, and information derived from LOD 100 or 200 elements is approximate. Show development by outline tone, not richness: LOD 100 no outline, LOD 200 mid-grey, LOD 300 ink.",
+   "why_it_helps": "Stops a handsome schematic tower claiming accuracy it lacks, without borrowing dash patterns that mean something else.",
+   "apply_to_tower_studio": "Outline-tone tokens per LOD; 12 to 18 percent shell fill; an approximate note on numbers derived from LOD 100 or 200 elements. Line weight stays reserved for cut, profile and projection. Material detail appears only in Present.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: BIMForum statements, read in the PDF text. Interpretation: translating reliability into outline tone is my design rule, not a BIMForum requirement.",
+   "source_urls": [
+    "https://bimforum.org/wp-content/uploads/2026/01/LOD-Spec-2025-Part-I-Official.pdf",
+    "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm"
+   ]
+  },
+  {
+   "name": "Line weight hierarchy and poche; dashes mean hidden",
+   "tool": "Revit Object Styles and cut patterns, Rhino Technical and Make2D, drafting convention",
+   "how_it_works": "Three weights by role: cut 2.5 px, profile 1.25 px, projection 0.75 px (0.70, 0.35 and 0.18 mm pens at 96 dpi, rounded). Cut solids get a solid or hatched fill (poche), darkest for core and slabs. Dashed means hidden or overhead; dotted marks exploded original positions.",
+   "why_it_helps": "Architects read weight and dash as grammar; keeping the grammar makes sections legible and stops stage cues being misread.",
+   "apply_to_tower_studio": "drei Line lineWidth per role, multiplied at export by capture width over viewport width. Draw poche as filled plate polygons at the cut level. Hidden lines appear only in the X-ray preset, dashed.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: Revit sets cut and projection weights per category and separate cut and surface patterns; Rhino Technical can show hidden lines dashed; Make2D sends hidden lines to hidden layers. Secondary: pen widths differ between teaching sources; ISO 128 not read.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-Customize/files/GUID-050DA470-B116-4A60-92E3-8099C30B0BA2.htm",
+    "https://help.autodesk.com/cloudhelp/2022/ENU/Revit-Customize/files/GUID-EBD9E8E6-AF83-4579-8D9A-9B9E23DCAA52.htm",
+    "https://docs.mcneel.com/rhino/mac/help/en-us/options/view_displaymodes_technical.htm",
+    "https://docs.mcneel.com/rhino/8/help/en-us/commands/make2d.htm",
+    "https://learnarchitecture.net/articles/39292-architectural-line-weights.html",
+    "https://en.wikipedia.org/wiki/Engineering_drawing"
+   ]
+  },
+  {
+   "name": "Representation presets: clay, x-ray, drawing, render",
+   "tool": "Rhino display modes, Revit visual styles and 3D views, VTC brief",
+   "how_it_works": "Rhino offers Arctic, Ghosted, X-Ray, Technical and Rendered; Revit sets visual style per view and offers perspective or orthographic 3D views. Define six presets: Clay, X-ray, Plan, Section, Exploded axonometric, Lit view. Stages have defaults; Present picks per shot.",
+   "why_it_helps": "Students already read these conventions, so the representation itself announces the stage and the shot.",
+   "apply_to_tower_studio": "A Preset object sets projection, material set, line set, section plane and overlays. Massing defaults to Clay in perspective, Schematic to X-ray in parallel, Present to the last preset. One tower mesh, several material and line sets.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: Rhino and Revit mode descriptions; VTC brief pp. 29-30 list diagrams, plans, sections, views and performance studies. Interpretation: the six-preset set and the stage defaults.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm",
+    "https://www.rhino3d.com/features/display/display-modes/",
+    "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-DocumentPresent/files/GUID-12C2D6B0-71ED-490E-9CC6-AD3C635F092B.htm",
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-DocumentPresent/files/GUID-D70048A8-71C4-47DB-9A7D-5463ADABAFF4.htm",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/03%20Vancouver%20Tall%20Competition%20Brief/FULL%20COMPETITION%20BRIEF%20%5BENG%5D%20%5BFR%5D%20%5BIT%5D%20%5BES%5D%20%5BCN%5D/FULL%20COMPETITION%20BRIEF%20%5BENG%5D%20%5BFR%5D%20%5BIT%5D%20%5BES%5D%20%5BCN%5D/_Vancouver%20Tall%20Challenge%20-%20ENG.pdf"
+   ]
+  },
+  {
+   "name": "Ghost the shell, keep the program colour",
+   "tool": "Rhino Ghosted and X-Ray, three.js materials, drei Edges",
+   "how_it_works": "TowerMesh already merges floors into band blocks. Animate each block to about 0.18 opacity with its band colour kept: transparent, depthWrite false. Interior meshes stay opaque and draw first. Edges through drei Edges (default threshold 15 degrees); plates as one merged line set.",
+   "why_it_helps": "Shows the same tower with an inside while the colour code from Massing still reads.",
+   "apply_to_tower_studio": "Replace the single material path in TowerMesh with stage-driven band shells plus an Interior group: core box, plant hatching, plate lines. Core in neutral blue-grey, so program is ground and new elements are figure. Keep castShadow on shells.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: three.js Material docs on transparent, depthWrite and render order; drei Edges; Rhino Ghosted and X-Ray. Unverified: that a ghosted shell still casts a solid shadow; check in the spike.",
+   "source_urls": [
+    "https://threejs.org/docs/pages/Material.html",
+    "https://raw.githubusercontent.com/pmndrs/drei/master/docs/abstractions/edges.mdx",
+    "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/Viewport.tsx"
+   ]
+  },
+  {
+   "name": "A valid graphic at every frame",
+   "tool": "Heer and Robertson 2007",
+   "how_it_works": "Their guideline: keep intermediate states valid data graphics and use consistent mappings so similar changes look similar. Here the colour-by-program code must read at every stageT value, not vanish and return.",
+   "why_it_helps": "Users keep their bearings mid-transition, and an interrupted shift still shows a legible model.",
+   "apply_to_tower_studio": "Band colour stays a tint on the shell at all stageT; legend and anatomy swatches never change. Test by freezing stageT at 0.5 and asking a student to read the program stack.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified in the PDF text: maintain valid data graphics during transitions; use consistent semantic-syntactic mappings. Interpretation: applying a statistical-graphics guideline to a 3D model.",
+   "source_urls": [
+    "https://homes.cs.washington.edu/~jheer/files/2007-AnimatedTrans-InfoVis.pdf"
+   ]
+  },
+  {
+   "name": "Section cut with poche cap",
+   "tool": "Rhino ClippingPlane, SketchUp section planes, three.js clipping",
+   "how_it_works": "Set renderer.localClippingEnabled and assign clippingPlanes to shells, interior and line materials; LineMaterial declares clipping support in its source. Slide the plane by floor. Cap with the plate rectangle drawn as poche; three.js's stencil example is the fallback for arbitrary solids.",
+   "why_it_helps": "A section is how architects read vertical organisation; one slider replaces guessing from orbit views.",
+   "apply_to_tower_studio": "Add Section (scissors-line-dashed) with a floor slider that also drives the plan inset. Store the plane in each StageScene and preset so Present reuses it. First, a two-hour spike on drei Line clipping.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified: Rhino ClippingPlane and SketchUp behaviour; LineMaterial source includes clipping shader chunks; three.js webgl_clipping_stencil builds caps with stencil operations. Unverified: drei Line clipping inside this app.",
+   "source_urls": [
+    "https://docs.mcneel.com/rhino/8/help/en-us/commands/clippingplane.htm",
+    "https://help.sketchup.com/en/sketchup/creating-scenes",
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/jsm/lines/LineMaterial.js",
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/webgl_clipping_stencil.html",
+    "https://raw.githubusercontent.com/pmndrs/drei/master/docs/shapes/line.mdx"
+   ]
+  },
+  {
+   "name": "Exploded axonometric toggle",
+   "tool": "Exploded-view conventions, Fusion Animation workspace",
+   "how_it_works": "Exploded views pull parts apart; in architecture elements hover above the plan with original positions marked by shading or dotted outlines. Offset each band and the core along height by index times gap, eased, in parallel projection.",
+   "why_it_helps": "Shows program stacking and plant or transfer floors as separable parts, a classic studio drawing.",
+   "apply_to_tower_studio": "Add Explode (unfold-vertical) in Schematic once the parallel camera exists. Dotted outlines at original heights; label each part with its glyph tile. Staged: bands first, then core.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified (secondary): Wikipedia on exploded views and dotted original positions; Fusion offers exploded views. Interpretation: staged order and labels. Dependency: a true axonometric needs the orthographic camera.",
+   "source_urls": [
+    "https://en.wikipedia.org/wiki/Exploded-view_drawing",
+    "https://help.autodesk.com/cloudhelp/ENU/Fusion-GetStarted/files/GS-WORKSPACES.htm"
+   ]
+  },
+  {
+   "name": "Parallel projection, not a narrower lens",
+   "tool": "Revit orthographic 3D views, Rhino Parallel, three.js OrthographicCamera",
+   "how_it_works": "Axonometric is parallel projection, so a narrower fov stays perspective. Use an OrthographicCamera in Schematic. To hide the swap, dolly the perspective camera to fov 4 (distance times tan 19 over tan 2 degrees, about 9.9), then swap to an orthographic frustum of equal height.",
+   "why_it_helps": "Rhino and Revit users treat parallel and perspective as distinct projections; a true parallel view reads as a drawing.",
+   "apply_to_tower_studio": "CameraRig owns both cameras: tween fov and distance along the view ray, scale fog near and far with distance, swap with makeDefault, carry zoom. Presets: isometric (elevation 35.26 degrees), plan, elevation. Reduced motion: jump.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified: Wikipedia (secondary) defines axonometric as parallel; Revit and Rhino offer parallel or orthographic and perspective views; three.js OrthographicCamera has zoom. Derived: dolly ratio. Untested: that the swap is invisible at fov 4.",
+   "source_urls": [
+    "https://en.wikipedia.org/wiki/Axonometric_projection",
+    "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-DocumentPresent/files/GUID-D70048A8-71C4-47DB-9A7D-5463ADABAFF4.htm",
+    "https://docs.mcneel.com/rhino/9/help/en-us/commands/viewportproperties.htm",
+    "https://threejs.org/docs/pages/OrthographicCamera.html",
+    "https://raw.githubusercontent.com/pmndrs/drei/master/docs/cameras/orthographic-camera.mdx",
+    "https://r3f.docs.pmnd.rs/api/canvas"
+   ]
+  },
+  {
+   "name": "Staged, interruptible stage transition",
+   "tool": "Heer and Robertson 2007, NN/g animation, Apple HIG motion",
+   "how_it_works": "Two overlapping stages, not three: chrome tokens with shell and camera, then the interior reveal in about eight groups. Default 480 ms, exits 320 ms, first shift per session 800 ms. Ease out entering, ease in leaving. One stageT lets any key retarget mid-flight.",
+   "why_it_helps": "Simple staging helps change tracking; short defaults protect a frequent action that already has keys 1, 2 and 3.",
+   "apply_to_tower_studio": "25-line tween helper and a useMotion hook. Stagger by group (band, podium, core), never per floor: 67 floors at 10 ms would end near 1,030 ms. Consider frameloop demand with invalidate after checking Sun, Label and damping.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: NN/g says 100 to 500 ms, 500 ms starts to feel like a drag, frequent actions shorter. Heer and Robertson favour simple staging and cite about 1 s for tracked change. HIG: allow cancelling. The 480, 320 and 800 ms values are my interpolation.",
+   "source_urls": [
+    "https://homes.cs.washington.edu/~jheer/files/2007-AnimatedTrans-InfoVis.pdf",
+    "https://www.nngroup.com/articles/animation-duration/",
+    "https://developer.apple.com/design/human-interface-guidelines/motion",
+    "https://r3f.docs.pmnd.rs/advanced/scaling-performance",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/App.tsx"
+   ]
+  },
+  {
+   "name": "Stage tokens with a constant type scale",
+   "tool": "Tailwind v4 theme variables, Material 3 shared axis",
+   "how_it_works": "Set data-stage on html and override @theme tokens under [data-stage] selectors, since utilities read CSS variables. Transition background, border and colour over 200 ms. Keep one type scale and constant panel widths; change density through row padding, radius and line weight.",
+   "why_it_helps": "Palette and rhythm change together without reflow, which Grasshopper users found distracting when sizes changed.",
+   "apply_to_tower_studio": "First replace 13 bg-white, 19 bg-slate-, 25 text-slate- and 4 bg-sky- uses in 11 files with token utilities (counts re-measured). Keep a token table with contrast per surface; low-contrast hairlines may carry no information.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Tailwind docs: theme variables compile to CSS variables; the selector override follows from var(). Contrast ratios computed here with the WCAG formula. Grasshopper forum: size changes between display modes felt distracting.",
+   "source_urls": [
+    "https://tailwindcss.com/docs/theme",
+    "https://raw.githubusercontent.com/material-components/material-components-android/master/docs/theming/Motion.md",
+    "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1093001",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/index.css"
+   ]
+  },
+  {
+   "name": "Reduced-motion branch",
+   "tool": "prefers-reduced-motion, WCAG 2.3.3, NN/g, Apple HIG",
+   "how_it_works": "Read matchMedia('(prefers-reduced-motion: reduce)') and listen for changes. When set, camera, translation, scale and stagger take 0 ms; keep a 150 ms opacity cross-dissolve. Add an in-app Motion: Reduced switch.",
+   "why_it_helps": "Large pans and scales can cause discomfort for people with vestibular disorders; stage meaning survives without movement.",
+   "apply_to_tower_studio": "One useMotion hook returns durations; every tween and CSS transition reads it. Test the Massing to Schematic shift with the OS setting on, including the projection swap.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "MDN: reduce means minimise non-essential motion and warns about scaling and panning. WCAG 2.3.3 (AAA) covers interaction-triggered motion; opacity-only changes fall outside. NN/g and HIG advise respecting the setting and not relying on motion alone.",
+   "source_urls": [
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion",
+    "https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html",
+    "https://www.nngroup.com/articles/animation-duration/",
+    "https://developer.apple.com/design/human-interface-guidelines/motion"
+   ]
+  },
+  {
+   "name": "Stage rail: Massing, Schematic, Present, with return loops",
+   "tool": "NN/g progressive disclosure, Revit tab sets, Fusion workspaces",
+   "how_it_works": "Three stage tabs with icon, label and subtitle. The process is a loop, so each tooltip names the way back (Back to Massing: edits carry over). Evaluate stays in the right panel at every stage. Two disclosure levels only.",
+   "why_it_helps": "Resolves the earlier critique: stage is not expertise, and checks are never hidden behind a stage.",
+   "apply_to_tower_studio": "Rename labels, keep ids basic, advanced, present. Tooltips keep the user's words: basic model, advanced model. The Results & evidence tab stays in every stage, with LOD tags on each result.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: NN/g progressive disclosure and its two-level limit; Revit lets users show or hide tool-set tabs. The earlier critique itself was known only from a summary.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/progressive-disclosure/",
+    "https://help.autodesk.com/cloudhelp/2014/ENU/Revit/files/GUID-C25E7343-0E12-4578-BB1F-77E4551109CA.htm",
+    "https://help.autodesk.com/cloudhelp/ENU/Fusion-GetStarted/files/GS-WORKSPACES.htm"
+   ]
+  },
+  {
+   "name": "Guide level separate from stage",
+   "tool": "NN/g progressive disclosure, Grasshopper Draw Icons and Full Names",
+   "how_it_works": "A Guided or Open setting in the user menu. Guided shows labels, hints and the starter library; Open adds the node canvas by default, shortcuts and raw parameters. Grasshopper likewise lets users pick icon, nickname or full-name display, globally or per component.",
+   "why_it_helps": "Novices and experts get different density without changing what the model means.",
+   "apply_to_tower_studio": "Add guide: 'guided' | 'open' to the store, default guided on first run. It never changes representation or which modules exist, only defaults and density.",
+   "cost": "S",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified: NN/g says a small initial set helps novices and experts; Grasshopper forum documents display options per component. Interpretation: this specific two-value setting.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/progressive-disclosure/",
+    "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1093001"
+   ]
+  },
+  {
+   "name": "Cumulative stage libraries by element class read",
+   "tool": "NN/g progressive disclosure, Tower Studio registry",
+   "how_it_works": "Add reads: ElementClass[] to NodeDef and derive stage as the highest class read. Volume or band gives Massing; plate, core, lift, structure, plant or facade gives Schematic; view or camera gives Present. Cross-cutting modules go to the Evaluate lens. Delete ADVANCED_CATS.",
+   "why_it_helps": "Schematic can never look smaller than Massing, and Massing stops opening with 60 rows.",
+   "apply_to_tower_studio": "Show New here plus a collapsed Carried from Massing row; runnable modules first, researched ones in a collapsed Roadmap drawer with a count. A unit test fails if a module's stage is below the stage of any class it reads.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Measured from src: v0.1 rule gives Basic 60 (4 built), Advanced 58 (0 built), Present 9, hidden 53. Per-module classes are inferred from names and questions until reads is declared.",
+   "source_urls": [
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/NodeLibrary.tsx",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/data/research_registry.json",
+    "https://www.nngroup.com/articles/progressive-disclosure/"
+   ]
+  },
+  {
+   "name": "Library before and after: counts, ties, SITE split",
+   "tool": "Tower Studio registry, 176 modules",
+   "how_it_works": "Researched modules, before to after: Massing 56 to 53, Schematic 58 to 48, Evaluate lens 0 to 9, Present 9 to 9, platform 53 to 57. Eleven basic-phase modules were pushed by category plus one cross-cutting; ten return to Massing and P08-M02 moves in.",
+   "why_it_helps": "One published table lets the team check the rule rather than trust it, and shows Massing is dominated by SITE.",
+   "apply_to_tower_studio": "Split Massing's 26 SITE modules: Rules and policy 3, Frames and datum 4, Sun and wind criteria 2, View cones 13; re-tag C01-M01, C01-M07, C04-M07, C04-M08 as platform. P10-M02 stays Massing; P10-M05 and P08-M02 go to Schematic as one built module.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Computed from research_registry.json with the v0.1 stageOf rule and the proposed rule. Runnable counts: Massing 4; Schematic 3 new plus 4 carried. Stages and sub-steps are judged from module names, not inputs.",
+   "source_urls": [
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/data/research_registry.json",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/NodeLibrary.tsx"
+   ]
+  },
+  {
+   "name": "Minimum Schematic slice: plates, plant floors, core box",
+   "tool": "Tower Studio engine, registry P10-M05 and P11-M03, BIMForum elevators",
+   "how_it_works": "Draw only what a parameter or module produces. Floor plates come from towerFloors (f2f, podium, width, depth). Plant floors come from mechanical bands, with an Add plant floors action because the default tower has none. One core box uses an editable core share, default 25 percent, flagged Team assumption.",
+   "why_it_helps": "Schematic gains a true inside without invented lifts or facade, so the stage is not a glass costume on a box.",
+   "apply_to_tower_studio": "Acceptance rule enforced by an element type: each has a source (parameter or module), a provenance flag and a LOD tag, or it is not drawn. Chips read LOD 100. Lifts, structure and facade follow when P11-M01, P10-M05 and P12-M06a exist.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified in source: towerFloors yields plates, USES includes mechanical, default bands omit it. Registry P10-M05 lists core ratio good at or below 25 percent (team assumption). Three days is my estimate.",
+   "source_urls": [
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/engine/massing.ts",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/store.ts",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/data/research_registry.json",
+    "https://bimforum.org/wp-content/uploads/2026/01/LOD-Spec-2025-Part-I-Official.pdf"
+   ]
+  },
+  {
+   "name": "Dependency-ordered steps with feedback loops",
+   "tool": "Lift planning practice, registry P08-M02, P10-M05, P11-M01",
+   "how_it_works": "Population and plate size drive lift zoning; lift shafts size the core; structure follows the core. Taller buildings need a larger core share. The registry already says Advanced replaces a tagged core with the lift-core result. Order: Plates, Lifts, Core, Structure, Plant, Facade, with arrows back to Massing.",
+   "why_it_helps": "The rail teaches the real order of decisions and shows that stepping back is normal, not failure.",
+   "apply_to_tower_studio": "Stage rail tooltip and onboarding draw a loop. Examples: core share over 25 percent returns to plates; plant clash returns to height or f2f. Until P11-M01 exists, Core runs on an assumed share and says so.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: Peters Research ties core size to lift zoning; a thyssenkrupp paper (snippet) urges early lift input; registry method text. Interpretation: the exact six-step order and loop examples.",
+   "source_urls": [
+    "https://wordpress.peters-research.com/?p=1033",
+    "https://www.tkelevator.com/media/uk/high_rise/white_paper_on_elevator_traffic_analysis-ea-en.pdf",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/data/research_registry.json"
+   ]
+  },
+  {
+   "name": "Mass stays the framework",
+   "tool": "Revit Building Maker and mass floors",
+   "how_it_works": "Revit converts mass faces into walls, floors and roofs, and updates them when the mass changes; mass floors come from dividing the mass at levels. Schematic elements derive from massing the same way.",
+   "why_it_helps": "Stepping into Schematic is not a one-way door; early massing edits are not wasted.",
+   "apply_to_tower_studio": "Keep massing handles live as ghost outlines in Schematic. Plates, core and plant re-derive on change; hand-moved elements get an Overridden chip and stop updating until reset.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified: Autodesk help describes mass-to-element conversion and updates. Interpretation: the override chip and ghost handles are my additions.",
+   "source_urls": [
+    "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-HaveYouTried/files/GUID-E612B831-02D6-4BF4-98BD-D834A5F3E699.htm"
+   ]
+  },
+  {
+   "name": "Plan inset tied to a floor scrubber",
+   "tool": "Plan and section conventions, Revit views",
+   "how_it_works": "A bottom floor scrubber picks the level; a 240 px SVG plan shows the plate, core and area at that level in the same three line weights, with the cut filled as poche. Selecting an element in the plan highlights it in 3D.",
+   "why_it_helps": "Adds the drawing view Rhino and Revit users expect and makes plate efficiency visible.",
+   "apply_to_tower_studio": "Derive plan rectangles from the same element data as the 3D view. Show in Schematic and as the Plan preset in Present; the scrubber also drives the section plane.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified: plan is a horizontal slice (Wikipedia, secondary); Revit sets detail level per view; brief p. 30 suggests typical lower, mid and upper plans. Interpretation: inset size and scrubber link.",
+   "source_urls": [
+    "https://en.wikipedia.org/wiki/Architectural_drawing",
+    "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-DocumentPresent/files/GUID-3FEAFCD6-1DBD-44B3-91A7-B3CC0E396689.htm"
+   ]
+  },
+  {
+   "name": "Present: frame and compose, a preset per shot",
+   "tool": "VTC brief submission requirements, Rhino Make2D, PresentPanel",
+   "how_it_works": "Each shot picks a representation preset, camera, section level and caption. Capture files it with a sidecar: preset, projection, source stage, flags, LOD tags. The brief's suggested set maps to presets: plans and sections, diagrams, performance studies, skyline and ground-level views.",
+   "why_it_helps": "Boards are mostly drawings; Present supports that and keeps every image tied to its evidence.",
+   "apply_to_tower_studio": "Extend PresentPanel with a preset picker, shot list and sidecar JSON; add typical plans and two sections to the VTC checklist, where they are missing. Stamps stay in the sidecar so boards carry no team identity. Lit view uses neutral clay until facade geometry exists.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified in the English brief: four A2 landscape boards, 10 MB each, no identity; suggested plans, sections, diagrams, studies, a Queen Elizabeth Park skyline and four ground-level views. The brief text read has no AI-image rule.",
+   "source_urls": [
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/03%20Vancouver%20Tall%20Competition%20Brief/FULL%20COMPETITION%20BRIEF%20%5BENG%5D%20%5BFR%5D%20%5BIT%5D%20%5BES%5D%20%5BCN%5D/FULL%20COMPETITION%20BRIEF%20%5BENG%5D%20%5BFR%5D%20%5BIT%5D%20%5BES%5D%20%5BCN%5D/_Vancouver%20Tall%20Challenge%20-%20ENG.pdf",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/PresentPanel.tsx",
+    "https://docs.mcneel.com/rhino/8/help/en-us/commands/make2d.htm"
+   ]
+  },
+  {
+   "name": "Board crop on a neutral surround",
+   "tool": "Material container transform, colour-viewing practice",
+   "how_it_works": "Show the board as paper white at A2 landscape ratio inside a neutral grey surround (about #b8b8b8, between Munsell N7 and N8) with crop marks. Panels slide out along their own axis (300 ms); the viewport reshapes as a container transform (300 enter, 250 return).",
+   "why_it_helps": "Judging light boards against black misleads values; a neutral surround is standard colour-viewing practice.",
+   "apply_to_tower_studio": "CSS grid transitions for panels, an overlay for crop marks, the existing capture path (preserveDrawingBuffer already true). Capture at board resolution and scale line weights. No accent hue in Present chrome: the hues are taken by seven bands and five flags.",
+   "cost": "M",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified (vendor guidance): a neutral N8-or-darker surround avoids colour shifts; ISO 3664 text not read. Material container transform defaults verified. The N7 and N8 grey values are my conversion; 18 percent grey is wrong for a surround.",
+   "source_urls": [
+    "https://www.piworld.com/post/neutral-gray-the-key-to-accurate-color-viewing/",
+    "https://raw.githubusercontent.com/material-components/material-components-android/master/docs/theming/Motion.md",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/PresentPanel.tsx"
+   ]
+  },
+  {
+   "name": "Lock the model in Present",
+   "tool": "NN/g on modes",
+   "how_it_works": "NN/g defines a mode as same input, different result, and advises two redundant cues for the active mode and avoiding modes where mistakes cost data. In Present, orbit, section level, Explode and capture work; parameter fields are disabled with a lock chip.",
+   "why_it_helps": "Prevents editing the tower while believing you are only framing a view.",
+   "apply_to_tower_studio": "Disable DesignPanel inputs and Place on map in Present; show a lock-keyhole chip reading Model locked, edit in Schematic. Stage cue 1: tab highlight. Cue 2: palette and representation.",
+   "cost": "S",
+   "priority": "v1",
+   "status": "verified",
+   "evidence": "NN/g modes article, opened. The chip wording and which controls lock are my design.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/modes/"
+   ]
+  },
+  {
+   "name": "Two-tier icon system: Lucide verbs, team glyph nouns",
+   "tool": "Lucide, team program glyphs",
+   "how_it_works": "Lucide (installed 1.61.0, ISC, 24 px grid) for stages, tools and actions. The team's filled glyph tiles only for program bands and building elements. Tile fill is the band colour itself, not tileColour, which lifts saturation and turns greys beige. Ink on the seven band colours measures 5.0:1 to 9.1:1.",
+   "why_it_helps": "Style signals meaning: outline is what you do, coloured tile is what is in the building; one colour per program everywhere.",
+   "apply_to_tower_studio": "Port glyphTile as a React component, fill from USES[band].color, ship only the roughly 20 glyphs used. Never mix the two tiers in one toolbar. Use the same colour in viewport, tile and legend.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: lucide-react 1.61.0 ISC header; tileColour code and INK #1f1d1b; contrast computed here; HIG and Carbon ask for one size and style per set. The two-tier choice is interpretation.",
+   "source_urls": [
+    "https://lucide.dev/license",
+    "https://developer.apple.com/design/human-interface-guidelines/icons",
+    "https://carbondesignsystem.com/elements/icons/usage/",
+    "file:///C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/app/icons/glyph_icons.js"
+   ]
+  },
+  {
+   "name": "Reviewed band-to-glyph table",
+   "tool": "Team catalogue programmes.json",
+   "how_it_works": "Catalogue names carry tiers or single programmes. Exact: SE1 street retail, SB2 mechanical floor, SB1 core. Near: WK1 Office Class AAA or A, ST2 upscale or select-service hotel, LV1 Market condo. Narrow: GP6 museum, LE2 free public deck. AM5 is a sky lobby floor, not lifts.",
+   "why_it_helps": "A glyph that says Market condo on a generic residential band teaches the wrong thing.",
+   "apply_to_tower_studio": "Ship exact and near glyphs with the catalogue name in the tooltip. Use SB1 for core and lifts. Commission generic civic, amenity and residential glyphs if the in-context test shows confusion.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: programmes.json names for SE1, WK1, ST2, LV1, GP6, LE2, AM5, SB1, SB2. Fit grades are judged from names; glyph pictures were not re-viewed this round.",
+   "source_urls": [
+    "file:///C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/catalogue/programmes.json"
+   ]
+  },
+  {
+   "name": "Icon collision audit and canonical names",
+   "tool": "Tower Studio imports, lucide-react 1.61.0",
+   "how_it_works": "Existing imports: Plus, Trash2, ArrowUp, ArrowDown, Crosshair, Eye, ExternalLink, ChevronDown, ChevronRight, Search, X, Camera, Copy, Download, Box, CircleHelp, Columns2, Network. Collisions: Box (3D view) with the Basic stage; CircleHelp (How it works) with unverified; Eye (view from viewpoint) with visibility. Layers for Program would read as Rhino Layers.",
+   "why_it_helps": "One icon, one meaning across the whole app; users map the process by learning each symbol once.",
+   "apply_to_tower_studio": "3D view becomes axis-3d. How it works imports circle-question-mark (CircleHelp is an alias). Unverified flag uses shield-question-mark. Viewpoint action uses telescope. Program step uses a band-swatch stack. Capture shot uses aperture; camera stays for presets.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "Verified: grep of src imports; lucide-react typings alias CircleQuestionMark as CircleHelp and ShieldQuestionMark as ShieldQuestion; icon files for every proposed name exist in 1.61.0.",
+   "source_urls": [
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/TopBar.tsx",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/node_modules/lucide-react/dist/lucide-react.d.ts"
+   ]
+  },
+  {
+   "name": "Visible labels by default, collapsible",
+   "tool": "NN/g icon usability, Grasshopper Draw Icons",
+   "how_it_works": "Icon plus visible text label in the stage rail, tool strip and anatomy tree. A Show labels switch collapses to icon-only with tooltip and aria-label once learned. Grasshopper offers icon or name display per component.",
+   "why_it_helps": "Few icons are universally understood; hover-only labels cost interaction and fail on touch.",
+   "apply_to_tower_studio": "Wrap Lucide icons in an IconLabel component with a labels flag in the store; default on. A dense Schematic toolbar may go icon-only only after the user opts in.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "NN/g icon article, opened: pair icons with visible labels; an icon needing about five seconds to think of probably fails. Grasshopper forum documents Draw Icons. Wiedenbeck 1999 is secondary only (unverified).",
+   "source_urls": [
+    "https://www.nngroup.com/articles/icon-usability/",
+    "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1093001",
+    "https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6883143"
+   ]
+  },
+  {
+   "name": "Evidence flags: colour, shape, text, with ink tokens",
+   "tool": "WCAG 2.2 1.4.1, 1.4.11 and 2.5.8",
+   "how_it_works": "Keep FlagChip text and the unverified hatch; add one shape per flag: badge-check, users, shield-question-mark, circle-dashed, octagon-x. Chip fills keep flag colours, but icon and text use ink or a darker token, since team amber measures 2.7:1 and unresolved 2.4:1 on white.",
+   "why_it_helps": "Colour alone fails some users; the magenta false-assumption flag stays visible as shape and word.",
+   "apply_to_tower_studio": "Extend FLAG_META with an icon and iconInk tokens (team #9a5b00, 5.4:1; unresolved #7a6400, 5.8:1 on white). Add a DevChip showing LOD 200 plus bars. Targets at least 24 px; check each token on all three surfaces.",
+   "cost": "S",
+   "priority": "now",
+   "status": "verified",
+   "evidence": "WCAG 1.4.1: colour must not be the only cue. 1.4.11: 3:1 for graphics. 2.5.8: 24 by 24 px minimum. Ratios computed from the app's flag colours against white, #f4f7fa and #e9eef3.",
+   "source_urls": [
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+    "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/ui.tsx"
+   ]
+  },
+  {
+   "name": "Draw missing glyphs and a stage trio, after a licence gate",
+   "tool": "Team glyph pipeline, createLucideIcon",
+   "how_it_works": "The 112 glyphs have no floor plate, facade or frame. Draw them in the same brief so the noun tier stays consistent. Optionally draw three stage icons on Lucide's 24 px grid with createLucideIcon(name, iconNode): solid tower, ghost tower with core, tower in crop marks.",
+   "why_it_helps": "Stage meaning is pictured, and every Schematic element has an icon.",
+   "apply_to_tower_studio": "Gate: settle licence and generation terms, correct the record, add a NOTICE entry, then copy any glyph. Interim stage icons: cuboid, pencil-ruler, presentation. Adopt the trio if fewer than 4 of 6 students name the stages from icons.",
+   "cost": "M",
+   "priority": "v1",
+   "status": "interpretation",
+   "evidence": "Verified: glyph list (SB1-SB12, AM5, no facade or plate); createLucideIcon accepts (name, iconNode) in 1.61.0; README licence is to be decided (G6); US Copyright Office, Jan 2025: prompts alone are not enough for authorship.",
+   "source_urls": [
+    "https://www.copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf",
+    "file:///C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/docs/decisions.md",
+    "https://developer.rhino3d.com/guides/grasshopper/grasshopper-icons/"
+   ]
+  },
+  {
+   "name": "In-context stage test with a v0.1 baseline",
+   "tool": "NN/g five-user and quantitative guidance",
+   "how_it_works": "Run the same 15-minute script on v0.1, then on the revised build, fixing between rounds. Test the claims: is it the same tower, which stage am I in, which number is approximate. Compare transition durations in a separate session, directional only.",
+   "why_it_helps": "Tests the main claim with built features, and a baseline shows whether the shift changed anything beyond the node list.",
+   "apply_to_tower_studio": "Six students per round: 3 Rhino or Grasshopper first, 3 Revit or SketchUp first. Seed the test tower with a mechanical band. Record unprompted stage naming, same-tower answers, mode slips, time to task, motion discomfort.",
+   "cost": "S",
+   "priority": "now",
+   "status": "interpretation",
+   "evidence": "Verified: NN/g says five users suit qualitative rounds, several small rounds beat one large study, and distinct groups need 3 to 4 each; quantitative metrics need about 20 users (about plus or minus 27 percent at 10).",
+   "source_urls": [
+    "https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/",
+    "https://www.nngroup.com/articles/quantitative-studies-how-many-users/"
+   ]
+  },
+  {
+   "name": "Development scrubber between stages",
+   "tool": "Bederson and Boltman 1999, Revit detail level",
+   "how_it_works": "A draggable handle on the stage rail scrubs stageT continuously, so the user can hover between Massing and Schematic. Animated viewpoint changes helped people rebuild spatial layouts without a time penalty in the 1999 study.",
+   "why_it_helps": "Makes explicit that the stages are the same model seen at different development.",
+   "apply_to_tower_studio": "Expose stageT as a slider with snap points at 0, 1, 2. Not needed for launch; the tween already exposes the value. The projection swap needs a threshold, so scrub only the shell and interior.",
+   "cost": "M",
+   "priority": "later",
+   "status": "interpretation",
+   "evidence": "Verified: abstract of Bederson and Boltman; Revit sets detail level per view and ties it to scale. Scrubbing itself is my idea.",
+   "source_urls": [
+    "https://drum.lib.umd.edu/handle/1903/984",
+    "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-DocumentPresent/files/GUID-3FEAFCD6-1DBD-44B3-91A7-B3CC0E396689.htm"
+   ]
+  },
+  {
+   "name": "Reject: an 'LOD 200 model' switch or LOD numbers in stage names",
+   "tool": "BIMForum LOD Specification 2025",
+   "how_it_works": "A single switch that sets the whole model to one LOD, or stage titles that carry a number.",
+   "why_it_helps": "None: BIMForum says there is no such thing as an LOD ### model, and it does not prescribe levels for phases.",
+   "apply_to_tower_studio": "Stage names carry no number: Massing, Schematic, Present. LOD appears only as per-element chips and on result cards.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "evidence": "BIMForum 2025 Part I, read in the PDF text: levels belong to elements; the spec does not prescribe necessary levels for specific phases; project teams decide.",
+   "source_urls": [
+    "https://bimforum.org/wp-content/uploads/2026/01/LOD-Spec-2025-Part-I-Official.pdf",
+    "https://bimforum.org/resource/lod-level-of-development-lod-specification/"
+   ]
+  },
+  {
+   "name": "Reject: dashed hairlines as a code for approximate",
+   "tool": "Drafting line conventions",
+   "how_it_works": "Dashed outlines to mean generic or approximate LOD 200 elements.",
+   "why_it_helps": "None: in drawing, dashed means hidden or overhead; Rhino Technical shows hidden lines dashed.",
+   "apply_to_tower_studio": "Dashes only for hidden or overhead, dotted for exploded original positions. Development shows as outline tone and chips.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "evidence": "Wikipedia Engineering drawing (secondary): hidden lines are short-dashed. Rhino Technical mode docs: hidden lines can be dashed. Teaching source: dashed means elements above the cut or concealed.",
+   "source_urls": [
+    "https://en.wikipedia.org/wiki/Engineering_drawing",
+    "https://docs.mcneel.com/rhino/mac/help/en-us/options/view_displaymodes_technical.htm",
+    "https://learnarchitecture.net/articles/39292-architectural-line-weights.html"
+   ]
+  },
+  {
+   "name": "Reject: looping ambient motion or a cinematic intro",
+   "tool": "NN/g animation purpose, Apple HIG motion",
+   "how_it_works": "Idle turntable, pulsing hints or an auto-played flythrough on load.",
+   "why_it_helps": "None: motion pulls attention and slows frequent actions.",
+   "apply_to_tower_studio": "Motion occurs only on stage change, parameter feedback and user-triggered camera moves.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "verified",
+   "evidence": "NN/g: unnecessary animation distracts; keep it subtle, brief, sparing. HIG: avoid custom motion on frequent interactions and do not rely on motion alone.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/animation-purpose-ux/",
+    "https://developer.apple.com/design/human-interface-guidelines/motion"
+   ]
+  },
+  {
+   "name": "Reject: a second outline icon set beside Lucide",
+   "tool": "Phosphor Icons",
+   "how_it_works": "The sibling repo uses Phosphor (MIT) for buttons; Tower Studio already ships Lucide.",
+   "why_it_helps": "None: two outline sets differ in weight and metaphor, breaking consistency.",
+   "apply_to_tower_studio": "Use Lucide for every verb icon. Take only the team's own glyphs from the sibling repo, after the licence gate.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "interpretation",
+   "evidence": "Verified: Phosphor is MIT; Lucide 1.61.0 is installed. HIG asks for one stroke weight and detail level across a set.",
+   "source_urls": [
+    "https://github.com/phosphor-icons/core",
+    "https://developer.apple.com/design/human-interface-guidelines/icons"
+   ]
+  },
+  {
+   "name": "Reject: studio-dark ground for composing printed boards",
+   "tool": "Colour-viewing practice",
+   "how_it_works": "A near-black ground (#14171a) around the board crop in Present.",
+   "why_it_helps": "None: a dark or coloured surround shifts how light values look, so the team would misjudge a white A2 board.",
+   "apply_to_tower_studio": "Neutral grey surround, paper-white board, neutral graphite chrome, no accent hue. The shutter control is ink on white.",
+   "cost": "S",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "evidence": "Vendor guidance: a coloured surround shifts perceived colour; a neutral matte surround is used when judging. ISO 3664 text not read.",
+   "source_urls": [
+    "https://www.piworld.com/post/neutral-gray-the-key-to-accurate-color-viewing/"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "BIMForum Level of Development Specification 2025, Part I (official PDF, text read locally and re-searched in r1)",
+   "url": "https://bimforum.org/wp-content/uploads/2026/01/LOD-Spec-2025-Part-I-Official.pdf",
+   "opened": true
+  },
+  {
+   "title": "BIMForum LOD resource page (re-opened r1)",
+   "url": "https://bimforum.org/resource/lod-level-of-development-lod-specification/",
+   "opened": true
+  },
+  {
+   "title": "Rhino 8 Viewport display modes",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/seealso/sak_displaymodes.htm",
+   "opened": true
+  },
+  {
+   "title": "Rhino display modes feature page",
+   "url": "https://www.rhino3d.com/features/display/display-modes/",
+   "opened": true
+  },
+  {
+   "title": "Rhino 8 ClippingPlane command",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/commands/clippingplane.htm",
+   "opened": true
+  },
+  {
+   "title": "Rhino 8 Make2D command (hidden-line layers, clipping plane intersections)",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/commands/make2d.htm",
+   "opened": true
+  },
+  {
+   "title": "Rhino Technical display mode options (Mac help; seen as a search result only)",
+   "url": "https://docs.mcneel.com/rhino/mac/help/en-us/options/view_displaymodes_technical.htm",
+   "opened": false
+  },
+  {
+   "title": "Rhino 9 ViewportProperties (Parallel, Perspective, TwoPointPerspective; seen as a search result only)",
+   "url": "https://docs.mcneel.com/rhino/9/help/en-us/commands/viewportproperties.htm",
+   "opened": false
+  },
+  {
+   "title": "Grasshopper Icons developer guide (24x24, 2 px border)",
+   "url": "https://developer.rhino3d.com/guides/grasshopper/grasshopper-icons/",
+   "opened": true
+  },
+  {
+   "title": "Grasshopper forum: Draw Icons and Draw Full Names",
+   "url": "https://www.grasshopper3d.com/xn/detail/2985220:Comment:1093001",
+   "opened": true
+  },
+  {
+   "title": "Revit Visual Styles (2021 help)",
+   "url": "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-DocumentPresent/files/GUID-12C2D6B0-71ED-490E-9CC6-AD3C635F092B.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit About 3D Views (perspective and orthographic views, 2016 help)",
+   "url": "https://help.autodesk.com/cloudhelp/2016/ENU/Revit-DocumentPresent/files/GUID-D70048A8-71C4-47DB-9A7D-5463ADABAFF4.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit Control Line Weights (cut and projection weights; seen as a search result only)",
+   "url": "https://help.autodesk.com/cloudhelp/2023/ENU/Revit-Customize/files/GUID-050DA470-B116-4A60-92E3-8099C30B0BA2.htm",
+   "opened": false
+  },
+  {
+   "title": "Revit About Fill Patterns for Material Graphics (surface versus cut pattern; seen as a search result only)",
+   "url": "https://help.autodesk.com/cloudhelp/2022/ENU/Revit-Customize/files/GUID-EBD9E8E6-AF83-4579-8D9A-9B9E23DCAA52.htm",
+   "opened": false
+  },
+  {
+   "title": "Revit About Detail Levels and Display of Structural Components (2021)",
+   "url": "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-DocumentPresent/files/GUID-3FEAFCD6-1DBD-44B3-91A7-B3CC0E396689.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit Specify the Detail Level for a View (2021)",
+   "url": "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-Customize/files/GUID-229C4AE8-9C31-422A-97B7-943607C55D1A.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit Conceptual Design and FormIt (Building Maker, mass floors)",
+   "url": "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-HaveYouTried/files/GUID-E612B831-02D6-4BF4-98BD-D834A5F3E699.htm",
+   "opened": true
+  },
+  {
+   "title": "Revit User Interface Options (tool-set tabs, contextual tabs)",
+   "url": "https://help.autodesk.com/cloudhelp/2014/ENU/Revit/files/GUID-C25E7343-0E12-4578-BB1F-77E4551109CA.htm",
+   "opened": true
+  },
+  {
+   "title": "SketchUp Creating Scenes (what a scene saves)",
+   "url": "https://help.sketchup.com/en/sketchup/creating-scenes",
+   "opened": true
+  },
+  {
+   "title": "SketchUp Animating Scenes (scene transitions and delay)",
+   "url": "https://help.sketchup.com/en/sketchup/animating-scenes",
+   "opened": true
+  },
+  {
+   "title": "Fusion workspaces (Autodesk Get Started)",
+   "url": "https://help.autodesk.com/cloudhelp/ENU/Fusion-GetStarted/files/GS-WORKSPACES.htm",
+   "opened": true
+  },
+  {
+   "title": "Blender manual: Workspaces",
+   "url": "https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Executing UX Animations, Duration and Motion Characteristics (re-opened r1)",
+   "url": "https://www.nngroup.com/articles/animation-duration/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: The Role of Animation and Motion in UX",
+   "url": "https://www.nngroup.com/articles/animation-purpose-ux/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Icon Usability",
+   "url": "https://www.nngroup.com/articles/icon-usability/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Modes in User Interfaces",
+   "url": "https://www.nngroup.com/articles/modes/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Progressive Disclosure",
+   "url": "https://www.nngroup.com/articles/progressive-disclosure/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Why You Only Need to Test with 5 Users (re-opened r1: small rounds, 3 to 4 per distinct group)",
+   "url": "https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/",
+   "opened": true
+  },
+  {
+   "title": "NN/g: Quantitative Studies, How Many Users to Test (about 20 users)",
+   "url": "https://www.nngroup.com/articles/quantitative-studies-how-many-users/",
+   "opened": true
+  },
+  {
+   "title": "Apple HIG: Motion (read through developer.apple.com data endpoint because the page is script-rendered)",
+   "url": "https://developer.apple.com/design/human-interface-guidelines/motion",
+   "opened": true
+  },
+  {
+   "title": "Apple HIG: Icons (read through data endpoint)",
+   "url": "https://developer.apple.com/design/human-interface-guidelines/icons",
+   "opened": true
+  },
+  {
+   "title": "Material Web motion tokens (duration and easing, v0_192 SCSS)",
+   "url": "https://raw.githubusercontent.com/material-components/material-web/main/tokens/versions/v0_192/_md-sys-motion.scss",
+   "opened": true
+  },
+  {
+   "title": "Material Components Android: Motion (container transform, shared axis, fade defaults)",
+   "url": "https://raw.githubusercontent.com/material-components/material-components-android/master/docs/theming/Motion.md",
+   "opened": true
+  },
+  {
+   "title": "MDN: prefers-reduced-motion",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding SC 2.3.3 Animation from Interactions",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding SC 1.4.11 Non-text Contrast",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding SC 2.5.8 Target Size (Minimum)",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+   "opened": true
+  },
+  {
+   "title": "WCAG 2.2 Understanding SC 1.4.1 Use of Color",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+   "opened": true
+  },
+  {
+   "title": "Lucide license (ISC, MIT portion from Feather)",
+   "url": "https://lucide.dev/license",
+   "opened": true
+  },
+  {
+   "title": "Phosphor Icons core repository (MIT)",
+   "url": "https://github.com/phosphor-icons/core",
+   "opened": true
+  },
+  {
+   "title": "Carbon Design System: Icon usage",
+   "url": "https://carbondesignsystem.com/elements/icons/usage/",
+   "opened": true
+  },
+  {
+   "title": "three.js docs: Material (clippingPlanes, transparent, depthWrite, polygonOffset)",
+   "url": "https://threejs.org/docs/pages/Material.html",
+   "opened": true
+  },
+  {
+   "title": "three.js docs: EdgesGeometry",
+   "url": "https://threejs.org/docs/pages/EdgesGeometry.html",
+   "opened": true
+  },
+  {
+   "title": "three.js docs: OrthographicCamera (zoom, near may be 0)",
+   "url": "https://threejs.org/docs/pages/OrthographicCamera.html",
+   "opened": true
+  },
+  {
+   "title": "three.js example source: webgl_clipping_stencil (stencil-based caps)",
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/webgl_clipping_stencil.html",
+   "opened": true
+  },
+  {
+   "title": "three.js source: LineMaterial.js (clipping, worldUnits, dashed)",
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/jsm/lines/LineMaterial.js",
+   "opened": true
+  },
+  {
+   "title": "drei docs: Edges",
+   "url": "https://raw.githubusercontent.com/pmndrs/drei/master/docs/abstractions/edges.mdx",
+   "opened": true
+  },
+  {
+   "title": "drei docs: Line (lineWidth in px, segments, LineMaterial props)",
+   "url": "https://raw.githubusercontent.com/pmndrs/drei/master/docs/shapes/line.mdx",
+   "opened": true
+  },
+  {
+   "title": "drei docs: OrthographicCamera (makeDefault)",
+   "url": "https://raw.githubusercontent.com/pmndrs/drei/master/docs/cameras/orthographic-camera.mdx",
+   "opened": true
+  },
+  {
+   "title": "React Three Fiber: Canvas API (orthographic, camera, frameloop)",
+   "url": "https://r3f.docs.pmnd.rs/api/canvas",
+   "opened": true
+  },
+  {
+   "title": "React Three Fiber: Scaling performance (frameloop demand, invalidate)",
+   "url": "https://r3f.docs.pmnd.rs/advanced/scaling-performance",
+   "opened": true
+  },
+  {
+   "title": "Tailwind CSS: Theme variables",
+   "url": "https://tailwindcss.com/docs/theme",
+   "opened": true
+  },
+  {
+   "title": "Heer and Robertson 2007, Animated Transitions in Statistical Data Graphics (PDF text re-read r1)",
+   "url": "https://homes.cs.washington.edu/~jheer/files/2007-AnimatedTrans-InfoVis.pdf",
+   "opened": true
+  },
+  {
+   "title": "Bederson and Boltman 1999, Does Animation Help Users Build Mental Maps (abstract)",
+   "url": "https://drum.lib.umd.edu/handle/1903/984",
+   "opened": true
+  },
+  {
+   "title": "Wikipedia: Exploded-view drawing (secondary)",
+   "url": "https://en.wikipedia.org/wiki/Exploded-view_drawing",
+   "opened": true
+  },
+  {
+   "title": "Wikipedia: Architectural drawing (secondary)",
+   "url": "https://en.wikipedia.org/wiki/Architectural_drawing",
+   "opened": true
+  },
+  {
+   "title": "Wikipedia: Axonometric projection (secondary)",
+   "url": "https://en.wikipedia.org/wiki/Axonometric_projection",
+   "opened": true
+  },
+  {
+   "title": "Wikipedia: Engineering drawing (line types; secondary; first 100,000 characters read)",
+   "url": "https://en.wikipedia.org/wiki/Engineering_drawing",
+   "opened": true
+  },
+  {
+   "title": "learnarchitecture.net: Architectural line weights (teaching source, secondary)",
+   "url": "https://learnarchitecture.net/articles/39292-architectural-line-weights.html",
+   "opened": true
+  },
+  {
+   "title": "PIWorld: Neutral gray, the key to accurate colour viewing (vendor guidance)",
+   "url": "https://www.piworld.com/post/neutral-gray-the-key-to-accurate-color-viewing/",
+   "opened": true
+  },
+  {
+   "title": "The Concrete Centre: Jump Form (cores completed ahead of the main structure)",
+   "url": "https://www.concretecentre.com/Building-Solutions/Formwork/Jump-Form.aspx",
+   "opened": true
+  },
+  {
+   "title": "Peters Research: Lift Planning for High-Rise Buildings (core size follows lift zoning)",
+   "url": "https://wordpress.peters-research.com/?p=1033",
+   "opened": true
+  },
+  {
+   "title": "thyssenkrupp: white paper on elevator traffic analysis (search snippet only)",
+   "url": "https://www.tkelevator.com/media/uk/high_rise/white_paper_on_elevator_traffic_analysis-ea-en.pdf",
+   "opened": false
+  },
+  {
+   "title": "US Copyright Office: Copyright and AI, Part 2 Copyrightability (Jan 2025; text read)",
+   "url": "https://www.copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf",
+   "opened": true
+  },
+  {
+   "title": "OpenAI terms of use (HTTP 403, not read)",
+   "url": "https://openai.com/policies/row-terms-of-use/",
+   "opened": false
+  },
+  {
+   "title": "Vancouver Tall Challenge brief, English PDF, pp. 27 to 30 (local file, text extracted)",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/03%20Vancouver%20Tall%20Competition%20Brief/FULL%20COMPETITION%20BRIEF%20%5BENG%5D%20%5BFR%5D%20%5BIT%5D%20%5BES%5D%20%5BCN%5D/FULL%20COMPETITION%20BRIEF%20%5BENG%5D%20%5BFR%5D%20%5BIT%5D%20%5BES%5D%20%5BCN%5D/_Vancouver%20Tall%20Challenge%20-%20ENG.pdf",
+   "opened": true
+  },
+  {
+   "title": "Tower Studio v0.1: NodeLibrary.tsx (stageOf rule)",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/components/NodeLibrary.tsx",
+   "opened": true
+  },
+  {
+   "title": "Tower Studio v0.1: store.ts, Viewport.tsx, TopBar.tsx, RightPanel.tsx, App.tsx, DesignPanel.tsx, PresentPanel.tsx, ui.tsx, index.css",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/store.ts",
+   "opened": true
+  },
+  {
+   "title": "Tower Studio v0.1: engine/massing.ts and engine/types.ts (towerFloors, USES colours)",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/engine/massing.ts",
+   "opened": true
+  },
+  {
+   "title": "Tower Studio v0.1: research_registry.json (176 modules) and registry.ts",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/src/data/research_registry.json",
+   "opened": true
+  },
+  {
+   "title": "lucide-react 1.61.0 typings and icon files (installed in tower-studio)",
+   "url": "file:///F:/UBC%20Master%20of%20Architecture/ARCH540%20AI%20Studio/tower-studio/node_modules/lucide-react/dist/lucide-react.d.ts",
+   "opened": true
+  },
+  {
+   "title": "Team repo: app/icons glyph_icons.js, glyphs.js, ui_icons.js (read-only)",
+   "url": "file:///C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/app/icons/glyph_icons.js",
+   "opened": true
+  },
+  {
+   "title": "Team repo: catalogue/programmes.json (glyph id to programme names)",
+   "url": "file:///C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/catalogue/programmes.json",
+   "opened": true
+  },
+  {
+   "title": "Team repo: docs/decisions.md and README (icon provenance, licence to be decided)",
+   "url": "file:///C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/program-value-visualizer/docs/decisions.md",
+   "opened": true
+  },
+  {
+   "title": "Patent text that summarises Wiedenbeck 1999 on labelled icons (search snippet only)",
+   "url": "https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6883143",
+   "opened": false
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A model has one LOD: Basic is LOD 100 and Advanced is LOD 200-300.",
+   "correction": "BIMForum 2025 (PDF text read): there is no such thing as an LOD ### model; a Schematic Design model mixes 100, 200, 300 and more. Tag elements; let the stage decide which element classes are authored.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "LOD means how detailed the model looks.",
+   "correction": "BIMForum defines Level of Development as how far geometry has been thought through and can be relied on. A detailed but inaccurately located element can be no higher than LOD 200. A richer drawing must not outrun reliability.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rhino, Grasshopper and Revit switch the whole interface between design stages.",
+   "correction": "Documented: Revit visual style and detail level are set per view; Rhino lists display modes as view settings. Chrome shifts live in Fusion and Blender workspaces and Revit's selection-driven contextual tabs. Coupling both in one switch is a deliberate Tower Studio design.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Present follows LOD 300 as the last development step.",
+   "correction": "BIMForum defines no presentation level. Treat Present as a representation of the same model, not a development level.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Core share, lift count, column grid and plant floors can be drawn from rules of thumb before the modules cite sources.",
+   "correction": "Draw only the minimum slice (plates, plant floors, core box), flag core share Team assumption, and defer lifts, structure and facade until P11-M01, P10-M05 and P12-M06a carry opened sources.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "An 800 ms Basic to Advanced shift feels right.",
+   "correction": "Replaced: default 480 ms, exit 320 ms, first shift per session 800 ms. NN/g: 100-500 ms, 500 ms feels like a drag. Heer and Robertson cite about 1 s. Compare 300, 480 and 800 ms in a separate directional session; proof needs about 20 users.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "three.js clipping planes will clip EdgesGeometry lines and allow a plan cap.",
+   "correction": "Partly resolved from source: LineMaterial declares clipping support and webgl_clipping_stencil documents stencil caps. Still unverified for drei Line in this app: two-hour spike; fallback is drawn plate polygons and per-floor line sets.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Labelled icons help learning and labels can then be removed (Wiedenbeck 1999).",
+   "correction": "Only a secondary patent summary was seen. NN/g (opened) independently supports visible labels. Read the original before citing the removal advice.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Specific modules belong to Basic or Advanced as listed, such as P04-M02 and P10-M02 in Basic.",
+   "correction": "Stages are inferred from names and questions, not inputs. This round: P10-M02 stays in Massing; P10-M05 and P08-M02 move to Schematic. Confirm when reads is added to NodeDef.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The earlier critique of the stage rail was not supplied in full.",
+   "correction": "The proposal maps Massing and Program to the Massing stage, Design to Schematic, Present to Present, and makes Evaluate a persistent lens, using only the summary in the brief. Re-check against the full text.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The GPT-drawn glyphs can be reused inside MIT-licensed Tower Studio.",
+   "correction": "Repo licence is to be decided (G6). Provenance is documented (GPT-drawn, vtracer-traced). US Copyright Office, Jan 2025: prompts alone do not give authorship. OpenAI terms returned 403, unread. Settle before copying; this is not legal advice.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The tab label Advanced reads as a stage rather than a skill level.",
+   "correction": "Renamed Massing, Schematic, Present, with Guided or Open separate; basic model and advanced model stay in tooltips. Test whether Revit-first and Rhino-first students read Schematic as a stage.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Narrowing fov from 38 to 24 turns the perspective model into an axonometric drawing, and Explode is an exploded axonometric.",
+   "correction": "Any fov is still perspective; axonometric is parallel projection. Use an OrthographicCamera. Revit and Rhino both separate parallel and perspective views.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Basic is development 100 and Advanced is 200-300 in stage_model and phase titles.",
+   "correction": "Stage names and stage_model now carry no numbers. Development appears only as per-element LOD chips. BIMForum does not prescribe levels for phases.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Present boards are lit renders.",
+   "correction": "The brief suggests plans, sections, diagrams, studies and views. Present frames any representation preset; the lit view defaults to neutral clay material.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Team glyphs SE1, WK1, ST2, LV1, GP6, LE2 and AM5 stand for the generic bands and for lifts.",
+   "correction": "Catalogue names are tiers or single programmes (Market condo, Class AAA or A, museum, free public deck); AM5 is a sky lobby. Use a reviewed table, and SB1 for core and lifts.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Each glyph tile takes its hue from the band colour, so tile and volume match.",
+   "correction": "tileColour forces saturation of at least 0.72 and lightness near 0.6 and turns greys beige (residential #9bbf85 becomes #87e250). Fill tiles with the USES colour; ink contrast is 5.0:1 or better.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Every Lucide icon named in the spec is free to take on its new meaning.",
+   "correction": "Box and CircleHelp are in TopBar, Eye in Inspector; CircleHelp is only an alias in 1.61. Audit and reassign before adding stage icons.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 800 ms timeline fits: interior reveal from 350 to 800 ms with a 10 ms per-floor stagger.",
+   "correction": "The default tower has 67 floors (4 podium, 63 tower): 670 ms of stagger overruns a 450 ms window. Stagger by group; default 480 ms.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A ground-up core rise follows the load path.",
+   "correction": "Gravity loads travel down to the foundation. Only construction sequence supports a ground-up rise: jump-formed cores can be completed ahead of the rest. Use that as the rationale, labelled interpretation.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Dashed hairlines are a readable code for generic, approximate LOD 200.",
+   "correction": "Dashed means hidden or overhead in drawing and in Rhino Technical. Encode development by outline tone; reserve weight for cut, profile and projection.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "ADVANCED_CATS pushes 12 basic-phase modules into Advanced, and core share belongs to Advanced.",
+   "correction": "11 basic-phase plus 1 cross-cutting module. P10-M05 is registry phase basic. Decision: P10-M05 and P08-M02 read core and plate, so Schematic; P10-M02 reads width and height, so Massing.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "decisions.md and glyphs.js contradict each other on how the team icons were made.",
+   "correction": "Not a contradiction: decisions.md has two 18 Oct rows, and the later one says GPT-drawn, vtracer-traced glyphs replace the earlier browser-drawn isometric icons. Licence and AI authorship stay open.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A black studio ground, or an 18 percent grey, suits composing printed boards.",
+   "correction": "Use a neutral light-to-mid grey surround (about #afafaf to #cacaca) with a paper-white board. 18 percent grey is a photographic reference card, not a viewing surround.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The default tower already has a mechanical band, so plant floors can simply be drawn from it.",
+   "correction": "Default bands are office, hotel, amenity, residential; mechanical is only a selectable use. Add an Add plant floors action and seed the test tower with one.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Core, lift, plant and structure elements in the minimum slice are LOD 200.",
+   "correction": "A core box from an assumed share is a space reservation, LOD 100. A 200 elevator needs shaft envelope, stops and machine location. Chips read LOD 100 until modules supply more.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Line weights of 2.5, 1.25 and 0.75 px suit cut, profile and projection.",
+   "correction": "Derived from teaching-source pen widths (0.70, 0.35, 0.18 mm) at 96 dpi; sources disagree and ISO 128 was not read. Tune on a real A2 export.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A projection swap after a dolly to fov 4 is invisible.",
+   "correction": "Derived only: residual convergence is small but nonzero, and fog, near and far must scale with distance. Check by eye; fallback is a 120 ms cross-dissolve.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A ghosted shell still casts a solid shadow for the Sun check.",
+   "correction": "Not documented in the pages read. Test in the spike; fallback is a hidden solid shadow-proxy mesh.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Core share defaults to 25 percent of the plate.",
+   "correction": "Taken from the registry's good limit for P10-M05 (25 percent or less), not a typical value. Show as Team assumption and let users edit.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A #b8b8b8 surround is a suitable neutral for judging boards on screen.",
+   "correction": "From vendor guidance (N8 or darker, 60 percent reflectance or less) converted by me; ISO 3664 text not read. Print a board and compare.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The minimum Schematic slice fits in about three days.",
+   "correction": "My estimate from reading the code; no spike was done. Re-estimate after the clipping and projection spikes.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Stage and sub-step assignments for the 176 modules after the proposed rule.",
+   "correction": "Judged from names and questions. The four platform re-tags (C01-M01, C01-M07, C04-M07, C04-M08) need owner confirmation.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "AI renders are labelled as AI images and flagged Team assumption.",
+   "correction": "Team practice in PresentPanel. The English brief text read has no AI-image rule; check the competition site rules.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Lucide cuboid, pencil-ruler and presentation read as three stages.",
+   "correction": "Untested. In-context test; adopt the custom trio if fewer than 4 of 6 students name the stages from icons.",
+   "raised_in_round": 1
+  }
+ ],
+ "change_log": [
+  "Read Tower Studio v0.1 source (store, TopBar, NodeLibrary, RightPanel, Viewport) and registry. Finding: phase is read only by NodeLibrary and RightPanel; Viewport ignores it, so the toggle changes only the node list.",
+  "Recomputed library counts with the repo's stageOf rule: Basic 60 modules (4 built), Advanced 58 (0 built), Present 9, 53 hidden as platform. The imbalance is real and mostly built versus planned, plus a category override and 28 data modules hidden.",
+  "Opened BIMForum LOD Spec 2025 Part I (official PDF, text extracted locally). Key facts: LOD is per element, cumulative, not tied to phases, no single-LOD model; LOD 100 includes space-reservation volumes. Paraphrased only; the spec is CC BY-NC-ND.",
+  "Opened Rhino, Revit, SketchUp, Fusion, Blender and Grasshopper documentation. Corrected the premise: representation (display mode, visual style, detail level) and chrome (workspaces, tab sets) are separate in these tools; Tower Studio would couple them on purpose.",
+  "Opened NN/g (duration, purpose, modes, progressive disclosure, icons, five users), Apple HIG motion and icons via its data endpoint, Material tokens and transition defaults, MDN, WCAG 2.2 and Tailwind pages. Script-rendered pages were read through raw sources.",
+  "Read Heer and Robertson 2007 (PDF text) and the Bederson and Boltman abstract. Chevalier et al. 2016 and Perlin and Fox 1993 could not be read and carry no claim; Wiedenbeck 1999 is secondary only and flagged.",
+  "Rendered 30 team glyphs in the browser pane through a temporary read-only local server (stopped afterwards). They are bold filled single-ink pictograms on coloured tiles, readable at 16 px, and unlike Lucide's outline strokes. That drove the two-tier icon rule.",
+  "Checked Lucide names against installed lucide-react 1.61.0 (ISC, 24 px). Missing in this version: elevator, stairs, chart-no-axes-column-stacked. createLucideIcon is exported.",
+  "Cost key: S under half a day, M one to three days, L over three days for one developer. These are my estimates, not measured.",
+  "Mapped the earlier rail (Massing, Program, Evaluate, Design, Present) onto three stages plus a persistent Evaluate lens, from the summary only. Added a Guide level axis so stage and expertise are separate.",
+  "No project or repo files were created, edited or deleted. Two temporary text extractions of PDFs sit in the system temp folder, outside both repos.",
+  "r1: BLOCKER 1 accepted and refined. towerFloors already yields plates (67 floors on the default tower) but default bands omit mechanical, so the critique's mechanical-band fix needs an Add plant floors action. Minimum slice: plates, plant floors, core box, each with source, flag and LOD tag.",
+  "r1: BLOCKER 1 follow-on. A core box from an assumed share is a space reservation, LOD 100, not 200: BIMForum 2025 says a 200 elevator needs shaft envelope, stops and machine location. Schematic adds elements, not development, until P11-M01 and similar modules exist.",
+  "r1: BLOCKER 2 accepted. BIMForum PDF text re-read: no levels prescribed per phase, no such thing as an LOD ### model, Current LOD and Target LOD attributes. Stage names and stage_model carry no numbers; chips read LOD 100, 200, 300, not L100.",
+  "r1: BLOCKER 3 accepted. English brief extracted: four A2 landscape boards, 10 MB each, no identity; suggested plans, sections, diagrams, studies, a Queen Elizabeth Park skyline, four ground-level views. A2 now verified. PresentPanel's checklist lacked plans and sections. Present is now frame and compose with six presets.",
+  "r1: MAJOR axonometric accepted. Revit (perspective or orthographic views) and Rhino (Parallel, Perspective, TwoPointPerspective) both separate projections. Added an OrthographicCamera plan: dolly to fov 4 (ratio about 9.9 by my arithmetic), swap, scale fog. Residual convergence and the invisibility of the swap are untested.",
+  "r1: MAJOR line conventions accepted. Dashed means hidden or overhead only (Rhino Technical, Wikipedia and a teaching source agree). Three weights, poche cuts (Revit has separate cut and surface patterns), development shown by outline tone. Pen widths are secondary; ISO 128 not read.",
+  "r1: MAJOR program identity accepted. Re-read Heer and Robertson: the exact guideline is to keep intermediate states valid data graphics and use consistent mappings, not literally 'keep encodings'. Band colour now stays as a shell tint at every stageT; the core is neutral blue-grey so program is ground.",
+  "r1: MAJOR process order accepted. Peters Research and the registry's own P08-M02 text support lifts before core before structure. New order Plates, Lifts, Core, Structure, Plant, Facade with return loops. A thyssenkrupp paper was seen as a search snippet only.",
+  "r1: MAJOR labels accepted. Stages renamed Massing, Schematic, Present; basic model and advanced model remain in tooltips for continuity with the user's words.",
+  "r1: MAJOR glyph semantics accepted and verified. Ported tileColour to Python: tiles differ from band colours (residential #9bbf85 to #87e250, mechanical #a3a3a3 to #d2cabc). Ink on the seven USES colours is 5.0:1 to 9.1:1, so tiles can use the band colour directly. Added a reviewed exact, near, narrow table.",
+  "r1: Critique partly mistaken on icon provenance. decisions.md has two 18 Oct rows; the later one says GPT-drawn glyphs replace the earlier browser-drawn isometric icons. The record is consistent. Licence (G6) and AI authorship remain open; US Copyright Office Jan 2025 text read. OpenAI terms returned 403.",
+  "r1: MAJOR icon collisions accepted. Grepped every lucide import. Box (3D view) and CircleHelp (How it works) collide; Eye is used by Inspector for view-from-viewpoint. CircleHelp and ShieldQuestion are aliases in 1.61. Reassigned: axis-3d, circle-question-mark, shield-question-mark, telescope, aperture.",
+  "r1: MAJOR motion accepted. NN/g re-opened: 100 to 500 ms, 500 ms feels like a drag, frequent actions shorter. Default 480 ms, exit 320, first-time 800; two overlapping stages; stagger by group, since 67 floors at 10 ms overrun. Load-path rationale dropped; core-first construction kept as labelled interpretation.",
+  "r1: MAJOR Present surround accepted, with a correction. Vendor guidance names a neutral N8 or darker surround, not 18 percent grey. I converted N7 and N8 to about #afafaf and #cacaca and chose #b8b8b8. Accent #e8b84a equals the hotel band, so Present has no accent hue. ISO 3664 unread.",
+  "r1: MAJOR library accepted. Researched counts before and after: Massing 56 to 53, Schematic 58 to 48, Evaluate lens 9, Present 9, platform 53 to 57. SITE splits 3, 4, 2, 13 plus four plumbing re-tags. P10-M05 and P08-M02 move to Schematic; P10-M02 stays.",
+  "r1: MAJOR test accepted. Rebuilt around built features, a v0.1 baseline, same-tower and approximate-number questions, and in-context icon naming. NN/g: 3 to 4 per distinct group, about 20 for quantitative claims, so the duration comparison is directional only.",
+  "r1: MINOR items accepted. LOD chips read LOD 100, not L100. One type scale in all stages. Control border #6b7a89 measured 3.8:1 on the Schematic ground, so #5f6e7d (4.5:1) replaces it. Sun shadows follow the Sun node; slider drags follow the pointer at 0 ms.",
+  "r1: Flag colours measured against white: team amber 2.7:1 and unresolved 2.4:1 fail 3:1 for icon strokes, so icons use darker ink tokens. Band colours alone range 1.8:1 to 3.4:1 on white, so colour never carries meaning alone.",
+  "r1: Limits of this round. Not read: ISO 128, ISO 3664, OpenAI terms (403), Revit line-weight and fill-pattern pages and Rhino Technical and viewport pages (search results only), thyssenkrupp paper (snippet). No project or repo files changed; scratch extractions and a word-count script sit in the session scratchpad."
+ ],
+ "design_spec": {
+  "stage_model": "Two axes and a lens. Stage (Massing, Schematic, Present) sets which element classes you author and how they are drawn. Guide level (Guided, Open) sets density only. Evaluate is a lens on every stage. Development is tagged per element and result, LOD 100, 200 or 300, never on stage names.",
+  "process_map": "MASSING (cuboid): Site, Volume, Program bands, Checks. SCHEMATIC (pencil-ruler): Plates, Lifts, Core, Structure, Plant, Facade. PRESENT (presentation): Preset, Frame, Capture, Boards. EVALUATE (gauge) on every stage. Loops: core share over 25 percent returns to Plates; plant clash returns to Massing height; Present edits return to Schematic.",
+  "phases": [
+   {
+    "phase": "Massing (the basic model)",
+    "purpose": "Find a defensible volume and program mix fast. Authors: site, envelope volume, program bands. Every element is a space reservation tagged LOD 100, so derived numbers are approximate and say so.",
+    "viewport_representation": "Clay preset in perspective, fov 38. Solid band volumes in program colour, soft shadows from the Sun node, white context. Silhouette only: no edges, no interior; floor lines only on the selected tower. It reads as a study model.",
+    "ui_chrome": "Stage rail with icon, label and subtitle. Left: Checks, four built nodes, Roadmap drawer collapsed with a count. Right: Design panel plus the persistent Results & evidence tab. Node canvas hidden unless Guide level is Open. Generous row padding; panel widths fixed.",
+    "palette_and_type": "Tracing paper: ground #f6f5f2, panel #fff, ink #1f2328 (14.5:1 on ground), muted #6b6f76 (4.6:1), control border #767b83 (3.9:1), accent #1f5f8b. Radius 8 px, row padding 10 px. Same type scale in every stage.",
+    "tools_shown": "Place tower, height, width, depth, rotation, podium, program bands; VTC rules, FSR, view cones, Sun and shadow. Slenderness (P10-M02) is the first extra check. Fifty-three researched modules wait in the Roadmap drawer, not as toggles.",
+    "signature_moment": "Drag a band slider: its volume follows the pointer at 0 ms while FSR updates beside it. Keyboard or numeric entry eases over 120 ms. Only the tower moves; nothing else animates."
+   },
+   {
+    "phase": "Schematic (the advanced model)",
+    "purpose": "Test that the massing can be built. Authors: floor plates, plant floors, core. The minimum slice draws only what a parameter or module produces, each with provenance flag and LOD tag. Lifts, structure and facade appear when their modules exist.",
+    "viewport_representation": "X-ray preset in parallel projection (isometric default). Shell ghosts to about 18 percent per-band tint, so program colour stays. Plate edges every floor, hatched plant floors, one neutral blue-grey core box. Three line weights; sections get poche. Sun shadows stay when Sun is on.",
+    "ui_chrome": "Left becomes Tower anatomy: rows with glyph tile, LOD chip, flag, eye toggle. Library shows New here plus a collapsed Carried from Massing row. Bottom: floor scrubber and plan inset (v1). Tighter row padding, 4 px radius, same panel widths. Node canvas one click away.",
+    "palette_and_type": "Drafting table: ground #e9eef3, panel #f4f7fa, ink 13.5:1, muted #566270 (5.3:1), control border #5f6e7d (4.5:1), structure blue #1d5fa8 (5.5:1). Hairline #b9c6d3 (1.6:1) carries no information. Same type scale; density changes through spacing and line weight.",
+    "tools_shown": "Anatomy tree, Section, Explode (v1), projection presets, Add plant floors, core share field, floor scrubber. Built now: plates, plant floors, core box. Next: P11-M01 lifts, P10-M05 core share, P11-M03 plant, P12-M06a facade.",
+    "signature_moment": "Press 2: the shell ghosts to per-band tint and the view flattens to parallel. The core box rises from the ground, then plate edges follow band by band, all in 480 ms. Press 1 mid-way and it reverses from the current frame."
+   },
+   {
+    "phase": "Present (frame and compose)",
+    "purpose": "Compose evidence-labelled shots for four A2 landscape boards. Same model, read-only. Each shot picks a representation preset and records preset, projection, source stage, flags and LOD tags in a sidecar. Presentation is a representation, not a development level.",
+    "viewport_representation": "Paper-white board crop (A2 landscape, 1.414:1) with crop marks on a neutral grey surround. Presets: Clay, X-ray, Plan, Section, Exploded axonometric, Lit view in neutral material. Entering Present keeps the last representation. Orbit allowed; model fixed.",
+    "ui_chrome": "Side panels slide out; the library collapses to a shot filmstrip; the top bar keeps the stage rail plus Capture. Right: shot list, caption with flags, VTC checklist now including plans and sections. Lock chip: Model locked, edit in Schematic. Section level and Explode stay adjustable.",
+    "palette_and_type": "Review wall: surround #b8b8b8 (L* 75, neutral), board #fff, chrome graphite #2b2e33 with text #e8eaed (11.3:1). No accent hue: Capture is ink on white, since seven bands and five flags use the hues. Same type scale as other stages.",
+    "tools_shown": "Preset picker, camera presets (Aerial, Street, Skyline), section level, Explode, Capture shot, shot list with sidecar stamps, board checklist and validator, jury self-assessment. The AI render command stays optional, labelled AI image. No parameter editing.",
+    "signature_moment": "Press 3: panels slide out and the frame tightens to the board crop on grey, same drawing as before. Capture dims the frame 80 ms (no flash) and files the shot with preset and flags. Nothing else moves."
+   }
+  ],
+  "transitions": [
+   "Massing to Schematic, 480 ms, two overlapping stages. 0-200: chrome tokens cross-fade, panels swap. 60-380: shell ghosts and the camera dollies toward the swap. 160-480: interior reveal in about eight groups (podium, bands, plant, core), 20 ms apart, 180 ms each. The first shift per session runs 800 ms, once.",
+   "Schematic to Massing, 320 ms, since exits run shorter (NN/g): interior retracts top-down in groups, shell re-solidifies, projection swaps back at the start of the dolly, tokens revert. Edits carry over, so stepping back loses nothing.",
+   "Schematic to Present, 400 ms: panels slide out along x (250), the viewport reshapes to the board crop as a container transform (300), representation unchanged. Return takes 250. The motion says tools are put away and this frame is the board.",
+   "What each motion explains: ghosting says same tower seen through; the core rising first echoes core-first construction (interpretation); the projection swap says model becomes drawing; the crop says board frame; the panel slide says tools put away. Motion that explains nothing is cut.",
+   "Interruption: one stageT value in the store. Keys 1, 2, 3 or a tab click mid-transition retarget from the current value; input is never blocked (Apple HIG). Idle frames cost nothing with frameloop demand and invalidate during the tween, after checking Sun, Label and damping.",
+   "Reduced motion: when prefers-reduced-motion is reduce, camera, translation, scale and stagger take 0 ms and a 150 ms opacity cross-dissolve remains. Listen with matchMedia; add an in-app Motion: Reduced switch. The projection swap becomes a jump.",
+   "Within a stage, picking a step dims other elements to 30 percent over 150 ms and leaves the camera alone; F frames the selection. Feedback taps stay at 100 ms.",
+   "Tokens: --dur-feedback 100, --dur-chrome 200, --dur-stage 480 ms. Entering ease cubic-bezier(0.05,0.7,0.1,1); exiting cubic-bezier(0.3,0,0.8,0.15); on-screen moves cubic-bezier(0.2,0,0,1) (Material 3 emphasized and standard). Compare 300, 480 and 800 ms in a separate directional session."
+  ],
+  "icon_system": [
+   {
+    "item": "Stage: Massing",
+    "icon": "lucide:cuboid (interim); custom solid-tower trio icon (v1)",
+    "rationale": "Solid block matches clay massing. Box is taken by the 3D view toggle. Label Massing, subtitle Basic model. Adopt the custom trio if the test shows confusion."
+   },
+   {
+    "item": "Stage: Schematic",
+    "icon": "lucide:pencil-ruler (interim); custom ghost-tower-with-core (v1)",
+    "rationale": "Drafting tools read as schematic work. Label Schematic, subtitle Advanced model."
+   },
+   {
+    "item": "Stage: Present",
+    "icon": "lucide:presentation (interim); custom tower-in-crop-marks (v1)",
+    "rationale": "Board and review metaphor. Label Present, subtitle Frame and compose."
+   },
+   {
+    "item": "Evaluate lens",
+    "icon": "lucide:gauge",
+    "rationale": "Dial reads as measure or check; sits on the right panel tab in every stage."
+   },
+   {
+    "item": "3D view toggle (was Box)",
+    "icon": "lucide:axis-3d",
+    "rationale": "Frees Box from a collision with the Massing stage; still reads as the 3D view."
+   },
+   {
+    "item": "Massing step and Check step",
+    "icon": "lucide:ruler-dimension-line, list-checks",
+    "rationale": "Dimensions drive massing; ticks mean running checks. Both are verbs, matching the outline tier."
+   },
+   {
+    "item": "Program step",
+    "icon": "custom stack of three band-colour swatches",
+    "rationale": "Layers reads as Rhino Layers. Swatches in band colours are the literal picture of program bands; label Program always shown."
+   },
+   {
+    "item": "Section, Explode, Ghost shell",
+    "icon": "lucide:scissors-line-dashed, unfold-vertical, ghost",
+    "rationale": "Cut line, parts moving apart, and a literal nod to Rhino's Ghosted mode. Always labelled. Fallback for Section if misread: slice."
+   },
+   {
+    "item": "Element visibility and viewpoint",
+    "icon": "lucide:eye, eye-off; telescope",
+    "rationale": "Eye pair is the visibility convention in Rhino and Revit. The Inspector's View from this viewpoint moves to telescope so Eye keeps one meaning."
+   },
+   {
+    "item": "Capture, camera presets, save PNG",
+    "icon": "lucide:aperture; camera; download",
+    "rationale": "Aperture files a shot; Camera stays on viewpoint presets as built; Download exports the PNG. One meaning each."
+   },
+   {
+    "item": "Model locked, Guide level, How it works",
+    "icon": "lucide:lock-keyhole; sliders-horizontal; circle-question-mark",
+    "rationale": "Lock for the read-only Present chip; sliders for density, not a stage; canonical name used because CircleHelp is only an alias in 1.61."
+   },
+   {
+    "item": "Evidence flags",
+    "icon": "lucide:badge-check, users, shield-question-mark, circle-dashed, octagon-x",
+    "rationale": "One shape per flag plus colour plus text. Unverified moves off the question circle, which How it works uses. Icon ink is a darker token where fills fail 3:1."
+   },
+   {
+    "item": "Development tag",
+    "icon": "text chip LOD 100, LOD 200, LOD 300 plus 1 to 3 bars",
+    "rationale": "Digits plus bar count, never colour alone; on every element and result card. LOD wording avoids clash with floor Levels."
+   },
+   {
+    "item": "Program bands: exact fit",
+    "icon": "glyph:SE1 retail, SB2 mechanical",
+    "rationale": "Catalogue names match the band. Tile fill is the USES band colour, not tileColour; ink contrast 5.0:1 to 9.1:1 on all seven."
+   },
+   {
+    "item": "Program bands: tier or single-programme glyphs",
+    "icon": "glyph:WK1 office, ST2 hotel, LV1 residential, GP6 civic, LE2 amenity",
+    "rationale": "Catalogue names add tiers or one programme (Class AAA or A, Market condo, museum, free public deck). Ship near fits with tooltips; commission generic civic, amenity, residential glyphs if the test shows confusion."
+   },
+   {
+    "item": "Core, lifts, structure, plant",
+    "icon": "glyph:SB1 core and lifts, SB4 outrigger, SB5 transfer, SB2 plant",
+    "rationale": "SB1 covers lifts, stairs and shafts. AM5 is a sky lobby floor only. Noun tier only; never in toolbars."
+   },
+   {
+    "item": "Missing nouns: floor plate, facade, frame",
+    "icon": "to draw in the team glyph style",
+    "rationale": "None of the 112 glyphs covers them. Commission three after the licence and provenance gate so the noun tier stays consistent."
+   }
+  ],
+  "accessibility_and_restraint": [
+   "Every icon gets a visible label in the stage rail, tool strip and anatomy tree. Icon-only is opt-in via Show labels, with tooltip and aria-label (NN/g).",
+   "Contrast per surface, computed: control border 3.9:1 on the Massing ground, 4.5:1 on the Schematic ground; body text 4.6:1 or better; hairlines of 1.3:1 to 1.6:1 carry no information. Targets at least 24 by 24 CSS px.",
+   "Colour is never alone: program = tile colour plus glyph plus label (band colours alone measure 1.8:1 to 3.4:1 on white); flags = colour plus shape plus text; development = digits plus bars (WCAG 1.4.1, 1.4.11).",
+   "Respect prefers-reduced-motion with a live listener and an in-app override. No looping ambient motion, no auto-played intro, one stage transition at a time.",
+   "Two redundant cues for the stage (NN/g modes): tab highlight plus token palette, backed by the viewport representation. Announce changes with aria-live polite and put the stage in the window title.",
+   "Keyboard: 1, 2, 3 stages (exist; ignored in inputs), F frame, bracket keys move the section plane, E explode. Focus stays on the stage tab after a shift.",
+   "Never draw an element more crisply than its LOD tag allows: LOD 100 gets no outline, LOD 200 mid-grey, LOD 300 ink; material detail only in Present. Weight is reserved for cut, profile, projection.",
+   "Stages change defaults, representation and density, never capability, except the Present model lock; section level and Explode stay adjustable there. The node canvas stays one click away in every stage.",
+   "One type scale and fixed panel widths in every stage, so only content changes; Grasshopper users found size changes between display modes distracting.",
+   "Every Schematic element needs a source, a provenance flag and a LOD tag, or it is not drawn. Boards carry no team identity; stamps live in the shot sidecar. Present's neutral surround is a judging aid, not decoration."
+  ],
+  "user_test": "15 min, 6 students, v0.1 first. 0-2 setup. 2-6 one switch: what changed, same tower, which stage. 6-11 find plant floors; name an approximate number and why. 11-13 name six icons in context. 13-15 debrief. Pass: 4 of 6 name stage in 5 s and say same tower."
+ }
+}

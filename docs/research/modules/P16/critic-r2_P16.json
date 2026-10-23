@@ -1,0 +1,340 @@
+{
+ "expert_role": "HCI researcher, explainable AI and decision provenance for designers",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M02 / P16-M03",
+   "issue": "Automation bias and self-review. A 'verified' chip needs only a reviewer id. In a two-student team, the person who ran the LLM extraction can also verify its card. The review pane shows the pre-filled LLM card next to the clause, with an Accept button and a 'confidence bar'. That layout is the textbook setup for rubber-stamping. Nothing checks reviewer independence or effort, and nothing checks that the reviewer actually read the clause. 'Source opened' is a checkbox the reviewer ticks themselves.",
+   "fix": "Add proposer_id and require reviewer_id != proposer_id for brief and policy cards. Use blind-first review: the reviewer types parameter, value, unit and deontic type from the highlighted clause before the model's card is shown, and any mismatch forces Edit. Rename the bar 'agreement across N samples' and drop the word 'confidence'. Log review dwell time. Have a second person audit about 10% of verified cards. Seed 2-3 deliberately wrong LLM cards per review batch, and treat any acceptance of one as a failed review."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M03",
+   "issue": "One status per value mixes three different questions: does the quote match the source (fidelity), did a person confirm the reading (interpretation), and does the rule bind this site (applicability). The packet's own 183 m example shows the problem. The quote is confirmed, the deontic reading is reviewed, but scope is UNRESOLVED. Under weakest-link, every height result therefore collapses to a bare UNRESOLVED, and the designer cannot see which question is still open.",
+   "fix": "Give Flag three facets: {fidelity: anchored|not_found, interpretation: proposed|reviewed, applicability: asserted|unresolved|n/a}. The chip still shows the weakest facet, but the hover or drawer lists all three and names the facet that blocks. 'verified' requires all three facets to be reviewed or asserted by a person."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M03",
+   "issue": "The rank order 'verified > team assumption > unverified > unresolved' puts an unsourced team preset above a claim that has an exact quote anchor and a machine entailment check. This inverts evidence strength. It also gives teams a reason not to attach sources, because adding one can lower the badge. The spec gives no justification beyond calling it a 'team design choice'.",
+   "fix": "Either rank unverified (sourced, not yet reviewed) at or above team assumption, or treat the two as incomparable and show both counts on the evidence ladder. Write the reasoning into the limits section, and include the ordering in the legend comprehension test (see the evaluation finding)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M03 / P16-M04 / P16-M05",
+   "issue": "The export gate has a loophole. M03 says a FALSE-dependent result 'cannot be exported to boards until the input is replaced or a rationale is recorded in P16-M04'. That lets a number the team has marked wrong reach a board once someone types a rationale. It contradicts the M03 and M05 metrics 'Results depending on FALSE ASSUMPTION that reach a board export: good 0' and the design rule 'a board must not show a number the team has marked wrong'.",
+   "fix": "Use one rule in all three modules. A rationale can unlock export only of the corrected value, or of the wrong value shown explicitly as 'superseded, shown for comparison' with its hatch pattern. The wrong number is never exported as an unmarked figure. Add an M08 test that tries to export a FALSE-dependent number after a rationale has been recorded."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M04",
+   "issue": "The module contradicts itself on the course rule that separates delegated work from human judgment. human_judgment says 'The tool must never invent a rationale', yet the method says 'AI-drafted rationale is labelled until the user edits it'. A one-character edit therefore relabels AI text as human rationale, and the AIUseStatement would under-report AI use.",
+   "fix": "Choose one approach. Either ban AI-drafted rationale, or store a permanent authorship record on each rationale {origin: ai_drafted|human, editor, edit_ratio}. The 'AI-drafted, edited by <id>' label never clears automatically, and the AIUseStatement counts these records. The tool can still prompt for rationale with IBIS questions without writing the answer."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M08 (missing track)",
+   "issue": "The packet's whole purpose is explainability for designers, but the evaluation tests only model accuracy, variance, injection and privacy. Nothing tests whether designers read the five chips correctly, whether weakest-link badges stay informative or become constant amber noise, whether reviewers catch wrong LLM cards, or whether recording rationale is sustainable. The spec lists 'Showing evidence flags and provenance -> change in how designers make decisions' as unresolved but plans no way to measure it.",
+   "fix": "Add a small human-centred evaluation, with a UBC research-ethics or course check first. (1) Legend comprehension: 5-8 designers classify 10 chips; good means at least 90% correct, with FALSE vs team assumption read correctly under CVD simulation. (2) Over-reliance probe: plant wrong cards in a review session; good means 100% rejected. (3) Badge informativeness: share of results showing each state on a real iteration. (4) Rationale burden: decisions logged vs decisions skipped per session. Report the results in EvalReport."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M05",
+   "issue": "The weighted jury score gives false precision. Human scale (40%) and cultural context (30%) are largely qualitative manual ratings, so 70% or more of the weight can rest on subjective inputs, yet they are combined into one weighted number. The 'rank-1 option unchanged in >=90% of draws' metric names a winner in practice, even though the spec says the module 'never outputs a single winner'. The weight-perturbation sampling is undefined: the spec does not say whether weights are renormalised to 100, kept non-negative, or what distribution is used.",
+   "fix": "Hide the weighted aggregate, or show it only greyed out with a warning, when more than a preset share (for example 50%) of the weight rests on manual ratings or non-verified thresholds. Show the evidence share for each criterion. Replace rank-1 stability with 'frontier membership stability'. Specify the sampling, for example a Dirichlet draw centred on 40/30/20/10 or clipped uniform ±10 renormalised to 100. Define clipping for values beyond the good or bad thresholds and the direction for lower-is-better metrics."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M07",
+   "issue": "The statement 'Credential variables are not expanded in remote URLs or headers' is too broad. The Claude Code MCP docs blank only Claude Code's own credentials, cloud-provider credentials and a few other named ones; 'A name outside this set, such as API_KEY, expands as written'. So ${OPENAI_API_KEY} in a committed .mcp.json header is expanded. The same docs say `claude -p`, Agent SDK and cloud sessions load project servers without approval. Together, this means a PR that changes the .mcp.json URL could send the OpenAI key to any server it names.",
+   "fix": "Correct the statement. Keep no remote MCP server with ${SECRET} headers in project scope; put such servers in user or local scope. In CI and `-p` runs, use --strict-mcp-config or disabledMcpjsonServers. Add CODEOWNERS review for .mcp.json and .claude/**. Add an M08 test that plants a modified .mcp.json and checks that no key leaves the machine."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M02 (sources)",
+   "issue": "The packet's key unverified item, the clause text of the Higher Buildings Policy, may be reachable. The City's project page (S60) links 'Higher Buildings Policy (0.9 MB)' at https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245, a different host from the guidelines.vancouver.ca URL that returns 403. The spec records the policy as unobtainable, and the derived limit card, M08 boundary answers and scope rule all rest on an FAQ sentence about a site outside the policy area.",
+   "fix": "A team member downloads that PDF manually, records its SHA-256 and edition, and reviews the height, area and criteria clauses. Then update S38 (opened, alternative URL) and either confirm or correct the derived limit card. If the download also fails, record that attempt in the change log."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M04 / platform (DATA)",
+   "issue": "The community platform conflicts with competition anonymity. The tool is GitHub-like: people upload, comment on and fork modules. The spec strips identifiers only from board exports. Nothing stops entrants from publicly sharing an attributed project, Layer 0 or decision trace of their entry before judging. Submission closes 30 Nov 2026 and winners are announced January 2027 (S60). Terms 5.1 and 5.3 require that entries carry no identifying marks and that the jury learns identities only after selection.",
+   "fix": "Make projects, Layer 0 snapshots and traces private by default until the competition's winner announcement. Allow publishing of modules only, never entry geometry or traces. Show a warning on any share action, and add an M08 privacy case that tries to publish a trace with author ids."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M02",
+   "issue": "The derived height-limit card has no deontic_type or strength, although the schema requires both. Its only basis is the FAQ sentence about the Bay Parkade site, which the FAQ also says is outside the policy area ('exceptions to the current heigh limits or geographic scope').",
+   "fix": "Set deontic_type = Prohibition and strength = defeasible, with defeater = rezoning exception / justified departure, and status UNVERIFIED. Note in the card that the supporting sentence concerns a site outside the policy area."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01",
+   "issue": "Anchor resolution counts a quote as resolved when an exact-string search finds it. The W3C model says that when there are multiple matches, 'the selection SHOULD be treated as matching all of the matches'. Phrases that recur, such as 'may be considered', which appears twice on the FAQ, would resolve ambiguously and highlight the wrong clause.",
+   "fix": "Count a quote as resolved only when exact+prefix+suffix yields a unique match within the expected clause. Show ambiguous anchors as UNVERIFIED, and report unique and ambiguous counts separately."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01 / P16-M02",
+   "issue": "NFKC normalisation rewrites compatibility characters: m² becomes m2, ½ becomes 1⁄2, superscripts are flattened and ligatures are split. Quotes shown to users and the M02 numeric-fidelity regex can then disagree with the PDF.",
+   "fix": "Apply NFKC only to a separate match key. Keep the original text and an offset map, display original text in the viewer and chips, and run numeric parsing on the original text."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M03",
+   "issue": "The light-theme team-assumption colour #B86B00 and FALSE ASSUMPTION #D55E00 differ by only 1.06:1 in luminance (computed with the WCAG formula). Under protan or deutan vision they are effectively the same colour, so the distinction depends entirely on hatching and icon, and those are small at chip size.",
+   "fix": "Separate the two in luminance as well as hue. For example, give FALSE a dark fill with a white strike and hatch, or make team assumption a light fill with a dark outline. Add a CVD-simulation snapshot test in CI."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "all modules",
+   "issue": "'false_assumption_corrected' is used as a metric status, but it is not one of the five flag states. It describes the history of the metric, not its current evidence. For example, the jury-weights metric is currently a team assumption.",
+   "fix": "Set status to the current state (team_assumption, unverified and so on) and record the correction in the flag history, using the supersedes field."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M02",
+   "issue": "S36 shows that consistency across samples from one model reduces overconfidence. It does not show that agreement between two providers indicates correctness, yet the spec uses it to support cross-provider agreement -> 'higher confidence'.",
+   "fix": "Cite S36 only for within-model sampling. Label cross-provider agreement as a team assumption to be measured against the gold set."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M04",
+   "issue": "Requiring IBIS rationale for every decision runs into the well-known capture-burden problem, and the spec never defines what counts as a 'decision'. The result is likely to be empty or post-hoc rationales.",
+   "fix": "Define the decision events: option promotion, threshold override, policy departure, export, flag change. Ask for a one-line rationale at each, and allow a longer IBIS record optionally."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M06",
+   "issue": "Covered Models (Fable and Mythos 5/5.1) require 30-day retention and are not available under ZDR for any feature, including citations. The adapter's data-class policy does not route around them.",
+   "fix": "Add a covered_model flag to the capability table, and block non-public data classes from those models unless the user opts in."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M08",
+   "issue": "The extraction cost counts 2 calls per sample for both providers, but the OpenAI route is a single strict-JSON call with verbatim quotes. The token counts behind the entailment-check figure are not stated.",
+   "fix": "Recompute with 1 OpenAI call per sample and state the assumed tokens for the entailment check."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Credential variables are not expanded in remote URLs or headers of project-scoped MCP servers (P16-M07).",
+   "why_false": "Only Claude Code's own credentials (e.g. ANTHROPIC_API_KEY), cloud-provider credentials and a few named others are read as empty. Other names expand as written.",
+   "correction": "Treat ${OPENAI_API_KEY} or ${CODEX_API_KEY} in .mcp.json as live secrets that will be sent. Keep remote servers that use secrets out of project scope, and block project servers in -p/CI runs.",
+   "evidence": "https://code.claude.com/docs/en/mcp : 'In a remote server's url and headers, Claude Code reads credential variables from your environment as empty' ... 'A name outside this set, such as API_KEY, expands as written.'"
+  },
+  {
+   "claim": "The Higher Buildings Policy PDF cannot be obtained (only via guidelines.vancouver.ca, HTTP 403).",
+   "why_false": "The City's Shape Your City project page links a separate copy titled 'Higher Buildings Policy (0.9 MB)'.",
+   "correction": "Download it manually from https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245, hash it and review the clauses. WebFetch reached only a download-redirect page, so the text has not yet been confirmed.",
+   "evidence": "https://shapeyourcity.ca/higher-buildings (Key documents: Higher Buildings Policy, 0.9 MB)."
+  },
+  {
+   "claim": "An exact-string match of the stored quote resolves an anchor (100% resolution target).",
+   "why_false": "The W3C model treats a quote that occurs more than once as matching all occurrences, so finding the string does not give one location.",
+   "correction": "Require a unique match using exact+prefix+suffix. Mark ambiguous anchors UNVERIFIED.",
+   "evidence": "https://www.w3.org/TR/annotation-model/ section 4.2.4: if multiple matches, 'the selection SHOULD be treated as matching all of the matches'."
+  }
+ ],
+ "missing": [
+  "Reviewer independence fields (proposer_id, reviewer_id, reviewer role) and a rule for disagreement between two team members on a card",
+  "Applicability/scope facet in the Flag object, separate from source fidelity and interpretation",
+  "A human-centred evaluation track: legend comprehension, over-reliance probe with seeded wrong cards, badge informativeness, rationale-capture burden",
+  "Visibility defaults for projects, Layer 0 and traces on the community platform until the competition's winner announcement (anonymity)",
+  "A retraction path for a FALSE ASSUMPTION set in error (append-only 'retracted' transition with reviewer and reason)",
+  "Definition of the decision events that require a rationale",
+  "The alternative Higher Buildings Policy PDF link (Shape Your City key documents) as a source record",
+  "View-protection documents recorded as in force and NOT under review: the project page says 'Protected public views will not be reviewed or updated as part of this work'",
+  "A clipping and direction rule for normalising metrics beyond the good/bad thresholds in P16-M05, and the weight-sampling distribution",
+  "An authorship record for AI-drafted text (rationale, card fields) that survives edits and feeds the AIUseStatement"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Require reviewer != proposer for verified brief and policy cards, add blind-first review and seeded wrong-card checks, and rename the 'confidence bar' to an agreement bar",
+   "Split Flag into fidelity / interpretation / applicability facets, and justify or fix the team-assumption-above-unverified rank",
+   "Close the export-gate loophole so a FALSE-marked number never reaches a board unmarked, consistently across M03, M04 and M05",
+   "Resolve the M04 contradiction over AI-drafted rationale with a permanent authorship record",
+   "Correct the M07 credential-expansion statement and block project MCP servers holding secrets in CI and -p runs",
+   "Try the Shape Your City Higher Buildings Policy PDF and update S38 and the derived limit card",
+   "Add private-by-default visibility for entry projects and traces until winners are announced",
+   "Add a small human-centred evaluation plan for flags and provenance to P16-M08"
+  ]
+ },
+ "verdict": "Round 2 fixes all the r1 BLOCKERs, and the vendor facts I checked match their sources: pricing, caching minimums, retention, the citation and structured-output conflict, file_citation index, the codex mcp-server removal, the plugin commands, and GitHub push protection defaults. The FAQ indeed does not contain 'ceiling'. The remaining problems are about human judgment, which is this packet's purpose. A student can verify their own LLM card. One status mixes source fidelity with applicability. An unsourced preset outranks a sourced claim. A typed rationale can let a FALSE-marked number reach a board. AI-drafted rationale becomes 'human' after any edit. Nothing tests whether designers understand or over-trust the flags. Also fix the MCP credential claim, the community-anonymity gap, and fetch the alternative policy PDF.",
+ "previous_round": [
+  {
+   "item": "BLOCKER M02: deontic type vs strength; HBP 183 m read as discretionary",
+   "status": "partly",
+   "residue": "Schema split and FALSE flag done, and 'ceiling' is confirmed absent from the FAQ. But the 'derived limit card' has no deontic_type or strength, and its only support is the FAQ sentence about a site outside the policy area ('exceptions to the current heigh limits or geographic scope')."
+  },
+  {
+   "item": "BLOCKER M05/M02/M08: VTC brief missing as source; jury weights 'verified' with no source",
+   "status": "addressed",
+   "residue": "S58 added with opened=false; brief cards stay team assumptions. Metric status 'false_assumption_corrected' is not a valid current-state value."
+  },
+  {
+   "item": "MAJOR M01/M06: OpenAI string-match re-anchoring infeasible",
+   "status": "addressed",
+   "residue": "Inline passages, verbatim-quote JSON and exact match in code; the API reference confirms index is 'The index in the output text at which to insert the file citation'. A uniqueness rule for repeated quotes is still missing."
+  },
+  {
+   "item": "MAJOR M01/M03: two kinds of 'verified'",
+   "status": "addressed",
+   "residue": "anchored / machine_entailed / not_supported, and verified requires a reviewer id. Reviewer independence is not required."
+  },
+  {
+   "item": "MAJOR M06/privacy: retention facts",
+   "status": "addressed",
+   "residue": "store:false, retention table, batch only for public data, and the deletion job are all in place. The 30-day retention required for Covered Models is not handled in the adapter policy."
+  },
+  {
+   "item": "MAJOR M03: state machine, FALSE propagation, legal force vs review state",
+   "status": "partly",
+   "residue": "Export is still allowed 'until the input is replaced or a rationale is recorded in P16-M04', which contradicts the 0-exports metric."
+  },
+  {
+   "item": "MAJOR M01: embedding route unnamed",
+   "status": "addressed",
+   "residue": "voyage-4-nano (Apache-2.0, trust_remote_code, pinned revision) or text-embedding-3-small at $0.02/MTok; both confirmed from sources."
+  },
+  {
+   "item": "MAJOR M01/M06: no pipeline prompt-injection controls",
+   "status": "addressed",
+   "residue": "No-tool calls, block-only document text, schema validation, the model never writes flags, and a canary scan. Covering the entailment judge with tests only is acceptable for v1."
+  },
+  {
+   "item": "MAJOR M07: Codex plugin write commands, auth on an open-source repo, project MCP auto-load",
+   "status": "partly",
+   "residue": "The allow-list and per-person keys are done. But 'Credential variables are not expanded in remote URLs or headers' is overgeneralised: OPENAI_API_KEY expands, so the auto-load in -p/CI remains an exfiltration path."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P16-S37",
+   "url": "https://shapeyourcity.ca/higher-buildings/faqs",
+   "ok": true,
+   "note": "'buildings up to 600ft (183 m) may be considered'; Bay Parkade site outside the policy area, 'does not conform to its height limits'; 'ceiling' absent; Phase 2 early 2027."
+  },
+  {
+   "source_id": "P16-S60",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Phases confirmed. Links an alternative Higher Buildings Policy PDF (0.9 MB). 'Protected public views will not be reviewed or updated as part of this work.'"
+  },
+  {
+   "source_id": "P16-S38",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403 again. The alternative shapeyourcity.ca document link returned only a download-redirect page to WebFetch."
+  },
+  {
+   "source_id": "P16-S01",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "ok": true,
+   "note": "Valid pointers guaranteed; all-or-none rule; 400 error with structured outputs; custom content is not re-chunked; ZDR excludes Covered Models."
+  },
+  {
+   "source_id": "P16-S02",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/search-results",
+   "ok": true,
+   "note": "start/end_block_index with exclusive end; whole blocks are the minimal citable unit; all results must share the same citation setting."
+  },
+  {
+   "source_id": "P16-S03",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "ok": true,
+   "note": "Opus 5.5 $4/$20, read $0.20; Sonnet 5.5 $2/$10, read $0.10 (0.05x); Haiku 5.5 $0.10/$0.50, and above 100K $0.50/$2.50 counting cache; US-only 1.1x; batch 50%."
+  },
+  {
+   "source_id": "P16-S04",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+   "ok": true,
+   "note": "512-token minimum for the 5.5 models and Opus 5; 1,024 for Sonnet 5; workspace isolation; 4 breakpoints."
+  },
+  {
+   "source_id": "P16-S05",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+   "ok": true,
+   "note": "No min/max or minLength/maxLength; enum, const and simple regex patterns supported; 24 optional and 16 union parameters."
+  },
+  {
+   "source_id": "P16-S07",
+   "url": "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+   "ok": true,
+   "note": "Batch 29 days, not ZDR; Files API kept until deleted; citations, search results and caching ZDR-eligible; Covered Models require 30 days."
+  },
+  {
+   "source_id": "P16-S10",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": true,
+   "note": "sol $2/$0.10/$10 and above 272K $4/$15; file search $2.50 per 1k calls; storage $0.10/GB-day; embedding-3-small $0.02; gpt-image-2.5 image output $30/MTok; no per-image price."
+  },
+  {
+   "source_id": "P16-S12",
+   "url": "https://developers.openai.com/api/docs/guides/tools-file-search",
+   "ok": true,
+   "note": "file_citation has index, file_id, filename; results only with include file_search_call.results; index not defined on this page."
+  },
+  {
+   "source_id": "P16-S59",
+   "url": "https://developers.openai.com/api/reference/resources/responses/methods/create",
+   "ok": true,
+   "note": "FileCitation index = 'The index in the output text at which to insert the file citation'."
+  },
+  {
+   "source_id": "P16-S14",
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "ok": true,
+   "note": "Responses state kept 30 days by default; abuse logs up to 30 days; files, vector stores, batches and conversations not ZDR; Canada storage only."
+  },
+  {
+   "source_id": "P16-S61",
+   "url": "https://developers.openai.com/api/docs/deprecations",
+   "ok": true,
+   "note": "gpt-image-1 shuts down 23 Oct 2026; 1.5 and mini on 1 Dec 2026; replacements are the 2.5-sunburst and 2.5-flare models."
+  },
+  {
+   "source_id": "P16-S15",
+   "url": "https://learn.chatgpt.com/docs/mcp-server",
+   "ok": true,
+   "note": "codex mcp-server removed; app server is JSON-RPC and experimental; no version or date given."
+  },
+  {
+   "source_id": "P16-S16",
+   "url": "https://learn.chatgpt.com/docs/non-interactive-mode.md",
+   "ok": true,
+   "note": "API keys recommended for automation; the ChatGPT-auth CI workflow is not for public/OSS repositories; read-only sandbox by default."
+  },
+  {
+   "source_id": "P16-S18",
+   "url": "https://github.com/openai/codex-plugin-cc",
+   "ok": true,
+   "note": "Apache-2.0; review and adversarial-review read-only; rescue can fix; review gate 'may drain usage limits quickly'."
+  },
+  {
+   "source_id": "P16-S20",
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Project servers auto-load in -p/SDK/cloud sessions. Only Claude Code and cloud credential names are blanked; API_KEY-style names expand. The spec overgeneralises this."
+  },
+  {
+   "source_id": "P16-S23",
+   "url": "https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection",
+   "ok": true,
+   "note": "Repository-level push protection is disabled by default; user-level is on by default; writers can bypass with a reason."
+  },
+  {
+   "source_id": "P16-S28",
+   "url": "https://www.w3.org/TR/annotation-model/",
+   "ok": true,
+   "note": "exact is the text 'after normalization'; TextPositionSelector 'very brittle'; multiple matches SHOULD be treated as matching all; no pagination claim."
+  },
+  {
+   "source_id": "P16-S64",
+   "url": "https://huggingface.co/voyageai/voyage-4-nano",
+   "ok": true,
+   "note": "Apache-2.0, about 0.3B parameters, 32K context, trust_remote_code=True, query and document prompts differ."
+  }
+ ]
+}

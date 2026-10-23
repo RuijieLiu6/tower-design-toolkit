@@ -1,0 +1,324 @@
+{
+ "expert_role": "City of Vancouver transportation and development engineering reviewer (gatekeeper and source auditor) for packet P09, Mobility, traffic and servicing",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P09 (MVP: M01 to M05)",
+   "issue": "Even if the data sprint succeeds, the main driver of every downstream number has no source. Office trips come from 'Floor area per employee' (source_ids: []) and 'Trip rate per person, unit or room' (resident rates only, from a dashboard nobody has read). Neither is a 7 Nov sprint deliverable. On at least 103,200 m2 of non-residential GFA, M01 office and retail trips, and with them M02 demand, M04 flows, M05 kerb demand and M07, stay SCENARIO on 30 Nov. Sprint owners are still roles ('owners are roles; the two students enter their names in the canvas manifest'). Nobody is accountable for the 31 Oct and 7 Nov packs, which are 10 and 17 days away.",
+   "fix": "Put names, not roles, on every sprint line today. Add two 7 Nov deliverables: (a) a sourced office employment-density row (m2 GFA per job, with source, year and basis) and (b) person-trip rates per employee, dwelling, hotel room and retail m2, each with a source or an explicit 'SCENARIO on 30 Nov' entry in the status strip. Add a 7 Nov go/no-go rule: any pack not two-person checked by then ships as SCENARIO, with no partial green."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M01",
+   "issue": "ParkingDemandEstimate is defined as 'auto-driver commuters x occupancy'. That gives persons, not vehicles, and overstates stall demand by about 17-28% (occupancy 1.17-1.28). Separately, method step 4 ('Auto-driver trips = auto-person trips / occupancy') double-handles occupancy whenever the loaded share row already splits auto driver from auto passenger. Census journey-to-work and the Trip Diary both report driver and passenger separately. The error passes into M02, M07 and the parking line chart.",
+   "fix": "Set ParkingDemandEstimate = auto-driver vehicle arrivals x peak accumulation (share parked at once), with no occupancy multiplier. Apply occupancy only when a row carries a combined 'auto' share, and store a row flag driver_passenger_split true/false so the tool picks the correct path. Add a unit test for both paths."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M01 (limits, flag r1 Trip Diary)",
+   "issue": "The spec says 'The Trip Diary samples households by residence, so it cannot give workplace-attraction splits', and S16 says 'No destination-based Trip Diary product is listed'. Both are wrong. The diary covers the whole region, so trips by all residents can be tabulated by destination. The 2011 Trip Diary Analysis Report on the same TransLink page publishes 'Weekday Mode Share to Sub-Regions' (Figure 3.X.5c, p.33) by destination sub-region. The real limits are coarse geography (Vancouver/UEL, not CBD), sample size and vintage, not the sampling basis.",
+   "fix": "Rewrite the limit and the r1 flag detail: residence-weighted region-wide diaries can produce destination-end tabulations, with sample-size caveats. Add the 2011 Analysis Report as a source and a candidate destination row (coarse, 2011). In the sprint, test whether the 2023 dashboard filters by destination. Keep Census place-of-work as the CBD-scale commute row."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The brief requires a below-grade secondary entrance that connects directly to the station. Yet M03 ships 'by 10 Dec', after the 30 Nov deadline, and the launch-day state puts M03 outside the build. Entrants get no in-tool check of the connection width the brief asks for, even though tier 1 is rated effort S (arithmetic).",
+   "fix": "Ship a tier-0 M03 by 13 Nov: TSPR 2025 hourly alightings for the proxy station x user entrance share, plus tower transit trips, divided by user clear width, mapped to the walkway scale. Label it 'unverified scale, comfort only, not egress-compliant'. Move platform and line context to v1."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09 (SITE/M02/M03 applicability)",
+   "issue": "The competition page (architecturecompetitions.com/vancouvertallchallenge) gives a Q&A deadline of 3 Nov 2026, with no answers posted. Several statuses stay 'team-applied' only because applicability is unknown, and the organiser can settle that. Open questions: whether the block is inside the Parking By-law Downtown area for the maximum (s.4.2.5), which existing station or lines the hypothetical neighbouring station stands for, and whether City loading and servicing rules are expected. The spec does not use this channel.",
+   "fix": "Submit those three questions by 3 Nov (role: Student 1). Record the answers as source S64 with date. Raise applicability_status to source-stated wherever an answer confirms it, and keep the team-assumption badge where it does not."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M02",
+   "issue": "There is still no checked by-law row. Every M02 metric except the switched-off minimum test is unverified, and bylaws.vancouver.ca returned HTTP 403 again in this round (sec05.pdf). Loading counts, bay dimensions (8.5x3.0x3.8 m in 2012 versus 10.2x3.4 m in a 2026 extract), bicycle Class A rates (three conflicting sources) and the downtown maximum all rest on search extracts or vendor pages. Teams that size docks and bike rooms now will size them wrongly, and the dock depth feeds STRC and SPAC.",
+   "fix": "Keep the 7 Nov pack deadline. Until then, set the M02 visualization to grey for every row and show bay envelopes as 'pending Section 5' outlines in SPAC, not as dimensions. After loading, record the consolidation date and SHA-256 on the board's policy-reflection note."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M05",
+   "issue": "The design-vehicle library (Class B, Class C, City refuse truck) has no fire apparatus. For a 244-305 m supertall, fire-department access and the ladder or pumper turning envelope at the lane and frontage often governs lane geometry and building setbacks more than delivery vehicles do. The spec hands egress to SYST but never hands off fire-vehicle access.",
+   "fix": "Add a fourth library slot, 'fire apparatus (Vancouver Fire Rescue Services or Building By-law access route)', status unverified until transcribed. Add a SYST hand-off output, FireAccessRoute, and show its swept path greyed out like the other vehicles."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M04 (flags r2 and UNVERIFIED Figure 9)",
+   "issue": "I independently checked the Figure 9 decode and confirm it. The PDF p.14 fills (green CMYK 0.35/0/1/0, yellow 0/0/0.9/0, at-risk separation, red 0/1/1/0) match the printed label positions. For example, at y=482 (row B-) the labels read 'AT RISK, ACCEPTABLE, AT RISK, ACCEPTABLE' for High Street, Office, Tourist and Transport, and no 'AT RISK' label sits in row B for Office. The previous critic's text-based reading is wrong, but the spec still presents it as a live alternative.",
+   "fix": "Record the critic's reading as a FALSE ASSUMPTION (see false_assumptions). Downgrade the UNVERIFIED flag to 'geometry and label positions agree; 31 Oct visual check outstanding'. Add an explicit rule for Figure 8 band C (21-23 ppmm), which Figure 9 omits (its rows are A, B+, B, B-, C+, C-, D, E)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "The NonResidentialGFACheck metric is marked status 'verified', but S63 is opened=false and its URL is the Buildner homepage. That breaks the packet's own rule that 'verified' needs both sourced and current. The competition page itself confirms only the deadline.",
+   "fix": "Cite the brief file by name, version and date, plus the competition page URL. Re-read the 9.0 FSR clause and record a page number. Until then, display team_assumption."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09 (status model)",
+   "issue": "The status field still carries 'false_assumption_corrected' on several metrics, with displayed_status beside it, so there are two status fields that can disagree. Other metrics (M01 basis check, M03 TfL-underground rule) mark a tool rule as value_status 'sourced'.",
+   "fix": "Remove status as a display input. Keep corrected_in_round and flag_ref as history, and compute displayed_status only. Give tool rules a separate value_status 'tool rule'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M03 (S58)",
+   "issue": "The spec uses 2023 hourly TSPR values and says 2025 hourly rows 'were not reached'. The 2025 rows exist. Burrard MF 8-9 AM alightings were 4,306 in 2025 against 3,819 in 2023 (+13%). Granville was 3,353 and Waterfront 3,974.",
+   "fix": "Load 2025 hourly rows as the default baseline and keep 2023 as a comparison. Label MF as 'Monday-Friday average (inferred)'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M05/M08 (S16)",
+   "issue": "The spec calls the 2014 Truck Classification and Dangerous Goods Survey 'not readable'. It downloads directly (about 20.9 MB). It is an AES-encrypted PDF that opens in any browser or reader, so a person can read it. The block is in the agent's tooling, not in the source.",
+   "fix": "Add a sprint task to read it manually for truck time-of-day profiles and light/heavy splits near the CBD. Use it for the M05 delivery-hour shape, labelled as screenline-type counts, not building rates."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M03/M08 (S59)",
+   "issue": "The unresolved item says derived headway tables 'should be computed at run time per user rather than redistributed'. The TransLink terms grant a licence to 'use, reproduce, and redistribute the Data' with the required legend. Run-time download is a valid choice, but it is not required.",
+   "fix": "Restate this as a design choice (keeps data fresh). Allow cached derived tables if they carry the legend and the feed date."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M07",
+   "issue": "The 'bad above 37%' cap comes from Spack and Finkelstein, measured against ITE average rates, which are a car-oriented baseline. It is applied to reductions from a same-basis CBD baseline, which mixes bases.",
+   "fix": "Label the 37% line 'reduction versus ITE suburban rates, not versus a CBD baseline'. Rely on the same-basis observed floor as the binding constraint."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M02",
+   "issue": "The EV-ready row relies on Memon 2009 ('EV outlets voluntary'). Reviewer knowledge, which I could not verify this round because the web-search budget was exhausted and vancouver.ca returns 403: Vancouver has required energized EV-ready residential stalls in new buildings since about 2019. Treating EV as voluntary would undersize the SYST electrical room.",
+   "fix": "Mark the EV row 'likely mandatory, rate to load from Section 4' rather than voluntary, and give it a sprint line."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09 (calendar)",
+   "issue": "The sprint ends at '30 Nov: submission', but the competition page gives the deadline as 30 Nov 2026 at 23:59 London time, which is 15:59 Pacific.",
+   "fix": "Set the freeze and export time to 30 Nov 12:00 Pacific in the manifest."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M03 (libraries)",
+   "issue": "r5py's licence is confirmed as 'GPL-3.0-or-later OR MIT'. It runs on the Java R5 engine, and the spec does not mention the JDK dependency, which matters for a web deployment.",
+   "fix": "Add the JDK requirement and the version pin to the library entry, or fall back to gtfs_kit and OSMnx isochrones."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "(Previous critic, carried in the r2 flag as an alternative reading.) TfL Figure 9 rates B 'at risk' at peak for Office and Retail, Residential and Transport Interchange, and rates B+ at risk and B unacceptable for Tourist Attraction.",
+   "why_false": "The figure's vector fills and the printed label positions both show Office/Retail and Transport Interchange comfortable to B, acceptable at B- and C+, and at risk at the C- row. Residential is acceptable at B and B-. Tourist Attraction matches High Street: acceptable at B, at risk at B-.",
+   "correction": "Adopt the spec's geometry decode as the reading. Drop the critic's reading from the flag and keep only the visual confirmation step.",
+   "evidence": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf p.14: green fill (CMYK 0.35/0/1/0) spans y 494-550 (rows A to B) in the Office column (x 163-260); yellow spans 457-494 (B-, C+). Text at y=482 (row B-) reads 'AT RISK ACCEPTABLE AT RISK ACCEPTABLE', and at y=450 (row C-) 'AT RISK' x4 for the Office and Transport columns."
+  },
+  {
+   "claim": "The Trip Diary samples households by residence, so it cannot give workplace-attraction (destination-based) splits, and no destination-based Trip Diary product exists.",
+   "why_false": "The diary is region-wide, so trips from every residence sub-region to a destination can be tabulated. TransLink publishes destination-sub-region mode shares in the 2011 Analysis Report.",
+   "correction": "Treat destination-end tabulation as valid, subject to sample size and geography. Add the 2011 report as a coarse destination row and test the 2023 dashboard for a destination filter.",
+   "evidence": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2011-metro-vancouver-regional-trip-diary--analysis-report.pdf p.33: 'Figure 3.X.5c - Weekday Mode Share to Sub-Regions: this figure illustrates the mode share of the trips originating in the specific sub-region for each of the destination sub-regions'."
+  },
+  {
+   "claim": "ParkingDemandEstimate = auto-driver commuters x occupancy.",
+   "why_false": "Auto-driver trips are already vehicles. Multiplying by occupancy returns persons and inflates stall demand by 17-28%.",
+   "correction": "Parking demand = auto-driver vehicle arrivals x peak accumulation. Use occupancy only to convert a combined auto-person share into vehicles.",
+   "evidence": "Internal arithmetic. S56 (2011 screenline report) defines occupancy as occupants per passenger vehicle, including the driver (1.17 AM to 1.28 PM)."
+  },
+  {
+   "claim": "The 2014 truck survey is not readable because it exceeds the 10 MB fetch limit.",
+   "why_false": "The file downloads directly (about 20.9 MB). It is an encrypted PDF that standard readers open, so a person can read it.",
+   "correction": "Read it manually in the sprint.",
+   "evidence": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2014_truck_classification_and_dangerous_goods_survey_report.pdf downloaded 21 Oct 2026, 20,911,272 bytes, AES-encrypted PDF."
+  }
+ ],
+ "missing": [
+  "A sourced office employment density (m2 per job) and person-trip rates per employee, dwelling, hotel room and retail m2. These are the dominant drivers in M01 and are not in the sprint.",
+  "Peak accumulation factor for converting auto-driver arrivals into concurrent stall demand",
+  "A flag on each mode-share row recording whether driver and passenger are split, to decide when occupancy applies",
+  "2011 Trip Diary Analysis Report (destination-sub-region mode shares) as a source, and a check of whether the 2023 dashboard has a destination filter",
+  "Organiser Q&A answers (deadline 3 Nov 2026) on Downtown parking-area applicability, the proxy station or lines, and servicing expectations",
+  "Tier-0 M03 connection-width check available before 30 Nov",
+  "Fire-apparatus design vehicle and a fire-access route hand-off to SYST",
+  "Current City EV-ready parking requirement row (likely mandatory for residential), to load from Section 4",
+  "2025 TSPR hourly station rows as the default baseline",
+  "Manual reading of the 2014 truck survey for delivery time-of-day shape",
+  "Explicit Figure 8 band C (21-23 ppmm) handling in the Figure 9 lookup, which has no C row",
+  "JDK dependency for r5py",
+  "Construction-phase traffic and lane closure logistics (deferred)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Named people (not roles) own every 31 Oct, 7 Nov and 13 Nov deliverable, and the sprint adds sourced employment density and person-trip rates or states they remain SCENARIO on 30 Nov",
+   "ParkingDemandEstimate and the occupancy step are corrected (no occupancy multiplier on driver trips; occupancy only for combined auto shares)",
+   "The Trip Diary destination-basis false assumption is corrected and the 2011 destination-sub-region shares are added as a candidate row",
+   "M02 Sections 4, 5 and 6 packs are loaded and two-person checked by 7 Nov; until then every M02 row renders grey and no bay dimension passes to SPAC or STRC",
+   "Organiser Q&A is submitted by 3 Nov and the answers are recorded as a dated source",
+   "A tier-0 M03 connection-width check ships by 13 Nov, labelled comfort-only and not egress-compliant",
+   "Figure 9 visual confirmation is done by 31 Oct; the geometry decode (independently confirmed this round) is adopted and the critic's alternative reading is retired",
+   "NonResidentialGFACheck is downgraded from 'verified' until the brief clause is re-read and cited with a page number"
+  ]
+ },
+ "verdict": "Round 2 fixed the earlier gate items: Figure 9 is encoded cell by cell, the crossing and width checks are in, k-scaling is dropped, the claimed-deviation test is in, M03 uses a proxy station, the screenline data are in and route directness is added. I independently confirmed the Figure 9 decode from the page geometry; the previous critic's reading was wrong. The spec still cannot be relied on today. No by-law row is checked, sprint owners are roles, the dominant office-trip drivers (m2 per job, trip rates) have no source or deadline, and ParkingDemandEstimate multiplies vehicles by occupancy. The spec also wrongly says the Trip Diary cannot give destination-based shares, and M03 ships after the deadline. These conditions are narrow and dated. Web search was exhausted this round, so this audit used direct fetches only.",
+ "previous_round": [
+  {
+   "item": "BLOCKER: the MVP cannot give a sourced result by 30 Nov (no data packs, hard block on attraction trips)",
+   "status": "partly",
+   "residue": "Sprint, scenario fallback and status strip were added, but 'owners are roles; the two students enter their names in the canvas manifest', and the m2-per-job and trip-rate drivers are not sprint deliverables"
+  },
+  {
+   "item": "MAJOR M04: Figure 9 thresholds wrong; encode cell by cell with Tourist Attraction and confine C+ to the vitality exception",
+   "status": "addressed",
+   "residue": "Cell table encoded and C+ confined. The decode is independently confirmed; the critic's alternative reading should be retired, not kept as 'disagreement'"
+  },
+  {
+   "item": "MAJOR M04: add TfL crossing-arm and minimum footway width checks",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M07: drop k-scaling in favour of context-matched Ewing rows with a same-basis floor",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M01: circular sustainable-share metric",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: combined trunk headways; require a proxy station",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: no line or platform loading assessment",
+   "status": "addressed",
+   "residue": "Context-only metrics added, but M03 is 'outside the 30 Nov build' and 'ships by 10 Dec'"
+  },
+  {
+   "item": "MAJOR sources: Screenline surveys and the 2014 truck survey ignored",
+   "status": "partly",
+   "residue": "2011 and 2017 used; '2014 truck survey (PDF above the 10 MB fetch limit)' is in fact downloadable and readable by a person; 2023 dashboard unread"
+  },
+  {
+   "item": "MAJOR: no route-directness or transit-accessibility metric",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR status model: corrected metrics inherit the FALSE ASSUMPTION colour; M08 delay mixed with the LOS F override",
+   "status": "partly",
+   "residue": "displayed_status added and M08 split, but 'status false_assumption_corrected kept as a history marker' remains as a second status field, and the NonResidentialGFACheck is 'verified' with S63 opened=false"
+  },
+  {
+   "item": "MAJOR M05: empty design-vehicle library and lane-width default",
+   "status": "partly",
+   "residue": "Swept path greyed out and lane width set to 6.1 m (inferred unit); the three vehicles are not yet transcribed ('due 7 Nov') and no fire apparatus is included"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P09-S17",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "ok": true,
+   "note": "Page 14 fills and text positions re-analysed: the spec's Figure 9 decode is correct. Also confirmed: 'B+ RECOMMENDED MINIMUM FOR ALL AREAS'; C+ is the vitality-exception limit (p.12); crossing arms B- recommended at 15-18 ppmm; island rows two recommended, three at busy times, four or more very crowded; Appendix B widths 2.9 and 4.2 m."
+  },
+  {
+   "source_id": "P09-S19",
+   "url": "https://www.vtpi.org/tdm/tdm9.htm",
+   "ok": true,
+   "note": "Ewing Table 1 confirmed (100% subsidy: 35/25/10; 50% subsidy: 20/15/10), described as predicted decline in commute travel. Spack and Finkelstein 34-37% and 17-24%, Rye/Boarnet 4-20%, and the 15%/7% survey all confirmed. Cambie 1.6% unit undefined."
+  },
+  {
+   "source_id": "P09-S18",
+   "url": "https://ops.fhwa.dot.gov/publications/fhwahop08024/chapter3.htm",
+   "ok": true,
+   "note": "Table 3-2 and Table 3-3 match the spec; pedestrian LOS is outside scope; there is no v/c > 1 to LOS F mapping."
+  },
+  {
+   "source_id": "P09-S01",
+   "url": "https://globalnews.ca/news/10590288/vancouver-parking-minimums/amp",
+   "ok": true,
+   "note": "Downtown peninsula minimums removed in 2018; accessible, visitor, bike and loading spaces still required; by-law cut from 33 to 17 pages. Effective date not in the article (relies on S02)."
+  },
+  {
+   "source_id": "P09-S47",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Phases match the spec; no transportation criteria named; competition to 30 Nov 2026."
+  },
+  {
+   "source_id": "P09-S61",
+   "url": "https://en.wikipedia.org/wiki/Canada_Line",
+   "ok": true,
+   "note": "334 comfortable and 400 crush per two-car train; 15,000 pphpd is an RFP requirement (specs list 5,000-15,000); 3-minute trunk headways. Secondary source."
+  },
+  {
+   "source_id": "P09-S62",
+   "url": "https://en.wikipedia.org/wiki/Expo_Line_(SkyTrain)",
+   "ok": true,
+   "note": "12,000 pphpd pre-2009 and 19,400 design capacity; Mark V 672 regular, 1,207 crush, in service July 2025. Secondary source."
+  },
+  {
+   "source_id": "P09-S58",
+   "url": "https://www.translink.ca/tspr",
+   "ok": true,
+   "note": "Year-station CSV values match the spec (Burrard 19,596 MF and so on). Hourly file includes 2025: Burrard 8-9 AM alightings 4,306. No column definitions; the licence is referenced but its terms are not shown."
+  },
+  {
+   "source_id": "P09-S16",
+   "url": "https://www.translink.ca/plans-and-projects/data-and-information/research-and-insights",
+   "ok": true,
+   "note": "Lists the 2011 Trip Diary Analysis Report and methodology report, which the spec missed; 2023 Screenline is dashboard-only."
+  },
+  {
+   "source_id": "NEW",
+   "url": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2011-metro-vancouver-regional-trip-diary--analysis-report.pdf",
+   "ok": true,
+   "note": "13.7 MB, text extracted. Contains Figure 3.X.5c, mode share to destination sub-regions (coarse, 2011)."
+  },
+  {
+   "source_id": "P09-S56",
+   "url": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2011-screenline-survey-report.pdf",
+   "ok": true,
+   "note": "Occupancy 1.24 regional, AM 1.17, midday 1.27, PM 1.28, CBD 1.25, trucks about 6%, consistent with the spec."
+  },
+  {
+   "source_id": "NEW (S16 item)",
+   "url": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2014_truck_classification_and_dangerous_goods_survey_report.pdf",
+   "ok": true,
+   "note": "Downloaded (20.9 MB). AES-encrypted PDF that is readable in a standard viewer; not parsed by my tooling."
+  },
+  {
+   "source_id": "P09-S59",
+   "url": "https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/gtfs/gtfs-data",
+   "ok": true,
+   "note": "Licence permits use, reproduction and redistribution with the required legend, so redistribution of derived tables is allowed."
+  },
+  {
+   "source_id": "P09-S38",
+   "url": "https://codeberg.org/araichev/gtfs_kit/raw/branch/master/LICENSE.txt",
+   "ok": true,
+   "note": "MIT, Copyright (c) 2019 Alexander Raichev, confirmed."
+  },
+  {
+   "source_id": "r5py (library)",
+   "url": "https://github.com/r5py/r5py",
+   "ok": true,
+   "note": "Licence 'GPL-3.0-or-later OR MIT' confirmed; JDK requirement not stated in the README."
+  },
+  {
+   "source_id": "P09-S24",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas",
+   "ok": true,
+   "note": "Residential parking cannot be required in TOAs; accessible, commercial and loading can; 800 m radius; updated 22 July 2026."
+  },
+  {
+   "source_id": "P09-S63",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Deadline 30 Nov 2026 at 23:59 London time; Q&A deadline 3 Nov 2026; brief behind a download link, so 9.0 FSR not confirmable from the page."
+  },
+  {
+   "source_id": "P09-S06",
+   "url": "https://bylaws.vancouver.ca/parking/sec05.pdf",
+   "ok": false,
+   "note": "HTTP 403 on a single attempt, not bypassed. Loading and passenger rows remain unverified."
+  }
+ ]
+}

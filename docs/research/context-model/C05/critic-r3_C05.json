@@ -1,0 +1,254 @@
+{
+ "expert_role": "Gatekeeper for geospatial data, provenance and licensing. I checked the C05 round-3 spec against the four local repos, the live City/npm/GitHub APIs and the published Pages files.",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C05-M01/M02/M06 SHA-256 values and byte counts (guideline.json, viewcones.json, example-study.json, vancouver-sites.js)",
+   "issue": "The local copies were checked out on Windows with core.autocrlf=true, so every text file has CRLF line endings. The spec's hashes and sizes were taken from those converted files. The committed and published files differ. guideline.json is 12,062 B with SHA-256 51ba7ee7…, both in git HEAD and on ruijieliu6.github.io (fetched today), not 12,337 B with 5c214a50. viewcones.json is 36,357 B, not 37,707. example-study.json is 24,624 B, not 25,508. vancouver-sites.js is 296,943 B, not 296,947. In the same checkout, Vista's vendored rhino3dm.js fails the SHA-256 in its own PROVENANCE.md (e57449b7 against 7f3b804a). Layer 0 uses SHA-256 for ContextRefs, provenance input_hashes and the cone-pack key (view_number + polygon SHA-256). As specified, hashes will not reproduce between a Windows machine, CI and Pages.",
+   "fix": "Before the 23 Oct freeze: (1) Hash committed or served bytes only, i.e. `git show HEAD:path | sha256sum` or the Pages response, never a working-tree file on Windows. (2) Add .gitattributes to every repo: `*.json *.js *.md text eol=lf` and `*.bin *.wasm *.3dm binary`. (3) Correct the guideline.json hash to 51ba7ee7… and the four sizes. (4) Define the canonical bytes for a polygon hash: RFC 8785 JCS over lon/lat rounded to 7 decimals, exterior ring counter-clockwise, starting at the lowest-lon vertex, closing vertex dropped. Add a CI test that hashes on Linux."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05 datasets: PVV downtown basemap licence; M06 pack template; M07 'Vista derived packs'",
+   "issue": "The spec gives the PVV basemap as 'ODbL as a derived OSM database', status verified, and proposes it as the template for Layer 0 building packs. But scripts/build_basemap.py reads man['files']['buildings'] from Vista's unified_manifest.json. That file is unified_buildings.bin: the 9,897 buildings converted from the supplied studio model 'Vancouver DT context.3dm' (SHA-256 c1614721…), not the OSM extension buildings. PVV's 5,247 buildings and their heights therefore have the same unknown-owner provenance for which M07 marks Vista's packs non-redistributable. The basemap is served publicly today. Separately, the Vista pack itself is live (unified_buildings.bin, 9,722,568 B, HTTP 200 on 21 Oct).",
+   "fix": "Give the PVV basemap the same status as Vista's packs: provenance 'supplied studio model + OSM ids + SRTM', licence 'unknown, non-redistributable until cleared'. Either remove both from the Pages build or get written permission from the model's owner. Keep PVV's binary layout as the format template only. Rebuild its content from City 2009 parts plus OSM. Correct the dataset row and the M07 matrix."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M02 ceiling.eval / ceilingAt() sampling",
+   "issue": "Checks evaluate ceilingAt(lon, lat) only at footprint vertices and roof samples. A sub-section polygon, or a cone's plan polygon, can cut into a footprint without containing any vertex. Example: a strip x 30 to 40 inside the 20 to 50 footprint. Sampling then reports a margin where an exact answer is INTERSECTS. Fixture F4 passes only because its split line has vertices on both sides. Point sampling is also not needed: ceilings are horizontal per sub-section (Guidelines s.2, verified in guideline.json) and massing parts are prisms, so exact polygon clipping is cheap. 'Outside a known sub-section the answer is unknown' also does not separate 'inside a cone, ceiling unknown' from 'outside every dataset cone'. Without that split, every site in the city reads unknown.",
+   "fix": "For prism parts, clip the footprint against each sub-section polygon and each cone plan polygon, and report penetration and area per piece. Keep point sampling only for mesh parts and plane or ref surfaces, with a sampling density stated. Return three states: none (outside all cones in dataset version X), unknown (inside a cone, no known ceiling), value. Add fixture F5: sub-section B = x 30 to 40 strip, top 75, B 70, A 80. Expected INTERSECTS, 5 m over 300 m2, with no vertex inside B."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M01/M07 Public Views Guidelines PDF",
+   "issue": "The live PDF still returns 403 (checked today with curl). The clause text comes only from Vista's extract, and the PDF hash is still pending. The extract's s.2 quote reads 'from which an obstructed view to the view subject(s) is secured'. That is probably a transcription error for 'unobstructed', so the extract cannot yet be treated as verbatim.",
+   "fix": "Ruijie hashes sources/guidelines-public-views.pdf and records page numbers. Diff guideline.json against the PDF text, fixing 'obstructed', and set guideline_version from the PDF, not from the extract."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 checks[].tolerance_m and the 1880 Main St case",
+   "issue": "The case stores tolerance_m 2.0 and derives status from 'max over 2 m, average under 2.0 m'. Vista's own guideline.json says the tool NEVER uses 2 m as a tolerance (PROJECT_SCOPE §6). Clause 3.1.5 applies only after hardship or a more stringent requirement is shown, and the 2.0 m average comes from a site-specific draft CD-1 by-law (7.3). element_kind rooftop_amenity is not supported by the report summary quoted.",
+   "fix": "Store measured max, average and area only. Put the 2 m in a separate 'reference_provision' field with clause and source, and never let it decide status. Set element_kind to unknown unless the report names the element."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 floors[] vertical reference",
+   "issue": "vertical is required on Massing, ViewStudy, ContextRef and ceilings, but not on Floors. PVV elevation_m is relative to the scheme's own grade. Form Studio assumes grade z=0, the 'Grade is assumed z=0' limit in its high-building check. A floor-derived top could therefore be compared with a geodetic ceiling with no datum. The 100% datum metric silently excludes floors.",
+   "fix": "Require floors to reference a massing part (tower_id → massing.parts[].id) and say that elevation_m is relative to that part's vertical.grade_z_m. The validator rejects floors with no resolvable grade."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M04 Form Studio check status mapping",
+   "issue": "Form Studio emits status 'block' (mega-load-path) and 'pass' (floor-height, competition-height, nonresidential). Layer 0 renamed block to conflict and forbids pass on non-cited ceilings. No mapping is specified, so the 'zero fields changed in a round trip' metric fails on Form Studio.",
+   "fix": "Add an explicit status crosswalk in the Form Studio adapter: block→conflict and pass→pass only for non-ceiling checks. Keep the original value under ext.form_studio and test it in the round-trip CI."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05 validation case 'GeoNetBC monument' (Access Only data)",
+   "issue": "The spec says to read the Access Only terms before committing monument values, yet it already publishes tablet 6303's lat/lon and UTM values to six decimals. The case also only re-projects a monument's own coordinates, so it tests the Kruger code, not the City data. The previous round's 'independent control' request is therefore only partly met; the real independent check is the ParcelMap BC one.",
+   "fix": "Remove monument coordinates from shared files until the terms allow them. Use a MASCOT (OGL-BC) monument for the projection test. Label the test 'projection implementation', not 'datum validation'."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M06 removal of PVV .b64.txt",
+   "issue": "PVV's manifest names file_b64 'vancouver_downtown.b64.txt', and app.js loads it in preference to the .bin. The code comment says the base64 copy exists so claude.ai artifact hosting works. Deleting it from the Pages build without changing the manifest breaks the Map tab.",
+   "fix": "Choose the file per host (manifest flag or build step in scripts/build_pages.py) and test the Map tab on Pages after removal."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M01 inventory gaps",
+   "issue": "Storage keys omit pvv-help-seen, pvv-money-book-edition and the toolbench's vtt-draft. Libraries omit qrcodejs 1.0.0 (cdnjs) and Google Fonts in the toolbench. The toolbench's IS_PUBLIC switch, under which the claude.ai copy writes feedback to a shared database, is not recorded. Solar's dataset row says size unknown, but weather/ holds two EPW files of 1,588,114 and 1,587,269 B. 'Under 1 MB' means 1,000,000 B in Form Studio and 1,048,576 B in Vista.",
+   "fix": "Add these items to the M01 inventory and THIRD_PARTY_NOTICES. Define the Layer 0 cap as 1,000,000 bytes of UTF-8."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 checks for amended views (27.1, 27.2, 9.1, 9.2, 28)",
+   "issue": "The live dataset still describes the 9.1 and 9.2 origin as the Walking Figures plaza (checked today). The 2670 Victoria NE corner, which the 59.8 m is measured from, lies outside the dataset's 27.1 triangle: bearing -12.8° against the edge at -14.9°, recomputed today. This points to geometry older than the Feb 2026 amendments, yet checks would still run on these polygons.",
+   "fix": "Until the City confirms the geometry, return unknown for these five views, with a 'dataset may predate RTS 18292' note, and record the dataset modified date in every check."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 CityJSON export CRS",
+   "issue": "EPSG:3157 + EPSG:5713 has no single EPSG code, and the spec does not say how metadata.referenceSystem will encode the pair.",
+   "fix": "Use the OGC compound-CRS URL form (crs-compound?1=…/3157&2=…/5713) or state a 2D CRS with the height datum in metadata. Validate against cjio before claiming the export."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M08 capacity",
+   "issue": "The arithmetic is now correct: 16.5 to 18.5 of 34 person-days, 17 working days. Fit is still not shown, because the cone-height and terrain packets have no budgets, and the three new fixes above add about 1 to 1.5 days.",
+   "fix": "Publish the cross-packet table by the 23 Oct freeze. Pre-commit the cut order: CityJSON exporter, then cone-pack frame conversions."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Vista data/guideline.json has SHA-256 5c214a50 (12,337 B); viewcones.json is 37,707 B; example-study.json is 25,508 B; vancouver-sites.js is 296,947 B.",
+   "why_false": "These values come from a Windows working tree with core.autocrlf=true (CR count equals line count in each file). The committed and published files are LF.",
+   "correction": "guideline.json: 12,062 B, SHA-256 51ba7ee75633522f…, matching the Pages copy and Vista's release-manifest.json. viewcones.json: 36,357 B. example-study.json: 24,624 B. vancouver-sites.js: 296,943 B.",
+   "evidence": "`git cat-file -s HEAD:data/guideline.json` = 12062. `git show HEAD:… | sha256sum` = 51ba7ee7…. curl https://ruijieliu6.github.io/vancouver-tall-view-tool/data/guideline.json | sha256sum = 51ba7ee7…. `git config core.autocrlf` = true."
+  },
+  {
+   "claim": "The PVV downtown basemap is an ODbL derived OSM database and can serve as the clean template for Layer 0 building packs.",
+   "why_false": "build_basemap.py takes its buildings from unified_buildings.bin, the supplied studio model's 9,897 buildings (unified_manifest sources.supplied_context = 'sources/Vancouver DT context.3dm'), not from the OSM extension.",
+   "correction": "Treat it like Vista's packs: provenance is the supplied model with OSM ids and SRTM, and terms are unknown. Keep the format, rebuild the data from City 2009 parts and OSM, or obtain permission.",
+   "evidence": "program-value-visualizer/scripts/build_basemap.py lines 163 to 189 (files['buildings'], cols['osm_id']); vancouver-tall-view-tool/generated/unified_manifest.json sources and methods.buildings.count 9897."
+  },
+  {
+   "claim": "The Solar tool's weather data size is unknown and lives in src/data/hourly.js.",
+   "why_false": "The repo root has a weather/ folder with the two NRC EPW files.",
+   "correction": "weather/weatherfile-fsstat-typical-year-gw1.0-1108395.epw (1,588,114 B) and gw2.0 (1,587,269 B). Licence still unverified.",
+   "evidence": "GitHub API contents of willemgirard03/Shading-tool-test/weather, 21 Oct 2026."
+  }
+ ],
+ "missing": [
+  "Canonical hashing rule (git blob or LF bytes; JCS for polygons) and .gitattributes in all four repos",
+  "Fixture F5 (sub-section strip with no footprint vertex inside) and a three-state ceilingAt result (none / unknown / value)",
+  "Corrected provenance and licence status for the PVV basemap; a takedown or permission decision for both served packs",
+  "SHA-256 and diff of sources/guidelines-public-views.pdf against guideline.json",
+  "Floors-to-massing grade reference in the schema",
+  "Form Studio status crosswalk (block, pass)",
+  "Budgets of the cone-height and terrain packets for the capacity table",
+  "City written answers: sub-section outlines and heights, ceiling datum, horizontal realisation, whether the dataset reflects the 2026 amendments",
+  "Written consents from Sinnie Choi and Willem Girard; terms of the supplied model",
+  "Not re-verified today: the City public-views page (403 to WebFetch), the OSM wiki LWG listing and the council PDFs; web search budget was exhausted, so these rest on the team's earlier reads"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Before the 23 Oct freeze: hashes and sizes recomputed from committed or served bytes, .gitattributes added, polygon-hash canonical form defined",
+   "Before the 23 Oct freeze: ceiling evaluation uses exact polygon clipping for prisms, returns none, unknown or value, and passes F1 to F5",
+   "PVV basemap and Vista packs both marked non-redistributable, and removed from Pages or covered by written permission, before any Layer 0 ContextRef points to them",
+   "Checks on views 27.1, 27.2, 9.1, 9.2 and 28 return unknown until the City confirms the dataset geometry",
+   "Floors reference a massing part's grade; tolerance_m does not drive status",
+   "Cross-packet capacity table published by the freeze, with the cut order applied if C05 exceeds 17 person-days"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "MAJOR C05-M02 cone ceiling stored as one number",
+   "status": "addressed",
+   "residue": "The sub-section surface is in place, and keeping the default horizontal matches Guidelines s.2 as quoted in guideline.json. The evaluator still samples vertices only, which misses partial overlaps (new MAJOR)."
+  },
+  {
+   "item": "MAJOR C05-M06 2009 heights and detection of newer buildings",
+   "status": "addressed",
+   "residue": "LiDAR 2022 change detection, permit flags and the city_2009_snapshot label are specified; LiDAR not yet processed (tile download needs approval)."
+  },
+  {
+   "item": "MINOR M03 horizontal datum evidence",
+   "status": "partly",
+   "residue": "The ParcelMap BC check is independent. The monument test only checks the projection code, and the TRX shift has not been computed."
+  },
+  {
+   "item": "MINOR M02/M03 vertical enum",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M02 checks status vocabulary",
+   "status": "addressed",
+   "residue": "The Form Studio block/pass mapping is not specified."
+  },
+  {
+   "item": "MINOR M01/M07 Guidelines edition",
+   "status": "partly",
+   "residue": "The local extract is now used, but the hash quoted is from a CRLF checkout (published value 51ba7ee7), and the PDF is still not hashed."
+  },
+  {
+   "item": "MINOR M02/M04 Placement for IFC and .3dm",
+   "status": "addressed",
+   "residue": "0 of 3 sample files tested; support correctly not claimed."
+  },
+  {
+   "item": "MINOR M02 CityJSON export frame",
+   "status": "partly",
+   "residue": "Encoding of the compound CRS URL is not specified."
+  },
+  {
+   "item": "MINOR M06 bldgid grouping",
+   "status": "addressed",
+   "residue": "Verified live today: bldgid 149806 has 18 parts, flat 167.92 to 168.07 m and complex 170.83 m."
+  },
+  {
+   "item": "MINOR datasets terrain beyond City LiDAR",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M08 capacity",
+   "status": "partly",
+   "residue": "The sum is correct (16.5 to 18.5 of 34 person-days), but the other packets' budgets are unknown, so fit is not shown."
+  }
+ ],
+ "sources_checked": [
+  {
+   "url": "local: vancouver-tall-view-tool @5dbce2f (data/guideline.json, fixtures.json, geo.json, release-manifest.json, generated/unified_manifest.json, explorer/*)",
+   "ok": true,
+   "note": "Confirmed: clauses 3.1.1 to 3.1.5 under heading 3.2 (pp.6-7), s.2 'horizontal lower boundary', Table 1 with 24 views, F1 to F3, the 2 M triangle and 80 MB import limits, and rhino3dm 8.35.0. Committed text files are LF; the Windows checkout is CRLF."
+  },
+  {
+   "url": "local: program-value-visualizer @7d8c1f8 (app/app.js, tests/, basemap/, scripts/build_basemap.py)",
+   "ok": true,
+   "note": "Confirmed: normaliseFloors (lines 52 to 78) throws on repeated levels and coerces area_basis to gross; the importer reads floors, settings and brief; 118 test() calls; the 110574 assertion at basemap.test.js line 87. The basemap is built from the supplied-model buildings."
+  },
+  {
+   "url": "local: form-studio @71a58d1 (model-engine.js, export.js, app.js, vendor/)",
+   "ok": true,
+   "note": "Confirmed: schema mountain-studio/1, MountainStudio_* user strings, 103,213.44 m2, wasm SHA-256 c831ea5e and blob 34e610b5, the 1,000,000 B import cap. Statuses include block and pass."
+  },
+  {
+   "url": "local: vancouver-tower-toolbench @9c78eee (index.html)",
+   "ok": true,
+   "note": "Confirmed: TOOLS array at line 691 and the mailto form. Not in the spec: qrcodejs from cdnjs, the vtt-draft key and the IS_PUBLIC switch."
+  },
+  {
+   "url": "https://ruijieliu6.github.io/vancouver-tall-view-tool/data/guideline.json",
+   "ok": true,
+   "note": "Served SHA-256 is 51ba7ee7…, not 5c214a50. Pages headers confirmed ACAO *, ETag, Accept-Ranges and max-age=600."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "403 on 21 Oct 2026; could not verify the PDF directly."
+  },
+  {
+   "url": "https://vancouver.ca/home-property-development/protecting-public-views.aspx",
+   "ok": false,
+   "note": "403 to WebFetch; the sub-section and 5 ft 6 in eye-height statements are not re-verified."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 records, modified 2026-10-19, OGL-Vancouver, field 'shapre_area' present. 27.1 is a single 4-point ring (closed triangle). The 9.1 and 9.2 descriptions still name the Walking Figures plaza."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009",
+   "ok": true,
+   "note": "124,181 parts, modified 2019-05-07, topelev_m and baseelev_m 'geodetic', datum not named. bldgid 149806: 18 parts, flat tops 167.92 to 168.07 m, complex 170.83 m. bldgid 149845 base 30.70 to 31.01 m."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "181 tiles; 0.081 m vertical at 95%; NAD83(CSRS) 4.0.0.BC.1.GVRD; CGVD28GVRD with HTMVBC00; class list includes Buildings."
+  },
+  {
+   "url": "https://registry.npmjs.org (ajv, proj4, three, web-ifc, rhino3dm, leaflet)",
+   "ok": true,
+   "note": "Confirmed: ajv 8.20.0 MIT, proj4 2.22.0 MIT, three 0.186.1 MIT, web-ifc 0.0.78 MPL-2.0, rhino3dm 8.35.0 latest (8.17.0 dated 2025-03-12), leaflet 1.9.4 BSD-2."
+  },
+  {
+   "url": "https://api.github.com/repos/xubynii/dtmass",
+   "ok": true,
+   "note": "No licence. .github holds only ISSUE_TEMPLATE, no workflows."
+  },
+  {
+   "url": "https://api.github.com/repos/willemgirard03/Shading-tool-test",
+   "ok": true,
+   "note": "No licence. package.json is private, v6.0.0, rhino3dm 8.4.0. weather/ holds two EPW files of about 1.59 MB each."
+  },
+  {
+   "url": "own computation (WGS 84 degree lengths, legacy frame, 27.1 bearings)",
+   "ok": true,
+   "note": "Reproduced 111,215.21 and 72,756.78 m/deg, area factor 1.00773, Library Square (372.834, -330.620), and the 27.1 edges at -24.35° and -14.89° against the 2670 corner at -12.80°, 721 m."
+  }
+ ],
+ "verdict": "Round 3 fixes the previous round's two MAJOR items and gate conditions 1 to 4. I re-checked the clause extract, footprint fields, LiDAR metadata, the 1 MB import caps (1,000,000 B in Form Studio, 1,048,576 B in Vista) and the frame arithmetic, and they hold. Three new MAJOR problems remain. First, every text-file hash and size was taken from a CRLF Windows checkout; the guideline.json value is wrong, and Layer 0's hash-based keys would not reproduce. Second, the PVV basemap, offered as the pack template, comes from the unlicensed studio model. Third, ceilingAt checks only footprint vertices and so misses partial overlaps. Conditional pass: the team can build frame.js and the PVV adapter now, provided the hashing rule, the ceiling clipping and both data packs' licence status are fixed by the 23 Oct freeze."
+}

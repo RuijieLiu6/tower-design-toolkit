@@ -1,0 +1,153 @@
+{
+ "about": "Vista's protected-view eye, reconstructed: bilinear SRTM ground at the open-data apex + 1.6 m. Vista's coastline and inland-water masking is not reproduced, so seawall and pier origins may differ.",
+ "source": "Vista external_data/extension_terrain/srtm_grid.json (NASA SRTMGL1 via Open Topo Data, accessed 2026-09-24 by Vista; public domain); heights above the EGM96 geoid",
+ "srtm_sha256": "3f05632a0bae62c470108ef38f351cce8fcf1f5b3c0caf5d2049456d14f44c6f",
+ "flag": "unverified",
+ "eyeHeight": 1.6,
+ "cones": {
+  "K": {
+   "lat": 49.2713488,
+   "lon": -123.1204377,
+   "vistaGround": 3.1,
+   "vistaEye": 4.7
+  },
+  "27.2": {
+   "lat": 49.2543063,
+   "lon": -123.0618493,
+   "vistaGround": 32.1,
+   "vistaEye": 33.7
+  },
+  "22": {
+   "lat": 49.2642683,
+   "lon": -123.1009454,
+   "vistaGround": 38.1,
+   "vistaEye": 39.7
+  },
+  "G2": {
+   "lat": 49.2723627,
+   "lon": -123.1077524,
+   "vistaGround": 1.1,
+   "vistaEye": 2.7
+  },
+  "J2": {
+   "lat": 49.2751652,
+   "lon": -123.1029737,
+   "vistaGround": 2.5,
+   "vistaEye": 4.1
+  },
+  "27.1": {
+   "lat": 49.2543063,
+   "lon": -123.0618493,
+   "vistaGround": 32.1,
+   "vistaEye": 33.7
+  },
+  "3.2.1": {
+   "lat": 49.2421561,
+   "lon": -123.1124363,
+   "vistaGround": 121.1,
+   "vistaEye": 122.7
+  },
+  "3.2.3": {
+   "lat": 49.2421561,
+   "lon": -123.1124363,
+   "vistaGround": 121.1,
+   "vistaEye": 122.7
+  },
+  "D": {
+   "lat": 49.2676704,
+   "lon": -123.1193143,
+   "vistaGround": 6.2,
+   "vistaEye": 7.8
+  },
+  "J1": {
+   "lat": 49.2751652,
+   "lon": -123.1029737,
+   "vistaGround": 2.5,
+   "vistaEye": 4.1
+  },
+  "10": {
+   "lat": 49.2724382,
+   "lon": -123.1341529,
+   "vistaGround": 1.6,
+   "vistaEye": 3.2
+  },
+  "9.1": {
+   "lat": 49.2621523,
+   "lon": -123.1146268,
+   "vistaGround": 35.9,
+   "vistaEye": 37.5
+  },
+  "20": {
+   "lat": 49.2634559,
+   "lon": -123.138561,
+   "vistaGround": 46.8,
+   "vistaEye": 48.4
+  },
+  "B2": {
+   "lat": 49.2675753,
+   "lon": -123.1245334,
+   "vistaGround": 1.0,
+   "vistaEye": 2.6
+  },
+  "B1": {
+   "lat": 49.2675753,
+   "lon": -123.1245334,
+   "vistaGround": 1.0,
+   "vistaEye": 2.6
+  },
+  "3.2.2": {
+   "lat": 49.2421591,
+   "lon": -123.1124368,
+   "vistaGround": 121.0,
+   "vistaEye": 122.6
+  },
+  "H": {
+   "lat": 49.2712987,
+   "lon": -123.1064497,
+   "vistaGround": 6.6,
+   "vistaEye": 8.2
+  },
+  "G1": {
+   "lat": 49.2723627,
+   "lon": -123.1077524,
+   "vistaGround": 1.1,
+   "vistaEye": 2.7
+  },
+  "28": {
+   "lat": 49.2696416,
+   "lon": -123.0508236,
+   "vistaGround": 56.2,
+   "vistaEye": 57.8
+  },
+  "21": {
+   "lat": 49.2622093,
+   "lon": -123.069625,
+   "vistaGround": 37.0,
+   "vistaEye": 38.6
+  },
+  "A": {
+   "lat": 49.2672429,
+   "lon": -123.1319237,
+   "vistaGround": 8.3,
+   "vistaEye": 9.9
+  },
+  "3.2.4": {
+   "lat": 49.2421561,
+   "lon": -123.1124363,
+   "vistaGround": 121.1,
+   "vistaEye": 122.7
+  },
+  "9.2": {
+   "lat": 49.2621523,
+   "lon": -123.1146268,
+   "vistaGround": 35.9,
+   "vistaEye": 37.5
+  },
+  "E": {
+   "lat": 49.2696695,
+   "lon": -123.1147756,
+   "vistaGround": 4.6,
+   "vistaEye": 6.2
+  }
+ }
+}

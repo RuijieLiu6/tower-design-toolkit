@@ -1,0 +1,1937 @@
+{
+ "packet_id": "P11",
+ "notes": "Research limits that affect trust in this packet. (1) All vancouver.ca, council.vancouver.ca and bylaws.vancouver.ca pages returned HTTP 403 to the fetch tool, so VBBL 2025 (By-law 14343) and the City checklists were NOT opened; their facts come from search-result summaries and are marked opened=false. (2) The BCBC 2024 PDF (about 16 MB) exceeds the 10 MB fetch limit and free.bcpublications.ca has an expired certificate, so the operative text of Subsection 3.2.6 in BCBC 2024 was not read; clause numbers come from the AIBC (May 2025) and Maple Ridge (Feb 2025) 2024-code Part 3 checklists, and application triggers from archived NBC 2005 commentary plus BCAB decisions. (3) The shared web-search budget ran out mid-run, so no sourced figures were found for plant-floor frequency, plant area share, hotel lift criteria, Part 3 GHGI limits, firefighter-elevator rated load or speed, occupant-load factors and travel-distance limits; these are shown as editable team assumptions or listed as unresolved. (4) Lift criteria come from UK/Australian practice (CIBSE Guide D as cited by consultants, BCO 2014 as quoted, UQ standard); no Canadian code sets lift service levels. (5) CIBSE Guide D text is paywalled; the 2015 edition is superseded by 2020 (2025 chapters in preparation). No Claude Code skill or MCP server for lift or code checking was verified; a thin MCP wrapper around the round-trip-time engine is a possible build. Every module outputs early estimates and checklists, never code certification.",
+ "modules": [
+  {
+   "module_id": "P11-M01",
+   "name": "Lift traffic sizing and zoning by use",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "How many lifts, of what size and speed, in how many rises, serve each use at acceptable up-peak service, and how much core area results?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 6-8 person-days (round-trip-time engine 3, rise diagram and gauges 3, validation against published examples 2)",
+   "depends_on": [],
+   "inputs": [
+    "Layer 0: net and gross floor area per storey by program tag (office, residential, hotel, retail, cultural/civic, public, amenity)",
+    "Layer 0: floor-to-floor heights, storey count, main-lobby level and below-grade transit-entrance level",
+    "Core footprint and shaft availability from the massing/core module",
+    "User presets: population density per use, utilisation factor, car rating, speed, door times, control type"
+   ],
+   "outputs": [
+    "LiftGroupSpec[] (rise id, floors served, express floors, cars, rated load kg, speed m/s)",
+    "VTPerformance {HC5 %, interval s, AWT s, ATTD s per group}",
+    "CoreAreaByLevel (lift shaft m2 per storey)",
+    "PeakDemandByEntrance (persons per 5 min at ground and below-grade levels)",
+    "NetToGrossRatio per typical level"
+   ],
+   "parameters": [
+    {
+     "name": "Population density (m2 NIA per person)",
+     "unit": "m2/person",
+     "relationship": "Lower m2 per person raises design population, so 5-minute demand and cars per rise rise, adding shafts at the ground floor and enlarging the core. Sources use 1 person per 8, 10, 12 or 14 m2.",
+     "source_ids": [
+      "P11-S22",
+      "P11-S25",
+      "P11-S27"
+     ]
+    },
+    {
+     "name": "Floors per rise (zone height)",
+     "unit": "floors",
+     "relationship": "More floors per rise adds probable stops and flight time, lengthening round-trip time and cutting capacity per car; more rises cut core area but add transfer floors and restrict interfloor travel between zones.",
+     "source_ids": [
+      "P11-S23"
+     ]
+    },
+    {
+     "name": "Rated speed",
+     "unit": "m/s",
+     "relationship": "Faster cars shorten flight time, so taller rises use higher speeds to keep round-trip times similar across rises; gains shrink when door and loading time dominate. Examples: 3.5, 5.0 and 6.0 m/s rises; 8.0 m/s shuttles.",
+     "source_ids": [
+      "P11-S23",
+      "P11-S26",
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Car rated load (kg) and passengers",
+     "unit": "kg",
+     "relationship": "Larger cars carry more passengers per trip, raising capacity per shaft but increasing loading time and shaft size. Examples: 1600 kg/21 persons (residential), 2000 kg/26 persons (office double-deck).",
+     "source_ids": [
+      "P11-S26",
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Control type (collective vs destination)",
+     "unit": "category",
+     "relationship": "Destination control groups passengers by floor, cutting stops and non-coincident stops; it is the only workable control for double-deck local groups with mixed traffic, but its benefit must be shown by simulation.",
+     "source_ids": [
+      "P11-S22",
+      "P11-S25",
+      "P11-S23"
+     ]
+    },
+    {
+     "name": "Use zoning (separate groups by use)",
+     "unit": "category",
+     "relationship": "Separate groups for basement, residential, hotel, office and public shuttles keep mixed traffic out of the main group, protecting its handling capacity at the cost of more shafts.",
+     "source_ids": [
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Lowest terminal (below-grade transit entrance)",
+     "unit": "level",
+     "relationship": "A second terminal below the main lobby adds a long first flight and extra stops to every round trip; a dedicated group or escalators keeps this traffic off the main group (main lifts did not serve basements at 22 Bishopsgate).",
+     "source_ids": [
+      "P11-S22",
+      "P11-S29"
+     ]
+    },
+    {
+     "name": "Utilisation factor (share of floor population present at peak)",
+     "unit": "%",
+     "relationship": "Scales design population; 22 Bishopsgate used 80%, so a lower factor trims lifts but risks under-provision if tenants over-occupy.",
+     "source_ids": [
+      "P11-S22"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Up-peak 5-minute handling capacity (office)",
+     "unit": "% of population in 5 min",
+     "good": ">= 12 to 13",
+     "bad": "< 12",
+     "status": "verified",
+     "basis": "Peters's high-rise example uses 12% with CIBSE Guide D parameters; University of Queensland standard sets 13% with interval under 30 s. Engineering targets, not code limits.",
+     "method": "HC5 = 300 x P x N / RTT / population x 100",
+     "source_ids": [
+      "P11-S23",
+      "P11-S25"
+     ]
+    },
+    {
+     "name": "Average up-peak interval (office)",
+     "unit": "s",
+     "good": "<= 30",
+     "bad": "> 30",
+     "status": "verified",
+     "basis": "Both sources use a 30 s maximum interval (UQ: under 30 s).",
+     "method": "interval = RTT / N",
+     "source_ids": [
+      "P11-S23",
+      "P11-S25"
+     ]
+    },
+    {
+     "name": "Up-peak average waiting time (office, all floors served)",
+     "unit": "s",
+     "good": "<= 25",
+     "bad": "> 30 (25-30 s tolerated only if time to destination <= 80 s)",
+     "status": "verified",
+     "basis": "BCO Guide to Specification 2014 wording as quoted by Stopes (secondary quotation of a UK guide, not a Canadian requirement). Ideal-system first estimate: waiting time = interval / 2.",
+     "method": "Monte Carlo simulation; first estimate AWT = interval / 2",
+     "source_ids": [
+      "P11-S22",
+      "P11-S29"
+     ]
+    },
+    {
+     "name": "Up-peak average time to destination (office)",
+     "unit": "s",
+     "good": "<= 90",
+     "bad": "> 110 (90-110 s tolerated only if AWT < 25 s)",
+     "status": "verified",
+     "basis": "BCO 2014 wording as quoted by Stopes; the project itself targeted 30 s AWT and 80 s time to destination.",
+     "method": "Simulation: waiting plus ride time to destination",
+     "source_ids": [
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Residential two-way handling capacity and interval",
+     "unit": "% and s",
+     "good": ">= 7% with interval <= 60 s (Arup target, normal-to-high-end residential tower)",
+     "bad": "< 7% or interval > 60 s",
+     "status": "verified",
+     "basis": "Arup design statement for a 74-level Sydney tower cites CIBSE Guide D (interval 50-60 s, 7%); UQ uses 8% and under 40 s for student housing. Project and institutional targets.",
+     "method": "Balanced two-way traffic round-trip calculation",
+     "source_ids": [
+      "P11-S26",
+      "P11-S25"
+     ]
+    },
+    {
+     "name": "Hotel, cultural, observation and public-use traffic criteria",
+     "unit": "user preset",
+     "good": "set by designer",
+     "bad": "set by designer",
+     "status": "team_assumption",
+     "basis": "No sourced criteria found; editable preset displayed as a team assumption.",
+     "method": "Same round-trip engine with user-set profile",
+     "source_ids": []
+    },
+    {
+     "name": "Floors per single-deck rise",
+     "unit": "floors",
+     "good": "<= 15-16",
+     "bad": "> 16 (review zoning, double-deck or sky lobby)",
+     "status": "verified",
+     "basis": "CIBSE Guide D general practice as cited by Peters; fast tall residential rises (22-28 floors) in the Arup design show this is a review flag, not a ban.",
+     "method": "Count served floors per rise",
+     "source_ids": [
+      "P11-S23",
+      "P11-S26"
+     ]
+    },
+    {
+     "name": "Net-to-gross area ratio (NIA/GIA), typical floor",
+     "unit": "%",
+     "good": ">= 75",
+     "bad": "< 70",
+     "status": "verified",
+     "basis": "UK practitioner statement that a minimum of 70-75% is relatively efficient; Canadian measurement conventions differ, so treat as a screening band.",
+     "method": "NIA / GIA after subtracting core, lobbies and shafts",
+     "source_ids": [
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Lift shaft area share of floor plate by level",
+     "unit": "%",
+     "good": "lowest option that meets all metrics above",
+     "bad": "higher with no service benefit",
+     "status": "unverified",
+     "basis": "Reported to compare options; no sourced threshold. Core space counted as shaft area only (lobbies excluded), as in Peters.",
+     "method": "sum of shaft footprints at level / floor plate area",
+     "source_ids": [
+      "P11-S23"
+     ]
+    }
+   ],
+   "method": "1) Convert Layer 0 areas to population per level (area / density x utilisation). 2) Group occupied floors into rises by use and height; add a separate group for basement and transit levels. 3) Per rise compute probable stops S, average highest reversal floor H and round-trip time RTT = 2H*tv + (S+1)*ts + 2P*tp (general-analysis form used in P11-S23; verify against licensed Guide D 2020). 4) Handling capacity = 300*P*N/RTT as a percentage of the rise population; interval = RTT/N; choose the smallest N meeting the limits. 5) Core area = sum of shaft footprints per level (preset by car rating; lobbies excluded, as in P11-S23). 6) Compare with the thresholds; optional Monte Carlo (SimPy) for waiting and destination times.",
+   "visualization": [
+    "Rise diagram: vertical axis = storeys, one column per rise, solid = served, hatched = express, T = transfer floor (style of P11-S23 Fig. 1), beside a 3D tower section",
+    "Gauge bars for HC5, interval, waiting time and destination time with good/bad bands and a source badge on each band",
+    "Stacked core-footprint plans at ground, mid and top levels with shafts coloured by rise",
+    "Group specification table (cars, rating, speed, floors served)"
+   ],
+   "human_judgment": "Tenant density and utilisation, acceptable waiting for each use, whether transfers are acceptable, public-use traffic assumptions (observation, culture), and final lift selection by a vertical-transportation consultant using simulation.",
+   "limits": "Steady-state up-peak calculation only; no lunch, down-peak or event traffic. Hotel, cultural and observation traffic have no sourced criteria. Guidance is UK/Australian (CIBSE, BCO, UQ), not Canadian code. Guide D text is paywalled and must be checked. Early estimate, not certification.",
+   "libraries": [
+    {
+     "name": "SimPy",
+     "role": "Discrete-event Monte Carlo for waiting and destination times",
+     "license": "MIT",
+     "url": "https://pypi.org/project/simpy/"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Read IFC storeys, spaces and transport elements from imported models",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "web-ifc",
+     "role": "Browser-side IFC reading",
+     "license": "MPL-2.0",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    }
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P11-M02",
+   "name": "Lift strategy comparator: sky lobby, double-deck, destination control",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "Which lift strategy (single-deck rises, double-deck, sky lobby with shuttles, destination control) minimises core area while keeping direct, accessible public-use floors?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 5 person-days on top of P11-M01",
+   "depends_on": [
+    "P11-M01"
+   ],
+   "inputs": [
+    "LiftGroupSpec[] and VTPerformance from P11-M01",
+    "Layer 0: storey heights (equal or varied) and floor-use tags, including public or cultural floors high in the tower",
+    "Candidate sky-lobby and transfer floors",
+    "Structural core constraints from the structure module"
+   ],
+   "outputs": [
+    "StrategyOptionTable {core m2, shafts at ground, transfers per typical trip, floor-height constraints}",
+    "SelectedStrategy flag for P11-M03 (machine rooms), P11-M05 (firefighter elevator access) and P11-M06 (core area)",
+    "SkyLobbyFloors[] and shuttle specifications",
+    "DoubleDeckFloorHeightCheck"
+   ],
+   "parameters": [
+    {
+     "name": "Strategy type",
+     "unit": "category",
+     "relationship": "Double-deck halves possible stops and puts two cabs per shaft; sky lobbies drop express zones from upper rises, usually saving more core than the shuttles add; both add constraints. Two independent cars per shaft equal double-deck for core space.",
+     "source_ids": [
+      "P11-S23"
+     ]
+    },
+    {
+     "name": "Floor-to-floor height uniformity",
+     "unit": "m",
+     "relationship": "Double-deck cabs serve adjacent floors together, so every served floor needs equal height; double-height public or cultural floors then need escalators, separate lifts or adjustable-spacing cabs (22 Bishopsgate kept an amenity level off its double-deck groups).",
+     "source_ids": [
+      "P11-S23",
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Transfers per journey",
+     "unit": "count",
+     "relationship": "Sky lobbies force two-lift trips; London tenants and funders demanded direct travel from the main lobby, which steered 22 Bishopsgate to double-deck. Vancouver market expectation is not sourced.",
+     "source_ids": [
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Sky-lobby position and shuttle design",
+     "unit": "level",
+     "relationship": "A top-down shuttle to the top of one local group is core-efficient but sends some riders up then down; shuttling to the lowest floor of each local group is intuitive but needs more core. Double-deck shuttles need a double-deck sky lobby.",
+     "source_ids": [
+      "P11-S23",
+      "P11-S32"
+     ]
+    },
+    {
+     "name": "Firefighter elevator continuity",
+     "unit": "changes",
+     "relationship": "The firefighters' elevator must reach all floors with a limited number of elevator changes, so zoning and sky lobbies need a continuous firefighter shaft or an allowed change; London used an upper deck as a firefighting lift by agreement with building control.",
+     "source_ids": [
+      "P11-S08",
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Magnet floors (observation, restaurant, public cultural)",
+     "unit": "floors",
+     "relationship": "These concentrate trips on a few floors; dedicated high-speed shuttles (8.0 m/s at 22 Bishopsgate) keep them off the main groups but add shafts.",
+     "source_ids": [
+      "P11-S22",
+      "P11-S23"
+     ]
+    },
+    {
+     "name": "Destination control",
+     "unit": "on/off",
+     "relationship": "Raises up-peak capacity and cuts non-coincident stops in double-deck groups; confirm by simulation where average waiting time must not exceed 80% of the nominated interval (UQ rule).",
+     "source_ids": [
+      "P11-S23",
+      "P11-S25"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Core shaft area vs single-deck baseline at equal service",
+     "unit": "m2 and %",
+     "good": "lower than baseline with all P11-M01 metrics passing",
+     "bad": "saving achieved only by failing a P11-M01 metric",
+     "status": "unverified",
+     "basis": "No universal saving percentage found; Peters reports option-specific core charts only.",
+     "method": "sum of shaft footprints per option",
+     "source_ids": [
+      "P11-S23"
+     ]
+    },
+    {
+     "name": "Double-deck floor-height uniformity",
+     "unit": "pass/fail",
+     "good": "all stopped floors equal height",
+     "bad": "any stopped floor differs without adjustable-spacing cab",
+     "status": "verified",
+     "basis": "Peters: all floors must be equal height for double-deck cabs.",
+     "method": "compare storey heights at served floors",
+     "source_ids": [
+      "P11-S23"
+     ]
+    },
+    {
+     "name": "Destination-control waiting time vs nominated interval",
+     "unit": "% of interval",
+     "good": "<= 80",
+     "bad": "> 80",
+     "status": "verified",
+     "basis": "UQ design standard requirement for destination-control projects (institutional, not code).",
+     "method": "simulation average waiting time / nominated interval",
+     "source_ids": [
+      "P11-S25"
+     ]
+    },
+    {
+     "name": "Transfers per typical office or hotel trip",
+     "unit": "count",
+     "good": "0 (direct from main lobby)",
+     "bad": "> 1",
+     "status": "team_assumption",
+     "basis": "London market criterion at 22 Bishopsgate; Vancouver expectation unverified, editable.",
+     "method": "count lift changes on the path lobby to floor",
+     "source_ids": [
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Firefighter elevator changes to reach any floor",
+     "unit": "count",
+     "good": "within limit in 3.2.6.5.(5)",
+     "bad": "above limit",
+     "status": "unverified",
+     "basis": "The sentence limits changes and exempts floors where a change is necessary; the numeric limit was not retrieved.",
+     "method": "graph search on shaft and lobby connectivity",
+     "source_ids": [
+      "P11-S08"
+     ]
+    },
+    {
+     "name": "Non-coincident stop share (double-deck figure of merit)",
+     "unit": "% of stops coincident",
+     "good": "high (no sourced threshold)",
+     "bad": "low (no sourced threshold)",
+     "status": "unverified",
+     "basis": "Defined by Peters as the percentage of stops coincident for both cabs; no limit stated.",
+     "method": "Monte Carlo with odd/even floor restriction",
+     "source_ids": [
+      "P11-S23"
+     ]
+    }
+   ],
+   "method": "For each option, re-run P11-M01. Single-deck: N rises by floors per rise. Double-deck: stops per round trip roughly halved by the odd/even floor restriction; non-coincident-stop share from Monte Carlo. Two cars per shaft: treat as double-deck for core space. Sky lobby: shuttle group (express flight, few stops) plus local groups, with transfer floors flagged. Compute shaft area per level (lobbies excluded), transfers per journey, floor-height uniformity and firefighter-elevator continuity. Rank options by core area subject to all P11-M01 metrics passing. Double-deck and shuttle round-trip formulas were not retrieved: implement from the published examples cited in P11-S23 and test against its worked cases.",
+   "visualization": [
+    "Side-by-side rise diagrams per option with transfer floors marked (style of P11-S23 Figs 1, 5, 7, 9)",
+    "Stacked bar of core shaft area by level for each option",
+    "Pass/fail badge row (floor-height equality, firefighter continuity, transfers) linked to source",
+    "Sky-lobby floors drawn on the 3D tower with an annotation for public-space potential"
+   ],
+   "human_judgment": "Trade-off between core efficiency and direct travel; whether transfers are acceptable for public and cultural users; whether sky lobbies become public rooms; vendor-neutral choice among double-deck and multi-car systems; authority agreement for a shared firefighter lift.",
+   "limits": "Double-deck and shuttle formulas not retrieved. Manufacturer gains for destination dispatch (25-30%, P11-S33) are unverified marketing figures. No Canadian market or regulator precedent found for sky-lobby transfers; relationships come from London and Peters's example buildings.",
+   "libraries": [
+    {
+     "name": "SimPy",
+     "role": "Monte Carlo for destination control and non-coincident stops",
+     "license": "MIT",
+     "url": "https://pypi.org/project/simpy/"
+    },
+    {
+     "name": "NetworkX",
+     "role": "Shaft and lobby connectivity for firefighter-elevator change counts",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/networkx/networkx"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Storey heights and transport elements from IFC",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P11-M03",
+   "name": "Mechanical floors, plant space and risers",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "How many plant floors, where, and how much plant and riser area does the tower need, and how do they shape the silhouette and public-facing floors?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M: about 5 person-days",
+   "depends_on": [
+    "P11-M01",
+    "P11-M02",
+    "P11-M04"
+   ],
+   "inputs": [
+    "Layer 0: tower height, storey heights, program areas by tag (mechanical tag = existing plant)",
+    "Plant capacities and electrical demand from P11-M04",
+    "Lift machine-room and overrun needs from P11-M02",
+    "Outrigger or transfer floors from the structure module"
+   ],
+   "outputs": [
+    "PlantFloorSchedule {level, function, area m2, floor height}",
+    "PressureZoneTable {zone, level range, static head kPa}",
+    "RiserAllocation {riser type, area per level, core or perimeter}",
+    "PlantShare {% of floors, % of GFA}",
+    "LouvreZones for the facade module"
+   ],
+   "parameters": [
+    {
+     "name": "Static head per pressure zone",
+     "unit": "kPa",
+     "relationship": "Water static head is 9.81 kPa per metre of height (hydrostatics); zones taller than the fixture or equipment pressure limit need a plant floor, break tank or reducing station at each boundary. The limit value is an unverified preset.",
+     "source_ids": []
+    },
+    {
+     "name": "Plant-floor frequency",
+     "unit": "floors per plant floor",
+     "relationship": "A tertiary rule of thumb gives about one plant floor per ten tenant floors; more frequent plant shortens risers but removes lettable or public floors and adds louvred bands to the facade.",
+     "source_ids": [
+      "P11-S31"
+     ]
+    },
+    {
+     "name": "Heavy plant location (generators, chillers)",
+     "unit": "level",
+     "relationship": "Placing heavy plant at the top forces goods-lift capacity and riser routes to match; at 22 Bishopsgate, switching from five large to six smaller generators avoided oversizing, yet one goods lift still needed a 7,400 kg special operation.",
+     "source_ids": [
+      "P11-S22"
+     ]
+    },
+    {
+     "name": "Top-floor competition (plant vs public/observation)",
+     "unit": "levels",
+     "relationship": "Plant, viewing gallery and restaurant compete for top floors; at 22 Bishopsgate this meant not every goods lift could serve every top floor.",
+     "source_ids": [
+      "P11-S22"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Plant floors as share of total floors",
+     "unit": "%",
+     "good": "<= 10",
+     "bad": "> 15",
+     "status": "team_assumption",
+     "basis": "Rule of thumb of about 10% (tertiary source); existing towers range about 7% to 26% of floors. The 15% bad limit is a team preset, editable.",
+     "method": "plant floors / total floors",
+     "source_ids": [
+      "P11-S31"
+     ]
+    },
+    {
+     "name": "Static head per pressure zone",
+     "unit": "kPa",
+     "good": "<= project limit (preset 550 kPa, about 56 m of head)",
+     "bad": "> project limit",
+     "status": "unverified",
+     "basis": "550 kPa recalled as a plumbing pressure limit but not confirmed in the BC Plumbing Code; head = 9.81 kPa per m.",
+     "method": "zone height x 9.81",
+     "source_ids": []
+    },
+    {
+     "name": "Plant area as share of GFA",
+     "unit": "%",
+     "good": "lowest consistent with P11-M04 sizing",
+     "bad": "no sourced limit",
+     "status": "unverified",
+     "basis": "No sourced percentage found; reported for comparison only.",
+     "method": "sum plant floor areas / GFA",
+     "source_ids": []
+    },
+    {
+     "name": "Top-of-tower use conflict",
+     "unit": "flag",
+     "good": "plant and public or observation uses both accommodated with lift access",
+     "bad": "plant displaces a public floor or lifts cannot reach",
+     "status": "team_assumption",
+     "basis": "Pattern observed at 22 Bishopsgate; flag is a design check, not a code limit.",
+     "method": "rule check on top five levels",
+     "source_ids": [
+      "P11-S22"
+     ]
+    }
+   ],
+   "method": "1) Read height H and occupied floors. 2) Zone height = pressure limit / 9.81 kPa per m; zones = ceil(H / zone height) (550 kPa gives about 56 m, an unverified preset). 3) Place plant floors at zone boundaries, snapping to outrigger floors (structure module) and sky-lobby floors (P11-M02) where present. 4) Size plant area from P11-M04 capacities with editable area-per-kW presets. 5) Allocate risers by type with editable shaft-area-per-GFA presets. 6) Report plant share of floors and GFA; compare with the 10% rule of thumb as a sanity check only; flag conflicts with public or observation floors at the top.",
+   "visualization": [
+    "Tower elevation strip: one cell per storey coloured by program tag, plant floors hatched",
+    "Pressure-zone bands with a 0-550 kPa legend",
+    "Bar of plant share of floors with good/bad bands and source badge",
+    "Typical riser stacking plan with shaft footprints",
+    "Conflict icons on the top floors"
+   ],
+   "human_judgment": "Where plant sits relative to public and cultural floors and the skyline; facade louvre expression; coordination with structure, sky lobbies and fire engineer; MEP engineer sizing.",
+   "limits": "No sourced plant frequency or area percentages by height were found; the 10% figure is a weak rule of thumb. Pressure limit unverified. Sizing uses editable presets only; no duct or pipe hydraulic design.",
+   "libraries": [
+    {
+     "name": "EnergyPlus",
+     "role": "Heating and cooling loads that size plant",
+     "license": "EnergyPlus licence (BSD-3-Clause based)",
+     "url": "https://github.com/NatLabRockies/EnergyPlus"
+    },
+    {
+     "name": "CoolProp",
+     "role": "Fluid properties for pipe and heat-pump sizing",
+     "license": "MIT",
+     "url": "https://github.com/CoolProp/CoolProp"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Read storeys and mechanical spaces from IFC",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P11-M04",
+   "name": "Low-carbon heating/cooling and GHG compliance screen",
+   "phase": "advanced",
+   "category": "ENER",
+   "design_question": "Which low-carbon system (heat pump, heat recovery, district energy connection) keeps operational GHG intensity within the applicable limit, and what plant and electrical space does it need?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "L: about 8-10 person-days including emission-factor tables and EUI presets",
+   "depends_on": [],
+   "inputs": [
+    "Layer 0: floor area by program tag",
+    "Envelope and glazing ratio from the facade module",
+    "System selection (air-source or water-source heat pump, heat recovery, district energy, gas back-up)",
+    "Vancouver climate and design temperatures",
+    "District-energy availability flag (site in the central business district)"
+   ],
+   "outputs": [
+    "AnnualEnergyByEndUse (kWh/m2)",
+    "GHGI (kgCO2e/m2/yr) by option",
+    "PlantCapacity (kW heating and cooling) for P11-M03",
+    "ElectricalDemand (kW) for electrical and substation space",
+    "StepCodeScreen {Zero Carbon level, energy step}"
+   ],
+   "parameters": [
+    {
+     "name": "Emission factor by energy source",
+     "unit": "kgCO2e/kWh",
+     "relationship": "Operational GHG = energy x emission factor. BC grid electricity is very low (0.011 kgCO2e/kWh is the heating-source limit in the Part 9 prescriptive path) while propane and oils are 0.2155-0.2689, so electrifying heating cuts GHG intensity sharply.",
+     "source_ids": [
+      "P11-S19"
+     ]
+    },
+    {
+     "name": "District energy connection",
+     "unit": "category",
+     "relationship": "The district-energy emission factor is set by the authority with the utility; connecting moves emissions to the utility and frees roof or plant area, but acceptance as zero-carbon is a local decision. Downtown steam is being electrified (completion 2026-27).",
+     "source_ids": [
+      "P11-S19",
+      "P11-S21"
+     ]
+    },
+    {
+     "name": "Heat-pump COP and supply temperature",
+     "unit": "COP",
+     "relationship": "Thermodynamics: COP falls as the temperature lift (supply minus source) rises, so high-temperature heating or hot-water service lowers efficiency and raises electrical demand; COP values here are presets.",
+     "source_ids": [
+      "P11-S40"
+     ]
+    },
+    {
+     "name": "Zero Carbon Step Code level target (EL-1 to EL-4)",
+     "unit": "level",
+     "relationship": "Higher levels lower the allowed GHG intensity, pushing design from gas back-up toward heat pumps or district energy and raising electrical capacity and plant space.",
+     "source_ids": [
+      "P11-S16",
+      "P11-S18"
+     ]
+    },
+    {
+     "name": "Modelling basis",
+     "unit": "guideline",
+     "relationship": "Part 3 compliance modelling references the City of Vancouver Energy Modelling Guidelines (version tied to code edition), so early estimates must be re-run in that framework for any real submission.",
+     "source_ids": [
+      "P11-S18",
+      "P11-S19"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Operational GHG intensity vs applicable limit",
+     "unit": "kgCO2e/m2/yr",
+     "good": "<= applicable Part 3 / VBBL limit (editable field)",
+     "bad": "> applicable limit",
+     "status": "unverified",
+     "basis": "Numeric Part 3 and Vancouver limits were not retrieved; the tool carries an editable field to be filled from the code table.",
+     "method": "sum(energy x factor) / area",
+     "source_ids": [
+      "P11-S16",
+      "P11-S18",
+      "P11-S20"
+     ]
+    },
+    {
+     "name": "Zero Carbon Step Code level achieved",
+     "unit": "level",
+     "good": "EL-4 (Zero Carbon Performance)",
+     "bad": "below EL-1",
+     "status": "verified",
+     "basis": "Levels EL-1 to EL-4 are named on the provincial page and most new buildings must meet EL-1 from 10 March 2025; applicability of Vancouver's own limits is unverified.",
+     "method": "compare GHGI with level limits",
+     "source_ids": [
+      "P11-S16"
+     ]
+    },
+    {
+     "name": "Energy Step Code minimum",
+     "unit": "step",
+     "good": "meets or exceeds the minimum step in force (local governments may require higher)",
+     "bad": "relies on a reserved step",
+     "status": "verified",
+     "basis": "Since May 2023 most new buildings must be 20% better than 2018; Steps 1-2 (small buildings) and Step 1 (large buildings) are reserved and no longer meet the minimum.",
+     "method": "lookup of step and compare modelled metrics",
+     "source_ids": [
+      "P11-S17"
+     ]
+    },
+    {
+     "name": "Heating energy-source emission-factor ceiling (Part 9 prescriptive path, reference only)",
+     "unit": "kgCO2e/kWh",
+     "good": "<= 0.011",
+     "bad": "> 0.011",
+     "status": "verified",
+     "basis": "Stated for EL-2 to EL-4 in the Part 9 prescriptive path; shown to illustrate the BC electricity factor, not a Part 3 tower limit.",
+     "method": "compare source factor",
+     "source_ids": [
+      "P11-S19"
+     ]
+    },
+    {
+     "name": "Peak electrical demand",
+     "unit": "W/m2",
+     "good": "within utility capacity (user input)",
+     "bad": "exceeds utility capacity",
+     "status": "unverified",
+     "basis": "No sourced benchmark; depends on utility connection.",
+     "method": "sum of electric loads at peak",
+     "source_ids": []
+    }
+   ],
+   "method": "1) Annual energy by end use = area x EUI preset per program (editable team assumption). 2) Heating and cooling supplied by the selected systems with COP from a CoolProp cycle or preset and a fuel split. 3) GHG = sum of energy x emission factor (BC electricity and fuels from P11-S19; district-energy factor entered from the utility or authority). 4) Compare GHGI with the limit field and Step Code level. 5) Size plant (kW) from peak loads and pass to P11-M03; pass electrical demand to the electrical room estimate. 6) For a compliance-grade run, export to EnergyPlus/OpenStudio following the City of Vancouver Energy Modelling Guidelines.",
+   "visualization": [
+    "Stacked bars of annual GHG by end use for each system option with a horizontal limit line and Step Code badges linked to the clause",
+    "Sankey diagram of energy flows (grid electricity, heat pump, district energy, back-up)",
+    "Plant and electrical-room area annotations on the P11-M03 tower strip"
+   ],
+   "human_judgment": "Choice between district energy and on-site plant; heat-recovery strategy; resilience and back-up; whether to exceed the minimum; sign-off by an energy modeller and MEP engineer.",
+   "limits": "Numeric Part 3 GHGI, TEDI and MEUI limits and Vancouver's own table were not retrieved. EUI and COP are presets. District-energy factor and tariff are unpublished. No hourly simulation. Creative Energy electrification is due 2026-27, so availability for a hypothetical site is an assumption.",
+   "libraries": [
+    {
+     "name": "EnergyPlus",
+     "role": "Whole-building energy simulation for compliance-grade runs",
+     "license": "EnergyPlus licence (BSD-3-Clause based)",
+     "url": "https://github.com/NatLabRockies/EnergyPlus"
+    },
+    {
+     "name": "OpenStudio",
+     "role": "Model authoring and measures on top of EnergyPlus",
+     "license": "custom licence (GitHub shows no SPDX id; check LICENSE)",
+     "url": "https://github.com/NatLabRockies/OpenStudio"
+    },
+    {
+     "name": "CoolProp",
+     "role": "Heat-pump cycle and refrigerant properties",
+     "license": "MIT",
+     "url": "https://github.com/CoolProp/CoolProp"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P11-M05",
+   "name": "High-building code applicability and life-safety checklist (VBBL 2025 / BCBC 2024)",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "Which Part 3 high-building and fire-safety requirements does this tower trigger, which does the design meet so far, and which need an alternative solution?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 6 person-days (mostly clause research and data entry)",
+   "depends_on": [
+    "P11-M02",
+    "P11-M06"
+   ],
+   "inputs": [
+    "Layer 0: height of top-storey floor above grade, storey count, program tags mapped to major occupancy groups",
+    "Sprinkler assumption and stair/shaft count and positions (P11-M06)",
+    "Elevator layout and firefighter-elevator reach (P11-M01, P11-M02)",
+    "Mechanical levels (P11-M03)"
+   ],
+   "outputs": [
+    "ChecklistResult[] {clause id, requirement, status pass/flag/not assessed, source link, edition}",
+    "HighBuildingFlag (boolean)",
+    "AlternativeSolutionRegister (rationale, affected modules)",
+    "RequiredSystemsList (standpipes, central alarm and control facility, voice communication, smoke control)"
+   ],
+   "parameters": [
+    {
+     "name": "Height of top-storey floor above grade",
+     "unit": "m",
+     "relationship": "Subsection 3.2.6 applies above 18 m (Groups B, C) or 36 m (A, D, E, F; 18 m if cumulative load per stair width exceeds 300); a 244-305 m tower triggers every high-building measure.",
+     "source_ids": [
+      "P11-S06",
+      "P11-S10"
+     ]
+    },
+    {
+     "name": "Major occupancy mix per storey",
+     "unit": "group",
+     "relationship": "Program tags map to occupancy groups through an editable table; each group sets triggers and fire separations between major occupancies (3.1.3.1), so mixed-use towers must satisfy the strictest combination.",
+     "source_ids": [
+      "P11-S04",
+      "P11-S06"
+     ]
+    },
+    {
+     "name": "Sprinkler status",
+     "unit": "category",
+     "relationship": "The checklist cites sprinkler requirement and standard (3.2.2.18, 3.2.5.12, 3.2.5.14), standpipes (3.2.5.8-3.2.5.11) and fire pump (3.2.5.18); floor areas not sprinklered throughout trigger extra firefighter-elevator rules.",
+     "source_ids": [
+      "P11-S04",
+      "P11-S06"
+     ]
+    },
+    {
+     "name": "Firefighter elevator layout",
+     "unit": "category",
+     "relationship": "Firefighter elevators must reach all floors with limited changes, constraining zoned and sky-lobby lift schemes and requiring a protected shaft and lobby close to stairs.",
+     "source_ids": [
+      "P11-S08",
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Stair-shaft smoke vent",
+     "unit": "m2",
+     "relationship": "A vent to the outdoors at or near the bottom of each stair shaft serving storeys above the lowest exit level; more stair doors per shaft raise the required vent area and ground-level openings (BCBC 2018 wording).",
+     "source_ids": [
+      "P11-S09"
+     ]
+    },
+    {
+     "name": "Alternative-solution path",
+     "unit": "register",
+     "relationship": "Non-compliance needs an alternative solution achieving at least Division B performance (Appeal Board applies clause 1.2.1.1.(1)(b) of Division A); the register records rationale the VTC jury may weigh as a justified breach.",
+     "source_ids": [
+      "P11-S10"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "High-building trigger test (3.2.6.1)",
+     "unit": "m above grade",
+     "good": "below trigger = measures not applicable",
+     "bad": "above trigger = all 3.2.6 measures apply (always true at 244-305 m)",
+     "status": "verified",
+     "basis": "Triggers from archived NBC 2005 wording; BCAB 1930 confirms the 18 m Group C trigger under BCBC 2024. Re-check A/D/E/F wording in the 2024 text.",
+     "method": "compare height and group with trigger table",
+     "source_ids": [
+      "P11-S06",
+      "P11-S07",
+      "P11-S10"
+     ]
+    },
+    {
+     "name": "Stair-shaft bottom vent area",
+     "unit": "m2",
+     "good": ">= larger of 0.05 x number of stair doors and 1.8",
+     "bad": "below that area",
+     "status": "verified",
+     "basis": "Sentence 3.2.6.2.(3) as applied in BCAB 1844 under BCBC 2018; confirm numbering and values in BCBC 2024 and VBBL 2025.",
+     "method": "0.05 x doors, minimum 1.8",
+     "source_ids": [
+      "P11-S09"
+     ]
+    },
+    {
+     "name": "Stair smoke tenability target",
+     "unit": "% contaminated air by volume over 2 h",
+     "good": "<= 1",
+     "bad": "> 1",
+     "status": "unverified",
+     "basis": "Stated as the smoke-control performance target in the facts of BCAB 1844 (design temperature January 2.5%); not confirmed as a code limit.",
+     "method": "multizone airflow screening (P11-M08)",
+     "source_ids": [
+      "P11-S09"
+     ]
+    },
+    {
+     "name": "Firefighter elevator shaft fire-resistance rating",
+     "unit": "h",
+     "good": ">= 1",
+     "bad": "< 1",
+     "status": "unverified",
+     "basis": "Reported in a City of Vancouver checklist summary (3.2.6.5.(3)(c)); the page was not opened.",
+     "method": "rating lookup",
+     "source_ids": [
+      "P11-S15"
+     ]
+    },
+    {
+     "name": "Firefighter elevator reaches all floors, changes within limit",
+     "unit": "changes",
+     "good": "serves all floors or changes within limit in 3.2.6.5.(5)",
+     "bad": "changes exceed limit",
+     "status": "unverified",
+     "basis": "Sentences 3.2.6.5.(4)-(5) per archived NBC commentary; numeric limit not retrieved.",
+     "method": "graph search from P11-M02",
+     "source_ids": [
+      "P11-S08"
+     ]
+    },
+    {
+     "name": "Refuge-floor requirement",
+     "unit": "yes/no",
+     "good": "no refuge-floor clause in the Part 3 high-building item list; any refuge or waiting area is a design choice or alternative-solution argument",
+     "bad": "design justified by an assumed mandatory refuge floor",
+     "status": "false_assumption_corrected",
+     "basis": "The 3.2.6 items in the 2024 BC Part 3 checklists are smoke movement, emergency elevator operation, firefighter elevator, venting, central alarm and voice communication; none is a refuge floor. Full-text confirmation pending.",
+     "method": "clause list check",
+     "source_ids": [
+      "P11-S04",
+      "P11-S05"
+     ]
+    },
+    {
+     "name": "3.2.6 item coverage",
+     "unit": "%",
+     "good": "100% of items have an owner and status",
+     "bad": "any item not assessed",
+     "status": "team_assumption",
+     "basis": "Process metric for the course.",
+     "method": "count items with status / items",
+     "source_ids": [
+      "P11-S04"
+     ]
+    }
+   ],
+   "method": "1) Map Layer 0 program tags to occupancy groups with an editable table. 2) Evaluate the 3.2.6.1 trigger from height, group and, for groups A/D/E/F between 18 and 36 m, the load-to-stair-width ratio. 3) Load a JSON checklist keyed by clause (3.2.5, 3.2.6.2-3.2.6.8, 3.3.1.5, 3.4, 3.5, 3.6, 3.8 as listed in P11-S04), each with a status, a link to the BC Publications text and an edition stamp. 4) Auto-fill statuses from model data (stair count, vent area, firefighter-elevator reach from P11-M02). 5) Send unmet items to the alternative-solution register with rationale and performance objective. 6) Print on every output: early checklist, not code certification.",
+   "visualization": [
+    "Checklist table with pass/flag/not-assessed badges, each linked to its clause source and edition",
+    "Height ruler on the tower elevation marking the 18 m and 36 m trigger lines",
+    "Coverage ring showing percent of 3.2.6 items addressed",
+    "Alternative-solution cards linked to the affected modules"
+   ],
+   "human_judgment": "Occupancy classification, clause interpretation, performance-based alternative solutions and the argument for justified breaches, fire engineer and code consultant review, and acceptance by the Chief Building Official.",
+   "limits": "Clause numbers come from 2024-code checklists, not the operative text. The BCBC 2024 PDF exceeds the fetch limit and vancouver.ca returned HTTP 403, so VBBL 2025 amendments are unread. Application triggers use archived NBC 2005 wording. The VTC documents are not legal documents. Never certifies code compliance.",
+   "libraries": [
+    {
+     "name": "IfcOpenShell",
+     "role": "Read occupancy, stairs and spaces from IFC for auto-filled checks",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "NetworkX",
+     "role": "Firefighter-elevator and stair connectivity checks",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/networkx/networkx"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P11-M06",
+   "name": "Egress sizing: occupant load, exits, stair width, travel distance",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "How many occupants per storey, how many exit stairs of what width, what travel distances result, and how much core area do stairs take?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "M: about 6 person-days including the travel-distance field",
+   "depends_on": [
+    "P11-M01"
+   ],
+   "inputs": [
+    "Layer 0: floor-plate polygons and area per storey by program tag",
+    "Stair and exit door locations from the core design",
+    "Sprinkler assumption and occupancy groups (P11-M05)",
+    "Unit counts for residential and hotel floors"
+   ],
+   "outputs": [
+    "OccupantLoadByStorey",
+    "ExitWidthRequired (mm) per storey and exit",
+    "StairSchedule {count, clear width, flights, area}",
+    "TravelDistanceField (grid, m)",
+    "IssueList to P11-M05"
+   ],
+   "parameters": [
+    {
+     "name": "Occupant load factor per use",
+     "unit": "m2/person",
+     "relationship": "Occupant load = floor area divided by the Table 3.1.17.1 factor; denser uses (assembly, retail, public) raise loads, widening exits and stairs and enlarging the core. Values not retrieved: editable preset.",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Exit width per person",
+     "unit": "mm/person",
+     "relationship": "Width = occupants x 8 mm for stairs (rise <= 180 mm, run >= 280 mm), 9.2 mm for steeper stairs and ramps steeper than 1:8, 6.1 mm for doors, corridors and gentle ramps; shallower stairs save width.",
+     "source_ids": [
+      "P11-S04",
+      "P11-S05"
+     ]
+    },
+    {
+     "name": "Number and separation of exits",
+     "unit": "count",
+     "relationship": "Minimum exits and separation are set in 3.4.2.1 and 3.4.2.3; more stairs shorten travel distance but consume core area and ground-floor frontage. Numeric values to be read from the clauses.",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Travel distance limit",
+     "unit": "m",
+     "relationship": "Maximum travel distance is set in 3.4.2.4 (value depends on occupancy; to be read); the checklist gives 50 m to an exit in a service space. Exceeding the limit forces more stairs or shorter corridors.",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Stair flight and handrail geometry",
+     "unit": "m",
+     "relationship": "Flights are limited to 3.7 m rise except Group B Division 2 (3.4.6.3); stairs wider than 1100 mm need extra handrails (3.4.6.5); wider stairs add landing area and core size.",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Emergency crossover access",
+     "unit": "category",
+     "relationship": "The checklist lists emergency crossover access above 3 storeys above grade or 2 below (3.4.6.18); the design must show crossover between stair shafts, using core area (details to be read).",
+     "source_ids": [
+      "P11-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Stair width per person (standard stairs)",
+     "unit": "mm/person",
+     "good": ">= 8 (rise <= 180 mm, run >= 280 mm)",
+     "bad": "< 8",
+     "status": "verified",
+     "basis": "Exit capacity line of the 2024-code Part 3 checklists (3.4.3.2).",
+     "method": "clear width / occupants served",
+     "source_ids": [
+      "P11-S04",
+      "P11-S05"
+     ]
+    },
+    {
+     "name": "Stair width per person (steeper stairs, ramps steeper than 1:8)",
+     "unit": "mm/person",
+     "good": ">= 9.2",
+     "bad": "< 9.2",
+     "status": "verified",
+     "basis": "Same checklist lines.",
+     "method": "clear width / occupants served",
+     "source_ids": [
+      "P11-S04",
+      "P11-S05"
+     ]
+    },
+    {
+     "name": "Door, corridor and gentle-ramp width per person",
+     "unit": "mm/person",
+     "good": ">= 6.1",
+     "bad": "< 6.1",
+     "status": "verified",
+     "basis": "Same checklist lines.",
+     "method": "clear width / occupants served",
+     "source_ids": [
+      "P11-S04",
+      "P11-S05"
+     ]
+    },
+    {
+     "name": "Travel distance to an exit in a service space",
+     "unit": "m",
+     "good": "<= 50",
+     "bad": "> 50",
+     "status": "verified",
+     "basis": "Checklist item citing 3.4.2.4.(3) and 3.2.1.1.(8).",
+     "method": "shortest path on visibility graph",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Travel distance, other occupancies",
+     "unit": "m",
+     "good": "<= limit loaded from 3.4.2.4 (editable)",
+     "bad": "> limit",
+     "status": "unverified",
+     "basis": "Occupancy-specific values not retrieved.",
+     "method": "shortest path on visibility graph",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Rise per stair flight",
+     "unit": "m",
+     "good": "<= 3.7 (except Group B Division 2)",
+     "bad": "> 3.7",
+     "status": "verified",
+     "basis": "Checklist item 3.4.6.3.",
+     "method": "floor-to-floor height / number of flights",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Exits per floor area",
+     "unit": "count",
+     "good": ">= 2 with separation per 3.4.2.3",
+     "bad": "< 2",
+     "status": "unverified",
+     "basis": "Clause 3.4.2.1 verified to exist; the count and separation distance were not retrieved.",
+     "method": "count and separation check",
+     "source_ids": [
+      "P11-S04"
+     ]
+    }
+   ],
+   "method": "1) Occupant load per storey = sum of area(use) / factor(use) from an editable Table 3.1.17.1 preset. 2) Required width = load x 8 mm (standard stairs), 9.2 mm (steeper stairs), 6.1 mm (doors and corridors) per 3.4.3.2; split across at least two exits, applying any loss-of-an-exit rule once read. 3) Travel distance: rasterise the floor plate, build a visibility graph (NetworkX) from each cell to the nearest exit door, compare with the limit. 4) Stair core area = stairs x clear width x run length plus landings. 5) Report issues to P11-M05. 6) Optional export to JuPedSim (P11-M08) for evacuation time.",
+   "visualization": [
+    "Floor-plan false-colour map of travel distance to the nearest exit (legend 0-60 m, limit contour in red)",
+    "Per-storey bar chart of required vs provided stair width with pass/fail badge linked to the clause",
+    "Vertical diagram of stair and shaft area per storey",
+    "Exit schedule table"
+   ],
+   "human_judgment": "Stair strategy (scissor or separate), discharge locations versus active frontage, total versus phased evacuation concept, waiting areas for people who cannot use stairs, fire engineer approval.",
+   "limits": "Occupant-load, travel-distance and exit-count values for BCBC 2024 were not retrieved (editable presets). Whether stair width accumulates down the tower is unresolved. Geometric travel distance ignores furniture and crowd effects. Does not model evacuation time (see P11-M08).",
+   "libraries": [
+    {
+     "name": "NetworkX",
+     "role": "Visibility-graph shortest paths for travel distance",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/networkx/networkx"
+    },
+    {
+     "name": "JuPedSim",
+     "role": "Pedestrian evacuation simulation (optional)",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/PedestrianDynamics/jupedsim"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Read stairs, doors and spaces from IFC",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P11-M07",
+   "name": "Accessibility and barrier-free vertical access checklist",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "Does the tower meet BC accessibility requirements (entrances, barrier-free routes, elevators, washrooms, adaptable units) and where are the gaps?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "S-M: about 4 person-days",
+   "depends_on": [
+    "P11-M01"
+   ],
+   "inputs": [
+    "Layer 0: entrances, levels, ground-floor and transit-connection routes",
+    "Elevator count and car size (P11-M01)",
+    "Program counts: dwelling units by type, hotel rooms, assembly spaces, washrooms"
+   ],
+   "outputs": [
+    "AccessibilityChecklist[] with clause links",
+    "AdaptableUnitCount",
+    "AccessibleRouteGraph for the public-realm module",
+    "LiftRedundancyWarning"
+   ],
+   "parameters": [
+    {
+     "name": "Power-operated doors at all building entrances",
+     "unit": "count",
+     "relationship": "The 2024 code adopts power door operators at every building entrance; entrance count and vestibule depth then shape lobby layout and ground-floor frontage.",
+     "source_ids": [
+      "P11-S02"
+     ]
+    },
+    {
+     "name": "Adaptable dwelling units share",
+     "unit": "%",
+     "relationship": "From 10 March 2025, large new condominium and apartment buildings need 100% adaptable units (BC), raising unit-plan area and corridor widths. Vancouver-specific rule unverified.",
+     "source_ids": [
+      "P11-S02",
+      "P11-S03"
+     ]
+    },
+    {
+     "name": "Tactile walking surface indicators",
+     "unit": "type",
+     "relationship": "Design must follow CSA B651-18 truncated domes (not strips) at required locations, changing paving and stair-edge detail in the public realm.",
+     "source_ids": [
+      "P11-S02"
+     ]
+    },
+    {
+     "name": "Barrier-free path and accessible elevators",
+     "unit": "category",
+     "relationship": "Elevating devices follow CSA B44 and 3.8.3.7/3.5.4.1 car dimensions, so lift count and car size from P11-M01 feed accessibility; one lift out of service must not strand wheelchair users.",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Hotel accessible sleeping rooms and bed spaces",
+     "unit": "rooms",
+     "relationship": "NBC 2020 adoption increases accessible hotel rooms and bed spaces, so required numbers scale with room count (counts not retrieved).",
+     "source_ids": [
+      "P11-S02"
+     ]
+    },
+    {
+     "name": "Universal washrooms and adult changing tables",
+     "unit": "count",
+     "relationship": "Large occupancies need more universal washrooms with adult-sized changing tables, adding area on public and amenity floors (thresholds not retrieved).",
+     "source_ids": [
+      "P11-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Adaptable dwelling units share",
+     "unit": "%",
+     "good": "100 (large new condominium and apartment buildings, from 10 March 2025)",
+     "bad": "< 100",
+     "status": "verified",
+     "basis": "BC bulletin for BCBC 2024; Vancouver-specific rule and the definition of 'large' not retrieved.",
+     "method": "adaptable units / total units",
+     "source_ids": [
+      "P11-S02",
+      "P11-S03"
+     ]
+    },
+    {
+     "name": "Entrances with power door operators",
+     "unit": "%",
+     "good": "100",
+     "bad": "< 100",
+     "status": "verified",
+     "basis": "BC bulletin summary of BCBC 2024 accessibility updates.",
+     "method": "entrances with operator tag / entrances",
+     "source_ids": [
+      "P11-S02"
+     ]
+    },
+    {
+     "name": "Tactile indicators per CSA B651-18",
+     "unit": "pass/fail",
+     "good": "truncated domes at required locations",
+     "bad": "strips or none",
+     "status": "verified",
+     "basis": "BC bulletin: BCBC 2024 adopts CSA B651-18 requirements.",
+     "method": "manual check with tag",
+     "source_ids": [
+      "P11-S02"
+     ]
+    },
+    {
+     "name": "Barrier-free route to all floors requiring access",
+     "unit": "pass/fail",
+     "good": "continuous step-free route",
+     "bad": "any break",
+     "status": "verified",
+     "basis": "Checklist items 3.8.2.x and 3.8.3.2 cited in the 2024 Part 3 checklists (dimensions not retrieved).",
+     "method": "graph connectivity on route graph",
+     "source_ids": [
+      "P11-S04"
+     ]
+    },
+    {
+     "name": "Accessible lifts per group",
+     "unit": "count",
+     "good": ">= 2",
+     "bad": "1",
+     "status": "team_assumption",
+     "basis": "Redundancy assumption; not a code value.",
+     "method": "count of accessible cars per group",
+     "source_ids": []
+    }
+   ],
+   "method": "Rule table keyed to clauses (3.8.2.1, 3.8.2.2, 3.8.2.3, 3.8.2.5, 3.8.3.x and 3.5.4.1 as listed in P11-S04), with automated checks where model data exist (entrance count and door-type tags, elevator count and car size, dwelling-unit counts) and manual checks otherwise. Show the adaptable-unit count from the unit mix against the 100% requirement. Build a step-free route graph from the ground plan and transit connection and pass it to the public-realm module. Every item links to the clause and edition.",
+   "visualization": [
+    "Ground-floor and typical-floor plan overlay: step-free routes green, gaps red",
+    "Entrance icons with power-door badge",
+    "Checklist with clause links",
+    "Lift redundancy bar per group"
+   ],
+   "human_judgment": "Universal design beyond code, dignity of routes (main versus alternative entrance), lived-experience review, accessibility consultant sign-off.",
+   "limits": "Numeric dimensions (car size, door clear width, turning space) and the definition of large buildings for adaptable units were not retrieved. BCBC 2024 accessibility details are known only from a provincial bulletin and checklist headings. VBBL 2025 may add Vancouver rules. Not certification.",
+   "libraries": [
+    {
+     "name": "NetworkX",
+     "role": "Step-free route graph",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/networkx/networkx"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Read doors, lifts and units from IFC",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P11-M08",
+   "name": "Smoke control, stack effect and evacuation simulation (screening)",
+   "phase": "advanced",
+   "category": "SYST",
+   "design_question": "Do stack effect, stair smoke control and evacuation flows work in a 250-300 m tower, and how long would stair evacuation take?",
+   "nature": "mixed",
+   "priority": "roadmap",
+   "effort": "L: 15+ person-days (coupling to CONTAM and JuPedSim)",
+   "depends_on": [
+    "P11-M05",
+    "P11-M06"
+   ],
+   "inputs": [
+    "Layer 0 geometry: storeys, shafts, stairs, doors",
+    "Smoke-control strategy from P11-M05",
+    "Stair widths and occupant loads from P11-M06",
+    "Climate data (January 2.5% design temperature used in BCAB 1844)"
+   ],
+   "outputs": [
+    "PressureProfile (Pa per storey) and neutral-plane height",
+    "StairContamination (%)",
+    "EvacuationTimeCurve",
+    "StairDensityMap"
+   ],
+   "parameters": [
+    {
+     "name": "Indoor-outdoor temperature difference and height",
+     "unit": "K and m",
+     "relationship": "Stack pressure difference rises with height and temperature difference (dp = g x h x (rho_out - rho_in), ideal-gas density); in cold weather air is pushed into upper floors and shafts, driving smoke spread and door-opening forces.",
+     "source_ids": [
+      "P11-S39"
+     ]
+    },
+    {
+     "name": "Stair-shaft venting and pressurisation",
+     "unit": "m2",
+     "relationship": "Venting area and fan pressurisation set how well stairs stay clear; the provincial appeal case used a 1% contamination target over 2 hours.",
+     "source_ids": [
+      "P11-S09"
+     ]
+    },
+    {
+     "name": "Occupant load and stair width",
+     "unit": "persons, mm",
+     "relationship": "Higher load per stair width lengthens evacuation time and raises stair density; widths come from P11-M06.",
+     "source_ids": [
+      "P11-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Stair contamination over 2 h",
+     "unit": "% by volume",
+     "good": "<= 1",
+     "bad": "> 1",
+     "status": "unverified",
+     "basis": "Target quoted in BCAB 1844 facts; not confirmed as a code limit.",
+     "method": "multizone airflow simulation",
+     "source_ids": [
+      "P11-S09"
+     ]
+    },
+    {
+     "name": "Total stair evacuation time",
+     "unit": "min",
+     "good": "no sourced threshold (user target)",
+     "bad": "no sourced threshold",
+     "status": "unverified",
+     "basis": "No Canadian threshold found; report the curve only.",
+     "method": "pedestrian simulation",
+     "source_ids": [
+      "P11-S34"
+     ]
+    }
+   ],
+   "method": "Build a multizone airflow network in CONTAM from storeys, shafts and leakage presets; compute stack pressures at the design temperature; test stair vent and pressurisation options against the contamination target. Run JuPedSim on the stair geometry with P11-M06 occupant loads to get evacuation time and density maps. Present all results as screening for the fire engineer. Leakage areas, fan data and walking speeds are editable presets with no sourced values.",
+   "visualization": [
+    "Vertical pressure-profile plot (storey vs Pa) with neutral plane marked",
+    "Stair-density animation over the stair plan",
+    "Evacuated-persons-vs-time curve",
+    "Badge for the 1% / 2 h target with a link to BCAB 1844"
+   ],
+   "human_judgment": "Fire engineering, evacuation strategy, tenability criteria and authority acceptance.",
+   "limits": "CONTAM's graphical interface is Windows-only (engine runs on Linux too). Leakage, fan and walking-speed presets are unsourced. No CFD. Screening for an ideas competition, not an engineering design.",
+   "libraries": [
+    {
+     "name": "NIST CONTAM",
+     "role": "Multizone airflow, stack effect and smoke management",
+     "license": "Public domain (17 U.S.C. 105)",
+     "url": "https://www.nist.gov/services-resources/software/contam"
+    },
+    {
+     "name": "JuPedSim",
+     "role": "Pedestrian evacuation simulation",
+     "license": "LGPL-3.0",
+     "url": "https://github.com/PedestrianDynamics/jupedsim"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P11-S01",
+   "title": "BC Codes 2024 (BC Building Code 2024 landing page)",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes",
+   "publisher": "Province of British Columbia",
+   "year": "2025",
+   "type": "provincial regulator page",
+   "opened": true,
+   "extract": "BC Building Code 2024 took effect 8 March 2024 for permits applied on or after that date; majority based on NBC 2020; PDF link filename indicates Revision 2 (page dated 10 March 2025)."
+  },
+  {
+   "id": "P11-S02",
+   "title": "Information Bulletin B24-05: 2024 Editions of the BC Building, Plumbing and Fire Codes",
+   "url": "https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/construction-industry/building-codes-and-standards/bulletins/2024-code/b24-05_2024_edition_of_the_bc_codes.pdf",
+   "publisher": "Building and Safety Standards Branch, Province of BC",
+   "year": "2024",
+   "type": "provincial bulletin",
+   "opened": true,
+   "extract": "BCBC 2024 substantially based on NBC 2020. Accessibility updates: power-operated doors at all entrances, tactile indicators to CSA B651-18, more universal washrooms, more accessible hotel rooms; 100% adaptable dwelling units in large new condo and apartment buildings from 10 March 2025; seismic updates 10 March 2025; step codes continued."
+  },
+  {
+   "id": "P11-S03",
+   "title": "Building Code bulletins and revisions index",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/bulletins",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "type": "provincial regulator page",
+   "opened": true,
+   "extract": "Latest items B26-01 to B26-03 (Jan-Feb 2026); B25-04 errata and revisions to BCBC 2024 (8 July 2025); adaptable dwelling bulletins B25-01, B25-02; no bulletin on high buildings or elevators listed; 2024 code still current."
+  },
+  {
+   "id": "P11-S04",
+   "title": "2024 BC Building Code Part 3 Checklist, Revision 1",
+   "url": "https://www.aibc.ca/?file=47143",
+   "publisher": "Architectural Institute of BC",
+   "year": "2025",
+   "type": "professional regulator checklist",
+   "opened": true,
+   "extract": "Lists clause numbers for high buildings (3.2.6.1, .2, .4, .5, .6, .7, .8), firefighting provisions (3.2.5), exits (3.4), exit capacity 6.1 / 8 / 9.2 mm per person, 3.7 m max flight, 50 m service-space travel distance, accessibility (3.8), elevator references to CSA B44."
+  },
+  {
+   "id": "P11-S05",
+   "title": "Certified Professional Program: 2024 BC Building Code Part 3 Checklist",
+   "url": "https://www.mapleridge.ca/media/file/certified-professional-cp-program-2024-british-columbia-building-code-part-3-checklist",
+   "publisher": "City of Maple Ridge",
+   "year": "2025",
+   "type": "municipal checklist",
+   "opened": true,
+   "extract": "Same 3.2.6 item list (smoke movement, emergency elevator operation, firefighter elevator, venting, central alarm, voice communication); repeats exit capacity values; revised 5 Feb 2025."
+  },
+  {
+   "id": "P11-S06",
+   "title": "NBC 2005 Sentence 3.2.6.5.(1) application and intent (archived commentary)",
+   "url": "https://codes-guides.nrc.ca/IA/05NBC/nbc05ei002371.html",
+   "publisher": "National Research Council Canada",
+   "year": "2005 (archived)",
+   "type": "archived national code commentary",
+   "opened": true,
+   "extract": "Restates high-building triggers: Groups A, D, E, F above 36 m (or 18 m if cumulative load / (1.8 x stair width in m) exceeds 300); Group B above 18 m; Group B Division 2 above the third storey; Group C above 18 m."
+  },
+  {
+   "id": "P11-S07",
+   "title": "NBC 2005 Sentence 3.2.6.2.(2) application and intent (archived commentary)",
+   "url": "https://codes-guides.nrc.ca/IA/05NBC/nbc05ei002362.html",
+   "publisher": "National Research Council Canada",
+   "year": "2005 (archived)",
+   "type": "archived national code commentary",
+   "opened": true,
+   "extract": "Intent is to limit smoke build-up in exit stairs; repeats the high-building definition and the 36 m / 18 m / 300 values."
+  },
+  {
+   "id": "P11-S08",
+   "title": "NBC 2005 Sentence 3.2.6.5.(5) application and intent (archived commentary)",
+   "url": "https://codes-guides.nrc.ca/IA/05NBC/nbc05ei002375.2.html",
+   "publisher": "National Research Council Canada",
+   "year": "2005 (archived)",
+   "type": "archived national code commentary",
+   "opened": true,
+   "extract": "Limits the number of elevator changes firefighters must make to reach floors; exempts floors where a change of elevator is necessary; also covers unsprinklered floor areas with barrier-free path. Numeric limit not stated."
+  },
+  {
+   "id": "P11-S09",
+   "title": "BCAB 1844: Doors in exit shafts for high buildings",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/building-code-appeal-board/building-code-appeal-board-decisions/bcab-1844",
+   "publisher": "BC Building Code Appeal Board",
+   "year": "2020",
+   "type": "appeal board decision (BCBC 2018)",
+   "opened": true,
+   "extract": "Sentence 3.2.6.2.(3): vent to outdoors at or near stair-shaft bottom, openable area at least 0.05 m2 per door, minimum 1.8 m2; case facts cite a 1% contaminated-air target over 2 hours at January 2.5% design temperature; exit fire separation openings limited."
+  },
+  {
+   "id": "P11-S10",
+   "title": "BCAB 1930: Alternative solution to address combustible construction and high building measures",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/building-code-appeal-board/building-code-appeal-board-decisions/bcab-1930",
+   "publisher": "BC Building Code Appeal Board",
+   "year": "2024",
+   "type": "appeal board decision (BCBC 2024)",
+   "opened": true,
+   "extract": "Under BCBC 2024, Article 3.2.6.1 applies high-building requirements to a Group C building with a floor more than 18 m above grade; alternative solutions must achieve at least the performance required by Division B (clause 1.2.1.1.(1)(b), Division A)."
+  },
+  {
+   "id": "P11-S11",
+   "title": "National Building Code of Canada 2020 publication page",
+   "url": "https://nrc.canada.ca/en/certifications-evaluations-standards/codes-canada/codes-canada-publications/national-building-code-canada-2020",
+   "publisher": "National Research Council Canada",
+   "year": "2023",
+   "type": "national code publication page",
+   "opened": true,
+   "extract": "NBC 2020 volumes (792 and 708 pages), over 280 technical changes, free PDF via NRC Publications Archive; check local edition with the authority."
+  },
+  {
+   "id": "P11-S12",
+   "title": "City of Vancouver: Vancouver Building By-law",
+   "url": "https://vancouver.ca/your-government/vancouver-building-bylaw.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "municipal page (summarised from search result)",
+   "opened": false,
+   "extract": "Reported to state that Council adopted the 2024 BC Building Code with Vancouver-specific provisions as VBBL 2025 on 20 May 2025. Fetch returned HTTP 403; content not verified."
+  },
+  {
+   "id": "P11-S13",
+   "title": "Council report 16 April 2025: new Vancouver Building By-law",
+   "url": "https://council.vancouver.ca/20250416/documents/cfsc3.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "council report (summarised from search result)",
+   "opened": false,
+   "extract": "Reported to recommend VBBL 2025 effective 15 September 2025 on the 2024 BCBC base, seismic provisions deferred for permits before 15 September 2026, in-stream deferral up to 8 March 2027. Fetch returned HTTP 403."
+  },
+  {
+   "id": "P11-S14",
+   "title": "City of Vancouver Building By-law No. 14343 (consolidated)",
+   "url": "https://bylaws.vancouver.ca/consolidated/14343.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "by-law (not opened)",
+   "opened": false,
+   "extract": "By-law number and location reported by search; operative text of 3.2.6 and Vancouver amendments not read (HTTP 403)."
+  },
+  {
+   "id": "P11-S15",
+   "title": "City of Vancouver Certified Professional Program: VBBL short checklist",
+   "url": "https://vancouver.ca/files/cov/CP-vbbl-short-checklist.pdf",
+   "publisher": "City of Vancouver",
+   "year": "n.d.",
+   "type": "municipal checklist (summarised from search result)",
+   "opened": false,
+   "extract": "Reported to list 3.2.6.5.(3)(c) minimum 1 hour rating for the firefighter elevator and the 18 m high-building trigger; not opened (HTTP 403)."
+  },
+  {
+   "id": "P11-S16",
+   "title": "Zero Carbon Step Code",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes/step-codes/zero-carbon-step-code",
+   "publisher": "Province of British Columbia",
+   "year": "2025",
+   "type": "provincial regulator page",
+   "opened": true,
+   "extract": "Levels EL-1 Measure-only, EL-2 Moderate, EL-3 Strong, EL-4 Zero Carbon Performance; introduced May 2023; most new buildings must meet EL-1 from 10 March 2025; Part 3 types include offices, retail, hotels and large residential; no numeric GHGI limits on the page."
+  },
+  {
+   "id": "P11-S17",
+   "title": "BC Energy Step Code",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes/step-codes/energy",
+   "publisher": "Province of British Columbia",
+   "year": "2025",
+   "type": "provincial regulator page",
+   "opened": true,
+   "extract": "Path to net-zero-energy-ready by 2032; May 2023 step 20% better than 2018; Steps 1-2 for small and Step 1 for large buildings reserved; local governments may adopt higher steps."
+  },
+  {
+   "id": "P11-S18",
+   "title": "Step Code requirements",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes/step-codes/requirements",
+   "publisher": "Province of British Columbia",
+   "year": "2025",
+   "type": "provincial regulator page",
+   "opened": true,
+   "extract": "Local governments may require higher steps by bylaw; City of Vancouver Energy Modelling Guidelines v2 apply from 10 Dec 2018 with BCBC 2018; May 2023 changes modified TEUI targets for office and retail; no numeric values on the page."
+  },
+  {
+   "id": "P11-S19",
+   "title": "Technical Bulletin B23-03: Zero Carbon Step Code (BCBC 2018 Revision 5)",
+   "url": "https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/construction-industry/building-codes-and-standards/bulletins/b23-03_zero_carbon_step_code.pdf",
+   "publisher": "Building and Safety Standards Branch, Province of BC",
+   "year": "2023",
+   "type": "provincial bulletin",
+   "opened": true,
+   "extract": "Fuel emission factors (propane 0.2155, light fuel oil 0.2579, heavy fuel oil 0.2689, diesel 0.2581, wood 0.0786 kgCO2e/kWh); district-energy factor set by the authority with the utility; Part 9 prescriptive EL-2 to EL-4 require heating sources at or below 0.011 kgCO2e/kWh; Part 10 compliance references City of Vancouver Energy Modelling Guidelines."
+  },
+  {
+   "id": "P11-S20",
+   "title": "Step Code Part 3 buildings checklist and resources",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes/step-codes/checklists-and-resources/part-3-buildings",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "type": "provincial regulator page",
+   "opened": true,
+   "extract": "Points to the Energy and Zero Carbon Design Checklist (XLS), user guide and bulletins B23-01 to B23-03; cites BCBC 2024 Sections 10.2.3 and 10.3; no numeric thresholds on the page."
+  },
+  {
+   "id": "P11-S21",
+   "title": "Creative Energy: Downtown Vancouver Core Decarbonization",
+   "url": "https://creative.energy/projects/vancouver-core/",
+   "publisher": "Creative Energy",
+   "year": "2026",
+   "type": "utility project page",
+   "opened": true,
+   "extract": "Downtown steam system serving over 205 customers and over 45 million sq ft; electrification with a new 69 kV line and electric boilers; 38,000 t CO2/yr avoided on completion; completion listed 2026 or 2027; new customers can connect once complete."
+  },
+  {
+   "id": "P11-S22",
+   "title": "Designing a Vertical Transportation Strategy in the Largest and Tallest Building in the City of London (J. Stopes)",
+   "url": "https://liftescalatorlibrary.org/paper_indexing/papers/00000193.pdf",
+   "publisher": "10th Symposium on Lift & Escalator Technologies, University of Northampton",
+   "year": "2019 (inferred from symposium series)",
+   "type": "conference paper",
+   "opened": true,
+   "extract": "22 Bishopsgate (309 m): quotes BCO 2014 up-peak AWT 25 s (30 s if time to destination 80 s or less) and time to destination 90 s (110 s if AWT under 25 s); density 1 per 8 m2 NIA, 80% utilisation; net-to-gross 70-75% efficient; sky lobbies rejected for lack of direct travel, double-deck chosen; goods lifts 4.0 m/s, shuttles 8.0 m/s; firefighting lift shared with upper deck."
+  },
+  {
+   "id": "P11-S23",
+   "title": "Lift Planning for High-Rise Buildings (R. Peters)",
+   "url": "https://liftescalatorlibrary.org/paper_indexing/papers/00000157.pdf",
+   "publisher": "8th Symposium on Lift & Escalator Technologies, University of Northampton",
+   "year": "2017 (inferred from symposium series)",
+   "type": "conference paper",
+   "opened": true,
+   "extract": "Guide D general practice of 15-16 floors per lift group; example office with 12% up-peak capacity and 30 s interval; core space falls with more rises; double-deck non-coincident stops and figure of merit; two cars per shaft equal double-deck for core; shuttles and sky lobbies; top-down shuttle option."
+  },
+  {
+   "id": "P11-S24",
+   "title": "Multicar Dispatching (S. Gerstenmeyer, R. Peters)",
+   "url": "https://download.peters-research.com/library/Multicar_Dispatching.pdf",
+   "publisher": "6th Symposium on Lift & Escalator Technologies, University of Northampton",
+   "year": "2015 (inferred)",
+   "type": "conference paper",
+   "opened": true,
+   "extract": "Handling capacity traditionally measured in 5-minute periods; departure delay of 10-15 s suggested; down-peak capacity can be 1.6 times up-peak under conventional control; shuttle and local use of multicar systems."
+  },
+  {
+   "id": "P11-S25",
+   "title": "DS-11 Vertical Transportation Design Standard, Rev 2.0",
+   "url": "https://coo.uq.edu.au/files/31545/DS-11_Vertical%20Transportation_R2.pdf",
+   "publisher": "University of Queensland",
+   "year": "2023",
+   "type": "institutional design standard",
+   "opened": true,
+   "extract": "Office up-peak 13% in 5 min, interval under 30 s, 1 person per 12 m2; residential accommodation 8% and under 40 s; destination-control projects simulated with waiting time at most 80% of nominated interval; ELEVATE general analysis."
+  },
+  {
+   "id": "P11-S26",
+   "title": "Vertical Transportation Design Statement, 505 George Street Sydney (Arup)",
+   "url": "https://meetings.cityofsydney.nsw.gov.au/Data/Central%20Sydney%20Planning%20Committee/20141204/Agenda/141204_CSPC_ITEM15_ATTACHMENTA21.pdf",
+   "publisher": "Arup for Mirvac, City of Sydney committee papers",
+   "year": "2014",
+   "type": "consultant design statement",
+   "opened": true,
+   "extract": "74-level residential tower referencing CIBSE Guide D: interval 50-60 s and 7% balanced two-way handling capacity; three rises (levels 4-25, 26-46, 47-74) with 1600 kg/21-person cars at 3.5, 5.0 and 6.0 m/s."
+  },
+  {
+   "id": "P11-S27",
+   "title": "Lifts for office buildings (Designing Buildings wiki)",
+   "url": "https://www.designingbuildings.co.uk/wiki/Lifts_for_office_buildings",
+   "publisher": "Designing Buildings Ltd",
+   "year": "n.d.",
+   "type": "secondary industry wiki",
+   "opened": true,
+   "extract": "Historic consensus 15% five-minute capacity (unattributed); average interval 20-30 s; densities 10, 14 and 19 m2 per person from different UK sources; most figures not attributed to CIBSE."
+  },
+  {
+   "id": "P11-S28",
+   "title": "CIBSE Guide D: Transportation systems in buildings (knowledge portal)",
+   "url": "https://www.cibse.org/knowledge-research/knowledge-portal/transportation-systems-in-buildings-guide-d/",
+   "publisher": "CIBSE",
+   "year": "2015 edition (archived)",
+   "type": "professional guide catalogue entry",
+   "opened": true,
+   "extract": "2015 edition is superseded by the 2020 edition and should not be used on current projects; Chapter 6 covers firefighting and evacuation lifts; 2025 sections are listed in related content."
+  },
+  {
+   "id": "P11-S29",
+   "title": "CIBSE Lifts Group Annual Seminar 2023: Guide D 2025 chapters 3, 4, 9 (R. Peters)",
+   "url": "https://www.cibse.org/media/5a4lpbwp/chapter-3-4-9-a2.pdf",
+   "publisher": "CIBSE Lifts Group",
+   "year": "2023",
+   "type": "seminar slides",
+   "opened": true,
+   "extract": "Outline of Guide D chapter 3 including entrances below main terminal, destination control, double-deck, firefighting and tall buildings; notes ideal average waiting time equals interval divided by two; flags gaps such as evacuation calculations."
+  },
+  {
+   "id": "P11-S30",
+   "title": "ISO 8100-32:2020 Lifts: planning and selection of passenger lifts in office, hotel and residential buildings",
+   "url": "https://standards.nimonik.com/products/iso/8100-32/",
+   "publisher": "ISO (catalogue listing via Nimonik)",
+   "year": "2020",
+   "type": "international standard catalogue entry",
+   "opened": true,
+   "extract": "Published June 2020, current revision; covers traffic planning and selection of new passenger lifts in offices, hotels and residential buildings; standard text not read."
+  },
+  {
+   "id": "P11-S31",
+   "title": "Mechanical floor (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Mechanical_floor",
+   "publisher": "Wikipedia",
+   "year": "n.d.",
+   "type": "tertiary encyclopaedia (weak)",
+   "opened": true,
+   "extract": "Rule of thumb of one mechanical floor per ten tenant floors; examples about 7% to 26% of floors; article tagged as needing citations."
+  },
+  {
+   "id": "P11-S32",
+   "title": "Sky lobby (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Sky_lobby",
+   "publisher": "Wikipedia",
+   "year": "n.d.",
+   "type": "tertiary encyclopaedia (weak)",
+   "opened": true,
+   "extract": "Sky lobby examples (original WTC floors 44 and 78, One WTC floor 64, Taipei 101, Shanghai Tower, Burj Khalifa); no core-saving figures."
+  },
+  {
+   "id": "P11-S33",
+   "title": "Destination dispatch (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Destination_dispatch",
+   "publisher": "Wikipedia",
+   "year": "n.d.",
+   "type": "tertiary encyclopaedia (weak)",
+   "opened": true,
+   "extract": "Describes the method; cites a manufacturer page claiming trip times cut by 25% and capacity up about 30%; article flags missing citations. Treated as unverified."
+  },
+  {
+   "id": "P11-S34",
+   "title": "JuPedSim: open source pedestrian dynamics simulator",
+   "url": "https://github.com/PedestrianDynamics/jupedsim",
+   "publisher": "PedestrianDynamics / Forschungszentrum Juelich",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "Repository active (last push 20 Oct 2026); LICENSE file is GNU LGPL version 3 or later."
+  },
+  {
+   "id": "P11-S35",
+   "title": "IfcOpenShell: IFC library and geometry engine",
+   "url": "https://github.com/IfcOpenShell/IfcOpenShell",
+   "publisher": "IfcOpenShell project",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "LGPL-3.0; active (last push 21 Oct 2026)."
+  },
+  {
+   "id": "P11-S36",
+   "title": "web-ifc: IFC reading and writing in JavaScript",
+   "url": "https://github.com/ThatOpen/engine_web-ifc",
+   "publisher": "That Open Company",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "MPL-2.0; active (last push 20 Oct 2026)."
+  },
+  {
+   "id": "P11-S37",
+   "title": "EnergyPlus whole-building energy simulation",
+   "url": "https://github.com/NatLabRockies/EnergyPlus",
+   "publisher": "NREL / National Laboratory of the Rockies",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "EnergyPlus licence, a BSD-3-Clause-based licence with a naming clause; active (last push 21 Oct 2026)."
+  },
+  {
+   "id": "P11-S38",
+   "title": "OpenStudio",
+   "url": "https://github.com/NatLabRockies/OpenStudio",
+   "publisher": "NREL / National Laboratory of the Rockies",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "Whole-building modelling tools with EnergyPlus and Radiance; GitHub reports no SPDX licence id (custom licence); check LICENSE before reuse."
+  },
+  {
+   "id": "P11-S39",
+   "title": "CONTAM multizone airflow and contaminant transport program",
+   "url": "https://www.nist.gov/services-resources/software/contam",
+   "publisher": "NIST",
+   "year": "2024",
+   "type": "government software page",
+   "opened": true,
+   "extract": "Models infiltration, wind and buoyancy-driven flow and contaminant transport; used for smoke management; version 3.4.0.1; public domain under 17 U.S.C. 105; ContamW GUI is Windows-only, ContamX runs on Windows and Linux."
+  },
+  {
+   "id": "P11-S40",
+   "title": "CoolProp thermophysical properties library",
+   "url": "https://github.com/CoolProp/CoolProp",
+   "publisher": "CoolProp project",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "MIT licence; active (last push 20 Oct 2026)."
+  },
+  {
+   "id": "P11-S41",
+   "title": "NetworkX network analysis in Python",
+   "url": "https://github.com/networkx/networkx",
+   "publisher": "NetworkX developers",
+   "year": "2026",
+   "type": "open-source repository",
+   "opened": true,
+   "extract": "3-clause BSD licence (confirmed in LICENSE.txt); active (last push 16 Oct 2026)."
+  },
+  {
+   "id": "P11-S42",
+   "title": "SimPy discrete-event simulation for Python",
+   "url": "https://pypi.org/project/simpy/",
+   "publisher": "SimPy team via PyPI",
+   "year": "2026",
+   "type": "open-source package",
+   "opened": true,
+   "extract": "MIT licence, version 4.1.2, process-based discrete-event simulation."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Canadian and Vancouver codes require refuge floors (as in some Asian jurisdictions) in supertall towers.",
+   "correction": "No refuge-floor clause appears among the Subsection 3.2.6 requirements listed in the 2024 BC Part 3 checklists (smoke movement, emergency elevator operation, firefighter elevator, venting, central alarm and control facility, voice communication). Treat refuge or waiting areas as design choices or alternative-solution arguments.",
+   "detail": "Evidence is the item lists in P11-S04 and P11-S05 plus the stair smoke-control intent in P11-S07. Full-text confirmation against VBBL 2025 and BCBC 2024 is pending because vancouver.ca returned HTTP 403 and the BCBC PDF exceeds the fetch limit. Practice in other jurisdictions was not opened here.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "CIBSE Guide D (2015) provides the current lift-design criteria.",
+   "correction": "The 2015 edition is archived and superseded by the 2020 edition; 2025 sections are listed as in preparation.",
+   "detail": "Source P11-S28. Lift criteria in this packet come from papers and standards that cite Guide D rather than the licensed text, so values must be checked against the 2020 edition before submission.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "VBBL 2025 (By-law 14343, effective 15 September 2025, based on BCBC 2024) is the governing Vancouver by-law, with seismic provisions applying to permits from 15 September 2026.",
+   "detail": "Taken from search-result summaries of City pages that could not be opened (P11-S12 to P11-S14). The sources differ on the Council adoption date (report of April 2025 versus a later page stating 20 May 2025). BCBC 2024 itself is confirmed in force (P11-S01, P11-S03).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The 3.2.6.1 triggers (18 m for Groups B and C, 36 m for Groups A, D, E, F, load ratio 300) are unchanged in BCBC 2024 and VBBL 2025.",
+   "detail": "Values come from archived NBC 2005 commentary (P11-S06, P11-S07); BCAB 1930 confirms the 18 m Group C trigger under BCBC 2024 (P11-S10). Irrelevant to the outcome for a 244-305 m tower, but the module must display the correct clause.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Office occupant-load factor of 9.3 m2 per person, a minimum of two exits per floor and occupancy-specific travel-distance limits apply.",
+   "detail": "Recalled from the National Building Code but not retrieved; only the clause numbers (3.1.17.1, 3.4.2.1, 3.4.2.3, 3.4.2.4) are verified in P11-S04. The tool carries editable presets until the values are read from the code.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A 550 kPa static pressure limit sets plumbing pressure-zone height (about 56 m).",
+   "detail": "Recalled value; not confirmed in the BC Plumbing Code. Head per metre (9.81 kPa) is physics. Used only as an editable preset in P11-M03.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Destination dispatch cuts trip times by 25% and raises capacity by about 30%.",
+   "detail": "Appears only as a manufacturer marketing claim cited on a Wikipedia page (P11-S33). Not used as a threshold; simulation must show the benefit.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Stair smoke tenability of at most 1% contaminated air by volume over 2 hours, and stair-bottom vent area of at least 0.05 m2 per door (minimum 1.8 m2), apply in current Vancouver and BC codes.",
+   "detail": "Both come from BCAB 1844 under BCBC 2018 (P11-S09); the 1% figure is a case design target, not confirmed as a code limit. Re-check numbering and values in BCBC 2024 and VBBL 2025.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Plant floors should be at most 10% of total floors (bad above 15%).",
+   "detail": "10% is a weak rule of thumb from a tertiary source (P11-S31); the 15% bad limit is a team preset. Editable.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Hotel, cultural, observation and public-use lift criteria; zero transfers per trip as 'good'; at least two accessible lifts per group.",
+   "detail": "No sourced figures found. Shown as editable presets; the transfer criterion comes from a London market expectation (P11-S22), not Vancouver.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Numeric Part 3 GHG intensity, TEDI and MEUI limits for offices, hotels and residential, and Vancouver's own limits.",
+   "detail": "Provincial step-code pages (P11-S16 to P11-S20) give levels and dates but no numbers; vancouver.ca was blocked. The tool carries an editable limit field to be filled from the code table.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Firefighter elevator rated load, speed, maximum number of elevator changes and shaft fire rating in BCBC 2024 / VBBL 2025.",
+   "detail": "Archived commentary gives intents only (P11-S06, P11-S08); the 1-hour rating is from an unopened City checklist summary (P11-S15). Must be read from Article 3.2.6.5.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether exit-stair width accumulates down the tower (cumulative load) or is sized per storey under 3.4.3.2 in BCBC 2024.",
+   "detail": "The checklists show only the per-person widths and a clause for stairs serving interconnected floors (P11-S04); the operative text was not read. Drives stair core area in P11-M06.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Optimal plant-floor spacing versus tower height, floors served per air-handling zone and riser area share of GFA: no sourced relationship or percentage found (P11-M03 uses physics for pressure zones and a weak 10% rule of thumb only).",
+  "Effect of program mix (hotel and residential small risers versus office air shafts) on riser allocation and plant area: not sourced.",
+  "Relationship between outrigger or transfer floors (structure packet) and plant-floor placement: no source found; module only snaps to supplied floors.",
+  "Double-deck and shuttle round-trip-time formulas and non-coincident-stop benchmarks: referenced in P11-S23 but not retrieved.",
+  "Lift traffic profile and criteria for hotel, cultural/civic and observation uses in CIBSE Guide D 2020: licensed text not accessed; no sourced numbers.",
+  "Effect of a below-grade transit entrance on lift round-trip time: qualitative only (P11-S22, P11-S29); no quantified relationship found.",
+  "Heat-pump COP versus supply temperature and district-energy connection temperatures for the downtown Vancouver system: not sourced; COP values are presets.",
+  "Accepted district-energy emission factor for Vancouver Part 3 compliance (set by the authority with the utility per P11-S19): not published in retrieved sources.",
+  "Occupant evacuation (lift-assisted) provisions in CSA B44 and BCBC for Canadian towers: CIBSE Guide D Chapter 6 covers evacuation lifts, but no Canadian requirement was retrieved.",
+  "Vancouver-specific additions in VBBL 2025 for very tall buildings (extra firefighter lifts, evacuation modelling, smoke control): not read.",
+  "Required number of accessible lifts and accessible hotel rooms per room count in BCBC 2024: not retrieved."
+ ],
+ "change_log": [
+  "Round 1: created packet P11 with 8 modules (M01 lift sizing, M02 lift strategy comparator, M03 plant floors and risers, M04 low-carbon systems, M05 high-building code checklist, M06 egress sizing, M07 accessibility, M08 smoke control and evacuation screening).",
+  "Round 1: corrected the refuge-floor assumption (no refuge-floor item in the 3.2.6 lists of the 2024 BC Part 3 checklists); flagged FALSE_ASSUMPTION with residual verification gap.",
+  "Round 1: replaced CIBSE Guide D 2015 as the reference with the 2020 edition (2015 archived as superseded).",
+  "Round 1: set governing code as BCBC 2024 (confirmed) and VBBL 2025 (unverified, City pages returned HTTP 403); VBBL 2019 treated as superseded.",
+  "Round 1: marked unsourced thresholds as team_assumption or unverified (hotel lift criteria, plant-floor share, 550 kPa pressure limit, occupant-load and travel-distance values, Part 3 GHGI limits, firefighter-elevator numerics).",
+  "Round 1: web-search budget exhausted mid-run; later gaps (plant frequency, Canadian refuge-floor text) were not searched further."
+ ]
+}

@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --color-ink: #1f2328;
+  --color-paper: #f6f5f2;
+  --color-panel: #ffffff;
+  --color-line: #e3e1dc;
+  /* #62666d keeps small grey text at 4.5:1 or more on white and on the selected-row tint (axe, 22 Oct). */
+  --color-muted: #62666d;
+  --color-accent: #1f5f8b;
+  --color-chrome: #ffffff;
+  --color-chrome-ink: #1f2328;
+
+  /* Evidence flags, used everywhere (always with an icon and a word) */
+  --color-flag-verified: #1f6b42;
+  --color-flag-team: #8a5a00;
+  --color-flag-unverified: #6b6f76;
+  --color-flag-unresolved: #6e5800;
+  --color-flag-false: #b8137a;
+}
+
+/* Stage palettes: Massing = tracing paper, Schematic = drafting table, Present = review wall. */
+[data-stage="advanced"] {
+  --color-paper: #e9eef3;
+  --color-panel: #f4f7fa;
+  --color-line: #c6d2de;
+  --color-muted: #566270;
+  --color-accent: #1d5fa8;
+  --color-chrome: #f4f7fa;
+}
+[data-stage="present"] {
+  --color-paper: #b8b8b8;
+  --color-muted: #43474d; /* readable on the grey review wall */
+  --color-chrome: #2b2e33;
+  --color-chrome-ink: #e8eaed;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--color-paper); color: var(--color-ink); -webkit-font-smoothing: antialiased; }
+
+/* Chrome cross-fades between stages (disabled under reduced motion). */
+.stage-fade { transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1), color 200ms, border-color 200ms; }
+.panel-slide { transition: width 250ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms; }
+.board-frame { transition: padding 300ms cubic-bezier(0.2, 0, 0, 1), background-color 200ms; }
+[data-reduced="true"] .stage-fade, [data-reduced="true"] .panel-slide, [data-reduced="true"] .board-frame { transition-duration: 0ms !important; }
+@media (prefers-reduced-motion: reduce) {
+  .stage-fade, .panel-slide, .board-frame { transition-duration: 0ms !important; }
+}
+
+.hatch {
+  background-image: repeating-linear-gradient(45deg, rgba(107,111,118,.35) 0 4px, transparent 4px 8px);
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+.react-flow__attribution { font-size: 9px; }
+
+/* Crop marks around the A2 board in Present */
+.crop-marks::before, .crop-marks::after { content: ""; position: absolute; inset: -10px; pointer-events: none;
+  background:
+    linear-gradient(#2c2c2a, #2c2c2a) left 0 top 10px / 8px 1px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) left 10px top 0 / 1px 8px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) right 0 top 10px / 8px 1px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) right 10px top 0 / 1px 8px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) left 0 bottom 10px / 8px 1px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) left 10px bottom 0 / 1px 8px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) right 0 bottom 10px / 8px 1px no-repeat,
+    linear-gradient(#2c2c2a, #2c2c2a) right 10px bottom 0 / 1px 8px no-repeat; }
+.crop-marks::after { display: none; }

@@ -1,0 +1,1920 @@
+{
+ "packet_id": "P10",
+ "modules": [
+  {
+   "module_id": "P10-M01",
+   "name": "Lateral system selector by height, slenderness and seismic category",
+   "phase": "advanced",
+   "category": "STRC",
+   "design_question": "Which lateral systems (core-only, core-outrigger, mega-frame, diagrid, buttressed core) are plausible for this tower's height, slenderness and Vancouver seismic category, and what must be justified?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "~5 person-days (rules table, scoring UI, elevation diagram); NBC Table 4.1.8.9 data entry must be double-checked",
+   "depends_on": [
+    "P10-M02",
+    "P10-M03",
+    "P10-M05"
+   ],
+   "inputs": [
+    "Layer 0: tower massing (height, storeys, floor plates, setbacks, transfer levels)",
+    "Layer 0 program tags (office/residential/hotel, core, mechanical) to propose outrigger floors",
+    "P10-M02: H/w_eff and wind-sensitivity class",
+    "P10-M03: Seismic Category and site designation",
+    "P10-M05: core share and irregularity flags",
+    "ADVANCED presets: primary structural material (concrete, steel, composite, timber-hybrid)"
+   ],
+   "outputs": [
+    "candidate_systems[]: {system, feasibility, code_route, reasons[]}",
+    "sfrs_choice: {type, Rd, Ro, height_cap_m} or 'unlisted'",
+    "outrigger_levels[]: storey indices (default = mechanical floors)",
+    "structure_diagram_spec: JSON consumed by PRES structural-strategy drawings"
+   ],
+   "parameters": [
+    {
+     "name": "Tower height H",
+     "unit": "m",
+     "relationship": "H up -> wind drift, acceleration and overturning grow faster than linearly, pushing the choice from core-only walls toward perimeter-engaged systems; steel frames alone become uneconomic above about 40 storeys and tube-type systems dominate beyond that.",
+     "source_ids": [
+      "P10-S31",
+      "P10-S32"
+     ]
+    },
+    {
+     "name": "Seismic Category (Vancouver = SC4)",
+     "unit": "category",
+     "relationship": "Vancouver is SC4 (IE*S(0.2) = 1.1 g > 0.75). At SC4, moderately ductile concrete walls stop at 60 m and unlisted systems are not permitted, so tall towers need ductile cores or a demonstrated-equivalence case.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Slenderness H/w_eff",
+     "unit": "ratio",
+     "relationship": "H/w up -> across-wind acceleration and overturning demand rise; when the Commentary I slenderness parameter is below 1/3, across-wind accelerations usually exceed along-wind, favouring perimeter engagement and added damping.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Transfers and podium discontinuities",
+     "unit": "count",
+     "relationship": "Public-facing uses extending vertically may need transfers; stiff transfer floors acting as outriggers lengthen the real period versus empirical formulas, and large gravity-induced lateral demand triggers irregularity Type 9 and nonlinear dynamic analysis.",
+     "source_ids": [
+      "P10-S05",
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Primary structural material",
+     "unit": "enum",
+     "relationship": "Prescriptive timber-hybrid frames stop at 18 storeys / 76 m (EMTC) and timber SFRS at 20 m at SC4, so supertall lateral systems must be concrete, steel or composite; timber is limited to podium or floors.",
+     "source_ids": [
+      "P10-S06",
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Outrigger / belt-truss use",
+     "unit": "count of levels",
+     "relationship": "Outriggers (including hybrid damped outriggers) are a documented CVU/CTBUH design topic but no outrigger SFRS appears in NBC 2020 Vol. 1; using them as primary lateral system implies an alternative solution with independent peer review.",
+     "source_ids": [
+      "P10-S17",
+      "P10-S04",
+      "P10-S15"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Code route of selected system",
+     "good": "Listed SFRS with no height cap at SC4 (ductile coupled/partially coupled/shear walls Rd 3.5-4.0, ductile concrete MRF, steel ductile MRF/EBF/plate walls)",
+     "bad": "Unlisted SFRS (Rd = Ro = 1.0 unless equivalence shown; 'other' SFRS not permitted at SC3-SC4) or a moderately ductile type above its cap (concrete walls 60 m, steel CBF 40 m)",
+     "unit": "category",
+     "basis": "NBC 2020 Table 4.1.8.9 (SC4 column) and Commentary J paras 213-214 on equivalence by cyclic tests, NLDA, collapse margin and independent peer review",
+     "method": "Table lookup by SFRS type, height and Seismic Category",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Storeys versus system envelope (editable)",
+     "good": "<= 70 storeys for core / shear-wall-frame without outriggers",
+     "bad": "> 70 storeys core-only, or > ~40 storeys steel frame only",
+     "unit": "storeys",
+     "basis": "Secondary precedent statements (shear-wall frame used for apartment towers to 70 storeys; steel frames inefficient above 40 storeys; tubes since 1960s). No CTBUH/CVU table was accessible (guides are paywalled); shown as editable team assumption.",
+     "method": "Compare storeys (H / floor-to-floor) with envelope table",
+     "source_ids": [
+      "P10-S31",
+      "P10-S32",
+      "P10-S37"
+     ],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Wind drift ratio at top (50-year, serviceability proxy)",
+     "good": "<= H/500 (NBC default; H/250-H/1000 range by partition detailing)",
+     "bad": "> H/250 (cracking of finishes and partitions likely); between = conditional on detailing",
+     "unit": "ratio of H",
+     "basis": "NBC Commentary I paras 106-107 (Sentence 4.1.3.5.(3) default 1/500)",
+     "method": "Equivalent-cantilever drift under q50 = 0.45 kPa with system effective-EI multiplier (editable preset)",
+     "source_ids": [
+      "P10-S05",
+      "P10-S04"
+     ],
+     "status": "verified"
+    }
+   ],
+   "method": "1) Read H, storeys, H/w_eff (M02), Seismic Category (M03), core share (M05) and the material preset. 2) Filter a data-table catalogue (core-only walls, core + outriggers/belt trusses, mega-frame, diagrid, buttressed core, coupled walls, steel EBF/BRB hybrids, timber-hybrid) with rules: NBC Table 4.1.8.9 listed/unlisted status and height cap at the site's SC; EMTC limits (M06); editable storey envelopes. 3) Screen stiffness: treat the tower as an equivalent cantilever, estimate top drift under the 50-year wind (q50 = 0.45 kPa) with an effective-EI multiplier per system (editable preset) and compare with H/500. 4) Score survivors on drift margin, core share, transfer count and material intensity (M08) with user-set weights. 5) Mark unlisted systems 'alternative solution + peer review' (Commentary J paras 213-214; Bulletin 2002-007-BU). Output a shortlist with reasons, never a single 'best' answer.",
+   "visualization": [
+    "Matrix heat-map: rows = candidate systems, columns = code route, height envelope, drift, core share, transfers; green/amber/red cells; clicking a cell opens the NBC clause or the editable team assumption.",
+    "Tower elevation (SVG): core, outrigger/belt-truss levels as horizontal bars, mega-columns or diagrid lines, with marker lines at 60 m, 76 m (EMTC cap) and 70 storeys.",
+    "Per-threshold badges: 'verified' (link to clause), 'team assumption' (editable), 'FALSE ASSUMPTION' (special colour)."
+   ],
+   "human_judgment": "Choosing and defending the system is a design and engineering judgement (architectural intent, constructability, owner risk, alternative-solution strategy with the engineer of record); the tool only filters, flags code routes and shows trade-offs.",
+   "limits": "Screening only; no member sizing. Storey envelopes and effective-EI multipliers are editable presets, not code values. Outrigger effectiveness depends on levels and stiffness not modelled; differential shortening and construction sequence are ignored. Hybrid or damped outriggers need project-specific analysis. Not a substitute for a licensed structural engineer or peer review.",
+   "libraries": [
+    {
+     "name": "PyNite (PyNiteFEA)",
+     "license": "MIT",
+     "role": "3D frame stick model for drift and modal screening",
+     "url": "https://github.com/JWock82/Pynite"
+    },
+    {
+     "name": "three.js",
+     "license": "MIT (not re-verified this session)",
+     "role": "Elevation / axonometric schematic of the system",
+     "url": "https://threejs.org"
+    },
+    {
+     "name": "Rules engine in TypeScript with JSON data tables",
+     "license": "Project licence",
+     "role": "Catalogue filtering and scoring",
+     "url": "https://github.com/JWock82/Pynite"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P10-M02",
+   "name": "Slenderness, effective width and wind-sensitivity class",
+   "phase": "basic",
+   "category": "STRC",
+   "design_question": "How slender is each tower, and does that make it dynamically sensitive or wind-tunnel-mandatory under NBC 2020, with vortex-shedding and super-slender checks?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "~2 person-days (mesh slicing, azimuth sweep, clause table)",
+   "depends_on": [],
+   "inputs": [
+    "Layer 0 tower meshes (one per tower) with storey table",
+    "Site plan rotation relative to true north",
+    "Context building massing (existing and approved towers) where available",
+    "Optional f1 from P10-M03 / P10-M08"
+   ],
+   "outputs": [
+    "tower_wind_class[]: {tower_id, H, w_eff_min, H_over_w, class: static_allowed | dynamically_sensitive | very_dynamically_sensitive, vortex_flag, tunnel_required}",
+    "w_eff_by_azimuth[36]",
+    "slenderness_band enum (consumed by P10-M01, P10-M04)",
+    "context_flags[]: possible wake-buffeting sources"
+   ],
+   "parameters": [
+    {
+     "name": "Tower height H",
+     "unit": "m",
+     "relationship": "H > 60 m makes a building dynamically sensitive regardless of slenderness (NBC 4.1.7.2(2)(b)), so every 244-305 m tower must use the Dynamic or Wind Tunnel Procedure; static wind loads are not allowed.",
+     "source_ids": [
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Minimum effective width w_eff",
+     "unit": "m",
+     "relationship": "w_eff down (narrower plan at same height) -> H/w_eff up; above 4 the building is dynamically sensitive, above 6 with human occupancy it is very dynamically sensitive and the Wind Tunnel Procedure is mandatory.",
+     "source_ids": [
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Lowest natural frequency f1",
+     "unit": "Hz",
+     "relationship": "f1 between 0.25 and 1 Hz -> dynamically sensitive; f1 <= 0.25 Hz -> very dynamically sensitive and the Wind Tunnel Procedure is mandatory; softer or taller designs move toward the lower class.",
+     "source_ids": [
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Neighbouring towers (context)",
+     "unit": "count / distance",
+     "relationship": "Existing and approved towers of similar height upwind can cause wake buffeting or channelling; NBC 4.1.7.1(4) then requires the Wind Tunnel Procedure but gives no distance trigger, so the tool can only flag, not decide.",
+     "source_ids": [
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Tapering, setbacks, twist",
+     "unit": "shape descriptors",
+     "relationship": "Tapering, setbacks or twist change effective width with height and can disrupt coherent vortex shedding: Burj Khalifa's 27 setbacks and Shanghai Tower's 120-degree twist (claimed 24% wind-load cut) are precedent claims that need tunnel confirmation.",
+     "source_ids": [
+      "P10-S28",
+      "P10-S29",
+      "P10-S19"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Aspect ratio H / w_eff,min (all wind directions)",
+     "good": "<= 6 (not 'very dynamically sensitive' by slenderness)",
+     "bad": "> 6 with human occupancy -> Wind Tunnel Procedure mandatory; 4-6 = dynamically sensitive",
+     "unit": "ratio",
+     "basis": "NBC 2020 Div B 4.1.7.2(2)(c) and (3)(b)",
+     "method": "Weighted effective width per storey slice, minimum over azimuths",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Vortex-shedding slenderness H/D",
+     "good": "<= 5",
+     "bad": "> 5 -> vortex-shedding resonance check required; V_crit = f_n D / S with S about 1/5 for buildings, about 1/7 for non-circular sections",
+     "unit": "ratio",
+     "basis": "NBC Commentary I paras 103-105",
+     "method": "H divided by least plan dimension D",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Across-wind dominance parameter",
+     "good": ">= 1/3 (along-wind may govern accelerations)",
+     "bad": "< 1/3 (across-wind accelerations exceed along-wind)",
+     "unit": "ratio",
+     "basis": "Commentary I para 108 states the 1/3 threshold but the parameter symbol was lost in text extraction (assumed sqrt(w d)/H); confirm against the PDF",
+     "method": "Computed from w, d, H",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "unverified"
+    },
+    {
+     "name": "Lowest natural frequency triggers",
+     "good": ">= 1 Hz (not expected for supertall)",
+     "bad": "<= 0.25 Hz -> Wind Tunnel Procedure mandatory; 0.25-1 Hz -> Dynamic or Wind Tunnel Procedure",
+     "unit": "Hz",
+     "basis": "NBC 2020 Div B 4.1.7.2(2)(a), (3)(a)",
+     "method": "f1 from stick-model modal analysis (P10-M08) or Commentary I deflection-based estimate",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Super-slender band (editable)",
+     "good": "<= 7",
+     "bad": "> 10 (expect TMD, aerodynamic shaping or windbreak floors)",
+     "unit": "ratio",
+     "basis": "No sourced threshold found. Precedent: 432 Park Avenue (about 15:1) uses two ~540 t TMDs and 12-storey windbreaks and has reported occupant complaints (secondary source).",
+     "method": "Compare H/w_eff with editable band",
+     "source_ids": [
+      "P10-S27"
+     ],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Wake-buffeting / channelling potential",
+     "good": "No taller or similar-height building upwind within the modelled context",
+     "bad": "Similar-height towers upwind (flag only; default trigger >= 0.5 H, editable) -> Wind Tunnel Procedure",
+     "unit": "flag",
+     "basis": "NBC 4.1.7.1(4) mandates the tunnel where buffeting or channelling is possible but gives no numeric trigger",
+     "method": "Upwind ray-casting from each tower",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "unverified"
+    }
+   ],
+   "method": "For each tower mesh, slice at every storey; for each wind azimuth (10-degree steps in true north, after applying the site-plan rotation because the downtown grid is skewed) project the slice onto the normal to the wind and take its width w_i(theta). Compute the NBC effective width as a height-weighted mean of w_i (formula in 4.1.7.2(2)(c); transcribe from the PDF) and its minimum over theta. Compute H/w_eff,min, H/D for vortex shedding and the Commentary I across-wind dominance parameter, and compare with 4 and 6 (NBC), 5 (vortex) and the user's super-slender band. Take f1 from M03/M08 and apply the 1 Hz and 0.25 Hz triggers. Ray-cast upwind from each tower to flag towers of >= 0.5 H (editable) as possible wake sources. Print a note that CFD cannot give specified wind loads (NBC 4.1.7.1(6)).",
+   "visualization": [
+    "Tower elevation coloured by class band (green <= 4, amber 4-6, red > 6) with the 60 m line and labelled H/w_eff.",
+    "Polar (radar) plot of w_eff versus wind azimuth with the minimum highlighted and the rotated site north drawn.",
+    "Site-plan overlay: upwind rays and flagged wake sources; badges link to NBC clause numbers."
+   ],
+   "human_judgment": "Whether neighbouring towers cause buffeting or channelling, whether the top storeys count as human occupancy, and whether to reshape the tower; final wind procedure is set by the wind engineer and tunnel test.",
+   "limits": "Classification only; it predicts no loads or accelerations. The effective-width formula and the across-wind symbol must be transcribed from PDF graphics. Wake-flag distance is a team assumption. Approved-but-unbuilt towers must be modelled by hand. Does not replace the wind engineer or tunnel test.",
+   "libraries": [
+    {
+     "name": "trimesh",
+     "license": "MIT (not re-verified this session)",
+     "role": "Mesh slicing and projection",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "shapely",
+     "license": "BSD-3-Clause (not re-verified this session)",
+     "role": "2D polygon widths and convex hulls",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "rhino3dm",
+     "license": "MIT (not re-verified this session)",
+     "role": "Read Rhino .3dm Layer 0 meshes",
+     "url": "https://github.com/mcneel/rhino3dm"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P10-M03",
+   "name": "Vancouver seismic screening (NBC 2020 / BCBC 2024 / VBBL 2025)",
+   "phase": "advanced",
+   "category": "STRC",
+   "design_question": "What seismic demand and code route does this tower face in downtown Vancouver, and when do nonlinear analysis, performance-based design and independent peer review become unavoidable?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "~6 person-days for the screening version (hazard table, Ta, Mv/J data file, route flags, spectrum plot); NLDA support is roadmap",
+   "depends_on": [],
+   "inputs": [
+    "Layer 0: height, storeys, plan, irregularity indicators (setbacks, transfers, podium)",
+    "Site designation: measured Vs30 (X_V), site class A-E (X_S) or X_F; default X450 (Class C reference)",
+    "SFRS choice from P10-M01 (default: ductile concrete wall)",
+    "Seismic weight W from P10-M08 (first pass: GFA x preset kN/m2)",
+    "Importance category (normal, high importance, post-disaster)"
+   ],
+   "outputs": [
+    "design_spectrum: Sa(T) at 0.2, 0.5, 1, 2, 5, 10 s plus PGA",
+    "seismic_category (SC1-SC4)",
+    "Ta_empirical, T1_model and period caps",
+    "screening_base_shear: V/W, Ft, base moment with J",
+    "route_flags: {dynamic_required, nlda_or_special_study, unlisted_sfrs, peer_review}",
+    "drift_limit (fraction of storey height) and irregularity list"
+   ],
+   "parameters": [
+    {
+     "name": "Site designation / Vs30",
+     "unit": "m/s",
+     "relationship": "Vs30 down (softer soil) -> Sa(T) up, more at longer periods; NBC 2020 computes hazard directly per site class. X_S (SPT/strength-based) adds conservatism relative to measured X_V, so measuring Vs30 lowers demand.",
+     "source_ids": [
+      "P10-S05",
+      "P10-S09"
+     ]
+    },
+    {
+     "name": "Fundamental period Ta",
+     "unit": "s",
+     "relationship": "Taller or more flexible towers have longer Ta (empirical 0.05 hn^3/4 walls, 0.025 hn braced, 0.075/0.085 hn^3/4 concrete/steel frames); long periods fall where Cascadia interface hazard dominates and where the code omits basin amplification.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05",
+      "P10-S11"
+     ]
+    },
+    {
+     "name": "Ductility and overstrength Rd x Ro",
+     "unit": "-",
+     "relationship": "Rd x Ro up -> design base shear down (V = S(Ta) Mv IE W / (Rd Ro)) but only for SFRS types permitted at the site's Seismic Category and height; at SC4 only ductile types are unrestricted.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S36"
+     ]
+    },
+    {
+     "name": "Higher-mode factor Mv and moment reduction J",
+     "unit": "-",
+     "relationship": "Spectral ratio S(0.2)/S(5.0) up (Vancouver about 1.1/0.075 = 15) -> Mv up for walls and J down, so tall wall towers attract more base shear and less base moment reduction than the fundamental mode alone implies.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Importance category",
+     "unit": "category",
+     "relationship": "Importance up -> stricter drift limit: 0.025 hs normal, 0.020 hs High Importance, 0.010 hs post-disaster at design-level ground motion; larger IE also raises Seismic Category input IE*S(0.2).",
+     "source_ids": [
+      "P10-S05",
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Irregularity types 1-10",
+     "unit": "flags",
+     "relationship": "Irregularities (stiffness, weight, geometry, discontinuities, torsion B > 1.7, gravity-induced lateral demand, sloped columns) remove the static route and Type 9 requires nonlinear dynamic analysis with vertical motion.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Hazard source mix",
+     "unit": "-",
+     "relationship": "In southwest BC most short-period hazard comes from in-slab events and most long-period hazard from the Cascadia interface; nonlinear suites must represent all three sources (11 or more motions each), so long-period towers are interface-driven.",
+     "source_ids": [
+      "P10-S05",
+      "P10-S09"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Seismic Category",
+     "good": "SC1-SC2 (static method permitted; not applicable here)",
+     "bad": "SC4: Vancouver X450 has IE*S(0.2) = 1.1 g > 0.75 and S(1.0) = 0.44 g > 0.3",
+     "unit": "category",
+     "basis": "NBC 2020 Table 4.1.8.5-B; Commentary J Table J-2",
+     "method": "Threshold lookup on IE*S(0.2) and IE*S(1.0)",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Design hazard values used",
+     "good": "NBC 2020 X450 (2% in 50 yr): Sa(0.2) 1.1, Sa(0.5) 0.77, Sa(1.0) 0.44, Sa(2.0) 0.27, Sa(5.0) 0.075, Sa(10) 0.033 g, PGA 0.46 g, or NRCan-tool values for the chosen site designation",
+     "bad": "NBC 2015 / VBBL 2019 values (Vancouver Sa(0.2) about 0.85 g) for new Vancouver projects from 15 Sep 2026",
+     "unit": "g",
+     "basis": "Commentary J Tables J-1 (+25% at 0.2 s, +5% at 2 s versus 2015) and J-2; VBBL 2025 seismic rules from 15 Sep 2026",
+     "method": "Table lookup, then NBC interpolation rules",
+     "source_ids": [
+      "P10-S05",
+      "P10-S01",
+      "P10-S09",
+      "P10-S08"
+     ],
+     "status": "false_assumption_corrected"
+    },
+    {
+     "name": "Analysis route",
+     "good": "Dynamic analysis (response spectrum or NLDA) for H >= 60 m or Ta >= 2 s",
+     "bad": "Equivalent static method as final design: permitted only for SC1-SC2, regular buildings < 60 m with Ta < 2 s, or irregular (Types 2-6, 8) buildings < 20 m with Ta < 0.5 s",
+     "unit": "category",
+     "basis": "NBC 2020 Div B 4.1.8.7(1); Commentary J (tall long-period structures respond in higher modes)",
+     "method": "Rule evaluation",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Interstorey drift at design-level shaking",
+     "good": "<= 0.025 hs (normal), <= 0.020 hs (High Importance), <= 0.010 hs (post-disaster)",
+     "bad": "Above the limit for the importance category",
+     "unit": "fraction of storey height",
+     "basis": "NBC Commentary J drift discussion (NBC 4.1.8.13)",
+     "method": "Compare modal-analysis drifts (M08 model) with limits",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Period used versus empirical cap",
+     "good": "T used for forces <= 2.0 x 0.05 hn^3/4 (walls), 2.0 x 0.025 hn (braced), 1.5 x empirical (moment frames); deflection periods capped at 4.0 s (walls) or 2.0 s (others)",
+     "bad": "Longer period used to lower base shear",
+     "unit": "s",
+     "basis": "NBC 2020 Div B 4.1.8.11(3)(d). Example caps: walls 244-305 m -> empirical 3.1-3.7 s, cap 6.2-7.3 s (computed)",
+     "method": "Compare T1 from model with caps",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "PBSD acceptance (if nonlinear / alternative route)",
+     "good": "Mean maximum transient story drift <= 0.03, no single record > 0.045, mean residual drift <= 0.01; service-level event 43-yr return period",
+     "bad": "Exceeds these",
+     "unit": "fraction of storey height",
+     "basis": "PEER TBI v2.03 values are verified; their adoption for Vancouver is a team assumption because NBC defines no MCER (see unresolved relationships)",
+     "method": "NLRHA post-processing (roadmap)",
+     "source_ids": [
+      "P10-S10",
+      "P10-S18"
+     ],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Independent peer review in place",
+     "good": "Peer review panel when NLDA, unlisted SFRS or equivalence is used: Vancouver alternative-solution panel of 3 independent experts (City nominee, applicant nominee, jointly chosen third); TBI adds at least one practising tall-building engineer",
+     "bad": "NLDA or unlisted SFRS without independent review",
+     "unit": "flag",
+     "basis": "Bulletin 2002-007-BU (rev. 2015), Commentary J special-study text, TBI chapter 8; current VBBL 2025 wording not read",
+     "method": "Checklist",
+     "source_ids": [
+      "P10-S15",
+      "P10-S05",
+      "P10-S10"
+     ],
+     "status": "verified"
+    }
+   ],
+   "method": "1) Hazard: default Vancouver X450 values (NBC 2020 Table J-2); user picks site designation (X_V from measured Vs30, class A-E, or X_F) and pastes NRCan hazard-tool values; build S(T) by NBC interpolation. 2) Seismic Category from IE*S(0.2) and IE*S(1.0) (Table 4.1.8.5-B). 3) Ta: empirical (4.1.8.11(3)) and stick-model T1 from M08, capped per (3)(d). 4) Screening base shear V = S(Ta) Mv IE W / (Rd Ro), with Mv and J from Table 4.1.8.11 (transcribed data file, double entry) and Ft = 0.07 Ta V <= 0.25 V (zero if Ta <= 0.7 s). 5) Route flags: dynamic analysis, NLDA/special study, unlisted SFRS, irregularities (Types 1-10 from M05/M01). 6) Report demand as a range across selected site classes. Never present as design values; the static method is permitted only under 4.1.8.7.",
+   "visualization": [
+    "Spectrum plot: 5%-damped Sa(T) 0-10 s (log x) for selected site designations with markers at empirical Ta and model T1, a shaded 2-10 s band labelled 'basin effects not in NBC hazard', and a grey marker for the superseded NBC 2015 Sa(0.2) = 0.85 g.",
+    "Elevation with equivalent-static force arrows and Ft, captioned 'screening only'.",
+    "Route badge row (static not permitted / dynamic required / NLDA + peer review), each linked to its NBC clause; SC4 SFRS table greyed by tower height."
+   ],
+   "human_judgment": "Site-specific hazard and ground-motion selection, SFRS choice and detailing, whether to pursue an alternative solution or PBSD, acceptance criteria and the peer-review panel are decisions for the licensed engineer of record and the Chief Building Official.",
+   "limits": "Screening only, not design values. Mv/J tables need manual transcription; hazard defaults are for X450 (Class C reference) only. NBC hazard omits Georgia-basin amplification that UBC simulations say raises long-period demand. Soil-structure interaction, vertical motion, adjacency and seismic clearance excluded. VBBL 2025 text was not machine-readable. VTC is an academic exercise; code compliance is advisory.",
+   "libraries": [
+    {
+     "name": "PyNite (PyNiteFEA)",
+     "license": "MIT",
+     "role": "Linear 3D stick/frame model, modal and P-Delta screening",
+     "url": "https://github.com/JWock82/Pynite"
+    },
+    {
+     "name": "sectionproperties",
+     "license": "MIT",
+     "role": "Cracked/uncracked core and wall section properties",
+     "url": "https://github.com/robbievanleeuwen/section-properties"
+    },
+    {
+     "name": "OpenSeesPy / OpenSees",
+     "license": "Free for research, education and internal use; commercial redistribution and cloud services need a separate licence",
+     "role": "Offline NLRHA validation only; NOT suitable as a hosted dependency of an open-source web tool without a licence",
+     "url": "https://github.com/zhuminjie/OpenSeesPy"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P10-M04",
+   "name": "Wind-induced motion and occupant comfort",
+   "phase": "advanced",
+   "category": "STRC",
+   "design_question": "Will occupants feel the tower sway in wind, and which mix of shaping, stiffness, mass, damping or tuned mass damper brings accelerations within comfort limits?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "~6 person-days (equation implementation, unit test against Commentary example, sensitivity UI, TMD card)",
+   "depends_on": [
+    "P10-M02",
+    "P10-M03",
+    "P10-M08"
+   ],
+   "inputs": [
+    "P10-M02: H, w_eff, d, class and slenderness band",
+    "f1 and mode shape from P10-M03/M08 stick model",
+    "Mean building density from P10-M08",
+    "Vancouver wind pressures q10 and q50; terrain exposure (urban = Exposure B)",
+    "Layer 0 tags of top occupied floors (residential, hotel, office)",
+    "Damping ratio preset by material; optional shape modifiers"
+   ],
+   "outputs": [
+    "a_across, a_along (10-yr and 1-yr), in % g and m/s2",
+    "comfort_status by occupancy and criterion",
+    "required added damping or TMD mass (t and % of building mass)",
+    "critical vortex-shedding wind speed ratio",
+    "acceleration profile versus floor height for PRES"
+   ],
+   "parameters": [
+    {
+     "name": "Natural frequency f_n",
+     "unit": "Hz",
+     "relationship": "f_n up (stiffer) -> accelerations fall strongly because across-wind acceleration depends on a high power of V_H/(f_n sqrt(wd)); the ISO limit also tightens as f_n rises, so softer towers are more sensitive but allowed more.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Damping ratio zeta",
+     "unit": "fraction of critical",
+     "relationship": "zeta up -> accelerations fall (zeta appears in the denominator of Eqs 7-8). Commonly used values: 0.01 steel, 0.02 concrete, 0.015 composite; extra damping must come from specified devices.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Mean building density rho_B",
+     "unit": "kg/m3",
+     "relationship": "Density up (heavier floors, concrete, thicker slabs) -> across-wind acceleration down because rho_B is in the denominator of Eq 7; timber-hybrid or lightweight schemes raise the comfort risk.",
+     "source_ids": [
+      "P10-S05",
+      "P10-S34"
+     ]
+    },
+    {
+     "name": "Plan width w and depth d",
+     "unit": "m",
+     "relationship": "Larger w and d (lower H/sqrt(wd)) -> lower accelerations and less likely across-wind dominance; slender about both axes (parameter < 1/3) means across-wind governs.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Design wind (q10, q50)",
+     "unit": "kPa",
+     "relationship": "Vancouver (City Hall) hourly wind pressure 0.34 kPa (1/10) and 0.45 kPa (1/50); acceleration rises as a steep power of V_H in Eq 7, so exposure and shielding by neighbours change results materially.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Occupancy of top floors",
+     "unit": "enum",
+     "relationship": "Residential/hotel occupants tolerate less motion than office: 1-in-10-year limits of about 1.5% g (residential end) to 2.5% g (office end); motion becomes perceptible to most people at 0.5-1.5% g.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Shaping (taper, twist, setbacks, corners, openings)",
+     "unit": "shape factor",
+     "relationship": "Shaping can lower across-wind forces: Shanghai Tower's twist is reported to cut wind loads 24%; Burj Khalifa's setbacks are arranged against vortices; 432 Park's windbreak floors. Benefits are tunnel-dependent and cannot be computed here.",
+     "source_ids": [
+      "P10-S29",
+      "P10-S28",
+      "P10-S27",
+      "P10-S19"
+     ]
+    },
+    {
+     "name": "Added damping (TMD mass)",
+     "unit": "t or % of mass",
+     "relationship": "TMD mass up -> effective damping up. Precedents: Taipei 101 660 t, 111 West 57th about 730 t, 432 Park two ~540 t units; mass-ratio rules not found, so sizing stays a preset.",
+     "source_ids": [
+      "P10-S30",
+      "P10-S27"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Peak 1-in-10-year acceleration",
+     "good": "<= 1.5% g residential/hotel; <= 2.5% g office",
+     "bad": "> 3% g (above the 1-3% g preliminary range); values between are conditional on occupancy",
+     "unit": "% g",
+     "basis": "NBC Commentary I para 113 (1.5-2.5% g used 1975-2000, lower for residential)",
+     "method": "Eqs 7-8 with exposure and Cg per NBC 4.1.7.8",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "ISO 10137-type 1-year peak acceleration",
+     "good": "<= 0.61 f^-0.454 (% g) office; <= 0.41 f^-0.454 (% g) residential, f < 1 Hz (e.g. 1.3% / 0.9% g at 0.2 Hz; 1.7% / 1.2% g at 0.1 Hz)",
+     "bad": "Above the curve for the occupancy",
+     "unit": "% g",
+     "basis": "Quoted in NBC Commentary I para 113 (ISO 10137 standard itself not opened)",
+     "method": "1-year speed from V10 and V50 (Commentary Eq 9, graphic) then Eq 7-8",
+     "source_ids": [
+      "P10-S05",
+      "P10-S39"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Calibration against Commentary worked example",
+     "good": "Reproduces a_W = 0.45 m/s2 (4.6% g) and a_D = 0.264 m/s2 (2.7% g) within 5% for H = 183 m, w = d = 30.5 m, f_n = 0.2 Hz, zeta = 0.015, Exposure B, 1-in-10 V = 23.9 m/s",
+     "bad": "Outside 5%",
+     "unit": "%",
+     "basis": "NBC Commentary I sample calculation (paras 63 and 115)",
+     "method": "Automated unit test",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Vortex-shedding critical speed ratio V_Hc / V_H,50 (editable)",
+     "good": ">= 1.0 (resonance outside the design wind range)",
+     "bad": "<= V_H at 1-year return (resonance in frequent winds)",
+     "unit": "ratio",
+     "basis": "Formula V_Hc = f_n D / S verified (S about 1/5 buildings); the good/bad cut-offs are team assumptions",
+     "method": "Compute V_Hc and compare with V_H",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Assumed damping ratio",
+     "good": "0.01 steel, 0.015 composite, 0.02 concrete",
+     "bad": "Any zeta above 0.02 without a specified damper (team assumption on the bad side)",
+     "unit": "fraction",
+     "basis": "NBC Commentary I para 57 commonly used values",
+     "method": "Preset by material",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    }
+   ],
+   "method": "1) Get reference speeds from Vancouver q10 = 0.34 kPa and q50 = 0.45 kPa (NBC Table C-2; V = sqrt(2q/rho)); apply Exposure B (urban) Ce(H) and the Cg parameters of NBC 4.1.7.8 to obtain V_H. 2) Compute across-wind a_W and along-wind a_D with NBC Commentary I Eqs (7)-(8) for 10-yr, and 1-yr via the Commentary's V10/V50 relation for ISO. Unit-test against the Commentary worked example (183 m tower: a_W = 0.45 m/s2, a_D = 0.264 m/s2). 3) Compare with limits by the top-floor occupancy tag. 4) Sensitivity sweep over f_n, zeta, w, d, rho_B and a user-entered shape factor (flagged tunnel-dependent). 5) If limits fail, solve for added damping or TMD mass (textbook optimum tuning) and report mass in tonnes and % of building mass. 6) Flag the wind tunnel as mandatory where M02 says so. Output ranges, not point values.",
+   "visualization": [
+    "Log-log chart of peak acceleration versus frequency with ISO-type office and residential curves, the design point, and shaded bands (below 0.5% g imperceptible, 0.5-1.5% g perceptible, above 2.5% g complaint risk).",
+    "Bar chart of a_W and a_D against limits per occupancy with pass/fail badges linked to Commentary I paragraphs.",
+    "3D tower with floors above the limit coloured red; slider panel for zeta, f_n, taper factor; TMD card showing tonnes and % of mass."
+   ],
+   "human_judgment": "Choice of comfort criterion (1-year versus 10-year), tolerance for occupant complaints (owner risk), reshaping versus TMD, and the wind-tunnel programme and its interpretation by the wind engineer.",
+   "limits": "Preliminary formulas for near-prismatic towers; tapered, twisted or interfering towers need tunnel data. Equation coefficients (Eqs 7-9) must be verified against PDF graphics. Torsional and multi-axis motion, amplitude-dependent damping and building-to-building interference are excluded; CFD cannot give specified loads. Results are ranges that guide early decisions, not compliance.",
+   "libraries": [
+    {
+     "name": "numpy / scipy",
+     "license": "BSD-3-Clause (not re-verified this session)",
+     "role": "Equation evaluation, sensitivity sweeps, TMD tuning",
+     "url": "https://scipy.org"
+    },
+    {
+     "name": "TypeScript implementation (no dependency)",
+     "license": "Project licence",
+     "role": "Browser-side calculation and unit test",
+     "url": "https://github.com/JWock82/Pynite"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P10-M05",
+   "name": "Core share, floor-plate efficiency and structure depth",
+   "phase": "basic",
+   "category": "STRC",
+   "design_question": "How much of each floor plate does the core consume as height increases, and what floor-to-floor and structural depth does the chosen system imply?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "~3 person-days (storey slicing, area ratios, irregularity tests, charts)",
+   "depends_on": [],
+   "inputs": [
+    "Layer 0 floor plates and areas per storey, program tags (core, circulation, mechanical, office, residential, hotel)",
+    "Tower height and storey table",
+    "Optional: shaft area demand from the vertical-transport packet",
+    "Optional: structural system from P10-M01"
+   ],
+   "outputs": [
+    "core_ratio[storey] and net_to_gross[storey]",
+    "irregularity_flags[]: Types 1, 2, 3, 7 candidates by storey",
+    "floor_to_floor and structure-depth table reconciled to H",
+    "core footprint per level for P10-M01 / M08 / M02"
+   ],
+   "parameters": [
+    {
+     "name": "Building height and lift zoning",
+     "unit": "m / storeys",
+     "relationship": "Taller buildings devote a larger share of floor area to structure and services (qualitative, uncited in source); the core steps in plan as lift banks drop out, which can trip the 130% geometric-irregularity test.",
+     "source_ids": [
+      "P10-S31",
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Core position / eccentricity",
+     "unit": "m or % of plan",
+     "relationship": "Core offset from the plan centre or asymmetric walls -> torsion up; NBC flags torsional sensitivity when B > 1.7, removing the simple static route and requiring 3D dynamic analysis.",
+     "source_ids": [
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Mechanical, transfer and outrigger floors",
+     "unit": "kN per storey",
+     "relationship": "A storey heavier than 150% of an adjacent storey is a weight irregularity (Type 2); stiff floors acting as outriggers also lengthen the real period relative to the empirical formula.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Floor-to-floor height",
+     "unit": "m",
+     "relationship": "Floor-to-floor up (e.g. office versus residential) -> fewer storeys for the same height or a taller tower for the same GFA, raising H/w and wind load; structure depth sits inside floor-to-floor (geometric identity, typical values unresolved).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Core ratio (core area / gross floor plate), base and typical floor (editable)",
+     "good": "<= 25%",
+     "bad": "> 35%",
+     "unit": "%",
+     "basis": "No accessible primary source; starting preset for team calibration against precedent plans",
+     "method": "Core polygon area / plate area per storey",
+     "source_ids": [
+      "P10-S31"
+     ],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Net-to-gross, office floors (editable)",
+     "good": ">= 75%",
+     "bad": "< 65%",
+     "unit": "%",
+     "basis": "No accessible primary source; editable preset",
+     "method": "Net lettable / gross floor plate",
+     "source_ids": [],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Vertical geometric irregularity (Type 3)",
+     "good": "SFRS horizontal dimension <= 130% of the adjacent storey",
+     "bad": "> 130%",
+     "unit": "%",
+     "basis": "NBC 2020 Table 4.1.8.6",
+     "method": "Compare core/wall plan dimension between adjacent storeys",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Weight irregularity (Type 2)",
+     "good": "Storey weight <= 150% of adjacent storey (light roofs and penthouses < 10% exempt)",
+     "bad": "> 150%",
+     "unit": "%",
+     "basis": "NBC 2020 Table 4.1.8.6",
+     "method": "Storey weights from M08 or area x preset",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Vertical stiffness irregularity (Type 1, concrete walls)",
+     "good": ">= 70% of adjacent storey stiffness and >= 80% of average of three storeys above/below",
+     "bad": "Below either limit (other SFRS: drift > 130% of adjacent storey)",
+     "unit": "%",
+     "basis": "NBC 2020 Table 4.1.8.6",
+     "method": "Wall stiffness ratio from thickness/length per storey",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Torsional sensitivity ratio B (Type 7)",
+     "good": "<= 1.7",
+     "bad": "> 1.7",
+     "unit": "ratio",
+     "basis": "NBC 2020 Table 4.1.8.6 (B per 4.1.8.11(10), not read)",
+     "method": "Needs 3D model with accidental eccentricity; plan proxy only gives a warning",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    }
+   ],
+   "method": "For each storey slice from Layer 0: compute A_core / A_gross and net-to-gross from program tags; compare each storey with its neighbour for geometric (130%) and weight (150%) irregularity and with the three storeys above/below for stiffness (concrete walls: 70% / 80%); estimate centre of mass versus centre of rigidity of the core/wall layout as a torsion warning (true B needs M08's model). Build the floor-to-floor table: use editable presets per use (office, residential, hotel, retail, podium), add structure depth by span class, and reconcile the sum with the massing height H, flagging mismatches. Output profiles of core ratio and net-to-gross versus height and the irregularity flags for M01, M03 and M08. Shaft areas come from the vertical-transport packet when available, else from editable per-lift allowances.",
+   "visualization": [
+    "Stacked area chart (x = storey, y = floor-plate area) split into core, circulation, net lettable and perimeter structure, with threshold lines for core ratio and net-to-gross.",
+    "Elevation strip with red ticks where the 130% geometric or 150% weight test fails; tooltip quotes the NBC Table 4.1.8.6 type.",
+    "Plan thumbnails at base, mid and top showing the core outline and centre-of-mass versus centre-of-rigidity markers."
+   ],
+   "human_judgment": "Lift and stair strategy, whether core position suits the public-facing uses that must run vertically through the building, acceptable ceiling height versus structure depth, and the trade between core share and floor efficiency.",
+   "limits": "Core-ratio and efficiency thresholds are team assumptions without an accessible primary source. Shaft areas need the vertical-transport module. B needs a 3D model and the NBC eccentricity rule, not a plan-area proxy. The module does not size walls or check lift performance.",
+   "libraries": [
+    {
+     "name": "shapely",
+     "license": "BSD-3-Clause (not re-verified this session)",
+     "role": "Polygon areas, offsets, centroids",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0 (not re-verified this session)",
+     "role": "Import IfcSpace / IfcBuildingStorey areas from IFC",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "sectionproperties",
+     "license": "MIT",
+     "role": "Core section properties for stiffness ratios",
+     "url": "https://github.com/robbievanleeuwen/section-properties"
+    }
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P10-M06",
+   "name": "Mass timber and hybrid limits checker (BCBC 2024 / VBBL 2025)",
+   "phase": "advanced",
+   "category": "STRC",
+   "design_question": "Where can timber be used structurally in this tower, and which BC/Vancouver limits (storeys, height, area, encapsulation, seismic) does the scheme exceed?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "~2 person-days (rule table, geometry measures, zone drawing)",
+   "depends_on": [],
+   "inputs": [
+    "Layer 0: fire-separated building parts with storeys, height, greatest horizontal area above grade",
+    "Major occupancy tags per part (C residential, D office, A-2 assembly, E retail)",
+    "Material tags: timber floors, columns, walls; exposed timber surfaces",
+    "Seismic Category and SFRS from P10-M03 / M01"
+   ],
+   "outputs": [
+    "timber_zone: eligible storey range per part",
+    "encapsulation_tier and failing_limits[]",
+    "alternative_solution_required flag",
+    "timber volume for P10-M08 and carbon packets"
+   ],
+   "parameters": [
+    {
+     "name": "Storeys and height per fire-separated part",
+     "unit": "storeys / m",
+     "relationship": "Storeys or height up -> prescriptive EMTC ends at 18 storeys / 76 m (BCBC 2024 Rev. 1, VBBL 2025); NBC 2020 itself stops at 12 storeys (3.2.2.48), so the old 12-storey assumption is superseded locally.",
+     "source_ids": [
+      "P10-S06",
+      "P10-S07",
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Major occupancy",
+     "unit": "enum",
+     "relationship": "Occupancy sets the area cap and encapsulation tier at the 18-storey tier: Group C 6,000 m2, Group D 7,200 m2, A-2 7,200 m2, each with 70-minute encapsulation; no interpolation between rows is allowed.",
+     "source_ids": [
+      "P10-S06"
+     ]
+    },
+    {
+     "name": "Building area (greatest horizontal area above grade)",
+     "unit": "m2",
+     "relationship": "NBC defines building area as the greatest horizontal area above grade; a timber podium covering the whole 79.2 x 144.8 m block (about 11,470 m2) exceeds the caps unless split into separate buildings by firewalls.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S06"
+     ]
+    },
+    {
+     "name": "Lateral system material",
+     "unit": "enum",
+     "relationship": "Timber SFRS (nailed walls, CLT shear walls) are capped at 20-30 m at SC3-SC4 (20 m at SC4), so tall timber-framed buildings need concrete or steel cores; Brock Commons used two concrete cores for 18 storeys / 53 m.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S34"
+     ]
+    },
+    {
+     "name": "Encapsulation tier and exposed timber",
+     "unit": "min",
+     "relationship": "Lower encapsulation tier (70 -> 50 -> 0 min) permits more exposed timber; the quoted allowances apply to 50-minute tiers, e.g. beams/columns up to 35% of perimeter wall area in non-residential suites with flame-spread <= 150.",
+     "source_ids": [
+      "P10-S06"
+     ]
+    },
+    {
+     "name": "Supertall precedent",
+     "unit": "m",
+     "relationship": "Tallest built mass-timber buildings are about 87 m (Ascent, 25 storeys); 350 m (W350) and 305 m (Oakwood) are proposals or research, so a 244-305 m tower can be timber-hybrid at best.",
+     "source_ids": [
+      "P10-S35",
+      "P10-S20"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Storeys per part versus EMTC cap",
+     "good": "<= 18 storeys",
+     "bad": "> 18 storeys (alternative solution); old 12-storey cap is a FALSE ASSUMPTION in BC from 2024",
+     "unit": "storeys",
+     "basis": "VBBL RTS 16367 Table 3.2.2.91; AIBC summary of BCBC 2024 Rev. 1",
+     "method": "Count storeys",
+     "source_ids": [
+      "P10-S06",
+      "P10-S07"
+     ],
+     "status": "false_assumption_corrected"
+    },
+    {
+     "name": "Height per part",
+     "good": "<= 76 m",
+     "bad": "> 76 m",
+     "unit": "m",
+     "basis": "VBBL Table 3.2.2.91 (18-storey tier)",
+     "method": "Measure",
+     "source_ids": [
+      "P10-S06"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Building area per part",
+     "good": "<= 6,000 m2 (C) / 7,200 m2 (D, A-2)",
+     "bad": "Above the cap",
+     "unit": "m2",
+     "basis": "VBBL Table 3.2.2.91 and NBC definition of building area",
+     "method": "Greatest horizontal area above grade",
+     "source_ids": [
+      "P10-S06",
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Timber SFRS height at SC4",
+     "good": "<= 20 m",
+     "bad": "> 20 m",
+     "unit": "m",
+     "basis": "NBC 2020 Table 4.1.8.9 timber rows (SC4 column)",
+     "method": "Table lookup",
+     "source_ids": [
+      "P10-S04"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Exposed beams/columns share of perimeter wall (non-residential suite, 50-min tier)",
+     "good": "<= 35%",
+     "bad": "> 35%",
+     "unit": "%",
+     "basis": "VBBL amendments to 3.1.18.4 in RTS 16367 (text partly extracted)",
+     "method": "Exposed area / perimeter wall area",
+     "source_ids": [
+      "P10-S06"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Built-precedent height ceiling (editable)",
+     "good": "<= 87 m",
+     "bad": "> 87 m (no built precedent)",
+     "unit": "m",
+     "basis": "Wikipedia list (secondary); proposals above this are unbuilt",
+     "method": "Compare part height",
+     "source_ids": [
+      "P10-S35"
+     ],
+     "status": "team_assumption"
+    }
+   ],
+   "method": "For each fire-separated part: count storeys (first-storey floor to roof), measure height and the greatest horizontal area above grade (NBC definition), read major occupancy tags (C, D, A-2, E), and look up Table 3.2.2.91 as amended in VBBL 2025 (18 storeys / 76 m caps, area caps, 70-minute encapsulation; no interpolation); also test NBC 3.2.2.48 (12 storeys) as national baseline. Check any timber SFRS against Table 4.1.8.9 height limits for the project's Seismic Category (M03). Compute the exposed-timber share of perimeter wall area from timber-tagged surfaces. Draw the timber-eligible zone as the lowest storeys of the tower below both caps and output the zone, encapsulation tier and failing limits. Heights above 76 m return 'alternative solution required'.",
+   "visualization": [
+    "Elevation with 18-storey and 76 m cap lines; zones coloured timber-eligible / hybrid / non-combustible.",
+    "Per-limit badges (storeys, height, area, SFRS, exposure) linked to the clause, with 'FALSE ASSUMPTION' tag on the retired 12-storey rule.",
+    "Bar showing building area versus 6,000 / 7,200 m2 caps and the 11,470 m2 site block."
+   ],
+   "human_judgment": "Fire-safety strategy and alternative-solution case with the Authority Having Jurisdiction; carbon and cultural intent of timber ('City in Nature', Indigenous wood protocols); whether a timber podium is worth splitting into separate buildings.",
+   "limits": "Table 3.2.2.91 text was only partly extractable (middle tiers for Groups C and D missing); verify against BCBC 2024 Revision 1 and VBBL 2025. Non-combustible hybrid provisions, fire-engineering alternatives, sprinkler and cladding conditions are not implemented. Heights above 76 m always need an alternative solution.",
+   "libraries": [
+    {
+     "name": "JSON rule table (project code)",
+     "license": "Project licence",
+     "role": "Table 3.2.2.91 and Table 4.1.8.9 timber rows",
+     "url": "https://council.vancouver.ca/20240611/documents/r2.pdf"
+    },
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0 (not re-verified this session)",
+     "role": "Read material tags and areas from IFC",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P10-M07",
+   "name": "Foundations and below-grade levels",
+   "phase": "advanced",
+   "category": "STRC",
+   "design_question": "What foundation concept, embedment and basement depth does this tower's load imply in downtown Vancouver soils, and what must the geotechnical engineer and transit owner confirm?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "~5 person-days (loads, eccentricity, site designation, section drawing, conflict check)",
+   "depends_on": [
+    "P10-M03",
+    "P10-M04",
+    "P10-M08"
+   ],
+   "inputs": [
+    "Footprints of tower raft and podium; number of below-grade levels (parking, loading, transit link) from Layer 0 tags",
+    "Weight W (P10-M08) and overturning moments from wind (P10-M04) and seismic (P10-M03)",
+    "User-entered geotechnical data: Vs30, layers, groundwater level, allowable bearing",
+    "Neighbouring station envelope (user-drawn polygon)"
+   ],
+   "outputs": [
+    "excavation_depth, excavation_volume, shoring_perimeter",
+    "q_mean, e/B, contact-area ratio",
+    "site_designation (X_V, X_S, X_F) for P10-M03",
+    "foundation_concept_questions[] and investigation checklist",
+    "foundation quantities for P10-M08"
+   ],
+   "parameters": [
+    {
+     "name": "Soil stiffness (Vs30) and deposit type",
+     "unit": "m/s",
+     "relationship": "Metro Vancouver mean Vs30 is 334 m/s; upland glacial till 360-580 m/s versus post-glacial/delta sediments 180-250 m/s. Softer deposits lower Vs30 -> higher site class and seismic demand; bearing and settlement then need geotechnical confirmation.",
+     "source_ids": [
+      "P10-S12",
+      "P10-S13"
+     ]
+    },
+    {
+     "name": "Overturning moment",
+     "unit": "kNm",
+     "relationship": "Overturning moment up (H up, base width down, wind or seismic) -> eccentricity e = M/W up; for constrained foundations (rafts, piles, anchors) NBC requires foundation overturning resistance greater than the SFRS overturning capacity.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Number of basement levels",
+     "unit": "levels",
+     "relationship": "Levels up -> excavation depth, shoring and dewatering up; walls and diaphragms extending through below-grade levels make the structure 'constrained' for seismic design, which changes how base shear and overturning are carried.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Liquefiable or soft soils",
+     "unit": "flag",
+     "relationship": "Liquefiable soil, sensitive clay, thick peat or more than 30 m of soft clay -> site designation X_F (site-specific response or ground improvement); measured Vs30 gives X_V and avoids the extra conservatism of X_S.",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Adjacent station and structures",
+     "unit": "m clearance",
+     "relationship": "Excavation beside the existing station makes clearance, ground movement and seismic gap design constraints; the City structural concept review lists effects on adjacent structures (seismic clearance, snow build-up, foundations).",
+     "source_ids": [
+      "P10-S16"
+     ]
+    },
+    {
+     "name": "Basin and long-period effects",
+     "unit": "-",
+     "relationship": "NBC 2020 hazard does not model Georgia-basin amplification, which UBC simulations suggest raises long-period demand on tall concrete shear-wall buildings; soft sediments deeper than 30 m may need site-specific analysis.",
+     "source_ids": [
+      "P10-S05",
+      "P10-S11"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Foundation overturning resistance versus SFRS overturning capacity",
+     "good": "Resistance > capacity (constrained foundations)",
+     "bad": "Resistance < capacity",
+     "unit": "kNm",
+     "basis": "NBC 4.1.8.16 as explained in Commentary J (constrained structures)",
+     "method": "Compare capacity-protected SFRS base moment with foundation resistance",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Basis of site designation",
+     "good": "X_V from in-situ Vs30 measurements",
+     "bad": "X_S from SPT / undrained strength (adds conservatism)",
+     "unit": "category",
+     "basis": "NBC 4.1.8.4(2)-(3); Commentary J Fig J-10 text",
+     "method": "Check input type",
+     "source_ids": [
+      "P10-S04",
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Base eccentricity e/B under service wind (editable)",
+     "good": "<= 1/6 (inside the kern, no uplift)",
+     "bad": "> 1/3",
+     "unit": "ratio",
+     "basis": "Statics; no code source applied; seismic and ULS cases may accept partial uplift with analysis",
+     "method": "e = M/W on rigid raft",
+     "source_ids": [],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Mean bearing pressure versus geotechnical allowable",
+     "good": "<= value supplied by the geotechnical engineer",
+     "bad": "> that value",
+     "unit": "kPa",
+     "basis": "No default allowable is given; downtown till properties are unverified",
+     "method": "q = W / A_f",
+     "source_ids": [],
+     "status": "unverified"
+    },
+    {
+     "name": "Basement depth / levels",
+     "good": "No sourced limit; set by geotechnical, groundwater and transit-interface constraints",
+     "bad": "No sourced limit",
+     "unit": "m / levels",
+     "basis": "No Vancouver-specific threshold found",
+     "method": "n x storey height + raft depth",
+     "source_ids": [],
+     "status": "unverified"
+    }
+   ],
+   "method": "1) Take total weight W (M08, plus basement), footprint A_f (tower raft plus podium) and below-grade levels n from Layer 0 tags. 2) q_mean = W/A_f; overturning moment M from wind (M04 static equivalent) and seismic (M03 base moment with J reduction); e = M/W and contact-area ratio on a rigid raft. 3) For constrained foundations compare foundation overturning resistance with SFRS overturning capacity (NBC 4.1.8.16, Commentary J). 4) Derive site designation from user-entered Vs30 (X_V) or SPT/strength class (X_S) and flag X_F triggers. 5) Excavation depth = n x basement storey height + raft thickness (editable presets); volume = A_f x depth. 6) Intersect the basement polygon with the user-drawn station envelope and report clearance. 7) Emit an investigation checklist (borings, Vs profile, groundwater, liquefaction screening). Concept labels (raft, piled raft, caissons) are team-assumption mappings shown as questions.",
+   "visualization": [
+    "Section through tower and basement with soil layers coloured by Vs30 band (Class C / D / E palette), groundwater line and excavation outline.",
+    "Plan with false-colour contact-pressure contours under the raft (kPa legend) and kern outline.",
+    "Conflict overlay: basement polygon versus station envelope with red hatch where clearance < user minimum; pass/fail badges linked to NBC clauses."
+   ],
+   "human_judgment": "Geotechnical engineer's call on bearing, settlement, piles or caissons, dewatering and shoring; transit owner approval for works beside the station; construction sequencing (top-down versus bottom-up).",
+   "limits": "No soil, groundwater or station data are built in; downtown bedrock depth and till properties are unverified. No settlement, soil-structure interaction, dewatering or ground-movement analysis. Concept mapping from site class to foundation type is an editable team assumption. Results frame questions for the geotechnical engineer, not decisions.",
+   "libraries": [
+    {
+     "name": "PyNite (PyNiteFEA)",
+     "license": "MIT",
+     "role": "Plate-element raft on elastic supports for pressure contours",
+     "url": "https://github.com/JWock82/Pynite"
+    },
+    {
+     "name": "sectionproperties",
+     "license": "MIT",
+     "role": "Wall and raft section properties",
+     "url": "https://github.com/robbievanleeuwen/section-properties"
+    },
+    {
+     "name": "shapely",
+     "license": "BSD-3-Clause (not re-verified this session)",
+     "role": "Basement / station polygon clearance",
+     "url": "https://github.com/shapely/shapely"
+    }
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P10-M08",
+   "name": "Early structural quantities from massing",
+   "phase": "advanced",
+   "category": "STRC",
+   "design_question": "What order-of-magnitude concrete, steel and timber quantities, structural weight and uncertainty band does this massing and structural system imply?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "~7 person-days (storey model, sizing rules, Monte Carlo, calibration data)",
+   "depends_on": [
+    "P10-M01",
+    "P10-M02",
+    "P10-M03",
+    "P10-M05",
+    "P10-M06"
+   ],
+   "inputs": [
+    "Layer 0: GFA by use, plate areas, heights, core areas (P10-M05)",
+    "System choice and effective-EI multiplier (P10-M01)",
+    "H/w_eff and wind loads (P10-M02, P10-M04); V/W (P10-M03)",
+    "Timber zone (P10-M06); foundations and basement (P10-M07)",
+    "Editable presets: dead loads, material strengths, reinforcement ratios, span tables"
+   ],
+   "outputs": [
+    "quantities: concrete m3, rebar t, structural steel t, timber m3 by element class and storey band",
+    "seismic_weight[storey] and mean density for P10-M03 / M04",
+    "stick-model properties (EI, GA) per segment for modal analysis",
+    "embodied-carbon handoff (kg per material) to the energy/carbon packet",
+    "P10/P50/P90 band"
+   ],
+   "parameters": [
+    {
+     "name": "System choice and height",
+     "unit": "kg/m2",
+     "relationship": "Taller or more slender -> more structural material per m2 because stiffness governs; historical steel use runs from about 145 kg/m2 (John Hancock trussed tube) to 206 (Empire State) and 275 kg/m2 (One Chase Manhattan Plaza).",
+     "source_ids": [
+      "P10-S31",
+      "P10-S32"
+     ]
+    },
+    {
+     "name": "Gravity live loads",
+     "unit": "kPa",
+     "relationship": "NBC minimum live load is 2.4 kPa on office floors and 4.8 kPa on basement and ground-level office floors; live load up -> slab and column quantities and seismic weight up.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Wind drift limit",
+     "unit": "ratio of H",
+     "relationship": "Drift limit H/500 (default; range H/250-H/1000) -> required lateral stiffness scales inversely with the limit, so a tighter limit means thicker walls or more outrigger/perimeter steel.",
+     "source_ids": [
+      "P10-S05"
+     ]
+    },
+    {
+     "name": "Seismic demand V/W",
+     "unit": "-",
+     "relationship": "V/W from M03 (inverse of Rd x Ro) sets wall shear and reinforcement demand; SC4 requires ductile detailing, which raises reinforcement density (value unresolved).",
+     "source_ids": [
+      "P10-S04"
+     ]
+    },
+    {
+     "name": "Perimeter or diagrid systems",
+     "unit": "% steel",
+     "relationship": "Reported savings: Hearst Tower diagrid about 21% less steel than a standard frame; Shanghai Tower about 25% less structural steel than a conventional design of similar height; project claims, not generic factors.",
+     "source_ids": [
+      "P10-S33",
+      "P10-S29"
+     ]
+    },
+    {
+     "name": "Timber share",
+     "unit": "% of floor area",
+     "relationship": "Timber share up -> concrete and seismic weight down, but wind acceleration risk up as density falls (rho_B in Eq 7), and the lateral system stays concrete or steel at SC4.",
+     "source_ids": [
+      "P10-S05",
+      "P10-S04",
+      "P10-S34"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Drift utilisation (required EI / provided EI at H/500)",
+     "good": "<= 1.0",
+     "bad": "> 1.0",
+     "unit": "ratio",
+     "basis": "NBC default drift limit 1/500 (Commentary I para 107)",
+     "method": "Equivalent cantilever under q50 wind",
+     "source_ids": [
+      "P10-S05"
+     ],
+     "status": "verified"
+    },
+    {
+     "name": "Steel-equivalent kg/m2 versus historical band (editable)",
+     "good": "Within or below 145-275 kg/m2 for steel-framed towers",
+     "bad": "> 275 kg/m2 (heavier than the 1961 One Chase Manhattan Plaza)",
+     "unit": "kg/m2",
+     "basis": "Anchors are 1930s-1960s buildings (secondary sources), used as editable thresholds because no modern benchmark was accessible",
+     "method": "Total steel-equivalent / GFA",
+     "source_ids": [
+      "P10-S31",
+      "P10-S32"
+     ],
+     "status": "team_assumption"
+    },
+    {
+     "name": "Uncertainty band of totals (editable)",
+     "good": "<= +/-30% after calibration to at least 3 precedent towers",
+     "bad": "> +/-50% or uncalibrated",
+     "unit": "%",
+     "basis": "No source; planning preset",
+     "method": "Monte Carlo over presets",
+     "source_ids": [],
+     "status": "team_assumption"
+    }
+   ],
+   "method": "1) Build a storey table from Layer 0 (GFA by use, plate area, core area from M05). 2) Gravity: NBC minimum live loads plus preset dead loads (editable) -> slab thickness from a span table (preset), columns from tributary load and a stress limit (preset). 3) Lateral: required effective EI so top drift <= H/500 under q50 wind (equivalent cantilever, effective-EI multiplier from M01); core wall thickness from cracked-section EI (NBC 4.1.8.3(8)(a) requires cracked stiffness); check seismic shear from M03 V/W against preset wall shear capacity. 4) Add outrigger/belt steel, foundations (M07) and basement walls. 5) Convert to m3 concrete, t rebar (preset kg/m3), t steel and m3 timber (M06). 6) Run Monte Carlo (numpy) over presets for P10/P50/P90 and export mass density for M04 and weights for M03. 7) Calibrate to team-collected precedent tallies.",
+   "visualization": [
+    "Stacked bar of material by element class (slabs, columns, core, outriggers, foundations) and by storey band, with P10-P90 whiskers.",
+    "Sankey from massing to quantities to embodied-carbon handoff.",
+    "Tornado chart of sensitivity to presets and scatter of kg/m2 versus H with historical anchors; every value tagged verified / team assumption."
+   ],
+   "human_judgment": "Engineer's sizing and detailing, concrete versus steel versus hybrid trade-offs, cost and carbon decisions, and the tolerance the team accepts for early estimates.",
+   "limits": "Order-of-magnitude only; presets are unsourced team assumptions; no post-tensioning, transfers, connections, creep or construction sequence; outrigger effectiveness is approximated. Historical steel kg/m2 are 1960s anchors, not modern benchmarks. Calibrate with real tallies before quoting cost or carbon.",
+   "libraries": [
+    {
+     "name": "PyNite (PyNiteFEA)",
+     "license": "MIT",
+     "role": "Stick/frame model for EI, modal properties and drift cross-check",
+     "url": "https://github.com/JWock82/Pynite"
+    },
+    {
+     "name": "sectionproperties",
+     "license": "MIT",
+     "role": "Cracked and uncracked core section properties",
+     "url": "https://github.com/robbievanleeuwen/section-properties"
+    },
+    {
+     "name": "structuralcodes",
+     "license": "Apache-2.0",
+     "role": "Cross-check of section checks (code coverage not confirmed; CSA not assumed)",
+     "url": "https://github.com/fib-international/structuralcodes"
+    },
+    {
+     "name": "numpy / scipy",
+     "license": "BSD-3-Clause (not re-verified this session)",
+     "role": "Monte Carlo and eigenvalue solves",
+     "url": "https://scipy.org"
+    }
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P10-S01",
+   "title": "Guide to 2025 Vancouver Building By-law (VBBL) Updates, v1.01 (23 Jan 2026)",
+   "url": "https://vancouver.ca/files/cov/guide-to-2025-vbbl-updates-v1.01.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "municipal guide",
+   "opened": true,
+   "extract": "VBBL 2025 (By-law 14343) took effect 15 Sep 2025, based on the 2024 BC Building Code; new seismic design rules apply from 15 Sep 2026; in-stream protection ends 8 Mar 2027."
+  },
+  {
+   "id": "P10-S02",
+   "title": "Vancouver Building By-law (CBO) page",
+   "url": "https://vancouver.ca/your-government/vancouver-building-bylaw.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "municipal web page",
+   "opened": true,
+   "extract": "Lists the 2025 VBBL (By-law 14343) and 2019 VBBL (12511) with Book I volumes; the Book I PDFs (consolidated to 30 Sep 2026) are scanned images, so clause text was not machine-read."
+  },
+  {
+   "id": "P10-S03",
+   "title": "BC Building Code 2024",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes",
+   "publisher": "Province of British Columbia",
+   "year": "2024",
+   "type": "provincial web page",
+   "opened": true,
+   "extract": "Code in effect 8 Mar 2024, mostly based on NBC 2020; 2024 earthquake requirements apply to permit applications from 10 Mar 2025; in-stream projects extended to 8 Mar 2027."
+  },
+  {
+   "id": "P10-S04",
+   "title": "National Building Code of Canada 2020, Volume 1 (DOI 10.4224/w324-hv93)",
+   "url": "https://nrc-publications.canada.ca/eng/view/object/?id=515340b5-f4e0-4798-be69-692e4ec423e8",
+   "publisher": "CCBFC / National Research Council Canada",
+   "year": "2022",
+   "type": "building code",
+   "opened": true,
+   "extract": "Machine-read from the NRC PDF (spaces and tables partly garbled). Used: 4.1.7.1-4.1.7.2 wind procedure triggers; 4.1.8.4 site designation; Tables 4.1.8.5-B, 4.1.8.6, 4.1.8.9; 4.1.8.7 and 4.1.8.11; Table C-2 Vancouver row; 3.2.2.48; building area definition."
+  },
+  {
+   "id": "P10-S05",
+   "title": "Structural Commentaries (User's Guide, NBC 2020: Part 4 of Division B), DOI 10.4224/2q58-aq66",
+   "url": "https://nrc-publications.canada.ca/eng/view/object/?id=b9fddc27-86f2-496b-9aa4-b66c45164ba6",
+   "publisher": "CCBFC / National Research Council Canada",
+   "year": "2025",
+   "type": "code commentary",
+   "opened": true,
+   "extract": "Commentary I: vortex shedding, drift 1/500, acceleration criteria incl. ISO 10137 curves, damping ratios, worked example. Commentary J: Tables J-1/J-2 Vancouver hazard, static-method limits, basin effects not modelled, nonlinear special study with peer review, SFRS equivalence, constrained foundations, drift limits. Commentary A live loads."
+  },
+  {
+   "id": "P10-S06",
+   "title": "Enabling Mass Timber Construction Beyond 12 Storeys, RTS 16367 (Council, 11 Jun 2024)",
+   "url": "https://council.vancouver.ca/20240611/documents/r2.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2024",
+   "type": "council report / by-law amendment",
+   "opened": true,
+   "extract": "Table 3.2.2.91: EMTC to 18 storeys / 76 m at 70-minute encapsulation for A-2, C, D with area caps 7,200 / 6,000 / 7,200 m2; amendments to 3.1.18.4 exposure allowances (e.g. 35% of perimeter wall area for beams/columns in 50-minute tiers). Text only partly extractable."
+  },
+  {
+   "id": "P10-S07",
+   "title": "BC codes update for mass timber construction (AIBC, 1 May 2024)",
+   "url": "https://aibc.ca/2024/05/bc-codes-update-for-mass-timber-construction/",
+   "publisher": "Architectural Institute of BC",
+   "year": "2024",
+   "type": "industry news",
+   "opened": true,
+   "extract": "BCBC 2024 Revision 1 (published 10 Apr 2024) raises EMTC to 18 storeys for residential and office from 12 and adds new EMTC building types; in force at article date."
+  },
+  {
+   "id": "P10-S08",
+   "title": "2020 National Building Code of Canada seismic hazard maps",
+   "url": "https://earthquakescanada.nrcan.gc.ca/hazard-alea/zoning-zonage/NBCC2020maps-en.php",
+   "publisher": "Natural Resources Canada",
+   "year": "2022",
+   "type": "government web page",
+   "opened": true,
+   "extract": "Maps are for X450 at 2% in 50 yr and not for reading values; site-specific values come from the 2020 NBC seismic hazard tool (11 intensity measures, 3 probabilities)."
+  },
+  {
+   "id": "P10-S09",
+   "title": "Canada's 6th Generation Seismic Hazard Model, as prepared for the 2020 NBC (12CCEE)",
+   "url": "https://origin2.earthquakescanada.nrcan.gc.ca/hazard-alea/2019_12CCEE/12CCEE_Adams_etal_6thGenerationModel_192-Mkvp-139.pdf",
+   "publisher": "Adams, Allen, Halchuk et al.",
+   "year": "2019",
+   "type": "conference paper",
+   "opened": true,
+   "extract": "Cascadia full-rupture recurrence updated from 532 to 432 yr; hazard computed directly per site class; Vancouver proposed Class C values Sa(0.2)=1.1, Sa(0.5)=0.82, Sa(1.0)=0.47 g (final NBC values slightly lower); NBC 2015 Vancouver Sa(0.2)=0.85 g."
+  },
+  {
+   "id": "P10-S10",
+   "title": "Guidelines for Performance-Based Seismic Design of Tall Buildings (TBI v2.03), PEER Report 2017/06",
+   "url": "https://peer.berkeley.edu/sites/default/files/final_tbi_report_10.9.2017_0.pdf",
+   "publisher": "Pacific Earthquake Engineering Research Center",
+   "year": "2017",
+   "type": "guideline",
+   "opened": true,
+   "extract": "Service-level event at 43-yr return period; MCER collapse safety; story drift limit 0.03 (0.045 any single record); residual drift 0.01; independent peer review including at least one practising tall-building engineer."
+  },
+  {
+   "id": "P10-S11",
+   "title": "High-rises at risk: Building codes underestimate Vancouver's seismic hazard (summary of Kakoty, Dyaga, Molina Hutt 2021, EESD 50:237-256)",
+   "url": "https://temblor.net/earthquake-insights/high-rises-at-risk-building-codes-underestimate-vancouvers-seismic-hazard-12522/",
+   "publisher": "Temblor",
+   "year": "2021",
+   "type": "science news (secondary)",
+   "opened": true,
+   "extract": "UBC simulated M9 Cascadia events with Georgia-basin amplification; code ground-motion models underestimate Metro Vancouver hazard; taller, long-period shear-wall buildings are more vulnerable."
+  },
+  {
+   "id": "P10-S12",
+   "title": "Seismic microzonation of Greater Vancouver: comparison of site classification schemes (paraphrased title), Frontiers in Earth Science 11:1221234",
+   "url": "https://www.frontiersin.org/journals/earth-science/articles/10.3389/feart.2023.1221234/full",
+   "publisher": "Adhikari, Molnar, Wang; Frontiers",
+   "year": "2023",
+   "type": "journal article",
+   "opened": true,
+   "extract": "Vancouver mean Vs30 334 m/s (SD 196, 141 sites); glacial till at or near surface across most of Vancouver; Class C covers uplands, Class D low-elevation areas with tens of metres of post-glacial sediment."
+  },
+  {
+   "id": "P10-S13",
+   "title": "Region specific Vs30 across Metro Vancouver and impact to seismic design ground motions (GeoNiagara)",
+   "url": "https://metrovanmicromap.ca/wp-content/uploads/2023/06/r21_Adhikari-et-al_Region-specific-Vs30-across-Metro-Vancouver_GEONIAGARA.pdf",
+   "publisher": "Adhikari, Molnar, Ghofrani, Wang (Western University)",
+   "year": "2021",
+   "type": "conference paper",
+   "opened": true,
+   "extract": "Fraser-delta Vs30 quartiles 180-250 m/s versus upland glacial till 360-580 m/s; Vancouver dominated by NBC Site Class C; Vs30 used directly in NBC 2020 hazard."
+  },
+  {
+   "id": "P10-S14",
+   "title": "Metro Vancouver Seismic Microzonation Mapping Project",
+   "url": "https://metrovanmicromap.ca/",
+   "publisher": "Western University / project partners",
+   "year": "2024",
+   "type": "project web page",
+   "opened": true,
+   "extract": "Phase 1 released 29 maps of shaking, liquefaction and landslide hazard; data on an Open Data portal; the landing page gives no downtown-specific site class."
+  },
+  {
+   "id": "P10-S15",
+   "title": "Bulletin 2002-007-BU Guidelines for Alternative Solution Peer Reviews (rev. 18 Jun 2015)",
+   "url": "https://vancouver.ca/files/cov/2002-007-guidelines-for-alternative-solution-peer-reviews.pdf",
+   "publisher": "City of Vancouver, Office of the Chief Building Official",
+   "year": "2015",
+   "type": "municipal bulletin",
+   "opened": true,
+   "extract": "Peer panel of three independent experts (City nominee, applicant nominee, jointly chosen third); assessed against Division C 2.3; acceptance cannot rest on a generalised performance-based approach from other jurisdictions' codes."
+  },
+  {
+   "id": "P10-S16",
+   "title": "Checklist for Professional Structural Concept Review",
+   "url": "https://vancouver.ca/files/cov/structural_review_checklist.pdf",
+   "publisher": "City of Vancouver (endorsed by APEGBC)",
+   "year": "n.d.",
+   "type": "municipal form",
+   "opened": true,
+   "extract": "Independent P.Eng review items: loadings and serviceability, materials and geotechnical recommendations, gravity and lateral concept, load paths, representative checks, and effects on adjacent structures (seismic clearance, snow build-up, foundations)."
+  },
+  {
+   "id": "P10-S17",
+   "title": "Outrigger Design for High-Rise Buildings, 2nd Edition (CTBUH technical guide)",
+   "url": "https://shop.cvu.org/products/outrigger-design-for-high-rise-buildings-second-edition",
+   "publisher": "Council on Vertical Urbanism (formerly CTBUH)",
+   "year": "2017",
+   "type": "technical guide (paywalled; description read)",
+   "opened": true,
+   "extract": "104-page guide: outriggers within lateral systems, differential column shortening, construction sequence, hybrid outriggers with tuned stiffness and damping devices."
+  },
+  {
+   "id": "P10-S18",
+   "title": "Performance-Based Seismic Design for Tall Buildings, 2nd Edition (CTBUH technical guide)",
+   "url": "https://shop.cvu.org/products/performance-based-seismic-design-for-tall-buildings-second-edition-digital",
+   "publisher": "Council on Vertical Urbanism (formerly CTBUH)",
+   "year": "2019",
+   "type": "technical guide (paywalled; description read)",
+   "opened": true,
+   "extract": "PBSD process with nonlinear response history analysis at multiple demand levels, case studies, mainly western-US standards."
+  },
+  {
+   "id": "P10-S19",
+   "title": "Wind Tunnel Testing of High-Rise Buildings (CTBUH technical guide)",
+   "url": "https://shop.cvu.org/products/wind-tunnel-testing-of-high-rise-buildings",
+   "publisher": "Council on Vertical Urbanism (formerly CTBUH)",
+   "year": "2013",
+   "type": "technical guide (paywalled; description read)",
+   "opened": true,
+   "extract": "General practice for tunnel testing of tall buildings, crosswind excitation and aerodynamic instability that codes often overlook."
+  },
+  {
+   "id": "P10-S20",
+   "title": "Tall Timber: Mass Timber for High-Rise Buildings (CVU guide)",
+   "url": "https://shop.cvu.org/products/tall-timber-mass-timber-for-high-rise-buildings",
+   "publisher": "Council on Vertical Urbanism",
+   "year": "2023",
+   "type": "technical guide (paywalled; description read)",
+   "opened": true,
+   "extract": "Guide on mass timber for high-rise buildings; content not read."
+  },
+  {
+   "id": "P10-S21",
+   "title": "CVU Publications (technical guides and research reports)",
+   "url": "https://verticalurbanism.org/resources/publications/",
+   "publisher": "Council on Vertical Urbanism (formerly Council on Tall Buildings and Urban Habitat)",
+   "year": "2026",
+   "type": "organisation web page",
+   "opened": true,
+   "extract": "Lists Outrigger Design (2017), PBSD (2019), Wind Tunnel Testing (2013), Tall Timber (2023), Composite Megacolumns (2016), LCA of structural systems (2015), Steel-Timber Hybrid (2024); confirms the CTBUH rename; ctbuh.org redirects here."
+  },
+  {
+   "id": "P10-S22",
+   "title": "OpenSeesPy repository",
+   "url": "https://github.com/zhuminjie/OpenSeesPy",
+   "publisher": "GitHub (M. Zhu)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Free for research, education and internal use; commercial redistribution, including cloud services that import it, needs a separate licence."
+  },
+  {
+   "id": "P10-S23",
+   "title": "OpenSees COPYRIGHT file",
+   "url": "https://raw.githubusercontent.com/OpenSees/OpenSees/master/COPYRIGHT",
+   "publisher": "UC Regents / OpenSees",
+   "year": "2026",
+   "type": "licence text",
+   "opened": true,
+   "extract": "Educational, research and non-profit use permitted; other entities internal use only; commercial distribution needs permission from UC Office of Technology Licensing."
+  },
+  {
+   "id": "P10-S24",
+   "title": "PyNite (PyNiteFEA) repository",
+   "url": "https://github.com/JWock82/Pynite",
+   "publisher": "GitHub (JWock82)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT licence; 3D static analysis, P-Delta and modal analysis of frames, plate elements; version 3.2.0 noted."
+  },
+  {
+   "id": "P10-S25",
+   "title": "sectionproperties repository",
+   "url": "https://github.com/robbievanleeuwen/section-properties",
+   "publisher": "GitHub (R. van Leeuwen)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT licence; finite-element cross-section properties and stress analysis."
+  },
+  {
+   "id": "P10-S26",
+   "title": "structuralcodes repository",
+   "url": "https://github.com/fib-international/structuralcodes",
+   "publisher": "GitHub (fib International)",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Apache-2.0 library for structural engineering calculations; the page does not list code coverage."
+  },
+  {
+   "id": "P10-S27",
+   "title": "432 Park Avenue",
+   "url": "https://en.wikipedia.org/wiki/432_Park_Avenue",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Aspect ratio about 15:1, 425.5 m, 28 m square plate, 12-storey windbreak segments, two main TMDs of about 540 t each plus outrigger dampers; reported occupant complaints and repair costs."
+  },
+  {
+   "id": "P10-S28",
+   "title": "Burj Khalifa",
+   "url": "https://en.wikipedia.org/wiki/Burj_Khalifa",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Buttressed core, Y-shaped plan, 27 spiral setbacks arranged to reduce vortex wind loading, about 1.5 m sway at top; 192 piles of 1.5 m diameter and 43 m length in weak rock."
+  },
+  {
+   "id": "P10-S29",
+   "title": "Shanghai Tower",
+   "url": "https://en.wikipedia.org/wiki/Shanghai_Tower",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "120-degree twist intended to cut wind loads 24%; about 25% less structural steel than a conventional design; TMD at floor 126 (newspaper-cited claims)."
+  },
+  {
+   "id": "P10-S30",
+   "title": "Tuned mass damper",
+   "url": "https://en.wikipedia.org/wiki/Tuned_mass_damper",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Examples: Taipei 101 660 t; 111 West 57th Street 800 short tons; no mass-ratio guidance or acceleration values on the page."
+  },
+  {
+   "id": "P10-S31",
+   "title": "Skyscraper",
+   "url": "https://en.wikipedia.org/wiki/Skyscraper",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Wind governs supertall design; tube designs used in most buildings over 40 storeys since the 1960s; shear-wall frame systems used up to 70 storeys; larger share of floor area for structure/services at height (uncited); steel use 145 / 206 / 275 kg/m2 anchors."
+  },
+  {
+   "id": "P10-S32",
+   "title": "Fazlur Rahman Khan",
+   "url": "https://en.wikipedia.org/wiki/Fazlur_Rahman_Khan",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Describes framed, trussed and bundled tubes and outrigger/belt-truss systems; John Hancock Center about 145 kg steel/m2 versus 206 (Empire State) and 275 (One Chase Manhattan)."
+  },
+  {
+   "id": "P10-S33",
+   "title": "Diagrid",
+   "url": "https://en.wikipedia.org/wiki/Diagrid",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Hearst Tower diagrid uses about 21% less steel than a standard design; no height range or diagonal angle on the page."
+  },
+  {
+   "id": "P10-S34",
+   "title": "Brock Commons Tallwood House",
+   "url": "https://en.wikipedia.org/wiki/Brock_Commons_Tallwood_House",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "UBC, Vancouver, 53 m, 18 storeys, opened 2017; timber frame with two concrete cores; needed special approval with timber and seismic reviews."
+  },
+  {
+   "id": "P10-S35",
+   "title": "List of tallest wooden buildings",
+   "url": "https://en.wikipedia.org/wiki/List_of_tallest_wooden_buildings",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "type": "encyclopaedia (secondary)",
+   "opened": true,
+   "extract": "Tallest built mass-timber: Ascent 86.56 m, 25 storeys (2022); proposals W350 350 m (2041) and Oakwood Tower 304.8 m (research)."
+  },
+  {
+   "id": "P10-S36",
+   "title": "Seismic Analysis Parameters (Canadian Code NBC 2020 - Static), Robot Structural Analysis help",
+   "url": "https://help.autodesk.com/cloudhelp/2027/ENU/RSAPRO-UsersGuide/files/GUID-6966DF5D-D828-43D4-83FF-D93CC2C65670.htm",
+   "publisher": "Autodesk",
+   "year": "2026",
+   "type": "software documentation (secondary)",
+   "opened": true,
+   "extract": "Confirms the NBC 2020 static base shear form V = S(Ta) Mv IE W / (Rd Ro) and the Mv lateral-system mapping; equation graphics not shown."
+  },
+  {
+   "id": "P10-S37",
+   "title": "Structural Systems Development in Tall Buildings: Current Trends and Future Prospects (Ali and Moon), Architectural Science Review 50(3)",
+   "url": "https://doi.org/10.3763/asre.2007.5027",
+   "publisher": "Architectural Science Review",
+   "year": "2007",
+   "type": "review paper",
+   "opened": false,
+   "extract": "Not opened. Commonly cited review of tall-building structural systems; to be read to replace the team-assumption system-height envelopes."
+  },
+  {
+   "id": "P10-S38",
+   "title": "ISO 10137:2007 Bases for design of structures - Serviceability of buildings and walkways against vibrations",
+   "url": "https://www.iso.org/standard/37762.html",
+   "publisher": "ISO",
+   "year": "2007",
+   "type": "standard",
+   "opened": false,
+   "extract": "Not opened. Its office and residential 1-year acceleration criteria are quoted in NBC Commentary I (P10-S05)."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vancouver seismic design uses NBC 2015 / VBBL 2019 values (Sa(0.2) about 0.85 g, Class C).",
+   "correction": "NBC 2020 X450 Sa(0.2) = 1.1 g (+25%) and Sa(2.0) = 0.27 g (+5%); VBBL 2025 seismic rules apply to new Vancouver projects from 15 Sep 2026 (in force on 21 Oct 2026); in-stream projects may use old rules until 8 Mar 2027.",
+   "detail": "Sources P10-S01, P10-S03, P10-S05, P10-S09. VTC is hypothetical, so use NBC 2020 values as advisory.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Encapsulated mass timber in BC is limited to 12 storeys.",
+   "correction": "BCBC 2024 Revision 1 and VBBL 2025 allow 18 storeys / 76 m with 70-minute encapsulation and area caps of 6,000 m2 (C) and 7,200 m2 (D, A-2); NBC 2020 itself remains at 12 storeys.",
+   "detail": "Sources P10-S04, P10-S06, P10-S07. Table text only partly extracted; verify before publishing.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "CFD can replace wind-tunnel testing for specified wind loads or comfort.",
+   "correction": "NBC 2020 Div B 4.1.7.1(6) states CFD shall not be used to determine specified wind loads; the Wind Tunnel Procedure is mandatory for very dynamically sensitive buildings (f1 <= 0.25 Hz, or occupied H/w > 6) and where wake buffeting is possible.",
+   "detail": "Source P10-S04.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Outrigger, belt-truss, diagrid or mega-frame systems are code-listed SFRS with Rd and Ro values.",
+   "correction": "No such SFRS appears in NBC 2020 Vol. 1 (text search); unlisted systems use Rd = Ro = 1.0 unless equivalence is proven by cyclic tests, NLDA, equivalent collapse margin and independent peer review; 'other' SFRS are not permitted at SC3-SC4.",
+   "detail": "Sources P10-S04, P10-S05 (paras 213-214). Search covered machine-read text only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The equivalent static method is adequate for a 244-305 m tower.",
+   "correction": "It is permitted only for SC1-SC2, regular buildings under 60 m with Ta < 2 s, or irregular buildings under 20 m with Ta < 0.5 s; Vancouver is SC4, so dynamic analysis is required.",
+   "detail": "Sources P10-S04 (4.1.8.7), P10-S05.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Moderately ductile concrete walls or steel braced frames can serve a tall Vancouver tower.",
+   "correction": "At SC4 moderately ductile concrete shear/coupled walls are capped at 60 m and moderately ductile steel CBF or BRB at 40 m; only ductile walls, coupled walls, MRF, EBF and plate walls have no height limit.",
+   "detail": "Source P10-S04 Table 4.1.8.9 (machine-read; confirm in PDF).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "NBC 2020 ground motions already include Georgia-basin amplification.",
+   "correction": "Commentary J states the NBC 2020 hazard model does not take basin effects into account and has no basin maps; UBC simulations indicate underestimation for tall shear-wall buildings.",
+   "detail": "Sources P10-S05, P10-S11. Consider site-specific analysis for towers.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Structural system-height envelopes (core-outrigger, belt truss, mega-frame, diagrid, buttressed core) used in P10-M01.",
+   "detail": "CVU/CTBUH guides are paywalled and Ali and Moon (2007) was not opened; only secondary statements (tubes above 40 storeys, shear-wall frame to 70 storeys) were found. Presets are editable team assumptions.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Core ratio 25% / 35%, net-to-gross 75% / 65%, super-slender band 7 / 10 and wake radius 0.5 H.",
+   "detail": "No accessible primary source; shown as editable team assumptions in P10-M02 and P10-M05.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Equations (7)-(9) of NBC Commentary I, the NBC effective-width formula, Mv/J values in Table 4.1.8.11 and the Table C-2 column mapping (q10 = 0.34, q50 = 0.45 kPa).",
+   "detail": "Equation graphics and table alignment were lost in text extraction. Variable definitions and a worked example (a_W = 0.45 m/s2, a_D = 0.264 m/s2) were verified; the Table C-2 columns were inferred from the row and match the Commentary example speeds (27.4 and 23.9 m/s). Transcribe from the PDFs and unit-test.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "When Vancouver requires performance-based seismic design or structural peer review for tall buildings under VBBL 2025.",
+   "detail": "VBBL 2025 Book I PDFs are scanned images and could not be machine-read; only Bulletin 2002-007-BU (2015, alternative-solution peer review) and the 2025 guide were read. Ask the Chief Building Official's office or read Division B 4.1 and Division C 2.3 manually.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which hazard level represents MCER for performance-based design in Canada.",
+   "detail": "TBI v2.03 uses ASCE 7 MCER; NBC uses the 2%-in-50-year uniform hazard spectrum with Rd and Ro. The TBI drift limits are therefore a team-assumption preset until an EGBC or VBBL criterion is found.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "OpenSees / OpenSeesPy licence versus an open-source hosted web tool.",
+   "detail": "OpenSees permits educational, research and non-profit use and otherwise internal use only; OpenSeesPy bars commercial redistribution and cloud services without a licence (P10-S22, P10-S23). Use only offline for validation or obtain permission.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Downtown Vancouver site class, till properties, bedrock depth and groundwater at the VTC block.",
+   "detail": "Only municipal averages were found (Vancouver mean Vs30 334 m/s; till near surface across most of the city; Class C dominant). A geotechnical report is required; the Metro Vancouver microzonation maps (P10-S14) should be checked for the block.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Quantity presets, TMD sizing, foundation-concept mapping, eccentricity limits and basement thresholds in P10-M04, M07 and M08.",
+   "detail": "All are editable presets with no accessible source; historical steel kg/m2 anchors (145 / 206 / 275) come from secondary sources and are 1930s-1960s buildings.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "P10-M01: typical height envelopes per structural system (core-outrigger, belt truss, mega-frame, diagrid, buttressed core) from CTBUH/CVU or Ali and Moon (2007) - not opened.",
+  "P10-M01/M08: outrigger count and location versus drift and overturning reduction - no accessible source.",
+  "P10-M05: core share of gross floor plate versus height and wall thickness versus height - only a qualitative uncited statement was found.",
+  "P10-M05/M08: typical floor-to-floor height and structure depth by use (office, residential, hotel, podium) - no verified source.",
+  "P10-M02: numeric distance or height-ratio trigger for wake buffeting and channelling - NBC 4.1.7.1(4) gives none.",
+  "P10-M02: super-slender threshold (H/w) at which dampers or shaping become necessary - only the 432 Park precedent found.",
+  "P10-M04: TMD effective damping versus mass ratio and tuning (textbook optimum tuning not opened); precedent masses only.",
+  "P10-M04: quantified effect of taper, twist, setbacks and corner shaping on across-wind force - only project claims (Shanghai Tower 24%).",
+  "P10-M03: hazard level equivalent to MCER and acceptance criteria for Canadian performance-based design and any EGBC guideline.",
+  "P10-M03: quantified Georgia-basin amplification for tall-building demand beyond the NBC hazard (only a summary of Kakoty et al. 2021 was read).",
+  "P10-M07: foundation type versus site class and till properties for supertalls in downtown Vancouver, groundwater and dewatering rules, and ground-movement limits beside the transit station.",
+  "P10-M08: modern structure kg/m2 and embodied carbon per m2 benchmarks by system and height (CLF 2017 numbers were not accessible)."
+ ],
+ "change_log": [
+  "R1: Replaced the assumed 12-storey BC mass-timber cap with 18 storeys / 76 m (VBBL RTS 16367 Table 3.2.2.91, BCBC 2024 Rev. 1) and kept NBC 2020's 12 storeys as the national baseline (flagged FALSE_ASSUMPTION).",
+  "R1: Replaced NBC 2015 / VBBL 2019 Vancouver Sa(0.2) = 0.85 g with NBC 2020 X450 values (Table J-2: 1.1, 0.77, 0.44, 0.27, 0.075, 0.033 g; PGA 0.46 g) and recorded that new VBBL seismic rules apply from 15 Sep 2026.",
+  "R1: Took wind-sensitivity thresholds directly from NBC 2020 4.1.7.1-4.1.7.2 (60 m, H/w 4 and 6, 1 Hz and 0.25 Hz, CFD prohibited) instead of generic slenderness rules of thumb.",
+  "R1: Took acceleration criteria from NBC Commentary I (1.5-2.5% g 10-year; ISO 10137 1-year curves; damping 0.01 / 0.015 / 0.02) and added its worked example as a unit test.",
+  "R1: Added SC4 SFRS height restrictions, static-method limits, Ta formulas, irregularity thresholds (130%, 150%, 1.7) and the SFRS equivalence route from NBC 2020 Vol. 1 and Commentary J.",
+  "R1: Flagged OpenSees / OpenSeesPy licence terms as incompatible with a hosted open-source service; kept PyNite and sectionproperties (MIT) as the default libraries.",
+  "R1: Marked system-height envelopes, core ratio, net-to-gross, super-slender band and quantity benchmarks as team assumptions because no accessible primary source existed.",
+  "R1: Corrected organisation naming: CTBUH is now the Council on Vertical Urbanism (verticalurbanism.org)."
+ ],
+ "notes": "Research constraints: the shared WebSearch budget (200 per turn) was exhausted early, so later facts came from direct fetches of primary documents. NBC 2020 Vol. 1 and its Structural Commentaries were machine-read from the NRC Publications Archive PDFs (spaces, some tables and equation graphics are garbled; key tables should be re-checked against the PDFs before the tool hard-codes them). VBBL 2025 Book I PDFs are scanned images and were not machine-read; the City's Guide to 2025 VBBL Updates (v1.01) and Council report RTS 16367 were read. CTBUH technical guides are paywalled (CVU shop pages gave scope only), so system-height envelopes and core-ratio thresholds remain team assumptions. Wikipedia pages are secondary and used only for precedents and anchors. No Claude skill or MCP server for structural engineering was identified (not searched). Dates: VBBL 2025 seismic rules apply to new Vancouver projects from 15 Sep 2026 (already in force on 21 Oct 2026); in-stream protection ends 8 Mar 2027. VTC documents are an academic exercise and the jury may reward justified breaches, so all code checks are advisory prompts for the designer, not compliance claims. Suggested build order for the 13 Nov working core: M02, M05, M06, then M03 (hazard, SC, Ta, route flags) and M01; M04, M07 and M08 by 10 Dec."
+}

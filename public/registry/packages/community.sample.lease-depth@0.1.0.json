@@ -1,0 +1,39 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.sample.lease-depth",
+  "version": "0.1.0",
+  "licence": "CC-BY-4.0",
+  "name": "Lease depth, core to facade (sample)",
+  "author": { "name": "Tower Design Toolkit sample registry" },
+  "category": "SPAC",
+  "stage": "schematic",
+  "question": "How deep is the floor from the core to the facade on the short side, which drives daylight and fit-out?",
+  "jury": ["human_scale_40", "design_excellence_20"],
+  "projects": ["vtc", "city"],
+  "inputs": ["tower.minSide", "tower.coreArea"],
+  "method": "Assumes a square core centred on the plate, as Tower Design Toolkit models it, and takes half of what is left on the shorter side: (shorter side − core side) ÷ 2.",
+  "human": "Whether a deeper plan suits the use (trading floors, labs) or needs atria, light wells or a different core position.",
+  "limits": "A sample package for the development registry: the thresholds are team presets, not a sourced daylight criterion (research P02-M06, floor-plate depth-to-window screen, has the sourced criteria). Off-centre or split cores are not modelled.",
+  "metrics": [
+    {
+      "id": "lease_depth",
+      "label": "Lease depth, core face to facade (short side)",
+      "unit": "m",
+      "per": "tower",
+      "expression": "(tower.minSide - sqrt(tower.coreArea)) / 2",
+      "decimals": 1,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 12,
+        "bad": 15,
+        "flag": "team_assumption",
+        "source": {
+          "label": "Sample registry entry: a team preset for demonstration, not a sourced daylight criterion",
+          "page": "See research P02-M06 for sourced criteria"
+        }
+      },
+      "note": "Uses the shorter side, so it is the shallowest of the four sides."
+    }
+  ],
+  "createdWith": "Tower Design Toolkit sample registry (development data, not a real submission)"
+}

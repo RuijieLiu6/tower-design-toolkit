@@ -1,0 +1,251 @@
+{
+ "expert_role": "Graphic designer specialising in competition boards; gatekeeper auditing cited sources and VTC rules (round 4, packet P13)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P13-M01 (brief_register) / packet",
+   "issue": "The spec still rests on a brief nobody has checked. P13-S01 is still opened:false and the register due 23-24 Oct is empty today (21 Oct). Every rule from the brief therefore remains a transcription from the project description: exact 4 boards, landscape, the 40/30/20/10 weights, the 20 items, the skyline viewpoint, any file-naming rule and the site placement. I re-read the competition page: it has no board specs, and Terms 4.5 and 4.8 defer to the brief. An entrant who relies on HR-03, HR-04 or R-01 now is relying on unverified data.",
+   "fix": "Treat the populated register as a release condition for any entrant-facing build, not a schedule item. Store the English PDF with its SHA-256, filename and language version. Two members transcribe every rule with a page number. Also transcribe the skyline-viewpoint definition, any file-naming or UIC rule, the portal form fields and the site plan's placement and rotation. Flip evidence_status only after both checks."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P13-M01 (G-00, task_timeline)",
+   "issue": "The eligibility gate covers only half the risk. Terms 3.3.5 disqualify an 'employee, intern, contractor, officer, or director of the Organizer', yet the Terms never name the Organizer (2.1 is generic; 1.2 names only the brand BUILDNER SL). The competition page says 'Organized by Buildner, in collaboration with the City of Vancouver and ... UBC SALA'. A SALA student who is a UBC employee (TA, RA or GAA), or a member employed by the City, may be directly ineligible, with no 'associate' question involved. C8 and the attestation do not ask this. The timeline also says to start identity verification on Fri 23 Oct 'once C8 is sent', before any answer arrives. That contradicts the spec's own rule that G-00 comes first, because verification fees are non-refundable once started (7.4.1) and registration fees are not repayable (7.3).",
+   "fix": "Extend C8 to ask: 'Does Organizer in 3.3 include the City of Vancouver or UBC/SALA, and are UBC student employees (TA/RA) or City employees eligible?' Add the attestation item 'no employment, internship or contract with UBC, the City of Vancouver or Buildner SL'. Record the Organizer identity in the register. Move identity verification to after C8 is answered, or after a logged, N-signed 'risk accepted' decision on 27 Oct."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M03 / P13-M08 / human tasks",
+   "issue": "Two planned actions may themselves break the communication rules. The spec plans to obtain cone ceilings 'confirmed by the City' and names views@vancouver.ca as the contact. The page says 'All communication regarding the competition should only be carried out with Buildner staff'. Terms 5.2 bar approaching the Commissioning Party, an undefined term that may cover the City as collaborator. The Shape Your City page also invites non-formal ideas to higherbuildings@vancouver.ca, which entrants might use and which could count as publication or approach.",
+   "fix": "Add a no-contact rule (for example G-00b): no contact with City staff, UBC SALA staff acting for the competition, or jurors about the competition. Route ceiling and viewpoint questions to Buildner as C11. Read only public City documents. Warn against sending entry material to higherbuildings@vancouver.ca while the entry is live."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01 / P13-M06c (G-00 semantics)",
+   "issue": "G-00 can end in a deadlock. 'Risk accepted' shows amber 'never green', but G-05 allows the first upload only after 'all hard rules and gates (G-00..G-04) pass', and the method says 'unresolved G-00 sets blocking=true'. If Buildner never answers C8, the release gate never opens, even after the team decided on 27 Oct to accept the risk and pay. The spec does not say whether amber blocks.",
+   "fix": "Define gate states as pass, accepted-risk and fail. Accepted-risk unblocks M06c only with N signatures and the date of C8 sent. Fail always blocks. Write the rule into the registry and add a unit test."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M08a / G-04 / DATA",
+   "issue": "The tool is open-source and public, and the team builds it and its demos for a UBC SALA course. G-04 checks only assets in the tool's own asset_visibility. Copies outside that store are not checked: repo fixtures, README screenshots, pilot renders in issues or pull requests, forked community modules carrying the team's massing, and course demo videos. Any of these would be previous publication under 4.1 and traceable identity under 5.1, for example through reverse image search. Default board templates or captions that carry the tool's name or styling would also tie a board to the SALA team for a SALA juror.",
+   "fix": "Extend G-04 to a repo and public-asset scan: hashes of board-linked assets checked against the git history, release assets and the community store. Pilots and fixtures use a dummy, non-entry tower. Add the tool name, repo URL and course code to the per-team deny-list. Exported templates and AI captions carry no tool branding; the caption should read only 'AI-assisted image'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M06 (M06b v1) / scope",
+   "issue": "Size optimisation and export reach entrants only after the deadline. Composer M06b moves to v1 (10 Dec), so before 30 Nov entrants get a validator that can fail a board but cannot fix it. They will export from InDesign, Illustrator, Photoshop or Affinity, whose JPEG export embeds XMP fields (creator tool, document IDs, sometimes author names) and uses tool-specific chroma subsampling. The scope item 'export (PDF/JPG, size optimisation)' is not met for real entrants.",
+   "fix": "Add a core re-encode action to M06v (about 1 person-day, using jSquash already listed). It decodes the board, converts it to sRGB, sets baseline 4:4:4 explicitly, searches quality under 9.5 x 10^6 bytes, strips metadata and re-validates. Publish tested export recipes for the four desktop tools, each confirmed by a validator round-trip."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M08 (governing_policy_set) / DATA document_register / P13-M03",
+   "issue": "The document register omits documents the City links directly on its review page. The Shape Your City page, re-read 21 Oct (last updated 13 July 2026), links a Granville Street Plan, a Bay Parkade rezoning FAQ and the Vancouver Lookout exhibit boards. It says the competition 'seeks design ideas for taller buildings in specific downtown locations'. The brief's 'retail high street' and the placement-dependent Granville Street view 20 make these relevant to the policy reflection and to the site placement, but the register lists only the 1997 policy, the Public Views Guidelines and the OGL.",
+   "fix": "Add these three documents to the document_register with hash and retrieval date; their text was not readable by fetch, so a person must download them. Add them to M08 governing_policy_set and to the M03 placement check (does the brief's block match a real location?)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13 status model",
+   "issue": "Several metrics break the spec's own rule that evidence_status is 'the weakest element its pass/fail rests on'. HR-06 anonymity (deny-list and seeds are team design), G-01 (manual attestation), G-03 (licence compatibility is a human judgement), G-05 ('the gate itself is tool design') and D-01 (7-day and 2-day buffers are team choices) are all marked verified. M02 'Plan cut height convention' has team-set bad bounds but is also marked verified. A typed node would treat team controls as sourced.",
+   "fix": "Split each record into clause_evidence and method_evidence, or set evidence_status to team_assumption wherever the threshold or method is team-made. Add a schema test that a metric whose basis says 'team' cannot carry evidence_status verified."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M01 (D-02 registration_close)",
+   "issue": "Registration closes '29 October 2026' with no hour (page re-read). D-02 counts days to a date, not to an instant. If the close is read as start of day London time (GMT after 25 Oct), it falls at 28 Oct 17:00 Vancouver, a day earlier than the banner implies.",
+   "fix": "Store a worst-case instant of 2026-10-29T00:00Z (28 Oct 17:00 Vancouver) and show it beside 23:59Z. Keep the 27 Oct registration target."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M07 / P13-M01 (F42, C10)",
+   "issue": "The competition page currently says 'only recognized university staff can apply for the reduced student rate', which taken literally excludes students. Fees are EUR 140 standard and EUR 120 student, plus 4.5% VAT, in euros (Terms 7.4); the spec records none of this. Student Award eligibility drives the M07 award track, and the first users are students.",
+   "fix": "Make C10 mandatory and send it with C8 by 23 Oct. Record the fees and currency in the register. Keep the Student Award track amber until answered."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M03 (cone_set)",
+   "issue": "The spec treats the 24 dataset polygons as 'all' protected views (re-verified: total_count 24). The 2024 Public Views Guidelines, still unread, are the governing source. The dataset may not cover every view or sub-view and has no heights, so 'all 24' may not mean all protected views.",
+   "fix": "Rename the set 'all 24 cones in the open dataset (modified 2026-10-19)' and add an UNVERIFIED flag on whether the dataset is complete against the Guidelines. A person reads the Guidelines PDF in a browser by 24 Oct."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M03 (viewing_distance, tower share)",
+   "issue": "The apparent-height illustration (atan of 300 m over 5 km, 3.4 degrees) ignores eye elevation; QE Park is about 125 m ASL against a downtown base near sea level. The tower-share metric uses top_y - base_y even when the base is hidden by terrain or towers. Focal-length suggestions will therefore be too short.",
+   "fix": "Use visible top minus visible base after ray-casting, and use eye elevation from the terrain. Take the skyline viewpoint definition from the brief register rather than only from the apex inference."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M01/M06 (HR-04)",
+   "issue": "The ratio good band is +/-0.005 and the bad band is outside +/-0.02, leaving 0.005-0.02 undefined. Landscape also remains unverified until the register is checked.",
+   "fix": "State amber for 0.005-0.02 and show it as amber in both modules from the single HR-04 record."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Cone ceilings can be 'confirmed by the City' and views@vancouver.ca is a usable contact for the encroachment report (P13-M03 method and human_judgment; S47).",
+   "why_false": "While the competition is live, all communication about it must go through Buildner, and Terms 5.2 bar approaching the Commissioning Party, an undefined term that may include the City as collaborator.",
+   "correction": "Read only public City documents. Route ceiling and viewpoint questions to Buildner (new C11). Do not contact City staff about the entry before winners are announced.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge: 'All communication regarding the competition should only be carried out with Buildner staff'. https://architecturecompetitions.com/vancouvertallchallenge/terms 5.2: 'may not approach or address any member of the Jury or the Commissioning Party during the Competition'."
+  },
+  {
+   "claim": "Identity verification can start on Fri 23 Oct 'once C8 is sent' while G-00 'comes first' (P13-M01 registration_close and task_timeline).",
+   "why_false": "Verification fees are non-refundable once the process starts, and C8 may be unanswered on 23 Oct, so starting then spends non-refundable money before eligibility is known.",
+   "correction": "Start verification only after C8 is answered, or after a logged, N-signed risk-accepted decision on 27 Oct; registration closes 29 Oct, worst case 28 Oct 17:00 Vancouver.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/terms 7.4.1: 'All verification fees are non-refundable once the verification process has commenced'; 3.6.A.1-A.2 put verification before payment and UIC."
+  },
+  {
+   "claim": "Eligibility risk under Terms 3.3.5 comes only through being an 'associate' of a juror (G-00, C8, F38, F39).",
+   "why_false": "The Terms never name the Organizer, and the page says the competition is organised 'in collaboration with the City of Vancouver and ... UBC SALA'. A member employed by UBC (TA/RA) or by the City could fall under 'employee ... of the Organizer' directly.",
+   "correction": "Ask Buildner who the Organizer is under 3.3, and add UBC and City employment to the per-member attestation.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/terms 2.1 (Organizer defined generically, not named), 3.3.5; https://architecturecompetitions.com/vancouvertallchallenge (organised by Buildner 'in collaboration with the City of Vancouver and the University of British Columbia's School of Architecture and Landscape Architecture')."
+  }
+ ],
+ "missing": [
+  "Organizer identity under Terms 2.1/3.3 (Buildner SL alone, or with the City and UBC) recorded in the register and asked in C8",
+  "A no-contact rule (rule id) covering City staff, the Commissioning Party and jurors, with competition questions routed through Buildner only",
+  "Portal upload form fields (title, description text, team data), their language and anonymity rules, and any file-naming or UIC-on-board rule from the brief",
+  "A core re-encode/fix action in M06v and tested export recipes for InDesign, Illustrator, Photoshop and Affinity, since the composer arrives after the deadline",
+  "Repo and public-asset scan (git history, README, issues, forks, demo videos) feeding G-04, with a dummy tower for fixtures",
+  "Tool name, repo URL and course code in the per-team deny-list; unbranded default templates and captions",
+  "Granville Street Plan, Bay Parkade rezoning FAQ and Vancouver Lookout exhibit boards in the document_register and governing_policy_set",
+  "Fees and currency (EUR 140 / EUR 120 student + 4.5% VAT) and the student-rate wording on the competition page recorded in the register",
+  "Brief-defined skyline viewpoint (location or reference image) transcribed into the register for M03",
+  "Explicit gate-state model (pass / accepted-risk / fail) and what accepted-risk does at M06c",
+  "Worst-case registration-close instant (2026-10-29T00:00Z)",
+  "UNVERIFIED flag on whether the 24-polygon dataset is complete against the 2024 Public Views Guidelines"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "brief_register populated and double-checked (English PDF SHA-256, filename, page numbers, site plan and 3D-model hashes, site placement, skyline-viewpoint definition, any file-naming rule) before any entrant-facing release; S01 evidence statuses updated",
+   "C8 extended to ask who the Organizer is under 3.3 (Buildner vs City and UBC) and whether UBC or City employees and SALA students are eligible; written answer logged, or an N-signed accepted-risk decision recorded, before identity verification or fees",
+   "Identity verification moved after C8 is answered or risk is accepted (7.4.1)",
+   "No-contact rule added: no City or juror contact about the competition; all questions through Buildner; views@vancouver.ca and 'confirmed by the City' removed from M03",
+   "Gate-state semantics defined so that accepted-risk G-00 neither deadlocks M06c nor shows as pass",
+   "G-04 extended to scan the public repo and community store; tool branding removed from templates and captions and added to the deny-list",
+   "Core re-encode action in M06v or tested desktop export recipes available to entrants before 6 Nov",
+   "evidence_status corrected for HR-06, G-01, G-03, G-05, D-01 and the M02 cut-height metric"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: no eligibility gate (Terms 3.3.5, juror at UBC SALA, course reviews)",
+   "status": "partly",
+   "residue": "G-00, C8, juror class W and review_audience_log were added. Still open: the Organizer is unnamed in the Terms while the page names the City and UBC SALA as collaborators, so direct-employee risk for UBC TAs/RAs is not asked. The timeline starts non-refundable verification on 23 Oct 'once C8 is sent'. The 'risk accepted' amber state conflicts with 'unresolved G-00 sets blocking=true'. No answer is logged yet."
+  },
+  {
+   "item": "MAJOR: Q&A plan depended on Ask the Jury",
+   "status": "addressed",
+   "residue": "Organiser contact is the default and portal_observations has null behaviour; the 30 Oct team cut-off is earlier than both deadlines."
+  },
+  {
+   "item": "MAJOR: M03 tested only QE Park cones",
+   "status": "addressed",
+   "residue": "All 24 dataset polygons are clipped (total_count 24 re-verified 21 Oct). Whether the dataset is complete against the 2024 Guidelines is unverified, and the method still says ceilings may be 'confirmed by the City', which conflicts with the competition's communication rule."
+  },
+  {
+   "item": "MAJOR: no site_georeference for the hypothetical block",
+   "status": "addressed",
+   "residue": "Parameter, B-03 metric, one-block sensitivity run and flag F40 are present; placement remains a placeholder until the brief's site plan is read."
+  },
+  {
+   "item": "MAJOR: brief_register designed but not done; language version",
+   "status": "partly",
+   "residue": "The language version, C9 and hash publication are specified, but P13-S01 is still 'opened:false' and the register (due 23-24 Oct) is empty, so every brief-derived rule remains unverified."
+  },
+  {
+   "item": "MINOR: ZDR statement for gpt-image-2.5",
+   "status": "addressed",
+   "residue": "Re-verified 21 Oct: both 2.5 models and their 2026-09-08 snapshots are listed; prior approval and the CSAM exception are recorded."
+  },
+  {
+   "item": "MINOR: structured evidence_status",
+   "status": "partly",
+   "residue": "The field exists, but HR-06, G-01, G-03, G-05 and D-01 are marked verified although their pass/fail rests on team design."
+  },
+  {
+   "item": "MINOR: rule-id registry incomplete",
+   "status": "addressed",
+   "residue": "Full id list and schema test published."
+  },
+  {
+   "item": "MINOR: schedule omitted human tasks",
+   "status": "addressed",
+   "residue": "2.5 person-days of human tasks budgeted; full core needs f = 1.11, so the cut order applies."
+  },
+  {
+   "item": "MINOR: deny-list seeds course-specific",
+   "status": "addressed",
+   "residue": "Seeds are generated per team and juror warnings are class W; the tool's own name and repo are still not seeded."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P13-S03",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "Re-read 21 Oct. 3.3.5, 4.1, 4.7 ('24.00, London Time'), 4.8 (JPEG, 10 MB, one to four panels), 5.1-5.3, 7.3, 7.4.1, 8.1-8.4, 9.1 (Terms and/or Brief), 10.10.1, 10.10.4.1, 12.2, 12.7 and 16.2 all match the spec. New: 2.1 defines the Organizer generically and never names it; 'associate' and 'Commissioning Party' are undefined; 9.2 refunds only if the competition is suspended."
+  },
+  {
+   "source_id": "P13-S02",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "note": "Dates, the seven jurors (Soules listed with UBC SALA), Buildner-only communication, English-only rule and AI FAQ match the spec. Organised 'in collaboration with the City of Vancouver and UBC SALA'. Fees are EUR 140 / EUR 120 + 4.5% VAT. Student-rate wording: 'only recognized university staff can apply'. No board specs and no Ask the Jury."
+  },
+  {
+   "source_id": "P13-S49",
+   "url": "https://architecturecompetitions.com/how-to-enter-a-competition",
+   "ok": true,
+   "note": "Verification is required before upload. Nothing on panels, description fields or file naming."
+  },
+  {
+   "source_id": "P13-S04",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Last updated 13 July 2026; protected views 'will not be reviewed or updated'. Also links the Granville Street Plan, Bay Parkade FAQ and Lookout exhibit boards, which the spec omits, and invites non-formal ideas to higherbuildings@vancouver.ca."
+  },
+  {
+   "source_id": "P13-S05",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403 again; the shapeyourcity copies of the policy PDF and the Bay Parkade FAQ return only download-notice pages."
+  },
+  {
+   "source_id": "P13-S47",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "note": "total_count 24; names match the spec's list."
+  },
+  {
+   "source_id": "P13-S54",
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "ok": true,
+   "note": "2.5 models and their snapshots are ZDR-compatible; 30-day default retention; prior approval required; CSAM exception. Matches the spec."
+  },
+  {
+   "source_id": "P13-S11",
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "Models, quality values, size rules, prompt-based masks, 2-minute latency and no C2PA statement all confirmed. The input_fidelity note was not in the first 100k characters read."
+  },
+  {
+   "source_id": "P13-S14",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": false,
+   "note": "Fetch summary confirmed per-token image pricing with batch at about half, but did not return the specific $5/$8/$30 figures; not re-verified this round."
+  },
+  {
+   "source_id": "P13-S45",
+   "url": "https://data.iana.org/time-zones/tzdb/NEWS",
+   "ok": true,
+   "note": "Latest release 2026e (2026-09-29). 2026b: BC on permanent -07, modelled at 2026-11-01 with abbreviation MST. Matches the spec."
+  },
+  {
+   "source_id": "P13-S60",
+   "url": "https://sala.ubc.ca/people/matthew-soules",
+   "ok": true,
+   "note": "Listed as Professor; no programme role or courses shown. Matches the spec."
+  }
+ ],
+ "verdict": "Gate fails. Round 3 fixes landed: Q&A routing, all 24 cones, site_georeference, ZDR and the rule registry. But entrants still cannot rely on P13. The brief register is empty, so every board rule remains a project-description transcription. Eligibility is only half-covered: the Terms never name the Organizer, while the page lists the City and UBC SALA as collaborators, and verification fees would be spent before C8 is answered. The method plans City contact, against the Buildner-only rule. Accepted-risk G-00 can deadlock release. The public repo is outside the previous-publication gate. Before 30 Nov entrants get a validator that cannot repair a failing JPEG. Web search budget was exhausted, so checks used direct fetches only."
+}

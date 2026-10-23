@@ -1,0 +1,274 @@
+{
+ "expert_role": "Architectural visualization art director and aesthetics gatekeeper, auditing the cited sources for packet Q03 round 3",
+ "previous_round": [
+  {
+   "item": "MAJOR: PerformanceMonitor with frameloop='demand'",
+   "status": "addressed",
+   "residue": "Re-read drei 10.7.9 source: fps = frames.length / msPassed, timestamps are pushed in useFrame, and sampling stops at fallback. The new rule (startup calibration with frameloop=always, regress plus AdaptiveDpr, monitor only for tours) fixes the conflict. Whether DPR changes redraw under a demand loop is still untested."
+  },
+  {
+   "item": "MAJOR: Unit and up-axis normalisation across importers and the kernel",
+   "status": "addressed",
+   "residue": "Canonical frame and unit tests are in place. Rotation to true north is not stored for unitless or north-less imports (OBJ, glTF, SKP-exported). See the new finding."
+  },
+  {
+   "item": "MAJOR: Georeferencing and multi-file alignment at import",
+   "status": "addressed",
+   "residue": "IFC coordination matrix, IfcMapConversion, the Rhino base point and earth anchor, and EPSG:4326 portal data are all covered. The 1 mm overlay test was added. The Revit Scale issue is correctly flagged UNVERIFIED."
+  },
+  {
+   "item": "MAJOR: Board capture tile seams and print line weights",
+   "status": "addressed",
+   "residue": "Gutter, world-space AO, vector linework and the seam test were added. The pipeline still targets PDF and A2 at 300 dpi, but the competition terms require JPEG panels of at most 10 MB. See the new finding."
+  },
+  {
+   "item": "MAJOR: Shadow and analysis extents for a 244-305 m tower at 49.28 N",
+   "status": "addressed",
+   "residue": "I re-did the arithmetic (17.28 deg noon, 980 m; 12.5 deg at 10:00, 1.37 km; 7.0 deg at 09:00, 2.48 km) and it checks out. The domain is described as 'north', but off-noon shadows fan out NW and NE (about 41 deg from north at 09:00). SunCalc returns refraction-corrected altitude, while the packet's maths is geometric."
+  },
+  {
+   "item": "MAJOR: Missed alternative 3DTilesRendererJS",
+   "status": "addressed",
+   "residue": "Added as v1 visual-only context, with the Google policy read. The packet still missed that the competition brief itself lists 'Site plans & 3D model'."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Board capture vs actual competition deliverable",
+   "issue": "The capture pipeline ends in svg2pdf.js plus jsPDF A2 PDFs at 300 dpi. The Buildner terms for this competition say each panel must be a JPEG (.jpg/.jpeg) of at most 10 MB, with up to four panels, uploaded through the portal, and non-compliance can disqualify. The terms give no pixel size or dpi; those are in the brief. A 4961 x 7016 board with 0.13 mm (1.5 px) hairlines will probably exceed 10 MB at high JPEG quality, and hairlines are what JPEG artefacts damage first.",
+   "fix": "Make the final stage 'rasterise the vector plus raster composite to sRGB JPEG under 10 MB'. Add a size-search loop on JPEG quality, and a test that a dense linework board stays under 10 MB without visible ringing on 0.13 mm lines. Keep PDF only for the course review. Read the board dimensions and orientation from the brief before fixing 4961 x 7016. Add a check that no platform logo, watermark or team name appears on boards (anonymity rule)."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Context model source: the competition supplies one",
+   "issue": "The competition page lists 'SITE PLANS & 3D MODEL' among the brief downloads. The packet still says it is unknown whether the Challenge supplies a site package, and it plans an offline LiDAR-to-glTF conversion with no owner. Registration closes 29 Oct 2026, 8 days from now, and the brief and model come through registration.",
+   "fix": "Register (or ask Xun for the brief) before 29 Oct. Get the official 3D model and record its format, units, CRS and LOD. Make it the default analysis and board context through the importer and canonical-frame tests. Use City LiDAR 2022 only to fill gaps or extend the 1.5-2.5 km sun domain if the official model is smaller."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "AI rendering hand-off (gpt-image) assumptions",
+   "issue": "The recommendation says to 'export clean depth, normal and line passes for gpt-image'. The current OpenAI image guide documents only reference-image inputs and prompt-based masks (applied to the first image), with no depth, normal or ControlNet conditioning. Current models are gpt-image-2.5-sunburst and -flare, output is capped at 3840 px per edge and 8.29 MP total, and above 2560 x 1440 is 'experimental'. One AI image therefore cannot fill an A2 board at 300 dpi (3840 px is about 325 mm). Geometry can drift from the massing. The Buildner FAQ advises against treating AI images as sole work.",
+   "fix": "Send gpt-image a clay+AO+line beauty render as the reference image; do not send depth or normals unless a provider documents them. Plan AI images at no more than about 325 mm wide at 300 dpi, or upscale and label it. Composite the vector linework over the AI image so the geometry stays authoritative. Run a fidelity check (silhouette IoU against the clay render). Record the model name and date as an assumption. If geometry-locked rendering is required, record a depth-ControlNet route (open-weights SDXL or Flux) as an alternative for the presentation packet."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "View-dependent silhouettes on twisted or curved towers",
+   "issue": "Linework comes from static kernel feature edges (originalID boundaries plus a dihedral threshold). On a twisted or tapered tower the silhouette depends on the view, so static edges either miss it or, with a low threshold, draw faceting lines over the surface. The 'silhouette darker than internal edges' rule cannot be met on the very forms the brief invites, and full-scene edge detection was rejected.",
+   "fix": "Add a view-dependent silhouette layer. Use conditional lines, which three r186 ships as LDrawConditionalLineMaterial for WebGL plus a NodeMaterial version for WebGPU: each edge stores two control points and is drawn only when both adjacent faces flip facing. Or use drei Outlines (inverted hull) on massing only. Compare both in spike S4 on a twisted tower for look and cost. For print, take silhouettes from three-edge-projection's SilhouetteGenerator or visibleEdges."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Clay look has no lighting or environment spec",
+   "issue": "'Matte white massing' depends on image-based light, and the packet specifies none. If drei's Environment preset is the default, it loads HDRIs at runtime from raw.githack.com (CUBEMAP_ROOT in useEnvironment.js), a third-party CDN. That breaks offline use and can change between students' machines.",
+   "fix": "Default to three's RoomEnvironment through PMREMGenerator (procedural, no external assets), at low intensity, plus the SunCalc directional light. Self-host any HDRI in /public. Fix tone mapping (AgX or Neutral) and exposure as tokens so white clay does not clip. Add a golden-image test of the clay preset."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "True-north rotation missing from the canonical frame",
+   "issue": "The project frame stores units, origin, CRS and datum, but no north angle. Architects usually model aligned to the street grid, and downtown Vancouver's grid is rotated substantially from true north (approximate; confirm from City street data). OBJ, glTF and SketchUp exports carry no north. Rhino (earthAnchorPoint north) and IFC (TrueNorth, IfcMapConversion XAxisAbscissa) carry it, but the importers do not read it as north. A wrong rotation silently swings every shadow and solar-access result.",
+   "fix": "Add a northAngle field (degrees, true north vs project +Y) to the project file and the root transform. Read it from Rhino ModelNorth, IFC TrueNorth and IfcMapConversion. Prompt for it on OBJ, glTF and SKP import, with a visible north arrow and a snap-to-street-grid helper. Add a unit test: a box rotated 30 deg in its source file gives the same shadow polygon after import."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Logarithmic depth advice is outdated",
+   "issue": "The packet says to avoid logarithmicDepthBuffer 'unless N8AO is confirmed with it'. The N8AO README states it works with logarithmic depth buffers and orthographic cameras, and detects them automatically.",
+   "fix": "Treat logarithmic depth as a tested alternative to reversedDepthBuffer, which needs EXT_clip_control. In spike S3, compare per-frame near/far fit, reversed depth and log depth with stencil caps and Outline, and note the early-z cost of log depth."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Sun domain shape and refraction convention",
+   "issue": "The domain is given as '1.5 km north / 2.5 km north'. Off-noon shadows fall NW and NE: at 09:00 on 21 Dec the azimuth is about 41 deg from south, so the far end of a 2.48 km shadow is about 1.9 km north and 1.6 km east or west. SunCalc v2 getPosition returns apparent, refraction-corrected altitude, while the packet's arithmetic is geometric, so wrapper tests could fail at low sun.",
+   "fix": "Make the domain the union of the footprint swept along each analysed shadow vector (a fan polygon), not a northward box. Test the SunCalc wrapper against JPL Horizons apparent (refracted) altitude, and document which convention the shadow module uses."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Broken citation: SunCalc README",
+   "issue": "Source URL raw.githubusercontent.com/mourner/suncalc/main/README.md returns 404; the default branch is master. The npm licence field is absent and type is 'module', with an index.js and suncalc.cjs exports map.",
+   "fix": "Cite https://github.com/mourner/suncalc (master branch) or the README at master, and note the ESM/CJS exports in CLAUDE.md."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Axonometric conventions undefined",
+   "issue": "'Exploded axon' has no projection spec. Architectural exploded drawings are often plan-oblique (military, 45/45 or 30/60), which keeps the plan true. An OrthographicCamera or pre-rotation cannot produce an oblique view; it needs a shear. three-edge-projection pre-rotation is also untested.",
+   "fix": "Define presets: isometric, dimetric, plan-oblique 45/45 and 30/60. Make oblique views with a shear in the camera projection matrix (viewport) and the same shear applied to geometry before three-edge-projection (print). Check that N8AO reconstruction tolerates the sheared projection in a spike."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Analysis colour ramps and the FALSE ASSUMPTION colour unspecified",
+   "issue": "Analysis false-colour and the special FALSE ASSUMPTION colour are reserved but not chosen. Rainbow ramps mislead, and colour-only flags fail colour-vision-deficient users (WCAG 1.4.1 'use of colour').",
+   "fix": "Use perceptually uniform, CVD-safe ramps (e.g. viridis or cividis; diverging only for signed deltas) with a printed legend and units on every board. Give FALSE ASSUMPTION an icon, label and pattern as well as a colour, and check its contrast in light and dark tokens."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Anatomy cost figure",
+   "issue": "The recommendation cites 'about 2 h agent time per Anatomy example'. The current repo page describes a build of a few minutes for its Raptor example plus a 15-20 min 3D orbit audit for 30 parts. The 1 h 54 min figure comes from one third-party blog.",
+   "fix": "Quote the repo's own timings, label 1 h 54 min as a single blog anecdote, and set the spend cap in tokens or dollars measured on one team run."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Line hierarchy has no precedent source",
+   "issue": "The line weights rely on one drafting blog for ISO 128. No architectural diagram or section-poche convention (e.g. Rhino Make2D layer weights, office drawing standards) was opened, so the aesthetic system's core hierarchy is a team assumption.",
+   "fix": "Keep it marked TEAM_ASSUMPTION. Ask Xun for the ARCH 540 drawing standard or two precedent boards from past Buildner winners, and calibrate four weights (cut, profile, edge, hidden/context) at print size against them."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Avoid logarithmic depth because N8AO may not work with it.",
+   "why_false": "The N8AO README states it works with logarithmic depth buffers and orthographic cameras and detects them automatically.",
+   "correction": "Log depth is a valid option to compare with reversedDepthBuffer and near/far fitting in spike S3. Its remaining risks are early-z cost and interaction with the stencil caps and Outline.",
+   "evidence": "https://github.com/N8python/n8ao (README, opened 21 Oct 2026)"
+  },
+  {
+   "claim": "Clean depth, normal and line passes can be exported to gpt-image to steer AI renderings.",
+   "why_false": "The OpenAI image-generation guide documents reference images and prompt-based masks only, with no depth, normal or ControlNet-style conditioning. Output is limited to 3840 px per edge and 8,294,400 px in total.",
+   "correction": "Send a beauty render as the reference image and overlay vector linework afterwards. Plan AI image placement within about 3840 px, or upscale with a label. Use a depth-ControlNet model if geometric lock is required.",
+   "evidence": "https://developers.openai.com/api/docs/guides/image-generation (models gpt-image-2.5-sunburst and -flare; size limits; masks apply to the first image)"
+  },
+  {
+   "claim": "Board output is an A2 300 dpi PDF built with svg2pdf.js and jsPDF.",
+   "why_false": "The Vancouver Tall Challenge terms require each panel as a JPEG of at most 10 MB, up to four panels, uploaded through the Buildner portal, and non-compliant entries may be disqualified.",
+   "correction": "Rasterise the final composite to a JPEG under 10 MB per panel, at the dimensions given in the brief. PDF is optional, for the course review.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/terms"
+  },
+  {
+   "claim": "It is unknown whether the Challenge supplies a site or context package, so context must come from City LiDAR 2022.",
+   "why_false": "The competition page lists 'SITE PLANS & 3D MODEL' among the brief downloads, with registration closing 29 Oct 2026.",
+   "correction": "Obtain the official model through registration and use it as the default context. Use LiDAR only to extend the sun domain.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/ (brief section, key dates)"
+  }
+ ],
+ "missing": [
+  "Official competition brief (board size, orientation, pixel dimensions) and the supplied 3D site model: format, units, CRS, coverage",
+  "JPEG-under-10 MB export stage and an anonymity check for boards",
+  "A true-north angle in the project frame and importers",
+  "View-dependent silhouette technique (conditional lines or inverted hull) for twisted massing",
+  "Environment lighting, tone mapping and exposure spec for the clay preset; self-hosted assets only",
+  "Axonometric and plan-oblique projection presets",
+  "Colour-vision-safe analysis ramps and a non-colour FALSE ASSUMPTION marker",
+  "AI-image fidelity check and the Buildner AI-image guidance in the presentation hand-off",
+  "Architectural line-weight precedent (course standard or past winning boards)",
+  "Measured numbers from spikes S1-S8 (still none)"
+ ],
+ "sources_checked": [
+  {
+   "url": "https://unpkg.com/@react-three/fiber@9.8.2/dist/events-e51d7528.esm.js",
+   "ok": true,
+   "note": "shadows=true sets PCFSoftShadowMap; 'percentage' maps to PCFShadowMap; unknown strings fall back to soft"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/src/renderers/webgl/WebGLShadowMap.js",
+   "ok": true,
+   "note": "Warning text confirms PCFSoftShadowMap was removed and PCFShadowMap is used instead"
+  },
+  {
+   "url": "https://unpkg.com/@react-three/drei@10.7.9/core/PerformanceMonitor.js",
+   "ok": true,
+   "note": "fps = frames.length/msPassed; timestamps pushed in useFrame; confirms the demand-loop conflict"
+  },
+  {
+   "url": "https://unpkg.com/@react-three/drei@10.7.9/web/View.js",
+   "ok": true,
+   "note": "state.gl.render per view with scissor; no composer path"
+  },
+  {
+   "url": "https://unpkg.com/@react-three/drei@10.7.9/core/useEnvironment.js",
+   "ok": true,
+   "note": "Presets load from raw.githack.com/pmndrs/drei-assets (third-party CDN)"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/environments/RoomEnvironment.js",
+   "ok": true,
+   "note": "Procedural PMREM room, no external assets"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/materials/LDrawConditionalLineMaterial.js",
+   "ok": true,
+   "note": "Conditional-line material, WebGL only; a NodeMaterial variant exists for WebGPU"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+   "ok": true,
+   "note": "v24 Maintenance 2026-10-20, end 2028-04-30; v26 LTS 2026-10-28; v22 ends 2027-04-30"
+  },
+  {
+   "url": "https://github.com/gkjohnson/three-edge-projection",
+   "ok": true,
+   "note": "MIT, 354 stars, GitHub install command, Y-axis projection, floor plan and planar intersection examples; worker not mentioned in README"
+  },
+  {
+   "url": "https://registry.npmjs.org/n8ao/latest",
+   "ok": true,
+   "note": "2.0.1, ISC on npm; peers three>=0.137, postprocessing>=6.30"
+  },
+  {
+   "url": "https://github.com/N8python/n8ao",
+   "ok": true,
+   "note": "CC0 in README; not WebGPU-compatible; MSAA not supported; works with log depth and ortho cameras"
+  },
+  {
+   "url": "https://registry.npmjs.org/@react-three/postprocessing/latest",
+   "ok": true,
+   "note": "3.2.1 depends on n8ao ^2.0.0; peers react ^19, three>=0.156, postprocessing ^6.36, R3F>=9.7"
+  },
+  {
+   "url": "https://unpkg.com/manifold-3d@3.5.4/manifold.d.ts",
+   "ok": true,
+   "note": "slice/project on the X-Y plane, reserveIDs, originalID, ExecutionContext and withContext confirmed; calculateNormals and smoothOut take minSharpAngle"
+  },
+  {
+   "url": "https://github.com/lucasmarkes/hairline",
+   "ok": true,
+   "note": "MIT, 2.6k stars, 33 figures, six tokens; About text still says six figures"
+  },
+  {
+   "url": "https://github.com/wheresryan22/anatomy",
+   "ok": true,
+   "note": "MIT, about 18.0k stars; references craft, kit, motion, react, verify, webgl, walkthrough, 3d; build of a few minutes plus a 15-20 min audit"
+  },
+  {
+   "url": "https://github.com/mourner/suncalc",
+   "ok": true,
+   "note": "BSD-2-Clause; default branch master; apparent (refracted) altitude in degrees, azimuth clockwise from north"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mourner/suncalc/main/README.md",
+   "ok": false,
+   "note": "404: the packet cites the wrong branch"
+  },
+  {
+   "url": "https://registry.npmjs.org/suncalc/latest",
+   "ok": true,
+   "note": "2.1.1, no licence field, ESM with CJS export"
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "gpt-image-2.5 models; max edge 3840 px, 8.29 MP; prompt-based masks; no depth or ControlNet conditioning"
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Registration closes 29 Oct 2026; brief lists site plans and a 3D model (links not public); AI-image FAQ"
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "JPEG panels of at most 10 MB, up to four, anonymous, portal upload only"
+  }
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Register for the Challenge (or get the brief from Xun) before 29 Oct, and import the supplied 3D site model as the default context",
+   "Change the board pipeline's final output to JPEG panels under 10 MB at the brief's dimensions, with an anonymity check; keep PDF for the course only",
+   "Add a northAngle field and importer tests before the sun/shadow module ships",
+   "Specify the clay preset's lighting (RoomEnvironment or self-hosted HDRI, tone mapping, exposure); no runtime CDN HDRIs",
+   "Add a view-dependent silhouette technique to spike S4 for twisted massing",
+   "Rewrite the gpt-image hand-off around reference images, size limits and vector overlay; drop the depth/normal claim",
+   "Fix the SunCalc citation and refraction convention; include logarithmic depth in spike S3",
+   "Run spikes S1-S7 before 13 Nov and log measured numbers"
+  ]
+ },
+ "verdict": "Round 3 has fixed every MAJOR from round 2 with sources, and the core stack (three 0.186, R3F 9.8 with shadows=percentage, Manifold, N8AO) checks out against source. The packet is actionable, but it fails on deliverables and look. Competition panels must be JPEGs of at most 10 MB, not A2 PDFs. The brief supplies a 3D site model, and registration closes 29 Oct. gpt-image has no depth conditioning and caps output at 3840 px. The clay look has no lighting spec. Twisted towers need silhouette lines that change with the view. The canonical frame lacks true north. N8AO does support log depth. Pass, with the conditions listed."
+}

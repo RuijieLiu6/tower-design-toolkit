@@ -1,0 +1,272 @@
+{
+ "expert_role": "Tall-building structural engineer (seismic and wind, Canadian NBC/BCBC practice)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P10-M01, P10-M05",
+   "issue": "The spec leaves out NBC 2020 4.1.8.10(4), which governs every VTC tower in Vancouver. Where Ta >= 1.0 s and IE*S(1.0) > 0.25, non-wood shear walls in the SFRS must run continuously from top to foundation, with no Type 4 (in-plane discontinuity) or Type 5 (out-of-plane offset) irregularities. M01 instead presents core-wall transfers at the podium as allowed if NLDA is done, and M05 only tests Types 1, 2, 3 and 7. Vancouver X450 S(1.0) = 0.44 and every 244-305 m tower has Ta > 1 s.",
+   "fix": "Add a hard rule: SFRS core and shear walls continuous to the foundation, and any Type 4 or 5 flag is red (not permitted), not 'needs NLDA'. Add Type 4 and Type 5 detection to M05 and show it on the M01 elevation. Tell entrants that open podium or public spaces must be made around the core, not by transferring it."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M01, P10-M08",
+   "issue": "The wind-drift check is not what the code says. NBC 2020 4.1.3.5(3) limits the TOTAL DRIFT PER STOREY to 1/500 of the STOREY height under SERVICE wind (Iw,SLS = 0.75). The spec uses top drift <= H/500. The 1/250-1/1000 of building height range comes only from Commentary I para 107 guidance. The proposed load 'q50 = 0.45 kPa' on an equivalent cantilever leaves out Ce (about 1.9-2.0 at 300 m), Cg (dynamic gust factor) and Cp. This understates base wind load by roughly 2-3 times, so stiffness checks will pass when they should not.",
+   "fix": "Compute p = Iw*q*Ce*Cg*Cp following the 4.1.7.8 Dynamic Procedure with Iw = 0.75 for SLS. Check the inter-storey drift ratio against 1/500 at every storey, and show top drift H/500 only as a secondary Commentary I guideline. Unit-test the load against the Commentary I para 63 example."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M01, P10-M05",
+   "issue": "FALSE claim: 'stiff transfer floors acting as outriggers lengthen the real period versus empirical formulas'. Commentary J says the opposite. For such irregular buildings the empirical Ta may be LONGER than the period from dynamic analysis, so ESFP forces are not conservative. Outrigger action stiffens the structure and shortens the period.",
+   "fix": "Correct the wording in M01 and M05: transfers or outrigger floors can make the real period SHORTER than empirical Ta, so forces based on Ta may be unconservative. Flag this case for dynamic analysis."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M03",
+   "issue": "The seismic drift check compares raw modal-analysis drifts with 0.025hs. NBC 4.1.8.13(2) requires elastic deflections, including accidental torsion, to be multiplied by RdRo/IE (and by 1.2 for Type 9 under 4.1.8.10(8)). For ductile walls (RdRo = 5.6) the drift is understated more than fivefold. The spec cites only Commentary J, not the operative clause.",
+   "fix": "Implement drift = elastic drift x RdRo/IE (x1.2 where Type 9 applies) and cite Div B 4.1.8.13(2)-(3). Add the Vd >= 0.8V (regular) / 1.0V (irregular) dynamic scaling floor of 4.1.8.12(8)-(9) to the screening outputs."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M02",
+   "issue": "The classification UI is misleading for this building type. Any tower above 60 m is dynamically sensitive (verified). Towers of 244-305 m will almost certainly have f1 at or below 0.25 Hz, which makes them 'very dynamically sensitive', so the Wind Tunnel Procedure is mandatory whatever their H/w. Painting H/w <= 4 green implies otherwise. M02 also takes 'optional f1 from P10-M03', but Commentary J states that empirical Ta is 'only for estimating seismic design loads and not for the determination of wind forces'. Feeding the 3.1-3.7 s wall Ta (f about 0.27-0.32 Hz) would wrongly avoid the tunnel requirement.",
+   "fix": "Default tunnel_required = true for H >= about 180 m unless a model f1 > 0.25 Hz is supplied. Forbid code Ta as an f1 source. Colour by the governing trigger (f1 or H/w), not by H/w alone. Note Commentary I para 114's caution against approximate frequency formulas."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M02, P10-M04",
+   "issue": "The Strouhal number is misapplied. Commentary I para 104 gives S of about 1/5 for LARGE-DIAMETER CIRCULAR structures and about 1/7 for NON-CIRCULAR sections. The spec says '1/5 for buildings' and M04 uses 1/5 for V_Hc. For a rectangular tower, S = 1/5 overstates V_Hc = f_n*D/S by 40%, which is unconservative. Para 105 also recommends wind-tunnel tests for non-circular sections.",
+   "fix": "Set S = 1/7 for rectangular or polygonal plans and 1/5 only for circular plans. Label vortex results 'tunnel required for non-circular' (para 105)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M08",
+   "issue": "FALSE claim: 'live load up -> ... seismic weight up'. NBC 2020 4.1.8.2 defines W as dead load (partitions need not exceed 0.5 kPa) + 25% snow + 60% of storage load + tank contents. Ordinary office or residential live load is excluded. Including it overstates W, which inflates V. It also inflates rho_B, which lowers the predicted wind accelerations in M04, an unconservative error.",
+   "fix": "Implement W exactly as defined in 4.1.8.2. Report a separate 'mass for wind dynamics' preset (dead load plus a sustained-load fraction) for M04, and cite NBC Table 4.1.5.3 rather than Commentary A for live loads."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M06",
+   "issue": "The geometry rules are wrong. (1) EMTC height is measured from the floor of the first storey to the uppermost floor level, excluding rooftop service enclosures (NBC 3.2.2.48(1)(c), the same pattern as BC's 18-storey tier). The spec measures 'first-storey floor to roof'. (2) The input is 'fire-separated building parts', but only a FIREWALL creates a separate building (Div A 1.3.3.4). A timber podium joined to a 300 m tower is otherwise the same building and fails at once on storeys and height.",
+   "fix": "Change the input to 'firewall-separated buildings'. Measure height to the uppermost floor level. Show a red default for any timber in a building that is not firewall-separated from the tower. Re-read the 76 m tier text in BCBC 2024 Rev. 1 Table 3.2.2.91 (it could not be fetched this round)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M03",
+   "issue": "The independent-review logic is incomplete for BC. The spec makes peer review conditional on NLDA or an unlisted SFRS. EGBC states that a documented independent review of structural designs is a mandatory bylaw quality-management standard for its registrants, regardless of analysis method. On top of that sit the Commentary J special-study panel (at least 3 experts) and the City's alternative-solution panel. The spec's 'bad' state, 'NLDA without review', misses the baseline requirement.",
+   "fix": "Model three tiers: (a) EGBC documented independent review (always); (b) a Commentary J special-study peer panel when NLDA is used; (c) a City alternative-solution panel (Bulletin 2002-007) for unlisted systems. Read EGBC's guide v3.0 (June 2023) for scope. The v2.0 link returns 404."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M07",
+   "issue": "The below-grade transit link is reduced to a clearance polygon. NBC 4.1.8.14 requires adjacent structures to be separated by at least the SRSS of their deflections, or to be connected and designed as connected (lowest RdRo, special study if non-rigid). Transit-owner protection zones, train-induced vibration isolation and Expo/Canada Line tunnel interfaces are absent. This is a required VTC element and scores under urban integration.",
+   "fix": "Add a link-interface check: seismic joint width = SRSS(tower drift x RdRo/IE, station drift) at link level, or a 'connected' flag that sets RdRo to the lower value. Add a vibration-isolation note and a TransLink/BCRTC approval checklist item. The guideline source still needs to be found (search budget was exhausted this round)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10 (all)",
+   "issue": "Scope does not fit the schedule. Stated effort is about 36 person-days for P10 alone. The recommended 13 Nov working core (M02, M05, M06, M03, M01) is about 18 person-days, due in 23 calendar days, for two students covering 13 categories.",
+   "fix": "Cut the 13 Nov core to: M02 classification (rules only), M03 hazard, SC and route flags (no Mv/J base shear), M06 rule table and M05 irregularity flags, including Types 4 and 5. Move M01 scoring, M04, M07 and M08 to 10 Dec or the roadmap. Record the cut in the change log."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M04",
+   "issue": "The calibration test is under-specified, and its provenance claim is false. The Commentary I para 115 example uses q10 = 0.37 kPa and rho_B = 176 kg/m3 (not Vancouver data); V = 23.9 m/s follows from 0.37 kPa with rho_air = 1.2929. The spec's claim that the Table C-2 column mapping was confirmed because Vancouver's values 'match the Commentary example speeds' is wrong. Vancouver q10 = 0.34 kPa gives 22.9 m/s.",
+   "fix": "Encode the full example inputs (H = 183 m, w = d = 30.5 m, f = 0.2 Hz, beta = 0.015, rho_B = 176, q10 = 0.37, CeH = 1.9) in the unit test. Fix rho_air = 1.2929 kg/m3. Re-label q10/q50 = 0.34/0.45 kPa as verified directly from NBC 2020 Table C-2 (Vancouver City Hall row), which is now confirmed."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M03",
+   "issue": "Type 9 is overstated. Table 4.1.8.6 sets Type 9 at alpha > 0.1 (self-centering) or 0.03 (other systems). Under 4.1.8.10(9), NLDA with vertical motion is required only when alpha exceeds TWICE that limit and IE*S(0.2) >= 0.5. The spec says Type 9 'requires nonlinear dynamic analysis'.",
+   "fix": "Encode the alpha thresholds, the x1.2 drift factor (4.1.8.10(8)) and the 2x trigger for NLDA (4.1.8.10(9)) separately."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M03",
+   "issue": "The spec leaves out the NBC 2020 multi-level performance check in 4.1.8.23(4). For Normal Importance buildings in SC4 taller than 30 m, framing not counted as SFRS must stay elastic under 10%-in-50-year forces with RdRo = 1.3. This applies to every VTC tower and affects gravity columns and slab-column connections.",
+   "fix": "Add a route flag and a short explanation. The 10%-in-50-year hazard values come from the NRCan 2020 hazard tool."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M01",
+   "issue": "The Table 4.1.8.9 summary is imprecise. Ductile BRBF (Rd 4.0) is grouped with 'moderately ductile' systems, although it is a ductile type with a 40 m cap at SC4. Steel moderately ductile MRF (NL at SC4) is missing from the 'no cap' list. Concrete moderately ductile MRF (40 m at SC4) and MD plate walls (40 m) are not mentioned.",
+   "fix": "Load the whole SC4 column into the JSON rule table (verified against the 2025 amended printing) instead of paraphrasing it."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M01",
+   "issue": "The outrigger flag tends to label every outrigger scheme 'unlisted, Rd = Ro = 1.0'. In practice, the core walls are the listed SFRS (ductile or coupled walls), outriggers and belts are capacity-protected elements, and combined systems take the lowest RdRo (4.1.8.9(3)), or equivalence is shown under 4.1.8.9(5).",
+   "fix": "Use three code-route states: 'listed SFRS + outrigger elements (capacity design, special study likely)', 'equivalence route', and 'unlisted'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M07",
+   "issue": "Foundation overturning logic is inverted and incomplete. Under NBC 4.1.8.16(2), ALL foundations must exceed the SFRS lateral capacity. The relaxation in (4) applies only to foundations NOT constrained against rotation. (3) caps the demand at RdRo = 1.0 forces with 1.5x bearing and 1.3x other resistances. SC4 tie and pile requirements in (6) are omitted.",
+   "fix": "Encode 4.1.8.16(2)-(4) and (6) as written, and cite the Div B clause, not only Commentary J."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M03",
+   "issue": "Hazard source. NBC 2020 Appendix C directs Part 4 users to the NRCan 2020 Seismic Hazard Tool (or the NPARC archive) for the site's latitude and longitude. Commentary Table J-2 is only an example (its values were verified: 1.1/0.77/0.44/0.27/0.075/0.033, PGA 0.46). Table C-3's 0.848 g for Vancouver is a Part 9 value carried over from 2015.",
+   "fix": "Fetch hazard values for the VTC block coordinates and site designations, and keep J-2 only as a fallback. Explain that 0.848 appears in NBC 2020 only for Part 9."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M04",
+   "issue": "Broken citation: the ISO 10137 metric cites source 'P10-S39', which does not exist (ISO is P10-S38).",
+   "fix": "Change it to P10-S38. Note that the formulae 0.61 f^-0.454 and 0.41 f^-0.454 (% g, 1-year, 10-minute mean speed) are verified from Commentary I para 113."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M01, P10-M04",
+   "issue": "Wrong library URLs: 'Rules engine in TypeScript' and 'TypeScript implementation' both point to the PyNite repository. The architecture is also inconsistent: PyNite is Python while the tool is web-first with browser-side TypeScript, and no Pyodide or server path is stated.",
+   "fix": "Correct the URLs and state the compute architecture (Pyodide, server, or a pure-TS stick model) for each module."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M02, P10-M04",
+   "issue": "The across-wind parameter is marked 'unverified' and the effective-width formula is left 'to transcribe'. The NBC 2020 text defines w = sum(h_i w_i)/sum(h_i) (h_i = height above grade to level i), and Commentary I para 108 defines the criterion with w, d and H and says d uses the same formula with d_i. This matches sqrt(wd)/H < 1/3.",
+   "fix": "Implement w = sum(h_i*w_i)/sum(h_i), then d analogously, and use sqrt(wd)/H < 1/3. Change the status to verified, with a note to check the equation graphic."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "sources",
+   "issue": "P10-S04 is dated 2022 (first printing). NRC issued a second printing with revisions and errata on 31 Mar 2025, and this review checked clauses against it. P10-S17 to P10-S20 are marked opened = true although only shop descriptions were read.",
+   "fix": "Cite the 2025 amended printing and check the errata package for Part 4 changes. Set opened = 'description only' for paywalled guides."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M01",
+   "issue": "Jury mapping: tagging the lateral-system selector 'human_scale_40' is unsupported. What links structure to human scale is podium transfers and core position (M05), and NBC 4.1.8.10(4) restricts those.",
+   "fix": "Tag M01 design_excellence_20 only, and tag M05 human_scale_40 via the podium/core-continuity output."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "NBC wind serviceability limit is top drift <= H/500 under q50 = 0.45 kPa (P10-M01, P10-M08).",
+   "why_false": "The code limit applies per storey, to storey height, under service wind loads that include Iw,SLS, Ce, Cg and Cp, not bare q50.",
+   "correction": "Check total drift per storey <= hs/500 under service wind (Iw = 0.75) using the 4.1.7.8 Dynamic Procedure pressures. Keep H/250-H/1000 only as Commentary I guidance.",
+   "evidence": "NBC 2020 Div B 4.1.3.5(3) (2025 amended printing): 'the total drift per storey under service wind and gravity loads shall not exceed 1/500 of the storey height'. Table 4.1.7.3 gives Iw SLS = 0.75."
+  },
+  {
+   "claim": "Stiff transfer floors acting as outriggers lengthen the real period versus the empirical formulas (P10-M01, P10-M05).",
+   "why_false": "Commentary J says the empirical Ta may be LONGER than the dynamic-analysis period for such buildings. The real period is shorter, so ESFP forces are unconservative.",
+   "correction": "Transfers or outrigger floors can shorten the period below empirical Ta; flag the case for dynamic analysis.",
+   "evidence": "NBC 2020 Structural Commentaries, Commentary J (p. J-70): 'stiff transfer floors that act as outriggers, the empirical period may be longer than the period obtained from dynamic analysis'."
+  },
+  {
+   "claim": "Strouhal number is about 1/5 for buildings (P10-M02, P10-M04).",
+   "why_false": "1/5 applies to large-diameter circular or near-circular structures. Non-circular sections, which includes most towers, are about 1/7.",
+   "correction": "Use S = 1/7 for rectangular plans. For non-circular sections wind-tunnel tests are recommended.",
+   "evidence": "Commentary I paras 104-105."
+  },
+  {
+   "claim": "Higher live load raises seismic weight W (P10-M08).",
+   "why_false": "NBC W excludes ordinary live load.",
+   "correction": "W = dead load (partitions capped at 0.5 kPa) + 25% snow + 60% storage load + tank contents.",
+   "evidence": "NBC 2020 Div B 4.1.8.2 definition of W."
+  },
+  {
+   "claim": "The Commentary I worked example speeds (23.9 m/s) confirm the Vancouver Table C-2 column mapping (q10 = 0.34 kPa).",
+   "why_false": "The example uses q10 = 0.37 kPa and rho_B = 176 kg/m3. 23.9 m/s = sqrt(2 x 370 / 1.2929). Vancouver's 0.34 kPa gives 22.9 m/s.",
+   "correction": "q10 = 0.34 and q50 = 0.45 kPa are correct, but the verification is that they appear directly in the NBC 2020 Table C-2 Vancouver (City Hall) row, not that they match the example.",
+   "evidence": "Commentary I para 115 inputs; NBC 2020 Table C-2 Vancouver (City Hall) row ends '0.34 0.45'."
+  },
+  {
+   "claim": "Mass-timber EMTC height is measured from the first-storey floor to the roof, and 'fire-separated parts' can be checked as separate buildings (P10-M06).",
+   "why_false": "EMTC height runs to the uppermost floor level, excluding rooftop service enclosures. Only firewalls create separate buildings.",
+   "correction": "Measure to the uppermost floor level and require firewall separation before treating a part as its own building.",
+   "evidence": "NBC 2020 3.2.2.48(1)(c); Div B Note on party walls citing Div A 1.3.3.4 ('Buildings on each side of a ... firewall are considered as separate buildings')."
+  },
+  {
+   "claim": "Type 9 irregularity requires nonlinear dynamic analysis (P10-M01, P10-M03).",
+   "why_false": "NLDA is required only when alpha exceeds twice the Type 9 limit and IE*S(0.2) >= 0.5. Otherwise drift is multiplied by 1.2.",
+   "correction": "Apply 4.1.8.10(7)-(9) with Type 9 limits of 0.1 (self-centering) and 0.03 (other systems).",
+   "evidence": "NBC 2020 Table 4.1.8.6 Type 9; 4.1.8.10(8)-(9)."
+  },
+  {
+   "claim": "Independent structural review is needed only when NLDA or an unlisted SFRS is used (P10-M03).",
+   "why_false": "In BC, EGBC requires its registrants to carry out documented independent review of structural designs as a bylaw quality-management standard.",
+   "correction": "Make baseline independent review always required, and add the special-study and alternative-solution panels on top.",
+   "evidence": "EGBC statement surfaced in search ('a longstanding quality management standard within our bylaws, which our registrants are required to follow'); the guide PDF v2.0 link returned 404 (v3.0, June 2023, not opened)."
+  }
+ ],
+ "missing": [
+  "NBC 4.1.8.10(4): shear walls continuous to the foundation, with no Type 4 or 5 irregularities, when Ta >= 1 s and IE*S(1.0) > 0.25. This is decisive for podium design.",
+  "NBC 4.1.8.23(4): elastic design of non-SFRS framing at 10%-in-50-year forces for SC4 Normal Importance buildings taller than 30 m.",
+  "Dynamic base-shear floor Vd >= 0.8V (regular) / 1.0V (irregular), and the RdRo/IE drift multiplier (4.1.8.12(8)-(9), 4.1.8.13(2)).",
+  "Seismic separation or connection rules (4.1.8.14) for the below-grade link to the transit station, TransLink/BCRTC protection-zone and vibration requirements, and tunnel interface (sources not yet found).",
+  "Backstay effect of podium and basement diaphragms and walls on core shear, and the CSA A23.3-19 / S16-19 detailing assumptions behind Rd and Ro (tall-wall shear amplification). These are engineering-practice items not checked this round.",
+  "Block-specific geotechnics: downtown peninsula till or bedrock depth, groundwater and the City's groundwater-discharge rules, and a lookup of the Metro Vancouver microzonation map for the actual block.",
+  "Vancouver tall-tower calibration set (e.g. Living Shangri-La about 201 m, with a liquid damper) for system envelopes, frequency and density presets.",
+  "Current tallest built timber or timber-hybrid buildings as of 2026, to update the 87 m precedent ceiling (not checked; search budget exhausted).",
+  "Verification of the BCBC 2024 Rev. 1 / VBBL 2025 Table 3.2.2.91 text (76 m tier, area caps): the RTS 16367 PDF returned 403 and AIBC confirms only 18 storeys.",
+  "Explicit compute architecture (browser TypeScript vs Pyodide vs server) for the PyNite-based modules.",
+  "Use of the NRCan 2020 Seismic Hazard Tool for the VTC block coordinates instead of Commentary Table J-2 example values.",
+  "Differential axial shortening, creep and construction sequence; at least a warning output for concrete core vs composite or steel perimeter."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Add NBC 4.1.8.10(4) wall-continuity and Type 4/5 checks to M01 and M05 as hard red rules.",
+   "Replace the top-drift H/500 with q50 screen with a per-storey hs/500 check under service wind that includes Iw, Ce, Cg and Cp.",
+   "Apply the RdRo/IE multiplier to seismic drift, and add the Vd >= 0.8V/1.0V scaling and the 4.1.8.23(4) flag.",
+   "Correct the false claims on outrigger period, Strouhal number, seismic weight and Type 9, and the EMTC height-measurement and firewall rules.",
+   "Redefine the independent-review states to include the EGBC baseline.",
+   "Default M02 to tunnel-required for supertall towers and forbid empirical Ta as an f1 input.",
+   "Re-scope the 13 Nov working core to fit the schedule and record the cut in the change log.",
+   "Fix the dangling source ID P10-S39 and the wrong library URLs, and cite the 2025 amended NBC printing."
+  ]
+ },
+ "previous_round": [],
+ "sources_checked": [
+  {
+   "source_id": "P10-S04",
+   "url": "https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en",
+   "ok": true,
+   "note": "NBC 2020 2nd printing (revisions 31 Mar 2025) machine-read. Verified: 4.1.7.1(2)-(6) and 4.1.7.2 triggers (60 m, 4x, 6x with human occupancy, 1 Hz/0.25 Hz, CFD prohibited); Table 4.1.8.5-B SC thresholds; Table 4.1.8.9 SC4 caps; 4.1.8.7 static limits; 4.1.8.11(3) period caps incl. 4.0/2.0 s deflection caps; Ft rule; Table C-2 Vancouver q 0.34/0.45. Contradicted: wind drift is per storey (4.1.3.5(3)); W excludes live load; Type 9 NLDA trigger. Found omissions: 4.1.8.10(4), 4.1.8.13(2), 4.1.8.12(8)-(9), 4.1.8.23(4), 4.1.8.16."
+  },
+  {
+   "source_id": "P10-S05",
+   "url": "https://nrc-publications.canada.ca/eng/view/ft/?id=b9fddc27-86f2-496b-9aa4-b66c45164ba6",
+   "ok": true,
+   "note": "Structural Commentaries 5th ed. (2025). Verified: Table J-1 (+25%/+5%), Table J-2 Vancouver X450 values, basin effects not modelled, peer panel of at least 3 for NLDA, 11-record suites, Commentary I paras 103-115 (1.5-2.5% g, ISO 0.61/0.41 f^-0.454, the sqrt(wd)/H < 1/3 criterion). Contradicted: Strouhal 1/5 for buildings; 'transfer floors lengthen period'; worked example uses q10 = 0.37 kPa, rho_B = 176."
+  },
+  {
+   "source_id": "P10-S01",
+   "url": "https://vancouver.ca/files/cov/guide-to-2025-vbbl-updates-v1.01.pdf",
+   "ok": false,
+   "note": "HTTP 403. City pages surfaced by search confirm new seismic requirements apply from 15 Sep 2026 with possible in-stream deferral to 8 Mar 2027 ('issued' vs 'submitted' wording differs between City pages)."
+  },
+  {
+   "source_id": "P10-S06",
+   "url": "https://council.vancouver.ca/20240611/documents/r2.pdf",
+   "ok": false,
+   "note": "HTTP 403; the 76 m and area caps could not be re-verified."
+  },
+  {
+   "source_id": "P10-S07",
+   "url": "https://aibc.ca/2024/05/bc-codes-update-for-mass-timber-construction/",
+   "ok": true,
+   "note": "Confirms 12 to 18 storeys for residential and office (BCBC 2024 Rev. 1, 10 Apr 2024) and added occupancies; gives no metres or area caps."
+  },
+  {
+   "source_id": "P10-S09 (supplement)",
+   "url": "https://origin2.earthquakescanada.nrcan.gc.ca/hazard-alea/2023_13CCEE/CCEE-PCEE-2023_Kolaj_etal_111_2020DeaggregationSelectedCities.pdf",
+   "ok": true,
+   "note": "Kolaj et al. 2023 confirms Vancouver short periods dominated by in-slab and long periods by interface events; recommend citing it in place of or alongside P10-S09."
+  },
+  {
+   "source_id": "EGBC IRSD",
+   "url": "https://egbc.ca/getmedia/b8eb4a64-2f86-415b-98fb-b11aae4f46fa/EGBC-Documented-Indep-Rev-of-Structural-Designs-V2-0.pdf",
+   "ok": false,
+   "note": "404. A search summary of EGBC and municipal statements says documented independent review is mandatory under EGBC bylaws; guide v3.0 (June 2023) not opened."
+  },
+  {
+   "source_id": "NBC 2020 NRC object pages",
+   "url": "https://nrc-publications.canada.ca/eng/view/object/?id=515340b5-f4e0-4798-be69-692e4ec423e8",
+   "ok": true,
+   "note": "Shows a second printing with revisions and errata (31 Mar 2025); the spec cites the 2022 date."
+  }
+ ],
+ "verdict": "This round fails the gate. Most of the code citations are accurate, and I checked them against the 2025 printing of NBC 2020 and its Commentary. But several rules the tool would apply are wrong or missing. Wind drift is checked at the top under bare q50, when NBC limits drift per storey under service wind. Seismic drifts are compared without the RdRo/IE multiplier. The Strouhal number and seismic weight are wrong, and the outrigger/period claim is inverted. The rule requiring core walls to run continuous to the foundation, which bans core transfers at the podium, is missing. Mass-timber height is measured wrongly, and firewall separation is not required. Independent review in BC and the station seismic joint are left out. The 13 Nov scope does not fit. Fix the BLOCKER and the MAJOR items before entrants rely on this."
+}

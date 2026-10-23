@@ -1,0 +1,352 @@
+{
+ "expert_role": "Senior product designer of professional creative and analysis tools (node editors, AEC analysis, design systems)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Stack recommendation: shadcn/ui (Radix base) + Radix Primitives finding",
+   "issue": "Out of date. The shadcn changelog entry 'Base UI as the Default' (July 2026) makes Base UI the default for new projects: `npx shadcn init` now picks Base UI, and Radix needs `-b radix`. The packet says Radix is 'the default base under shadcn/ui' and that Base UI's release status is unknown. Base UI is at v1.9.0 (9 Oct 2026, MIT, 11.2k stars). If the team runs init as written, they get a different primitives set from the one the packet planned around.",
+   "fix": "Choose one base explicitly and record it in PRODUCT.md and CLAUDE.md. Either accept Base UI (new default; components and docs ship for it first) or pin `shadcn init -b radix`. Before choosing, check that the React Flow UI registry items and the shadcn Command (cmdk) work with the chosen base. Rewrite the Radix finding as 'transitive only if -b radix'."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "React Flow UI (core)",
+   "issue": "Its licence is still unresolved, and the page does not say whether the Workflow Editor and AI Workflow Editor templates are free or Pro. The page also requires React 19 and Tailwind 4 and a set stylesheet import order. None of this is in the packet, yet the packet makes the item core and the starting template.",
+   "fix": "Before 13 Nov, open the registry JSON or source for each component to read its licence header, or ask xyflow (GitHub discussion or email). Pin React 19, Tailwind 4.3.x and @xyflow/react 12.12.x. Keep a fallback of custom nodes on core React Flow (MIT) so the core build does not depend on an unlicensed template."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "WCAG 2.2 / node-canvas contract",
+   "issue": "The packet treats React Flow keyboard support as enough. Per the React Flow docs, keyboard use covers focus, select and move nodes only; you cannot create edges from the keyboard. `connectOnClick` (default true) meets 2.5.7 Dragging Movements, but wiring still fails 2.1.1 Keyboard, the most important criterion for a node editor. The WebGL viewport and heatmaps also need text alternatives (1.1.1), which the packet does not mention.",
+   "fix": "Add a keyboard 'Connect…' command on each focused port. It opens a listbox of type-compatible target ports and is also reachable from Ctrl+K. Add an 'Edges' list in the inspector with delete and rewire. For every viewport analysis, offer a 'View as table' with values per facade or zone. Add these to the a11y acceptance checklist."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Benchmarks (Forma, Spline, Observable, tldraw, Speckle, Rerun)",
+   "issue": "Most of the benchmarks in scope were never analysed for UX. Forma, the closest AEC competitor, has no claims at all. A secondary summary of Autodesk's 'Compare analysis with Forma' tutorial (I could not open it directly; autodesk.com returned 403) describes up to six proposals side by side, synced zoom and pan, and point inspection that reads out across all panes. That precedent conflicts with the packet calling linked cameras an unsourced team assumption, and it hands the team a ready pattern for comparing options.",
+   "fix": "Use Forma's tutorial video or Autodesk Learn transcript, or the free Forma trial, to document its compare, analysis-legend and proposal-history UX. Write one benchmark card each for Figma, Linear, Spline, Observable, Rerun, Speckle and Forma: what to copy, what to avoid, screenshot. Upgrade linked cameras and linked point inspection from team assumption to sourced, once the source has been opened directly."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missing professional-tool fundamentals",
+   "issue": "The packet does not cover undo/redo and history, autosave, snapshots or versioning of options, graph diffs when forking a community module, failed-node and error states, type-mismatch messages on wires, units, significant figures and number formatting, or how stale results propagate downstream. Designers lose trust in analysis tools through these, not through visual polish.",
+   "fix": "Add principles with rules: global undo across canvas, inspector and assumptions; named option snapshots (a prerequisite for the compare view); per-node states idle, queued, running, stale, failed and warning, each with icon plus text; error copy that names the cause and a fix; SI units shown on every value; a consistent rounding policy per metric (e.g. 3 significant figures, with full precision on hover)."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Evidence base for node-editor praise and complaints",
+   "issue": "The packet admits it has no social or community evidence and relies on single-voice forum posts. It also does no research with the actual users: ARCH 540 students and Grasshopper users. The scope explicitly asked what users praise and hate.",
+   "fix": "Before 13 Nov, run five 30-minute contextual interviews or think-aloud sessions with classmates who use Grasshopper, and a 3-task paper or Figma test of the phase rail and node card. Separately, gather 20 or more tagged complaints from the McNeel forum, Blender DevTalk, r/comfyui (via the old.reddit or the Pushshift-free JSON endpoint) and Hacker News, and code them into themes."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Presentation mode / A2 boards / AI renderings",
+   "issue": "The headline deliverable, four A2 competition boards with AI renderings, gets no design guidance. Missing: print grid and type scale for A2 at viewing distance, export resolution and colour handling (sRGB vs print), legend legibility in print, how boards and the live model stay in sync, labels and provenance for AI images, and whether the 2026 Vancouver Tall Challenge rules restrict or require disclosure of AI imagery.",
+   "fix": "Add a 'Present' principle: an A2 board template with a 12-column grid and minimum sizes (body ≥ 10 pt at print, legend text ≥ 8 pt), 300 dpi export, vector charts from Observable Plot, auto-generated 'AI-generated image' captions with prompt and model in board metadata, and a check against the competition brief's rules on AI."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Sequencing for 13 Nov core",
+   "issue": "In about three weeks, with Node not yet installed, the core list includes the shell, tokens, typed canvas, palette, three starter graphs on the real block, a sources panel and empty states. On top of that the toolchain asks Claude to load five design aids (Impeccable, frontend-design, Vercel guidelines, UI UX Pro Max, shadcn skill and MCP), which works against the stated token-saving goal. Impeccable also downloads a self-contained binary into ~/.impeccable/bin on first run and installs edit hooks: a supply-chain and permissions step the packet does not flag. Impeccable's rules also flag Inter, which the packet picks as the UI font.",
+   "fix": "Cut the 13 Nov core to: shell, CSS-variable tokens, canvas with typed ports, palette, one starter graph, and the SourceChip/'Why this number?' panel. Load at most two design aids per session: shadcn skill plus either Impeccable or the vendored Vercel checklist. Review Impeccable's binary and hook before install. Settle the Inter conflict (keep Inter and silence that rule, or pick a different UI face)."
+  },
+  {
+   "severity": "MINOR",
+   "item": "FALSE ASSUMPTION / Team assumption status colours",
+   "issue": "No actual hues are proposed. FALSE ASSUMPTION must not collide with error/failed red, with warning amber, or with the ends of the Crameri diverging ramps used on the model. In the viewport the status chips sit on top of saturated analysis colour.",
+   "fix": "Reserve one hue for FALSE ASSUMPTION outside every data ramp the tool ships (e.g. a magenta/purple family), and always pair it with a strike-through or hatch, an icon and the words 'FALSE ASSUMPTION'. Validate 3:1 against both themes and against the viewport background, and test under CVD simulation."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Tailwind CSS finding",
+   "issue": "'Map tokens into the Tailwind theme' reads like a v3 tailwind.config.js. Tailwind 4.3.x (current, v4.3.3 July 2026), which React Flow UI requires, configures the theme in CSS with @theme and CSS variables.",
+   "fix": "Have tokens emit CSS custom properties that are referenced in an `@theme inline` block. Remove any guidance that assumes tailwind.config.js."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Scientific colour maps (Crameri)",
+   "issue": "The licence is listed as unknown, but the Zenodo record for v8.0.1 (5 Oct 2023) states MIT.",
+   "fix": "Close the UNVERIFIED flag. Bundle the colour stops with the MIT notice and the Crameri et al. 2020 citation in the sources panel."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Inter and Geist typefaces",
+   "issue": "The 'Display cut unresolved' item is stale. Inter 4.0 (released 20 Nov 2023) added six Display designs on an `opsz` variable axis. The README line saying a Display cut is in the works predates that release.",
+   "fix": "Use Inter 4.1 variable with opsz for headings and board titles (auto optical sizing), and remove the unresolved item. Confirm Geist Mono (npm geist 1.8.1, 16 Oct 2026) variable files before self-hosting."
+  },
+  {
+   "severity": "MINOR",
+   "item": "cmdk",
+   "issue": "'React 18 and client-only' is wrong: the 1.1.1 peerDependencies accept React ^18 or ^19. The real risk is dormancy: the last release was March 2025 and the last push October 2025. The kbar fallback repo is timc1/kbar (npm kbar 1.0.0, 10 Aug 2026).",
+   "fix": "Correct the risk text. Keep cmdk via shadcn Command, and wrap it so it can be swapped for kbar or React Aria Autocomplete."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Style Dictionary and DTCG",
+   "issue": "Listed as 'activity unknown / DTCG not confirmed'. In fact v5.7.0 was released 16 Oct 2026 (4.9k stars, Apache-2.0), and DTCG ($value/$type) has had first-class support since v4. The docs also say the 2025.10 DTCG format is not yet fully supported, which affects the packet's 'stable 2025.10' plan.",
+   "fix": "Update the finding. Author tokens in the DTCG subset that Style Dictionary v5 supports and note the gaps for 2025.10. For 13 Nov, keep plain CSS variables as the packet already proposes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Playwright MCP / CLI",
+   "issue": "The packet prefers the 'Playwright CLI with skills', but @playwright/cli is pre-1.0 (0.1.22, 28 Sep 2026). That maturity risk is not noted.",
+   "fix": "Pin the version, and keep Playwright Test (stable) with @axe-core/playwright for CI. Use the CLI or MCP only for Claude's interactive self-checks."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Motion principle",
+   "issue": "The motion durations are tighter than NN/g's article. NN/g gives 100–400 ms for most animations and allows ease-in or ease-in-out for exits, with a warning that these can feel sluggish. 'Avoid parallax' is not in the cited article.",
+   "fix": "Use duration tokens of 100/200/300 ms and allow 400 ms for large panel moves. Cite NN/g accurately, and either source the parallax rule elsewhere or mark it as a team assumption."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Carbon status-indicator citation",
+   "issue": "Carbon's page contradicts itself: 'at least three' elements in the visual guidance and 'at least two' in the accessibility section. It sets no strict cap, only a note that more than five or six can overwhelm. The packet's rule to 'cap status chips per screen' turns that note into a hard rule.",
+   "fix": "Require colour, icon and text (which satisfies both readings). Make the per-screen chip cap an editable team assumption that cites Carbon's 'five or six' note."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Missing alternatives",
+   "issue": "Missed options: dockview (MIT core packages, 8.6.1 released 19 Oct 2026) as a planned upgrade path for docking is mentioned but not evaluated; there is no parameter-panel library (e.g. Leva or Tweakpane) for the fast-preview sliders; there is no collaboration or presence layer (Yjs/Liveblocks) for team comments, which the community and team features imply.",
+   "fix": "Run a half-day spike that compares an inspector built from shadcn form parts with Leva or Tweakpane for numeric scrubbing plus typed input. Note Yjs-based presence as a roadmap item with its UX implications (cursors, comment pins on nodes)."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Radix is the default base under shadcn/ui; Base UI is only something to watch, and its release status is unknown.",
+   "why_false": "Since July 2026 shadcn init defaults to Base UI. Radix is still supported but has to be chosen with -b radix. Base UI is stable at v1.9.0.",
+   "correction": "Choose the base explicitly: Base UI (default) or `shadcn init -b radix`. Update the Radix finding and the stack recommendation.",
+   "evidence": "ui.shadcn.com/docs/changelog/2026-07-base-ui-default; GitHub API mui/base-ui release v1.9.0 2026-10-09; npm @base-ui/react 1.9.0."
+  },
+  {
+   "claim": "cmdk is limited to React 18 (risk text).",
+   "why_false": "cmdk 1.1.1 peerDependencies are 'react: ^18 || ^19 || ^19.0.0-rc'.",
+   "correction": "It supports React 19. The real risk is no release since March 2025.",
+   "evidence": "registry.npmjs.org/cmdk (latest 1.1.1, 2025-03-14); GitHub releases dip/cmdk."
+  },
+  {
+   "claim": "Whether Inter ships a Display cut is unresolved (the README says it is in the works).",
+   "why_false": "Inter v4.0, released 20 Nov 2023, added six Display designs on an opsz variable axis. The README sentence is stale.",
+   "correction": "Inter Display exists in Inter 4.x variable fonts (opsz). Close the unresolved item.",
+   "evidence": "GitHub API rsms/inter releases: v4.0 notes ('Six additional Display designs, assigned to an opsz variable-font axis')."
+  },
+  {
+   "claim": "React Flow's built-in keyboard support plus click-click wiring makes the canvas WCAG 2.2 AA-ready for wiring.",
+   "why_false": "React Flow documents keyboard focus, selection and node movement only. It has no keyboard way to create edges. connectOnClick only covers single-pointer use (2.5.7), not keyboard use (2.1.1).",
+   "correction": "Build a keyboard port-connection command or listbox. Treat edge creation as a custom a11y feature.",
+   "evidence": "reactflow.dev/learn/advanced-use/accessibility; reactflow.dev/api-reference/react-flow (connectOnClick default true; keyboard connections not described)."
+  },
+  {
+   "claim": "Crameri original maps have no stated licence.",
+   "why_false": "The Zenodo record for Scientific colour maps v8.0.1 states the MIT License.",
+   "correction": "MIT. Bundle the stops with attribution.",
+   "evidence": "zenodo.org/records/8409685 (v8.0.1, 5 Oct 2023, MIT)."
+  },
+  {
+   "claim": "Linked cameras in the Compare view are an unsourced team assumption.",
+   "why_false": "Autodesk Forma's compare-analysis tutorial reportedly syncs zoom and pan across up to six proposal panes and propagates point inspection between them: a direct AEC precedent.",
+   "correction": "Cite Forma as precedent once it has been opened directly. Consider linked point inspection as well as linked cameras.",
+   "evidence": "WebSearch summary of autodesk.com/learn/ondemand/tutorial/compare-analysis-with-forma (direct fetch returned 403; secondary evidence only)."
+  },
+  {
+   "claim": "Style Dictionary activity and DTCG support are unknown; DTCG 2025.10 can be adopted via Style Dictionary.",
+   "why_false": "Style Dictionary v5.7.0 was released 16 Oct 2026 and has had first-class DTCG support since v4. Its docs also say 2025.10 is not yet fully supported (work in progress in v5).",
+   "correction": "The project is active. Use the DTCG subset that Style Dictionary v5 supports.",
+   "evidence": "GitHub API style-dictionary/style-dictionary releases; styledictionary.com/info/dtcg/."
+  }
+ ],
+ "missing": [
+  "UX analysis of the named benchmarks: Autodesk Forma (compare, analysis legends, proposal history), Spline, Observable, Rerun, Speckle, tldraw interactions",
+  "Undo/redo, autosave, option snapshots and versioning, graph diff when forking community modules",
+  "Node run-state and error-state taxonomy (idle, queued, running, stale, failed, warning), error copy, type-mismatch feedback on wires",
+  "Units, significant figures, number formatting and rounding policy for analysis readouts",
+  "Keyboard edge creation and text or table alternatives for WebGL viewport analyses",
+  "Print and board design system for four A2 boards (grid, type sizes at distance, 300 dpi, colour handling) and AI-image labelling or provenance, checked against the competition's AI rules",
+  "UX for AI features (Claude/OpenAI assistance, gpt-image renders): disclosure, editability, human-in-the-loop",
+  "Primary user research with ARCH 540 students and Grasshopper users; social-platform complaint corpus",
+  "Concrete hues and token values for Sourced / Team assumption / FALSE ASSUMPTION, checked against data ramps",
+  "Collaboration and presence UX for team commenting on nodes (community features)",
+  "Performance budget for large graphs (onlyRenderVisibleElements, node count thresholds) as a UX constraint",
+  "Observable Plot legend capabilities: readable from the repo docs (docs/features/legends.md confirms colour, opacity and symbol legends) even though the site returned 429"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Restate the front-end base choice after the shadcn July 2026 Base UI default (Base UI or -b radix) and check that React Flow UI and Command work with it",
+   "Resolve the React Flow UI component and template licence (free vs Pro), or plan the 13 Nov core on MIT React Flow core only",
+   "Add keyboard edge creation and viewport table alternatives to the WCAG plan",
+   "Deliver benchmark cards for at least Forma, Figma, Linear and Speckle, with Forma compare evidence from a directly opened source",
+   "Add principles for undo/history/snapshots, node error and stale states, and units and precision",
+   "Add a presentation-board (A2) and AI-render labelling principle, including a check of the competition rules",
+   "Cut the 13 Nov scope and limit design skills loaded per session; review Impeccable's binary and hook before installing",
+   "Apply the factual corrections (cmdk React 19, Inter Display, Crameri MIT, Style Dictionary v5/DTCG, Tailwind v4 @theme)"
+  ]
+ },
+ "verdict": "The research is careful about provenance, and the licences and activity it reports for the core repos check out against the GitHub API (tldraw and ComfyUI corrections confirmed). But it already lags on its central stack decision: since July 2026 shadcn defaults to Base UI, not Radix. React Flow UI's licence and Pro status are still open, and the WCAG plan has a hole because React Flow cannot create edges from the keyboard. Most of the named benchmarks, Forma above all, were not analysed. Several professional-tool basics are missing: undo and snapshots, error and stale states, units, and A2 board and AI-render guidance. The 13 Nov scope and the design-skill stack are too heavy. With the corrections and additions above, this can pass in round 2.",
+ "sources_checked": [
+  {
+   "url": "https://api.github.com/repos/shadcn-ui/ui",
+   "ok": true,
+   "note": "126,085 stars, 1,777 issues, pushed 2026-10-20, MIT: matches packet"
+  },
+  {
+   "url": "https://ui.shadcn.com/docs/changelog/2026-07-base-ui-default",
+   "ok": true,
+   "note": "Base UI default since July 2026; Radix via -b radix"
+  },
+  {
+   "url": "https://ui.shadcn.com/docs/mcp",
+   "ok": true,
+   "note": "pnpm dlx shadcn@latest mcp init --client claude confirmed"
+  },
+  {
+   "url": "https://ui.shadcn.com/docs/skills",
+   "ok": true,
+   "note": "pnpm dlx skills add shadcn/ui confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/tailwindlabs/tailwindcss/releases",
+   "ok": true,
+   "note": "v4.3.3 2026-07-16; CSS-first config"
+  },
+  {
+   "url": "https://api.github.com/repos/radix-ui/primitives",
+   "ok": true,
+   "note": "pushed 2026-10-14, MIT; npm radix-ui 1.8.1 2026-10-12"
+  },
+  {
+   "url": "https://api.github.com/repos/mui/base-ui/releases",
+   "ok": true,
+   "note": "v1.9.0 2026-10-09, MIT"
+  },
+  {
+   "url": "https://api.github.com/repos/xyflow/xyflow",
+   "ok": true,
+   "note": "MIT, pushed 2026-10-20; @xyflow/react 12.12.0"
+  },
+  {
+   "url": "https://reactflow.dev/ui",
+   "ok": true,
+   "note": "Requires React 19 + Tailwind 4; no licence or Pro statement for components or templates"
+  },
+  {
+   "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+   "ok": true,
+   "note": "Keyboard: focus, select, move; aria-live assertive; no keyboard edge creation"
+  },
+  {
+   "url": "https://reactflow.dev/api-reference/react-flow",
+   "ok": true,
+   "note": "connectOnClick default true; onlyRenderVisibleElements"
+  },
+  {
+   "url": "https://registry.npmjs.org/cmdk",
+   "ok": true,
+   "note": "1.1.1 (2025-03-14), peer React ^18 || ^19"
+  },
+  {
+   "url": "https://registry.npmjs.org/kbar",
+   "ok": true,
+   "note": "1.0.0 2026-08-10, repo timc1/kbar"
+  },
+  {
+   "url": "https://api.github.com/repos/bvaughn/react-resizable-panels/releases",
+   "ok": true,
+   "note": "4.14.8 2026-10-20"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/pbakaus/impeccable/main/README.md",
+   "ok": true,
+   "note": "24 commands, 61 rules confirmed; downloads self-contained binary; flags Inter; 84,005 stars"
+  },
+  {
+   "url": "https://api.github.com/repos/nextlevelbuilder/ui-ux-pro-max-skill",
+   "ok": true,
+   "note": "138,127 stars, MIT, pushed 2026-10-15"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/vercel-labs/agent-skills/main/skills/web-design-guidelines/SKILL.md",
+   "ok": true,
+   "note": "Confirms fetch from GitHub main at review time; repo has no LICENSE file"
+  },
+  {
+   "url": "https://api.github.com/repos/nilbuild/driver.js",
+   "ok": true,
+   "note": "MIT, 26,934 stars; kamranahmedse/driver.js redirects"
+  },
+  {
+   "url": "https://zenodo.org/records/8409685",
+   "ok": true,
+   "note": "Scientific colour maps 8.0.1, MIT"
+  },
+  {
+   "url": "https://api.github.com/repos/rsms/inter/releases",
+   "ok": true,
+   "note": "v4.0 (2023-11-20) adds Display designs via opsz"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/tldraw/tldraw/main/LICENSE.md",
+   "ok": true,
+   "note": "Production use prohibited without licence key: packet correction confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/Comfy-Org/ComfyUI_frontend",
+   "ok": true,
+   "note": "GPL-3.0, 3,055 issues: confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/style-dictionary/style-dictionary/releases",
+   "ok": true,
+   "note": "v5.7.0 2026-10-16, Apache-2.0"
+  },
+  {
+   "url": "https://styledictionary.com/info/dtcg/",
+   "ok": true,
+   "note": "DTCG first-class since v4; 2025.10 not fully supported"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/dockview/dockview/HEAD/LICENCE.md",
+   "ok": true,
+   "note": "MIT except proprietary dockview-enterprise: packet correct"
+  },
+  {
+   "url": "https://registry.npmjs.org/@speckle/viewer",
+   "ok": true,
+   "note": "2.31.14, Apache-2.0, last publish 2026-06-15"
+  },
+  {
+   "url": "https://registry.npmjs.org/@playwright/cli",
+   "ok": true,
+   "note": "0.1.22 pre-1.0"
+  },
+  {
+   "url": "https://www.nngroup.com/articles/animation-duration/",
+   "ok": true,
+   "note": "100–400 ms; 400 ms reserved for large moves; ease-out for entering"
+  },
+  {
+   "url": "https://www.nngroup.com/articles/dark-mode/",
+   "ok": true,
+   "note": "Light mode better for normal vision; offer dark as an option: confirmed"
+  },
+  {
+   "url": "https://carbondesignsystem.com/patterns/status-indicator-pattern/",
+   "ok": true,
+   "note": "Inconsistent two vs three elements; no strict cap, 5–6 caution"
+  },
+  {
+   "url": "https://www.deceptive.design/types",
+   "ok": true,
+   "note": "18 types confirmed"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/observablehq/plot/main/docs/features/legends.md",
+   "ok": true,
+   "note": "Colour, opacity and symbol legends confirmed via repo docs (site 429)"
+  },
+  {
+   "url": "https://www.autodesk.com/learn/ondemand/tutorial/compare-analysis-with-forma",
+   "ok": false,
+   "note": "403; content known only from search summary (up to six proposals, synced views, linked inspect)"
+  }
+ ]
+}

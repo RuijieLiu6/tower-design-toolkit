@@ -1,0 +1,2391 @@
+{
+ "packet_id": "C01",
+ "modules": [
+  {
+   "module_id": "C01-M01",
+   "name": "Cone registry, origins and versioning",
+   "design_question": "Which protected views apply at a location, where exactly is each origin, its elevation and field of view, and which version of each cone is this?",
+   "method": "Load the City ViewCone layer (EPSG:26910, 24 polygons) and cross-check the open-data GeoJSON (GRS80 UTM conversion matches the service to 0.01 m). Store rings, not triangles: 23 have three vertices, cone 28 has five. Vertex 0 is the origin; sibling cones share it exactly (3.2.1/3.2.3/3.2.4, 9.1/9.2, B1/B2, G1/G2, J1/J2, 27.1/27.2; 3.2.2 differs 0.33 m), giving the 16 origins the City lists. The two extreme rays are the vertical boundaries; the far edge is only a clip, except K. Version each cone by geometry hash, attribute hash and governing Council report. Timestamps are metadata only: dataLastEditDate equals schemaLastEditDate to the millisecond, the open-data modified date is a routine extract, EFFECTIVE_DATE is unreliable. Polygon hashes miss lower-boundary-only amendments (H and 3.2.4, Dec 2025), so also hash each PVG PDF and read Council decisions. Audit landmark bearings: a boundary on a parcel corner must equal the bearing from the apex to that corner (H, J2, 28, 9.1 west agree within 0.05 degrees). Test points in projected metres with a 1.5 m edge band. Downtown and CBD subsets need digitised City boundaries; the boxes are test boxes only.",
+   "priority": "core",
+   "inputs": [
+    "City ViewCone feature layer (S05)",
+    "Open-data view-cones GeoJSON (S04)",
+    "Public Views Guidelines, three PDF versions (S01)",
+    "Council reports S06, S07, S08, S42, S49, S50",
+    "City parcel polygons (S34) for corner audits"
+   ],
+   "outputs": [
+    "cones.json: 24 rings, apex, Lv, geometry and attribute hashes, governing report, PVG version; about 4 KB.",
+    "Table 1 (Feb 2026 PDF pp.4-6): A, B1, B2, D, E, G1, G2, H, J1, J2, K, 3.2.1-3.2.4, 9.1, 9.2, 10, 20, 21, 22, 27.1, 27.2, 28. No 12.x row since 4 June 2025.",
+    "Downtown test box (lon -123.145 to -123.095, lat 49.268 to 49.2995), computed: all cones except 21, 27.1, 27.2 and 28 touch it; 32.2% of cells lie in no cone.",
+    "CBD test box (lon -123.1255 to -123.1085, lat 49.2790 to 49.2885), computed: 3.2.1, 3.2.2, 3.2.3, 9.1, 9.2, A, B2, D, J1. Of its cells, 79.7% touch a cone without parameters (45.6% only such cones); 20.3% only A or 3.2.3.",
+    "Origins UTM10N X, Y, Lv (m): QE 491816.07, 5454381.78, 124.6; 9.x 491660, 5456605, 30.8; A 490402.5, 5457172.97, 4.54; D 491319.91, 5457218.97, 4.45; B 490940.21, 5457209.01, 4.48.",
+    "H 492256.38, 5457620.93, 7.2; E 491650.44, 5457440.7, 17.95; G 492161.78, 5457739.35, 6; K 491238.84, 5457628.03, 5.5; J 492509.82, 5458050.42, 6.63; 10 490241.35, 5457750.82, 5.",
+    "20 489918.86, 5456752.83, 43.63; 22 492655.74, 5456838.81, 37.1; 21 494934.24, 5456607.34, 34.6; 27.x 495499.26, 5455728.27, 30.4; 28 496302.74, 5457432.5, 56.",
+    "PVG pin table: Jul 2024, Jun 2025, Feb 2026 with date, bytes and SHA-256; every clause citation carries the version.",
+    "Not-modelled table: C-3A City Hall views (about 9, words and images), East Fraser Lands Mt Baker view, CD-1 (141) corridor, removed view 12.2 and the Granville street-end view under review.",
+    "Standing banner: estimate only; PVG Table 1 cones only; other view instruments are not modelled; the City View Cone Assessment governs."
+   ],
+   "parameters": [
+    {
+     "name": "Origin O_c",
+     "relationship": "First vertex of each cone ring in EPSG:26910 metres; shared by sibling cones",
+     "unit": "m",
+     "source_ids": [
+      "C01-S05",
+      "C01-S04"
+     ]
+    },
+    {
+     "name": "Lv",
+     "relationship": "VIEWPOINT_ELEVATION_M; datum unstated; probably eye level (1.4-3.5 m above 2002 contour ground at A, B1, D, J1, 20, 21, 27, 28)",
+     "unit": "m",
+     "source_ids": [
+      "C01-S05",
+      "C01-S27"
+     ]
+    },
+    {
+     "name": "Spread",
+     "relationship": "Bearing difference of the two extreme rays (the vertical boundaries)",
+     "unit": "deg",
+     "source_ids": [
+      "C01-S05",
+      "C01-S01"
+     ]
+    },
+    {
+     "name": "Cone version key",
+     "relationship": "Geometry hash, attribute hash and governing Council report; layer and open-data timestamps are metadata; not EFFECTIVE_DATE",
+     "unit": "",
+     "source_ids": [
+      "C01-S05",
+      "C01-S04"
+     ]
+    },
+    {
+     "name": "PVG version",
+     "relationship": "Date, bytes and SHA-256 of the PDF cited: Jul 2024, Jun 2025, Feb 2026",
+     "unit": "",
+     "source_ids": [
+      "C01-S01"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Sibling apex agreement",
+     "good": "0.0 m",
+     "bad": "more than 5 m",
+     "unit": "m",
+     "basis": "Computed from service: 3.2.1/3.2.3/3.2.4 identical; 3.2.2 off 0.33 m",
+     "status": "verified",
+     "source_ids": [
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Distinct origins",
+     "good": "16",
+     "bad": "any other count",
+     "unit": "count",
+     "basis": "Counted apexes; the City page lists 16 origin points",
+     "status": "verified",
+     "source_ids": [
+      "C01-S05",
+      "C01-S02"
+     ]
+    },
+    {
+     "name": "Landmark-bearing audit",
+     "good": "within 0.1 degree",
+     "bad": "over 0.5 degree",
+     "unit": "deg",
+     "basis": "H west 8.41 vs 8.40; H east 24.38 vs 24.36; J2 west -2.79 vs -2.81; 28 west -27.08 vs -27.13; 28 east 2.03 vs 2.02; 9.1 west -13.56 vs -13.57",
+     "status": "verified",
+     "source_ids": [
+      "C01-S05",
+      "C01-S34",
+      "C01-S06",
+      "C01-S08"
+     ]
+    },
+    {
+     "name": "Service wedge equals in-force Council text",
+     "good": "all audited cones",
+     "bad": "any mismatch",
+     "unit": "cones",
+     "basis": "27.1 east and 27.2 west -14.84 equal the 1975 E 12th corner; 27.2 east 37.98 equals 2593 E Broadway; Trout Lake amendments were referred back",
+     "status": "verified",
+     "source_ids": [
+      "C01-S05",
+      "C01-S34",
+      "C01-S42"
+     ]
+    },
+    {
+     "name": "Governing-cone set vs City site sheet",
+     "good": "all regression points match",
+     "bad": "any cone missing",
+     "unit": "points",
+     "basis": "A and 3.2.3 points tested; B lies on the edge of A; 9.2 points are historical",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S11",
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Change signal",
+     "good": "hash differs",
+     "bad": "timestamp only",
+     "unit": "signal",
+     "basis": "dataLastEditDate equals schemaLastEditDate (1776247144052 ms); open-data modified is a routine extract; polygon hashes cannot see lower-boundary-only edits",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S05",
+      "C01-S04"
+     ]
+    },
+    {
+     "name": "CBD cells with an estimate for every covering wedge",
+     "good": "100 percent",
+     "bad": "under 50 percent",
+     "unit": "percent",
+     "basis": "Computed on the CBD test box: 20.3% now (only A or 3.2.3); 79.7% touch a cone with no parameters",
+     "status": "verified",
+     "source_ids": [
+      "C01-S05"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "proj4js",
+     "role": "EPSG:26910 to lon/lat",
+     "license": "MIT",
+     "url": "https://github.com/proj4js/proj4js"
+    },
+    {
+     "name": "Turf.js",
+     "role": "point-in-polygon, wedge tests",
+     "license": "MIT",
+     "url": "https://github.com/Turfjs/turf"
+    }
+   ],
+   "limits": "Apex accuracy unstated (9.x whole metres). 9.x DESCRIPTION still names the Walking Figures plaza. View 20 origin: RTS 16338 says south crosswalk, City page says north crosswalk. No 12.x polygon. Other view instruments not modelled.",
+   "human_judgment": "Ask the City to confirm that the apex equals the surveyed origin, whether Lv includes eye height, the view 20 origin, and the Trout Lake timetable.",
+   "effort": "1-1.5 days",
+   "visualization": [
+    "Plan map of the 24 wedges coloured by view subject and by parameter status",
+    "Origin pins with elevation labels",
+    "Landmark-bearing audit table"
+   ]
+  },
+  {
+   "module_id": "C01-M02",
+   "name": "Lower-boundary parameter harvest and calibration",
+   "design_question": "What lower-boundary slope, or reference elevation and location, applies to each in-force cone when the City publishes no height surface?",
+   "method": "Each cone has origin O, elevation Lv and a lower boundary through a reference (Lr, Xr, Yr); store radial and axial k = (Lr - Lv)/Dr. Classes. S1 printed, in force: 28; H and J2 (Appendix K, endorsed 16 Dec 2025; the 2011 H1 reference is superseded); 3.2.4 equals 3.2.3. S1p parcel-located: 27.1, 27.2. S2 fitted to City sheets: A, 3.2.3. S3 roof-aligned: E, G1, G2, J1, 9.1, 9.2, 22. S5 terrain-referenced: 20 (uppermost extent of the 'English Properties', West Vancouver). S4 image-only or no text: 21, B1, B2, D, K, 10, 3.2.1, 3.2.2. Roof rule: Lr is the Buildings-class return inside the named parcel that maximises (z - Lv)/D, penthouses excluded unless named; confirm the roof stood in the Sept 2022 LiDAR and the 2025 orthophotos; prove the rule on A (1008 Cambie) first. For 20, take Lr from a North Shore DEM converted to CGVD28, fix XY with the City, carry a band, never gate. For S4, resect the City reference photo on LiDAR corners and measure the drawn lower line (0.05 degrees is 1.7 m at 2 km); label image-derived. Request City assessments: two points at least 1 km apart, two off-axis; hold one out.",
+   "priority": "core",
+   "inputs": [
+    "Council reports S06, S07, S08, S42, S50 and 2011 report S09",
+    "City LiDAR 2022 (S26), parcel layer (S34), orthophotos 2022 and 2025",
+    "RTS 16338 App G reference sheets and City view-page photos (S07, S02)",
+    "North Shore DEM with geoid offsets (S51, S32, S33, S46)",
+    "City View Cone Assessment replies (views@vancouver.ca); origins and Lv from M01"
+   ],
+   "outputs": [
+    "cone_params.json: Lv, k radial, k axial, curvature form, reference (X, Y, Lr), class S1-S5, version, provenance, status; about 2 KB.",
+    "Calibration table: fit residual and hold-out error for every City value.",
+    "Roof table: LiDAR roof return, elevation angle, rule, epoch check and residual for each roof-aligned cone.",
+    "Image-derived table: photo, resection error, drawn-line angle, k and uncertainty for each S4 cone."
+   ],
+   "parameters": [
+    {
+     "name": "Lv",
+     "relationship": "Origin elevation from City service attribute VIEWPOINT_ELEVATION_M",
+     "unit": "m",
+     "source_ids": [
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Lr",
+     "relationship": "Geodetic height in Council text: 28 65.7, H 58, J2 43.5, 27.1 59.8, 27.2 54.3 (in force); 27.2 proposed 68.9 not adopted; H 2011 40.64 at 982.77 m superseded",
+     "unit": "m",
+     "source_ids": [
+      "C01-S06",
+      "C01-S08",
+      "C01-S42",
+      "C01-S50",
+      "C01-S09"
+     ]
+    },
+    {
+     "name": "Dr (radial)",
+     "relationship": "Origin to reference XY: 28 197.7, 27.1 and 27.2 648.5, H 949.5, J2 492.0",
+     "unit": "m",
+     "source_ids": [
+      "C01-S06",
+      "C01-S08",
+      "C01-S34"
+     ]
+    },
+    {
+     "name": "k radial",
+     "relationship": "(Lr - Lv)/Dr: 28 0.04906, 27.1 0.04533, 27.2 0.03685, H 0.05350, J2 0.07494; fitted A 0.05888, 3.2.3 0.000404",
+     "unit": "m per m",
+     "source_ids": [
+      "C01-S06",
+      "C01-S08",
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "k axial",
+     "relationship": "(Lr - Lv)/distance along the wedge bisector: 28 0.05007, 27.1 0.04549, 27.2 0.04115, H 0.05354, J2 0.07572; fitted A 0.05889, 3.2.3 0.000404",
+     "unit": "m per m",
+     "source_ids": [
+      "C01-S06",
+      "C01-S08",
+      "C01-S11"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Fit residual, in-sample (not validation)",
+     "good": "0.05 m or less",
+     "bad": "more than 0.1 m",
+     "unit": "m",
+     "basis": "A 0.012 m planar, 0.037 m radial (4 points); 3.2.3 0.003 m (5 points); computed from the 3 Oct 2024 sheet",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S11",
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Leave-one-out error",
+     "good": "0.05 m or less",
+     "bad": "more than 0.1 m",
+     "unit": "m",
+     "basis": "A 0.017 planar, 0.050 radial; 3.2.3 0.004; points span only 29-48 m, so extrapolation is untested",
+     "status": "verified",
+     "source_ids": [
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Free-intercept check",
+     "good": "within 0.5 m of Lv",
+     "bad": "over 1.5 m (eye height added)",
+     "unit": "m",
+     "basis": "A 4.87 +/- 0.21 (Lv 4.54); 3.2.3 124.44 +/- 0.31 (Lv 124.6); computed, rounding noise only",
+     "status": "verified",
+     "source_ids": [
+      "C01-S11",
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Cones with in-force parameters",
+     "good": "24 of 24",
+     "bad": "fewer than 8 of 24",
+     "unit": "count",
+     "basis": "8 now: 28, H, J2, 27.1, 27.2, A, 3.2.3, 3.2.4; 7 of the 9 CBD cones have none",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S06",
+      "C01-S08",
+      "C01-S11",
+      "C01-S42",
+      "C01-S50"
+     ]
+    },
+    {
+     "name": "View H: one adopted surface",
+     "good": "58 m at the pavilion only",
+     "bad": "2011 and 2025 surfaces both live",
+     "unit": "surfaces",
+     "basis": "k 0.0535 (Dec 2025) vs 0.0347 (2011, corner of 501 Keefer); 28.8 m apart at 1.5 km, computed; Council endorsed Appendix K on 16 Dec 2025",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S08",
+      "C01-S50",
+      "C01-S09"
+     ]
+    },
+    {
+     "name": "Roof-rule test on A (1008 Cambie)",
+     "good": "LiDAR roof within 2 m of implied 83.8 m ASL",
+     "bad": "over 5 m",
+     "unit": "m",
+     "basis": "Implied by planar k 0.05889 at 1,346 m axial; not yet run against LiDAR",
+     "status": "unverified",
+     "source_ids": [
+      "C01-S07",
+      "C01-S11",
+      "C01-S26"
+     ]
+    },
+    {
+     "name": "Image-derived line angle",
+     "good": "0.05 degrees or less",
+     "bad": "over 0.2 degrees",
+     "unit": "deg",
+     "basis": "0.05 degrees is 1.7 m at 2 km, computed; resection error not yet measured",
+     "status": "team_assumption",
+     "source_ids": [
+      "C01-S07"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "NumPy",
+     "role": "regression of k",
+     "license": "BSD-3-Clause",
+     "url": "https://numpy.org/"
+    },
+    {
+     "name": "OpenCV",
+     "role": "camera resection of reference photos",
+     "license": "Apache-2.0",
+     "url": "https://opencv.org/"
+    }
+   ],
+   "limits": "Two cones are fitted on points spanning 29-48 m. 27.1 and 27.2 XY come from parcel vertices. Roof route untested on LiDAR. View 20 lies outside City LiDAR; 'English Properties' spelling unverified. 501 Keefer St absent from parcel layer.",
+   "human_judgment": "Decide labels for printed, parcel-derived, fitted, roof-derived and image-derived k; send the table to the City for confirmation.",
+   "effort": "5-8 days plus City turnaround (0.5-3 business days per assessment)",
+   "visualization": [
+    "Cross-section: origin, lower-boundary line, reference point, sample sites",
+    "Residual scatter per cone, fit and hold-out in two colours",
+    "Reference photo with resected lower line"
+   ]
+  },
+  {
+   "module_id": "C01-M03",
+   "name": "Maximum-height surface engine",
+   "design_question": "What is the highest permitted geodetic elevation at every location, which cone governs, and where is the answer unknown?",
+   "method": "Per cone, within its wedge, compute candidates from one k: radial Z_r = Lv + k_r*|p - O| and planar Z_a = Lv + k_a*((p - O) . u), u the wedge bisector, each in three curvature forms: plane; reference-anchored chord (minus (1-kappa)*d*(Dr-d)/2R); eye-angle line (plus (1-kappa)*d^2/2R); kappa 0.13, R 6371 km. Default per cone is the lowest valid candidate, so the chord where a reference exists. Surface Z = minimum over parameterised cones in geodetic metres; no relaxation or aviation cap enters. Where any covering wedge lacks parameters, mark the cell INCOMPLETE; keep the argmin only as a partial answer and never show a clean value. Keep argmin and coverage rasters (cone, clause, class). City rezoning policy sets maximum height to the underside of the most restrictive view cone, which supports the minimum. Store parameters (about 2 KB) and render on demand: a 2 m grid over the 4 km2 CBD is about 1 M cells in a Web Worker. Curvature form is a per-cone flag. Outside every polygon no view limit applies.",
+   "priority": "core",
+   "inputs": [
+    "cone_params.json (M02)",
+    "cones.json (M01)",
+    "Terrain and base surface (M04)",
+    "Granville Street Plan height rule (S49)"
+   ],
+   "outputs": [
+    "Limit raster (geodetic) for radial, planar and minimum rules, argmin cone ID raster and an incomplete-coverage mask.",
+    "penetration(model): cone, rule, depth in m and XYZ of the worst point, or the NO ESTIMATE list.",
+    "Height-above-ground raster for storey estimates (limit minus LiDAR ground) on complete cells only."
+   ],
+   "parameters": [
+    {
+     "name": "Z_r",
+     "relationship": "Lv_c + k_r * horizontal distance to O_c, inside the wedge only",
+     "unit": "m",
+     "source_ids": [
+      "C01-S10",
+      "C01-S06"
+     ]
+    },
+    {
+     "name": "Z_a",
+     "relationship": "Lv_c + k_a * distance along the wedge bisector, inside the wedge only",
+     "unit": "m",
+     "source_ids": [
+      "C01-S01",
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Z",
+     "relationship": "Minimum of Z_r and Z_a over parameterised cones; no other cap",
+     "unit": "m",
+     "source_ids": [
+      "C01-S10",
+      "C01-S16",
+      "C01-S49"
+     ]
+    },
+    {
+     "name": "Cell size",
+     "relationship": "2 m for CBD, 5 m city-wide display",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "Chord sag",
+     "relationship": "d(Dr-d)(1-kappa)/2R below linear interpolation: view 20 (Dr 11 km assumed) 0.7 m at 1 km, 1.2 m at 2 km, 2.1 m at 5.5 km",
+     "unit": "m",
+     "source_ids": [
+      "C01-S07"
+     ]
+    },
+    {
+     "name": "Eye-angle rise",
+     "relationship": "(1-kappa)d^2/2R above a level or angled line from the eye: 1.0 m at 3.9 km, 2.5 m at 6 km",
+     "unit": "m",
+     "source_ids": [
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Refraction kappa",
+     "relationship": "0.13, a common geodetic value; the City model is unknown; per-cone override",
+     "unit": "",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Fit error vs current City sheet points (A, 3.2.3)",
+     "good": "0.1 m or less",
+     "bad": "more than 1 m",
+     "unit": "m",
+     "basis": "In-sample: A 0.012 m planar, 0.037 m radial; 3.2.3 0.003 m; not independent validation",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Radial versus planar disagreement",
+     "good": "0.5 m or less",
+     "bad": "more than 2 m",
+     "unit": "m",
+     "basis": "Clinton Park 1.0 m at 1 km; 27.2 in force 4.3 m at 1 km and 8.6 m at 2 km (reference 26 degrees off axis); computed",
+     "status": "verified",
+     "source_ids": [
+      "C01-S06",
+      "C01-S34",
+      "C01-S42"
+     ]
+    },
+    {
+     "name": "Curvature-form disagreement",
+     "good": "0.5 m or less",
+     "bad": "more than 2 m",
+     "unit": "m",
+     "basis": "Computed: view 20 chord below plane by up to 2.1 m (Dr 11 km assumed); QE eye-angle line rises 1.0 m at 3.9 km",
+     "status": "unverified",
+     "source_ids": [
+      "C01-S07",
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Surface rebuild after parameter edit",
+     "good": "under 0.3 s",
+     "bad": "over 3 s",
+     "unit": "s",
+     "basis": "Team target for 1 M cells",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Incomplete cells shown as clean values",
+     "good": "0",
+     "bad": "any",
+     "unit": "cells",
+     "basis": "Design rule: a wedge without parameters blocks a clean limit",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "libraries": [
+    {
+     "name": "Delaunator",
+     "role": "TIN export",
+     "license": "ISC",
+     "url": "https://github.com/mapbox/delaunator"
+    },
+    {
+     "name": "polygon-clipping",
+     "role": "clip roofs to wedges",
+     "license": "MIT",
+     "url": "https://github.com/mfogel/polygon-clipping"
+    },
+    {
+     "name": "geotiff.js",
+     "role": "read DEM tiles in browser",
+     "license": "MIT",
+     "url": "https://github.com/geotiffjs/geotiff.js"
+    }
+   ],
+   "limits": "Exact only where k is known. Planar versus radial, axis definition, eye height, curvature form and refraction are unresolved. Stepped lower boundaries (3.2.1: 123.2 vs 143.3 m at Barclay) and view shadows are not modelled.",
+   "human_judgment": "Decide whether to show unconfirmed cones; always label the governing cone, rule and curvature form, and mark incomplete cells and estimates.",
+   "effort": "3-4 days",
+   "visualization": [
+    "Translucent 3D limit surface over LOD1 massing",
+    "Plan map of limit above grade with governing-cone labels and hatch for incomplete cells",
+    "Section along any cone axis, radial, planar and chord lines together"
+   ]
+  },
+  {
+   "module_id": "C01-M04",
+   "name": "Vertical datum, frames and grade conversion",
+   "design_question": "How do geodetic cone heights relate to terrain, building base surface and the user's model so heights compare correctly?",
+   "method": "The PVG say geodetic without naming a datum (s.2, p.3). City LiDAR 2022 is CGVD28GVRD on the Metro Vancouver geoid (HTMVBC00, the renamed HTGVRDBC00) and BC legal surveys still use CGVD28 (LTSA CL 465C): treat cone heights as CGVD28 (assumption, flagged). Ground: City LiDAR 2022 bare earth (0.081 m, 95%); 1 km tiles, zipped LAS 16.45 MB to 2.74 GB; fall back to the City 2013 DEM. LidarBC, HRDEM and MRDEM use CGVD2013; the CDEM uses CGVD28. Convert with a point value from NRCan GPS-H (CGG2013a, HT2.0), about +0.15 m (preliminary 2013); the MRDEM spec records a 2025 change in transformation method of about 0.4 m, so store method and date per tile. Compare absolute elevations: City sheets give geodetic = base-surface elevation + height (1070 Barclay: 178.10 = 41.38 + 136.72). Horizontal: service labelled EPSG:26910; LiDAR is NAD83(CSRS) 4.0.0.BC.1.GVRD (about 0.1 m apart per Esri Canada). Check each origin Lv against LiDAR ground at the apex. Uploaded models: user states one known geodetic Z; store dZ. Tiles: uint16 with offset, centimetres for the CBD, decimetres for regional terrain; record datum and geoid per tile.",
+   "priority": "core",
+   "inputs": [
+    "City LiDAR 2022 tiles (S26)",
+    "City 2013 DEM (S27)",
+    "NRCan MRDEM and CDEM specs (S51); LidarBC and HRDEM specs (S32, S33)",
+    "GeoBC and NRCan geoid grids (S46)",
+    "User georeference and dZ"
+   ],
+   "outputs": [
+    "terrain_cbd tiles (4 m, uint16 cm with offset), about 0.5 MB raw; regional tiles uint16 dm.",
+    "Datum offset table and georeference dialog values.",
+    "Base-surface helper: geodetic = base + height.",
+    "Origin check table: Lv minus LiDAR ground at each apex.",
+    "North Shore tile set with datum tag (CGVD2013 or CGVD28) and geoid per tile, for view 20 and mountain renders."
+   ],
+   "parameters": [
+    {
+     "name": "dZ_datum",
+     "relationship": "CGVD2013 minus CGVD28 at Vancouver, about +0.15 m (preliminary 2013 figure); replace with a point value from the grids",
+     "unit": "m",
+     "source_ids": [
+      "C01-S29",
+      "C01-S28",
+      "C01-S46"
+     ]
+    },
+    {
+     "name": "dZ_user",
+     "relationship": "User offset aligning an uploaded model to geodetic",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "Base surface",
+     "relationship": "City by-law reference plane from building grades; used for zoning heights, not for cones",
+     "unit": "m",
+     "source_ids": [
+      "C01-S12",
+      "C01-S16"
+     ]
+    },
+    {
+     "name": "Frame offset",
+     "relationship": "NAD83 original versus NAD83(CSRS) about 0.1 m at Vancouver; basemap frames unverified",
+     "unit": "m",
+     "source_ids": [
+      "C01-S47",
+      "C01-S26"
+     ]
+    },
+    {
+     "name": "Tile encoding",
+     "relationship": "uint16 plus offset: CBD 0.01 m steps (655 m range); regional 0.1 m steps (6,553 m range); int16 cm would cap at 327.67 m",
+     "unit": "m",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Terrain vertical error",
+     "good": "0.1 m or less",
+     "bad": "over 1 m",
+     "unit": "m",
+     "basis": "City LiDAR 2022 states 0.081 m at 95%",
+     "status": "verified",
+     "source_ids": [
+      "C01-S26"
+     ]
+    },
+    {
+     "name": "Origin Lv minus 2002 contour ground",
+     "good": "explained by a documented eye-height rule",
+     "bad": "unexplained over 1 m",
+     "unit": "m",
+     "basis": "A +1.5 to +2.5; B1 +2.5; D +2.5 to +3.5; J1 +1.6; 20 +1.6; 21 +1.6; 27 +1.4; 28 +2.0; 9.x about 0",
+     "status": "unverified",
+     "source_ids": [
+      "C01-S27",
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Model-to-geodetic alignment error",
+     "good": "0.5 m or less",
+     "bad": "over 2 m",
+     "unit": "m",
+     "basis": "Guideline 3.1.5 tolerance is 2 m; team target",
+     "status": "team_assumption",
+     "source_ids": [
+      "C01-S01"
+     ]
+    },
+    {
+     "name": "Datum transformation stability",
+     "good": "0.05 m or less between releases",
+     "bad": "over 0.2 m",
+     "unit": "m",
+     "basis": "MRDEM edition 1.1 changed the vertical transformation, average change about 40 cm (spec release history)",
+     "status": "verified",
+     "source_ids": [
+      "C01-S51"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "geotiff.js",
+     "role": "read terrain tiles",
+     "license": "MIT",
+     "url": "https://github.com/geotiffjs/geotiff.js"
+    }
+   ],
+   "limits": "Cone datum is inferred, not stated. 2013 DEM and 2002 contours are old. CBD tile sizes were not obtained (server refused header requests). The +0.15 m offset is a preliminary regional figure.",
+   "human_judgment": "Confirm datum and eye-height convention with the City; obtain the competition base model datum from the organisers.",
+   "effort": "2 days",
+   "visualization": [
+    "Elevation profile under a chosen cone axis",
+    "Offset readout beside the model georeference"
+   ]
+  },
+  {
+   "module_id": "C01-M05",
+   "name": "Design-versus-cone checker and clause warnings",
+   "design_question": "Does an uploaded model or massing break a view cone, by how much, which guideline clause applies, and where can no answer be given?",
+   "method": "Convert uploads (Rhino 3dm via rhino3dm, OBJ, IFC via web-ifc) to the shared frame with the M04 transform. For each wedge meeting the model footprint, clip meshes and roof faces to it and compute penetration p = max over the clipped geometry of z - Z(x, y), including appurtenances (clause 3.1.1). Evaluate vertices, wedge-clip points, the foot of the perpendicular from the origin on each edge, and a dense sample on sloped faces; report the argmax. Per-cone status: INTERSECTS (p over 0.1 m), BOUNDARY (within 0.1 m), CLEAR, or IN CONE - NO ESTIMATE when the cone has no calibrated parameters. Overall result is the worst status over all covering wedges; CLEAR only if every covering wedge is estimated and clear. For NO ESTIMATE show cone ID, clause 3.1.1 and a prompt to request a City View Cone Assessment. Mark points beyond the calibrated distance range as extrapolated. Cite 3.1.1; 3.1.2-3.1.4 minor encroachments (pp.6-7); 3.1.5 hardship, at most 2 m (p.7); 3.3 view shadows (p.7); 3.4 Exceptional Downtown Sites (pp.7-8) through the M06 mask. Never auto-classify minor elements, hardship or view shadows. Every result carries the standing banner.",
+   "priority": "core",
+   "inputs": [
+    "Uploaded model (3dm, OBJ, IFC)",
+    "Limit surfaces and coverage mask (M03)",
+    "Georeference and dZ (M04)",
+    "Relaxation masks (M06)"
+   ],
+   "outputs": [
+    "Per-cone result: status, depth, XYZ, cone ID, rule, curvature form, class.",
+    "Warning list with clause number, PVG version, page and quoted text.",
+    "Highlighted penetrating faces for 3D view and PDF report.",
+    "NO ESTIMATE list: cone IDs, overlap area and assessment-request text.",
+    "Standing banner on every screen and report page."
+   ],
+   "parameters": [
+    {
+     "name": "Penetration",
+     "relationship": "max over clipped geometry of z - min(Z_r, Z_a) inside the wedge",
+     "unit": "m",
+     "source_ids": [
+      "C01-S01"
+     ]
+    },
+    {
+     "name": "Boundary tolerance",
+     "relationship": "0.1 m default; the 2 m allowance in 3.1.5 is never applied automatically",
+     "unit": "m",
+     "source_ids": [
+      "C01-S01"
+     ]
+    },
+    {
+     "name": "Coverage rule",
+     "relationship": "CLEAR needs every covering wedge estimated; a wedge without parameters gives IN CONE - NO ESTIMATE",
+     "unit": "",
+     "source_ids": []
+    },
+    {
+     "name": "Site area test (3.4.1)",
+     "relationship": "At least 8,000 m2; competition site 79.2 x 144.8 m = 11,468 m2",
+     "unit": "m2",
+     "source_ids": [
+      "C01-S01",
+      "C01-S30"
+     ]
+    },
+    {
+     "name": "Eligibility mask",
+     "relationship": "Per-cone user toggle for Higher Buildings or Exceptional Downtown Site entry; default off",
+     "unit": "",
+     "source_ids": [
+      "C01-S01",
+      "C01-S15"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "CLEAR returned inside an unparameterised wedge",
+     "good": "0 cases",
+     "bad": "any case",
+     "unit": "cases",
+     "basis": "Test points: 3.2.2 only at 49.2800, -123.1200; 3.2.1 plus D at 49.27471, -123.1216 (membership computed)",
+     "status": "team_assumption",
+     "source_ids": [
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "False-clear rate vs regression City values",
+     "good": "0",
+     "bad": "any penetration over 0.1 m missed",
+     "unit": "cases",
+     "basis": "Test against regression cases A and 3.2.3",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Clause citation correctness",
+     "good": "each warning cites clause, version and page",
+     "bad": "any uncited warning",
+     "unit": "warnings",
+     "basis": "Clause numbers as printed in the Feb 2026 PDF",
+     "status": "verified",
+     "source_ids": [
+      "C01-S01"
+     ]
+    },
+    {
+     "name": "Worst-point agreement",
+     "good": "within 0.01 m of dense sampling",
+     "bad": "over 0.1 m",
+     "unit": "m",
+     "basis": "Under the radial rule a vertex search can miss the perpendicular foot on an edge; team target",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "libraries": [
+    {
+     "name": "rhino3dm",
+     "role": "read .3dm in browser",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "web-ifc",
+     "role": "read IFC",
+     "license": "MPL-2.0",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "three.js",
+     "role": "mesh handling and display",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "limits": "Guidelines use 'should', not by-law wording. Clauses 3.1.1-3.1.5 are printed under heading 3.2. Table 1 may lag the GIS (H not labelled amended; 27.x 'Amended 2026' though referred back). 3.4.2 still names removed view 12.2.",
+   "human_judgment": "Judge minor encroachments, hardship, view shadows and Exceptional Downtown Site eligibility; these are not computed.",
+   "effort": "4-5 days",
+   "visualization": [
+    "Penetrating faces in red on the 3D model",
+    "Section through the cone at the worst point",
+    "Clause-linked warning panel with NO ESTIMATE rows"
+   ]
+  },
+  {
+   "module_id": "C01-M06",
+   "name": "Relaxations, zoning and aviation obligations",
+   "design_question": "Which relaxations may apply by clause, and which zoning limits and federal aviation obligations apply to a downtown tower?",
+   "method": "Relaxations are not caps. The Higher Buildings Policy (31 Mar 2026) lets selected buildings enter QE view 3 and other approved corridors; heights (about 550-700 ft in the CBD) are guidance. Exceptional Downtown Sites (PVG 3.4; at least 8,000 m2) may also enter B1, B2, D and 12.2 (removed from Table 1 on 4 June 2025) and must keep views to the Lions; no relief from A, E, 9.x, J1, G or H. Per-cone masks are user-switched, never automatic. Zoning caps are typed from by-laws. Aviation is rule-based. CAR 601.23(1): obstacle if (a) above an obstacle limitation surface (TP 312E ch.4), (b) over 90 m AGL within 6 km of an aerodrome centre, (c) over 90 m AGL within 3.7 km of a recognised VFR route, (d) over 150 m AGL; 601.24 notice (form 26-0427), Standard 621. AC 601-007: basic 60 m AGL; heliport 4% to 1,500 m from the FATO edge; water aerodrome with defined channels is runway-type, 2% to 3,000 m (4.7(2)); certified 1% to 6,000 m; no channels 60 m AGL. Classify CYHC and CBC7 from CWAS and CFS; while unknown, warn on the lowest surface. YVR zoning covers Richmond only. NAV CANADA outcomes are user-entered caps.",
+   "priority": "core",
+   "inputs": [
+    "Higher Buildings Policy (S15)",
+    "PVG clauses 3.4 (S01)",
+    "CAR 601.23-601.24 (S40) and AC 601-007 (S41)",
+    "Aerodrome positions (S44, S45)",
+    "By-law text (manual), SOR/80-902 (S21) and Granville Street Plan (S49)"
+   ],
+   "outputs": [
+    "relaxation_masks.json: per cone, eligible instrument, clause, reason; user toggle default off.",
+    "aviation_rules.json: category logic (water, runway, heliport; Cert or Reg; IAP; channel), thresholds, positions, citations.",
+    "caps.json: typed zoning and NAV CANADA caps with source and status; shown as layers, never auto-merged."
+   ],
+   "parameters": [
+    {
+     "name": "Higher Buildings reference heights",
+     "relationship": "About 550-700 ft CBD (about 700 ft on West Georgia, Burrard, Granville); gateways about 400-515 ft; guidance lines only",
+     "unit": "ft",
+     "source_ids": [
+      "C01-S15"
+     ]
+    },
+    {
+     "name": "CAR 601.23 thresholds",
+     "relationship": "(a) above an OLS; (b) over 90 m AGL within 6 km of an aerodrome centre; (c) over 90 m AGL within 3.7 km of a VFR route; (d) over 150 m AGL",
+     "unit": "m",
+     "source_ids": [
+      "C01-S40"
+     ]
+    },
+    {
+     "name": "AC 601-007 notification surfaces",
+     "relationship": "Basic 60 m AGL; heliport 4% to 1,500 m; registered or water-with-channels 2% to 3,000 m; certified or IAP 1% to 6,000 m; height = y0 + slope x; shielding exemption 4.5.7",
+     "unit": "m",
+     "source_ids": [
+      "C01-S41"
+     ]
+    },
+    {
+     "name": "Aerodrome positions",
+     "relationship": "CYHC 49.29444, -123.11139, elevation 0 m; CBC7 49.28694, -123.10611 (secondary transcription)",
+     "unit": "deg",
+     "source_ids": [
+      "C01-S44",
+      "C01-S45"
+     ]
+    },
+    {
+     "name": "YVR outer surface",
+     "relationship": "45 m above ARP elevation 2 m; Part II lands in Richmond only",
+     "unit": "m",
+     "source_ids": [
+      "C01-S21"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Competition towers flagged by CAR 601.23(1)(d)",
+     "good": "all",
+     "bad": "any missed",
+     "unit": "towers",
+     "basis": "Towers are 244-305 m, above 150 m AGL",
+     "status": "verified",
+     "source_ids": [
+      "C01-S40",
+      "C01-S30"
+     ]
+    },
+    {
+     "name": "Caps with a cited source",
+     "good": "100 percent",
+     "bad": "any uncited cap",
+     "unit": "percent",
+     "basis": "Design rule for provenance",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "CYHC and CBC7 categories resolved",
+     "good": "both classified from CWAS and CFS",
+     "bad": "either unknown with no conservative fallback",
+     "unit": "aerodromes",
+     "basis": "Wikipedia: CYHC registered, channel dimensions n/a; CBC7 certification and IAP not found",
+     "status": "unverified",
+     "source_ids": [
+      "C01-S44",
+      "C01-S45",
+      "C01-S41"
+     ]
+    },
+    {
+     "name": "Published downtown aviation surface beyond AC 601-007",
+     "good": "published surface",
+     "bad": "none",
+     "unit": "sites",
+     "basis": "None found for the harbour water aerodrome or heliport",
+     "status": "unverified",
+     "source_ids": [
+      "C01-S22",
+      "C01-S23",
+      "C01-S41"
+     ]
+    }
+   ],
+   "libraries": [],
+   "limits": "CYHC and CBC7 attributes are secondary transcriptions; channel definition, certification and heliport IAP unchecked. AC 4.5(1)(c) and 4.5.4(1) differ on heliport IAP. Zoning heights and VFR route charts are not machine-readable.",
+   "human_judgment": "Interpret by-law and policy applicability; contact Transport Canada and NAV CANADA for any real site.",
+   "effort": "3 days",
+   "visualization": [
+    "Layer toggle showing which relaxation or cap is on",
+    "Legend of cap sources and status",
+    "Aviation warning card with citations"
+   ]
+  },
+  {
+   "module_id": "C01-M07",
+   "name": "Validation harness against City height sheets",
+   "design_question": "How do we prove the estimated surface matches the City's own numbers, separate fit from prediction, and keep proving it as the City amends views?",
+   "method": "Three suites. Regression (in-sample): current City values (A 4 points, 3.2.3 5 points; 3 Oct 2024 sheet) fitted k, so passing shows only that code reproduces its fit; the build fails when a residual exceeds 0.1 m. Prediction (held-out): City points used in no fit; none exist yet, so report none. Historical, never gating: 9.2 points (pre-Feb 2026 origin), 1070 Barclay 3.2.1 and repealed 12.1.1 (2019), 2004 formula rows (datum unknown, algebra only), 1133 W Georgia (2005, about 100.58 m, plus or minus 2 m), superseded Council values. Every value carries cone, origin, boundary definition, report and date. Report fit residuals and hold-out errors separately. Structural tests: a point in an unparameterised wedge never returns CLEAR. Monthly job: diff geometry and attribute hashes of the ViewCone layer and the SHA-256 of the PVG PDF; log timestamps only as metadata; read Council decisions naming 'Public View', since H and 3.2.4 changed lower boundaries only. Request about 20 City assessments: near and far pairs at least 1 km apart, two off-axis points per cone, one held-out point per cone. Transcribe numbers and coordinates only. Coarse check: RTS 16338 App G sheets give parcel counts and mean height change per amended view.",
+   "priority": "core",
+   "inputs": [
+    "validation_cases (this packet)",
+    "City assessment sheets",
+    "ViewCone layer, open-data record and PVG PDF hashes",
+    "RTS 16338 App G Update sheets (S07)"
+   ],
+   "outputs": [
+    "tests/city_values.json with cone version, source, date, tolerance and suite (regression, prediction or historical).",
+    "Change-detection report on cone and PVG updates (geometry, attribute and PDF hash diff, Council decisions).",
+    "Fit-versus-hold-out report per cone.",
+    "structural_tests.json: points in no-estimate wedges with expected status."
+   ],
+   "parameters": [
+    {
+     "name": "Tolerance",
+     "relationship": "0.1 m for regression; above City rounding of 0.01 m",
+     "unit": "m",
+     "source_ids": [
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Points per cone",
+     "relationship": "At least 3: a near and far pair at least 1 km apart plus one off-axis, one held out",
+     "unit": "count",
+     "source_ids": []
+    },
+    {
+     "name": "Aggregate targets",
+     "relationship": "App G Update sheets (image only): A 10 parcels, mean change 56 m; 20 597 parcels, mean change 30 m",
+     "unit": "m",
+     "source_ids": [
+      "C01-S07"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Regression points passing (in-sample)",
+     "good": "all",
+     "bad": "any residual over 0.1 m",
+     "unit": "points",
+     "basis": "9 current points (A 4, 3.2.3 5), in-sample; fit 0.012 m and 0.003 m",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S11",
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Prediction points passing (held-out)",
+     "good": "all within 0.5 m",
+     "bad": "any over 1 m",
+     "unit": "points",
+     "basis": "None exist; leave-one-out only for A and 3.2.3",
+     "status": "verified",
+     "source_ids": [
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Cones with a held-out City point",
+     "good": "24 of 24",
+     "bad": "none",
+     "unit": "cones",
+     "basis": "0 of 24 now",
+     "status": "verified",
+     "source_ids": [
+      "C01-S11"
+     ]
+    },
+    {
+     "name": "Downtown cones with 3 or more current City points",
+     "good": "all downtown cones",
+     "bad": "fewer than half",
+     "unit": "cones",
+     "basis": "Now A and 3.2.3 only (9.2 historical; 3.2.1 not regression)",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "C01-S11",
+      "C01-S12"
+     ]
+    },
+    {
+     "name": "Lower-boundary-only amendments detected",
+     "good": "all via PDF hash or Council decision",
+     "bad": "any missed by polygon hash only",
+     "unit": "views",
+     "basis": "H and 3.2.4 (16 Dec 2025) kept their polygons",
+     "status": "verified",
+     "source_ids": [
+      "C01-S08",
+      "C01-S50"
+     ]
+    }
+   ],
+   "libraries": [],
+   "limits": "City sheets are rezoning exhibits with reuse terms not stated; they carry staff and requester names and applicant notices. Sheets reflect the cone versions of their date. App G statistics are images.",
+   "human_judgment": "Decide when a residual is a City change versus a model error.",
+   "effort": "2 days plus City responses",
+   "visualization": [
+    "Test dashboard with residual per point, fit and hold-out",
+    "Map of validated sites"
+   ]
+  },
+  {
+   "module_id": "C01-M08",
+   "name": "Viewpoint camera and lower-boundary overlay",
+   "design_question": "How should a design be viewed from each protected origin with the cone boundaries drawn as the City draws them?",
+   "method": "Place the camera at the origin (X, Y) at height Lv. Evidence suggests Lv is already eye level (1.4-3.5 m above 2002 contour ground at eight origins), so add 0 m by default and expose eye height. Aim along the cone bisector; set the field of view from the two boundary bearings plus a margin; draw vertical boundaries at the bearings. City sheets draw each cone as a yellow box on a photograph (RTS 16338 App G): in a rectilinear photograph a horizontal line is a plane through the eye (planar model), in a cylindrical panorama a radial cone. Render both and compare with the City reference photos before choosing. Apply Earth curvature and refraction (kappa 0.13) to distant terrain: drop = (1-kappa)d^2/2R, about 15 m at Hollyburn (15 km), 33 m at 22 km and 43 m at 25 km (the Lions). Rooftop viewpoints use the same camera class. Use City photos only as links, not copies. Check the view 20 apex against both origin descriptions.",
+   "priority": "v1",
+   "inputs": [
+    "cones.json and cone_params.json",
+    "LOD1 context and North Shore terrain (M04)",
+    "City reference photo URLs (S03, S43, S07)"
+   ],
+   "outputs": [
+    "Camera presets per view with FOV and bearings.",
+    "Overlay of boundaries on rendered view, radial and planar variants.",
+    "Distant terrain with curvature and refraction drop applied."
+   ],
+   "parameters": [
+    {
+     "name": "Eye height",
+     "relationship": "Added to Lv; default 0 m because Lv appears to include eye height; user override",
+     "unit": "m",
+     "source_ids": [
+      "C01-S27",
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "FOV",
+     "relationship": "Angle between boundary bearings plus margin",
+     "unit": "deg",
+     "source_ids": [
+      "C01-S05"
+     ]
+    },
+    {
+     "name": "Terrain drop",
+     "relationship": "(1-kappa)d^2/2R below the eye tangent plane: 15 m at 15 km, 33 m at 22 km, 43 m at 25 km (computed)",
+     "unit": "m",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Overlay alignment with City photo",
+     "good": "within 0.2 degrees",
+     "bad": "over 1 degree",
+     "unit": "deg",
+     "basis": "Team target; needs photo sampling",
+     "status": "team_assumption",
+     "source_ids": [
+      "C01-S03",
+      "C01-S43"
+     ]
+    },
+    {
+     "name": "Distant terrain drop applied",
+     "good": "drop within 3 m of the formula",
+     "bad": "no drop",
+     "unit": "m",
+     "basis": "Computed from R 6371 km and kappa 0.13; refraction varies with weather",
+     "status": "unverified",
+     "source_ids": []
+    }
+   ],
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "camera and rendering",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "limits": "Eye height and planar-versus-radial geometry unresolved. Mountain heights depend on the refraction value and the DEM. Renders are exploratory, not City sightline assessments.",
+   "human_judgment": "Choose the overlay geometry after an off-axis City sheet or City confirmation.",
+   "effort": "2 days",
+   "visualization": [
+    "Panorama from each origin with wedge limits",
+    "Side-by-side with City photo link"
+   ]
+  }
+ ],
+ "datasets": [
+  {
+   "name": "City open data: View cones",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/",
+   "publisher": "City of Vancouver (Planning, Urban Design & Sustainability)",
+   "licence": "Open Government Licence - Vancouver; attribute 'Contains information licensed under the Open Government Licence - Vancouver.'",
+   "format": "Opendatasoft API: GeoJSON, CSV, Shapefile; DWG export",
+   "key_fields": "object_id, view_number, view_cone_name, description, url, shape_length, shapre_area (sic), geom, geo_point_2d",
+   "crs_and_vertical_datum": "Lon/lat NAD83 geographic (GRS80 conversion matches the service to 0.01 m); 2D; no vertical datum",
+   "date": "Modified 2026-10-19 (routine extract; page says content may not change weekly)",
+   "size": "24 records; about 6 KB as GeoJSON",
+   "accuracy": "Page says by-laws are authoritative; Trout Lake wedges are the pre-2026 in-force geometry",
+   "simplify_and_store": "Keep as 4 KB JSON in the repo as fallback; polygons already have 3 or 5 vertices.",
+   "use": "Fallback cone polygons and names.",
+   "status": "verified"
+  },
+  {
+   "name": "City ArcGIS 'ViewCone' feature service",
+   "url": "https://services3.arcgis.com/qrcTTRTwUoS8N47o/arcgis/rest/services/ViewCone/FeatureServer/0",
+   "publisher": "City of Vancouver (ArcGIS Online org qrcTTRTwUoS8N47o)",
+   "licence": "Item says CC BY; portal says OGL-Vancouver; confirm before release",
+   "format": "ArcGIS REST FeatureServer (JSON, GeoJSON); Query, Extract",
+   "key_fields": "VIEW_NUMBER, VIEWPOINT_LOCATION, VIEW_SUBJECT, VIEWPOINT_ELEVATION_M (filled), REFERENCE_LOCATION, REFERENCE_ELEVATION_M, REFERENCE_DISTANCE_M (all null), EFFECTIVE_DATE (unreliable), EXPIRATION_DATE",
+   "crs_and_vertical_datum": "EPSG:26910 NAD83 UTM10N; 2D; elevation datum unstated",
+   "date": "Layer lastEditDate 2026-05-05; dataLastEditDate equals schemaLastEditDate (2026-04-15)",
+   "size": "24 features; item 122,880 B",
+   "accuracy": "Apex ties to open data; H, J2, 28 and 9.1 agree with Council text; Trout Lake holds pre-2026 geometry; timestamps do not signal geometry edits",
+   "simplify_and_store": "Snapshot to JSON with geometry and attribute hashes at build time; compare hashes; log timestamps as metadata.",
+   "use": "Origins, Lv, geometry versions; reference fields if the City fills them.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "City view_cones.dwg alternative export",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/alternative_exports/view_conesdwg",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver (as dataset)",
+   "format": "AutoCAD DWG, version string AC1027",
+   "key_fields": "Not parsed",
+   "crs_and_vertical_datum": "Unknown; Z content unknown",
+   "date": "Saved 2026-04-21 per file header",
+   "size": "14.7 KB",
+   "accuracy": "Unknown",
+   "simplify_and_store": "Do not store; inspect once for 3D content.",
+   "use": "Check whether any elevations are embedded.",
+   "status": "unverified"
+  },
+  {
+   "name": "Team cone parameter table (to build)",
+   "url": "repo: data/cone_params.json (new)",
+   "publisher": "Team, derived from City sources S05, S06, S08, S11, S42, S50",
+   "licence": "Code MIT/Apache; data attributes OGL-Vancouver",
+   "format": "JSON",
+   "key_fields": "view_number, apex X,Y, Lv, k radial, k axial, curvature form, ref X,Y, Lr, class S1-S5, version hash, provenance, status",
+   "crs_and_vertical_datum": "EPSG:26910; CGVD28GVRD assumed",
+   "date": "Build from 2026-10",
+   "size": "About 2 KB",
+   "accuracy": "Fit residual 0.012 m (A) and 0.003 m (3.2.3) in-sample; other cones unconfirmed",
+   "simplify_and_store": "One row per cone; commit in repo.",
+   "use": "Input to the height-surface engine.",
+   "status": "unverified"
+  },
+  {
+   "name": "City 'Basic View Cone Building Height Limits' site sheet",
+   "url": "https://rezoning.vancouver.ca/applications/118-150-robson-st-and-828-cambie-st/application-booklet.pdf",
+   "publisher": "City of Vancouver (View Cone Assessment on request via public views page)",
+   "licence": "Not an open dataset; reuse terms unverified",
+   "format": "One-page PDF with table, 2D and 3D illustrations",
+   "key_fields": "label, geodetic height (m), height from grade (m), view, lat, long",
+   "crs_and_vertical_datum": "Lat/long (NAD83 geographic reproduces the packet UTM); geodetic datum unstated",
+   "date": "Sheet dated 2024-10-03 (booklet 2025-01-21); 9.2 values predate Feb 2026",
+   "size": "1 page per site",
+   "accuracy": "0.01 m rounding; only geodetic heights are definitive; names on sheets must not be copied",
+   "simplify_and_store": "Transcribe numbers and coordinates only to JSON.",
+   "use": "Regression points for A and 3.2.3; 9.2 historical.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "City LiDAR 2022",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver",
+   "format": "LAS tiles, 181 grid cells (lidar_url), classes include Buildings",
+   "key_fields": "name (SW corner, e.g. 481000_5456000), lidar_url, geom",
+   "crs_and_vertical_datum": "UTM10 NAD83(CSRS) 4.0.0.BC.1.GVRD; CGVD28GVRD (HTMVBC00 geoid)",
+   "date": "Flown 7 and 9 Sep 2022; listed 2023-04-18",
+   "size": "134 km2; 1 km tiles, zipped 16.45 MB to 2.74 GB each",
+   "accuracy": "About 49 pts/m2; vertical 0.081 m (95%)",
+   "simplify_and_store": "Rasterize bare earth to 4 m uint16 for the CBD, about 0.5 MB; extract building roofs for named-roof Lr.",
+   "use": "Ground elevation, roof elevations at the 2022 epoch, origin Lv check.",
+   "status": "verified"
+  },
+  {
+   "name": "City digital elevation model 2013",
+   "url": "https://opendata.vancouver.ca/explore/dataset/digital-elevation-model/",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver",
+   "format": "GeoTIFF zipped",
+   "key_fields": "Single-band elevation grid",
+   "crs_and_vertical_datum": "UTM10 NAD83(CSRS); vertical datum not stated in text read",
+   "date": "From 2013 LiDAR; page 2015-08-18",
+   "size": "1.91 GB zipped; about 1 m cells",
+   "accuracy": "Not read",
+   "simplify_and_store": "Resample to 4 m uint16 over the CBD.",
+   "use": "Fallback terrain.",
+   "status": "verified"
+  },
+  {
+   "name": "City elevation contours (1 m and 2 m)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/elevation-contour-lines-1-metre-contours/",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver",
+   "format": "Vector lines via API",
+   "key_fields": "elevation, geom",
+   "crs_and_vertical_datum": "Lon/lat API; datum not stated",
+   "date": "From 2002 orthophotos; modified 2019-05-22",
+   "size": "5,929 (1 m) and 2,093 (2 m) records",
+   "accuracy": "Old; not updated; integer metres",
+   "simplify_and_store": "Do not store; use for origin sanity checks only.",
+   "use": "Compare Lv with ground: Lv is 1.4-3.5 m above contour ground at eight origins, about equal at 9.x.",
+   "status": "verified"
+  },
+  {
+   "name": "City building footprints 2015",
+   "url": "https://opendata.vancouver.ca/explore/dataset/building-footprints-2015/",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver",
+   "format": "Polygons via API",
+   "key_fields": "object_id, geom (no height)",
+   "crs_and_vertical_datum": "Lon/lat; 2D",
+   "date": "Modified 2022-06-09",
+   "size": "154,124 polygons",
+   "accuracy": "Generalised outlines from 2015 orthophotos",
+   "simplify_and_store": "Extrude with heights from other packets.",
+   "use": "Context massing; footprints to pick roof returns.",
+   "status": "verified"
+  },
+  {
+   "name": "City property parcel polygons",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver",
+   "format": "Polygons via API",
+   "key_fields": "civic_number, streetname, site_id, tax_coord, geom",
+   "crs_and_vertical_datum": "Lon/lat NAD83; 2D",
+   "date": "Modified 2026-10-19",
+   "size": "99,698 polygons",
+   "accuracy": "2670 Victoria Dr NE vertex matches the printed Council coordinates (0.11 m); 1975 E 12th NE vertex lies 76 m south; no 501 Keefer St record",
+   "simplify_and_store": "Query on demand; do not store.",
+   "use": "Locate named parcel corners; bearing audits of wedges; roof footprints.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "City zoning districts and labels",
+   "url": "https://opendata.vancouver.ca/explore/dataset/zoning-districts-and-labels/",
+   "publisher": "City of Vancouver",
+   "licence": "OGL-Vancouver",
+   "format": "Polygons via API",
+   "key_fields": "zoning_classification, zoning_category, zoning_district, cd_1_number, geom (no height)",
+   "crs_and_vertical_datum": "Lon/lat; 2D",
+   "date": "Modified 2026-06-29",
+   "size": "1,621 records",
+   "accuracy": "Not stated",
+   "simplify_and_store": "Store district IDs; heights typed from by-laws.",
+   "use": "Zoning cap lookup keys.",
+   "status": "verified"
+  },
+  {
+   "name": "Vancouver International Airport Zoning Regulations SOR/80-902",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "publisher": "Government of Canada (Justice Laws)",
+   "licence": "Federal reproduction terms; not checked",
+   "format": "HTML/XML legal text",
+   "key_fields": "s.3 ARP elevation 2 m; Part III approach slopes 1:50; Part IV outer surface 45 m; Part II boundary",
+   "crs_and_vertical_datum": "Heights above ARP elevation, ARP 2 m above sea level; boundary by metes and bounds",
+   "date": "Registered 1980-11-27; current to 2026-09-30",
+   "size": "Legal text",
+   "accuracy": "Legal, not geometric",
+   "simplify_and_store": "Do not store; cite.",
+   "use": "Shows YVR zoning excludes downtown.",
+   "status": "verified"
+  },
+  {
+   "name": "HTMVBC00 hybrid geoid (GeoBC, renamed HTGVRDBC00) and NRCan CGG2013a",
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "publisher": "GeoBC (Province of BC); NRCan",
+   "licence": "Unverified; page states none",
+   "format": "BYN geoid grids (HTMVBC00 Abbotsford 37.5 KB; HTGVRDBC00 ZIPs)",
+   "key_fields": "Geoid separation grid",
+   "crs_and_vertical_datum": "HTMVBC00 converts ellipsoidal heights to CGVD28; CGG2013a to CGVD2013",
+   "date": "Referenced to 1997 epoch",
+   "size": "Small ZIPs listed (26.6-137 KB)",
+   "accuracy": "Not checked",
+   "simplify_and_store": "Do not store; document use and sample point offsets.",
+   "use": "Point-specific CGVD28 to CGVD2013 offset via NRCan GPS-H.",
+   "status": "unverified"
+  },
+  {
+   "name": "LidarBC and NRCan HRDEM (CGVD2013 terrain)",
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/topographic-data/lidarbc",
+   "publisher": "GeoBC; NRCan",
+   "licence": "Unverified (OGL-BC / OGL-Canada expected)",
+   "format": "LAZ; Cloud-Optimized GeoTIFF",
+   "key_fields": "Elevation",
+   "crs_and_vertical_datum": "CGVD2013 per specifications S32, S33",
+   "date": "Spec v5.3 2023-05-03",
+   "size": "Not checked",
+   "accuracy": "Specification only",
+   "simplify_and_store": "Prefer City LiDAR 2022 for the CBD; use outside City tiles (North Shore reference for view 20) as uint16 dm tiles with a datum tag.",
+   "use": "Terrain and roofs outside City tiles; view 20 hillside reference.",
+   "status": "unverified"
+  },
+  {
+   "name": "City public view corridors map PDF",
+   "url": "https://vancouver.ca/files/cov/public-view-corridors.pdf",
+   "publisher": "City of Vancouver",
+   "licence": "Not stated",
+   "format": "Single-page PDF image",
+   "key_fields": "None extractable",
+   "crs_and_vertical_datum": "None",
+   "date": "Not stated",
+   "size": "67 KB",
+   "accuracy": "Index map only",
+   "simplify_and_store": "Do not store.",
+   "use": "Orientation only; no heights.",
+   "status": "verified"
+  },
+  {
+   "name": "Team Vista data: guideline.json and viewcones.json",
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/vancouver-tall-view-tool/data/",
+   "publisher": "Team",
+   "licence": "Team repo",
+   "format": "JSON",
+   "key_fields": "table_1 (24 rows), cones with apex origin_latlon",
+   "crs_and_vertical_datum": "Local equirectangular model frame; datum unknown",
+   "date": "Accessed 2026-09-22/23",
+   "size": "12 KB and 38 KB",
+   "accuracy": "Table 1 matches the Feb 2026 PDF; its '3.1.3' quote is the second paragraph of 3.1.2, so the true 3.1.3 (low-profile or translucent materials) is missing; origins equal service apexes",
+   "simplify_and_store": "Replace local frame with EPSG:26910; add true clause 3.1.3.",
+   "use": "Reuse Table 1 transcription and wedge code.",
+   "status": "verified"
+  },
+  {
+   "name": "Council lower-boundary definitions (RTS 16338, RTS 16361, Dec 2025 hearing App K, RTS 18292, RTS 19750)",
+   "url": "https://council.vancouver.ca/20260204/documents/cfsc2.pdf",
+   "publisher": "City of Vancouver Council",
+   "licence": "Not stated; transcribe numbers only",
+   "format": "PDF prose tables; coordinates in text",
+   "key_fields": "view, boundary definition, geodetic height, UTM reference, parcel corners, roof alignments, uppermost roof, terrain extent",
+   "crs_and_vertical_datum": "NAD83 UTM10N where printed; vertical datum not stated",
+   "date": "2024-07-10, 2025-06-04, 2025-12-16, 2026-02-04, 2026-07-14",
+   "size": "About 15 pages used of several hundred",
+   "accuracy": "Amendments reach the GIS before the PVG tables; H and 3.2.4 changed lower boundaries only; Trout Lake referred back",
+   "simplify_and_store": "Transcribe to cone_params.json with report, page and date.",
+   "use": "Reference heights, parcel-corner wording and roof names for k.",
+   "status": "verified"
+  },
+  {
+   "name": "Transport Canada obstacle rules: CAR 601.23-601.25 and AC 601-007",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.23.html",
+   "publisher": "Government of Canada; Transport Canada",
+   "licence": "Federal reproduction terms; not checked",
+   "format": "HTML regulation; PDF advisory circular (13 pp.)",
+   "key_fields": "601.23(1)(a)-(e); 601.24(1)-(2); OnS 60 m AGL; OnS-A 1%, 2%, 4% slopes; 4.5.4 and 4.7 category rules",
+   "crs_and_vertical_datum": "Heights AGL or AMSL; no coordinates",
+   "date": "Regulations current to 2026-09-30; AC effective 2024-02-27",
+   "size": "Text; AC 13 pages",
+   "accuracy": "Legal rules; not geometric surfaces for a site",
+   "simplify_and_store": "Encode thresholds and category logic in aviation_rules.json with citations.",
+   "use": "Rule-based obstacle and notification warnings.",
+   "status": "verified"
+  },
+  {
+   "name": "Aerodrome positions: CYHC water aerodrome and CBC7 heliport",
+   "url": "https://en.wikipedia.org/wiki/Vancouver_Harbour_Flight_Centre",
+   "publisher": "NAV CANADA Canada Flight Supplement (via Wikipedia transcription)",
+   "licence": "NAV CANADA terms and CC BY-SA; unverified",
+   "format": "Coordinates in degrees, minutes, seconds",
+   "key_fields": "CYHC 49 17 40 N, 123 06 41 W, 0 ft, registered, water runway dimensions n/a; CBC7 49 17 13 N, 123 06 22 W, no IAP or FATO data",
+   "crs_and_vertical_datum": "Geodetic lat/long; elevation 0 ft AMSL",
+   "date": "CFS effective 2025-11-27 to 2026-01-22 as cited",
+   "size": "Two points",
+   "accuracy": "Seconds of arc, about 30 m",
+   "simplify_and_store": "Store two points; confirm channel, certification and IAP against CWAS and the current CFS.",
+   "use": "Distance tests for CAR 601.23(1)(b); category inputs for AC 601-007.",
+   "status": "unverified"
+  },
+  {
+   "name": "Downtown, CBD and Higher Buildings Figure 1 boundaries (to digitise)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "licence": "Not stated",
+   "format": "Figure 1 image in PDF; ODP maps",
+   "key_fields": "Areas where Higher Buildings are permitted",
+   "crs_and_vertical_datum": "None; digitise to NAD83 UTM10N",
+   "date": "Policy revised 2026-03-31",
+   "size": "One image",
+   "accuracy": "Image only; digitising error unknown",
+   "simplify_and_store": "Digitise once with provenance; store as small GeoJSON.",
+   "use": "Replace the test boxes with City areas.",
+   "status": "unverified"
+  },
+  {
+   "name": "Public Views Guidelines PDF versions (Jul 2024, Jun 2025, Feb 2026)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "licence": "Not stated (guideline, not an open dataset)",
+   "format": "PDF; Feb 2026 copy 8 pages, created 2026-02-24",
+   "key_fields": "Feb 2026: 210,961 B, Last-Modified 2026-03-02, SHA-256 597f0da21f0bc7c791aa146c45640b90a3c63f8bf8b45162252d084d0ef5b0ca; Jun 2025 copy 199,050 B, 54cf65e8564bf148dcfadf56a0cdd8fa762e8509ce09516fabf8a914794f141c; Jul 2024 copy 227,186 B, 79d5face54643b5cc4cc9cf1033c7eb436d088a01938ee378d609c29ddd8c2f2",
+   "crs_and_vertical_datum": "None; text says geodetic heights",
+   "date": "Approved 2024-07-10; amended 2025-06-04 and 2026-02-04",
+   "size": "About 0.2 MB each",
+   "accuracy": "Table 1 lags the GIS: H not labelled amended; 27.x labelled Amended 2026 though referred back; no 12.x row since Jun 2025",
+   "simplify_and_store": "Store URL, date and SHA-256 per version in the repo; keep PDFs outside git (reuse terms unverified).",
+   "use": "Pin clause citations by version; detect guideline changes by hash.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan MRDEM-30 and CDEM (North Shore terrain)",
+   "url": "https://datacube.services.geo.ca/ows/mrdem",
+   "publisher": "Natural Resources Canada",
+   "licence": "Open Government Licence - Canada",
+   "format": "Cloud-Optimized GeoTIFF, WCS and WMS (MRDEM-30 DTM and DSM); CDEM mosaics",
+   "key_fields": "Elevation (DTM, DSM)",
+   "crs_and_vertical_datum": "MRDEM-30 edition 1.2 (2025-06-20): CGVD2013; CDEM edition 1.1 (2013): CGVD28",
+   "date": "MRDEM 2025-06-20; CDEM 2013-04-01",
+   "size": "30 m cells (MRDEM); about 0.75 arc-second base (CDEM)",
+   "accuracy": "MRDEM sources HRDEM lidar mosaic (median year 2018) and GLO-30; vertical accuracy tables in the spec; CDEM per NTS sheet",
+   "simplify_and_store": "Clip the North Shore to uint16 dm tiles with a datum tag; convert CGVD2013 to CGVD28 by point offset.",
+   "use": "Mountain context and the view 20 hillside reference when LidarBC is unavailable.",
+   "status": "verified"
+  },
+  {
+   "name": "City view reference sheets and Update sheets (RTS 16338 Appendix G)",
+   "url": "https://council.vancouver.ca/20240710/documents/pspc1.pdf",
+   "publisher": "City of Vancouver Council",
+   "licence": "Not stated; link, do not copy",
+   "format": "Image sheets in a 105-page PDF (App G pages 1-41 on PDF pp.65-105)",
+   "key_fields": "Yellow-box cone overlays on photographs (2021, 2024); per-parcel height-change maps in storeys; parcels affected, mean change in height, additional capacity",
+   "crs_and_vertical_datum": "None; images only",
+   "date": "2024-07-10",
+   "size": "41 pages; PDF about 37 MB",
+   "accuracy": "Illustrative ('generally demonstrated'); aggregate statistics only (A: 10 parcels, 56 m mean; 20: 597 parcels, 30 m mean)",
+   "simplify_and_store": "Do not store images; keep page links and transcribed statistics.",
+   "use": "Photogrammetric route for S4 cones; coarse regression targets.",
+   "status": "verified"
+  },
+  {
+   "name": "2011 reference data for views F1, G1, H1 and J1 (RTS 08566 Appendix A)",
+   "url": "https://vancouver.ca/docs/planning/final-council-report.pdf",
+   "publisher": "City of Vancouver",
+   "licence": "Not stated; transcribe numbers only",
+   "format": "PDF text tables (PDF pp.14-17)",
+   "key_fields": "View Point Elevation, Reference Point (parcel corner), Reference Point Elevation, Distance to Reference Point",
+   "crs_and_vertical_datum": "Not stated",
+   "date": "2011-01-20",
+   "size": "4 pages used",
+   "accuracy": "Historical; H1 40.64 m at 982.77 m (corner of 501 Keefer St, Lv 6.5 m) superseded; G1 and J1 redefined in 2024",
+   "simplify_and_store": "Transcribe to the historical suite only.",
+   "use": "Shows the City's reference-point data model; historical checks.",
+   "status": "verified"
+  },
+  {
+   "name": "City orthophotos 2022 and 2025 (tiled map services)",
+   "url": "https://tiles.arcgis.com/tiles/qrcTTRTwUoS8N47o/arcgis/rest/services/Orthophotos_2025/MapServer",
+   "publisher": "City of Vancouver (ArcGIS Online); 2025 tiles from Metro Vancouver imagery",
+   "licence": "Not stated on the 2025 item; earlier years cite OGL-Vancouver",
+   "format": "Map tile services",
+   "key_fields": "Raster tiles (2022, 2025, CIR 2022)",
+   "crs_and_vertical_datum": "Image tiles; 2D",
+   "date": "2025 item modified 2026-08-04",
+   "size": "Not checked",
+   "accuracy": "Not stated",
+   "simplify_and_store": "Do not store; view only to confirm roofs existed in 2022 and are unchanged in 2025.",
+   "use": "Roof epoch check for roof-aligned cones.",
+   "status": "unverified"
+  }
+ ],
+ "validation_cases": [
+  {
+   "case": "REGRESSION (in-sample): cone A at Robson/Cambie (sheet 3 Oct 2024; A amended 2024)",
+   "input": "Points A, B, E, F lat/long to UTM (A 491613.46, 5458350.75); origin 490402.5, 5457172.97; Lv 4.54; axial D 1689.2-1718.1 m",
+   "expected": "104.02, 104.04, 105.69, 105.71 m geodetic; planar k 0.05889, residual 0.012 m (radial 0.037); leave-one-out 0.017 vs 0.050 m; free intercept 4.87 +/- 0.21 m",
+   "source": "C01-S11 (PDF p.18); C01-S05"
+  },
+  {
+   "case": "REGRESSION (in-sample): QE 3.2.3 at the same site",
+   "input": "Points C, D, G, H, I; origin 491816.07, 5454381.78; Lv 124.6; axial D 3909-3957 m",
+   "expected": "126.18, 126.19, 126.20, 126.19, 126.18 m; k 0.000404, residual 0.003 m; slope 0.00045 +/- 0.00008 excludes a level plane. Curvature slope at 3.93 km: 0.000617 without refraction (2 sigma off), 0.000537 with kappa 0.13 (1 sigma).",
+   "source": "C01-S11; C01-S05"
+  },
+  {
+   "case": "HISTORICAL (non-gating): Cambie 9.2 at the same site",
+   "input": "Points J, K, L; sheet origin was the Walking Figures plaza; service apex 491660, 5456605 is the City Hall campus stairs (Feb 2026)",
+   "expected": "113.86, 114.34, 114.70 m belong to the old origin; a refit from the new apex (k 0.04912 planar) is only a curve fit; request a new City assessment",
+   "source": "C01-S11; C01-S06 (PDF pp.12-13); C01-S05"
+  },
+  {
+   "case": "HISTORICAL (non-gating): 1070 Barclay, 3.2.1 and repealed 12.1.1 (2019)",
+   "input": "City Preliminary View Cone Calculation points A-L",
+   "expected": "3.2.1: C 123.201 m, D-L 142.956-143.384 m; 12.1.1: 121.695, 121.969 m; base surface 41.38 m. Table 1 shows 3.2.1 unamended, so values may hold; the step is unexplained",
+   "source": "C01-S12 (booklet p.26); C01-S07 (App B p.29)"
+  },
+  {
+   "case": "HISTORICAL (algebra only): 2004 City formula, Cambie 9.1 old origin",
+   "input": "Lv 205 ft, Lr 485 ft, Dr 7818 ft; (a) Dx 120 m, grade 160 ft; (b) 2580 m, 101 ft; (c) 3065 m, 101 ft",
+   "expected": "Hx = Dx(Lr-Lv)/Dr - (LBx-Lv): (a) 59.10 ft; (b) 407.16 ft; (c) 464.15 ft. Lv 205 ft looks high for that street, so the datum is unknown; never test heights with it",
+   "source": "C01-S10"
+  },
+  {
+   "case": "INFORMATIONAL (plus or minus 2 m): 1133 W Georgia under View Cone D (2005)",
+   "input": "Westerly portion of site; origin Heather Bay, Lv 4.45 m",
+   "expected": "Report says about 100.58 m (330 ft); basis (geodetic or above grade) unstated, so test both readings after calibrating D",
+   "source": "C01-S13 (PDF p.4)"
+  },
+  {
+   "case": "Definition anchor (in sample): Clinton Park 28, adopted 4 Feb 2026",
+   "input": "Origin 496302.74, 5457432.5, Lv 56; reference 496222, 5457613 at 65.7 m; wedge -27.08 to 2.03 degrees",
+   "expected": "Dr 197.7 m; k 0.04906 radial, 0.05007 planar (reference 11.6 degrees off axis); at 1 km on axis 105.1 m radial, 106.1 m planar (computed, not City)",
+   "source": "C01-S06 (PDF p.16); C01-S05"
+  },
+  {
+   "case": "Definition anchors: H and J2 (Appendix K, endorsed 16 Dec 2025)",
+   "input": "H Lv 7.2; J2 Lv 6.63; reference 492487.44, 5458541.92 (Sun Yat-Sen pavilion) at 58 m and 43.5 m; Council Rec K, vote 11268",
+   "expected": "H Dr 949.5 m, k 0.05350 radial, 0.05354 planar; J2 Dr 492.0 m, k 0.07494 radial, 0.07572 planar (computed). H polygon unchanged by the amendment",
+   "source": "C01-S08 (PDF pp.165-166); C01-S50 (minutes pp.10-19); C01-S05"
+  },
+  {
+   "case": "HISTORICAL: view H 2011 reference versus the Dec 2025 amendment",
+   "input": "2011: Lv 6.5 m, reference SW corner of 501 Keefer St, 40.64 m at 982.77 m. App K 'Current': uppermost roof of 41 E Hastings St. Dec 2025: 58 m at the pavilion",
+   "expected": "k 0.03474 (2011) vs 0.05350 (2025); 2025 surface higher by 10.1, 19.5, 28.8, 38.2 m at 0.5, 1, 1.5, 2 km (computed). Use 2025 as in force; keep 2011 historical",
+   "source": "C01-S09 (PDF p.16); C01-S08; C01-S50"
+  },
+  {
+   "case": "Trout Lake 27.1 in force",
+   "input": "Origin 495499.26, 5455728.27, Lv 30.4; 59.8 m from the NE corner of 1975 E 12th Ave (parcel vertex 495332.94, 5456355.10)",
+   "expected": "Dr 648.5 m; k 0.04533 radial, 0.04549 planar; service east boundary -14.84 degrees equals the vertex bearing -14.86; XY from the parcel layer, not City-confirmed",
+   "source": "C01-S06 (PDF p.14); C01-S34; C01-S42"
+  },
+  {
+   "case": "Trout Lake 27.2: in force versus proposed (not adopted)",
+   "input": "In force 54.3 m from the same corner; proposed 68.9 m at 495340.12, 5456431.39 (Proposed column, x=322)",
+   "expected": "In force k 0.03685 radial, 0.04115 planar (4.3 m apart at 1 km). Proposed k 0.05341; coordinates equal the 2670 Victoria Dr NE vertex within 0.11 m",
+   "source": "C01-S06 (PDF pp.14-15); C01-S34; C01-S42"
+  },
+  {
+   "case": "3.2.4 follows 3.2.3 (Appendix K, endorsed 16 Dec 2025)",
+   "input": "Any site inside both cones; 3.2.4 lower boundary aligned with the lower boundary of 3.2.3 (was the uppermost roof of the tower at 1182 Quebec St)",
+   "expected": "Same limit as 3.2.3; 3.2.4 apex identical to the 3.2.3 apex; the polygon is unchanged, so a polygon hash cannot detect the amendment",
+   "source": "C01-S08 (PDF pp.166-167); C01-S50; C01-S05"
+  },
+  {
+   "case": "Roof plausibility: 485 W 8th Ave (9.2 lower boundary)",
+   "input": "Parcel centroid 256 m from apex 491660, 5456605; ground about 16 m (2002 contours); Lv 30.8",
+   "expected": "If k stayed 0.0488, roof about 43.3 m ASL, 27 m above ground (about 8 storeys); LiDAR roof returns should fall near this. Plausibility test, not a City value",
+   "source": "C01-S07 (PDF p.43); C01-S34; C01-S27"
+  },
+  {
+   "case": "Roof method test: 1008 Cambie St (A lower boundary)",
+   "input": "Parcel centroid 1,346 m axial from origin A; ground about 6 m; planar k 0.05889",
+   "expected": "Implied roof 83.8 m ASL (about 78 m above ground); the roof return that maximises elevation angle should be within 2 m; failure means the roof rule or k is wrong",
+   "source": "C01-S07 (PDF p.39); C01-S11; C01-S26"
+  },
+  {
+   "case": "Governing cones by point-in-polygon",
+   "input": "Sheet points tested against current wedges with a 1.5 m edge band",
+   "expected": "A: 3.2.3+A; B on the edge of A; C: 3.2.3; E: 3.2.3+A; J, K, L: 3.2.3+9.2 (historical); the sheet lists the lowest governing",
+   "source": "C01-S11; C01-S05"
+  },
+  {
+   "case": "Boundary bearing check: J2 west boundary (Dec 2025)",
+   "input": "Bearing from apex 492509.82, 5458050.42 to the westernmost corner of 28 Powell St",
+   "expected": "-2.81 degrees from the parcel vertex versus -2.79 in the service; old boundary (333 Carrall St) would give about -8 to -10 degrees",
+   "source": "C01-S08 (PDF p.166); C01-S34; C01-S05"
+  },
+  {
+   "case": "Table 1 versus data (Feb 2026 PDF)",
+   "input": "PDF Table 1 pp.4-6 versus service features",
+   "expected": "24 views, 24 polygons, 16 distinct apexes; 3.2.2 apex 0.33 m from 3.2.1; no 12.x row in Table 1 although 3.4.2 names 12.2; H row lacks an Amended 2025 label",
+   "source": "C01-S01; C01-S05"
+  },
+  {
+   "case": "Version detection",
+   "input": "Query ViewCone EFFECTIVE_DATE and compare geometry hashes with a stored Oct 2024 snapshot; also hash the PVG PDF",
+   "expected": "EFFECTIVE_DATE 2026-02-04 for view 28 only, 2024-07-10 for 23 others; polygon hashes flag 9.1, 9.2, J2 and 28 but not H or 3.2.4 (lower boundary only); the PDF hash and Council minutes must catch those",
+   "source": "C01-S05; C01-S06; C01-S08; C01-S50"
+  },
+  {
+   "case": "CAR aviation trigger for a CBD tower",
+   "input": "Tower 244-305 m AGL at the Robson/Cambie site (1.87 km from CYHC at 49.29444, -123.11139; 1.21 km from CBC7 at 49.28694, -123.10611)",
+   "expected": "Warn: CAR 601.23(1)(d) above 150 m AGL; (b) above 90 m within 6 km; 601.24(1) notice, form 26-0427; Standard 621 marking; AAF above 60 m AGL at least, lower if CYHC has defined channels or for the 4% heliport surface",
+   "source": "C01-S40; C01-S41; C01-S44; C01-S45"
+  },
+  {
+   "case": "Holborn aviation constraint (July 2026)",
+   "input": "501-595 W Georgia, tower 1,034 ft (315 m)",
+   "expected": "NAV CANADA may force about 88 ft (27 m) reduction to about 946 ft (288 m); surface not public, so test only as a user cap",
+   "source": "C01-S23"
+  },
+  {
+   "case": "Exceptional Downtown Site eligibility (3.4)",
+   "input": "Competition site 79.2 x 144.8 m = 11,468 m2",
+   "expected": "Meets 3.4.1 (8,000 m2); mask may enable QE 3, B1, B2, D only (12.2 no longer exists in Table 1); A, E, 9.x, J1 and others still bind; clauses 3.4.2 and 3.4.3 are shown",
+   "source": "C01-S01 (PDF pp.7-8); C01-S30"
+  },
+  {
+   "case": "STRUCTURAL: IN CONE - NO ESTIMATE, never CLEAR",
+   "input": "Massing at 49.2800, -123.1200 (UTM 491272.2, 5458589.7; inside 3.2.2 only), at 49.27471, -123.1216 (3.2.1 and D), and at 49.2815, -123.1150 (3.2.3 only)",
+   "expected": "First two return IN CONE - NO ESTIMATE with cone IDs and clause 3.1.1 at any height; the third returns an estimate from 3.2.3 (k 0.000404). Membership computed from service triangles",
+   "source": "C01-S05; C01-S01 (p.6)"
+  },
+  {
+   "case": "View 20 definition (hand check)",
+   "input": "RTS 16338 App B p.29 of 33 (PDF p.44), row 20.1 Granville Street",
+   "expected": "Current lower boundary: roof of the tower at 1763 Comox St. Amended: uppermost extent of the 'English Properties' in West Vancouver, as generally demonstrated in the reference image. Not a building roof; class S5",
+   "source": "C01-S07 (PDF p.44)"
+  },
+  {
+   "case": "View 12.2 removal from Table 1",
+   "input": "RTS 16361 App C p.29 and recommendations E, H; PSPC and Council minutes 4 June 2025; PVG Table 1 in Jul 2024, Jun 2025 and Feb 2026",
+   "expected": "Row 12.2 Granville Bridge deleted by Council on 4 June 2025; present in the Jul 2024 PDF, absent from Jun 2025 and Feb 2026; 3.4.2 still names 12.2; a Granville street-end view goes to the Central Waterfront Plan",
+   "source": "C01-S49; C01-S01"
+  },
+  {
+   "case": "AC 601-007 surface arithmetic",
+   "input": "Object 1,000 m from a defined CYHC channel edge, or from a CBC7 FATO edge; y0 = aerodrome elevation",
+   "expected": "Channel: y0 + 20 m at 1 km (2%; 4.7(2); to 3,000 m). Heliport: y0 + 40 m (4%; to 1,500 m). No channel: 60 m AGL. Centre distances 1.87 and 1.21 km give about 37 m and 48 m",
+   "source": "C01-S41 (pp.6-10)"
+  },
+  {
+   "case": "Curvature forms (computed)",
+   "input": "d = 2 km on a line anchored at Dr = 11 km (view 20, Dr assumed); d = 3.9 km on an eye-angle line (QE); R 6371 km, kappa 0.13",
+   "expected": "Chord below linear interpolation by d(Dr-d)(1-kappa)/2R = 1.23 m; eye-angle line above its tangent by (1-kappa)d^2/2R = 1.04 m (1.19 m without refraction). The Lions at 25 km drop 42.7 m",
+   "source": "C01-S11; C01-S07"
+  },
+  {
+   "case": "AGGREGATE (image-only): App G Update sheets",
+   "input": "RTS 16338 App G view A (PDF p.67) and view 20 (PDF p.99)",
+   "expected": "A: 17,510 m2, 10 parcels, mean height change 56 m, up to 109,172 m2 capacity. 20: 586,770 m2, 597 parcels, mean change 30 m, up to 1,967,547 m2. Coarse targets once old and new definitions exist",
+   "source": "C01-S07"
+  },
+  {
+   "case": "INFORMATIONAL: Dec 2025 view statements for the DTES",
+   "input": "Referral Report 22 Oct 2025 section 4 (PDF pp.9-10): 3.2.4, E, G2, H and J2 cross the DEOD and Thornton Park",
+   "expected": "Some corridors currently limit sites to about 13 storeys (about 40 m at 3 m per storey); E passes high above grade and does not constrain; G2 unchanged. Compare computed limits above grade before and after",
+   "source": "C01-S08 (PDF pp.9-10)"
+  }
+ ],
+ "sources": [
+  {
+   "id": "C01-S01",
+   "title": "Public Views Guidelines (approved 10 Jul 2024; amended 4 Jun 2025 and 4 Feb 2026)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Feb 2026 PDF: 8 pp, 210,961 B, SHA-256 597f0da2...b0ca. s.2 p.3: origin, cone, two vertical boundaries, lower boundary sets maximum geodetic height. Table 1 pp.4-6, no 12.x row. Clauses 3.1.1-3.1.5 pp.6-7; 3.3 p.7; 3.4 pp.7-8."
+  },
+  {
+   "id": "C01-S02",
+   "title": "Public views (City page)",
+   "url": "https://vancouver.ca/home-property-development/protecting-public-views.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Lists 16 origin points, free property view assessment, Higher Buildings Policy; Council approved the Feb 2026 updates and Dec 2025 adjustments; per-view pages give origins, subjects and 2024 reference photos."
+  },
+  {
+   "id": "C01-S03",
+   "title": "Queen Elizabeth Park (3.2.1-3.2.4) public view page",
+   "url": "https://vancouver.ca/home-property-development/queen-elizabeth-park-public-view.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Origin at viewing platform by the 'Photo Session' statue; cones drawn as yellow boundary boxes on photographs; no numeric heights."
+  },
+  {
+   "id": "C01-S04",
+   "title": "Open data: View cones (metadata and records)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "24 polygons; modified 2026-10-19; OGL-Vancouver; development within polygons is height-limited; extract may not change weekly; by-laws authoritative; 'shapre_area' typo; no elevation fields; DWG export."
+  },
+  {
+   "id": "C01-S05",
+   "title": "ViewCone FeatureServer layer 0 and item",
+   "url": "https://services3.arcgis.com/qrcTTRTwUoS8N47o/arcgis/rest/services/ViewCone/FeatureServer/0",
+   "publisher": "City of Vancouver (ArcGIS Online)",
+   "year": "2026",
+   "opened": true,
+   "extract": "EPSG:26910, 24 polygons (28 has five vertices); VIEWPOINT_ELEVATION_M filled; REFERENCE_* null; EFFECTIVE_DATE 2024-07-10 except view 28; lastEditDate 1777944001730; dataLastEditDate = schemaLastEditDate 1776247144052."
+  },
+  {
+   "id": "C01-S06",
+   "title": "Council report RTS 18292, 4 Feb 2026 (cfsc2.pdf)",
+   "url": "https://council.vancouver.ca/20260204/documents/cfsc2.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2026",
+   "opened": true,
+   "extract": "Base PVG '2024, last amended 2025'. App A: 9.1/9.2 origin to City Hall campus stairs; 9.1 lower boundary roof of The Stack; 28 Clinton Park 65.7 m at 496222, 5457613; Trout Lake 59.8/54.3 m, proposed 68.9 m."
+  },
+  {
+   "id": "C01-S07",
+   "title": "Council report RTS 16338, 10 Jul 2024 (pspc1.pdf)",
+   "url": "https://council.vancouver.ca/20240710/documents/pspc1.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2024",
+   "opened": true,
+   "extract": "App B PDF pp.35-45: roof-aligned boundaries; p.44 view 20 lower boundary moved from roof of 1763 Comox to uppermost extent of the 'English Properties'; penthouse named only in vertical boundaries. App G PDF pp.65-105: photos, Update sheets."
+  },
+  {
+   "id": "C01-S08",
+   "title": "Referral Report 22 Oct 2025, Public Hearing 9-16 Dec 2025 (phea1rr.pdf), Appendix K",
+   "url": "https://council.vancouver.ca/20251209/documents/phea1rr.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2025",
+   "opened": true,
+   "extract": "App K PDF pp.165-167: H lower boundary 58 m and J2 43.5 m at the Sun Yat-Sen pavilion (492,487.44; 5,458,541.92); 3.2.4 set equal to 3.2.3; 'Current' H: uppermost roof of 41 E Hastings. No Table 1 changes."
+  },
+  {
+   "id": "C01-S09",
+   "title": "Policy Report RTS 08566, 20 Jan 2011 (final-council-report.pdf)",
+   "url": "https://vancouver.ca/docs/planning/final-council-report.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2011",
+   "opened": true,
+   "extract": "App A PDF pp.14-17: H1 Lv 6.5 m, reference SW corner of 501 Keefer St, 40.64 m at 982.77 m; G1 43.52 and 55.94 m at 946.17 m; J1 54.95 m at 805.62 m. App C deletes DODP Map 4."
+  },
+  {
+   "id": "C01-S10",
+   "title": "Vancouver's Views (City presentation, Dec 2004)",
+   "url": "http://www.urisabc.org/wp-content/uploads/2019/02/2004-12-Presentation-3-Urban-Views-Campbell.pdf",
+   "publisher": "City of Vancouver (Urban Views, via URISA BC)",
+   "year": "2004",
+   "opened": true,
+   "extract": "Slide 'The Formula': Hx = Dx(Lr-Lv)/Dr - (LBx-Lv); Cambie 9.1 spreadsheet rows in feet (Lv 205 ft; datum unknown); view shadow and view extents as cone subsections."
+  },
+  {
+   "id": "C01-S11",
+   "title": "Robson Text Amendment Rezoning Booklet (21 Jan 2025)",
+   "url": "https://rezoning.vancouver.ca/applications/118-150-robson-st-and-828-cambie-st/application-booklet.pdf",
+   "publisher": "Applicant, with City sheet",
+   "year": "2025",
+   "opened": true,
+   "extract": "PDF p.18: City sheet dated 3 Oct 2024; points A-L with lat/long, geodetic and above-grade heights for A, 3.2.3, 9.2; only geodetic heights are definitive; appurtenances count."
+  },
+  {
+   "id": "C01-S12",
+   "title": "1070 Barclay Street rezoning: site context",
+   "url": "https://rezoning.vancouver.ca/applications/1040-1080_barclay/documents/03-sitecontext.pdf",
+   "publisher": "Applicant, with City calculation",
+   "year": "2019",
+   "opened": true,
+   "extract": "Booklet p.26: City Preliminary View Cone Calculation; 3.2.1 maximum geodetic 123.201-143.384 m; 12.1.1 121.695 and 121.969 m; base surface and geodetic parapet heights."
+  },
+  {
+   "id": "C01-S13",
+   "title": "Policy Report, 8 Jul 2005: 1133 West Georgia rezoning",
+   "url": "https://council.vancouver.ca/20050719/documents/p7complete.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2005",
+   "opened": true,
+   "extract": "PDF p.4: View Cone D limits development to approximately 100.58 m (330 ft) on the westerly portion; DD sub-area A height 137.2 m."
+  },
+  {
+   "id": "C01-S15",
+   "title": "Higher Buildings Policy (rev. 31 Mar 2026)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Applies to buildings entering QE or other Council-approved corridors; 2.1(b) Figure 1 areas; (c) about 550-700 ft in the CBD; (d) gateways about 400-515 ft; permissive, not a cap; process s.3."
+  },
+  {
+   "id": "C01-S16",
+   "title": "Building Height Technical Design Supplement (bulletin, Oct 2023)",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-building-height.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2023",
+   "opened": true,
+   "extract": "s.10, p.14: view cone maps show locations, not maximum heights; topography and distance matter; zoning limit prevails where lower. Appendix A4 defines Horizontal Datum Plane."
+  },
+  {
+   "id": "C01-S17",
+   "title": "Broadway Plan: questions re view protection (City Manager memo, 29 Mar 2023)",
+   "url": "https://vancouver.ca/files/cov/2023-03-29-broadway-plan-questions-re-view-protection.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2023",
+   "opened": true,
+   "extract": "Surveyed origins and reference points; free View Cone Assessment in 5-10 minutes, reply 0.5-3 business days; other instruments: C-3A City Hall views, East Fraser Lands Mt Baker view, CD-1 (141)."
+  },
+  {
+   "id": "C01-S21",
+   "title": "Vancouver International Airport Zoning Regulations SOR/80-902",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "publisher": "Government of Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "s.3 ARP 2 m above sea level; Part IV outer surface 45 m; Part II lands in Richmond and Strait; downtown Vancouver not expressly included; current to 2026-09-30."
+  },
+  {
+   "id": "C01-S22",
+   "title": "TP 1247 Aviation: Land Use in the Vicinity of Aerodromes",
+   "url": "https://tc.canada.ca/en/aviation/publications/aviation-land-use-vicinity-aerodromes-tp-1247",
+   "publisher": "Transport Canada",
+   "year": "2019",
+   "opened": true,
+   "extract": "Municipalities control height outside aerodromes unless an airport zoning regulation exists; none can be made for non-certified aerodromes; heliports and water aerodromes count as aerodromes."
+  },
+  {
+   "id": "C01-S23",
+   "title": "Daily Hive: federal aviation concerns could shrink tallest tower (24 Jul 2026)",
+   "url": "https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation",
+   "publisher": "Daily Hive",
+   "year": "2026",
+   "opened": true,
+   "extract": "NAV CANADA told the developer changes may be needed; about 88 ft (27 m) cut from 1,034 ft to about 946 ft (288 m); surface or procedure not disclosed."
+  },
+  {
+   "id": "C01-S25",
+   "title": "Open Government Licence - Vancouver",
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Based on OGL-BC 2.0; commercial use allowed; default attribution 'Contains information licensed under the Open Government Licence - Vancouver.'"
+  },
+  {
+   "id": "C01-S26",
+   "title": "Open data: LiDAR 2022",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+   "publisher": "City of Vancouver",
+   "year": "2023",
+   "opened": true,
+   "extract": "181 grid cells (1 km), zipped LAS 16.45 MB to 2.74 GB; about 49 pts/m2; vertical 0.081 m (95%); NAD83(CSRS) 4.0.0.BC.1.GVRD; CGVD28GVRD, HTMVBC00; class Buildings present; flown Sept 2022."
+  },
+  {
+   "id": "C01-S27",
+   "title": "Open data: digital elevation model and elevation contours",
+   "url": "https://opendata.vancouver.ca/explore/dataset/digital-elevation-model/",
+   "publisher": "City of Vancouver",
+   "year": "2015",
+   "opened": true,
+   "extract": "1 m DEM from 2013 LiDAR, TIF 1.91 GB, UTM10 NAD83(CSRS); contours from 2002 orthophoto acquisition, not updated; queried through the 1 m contour API."
+  },
+  {
+   "id": "C01-S28",
+   "title": "LTSA Circular Letter 465C: official vertical datum for legal surveys in BC",
+   "url": "https://ltsa.ca/wp-content/uploads/2021/04/CL-465C_Signed.pdf",
+   "publisher": "Land Title and Survey Authority of BC",
+   "year": "2026",
+   "opened": true,
+   "extract": "CGVD28 remains the official legal-survey datum; HTGVRDBC00 for Metro Vancouver; CGVD2013 values in GeoNetBC not for legal surveys (amended 1 Apr 2026)."
+  },
+  {
+   "id": "C01-S29",
+   "title": "Height Modernization 2013: A New Canadian Vertical Datum (NRCan slides)",
+   "url": "https://www.pxw1.snb.ca/snb7001/e/PDF/presentationANBL-e.pdf",
+   "publisher": "NRCan, hosted by Service New Brunswick",
+   "year": "2013",
+   "opened": true,
+   "extract": "Preliminary HCGVD2013 minus HCGVD28: Vancouver +15 cm."
+  },
+  {
+   "id": "C01-S30",
+   "title": "Vancouver Tall Challenge brief (ENG)",
+   "url": "F:/UBC Master of Architecture/ARCH540 AI Studio/03 Vancouver Tall Competition Brief/FULL COMPETITION BRIEF [ENG] [FR] [IT] [ES] [CN]/FULL COMPETITION BRIEF [ENG] [FR] [IT] [ES] [CN]/_Vancouver Tall Challenge - ENG.pdf",
+   "publisher": "Buildner with City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "p.15: hypothetical full-block CBD site about 79.2 x 144.8 m; towers 244-305 m. p.17 map labels BC Place and Entertainment District; no coordinates. One Queen Elizabeth Park skyline view required."
+  },
+  {
+   "id": "C01-S31",
+   "title": "Team repo vancouver-tall-view-tool (guideline.json, viewcones.json, README)",
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/vancouver-tall-view-tool/README.md",
+   "publisher": "Team",
+   "year": "2026",
+   "opened": true,
+   "extract": "Table 1 transcription matches the PDF; clause list mislabels the second paragraph of 3.1.2 as 3.1.3; Vista takes the polygon apex as origin; README states cone heights and datum unknown."
+  },
+  {
+   "id": "C01-S32",
+   "title": "Specifications for Airborne LiDAR for the Province of British Columbia v5.3",
+   "url": "https://www2.gov.bc.ca/assets/gov/data/geographic/digital-imagery/specifications_for_airborne_lidar_for_the_province_of_british_columbia_53.pdf",
+   "publisher": "GeoBC",
+   "year": "2023",
+   "opened": true,
+   "extract": "Submitted control uses CGVD2013 vertical datum (2023-05-03 edition)."
+  },
+  {
+   "id": "C01-S33",
+   "title": "HRDEM CanElevation product specifications",
+   "url": "https://download-telecharger.services.geo.ca/pub/elevation/dem_mne/highresolution_hauteresolution/HRDEM_Product_Specification.pdf",
+   "publisher": "Natural Resources Canada",
+   "year": "2023",
+   "opened": true,
+   "extract": "Heights referenced to CGVD2013, replacing CGVD28. Edition read locally was 1.7; mirror edition may differ."
+  },
+  {
+   "id": "C01-S34",
+   "title": "Open data: property parcel polygons",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "99,698 polygons; civic_number, streetname; modified 2026-10-19. NE vertex of 2670 Victoria Dr matches printed coordinates (0.11 m); NE vertex of 1975 E 12th Ave lies 76 m south; no 501 Keefer St."
+  },
+  {
+   "id": "C01-S40",
+   "title": "Canadian Aviation Regulations SOR/96-433, ss.601.23 and 601.24",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.23.html",
+   "publisher": "Government of Canada (Justice Laws)",
+   "year": "2026",
+   "opened": true,
+   "extract": "Current to 2026-09-30. 601.23(1): obstacle if (a) above an OLS, (b) over 90 m AGL within 6 km of an aerodrome centre, (c) over 90 m within 3.7 km of a VFR route, (d) over 150 m. 601.24 notice."
+  },
+  {
+   "id": "C01-S41",
+   "title": "Advisory Circular AC 601-007: When to Submit an Aeronautical Assessment Form",
+   "url": "https://tc.canada.ca/sites/default/files/2025-06/AC-601-007-issue-01.pdf",
+   "publisher": "Transport Canada",
+   "year": "2024",
+   "opened": true,
+   "extract": "Issue 01, 2024-02-27, 13 pp. 4.4 basic 60 m AGL. 4.5, 4.5.4: heliport 4% to 1,500 m from FATO edge. 4.5.1-4.5.2: 1% to 6,000 m, 2% to 3,000 m. 4.7: no channel 60 m; with channels runway-type. 4.5.7 shielding."
+  },
+  {
+   "id": "C01-S42",
+   "title": "Council report RTS 19750, 2611 Victoria Drive (14 Jul 2026, r26.pdf)",
+   "url": "https://council.vancouver.ca/20260714/documents/r26.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2026",
+   "opened": true,
+   "extract": "p.4: RTS 18292 adopted 4 Feb 2026; Council referred Trout Lake amendments back to staff; Trout Lake view cone updates are under review; site lies in view 27.1."
+  },
+  {
+   "id": "C01-S43",
+   "title": "Cambie Street (9.1 and 9.2) public view page",
+   "url": "https://vancouver.ca/home-property-development/cambie-street-public-view.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Origin: Cambie Street at the base of the stairs at the northwest corner of City Hall campus; 2026 reference photos for 9.1 and 9.2."
+  },
+  {
+   "id": "C01-S44",
+   "title": "Vancouver Harbour Flight Centre (CYHC), Wikipedia",
+   "url": "https://en.wikipedia.org/wiki/Vancouver_Harbour_Flight_Centre",
+   "publisher": "Wikipedia (cites Canada Flight Supplement)",
+   "year": "2026",
+   "opened": true,
+   "extract": "Registered water aerodrome CYHC at 49 17 40 N, 123 06 41 W, elevation 0 ft; runway direction, length, width n/a; operating zone 'Area Alfa'; secondary source citing CFS 2025-11-27 to 2026-01-22."
+  },
+  {
+   "id": "C01-S45",
+   "title": "List of airports in the Lower Mainland, Wikipedia",
+   "url": "https://en.wikipedia.org/wiki/List_of_airports_in_the_Lower_Mainland",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "opened": true,
+   "extract": "Vancouver/Harbour (Public) Heliport CBC7 at 49 17 13 N, 123 06 22 W; VGH heliport CBK4 at 49 15 42 N, 123 07 20 W; secondary; no elevation, FATO, certification or IAP data."
+  },
+  {
+   "id": "C01-S46",
+   "title": "GeoBC: Height transformations",
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "publisher": "GeoBC (Province of BC)",
+   "year": "2026",
+   "opened": true,
+   "extract": "HTMVBC00 is the official name of the hybrid geoid for Metro Vancouver to Hope, extending HTGVRDBC00; CGVD28 is current in BC; no CGVD2013 offset or licence stated."
+  },
+  {
+   "id": "C01-S47",
+   "title": "Your guide to Canadian datum transformations and ArcGIS Online, part 2",
+   "url": "https://resources.esri.ca/arcgis/your-guide-to-canadian-datum-transformations-and-arcgis-online-part-2",
+   "publisher": "Esri Canada",
+   "year": "2020",
+   "opened": true,
+   "extract": "Vendor article: NAD83 (original) and NAD83(CSRS) differ about 10 cm in Vancouver and about 70 cm in Thunder Bay; indicative only."
+  },
+  {
+   "id": "C01-S49",
+   "title": "Council report RTS 16361, Granville Street Plan (PSPC 4 Jun 2025) and minutes",
+   "url": "https://council.vancouver.ca/20250604/documents/pspc1.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2025",
+   "opened": true,
+   "extract": "PDF p.29: delete row 12.2 Granville Bridge from PVG Table 1; Rec H street-end view review; PDF pp.27, 48-50: rezoning heights not above public view limits, 'underside of the most restrictive View Cone'. Minutes: approved 4 Jun 2025."
+  },
+  {
+   "id": "C01-S50",
+   "title": "Public Hearing minutes, 9, 11 and 16 Dec 2025 (phea20251209min.pdf)",
+   "url": "https://council.vancouver.ca/20251209/documents/phea20251209min.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2025",
+   "opened": true,
+   "extract": "Referral motion lost; motion as amended carried 16 Dec 2025 (vote 11268). Rec K: Council endorses the approach to administration of the Public View Guidelines amending 3.2.4, H and J2 per Appendix K."
+  },
+  {
+   "id": "C01-S51",
+   "title": "NRCan MRDEM-30 (edition 1.2, 2025-06-20) and CDEM (edition 1.1, 2013) specifications",
+   "url": "https://datacube.services.geo.ca/ows/mrdem",
+   "publisher": "Natural Resources Canada",
+   "year": "2025",
+   "opened": true,
+   "extract": "MRDEM-30: 30 m, CGVD2013; release 1.1 changed the vertical transformation (about 40 cm average); sources HRDEM lidar mosaic and GLO-30; OGL-Canada. CDEM: CGVD28, 0.75 arc-second base resolution."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A cone's lower boundary is a flat plane at one constant geodetic height.",
+   "correction": "It is a rising sight line: Z = Lv + k*D.",
+   "detail": "PVG 'horizontal lower boundary' means horizontal in the view. City 2004 formula and current sheet points fit one k per cone: A 0.0589, 3.2.3 0.0004; the 9.2 value is now historical.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vista README: origins can only be estimated from polygon geometry.",
+   "correction": "The polygon apex is the City's origin coordinate; sibling cones share it exactly and the City layer adds Lv.",
+   "detail": "24 polygons give 16 apexes, matching the City's 16 origin points. Survey accuracy of the apex is unstated; 9.x apex are whole metres.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Cone heights are published nowhere, so no height test is possible.",
+   "correction": "No surface is published, but reference parameters appear in Council reports for several cones and the City issues per-site geodetic sheets.",
+   "detail": "In force now: 28, H, J2 printed; 27.1 and 27.2 parcel-located; A and 3.2.3 fitted; 3.2.4 equals 3.2.3. Service REFERENCE_* fields are empty for all 24.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "YVR or harbour obstacle surfaces cap downtown heights.",
+   "correction": "YVR zoning (SOR/80-902) covers Richmond lands only; no zoning found for the harbour aerodrome or heliport.",
+   "detail": "Correct for zoning surfaces, but CAR 601.23 and AC 601-007 still apply to towers; NAV CANADA decisions are not public (Holborn, July 2026: about 27 m cut).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "City sheet points all lie within 4 degrees of cone axes, so radial and axial distance cannot be separated.",
+   "correction": "9.2 points lie 6.0-6.3 degrees off the bisector (A 0.5-1.9, 3.2.3 3.1-3.7). Planar fits better: A 0.012 vs 0.037 m, 9.2 0.008 vs 0.024 m.",
+   "detail": "Separation is modest (about 3x, under 0.05 m) and 9.2 is historical. Default to the lower of both rules until an off-axis City sheet or City confirmation.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "9.2 is calibrated (k 0.0488) for the current cone.",
+   "correction": "The sheet predates the Feb 2026 origin move; k belongs to the Walking Figures origin and is historical.",
+   "detail": "RTS 18292 App A pp.12-13 moves 9.1 and 9.2 to the City Hall campus stairs; the service apex and VIEWPOINT_LOCATION show the new origin. 9.2 removed from the calibrated count.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "20 published points currently fit within 0.07 m.",
+   "correction": "9 current points on 2 cones (A 4, 3.2.3 5), in-sample; 3 points (9.2) are stale; the 8 Barclay values are not fitted.",
+   "detail": "Fit residual is not validation. Leave-one-out: A 0.017 m planar, 3.2.3 0.004 m; none tests extrapolation beyond 48 m.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Higher Buildings Policy supplies height caps to include in the minimum surface.",
+   "correction": "It is a relaxation: Higher Buildings may enter QE view 3 and named corridors; heights are approximate guidance. PVG 3.4.2 lets Exceptional Downtown Sites also enter B1, B2, D, 12.2.",
+   "detail": "Modelled as user-enabled per-cone masks with clause and reason; never part of the minimum.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Trout Lake 27.1 and 27.2 have published lower-boundary parameters (59.8 m and 54.3 m at 495340.12, 5456431.39).",
+   "correction": "59.8 and 54.3 m are in force, measured from the 1975 E 12th NE corner (parcel vertex 495332.94, 5456355.10). The printed coordinates belong to proposed 27.2 at 2670 Victoria Dr (68.9 m, not adopted).",
+   "detail": "Printed text sits in the Proposed column (x=322). k becomes 27.1 0.04533 and 27.2 0.03685. The critique's 'adopted 68.9 m, no coordinates' is also wrong.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Service polygons already hold 2026 Trout Lake boundaries and Council adopted them on 4 Feb 2026.",
+   "correction": "Council referred the Trout Lake amendments back (RTS 19750 p.4); service 27.1/27.2 equal the pre-2026 corner bearings.",
+   "detail": "Review continues; City page still shows 2024 reference images. PVG Table 1 still prints 'Amended 2026' for 27.x.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The far edge of each cone is a clip near Burrard Inlet, and all 24 cones are triangles.",
+   "correction": "Cone 28 has five vertices; K looks south to City Hall and its far edge is the subject boundary.",
+   "detail": "Store rings; take the two extreme rays as vertical boundaries.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "No aviation rule applies downtown; it is case-by-case only.",
+   "correction": "No zoning surface, but CAR 601.23 makes any structure above 150 m AGL an obstacle (above 90 m within 6 km of an aerodrome); 601.24 requires notice and Standard 621 marking.",
+   "detail": "Competition towers are 244-305 m; CYHC and CBC7 lie within about 2 km of the CBD; AC 601-007 notification starts at 60 m AGL.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "EFFECTIVE_DATE identifies the cone version.",
+   "correction": "Only view 28 shows 2026-02-04; 9.1, 9.2, H, J2 and 3.2.4 changed in 2025-26 yet show 2024-07-10.",
+   "detail": "Version by geometry hash, layer edit dates (2026-05-05, 2026-04-15) and Council report.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 9.2 'roof of 485 W 8th Ave' test shows that roof alignments cannot give Lr.",
+   "correction": "The test paired the new apex with old-origin data and ignored a 15 m ground fall to 8th Ave; implied roof 43 m ASL is about 27 m above ground.",
+   "detail": "Roof route restored using LiDAR 2022 roofs; check the roof rule on A (1008 Cambie, implied 84 m ASL).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Radial distance is always the less conservative choice.",
+   "correction": "It depends on the reference bearing: Clinton Park planar is 1.0 m higher on axis at 1 km but 0.6 m lower at the edge; 27.2 planar is 4.3 m higher on axis at 1 km.",
+   "detail": "Use the lower of radial and planar. The axis could be the bisector, the bearing to the reference, or perpendicular to the boundary; only an off-axis City sheet settles it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "QE 3.2.3 fits a near-level plane at Lv plus eye height.",
+   "correction": "Slope is 0.00045 +/- 0.00008 (about 5 sigma from zero), so not level; a level sightline at Lv + 0.4 m with Earth curvature fits equally.",
+   "detail": "Curvature is 1.2 m at 3.9 km (1.0 m with refraction 0.13). A City point near 5.8 km would separate the two (about 0.6 m).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Eye height used at origins.",
+   "correction": "Not published. Lv exceeds 2002 contour ground by 1.4-3.5 m at A, B1, D, J1, 20, 21, 27, 28 (about 0 at 9.x), suggesting Lv is eye level.",
+   "detail": "Free-intercept fits give intercept = Lv + 0.3 m (A) and Lv - 0.2 m (3.2.3), excluding an extra 1.6 m. Camera default adds 0 m.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Slope distance D is radial from the origin.",
+   "correction": "Radial is the 2004 formula wording; a planar (axial) boundary is the City overlay geometry and fits the sheet better.",
+   "detail": "Default is min of both. Clinton Park, J2 and 27.2 references lie 8-26 degrees off axis, so the choice moves heights by metres.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "A single smooth surface per cone.",
+   "correction": "3.2.1 gives 123.201 m at one Barclay point but about 143.3 m at the rest.",
+   "detail": "Old sub-sections or stepped lower boundaries may exist (2011 report splits views into sub-cones). RTS 16338 App B shows 3.2.1 geometry unamended in 2024.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Named 'roof level' alignments give Lr directly.",
+   "correction": "Plausible via LiDAR 2022 roofs with the maximum-elevation-angle rule; penthouse handling and roof epoch are untested.",
+   "detail": "Check on A: 1008 Cambie roof implied 84 m ASL (D 1.35 km). 9.2: 485 W 8th implied 43 m ASL (D 256 m).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "View 12.2 (Granville Bridge) still exists.",
+   "correction": "Resolved in r2: Council deleted the Table 1 row on 4 June 2025 (RTS 16361); 3.4.2 still names 12.2; open data, City layer and pages have no 12.x view.",
+   "detail": "RTS 16338 Rec D (10 Jul 2024) ordered the review; the Jul 2024 PDF still had the row. Granville street-end view review goes to the Central Waterfront Plan.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Trout Lake 27.1/27.2 geometry after 4 Feb 2026.",
+   "correction": "In force: pre-2026 wedges with 59.8 m and 54.3 m. Staff proposals are referred back; the new outcome is pending.",
+   "detail": "Proposed wedges (27.1 -22.8 to -18.3 degrees; 27.2 -12.8 to 13.9) and 68.9 m are scenarios only; 2611 Victoria Dr referral (14 Jul 2026) awaits the review.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Cone 'geodetic' heights and VIEWPOINT_ELEVATION_M are CGVD28 GVRD.",
+   "correction": "PVG names no datum; inference from City LiDAR 2022 (CGVD28GVRD) and BC legal practice (CL 465C).",
+   "detail": "HTMVBC00 is the renamed HTGVRDBC00. CGVD2013 minus CGVD28 about +0.15 m (preliminary 2013); use point values from NRCan or GeoBC grids.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Basis of 100.58 m (330 ft) for View Cone D in 2005.",
+   "correction": "Report does not say if geodetic or above grade.",
+   "detail": "Test both readings once D is calibrated; informational with a plus or minus 2 m band.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Origin elevation 30.8 m for 9.x (service).",
+   "correction": "2002 contours show 30-33 m within 5-20 m of the new apex, so 30.8 m is about ground; the 2004 figure (205 ft) was another origin.",
+   "detail": "Unknown whether Lv was updated when the origin moved in 2026; check against LiDAR 2022 ground.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The 2024 rewrite changed the QE cones, so the 2019 Barclay values are stale.",
+   "correction": "RTS 16338 App B shows 3.2.1-3.2.3 geometry unamended in 2024 (3.1 and 3.2.4a removed); 3.2.4 changed Dec 2025.",
+   "detail": "Barclay values stay non-gating until a current City assessment confirms them.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Web basemaps differ from the service frame by 1-1.5 m.",
+   "correction": "Esri Canada gives about 0.1 m between NAD83 original and CSRS at Vancouver; the WGS84 gap was not quantified.",
+   "detail": "The 1.5 m edge band is a design choice; record the realisation per layer.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Printed reference coordinates match the named parcel corner.",
+   "correction": "Printed 495,340.12, 5,456,431.39 is the NE vertex of 2670 Victoria Dr (0.11 m), not 1975 E 12th (76 m south).",
+   "detail": "Confirmed by PDF column position and the parcel layer; extraction order had misattributed it. 27.1/27.2 in-force references use the 1975 E 12th vertex.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The PVG PDF holds the current cone definitions.",
+   "correction": "Council says amendments go to the GIS model first; the PDF may lag and prints 'Amended 2026' for 27.x although those changes were referred back.",
+   "detail": "Treat the City layer and Council reports as authoritative; re-poll after each Council meeting. H is not labelled amended although Appendix K changed it (r2).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "A CLEAR result means no protected view is broken.",
+   "correction": "Only PVG Table 1 cones are modelled; C-3A City Hall views, East Fraser Lands Mt Baker view, CD-1 (141) and the removed view 12.2 are not.",
+   "detail": "Standing banner on every result; r2 adds IN CONE - NO ESTIMATE for wedges without parameters.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Competition site may use the Exceptional Downtown Site route.",
+   "correction": "Area 11,468 m2 exceeds 8,000 m2 (3.4.1), but the route relaxes only QE 3, B1, B2 and D (12.2 is gone); A, E, 9.x, J1 still bind.",
+   "detail": "Criteria 3.4.4-3.4.8 are qualitative; the competition is hypothetical. Not a City determination.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "View 20's lower-boundary reference is a building in West Vancouver, so it is roof-aligned (S3).",
+   "correction": "Treat it as terrain-referenced (S5): the 2024 definition is the uppermost extent of the 'English Properties' in West Vancouver, a hillside about 11 km north; the earlier boundary was the roof of 1763 Comox St.",
+   "detail": "RTS 16338 App B p.29 of 33 (PDF p.44). Take Lr from a North Shore DEM converted to CGVD28; carry a wide band; do not let 20 gate anything.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Whether view 12.2 was dropped or its Table 1 row omitted cannot be told; the change shows only in the Feb 2026 PDF.",
+   "correction": "Council deleted the row on 4 June 2025 (RTS 16361 App C); the Jun 2025 PDF already lacks it and 3.4.2's mention is vestigial.",
+   "detail": "PDF diff of Jul 2024 and Jun 2025 copies; PSPC minutes 4 June 2025 approve recommendation E (consequential amendments) and H (street-end view review).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The water aerodrome AC 601-007 notification surface is 60 m AGL.",
+   "correction": "60 m AGL applies only without a defined water channel. With defined channels the aerodrome is runway-type (4.7(2)), 2% to 3,000 m; the heliport 4% surface is stated for heliports with instrument approach in 4.5.4 but generally in 4.5(1)(c).",
+   "detail": "Classify CYHC (channels, certification) from CWAS and CBC7 (IAP) from CFS; until then warn on the lowest surface. CAR 601.23(1)(a) and (c) added.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The service's 2026-04-15 'data edit' shows the cone geometry was edited.",
+   "correction": "dataLastEditDate equals schemaLastEditDate to the millisecond (1776247144052); use geometry and attribute hashes as the only edit evidence.",
+   "detail": "Open-data 'modified' equals the routine extract date. Queried 2026-10-21 from the FeatureServer layer JSON.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A roof-aligned lower boundary passes through the highest roof point.",
+   "correction": "It grazes the roof return with the maximum elevation angle (z - Lv)/D, usually a near parapet; penthouses are excluded unless named.",
+   "detail": "Penthouses are named only in vertical-boundary text (9.2 west: 500 W 10th; 22 west: 1182 Quebec); 'uppermost roof' wording is used for H and 3.2.4. Treat the penthouse rule as an assumption and test both.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "View H's 58 m (Dec 2025) conflicts with the 2011 reference (40.64 m at 982.77 m), so H cannot be classed S1; Table 1 shows H unamended.",
+   "correction": "The 2011 H1 reference (corner of 501 Keefer St) is superseded. Appendix K sets H to 58 m at the Sun Yat-Sen pavilion; Council endorsed it 16 Dec 2025 (Rec K, vote 11268). Table 1 lacks the label.",
+   "detail": "App K said no table amendments; the Feb 2026 PDF labels J2 and 3.2.4 'Amended 2025' but not H. Lv 6.5 vs 7.2 m stays unexplained; the City must confirm 58 m because REFERENCE_* are null.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "One curvature switch (drop D^2/2R), default off, is safe for the minimum surface.",
+   "correction": "The sign depends on the anchor: a line fixed at a far reference sits below linear interpolation by d(Dr-d)(1-kappa)/2R (plane overstates, up to 2.1 m for view 20); a line fixed by an angle at the eye rises by (1-kappa)d^2/2R.",
+   "detail": "Implement both per cone with kappa 0.13 and default to the lowest. Mountain renders drop 33 m at 22 km and 43 m at 25 km.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The checker's three outcomes CLEAR, BOUNDARY and INTERSECTS are exhaustive.",
+   "correction": "A wedge without calibrated parameters needs IN CONE - NO ESTIMATE; CLEAR is allowed only when every covering wedge is estimated and clear.",
+   "detail": "On the CBD test box 79.7% of cells touch a cone without parameters (7 of the 9 CBD cones have none).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Geometry hashes flag every amended view (H and 3.2.4 included).",
+   "correction": "H and 3.2.4 changed lower boundaries only (Dec 2025), so their polygons are unchanged; also hash the PVG PDF and read Council decisions naming 'Public View'.",
+   "detail": "Polygon-changing amendments in 2025-26: J2 (west boundary), 9.1, 9.2 (origin), 28 (new).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The worst penetration point is the point nearest the origin.",
+   "correction": "Penetration is the maximum over the clipped geometry of z - Z(x, y); under the radial rule it can fall at the foot of the perpendicular on an edge, or inside a sloped face.",
+   "detail": "Evaluate vertices, wedge-clip points, perpendicular feet and a dense sample on sloped faces; report the argmax.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "int16 centimetre terrain tiles suit all terrain.",
+   "correction": "int16 cm caps at 327.67 m; North Shore peaks reach about 1,700 m. Use uint16 with offset: cm for the CBD, dm for regional tiles.",
+   "detail": "Record datum (CGVD2013 or CGVD28) and geoid per tile.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The printed 'English Properties' means the British Properties hillside in West Vancouver.",
+   "correction": "Council text prints 'English Properties'; the reference image (App G p.35) shows the lower box edge near the base of the mountains but names no neighbourhood.",
+   "detail": "Ask the City for the reference feature and its XY; distance about 11 km is the critique's estimate, not measured.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The H lower-boundary history is complete.",
+   "correction": "App K 'Current' H is the uppermost roof of 41 E Hastings St, while the 2011 report used a corner of 501 Keefer St; the step between them is not documented.",
+   "detail": "No H lower-boundary text found in RTS 16338 (H1 only renumbered). Service H Lv 7.2 vs 2011 Lv 6.5 may reflect an origin shift (stage centre vs north end of the plaza).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Refraction coefficient kappa is 0.13.",
+   "correction": "A common geodetic value; the City's own model and weather vary it.",
+   "detail": "Per-cone override; default lowest candidate surface until the City states its model.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The 2004 formula rows use the same datum as current cones.",
+   "correction": "Lv 205 ft (62.5 m) for an origin on Cambie looks high against local ground; datum or offset convention unknown.",
+   "detail": "Use the rows only to test the formula's algebra, never heights.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Image-derived k can stand in for missing S4 definitions.",
+   "correction": "RTS 16338 App G sheets and City photos draw yellow boxes 'as generally demonstrated'; accuracy is unmeasured and depends on resection quality.",
+   "detail": "Label image-derived, carry 0.05 degrees (1.7 m at 2 km) plus resection error, and confirm with City assessments.",
+   "raised_in_round": 2
+  }
+ ],
+ "unresolved_relationships": [
+  "Lower-boundary reference for B1, B2, D, K, 10, 3.2.1, 3.2.2: no text in PVG, Council reports 2010-2026, open data or booklets; 21 is image-defined. 1989 and 2011 View Protection Guidelines sheets and DODP Map 4 not obtained (old URL redirects).",
+  "Roof elevations for E, G1, G2, J1, 9.1, 9.2, 22: the maximum-elevation-angle rule and LiDAR values are not yet run; roof existence in Sept 2022 unchecked; the reference for fitted A and 3.2.3 is unknown.",
+  "View 20: XY and elevation of the uppermost extent of the 'English Properties' are unpublished; spelling versus British Properties unverified; distance about 11 km is an estimate; CGVD2013 to CGVD28 offset for the North Shore not computed.",
+  "View H: the adopted 58 m (16 Dec 2025) cannot be seen in the GIS (REFERENCE_* null); Lv 6.5 (2011) versus 7.2 (service) unexplained; the step from the 501 Keefer corner to 'uppermost roof of 41 E Hastings' is undocumented.",
+  "Whether Lv includes eye height: Lv is 1.4-3.5 m above 2002 contour ground at eight origins but about equal at 9.x; no City statement.",
+  "Planar versus radial lower boundary and the axis definition (bisector, reference bearing, boundary normal): needs an off-axis City sheet or City confirmation.",
+  "Curvature and refraction: whether the City anchors lines at a far reference (chord) or at the eye (angle) is unknown; QE 3.2.3 cannot separate them over 48 m; needs a point near 5.8 km and a view 20 point.",
+  "Why 3.2.1 gives 123.201 m at one Barclay point but about 143.3 m at others: sub-sections or stepped lower boundary unconfirmed; 2019 values may still hold.",
+  "Datum of VIEWPOINT_ELEVATION_M and cone geodetic heights: PVG gives none; CGVD28 GVRD inferred; point-specific CGVD2013 offset not computed.",
+  "Aviation: CYHC channel definition, certification and elevation (CWAS) and CBC7 FATO, certification and IAP (CFS) not found; VFR route chart, OLS (TP 312E ch.4) not machine-readable; AC 4.5(1)(c) and 4.5.4(1) disagree on heliport IAP.",
+  "Trout Lake 27.1/27.2: amendments referred back 4 Feb 2026; revised wedges, lower boundaries and timetable pending; reference XY for in-force values comes from the parcel layer, not City print.",
+  "Other view instruments (C-3A City Hall views, East Fraser Lands Mt Baker view, CD-1 (141)) and the Higher Buildings Policy's other approved corridors: no geometry found. A new Granville street-end view is under review (Central Waterfront Plan).",
+  "Whether view_cones.dwg carries 3D or extra attributes: only the header was read (AC1027, 14.7 KB).",
+  "9.x origin: service DESCRIPTION still says Walking Figures plaza; unknown whether Lv (30.8 m) was updated with the 2026 move; old origin coordinates not available.",
+  "Current CBD zoning height caps (DD sub-area A was 137.2 m in 2005) and CD-1 caps: no data layer carries height; City Downtown, CBD and Higher Buildings Figure 1 boundaries not yet digitised.",
+  "Competition site: the brief gives no coordinates (hypothetical CBD block near BC Place); which wedges cover it, and the Rhino base model datum and origin, are unknown; ask Buildner.",
+  "Basis of the 100.58 m (330 ft) View Cone D figure in the 2005 report: geodetic or above grade.",
+  "Licence of the ViewCone ArcGIS item (CC BY) versus OGL-Vancouver on the portal; 2025 orthophoto licence; CBD LiDAR tile sizes not obtained (header requests refused).",
+  "Whether Council's 'endorse the approach to administration' (Rec K, 16 Dec 2025) is written into PVG text: the Feb 2026 PDF labels J2 and 3.2.4 'Amended 2025' but not H.",
+  "Image route accuracy: resection error of the App G and City page photos is untested; the camera model (rectilinear or panorama) of each photo is unknown.",
+  "2004 formula Lv 205 ft: datum or offset convention for the old 9.1 origin unknown."
+ ],
+ "change_log": [
+  "r1: Re-tagged every City value by cone version; 9.2 (Oct 2024 sheet), Barclay, 2004 rows, 1133 W Georgia and superseded values moved to a non-gating historical suite; gating set is A (4) and 3.2.3 (5).",
+  "r1: Default surface is now min(radial, planar). Refit reproduced the critique: A 0.012 vs 0.037 m, 9.2 0.008 vs 0.024 m. Corrected its claim that radial is always higher: it depends on reference bearing.",
+  "r1: Higher Buildings and Exceptional Downtown Sites became user-enabled per-cone relaxation masks, not caps; guidance heights are reference lines only.",
+  "r1: M06 now holds rule-based aviation warnings: CAR 601.23/601.24, AC 601-007 notification surfaces (60 m AGL; heliport 4% to 1,500 m), CYHC and CBC7 positions (about 2 km from the CBD).",
+  "r1: Trout Lake corrected beyond the critique: printed coordinates are the 2670 Victoria Dr corner (Proposed column); amendments were referred back (RTS 19750); 54.3 and 59.8 m remain in force; k 0.03685 and 0.04533.",
+  "r1: Roof route restored: Lr from LiDAR 2022 roofs. Earlier 'implausible' verdict reversed (485 W 8th ground about 16 m; implied roof 43 m ASL). Cones classified S1-S4; 8 of 24 now parameterised.",
+  "r1: Versioning by geometry hash and layer edit dates; EFFECTIVE_DATE informational. Landmark-bearing audit added: H, J2, 28, 9.1 match Council text within 0.05 degrees; Trout Lake service wedges are pre-2026.",
+  "r1: Metrics restated: fit residuals separate from leave-one-out (A 0.017 planar, 0.050 radial; 3.2.3 0.004); 0 of 24 cones have a held-out point; free-intercept check shows Lv, not Lv+1.6 m.",
+  "r1: Eye height: Lv probably already eye level (1.4-3.5 m over 2002 contours); camera default adds 0 m. Curvature switch added; QE 3.2.3 fits either a line or a level sightline with curvature.",
+  "r1: Rings stored (cone 28 has five vertices; K far edge is its subject). Downtown and CBD boxes stated explicitly and labelled test boxes; City boundary polygons to be digitised.",
+  "r1: Frames and datum: NAD83 original versus CSRS about 0.1 m (Esri Canada); HTMVBC00 equals renamed HTGVRDBC00; LiDAR tiles 1 km, 16.45 MB to 2.74 GB; edge band 1.5 m.",
+  "r1: Added not-modelled table and standing banner; 12.2 status updated from RTS 16338 Rec D; 3.2.x geometry shown unamended in 2024, so the 'QE rewrite' claim is unverified.",
+  "r1: Sources: dropped S14, S18, S19, S20, S24, S37, S38, S39 (secondary or marginal); added S40-S48 (CAR, AC 601-007, RTS 19750, City Cambie and Trout Lake pages, CYHC, CBC7, GeoBC, Esri Canada). Total 40.",
+  "r2: Added IN CONE - NO ESTIMATE; CLEAR needs every covering wedge estimated. CBD test box (computed): 79.7% of cells touch a cone with no parameters (45.6% only such); 20.3% only A or 3.2.3. Structural tests added.",
+  "r2: View H reconciled: Appendix K sets 58 m at the Sun Yat-Sen pavilion; Council endorsed it 16 Dec 2025 (Rec K, vote 11268). The 2011 H1 reference (501 Keefer St corner, 40.64 m) is superseded; H stays S1.",
+  "r2: View 20 terrain-referenced (S5): 2024 text is the 'English Properties' upper extent; before, roof of 1763 Comox St. S3 corrected: G1/G2 188 Keefer, J1 48 W Hastings, 9.1 The Stack, 9.2 485 W 8th, 22 210 E 5th.",
+  "r2: Curvature: two forms per cone (reference chord, eye-angle line), kappa 0.13, lowest used. View 20 plane overstates by up to 2.1 m; QE eye-angle line rises 1.0 m at 3.9 km; M08 drops terrain 43 m at 25 km.",
+  "r2: Roof rule is now the maximum elevation angle (z - Lv)/D, penthouses excluded unless named, with a Sept 2022 LiDAR and 2025 orthophoto epoch check; proven on A (1008 Cambie) first.",
+  "r2: Added an image route for S4 cones: RTS 16338 App G yellow-box photos and City page photos, resected on LiDAR corners; 0.05 degrees is 1.7 m at 2 km; labelled image-derived.",
+  "r2: View 12.2 resolved: Council deleted the Table 1 row on 4 June 2025 (RTS 16361 App C; minutes). PVG PDF versions pinned with SHA-256 (Jul 2024, Jun 2025, Feb 2026); true clause 3.1.3 added.",
+  "r2: AC 601-007 corrected from the text: water aerodrome with defined channels is runway-type (2% to 3,000 m, 4.7(2)); 60 m AGL only without channels; heliport 4% (4.5 and 4.5.4 differ). CAR 601.23(1)(a) and (c) added.",
+  "r2: Gating suite renamed regression (in-sample); prediction (held-out) suite added, empty now. Polygon hashes miss lower-boundary-only amendments (H, 3.2.4), so the PDF hash and Council decisions are monitored.",
+  "r2: Change signals: dataLastEditDate equals schemaLastEditDate (1776247144052); open-data modified is a routine extract; hashes only. ViewCone field names corrected (REFERENCE_ELEVATION_M, REFERENCE_DISTANCE_M, EXPIRATION_DATE).",
+  "r2: Terrain tiles now uint16 with offset (cm CBD, dm regional) and a datum tag; added NRCan MRDEM-30 (CGVD2013) and CDEM (CGVD28); the 2025 MRDEM transformation change of about 0.4 m recorded.",
+  "r2: Worst point is the maximum over clipped geometry (vertices, perpendicular feet, sampled slopes), not the nearest point. 2004 formula rows tagged datum unknown (algebra only).",
+  "r2: Added validation cases: structural no-estimate test, H 2011 versus 2025, view 20 hand check, 12.2 removal, AC arithmetic, curvature forms, App G aggregates (A 10 parcels, view 20 597 parcels), Dec 2025 DTES statements.",
+  "r2: Sources: dropped S35, S36, S48; added S49 (RTS 16361), S50 (Dec 2025 minutes), S51 (MRDEM, CDEM specs); updated S01, S02, S06-S09, S30, S31, S40, S41. Datasets 21-25 added: PVG versions, MRDEM and CDEM, App G, 2011 data, orthophotos.",
+  "r2: Competition site against the wedges is not computable (brief gives no coordinates); CBD and downtown test-box coverage computed instead. Web search budget ran out; no archive or proxy services used."
+ ],
+ "notes": "City PDFs were read in the browser pane (pdf.js); WebFetch worked for ArcGIS REST, Justice Laws, Wikipedia and open data. Web search ran out in r2; no archive services used. Refits and curvature are inline Python; licences from memory."
+}

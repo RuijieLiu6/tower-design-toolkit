@@ -1,0 +1,1 @@
+{"streets":["Hornby St","W Georgia St"],"zoning":["CD-1 (366)","DD"],"breaks":[3514,3514,4685,4685],"rows":[["1100",0,null,null,-1,0,854],["1000",1,4000,0,0,1,854],["900",1,3000,1200,1,2,854]],"fields":["civic","street","land_k","improvement_k","zoning","folios","m2"],"year":"2026"}

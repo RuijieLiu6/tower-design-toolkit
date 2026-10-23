@@ -1,0 +1,369 @@
+{
+ "expert_role": "Computational geometry and CAD-kernel developer (browser 3D / WASM kernels), round-2 reviewer of packet Q03",
+ "previous_round": [
+  {
+   "item": "N8AO integration (use built-in <N8AO/> from @react-three/postprocessing)",
+   "status": "addressed",
+   "residue": "npm confirms @react-three/postprocessing 3.2.1 depends on n8ao ^2.0.0. The packet still does not say to lock the transitive n8ao version, which the round-1 fix asked for."
+  },
+  {
+   "item": "Georeferencing and float precision",
+   "status": "addressed",
+   "residue": "The float32 arithmetic is correct: 0.5 m step at 5.46e6 N, 0.031 m at 4.9e5 E. Still missing are the importer side (web-ifc COORDINATE_TO_ORIGIN and GetCoordinationMatrix, Rhino settings and earth anchor, portal GeoJSON in WGS84), units, and the up-axis convention. See the new findings."
+  },
+  {
+   "item": "A2 board export pipeline",
+   "status": "addressed",
+   "residue": "Tile seams from screen-space effects (N8AO, SMAA, Outline) under setViewOffset are not handled, and pixel line widths do not map to print line weights."
+  },
+  {
+   "item": "Shadows on R3F 9.8.2 + three r186",
+   "status": "addressed",
+   "residue": "r186 WebGLShadowMap.js still has the 'PCFSoftShadowMap has been removed' warning, so shadows='percentage' is right. The one-day CSM spike is planned but has not been run. Shadow extents for the winter sun are not sized."
+  },
+  {
+   "item": "That Open components in an R3F app",
+   "status": "addressed",
+   "residue": "A spike is planned and the decision recorded. Peer three >=0.182 and fragments ~3.4.7 are compatible with the pins."
+  },
+  {
+   "item": "Missed IFC alternative ifc-lite",
+   "status": "addressed",
+   "residue": "Its speed claims are still unmeasured."
+  },
+  {
+   "item": "IFC write-back via web-ifc",
+   "status": "addressed",
+   "residue": "Write-back moved to v1, with glTF and .3dm export for 13 Nov."
+  },
+  {
+   "item": "Linework performance (drei Edges)",
+   "status": "addressed",
+   "residue": "The worker-side edge rule uses a dihedral fallback that is still untested on twisted towers."
+  },
+  {
+   "item": "FALSE_ASSUMPTION flag on CadQuery/build123d via Pyodide",
+   "status": "addressed",
+   "residue": "Reworded correctly, and OCP.wasm stays on the roadmap only."
+  },
+  {
+   "item": "Program tags through booleans (MINOR)",
+   "status": "addressed",
+   "residue": "reserveIDs, originalID and asOriginal are confirmed in manifold.d.ts 3.5.4. The test is planned."
+  },
+  {
+   "item": "Interaction principle sourcing (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "SunCalc v2 conventions (MINOR)",
+   "status": "addressed",
+   "residue": "The README confirms degrees and azimuth clockwise from north. The packet chose JPL/USNO reference values because the NOAA page is unmaintained, which is reasonable."
+  },
+  {
+   "item": "Text2BIM and structured outputs (MINOR)",
+   "status": "addressed",
+   "residue": "The packet does not say that Claude structured outputs also reject recursive schemas. See the findings."
+  },
+  {
+   "item": "WebGPU migration path (MINOR)",
+   "status": "partly",
+   "residue": "Core still uses CSM (onBeforeCompile) and maybe SoftShadows, which goes against the 'stock materials only' advice. The CSM need is not justified for a single block."
+  },
+  {
+   "item": "Stale metadata (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "manifold-3d peer dependencies (MINOR)",
+   "status": "partly",
+   "residue": "Still only 'check what npm adds'. The registry confirms that esbuild-wasm ^0.27.3 and three @gltf-transform packages are non-optional peers, which npm 7+ installs automatically. No decision has been made."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Performance principle: PerformanceMonitor with frameloop='demand'",
+   "issue": "drei 10.7.9 PerformanceMonitor records performance.now() only in useFrame and computes fps as frames.length/msPassed. Under a demand loop the gaps between renders count as elapsed time, so an idle scene reads as 0-2 fps. That triggers onDecline, lowers DPR and quality for no reason, and after flipflops can lock into fallback. The two core rules (demand loop plus PerformanceMonitor DPR) conflict.",
+   "fix": "Run a 2-3 s calibration with frameloop='always' at startup and after a tier change. Mount PerformanceMonitor only during continuous interaction (orbit, tour, explode drag), or reset its samples when a gap longer than about 100 ms is detected. Save the chosen tier per device in localStorage as a convenience, and keep the visible manual toggle."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missing: unit and up-axis normalisation across importers and the kernel",
+   "issue": "Manifold slice() and project() work on the X-Y plane (Z-up), while three.js is Y-up. Rhino and IFC are Z-up, glTF is Y-up, OBJ has no units, Rhino files are often in mm and SketchUp exports in inches. Neither the packet nor the georeferencing rule says this. A file in mm read as metres gives GFA errors of 1e6, and an axis mix-up slices the tower sideways.",
+   "fix": "Set one canonical project frame: metres, Z-up, local site origin, used in the kernel and analysis. Apply one transform to three's Y-up at the render boundary. Read the units from Rhino3dmLoader userData.settings (the doc.settings() properties) and from IFC unit assignments. Ask the user for OBJ units on import. Add unit tests: a 10x10x10 m box in mm.3dm, m.ifc and an OBJ all give 1000 m3 and 100 m2 per slice."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Georeferencing rule: multi-file alignment at import",
+   "issue": "web-ifc 0.0.78 exposes COORDINATE_TO_ORIGIN and GetCoordinationMatrix(). If each IFC is moved to its own origin, several files (architecture, structure, context) end up misaligned with each other and with the site origin. Rhino files carry a model base point and earth anchor in settings. Vancouver open-data portal exports (Opendatasoft GeoJSON) are usually WGS84 lon/lat, not UTM. The rule covers LiDAR only.",
+   "fix": "In the importer, read the IFC coordination matrix (and IfcMapConversion where present) and the Rhino earth anchor and base point. Express every model relative to the project's site origin in float64 before converting to float32. Treat portal GeoJSON as EPSG:4326 and convert it with proj4 to EPSG:3157 or 26910. Add a test: two IFC files exported from the same Revit model with shared coordinates overlay within 1 mm."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Board capture: tile seams and print line weights",
+   "issue": "Rendering with camera.setViewOffset tiles is correct for geometry, but N8AO, SMAA and Outline are screen-space. Each tile lacks the depth and colour beyond its edge, so AO darkens or shifts at tile borders, SMAA leaves edge artefacts and outline widths change. AO accumulation is not deterministic across tiles. LineSegments2 widths are in pixels, so '1-1.5 px' becomes about 0.1 mm at 300 dpi.",
+   "fix": "Render each tile with a gutter of at least the AO radius plus the SMAA search distance (for example 64-128 px), then crop. Use a world-space AO radius (N8AO screenSpaceRadius=false) and a fixed sample count or seed for captures. Turn off raster linework in board captures and take all print lines from the vector path (Manifold slices, three-edge-projection), with line weights set in mm (for example 0.13/0.18/0.35/0.5 mm, recorded as a team assumption). Add a seam test: compare a 2x2 tiled render against a single render at a size the GPU allows."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missing: shadow and analysis extents for a 244-305 m tower at 49.28 N",
+   "issue": "Our calculation: on 21 Dec the noon sun altitude is about 17.3 degrees, so a 305 m tower casts a shadow of about 980 m at noon and about 1.4 km at 10:00 solar time. At the equinox noon it is about 355 m. The packet does not size the context model, the BVH, the CSM maxFar and cascade splits, or the analysis grid for this. A context tile or a default CSM far plane of a few hundred metres silently cuts shadows short, and BVH memory grows with the context area.",
+   "fix": "Set the analysis domain from the sun vectors: the tower height divided by tan(altitude) at the earliest and latest analysed hours, plus a margin, about 1.5-2 km north of the site. Size the context data scope, CSM maxFar and the shadow-camera fit to it. Use a coarse LOD for far context. Record the analysed dates and hours as team assumptions (or the policy packet's requirement)."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missed alternative for context geometry: 3DTilesRendererJS",
+   "issue": "3d-tiles-renderer 0.5.3 (Apache-2.0, NASA-AMMOS, published 2026-09-18) streams OGC 3D Tiles into three.js, ships an r3f entry point and has Google Photorealistic and Cesium Ion examples. The packet lists Vancouver context as unresolved and never names this library, although city context is needed for shadows, wind and boards.",
+   "fix": "Add it as a v1 context finding. Use it for visual context only after checking the Google Map Tiles API and Cesium terms for caching, offline capture, derivative geometry and use in printed boards. For analysis, prefer City LiDAR or footprints extruded through Manifold in the canonical frame, and keep the 3D-tiles source behind the importer interface."
+  },
+  {
+   "severity": "MINOR",
+   "item": "three-edge-projection scope understated (FALSE ASSUMPTION)",
+   "issue": "The packet says it is 'Y-axis only' and that the README does not mention section lines, so it limits the library to plan and roof views. The README and API.md list PlanarIntersectionGenerator (any Plane), a floor-plan projection example, worker and webgpu entry points, an angleThreshold and both visibleEdges and hiddenEdges. Y is only the projection frame: rotating the scene into the view frame gives any parallel (axonometric) hidden-line view, which is the main board drawing.",
+   "fix": "Use it for exploded-axon and plan hidden-line linework, with dashed hidden edges, via pre-rotation. Use PlanarIntersectionGenerator or Manifold slice for section lines. Install from GitHub pinned to a commit hash (package.json says 0.0.10, and it is not on npm). Run it in its worker entry."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Node LTS recommendation outdated",
+   "issue": "The Node release schedule.json says v24 (Krypton) entered Maintenance on 2026-10-20, v22 is in maintenance until 2027-04-30, and v26 becomes Active LTS on 2026-10-28. The advice 'Node LTS 24 or 22' points students at a line that ends support mid-project. Vite 8.3.5 needs Node ^20.19 or >=22.12.",
+   "fix": "Install Node 24.22.x now (supported to April 2028), or 26.x after 28 Oct. Drop 22. Pin it in .nvmrc and package.json engines."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Kernel worker cancel and progress",
+   "issue": "manifold-3d 3.5.4 has an ExecutionContext (withContext, cancel(), progress(), 'Cancelled' status) that the packet does not mention, while it plans its own cancel affordance. The d.ts also says deferred operations (Booleans, transforms) ignore the context until an eager call such as status().",
+   "fix": "Connect the progress and cancel UI to ExecutionContext and call status() after each boolean chain so that cancellation takes effect. For slider drags, prefer terminating the worker and debouncing over long-running cancels."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Slice semantics for per-floor GFA",
+   "issue": "In manifold.d.ts, slice(height) at the bottom of the bounding box returns the bottom faces and at the top returns empty. Slicing exactly at floor levels gives degenerate or ambiguous areas. A slice also gives only the gross plate: Vancouver FSR exclusions are not handled.",
+   "fix": "Slice at floor level plus a small epsilon, or at mid-storey, and document the choice. Label the result 'gross floorplate area' and leave FSR exclusions to the policy module. Add a test on a stepped podium/tower junction."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Structured-output schema design for text-to-massing",
+   "issue": "The Claude structured-outputs docs (GA, output_config.format) also reject recursive schemas, additionalProperties other than false, and array constraints beyond minItems 0 or 1, not only numeric min/max. A nested massing-graph schema will return 400 errors.",
+   "fix": "Use a flat schema: a node list with id and parent/input references, and enums for node types. Keep numeric bounds and graph acyclicity in our validator. Store the schema once for the Claude and OpenAI paths and test it against both."
+  },
+  {
+   "severity": "MINOR",
+   "item": "web-ifc schema coverage is resolvable now",
+   "issue": "The unresolved list says the web-ifc README names no schema versions. web-ifc 0.0.78 ifc-schema.d.ts contains IFC2X3, IFC4 and IFC4X3 schema definitions, and the API has an option for best-effort parsing of older or preview schemas.",
+   "fix": "Close that part of the unresolved item (typings checked, not run). Keep the real-Revit-IFC fidelity test for geometry edge cases."
+  },
+  {
+   "severity": "MINOR",
+   "item": "drei View for node-card thumbnails",
+   "issue": "Views follow their DOM elements through getBoundingClientRect every frame and take over the render loop. Inside an xyflow canvas that pans and zooms with CSS transforms, this needs continuous frames, against the demand loop. The docs do not say that EffectComposer passes apply per View, so thumbnails may lose AO and edges or show the main view's effects (untested).",
+   "fix": "Render each node thumbnail once to an offscreen target, cache it as an image keyed by the node-result hash and show it as an <img>. Keep live Views only for a small number of pinned comparison panes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Clipping-plane sections with postprocessing passes",
+   "issue": "The stencil-cap recipe uses per-material clippingPlanes. Passes that render with override or depth materials (postprocessing Outline selection, depth or normal passes) may not inherit per-material clipping, so outlines or AO from geometry that has been cut away can appear. The packet's untested-interplay note covers N8AO only.",
+   "fix": "In the one-day spike also test Outline and selection on clipped meshes. If it leaks, use renderer-level clippingPlanes in section mode and exclude the cap meshes from them."
+  },
+  {
+   "severity": "MINOR",
+   "item": "CSM against the stock-materials and WebGPU principle",
+   "issue": "Core uses CSM (onBeforeCompile on every material) and optionally drei SoftShadows. Both patch shaders and will not port. The packet does not ask whether a single block needs cascades at all.",
+   "fix": "In the shadow spike, compare CSM with one directional light whose shadow camera is fitted to the analysis domain per view (4096 map, Medium/High tiers). Use CSM only if texel size near the camera is visibly poor. Drop SoftShadows from core."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Depth precision and z-fighting at site scale",
+   "issue": "With context about 2 km wide, a 300 m tower and close-up detail, a near/far range of 0.1 m to about 5 km causes z-fighting on coplanar context faces. The local-origin rule fixes position precision but not depth precision. three r186 WebGLRenderer has a reversedDepthBuffer option. A logarithmic depth buffer can break screen-space AO reconstruction.",
+   "fix": "Fit near and far to the scene bounds per frame, and test reversedDepthBuffer together with N8AO and the stencil caps in the spike. Avoid logarithmicDepthBuffer unless N8AO is confirmed to work with it."
+  },
+  {
+   "severity": "MINOR",
+   "item": "manifold-3d peers still undecided",
+   "issue": "The registry confirms non-optional peers esbuild-wasm ^0.27.3 and @gltf-transform/core, functions and extensions ^4.2.0. npm 7+ installs them automatically. The packet still says 'check'.",
+   "fix": "Decide before 13 Nov: switch to pnpm with peerDependencyRules.ignoreMissing, or use npm with legacy-peer-deps for this package. Then confirm in the Vite bundle report that only manifold.js and the wasm ship."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "three-edge-projection projects along the Y axis only and its README does not mention section lines, so it suits only hidden-line plan and roof views.",
+   "why_false": "The README lists Floor plan projection and Planar intersection examples. API.md documents PlanarIntersectionGenerator with any Plane (default Y-up), and a ProjectionResult with visibleEdges and hiddenEdges. Projecting along Y is a frame convention: rotate the scene into the view frame first and any parallel projection works.",
+   "correction": "Use it for axonometric and exploded-axon hidden-line drawings (pre-rotated), plans, and section lines via PlanarIntersectionGenerator. Pin to a GitHub commit (package.json 0.0.10), and use the worker entry point.",
+   "evidence": "https://raw.githubusercontent.com/gkjohnson/three-edge-projection/main/README.md and API.md (PlanarIntersectionGenerator .plane; ProjectionResult .visibleEdges/.hiddenEdges; exports ./worker and ./webgpu)"
+  },
+  {
+   "claim": "Node LTS v24 or v22 is the right install target (packet recommendation and principle).",
+   "why_false": "As of 21 Oct 2026, v24 moved to Maintenance on 2026-10-20, v22 has been in maintenance since 2025-10-21 and ends 2027-04-30, and v26 becomes Active LTS on 2026-10-28.",
+   "correction": "Install Node 24.22.x now or 26.x after 28 Oct. Do not start on 22.",
+   "evidence": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json; https://nodejs.org/dist/index.json (v24.22.1 2026-10-20 Krypton; v26.12.1 2026-10-21 not yet LTS)"
+  },
+  {
+   "claim": "frameloop='demand' combined with PerformanceMonitor adaptive DPR gives adaptive quality (performance principle).",
+   "why_false": "PerformanceMonitor measures fps only from rendered frames: frames.length divided by the time from the first to the last frame timestamp. On-demand rendering leaves long idle gaps, which read as very low fps and set off declines and fallback.",
+   "correction": "Calibrate with a short always-on loop, or mount the monitor only during continuous interaction. Save the chosen tier.",
+   "evidence": "https://unpkg.com/@react-three/drei@10.7.9/core/PerformanceMonitor.js (useFrame pushes performance.now(); api.fps = frames.length / msPassed * 1000)"
+  }
+ ],
+ "missing": [
+  "Canonical project frame (metres, Z-up kernel and Y-up render) and unit detection for .3dm, IFC, OBJ and SketchUp exports",
+  "Importer-side georeferencing: web-ifc GetCoordinationMatrix and COORDINATE_TO_ORIGIN, IfcMapConversion, Rhino earth anchor and base point, WGS84 portal GeoJSON",
+  "Analysis-domain sizing for winter shadows (about 1-1.5 km north of the site), and how that drives context data scope, BVH memory and the shadow camera",
+  "Context-streaming option (3DTilesRendererJS) and a review of Google/Cesium tile terms for analysis and print use",
+  "Tile-gutter strategy and deterministic AO for board captures; print line weights in mm",
+  "Depth-precision strategy (reversedDepthBuffer, near/far fitting) tested with N8AO and stencil caps",
+  "Manifold ExecutionContext for progress and cancel",
+  "Thumbnail strategy for node cards that works with a demand loop and xyflow transforms",
+  "Flat (non-recursive) massing JSON schema that meets Claude structured-output limits",
+  "No measured numbers yet: no spike, benchmark or smoke test has been run on a team laptop"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Fix the PerformanceMonitor and demand-loop conflict (startup calibration, or monitor only during interaction) before quality tiers are built",
+   "Add a canonical units and up-axis rule with import unit tests, and extend georeferencing to the IFC coordination matrix, the Rhino earth anchor and WGS84 portal data",
+   "Size the shadow and analysis domain for 21 Dec sun angles and set the context data scope from it",
+   "Add tile gutters and a vector-only print linework rule to the board capture plan",
+   "Correct the three-edge-projection scope and use it for axon and section linework",
+   "Update the Node target to 24.22.x now or 26 LTS after 28 Oct",
+   "Run the planned one-day spikes (CSM vs single fitted light, stencil + composer + N8AO + Outline, reversedDepthBuffer) before 13 Nov and record measured numbers"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://registry.npmjs.org/three/latest",
+   "ok": true,
+   "note": "0.186.1 MIT"
+  },
+  {
+   "url": "https://registry.npmjs.org/@react-three/fiber/latest",
+   "ok": true,
+   "note": "9.8.2; peer react >=19 <19.4, three >=0.156"
+  },
+  {
+   "url": "https://registry.npmjs.org/@react-three/drei/latest",
+   "ok": true,
+   "note": "10.7.9; peer fiber ^9"
+  },
+  {
+   "url": "https://registry.npmjs.org/postprocessing/latest",
+   "ok": true,
+   "note": "6.39.5 Zlib; peer three >=0.168 <0.187"
+  },
+  {
+   "url": "https://registry.npmjs.org/@react-three/postprocessing/latest",
+   "ok": true,
+   "note": "3.2.1; dependency n8ao ^2.0.0"
+  },
+  {
+   "url": "https://registry.npmjs.org/n8ao/latest",
+   "ok": true,
+   "note": "2.0.1; npm licence ISC"
+  },
+  {
+   "url": "https://registry.npmjs.org/manifold-3d/latest",
+   "ok": true,
+   "note": "3.5.4 Apache-2.0; non-optional peers esbuild-wasm and gltf-transform"
+  },
+  {
+   "url": "https://unpkg.com/manifold-3d@3.5.4/manifold.d.ts",
+   "ok": true,
+   "note": "slice X-Y plane semantics, reserveIDs, asOriginal, ExecutionContext cancel/progress, Float32 vertProperties"
+  },
+  {
+   "url": "https://registry.npmjs.org/@thatopen/components/latest",
+   "ok": true,
+   "note": "3.4.9 MIT; peer three >=0.182"
+  },
+  {
+   "url": "https://unpkg.com/web-ifc@0.0.78/web-ifc-api.d.ts",
+   "ok": true,
+   "note": "COORDINATE_TO_ORIGIN, GetCoordinationMatrix, LINEWRITER_BUFFER"
+  },
+  {
+   "url": "https://unpkg.com/web-ifc@0.0.78/ifc-schema.d.ts",
+   "ok": true,
+   "note": "IFC2X3, IFC4, IFC4X3 schemas present"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/src/renderers/webgl/WebGLShadowMap.js",
+   "ok": true,
+   "note": "PCFSoftShadowMap removed warning confirmed"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/src/renderers/WebGLRenderer.js",
+   "ok": true,
+   "note": "reversedDepthBuffer option exists"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/loaders/3DMLoader.js",
+   "ok": true,
+   "note": "libraryPath example pins rhino3dm 8.32.1; userData.settings from doc.settings()"
+  },
+  {
+   "url": "https://threejs.org/docs/pages/SunLight.html",
+   "ok": true,
+   "note": "HTTP 200"
+  },
+  {
+   "url": "https://unpkg.com/@react-three/drei@10.7.9/core/PerformanceMonitor.js",
+   "ok": true,
+   "note": "fps from rendered-frame timestamps; conflicts with demand loop"
+  },
+  {
+   "url": "https://drei.docs.pmnd.rs/portals/view",
+   "ok": true,
+   "note": "Views track elements via getBoundingClientRect and take over the render loop; no postprocessing guidance"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/gkjohnson/three-edge-projection/main/README.md",
+   "ok": true,
+   "note": "floor plan and planar intersection examples, GitHub install, WebGPU"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/gkjohnson/three-edge-projection/main/API.md",
+   "ok": true,
+   "note": "PlanarIntersectionGenerator, hiddenEdges, angleThreshold"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mourner/suncalc/main/README.md",
+   "ok": true,
+   "note": "v2 degrees, azimuth clockwise from north"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+   "ok": true,
+   "note": "v24 maintenance 2026-10-20; v26 LTS 2026-10-28"
+  },
+  {
+   "url": "https://registry.npmjs.org/vite/latest",
+   "ok": true,
+   "note": "8.3.5; engines node ^20.19 || >=22.12"
+  },
+  {
+   "url": "https://registry.npmjs.org/react/latest",
+   "ok": true,
+   "note": "19.3.1"
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+   "ok": true,
+   "note": "GA output_config.format; no numeric/string constraints or recursion"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/NASA-AMMOS/3DTilesRendererJS/master/README.md",
+   "ok": true,
+   "note": "Apache-2.0, r3f entry, Google Photorealistic example (npm 0.5.3, 2026-09-18)"
+  },
+  {
+   "url": "https://registry.npmjs.org/three-svg-renderer",
+   "ok": true,
+   "note": "GPLv3, last release 2023; not recommended"
+  },
+  {
+   "url": "https://api.github.com/repos/gkjohnson/three-edge-projection",
+   "ok": false,
+   "note": "GitHub API rate-limited; stars and pushed date not re-checked"
+  }
+ ],
+ "verdict": "Round 2 fixed every round-1 BLOCKER and MAJOR item. The N8AO, georeferencing, board capture, shadow, That Open, ifc-lite and IFC write-back items are all addressed, and the npm pins and peer ranges I checked match. New problems: PerformanceMonitor works against frameloop=demand (confirmed in the source), and the stack has no rule for units or up-axis (Manifold slices on Z-up X-Y, three.js is Y-up). Georeferencing ignores IFC coordination matrices, and tiled board capture will show seams from screen-space effects. Analysis extents are not sized for winter shadows of about 1 to 1.5 km, and 3DTilesRendererJS was missed. The packet also understates three-edge-projection (it supports axon and section linework), and its Node LTS advice is out of date. The gate passes with conditions, and the planned spikes still have to produce measured numbers."
+}

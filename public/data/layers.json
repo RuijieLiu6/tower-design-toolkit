@@ -1,0 +1,570 @@
+{
+ "version": 1,
+ "layers": [
+  {
+   "id": "footprint_heights",
+   "title": "Building heights (LiDAR 2022)",
+   "file": "footprint_heights.bin",
+   "format": "TSH1: u32 count, then per footprint (footprints order) int16 ground, roof P90, roof max in dm (-32768 = unknown), uint16 roof points",
+   "bytes": 53776,
+   "sha256": "7923b98b7d26d1cc42013bdb2d34359f4c4242b451cc86bfc0d83b728013606f",
+   "count": 427,
+   "source": {
+    "name": "LiDAR 2022",
+    "publisher": "City of Vancouver",
+    "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+    "retrieved": "2026-10-22",
+    "note": "Tiles downloaded by hand in a browser (the portal blocks scripted downloads). Raw LAS deleted after processing.",
+    "tiles": [
+     {
+      "tile": "490000_5459000",
+      "zip_bytes": 1006809493,
+      "zip_sha256": "0e4db42de6e429e3d5d6cce6a1c9abfff7c1b17988d45bef1d2aceb2c051a96d",
+      "classes": {
+       "1": 13272192,
+       "2": 5697476,
+       "3": 753752,
+       "5": 15217388,
+       "6": 15737110,
+       "7": 86301
+      },
+      "headers": [
+       {
+        "file": "490000_5459000.las",
+        "points": 50764219,
+        "format": 7,
+        "version": "1.4",
+        "crs": "PROJCRS[\"NAD83 / UTM zone 10N\",BASEGEOGCRS[\"NAD83\",DATUM[\"North American Datum 1983\",ELLIPSOID[\"GRS 1980\",6378137,298.257222101,LENGTHUNIT[\"metre\",1]]],PRIMEM[\"Greenwich\",0,ANGLEUNIT[\"Degree\",0.0174532925199433]]],CONVERSION[\"UTM zone 10N\",METHOD[\"Transverse Mercator\",ID[\"EPSG\",9807]],PARAMETER[\"Latitude of natural origin\",0,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longit"
+       }
+      ]
+     }
+    ]
+   },
+   "licence": {
+    "name": "Open Government Licence - Vancouver",
+    "url": "https://opendata.vancouver.ca/pages/licence/"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Vancouver (LiDAR 2022).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "City tiles in EPSG:26910 numbers (NAD83(CSRS) 4.0.0.BC.1.GVRD per City metadata); joined to footprints in the same frame."
+   },
+   "datum": {
+    "vertical": "CGVD28 (City CGVD28GVRD, HTMVBC00 geoid)",
+    "note": "As delivered; no conversion. Terrain layers use CGVD28 via HT2_2010v70 instead.",
+    "unverified": [
+     "Difference between the HTMVBC00 and HT2_2010v70 realisations of CGVD28 is not measured (expected centimetres)."
+    ]
+   },
+   "processing": {
+    "script": "tools/build_lidar_heights.py",
+    "method": "0.25 m id raster; 0.5 m nearest-footprint partition; roof P90 of class 6 inside the footprint shrunk 0.5 m; roof max = highest z with 5 points within 1 m (noise classes 7 and 18 excluded; edge-band points over 3 m above the building-class max listed, not counted); ground P10 of class 2 in a 0.5-5 m ring",
+    "min_points": {
+     "roof": 20,
+     "ground": 10
+    },
+    "footprints": 6721,
+    "covered": 467,
+    "with_roof": 427,
+    "with_ground": 456,
+    "complete": 427,
+    "band_points_listed_not_counted": 81037,
+    "unknown": 6294
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "footprints",
+   "title": "Building footprints (downtown)",
+   "file": "footprints_downtown.bin",
+   "format": "TSF1 (varint deltas, decimetres; layout in tools/build_city_footprints.py)",
+   "bytes": 256944,
+   "sha256": "257fe96ca2b2086a587c6417323b5746b15a69906d578025ab6a626f11d9bc4e",
+   "count": 6721,
+   "bytes_per_building": 38.2,
+   "source": {
+    "name": "Building Footprints 2015",
+    "publisher": "City of Vancouver",
+    "url": "https://opendata.vancouver.ca/explore/dataset/building-footprints-2015/",
+    "request": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2015/exports/geojson?where=in_bbox(geo_point_2d,49.262,-123.150,49.297,-123.085)",
+    "retrieved": "2026-10-22",
+    "sha256": "a7ddf90b98b280660394fbf1e2da42c1da5eb818a034b8a56b89c2a7fe27b0d3",
+    "note": "2D outlines from the 2015 orthophotos; contiguous outlines split at parcel lines. The City says the data are approximate, reflect 2015 and are not updated."
+   },
+   "licence": {
+    "name": "Open Government Licence - Vancouver",
+    "url": "https://opendata.vancouver.ca/pages/licence/"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Vancouver (Building Footprints 2015).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "City lon/lat (NAD83(CSRS) values) projected with GRS80 UTM 10N, no datum shift (pyproj EPSG:4617 -> EPSG:3157). Matches the City's own EPSG:26910 numbers: LiDAR tile corner 481000_5456000 reproduces within 1 cm.",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "quantum_m": 0.1
+   },
+   "false_assumptions": [
+    {
+     "claim": "Reprojecting the City's lon/lat to EPSG:26910 with a default transformer gives the City's coordinates",
+     "correction": "pyproj's default EPSG:4617 -> EPSG:26910 route adds a NAD83(CSRS) -> NAD83 shift of 1.28 m; the City's EPSG:26910 numbers are the pure projection (EPSG:3157 maths)."
+    }
+   ],
+   "datum": {
+    "vertical": null,
+    "note": "2D only. Heights come from City LiDAR 2022 (layer footprint_heights) or stay 'height unknown'."
+   },
+   "processing": {
+    "script": "tools/build_city_footprints.py",
+    "subset": "Centroid inside 49.262-49.297 N, 123.085-123.150 W (downtown peninsula and the south False Creek shore)",
+    "simplify_m": 0.2,
+    "features_in": 6705,
+    "parts_in": 6742,
+    "parts_dropped_under_1m2": 21,
+    "vertices_in": 111276,
+    "vertices_out": 97900,
+    "max_simplify_shift_m": 0.295
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "terrain_ground_490000_5459000",
+   "title": "City ground 1 m (490000_5459000)",
+   "file": "terrain_ground_490000_5459000.bin",
+   "format": "uint16 little endian, rows south to north; offset + q * scale; 65535 nodata",
+   "bytes": 2000000,
+   "sha256": "9d1d62954492c9ecdb43f6a683284afb2b3152afa999faee1f8c275c264da275",
+   "lazy": true,
+   "grid": {
+    "cols": 1000,
+    "rows": 1000,
+    "step_m": 1,
+    "x0": -1299.5,
+    "y0": 400.5,
+    "offset_m": -0.75,
+    "scale_m": 0.01,
+    "nodata": 65535
+   },
+   "source": {
+    "name": "LiDAR 2022 ground class",
+    "publisher": "City of Vancouver",
+    "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+    "request": "https://webtransfer.vancouver.ca/opendata/2022LiDAR/490000_5459000.zip",
+    "retrieved": "2026-10-22",
+    "acquired": [
+     "2022-09-07",
+     "2022-09-09"
+    ],
+    "zip_sha256": "0e4db42de6e429e3d5d6cce6a1c9abfff7c1b17988d45bef1d2aceb2c051a96d",
+    "headers": [
+     {
+      "file": "490000_5459000.las",
+      "points": 50764219,
+      "crs": "EPSG:26910",
+      "bounds": [
+       [
+        490000.0,
+        5459000.0,
+        -37.689
+       ],
+       [
+        490999.999,
+        5459999.999,
+        234.101
+       ]
+      ]
+     }
+    ],
+    "note": "Local City download. Source accuracy 0.081m at 95% confidence; this is not the accuracy of the derived grid. Covers one tile only."
+   },
+   "licence": {
+    "name": "Open Government Licence - Vancouver",
+    "url": "https://opendata.vancouver.ca/pages/licence/"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Vancouver (City of Vancouver LiDAR 2022).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "note": "LAS header coordinates retained. City metadata identifies NAD83(CSRS) 4.0.0.BC.1.GVRD, UTM 10N."
+   },
+   "datum": {
+    "vertical": "CGVD28GVRD (HTMVBC00), as delivered",
+    "note": "No vertical offset applied. Difference from MRDEM HT2_2010v70 realization remains unmeasured."
+   },
+   "processing": {
+    "script": "tools/build_city_ground.py",
+    "classes": {
+     "1": 13272192,
+     "2": 5697476,
+     "3": 753752,
+     "5": 15217388,
+     "6": 15737110,
+     "7": 86301
+    },
+    "ground_class": 2,
+    "cell_m": 1,
+    "method": "Mean of non-withheld ground returns per 1m cell; IDW fills gaps only within 3m; large gaps stay nodata.",
+    "observed_cells": 621358,
+    "interpolated_cells": 205016,
+    "nodata_cells": 173626,
+    "checks": {
+     "note": "In-sample point-to-grid residuals on a deterministic ground-point subsample; not independent survey validation.",
+     "mrdem_30m": {
+      "n": 56839,
+      "median_abs_m": 0.392,
+      "p95_abs_m": 1.503,
+      "rmse_m": 0.816
+     },
+     "city_ground_1m": {
+      "n": 56839,
+      "median_abs_m": 0.007,
+      "p95_abs_m": 0.045,
+      "rmse_m": 0.039
+     }
+    },
+    "display": "A 30m border transition joins the display to regional terrain. Analysis samples unblended values, falling back at missing cells."
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "terrain_r1",
+   "title": "Terrain R1 (to 6 km)",
+   "file": "terrain_r1.bin",
+   "format": "uint16 little endian, rows south -> north, columns west -> east; height = offset + q * scale; 65535 = no data",
+   "bytes": 321602,
+   "sha256": "6db2c1ac87156eeba6b3075783fb8069a133f484d78d2073446ae500cf6c6176",
+   "grid": {
+    "cols": 401,
+    "rows": 401,
+    "step_m": 30,
+    "x0": -6000.0,
+    "y0": -6000.0,
+    "offset_m": -5.4,
+    "scale_m": 0.01,
+    "nodata": 65535,
+    "note": "x0/y0: south-west node, metres from the local origin (EPSG:26910 minus origin)."
+   },
+   "source": {
+    "name": "MRDEM-30 DTM (CanElevation Medium Resolution Digital Elevation Model)",
+    "publisher": "Natural Resources Canada",
+    "url": "https://open.canada.ca/data/en/dataset/18752265-bda3-498c-a4ba-9dfe68cb98da",
+    "request": "https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif",
+    "retrieved": "2026-10-22",
+    "sha256": "f3c8b8c1e914182d40a717569294c7f57a4e330fe4000b8f154984982d6ccd6f",
+    "note": "Bare-earth DTM at 30 m blended from the lidar HRDEM mosaic and Copernicus GLO-30 (spec ed. 1.2). Window read by range requests (tools/fetch_mrdem_window.py)."
+   },
+   "licence": {
+    "name": "Open Government Licence - Canada",
+    "url": "https://open.canada.ca/en/open-government-licence-canada"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Canada (Natural Resources Canada, MRDEM-30). Includes Copernicus DEM GLO-30 material, (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "note": "Resampled bilinearly from EPSG:3979 (both NAD83(CSRS)); node positions use the City's EPSG:26910 numbers (pure GRS80 UTM 10N)."
+   },
+   "datum": {
+    "vertical": "CGVD28 (EPSG:5713) via HT2_2010v70",
+    "from": "CGVD2013(CGG2013) (EPSG:6647), as declared in the MRDEM spec ed. 1.2 s6.2",
+    "conversion": "PROJ: Inverse of NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) + NAD83(CSRS)v6 to CGVD28 height (1) using Ballpark geographic offset from NAD83(CSRS) to NAD83(CSRS)v6 (with axis order normalized for visualization)",
+    "grids": [
+     "ca_nrc_CGG2013n83.tif (EPSG:9246)",
+     "ca_nrc_HT2_2010v70.tif (EPSG:9123)"
+    ],
+    "grid_licence": "Open Government Licence - Canada (Natural Resources Canada), via cdn.proj.org",
+    "epoch": "Both geoid models at NAD83(CSRS) epoch 2010, so the chain needs no epoch step. MRDEM's own epoch is not stated.",
+    "shift_range_m": [
+     -0.154,
+     -0.094
+    ],
+    "checks": "PROJ result equals N(CGG2013) - N(HT2_2010v70) from the raw grids within 2 mm at two grid nodes (-0.116, -0.183 m).",
+    "unverified": [
+     "City LiDAR 2022 heights are CGVD28 through the Metro Vancouver hybrid geoid HTMVBC00, not HT2_2010v70. The difference between the two CGVD28 realisations is not measured here (expected centimetres).",
+     "MRDEM declares CGVD2013 (EPSG:6647, CGG2013); if a source tile was really on CGG2013a, the difference is millimetres to centimetres here."
+    ]
+   },
+   "processing": {
+    "script": "tools/build_city_terrain.py",
+    "resample": "bilinear",
+    "min_m": -5.39,
+    "max_m": 188.88,
+    "water": "Water surfaces read about -2 m CGVD28 (a lidar-time water level, not mean sea level); the app draws the sea as its 0 m ground plane.",
+    "checks": {
+     "viewpoint_Lv_minus_terrain_m": {
+      "K Drake Street": 2.74,
+      "27.2 Trout Lake": 1.33,
+      "22 Main Street": 2.04,
+      "G2 Olympic Shipyard Pier": 4.3,
+      "J2 Creekside Park": 2.41,
+      "3.2.1 Queen Elizabeth Park": 6.36,
+      "D Heather Bay": 1.68,
+      "10 Granville Island": 3.61,
+      "9.1 Cambie Street": -0.75,
+      "20 Granville Street": 1.71,
+      "B2 Charleson Seawall": 2.16,
+      "3.2.2 Queen Elizabeth Park": 6.42,
+      "H Olympic Plaza Stage": 2.38,
+      "28 Clinton Park": 1.83,
+      "21 Commercial Drive": 1.39,
+      "A Alder Terrace": 1.12,
+      "E Cambie Bridge": 14.27
+     },
+     "median_ground_level_origins_m": 2.04,
+     "note": "City VIEWPOINT_ELEVATION_M is eye level; a median of 1-3 m at ground-level origins supports the datum chain (a sign or offset error of metres would show). Excludes E (Cambie Bridge deck) and G2 (pier)."
+    }
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "terrain_r2",
+   "title": "Terrain R2 (to 25 km)",
+   "file": "terrain_r2.bin",
+   "format": "uint16 little endian, rows south -> north, columns west -> east; height = offset + q * scale; 65535 = no data",
+   "bytes": 1394450,
+   "sha256": "0467e7b29664308b30fe3839fc41d374342077d99bb549f2120bf51449ab5a98",
+   "grid": {
+    "cols": 835,
+    "rows": 835,
+    "step_m": 60,
+    "x0": -25020.0,
+    "y0": -25020.0,
+    "offset_m": -16.9,
+    "scale_m": 0.1,
+    "nodata": 65535,
+    "note": "x0/y0: south-west node, metres from the local origin (EPSG:26910 minus origin)."
+   },
+   "source": {
+    "name": "MRDEM-30 DTM (CanElevation Medium Resolution Digital Elevation Model)",
+    "publisher": "Natural Resources Canada",
+    "url": "https://open.canada.ca/data/en/dataset/18752265-bda3-498c-a4ba-9dfe68cb98da",
+    "request": "https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif",
+    "retrieved": "2026-10-22",
+    "sha256": "f3c8b8c1e914182d40a717569294c7f57a4e330fe4000b8f154984982d6ccd6f",
+    "note": "Bare-earth DTM at 30 m blended from the lidar HRDEM mosaic and Copernicus GLO-30 (spec ed. 1.2). Window read by range requests (tools/fetch_mrdem_window.py)."
+   },
+   "licence": {
+    "name": "Open Government Licence - Canada",
+    "url": "https://open.canada.ca/en/open-government-licence-canada"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Canada (Natural Resources Canada, MRDEM-30). Includes Copernicus DEM GLO-30 material, (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "note": "Resampled bilinearly from EPSG:3979 (both NAD83(CSRS)); node positions use the City's EPSG:26910 numbers (pure GRS80 UTM 10N)."
+   },
+   "datum": {
+    "vertical": "CGVD28 (EPSG:5713) via HT2_2010v70",
+    "from": "CGVD2013(CGG2013) (EPSG:6647), as declared in the MRDEM spec ed. 1.2 s6.2",
+    "conversion": "PROJ: Inverse of NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) + NAD83(CSRS)v6 to CGVD28 height (1) using Ballpark geographic offset from NAD83(CSRS) to NAD83(CSRS)v6 (with axis order normalized for visualization)",
+    "grids": [
+     "ca_nrc_CGG2013n83.tif (EPSG:9246)",
+     "ca_nrc_HT2_2010v70.tif (EPSG:9123)"
+    ],
+    "grid_licence": "Open Government Licence - Canada (Natural Resources Canada), via cdn.proj.org",
+    "epoch": "Both geoid models at NAD83(CSRS) epoch 2010, so the chain needs no epoch step. MRDEM's own epoch is not stated.",
+    "shift_range_m": [
+     -0.26,
+     -0.032
+    ],
+    "checks": "PROJ result equals N(CGG2013) - N(HT2_2010v70) from the raw grids within 2 mm at two grid nodes (-0.116, -0.183 m).",
+    "unverified": [
+     "City LiDAR 2022 heights are CGVD28 through the Metro Vancouver hybrid geoid HTMVBC00, not HT2_2010v70. The difference between the two CGVD28 realisations is not measured here (expected centimetres).",
+     "MRDEM declares CGVD2013 (EPSG:6647, CGG2013); if a source tile was really on CGG2013a, the difference is millimetres to centimetres here."
+    ]
+   },
+   "processing": {
+    "script": "tools/build_city_terrain.py",
+    "resample": "bilinear after a 1-2-1 smoothing (anti-alias for 60 m)",
+    "min_m": -16.9,
+    "max_m": 1739.42,
+    "water": "Water surfaces read about -2 m CGVD28 (a lidar-time water level, not mean sea level); the app draws the sea as its 0 m ground plane."
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "terrain_r2_detail",
+   "title": "Mountains at native 30 m resolution (to 25 km)",
+   "file": "terrain_r2_detail.bin",
+   "format": "uint16 little endian, rows south -> north, columns west -> east; height = offset + q * scale; 65535 = no data",
+   "bytes": 5571122,
+   "sha256": "d500a9ba8b609673a3b8235b659201df5882a290882dc2003fefeebd6b7cc93e",
+   "grid": {
+    "cols": 1669,
+    "rows": 1669,
+    "step_m": 30,
+    "x0": -25020.0,
+    "y0": -25020.0,
+    "offset_m": -21.3,
+    "scale_m": 0.1,
+    "nodata": 65535,
+    "note": "x0/y0: south-west node, metres from the local origin (EPSG:26910 minus origin)."
+   },
+   "source": {
+    "name": "MRDEM-30 DTM (CanElevation Medium Resolution Digital Elevation Model)",
+    "publisher": "Natural Resources Canada",
+    "url": "https://open.canada.ca/data/en/dataset/18752265-bda3-498c-a4ba-9dfe68cb98da",
+    "request": "https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif",
+    "retrieved": "2026-10-22",
+    "sha256": "f3c8b8c1e914182d40a717569294c7f57a4e330fe4000b8f154984982d6ccd6f",
+    "note": "Bare-earth DTM at 30 m blended from the lidar HRDEM mosaic and Copernicus GLO-30 (spec ed. 1.2). Window read by range requests (tools/fetch_mrdem_window.py)."
+   },
+   "licence": {
+    "name": "Open Government Licence - Canada",
+    "url": "https://open.canada.ca/en/open-government-licence-canada"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Canada (Natural Resources Canada, MRDEM-30). Includes Copernicus DEM GLO-30 material, (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "note": "Resampled bilinearly from EPSG:3979 (both NAD83(CSRS)); node positions use the City's EPSG:26910 numbers (pure GRS80 UTM 10N)."
+   },
+   "datum": {
+    "vertical": "CGVD28 (EPSG:5713) via HT2_2010v70",
+    "from": "CGVD2013(CGG2013) (EPSG:6647), as declared in the MRDEM spec ed. 1.2 s6.2",
+    "conversion": "PROJ: Inverse of NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) + NAD83(CSRS)v6 to CGVD28 height (1) using Ballpark geographic offset from NAD83(CSRS) to NAD83(CSRS)v6 (with axis order normalized for visualization)",
+    "grids": [
+     "ca_nrc_CGG2013n83.tif (EPSG:9246)",
+     "ca_nrc_HT2_2010v70.tif (EPSG:9123)"
+    ],
+    "grid_licence": "Open Government Licence - Canada (Natural Resources Canada), via cdn.proj.org",
+    "epoch": "Both geoid models at NAD83(CSRS) epoch 2010, so the chain needs no epoch step. MRDEM's own epoch is not stated.",
+    "shift_range_m": [
+     -0.261,
+     -0.032
+    ],
+    "checks": "PROJ result equals N(CGG2013) - N(HT2_2010v70) from the raw grids within 2 mm at two grid nodes (-0.116, -0.183 m).",
+    "unverified": [
+     "City LiDAR 2022 heights are CGVD28 through the Metro Vancouver hybrid geoid HTMVBC00, not HT2_2010v70. The difference between the two CGVD28 realisations is not measured here (expected centimetres).",
+     "MRDEM declares CGVD2013 (EPSG:6647, CGG2013); if a source tile was really on CGG2013a, the difference is millimetres to centimetres here."
+    ]
+   },
+   "processing": {
+    "script": "tools/build_city_terrain.py",
+    "resample": "bilinear",
+    "min_m": -21.26,
+    "max_m": 1749.63,
+    "water": "Water surfaces read about -2 m CGVD28 (a lidar-time water level, not mean sea level); the app draws the sea as its 0 m ground plane."
+   },
+   "flag": "unverified",
+   "lazy": true
+  },
+  {
+   "id": "building_forms",
+   "title": "City LiDAR 2022: stepped building forms",
+   "file": "building_forms.json",
+   "format": "JSON, local metres east/north from CITY_ORIGIN",
+   "bytes": 662829,
+   "sha256": "279e8ab588ca798828998f662b62412cd73f57760206505c4d09e47032809ab2",
+   "lazy": true,
+   "source": {
+    "publisher": "City of Vancouver",
+    "retrieved": "2026-10-22",
+    "name": "LiDAR 2022 building class 6",
+    "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+    "request": "https://webtransfer.vancouver.ca/opendata/2022LiDAR/490000_5459000.zip",
+    "note": "One processed 1 km tile. Separate roof levels derived from classified returns, not a survey-grade architectural model."
+   },
+   "licence": {
+    "name": "Open Government Licence - Vancouver",
+    "url": "https://opendata.vancouver.ca/pages/licence/"
+   },
+   "attribution": "City of Vancouver, derived geometry; Open Government Licence - Vancouver.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "note": "Native City UTM coordinates retained; no WGS84 round trip."
+   },
+   "datum": {
+    "vertical": "CGVD28GVRD (HTMVBC00), as delivered"
+   },
+   "processing": {
+    "forms": 1573,
+    "replaced_2015_parts": 416,
+    "supported_cells": 297170,
+    "roof_points": 13967233,
+    "roof_area_m2": 295658.5,
+    "missing_ground_regions": 0,
+    "cell_to_mass_median_abs_m": 0.15,
+    "cell_to_mass_p95_abs_m": 2.93,
+    "roof_polygons_valid": true,
+    "max_roof_overlap_m2": 0.0,
+    "note": "Internal cell-to-mass fit, not independent survey accuracy. Sloped roofs are stepped approximations; walls inferred vertically.",
+    "cell_m": 1,
+    "height_band_m": 3,
+    "min_area_m2": 16,
+    "joint_simplify_m": 1.0,
+    "coverage_local": [
+     -1300,
+     400,
+     -300,
+     1400
+    ],
+    "repaired_2015_polygons": 15
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "city_streets",
+   "title": "City street and lane geometry",
+   "file": "city_streets.json",
+   "format": "JSON, local metres east/north from CITY_ORIGIN",
+   "bytes": 3298451,
+   "sha256": "da4e7788c7f973a428b0e61e1c3268e543ebb23e7f2d87a4c698258488fd3809",
+   "lazy": true,
+   "source": {
+    "publisher": "City of Vancouver",
+    "retrieved": "2026-10-22",
+    "name": "City engineering StreetCentreline (SURFACE_WIDTH)",
+    "url": "https://www.arcgis.com/home/item.html?id=9fdc0c22433a44598978aa25672a66e9",
+    "request": "https://services3.arcgis.com/qrcTTRTwUoS8N47o/arcgis/rest/services/StreetCentreline/FeatureServer/0",
+    "note": "In-service streets and lanes, native geometry and recorded surface widths; centred surface corridors are derived approximations, not surveyed curbs."
+   },
+   "licence": {
+    "name": "Creative Commons Attribution (CC BY)",
+    "url": "https://www.arcgis.com/home/item.html?id=9fdc0c22433a44598978aa25672a66e9"
+   },
+   "attribution": "City of Vancouver, derived geometry; Creative Commons Attribution (CC BY).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "note": "Native City UTM coordinates retained; no WGS84 round trip."
+   },
+   "datum": {
+    "vertical": null
+   },
+   "processing": {
+    "segments": 2735,
+    "street_segments": 2152,
+    "lane_segments": 583,
+    "surface_width_segments": 2644,
+    "centreline_only_segments": 91,
+    "min_surface_width_m": 3.66,
+    "max_surface_width_m": 29.26,
+    "triangles": 72855,
+    "method": "Native EPSG:26910 centrelines buffered by recorded SURFACE_WIDTH/2, dissolved at intersections, draped on available terrain. Ground surfaces exclude bridge-labelled records.",
+    "raw_sha256": "0855b3fefa4cbf47740ac4b269869c697c2e3777f41ec14f2e8ee1a78ceea634",
+    "limits": "City centre lines approximate the dedicated right-of-way centre, not necessarily the physical road centre. Segment widths do not locate individual curbs, parking bays, medians or sidewalk edges. Missing widths remain centre lines. This is an approximate surface model."
+   },
+   "flag": "unverified"
+  }
+ ]
+}

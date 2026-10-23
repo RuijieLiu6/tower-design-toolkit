@@ -1,0 +1,327 @@
+{
+ "expert_role": "AEC practitioner and computational-design lead, sceptical of AI tooling claims",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Autodesk MCP servers (finding on AEC Magazine, recommendation 3, unresolved list)",
+   "issue": "The packet says Autodesk MCP details are second-hand, that 'no primary Autodesk page was readable', and that AEC Magazine reports internal workflows only. That is wrong. The APS blog (15 Apr 2026, readable) lists official tech-preview MCP servers: Revit MCP, Product Help MCP, Fusion MCP and Fusion Data MCP. Autodesk's AEC blog (17 Jun 2026) announced a Revit Public MCP Server, shipped as a Revit 2027 add-on through Autodesk Account entitlements. Revit import is in scope, and students can get Revit through Autodesk Education.",
+   "fix": "Add an 'Autodesk Revit MCP (tech preview)' finding. Rate it optional and read-only, alongside RhinoAI, as a bridge for Revit teammates. Check whether education entitlements include it, what the read and write tool sets are, and the terms. Remove the 'internal workflows only' rationale. Keep the APS server-to-server MCP rejected."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Figma MCP limits (Figma finding, recommendation 1 rejection rationale, UNVERIFIED flag)",
+   "issue": "Figma's Rate limits and access page gives View and Collab seats up to 20 calls a month, not 6. Starter Full and Dev seats have no allowance listed. Education plans get Professional Full and Dev limits: 200 calls a day, 10 a minute. UBC students can probably get Education plans, so the stated reason for rejecting Figma MCP is false.",
+   "fix": "Correct the numbers and cite developers.figma.com/docs/figma-mcp-server/rate-limits-access/. Re-rate Figma MCP as viable if the team verifies Figma Education status. Keep it roadmap-priority on scope grounds, not cost grounds."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Curated AEC lists ('no single curated AEC list exists', recommendation 5 and its flag)",
+   "issue": "Only GitHub topic tags were checked, yet the scope names awesome-aec explicitly. A repository-name search finds active lists. osama-ata/Awesome-AECO is CC0, has 33 stars and was pushed on 3 Oct 2026; it lists IDS MCP Server, rhino3dm, Rhino.Compute, web-ifc, IFClite and Speckle tools. THUCBIMS/Awesome-AIGC4AEC has 30 stars and was pushed on 21 Oct 2026. mitevpi/awesome-bim has 195 stars but is stale (last push 2019). CameronBrooks11/awesome-computational-design has 3 stars.",
+   "fix": "Replace the claim with 'small, young lists exist'. Add Awesome-AECO and Awesome-AIGC4AEC to the weekly scan. Mark awesome-bim as stale. Mine Awesome-AECO for the IDS MCP Server, which is relevant to the policy-compliance and IFC modules."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "MCP protocol revision 2026-07-28 left unresolved while recommendation 3 plans our own MCP server",
+   "issue": "Several sources report that the 28 Jul 2026 revision makes MCP stateless. It removes the initialize handshake and Mcp-Session-Id and adds Mcp-Method and Mcp-Name headers. It also deprecates Roots, Sampling and Logging with a 12-month window. A server designed in Nov to Dec 2026 against older tutorials or older community bridges would be outdated on arrival. Older local bridges (rhinomcp, Bonsai_mcp, Blender MCP) may lag behind.",
+   "fix": "Read the official spec changelog and state which revision Claude Code and Codex support today. Build our server with the official SDK on the new revision, without Sampling or Roots. Record the protocol version each adopted server supports in its finding."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Practitioner sentiment on the named tools (scope part 1)",
+   "issue": "The gap from the previous BLOCKER remains. No Reddit, X, LinkedIn or YouTube signal was gathered, and nothing was gathered on Forma, TestFit, Hypar, LookX, Krea, Midjourney or ComfyUI. My own searches (r/Architects Forma; Veras vs LookX vs Krea) also returned only vendor and aggregator pages, so tools cannot close the gap. The relabelling to hypotheses is honest. Still, half of the packet's scope is effectively a to-do list.",
+   "fix": "Turn recommendation 6 into a dated deliverable: a log of 25 or more dated signals from 4 or more platforms by 3 Nov, plus 5 to 8 UBC interviews. Name an owner and use a fixed template (tool, praise, frustration, unmet need, n, date, link). Until then, no design decision should rest on these principles alone."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "No tall-building channel in the front-edge list",
+   "issue": "The project is a 244-305 m supertall competition. The channel list has nothing specific to tall buildings: no CTBUH journal or research, no Skyscraper Center database, no competition organiser FAQ. The only tall-building signal is one Ladybug wind thread. The scan as designed will find Rhino and MCP news, not supertall practice.",
+   "fix": "Add CTBUH (journal, research, Skyscraper Center) and the challenge organiser's updates to the weekly scan; a teammate should open them by hand if fetch is blocked. Add tall-building search terms (wind, vertical transport, outrigger, slenderness) to the manual sentiment export."
+  },
+  {
+   "severity": "MINOR",
+   "item": "AI renderers finding: ComfyUI hardware",
+   "issue": "The packet lists 'NVIDIA GPU' as a ComfyUI constraint. The README documents AMD (ROCm, and AMD PyTorch on Windows for RDNA 2-4), Intel Arc (XPU, with a portable build) and Apple Silicon. The Windows portable build does bundle Python 3.13, as the packet says.",
+   "fix": "Correct the risk to say that it needs a supported discrete GPU or Apple Silicon. Note the --disable-partner-nodes and --offline flags so paid API nodes stay off."
+  },
+  {
+   "severity": "MINOR",
+   "item": "AEC Magazine Astra article as 'revision test' source",
+   "issue": "The 11 Oct 2026 article does not report a revision test of Astra. It argues that hand edits should become the agent's starting point, says the evidence is not yet reliable, and cites Augmenta v2, which reruns only changed areas (no LLM), as the nearest example. The finding implies a published test that the team can copy.",
+   "fix": "Reword it as 'the article frames the requirement'. Write our own edit-then-rerun acceptance test. Add Augmenta's partial-rerun pattern as prior art for locked decisions. Also note the article's advice to keep MCP connectors read-only."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Bonsai_mcp 'keep Execute Code disabled'",
+   "issue": "The README calls execute-code a legacy tool that runs arbitrary Python, but describes no way to disable it. Its REST API has no authentication and has CORS open to all origins by default.",
+   "fix": "State that the tool cannot be switched off by configuration. Run it only in a throwaway Blender profile or VM, or fork it and remove the tool. Never run the REST mode while a browser is open on the same machine."
+  },
+  {
+   "severity": "MINOR",
+   "item": "McNeel RhinoAI install details",
+   "issue": "The docs' Getting Started pages give no Rhino version. Forum posts name the Package Manager package 'Rhino-MCP-Platform' and report a missing plugin and an 'Unknown command _MCPSpawn' error, including on Rhino 9 Beta. The repo's default branch is rhino-9.x. Students on Rhino 8 in the lab may not be able to use it.",
+   "fix": "Record the package name and the need for the 'Include pre-releases' checkbox. Test on the lab's Rhino 8 service release before listing RhinoAI as the team's bridge. Otherwise use rhino3dm.js (see the next finding) for fixtures."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Missed lighter alternative for .3dm fixtures and import",
+   "issue": "rhino3dm (McNeel, MIT, listed in Awesome-AECO) reads and writes .3dm in the browser and in Python without Rhino. Rhino.Compute offers headless geometry. The packet routes .3dm fixture generation through an MCP bridge with install friction and code-execution risk.",
+   "fix": "Generate .3dm and OBJ test fixtures with rhino3dm scripts in CI. Keep RhinoAI for interactive teammate use only."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Node version",
+   "issue": "The packet recommends Node LTS 22.x. By Oct 2026, Node 22 is in maintenance LTS (end of life April 2027) and Node 24 is the active LTS. Both meet Context7's requirement of 22.13 or newer.",
+   "fix": "Recommend Node 24 LTS and pin the version in .nvmrc or package.json engines."
+  },
+  {
+   "severity": "MINOR",
+   "item": "skills.sh figures",
+   "issue": "The page header reads 'All Time (1,425,712)', yet the top entry alone shows 4.0M installs. The packet reports 'about 1.4M' as total installs. What the Audits section checks is unstated.",
+   "fix": "Drop the total. Cite only per-skill counts with a caveat, and do not treat the Audits label as a security review."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Packet size versus team capacity",
+   "issue": "The packet has 30 findings, 9 recommendations, a 45-minute weekly scan of more than 10 channels and a long security policy, for two students who are 23 days from the 13 Nov core. There is no 'do this week' list with time estimates, so the research meant to save time costs time.",
+   "fix": "Add a top-of-packet action list of 5 items or fewer with hour estimates: Node 24; four core MCPs at project scope; disabledMcpjsonServers plus CODEOWNERS; frontend-design skill; start OpenAI organisation verification. Defer everything else to after 13 Nov, and cap the scan at 20 minutes over 4 channels."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Figma Starter or View seats are limited to 6 MCP tool calls a month, so Figma MCP is impractical for the team.",
+   "why_false": "Figma's current rate-limit page gives View and Collab seats up to 20 calls a month. Education plans get Professional Full and Dev limits (200 a day).",
+   "correction": "If the team holds Figma Education seats, Figma MCP is usable at 200 calls a day. Any rejection should rest on scope, not cost.",
+   "evidence": "https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/"
+  },
+  {
+   "claim": "Autodesk MCP details are second-hand only; AEC Magazine reports internal workflows only; no primary Autodesk page was readable.",
+   "why_false": "The APS blog (15 Apr 2026) is readable and lists official tech-preview MCP servers: Revit, Product Help, Fusion and Fusion Data. Autodesk's AEC blog announced a Revit Public MCP Server for Revit 2027 on 17 Jun 2026.",
+   "correction": "Autodesk ships official tech-preview MCP servers, including one for Revit. Evaluate it as an optional read-only bridge and check education entitlement.",
+   "evidence": "https://aps.autodesk.com/blog/building-agentic-ai-whats-new-autodesk-platform-services ; https://www.autodesk.com/blogs/aec/2026/06/17/revit-public-mcp-server/"
+  },
+  {
+   "claim": "No curated awesome-aec or awesome-bim list exists, so no single curated AEC list exists.",
+   "why_false": "Only topic tags were checked. A repository-name search finds active lists.",
+   "correction": "osama-ata/Awesome-AECO (CC0, pushed 3 Oct 2026) and THUCBIMS/Awesome-AIGC4AEC (pushed 21 Oct 2026) are active but small. mitevpi/awesome-bim (195 stars) is stale (last push 2019).",
+   "evidence": "https://github.com/osama-ata/Awesome-AECO ; https://github.com/THUCBIMS/Awesome-AIGC4AEC ; GitHub search API, 21 Oct 2026"
+  },
+  {
+   "claim": "ComfyUI needs an NVIDIA GPU.",
+   "why_false": "The README documents AMD (ROCm, and Windows AMD PyTorch), Intel Arc (XPU) and Apple Silicon support.",
+   "correction": "It needs a supported discrete GPU or Apple Silicon. The Windows portable build bundles Python 3.13.",
+   "evidence": "https://github.com/Comfy-Org/ComfyUI"
+  },
+  {
+   "claim": "The AEC Magazine Astra article contains a revision test that the team can adopt as an acceptance test.",
+   "why_false": "The article states the requirement (hand edits should be the agent's starting point) and says the evidence is not yet reliable. It reports no edit-rerun test of Astra.",
+   "correction": "Define our own edit-then-rerun test. Cite the article only as framing, and Augmenta v2's partial rerun as prior art.",
+   "evidence": "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/"
+  },
+  {
+   "claim": "Bonsai_mcp's Execute Code tool can be kept disabled.",
+   "why_false": "The README documents no option to disable it. It calls the tool legacy and capable of running arbitrary Python, and its REST API has no authentication with CORS open to all origins.",
+   "correction": "Fork it to remove the tool, or run it only in an isolated Blender profile or VM.",
+   "evidence": "https://github.com/JotaDeRodriguez/Bonsai_mcp"
+  }
+ ],
+ "missing": [
+  "Autodesk official Revit MCP (tech preview, Revit 2027 add-on) and Product Help MCP, with education-entitlement check",
+  "Effect of the MCP 2026-07-28 stateless revision on our planned server and on the adopted community bridges",
+  "Awesome-AECO and Awesome-AIGC4AEC in the channel list; IDS MCP Server as a policy and IFC-check candidate",
+  "rhino3dm.js and Rhino.Compute as Rhino-free fixture and import routes",
+  "Tall-building channels: CTBUH journal and research, Skyscraper Center, competition organiser updates",
+  "Any Reddit, X, LinkedIn or YouTube sentiment, or any practitioner sentiment on Forma, TestFit, Hypar, LookX, Krea, Midjourney or ComfyUI (still zero)",
+  "A one-page prioritised action list with hour estimates for the 23 days before 13 Nov",
+  "Rhino version actually supported by RhinoAI, tested on the lab's Rhino 8 build"
+ ],
+ "previous_round": [
+  {
+   "item": "BLOCKER: Scope part 1, practitioner and student sentiment",
+   "status": "partly",
+   "residue": "Principles are honestly relabelled as hypotheses with n and source, and recommendation 6 now has a 3 Nov deadline. But no new platform or named-tool sentiment was gathered, and the 25-signal, 4-platform condition is unmet."
+  },
+  {
+   "item": "MAJOR: install friction count",
+   "status": "addressed",
+   "residue": "Restated as three standing reports plus one retraction, with the developer's workaround named."
+  },
+  {
+   "item": "MAJOR: token and quota 'top complaint'",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: rhino-gh-mcp permission ladder",
+   "status": "addressed",
+   "residue": "Five levels verified against the README, with Coach as the default."
+  },
+  {
+   "item": "MAJOR: recommendation 7 security policy for headless runs",
+   "status": "addressed",
+   "residue": "Verified against Claude Code docs: disabledMcpjsonServers, --strict-mcp-config, setting sources and ${VAR} expansion. Note that the docs say credential variables in remote server url and headers are read as empty."
+  },
+  {
+   "item": "MAJOR: Speckle essay attribution and recommendation 3",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: missed OSArch, That Open and Hypar functions",
+   "status": "addressed",
+   "residue": "Hypar manifest spec still not found from a primary source."
+  },
+  {
+   "item": "MAJOR: Thermal-Sandbox-Web",
+   "status": "addressed",
+   "residue": "Verified: no licence; Lee Square appears in the upstream README; 0 stars."
+  },
+  {
+   "item": "MAJOR: IFC MCP (Bonsai_mcp) and APS MCP",
+   "status": "addressed",
+   "residue": "Claims Execute Code can be disabled, which the README does not support. Missed Autodesk's official Revit MCP."
+  },
+  {
+   "item": "MAJOR: gpt-image versus A2 and deadlines",
+   "status": "addressed",
+   "residue": "Verified: 3840 px edge, 8,294,400 px cap, experimental above 2560x1440, approximate masks, org verification, model names gpt-image-2.5-sunburst and gpt-image-2.5-flare."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Correct the Figma limits and re-rate Figma MCP for Education seats",
+   "Add Autodesk's official Revit MCP (tech preview) with an education-entitlement check, and remove the 'internal workflows only' and 'no primary page' claims",
+   "Replace the 'no curated AEC list' claim with Awesome-AECO and Awesome-AIGC4AEC, flagged as small and young",
+   "Check the MCP 2026-07-28 revision and state which protocol revision our planned server and the adopted servers target",
+   "Fix the ComfyUI GPU, Astra revision-test and Bonsai Execute Code claims",
+   "Add at least one tall-building channel (CTBUH) and a prioritised action list for the next 23 days",
+   "Keep the sentiment principles labelled as hypotheses until the 3 Nov manual export lands"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Confirms headless, SDK and cloud sessions load project servers without a prompt; disabledMcpjsonServers, --strict-mcp-config, setting sources; 10k warning and 25k cap; ${VAR} expansion"
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "gpt-image-2.5-sunburst and gpt-image-2.5-flare; 3840 px edge; 8,294,400 px max; experimental above 2560x1440; approximate masks; org verification"
+  },
+  {
+   "url": "https://github.com/upstash/context7",
+   "ok": true,
+   "note": "63.4k stars, MIT, Node 22.13+, accuracy disclaimer, no rate-limit numbers"
+  },
+  {
+   "url": "https://github.com/pbakaus/impeccable",
+   "ok": true,
+   "note": "84.1k stars, Apache-2.0, 24 commands, 61 detectors run without an LLM"
+  },
+  {
+   "url": "https://github.com/openai/codex",
+   "ok": true,
+   "note": "130.3k stars, Apache-2.0; UI shows 5k+ issues; search API gives 23,748 open issues and 163 PRs"
+  },
+  {
+   "url": "https://api.github.com/search/issues",
+   "ok": true,
+   "note": "Recount: skills 411 issues; RhinoAI 10; Codex 23,748 and 163; matches the packet"
+  },
+  {
+   "url": "https://github.com/GenEnv/rhino-gh-mcp",
+   "ok": true,
+   "note": "MIT, v0.2.6, Rhino 8 only, Python 3.11 or 3.12 (Quick start says 3.11+), five levels with Coach default, 8 stars"
+  },
+  {
+   "url": "https://github.com/ladybug-tools/ladybug",
+   "ok": true,
+   "note": "AGPL-3.0 confirmed"
+  },
+  {
+   "url": "https://aps.autodesk.com/blog/building-agentic-ai-whats-new-autodesk-platform-services",
+   "ok": true,
+   "note": "15 Apr 2026: Revit, Product Help, Fusion and Fusion Data MCPs in tech preview; no Forma MCP"
+  },
+  {
+   "url": "https://www.autodesk.com/blogs/aec/2026/06/17/revit-public-mcp-server/",
+   "ok": false,
+   "note": "403; existence and Revit 2027 add-on details from search snippets only"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/registry",
+   "ok": true,
+   "note": "v0.1 freeze since 2025-10-24, preview, GA later, namespace-ownership validation only, 7.4k stars"
+  },
+  {
+   "url": "https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/",
+   "ok": true,
+   "note": "View and Collab seats 20 a month; Education plans same as Professional (200 a day); contradicts '6 a month'"
+  },
+  {
+   "url": "https://github.com/JotaDeRodriguez/Bonsai_mcp",
+   "ok": true,
+   "note": "MIT, 66 stars, 15 IFC tools listed against 'eleven' claimed, execute-code with no disable option, REST API with no auth and CORS open to all origins"
+  },
+  {
+   "url": "https://github.com/christinachiu/Thermal-Sandbox-Web",
+   "ok": true,
+   "note": "No licence (TODO), King's Road and Lee Square, CDN three.js, precomputed Radiance and Ladybug JSON, 0 stars"
+  },
+  {
+   "url": "https://github.com/Comfy-Org/ComfyUI",
+   "ok": true,
+   "note": "GPL-3.0, 141k stars, portable build bundles Python 3.13, AMD, Intel and Apple supported"
+  },
+  {
+   "url": "https://github.com/mcneel/rhinoai",
+   "ok": true,
+   "note": "MIT, 371 stars, default branch rhino-9.x, connector.mcpb v0.1.6, Claude Code supported, no Rhino version stated"
+  },
+  {
+   "url": "https://mcneel.github.io/RhinoAI/docs/",
+   "ok": true,
+   "note": "Lists clients including Claude Code and Codex; no version or security details on landing pages"
+  },
+  {
+   "url": "https://github.com/ahujasid/blender-mcp",
+   "ok": true,
+   "note": "Renamed mcp-for-blender, MIT, 31.8k stars, 31 issues and 26 PRs, SAFE_MODE and DISABLE_TELEMETRY confirmed, no socket auth"
+  },
+  {
+   "url": "https://skills.sh/",
+   "ok": true,
+   "note": "Header 1,425,712 conflicts with the 4.0M top entry; Audits section exists but method is unstated; operated by Vercel"
+  },
+  {
+   "url": "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/",
+   "ok": true,
+   "note": "11 Oct 2026, Martyn Day; no Astra revision test reported; advises read-only MCP"
+  },
+  {
+   "url": "https://hn.algolia.com/api/v1/items/48543908",
+   "ok": true,
+   "note": "Thread exists (Jun 2026); 47970497 exists (May 2026)"
+  },
+  {
+   "url": "https://github.com/osama-ata/Awesome-AECO",
+   "ok": true,
+   "note": "CC0, 33 stars, pushed 3 Oct 2026, lists IDS MCP Server, rhino3dm, Rhino.Compute, web-ifc, IFClite"
+  },
+  {
+   "url": "https://github.com/THUCBIMS/Awesome-AIGC4AEC",
+   "ok": true,
+   "note": "30 stars, pushed 21 Oct 2026, no licence stated, AIGC for AEC by scale"
+  },
+  {
+   "url": "https://forkast.news/the-stateless-shift-mcps-july-28-protocol-revision/",
+   "ok": true,
+   "note": "Search-level evidence that the MCP 2026-07-28 stateless revision shipped; official spec not opened"
+  },
+  {
+   "url": "https://developers.figma.com/docs/figma-mcp-server/",
+   "ok": true,
+   "note": "Remote URL mcp.figma.com/mcp; write-to-canvas free in beta, later usage-based; Education plan named for desktop server"
+  }
+ ],
+ "verdict": "Round 2 fixed most of what the previous review raised: install counts, the permission ladder, the Speckle essay attribution, headless-run security, A2 pixel maths and the issue and PR recounts, which I confirmed. The MCP tooling core holds up. But six claims are false or outdated. The Figma limits are wrong, and Education seats get 200 calls a day. Autodesk does ship official tech-preview MCP servers, including one for Revit. Curated AEC lists exist. ComfyUI is not NVIDIA-only. The Astra article reports no revision test. Bonsai's code-execution tool cannot be switched off. The packet also ignores the July 2026 stateless MCP revision while planning its own server, and lists no tall-building channel. Sentiment remains a hypothesis with no Reddit, LinkedIn or YouTube data. Close, but not yet passable."
+}

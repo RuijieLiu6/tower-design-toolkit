@@ -1,0 +1,1635 @@
+{
+ "packet_id": "P08",
+ "modules": [
+  {
+   "module_id": "P08-M01",
+   "name": "Program Value Study",
+   "phase": "basic",
+   "category": "PROG",
+   "design_question": "What is each tagged program use worth per m2 in downtown Vancouver now, how deep is the market for the area supplied, and how fresh is each number?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: 4-5 person-days (evidence ledger, five use cards, freshness logic); quarterly data refresh",
+   "depends_on": [
+    "P08-M02"
+   ],
+   "jury_criteria": [
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "inputs": [
+    "Layer 0: GFA by use and floor (office, residential, hotel, retail, cultural/civic, public)",
+    "P08-M02 NetAreaByUse (net lettable / saleable area per use)",
+    "Market-evidence ledger (editable rows: value, unit, net/gross, class, date, source_id)",
+    "VTC brief: site 79.2 x 144.8 m = 11,468 m2; minimum 9.0 FSR non-residential = 103,213 m2 GFA (about 1.11 M sf), computed from the brief"
+   ],
+   "outputs": [
+    "ValueByUse (typed table: use, net area, rent or price basis, vacancy, NOI, capitalised value, low/base/high, source_id, data date, net/gross tag)",
+    "MarketDepthIndex (new net area / downtown AAA+A inventory; years of net absorption)",
+    "EvidenceFreshness (per-row age flag consumed by P08-M08)"
+   ],
+   "parameters": [
+    {
+     "name": "Office net asking rent by class",
+     "unit": "CAD/sf/yr net (converted to m2)",
+     "relationship": "Office NOI and capitalised value rise in proportion to net rent. Downtown Q2 2026 net asking spans $24.03 (Class C) to $48.02 (AAA), so the class the floors can credibly claim is a first-order value lever.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Taxes and operating costs (T&O) and net/gross tag",
+     "unit": "CAD/sf/yr",
+     "relationship": "Tenant gross occupancy cost = net rent + T&O (AAA $26.13). NOI uses net rent only, so mixing net and gross numbers shifts value by roughly the T&O amount; every ledger value is tagged net or gross.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Stabilised vacancy / lease-up",
+     "unit": "% of net area",
+     "relationship": "Effective revenue falls one-for-one with vacancy. Downtown Q2 2026: AAA 7.6%, A 9.1%, B 20.2%; AAA would be 4.1% without three large blocks, so AAA/A versus B/C bifurcation decides which rent tier is realistic.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Downtown net absorption",
+     "unit": "sf/yr",
+     "relationship": "Years to lease = new net area / net absorption. Downtown absorption was +54,688 sf in Q2 and +103,062 sf YTD 2026 (leasing activity averages about 518,000 sf per quarter). CBRE expects no new downtown supply for at least four years.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Residential tenure, price and rent",
+     "unit": "CAD/sf (strata) or CAD/month (rental)",
+     "relationship": "Strata revenue = saleable area x price; rental value = rent capitalised. CMHC 2025: condo-apartment vacancy 1.5% versus 3.7% purpose-built; Metro apartment benchmark -6.2% year on year (Sept 2026, secondary source). The two paths respond to different signals.",
+     "source_ids": [
+      "P08-S05",
+      "P08-S06"
+     ]
+    },
+    {
+     "name": "Hotel RevPAR (occupancy x ADR)",
+     "unit": "CAD/available room/night",
+     "relationship": "Hotel revenue per key = RevPAR x 365. Vancouver 2025: 78.4% occupancy, ADR C$284.44, RevPAR C$223.05 (CoStar, market definition unstated); a luxury tower hotel traded near C$1.0M per key in 2025, so market averages are not tier-specific.",
+     "source_ids": [
+      "P08-S08",
+      "P08-S10"
+     ]
+    },
+    {
+     "name": "Ground-floor retail net rent by frontage",
+     "unit": "CAD/sf/yr net",
+     "relationship": "Retail value scales with frontage quality: Robson 1000 block $180-240/sf net versus 1100 block $75-125 (Colliers, 2022), a 2-3x spread within two blocks, so which site edge carries retail matters. Data are stale.",
+     "source_ids": [
+      "P08-S11"
+     ]
+    },
+    {
+     "name": "Evidence age",
+     "unit": "months",
+     "relationship": "Older evidence widens the range that P08-M08 applies to that input; the module flags any row older than the threshold (the retail evidence here dates from 2022).",
+     "source_ids": [
+      "P08-S11"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Evidence age (oldest ledger row)",
+     "unit": "months",
+     "good": "<= 6",
+     "bad": "> 12",
+     "status": "team_assumption",
+     "basis": "Editable preset; broker series are quarterly and no source sets a staleness limit.",
+     "method": "Today minus data date per ledger row; worst row shown with its source chip.",
+     "source_ids": []
+    },
+    {
+     "name": "Office rent basis check",
+     "unit": "category",
+     "good": "Class-matched downtown net asking rent (e.g. AAA $48.02/sf)",
+     "bad": "Metro blended average ($31.20/sf) used as downtown rent",
+     "status": "false_assumption_corrected",
+     "basis": "CBRE defines the $31.20 headline as a metro-wide average blending net and gross rates; downtown all-class net asking is $34.93.",
+     "method": "Badge fails if the rent row has basis gross/blended or geography metro.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Underwritten office net rent / class-matched CBRE downtown asking",
+     "unit": "ratio",
+     "good": "<= 1.00",
+     "bad": "> 1.15",
+     "status": "team_assumption",
+     "basis": "Benchmark rows are verified (CBRE Q2 2026: AAA 48.02, A 39.92, B 33.02, C 24.03); the thresholds are editable presets. CBRE says new-build economic rents exceed market rents, so a ratio of 1.0 may still not pencil (see P08-M05).",
+     "method": "Underwritten net rent divided by the CBRE row for the chosen class.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Absorption load: new office net area / downtown Class AAA+A inventory",
+     "unit": "%",
+     "good": "<= 5%",
+     "bad": "> 10%",
+     "status": "team_assumption",
+     "basis": "Inventory is verified (8,726,910 + 7,844,662 = 16,571,572 sf, CBRE Q2 2026); thresholds are editable. Example: 80% of the 9.0 FSR minimum = 888,800 sf = 5.4% (80% is a team assumption).",
+     "method": "Office net area from P08-M02 divided by 16.57 M sf.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Years of net absorption to lease the new net area",
+     "unit": "years",
+     "good": "<= 2",
+     "bad": "> 4",
+     "status": "team_assumption",
+     "basis": "CBRE's four-year no-new-supply horizon is context, not a threshold. Example: 888,800 sf / 206,124 sf per year (H1 2026 absorption annualised) = 4.3 years; absorption is volatile.",
+     "method": "New office net area / annualised downtown net absorption, shown as a range using the 5-year leasing average (about 518,000 sf per quarter) as upside.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    }
+   ],
+   "method": "Read GFA by use and floor from Layer 0 and net areas from P08-M02. For each use, pull the matching ledger row (value, unit, net/gross, class, date, source) and convert units (sf to m2). Office: NOI = net area x net rent x (1 - vacancy). Hotel: keys x RevPAR x 365 x NOI margin (editable). Retail: net area x net rent by frontage. Residential: strata price or capitalised rent (no default price: the user must enter one or accept a break-even from P08-M05). Capitalise income uses with an editable cap rate. Compute market-depth metrics against CBRE downtown inventory and absorption. Every figure carries a source chip; unsourced values show as editable team assumptions; corrected claims stay visible in the FALSE ASSUMPTION colour.",
+   "visualization": [
+    "Stacked bar of value per m2 GFA by use with low/base/high whiskers; each segment carries a source chip (id, publisher, date, net/gross, class) and a freshness colour (green <= 6 months, amber 6-12, red > 12)",
+    "Market-depth gauge: new net area as a share of downtown AAA+A inventory, with the CBRE four-year no-new-supply horizon marked",
+    "Evidence table; rows corrected as FALSE ASSUMPTION are struck through in the special colour with the correction beside them"
+   ],
+   "human_judgment": "Which office class the design can credibly claim; rental versus strata residential; hotel brand tier; which site edge carries retail; defensible low/base/high ranges; how to read broker disagreement (downtown vacancy 12.2% CBRE vs Vancouver 9.5% Colliers).",
+   "limits": "Broker figures are asking rents, not effective rents (incentives are reported as high but unquantified); CBRE, Colliers and Lee/CoStar use different building sets and definitions; no sourced 2026 new-build strata price per sf or retail rent; the hypothetical site has no transaction evidence.",
+   "libraries": [
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Declarative charts for value stacks and gauges",
+     "url": "https://github.com/vega/vega-lite"
+    },
+    {
+     "name": "Observable Plot",
+     "license": "ISC",
+     "role": "Quick exploratory plots of the evidence ledger",
+     "url": "https://github.com/observablehq/plot"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M02",
+   "name": "Floor-Plate Efficiency and Core Ratio",
+   "phase": "basic",
+   "category": "PROG",
+   "design_question": "How much of each floor's gross area is lettable or saleable, how much is core and circulation, and how does that efficiency erode as the tower gets taller?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "M: 3-4 person-days (floor slicing, tag logic, benchmark overlay)",
+   "depends_on": [],
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "inputs": [
+    "Layer 0: floor-by-floor slab outlines and storey count",
+    "Layer 0 tags: core, mechanical, program use per floor",
+    "Optional ADVANCED: structure system and vertical-transport core size (from the SYST packet)"
+   ],
+   "outputs": [
+    "FloorEfficiencyTable (per floor: GFA, core area, net area, core ratio, NTG)",
+    "NetAreaByUse (typed table consumed by P08-M01, M03, M05)",
+    "BenchmarkFlags (NTG and core ratio against published tower samples)"
+   ],
+   "parameters": [
+    {
+     "name": "Tower height / number of storeys",
+     "unit": "storeys",
+     "relationship": "Across 166 towers, height correlates negatively with space efficiency (Ilgin 2025): taller means more lift banks, shafts and structure per floor and less net area. The slope is not quantified in the source.",
+     "source_ids": [
+      "P08-S18"
+     ]
+    },
+    {
+     "name": "Core-to-GFA ratio",
+     "unit": "% of GFA",
+     "relationship": "Net area = GFA minus core minus other non-lettable area, so each extra point of core ratio removes about one point of net-to-gross. Samples show core 11-38% (mean 26%, tapered supertall) and 13-34% (mean 23%, Japanese towers).",
+     "source_ids": [
+      "P08-S17",
+      "P08-S19"
+     ]
+    },
+    {
+     "name": "Structural system",
+     "unit": "category",
+     "relationship": "System type is a recorded driver of efficiency: rigid-frame towers reached net-to-gross up to 85% through compact cores and minimal lateral-system intrusion in the 166-tower sample.",
+     "source_ids": [
+      "P08-S18"
+     ]
+    },
+    {
+     "name": "Program mix and stacking",
+     "unit": "% of GFA by use",
+     "relationship": "Hotel towers show the highest efficiency (mean 81.2%, 166 towers), so changing the share of hotel, residential and office floors changes the blended tower efficiency.",
+     "source_ids": [
+      "P08-S18"
+     ]
+    },
+    {
+     "name": "Floor-plate area and depth",
+     "unit": "m2, m",
+     "relationship": "Unresolved: no sourced relationship between plate size/depth and core share for 244-305 m mixed-use towers; the module only measures it (see unresolved_relationships).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Net-to-gross ratio (whole tower)",
+     "unit": "% of GFA",
+     "good": ">= 75%",
+     "bad": "< 64%",
+     "status": "verified",
+     "basis": "Sample statistics, not a code limit: 40 Japanese tall buildings, mean 75%, range 64-85% (Ilgin and Aslantamer 2026). Supertall tapered towers: mean 72%, range 55-84% (Ilgin 2023).",
+     "method": "Sum of net area / sum of GFA across floors; per-use values also shown.",
+     "source_ids": [
+      "P08-S19",
+      "P08-S17"
+     ]
+    },
+    {
+     "name": "Core-to-GFA ratio (whole tower)",
+     "unit": "% of GFA",
+     "good": "<= 23%",
+     "bad": "> 34%",
+     "status": "verified",
+     "basis": "Japanese sample mean 23% and maximum 34% (Ilgin and Aslantamer 2026); tapered supertall sample mean 26%, maximum 38% (Ilgin 2023).",
+     "method": "Sum of core and mechanical-tagged area / sum of GFA.",
+     "source_ids": [
+      "P08-S19",
+      "P08-S17"
+     ]
+    },
+    {
+     "name": "Efficiency change per 10 storeys",
+     "unit": "percentage points",
+     "good": "No sourced benchmark",
+     "bad": "No sourced benchmark",
+     "status": "unverified",
+     "basis": "Only the direction (negative) is sourced (Ilgin 2025); displayed for the user's own tower, not judged.",
+     "method": "Linear fit of per-floor NTG against floor number.",
+     "source_ids": [
+      "P08-S18"
+     ]
+    }
+   ],
+   "method": "Slice the Layer 0 model at each floor (mesh sections or IFC slab outlines) and compute slab GFA. Sum polygons tagged core, mechanical or refuge to get core area; core ratio = core / GFA. Net area = GFA minus tagged non-lettable areas (lobbies, mechanical, circulation if tagged); an editable envelope/circulation deduction (default none) is applied and the module warns that untagged circulation and wall thickness make a tagged-only result optimistic. Compute efficiency per floor, per use block and blended. Compare with sample benchmarks. In ADVANCED mode replace the tagged core with the lift-core size from the SYST packet. Output NetAreaByUse for the economics modules.",
+   "visualization": [
+    "Tower section/elevation with each floor filled by NTG on a diverging scale (red < 64%, white 75%, blue >= 85%) beside a bar chart of core % per floor",
+    "Benchmark strip: the user's tower as a marker over the 55-84% (supertall) and 64-85% (Japanese) sample ranges, labelled 'sample range, not a code limit'"
+   ],
+   "human_judgment": "Which spaces count as core versus lettable (sky lobbies, refuge floors, amenity); how much efficiency to trade for public-facing vertical uses and design quality.",
+   "limits": "Benchmarks come from published tower samples (Japan, global, tapered) with differing definitions; there is no Vancouver sample; the relationship to plate size is not quantified; the difference between by-law floor area (FSR) and rentable area under a BOMA-type standard is not modelled because that standard could not be opened.",
+   "libraries": [
+    {
+     "name": "IfcOpenShell",
+     "license": "LGPL-3.0-or-later (core, Python); Bonsai GPL-3.0",
+     "role": "Read IFC slabs, spaces and quantities",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "rhino3dm",
+     "license": "MIT",
+     "role": "Read Rhino .3dm geometry in Python/JS",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "trimesh",
+     "license": "MIT",
+     "role": "Mesh volumes and 2D cross-sections per floor",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "Shapely",
+     "license": "BSD-3-Clause (GEOS engine LGPL-2.1)",
+     "role": "Polygon area and boolean operations per floor",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "Speckle Server",
+     "license": "Apache-2.0",
+     "role": "Optional object exchange (SketchUp, Blender, Unity, Excel connectors listed; other connectors not confirmed)",
+     "url": "https://github.com/specklesystems/speckle-server"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M03",
+   "name": "Construction Cost and Tall-Building Premium",
+   "phase": "advanced",
+   "category": "PROG",
+   "design_question": "What will this massing cost to build by use and height in Vancouver today, how much of that is the tall-building premium, and how wide is the schematic-stage range?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: 5-6 person-days (cost ledger, premium laws, AACE range logic)",
+   "depends_on": [
+    "P08-M02"
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "inputs": [
+    "Layer 0: GFA by use and floor including below-grade; storey count",
+    "P08-M02 NetAreaByUse",
+    "ADVANCED presets: structural system, facade, MEP, vertical transport",
+    "Cost-base ledger (Altus 2025 Vancouver band; editable)"
+   ],
+   "outputs": [
+    "HardCostByFloor (CAD, low/base/high)",
+    "TotalDevelopmentCost excluding land and charges (hard + soft + contingency, range)",
+    "CostPremiumIndex (multiplier vs reference storeys)",
+    "CostEstimateClass (AACE class and range) for P08-M08"
+   ],
+   "parameters": [
+    {
+     "name": "Base hard cost by building type",
+     "unit": "CAD/sf",
+     "relationship": "Hard cost scales with area. Altus 2025 puts Vancouver concrete high-rise (13-39 storeys) at $360-455/sf, hard cost only, excluding site servicing, consultants and development charges; Altus reports Vancouver costs fell in 2025 on fewer condo-tower starts.",
+     "source_ids": [
+      "P08-S13",
+      "P08-S14"
+     ]
+    },
+    {
+     "name": "Number of storeys",
+     "unit": "storeys",
+     "relationship": "Per-m2 cost rises with height: elasticity about 0.1 up to 9 floors, about 0.25-0.26 for commercial and 0.56 for residential above; rule of thumb +2% per floor. Global sample; elasticity is larger at extreme heights.",
+     "source_ids": [
+      "P08-S16"
+     ]
+    },
+    {
+     "name": "Use stacked at height",
+     "unit": "% of floors by use",
+     "relationship": "Residential cost rises about twice as steeply with height as commercial (0.56 vs 0.26): smaller plates, more plumbing and balconies, so stacking order changes cost, not only revenue.",
+     "source_ids": [
+      "P08-S16"
+     ]
+    },
+    {
+     "name": "Imported steel and aluminum prices",
+     "unit": "% change",
+     "relationship": "U.S.-origin steel and aluminum price pressure feeds mechanical, electrical and envelope costs; Altus names development-charge and code changes as the largest viability swings.",
+     "source_ids": [
+      "P08-S14"
+     ]
+    },
+    {
+     "name": "Design maturity (AACE estimate class)",
+     "unit": "class 5 to 3",
+     "relationship": "Estimate range narrows as design definition grows: Class 5 -20/-30% to +30/+50%; Class 4 (schematic) -10/-20% to +20/+30%; Class 3 -5/-15% to +10/+20%.",
+     "source_ids": [
+      "P08-S21"
+     ]
+    },
+    {
+     "name": "Soft-cost % and contingency %",
+     "unit": "% of hard cost",
+     "relationship": "Total cost rises in proportion to these add-ons; no sourced Vancouver percentages were found (editable team assumptions).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Implied tall-building premium vs reference storeys (N_ref = 26)",
+     "unit": "multiplier (N/N_ref)^eps",
+     "good": "<= commercial-elasticity line (eps 0.26; 1.24 at 60 storeys)",
+     "bad": ">= residential-elasticity line (eps 0.56; 1.60 at 60 storeys)",
+     "status": "team_assumption",
+     "basis": "Elasticities are sourced (Ahlfeldt and Barr 2022); the 26-storey anchor (midpoint of Altus 13-39 band) is an editable assumption. Rule of thumb +2%/floor gives +68% for 26 to 60 storeys.",
+     "method": "Per-floor multiplier from the elasticity for that use; three premium laws (0.26, 0.56, 2%/floor) shown together as a range.",
+     "source_ids": [
+      "P08-S16",
+      "P08-S13"
+     ]
+    },
+    {
+     "name": "Height beyond the Altus sampled band",
+     "unit": "storeys above 39",
+     "good": "0 (inside 13-39 storeys)",
+     "bad": "> 0 (extrapolated; flag, not fail)",
+     "status": "verified",
+     "basis": "Altus 2025 band covers concrete high-rise of 13-39 storeys; 244-305 m towers are roughly 55-75 storeys at 4.0-4.4 m per floor (arithmetic).",
+     "method": "Max storeys of the model minus 39.",
+     "source_ids": [
+      "P08-S13"
+     ]
+    },
+    {
+     "name": "Cost uncertainty envelope",
+     "unit": "% of base estimate",
+     "good": "Within AACE Class 4: -10/-20% to +20/+30%",
+     "bad": "Wider than Class 5: -20/-30% to +30/+50%",
+     "status": "verified",
+     "basis": "AACE RP 56R-08 building and general construction matrix (rev. Aug 2020).",
+     "method": "Select class from design maturity checklist; apply the range to hard cost.",
+     "source_ids": [
+      "P08-S21"
+     ]
+    }
+   ],
+   "method": "Hard cost per m2 = base_cost(type) x premium(N), premium = (N / N_ref)^eps per floor by use, with eps = 0.1 up to 9 floors and about 0.26 (commercial) or 0.56 (residential) above. Base cost defaults to the Altus 2025 Vancouver concrete high-rise band ($360-455/sf) at N_ref = 26 (editable). Add a below-grade multiplier, soft-cost % and contingency (editable; unsourced), then apply the AACE 56R-08 class range (Class 5 in BASIC, Class 4 once ADVANCED presets are set) to give low/base/high. Show three premium laws (0.26, 0.56, 2% per floor) as a spread instead of one answer. Flag any storey above 39 as extrapolated. Costs are nominal CAD, no escalation. Worked illustration: 26 to 60 storeys gives x1.24 (commercial), x1.60 (residential).",
+   "visualization": [
+    "Stacked column per floor along the tower height (base + premium + soft + contingency) with a shaded P10-P90 envelope",
+    "Shaded box marking the Altus 13-39-storey band; floors above it hatched 'extrapolated'",
+    "Three lines for the premium laws (0.26, 0.56, 2%/floor) so their spread reads as uncertainty; AACE class badge linked to the 56R-08 matrix"
+   ],
+   "human_judgment": "Structural, facade and MEP ambition; contractor risk appetite; whether an iconic height premium is worth it against the jury's warning on unnecessarily expensive design.",
+   "limits": "Altus 2026 Vancouver tables are behind a download form and were not retrieved; the premium laws come from a global (Emporis) sample that ends below supertall heights; 244-305 m is outside the Altus band; soft-cost %, below-grade parking and transit-connection costs are unsourced; costs are nominal CAD.",
+   "libraries": [
+    {
+     "name": "IfcOpenShell (ifc5d)",
+     "license": "LGPL-3.0-or-later",
+     "role": "Cost reporting from IFC quantities (listed in the repository as cost information from IFC)",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "SALib",
+     "license": "MIT",
+     "role": "Sensitivity of cost to premium and base-cost choices",
+     "url": "https://github.com/SALib/SALib"
+    },
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Per-floor cost charts",
+     "url": "https://github.com/vega/vega-lite"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M04",
+   "name": "Development Charges, ACC and CAC",
+   "phase": "advanced",
+   "category": "SITE",
+   "design_question": "Which levies and negotiated contributions would this proposal trigger in Vancouver today, how large are they, and how much land lift would a rezoning have to share?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: 4 person-days (rate tables, regime switch, effective-date logic)",
+   "depends_on": [
+    "P08-M05",
+    "P08-M06"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10"
+   ],
+   "inputs": [
+    "Layer 0: GFA by use, apartment unit count, tenure (rental or strata)",
+    "P08-M05 RLV proposed and RLV baseline (for CAC)",
+    "P08-M06 in-kind public benefit value",
+    "Charges ledger (rate, basis, effective date, source)"
+   ],
+   "outputs": [
+    "ChargesSchedule (item, basis, CAD/sf, CAD total, effective date, source_id)",
+    "CACEstimate (range, 0.70-0.80 x land lift)",
+    "PublicBenefitTotal (cash + in-kind) for P08-M07"
+   ],
+   "parameters": [
+    {
+     "name": "Amenity Cost Charge (ACC) by use",
+     "unit": "CAD/sf of floor area",
+     "relationship": "ACC is proportional to floor area by use. Applications after 30 Sep 2026: commercial/other (office, retail, hotel) $3.00/sf; apartments above 1.5 FSR $10.00/sf at full rate, 50% in year one; rental exempt; +3% per year 2027-29 (press summaries of the staff proposal).",
+     "source_ids": [
+      "P08-S23",
+      "P08-S26"
+     ]
+    },
+    {
+     "name": "City DCL with temporary reduction",
+     "unit": "CAD/sf",
+     "relationship": "DCL is proportional to area by use; a 20% temporary reduction (Council 10 Dec 2025) was kept in the July 2026 update; DCLs over $500,000 can be deferred (25% at building permit). The rate table was not retrieved.",
+     "source_ids": [
+      "P08-S27",
+      "P08-S23",
+      "P08-S34"
+     ]
+    },
+    {
+     "name": "Metro Vancouver liquid-waste DCC",
+     "unit": "CAD/sf non-residential; CAD/apartment unit",
+     "relationship": "Charge is proportional to area or units: Vancouver Sewerage Area from 24 Jul 2026 $5.30/sf non-residential and $6,298 per apartment (from 1 Jan 2027: $5.83 and $6,930). Water and parkland DCCs also apply but were not retrieved.",
+     "source_ids": [
+      "P08-S30"
+     ]
+    },
+    {
+     "name": "Negotiated CAC (share of land lift)",
+     "unit": "% of land lift",
+     "relationship": "CAC rises with land lift, so a larger density request raises the contribution. The CAC policy (amended Oct 2025) targets at least 75% of the land-value increase for negotiated cases; Lincoln Institute cites 70-80%.",
+     "source_ids": [
+      "P08-S28",
+      "P08-S29",
+      "P08-S23"
+     ]
+    },
+    {
+     "name": "Public art contribution",
+     "unit": "CAD",
+     "relationship": "The standalone public-art policy ends for rezonings submitted after 30 Sep 2026; public art is funded through the ACC, so no separate art cost line applies to new applications.",
+     "source_ids": [
+      "P08-S23"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Regime applied",
+     "unit": "category",
+     "good": "ACC + DCL + DCC + negotiated CAC for large complex rezoning submitted after 30 Sep 2026",
+     "bad": "Legacy CAC targets applied to a new rezoning",
+     "status": "false_assumption_corrected",
+     "basis": "CAC targets are removed for rezoning applications submitted after 30 Sep 2026; CACs remain negotiated for larger, complex projects (Daily Hive, 9 Jul 2026; City bulletin not opened).",
+     "method": "Switch on application date; legacy rows shown struck through in the FALSE ASSUMPTION colour.",
+     "source_ids": [
+      "P08-S23",
+      "P08-S24"
+     ]
+    },
+    {
+     "name": "CAC share of land lift",
+     "unit": "% of land lift",
+     "good": ">= 75%",
+     "bad": "< 70%",
+     "status": "verified",
+     "basis": "Policy 1.2(c) targets at least 75% (quoted by a secondary blog; primary not opened); Lincoln Institute reports 70-80%. Whether the July 2026 update kept 75% is unverified.",
+     "method": "(Cash CAC + in-kind value) / (RLV proposed - RLV baseline).",
+     "source_ids": [
+      "P08-S28",
+      "P08-S29"
+     ]
+    },
+    {
+     "name": "Total levies per m2 GFA (ACC + DCL + DCC)",
+     "unit": "CAD/m2",
+     "good": "No sourced threshold (displayed only)",
+     "bad": "No sourced threshold (displayed only)",
+     "status": "unverified",
+     "basis": "No source sets an acceptable levy level; shown so P08-M07 can plot it against feasibility.",
+     "method": "Sum of schedule lines / GFA.",
+     "source_ids": []
+    }
+   ],
+   "method": "ACC = sum over uses of area (sf) x rate (commercial $3.00; apartments above 1.5 FSR $10.00 at 50% in year one then 100%; rental exempt) with the 3% annual escalator from 2027. DCL = area x City rate x 0.8 (20% temporary reduction; rate table to be loaded from the City bulletin). Metro Vancouver liquid-waste DCC = $5.30/sf non-residential and $6,298 per apartment (VSA, from 24 Jul 2026). Land lift = RLV_proposed minus RLV_baseline from P08-M05 (baseline entered by user). Negotiated CAC shown as 0.70-0.80 x lift, with 0.75 as the policy point; treatment of the ACC as a credit against the CAC is unverified and shown as a toggle. In-kind floors from P08-M06 are credited at foregone value or cost (editable). Deferral rules feed the cash-flow timing.",
+   "visualization": [
+    "Waterfall: gross development value to costs to charges (DCL, DCC, ACC stacked, each with a source chip) to CAC to developer return to residual land",
+    "Effective-date timeline marking 30 Sep 2026 (ACC in force), 24 Jul 2026 and 1 Jan 2027 (DCC steps), with rows older than the regime in the FALSE ASSUMPTION colour",
+    "Toggle between ACC regime and legacy regime to show the difference"
+   ],
+   "human_judgment": "Whether to model a justified breach of policy (the brief says the jury may reward one); which in-kind amenities (cultural/civic floors, public space) to offer instead of cash; realism of the negotiation; partnership terms with the Musqueam, Squamish and Tsleil-Waututh Nations are not monetised by the tool.",
+   "limits": "The City's ACC bulletin, Council report and DCL pages returned HTTP 403, so ACC rates come from press summaries of the staff proposal (approval date shown as 21 Jul by the City, 14 Jul scheduled); the City DCL table, water/parkland DCCs and TransLink DCC were not retrieved; land lift needs a user-entered baseline; policy may change after the Higher Buildings review.",
+   "libraries": [
+    {
+     "name": "Plotly.js",
+     "license": "MIT",
+     "role": "Waterfall and timeline charts",
+     "url": "https://github.com/plotly/plotly.js"
+    },
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Charge tables and bars",
+     "url": "https://github.com/vega/vega-lite"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M05",
+   "name": "Pro Forma and Residual Land Value",
+   "phase": "advanced",
+   "category": "PROG",
+   "design_question": "At today's rents, costs and charges, does this massing support a competitive return and a positive residual land value, and what rent or price would it need to break even?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "L: 7-8 person-days (cash flow, break-even solver, land-lift, export)",
+   "depends_on": [
+    "P08-M01",
+    "P08-M03",
+    "P08-M04"
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "inputs": [
+    "P08-M01 ValueByUse (NOI, capitalised value, GDV)",
+    "P08-M03 TotalDevelopmentCost range",
+    "P08-M04 ChargesSchedule and CACEstimate",
+    "Land benchmark (user entered), build duration, financing rate and cap rates (editable)"
+   ],
+   "outputs": [
+    "ResidualLandValue (point or P10/P50/P90 with P08-M08)",
+    "ProfitOnGDV, YieldOnCost, DevelopmentSpread",
+    "BreakEvenRentByUse (rent or price that gives RLV = benchmark)",
+    "LandLiftEstimate (to P08-M04) and FeasibilityFlag (to P08-M07)"
+   ],
+   "parameters": [
+    {
+     "name": "Gross development value (GDV) and cap rate",
+     "unit": "CAD; %",
+     "relationship": "RLV rises one-for-one with GDV; income value is proportional to 1 / cap rate, so a 50 bp rise from 4.72% cuts office value by about 10% (arithmetic). 4.72% is CoStar's Metro office figure for Q2 2026, not tower-grade evidence.",
+     "source_ids": [
+      "P08-S02"
+     ]
+    },
+    {
+     "name": "Total development cost",
+     "unit": "CAD",
+     "relationship": "RLV falls one-for-one with cost. CBRE states that the economic rents needed for new downtown office are significantly higher than current market rents, with no new supply expected for at least four years from construction start.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Developer return",
+     "unit": "% of GDV",
+     "relationship": "A higher required return deducts more from GDV before land. UK planning guidance treats 15-20% of GDV as a suitable plan-making return; this is a transferable convention, not Vancouver policy.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    },
+    {
+     "name": "Land benchmark value",
+     "unit": "CAD",
+     "relationship": "The residual must exceed existing-use value plus a landowner premium for a landowner to sell (UK PPG paras 014-017 convention). The hypothetical VTC site has no price, so the user sets the benchmark.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    },
+    {
+     "name": "Build duration and financing rate",
+     "unit": "months; % per year",
+     "relationship": "Interest carry grows with duration and rate; taller towers plausibly take longer, but no sourced Vancouver tall-tower schedule or rate was found (editable team assumptions).",
+     "source_ids": []
+    },
+    {
+     "name": "Public contributions and public floor area",
+     "unit": "CAD; m2",
+     "relationship": "CAC, ACC and non-revenue public floors reduce RLV one-for-one; this is the lever that trades feasibility for public benefit.",
+     "source_ids": [
+      "P08-S23",
+      "P08-S28"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Profit on GDV",
+     "unit": "% of GDV",
+     "good": ">= 15% (15-20% range)",
+     "bad": "< 15%",
+     "status": "verified",
+     "basis": "UK PPG para 019 suitable return 15-20% of GDV for plan making; transferable convention, Vancouver practice unverified (Coriolis reports for the City not opened).",
+     "method": "(GDV - TDC incl. charges and finance, excluding land) / GDV, with land at benchmark.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    },
+    {
+     "name": "Residual land value vs benchmark",
+     "unit": "CAD or ratio",
+     "good": ">= benchmark land value",
+     "bad": "< existing-use value",
+     "status": "verified",
+     "basis": "Benchmark land value = existing-use value plus landowner premium (UK PPG paras 014 and 017); between the two is marginal.",
+     "method": "RLV divided by user-entered benchmark.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    },
+    {
+     "name": "Required office net rent / CBRE downtown AAA net asking ($48.02)",
+     "unit": "ratio",
+     "good": "<= 1.00",
+     "bad": "> 1.15",
+     "status": "team_assumption",
+     "basis": "Benchmark verified (CBRE Q2 2026); the thresholds are editable presets. CBRE says new-build economic rents currently exceed market rents.",
+     "method": "Break-even net rent (solver) / 48.02.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Development spread (yield on cost minus market cap rate)",
+     "unit": "basis points",
+     "good": ">= 150 bp",
+     "bad": "< 100 bp",
+     "status": "team_assumption",
+     "basis": "Unsourced rule of thumb, editable; market cap rate reference 4.72% (CoStar via Lee, Q2 2026).",
+     "method": "Stabilised NOI / TDC minus cap rate.",
+     "source_ids": [
+      "P08-S02"
+     ]
+    }
+   ],
+   "method": "GDV = sum over income uses of net area x [net rent x (1 - vacancy) - non-recoverables] / cap rate, plus strata net area x price x (1 - selling cost). TDC = hard cost (P08-M03) + soft + contingency + charges (P08-M04) + finance from a monthly S-curve drawdown (numpy-financial for NPV/IRR). Residual land value = GDV - (TDC excluding land + developer return x GDV). Land lift = RLV(proposed) - RLV(baseline zoning). Break-even: root-find the rent or price per use that gives RLV = benchmark. Wire P08-M08 for P10/P50/P90. Every input shows its source id and date; unsourced inputs appear as editable team assumptions; a FALSE ASSUMPTION row stays visible.",
+   "visualization": [
+    "Waterfall from GDV to residual land value with each bar linked to its module and source",
+    "Break-even bars per use (required vs market-evidence band) with CBRE asking rent drawn as a vertical reference line",
+    "Traffic-light badges per metric that open the source clause (for example PPG para 019); profit contour shown later in P08-M07"
+   ],
+   "human_judgment": "Required return and risk premium; site land value; phasing and pre-sale strategy; whether a marginal result is acceptable for a deliberate policy breach or an ideas-competition scheme; how to read break-even rents against the market.",
+   "limits": "Mostly arithmetic on uncertain inputs: no sourced 2026 strata price, hotel cap rate or tower cap rate; asking rents overstate effective rents; the 15-20% return and land-benchmark logic come from UK guidance; no site land price or baseline entitlement; not a valuation opinion.",
+   "libraries": [
+    {
+     "name": "numpy-financial",
+     "license": "BSD-3-Clause",
+     "role": "NPV, IRR and payment functions for cash flows",
+     "url": "https://github.com/numpy/numpy-financial"
+    },
+    {
+     "name": "SciPy (optimize.brentq)",
+     "license": "BSD-3-Clause (project licence, not re-opened)",
+     "role": "Break-even root finding",
+     "url": "https://github.com/scipy/scipy"
+    },
+    {
+     "name": "Claude Code xlsx skill (Anthropic)",
+     "license": "Not verified; check the skills repository",
+     "role": "Export the pro forma to an editable workbook",
+     "url": "https://github.com/anthropics/skills"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M06",
+   "name": "Public-Use Cost Ledger",
+   "phase": "basic",
+   "category": "PUBL",
+   "design_question": "What does the public-facing, civic and cultural floor area cost the project in foregone revenue and extra build cost, and does the 9.0 FSR non-residential minimum still pencil?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "S-M: 3 person-days",
+   "depends_on": [
+    "P08-M01",
+    "P08-M03"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "urban_integration_10"
+   ],
+   "inputs": [
+    "Layer 0 tags: cultural/civic, public, amenity, retail; floor level of each public area",
+    "P08-M01 ValueByUse (rent of the displaced use)",
+    "P08-M03 cost per floor",
+    "VTC brief rule: minimum 9.0 FSR non-residential; public-facing uses should extend vertically"
+   ],
+   "outputs": [
+    "PublicUseCostLedger (area, foregone NOI, extra capex, annualised cost, value foregone)",
+    "NonResidentialFSRCheck (pass/fail under two readings)",
+    "InKindBenefitValue (to P08-M04 and P08-M07)"
+   ],
+   "parameters": [
+    {
+     "name": "Public floor area by level",
+     "unit": "m2",
+     "relationship": "Foregone NOI = area x net rent of the use it displaces. The rent premium for height is small (elasticity about 0.03 commercial, 0.07 residential in the cited US cities), suggesting that lifting public uses up the tower costs mainly extra build cost.",
+     "source_ids": [
+      "P08-S16",
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Non-residential FSR",
+     "unit": "FSR",
+     "relationship": "The brief requires at least 9.0 FSR non-residential (103,213 m2 on this site). A public floor that counts toward it helps compliance but earns less than office, widening the rent gap CBRE describes.",
+     "source_ids": [
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Lease terms for public uses",
+     "unit": "CAD/m2/yr",
+     "relationship": "Nominal or below-market rent raises foregone NOI toward the full market rent; no sourced Vancouver convention was found (editable team assumption).",
+     "source_ids": []
+    },
+    {
+     "name": "Valuation basis of in-kind amenities",
+     "unit": "category",
+     "relationship": "Valuing at replacement cost versus foregone value changes the credited amount; how the City values in-kind CAC items could not be verified (see unresolved_relationships).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Non-residential FSR achieved",
+     "unit": "FSR",
+     "good": ">= 9.0",
+     "bad": "< 9.0",
+     "status": "verified",
+     "basis": "VTC brief minimum 9.0 FSR non-residential, high-employment floor area (office, commercial). Two readings shown because the brief does not say whether civic/cultural floors count.",
+     "method": "Non-residential GFA / 11,468 m2 under reading (a) all non-residential and (b) office and commercial only.",
+     "source_ids": []
+    },
+    {
+     "name": "In-kind public benefit / CAC-equivalent (0.75 x land lift)",
+     "unit": "ratio",
+     "good": ">= 1.00",
+     "bad": "< 0.93 (70/75)",
+     "status": "verified",
+     "basis": "CAC policy target 75% of land lift (secondary quote) and 70-80% range (Lincoln Institute); depends on P08-M05 land lift.",
+     "method": "Value of public floors (foregone value or cost) / (0.75 x land lift).",
+     "source_ids": [
+      "P08-S28",
+      "P08-S29"
+     ]
+    },
+    {
+     "name": "Public-use cost as share of GDV",
+     "unit": "% of GDV",
+     "good": "No sourced threshold (displayed only)",
+     "bad": "No sourced threshold (displayed only)",
+     "status": "unverified",
+     "basis": "No source sets an acceptable share; plotted in P08-M07.",
+     "method": "Value foregone plus extra capex / GDV.",
+     "source_ids": []
+    }
+   ],
+   "method": "For every floor with cultural/civic, public or amenity tags: foregone NOI = area x net rent of the displaced use (user picks office, retail or residential equivalent) x (1 - vacancy). Extra capex = editable premium for lifts, structure and ceiling height plus fit-out. Capitalise foregone NOI at the P08-M05 cap rate to get value foregone. Check non-residential FSR = non-residential GFA / site area against 9.0 under two readings (all non-residential; office and commercial only). Compare the in-kind value with 0.75 x land lift from P08-M04. List non-monetised items (reconciliation, Indigenous partnership, cultural value) with no dollar figure.",
+   "visualization": [
+    "Vertical section with public floors coloured by use and labelled with annual foregone NOI and extra capex",
+    "Side stacked bar splitting cost into foregone revenue and capex; progress bar for 9.0 FSR with pass/fail badge linked to the brief clause",
+    "Non-monetised items drawn as hatched blocks with no dollar value"
+   ],
+   "human_judgment": "What counts as public benefit and how it is valued; reconciliation and cultural value must not be monetised by the tool; the distribution of benefits and partnership terms with the Musqueam, Squamish and Tsleil-Waututh Nations.",
+   "limits": "No sourced valuation rule for in-kind benefits; the brief is ambiguous on what counts toward the 9.0 minimum; foregone-revenue logic assumes the space would otherwise be let at market; indirect benefits (footfall, tenant attraction) are not modelled.",
+   "libraries": [
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Cost split and progress charts",
+     "url": "https://github.com/vega/vega-lite"
+    },
+    {
+     "name": "Plotly.js",
+     "license": "MIT",
+     "role": "Sectional heat strip",
+     "url": "https://github.com/plotly/plotly.js"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M07",
+   "name": "Density-Benefit-Feasibility Explorer",
+   "phase": "cross-cutting",
+   "category": "PROG",
+   "design_question": "Across height, density and public-benefit packages, where is the feasible zone, what does each added public benefit cost, and which options sit on the trade-off frontier?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "L: 6-8 person-days (scenario sweep, frontier, interactive views)",
+   "depends_on": [
+    "P08-M04",
+    "P08-M05",
+    "P08-M06",
+    "P08-M08"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "inputs": [
+    "P08-M05 outputs evaluated over a scenario grid or user forks",
+    "P08-M04 and P08-M06 public-benefit totals",
+    "P08-M08 distributions (optional)",
+    "Layer 0 variants (forked massing models)"
+   ],
+   "outputs": [
+    "FeasibilityGrid (profit on GDV, RLV minus benchmark, public benefit per cell)",
+    "ParetoSet (non-dominated variants)",
+    "ShadowPriceOfBenefit (RLV lost per m2 or CAD of public benefit)",
+    "ScenarioCards (for boards and the policy reflection)"
+   ],
+   "parameters": [
+    {
+     "name": "Total GFA / FSR (or storeys)",
+     "unit": "FSR; storeys",
+     "relationship": "More density raises GDV, but per-m2 cost rises with height (elasticity about 0.26 commercial, 0.56 residential), so profit per m2 can fall beyond some height; the feasible band is bounded rather than monotonic.",
+     "source_ids": [
+      "P08-S16"
+     ]
+    },
+    {
+     "name": "Public-benefit package size",
+     "unit": "% of GFA; CAD/m2",
+     "relationship": "Each CAD of CAC/ACC or each m2 of non-revenue floor lowers RLV one-for-one; the CAC policy ties the ask to land lift (75% target), so density that adds lift can fund more benefit.",
+     "source_ids": [
+      "P08-S28",
+      "P08-S23"
+     ]
+    },
+    {
+     "name": "Use mix (office vs residential vs hotel)",
+     "unit": "% of GFA",
+     "relationship": "Residential cost grows faster with height than commercial (0.56 vs 0.26), while office rents sit below the level CBRE says new development needs; the mix decides which constraint binds.",
+     "source_ids": [
+      "P08-S16",
+      "P08-S01"
+     ]
+    },
+    {
+     "name": "Market and cost scenario",
+     "unit": "low/base/high",
+     "relationship": "Shifting rents, costs or cap rates moves the feasible boundary; ranges come from P08-M08.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Feasible share of design space",
+     "unit": "% of grid cells",
+     "good": "No sourced threshold (displayed only)",
+     "bad": "No sourced threshold (displayed only)",
+     "status": "unverified",
+     "basis": "Cell counts as feasible when profit >= 15% and RLV >= benchmark (P08-M05 thresholds).",
+     "method": "Count feasible cells / all cells on the grid.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    },
+    {
+     "name": "Probability that the chosen scenario is feasible",
+     "unit": "probability",
+     "good": ">= 0.80",
+     "bad": "< 0.50",
+     "status": "team_assumption",
+     "basis": "Editable preset; no source sets a confidence level. Requires P08-M08.",
+     "method": "Share of Monte Carlo draws meeting both thresholds.",
+     "source_ids": []
+    },
+    {
+     "name": "Shadow price of public benefit",
+     "unit": "CAD RLV per m2",
+     "good": "No sourced threshold (displayed only)",
+     "bad": "No sourced threshold (displayed only)",
+     "status": "unverified",
+     "basis": "Finite difference along the frontier; informs, does not judge.",
+     "method": "Change in RLV / change in public floor area or contribution.",
+     "source_ids": []
+    }
+   ],
+   "method": "Define a grid over total GFA (or storeys) and public-benefit share (cash CAC/ACC plus in-kind floors). For each cell call P08-M01 to M06 as pure functions and record profit on GDV, RLV minus benchmark and total public benefit. Mark feasible cells (profit >= threshold and RLV >= benchmark), draw contours, and extract the non-dominated set over (density, public benefit, profit) with NSGA-II for user-forked variants. Shadow price = RLV change per extra unit of public benefit along the frontier. With P08-M08 attached, colour cells by probability of feasibility instead of point value. The 9.0 FSR non-residential minimum is drawn as a constraint.",
+   "visualization": [
+    "Heat map: x = total FSR (or storeys), y = public-benefit share, colour = profit on GDV (diverging, white at 15%), contours at profit 15% and RLV = benchmark; cells below 9.0 FSR non-residential hatched as not allowed",
+    "Pareto scatter and parallel-coordinates plot of forked variants, brushed to highlight the frontier",
+    "Ternary plot of office/residential/hotel share coloured by RLV; line chart of shadow price along the frontier"
+   ],
+   "human_judgment": "Which frontier point the team defends; weighting of the four jury criteria; whether a marginally infeasible but culturally strong scheme is acceptable in an ideas competition.",
+   "limits": "Only as good as inputs from P08-M01 to M05; no empirical Vancouver evidence on how public benefit passes through to land price; a low-dimensional grid can hide interactions; not a valuation opinion.",
+   "libraries": [
+    {
+     "name": "pymoo",
+     "license": "Apache-2.0",
+     "role": "NSGA-II multi-objective frontier",
+     "url": "https://github.com/anyoptimization/pymoo"
+    },
+    {
+     "name": "Plotly.js",
+     "license": "MIT",
+     "role": "Heat map with contours, ternary and parallel coordinates",
+     "url": "https://github.com/plotly/plotly.js"
+    },
+    {
+     "name": "Vega-Lite",
+     "license": "BSD-3-Clause",
+     "role": "Scenario cards and small multiples",
+     "url": "https://github.com/vega/vega-lite"
+    }
+   ]
+  },
+  {
+   "module_id": "P08-M08",
+   "name": "Uncertainty and Sensitivity Engine",
+   "phase": "cross-cutting",
+   "category": "DATA",
+   "design_question": "How uncertain is each economic result, which inputs drive it, and what range should the boards show instead of a single number?",
+   "nature": "objective",
+   "priority": "v1",
+   "effort": "M: 4-5 person-days",
+   "depends_on": [
+    "P08-M01",
+    "P08-M03",
+    "P08-M05"
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ],
+   "inputs": [
+    "Parameter ranges from any module (low, base, high, distribution, source_id)",
+    "CostEstimateClass from P08-M03",
+    "EvidenceFreshness from P08-M01"
+   ],
+   "outputs": [
+    "P10/P50/P90 for RLV, profit on GDV, yield on cost",
+    "Probability of meeting each threshold",
+    "SobolIndices (ranked drivers) for the tornado chart"
+   ],
+   "parameters": [
+    {
+     "name": "Estimate class and cost range",
+     "unit": "% of base",
+     "relationship": "Cost spread narrows with design maturity: Class 5 -20/-30% to +30/+50%; Class 4 -10/-20% to +20/+30%; Class 3 -5/-15% to +10/+20% (AACE 56R-08).",
+     "source_ids": [
+      "P08-S21"
+     ]
+    },
+    {
+     "name": "Market-definition spread",
+     "unit": "% points",
+     "relationship": "Brokers report different vacancy for overlapping markets: CBRE downtown 12.2%, Colliers Vancouver 9.5%, Lee/CoStar Metro 9.9% (Q2 2026). Source choice is treated as uncertainty, not noise.",
+     "source_ids": [
+      "P08-S01",
+      "P08-S04",
+      "P08-S02"
+     ]
+    },
+    {
+     "name": "Distribution shape and draws",
+     "unit": "triangular (default); N draws",
+     "relationship": "Output range widens with input ranges; JCGM 101 specifies propagating input distributions through the model by Monte Carlo. Triangular defaults are an editable team assumption.",
+     "source_ids": [
+      "P08-S22"
+     ]
+    },
+    {
+     "name": "Input correlation",
+     "unit": "correlation coefficient",
+     "relationship": "Correlated rent and cap-rate moves widen or narrow the output range; no sourced correlation exists (default none, flagged).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Cost-range width vs AACE class",
+     "unit": "% of base",
+     "good": "Within Class 4 (-10/-20% to +20/+30%)",
+     "bad": "Wider than Class 5 (-20/-30% to +30/+50%)",
+     "status": "verified",
+     "basis": "AACE RP 56R-08 accuracy ranges for building and general construction.",
+     "method": "Compare the applied range with the matrix for the declared design maturity.",
+     "source_ids": [
+      "P08-S21"
+     ]
+    },
+    {
+     "name": "Probability profit on GDV >= 15%",
+     "unit": "probability",
+     "good": ">= 0.80",
+     "bad": "< 0.50",
+     "status": "team_assumption",
+     "basis": "Editable preset; the 15% line comes from UK PPG para 019 (transferable).",
+     "method": "Share of draws with profit >= 15%.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    },
+    {
+     "name": "Probability RLV >= land benchmark",
+     "unit": "probability",
+     "good": ">= 0.80",
+     "bad": "< 0.50",
+     "status": "team_assumption",
+     "basis": "Editable preset; benchmark logic from UK PPG paras 014-017.",
+     "method": "Share of draws with RLV >= benchmark.",
+     "source_ids": [
+      "P08-S20"
+     ]
+    }
+   ],
+   "method": "Every module parameter carries (low, base, high, distribution, source_id). Defaults are triangular distributions seeded from: the AACE 56R-08 class range for cost; broker spread and evidence age for rents and vacancy; editable team ranges elsewhere. Draw N Sobol quasi-random samples (scipy.stats.qmc), propagate through P08-M01 to M05 following the Monte Carlo procedure in JCGM 101, and report P10/P50/P90 plus the probability of meeting each threshold. Compute Sobol total-order indices with SALib to rank drivers. Correlations default to none (flagged) and the user may link rent and cap rate. Results are cached per scenario fork so P08-M07 can colour its grid.",
+   "visualization": [
+    "Tornado chart of ranked Sobol total-order indices; each bar labelled sourced, team assumption or FALSE ASSUMPTION by colour",
+    "Violin or fan chart of RLV with P10/P50/P90 whiskers and the benchmark as a reference line",
+    "Probability-of-feasibility gauge; range bars for market inputs drawn from the broker spread"
+   ],
+   "human_judgment": "Choosing ranges and correlations; deciding which uncertainty is reducible by design; presenting ranges rather than point estimates on the boards.",
+   "limits": "Most distributions are team assumptions because few sources publish ranges; correlations are unmodelled; ranges reflect parameter uncertainty, not model-structure error; broker spreads reflect definitions as much as true uncertainty.",
+   "libraries": [
+    {
+     "name": "SALib",
+     "license": "MIT",
+     "role": "Sobol, Morris and other sensitivity indices",
+     "url": "https://github.com/SALib/SALib"
+    },
+    {
+     "name": "SciPy (scipy.stats.qmc)",
+     "license": "BSD-3-Clause (project licence, not re-opened)",
+     "role": "Sobol quasi-random sampling and triangular distributions",
+     "url": "https://github.com/scipy/scipy"
+    },
+    {
+     "name": "Plotly.js",
+     "license": "MIT",
+     "role": "Tornado, violin and gauge charts",
+     "url": "https://github.com/plotly/plotly.js"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P08-S01",
+   "title": "Vancouver Office Figures Q2 2026",
+   "url": "https://mktgdocs.cbre.com/2299/ea168423-f094-4e9c-af5a-587d64df5650-1568985709/Vancouver_Office_Figures_Q2_20.pdf",
+   "publisher": "CBRE Research",
+   "year": "2026",
+   "type": "broker market report (PDF)",
+   "opened": true,
+   "extract": "Downtown Q2 2026 net asking rent / T&O / vacancy: AAA $48.02 / $26.13 / 7.6%; A $39.92 / $25.95 / 9.1%; B $33.02 / $22.21 / 20.2%; C $24.03 / $19.50 / 14.3%; all classes $34.93 / $23.10 / 12.2%. Downtown net absorption +54,688 sf Q2, +103,062 sf YTD; AAA 8,726,910 sf, A 7,844,662 sf inventory. Metro headline $31.20 blends net and gross. Economic rents for new development are significantly higher than market; no new downtown supply for at least four years from construction start; five-year average quarterly leasing 517,913 sf."
+  },
+  {
+   "id": "P08-S02",
+   "title": "2026 Q2 Vancouver BC Office",
+   "url": "https://www.lee-associates.com/wp-content/uploads/2026/07/2026-Q2-Vancouver-BC-Office.pdf",
+   "publisher": "Lee & Associates Research (CoStar data)",
+   "year": "2026",
+   "type": "broker market report (PDF)",
+   "opened": true,
+   "extract": "Metro Vancouver Q2 2026: vacancy 9.9%, average NNN asking $46.81/sf, cap rate 4.72%, under construction 1,060,392 sf, net absorption -261,639 sf. Table layout was jumbled in text extraction; values cross-checked against the Q1 column pattern."
+  },
+  {
+   "id": "P08-S03",
+   "title": "Market Report Q2 2026: Vancouver Office top highlights",
+   "url": "https://www.boma.bc.ca/posts/market-report-q2-2026-vancouver-office-top-highlights",
+   "publisher": "BOMA BC",
+   "year": "2026",
+   "type": "industry association summary",
+   "opened": true,
+   "extract": "Downtown vacancy about 12%, Class AAA 8%, Class C 15%; asking rents modestly lower quarter on quarter with no dollar figures; landlords offering high incentive packages to preserve headline rents (attributed to Cushman & Wakefield)."
+  },
+  {
+   "id": "P08-S04",
+   "title": "Q2 2026 National Market Snapshot (Colliers)",
+   "url": "https://renx.ca/q2-2026-national-market-snapshot-colliers",
+   "publisher": "Real Estate News Exchange",
+   "year": "2026",
+   "type": "news summary of broker report",
+   "opened": false,
+   "extract": "Search summary only: Colliers puts Vancouver office vacancy at 9.5% and sublet share of vacancy at 17.2% in Q2 2026."
+  },
+  {
+   "id": "P08-S05",
+   "title": "Rental Market Reports, Major Centres: Vancouver CMA 2025",
+   "url": "https://www.cmhc-schl.gc.ca/professionals/housing-markets-data-and-research/market-reports/rental-market-reports-major-centres",
+   "publisher": "CMHC",
+   "year": "2025",
+   "type": "government statistics",
+   "opened": true,
+   "extract": "Vancouver CMA 2025: purpose-built vacancy 3.7%, two-bedroom average $2,363 (+2.2%); condominium apartment vacancy 1.5%, two-bedroom $2,900; average two-bedroom turnover rent $2,325 (2022), $2,601 (2023), $2,883 (2024), $2,696 (2025)."
+  },
+  {
+   "id": "P08-S06",
+   "title": "Greater Vancouver real estate statistics, September 2026",
+   "url": "https://www.vancouverhomesearch.com/blog/greater-vancouver-real-estate-statistics-september-2026/",
+   "publisher": "Vancouver Home Search (brokerage blog quoting GVR data)",
+   "year": "2026",
+   "type": "secondary blog",
+   "opened": true,
+   "extract": "Metro apartment benchmark $682,500 (-6.2% year on year), composite $1,075,900 (-5.5%), apartment sales-to-active-listings 11.4%. No Vancouver West or Downtown apartment benchmark on the page."
+  },
+  {
+   "id": "P08-S07",
+   "title": "Vancouver real estate prices: downtown condo guide, fall 2026",
+   "url": "https://www.vancouverhomesearch.com/blog/vancouver-real-estate-prices-downtown-condo-guide-fall-2026/",
+   "publisher": "Vancouver Home Search (brokerage blog)",
+   "year": "2026",
+   "type": "secondary marketing blog",
+   "opened": true,
+   "extract": "Cites a downtown condo benchmark of about $795,000 from REBGV (Sept 2026) and $1,100-1,350/sf for a quality Yaletown one-bedroom resale; no new-build price per sf. Low reliability."
+  },
+  {
+   "id": "P08-S08",
+   "title": "Canada hotels post record-setting performance in 2025",
+   "url": "https://www.hotel-online.com/news/canada-hotels-post-record-setting-performance-in-2025",
+   "publisher": "CoStar (via Hotel Online)",
+   "year": "2026",
+   "type": "hotel performance release",
+   "opened": true,
+   "extract": "Vancouver 2025: occupancy 78.4%, ADR C$284.44 (-0.1%), RevPAR C$223.05; market definition not stated. Canada: 66.1%, C$216.10, C$142.89."
+  },
+  {
+   "id": "P08-S09",
+   "title": "Canada hotels report third straight month of performance gains",
+   "url": "https://www.hotel-online.com/news/canada-hotels-report-third-straight-month-of-performance-gains",
+   "publisher": "CoStar (via Hotel Online)",
+   "year": "2026",
+   "type": "hotel performance release",
+   "opened": true,
+   "extract": "Vancouver March 2026: occupancy 77.1% (+7.5%), ADR C$231.91 (+7.4%), RevPAR C$178.84 (+15.5%)."
+  },
+  {
+   "id": "P08-S10",
+   "title": "Canadian Lodging Industry Overview 2025-2026",
+   "url": "https://content.cushmanwakefield.com/api/public/content/2ac0837f45c54db48a4808db8c00c534",
+   "publisher": "Cushman & Wakefield Valuation & Advisory",
+   "year": "2026",
+   "type": "broker market report (PDF)",
+   "opened": true,
+   "extract": "2025 RevPAR led by Vancouver ($223, +0.2%). Vancouver holds 18% of national pipeline rooms (Dec 2025). Shangri-La Vancouver (119 rooms, 15 storeys of a 62-storey mixed-use tower) sold June 2025 at about $1.0M per room (share sale, price per Altus Data Studio). Cap-rate charts were not legible in text extraction."
+  },
+  {
+   "id": "P08-S11",
+   "title": "Vancouver retail CRE sector is roaring back (Colliers, Retail is roaring back)",
+   "url": "https://renx.ca/the-vancouver-retail-cre-sector-is-roaring-back",
+   "publisher": "Real Estate News Exchange (citing Colliers)",
+   "year": "2022",
+   "type": "news summary of broker report",
+   "opened": true,
+   "extract": "Robson 1000 block median net rent estimated $180-240/sf (vacancy 2.2%); 1100 block $75-125/sf (vacancy 9.0%). Published 19 Jul 2022; stale."
+  },
+  {
+   "id": "P08-S12",
+   "title": "October 2026 Metro Vancouver rent report",
+   "url": "https://liv.rent/blog/?p=69601",
+   "publisher": "liv.rent",
+   "year": "2026",
+   "type": "listing-aggregator report",
+   "opened": true,
+   "extract": "Vancouver asking rents Oct 2026: unfurnished one-bedroom $2,329 (-2.6% y/y), two-bedroom $3,125 (+5.2%); chart alt text shows $3.50/sf. Listing-based, not a survey; low reliability."
+  },
+  {
+   "id": "P08-S13",
+   "title": "Construction costs in Vancouver and Toronto (Altus Canadian Cost Guide 2025)",
+   "url": "https://storeys.com/construction-costs-vancouver-toronto-altus/",
+   "publisher": "STOREYS (citing Altus Group)",
+   "year": "2025",
+   "type": "news summary of cost guide",
+   "opened": true,
+   "extract": "2025 edition: Vancouver concrete high-rise (13-39 storeys) $360-455/sf; six-storey woodframe $275-365/sf. Hard costs only; excludes site servicing, consultants and development charges. No 40+ storey, office, hotel, retail or parking figures."
+  },
+  {
+   "id": "P08-S14",
+   "title": "Caution in 2026, optimistic for 2027: Cost Guide insights",
+   "url": "https://www.altusgroup.com/fr/insights/caution-in-2026-optimistic-for-2027-cost-guide-insights/",
+   "publisher": "Altus Group",
+   "year": "2026",
+   "type": "cost-consultant commentary",
+   "opened": true,
+   "extract": "Vancouver total construction costs fell in 2025, driven by a slowdown in reinforced-concrete condo towers; public projects still rising; U.S.-origin steel and aluminum pressure on mechanical, electrical and envelope; development-charge or code changes could swing viability. No per-sf figures."
+  },
+  {
+   "id": "P08-S15",
+   "title": "Canadian Cost Guide 2026 (download page)",
+   "url": "https://www.altusgroup.com/featured-insights/canadian-cost-guide/",
+   "publisher": "Altus Group",
+   "year": "2026",
+   "type": "cost guide landing page",
+   "opened": true,
+   "extract": "Guide reports private-sector price per sq ft by market and asset class but is behind a registration form; Vancouver tables not retrieved."
+  },
+  {
+   "id": "P08-S16",
+   "title": "The economics of skyscrapers: a synthesis (working-paper version of J. Urban Economics 129, 2022)",
+   "url": "https://personal.lse.ac.uk/ahlfeldg/WP/GA_JB_-_Skyskrapers.pdf",
+   "publisher": "Ahlfeldt and Barr, LSE",
+   "year": "2022",
+   "type": "peer-reviewed economics paper (working-paper PDF)",
+   "opened": true,
+   "extract": "Height elasticity of per-unit construction cost: about 0.1 up to nine floors, about 0.25-0.26 for tall commercial and 0.56 for tall residential (Emporis global sample); rule of thumb +2% cost per floor; elasticity larger at extreme heights. Height elasticity of rent about 0.07 residential and 0.03 commercial (New York)."
+  },
+  {
+   "id": "P08-S17",
+   "title": "Space efficiency in tapered super-tall towers (Buildings 13(11), 2819)",
+   "url": "https://researchportal.tuni.fi/en/publications/space-ef%EF%AC%81ciency-in-tapered-super-tall-towers/",
+   "publisher": "Ilgin, Tampere University",
+   "year": "2023",
+   "type": "peer-reviewed journal paper (abstract)",
+   "opened": true,
+   "extract": "40 tapered supertall towers: mean space efficiency about 72% (55-84%); core area about 26% of GFA (11-38%)."
+  },
+  {
+   "id": "P08-S18",
+   "title": "Space efficiency and context-aware vertical urbanism (J. Sustainability Research 7(3), e250058)",
+   "url": "https://researchportal.tuni.fi/en/publications/toward-context-aware-vertical-urbanism-a-multidimensional-synthes/",
+   "publisher": "Ilgin, Tampere University",
+   "year": "2025",
+   "type": "peer-reviewed journal paper (abstract)",
+   "opened": true,
+   "extract": "166 towers: height correlates negatively with space efficiency; hotel towers highest (mean 81.2%); rigid-frame systems reach about 85% net-to-gross through compact cores."
+  },
+  {
+   "id": "P08-S19",
+   "title": "Analyzing space efficiency in Japanese tall buildings (JAABE 25(5))",
+   "url": "https://ada.atilim.edu.tr/entities/publication/dedd7811-5f1c-486a-83fb-15d8c7abc7ad",
+   "publisher": "Ilgin and Aslantamer",
+   "year": "2026",
+   "type": "peer-reviewed journal paper (abstract)",
+   "opened": true,
+   "extract": "40 Japanese tall buildings: net-to-gross 64-85% (mean 75%); core-to-GFA 13-34% (mean 23%)."
+  },
+  {
+   "id": "P08-S20",
+   "title": "Planning Practice Guidance: Viability",
+   "url": "https://www.gov.uk/guidance/viability",
+   "publisher": "UK Ministry of Housing, Communities and Local Government",
+   "year": "2019",
+   "type": "government guidance (England; page updated Dec 2025)",
+   "opened": true,
+   "extract": "Para 019: 15-20% of GDV may be a suitable developer return for plan making. Paras 014-017: benchmark land value = existing use value plus landowner premium. Transferable convention, not Vancouver policy."
+  },
+  {
+   "id": "P08-S21",
+   "title": "RP 56R-08 Cost Estimate Classification System: building and general construction industries",
+   "url": "https://web.aacei.org/docs/default-source/toc/toc_56r-08.pdf",
+   "publisher": "AACE International",
+   "year": "2020",
+   "type": "recommended practice (standard)",
+   "opened": true,
+   "extract": "Class 5 (0-2% definition): L -20/-30%, H +30/+50%. Class 4 (schematic design): L -10/-20%, H +20/+30%. Class 3 (design development): L -5/-15%, H +10/+20%. Revised 7 Aug 2020."
+  },
+  {
+   "id": "P08-S22",
+   "title": "JCGM 101:2008 Supplement 1 to the GUM: propagation of distributions using a Monte Carlo method",
+   "url": "https://www.bipm.org/documents/20126/2071204/JCGM_101_2008_E.pdf",
+   "publisher": "JCGM (BIPM, ISO, IEC and others)",
+   "year": "2008",
+   "type": "international guidance document",
+   "opened": true,
+   "extract": "Specifies propagating input probability distributions through a model by Monte Carlo to obtain the output distribution."
+  },
+  {
+   "id": "P08-S23",
+   "title": "City plans Vancouver-wide amenity cost charge on development to help pay for growth",
+   "url": "https://dailyhive.com/vancouver/vancouver-amenity-cost-charge-dcls-introduction-changes",
+   "publisher": "Daily Hive",
+   "year": "2026",
+   "type": "news article (pre-vote, 9 Jul 2026)",
+   "opened": true,
+   "extract": "ACC from 30 Sep 2026: commercial/other $3.00/sf; apartments above 1.5 FSR $10.00/sf at full rate (50% in first year); 1.2-1.5 FSR residential $5.00; industrial $1.20; mixed-employment $2.25; +3% each 30 Sep 2027-2029; CAC targets removed for rezonings submitted after 30 Sep 2026 but CACs remain for larger complex projects; public-art policy ends; DCL 20% reduction to be kept; deferral option for DCL over $500,000."
+  },
+  {
+   "id": "P08-S24",
+   "title": "Bulletin: Amenity Cost Charges",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-amenity-cost-charges.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "government bulletin",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403). Search summary says Council approved the Financing Growth update on 21 July 2026 and the ACC by-law applies to applications submitted after 30 Sep 2026; Table 1 holds the rates."
+  },
+  {
+   "id": "P08-S25",
+   "title": "Council report R4: 2026 Financing Growth update (14 Jul 2026)",
+   "url": "https://council.vancouver.ca/20260714/documents/r4.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2026",
+   "type": "council report",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403). Search summaries say it proposes ACC, keeps the 20% DCL reduction, and splits ACC revenue across community/recreation, arts/culture/social, public space and libraries."
+  },
+  {
+   "id": "P08-S26",
+   "title": "Vancouver Council votes on 2026 Financing Growth update",
+   "url": "https://havan.ca/vancouver-council-votes-on-2026-financing-growth-update/",
+   "publisher": "HAVAN",
+   "year": "2026",
+   "type": "industry association summary",
+   "opened": true,
+   "extract": "ACC is the Bill 46 standardised tool replacing negotiated CACs and density bonusing; rental developments exempt; top rate phased at 50% in year one; 20% DCL reduction continues; in-stream applications get up to five years of protection; vote result not reported."
+  },
+  {
+   "id": "P08-S27",
+   "title": "Vancouver City Council approves measures to support development viability",
+   "url": "https://www.mccarthy.ca/en/insights/blogs/lay-land/vancouver-city-council-approves-measures-to-support-development-viability",
+   "publisher": "McCarthy Tetrault",
+   "year": "2026",
+   "type": "law-firm bulletin",
+   "opened": true,
+   "extract": "Council 10 Dec 2025: 20% automatic DCL discount until the Q2 2026 Financing Growth update; DCL deferral for levies over $500,000 from 1 Jan 2026 (25% at building permit); rental DCL waiver programme; TDM requirements removed; CBA policy made optional."
+  },
+  {
+   "id": "P08-S28",
+   "title": "Does the city of Vancouver really aim to take 70-80% of land lift? (quotes the CAC Policy for Rezonings)",
+   "url": "https://morehousing.substack.com/p/cac-policy",
+   "publisher": "More Housing (Substack)",
+   "year": "2025",
+   "type": "secondary commentary quoting policy",
+   "opened": true,
+   "extract": "Quotes the Community Amenity Contributions Policy for Rezonings (approved Jan 1999, last amended Oct 2025): negotiated CACs under policy 1.2(c) target a minimum of 75% of the increase in land value. Primary policy text not opened."
+  },
+  {
+   "id": "P08-S29",
+   "title": "Negotiated value: Vancouver community amenity contributions",
+   "url": "https://lincolninst.edu/case-studies/negotiated-value",
+   "publisher": "Lincoln Institute of Land Policy",
+   "year": "n.d.",
+   "type": "case study",
+   "opened": true,
+   "extract": "The City recovers about 70-80% of the land lift from rezoning on the public's behalf, through fixed-rate or negotiated CACs; gives no formula."
+  },
+  {
+   "id": "P08-S30",
+   "title": "Liquid waste development cost charges",
+   "url": "https://metrovancouver.org/services/liquid-waste/liquid-waste-development-cost-charges",
+   "publisher": "Metro Vancouver",
+   "year": "2026",
+   "type": "regional government rate table",
+   "opened": true,
+   "extract": "Vancouver Sewerage Area: apartment per unit $6,772 (to 23 Jul 2026), $6,298 (from 24 Jul 2026), $6,930 (1 Jan 2027); non-residential per sf $5.70, $5.30, $5.83 respectively."
+  },
+  {
+   "id": "P08-S31",
+   "title": "Policy: Higher Buildings for Rezonings (1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "city policy named in the VTC brief",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403). Named in the VTC brief; the review page says it was created in 1997 and last comprehensively reviewed in 2011."
+  },
+  {
+   "id": "P08-S32",
+   "title": "Vancouver reviews opportunities for taller buildings",
+   "url": "https://www.reminetwork.com/?p=46759",
+   "publisher": "REMI Network",
+   "year": "2026",
+   "type": "trade news",
+   "opened": true,
+   "extract": "Higher Buildings Policy created 1997, last comprehensive review 2011; survey open to 31 May 2026; first-phase engagement results early 2027, then draft directions and further public input before Council; review tests whether more height can bring housing, job space and public amenities."
+  },
+  {
+   "id": "P08-S33",
+   "title": "Higher Buildings Policy Review",
+   "url": "https://vancouver.ca/home-property-development/higher-buildings-policy-review.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city project page",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403). Search summary: Phase I engagement ran April-May 2026; protected view cones from July 2024 still guide where taller buildings may go."
+  },
+  {
+   "id": "P08-S34",
+   "title": "Bulletin: Development Cost Levies",
+   "url": "https://guidelines.vancouver.ca/bulletins/bulletin-development-cost-levies.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "government bulletin",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403). Holds the City-wide DCL rate table; search summary says last amended June 2024 and a deferred 5.7% inflation adjustment was folded into 2025."
+  },
+  {
+   "id": "P08-S35",
+   "title": "Community Amenity Contributions: Coriolis Consulting final report (April 2019)",
+   "url": "https://vancouver.ca/files/cov/CAC-coriolis-consulting-final-report-april-2019.pdf",
+   "publisher": "Coriolis Consulting for the City of Vancouver",
+   "year": "2019",
+   "type": "consultant report",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403). Search summary: updates a 2014 report that found no evidence that CACs harmed the housing market. Feasibility method and return assumptions not seen."
+  },
+  {
+   "id": "P08-S36",
+   "title": "Canada vs US construction costs 2026",
+   "url": "https://buildermuse.com/economy/canada-vs-us-construction-costs-2026/",
+   "publisher": "Buildermuse",
+   "year": "2026",
+   "type": "secondary blog",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 404). Search summary attributed C$470/sf for Vancouver Class A office to Altus without showing the table; not used."
+  },
+  {
+   "id": "P08-S37",
+   "title": "Higher Buildings Policy Review: engagement document",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2026",
+   "type": "city engagement PDF named in the VTC brief",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403)."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Metro Vancouver average asking rent of $31.20/sf in CBRE's Q2 2026 headline is the downtown office rent.",
+   "correction": "Use class-matched downtown net asking rents: AAA $48.02, A $39.92, B $33.02, C $24.03 (all downtown classes $34.93).",
+   "detail": "CBRE defines the headline as a metro-wide average that blends net and gross lease rates; mixing bases misstates value by the T&O amount ($19.50-$26.13/sf downtown).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Legacy CAC targets (fixed per-sf targets for rezonings) apply to a new Vancouver rezoning.",
+   "correction": "For rezoning applications submitted after 30 Sep 2026, CAC targets are removed and the city-wide ACC applies (commercial $3.00/sf; apartments above 1.5 FSR $10.00/sf at 50% in year one); negotiated CACs remain for larger, complex projects.",
+   "detail": "From a 9 Jul 2026 press report and a HAVAN summary; the City bulletin and Council report returned HTTP 403, and the approval date is reported as 21 Jul by the City against a scheduled 14 Jul meeting.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Altus 2025 Vancouver concrete high-rise band ($360-455/sf) can be applied unchanged to 244-305 m towers.",
+   "correction": "The band covers 13-39 storeys and hard cost only (no site servicing, consultants or development charges); apply a height-premium law and flag everything above 39 storeys as extrapolated.",
+   "detail": "244-305 m is roughly 55-75 storeys at 4.0-4.4 m per floor (arithmetic); the 2026 Altus tables for Vancouver were not retrieved.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Final adopted ACC rates, phase-in and credit rules equal the July 2026 staff proposal.",
+   "detail": "Rates come from pre-vote press summaries; the City's Table 1 was not opened. Check whether the ACC is credited against a negotiated CAC.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The CAC policy still targets a minimum of 75% of land lift after the July 2026 update.",
+   "detail": "The 75% figure is quoted by a secondary blog from policy 1.2(c) as amended October 2025; the primary policy was not opened and Lincoln Institute reports 70-80%.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A price per sf for new downtown condominiums in 2026.",
+   "detail": "No opened source gives one. Only a marketing blog ($1,100-1,350/sf Yaletown resale one-bedroom) and an unopened page ($1,541/sf new low-rise) exist. The tool uses a user-entered price or a break-even instead of a default.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Current downtown retail net rents.",
+   "detail": "The latest opened evidence is Colliers via RENX from July 2022 (Robson 1000 block $180-240/sf; 1100 block $75-125/sf). Later figures appear only in unopened search summaries.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "CoStar's 2025 Vancouver hotel figures (78.4%, C$284.44 ADR, C$223.05 RevPAR) represent a downtown luxury tower hotel.",
+   "detail": "CoStar does not define the Vancouver market in the release; annual averages include the summer peak. The Shangri-La Vancouver sale near C$1.0M per room (June 2025) was a share sale with an allocated price reported by Altus Data Studio.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A 4.72% cap rate is suitable for underwriting a downtown tower or its hotel component.",
+   "detail": "4.72% is CoStar's Metro-wide office figure (Lee & Associates, Q2 2026), not transaction evidence. Cushman & Wakefield's Q4 2025 hotel cap-rate charts could not be read reliably.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Ahlfeldt and Barr's cost elasticities (about 0.26 commercial, 0.56 residential) hold for Vancouver towers.",
+   "detail": "Read from the LSE working-paper PDF (introduction says about 0.25, section 4.1 says 0.26); the published J. Urban Economics version may differ; the sample is global (Emporis) and ends below supertall heights.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Altus 2026 Vancouver unit costs, including the C$470/sf Class A office figure attributed to Altus by a secondary blog.",
+   "detail": "The 2026 guide is gated by a registration form and the blog returned HTTP 404; neither is used.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "A developer return of 15% of GDV is the minimum acceptable.",
+   "detail": "Taken from UK PPG para 019 (15-20% of GDV for plan making), which is a transferable convention. Vancouver feasibility practice (Coriolis reports for the City) was not opened. Editable.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Preset thresholds: evidence age 6/12 months; office rent ratio 1.00/1.15; absorption load 5%/10% of AAA+A inventory; 2/4 years to lease; development spread 150/100 bp; probability of feasibility 0.80/0.50; 26-storey cost anchor; 80% net-to-gross for the worked example.",
+   "detail": "None of these has a source; all are editable and displayed as team assumptions.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether cultural, civic and public floors count toward the brief's 9.0 FSR non-residential minimum.",
+   "detail": "The brief says 'non-residential, high-employment floor area (office, commercial)'. P08-M06 shows both readings until the organisers clarify.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Current City of Vancouver DCL rates, TransLink DCC, and Metro Vancouver water and parkland DCC rates.",
+   "detail": "City pages returned HTTP 403; only the Metro Vancouver liquid-waste DCC table was retrieved.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The 1997 Higher Buildings Policy is the policy that will govern the competition scheme.",
+   "detail": "The policy review is under way: first-phase engagement results are due early 2027, with draft directions and Council consideration later. The brief itself calls its documents non-legal and says the jury may reward justified breaches. Do not assume new bonus-density rules.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Net-to-gross efficiency versus floor-plate area and depth for 244-305 m mixed-use towers: only a qualitative negative correlation with height exists (Ilgin 2025, 166 towers); no sourced slope or plate-size curve.",
+  "Core-to-GFA versus lift count, sky lobbies and refuge floors under the Vancouver Building By-law: needs the SYST packet; no sourced curve.",
+  "Unit hard cost versus height above 39 storeys for Vancouver mixed-use towers: Altus 2026 tables are gated; the only quantified link is the global elasticity (Ahlfeldt and Barr), which the paper says is larger at extreme heights.",
+  "Effective rent versus asking rent in downtown Vancouver: BOMA BC reports high tenant incentives (attributed to Cushman & Wakefield) but no magnitude.",
+  "Rent or price premium by floor height in Vancouver: the elasticities found (about 0.03 commercial, 0.07 residential) are from New York and another US city, not Vancouver.",
+  "Pass-through of CAC/ACC and public floor area to land price and housing supply: Coriolis 2014/2019 conclusions were not retrieved.",
+  "Soft-cost %, contingency %, financing carry and construction duration versus height for Vancouver tall towers.",
+  "How the City values in-kind amenities (cultural/civic floor area) against the CAC target.",
+  "Hotel value per key versus RevPAR for luxury tower hotels in Vancouver, and the Vancouver full-service hotel cap rate.",
+  "Difference between Zoning and Development By-law floor area (used for FSR) and rentable area under a BOMA-type measurement standard (BOMA page not opened).",
+  "Baseline (as-of-right) entitlement and land value for the hypothetical VTC site, needed to compute land lift."
+ ],
+ "change_log": [
+  "R1 (21 Oct 2026): Defined 8 modules (P08-M01 to M08) covering value by use, floor-plate efficiency, construction cost and tall-building premium, development charges/ACC/CAC, pro forma and residual land value, public-use cost, trade-off explorer and uncertainty engine.",
+  "Extracted the CBRE Q2 2026 downtown class table from the PDF (net asking rent, T&O, vacancy by class); a search summary had quoted only the $31.20 metro blended figure, which is now logged as a FALSE ASSUMPTION if used as downtown rent.",
+  "Found that Vancouver's city-wide ACC takes effect 30 Sep 2026 and removes CAC targets for new rezonings; legacy-CAC use is logged as a FALSE ASSUMPTION and the ACC rates are marked unverified against the City bulletin (HTTP 403).",
+  "Read cost elasticities (about 0.26 commercial, 0.56 residential), the 2%-per-floor rule of thumb and AACE 56R-08 estimate-class ranges from the primary documents; the Altus 2026 Vancouver tables could not be obtained.",
+  "The web search budget ran out partway through, so searches for other cost consultants (Cumming, RLB, Turner & Townsend), cap-rate surveys, and current retail rents were not done; these gaps appear in flags and unresolved_relationships.",
+  "Library licences verified on repository pages: SALib MIT, numpy-financial BSD-3, IfcOpenShell LGPL-3.0/GPL-3.0, Vega-Lite BSD-3, plotly.js MIT, pymoo Apache-2.0, trimesh MIT, rhino3dm MIT, Shapely BSD-3 (GEOS LGPL-2.1), Speckle Server Apache-2.0; SciPy and the Anthropic xlsx skill were not re-opened."
+ ],
+ "notes": "Status as of 21 Oct 2026. Worked arithmetic from the VTC brief (not a source): site 79.2 x 144.8 m = 11,468 m2; 9.0 FSR non-residential minimum = 103,213 m2 GFA (about 1.11 M sf); at an assumed 80% net-to-gross that is about 888,800 sf of net area, or 5.4% of CBRE's downtown Class AAA+A inventory (16.57 M sf) and about 4.3 years of H1-2026 net absorption annualised. CBRE states that economic rents for new downtown office are significantly higher than current market rents and that no new downtown supply is expected for at least four years from construction start, so the office component is the binding feasibility question and P08-M05 reports a break-even rent rather than assuming one. Premium illustration: 26 to 60 storeys gives x1.24 at the commercial elasticity and x1.60 at the residential elasticity. Many City of Vancouver pages returned HTTP 403 (a bot challenge); no workaround was attempted, so City figures rest on press and association summaries and are labelled as such. The UK PPG thresholds are used only as a transferable convention and are editable. No finance-specific MCP server was identified; the modules use open libraries only."
+}

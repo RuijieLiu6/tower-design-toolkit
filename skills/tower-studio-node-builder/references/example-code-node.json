@@ -1,0 +1,60 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.example.core-to-facade-code",
+  "version": "0.1.0",
+  "licence": "MIT",
+  "name": "Core to facade depth (code example)",
+  "author": {
+    "name": "Tower Design Toolkit team (worked example)"
+  },
+  "category": "SPAC",
+  "stage": "schematic",
+  "question": "How deep is the floor plate between the core and the facade on each tower's narrow side?",
+  "projects": [
+    "vtc",
+    "city"
+  ],
+  "inputs": [
+    "tower.minSide",
+    "tower.coreArea"
+  ],
+  "method": "The node's code reads each tower's narrow plan side and core area from the Layer 0 summary and returns (narrow side − core side) / 2, plus the deepest value across towers. A worked example of a code node: the same result could be a formula, which is the better choice.",
+  "human": "What depth suits the use (daylight, views, layout) is a design judgment; this node only measures it.",
+  "limits": "Square, centred core; rectangular plates only. No threshold: information only.",
+  "metrics": [
+    {
+      "id": "core_to_facade",
+      "label": "Core to facade, narrow side",
+      "unit": "m",
+      "per": "tower",
+      "expression": "code",
+      "decimals": 1,
+      "threshold": {
+        "direction": "info",
+        "flag": "team_assumption",
+        "source": {
+          "label": "Worked example: geometry only, no sourced threshold"
+        }
+      }
+    },
+    {
+      "id": "deepest",
+      "label": "Deepest core-to-facade depth",
+      "unit": "m",
+      "per": "project",
+      "expression": "code",
+      "decimals": 1,
+      "threshold": {
+        "direction": "info",
+        "flag": "team_assumption",
+        "source": {
+          "label": "Worked example: geometry only, no sourced threshold"
+        }
+      }
+    }
+  ],
+  "code": {
+    "language": "javascript",
+    "source": "// Distance from the core face to the facade on the narrow side of each tower plate.\nfunction run(input) {\n  const depth = input.towers.map((t) => {\n    const v = t.values\n    if (!(v.minSide > 0) || !(v.coreArea >= 0)) return null\n    return (v.minSide - Math.sqrt(v.coreArea)) / 2\n  })\n  const known = depth.filter((d) => d !== null)\n  return { core_to_facade: depth, deepest: known.length ? Math.max(...known) : null }\n}\n"
+  }
+}

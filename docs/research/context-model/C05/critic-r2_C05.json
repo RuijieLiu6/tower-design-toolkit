@@ -1,0 +1,242 @@
+{
+ "expert_role": "Computational design lead (geospatial and interoperability review), round 2 of packet C05",
+ "previous_round": [
+  {
+   "item": "BLOCKER M02/M03 vertical datum in Layer 0",
+   "status": "addressed",
+   "residue": "vertical{datum, grade_z_m, grade_source} is now required, and comparisons return unknown when datums differ. Two gaps remain. The enum mixes up the datum (CGVD28) with the geoid model (HTMVBC00). The ceiling it protects is still a single number (see the new MAJOR finding)."
+  },
+  {
+   "item": "MAJOR floors contract vs PVV importer",
+   "status": "addressed",
+   "residue": "Checked locally: normaliseFloors (app.js lines 52 to 77) throws on a repeated level and rebuilds each floor from fixed keys, as the spec says. The adapter, the two-tower fixture and provenance logging are specified."
+  },
+  {
+   "item": "MAJOR measured City height data missing",
+   "status": "partly",
+   "residue": "building-footprints-2009 and lidar-2022 are now primary sources, with parts kept per bldgid. Two problems remain. The 2009 data is 17 years old for a downtown that has been heavily rebuilt. Testing for new buildings by non-overlap with the 2009 and 2015 footprints misses rebuilds on the same footprint and anything built after 2015 (new MAJOR finding)."
+  },
+  {
+   "item": "MAJOR DT Mass frame",
+   "status": "addressed",
+   "residue": "The legacy-dtmass-1 converter, its validation case and author confirmation are all planned."
+  },
+  {
+   "item": "MAJOR EPSG:3157 accuracy",
+   "status": "addressed",
+   "residue": "Working frame is now a local transverse Mercator with k=1; EPSG:3157 is kept for exchange. I recomputed k=0.99960087 and the area factor 0.999202, and both match."
+  },
+  {
+   "item": "MAJOR horizontal datum of lon/lat",
+   "status": "partly",
+   "residue": "Lon/lat is now declared NAD83(CSRS) as served. The only evidence is a match with council UTM values that come from the same City GIS, so the test is circular. The ITRF offset is given as 1.4 to 3.1 m 'depending on rotation sign convention' and is unresolved."
+  },
+  {
+   "item": "MAJOR checks[] vs guideline text",
+   "status": "addressed",
+   "residue": "guideline_version, heading, page, element_kind, statistic and tolerance_m are added, and a cone missing from the dataset gets unknown plus a VanMap link. The status enum does not hold Vista's relation values, and 'block' overstates what a discretionary guideline can do (MINOR)."
+  },
+  {
+   "item": "MAJOR already-published Vista derived packs",
+   "status": "addressed",
+   "residue": "The packs are marked non-redistributable, kept out of ContextRefs and put on a removal list. They are still publicly served until that removal is done."
+  },
+  {
+   "item": "MAJOR schedule",
+   "status": "addressed",
+   "residue": "There is a dated cut list. The items add up to 14.5 to 16.5 person-days, not 14 to 16, and the 2 to 3 days of float are not derived against the cone-height and terrain packets that share the same 34 person-days."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C05-M02 views.ceiling / checks (cone ceiling stored as one number)",
+   "issue": "Layer 0 stores a cone ceiling as one value, views.ceiling{height_m, vertical, basis}, and the Vista fixtures F1 to F3 compare against a single 'boundary 80'. A view cone's lower boundary is seen from a fixed eye point, so in 3D it is an inclined plane through the eye. The maximum geodetic height therefore changes with distance from the origin and with position on the site. The sources say the same thing. RTS 18292 gives 27.1's 59.8 m as 'measured from the northeastern-most corner of a parcel', i.e. a value at one point. The 1880 Main St report gives encroachment as a range (0.4 to 2.7 m). A 1070 Barclay rezoning document (search snippet only; the PDF returned 403) lists a separate maximum geodetic elevation per point under two cones. Vista's own guideline.json says its check uses 'ONE declared horizontal lower boundary height'. The brief asks for a height-limit surface at every location, and the scalar cannot represent it. Near an origin (Trout Lake, Granville Bridge), the change across a site can exceed the 2 m tolerance in clause 3.1.5. It may also explain part of the unreconciled 2611 Victoria Dr gap.",
+   "fix": "Before the Layer 0 v1 freeze (23 Oct), replace ceiling.height_m with ceiling.surface. That is either a plane {origin_lonlat, eye_z, reference points (lon, lat, z) with source and page} or a ContextRef to a height_limit_surface layer (TIN or grid with datum). Keep a published spot value as a reference point with its location, not as a site-wide limit. Checks evaluate the ceiling at every footprint vertex and roof sample point, then report max, average and area. Add a validation case: the 27.1 value at the NE corner of 2670 Victoria Dr, then evaluated at the 2611 Victoria Dr corners. Add height_limit_surface to the context types."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C05-M06 building pack: 2009 heights and detection of newer buildings",
+   "issue": "building-footprints-2009 (124,181 parts; topelev_m and baseelev_m described only as 'geodetic'; 'Data are approximate'; checked today) is the primary roof source, and OSM is used only where non-overlap with the 2009 parts and the 2015 footprints shows a new building. Downtown has rebuilt heavily since 2009. A tower replacing a demolished building on an overlapping footprint keeps its 2009 roof. Nothing built after 2015 can be detected with 2015 footprints. The good target, '100% of those standing in 2009', measures coverage of a 2009 city, not the current one. OSM post-2009 heights are also relative, so a grade_z is needed before they can be compared with any geodetic ceiling.",
+   "fix": "Detect change from lidar-2022 (CGVD28GVRD, 0.081 m vertical at 95%, checked today): sample the building-class or first-return maximum inside each 2009 part and flag the part as changed when |dz| > 2 m. Take tops for changed and new parts from LiDAR 2022 (height_source 5), with OSM only as a last resort. Base every OSM height on a grade_z from the DEM or LiDAR and record grade_source. Change the metric to 'parts with a measured top no older than 2022'. If LiDAR 2022 cannot be processed before 13 Nov, label the pack 'city_2009_snapshot' in the UI."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M03 horizontal datum evidence",
+   "issue": "The claim that 'portal lon/lat equal NAD83(CSRS)' rests on one parcel corner matching council UTM values within 0.11 m. Both numbers come from the City GIS, so the match only shows internal consistency. It does not identify the realisation: the 2022 orthophoto is EPSG:26910 (original NAD83), and LiDAR 2022 is NAD83(CSRS) 4.0.0.BC.1.GVRD. The ITRF offset is given as '1.4 to 3.1 m depending on rotation sign convention', which is an unresolved calculation presented as a parameter. NRCan's 'about 2 m' is the offset between the datums' origins at the Earth's centre, not the local horizontal shift. A GeoJSON export of these lon/lat values would also be mislabelled as WGS 84 under RFC 7946.",
+   "fix": "Label the frame datum 'City of Vancouver GIS NAD83 (realisation unconfirmed; CSRS likely)' until the City GIS group confirms it in writing. Validate against an independent control point: a MASCOT/HPN monument with published NAD83(CSRS) coordinates near downtown. Compute the WGS 84 shift once with NRCan TRX at a stated epoch and store that result, not a range. Mark GeoJSON exports as having a non-WGS 84 horizontal datum, or transform them."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02/M03 vertical enum",
+   "issue": "'CGVD28_HTMVBC00' mixes up a datum with a hybrid geoid model. The BC height-transformations page lists HTMVBC00 (Metro Vancouver to Hope) and HTGVRDBC00 (Metro Vancouver only), both CGVD28 realisations. The City LiDAR names its datum 'CGVD28GVRD' and its geoid 'HTMVBC00_Abbbyn'. Other sources would need further enum values (HTv2.0, CGG2013a, EGM2008) as new datums.",
+   "fix": "Split the field into vertical{datum CGVD28|CGVD2013|EGM96|EGM2008|ellipsoid|model_relative|unknown, realisation or geoid_model (HTMVBC00, HTGVRDBC00, HTv2.0, CGG2013a), epoch, grade_z_m, grade_source}. Compare by datum first; when only the realisation differs, flag the result, not unknown."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 checks status vocabulary",
+   "issue": "checks.status is pass|review|block|unknown, but a validation case says the Vista relations INTERSECTS, BOUNDARY_CONTACT and CANNOT_DETERMINE must be carried 'unchanged', and the record has no field for them. 'block' implies a prohibition. The Guidelines are Council-approved design guidelines worded 'should' and 'may be considered' (Vista guideline.json s.2), and the 1880 Main St encroachment was supported under 3.1.5.",
+   "fix": "Add relation (INTERSECTS|BOUNDARY_CONTACT|BELOW|CANNOT_DETERMINE) next to status. Rename 'block' to 'conflict'. Never emit 'pass' when the ceiling basis is study, derived or inferred."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M01/M07 Guidelines edition",
+   "issue": "The spec says the live PDF (amended 4 Feb 2026) returned 403, so it read the June 2025 edition through Wayback. The 403 is confirmed again today. However, Vista's data/guideline.json records local_copy sources/guidelines-public-views.pdf, amended 2026-02-04, accessed 2026-09-22, plus a text extract. The team already holds the current edition in the private Vista project.",
+   "fix": "Use the team's local copy: record its SHA-256 and access date, and confirm the clause numbers, the 3.1.x-under-3.2 heading and the 12.2 reference against it. In checks[], set guideline_version to the edition actually read."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02/M04 Placement for IFC and .3dm",
+   "issue": "Only IfcMapConversion and IfcProjectedCRS (IFC4) are covered. Many Revit and ArchiCAD exports are still IFC2x3, which georeferences through IfcSite RefLatitude, RefLongitude and RefElevation, or through ePSet_MapConversion property sets. Rhino's EarthAnchorPoint also carries an elevation zero reference (ground level, mean sea level or ellipsoid) that has to map onto vertical.datum.",
+   "fix": "Add placement.basis values ifc_site_reflatlon and epset_mapconversion. Map the EarthAnchorPoint elevation reference into vertical, defaulting to model_relative. Test with one IFC2x3 file, one IFC4 file and one .3dm file before claiming support."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M02 CityJSON export frame",
+   "issue": "CityJSON metadata.referenceSystem expects an OGC/EPSG CRS URL. vtm-local-1 is a custom transverse Mercator with no code, so a CityJSON LoD1 export in the working frame cannot declare its CRS.",
+   "fix": "Export CityJSON in EPSG:3157 together with a CGVD28 height CRS (EPSG:5713) after transforming from vtm-local-1. Record the transform in metadata, and let downstream FSR areas come from Layer 0, not from CityJSON."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M06 building pack: bldgid grouping",
+   "issue": "bldgid can group separate towers over a shared podium. For bldgid 149806, checked today: 18 parts, including the Royal Centre roof at 167.92 to 168.07 m, 128.86 m and 132.25 m tower parts, and a 170.83 m Complex part. A 'named roof' ceiling or a per-building height taken as the bldgid maximum would pick the wrong element.",
+   "fix": "Keep parts as the unit, as proposed. Resolve a named-roof ceiling to explicit part ids, flat rooftype only, with the selection recorded in ceiling.source. Never aggregate by bldgid maximum."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05 datasets: terrain beyond City LiDAR",
+   "issue": "SRTM is a radar surface model: downtown it partly records buildings, and on the North Shore it records forest canopy. Its heights are EGM96. The spec lists it as the only source beyond City coverage. Open LiDAR-derived alternatives are not mentioned: LidarBC bare-earth DEMs and NRCan HRDEM/MRDEM (CGVD2013). The 9.5 m offset at Vista's example site has not been diagnosed.",
+   "fix": "Add LidarBC and NRCan HRDEM/MRDEM to the dataset table for the terrain packet, each with its datum. Label SRTM-derived ground as DSM-like and never use it as grade_z. Test whether the supplied model's z offset tracks SRTM before re-registering it."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C05-M08 capacity",
+   "issue": "The 13 Nov items add up to 14.5 to 16.5 person-days, not 'about 14 to 16'. Two people have 34 person-days, shared with the cone-height and terrain packets, which have no stated budget, so the 2 to 3 days of float are asserted rather than computed. The new ceiling-surface and LiDAR change-detection work is not costed.",
+   "fix": "Publish one cross-packet capacity table (C05 plus the cone-height and terrain packets) against 34 person-days. If it does not fit, cut the CityJSON exporter and the cone pack's frame conversions first."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "A single ceiling value (views.ceiling.height_m; Vista boundary 80 m) is the cone limit for a site.",
+   "why_false": "The lower boundary is seen from a fixed eye point, so in 3D it is an inclined plane. The City publishes values at specified points, not limits that apply across a whole site.",
+   "correction": "Store a plane or surface with reference points, or a height_limit_surface ContextRef. Evaluate the ceiling at each footprint and roof sample point.",
+   "evidence": "RTS 18292 App. A: 27.1 at 59.8 m 'measured from the northeastern-most corner of a parcel' (as cited in the spec). RTS 18588: encroachment of 0.4 to 2.7 m across one roof. 1070 Barclay rezoning (search snippet; PDF 403): separate geodetic maxima per point under two cones. Vista data/guideline.json teaching note: the tool uses 'ONE declared horizontal lower boundary height'."
+  },
+  {
+   "claim": "Buildings built after 2009 can be found by non-overlap with the 2009 parts and the 2015 footprints.",
+   "why_false": "A tower rebuilt on an overlapping footprint overlaps its 2009 predecessor, and buildings completed after 2015 do not appear in either layer.",
+   "correction": "Detect change by comparing 2009 topelev_m with the LiDAR 2022 surface per part (for example |dz| > 2 m), and take current tops from LiDAR 2022.",
+   "evidence": "building-footprints-2009 catalogue record (read 21 Oct 2026): 'reflects the approximate building footprints in 2009', 'Data are approximate'. building-footprints-2015 has no height fields."
+  },
+  {
+   "claim": "A parcel corner matching council UTM values within 0.11 m shows that portal lon/lat are NAD83(CSRS).",
+   "why_false": "The portal and the council report both draw on City GIS, so agreement is circular and does not identify the realisation (the City orthophotos are original NAD83, EPSG:26910).",
+   "correction": "Treat the realisation as unconfirmed. Validate against an independent geodetic control monument and confirm with City GIS in writing.",
+   "evidence": "orthophoto-imagery-2022 record: EPSG:26910. lidar-2022 record: 'NAD 83 (CSRS) 4.0.0.BC.1.GVRD' (read 21 Oct 2026)."
+  },
+  {
+   "claim": "The February 2026 edition of the Public Views Guidelines is unavailable, so only the June 2025 edition could be read.",
+   "why_false": "The team's own Vista data records a local copy of the amended edition.",
+   "correction": "Cite and hash the local copy (amended 2026-02-04, accessed 2026-09-22) for clause and page fields.",
+   "evidence": "vancouver-tall-view-tool/data/guideline.json: source.amended '2026-02-04', local_copy 'sources/guidelines-public-views.pdf', accessed '2026-09-22'. The live PDF still returns 403 on 21 Oct 2026."
+  }
+ ],
+ "missing": [
+  "A height_limit_surface port and ContextRef type (plane or TIN with datum and reference points) for the brief's estimated maximum-height surface",
+  "Change detection between the 2009 footprints and LiDAR 2022, and current roof heights for buildings rebuilt or completed after 2015",
+  "An independent geodetic control check of the City's horizontal realisation, and one NRCan TRX WGS 84 shift at a stated epoch",
+  "Open terrain sources beyond City coverage: LidarBC bare-earth DEM and NRCan HRDEM/MRDEM with CGVD2013 labels",
+  "IFC2x3 georeferencing (IfcSite RefLatitude/RefLongitude, ePSet_MapConversion) and EarthAnchorPoint elevation-reference mapping",
+  "Hash and citation of the team's local February 2026 Guidelines copy",
+  "A cross-packet capacity table (C05, cone heights, terrain) against 34 person-days",
+  "Hub v0.5 project file (still absent) for reconciliation with Layer 0"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Layer 0 v1 represents cone ceilings as a location-dependent surface (plane with reference points, or a height_limit_surface ref), and checks evaluate per point before the 23 Oct freeze",
+   "The building pack plan detects post-2009 change against LiDAR 2022, or the pack is labelled a 2009 snapshot in the UI",
+   "The vertical block separates datum from realisation or geoid model; checks carry a Vista relation field and use 'conflict' instead of 'block'",
+   "The horizontal realisation is marked unconfirmed until validated against independent control or confirmed by the City",
+   "A cross-packet capacity table shows the 13 Nov cut fits within 34 person-days, including the ceiling-surface work"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "HTTP 403 on 21 Oct 2026; Wayback unreachable from this tool. Wording checked through Vista data/guideline.json (s.2 'horizontal lower boundary that establishes the maximum geodetic height'; 3.1.1 to 3.1.5 under heading 3.2; 2 m in 3.1.5)."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "note": "24 records; view 10 object_id 1; views 28, 27.1, 27.2 present, 12.2 absent. Matches the spec."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009",
+   "ok": true,
+   "note": "124,181 records; topelev_m and baseelev_m '(geodetic)' with no datum named; 'Data are approximate'; OGL-Vancouver. Matches the spec."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009/records?where=bldgid=149806",
+   "ok": true,
+   "note": "18 parts: Royal Centre flat roofs 167.92 to 168.07 m, a Complex part at 170.83 m, plus 128.86 m and 132.25 m tower parts in the same bldgid."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "NAD 83 (CSRS) 4.0.0.BC.1.GVRD, UTM 10; vertical CGVD28GVRD, geoid HTMVBC00; 0.081 m at 95%; 49 pts/m2; 181 tiles; OGL-Vancouver. Matches the spec."
+  },
+  {
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "ok": true,
+   "note": "HTMVBC00 (Metro Vancouver to Hope) and HTGVRDBC00 are hybrid geoid models; CGVD28 is the current BC datum. Supports splitting datum from model."
+  },
+  {
+   "url": "https://github.com/mrdoob/three.js/wiki/Migration-Guide",
+   "ok": true,
+   "note": "build/three.min.js deprecated at r150 and removed at r161; examples/js removed at r148; import maps from r137. Matches the spec."
+  },
+  {
+   "url": "https://registry.npmjs.org/leaflet",
+   "ok": true,
+   "note": "latest 1.9.4; 2.0.0-alpha.1 only. Matches."
+  },
+  {
+   "url": "https://registry.npmjs.org/ajv/latest",
+   "ok": true,
+   "note": "8.20.0 MIT. Matches."
+  },
+  {
+   "url": "https://registry.npmjs.org/proj4/latest",
+   "ok": true,
+   "note": "2.22.0 MIT. Matches."
+  },
+  {
+   "url": "https://registry.npmjs.org/web-ifc/latest",
+   "ok": true,
+   "note": "0.0.78 MPL-2.0. Matches."
+  },
+  {
+   "url": "https://registry.npmjs.org/three/latest",
+   "ok": true,
+   "note": "0.186.1 MIT. Matches."
+  },
+  {
+   "url": "https://rezoning.vancouver.ca/applications/1040-1080_barclay/documents/03-sitecontext.pdf",
+   "ok": false,
+   "note": "403; search snippet only: per-point geodetic maxima under the Granville Bridge (about 121.7 to 122.0 m) and Queen Elizabeth Park (about 143.0 to 143.4 m) cones. Unverified."
+  },
+  {
+   "url": "local: program-value-visualizer/app/app.js, tests/basemap.test.js, README.md",
+   "ok": true,
+   "note": "normaliseFloors lines 52 to 77 throws on a repeated level and rebuilds keys; importer reads floors, settings, brief near line 841; test line 87 asserts 110574; 118 test() calls in 13 files against 116 in the README."
+  },
+  {
+   "url": "local: form-studio/vendor and vancouver-tall-view-tool/explorer/vendor/rhino3dm",
+   "ok": true,
+   "note": "Form Studio wasm SHA-256 c831ea5e..., git blobs 34e610b5 and ef4e84ef; Vista wasm SHA-256 18cb4b66...; three r128 (2021), Leaflet 1.9.4, OSM tile.openstreetmap.org with attribution. No LICENSE for own code in any of the four repos; Vista's only workflow is pages.yml."
+  }
+ ],
+ "verdict": "Round 2 fixed most of round 1: vertical datum blocks, floors keyed by tower, the local TM frame, the DT Mass frame, richer checks, and the 13 Nov cut. Local hashes and code lines check out. Two problems block the 23 Oct Layer 0 freeze. First, a cone ceiling is stored as one number, but the City defines it by an eye-point plane, so the limit varies across a site, sometimes by more than the 2 m tolerance. Second, the 2009 City footprints are treated as current roofs, and the test for newer buildings misses rebuilds and anything after 2015. Minor fixes: the horizontal-datum evidence is circular, the datum enum mixes datum and geoid model, IFC2x3 georeferencing is missing, the team already holds the Feb 2026 Guidelines, and a capacity table is needed across packets. Gate fails until the ceiling becomes a surface."
+}

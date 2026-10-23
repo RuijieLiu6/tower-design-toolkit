@@ -1,0 +1,215 @@
+{
+ "expert_role": "Earthquake engineering academic, British Columbia (tall concrete wall buildings, NBC 2020 seismic and wind provisions)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M05, P10-M01",
+   "issue": "The wall-continuity test, the core hard rule for 13 Nov, is wrong in both directions. (1) Too strict: M05 says 'the core steps in plan as lift banks drop out, which can trip ... the continuity rule', and M01/M05 make any wall that 'ends' red. Under 4.1.8.10(4), walls must be continuous from THEIR top to the foundation, so a wall that stops partway up the tower is allowed. A normal tapering supertall core would be shown as not permitted. (2) Not strict enough: the method marks a wall green if its polygon overlaps any wall in the storey below. Type 4 also covers a reduction in the element's lateral stiffness in the storey below. A 12 m wall standing on a 4 m stub, or on a lobby wall cut by large openings, overlaps and so passes. The 'editable tolerance' makes this worse.",
+   "fix": "Check each SFRS wall line from the top down. Allow a wall to terminate going up. Below every storey, require that in-plane length and thickness (or an Ig proxy) are at least the values above, within a small fixed tolerance, and flag any in-plane offset (Type 4) or out-of-plane offset (Type 5). Flag openings in podium storeys above a set area ratio as 'Type 4 candidate, engineer to confirm'. Remove the lift-bank sentence from the continuity rule and keep it under Types 1 and 3 only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10-M03, P10-M07",
+   "issue": "The default site designation X450 is unconservative and has no code basis. Entrants will not have measured Vs30, so the code designation is X_S from the site class. I queried the NRCan API (21 Oct 2026, 49.2827, -123.1207, 2%/50 yr). X450: S(1.0) 0.429, S(2.0) 0.266. X_C: S(1.0) 0.503 (+17%), S(2.0) 0.306 (+15%), S(0.2) 1.08. X_D: S(1.0) 0.822, S(2.0) 0.501, S(5.0) 0.151. These periods control the tower. The quoted spectral ratio S(0.2)/S(5.0) of about 14, which drives Mv and J, only holds for X450; for X_D it is about 7.4.",
+   "fix": "Default to X_C (X_S, class C), with X_D as a mandatory sensitivity band for downtown fill and shoreline areas (Coal Harbour, False Creek). Allow X_V only when a measured Vs30 is entered and record where it came from. Compute Mv and J from the selected designation, not from a fixed ratio of 14. Show the X450/X_C/X_D range on every demand output."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P10 (all), P10-M01, P10-M07",
+   "issue": "Delivery dates do not match the competition. VTC boards are due 30 Nov 2026, but the lateral-system selector (M01, priority v1) and the transit-link joint check (M07) arrive on 10 Dec, and wind drift and comfort (M04, M08) are on the roadmap. The 2026 entrants named as the first users get no system shortlist, code-route states, joint width or drift screen before they submit. The spec does not say this.",
+   "fix": "By 13 Nov, ship a static M01 'route card': the SC4 Table 4.1.8.9 JSON, the three outrigger route states and the continuity rule, with no scoring (about 1.5 person-days). Also ship the M07 checklist (4.1.8.14 joint rule, 4.1.8.16 flags, transit-owner questions) as text. Otherwise state on the canvas that M01, M04, M07 and M08 come after the competition deadline."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M03",
+   "issue": "The 4.1.8.23(4) non-SFRS framing check is marked 'verified' while its basis says 'clause number to confirm'. I could not confirm the clause. The amended Div B Table 1.3.1.2 lists Commentary-referenced notes only up to A-4.1.8.21, which neither confirms nor rules out 4.1.8.23. More generally, several metrics marked 'verified' (4.1.8.10(4), 4.1.8.12(8)-(9), 4.1.8.14, 4.1.8.16) rest on the r1 reviewer's reading, which the flags list itself calls UNVERIFIED.",
+   "fix": "Add a badge state 'reviewer-read, not re-opened' that differs from 'verified (clause link)'. Set 4.1.8.23(4) to unverified until the 2nd-printing page is read. Double-enter clause text from the PDF before coding (for example, split the PDF to get under the 10 MiB fetch limit)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M06, P10-M01",
+   "issue": "The rule 'timber SFRS capped at 20 m at SC4' is generalised from the rows actually read. Amended page 4-63 has limited-ductility CLT shear walls at 30/30/30/20 m and moderately ductile frames with ductile connections at NL/NL/20/20 m. The nailed wood-based shear-wall rows sit on the unamended page 4-62 and were not read; I recall those rows being 30 m in high-seismic columns. The conclusion still holds (no timber SFRS for a supertall), but a light-frame podium limit could be wrong.",
+   "fix": "Read the timber rows on page 4-62 and load every timber row into the JSON. Phrase the rule as 'lowest SC4 height cap of the chosen timber SFRS' instead of a single 20 m value."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M01",
+   "issue": "The SC4 'no cap' list for steel (ductile MRF, EBF, plate walls) leaves out Note (3) to Table 4.1.8.9, confirmed on amended page 4-63: 'Higher design force levels are prescribed in CSA S16 for some heights of buildings.' Steel or composite mega-frame and outrigger options would score better than they should.",
+   "fix": "Add a per-row 'CSA S16 height-related force amplification' amber flag for steel SFRS above the S16 height thresholds, citing Note (3)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M03",
+   "issue": "The v1 base-shear screen V = S(Ta) Mv IE W/(RdRo) leaves out the wall lower bound V >= S(4.0) Mv IE W/(RdRo) in 4.1.8.11(2) (from memory, to be confirmed in the 2nd printing). That floor applies once a model period near the 2.0 x Ta cap (6.2-7.3 s) is used. The screen also has no P-delta or stability flag (4.1.8.3(8); Note A-4.1.8.3.(8) exists), although drift is amplified by RdRo/IE = 5.6-6.8 on a 300 m wall tower.",
+   "fix": "Add the S(4.0) floor for walls (S(2.0) for other systems) when T1 is used. Add a stability-coefficient flag theta = P*Delta/(V*hs) per storey using the amplified drifts."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M02",
+   "issue": "The tunnel default can be switched off by any user-supplied 'model f1 > 0.25 Hz'. A student stick model with uncracked gross EI will overestimate f1 and remove the mandatory-tunnel flag. The 180 m threshold is called unsourced, but the Commentary I approximate frequency (from memory, f about 46/H, which gives 0.25 Hz at about 184 m) could support it with a caution.",
+   "fix": "Accept f1 only with a stated stiffness basis (cracked/uncracked multiplier, mass source from M08) and show it as amber 'engineer to confirm'. For 244-305 m towers, keep 'Wind Tunnel Procedure expected' even when f1 is entered. Check the Commentary I approximation and cite it for the 180 m default."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M06, P10-M07, P10-M03",
+   "issue": "Separating a timber podium with a firewall (M06) has seismic consequences the spec does not follow through. Two buildings separated by a firewall are adjacent structures under 4.1.8.14, so they need a seismic joint (SRSS) or must be designed as connected. If the podium is jointed off, the podium-diaphragm backstay that M07 assumes is gone.",
+   "fix": "When M06 marks a firewall split, have M07 apply the 4.1.8.14 joint check between podium and tower and set the M07 backstay note to 'not available'. Show the joint on the PRES section."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M07",
+   "issue": "The below-grade link joint is computed as SRSS of tower drift x RdRo/IE and station drift at link level. In a fixed-at-grade stick model the drift below grade is about zero, so the joint will come out near zero. Below grade the real movements are differential settlement, basement-wall and soil deformation, and the station's own design basis. The transit checklist also names only TransLink/BCRTC. BCRTC runs Expo/Millennium; as far as I know the Canada Line is run under a concession (ProTrans BC), and this is not verified here.",
+   "fix": "Below grade, do not let the SRSS value fall below a user-entered minimum. Add differential settlement and a station-movement input. Pick the transit operator by station line and list TransLink as owner. Keep the item UNRESOLVED until a TransLink adjacent-development guideline is read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P10-M01, P10-M03, P10-M04, P10-M08",
+   "issue": "The dependency graph has undeclared cycles. M01 needs M03, and M03 takes its SFRS choice from M01. M04 needs M08 (f1, mass), and M08 needs M04 (pressures). depends_on lists only one direction, so a node canvas cannot order the evaluation.",
+   "fix": "Declare the defaults that break each cycle (M03 SFRS = ductile concrete wall until M01 runs; M08 uses a static pressure preset until M04 exists) and a fixed evaluation order. Mark the back-edges in depends_on as 'optional / iterative'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "spec notes",
+   "issue": "The 'notes' field contains session housekeeping that has nothing to do with the structural spec ('Not done: gh auth login...', 'Keep-awake was requested through the app...').",
+   "fix": "Remove the session/tooling remarks from the spec. Keep only research constraints and source-access notes."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The core steps in plan as lift banks drop out, which can trip the continuity rule; any SFRS wall that 'ends' is red (P10-M05, P10-M01).",
+   "why_false": "NBC 4.1.8.10(4) requires SFRS shear walls to be continuous from their top to the foundation. A wall that terminates going up has its top at that level and complies. A lift-bank drop-out can raise Type 1 or Type 3 checks but is not a continuity violation.",
+   "correction": "Apply the continuity test downward only. A wall may end going up. It must not be cut, shortened, offset or reduced in stiffness in any storey below it (Types 4 and 5).",
+   "evidence": "Clause wording as quoted in the spec's own r1 flag ('continuously from top to foundation'); Table 4.1.8.6 Type 4 definition includes 'reduction in lateral stiffness of the resisting element in the storey below' (domain knowledge, page not re-read here)."
+  },
+  {
+   "claim": "Overlap of an SFRS wall polygon with any wall polygon in the storey below shows continuity (M05 metric 'good').",
+   "why_false": "Type 4 covers in-plane offsets and stiffness reductions below. A long wall sitting on a short stub, or on a heavily perforated lobby wall, still overlaps but is a Type 4 irregularity, which is not permitted at these Ta and S(1.0) values.",
+   "correction": "Compare in-plane length, thickness and position of each wall line storey by storey down to the foundation, with a small fixed tolerance.",
+   "evidence": "NBC 2020 Table 4.1.8.6 Type 4 (domain knowledge); 4.1.8.10(4) as quoted in the spec."
+  },
+  {
+   "claim": "X450 at downtown coordinates is a suitable default site designation (P10-M03 limits, inputs).",
+   "why_false": "Without a measured Vs30 the code designation is X_S from the site class. For downtown class C that gives higher long-period demand than X450.",
+   "correction": "Default to X_C, show X_D as a sensitivity, and use X_V only with a measured Vs30.",
+   "evidence": "NRCan GraphQL API, NBC2020 at 49.2827, -123.1207, 2%/50 yr, queried 21 Oct 2026: X450 S(1.0) 0.429, S(2.0) 0.266; X_C (Vs30 360-760) S(0.2) 1.08, S(1.0) 0.503, S(2.0) 0.306; X_D S(1.0) 0.822, S(2.0) 0.501, S(5.0) 0.151; X_E S(1.0) 0.938."
+  },
+  {
+   "claim": "Timber SFRS are capped at 20 m at SC4 (P10-M01 materials parameter, P10-M06).",
+   "why_false": "Only the CLT limited-ductility walls (SC4 20 m) and the ductile-connection frames (20 m) were read on the amended page. Nailed wood-based shear-wall rows are on an unamended page that was not read and may allow more height.",
+   "correction": "State the SC4 height cap per timber SFRS row from the full table. The supertall conclusion is unchanged.",
+   "evidence": "NBC 2020 amended page 4-63 (errata package, read here): 'Limited ductility cross-laminated timber shear walls: platform-type construction ... 30 30 30 20'; 'Moderately ductile 2.0 1.5 NL NL 20 20'."
+  }
+ ],
+ "missing": [
+  "NBC 2020 4.1.8.18(14)-(15) glazing drift compatibility (D_fallout >= 1.25 IE Dp or 13 mm, read on the amended page): supertall curtain wall over the public realm needs M03 drift passed to the facade/PRES packet.",
+  "CSA A23.3-19 tall-wall dynamic shear amplification and its effect on wall thickness, and so on M05 core share; currently only 'excluded'.",
+  "Cascadia interface long-duration shaking (separate from basin amplification): guidance that PBSD ground-motion suites must include subduction records.",
+  "BC professional-practice requirement for a Structural Engineer of Record (EGBC Struct.Eng. designation) for complex Part 4 buildings; not verified because the web-search budget was exhausted and egbc.ca returned 403.",
+  "A stability (P-delta) coefficient flag using amplified drifts, and the wall S(4.0) base-shear floor.",
+  "Seismic joint between a firewall-separated timber podium and the tower (4.1.8.14), and what it does to the backstay.",
+  "A TransLink adjacent-development guideline and the station-specific operator (Expo/Millennium versus Canada Line) for M07.",
+  "Double entry of concrete and steel rows from Table 4.1.8.9 (page 4-62, not amended), and the Table 4.1.8.6 Type 4/5 wording, from the 2nd-printing PDF."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Rewrite the M05/M01 continuity test: downward-only, walls may end going up, check in-plane length and thickness reductions and offsets (Types 4/5); remove the lift-bank/continuity sentence.",
+   "Change the M03 default site designation to X_C with an X_D sensitivity; X_V only with measured Vs30; compute Mv/J from the selected designation.",
+   "Say clearly that M01, M04, M07 and M08 arrive after the 30 Nov VTC deadline, or ship a static M01 route card and M07 checklist by 13 Nov.",
+   "Add a 'reviewer-read' badge state and downgrade 4.1.8.23(4) to unverified until the clause is read in the 2nd printing.",
+   "Remove the session-housekeeping text from the notes."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: add 4.1.8.10(4) wall continuity, no Types 4/5 (M01, M05)",
+   "status": "addressed",
+   "residue": "The rule is present, but the implementation is wrong: walls ending going up are flagged and in-plane length reductions pass. See the new MAJOR finding."
+  },
+  {
+   "item": "MAJOR: per-storey hs/500 wind drift with Iw 0.75, Ce, Cg, Cp (M01, M08)",
+   "status": "addressed",
+   "residue": "Correct in the spec, but there is no drift screen before the VTC deadline because the M04 engine is on the roadmap."
+  },
+  {
+   "item": "MAJOR: outrigger/transfer period claim reversed",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: seismic drift x RdRo/IE, x1.2 Type 9, Vd floor (M03)",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: M02 tunnel default, no code Ta as f1, colour by governing trigger",
+   "status": "addressed",
+   "residue": "A user-supplied f1 can still switch off the tunnel flag without any stated stiffness basis."
+  },
+  {
+   "item": "MAJOR: Strouhal 1/7 non-circular",
+   "status": "addressed",
+   "residue": "The spec's arithmetic correction is right: S = 1/5 understates V_Hc by about 29%."
+  },
+  {
+   "item": "MAJOR: seismic weight W per 4.1.8.2, separate wind mass (M08)",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: EMTC height to uppermost floor level; firewall-separated buildings (M06)",
+   "status": "addressed",
+   "residue": "Checked against the BCBC Rev 1 convenience copy: Table 3.2.2.93 A-2/C/D 18 storeys/76 m, area 7200/6000/7200 m2, 70 min; (1)(c) wording; 55 m stair/hoistway rule all confirmed."
+  },
+  {
+   "item": "MAJOR: three-tier independent review including EGBC baseline (M03)",
+   "status": "partly",
+   "residue": "Tiers are modelled, but the EGBC guide v3.0 is still not opened and the SER/Struct.Eng. requirement is missing."
+  },
+  {
+   "item": "MAJOR: transit link SRSS joint, vibration, TransLink/BCRTC checklist (M07)",
+   "status": "partly",
+   "residue": "No transit guideline source yet. The SRSS joint below grade is about zero without settlement or soil inputs. The operator naming is incomplete."
+  },
+  {
+   "item": "MAJOR: scope fit to schedule",
+   "status": "partly",
+   "residue": "The 13 Nov core is now about 9 person-days, but M01 and M07 land after the 30 Nov submission deadline for the entrants the tool is meant to serve."
+  },
+  {
+   "item": "MAJOR: M04 calibration inputs and Table C-2 provenance",
+   "status": "addressed",
+   "residue": "The para 63 pressure example is still not transcribed (unverified)."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P10-S43",
+   "url": "https://www.earthquakescanada.nrcan.gc.ca/api/canshm/graphql",
+   "ok": true,
+   "note": "Queried NBC2020 at 49.2827, -123.1207. X450 values match the spec exactly (2%/50: PGA 0.446, Sa 1.04/0.748/0.429/0.266/0.0735/0.0323; 10%/50: Sa(0.2) 0.527, Sa(1.0) 0.198, Sa(2.0) 0.103). New data: X_C S(1.0) 0.503, S(2.0) 0.306; X_D 0.822/0.501/S(5.0) 0.151; X_E S(1.0) 0.938. NBC2025 X450 is the same except S(5.0) 0.0731."
+  },
+  {
+   "source_id": "P10-S40",
+   "url": "https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/construction-industry/building-codes-and-standards/revisions-and-mo/bcbc_emtc_code_change_convenience_copy.pdf",
+   "ok": true,
+   "note": "Table 3.2.2.93 confirmed: A-2 18/76/7200/70; C 18/76/6000/70 and 8/34/0; D 18/76/7200/70 and 9/38/0; E 12/51/6000; no interpolation; (1)(c) height to the uppermost floor level excluding rooftop service enclosures; (4) 55 m stair/hoistway roof rule."
+  },
+  {
+   "source_id": "P10-S45",
+   "url": "https://nrc-publications.canada.ca/eng/view/erratum/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dsl=en",
+   "ok": true,
+   "note": "Confirmed 4.1.7.1(2)-(6) (CFD prohibited), 4.1.7.2(2)-(3) (60 m, H/w 4 and 6 with human occupancy, 1 Hz and 0.25 Hz), 4.1.8.10(1) (Type 6 only at SC1), 4.1.8.10(2) post-disaster, Table 4.1.8.9 timber/masonry/CFS rows and Note (3) (CSA S16 higher forces for some heights), and the new 4.1.8.18(14)-(15) glazing fallout rule. Nailed wood shear-wall and concrete/steel rows are not on amended pages."
+  },
+  {
+   "source_id": "P10-S01",
+   "url": "https://vancouver.ca/files/cov/guide-to-2025-vbbl-updates-v1.01.pdf",
+   "ok": false,
+   "note": "HTTP 403; the VBBL 2025 seismic effective dates could not be re-checked."
+  },
+  {
+   "source_id": "WebSearch",
+   "url": "(search tool)",
+   "ok": false,
+   "note": "The shared web-search budget was used up before this review. The TransLink adjacent-development guideline and the EGBC SER requirement could not be searched."
+  }
+ ],
+ "verdict": "Round 2 fixes almost every r1 item. The hazard values, the EMTC table and the NBC wind classification clauses all check out against primary sources. The gate fails on three points. First, the M05/M01 wall-continuity test, the key 13 Nov rule, is wrong in both directions: tapering cores come out red, and walls that are shortened below still pass. Second, the default X450 site designation understates long-period demand by about 15-17% compared with X_C, which entrants without a measured Vs30 must use. Third, M01 and M07 arrive after the 30 Nov submission deadline for the competition the tool serves, and the spec does not say so. Smaller items: the status badges overstate verification, the timber and steel table rows are incomplete, and some session housekeeping text is left in the notes."
+}

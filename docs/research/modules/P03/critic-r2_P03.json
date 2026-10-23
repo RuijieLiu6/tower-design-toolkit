@@ -1,0 +1,254 @@
+{
+ "expert_role": "CFD academic in urban microclimate (pedestrian-level wind, ABL modelling, outdoor thermal comfort)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M01",
+   "issue": "The averaging-time step is wrong. The spec says ECCC 1-, 2- or 10-minute means 'read higher than hourly means, so unconverted data inflate exceedances', and step 3 converts them 'with a logged factor'. A single 2- or 10-minute mean sampled at the observation time is an unbiased estimate of the hourly mean: its expected value is the same and only its variance is larger. Durst/ESDU gust-factor curves relate the MAXIMUM short-duration average within an hour to the hourly mean, not a single random sample. Applying such a factor (about 1.05-1.15) lowers every speed. For a Weibull k of about 2, cutting speeds by 10% turns a 20% exceedance into about 14%, so this one step can move every probe by one comfort class.",
+   "fix": "Delete the mean-level conversion. Treat the sampled ECCC means as hourly-mean estimates and log the sampling period as metadata only. Optionally note that the extra sampling variance slightly widens the tails. Take pedestrian gusts only from VAF plus turbulence (M04), never from station data. Re-word the M01 metric and the flag to match."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M01",
+   "issue": "The station-to-site exposure correction uses one 'site terrain roughness and displacement' value. Downtown Vancouver is a peninsula: westerly and north-westerly sectors arrive over English Bay and Burrard Inlet (z0 about 0.0002-0.001 m, water), and southerly and easterly sectors over city (z0 about 0.5-1 m). One z0 biases sector speeds in opposite directions. The 244-305 m towers also rise far above the downtown canopy, so the approach flow at tower top, which drives downwash, is set by the upstream fetch, not the local canopy.",
+   "fix": "Make roughness a per-sector table with fetch lengths, and name the transfer model (Deaves-Harris / ESDU 01008 as City of London does, or a log law capped at gradient height). Default the ReferenceSpec height to 100 m or more (City of London: 'ideally greater than 100m'), not 10 m, to reduce sensitivity to the near-ground profile."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M05",
+   "issue": "Ground roughness and wall functions are inconsistent. The Eddy3D ABL default is z0 = 1 m at Zref = 10 m (S46; the page is silent on wall functions, ground-wall roughness and the top boundary). With a standard rough wall function, z0 = 1 m implies a sand-grain roughness ks of about 9.793 z0/Cs, i.e. about 20 m. That cannot coexist with 0.3 m cells and three prism layers below 1.5 m (City of London), and it breaks horizontal homogeneity (Blocken, Stathopoulos and Carmeliet 2007, Atmos. Environ. 41, recalled). Applying z0 = 1 m on the ground of the explicitly modelled blocks also double-counts roughness that the buildings already provide. The M04 'empty domain at 1.5 m within 5%' test is ill-posed when z0 = 1 m, because 1.5 m lies inside the roughness sublayer.",
+   "fix": "Separate the approach-flow z0 (inlet profile plus upstream fetch, using an atmospheric rough wall function such as nutkAtmRoughWallFunction) from a small z0 of about 0.01-0.05 m on the explicitly modelled ground. Replace the 1.5 m test with a horizontal-homogeneity check: compare the empty-domain incident profiles of U, k and epsilon at the building position at 1.5 m, 10 m, H/2 and H against the inlet. Log the tolerances."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M05",
+   "issue": "The inflow profile and top boundary are unspecified for a supertall domain. Following Hagbo (6 H high), the domain top for H = 305 m is about 1.8 km, well above any gradient height (Toronto uses 600 m as an example). A log law extrapolated to that height, with an unspecified top condition, distorts the incident speed at tower top, and that speed drives downwash to the plaza. The spec flags log-law validity as 'unverified' but sets no rule.",
+   "fix": "Prescribe a profile capped at gradient height (Deaves-Harris / ESDU, or a power law to z_g with constant speed above it). Specify a top boundary consistent with the profile (prescribed shear stress, or fixed U, k and epsilon per Richards and Hoxey). Store both in MethodMetadata, and refuse VAFFields whose inflow profile is not declared up to at least 1.2 H."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M05",
+   "issue": "No computational budget is stated. COST 732 practice (recalled: about 5 H top and lateral, 15 H outlet, blockage at most about 3%) at H = 305 m gives a domain of roughly 3 x 6 x 1.5 km. City of London 0.3 m cells at entrances and corners, 10 cells across canyons, 400 m+ context and 16-36 directions put a run in the tens of millions of cells per direction. That is hundreds to thousands of core-hours, not something entrants can do offline on a laptop in the stated 'S (3-5 days) OpenFOAM case template' before 30 Nov.",
+   "fix": "Add a cell-count and core-hour estimate per fidelity level. Define an 'L2-lite' for massing comparison (for example 1-2 m minimum cells, 16 directions, a rotating cylindrical or octagonal domain meshed once) whose outputs are labelled comparative only. Reserve City of London mesh rules for an L2-full level. State in the UI which level produced each map."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M05",
+   "issue": "The replacement validation bands are inappropriate and probably misquoted. FAC2 at least 0.5, |FB| at most 0.3 and NMSE at most 4 are attributed to Chang and Hanna (2004), which concerns dispersion concentrations; recalled, that paper suggests NMSE below about 1.5, not 4. For wind speed, FAC2 lets half the probes be off by a factor of 2, which is two to three comfort classes, and |FB| = 0.3 is a 30% speed bias that alone shifts a class. The AIJ benchmark is not specified, and Case E (low-rise Niigata) does not represent a supertall tower.",
+   "fix": "Validate at the level of the decision: the share of probes with the same comfort class as the tunnel, and the bias in exceedance probability at the class thresholds. Use the hit rate with VDI 3783-9 tolerances once opened. Run AIJ Case A (single 2:1:1 tall building) and Case B (tall building among low-rise blocks), not only Case E. Keep FAC2, FB and NMSE as descriptive only, and fix or remove the NMSE value."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M02",
+   "issue": "The default criteria set (Toronto 2022) was chosen without checking Vancouver practice. Real downtown Vancouver tower rezonings (for example the Bay Parkade proposal named in S29) are normally submitted with consultant pedestrian wind assessments. Those reports show which criteria family, station, seasons and hours City staff actually accept, which is the nearest thing to 'which criteria apply in Vancouver'. I could not search for them this round (the web-search budget was exhausted), but the spec does not list getting them as an action.",
+   "fix": "Have a team member download two or three recent downtown Vancouver rezoning wind reports (rezoning.vancouver.ca or the Shape Your City document library, manual download if the domains return 403 to bots). Tabulate criteria family, data station, seasons, hours and mitigation conditions. Set the default CriteriaSet from that evidence and cite it, and keep Toronto as an alternative."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P03-M06",
+   "issue": "The time-base fix is incomplete. M06 defaults to TMYx, but M04's ProbeWindSeries is built from the M01 WindClimate, which is the 30-year station record. No rule makes M01 emit a TMYx WindClimate, with its own ReferenceSpec and exposure correction (EPW wind is airport 10 m data), or makes M04 build a probe series on that base. As written, the default UTCI run either mixes time bases or feeds uncorrected EPW airport wind.",
+   "fix": "Have M01 emit one WindClimate per time base (concurrent-30y, TMYx), each with a ReferenceSpec and exposure correction. Have M04 produce a ProbeWindSeries per base. Have M06 refuse inputs whose time-base tags differ, and add this as a schema check."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M06",
+   "issue": "The UTCI wind conversion is marked unverified with 'no citation', but it has a traceable origin. The UTCI operational procedure converts body-height wind to 10 m with a log law and z0 = 0.01 m: ln(10/0.01)/ln(1.1/0.01) is about 1.47 (Broede et al. 2012, Fiala et al. 2012; recalled, open S08 in full text). Because M04 probes are at 1.5 m, the consistent factor is ln(1000)/ln(150), about 1.38, not 1.5.",
+   "fix": "Cite the UTCI procedure, compute the factor from the declared probe height (about 1.38 at 1.5 m), and keep the sensitivity band."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M04",
+   "issue": "The City Lawson set is applied to '95% of comfort hours', which inherits the Toronto 06:00-23:00 window. The City of London 2019 guideline sets no hours restriction: it fits seasonal and annual Weibull distributions to all hours of Heathrow and City Airport data. It also says its climate coefficients 'are not valid for use in other areas'.",
+   "fix": "In the City Lawson CriteriaSet, use 24 h for comfort and safety, and note that only the thresholds transfer, not the London climate."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M04",
+   "issue": "Gusts from turbulent kinetic energy assume isotropy: sqrt(2k/3) underestimates streamwise sigma_u near the ground by about 20% (surface-layer sigma_u is about 2.4-2.5 u*, against about 1.9 u* from k of about 5.5 u*^2). Steady RANS k is itself unreliable in wakes. When an imported VAF has no TKE, GEM silently collapses to the mean speed.",
+   "fix": "Declare g = 3 and an anisotropy factor in MethodMetadata. If TKE or turbulence intensity is missing, block the GEM families or apply a declared default turbulence intensity with a warning badge. Label RANS-based GEM as indicative."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M04",
+   "issue": "The low-wind flag uses 'GEM under 5 km/h'. Toronto Table 3 note 3 refers to 'wind speeds lower than 5 km/h for majority of the time (e.g., 80%)', i.e. mean speed, not GEM.",
+   "fix": "Base the flag on mean speed and quote the 'e.g.' 80% as an example value."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M05",
+   "issue": "The geometry detail rule cites only Toronto ('dimensions less than 1 m do not have a notable impact'). City of London requires modelling building features that project more than 0.5 m near pedestrian areas.",
+   "fix": "Use 0.5 m near pedestrian zones as the stricter rule, cite S43, and keep 1 m elsewhere."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M02",
+   "issue": "The ContextSpec omits the City of London inclusion rules: consented or future buildings immediately around the site are included regardless of height; those taller than the average surrounding height within 300 m must be included; and a demolished-site construction scenario is required if the existing building is over 40 m.",
+   "fix": "Add these rules to the ContextSpec checklist with S43 clause links."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M03",
+   "issue": "The 'unresolved relationships' for gaps, podia and separation ignore well-known wind-engineering literature. Blocken et al. (2008, J. Eng. Mech.) on the Venturi effect in passages found wind-blocking rather than classic Venturi acceleration. Tsang, Kwok and Hitchcock (2012, Build. Environ. 49) tested how tall-building dimensions, separation and podium affect pedestrian wind. Both citations are recalled.",
+   "fix": "Open these and quantify the M03 rules where possible. Downgrade the 'narrow gaps accelerate' rule to depend on direction and on whether the gap is a through-passage."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M03",
+   "issue": "The composite 0-100 risk index has weights that are 'to be recalibrated against CFD', but no calibration dataset or procedure exists. If it reaches the boards, it gives false precision to a jury-facing output.",
+   "fix": "Show per-rule flags in PRES and hide the composite index until a calibration (at least about 10 massings with L2 runs) is logged."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M01",
+   "issue": "Stability is ignored. Arctic outflow and clear winter nights are stably stratified, and sea breezes are thermally driven. Neutral gradient-height transfer and neutral ABL CFD misrepresent these hours, which are exactly the cold-and-windy events M06 cares about. Calm and variable-direction records (ECCC codes calm as direction 0) are also not handled and could be binned into the north sector.",
+   "fix": "Tag hours by a simple stability proxy (cloud, temperature, time of day) and report outflow-hour shares separately. Exclude calms from the sector bins and count them in their own class."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P03-M07",
+   "issue": "Landscaping credit is not ruled out of the baseline. Toronto says landscaping should not be considered unless agreed with the City; City of London says to ignore landscape elements under 8 m in baseline studies. A 'City in Nature' scheme will be tempted to take credit for planting.",
+   "fix": "Add a rule: baseline and massing runs exclude vegetation. Trees enter only mitigation scenarios, as porous media with a declared leaf area density and seasonal foliage state, and are flagged as dependent on approval."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "ECCC 1-, 2- or 10-minute mean speeds 'read higher than hourly means, so unconverted data inflate exceedances'; a conversion factor should be applied to reach hourly means.",
+   "why_false": "A single short-period mean sampled at the observation time estimates the same expected value as the hourly mean; only its variance differs. Gust-factor (Durst/ESDU) curves describe the maximum short-duration average within an hour, which does not apply to a single sample.",
+   "correction": "Treat sampled ECCC means as hourly-mean estimates with no multiplicative conversion. Log the sampling period as metadata, and derive pedestrian gusts from VAF and turbulence only.",
+   "evidence": "ECCC glossary (S44, https://climate.weather.gc.ca/glossary_e.html): speed is 'the average speed during the one-, two- or ten-minute period ending at the time of observation', i.e. a sample, not a maximum. The Durst-curve definition is standard wind-engineering knowledge (recalled, not opened)."
+  },
+  {
+   "claim": "CFD acceptance bands FAC2 >= 0.5, |FB| <= 0.3, NMSE <= 4 (Chang and Hanna 2004) are suitable placeholders for pedestrian wind-speed validation.",
+   "why_false": "These bands come from air-quality dispersion evaluation (concentrations spanning orders of magnitude). For speed they allow factor-of-2 and 30% bias errors, each of which shifts comfort classes. Recalled, Chang and Hanna (2004) suggest NMSE below about 1.5, not 4.",
+   "correction": "Use class-agreement fraction and exceedance-probability bias against tunnel data on AIJ Cases A and B, plus the VDI 3783-9 hit rate once opened. Keep FAC2, FB and NMSE descriptive only.",
+   "evidence": "Chang and Hanna 2004, Meteorol. Atmos. Phys. 87:167-196 (recalled, not opened this round). The spec itself reports a -1% to -35% mean-speed bias in S06, which a |FB| <= 0.3 band would partly accept."
+  },
+  {
+   "claim": "City Lawson comfort is assessed 'for 95% of comfort hours' (the 06:00-23:00 convention).",
+   "why_false": "The City of London 2019 guideline gives no hours restriction. Its Annex A builds seasonal and annual Weibull fits from all hours of Heathrow (1973-2017) and City Airport (1988-2017) data, and states the coefficients 'are not valid for use in other areas'.",
+   "correction": "Run the City Lawson CriteriaSet on 24 h data for comfort and safety, using the Vancouver climate, with only the thresholds transferred.",
+   "evidence": "https://www.cityoflondon.gov.uk/assets/Services-Environment/wind-microclimate-guidelines.pdf : Annex A, 'Background' and 'Usage'; the seasonal results section lists worst season plus June-August with no hours window (text extracted this round)."
+  },
+  {
+   "claim": "A probe in an empty domain should reproduce the undisturbed profile speed at 1.5 m within 5% when the ABL uses Eddy3D defaults (Zref 10 m, z0 1 m).",
+   "why_false": "With z0 = 1 m, 1.5 m lies in the roughness sublayer where the log law is not physical. Standard rough wall functions then require first-cell heights of about 20 m (ks of about 9.793 z0/Cs), which conflicts with City of London near-ground meshing, so the test either fails or passes for the wrong reason.",
+   "correction": "Test horizontal homogeneity of U, k and epsilon at several heights (1.5 m, 10 m, H/2, H) at the building position. Use a small z0 on the explicitly modelled ground, and take the reference speed above 100 m.",
+   "evidence": "Eddy3D ABL docs (S46, re-opened this round): defaults Zref 10 m, z0 1 m; the page is silent on wall functions and the top boundary. Blocken, Stathopoulos and Carmeliet 2007, Atmos. Environ. 41:238-252 (recalled). City of London S43: 0.3 m cells and 3 prism layers below 1.5 m."
+  }
+ ],
+ "missing": [
+  "Downtown Vancouver rezoning wind reports (criteria family, station, seasons accepted by City staff); the most relevant 'which criteria apply in Vancouver' evidence",
+  "Per-sector roughness and fetch table (English Bay, Burrard Inlet, False Creek water vs city) with a named gradient-height transfer model",
+  "Horizontal-homogeneity test and separation of approach-flow z0 from explicitly modelled ground roughness",
+  "Inflow profile capped at gradient height and a declared top boundary condition for domains of about 1.8 km",
+  "Compute budget (cells, core-hours per direction) per fidelity level, and an L2-lite comparative level",
+  "Decision-level CFD validation (class agreement, exceedance bias) on AIJ Case A/B tall-building benchmarks",
+  "Atmospheric stability tagging (Arctic outflow, nocturnal stable hours, sea breeze)",
+  "Calm and variable-direction handling in the M01 binning",
+  "Cyclist comfort and safety along the arterial and bike routes (City of London has a cyclist section, S43)",
+  "Ice and snow shedding from a 244-305 m tower onto the public realm and transit plaza (pedestrian safety, links to SPAC/P10)",
+  "Pressure-driven drafts at the below-grade transit connection and tower entrances (stack and wind effects; link to SYST)",
+  "Rule excluding vegetation from baseline runs; tree porous-media parameters (leaf area density, seasonal foliage) for mitigation runs, linked to ECOL",
+  "Literature on podium, separation and passage effects (Tsang et al. 2012; Blocken et al. 2008) to quantify M03 rules",
+  "UTCI wind-height conversion source (Broede et al. 2012 operational procedure) and a probe-height-specific factor",
+  "M01 WindClimate per time base (TMYx and concurrent-30y) feeding M04 and M06"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Remove the mean-level averaging-time conversion in M01 and treat ECCC sampled means as hourly-mean estimates",
+   "Make the exposure correction per sector (water vs city fetch) with a named transfer model, and default the reference height to 100 m or more",
+   "Specify in M05 the ground-roughness and wall-function treatment, an inflow profile capped at gradient height, a top boundary, and a horizontal-homogeneity test replacing the 1.5 m empty-domain test",
+   "State a compute budget per fidelity level and add a comparative L2-lite level that entrants can actually run",
+   "Replace the dispersion-model validation bands with class-agreement and exceedance-bias validation on AIJ tall-building cases",
+   "Make M01 emit WindClimate per time base so the M06 TMYx default is consistent with M04",
+   "Obtain at least two downtown Vancouver rezoning wind reports and justify the default CriteriaSet from them, or state the result of the attempt"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M04: undefined velocity-reference chain M01->M05->M04",
+   "status": "addressed",
+   "residue": "ReferenceSpec, gate and test added, but the site roughness is a single value rather than per sector, the default reference stays near 10 m with z0 = 1 m, and the 1.5 m empty-domain test is ill-posed in the roughness sublayer"
+  },
+  {
+   "item": "MAJOR M02: merged 'RWDI/Toronto' default criteria",
+   "status": "addressed",
+   "residue": "Five separate CriteriaSets; Toronto 2022 default re-checked against Table 3. Vancouver practice is still not used to justify the default."
+  },
+  {
+   "item": "MAJOR M04: safety criterion applied regardless of family",
+   "status": "addressed",
+   "residue": "City Lawson 15 m/s at 0.022% confirmed in S43 this round; the City Lawson set wrongly inherits the 06:00-23:00 comfort hours"
+  },
+  {
+   "item": "MAJOR M05: context radius 350-400 m too small; no domain/blockage rule",
+   "status": "partly",
+   "residue": "Radius max(400 m, about 2H) adopted; domain and blockage are still 'unverified' with no rule or compute estimate; City of London 300 m consented-building rule missing"
+  },
+  {
+   "item": "MAJOR M04: core module depends on v1 M05",
+   "status": "addressed",
+   "residue": "Typed import, a banner and an Eddy3D guide; entrants without Rhino 8 still get M03 only"
+  },
+  {
+   "item": "MAJOR M06: non-concurrent TMYx temperature with 30-year wind",
+   "status": "partly",
+   "residue": "Time-base tag declared, but M01/M04 do not emit a TMYx WindClimate or ProbeWindSeries, so the default TMYx run has no consistent wind input"
+  },
+  {
+   "item": "MAJOR M06: pythermalcomfort NaN outside 0.5-17 m/s",
+   "status": "addressed",
+   "residue": "Clip, exclude and count rule logged as a team assumption"
+  },
+  {
+   "item": "MAJOR M05: Pearson r band used as pass/fail",
+   "status": "partly",
+   "residue": "r is demoted and its range corrected to 0.61-0.84, but the replacement 'FAC2 at least 0.5, absolute fractional bias at most 0.3, NMSE at most 4' comes from dispersion modelling, permits class-shifting speed errors, and the NMSE value appears misquoted"
+  },
+  {
+   "item": "MAJOR M04: rain and weather protection missing",
+   "status": "addressed",
+   "residue": "Added to M06 as relative indices marked unverified; ISO 15927-3 and Vancouver weather-protection guidance still unopened"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P03-S43",
+   "url": "https://www.cityoflondon.gov.uk/assets/Services-Environment/wind-microclimate-guidelines.pdf",
+   "ok": true,
+   "note": "Text extracted with pdftotext. Confirmed: City Lawson 2.5/4/6/8 m/s on mean and GEM at 5%; safety 15 m/s at 0.022%; 36 directions; 400 m model radius plus taller upwind buildings; consented buildings taller than average within 300 m; 0.3 m cells, 10 cells per canyon, 3 prism layers below 1.5 m; avoid standard k-epsilon; reference height ideally above 100 m; scale factors 0.96 (100 m) to 1.48 (600 m); climate coefficients 'not valid for use in other areas'; no comfort-hours window; features over 0.5 m must be modelled; ignore landscape under 8 m in baseline; worse of mean and GEM governs."
+  },
+  {
+   "source_id": "P03-S01",
+   "url": "https://www.toronto.ca/wp-content/uploads/2022/03/8f9c-CityPlanning-ToR-Wind-Guide.pdf",
+   "ok": true,
+   "note": "Cached PDF re-extracted. Confirmed: Area 1 High over 100 m; 16 CFD directions; COST 732; two-equation RANS or LES; 'CFD is not suited to predicting wind patterns for safety-based design issues', although safety may be assessed numerically or by experience; 30 years of hourly data with terrain correction to gradient height (600 m example); four seasons; 06:00-23:00 comfort, 24 h safety; Table 3 10/15/20 km/h at 80%; 90 km/h gust at 0.1%; GEM = max(mean, gust/1.85) with gust = mean + 3 RMS; low-wind note refers to wind speed, not GEM; features under 1 m."
+  },
+  {
+   "source_id": "P03-S02",
+   "url": "https://www.hamilton.ca/sites/default/files/2026-02/pedguidelines-wind-study-ph1proposed.pdf",
+   "ok": true,
+   "note": "Cached PDF re-extracted. Confirmed: qualitative CFD may simulate prevailing directions only; 36 tunnel directions; 400 m; 30 years of hourly data 'on a four-season basis' while listing only summer May-Oct and winter Nov-Apr; 06:00-23:00 comfort; GEM gust/1.85; 20% exceedance."
+  },
+  {
+   "source_id": "P03-S46",
+   "url": "https://docs.eddy3d.com/latest/components/Atmospheric_Boundary_Layer/",
+   "ok": true,
+   "note": "Defaults confirmed: U 5 m/s, Zref 10 m, z0 1 m, Zgnd as displacement for the log law. Silent on wall functions, ground roughness treatment, horizontal homogeneity and top boundary/gradient height."
+  },
+  {
+   "source_id": "P03-S44",
+   "url": "https://climate.weather.gc.ca/glossary_e.html",
+   "ok": true,
+   "note": "Not re-fetched; spec extract ('average over a one-, two- or ten-minute period ending at the observation time') taken as given and shows a sampled mean, which contradicts the spec's inflation claim."
+  },
+  {
+   "source_id": "n/a",
+   "url": "https://www.google.com/search (WebSearch)",
+   "ok": false,
+   "note": "Web-search budget for the session was exhausted, so Vancouver rezoning wind reports, COST 732, VDI 3783-9, Chang and Hanna 2004, Blocken 2007/2008, Tsang 2012 and the Broede 2012 full text could not be retrieved; those items are marked recalled."
+  }
+ ],
+ "verdict": "Round 2 is a substantial improvement. The reference-chain BLOCKER and the criteria-mixing errors are fixed, and the City of London, Toronto and Hamilton figures check out against the primary texts. The CFD and data physics are not yet sound for entrants. The M01 averaging-time 'conversion' would bias every speed downward. Exposure correction ignores the water-versus-city fetch around the downtown peninsula. The M05 ABL set-up (z0 = 1 m with 0.3 m cells, a log law up to about 1.8 km, no top boundary condition) cannot satisfy the proposed homogeneity test. The replacement validation bands come from dispersion modelling and tolerate class-shifting errors. Compute cost is unstated. The M06 TMYx default lacks a matching wind series. The default criteria still need justifying from Vancouver rezoning reports. Fix these before entrants rely on class maps."
+}

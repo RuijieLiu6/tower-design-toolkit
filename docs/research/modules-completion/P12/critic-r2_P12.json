@@ -1,0 +1,318 @@
+{
+ "expert_role": "Facade engineer (independent reviewer, round 2, packet P12)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M06",
+   "issue": "The spec says the City's TEUI/TEDI/GHGI limits 'were not read' and shows ENER results without a limit line. The open BC Publications consolidation of VBBL 2019 (Division B, Section 10.2, consolidated to 27 Feb 2025) is readable. Table 10.2.2.5.A1 gives TEUI/TEDI/GHGI of 120/30/3.0 for Group C over 6 storeys, 140/20/4.0 for hotel, 100/20/3.0 for office and 120/20/3.0 for Group D/E except office. Note (1) sends multi-occupancy buildings to Section 5 of the City Energy Modelling Guidelines. Article 10.2.1.3 also requires airtightness testing (10.2.2.21) and entrance vestibules (10.2.2.8) for 4+ storey residential and commercial buildings. A mixed-use tower is judged against occupancy-weighted limits, not one line.",
+   "fix": "Load the Table 10.2.2.5.A1 values as legacy_version reference lines (edition: VBBL 2019 consolidated 27 Feb 2025). Compute an area-weighted limit per occupancy mix, flagged as 'method per CoV Energy Modelling Guidelines s.5, unread'. Add airtightness-testing and vestibule flags to M06 and to the M01 entry sequence. Re-check against VBBL 2025 before any badge, and cite the open bcpublications URL as a new source record."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M06",
+   "issue": "Glazing is described by 'glazing U/SHGC/VLT' with no assembly level and no facade system type. For a supertall curtain wall, whole-assembly U (frame, spacer and edge-of-glass) and the spandrel zone govern TEDI. The spandrel is opaque but carries curtain-wall framing and backpan bridging, so its effective U is far worse than a nominal wall. Splitting the facade only into 'glazing' and 'opaque' overstates performance. Fenestration labelling in VBBL 10.2.2.7(3) is per product (factory-assembled versus site-assembled).",
+   "fix": "Add a facade-system parameter (unitized curtain wall, window wall, punched window in a rainscreen wall, double skin) that sets default assemblies. Require whole-assembly U and SHGC (NFRC 100/200 or CSA A440.2 basis) rather than centre-of-glass values. Model spandrel as its own assembly class with its effective U. Name the BC Hydro Building Envelope Thermal Bridging Guide and the City Energy Modelling Guidelines as psi/chi sources to open; the BC Housing database page states no licence."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-ALL",
+   "issue": "The dependency graph has cycles that a Grasshopper-like canvas, being a DAG, cannot evaluate. M06 depends on M07 (assembly build-ups) while M07 depends on M06 (areas by assembly). M02 takes glazing from M06 while M06 takes view scores from M02. M03 takes reflectance from M07 ('reflectance feedback') while M07 lists M03.",
+   "fix": "Split each loop into an upstream definition node and a downstream evaluation node. For example, an M06a facade layout node (WWR, system, openings) feeds M02, M03 and M07, and M06b (energy, bird and VLT checks) consumes M07 assemblies and M02 scores. Alternatively, mark the feedback edges as explicit 'iterate' links that the user triggers manually. State the evaluation order in the spec."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M06",
+   "issue": "No module checks exterior solar reflection from a 244-305 m glazed tower onto streets, the below-grade link entrances, the public realm and neighbouring towers. Concave or faceted glass can focus sunlight, and reflected glare reaches drivers and pedestrians. This bears on human scale (40%) and urban integration (10%), and it is a standard facade-engineering study for supertalls. Only interior glare (DGPe) is covered.",
+   "fix": "Add an exterior solar-reflection metric to M06, run with three-mesh-bvh specular ray tracing at hourly sun positions. Report reflected-glare hours on the street-level and neighbour-facade receptors, and flag concave glass. No threshold until a source is opened, so status is team_assumption. Link the result to the glass reflectance and outer-coating choice."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M07",
+   "issue": "Facade embodied carbon has no data path. The CLF BC guide excludes glass, yet M06 states that higher WWR raises 'glazing embodied carbon'. M07 inputs list concrete, rebar, steel and timber from STRC and only 'm2 per assembly' from M06, with no factors for IGUs, aluminium extrusions, spandrel backpans or curtain-wall units. For a fully glazed supertall, the envelope is a material part of the upfront carbon, and the WWR trade-off cannot be shown.",
+   "fix": "Add facade material categories (flat glass and IGU, aluminium extrusion with a recycled-content flag, steel and stone panels, unitized curtain-wall EPDs) taken from EC3/openEPD or CLF Material Baselines (CC BY 4.0), each with a data-quality flag. Compute kgCO2e per m2 of facade by system and WWR, and show the WWR-versus-carbon curve beside the TEDI result."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06",
+   "issue": "The method bins faces into N/E/S/W after rotating to true north. The downtown street grid is skewed roughly 45 degrees from true north (the spec itself notes the skewed north arrow), so a block-aligned tower's faces fall near bin boundaries. A few degrees of rotation then flips a face's bin and its WWR and solar rules.",
+   "fix": "Use continuous azimuth or 8 bins for M06 and M02 roll-ups. Show the results for +/- 5 degrees of proxy rotation, as M02 already does."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06",
+   "issue": "The WWR reference lines come only from the US ASHRAE 90.1 Appendix G baseline. Under the VBBL performance path, absolute TEUI/TEDI/GHGI limits apply and no 90.1 baseline is used. VBBL 10.2.2.3(d)-(e) (NECB path) does give a Vancouver-sourced reference: the reference-building WWR is capped at 40% and assembly SHGC at 0.36. There is also no line for the residential portion.",
+   "fix": "Add the VBBL NECB-path 40% WWR and 0.36 SHGC as legacy_version reference lines with clause numbers, keep the App G lines labelled 'US reference', and add a residential line or state that none exists."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06",
+   "issue": "The bird metrics describe UBC 'Tiers 1-3' with 55% as the floor. The Backgrounder has four tiers. Tier 4 sets no percentage but requires treating 'glazing near existing bird habitat or known migratory paths'. All tiers share fly-through elimination and the 5 m corner rule, and Tiers 1-2 require treating all glazing adjacent to vegetation and/or water. Above the 16 m zone and the sky gardens, the spec gives no treatment or risk rule for the upper tower on the Pacific Flyway.",
+   "fix": "Cite all four tiers. Add an upper-tower risk flag that combines night-lighting state, glass reflectivity and proximity to water (Burrard Inlet / False Creek, from the M02 proxy). Mark it as a judgement, not a tier result."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06",
+   "issue": "The treated-share formula '(treated glass + overhang area counted up to 1:1) / glass in zone' adds overhang area to glass area. UBC says only that overhang shading 'can also count as treated area up to a 1:1 ratio'. The usual reading is that glass within a height below the overhang equal to its projection counts as treated. As written, the formula can double count or exceed 100%.",
+   "fix": "Define the credit geometrically: glass area lying within a vertical distance of at most the overhang projection depth below the overhang counts as treated, without exceeding the glass area. Mark the definition 'per UBC citing CSA A460, standard text unopened'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M03",
+   "issue": "The EN 17037 glare metric says time conditions were not read. The REHVA table states the assessment as 'DGPe<5%', meaning the DGP level may be exceeded for no more than 5% of the reference period. Without that condition, an ingested DGP raster has no time criterion.",
+   "fix": "Encode the levels as 'DGP above 0.45/0.40/0.35 for at most 5% of occupied daylight hours (REHVA, secondary)', with view direction still unresolved."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M02",
+   "issue": "The LEED v5 views metric omits rules stated on LEEDuser: views into interior atria may count for up to 30% of the required area, auditoriums, video-conference rooms and gymnasiums are excluded, and VLT must be 'above 40%' (the spec's good band says '40% or more'). The flag calling the LEEDuser page 'internally inconsistent on Option 5 points' no longer holds: Path 3 is 1 pt and Path 4 is 1-4 pts at 40/55/65/75%.",
+   "fix": "Add the atrium allowance and the exclusions, use a strict >40% VLT test in M02 and M06, list the 55% and 65% intermediate sDA steps in M03, and update the flag text."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06",
+   "issue": "Balconies and winter gardens are routed to 'other packets', but VBBL 2019 (consolidated 2025) Sentence 10.2.1.1(5) requires balconies, including enclosed ones, to be unconditioned space outside the envelope. This changes how an enclosed winter garden on residential or hotel floors counts for thermal performance, WWR and bird glazing.",
+   "fix": "Add a balcony/winter-garden facade type in M06, modelled outside the thermal envelope, and record the clause as legacy_version until it is checked in VBBL 2025."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06",
+   "issue": "Facade-engineering feasibility items are not routed anywhere: wind pressures at 300 m (which need a wind-tunnel study), seismic inter-storey drift for curtain-wall joints in a high-seismic city, perimeter fire containment and spandrel height, condensation risk at frames for humid residential floors, rainscreen and water management, and building maintenance units (BMU) and access for cleaning. The 'limits' text names some of them but assigns no owner.",
+   "fix": "Add a non-scored facade feasibility checklist to M06, with an owner packet (STRC, SYST) and status 'not assessed' for each item. Print it on the facade board notes so that entrants do not present unresolved glass corners or sloped glazing as buildable."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-X01",
+   "issue": "The status enum still lacks verified_secondary, proxy and legacy_version, so X01 must parse free-text status_detail and bracket tags in 'basis' to decide badges. Mixed details such as 'legacy_version (v4); verified_secondary (v5)' cannot be parsed reliably, and a parsing error would show or hide badges wrongly.",
+   "fix": "Add a structured evidence_status field (enum, one value per edition and source) in the platform data model now, even if the orchestrator schema lags, and have X01 read only that field."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-ALL",
+   "issue": "The core release (M04 at 6-8 days, the M06 core cut at about 4 days and X01 at 2-3 days, so 12-15 person-days) must land by 13 Nov, 23 days away, alongside other packets. The M06 core cut also depends on M07 assemblies through the cycle above.",
+   "fix": "Define the M06 core cut with manual entry of whole-assembly U, SHGC and VLT (no M07 dependency), and defer the honeybee/gbXML export to v1."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "VBBL energy and emissions limits (TEUI, TEDI, GHGI) by occupancy for Part 3 towers could not be read, so no numbers can be given and ENER results show without a limit line.",
+   "why_false": "The free BC Publications consolidation of VBBL 2019 Division B Section 10.2 (consolidated to 27 Feb 2025) is openly readable and tabulates the limits.",
+   "correction": "Show the Table 10.2.2.5.A1 values as legacy_version reference lines (TEUI/TEDI/GHGI: Group C over 6 storeys 120/30/3.0; hotel and motel 140/20/4.0; office 100/20/3.0; Group D/E except office 120/20/3.0). Weight them by occupancy area, citing CoV Energy Modelling Guidelines s.5 (unread), and verify against VBBL 2025 before any badge.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486 (Section 10.2 Rev13): Table 10.2.2.5.A1 'Maximum Energy Use and Emissions Intensities'; Article 10.2.1.3 requires Group C, D and E buildings of 4+ storeys to comply with 10.2.2.5, vestibules (10.2.2.8) and airtightness testing (10.2.2.21)."
+  },
+  {
+   "claim": "UBC bird-friendly policy has Tiers 1-3, with 55% treated glazing (Tier 3) as the lowest level.",
+   "why_false": "The UBC Backgrounder's Table 1 lists four tiers. Tier 4 has no percentage but requires treating glazing near existing bird habitat or known migratory paths, and fly-through elimination and the 5 m corner rule are 'common to all four tiers'.",
+   "correction": "Cite four tiers, and add an upper-tower and migratory-path risk flag for a Pacific Flyway site.",
+   "evidence": "https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf, Table 1 'Comparing Bird-Friendly Tiers' (Tier 4: treat or cover glazing near existing bird habitat or known migratory paths)."
+  },
+  {
+   "claim": "The LEEDuser v5 EQc2 page is internally inconsistent on Option 5 points.",
+   "why_false": "On the page as fetched today, Path 3 (proximity to windows) is worth 1 point and Path 4 (sDA simulation) 1-4 points at 40/55/65/75%.",
+   "correction": "Update the UNVERIFIED flag text, and keep v5 as verified_secondary until the USGBC credit text is opened.",
+   "evidence": "https://leeduser.buildinggreen.com/credit/NC-v5/EQc2 (fetched 21 Oct 2026)."
+  }
+ ],
+ "missing": [
+  "VBBL 2019 (consolidated 27 Feb 2025) Section 10.2 as an open, legacy_version source record, with the TEUI/TEDI/GHGI table and the multi-occupancy weighting rule",
+  "Airtightness testing (VBBL 10.2.2.21) and entrance vestibule (10.2.2.8) flags",
+  "Facade system typology (unitized curtain wall, window wall, punched, double skin) and whole-assembly U/SHGC with a spandrel assembly class",
+  "BC Hydro Building Envelope Thermal Bridging Guide and City of Vancouver Energy Modelling Guidelines as sources to open for psi/chi values and modelling rules",
+  "Exterior solar reflection and glare onto streets, the transit-link entrance, the public realm and neighbouring towers",
+  "Facade embodied carbon (glass/IGU, aluminium, curtain-wall units) and a WWR-versus-kgCO2e trade-off",
+  "Facade feasibility checklist with owners: wind pressure, seismic drift, perimeter fire containment and spandrel, condensation, rainscreen, BMU and cleaning access",
+  "Balcony and winter-garden treatment as unconditioned space (VBBL 10.2.1.1(5))",
+  "Upper-tower bird risk (UBC Tier 4 migratory paths, reflectivity, night lighting at the crown)",
+  "Continuous-azimuth orientation roll-up for a grid skewed about 45 degrees from true north",
+  "A cycle-free evaluation order for M02, M03, M06 and M07",
+  "The City Bird Friendly Design Guidelines, CSA A460, VBBL 2025, City Energy Modelling Guidelines and the BETB guide all remain unread (HTTP 403, or file too large); the web-search budget was exhausted in this review, so the 2025 embodied-carbon adoption could not be re-searched"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Load the VBBL 2019 (Feb 2025 consolidation) TEUI/TEDI/GHGI values as legacy_version, occupancy-weighted reference lines, and verify them against VBBL 2025 before any badge",
+   "Replace glazing-only U/SHGC with whole-assembly values, a facade-system parameter and a spandrel class",
+   "Remove the dependency cycles M02-M06, M06-M07 and M03-M07, or mark them as explicit user-triggered iterations",
+   "Add an exterior solar-reflection check and facade embodied-carbon factors before v1 (10 Dec)",
+   "Fix the bird-zone overhang formula and cite all four UBC tiers"
+  ]
+ },
+ "verdict": "Round 2 fixed every round 1 BLOCKER. Code jurisdiction, occupancy bases, evidence statuses (with the X01 gate), the embodied-carbon scope, FSR counting, the VGA model and the bird checks are now handled honestly. From a facade standpoint, the packet still treats glazing as centre-of-glass numbers with no system type or spandrel. It claims the City's TEUI/TEDI/GHGI limits are unreadable, although the open VBBL 2019 consolidation tabulates them. It also has dependency cycles a DAG canvas cannot run, and it ignores exterior solar reflection and facade embodied carbon. None of these blocks the 13 Nov core cut if M06 takes manual assembly inputs, so the packet passes with conditions.",
+ "previous_round": [
+  {
+   "item": "BLOCKER: wrong governing code (BCBC/Step Code)",
+   "status": "addressed",
+   "residue": "VBBL values were still treated as unreadable, but the 2019 consolidation (Feb 2025) is open on bcpublications. VBBL 2025 itself is still unread."
+  },
+  {
+   "item": "BLOCKER: M04 mixed area and population bases",
+   "status": "addressed",
+   "residue": "Four bases, area-basis tags and the sleeping-room rule are in place. The Part 3 wording is still unverified."
+  },
+  {
+   "item": "BLOCKER: metric statuses contradict evidence",
+   "status": "addressed",
+   "residue": "The X01 gate is added, but the enum still lacks the new statuses and X01 must parse free text in status_detail."
+  },
+  {
+   "item": "MAJOR: embodied-carbon A1-A3 vs cap scope",
+   "status": "addressed",
+   "residue": "Adoption of the 2025 reduction is still unconfirmed. VBBL 2019 s.10.4 (July 2023) confirms 'not more than double a functionally equivalent baseline'."
+  },
+  {
+   "item": "MAJOR: 9.0 FSR counting rule",
+   "status": "addressed",
+   "residue": "The floor-area definition is still unresolved (brief PDF unopened)."
+  },
+  {
+   "item": "MAJOR: M01 fractional transparency / two graphs",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: M01 compute cost",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: M02 hypothetical site / proxy block",
+   "status": "addressed",
+   "residue": "Depends on the SITE packet recording the proxy."
+  },
+  {
+   "item": "MAJOR: LEED currency (v5) and view types",
+   "status": "addressed",
+   "residue": "Atrium 30% allowance and exclusions missing; strict >40% VLT."
+  },
+  {
+   "item": "MAJOR: WWR baseline used as limit",
+   "status": "addressed",
+   "residue": "The reference lines are US Appendix G only; the VBBL NECB-path 40% and SHGC 0.36 lines are available."
+  },
+  {
+   "item": "MAJOR: bird-friendly check incomplete",
+   "status": "addressed",
+   "residue": "Tier 4 (migratory paths) is missing and the overhang-credit formula is ambiguous."
+  },
+  {
+   "item": "MAJOR: bird/view conflict wrongly unresolved",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: Indigenous consultation status",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: M05 physical stacking drivers",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: M03 glare metric",
+   "status": "addressed",
+   "residue": "The 5% exceedance condition ('DGPe<5%' in REHVA) is not encoded."
+  },
+  {
+   "item": "MAJOR: M08 supertall comfort items",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: EN 17037 area share and eye heights",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: Turner R2 correction",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: concrete like-for-like and licence",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: k factor sourcing",
+   "status": "partly",
+   "residue": "ASHRAE draft is still a snippet and Reinhart is abstract only; k remains a team preset."
+  },
+  {
+   "item": "MINOR: A/E/I/O/U/X citation",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: activity-setting densities",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: LEED views owner M02 vs M03",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: schedule tightness",
+   "status": "partly",
+   "residue": "Adding X01 brings the core to 12-15 person-days in 23 days, and the M06 core depends on M07 through a cycle."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P12-S56",
+   "url": "https://leeduser.buildinggreen.com/credit/NC-v5/EQc2",
+   "ok": true,
+   "note": "Confirms the views thresholds (75%/90%, 2/3 pts), VLT 'above 40%', 3 x head height, view types, the 6 m / 30% proximity path (1 pt), sDA 40/55/65/75% (1-4 pts) and the ASE >20% glare explanation. The spec omits the atria allowance (up to 30%) and the room exclusions. Page is not internally inconsistent now."
+  },
+  {
+   "source_id": "P12-S07",
+   "url": "https://www.rehva.eu/rehva-journal/chapter/en-17037-a-step-forward-new-computational-methods-with-sunlight-daylight-and-quality-views-for-regenerative-design",
+   "ok": true,
+   "note": "Table values match the spec. Glare is assessed as 'DGPe<5%' (5% exceedance), which the spec does not encode. View out is point-in-space (Annex C)."
+  },
+  {
+   "source_id": "P12-S31",
+   "url": "https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf",
+   "ok": true,
+   "note": "Decoded locally (read only). Four tiers, with Tier 4 covering migratory paths. Confirms 90/85/55% up to 16 m or 4 m above the tallest vegetation, corners 5 m, Dark Sky lighting, overhang shading 'up to a 1:1 ratio' citing CSA 2019, markers 5 cm and lines 5/10 cm."
+  },
+  {
+   "source_id": "P12-S32",
+   "url": "https://www.constructioncanada.net/a-national-standard-for-bird-friendly-building-design/2/",
+   "ok": true,
+   "note": "Matches the spec: 16-25 m tied to mature tree height, 90% treated, non-vision glass fully treated, 50 mm 2 x 2 rule, 100 x 100 mm. Standard number not named in the body."
+  },
+  {
+   "source_id": "P12-S33",
+   "url": "https://guidelines.vancouver.ca/guidelines-bird-friendly-design.pdf",
+   "ok": false,
+   "note": "HTTP 403 again."
+  },
+  {
+   "source_id": "P12-S35",
+   "url": "https://thermalenvelope.ca/",
+   "ok": true,
+   "note": "BC Housing (c) 2014-; no licence or terms; no psi or curtain-wall content visible on the landing page."
+  },
+  {
+   "source_id": "external-VBBL2019-s10.2",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486",
+   "ok": true,
+   "note": "Consolidated to 27 Feb 2025. Table 10.2.2.5.A1 gives TEUI/TEDI/GHGI by occupancy. 10.2.1.3 requires 10.2.2.5, vestibules and airtightness testing for 4+ storey buildings. Per-assembly U limits (10.2.2.6/10.2.2.7, curtain wall 1.44) apply only to 1-3 storey residential and houses, so the spec's 'no per-assembly limit for Part 3' holds. 10.2.2.3 (NECB path): reference WWR capped at 40%, SHGC at 0.36. 10.2.1.1(5): balconies unconditioned."
+  },
+  {
+   "source_id": "external-VBBL2019-s10.4",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/1069567153",
+   "ok": true,
+   "note": "Consolidated to 25 Jul 2023: whole-building embodied carbon 'not more than double' a functionally equivalent baseline per the CoV Embodied Carbon Guidelines. The 800 absolute figure is not in the by-law text, which is consistent with the spec."
+  },
+  {
+   "source_id": "external-VBBL2025-bcpublications",
+   "url": "https://free.bcpublications.ca/civix/content/public/vbbl2025/?xsl=/templates/browse.xsl",
+   "ok": false,
+   "note": "HTTP 404; VBBL 2025 text still unread."
+  },
+  {
+   "source_id": "external-CoV-EnergyModellingGuidelines",
+   "url": "https://vancouver.ca/files/cov/energy-modelling-guidelines.pdf",
+   "ok": false,
+   "note": "HTTP 403; thermal-bridging and multi-occupancy rules unread."
+  },
+  {
+   "source_id": "external-BETB-guide",
+   "url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/builders-developers/building-envelope-thermal-bridging-guide-v1-6.pdf",
+   "ok": false,
+   "note": "File exceeded the fetch size limit; not read. WebSearch budget for this turn was exhausted, so the 2025 embodied-carbon adoption and City bird guideline could not be re-searched."
+  }
+ ]
+}

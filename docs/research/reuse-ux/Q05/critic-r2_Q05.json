@@ -1,0 +1,339 @@
+{
+ "expert_role": "Claude Code power user and agent-tooling engineer (build-vs-reuse and token-efficiency reviewer)",
+ "previous_round": [
+  {
+   "item": "BLOCKER: Citations sources panel on a static Pages SPA (keys and auth)",
+   "status": "addressed",
+   "residue": "Offline Batch precompute plus a Worker proxy plus opt-in in-memory BYOK is sound. The Worker is v1, which is fine because core only renders committed JSON. Anthropic browser CORS is still unconfirmed in current docs (I could not find it either)."
+  },
+  {
+   "item": "BLOCKER: community modules in a 'sandboxed Web Worker'",
+   "status": "addressed",
+   "residue": "The opaque-origin iframe design is correct. Two gaps remain. The separate origin needs real response headers, and a CSP 'sandbox' directive cannot be set from a meta tag; without it a top-level open defeats the sandbox. GitHub Pages cannot do either, which feeds the hosting finding below."
+  },
+  {
+   "item": "BLOCKER: geometry pipeline (viewer, IFC, SketchUp/Revit, booleans, shadow)",
+   "status": "addressed",
+   "residue": "Versions match npm: three 0.186.1, R3F 9.8.2, drei 10.7.9, web-ifc 0.0.78, manifold-3d 3.5.4, three-mesh-bvh 0.9.16. R3F 9.8.2 caps React below 19.4 (see the findings)."
+  },
+  {
+   "item": "MAJOR: cohort toolkit licences",
+   "status": "addressed",
+   "residue": "The GitHub API confirms the toolkit has no licence. The licence requests still have to be sent by 24 Oct; that is a team action."
+  },
+  {
+   "item": "MAJOR: A2 board export",
+   "status": "partly",
+   "residue": "Playwright page.pdf and an svg2pdf.js/jsPDF fallback are now named and a week-1 spike is planned, but the spike has not been run. The previous gate asked for a result."
+  },
+  {
+   "item": "MAJOR: Vega-Lite community specs",
+   "status": "addressed",
+   "residue": "The advisory is confirmed: CVE-2025-66648, High 7.2, vega-functions <=6.1.0, patched in 6.1.1, and the interpreter does not prevent it. vega-functions 6.2.0 is current."
+  },
+  {
+   "item": "MAJOR: undo/redo",
+   "status": "addressed",
+   "residue": "zundo was adopted, but its staleness is misstated: the last release was 23 months ago, not 11 (see false_assumptions)."
+  },
+  {
+   "item": "MAJOR: sun and shadow via Pyodide",
+   "status": "addressed",
+   "residue": "SunCalc 2.1.1 plus BVH is in core. The npm licence field is empty; GitHub shows BSD-2-Clause."
+  },
+  {
+   "item": "MAJOR: prompt-caching cost realism",
+   "status": "addressed",
+   "residue": "I re-checked all the cost-table arithmetic against the pricing page and it is correct ($0.17, $0.21, $0.018, $0.085; Haiku $0.0085 and $0.0775)."
+  },
+  {
+   "item": "MAJOR: GitHub OAuth, registry PR flow, comments",
+   "status": "addressed",
+   "residue": "Supabase provider_token behaviour and the Discussions webhook preview are still unverified. Fork-and-PR is acceptable."
+  },
+  {
+   "item": "MAJOR: supply-chain review (Impeccable)",
+   "status": "addressed",
+   "residue": "The README also says the skill downloads an engine binary into ~/.impeccable/bin, and Claude Code hooks can trigger that download even when the launcher command is denied. The packet does not mention this."
+  },
+  {
+   "item": "MAJOR: evaluation modules beyond sun",
+   "status": "addressed",
+   "residue": "'Not modelled' stubs, an OpenStudio sidecar, a PyNite spike and EC3 are listed. No numbers are invented."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Hosting split: GitHub Pages SPA + Cloudflare Pages sandbox origin + Cloudflare Worker proxy",
+   "issue": "The packet leaves 'Pages vs Workers static assets' unconfirmed, and it lists the GitHub Pages header gaps (CSP, COOP/COEP, the CSP sandbox directive, SPA fallback) as unresolved. Cloudflare's Pages docs now say 'Start new projects with Workers'. Workers static assets are free and unlimited for asset requests, support _headers (including a CSP example) and not_found_handling='single-page-application', and allow 20,000 files at 25 MiB each on the Free plan. That one product would close four open flags, but the packet never evaluates it as the SPA host.",
+   "fix": "Run a 1-hour spike: deploy the Vite build to Workers static assets with _headers (CSP, COOP/COEP) and SPA fallback, and serve the sandbox origin from a second Worker with a 'Content-Security-Policy: sandbox allow-scripts' header. If the spike passes, use one Cloudflare account for the SPA, sandbox and key proxy, and keep GitHub Pages only for docs. If the team stays on Pages, add coi-serviceworker (MIT) for cross-origin isolation, set Vite 'base' to the repo path, and use hash routing. Either way, drop Cloudflare Pages from the plan."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Core sequencing: precomputed citations (core) depend on Docling (v1)",
+   "issue": "The 13 Nov core ships 'precomputed citations in a Sources panel', but the only ingestion path is Docling, which is tagged v1 and needs a human review per document. The Citations API takes PDFs directly (base64, URL or Files API file_id) and returns page-location citations, and custom-content documents give block-level citations. So Docling is not needed in core. Separately, committing converted VTC brief or by-law text to a public repo needs a reuse check first.",
+   "fix": "For core, send the source PDFs straight to the Batch API with citations enabled and commit only the citation JSON (cited_text plus page) and source URLs, not full text. Move Docling to v1, when Markdown is needed for search or for custom-content chunking. Keep each module's slice under 100k tokens if Haiku is used. Measure the PDF token cost per page before batching."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Core schedule: 19.5 person-days against 18 working days, with spikes unbudgeted",
+   "issue": "The estimate leaves no buffer. It assumes one full-time person-equivalent from two students who have other courses, and it leaves out the five or more 30-60 minute spikes, the Node install, Claude Code setup, the licence-request admin and the 13 Nov review prep. Of these, the A2 PDF spike was a gate condition last round and has not been run.",
+   "fix": "Add a spike line of about 1.5 days and a setup line of about 0.5 days, then set a hard cut list now. Cut first the third seed module, then the .3dm import (keep OBJ/glTF plus the block builder), then the Sources panel polish. Run the A2 page.pdf spike in the first build week and record pass or fail as a flag."
+  },
+  {
+   "severity": "MINOR",
+   "item": "React version pin for R3F",
+   "issue": "@react-three/fiber 9.8.2 declares peer react '>=19 <19.4'. React latest is 19.3.1 (14 Oct 2026). create-vite will pull whatever React is latest, so as soon as React 19.4 ships, npm install fails with ERESOLVE or ends up with a mismatched renderer.",
+   "fix": "Pin react and react-dom to ~19.3.1 in package.json, record the reason in CLAUDE.md, and add Renovate or Dependabot grouping so React and R3F upgrade together."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Node pin via .nvmrc on Windows 11",
+   "issue": "The team is on Windows. nvm-windows does not read .nvmrc ('nvm use' with no argument fails), so the pin would be silently ignored.",
+   "fix": "Install Node 24 with fnm (reads .nvmrc and .node-version on Windows) or Volta (pins in package.json). Also add an 'engines' field of '>=22.12 <25' so CI and npm warn on drift."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Cloudflare AI Gateway missed as a reuse option",
+   "issue": "The plan hand-builds per-user rate limits in the Worker, while the Rate Limiting binding's Free-plan availability is undocumented and it only supports 10 s or 60 s periods. Cloudflare AI Gateway is 'Available on all plans' and adds caching, rate limiting, logging and analytics for both Anthropic and OpenAI. BYOK stored keys exist, but plan availability is not stated.",
+   "fix": "Route the Worker's upstream calls through AI Gateway for logs, spend analytics and coarse rate limits. Keep the Worker for JWT checks and origin allow-listing, and keep provider spend caps."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Claude Code plugin list",
+   "issue": "The allow-list says 'a TypeScript code-intelligence plugin' without naming one, and it routes frontend-design and skill-creator through the anthropics/skills marketplace. The official marketplace (anthropics/claude-plugins-official, Apache-2.0) already ships frontend-design, skill-creator, typescript-lsp, pyright-lsp, security-guidance, claude-md-management and code-review.",
+   "fix": "Install typescript-lsp and pyright-lsp, because the Python modules matter too and the costs docs say LSP plugins cut exploratory file reads. Take frontend-design and skill-creator from the official marketplace. Add anthropics/skills only for webapp-testing and mcp-builder. Consider security-guidance for the sandbox and proxy code."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Token-saving practices are generic; documented levers are missing",
+   "issue": "Several documented levers are absent. A skill can declare 'context: fork' plus 'model' (for example haiku) so heavy audits run in a cheap isolated subagent. Skill descriptions are truncated at 1,536 characters and every listed skill costs context on every turn (/skill-doctor finds unused ones). CLAUDE_CODE_SUBAGENT_MODEL alone does not change Explore or Plan unless CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1 is also set. A PreToolUse hook can filter test output down to failures. Thinking cannot be turned off on the 5.5 models, so effort is the main output-cost lever.",
+   "fix": "Give source-audit and vtc-policy-check 'context: fork' and 'model: haiku'. Add a hook that filters Vitest and Playwright output. Run /skill-doctor monthly. Record the effort per task type in CLAUDE.md."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Impeccable supply-chain note is incomplete",
+   "issue": "The README says an engine binary is downloaded once into ~/.impeccable/bin, and that Claude Code hooks can trigger the download even if the session denies the launcher command. The skill itself 'needs no runtime'; Node is only needed for the npx installer.",
+   "fix": "Record the binary download in the allow-list review. Prefer installing with --no-hooks, or put a reviewed binary on PATH. Set telemetry false in .impeccable/config.json so the setting covers the whole project."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Image model naming and pricing",
+   "issue": "There is no model id 'gpt-image-2.5'. The pricing page lists gpt-image-2.5-sunburst and gpt-image-2.5-flare (and gpt-image-2) at $8 in and $30 out per MTok for images, half that on Batch. It also points to a per-image cost calculator in the image-generation guide, so 'no per-image price published' undersells what is available.",
+   "fix": "Use the exact model ids in code and in the cost table. Take per-render cost from the calculator for 1536x1024 and 2560x1440 at each quality setting, and use Batch for pre-review board renders."
+  },
+  {
+   "severity": "MINOR",
+   "item": "OpenAI parity in the evidence path",
+   "issue": "The team wants GPT too, but citations, caching and the cost model are Anthropic-only. Nothing says what an OpenAI module returns when a claim has no citation object, or how the Worker normalises the two providers' outputs.",
+   "fix": "State that evidence-bearing checks are Anthropic Citations only. OpenAI is used for images and drafting, and its outputs always render as team assumptions unless re-cited. Define one provider-neutral citation schema in manifest.json."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Accessibility and 'no dark patterns' checks",
+   "issue": "The beauty and engagement goals rely on frontend-design and Impeccable, which are subjective. No automated, reusable accessibility check is included.",
+   "fix": "Add @axe-core/playwright (MPL-2.0, test-only) to the Playwright smoke tests. Gate UI PRs on zero serious violations plus the existing focus and reduced-motion checks."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Python version drift between local tests and the browser",
+   "issue": "Pyodide 314.0.7 runs CPython 3.14 while the team has 3.13 locally. Module tests passing under 3.13 do not prove the code runs in the browser.",
+   "fix": "In CI, run first-party Python module tests inside Pyodide through the pyodide npm package on Node, as well as under local CPython."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "zundo has had no release for 11 months.",
+   "why_false": "npm shows zundo 2.3.0, the latest release, was published 2024-11-17, which is about 23 months before 21 Oct 2026. The repo was last pushed 2026-01-30, not 2025-04-29 as stated.",
+   "correction": "The last release is about 23 months old. Treat zundo as low-maintenance: vendor it (MIT, small) or plan to replace it with a hand-rolled undo or the Yjs UndoManager.",
+   "evidence": "https://registry.npmjs.org/zundo (time for 2.3.0: 2024-11-17T16:35:11Z; peer zustand ^4.3.0 || ^5.0.0); GitHub API charkour/zundo pushed_at 2026-01-30"
+  },
+  {
+   "claim": "Cloudflare Pages vs Workers static assets: long-term path unconfirmed, and Pages is the option for the sandbox origin's headers.",
+   "why_false": "The Cloudflare Pages docs now tell new projects to start with Workers, describe Workers as the primary platform, and link a migration guide. Workers static assets support _headers, SPA fallback, and free, unlimited asset requests.",
+   "correction": "Use Workers static assets for any Cloudflare-hosted origin (sandbox, or the whole SPA), not Pages.",
+   "evidence": "https://developers.cloudflare.com/pages/ ; https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/ ; https://developers.cloudflare.com/workers/static-assets/headers/"
+  },
+  {
+   "claim": "Pin Node 24 in .nvmrc (implies the pin takes effect on the team's Windows 11 machines).",
+   "why_false": "nvm-windows does not implement .nvmrc lookup; 'nvm use' with no version errors out. The file is ignored unless another version manager reads it.",
+   "correction": "Use fnm or Volta on Windows, and add an engines range in package.json.",
+   "evidence": "nvm-windows issue #722 and the nvm-use npm package docs (search results, 21 Oct 2026)"
+  },
+  {
+   "claim": "Impeccable 'needs Node' and its only network activity is the roll request plus opt-out statistics.",
+   "why_false": "The README says the skill needs no runtime and Node is only needed for the npx installer. It also downloads an engine binary into ~/.impeccable/bin, which Claude Code hooks can trigger even when the launcher is denied.",
+   "correction": "List the binary download in the supply-chain review, and install with --no-hooks and project-level telemetry false.",
+   "evidence": "https://github.com/pbakaus/impeccable README (Telemetry and network sections)"
+  },
+  {
+   "claim": "The Cloudflare Worker's 10 ms CPU limit is an untested risk for a streaming proxy.",
+   "why_false": "Mostly unfounded: the limits page says time spent waiting on fetch() and other network requests does not count toward CPU time. A pass-through stream uses little CPU, although the page does not address streaming specifically.",
+   "correction": "Downgrade this from a risk to a quick confirmation spike. JWT verification and JSON rewriting are the only real CPU costs.",
+   "evidence": "https://developers.cloudflare.com/workers/platform/limits/"
+  },
+  {
+   "claim": "gpt-image-2.5 has no per-image price, only token rates.",
+   "why_false": "The model ids are gpt-image-2.5-sunburst and gpt-image-2.5-flare. The pricing page has no per-image table but points to a cost calculator in the image-generation guide.",
+   "correction": "Use the exact ids, and take per-render estimates from the calculator.",
+   "evidence": "https://developers.openai.com/api/docs/pricing"
+  }
+ ],
+ "missing": [
+  "An evaluation of Workers static assets, or GitHub Pages plus coi-serviceworker, as the way to get CSP, COOP/COEP and a CSP sandbox header for the SPA and the sandbox origin.",
+  "Results of the A2 page.pdf spike, which was a gate condition last round and is still not run.",
+  "Vite 'base' path and routing configuration for a GitHub Pages project site.",
+  "Docusaurus was never compared with Starlight, even though the scope names both. Liveblocks' free tier and tldraw sync are still unexamined.",
+  "Open-source RAG with citations beyond Docling (for example Haystack or LlamaIndex citation query engines) as a provider-neutral fallback, and the Citations API's search_result blocks for per-module chunks.",
+  "NodePen (MIT, 'a web client for Grasshopper', Next.js plus Tailwind) was not evaluated for UX patterns or typed-port conventions to reuse.",
+  "A provider-neutral citation and evidence schema covering OpenAI outputs.",
+  "An automated accessibility testing component (axe-core).",
+  "A CI plan for running Python module tests inside Pyodide.",
+  "Named LSP plugins (typescript-lsp, pyright-lsp) and concrete frontmatter (context: fork, model: haiku) for the six team skills."
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Run the hosting spike (Workers static assets with _headers and SPA fallback, or GitHub Pages plus coi-serviceworker) and record the chosen origin for the sandbox, including a CSP sandbox response header.",
+   "Run the A2 Playwright page.pdf spike in the first build week and log pass or fail.",
+   "Move core citation precompute to direct PDF documents with the Batch API, and make Docling v1.",
+   "Re-baseline the core estimate with spike and setup time, and publish the cut list.",
+   "Pin React ~19.3 alongside R3F 9.x, and replace .nvmrc-only pinning with fnm or Volta plus engines.",
+   "Correct the zundo maintenance date, the Impeccable network-behaviour note and the gpt-image model ids."
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+   "ok": true,
+   "note": "v22 maintenance 2025-10-21; v24 maintenance 2026-10-20, EOL 2028-04-30; v26 LTS 2026-10-28. Matches the packet."
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "ok": true,
+   "note": "Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, cache hits 0.05x; Haiku 5.5 $0.10/$0.50 up to 100k and $0.50/$2.50 above; Batch 50%. Packet arithmetic correct."
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "ok": true,
+   "note": "All active models; cited_text not billed; incompatible with structured outputs (400); works with caching and batch; PDFs and Files API supported."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/platform/limits/",
+   "ok": true,
+   "note": "Free: 10 ms CPU, network wait excluded; 100k requests/day; static assets 20,000 files and 25 MiB each."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/",
+   "ok": true,
+   "note": "No plan availability statement; period 10 s or 60 s only."
+  },
+  {
+   "url": "https://developers.cloudflare.com/ai-gateway/",
+   "ok": true,
+   "note": "Available on all plans; caching, rate limiting, logging; supports Anthropic and OpenAI."
+  },
+  {
+   "url": "https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/",
+   "ok": true,
+   "note": "Stored provider keys via Secrets Store; requires an authenticated gateway; plan not stated."
+  },
+  {
+   "url": "https://developers.cloudflare.com/pages/",
+   "ok": true,
+   "note": "'Start new projects with Workers'."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/static-assets/",
+   "ok": true,
+   "note": "SPA fallback via not_found_handling."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/",
+   "ok": true,
+   "note": "Static asset requests are free and unlimited."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/static-assets/headers/",
+   "ok": true,
+   "note": "_headers supported, with a CSP example."
+  },
+  {
+   "url": "https://github.com/gzuidhof/coi-serviceworker",
+   "ok": true,
+   "note": "MIT; COOP/COEP on GitHub Pages via a service worker; reloads on first load."
+  },
+  {
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "ok": true,
+   "note": "Limits confirmed; no custom-headers mention; prohibits handling sensitive transactions."
+  },
+  {
+   "url": "https://supabase.com/pricing",
+   "ok": true,
+   "note": "500 MB DB, 50k MAU, 1 GB storage, 5 GB egress, 500k function invocations, 2 projects, paused after 1 week idle. Matches the packet."
+  },
+  {
+   "url": "https://reactflow.dev/learn/troubleshooting/remove-attribution",
+   "ok": true,
+   "note": "Attribution removal only with Pro; Starter $169/month. Matches the packet."
+  },
+  {
+   "url": "https://github.com/pbakaus/impeccable",
+   "ok": true,
+   "note": "Apache-2.0; hook default; roll API always called; telemetry opt-out; engine binary download into ~/.impeccable/bin."
+  },
+  {
+   "url": "https://code.claude.com/docs/en/sub-agents",
+   "ok": true,
+   "note": "Explore uses the main model; a project 'Explore' with model: haiku overrides it; the SUBAGENT_MODEL_FORCE caveat."
+  },
+  {
+   "url": "https://code.claude.com/docs/en/costs",
+   "ok": true,
+   "note": "CLAUDE.md under 200 lines; LSP plugins; hook filtering; agent teams about 7x; thinking always on for 5.5 models."
+  },
+  {
+   "url": "https://code.claude.com/docs/en/skills",
+   "ok": true,
+   "note": "SKILL.md under 500 lines; description truncated at 1,536 characters; disable-model-invocation; context: fork plus model."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": true,
+   "note": "gpt-image-2.5-sunburst and -flare at $8/$30 per MTok for images; calculator referenced; no per-image table."
+  },
+  {
+   "url": "https://github.com/vega/vega/security/advisories/GHSA-m9rg-mr6g-75gm",
+   "ok": true,
+   "note": "CVE-2025-66648 High 7.2; vega-functions <=6.1.0; patched 6.1.1; interpreter does not prevent it; no workaround."
+  },
+  {
+   "url": "https://registry.npmjs.org/ (vite, vitest, react, react-dom, @react-three/fiber, drei, three, web-ifc, manifold-3d, three-mesh-bvh, rhino3dm, @thatopen/components, zustand, zundo, @xyflow/react, @observablehq/plot, vega-lite, vega-functions, maplibre-gl, @playwright/test, svg2pdf.js, jspdf, quickjs-emscripten, @supabase/supabase-js, openai, @anthropic-ai/sdk, yjs, pyodide, shadcn, tailwindcss, suncalc, giscus, @astrojs/starlight, create-vite)",
+   "ok": true,
+   "note": "Versions match the packet. R3F peer react <19.4; zundo last release 2024-11-17; Plot 0.6.17 on 2025-02-14; openai and supabase-js need Node >=22."
+  },
+  {
+   "url": "https://api.github.com/repos/anthropics/claude-plugins-official/contents/plugins",
+   "ok": true,
+   "note": "Includes frontend-design, skill-creator, typescript-lsp, pyright-lsp, security-guidance, claude-md-management."
+  },
+  {
+   "url": "https://api.github.com (GenEnv/arch540-a1-toolkit, anthropics/skills, pbakaus/impeccable, charkour/zundo, upstash/context7, giscus/giscus, xyflow/xyflow, mourner/suncalc, observablehq/plot, ladybug-tools/ladybug, pvlib/pvlib-python, docling-project/docling)",
+   "ok": true,
+   "note": "Stars, licences and push dates match the packet except zundo's last push (2026-01-30). Toolkit licence: none. Ladybug: AGPL-3.0."
+  },
+  {
+   "url": "https://github.com/NodePen/nodepen",
+   "ok": true,
+   "note": "MIT; 184 stars; node viewer library for a Grasshopper web client; not evaluated in the packet."
+  },
+  {
+   "url": "https://simonwillison.net/2024/Aug/23/anthropic-dangerous-direct-browser-access",
+   "ok": true,
+   "note": "Secondary source only; current official CORS docs were not found, so it remains unverified."
+  }
+ ],
+ "verdict": "Round 2 fixed all three BLOCKERs and nearly all MAJORs, and its prices, versions and licences check out against primary sources. What remains is architectural simplification and execution risk, not research holes. Cloudflare now steers new projects to Workers static assets, which could host the SPA and sandbox origin with real headers, so a spike should settle hosting. Core citations should feed PDFs straight to Batch rather than wait for Docling. The 19.5-day core has no spike buffer, and the A2 export spike is still not run. Minor corrections: the zundo release date, React pinned with R3F, Windows .nvmrc, Impeccable's binary download and the gpt-image model ids. Pass, with conditions."
+}

@@ -1,0 +1,292 @@
+{
+ "expert_role": "Environmental psychology researcher on spatial experience, acting as gatekeeper source auditor (round 3, packet P12)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M01 / P12-M06b",
+   "issue": "The vestibule rule is misstated. The spec models 'two door lines at least 2.1 m apart' with area 'at most 4.65 m2 or 2%'. VBBL 2019 10.2.2.8(1)(c), which I read in the same consolidation the spec cites, requires at least 4.87 m between doors where the level's gross conditioned floor area is 3,716.1 m2 or more and the doors have automatic, electrically driven closers. A full-block podium on an 11,468 m2 site with automatic lobby doors almost certainly falls in this case. At 4.87 m the 4.65 m2 cap cannot be met, so the 2% branch governs. The exemption list is also incomplete in the spec: entrances with revolving doors, doors not used as entrances, buildings under 278.7 m2, and enclosed elevator lobbies entered from parking garages. Whether the below-grade transit-link entrance counts as an exterior entrance is not addressed. In winter, stack effect in a 300 m tower drives the strongest inflow through exactly these low entrances.",
+   "fix": "Encode 10.2.2.8(1)(b) and (c) as a rule that picks door separation (2.1 m or 4.87 m) from level area and door type, and switches the area cap to the 2% branch. Add the full exemption list. Feed vestibule depth into M01's entry sequence. Flag the transit-link entrance's exterior or interior status as UNRESOLVED, with a stack-effect note linked to M08 and SYST. Keep the rule as legacy_version until VBBL 2025 is read."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M04",
+   "issue": "The egress basis still treats the occupant-load table as unread ('office factor 9.3 m2/person is recalled, unverified') and cites the Part 9 sleeping-area rule. The open BC Publications VBBL 2019 Division B Section 3.1 (consolidated to 1 Jul 2024) gives Table 3.1.17.1 values: offices 9.30, dining/beverage 1.20, non-fixed seats 0.75, standing space 0.40, mercantile basements and first storeys 3.70, mercantile other storeys 5.60, kitchens 9.30 m2/person. Its Part 3 wording is '2 persons per sleeping room in a dwelling unit', not 'bedroom or sleeping area'. Hotel guest rooms are not dwelling units, so the spec's '2 persons per sleeping area' for hotels has no clause behind it.",
+   "fix": "Load Table 3.1.17.1 as legacy_version, citing the Section 3.1 URL as a new source, with each value tagged to its area basis. Replace the Part 9 citation (P12-S51) with Article 3.1.17.1(1)(b). Set the hotel egress basis to the 'designed number, not less than table' clause and mark it UNRESOLVED until a professional or VBBL 2025 confirms it. Close the UNVERIFIED flag for the 2019 edition."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M04 / ALL",
+   "issue": "After three rounds the VTC brief PDF is still unopened (P12-S48 opened=false, although its extract says 'summary page opened earlier'). The 9.0 FSR test in the core module, the site size, the transit link and all four jury weights that drive the jury_criteria tags come from the team's own summary. The competition page timed out for me as well. An entrant cannot rely on a core pass/fail-style FSR bar whose definition has never been read.",
+   "fix": "Open the brief PDF before 13 Nov. Record page and clause for site dimensions, the FSR wording and floor-area definition, the height range, the transit link and the jury weights. Make the opened flag consistent with the extract. Until then, show the FSR bar as 'brief unread'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M01",
+   "issue": "The headline metric 'mean visual integration' and method step 4 attribute integration to Turner et al. (2001). The paper's text, which I decoded, never uses the word 'integration'. It reports neighbourhood size, clustering coefficient and mean shortest path length, and gives grid guidance (a 'human-scale' spacing of about 1 m). The normalisation in 'Normalised mean shortest-path length per connected visibility graph' is undefined, so two implementations, or the browser result and depthmapXcli, can disagree with no way to say which is right. The course rule 'show its work' is not met.",
+   "fix": "State the exact formula, for example Hillier and Hanson relative asymmetry with D-value normalisation as implemented in depthmapX, and cite its true source (Hillier and Hanson 1984 or the depthmapX source code) as a new record. Otherwise report MSPL ranks only and rename the metric. Add an acceptance test: on one reference plan, the browser field must match depthmapXcli within a stated tolerance."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-ALL (human scale, 40%)",
+   "issue": "The criterion worth 40% of the jury score has no metric grounded in how people perceive or use interior space. The packet measures codes, credits and graph geometry but not experience. Evidence exists and was not used. Wiener et al. (2007, Perception 36:1066-1083) found strong correlations between isovist measures and both affective appraisal and navigation across 16 virtual indoor scenes. Franz and Wiener (2008, EPB 35:574-592) map isovist measures to perceived spaciousness and openness. Hölscher et al. (2006, JEP 26:284-299) study wayfinding across floors, which is the core problem at sky-lobby transfers. LEED v5 EQc2 itself offers Option 1 Path 1 (biophilic principles after Kellert and Calabrese) and Option 2 (prospect-and-refuge seating, an accessible quiet space). Prospect-refuge appears in M01 only as free text.",
+   "fix": "Add perception metrics to M01 or a new SPAC module. (a) Isovist experiential descriptors (area, compactness, jaggedness or occlusivity) labelled 'lab VR evidence, relative only'. (b) Peak crowding density in lift lobbies and sky lobbies, from M04 PeakCoincident divided by lobby area, with no threshold until a source is opened. (c) A vertical-wayfinding check: floor-change points, and whether lifts are visible from the sky-lobby arrival point. (d) A refuge-availability count (seating with back cover and an outlook). (e) Ceiling height or volume per person in public rooms. All are team_assumption reference values, and their meaning is a human judgement record."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-ALL (schedule)",
+   "issue": "The core cut grew from 12-15 to 15-18 person-days (M04 6-8, M06a 3, M06b 4, X01 2-3). From Wed 21 Oct to Fri 13 Nov there are 17 working days, less Remembrance Day (11 Nov), which is about 34 person-days for two students across every packet. P12 core alone takes 44-53% of total capacity. The notes call capacity a team assumption but do not resolve it.",
+   "fix": "Re-cut the core to M04 (egress and FSR only), M06a WWR and openings, the M06b bird-zone share plus VLT, and a minimal X01 (evidence_status to badge). Move SHGC lines, U waterfall and vestibule counts to v1. State the remaining P12 share of capacity in the notes."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M02",
+   "issue": "Eye height: the spec says 1.2 m is 'the grid height REHVA gives for EN 17037 view out'. In REHVA, the seated 1.2 m grid belongs to the authors' own computational method. REHVA does not quote it as a clause of EN 17037.",
+   "fix": "Label 1.2 m as 'authors' method (REHVA 04/2023); EN 17037 Annex C text unopened' and keep both eye heights as presets."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M02 / P12-M03",
+   "issue": "LEEDuser lists EQc2 as 1-7 points in total, but the spec presents views (up to 3), proximity (1) and sDA (up to 4) as independent tallies. The spec also omits Option 5 Path 1, solar glare control (1 pt), and Options 3 (ASHRAE 55-2023) and 4 (sound mapping and criteria), which bear on M03 glare and on M08.",
+   "fix": "Show the 7-point cap in any LEED roll-up. Add the solar-glare-control path as a checklist item in M03. In M08, cite the v5 thermal and sound options as secondary references (still no numbers)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06b",
+   "issue": "UBC limits fly-through elimination to 'up to 16 m or 4 m above tallest vegetation'. The spec's metric (0 fly-throughs anywhere) is stricter than the source but is not labelled as such. The same Backgrounder warns against untreated glass within 2-20 m of vegetation (Cusa et al. 2015) and against indoor plants visible through glass. Atria, winter gardens and sky gardens in this packet create both conditions.",
+   "fix": "Label the whole-height fly-through rule as a team rule that goes beyond UBC. Add a flag for glazing within 20 m of planted terraces and for interior planting visible through glass (secondary, UBC citing Cusa 2015)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-X01 / P12-M07",
+   "issue": "The packet's only metric marked 'verified' (M07 GWP per material) rests on the CLF BC guide. The guide compiles EC3 values and carries an all-rights-reserved notice, so it is not the primary EPD. X01 Rule 1 (primary source, opened, in force) should therefore downgrade it, and X01 as specified would flag its own packet.",
+   "fix": "Cite the underlying EPDs (Butler 28 d, Cascade) as primary records, or set evidence_status to verified_secondary. Note that Burnco 166 is a 56-day value."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-X01",
+   "issue": "Seven metrics carry 'false_assumption_corrected' as their evidence_status, and some also use it as status. This replaces the evidence tier of the corrected value: the M06b TEUI line is in fact legacy_version, and the M03 sDA and proximity metrics are verified_secondary. The X01 rule that 'legacy_version blocks badges' never sees them, and the four-value status enum does not include this value.",
+   "fix": "Add a separate boolean or history field 'corrected_in_round'. Set evidence_status to the tier of the new source and keep status within its four-value enum."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M07 / P12-X02",
+   "issue": "M07's FacadeCarbonTable and its WWR curve are drawn 'beside the TEDI result from ENER'. ENER runs after M06b, which reads M07 assemblies, so if M07 renders ENER output the graph has a cycle M07 -> M06b -> ENER -> M07. The TEDI sweep over WWR would also need repeated ENER runs, and none are specified.",
+   "fix": "Move the paired chart to a display node downstream of both ENER and M07. Specify the TEDI sweep as an ENER batch job, or show TEDI only at the current WWR."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M07",
+   "issue": "Curtain-wall vision glass is always processed (low-e coated, heat-strengthened or laminated) and assembled into IGUs. The CLF 2023 table gives 1,430 kgCO2e/t only for unprocessed annealed flat glass and 'none' for processed glass and IGUs. The method 'm2 x thickness x density x GWP per tonne' therefore always gives a lower bound for this building type.",
+   "fix": "Label every glass result calculated from the flat-glass baseline as a 'lower bound (annealed)', and require a product IGU EPD before facade systems are compared."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M06b",
+   "issue": "The energy-path summary leaves out two alternatives in 10.2.2.5: GHGI compliance is waived if Table 10.2.2.5.B TEUI and TEDI are met (sentence 3), and certified Passive House designs are deemed to comply (sentence 4). Both change which limit line an entrant should read.",
+   "fix": "List the A1, B and C tables and the Passive House route as alternative legacy_version reference lines, with a selector."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "VBBL Part 3 occupant-load factors cannot be read; the office factor of 9.3 m2/person is recalled and unverified; egress uses 2 persons per bedroom or sleeping area (Part 9 text).",
+   "why_false": "The open BC Publications consolidation of VBBL 2019 Division B Section 3.1 (to 1 Jul 2024) contains Article 3.1.17.1 and Table 3.1.17.1.",
+   "correction": "Office 9.30, dining 1.20, non-fixed seats 0.75, standing space 0.40, mercantile first storey 3.70 and other storeys 5.60 m2/person. Part 3 wording is '2 persons per sleeping room in a dwelling unit'. Load these as legacy_version values. Hotel rooms use the designed-number clause (unresolved).",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/519280133 (Section 3.1, Article 3.1.17.1, Table 3.1.17.1)"
+  },
+  {
+   "claim": "VBBL 10.2.2.8 entrance vestibules need two door lines at least 2.1 m apart, area at most 4.65 m2 or 2%.",
+   "why_false": "Clause 10.2.2.8(1)(c) requires at least 4.87 m separation where the level's gross conditioned floor area is 3,716.1 m2 or more and the doors have automatic, electrically driven closers.",
+   "correction": "Make door separation conditional (2.1 m or 4.87 m), use the 2% area branch for large podium floors, and list all eight exemptions.",
+   "evidence": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486, Article 10.2.2.8(1)(b)-(c) and (2)"
+  },
+  {
+   "claim": "Visual integration and its normalisation come from Turner et al. (2001).",
+   "why_false": "The paper's text never uses 'integration'. It defines neighbourhood size, clustering coefficient and mean shortest path length only.",
+   "correction": "Cite the actual source of the integration formula (Hillier and Hanson 1984, or the depthmapX implementation), or report mean shortest path length ranks only.",
+   "evidence": "https://discovery.ucl.ac.uk/id/eprint/160/1/turner-doxa-osullivan-penn-2001.pdf (decoded text: 0 occurrences of 'integration')"
+  },
+  {
+   "claim": "1.2 m seated is the grid height REHVA gives for EN 17037 view out.",
+   "why_false": "REHVA gives the seated 1.2 m grid as part of the authors' proposed method, not as a quoted EN 17037 requirement.",
+   "correction": "Label the value as the authors' method. EN 17037 Annex C is unopened.",
+   "evidence": "https://www.rehva.eu/rehva-journal/chapter/en-17037-a-step-forward-new-computational-methods-with-sunlight-daylight-and-quality-views-for-regenerative-design"
+  }
+ ],
+ "missing": [
+  "Metrics grounded in human perception for the 40% human-scale criterion: isovist experiential descriptors, crowding density in lift and sky lobbies, vertical wayfinding at transfers, refuge availability, ceiling height or volume per person",
+  "Discomfort from heights and visual exposure next to full-height glazing at 200-300 m (no source opened; at least a human judgement item)",
+  "Opened VTC brief PDF with clause and page for FSR, floor-area definition, site, transit link and jury weights",
+  "Any opened VBBL 2025 text (the bcpublications vbbl2025 index returned HTTP 404 again)",
+  "Explicit formula and test case for VGA integration, with a depthmapXcli parity tolerance",
+  "Status of the transit-link entrance (exterior or interior) for vestibule, air-leakage and stack-effect rules",
+  "LEED v5 EQc2 Option 1 Path 1 (biophilic) and Option 2 (adaptable environment, prospect-refuge) as reference items, currently routed to ECOL or ignored",
+  "Product IGU and unitized curtain-wall EPDs (processed glass has no CLF baseline)",
+  "Web-search budget was exhausted mid-audit; the VTC page timed out; journal abstracts for Franz and Wiener 2008 and Hölscher 2006 were not read (Crossref metadata only)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Correct the vestibule rule to 10.2.2.8(1)(b)/(c) (2.1 m or 4.87 m, 2% area branch, full exemption list) in M01 and M06b",
+   "Load VBBL 2019 Part 3 Table 3.1.17.1 and the Part 3 sleeping-room wording into M04 as legacy_version, and mark the hotel basis UNRESOLVED",
+   "Open the VTC brief PDF and cite page and clause for the FSR test, site and jury weights before the M04 core release",
+   "Define the M01 integration formula with a true source and a depthmapXcli parity test",
+   "Add at least placeholder metrics for human perception (crowding in lift and sky lobbies, vertical wayfinding, isovist experiential descriptors), labelled team_assumption",
+   "Re-cut the core scope so P12 fits a stated share of the 34 person-days available before 13 Nov"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "MAJOR M06: VBBL TEUI/TEDI/GHGI lines, airtightness and vestibules",
+   "status": "partly",
+   "residue": "Table values match the source (120/30/3.0, 140/20/4.0, 100/20/3.0, 120/20/3.0) and the airtightness value 2.0 L/s/m2 at 75 Pa is correct. The vestibule rule omits the 4.87 m clause and some exemptions. Alternative paths (Table B, Passive House) are not listed."
+  },
+  {
+   "item": "MAJOR M06: whole-assembly U/SHGC, facade system type and spandrel class",
+   "status": "addressed",
+   "residue": "Values are manual entries; NFRC, CSA A440.2, the BETB guide and the Energy Modelling Guidelines remain unopened."
+  },
+  {
+   "item": "MAJOR ALL: dependency cycles",
+   "status": "partly",
+   "residue": "The M06a/M06b split and the X02 gate work. The M07 chart drawn beside the ENER TEDI result implies a new M07 -> M06b -> ENER -> M07 loop unless it moves to a downstream display node."
+  },
+  {
+   "item": "MAJOR M06: exterior solar reflection",
+   "status": "addressed",
+   "residue": "No threshold, correctly labelled team_assumption and UNRESOLVED."
+  },
+  {
+   "item": "MAJOR M07: facade embodied carbon",
+   "status": "addressed",
+   "residue": "CLF 2023 values checked (flat glass 1,430 kgCO2e/t; aluminium 10,250-12,700 kgCO2e/t). The annealed-glass baseline is a lower bound for processed curtain-wall glass."
+  },
+  {
+   "item": "MINOR M06: continuous azimuth and +/-5 degrees",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M06: NECB-path WWR 40% and SHGC 0.36 lines",
+   "status": "addressed",
+   "residue": "Wording matches 10.2.2.3(1)(d)-(e)."
+  },
+  {
+   "item": "MINOR M06: four UBC tiers and upper-tower flag",
+   "status": "addressed",
+   "residue": "Table 1 mapping confirmed. The fly-through height limit is not reflected."
+  },
+  {
+   "item": "MINOR M06: overhang formula",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M03: DGPe<5% condition",
+   "status": "addressed",
+   "residue": "Kept UNRESOLVED; REHVA does not explain it."
+  },
+  {
+   "item": "MINOR M02: LEED v5 atrium, exclusions, VLT above 40%, sDA steps",
+   "status": "addressed",
+   "residue": "The 1-7 point credit cap is not shown."
+  },
+  {
+   "item": "MINOR M06: balconies and winter gardens outside the envelope",
+   "status": "addressed",
+   "residue": "10.2.1.1(5) wording confirmed."
+  },
+  {
+   "item": "MINOR M06: facade feasibility checklist",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR X01: structured evidence_status",
+   "status": "partly",
+   "residue": "'false_assumption_corrected' hides the evidence tier of the corrected value."
+  },
+  {
+   "item": "MINOR ALL: core schedule",
+   "status": "not",
+   "residue": "The core grew to 15-18 person-days against about 34 person-days of total two-person capacity."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P12-S71",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486",
+   "ok": true,
+   "note": "Table 10.2.2.5.A1, 10.2.1.1(5), 10.2.1.3, 10.2.2.3(1)(d)-(e) and Table 10.2.2.21 match the spec. 10.2.2.8(1)(c) (4.87 m) and some exemptions are omitted. Tables 10.2.2.6-7 apply to 10.2.1.5 buildings only (confirmed)."
+  },
+  {
+   "source_id": "NEW (VBBL 2019 s.3.1)",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/519280133",
+   "ok": true,
+   "note": "Consolidated to 1 Jul 2024. Table 3.1.17.1: office 9.30, dining 1.20, mercantile first storey 3.70. Article 3.1.17.1(1)(b): 2 persons per sleeping room in a dwelling unit."
+  },
+  {
+   "source_id": "P12-S31",
+   "url": "https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf",
+   "ok": true,
+   "note": "Table 1 mapping confirmed by coordinates: Tiers 1-2 adjacent vegetation or water; Tier 3 large areas; Tier 4 habitat or migratory paths. Overhang 1:1 and Klem 5 cm/10 cm confirmed. Fly-through limited to 16 m or 4 m above vegetation."
+  },
+  {
+   "source_id": "P12-S56",
+   "url": "https://leeduser.buildinggreen.com/credit/NC-v5/EQc2",
+   "ok": true,
+   "note": "Views 75/90%, VLT 'above 40%', atria 30%, exclusions, proximity 1 pt and sDA 40/55/65/75% confirmed. The credit is capped at 1-7 points; the biophilic, adaptable, thermal, sound and solar-glare options are omitted in the spec."
+  },
+  {
+   "source_id": "P12-S07",
+   "url": "https://www.rehva.eu/rehva-journal/chapter/en-17037-a-step-forward-new-computational-methods-with-sunlight-daylight-and-quality-views-for-regenerative-design",
+   "ok": true,
+   "note": "Table values confirmed; the 5% condition is unexplained. The 1.2 m seated grid is the authors' method. REHVA Journal 04/2023."
+  },
+  {
+   "source_id": "P12-S10",
+   "url": "https://discovery.ucl.ac.uk/id/eprint/160/1/turner-doxa-osullivan-penn-2001.pdf",
+   "ok": true,
+   "note": "Villa Mairea 1.0 m grid linked by stairs, Barcelona Pavilion 0.5 m with two graphs, and the exponential fit R2 = 0.63 are confirmed. The word 'integration' does not appear in the paper."
+  },
+  {
+   "source_id": "P12-S81",
+   "url": "https://digital.lib.washington.edu/researchworks/bitstream/handle/1773/49965/2023-Material-Baselines-Report_August23.pdf",
+   "ok": true,
+   "note": "CC BY 4.0. Flat glass 1,430 kgCO2e/t (annealed); processed glass and IGU 'none'; aluminium 10,250 (mill), 10,760 (anodized), 11,670 (painted), 11,800 and 12,700 (thermally improved)."
+  },
+  {
+   "source_id": "P12-S25",
+   "url": "https://clfbritishcolumbia.com/low-carbon-material-sourcing-guide/",
+   "ok": true,
+   "note": "9 Feb 2026; 220 at 28 d; Heidelberg 90 at 91 d; Butler 109 at 28 d; Burnco 166 at 56 d; rebar 0.44 and 0.85; A1-A3 only; no glass; all rights reserved."
+  },
+  {
+   "source_id": "P12-S27",
+   "url": "https://circularecology.com/embodied-carbon-footprint-database.html",
+   "ok": true,
+   "note": "Educational V5.0 (June 2026); non-educational use not permitted from 30 Sep 2026. Confirmed."
+  },
+  {
+   "source_id": "NEW (Wiener et al. 2007)",
+   "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:10.1068/p5587",
+   "ok": true,
+   "note": "Abstract read: isovist measures of 16 virtual indoor scenes correlated strongly with navigation and experiential appraisal. Lab evidence, relative only."
+  },
+  {
+   "source_id": "NEW (Franz & Wiener 2008; Hölscher et al. 2006)",
+   "url": "https://api.crossref.org/works/10.1068/b33050",
+   "ok": true,
+   "note": "Crossref metadata only (EPB 35(4):574-592; JEP 26:284-299); abstracts not read."
+  },
+  {
+   "source_id": "P12-S48",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": false,
+   "note": "Fetch timed out; the brief PDF remains unopened."
+  },
+  {
+   "source_id": "P12-S49",
+   "url": "https://free.bcpublications.ca/civix/content/public/vbbl2025/?xsl=/templates/browse.xsl",
+   "ok": false,
+   "note": "HTTP 404; VBBL 2025 is still unread."
+  }
+ ],
+ "verdict": "Round 3 is honest and well caveated, and most round-2 items are fixed. The VBBL energy, UBC, LEED v5, CLF and Turner figures check out against the sources. The gate fails on five points. First, the vestibule rule leaves out the 4.87 m clause that probably governs a full-block podium. Second, the VBBL 2019 Part 3 occupant-load table is readable but still marked unverified. Third, the VTC brief behind the core FSR test is still unopened. Fourth, the headline M01 'integration' metric is attributed to a paper that never defines it. Fifth, the 40% human-scale criterion has no metric grounded in perception, although relevant isovist and wayfinding studies exist. The core scope also exceeds realistic capacity. All six conditions can be fixed within days."
+}

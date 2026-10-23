@@ -1,0 +1,263 @@
+{
+ "expert_role": "Development Permit Board reviewer, final gatekeeper and source auditor (round 3, P01 Vancouver policy, zoning and VTC compliance)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P01-M01",
+   "issue": "Every VTC hard rule still comes from the unopened brief (S02 opened=false). That covers the 244-305 m band, 9.0 non-residential FSR, site size, transit link, four A2 boards, 10 MB and the 40/30/20/10 jury weights. I could not re-open the competition page (two timeouts today). REMI (opened) confirms only registration on 29 Oct 2026, winners in January 2027 and prizes totalling 15,000; it gives no height, FSR, site, transit, board or jury rule. Registration closes in 8 days. The 'brief unread' banner is honest, but a checker whose every default threshold is unquoted cannot go to entrants.",
+   "fix": "Register before 29 Oct. Open S02 and record, for every rule in M01 and M07, the page, clause and verbatim sentence: band and its unit, 'one or more towers', 9.0 FSR wording, site dimensions, transit wording, boards, MB and jury weights. Then set S02 opened=true. Log the Buildner answers as S02a before 3 Nov. Until this is done the gate cannot pass."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M01/M06/M08/M09",
+   "issue": "Text in quotation marks is attributed to a brief nobody has opened. Examples: 'office, commercial' (M01, M07), 'connecting directly' (M01 transit), 'should extend vertically' (M01), 'the brief puts the station diagonally across the intersection' (M01), 'the brief's north arrow is rotated against the street grid' (M06, M09), and 'the jury may reward justified breaches' (M08). None of these appears in the project context or in any opened source. Quoting an unopened source breaks the course rule that every result cites its source.",
+   "fix": "Remove the quotation marks and label each item 'extract wording, unquoted, S02 unopened', or delete it. After registration, replace each with the verbatim sentence and its page. Add a CI lint that rejects any quoted string whose only source has opened=false."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02",
+   "issue": "M02 has dependencies it does not declare, so the Kahn check over depends_on cannot catch a real cycle. M02 is declared with depends_on [] and 'no upstream dependency', yet its large-sites metric uses 'site area from M01 and new floor area from M07'. M01 depends on M02, so M02 -> M01 -> M02 is a cycle. M02's residential lookup uses 'the M09 sub-area label', and hb_policy_area needs the block location from M09, so two more edges are missing. M04 then reads hb_policy_area from M02 even though M02 never receives the site.",
+   "fix": "Keep M02 as pure static data: the register, the sub-area table and the Figure 1 site list. Move the computed lookups (large_sites_trigger, residential_permitted for this block, hb_policy_area for this block) into M01 or a new small resolver node that depends on M02, M07 and M09. Take site area from M09 or M07, never from M01. Re-run Kahn and also lint that every 'from P01-Mxx' in the method or inputs text appears in depends_on."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02/M09",
+   "issue": "The sub-area labels do not line up. The City sub-area data (opened today: 29 records, labels A, B, C, C2, E, F, G, H, J, K1-K3, L1, L2, M, N, O; empty properties) has no 'C1'. The 2009 Metro Core summary (S54), which drives the residential and non-residential rules, names Areas A, B, C1 and F. The spec also assumes the open-data letters are the Downtown ODP areas, but the dataset holds no designation, FSR or use field, and the letter mapping is in the unopened ODP. A block in open-data 'C' would be matched to C1 rules, or to none.",
+   "fix": "Add a hand-checked crosswalk from open-data labels to ODP area letters (C to C1?), sourced from the ODP map. Until then, return 'unknown' for C and C2. Store the data vintage (2020-11-19) and flag that ODP amendments after 2020 may have moved boundaries."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M02/M01",
+   "issue": "The Area A residential ban is the most consequential rule in the packet: it can turn the brief's residential share into a zoning departure. It rests on a single search summary of a 2022 rezoning report (S53, unopened), and the 'Area A = no' pre-fill is applied as the default. City hosts block automated fetchers (HTTP 403), not people. A team member with a browser can open DD.pdf, r9.pdf, H005.pdf and the Public Views Guidelines in minutes.",
+   "fix": "Before 13 Nov, have a person open the Downtown ODP and r9 in a browser and store, for each, the PDF date, page and verbatim clause. Store a file hash too. Until then, show the Area A row as 'summary, unopened' in amber, not as a red departure, and do not let M08 auto-open a departure from an unopened source."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01 (all)",
+   "issue": "Scope is better but still does not fit. P01's core is about 13 person-days, out of roughly 46 available (2 students x 23 days to 13 Nov). The project has 12 other packets and the boards are due 30 Nov. P01 alone takes about 28% of capacity, and its core also carries M02's 45 hand-typed rows plus a monthly update duty.",
+   "fix": "Cut P01 core to about 6-7 person-days: M09 height table and convert_height (2), M07 gross ledger with three tiers (2), and M01 rules for band, FSR, containment and checklist (2-3). Reduce M02 core to the 10-12 rows M01 actually reads, and leave the rest of the register to v1. Publish a cross-packet effort budget so P01 cannot take more than its share."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P01-M01/M02",
+   "issue": "The below-grade transit link is a hard rule, but the register has no row for transit-agency constraints. In my own knowledge, not opened: TransLink/BCRTC require agreements for direct station connections and enforce protection zones around SkyTrain tunnels (Expo Line Dunsmuir tunnel, Canada Line under Granville). These limit excavation depth, shoring and below-grade levels on CBD blocks near stations. M01 treats the link as pure geometry, and M02's parking and loading row assumes the below-grade levels are free.",
+   "fix": "Add unverified register rows: a TransLink or BCRTC station-connection and integrated-development requirement, and a SkyTrain guideway or tunnel protection zone. Hand them to MOBI and STRC. In M01, add an 'intersects tunnel protection zone (unknown until sourced)' flag on the below-grade path and on the excavation volume."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M05",
+   "issue": "The spec paraphrases CAR 601.23(1) as 'penetrates an obstacle limitation surface'. The regulation (opened today) says a surface calculated under TP 312 Chapter 4. The spec never tests (c), VFR routes within 3.7 km, although Burrard Inlet and the harbour corridor are plausible recognized VFR routes. CYHC is described as a 'registered aerodrome', so whether any TP 312 obstacle limitation surface applies is unresolved. (d) already triggers for every tower, so outcomes are unchanged.",
+   "fix": "Quote (a)-(e) in the triggers table. Mark (a) 'applies only to certified airports, CYHC status to confirm'. Mark (c) 'unknown, VFR routes from the Vancouver VFR Terminal Procedures Chart'. Type the harbour heliport identifier and coordinates from the Canada Flight Supplement rather than the Waterfront Station proxy."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M08",
+   "issue": "The City FAQ's Bay Parkade heights do not convert exactly between feet and metres. 1,034 ft is 315.16 m, not 314.89 m; 783 ft is 238.66 m, not 238.59 m. Daily Hive's 315 m and 288 m follow the feet values. The height ladder mixes both, so the 288 m marker and the 314.89 m tower are not on one basis.",
+   "fix": "Store each figure as published, with its unit and source, and label the ladder 'as published, measure and datum unstated'. Do not convert one source's feet against another's metres."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M01",
+   "issue": "Submission dates and the '23:59 London' time are marked verified from S01. I could not reproduce them today (page timed out twice). REMI independently confirms only the 29 Oct registration date.",
+   "fix": "Keep 'verified' but add a 'last confirmed' date to each checklist item, and keep a saved copy (PDF or screenshot) of the competition page in the repo as the evidence file."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01 sources",
+   "issue": "S02 (the gated brief) and S02a (the Q&A log) cite the public competition page URL. A reader following the 'source' lands on a page that states none of the cited rules.",
+   "fix": "Set url to 'gated: obtained by registration on <date>' and point to a local file path or hash once downloaded. Use the S01 URL only for S01."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M07",
+   "issue": "The library list includes SheetJS Community Edition. The npm-registry 'xlsx' package is frozen at an old version with published prototype-pollution and ReDoS advisories (reviewer knowledge). Current builds are distributed from the SheetJS CDN only.",
+   "fix": "Pin SheetJS from cdn.sheetjs.com at a current version (0.20.x or later), or use openpyxl server-side only. Record the version in the licence register."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P01-M01/M07",
+   "issue": "The packet is 'web-first', but the core methods name Python-only libraries (Shapely, IfcOpenShell, openpyxl) without saying where they run. Static-JSON core with browser evaluation would need Pyodide, a server, or JS equivalents.",
+   "fix": "State the runtime for each core module (for example, browser JS with a turf/three.js polygon test, or Pyodide). List only the libraries the core actually ships."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "P01-M02 has no upstream dependency, so the Kahn check over depends_on guarantees an acyclic graph.",
+   "why_false": "M02's own metrics read site area 'from M01', floor area from M07 and the sub-area label from M09. M01 depends on M02, so the real data flow contains a cycle that depends_on hides.",
+   "correction": "Make M02 static data only, and move block-specific lookups into a resolver downstream of M02, M07 and M09. Lint the inputs and method text against depends_on.",
+   "evidence": "Spec text: M02 large-sites metric method 'Site area from M01 and new floor area from M07'; M02 residential metric 'Lookup by the M09 sub-area label'; M02 method 'No upstream dependency'; M01 depends_on includes P01-M02."
+  },
+  {
+   "claim": "The open-data Downtown district sub-area labels can be read directly as the Downtown ODP areas named in the evidence (A, B, C1, F).",
+   "why_false": "The dataset (opened 21 Oct 2026, 29 records) has labels A, B, C, C2, E, F, G, H, J, K1-K3, L1, L2, M, N, O and no C1. Its properties are empty: no designation, FSR or residential field.",
+   "correction": "Build a hand-checked label crosswalk from the ODP map. Return 'unknown' for C and C2 until it is confirmed.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/downtown-district-sub-areas/records (29 records; names and geometry only)"
+  },
+  {
+   "claim": "Brief wording such as 'office, commercial', 'connecting directly', 'should extend vertically', the station diagonally across the intersection, a rotated north arrow, and that the jury may reward justified breaches.",
+   "why_false": "These are presented as quotations or facts from S02, which no agent has opened. They are not in the project's supplied extract, and neither the competition-adjacent article (REMI) nor the public page gives them.",
+   "correction": "Label them 'unquoted extract' or delete them until the registered brief is read. Then replace each with the verbatim sentence and its page.",
+   "evidence": "S02 opened=false in the spec; https://www.reminetwork.com/?p=47754 (opened: no height, FSR, transit, board or jury rules)"
+  }
+ ],
+ "missing": [
+  "Verbatim brief clauses with page numbers for every M01 and M07 rule (registration closes 29 Oct 2026).",
+  "Hand-read City PDFs (Downtown ODP, r9 2022, H005, Public Views Guidelines, Parking By-law), with page, clause and file hash; a person in a browser can do this, the 403 only blocks automated fetchers.",
+  "Crosswalk from open-data sub-area labels to Downtown ODP area letters (C vs C1).",
+  "TransLink/BCRTC station-connection agreement and SkyTrain tunnel protection-zone register rows for the below-grade link and excavation.",
+  "CAR 601.23(1)(a) and (c) assessment: TP 312 certification status of CYHC and the heliport, and VFR routes over the harbour; heliport identifier and coordinates from the Canada Flight Supplement.",
+  "Runtime decision for the core modules (browser JS vs Pyodide vs server).",
+  "Cross-packet effort budget showing that P01's core fits within total capacity to 13 Nov 2026.",
+  "Saved evidence copies (PDF or screenshot) of the competition page for the 'verified' submission checklist."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Register by 29 Oct 2026, open S02, and quote page, clause and sentence for every M01 and M07 rule (band and unit, tower count, 9.0 wording, site, transit, boards, MB, jury weights); log the Buildner Q&A as S02a before 3 Nov 2026.",
+   "Remove or relabel every quotation attributed to the unopened brief.",
+   "Fix M02's undeclared dependencies (the M02 -> M01 cycle, plus M07 and M09 edges) and add a lint that checks inputs and method text against depends_on.",
+   "Hand-read the Downtown ODP and r9 for the Area A residential rule and the sub-area letters; build the C/C1 crosswalk; keep Area A amber until a source is opened.",
+   "Cut P01 core to about 6-7 person-days and show a cross-packet budget.",
+   "Add transit-agency connection and tunnel-protection rows as unverified pointers for the below-grade link."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: all VTC hard rules rest on the unopened brief",
+   "status": "partly",
+   "residue": "A 'brief unread' banner, the exact-unit band, the S02a placeholder and the Buildner questions were added. The brief is still unopened, no clause is quoted, and quoted brief wording has appeared without a source."
+  },
+  {
+   "item": "MAJOR M05: day marking 'always required' above 150 m",
+   "status": "addressed",
+   "residue": "I checked options A/B/C against Standard 621 today: s.4.2(4)(b), 4.2(5)(b) (high-intensity at any height), the s.6.2 note (CL-865 strobes), s.5.4(1) A' over 105 m, and s.2.5(1) 90 days. All match."
+  },
+  {
+   "item": "MAJOR M02: parking logic uses TOA",
+   "status": "addressed",
+   "residue": "Scope and effective date still come from the unopened cfsc2 summary; CTV gives only the vote date."
+  },
+  {
+   "item": "MAJOR M02: large-sites policy unsourced",
+   "status": "addressed",
+   "residue": "Sourced to a summary (opened=false). The computation now creates an undeclared M02 -> M01 dependency cycle."
+  },
+  {
+   "item": "MAJOR M02: CBD land use / Area A unsourced",
+   "status": "partly",
+   "residue": "The lookup and pre-fill were added, but they rest on one unopened summary, and the open-data labels (C, C2) do not match the evidence (C1)."
+  },
+  {
+   "item": "MAJOR M02: Higher Buildings qualitative criteria missing",
+   "status": "addressed",
+   "residue": "Six rows with named judges were added; they come from summaries of unopened S08/S09."
+  },
+  {
+   "item": "MAJOR M02: no reconciliation rows; cultural_context_30 on M04",
+   "status": "addressed",
+   "residue": "City rows remain unverified reviewer knowledge; the M04 tag was removed."
+  },
+  {
+   "item": "MAJOR M04: cone status by Storeys ID match fails",
+   "status": "addressed",
+   "residue": "I verified the crosswalk counts (16 direct, 7 suffix, 28 unmatched) against the open data, which has 24 records, modified 19 Oct 2026, and no elevation field. Suffix pairings (for example G2 to G1.2) still need hand-reading."
+  },
+  {
+   "item": "MAJOR M04: use the brief's QE View image for cone floors",
+   "status": "addressed",
+   "residue": "The image was opened and gives no floors; it is used correctly as a skyline reference only. The feet-to-metres conversions check."
+  },
+  {
+   "item": "MAJOR all: scope does not fit 13 Nov",
+   "status": "partly",
+   "residue": "Core cut to about 13 person-days, which is still about 28% of the two-person capacity for 1 of 13 packets."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P01-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": false,
+   "note": "Timed out twice on 21 Oct 2026 (with and without trailing slash); could not re-verify the dates, language or anonymity claims."
+  },
+  {
+   "source_id": "P01-S39",
+   "url": "https://www.reminetwork.com/?p=47754",
+   "ok": true,
+   "note": "Confirms registration closes 29 Oct 2026, winners January 2027, prizes 7k/4k/2k/1k/1k (=15k). No height, FSR, site, transit, board or jury rules."
+  },
+  {
+   "source_id": "P01-S41",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.23.html",
+   "ok": true,
+   "note": "(a) TP 312 Ch.4 OLS, (b) 90 m within 6 km, (c) 90 m within 3.7 km of a VFR route, (d) 150 m, (e) catenary wires; (2) mast counts. The spec omits (a)'s TP 312 basis and never tests (c)."
+  },
+  {
+   "source_id": "P01-S43",
+   "url": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-621-obstruction-marking-lighting-canadian-aviation-regulations-cars",
+   "ok": true,
+   "note": "s.2.5(1) 90 days, 4.2(3)(b), 4.2(4)(b), 4.2(5)(b), 6.2 CL-865 urban note and 5.4(1) A' (>105 m, birds) all match the spec."
+  },
+  {
+   "source_id": "P01-S45",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": true,
+   "note": "24 records, modified 2026-10-19, OGL-Vancouver, no elevation field; IDs match the spec; each record links to a per-park City view page."
+  },
+  {
+   "source_id": "P01-S13 (related)",
+   "url": "https://vancouver.ca/home-property-development/queen-elizabeth-park-public-view.aspx",
+   "ok": false,
+   "note": "HTTP 403. This per-cone page is linked from the open data and may hold the cone floors; it needs a manual browser read."
+  },
+  {
+   "source_id": "P01-S46",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/downtown-district-sub-areas/records",
+   "ok": true,
+   "note": "29 records, LineString/MultiLineString, name only, empty properties. Labels include C and C2 but no C1, so they do not match the S54 evidence."
+  },
+  {
+   "source_id": "P01-S04",
+   "url": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+   "ok": true,
+   "note": "Confirms the 600 ft (183 m) figure applies to sites across from Bay Parkade, that Bay Parkade lies outside the policy area, the May 2023 direction, and UDP review. City ft and m values are not exact conversions (1,034 ft is 315.16 m, not 314.89 m)."
+  },
+  {
+   "source_id": "P01-S37",
+   "url": "https://skyscrapercenter.com/criteria",
+   "ok": true,
+   "note": "Lowest significant open-air pedestrian entrance; architectural top excludes antennae; supertall at 300 m. Matches the spec."
+  },
+  {
+   "source_id": "P01-S27",
+   "url": "https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation",
+   "ok": true,
+   "note": "88 ft cut from 1,034 ft (315 m) to 946 ft (288 m), relayed by City staff; no constraint named. Matches the spec."
+  },
+  {
+   "source_id": "P01-S25",
+   "url": "https://www.navcanada.ca/en/aeronautical-information/land-use-program.aspx",
+   "ok": true,
+   "note": "8-12 weeks, up to 12-18 months pending mitigations, not a permit. Matches the spec."
+  },
+  {
+   "source_id": "P01-S26",
+   "url": "https://en.wikipedia.org/wiki/Vancouver_Harbour_Flight_Centre",
+   "ok": true,
+   "note": "CYHC 49.29444 N, 123.11139 W; described as a 'registered aerodrome' and airport of entry; heliport has no code or coordinates."
+  },
+  {
+   "source_id": "P01-S21",
+   "url": "https://tc.canada.ca/en/corporate-services/consultations/updating-vancouver-international-airport-zoning-regulations",
+   "ok": true,
+   "note": "Closed (14 Jul-12 Sep 2026); covers Vancouver north of the Fraser to English Bay and Burnaby; no heights; map on request at aviation.pac@tc.gc.ca; silent on existing buildings. Matches the spec."
+  },
+  {
+   "source_id": "(heliport)",
+   "url": "https://en.wikipedia.org/wiki/Vancouver_Harbour_Heliport",
+   "ok": false,
+   "note": "HTTP 404; heliport identifier still unsourced."
+  }
+ ],
+ "verdict": "FAIL. Round 3 fixed most round-2 items: marking options (checked against Standard 621), parking, the cone crosswalk (checked against the 24 open-data records), Higher Buildings criteria, reconciliation rows and large-sites sourcing. Entrants still cannot rely on it. Every hard rule comes from a brief nobody has opened. Some brief wording is quoted with no opened source. M02 secretly depends on M01, M07 and M09: the M01 link closes a cycle that the Kahn check cannot see. The decisive Area A residential ban rests on one unopened summary whose sub-area letters do not match the City data (C vs C1). The core scope still takes about 28% of the team's capacity. To pass: register by 29 Oct, quote the clauses, hand-read the City PDFs in a browser, fix the dependencies, and cut the core further. Web search budget was exhausted, so new checks used direct fetches only."
+}

@@ -1,0 +1,9 @@
+{
+  "format": "tower-studio-ratings@1",
+  "sample": true,
+  "note": "Sample counts to exercise the display; not votes by real people. Real ratings would be parsed from review replies, one vote per GitHub account per major version (research P15-M06).",
+  "ratings": {
+    "community.example.tower-width": { "up": 6, "down": 1 },
+    "community.sample.plate-efficiency": { "up": 2, "down": 1 }
+  }
+}

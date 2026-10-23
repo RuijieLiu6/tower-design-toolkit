@@ -1,0 +1,886 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tower-studio:schema:project:1",
+  "title": "Tower Design Toolkit project (tower-studio-project@1): the Layer 0 design",
+  "description": "Everything needed to reopen a design: both projects' towers, site north and datum, rule switches, the sun setting, presets and the switched-on nodes. Strict at the top level; towers and presets accept fields added by later versions, so newer files still open.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "app",
+    "project",
+    "site",
+    "towers",
+    "selectedTower",
+    "rules",
+    "sun",
+    "presets",
+    "nodes"
+  ],
+  "properties": {
+    "format": {
+      "const": "tower-studio-project@1"
+    },
+    "app": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "project": {
+      "enum": [
+        "vtc",
+        "city"
+      ],
+      "description": "The project open when saved: vtc = competition site, city = Real Vancouver."
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vtc",
+        "city"
+      ],
+      "properties": {
+        "vtc": {
+          "$ref": "#/$defs/site"
+        },
+        "city": {
+          "$ref": "#/$defs/site"
+        }
+      }
+    },
+    "towers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vtc",
+        "city"
+      ],
+      "properties": {
+        "vtc": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/tower"
+          }
+        },
+        "city": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/tower"
+          }
+        }
+      }
+    },
+    "selectedTower": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fsrTier",
+        "transitLink"
+      ],
+      "properties": {
+        "fsrTier": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "description": "Which uses count toward the 9.0 non-residential FSR (interpretation switch)."
+        },
+        "transitLink": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "month",
+        "day",
+        "hour"
+      ],
+      "properties": {
+        "month": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31
+        },
+        "hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 24
+        }
+      }
+    },
+    "presets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lifts",
+        "egress"
+      ],
+      "properties": {
+        "lifts": {
+          "$ref": "#/$defs/presets"
+        },
+        "egress": {
+          "$ref": "#/$defs/presets"
+        }
+      }
+    },
+    "publicRealm": {
+      "type": "object",
+      "maxProperties": 50,
+      "description": "Public realm inputs on the competition site (frontages, open space, mid-block link, station access). Optional: files from before 22 Oct 2026 open with the defaults."
+    },
+    "windPresets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tunnelDefaultHeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "f1": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "cityInNature": {
+      "type": "object",
+      "maxProperties": 30,
+      "description": "City in Nature ledger inputs entered by the designer. Optional: older files open with nothing entered."
+    },
+    "nodes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 500,
+          "items": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "known": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 500,
+          "items": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": "Built nodes that existed when the file was saved; nodes built later start switched on."
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Decision trace (research P16-M04): recorded iterations of the design with their results, decisions with a person's rationale, and blind-first reviews of rule cards (P16-M02). Times are recorded here; the design itself has none.",
+      "properties": {
+        "iterations": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "at",
+              "label",
+              "kind",
+              "hash",
+              "design",
+              "digest"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "at": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "kind": {
+                "enum": [
+                  "checkpoint",
+                  "saved",
+                  "opened",
+                  "new",
+                  "decision"
+                ]
+              },
+              "hash": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "design": {
+                "type": "object"
+              },
+              "digest": {
+                "type": "object",
+                "required": [
+                  "lines",
+                  "metrics"
+                ],
+                "properties": {
+                  "lines": {
+                    "type": "array"
+                  },
+                  "metrics": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "at",
+              "iterationId",
+              "issue",
+              "option",
+              "outcome",
+              "rationale",
+              "author",
+              "origin"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "at": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "iterationId": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "issue": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "option": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "outcome": {
+                "enum": [
+                  "chosen",
+                  "rejected",
+                  "deferred"
+                ]
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "author": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "origin": {
+                "const": "human",
+                "description": "Rationales are written by people; the tool never drafts one."
+              }
+            }
+          }
+        },
+        "reviews": {
+          "type": "array",
+          "maxItems": 500,
+          "description": "Blind-first rule-card reviews: the reviewer's own reading, typed before seeing the card, then a verdict. Written by people.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "at",
+              "cardId",
+              "cardHash",
+              "reviewer",
+              "mode",
+              "reading",
+              "verdict",
+              "note",
+              "dwellMs",
+              "matches",
+              "origin"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "at": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "cardId": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "cardHash": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "reviewer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "mode": {
+                "const": "blind-first"
+              },
+              "reading": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "requires",
+                  "parameter",
+                  "rule",
+                  "deontic",
+                  "strength"
+                ],
+                "properties": {
+                  "requires": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "parameter": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "rule": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "deontic": {
+                    "enum": [
+                      "obligation",
+                      "prohibition",
+                      "permission",
+                      "recommendation"
+                    ]
+                  },
+                  "strength": {
+                    "enum": [
+                      "strict",
+                      "defeasible"
+                    ]
+                  }
+                }
+              },
+              "verdict": {
+                "enum": [
+                  "agree",
+                  "disagree",
+                  "unsure"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "dwellMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "matches": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "deontic",
+                  "strength"
+                ],
+                "properties": {
+                  "deontic": {
+                    "type": "boolean"
+                  },
+                  "strength": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "origin": {
+                "const": "human",
+                "description": "Reviews are made by people; the tool never fills a reading."
+              }
+            }
+          }
+        }
+      }
+    },
+    "importedMeshes": {
+      "type": "object",
+      "maxProperties": 50,
+      "description": "Meshes of imported towers, keyed by Tower.imported.meshId (tower frame, metres, z up, rounded to mm). Optional: without them an imported tower draws as stacked plates and every check still runs.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "positions",
+          "indices"
+        ],
+        "properties": {
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "communityNodes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Imported community node packages the design uses, so the file opens complete on another computer. Each package is re-validated on import.",
+      "properties": {
+        "packages": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object"
+          }
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "systemsPresets": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Code & life safety presets (research P11-M03): plant, riser and emergency-power figures, all team assumptions except the 2 h generator runtime (VBBL 2019 3.2.7.9). Missing keys take the defaults.",
+      "properties": {
+        "pMinKpa": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 549
+        },
+        "hydronicRatingKpa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "airReachFloors": {
+          "type": "number",
+          "minimum": 0
+        },
+        "liftKw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "firePumpKw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stairFanKw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "smokeFanKw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lifeSafetyKw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "runtimeH": {
+          "type": "number",
+          "minimum": 0
+        },
+        "genM2PerKw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "waterRiserM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hydronicRiserM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "electricalRoomM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "emergencyRiserM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "commsRoomM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "airShaftM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "chuteM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "washroomsM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "baseElectricalM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "controlRoomM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "radioRoomM2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "firePump": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "use": {
+      "enum": [
+        "retail",
+        "office",
+        "hotel",
+        "residential",
+        "civic",
+        "amenity",
+        "mechanical"
+      ]
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "north",
+        "datum",
+        "frame"
+      ],
+      "properties": {
+        "north": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "deg",
+            "basis"
+          ],
+          "properties": {
+            "deg": {
+              "type": "number",
+              "minimum": -360,
+              "maximum": 360,
+              "description": "True north, degrees clockwise from the model's +Y (grid north)."
+            },
+            "basis": {
+              "type": "string",
+              "maxLength": 300
+            }
+          }
+        },
+        "datum": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vertical",
+            "groundElevation",
+            "basis"
+          ],
+          "properties": {
+            "vertical": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "groundElevation": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Geodetic elevation of grade (m); null where heights are above local grade only."
+            },
+            "basis": {
+              "type": "string",
+              "maxLength": 300
+            }
+          }
+        },
+        "frame": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "presets": {
+      "type": "object",
+      "maxProperties": 100,
+      "additionalProperties": {
+        "type": [
+          "number",
+          "boolean",
+          "string"
+        ]
+      }
+    },
+    "tower": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "name",
+        "x",
+        "y",
+        "rotation",
+        "width",
+        "depth",
+        "height",
+        "f2f",
+        "podiumHeight",
+        "podiumWidth",
+        "podiumDepth",
+        "podiumUse",
+        "bands",
+        "coreShare",
+        "plantEvery"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        },
+        "depth": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "f2f": {
+          "type": "number",
+          "minimum": 2,
+          "maximum": 20
+        },
+        "podiumHeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "podiumWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "podiumDepth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "podiumUse": {
+          "$ref": "#/$defs/use"
+        },
+        "bands": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "use",
+              "share"
+            ],
+            "properties": {
+              "use": {
+                "$ref": "#/$defs/use"
+              },
+              "share": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "coreShare": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.9
+        },
+        "plantEvery": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "coreAuto": {
+          "type": "boolean"
+        },
+        "skyLobbies": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "skyRoom": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "level"
+              ],
+              "properties": {
+                "level": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "access": {
+                  "enum": [
+                    "shared",
+                    "dedicated"
+                  ]
+                },
+                "free": {
+                  "type": "boolean"
+                },
+                "hoursOpen": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "visitorShare": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "loadBasis": {
+                  "enum": [
+                    "dining",
+                    "standing"
+                  ]
+                },
+                "visitMinutes": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "postedLimit": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "stairPlacement": {
+          "enum": [
+            "core",
+            "mixed",
+            "perimeter"
+          ]
+        },
+        "outriggerFloors": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "imported": {
+          "type": "object",
+          "description": "Imported massing (storeys sliced from a model). The mesh itself is not in the file."
+        }
+      }
+    }
+  }
+}

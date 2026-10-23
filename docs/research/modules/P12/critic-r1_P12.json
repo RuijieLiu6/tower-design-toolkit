@@ -1,0 +1,301 @@
+{
+ "expert_role": "Interior architect and workplace strategist (independent reviewer, round 1, packet P12)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P12-M04",
+   "issue": "The spec names the wrong governing code. It cites BCBC 2024 for occupant load and egress (M04), occupancy separations (M05) and acoustics (M08), and it has M06 export to 'Step Code modelling'. The Province's own code page says 'BC Codes don't apply in the City of Vancouver which has its own building bylaw.' M04 feeds SYST egress and lifts, so this error spreads to other packets.",
+   "fix": "Replace every BCBC 2024 reference with the Vancouver Building By-law (VBBL) edition in force, after confirming the edition and effective date on vancouver.ca. Re-key the egress, separation and acoustic metrics to the VBBL clauses and keep them unverified until read. In M06 and the ENER export, replace 'Step Code' with the City's energy and emissions metrics (VBBL energy part and/or the Green Buildings Policy for Rezonings: TEUI/TEDI/GHGI), unverified until opened. Rewrite the BCBC flag as a corrected FALSE ASSUMPTION."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P12-M04",
+   "issue": "Area bases and population bases are mixed. The formula N = area x efficiency / density applies a net-to-gross factor to DOE/PNNL prototype densities, which are given per whole zone floor area, so office populations come out too low. The same 'design' population (18.58 m2/person, an energy-modelling load) is then sent to SYST for lift sizing. Residential egress also uses the DOE figure of 2.5 persons per unit instead of a code count per sleeping room.",
+   "fix": "Tag every density with its area basis (GFA, zone floor area, net usable) and apply the efficiency factor only to net-basis densities. Add a fourth basis, 'vertical transportation', with its own sourced lift-planning density and attendance (CIBSE Guide D, to be opened) and stop feeding the energy density to lifts. For residential and hotel egress, use the VBBL persons-per-sleeping-room rule (to verify) from bedroom counts. Show both area bases in the waterfall chart."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P12-ALL",
+   "issue": "Metric statuses contradict the evidence and the spec's own flags. Several metrics are 'verified' although no primary text was opened or the source was superseded: the 800 kgCO2e/m2 cap is 'verified' in M07 but listed UNVERIFIED in flags; LEED Quality Views is 'verified' in M02 but UNVERIFIED in flags; three EN 17037 metrics rest on secondary sources; M03 calls the 3 x head-height test 'verified' while also calling it the 'team's interpretation'; the M04 9.0 FSR metric is 'verified' with no source_ids; and M06 bird tiers are campus-policy proxies. The tool will show pass/fail badges that entrants will trust.",
+   "fix": "Add the statuses 'verified_secondary', 'proxy' and 'legacy_version'. Allow 'verified' only when the official current text was opened, and run an automated consistency check so each metric's status matches its flag. Show no pass/fail badge for a metric that is not 'verified'. Add the VTC brief as a source record and cite it in the FSR, public-continuity and site metrics."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M07",
+   "issue": "The embodied-carbon check compares an A1-A3 (cradle-to-gate) sum against a whole-building cap whose life-cycle scope, element scope and 2025 amendments were never read. It also does not settle whether the VBBL requirement or the Green Buildings Policy for Rezonings governs. A partial-scope total will almost always 'pass' an 800 cap, so the badge is misleading. The CLF BC page opened is a 2023 webinar snapshot.",
+   "fix": "Remove the pass/fail badge. Label the result 'A1-A3 partial; cap scope unverified' until the City's current Embodied Carbon Guidelines are opened. Add stage toggles (A4-A5, B, C) through Brightway, and require the user to state the scope used. Recheck the 2025 amendments: the web-search budget ran out during this review."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M04",
+   "issue": "The 9.0 FSR non-residential test sums every non-residential tag. The brief says 'non-residential, high-employment floor area (office, commercial)'. Counting hotel, cultural/civic, amenity, mechanical or below-grade area could make a non-compliant entry look compliant, and Vancouver floor-area exclusions are not addressed.",
+   "fix": "By default, count only office and retail/commercial tags. Make hotel and cultural/civic separate toggles, each needing a judgement record. Exclude mechanical, core and below-grade area unless the user overrides it. Show the result as a range (strict vs inclusive), and list the floor-area definition as unresolved."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M01",
+   "issue": "Fractional 'partition transparency' (0-1) cannot map to a visibility-graph edge, which either exists or does not. Glass is visible but not walkable. Turner et al. (2001) build separate graphs at eye height (visibility) and floor height (accessibility) for the Barcelona Pavilion. Ranking 'within each floor' also conflicts with the merged multi-level graph.",
+   "fix": "Build two graphs: a visibility graph at eye height, where glass is transparent, and an accessibility graph at floor height, where glass is a barrier. Use binary obstacle flags. Normalise integration consistently, either per floor or per connected graph, and state which."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M01",
+   "issue": "The compute cost is not feasible for a supertall. Merging 60-80 floors into one graph at 0.5-1 m spacing gives on the order of 10^5 cells and about 10^10 pairwise tests, which is beyond a browser.",
+   "fix": "By default, analyse only tagged public, lobby, sky-lobby and atrium floors at 1.0 m (Turner's 'human-scale' spacing). Link only the floors joined by open stairs or voids. Cap the cell count and run large jobs through depthmapXcli as a separate process."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M02",
+   "issue": "The site is hypothetical. 'Stanley Park, BC Place, North Shore Mountains' are direction labels on the site plan, not georeferenced points. Ray-cast mountain and water views from 'open data' context therefore depend on an unstated choice of real block, so the results look objective but are not.",
+   "fix": "Have the SITE packet supply a georeferenced proxy block as a recorded team assumption. Derive target azimuths from it, run a sensitivity check (alternative proxy blocks or +/- rotation), and mark every target-view result as conditional on that assumption."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M02",
+   "issue": "The LEED benchmarks are out of date. LEED v5 has been available for BD+C since its April 2025 launch edition. M03's sDA/ASE thresholds come from v4 EQc7. M02 also leaves out the v4.1 view-type requirement (nature, urban landmarks, art, or objects beyond 7.5 m) even though its own targets could satisfy it.",
+   "fix": "Open the LEED v5 BD+C EQ credit text and the v4.1 credit text. Label the v4 thresholds 'legacy_version'. Add a view-type check to M02 that maps the mountain, water and park targets to the LEED view types."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M06",
+   "issue": "The WWR good/bad rule uses the ASHRAE 90.1 Appendix G baseline WWR, which is the reference model's WWR for performance comparison, not a limit. It is labelled 'verified' although the spec says it is not a Vancouver requirement and that the column was read by inference.",
+   "fix": "Show 40%/34% only as a reference line, with status team_assumption or proxy. Take the good/bad judgement from the ENER result against the City's energy metrics (TEDI/GHGI), not from WWR."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M06",
+   "issue": "The bird-friendly check is incomplete for a 300 m tower on the Pacific Flyway. The UBC Backgrounder also requires eliminating fly-through conditions, treating glass corners 5 m in each direction, Dark Sky-compliant exterior lighting, and attention to parallel glass and interior plants. It counts overhangs as treated area up to 1:1 and names the standard (CSA A460-2019), which the spec does not. The rule '4 m above tallest vegetation' is ambiguous for sky gardens at height.",
+   "fix": "Add metrics for fly-through and corner conditions, plus a night-lighting flag (feeding ECOL). Name CSA A460-2019. Apply the vegetation rule locally around each sky garden or terrace, not as a tower-wide height. Add the overhang credit rule."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M06",
+   "issue": "The bird-friendly glass versus view-glazing conflict is wrongly marked unresolved. The CaGBC article on the v4.1 addenda says the frit and pattern requirements were clarified to align with bird-collision deterrence.",
+   "fix": "Downgrade the flag. Cite P12-S05 for the alignment and open the v4.1 or v5 credit wording to state the allowed frit or pattern. Keep only the residual trade-off (VLT and view clarity) as a human judgement."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M07",
+   "issue": "The Indigenous 'consultation status' flag cannot honestly be cleared by competition entrants. They are anonymous, have weeks to work, and have no relationship with the Musqueam, Squamish or Tsleil-Waututh Nations. The record format invites a claim of consultation that did not happen.",
+   "fix": "Add the fixed status 'no consultation possible in this exercise'. Block generation or library tagging of Coast Salish motifs, names or patterns. Send such items to the CULT packet as 'not proposed'. Require the board text to say no consultation took place."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M05",
+   "issue": "The stacking model leaves out the physical drivers that decide mixed-use supertall stacks: floor-to-floor height by use, plate or lease depth by use (deep office plates versus shallow residential and hotel plates), separate entrances, lobbies and lift banks per use, wet-stack alignment, and transfer or outrigger floors.",
+   "fix": "Add parameters for floor-to-floor and plate depth by use (from SYST/STRC), stack-alignment conflicts, and a check that each use has its own entry and lift path. Score them separately from the subjective A/E/I/O/U/X ratings."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M03",
+   "issue": "There is no glare metric, although ASE appears as a pass/fail badge and the REHVA source (S07) lists the EN 17037 glare levels (DGPe below 0.45/0.40/0.35). High-WWR towers need glare control in interiors.",
+   "fix": "Add a glare metric from CLIM (DGP), ingested the same way as sDA, with secondary-verified status, and link it to M06 shading."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P12-M08",
+   "issue": "The comfort roadmap leaves out the supertall-specific interior comfort issues: perception of wind-induced building motion for residential and hotel floors near 300 m, radiant asymmetry and downdraft at full-height glazing, stack-effect door forces and whistling, and lift and wind noise.",
+   "fix": "Add these to the roadmap as parameters linked to STRC and SYST. Mark the motion-perception criteria (for example ISO 10137 / ISO 6897) as sources to open, with no numbers until read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M02",
+   "issue": "EN 17037 view out is assessed per point (Annex C, as REHVA states). The '% of area by EN 17037 level' is a ClimateStudio reporting convention. The eye heights of 1.2 m and 1.7 m are cited to an arXiv paper that was not opened (S09).",
+   "fix": "Label the area aggregation as a tool convention. Set the eye-height source to 'unopened' and record the values as team presets."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M01",
+   "issue": "The spec says Turner et al. (2001) show only qualitative correspondence with use. The paper reports an exponential regression (R2 = 0.63) between observed room occupancy and mean shortest path length at the Tate Gallery. It also confirms the 1.0 m Villa Mairea grid and the low clustering at junctions.",
+   "fix": "Correct the S10 extract and the unresolved-relationships text. Cite the Tate result as evidence for relative use, not as a threshold."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M07",
+   "issue": "The concrete range of 220 to 90 kgCO2e/m3 compares a 28-day baseline with a 91-day EPD, and the guide warns that curing ages differ. The CLF BC guide shows '(c) 2026 ZEIC - All Rights Reserved' and no reuse licence.",
+   "fix": "Compare at matching strength and curing age (for example Butler 109 at 28 days against the baseline of 220). Link to the guide rather than bundling its values, and add a licence field of 'not stated'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M03",
+   "issue": "The daylight-zone factor k = 2.0 is unsourced although candidate sources exist: the ASHRAE 90.1 sidelighted daylight-area definitions (tied to head height) and Reinhart's simulation review of the head-height rule of thumb. Neither could be opened here. The proxy also mixes a lighting-control zone with daylight adequacy.",
+   "fix": "Open and cite one of these candidate sources. Name k as either a lighting-control zone or a daylight-adequacy proxy, and keep the team_assumption status until then."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M05",
+   "issue": "The A/E/I/O/U/X definitions ('absolutely necessary', 'not desirable') are cited to Wikipedia (S44), which the spec itself says does not list them.",
+   "fix": "Cite Muther's SLP primary text once opened, or set source_ids to [] and mark the definitions as team presets."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M04",
+   "issue": "Workplace strategy reduces to one office density and an attendance factor of 1.0. Activity-based working needs per-setting densities (desk, collaboration, focus, amenity) and a utilisation scenario for the design and energy bases. Keeping 1.0 for egress is correct.",
+   "fix": "Add an activity-setting table with user-sourced densities and a utilisation scenario toggle, each change saved as a judgement record, for the design and energy bases only."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-M03",
+   "issue": "The LEED 75% views test appears in both M02 (ray-cast line of sight) and M03 (3 x head-height band) with different methods, so the two modules can show conflicting badges.",
+   "fix": "Choose one owner for the LEED views badge (M02). Let M03 report the head-height band as a supporting diagnostic only."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P12-ALL",
+   "issue": "The schedule is tight. The 'core' cuts of M02, M04 and M06 come to about 16 person-days for two students before 13 Nov, alongside other packets, and the fixes above add to M04.",
+   "fix": "Narrow the core release to M04 (with the corrected bases) and the M06 WWR and bird-zone cut. Move the M02 ridgeline and water tests to v1."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "BC Building Code 2024 (occupant loads, separations, acoustics) and the BC Energy Step Code govern a tower in downtown Vancouver.",
+   "why_false": "The City of Vancouver is outside the BC Codes and has its own building by-law.",
+   "correction": "Use the Vancouver Building By-law (edition in force, to be verified) and the City's energy and emissions requirements (VBBL / Green Buildings Policy for Rezonings). Keep the values unverified until read.",
+   "evidence": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes says: 'BC Codes don't apply in the City of Vancouver which has its own building bylaw.'"
+  },
+  {
+   "claim": "No source resolves how bird-friendly patterned glass and LEED view glazing can both be satisfied (UNRESOLVED flag).",
+   "why_false": "The LEED v4.1 addenda explicitly changed the frit and pattern requirement to align with bird-collision deterrence.",
+   "correction": "Cite the addenda alignment, open the current credit wording, and keep only the residual VLT and clarity trade-off as a judgement.",
+   "evidence": "https://www.cagbc.org/news-resources/cagbc-news/quality-views-addenda/ (28 Apr 2021) says the frits and patterns requirements were clarified to better align with bird-collision deterrence strategies, and that the multiple-lines-of-sight and view-factor options were removed."
+  },
+  {
+   "claim": "LEED v4/v4.1 credit thresholds (EQc7 sDA/ASE, EQc8 views) are the current LEED benchmark.",
+   "why_false": "LEED v5 is available for BD+C, ID+C and O+M (April 2025 launch edition).",
+   "correction": "Label v4 and v4.1 values as legacy, and open the v5 BD+C EQ credits before showing badges.",
+   "evidence": "https://www.usgbc.org/leed/v5 says 'LEED v5 certification is here', available for BD+C, ID+C and O+M, and links an 'April 2025 Launch Edition' reference guide."
+  },
+  {
+   "claim": "Turner et al. (2001) report only qualitative correspondence between visibility-graph measures and use.",
+   "why_false": "The paper reports a quantitative regression at the Tate Gallery.",
+   "correction": "State that observed room occupancy had an exponential correlation (R2 = 0.63) with mean shortest path length. This is still relative to one building and gives no threshold.",
+   "evidence": "https://discovery.ucl.ac.uk/id/eprint/160/1/turner-doxa-osullivan-penn-2001.pdf, Fig. 13: scatter of room occupancy against mean shortest path length, with an exponential regression line (R2 = 0.63)."
+  },
+  {
+   "claim": "EN 17037 view-out levels are an area-share criterion ('% of area by EN 17037 level').",
+   "why_false": "The standard's view-out methods are point-in-space assessments. The share of floor area is a software or author extension.",
+   "correction": "Report per-point levels and label the area aggregation as a ClimateStudio-style convention.",
+   "evidence": "REHVA Journal (P12-S07) says the view-out methods 'refer to point-in-space assessments as presented in Annex C'. ClimateStudio docs (P12-S08) summarise the per-position results as a percentage of regularly occupied floor area."
+  },
+  {
+   "claim": "BC 25 MPa concrete ranges from 220 to 90 kgCO2e/m3 (like-for-like), and CLF BC guide values can be used as open data.",
+   "why_false": "The 90 figure is a 91-day EPD and the 220 baseline is at 28 days; the guide warns that curing ages differ. The guide page carries an all-rights-reserved notice and no licence.",
+   "correction": "Compare at equal curing age (for example Butler 109 at 28 days against 220). Reference the guide by link, not by bundling its values.",
+   "evidence": "https://clfbritishcolumbia.com/low-carbon-material-sourcing-guide/ lists the baseline at 28 days, Heidelberg 90 at 91 days and Butler 109 at 28 days, with the notice '(c) 2026 ZEIC - All Rights Reserved'."
+  }
+ ],
+ "missing": [
+  "Governing-code source records: the Vancouver Building By-law edition in force, and the City energy/emissions metrics (TEUI/TEDI/GHGI) for the ENER export",
+  "The VTC brief as a source record (FSR, public continuity, site dimensions, deliverables)",
+  "A vertical-transportation population basis (CIBSE Guide D or equivalent) separate from the energy design density",
+  "An area-basis field (GFA / zone / net) on every density",
+  "Residential egress by sleeping rooms (VBBL rule, to verify)",
+  "Floor-to-floor height and plate/lease depth by use as stacking and daylight parameters",
+  "Core-efficiency / net-to-gross benchmarks for supertall mixed-use towers",
+  "A glare metric (DGP / EN 17037 glare protection) via CLIM",
+  "Bird-friendly fly-through, glass-corner, parallel-glass and night-lighting checks; the CSA A460-2019 citation",
+  "A LEED v4.1/v5 view-type check (nature, landmarks, art, objects beyond 7.5 m)",
+  "Privacy and overlook between the tower and neighbouring or approved towers (visual privacy against view gain)",
+  "Building-motion perception, radiant asymmetry and downdraft at full-height glazing, and stack-effect door problems in the comfort roadmap",
+  "Interior accessibility and universal design (colour and LRV contrast, CSA B651), wayfinding signage",
+  "Interior biophilia and sky gardens linked to the ECOL 'City in Nature' work",
+  "Balcony and winter-garden policy for residential and hotel floors at height (wind exposure)",
+  "A sensitivity check on the assumed real location of the hypothetical site for view results",
+  "A 'no consultation possible' status and a block on motif generation for Indigenous-related items",
+  "A partial-scope embodied-carbon label and stage toggles (A4-A5, B, C)",
+  "A per-setting activity-based-working density table and a utilisation scenario (design and energy bases only)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Replace the BCBC 2024 and Step Code references with the Vancouver Building By-law and City energy requirements, keeping them unverified until read",
+   "Correct the M04 area bases and add a separate vertical-transportation population basis; stop feeding energy densities to egress and lifts",
+   "Make every metric status consistent with its evidence and flags; add verified_secondary, proxy and legacy statuses, and show no pass/fail badge unless the metric is verified",
+   "Remove the embodied-carbon pass badge until the scope and current City guideline are confirmed",
+   "Fix the 9.0 FSR counting rule (office and commercial by default; hotel and cultural as recorded judgements)",
+   "Correct the six false assumptions listed (code jurisdiction, bird/view conflict, LEED currency, Turner R2, EN 17037 area aggregation, concrete comparison)",
+   "Recheck items left unverified because the web-search budget was exhausted in this review (Vancouver embodied-carbon 2025 amendments, LEED v5 credit text, VBBL edition)"
+  ]
+ },
+ "verdict": "The packet is careful and honest about gaps, but it is not ready for entrants. It cites the wrong code: BCBC and the Step Code do not apply in the City of Vancouver. The core occupancy module mixes area bases and sends energy-model densities to egress and lift sizing. Several metrics are labelled 'verified' although the spec's own flags call them unverified or the source is superseded (LEED v5 has been out since 2025), so entrants would see misleading pass badges. The embodied-carbon check compares A1-A3 totals with a cap of unknown scope. The bird-friendly check is incomplete for a 300 m tower, and the M01 transparency model cannot work. Most fixes are relabelling and adding parameters. A focused round 2 should pass.",
+ "sources_checked": [
+  {
+   "source_id": "P12-S23",
+   "url": "https://clfbritishcolumbia.com/?p=730",
+   "ok": true,
+   "note": "Matches the spec: 800 kgCO2e/m2 (2 x 400), baseline path at most 2x, effective 1 Oct 2023. It is a Nov 2023 webinar snapshot: no life-cycle stages and no 2025 changes. Secondary source, so 'verified' is too strong."
+  },
+  {
+   "source_id": "P12-S27",
+   "url": "https://circularecology.com/embodied-carbon-footprint-database.html",
+   "ok": true,
+   "note": "Confirms ICE Educational V5.0 (June 2026) is educational-only, excludes tools, software and project calculations, and that non-educational use is not permitted from 30 Sept 2026. The FALSE_ASSUMPTION correction is right."
+  },
+  {
+   "source_id": "P12-S05",
+   "url": "https://www.cagbc.org/news-resources/cagbc-news/quality-views-addenda/",
+   "ok": true,
+   "note": "Confirms 75%, 3 x head height, VLT of 40% or more, and the removal of the lines-of-sight and view-factor options. It also says frits were aligned with bird deterrence and lists required view types; the spec misses both."
+  },
+  {
+   "source_id": "P12-S07",
+   "url": "https://www.rehva.eu/rehva-journal/chapter/en-17037-a-step-forward-new-computational-methods-with-sunlight-daylight-and-quality-views-for-regenerative-design",
+   "ok": true,
+   "note": "Table values match (14/28/54 degrees, 6/20/50 m, 1/2/3 layers; 300/500/750 lx and 100/300/500 lx). View out is a point-in-space assessment, and the area share is the authors' extension."
+  },
+  {
+   "source_id": "P12-S08",
+   "url": "https://climatestudiodocs.com/docs/viewEN17037.html",
+   "ok": true,
+   "note": "Matches the landscape-layer rule and worst-of-three. Results are summarised as % of regularly occupied area, which is a software convention."
+  },
+  {
+   "source_id": "P12-S31",
+   "url": "https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf",
+   "ok": true,
+   "note": "Decoded locally (read only). Tiers 90/85/55% up to 16 m or 4 m above the tallest vegetation are confirmed, as are the 5 cm marker and 5/10 cm line spacings. The document also covers fly-through, 5 m glass corners, Dark Sky lighting, overhangs counted 1:1 and CSA A460-2019; the spec omits these."
+  },
+  {
+   "source_id": "P12-S10",
+   "url": "https://discovery.ucl.ac.uk/id/eprint/160/1/turner-doxa-osullivan-penn-2001.pdf",
+   "ok": true,
+   "note": "Decoded locally. Confirms the 1.0 m Villa Mairea grid, eye-level slices linked across stairs, and low clustering at junctions. Also shows separate eye-height and floor-height graphs (Barcelona Pavilion, 0.5 m grid) and a Tate R2 of 0.63, which contradicts 'qualitative only'."
+  },
+  {
+   "source_id": "P12-S21",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes",
+   "ok": true,
+   "note": "States 'BC Codes don't apply in the City of Vancouver which has its own building bylaw', which contradicts the spec's use of BCBC and the Step Code."
+  },
+  {
+   "source_id": "P12-S25",
+   "url": "https://clfbritishcolumbia.com/low-carbon-material-sourcing-guide/",
+   "ok": true,
+   "note": "Values confirmed (updated 9 Feb 2026, A1-A3, glass not covered). Curing ages differ (Heidelberg 91 d against the 28 d baseline). '(c) 2026 ZEIC - All Rights Reserved', with no licence stated."
+  },
+  {
+   "source_id": "external-LEEDv5",
+   "url": "https://www.usgbc.org/leed/v5",
+   "ok": true,
+   "note": "LEED v5 is available for BD+C, ID+C and O+M (April 2025 launch edition), so the v4 thresholds are legacy."
+  },
+  {
+   "source_id": "external-VBBL",
+   "url": "https://vancouver.ca/home-property-development/building-bylaw.aspx",
+   "ok": false,
+   "note": "HTTP 403. VBBL edition and embodied-carbon text not read."
+  },
+  {
+   "source_id": "external-LEEDuser-v4.1",
+   "url": "https://leeduser.buildinggreen.com/credit/BD-C-v4.1/EQc8",
+   "ok": false,
+   "note": "HTTP 404. The v4.1 credit wording was not read."
+  },
+  {
+   "source_id": "external-Reinhart2005",
+   "url": "https://www.ibpsa.org/proceedings/BS2005/BS05_1011_1018.pdf",
+   "ok": false,
+   "note": "HTTP 404. The candidate source for the k rule of thumb was not read. The WebSearch budget was exhausted in this review, so the 2025 Vancouver embodied-carbon amendments could not be searched."
+  }
+ ]
+}

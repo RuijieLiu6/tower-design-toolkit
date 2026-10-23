@@ -1,0 +1,3068 @@
+{
+ "packet_id": "P06",
+ "modules": [
+  {
+   "module_id": "P06-M01",
+   "name": "Ground-floor activation and frontage composition",
+   "phase": "basic",
+   "category": "PUBL",
+   "design_question": "How much street frontage is active, transparent, fine-grained, sheltered and deep enough to work, and how much is lost to blank wall, lobbies, loading and driveways?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "About 8-10 person-days; the edge-annotation UI (category, glazing, entrances, depth, hours) is the main cost; the bike-facility flag adds about 1 day.",
+   "inputs": [
+    "Layer0.Massing: ground-storey volumes (mesh, z from 0 to first-floor underside) with a program tag per volume",
+    "Layer0.ProgramTags: office | residential | hotel | retail | cultural_civic | public | amenity | mechanical | core | lobby",
+    "SiteContext.StreetEdges (SITE): polylines typed arterial | retail_high_street | lane | mid_block | transit_plaza, plus bike_facility flag (none | painted | protected)",
+    "SiteContext.PolicyArea (SITE): Downtown character area (C-5, C-6, HA-1, HA-2) or Granville Street Plan area, chosen by the user; CDDG 4.18 says to refer to it",
+    "EdgeAnnotations (user-drawn): per facade segment category (active | semi_active | passive | blank | service), glazing ratio, entrances, egress doors, canopy geometry, active depth, opening hours, grille permeability",
+    "Optional: neighbouring frontages for continuity at corners"
+   ],
+   "outputs": [
+    "FrontageSegments: GeoJSON FeatureCollection<LineString> {street_type, category, length_m, glazing_ratio, entrances_n, depth_m, hours}",
+    "ActiveFrontagePct and ActiveDepthOkPct: numbers per street edge",
+    "Entrances: Point[] {use, width_m, hours} (consumed by P06-M04 and P06-M05)",
+    "BlankRunMax_m, ServiceFrontagePct, WeatherProtectionCoveragePct, NightActivePct: numbers per street edge",
+    "VehicleCrossings: {street_id, kind: driveway | loading, over_bike_facility, width_m}[] (to MOBI and P06-M08)",
+    "GroundFloorChecks: Check[] {clause_id, source_id, status, value} (consumed by P06-M08 and PRES boards)"
+   ],
+   "parameters": [
+    {
+     "name": "Active-use share of street frontage",
+     "relationship": "More retail, cafe, civic, transit-entrance or hotel-lobby frontage on streets, corners and plazas -> more activity and visibility; but less frontage for cores, loading and back-of-house, which must move to lanes or below grade.",
+     "unit": "% of length",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Entrance spacing",
+     "relationship": "Smaller spacing (more doors) -> finer grain and more eyes on the street; each extra door uses frontage and adds tenancies. CDDG S3.1.1a says typically 8.0-12.0 m on non-residential active facades.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Unit (storefront) frontage width",
+     "relationship": "Narrower units -> more varied tenants and finer rhythm but less efficient anchors; CDDG expects 7.6-15.3 m fine-grain units, with large uses designed to be demisable later.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Ground-floor glazing ratio",
+     "relationship": "Higher transparent share of the ground band -> more visual permeability and surveillance, but more glare and heat gain and less display wall. CDDG says 'most', no percentage; bird-friendly glazing treatment can offset transparency.",
+     "unit": "% of band area",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Active-use depth behind the facade",
+     "relationship": "Deeper active space behind the glass -> real activity and views in, not a 1-2 m display strip or lobby sleeve; but it costs net area and core flexibility. The 9.1 m preset borrows G2.10.2c as an analogue.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Lobby class, opening hours and separate entries",
+     "relationship": "CDDG glossary counts hotel lobbies and transit entrances as active uses; office and residential lobbies default semi-active (team). Evening hours and lighting extend activation (G3.1.1b); G2.11.1 asks separate residential entrances.",
+     "unit": "class; hours",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Blank-wall run length",
+     "relationship": "Longer uninterrupted blank wall, grille or egress-door run -> fewer reasons to stop and lower perceived safety; driven by cores, substations, loading and parkade doors placed on streets. Gates and grilles count as blank unless permeable at all hours.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Vehicle crossings and service-door frontage",
+     "relationship": "Each driveway or loading door on a street replaces active frontage and adds pedestrian-vehicle conflict; moving access to the lane removes both. Vancouver policy is to minimise width and number of driveways across sidewalks.",
+     "unit": "count per 100 m; % of length",
+     "source_ids": [
+      "P06-S01",
+      "P06-S12",
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Crossings over bike facilities",
+     "relationship": "A driveway or loading crossing over a painted or protected bike lane adds cyclist conflict, which the EDM treats with green conflict markings; lane access removes it. Counted apart from pedestrian conflict.",
+     "unit": "count per 100 m",
+     "source_ids": [
+      "P06-S11",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Weather protection depth, height and continuity",
+     "relationship": "Deeper, more continuous canopies at 3.0-4.5 m height -> longer rain-sheltered walking and waiting in a wet climate; but they can block daylight and sky view and conflict with street trees.",
+     "unit": "m; ratio; % coverage",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Ground-storey floor-to-floor height",
+     "relationship": "4.6-6.1 m storeys -> flexible, tall transparent shopfront bands and mezzanines; higher ground storeys raise podium height and construction cost.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Street type and policy area",
+     "relationship": "Street type sets how strict the active-frontage target is: continuous on the retail high street, mixed on the arterial, service tolerated on lanes. ODP retail-continuity map and character-area guides (CDDG 4.18) were not opened and may change presets.",
+     "unit": "category",
+     "source_ids": [
+      "P06-S15",
+      "P06-S01",
+      "P06-S40"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Entrance spacing on non-residential active facades",
+     "good": "About 8-12 m between entrances (roughly 8-13 entrances per 100 m).",
+     "bad": "Gaps above 12 m flagged amber; the guideline says 'typically', so it is discretionary, not pass/fail.",
+     "status": "verified",
+     "basis": "CDDG S3.1.1a (Appendix A, approved 28 Jul 2026 per City page; final text not yet posted). Per-100 m conversion is ours (derived).",
+     "method": "Order entrance points along each street edge; compute gaps; report median, max and entrances per 100 m.",
+     "unit": "m; per 100 m",
+     "source_ids": [
+      "P06-S01",
+      "P06-S02"
+     ]
+    },
+    {
+     "name": "Fine-grain unit frontage width",
+     "good": "Ground-level fine-grain active units generally 7.6-15.3 m wide.",
+     "bad": "Units wider than 15.3 m that are not designed to be demisable; major anchors are better placed below or above grade.",
+     "status": "verified",
+     "basis": "CDDG S2.7.2 and G2.7.2 (draft Appendix A).",
+     "method": "Measure distance between demising lines or tagged unit boundaries along the facade.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Active frontage share by street type",
+     "good": "Retail high street at least 90%; arterial and other streets at least 70%; lanes no minimum (editable presets).",
+     "bad": "Below 50% on a retail high street or arterial.",
+     "status": "team_assumption",
+     "basis": "CDDG G2.6.1 only says to locate active uses on fronting streets, corners, open spaces and mid-block links; no percentage exists. ODP retail-continuity street map not opened.",
+     "method": "Length of active segments divided by total street-facing frontage length, per street type.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S01",
+      "P06-S15"
+     ]
+    },
+    {
+     "name": "Active-use depth",
+     "good": "Active space at least 9.1 m deep from facade to first core or back-of-house line (editable preset).",
+     "bad": "Shallower than the preset, or shelving, signage or back-of-house blocking views in (G3.1.3).",
+     "status": "team_assumption",
+     "basis": "CDDG G2.10.2c recommends 9.1 m active depth only for frontage of above-grade parking structures; used here as an analogue. G3.1.3 asks interior layouts to keep views in.",
+     "method": "Measure perpendicular depth from facade to the first core, back-of-house or opaque line, per active segment.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Lobby and entry classification",
+     "good": "Hotel lobbies and transit entrances count active; office and residential lobbies count semi-active unless lined with retail or amenity; residential and non-residential uses have separate entries (G2.11.1).",
+     "bad": "A lobby counted as active without a use on its frontage, or one shared entry for residential and other uses.",
+     "status": "team_assumption",
+     "basis": "CDDG glossary lists hotel lobbies and transit entrances as active uses (verified); the semi-active default for office and residential lobbies is a team assumption.",
+     "method": "Read lobby tag, frontage use and entry count per use; reclassify segments before totals.",
+     "unit": "class; count",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Night-time activation",
+     "good": "Reported only: share of active frontage with evening opening and lighting; no sourced pass level.",
+     "bad": "No sourced fail level; long blank or dark runs flagged.",
+     "status": "unverified",
+     "basis": "CDDG G3.1.1b asks for integrated lighting along frontages and G3.1.1c for gates and grilles permeable at all hours; no hours rule exists.",
+     "method": "Divide length of segments with evening hours and lighting flag by active frontage length.",
+     "unit": "% of length",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Ground-floor transparency ratio",
+     "good": "At least 60% glazed in the band from grade to the lower of second-floor underside or canopy soffit (editable preset).",
+     "bad": "Below 40% (editable preset).",
+     "status": "team_assumption",
+     "basis": "CDDG S3.1.1b requires transparent glazing across 'most' of the ground-floor facade, no number. 60% is a placeholder. Bird Friendly Design Guidelines (CDDG 4.8) may reduce effective transparency.",
+     "method": "Glazed area divided by facade area in the band; use modelled openings or the annotated ratio.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Longest blank or opaque run",
+     "good": "No run longer than about 10 m (about one entrance spacing, editable).",
+     "bad": "Run longer than 15 m (editable).",
+     "status": "team_assumption",
+     "basis": "CDDG G3.1.2 and G2.15.3 say to limit blank walls, grilles, secondary egress doors and opaque glazing along streets, but set no length.",
+     "method": "Maximum consecutive length of blank, service or passive segments, with impermeable grilles and gates counted blank.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Weather-protection geometry",
+     "good": "Mounting height 3.0-4.5 m; depth-to-height ratio about 0.4-0.7; depth at least 1.5 m in most mixed-use contexts.",
+     "bad": "Outside these ranges, or missing over active frontages, transit and entries.",
+     "status": "verified",
+     "basis": "CDDG S3.2.1 and S3.2.2 (draft Appendix A).",
+     "method": "Sample canopy depth and underside height every 2 m along active frontage; compute ratio.",
+     "unit": "m; ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Weather-protection coverage of active frontage",
+     "good": "Generally continuous along non-residential active frontages, at least 90% of length (preset).",
+     "bad": "Below 50% of length (preset).",
+     "status": "team_assumption",
+     "basis": "CDDG G3.2.1 asks for generally continuous protection where pedestrian activity is high; the percentages are placeholders.",
+     "method": "Canopy length divided by active frontage length.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Vehicle access and service frontage on streets",
+     "good": "Vehicle access from the lane; no driveway or loading door on retail high street or arterial frontage where lane access exists.",
+     "bad": "Any street-side crossing where lane access is feasible; count and width reported.",
+     "status": "verified",
+     "basis": "CDDG G2.10.1 (access from lane, away from streets) and Transportation 2040 W 1.1.6 (minimise driveways across sidewalks). No numeric cap exists.",
+     "method": "Count vehicle crossings and sum service-door lengths per street edge.",
+     "unit": "count per 100 m; %",
+     "source_ids": [
+      "P06-S01",
+      "P06-S12"
+     ]
+    },
+    {
+     "name": "Crossings over bike facilities",
+     "good": "No driveway or loading crossing over a bike facility where lane access exists; any crossing counted and flagged for conflict treatment.",
+     "bad": "Any such crossing with feasible lane access.",
+     "status": "team_assumption",
+     "basis": "Extension of CDDG G2.10.1 (verified). EDM 2026 Table 8-18 lists major driveway crossings of bike lanes for green treatment: context, not a limit.",
+     "method": "Count crossings whose street edge has bike_facility painted or protected; report width and kind.",
+     "unit": "count per 100 m",
+     "source_ids": [
+      "P06-S01",
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Active-storey floor-to-floor height",
+     "good": "4.6-6.1 m for active-use storeys.",
+     "bad": "Below 4.6 m for retail, or above 6.1 m without a mezzanine rationale.",
+     "status": "verified",
+     "basis": "CDDG S2.7.1 (draft Appendix A).",
+     "method": "Read storey heights of tagged active volumes.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    }
+   ],
+   "method": "1) Offset each ground-storey footprint edge facing a street, mid-block link or plaza; split at entrances, demising lines and tag changes. 2) Classify segments as active, semi-active, passive, blank or service from tags, glazing, entrances, lobby class and hours; hotel lobbies and transit entrances count active, office and residential lobbies semi-active (preset). 3) Sum lengths by street type; compute entrances per 100 m, gap distribution, unit widths and longest blank run. 4) Measure active depth from facade to the first core or back-of-house line. 5) Glazing ratio = glazed area over facade area from grade to the lower of second-floor underside and canopy soffit. 6) Sample canopy height and depth every 2 m. 7) Count vehicle crossings and service doors, separately over bike facilities. 8) Look up thresholds in a JSON table where each row carries source id and status. Recompute on any change.",
+   "visualization": [
+    "Plan view: each street edge offset 1 m outward and drawn as a thick polyline coloured by category (active green, semi-active teal, passive amber, blank grey with hatch, service purple), entrances as triangles, 10 m ticks, driveways over bike lanes marked; colour-blind-safe palette plus pattern fills.",
+    "Unrolled elevation strip per street (x = length in m, y = grade to second floor) with glazing percentage as a filled line and unit-width bars against the 7.6-15.3 m band.",
+    "Bar chart of active percentage per street with preset target line; depth shown as a hatch band behind each segment; one badge per clause linking to the CDDG clause and source id.",
+    "Team-assumption metrics drawn with dashed outline and an editable-threshold chip; any later-disproved threshold in the FALSE ASSUMPTION colour."
+   ],
+   "human_judgment": "Whether a use is genuinely active (tenant, hours, display), perceived safety and edge character, material quality at touch distance, and whether a justified breach, such as a civic anchor with a long frontage, beats the rule. The jury may reward justified breaches.",
+   "limits": "Layer 0 holds no openings, so glazing, depth and entrances need annotation. Activity is inferred from tags, not occupancy. VTC retail-continuity streets and character area are unknown (hypothetical site). CDDG figures are guidelines ('typically'), not by-law limits.",
+   "libraries": [
+    {
+     "name": "shapely",
+     "role": "Offsetting, splitting and length sums of edge geometry; built into Pyodide",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "trimesh",
+     "role": "Slicing massing meshes at ground and second-floor levels",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Read .3dm layers and geometry in Python or browser",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Read IFC storeys, spaces, doors and windows",
+     "license": "LGPL-3.0-or-later core (repo page read)",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "three.js",
+     "role": "Browser 3D and plan drawing",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "depends_on": [
+    "Layer 0 massing and program tags",
+    "SITE: street edges, street types, bike_facility flag, policy area"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P06-M02",
+   "name": "Streetwall, podium setbacks and street enclosure",
+   "phase": "basic",
+   "category": "PUBL",
+   "design_question": "Do podium height, tower step-back, tower separation, slenderness and floorplate give a street room of comfortable proportion and keep sky and light at the pedestrian level?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "About 6-8 person-days; section sampling and lookup tables are simple; multi-tower pairs and context towers need SITE data.",
+   "inputs": [
+    "Layer0.Massing: per-storey footprints and storey heights, with podium/tower split derived from first step-back",
+    "Layer0.Towers: each tower's storeys and use portions (employment, hotel, residential)",
+    "SiteContext.StreetEdges with right-of-way (ROW) width between building lines, including sidewalks",
+    "SiteContext.Buildings and tower sites: existing, approved and potential neighbouring towers, property lines (SITE)",
+    "SiteContext.PolicyArea: Downtown character area or Granville Street Plan area chosen by the user (CDDG 4.18)",
+    "SiteContext.NorthAngle: rotation of true north relative to the street grid"
+   ],
+   "outputs": [
+    "StreetSections: {street_id, station_m, podium_h_m, row_w_m, hw_ratio, step_back_m, sky_view_factor}[]",
+    "PodiumBandCheck: {street_id, rule: 2.2b | 2.2.7 | 2.2.8, allowed_min_m, allowed_max_m, actual_m, status}",
+    "TowerChecks: {pair_type: own-own | own-neighbour | own-property-line, use_pair, separation_m, required_m, status}[]",
+    "FloorplateAndSlenderness: {tower_id, floorplate_avg_m2, max_dimension_m, height_to_width}[]",
+    "StreetwallContinuityPct per street edge",
+    "SkyPlots: stereographic sky maps at sampled eye points (consumed by CLIM and P06-M08)"
+   ],
+   "parameters": [
+    {
+     "name": "Podium (streetwall) height",
+     "relationship": "Taller podium on a given street -> higher height-to-width ratio, stronger enclosure and less visible sky at the sidewalk (geometry). The CDDG caps podium height by street width so enclosure stays near a fixed band.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Street right-of-way width (building line to building line)",
+     "relationship": "Wider street (sidewalks included) -> taller podium allowed for the same enclosure: Downtown tower podiums step from 15.2 m (up to 27.5 m wide) to 15.2-18.3 m (up to 30.5 m) and 18.3-23.0 m above 30.5 m.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Podium cap and exception path",
+     "relationship": "Podiums tied to residential use are capped at 18.3 m Downtown (S2.2.7a); S2.2.8b allows 21.3 m on frontage over 60.7 m with enhanced open space. A higher podium shrinks sky but frees ground for open space.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower step-back above podium",
+     "relationship": "A setback above the podium makes the base read as the street wall and hides tower mass from the sidewalk; the CDDG design tip says a planar change of 1.5-3.0 m is the least that reads as a volumetric break.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Massing variation interval along the street",
+     "relationship": "Variation every 25-46 m breaks long monolithic walls into a human-scale rhythm; longer unbroken runs read as monolithic.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower floorplate area and dimension",
+     "relationship": "Larger floorplate -> wider tower, wider shadow and less sky from the street (geometry). CDDG gives average maxima by use, and a 29.0 m dimension limit for predominantly residential towers.",
+     "unit": "m2; m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower slenderness",
+     "relationship": "Taller, narrower towers read slender and let more sky and sun through; the CDDG design tip says height-to-width of 6:1 to 8:1 or more reads proportionate for tall and very tall towers.",
+     "unit": "ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower separation by use pair",
+     "relationship": "More separation -> more daylight, privacy and sky reaching the public realm. Table 1.5 sets 15.2-24.4 m by use pair; G1.5.1 asks for more where towers exceed typical heights, as 244-305 m towers do.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Intra-site tower spacing and future neighbours",
+     "relationship": "Several towers on one block must each meet Table 1.5 against each other; separation is shared equally with a neighbouring tower site (S1.5.1), so a future neighbour needs half the value to the property line.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Corner setbacks at north-south street corners",
+     "relationship": "Setting massing back at north-south street corners opens street-end mountain views; the downtown grid is rotated, so 'north-south' must come from the street grid, not true north.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Massing over open space",
+     "relationship": "Overhead massing over a POPS is not supported and cuts sun and sky; elsewhere a clear height of 12.0-18.0 m is expected under overhanging mass (S2.2.9).",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Podium height versus street width (Downtown tower podiums)",
+     "good": "Downtown band by ROW: up to 27.5 m wide, up to 15.2 m; up to 30.5 m, 15.2-18.3 m; over 30.5 m, 18.3-23.0 m. Other contexts up to 15.2 m. Residential-associated podium maximum 18.3 m (S2.2.7a).",
+     "bad": "Podium above the band for its street width; needs a written justification.",
+     "status": "false_assumption_corrected",
+     "basis": "CDDG Table 2.2b, S2.2.6-S2.2.8. Table rebuilt from PDF text coordinates (Other-contexts column read as 15.2 m for all rows): recheck against the final CDDG. Which of S2.2.6 or S2.2.7 governs a mixed tower is unresolved.",
+     "method": "Look up ROW width, compare podium height from the first step-back; apply the stricter of the band and S2.2.7 when residential floors sit above.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Podium exception for long frontage",
+     "good": "Up to 21.3 m where frontage exceeds 60.7 m and enhanced open space is provided (the VTC block qualifies on frontage); show an S2.2.8 chip.",
+     "bad": "Above 21.3 m, or 21.3 m without enhanced open space.",
+     "status": "verified",
+     "basis": "CDDG S2.2.8b and glossary 'Enhanced open space' (at grade, free of overhead buildings). S2.2.8 cross-refers to S2.2.6; the S2.2.7 cap is also exceeded, so applicability is unresolved.",
+     "method": "Test block frontage and presence of tagged enhanced open space; then compare podium height with 21.3 m.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Implied podium height-to-width ratio",
+     "good": "About 0.55-0.75 for tower podiums at each band's upper width (15.2/27.5, 18.3/30.5, 23.0/30.5); about 1:1 to 1:1.1 for low-rise residential streetwalls (S2.2.2).",
+     "bad": "Above the band for the street type.",
+     "status": "team_assumption",
+     "basis": "[DERIVED] Our arithmetic from Table 2.2b; not a quoted rule. The low-rise ratio is quoted from S2.2.2.",
+     "method": "Podium height divided by face-to-face ROW width, sampled every 5 m along the street.",
+     "unit": "ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower step-back above podium",
+     "good": "A massing setback above the podium (G2.2.2), with about 1.5-3.0 m planar change to read as a volumetric break.",
+     "bad": "Tower faces flush with the podium plane on a street where a defined streetwall is wanted.",
+     "status": "team_assumption",
+     "basis": "[DERIVED] G2.2.2 is a guideline with no number; 1.5-3.0 m is a CDDG design tip about volumetric breaks, not a step-back standard.",
+     "method": "Horizontal offset between podium face and first tower storey face.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Average tower floorplate",
+     "good": "Employment and hotel towers about 930-1,395 m2; residential baseline 511-670 m2; tall residential up to 746 m2; very tall residential 930-1,115 m2.",
+     "bad": "Above the maximum; reviewed case by case.",
+     "status": "verified",
+     "basis": "CDDG Table 2.3 and S2.3.3. Tall about 90 m, very tall about 150 m (glossary). Splitting a stacked tower's floorplate by use portion is our interpretation.",
+     "method": "Slice the mesh at every tower storey and average gross floor area by use portion.",
+     "unit": "m2",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower separation by use pair",
+     "good": "At or above Table 1.5: residential-residential 24.4; residential-hotel 24.4 (18.3 if S1.5.2 met); residential-employment 18.3; hotel-hotel, hotel-employment, employment-employment 15.2 m.",
+     "bad": "Below the table value, unless S1.5.3 (CBD employment or hotel) applies with public-realm light protected; G1.5.2 allows only 0.6-1.0 m.",
+     "status": "false_assumption_corrected",
+     "basis": "CDDG Table 1.5, S1.5.1-S1.5.4, G1.5.1-G1.5.2 (draft Appendix A). Earlier packet omitted residential-hotel and hotel-hotel.",
+     "method": "Measure minimum face-to-face distance for every tower pair: own-own and own-neighbour at full value; unbuilt neighbour at half value to the property line; non-tower neighbour per S1.5.4.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Separation for very tall towers (G1.5.1)",
+     "good": "Reported only: separation divided by tower height per pair; flag 'consider more' for towers above about 150 m.",
+     "bad": "No sourced fail level.",
+     "status": "unverified",
+     "basis": "G1.5.1 asks to consider increased separation where towers exceed typical heights but gives no number; VTC towers are 244-305 m.",
+     "method": "Divide each pair's separation by the taller tower's height; list pairs.",
+     "unit": "ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower slenderness indicator",
+     "good": "Height-to-width about 6:1 to 8:1 or more for tall and very tall towers.",
+     "bad": "Lower ratios flagged for added shaping, articulation or separation.",
+     "status": "team_assumption",
+     "basis": "[DERIVED] CDDG design tip (rule of thumb), not a standard; tall and very tall defined in the glossary.",
+     "method": "Tower height divided by the smaller plan dimension of the average floorplate.",
+     "unit": "ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Massing variation interval",
+     "good": "Variation in massing about every 25.0-45.7 m of frontage.",
+     "bad": "Unbroken facade longer than 45.7 m.",
+     "status": "verified",
+     "basis": "CDDG S2.2.1 (draft Appendix A).",
+     "method": "Detect plane changes of at least 1.5 m along the street face and measure spacing.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Streetwall continuity",
+     "good": "At least 80% of block-face length within 1 m of the build-to line on the retail high street (preset).",
+     "bad": "Below 50% (preset).",
+     "status": "team_assumption",
+     "basis": "CDDG G2.2.1 says maintain continuity where a continuous streetwall is desired but gives no percentage.",
+     "method": "Length of facade within 1 m of the street line at 1.6 m and 12 m heights divided by block-face length.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Sky view factor at sidewalk and street centre",
+     "good": "Reported as change from the by-right or existing baseline; no sourced pass level.",
+     "bad": "No sourced fail level.",
+     "status": "unverified",
+     "basis": "No Vancouver threshold found; Ewing and Handy 2009 not opened. Earlier 145 unweighted rays replaced by cosine-weighted sampling.",
+     "method": "Cast at least 500 cosine-weighted hemisphere rays from 1.6 m eye height (or an analytic view factor); report open-sky fraction.",
+     "unit": "0-1",
+     "source_ids": [
+      "P06-S28"
+     ]
+    }
+   ],
+   "method": "For every street edge cut perpendicular sections every 5 m. Ray-cast left and right from a 1.6 m eye point for facing heights, face-to-face width, podium height (at the first step-back of at least 1.5 m) and step-back. Compare podium height with the Table 2.2b band for the ROW, then the S2.2.7 and S2.2.8 caps. Sample sky view factor with at least 500 cosine-weighted rays. Slice the mesh at each storey above the podium for floorplate area, maximum dimension and slenderness. Measure minimum face-to-face distance for every tower pair: own-own and own-neighbour at full Table 1.5 value, a future neighbour at half value to the property line, a non-tower neighbour per S1.5.4; flag G1.5.1 above 150 m. Measure streetwall continuity with a 2 m buffer of the building line. Thresholds come from versioned lookup tables with source ids.",
+   "visualization": [
+    "Street cross-section drawing per frontage: podium and tower profile, eye-height cone, shaded allowed-podium band for that ROW, and the measured height-to-width ratio labelled.",
+    "Plan: each street segment coloured by podium status (inside band green, above band red, no podium grey) with tower footprints and separation lines labelled in metres against required values, intra-site pairs included.",
+    "Stereographic sky plot at chosen eye points with percentage of open sky and baseline comparison.",
+    "Pass/fail badges linked to CDDG clause numbers; table-reconstruction caveat shown beside Table 2.2b results; derived rows in dashed style."
+   ],
+   "human_judgment": "Perceived enclosure and scale in context, rhythm and proportion of the base, response to heritage or neighbours, skyline and crown quality, and any justified departure from the guideline bands.",
+   "limits": "Tables 2.2b and 1.5 are discretionary guidelines in draft Appendix A, rebuilt from PDF text. Table 2.2a does not map onto the rotated grid. Sky view factor and wind downwash have no sourced pass level. Character-area guides (4.18) not opened.",
+   "libraries": [
+    {
+     "name": "trimesh",
+     "role": "Mesh sections for floorplates; ray casting (pure-Python fallback; embree is native and not relied on)",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "shapely",
+     "role": "Buffers, offsets, minimum distances; built into Pyodide",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "momepy",
+     "role": "Urban morphometrics (street profile and context metrics); features for street profile not confirmed on repo page",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/pysal/momepy"
+    },
+    {
+     "name": "three.js",
+     "role": "Section and sky-plot rendering in the browser",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "depends_on": [
+    "Layer 0 massing and program tags",
+    "SITE: street ROW widths, neighbouring towers and property lines, north angle, policy area"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P06-M03",
+   "name": "Public open space: quantity, quality, sun, wind link and access",
+   "phase": "basic",
+   "category": "PUBL",
+   "design_question": "Is there enough contiguous public open space, is it sunny, comfortable, furnished and open to everyone, and does the tower's shadow, 600 m to 1.4 km long, spare protected parks and plazas?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "About 9-11 person-days: area and POPS checks 2, protected-space shadow projection 4, on-site sun-hours raster 2, Basic and Detailed study reports with the special-case table 2.",
+   "inputs": [
+    "Layer0.Massing and SiteBoundary",
+    "GroundPlane polygons tagged POPS | mid_block | plaza | transit_plaza | retail_patio | park_dedication | private",
+    "Seating objects (type, back flag, fixed or moveable), tree canopy polygons",
+    "SiteContext.Context: built, approved and known proposed buildings with heights, plus terrain (City study rule, section 5)",
+    "SiteContext.ProtectedSpaces: Table 1 polygons with class and special-case id; Davie and Robson north-sidewalk strips (SITE)",
+    "SolarSettings: dates (22 Sep; 11 Nov for Victory Square), UTC offset (-7 default, -8 variant), study type Basic or Detailed",
+    "CLIM: pedestrian wind comfort class grid at 1.5 m (if available); shadow engine optional as cross-check",
+    "AccessAttributes per space: free | ticketed, opening hours, SRW (statutory right-of-way) yes/no"
+   ],
+   "outputs": [
+    "PublicOpenSpaceAreas: {type, area_m2, pct_of_site, contiguous, proportion}[]",
+    "ShadowDomain: {radius_m, h_max_m, el_min_deg, spaces_in_reach[]}",
+    "ShadowStudy: {space_id, rule_id, study, instants[], existing_m2, added_m2, cumulative_m2, coverage_pct, default_verdict}[]",
+    "SunHoursGrid: direct-sun hours (0-6 h) on own POPS cells, 0.5 m",
+    "SeatingSupply: {m_per_100m2, types_n, fixed_backs_pct, moveable_chairs_n}",
+    "OpenSpaceChecks and WindPointChecks: Check[] (consumed by P06-M08 and PRES)"
+   ],
+   "parameters": [
+    {
+     "name": "Public open space share of site area",
+     "relationship": "More public open space (POPS, mid-block links, plazas) -> more room for gathering, trees and sun; but less building footprint. VTC block is about 11,468 m2: 20% is about 2,294 m2, a POPS of about 10% about 1,147 m2.",
+     "unit": "% of site; m2",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "POPS shape, contiguity and size",
+     "relationship": "A contiguous space of about 300 m2 or more with 1:1-1:2 proportions is usable as a neighbourhood space; narrow or fragmented leftovers do not qualify and read as private.",
+     "unit": "m2; ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Overhead massing and podium location of the space",
+     "relationship": "Mass over a POPS removes it from the POPS count and cuts sun and sky; space on podium or roof without public stairs and lifts also does not count.",
+     "unit": "% covered",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Tower height, floorplate and position relative to protected spaces",
+     "relationship": "Taller, wider tower south or west of a space -> longer, wider shadow -> fewer sunlit hours there. Reach is H / tan(sun elevation): about 600 m for 305 m on 22 Sep (27 degrees at 10:00), about 1.4 km on 11 Nov.",
+     "unit": "m; m2; m",
+     "source_ids": [
+      "P06-S09",
+      "P06-S10"
+     ]
+    },
+    {
+     "name": "Test date, time window and UTC offset",
+     "relationship": "Each protected space has its own date and window (22 Sep 10:00-16:00; Robson Village to 15:00; Victory Square cenotaph 11 Nov 10:00-12:00). The offset moves each instant by an hour, which changes the shadow cast.",
+     "unit": "date; hour; UTC offset",
+     "source_ids": [
+      "P06-S09",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Study type: Basic or Detailed",
+     "relationship": "Basic (two-hour instants) is for every applicant; Detailed (15-minute, 25 instants, area take-offs, coverage %) is needed to argue an exception. Running Detailed early shows the shadow budget but costs run time.",
+     "unit": "category; instants",
+     "source_ids": [
+      "P06-S09"
+     ]
+    },
+    {
+     "name": "Wind exposure at grade points",
+     "relationship": "Taller towers and open corners tend to raise ground wind at seating, entrances, sidewalks, transit plaza, links and terraces -> fewer comfortable hours. CDDG G1.8.1b says site open space to minimise wind exposure.",
+     "unit": "comfort class",
+     "source_ids": [
+      "P06-S05",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Wind-mitigation geometry (podium edge, canopy, step-back)",
+     "relationship": "A podium step-back, canopy width and corner shaping may deflect downwash from the base before it reaches the sidewalk; effect size is unsourced and belongs to CLIM testing.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S05"
+     ]
+    },
+    {
+     "name": "Seating quantity and type",
+     "relationship": "More seating with backs, in sun and shade, at corners and links -> longer stays and wider use by older people. NYC rule: 1 linear ft per 30 sq ft, three types above 465 m2, moveable seating above 929 m2.",
+     "unit": "m per 100 m2",
+     "source_ids": [
+      "P06-S18",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Retail patio share of a POPS",
+     "relationship": "More private patio inside a POPS -> less space and less perceived publicness; CDDG limits patios to about one third of a POPS.",
+     "unit": "% of POPS",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Access hours and legal tenure (SRW)",
+     "relationship": "Longer, unconditional hours and a statutory right-of-way -> the space works as public; early closing or gates reduce use. NYC default is open at all times, with limited closings only by authorisation.",
+     "unit": "hours per day; yes/no",
+     "source_ids": [
+      "P06-S19",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Planting, soil volume and underground setbacks",
+     "relationship": "Underground setbacks and slab drops enable in-ground trees, shade and habitat; CDDG asks tree planting in plazas where contiguous planted areas or setbacks exist, with soil depths per the CSLA standard (S4.5.1).",
+     "unit": "m2; m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Transit plaza size",
+     "relationship": "Space next to a station entrance sized for waiting and circulation (about 6.1 m by 6.1 m at least) supports transit use; it is not counted as park dedication.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Public open space as share of site area",
+     "good": "At least 20% of site area (about 2,294 m2) as public open space, counting POPS, mid-block links and plazas; vehicle space excluded.",
+     "bad": "Below 20%. The 10% mid-sized-site target (S1.9.2) does not apply to an 11,468 m2 block; park dedication may be requested.",
+     "status": "false_assumption_corrected",
+     "basis": "CDDG S1.9.1 and glossary: 'Public open space' includes POPS and mid-block connections; 'Mid-sized sites' 4,000-8,000 m2; 'Large sites' refer to the Large Developments policy (8,000 m2 site or 45,000 m2 floor area in 2013 report; current text not opened).",
+     "method": "Sum tagged public open space meeting counting rules; divide by 11,468 m2.",
+     "unit": "%; m2",
+     "source_ids": [
+      "P06-S01",
+      "P06-S36",
+      "P06-S37"
+     ]
+    },
+    {
+     "name": "POPS component of the open-space total",
+     "good": "POPS about 10% of site area (about 1,147 m2) on non-residential tower sites with frontage over 60.7 m (VTC qualifies); counts toward the 20% total.",
+     "bad": "Below about 10%, fragmented or under mass.",
+     "status": "verified",
+     "basis": "CDDG S1.10.2 and glossary (POPS is a public open space). Whether S1.10.2 is extra to or inside the 20% is unresolved; tool counts it inside.",
+     "method": "Area of eligible POPS polygons divided by site area.",
+     "unit": "%; m2",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "POPS geometry and eligibility",
+     "good": "Contiguous, proportion 1:1 or 1:2, area about 300 m2 or more, secured by SRW, free of overhead massing; excludes setbacks, engineering SRWs, vehicle space, and podium or roof areas without public stairs and lifts.",
+     "bad": "Fragmented, under mass, without SRW or access points.",
+     "status": "verified",
+     "basis": "CDDG S1.11.1 and glossary definition of POPS.",
+     "method": "Apply eligibility filters to tagged polygons; compute minimum bounding rectangle aspect.",
+     "unit": "m2; ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Shadow analysis domain",
+     "good": "Radius at least H / tan(lowest sun elevation in the window): about 600 m for 305 m on 22 Sep (UTC-7); about 1.4 km on 11 Nov at UTC-7, 0.9 km at UTC-8.",
+     "bad": "A fixed small radius that omits protected spaces within reach.",
+     "status": "team_assumption",
+     "basis": "[DERIVED] Our NOAA-algorithm calculation at 49.28 N: elevation 26.9 degrees at 10:00 and 28.1 at 16:00 on 22 Sep; 12.6 degrees at 10:00 on 11 Nov (UTC-7).",
+     "method": "R = H_max / tan(el_min) over the instants of each rule; keep Table 1 spaces within R; report R in the UI.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S09"
+     ]
+    },
+    {
+     "name": "Direct sun on own public open space",
+     "good": "At least 50% of POPS area has 2 or more hours of direct sun on 22 Sep between 10:00 and 16:00 (UTC-7) (editable preset).",
+     "bad": "Less than 25% of area reaches 2 hours (editable preset).",
+     "status": "team_assumption",
+     "basis": "Vancouver sets the window but no minimum sun for private open space. The 2-hour, 50% test follows BRE BR 209 practice (recalled, not opened), which uses 21 March; moved here to 22 Sep, 10:00-16:00.",
+     "method": "Test 0.5 m cell centres against unioned shadow polygons at 25 instants; hours = trapezoid sum (end weights 0.5) times 0.25 h, so the maximum is 6.0 h.",
+     "unit": "hours; % of area",
+     "source_ids": [
+      "P06-S09",
+      "P06-S32"
+     ]
+    },
+    {
+     "name": "New shadow: parks, school sites, Dilawri Square South, Jack Poole Plaza, Robson Square",
+     "good": "No new shadow within property lines on 22 Sep, 10:00-16:00 (UTC-7).",
+     "bad": "FAIL by default. Exception path (3.1.2): public benefit, shadow rationale statement, Detailed study; staff weigh 3.1.3 items.",
+     "status": "verified",
+     "basis": "Solar Access Guidelines (memo RTS 16506, Appendix A) 3.1.1-3.1.3, 4.2.1 and Table 1 classes.",
+     "method": "Project shadow per instant, union, intersect with the space polygon; any added area above numerical tolerance fails.",
+     "unit": "m2; %",
+     "source_ids": [
+      "P06-S09",
+      "P06-S10"
+     ]
+    },
+    {
+     "name": "New shadow: Dr Sun Yat-Sen Gardens and Park",
+     "good": "No new shadow at any time between 10:00 and 16:00 on 22 Sep.",
+     "bad": "FAIL. Section 4.1 states no exception path; whether 3.1.2 applies is unresolved.",
+     "status": "verified",
+     "basis": "Memo RTS 16506 Appendix A, 4.1.1 ('despite' 3.1) and Table 1 (Local park, refer to 4.1).",
+     "method": "As for parks; Basic study at two-hour instants plus a finer check.",
+     "unit": "m2",
+     "source_ids": [
+      "P06-S09"
+     ]
+    },
+    {
+     "name": "New shadow: Victory Square and Cenotaph circle",
+     "good": "No new shadow in the park (3.1.1) and none on the Cenotaph circle 10:00-12:00 on 11 Nov.",
+     "bad": "FAIL. Exception only after comprehensive public and key stakeholder engagement (4.3.2). Run 11 Nov at UTC-8 and UTC-7 because the text says PST.",
+     "status": "verified",
+     "basis": "Memo RTS 16506 Appendix A, 4.3.1-4.3.2 and Table 1 (urban plaza, refer to 4.3). 4.3.1 applies in addition to the 3.1 rules.",
+     "method": "Second solar date; shadow polygons on the Cenotaph circle for both offsets.",
+     "unit": "m2",
+     "source_ids": [
+      "P06-S09",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "New shadow: Davie and Robson Village north sidewalks",
+     "good": "No new shadow on the north sidewalk, curb to property line: Davie 10:00-16:00, Robson 10:00-15:00 on 22 Sep.",
+     "bad": "FAIL by default. Exception path 3.3.2: public benefit, shadow rationale, Detailed study of affected blocks.",
+     "status": "verified",
+     "basis": "Memo RTS 16506 Appendix A, 3.3.1-3.3.3, Maps 2 and 3.",
+     "method": "Intersect shadow union with the sidewalk strip polygons per instant.",
+     "unit": "m2",
+     "source_ids": [
+      "P06-S09"
+     ]
+    },
+    {
+     "name": "New shadow: West End miniparks and other urban plazas",
+     "good": "Report added shadow and explore strategies to minimise it where possible; no pass or fail.",
+     "bad": "Added shadow with no mitigation record.",
+     "status": "false_assumption_corrected",
+     "basis": "Memo RTS 16506 Appendix A, 3.2.1. Earlier packet put every urban plaza here; Jack Poole Plaza, Robson Square, Dilawri South and Victory Square are special cases.",
+     "method": "Same projection; verdict is 'minimise' (amber), never a hard fail.",
+     "unit": "m2",
+     "source_ids": [
+      "P06-S09"
+     ]
+    },
+    {
+     "name": "Study type and coverage formula",
+     "good": "Basic study (10:00, 12:00, 14:00, 16:00) for every application; Detailed study (25 instants, area take-offs, coverage %) when an exception to 3.1.1 or 3.3.1 is argued.",
+     "bad": "Detailed omitted when an exception is argued, or the 15-minute run presented as the standard test.",
+     "status": "false_assumption_corrected",
+     "basis": "Memo RTS 16506 Appendix A, 5.1.1 and 5.2.1. Coverage % = total shadow area over 25 instants / (space area x 25), as the City defines it.",
+     "method": "Basic: 4 instants. Detailed: 25 instants; existing, added and cumulative m2 per instant; City coverage formula.",
+     "unit": "instants; %",
+     "source_ids": [
+      "P06-S09",
+      "P06-S10"
+     ]
+    },
+    {
+     "name": "Study inputs and time base",
+     "good": "Model set to Pacific Time as UTC-7 with complete built and approved context, known proposed developments and topography; new shadow shown apart from existing; trees and small structures excluded from baseline.",
+     "bad": "Context, proposed buildings or terrain missing, or a seasonal offset used.",
+     "status": "false_assumption_corrected",
+     "basis": "Memo RTS 16506 Appendix A, section 5 (PDT, UTC-7); Council report RTS 18459 App. D replaces PDT with PT after BC adopted permanent daylight time. Victory Square text still says PST.",
+     "method": "Fix UTC-7 in the solar routine, show the offset in the UI, include proposed and approved buildings and terrain.",
+     "unit": "UTC offset",
+     "source_ids": [
+      "P06-S09",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Seating supply",
+     "good": "1 ft per 30 sq ft (about 10.9 m per 100 m2); two types, three above 465 m2; at least 50% of fixed seating with backs; moveable chairs above 929 m2; seating at corners and links.",
+     "bad": "Less than half of the NYC quantity, or no seating at corners and links.",
+     "status": "team_assumption",
+     "basis": "[EXTERNAL BENCHMARK] NYC ZR 37-741: text verified, not a Vancouver rule; adopted as a team preset. CDDG G3.4.2 supports seating at corners and mid-block links.",
+     "method": "Sum linear seating metres by type and plaza area; count backs on fixed seating; moveable chairs at 1 per 18.6 m2.",
+     "unit": "m per 100 m2",
+     "source_ids": [
+      "P06-S18",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Wind comfort at grade points",
+     "good": "No sourced criterion; report CLIM comfort class per point type: seating, entrances (M01), sidewalk segments (M05), transit plaza and links (M04), terraces (M07).",
+     "bad": "Strolling class or worse at seating or entrances (placeholder).",
+     "status": "unverified",
+     "basis": "No Vancouver wind criterion opened; thresholds belong to CLIM. CDDG G1.8.1b (verified, qualitative) and the 1997 Higher Buildings Policy ask for no adverse wind or microclimate effect.",
+     "method": "Intersect CLIM comfort-class grid with each point set; report class shares; mark 'unverified until CLIM sources exist'.",
+     "unit": "class; %",
+     "source_ids": [
+      "P06-S05",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Access hours and tenure",
+     "good": "Public open space secured by SRW and open at least from 7:00 to 22:00 in summer and 7:00 to 20:00 in winter; mid-block links 24 hours (preset).",
+     "bad": "Hours shorter than the NYC allowed-closing schedule, ticketed entry, or no SRW.",
+     "status": "team_assumption",
+     "basis": "[EXTERNAL BENCHMARK] CDDG requires SRWs for POPS and links but states no hours; hours come from the NYC authorised-closing schedule (ZR 37-727).",
+     "method": "Read access attributes; compare to the schedule.",
+     "unit": "hours",
+     "source_ids": [
+      "P06-S19",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Retail patio share of POPS",
+     "good": "Patios no more than about one third of the POPS; signage states public use.",
+     "bad": "Above one third, or no public-use signage.",
+     "status": "verified",
+     "basis": "CDDG S3.6.1 and S3.6.2.",
+     "method": "Patio area divided by POPS area.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Transit plaza minimum size",
+     "good": "At least about 6.1 m by 6.1 m beside a station entrance.",
+     "bad": "Smaller, or counted toward park dedication.",
+     "status": "verified",
+     "basis": "CDDG S4.4.1 and G1.9.1.",
+     "method": "Largest inscribed rectangle in the plaza polygon.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    }
+   ],
+   "method": "1) Tag ground-plane polygons; apply CDDG counting rules (remove setbacks, engineering SRWs, vehicle areas, area under mass, elevated areas without public stairs or lifts); report share of 11,468 m2. 2) Compute solar position (NOAA algorithm, fixed UTC offset) for each rule's date and window. 3) Size the domain R = H / tan(lowest elevation); keep Table 1 spaces within R. 4) Project each building to a shadow polygon per instant (convex hull of footprint and footprint shifted H / tan(elevation) along the shadow azimuth; edge sweeps for non-convex), union, intersect with each space for take-offs and City coverage %. 5) For own POPS test 0.5 m cell centres against the union; integrate sun hours (trapezoid). 6) Run in the browser (Pyodide: shapely, numpy); raster only on site. 7) Sum seating; intersect CLIM wind grid with point sets.",
+   "visualization": [
+    "Ground-plane false-colour mesh of direct-sun hours with a 0-6 h legend, a bold contour at 2 h, POPS outlines hatched, seating points on top, and a 15-minute time scrubber from 10:00 to 16:00.",
+    "Shadow-reach disc around the site with Table 1 spaces inside it, coloured by rule (no-new-shadow red when breached, minimise amber), and the radius labelled.",
+    "Protected-space panel: stacked area chart of existing and added shadow percent against time, with the City coverage percentage printed; Basic and Detailed tabs.",
+    "Horizontal bars of public open space percent against 10% and 20% lines, and pass/fail badges linked to CDDG and solar-guideline clauses; team-assumption rows dashed, external benchmarks in their own style."
+   ],
+   "human_judgment": "Programming and stewardship, who the space feels welcome to, perceived safety, relation to Musqueam, Squamish and Tsleil-Waututh place-making, park dedication versus POPS (decided by City and Park Board), and whether a shadow trade-off is justified by public benefit.",
+   "limits": "Sun uses clear-sky geometry; Vancouver is often overcast in fall. Trees and small structures are ignored, as in the City baseline. v1 treats each space as a flat plane, not full topography. CDDG space targets are guidelines; stacking of 20% and POPS 10% is unresolved.",
+   "libraries": [
+    {
+     "name": "pvlib-python",
+     "role": "Server-side solar position cross-check; not in the built-in Pyodide list, so the browser uses an own NOAA routine (solar-position function not confirmed on repo page)",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/pvlib/pvlib-python"
+    },
+    {
+     "name": "Ladybug (ladybug-core)",
+     "role": "Sun path and weather data; use only if the project licence is compatible",
+     "license": "AGPL-3.0 (repo page read)",
+     "url": "https://github.com/ladybug-tools/ladybug"
+    },
+    {
+     "name": "shapely",
+     "role": "Shadow polygons, union, intersection, area counting and eligibility filters; built into Pyodide",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "trimesh",
+     "role": "Optional server-side ray-cast validation of shadow polygons at sample points",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "Pyodide",
+     "role": "Runs shapely, numpy and scipy in the browser (package list page read)",
+     "license": "not read on the page opened",
+     "url": "https://pyodide.org/en/stable/usage/packages-in-pyodide.html"
+    },
+    {
+     "name": "City of Vancouver open data (parks, plazas)",
+     "role": "Protected-space polygons",
+     "license": "Open Government Licence - Vancouver (page read)",
+     "url": "https://opendata.vancouver.ca/pages/licence/"
+    }
+   ],
+   "depends_on": [
+    "P06-M01 (frontages facing the space)",
+    "CLIM: wind comfort grid",
+    "SITE: protected spaces layer, context buildings, terrain",
+    "Layer 0 massing"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P06-M04",
+   "name": "Permeability, mid-block connections and block structure",
+   "phase": "basic",
+   "category": "PUBL",
+   "design_question": "Does the block give direct, legible, step-free-ready public routes through it, and does the below-grade station link work as public realm, not just as a graph edge?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "About 6-8 person-days; graph and width checks are simple; directness and link-quality checks need the station entrance location.",
+   "inputs": [
+    "SiteBoundary and SiteContext.StreetNetwork (streets, lanes, existing mid-block links) from OSM or City open data",
+    "Layer0.Massing and ground-plane passage polylines with clear width, open-to-sky flag, hours and SRW flag",
+    "SiteContext.TransitEntrances: existing station entrance and the required below-grade secondary entrance (from MOBI packet or site plan)",
+    "SiteContext.BelowGradeLink: drawn path, clear width, lifts, stairs, level changes, sightline points to grade and concourse (user or MOBI)",
+    "Destinations: retail high street, arterial crossings, parks, plazas (from SITE packet)"
+   ],
+   "outputs": [
+    "WalkGraph: NetworkX graph {nodes: entrances, junctions; edges: length_m, clear_width_m, open_to_sky, hours}",
+    "ConnectionChecks: {connection_id, required, clear_width_m, min_required_m, status}[]",
+    "LinkQualityChecks: Check[] for the below-grade link (G4.4.1 and G4.4.2 items)",
+    "DirectnessTable: {from, to, network_m, straight_m, prd}[] (PRD = pedestrian route directness)",
+    "Isochrones: polygons for 2-, 5- and 10-minute walks from the station entrance",
+    "RouteGraph for P06-M05 (flows) and P06-M06 (step-free routing)"
+   ],
+   "parameters": [
+    {
+     "name": "Number and location of mid-block connections",
+     "relationship": "More public through-routes -> shorter walks, more route choice and more active edges; each link removes buildable area. CDDG requires one where the site is adjacent to or includes a station entrance.",
+     "unit": "count; position",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Connection width (building face to building face)",
+     "relationship": "Wider links feel safer and allow daylight and active edges but cost site area. For the VTC block S1.12.2c sets 9.1 m face to face; 2.4 m clear path (S3.8.1). 4.5, 5.4 and 7.3 m apply to other cases.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Open to sky versus covered breezeway",
+     "relationship": "Covered links need height-to-width of at least 2:1, active edges, a direct line and public hours or they read as tunnels; open-to-sky links are the default.",
+     "unit": "ratio; yes/no",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Alignment with desire lines and destinations",
+     "relationship": "Links that join the station, parks and high street pick up existing pedestrian flows; links to nowhere stay empty and unsafe.",
+     "unit": "degrees; m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Route directness (network over straight-line distance)",
+     "relationship": "Detours above straight-line distance raise walking time and reduce use; connected street networks are positively associated with physical activity in a meta-analysis (mainly children).",
+     "unit": "ratio",
+     "source_ids": [
+      "P06-S25",
+      "P06-S12"
+     ]
+    },
+    {
+     "name": "Hours of public access of each link",
+     "relationship": "Links closed outside building hours cut the network at night; breezeways may be limited to building hours by the CDDG, mid-block links secured by SRW are public.",
+     "unit": "hours",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Grade separation of the transit link",
+     "relationship": "A below-grade secondary entrance takes crowds off the surface but needs lifts, stairs, active uses and a visual link to the concourse to stay legible.",
+     "unit": "m; count",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Lifts, stairs and level changes on the below-grade link",
+     "relationship": "More than one lift keeps the link step-free when one fails; fewer level changes shorten the trip. CDDG G4.4.2b asks at least an elevator and a staircase.",
+     "unit": "count; m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Active edges and sightlines along the link",
+     "relationship": "Active uses lining the link, with views to grade and the concourse, make it legible and safer; a blank tunnel deters use (G4.4.2c-d).",
+     "unit": "% of edge; yes/no",
+     "source_ids": [
+      "P06-S01"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Mid-block connection required by station adjacency",
+     "good": "At least one public connection provided where the site includes or adjoins a station entrance.",
+     "bad": "No connection although the trigger applies.",
+     "status": "verified",
+     "basis": "CDDG S1.12.1b and G1.12.2 (draft Appendix A). The VTC brief requires a secondary transit entrance, so the trigger applies.",
+     "method": "Check presence and endpoints of connections against station entrance location.",
+     "unit": "yes/no",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Connection width",
+     "good": "VTC preset: at least 9.1 m building face to building face (station-adjacent large site) with a 2.4 m clear path.",
+     "bad": "Narrower: show a 'G1.12.1 variation, justify' chip, not a pass. Context rows only: 4.5 m face to line when the neighbour delivers half; 5.4 m non-residential; 7.3 m voluntary.",
+     "status": "false_assumption_corrected",
+     "basis": "CDDG S1.12.2c (large sites or sites identified in S1.12.1), S3.8.1 clear path; variations by G1.12.1.",
+     "method": "Minimum distance between facing facades along the link centreline.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Open to sky or compliant breezeway",
+     "good": "Primarily open to sky; a breezeway only if height-to-width at least 2:1, lined with active uses, direct and public, open during building hours.",
+     "bad": "Enclosed passage not meeting these tests.",
+     "status": "verified",
+     "basis": "CDDG S1.12.4 and S2.2.10.",
+     "method": "Compute roofed share and height-to-width of each link.",
+     "unit": "%; ratio",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Below-grade link: elevator and staircase",
+     "good": "At least one elevator and one staircase on each integrated station entrance.",
+     "bad": "Stair only or lift only.",
+     "status": "verified",
+     "basis": "CDDG G4.4.2b (applies where a development includes integrated station entrances).",
+     "method": "Count tagged lifts and stairs on the link graph.",
+     "unit": "count",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Below-grade link: lift redundancy",
+     "good": "At least two lifts on the link so one outage does not break step-free access (editable preset).",
+     "bad": "A single lift.",
+     "status": "team_assumption",
+     "basis": "CDDG asks only 'an elevator'; redundancy is a team assumption pending TransLink input (MOBI).",
+     "method": "Count lifts serving the same level change.",
+     "unit": "count",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Below-grade link: active uses and visual connection",
+     "good": "Active uses next to the secondary entrance and on the concourse level; strong visual connection to the concourse and below-grade active uses; consider washrooms.",
+     "bad": "Blank link, or no sightline between grade and concourse.",
+     "status": "verified",
+     "basis": "CDDG G4.4.2c-e (draft Appendix A).",
+     "method": "Share of link edge tagged active; ray test from grade entrance to concourse points.",
+     "unit": "% of edge; yes/no",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Station overbuild and plaza checklist",
+     "good": "Where a development includes a station overbuild or primary headhouse: items a-h of G4.4.1 (full footprint overbuild, continuous streetwall, complementary paving, seating, shade, services integrated, multiple doors).",
+     "bad": "Items missing without a reason.",
+     "status": "verified",
+     "basis": "CDDG G4.4.1 (applies only with station overbuild); the VTC brief may not include one.",
+     "method": "Manual checklist with evidence note per item.",
+     "unit": "items met",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Route directness between key pairs",
+     "good": "At most 1.25 for station to high street, and across-block pairs (editable preset).",
+     "bad": "Above 1.5 (editable preset).",
+     "status": "team_assumption",
+     "basis": "No sourced Vancouver or other threshold was opened. Transportation 2040 notes the grid gives direct walking routes.",
+     "method": "Shortest path length on the walk graph divided by straight-line distance.",
+     "unit": "ratio",
+     "source_ids": [
+      "P06-S12"
+     ]
+    },
+    {
+     "name": "Longest stretch of block perimeter without a public through-route",
+     "good": "At most about 100 m (editable preset); the VTC long side is 144.8 m, so one link near the middle gives about 72 m.",
+     "bad": "Above 150 m (editable preset).",
+     "status": "team_assumption",
+     "basis": "No sourced block-length rule was found for Vancouver; this is a starting value.",
+     "method": "Distance between consecutive public openings along the block perimeter.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Public access tenure of required links",
+     "good": "Required links secured by SRW and open to the public.",
+     "bad": "No SRW or access limited to a private operator's hours.",
+     "status": "verified",
+     "basis": "CDDG S1.12.3 asks an SRW; 24-hour opening is not stated.",
+     "method": "Read SRW flag and hours attribute.",
+     "unit": "yes/no",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Below-grade link width and daylight",
+     "good": "Reported only: clear width and daylight or sky view at grade openings; no sourced pass level.",
+     "bad": "No sourced fail level.",
+     "status": "unverified",
+     "basis": "CDDG gives no width or daylight value for station links; TransLink standards not opened (MOBI packet).",
+     "method": "Minimum clear width along the drawn link; count of openings to grade.",
+     "unit": "m; count",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Street intersection density (context scale)",
+     "good": "Reported only; no sourced pass level.",
+     "bad": "No sourced fail level.",
+     "status": "unverified",
+     "basis": "Street intersection density is positively associated with physical activity in a systematic review (mainly children); LEED ND thresholds not opened.",
+     "method": "OSMnx intersections within 800 m of the site divided by area.",
+     "unit": "per km2",
+     "source_ids": [
+      "P06-S25"
+     ]
+    }
+   ],
+   "method": "Build a walk graph from streets, lanes, sidewalks, mid-block links, building passages and the below-grade link, each edge carrying length, clear width, open-to-sky flag and hours. Check each connection against the 9.1 m VTC width and sky-openness tables. Compute shortest paths between station entrance(s), high-street midpoint, arterial crossings and each public entrance from P06-M01; divide by straight-line distance for directness. Compute 2-, 5- and 10-minute walk areas at a preset speed. Compute the longest perimeter stretch without a public through-route. Score the below-grade link against G4.4.2 (elevator and stair, active edges, sightline) and G4.4.1 where overbuild applies. Optionally compute context intersection density and space-syntax integration.",
+   "visualization": [
+    "Plan with the walk graph drawn over the block: edges coloured by clear width (below 2.4 m red, 2.4-9.1 m amber, 9.1 m and over green for links), open-to-sky edges solid and covered edges dashed.",
+    "Isochrone rings (2, 5, 10 minutes) from the station entrance, shaded by time, with labelled route directness for the three key pairs.",
+    "Section strip of the below-grade link: lifts, stairs, active edge share and the sightline to grade and concourse drawn and checked.",
+    "Perimeter ruler around the block marking public openings and the longest gap; pass/fail badges linked to CDDG clauses; team-assumption rows editable."
+   ],
+   "human_judgment": "Legibility and sightlines, whether the link feels public rather than private, night-time safety, wayfinding including Indigenous place names, and negotiation with TransLink and the neighbouring site for the secondary station entrance.",
+   "limits": "Pure geometry: it does not model crowding, weather or pedestrian choice. Route directness and block-gap thresholds are presets without a source. Walking speed is a preset. The below-grade link must be drawn by the user; Layer 0 may not include it.",
+   "libraries": [
+    {
+     "name": "OSMnx",
+     "role": "Download and analyse street networks, intersections (not in the built-in Pyodide list; server-side)",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/gboeing/osmnx"
+    },
+    {
+     "name": "NetworkX",
+     "role": "Shortest paths, graph metrics; built into Pyodide",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/networkx/networkx"
+    },
+    {
+     "name": "momepy",
+     "role": "Network and morphology measures",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/pysal/momepy"
+    },
+    {
+     "name": "shapely",
+     "role": "Link geometry and clear-width checks",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "depthmapX",
+     "role": "Optional space-syntax visibility and integration analysis",
+     "license": "GPL-3.0 (repo page read; copyleft)",
+     "url": "https://github.com/SpaceGroupUCL/depthmapX"
+    }
+   ],
+   "depends_on": [
+    "P06-M01 (entrances)",
+    "MOBI: station and secondary entrance locations, lift data",
+    "SITE: street network"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P06-M05",
+   "name": "Sidewalk capacity and pedestrian level of service",
+   "phase": "advanced",
+   "category": "PUBL",
+   "design_question": "At peak times and in short surges, are sidewalks, crossings and corners around the block wide enough for comfortable walking once furniture, queues and station flows are counted?",
+   "nature": "objective",
+   "priority": "v1",
+   "effort": "About 5-7 person-days for static footway and crossing comfort with sensitivity bands; agent-based simulation (roadmap) adds about 8-10 days.",
+   "inputs": [
+    "StreetSections: sidewalk total width, building edge, trees, furniture, bike racks, canopy posts (SITE and user sections)",
+    "P06-M01 Entrances and program GFA by use from Layer 0",
+    "MOBI: station and bus-stop flows (persons per peak hour and peak 15 minutes) at the transit entrances",
+    "P06-M07 PublicLiftQueue: queue persons and area at the street-level public lift lobby",
+    "PedestrianDemandPreset: person trips per 100 m2 GFA by use, peak-hour share, walk share, low/central/high multipliers (editable team assumptions)",
+    "Street area type: high street | office and retail | residential | tourist attraction | transport interchange; crossing signal timings"
+   ],
+   "outputs": [
+    "FootwayComfort: {segment_id, flow_pph, flow_peak15_pph, ppmm, pcl_class, area_type_verdict, clear_width_m, required_width_m}[]",
+    "WidthBudget: stacked widths building buffer + active zone + clear + furniture + kerb buffer",
+    "CrossingComfort: {crossing_id, arm_pcl, island_rows}[]",
+    "CornerQueueAreas: polygons with area per person",
+    "PCLChecks: Check[] (consumed by P06-M08)"
+   ],
+   "parameters": [
+    {
+     "name": "Peak-hour and peak 15-minute pedestrian flow",
+     "relationship": "More office, retail and hotel floor area, and closer transit -> higher peak flows on adjacent sidewalks; end-of-day egress and train surges exceed the hourly mean. Rates per m2 are team assumptions.",
+     "unit": "pedestrians per hour",
+     "source_ids": [
+      "P06-S12"
+     ]
+    },
+    {
+     "name": "Effective clear width",
+     "relationship": "Total width minus 0.2 m building and kerb buffers and furniture buffers -> flow per metre rises as obstacles are added; one bench or tree pit can drop comfort a class.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Flow per metre of width (ppmm)",
+     "relationship": "Pedestrians per minute per metre of effective width: higher values mean more bumping and slower walking, from under 3 ppmm (A+) to over 35 ppmm (E).",
+     "unit": "ppmm",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Area type and tolerance",
+     "relationship": "High streets and tourist attractions tolerate least crowding; residential is intermediate; office/retail and interchange tolerate most. The area type sets the pass floor; B+ is the recommended level everywhere.",
+     "unit": "category",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Static activity (queues, window shoppers, cafe seating)",
+     "relationship": "People standing or sitting use width that walkers cannot; patios and displays can reduce clearway below 2.4 m if not allowed for in the boulevard.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S16",
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Building setback or SRW widening",
+     "relationship": "Setting the building back adds clear width at no street cost; commercial corridors have been asked for at least 5.5 m from back of curb (1.0 m back boulevard, 3.0 m clear, 1.5 m front boulevard).",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Transit arrival surges",
+     "relationship": "Train arrivals deliver short, high peaks at station entrances; check peak 15 minutes and, for interchange segments, TfL's average-of-maximum level rather than the hourly mean.",
+     "unit": "pedestrians per minute",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Crossing time and corner waiting",
+     "relationship": "Shorter signal time available to cross raises relative flow on the crossing arm; wider corners and islands give waiting people more space. TfL: more than three queue rows on an island pushed people to cross outside it.",
+     "unit": "s; rows; m2",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Demand sensitivity band",
+     "relationship": "Low, central and high demand multipliers show which width decision holds across plausible rates; a design that fails only in the high case is a judgment call, not a fault.",
+     "unit": "multiplier",
+     "source_ids": [
+      "P06-S12"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Pedestrian Comfort Level by area type",
+     "good": "B+ or better recommended everywhere (11 ppmm or fewer). Pass floor at peak: high street and tourist B; residential B-; office/retail and interchange C+.",
+     "bad": "At risk: high street and tourist B-; residential C+; office/retail and interchange C-. Unacceptable below those. Never below C+ even with compensation.",
+     "status": "false_assumption_corrected",
+     "basis": "[EXTERNAL BENCHMARK] TfL Pedestrian Comfort Guidance (2010) Figures 8-9; London research, text verified, not adopted by Vancouver. Figure 9 decoded from its colour fills: confirm visually.",
+     "method": "ppmm = pph / 60 / clear width; map to the PCL table and the area-type row for the segment.",
+     "unit": "ppmm; class",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Peak-hour and peak 15-minute check",
+     "good": "Both peak hour and peak 15 minutes meet the area-type floor; interchange segments also pass TfL average-of-maximum where available.",
+     "bad": "Fails only in the 15-minute surge: widen or add queue space.",
+     "status": "team_assumption",
+     "basis": "Hourly means hide egress and train surges; the 15-minute proxy is a team preset. TfL's average-of-maximum multiplier sits inside its spreadsheet and was not opened.",
+     "method": "Run the PCL calculation for the peak hour, the busiest 15 minutes and the low, central and high multipliers.",
+     "unit": "ppmm; class",
+     "source_ids": [
+      "P06-S16",
+      "P06-S12"
+     ]
+    },
+    {
+     "name": "Clear sidewalk width, Vancouver standard",
+     "good": "Commercial and mixed-use streets: at least 3.0 m clear, wider by volume; downtown clearways of 3.0-5.0 m exist; 4.0 m for new high-volume corridors.",
+     "bad": "Below 2.4 m (the constrained minimum) or below 3.0 m on commercial streets without City Engineer agreement.",
+     "status": "verified",
+     "basis": "Engineering Design Manual 2026, Section 8.4.3.1 and Table 8-3.",
+     "method": "Read clear width from the section after removing furniture and patio encroachment.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Pedestrian realm depth from back of curb",
+     "good": "About 5.5 m (1.0 m back boulevard + 3.0 m clear + 1.5 m front boulevard) on commercial corridors.",
+     "bad": "Below that without a City Engineer-approved reason.",
+     "status": "verified",
+     "basis": "Engineering Design Manual 2026, Section 8.4.3.1 (historic request for redevelopment projects).",
+     "method": "Measure back of curb to property line plus SRW.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Recommended total footway width by flow class",
+     "good": "Under 600 pph: 2.9 m; 600-1,200: 4.2 m; 1,200-2,000: 5.3 m (3.3 m without furniture). Above 2,000 pph derive clear width = pph / 60 / 11 (B+ ceiling), plus 0.2 m buffers and furniture.",
+     "bad": "Below the recommended width; above 2,000 pph the table no longer applies.",
+     "status": "false_assumption_corrected",
+     "basis": "[EXTERNAL BENCHMARK] TfL Appendix B (widths comfortable up to 2,000 pph); the above-2,000 rule is our derivation from the B+ band.",
+     "method": "Classify segment flow; compare total width, or compute required clear width from ppmm.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Crossing arm and island comfort",
+     "good": "Crossing arm better than C-; island queue at most three rows; relative pph = pph / share of time available to cross.",
+     "bad": "Arm at C-, D or E (TfL mitigation trigger), or more than three queue rows.",
+     "status": "team_assumption",
+     "basis": "[EXTERNAL BENCHMARK] TfL crossing method (Step 2): text verified, London signals, not adopted locally.",
+     "method": "Compute relative pph and ppmm on each arm and island from signal timings; count queue rows.",
+     "unit": "ppmm; rows",
+     "source_ids": [
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Corner queue area per person",
+     "good": "Reported only: area per waiting person at corners and the transit entrance; no sourced pass level.",
+     "bad": "No sourced fail level.",
+     "status": "unverified",
+     "basis": "Fruin queueing densities were not opened; TfL gives crossing island rows only.",
+     "method": "Corner polygon area minus furniture, divided by peak waiting persons.",
+     "unit": "m2 per person",
+     "source_ids": [
+      "P06-S29",
+      "P06-S16"
+     ]
+    },
+    {
+     "name": "Footway minimum and obstacle gaps",
+     "good": "Footway at least 2.0 m (1.5 m acceptable under constraint); gaps at obstacles at least 1.0 m and no longer than 6 m.",
+     "bad": "Below these.",
+     "status": "team_assumption",
+     "basis": "[EXTERNAL BENCHMARK] UK DfT Inclusive Mobility s4.2; text verified, not adopted by Vancouver.",
+     "method": "Scan sections for obstacle gaps.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Street-furniture placement",
+     "good": "Furniture set back to keep sightlines at driveways, crosswalks and intersections (typically 10 m from intersections); not blocking station or emergency egress.",
+     "bad": "Furniture blocking sightlines at a driveway or crossing.",
+     "status": "verified",
+     "basis": "EDM 2026 Chapter 9, p.341 (street furniture); the earlier '1.0 m from crossings and entrances' was not found in 8.4.3, 8.4.9 or Chapter 9.",
+     "method": "Check furniture points against driveway, crosswalk and intersection points.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Legacy Fruin level of service cross-check",
+     "good": "Level C or better by area per pedestrian (values to be confirmed).",
+     "bad": "Level E or F.",
+     "status": "unverified",
+     "basis": "Fruin 1971 and Highway Capacity Manual thresholds were recalled, not opened. TfL says Fruin only assesses crowding, not comfort.",
+     "method": "Area per pedestrian from density; map to Fruin classes.",
+     "unit": "m2 per pedestrian",
+     "source_ids": [
+      "P06-S29"
+     ]
+    },
+    {
+     "name": "Peak pedestrian generation assumptions",
+     "good": "Editable presets by use with low, central and high multipliers, flagged as assumptions.",
+     "bad": "Any figure without a source or label.",
+     "status": "team_assumption",
+     "basis": "No sourced Vancouver trip generation rates were found. Transportation 2040 target of two-thirds of trips on foot, bike or transit by 2040 is context only.",
+     "method": "GFA by use times rate times peak-hour share times walk share, times multiplier.",
+     "unit": "pedestrians per hour",
+     "source_ids": [
+      "P06-S12"
+     ]
+    }
+   ],
+   "method": "For each sidewalk segment adjacent to the site build the width budget: total width minus 0.2 m building buffer, 0.2 m kerb buffer and buffers around trees, poles, benches, racks and canopy posts (TfL method). Distribute person-trips from each entrance (P06-M01), public-lift queues (P06-M07) and station flows (MOBI) onto segments by shortest paths on the P06-M04 walk graph, for peak hour and peak 15 minutes, at low, central and high multipliers. Convert flow to ppmm and map to the PCL class for the area type (Figure 9 row). Report required width for B+ and the shortfall; above 2,000 pph compute width from ppmm. Run crossing-arm and island checks from signal timings. Check Vancouver clear-width and realm-depth standards. Optionally run agent-based simulation.",
+   "visualization": [
+    "Plan view: each sidewalk segment drawn as a ribbon coloured by PCL class (11-class scale from A+ blue to E dark red) with a ppmm legend and the area-type floor marked.",
+    "Cross-section bars per segment: building buffer, active zone, clear width, furniture, kerb buffer, with a marker at the width needed for B+.",
+    "Line chart of ppmm against hour of day with a low-central-high band, the B+ line and the area-type floor line drawn.",
+    "Pass/fail badges linked to TfL and EDM clauses; external-benchmark rows in their own style; assumption presets dashed."
+   ],
+   "human_judgment": "Peak scenario choice (event days, train arrival waves), how to trade clear width against trees, patios and seating, perceived crowding by older people and children, and seasonal or weather effects.",
+   "limits": "TfL comfort levels come from London footway studies; Vancouver conditions differ. Flow comes from assumption presets, not counts. Cyclists, e-scooters and vehicle crossings are not modelled in the static check. Fruin values are unverified.",
+   "libraries": [
+    {
+     "name": "PedPy",
+     "role": "Density, speed and flow analysis from trajectories",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/PedestrianDynamics/PedPy"
+    },
+    {
+     "name": "JuPedSim",
+     "role": "Agent-based pedestrian simulation (roadmap)",
+     "license": "LGPL-3.0 (repo page read)",
+     "url": "https://github.com/PedestrianDynamics/jupedsim"
+    },
+    {
+     "name": "NetworkX",
+     "role": "Flow assignment on the walk graph; built into Pyodide",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/networkx/networkx"
+    },
+    {
+     "name": "shapely",
+     "role": "Width budget and clear-zone geometry",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/shapely/shapely"
+    }
+   ],
+   "depends_on": [
+    "P06-M01 (entrances)",
+    "P06-M04 (walk graph)",
+    "P06-M07 (public-lift queue)",
+    "MOBI: station flows and loading demand",
+    "SITE: street sections, bike facility flag"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P06-M06",
+   "name": "Inclusive and accessible design at grade",
+   "phase": "advanced",
+   "category": "PUBL",
+   "design_question": "Can everyone, including wheelchair users, people with low vision and older people, reach and use every public entrance, space and the station link at grade without barriers?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "About 5-7 person-days; slope mapping and rest-spacing checks are simple, door and entrance data need annotation.",
+   "inputs": [
+    "Terrain: DEM or spot elevations for the site and surrounding streets (SITE packet)",
+    "Layer0 ground slab levels, entrances with threshold heights, stairs, ramps and lifts (tagged objects)",
+    "P06-M04 RouteGraph, clear widths and below-grade link lifts and stairs",
+    "Seating points from P06-M03; crossing and curb-ramp points",
+    "Manual fields: door clear width, automatic openers, tactile surfaces, accessible washrooms"
+   ],
+   "outputs": [
+    "SlopeMap: raster of running slope (%) and crossfall (%)",
+    "StepFreeRoutes: {from_entrance, to_target, step_free, max_slope, max_gap_to_rest_m}[]",
+    "RestCoverage: polygons within 50 m, 100 m and 150 m of seating",
+    "AccessChecks: Check[] (consumed by P06-M08 and PRES)"
+   ],
+   "parameters": [
+    {
+     "name": "Running slope of public routes",
+     "relationship": "Steeper slope -> more effort and need to rest; 5% (1:20) is the City target where achievable, anything steeper is a ramp, and 1:12 is the UK absolute maximum for short runs.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S11",
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Crossfall",
+     "relationship": "Crossfall drains water but makes wheelchairs drift and challenges balance; Vancouver designs 2% (1-4% range), UK guidance prefers 1-2% with 1 in 40 as the maximum.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S11",
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Level change between sidewalk and slab",
+     "relationship": "Bigger grade differences force stairs, ramps or lifts; CDDG says integrate them in the building envelope and keep a visual and physical connection to the public realm.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Clear path width",
+     "relationship": "At least 2.0 m lets two wheelchairs pass; 1.5 m lets a wheelchair and a walker pass; 1.0 m at obstacles for no more than 6 m (UK guidance).",
+     "unit": "m",
+     "source_ids": [
+      "P06-S17",
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Spacing of seats and rest spots",
+     "relationship": "Closer rests let more people complete a walk: Vancouver gives 150 m for wheelchair and visually impaired users, 100 m for mobility impaired without a stick, 50 m for stick users.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11",
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Landings on slopes",
+     "relationship": "Level landings at least every 0.5 m of rise, as long as the ramp is wide, give rest points and allow passing.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Headroom under canopies, stairs and soffits",
+     "relationship": "Headroom of at least 2.3 m prevents head strikes by people with low vision; undersides of stairs need a barrier below that height.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Tactile surfaces at flush crossings",
+     "relationship": "Flush crossings lack a curb cue; Vancouver requires truncated domes where grade break is under 5%, so layout must leave room for paired bracketing.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Governing building code and standards",
+     "relationship": "BC Building Code does not apply in Vancouver; the Vancouver Building By-law and CSA B651 govern barrier-free entrances, ramps and doors. Numeric requirements were not opened.",
+     "unit": "n/a",
+     "source_ids": [
+      "P06-S22",
+      "P06-S33"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Running slope of public paths",
+     "good": "At most 5% (1:20) where achievable.",
+     "bad": "Above 5% where flatter is achievable; steeper runs are ramps needing landings and handrails.",
+     "status": "verified",
+     "basis": "Engineering Design Manual 2026 (5% maximum running slope where achievable).",
+     "method": "Slope from DEM or pathway profile along each route segment.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S11"
+     ]
+    },
+    {
+     "name": "Ramp gradient, landings and headroom",
+     "good": "Ramp at most 1:20 preferred, 1:12 (8.3%) absolute maximum; landing for each 0.5 m of rise; headroom at least 2.3 m.",
+     "bad": "Steeper than 1:12, longer runs without landing, or headroom below 2.3 m.",
+     "status": "team_assumption",
+     "basis": "[EXTERNAL BENCHMARK] DfT Inclusive Mobility s4.2-4.3: text verified, UK guidance, not adopted by Vancouver; Building By-law and CSA B651 not opened.",
+     "method": "Check ramp profiles and soffit heights.",
+     "unit": "%; m",
+     "source_ids": [
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Crossfall",
+     "good": "About 2% design, within the EDM 1-4% range.",
+     "bad": "Outside 1-4%; amber between 2.5% and 4% on constrained sites (DfT would flag above 2.5%, external comparison).",
+     "status": "verified",
+     "basis": "EDM 2026 8.4.3.3 (2%, 1-4% range); DfT s4.3 shown only as a comparison.",
+     "method": "Cross slope across the sidewalk from the section.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S11",
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Clear width of public routes",
+     "good": "At least 3.0 m on commercial streets; at least 2.4 m on mid-block links.",
+     "bad": "Below 2.4 m (constrained minimum), or below 3.0 m on commercial streets without City Engineer agreement.",
+     "status": "verified",
+     "basis": "EDM Table 8-3; CDDG S3.8.1. DfT 2.0 m desirable footway is an external comparison.",
+     "method": "Minimum clear width per route segment from P06-M04.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Obstacle gaps and footway minimum",
+     "good": "Footway at least 2.0 m desirable (1.5 m acceptable); gaps at obstacles at least 1.0 m and no longer than 6 m.",
+     "bad": "Below 1.5 m anywhere, or below 1.0 m at obstacles longer than 6 m.",
+     "status": "team_assumption",
+     "basis": "[EXTERNAL BENCHMARK] DfT Inclusive Mobility s4.2: text verified, not adopted by Vancouver.",
+     "method": "Scan route segments for obstacle gaps.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Rest spacing along public routes",
+     "good": "A seat or rest spot at most 50 m apart along busy routes; 100-150 m acceptable for other groups.",
+     "bad": "Gaps over 150 m.",
+     "status": "verified",
+     "basis": "EDM 2026 Table 8-2 (research from the late 1980s); DfT s4.5 (50 m) as comparison.",
+     "method": "Distance along routes between seating nodes; compare to groups in Table 8-2.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S11",
+      "P06-S17"
+     ]
+    },
+    {
+     "name": "Step-free public entrances",
+     "good": "All primary public entrances and the station link step-free from the sidewalk.",
+     "bad": "Any public entrance needing a step or a separate back route.",
+     "status": "team_assumption",
+     "basis": "Vancouver Building By-law Part 3.8 and CSA B651 not opened; target stated as a design intent, to be checked by the code consultant.",
+     "method": "Graph routing with step edges removed.",
+     "unit": "% of entrances",
+     "source_ids": [
+      "P06-S22",
+      "P06-S33"
+     ]
+    },
+    {
+     "name": "Truncated-dome treatment at flush crossings",
+     "good": "Required where grade break between sidewalk and ramp top is under 5%.",
+     "bad": "Flush crossing without tactile surface.",
+     "status": "verified",
+     "basis": "EDM 2026 section 8.4.1.4.",
+     "method": "Check each crossing point for grade break and tactile flag.",
+     "unit": "yes/no",
+     "source_ids": [
+      "P06-S11"
+     ]
+    }
+   ],
+   "method": "Compute a slope raster from the DEM and site grading, or slope profiles along each route edge from P06-M04. Classify running slope as 0-5% (green), 5-8.3% (amber, ramp) and above 8.3% (red). Measure crossfall from sections. Remove edges with steps from the walk graph to find step-free routes between each public entrance, the sidewalk, the plaza and the station link (lifts from P06-M04 kept). Report any entrance with no step-free route. Place seating nodes and compute the longest gap along each route against the group distances. Check headroom, landings and tactile domes. Compile code items for the code consultant (Vancouver Building By-law, CSA B651) as a manual checklist, not a computed result.",
+   "visualization": [
+    "Ground-plane slope map with three classes (green up to 5%, amber 5-8.3%, red above 8.3%), small arrows for direction of fall and a legend in percent and ratio.",
+    "Rest-coverage overlay: 50 m, 100 m and 150 m radius rings around seating nodes, shaded by group.",
+    "Step-free route traces from each public entrance to the station link, breaks marked with an X and the clause that fails.",
+    "Checklist panel with badges linked to EDM clauses; DfT rows in the external-benchmark style; code items as 'needs consultant' chips."
+   ],
+   "human_judgment": "Lived-experience review with the City's disability advisory groups, wayfinding clarity, sensory and cognitive comfort (glare, noise, complexity), dignity of access (no separate back door), and independent accessibility rating such as Rick Hansen Foundation certification (not opened).",
+   "limits": "Code compliance cannot be proven from a massing model. Slope needs an elevation model; downtown grade data may need City LiDAR. DfT numbers are UK benchmarks. No door, handrail or washroom geometry exists in Layer 0.",
+   "libraries": [
+    {
+     "name": "trimesh",
+     "role": "Terrain mesh slope, ray casts to ground",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "NetworkX",
+     "role": "Step-free routing with edge filtering",
+     "license": "BSD-3-Clause (repo page read)",
+     "url": "https://github.com/networkx/networkx"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "Read IfcRamp, IfcStair, IfcDoor with dimensions",
+     "license": "LGPL-3.0-or-later core (repo page read)",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Read ramp and stair geometry from .3dm",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mcneel/rhino3dm"
+    }
+   ],
+   "depends_on": [
+    "P06-M04 (routes, clear widths, below-grade link)",
+    "P06-M03 (seating)",
+    "SITE: terrain model"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "urban_integration_10"
+   ]
+  },
+  {
+   "module_id": "P06-M07",
+   "name": "Vertical public realm: public uses at height",
+   "phase": "basic",
+   "category": "PUBL",
+   "design_question": "Do public, cultural and civic uses extend up the tower in a way that is genuinely open, visible from the street, reachable and worth visiting, not just a token lobby or ticketed deck?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "About 4-5 person-days; reads program tags per storey, access attributes are manual; street lobby and queue check add about 1 day.",
+   "inputs": [
+    "Layer0.ProgramTags per storey: public | cultural_civic | amenity | retail | hotel | office | residential | mechanical | core",
+    "Storey heights and areas from Layer 0 massing; crown height",
+    "VerticalCirculation tags: lift banks (public or tenant), escalators, stairs, street-level public lift lobby (from advanced presets, or placeholders)",
+    "AccessAttributes per public space: free | ticketed | booked, opening hours, covenant yes/no, outdoor or indoor",
+    "Terrace and roof polygons flagged public"
+   ],
+   "outputs": [
+    "VerticalPublicProfile: {storey, height_m, public_gfa_m2, access_regime}[]",
+    "PublicShareAboveStreetwall: number (%)",
+    "HighestPublicStoreyHeight_m and ratio to total height",
+    "MaxGapBetweenPublicLevels: number (storeys and m)",
+    "PublicLiftQueue: {persons_peak, area_m2, frontage_m} (consumed by P06-M05)",
+    "VerticalPublicChecks: Check[] (consumed by P06-M08, SYST for egress, PRES boards)"
+   ],
+   "parameters": [
+    {
+     "name": "Public and cultural share of floor area above the streetwall",
+     "relationship": "More public floor area above the podium -> stronger sense that public life reaches up the tower; but each public floor needs separate lifts, security and egress and displaces revenue floors.",
+     "unit": "% of GFA above podium",
+     "source_ids": [
+      "P06-S05"
+     ]
+    },
+    {
+     "name": "Height of the highest public storey",
+     "relationship": "A public level near the crown gives skyline and mountain views and a reason to travel up; but the top floors are the most valuable and most exposed to wind.",
+     "unit": "m; % of height",
+     "source_ids": [
+      "P06-S05",
+      "P06-S21"
+     ]
+    },
+    {
+     "name": "Vertical gap between public levels",
+     "relationship": "Large gaps break the idea that public uses extend vertically; sky lobbies and stacked civic rooms at regular intervals make a legible vertical sequence.",
+     "unit": "storeys; m",
+     "source_ids": [
+      "P06-S05"
+     ]
+    },
+    {
+     "name": "Dedicated public vertical circulation",
+     "relationship": "Separate public lifts or escalators keep public access independent of tenants and security, but need lobby space and core area; London policy asks for a separate entrance (not opened).",
+     "unit": "persons per hour; count",
+     "source_ids": [
+      "P06-S30"
+     ]
+    },
+    {
+     "name": "Street-level public lobby and queue",
+     "relationship": "A public lift lobby with its own street frontage makes vertical uses visible and welcoming; its queue can spill onto the sidewalk and cut clear width unless the lobby holds the peak queue.",
+     "unit": "m; persons; m2",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Access regime and hours",
+     "relationship": "Free walk-up access and long hours widen the public; booked or ticketed access narrows it. London's Sky Garden is free with a booked ticket and open until midnight; Vancouver Lookout at Harbour Centre is ticketed.",
+     "unit": "hours; free/ticketed",
+     "source_ids": [
+      "P06-S21",
+      "P06-S04"
+     ]
+    },
+    {
+     "name": "Size and height of interior public space",
+     "relationship": "Rooms of at least about 93 m2 and 9.1 m high read as civic spaces (borrowed from the FSR-exclusion condition); lobbies serving principal entries and circulation do not count.",
+     "unit": "m2; m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Outdoor public terraces at height",
+     "relationship": "Open-air public terraces add views and weather exposure; wind comfort there comes from the CLIM wind module and may limit hours or types of use.",
+     "unit": "m2",
+     "source_ids": [
+      "P06-S05"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Public or cultural GFA above the streetwall",
+     "good": "At least 5% of above-podium GFA (editable preset).",
+     "bad": "Below 1% (editable preset).",
+     "status": "team_assumption",
+     "basis": "The 1997 Higher Buildings Policy asks that, where possible, a building include community-significant uses such as a public observation deck or other public amenity; no number exists. VTC brief asks that public-facing uses extend vertically.",
+     "method": "Sum GFA of public and cultural_civic storeys above the podium line divided by total GFA above it.",
+     "unit": "%",
+     "source_ids": [
+      "P06-S05",
+      "P06-S07"
+     ]
+    },
+    {
+     "name": "Distinct public levels above the podium",
+     "good": "At least two separated public levels, one in the top quarter of building height (editable preset).",
+     "bad": "No public level above the podium.",
+     "status": "team_assumption",
+     "basis": "No sourced threshold; the preset follows the brief's vertical continuity intent.",
+     "method": "Cluster public storeys; count clusters and note the highest.",
+     "unit": "count",
+     "source_ids": [
+      "P06-S05"
+     ]
+    },
+    {
+     "name": "Maximum gap between public levels",
+     "good": "At most one quarter of total height (editable preset).",
+     "bad": "More than one half of total height (editable preset).",
+     "status": "team_assumption",
+     "basis": "Placeholder; no sourced rule.",
+     "method": "Difference between consecutive public storey heights, plus ground to first and last to roof.",
+     "unit": "m",
+     "source_ids": [
+      "P06-S05"
+     ]
+    },
+    {
+     "name": "Interior public space quality floor",
+     "good": "At least about 93.0 m2 and about 9.1 m clear height, secured by covenant.",
+     "bad": "Smaller or lower, or secured only by lease; lobbies for principal entries and circulation are excluded.",
+     "status": "team_assumption",
+     "basis": "[DERIVED] CDDG S3.3.1 is a condition for FSR exclusion of interior public space, not a quality floor for sky-level rooms; the transfer is ours. Glossary excludes principal-entry lobbies.",
+     "method": "Check area and floor-to-ceiling height of tagged public rooms.",
+     "unit": "m2; m",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Street visibility and access of public uses",
+     "good": "Public uses have direct visual and physical access from the sidewalk (street-level lobby or frontage), not only through a tenant lobby.",
+     "bad": "Hidden behind tenant lobby or reached only by a service route.",
+     "status": "verified",
+     "basis": "CDDG G3.3.3 asks direct visual and physical access from the sidewalk for interior public space; G3.3.1 invites it in major Business District developments.",
+     "method": "Check each public vertical node for a street-level frontage or lobby tag and a sightline from the sidewalk.",
+     "unit": "yes/no",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Public-lift queue spill-over",
+     "good": "Reported only: peak queue persons and the lobby area that holds them, passed to P06-M05; no sourced pass level.",
+     "bad": "Queue area exceeds the lobby and spills onto the sidewalk.",
+     "status": "unverified",
+     "basis": "Lift capacity belongs to SYST and MOBI; no sourced queue-area standard was opened.",
+     "method": "Peak public occupant load per lift cycle divided into lobby area; compare with sidewalk clear width in M05.",
+     "unit": "persons; m2",
+     "source_ids": [
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Public access hours and cost at height",
+     "good": "Free, open to the public from at least 10:00 to 22:00, seven days (editable preset).",
+     "bad": "Office hours only, ticketed, or by invitation.",
+     "status": "team_assumption",
+     "basis": "Sky Garden London is free with booking and opens to midnight (precedent); Vancouver Lookout is ticketed. The City memo of April 2026 treats ticketed Lookout access as typical. The 2002 staff report judged a hotel lobby plus roof garden an inadequate public amenity.",
+     "method": "Read access attributes per public node.",
+     "unit": "hours per day",
+     "source_ids": [
+      "P06-S21",
+      "P06-S04",
+      "P06-S05"
+     ]
+    },
+    {
+     "name": "Public vertical circulation",
+     "good": "Dedicated public lifts or an independent public lobby with its own entrance (preset).",
+     "bad": "Public level reached only via tenant lobby.",
+     "status": "unverified",
+     "basis": "Based on London Plan Policy D9 intent, which was not opened (Cloudflare challenge).",
+     "method": "Check circulation tags for separation.",
+     "unit": "yes/no",
+     "source_ids": [
+      "P06-S30"
+     ]
+    }
+   ],
+   "method": "Read the storey table from Layer 0 and tag each storey by public, cultural or civic programme and area. Identify the podium line from the first tower step-back (shared with P06-M02). Compute public share of floor area above the podium, number and positions of public clusters, vertical gaps, height of the highest public storey, and area and clear height of each interior public room. Read access attributes (free, ticketed, hours, covenant) from each public node and the circulation tags to test separation from tenant lifts and street visibility. Estimate the public-lift queue and pass it to P06-M05. Compare with the threshold table and mark each result verified, team assumption or unverified. Pass public occupant demand to SYST (egress) and MOBI (lift capacity).",
+   "visualization": [
+    "Vertical strip diagram: tower elevation as a column from 0 to total height in metres, one band per storey coloured by programme, public storeys outlined with a heavy stroke, lift lines drawn, markers at the highest public storey and the podium line.",
+    "Per-node 24-hour clock-arc showing opening hours and a chip for free, booked or ticketed.",
+    "Street-level plan of the public lift lobby with its frontage, queue area and the sidewalk clear width beside it.",
+    "Histogram of public GFA per 10-storey band; pass/fail badges linked to CDDG clauses and the preset table; derived rows dashed."
+   ],
+   "human_judgment": "Whether the space is welcoming rather than token, programme curation and cultural content (including Indigenous perspectives), cost and security screening, equity of access, management, and safety and egress for large public loads at height.",
+   "limits": "Threshold presets have no sourced value; only CDDG G3.3.3 and precedents are cited, and the 93 m2 room floor is a derived transfer. Life-safety, lift capacity and wind comfort at height belong to other packets. Access regime is user-entered. CTBUH material was not opened (403).",
+   "libraries": [
+    {
+     "name": "IfcOpenShell",
+     "role": "Read storeys, spaces and classification from IFC",
+     "license": "LGPL-3.0-or-later core (repo page read)",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "web-ifc",
+     "role": "Browser IFC reading",
+     "license": "MPL-2.0 (repo page read)",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Read .3dm layers as storeys",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "three.js",
+     "role": "Vertical strip and 3D view",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "depends_on": [
+    "Layer 0 storey program tags",
+    "P06-M02 (podium line)",
+    "SYST: vertical transport and egress",
+    "MOBI: lift capacity",
+    "CLIM: wind at height (terraces)"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P06-M08",
+   "name": "Gehl-type public-life triage: what can be computed and what needs people",
+   "phase": "cross-cutting",
+   "category": "PUBL",
+   "design_question": "Which of Gehl's twelve public-space quality criteria can the tool compute from the massing, which only through proxies, and which need human audit or field observation?",
+   "nature": "subjective",
+   "priority": "v1",
+   "effort": "About 4-6 person-days for the triage matrix, count bars and manual audit form; agent-based public-life prediction is roadmap.",
+   "inputs": [
+    "Check outputs of P06-M01 to P06-M07 (pass, amber, fail with source badges)",
+    "CLIM: sun, wind, rain-shelter and noise results (if available)",
+    "ECOL: tree canopy and planting (if available)",
+    "Manual audit form (microscale streetscape audit items, exclusionary-feature checklist) filled by team members",
+    "Optional baseline: public-life counts of the existing site (Gehl-style stationary activity and movement counts)"
+   ],
+   "outputs": [
+    "CriteriaTriage: {criterion, group, mode: computed | proxy | human | field, pass_n, amber_n, fail_n, confidence}[12]",
+    "PublicLifeProfile: counts per criterion with computed and judged rows distinguished (no score)",
+    "PlaceDiagramMap: mapping of results to four place qualities",
+    "Gaps: list of criteria still without evidence (for the policy reflection board)"
+   ],
+   "parameters": [
+    {
+     "name": "Roll-up rule (counts only)",
+     "relationship": "Showing pass, amber and fail counts per criterion keeps the 40% human-scale jury weight visible without inventing weights between criteria; no validated weighting exists, so no 0-100 score or composite is produced.",
+     "unit": "counts",
+     "source_ids": [
+      "P06-S26"
+     ]
+    },
+    {
+     "name": "Evidence mode per criterion",
+     "relationship": "A criterion moves from 'human' to 'proxy' to 'computed' as the tool gains data; shows what remains judgment and keeps the scorecard honest.",
+     "unit": "category",
+     "source_ids": [
+      "P06-S26",
+      "P06-S24"
+     ]
+    },
+    {
+     "name": "Audit item set (microscale audit)",
+     "relationship": "Structured audit items (for example MAPS-Global) make human ratings repeatable between raters; reported inter-rater reliability was mostly 'excellent' in a Japanese online-audit study.",
+     "unit": "items",
+     "source_ids": [
+      "P06-S24"
+     ]
+    },
+    {
+     "name": "Exclusionary-feature checklist",
+     "relationship": "Seat dividers, spikes, gates and sloped ledges signal who is unwelcome; auditing them gives a partial, human-rated proxy for 'who is welcome'. CDDG G3.1.1c asks grilles and gates permeable at all hours.",
+     "unit": "count of features",
+     "source_ids": [
+      "P06-S01",
+      "P06-S24"
+     ]
+    },
+    {
+     "name": "Baseline public-life counts",
+     "relationship": "Counts of people moving and staying before and after a design show real effect; they cannot come from a massing model and are post-occupancy or existing-site work.",
+     "unit": "persons per hour",
+     "source_ids": [
+      "P06-S27"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Protection against traffic and accidents",
+     "good": "Mode proxy: counts of checks on vehicle and bike crossings (M01), crossing and corner comfort and widths (M05); street speeds need SITE data.",
+     "bad": "No evidence entered.",
+     "status": "unverified",
+     "basis": "Criteria list recalled from Cities for People, not opened: UNVERIFIED.",
+     "method": "Count linked check statuses; show mode and confidence; no score.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26"
+     ]
+    },
+    {
+     "name": "Protection against crime and violence",
+     "good": "Mode proxy: active frontage, transparency, night activation, blank runs and grilles (M01); lighting needs human input.",
+     "bad": "Long blank runs, no night uses.",
+     "status": "unverified",
+     "basis": "Criteria list not opened. CDDG G3.1.1 supports passive security by lighting, transparency and activity.",
+     "method": "Count linked M01 checks plus manual lighting rating.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Protection against unpleasant sensory experiences (wind, rain, noise, pollution)",
+     "good": "Mode computed for wind (CLIM) and shelter (M01); noise and air need other models.",
+     "bad": "Strolling-class wind at seating or no weather protection.",
+     "status": "unverified",
+     "basis": "Criteria list not opened. CDDG S4.11.1 noise levels cover residential rooms and amenity space only, so no public-realm noise number exists.",
+     "method": "Count wind-point and shelter checks; mark noise and air as gaps.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Opportunities to walk",
+     "good": "Mode computed plus human: clear widths and PCL (M05), slopes (M06), directness (M04); edge quality is human.",
+     "bad": "Clear width below standard.",
+     "status": "unverified",
+     "basis": "Criteria list not opened.",
+     "method": "Count linked M04-M06 checks; manual edge rating.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26"
+     ]
+    },
+    {
+     "name": "Opportunities to stand and stay",
+     "good": "Mode computed plus human: edge depth, plaza edges, seating at edges (M01, M03); quality of the edge zone is human.",
+     "bad": "No edge zones or seating at edges.",
+     "status": "unverified",
+     "basis": "Criteria list not opened.",
+     "method": "Count linked M01 and M03 checks; manual edge-zone rating.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26"
+     ]
+    },
+    {
+     "name": "Opportunities to sit",
+     "good": "Mode computed: seating supply, sun and wind at seating (M03); seat comfort and exclusionary features are human.",
+     "bad": "No seating or no sun on seating.",
+     "status": "unverified",
+     "basis": "Criteria list not opened; seating benchmark is NYC (external).",
+     "method": "Count M03 seating, sun and wind checks; audit exclusionary features.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S18"
+     ]
+    },
+    {
+     "name": "Opportunities to see",
+     "good": "Mode proxy: sightlines and transparency (M01, M04, optional isovist); interest of views is human.",
+     "bad": "Blocked sightlines or blank edges.",
+     "status": "unverified",
+     "basis": "Criteria list not opened.",
+     "method": "Count linked checks; optional isovist area from key points.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26"
+     ]
+    },
+    {
+     "name": "Opportunities to hear and talk",
+     "good": "Mode human or field: needs an acoustic model or on-site observation.",
+     "bad": "No evidence entered.",
+     "status": "unverified",
+     "basis": "Criteria list not opened; no public-realm noise threshold found.",
+     "method": "Manual audit entries only.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S24"
+     ]
+    },
+    {
+     "name": "Opportunities to play and exercise",
+     "good": "Mode human: programme and facilities are judgments; POPS size and shape (M03) are inputs only.",
+     "bad": "No evidence entered.",
+     "status": "unverified",
+     "basis": "Criteria list not opened.",
+     "method": "Manual audit entries; link M03 geometry as context.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26"
+     ]
+    },
+    {
+     "name": "Scale",
+     "good": "Mode computed plus human: podium band, unit rhythm and massing variation (M01, M02); perception needs a human check.",
+     "bad": "Podium outside the band or unit frontage beyond range.",
+     "status": "unverified",
+     "basis": "Criterion wording not opened; the linked CDDG checks are verified. Gehl dictionary (opened) defines human scale as dimensions relating to the human body and eye-level experience.",
+     "method": "Count linked M01 and M02 checks; manual perception rating.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S38",
+      "P06-S01"
+     ]
+    },
+    {
+     "name": "Opportunities to enjoy positive aspects of climate",
+     "good": "Mode computed plus human: sun hours (M03), shelter (M01), wind class; trees from ECOL; comfort in use is human.",
+     "bad": "Shaded, windy plaza with no planting.",
+     "status": "unverified",
+     "basis": "Criteria list not opened; PPS Place Diagram (opened) lists sun or shade under comfort and image.",
+     "method": "Count M03 sun, M01 shelter and wind checks; manual rating.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S20"
+     ]
+    },
+    {
+     "name": "Positive sensory experiences",
+     "good": "Mode human: materials, detailing, views and planting quality; ECOL canopy is an input only.",
+     "bad": "No evidence entered.",
+     "status": "unverified",
+     "basis": "Criteria list not opened.",
+     "method": "Manual audit entries; link ECOL canopy as context.",
+     "unit": "counts; mode",
+     "source_ids": [
+      "P06-S26",
+      "P06-S20"
+     ]
+    },
+    {
+     "name": "Share of criteria with computed or proxy evidence",
+     "good": "Reported as a count out of 12; preset target at least 6 of 12 by 10 Dec 2026.",
+     "bad": "Fewer than 4 of 12.",
+     "status": "team_assumption",
+     "basis": "Project management measure, not a design threshold.",
+     "method": "Count criteria whose mode is computed or proxy.",
+     "unit": "count of 12",
+     "source_ids": [
+      "P06-S26"
+     ]
+    }
+   ],
+   "method": "Create a 12-row matrix, one row per criterion, grouped protection (3), comfort (6) and delight (3). For each row record the evidence mode (computed, proxy, human audit, field observation) and link the module checks used. Pull checks from P06-M01 to P06-M07 and show pass, amber and fail counts with source badges. Never convert to 0-100 or a composite: the 40% human-scale jury weight stays at category level. For human rows present a short audit form from a microscale streetscape audit, with rater initials and date and an exclusionary-feature checklist. Draw counts per row, computed rows solid and judged rows hatched. Cross-map to the PPS Place Diagram (opened). Mark the criteria list UNVERIFIED until Cities for People or another Gehl source is opened.",
+   "visualization": [
+    "Twelve rows grouped protection, comfort and delight; each row a stacked bar of pass, amber and fail counts; computed rows solid, proxy dotted, human hatched, field-only empty with a dashed ring; no total.",
+    "Triage matrix: rows are criteria, columns are computed / proxy / human audit / field data, with the source module and clause linked in each cell.",
+    "Four-quadrant Place Diagram overlay (access and linkages, uses and activities, comfort and image, sociability) with counts of evidence per quadrant.",
+    "Badge 'Human-scale experience: 40% of jury' on the profile; FALSE ASSUMPTION colour for any retracted rating."
+   ],
+   "human_judgment": "Almost all 'delight' criteria, edge quality, seat comfort, perceived safety, who feels welcome, noise tolerance, cultural meaning and inclusion. Field counts and surveys can only be done on a built or existing place. The scorecard exists to mark that boundary.",
+   "limits": "Gehl's criteria wording and any quantity (door counts, viewing distances) were recalled, not opened, so no Gehl numbers are used as thresholds. No validated composite exists. Proxies measure the model, not behaviour; counts of people need field work.",
+   "libraries": [
+    {
+     "name": "D3.js",
+     "role": "Count bars and matrix drawing in the browser",
+     "license": "ISC (from memory; not opened)",
+     "url": "https://github.com/d3/d3"
+    },
+    {
+     "name": "Plotly.js",
+     "role": "Alternative bars and small multiples",
+     "license": "MIT (from memory; not opened)",
+     "url": "https://github.com/plotly/plotly.js"
+    },
+    {
+     "name": "PedPy",
+     "role": "Analysis of simulated or counted trajectories (roadmap)",
+     "license": "MIT (repo page read)",
+     "url": "https://github.com/PedestrianDynamics/PedPy"
+    },
+    {
+     "name": "JuPedSim",
+     "role": "Agent-based prediction of movement and dwell (roadmap)",
+     "license": "LGPL-3.0 (repo page read)",
+     "url": "https://github.com/PedestrianDynamics/jupedsim"
+    }
+   ],
+   "depends_on": [
+    "P06-M01",
+    "P06-M02",
+    "P06-M03",
+    "P06-M04",
+    "P06-M05",
+    "P06-M06",
+    "P06-M07",
+    "CLIM: sun, wind, noise",
+    "ECOL: canopy"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P06-S01",
+   "title": "City of Vancouver Council Report RTS 18459: City-wide Design and Development Guidelines and Related Actions (report 15 Jul 2026; Appendix A draft CDDG; B repeals; D solar time-zone amendments)",
+   "url": "https://council.vancouver.ca/20260728/documents/r2.pdf",
+   "publisher": "City of Vancouver, Planning, Urban Design and Sustainability",
+   "year": "2026",
+   "type": "Council report and design guideline (draft text)",
+   "opened": true,
+   "extract": "Draft CDDG (Appendix A, marked draft). Read as text in r1: S1.5, S1.9-S1.12, S2.2-S2.3, S3.1-S3.3, S4.4, glossary, 4.18, App. D. Table 2.2b read from text coordinates. Legacy Downtown guidelines repealed from 27 Oct 2026."
+  },
+  {
+   "id": "P06-S02",
+   "title": "City-wide Design and Development Guidelines (project page)",
+   "url": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "Official web page",
+   "opened": true,
+   "extract": "Council approved the CDDG on 28 July 2026, effective 27 October 2026, consolidating 70+ guidelines; final guidelines to be posted soon; excludes Chinatown, Gastown, Victory Square and some zones."
+  },
+  {
+   "id": "P06-S03",
+   "title": "Higher Buildings Policy Review (project page)",
+   "url": "https://vancouver.ca/home-property-development/higher-buildings-policy-review.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "Official web page",
+   "opened": true,
+   "extract": "Policy adopted in 1997; review aims at community benefits and the Granville Street Plan; Phase I engagement April-May 2026; Ideas Competition live until 30 Nov 2026."
+  },
+  {
+   "id": "P06-S04",
+   "title": "Memo to Mayor and Council: Higher Buildings Policy Review and Public Engagement (2 Apr 2026)",
+   "url": "https://vancouver.ca/files/cov/2026-04-02-memo-higher-buildings-policy-review-and-public-engagement.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "City memo",
+   "opened": true,
+   "extract": "Policy last updated in 2011; allows up to 600 ft with one location up to 700 ft; Ideas Competition June 2026-January 2027; Phase 2 draft directions late 2026; Lookout at Harbour Centre typically ticketed."
+  },
+  {
+   "id": "P06-S05",
+   "title": "Policy Report (19 Jul 2002) 687 Howe Street CD-1 text amendment, reproducing the General Policy for Higher Buildings (May 1997)",
+   "url": "https://council.vancouver.ca/020814/pe1.htm",
+   "publisher": "City of Vancouver Council",
+   "year": "2002",
+   "type": "Council policy report",
+   "opened": true,
+   "extract": "1997 criteria: architectural excellence, community benefits, where possible a public observation deck or amenity, on-site open space, no adverse microclimate effects. Staff found a hotel lobby plus roof garden inadequate as a public amenity."
+  },
+  {
+   "id": "P06-S06",
+   "title": "Higher Buildings Policy (for rezonings) PDF",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997 (amended to 2011 per City memo)",
+   "type": "Council policy",
+   "opened": false,
+   "extract": "Not opened: 403 to automated fetch and a download began, which was not allowed. Content taken from S05 and S04."
+  },
+  {
+   "id": "P06-S07",
+   "title": "Special Council Meeting Minutes: Downtown Vancouver Skyline Study (7 and 22 Apr 1997)",
+   "url": "https://council.vancouver.ca/970407/skyline.htm",
+   "publisher": "City of Vancouver Council",
+   "year": "1997",
+   "type": "Council minutes",
+   "opened": true,
+   "extract": "Higher buildings only in the Central Business District core, tied to excellence and significant community benefits including additions to downtown open space; the public wanted the skyline to complement the natural setting."
+  },
+  {
+   "id": "P06-S08",
+   "title": "Solar Access Guidelines for the Downtown Peninsula (PDF)",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "Council guideline",
+   "opened": false,
+   "extract": "Not opened directly (download blocked). Text read in S09 as Appendix A (clean) and Appendix B (redline)."
+  },
+  {
+   "id": "P06-S09",
+   "title": "Yellow Memorandum RTS 16506 to Mayor and Council (17 Sep 2025): Appendix A Solar Access Guidelines for the Downtown Peninsula (clean) and Appendix B (redline)",
+   "url": "https://council.vancouver.ca/20250917/documents/pspc9Memo.pdf",
+   "publisher": "City of Vancouver, Planning, Urban Design and Sustainability",
+   "year": "2025",
+   "type": "Council memo and guideline text",
+   "opened": true,
+   "extract": "Read in r1 from Appendix A: Table 1; 3.1-3.3 (22 Sep, 10:00-16:00; Robson to 15:00); 4.1-4.3 special cases; 5.1 Basic two-hour study; 5.2 Detailed 15-minute study, coverage formula over 25 instants; model set to PDT, UTC-7."
+  },
+  {
+   "id": "P06-S10",
+   "title": "Solar access in public spaces (project page)",
+   "url": "https://vancouver.ca/home-property-development/solar-access-in-public-spaces.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "Official web page",
+   "opened": true,
+   "extract": "Lists the Downtown Peninsula guidelines (17 Sep 2025), classification Table 1, decision trees A-C and digital-model requirements; downtown grid is rotated."
+  },
+  {
+   "id": "P06-S11",
+   "title": "City of Vancouver Engineering Design Manual (2026)",
+   "url": "https://vancouver.ca/files/cov/engineering-design-manual.pdf",
+   "publisher": "City of Vancouver Engineering Services",
+   "year": "2026",
+   "type": "Design standard",
+   "opened": true,
+   "extract": "8.4.3 clear widths (Table 8-3), 5.5 m from back of curb, 4.0 m high-volume, 2% crossfall, 5% slope; Table 8-2 rests; domes; Table 8-18 green treatment at major driveway crossings of bike lanes; p.341 furniture set back for sightlines at driveways, 10 m from intersections. No 1.0 m crossing clearance found."
+  },
+  {
+   "id": "P06-S12",
+   "title": "Transportation 2040 (as adopted by Council)",
+   "url": "https://vancouver.ca/files/cov/Transportation_2040_Plan_as_adopted_by_Council.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2012",
+   "type": "City plan",
+   "opened": true,
+   "extract": "At least two-thirds of trips on foot, bike or transit by 2040; W 1.1.5 improve lanes; W 1.1.6 minimise width and number of driveways crossing sidewalks; W 1.2 generous unobstructed sidewalks."
+  },
+  {
+   "id": "P06-S13",
+   "title": "Streetscape design guidelines (page and SDG drawings for Downtown South, Granville Mall, Georgia Street)",
+   "url": "https://vancouver.ca/streets-transportation/streetscape-design-guidelines.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2016-2022",
+   "type": "City guideline",
+   "opened": true,
+   "extract": "Special treatment areas include Downtown South, Granville Mall and Georgia Street West End; drawings carry a 9000 mm cross-section dimension; reading it as total sidewalk width is ours and unconfirmed."
+  },
+  {
+   "id": "P06-S14",
+   "title": "Accessibility Strategy (Phases 1 and 2)",
+   "url": "https://vancouver.ca/people-programs/accessibility-strategy.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "type": "City strategy page",
+   "opened": true,
+   "extract": "Accessibility Strategy, Phase 2 Multi-Year Action Plan 2024-2026, and an Accessibility Committee; PDFs not read."
+  },
+  {
+   "id": "P06-S15",
+   "title": "Policy Report: Use and Retail Requirement Relaxations At Grade on Hastings Street (1 May 2003)",
+   "url": "https://council.vancouver.ca/20030527/p2.htm",
+   "publisher": "City of Vancouver Council",
+   "year": "2003",
+   "type": "Council policy report",
+   "opened": true,
+   "extract": "Downtown District ODP (Section 2) contains a Retail Use Continuity requirement with a street map, relaxable by amendment. Street designations for the VTC site not found."
+  },
+  {
+   "id": "P06-S16",
+   "title": "Pedestrian Comfort Guidance for London: Guidance Document (First Edition 2010)",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "publisher": "Transport for London (Atkins)",
+   "year": "2010",
+   "type": "Guidance (external benchmark)",
+   "opened": true,
+   "extract": "PCL A+ (under 3 ppmm) to E (over 35); B+ (9-11) recommended; Figure 9 area-type matrix (decoded from colour fills); Appendix B 2.9 / 4.2 / 5.3 m widths, comfortable to 2,000 pph; crossing method; more than 3 island rows pushed crossing outside."
+  },
+  {
+   "id": "P06-S17",
+   "title": "Inclusive Mobility: A Guide to Best Practice on Access to Pedestrian and Transport Infrastructure (2021)",
+   "url": "https://assets.publishing.service.gov.uk/media/61d32bb7d3bf7f1f72b5ffd2/inclusive-mobility-a-guide-to-best-practice-on-access-to-pedestrian-and-transport-infrastructure.pdf",
+   "publisher": "UK Department for Transport",
+   "year": "2021",
+   "type": "Guidance (external benchmark)",
+   "opened": true,
+   "extract": "Footway minimum 2.0 m (1.5 m acceptable), 1.0 m at obstacles for up to 6 m, headroom 2.3 m, gradients 1:20 and absolute 1:12, crossfall 1:50 preferred and 1:40 maximum, landing per 0.5 m rise, seats every 50 m."
+  },
+  {
+   "id": "P06-S18",
+   "title": "NYC Zoning Resolution 37-741: Seating (public plazas)",
+   "url": "https://zr.planning.nyc.gov/article-iii/chapter-7/37-741",
+   "publisher": "New York City Department of City Planning",
+   "year": "2024",
+   "type": "Zoning text (external benchmark)",
+   "opened": true,
+   "extract": "1 linear ft per 30 sq ft; two types, three above 5,000 sq ft; moveable seating above 10,000 sq ft (1 chair per 200 sq ft, 24 in per chair); 50% of fixed seating with backs; street-line rule within 15 ft."
+  },
+  {
+   "id": "P06-S19",
+   "title": "NYC Zoning Resolution 37-727: Hours of access (public plazas)",
+   "url": "https://zr.planning.nyc.gov/article-iii/chapter-7/37-727",
+   "publisher": "New York City Department of City Planning",
+   "year": "2024",
+   "type": "Zoning text (external benchmark)",
+   "opened": true,
+   "extract": "Plazas open at all times unless closing is authorised; authorised hours 7:00-22:00 (15 Apr-31 Oct) and 7:00-20:00 (1 Nov-14 Apr); hours plaque required."
+  },
+  {
+   "id": "P06-S20",
+   "title": "Place Diagram (Project for Public Spaces)",
+   "url": "https://www.pps.org/article/grplacefeat",
+   "publisher": "Project for Public Spaces",
+   "year": "n.d.",
+   "type": "Evaluation framework",
+   "opened": true,
+   "extract": "Four qualities: access and linkages, uses and activities, comfort and image, sociability; each with intangibles and measures (seat choice, sun or shade, visibility, activity mix)."
+  },
+  {
+   "id": "P06-S21",
+   "title": "Sky Garden, London (visitor information)",
+   "url": "https://skygarden.london/",
+   "publisher": "Sky Garden",
+   "year": "2026",
+   "type": "Precedent (operator website)",
+   "opened": true,
+   "extract": "Public visits free with a booked ticket; opening roughly 8:00 to midnight Mon-Thu and Sun, to 1:00 Fri-Sat; height 155 m; paid events exist. No planning-obligation text."
+  },
+  {
+   "id": "P06-S22",
+   "title": "BC Building Code 2024 (Province of BC page)",
+   "url": "https://www2.gov.bc.ca/gov/content/industry/construction-industry/building-codes-standards/bc-codes/2024-bc-codes",
+   "publisher": "Province of British Columbia",
+   "year": "2024",
+   "type": "Official web page",
+   "opened": true,
+   "extract": "BC Building Code 2024 in effect from 8 March 2024; BC Codes do not apply in the City of Vancouver, which has its own building by-law."
+  },
+  {
+   "id": "P06-S23",
+   "title": "Open Government Licence - Vancouver",
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "Licence",
+   "opened": true,
+   "extract": "City open data may be copied, modified and used commercially with attribution 'Contains information licensed under the Open Government Licence - Vancouver'."
+  },
+  {
+   "id": "P06-S24",
+   "title": "Inter-rater reliability of streetscape audits using online observations: MAPS-Global in Japan (Saito et al.; accessed through PubMed)",
+   "url": "https://doi.org/10.1016/j.pmedr.2022.102043",
+   "publisher": "Preventive Medicine Reports (indexed in PubMed)",
+   "year": "2022",
+   "type": "Peer-reviewed paper (abstract read)",
+   "opened": true,
+   "extract": "According to PubMed: a structured microscale audit of pedestrian streetscapes can be rated reliably by two online raters, with most summary scores at excellent agreement."
+  },
+  {
+   "id": "P06-S25",
+   "title": "Street connectivity, physical activity, and childhood obesity: a systematic review and meta-analysis (Jia et al.; accessed through PubMed)",
+   "url": "https://doi.org/10.1111/obr.12943",
+   "publisher": "Obesity Reviews (indexed in PubMed)",
+   "year": "2019",
+   "type": "Peer-reviewed review (abstract read)",
+   "opened": true,
+   "extract": "According to PubMed: 47 studies; street intersection density shows a positive association with physical activity in children; no link to BMI could be concluded."
+  },
+  {
+   "id": "P06-S26",
+   "title": "Cities for People (Jan Gehl), including the twelve urban quality criteria",
+   "url": "https://islandpress.org/books/cities-people",
+   "publisher": "Island Press",
+   "year": "2010",
+   "type": "Book",
+   "opened": false,
+   "extract": "Not opened (book). In r1 the Gehl People site, dictionary and Wikipedia were searched for the list without success. Criteria names recalled; used for structure only, no numbers."
+  },
+  {
+   "id": "P06-S27",
+   "title": "How to Study Public Life (Gehl and Svarre)",
+   "url": "https://islandpress.org/books/how-study-public-life",
+   "publisher": "Island Press",
+   "year": "2013",
+   "type": "Book",
+   "opened": false,
+   "extract": "Not opened. Source of public-life methods (counts, stationary activity mapping, intercept surveys) referenced as field methods."
+  },
+  {
+   "id": "P06-S28",
+   "title": "Measuring the unmeasurable: urban design qualities related to walkability (Ewing and Handy)",
+   "url": "https://doi.org/10.1080/13574800802452658",
+   "publisher": "Journal of Urban Design",
+   "year": "2009",
+   "type": "Peer-reviewed paper",
+   "opened": false,
+   "extract": "Not opened (publisher returned 403). Defines imageability, enclosure, human scale, transparency and complexity; no number taken."
+  },
+  {
+   "id": "P06-S29",
+   "title": "Fruin (1971) Pedestrian Planning and Design; Highway Capacity Manual, 6th edition",
+   "url": "https://www.trb.org/Publications/Blurbs/175169.aspx",
+   "publisher": "Transportation Research Board",
+   "year": "2016",
+   "type": "Reference",
+   "opened": false,
+   "extract": "Not opened. Fruin and HCM level-of-service thresholds recalled only; shown as unverified."
+  },
+  {
+   "id": "P06-S30",
+   "title": "The London Plan 2021, Policy D9 Tall buildings",
+   "url": "https://www.london.gov.uk/programmes-strategies/planning/london-plan/new-london-plan/chapter-3-design/policy-d9-tall-buildings",
+   "publisher": "Greater London Authority",
+   "year": "2021",
+   "type": "Planning policy",
+   "opened": false,
+   "extract": "Not opened: Cloudflare challenge to the browser and 403 to fetch; not bypassed. Policy intent about free-to-enter public space is recalled, not verified."
+  },
+  {
+   "id": "P06-S31",
+   "title": "The Social Life of Small Urban Spaces (William H. Whyte)",
+   "url": "https://www.pps.org/",
+   "publisher": "Project for Public Spaces",
+   "year": "1980",
+   "type": "Book (publisher home page given)",
+   "opened": false,
+   "extract": "Not opened. Background to seating and sun findings; NYC code (S18) is the verified expression."
+  },
+  {
+   "id": "P06-S32",
+   "title": "BRE BR 209: Site layout planning for daylight and sunlight",
+   "url": "https://www.bregroup.com/",
+   "publisher": "Building Research Establishment",
+   "year": "2022",
+   "type": "Guidance",
+   "opened": false,
+   "extract": "Not opened (404). The 2-hour, 50%-of-area sun test (21 March) is recalled, so used only as a labelled team assumption."
+  },
+  {
+   "id": "P06-S33",
+   "title": "CSA B651 Accessible design for the built environment; Vancouver Building By-law Part 3.8",
+   "url": "https://www.csagroup.org/",
+   "publisher": "CSA Group; City of Vancouver",
+   "year": "2023",
+   "type": "Standard and by-law",
+   "opened": false,
+   "extract": "Not opened. Named as governing barrier-free requirements; no number used."
+  },
+  {
+   "id": "P06-S34",
+   "title": "Open-source repository pages read for licences and capabilities (shapely, trimesh, rhino3dm, IfcOpenShell, web-ifc, three.js, pvlib-python, Ladybug, OSMnx, NetworkX, momepy, depthmapX, JuPedSim, PedPy)",
+   "url": "https://github.com/PedestrianDynamics/jupedsim",
+   "publisher": "GitHub project pages",
+   "year": "2026",
+   "type": "Software repositories",
+   "opened": true,
+   "extract": "Licences read: MIT (trimesh, rhino3dm, three.js, OSMnx, PedPy); BSD-3-Clause (shapely, pvlib-python, NetworkX, momepy); LGPL-3.0 (JuPedSim, IfcOpenShell core); MPL-2.0 (web-ifc); AGPL-3.0 (Ladybug); GPL-3.0 (depthmapX)."
+  },
+  {
+   "id": "P06-S35",
+   "title": "Council on Tall Buildings and Urban Habitat (site redirects to verticalurbanism.org)",
+   "url": "https://verticalurbanism.org/",
+   "publisher": "CTBUH / Vertical Urbanism",
+   "year": "2026",
+   "type": "Research organisation site",
+   "opened": false,
+   "extract": "Not opened (403). No CTBUH source supports any vertical public-realm figure in this packet."
+  },
+  {
+   "id": "P06-S36",
+   "title": "Rezoning Policy for Sustainable Large Developments (PDF)",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2018 (amended to 2025 per a 2026 Council report)",
+   "type": "Council policy",
+   "opened": false,
+   "extract": "Not opened in r1: 403 to fetch and cross-origin read failed in the browser. Trigger (8,000 m2 site or 45,000 m2 new floor area) is read only in the 2013 Council report (S37)."
+  },
+  {
+   "id": "P06-S37",
+   "title": "Policy Report RTS 009647: Rezoning Policy for Greener Larger Sites, new name Sustainable Large Developments (7 May 2013; meeting 16 May 2013)",
+   "url": "https://council.vancouver.ca/20130516/documents/cfsc3.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2013",
+   "type": "Council policy report",
+   "opened": true,
+   "extract": "Read as text: proposed policy is triggered by 45,000 m2 or more of new floor area and/or a site of 8,000 m2 or more; exclusion if under 4,700 m2 of new floor area. The 2013 text, not the current policy."
+  },
+  {
+   "id": "P06-S38",
+   "title": "Dictionary (Gehl People)",
+   "url": "https://www.gehlpeople.com/dictionary/",
+   "publisher": "Gehl People",
+   "year": "2026",
+   "type": "Practitioner web page",
+   "opened": true,
+   "extract": "Defines human scale as design dimensions relating to the human body so spaces support eye-level experience. Does not list the twelve quality criteria."
+  },
+  {
+   "id": "P06-S39",
+   "title": "Packages built into Pyodide (documentation)",
+   "url": "https://pyodide.org/en/stable/usage/packages-in-pyodide.html",
+   "publisher": "Pyodide project",
+   "year": "2026",
+   "type": "Official documentation",
+   "opened": true,
+   "extract": "Built-in list includes shapely 2.1.2, networkx 3.6.1, numpy, scipy, geopandas, pyproj. pvlib, trimesh, momepy and osmnx were not in the list read."
+  },
+  {
+   "id": "P06-S40",
+   "title": "DD (Except Downtown South) C-5, C-6, HA-1 and HA-2 Character Area Descriptions and Granville Street Plan (referred to by CDDG 4.18)",
+   "url": "https://vancouver.ca/home-property-development/zoning-and-land-use-policies-document-library.aspx",
+   "publisher": "City of Vancouver",
+   "year": "n.d.",
+   "type": "Area guidelines and plan",
+   "opened": false,
+   "extract": "Not opened: only the CDDG 4.18 reference and the Appendix B repeal table were read. Library page reached by redirect but not read. Content may change streetwall and frontage presets."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 1997 Higher Buildings Policy is the policy that frames 244-305 m (800-1,000 ft) towers on the VTC site.",
+   "correction": "The City's April 2026 memo says the policy was last updated in 2011 and currently allows up to 600 ft (about 183 m), with one location up to 700 ft (about 213 m). The VTC height range is above it. The review is open and draft directions are expected in late 2026.",
+   "detail": "Sources: P06-S04, P06-S03. VTC heights are hypothetical beyond current policy; the 1997 criteria on public amenity, open space and microclimate (P06-S05) are used here as the policy intent.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Downtown (Except Downtown South) Design Guidelines and Central Area Pedestrian Weather Protection guidelines govern podium, streetwall and ground-floor design for Central Business District sites.",
+   "correction": "Council approved the City-wide Design and Development Guidelines on 28 July 2026 and repealed both documents effective 27 October 2026. The CDDG now governs; its final text was not yet posted. CDDG 4.18 still refers Downtown sites to the DD Character Area Descriptions.",
+   "detail": "Sources: P06-S01 (Appendix B, 4.18), P06-S02. Use CDDG clause numbers, not legacy guideline numbers, in all source badges.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vancouver requires a numeric ground-floor transparency percentage.",
+   "correction": "The CDDG asks for transparent glazing across most of the ground-floor facade up to the second-floor underside or canopy underside, with no percentage. Any percentage in the tool is a team assumption.",
+   "detail": "Source: P06-S01 (S3.1.1b).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Downtown solar rules prohibit any new shadow on all public spaces between 10:00 and 16:00 PDT.",
+   "correction": "The Downtown Peninsula guidelines are tiered: no new shadow on parks, school sites and the Davie and Robson Village north sidewalks; urban plazas and miniparks to be minimised; exceptions through a rationale, 15-minute solar budget and detailed study. Time wording amended from PDT to PT on 28 July 2026.",
+   "detail": "Sources: P06-S09, P06-S01 (Appendix D), P06-S10.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "New shadow on urban plazas only needs to be 'actively minimised' (P06-M03 protected-space metric).",
+   "correction": "Dilawri Square South, Jack Poole Plaza and Robson Square follow 3.1 (no new shadow, 22 Sep, 10:00-16:00, exception path 3.1.2). Dr Sun Yat-Sen Gardens and Park: no new shadow 10:00-16:00 (4.1.1). Victory Square: 3.1 plus the Cenotaph circle 10:00-12:00 on 11 Nov (4.3.1). Other urban plazas and West End miniparks: minimise where possible (3.2.1).",
+   "detail": "Source: P06-S09 Appendix A (clean text) sections 3.1-3.3, 4.1-4.3, Table 1. The earlier packet read the redline, which mixes struck and inserted text.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vancouver's shadow test is the 10:00-16:00 run in 15-minute steps.",
+   "correction": "Every Downtown applicant submits a Basic study at two-hour intervals (5.1.1). The 15-minute Detailed study with area take-offs and the coverage formula is for applicants seeking a relaxation of 3.1.1 or 3.3.1 (5.2.1).",
+   "detail": "Source: P06-S09 Appendix A section 5. The tool offers both studies, Basic by default.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 10% public open space target for mid-sized sites (S1.9.2) is a valid passing target for the VTC block.",
+   "correction": "S1.9.2 does not apply: the CDDG glossary defines mid-sized sites as over 4,000 and under 8,000 m2, and the VTC block is about 11,468 m2. Default to S1.9.1 (20%), with POPS of about 10% (S1.10.2) counted inside it.",
+   "detail": "Sources: P06-S01 (glossary, S1.9.1, S1.9.2, S1.10.2), P06-S37 (large-site trigger 8,000 m2 in the 2013 report; current policy not opened).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Mid-block connections of 5.4 m (non-residential), 7.3 m or 4.5 m (half share) are acceptable on the VTC block.",
+   "correction": "S1.12.2c requires 9.1 m face to face for large sites or sites identified in S1.12.1, and S1.12.1b covers sites adjacent to or including a transit station entrance, which the VTC brief requires. Narrower widths only as a G1.12.1 variation.",
+   "detail": "Source: P06-S01 (S1.12.1, S1.12.2, G1.12.1, S3.8.1). Checked in the CDDG text in r1.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "CDDG Table 1.5 tower separation is employment-employment 15.2, employment-hotel 15.2, employment-residential 18.3 and residential-residential 24.4 m.",
+   "correction": "The table also sets residential-hotel at 24.4 m (reducible to 18.3 m under S1.5.2) and hotel-hotel at 15.2 m; G1.5.1 asks for more separation where towers exceed typical heights. Use the full matrix with S1.5.2 and S1.5.3 conditions.",
+   "detail": "Source: P06-S01 (S1.5.1-S1.5.4, G1.5.1-G1.5.2, Table 1.5). Separation is shared equally between tower sites (S1.5.1).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "CDDG S2.2.8 allows 21.3 m podiums only for residential or other listed exceptions.",
+   "correction": "S2.2.8b also allows 21.3 m on sites with frontage over 60.7 m where enhanced open space is provided; the VTC block frontage (79.2 m and 144.8 m) meets the frontage test.",
+   "detail": "Source: P06-S01 (S2.2.7, S2.2.8, glossary 'Enhanced open space'). Which of S2.2.6 or S2.2.7 governs a mixed tower is unresolved.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Transport interchanges and tourist areas tolerate less crowding than residential streets (TfL).",
+   "correction": "TfL Figure 9: high street and tourist attraction are strictest (acceptable to B, at risk B-, unacceptable from C+); residential is intermediate (acceptable to B-, at risk C+); office/retail and transport interchange are most tolerant (acceptable to C+, at risk C-). B+ is recommended for all; C+ is the floor with compensation.",
+   "detail": "Source: P06-S16 p.14. Read from the figure's colour fills by pixel sampling; the round-1 critic's reading (high street most tolerant) does not match, so a visual check is advised.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "TfL Appendix B gives 5.3 m total footway width for any flow above 1,200 pph.",
+   "correction": "TfL says 5.3 m (or 3.3 m without furniture) gives comfortable movement up to 2,000 pph. Above that, derive the clear width from ppmm at B+ (pph / 60 / 11) plus buffers.",
+   "detail": "Source: P06-S16 Appendix B (p.25), text read.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Solar tests run in 'local Pacific time', with seasonal PST/PDT switching.",
+   "correction": "Council report RTS 18459 states BC adopted permanent year-round daylight-saving time, and Appendix D replaces PDT with PT. The guidelines set the model to PDT (UTC-7). Use UTC-7 year-round and show the offset; Victory Square 4.3.1 still says PST (unresolved).",
+   "detail": "Sources: P06-S01 p.5 and Appendix D, P06-S09 section 5.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The City EDM requires street furniture at least 1.0 m from vehicle crossings and entrances.",
+   "correction": "No 1.0 m figure was found in EDM 8.4.3, 8.4.9 or Chapter 9. EDM p.341 asks furniture to be set back to keep sightlines at driveways and crosswalks, typically 10 m from intersections.",
+   "detail": "Source: P06-S11. The 1.0 m figure is removed; no replacement number is claimed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "CDDG clause values (entrances, podium bands, tower separation, floorplates, open space targets) are final.",
+   "detail": "The only text read is draft Appendix A in the Council report. The City says final guidelines will be posted. Table 2.2b was rebuilt from PDF text coordinates. Recheck every CDDG number after posting.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Gehl door-density scale, viewing-distance limits and the wording of the twelve quality criteria.",
+   "detail": "The Gehl People site, its dictionary and Wikipedia do not list the criteria; the book was not opened. No Gehl figure is used as a threshold; criteria names are recalled and flagged. City entrance spacing (8-12 m) is the verified substitute.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Fruin and Highway Capacity Manual pedestrian level-of-service values.",
+   "detail": "Not opened. The tool uses TfL Pedestrian Comfort Levels (opened) as the primary measure and shows Fruin only as an unverified cross-check.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "BC and Vancouver accessibility code requirements (Vancouver Building By-law Part 3.8, CSA B651) for entrances, ramps and doors.",
+   "detail": "The BC page says BC codes do not apply in Vancouver; the by-law text and CSA standard were not opened. Numeric accessibility metrics come from the City EDM and the UK DfT guide.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "London Plan Policy D9 requirement for free-to-enter public space at height.",
+   "detail": "The London Authority site blocked access. The policy is not used for any number; it appears only as a flagged reference.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Pedestrian wind comfort criteria at grade (seating, entrances, sidewalks, transit plaza, links, terraces).",
+   "detail": "No Vancouver or other wind criterion was opened. CDDG G1.8.1b is qualitative. Thresholds and mitigation effect of podium, canopy and step-back geometry belong to CLIM; P06 shows results as unverified until CLIM sources exist.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Current text of the Rezoning Policy for Sustainable Large Developments (large-site trigger).",
+   "detail": "The policy PDF was not opened. The 8,000 m2 site or 45,000 m2 floor-area trigger is read in the 2013 Council report only (P06-S37); the VTC block (11,468 m2) meets the site test on that text.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "TfL Figure 9 area-type matrix as decoded in the tool.",
+   "detail": "Read by sampling the colour fills of the PDF page and matching labels by position, not by eye. Confirm visually before the matrix is shown as a source badge.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Availability of pvlib, trimesh, momepy and OSMnx inside Pyodide.",
+   "detail": "They were not in the built-in package list read (P06-S39); installing pure-Python wheels with micropip is untested. The browser path relies only on shapely, numpy and scipy plus an own solar routine.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which VTC frontages are retail-continuity streets under the Downtown District ODP, and which character area or plan governs the block.",
+   "detail": "The ODP map sits on bylaws.vancouver.ca and could not be read. CDDG 4.18 sends Downtown sites to the DD C-5, C-6, HA-1 or HA-2 Character Area Descriptions, or to the Granville Street Plan; neither was opened. The user selects the policy area in SITE.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the VTC block (about 11,468 m2) counts as a 'large site' for the 20% public open space target, and how S1.9.1 and S1.10.2 stack.",
+   "detail": "Glossary sends large sites to the Rezoning Policy for Sustainable Large Developments; the 2013 report gives an 8,000 m2 site trigger, which the block meets, but the current text is unopened. POPS is a public open space (glossary), so it counts inside the 20%; whether S1.10.2 is extra is unconfirmed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Status and timing of the Higher Buildings Policy review.",
+   "detail": "The April 2026 memo gives the Ideas Competition as June 2026 to January 2027; the City page says live until 30 November 2026. Phase 2 draft directions are expected late 2026, so thresholds may change after this packet.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Applying CDDG low-rise streetwall Table 2.2a (east-west versus north-south streets) on the rotated downtown grid.",
+   "detail": "The tower-podium table 2.2b does not depend on orientation, so the tool uses it. The low-rise table and corner-setback guideline (G2.1.3) need a rule for 'north-south' on a rotated grid.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Time zone of the Victory Square Cenotaph rule (4.3.1 says PST) when BC uses permanent daylight time.",
+   "detail": "Appendix D replaces PDT with PT but leaves 'PST' in 4.3.1. At 10:00 on 11 Nov the sun is 12.6 degrees up at UTC-7 and 18.3 at UTC-8; the tool runs both until the City confirms.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the 3.1.2 exception path applies to Dr Sun Yat-Sen Gardens and Park (4.1.1).",
+   "detail": "4.1.1 says 'despite' 3.1 and states no exception. The tool marks it FAIL with no exception chip; ask City planners.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which podium rule governs a mixed-use tower with residential floors: S2.2.6 band, S2.2.7 cap of 18.3 m, or the S2.2.8 21.3 m increase.",
+   "detail": "S2.2.8 cross-refers to S2.2.6 though S2.2.7 sets the lower cap. The tool applies the stricter value and shows the S2.2.8 path as an option. Table 2.2b 'Other contexts' column read as 15.2 m for all rows from cell positions.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Active-frontage percentages, transparency 60%, blank-run lengths, weather-protection coverage, streetwall continuity 80%, active depth 9.1 m, lobby class defaults.",
+   "detail": "Editable presets in P06-M01 and P06-M02 without a Vancouver numeric source; the 9.1 m depth borrows G2.10.2c as an analogue; office and residential lobbies default semi-active. Shown dashed with an editable chip.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Sun test of 2 hours on 50% of POPS area, access-hour presets, route directness 1.25/1.5, 100 m block-gap, two lifts on the below-grade link, vertical-public presets (5% GFA, two levels, gap, 10:00-22:00), pedestrian generation rates.",
+   "detail": "Editable presets in P06-M03, P04, P05 and P07; the 2-hour test is a labelled analogue of unopened BRE practice moved from 21 March to 22 Sep.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Walking speed for isochrones, peak-hour share of daily trips, peak 15-minute surge proxy and low/central/high demand multipliers.",
+   "detail": "Editable defaults; Transportation 2040 (two-thirds of trips on foot, bike or transit by 2040) is context only. TfL's average-of-maximum multiplier was not opened.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Status mapping: external benchmarks and derived values are stored as team_assumption with a [EXTERNAL BENCHMARK] or [DERIVED] basis prefix.",
+   "detail": "The output schema allows only verified, team_assumption, unverified and false_assumption_corrected. 'verified' is kept for City of Vancouver text. Recommend adding external_benchmark and derived statuses to the platform.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Performance budget: protected-space shadow projection for 25 instants and about 200 context buildings completes in under 30 s in a laptop browser.",
+   "detail": "Not benchmarked. Polygon projection replaces a 0.5 m ray grid, which at a 1.35 km radius would be about 23 million cells per instant (about 570 million over 25 instants).",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Quantified link between active-frontage percentage or entrance density and pedestrian volume, dwell time and perceived safety: no opened source (Gehl, Ewing and Handy 2009 not opened).",
+  "Podium height, canopy and step-back geometry to ground-level wind downwash and sidewalk sunlight: direction is clear but no opened source gives a threshold or effect size; belongs to CLIM.",
+  "Acceptable level of sky view factor or enclosure ratio on a downtown street: only CDDG-derived podium ratios (about 0.55-0.75) are available; no literature threshold opened.",
+  "Acceptable share of added shadow area: staff say 5-15% is typical for high-rises but explicitly set no benchmark; the tool treats any added shadow on no-new-shadow spaces as a breach.",
+  "Effect of public floors at height on lift demand, security cost and revenue: no opened source; London D9 and CTBUH material not opened.",
+  "Pedestrian generation rates by programme and walk share for the VTC site, and the surge multiplier from hourly flow to peak 15 minutes or TfL average-of-maximum: no Vancouver source opened.",
+  "Vancouver hours-of-access rule for POPS under SRW agreements; only the NYC rule was opened.",
+  "Route directness and block-length thresholds that predict walking; only a connectivity-physical activity association (children) was opened.",
+  "Wind comfort thresholds at seating, entrances, sidewalks, transit plaza, links and terraces: to be taken from CLIM with its own sources.",
+  "Whether CDDG S1.10.2 (POPS about 10%) is extra to or inside S1.9.1 (20%), and how park dedication interacts; glossary counts POPS as public open space.",
+  "Required width, daylight and lift count of the below-grade station link relative to ridership: CDDG gives only 'an elevator and staircase'; TransLink standards not opened.",
+  "Effect of tower separation beyond Table 1.5 on light reaching the pedestrian level for 244-305 m towers: G1.5.1 is qualitative; no number found.",
+  "Meaning of PT versus PST for the Victory Square Cenotaph window under permanent daylight time (UTC-7 or UTC-8).",
+  "Public-lift queue length and area per person at street level, and its effect on sidewalk comfort: no sourced standard (Fruin queueing values not opened)."
+ ],
+ "change_log": [
+  "R1: Created packet P06 with eight modules: ground-floor frontage (M01), streetwall and enclosure (M02), public open space with sun, wind link and access (M03), permeability (M04), sidewalk capacity and pedestrian comfort (M05), inclusive access at grade (M06), vertical public realm (M07), Gehl-type public-life triage (M08).",
+  "R1: Servicing and loading frontage impact folded into M01 (service share, vehicle crossings); Gehl indicators placed in M08 as a computed-versus-judged matrix.",
+  "R1: Read the City-wide Design and Development Guidelines (draft Appendix A in Council report RTS 18459, 28 Jul 2026) as the governing guideline from 27 Oct 2026; flagged legacy downtown guidelines as repealed.",
+  "R1: Corrected the 'Higher Buildings Policy 1997' assumption: last updated 2011, caps about 183 m (one site 213 m), review open.",
+  "R1: Built sun metrics on the Downtown Peninsula solar guidelines (22 Sep, 10:00-16:00, 15-minute steps, coverage formula) and amended PDT to PT wording.",
+  "R1: Could not open guidelines.vancouver.ca, bylaws.vancouver.ca, london.gov.uk, tandfonline, Gehl sites or BRE; used same-site Council and City PDFs instead; web search budget was exhausted, so remaining gaps are listed as unresolved.",
+  "r1: M03 shadow rules rebuilt as rows from solar memo Appendix A: parks and school sites (3.1), Dr Sun Yat-Sen (4.1), Dilawri South, Jack Poole, Robson Square (4.2), Victory Square plus Cenotaph on 11 Nov (4.3), Davie and Robson sidewalks (3.3); no-new-shadow spaces FAIL by default with an exception path; other plazas 'minimise' (3.2.1). FALSE_ASSUMPTION flagged.",
+  "r1: M03 offers Basic (2-hour) and Detailed (15-minute, City coverage formula) studies; context now includes proposed buildings and terrain; UTC-7 hard-coded with offset shown; Victory Square PST flagged UNRESOLVED and run at both offsets.",
+  "r1: M03 shadow domain sized from tower height (about 600 m on 22 Sep, 1.4 km on 11 Nov at 305 m, our NOAA calculation); protected-space take-offs switched to shapely shadow-polygon projection in the browser; raster only for on-site POPS; sun hours integrated over 24 intervals (max 6.0 h).",
+  "r1: M03 open space default set to 20% (S1.9.1) with POPS about 10% (S1.10.2) inside it, per glossary; mid-sized 10% option removed; large-site trigger read in the 2013 Council report only, flagged UNVERIFIED for current text.",
+  "r1: M03 wind linkage added for seating, entrances, sidewalks, transit plaza, links and terraces (unverified, CLIM-owned) plus a mitigation-geometry parameter; seating rule encoded by plaza size (three types above 465 m2, moveable chairs above 929 m2, backs on fixed seating).",
+  "r1: M04 mid-block width set to 9.1 m face to face for the VTC preset with 2.4 m clear path; other widths shown as context; below-grade station link quality added from CDDG G4.4.2 (elevator and stair, active uses, visual connection) and G4.4.1 checklist; two-lift redundancy added as team assumption.",
+  "r1: M02 Table 1.5 transcribed in full with S1.5.2-S1.5.4 conditions, G1.5.1 flag, own-own and half-separation-to-property-line tests; slenderness indicator, Table 2.2b re-read from cell positions, S2.2.7-S2.2.8 paths added; derived rows relabelled; sky view factor now cosine-weighted with at least 500 rays; policy area input added (CDDG 4.18).",
+  "r1: M01 added active depth (9.1 m analogue), lobby class (CDDG glossary counts hotel lobbies as active), hours and night activation, grille permeability, crossings over bike facilities (EDM Table 8-18 context) and bird-friendly glazing note.",
+  "r1: M05 TfL rows relabelled external benchmark; Figure 9 area-type floors encoded per type (our colour decode; critic's reading differed); Appendix B limited to 2,000 pph with ppmm derivation above; peak 15-minute check, sensitivity band, crossing and corner metrics added; unfounded 1.0 m furniture clearance removed (EDM p.341 sightline rule used).",
+  "r1: M06 DfT rows relabelled external benchmark and split from EDM City rows; M07 S3.3.1 transfer relabelled derived, street-visibility (G3.3.3) and public-lift queue metrics added with output to M05; M08 rebuilt as 12 criterion rows with pass/amber/fail counts and no 0-100 score, criteria list marked UNVERIFIED.",
+  "r1: Schema allows only four metric statuses, so external_benchmark and derived are stored as team_assumption with a basis prefix; see TEAM_ASSUMPTION flag. Eight critic claims turned into FALSE_ASSUMPTION flags (two more added from our own checks)."
+ ],
+ "notes": "Process notes (round 1 revision). (1) Web search budget ran out, so Gehl's criteria list, CTBUH and London D9 stay unopened; the Gehl People site, its dictionary and Wikipedia were tried and do not list the criteria. (2) City PDFs (CDDG r2.pdf, solar memo, EDM, Council reports, TfL) were read as text through the Browser pane with pdf.js loaded from cdnjs; WebFetch returned 403 for council.vancouver.ca. The TfL PDF was auto-saved by WebFetch earlier; no other files were saved by us. (3) One navigation to r2.pdf#page=49 triggered a browser save dialog; it was not retried and nothing was saved. (4) The solar memo Appendix A (clean) was used, not the redline. (5) TfL Figure 9 was decoded by sampling colour fills; this disagrees with the critic's description and needs a visual check. (6) The Large Developments policy PDF could not be opened; its trigger comes from the 2013 Council report. (7) Calculations (sun elevation, shadow reach, cell counts) are ours, via a NOAA solar algorithm at 49.28 N, 123.12 W. (8) Metric status enum has no external_benchmark or derived value; stored as team_assumption with basis prefixes. (9) Priority: core = M01, M02, M03, M04, M07; v1 = M05, M06, M08. (10) VTC block 79.2 m x 144.8 m = 11,468 m2; 10% = about 1,147 m2, 20% = about 2,294 m2. (11) Licence cautions: Ladybug AGPL-3.0, depthmapX GPL-3.0; City open data needs the Open Government Licence - Vancouver attribution."
+}

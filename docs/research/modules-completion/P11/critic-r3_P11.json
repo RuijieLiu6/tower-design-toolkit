@@ -1,0 +1,245 @@
+{
+ "expert_role": "Mechanical engineer for high-rise towers (MEP, vertical transportation, life-safety systems). Gatekeeper auditing the cited sources for packet P11, round 3.",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M04, P11-M05, P11-M06, P11-M07, P11-M09",
+   "issue": "The governing text is still unread. VBBL 2025 (By-law 14343) and the 2025 Part 10 wording were not opened. This round S61 (Part 10 2025) and S60 (2022 council report) both returned HTTP 403 again. S60 is summarised as proposing tighter GHGI limits for commercial and 7+ storey residential buildings for 2025. The M04 limits (office GHGI 3.0 and so on) may therefore be out of date for any permit after 15 Sep 2025. Every code gauge is a VBBL 2019 value whose current status is unknown.",
+   "fix": "Before 13 Nov a student downloads By-law 14343 (consolidated) and the Part 10 2025 wording in a normal browser and stores them in the repository with date and file hash. Fill the VBBL 2025 column of the EditionMap for 3.2.2.18, 3.2.6.1-3.2.6.5, 3.2.7.9-3.2.7.10, 3.4.2.5, 3.4.3.2, 3.4.6.16, 3.4.6.18, 3.8.5 and Tables 10.2.2.5.A1/B/C. Until then, every code gauge carries a 'VBBL 2019, not the governing edition' banner, and M04 shows no pass/fail."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M09",
+   "issue": "The multiple-occupancy rules are applied beyond their scope. VBBL 2019 3.2.2.6.(1) applies the most restricted occupancy's requirements 'of this Subsection' (3.2.2, building size and construction) to the whole building. 3.2.2.8.(1) lets occupancies of 10% or less be ignored 'for the purposes of this Subsection', and not for F-1 or F-2. M09 states these as general rules ('governs the whole building', 'may be ignored') and publishes OccupancyMap to M06 (occupant loads, travel limits), M04 (Part 10 rows) and M07. Applied that way, a small retail or assembly area would disappear from egress and energy calculations, or one tag would reassign limits for the whole tower. In a stacked tower, 3.2.2.7 (superimposed occupancies) is the operative construction rule.",
+   "fix": "Scope 3.2.2.6 to 3.2.2.8 to a 'ConstructionClass' output only. Give OccupancyMap actual occupancy by area, with no 10% elimination, to M06, M04 and M07. Add the F-1/F-2 exclusion to the 10% rule. Make 3.2.2.7 the default for vertically stacked uses."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M03, P11-M02",
+   "issue": "The emergency-power sizing logic is inverted, and the recall test is misread. VBBL 2019 3.2.7.9.(2) requires the generator to run all firefighter elevators plus one more at the same time. Sentence (3) waives that only if 'the time to recall all elevators under emergency power supply is not more than 5 min'. M03 method step 7 says 'all lifts if recall is 5 min or less', which turns a waiver into a larger load. The M02 gauge tests 'each elevator <= 300 s'. The code tests the total time to recall all elevators on the generator, which is sequential when the generator is not sized for every car.",
+   "fix": "EmergencyLoad = firefighter elevators + 1, or a recall-sequencing load chosen by the user, whichever case applies. Compute the recall time as the generator-limited sequence of batches (sum of batch times to the firefighter-entrance storey or a transfer lobby) and compare it with 300 s. Fix the step 7 wording to match the M03 parameter text, which is already correct."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M03",
+   "issue": "Fire-protection water zoning, a primary driver of plant floors in supertall towers, is missing. VBBL 2019 3.2.5.9 sends standpipe design to NFPA 14, with 690 kPa residual at the topmost hose connection as the baseline (3.2.5.9.(5)). NFPA 14 also caps system pressure (350 psi, about 2,413 kPa, from engineering knowledge, not re-read here). So one fire zone covers at most about (2,413 - 690)/9.81, or about 175 m, before friction and pump churn. A 244-305 m tower therefore needs at least two fire zones with intermediate fire pumps (NFPA 20, 3.2.5.18) or gravity or break tanks on plant floors. Those pumps are also a 3.2.7.9.(1)(b) generator load and a 3.2.7.10 conductor item. M03 zones only domestic and hydronic water.",
+   "fix": "Add a FireWaterZoneTable {zone, levels, static and residual kPa, pump or tank location} with presets for NFPA 14 maximum pressure and hose-connection pressure-regulating devices (cite the NFPA 14 edition referenced by VBBL). Feed fire-pump kW to EmergencyLoad and tank and pump rooms to PlantFloorSchedule. Make the plant-floor minimum the largest of the hydronic, fire-water and air-handling needs."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M01",
+   "issue": "AWT = interval / 2 is an optimistic estimate that the spec still gauges against BCO 25/30 s bands. Interval/2 is the ideal case (the spec's own S29 extract says 'ideal'). In conventional-control up-peak, published practice (Barney, Elevator Traffic Handbook, not opened this round) gives AWT ≈ [0.4 + (1.8P/CC - 0.77)^2] x interval, about 0.85 x interval at 80% load. A 45 s interval would read as AWT 22.5 s (green) when the expected AWT is about 38 s (red).",
+   "fix": "Remove the numeric AWT gauge from v1, or compute it with the up-peak relation above (cite it once opened) labelled 'calculation estimate, conventional control'. Never feed interval/2 into the green/amber/red bands."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P11-M01",
+   "issue": "The 13 Nov unit test depends on sources the team cannot open. The Peters worked example (S23) and Stopes (S22) hosts refused connections in r2. Peters 2000 (S54) was never read. S23 'prints no RTT equation', so the express-term engine has no published reference result to match. The core gauge rests on 'unit-tested before pass/fail', and that test currently has no fixture.",
+   "fix": "Archive locally any PDFs opened in r0. Write analytic kinematic test cases (single-floor jump, rated-speed cruise, express run) that can be checked by hand. Use the Arup 505 George St rises (S26, open) as a plausibility check. If no published RTT result is available by 8 Nov, ship HC5 and interval as 'unvalidated' with no colours."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "all",
+   "issue": "Status 'verified' breaks the spec's own rule ('two independent sources' or 'two editions with equal values'). Net-to-gross (S22 only), double-deck floor-height uniformity (S23 only) and destination-control AWT <= 0.8 x interval (S25 only) are marked verified. 'Floors per rise <= 15' is verified using Arup (S26), whose 21-28-floor rises contradict it. Code items are also 'verified' when the only matching editions are superseded and the governing edition is unread.",
+   "fix": "Downgrade single-source items to unverified. Drop S26 as corroboration for the floors-per-rise limit. For code items, make the status text 'verified in VBBL 2007+2019; VBBL 2025 unread' and render it as a distinct badge from 'verified (governing edition)'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "all",
+   "issue": "The schedule is still not credible (partly addressed). The 13 Nov cut is about 16 person-days for P11 alone, with 23 calendar days left, two students and 12 other categories. If other packets are similar, the core needs well over 100 person-days against roughly 46 available. The M01 cut (6 person-days) also depends on the missing validation fixture.",
+   "fix": "Publish a cross-packet capacity table. Cut P11's 13 Nov core to M09 (corrected scope), the M05 static checklist and the M06 width and occupant-load calculation (about 8 person-days). Move the M01 engine to 10 Dec unless the validation fixture exists by 1 Nov."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M08, P11-M06",
+   "issue": "The 90 N door force is misattributed and under-stated. VBBL 2019 3.4.6.16.(2) is the 90 N latch-release device. 3.4.6.16.(3) requires every exit door to open under not more than 90 N once the latch is released, and stair doors are exit doors. So this is a code limit, not a 'team interpretation'. At the spec's own about 175 Pa end-of-shaft stack pressure, a 0.9 x 2.1 m door needs roughly 150-170 N plus closer force, so the check will fail without vestibules or compartmentation.",
+   "fix": "Cite 3.4.6.16.(3) as the limit (status code, VBBL 2019). Keep only the 'applied under stack and pressurisation conditions' part as interpretation. Surface the expected failure early to M05 and M02 as a core-planning constraint (vestibules, stair compartmentation)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M02, P11-M05",
+   "issue": "The firefighter-elevator 1 min run is read too loosely. 3.2.6.5.(2) measures 900 kg to the top floor served 'from a landing on the storey containing the entrance for firefighter access' within 1 min. The spec offers 'a change floor' as an alternative. An upper elevator above a change floor does not start at that storey, so whether a split arrangement satisfies (2) is an interpretation. At 300 m a single run needs a rated speed of about 6 m/s or more (300/v + v/a <= 60 at a = 1 m/s2).",
+   "fix": "Compute run time from the firefighter-entrance storey including the change-floor transfer, and flag any split arrangement as 'interpretation, AHJ to confirm'. Show the minimum rated speed for a single run."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M04",
+   "issue": "Table 10.2.2.5.C is incomplete in the spec. The VBBL 2019 text also has 'Business and Personal Services or Mercantile, except Office' at TEUI 170 and TEDI 30, which the composite needs for retail. Table C applies only with a connected Low Carbon Energy System, and Creative Energy's qualification is unknown.",
+   "fix": "Add the D/E row and lock the Table C path behind an explicit 'LCES connection confirmed' user flag with source."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M03",
+   "issue": "The zone formulas use static head only. Domestic zone height (550 - P_min)/9.81 ignores friction loss and the pressure at the PRV outlet under flow. The hydronic break ceil(H x 9.81/rating) ignores pump head, which adds directly to working pressure at the lowest equipment. Both overstate the allowable zone height.",
+   "fix": "Add a friction and pump-head allowance preset (kPa) to both formulas and show it in the pressure-band legend."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M01, P11-M02",
+   "issue": "The CSA B44-16 seismic requirements are still a generic flag. Vancouver (Sa(0.2) 0.848) falls in the higher seismic risk categories, where CSA B44 seismic provisions add earthquake operation, counterweight and rope-snag measures and reduced-speed operation. These affect high-speed, long-rise lifts and shaft layout.",
+   "fix": "Name the CSA B44-16 seismic section (8.4, 'to be read') in RegulatoryFlags and add an 'earthquake-operation speed' input to the run-time checks once read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P11-M07",
+   "issue": "'Accessible path at least 1500 mm wide (3.8.3.2)' could not be re-verified this round (fetch blocked by a session limit). The NBC base requires a narrower clear width, and 1500 mm is typically a turning-space dimension.",
+   "fix": "Re-read VBBL 2019 3.8.3.2 and separate clear path width from turning-space diameter in the rule table."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "sources",
+   "issue": "Source extracts slightly overstate their clauses. S63 says '3.2.2.18.(3) all new buildings sprinklered' without the Division A 1.3.3.6.(2) exception. S63 and S65 extracts do not record the 3.2.2.6/3.2.2.8 scope limitation or the 3.4.6.16.(2)/(3) split.",
+   "fix": "Update the S63 and S65 extracts with the scope words ('for the purposes of this Subsection') and the exception."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Under 3.2.2.6 the most restricted occupancy governs the whole building, and under 3.2.2.8 occupancies under 10% of a storey may be ignored, as general inputs to egress, accessibility and energy checks.",
+   "why_false": "Both articles are limited to Subsection 3.2.2 (building size and construction). 3.2.2.8 also excludes F-1 and F-2.",
+   "correction": "Use them only for construction classification. Downstream egress, accessibility and Part 10 checks use actual occupancy by area.",
+   "evidence": "VBBL 2019 Section 3.2 (consolidated 1 Jul 2024), 3.2.2.6.(1): 'requirements of this Subsection for the most restricted major occupancy'; 3.2.2.8.(1): 'for the purposes of this Subsection, provided they are not ... Group F, Division 1 or 2'. https://free.bcpublications.ca/civix/document/id/public/vbbl2019/59509560"
+  },
+  {
+   "claim": "The emergency load covers all lifts if recall takes 5 min or less (M03 method step 7).",
+   "why_false": "3.2.7.9.(2) requires firefighter elevators plus one more at the same time. Sentence (3) removes that requirement when recall of all elevators takes 5 min or less, so a short recall reduces the load. It does not increase it.",
+   "correction": "EmergencyLoad = firefighter elevators + 1 by default. If the sequenced recall of all elevators is 300 s or less, Sentence (2) is waived.",
+   "evidence": "VBBL 2019 3.2.7.9.(2)-(3), same document."
+  },
+  {
+   "claim": "The recall check passes when each elevator recalls in 300 s or less.",
+   "why_false": "The clause tests 'the time to recall all elevators under emergency power supply', each from its most remote storey. When the generator cannot run every car, recall is sequential and the total time counts.",
+   "correction": "Compute total generator-limited recall time across batches and compare it with 300 s.",
+   "evidence": "VBBL 2019 3.2.7.9.(3)."
+  },
+  {
+   "claim": "90 N is only a latch-release force, and applying it to stair-door opening is a team interpretation.",
+   "why_false": "3.4.6.16.(3) requires every exit door to open under a force of not more than 90 N once the latch is released. 3.4.6.16.(2) is the separate 90 N release-device rule.",
+   "correction": "Treat 90 N opening force at exit and stair doors as a code limit. Only its use under stack and pressurisation conditions is interpretation.",
+   "evidence": "VBBL 2019 Section 3.4 (consolidated 1 Jul 2024), 3.4.6.16.(2)-(3). https://free.bcpublications.ca/civix/document/id/public/vbbl2019/463712062"
+  },
+  {
+   "claim": "Up-peak AWT can be estimated as interval / 2 for gauge purposes.",
+   "why_false": "Interval/2 is the ideal for perfectly regular dispatch. Conventional up-peak AWT is closer to 0.85 x interval at 80% car load.",
+   "correction": "Use the published up-peak AWT relation, or show no AWT number until simulation exists.",
+   "evidence": "Spec's own S29 extract ('ideal average waiting time equals interval / 2'); Barney, Elevator Traffic Handbook (engineering knowledge, not opened this round)."
+  }
+ ],
+ "missing": [
+  "Fire-protection water zoning: standpipe and fire-pump zones, intermediate pumps or tanks, pressure-regulating hose valves (VBBL 3.2.5.9 / NFPA 14, 3.2.5.18 / NFPA 20)",
+  "VBBL 2025 column of the EditionMap and the 2025 Part 10 limits (manual download still not done)",
+  "A validation fixture for the M01 RTT engine that the team can actually open",
+  "Location of the firefighter-entrance storey relative to the below-grade transit level (it sets the 1 min run, recall level and 3.2.6.2.(4) measures)",
+  "Station-side interface requirements for the transit link (TransLink design standards, NFPA 130 station egress), at least as an unresolved item",
+  "Utility electrical service space (BC Hydro vault or substation requirements) for a 244-305 m tower",
+  "Machine-room, overrun and pit dimensions for high-speed (6-10 m/s) lifts in the core-area model",
+  "Friction and pump-head allowance in the domestic and hydronic zoning formulas",
+  "Table 10.2.2.5.C retail/D-E row and an LCES connection flag"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Download VBBL 2025 (By-law 14343) and the 2025 Part 10 wording by hand, store them with hashes and fill the VBBL 2025 EditionMap column before 13 Nov; until then every code gauge shows a 'VBBL 2019, not governing' banner and M04 shows no pass/fail",
+   "Restrict 3.2.2.6 and 3.2.2.8 in M09 to construction classification; pass actual occupancy by area downstream",
+   "Correct the M03 EmergencyLoad inversion and make the M02 recall gauge a total generator-limited recall time against 300 s",
+   "Add fire-protection water zoning (NFPA 14 / NFPA 20 via VBBL 3.2.5.9 and 3.2.5.18) to M03 and EmergencyLoad",
+   "Remove the AWT = interval/2 gauge, or replace it with a sourced up-peak relation",
+   "Re-grade 'verified' statuses to the spec's own two-source rule and distinguish 'verified in superseded editions'",
+   "Secure an M01 validation fixture (archived PDFs or analytic test cases) before showing coloured HC5 and interval gauges, and re-cut the 13 Nov scope to fit team capacity"
+  ]
+ },
+ "verdict": "Round 2 fixed most of round 1's findings: VBBL 2019 re-basing, 3.3.1.7, 3.4.6.18, M07 on 3.8, the zone-height formula, the composite energy limit and the transit-link clauses. I confirmed the 3.2.6.5, 3.2.7.9, 3.2.7.10, 3.4.2.5, Table 3.4.3.2.-A, 3.4.6.18, 2.6.3.3 and Table 10.2.2.5.A1/B/C values against VBBL 2019 text. New errors remain. M09 applies 3.2.2.6/3.2.2.8 outside their scope. The M03 emergency-load rule is inverted, and the recall gauge misreads 'all elevators'. Fire-water zoning, the main driver of supertall plant floors, is missing. AWT = interval/2 is optimistic. 'Verified' breaks the spec's own two-source rule. VBBL 2025 is still unread (HTTP 403 again; search budget exhausted). The 13 Nov scope still exceeds capacity. Gate: not passed.",
+ "previous_round": [
+  {
+   "item": "MAJOR: re-base Part 3 presets from VBBL 2007 to VBBL 2019",
+   "status": "addressed",
+   "residue": "Stamps updated; VBBL 2007 kept in the edition map. 'Verified' still means agreement between superseded editions."
+  },
+  {
+   "item": "MAJOR: rebuild M07 on VBBL 2019 Section 3.8",
+   "status": "addressed",
+   "residue": "3.8.3.2 '1500 mm path' not re-verified this round."
+  },
+  {
+   "item": "MAJOR: 3.3.1.7 protected zones deleted in Vancouver",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: add 3.2.7.9/3.2.7.10 emergency power to M03/M05",
+   "status": "partly",
+   "residue": "Added, but M03 method step 7 inverts the 5-min waiver and the M02 recall gauge tests each elevator instead of total recall time; fire-pump load has no fire-water zoning behind it."
+  },
+  {
+   "item": "MAJOR: fix domestic-water zone formula and citation",
+   "status": "addressed",
+   "residue": "Friction and pump-head allowance still omitted (MINOR)."
+  },
+  {
+   "item": "MAJOR: M04 single-row limit to a mixed-occupancy composite plus Table B and Passive House",
+   "status": "addressed",
+   "residue": "Section 5 method still unread (team assumption); Table C D/E row omitted; LCES flag needed."
+  },
+  {
+   "item": "MAJOR: 3.4.6.18 is the re-entry rule; check against M02 security",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: transit-link provisions 3.2.6.2.(4), 3.2.6.3, 3.2.4, 3.8.2.2.(5)",
+   "status": "addressed",
+   "residue": "Firefighter-entrance storey relative to the transit level not modelled."
+  },
+  {
+   "item": "MAJOR: effort does not fit schedule; publish 13 Nov cut",
+   "status": "partly",
+   "residue": "A cut was published (about 16 person-days), but it is still large against two students and 12 other categories, and the M01 unit test has no accessible fixture."
+  },
+  {
+   "item": "MAJOR: download VBBL 2025 and Part 10 2025 by hand",
+   "status": "not",
+   "residue": "Still unread; S61 and S60 returned HTTP 403 again this round. Logged as a task only."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P11-S63",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/59509560",
+   "ok": true,
+   "note": "PDF text-extracted. Confirmed 3.2.6 trigger at 18 m to uppermost floor of top storey; 3.2.6.4.(5)-(6) recall detectors and alternate floor; 3.2.6.5.(2) 2.2 m2, 900 kg, top floor within 1 min from firefighter-entrance storey; (3)(a)/(b)/(c) 'or'; (5) one change; 3.2.7.9.(1)-(3) 2 h, firefighter elevators + 1, waived if all recalled within 5 min; 3.2.7.10 1 h, 2 h smoke management; 3.2.2.18.(3); 3.2.5.20 98% and UL 2524; 3.2.5.9 NFPA 14 and 690 kPa top hose residual. Found that 3.2.2.6 and 3.2.2.8 are scoped 'for the purposes of this Subsection'."
+  },
+  {
+   "source_id": "P11-S65",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/463712062",
+   "ok": true,
+   "note": "Confirmed 3.4.2.5.(1) 25/40/45/105/60/30 m; 3.4.2.4.(3) 50 m; 3.4.3.2.(7) half rule; Table 3.4.3.2.-A stairs 900/1100 mm; 3.4.6.18.(1)-(5). 3.4.6.16.(2) is the 90 N release device; (3) is the 90 N opening force for every exit door."
+  },
+  {
+   "source_id": "P11-S43",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486",
+   "ok": true,
+   "note": "Consolidated to 27 Feb 2025. Table A1 values match the spec; Note (1) refers to EMG Section 5; Table B Group C 100/15/NA; Table C includes a D/E-except-office row at 170/30 that the spec omits; Passive House 10.2.2.5.(4) confirmed."
+  },
+  {
+   "source_id": "P11-S68",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vpbl2019/238839733",
+   "ok": true,
+   "note": "2.6.3.3.(1) confirmed: PRV to limit static pressure at any fixture to 550 kPa. No minimum residual clause."
+  },
+  {
+   "source_id": "P11-S61",
+   "url": "https://vancouver.ca/files/cov/vbbl-part-10-unofficial-wording-effective-sept-15-2025.pdf",
+   "ok": false,
+   "note": "HTTP 403 again; not bypassed. Governing Part 10 limits unverified."
+  },
+  {
+   "source_id": "P11-S60",
+   "url": "https://council.vancouver.ca/20220517/documents/R1a.pdf",
+   "ok": false,
+   "note": "HTTP 403; the proposed 2025 GHGI reductions remain unseen."
+  },
+  {
+   "source_id": "P11-S67",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/369101801",
+   "ok": false,
+   "note": "Fetch failed (tool session limit); 3.8.3.2 path width not re-verified. WebSearch budget was also exhausted this round."
+  }
+ ]
+}

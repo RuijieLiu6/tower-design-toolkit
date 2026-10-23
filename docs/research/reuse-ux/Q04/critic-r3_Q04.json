@@ -1,0 +1,359 @@
+{
+ "expert_role": "Research-methods gatekeeper (sentiment corroboration and source verification), round 3 of Q04",
+ "previous_round": [
+  {
+   "item": "Autodesk MCP servers: add the official Revit MCP, remove the 'second-hand' and 'internal workflows only' claims",
+   "status": "addressed",
+   "residue": "The finding's URL is the release post, which lists only 7 read tools and no Write installers. The Read, Write and Experimental installers (Revit 2027.2+) come from the 29 Sep 2026 update post, which is cited only under principle 7. Education entitlement is still unconfirmed."
+  },
+  {
+   "item": "Figma MCP limits and re-rating",
+   "status": "addressed",
+   "residue": "Numbers match the live rate-limits page. Write tools are exempt from limits, and generate_image and send_prompt use AI credits; the finding does not mention either."
+  },
+  {
+   "item": "Curated AEC lists",
+   "status": "addressed"
+  },
+  {
+   "item": "MCP 2026-07-28 revision vs planned own server",
+   "status": "addressed",
+   "residue": "The changelog and the Claude Code v2 runtime notes match the packet. The revision each adopted server supports is honestly recorded as unknown."
+  },
+  {
+   "item": "Practitioner sentiment on named tools (scope part 1)",
+   "status": "partly",
+   "residue": "There is now a dated deliverable (3 Nov, 25+ signals, 4+ platforms), but its 'named owner' has no name. There is still zero Reddit, X, LinkedIn or YouTube signal. Official API routes are not considered. The McNeel evidence has new attribution and counting errors (see findings)."
+  },
+  {
+   "item": "Tall-building channel",
+   "status": "addressed",
+   "residue": "CTBUH redirects to verticalurbanism.org (403), so it stays a hand-open channel. Skyscraper Center opens (200), but its data terms are still unread. Tall-building sentiment is still one Ladybug thread."
+  },
+  {
+   "item": "ComfyUI hardware",
+   "status": "addressed"
+  },
+  {
+   "item": "Astra revision-test wording",
+   "status": "addressed"
+  },
+  {
+   "item": "Bonsai_mcp Execute Code",
+   "status": "addressed"
+  },
+  {
+   "item": "RhinoAI install details",
+   "status": "addressed",
+   "residue": "The pre-release checkbox is correctly marked UNVERIFIED. The README quick start actually routes the install through a Claude Desktop connector (connector.mcpb), and a McNeel admin says the AI panel ships with the Rhino 9 Beta. Both strengthen the Rhino 8 doubt, and neither is recorded."
+  },
+  {
+   "item": "rhino3dm fixture route",
+   "status": "addressed"
+  },
+  {
+   "item": "Node version",
+   "status": "addressed",
+   "residue": "Verified: on 21 Oct, 24.x is Active LTS (Maintenance starts 20 Oct per the table), and 26 becomes LTS on 28 Oct."
+  },
+  {
+   "item": "skills.sh figures",
+   "status": "addressed"
+  },
+  {
+   "item": "Packet size vs capacity",
+   "status": "partly",
+   "residue": "A do-this-first list with hour estimates was added. The packet still has 30 findings, 10 recommendations and 30+ flags, and no person or date is attached to any action."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Ladybug Tools forum finding, principle 3, flags ('search for AI since Jun 2025 returns 50 topics, none about AI')",
+   "issue": "This conclusion is false, and the search method caused it: a two-letter 'AI' query returns substring noise. A search for 'MCP' on discourse.ladybug.tools finds 'Ladybug Tools MCP is ready!' (7 May 2026; LoftyTao/ladybug-tools-mcp, GPL-3.0, v1.0.0 Windows only, 4 participants). It also finds 'Honeybee-MCP (beta)' (23 Jan 2026; LoftyTao/Honeybee-MCP, GPL-3.0), and inside that thread idfkit-mcp (EnergyPlus, MIT) and NatLabRockies/openstudio-mcp (no root LICENSE). A third thread, 'The React version of Design Explore' (12 Feb 2026; LoftyTao/design-explorer-react, MIT, 5 participants, runs locally), is an open-source build of the options-board pattern the packet credits to Speckle. Users there praise 'what-if' testing on a resolved model. They complain about token use on EnergyPlus warnings, copy-pasting files into GHPython, and data-sovereignty doubts.",
+   "fix": "Remove 'none about AI'. Add one finding on the LBT and Honeybee MCPs plus idfkit-mcp as prior art for the energy, carbon and sun modules. Treat GPL-3.0 as arm's-length only: call it as a separate process and never bundle it. Add design-explorer-react (MIT) as the open-source base for the options board in recommendation 10. Rerun forum searches with specific terms (MCP, LLM, Claude, ChatGPT, agent)."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Principles 4, 13 and 15: McNeel staff statements counted as community voices",
+   "issue": "In thread 223330, the user who claims '650K to 1M tokens' per render and says McNeel 'would like to connect to as many AI engines as possible' is scottd: Scott Davidson, a McNeel admin. The packet calls him 'one Oct 2026 poster' and counts his roadmap statement as user demand for model-agnostic agents. Staff also take part in every key thread: CallumSykes and Japhy (216568), scottd, Gijs and theoutside (223183), Japhy (216046), scottd and theoutside (211382). The 'door altered' fidelity complaint in principle 15 is about a Krita AI image, not RhinoAI.",
+   "fix": "Tag every quoted voice as user, vendor staff or plugin author, and exclude staff from n. Restate principle 13 as 'McNeel states intent to add engines; n=3 users moved to Codex'. Attribute the token figure to a McNeel staff anecdote. Move the door example to Krita AI Diffusion, and log Krita AI Diffusion as a missed local renderer to evaluate after 10 Dec."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Voice counts in principles 4, 5, 11, 15 and unresolved item 6",
+   "issue": "The counts come from page-1 fetch summaries and are badly low. Discourse's own participant_count gives: AI-in-CAD 216046 = 42 participants, 100 posts (packet says about 15); Runchat 211382 = 28 participants, 76 posts (packet says 8); Rhino MCP Server 216568 = 30; Claude first try 223183 = 23 (packet says about 18); AI rendered product 219926 = 11. The topic-search tallies also do not reproduce today: Veras 8 since 2025 (packet 12), ComfyUI 13 (14), Krea 3 (4), Midjourney 0 (11). The packet's 'Rhino MCP Server thread (May 2026)' was created on 3 Mar 2026.",
+   "fix": "Take counts from /t/{id}.json (participant_count, excluding staff), read every page via /t/{id}/posts.json, and record the exact query string, date and result count for each search. Restate each n. Keep the 'signal, hypothesis' labels."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Recommendation 6 and the unresolved list (social platforms)",
+   "issue": "The packet treats Reddit, YouTube and LinkedIn as reachable only by hand. That leaves the 3 Nov log, 13 days away, without a method or a named person. Official, terms-compliant routes exist that are not proxies: the Reddit Data API (registered OAuth app, rate-limited, non-commercial or academic use) and the YouTube Data API v3 commentThreads endpoint (API key). HN Algolia, rechecked today, returns no 2025-26 threads for TestFit, Forma, Hypar or Speckle-as-AEC, so HN cannot fill the gap either.",
+   "fix": "Name the owner and the backup in recommendation 6. A teammate registers the official Reddit and YouTube API access under their own account and agrees to the terms; the agent must not create the accounts. The team pulls r/Architects, r/rhino, r/Revit and r/computationaldesign search results plus comments on 5 to 10 Forma, TestFit and Veras videos. Use the same template, and record the query, the date and whether each voice is a vendor."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Autodesk Revit MCP finding sources",
+   "issue": "The finding's URL (the release post) describes 7 read tools and no Write installers. The Write and Experimental installers and the Revit 2027.2 requirement come from blog.autodesk.io/revit-mcp-server-update/ (29 Sep 2026). That post advises backing up the project and does not say writes are undoable. 'Undoable' comes only from AEC Magazine quoting an Autodesk executive on 'Trusted Write'.",
+   "fix": "Cite the update post as the primary source for the installers. Attribute 'undoable' to the AEC Magazine interview and keep the backup advice."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Context7 finding",
+   "issue": "The README says 'npx ctx7 setup' signs the user in through OAuth and generates an API key, and recommends a free key for higher rate limits. Setup therefore creates an account and ties queries to it. The packet says only that free-tier limits are unstated, and the 0.5 h estimate omits the sign-in.",
+   "fix": "State that a Context7 account and key are required, that each user creates them personally, and that the key goes in an ${ENV} variable. Add this to item 2 of the do-this-first list."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Tooling security policy (recommendation 7)",
+   "issue": "The Claude Code MCP docs list one more silent-load case: a session started in bypassPermissions mode with skipDangerousModePermissionPrompt set. They also say --strict-mcp-config skips approval for unloaded project servers only on v2.1.246 or later. Neither is in the policy.",
+   "fix": "Add the bypassPermissions case and pin a minimum Claude Code version (at least 2.1.246; 2.1.274 or later for the default v2 MCP runtime) in the project README."
+  },
+  {
+   "severity": "MINOR",
+   "item": "McNeel RhinoAI finding",
+   "issue": "The README quick start installs through the Claude Desktop connector (connector.mcpb) and names no Yak package. A McNeel admin wrote on 8 Oct 2026 that the AI panel is included with the Rhino 9 Beta and currently connects to Claude and Codex. The finding cites forum-only install routes and leaves the Rhino 9 dependency implicit.",
+   "fix": "Record both install routes, and that the AI panel targets the Rhino 9 Beta. Keep the 'test on the lab's Rhino 8' gate."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Speckle Design Explorer principle",
+   "issue": "The options-board principle rests on one vendor post from a hosted product. An MIT, locally runnable Design Explorer exists (design-explorer-react), and Ladybug forum users raised concrete problems with it: text variables were filtered out, and they doubted where files were uploaded.",
+   "fix": "Cite design-explorer-react with the vendor post. Turn the user complaints into requirements: keep categorical variables, process locally, and state plainly where data goes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Packet length vs a 23-day window",
+   "issue": "Thirty findings, ten recommendations and more than thirty flags remain. Rounds 1 and 2 left flags in place after they were superseded (for example, the Figma 'superseded' flag and the Node flag), which adds reading time.",
+   "fix": "Collapse resolved flags into one line each, and move roadmap-only findings (Blender/Bonsai, third-party Rhino MCPs, Figma) to an appendix."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The Ladybug Tools forum has no AI topics since June 2025 (search for AI returns 50 topics, none about AI).",
+   "why_false": "Discourse search for 'AI' returns substring matches; a search for 'MCP' returns several AI-agent topics from 2026.",
+   "correction": "There are at least three 2026 AI or agent threads: Ladybug Tools MCP v1.0.0 (GPL-3.0, May 2026), Honeybee-MCP beta (GPL-3.0, Jan 2026) linking idfkit-mcp (MIT) and openstudio-mcp, and design-explorer-react (MIT, Feb 2026).",
+   "evidence": "https://discourse.ladybug.tools/search.json?q=MCP ; https://github.com/LoftyTao/ladybug-tools-mcp (LICENSE: GPL-3.0) ; https://github.com/LoftyTao/design-explorer-react (LICENSE: MIT)"
+  },
+  {
+   "claim": "An Oct 2026 poster (a user) wants the Rhino AI panel connected to more engines, and a poster claims 650K to 1M tokens per render.",
+   "why_false": "Both statements are by scottd (Scott Davidson), a McNeel admin, in thread 223330: he states McNeel's intent and reports his own usage.",
+   "correction": "Treat them as vendor staff statements, not community sentiment. Remove them from principle 13's evidence for user demand, and label the token figure as a McNeel staff anecdote.",
+   "evidence": "https://discourse.mcneel.com/t/223330.json (posts 8 and 17) ; https://discourse.mcneel.com/u/scottd.json (title McNeel, admin true)"
+  },
+  {
+   "claim": "The Runchat render thread has about 8 voices, and the AI-in-CAD thread about 15 voices.",
+   "why_false": "Those counts covered page 1 only. Discourse reports 28 participants (76 posts) and 42 participants (100 posts).",
+   "correction": "Use participant_count from the topic JSON, excluding McNeel staff (scottd and theoutside in 211382; Japhy in 216046).",
+   "evidence": "https://discourse.mcneel.com/t/211382.json ; https://discourse.mcneel.com/t/216046.json"
+  },
+  {
+   "claim": "In principle 15, the 'door altered' fidelity complaint is evidence about RhinoAI renders.",
+   "why_false": "In thread 223330 the altered front door, impossible chair legs and stray lamp were pointed out in a Krita AI Diffusion image, not a RhinoAI output.",
+   "correction": "Attribute it to Krita AI. The RhinoAI-specific issue in that thread is a mis-scaled ('sitcom version') model built from a guessed sketch plan.",
+   "evidence": "https://discourse.mcneel.com/t/using-ai-for-virtual-room-rendering/223330 (posts 11, 14, 19)"
+  },
+  {
+   "claim": "Autodesk's Revit 2027 MCP release post documents separate Write and Experimental installers, and writes are undoable.",
+   "why_false": "The release post lists only seven read tools and no write tools. The installers come from a later post, which advises backing up and does not claim undo.",
+   "correction": "Cite blog.autodesk.io/revit-mcp-server-update/ (29 Sep 2026) for the installers and Revit 2027.2. Attribute 'undoable' to AEC Magazine's interview quote.",
+   "evidence": "https://blog.autodesk.io/revit-2027-mcp-server-release/ ; https://blog.autodesk.io/revit-mcp-server-update/"
+  }
+ ],
+ "missing": [
+  "Ladybug Tools MCP, Honeybee-MCP, idfkit-mcp (EnergyPlus) and openstudio-mcp as prior art for the energy, carbon and sun modules, with licence notes (GPL-3.0 / MIT / unknown)",
+  "design-explorer-react (MIT) as an open-source options-board base",
+  "A vendor-staff versus user tag on every counted voice",
+  "Reproducible search logs: query string, date and result count for each Discourse search",
+  "Official Reddit Data API and YouTube Data API v3 routes for the 3 Nov signal log, with a named owner",
+  "Krita AI Diffusion as a local open-source renderer option (roadmap)",
+  "Context7 account and API-key requirement",
+  "bypassPermissions silent-load case and the minimum Claude Code version in the security policy",
+  "Skyscraper Center data terms and the Buildner brief contents (board format, height range): still unread",
+  "Education entitlement for the Autodesk Revit MCP add-on"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Before 3 Nov, fix the McNeel attributions: remove vendor-staff statements (scottd, CallumSykes, Japhy) from the voice counts and from principle 13's evidence",
+   "Replace the voice counts with participant_count from the topic JSON, and log the exact search queries",
+   "Retract 'no AI topics on the Ladybug forum'. Add the LBT/Honeybee MCP finding and design-explorer-react before the energy, sun and options-board modules are designed",
+   "Put a named owner and backup on recommendation 6, and use the official Reddit/YouTube APIs (registered by a teammate) or a manual export",
+   "Keep every sentiment principle labelled a hypothesis. No design decision rests on it until the 3 Nov log lands",
+   "Note the Context7 account requirement and the bypassPermissions case in the do-this-first list"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://modelcontextprotocol.io/specification/2026-07-28/changelog",
+   "ok": true,
+   "note": "Stateless, server/discover, MRTR, Roots/Sampling/Logging deprecated, DCR deprecated, 12-month window: matches the packet"
+  },
+  {
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Headless/SDK/cloud silent load confirmed; also the bypassPermissions case; --strict-mcp-config needs v2.1.246+; v2 runtime 2.1.232/2.1.274; 25k output cap"
+  },
+  {
+   "url": "https://architecturecompetitions.com/VancouverTallChallenge",
+   "ok": true,
+   "note": "29 Oct registration, 3 Nov Q&A, 30 Nov 23:59 London time, AI not banned: confirmed; board format not on page"
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "gpt-image-2.5-sunburst/flare, 3840 px edge, 8,294,400 px max, >2560x1440 experimental, masks approximate, org verification: confirmed"
+  },
+  {
+   "url": "https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/",
+   "ok": true,
+   "note": "20/month View/Collab, 200/day Professional, Education = Professional: confirmed; write tools exempt"
+  },
+  {
+   "url": "https://blog.autodesk.io/revit-2027-mcp-server-release/",
+   "ok": true,
+   "note": "7 read tools only; no Write installers mentioned"
+  },
+  {
+   "url": "https://blog.autodesk.io/revit-mcp-server-update/",
+   "ok": true,
+   "note": "Read/Write/Experimental installers, Revit 2027.2+, 29 Sep 2026, advises backup"
+  },
+  {
+   "url": "https://aecmag.com/ai/autodesks-most-ambitious-ai-play-yet/",
+   "ok": true,
+   "note": "Internal business purposes, APS for commercial apps, undo quote; published 16 Oct, updated 20 Oct"
+  },
+  {
+   "url": "https://github.com/upstash/context7",
+   "ok": true,
+   "note": "63.4k stars, MIT, Node 22.13+, OAuth setup creates API key, community-docs disclaimer"
+  },
+  {
+   "url": "https://github.com/nodejs/Release",
+   "ok": true,
+   "note": "22 maintenance, 24 active LTS to Maintenance 2026-10-20, 26 LTS 2026-10-28"
+  },
+  {
+   "url": "https://github.com/github/github-mcp-server",
+   "ok": true,
+   "note": "33.8k stars, MIT; lockdown is a best-effort filter, explicitly not an authorization boundary"
+  },
+  {
+   "url": "https://github.com/mcneel/rhinoai",
+   "ok": true,
+   "note": "MIT, 371 stars, rhino-9.x branch, connector.mcpb quick start, no Rhino version stated"
+  },
+  {
+   "url": "https://github.com/GenEnv/rhino-gh-mcp",
+   "ok": true,
+   "note": "MIT, v0.2.6, Rhino 8 only, Python 3.11-3.12, five Scenario levels, Coach default, four skills"
+  },
+  {
+   "url": "https://registry.modelcontextprotocol.io/v0.1/servers?search=rhino",
+   "ok": true,
+   "note": "Only io.rhinorank.app/rhino-rank: confirmed"
+  },
+  {
+   "url": "https://discourse.mcneel.com/t/223330.json",
+   "ok": true,
+   "note": "Token claim and 'more engines' are by McNeel admin scottd; door complaint is about a Krita AI image"
+  },
+  {
+   "url": "https://discourse.mcneel.com/t/216046.json",
+   "ok": true,
+   "note": "42 participants, 100 posts (packet: ~15 voices)"
+  },
+  {
+   "url": "https://discourse.mcneel.com/t/211382.json",
+   "ok": true,
+   "note": "28 participants, 76 posts (packet: 8 voices)"
+  },
+  {
+   "url": "https://discourse.mcneel.com/t/216568.json",
+   "ok": true,
+   "note": "30 participants, created 2026-03-03, staff CallumSykes and Japhy"
+  },
+  {
+   "url": "https://discourse.mcneel.com/t/221827.json",
+   "ok": true,
+   "note": "10 participants, 52 posts; CallumSykes (McNeel) active"
+  },
+  {
+   "url": "https://discourse.mcneel.com/search.json?q=Veras",
+   "ok": true,
+   "note": "8 topics since 2025 (packet 12); Midjourney 0 (packet 11): not reproducible"
+  },
+  {
+   "url": "https://discourse.ladybug.tools/search.json?q=MCP",
+   "ok": true,
+   "note": "Ladybug Tools MCP, Honeybee-MCP, Design Explorer React threads: contradicts 'no AI topics'"
+  },
+  {
+   "url": "https://github.com/LoftyTao/ladybug-tools-mcp",
+   "ok": true,
+   "note": "LICENSE GPL-3.0"
+  },
+  {
+   "url": "https://github.com/LoftyTao/design-explorer-react",
+   "ok": true,
+   "note": "LICENSE MIT"
+  },
+  {
+   "url": "https://github.com/idfkit/idfkit-mcp",
+   "ok": true,
+   "note": "LICENSE MIT"
+  },
+  {
+   "url": "https://news.ycombinator.com/item?id=47970497",
+   "ok": true,
+   "note": "186 points, 48 comments, 2026-05-01: confirmed; 48543908 60/63, 46219386 59/56, 47894977 2/5 also confirmed"
+  },
+  {
+   "url": "https://hn.algolia.com/api/v1/search?query=TestFit",
+   "ok": true,
+   "note": "No relevant 2025-26 HN threads for TestFit, Forma, Hypar, Speckle"
+  },
+  {
+   "url": "https://forums.autodesk.com/t5/forma-for-design-forum/wind-analysis-radius-at-500-m-or-800-m/td-p/13354060",
+   "ok": false,
+   "note": "403, consistent with UNVERIFIED status"
+  },
+  {
+   "url": "https://www.ctbuh.org/",
+   "ok": false,
+   "note": "Redirects to verticalurbanism.org, 403"
+  },
+  {
+   "url": "https://www.skyscrapercenter.com/",
+   "ok": true,
+   "note": "200"
+  },
+  {
+   "url": "https://paperswithcode.com",
+   "ok": true,
+   "note": "Redirects to huggingface.co/papers/trending: confirmed"
+  },
+  {
+   "url": "https://mcp.deepwiki.com/mcp",
+   "ok": true,
+   "note": "406 on plain GET, expected for an MCP endpoint"
+  },
+  {
+   "url": "https://speckle.systems/blog/ai-in-aec-has-an-access-problem-solved-and-a-trust-problem-unsolved",
+   "ok": true,
+   "note": "200"
+  },
+  {
+   "url": "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/",
+   "ok": true,
+   "note": "200"
+  },
+  {
+   "url": "https://github.com/osama-ata/Awesome-AECO",
+   "ok": true,
+   "note": "200 (other cited GitHub repos also 200; GitHub API rate-limited, stars not recounted)"
+  }
+ ],
+ "verdict": "Conditional pass. The tooling half is accurate and ready to act on: the MCP revision, the headless .mcp.json risk, Node, gpt-image limits, Figma, Revit MCP, Buildner dates, GitHub lockdown and rhino-gh-mcp all check out. The sentiment half still fails corroboration. McNeel staff statements are counted as user voices, and the voice counts are 2 to 5 times too low. The 'no AI topics on the Ladybug forum' claim is false and missed GPL Ladybug/Honeybee MCPs and an MIT Design Explorer. The search tallies do not reproduce. The round-2 gaps are mostly closed. Build from the do-this-first list now. Treat every sentiment principle as an unverified hypothesis until the attributions are fixed and the 3 Nov log has an owner and an official-API method."
+}

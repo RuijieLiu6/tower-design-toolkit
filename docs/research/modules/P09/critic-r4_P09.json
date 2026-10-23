@@ -1,0 +1,292 @@
+{
+ "expert_role": "City of Vancouver transportation and development engineering reviewer (gatekeeper, source audit), P09 Mobility, traffic and servicing, round 4",
+ "previous_round": [
+  {
+   "item": "BLOCKER: employment density and trip rates unsourced, sprint owners are roles not names",
+   "status": "partly",
+   "residue": "Items (a) and (b) are now 7 Nov deliverables and a go/no-go rule exists. Both still have source_ids: [] and no names are recorded yet ('both names are entered on 22 Oct'). As of today every office, retail and hotel trip in M01 is SCENARIO."
+  },
+  {
+   "item": "MAJOR: ParkingDemandEstimate multiplies driver trips by occupancy",
+   "status": "addressed",
+   "residue": "The arithmetic is corrected, the driver_passenger_split flag is added, and unit tests for both paths are specified."
+  },
+  {
+   "item": "MAJOR: Trip Diary 'cannot give destination splits' false assumption",
+   "status": "addressed",
+   "residue": "I re-extracted S65 and it matches the spec. S66 (2011) is still unopened and its row is not yet transcribed."
+  },
+  {
+   "item": "MAJOR: M03 not in the 30 Nov build",
+   "status": "addressed",
+   "residue": "Tier 0 is core and due 13 Nov. Its only threshold, the walkway scale, is still unverified even though TCQSM ch.10 can be downloaded (see findings)."
+  },
+  {
+   "item": "MAJOR: organiser Q&A not used",
+   "status": "partly",
+   "residue": "The Q&A is scheduled for 28 Oct and has not been sent. The cut-off is 3 Nov, so a sent date of 28 Oct leaves about 6 days for an answer."
+  },
+  {
+   "item": "MAJOR: M02 has no checked by-law row",
+   "status": "partly",
+   "residue": "The grey rows and 'pending Section 5' outlines are implemented. There are still zero checked rows, and all of Sections 4, 5 and 6 are opened=false."
+  },
+  {
+   "item": "MAJOR: M05 lacks fire-apparatus slot",
+   "status": "partly",
+   "residue": "The slot, the greyed sweep and the FireAccessRoute hand-off are added. Access-route criteria (clear width, radius, overhead clearance, distance to entrance and FD connection) are not modelled, so only the vehicle sweep is checked."
+  },
+  {
+   "item": "MINOR: Figure 9 alternative reading",
+   "status": "addressed",
+   "residue": "The decode is adopted and the alternative reading is retired. The rendered check is due 31 Oct."
+  },
+  {
+   "item": "MINOR: NonResidentialGFACheck marked verified",
+   "status": "addressed",
+   "residue": "It is downgraded to team_assumption. The brief's file name and page number are still not recorded."
+  },
+  {
+   "item": "MINOR: status model two fields / tool rules sourced",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: TSPR 2025 hourly rows",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: 2014 truck survey readable",
+   "status": "addressed",
+   "residue": "This is now a sprint task. The survey is still unread."
+  },
+  {
+   "item": "MINOR: GTFS redistribution",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: M07 37% line basis",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: EV-ready row",
+   "status": "addressed",
+   "residue": "The row now reads 'likely mandatory' but is still unverified."
+  },
+  {
+   "item": "MINOR: 30 Nov deadline timezone",
+   "status": "addressed",
+   "residue": "15:59 Pacific is correct: 23:59 GMT on 30 Nov is 15:59 PST."
+  },
+  {
+   "item": "MINOR: r5py JDK",
+   "status": "partly",
+   "residue": "The JDK requirement is noted, but the version pin is still missing ('the README does not state it')."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P09 (M01, M02: competition-readiness gate)",
+   "issue": "Today (21 Oct, 40 days before the deadline) an entrant who relies on this spec gets no checked by-law row: every M02 row is grey, and all of Sections 4, 5 and 6 are opened=false. They also get no sourced attraction-trip inputs: employment density and trip rates have source_ids [], and destination shares are only a 2008 residents-only row whose tick-check is not done. Every number for urban integration, servicing, loading or bicycles on a board would be SCENARIO or a grey outline. No owner names have been entered yet.",
+   "fix": "Keep the gate closed until after the 7 Nov go/no-go. Re-review once the Section 4, 5 and 6 packs carry consolidation dates, SHA-256 and two-person ticks, and once M01 has a checked employment-density row and a checked destination row, or an explicit SCENARIO entry for each use on the status strip. Enter the two names on 22 Oct as planned and record them in the manifest."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M07 / P09-M01",
+   "issue": "The observed-share floor cancels TDM and contradicts M01. M07 floors the adjusted auto-driver share at 'the lowest same-basis CBD share loaded in M01' (candidate 33.1%). If that row is also the M01 baseline, which is the only destination row loaded, the floor equals the baseline and every TDM reduction becomes zero. The 33.1% is an all-purpose AM-period share for 'Vancouver CBD (Downtown, West End)'. It includes school, shopping and West End residents' trips, yet M07 applies it to commute trips only. It also sits above M01's own 'good ≤25%' office-commute line, so no scheme can reach 'good' through TDM.",
+   "fix": "Define the floor as a different, lower comparator: the best-performing same-purpose observed row, such as a measured downtown building or a later commute row, and require floor < baseline, otherwise disable the floor with a warning. Tag every share row with purpose (all purposes or commute) and refuse an all-purpose row as a commute floor. Make M01's 25% line and M07's floor use the same basis."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M01 (Census place-of-work row, sprint item 7 Nov c)",
+   "issue": "The spec names 'Census place-of-work' as the CBD-scale destination-end commute row and plans to 'identify the Census mode-by-place-of-work table'. The standard 2021 tables do not provide it. 98-10-0460-01 (residence-to-work flows by main mode) covers only CMAs and CAs. 98-10-0459-01 (CSD flows) is broken down by gender only. 98-10-0457/0458/0461-01 give mode by residence geography, and 98-10-0462-01 gives mode by commuting-destination category for residents. A downtown or CSD workplace-end mode share would need a paid custom tabulation, which is not deliverable by 7 Nov.",
+   "fix": "Record this as a FALSE ASSUMPTION. Drop Census from the 7 Nov critical path. Rely on the 2008 Vancouver-CBD row (S65), the 2011 Vancouver/UEL row (S66) and the 2023 dashboard destination-filter test. Keep a custom StatCan tabulation (2016 pre-COVID) as a post-competition item."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03 (tier 0 thresholds, S44)",
+   "issue": "The core tier-0 width check depends entirely on walkway-scale boundaries, walking speed and dispersal assumptions marked unverified because 'TCQSM ch.10 ... PDF exceeds the fetch size limit'. That is a tooling limit, not a source limit, the same pattern as the corrected 2014 truck-survey flag. The chapter PDF is freely downloadable from TRB.",
+   "fix": "Change the S44 URL to https://onlinepubs.trb.org/onlinepubs/tcrp/tcrp_rpt_165ch-10.pdf. Add a 31 Oct sprint line: a person transcribes the walkway LOS exhibit, the queuing LOS exhibit, and the stair, escalator and fare-gate capacities, two-person checked. Until then keep 'unverified scale'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M01 / P09-M05 (hotel, visitors, drop-off)",
+   "issue": "Every sourced mode row excludes the users that dominate hotel, cultural and kerb demand. S65 states 'Non-resident, commercial, and passenger-serving trips are not included'. Hotel guests and tourists are mostly non-residents, and drop-off and pick-up are passenger-serving. Yet M01 routes all 'attractions' to destination-end diary rows, and M05 sizes kerb bays from M01's taxi_TNC output, which has no source.",
+   "fix": "Add a third trip-end class, 'non-resident visitor', to M01 with its own SCENARIO badge. Block it from using diary rows (basis-mismatch badge). Add an explicit passenger-serving (drop-off/pick-up) and taxi/TNC share parameter feeding M05, labelled unsourced. List a hotel or visitor mode survey as a candidate source."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M05 (fire access)",
+   "issue": "The fire-apparatus slot checks only a vehicle sweep. Building-code access-route geometry is a separate and usually governing test: route clear width, centreline radius, overhead clearance, gradient change, and the route's distance to the principal entrance and the FD connection (NBC/BCBC/VBBL Div B 3.2.5; reviewer recollection of about 6 m clear width, 12 m radius and 5 m overhead clearance, not verified this round). The default lane right-of-way is 6.1 m, legal width rather than clear width, so it is at or below such a width. Fire access may then be forced onto the arterial or the retail high street, which conflicts with M05's 'no curb cut on high street' and with M04 frontage use. No metric, parameter or sprint line covers this.",
+   "fix": "Add an 'access route' parameter set and metric with these fields: clear width, radius, overhead clearance, distance to principal entrance, distance to FD connection, and frontage used. Mark it unverified until a person transcribes VBBL or BCBC 3.2.5 (NBC 2020 is free from NRC). Add it to sprint item (d) and to the SYST hand-off."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09 (data sprint schedule)",
+   "issue": "The 7 Nov load is not credible for two people. Student 1 must transcribe three by-law sections from PDFs that automated tools cannot fetch. Student 2 has six items (a-f), including a Census table that does not exist in standard releases and a 20.9 MB truck survey. Each must also cross-check the other's work. The Q&A is held until 28 Oct, although nothing prevents sending it today, and the 3 Nov cut-off leaves little time for a reply.",
+   "fix": "Send the three organiser questions on 21-22 Oct. Triage Student 2's work as (b) trip rates and (a) employment density first, then the (c) 2008 tick and the 2011 row, then (d) vehicles. Move (e) the truck survey, (f) the loaders and the Census item to after 13 Nov. Add a 31 Oct interim checkpoint that names the packs on track, and declare any pack at risk as SCENARIO then, not on 7 Nov."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M02 (rule-pack scope)",
+   "issue": "The pack scope is fixed at Sections 4, 5 and 6. Passenger-space rows (UNRESOLVED flag) are assumed to sit in Section 5 on a reviewer's report alone. I recall that the by-law may place passenger-space or other regulations in a further section, but this is unverified (bylaws.vancouver.ca/parking/sec07.pdf returned HTTP 403, not 404). Transcribing only 4, 5 and 6 risks silently missing hotel passenger rows that drive kerb and lane design.",
+   "fix": "Have Student 1 first transcribe the by-law's table of contents into the manifest. Set pack scope from that list, so that every section with parking, loading, passenger, bicycle or TDM rows gets its own pack, consolidation date and checksum."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M02 / P09-M07 (City TDM)",
+   "issue": "The spec says the City TDM policy 'may have changed' and treats TDM mainly as relief entered by the user. S02 actually says staff recommended leaving the TDM policy unchanged, because the Fall 2023 changes had 'just came into effect on January 1' (2024), and that lowering financial expectations downtown was a later intention pending Provincial (Bill 16) guidance.",
+   "fix": "Correct the S02 extract and the M02 TDM parameter. As of June 2024 the policy was in force and unchanged. Carry the City TDM row as a live requirement (unverified pending the bulletin), not only as relief."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M08 (status model)",
+   "issue": "The delay-band and critical v/c metrics show displayed_status 'verified', but their only source is a 2008 FHWA page citing HCM 2000. The spec itself says 'later-edition bands reported unchanged, unverified' and 'Edition currency versus later HCM not checked'. That breaks the packet's own rule that verified needs both sourced and current.",
+   "fix": "Display these as team_assumption (sourced, currency unchecked), or cite the current HCM edition. Note that in later editions v/c > 1.0 is LOS F, which supports the override once read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M02 (minimum-parking metric)",
+   "issue": "'Verified' rests on two news reports (S01, S02). The council report S03 and the by-law are unopened. S01 does confirm that loading, bike, visitor and accessible requirements remain, which is the important part.",
+   "fix": "Keep the rule switched off. Label it 'verified (secondary: two news reports, Council report unopened)', and upgrade it once S03 or Section 4 is read."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-S65 (UNVERIFIED transcription flag)",
+   "issue": "The flag says the block order was 'inferred from the captions'. In the text layer the block headers sit above each matrix ('All Person Trips - AM Peak', 'Transit Trips - AM Peak', 'Auto Driver Trips - AM Peak'). I re-extracted the column totals for destination Vancouver-CBD: 125,230 / 57,460 / 41,430 (AM) and 73,090 / 18,130 / 24,250 (PM). They agree with Exhibit 3.3B (AM destinations 125,700). The sub-area is 'Vancouver CBD (Downtown, West End)'.",
+   "fix": "Narrow the flag to 'values confirmed from the text layer; rendered tick-check pending'. Add 'includes West End' and 'all purposes' to the row's geography and purpose tags."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-S24 (TOA)",
+   "issue": "The extract gives only the 800 m rapid-transit radius. The page also defines 400 m around bus exchanges. Whether downtown Vancouver stations are in OIC 678-2023 is still unread, although the parking consequence is moot because the City has no minimums.",
+   "fix": "Complete the extract and keep the TOA flag as context only."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01 (S63)",
+   "issue": "The brief's file name, version and page for the 9.0 FSR clause are still unrecorded. This is one PDF the team already holds.",
+   "fix": "Record them on 22 Oct along with the names. It takes one person 10 minutes."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M03 (libraries)",
+   "issue": "The r5py JDK version is still unpinned.",
+   "fix": "Pin the JDK from the r5py installation docs, or make gtfs_kit plus OSMnx the web default."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Census place-of-work data give a CBD-scale (or City-scale) destination-end commute mode share; the 7 Nov sprint only needs to 'identify the Census mode-by-place-of-work table'.",
+   "why_false": "Among the standard 2021 Census tables, the only residence-to-work flow table with main mode (98-10-0460-01) is published for CMAs and CAs only. The CSD flow table (98-10-0459-01) is broken down by gender only, with no mode. 98-10-0457, 0458, 0461 and 0462-01 report mode by place-of-residence geography.",
+   "correction": "Treat a downtown or City workplace-end mode share as unavailable without a custom tabulation. Use the diary destination rows (S65, S66) and the dashboard filter test for 30 Nov.",
+   "evidence": "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=9810046001 (flows by main mode: CMAs and CAs only); ...pid=9810045901 (CSD flows by gender, no mode); ...pid=9810045801 and pid=9810046101 (mode by residence geography); ...pid=9810046201 (commuting destination category by mode)."
+  },
+  {
+   "claim": "TCQSM 3rd ed. chapter 10 cannot be read, so the walkway and queuing scales and the stair, escalator and fare-gate capacities must stay unverified.",
+   "why_false": "The chapter is a free direct-download PDF. Only the agent's 10 MB fetch limit blocked it.",
+   "correction": "A person reads and transcribes the exhibits in the 31 Oct sprint, and S44's URL is updated.",
+   "evidence": "HEAD https://onlinepubs.trb.org/onlinepubs/tcrp/tcrp_rpt_165ch-10.pdf returns HTTP 200, Content-Type application/pdf, Content-Length 154,493,771 (checked 21 Oct 2026)."
+  },
+  {
+   "claim": "The City TDM policy 'was tied to the removed minimums and may have changed'; TDM is treated as optional relief.",
+   "why_false": "The source the spec cites says staff recommended leaving the TDM policy unchanged, because the Fall 2023 updates had just taken effect on 1 January 2024. Lowering financial expectations downtown was described as a later step pending Provincial guidance.",
+   "correction": "Carry the City TDM policy as in force at June 2024 (requirement row, unverified pending the bulletin).",
+   "evidence": "https://storeys.com/vancouver-eliminates-minimum-parking-requirements/ : TDM guidelines updated Fall 2023 'just came into effect on January 1'; staff recommended no change for now."
+  },
+  {
+   "claim": "The 2008 Vancouver-CBD AM-peak auto-driver share (33.1%) is a valid floor for TDM-adjusted office commute shares.",
+   "why_false": "The row covers all purposes for residents only, and its destination sub-area includes the West End. Applying it as a floor on commute-only reductions mixes purposes. When it is also the baseline, all TDM effects become zero, and it sits above M01's own 25% 'good' commute line.",
+   "correction": "A floor must be a lower, same-purpose comparator than the baseline. Otherwise disable it.",
+   "evidence": "S65 (2008 Trip Diary report, text re-extracted 21 Oct): sub-area defined as '11. Vancouver CBD (Downtown, West End)'; Exhibit 3.4 'All Person Trips - AM Peak' covers all purposes; p.24 'Non-resident, commercial, and passenger-serving trips are not included'."
+  }
+ ],
+ "missing": [
+  "A non-resident visitor trip-end class (hotel guests, tourists, event attendees) with its own mode row or an explicit SCENARIO label; every diary row excludes non-residents",
+  "Passenger-serving (drop-off/pick-up) and taxi/TNC share as a sourced or labelled parameter feeding M05 kerb sizing; the 2008 diary excludes passenger-serving trips",
+  "A fire access-route metric (clear width, radius, overhead clearance, distance to principal entrance and FD connection, frontage used) from VBBL/BCBC/NBC 3.2.5, distinct from the vehicle swept path",
+  "Tour coach or bus loading for the hotel and for event days (BC Place, Entertainment District) in M02 and M05",
+  "Purpose tag (all purposes or commute) on every mode-share row, enforced in the M01 comparisons and the M07 floor",
+  "By-law table-of-contents manifest so pack scope covers every section with passenger, TDM or EV rows",
+  "TCQSM ch.10 transcription line (walkway and queuing LOS, stair, escalator and fare-gate capacities, walking speed) in the 31 Oct sprint",
+  "Bike share (Mobi) and e-scooter station placement relative to entries and kerb (the City has a shared e-scooter stations dataset per S31)",
+  "Station-owner design criteria (TransLink/BCRTC) for the secondary entrance, as a hand-off placeholder alongside the egress record",
+  "Construction-phase traffic management (lane and sidewalk closures, crane and concrete staging) — still deferred"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Names (not roles) entered in the manifest for every 31 Oct, 7 Nov and 13 Nov line, and the three organiser questions sent by 22 Oct with the sent date recorded",
+   "Parking By-law packs, scoped from the by-law's table of contents (not assumed to be Sections 4, 5 and 6), each with consolidation date, SHA-256 and two-person ticks by 7 Nov; anything else declared SCENARIO at a 31 Oct interim check",
+   "M01 has a checked employment-density row and trip-rate rows (or explicit SCENARIO entries) for office, retail and hotel, and a non-resident visitor class with a basis-mismatch badge on diary rows",
+   "M07 floor logic fixed: the floor must be below the baseline and same-purpose, otherwise disabled; the M01 25% line and the M07 floor use the same basis",
+   "The Census place-of-work CBD row removed from the 7 Nov critical path and recorded as a FALSE ASSUMPTION",
+   "TCQSM ch.10 walkway and queuing exhibits transcribed and checked before M03 tier 0 ships on 13 Nov, or tier 0 stays labelled 'unverified scale'",
+   "Fire access-route criteria added as a metric (unverified until VBBL/BCBC 3.2.5 is transcribed), with the lane-width and frontage conflict surfaced in M05",
+   "Figure 9 rendered-image confirmation completed by two people by 31 Oct",
+   "M08 delay and v/c bands and the M02 minimum-parking badge relabelled so that 'verified' is shown only where the source is primary and current"
+  ]
+ },
+ "verdict": "FAIL. Round 3 fixed the occupancy arithmetic, the Trip Diary destination error, the status model and the tier-0 M03 scope. I confirmed the S65 Vancouver-CBD totals from the PDF. Entrants still cannot rely on the spec today. There are no checked by-law rows and no sourced employment density or trip rates, and owner names are still missing. Three new problems: M07's observed floor can cancel every TDM reduction and contradicts M01's 25% line. The Census place-of-work fallback does not exist as a standard table. Non-resident visitors and drop-off trips have no row. TCQSM ch.10 is freely downloadable, so M03's scale can be verified before 13 Nov. Fire access-route geometry is unmodelled. Web search was exhausted, so this round used direct fetches only.",
+ "sources_checked": [
+  {
+   "source_id": "P09-S65",
+   "url": "https://www.translink.ca/-/media/translink/documents/about-translink/customer-service/trip-diary/2008-translink-trip-diary-survey-report.pdf",
+   "ok": true,
+   "note": "Re-extracted with pdftotext. The column totals for Vancouver-CBD match the spec (AM 125,230 / 57,460 / 41,430; PM 73,090 / 18,130 / 24,250) and the block headers appear in the text layer. The sub-area includes the West End. The 2.65 trips per person (CI 2.63-2.67) is confirmed. Non-resident, commercial and passenger-serving trips are excluded."
+  },
+  {
+   "source_id": "P09-S01",
+   "url": "https://globalnews.ca/news/10590288/vancouver-parking-minimums/amp",
+   "ok": true,
+   "note": "Dated 26 Jun 2024 with no effective date. Downtown minimums were removed in 2018. Accessible, visitor, bike and loading requirements remain. Matches the spec."
+  },
+  {
+   "source_id": "P09-S02",
+   "url": "https://storeys.com/vancouver-eliminates-minimum-parking-requirements/",
+   "ok": true,
+   "note": "Effective 30 June confirmed. The spec omits that staff recommended leaving the TDM policy unchanged (Fall 2023 changes in effect from 1 Jan 2024)."
+  },
+  {
+   "source_id": "P09-S24",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas",
+   "ok": true,
+   "note": "Confirmed: no required residential parking, and accessible, commercial and loading can still be required. Also 400 m around bus exchanges. Updated 22 Jul 2026."
+  },
+  {
+   "source_id": "P09-S47",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Phases and dates match. Page updated 13 Jul 2026. No transportation criteria. 1997 policy not replaced."
+  },
+  {
+   "source_id": "P09-S46",
+   "url": "https://en.wikipedia.org/wiki/Trip_generation",
+   "ok": true,
+   "note": "Still has the 'do not consider location' wording. The spec's flag correction rests on unverified reviewer knowledge (ITE unopened)."
+  },
+  {
+   "source_id": "P09-S51",
+   "url": "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=9810046001",
+   "ok": false,
+   "note": "Residence-to-work flows by main mode exist only at CMA/CA level. 98-10-0459-01 (CSD flows) has no mode, and 0457, 0458, 0461 and 0462-01 are by residence geography. The 'Census place-of-work CBD row' is not available as a standard table."
+  },
+  {
+   "source_id": "P09-S44",
+   "url": "https://onlinepubs.trb.org/onlinepubs/tcrp/tcrp_rpt_165ch-10.pdf",
+   "ok": true,
+   "note": "HTTP 200, 154,493,771-byte PDF, freely downloadable. Readable by a person; only the fetch tool's 10 MB limit blocks it."
+  },
+  {
+   "source_id": "P09-S05",
+   "url": "https://bylaws.vancouver.ca/parking/Sec04.pdf",
+   "ok": false,
+   "note": "HTTP 403 again, not bypassed. The downtown maximum, EV and accessible rates remain unverified."
+  },
+  {
+   "url": "https://bylaws.vancouver.ca/parking/sec07.pdf",
+   "ok": false,
+   "note": "HTTP 403 (not 404), so a further by-law section may exist. Pack scope should be set from the table of contents."
+  }
+ ]
+}

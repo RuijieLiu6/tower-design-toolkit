@@ -1,0 +1,910 @@
+{
+ "packet_id": "Q05",
+ "findings": [
+  {
+   "name": "Vite 8 + React 19 (TypeScript SPA)",
+   "url": "https://vite.dev/guide/",
+   "kind": "library",
+   "what_it_does": "Vite 8.3.5 (npm, 21 Oct 2026) dev server and Rolldown-based bundler with a react-ts template; needs Node 20.19+ or 22.12+. React 19 is current. Output is plain static files.",
+   "how_we_use_it": "Scaffold with `npm create vite@latest -- --template react-ts`; deploy the build to GitHub Pages. Pin Node 24 in .nvmrc: Maintenance LTS since 20 Oct 2026 (EOL 30 Apr 2028). Node 26 turns LTS 28 Oct, but openai-node lists only Node 22 and 24. Revisit after 13 Nov.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "83.4k stars (vitejs/vite); about 119M weekly npm downloads",
+   "last_activity": "npm vite 8.3.5 published 2026-10-21",
+   "maintainer": "Vite team (VoidZero)",
+   "saves": "No framework conventions for Claude to learn or mis-apply; fast reloads shorten edit-test loops; no server concepts to build or debug.",
+   "risks": "No SSR (not needed). Fast major cadence, so pin versions. Node 24 is no longer Active LTS (security fixes only). Page routing on GitHub Pages needs hash routing or a 404 fallback (unverified)."
+  },
+  {
+   "name": "shadcn/ui + Radix + Tailwind v4",
+   "url": "https://ui.shadcn.com/docs/cli",
+   "kind": "library",
+   "what_it_does": "Copy-paste component source on Radix, Base UI or React Aria primitives (`--base` flag) and Tailwind v4, with CLI, registries, MCP server and agent skill. Vite install: `shadcn init -t vite`. CLI 4.22.1 (18 Oct 2026).",
+   "how_we_use_it": "Init with `--base radix` in the Vite app, because React Flow UI parts are shadcn-based. Build module cards, flag badges and source panels as our own private registry. Install the shadcn MCP and skill so Claude uses correct APIs; record the base choice in CLAUDE.md.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT (shadcn/ui, Radix, Tailwind)",
+   "popularity": "shadcn/ui 126.1k stars; Radix 19.4k; Tailwind 97.9k",
+   "last_activity": "shadcn 4.22.1 on 2026-10-18; commit 2026-10-19; Base UI v1.9.0 on 2026-10-09",
+   "maintainer": "shadcn; Radix by WorkOS; Base UI by MUI",
+   "saves": "Accessible dialogs, menus, forms and tabs without writing them; Claude generates correct usage first time via the skill. Hours per component, plus tokens on debugging accessibility.",
+   "risks": "You own the copied code, so upgrades are manual. Default look is generic unless themed (pair with impeccable). Changing primitive base later is costly, so decide now. Tailwind version prompt not shown in the Vite docs page."
+  },
+  {
+   "name": "zustand + zundo (undo/redo)",
+   "url": "https://github.com/pmndrs/zustand",
+   "kind": "library",
+   "what_it_does": "zustand 5.0.15: tiny hook-based store with selectors and persist, devtools and immer middleware. zundo 2.3.0 (github.com/charkour/zundo, MIT, under 700 B) adds undo/redo for zustand v5 with partialize, limit and pause/resume.",
+   "how_we_use_it": "One store for graph, run results, assumption registry and FALSE ASSUMPTION flags. Wrap with zundo; partialize so only nodes, edges and assumptions enter history, not run results. persist saves projects to IndexedDB. Keep module logic outside React.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT (both)",
+   "popularity": "zustand 58.8k stars; zundo 896 stars, about 255k weekly npm downloads",
+   "last_activity": "zustand v5.0.15 on 2026-08-13; zundo v2.3.0 on 2024-11-17, last commit 2025-04-29",
+   "maintainer": "Poimandres (pmndrs); charkour (zundo)",
+   "saves": "Replaces hand-rolled graph undo (about a day or more of work) with a few lines; short idiomatic code Claude gets right; fewer tokens per feature.",
+   "risks": "zundo has had no release for 11 months; it is small enough to vendor if abandoned. Large single store needs disciplined selectors. Yjs UndoManager is needed if multiplayer arrives."
+  },
+  {
+   "name": "xyflow / React Flow 12 (@xyflow/react) + React Flow UI",
+   "url": "https://github.com/xyflow/xyflow",
+   "kind": "library",
+   "what_it_does": "Node-based UI library: custom node components, multiple handles with unique ids, minimap, controls. React Flow UI offers shadcn-based copy-paste parts (Base Node, Labeled Handle, Zoom Slider, Node Search) and an AI Workflow Editor template.",
+   "how_we_use_it": "Each module is a custom node; port types encoded in handle ids and checked with isValidConnection on the ReactFlow component; categories as node colour; run-all or step-in via our own executor (topological sort with dirty-flag cache). Define nodeTypes outside components.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "38.7k stars; about 8.3M weekly npm downloads",
+   "last_activity": "commit 2026-10-21; @xyflow/react 12.12.0 on 2026-09-24",
+   "maintainer": "xyflow team",
+   "saves": "Weeks of canvas, pan/zoom, edge routing and selection work; Grasshopper-like feel from day one.",
+   "risks": "Attribution badge must stay unless Pro (Starter $169/month). UI only: typed-port rules, executor and undo are ours; we estimate about 2 person-days for the executor. Pro templates are paid. No JavaScript example of typed handles found in docs."
+  },
+  {
+   "name": "Observable Plot",
+   "url": "https://github.com/observablehq/plot",
+   "kind": "library",
+   "what_it_does": "Layered-marks, grammar-of-graphics library for tabular data with SVG output. v0.6.17: npm shows 14 Feb 2025, the GitHub release entry is dated 12 Apr 2026 (dates conflict). ISC licence.",
+   "how_we_use_it": "Default chart library for module result cards and the four A2 boards, written as small spec functions returning SVG; wrap in one React component. Colour scales follow a single design-token palette. Spike SVG-to-PDF in week 1 (see Playwright finding).",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "ISC",
+   "popularity": "5.4k stars; about 684k weekly npm downloads",
+   "last_activity": "last commit 2026-09-01; npm 0.6.17 published 2025-02-14",
+   "maintainer": "Observable",
+   "saves": "About 5-15 lines per chart so Claude writes and edits charts cheaply; vector SVG suits print boards.",
+   "risks": "0.x API may change; last npm release is 20 months old. No official React bindings; wrapper, SVG export and bundle size need a spike. Less built-in interactivity than ECharts."
+  },
+  {
+   "name": "Vega-Lite (and Vega) for community chart specs",
+   "url": "https://github.com/vega/vega-lite",
+   "kind": "library",
+   "what_it_does": "Declarative JSON grammar compiling to Vega. vega-lite 6.5.0 (8 Oct 2026, needs Node 22+), vega 6.4.0, vega-embed 7.3.0 (bundles vega-interpreter). Vega lists 10 security advisories, three rated High since Nov 2025.",
+   "how_we_use_it": "Accept community charts only as host-defined chart templates plus validated data, never raw specs. If raw specs are ever allowed: schema-validate, block data.url with a custom loader, keep vega-functions 6.1.1 or later (6.2.0 now), render inside the sandbox iframe. Plot stays default.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "BSD-3-Clause",
+   "popularity": "5.5k stars; about 731k weekly npm downloads",
+   "last_activity": "vega-lite 6.5.0 on 2026-10-08; vega 6.4.0 on 2026-08-14; advisories to 2026-01-05",
+   "maintainer": "Vega community (UW IDL origin)",
+   "saves": "Spec-as-data is diffable and reviewable on GitHub; Claude writes valid specs reliably, if templates keep the surface small.",
+   "risks": "CSP-safe vega-interpreter does NOT stop CVE-2025-66648 (setdata XSS, fixed in vega-functions 6.1.1). Bundle size unverified; builds need Node 22+; less ergonomic than Plot for bespoke board graphics."
+  },
+  {
+   "name": "three.js + @react-three/fiber 9 + drei (3D viewport)",
+   "url": "https://github.com/mrdoob/three.js",
+   "kind": "library",
+   "what_it_does": "three.js r186 (24 Sep 2026): WebGL/WebGPU renderer with OBJ and glTF loaders (addons). @react-three/fiber 9.8.2 is the React 19 renderer; drei 10.7.9 adds Bvh, Edges, Sky, GizmoHelper and ContactShadows helpers.",
+   "how_we_use_it": "Viewport for imported and modelled massing, context blocks, solar overlays and screenshots for boards. Pin R3F 9.x (v10 is alpha). Load OBJ/glTF with three addons; convert .3dm meshes from the rhino3dm worker; keep geometry as plain data outside React.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT (all three)",
+   "popularity": "three.js 116.7k stars (14.1M weekly npm); R3F 33.1k; drei about 10.0k",
+   "last_activity": "three.js commit 2026-10-21, r186 on 2026-09-24; R3F commit 2026-10-14; drei 10.7.9 on 2026-09-25",
+   "maintainer": "mrdoob and contributors; Poimandres (pmndrs)",
+   "saves": "Weeks of viewer, picking, camera and loader work; huge public corpus, so Claude usually writes correct three.js code first time (inference).",
+   "risks": "R3F v10 alpha is WebGPU-first: stay on 9.x. Large meshes need instancing and BVH. WebGL canvas tests are flaky in Playwright. R3F 9 APIs need Context7 lookups. No CSG or IFC built in."
+  },
+  {
+   "name": "rhino3dm (rhino3dm.js / Python)",
+   "url": "https://github.com/mcneel/rhino3dm",
+   "kind": "library",
+   "what_it_does": "Reads and writes Rhino .3dm files without Rhino via OpenNURBS; JavaScript/WebAssembly package on npm, Python wheels, .NET. Heavy operations delegate to Rhino Compute.",
+   "how_we_use_it": "Import .3dm massing in a Web Worker, convert to meshes for three.js, read layers as program tags. Cohort tools dtmass and Vista read .3dm in-browser; study that pattern, but copy no code until their licences are granted.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "765 stars",
+   "last_activity": "last commit 2026-10-20; 8.35.0 on 2026-09-15",
+   "maintainer": "McNeel",
+   "saves": "Weeks versus writing a .3dm parser; proven in browser by cohort tools and an IAAC collaborative prototype.",
+   "risks": "WASM download size; no rendering (needs three.js); Rhino-version file compatibility; advanced geometry operations need Rhino Compute (server). Covers only one of five promised import formats."
+  },
+  {
+   "name": "web-ifc + That Open Components (IFC import)",
+   "url": "https://github.com/ThatOpen/engine_web-ifc",
+   "kind": "library",
+   "what_it_does": "web-ifc 0.0.78 (21 Sep 2026) reads and writes IFC in WebAssembly, with single- and multi-thread builds. @thatopen/components 3.4.9 (MIT) adds three.js-based BIM tools: dimensions, floorplan navigation, DXF export.",
+   "how_we_use_it": "v1 IFC import: parse in a worker, convert to meshes, read storeys and spaces as program tags. Revit and SketchUp users export IFC (or OBJ/glTF) following a one-page guide. Use web-ifc alone first; add components only if clipping or measuring is needed.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MPL-2.0 (web-ifc); MIT (components)",
+   "popularity": "web-ifc 1.1k stars (about 151k weekly npm); components 716 stars",
+   "last_activity": "web-ifc commit 2026-10-19, release 0.78 on 2026-09-21; components 3.4.9 on 2026-10-06",
+   "maintainer": "That Open Company",
+   "saves": "Weeks versus writing an IFC parser; same stack as the viewer; keeps Revit and SketchUp users in the workflow.",
+   "risks": "MPL-2.0 is file-level copyleft: keep web-ifc unmodified. 0.0.x API may change. Multithread build needs SharedArrayBuffer (cross-origin isolation, unverified on GitHub Pages). IFC quality varies by exporter; 70 open issues."
+  },
+  {
+   "name": "manifold-3d (mesh booleans for massing edits)",
+   "url": "https://github.com/elalish/manifold",
+   "kind": "library",
+   "what_it_does": "manifold-3d 3.5.4 (25 Sep 2026): WebAssembly build of a geometry library with guaranteed-manifold mesh booleans; also volume and surface-area queries. Commits to 20 Oct 2026.",
+   "how_we_use_it": "v1 massing edits: union, subtract and setback booleans for podium and tower stacks, plus volume and area for FAR and GFA checks. For 13 Nov use simple extruded footprints without booleans.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "Apache-2.0",
+   "popularity": "2.4k stars; about 90k weekly npm downloads",
+   "last_activity": "commit 2026-10-20; v3.5.4 on 2026-09-25",
+   "maintainer": "Emmett Lalish and contributors",
+   "saves": "Robust booleans (the hardest part of in-browser modelling) instead of a hand-written CSG kernel; weeks of edge-case debugging avoided.",
+   "risks": "WASM payload; three.js interop needs vertex and index conversion; smaller user base than three.js; large concave edits may be slow (untested); not a NURBS kernel, so curved .3dm surfaces become meshes."
+  },
+  {
+   "name": "SunCalc + three-mesh-bvh (core sun and shadow)",
+   "url": "https://github.com/mourner/suncalc",
+   "kind": "library",
+   "what_it_does": "SunCalc 2.1.1 (BSD-2, 5 Oct 2026): dependency-free sun altitude, azimuth and times from Meeus algorithms (about 0.08 degree error). three-mesh-bvh 0.9.16 (MIT) accelerates raycasts and spatial queries against three.js meshes.",
+   "how_we_use_it": "Core sun module: SunCalc gives Vancouver sun vectors for solstice and equinox days; BVH raycasts from sample points on neighbouring facades and public realm (15-minute steps) give shadow hours. No Pyodide needed; pvlib stays for irradiance in v1.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "BSD-2-Clause (SunCalc); MIT (three-mesh-bvh)",
+   "popularity": "SunCalc 3.5k stars (270k weekly npm); three-mesh-bvh 3.5k (3.0M weekly npm)",
+   "last_activity": "SunCalc 2.1.1 on 2026-10-05; three-mesh-bvh 0.9.16 on 2026-10-08, commit 2026-10-18",
+   "maintainer": "Vladimir Agafonkin (mourner); Garrett Johnson (gkjohnson)",
+   "saves": "Sun module in about 2 person-days (our estimate) with no Python cold start; Bvh helper already ships in drei.",
+   "risks": "SunCalc v2 was a breaking rewrite; npm lists no licence field (GitHub shows BSD-2). Shadow method is ours, not benchmarked: validate against a published case. Neighbour massing quality limits accuracy."
+  },
+  {
+   "name": "Opaque-origin iframe sandbox + QuickJS (community module isolation)",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe",
+   "kind": "guideline",
+   "what_it_does": "A sandboxed iframe without allow-same-origin gets an opaque origin; allow-scripts lets it run. Dedicated workers share the app origin (fetch, IndexedDB); blob: and data: workers inherit the creator's CSP. quickjs-emscripten (MIT, 0.32.0) runs JS with no host access by default.",
+   "how_we_use_it": "Core: first-party modules only; manifest carries sha256 and permissions. v1: third-party modules load in sandbox=allow-scripts iframes on a separate origin with CSP connect-src 'none', talking via schema-validated postMessage. Prefer declarative JSON modules. Fallback QuickJS with memory and interrupt limits. Keys never in IndexedDB.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "MDN content CC-BY-SA; quickjs-emscripten MIT",
+   "popularity": "quickjs-emscripten 1.7k stars (1.9M weekly npm)",
+   "last_activity": "quickjs-emscripten v0.32.0 on 2026-02-16, commit 2026-07-23; MDN current",
+   "maintainer": "MDN/Mozilla; Jake Teton-Landis (quickjs-emscripten)",
+   "saves": "Avoids shipping community code that can read stored keys or user geometry; declarative-first modules cut review time.",
+   "risks": "Workers inside opaque-origin iframes have had browser bugs (WebKit): spike Chrome, Edge, Firefox, Safari. GitHub Pages cannot set CSP headers (meta tag only). QuickJS unaudited, below 1.0, no Python. Sandbox is useless if the frame is opened as a top-level page."
+  },
+  {
+   "name": "Cloudflare Workers (key proxy) and Pages (headers)",
+   "url": "https://developers.cloudflare.com/workers/platform/pricing/",
+   "kind": "app",
+   "what_it_does": "Workers Free: 100,000 requests/day, 10 ms CPU per invocation; Paid from $5/month. Pages Free: _headers file for custom headers, 500 builds/month, 20,000 files, 25 MiB per asset. A Rate Limiting binding exists; Free-plan availability not stated.",
+   "how_we_use_it": "A Worker holds ANTHROPIC and OPENAI keys, allows only our Pages origin via CORS, checks a Supabase JWT (v1), applies per-user limits and streams responses. Set provider monthly spend caps. v1 option: Pages serves the sandbox origin with real CSP headers.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "Commercial service (free tier)",
+   "popularity": "Official docs",
+   "last_activity": "docs current Oct 2026",
+   "maintainer": "Cloudflare",
+   "saves": "Removes keys from the browser in about half a day of work (our estimate); free headers support for CSP and COOP/COEP that GitHub Pages does not document.",
+   "risks": "Free-plan terms for student use not stated. 10 ms CPU limit untested for streaming proxies (spike). Rate-limit binding may need a paid plan. Pages and Workers static assets overlap (long-term path unconfirmed). Another account to secure."
+  },
+  {
+   "name": "Supabase (Postgres, Auth with GitHub, Storage, Edge Functions)",
+   "url": "https://supabase.com/pricing",
+   "kind": "app",
+   "what_it_does": "Hosted Postgres, Auth, Storage, Edge Functions. Free: 500 MB database, 50k MAU, 1 GB storage, 5 GB egress, 500k function invocations/month, 2 active projects, pause after 1 week idle. Edge Functions on Free: 2 s CPU, 150 s wall clock.",
+   "how_we_use_it": "v1: GitHub sign-in (GitHub's web OAuth flow needs a client secret, so a static page cannot do it alone), module metadata, saved projects. Supabase JWT authenticates calls to the AI Worker. Weekly keep-alive GitHub Action. Before that, run static with local storage.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "Apache-2.0 (platform repo)",
+   "popularity": "112.5k stars",
+   "last_activity": "push 2026-10-21; supabase-js 2.118.0",
+   "maintainer": "Supabase Inc.",
+   "saves": "Auth, database, storage and row-level security in about a day; avoids writing a backend; hosts the proxy alternative.",
+   "risks": "Pauses after 7 days idle; two active projects; provider_token availability not documented on the GitHub login page; supabase-js needs Node 22+; Pro from $25/month; moderate lock-in."
+  },
+  {
+   "name": "Claude Citations API (with offline Batch precompute)",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "kind": "guideline",
+   "what_it_does": "Document blocks with citations enabled return char, page or content-block locations plus cited_text, which is not billed as output. All active models support it; works with caching and Batch. Combining with structured outputs returns a 400 error.",
+   "how_we_use_it": "Core: run policy and brief checks offline (Batch API, 50% off), commit citation JSON beside each module, render it in the Sources panel. Live project-specific questions go through the Worker. Claims without a citation render as editable team assumptions.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "Anthropic API terms (proprietary service)",
+   "popularity": "Official docs; all active models support it",
+   "last_activity": "docs current Oct 2026",
+   "maintainer": "Anthropic",
+   "saves": "No vector database or quote-matching code; valid citation pointers by construction. Our arithmetic, 80k-token corpus on Sonnet 5.5 plus 1k output: $0.17 uncached, $0.21 first cached call, $0.018 cache hit, $0.085 batched.",
+   "risks": "Cache writes cost 1.25x (5 min) or 2x (1 h); low traffic mostly misses. Haiku 5.5 input is 5x dearer above 100k tokens. Anthropic-only; corpus must fit context; second Haiku step for JSON. Browser CORS access not confirmed in current docs."
+  },
+  {
+   "name": "Docling",
+   "url": "https://github.com/docling-project/docling",
+   "kind": "library",
+   "what_it_does": "Converts PDF, DOCX, HTML and PPTX into structured Markdown or JSON with layout, reading order and tables; local execution, OCR for scans, MCP server. Python 3.10+; v2.141.0 on PyPI.",
+   "how_we_use_it": "One-off local ingestion: turn VTC brief, by-laws and guidelines into committed Markdown with page numbers, feeding the Citations API and the Sources library. Human-review every conversion and mark OCR uncertainty.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "69.2k stars",
+   "last_activity": "v2.141.0 on 2026-10-20",
+   "maintainer": "Docling project (LF AI & Data community)",
+   "saves": "Hours of manual transcription per policy document and keeps page provenance for citations.",
+   "risks": "Model downloads and CPU time (sizes not stated); runs outside the browser; table conversion errors; check each source document's reuse permission before committing text."
+  },
+  {
+   "name": "Pyodide (browser Python) + FastAPI local sidecar",
+   "url": "https://pyodide.org/en/stable/usage/packages-in-pyodide.html",
+   "kind": "library",
+   "what_it_does": "Pyodide 314.0.7: CPython 3.14.2 on WebAssembly bundling numpy, pandas, scipy, shapely, matplotlib, pydantic, openai; micropip installs pure-Python wheels. pvlib and ladybug are not bundled. FastAPI 0.156.8 (MIT) is the optional local sidecar.",
+   "how_we_use_it": "First-party Python modules (pvlib, PyNite, economics) run in a Web Worker so geometry stays local; that is thread isolation, not a security boundary, so community Python waits for the sandbox. FastAPI runs locally for ifcopenshell (LGPL), OpenStudio and wind.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "MPL-2.0 (Pyodide); MIT (FastAPI)",
+   "popularity": "Pyodide 14.9k stars; FastAPI 103.3k",
+   "last_activity": "Pyodide commit 2026-10-20, npm 314.0.7; FastAPI 0.156.8 on 2026-10-21 (PyPI)",
+   "maintainer": "Pyodide community; FastAPI maintainers",
+   "saves": "Removes backend hosting for most analysis; the same Python serves CI tests and browser; Pydantic models double as port-type schemas.",
+   "risks": "Multi-MB cold start; no native binaries (Radiance); every package needs a micropip spike; Python 3.14 vs team's 3.13; MPL-2.0 file-level copyleft; free hosts for a hosted FastAPI have traps (Render sleeps, Fly no free tier)."
+  },
+  {
+   "name": "pvlib-python (core) and Ladybug Tools (optional, AGPL-3.0)",
+   "url": "https://github.com/pvlib/pvlib-python",
+   "kind": "library",
+   "what_it_does": "pvlib 0.16.1 (BSD-3, 26 Sep 2026): solar position, irradiance and PV yield; pure-Python wheel; all dependencies bundled in Pyodide. ladybug-core 0.44.62, ladybug-geometry 1.35.6 and honeybee-core 1.64.77 are AGPL-3.0; ladybug-core pins click==8.3.3.",
+   "how_we_use_it": "v1 irradiance and facade PV via pvlib in Pyodide; cross-check against SunCalc in tests. Ladybug only as an optional local plugin once the platform licence is decided; never import it into core. honeybee-radiance needs Radiance binaries.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "BSD-3-Clause (pvlib); AGPL-3.0 (Ladybug)",
+   "popularity": "pvlib 1.7k stars; ladybug 228; honeybee-core 24",
+   "last_activity": "pvlib v0.16.1 on 2026-09-26; ladybug-core 0.44.62 on 2026-09-22; honeybee-core 1.64.77 on 2026-10-20",
+   "maintainer": "pvlib community (NumFOCUS affiliated); Ladybug Tools community",
+   "saves": "Benchmarked solar models instead of hand-coded formulas; validated EPW parsing if Ladybug is allowed; fewer review tokens.",
+   "risks": "pvlib via micropip unverified (spike). PV-focused, not urban shadow. AGPL network copyleft binds anything importing Ladybug (not legal advice). Ladybug's click pin conflicts with Pyodide's 8.3.1. Low Ladybug star counts."
+  },
+  {
+   "name": "OpenStudio + EnergyPlus (local energy sidecar)",
+   "url": "https://github.com/NREL/OpenStudio",
+   "kind": "library",
+   "what_it_does": "OpenStudio 3.11.0 (BSD-3 per PyPI, 15 Jan 2026) wraps EnergyPlus for whole-building energy models with Python bindings; Windows wheels exist for Python 3.13. EnergyPlus is BSD-3-like with releases in March and September.",
+   "how_we_use_it": "Roadmap local sidecar: massing to simple thermal zones, run EnergyPlus, show EUI. Until then the energy module ships as a 'not modelled' card with editable team-assumption benchmarks and no invented physics.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "BSD-3 (OpenStudio, per PyPI); BSD-3-like (EnergyPlus)",
+   "popularity": "OpenStudio 650 stars; EnergyPlus 1.6k",
+   "last_activity": "openstudio 3.11.0 on 2026-01-15 (PyPI); repo redirects to NatLabRockies",
+   "maintainer": "NREL (now shown as NatLabRockies) and OpenStudio community",
+   "saves": "Credible energy engine instead of fake physics; avoids token burn on bespoke thermal code.",
+   "risks": "Heavy install and long runs; tower models need many inputs plus climate files and code baselines (not sourced here); no browser path; 249 open issues; whether the wheel bundles EnergyPlus is unverified."
+  },
+  {
+   "name": "MapLibre GL JS + City of Vancouver Open Data (site context)",
+   "url": "https://github.com/maplibre/maplibre-gl-js",
+   "kind": "library",
+   "what_it_does": "MapLibre GL JS 6.15.0 (BSD-3, 18 Oct 2026): vector-tile maps; fill-extrusion layers take height and base in metres. Vancouver Open Data (OGL-Vancouver): footprints 2009 with LiDAR heights, footprints 2015, LiDAR 2022, view cones.",
+   "how_we_use_it": "Site-context card: draw neighbouring buildings from Building footprints 2009 (124,181 records, height fields) and feed them to shadow and view modules. OpenFreeMap tiles need no key; credit OSM and OpenMapTiles on printed boards. View-cones layer updated 19 Oct 2026.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "BSD-3-Clause (MapLibre); Open Government Licence - Vancouver (data); MIT (OpenFreeMap)",
+   "popularity": "MapLibre 11.9k stars (3.8M weekly npm)",
+   "last_activity": "MapLibre commit 2026-10-21; footprints 2009 modified 2019-05-07; view cones 2026-10-19",
+   "maintainer": "MapLibre community; City of Vancouver",
+   "saves": "Real neighbouring massing and view-cone polygons without digitising; free licensed data with attribution only.",
+   "risks": "2009 footprints miss newer towers and 2015 footprints have no heights, so hand-model recent neighbours. A second renderer beside three.js. MapLibre v6 breaking changes not reviewed. OpenFreeMap longevity unverified."
+  },
+  {
+   "name": "Playwright (tests + A2 PDF export spike)",
+   "url": "https://playwright.dev/docs/api/class-page",
+   "kind": "library",
+   "what_it_does": "Playwright 1.64.1: browser testing; page.pdf takes format A0-A6 (A2 is 16.54 x 23.4 in), printBackground, preferCSSPageSize, tagged and outline. Test Agents for Claude Code via `npx playwright init-agents --loop=claude`.",
+   "how_we_use_it": "Week-1 spike: author boards as HTML/CSS with Plot SVG at A2, export with page.pdf, check font embedding, vector output and 300 dpi raster placement. Fallback: svg2pdf.js plus jsPDF (both MIT) in the browser. v1: smoke tests.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "Apache-2.0 (Playwright); MIT (svg2pdf.js 2.8.1, jsPDF 4.2.1)",
+   "popularity": "Playwright 98.2k stars; playwright-mcp 38.4k; jsPDF 31.3k; svg2pdf.js 839",
+   "last_activity": "v1.64.1 on 2026-10-14; svg2pdf.js 2.8.1 on 2026-08-31; jsPDF 4.2.1 on 2026-03-17",
+   "maintainer": "Microsoft; yWorks (svg2pdf.js, jsPDF)",
+   "saves": "One print pipeline reusing the same browser stack; Claude verifies UI itself; healer repairs selectors.",
+   "risks": "PDF generation is Chromium-only (not confirmed in fetched text). svg2pdf.js converts only part of SVG, needs a DOM and manual font embedding. MCP snapshots inflate context (use CLI). Canvas tests can be flaky."
+  },
+  {
+   "name": "Vitest",
+   "url": "https://github.com/vitest-dev/vitest",
+   "kind": "library",
+   "what_it_does": "Vite-powered, Jest-compatible test runner with TypeScript/JSX out of the box, smart watch mode and Browser Mode. Needs Vite 6.4+ and Node 22.12+. npm latest 5.0.5; 5.1 beta in progress.",
+   "how_we_use_it": "Unit-test every module's pure functions plus a manifest test that fails when a threshold has no source or assumption flag. Fast watch loop gives Claude quick red-green feedback.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "17.3k stars",
+   "last_activity": "v5.1.0-beta.1 on 2026-10-19",
+   "maintainer": "Vitest team (VoidZero)",
+   "saves": "Zero extra config on Vite; cheap, fast verification that stops Claude drifting; failing-test output is short.",
+   "risks": "Recent major version (v5), pin it; Node 22.12+ required; browser mode needs Playwright setup."
+  },
+  {
+   "name": "GenEnv/arch540-a1-toolkit (cohort Vancouver tools)",
+   "url": "https://github.com/GenEnv/arch540-a1-toolkit",
+   "kind": "repo",
+   "what_it_does": "ARCH 540 Assignment 1 review of fifteen student tools for Vancouver regulations, one JSON per tool. Toolkit has no LICENSE. Of the fifteen tool repos: two MIT (curbside, stair-core-tool), one all rights reserved (R3 feasibility), twelve with no licence file.",
+   "how_we_use_it": "Seed library from licensed code first: stair-core-tool and curbside. Ask authors of dtmass, Vista and the shading tools for MIT or Apache by 24 Oct, tracked in a table; else re-implement from published by-laws. Reuse the one-JSON-per-entry index format.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "Toolkit: none stated. Tools: 2 MIT, 1 all rights reserved, 12 none found",
+   "popularity": "0 stars; 15 cohort tools",
+   "last_activity": "toolkit last commit 2026-10-14; tools 2026-10-02 to 10-20",
+   "maintainer": "GenEnv Lab / UBC SALA students",
+   "saves": "Weeks of by-law, stair, view-cone and shading logic already tested in class, but only where licences allow.",
+   "risks": "No licence means no reuse right by default (not legal advice). Permission may not arrive in time. README licence statements and non-default branches not checked. Team-authored tools (Vista is under RuijieLiu6) can be licensed at once. Known bugs; ODbL and OGL data need attribution."
+  },
+  {
+   "name": "GitHub Pages (plus GitHub Student Developer Pack)",
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "kind": "app",
+   "what_it_does": "Static hosting: site up to 1 GB, soft 100 GB/month bandwidth, soft 10 builds/hour (not for custom Actions workflows), 10-minute deploy timeout. Not for commercial SaaS or sensitive data. Student Pack adds GitHub Pro, Copilot Student, Azure $100.",
+   "how_we_use_it": "Primary host for the SPA, Pyodide assets, sample data and docs, deployed by GitHub Actions. Instructor tools and cohort tools already use Pages. Apply for the education pack, as the cohort review advised.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "GitHub terms of service",
+   "popularity": "Used by the course's own tool repos",
+   "last_activity": "docs current Oct 2026",
+   "maintainer": "GitHub",
+   "saves": "Zero cost and zero ops; deploys on push; matches how cohort tools are already published.",
+   "risks": "No server code or secrets, so keys go through the Worker; limits page does not mention custom headers or rewrites (CSP, COOP/COEP unverified); non-commercial use only; 429 rate limits; education-pack eligibility unverified."
+  },
+  {
+   "name": "giscus",
+   "url": "https://github.com/giscus/giscus",
+   "kind": "app",
+   "what_it_does": "Comment widget backed by GitHub Discussions: finds the discussion by pathname, URL, title or term, and the bot creates it on first comment. Needs a public repo, the giscus app installed and Discussions enabled. Themes and reactions; self-hostable.",
+   "how_we_use_it": "One thread per module id in the module repo's Discussions; commenters sign in with GitHub. giscus cannot apply labels, so a GitHub Action on the discussion_comment event adds the 'false-assumption' label when a keyword appears.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "12.2k stars",
+   "last_activity": "last commit 2026-05-26",
+   "maintainer": "giscus community",
+   "saves": "Comments, moderation, notifications and auth backend in about an hour instead of weeks.",
+   "risks": "Commenters need GitHub accounts; moderation lives on GitHub; last commit five months old; the Action must sit on the default branch and Discussions webhooks are in public preview."
+  },
+  {
+   "name": "anthropics/skills (example skills)",
+   "url": "https://github.com/anthropics/skills",
+   "kind": "skill",
+   "what_it_does": "Official example skills: frontend-design (about 1,500 words: subject-first design, 4-6 named colours, one orchestrated motion moment), webapp-testing (Playwright plus with_server.py), mcp-builder, skill-creator, web-artifacts-builder, theme-factory, canvas-design.",
+   "how_we_use_it": "`/plugin marketplace add anthropics/skills`, then install example-skills. Run frontend-design on every UI task, webapp-testing for local checks, skill-creator to write and evaluate team skills, mcp-builder in v1 to expose modules as MCP tools.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "Many Apache-2.0; docx/pdf/pptx/xlsx source-available",
+   "popularity": "182.5k stars",
+   "last_activity": "last commit 2026-10-09",
+   "maintainer": "Anthropic",
+   "saves": "Ready design, testing and skill-authoring workflows; bodies load only when invoked, so they cost little idle beyond short descriptions.",
+   "risks": "Descriptions are always in context; without a product brief output turns generic; some skills are not open source; review before installing."
+  },
+  {
+   "name": "Impeccable (design skill with AI-pattern detector)",
+   "url": "https://github.com/pbakaus/impeccable",
+   "kind": "skill",
+   "what_it_does": "One /impeccable skill with 24 commands (audit, critique, polish) and a detector for generic AI frontend patterns; init writes PRODUCT.md. Install offers a Claude Code design hook (default yes). Each new design calls a roll API; choice statistics are opt-out.",
+   "how_we_use_it": "Install with `npx impeccable install --no-hooks`, then `npx impeccable telemetry off` (or DO_NOT_TRACK=1); record both in the allow-list. Run the detector and audit manually before demos, not on every edit. Init PRODUCT.md with our brief: calm, focused, no dark patterns.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "Apache-2.0",
+   "popularity": "84.1k stars",
+   "last_activity": "skill 4.7.0 on 2026-10-19; commit 2026-10-20",
+   "maintainer": "Paul Bakaus",
+   "saves": "Fewer design iteration rounds and fewer tokens on vague 'make it prettier' prompts; consistent aesthetic across modules.",
+   "risks": "README says the new-design roll request is always sent, even with telemetry off. Hook adds overhead on every UI edit. Opinionated style may fight our palette. 84k stars may be hype; 36 open issues; needs Node."
+  },
+  {
+   "name": "Context7 (docs MCP)",
+   "url": "https://github.com/upstash/context7",
+   "kind": "mcp_server",
+   "what_it_does": "MCP server and CLI that supplies current, version-specific library docs and code examples to the agent. API key optional (free key raises limits). Repo holds only the MCP server; backend is private; docs are community-contributed.",
+   "how_we_use_it": "Add to project .mcp.json; use for React Flow 12, Tailwind 4, shadcn, Vite 8, R3F 9 and Pyodide 314 lookups, which are newer than much of Claude's training. Invoke only when an API is in doubt.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "MIT",
+   "popularity": "63.4k stars",
+   "last_activity": "MCP 4.4.4 on 2026-10-19",
+   "maintainer": "Upstash",
+   "saves": "Fewer hallucinated or outdated API calls and retry loops (project's aim; savings not quantified).",
+   "risks": "Closed backend; accuracy not guaranteed; rate limits without key; tool listing overhead (MCP tools are deferred by default); network dependency."
+  },
+  {
+   "name": "Hugging Face ZeroGPU Spaces + Real-ESRGAN (optional render route)",
+   "url": "https://huggingface.co/docs/hub/spaces-zerogpu",
+   "kind": "app",
+   "what_it_does": "Free personal accounts (verified, 30+ days) can host up to 2 ZeroGPU Spaces, Gradio SDK only; free visitors get 5 min/day GPU (2 min anonymous). Docker and CPU Gradio Spaces need a paid plan. Real-ESRGAN (BSD-3) upscales; Windows ncnn-vulkan build needs no CUDA.",
+   "how_we_use_it": "Optional render route: gpt-image-2.5 edit with a massing screenshot as reference at 1536x1024 or 2560x1440, upscale locally with Real-ESRGAN. Test an open depth-conditioned model on a ZeroGPU Space for demos only.",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "license": "Hugging Face terms; Real-ESRGAN BSD-3-Clause",
+   "popularity": "Real-ESRGAN 37.2k stars",
+   "last_activity": "ZeroGPU docs current Oct 2026; Real-ESRGAN last commit not shown",
+   "maintainer": "Hugging Face; xinntao (Real-ESRGAN)",
+   "saves": "A no-cost way to demo open-model renders and to upscale locally without paying per image.",
+   "risks": "5 min/day quotas make public use unreliable; Python 3.12.12 or 3.10.13 only; open-model render quality untested; Real-ESRGAN model licences not stated; gpt-image-2.5 per-image price not published (token rates only)."
+  },
+  {
+   "name": "Speckle (viewer, SketchUp and Revit connectors, server)",
+   "url": "https://github.com/specklesystems/speckle-server",
+   "kind": "app",
+   "what_it_does": "Open data platform with SketchUp and Revit connectors and a three.js viewer package. Server repo Apache-2.0. Free Explore plan: 1 project, 3 users, 100 versions, 30-day history. Academia programme is institution-level, by email.",
+   "how_we_use_it": "Roadmap alternative for SketchUp and Revit: send models to Speckle and pull objects, avoiding file export. For 13 Nov use a documented export-to-OBJ/glTF/IFC convention instead; revisit if the instructor's institution joins the academia programme.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "license": "Apache-2.0 (server repo; some folders may differ)",
+   "popularity": "853 stars; @speckle/viewer about 9k weekly npm",
+   "last_activity": "last commit 2026-06-15; viewer 2.31.14 on 2026-06-15",
+   "maintainer": "Speckle Systems",
+   "saves": "Ready connectors for two formats with no browser parser, plus a hosted viewer, if the free plan fits.",
+   "risks": "Hosted dependency with free-tier caps and 30-day links; repo calls itself the v2 packages and legacy connectors are retired; compatibility mode ends 1 Nov 2026; last commit four months old; individual-student eligibility unclear."
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Context is a finite budget: keep the smallest high-signal set, and prefer CLIs over always-loaded tools.",
+   "rule_for_our_tool": "CLAUDE.md under 200 lines; workflows in skills (loaded on demand); path-scoped .claude/rules; give Claude file paths, not pasted files; use gh, npm and the playwright CLI before MCP; keep only Context7 and shadcn MCP enabled; check /context.",
+   "source_urls": [
+    "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "https://code.claude.com/docs/en/memory",
+    "https://code.claude.com/docs/en/costs",
+    "https://github.com/microsoft/playwright-mcp"
+   ]
+  },
+  {
+   "principle": "The prompt cache is prefix-exact; mid-session changes to model, effort, MCP servers or plugins force a full re-read.",
+   "rule_for_our_tool": "Choose model and effort at session start, avoid toggling MCP or plugins mid-task, /compact only at task boundaries, /clear between unrelated tasks, restart after editing CLAUDE.md; read the 'Prompt cache' line in /usage.",
+   "source_urls": [
+    "https://code.claude.com/docs/en/prompt-caching",
+    "https://code.claude.com/docs/en/costs"
+   ]
+  },
+  {
+   "principle": "Route models and effort by quality and latency first; prices differ (Haiku 5.5 $0.10/$0.50, 5x above 100k tokens; Sonnet 5.5 $2/$10; Opus 5.5 $4/$20).",
+   "rule_for_our_tool": "Use opusplan for plan-then-build; Sonnet 5.5 at medium effort for building; Haiku 5.5 for exploration, summaries and classification via a project Explore subagent (the built-in one inherits the main model); Opus for architecture and hard reasoning, justified by quality not price (2x Sonnet); subagents for test runs, lookups and log triage only; keep Haiku contexts under 100k tokens.",
+   "source_urls": [
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://code.claude.com/docs/en/model-config",
+    "https://code.claude.com/docs/en/sub-agents",
+    "https://code.claude.com/docs/en/costs"
+   ]
+  },
+  {
+   "principle": "Own the component code and use boring, well-documented libraries so the model's knowledge plus current docs make first-try output correct.",
+   "rule_for_our_tool": "Stack limited to Vite, React, Tailwind, shadcn (Radix base), zustand+zundo, xyflow, three.js/R3F, Plot. No new framework without a recorded reason; pin R3F 9.x and look up post-2025 APIs through Context7.",
+   "source_urls": [
+    "https://ui.shadcn.com/docs/cli",
+    "https://github.com/upstash/context7",
+    "https://github.com/pmndrs/react-three-fiber"
+   ]
+  },
+  {
+   "principle": "Licence is architecture: AGPL, MPL, custom licences and silence all shape what can be bundled, copied and hosted.",
+   "rule_for_our_tool": "Keep a licence table for every dependency and every cohort tool (2 MIT, 1 all rights reserved, 12 no licence file); decide the platform licence before importing Ladybug (AGPL-3.0); exclude tldraw (custom); keep Pyodide and web-ifc (MPL-2.0) unmodified; copy no unlicensed code.",
+   "source_urls": [
+    "https://github.com/ladybug-tools/ladybug",
+    "https://github.com/tldraw/tldraw/blob/main/LICENSE.md",
+    "https://github.com/GenEnv/arch540-a1-toolkit",
+    "https://github.com/ThatOpen/engine_web-ifc"
+   ]
+  },
+  {
+   "principle": "Static-first, backend-later, and secrets never in the bundle: free backend tiers have traps that surface at demo time.",
+   "rule_for_our_tool": "Ship 13 Nov as a static Pages SPA; precompute AI evidence offline; a Cloudflare Worker holds provider keys; BYOK is opt-in, in memory only; add Supabase in v1 with a keep-alive; treat Render, Fly and Hugging Face Docker as optional, never required.",
+   "source_urls": [
+    "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+    "https://developers.cloudflare.com/workers/platform/pricing/",
+    "https://supabase.com/pricing",
+    "https://render.com/docs/free",
+    "https://huggingface.co/docs/hub/spaces-overview",
+    "https://docs.fly.io/about/pricing",
+    "https://github.com/anthropics/anthropic-sdk-typescript",
+    "https://github.com/openai/openai-node"
+   ]
+  },
+  {
+   "principle": "Treat community content as hostile input: a worker is not a sandbox, and chart specs are code-like.",
+   "rule_for_our_tool": "Third-party code runs only in an opaque-origin iframe (or QuickJS) with CSP connect-src 'none'; declarative JSON modules first; Vega only as host templates or validated data with vega-functions 6.1.1 or later; every release artefact pinned by sha256 in the registry.",
+   "source_urls": [
+    "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe",
+    "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers",
+    "https://github.com/vega/vega/security/advisories/GHSA-m9rg-mr6g-75gm",
+    "https://github.com/justjake/quickjs-emscripten"
+   ]
+  },
+  {
+   "principle": "A registry should be a thin index; code, manifests and versions live in each author's repo.",
+   "rule_for_our_tool": "registry/modules.json lists id, repo, category and sha256 only; manifest.json in the module repo declares typed ports, sources, assumptions and permissions; installs come from tagged Releases; issues route to module repos.",
+   "source_urls": [
+    "https://github.com/obsidianmd/obsidian-releases",
+    "https://github.com/Comfy-Org/ComfyUI-Manager",
+    "https://github.com/GenEnv/arch540-a1-toolkit"
+   ]
+  },
+  {
+   "principle": "Evidence belongs in the data path: cite through the API, not through prompt wording, and show what is not modelled.",
+   "rule_for_our_tool": "Each module result carries citation objects (document, page, cited_text). No citation means the value renders as an editable team assumption; a refuted claim stays visible in the FALSE ASSUMPTION colour; modules without a credible source show 'not modelled' instead of invented thresholds.",
+   "source_urls": [
+    "https://platform.claude.com/docs/en/build-with-claude/citations"
+   ]
+  },
+  {
+   "principle": "Progressive disclosure keeps users focused, and the aesthetic is planned and gated before coding.",
+   "rule_for_our_tool": "Canvas opens with one example graph and five visible modules; advanced ports, thresholds and sources sit behind expanders; one orchestrated motion moment; write PRODUCT.md and a 4-6 colour token palette first; run frontend-design and an impeccable audit on UI PRs; Playwright checks visible focus and reduced motion.",
+   "source_urls": [
+    "https://genenv.github.io/arch540-a1-toolkit/",
+    "https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/SKILL.md",
+    "https://github.com/pbakaus/impeccable"
+   ]
+  },
+  {
+   "principle": "Spend tokens where cache and batch discounts apply, and price cache writes and misses honestly.",
+   "rule_for_our_tool": "Precompute static checks with the Batch API (50% off, stacks with caching); cache only prompts reused within the TTL (a 5-minute write at 1.25x pays back after one hit at 0.05x, a 1-hour write at 2x after about three calls); model per-call cost before shipping any live AI feature.",
+   "source_urls": [
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://platform.claude.com/docs/en/build-with-claude/citations",
+    "https://developers.openai.com/api/docs/pricing"
+   ]
+  },
+  {
+   "principle": "Plugins, skills and hooks are supply chain: install few, read them first, and switch off default telemetry and hooks.",
+   "rule_for_our_tool": "Allow-list: anthropics/skills, impeccable (--no-hooks, telemetry off), shadcn skill and MCP, Context7, Playwright CLI, a TypeScript code-intelligence plugin. Review SKILL.md and hooks before enabling; skip claude-mem until audited.",
+   "source_urls": [
+    "https://github.com/anthropics/claude-plugins-official",
+    "https://github.com/thedotmack/claude-mem",
+    "https://github.com/pbakaus/impeccable"
+   ]
+  },
+  {
+   "principle": "Skills should be short, specific and side-effect-gated.",
+   "rule_for_our_tool": "SKILL.md under 500 lines, key use case first in the description, disable-model-invocation: true for anything that publishes or writes to the registry, test each skill with and without it using skill-creator.",
+   "source_urls": [
+    "https://code.claude.com/docs/en/skills"
+   ]
+  },
+  {
+   "principle": "Spike before you commit to an unverified browser, WASM or hosting combination, and log the outcome as a flag.",
+   "rule_for_our_tool": "Write 30-60 minute spikes with pass/fail criteria: pvlib and PyNite via micropip, worker-in-sandbox on four browsers, Playwright page.pdf at A2 with fonts, Worker streaming within 10 ms CPU, Pages headers. Record results in the log; failures become visible flags.",
+   "source_urls": [
+    "https://pyodide.org/en/stable/usage/packages-in-pyodide.html",
+    "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe",
+    "https://playwright.dev/docs/api/class-page"
+   ]
+  },
+  {
+   "principle": "Primary sources beat summaries: verify dates, versions and licences from registries, feeds, LICENSE files and advisories, and treat blogs as one voice.",
+   "rule_for_our_tool": "Source each version and licence claim from npm or PyPI JSON, Atom feeds or LICENSE files; a 2026 blog said Rete.js was pushed in July 2026, the repo feed shows 30 Jun 2025. Forum and blog opinions are logged as signals with a voice count.",
+   "source_urls": [
+    "https://www.pistack.xyz/posts/2026-09-09-node-based-ui-editors-react-flow-rete-litegraph-comparison/",
+    "https://github.com/retejs/rete",
+    "https://registry.npmjs.org/vite/latest"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Adopt Vite 8 + React 19 + TypeScript + Tailwind 4 + shadcn/ui (init with --base radix) + zustand with zundo + @xyflow/react + Observable Plot as a static SPA on GitHub Pages. Install Node 24 and pin it in .nvmrc; revisit Node 26 after 13 Nov.",
+   "rationale": "Nothing needs server rendering. Per nodejs schedule.json: Node 22 in maintenance since 2025-10-21, Node 24 since 2026-10-20 (EOL 2028-04-30), Node 26 LTS from 2026-10-28; openai-node supports only Node 22 and 24, and Vitest 5, vega-lite 6.5 and supabase-js need 22+. shadcn's --base accepts radix, base or aria; React Flow UI parts are shadcn-based, so Radix. zundo gives graph undo for under 700 B.",
+   "alternatives_rejected": "Next.js (static export drops server features, adds RSC concepts); Rete.js (last commit 30 Jun 2025); LiteGraph (original last commit Jan 2024, ComfyUI fork archived Aug 2025); tldraw (custom licence); visx; Netlify (credit-based free plan); Node 26 now (not yet LTS)."
+  },
+  {
+   "decision": "Geometry and site stack: three.js r186 via @react-three/fiber 9.x + drei for the viewport. Core imports: .3dm (rhino3dm worker), OBJ, glTF, plus a parametric block builder. v1: IFC via web-ifc, booleans via manifold-3d. SketchUp and Revit: a documented export convention (OBJ/glTF/IFC); Speckle is roadmap. Site context from Vancouver Open Data via MapLibre.",
+   "rationale": "rhino3dm covers one of five promised formats and neither SketchUp nor Revit has a browser parser. SketchUp's help table lists OBJ export for Go/Pro/Studio and glTF for Pro/Studio; Revit glTF add-ins found are third-party (the free E-verse one targets Revit 2019-2024), so IFC is the safer Revit default. Speckle's free plan (1 project, 3 users, 100 versions) and institution-level academia offer make it a roadmap option. Footprints 2009 have LiDAR heights (OGL-Vancouver).",
+   "alternatives_rejected": "Speckle as a core dependency; Rhino Compute as a core server; Babylon.js (not evaluated); waiting for a Revit/SketchUp browser parser (none found); hand-digitised neighbours."
+  },
+  {
+   "decision": "No keys in the browser. (a) Run static policy and brief checks offline with the Batch API and commit the citation JSON; the SPA only renders it. (b) Live calls go through a Cloudflare Worker that holds both provider keys, allows only our origin, checks a Supabase JWT in v1 and is capped by provider spend limits. (c) BYOK is opt-in, key in memory only.",
+   "rationale": "GitHub Pages holds no secrets; GitHub's web OAuth flow needs a client_secret; both vendor SDKs disable browser use by default. Worker Free is 100k requests/day and 10 ms CPU; Supabase Edge Functions give 500k invocations and 2 s CPU. Our arithmetic (80k-token corpus, 1k output, Sonnet 5.5): $0.17 uncached, $0.21 first cached call, $0.018 hit, $0.085 batched; Haiku 5.5 $0.0085 at 80k and $0.0775 at 150k; gpt-image-2.5 is $8 in and $30 out per MTok with no per-image price published, so measure usage.",
+   "alternatives_rejected": "Keys in the bundle; BYOK as the only route; GitHub token exchange in the browser; Supabase Edge Function as proxy (viable, but the free project pauses after 7 days idle); live calls for static policy checks."
+  },
+  {
+   "decision": "Compute client-side first and show 'not modelled' where no credible engine exists: JS sun and shadow now; Pyodide worker for first-party pvlib and PyNite in v1; FastAPI only as an optional local sidecar (ifcopenshell, OpenStudio). Energy: not-modelled card, OpenStudio sidecar on the roadmap. Wind: not-modelled card with editable screening thresholds flagged as team assumptions. Structure: slenderness rule-of-thumb flagged as assumption, PyNite spike. Carbon: user-entered factors flagged, EC3 data after its API terms are checked.",
+   "rationale": "Pyodide 314.0.7 bundles numpy, scipy and matplotlib; pvlib and PyNite (MIT, Python 3.11+) need micropip spikes. No open-source in-browser wind or Lawson tool surfaced in search; OpenFOAM is GPL-3.0 and local-only. Inventing physics burns tokens and breaks the evidence rule. Free container hosts are poor (HF Docker paid, Fly no free tier, Render sleeps, Supabase pauses).",
+   "alternatives_rejected": "Hosted FastAPI as a dependency; Ladybug as the core engine; fake CFD or EUI numbers; Pyodide for the first sun module."
+  },
+  {
+   "decision": "Settle the platform licence by about 30 Oct: MIT or Apache-2.0 with pvlib as the core solar engine and Ladybug as an optional AGPL plugin, unless the team deliberately picks AGPL-3.0 for core. Send licence requests to the cohort authors by 24 Oct and track replies; the seed library uses licensed tools only (curbside MIT, stair-core-tool MIT) plus re-implementations.",
+   "rationale": "All 15 cohort tool repos checked via raw LICENSE files on main/master: two MIT, one all rights reserved (vancouver-r3-feasibility-study), twelve with none (including dtmass, Vista, Shading-tool-test, MassShadeLight, massing-studio); the toolkit has no LICENSE. Ladybug repos are AGPL-3.0; React Flow attribution stays unless Pro; tldraw needs a key. Not legal advice; confirm with the instructor.",
+   "alternatives_rejected": "Silent copying of unlicensed code; assuming Ladybug is permissive; copying GPL ComfyUI-Manager code; tldraw."
+  },
+  {
+   "decision": "Module package, registry and isolation: manifest.json (id, version, category, typed ports with JSON Schema, sources[], assumptions[], permissions, sha256, host-compat) plus SPEC.md; registry/modules.json as a thin index updated by PR; installs from tagged Releases pinned by sha256. Core ships first-party modules only; from v1 community code runs in an opaque-origin sandboxed iframe on a separate origin (CSP connect-src 'none', schema-validated postMessage) or QuickJS, and declarative JSON modules are preferred. One giscus thread per module; a GitHub Action labels FALSE ASSUMPTION; contributions go by fork and PR.",
+   "rationale": "Mirrors the Obsidian registry and the course's one-JSON-per-tool format. Dedicated workers share the app origin with fetch and IndexedDB, so they give thread isolation, not capability isolation; blob workers inherit the creator's CSP, but worker-in-sandbox support has had browser bugs, so spike it. giscus needs a public repo, the app and Discussions; it cannot set labels; discussion_comment workflows run from the default branch.",
+   "alternatives_rejected": "Plain Web Worker as the sandbox; main-thread execution; Supabase-hosted code bundles; install from any git URL; GitHub prefilled new-file URLs for PRs (not documented by GitHub, unverified)."
+  },
+  {
+   "decision": "Build evidence once, cite everywhere: Docling converts the VTC brief, by-laws and guidelines to Markdown with page numbers (human-reviewed) committed to /sources; static checks run offline through Batch with cached document blocks and citations; no vector database until a module's slice exceeds the context or 100k tokens on Haiku.",
+   "rationale": "Citations return valid pointers and cited_text is not billed as output; all active models support it. Caching pays back after one reuse inside 5 minutes but costs 25% more on a miss; Haiku 5.5 input rises to $0.50 per MTok above 100k tokens. Structured JSON cannot be requested in the same call, so use a second Haiku step.",
+   "alternatives_rejected": "PaperQA2 (paper-focused); LlamaIndex or pgvector now; prompt-only citation requests; OpenAI-only RAG; whole-corpus live calls for every user action."
+  },
+  {
+   "decision": "Presentation: Plot for module cards and A2 boards; Vega-Lite only as host-defined chart templates; ECharts only if a heavy interactive view is proven. Author boards as HTML/CSS and export with Playwright page.pdf at A2 (week-1 spike; fallback svg2pdf.js + jsPDF). AI renders are panels at 1536x1024 or 2560x1440 conditioned on a massing screenshot, upscaled locally with Real-ESRGAN; credit OSM, OpenMapTiles and OGL on boards.",
+   "rationale": "A2 (420 x 594 mm) at 150 dpi is 2480 x 3508 px (8.70 MP) and at 300 dpi 34.8 MP, above gpt-image's 8,294,400 px cap; a 1536 px render on a 140 mm panel is about 279 dpi, 2560 px on 280 mm about 232 dpi (our arithmetic). Sizes above 2560x1440 are experimental. Raw community Vega specs have 3 High advisories since Nov 2025 and CSP-safe mode did not stop CVE-2025-66648.",
+   "alternatives_rejected": "visx; ECharts as default; single-call full-board render; raw community Vega specs; svg2pdf.js as primary (partial SVG support, manual fonts)."
+  },
+  {
+   "decision": "Claude Code kit and token practice: install anthropics/skills example-skills, impeccable (--no-hooks, telemetry off), shadcn skill and MCP, Context7, Playwright CLI/tests and a TypeScript code-intelligence plugin; commit .claude/ (CLAUDE.md under 200 lines, path-scoped rules, skills). Route with opusplan, Sonnet 5.5 at medium effort, a project Explore subagent on Haiku 5.5; /clear between tasks; weekly /usage and ccusage review. Write six skills: module-spec-writer, module-scaffold, source-audit, vtc-policy-check, expert-critique-loop, board-export.",
+   "rationale": "Skill and MCP descriptions sit in context every session, so the list stays short; docs recommend CLAUDE.md under 200 lines, skills for workflows, Haiku for simple subagents and plan-mode planning. Opus is only 2x Sonnet on price, so reserve it for quality-critical architecture. Impeccable always sends a roll request and installs a hook by default. Skills encode the platform's unique rules once; side-effect skills stay manual; evaluate each with skill-creator.",
+   "alternatives_rejected": "claude-mem (hosted observer); spec-kit and full Superpowers for now; agent teams (about 7x tokens in plan mode); always-on Playwright MCP; Opus for everything; long CLAUDE.md sections for workflows; installing from awesome lists without review."
+  },
+  {
+   "decision": "Sequence: by 13 Nov (core) Vite scaffold, shadcn theme, xyflow canvas with typed ports and executor, zustand+zundo store, manifest schema, three.js viewport with .3dm/OBJ/glTF import, SunCalc+BVH sun module, 3 seed modules from licensed code, Plot cards, precomputed citations in a Sources panel, Vitest, Pages deploy, A2 PDF spike. By 10 Dec (v1): Worker proxy, Supabase login, giscus, registry PR flow, sandbox iframe, web-ifc, manifold, Pyodide+pvlib, Playwright smoke tests, board export, docs generated from manifests. Roadmap: Yjs 13.6.x (not v14 RC), PGlite, Speckle, OpenStudio sidecar, Starlight, ECharts.",
+   "rationale": "Our estimate for core is about 19.5 person-days against 18 working days (21 Oct to 13 Nov) for one person-equivalent, so cut seed modules to two and live AI calls first if behind. Starlight adds an Astro and Node 22.22+ toolchain for two students; generate docs inside the SPA until outside authors exist.",
+   "alternatives_rejected": "Building multiplayer (Yjs, Liveblocks), a registry backend or auth before the canvas and modules work; Starlight in v1; Next.js or a monorepo toolchain; tldraw sync (custom licence)."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Hugging Face Spaces can host a free Python/FastAPI backend.",
+   "correction": "Docs state Docker and Gradio Spaces need a paid plan (PRO, Team or Enterprise); only Static Spaces are free, and free hardware sleeps when unused.",
+   "detail": "Source: huggingface.co/docs/hub/spaces-overview, opened 21 Oct 2026.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Fly.io has a free tier for student projects.",
+   "correction": "New organisations get no free tier or monthly allowance; smallest machine is about $2.19 per 30 days continuous, plus a short trial.",
+   "detail": "Source: docs.fly.io/about/pricing.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "tldraw is open source and free for a public production site.",
+   "correction": "The tldraw licence allows development use only; production needs a trial or commercial licence key, with watermark and usage-data mechanisms. GitHub shows no SPDX identifier.",
+   "detail": "Source: LICENSE.md on the tldraw repository.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Render's free Postgres lasts about 90 days.",
+   "correction": "It expires 30 days after creation, then a 14-day grace period before deletion (about 44 days total).",
+   "detail": "Source: render.com/docs/free.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The built-in Explore subagent already runs on Haiku.",
+   "correction": "Docs say it uses the main conversation's model; to use Haiku, define a project subagent named Explore with model: haiku.",
+   "detail": "Source: code.claude.com/docs/en/sub-agents.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Supabase free projects stay online indefinitely.",
+   "correction": "Projects pause after one week without activity; free plan allows two active projects.",
+   "detail": "Source: supabase.com/pricing.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Ladybug Tools libraries can be bundled into a platform with any licence.",
+   "detail": "ladybug-core, ladybug-geometry, honeybee-core, honeybee-radiance, lbt-recipes and ladybug-rhino are AGPL-3.0 (README, LICENSE and PyPI; r1 re-confirmed ladybug-core, ladybug-geometry and honeybee-core on PyPI). Platform licence and plugin isolation is a team decision needing the instructor's view; this is not legal advice.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The instructor's tools 'hairline' and 'anatomy' could be located.",
+   "detail": "Not found in github.com/XunLiuDesign (15 repos incl. false-creek-2100, AI4GH), github.com/GenEnv (9 repos), or earthtojake (18 repos). text-to-cad was found at earthtojake/text-to-cad (MIT, 22.0k stars, v0.7.26, 2026-10-20), not under XunLiuDesign. Needs the correct URLs from the instructor. Not re-searched in r1.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "pvlib and ladybug-core install and run under Pyodide via micropip.",
+   "detail": "Neither is in Pyodide 314.0.7's bundled lock file; both are pure-Python wheels and pvlib's dependencies are bundled. ladybug-core pins click==8.3.3 while Pyodide ships 8.3.1. PyNiteFEA 3.2.0 (MIT, numpy>=2.4.0) is likewise untested. Needs a short spike.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Cohort tool code (dtmass, Vista, Shading explorer, MassShadeLight, R3 feasibility) may be reused.",
+   "detail": "r1 update: checked LICENSE files in all 15 tool repos (main/master): MIT only for curbside and stair-core-tool; vancouver-r3-feasibility-study is all rights reserved; the other 12, including dtmass, Vista, Shading-tool-test and MassShadeLight, have no licence file; the toolkit repo has none either. README licence statements were not read. Obtain written permission and add a LICENSE.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Social media and forum consensus on the best tools (Reddit, Hacker News, X, YouTube, McNeel/Speckle/Ladybug forums).",
+   "detail": "r1 update: partial. React Flow vs Rete vs LiteGraph: one 2026 blog (PiStack) plus aggregator pages, no Reddit or HN thread found; the blog's Rete.js maintenance claim contradicts the repo feed. Claude Code token tips: five blog posts seen only as search summaries (pages not opened), no Reddit thread; they agree on short CLAUDE.md, skills on demand, model routing. McNeel forum: NodePen thread with 7 repliers, mostly positive; it went offline twice over hosting cost. Star counts are popularity signals, not quality evidence.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Node 24 LTS is the install target; platform licence deadline about 30 Oct; Docling corpus fits in context so no vector database in v1.",
+   "detail": "Node dates verified from nodejs/Release schedule.json (v24 Maintenance LTS since 2026-10-20, EOL 2028-04-30; v26 LTS from 2026-10-28). r1: v24 is no longer Active LTS. Corpus size and licence deadline are our assumptions to confirm.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "A2 board at 150 dpi is about 2480 x 3508 px (8.7 MP) and exceeds the gpt-image maximum of 8,294,400 pixels.",
+   "detail": "Pixel arithmetic is ours; OpenAI docs list GPT Image 2.5 models (sunburst, flare), max edge 3840 px, multiples of 16, sizes above 2560x1440 experimental, organisation verification may be required. r1: 300 dpi is about 34.8 MP; a 1536 px render on a 140 mm panel is about 279 dpi (our arithmetic). Verify before designing the render pipeline.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Community modules are safe when run in a sandboxed Web Worker.",
+   "detail": "Dedicated workers run on the app origin with fetch, importScripts, WebSocket and IndexedDB; MDN says they are generally not governed by the creator page's CSP (blob: and data: workers are the exception). Thread isolation is not capability isolation, so a worker could read keys or geometry stored in IndexedDB.",
+   "correction": "Run third-party code in an opaque-origin sandboxed iframe (no allow-same-origin) on a separate origin with CSP connect-src 'none', or in QuickJS-WASM; pin artefacts by sha256; never store keys in IndexedDB or localStorage. Spike worker-in-sandbox per browser.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vega-Lite specs from the community remove the need to sandbox chart code.",
+   "detail": "Vega specs can fetch data URLs and evaluate expressions. Vega has 10 published advisories, including three High (Nov 2025, Jan 2026) such as setdata XSS (GHSA-m9rg-mr6g-75gm, CVE-2025-66648).",
+   "correction": "Accept host-defined chart templates plus validated data; if raw specs are ever accepted, schema-validate, block data.url with a custom loader, keep vega-functions 6.1.1 or later and render in the sandbox iframe.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Using vega-interpreter (CSP-safe mode) makes untrusted Vega specs safe.",
+   "detail": "The GitHub advisory for CVE-2025-66648 states that using vega.expressionInterpreter in CSP-safe mode does not prevent the issue and there is no workaround besides upgrading to vega-functions 6.1.1. vega 6.4.0 depends on vega-functions ~6.2.0.",
+   "correction": "Treat the interpreter as one layer only: add templates or validated data, a URL-blocking loader, a strict CSP and the sandbox iframe, and keep vega patched.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Node 22 enters maintenance now and Node 24 is the current Active LTS.",
+   "detail": "Per nodejs/Release schedule.json: Node 22 entered maintenance on 2025-10-21; Node 24 moved to Maintenance LTS on 2026-10-20; Node 26 becomes LTS on 2026-10-28.",
+   "correction": "Node 24 stays an acceptable pin (EOL 2028-04-30, and openai-node lists Node 22 and 24 only), but call it Maintenance LTS; revisit Node 26 after the core deadline.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Prompt caching makes repeat Citations calls cost about 5% of base input.",
+   "detail": "That is only the hit price. Pricing page: Sonnet 5.5 base $2, 5-minute write $2.50, 1-hour write $4, hit $0.10 per MTok; Haiku 5.5 is $0.10 up to 100k tokens and $0.50 above. Low-traffic apps mostly miss the TTL.",
+   "correction": "Budget for writes and misses, keep Haiku contexts under 100k tokens, and precompute static checks with the Batch API (50% off). Example for an 80k-token corpus on Sonnet 5.5: $0.17 uncached, $0.21 first cached call, $0.018 hit, $0.085 batched (our arithmetic).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Impeccable is a low-risk core install (only an overhead risk was listed).",
+   "detail": "README: install offers a design hook (default yes), each new design always calls a roll API, and anonymous choice statistics are on unless opted out.",
+   "correction": "Install with --no-hooks, run `npx impeccable telemetry off` or set DO_NOT_TRACK=1, and run the detector manually before demos.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Hugging Face Spaces have no free compute option (Docker and Gradio need a paid plan).",
+   "detail": "Mostly true, but ZeroGPU docs say free personal accounts in good standing can host up to 2 ZeroGPU Spaces (Gradio only); free visitors get 5 minutes of GPU per day.",
+   "correction": "Docker and CPU Gradio Spaces need a paid plan; ZeroGPU Gradio is a free option for an open-model render demo, not for a FastAPI backend, and its quota is too small for public use.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A static GitHub Pages SPA can call Claude and OpenAI and complete GitHub sign-in with no server-side component.",
+   "detail": "Pages holds no secrets; GitHub's web OAuth flow requires client_secret for the token exchange; the Anthropic and OpenAI SDKs disable browser use by default because keys would be exposed.",
+   "correction": "Precompute static checks offline; add a Cloudflare Worker (or Supabase Edge Function) for live calls and use Supabase GitHub OAuth; BYOK only as an opt-in with the key in memory.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "rhino3dm plus a viewer covers the platform's import scope (.3dm, OBJ, IFC, SketchUp, Revit).",
+   "detail": "rhino3dm reads .3dm only. IFC needs web-ifc; OBJ and glTF need three.js loaders; neither SketchUp nor Revit has a browser parser in anything we found.",
+   "correction": "Document export to OBJ/glTF/IFC for SketchUp and Revit; evaluate Speckle connectors as a roadmap option.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Five to eight cohort tools can be wrapped as seed modules by 13 Nov.",
+   "detail": "Only two of fifteen tool repos have a permissive licence file (curbside, stair-core-tool, MIT); one is all rights reserved; twelve have no licence file.",
+   "correction": "Seed from licensed tools and re-implementations; request licences by 24 Oct and make each further seed conditional on a written grant.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A Web Worker created inside an opaque-origin sandboxed iframe works in all target browsers, and meta-tag CSP in a srcdoc frame is inherited by blob workers.",
+   "detail": "WebKit has a history of bugs for this case; Firefox's plan allowed it; Chrome behaviour not confirmed. No spike was run.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Cloudflare Worker streaming proxy fits the Free plan (10 ms CPU) and the Rate Limiting binding is available on Free.",
+   "detail": "Pricing page gives 100,000 requests/day and 10 ms CPU per invocation; the binding docs do not state plan availability (Wrangler 4.36+, per-location, eventually consistent).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Browser calls to the Claude API are allowed in current docs via a direct-browser-access header, and GitHub pre-filled new-file URLs (filename, value) work as a PR shortcut.",
+   "detail": "The Anthropic header was reported in Aug 2024 and the SDK README confirms a dangerouslyAllowBrowser opt-in; current API docs do not mention CORS. GitHub docs do not document the new-file query parameters (Gitea docs say they copied GitHub).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Core scope (13 Nov) is about 19.5 person-days against about 18 working days for one person-equivalent.",
+   "detail": "Our estimates, not sourced: scaffold and deploy 1.5; store, manifest, zundo, flags 2; canvas and executor 3; viewport, imports and block builder 4; sun module 2; Sources panel and precomputed citations 2.5; three seed modules 3; Plot cards and Vitest 1.5. Working days: 18 from 21 Oct to 13 Nov inclusive (our count). Cut seeds and live AI first if behind.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "An open-source wind, structure or embodied-carbon engine usable in the browser exists.",
+   "detail": "Searched for open pedestrian-wind and Lawson tools: only commercial services (SimScale, Orbital Stack) surfaced; OpenFOAM is GPL-3.0. PyNite (MIT) found for structure; EC3 is free to use but API terms were not found. These modules ship as 'not modelled' or flagged assumptions.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Observable Plot v0.6.17 was released in April 2026.",
+   "detail": "npm shows 0.6.17 published 2025-02-14; the GitHub releases feed entry is dated 2026-04-12. Cause of the discrepancy unknown (possible tag re-creation).",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved": [
+  "Social and forum signals are still thin: no Reddit (r/ClaudeAI, r/webdev) or Hacker News thread found on React Flow vs Rete/LiteGraph or on Claude Code token saving; five blog posts were seen only as search summaries. Still needed: Reddit, HN, Speckle and Ladybug forums, YouTube comments. NodePen (MIT, Next.js, release 2.0.0 on 2 Oct 2026) is prior art for Grasshopper on the web and was not evaluated for reuse.",
+  "Where are the instructor's 'hairline' and 'anatomy' tools? Searched XunLiuDesign, GenEnv and earthtojake lists only; no GitHub-wide search done in r1.",
+  "Whether pvlib, ladybug-core, ladybug-geometry and PyNiteFEA import cleanly in Pyodide 314.0.7 (needs a 30-minute micropip test); no installs were run.",
+  "Observable Plot: React wrapper pattern, SVG export for print and bundle size are unconfirmed, and npm and GitHub release dates for 0.6.17 conflict.",
+  "Worker-in-sandboxed-iframe support and meta-CSP inheritance for blob workers in Chrome, Edge, Firefox and Safari; QuickJS fallback performance. Needs a spike.",
+  "Playwright page.pdf at A2: font embedding, vector fidelity of Plot SVG, 300 dpi raster placement and whether PDF output is Chromium-only (not in the fetched docs excerpt); svg2pdf.js fallback quality.",
+  "Anthropic and OpenAI browser (CORS) access in current docs; Cloudflare Worker streaming within 10 ms CPU; Rate Limiting binding on Free; Free-plan terms for student projects; Pages vs Workers static assets future.",
+  "GitHub Pages: SPA fallback and custom headers (COOP/COEP, CSP) not documented; GitHub Student Developer Pack eligibility for UBC students; Supabase provider_token behaviour for GitHub login; GitHub new-file URL prefill.",
+  "Cohort licences: README licence statements, non-default branches and author replies not checked; no emails were sent (team must send the requests). Whether team-authored tools such as Vista can be licensed immediately.",
+  "Revit export paths: built-in IFC export and glTF add-in support for current Revit versions were not opened (E-verse add-in targets 2019-2024); SketchUp IFC export vs import is ambiguous in the help table and the glTF extension is misprinted.",
+  "Site context: Vancouver footprints 2009 lack newer towers and 2015 has no heights; no 3D massing dataset found in the open data catalogue; OpenFreeMap longevity; MapLibre v6 breaking changes; field semantics for height attributes.",
+  "Cost model gaps: gpt-image-2.5 per-image price not published (token rates only); real cache hit rates unknown; EC3 API terms; sources for wind, structure and carbon thresholds.",
+  "Whether the openstudio pip wheel bundles EnergyPlus and runs headless on the team's Windows 11, Python 3.13 machines.",
+  "Yjs v14 release candidates (breaking changes and migration notes not found) and whether Liveblocks has a usable free tier; both stay roadmap.",
+  "Instructor-mentioned 'Claude Design' and the individual quality of the cohort tools (only six of fifteen project JSONs and three READMEs opened in round 0)."
+ ],
+ "change_log": [
+  "r1: BLOCKER secrets and AI calls: replaced 'static SPA calls Citations live' with precomputed offline citations (Batch, committed JSON) plus a Cloudflare Worker proxy and opt-in in-memory BYOK. Opened Cloudflare, Supabase, GitHub OAuth, Anthropic and OpenAI SDK pages; added Cloudflare finding and a FALSE_ASSUMPTION flag.",
+  "r1: BLOCKER sandbox: replaced 'sandboxed Web Worker' with opaque-origin iframe plus CSP, QuickJS fallback, declarative-first modules and sha256 pins. Verified from MDN iframe and workers pages and quickjs-emscripten; found browser-support doubts for worker-in-sandbox and logged a spike. Principle and recommendation rewritten; FALSE_ASSUMPTION flag added.",
+  "r1: BLOCKER geometry: added findings for three.js/R3F/drei, web-ifc plus That Open Components, manifold-3d, SunCalc plus three-mesh-bvh, and Speckle; added export convention for SketchUp (help table) and Revit (add-ins, IFC); new recommendation 2 and a FALSE_ASSUMPTION flag that rhino3dm covers the import scope.",
+  "r1: MAJOR cohort licences: checked LICENSE files in all 15 tool repos and the toolkit: 2 MIT, 1 all rights reserved, 12 none. Made seed modules conditional on grants, set a 24 Oct request date, corrected the rhino3dm 'copy that pattern' wording, added a FALSE_ASSUMPTION flag.",
+  "r1: MAJOR A2 export: added Playwright page.pdf (A2 supported) and svg2pdf.js plus jsPDF findings and a week-1 spike; documented A2 pixel arithmetic and render-panel dpi (our arithmetic, flagged).",
+  "r1: MAJOR Vega: rewrote the Vega-Lite finding using the GitHub advisories list (10 advisories, 3 High) and GHSA-m9rg-mr6g-75gm; corrected the critique's own fix, since CSP-safe vega-interpreter does not stop CVE-2025-66648. Templates or validated data only; added two flags.",
+  "r1: MAJOR undo/redo: merged zundo into the zustand finding (MIT, under 700 B, v5 support, partialize); noted last release Nov 2024 as a maintenance risk.",
+  "r1: MAJOR sun and shadow: moved the core sun module to SunCalc 2.1.1 plus BVH raycasts, keeping Pyodide and pvlib for v1 irradiance; added the pvlib/Ladybug merged finding.",
+  "r1: MAJOR caching costs: re-read the pricing page; corrected the 5% claim, added write and miss costs and the Haiku 5.5 over-100k tier, with an arithmetic cost table (Sonnet, Haiku, gpt-image-2.5 token rates); flag added.",
+  "r1: MAJOR GitHub OAuth, registry and comments: confirmed web flow needs client_secret (device flow does not), giscus prerequisites, no label support, and the discussion_comment Action route; fork-and-PR flow replaces the unverified prefilled-URL idea.",
+  "r1: MAJOR supply chain: opened Impeccable README: default hook, always-on roll request, opt-out statistics; install with --no-hooks and telemetry off; finding corrected and flag added.",
+  "r1: MAJOR evaluation modules: added OpenStudio/EnergyPlus finding and a module-class reuse map (energy, wind, structure, carbon) with 'not modelled' stubs; PyNite, OpenFOAM (GPL-3.0) and EC3 noted; no open browser wind engine found.",
+  "r1: MINOR Node: corrected the schedule rationale from schedule.json; pin kept at Node 24; openai-node lists only Node 22 and 24.",
+  "r1: MINOR AI renders: added reference-image route, 2560x1440 limit, Real-ESRGAN, and ZeroGPU (2 free Spaces, 5 min/day free quota); Hugging Face flag corrected with the ZeroGPU exception.",
+  "r1: MINOR shadcn: resolved the base question (--base accepts radix, base, aria); Radix chosen. MINOR React Flow: isValidConnection confirmed on the ReactFlow component; executor estimate about 2 person-days.",
+  "r1: MINOR model routing restated as a quality and latency rule with opusplan and the Haiku over-100k tier; MINOR docs: Starlight deferred to roadmap, docs generated from manifests in v1; MINOR site context: MapLibre plus Vancouver Open Data (footprints 2009 with heights, view cones) and OpenFreeMap added.",
+  "r1: Corrected earlier packet items found while re-verifying: Observable Plot release date conflict (npm 2025-02-14 vs GitHub entry 2026-04-12); Vite 8.3.5 not 8.3.4; a 2026 blog's Rete.js activity claim contradicted by the repo feed (last commit 2025-06-30).",
+  "r1: Findings kept at 30. Dropped as findings (content moved to recommendations, flags or principles): tldraw (flag kept), Yjs, PGlite, Superpowers, ccusage, Render, Starlight, Obsidian registry pattern (principle and recommendation keep its URL). FastAPI merged into the Pyodide finding; Ladybug merged with pvlib. Earlier FALSE_ASSUMPTION flags were kept unchanged.",
+  "r1: New TEAM_ASSUMPTION flag with person-day estimates (19.5 core vs 18 working days), plus UNVERIFIED flags for worker-in-sandbox, Cloudflare limits, Anthropic CORS and GitHub URL prefill. Updated older flags for cohort licences and social signals.",
+  "r1: Opened about 85 pages or APIs (docs, repo pages, npm and PyPI JSON, Atom feeds, Vancouver open data API, raw LICENSE files). Social signals: PiStack blog (1 voice), NodePen forum thread (7 repliers), five token-saving blogs via search summaries only.",
+  "r1: Not done: no files created or edited, nothing installed, no emails sent, no micropip, Worker, PDF or sandbox spikes run; these are listed in unresolved."
+ ]
+}

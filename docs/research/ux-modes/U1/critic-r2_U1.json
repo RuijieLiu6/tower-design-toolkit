@@ -1,0 +1,129 @@
+{
+ "expert_role": "BIM manager running Revit standards in a tall-building practice (round 2 reviewer of packet U1)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "issue": "The signature moment of Advanced, 'the core appears', would not be visible. TowerMesh draws each band as an opaque boxGeometry with meshStandardMaterial and no transparency (Viewport.tsx:199-201). A core box placed inside those blocks is fully hidden. Nothing in the design spec makes the envelope translucent, cuts it away or adds a section box, so on screen Advanced would show only the floor lines, which already exist for the selected tower.",
+   "fix": "At Medium detail, draw band blocks translucent (about 0.3-0.4 opacity with depthWrite off) and draw the core as an opaque ink-edged box. Alternatively, add a 'Cut at level' clip plane (three.js clippingPlanes). Make this part of the Medium spec and the 300 ms entry moment, and check it in a screenshot before claiming the felt shift."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "'Core size has no source' is wrong, and the core is only drawn, never used in any number. Published tall-building studies built on the CTBUH database report core-to-GFA ratios of about 24-30% on average, with a range of 11-38%. By use, one study gives office 26%, residential 19%, hotel 16% and mixed-use 26%. An arbitrary preset flagged 'team assumption' throws that evidence away. Without a net-area readout, Advanced also adds no new number, so it stays cosmetic.",
+   "fix": "Derive the default core from a band-weighted core-to-GFA ratio, cite the study (for example Ilgın, IJBPA 2023, and the MDPI Buildings tapered-skyscraper study), and flag it as interpretation. Keep it editable. In Advanced, add a Revit-style mass-floor schedule from towerFloors(): gross area, core area, net area and efficiency per band. Note that a single constant core box ignores lift banks dropping off up the tower."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The 'one setStage swaps the workspace' mechanism is bypassed by the keyboard. Keys 1-3 call set({ phase }) directly (App.tsx:25-27), not setPhase (store.ts:78), so a stage record applied inside setPhase never runs on the shortcuts that Onboarding.tsx:34 advertises. RightPanel also keeps its own tab state in an effect keyed on phase (RightPanel.tsx:12-13), which gives two sources of truth.",
+   "fix": "Route the keys through setPhase, or apply the stage record wherever phase changes (a store subscriber), not only in setPhase. Move the right-panel tab into the store so the stage record owns it. Add a vitest test: pressing '2' and clicking Advanced produce the same state."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The status labels still mix 'the source says X' with 'our recommendation is right'. 'Look tokens per stage' is marked verified, but the Tailwind override is admitted inference. 'Contextual selection UI' is verified, yet Tower Studio cannot select bands: TowerMesh selects the whole tower (Viewport.tsx:195). 'Options with a primary, plus Compare' is verified, but the synced two-up view is the packet's own design.",
+   "fix": "Split status into two fields: source_status (verified, secondary or unopened) and recommendation_status (interpretation or tested). Re-cost band selection, since it needs new picking, and mark it interpretation."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The new counts (Basic 72, Advanced view 118) only hold if the DATA rule (NodeLibrary.tsx:17) is kept and the 9 non-DATA cross-cutting nodes go to Basic while the 11 DATA ones go to Platform. The packet leaves the DATA rule 'to review'. If it is dropped, the 28 declared-basic DATA nodes join Basic, Basic becomes about 100 and the numbers quoted to the user change.",
+   "fix": "Publish the placement table: cross-cutting PROG 3, SITE 2, ENER 1, ECOL 1, PUBL 1, CULT 1 go to Basic; DATA 11 goes to Platform. Decide the DATA rule now. Have the vitest test assert both the superset and the exact counts."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "Defaulting the Advanced right panel to Results & evidence hides the Design panel, where users edit the tower whose floors and core are Advanced's only real content. The 114 ghosted Advanced nodes have no results, only method cards.",
+   "fix": "Keep Design as the default in Advanced and add the core and net-area controls there. Results opens when a node is picked, as RightPanel.tsx:18 already does."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The top bar labels the selector 'Phase' (TopBar.tsx:42), and the packet borrows Revit Phase Filters for context graphics. To Revit users, 'Phase' means construction time (Existing, New Construction, Demolished), not a design stage, so the app uses one word for two meanings.",
+   "fix": "Label the control 'Stage' in the UI and keep 'phase' as an internal identifier only. Update the TopBar hints. The Advanced hint 'Structure, systems, code, facade, interior' describes the old category split, which the superset change removes."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "Present ships two look variants (Arctic-clay and Programme-diagram), which contradicts 'Look is not a chip; it follows the stage' and 'only two user-facing axes'.",
+   "fix": "Put the variant choice inside PresentPanel as a board style, scoped to Present, and say so in accessibility_and_restraint."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The PROG icon 'layers' clashes with a convention the target users already know: Rhino's Layers panel and the generic layer manager. Rhino users will read it as layer visibility, not programme or density.",
+   "fix": "Use a stacked-building or stacked-bar glyph, for example lucide building-2 or chart-bar-stacked, and include the clash in the five-student recognition test."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "With five participants, an alternating build order cannot balance (3 against 2), and the team-made 7-point 'felt change' item has no anchors.",
+   "fix": "Use six participants or report the order imbalance. Anchor the scale ('1 = same screen, 7 = a different workspace'), and ask it after both builds as well as after each switch."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Core size has no source, so the core footprint must be a pure team-assumption preset.",
+   "correction": "Peer-reviewed tall-building studies drawn from the CTBUH database give core-to-GFA averages of about 24-30% (range 11-38%) and use-specific figures (office about 26%, residential about 19%, hotel about 16%). A sourced, editable default is possible.",
+   "evidence": "Web search re-opened 22 Oct 2026: Emerald IJBPA-06-2023-0082 (75 Asian supertalls, average core-to-GFA about 29.5%); MDPI Buildings 13/11/2819 (tapered towers, about 26%, 11-38%); Tampere University repository, 'Space Efficiency in Contemporary Supertall Office Buildings'."
+  },
+  {
+   "claim": "Adding a core box gives Advanced visible new geometry (the 'signature moment').",
+   "correction": "Band blocks are opaque, so an interior core box would be hidden unless the envelope is made translucent or cut.",
+   "evidence": "tower-studio/src/components/Viewport.tsx:199-201: boxGeometry with meshStandardMaterial, no transparent or opacity set; floor lines at line 205 are the only overlay."
+  },
+  {
+   "claim": "setPhase (store.ts:78) is the single entry point for stage changes, while keys 1-3 stay as they are (App.tsx:25-27).",
+   "correction": "The keyboard handler calls set({ phase }) directly, bypassing setPhase, so a stage record applied in setPhase would not run from the keyboard.",
+   "evidence": "tower-studio/src/App.tsx:25-27 calls set({ phase: 'basic' | 'advanced' | 'present' }); store.ts:78 is setPhase: (phase) => set({ phase })."
+  },
+  {
+   "claim": "The counts become Basic 72, Advanced-only 46 and Advanced view 118 once declared phase wins.",
+   "correction": "These figures assume the DATA rule is kept and the 20 cross-cutting nodes are split 9 to Basic and 11 to Platform. Declared phase alone gives Basic 91 plus 20 unplaced cross-cutting nodes. The packet leaves the DATA rule open.",
+   "evidence": "Script over src/data/research_registry.json (176 nodes: 87 basic, 46 advanced, 20 cross-cutting, 14 platform, 9 present) plus 4 BUILT_NODES. 28 DATA nodes are declared basic. Cross-cutting by category: DATA 11, PROG 3, SITE 2, ENER/ECOL/PUBL/CULT 1 each."
+  }
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Specify how the core becomes visible at Medium detail (translucent envelope or cut plane) before calling it the Advanced signature moment.",
+   "Replace the unsourced core preset with a cited, band-weighted core-to-GFA default, and add a net-area and efficiency schedule to Advanced.",
+   "Route keys 1-3 through the stage-record path and move the right-panel tab into the store.",
+   "State the cross-cutting placement and the DATA-rule decision behind the 72/118 counts, and test them in vitest."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER: misdiagnosed 'Basic has more nodes' without reading code",
+   "status": "addressed"
+  },
+  {
+   "item": "BLOCKER: felt shift assumes model content that does not exist",
+   "status": "partly"
+  },
+  {
+   "item": "MAJOR: too many overlapping concepts (tier, Detail, LOD, Look, scenes, options)",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: Revit Detail Level misdescribed (distance-driven Auto)",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: Advanced raises the node canvas as a drawer",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: automatic camera moves on stage change",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: icon plan used the wrong repo and mixed icon families",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: canvas patterns over-scoped",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: patterns marked verified that are interpretation, plus misdated Rutten posts",
+   "status": "partly"
+  },
+  {
+   "item": "MAJOR: user test did not measure felt difference, had no counterbalancing and used a 4-of-5 pass rule",
+   "status": "addressed"
+  }
+ ],
+ "verdict": "Round 2 fixes both round-1 blockers in substance. The packet reads the code, counts the nodes correctly, makes Advanced a superset of Basic, and stops automatic camera moves and the canvas drawer. Detail is now an explicit chip and the icons use lucide. Three new MAJOR issues remain. The core box would be hidden inside opaque band blocks. 'No source for core size' ignores published tall-building core-to-GFA ratios, and the core never feeds any number. Keys 1-3 call set({ phase }) directly, so they bypass the proposed setPhase stage record. Status labels still blur source verification with design judgement. It passes, provided Advanced gets a visible, cited core and a net-area schedule, so the shift is real rather than cosmetic."
+}

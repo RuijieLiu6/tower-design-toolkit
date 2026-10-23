@@ -1,0 +1,254 @@
+{
+ "expert_role": "Architectural visualization lead (competition boards, drawing production, AI-assisted rendering), round-2 reviewer of P13",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P13-M01 / packet",
+   "issue": "The brief PDF is still not in the register. The spec's own project description says the VTC facts come 'from the official competition PDF', so the team already has it. Yet the 6 Nov validator would ship with panel count, A2 landscape, the 20 items, the weights and any pixel or file-naming rules all unverified. The Q&A closes on 3 Nov, and questions can only be framed correctly from the brief. City PDFs (the 1997 Higher Buildings Policy and the 2024 Public Views Guidelines) returned 403 to the agents' fetch tool, but a person using a browser can usually open them.",
+   "fix": "By 24 Oct the team puts the brief PDF into the repo, records its SHA-256 and has two members transcribe its rules into brief_register with page numbers. Then re-label every S01-based status. Do the same for the 1997 policy, the Public Views Guidelines and the Open Government Licence text, using a shared 'document register' node (DATA) so that SITE/PROG packets reuse it. Do not release the 6 Nov validator until brief_register is populated."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13 packet (schedule)",
+   "issue": "Time-critical human actions come before every tool delivery. Registration closes 29 Oct, but the M01 registration-close warning ships 6 Nov, after the date it warns about, so it does nothing. At least seven open questions are deferred to 'ask Buildner in Q&A before 3 Nov', with no owner, no deliverable and no date: MB vs MiB, baseline vs progressive and pixel or colour rules, 23:59 vs 24.00, Nation names under the English-only rule, community sharing as previous publication, AI disclosure, and whether the panel count is exact or a maximum.",
+   "fix": "Add a dated human task list outside the tool: register and verify identity by 27 Oct, and submit a written Q&A question pack by 31 Oct (one question per open flag, quoting the clause). Record the answers as changelog entries. Drop the registration warning from the 6 Nov scope; show it now as a static banner in the README or tool header."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M03",
+   "issue": "The metric 'Cone ceiling height versus tower top' scores a tower above the QE Park cone ceiling as bad. The competition is about higher buildings: the Higher Buildings Policy exists to allow select encroachment into view 3 (QE Park), according to the spec's own S05 excerpt, and the brief says justified breaches may be rewarded. A red flag pushes entrants away from the question the jury is asking.",
+   "fix": "Replace the good/bad judgement with a neutral encroachment report: height above or below the ceiling at the site, encroached area of each cone 3.2.1-3.2.4, and the share of the skyline silhouette affected. Any encroachment must have an entry in the M08a breach register with a rationale. Only 'encroachment without rationale' or 'ceiling unknown' should be amber."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01 / M06b / M08b / M07",
+   "issue": "Core nodes depend on v1 nodes. M06b's text_blocks come from M08b (v1, 10 Dec). M01's Language metric relies on M08b setting language='en'. M01 also reads rubric gaps from M07 (v1). As written, the 13 Nov core cannot run end to end.",
+   "fix": "In core, human-typed text frames live in M06a, each with its own language attestation field and allow-list check. Mark the M07 and M08b inputs as optional ports with defined null behaviour (no gaps, text from M06a). Add a CI check that core nodes only consume core nodes or optional ports."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M06",
+   "issue": "The schedule is partly addressed but still saturated. Core adds up to 29-34 person-days, against 17 working days (34 person-days) between 21 Oct and 13 Nov once Remembrance Day (11 Nov, BC statutory holiday, UBC closed) is removed, at 100% time with no integration or testing. The largest item (M06 at 11-13 days) rebuilds a layout composer that entrants already have in InDesign or Illustrator. The part that actually prevents disqualification is checking the exported JPEGs.",
+   "fix": "Split M06b into a drag-and-drop JPEG validator, which takes any JPEG exported from desktop tools and checks magic bytes, bytes against 10^7, px ratio, SOF sampling, scan mode, metadata, OCR deny-list and glyph warnings (about 3 person-days, ship by 31 Oct-6 Nov), and the composer/encoder, which moves to v1. Re-total effort with holidays deducted and a part-time factor."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13 (status model)",
+   "issue": "The status field mixes history with evidence. The same landscape-ratio rule is 'false_assumption_corrected' in M01 and 'team_assumption' in M06. M03's ground-level count and viewpoint offset are 'false_assumption_corrected' although their current evidence is 'unverified' or 'team'. Typed nodes will disagree about the same rule.",
+   "fix": "Use two fields: status (verified | unverified | team_assumption) and history (a flag id such as 'corrected r1'). Keep a single rule registry that both M01 and M06 reference by rule id."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M04 / M05",
+   "issue": "'Size rule compliance (OpenAI route)' is marked verified, but the spec itself says the model names and prices were read through a summarising fetch, 'look unusual' and must be confirmed before coding. The quality values 'xhigh/max' and the 2.5 model ids are similarly unconfirmed. The reviewer's own re-fetch failed (session limit).",
+   "fix": "Set the status to unverified until the raw docs or the openai-node type definitions are read, and confirm with one pilot call that the size validator mirrors the API's own error response."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M02",
+   "issue": "The hidden-line method, 'all projected edges minus visible (clipper2-js difference)', is not a valid Clipper operation. Clipper2 clips open paths only as subjects against closed polygons, so it cannot subtract line segments from line segments.",
+   "fix": "Compute hidden lines either by clipping the projected open edges against the projected polygons of nearer occluding faces, or by per-edge interval subtraction of collinear visible sub-segments (with a tolerance). Otherwise keep the hidden class only on the Make2D import route."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M01",
+   "issue": "The two-person sign-off gate assumes a team of two or more. The competition page allows 'individuals or teams (4 maximum)', while Terms 3.2 define teams as 2-4. The tool's users are all entrants, not only the course team, so a solo entrant cannot pass the gate.",
+   "fix": "Make the sign-off count a parameter: 2 by default for teams, 1 for individuals, with an optional second reader who can check without seeing identifying data."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M01",
+   "issue": "Intl.DateTimeFormat with timeZoneName 'longOffset' returns strings like 'GMT-07:00', not '-07:00', so a literal comparison always fails and always shows the fallback warning. The latest tzdb release is 2026e (29 Sep 2026) and makes no further BC change, so the 2026b basis still holds.",
+   "fix": "Parse the offset from formatToParts (strip 'GMT'; an empty value means +00:00) and compare it in minutes with -420. Cite tzdb 2026e as the latest release checked."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M06",
+   "issue": "The anonymity scan is text-only (OCR plus deny-list). Terms 5.1 bars 'marks, logos, symbols, or signs', and these include crests or logos (UBC, SALA), studio watermarks and identifying signage that AI renders may invent.",
+   "fix": "Add a required human visual-check item per board in the M06c release strip. Optionally add template matching for known logos supplied by the team, and extend the M05 block-list review to the rendered output."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M05",
+   "issue": "Deployment is not specified. Calling the OpenAI API from a static web app exposes a user-supplied key in the browser, and SAM 2 and ComfyUI need a Python/GPU service. Sending unpublished competition designs to a third-party API also raises data-retention questions that are not recorded.",
+   "fix": "Specify a thin server proxy, or keep the user's own key in memory only with a warning. Name the host for SAM 2 and ComfyUI (local GPU or rented, with cost). Record the provider's data-retention setting in the ai_ledger."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13 flags",
+   "issue": "The first r1 FALSE_ASSUMPTION flag still gives '15:59 Vancouver (PST)' as its correction. Anyone who reads that flag alone gets a wrong time.",
+   "fix": "Add 'superseded_by' pointing to the 16:59 flag, and show the superseded correction struck through in the UI."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M02",
+   "issue": "There is no site_plan_extent parameter. The site plan must show the block plus the arterial, the high street, lanes and the transit plaza diagonally across, which is about 250-350 m. At 1:500 that is 500-700 mm, more than a whole A2 board.",
+   "fix": "Add site_plan_extent (m) with the same fit check, and default to 1:1000 or 1:750 for the site plan with a 1:500 inset."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M08a / DATA",
+   "issue": "The 'entry-private' default for assets linked to an entry (the previous-publication risk under Terms 4.1) appears only in a flag. No module method implements or checks it.",
+   "fix": "Assign it to M08a or the DATA packet and add a hard rule in M01: no board-linked asset made public before 30 Nov 2026."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M01",
+   "issue": "'Upload prerequisites' is marked verified on the basis of Terms 3.6 ('identity verification on Architects' Network before UIC validation'). The reviewer's reading of 3.6 found registration-method text and could not confirm that wording. Only the how-to-enter page clearly supports it.",
+   "fix": "Quote the exact clause text in brief_register. If 3.6 does not say it, cite only P13-S49."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The brief PDF 'could not be opened here', so board count, A2 landscape, weights and the 20 items must stay unverified.",
+   "why_false": "The project description states the VTC brief facts are 'from the official competition PDF', so the team holds the file. Only the agents' fetch tool could not reach it.",
+   "correction": "The team supplies the PDF to the repo, hashes it and transcribes it twice; the statuses are then updated before the 6 Nov validator ships.",
+   "evidence": "Project description header: 'VTC BRIEF FACTS (from the official competition PDF)'; Terms 4.8 (https://architecturecompetitions.com/vancouvertallchallenge/terms) defers the panel count to the brief."
+  },
+  {
+   "claim": "A tower top above the QE Park view-cone ceiling is 'bad' (M03 metric).",
+   "why_false": "The competition explores higher buildings under the Higher Buildings Policy, which per the spec's own S05 excerpt sets a process by which select developments may encroach into public view 3 (QE Park), and the brief says justified breaches may be rewarded.",
+   "correction": "Report encroachment neutrally and require a breach-register rationale; do not score it bad.",
+   "evidence": "Spec source P13-S05 extract (search excerpt of City guidelines); brief clause on justified breaches (P13-S01, team-supplied)."
+  },
+  {
+   "claim": "21 Oct to 13 Nov offers 18 working days (36 person-days), enough for the 29-34 person-day core.",
+   "why_false": "11 Nov (Remembrance Day) is a BC statutory holiday on which UBC is closed, leaving 17 working days (34 person-days) at 100% time with no integration or testing time, so the plan is fully saturated.",
+   "correction": "Re-plan to a validator-first core of about 3 person-days by 6 Nov, and move the composer to v1.",
+   "evidence": "Calendar arithmetic: 21-23 Oct (3), 26-30 Oct (5), 2-6 Nov (5), 9-13 Nov (5) = 18, minus 11 Nov = 17."
+  },
+  {
+   "claim": "Hidden lines can be obtained as 'all projected edges minus visible' with a clipper2-js difference.",
+   "why_false": "Clipper2 supports open paths only as subjects clipped by closed polygons. It cannot take the difference of one set of line segments from another.",
+   "correction": "Clip projected edges against the occluding face polygons, or use per-edge interval subtraction.",
+   "evidence": "Clipper2 documentation on open paths (subject-only); P13-S25 notes the clipper2-js use is for silhouettes (polygons)."
+  },
+  {
+   "claim": "The Vancouver offset check compares the Intl longOffset output with '-07:00'.",
+   "why_false": "timeZoneName 'longOffset' produces 'GMT-07:00'-style strings.",
+   "correction": "Parse the offset into minutes before comparing.",
+   "evidence": "ECMA-402 / MDN Intl.DateTimeFormat timeZoneName 'longOffset' output format."
+  }
+ ],
+ "missing": [
+  "A Q&A question pack, due 31 Oct, with one question per open flag and the exact clause quoted; answers logged as dated changelog entries",
+  "A dated human-task timeline outside the tool (register and verify by 27 Oct; brief and City PDFs into the register by 24 Oct; Q&A by 3 Nov)",
+  "A shared document register node (DATA) for the brief, the 1997 Higher Buildings Policy, the Public Views Guidelines and the OGL-Vancouver text, with hashes and page references",
+  "A standalone JPEG validator for boards exported from desktop tools, separate from the composer",
+  "Neutral view-cone encroachment report linked to the breach register (replacing the good/bad ceiling metric)",
+  "A site_plan_extent parameter and fit check for the site plan",
+  "A previous-publication gate (no public board-linked assets before 30 Nov) in M01, owned by M08a or DATA",
+  "Sign-off count parameter for individual entrants",
+  "A visual (logo, crest, signage) anonymity check step",
+  "Deployment spec for the OpenAI key proxy and for the SAM 2 / ComfyUI GPU services, plus API data-retention logging",
+  "Separate status and history fields in the threshold data model; a single rule registry shared by M01 and M06",
+  "Optional-port and null behaviour for v1 inputs (M07, M08b) consumed by core nodes"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Brief PDF (and the City policy/guideline PDFs) supplied by the team, hashed and transcribed twice into brief_register before the 6 Nov validator ships; S01-based statuses updated",
+   "Q&A question pack submitted by 31 Oct and a dated human-task list added (registration warning removed from 6 Nov scope)",
+   "M03 cone-ceiling metric reframed as a neutral encroachment report tied to the breach register",
+   "Core nodes made independent of v1 nodes (text frames and language attestation in M06a; M07/M08b as optional ports)",
+   "Core scope cut to a validator-first plan that fits 34 person-days or fewer after the 11 Nov holiday, with part-time load stated",
+   "Status model split into evidence status and correction history so M01 and M06 agree on each rule"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: brief PDF unopened; S01-derived rules marked verified; panel count as a range",
+   "status": "partly",
+   "residue": "Statuses re-labelled and brief_register added, but 'The brief PDF is sent by emailed link and could not be opened here'. The team holds the PDF and it is still not in the register 13 days before the Q&A closes."
+  },
+  {
+   "item": "MAJOR M01: deadline 15:59 PST wrong; 23:59 vs 24.00",
+   "status": "addressed",
+   "residue": "UTC instant and Intl check added. The longOffset string format ('GMT-07:00') is not handled, and the old r1 flag still states '15:59 Vancouver (PST)' with no superseded_by link."
+  },
+  {
+   "item": "MAJOR M01: upload prerequisites, registration close, upload-once",
+   "status": "partly",
+   "residue": "Checks added, but the registration warning ships 6 Nov, after the 29 Oct close; the Terms 3.6 wording for 'verified' status was not confirmed by this reviewer."
+  },
+  {
+   "item": "MAJOR M01: language rule vs Indigenous names",
+   "status": "addressed",
+   "residue": "Allow-list, gloss and glyph check in place; depends on M08b (v1) for language='en' attestation."
+  },
+  {
+   "item": "MAJOR M02: section scale",
+   "status": "addressed",
+   "residue": "section_scale and fit at preset selection added; there is no equivalent extent check for the site plan."
+  },
+  {
+   "item": "MAJOR M02: hidden-line method and wrong source ids",
+   "status": "addressed",
+   "residue": "Sources corrected to S27/S25 and the classes split by route; the proposed clipper2 'difference' for hidden lines is not a valid operation."
+  },
+  {
+   "item": "MAJOR M03: view-cone origin obtainable from open data",
+   "status": "addressed",
+   "residue": "Apex derived and cited; the ceiling metric now judges encroachment as 'bad', which conflicts with the brief's premise. The reviewer's records query returned 0 results, so the apex was not independently re-checked."
+  },
+  {
+   "item": "MAJOR M05: rights and licence register",
+   "status": "addressed",
+   "residue": "M08a rights register and licence pack added; the OGL-Vancouver text is still unread although cone overlays will appear on boards."
+  },
+  {
+   "item": "MAJOR M01/M06/M07/M08: dependency cycles",
+   "status": "addressed",
+   "residue": "The DAG is acyclic, but core nodes now consume v1 nodes (M08b text_blocks into M06b; M07 into M01)."
+  },
+  {
+   "item": "MAJOR packet: schedule and prioritisation",
+   "status": "partly",
+   "residue": "'Slice estimates add up to about 29-34 person-days ... 36 person-days ... (holidays not deducted)'. The 11 Nov holiday leaves 34 person-days, and M06 at 11-13 days remains the largest core item."
+  },
+  {
+   "item": "MAJOR M05: segmentation model, lighting and context-tower checks",
+   "status": "addressed",
+   "residue": "SAM 2 named; the hosting needed for a web app (Python/GPU) is not specified."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P13-S03",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "4.8 confirmed: JPEG, at most 10 MB, brief sets one to four panels; no orientation, A2 or pixel rules. 4.7 '24.00, London Time' and the edit-reactivation fee confirmed; 4.1, 4.3, 5.1 (marks, logos, symbols, signs), 7.7, 8.2, 8.4 and 12.2 confirmed. 3.2: teams of at least 2. 3.6 as read concerns registration methods; the identity-verification wording was not confirmed."
+  },
+  {
+   "source_id": "P13-S02",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "note": "Registration closes 29 Oct (no hour); Q&A 3 Nov; submission 30 Nov 23:59 London; 'all information submitted by participants must be in English'; individuals or teams (4 max); Student and Sustainability Awards CAD 1,000; AI FAQ caution confirmed; no board specs on the page."
+  },
+  {
+   "source_id": "P13-S45",
+   "url": "https://data.iana.org/time-zones/tzdb/NEWS",
+   "ok": true,
+   "note": "2026b confirmed: permanent -07 (legal 2026-03-09), modelled at 2026-11-01 02:00 PDT to MST because of a CLDR limitation. The latest release is 2026e (2026-09-29) and makes no further BC change."
+  },
+  {
+   "source_id": "P13-S47",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones/records",
+   "ok": false,
+   "note": "A filtered query (view_number like 3.2%) returned 0 records; an unfiltered retry hit the session limit. The apex coordinates were not independently verified."
+  },
+  {
+   "source_id": "P13-S11",
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": false,
+   "note": "The fetch failed (session limit), so the model ids, size rules and quality values were not re-verified; the status should stay unverified."
+  },
+  {
+   "source_id": "P13-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": false,
+   "note": "The brief PDF was not accessible to the reviewer. The web-search budget for this turn was exhausted, so no further searches were made."
+  }
+ ],
+ "verdict": "Round 2 is a large improvement. The deadline, view-cone origin, section-scale, hidden-line source, rights-register and dependency-cycle fixes are mostly addressed. The gate still fails. The brief PDF, which the team already holds, is not in the register, so the validator would certify rules nobody has read. The registration warning ships after registration closes, and the open Q&A questions have no owner. The QE Park ceiling metric marks as 'bad' the very encroachment the competition is asking about. Core nodes depend on v1 nodes. The schedule is still saturated once the 11 Nov holiday is counted. A validator-first core plus a Q&A pack due 31 Oct would make the plan workable. Several sources could not be re-checked because of tool limits."
+}

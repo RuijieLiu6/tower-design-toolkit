@@ -1,0 +1,1150 @@
+{
+ "packet_id": "Q02",
+ "findings": [
+  {
+   "name": "shadcn/ui (CLI, registries, MCP server, skill)",
+   "url": "https://github.com/shadcn-ui/ui",
+   "kind": "library",
+   "what_it_does": "Copy-in React components (Base UI, React Aria or Radix, plus Tailwind) installed by a CLI and registries. Ships an MCP server and a Claude-readable skill. Since July 2026 'shadcn init' defaults to Base UI; '-b radix' selects Radix.",
+   "how_we_use_it": "Run 'shadcn init -t vite -b base', record the base in CLAUDE.md, then 'shadcn@latest mcp init --client claude' and 'skills add shadcn/ui' so Claude installs canonical components. Theme with our tokens. Tell Claude to use the render prop, not asChild.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "shadcn-ui org",
+   "license": "MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at, rechecked 21 Oct); r3 re-read 21 Oct: CLI page (init -t and -b flags), MCP page, 2026-07 changelog entry (default base, -b radix, migration skill)",
+   "popularity": "126.1k stars; 793 open issues plus 987 open PRs (tab counts, r3)",
+   "saves": "Canonical code from CLI and MCP means fewer fix-up loops and tokens; the default path keeps docs, skill and examples aligned.",
+   "risks": "Copied code becomes ours to maintain. Default look is generic without custom tokens. Base UI and Radix snippets differ (render vs asChild), so mixed examples break. The CLI page states no init default (the changelog does). Needs Node and pnpm, not installed yet."
+  },
+  {
+   "name": "Base UI (new shadcn default) and Radix Primitives",
+   "url": "https://github.com/mui/base-ui",
+   "kind": "library",
+   "what_it_does": "Unstyled accessible React components from the creators of Radix, Floating UI and MUI; MIT; npm @base-ui/react 1.9.0 (9 Oct 2026). Radix Primitives (WorkOS, MIT) stays supported and is used only when shadcn is initialised with -b radix.",
+   "how_we_use_it": "Consume through shadcn only; import directly just for custom widgets such as port popovers. Choose once and write it into PRODUCT.md and CLAUDE.md. Fall back to '-b radix' if a needed component is missing; shadcn's migration skill converts components later.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "MUI and Base UI team (Radix: WorkOS)",
+   "license": "MIT (both)",
+   "last_activity": "Base UI pushed 2026-10-21, v1.9.0 on 2026-10-09; Radix primitives pushed 2026-10-14",
+   "popularity": "Base UI 11.2k stars, 298 open issues plus 133 PRs; Radix 19.4k stars",
+   "saves": "Focus, keyboard and ARIA behaviour for overlays and menus come prebuilt; following shadcn's default avoids doc and skill mismatches.",
+   "risks": "Younger than Radix, with fewer community snippets, so model habits (asChild) may mislead. Not tested here with our canvas popovers. React Flow UI registry items import no Radix directly (11 checked), so either base works."
+  },
+  {
+   "name": "Tailwind CSS (v4, CSS-first)",
+   "url": "https://github.com/tailwindlabs/tailwindcss",
+   "kind": "library",
+   "what_it_does": "Utility-first CSS framework. Version 4 declares theme tokens as CSS variables in an @theme block instead of tailwind.config.js. Current npm release 4.3.3 (16 Jul 2026). shadcn and React Flow UI assume it.",
+   "how_we_use_it": "Tokens emit CSS custom properties that an '@theme inline' block references. Dark mode via a data attribute: put '@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));' in the token CSS and in CLAUDE.md. Pin 4.3.x. Give Claude no tailwind.config.js guidance.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "tailwindlabs",
+   "license": "MIT",
+   "last_activity": "2026-10-19 (GitHub pushed_at; npm modified 2026-10-19); dark-mode docs read 21 Oct (r3)",
+   "popularity": "97.9k stars; 35 open issues plus 58 PRs (tab counts, r3)",
+   "saves": "Compact class strings cost fewer tokens than bespoke CSS and keep generated UI consistent.",
+   "risks": "Long class lists hurt readability; token discipline needed. React Flow's stylesheet must import after Tailwind. The docs' system-theme override example is JavaScript that toggles a class, so adapt it to the data attribute."
+  },
+  {
+   "name": "React Flow (xyflow)",
+   "url": "https://github.com/xyflow/xyflow",
+   "kind": "library",
+   "what_it_does": "MIT node-UI library: custom nodes, handles, edges, minimap. Tab focuses nodes and edges, Enter/Space selects, arrows move nodes; connectOnClick allows click-click wiring. No documented keyboard edge creation; handle name defaults to 'Handle' (ariaLabelConfig).",
+   "how_we_use_it": "Canvas engine, @xyflow/react 12.12.x, a view over our store. Set deleteKeyCode ['Delete','Backspace'], zoomOnDoubleClick false, panActivationKeyCode null; typed ports via isValidConnection. We build keyboard 'Connect...', an Edges list, labelled port buttons and counter-scaled hit areas; dagre for Tidy; stop edge animation under reduced motion.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "xyflow",
+   "license": "MIT",
+   "last_activity": "2026-10-21 (GitHub API pushed_at; npm 12.12.0 on 2026-09-24); API reference, accessibility page, Handle page and 12.12.0 stylesheet read 21 Oct (r3 re-read)",
+   "popularity": "38.7k stars; 93 open issues plus 69 PRs (tab counts, r3)",
+   "saves": "Avoids building pan/zoom, selection, wiring, minimap and focus plumbing from scratch.",
+   "risks": "Keyboard wiring is ours (WCAG 2.1.1). Handles are 6 px by default and scale with zoom (minZoom 0.5). Default delete is Backspace; Space pans and selects; move announcements are assertive; edge animation ignores reduced motion. Large graphs need memoisation. Keep our graph JSON independent."
+  },
+  {
+   "name": "React Flow UI (shadcn-based components; templates are Pro)",
+   "url": "https://reactflow.dev/ui",
+   "kind": "library",
+   "what_it_does": "Components for React Flow installed from a shadcn-style registry: base node, handles, status indicator, node search, zoom slider, devtools. Needs React 19 and Tailwind 4. Both templates are labelled Pro examples; Pro starts at $169 per month.",
+   "how_we_use_it": "Do not build on the templates. Read the component sources as references (11 checked import no Radix package, only React, @xyflow/react, lucide and shadcn parts). Vendor one only after xyflow confirms its licence; otherwise rewrite, since each file is short.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "xyflow",
+   "license": "Not stated per component; site footer links xyflow's MIT; registry files carry no licence header. Pro examples (templates, undo/redo) use the xyflow Pro License",
+   "last_activity": "Undo/redo example page updated 11 Oct 2026; component pages show no date",
+   "popularity": "unknown",
+   "saves": "Study of finished, token-ready node, handle and status parts saves days of node-card design even if we rewrite them.",
+   "risks": "Component licence unresolved. Templates need paid Pro (Next.js, ELKjs, Zustand); the undo/redo example is also Pro-licensed, so build our own. Strict stylesheet import order. Newer, opinionated, few external references."
+  },
+  {
+   "name": "cmdk (with kbar and React Aria fallbacks)",
+   "url": "https://github.com/dip/cmdk",
+   "kind": "library",
+   "what_it_does": "Unstyled React command-menu component with filtering, keyword aliases and a dialog wrapper. shadcn's Command wraps it. npm 1.1.1 (14 Mar 2025) accepts React 18 or 19. Good to roughly 2-3k items.",
+   "how_we_use_it": "Ctrl/Cmd+K palette via shadcn Command, wrapped in our own Palette component so it can swap to kbar (timc1/kbar, MIT, npm 1.0.0, 10 Aug 2026) or React Aria's combobox (shadcn offers an aria base). Modules register commands, including 'Connect...'. A visible Commands button is the non-shortcut route.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "dip (Paco Coursey)",
+   "license": "MIT",
+   "last_activity": "Push 2025-10-29; last npm release 2025-03-14",
+   "popularity": "13.0k stars; 52 open issues plus 24 PRs (tab counts, r3)",
+   "saves": "Fuzzy matching, keyboard handling and dialog wiring done; one CLI call to add.",
+   "risks": "Dormant: no release since March 2025. React 19 is supported (earlier note was wrong). No virtualisation. README claims VoiceOver testing; we still run our own pass. Wrapping it keeps the swap cheap. React Aria is a second primitives set."
+  },
+  {
+   "name": "react-resizable-panels (and dockview later)",
+   "url": "https://github.com/bvaughn/react-resizable-panels",
+   "kind": "library",
+   "what_it_does": "MIT React components for resizable, collapsible panel layouts with keyboard-friendly separators and layout save/restore. shadcn's Resizable wraps it. dockview (MIT core, 8.6.1 on 19 Oct 2026; enterprise package proprietary) adds tabbed docking.",
+   "how_we_use_it": "App shell: stage rail left, canvas centre, inspector and sources right. Collapse everything for Present mode and persist layout per stage. Keep dockview for later pop-out and tabbed docking.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Brian Vaughn (bvaughn)",
+   "license": "MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "5.4k stars, 0 open issues (GitHub hides zero counts)",
+   "saves": "Resizable, collapsible, persisted panels without custom drag code.",
+   "risks": "Single maintainer. API changed between versions. No tabbed docking or pop-outs; dockview is the upgrade but its enterprise package is proprietary."
+  },
+  {
+   "name": "Claude design aids: Impeccable and Anthropic frontend-design",
+   "url": "https://github.com/pbakaus/impeccable",
+   "kind": "skill",
+   "what_it_does": "Impeccable: design skill with 24 commands and 61 deterministic rules that flag AI-looking UI; its installer fetches an engine binary and writes hooks. Anthropic frontend-design: one short SKILL.md steering toward deliberate type, palette and one motion moment.",
+   "how_we_use_it": "Impeccable only after review: --no-hooks, telemetry off in .impeccable/config.json, inspect ~/.impeccable/bin, and never enable live mode without reading its manual-edit-validate script. Critique and polish before demos after 13 Nov. frontend-design only for Present boards and landing pages. At most two design aids per session.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Paul Bakaus (Impeccable); Anthropic (frontend-design)",
+   "license": "Apache-2.0 (Impeccable); Apache-2.0 per-skill LICENSE.txt (frontend-design; repo root shows none)",
+   "last_activity": "Impeccable pushed 2026-10-21 (README re-read 21 Oct, r3); anthropics/skills pushed 2026-10-09",
+   "popularity": "Impeccable 84.1k stars, 36 open issues plus 13 PRs; anthropics/skills 182k stars",
+   "saves": "Rule detection costs zero tokens; PRODUCT.md avoids restating the brief each session; frontend-design is cheap to load and trims aesthetic revisions.",
+   "risks": "Roll API at impeccable.style runs by default (telemetry, several opt-outs); binary download host unnamed; hooks edit .claude/settings.local.json and can trigger the download even if the launcher is denied; live mode runs a package.json script; it calls Inter overused. frontend-design repo licence field is empty."
+  },
+  {
+   "name": "Vercel web-design-guidelines skill and Web Interface Guidelines",
+   "url": "https://github.com/vercel-labs/web-interface-guidelines",
+   "kind": "guideline",
+   "what_it_does": "A skill that reviews UI files against about 100 rules in 17 sections (visible focus, keyboard handlers, reduced motion, transform/opacity-only animation, aria-live for async updates) and prints terse file:line findings. command.md embeds the rules; the repo is MIT.",
+   "how_we_use_it": "Vendor a pinned copy of command.md with the repo's LICENSE notice and a commit hash, and run it on changed UI files before merges, instead of letting the skill fetch main at review time. Add our canvas-specific rules beside it. Default review aid for the 13 Nov core.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Vercel (vercel-labs)",
+   "license": "MIT (LICENSE file in vercel-labs/web-interface-guidelines, Vercel Labs 2025; the agent-skills API shows no licence field)",
+   "last_activity": "2026-10-14 (agent-skills pushed_at); guidelines repo lists 60 commits, last date not shown",
+   "popularity": "agent-skills 32.7k stars; guidelines about 1.0k stars, 2 open PRs",
+   "saves": "Terse file:line output keeps review cost low; replaces writing our own checklist.",
+   "risks": "The skill fetches command.md from GitHub main before every review (reproducibility, injection risk), so vendor and pin. Some rules are Next.js/Vercel-specific. Rules do not cover our canvas or WCAG 2.2 additions such as target size."
+  },
+  {
+   "name": "IBM Carbon (design system and data-viz guidance)",
+   "url": "https://github.com/carbon-design-system/carbon",
+   "kind": "repo",
+   "what_it_does": "Apache-2.0 design system with concrete guidance for data-dense UI: data-viz palettes, chart anatomy, status indicators, notifications, empty states, light/dark tokens. Status pattern pairs colour with shape or symbol and text; warns that more than five or six indicators overwhelm.",
+   "how_we_use_it": "Reference, not a second component library. Borrow the status rules for Sourced / Team assumption / FALSE ASSUMPTION (colour plus icon plus word), notification persistence, categorical colour order, chart anatomy and empty-state structure.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "IBM",
+   "license": "Apache-2.0",
+   "last_activity": "2026-10-21 (GitHub API pushed_at)",
+   "popularity": "9.6k stars; 980 open issues plus 101 PRs (tab counts, r3)",
+   "saves": "Tested wording and rules for status, notifications and legends; no research from scratch.",
+   "risks": "Status page contradicts itself (three elements vs two) and sets no hard cap. Chart page says nothing on number formatting. Mixing Carbon components with shadcn gives two visual languages."
+  },
+  {
+   "name": "Scientific colour maps (Crameri) and cmcrameri",
+   "url": "https://www.fabiocrameri.ch/colourmaps/",
+   "kind": "dataset",
+   "what_it_does": "Perceptually uniform, colour-vision-deficiency-friendly maps that stay readable in black and white. Zenodo record 8.0.1 (5 Oct 2023, DOI 10.5281/zenodo.8409685) states the MIT licence. cmcrameri is the MIT Python wrapper.",
+   "how_we_use_it": "Default sequential and diverging ramps for sun, shadow, wind and energy. Export colour stops as JSON with the MIT notice; draw legends from the same stops; cite Crameri et al. 2020 and the DOI in the sources panel. Outline analysed surfaces; test ramp ends against the viewport in CI.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Fabio Crameri",
+   "license": "MIT (Zenodo record 8409685)",
+   "last_activity": "v8.0.1 dated 2023-10-05 (Zenodo); record re-opened 21 Oct (r3), no newer version shown",
+   "popularity": "unknown",
+   "saves": "Avoids designing and testing colour ramps; citable for the sources panel.",
+   "risks": "JavaScript packaging not verified (66.9 MB zip). Categorical maps are limited. Only batlow, roma and vik checked, from a local data copy: none nears the FALSE magenta, but ramp ends fade into white or dark plates (1.1 to 1.7:1)."
+  },
+  {
+   "name": "Culori, Radix Colors and Style Dictionary (colour and token pipeline)",
+   "url": "https://github.com/Evercoder/culori",
+   "kind": "library",
+   "what_it_does": "Culori: MIT JavaScript colour library with OKLCH, interpolation and difference formulas. Radix Colors: MIT light/dark scales. Style Dictionary 5.7.0 (Apache-2.0, 16 Oct 2026): token build with first-class DTCG; the 2025.10 format is still partial.",
+   "how_we_use_it": "For 13 Nov, hand-written CSS variables with Culori scales from three inputs (base, accent, contrast) and contrast checks in CI; one-hour spike against Radix Colors, then pick one. In v1, DTCG JSON through Style Dictionary into the '@theme inline' block.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Evercoder (Dan Burzo); Radix (WorkOS); Style Dictionary org (DTCG: W3C community group)",
+   "license": "MIT (Culori, Radix Colors); Apache-2.0 (Style Dictionary)",
+   "last_activity": "Culori 2026-10-15 (npm 4.0.2); Style Dictionary npm release 2026-10-16; Radix Colors pushed 2025-12-17",
+   "popularity": "Culori 1.2k stars, 19 open issues plus 11 PRs; Style Dictionary 4.9k stars, 217 issues plus 23 PRs; Radix Colors 1.7k stars",
+   "saves": "Programmatic palettes cut manual colour iteration and keep light/dark themes consistent; one token source stops Claude hard-coding colours.",
+   "risks": "Culori docs did not confirm gamut mapping or WCAG helpers; OKLCH lightness is no contrast guarantee. Style Dictionary adds a build step and 2025.10 gaps. Two palette sources in parallel would confuse; small communities."
+  },
+  {
+   "name": "Observable (Plot, Framework and Runtime)",
+   "url": "https://github.com/observablehq/plot",
+   "kind": "library",
+   "what_it_does": "Plot (ISC): layered-mark charts with colour, opacity and symbol legends and a standalone Plot.legend(). Framework and Runtime (ISC): reactive dataflow in which only blocks downstream of a change re-run and unobserved variables stay lazy.",
+   "how_we_use_it": "Plot for results panels and SVG board exports: one fixed-domain colour scale per metric, shared across compared options. Runtime and Framework are liveness references only (downstream-only recompute, lazy evaluation, invalidation), not dependencies. d3-scale-chromatic stays the fallback ramp source.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Observable",
+   "license": "ISC (Plot, Framework, Runtime); d3-scale-chromatic ISC plus Apache-2.0 ColorBrewer",
+   "last_activity": "Plot pushed 2026-09-01 (npm 0.6.17, 2025-02-14); Runtime npm 6.0.1 2026-09-16; Framework npm 1.13.4 2026-03-02",
+   "popularity": "Plot 5.4k stars, 251 open issues plus 99 PRs; Framework 3.7k stars, 141 open (issues plus PRs, API); Runtime 1.1k stars, 2 open (same basis)",
+   "saves": "Few lines per chart means fewer tokens than hand-written SVG or d3; the Runtime model gives a tested vocabulary for stale and lazy nodes.",
+   "risks": "Site docs returned HTTP 429; features read from repo docs and raw GitHub files. Plot has no 3D or radius and length legends. Framework is a static-site generator, not an embeddable engine. Last Plot npm release Feb 2025."
+  },
+  {
+   "name": "Inter and Geist Mono typefaces",
+   "url": "https://github.com/rsms/inter",
+   "kind": "other",
+   "what_it_does": "OFL-1.1 fonts. Inter 4.1 (16 Nov 2024) is variable with an opsz axis that provides Display designs. Geist Mono lives in vercel/geist-font, whose fonts/GeistMono folder has variable and webfonts files. The npm geist package targets Next.js.",
+   "how_we_use_it": "Inter variable with opsz for UI and headings, tabular figures in tables and legends; Geist Mono for IDs, units, citations. Self-host files copied from the repos, with licence notices. Silence Impeccable's overused-font rule for Inter.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Rasmus Andersson (Inter); Vercel (Geist)",
+   "license": "OFL-1.1 (both)",
+   "last_activity": "Inter v4.1 2024-11-16; geist-font pushed 2026-10-21",
+   "popularity": "Inter 20k stars; geist-font 3.7k stars, 53 open issues (API, issues plus PRs)",
+   "saves": "Two free fonts settle type decisions early; tabular numerals make numeric panels readable.",
+   "risks": "Inter can read as generic. Geist files must come from the repo, not npm (Next peer dependency). Variable files need subsetting for load time. Geist Mono variable files were listed, not opened or rendered."
+  },
+  {
+   "name": "Motion (motion.dev)",
+   "url": "https://github.com/motiondivision/motion",
+   "kind": "library",
+   "what_it_does": "MIT animation library for React, JS and Vue: springs, gestures, layout transitions. MotionConfig reducedMotion='user' disables transform and layout animation while keeping opacity and colour.",
+   "how_we_use_it": "Panel and phase transitions and node run-state pulses. Wrap the app in MotionConfig reducedMotion='user'. Tokens 100/200/300 ms, 400 ms only for large panel moves; ease-out entering, ease-in leaving; no bounce. Prefer CSS transitions for simple states.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Matt Perry / motiondivision",
+   "license": "MIT",
+   "last_activity": "2026-10-21 (GitHub API pushed_at; npm 14.5.0)",
+   "popularity": "34.4k stars; 29 open issues plus 4 PRs (tab counts, r3)",
+   "saves": "Declarative variants reduce hand-written animation code and review tokens.",
+   "risks": "Layout animations on a big canvas can cost frames; test. MotionConfig does not cover CSS animations such as React Flow's animated edges. Motion+ paid tier is optional."
+  },
+  {
+   "name": "Playwright MCP, Playwright CLI, Playwright Test and axe-core",
+   "url": "https://github.com/microsoft/playwright-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Playwright MCP (Apache-2.0) drives a browser via the accessibility tree. @playwright/cli is pre-1.0 (0.1.22, 28 Sep 2026). axe-core (MPL-2.0) finds about 57% of WCAG issues; @axe-core/playwright 4.14.0 runs it in tests. page.emulateMedia accepts forcedColors and reducedMotion.",
+   "how_we_use_it": "CI: Playwright Test (stable) plus @axe-core/playwright on shell, palette, panels, legends; fail on critical violations. Extra runs with forcedColors 'active' and reducedMotion 'reduce', key-press tests for Connect and the viewport, and port hit-box checks at zoom 0.5, 0.75, 1.0. Claude's self-checks use the MCP or pinned CLI.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Microsoft; Deque Systems (axe-core)",
+   "license": "Apache-2.0 (Playwright); MPL-2.0 (axe-core)",
+   "last_activity": "MCP pushed 2026-10-19; axe-core pushed 2026-10-20; emulateMedia options read 21 Oct (r3)",
+   "popularity": "Playwright MCP 38.4k stars; axe-core 7.7k stars, 412 open issues plus 33 PRs",
+   "saves": "Accessibility snapshots avoid vision tokens; axe catches many defects without LLM tokens; emulated media runs catch forced-colour and motion bugs without a Windows desktop session.",
+   "risks": "MCP README says it is not a security boundary; one tool runs arbitrary JavaScript. CLI is pre-1.0. axe misses roughly 43% of issues and cannot inspect WebGL, so the viewport needs a manual keyboard script. Needs Node 18+, not installed."
+  },
+  {
+   "name": "Rerun (viewer blueprint pattern)",
+   "url": "https://github.com/rerun-io/rerun",
+   "kind": "repo",
+   "what_it_does": "Apache-2.0/MIT multimodal data viewer. Docs: a blueprint is a layer separate from logged data; saved as .rbl files, shared, version-controlled; recordings sharing an Application ID share a blueprint; two resets (heuristic and default).",
+   "how_we_use_it": "Pattern only: store view layouts (panels, legends, camera, compared set) as shareable JSON apart from model data, keyed to the project. Offer 'auto layout' and 'reset to my default'. Community users fork layouts like modules.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Rerun (rerun-io)",
+   "license": "Apache-2.0 OR MIT",
+   "last_activity": "2026-10-20 (GitHub API pushed_at)",
+   "popularity": "11.6k stars; about 1.2k open issues plus 20 PRs (tab counts, r3)",
+   "saves": "Layout-versus-data separation avoids a later refactor of saved views.",
+   "risks": "Robotics-focused; its UI toolkit is not ours to reuse. Do not embed the viewer. About 1.2k open issues."
+  },
+  {
+   "name": "Speckle viewer (UX benchmark and speckle-server monorepo)",
+   "url": "https://docs.speckle.systems/3d-viewer/interface-nav",
+   "kind": "repo",
+   "what_it_does": "Web viewer with dockable panels (Models, Filters, Views, Issues), Elements table, selection panel with 'add as filter', saved views (camera, filters, sections), status-bar undo/redo. Shift+letter panel and tool shortcuts, Alt+1 to 5 views, WASD or arrow fly; no keyboard orbit documented. Apache-2.0 unless a folder says otherwise.",
+   "how_we_use_it": "Copy: Elements table ('View as table'), saved views as snapshots, layout lock and reset, colour-by-property. Do not copy Shift+letter keys as global shortcuts: WCAG 2.1.4 needs focus scope, remapping or an off switch. Viewer reuse (@speckle/viewer 2.31.14) is a roadmap candidate; coordinate with the viewer packet.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Speckle Systems",
+   "license": "Apache-2.0 by default; per-folder exceptions (GitHub shows NOASSERTION)",
+   "last_activity": "2026-10-14 (speckle-server pushed_at); @speckle/viewer published 2026-06-15; interface page re-read 21 Oct (r3)",
+   "popularity": "853 stars; 52 open issues plus 23 PRs (tab counts, r3)",
+   "saves": "Reusing patterns, and maybe the viewer, could save weeks of three.js and panel design.",
+   "risks": "Mixed per-folder licences; Viewer 2 to 3 transition. Docs conflict on who may create views and list Views as 'soon'. Shortcuts are disabled in embedded viewers. Legends and themes unverified. Heavy stack."
+  },
+  {
+   "name": "tldraw SDK and ComfyUI frontend (reference only)",
+   "url": "https://github.com/tldraw/tldraw",
+   "kind": "library",
+   "what_it_does": "tldraw: infinite-canvas SDK, source-available; development free, production needs a licence key; starter kits MIT. ComfyUI frontend: GPL-3.0 node UI with node library, templates, subgraphs and App Mode; its litegraph.js base (MIT) is archived.",
+   "how_we_use_it": "Neither is a dependency. Read tldraw's MIT workflow starter kit for port-bound connections and click-output-to-pick-node, and ComfyUI's docs for templates, an App Mode-style linear view and a bookmarkable node library. Reimplement ideas on React Flow; copy no code.",
+   "priority": "reject",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "tldraw; Comfy-Org",
+   "license": "tldraw licence (source-available; GitHub reports NOASSERTION), starter kits MIT; ComfyUI frontend GPL-3.0",
+   "last_activity": "tldraw pushed 2026-10-20; ComfyUI frontend pushed 2026-10-21",
+   "popularity": "tldraw 51k stars, 442 issues plus 119 PRs; ComfyUI frontend about 2.1k stars, about 1.9k issues plus 1.2k PRs (r3 tab counts)",
+   "saves": "Reading the starter kit and the docs saves usability iteration on node pickers and beginner on-ramps.",
+   "risks": "A public tldraw deployment counts as production and needs a key; coursework terms not found. Copying ComfyUI code would force GPL-3.0 onto ours. ComfyUI has thousands of open items and its docs omit node error states."
+  },
+  {
+   "name": "WCAG 2.2 (W3C Recommendation)",
+   "url": "https://www.w3.org/TR/WCAG22/",
+   "kind": "guideline",
+   "what_it_does": "Nine criteria added: 2.4.11 Focus Not Obscured, 2.5.7 Dragging Movements, 2.5.8 Target Size (24 px), 3.2.6 Consistent Help, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication (A or AA); three more are AAA. 4.1.1 Parsing is removed. Understanding pages also cover 1.1.1, 1.4.13, 2.1.1, 2.1.4, 4.1.3.",
+   "how_we_use_it": "AA checklist with all six A/AA additions plus 2.1.4, 1.4.13, 4.1.3: click-click and keyboard Connect, Edges list, View as table, counter-scaled or equivalent 24 px ports, focus-scoped shortcuts, dismissible popovers, polite batched announcements, sign-in without transcription. Drop 4.1.1 from copied lists.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "W3C WAI",
+   "license": "W3C document licence (not checked)",
+   "last_activity": "2.2 published; 'new in 2.2' page and Understanding pages for 2.1.1, 2.1.4, 1.4.13, 2.5.8, 3.2.6, 3.3.7, 3.3.8, 4.1.3 read 21 Oct 2026; errata date not checked",
+   "popularity": "n/a",
+   "saves": "Concrete pass/fail criteria prevent late accessibility rework.",
+   "risks": "2.5.8 text is zoom-independent and silent on in-app zoom, so our counter-scaling reading is unaudited. Canvas and WebGL need custom semantics; automated tools cover part. Our 2.2.2 reading of animated wires is unaudited."
+  },
+  {
+   "name": "deceptive.design and the gamification meta-analysis (Sailer and Homner 2020)",
+   "url": "https://www.deceptive.design/types",
+   "kind": "guideline",
+   "what_it_does": "deceptive.design lists 18 deceptive pattern types (nagging, fake urgency, fake social proof, confirmshaming, addictive design). Sailer and Homner pooled gamification studies in education: small positive effects, g=.49 cognitive, .36 motivational, .25 behavioural.",
+   "how_we_use_it": "PR checklist of the 18 types for notifications, counters, defaults, progress UI, and community counts (fake social proof). Treat the ban on streaks and leaderboards as our values decision, not an evidence finding; allow only learning-supportive feedback (what-changed diffs, shortcut hints, attribution credit).",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Harry Brignull (deceptive.design); Michael Sailer and Lisa Homner (Educational Psychology Review)",
+   "license": "deceptive.design not checked; the paper record is marked CC BY (Semantic Scholar)",
+   "last_activity": "deceptive.design unknown (types and fake-social-proof pages re-read 21 Oct, r3); paper online 2019, Educ Psychol Rev 32:77-112 (2020)",
+   "popularity": "Paper: 1,527 citations (Semantic Scholar)",
+   "saves": "A ready taxonomy avoids debating each borderline UI choice; the meta-analysis gives a sourced counterweight to blanket anti-gamification claims.",
+   "risks": "deceptive.design is commerce-oriented, and its fake social proof entry is about invented claims, so avoiding real star or trending counts is our values call. The meta-analysis covers classroom learning (k=9 to 19 per outcome); motivational and behavioural effects were less stable."
+  },
+  {
+   "name": "Autodesk Forma (compare and analysis UX benchmark)",
+   "url": "https://www-pt.autodesk.com/learn/ondemand/curated/forma-quick-start-guide/4kBaXw91SEPQNYX1U7vJiK",
+   "kind": "app",
+   "what_it_does": "Commercial AEC site-design tool. Compare mode shows up to six proposals or analysis results side by side; zoom and pan sync; Inspect on one scene shows point details in every scene; 4K PNG capture. Navigator holds proposals and shared bases.",
+   "how_we_use_it": "Precedent for our Compare view: named snapshots, linked cameras, linked point inspection, context-sensitive right panel, saved camera views, 'variations as objects'. Cite it in the sources panel. Embodied-carbon page shows scenario data sources and editable values.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Autodesk",
+   "license": "Commercial (pricing not checked)",
+   "last_activity": "Autodesk blog posts dated 2024-05-17, 2025-05-13, 2026-08-28",
+   "popularity": "n/a",
+   "saves": "A ready, proven compare pattern avoids inventing one and testing it from scratch.",
+   "risks": "Closed source. autodesk.com tutorial pages return 403; read through a regional mirror and Autodesk blogs. Legends, units and uncertainty are not described in pages read. Unclear whether camera linking can be turned off."
+  },
+  {
+   "name": "Figma UI3 and Linear redesign write-ups",
+   "url": "https://www.figma.com/blog/behind-our-redesign-ui3/",
+   "kind": "article",
+   "what_it_does": "Figma UI3 (26 Jun 2024): canvas focus, collapsible panels, hide-all-UI; hover-only UI abandoned as unstable, some changes reverted for muscle memory. Linear (28 Mar 2024): LCH themes from three inputs instead of 98 variables, contrast setting, staged rollout.",
+   "how_we_use_it": "Template for the shell: stable panel positions, collapse-all for Present, optional labels, expert shortcuts untouched. Token generator from base, accent, contrast in OKLCH (Culori). Figma's named versions for option snapshots. Feature flags and staged rollout for UI changes after 13 Nov.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Figma; Linear (https://linear.app/now/how-we-redesigned-the-linear-ui)",
+   "license": "n/a (commercial products; articles)",
+   "last_activity": "Figma article 2024-06-26; Linear article 2024-03-28; Figma version-history help page read 21 Oct 2026",
+   "popularity": "n/a",
+   "saves": "Proven rationale for layout and theme choices; avoids repeating experiments Figma abandoned and hand-tuning dozens of colour variables.",
+   "risks": "Different audiences (product design, issue tracking). Linear's generator is unpublished, so ours is a reimplementation; no contrast measurements shown. Closed products; no screenshots reviewed. Figma rollout was gradual with no opt-in beta described."
+  },
+  {
+   "name": "Spline (benchmark and community remix model)",
+   "url": "https://docs.spline.design/basics/community-platform",
+   "kind": "app",
+   "what_it_does": "Browser-based 3D design tool with real-time collaboration and publishing. Its Community Platform lets users publish scenes, repost, comment and remix others' scenes; docs state community files are licensed CC BY 4.0.",
+   "how_we_use_it": "Benchmark for fork-and-remix: one-click remix of a module into your workspace, attribution preserved, licence shown on each item. Put a licence field in the module manifest. No Spline editor layout is copied.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Spline",
+   "license": "Commercial editor; community files CC BY 4.0 (docs)",
+   "last_activity": "unknown (docs undated)",
+   "popularity": "n/a",
+   "saves": "Existing remix semantics and licence wording shorten community-feature design.",
+   "risks": "Editor open-source status unconfirmed (treated as closed). Interface-tour page not opened, so no editor UX claims. A search summary said CC0; the docs say CC BY 4.0. Pricing unchecked."
+  },
+  {
+   "name": "Vancouver Tall Challenge page, terms and FAQ (Buildner)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "kind": "other",
+   "what_it_does": "Panels are JPEGs up to 10 MB; the brief sets one to four. Judging is anonymous; entry visuals must not have been previously published by the team. FAQ: check AI tools' terms; AI images not advised as sole work. Dates: registration 29 Oct, questions 3 Nov, submission 30 Nov 2026.",
+   "how_we_use_it": "Derive the board export profile (JPEG, size cap, no identifying marks) and AI-image caption rules from these pages. Download the brief, site plans and 3D model yourselves, read their terms, and confirm panel count, size and AI wording before building Present mode.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "Buildner with City of Vancouver and UBC SALA",
+   "license": "n/a",
+   "last_activity": "Page and terms re-read 21 Oct 2026 (r3): dates unchanged; results 26 Jan 2027; the trailing-slash URL returned HTTP 404 in r3",
+   "popularity": "n/a",
+   "saves": "Early constraint knowledge prevents rework of the Present-mode exporter.",
+   "risks": "Brief, site plans and 3D model sit behind an email form I did not submit, so A2, panel count, model terms and any AI rule are unconfirmed. Page says 23:59 London, terms say 24:00. Terms do not mention AI. Registration closes in eight days."
+  },
+  {
+   "name": "Zustand with zundo, Yjs UndoManager and Immer patches (state and command layer)",
+   "url": "https://github.com/charkour/zundo",
+   "kind": "library",
+   "what_it_does": "Three routes to one undoable store. zundo (MIT): temporal undo middleware for Zustand, which React Flow uses internally. Yjs (MIT): CRDT with Y.UndoManager scoped to tracked origins. Immer (MIT): patches and inverse patches.",
+   "how_we_use_it": "Half-day spike before canvas code: one command bus, React Flow as a view of the store. Pass test: drag, slider scrub and AI edit each undo as one labelled step; undo spans canvas, inspector and assumptions; named snapshots; deterministic JSON export. Record the choice in CLAUDE.md.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "charkour (zundo); yjs org; pmndrs (Zustand); Immer (Michel Weststrate per docs copyright)",
+   "license": "MIT (zundo, Yjs, Zustand, Immer; per npm and GitHub pages)",
+   "last_activity": "npm: zundo 2.3.0 (17 Nov 2024), Yjs 13.6.33 (23 Sep 2026), Zustand 5.0.15 (13 Aug 2026), Immer 11.2.6 (21 Oct 2026)",
+   "popularity": "zundo 896 stars, 16 open issues plus 6 PRs; Yjs 23.0k stars, 118 issues plus 31 PRs; Zustand 58.8k stars",
+   "saves": "One decided store avoids retrofitting undo, snapshots and autosave after 13 Nov and leaves a path to presence; zundo's README claims a footprint under 700 bytes.",
+   "risks": "zundo records every setter call unless equality or throttling is set and was last released Nov 2024. Yjs needs CRDT types rather than plain JSON. React 19 fit, README accuracy and 1,000-node performance untested; nothing spiked yet."
+  },
+  {
+   "name": "Cognitive Dimensions of Notations (Green and Petre 1996; Green and Blackwell tutorial)",
+   "url": "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf",
+   "kind": "article",
+   "what_it_does": "Heuristic framework for judging notations and visual programming environments without costly studies. The tutorial (v1.2, 1998, 75 pages) defines 14 dimensions, including viscosity, hidden dependencies, premature commitment, secondary notation, progressive evaluation and visibility, and rates them per activity.",
+   "how_we_use_it": "Weekly walkthrough of the node-canvas contract: one row per dimension with the risk, the rule and a test task (draft tasks in principle 3). Relays, auto-reconnection and frames map to hidden dependencies, error-proneness and secondary notation.",
+   "priority": "core",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Thomas Green and Alan Blackwell",
+   "license": "Copyright 1998 Green and Blackwell; cite, do not copy",
+   "last_activity": "Tutorial v1.2, October 1998; Green and Petre in J. Visual Languages and Computing 7:131-174 (1996)",
+   "popularity": "n/a",
+   "saves": "A ready checklist turns forum complaints into named design rules without a study; the tutorial's activity table shows which dimensions matter for modification and exploration.",
+   "risks": "A shared vocabulary, not a measurement; examples are 1990s (LabVIEW, Prograph). It rates hidden dependencies harmful for modification and exploration, our main activities. Green and Petre 1996 was read only through a review summary; the bibliography's PDF link is dead."
+  },
+  {
+   "name": "Interruption and notification timing studies (Mark 2008; Iqbal and Bailey 2008)",
+   "url": "https://www.ics.uci.edu/~gmark/chi08-mark.pdf",
+   "kind": "article",
+   "what_it_does": "Mark et al. (48 people, email task): interrupted work finished faster at equal quality but with more stress, frustration, time pressure and effort. Iqbal and Bailey (16 users): notifications deferred to breakpoints caused less frustration than immediate delivery.",
+   "how_we_use_it": "Defer non-critical notices and community activity to breakpoints (save, stage switch, run finished while idle). Never interrupt a drag, wire or text edit. Let users set digest timing, since Mark found individual differences. Use as rationale, not proof for our tool.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Gloria Mark (UC Irvine); Shamsi Iqbal and Brian Bailey (UIUC)",
+   "license": "ACM CHI 2008 papers, author-hosted PDFs (cite, do not redistribute)",
+   "last_activity": "CHI 2008 (April 2008)",
+   "popularity": "n/a",
+   "saves": "Replaces a Wikipedia flow citation with two primary studies that justify the notification rules cheaply.",
+   "risks": "Lab email, diagram-editing and programming tasks, not 3D analysis tools; papers are from 2008; Mark's sample was mostly German students. Iqbal's models recalled only 52-59% of breakpoints, with about 1.5 minutes average deferral."
+  },
+  {
+   "name": "Guidelines for Human-AI Interaction (Amershi et al., CHI 2019; HAX Toolkit)",
+   "url": "https://www.microsoft.com/en-us/research/publication/guidelines-for-human-ai-interaction/",
+   "kind": "guideline",
+   "what_it_does": "18 guidelines in four phases (initially, during interaction, when wrong, over time), refined through four phases including a study with 49 practitioners across 20 AI products. Full text is in the CHI paper and Microsoft's research blog.",
+   "how_we_use_it": "Map each AI feature to G1 and G2 (capabilities, quality), G3 (timing), G9 (efficient correction), G11 (why), G15 (granular feedback), G16 (consequences), G17 (global controls), G18 (change notices). Use as a review checklist beside the Vercel rules.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "maintainer": "Microsoft Research (Saleema Amershi and co-authors)",
+   "license": "ACM paper with Microsoft-hosted PDF; terms not checked (cite, do not copy)",
+   "last_activity": "CHI 2019",
+   "popularity": "n/a (Honorable Mention at CHI 2019 per the Microsoft page)",
+   "saves": "Replaces a free-form AI-trust rule with numbered, citable guidelines; reviewers can cite G-numbers in PRs.",
+   "risks": "General and from 2019, before today's image generators. Participants found G11 often violated yet hard to supply. No legal weight; the HAX poster page was not needed once the paper text was readable."
+  },
+  {
+   "name": "Execution-policy precedents: Grasshopper, Dynamo, Houdini and Honeybee",
+   "url": "https://dynamobim.org/issues/run-modes-manual-automatic-periodic/",
+   "kind": "app",
+   "what_it_does": "Grasshopper: solver Enable, Disable, Toggle. Dynamo: Automatic, Manual, Periodic run modes saved per file. Houdini 22: Auto Update, On Mouse Up, Manual. Honeybee guide: save heavy run toggles as false so simulations never start on file open.",
+   "how_we_use_it": "Module manifests declare a cost class (live, interactive, batch). Live and interactive auto-run, sliders evaluating on release; batch waits for Run and shows stale. A global Auto-run lock like Grasshopper's solver; heavy runs never start on project open.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "maintainer": "McNeel; Dynamo project; SideFX; Ladybug Tools",
+   "license": "n/a (documentation pages; patterns only)",
+   "last_activity": "Houdini 22.0 docs; Dynamo page undated; McNeel Rhino 8 command page; Honeybee docs 'latest'",
+   "popularity": "n/a",
+   "saves": "Proven user expectations for hold-back and re-run avoid inventing an execution model and testing it from scratch.",
+   "risks": "Sources differ in depth: Grasshopper from the McNeel command page plus a forum comment, Honeybee from one guide page. Defaults not tested by us; no study of what Grasshopper users expect. Thresholds are team assumptions."
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Progressive disclosure, two levels at most, on a separate axis from workflow stage; the canvas is the hero. The brief's basic-advanced-present path mixes expertise with stage: a beginner can be in Evaluate while an expert is in Massing. Figma's UI3 write-up: canvas focus, collapsible panels, hide-all-UI; hover-only UI felt unstable and some moves were reverted to protect muscle memory. Linear cut navigation clutter without changing navigation behaviour. One ComfyUI commenter opposed a hide-nodes Beginner mode (single voice, thin evidence).",
+   "rule_for_our_tool": "Navigation rail = workflow stages (Massing, Program, Evaluate, Design, Present): persistent, free to jump because work loops back, each with an evidence-completeness indicator (inputs present, modules run, sources attached), never a score or a gate. The indicator is a checklist of named missing inputs, runs or sources, each a link; never a percentage ring or a success colour, no reminders when a stage is incomplete, and it never blocks navigation. Group the stages under the brief's Basic, Advanced and Present only if the 3-task test shows users do not read 'Advanced' as a gate. Essentials/Advanced is a separate per-module setting with a global default, one Advanced drawer deep, essentials on by default, everything searchable in the palette. Panels resizable and collapsible, layout remembered per stage; Present hides all panels by default; positions never move on hover; one inspector open. Document both axes in PRODUCT.md. Counts such as 'seven essentials' are team assumptions.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/progressive-disclosure/",
+    "https://www.figma.com/blog/behind-our-redesign-ui3/",
+    "https://linear.app/now/how-we-redesigned-the-linear-ui",
+    "https://github.com/Comfy-Org/ComfyUI/discussions/13312"
+   ]
+  },
+  {
+   "principle": "Protect flow with an explicit liveness model, tiered feedback, run states and fixable errors. Analysis cost varies by orders of magnitude, so one rule cannot serve a slider echo and a wind run. NN/g's limits (about 0.1 s instant, 1 s unbroken thought, 10 s needs progress and a way out) govern acknowledging an action, not delivering a result. Precedents: Grasshopper's solver lock; Dynamo's Automatic, Manual and Periodic modes saved per file, recalculating only changed nodes and downstream; Houdini's Auto Update, On Mouse Up and Manual; Honeybee's advice to save heavy toggles false; Observable's runtime, which recomputes only downstream and leaves unobserved variables lazy. Tanimoto's liveness levels (runnable diagram, edit-triggered updates, continuous) give vocabulary. The Cognitive Dimensions tutorial says novices, and anyone under interruption, need to check work-to-date at any time (progressive evaluation).",
+   "rule_for_our_tool": "Each module manifest declares a cost class (thresholds are team assumptions): live (under 100 ms), interactive (under 1 s), batch (longer). Live nodes auto-run; interactive nodes auto-run after a 300 ms debounce, and slider drags show a geometry proxy and evaluate on release; batch nodes run on demand and show 'stale' with a Run button. The 100 ms target applies to slider echo and proxy, never to results. A global 'Auto-run' lock (Grasshopper precedent), run mode saved with the project (Dynamo precedent); batch nodes never start on project open (Honeybee precedent). An upstream edit marks batch descendants 'stale (upstream)' and keeps their last result visible with a timestamp; cheap descendants recompute. Unobserved nodes stay lazy; Run all forces everything; step-in runs the chain up to the selected node. Nodes accept partial inputs and show placeholder warnings. States: idle, queued, running, stale, failed, warning, done, each icon plus word. Over 1 s show busy on the node; over 10 s show percent, ETA and Cancel; no modals or focus stealing. Errors name the cause and a fix; a refused wire drop says which type was expected. Memoise nodes, test onlyRenderVisibleElements; a node-count warning (start at 200) is a team assumption.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/response-times-3-important-limits/",
+    "https://www.nngroup.com/articles/skeleton-screens/",
+    "https://www.nngroup.com/articles/ten-usability-heuristics/",
+    "https://reactflow.dev/learn/advanced-use/performance",
+    "https://ui.reactflow.dev/registry/node-status-indicator.json",
+    "https://dynamobim.org/issues/run-modes-manual-automatic-periodic/",
+    "https://docs.mcneel.com/rhino/8/help/en-us/commands/grasshopper.htm",
+    "https://www.sidefx.com/docs/houdini/hom/hou/updateModeSetting.html",
+    "https://honeybee.readthedocs.io/en/latest/getting_started/conventions_and_code_hygiene.html",
+    "https://raw.githubusercontent.com/observablehq/runtime/main/README.md",
+    "https://raw.githubusercontent.com/observablehq/framework/main/docs/reactivity.md",
+    "https://homes.cs.washington.edu/~tanimoto/site/wp-content/uploads/2024/10/LiveProgramming2013.pdf",
+    "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf"
+   ]
+  },
+  {
+   "principle": "Wire density is the main readability problem, wire display is contested, and Cognitive Dimensions turns the complaints into a checklist. Informal coding of about 25 complaints across four threads: McNeel 48238 (16 posters), McNeel 55455 (23 posters on the page read), a Blender DevTalk UX proposal (18 posters on page one; only the opening post read) and a Hacker News thread (about 15 of 493 comments read). Themes: wire clutter, organisation at scale, surprising implicit behaviour, inconsistent conventions across tools, no text form to diff. In McNeel 48238 the Grasshopper author declined wire-display options for version 2 while at least three posters wanted faint or hidden wires, and four reported creating relays by accident through double-click. Blender's proposal objects to opaque auto-reconnection of occupied sockets. Green and Petre applied the framework to LabVIEW and Prograph: large visual programs were hard to comprehend, slow to modify and weak in secondary notation; the tutorial rates hidden dependencies harmful for modification and exploration, and says one-way or local links hide them. Signals only; Reddit stayed blocked.",
+   "rule_for_our_tool": "Wire modes Full, Faint and Selected-only, one click apart; selected node's wires always solid; default decided by the 3-task test. Weekly Cognitive Dimensions walkthrough of this contract: hidden dependencies, so selecting a relay highlights all partners with 'jump to', 'show dependents' works on any node or assumption, and the Edges list is two-way; viscosity, so replace-node-keeping-links, multi-select rewiring and dagre Tidy; premature commitment, so nodes can sit unconnected and be wired in any order; secondary notation, so frames, colour and notes never change meaning and live in layout JSON; progressive evaluation, so partial inputs run with placeholders; error-proneness, so no implicit reconnection (dropping on an occupied port previews and needs a modifier to replace) and relays need a modifier key, never a bare double-click; role-expressiveness, so ports carry colour, shape and label. Draft walkthrough tasks, to run in the first build week (not yet run): find everything that depends on one assumption; replace the shadow node and keep its links; add three nodes before wiring any; group nodes in a frame and confirm results do not change; run a half-wired graph; drop a wire on an occupied port; name every port type without hovering. SVG wires lose their hue in Windows forced-colors mode, so type is also carried by port shape and label (principle 12). Auto-created frames per module category with name and low-chroma tint. One documented shortcut map; set React Flow explicitly: deleteKeyCode ['Delete','Backspace'] (default is Backspace only), zoomOnDoubleClick false (double-click opens search), panActivationKeyCode null (Space also selects a focused node), shortcuts suspended inside text fields.",
+   "source_urls": [
+    "https://discourse.mcneel.com/t/48238",
+    "https://discourse.mcneel.com/t/55455",
+    "https://devtalk.blender.org/t/23239",
+    "https://news.ycombinator.com/item?id=40937119",
+    "https://discourse.mcneel.com/t/grasshopper-best-practices/86120",
+    "https://discourse.mcneel.com/t/wish-alternative-wire-path-styles/95163",
+    "https://forums.unrealengine.com/t/reroute-nodes-extra-features-to-avoid-node-spaghetti-more-easily/2677927",
+    "https://jdn.dev/avoiding-blueprint-spaghetti/",
+    "https://reactflow.dev/learn/layouting/layouting",
+    "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDtutorial.pdf",
+    "https://www.cl.cam.ac.uk/~afb21/CognitiveDimensions/CDbibliography.html",
+    "https://neverworkintheory.org/2012/06/25/usability-analysis-of-visual-programming-environments-a-cognitive-dimensions-framework.html",
+    "https://reactflow.dev/api-reference/react-flow"
+   ]
+  },
+  {
+   "principle": "Inspect at the wire, by hover and by keyboard, preview live, and state units and precision. TouchDesigner docs describe animated wires, interactive node viewers and an info popup; Houdini docs describe flags, status badges and a node-info window. NIST's SI writing rules: a space between number and unit symbol, symbols never pluralised, no more significant digits than the measurement justifies. Carbon's chart pages cover tooltips and KPI numbers but not number formatting. WCAG 1.4.13 (AA) requires hover or focus popovers to be dismissible (Esc), hoverable and persistent, and its Understanding page says hover content should also be reachable by keyboard (2.1.1). React Flow's handle name defaults to 'Handle' (an ariaLabelConfig key), and its docs describe no keyboard route onto a handle. Blender socket inspection remains unverified.",
+   "rule_for_our_tool": "Each port is also a real focusable button inside the node (React Flow's Handle stays the pointer target). Its popover (value, type, unit, source module, last-run time) opens on hover and on keyboard focus, stays open while the pointer moves onto it, closes with Esc without moving focus, and stays until dismissed or the value is invalid. Every port has an accessible name built from role, label, type, unit and connection count (for example 'Output, Shadow hours, number, h, connected to 2'), set per handle through our Handle wrapper (pass-through of aria-label is untested) and through ariaLabelConfig for built-in text. Viewport point inspection works from a keyboard cursor and from the table (principle 13). Every output has 'pin to viewport'. Nodes show a thumbnail or sparkline, run time and warning badge; wire flow animates only during a run and can be paused. Every value carries an SI unit symbol after a space (for example 12.4 m, 310 kWh/m2). Default 3 significant figures with full precision on hover, focus and copy (team assumption); never show more digits than the least certain input supports; unit conversions are explicit; the rounding policy per metric lives in the module manifest.",
+   "source_urls": [
+    "https://docs.derivative.ca/Network_Editor",
+    "https://www.sidefx.com/docs/houdini/network/index.html",
+    "https://docs.blender.org/manual/en/latest/modeling/geometry_nodes/inspection.html",
+    "https://www.nist.gov/pml/owm/writing-si-metric-system-units",
+    "https://carbondesignsystem.com/data-visualization/chart-anatomy/",
+    "https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html",
+    "https://reactflow.dev/learn/advanced-use/accessibility",
+    "https://reactflow.dev/api-reference/components/handle"
+   ]
+  },
+  {
+   "principle": "Onboard with templates, a linear App view, pulled help and useful empty states. NN/g found tutorials mostly forgotten and recommends help shown on user signal plus a persistent entry point. ComfyUI documents templates, App Mode and subgraphs as its on-ramp (docs re-read). Spline's community teaches by remixing others' scenes. Empty states need status, a learning cue and a direct action. WCAG 3.2.6 (Level A) says a help mechanism repeated across pages must keep the same relative order in the markup unless the user changes the layout.",
+   "rule_for_our_tool": "By 13 Nov one starter graph on the real Vancouver block; by 10 Dec three (one per major stage group). An 'App view' (form plus results) over any graph. Help is pulled (hover '?', first-open hint) with one persistent Help/What's new entry that keeps the same serialized position among the header controls on every stage screen (WCAG 3.2.6); any tour (optional library Driver.js, MIT) is skippable, re-launchable and never hides focused items (WCAG 2.4.11). Every empty panel has a title, why it is empty, a primary action (import or load sample block) and a docs link; loading never renders as empty. Remixing a community module or graph is the learning route.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/onboarding-tutorials/",
+    "https://www.nngroup.com/articles/empty-state-interface-design/",
+    "https://carbondesignsystem.com/patterns/empty-states-pattern/",
+    "https://docs.comfy.org/interface/overview",
+    "https://docs.spline.design/basics/community-platform",
+    "https://www.w3.org/WAI/WCAG22/Understanding/consistent-help.html"
+   ]
+  },
+  {
+   "principle": "Keyboard-first command palette whose shortcuts teach, and whose single-key shortcuts stay compliant. A good palette opens from anywhere, covers nearly every action, forgives typos, ranks by context and shows shortcuts. Speckle documents Shift+letter panel and tool shortcuts and a cheat sheet; Forma offers a Quick access menu and zoom-to-fit shortcut. The ARIA pattern closest to a palette is an editable combobox with a listbox popup. WCAG 2.1.4 (Level A) covers any shortcut that relies on a printable character, including uppercase and Shift+letter, because speech-input users trigger stray commands; compliance is turn-off, remap with Ctrl or Alt, or active only on component focus. The ARIA keyboard practices page warns that shortcuts must not replace standard keyboard access and may collide with assistive-technology keys.",
+   "rule_for_our_tool": "Ctrl/Cmd+K toggles the palette and returns focus to its origin; it is the one shortcut that stays live inside text fields. It may collide with a browser shortcut (not checked), so a visible 'Commands' button is the second route. Every action is a command (add node, toggle module, run all, switch stage, open sources, connect ports, export board) with fuzzy search, aliases, context ranking and visible shortcuts; aria-activedescendant on the input. Single-key rule: every printable-character shortcut (C on a focused port, F and digits in the viewport, any Shift+letter panel key) lives in one registry and is active only while its component has focus or is remappable to include Ctrl or Alt, and Settings has one switch that turns the whole class off. Global shortcuts use Ctrl, Alt or Cmd. The cheat sheet is generated from the registry and reachable from the palette. The palette component is wrapped so cmdk can be swapped for kbar.",
+   "source_urls": [
+    "https://blog.superhuman.com/how-to-build-a-remarkable-command-palette/",
+    "https://www.w3.org/WAI/ARIA/apg/patterns/combobox/",
+    "https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/",
+    "https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html",
+    "https://github.com/dip/cmdk",
+    "https://docs.speckle.systems/3d-viewer/interface-nav",
+    "https://blogs.autodesk.com/forma/2026/08/28/forma-site-design-tools-overview/"
+   ]
+  },
+  {
+   "principle": "Explain every number, and keep status meanings from competing. PAIR: explain data sources, favour partial explanations with progressive disclosure, beware confidence displays that backfire. Forma's embodied-carbon analysis lets users view each scenario's data sources and customise them. Carbon's status pattern wants colour plus symbol or shape plus text and warns past five or six indicators. One node can carry seven run states, a warning and three evidence statuses, about ten semantic colours, so they must be split into channels. Midwest Uncertainty Collective work supports quantile dotplots and outcome plots, but evidence is limited, so test locally.",
+   "rule_for_our_tool": "Every metric opens 'Why this number?': formula, inputs, citation (title, link, retrieval date, section), status, editable value with diff from default, change history. Semantic palette (team assumption), three channels. (1) Evidence, the only status hues: Sourced blue #1D5FBF light / #7FB2FF dark, solid outline; Team assumption ochre #8A5A00 / #E3B341, dashed outline; FALSE ASSUMPTION magenta #B0126F / #FF7AC6, hatch, own icon, the words visible and in the accessible name. A node card shows one aggregate chip ('2 assumptions, 1 FALSE'); detail lives in the inspector. (2) Run state: icon plus word in the node header in neutral ink; only 'failed' takes a hue, deep red #6E0B0B / #FF6B5E; 'warning' is a neutral triangle, not amber, so it cannot be mistaken for ochre. (3) Data: Crameri ramps are the only large saturated areas; module categories use low-chroma tints plus names; the accent and two-tone focus ring avoid blue, ochre, magenta and red. Computed 21 Oct 2026: every token reaches at least 5.43:1 on four plates (failed 5.5:1); the light tokens have near-equal luminance (0.108 to 0.127), so greyscale prints cannot tell them apart and boards add patterns and words. Colour-vision simulation (Machado 2009 matrices, severity 1.0, CIELAB dE76; it reproduces the reviewer's blue-magenta drop from 66 to 32): Sourced versus FALSE falls to 32 for protan (light) and 17 (dark); a first-draft red #B42318 against ochre fell to 2.2 for deutan, so failed was darkened (minimum 25 against ochre). Pairs under about 20 never rely on hue alone (team threshold). FALSE stays at least 47 dE from batlow, roma and vik; Sourced and Team come within 8 to 9 of parts of roma, so chips sit on opaque plates. Superseded values use <del> plus the word 'superseded': JAWS, Narrator and macOS VoiceOver do not announce <s> by default (NVDA says 'deleted'); no strikethrough on explanatory text. Where a result depends on editable assumptions, show a range band or quantile dots naming the drivers; pilot with 3-5 classmates. Chip cap per screen is an editable team assumption. Flagged claims stay visible. Who may raise a FALSE ASSUMPTION flag, with what evidence, and how authors reply is governed in principle 11.",
+   "source_urls": [
+    "https://pair.withgoogle.com/chapter/explainability-trust/",
+    "https://carbondesignsystem.com/patterns/status-indicator-pattern/",
+    "https://blogs.autodesk.com/forma/2025/05/13/formas-embodied-carbon-analysis-is-better-than-ever/",
+    "https://mucollective.northwestern.edu/",
+    "https://mucollective.northwestern.edu/project/when-ish-is-my-bus",
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+    "https://vispero.com/resources/screen-readers-support-for-text-level-html-semantics/"
+   ]
+  },
+  {
+   "principle": "Make work reversible, and decide the state layer first. NN/g lists undo and redo under user control. Figma autosaves checkpoints (every 30 minutes), lets users name versions, and restores without deleting anything. Speckle puts undo/redo in its status bar and saves views with camera, filters and sections. Rerun keeps layout apart from data and offers two reset levels. FME wires a visual Compare tool into git diff and merge; about three HN voices say visual programs are hard to diff or give to AI without a text form. Undo across canvas, inspector, palette and AI edits only works if every action passes through one store. React Flow already runs on Zustand and its docs use Zustand for app state; its undo/redo example is Pro-licensed. Options: zundo (MIT, temporal middleware; each setter call is a history entry unless equality or throttling is set), Yjs UndoManager (MIT; merges edits within 500 ms by default, scopes undo to tracked origins, stopCapturing splits steps; needs CRDT types), Immer patches and inverse patches (MIT; usable for undo and for syncing).",
+   "rule_for_our_tool": "One command bus: every user action (palette, shortcut, drag, scrub, AI edit) is a serialisable, named command applied to one store; React Flow is a view of it, not the source of truth. Half-day spike before canvas code with acceptance tests: a node drag, a slider scrub and an AI edit each undo as one labelled step; undo spans canvas, inspector and assumption edits; 'Save option' makes a named snapshot; export is deterministic key-sorted JSON; a 1,000-node graph stays responsive. Default pending the spike: Zustand with zundo (smallest step); move to Yjs only if live collaboration is wanted before 10 Dec. Continuous autosave; restore adds a checkpoint and deletes nothing; forks open a visual graph diff (planned after 10 Dec). Layouts and views are separate JSON from model data, with 'auto layout' and 'reset to my default'.",
+   "source_urls": [
+    "https://www.nngroup.com/articles/ten-usability-heuristics/",
+    "https://help.figma.com/hc/en-us/articles/360038006754-View-a-file-s-version-history",
+    "https://docs.speckle.systems/3d-viewer/interface-nav",
+    "https://docs.speckle.systems/3d-viewer/saved-views",
+    "https://rerun.io/docs/concepts/blueprint",
+    "https://docs.safe.com/fme/html/FME-Form-Documentation/FME-Form/Workbench/Compare-Tool-Git-Integration.htm",
+    "https://news.ycombinator.com/item?id=40937119",
+    "https://reactflow.dev/learn/advanced-use/state-management",
+    "https://reactflow.dev/examples/interaction/undo-redo",
+    "https://github.com/charkour/zundo",
+    "https://docs.yjs.dev/api/undo-manager",
+    "https://immerjs.github.io/immer/patches"
+   ]
+  },
+  {
+   "principle": "Compare options side by side, with linked views. Autodesk Forma's Compare mode shows up to six proposals or analysis results, syncs zoom and pan, and echoes point inspection in every pane (Autodesk quick-start page, opened via a regional mirror). NN/g comparison guidance: about five items, aligned attributes, sticky headers, highlight differences, hide identical attributes.",
+   "rule_for_our_tool": "Compare view of named snapshots: one pane or column per option (up to six, compact layout above four; both numbers are editable guidance), aligned metric rows, sticky headers, 'show differences only', shared legends and scales, linked camera and linked point inspection on by default with an off switch (Forma precedent; whether Forma has a toggle is unverified), and PNG export of the compared view.",
+   "source_urls": [
+    "https://www-pt.autodesk.com/learn/ondemand/curated/forma-quick-start-guide/4kBaXw91SEPQNYX1U7vJiK",
+    "https://blogs.autodesk.com/forma/2024/05/17/compare-and-optimize-your-proposals-for-better-living-qualities/",
+    "https://www.nngroup.com/articles/comparison-tables/",
+    "https://docs.speckle.systems/3d-viewer/saved-views"
+   ]
+  },
+  {
+   "principle": "Colour scales and legends must read at a glance, and no background can carry a whole ramp. Use perceptually uniform, colour-vision-safe maps (Crameri, MIT per Zenodo); separate sequential from diverging by data meaning; label directly where possible. Colour must not be the only cue (WCAG 1.4.1) and graphics need 3:1 contrast (1.4.11). Carbon: legends explain each visual property, and a data table is the only route to very small slices. Observable Plot draws ramps for continuous scales and swatches for ordinal or threshold scales. Computed from a local 256-step copy of batlow, roma and vik: batlow's light end #FACCFA is 1.4:1 on white and its dark end #011959 is 1.1:1 on #16181C; against mid-grey #8A8D91 each ramp passes through about 1:1 somewhere along its length, so every lightness-ordered ramp crosses the background's lightness.",
+   "rule_for_our_tool": "Crameri-style sequential maps by default; a diverging map only when data has a meaningful midpoint; no rainbow; no shipped ramp ends in the FALSE ASSUMPTION hue. Legend always visible on the canvas with units and threshold ticks, drawn from the same colour stops as the shading, with outlined swatches. Compared options share one scale. Do not rely on the viewport background for contrast: give analysed surfaces a 1 px neutral edge, keep context and ground in neutral greys, add patterns, labels or values beside colour, and check ramp ends against each theme's viewport in CI with Culori. Every analysis offers 'View as table'.",
+   "source_urls": [
+    "https://www.fabiocrameri.ch/colourmaps/",
+    "https://zenodo.org/records/8409685",
+    "https://carbondesignsystem.com/data-visualization/color-palettes/",
+    "https://carbondesignsystem.com/data-visualization/chart-anatomy/",
+    "https://raw.githubusercontent.com/observablehq/plot/main/docs/features/legends.md",
+    "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
+   ]
+  },
+  {
+   "principle": "Notification restraint, ethical engagement and community governance, with evidence. Mark et al. (CHI 2008, 48 participants, lab email task): interrupted tasks were finished faster at equal quality, at the price of more stress, frustration, time pressure and effort; interruption context made no difference; openness to experience and need for personal structure predicted disruption cost. Iqbal and Bailey (CHI 2008, 16 users): notifications deferred to breakpoints caused less frustration than immediate delivery, at about 1.5 minutes average deferral; in diagram editing, medium breakpoints beat fine ones and immediate delivery; relevant content was tolerated better. Amershi G3: time services based on context. NN/g and Carbon: match interruption to urgency; never time out critical messages. deceptive.design lists 18 patterns, including fake social proof (invented reviews, testimonials, activity messages). Sailer and Homner (2020) found small positive effects of gamification on learning (g=.49 cognitive, .36 motivational, .25 behavioural; cognitive stable, others less so), in classrooms, not professional tools. Governance precedents: Wikipedia's tag practice ties a dispute tag to a talk-page explanation and removal by consensus; the Contributor Covenant 2.1 gives a report route and four enforcement steps (correction, warning, temporary ban, permanent ban) and leaves the contact as a placeholder. He et al. (arXiv 2412.13459, ICSE 2026) report about six million suspected fake GitHub stars, so popularity counts are gamed. For screen readers, WCAG 4.1.3 wants status messages exposed without moving focus; its Understanding page lists assertive or alert for non-urgent content as a failure, and React Flow's built-in move announcements use an assertive live region.",
+   "rule_for_our_tool": "No toasts by default; status inline on the node. Never interrupt a drag, wire, text edit or open popover. Non-critical notices (community activity, module updates, what's new) wait for a breakpoint (save, stage switch, run finished while idle); critical errors appear inline at once without stealing focus; users set digest timing. Toasts only for non-critical events and auto-dismiss only without an action. No streaks, points, leaderboards, fake urgency or social proof, confirmshaming or nagging: a values decision, since game elements can help learning. Allowed, learning-supportive feedback: a 'what changed' diff after each run (Amershi G16), progressive shortcut hints, evidence completeness per stage as a checklist of named gaps, attribution credit on forks. Community notifications and analytics opt-in. Never optimise time-in-app; success is a task completed with fewer errors. Announcements: one app-level live-region service; run completions and stale changes are polite and batched ('3 modules finished, 1 failed'); assertive only for a failure that blocks the current task; a verbosity setting; the same breakpoint deferral as visual notices. FALSE ASSUMPTION governance (team assumption): a flag targets a claim, never a person or account, and must cite a source (title, link, retrieval date, section) with a short quote or page pointer for the contradicting passage. On someone else's module it starts as a neutral 'Flag proposed' and takes the magenta FALSE style when a second person (a maintainer or independent reviewer) confirms; on your own module you can flag at once. The author is notified at a breakpoint and can reply, attach counter-evidence or correct the claim; a corrected claim reads 'FALSE ASSUMPTION, corrected' and stays visible with flag and reply history beside it. Maintainers resolve disputes under a code of conduct (Contributor Covenant 2.1 as base, with a real contact) and a visible Report route; no points or ranks for raising flags. Community listings sort by evidence completeness, then recency; fork and use counts are neutral numbers, with no stars, trending lists or rank badges. Add these to the deceptive.design PR checklist.",
+   "source_urls": [
+    "https://www.ics.uci.edu/~gmark/chi08-mark.pdf",
+    "https://www.interruptions.net/literature/Iqbal-CHI08.pdf",
+    "https://www.microsoft.com/research/blog/guidelines-for-human-ai-interaction-design/",
+    "https://www.nngroup.com/articles/indicators-validations-notifications/",
+    "https://carbondesignsystem.com/patterns/notification-pattern/",
+    "https://www.deceptive.design/types",
+    "https://www.deceptive.design/types/fake-social-proof",
+    "https://api.semanticscholar.org/graph/v1/paper/DOI:10.1007/s10648-019-09498-w?fields=title,abstract,year,venue",
+    "https://humanebydesign.com/",
+    "https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html",
+    "https://en.wikipedia.org/wiki/Help:Maintenance_template_removal",
+    "https://www.contributor-covenant.org/version/2/1/code_of_conduct/",
+    "https://arxiv.org/abs/2412.13459"
+   ]
+  },
+  {
+   "principle": "Tokens, themes, type and motion from small sets. Linear generates themes in LCH from three variables (base, accent, contrast), replacing 98 variables. OKLCH keeps lightness consistent but guarantees no contrast. NN/g: light mode generally reads better; offer dark as a user choice. NN/g animation: about 100-400 ms, around 100 ms for simple feedback, 200-300 ms for larger changes, 400 ms only for large moves; ease-out entering, ease-in exiting; parallax only with caution; honour reduced motion. Motion's MotionConfig covers its own animations only: React Flow's stylesheet animates animated edges with a 0.5 s dash loop and has no reduced-motion rule (12.12.0, read 21 Oct). Tailwind 4 reads tokens from CSS variables. Inter 4.1 has an opsz axis for Display sizes. In Windows forced-colors mode (MDN) the browser replaces colours with system colours, sets box-shadow to none, drops non-url() background images, overrides SVG fill and stroke, and picks colours from native element semantics, not ARIA roles.",
+   "rule_for_our_tool": "Tokens are CSS variables for 13 Nov, DTCG JSON through Style Dictionary v5 later. Dark variant: '@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));' in the token CSS and CLAUDE.md. Neutral, accent and status scales come from three inputs in OKLCH plus a contrast control; light, dark and high-contrast by user choice; chrome low-chroma so analysis colours are the only saturated hues; viewport background themed separately. Durations 100, 200, 300 ms, 400 ms only for large panel moves; ease-out in, ease-in out; animate transform and opacity only; no bounce; no parallax (team decision). MotionConfig reducedMotion='user' plus a CSS prefers-reduced-motion block that stops edge dash animation, and a global 'Pause animations' switch; running falls back to a static icon. Inter variable with opsz plus Geist Mono, tabular figures, five type sizes. Forced colors: add @media (forced-colors: active) rules as small fixes, not a second design. Focus rings use outline, not box-shadow; the FALSE hatch is an SVG url() image or a double border plus icon and word, never a CSS gradient; chips and ports are native elements; wires carry type by dash, width and port shape, not hue; forced-color-adjust none only on ramp swatches and the viewport frame, with outlined swatches and value labels. Evidence status survives on icon, word and border style. Test with Playwright emulateMedia forcedColors 'active' and a manual pass in Windows contrast themes.",
+   "source_urls": [
+    "https://linear.app/now/how-we-redesigned-the-linear-ui",
+    "https://tailwindcss.com/docs/theme",
+    "https://tailwindcss.com/docs/dark-mode",
+    "https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl",
+    "https://www.nngroup.com/articles/dark-mode/",
+    "https://www.nngroup.com/articles/animation-duration/",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/@media/forced-colors",
+    "https://playwright.dev/docs/api/class-page#page-emulate-media",
+    "https://motion.dev/docs/react-accessibility",
+    "https://unpkg.com/@xyflow/react@12.12.0/dist/style.css",
+    "https://styledictionary.com/info/dtcg/",
+    "https://www.designtokens.org/",
+    "https://github.com/rsms/inter/releases/tag/v4.0"
+   ]
+  },
+  {
+   "principle": "WCAG 2.2 AA is reachable in a canvas tool only if wiring, hover content, motion, target size and viewport results get non-pointer and non-visual routes. React Flow documents Tab focus, Enter/Space selection, Escape, arrow-key moves and an assertive live region, but not keyboard edge creation; its default ARIA text says press delete while deleteKeyCode defaults to Backspace. WCAG 2.1.1's Understanding page says connect-the-dots tasks need keyboard operation; 2.5.7 is met by click-click (connectOnClick). 2.5.8 is zoom-independent and silent on in-app zoom; React Flow handles are 6 px by default and live in a viewport with minZoom 0.5, so 24 px holds only at zoom 1. WCAG 2.2 added nine criteria; six are A or AA (2.4.11, 2.5.7, 2.5.8, 3.2.6, 3.3.7, 3.3.8) and 4.1.1 was removed. Precedents: IBM App Connect Toolkit's dialog with source and target terminal lists, Foblex f-flow v19 (C, arrows, Enter), Blender's Make Links (J). 1.1.1: charts need short plus long alternatives and tables are recommended; Speckle's Elements dock is precedent. For a 3D canvas: three.js OrbitControls pans with arrow keys when key events are attached, Speckle documents fly keys and no keyboard orbit, and MDN warns that role=application hands all keys to the author. 2.2.2 (Level A): moving content that starts automatically, lasts over five seconds and sits beside other content needs pause, stop or hide unless essential; a loading animation is essential only when users cannot interact, and users can interact during a run.",
+   "rule_for_our_tool": "AA checklist covers every A/AA criterion added in 2.2 and drops 4.1.1. 2.4.11: scroll-padding so panels never hide focus. 2.5.7: click-click wiring and numeric inputs beside sliders. 3.2.6: Help entry in the same serialized position on every stage. 3.3.7: the module upload form prefills anything already entered or readable from the manifest (browser autofill does not count). 3.3.8: sign-in needs no transcription or puzzle: OAuth or WebAuthn, password-manager and paste friendly, one-time codes pasteable into one field, any CAPTCHA with a non-cognitive alternative; the core tool needs no account, only community features sign in. Wiring: a 'Connect...' command on each focused port (also in Ctrl+K) opens a listbox of type-compatible target ports with type-ahead; an Edges list in the inspector with delete and rewire. Ports: render each hit area as a real child element sized 24 / zoom CSS px, with port spacing of at least 24 px on screen; below a zoom of 0.75 (team assumption) switch to compact nodes with one 'Connect from...' menu button of 24 px or more, a pointer-operable equivalent on the same page. Playwright measures hit boxes at 0.5, 0.75 and 1.0. Viewport: one focusable region with a name and help text (aria-describedby). While focused, so 2.1.4 is met: arrows orbit, Shift+arrows pan, + and - zoom, F fits, digits jump to saved views, I toggles an inspect cursor whose arrow keys step across analysis cells and read values into the inspector, Esc exits (team assumption; remappable). Surfaces are selectable from a DOM element list; camera changes are announced politely. Choose role=group or role=application in the screen-reader pass. A manual keyboard script for the viewport joins the 13 Nov core, because axe cannot see WebGL. Also: 3:1 for ports, wires, focus rings and chart marks; 'View as table' plus a long text summary for each viewport analysis. Animated wires: global 'Pause animations' control, reduced-motion CSS, static 'running' icon fallback; do not lean on the essential exception. React Flow keyboard features on; axe-core in CI plus a manual keyboard and screen-reader pass.",
+   "source_urls": [
+    "https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/",
+    "https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/consistent-help.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/redundant-entry.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/accessible-authentication-minimum.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html",
+    "https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html",
+    "https://reactflow.dev/learn/advanced-use/accessibility",
+    "https://reactflow.dev/api-reference/react-flow",
+    "https://reactflow.dev/api-reference/components/handle",
+    "https://reactflow.dev/api-reference/types/edge",
+    "https://unpkg.com/@xyflow/react@12.12.0/dist/style.css",
+    "https://threejs.org/docs/pages/OrbitControls.html",
+    "https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/application_role",
+    "https://www.ibm.com/docs/SSTTDS_11.0.0/com.ibm.etools.mft.doc/an08731_.html",
+    "https://newreleases.io/project/github/Foblex/f-flow/release/v19.0.0",
+    "https://docs.blender.org/manual/en/latest/interface/controls/nodes/editing.html",
+    "https://www.w3.org/WAI/ARIA/apg/patterns/listbox/",
+    "https://github.com/dequelabs/axe-core"
+   ]
+  },
+  {
+   "principle": "Design Present mode around the competition's real constraints and the pixels AI renders actually have. Buildner terms: each panel is a JPEG of at most 10 MB, the brief sets one to four panels, judging is anonymous and marks that identify entrants are banned; entry visuals must not have been previously published by the team, and organisers may ask for a design-process explanation including sources of inspiration; the FAQ tells entrants to check AI tools' terms and not to treat AI images as sole work. The terms do not mention AI or supplied site plans. The page lists 'Site plans & 3D model' with no link or usage terms. A2 is 420 x 594 mm (4961 x 7016 px, 34.8 MP, at 300 dpi, computed). OpenAI's image guide (read in full 21 Oct) allows up to 3840 px per edge, 655,360 to 8,294,400 px, multiples of 16, aspect 1:3 to 3:1, and calls sizes above 2560 x 1440 experimental; it names gpt-image-2.5 variants. A full-sheet A-ratio render at the cap (2416 x 3432) is about 146 dpi on A2; 150 dpi would need 8.7 MP. Poster-type guidance comes from scientific-poster guides (UAB: 32 pt body on 36 x 48 in).",
+   "rule_for_our_tool": "Board template on a 12-column grid (team assumption). Export profile: sRGB JPEG per panel; start at 300 dpi and step quality, then dpi, down until under 10 MB, showing the resulting size; strip identifying metadata. Type: body default 14 pt (UAB's 32 pt scaled by about 0.49 to A2), floors 10 pt body and 8 pt legends (team assumptions); preview at fit-to-screen (about 1080 px tall). Charts are vector, rasterised at export, with units. AI renders: show effective dpi on the board (a 2560 px render at full A2 width is about 155 dpi), warn under 150 dpi (team assumption), size hero images to the pixels available and caption any upscaling ('AI-assisted, upscaled'). Every AI image gets a visible caption 'AI-assisted image' with model and date; the project logs prompt, exact model ID and size requested, since stripped metadata cannot carry provenance, and the log doubles as a design-process explanation. Confirm the brief's AI wording first. Download the site plans and 3D model with the brief, read their terms, use them as the starter-graph base only if allowed, and never redistribute them through the community feature. Keep board images and renders of the entry private until results (26 Jan 2027): share generic modules, not entry visuals (our reading of the not-previously-published clause; confirm with organisers). The page says 23:59 London time and the terms say 24:00; plan for the earlier. Boards link to live model values and show a 'stale' badge after upstream edits.",
+   "source_urls": [
+    "https://architecturecompetitions.com/vancouvertallchallenge",
+    "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+    "https://en.wikipedia.org/wiki/ISO_216",
+    "https://www.uab.edu/medicine/poster/create-poster/poster-design",
+    "https://developers.openai.com/api/docs/guides/image-generation"
+   ]
+  },
+  {
+   "principle": "Treat AI output as a labelled draft with provenance and a human in the loop, using Amershi et al.'s numbered guidelines (CHI 2019: 18 guidelines in four phases, from a study with 49 practitioners across 20 AI products). Buildner's FAQ warns that AI-generated images may not be the entrant's sole IP. PAIR: explain data sources, show partial explanations, prompt verification in high-stakes low-confidence cases, show alternatives. In the paper's study, G11 (make clear why the system did what it did) was among the most often violated, though participants could imagine explanations in most products.",
+   "rule_for_our_tool": "Map AI features to the guidelines. G1 and G2: say what the AI can do and how often it errs. G3: deliver at breakpoints. G9: every AI action is editable and undoable in one step. G11: AI-generated text, values and images carry an 'AI draft' label and show inputs and sources. G15: granular feedback on each suggestion. G16: show the consequence of accepting (what changes downstream). G17: a global off switch. G18: a change note when the model or version changes. AI-suggested thresholds enter as Team assumption until a person attaches a source; never as Sourced. Show model name and version, keep prompts, offer two or more alternatives for generated images, and never auto-apply AI edits to the graph.",
+   "source_urls": [
+    "https://www.microsoft.com/en-us/research/publication/guidelines-for-human-ai-interaction/",
+    "https://www.microsoft.com/research/blog/guidelines-for-human-ai-interaction-design/",
+    "https://www.microsoft.com/en-us/research/uploads/prod/2019/01/Guidelines-for-Human-AI-Interaction-camera-ready.pdf",
+    "https://pair.withgoogle.com/chapter/explainability-trust/",
+    "https://architecturecompetitions.com/vancouvertallchallenge"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Build the shell on Vite, React 19, TypeScript, Tailwind 4.3 (CSS-first), shadcn ('init -t vite -b base') and MIT @xyflow/react 12.12 with our own node cards. Install Node LTS and pnpm first. Before any canvas code, run a half-day state spike (Zustand with zundo, Yjs UndoManager, Immer patches) and record the one command bus in CLAUDE.md; React Flow stays a view of that store. Do not depend on React Flow UI templates or its Pro undo/redo example; vendor a React Flow UI component only after xyflow confirms its licence, otherwise rewrite it.",
+   "rationale": "shadcn's CLI docs list -t vite and -b base|radix|aria, and its July 2026 changelog makes Base UI the init default (both read 21 Oct, re-read in r3). The 11 React Flow UI registry files checked import no Radix package. Both templates and the undo/redo example are Pro. Undo across canvas, inspector, palette and AI edits, plus snapshots, autosave and later presence, depends on one store decided up front; retrofitting after 13 Nov is the classic rewrite. React Flow already uses Zustand and documents it for app state, so zundo is the smallest step; Yjs buys presence later. Record the base in CLAUDE.md and PRODUCT.md, tell Claude to use 'render' not 'asChild', pin versions.",
+   "alternatives_rejected": "'-b radix' as default (kept as fallback); Pro templates and the Pro undo example; tldraw (production licence key); ComfyUI frontend and litegraph (GPL-3.0, archived); Rete.js (README showed no plugin detail); Blueprint or Carbon React (second visual system); choosing the state layer after the canvas exists."
+  },
+  {
+   "decision": "Keep Claude's design aids minimal: always the shadcn skill and MCP, plus one of the vendored Vercel checklist (default for 13 Nov) or Impeccable (after review, from 14 Nov). Use Anthropic's frontend-design only for Present-mode and landing pages. Do not install UI UX Pro Max. At most two aids per session. Use Amershi's numbered guidelines as a human review checklist for AI features, not as another skill. Vendor Vercel's command.md from the MIT guidelines repo with its LICENSE and a commit hash. Turn Impeccable telemetry off in .impeccable/config.json and never enable its live mode without reading the manual-edit-validate script.",
+   "rationale": "Five aids at once work against the token-saving goal and overlap context. Impeccable downloads an engine binary into ~/.impeccable/bin (host unnamed), writes hooks into .claude/settings.local.json that can trigger that download even if the launcher is denied, calls a roll API at impeccable.style by default, and lists Inter as overused. Its README offers persistent opt-outs (npx impeccable telemetry off, IMPECCABLE_NO_TELEMETRY=1, a project config setting). Vercel's skill fetches command.md from GitHub main before every review, and that file embeds about 100 rules, so a pinned copy removes the fetch and the injection risk. The Vercel rules do not cover WCAG 2.2 target size or our canvas, so add our own.",
+   "alternatives_rejected": "Installing every design skill together; unpinned Vercel fetch; Impeccable hooks on by default; UI UX Pro Max (MIT, 79 styles; overlaps and adds context, so dropped as a finding); Playwright MCP as the default review tool."
+  },
+  {
+   "decision": "Make the journey a persistent five-stage rail (Massing, Program, Evaluate, Design, Present), free to jump, each stage with an evidence-completeness checklist. Keep Essentials/Advanced as a separate per-module disclosure setting. Group the stages under the brief's Basic, Advanced and Present labels only if the 3-task test shows users do not read 'Advanced' as a gate. Adopt an engagement-ethics policy: no streaks, points, leaderboards, fake urgency or social proof, nagging or confirmshaming; opt-in digests; inline status; non-critical notices wait for breakpoints. Adopt flag governance before any community feature ships: flags cite a source, target claims not people, need a second confirmation on others' modules, allow author reply with visible history, go to maintainers under a code of conduct, and community listings sort by evidence completeness and recency with neutral counts.",
+   "rationale": "The brief's basic-advanced-present path mixes expertise with workflow stage: a beginner can be in Evaluate while an expert is in Massing, so a rail cannot show where the user is. NN/g supports two-level progressive disclosure and staged flows only for independent steps; our stages loop back. Figma and Linear keep focus on the canvas and avoid hover-only UI. deceptive.design gives 18 named patterns, including fake social proof; Sailer and Homner find small positive classroom effects (g .25 to .49), so the leaderboard ban is a values decision. Mark and Iqbal and Bailey support deferring non-critical notices. A permanent magenta mark on a classmate's or community author's work, applied without a citation or right of reply, becomes public shaming; Wikipedia's tag practice and the Contributor Covenant give precedents for explanation, consensus and enforcement; the fake-stars study shows popularity counts are gamed.",
+   "alternatives_rejected": "A locked wizard; expertise tiers as the main navigation; a Beginner mode that hides nodes (one ComfyUI commenter objected; evidence thin, so test before building); badges and XP for module uploads; countdown banners; push-style tours; stars, trending lists or rank badges; points for raising flags; instant public FALSE styling of someone else's module; a percentage progress ring per stage."
+  },
+  {
+   "decision": "Write the node-canvas contract with an execution policy: each module declares a cost class (live, interactive, batch); live and interactive nodes auto-run, batch nodes wait for Run and show stale; a global Auto-run lock; no batch run on project open. Add typed ports, three wire modes, relays by modifier key, no implicit reconnection, units on every value, click-click wiring, keyboard Connect, an Edges list and explicit React Flow shortcut defaults. Add the accessibility contract: ports as labelled focusable buttons with per-port names, popovers on hover and focus (Esc, hoverable, persistent), counter-scaled 24 px hit areas, a focus-scoped viewport keyboard map, and a single shortcut registry. Review the contract weekly against the Cognitive Dimensions.",
+   "rationale": "Without a liveness model, the 100 ms preview, stale propagation and Grasshopper's auto-solve habit conflict: NN/g's limits cover acknowledgement, not wind or energy results. Grasshopper, Dynamo, Houdini and Honeybee all let users hold back heavy runs; Observable recomputes only downstream and lazily. Wire clutter and implicit behaviour recur across McNeel, Blender, Hacker News and Unreal sources (informal coding of about 25 items), and the Cognitive Dimensions tutorial rates hidden dependencies harmful for modification and exploration. WCAG 2.1.1 and 2.5.7 need keyboard and non-drag routes, 1.4.13 needs dismissible hover content, 2.1.4 constrains single-key shortcuts, and 2.5.8 fails for 6 px handles at low zoom; React Flow documents no keyboard edge creation, names handles 'Handle' and defaults delete to Backspace.",
+   "alternatives_rejected": "Auto-run everything; manual-run everything; free-form wiring without categories; drag-only connection; elkjs from day one (large); relying on React Flow's keyboard support alone; hiding wires by default (the McNeel thread is split); double-click relays; global Shift+letter panel keys; hover-only port tooltips."
+  },
+  {
+   "decision": "Build one reusable SourceChip and 'Why this number?' panel with three statuses (Sourced, Team assumption, FALSE ASSUMPTION), each always icon plus word, inside a three-channel semantic palette: evidence hues; run state as neutral icon plus word with a hue only for failed; data ramps. Node cards show one aggregate evidence chip. AI-suggested values enter as Team assumption until a person attaches a source. FALSE styling follows the flag-governance rules in recommendation 3.",
+   "rationale": "PAIR advises explaining sources and favouring partial explanations; Carbon pairs colour with symbol and text and cautions past five or six indicators; WCAG 1.4.1 forbids colour-only meaning; Forma's embodied-carbon analysis already exposes editable scenario sources. About ten semantic colours on one card would exceed Carbon's caution, so the channels are split. Colour-vision simulation shows hue alone fails for several pairs (dE76 17 to 32), so shape and words carry the meaning; contrast is at least 5.43:1 on four plates.",
+   "alternatives_rejected": "Footnote-only citations; colour-only flags; per-value chips on every node; amber for warning (collides with Team assumption ochre); a red-family failed hue at the first-draft value (2.2 against ochre for deutan); hiding falsified claims (the brief requires they stay visible); strikethrough on explanations."
+  },
+  {
+   "decision": "Create the token system in steps: CSS variables with Culori OKLCH scales for 13 Nov; DTCG JSON with Style Dictionary v5 later; Inter 4.1 (opsz) plus Geist Mono self-hosted from their repos; Crameri maps (MIT) for analysis colour on outlined surfaces; low-chroma chrome; Radix Colors only as a one-hour comparison. Use Tailwind's data-attribute dark variant and add forced-colors rules (outline focus rings, SVG-image hatch, native elements, shape-coded wires) tested with emulated media.",
+   "rationale": "Linear shows three inputs can generate a whole theme; OKLCH gives consistent lightness; Crameri maps are uniform and colour-vision friendly, and Zenodo states MIT. Style Dictionary v5.7 supports DTCG but not fully the 2025.10 format. Tailwind 4 consumes CSS variables via '@theme inline'. No background carries a whole ramp (computed on batlow, roma, vik), so edges and legends do the work. Windows 11 is the team's platform and forced-colors mode strips box-shadow, gradients and author colours, so the focus ring, hatch and evidence cues need non-colour fallbacks. Reserving saturation for data keeps results readable.",
+   "alternatives_rejected": "Hand-picked hex values; rainbow colour maps; Radix Colors and Culori in parallel; dark-only default; npm geist package (Next.js peer dependency); a tailwind.config.js theme; relying on a themed viewport background for ramp contrast; focus rings built on box-shadow; gradient hatches."
+  },
+  {
+   "decision": "Standardise results and options: Observable Plot with shared scales and always-visible legends, uncertainty bands where assumptions are editable, named option snapshots with global undo, a Compare view for up to six options with linked camera and linked point inspection, and 'View as table' for every analysis.",
+   "rationale": "Forma documents up to six compared results, synced views and inspect-in-all-panes; NN/g gives comparison rules; Carbon gives chart-anatomy rules; Figma and Speckle show snapshot and saved-view models; Plot's repo docs confirm legends from a scale definition. Snapshots are a prerequisite of Compare.",
+   "alternatives_rejected": "Single-number KPIs without ranges; per-chart auto-scaling that breaks cross-option comparison; hand-written SVG charts; a compare view without snapshots."
+  },
+  {
+   "decision": "Make Present mode follow the competition: JPEG export profile under 10 MB per panel, anonymity-safe metadata, visible AI-image captions with a prompt and model log, effective-dpi readout with an upscaling disclosure, and live-linked board values. Download the full brief, site plans and 3D model yourselves, read their usage terms, and confirm panel count, A2 and AI wording; email organisers before the 3 Nov question deadline; registration closes 29 Oct. Keep entry boards private until results.",
+   "rationale": "The Buildner terms set JPEG, 10 MB and anonymity, bar previously published visuals and let organisers ask for a design-process explanation; the FAQ points to AI-tool terms; the brief PDF, site plans and model sit behind an email form that I did not submit, and no usage terms were found. Stripping metadata for anonymity removes any embedded provenance, so provenance must live in captions and logs (the image guide says nothing on C2PA). An A2 sheet at 300 dpi is 34.8 MP while the image model tops out at 8.3 MP, so full-sheet renders land near 146 dpi. Type sizes are scaled from a scientific-poster guide and are team assumptions. The page and terms disagree on the deadline time (23:59 versus 24:00 London).",
+   "alternatives_rejected": "Exporting 300 dpi PNG; relying on C2PA metadata for provenance (OpenAI's claim not found in the guide); assuming four A2 panels; leaving AI images unlabelled; stretching renders to fill the sheet silently; sharing entry boards through the community feature before results."
+  },
+  {
+   "decision": "Set quality gates: WCAG 2.2 AA with the full A/AA list (2.4.11, 2.5.7, 2.5.8, 3.2.6, 3.3.7, 3.3.8 plus 2.1.4, 1.4.13, 4.1.3), Playwright Test plus @axe-core/playwright in CI (pinned) with forced-colors and reduced-motion runs and port hit-box checks at several zooms, the vendored Vercel checklist on changed UI files, Playwright MCP or pinned CLI for Claude's self-checks, and a manual viewport keyboard script. Before 13 Nov run five 30-minute think-aloud sessions with Grasshopper-using classmates plus a 3-task test of the stage rail and node card, recording task success, time on task, errors and wrong turns, raw NASA-TLX, UMUX-Lite and a flow short scale; repeat after 13 Nov. Before the first session ask the instructor (Xun Liu) whether the sessions are testing within normal educational requirements (TCPS2 Article 2.5), fall under a course-based BREB application, or need their own review; use a one-page consent sheet (voluntary, no effect on grades, right to withdraw, no recording unless opted in, anonymised IDs, retention set by that route); no grader present. Judge by behaviour, not looks. Never optimise time-in-app.",
+   "rationale": "axe-core finds about 57% of WCAG issues and cannot see WebGL. The aesthetic-usability effect (Kurosu and Kashimura 1995, per NN/g) means attractive UIs are rated easier than they are, so compare what participants do with what they say. Mark et al. used a modified NASA-TLX with a stress item; UMUX-Lite is two items and tracks SUS (r about .83 per MeasuringU's summary); the flow short scale exists in 10-item and 16-item forms, so pick one and keep it. Five sessions give descriptive trends, not statistics. TCPS2 Article 2.5 exempts quality assurance, program evaluation and testing within normal educational requirements used only for assessment, management or improvement, and says later research use may need review; UBC's January 2026 course-based guidelines let an instructor file one application for student projects with participants, require the TCPS2 CORE tutorial and consent forms naming the course, and ask instructors to keep materials at least six months after marks; UBC says no REB gives retroactive approval, so ask before starting. Classmates are graded by the same instructor, so voluntariness needs care.",
+   "alternatives_rejected": "Visual taste checks only; relying on Impeccable's detector alone (it targets AI-looking design, not WCAG); unpinned pre-1.0 @playwright/cli; engagement metrics such as time in app or return frequency; running sessions first and asking about ethics afterwards; deleting session data on a fixed date before the ethics route is known."
+  },
+  {
+   "decision": "Sequence the UI work. Before 29 Oct: download the brief, site plans and 3D model and read their terms; send questions by 3 Nov. First week: state-layer spike and command-bus decision, the Cognitive Dimensions walkthrough table, instructor answer on session ethics. By 13 Nov: shell and panels, CSS-variable tokens, canvas with typed ports and module cost classes, palette with the shortcut registry, one starter graph, SourceChip and 'Why this number?' panel, keyboard Connect, labelled ports, viewport keyboard map, global undo. By 10 Dec: Compare with snapshots, uncertainty displays, table views, three starter graphs, motion, forced-colors rules, Present export profile with dpi readout, onboarding hints, CI accessibility, polish pass. Before any community or fork feature ships: flag governance, code of conduct, sign-in without transcription, neutral ranking. Later: dockview, graph diff for forks, community theme tokens and module licence field, Yjs-based presence and comment pins, Speckle viewer extensions.",
+   "rationale": "Core items directly serve the module canvas, evidence and focus goals; polish and onboarding extras depend on stable components. Global undo and snapshots are only feasible by 13 Nov if the state layer is decided first, and Node is not installed yet. Port names, hit areas and the viewport keyboard map are cheap in the first canvas and costly to retrofit. Dates are the course deadlines supplied in the brief. Optional half-day parameter-panel spike (Leva or Tweakpane) in the v1 window.",
+   "alternatives_rejected": "Starting with Present-mode boards; building docking or community theming before the core canvas works; shipping all three starter graphs for 13 Nov; coding the canvas before the state layer is chosen; launching community uploads before flag governance exists."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "tldraw is open source and can be embedded freely because it is on GitHub.",
+   "correction": "The SDK is under the tldraw licence: development free, production requires a licence key (trial or commercial; pricing page mentions a hobby licence whose terms were not read). Only the starter kits are MIT.",
+   "detail": "Sources: tldraw LICENSE.md, README, pricing page, all opened 21 Oct 2026. A public deployment counts as production. Confirmed again by the r1 critique; r3 re-read of the repo page: sidebar shows no licence name, README says production use needs a key.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "ComfyUI's open-source node UI can be reused as code in our tool.",
+   "correction": "The frontend is GPL-3.0; copying code would force GPL on ours. litegraph.js (MIT) is archived. Use it as UX reference only.",
+   "detail": "Sources: GitHub API and README for Comfy-Org/ComfyUI_frontend and Comfy-Org/litegraph.js; docs page re-read in r1; r3 repo page again shows GPL-3.0.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Radix is the default base under shadcn/ui; Base UI is only something to watch and its release status is unknown.",
+   "detail": "Since July 2026 'shadcn init' defaults to Base UI; Radix stays supported via '-b radix' (CLI also accepts 'aria'). Base UI is stable: npm @base-ui/react 1.9.0 (9 Oct 2026), MIT, 11.2k stars. Sources: ui.shadcn.com changelog 2026-07 and CLI docs, opened 21 Oct 2026 (re-opened in r2 and r3: the 2026-07 entry confirms the default, '-b radix' and a migration skill via 'skills add shadcn/ui'; the CLI page lists init -t and -b flags but states no init default); mui/base-ui README and npm registry.",
+   "correction": "Choose the base explicitly (this packet recommends Base UI via 'shadcn init -t vite -b base', with '-b radix' as fallback) and record it in CLAUDE.md and PRODUCT.md. React Flow UI registry items (11 checked) import no Radix package.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "cmdk is limited to React 18.",
+   "detail": "cmdk 1.1.1 (14 Mar 2025) declares peerDependencies react ^18 || ^19 on the npm registry, read 21 Oct 2026.",
+   "correction": "cmdk supports React 19. The real risk is dormancy: no release since March 2025 and last push October 2025. kbar (timc1/kbar, MIT, npm 1.0.0, 10 Aug 2026) and React Aria are fallbacks behind our own Palette wrapper.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Whether Inter ships a Display cut is unresolved (the README says it is in the works).",
+   "detail": "Inter v4.0 (20 Nov 2023) release notes: six additional Display designs assigned to an opsz variable-font axis, exposed as a second family 'Inter Display' as static fonts. Current release v4.1 (16 Nov 2024). Source: GitHub releases API, read 21 Oct 2026.",
+   "correction": "Inter Display exists in Inter 4.x via the opsz axis; the README line is stale. Close the unresolved item.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "React Flow's built-in keyboard support plus click-click wiring makes the canvas WCAG 2.2 AA-ready for wiring.",
+   "detail": "React Flow's accessibility and API docs (read 21 Oct 2026) describe Tab focus, Enter/Space selection, arrow-key node movement and edge deletion; connectOnClick (default true) covers single-pointer use (2.5.7). Neither documents creating edges from the keyboard. WCAG 2.1.1's Understanding page says connect-the-dots tasks, where only endpoints matter, need keyboard operation.",
+   "correction": "Build a keyboard 'Connect...' command with a type-compatible target listbox and an Edges list; precedents: IBM App Connect Toolkit dialog, Foblex f-flow v19, Blender Make Links (J). Add 'View as table' for viewport analyses (WCAG 1.1.1).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Crameri original maps have no stated licence (UNVERIFIED flag in round 0).",
+   "detail": "The Zenodo record for Scientific colour maps v8.0.1 (5 Oct 2023, DOI 10.5281/zenodo.8409685) states the MIT License. Source: zenodo.org/records/8409685, opened 21 Oct 2026. The zip contents (66.9 MB) were not listed.",
+   "correction": "MIT. Bundle the colour stops with the MIT notice and cite Crameri et al. 2020 plus the DOI in the sources panel. The earlier UNVERIFIED flag is closed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Linked cameras in the Compare view are an unsourced team assumption.",
+   "detail": "Autodesk's Forma quick-start guide (regional mirror www-pt.autodesk.com, opened 21 Oct 2026) describes Compare for up to six proposals or analysis results, zoom and pan updating all open scenes, and Inspect showing point details in every analysis. The autodesk.com tutorial page itself returned 403.",
+   "correction": "Cite Forma as precedent for linked cameras and linked point inspection. Whether linking can be switched off is not documented in pages read, so keep an off switch as our own design choice.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Style Dictionary activity and DTCG support are unknown; DTCG 2025.10 can be adopted through it.",
+   "detail": "npm shows style-dictionary 5.7.0 released 16 Oct 2026 (Apache-2.0). styledictionary.com/info/dtcg says DTCG is first-class since v4 and that full 2025.10 support is still in progress (planned for v5). Read 21 Oct 2026.",
+   "correction": "The project is active. Author tokens in the DTCG subset v5 supports and note the 2025.10 gaps; for 13 Nov keep plain CSS variables.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "We can start from the React Flow UI Workflow Editor template (assumed free to adopt).",
+   "detail": "reactflow.dev/ui/templates/workflow-editor and /ai-workflow-editor both state 'This is a Pro example'; reactflow.dev/pro lists Starter at $169 per month with Pro examples and templates. The templates use Next.js, ELKjs, Zustand. No page states a licence for the free components; their registry JSON has no licence header. Opened 21 Oct 2026. In r2 the undo/redo example was also found to be a Pro example under the xyflow Pro License.",
+   "correction": "Do not plan on the templates or the Pro undo/redo example. Build custom nodes on MIT @xyflow/react; treat individual registry components as references until xyflow confirms their licence.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Mark et al. (CHI 2008) cannot be read, so the cost of interrupted work is unverified; interruption was implied to cost time.",
+   "detail": "The open PDF (author-hosted at ics.uci.edu) was read on 21 Oct 2026. 48 participants did a lab email task and were interrupted by phone or instant message about every two minutes. Interrupted tasks were completed in less time with no difference in quality; the price was more stress, frustration, time pressure and effort; interruption context made no difference; openness to experience and need for personal structure predicted disruption cost.",
+   "correction": "Cite it as 'faster but more stressed', not as a time cost. Use it to justify protecting edit sessions and deferring non-critical notices, paired with Iqbal and Bailey (CHI 2008, 16 users), where notifications deferred to breakpoints caused less frustration than immediate delivery.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Cognitive Dimensions tutorial is a binary PDF that could not be read.",
+   "detail": "The text extracts normally (pdftotext, 21 Oct 2026): Green and Blackwell, Cognitive Dimensions of Information Artefacts: a tutorial, v1.2, October 1998, 75 pages. It lists 14 dimensions (abstraction, hidden dependencies, premature commitment, secondary notation, viscosity, visibility and juxtaposability, closeness of mapping, consistency, diffuseness, error-proneness, hard mental operations, progressive evaluation, provisionality, role-expressiveness) and rates them per activity type.",
+   "correction": "Apply the framework to the node-canvas contract (weekly walkthrough). The tutorial rates hidden dependencies harmful for modification and exploration. Green and Petre 1996 (J. Visual Languages and Computing 7:131-174) applied it to LabVIEW and Prograph, read here only via a review summary.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "In React Flow, the Delete key removes selected edges and nodes by default.",
+   "detail": "The API reference (read 21 Oct 2026) gives deleteKeyCode the default 'Backspace' (array allowed). The accessibility page's default ARIA text tells users to press delete, which does not match. panActivationKeyCode defaults to Space, which also selects a focused node; zoomOnDoubleClick defaults to true.",
+   "correction": "Set deleteKeyCode to ['Delete','Backspace'], zoomOnDoubleClick to false (canvas double-click opens search) and panActivationKeyCode to null, and publish one shortcut map. Test it in the keyboard pass.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Microsoft's HAX Toolkit guidelines are unreadable (a poster image), so the AI-UX rules cite no specific guideline.",
+   "detail": "The 18 guidelines are in text in Amershi et al., CHI 2019 (PDF read with pdftotext) and on Microsoft's research blog, 21 Oct 2026: G1 Make clear what the system can do; G2 how well; G3 Time services based on context; G9 Support efficient correction; G11 Make clear why the system did what it did; G15 Encourage granular feedback; G16 Convey the consequences of user actions; G17 Provide global controls; G18 Notify users about changes.",
+   "correction": "Cite the CHI 2019 paper and map AI rules to numbered guidelines (principle 15).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Gamification evidence for learning is mixed, as a Wikipedia article summarised.",
+   "detail": "Sailer and Homner, Educational Psychology Review 32:77-112 (online 2019), abstract read via Semantic Scholar's API on 21 Oct 2026: significant small positive effects on cognitive (g=.49, k=19, N=1686), motivational (g=.36, k=16, N=2246) and behavioural outcomes (g=.25, k=9, N=951); cognitive effects stable in rigorous studies, others less stable; game fiction and competition combined with collaboration moderated behavioural effects. Classroom studies.",
+   "correction": "Cite the meta-analysis, not Wikipedia. The ban on streaks, points and leaderboards is a values decision for a professional tool, not an evidence finding; learning-supportive feedback (what-changed diffs, shortcut hints, attribution credit) is allowed.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Vercel Web Interface Guidelines repo has no LICENSE file.",
+   "detail": "The repository root lists AGENTS.md, LICENSE, README.md, command.md and install.sh; the sidebar shows MIT, and the raw LICENSE file reads MIT, Vercel Labs, 2025 (opened 21 Oct 2026). command.md embeds about 100 rules in 17 sections and fetches nothing; the web-design-guidelines skill in vercel-labs/agent-skills fetches that file from main before every review. The missing licence field applies to agent-skills, not this repo.",
+   "correction": "The guidelines repo is MIT with a LICENSE file. Vendor command.md with the notice and a pinned commit hash; keep the reproducibility and injection risk of the unpinned fetch.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Impeccable's telemetry endpoint is not named, DO_NOT_TRACK=1 is the opt-out, and the repo has 49 open issues.",
+   "detail": "README (opened 21 Oct 2026): the skill calls a roll API at impeccable.style (privacy page linked) and, unless opted out, reports which visual worlds were shown and chosen. Opt-outs: 'npx impeccable telemetry off' (stored in ~/.impeccable/config.json), DO_NOT_TRACK=1, IMPECCABLE_NO_TELEMETRY=1, or '\"telemetry\": false' in a project's .impeccable/config.json for everyone on the project. Live mode runs the optional impeccable:manual-edit-validate script from package.json in a shell. GitHub tabs show 36 issues plus 13 PRs (49 was the API's combined figure). Only the engine binary download host is unnamed.",
+   "correction": "Name impeccable.style as the roll and telemetry endpoint, use the project config opt-out, read the manual-edit-validate script before live mode, and keep only the binary host as UNVERIFIED.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "24 px port hit areas satisfy WCAG 2.5.8 on the canvas.",
+   "detail": "The React Flow 12.12.0 stylesheet makes handles 6 px (min 5 px), with transform-origin 0 0 on the viewport (the zoom transform is applied by script; confirm in DevTools), and minZoom defaults to 0.5, so a 6 px handle renders about 3 px at minimum zoom. The 2.5.8 Understanding page is zoom-independent and does not address in-app zoom (our reading of the effect is unaudited). Its equivalent exception needs another control on the same page that meets the criterion, so keyboard Connect is not a pointer equivalent; its spacing exception needs non-intersecting 24 px circles, so counter-scaled hit areas fail where ports sit closer than 24 px on screen.",
+   "correction": "Render each hit area as a real child element sized 24 / zoom CSS px with at least 24 px on-screen spacing, or switch to compact nodes below a zoom threshold (0.75, team assumption) with a pointer-operable 'Connect from...' menu button of 24 px or more; measure hit boxes in Playwright at 0.5, 0.75 and 1.0. Not measured here.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Shift+letter panel shortcuts (the Speckle precedent) avoid single-character shortcut problems.",
+   "detail": "WCAG 2.1.4 Character Key Shortcuts (Level A, Understanding page read 21 Oct 2026) covers shortcuts built from letters of either case, punctuation, numbers or symbols; what matters is reliance on a printable character, with Shift+/ for '?' as its example. Compliance routes: turn off, remap to include Ctrl or Alt, or active only while the component has focus. The page names speech-input users, whose dictation can trigger stray commands. Speckle's docs list Shift+M, F, V, I, T, O for panels and Shift+B, R, K, H for tools.",
+   "correction": "Keep every printable-character shortcut in one registry: focus-scoped or remappable, plus a Settings switch that turns the class off; global shortcuts use Ctrl, Alt or Cmd. Test in the keyboard pass.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The WCAG 2.2 additions to plan for are 2.4.11, 2.5.7 and 2.5.8, and the older checklist is otherwise current.",
+   "detail": "W3C's 'What's new in WCAG 2.2' (read 21 Oct 2026) lists nine new criteria: 2.4.11 AA, 2.4.12 AAA, 2.4.13 AAA, 2.5.7 AA, 2.5.8 AA, 3.2.6 Consistent Help A, 3.3.7 Redundant Entry A, 3.3.8 Accessible Authentication (Minimum) AA, 3.3.9 AAA; 4.1.1 Parsing is obsolete and removed. Community features need sign-in (3.3.8: no transcription or puzzle without an alternative; paste and password managers must work; OAuth and WebAuthn qualify) and multi-step module upload (3.3.7); the help entry falls under 3.2.6.",
+   "correction": "Put all six A/AA additions in the AA checklist (principle 13), keep the core tool account-free, prefill upload forms from the manifest, keep the Help entry in a fixed serialized position, and remove 4.1.1 from any copied checklist.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Hover-only port inspection, plus View as table, gives non-pointer users the same information as pointer users.",
+   "detail": "WCAG 1.4.13 (AA, read 21 Oct 2026) requires hover or focus content to be dismissible without moving focus, hoverable and persistent; the Understanding page says hover-triggered content should also be reachable by keyboard focus (2.1.1). React Flow's accessibility page gives handle.ariaLabel the default 'Handle' and describes no keyboard focus on handles or edge creation. No keyboard camera or selection model existed for the viewport, and axe cannot inspect WebGL.",
+   "correction": "Popovers open on hover and focus with Esc, hoverable and persistent behaviour; ports are labelled focusable buttons with per-port names; the viewport gets a focus-scoped keyboard map, an element list and a keyboard inspect cursor (principles 4 and 13); add a manual viewport keyboard script.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 'open issues' figures in this packet count issues only.",
+   "detail": "The earlier figures came from the GitHub API open_issues_count, which adds open PRs. Tab counts re-read on 21 Oct 2026: shadcn 793 issues plus 987 PRs (packet said 1,780), xyflow 93 plus 69 (162), cmdk 52 plus 24 (76), Impeccable 36 plus 13 (49), Tailwind 35 plus 58, Carbon 980 plus 101, Plot 251 plus 99, tldraw 442 plus 119, Rerun about 1.2k plus 20, ComfyUI frontend about 1.9k plus 1.2k, Speckle 52 plus 23, Motion 29 plus 4, axe-core 412 plus 33, Culori 19 plus 11. zundo (16 plus 6), Yjs (118 plus 31) and Style Dictionary (217 plus 23) were already issue-only. Counts for Framework, Runtime and geist-font remain API combined figures.",
+   "correction": "Findings now state issues and PRs separately. Treat large counts as a maintenance-load signal, not a bug count.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Numeric UI thresholds in our rules are unsourced: seven Essentials per module, 3 significant figures, 200-node warning, six compared options (compact above four), status chips capped at five or six per screen, 12-column board grid, 14 pt body and 10 pt floors, 24 px ports beyond WCAG, cost classes (live under 100 ms, interactive under 1 s, batch longer), 300 ms debounce, 150 dpi warning, pairs under dE76 20 never rely on hue alone.",
+   "detail": "NN/g supports two disclosure levels, about five comparison items and the 0.1/1/10 s response limits (for acknowledging actions, not results); Forma shows six compared results; Carbon only cautions about five or six indicators; type sizes are scaled from a scientific-poster guide. Mark all as editable team assumptions in the tool.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Starting colour tokens for Sourced, Team assumption, FALSE ASSUMPTION and Failed, and the three-channel palette.",
+   "detail": "Hex values were chosen by us; contrast computed 21 Oct 2026 (at least 5.43:1 on white, #F4F5F7, #16181C and #22252B; failed 5.5:1 or more). Colour-vision simulation (Machado 2009, severity 1.0, CIELAB dE76) was run by us: Sourced versus FALSE 32 (protan, light) and 17 (protan, dark); the first-draft failed red against ochre 2.2 (deutan). The r3 critic reproduced the contrast and colour-vision figures independently. Not tested with people or in the viewport.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Base UI is the right shadcn base for our canvas, palette and popovers.",
+   "detail": "Chosen because it is shadcn's default and docs follow it. No side-by-side test with React Flow overlays and port popovers was run; Radix remains a '-b radix' fallback and shadcn offers a migration skill.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The five stage names (Massing, Program, Evaluate, Design, Present) and their mapping onto the brief's Basic, Advanced and Present labels.",
+   "detail": "Derived from the brief's own workflow (import or model massing, tag program, evaluate, schematic design, present) and the r2 critique; not tested with users. The 3-task test decides whether the brief's labels are kept as groupings.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Measurement protocol: five 30-minute sessions, three tasks, raw NASA-TLX, UMUX-Lite, a flow short scale, repeated after 13 Nov.",
+   "detail": "Instruments chosen by us from sources read in r2 (Mark et al. used a modified NASA-TLX; MeasuringU describes UMUX-Lite). Five participants give descriptive trends only.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Flag governance, viewport keyboard map, compact-node zoom threshold, announcement batching and the consent-sheet contents.",
+   "detail": "Our designs, informed by sources but not tested with users: second-person confirmation before magenta FALSE styling on others' modules, author reply and visible history, maintainers and a code of conduct (Wikipedia tag practice and Contributor Covenant 2.1 are precedents, not rules for us); arrows orbit, Shift+arrows pan, + and -, F, digits, I for the inspect cursor (three.js pans with arrows, Speckle flies; no standard exists); compact nodes below zoom 0.75; polite batched announcements; consent sheet wording. All are editable defaults.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Blender socket inspection tooltips, the Viewer node and node timings behave as described.",
+   "detail": "Taken from a search-result summary of the Blender manual and tracker issue 85251; the manual body was not readable (navigation only). The Blender 'Make Links' (J) shortcut was read from the Editing Nodes manual page in r1.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Autodesk Forma legends, colour scales, units and uncertainty display, and whether camera linking can be turned off.",
+   "detail": "Compare behaviour (up to six, synced views, linked inspect) was read on a regional mirror of the quick-start guide and in Autodesk blogs, but autodesk.com tutorial pages return 403 and none of the pages read describe legends, units or uncertainty. No Forma trial was run.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Spline's editor is open source or has documented editor UX patterns we can cite.",
+   "detail": "Not confirmed. Only the Community Platform docs were opened (remix, repost, comments; community files CC BY 4.0). A search summary claiming CC0 was wrong. The interface-tour page was not opened.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "GitHub star, issue and push-date figures.",
+   "detail": "Round 0 figures came through a summarising fetch tool and the API began returning 403 after about 45 calls. In r1 key repos were re-read from the unauthenticated GitHub API. In r2 zundo, Yjs, Zustand, Observable Framework and Runtime figures came from GitHub web pages via a summarising fetch tool, and dates from npm. In r3 stars and issue and PR tab counts for 20 repos were re-read from GitHub web pages (stars matched; issue counts are now split, see the r3 FALSE_ASSUMPTION flag); push dates were not re-read. Spot-check before quoting numbers publicly.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OpenAI images carry C2PA metadata and an invisible SynthID watermark.",
+   "detail": "Only a search-result summary said so; OpenAI's help article returned 403. The image-generation guide was read in full in r2 (first 100,000 characters plus the rest) and says nothing about C2PA, watermarks or content credentials. Do not rely on embedded provenance; use captions and a prompt log.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Impeccable's engine binary download host and hook behaviour are safe.",
+   "detail": "README (r3 re-read) says the binary downloads once into ~/.impeccable/bin from a host it does not name, hooks write .claude/settings.local.json and can trigger the download even if the launcher is denied, and the roll API at impeccable.style is called by default. Neither the binary host nor the hook script was inspected. The telemetry endpoint and opt-outs are now named (see the r3 FALSE_ASSUMPTION flag).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Node-editor praise and complaints from community sources.",
+   "detail": "Signals, not evidence: McNeel 48238 (16 posters) and 55455 (23 posters on the page read), one Blender DevTalk opening post (follow-up reads rate-limited), about 15 of 493 comments on one Hacker News thread. Reddit JSON and old.reddit returned 403; X, LinkedIn, YouTube, Discord not collected. Coding was informal.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Flow is a measurable target and Csikszentmihalyi's conditions (clear goals, immediate feedback, challenge-skill balance) apply to analysis tools.",
+   "detail": "The primary chapter (Nakamura and Csikszentmihalyi, Handbook of Positive Psychology) is paywalled and was not opened; the earlier Wikipedia citation was dropped. The Flow-Kurzskala documentation (Rheinberg, Vollmeyer, Engeser; 16 items in three factors, CC BY-SA 4.0 documentation) was opened, but the instrument's own terms and the 10-item Flow Short Scale versions were not. Treat 'flow' as an instrument score to be measured, not a proven design cause.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "NASA-TLX and UMUX-Lite are suitable instruments for our sessions.",
+   "detail": "Hart's 2006 NASA-TLX paper fetch failed; Mark et al. (opened) used a modified NASA-TLX with a stress item on the 20-point scale. UMUX-Lite was read through MeasuringU's summary (two items; r about .83 with SUS; 7-point original, 5-point adaptation less tested), not the 2013 paper.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Lab findings on interruptions generalise to design-tool use.",
+   "detail": "Mark et al. used an email task; Iqbal and Bailey used diagram editing and programming with 16 users, and for programming the policy differences were not significant. Neither studied a 3D analysis tool. Use as rationale for rules, then test in our sessions.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Animated wires during a run fall under WCAG 2.2.2 and are not exempt as essential.",
+   "detail": "Our reading of the Understanding page (read 21 Oct 2026): a loading animation can be essential only when users cannot interact, and users can interact during runs. No accessibility audit or assistive-technology test of the canvas has been run.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Crameri ramp contrast and difference figures apply to the shipped maps.",
+   "detail": "Computed from a 256-step local copy of batlow, roma and vik found in the project scratch folder (made in an earlier round); the first rows are consistent with those maps but were not re-downloaded from Zenodo. Other maps were not checked. Colour-vision simulation is approximate.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "zundo, Yjs or Immer fit our canvas (React 19, 1,000 nodes, one-step drag undo, deterministic JSON).",
+   "detail": "Read from READMEs and docs only; nothing was run. Yjs docs do not explicitly say remote updates are excluded from undo (they describe origin scoping). zundo README snippets were reported to contain errors by the fetch summary and were not checked.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "UBC's ethics route for think-aloud sessions with ARCH 540 classmates.",
+   "detail": "Read 21 Oct 2026: TCPS2 Article 2.5 (exempts QA and QI, program evaluation, and testing within normal educational requirements used only for assessment, management or improvement; later research use may need review), UBC's 'should I apply' page (no retroactive approval) and UBC's January 2026 course-based research guidelines (instructor files one RISe application; TCPS2 CORE; materials kept at least six months after marks). None of these says whether our sessions are exempt, and the guidelines are written for projects where students are the researchers. Not a legal or REB opinion.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "React Flow handles accept aria-label, are keyboard-focusable, and the live-region politeness can be changed; the zoom scaling of hit areas matches our reading.",
+   "detail": "The Handle page types extra props as HTML attributes but never mentions aria-label, focus or hit area; the accessibility page documents an assertive region with customisable text only; the stylesheet shows 6 px handles and transform-origin 0 0 but not the script-applied transform. Nothing was run or measured.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Windows forced-colors and screen-reader behaviour of our canvas, chips, wires and viewport.",
+   "detail": "MDN (read 21 Oct 2026) describes forced-colors overrides (box-shadow none, non-url() background images none, SVG fill and stroke overridden, native semantics decide colours). Our fixes (outline focus rings, SVG-image hatch, forced-color-adjust none on swatches) and the viewport role choice (group versus application, which MDN cautions about) are untested; Playwright emulateMedia forcedColors is a proxy, not a Windows contrast theme.",
+   "raised_in_round": 3
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "React Flow UI component licence.",
+   "detail": "The site footer links xyflow's MIT licence but no page states a licence for the components; the registry JSON for base-node carries no licence header; templates and the undo/redo example are Pro. Ask xyflow (GitHub discussion or email) before vendoring any file.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Competition brief details: panel count, A2 size, resolution, any AI-imagery rule, usage terms for the site plans and 3D model, and the deadline time.",
+   "detail": "The terms say JPEG, 10 MB per panel, one to four panels per the brief, anonymous judging, no previously published visuals; they do not mention AI or supplied site plans. The full brief PDF, site plans and 3D model sit behind an email form (the Download brief link is a placeholder) that I did not submit; no usage terms were found. Page re-read 21 Oct 2026: registration closes 29 Oct, last day for questions 3 Nov, submission 30 Nov 2026 at 23:59 London on the page but 24:00 London in the terms.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved": [
+  "Competition brief (A2, panel count, resolution, AI rule, usage terms for the site plans and 3D model): the PDF and models are behind an email form I did not submit. The team should download them and email organisers by 3 Nov 2026; registration closes 29 Oct 2026. The page says 23:59 London on 30 Nov and the terms say 24:00; plan for the earlier.",
+  "UBC ethics route for the think-aloud sessions: TCPS2 Article 2.5, UBC's should-I-apply page and UBC's January 2026 course-based guidelines were read, and none says whether our sessions are exempt. Ask Xun Liu (and the BREB if he is unsure) before the first session; no REB gives retroactive approval. Retention conflicts to settle: the course-based route asks instructors to keep materials at least six months after marks.",
+  "React Flow UI component licence (free components and Pro templates and undo/redo example): no licence stated per component; ask xyflow before vendoring.",
+  "React Flow handles: whether Handle passes aria-label through, whether handles are keyboard-focusable, whether the assertive move announcements can be made polite, and how the script-applied viewport transform scales the 6 px handle: none of this was run or measured.",
+  "Viewport accessibility: role=group versus role=application, arrow-key behaviour under NVDA, JAWS and VoiceOver, and the inspect cursor are untested; a manual keyboard and screen-reader script is still to be written and run.",
+  "Windows forced-colors: our SVG wires, chips, hatch, focus rings and ramp swatches are untested in real contrast themes; only Playwright emulation is planned.",
+  "Social platforms: Reddit (JSON and old.reddit 403), X, LinkedIn, YouTube comments and Discord not collected. Hacker News (one thread, about 15 of 493 comments), McNeel (two threads) and one Blender DevTalk opening post were read; DevTalk follow-ups were rate-limited. A systematic 20-plus complaint corpus is not done.",
+  "Primary user research with ARCH 540 students and Grasshopper users has not happened; it needs the team (five 30-minute sessions plus a 3-task test of the stage rail and node card). Instruments are now proposed (task success, time, errors, raw NASA-TLX, UMUX-Lite, a flow short scale) but not piloted.",
+  "Annotated benchmark screenshots (Figma, Linear, Speckle, Forma first, with copy and avoid callouts) were not produced; the team should capture them. The Spline editor and the Rerun UI were not analysed.",
+  "Autodesk Forma: autodesk.com tutorials return 403; legends, colour scales, units, uncertainty display and whether camera linking toggles are not documented in pages read; no trial run.",
+  "Blender node editor conventions (socket inspection, Viewer node, node timings): manual pages too large to read; only Make Links (J) and Mute Links were confirmed.",
+  "OpenAI C2PA and SynthID provenance claims: help article 403; the image guide (read in full) is silent; secondary sources only.",
+  "Impeccable engine binary download host is not named in the README and was not inspected (the telemetry endpoint impeccable.style is now named); the hook script was not read.",
+  "Base UI versus Radix not tested side by side with canvas overlays, port popovers and the palette; shadcn's Command docs do not explain base differences.",
+  "State layer: the half-day spike has not run. zundo, Yjs and Immer were read from docs only; React 19 fit, one-step drag undo, 1,000-node performance and deterministic JSON export are untested; Yjs docs do not explicitly state that remote updates stay out of the undo stack.",
+  "Execution policy: Grasshopper, Dynamo, Houdini and Honeybee behaviours were read from docs, not tested; the Grasshopper solver lock menu wording comes from a forum comment; no study shows which default Grasshopper users expect. Tanimoto's 1990 liveness paper was not opened (levels read from the 2013 paper).",
+  "Cognitive Dimensions: Green and Petre 1996 was read only through a review summary (the bibliography's PDF link at homepage.ntlworld.com no longer resolves); draft test tasks are in principle 3, but the walkthrough table has not been written or run.",
+  "Interruption evidence is lab-based (email, diagram editing, programming); Mark's sample was mostly German students; whether the findings hold in a 3D analysis tool is untested.",
+  "Flow and measurement sources not opened: Csikszentmihalyi's primary chapter (paywalled), Hart's NASA-TLX paper (fetch failed), the UMUX-Lite 2013 paper, and the terms and item versions of the Flow Short Scale (10 items) versus Flow-Kurzskala (16 items).",
+  "Colour: the semantic palette is untested with people; colour-vision simulation is approximate; Crameri ramp checks cover only batlow, roma and vik from a local data copy; ramp ends against the final viewport themes are not computed.",
+  "WCAG 2.2.2 treatment of animated wires and our 2.5.8 zoom reading are our interpretations, unaudited; no screen-reader or keyboard test of the React Flow canvas has been run.",
+  "Flag governance, community ranking and sign-in: designs only. No community feature exists to test; the Contributor Covenant contact method is a placeholder to fill; no moderation capacity has been planned beyond the maintainers.",
+  "Speckle: Viewer 3 features, legends and themes not verified; docs conflict on who can create saved views (Editor seat versus Contributor role).",
+  "Spline editor UX and licence: only the Community Platform docs opened; interface tour not read.",
+  "tldraw hobby-licence terms and any educational or open-source exemption: not fetched.",
+  "Licences not stated or not checked: React Flow UI components, DTCG, deceptive.design content, Crameri JavaScript packaging (zip contents), W3C document licence, ACM and Microsoft PDF reuse terms, Contributor Covenant text licence (the page did not state one).",
+  "Print and type guidance for A2 comes only from scientific-poster guides (UAB, scaled); no architecture-competition source found, and jurors may view panels on screen.",
+  "Collaboration and presence UX (Yjs: MIT on npm and the repo page) for team comments on nodes: not researched beyond the undo manager.",
+  "Leva and Tweakpane parameter-panel spike: dropped as a finding in r2 to stay within 30; Leva (MIT, pushed 2025-11-09) and Tweakpane (MIT) READMEs not verified for scrub plus typed input; still a half-day option.",
+  "Laws of UX numbers (for example Miller's 7 plus or minus 2) were deliberately not used as rules; no primary source read.",
+  "Research method in r3: the web-search budget was exhausted, so every r3 check is a direct page fetch; the UBC pages reached were the generic ethics, should-I-apply and course-based pages, not the BREB screening tool."
+ ],
+ "change_log": [
+  "r1: Replaced the Radix finding with a combined 'Base UI (new shadcn default) and Radix Primitives' finding; shadcn init now defaults to Base UI (July 2026), Radix via -b radix; recommended 'shadcn init -t vite -b base' and recording the choice. Added FALSE_ASSUMPTION flag.",
+  "r1: React Flow UI downgraded from core to v1: both templates are labelled Pro (from $169 per month), component licences are unstated, registry files carry no licence header; 11 components checked import no Radix. Added FALSE_ASSUMPTION flag for the template assumption and kept the UNRESOLVED licence flag.",
+  "r1: Added keyboard edge creation and viewport table alternatives to the WCAG plan (principle 13, React Flow finding); evidence from React Flow docs, WCAG 2.1.1 and 1.1.1 Understanding pages, IBM, Foblex f-flow v19 and Blender Make Links. Added FALSE_ASSUMPTION flag.",
+  "r1: Added benchmark cards for Autodesk Forma (compare evidence read on a regional Autodesk mirror and blogs), Figma UI3, Linear, Speckle (viewer UX docs), Spline (community remix, CC BY 4.0), Rerun and Observable Plot; promoted linked cameras from team assumption to sourced (FALSE_ASSUMPTION flag).",
+  "r1: Added principles for reversibility (undo, autosave, snapshots, graph diff), node run states and error copy, units and precision, Present mode and A2 boards, and AI-assistance UX; merged earlier principles to stay at 15 (disclosure with chrome-recedes, explainability with uncertainty, tokens with motion).",
+  "r1: Rewrote the wires principle with informal forum evidence (McNeel 48238 and 55455, a Blender DevTalk proposal, one HN thread); the wire default is now a three-mode switch decided by testing, relays need a modifier key, no implicit reconnection. Evidence labelled as signals; Reddit remained blocked.",
+  "r1: Vancouver Tall Challenge page and terms opened: JPEG panels up to 10 MB, anonymity, FAQ on AI tools, dates (registration 29 Oct, questions 3 Nov). Brief PDF is behind an email form I did not submit; A2 and AI rule remain unresolved. Added Present-mode export profile and AI caption rules.",
+  "r1: Narrowed the 13 Nov core (one starter graph, shell, tokens, canvas, palette, SourceChip, keyboard Connect, undo); limited design aids to two per session; Impeccable moved to v1 with a review step (telemetry on by default, binary download, hooks, Inter flagged); UI UX Pro Max dropped as a finding.",
+  "r1: Factual corrections applied: cmdk supports React 19 (risk is dormancy); Inter 4.x has Display via opsz and v4.1 is current; Crameri maps are MIT (Zenodo 8409685); Style Dictionary v5.7.0 with first-class DTCG and incomplete 2025.10 support; Tailwind 4 CSS-first with @theme inline; Playwright CLI pre-1.0 pinned; Geist Mono taken from the geist-font repo (npm package is a Next.js peer); status indicator needs colour, icon and text with the chip cap as an editable team assumption; NN/g motion durations restated as 100-400 ms.",
+  "r1: Added concrete status tokens (blue, ochre, magenta with hatch) with computed contrast of at least 5.4:1 on four plates; flagged as team assumptions pending colour-vision simulation and a check against shipped ramp ends.",
+  "r1: Added Leva and Tweakpane as a half-day parameter-panel spike; dockview folded into the panels finding; Yjs presence noted as roadmap and unresolved.",
+  "r1: To stay within 30 findings, folded Radix Colors into the Culori finding, d3-scale-chromatic into Observable Plot, React Aria into cmdk, axe-core into the Playwright finding, and dropped Driver.js (kept as an optional library in the onboarding rule) and UI UX Pro Max as separate findings.",
+  "r1: Closed the round-0 UNVERIFIED flag on Crameri licensing (replaced by FALSE_ASSUMPTION flag) and revised the UNVERIFIED Forma and Spline flags and the TEAM_ASSUMPTION flag; earlier FALSE_ASSUMPTION flags were kept.",
+  "r2: Added an execution and liveness policy (principle 2, recommendation 4, new finding on Grasshopper, Dynamo, Houdini and Honeybee run modes): module cost classes (live, interactive, batch), debounce and evaluate-on-release for sliders, global Auto-run lock, no batch run on project open, stale propagation that keeps last results visible, lazy unobserved nodes. The 100 ms target now applies to slider echo and proxy, not to results. Sources: Dynamo run-mode page, McNeel command page, SideFX update modes (Houdini 22), Honeybee conventions, Observable runtime and Framework docs, Tanimoto 2013.",
+  "r2: Split the journey into a five-stage workflow rail (Massing, Program, Evaluate, Design, Present) and a separate per-module Essentials/Advanced disclosure setting (principle 1, recommendation 3). The brief's Basic, Advanced and Present labels are kept only as optional groupings pending the 3-task test; flagged as a team assumption.",
+  "r2: Added the state and command architecture (new finding, principle 8, recommendations 1 and 10): one command bus, React Flow as a view, half-day spike of zundo, Yjs UndoManager and Immer patches with acceptance tests. Read zundo, Yjs, Zustand, Immer docs and React Flow's state-management and undo/redo pages (the undo/redo example is Pro). Nothing was run.",
+  "r2: Added a Cognitive Dimensions finding and rewrote the wires principle with a per-dimension walkthrough (hidden dependencies, viscosity, premature commitment, secondary notation, progressive evaluation, error-proneness, role-expressiveness). FALSE_ASSUMPTION flag: the tutorial text extracts normally (Green and Blackwell v1.2, 75 pages, 14 dimensions).",
+  "r2: Corrected the attention evidence. FALSE_ASSUMPTION flag: Mark et al. 2008 read in full (48 participants; faster, equal quality, more stress and frustration; context made no difference). Added Iqbal and Bailey 2008 (16 users; deferring to breakpoints lowers frustration, medium breakpoints best in diagram editing) and a new interruption finding; notification rules now defer non-critical notices to breakpoints. Wikipedia flow citation dropped; Csikszentmihalyi's primary chapter (paywalled) logged as unverified.",
+  "r2: Added a semantic palette (principle 7, recommendation 5) to stop run states, warnings and evidence statuses competing: three channels, one aggregate evidence chip per node card, neutral icons for run state with a hue only for failed, warning as a neutral triangle. Computed contrast and colour-vision simulation: the first-draft failed red collapsed into ochre for deutan (dE76 2.2), so failed was darkened; Sourced versus FALSE falls to 32 (protan, light) and 17 (protan, dark); pairs under about 20 never rely on hue alone. Strikethrough removed from explanations (screen-reader support for the s element is poor), superseded values use del plus a word.",
+  "r2: Fixed React Flow defaults (FALSE_ASSUMPTION flag): deleteKeyCode defaults to Backspace, Space is both pan and select, double-click zooms. Set deleteKeyCode ['Delete','Backspace'], zoomOnDoubleClick false, panActivationKeyCode null. Added WCAG 2.2.2 handling for animated wires: React Flow's 12.12.0 stylesheet animates edges with no reduced-motion rule, MotionConfig does not cover it; added a global Pause animations control and reduced-motion CSS.",
+  "r2: Mapped the AI rule to Amershi et al. CHI 2019 guidelines (G1, G2, G3, G9, G11, G15, G16, G17, G18) with a new finding; FALSE_ASSUMPTION flag that the guidelines are readable in text. Re-read the competition page (dates unchanged, brief link is a placeholder behind an email form).",
+  "r2: Gamification: FALSE_ASSUMPTION flag; cited Sailer and Homner 2020 (g=.49, .36, .25; classroom studies) via Semantic Scholar's API because Springer redirected; framed the leaderboard and streak ban as a values decision and added learning-supportive mechanics (what-changed diff, shortcut hints, evidence completeness, attribution credit). Merged this with the deceptive.design finding.",
+  "r2: Added measurement instruments and a protocol (task success, time on task, errors and wrong turns, raw NASA-TLX, UMUX-Lite, a flow short scale; five sessions, repeated after 13 Nov) and cited the aesthetic-usability effect (Kurosu and Kashimura 1995 via NN/g) for comparing behaviour with comments. Instruments logged as team assumptions; Hart 2006, the UMUX-Lite paper and the flow scale terms were not opened.",
+  "r2: Present mode: computed AI-render resolution against A2 (4961 x 7016 px at 300 dpi; guide cap 8,294,400 px; a full-sheet render at the cap is about 146 dpi) and added an effective-dpi readout, a 150 dpi warning (team assumption) and an upscaling caption rule. Re-read the OpenAI image guide in full: it is silent on C2PA.",
+  "r2: Viewport and ramps: computed from a local copy of batlow, roma and vik that no background carries a whole ramp (batlow light end 1.4:1 on white, dark end 1.1:1 on #16181C, about 1:1 somewhere along each ramp on mid-grey), so analysed surfaces get a neutral edge and legends get outlined swatches; FALSE magenta stays at least 47 dE76 from those ramps. Data provenance logged as unverified.",
+  "r2: Re-verified shadcn 'init -t vite -b base' (CLI docs list -t vite and -b base|radix|aria; July 2026 changelog entry read). Updated dates: Figma UI3 article 26 Jun 2024, Linear 28 Mar 2024 (98 variables replaced by three inputs).",
+  "r2: Stayed at 30 findings by merging Impeccable with Anthropic frontend-design, Culori and Radix Colors with Style Dictionary, tldraw with ComfyUI frontend, Figma with Linear, and deceptive.design with the gamification meta-analysis; dropped Leva and Tweakpane as a finding (kept as an optional spike in unresolved and recommendation 10). Added five findings: state layer, Cognitive Dimensions, interruption studies, Amershi guidelines, execution-policy precedents.",
+  "r2: Closed the round-1 UNVERIFIED flags on Mark et al. and gamification (replaced by FALSE_ASSUMPTION flags) and removed the HAX and Cognitive Dimensions entries from unresolved. All earlier FALSE_ASSUMPTION flags kept; the React Flow UI and Base UI flags gained r2 detail. Added UNVERIFIED flags for flow theory, instruments, lab-to-tool generalisation, WCAG 2.2.2 reading, colour data provenance and the unspiked state layer.",
+  "r3: WCAG 2.2 checklist completed (WCAG finding, principle 13, recommendation 9, FALSE_ASSUMPTION flag). Read the W3C 'what's new' page and the Understanding pages: all six A/AA additions (2.4.11, 2.5.7, 2.5.8, 3.2.6 Consistent Help, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication) are now in the AA list; 4.1.1 Parsing is removed in 2.2. Sign-in must allow paste, password managers and OAuth or WebAuthn with no transcription (core tool stays account-free); the module upload form prefills from the manifest; the Help entry keeps a fixed serialized position (principle 5).",
+  "r3: Single-key shortcuts: added WCAG 2.1.4 (Level A; Shift+letter is in scope) as a shortcut registry rule (principle 6): focus-scoped or remappable to include Ctrl or Alt, plus a Settings off switch; global shortcuts use Ctrl, Alt or Cmd. Speckle finding now says not to copy its Shift+letter panel keys as global keys; FALSE_ASSUMPTION flag added; read the ARIA keyboard practices page for assistive-technology key collisions and added a visible Commands button beside Ctrl/Cmd+K.",
+  "r3: Hover inspection (principle 4, recommendation 4, FALSE_ASSUMPTION flag): popovers open on hover and focus and meet WCAG 1.4.13 (Esc, hoverable, persistent); each port is a labelled focusable button with a per-port accessible name, since React Flow's handle name defaults to 'Handle' (ariaLabelConfig key, per-handle pass-through untested).",
+  "r3: Target size (principle 13, React Flow and WCAG findings, FALSE_ASSUMPTION flag): the 24 px figure fails at canvas zoom (handles are 6 px, minZoom 0.5; the 2.5.8 page is zoom-independent and its equivalent exception needs a pointer control on the same page). Fix: counter-scaled hit child sized 24 / zoom with 24 px on-screen spacing, or compact nodes below zoom 0.75 (team assumption) with a 'Connect from...' menu; Playwright hit-box test at 0.5, 0.75 and 1.0.",
+  "r3: Viewport keyboard and non-visual model added (principle 13): focus-scoped arrows orbit, Shift+arrows pan, + and -, F, digits for saved views, I for a keyboard inspect cursor, Esc; DOM element list; polite camera announcements; manual keyboard script in the 13 Nov core. Precedents read: three.js OrbitControls (arrows pan), Speckle (fly keys, Alt+1 to 5 views, no keyboard orbit), MDN on role=application; the role choice is left to a screen-reader pass.",
+  "r3: Flag governance and community ranking added (principle 11, recommendations 3 and 5, TEAM_ASSUMPTION flag): citation and short quote required, claims not people, neutral 'Flag proposed' until a second person confirms on others' modules, author reply with visible history, maintainers and a code of conduct (Contributor Covenant 2.1), no stars, trending lists or rank badges, no points for flags. Sources opened: Wikipedia tag-removal help page, Contributor Covenant 2.1, deceptive.design fake social proof, He et al. arXiv 2412.13459 (ICSE 2026, about six million suspected fake stars).",
+  "r3: Consent and research ethics for classmate sessions (recommendation 9, UNVERIFIED flag, unresolved): read TCPS2 Article 2.5, UBC's should-I-apply page and UBC's January 2026 course-based guidelines; ask Xun Liu before the first session (no retroactive approval); consent sheet; retention set by the ethics route (guidelines ask for at least six months after marks), so the earlier fixed deletion date was dropped.",
+  "r3: Announcement policy (principle 11): one live-region service, polite and batched, assertive only for failures that block the task, verbosity setting (WCAG 4.1.3; React Flow's built-in move announcements are assertive).",
+  "r3: Windows forced-colors (principle 12, recommendation 6, Playwright finding, UNVERIFIED flag): MDN shows box-shadow, non-url() background images and SVG paint are overridden and native semantics decide colours, so focus rings use outline, the FALSE hatch is an SVG url() image or a border plus icon and word, wires carry type by dash and port shape, and forced-color-adjust none is limited to ramp swatches and the viewport frame; test with emulateMedia forcedColors 'active' (option verified).",
+  "r3: Corrections with FALSE_ASSUMPTION flags and status false_assumption_corrected: Vercel guidelines repo is MIT with a LICENSE file (command.md embeds about 100 rules; the skill still fetches it from main); Impeccable telemetry endpoint is impeccable.style with persistent opt-outs (config file, IMPECCABLE_NO_TELEMETRY, DO_NOT_TRACK) and live mode runs a package.json script; only the binary host stays UNVERIFIED (flag narrowed); issue counts are 36 issues plus 13 PRs.",
+  "r3: Open-issue figures split into issues and PRs across 20 findings after re-reading GitHub tab counts (the API figure had added PRs); FALSE_ASSUMPTION flag added and the GitHub-figures UNVERIFIED flag updated. Stars matched earlier figures.",
+  "r3: Closed the Tailwind data-attribute risk: the dark-mode docs give '@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));'; added it to the Tailwind finding, principle 12 and CLAUDE.md guidance. Re-verified shadcn: the CLI page lists init -t and -b (base, radix, aria) but states no init default; the 2026-07 changelog entry states Base UI as default, '-b radix', and a migration skill; the MCP page gives 'mcp init --client claude'.",
+  "r3: Competition (finding, principle 14, recommendation 8, unresolved): 'Site plans & 3D model' are listed with no link or usage terms; terms bar previously published visuals and allow a design-process request, so entry boards stay private until results; the page says 23:59 London and the terms 24:00; finding URL changed to the form without a trailing slash after the slash form returned HTTP 404.",
+  "r3: Evidence-completeness indicator restricted to a checklist of named gaps (principles 1 and 11): no percentage ring, no success colour, no reminders, never blocks navigation. Cognitive Dimensions: seven draft test tasks added to principle 3; Green and Petre PDF link in the bibliography no longer resolves, so it stays unread.",
+  "r3: Kept 30 findings, 15 principles and 10 recommendations; added no findings (governance, ethics and viewport sources sit in principle source lists); kept every earlier flag, narrowed the Impeccable UNVERIFIED flag, updated the GitHub-figures flag, and added six r3 FALSE_ASSUMPTION flags plus TEAM_ASSUMPTION, UNVERIFIED and revised UNRESOLVED entries. The web-search budget ran out, so all r3 checks were direct page fetches."
+ ]
+}

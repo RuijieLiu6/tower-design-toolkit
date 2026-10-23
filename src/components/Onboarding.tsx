@@ -1,0 +1,45 @@
+import { X } from 'lucide-react'
+import { navigate } from '../lib/route'
+import { useStore } from '../store'
+import { Kbd } from './ui'
+
+const STEPS = [
+  { n: 1, title: 'Massing: shape your tower', text: 'Set height, footprint, podium and the program by floor band in the Design tab. Use "Place on map" to move it.' },
+  { n: 2, title: 'Switch on the nodes you need', text: 'Each evaluation is a node in the library, grouped by category. Built nodes run live; researched ones show their method and thresholds.' },
+  { n: 3, title: 'Read results with their evidence', text: 'Every number shows where it comes from: verified, team assumption, unverified, unresolved, or a false assumption kept visible.' },
+  { n: 4, title: 'Schematic, then Present', text: 'Schematic (key 2) turns the clay into an x-ray axonometric: floor plates, core and plant floors, with a section cut and an exploded view. Present (key 3) locks the model and frames an A2 board for captures.' },
+  { n: 5, title: 'Try the real city', text: 'Switch to "Real Vancouver" and place a tower downtown: the view-cone node estimates how high each protected view allows, or stops and says "no estimate".' },
+]
+
+export default function Onboarding() {
+  const { showOnboarding, set } = useStore()
+  if (!showOnboarding) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4" role="dialog" aria-modal="true" aria-labelledby="ob-title">
+      <div className="w-full max-w-xl rounded-xl bg-panel p-6 shadow-xl">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 id="ob-title" className="text-lg font-semibold">Tower Design Toolkit</h2>
+            <p className="mt-1 text-sm text-muted">Design a tall building for Vancouver, and see the evidence behind every result.</p>
+          </div>
+          <button aria-label="Close" onClick={() => set({ showOnboarding: false })} className="rounded p-1 text-muted hover:bg-slate-100"><X size={18} /></button>
+        </div>
+        <ol className="mt-5 grid gap-3">
+          {STEPS.map((s) => (
+            <li key={s.n} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white">{s.n}</span>
+              <div><div className="text-sm font-medium">{s.title}</div><div className="text-xs text-slate-600">{s.text}</div></div>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-5 flex items-center justify-between">
+          <span className="text-[11px] text-muted"><Kbd>P</Kbd> place tower · <Kbd>Esc</Kbd> stop placing · <Kbd>1</Kbd><Kbd>2</Kbd><Kbd>3</Kbd> stages</span>
+          <span className="flex items-center gap-3">
+            <button onClick={() => { set({ showOnboarding: false }); navigate('guide') }} className="text-xs font-medium text-accent hover:underline">Read the user guide</button>
+            <button onClick={() => set({ showOnboarding: false })} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90">Start designing</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}

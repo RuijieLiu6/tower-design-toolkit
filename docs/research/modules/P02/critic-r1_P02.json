@@ -1,0 +1,340 @@
+{
+ "expert_role": "Environmental building physicist (daylighting and solar analysis), independent reviewer of packet P02, round 1",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P02-M02",
+   "issue": "The rule set does not match the approved guideline. I downloaded the Downtown Peninsula Solar Access Guidelines PDF (approved 17 Sept 2025, last amended 29 July 2026). (1) West End miniparks and urban plazas only require that new shadow be minimised 'where possible' (s.3.2.1). The spec instead applies a 0 m2 pass/fail test to them. (2) There are no 'Decision Trees A-C'. The text is organised as ss.3.1, 3.2, 3.3, 4.1-4.3, 5 and 6. (3) Robson Village is protected 10:00-15:00, not 10:00-16:00. (4) Section 4.2 moves Jack Poole Plaza, Robson Square and Dilawri Square South up to the park rule (s.3.1). Two of those are CBD plazas squarely in the shadow path of any CBD tower. (5) The Victory Square cenotaph is protected 10:00-12:00 PST on 11 Nov, not at 11:00. (6) The only absolute rule with no exception clause is Sun Yat-Sen (s.4.1). Dilawri/Library Square is not absolute.",
+   "fix": "Transcribe the rules from the July 2026 PDF and key them to clause references 3.1.1, 3.1.2, 3.2.1, 3.3.1(a)/(b), 4.1.1, 4.2.1, 4.3.1, 5.1, 5.2 and 6.1. Give each class its own result type. Parks, schools and the 4.2 plazas get pass/fail at 0 m2 inside property lines. Ordinary plazas and miniparks get a 'minimise' report (m2 and coverage %) with no pass/fail. Villages are tested on the north sidewalk from curb to building face, Davie 10-16 and Robson 10-15. Ship Table 1 as a data file. Re-check the text after the CDDG takes effect on 27 Oct 2026."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P02-M02",
+   "issue": "Section 5.1 requires models that are geolocated, set to PT (UTC-7), and include 'the complete built and approved urban context, including topography', plus known proposed developments. Section 5.1.1 says trees, public shade structures and small park outbuildings are not part of the existing-shadow baseline. The spec instead projects prisms onto a flat ground plane and uses only an existing+approved baseline. At the 10:00 and 16:00 sun altitudes (27-28 deg, L/H about 1.9-2.0), a 20 m level difference between the site and a waterfront plaza such as Jack Poole moves a shadow edge by about 40 m. That is enough to flip pass/fail.",
+   "fix": "Add a terrain input (City LiDAR/DEM or contours) and ray-cast onto a terrain mesh, or onto the protected-space surfaces at their real elevations. Run three scenarios: existing+approved, +known proposed, and +proposal. Hard-code the tree/shade-structure exclusion as a guideline rule, not as a limitation of the tool."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "ALL",
+   "issue": "Several statuses do not match their evidence. Some metrics are labelled 'verified' although their primary source was not opened: M03 'Change in sun hours vs baseline', all four M07 metrics (LEED, ASE, EN 17037, WELL), and M06 average daylight factor (secondary Wikipedia, citing the 1999 CIBSE LG10). For M07 the packet's own flags call the same thresholds UNVERIFIED. The course requires each result to carry an honest source status.",
+   "fix": "Add a status 'verified_secondary' (code or encyclopedia evidence) and apply it to M07 and M06. Relabel M03 delta as team_assumption. Upgrade M02 'new shadow' and 'shadow-study completeness' to verified, citing the PDF clauses (now obtainable via direct HTTP download). Make the build fail on any 'verified' status that has no opened primary source."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The outputs do not reproduce what applicants must submit. The Basic study requires 2-hour intervals (10, 12, 14, 16 PT). The Detailed study (s.5.2, needed for any exception) requires 15-minute intervals with m2 take-offs of existing, proposed-additional and cumulative shadow, and Shadow Coverage % = sum of interval areas / (space area x 25). The spec defaults to hourly and has no coverage-% output.",
+   "fix": "Add BasicStudy (4 instants) and DetailedStudy (25 instants, 10:00-16:00 inclusive) presets. Output the three area series and the three coverage percentages using the City formula, citing s.5.2(b)-(c). Keep hourly as an optional design-exploration mode."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M01",
+   "issue": "The StudyCalendar has no 11 Nov 10:00-12:00 PST (UTC-8) preset, although s.4.3.1 requires one. At that time the sun is 18-23 deg high (L/H about 3.0-2.3, recomputed), so a 300 m tower casts a 700-900 m shadow toward NNW. 'Policy hours are PDT' is true for 22 Sept only.",
+   "fix": "Add a Remembrance Day preset in PST. Store the guideline's time zone per rule rather than globally. Unit-test the 22 Sept (UTC-7) and 11 Nov (UTC-8) offsets with tzdata."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "There is no dataset of protected spaces. The spec says the spaces are 'not defined by the brief', but Table 1 lists many CBD plazas and parks within 600-900 m of any CBD block, including Jack Poole Plaza, Robson Square, Cathedral Square, Art Phillips Park, Bute-Robson Plaza, Lot 19, the Dilawri Squares and Victory Square. A user digitising them by hand will misclassify or miss spaces.",
+   "fix": "Ship a versioned GeoJSON of Table 1 spaces: park polygons from City open data, plazas digitised and tagged with class and clause. Pre-select every space within the 22 Sept and 11 Nov shadow reach of the user's massing."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M04",
+   "issue": "The orientation classes are cardinal (N/E/S/W), but the brief and this packet both establish a grid rotated about 45 deg, so street-aligned facades face NE/SE/SW/NW. I re-queried PVGIS-ERA5 for vertical surfaces: SW 1,045 kWh/m2 (823 kWh/kWp), SE 955 (750), NW 459 (329), NE 388 (273). The 'good' PV threshold of at least 843 kWh/kWp therefore cannot be met by any street-aligned facade. The 'nearest orientation class' ratio is also ambiguous at exactly 45 deg.",
+   "fix": "Replace the cardinal reference values with a continuous PVGIS (or EPW-simulated) reference curve in 15-deg azimuth bins, or at minimum the four diagonal values. Set the PV cut-offs relative to the face's own orientation, or to the roof, rather than to a south wall that does not exist."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M05",
+   "issue": "The binding Vancouver energy targets are missing. The Higher Buildings Policy (amended 31 Mar 2026), s.2.2, requires higher buildings to achieve Passive House certification, or TEDI 15 kWh/m2 and TEUI/GHGI targets by use plus connection to a low-carbon energy system. Solar gain therefore affects heating demand (TEDI) as well as overheating, and the Passive House path carries its own overheating criterion. The spec says no Vancouver path was found and falls back on CIBSE TM52 (UK).",
+   "fix": "Cite HBP s.2.2 as the governing target. Add a heating-season (Oct-Apr) useful-gain metric next to the warm-season load. Mark the Passive House overheating criterion and the City Energy Modelling Guidelines thermal-comfort limit as UNVERIFIED until opened (guidelines PDF returned 403). Keep TM52 only as an editable comparison."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M04",
+   "issue": "The spec says that because the radiation study has no inter-reflections, 'results lean conservative'. That is true only for PV yield. M05 consumes the same irradiance to screen overheating, where ignoring reflections from neighbouring glass towers underestimates load on lower floors, which is non-conservative.",
+   "fix": "State the bias direction separately for each downstream use. For M05, add a reflected-irradiance allowance or an optional Radiance multi-bounce run (honeybee-radiance annual irradiance with ab>0) for lower floors facing glazed neighbours."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M07",
+   "issue": "The LEED v4.1 sDA is computed incorrectly. The cited honeybee-radiance-postprocess code (leed.py) computes LEED v4.1 sDA with a dynamic blinds schedule: shades close so that no more than 2% of sensors get at least 1,000 lx direct. It awards 0 credits if that cannot be achieved, and adds a point if every space reaches 55%. ASE above 10% only produces a note. The spec computes sDA without blinds, so it overstates sDA and the LEED tier. WELL L06 in well.py also uses blinds-up/down sDA, and WELL L01 (sDA 150 lx at 30%) is omitted.",
+   "fix": "Model aperture groups with shade transmittance (default 0.05) and use the leed_option_one and well_annual_daylight post-processors as they are. Report sDA with blinds, the blinds-feasibility result, and the per-space 55% check. Add WELL L01."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M03",
+   "issue": "The rule 'zero or positive sun-hour change at every sensor within City-protected spaces' is applied on four dates from sunrise to sunset. The City test is limited to Table-1 spaces on 22 Sept, 10:00-16:00 PT, and plazas are only 'minimise'. The module will report City-style failures that the City does not impose.",
+   "fix": "Relabel the metric as team_assumption with its own scope. Restrict any 'policy' badge to M02 outputs. For M03, report deltas descriptively on the four dates, clearly separated from the policy test."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "PACKET",
+   "issue": "The scope names 'neighbouring sites', but no module evaluates shadow, sun-hours or daylight on neighbouring buildings' facades (residential and hotel towers in the 244-305 m context). Solar reflection and glare from the proposal's curtain wall onto streets and neighbours is listed only as an unresolved relationship.",
+   "fix": "Add a module (CLIM) that runs DirectSunStudy and sky view on context facades, with before/after deltas. Add a reflected-sun / solar-convergence screen (specular ray trace from glazed faces onto the public realm and neighbours) as a roadmap module."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The exception wording and other parameters drift from the text. The approved exception grounds are social housing, below-market rental, a public childcare facility, heritage conservation, or a major city-building priority. An exception also requires a shadow rationale statement and a Detailed study, and staff consider topography, duration and vulnerable users (ss.3.1.2-3.1.3). The 'study window' parameter relies on an outside-downtown 25%-to-17% estimate that does not apply to this site. Section 3.1.4 (further dates may be required) and s.6.1 (low-rise exemption) are not captured.",
+   "fix": "Quote the exception list and the staff considerations as structured fields in the Shadow Rationale Statement stub. Drop or relabel the outside-downtown statistic. Add s.3.1.4 as the reason for the optional extra dates."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "PACKET",
+   "issue": "Two flags are resolved by primary sources. The guideline adoption date is approved 17 Sept 2025, last amended 29 July 2026. The Higher Buildings Policy was approved 6 May 1997 and amended 2011, 2013, 2014, 2018 (twice) and 31 Mar 2026. It places the tallest buildings (~700 ft) on West Georgia, Burrard or Granville in the CBD and contains no numeric shadow criteria. The '600 ft' figure from the FAQ is out of date.",
+   "fix": "Close both flags with the PDF citations. Keep the 'no shadow numbers in HBP' finding as verified."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M01",
+   "issue": "The spec blocks downstream modules when the north reference differs from the OSM street-bearing estimate by more than 1 deg. OSM is an estimate (Granville 44.7 deg and W Georgia 314.8 deg reproduce correctly), and a hypothetical site cannot be tied to one specific street.",
+   "fix": "Block only when explicit references (site-plan arrow, IFC TrueNorth, Rhino North) disagree by more than 1 deg. Treat a disagreement with OSM as a warning above about 3 deg."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M01",
+   "issue": "The SunCalc convention is now resolved, but there is a refraction subtlety. SunCalc master/npm 2.1.1 returns degrees clockwise from north and apparent (refraction-corrected) altitude, with stated accuracy ~0.08 deg. v1.x returned radians from south. Ladybug also adds refraction. The planned unit test against pvlib needs to compare apparent_elevation with apparent_elevation.",
+   "fix": "Pin suncalc at version 2.0 or later. Compare against pvlib spa_python's apparent_elevation and azimuth. Add a winter low-sun test case (e.g. 21 Dec 09:00 PST), where refraction matters more."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M06",
+   "issue": "The reach factor k = 2.0 x head height is unsourced, although sourceable definitions exist: ASHRAE 90.1 primary/secondary sidelighted areas at 1x and 2x head height, and the BRE/BS 8206-2 limiting-depth rule. The average-daylight-factor bands come from the 1999 CIBSE LG10 via Wikipedia. UK practice (BR 209 2022) has moved to EN 17037 illuminance targets.",
+   "fix": "Cite ASHRAE 90.1 sidelighting zones (to verify) as the basis for k. Offer the limiting-depth formula as a second check. Downgrade the daylight-factor metric to verified_secondary or superseded, and point users to M07's EN 17037."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M03",
+   "issue": "The BRE BR 209 test (at least 2 h on at least 50% of an amenity area on 21 March, whole day) is computed over 10:00-16:00 on 22 Sept. The date is roughly symmetric, but truncating the day changes the criterion. Separately, the ground sensor offset of 0 matches the Ladybug DirectSunStudy default and risks self-intersection with the ground. It also differs from M08's 1.5 m height.",
+   "fix": "Compute the BRE comparison over the whole day on 21 March, labelled as a UK comparison. Set the sensor offset to 0.05-0.1 m for ground sun-hours, and state why M08 uses 1.5 m."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M03",
+   "issue": "The claim that a tower on the 'north or east edge' leaves a plaza sunlit longer than one on the south or west edge is only half true. The north half holds by geometry. East vs west is symmetric about solar noon (13:05 PDT) and depends on the use pattern. The claim also ignores the 45-deg grid, where plaza edges face NE/SE/SW/NW.",
+   "fix": "Restate the claim in true-north terms (shade-free sector roughly NW-N-NE at midday). Make the morning/afternoon preference an explicit human judgement tied to programme."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M08",
+   "issue": "Local Climate Zone SVF bands (compact high-rise about 0.2-0.4) are classification descriptors, not performance targets. Using them as good (0.4 or above) and bad (below 0.2) for a 244-305 m CBD tower will mark almost all streets bad by definition. The spec also mixes 'sky exposure' (unweighted) with cosine-weighted SVF.",
+   "fix": "Show LCZ bands as context markers only. Keep the delta vs baseline as the only judged metric, and name the weighting (cosine-weighted SVF vs sky exposure) in the output type."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M07",
+   "issue": "The sensor plane is fixed at 0.762 m (LEED/IES). EN 17037 uses a 0.85 m reference plane, and the LEED v4.1 regularly-occupied rules differ for residential units. The packet applies one setup to all metrics and all programmes.",
+   "fix": "Set sensor height per metric (0.762 m for LM-83/LEED/WELL IES route, 0.85 m for EN 17037). Flag residential-unit applicability as a human judgement."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M04",
+   "issue": "The licence and source references are out of date or inconsistent. The Radiance licence is now 'Radiance Software License, Version 2.0' (LBNL-ETA repo, Radiance v6.1), not 1.0. Source S25 points to github.com/NREL/Radiance while the library list uses LBNL-ETA.",
+   "fix": "Update to v2.0 and use the LBNL-ETA URL consistently in M04 and M07."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The hand-calculated values check out against my NOAA-algorithm recomputation: 22 Sept altitude 26.9 deg at 10:00 and 28.1 deg at 16:00 PDT, azimuths 125.9 and 231.6 deg, solar noon 13:05 PDT, winter-noon L/H 3.22. However, the shadow of a 300 m tower spans 561-591 m, not '570-590 m'.",
+   "fix": "Replace the hand values with tool-computed values in the UI, and add these figures as regression fixtures."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Urban plazas (and West End miniparks) must receive 0 m2 of new shadow 10:00-16:00 PDT on 22 Sept",
+   "why_false": "The approved guideline asks only that new shadow on these spaces be minimised 'where possible'. The exceptions are Jack Poole Plaza, Robson Square and Dilawri Square South, which are moved up to the park rule.",
+   "correction": "Parks, schools and the s.4.2 plazas: no new shadow within property lines (exceptions possible). Other urban plazas and miniparks: minimise, report m2 and coverage %, no pass/fail.",
+   "evidence": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf ss.3.1.1, 3.2.1, 4.2.1 (approved 17 Sept 2025, last amended 29 July 2026)"
+  },
+  {
+   "claim": "Downtown rules are organised as Decision Trees A (parks/schools), B (minipark/urban plaza), C (Davie/Robson Village)",
+   "why_false": "The current guideline text contains no decision trees. It is organised as sections 3.1, 3.2, 3.3 and special cases 4.1-4.3.",
+   "correction": "Use the section/clause numbering of the July 2026 text for clause_ref.",
+   "evidence": "Same PDF, table of contents and ss.3-6"
+  },
+  {
+   "claim": "Protected Village sidewalks are tested 10:00-16:00",
+   "why_false": "Robson Village is protected 10 am to 3 pm PT. Davie Village is protected 10 am to 4 pm PT. In both, only the north sidewalk from curb to building face counts.",
+   "correction": "Davie 10-16, Robson 10-15, north sidewalk only.",
+   "evidence": "Same PDF, s.3.3.1(a)-(b)"
+  },
+  {
+   "claim": "Victory Square cenotaph circle is protected at 11:00 on Remembrance Day",
+   "why_false": "The approved text protects it between 10 am and 12 pm PST on 11 November, in addition to the s.3.1 rules.",
+   "correction": "Rule 4.3.1: no shadow on the cenotaph circle 10:00-12:00 PST, 11 Nov. Exceptions only with comprehensive public and stakeholder engagement (4.3.2).",
+   "evidence": "Same PDF, ss.4.3.1-4.3.2"
+  },
+  {
+   "claim": "Library Square south plaza is an absolute 'no new shadow' special case like Sun Yat-Sen",
+   "why_false": "The approved text names Dilawri Square South, Jack Poole Plaza and Robson Square and routes them to the s.3.1 park rule, which allows exceptions. Only Sun Yat-Sen (s.4.1) has no exception clause.",
+   "correction": "Sun Yat-Sen absolute. Dilawri Square South, Jack Poole Plaza and Robson Square under s.3.1 with exceptions.",
+   "evidence": "Same PDF, ss.4.1.1, 4.2.1"
+  },
+  {
+   "claim": "The shadow baseline is existing plus approved context projected on a ground plane",
+   "why_false": "The guideline requires the complete built and approved context including topography, plus known proposed developments where applicable. Trees, shade structures and small park outbuildings are excluded from the baseline.",
+   "correction": "Terrain-aware shadow casting. Scenarios: existing+approved, +known proposed, +proposal. Vegetation excluded from baseline.",
+   "evidence": "Same PDF, ss.5.1, 5.1.1"
+  },
+  {
+   "claim": "Exceptions are for affordable or social housing, major public amenities such as childcare, or city-building priorities",
+   "why_false": "The list is broader and conditional: social housing, below-market rental, a public childcare facility, heritage conservation, or a major city-building priority. An exception also requires a shadow rationale statement and a 15-minute Detailed study.",
+   "correction": "Encode ss.3.1.2(a)-(c) and the staff considerations in 3.1.3.",
+   "evidence": "Same PDF, ss.3.1.2-3.1.3, 5.2"
+  },
+  {
+   "claim": "Adoption date of the downtown guidelines is unresolved (July 2025 vs 17 Sept 2025)",
+   "why_false": "The PDF cover states the dates.",
+   "correction": "Approved by Council 17 Sept 2025, last amended 29 July 2026. CDDG effective 27 Oct 2026 (UDI).",
+   "evidence": "PDF cover page; https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines"
+  },
+  {
+   "claim": "Higher Buildings Policy last updated 2018 (or 2011), sites up to 600 ft",
+   "why_false": "The policy PDF lists amendments up to 31 March 2026 and places the highest buildings (~550-700 ft) in the CBD, with the tallest (~700 ft) on West Georgia, Burrard or Granville.",
+   "correction": "HBP amended 31 Mar 2026. No numeric shadow criteria. Section 2.2 requires Passive House, or TEUI/TEDI(15)/GHGI targets plus a low-carbon energy system.",
+   "evidence": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf (cover and ss.2.1-2.2)"
+  },
+  {
+   "claim": "A PV-yield 'good' threshold of at least 843 kWh/kWp (south-wall reference) is meaningful for this tower's facades",
+   "why_false": "Street-aligned facades face SE/SW/NE/NW. The same PVGIS-ERA5 query gives vertical SW 823, SE 750, NW 329 and NE 273 kWh/kWp, so no street-aligned facade can be 'good'.",
+   "correction": "Use orientation-matched references in azimuth bins, or set relative cut-offs.",
+   "evidence": "https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=49.283&lon=-123.12&peakpower=1&loss=14&angle=90&aspect=45&raddatabase=PVGIS-ERA5&outputformat=json (and aspect -45, 135, -135)"
+  },
+  {
+   "claim": "Ignoring inter-reflections makes radiation results lean conservative",
+   "why_false": "That holds for PV yield, but M05 uses the same irradiance for overheating, where missing reflected gain underestimates load.",
+   "correction": "State the bias direction for each use. Add an optional multi-bounce run for overheating.",
+   "evidence": "https://github.com/ladybug-tools/ladybug-radiance (RadiationStudy: no reflections except ground)"
+  },
+  {
+   "claim": "LEED v4.1 credit tiers follow from the plain sDA300/50% of an unshaded model",
+   "why_false": "The cited implementation computes LEED sDA with an operable-shade schedule that keeps no more than 2% of sensors at 1,000 lx or more direct. It awards 0 credits if that schedule cannot comply, and adds a point when every space reaches 55%.",
+   "correction": "Model shades (default transmittance 0.05) and use leed_option_one outputs.",
+   "evidence": "https://raw.githubusercontent.com/ladybug-tools/honeybee-radiance-postprocess/master/honeybee_radiance_postprocess/leed/leed.py (lines ~300-400, 657-680)"
+  },
+  {
+   "claim": "The Radiance licence is the Radiance Software License 1.0",
+   "why_false": "The current License.txt in LBNL-ETA/Radiance is Version 2.0 (Radiance v6.1, 1990-2025).",
+   "correction": "Cite Radiance Software License v2.0.",
+   "evidence": "https://raw.githubusercontent.com/LBNL-ETA/Radiance/master/License.txt"
+  },
+  {
+   "claim": "No sun-hour change at any sensor in City-protected spaces is a 'verified' City criterion across the four study dates",
+   "why_false": "The City test covers only Table-1 spaces on 22 Sept 10-16 PT (and 11 Nov 10-12 PST for the cenotaph). Plazas are 'minimise'.",
+   "correction": "Make it a team_assumption for design exploration. Keep policy badges in M02 only.",
+   "evidence": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf ss.3-5"
+  }
+ ],
+ "missing": [
+  "Terrain/topography input (City LiDAR or DEM) for all shadow and sun-hour modules, as required by guideline s.5.1",
+  "Table 1 protected-space dataset (polygons, class, clause, special-case flags) shipped with the tool",
+  "Remembrance Day (11 Nov, 10:00-12:00 PST) study preset and per-rule time-zone handling",
+  "Detailed Fall Equinox Shadow Study output: 25 x 15-min instants, m2 take-offs (existing, proposed additional, cumulative), Shadow Coverage % formula",
+  "Basic study at exactly 10, 12, 14 and 16 PT with new shadow visually delineated from existing",
+  "Known-proposed-developments context scenario in addition to existing+approved",
+  "Module for shadow, sun-hours and sky view on neighbouring buildings' facades (scope says 'neighbouring sites')",
+  "Solar reflection / glare / solar-convergence screen for glazed facades onto streets and neighbours",
+  "Heating-season useful solar gain and link to HBP s.2.2 TEDI 15 kWh/m2 / Passive House route",
+  "Vancouver-applicable overheating criterion (Passive House overheating frequency; City Energy Modelling Guidelines thermal-comfort limit) - both still to be opened",
+  "Operable shading/blinds model for LEED/WELL sDA, and WELL L01",
+  "Orientation reference curve for diagonal (NE/SE/SW/NW) facades",
+  "Sourced daylight-reach rule (ASHRAE 90.1 sidelighted areas or BRE limiting-depth formula)",
+  "Relationship between tower floor-plate shape/orientation relative to the 45-deg grid and shadow dwell time on specific Table 1 spaces (solar-envelope sweep by tower position on the 79.2 x 144.8 m block)",
+  "Data source and licence for City 3D context massing (existing and approved towers)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Re-transcribe M02 rules from the July 2026 guideline PDF: plaza 'minimise' class, s.4.2 upgrades, Robson 10-15, Victory Square 10-12 PST on 11 Nov, no decision trees, exception list",
+   "Add terrain and a known-proposed context scenario. Exclude trees and shade structures from the baseline per s.5.1.1",
+   "Implement Basic (2-h) and Detailed (15-min, 25 intervals, coverage %) study outputs",
+   "Fix status labels: nothing 'verified' without an opened primary source. Add verified_secondary. Relabel the M03 delta as team_assumption",
+   "Replace cardinal orientation references in M04/M05 with diagonal/binned references, and revise the PV cut-offs",
+   "Model blinds for LEED/WELL sDA in M07",
+   "Cite HBP s.2.2 energy targets in M05 and mark the overheating criteria as unverified until opened",
+   "Ship the Table 1 protected-space dataset and re-check all clauses after the CDDG takes effect on 27 Oct 2026"
+  ]
+ },
+ "sources_checked": [
+  {
+   "source_id": "P02-S02",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "ok": true,
+   "note": "Downloaded by direct HTTP (WebFetch got 403). Approved 17 Sept 2025, last amended 29 July 2026. Contradicts the spec on plaza rule, decision trees, Robson hours, Victory Square time, s.4.2 upgrades, topography and baseline, and Detailed-study formula."
+  },
+  {
+   "source_id": "P02-S16",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": true,
+   "note": "Amended 31 Mar 2026. Tallest ~700 ft on W Georgia/Burrard/Granville. No shadow numbers. Section 2.2 Passive House or TEDI 15 and TEUI/GHGI targets."
+  },
+  {
+   "source_id": "NEW-GBPR",
+   "url": "https://guidelines.vancouver.ca/policy-green-buildings-for-rezonings.pdf",
+   "ok": true,
+   "note": "Last amended 27 Nov 2024. Embodied carbon, resilience worksheet, commissioning, metering. No overheating numbers."
+  },
+  {
+   "source_id": "NEW-EMG",
+   "url": "https://guidelines.vancouver.ca/guidelines-energy-modelling.pdf",
+   "ok": false,
+   "note": "HTTP 403; thermal-comfort limit not verified."
+  },
+  {
+   "source_id": "P02-S01",
+   "url": "https://vancouver.ca/home-property-development/solar-access-in-public-spaces.aspx",
+   "ok": false,
+   "note": "HTTP 403 via WebFetch and curl; superseded in practice by the PDF."
+  },
+  {
+   "source_id": "P02-S07",
+   "url": "https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines",
+   "ok": true,
+   "note": "Confirms 22 Sept 10-16 PDT, spring study removed 4 Feb 2026, s.6.2 removed, CDDG effective 27 Oct 2026."
+  },
+  {
+   "source_id": "P02-S30",
+   "url": "https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=49.283&lon=-123.12&peakpower=1&loss=14&angle=90&aspect=0&raddatabase=PVGIS-ERA5&outputformat=json",
+   "ok": true,
+   "note": "Reproduced the spec values exactly. Also queried aspect ±45 and ±135: SW 1,045/823, SE 955/750, NW 459/329, NE 388/273 (kWh/m2 / kWh/kWp)."
+  },
+  {
+   "source_id": "P02-S28",
+   "url": "https://raw.githubusercontent.com/mourner/suncalc/master/README.md",
+   "ok": true,
+   "note": "v2.1.1 (npm latest): azimuth in degrees clockwise from north, refraction-corrected altitude, sun ~0.08 deg. v2.0 had breaking unit changes."
+  },
+  {
+   "source_id": "P02-S21",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/honeybee-radiance-postprocess/master/honeybee_radiance_postprocess/leed/leed.py",
+   "ok": true,
+   "note": "Credits 40/55/75 confirmed, but gated by a blinds schedule (2% sensors at 1,000 lx or more direct), +1 if all spaces reach 55%. ASE above 10% only a note."
+  },
+  {
+   "source_id": "P02-S21b",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/honeybee-radiance-postprocess/master/honeybee_radiance_postprocess/well/well.py",
+   "ok": true,
+   "note": "WELL v2 Q2 2025: L06 tiers 55/75% (IES) and EN 17037 route; L01 sDA150 at 30%; blinds-up/down variants."
+  },
+  {
+   "source_id": "P02-S25",
+   "url": "https://raw.githubusercontent.com/LBNL-ETA/Radiance/master/License.txt",
+   "ok": true,
+   "note": "Radiance Software License Version 2.0, not 1.0."
+  },
+  {
+   "source_id": "P02-S19",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/ladybug/master/ladybug/sunpath.py",
+   "ok": true,
+   "note": "north_angle CCW from +Y, 90 = West. NOAA-based with refraction correction. Rhino-minus-90 conversion consistent."
+  },
+  {
+   "source_id": "P02-S20",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/ladybug-radiance/master/ladybug_radiance/study/directsun.py",
+   "ok": true,
+   "note": "timestep and offset_distance (default 0) confirmed."
+  }
+ ],
+ "verdict": "Not ready for entrants. The core solar geometry is correct: I recomputed solar noon 13:05 PDT, altitudes of 27-28 deg and the shadow bearings, and the 45-deg grid handling is sound. But the policy module, M02, contradicts the primary guideline, which is downloadable (17 Sept 2025, amended 29 July 2026). It wrongly gives urban plazas a zero-shadow test, cites decision trees that do not exist, gets the Robson and Victory Square times wrong, misses the Jack Poole and Robson Square upgrades, and omits the required topography, the baseline rules and the 15-minute coverage formula. Several metrics are labelled 'verified' without an opened primary source. The M04 and M05 facade references are cardinal on a diagonal grid. M07 drops the LEED blinds rule. M05 ignores the Higher Buildings Policy's TEDI and Passive House targets. Web search budget was exhausted, so all checks used direct fetches."
+}

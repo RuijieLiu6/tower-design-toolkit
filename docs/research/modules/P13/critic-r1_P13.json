@@ -1,0 +1,266 @@
+{
+ "expert_role": "Architect and international ideas-competition juror reviewing the P13 Presentation and Submission spec (round 1)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P13-M01",
+   "issue": "The hard-rule set depends on the brief PDF, which was never opened. Terms 4.8 say the brief decides whether one panel or up to four are required, yet these metrics are marked 'verified' on the strength of team-supplied text alone (P13-S01, opened:false): Number of panels, Number of ground-level perspectives (M03), the A2 landscape rule and the 40/30/20/10 weights. If the brief requires exactly four boards, the current 'good = 1 to 4' would pass a 3-board entry that breaches the brief (Terms 4.5/8.2).",
+   "fix": "Get the brief PDF before coding the M01/M06 checks, either from the registered upload panel or as a file the team supplies, and store it with a hash. Until then, set every S01-derived rule to 'unverified (team-supplied)'. Make panel_count a value read from the brief (exact vs maximum), not a range picked by the team. Re-check after the Q&A closes on 3 Nov."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01",
+   "issue": "The spec's own FALSE_ASSUMPTION correction is wrong. British Columbia moved to permanent UTC-7 on 2026-03-09 (tzdb 2026b), so 23:59 London (GMT) on 30 Nov is 16:59 in Vancouver, not 15:59 PST. Browsers whose tzdata predates 2026b will also show the wrong time through Intl.DateTimeFormat. Separately, Terms 4.7 say '24.00 London Time' while the competition page says 23:59.",
+   "fix": "Store the deadline as the UTC instant 2026-11-30T23:59:00Z, taking the earlier of the two stated times. Show Vancouver as 16:59 (UTC-7) and add a runtime check that Intl returns -07:00 for America/Vancouver, with a fixed-offset fallback when it does not. Correct the flag and log the change."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01",
+   "issue": "The tracker leaves out upload prerequisites that are about to close. Registration closes 29 Oct 2026, 8 days from today. Upload needs Architects' Network identity verification (how-to-enter page). The first upload locks the entry unless an edit-reactivation fee is paid (Terms 4.7, 7.7). The spec's phrase 'earlier export lowers both risks' mixes up local export, which is safe early, with first upload, which should happen once, when complete.",
+   "fix": "Add hard checks for registered (UIC), identity verified and 'upload once': a final-upload gate that needs all panels to pass plus a human sign-off. Add a separate amber warning when registration closes in 8 days or less."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01",
+   "issue": "The 'Language' metric marks any non-English text block as bad. Under cultural context (30%), boards are likely to carry hən̓q̓əmin̓əm̓ and Sḵwx̱wú7mesh place names and nation names (xʷməθkʷəy̓əm, Sḵwx̱wú7mesh, səlilwətaɬ). A literal check would push teams to remove Indigenous names, against the reconciliation criterion.",
+   "fix": "Define the rule as 'all explanatory text in English'. Allow proper nouns and Indigenous names through a reviewed allow-list with an English gloss. Add a font glyph-coverage check (combining diacritics, x̱, ʷ, ̓) to the resvg and OCR pipeline in M06."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M02",
+   "issue": "The drawing-scale reasoning covers only the 144.8 m plan extent. A full-height section through a 244-305 m tower plus basement levels is 610-650 mm at 1:500, wider than the 594 mm board in either orientation and well over the 420 mm landscape height. The 'at least two sections' deliverable therefore cannot use the scales the spec implies.",
+   "fix": "Add a section_scale parameter tied to tower height: total height / board dimension, so about 1:1000 (305 mm) for a full section on a 420 mm board. Offer split or partial sections at 1:200-1:500 for podium and public-realm detail. Show the fit check during preset selection, not only after export."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M02",
+   "issue": "Method and sources do not match. three-edge-projection extracts only visible edges along the y-axis, so it produces no 'hidden' line class. hidden_lines_on and input_route cite P13-S30, which is pdf-lib; Rhino Make2D is P13-S27. Make2D also cannot run in the browser: rhino3dm has no Make2D, so a server route (Rhino.Compute, which needs a Rhino licence) is needed.",
+   "fix": "Correct the source ids to S27. Generate hidden lines with a second pass (for example, projecting the culled geometry and differencing it from the visible lines), or drop the hidden class from core. State that 'Make2D-quality' means importing output the user makes in desktop Rhino, or Rhino.Compute, with its licence noted."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M03",
+   "issue": "The QE Park view-cone origin is called unobtainable, but the City of Vancouver Open Data 'View cones' dataset (24 polygons, Open Government Licence - Vancouver, modified 2026-10-19) gives the cone geometry, from which origin and azimuth can be derived. The 1997 policy can also be reached through a ShapeYourCity document link. The viewpoint currently uses Wikipedia's park centroid, which is not a designated origin.",
+   "fix": "Import the view-cones dataset (cones 3.2.1-3.2.4), derive the origin and azimuth from the polygon apex, and cite it. Mark the cone ceiling heights unverified until the Public Views Guidelines are read or views@vancouver.ca confirms them. Use a local origin in three.js instead of raw UTM coordinates (float32 precision)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M05",
+   "issue": "Rights and licences are not tracked. Terms 4.2-4.4 require participants to warrant non-infringement, supply image copyright licences on request (failure can disqualify) and bear liability. Terms 12.2 give Buildner a perpetual publication licence. Textures, entourage, aerial or base-map imagery (Google Earth imagery, for example), AI outputs and model licences (FLUX dev, SDXL OpenRAIL++, OpenAI terms) are not recorded anywhere.",
+   "fix": "Add a rights register, either as a node or inside the M08 ledger: every raster on a board gets a source, licence, licence URL and whether it can be sublicensed to Buildner. Block placement of assets with unknown licences, and export a licence pack ready for a 4.3 request."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M01/M06/M07/M08",
+   "issue": "The module dependencies form cycles that a Grasshopper-like typed DAG cannot run: M01↔M06 (blocking list vs export_manifest), M01↔M07 (rubric gaps vs evidence links), M06↔M08 (text blocks vs placements) and M07↔M08 (rubric_state vs breach register).",
+   "fix": "Break the cycles into stages. M06a composes the layout and outputs a manifest; M01 validates it; M06b is the export gate that takes blocking as input. M08 writes the breach register, M07 reads it and outputs gaps, and the M08 text step reads the rubric downstream. Document the DAG."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13 (packet)",
+   "issue": "The schedule does not fit the time available. The core modules M01-M06 add up to about 35-45 person-days for two students, and course core is 13 Nov (23 days), while entrants need the tools well before 30 Nov. Nothing ranks which modules protect against disqualification.",
+   "fix": "Ship in order: M06 export validator plus M01 checks, which prevent disqualification; then M03 presets; then a v0 of M02 that imports Rhino Make2D output; then M05 on the OpenAI route only. Move the ControlNet route, the fidelity metrics and M07/M08 to v1. Record the delivery date for each module."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P13-M05",
+   "issue": "The fidelity metrics need the AI output to be segmented into a 'tower' class, but no segmentation model is specified (Depth Anything gives depth only). Renders can also invent sun direction, context, or the future approved towers the brief requires in the context, which misrepresents the design to the jury.",
+   "fix": "Name a segmentation model and its licence (for example SAM 2, Apache-2.0) or use the depth-difference method only. Add a lighting-consistency check against the CLIM sun vector, and a check that context towers (existing and approved) are present in the skyline and mid-city views."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M06",
+   "issue": "The 'Bytes per board' metric is marked verified although its good value (9.5x10^6) is a team margin. JPEG chroma subsampling and baseline vs progressive encoding are not parameters, and 4:2:0 subsampling smears thin coloured linework and small coloured type.",
+   "fix": "Split the metric into a verified limit and a team target. Add a chroma_subsampling parameter (default 4:4:4) and a baseline JPEG option. Test portal acceptance on a sample before the final upload."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M06",
+   "issue": "The anonymity deny-list is undefined at its defaults. Course codes (ARCH540), studio and instructor names, and the 'UBC SALA' co-organiser logo are likely identifiers, and rendered filenames or prompts can leak through captions.",
+   "fix": "Seed the deny-list with team, course, studio and instructor names and email domains, and OCR the final JPEGs at 2x zoom. Keep the AI caption text generic (model and snapshot, no account or org ids)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13 flags",
+   "issue": "The previous-publication flag can now be partly resolved. Terms 4.1 bar visual materials previously published by the team, and Buildner's resubmit page says previously published materials must be newly prepared and visually distinct. The tool's community upload and fork features, plus public course crits, are a real risk.",
+   "fix": "Make 'entry-private' the default for anything linked to a board, with a hard warning before public sharing until 30 Nov 2026. Cite Terms 4.1 and the resubmit-your-design page."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M07",
+   "issue": "The rubric ignores the separate Sustainability Award and Student Award (CAD 1,000 each, listed on the competition page). The jury-panel page was not opened. Score cut-offs of 75/50 have no anchor.",
+   "fix": "Add optional award tracks that link the sustainability evidence (CLIM/ENER), and open the jury-panel page. Show the weighted total without good/bad colouring, or label it plainly as a team heuristic."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M05",
+   "issue": "Cost modelling is incomplete. Token counts per image for the 2.5 models are unpublished. gpt-image-2 always processes inputs at high fidelity (input_fidelity must be omitted), which raises input tokens for edits. The response usage fields are not named. The US$2 budget is therefore unanchored.",
+   "fix": "Log the actual usage from pilot calls and derive the per-image cost from it. Note the input_fidelity rule. Pin snapshot ids (gpt-image-2.5-sunburst-2026-09-08, gpt-image-2-2026-04-21)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M08",
+   "issue": "The IPTC DigitalSourceType metric checks component images, but M06 strips all metadata and recomposites the board, so the field never reaches the jury. EU AI Act Art. 50 is shown as 'amended' (Digital Omnibus) on the explorer, but the spec assumes it is unchanged.",
+   "fix": "Treat the visible caption as the operative label and keep IPTC only in the course archive copy. Note in the flag that Art. 50 has been amended and re-check its application date and the artistic-work exception before citing it."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M05",
+   "issue": "Licence descriptions are imprecise. SDXL's CreativeML Open RAIL++-M permits commercial use with use restrictions (the 'research' wording is the card's stated intent, not the licence). ComfyUI is GPL-3.0, which matters if it is bundled into the open-source tool. proj4js is listed as 'not stated'.",
+   "fix": "Restate each licence from its licence file. Run ComfyUI as a separate service, not linked code. Confirm the proj4js licence from LICENSE.md."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P13-M02",
+   "issue": "Area reconciliation compares a 1.2 m cut-loop area with tagged GFA, but the two use different definitions (wall line at the cut vs gross floor area under Vancouver zoning exclusions). The FSR minimum of 9.0 non-residential depends on the GFA definition.",
+   "fix": "Reconcile slab-edge loops at floor level, not at the plan cut, and state the GFA definition, sourced from PROG or the zoning by-law, or marked as a team assumption."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Closing at 23:59 London time on 30 Nov 2026 equals 15:59 Vancouver (PST); the spec flags 'end of day Vancouver' as FALSE ASSUMPTION with this correction.",
+   "why_false": "British Columbia stopped falling back to PST: tzdb release 2026b records that BC moved to a permanent UTC-7 offset on 2026-03-09, and the Wikipedia 'Time in British Columbia' page cites BC government statements (Mar and Sept 2026) that there is no fall-back in November 2026.",
+   "correction": "23:59 GMT on 30 Nov 2026 = 16:59 Vancouver (UTC-7). Store the deadline as 2026-11-30T23:59Z (Terms 4.7 say 24:00 London time, so use the earlier of the two) and do not rely on the browser's tzdata being current.",
+   "evidence": "https://data.iana.org/time-zones/tzdb/NEWS (2026b: 'British Columbia moved to permanent -07 on 2026-03-09'); https://en.wikipedia.org/wiki/Time_in_British_Columbia"
+  },
+  {
+   "claim": "The exact QE Park view-cone origin/azimuth cannot be obtained because City hosts return 403.",
+   "why_false": "The City's Open Data portal publishes a 'View cones' dataset: 24 protected-view polygons, Open Government Licence - Vancouver, modified 2026-10-19. The cone geometry gives origin and azimuth (but not heights).",
+   "correction": "Derive the QE Park cone origins and azimuths (3.2.1-3.2.4) from the open dataset. Only the ceiling heights remain unverified.",
+   "evidence": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones (24 records, OGL-Vancouver, modified 2026-10-19)"
+  },
+  {
+   "claim": "Number of panels (4), number of ground-level perspectives (>=4) and the landscape A2 rule are 'verified'.",
+   "why_false": "Their only source is P13-S01, the brief, which the spec itself marks opened:false. Terms 4.8 defer the panel count to the brief, and the competition page lists no board count, size or weights.",
+   "correction": "Set the status to unverified (team-supplied) until the brief PDF is read, and record whether the panel count is exact or a maximum.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/terms section 4.8; the competition page's 'Download brief' href is '#'"
+  },
+  {
+   "claim": "Rhino Make2D supplies the hidden-line layers (cited as P13-S30).",
+   "why_false": "P13-S30 is pdf-lib. Make2D is P13-S27. three-edge-projection outputs only visible edges along the y-axis, so the browser route has no hidden-line class.",
+   "correction": "Cite P13-S27 for Make2D, and specify a separate method for hidden lines or remove the class from the core scope.",
+   "evidence": "https://github.com/gkjohnson/three-edge-projection ('visible projected lines along the y-axis')"
+  }
+ ],
+ "missing": [
+  "Registration (closes 29 Oct 2026), Architects' Network identity verification and the 'upload once' lock as hard checks in M01",
+  "Rights/licence register for every raster asset (Terms 4.2-4.4, 12.2), with an exportable licence pack",
+  "section_scale parameter tied to tower height (full section about 1:1000 on A2), plus a partial-section option",
+  "Glyph-coverage and allow-list handling for Indigenous names and orthographies in text, fonts and OCR",
+  "City Open Data view-cones dataset as the source for QE Park cone origins and azimuths",
+  "Explicit check that existing and approved 244-305 m context towers appear in skyline and mid-city views",
+  "Segmentation model for the AI-output tower mask; lighting-consistency check against the CLIM sun vector",
+  "JPEG chroma-subsampling (4:4:4) and baseline/progressive parameters",
+  "Acyclic module DAG (staged export gate)",
+  "Per-module delivery dates against 13 Nov (course) and 30 Nov (entrants)",
+  "Optional award tracks (Sustainability Award, Student Award) in the M07 rubric",
+  "Brief PDF hash and changelog after the Q&A closes (3 Nov)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Obtain and cite the brief PDF; reclassify every S01-only 'verified' rule until it has been read",
+   "Correct the Vancouver deadline to 16:59 (UTC-7) and store the deadline as a UTC instant",
+   "Add the registration, verification and upload-lock checks to M01",
+   "Fix the M01 language rule so Indigenous names are allowed",
+   "Add section_scale and the corrected M02 sources, and specify the hidden-line method",
+   "Add the rights register and break the dependency cycles",
+   "Re-plan the core scope so the disqualification-protection modules ship first"
+  ]
+ },
+ "verdict": "The spec is well researched and honest about its limits, but it is not yet safe for entrants to rely on. The hard rules marked 'verified' rest on a brief that was never opened, and the panel count is set by that brief. The spec's own deadline correction is wrong: BC moved to permanent UTC-7 in 2026, so the close is 16:59 Vancouver time, not 15:59. Registration (closes in 8 days), identity verification and the first-upload lock are missing. A literal English-only check would penalise Indigenous names. A 300 m section cannot fit A2 at 1:500. There is no rights register, although the Buildner terms can demand licences. The module dependencies form cycles. These are fixable; fix them, then pass.",
+ "sources_checked": [
+  {
+   "source_id": "P13-S03",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "Confirmed: 4.8 JPEG, 10 MB, brief sets 1-4 panels; 4.7 deadline '24.00 London Time' and paid edit reactivation; 5.1 anonymity; 8.4 late entries disqualified; no AI rule. Also found: 4.2-4.4 licences on request and liability, 12.2 perpetual licence to Buildner, 3.2 teams of 2-4."
+  },
+  {
+   "source_id": "P13-S02",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": true,
+   "note": "Dates confirmed (29 Oct, 3 Nov, 30 Nov 23:59 London, 26 Jan). English-only and anonymity confirmed. Brief link is '#'. Sustainability and Student awards listed."
+  },
+  {
+   "source_id": "P13-S01",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "ok": false,
+   "note": "Brief PDF still not reachable (href '#'); board count, A2 size, weights and deliverables remain team-supplied."
+  },
+  {
+   "url": "https://data.iana.org/time-zones/tzdb/NEWS",
+   "ok": true,
+   "note": "2026b: BC moved to permanent -07 on 2026-03-09, which contradicts the spec's 15:59 PST."
+  },
+  {
+   "url": "https://en.wikipedia.org/wiki/Time_in_British_Columbia",
+   "ok": true,
+   "note": "No fall-back in November 2026; Pacific Time (PCT) is UTC-7."
+  },
+  {
+   "url": "https://architecturecompetitions.com/resubmit-your-design",
+   "ok": true,
+   "note": "Previously published materials must be newly prepared and visually distinct."
+  },
+  {
+   "url": "https://architecturecompetitions.com/how-to-enter-a-competition",
+   "ok": true,
+   "note": "No panel specs; identity verification required to upload."
+  },
+  {
+   "source_id": "P13-S11",
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "Models, size rules, quality levels, prompt-based masks, moderation and limitations confirmed. No C2PA mention. gpt-image-2 input_fidelity is fixed at high."
+  },
+  {
+   "source_id": "P13-S13",
+   "url": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst",
+   "ok": true,
+   "note": "Snapshot 2026-09-08, endpoints, prices and the Responses inconsistency confirmed."
+  },
+  {
+   "source_id": "P13-S04",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Phase 1; no update adopted; protected views not under review. The 1997 policy is also available through a ShapeYourCity document link."
+  },
+  {
+   "source_id": "P13-S08",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "ok": true,
+   "note": "QE Park cones 3.2.1-3.2.4 retained; 3.1 and 3.2.4a eliminated; approved 10 Jul 2024."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "View-cone polygons (24), OGL-Vancouver, modified 2026-10-19; no heights."
+  },
+  {
+   "source_id": "P13-S09",
+   "url": "https://en.wikipedia.org/wiki/Queen_Elizabeth_Park,_British_Columbia",
+   "ok": true,
+   "note": "125 m and the coordinates refer to the park as a whole, not a designated viewpoint."
+  },
+  {
+   "source_id": "P13-S39",
+   "url": "https://artificialintelligenceact.eu/article/50/",
+   "ok": true,
+   "note": "Applies 2 Aug 2026; artistic-work exception; Article marked 'amended' (Digital Omnibus), which the spec does not reflect."
+  },
+  {
+   "source_id": "P13-S25",
+   "url": "https://github.com/gkjohnson/three-edge-projection",
+   "ok": true,
+   "note": "MIT; visible edges along the y-axis only; planar-intersection example exists."
+  },
+  {
+   "source_id": "P13-S05",
+   "url": "https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245",
+   "ok": false,
+   "note": "Download link only; content not readable through the fetch."
+  }
+ ],
+ "previous_round": []
+}

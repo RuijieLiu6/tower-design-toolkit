@@ -1,0 +1,1900 @@
+{
+ "packet_id": "C02",
+ "modules": [
+  {
+   "module_id": "C02-M01",
+   "name": "Datum and CRS registry",
+   "design_question": "Which single horizontal frame and vertical datum let City LiDAR, HRDEM/MRDEM, SRTM, footprints and view-cone geodetic heights agree to centimetres where it matters?",
+   "method": "Canonical frame: horizontal EPSG:3157 (NAD83(CSRS) / UTM 10N, City LiDAR native); vertical orthometric CGVD28(GVRD), because City LiDAR 2018/2022 is CGVD28GVRD and BC legal surveys still use CGVD28 (LTSA 465C). Tag every layer with CRS, vertical datum, epoch and source edition. Convert CGVD2013 layers (HRDEM, MRDEM) to CGVD28 by inverting PROJ grid ca_nrc_HT2_2010v70_CGG2013a.tif (EPSG:10520, 0.05 m national accuracy), then measure and remove the residual offset against the City LiDAR DTM on flat open ground (median of hundreds of points). Convert EGM96 (SRTM) and EGM2008 (GLO-30) through PROJ grids and calibrate the same way. Never store ellipsoidal heights as elevations. Render each view in a local ENU frame: UTM grid scale 0.9996 shortens grid distances about 0.4 m/km and ignores curvature (about 70 m at 30 km). Confirm the Guidelines' geodetic datum with the City (views@vancouver.ca) before any compliance wording.",
+   "priority": "core",
+   "inputs": [
+    "City LiDAR 2022 tile metadata (CGVD28GVRD)",
+    "HRDEM and MRDEM metadata (CGVD2013)",
+    "PROJ grids: HT2_2010v70_CGG2013a, EGM96, EGM2008",
+    "Public Views Guidelines s.2 'maximum geodetic height'",
+    "City answer on cone datum (pending)"
+   ],
+   "outputs": [
+    "datum registry JSON per layer",
+    "offset table City DTM vs HRDEM/MRDEM",
+    "transform unit tests",
+    "one-paragraph datum statement for the app"
+   ],
+   "parameters": [
+    {
+     "name": "Z_CGVD2013 vs Z_CGVD28",
+     "relationship": "Z_2013 = Z_28 + delta(x,y), delta from HT2_2010v70 minus CGG2013a grid; CHS gauge offsets imply about +0.12 m at Vancouver (sign convention unverified).",
+     "unit": "m",
+     "source_ids": [
+      "C02-S24",
+      "C02-S32"
+     ]
+    },
+    {
+     "name": "Ellipsoidal vs orthometric",
+     "relationship": "h_ellipsoidal = H_orthometric + N; N differs by model (CGG2013a, HTGVRDBC00, EGM96, EGM2008), so heights from different models must not be mixed.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S23",
+      "C02-S26"
+     ]
+    },
+    {
+     "name": "UTM grid scale k",
+     "relationship": "k is about 0.9996 at E=491 km; ground distance = grid distance / k, a 0.4 m/km shortening (12 m at 30 km). Computed.",
+     "unit": "ratio",
+     "source_ids": [
+      "C02-S25"
+     ]
+    },
+    {
+     "name": "Earth-curvature drop",
+     "relationship": "drop = d^2/(2R) x (1 - k_ref); 70.6 m at 30 km, 61.5 m with refraction k_ref 0.13. Hand calculation.",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "MRDEM edition shift",
+     "relationship": "MRDEM v1.1 changed the datum transformation, moving heights about 0.4 m on average versus v1.0; pin the edition and record it.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S10"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "UTM tile-corner round trip",
+     "good": "0.00 to 0.01 m",
+     "bad": "greater than 0.5 m",
+     "unit": "m",
+     "basis": "City tile 490000_5459000 corners reproduce exactly with a transverse Mercator implementation (computed).",
+     "status": "verified",
+     "source_ids": [
+      "C02-S03"
+     ]
+    },
+    {
+     "name": "City DTM minus converted HRDEM DTM, open flat ground",
+     "good": "absolute median at most 0.15 m, 95% spread at most 0.4 m",
+     "bad": "absolute median above 0.5 m",
+     "unit": "m",
+     "basis": "City 2022 vertical 0.081 m (95%); EPSG shift 0.05 m; HRDEM 'generally better than 1 m'.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S03",
+      "C02-S07",
+      "C02-S24"
+     ]
+    },
+    {
+     "name": "Layers carrying full datum tag",
+     "good": "100%",
+     "bad": "any untagged layer",
+     "unit": "%",
+     "basis": "Vista manifests state the model's vertical datum is unknown.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S35"
+     ]
+    }
+   ],
+   "visualization": [
+    "map of datum per layer with applied offsets",
+    "scatter of City DTM versus HRDEM DTM with offset line"
+   ],
+   "libraries": [
+    {
+     "name": "pyproj",
+     "role": "CRS and vertical-grid transforms",
+     "license": "MIT",
+     "url": "https://pypi.org/project/pyproj/"
+    },
+    {
+     "name": "PROJ grid CDN",
+     "role": "HT2_2010v70, EGM96, EGM2008 grids",
+     "license": "not stated on grid index",
+     "url": "https://cdn.proj.org/"
+    }
+   ],
+   "limits": "PROJ holds national HT2_0; Metro Vancouver uses HTGVRDBC00, so local difference is unquantified. CGVD28 variants (CVD28BC, CVD28GVRD, CVD28GVRD2018) are not reconciled.",
+   "effort": "About 3 person-days (team estimate).",
+   "human_judgment": "Obtain the City's datum answer; approve the canonical datum and offset tolerance."
+  },
+  {
+   "module_id": "C02-M02",
+   "name": "Footprint authority and conflation",
+   "design_question": "Which polygon represents each downtown building today, including towers built after 2015 and separate podium and tower parts?",
+   "method": "1) Load City 2015 footprints (154,124 polygons) and reproject to EPSG:3157. 2) Build a LiDAR building mask from City 2022 points (building-class returns with height above ground over 2.5 m), rasterise at 0.5 m, vectorise. 3) Match each City polygon to the mask by IoU: mask-only means new, polygon-only means demolished, IoU below 0.7 means changed. 4) For new or changed buildings adopt the LiDAR outline, regularised (simplify 0.25 to 0.5 m, snap near-right angles within 5 degrees). 5) Dissolve City parcel-split polygons when roof percentiles agree within 1 m so one tower is one object. 6) Use OSM (ODbL) only as a separate optional overlay for names and building:part hints; use Overture and City 2009 rows as cross-checks, not geometry sources. 7) Give every feature an id, fp_source, fp_year, lidar_date and change flag. 8) Hand-check roughly the 100 tallest towers against the 2022 orthophoto.",
+   "priority": "core",
+   "inputs": [
+    "City building-footprints-2015",
+    "City LiDAR 2022 building returns",
+    "OSM buildings (optional overlay)",
+    "Overture and City 2009 rows (cross-check)"
+   ],
+   "outputs": [
+    "footprints in EPSG:3157 with provenance and change flags",
+    "list of new, demolished and changed buildings",
+    "tower repair list"
+   ],
+   "parameters": [
+    {
+     "name": "IoU match threshold",
+     "relationship": "Keep City polygon if IoU with LiDAR mask is at least 0.7; below that flag changed; mask-only features are new.",
+     "unit": "ratio",
+     "source_ids": [
+      "C02-S02",
+      "C02-S03"
+     ]
+    },
+    {
+     "name": "Mask height threshold",
+     "relationship": "Building mask = building-class returns with z minus ground above 2.5 m (team choice).",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "Parcel-split merge",
+     "relationship": "City splits contiguous buildings at parcel lines; dissolve touching polygons when absolute p90 roof difference is below 1 m.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S02"
+     ]
+    },
+    {
+     "name": "Simplification tolerance",
+     "relationship": "Douglas-Peucker 0.25 to 0.5 m bounds added horizontal error; 2018 LiDAR horizontal accuracy is 0.36 m (95%).",
+     "unit": "m",
+     "source_ids": [
+      "C02-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Footprint IoU versus LiDAR roof mask, towers 50 m and taller",
+     "good": "0.85 or higher",
+     "bad": "below 0.6",
+     "unit": "ratio",
+     "basis": "Team threshold for outline agreement before extrusion.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Post-2015 towers present",
+     "good": "all top-10 towers present with correct outline",
+     "bad": "any missing",
+     "unit": "count",
+     "basis": "Wikipedia list shows Paradox 2016, One Burrard Place 2021, The Stack 2023, The Butterfly 2024, all after the 2015 footprints.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S39",
+      "C02-S02"
+     ]
+    },
+    {
+     "name": "Footprint edge error versus roof edge",
+     "good": "0.5 m or less",
+     "bad": "above 1.5 m",
+     "unit": "m",
+     "basis": "2018 LiDAR horizontal accuracy 0.36 m (95%); City 2015 footprints stated as approximate.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S04",
+      "C02-S02"
+     ]
+    }
+   ],
+   "visualization": [
+    "footprint overlay on 2022 orthophoto coloured by source and change flag",
+    "IoU histogram"
+   ],
+   "libraries": [
+    {
+     "name": "geopandas",
+     "role": "vector IO, overlays, dissolve",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/geopandas/"
+    },
+    {
+     "name": "shapely",
+     "role": "geometry ops, simplify, IoU",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/shapely/"
+    },
+    {
+     "name": "rasterio",
+     "role": "mask rasterise and vectorise",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/rasterio/"
+    }
+   ],
+   "limits": "LiDAR mask merges touching buildings and tree canopy; City 2015 outlines are approximate; construction after Sept 2022 is invisible. Overture's City of Vancouver source vintage is unknown.",
+   "effort": "About 5 person-days.",
+   "human_judgment": "Decide whether OSM geometry is allowed (ODbL); hand-repair the tallest towers."
+  },
+  {
+   "module_id": "C02-M03",
+   "name": "LiDAR LOD1 height extraction",
+   "design_question": "How are robust roof and base heights derived per footprint and per tower part from 49 points per square metre LiDAR, including rooftop appurtenances?",
+   "method": "Per footprint, read City 2022 points inside the polygon shrunk 0.5 m (avoids wall and edge returns). Keep building-class first returns; drop noise and spikes (z more than 5 MAD from the 1 m cell median). Rasterise max, p95 and count at 0.5 m with PDAL writers.gdal (percentile output types p<n>), then take zonal statistics per footprint. Roof height = P_q(z) for q in 50, 75, 90, 95, 99 and max, following the six-percentile practice of 3D BAG (Dukai 2019). Ground = P10 of ground-class points in a 0.5 to 2 m ring, falling back to the DTM. Store absolute roof elevation in the canonical datum plus height above ground. Detect podium and tower parts by clustering roof z (Gaussian mixture or 1 m histogram peaks) and polygonise z-bands into LoD1.3 parts. Record n_roof, n_ground, RMSE per percentile, flat-roof flag, built-after-LiDAR flag. For view-cone tests use max and list minor rooftop items for human review under clause 3.1.2 (appurtenances count under 3.1.1); display with p90. Cross-check against published tower heights.",
+   "priority": "core",
+   "inputs": [
+    "City LiDAR 2022 LAS tiles",
+    "footprints from C02-M02",
+    "DTM from C02-M04",
+    "published tower heights (override table)"
+   ],
+   "outputs": [
+    "per-building roof percentiles, ground, parts, quality fields",
+    "LOD1.3 part polygons for towers",
+    "height QA report"
+   ],
+   "parameters": [
+    {
+     "name": "Roof percentile q",
+     "relationship": "h_roof(q) = P_q(z_roof) minus z_ground; store p50, p75, p90, p95, p99, max. Display p90; cone tests use max.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S28"
+     ]
+    },
+    {
+     "name": "Ground reference",
+     "relationship": "z_ground = P10 of ground points in a 0.5 to 2 m ring; 3D BAG uses percentiles 0 to 50 within a 0.5 m buffer.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S28"
+     ]
+    },
+    {
+     "name": "Inner buffer",
+     "relationship": "Shrink footprint 0.5 m before sampling roof points (team choice).",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "Minimum points",
+     "relationship": "Require n_roof at least 100 and n_ground at least 20; mean density 49 points per square metre gives 49 per m2 of roof.",
+     "unit": "points",
+     "source_ids": [
+      "C02-S03"
+     ]
+    },
+    {
+     "name": "LOD1 RMSE benchmark",
+     "relationship": "3D BAG median RMSE to point cloud: 0.31 m flat roofs, 1.06 m non-flat; below 1 m for p75 to p99 on non-flat roofs.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S28"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tower height error versus published",
+     "good": "1.0 m or less",
+     "bad": "above 3 m",
+     "unit": "m",
+     "basis": "3D BAG median RMSE 1.06 m; published heights may be to architectural top, so define the reference per building.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S28",
+      "C02-S39"
+     ]
+    },
+    {
+     "name": "Block-to-point RMSE",
+     "good": "at most 0.31 m flat, 1.06 m non-flat",
+     "bad": "double those values",
+     "unit": "m",
+     "basis": "3D BAG benchmark medians on Dutch buildings, not Vancouver towers.",
+     "status": "verified",
+     "source_ids": [
+      "C02-S28"
+     ]
+    },
+    {
+     "name": "Points per footprint",
+     "good": "n_roof 100 or more and n_ground 20 or more",
+     "bad": "fewer than 10 of either",
+     "unit": "points",
+     "basis": "City 2022 mean density about 49 points per m2.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S03"
+     ]
+    }
+   ],
+   "visualization": [
+    "roof z histogram per tower with percentile marks",
+    "3D block over point cloud",
+    "height-difference map versus Vista"
+   ],
+   "libraries": [
+    {
+     "name": "PDAL",
+     "role": "percentile rasters (writers.gdal), COPC reads, hag_dem",
+     "license": "BSD (Hobu Inc.)",
+     "url": "https://pdal.io/"
+    },
+    {
+     "name": "laspy",
+     "role": "chunked LAS reads in Python",
+     "license": "BSD-2-Clause",
+     "url": "https://pypi.org/project/laspy/"
+    },
+    {
+     "name": "lazrs",
+     "role": "LAZ decode for laspy (NRCan COPC files)",
+     "license": "MIT",
+     "url": "https://pypi.org/project/lazrs/"
+    },
+    {
+     "name": "rasterio",
+     "role": "zonal masks",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/rasterio/"
+    }
+   ],
+   "limits": "Portal lists class names, not numeric LAS codes. Glass facades, thin spires, cranes and tops built after Sept 2022 distort heights. PDAL installs on Windows only through conda-forge.",
+   "effort": "About 8 person-days.",
+   "human_judgment": "Choose which percentile means 'building height' on screen; review rooftop items under clause 3.1.2."
+  },
+  {
+   "module_id": "C02-M04",
+   "name": "Downtown ground surface and allowed-height interface",
+   "design_question": "What is bare-earth elevation Z_ground(x,y) in the cone datum, and how does it turn a cone's geodetic height into metres allowed above ground?",
+   "method": "Fetch only needed City 2022 tiles (13 tiles lie within 2 km of downtown; names are 1 km south-west corner UTM coordinates). Unzip LAS into a scratch folder outside the repo, read ground-class points with PDAL or laspy chunks, write a 1 m DTM (mean or IDW via writers.gdal) and a 1 m DSM (max). Fill voids by TIN interpolation under buildings and over water. Check against 2018 and 2013 LiDAR and HRDEM VILLE_VANCOUVER 2013 for gross errors. Convert to the canonical datum from M01. Publish a 2 m DTM or an error-bounded mesh (0.1 to 0.25 m) while keeping 1 m locally. Expose Z_ground(x,y) and the interface h_allow(x,y) = H_cone(x,y) minus Z_ground(x,y) for the height-limit surface module, with sigma_allow computed from LiDAR accuracy, datum calibration and cone-height uncertainty.",
+   "priority": "core",
+   "inputs": [
+    "City LiDAR 2022 tiles (ground class)",
+    "City LiDAR 2018 and 2013 for cross-checks",
+    "datum offsets from C02-M01",
+    "cone geodetic heights (other packet)"
+   ],
+   "outputs": [
+    "1 m DTM and DSM tiles (local)",
+    "published 2 m DTM or mesh",
+    "Z_ground(x,y) and h_allow(x,y) functions",
+    "error budget"
+   ],
+   "parameters": [
+    {
+     "name": "Allowed height above ground",
+     "relationship": "h_allow(x,y) = H_cone minus Z_ground(x,y), both in one vertical datum; a ground error moves the limit one-for-one.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S36"
+     ]
+    },
+    {
+     "name": "Error budget",
+     "relationship": "sigma_allow = sqrt(sigma_cone^2 + sigma_ground^2 + sigma_datum^2); LiDAR 0.081 m (95%) is about 0.04 m at 1 sigma if Gaussian.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S03"
+     ]
+    },
+    {
+     "name": "SRTM propagation",
+     "relationship": "Delta h_allow = minus Delta Z_ground; SRTM actual vertical error about 10 m (16 m LE90 specification) gives a limit error of the same size.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S17"
+     ]
+    },
+    {
+     "name": "Interpolation error",
+     "relationship": "Linear interpolation error bound is (cell^2/8) x max second derivative; dense LiDAR keeps flat downtown error far below sensor noise.",
+     "unit": "m",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "DTM vertical error versus control",
+     "good": "0.1 m or less on open hard surface",
+     "bad": "above 0.3 m",
+     "unit": "m",
+     "basis": "City sensor accuracy: 2022 is 0.081 m (95%), 2018 and 2013 are 0.18 m (95%).",
+     "status": "verified",
+     "source_ids": [
+      "C02-S03",
+      "C02-S04",
+      "C02-S05"
+     ]
+    },
+    {
+     "name": "Allowed-height uncertainty sigma_allow",
+     "good": "0.25 m or less",
+     "bad": "above 1 m",
+     "unit": "m",
+     "basis": "Team tolerance; dominated by datum and cone-height uncertainty, not LiDAR noise.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Vista SRTM baseline terrain error",
+     "good": "not applicable",
+     "bad": "about 10 m typical, 16 m LE90 specification",
+     "unit": "m",
+     "basis": "USGS statement on SRTM; Vista samples SRTM at 60 m with EGM96 heights.",
+     "status": "verified",
+     "source_ids": [
+      "C02-S17",
+      "C02-S35"
+     ]
+    }
+   ],
+   "visualization": [
+    "hillshade of 1 m DTM",
+    "difference map City DTM minus SRTM 60 m",
+    "allowed-height surface under one cone"
+   ],
+   "libraries": [
+    {
+     "name": "PDAL",
+     "role": "ground rasters, hag_dem",
+     "license": "BSD (Hobu Inc.)",
+     "url": "https://pdal.io/"
+    },
+    {
+     "name": "rasterio",
+     "role": "raster IO, resampling",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/rasterio/"
+    },
+    {
+     "name": "rio-cogeo",
+     "role": "write Cloud Optimized GeoTIFF",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/rio-cogeo/"
+    },
+    {
+     "name": "laspy",
+     "role": "fallback chunked reader",
+     "license": "BSD-2-Clause",
+     "url": "https://pypi.org/project/laspy/"
+    }
+   ],
+   "limits": "Ground under buildings is interpolated. h_allow depends on the unconfirmed cone datum. The 2022 surface shows 2022 grade; later site works are absent. Bridges and viaducts need explicit treatment.",
+   "effort": "About 5 person-days.",
+   "human_judgment": "Approve interpolation under buildings and treatment of bridges, fill and water."
+  },
+  {
+   "module_id": "C02-M05",
+   "name": "Multi-resolution terrain and North Shore backdrop",
+   "design_question": "How should terrain be tiered from 1 m downtown to 30 m mountains 20 to 50 km away while keeping skylines accurate and storage small?",
+   "method": "Rings from the study site: R0 0 to 1.5 km, City 2022 DTM at 1 m; R1 1.5 to 6 km, City LiDAR resampled to 2 to 5 m; R2 6 to 25 km, HRDEM BC-Lower_Mainland_2016-1m COG (bbox reaches 49.5125 N, about 25 km north of the Vista anchor) read by window and resampled to 10 m (DTM for ground, DSM for skyline); R3 25 to 50 km, MRDEM-30 DTM and DSM; beyond, GLO-30 or MRDEM overviews for skyline only. Convert all rings to the canonical datum via M01 and calibrate offsets on overlaps. Mesh each ring with Delatin or RTIN under a distance-scaled error epsilon(d) = tau x d x (HFOV/width); share boundary vertices or add skirts. Apply curvature and refraction at render time, or build views in a local ENU frame. Keep DTM and canopy (DSM minus DTM) separate so trees can be toggled. Compare skylines from sample origins with an HRDEM-based reference.",
+   "priority": "core",
+   "inputs": [
+    "HRDEM project COGs and 1 m mosaic",
+    "MRDEM-30 DTM and DSM",
+    "City LiDAR DTM from C02-M04",
+    "GLO-30 (far fallback)"
+   ],
+   "outputs": [
+    "ring meshes or int16 height tiles",
+    "per-ring datum offsets",
+    "skyline comparison report"
+   ],
+   "parameters": [
+    {
+     "name": "Screen-space error limit",
+     "relationship": "epsilon_max(d) = tau x d x HFOV/W; for 60 degrees over 1920 px (0.545 mrad per pixel) 1 px is 5.5 m at 10 km, 10.9 m at 20 km, 16.4 m at 30 km.",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "Slope-amplified horizontal error",
+     "relationship": "Delta z = Delta xy x tan(slope); SRTM 20 m CE90 on a 30 degree slope gives about 11.5 m vertical error.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S17"
+     ]
+    },
+    {
+     "name": "SRTM native cell",
+     "relationship": "1 arc-second is about 30.9 m north-south by 20.1 m east-west at 49.3 N; Vista samples at 60 m and 300 m (coarser than native).",
+     "unit": "m",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Raster cell count",
+     "relationship": "N = area / cell^2; a 20 x 15 km window is 3.0 million cells (6 MB int16) at 10 m but 75 million (150 MB) at 2 m.",
+     "unit": "cells",
+     "source_ids": []
+    },
+    {
+     "name": "Ring boundaries",
+     "relationship": "R0 0 to 1.5 km at 1 m; R1 to 6 km at 2 to 5 m; R2 to 25 km at 10 m; R3 to 50 km at 30 m (team starting values).",
+     "unit": "km",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Mesh error versus distance",
+     "good": "at most 0.5 px equivalent (about 5 m at 20 km)",
+     "bad": "above 2 px (above 22 m at 20 km)",
+     "unit": "m",
+     "basis": "Pixel angle from assumed 60 degree, 1920 px view; tune per camera.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Mountain DTM accuracy by source",
+     "good": "HRDEM better than 1 m; MRDEM-30 DTM RMSE 1.04 m non-vegetated, 2.55 m vegetated versus RTK",
+     "bad": "SRTM about 10 m; GLO-30 below 4 m LE90",
+     "unit": "m",
+     "basis": "HRDEM spec s.7.5; MRDEM spec Table 2; USGS SRTM; Copernicus collection page.",
+     "status": "verified",
+     "source_ids": [
+      "C02-S07",
+      "C02-S10",
+      "C02-S17",
+      "C02-S16"
+     ]
+    },
+    {
+     "name": "Peak elevation sanity check",
+     "good": "within 5 m of 1,449 m (Seymour) and 1,231 m (Grouse)",
+     "bad": "more than 20 m off",
+     "unit": "m",
+     "basis": "Published peak heights are Wikipedia values with unstated datum; use as a coarse check only.",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "visualization": [
+    "ring map with source and resolution",
+    "skyline silhouette overlay: HRDEM versus MRDEM versus SRTM",
+    "error colour map by distance"
+   ],
+   "libraries": [
+    {
+     "name": "rasterio",
+     "role": "windowed COG reads over HTTPS",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/rasterio/"
+    },
+    {
+     "name": "pydelatin",
+     "role": "terrain mesh generation from rasters",
+     "license": "MIT",
+     "url": "https://pypi.org/project/pydelatin/"
+    },
+    {
+     "name": "trimesh",
+     "role": "mesh assembly, export",
+     "license": "MIT",
+     "url": "https://pypi.org/project/trimesh/"
+    },
+    {
+     "name": "PDAL",
+     "role": "readers.copc windowed point reads",
+     "license": "BSD (Hobu Inc.)",
+     "url": "https://pdal.io/"
+    }
+   ],
+   "limits": "HRDEM S3 COGs are EPSG:3979, not UTM. HRDEM mosaics can show steps where LiDAR vintages join. DSM includes forest canopy. Wheels for Python 3.13 on Windows are unconfirmed for pydelatin.",
+   "effort": "About 6 person-days.",
+   "human_judgment": "Choose DTM or DSM for skylines; set tau and ring radii; accept 30 m cells beyond 25 km."
+  },
+  {
+   "module_id": "C02-M06",
+   "name": "Compact storage and web delivery",
+   "design_question": "Which formats and tiling keep every layer inside GitHub Pages limits yet load quickly in the browser?",
+   "method": "Store buildings as quantised footprint rings plus attributes (id, base elevation, roof percentiles, parts, flags) rather than baked triangles; triangulate in the browser with earcut. Store terrain as per-ring quantised meshes or int16 height tiles with deflate/zstd, in tile folders (for example 1 km) with a manifest listing sha256, CRS, vertical datum, source edition and attribution, as Vista's release manifest already does. Keep raw LAS, COG windows and intermediate rasters outside the repository; commit only derived files well under 50 MiB (warning) and 100 MiB (block). Serve from GitHub Pages (site at most 1 GB) with lazy loading per tile; use release assets for large optional packs. Build reproducibly from a Python script that records tool and data versions. Benchmark against Vista's 52.0 MB bundle and 982 and 320 bytes per building.",
+   "priority": "core",
+   "inputs": [
+    "footprints and heights from M02 and M03",
+    "terrain products from M04 and M05",
+    "layer manifest from M08"
+   ],
+   "outputs": [
+    "tile folders with quantised buildings and terrain",
+    "manifest.json with hashes",
+    "size report"
+   ],
+   "parameters": [
+    {
+     "name": "Per-building bytes",
+     "relationship": "About 4 x n_vertices + 8; n=10 gives 48 B; 154,124 City 2015 polygons would be about 7.4 MB raw before compression (computed estimate).",
+     "unit": "B",
+     "source_ids": [
+      "C02-S02"
+     ]
+    },
+    {
+     "name": "Vista building cost",
+     "relationship": "Central model 9,722,568 B for 9,897 buildings is 982 B each; extension 16,473,300 B for 51,510 is 320 B each (full triangle meshes).",
+     "unit": "B",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Vista terrain cost",
+     "relationship": "Terrain 1,104,396 B for 41,336 triangles is 26.7 B per triangle; backdrop 435,492 B for 23,822 is 18.3 B per triangle.",
+     "unit": "B",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "GitHub limits",
+     "relationship": "Pages site at most 1 GB; repo advised under 1 GB; warning at 50 MiB and block at 100 MiB per file; 100 GB per month soft bandwidth.",
+     "unit": "MB",
+     "source_ids": [
+      "C02-S31"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Initial-load bundle size",
+     "good": "25 MB or less",
+     "bad": "above 100 MB",
+     "unit": "MB",
+     "basis": "Vista release totals 51,990,003 B across 60 files; team target halves it with tiling.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S35",
+      "C02-S31"
+     ]
+    },
+    {
+     "name": "Largest single file",
+     "good": "below 50 MiB",
+     "bad": "100 MiB or more",
+     "unit": "MiB",
+     "basis": "GitHub warns at 50 MiB and blocks at 100 MiB.",
+     "status": "verified",
+     "source_ids": [
+      "C02-S31"
+     ]
+    },
+    {
+     "name": "Bytes per building",
+     "good": "100 B or less",
+     "bad": "above 300 B",
+     "unit": "B",
+     "basis": "Vista currently 320 to 982 B per building.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S35"
+     ]
+    }
+   ],
+   "visualization": [
+    "treemap of bundle size by layer",
+    "tile-load waterfall"
+   ],
+   "libraries": [
+    {
+     "name": "mapbox-earcut",
+     "role": "polygon triangulation (Python check of browser earcut)",
+     "license": "ISC",
+     "url": "https://pypi.org/project/mapbox-earcut/"
+    },
+    {
+     "name": "trimesh",
+     "role": "mesh export and checks",
+     "license": "MIT",
+     "url": "https://pypi.org/project/trimesh/"
+    },
+    {
+     "name": "meshoptimizer",
+     "role": "mesh compression",
+     "license": "unverified (GitHub page returned 403)",
+     "url": "https://github.com/zeux/meshoptimizer"
+    }
+   ],
+   "limits": "Sizes of new products are estimates until tile 490000_5459000 is processed. Browser decode cost of meshopt or Draco was not tested. Release-asset limits depend on plan.",
+   "effort": "About 5 person-days.",
+   "human_judgment": "Pick tile size and formats after one real-tile trial."
+  },
+  {
+   "module_id": "C02-M07",
+   "name": "Accuracy audit versus Vista and published heights",
+   "design_question": "How far do LiDAR-derived heights and terrain differ from Vista's OSM and SRTM context, and do they reproduce published checks?",
+   "method": "Define a regression set: (a) about 40 downtown towers with published heights; (b) 20 or more UBC campus buildings with ubcv_Structures bldgheight (2021 LiDAR); (c) 200 random downtown buildings, LiDAR height versus Vista height; (d) 500 terrain points, Vista SRTM 60 m surface versus City DTM after datum calibration; (e) cone-flip analysis: for each protected view, count buildings whose cone-intersection status changes when OSM heights are replaced by LiDAR heights, using test H_cone values. Report median, p95 and maximum absolute error by tier, with maps and histograms. Run the numbers in CI on a small fixture tile (490000_5459000) so each change stays within tolerance. Publish the results beside the data as an accuracy statement. Vista baseline facts: central model 9,897 buildings with 1,441 measured OSM heights, 3,656 from levels and 4,800 estimated by type; extension 51,510 buildings from current OSM.",
+   "priority": "v1",
+   "inputs": [
+    "Vista generated manifests",
+    "pipeline outputs M02 to M05",
+    "published tower heights",
+    "UBC structures layer"
+   ],
+   "outputs": [
+    "accuracy report",
+    "difference maps",
+    "CI regression tests"
+   ],
+   "parameters": [
+    {
+     "name": "Vista measured-height share",
+     "relationship": "1,441 of 9,897 central buildings (14.6%) have OSM heights; 3,656 (36.9%) come from levels; 4,800 (48.5%) are estimated by type.",
+     "unit": "%",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Vista terrain",
+     "relationship": "SRTM 1 arc-second via Open Topo Data, bilinear, 60 m extension and 300 m backdrop, EGM96 heights; supplied-model terrain source and datum unrecorded.",
+     "unit": "m",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Vista frame versus UTM",
+     "relationship": "Vista's equirectangular frame about 49.2827 N, -123.1207 E differs from UTM 10N by about 5 m at 2.5 km and up to 34 m at its extent corners (computed).",
+     "unit": "m",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Cone flip rate",
+     "relationship": "Share of buildings whose intersection status with a cone changes after replacing OSM with LiDAR heights.",
+     "unit": "%",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Share of buildings with measured height",
+     "good": "95% or more (LiDAR-derived)",
+     "bad": "below 50%",
+     "unit": "%",
+     "basis": "Vista baseline is 14.6% measured.",
+     "status": "verified",
+     "source_ids": [
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Median absolute difference versus published towers",
+     "good": "1 m or less",
+     "bad": "above 3 m",
+     "unit": "m",
+     "basis": "Team tolerance aligned with 3D BAG 1.06 m median RMSE.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S28"
+     ]
+    },
+    {
+     "name": "UBC bldgheight agreement",
+     "good": "median absolute difference 1 m or less over 20 or more buildings",
+     "bad": "above 2 m",
+     "unit": "m",
+     "basis": "UBC heights derive from 2021 LiDAR for LOD1 use.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S21"
+     ]
+    },
+    {
+     "name": "SRTM-60 m minus City DTM on ground",
+     "good": "absolute median 2 m or less, p95 5 m or less",
+     "bad": "p95 above 10 m",
+     "unit": "m",
+     "basis": "USGS actual SRTM error about 10 m; GLO-30 below 4 m LE90.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S17",
+      "C02-S16"
+     ]
+    }
+   ],
+   "visualization": [
+    "scatter LiDAR height versus Vista height",
+    "terrain difference map",
+    "cone-flip table by view"
+   ],
+   "libraries": [
+    {
+     "name": "geopandas",
+     "role": "joins and statistics",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/geopandas/"
+    },
+    {
+     "name": "rasterio",
+     "role": "terrain sampling",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/rasterio/"
+    }
+   ],
+   "limits": "Published heights differ in definition (roof, architectural top). Wikipedia is a secondary source. No independent surveyed benchmarks were found for downtown roofs.",
+   "effort": "About 3 person-days.",
+   "human_judgment": "Select the tower set and the definition of 'published height' per building."
+  },
+  {
+   "module_id": "C02-M08",
+   "name": "Currency, provenance and licence manifest",
+   "design_question": "How are building currency, attribution and licence obligations tracked per layer so the open-source release stays compliant?",
+   "method": "Maintain layers.json with id, publisher, URL, retrieval date, upstream modified date, licence, required attribution text, CRS, vertical datum, edition (for example MRDEM 1.2), acquisition date and checksum. Generate in-app credits and README attribution from it. Flag buildings completed after 2022-09-09 (LiDAR acquisition) using published completion dates and an override table of published heights with citations (for example The Stack 2023, The Butterfly 2024). Keep ODbL (OSM) layers as a separate database from OGL-licensed City layers; do not merge OSM geometry into City-derived products without legal advice. Re-pull the view-cones dataset when its portal modified date changes (now 2026-10-19; Vista snapshot 2026-09-21). Include MRDEM's Copernicus WorldDEM credit text and OGL attribution statements. Ask the City whether combined-layer attribution wording is acceptable.",
+   "priority": "v1",
+   "inputs": [
+    "dataset metadata and licences",
+    "completion dates for towers",
+    "Vista provenance fields"
+   ],
+   "outputs": [
+    "layers.json",
+    "credits panel text",
+    "built_after_lidar flags and override table"
+   ],
+   "parameters": [
+    {
+     "name": "LiDAR currency cut-off",
+     "relationship": "City 2022 LiDAR was acquired 7 and 9 Sept 2022; buildings completed later (The Stack 2023, The Butterfly 2024) get built_after_lidar = true.",
+     "unit": "date",
+     "source_ids": [
+      "C02-S03",
+      "C02-S39"
+     ]
+    },
+    {
+     "name": "ODbL isolation",
+     "relationship": "Public use of an adapted OSM database requires offering that database under ODbL; keep OSM-derived tiles separate and labelled.",
+     "unit": "n/a",
+     "source_ids": [
+      "C02-S34"
+     ]
+    },
+    {
+     "name": "OGL-Vancouver attribution",
+     "relationship": "Statement quoted by the OSM help forum: 'Contains information licensed under the Open Government Licence – Vancouver'; wording not confirmed on the City portal.",
+     "unit": "n/a",
+     "source_ids": [
+      "C02-S33"
+     ]
+    },
+    {
+     "name": "Re-pull trigger",
+     "relationship": "View-cones modified 2026-10-19T13:35Z, after Vista's snapshot (portal_modified 2026-09-21); re-download and diff polygons.",
+     "unit": "date",
+     "source_ids": [
+      "C02-S06",
+      "C02-S35"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Attribution completeness",
+     "good": "100% of shipped layers",
+     "bad": "any layer missing credit",
+     "unit": "%",
+     "basis": "All licences found require attribution.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S33"
+     ]
+    },
+    {
+     "name": "Stale-layer detection",
+     "good": "upstream modified date compared at every build",
+     "bad": "no check",
+     "unit": "n/a",
+     "basis": "View-cones changed after Vista's snapshot.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S06",
+      "C02-S35"
+     ]
+    },
+    {
+     "name": "Licence separation",
+     "good": "OSM-derived tiles separate and labelled ODbL",
+     "bad": "mixed into City-derived files",
+     "unit": "n/a",
+     "basis": "ODbL share-alike on adapted databases.",
+     "status": "team_assumption",
+     "source_ids": [
+      "C02-S34"
+     ]
+    }
+   ],
+   "visualization": [
+    "credits panel generated from layers.json",
+    "staleness table"
+   ],
+   "libraries": [
+    {
+     "name": "geopandas",
+     "role": "attribute joins for override table",
+     "license": "BSD-3-Clause",
+     "url": "https://pypi.org/project/geopandas/"
+    }
+   ],
+   "limits": "OGL-Vancouver full text was not readable; a 2011 commentary called it 'viral' and a 2017 forum thread left OSM compatibility unresolved. This is not legal advice.",
+   "effort": "About 2 person-days.",
+   "human_judgment": "Obtain a licence opinion (course adviser or library) before mixing OSM and City data."
+  }
+ ],
+ "datasets": [
+  {
+   "name": "City of Vancouver Building footprints 2015",
+   "publisher": "City of Vancouver (Technology Services, GIS and CADD Services)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/building-footprints-2015/",
+   "licence": "Open Government Licence - Vancouver (https://opendata.vancouver.ca/pages/licence/)",
+   "format": "Portal exports via Explore API (e.g. GeoJSON); Polygon and MultiPolygon",
+   "key_fields": "object_id, geom, geo_point_2d. No height field.",
+   "crs_and_vertical_datum": "Portal geometry lon/lat (WGS84 inferred, not stated); no vertical datum.",
+   "date": "2015 orthophoto conditions; modified 2022-06-09; not updated.",
+   "size": "154,124 records; file size not stated.",
+   "accuracy": "Approximate, 'best used for comparison'; contiguous buildings split at parcel lines; larger accessory buildings included.",
+   "use": "Footprint base for pre-2015 buildings. Sister set 1999 has 3,259 downtown polygons, no attributes (ignore).",
+   "simplify_and_store": "Reproject to EPSG:3157, dissolve parcel splits, simplify 0.25 m, quantise int16, join LiDAR heights; about 50 B per building (estimate).",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Building footprints 2009",
+   "publisher": "City of Vancouver",
+   "url": "https://opendata.vancouver.ca/explore/dataset/building-footprints-2009/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal exports; DWG alternative export; geo_shape",
+   "key_fields": "bldgid, topelev_m, baseelev_m, hgt_agl, rooftype, med_slope, area_m2, avght_m, minht_m, maxht_m, base_m, orient8, len, wid.",
+   "crs_and_vertical_datum": "Portal lon/lat; elevation datum not stated.",
+   "date": "Generated from 2009 LiDAR; modified 2019-05-07; not updated.",
+   "size": "124,181 records; several rows per building (roof facets).",
+   "accuracy": "'Approximate, 2009 conditions'. Near 1128 W Georgia, bldgid 149845: topelev_m up to 223.71, baseelev_m about 30.7 to 31.0, hgt_agl up to 192.95, maxht_m 208.63.",
+   "use": "Historical heights and base elevation sanity check; change detection. Not current.",
+   "simplify_and_store": "Do not ship; use offline to cross-check M02 and M03 and to test datum offsets.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver LiDAR 2022",
+   "publisher": "City of Vancouver (Technology Services, GIS and CADD Services)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "LAS zipped, 181 tiles via lidar_url (webtransfer.vancouver.ca/opendata/2022LiDAR/E_N.zip)",
+   "key_fields": "name (south-west corner E_N in UTM 10N metres, 1 km tiles), lidar_url, geom. Classes by name: ground, vegetation, water, buildings, other, noise.",
+   "crs_and_vertical_datum": "UTM 10, NAD83(CSRS) 4.0.0.BC.1.GVRD; vertical CGVD28GVRD; Metro Vancouver geoid.",
+   "date": "Acquired 7 and 9 Sep 2022; modified 2023-04-18.",
+   "size": "About 134 km2; zipped tiles 16.45 MB to 2.74 GB; mean 49 pts/m2 means about 49 million points per full km2 tile.",
+   "accuracy": "Vertical 0.081 m (95%); sidelap at least 60%; horizontal accuracy not stated.",
+   "use": "Authoritative downtown ground and roof heights in the likely cone datum.",
+   "simplify_and_store": "Process offline per tile; publish only derived DTM, LOD1 and manifests (MBs); never commit LAS.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver LiDAR 2018",
+   "publisher": "City of Vancouver (Engineering Services)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2018/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "LAS zipped, 181 tiles (names like 4900E_54580N, 1 km spacing)",
+   "key_fields": "name, lidar_url, geom. Classes by name as 2022.",
+   "crs_and_vertical_datum": "UTM 10, NAD83(CSRS) 4.0.0.BC.1.GVRD; vertical CGVD28GVRD.",
+   "date": "Acquired 27 and 28 Aug 2018; modified 2019-11-20.",
+   "size": "About 134 km2; zipped files 7 KB to 950 MB; 30 pts/m2.",
+   "accuracy": "Vertical 0.18 m and horizontal 0.36 m (95%).",
+   "use": "Cross-check, change detection, UBC campus coverage.",
+   "simplify_and_store": "Local analysis only; do not publish.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver LiDAR 2013",
+   "publisher": "City of Vancouver (Technology Services, GIS and CADD Services)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2013/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "LAS zipped and GeoTIFF zipped, 168 grid cells",
+   "key_fields": "name, geotiff_url, lidar_url, geom",
+   "crs_and_vertical_datum": "UTM 10, NAD83(CSRS); vertical CGVD28; Metro Vancouver geoid.",
+   "date": "Collected 7, 15, 19 Feb 2013; modified 2019-05-16.",
+   "size": "GeoTIFF 12 KB to 15.8 MB; LAS 1.0 to 349.8 MB per cell.",
+   "accuracy": "At least 12 pts/m2; vertical 0.18 m, horizontal 0.36 m (95%).",
+   "use": "Legacy cross-check; source of HRDEM VILLE_VANCOUVER 2013.",
+   "simplify_and_store": "Local only.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Digital elevation model (2013, 1 m)",
+   "publisher": "City of Vancouver",
+   "url": "https://opendata.vancouver.ca/explore/dataset/digital-elevation-model/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Zipped GeoTIFF (webtransfer.vancouver.ca/opendata/TIF/DEM_2013_TIF.zip)",
+   "key_fields": "Raster, about 1 m cells; no table fields.",
+   "crs_and_vertical_datum": "UTM 10 NAD83(CSRS); vertical datum not stated (2013 LiDAR is CGVD28).",
+   "date": "From 2013 LiDAR; modified 2015-08-18.",
+   "size": "1.91 GB zipped.",
+   "accuracy": "'Approximate elevations in the collected year'.",
+   "use": "Only City-published raster DEM; quick fallback and cross-check of own DTM.",
+   "simplify_and_store": "Resample to 2 m for fallback; do not publish original.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver legacy contours and elevation points (2002)",
+   "publisher": "City of Vancouver (Engineering Services)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/elevation-contour-lines-1-metre-contours/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Contour LineStrings (1, 2, 10 m); elevation points as DWG only",
+   "key_fields": "elevation, geom (contours); X, Y, Z points.",
+   "crs_and_vertical_datum": "Contours: not stated; points: UTM 10N NAD83(CSRS) DWG.",
+   "date": "2002 orthophotos; points marginally updated 2004 to 2008.",
+   "size": "5,929 one-metre contour records.",
+   "accuracy": "Digitised from orthophotos, 'approximate'; points 'should not be taken as authoritative'.",
+   "use": "Not recommended; superseded by LiDAR.",
+   "simplify_and_store": "Skip.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Orthophoto imagery 2022",
+   "publisher": "City of Vancouver",
+   "url": "https://opendata.vancouver.ca/explore/dataset/orthophoto-imagery-2022/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Tiled MrSID and ECW downloads, 470 records",
+   "key_fields": "tile identifiers, download links",
+   "crs_and_vertical_datum": "UTM NAD83 Zone 10 (EPSG:26910); no vertical datum.",
+   "date": "Captured 6 June to 1 July 2022; modified 2024-05-08.",
+   "size": "Not stated.",
+   "accuracy": "7.5 cm pixels; atmospheric correction not applied.",
+   "use": "Visual QA of footprints and roof parts; optional texture.",
+   "simplify_and_store": "Local QA only; any texture published as small JPEG/WebP tiles.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver View cones (plan polygons)",
+   "publisher": "City of Vancouver",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Polygons; GeoJSON export; DWG alternative",
+   "key_fields": "view_number, view_cone_name, description, url, shape_length, geom. No heights.",
+   "crs_and_vertical_datum": "CRS not stated (lon/lat inferred); no vertical data.",
+   "date": "Modified 2026-10-19; Vista snapshot 2026-09-21.",
+   "size": "24 polygons.",
+   "accuracy": "'Entered accurately'; City by-laws are authoritative; contact views@vancouver.ca.",
+   "use": "Plan extents for the height-limit surface; datum questions go to the City.",
+   "simplify_and_store": "Keep as small GeoJSON; re-pull and diff against Vista's copy.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan HRDEM by LiDAR project (hrdem-lidar COGs)",
+   "publisher": "Natural Resources Canada (CanElevation)",
+   "url": "https://datacube.services.geo.ca/stac/api/search?collections=hrdem-lidar",
+   "licence": "Open Government Licence - Canada v2.0",
+   "format": "Cloud Optimized GeoTIFF DTM and DSM per project on S3 (canelevation-dem), STAC",
+   "key_fields": "Items BC-Lower_Mainland_2016-1m (bbox -123.29,49.00,-121.34,49.51), VILLE_VANCOUVER 2013 1 m, Vancouver_Island_Sunshine_Coast_2018 1 m.",
+   "crs_and_vertical_datum": "STAC proj:epsg 3979; spec: CGVD2013 (EPSG:6647), NAD83(CSRS).",
+   "date": "STAC datetimes 2016-09-12 (Lower Mainland), 2013-02-19 (Vancouver); record modified 2026-05-29.",
+   "size": "Lower_Mainland_2016: 161,217 x 101,050 px (16.3 gigapixels); read by window, never whole.",
+   "accuracy": "Generally better than 1 m (HRDEM spec s.7.5); 1 m cells when density is 2 pulses/m2 or more.",
+   "use": "1 m terrain and skyline for the North Shore front ranges.",
+   "simplify_and_store": "Window, reproject to EPSG:3157, shift datum, resample 10 m for R2; store int16 or mesh.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan HRDEM mosaic 1 m / 2 m",
+   "publisher": "Natural Resources Canada (CanElevation)",
+   "url": "https://datacube.services.geo.ca/stac/api/search?collections=hrdem-mosaic-1m",
+   "licence": "Open Government Licence - Canada v2.0",
+   "format": "COG DTM, DSM, hillshades on S3 (hrdem-mosaic-1m, hrdem-mosaic-2m)",
+   "key_fields": "Item 2_3-mosaic-1m: bbox -123.54,45.33,-114.83,51.14; 500,000 x 500,000 px.",
+   "crs_and_vertical_datum": "EPSG:3979; CGVD2013.",
+   "date": "STAC datetime 2023-08-13.",
+   "size": "Window reads only.",
+   "accuracy": "Spec: where LiDAR sources of different dates are merged, marked elevation differences can occur (MRDEM spec s.7.4).",
+   "use": "Simplest single source for mountain windows; verify against project COGs.",
+   "simplify_and_store": "As hrdem-lidar.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan MRDEM-30 (DTM and DSM)",
+   "publisher": "Natural Resources Canada (CanElevation)",
+   "url": "https://open.canada.ca/data/en/dataset/18752265-bda3-498c-a4ba-9dfe68cb98da",
+   "licence": "Open Government Licence - Canada; credit 'Copernicus WorldDEM-30 © DLR e.V. 2010-2014' and 'Airbus Defence and Space 2014-2018'",
+   "format": "COG on S3 (mrdem-30), VRT, WMS, STAC collection mrdem-30",
+   "key_fields": "dsm, dtm, source layer, hillshades.",
+   "crs_and_vertical_datum": "EPSG:3979; CGVD2013 (GLO-30 converted from EGM2008 with CGG2013).",
+   "date": "Spec edition 1.2 of 2025-06-20; STAC datetime 2026-06-22.",
+   "size": "Window reads of 30 m cells.",
+   "accuracy": "DTM vs RTK: RMSE 1.04 m (LE90 1.69) non-vegetated, 2.55 m (4.17) vegetated; GLO-30-derived: 1.59 and 4.99 m RMSE (spec p.7).",
+   "use": "R3 ring (25 to 50 km) and far skyline; replaces legacy CDEM.",
+   "simplify_and_store": "Window to AOI; calibrate offset; int16 grid or mesh.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan CanElevation LiDAR point clouds (COPC)",
+   "publisher": "Natural Resources Canada",
+   "url": "https://registry.opendata.aws/canelevation-pointcloud/",
+   "licence": "Open Government Licence - Canada",
+   "format": "COPC LAZ 1.4 on S3 (canelevation-lidar-point-clouds, ca-central-1)",
+   "key_fields": "BC/Lower_Mainland_2016 and BC/Vancouver_Island_Sunshine_Coast_2018 projects; files such as bc_092g005_1_1_4_xyes_8_utm10_20170714.copc.laz (14 to 80 MB in first listing).",
+   "crs_and_vertical_datum": "NAD83(CSRS) epoch 2010, UTM; orthometric CGVD2013.",
+   "date": "Lower_Mainland_2016 files dated 2017-07-14 in names; record modified 2026-06-12.",
+   "size": "Per-tile 14 to 80 MB (sample of 5).",
+   "accuracy": "Not stated on the page.",
+   "use": "North Shore point-cloud access by window (PDAL readers.copc) and datum bridge against City LiDAR.",
+   "simplify_and_store": "Window to AOI; derive rasters; do not publish points.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan Automatically Extracted Buildings",
+   "publisher": "Natural Resources Canada",
+   "url": "https://open.canada.ca/data/en/dataset/7a5cda52-c7df-427f-9ced-26f19a8a64d6",
+   "licence": "Open Government Licence - Canada",
+   "format": "GeoParquet (2.3 GB), GeoPackage (5.6 GB), shapefile, WMS",
+   "key_fields": "Height Maximum/Minimum, Elevation Maximum/Minimum, Building Area, quality, positional accuracy, dates, acquisition technique.",
+   "crs_and_vertical_datum": "EPSG:4617 (NAD83 CSRS geographic); vertical datum not stated.",
+   "date": "Record modified 2026-09-04.",
+   "size": "More than 10 million footprints.",
+   "accuracy": "Per-feature accuracy bounds exist; values for Vancouver not checked.",
+   "use": "Possible cross-check; Vancouver coverage and height population unverified (WMS query returned empty).",
+   "simplify_and_store": "Spatial-filter GeoParquet to AOI; use only if populated.",
+   "status": "unverified"
+  },
+  {
+   "name": "LidarBC (GeoBC) point clouds and DEMs",
+   "publisher": "Province of British Columbia (GeoBC)",
+   "url": "https://catalogue.data.gov.bc.ca/dataset/cc11fb58-4837-4d6f-b783-95173e040983",
+   "licence": "OGL-BC per notes; catalogue license_title says 'Access Only' (conflict)",
+   "format": "LAZ point clouds, DEM and DSM via ArcGIS MapSeries, index and map grid",
+   "key_fields": "Tile index and map grid items.",
+   "crs_and_vertical_datum": "Not stated in catalogue; verify per tile header.",
+   "date": "Record created 2021, modified 2024-04-18 (catalogue).",
+   "size": "Not stated.",
+   "accuracy": "Not stated.",
+   "use": "Possible North Shore supplement; coverage unconfirmed.",
+   "simplify_and_store": "Only if HRDEM and COPC leave gaps.",
+   "status": "unverified"
+  },
+  {
+   "name": "BC TRIM DEM 25 m and CDED 0.75 arc-second",
+   "publisher": "Province of BC (GeoBC)",
+   "url": "https://open.canada.ca/data/en/dataset/7b4fef7e-7cae-4379-97b8-62b03e9ac83d",
+   "licence": "Open Government Licence - British Columbia",
+   "format": "CDED ZIP by map letterblock; USGS-format 25 m grids",
+   "key_fields": "Elevations in metres.",
+   "crs_and_vertical_datum": "UTM; vertical datum not stated (an old record mentions CVD28).",
+   "date": "Record modified 2026-01-28.",
+   "size": "Not stated.",
+   "accuracy": "Not stated; from 1:20,000 TRIM.",
+   "use": "Fallback only; HRDEM and MRDEM supersede it.",
+   "simplify_and_store": "Skip.",
+   "status": "unverified"
+  },
+  {
+   "name": "Copernicus DEM GLO-30",
+   "publisher": "ESA / Copernicus (DLR, Airbus)",
+   "url": "https://registry.opendata.aws/copernicus-dem/",
+   "licence": "Free Copernicus licence; keep copyright notice when redistributing",
+   "format": "COG on S3 copernicus-dem-30m (eu-central-1); 1 degree tiles",
+   "key_fields": "Height only; DSM (buildings, vegetation).",
+   "crs_and_vertical_datum": "WGS84; EGM2008 (EPSG:3855).",
+   "date": "TanDEM-X 2011 to 2015; 2021 release.",
+   "size": "Window reads.",
+   "accuracy": "Absolute vertical below 4 m (90%), horizontal below 6 m (90%); relative 2 to 4 m.",
+   "use": "Far-skyline fallback; better than SRTM.",
+   "simplify_and_store": "Window, calibrate to HRDEM, store int16.",
+   "status": "verified"
+  },
+  {
+   "name": "NASA SRTM 1 arc-second via Open Topo Data (Vista's current terrain)",
+   "publisher": "NASA / USGS; served by Open Topo Data",
+   "url": "https://www.opentopodata.org/datasets/srtm/",
+   "licence": "Public domain per Vista manifest (not independently verified)",
+   "format": "API point queries; 1 degree .hgt tiles",
+   "key_fields": "Elevation; ocean 0 m.",
+   "crs_and_vertical_datum": "WGS84; EGM96.",
+   "date": "2000 mission; Vista accessed 2026-09-23/24.",
+   "size": "Vista terrain 1.10 MB, backdrop 0.44 MB.",
+   "accuracy": "Spec 16 m LE90 vertical, 20 m CE90; actual about 10 m (USGS). Cell about 30.9 x 20.1 m at 49.3 N.",
+   "use": "Replace; keep only as a fallback outside HRDEM/MRDEM.",
+   "simplify_and_store": "Do not ship new SRTM terrain.",
+   "status": "verified"
+  },
+  {
+   "name": "OpenStreetMap buildings (Vista's current footprints)",
+   "publisher": "OpenStreetMap contributors",
+   "url": "https://www.openstreetmap.org/copyright",
+   "licence": "ODbL 1.0 (share-alike on adapted databases)",
+   "format": "Overpass JSON way[building]; building:part for towers",
+   "key_fields": "height, building:levels, building:part, start_date (where tagged).",
+   "crs_and_vertical_datum": "WGS84; heights relative to ground, no datum.",
+   "date": "Vista central model from 2022 OSM; extension from OSM at 2026-09-24.",
+   "size": "Vista: 9,897 + 51,510 buildings, 9.7 + 16.5 MB as meshes.",
+   "accuracy": "Central model heights: 1,441 measured, 3,656 from levels, 4,800 estimated by type.",
+   "use": "Optional overlay, names, building:part hints; not height authority.",
+   "simplify_and_store": "Keep as separate ODbL tiles.",
+   "status": "verified"
+  },
+  {
+   "name": "Overture Maps buildings",
+   "publisher": "Overture Maps Foundation",
+   "url": "https://docs.overturemaps.org/guides/buildings/",
+   "licence": "ODbL (theme includes OSM)",
+   "format": "Cloud files s3://overturemaps-us-west-2 theme=buildings/type=building and building_part",
+   "key_fields": "height (m), num_floors, roof_shape, roof_height, min_height, sources[].",
+   "crs_and_vertical_datum": "WGS84 geometry; heights above ground.",
+   "date": "Release 2026-09-23.1, monthly.",
+   "size": "Global; spatial subset needed.",
+   "accuracy": "Mixed sources; ML-derived footprints have lower precision.",
+   "use": "Cross-check. Sources include City of Vancouver open data (which dataset unknown).",
+   "simplify_and_store": "Query bbox, discard after comparison.",
+   "status": "verified"
+  },
+  {
+   "name": "Microsoft GlobalMLBuildingFootprints",
+   "publisher": "Microsoft (Bing Maps)",
+   "url": "https://github.com/microsoft/GlobalMLBuildingFootprints",
+   "licence": "CDLA Permissive 2.0 (per current page)",
+   "format": "Line-delimited GeoJSON via dataset-links.csv",
+   "key_fields": "height (estimated, -1 if none), confidence.",
+   "crs_and_vertical_datum": "EPSG:4326; heights above ground.",
+   "date": "Refresh 2026-08-13; imagery 2014 to 2024.",
+   "size": "Global; quadkey partitions.",
+   "accuracy": "Precision about 92 to 97%; weaker in dense urban areas.",
+   "use": "Gap-fill outside downtown only; Vancouver coverage and heights unverified.",
+   "simplify_and_store": "Skip for downtown.",
+   "status": "unverified"
+  },
+  {
+   "name": "Google Open Buildings",
+   "publisher": "Google Research",
+   "url": "https://sites.research.google/gr/open-buildings/",
+   "licence": "CC BY 4.0 or ODbL v1.0 (user choice)",
+   "format": "CSV with WKT polygons",
+   "key_fields": "area_in_meters, confidence, geometry, plus code. No height on page.",
+   "crs_and_vertical_datum": "Not applicable.",
+   "date": "Not stated.",
+   "size": "Not applicable.",
+   "accuracy": "Not applicable.",
+   "use": "Not usable: Canada not covered (Africa, South and South-East Asia, Latin America and Caribbean).",
+   "simplify_and_store": "Skip.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "UBC Vancouver campus Structures (LOD1)",
+   "publisher": "UBC Campus + Community Planning",
+   "url": "https://ags.gis.ubc.ca/arcgis/rest/services/Hosted/ubcv_Structures/FeatureServer/0",
+   "licence": "Not stated",
+   "format": "ArcGIS FeatureServer polygons",
+   "key_fields": "bldgheight, baseelev, year_bl, struc_type, name.",
+   "crs_and_vertical_datum": "EPSG:3157 (NAD83(CSRS) / UTM 10N); vertical datum not stated.",
+   "date": "Created 2022-12-01; heights from 2021 LiDAR; layer 'Current Buildings (2025)'.",
+   "size": "Not stated.",
+   "accuracy": "Not stated.",
+   "use": "Validation set for the LOD1 pipeline on campus.",
+   "simplify_and_store": "Query once for tests; do not redistribute without licence.",
+   "status": "verified"
+  },
+  {
+   "name": "Height-transformation grids (HTv2.0, HTGVRDBC00, CGG2013a, PROJ grids)",
+   "publisher": "GeoBC; NRCan; PROJ-data (NGA for EGM)",
+   "url": "https://cdn.proj.org/",
+   "licence": "Not stated on grid index",
+   "format": "GeoTIFF grids: ca_nrc_HT2_2010v70_CGG2013a.tif (2.1 MB), us_nga_egm96_15.tif (2.6 MB), us_nga_egm08_25.tif (76.9 MB)",
+   "key_fields": "Vertical shift values.",
+   "crs_and_vertical_datum": "CGVD28 to CGVD2013a(2010); WGS84 ellipsoid to EGM96 or EGM2008.",
+   "date": "PROJ files modified 2020 to 2023; LTSA circular 465C 2026-04-01.",
+   "size": "2 to 77 MB.",
+   "accuracy": "EPSG:10520 states 0.05 m (national model).",
+   "use": "Datum conversions in M01; HTGVRDBC00 is the approved Metro Vancouver model but is not in PROJ.",
+   "simplify_and_store": "Install via PROJ network or local copy; record grid version.",
+   "status": "verified"
+  },
+  {
+   "name": "Metro Vancouver open data (regional land cover and member LiDAR)",
+   "publisher": "Metro Vancouver",
+   "url": "https://open-data-portal-metrovancouver.hub.arcgis.com/",
+   "licence": "Not verified",
+   "format": "ArcGIS Hub downloads (formats per portal)",
+   "key_fields": "Land cover class 'Buildings'; no building heights found.",
+   "crs_and_vertical_datum": "Not stated; internal 5 m DEM, DSM, CHM from member LiDAR.",
+   "date": "Land cover and SEI update report December 2022.",
+   "size": "Not stated.",
+   "accuracy": "Not stated.",
+   "use": "No regional footprint or LOD1 source found; geoid models are the main Metro Vancouver contribution.",
+   "simplify_and_store": "Skip.",
+   "status": "unverified"
+  }
+ ],
+ "validation_cases": [
+  {
+   "case": "City tile corner round trip",
+   "input": "Tile 490000_5459000 SW corner lon -123.13750196, lat 49.28367088 into UTM 10N (GRS80, k0 0.9996, central meridian -123).",
+   "expected": "E 490000.00, N 5459000.00; NE corner 491000.00, 5460000.00 (computed; confirm with pyproj EPSG:3157).",
+   "source": "C02-S03"
+  },
+  {
+   "case": "Vista anchor tile",
+   "input": "Vista anchor 49.2827 N, -123.1207 E into UTM 10N.",
+   "expected": "E 491221.8, N 5458890.0, so tile 491000_5458000, which is one of the 13 City tiles within 2 km of downtown.",
+   "source": "C02-S03, C02-S35"
+  },
+  {
+   "case": "Vista local frame versus UTM",
+   "input": "Vista model point (5674.2, -5083.1) m, inverted with its equirectangular formula, then to UTM 10N minus the anchor's UTM.",
+   "expected": "Offset about (+5.8, -33.6) m, 34 m total; about 5 m at (2500, 0) (computed).",
+   "source": "C02-S35"
+  },
+  {
+   "case": "Living Shangri-La height",
+   "input": "City 2009 rows for bldgid 149845 versus published 200.9 m (1128 W Georgia).",
+   "expected": "2009 shows topelev_m 223.71 over base about 30.8 m (2009 conditions). 2022 LiDAR roof max minus ground should be about 195 to 201 m; a gap above 3 m needs review.",
+   "source": "C02-S01, C02-S39"
+  },
+  {
+   "case": "Towers completed after the LiDAR",
+   "input": "Footprints of The Stack (2023) and The Butterfly (2024) versus LiDAR acquired 7 and 9 Sep 2022.",
+   "expected": "LiDAR heights lower than published 162.3 m and 178.6 m, or absent; features flagged built_after_lidar.",
+   "source": "C02-S03, C02-S39"
+  },
+  {
+   "case": "CGVD2013 versus CGVD28 at Vancouver",
+   "input": "CHS station 07735 offsets (CGVD2013 -2.88, CGVD28 -3.00) and PROJ vgridshift ca_nrc_HT2_2010v70_CGG2013a.tif at 49.2863, -123.0997.",
+   "expected": "About +0.12 m higher in CGVD2013 if offsets are add-to-chart-datum values (convention unverified); the grid result should be within about 0.05 m.",
+   "source": "C02-S32, C02-S24"
+  },
+  {
+   "case": "Barclay site, view 3.2.1",
+   "input": "1040-1080 Barclay site-context lists 3.2.1 maximum geodetic elevation 123.201 m (12.1.1 is 121.695 m); sample City DTM at the site.",
+   "expected": "h_allow = 123.201 minus Z_ground; compare with the document's own site grade (document not opened; value from a search summary).",
+   "source": "C02-S37"
+  },
+  {
+   "case": "Thurlow and Haro, view 3.2.1",
+   "input": "830-850 Thurlow / 1045 Haro staff presentation (2022-07-05) lists 3.2.1 at 361 ft; convert to metres.",
+   "expected": "361 ft = 110.03 m; if the cone is 123.201 m, ground is about 13.17 m, so the City DTM there should read about 13 m +/- 1 m (cone edition and datum unverified).",
+   "source": "C02-S38, C02-S37"
+  },
+  {
+   "case": "MRDEM accuracy reproduction",
+   "input": "Sample MRDEM-30 DTM and the HRDEM DTM at 200 non-vegetated downtown points versus the City DTM after datum calibration.",
+   "expected": "RMSE roughly 1.0 to 1.6 m and LE90 about 1.7 to 2.6 m, as in MRDEM spec Table 2 (1.04/1.69 versus RTK; 1.59/2.60 GLO-30-derived).",
+   "source": "C02-S10"
+  },
+  {
+   "case": "UBC LOD1 comparison",
+   "input": "Run the pipeline on 20 or more UBC buildings; compare with ubcv_Structures bldgheight and baseelev.",
+   "expected": "Median absolute height difference 1 m or less; base-elevation differences consistent with the datum offset.",
+   "source": "C02-S21"
+  },
+  {
+   "case": "Peak elevation sanity check",
+   "input": "Mount Seymour (49.39333, -122.94444) 1,449 m and Grouse Mountain 1,231 m (Wikipedia; datum unstated); sample each ring mesh.",
+   "expected": "HRDEM and MRDEM within about 5 m; SRTM may be off by 10 to 20 m. Coarse check only.",
+   "source": "https://en.wikipedia.org/wiki/Mount_Seymour"
+  },
+  {
+   "case": "Curvature drop at 30 km",
+   "input": "d = 30,000 m, R = 6,371,000 m, refraction coefficient 0.13.",
+   "expected": "d^2/(2R) = 70.6 m; with refraction 61.5 m (hand calculation).",
+   "source": "computed"
+  },
+  {
+   "case": "SRTM native cell at Vancouver",
+   "input": "1 arc-second at latitude 49.28 N.",
+   "expected": "About 30.9 m north-south by 20.1 m east-west, so Vista's 60 m sampling is coarser than the source (computed).",
+   "source": "C02-S35"
+  },
+  {
+   "case": "Percentile recovery on synthetic roof",
+   "input": "Synthetic 30 x 30 m flat roof at 150 m, 49 points per m2, Gaussian noise 0.08 m, plus wall points and 20 spikes.",
+   "expected": "P90, P95 and max (after spike removal) within 0.3 m of 150 m, matching the 0.31 m flat-roof benchmark.",
+   "source": "C02-S28"
+  }
+ ],
+ "sources": [
+  {
+   "id": "C02-S01",
+   "title": "Building footprints 2009 (dataset metadata and sample records)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "124,181 records from 2009 LiDAR; fields topelev_m, baseelev_m, hgt_agl, avght_m, maxht_m; several rows per bldgid (roof facets); modified 2019-05-07."
+  },
+  {
+   "id": "C02-S02",
+   "title": "Building footprints 2015 (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2015",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "154,124 polygons from 2015 orthophotos, split at parcel lines; only object_id and geometry; approximate; modified 2022-06-09."
+  },
+  {
+   "id": "C02-S03",
+   "title": "LiDAR 2022 (dataset metadata and tile records)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "publisher": "City of Vancouver",
+   "year": "2023",
+   "opened": true,
+   "extract": "Sept 2022; 49 pts/m2; vertical 0.081 m (95%); CGVD28GVRD; NAD83(CSRS) 4.0.0.BC.1.GVRD; 181 zipped LAS tiles, 16.45 MB to 2.74 GB."
+  },
+  {
+   "id": "C02-S04",
+   "title": "LiDAR 2018 (dataset metadata and tile records)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2018",
+   "publisher": "City of Vancouver",
+   "year": "2019",
+   "opened": true,
+   "extract": "Aug 2018; 30 pts/m2; vertical 0.18 m, horizontal 0.36 m (95%); CGVD28GVRD; LAS zips 7 KB to 950 MB."
+  },
+  {
+   "id": "C02-S05",
+   "title": "LiDAR 2013 and Digital elevation model (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2013",
+   "publisher": "City of Vancouver",
+   "year": "2019",
+   "opened": true,
+   "extract": "2013 LiDAR, CGVD28, 0.18 m vertical; DEM dataset digital-elevation-model: 1 m GeoTIFF, 1.91 GB zip, UTM 10 NAD83(CSRS)."
+  },
+  {
+   "id": "C02-S06",
+   "title": "View cones (dataset metadata)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "24 polygons; no heights; CRS not stated; modified 2026-10-19; City by-laws authoritative; contact views@vancouver.ca."
+  },
+  {
+   "id": "C02-S07",
+   "title": "HRDEM (CanElevation) Product Specifications, Edition 1.7",
+   "url": "https://download-telecharger.services.geo.ca/pub/elevation/dem_mne/highresolution_hauteresolution/HRDEM_Product_Specification.pdf",
+   "publisher": "Natural Resources Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "CGVD2013 (EPSG:6647) orthometric heights; NAD83(CSRS); 1 m if density 2 pls/m2 or more; DTM from ground and water points; accuracy generally better than 1 m (s.7.5)."
+  },
+  {
+   "id": "C02-S08",
+   "title": "HRDEM - CanElevation Series (open.canada.ca record)",
+   "url": "https://open.canada.ca/data/en/dataset/957782bf-847c-4644-a757-e383c0057995",
+   "publisher": "Natural Resources Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "1 m and 2 m LiDAR DTM and DSM; OGL-Canada; GeoTIFF with STAC API (collection hrdem-lidar); record modified 2026-05-29."
+  },
+  {
+   "id": "C02-S09",
+   "title": "STAC search: hrdem-lidar, hrdem-mosaic-1m, mrdem-30",
+   "url": "https://datacube.services.geo.ca/stac/api/collections/hrdem-lidar/items/BC-Lower_Mainland_2016-1m",
+   "publisher": "Natural Resources Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "Lower_Mainland_2016-1m bbox -123.29,49.00,-121.34,49.51, EPSG:3979, 161,217 x 101,050 px, COG; Vancouver 2013 and Sunshine Coast items; mosaic 2_3-mosaic-1m; no vertical datum field."
+  },
+  {
+   "id": "C02-S10",
+   "title": "MRDEM Product Specifications, Edition 1.2 (2025-06-20)",
+   "url": "https://download-telecharger.services.geo.ca/pub/elevation/dem_mne/MRDEM_MNEMR/CanElevation-MRDEM-Product-Specifications.pdf",
+   "publisher": "Natural Resources Canada",
+   "year": "2025",
+   "opened": true,
+   "extract": "DTM RMSE vs RTK 1.04 m (LE90 1.69) non-vegetated, 2.55 m (4.17) vegetated; v1.1 datum method changed about 40 cm on average; HRDEM merge steps possible."
+  },
+  {
+   "id": "C02-S11",
+   "title": "CanElevation - Canada Digital Elevation Models (AWS Open Data)",
+   "url": "https://registry.opendata.aws/canelevation-dem/",
+   "publisher": "Natural Resources Canada / AWS",
+   "year": "2026",
+   "opened": true,
+   "extract": "Bucket canelevation-dem: hrdem-mosaic-1m and 2m, mrdem-30, hrdem-lidar; STAC at datacube.services.geo.ca; no AWS account needed; OGL-Canada."
+  },
+  {
+   "id": "C02-S12",
+   "title": "CanElevation - LiDAR Point Clouds (AWS Open Data) and S3 listing",
+   "url": "https://registry.opendata.aws/canelevation-pointcloud/",
+   "publisher": "Natural Resources Canada / AWS",
+   "year": "2026",
+   "opened": true,
+   "extract": "COPC LAZ 1.4; NAD83(CSRS) epoch 2010 UTM, CGVD2013; BC/Lower_Mainland_2016 and Vancouver_Island_Sunshine_Coast_2018 present; first tiles 14 to 80 MB."
+  },
+  {
+   "id": "C02-S13",
+   "title": "Automatically Extracted Buildings (record and feature catalogue)",
+   "url": "https://open.canada.ca/data/en/dataset/7a5cda52-c7df-427f-9ced-26f19a8a64d6",
+   "publisher": "Natural Resources Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "GeoParquet 2.3 GB, over 10 million footprints, EPSG:4617; catalogue lists Height Maximum/Minimum and accuracy fields; Vancouver coverage not stated."
+  },
+  {
+   "id": "C02-S14",
+   "title": "LidarBC - Open LiDAR Data Portal (BC Data Catalogue record)",
+   "url": "https://catalogue.data.gov.bc.ca/dataset/cc11fb58-4837-4d6f-b783-95173e040983",
+   "publisher": "Province of BC (GeoBC)",
+   "year": "2024",
+   "opened": true,
+   "extract": "Four resources are web apps; no projection or datum stated; license_title 'Access Only' conflicts with OGL-BC in notes."
+  },
+  {
+   "id": "C02-S15",
+   "title": "Digital Elevation Model for British Columbia - CDED",
+   "url": "https://open.canada.ca/data/en/dataset/7b4fef7e-7cae-4379-97b8-62b03e9ac83d",
+   "publisher": "Province of BC (GeoBC)",
+   "year": "2026",
+   "opened": true,
+   "extract": "TRIM 1:20,000 converted to CDED, 0.75 arc-second spacing, OGL-BC; datum and accuracy not stated."
+  },
+  {
+   "id": "C02-S16",
+   "title": "Copernicus DEM (Data Space collection) and AWS registry",
+   "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+   "publisher": "ESA / Copernicus",
+   "year": "2026",
+   "opened": true,
+   "extract": "GLO-30 1 arc-second DSM; absolute vertical below 4 m (90%), horizontal below 6 m (90%); EGM2008; TanDEM-X 2011 to 2015; COG on AWS copernicus-dem-30m."
+  },
+  {
+   "id": "C02-S17",
+   "title": "SRTM accuracy statement (USGS OFR 2011-1127)",
+   "url": "https://pubs.usgs.gov/of/2011/1127/srtm.html",
+   "publisher": "USGS",
+   "year": "2011",
+   "opened": true,
+   "extract": "Mission specification 20 m horizontal and 16 m vertical (90%); actual vertical closer to about 10 m; EGM96 vertical datum."
+  },
+  {
+   "id": "C02-S18",
+   "title": "Overture Maps buildings guide and schema",
+   "url": "https://docs.overturemaps.org/guides/buildings/",
+   "publisher": "Overture Maps Foundation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Sources include OSM, Esri, Microsoft, Google and City of Vancouver open data; ODbL; release 2026-09-23.1; schema has height, num_floors, roof fields in metres."
+  },
+  {
+   "id": "C02-S19",
+   "title": "GlobalMLBuildingFootprints",
+   "url": "https://github.com/microsoft/GlobalMLBuildingFootprints",
+   "publisher": "Microsoft",
+   "year": "2026",
+   "opened": true,
+   "extract": "CDLA Permissive 2.0; EPSG:4326; heights estimated, -1 when absent; precision 92 to 97%; weaker in dense urban areas."
+  },
+  {
+   "id": "C02-S20",
+   "title": "Open Buildings",
+   "url": "https://sites.research.google/gr/open-buildings/",
+   "publisher": "Google Research",
+   "year": "2026",
+   "opened": true,
+   "extract": "Coverage Africa, South and South-East Asia, Latin America and Caribbean; Canada not listed; no height field; CC BY 4.0 or ODbL."
+  },
+  {
+   "id": "C02-S21",
+   "title": "ubcv_Structures FeatureServer layer 0",
+   "url": "https://ags.gis.ubc.ca/arcgis/rest/services/Hosted/ubcv_Structures/FeatureServer/0?f=pjson",
+   "publisher": "UBC Campus + Community Planning",
+   "year": "2025",
+   "opened": true,
+   "extract": "Campus structures for LOD1 with bldgheight and baseelev from 2021 LiDAR; WKID 3157; no licence field."
+  },
+  {
+   "id": "C02-S22",
+   "title": "Circular Letter 465C: Official Vertical Datum for Legal Surveys in BC (amended 2026-04-01); 465B variant list",
+   "url": "https://ltsa.ca/wp-content/uploads/2021/04/CL-465C_Signed.pdf",
+   "publisher": "Land Title and Survey Authority of BC",
+   "year": "2026",
+   "opened": true,
+   "extract": "CGVD28 remains official for legal surveys; HTGVRDBC00 approved in Metro Vancouver; CGVD2013 values in GeoNetBC have unknown accuracy. 465B lists CVD28GVRD variants."
+  },
+  {
+   "id": "C02-S23",
+   "title": "Height transformations (BC geospatial referencing)",
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "publisher": "Province of BC",
+   "year": "2026",
+   "opened": true,
+   "extract": "CGVD28 is BC's current datum; HTMVBC00 and HTGVRDBC00 are Metro Vancouver hybrid models; HTv2.0 gives approximate CGVD28."
+  },
+  {
+   "id": "C02-S24",
+   "title": "EPSG:10520 CGVD28 height to CGVD2013a(2010) height (2)",
+   "url": "https://epsg.io/10520",
+   "publisher": "EPSG Registry (via epsg.io)",
+   "year": "2026",
+   "opened": true,
+   "extract": "Accuracy 0.05 m; PROJ: +proj=vgridshift +grids=ca_nrc_HT2_2010v70_CGG2013a.tif +multiplier=-1; equals HT2_2010v70 minus CGG2013a."
+  },
+  {
+   "id": "C02-S25",
+   "title": "EPSG:3157 NAD83(CSRS) / UTM zone 10N and EPSG:26910",
+   "url": "https://epsg.io/3157",
+   "publisher": "EPSG Registry (via epsg.io)",
+   "year": "2026",
+   "opened": true,
+   "extract": "3157 is the NAD83(CSRS) UTM 10N code; 26910 remarks say use NAD83(CSRS) for accuracy better than 1 m; central meridian -123, scale 0.9996."
+  },
+  {
+   "id": "C02-S26",
+   "title": "PROJ datum grid index",
+   "url": "https://cdn.proj.org/",
+   "publisher": "PROJ",
+   "year": "2023",
+   "opened": true,
+   "extract": "Lists ca_nrc_HT2_2010v70_CGG2013a.tif 2.1 MB, us_nga_egm96_15.tif 2.6 MB, us_nga_egm08_25.tif 76.9 MB; licences not stated."
+  },
+  {
+   "id": "C02-S27",
+   "title": "Height Reference System Modernization (CGVD2013)",
+   "url": "https://natural-resources.canada.ca/sites/nrcan/files/files/pdf/Height_reference_system_modernization_(EN).pdf",
+   "publisher": "Natural Resources Canada",
+   "year": "2020",
+   "opened": true,
+   "extract": "CGVD2013 replaced CGVD28; realised by geoid CGG2013a; benchmarks differ by under 5 cm typically; no Vancouver offset given."
+  },
+  {
+   "id": "C02-S28",
+   "title": "A multi-height LoD1 model of all buildings in the Netherlands",
+   "url": "https://isprs-annals.copernicus.org/articles/IV-4-W8/51/2019/isprs-annals-IV-4-W8-51-2019.pdf",
+   "publisher": "ISPRS Annals (Dukai, Ledoux, Stoter)",
+   "year": "2019",
+   "opened": true,
+   "extract": "Roof percentiles 25/50/75/90/95/99; ground 0 to 50 in 0.5 m buffer; median RMSE 0.31 m flat, 1.06 m non-flat; LoD1.3 mentioned for height jumps."
+  },
+  {
+   "id": "C02-S29",
+   "title": "PDAL writers.gdal, readers.copc, hag_dem, install and licence pages",
+   "url": "https://pdal.io/en/stable/stages/writers.gdal.html",
+   "publisher": "PDAL / Hobu Inc.",
+   "year": "2025",
+   "opened": true,
+   "extract": "Percentile output p<n> in writers.gdal; COPC reader with bounds and remote URLs; hag_dem; Windows via conda-forge only; BSD licence."
+  },
+  {
+   "id": "C02-S30",
+   "title": "PyPI metadata: laspy, rasterio, geopandas, shapely, pyproj, trimesh, rio-cogeo, pydelatin, mapbox-earcut, lazrs",
+   "url": "https://pypi.org/project/laspy/",
+   "publisher": "PyPI",
+   "year": "2026",
+   "opened": true,
+   "extract": "Licences BSD-2/BSD-3/MIT/ISC; rasterio 1.5.2 and pyproj 3.8.0 need Python 3.12 or newer; laspy 2.7.0 needs lazrs or laszip for LAZ."
+  },
+  {
+   "id": "C02-S31",
+   "title": "GitHub Pages limits and large-file limits",
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "publisher": "GitHub",
+   "year": "2026",
+   "opened": true,
+   "extract": "Pages site at most 1 GB; 100 GB/month soft bandwidth; 10 min deploy timeout; warning at 50 MiB, block at 100 MiB per file; repo advised under 1 GB."
+  },
+  {
+   "id": "C02-S32",
+   "title": "CHS IWLS station Vancouver 07735 metadata",
+   "url": "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/5cebf1de3d0f4a073c4bb943/metadata",
+   "publisher": "Canadian Hydrographic Service",
+   "year": "2026",
+   "opened": true,
+   "extract": "Vertical datum offsets CGVD2013 -2.88 and CGVD28 -3.00 (units and sign convention not stated); station at 49.2863, -123.0997."
+  },
+  {
+   "id": "C02-S33",
+   "title": "Is the Open Government Licence - Vancouver compatible with OSM?",
+   "url": "https://help.openstreetmap.org/questions/59890/is-the-open-government-licence-vancouver-compatible-with-osm/",
+   "publisher": "OpenStreetMap help forum",
+   "year": "2017",
+   "opened": true,
+   "extract": "Quotes required attribution 'Contains information licensed under the Open Government Licence – Vancouver'; compatibility with OSM attribution unresolved; no City statement."
+  },
+  {
+   "id": "C02-S34",
+   "title": "ODbL summary",
+   "url": "https://opendatacommons.org/licenses/odbl/summary/",
+   "publisher": "Open Data Commons",
+   "year": "2026",
+   "opened": true,
+   "extract": "Attribution required; adapted databases used publicly must be offered under ODbL; keep-open rule for redistribution; summary is not legal text."
+  },
+  {
+   "id": "C02-S35",
+   "title": "Vista (vancouver-tall-view-tool v09.16) README, generated and data manifests",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "publisher": "Team repository (local read-only copy)",
+   "year": "2026",
+   "opened": true,
+   "extract": "SRTM 60 m and 300 m, EGM96; 9,897 + 51,510 buildings; heights 1,441 measured, 3,656 levels, 4,800 estimated; bundle 51,990,003 B; local equirectangular frame; datum unknown."
+  },
+  {
+   "id": "C02-S36",
+   "title": "Public Views Guidelines (approved 2024-07-10, amended 2026-02-04)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": false,
+   "extract": "WebFetch returned 403. Quoted via team's data/guideline.json: s.2 p.3 lower boundary 'establishes the maximum geodetic height'; s.3.1.1 p.6 no part including appurtenances; 3.1.2 minor encroachments."
+  },
+  {
+   "id": "C02-S37",
+   "title": "1040-1080 Barclay rezoning, 03 Site Context",
+   "url": "https://rezoning.vancouver.ca/applications/1040-1080_barclay/documents/03-sitecontext.pdf",
+   "publisher": "City of Vancouver rezoning",
+   "year": "unknown",
+   "opened": false,
+   "extract": "Not opened (403, download). A search summary reported maximum geodetic elevations: view 3.2.1 123.201 m and 12.1.1 121.695 m; vintage relative to the 2024 changes unknown."
+  },
+  {
+   "id": "C02-S38",
+   "title": "830-850 Thurlow / 1045 Haro staff presentation (Council 2022-07-05)",
+   "url": "https://council.vancouver.ca/20220705/documents/r8staffpresentation.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2022",
+   "opened": false,
+   "extract": "Not opened (403). Search summary: lists Queen Elizabeth Park view 3.2.1 at 361 ft and protected view D limit about 260 ft; figures unverified."
+  },
+  {
+   "id": "C02-S39",
+   "title": "List of tallest buildings in Vancouver",
+   "url": "https://en.wikipedia.org/wiki/List_of_tallest_buildings_in_Vancouver",
+   "publisher": "Wikipedia",
+   "year": "2026",
+   "opened": true,
+   "extract": "Living Shangri-La 200.9 m; Paradox 187.8 (2016); The Butterfly 178.6 (2024); One Burrard Place 167.6 (2021); The Stack 162.3 (2023); heights include spires, exclude masts."
+  },
+  {
+   "id": "C02-S40",
+   "title": "Metro Vancouver Land Cover and SEI Update (Caslys, Dec 2022)",
+   "url": "https://metrovancouver.org/services/regional-planning/Documents/mv-land-cover-classification-sei-update-2022.pdf",
+   "publisher": "Metro Vancouver",
+   "year": "2022",
+   "opened": true,
+   "extract": "LiDAR taken from member jurisdictions (mosaic of vintages), including Capilano and Seymour watersheds; internal DEM, DSM, CHM at 5 m; Buildings is a land-cover class, no heights."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Google Open Buildings can supply Vancouver footprints.",
+   "correction": "Coverage is Africa, South and South-East Asia, Latin America and the Caribbean; Canada is not listed and the page names no height field.",
+   "detail": "Use City LiDAR, City 2015 footprints, OSM, Overture or Microsoft instead.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "City building-footprint datasets carry height fields.",
+   "correction": "Only the 2009 set has elevations and heights, as roof-facet rows under 2009 conditions; 2015 and 1999 sets are geometry only.",
+   "detail": "2009 rows near Shangri-La show a tower under construction; do not treat them as current.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The City publishes DEM or DSM products derived from 2018 and 2022 LiDAR.",
+   "correction": "2018 and 2022 are zipped LAS tiles only; the only City raster DEM is the 2013 1 m GeoTIFF (1.91 GB).",
+   "detail": "We must derive DTM and DSM ourselves (M04).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "EPSG:26910 is NAD83(CSRS) UTM zone 10N.",
+   "correction": "26910 is NAD83 (original); NAD83(CSRS) / UTM 10N is EPSG:3157. City LiDAR states NAD83(CSRS) 4.0.0.BC.1.GVRD.",
+   "detail": "EPSG remarks say sub-metre accuracy needs the CSRS code; City orthophotos are labelled EPSG:26910.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "All elevation sources can be merged without datum work.",
+   "correction": "City LiDAR is CGVD28GVRD; HRDEM and MRDEM are CGVD2013; SRTM is EGM96; GLO-30 is EGM2008; OSM heights are relative.",
+   "detail": "CHS offsets imply about +0.12 m between CGVD2013 and CGVD28 (unverified); MRDEM v1.1 moved heights about 0.4 m.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Vista README: terrain is '60 m SRTM'.",
+   "correction": "SRTM 1 arc-second (about 30.9 x 20.1 m cells) sampled at 60 m (extension) and 300 m (backdrop), EGM96; supplied-model terrain source and datum are unrecorded.",
+   "detail": "Actual vertical error is about 10 m (USGS), unusable for cone height limits.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Vista's local equirectangular frame is adequate for cone tests.",
+   "correction": "It differs from UTM 10N by about 5 m at 2.5 km and up to 34 m at its extent corners (computed).",
+   "detail": "Fine for visuals; use UTM or a per-view ENU frame for geometry that touches cone edges.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Cone maximum geodetic heights are in CGVD28(GVRD).",
+   "detail": "LTSA 465C keeps CGVD28 as legal-survey datum and the Guidelines say 'maximum geodetic height' (s.2 p.3); the datum definition was not read (403). Ask views@vancouver.ca.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "View 3.2.1 is 123.201 m geodetic (Barclay) and 361 ft at Thurlow.",
+   "detail": "Both PDFs were unopened (403); search summaries only. 3.2.1 was among views amended in 2024, so edition and datum may differ.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "City OGL-Vancouver and OSM ODbL layers can be combined in one release.",
+   "detail": "A 2011 commentary called OGL-Vancouver 'viral'; a 2017 forum thread left compatibility open; ODbL has share-alike. Keep layers separate pending a legal opinion.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "2022 LiDAR is current for every downtown tower.",
+   "correction": "Acquisition was 7 and 9 Sept 2022; The Stack (2023) and The Butterfly (2024) post-date it.",
+   "detail": "Flag built_after_lidar and use a cited override table.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "NRCan Automatically Extracted Buildings has usable heights for Vancouver.",
+   "detail": "Feature catalogue lists Height Maximum/Minimum, but a WMS GetFeatureInfo query downtown returned empty; coverage unconfirmed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "LidarBC datum and licence are known.",
+   "detail": "Catalogue gives no datum; license_title 'Access Only' conflicts with OGL-BC in the notes.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "SRTM is adequate for 'as accurate as possible' North Shore mountains.",
+   "correction": "HRDEM (better than 1 m) and MRDEM-30 (about 1 to 2.6 m RMSE) are available over the same area; SRTM is about 10 m.",
+   "detail": "Slopes amplify horizontal error (20 m CE90 on 30 degrees gives 11.5 m vertical).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "City LiDAR class names map to LAS codes 1 to 8.",
+   "detail": "The portal lists class names as a numbered list; ASPRS codes differ (for example water is 9, noise 7). Read the LAS header or a class histogram first.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "HRDEM VILLE_VANCOUVER 2013 shares City LiDAR 2013's datum after conversion.",
+   "detail": "Source LiDAR is CGVD28; HRDEM claims CGVD2013; the STAC item has no vertical field. Check by sampling against the City DEM.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Datum behind the Guidelines' 'maximum geodetic height' values: WebFetch of guidelines.vancouver.ca, vancouver.ca, council.vancouver.ca, rezoning.vancouver.ca and CD-1 bylaws all returned 403; search snippets give no definition.",
+  "Numeric offset between City CGVD28GVRD and HRDEM/MRDEM CGVD2013 in downtown: searched NRCan and BC pages; only CHS offsets (+0.12 m, convention unverified) and conflicting secondary values (+15 cm, 17 cm) found.",
+  "Difference between CVD28BC, CVD28GVRD and CVD28GVRD2018 realisations (LTSA 465B lists all as acceptable): no quantified difference found.",
+  "Horizontal accuracy, LAS version and point format of City LiDAR 2022: not in portal metadata; affects footprint tolerance and file size.",
+  "Which numeric LAS classification codes City LiDAR uses for ground and buildings: portal gives names only.",
+  "Whether HRDEM mosaic and project COGs near downtown agree with City 2022 DTM after datum conversion: STAC lacks vertical metadata; must be measured.",
+  "Vancouver coverage and height completeness of NRCan Automatically Extracted Buildings: WMS query empty; GeoParquet not downloaded.",
+  "Which City of Vancouver dataset and vintage Overture merges as a building source: page names the source only.",
+  "Metro Vancouver regional footprints or LiDAR downloads: searched web and portal domain (host unreachable); only land cover and member-jurisdiction LiDAR mentioned. No regional LOD1 found.",
+  "City ArcGIS REST or VanMap building-height services: searched web and maps.vancouver.ca (404); none found.",
+  "LidarBC North Shore coverage, datum and licence: catalogue record lacks all three.",
+  "Real compressed sizes for LOD1 buildings and terrain meshes: estimates only until tile 490000_5459000 is processed.",
+  "OGL-Vancouver full text and compatibility with OSM attribution: portal licence page returned no text; secondary sources only."
+ ],
+ "change_log": [
+  "Round 1: first version of packet C02; no earlier version exists.",
+  "Corrected scope assumptions: Google Open Buildings has no Canada coverage; only the 2009 City footprints have heights; EPSG:26910 is not NAD83(CSRS); City publishes no 2018/2022 DEM rasters.",
+  "Added M01 datum registry after finding City LiDAR is CGVD28GVRD, HRDEM and MRDEM are CGVD2013, SRTM is EGM96, GLO-30 is EGM2008.",
+  "Added hand-checkable validation cases, including computed UTM tile corners and Vista-frame offsets."
+ ],
+ "notes": "Recommended: City LiDAR 2022 (CGVD28GVRD) is the downtown source; HRDEM and MRDEM serve the mountains after datum calibration. Cone datum and 3.2.1 values remain unverified; confirm with views@vancouver.ca. Process LAS offline, ship only derived MB-scale files."
+}

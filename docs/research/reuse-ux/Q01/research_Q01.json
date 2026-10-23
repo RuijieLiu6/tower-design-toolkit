@@ -1,0 +1,597 @@
+{
+ "packet_id": "Q01",
+ "findings": [
+  {
+   "name": "xunliuDesign (Xun Liu) GitHub account",
+   "url": "https://github.com/xunliuDesign",
+   "kind": "other",
+   "what_it_does": "Xun Liu's personal account: 15 public repos, 12 followers. Own work is mapping/visualisation plus AI4GH and false-creek-2100. It does not host hairline, anatomy or text-to-cad (all 404 there); it starred them.",
+   "how_we_use_it": "Treat its stars list (20 repos: Rhino/Grasshopper MCPs, Claude skills, agent tutorials) as Xun's curated tool shelf, and the source of the three named tools. Mine it for reusable ideas.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "Newest own repo update 11 Jun 2026 (false-creek-2100)",
+   "license": "n/a (per-repo; mostly not stated)",
+   "maintainer": "Xun Liu",
+   "popularity": "12 followers, 4 following",
+   "risks": "Exact handle is xunliuDesign, not 'XunLiu Design'. GitHub org 'xlstudio' belongs to someone else (Xiphin, Hangzhou), not Xun. Starring a repo is not an endorsement or licence grant.",
+   "saves": "Avoids searching wrong accounts."
+  },
+  {
+   "name": "GenEnv (GenEnv Lab) organisation",
+   "url": "https://github.com/GenEnv",
+   "kind": "other",
+   "what_it_does": "Course/lab org with 9 public repos (rhino-gh-mcp, Arch540_2026, arch540-a1-toolkit, ai4dm-site, sala-tech-knowledge-tree, ai-agents-for-architects...). No public members or description. 'agents_demo' is a folder inside Arch540_2026, not a repo.",
+   "how_we_use_it": "Primary instructor-owned source for course patterns (agent demos, Vancouver rule tools, Rhino MCP). Watch it through 10 Dec for updates and new student tools.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-14 (arch540-a1-toolkit)",
+   "license": "Varies: only rhino-gh-mcp states MIT",
+   "maintainer": "GenEnv / UBC SALA (Xun Liu per course context)",
+   "popularity": "Repos 0-8 stars",
+   "risks": "Most repos state no licence, so code reuse needs written permission. Org page lists no members, so authorship of each repo is not confirmed.",
+   "saves": "One org to check for course-approved building blocks."
+  },
+  {
+   "name": "hairline (lucasmarkes/hairline)",
+   "url": "https://github.com/lucasmarkes/hairline",
+   "kind": "library",
+   "what_it_does": "MIT library of 33 pointer-reactive isometric line-drawn SVG figures for React or any DOM; zero runtime dependencies, one shared animation loop. Includes agent skills hairline-create (draws a new figure) and hairline-adopt (rebuilds an SVG as a figure).",
+   "how_we_use_it": "Use 3-5 figures for empty canvas, onboarding and module-card art via npm or shadcn registry; run hairline-create once for a tower figure. Adopt its ten rules as our linework/motion spec (stroke-only, quiet, reduced-motion).",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-14 (v0.5.1; 194 commits)",
+   "license": "MIT (c) Lucas Marques; root package.json has no license field",
+   "maintainer": "Lucas Marques (lucasmarkes)",
+   "popularity": "2.6k stars, 155 forks, 5 open PRs (21 Oct 2026); 1 X post and 1 adopting repo seen",
+   "risks": "Single maintainer, about 3 weeks old. Built-in figures are generic (keyboard, router), not architecture. Monorepo dev needs Node 22+ and pnpm; the skill's browser check needs playwright-core.",
+   "saves": "Hours of hand-coded SVG animation; no published token figures."
+  },
+  {
+   "name": "anatomy (wheresryan22/anatomy)",
+   "url": "https://github.com/wheresryan22/anatomy",
+   "kind": "skill",
+   "what_it_does": "MIT agent skill that builds an interactive isometric SVG figure (optional WebGL shaders, beta 3D) explaining an idea as a real machine. Ships a drawing kit, geometry audit, headless-Chrome checks and A4/Letter print sheets. Slow by design.",
+   "how_we_use_it": "Roadmap: commission one or two hero explainers (sun path, stack-effect ventilation) for the landing page or boards at Figure tier only. Reuse its geometry-audit and zero-loose-line checks as our drawing QA pattern.",
+   "priority": "roadmap",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-18 (153+ commits)",
+   "license": "MIT (c) 2026 Ryan",
+   "maintainer": "wheresryan22 (Ryan)",
+   "popularity": "17.8k stars, 1.4k forks, 12 issues, 49 PRs; blogs reported 6.5k then 8.9k stars on 12-14 Oct",
+   "risks": "A blog reports about 1h54m agent time for a flagship figure; token-heavy and non-deterministic. Poor fit for abstract ideas. Examples are machines, not buildings. Needs Node 20.10+ and Chrome.",
+   "saves": "Design time only; its Figure/Hero/Epic tiers help cap spend."
+  },
+  {
+   "name": "text-to-cad (earthtojake/text-to-cad)",
+   "url": "https://github.com/earthtojake/text-to-cad",
+   "kind": "skill",
+   "what_it_does": "MIT Claude Code plugin/skills letting agents generate STEP, GLB, STL, 3MF CAD from text or images via build123d and Open CASCADE (cadgen), with viewer, dimensioned PDF drawings, DXF, DFM and printing skills. Mechanical focus.",
+   "how_we_use_it": "v1 optional AI massing-generator node: Claude writes parametric tower massing in build123d, exports GLB to our viewer; its DXF/drawing skills may seed board linework. Run locally, not in the browser. No .3dm or IFC output.",
+   "priority": "v1",
+   "status": "false_assumption_corrected",
+   "verified_opened": true,
+   "last_activity": "2026-10-20 (release 0.7.26; 1,462 commits)",
+   "license": "MIT (c) 2026 Thompson Labs LLC",
+   "maintainer": "earthtojake / Thompson Labs LLC",
+   "popularity": "22.0k stars, 2.2k forks, 3 issues, 26 PRs; 1-2 trend write-ups only",
+   "risks": "README says Windows 11 Smart App Control can block the OCP kernel. Telemetry is on by default (cadgen telemetry off). Needs Python 3.11+, Node 20+, uv. Built for parts, not building-scale models.",
+   "saves": "Avoids building a CAD kernel, viewer and snapshot pipeline from scratch."
+  },
+  {
+   "name": "anatomy-community gallery",
+   "url": "https://github.com/wheresryan22/anatomy-community",
+   "kind": "repo",
+   "what_it_does": "Gallery where figures are submitted as source (build.mjs, figure.json) by agent script or Gist plus issue bot. CI rebuilds in a locked sandbox with a two-run determinism check, publishes previews on a branch; maintainer reviews. MIT or CC-BY-4.0 per figure.",
+   "how_we_use_it": "Model for our module hub: source-only submissions, sandboxed rebuild, preview, per-module licence field, takedown by deleting a folder. Design the flow now; implement for v1.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (150 commits)",
+   "license": "MIT (figures may be CC-BY-4.0)",
+   "maintainer": "wheresryan22",
+   "popularity": "64 stars, 40 forks, 26 open PRs",
+   "risks": "26 open PRs hint at a review backlog. Sandbox hardening not audited by us. CI minutes and Node build dependency.",
+   "saves": "A proven moderation workflow instead of inventing one."
+  },
+  {
+   "name": "rhino-gh-mcp (GenEnv)",
+   "url": "https://github.com/GenEnv/rhino-gh-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "MIT MCP server plus Rhino 8 and Grasshopper C# plugins (v0.2.6): an LLM reads and edits a live canvas, captures the viewport, runs commands. A Scenario dropdown (Inspect, Tune, Coach, Execute, Author) gates AI access. Bundles four skills.",
+   "how_we_use_it": "v1 bridge for teams modelling in Rhino: Claude tunes sliders and reads definitions. Copy Scenario gating as per-node AI permission levels; reuse landform, ladybug-environmental and facade-design skills as module recipes.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-07-17 (45 commits)",
+   "license": "MIT",
+   "maintainer": "GenEnv / Xun Liu's lab",
+   "popularity": "8 stars, 2 forks, 1 open PR",
+   "risks": "Rhino 8 only (licence needed), early version, Ladybug must be installed, no open-issue count seen. Not a browser path; only helps Rhino users.",
+   "saves": "Skips writing a RhinoCommon plugin and MCP server."
+  },
+  {
+   "name": "Arch540_2026 course repo (agents_demo)",
+   "url": "https://github.com/GenEnv/Arch540_2026",
+   "kind": "repo",
+   "what_it_does": "Four runnable Claude Code demos: A writing, B test-fit, C design-space, D team (about 10 agents). Contains CLAUDE.md, check.py, evaluate.py, Pareto front.py, limits.json, hooks and a family-explorer subagent. Needs numpy, scipy, shapely, matplotlib.",
+   "how_we_use_it": "Core: copy the patterns for our evaluation modules: deterministic evaluator as the only source of numbers, JSON in/out, Pareto front, hook refusing failing output, UNRESOLVED after six revisions. Ask Xun for licence first.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-09-29 (3 commits)",
+   "license": "None stated",
+   "maintainer": "GenEnv / Xun Liu",
+   "popularity": "0 stars",
+   "risks": "No licence. Demo rules (3 m setback, 40 m height) are teaching values, not Vancouver bylaws. D_team can exhaust a Pro 5-hour allowance. Only prompts and file lists read, not all code.",
+   "saves": "Large token saving: numbers come from scripts, not the LLM; ready scaffold."
+  },
+  {
+   "name": "arch540-a1-toolkit (15 student Vancouver-regulation tools)",
+   "url": "https://github.com/GenEnv/arch540-a1-toolkit",
+   "kind": "repo",
+   "what_it_does": "Static index of 15 student tools on Vancouver rules (Curbside, Stair Core, R3 Feasibility, Solar Shading Explorer, MassShadeLight, Lotwise, Downtown Massing, Massing Studio, Vista...). Each is a JSON card with tool and repo links.",
+   "how_we_use_it": "Core: mine for policy, sun, view and code modules and as collaborators to ask. Cards give tool_url and repo_url. Read the 11 unread cards before choosing.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-14 (19 commits)",
+   "license": "None stated",
+   "maintainer": "GenEnv; tools by individual students",
+   "popularity": "0 stars",
+   "risks": "No licence on index or tools. Many are one-person prototypes with unverified rules. Authors are classmates, so credit and consent matter.",
+   "saves": "Weeks of rule research if tables are reused and verified."
+  },
+  {
+   "name": "Downtown Massing Tool (xubynii/dtmass)",
+   "url": "https://github.com/xubynii/dtmass",
+   "kind": "app",
+   "what_it_does": "Static WebGL tool by Sinnie Choi testing downtown Vancouver tower massings against VBBL 2025, Downtown ODP 4912, floor-plate bulletin, downtown guidelines, solar access guidelines (Sep 2025), views and parking; reads .3dm. README says inputs need manual verification.",
+   "how_we_use_it": "Core: seed the policy-compliance module and source list with its rule-to-document mapping; port numeric rules as editable team assumptions with citations; reuse the .3dm reader approach. Get author consent first.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (26 commits)",
+   "license": "None visible",
+   "maintainer": "Sinnie Choi (xubynii)",
+   "popularity": "0 stars",
+   "risks": "No LICENSE visible. Author flags ODP density, height and view-cone inputs as manually verified. Student prototype; rule accuracy not checked by us.",
+   "saves": "Rule discovery: a mapped list of governing documents for the block."
+  },
+  {
+   "name": "Vista (RuijieLiu6/vancouver-tall-view-tool)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "kind": "app",
+   "what_it_does": "Browser tool by Ruijie Liu testing a massing footprint against City of Vancouver mapped view corridors (Open Data view-cones, plan polygons only), renders approximate views from estimated origins, exports a PDF; imports .3dm and .obj locally.",
+   "how_we_use_it": "Core: public-realm/policy node for view-corridor overlap. Reuse its open-data pipeline (view-cones, SRTM terrain, OSM buildings) and PDF report; add cone height limits from the Public Views Guidelines.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (13 commits; release v09.16, Oct 2026)",
+   "license": "None visible (data: Open Government Licence, ODbL)",
+   "maintainer": "Ruijie Liu (RuijieLiu6)",
+   "popularity": "0 stars",
+   "risks": "No licence file. Footprint overlap only, no heights; README says it does not assess guideline compliance. SRTM terrain is about 60 m resolution.",
+   "saves": "A working view-cone data pipeline and import path."
+  },
+  {
+   "name": "Massing Studio (clcabana/massing-studio)",
+   "url": "https://github.com/clcabana/massing-studio",
+   "kind": "app",
+   "what_it_does": "Python/FastAPI pydantic rule engine with a JS port: live VBBL 2025 Part 3 and Zoning By-law 3575 checks with clause citations (occupancy, fire separation, exits, washrooms, FSR, height); exports Excel and Rhino .3dm. Labelled a draft for professional review.",
+   "how_we_use_it": "Core for the MEP/code module: reuse clause-cited rule tables and the 'draft for professional review' label; Python engine fits our stack. Python/JS parity tests are a useful pattern. Seek author's licence.",
+   "priority": "core",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (20 commits; setup run 2026-10-02)",
+   "license": "None visible",
+   "maintainer": "Claudio Cabana (clcabana)",
+   "popularity": "0 stars",
+   "risks": "No licence. Which by-law governs our block must be verified (Downtown ODP vs 3575). Dual Python/JS engines can drift. 20 commits, early.",
+   "saves": "Weeks of code-rule transcription; built-in citations."
+  },
+  {
+   "name": "AI4GH (xunliuDesign)",
+   "url": "https://github.com/xunliuDesign/AI4GH",
+   "kind": "repo",
+   "what_it_does": "C# Grasshopper components bringing GenAI into Grasshopper via API (folders Robot_GH and 'Nano Banana_GH'). Only a one-line description and 5 commits were visible; README body and models used not retrieved.",
+   "how_we_use_it": "Roadmap: reference for how Xun wires image-generation APIs into Grasshopper nodes; mirror its typed inputs/outputs in our AI-render node. Request the README and licence.",
+   "priority": "roadmap",
+   "status": "unverified",
+   "verified_opened": true,
+   "last_activity": "2025-11-12",
+   "license": "Not shown",
+   "maintainer": "Xun Liu",
+   "popularity": "0 stars",
+   "risks": "Almost no documentation visible; Grasshopper/Rhino-only; licence unknown; 11 months old.",
+   "saves": "Design reference for an AI-render node."
+  },
+  {
+   "name": "false-creek-2100 (xunliuDesign)",
+   "url": "https://github.com/xunliuDesign/false-creek-2100",
+   "kind": "app",
+   "what_it_does": "No-build static JS prototype: pixel sea-level-rise sandbox for South False Creek. Paint seawalls, marshes, canals; bathtub-plus-connectivity flood model; keyboard shortcuts; PNG export stamped with scenario and metrics. Python script builds OSM and Terrarium grid.",
+   "how_we_use_it": "Roadmap: pattern for a light, engaging interaction loop and metric-stamped exports in presentation mode; its 10 m grid data script could seed a flood/resilience module near False Creek.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-06-11 (1 commit)",
+   "license": "Code licence not stated; data ODbL and Terrarium",
+   "maintainer": "Xun Liu",
+   "popularity": "0 stars",
+   "risks": "v0.1 single commit. README says it is not a flood map or engineering advice. Near-shore terrain synthesised.",
+   "saves": "Small, readable example of interaction design and export stamping."
+  },
+  {
+   "name": "sala-tech-knowledge-tree",
+   "url": "https://github.com/GenEnv/sala-tech-knowledge-tree",
+   "kind": "repo",
+   "what_it_does": "Faculty-verified map of Grasshopper tutorials: one-file site, content-gh.json as source of truth with prerequisites and status, validate.py checking IDs and prerequisite cycles on each pull request, spreadsheet templates for bulk contributions, CLAUDE.md.",
+   "how_we_use_it": "v1: model our module manifest and CI validation on it (IDs, dependency cycles, source fields). Reuse the spreadsheet-to-JSON bulk contribution idea. Also a Grasshopper learning path for team onboarding.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-09-01 (1 commit)",
+   "license": "None stated",
+   "maintainer": "GenEnv (coordinator unnamed)",
+   "popularity": "1 star, 1 fork",
+   "risks": "No licence; baked-in JSON blob needs regeneration to edit; public contribution page not yet enabled.",
+   "saves": "Ready validation design for module graphs."
+  },
+  {
+   "name": "ai4dm-site (GenEnv)",
+   "url": "https://github.com/GenEnv/ai4dm-site",
+   "kind": "repo",
+   "what_it_does": "Student-facing collections on generative AI in landscape representation (v1, v2). v3 platform (atlas, gallery, prompt lab, studio taking your own API key) is in progress; its source is a separate private repo. build.py --public strips restricted images.",
+   "how_we_use_it": "Roadmap: ask Xun to show v3 UX as reference for our AI render step and bring-your-own-key flow; adopt the public-build filter that excludes copyrighted reference images.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-10-07",
+   "license": "None stated",
+   "maintainer": "GenEnv",
+   "popularity": "1 star",
+   "risks": "Platform code is private and unlicensed; static Notion exports; only the README was read.",
+   "saves": "UX reference; avoids rework on BYO-key handling."
+  },
+  {
+   "name": "ai-agents-for-architects (GenEnv)",
+   "url": "https://github.com/GenEnv/ai-agents-for-architects",
+   "kind": "repo",
+   "what_it_does": "Chinese-language DigitalFUTURES 2026 agent workshop kit: demos 00_anatomy to 09_design_tools, switchable between Claude and DeepSeek via config, cheatsheets and glossary, run_pipeline.py. Not the anatomy skill despite the folder name.",
+   "how_we_use_it": "Roadmap: copy the one-config provider switch for our Claude/OpenAI/other model layer; use its cheatsheet format for onboarding docs.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "2026-09-05 (9 commits)",
+   "license": "Not stated",
+   "maintainer": "GenEnv",
+   "popularity": "3 stars, 1 fork",
+   "risks": "Chinese-language; licence unknown; teaching demos, not production code.",
+   "saves": "Provider-switch pattern for multi-model calls."
+  },
+  {
+   "name": "skills-for-architects (AlpacaLabsLLC)",
+   "url": "https://github.com/AlpacaLabsLLC/skills-for-architects",
+   "kind": "skill",
+   "what_it_does": "MIT Claude Code/Codex plugin with 61 architecture skills (zoning-envelope with interactive 3D buildable envelope, occupancy-calculator, environmental-analysis, mobility-analysis, spec and EPD tools) plus 8 agents, 8 rules, 4 hooks. NYC-centric. Starred by Xun.",
+   "how_we_use_it": "v1: borrow skill structure, code-citation rules and 'marked for professional review' outputs; adapt zoning-envelope and occupancy-calculator ideas to Vancouver. Install only 4-5 skills to avoid context bloat.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (release 1.5.2; 174 commits)",
+   "license": "MIT (c) 2026 Alpaca Labs, LLC",
+   "maintainer": "Alpaca Labs, LLC",
+   "popularity": "383 stars, 82 forks",
+   "risks": "NYC data and rules; 61 skills can bloat context and tokens; many FF&E skills irrelevant; third-party maintenance.",
+   "saves": "Weeks of prompt design; token saving only if few skills are loaded."
+  },
+  {
+   "name": "rhinomcp (jingcheng-chen)",
+   "url": "https://github.com/jingcheng-chen/rhinomcp",
+   "kind": "mcp_server",
+   "what_it_does": "MIT Python MCP server (uvx rhinomcp@latest) plus RhinoCommon plugin: create and edit Rhino geometry, inspect/place/wire/solve Grasshopper, run RhinoScript or C#, capture viewports. Rhino 8 on Windows and Mac; TCP on 127.0.0.1:1999.",
+   "how_we_use_it": "v1 alternative or complement to rhino-gh-mcp for Rhino import/export and viewport capture; uvx suits our Python-first Windows setup.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (309 commits)",
+   "license": "MIT",
+   "maintainer": "jingcheng-chen",
+   "popularity": "1.2k stars, 107 forks",
+   "risks": "README states the TCP link is unauthenticated and execution tools are broad; keep loopback only. Rhino 8 licence needed.",
+   "saves": "A broader tool set than rhino-gh-mcp without writing a bridge."
+  },
+  {
+   "name": "RhinoAI (mcneel)",
+   "url": "https://github.com/mcneel/RhinoAI",
+   "kind": "mcp_server",
+   "what_it_does": "MIT official McNeel repo: MCP server and Rhino plugin connecting Claude Desktop/Code, Copilot, Codex, Gemini CLI and local models to Rhino; connector v0.1.6; docs site and CI.",
+   "how_we_use_it": "Roadmap: track as the likely long-term supported Rhino-AI bridge; evaluate before locking in a community MCP.",
+   "priority": "roadmap",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (823 commits on rhino-9.x)",
+   "license": "MIT",
+   "maintainer": "McNeel",
+   "popularity": "371 stars, 59 forks, 8 issues, 7 PRs",
+   "risks": "Early (v0.1.6); on a Rhino 9.x branch; no releases listed; maturity not stated.",
+   "saves": "Avoids maintaining our own Rhino bridge if it stabilises."
+  },
+  {
+   "name": "openai/codex-plugin-cc",
+   "url": "https://github.com/openai/codex-plugin-cc",
+   "kind": "skill",
+   "what_it_does": "Apache-2.0 plugin letting Claude Code call OpenAI Codex: /codex:review, /codex:adversarial-review, /codex:rescue, background jobs. Needs a ChatGPT account or OpenAI API key and Node 18.18+. Starred by Xun.",
+   "how_we_use_it": "v1 dev workflow: cheap second-opinion adversarial review of module logic and code using OpenAI, matching the team's wish to use both vendors. Keep the optional Stop-hook review gate off.",
+   "priority": "v1",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (29 commits)",
+   "license": "Apache-2.0",
+   "maintainer": "OpenAI",
+   "popularity": "34.4k stars, 2.4k forks",
+   "risks": "Spends OpenAI quota; review gate can loop usage; sends project code to a second vendor; Node needed (not yet installed).",
+   "saves": "Catches logic errors early, reducing rework tokens; adds cost per review."
+  },
+  {
+   "name": "Physalia (aarcThom)",
+   "url": "https://github.com/aarcThom/Physalia",
+   "kind": "repo",
+   "what_it_does": "Rhino 8 (Windows) plugin to build Grasshopper definitions by prompting LLMs (OpenAI, Anthropic, Gemini, Ollama, Claude Code SDK), with MCP, PDF context, presets and error-fixing loops. Install section says TODO.",
+   "how_we_use_it": "Read-only for ideas on staged builds and runtime-error repair loops. Do not copy code: AGPL-3.0 would force AGPL terms on our release.",
+   "priority": "reject",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (613 commits)",
+   "license": "AGPL-3.0",
+   "maintainer": "aarcThom",
+   "popularity": "27 stars, 0 forks",
+   "risks": "AGPL copyleft; install undocumented; Rhino-only; small community.",
+   "saves": "Nothing directly; avoids licence contamination if rejected."
+  },
+  {
+   "name": "rhino-grasshopper-mcp (dongwoosuk)",
+   "url": "https://github.com/dongwoosuk/rhino-grasshopper-mcp",
+   "kind": "mcp_server",
+   "what_it_does": "Beta (v0.1.0) MCP server for Rhino/Grasshopper with remote Python execution, .gh parsing, templates and scikit-learn 'ML auto-layout' (clustering, K-NN positions). Only 3 commits.",
+   "how_we_use_it": "Do not adopt. Better-maintained options exist (rhino-gh-mcp, rhinomcp, RhinoAI). Its auto-layout idea could inspire canvas tidy-up later.",
+   "priority": "reject",
+   "status": "verified",
+   "verified_opened": true,
+   "last_activity": "Not shown (3 commits)",
+   "license": "MIT",
+   "maintainer": "dongwoosuk",
+   "popularity": "17 stars, 4 forks",
+   "risks": "Very early; 'not found in any other tool' claim is unsupported; localhost:8080 listener; little maintenance evidence.",
+   "saves": "Avoids a dead-end dependency."
+  }
+ ],
+ "principles": [
+  {
+   "principle": "Hairline rule 'hit': pointer tests run against the resting pose, so hover never flickers.",
+   "rule_for_our_tool": "Canvas nodes, ports and wires use static hit areas, not animated geometry, so hover and drag stay stable.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md"
+   ]
+  },
+  {
+   "principle": "Hairline rules 'accent' and 'quiet': the stroke is the only highlight; no fills, glows or words inside the figure.",
+   "rule_for_our_tool": "Keep a small calm palette and reserve one signal colour for FALSE ASSUMPTION so it never loses meaning; no decorative glow or badge noise.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md"
+   ]
+  },
+  {
+   "principle": "Hairline rule 'rest': the resting state is composed with one bright mark showing where to look.",
+   "rule_for_our_tool": "Every screen has one focal point and one next action (for example 'run module'), which keeps users focused without nudging tricks.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md"
+   ]
+  },
+  {
+   "principle": "Hairline rules 'cost' and 'clock': animate only when needed, pause offscreen, long ease-out for discrete choices, springs for continuous tracking; reduced-motion lands instantly.",
+   "rule_for_our_tool": "Set a motion budget: one shared animation loop, pause when hidden, honour prefers-reduced-motion, skip redraws when values are unchanged (matters for large canvases).",
+   "source_urls": [
+    "https://raw.githubusercontent.com/lucasmarkes/hairline/main/skills/hairline-create/rules.md",
+    "https://github.com/lucasmarkes/hairline"
+   ]
+  },
+  {
+   "principle": "Anatomy: 'the object is the explanation'; displayed numbers come from a running model and must be true.",
+   "rule_for_our_tool": "Every number on screen comes from a module's computed output and cites its source or is flagged a team assumption; no placeholder or invented figures.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md",
+    "https://github.com/wheresryan22/anatomy-community"
+   ]
+  },
+  {
+   "principle": "Anatomy verifies visuals mechanically: geometry audit, zero loose line ends, headless screenshots at desktop and 390 px, close-ups.",
+   "rule_for_our_tool": "Add automated visual QA (Playwright screenshots at desktop and phone width, overlap/clearance audit) before a module or board ships; cheaper in tokens than visual re-prompting.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md"
+   ]
+  },
+  {
+   "principle": "Anatomy sizes work in tiers (Figure, Hero, Epic) with a working page inside the first hour, proposing Hero before Epic.",
+   "rule_for_our_tool": "Give AI-built visuals a size tier and time/token budget; ask before building anything larger than the default tier.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md"
+   ]
+  },
+  {
+   "principle": "Arch540 C_design_space: a provided evaluator is the only trusted source of numbers and is never edited by the agent.",
+   "rule_for_our_tool": "Each evaluation module is deterministic code with typed JSON outputs; the LLM orchestrates and explains but never invents metrics. Saves tokens and prevents hallucinated numbers.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/complete/CLAUDE.md"
+   ]
+  },
+  {
+   "principle": "Arch540 B_testfit: a hook refuses failing output, at most six revisions, then stop and end with UNRESOLVED; never claim success without a passing check.",
+   "rule_for_our_tool": "Add an UNRESOLVED state and an iteration cap to every AI-assisted module run, and gate outputs on a passing check rather than the model's claim.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/CLAUDE.md"
+   ]
+  },
+  {
+   "principle": "rhino-gh-mcp gates AI access with scenario modes: Inspect, Tune, Coach (default), Execute, Author.",
+   "rule_for_our_tool": "Give each node and the whole canvas an AI permission level, defaulting to read/suggest, so users stay in control and edits are traceable.",
+   "source_urls": [
+    "https://github.com/GenEnv/rhino-gh-mcp"
+   ]
+  },
+  {
+   "principle": "text-to-cad layering: skills are the product, shared core has no UI imports, apps never import apps, heavy kernel stays out of the server process, one pinned command per skill.",
+   "rule_for_our_tool": "Structure our repo as core (graph and module contracts), ui, and apps, with heavy geometry/solar code in separate workers and pinned, reproducible commands for every module.",
+   "source_urls": [
+    "https://raw.githubusercontent.com/earthtojake/text-to-cad/main/AGENTS.md"
+   ]
+  },
+  {
+   "principle": "anatomy-community submits source, not built output; CI rebuilds in a locked sandbox with a two-run determinism check, previews, human review, per-item licence.",
+   "rule_for_our_tool": "Community modules are uploaded as source plus manifest, rebuilt deterministically in a sandbox, previewed, reviewed, and carry a licence and source-citation field.",
+   "source_urls": [
+    "https://github.com/wheresryan22/anatomy-community"
+   ]
+  },
+  {
+   "principle": "sala-tech-knowledge-tree keeps content as JSON with a validator for IDs and prerequisite cycles on every pull request, plus a verified-status field.",
+   "rule_for_our_tool": "Module manifests are schema-validated in CI (unique IDs, no dependency cycles, required sources); status fields show verified, team assumption or FALSE ASSUMPTION.",
+   "source_urls": [
+    "https://github.com/GenEnv/sala-tech-knowledge-tree"
+   ]
+  },
+  {
+   "principle": "Massing Studio and skills-for-architects mark code and zoning output as a draft for professional review and cite clauses.",
+   "rule_for_our_tool": "Every compliance result shows clause citation, edition date and a 'draft, not a compliance determination' label.",
+   "source_urls": [
+    "https://github.com/clcabana/massing-studio",
+    "https://github.com/AlpacaLabsLLC/skills-for-architects"
+   ]
+  },
+  {
+   "principle": "false-creek-2100 exports a PNG with scenario and metrics stamped, and states it is not engineering advice.",
+   "rule_for_our_tool": "Every exported image or board carries the scenario ID, key metrics, data sources and a limitations line, so shared images stay traceable.",
+   "source_urls": [
+    "https://github.com/xunliuDesign/false-creek-2100"
+   ]
+  }
+ ],
+ "recommendations": [
+  {
+   "decision": "Treat hairline, anatomy and text-to-cad as third-party MIT repos that Xun starred, not as her own tools; send Xun one short email to confirm what she meant by sharing them.",
+   "rationale": "All three return 404 on xunliuDesign; her stars list holds exactly these three at the top. Owners are lucasmarkes, wheresryan22, earthtojake. MIT lets us reuse with attribution.",
+   "alternatives_rejected": "Assuming Xun authored them (false); waiting on the answer before using them (they are MIT, so not blocking)."
+  },
+  {
+   "decision": "Core (by 13 Nov): adopt the Arch540 agents_demo pattern as our module contract: deterministic Python evaluator (numpy, scipy, shapely), JSON in/out, Pareto front, hook that refuses failing output, UNRESOLVED stop after six revisions.",
+   "rationale": "Moves numbers out of the LLM into scripts, which saves tokens and keeps results reproducible; it matches the course's own method and our Python 3.13 setup.",
+   "alternatives_rejected": "Letting the LLM compute metrics inline (hallucination and token cost); copying demo thresholds as Vancouver values (they are teaching values)."
+  },
+  {
+   "decision": "Core: build the policy/code/view modules from dtmass, Massing Studio and Vista rule tables, but ask each classmate author for written licence/consent and re-verify every threshold against the cited bylaw; unverifiable values become editable team assumptions.",
+   "rationale": "They already map downtown Vancouver documents with clause citations and open-data pipelines, saving weeks, but none shows a licence and dtmass itself warns of manual verification.",
+   "alternatives_rejected": "Copying code without permission; re-transcribing all bylaws from scratch; trusting student rule tables unverified."
+  },
+  {
+   "decision": "v1: use hairline for 3-5 figures (empty canvas, onboarding, module cards) and adopt its ten rules as our linework/motion spec; install Node LTS first and run hairline-create at most once for a tower figure.",
+   "rationale": "Polished, dependency-free, accessible, reduced-motion aware; the rules support calm focus and keep the FALSE ASSUMPTION colour unique. Cost is small and bounded.",
+   "alternatives_rejected": "Hand-coding pointer-reactive SVG; using it for data charts (it is illustrative, not analytic); animation-heavy landing pages that distract."
+  },
+  {
+   "decision": "v1: pilot text-to-cad locally as an optional AI massing-generator node (build123d to GLB); test on Windows 11 first and run cadgen telemetry off for the team; do not ship it inside the browser app.",
+   "rationale": "Saves building a CAD kernel and viewer; GLB feeds our viewer. But Smart App Control may block OCP, telemetry is default-on, and it outputs STEP/GLB, not .3dm or IFC.",
+   "alternatives_rejected": "Making it a core dependency; bundling it in the web client; hand-writing a parametric massing generator first."
+  },
+  {
+   "decision": "v1: copy the anatomy-community submission pipeline and the sala-tech-knowledge-tree validator for our module hub (source-only upload, sandbox rebuild, preview, schema and cycle checks, per-module licence and source fields).",
+   "rationale": "Two working, open examples of moderated community contribution; avoids inventing governance for uploads, comments and forks.",
+   "alternatives_rejected": "Open uploads of built artifacts; unreviewed forks; building a custom marketplace before the first 10 modules exist."
+  },
+  {
+   "decision": "v1: for Rhino users, start with GenEnv/rhino-gh-mcp (MIT, Scenario gating) or jingcheng-chen/rhinomcp (MIT, uvx), and track mcneel/RhinoAI; reuse the Scenario modes as our per-node AI permission levels.",
+   "rationale": "A Rhino bridge already exists in three MIT forms; Xun's own repo has course support. Permission modes fit our traceability goal.",
+   "alternatives_rejected": "Physalia (AGPL-3.0 would constrain our licence); dongwoosuk's repo (3 commits, beta); writing our own RhinoCommon plugin."
+  },
+  {
+   "decision": "v1: add openai/codex-plugin-cc (Apache-2.0) to the dev workflow for adversarial code review with OpenAI, with the review gate off; keep product-side OpenAI calls (GPT, gpt-image) as separate API integration.",
+   "rationale": "Meets the team's wish to use OpenAI and gives a second opinion on module logic; Xun starred it. Needs only a ChatGPT login or API key plus Node.",
+   "alternatives_rejected": "Running both vendors on every edit (cost); using the plugin as product runtime (it is a dev tool)."
+  },
+  {
+   "decision": "Roadmap: use anatomy only for one or two hero explainers at Figure tier; reuse its audit and zero-loose-line checks as drawing QA, not its full generation pipeline.",
+   "rationale": "High visual quality but slow (a flagship figure reportedly took about two hours) and token-heavy, with machines rather than buildings as examples; A4/Letter sheets do not fit A2 boards.",
+   "alternatives_rejected": "Generating all board diagrams with it; ignoring it entirely; building Epic-tier figures before the core is done."
+  },
+  {
+   "decision": "Ask Xun for: licence statements on GenEnv course repos, the ai4dm v3 platform demo, the recorded D_team run notes, and the AI4GH README; record answers as licence fields in our reuse log.",
+   "rationale": "Most instructor and student repos state no licence, so reuse of code is not yet clear; these are small asks that unlock the largest time savings.",
+   "alternatives_rejected": "Assuming course repos are free to copy because they are public; skipping the ask to save time."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "hairline, anatomy and text-to-cad are open-source tools on Xun Liu's GitHub accounts.",
+   "correction": "They are third-party MIT repos: lucasmarkes/hairline, wheresryan22/anatomy, earthtojake/text-to-cad. They 404 on xunliuDesign; Xun's starred list has them as the top three.",
+   "detail": "'Sharing' is verified only as starring. No post, message or course page by Xun was found.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "GenEnv/agents_demo is a repository.",
+   "correction": "github.com/GenEnv/agents_demo returns 404. agents_demo is a folder inside GenEnv/Arch540_2026.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The account is named 'XunLiu Design' and the GitHub org xlstudio is hers.",
+   "correction": "The account is xunliuDesign (display name Xun Liu). The GitHub org xlstudio belongs to Xiphin (Hangzhou, PHP/Go repos), unrelated to Xun, though a SALA page says she leads a consultancy called xlstudio.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Instructor and student repos may be freely reused.",
+   "detail": "Only rhino-gh-mcp states a licence (MIT). Arch540_2026, arch540-a1-toolkit, ai4dm-site, sala-tech-knowledge-tree, AI4GH, false-creek-2100, dtmass, Vista and Massing Studio show none in the pages read, though file listings were truncated. Get written permission.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Social-media or forum consensus on the three tools.",
+   "detail": "Web-search budget was exhausted. Seen: one X post (hairline, 5 Oct), two enthusiastic blog posts (anatomy, English and German), and two trend write-ups (text-to-cad). No Reddit, HN, LinkedIn, YouTube or McNeel forum comments retrieved. Star counts (anatomy 6.5k to 17.8k in nine days) show hype; maturity is unproven.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "text-to-cad, anatomy and hairline will run on our Windows 11 + Python 3.13 machines without extra setup.",
+   "detail": "Node is not installed (hairline dev needs 22+, anatomy 20.10+, text-to-cad 20+). text-to-cad README warns Smart App Control can block the OCP kernel; Python 3.13 support for build123d 0.11/OCP was not checked. Nothing was installed or run.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Repository statistics are current and complete.",
+   "detail": "Stars and forks are snapshots from GitHub pages on 21 Oct 2026, read through a summarising fetcher. The GitHub API was rate-limited; last-commit dates came from commit atom feeds for 4 repos (hairline, anatomy, text-to-cad, rhino-gh-mcp) and the Arch540 repo, from list pages elsewhere, and not at all for several.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved": [
+  "What Xun actually said or intended about the three tools (class post, Slack, LinkedIn, lecture): not found; only her stars list was found. Searched: GitHub org/account pages, web search for 'XunLiu Design', genenv.ai (fetched page was an unrendered template with no people or projects).",
+  "11 of 15 arch540-a1-toolkit student projects were not read (Curbside, Stair Core Tool, R3 Feasibility, Solar Shading Explorer, Lotwise, Pocket Studio, Root Room, R1-1 Permeability, Bikeway Designer, Broadway Corridor, SRO Conversions); only dtmass, Vista, MassShadeLight and Massing Studio cards were read.",
+  "Licence status of GenEnv course repos and student tools: no LICENSE visible in the pages read; file listings were truncated, so a LICENSE file may exist. Ask the authors.",
+  "Python 3.13 and Windows 11 compatibility of text-to-cad (build123d 0.11, OCP, Smart App Control) not tested; Node install requirements for hairline consumers not confirmed.",
+  "Token and time cost of hairline-create and anatomy: no published token numbers; only one blog's time estimate for anatomy (about 1h54m flagship figure). No measurements by us.",
+  "AI4GH README contents (models used, install, licence) not retrievable; the repo has Robot_GH and 'Nano Banana_GH' items only.",
+  "Not opened: awesome-claude-code, hello-agents, awesome-agentic-ai-zh, prompt-eng-interactive-tutorial, screenpipe, LandformGAN, GrasshopperHowtos, alfredatnycu/grasshopper-mcp, SerjoschDuering/rhino-mcp (all from Xun's stars), and xunliuDesign repos FluX, GAN, TheThirdVision, ImagingLandscapes, HongKongDataVis, HoustonSVIMapping_swa, SDI_21_CaseStudy_Mapping, GenAI_Visual_Examples, xlstudioWeb, landscapearchitecture.ai.",
+  "Last-commit dates not shown for: anatomy-community, skills-for-architects, rhinomcp, RhinoAI, codex-plugin-cc, Physalia, dongwoosuk repo, dtmass, Vista, Massing Studio, AI4GH.",
+  "Social and forum corroboration (Reddit, HN, X, LinkedIn, YouTube, McNeel/Speckle/Ladybug forums) could not be completed because the web-search budget ran out; request a follow-up search if needed."
+ ],
+ "change_log": [
+  "Round 1: opened github.com/GenEnv, github.com/xunliuDesign (repos and stars tabs), and GenEnv repos Arch540_2026 (with agents_demo and its B/C/D folders), rhino-gh-mcp, arch540-a1-toolkit, ai4dm-site, genenv-site, sala-tech-knowledge-tree, ai-agents-for-architects.",
+  "Round 1: located the three named tools as third-party repos (lucasmarkes/hairline, wheresryan22/anatomy, earthtojake/text-to-cad); confirmed Xun starred them via her stars tab; read READMEs, key skill files, LICENSE files and commit feeds.",
+  "Round 1: opened student tools dtmass, Vista, Massing Studio and three related Rhino/Claude repos from Xun's stars; corrected three premises (ownership of the tools, agents_demo as a repo, the 'xlstudio' org).",
+  "Round 1: GitHub API rate-limited and search budget exhausted, so some dates and social signals are missing; listed in unresolved."
+ ]
+}

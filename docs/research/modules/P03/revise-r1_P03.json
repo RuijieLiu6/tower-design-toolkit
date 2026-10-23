@@ -1,0 +1,2450 @@
+{
+ "packet_id": "P03",
+ "modules": [
+  {
+   "module_id": "P03-M01",
+   "name": "Site wind climate and reference wind statistics",
+   "phase": "basic",
+   "category": "CLIM",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "S: 4-5 person-days (ECCC/EPW parsing, averaging-time and exposure transfer, ReferenceSpec, wind rose, data-quality badge)",
+   "design_question": "Which wind directions and speeds, by season and hour of use, drive pedestrian wind at this site, at what stated reference, and are the source data adequate?",
+   "inputs": [
+    "Layer 0 georeference and true-north offset (VTC site-plan north arrow is rotated relative to the street grid)",
+    "Hourly station record (speed, direction, temperature, humidity), 30 years or more, e.g. ECCC Vancouver Intl A or Vancouver Harbour CS, or NOAA ISD; station gust kept for QA only",
+    "EPW/TMYx file for solar and the typical-year time base (feeds M06)",
+    "Station metadata: anemometer height, observation averaging period (1, 2 or 10 min), terrain roughness at the station",
+    "Site terrain roughness and displacement (user choice, logged)"
+   ],
+   "outputs": [
+    "WindClimate: hourly series (speed, direction, season tag, comfort-hour flag, concurrent temperature and humidity) carrying a ReferenceSpec",
+    "ReferenceSpec: reference height z_ref, roughness length z0, profile law, averaging time, direction reference (true north), transfer model and version",
+    "WindRoseTable: 16 sectors x speed bins x season",
+    "NorthOffset (degrees)",
+    "DataQualityBadge (record length, completeness, exposure mismatch, averaging-time conversion declared)"
+   ],
+   "parameters": [
+    {
+     "name": "Hourly wind record length",
+     "unit": "years",
+     "relationship": "Longer record (30 years minimum in Toronto and Hamilton; RWDI's Cambridge example used 20) -> steadier frequencies of rare events such as the 0.1% safety gust (about 9 h/yr) -> more reliable pass/fail. Sensitivity itself is not quantified.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03"
+     ]
+    },
+    {
+     "name": "Comfort hours and season split",
+     "unit": "hours per season",
+     "relationship": "Comfort uses 06:00-23:00 winds, safety 24 h. Toronto reports four seasons, Hamilton and RWDI two, City of London a worst-season view plus June-August; fewer seasons hide storm-season exceedances that an annual average smooths out.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Station-to-site exposure correction",
+     "unit": "factor per sector",
+     "relationship": "Station speeds are corrected for terrain and scaled through gradient height (Toronto example 600 m) to the site. Skipping this biases every downstream exceedance; direction and size of the bias depend on site roughness and are not quantified here.",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Reference height and roughness (ReferenceSpec)",
+     "unit": "m",
+     "relationship": "Speed depends on the height at which it is quoted: City of London scale factors run from 0.96 (100 m) to 1.48 (600 m) for one climate. A reference mismatch with the VAF scales every probe speed and shifts comfort classes.",
+     "source_ids": [
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Observation averaging time",
+     "unit": "s",
+     "relationship": "ECCC speeds are 1-, 2- or 10-minute means ending at the observation; shorter means read higher than hourly means, so unconverted data inflate exceedances. No sourced conversion factor found; the choice is logged.",
+     "source_ids": [
+      "P03-S44"
+     ]
+    },
+    {
+     "name": "True-north offset of the site plan",
+     "unit": "degrees",
+     "relationship": "ECCC directions are true north, so only the site-plan rotation needs correcting. A wrong offset assigns wind to the wrong facade by the same angle, shifting where downwash and corner flows are predicted.",
+     "source_ids": [
+      "P03-S44"
+     ]
+    },
+    {
+     "name": "Time-base concurrency",
+     "unit": "n/a",
+     "relationship": "Temperature, humidity and wind from the same hours of one record keep cold-and-windy events together for M06; mixing a typical-year file with a 30-year wind record scrambles them. Logical rule, no source.",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Hourly record length",
+     "good": ">= 30 years of hourly data",
+     "bad": "< 30 years",
+     "unit": "years",
+     "method": "Count years with adequate hourly coverage",
+     "basis": "Toronto ToR 6.4.4 and Hamilton 2026 both specify at least 30 years of hourly data; the RWDI Cambridge report used 1995-2015, so 30 years is a municipal rule, not universal",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03"
+     ]
+    },
+    {
+     "name": "Season and hour convention declared",
+     "good": "Declared set: Toronto four seasons; Hamilton and RWDI two (May-Oct, Nov-Apr); City of London worst season plus Jun-Aug; comfort 06:00-23:00 where stated, safety 24 h",
+     "bad": "Annual-only or all-hours comfort statistics",
+     "unit": "n/a",
+     "method": "Check run configuration against the selected CriteriaSet",
+     "basis": "Toronto 5.3 and 6.4.4; Hamilton technical requirement 3; RWDI Cambridge report; City of London results section",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "ReferenceSpec completeness",
+     "good": "z_ref, z0, profile law, averaging time and direction reference all declared; transfer model logged",
+     "bad": "Any field missing, or station speed used as site speed",
+     "unit": "n/a",
+     "method": "Schema check on WindClimate before it is released to M03-M06",
+     "basis": "Toronto 6.4.4 requires terrain-corrected data scaled to gradient height; City of London requires a stated reference height and a location unaffected by the models",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Averaging-time conversion",
+     "good": "Station period (1, 2 or 10 min) converted to the criteria averaging time with a logged factor",
+     "bad": "Raw station speeds treated as hourly means",
+     "unit": "n/a",
+     "method": "Read the averaging period from station metadata; apply and log a conversion",
+     "basis": "ECCC glossary states the 1-, 2- or 10-minute period; no sourced conversion factor found",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S44"
+     ]
+    },
+    {
+     "name": "Station representativeness",
+     "good": "Station exposure and airshed comparable to the downtown site, with documented correction",
+     "bad": "Uncorrected airport data used as site wind",
+     "unit": "n/a",
+     "method": "Compare station and site roughness and distance; log the correction model; cross-check against a nearer station when one exists",
+     "basis": "No sourced numeric distance or exposure limit; ECCC lists Vancouver Harbour CS (hourly year options 1976-2026) beside Vancouver Intl A, but anemometer exposure and wind coverage are not verified",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S45"
+     ]
+    },
+    {
+     "name": "Concurrent time base",
+     "good": "Temperature, humidity and wind from the same record hours, or all variables from one TMYx year",
+     "bad": "Typical-year temperature with a 30-year wind record",
+     "unit": "n/a",
+     "method": "Tag each series with its record id and years; refuse to merge series with different ids",
+     "basis": "Design rule for M06; no external source",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "method": "1) Read the 30-year hourly station record (speed, direction, temperature, humidity) and the EPW/TMYx for solar. 2) Take direction as true north (ECCC convention) and rotate by the Layer 0 offset. 3) Convert the station averaging period to the criteria averaging time with a logged factor (team choice). 4) Apply an exposure correction: station terrain to gradient height to the site, with a named model (Toronto: established mathematical models; City of London: ESDU 01008), and write the result as a ReferenceSpec. 5) Bin into 16 sectors of 22.5 degrees, speed classes and seasons, for comfort hours (06:00-23:00) and safety hours (24 h). 6) Emit WindClimate with concurrent temperature and humidity, the ReferenceSpec and a data-quality badge. Station gust is kept for QA only. 7) Rank seasons from the data to find the governing season.",
+   "visualization": [
+    "Polar wind rose per season (16 sectors, stacked speed bins in km/h), one panel per season, with the true-north arrow and the rotated street-grid axis overlaid",
+    "Bar chart of hours per sector above 20 km/h (corrected reference speed) per season, with a season-ranking table computed from the data",
+    "Data-quality badge (green/amber/red) with a ReferenceSpec card (z_ref, z0, averaging time, transfer model) linking to the Toronto and City of London clauses"
+   ],
+   "libraries": [
+    {
+     "name": "ladybug-core",
+     "role": "EPW parsing, sun path, analysis periods; AGPL-3.0 is network copyleft, keep the tool open-source or isolate the service",
+     "license": "AGPL-3.0",
+     "url": "https://github.com/ladybug-tools/ladybug"
+    },
+    {
+     "name": "pandas / numpy",
+     "role": "Hourly binning, joint frequency tables (licence not re-verified in this run)",
+     "license": "BSD-3-Clause",
+     "url": "https://pandas.pydata.org"
+    },
+    {
+     "name": "plotly.js",
+     "role": "Polar bar wind rose in the web UI (licence not re-verified)",
+     "license": "MIT",
+     "url": "https://github.com/plotly/plotly.js"
+    },
+    {
+     "name": "ECCC Climate Data (hourly station files)",
+     "role": "Hourly speed, direction, temperature and humidity records for Vancouver Intl A and Vancouver Harbour CS; column and licence terms not read",
+     "license": "Not verified",
+     "url": "https://climate.weather.gc.ca/"
+    },
+    {
+     "name": "Climate.OneBuilding TMYx/EPW files",
+     "role": "Typical-year temperature, humidity, solar and wind; TMYx built from NOAA ISD hourly data",
+     "license": "Site states no licence, disclaimer only",
+     "url": "https://climate.onebuilding.org/default.html"
+    }
+   ],
+   "limits": "TMY/EPW files are constructed typical years, not 30-year hourly records, so rare storms are under-represented. Airport anemometers differ from downtown exposure beside Burrard Inlet; ECCC speeds are 1-10 minute means and station gusts are sparse peaks. Pedestrian statistics (frequent winds) are not the 1-in-50-year design wind used in P10. The climate is treated as stationary; no future weather files are applied.",
+   "human_judgment": "Choosing the station and correction model, deciding whether site-specific data or a consultant study is needed, and interpreting local Vancouver flows such as winter outflow and storm winds.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "depends_on": []
+  },
+  {
+   "module_id": "P03-M02",
+   "name": "Wind-study requirement and criteria selector",
+   "phase": "basic",
+   "category": "SITE",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "S: 3-4 person-days (rule tables, five versioned CriteriaSets, clause-linked report)",
+   "design_question": "Will this massing probably need a formal pedestrian wind study in Vancouver, and which comfort and safety criteria set, with its own safety limit, should the tool apply and cite?",
+   "inputs": [
+    "Layer 0: maximum tower height, count of buildings at or above 20 m, site area",
+    "Context building heights from the SITE module, including approved and future towers named in the VTC brief",
+    "Program tags: entrances, seating, transit plaza, amenity terraces",
+    "User choice of criteria family and trigger preset"
+   ],
+   "outputs": [
+    "StudyTriggerReport (per analog jurisdiction: Toronto 2022, Hamilton 2026, City of London 2019; clause links and document status)",
+    "CriteriaSet: versioned typed JSON (family and version, classes, speeds and units, exceedance basis, averaging as mean or GEM, comfort hours, seasons, zone-to-class map, mandatory safety criterion or explicit none, source id, status) consumed by M04 and M06",
+    "ScenarioChecklist (existing / proposed / proposed plus approved towers / mitigation / phasing)",
+    "ContextSpec: minimum context radius and cumulative tower list for M05"
+   ],
+   "parameters": [
+    {
+     "name": "Tower height H",
+     "unit": "m",
+     "relationship": "Taller tower -> higher trigger level and a tunnel requirement: Toronto Area 1 over 100 m is High, Hamilton 44 m or more, City of London above 100 m needs tunnel and CFD at detailed design. VTC towers of 244-305 m exceed every analog threshold found.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Height relative to surrounding buildings",
+     "unit": "ratio",
+     "relationship": "Hamilton requires a tunnel study when a building of 20 m or more exceeds twice its surroundings; City of London steps up to CFD and tunnel at up to 4 times average surrounding height. Taller relative to context -> stricter study.",
+     "source_ids": [
+      "P03-S02",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Number of buildings of 20 m or more",
+     "unit": "count",
+     "relationship": "Two or more tall buildings move Toronto projects up one trigger level and trigger a tunnel study in Hamilton; multi-tower schemes therefore face stricter study types.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Criteria family and exceedance basis",
+     "unit": "% of time",
+     "relationship": "Toronto, Hamilton and RWDI limit GEM at 20% exceedance; City Lawson limits mean and GEM at 5%. Safety differs too: 90 km/h at 0.1% against 15 m/s at 0.022%. One family per run, never mixed.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Modelled context radius and cumulative scenario",
+     "unit": "m",
+     "relationship": "Toronto asks about 350 m, Hamilton and City of London 400 m, plus influential taller buildings beyond. Larger radius and inclusion of approved towers -> truer approach flow and sheltering; the VTC brief names approved towers, so the cumulative case is required.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Higher Buildings Policy microclimate criterion",
+     "unit": "qualitative",
+     "relationship": "Policy criterion says a higher building should not contribute to adverse microclimate effects; it has no number, so the team must adopt numeric criteria and state why. Wording seen only in search snippets of the 2011/2018 versions.",
+     "source_ids": [
+      "P03-S31",
+      "P03-S32"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Toronto-analog trigger level (downtown Area 1)",
+     "good": "Low: over 20 m and under 60 m (CFD Phase 1 and 2 only)",
+     "bad": "High: over 100 m (CFD Phase 1 plus wind-tunnel study at rezoning)",
+     "unit": "m",
+     "method": "Compare tower height and context with Toronto Table 1 and the 3.b shift rules",
+     "basis": "Toronto ToR Tables 1 and 2, re-read in r1",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Hamilton-analog trigger",
+     "good": "Under 20 m: no study",
+     "bad": "44 m or more, or 20 m+ and over 2x surroundings, or 2+ buildings of 20 m+: quantitative wind-tunnel study",
+     "unit": "m",
+     "method": "Evaluate Hamilton rules 1-3 on Layer 0",
+     "basis": "Hamilton guidelines, last updated 20 Feb 2026; adoption status unconfirmed (file name says 'ph1proposed')",
+     "status": "verified",
+     "source_ids": [
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "City of London-analog trigger",
+     "good": "Similar to or lower than surroundings and up to 25 m: no study unless sensitive uses",
+     "bad": "Above 100 m: tunnel or CFD for massing, then tunnel and CFD by independent consultants at detailed design",
+     "unit": "m",
+     "method": "Compare height and average surrounding height with the City of London approach table",
+     "basis": "City of London 2019 table of recommended approach by building height",
+     "status": "verified",
+     "source_ids": [
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Vancouver Higher Buildings Policy microclimate criterion",
+     "good": "No adverse microclimate effects (qualitative)",
+     "bad": "Adverse microclimate effects",
+     "unit": "n/a",
+     "method": "Present as qualitative pass/flag linked to the chosen numeric criteria in M04",
+     "basis": "2011/2018 policy wording seen only in search snippets; 1997 PDF not opened; the Shape Your City copy returned only a download page",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S31",
+      "P03-S32",
+      "P03-S48"
+     ]
+    },
+    {
+     "name": "Default criteria set for Vancouver runs",
+     "good": "Toronto 2022 three-class set (10/15/20 km/h GEM at 80%), editable; Hamilton 2026 is equal or stricter at every shared class",
+     "bad": "Unstated or mixed criteria",
+     "unit": "n/a",
+     "method": "Preset selection stored with the run and shown in every result",
+     "basis": "No Vancouver numeric criteria found. Toronto chosen as the downtown tall-building analog with an explicit High tier, a verified zone-to-class table and three classes; Hamilton, RWDI mph and City Lawson selectable",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "CriteriaSet integrity",
+     "good": "Each set carries its own classes, exceedance basis, averaging and safety criterion (Toronto 10/15/20 km/h; Hamilton 10/14/17/20; RWDI 6/8/10/12 mph; City Lawson 2.5/4/6/8 m/s)",
+     "bad": "A merged 'RWDI/Toronto' set, Lawson speeds at 20%, or a set with no safety criterion",
+     "unit": "n/a",
+     "method": "Schema validation of each CriteriaSet at load and at run",
+     "basis": "Earlier spec merged Toronto's three classes with the four classes of RWDI and Hamilton; corrected after the round-1 critique",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Context radius and scenario set",
+     "good": "Radius at least max(400 m, about 2H) plus influential towers beyond; scenarios existing, proposed, proposed plus approved and future towers, mitigation, phasing",
+     "bad": "350 m radius, or no cumulative scenario",
+     "unit": "m",
+     "method": "Check ContextSpec against the run; list towers added beyond the radius",
+     "basis": "350 m (Toronto) and 400 m (Hamilton, City of London) are minima with taller buildings beyond to be included; the 2H term is a team assumption",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    }
+   ],
+   "method": "Read maximum tower height, count of buildings of 20 m or more, site area and context heights from Layer 0 and the SITE module. Evaluate each analog rule set (Toronto Table 1 with +1 level shifts, Hamilton rules 1-3, City of London height bands, Barrie 6-storey trigger) and output a level per jurisdiction with clause link and document status. Load the chosen CriteriaSet: classes, speeds and units, exceedance, averaging (mean or GEM), hours, seasons, zone map, safety criterion, source id, status. A set with no safety criterion is flagged and blocks safety output. Custom edits become team assumptions; claims later found wrong stay visible as FALSE ASSUMPTION. Emit ContextSpec (radius of at least max(400 m, about 2H), cumulative towers) and the scenario checklist (16 CFD or 36 tunnel directions).",
+   "visualization": [
+    "Summary card with four chips (Toronto-analog, Hamilton-analog, City of London-analog, Vancouver policy) coloured pass/flag, each linking to the clause and showing document status",
+    "Grouped bar chart of comfort thresholds in km/h per category for Toronto, Hamilton, RWDI (mph converted) and City Lawson (m/s converted, hatched because the basis is 5% exceedance on mean and GEM), with a side table of each safety criterion",
+    "Checklist of required evidence items with ticks, including context radius and cumulative scenario"
+   ],
+   "libraries": [
+    {
+     "name": "jsonschema",
+     "role": "Validate CriteriaSet records (licence not re-verified)",
+     "license": "MIT",
+     "url": "https://github.com/python-jsonschema/jsonschema"
+    },
+    {
+     "name": "shapely / trimesh",
+     "role": "Heights, footprints and counts from Layer 0 (licences not re-verified)",
+     "license": "BSD-3-Clause / MIT",
+     "url": "https://github.com/mikedh/trimesh"
+    }
+   ],
+   "limits": "No City of Vancouver numeric wind criteria or mandatory trigger could be found; vancouver.ca, guidelines.vancouver.ca, bylaws and council domains returned HTTP 403, so absence is not proven. Presets are Ontario, RWDI and City of London practice, not Vancouver law. The brief is an academic exercise and its jury may reward justified breaches.",
+   "human_judgment": "Which criteria family to adopt, how to argue any breach to the jury, and confirming with the City Rezoning Centre what a real application would need.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "depends_on": []
+  },
+  {
+   "module_id": "P03-M03",
+   "name": "Early massing wind-risk screening",
+   "phase": "basic",
+   "category": "CLIM",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: 7-10 person-days (geometry rules, 3D flag overlay, source-linked reasons)",
+   "design_question": "Which massing moves (tower height, podium, step-backs, corners, tower gaps, through-block openings) are likely to create downwash, corner acceleration or channelling in the public realm?",
+   "inputs": [
+    "Layer 0 footprints, heights, canopy objects and program tags",
+    "Context building heights within the ContextSpec radius from M02 (default max(400 m, about 2H))",
+    "WindClimate from M01 (prevailing and strong-wind sectors)",
+    "Zone tags: entrances, sidewalks, plazas, transit plaza, mid-block connections"
+   ],
+   "outputs": [
+    "WindRiskField: Low/Medium/High per facade segment, corner and public-space zone, with reason codes and clause links",
+    "RankedActions list (largest-scale changes first)",
+    "DirectionalExposure table (windward width and exposure height by sector)",
+    "PriorityProbes: probe points to seed M04 and M05",
+    "CanopyCoverageTable per frontage (to M06)"
+   ],
+   "parameters": [
+    {
+     "name": "Exposure height above upwind context",
+     "unit": "m",
+     "relationship": "Tower height above the tallest upwind context (sector-weighted) -> more stream intercepted and redirected downward (downwash) onto the base; short buildings rarely cause adverse impacts. Regulatory ratio triggers such as Hamilton's 2x sit in M02.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S04"
+     ]
+    },
+    {
+     "name": "Windward facade width",
+     "unit": "m",
+     "relationship": "Wider windward face -> larger intercepted flow and stronger downwash; Hamilton states tall, wide facades are generally undesirable.",
+     "source_ids": [
+      "P03-S02",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Podium and tower offset from podium edge",
+     "unit": "m",
+     "relationship": "Podium with a set-back tower deflects downflow before it reaches the street, lowering pedestrian-level speed; Toronto lists tower offset change as a significant wind change. Size of the benefit is not quantified in sources.",
+     "source_ids": [
+      "P03-S02",
+      "P03-S01",
+      "P03-S04"
+     ]
+    },
+    {
+     "name": "Lower building directly upwind of the tower",
+     "unit": "m gap",
+     "relationship": "A lower upwind building can enlarge downflow on the tower and accelerate wind in the gap and at windward corners, yet shorter buildings upwind of taller ones lower tower exposure. Net effect depends on gap and heights.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Corner geometry",
+     "unit": "categorical",
+     "relationship": "Sharp corners -> flow separates and accelerates at pedestrian level; chamfered or rounded corners streamline flow, stepped or re-entrant corners diffuse it, lowering corner speeds.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S04"
+     ]
+    },
+    {
+     "name": "Gap between buildings aligned with strong-wind sector",
+     "unit": "gap/height",
+     "relationship": "Narrow gaps aligned with the wind channel and accelerate flow; wider spacing eases it. In idealised canyon runs a gap of 2x height gave larger uncomfortable zones than 1x, so the effect is not monotonic.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S04",
+      "P03-S07"
+     ]
+    },
+    {
+     "name": "Through-block openings, underpasses, colonnades",
+     "unit": "count / m",
+     "relationship": "Passages and underpasses force flow through a narrow section -> acceleration along mid-block connections; colonnades and arcades are also listed as large-scale wind-control features, so effect depends on orientation.",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Canopies, recessed entrances, covered walkways",
+     "unit": "m depth",
+     "relationship": "Deep, wrap-around and corner canopies and recessed entrances intercept downwash and create sheltered waiting zones; effect is local and secondary to massing. Canopy coverage also feeds rain protection in M06.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S04",
+      "P03-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Exposure height above upwind context",
+     "good": "Lower than the baseline scheme in the strongest-wind sectors",
+     "bad": "Higher than the baseline scheme",
+     "unit": "m",
+     "method": "Tower top minus the highest upwind roof within the radius, weighted by sector frequency from M01",
+     "basis": "Discriminates between options (the regulatory height triggers now sit in M02 because every VTC scheme is High); no sourced limit",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Windward facade width by sector",
+     "good": "Narrower than the baseline scheme toward strong-wind sectors",
+     "bad": "Wide face toward a strong-wind sector",
+     "unit": "m",
+     "method": "Projected facade width perpendicular to each 22.5 degree sector",
+     "basis": "Direction sourced (Hamilton: tall and wide facades are generally undesirable); no numeric limit",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S02",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Windward corner treatment",
+     "good": "Chamfered, rounded, stepped or re-entrant corners",
+     "bad": "Sharp corners on a tall windward volume",
+     "unit": "categorical",
+     "method": "Detect corner turning angle and tag treatment",
+     "basis": "Toronto 6.7.2 building-form strategies (qualitative)",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Tower-podium offset depth",
+     "good": "No sourced target; calibrate with M05 runs",
+     "bad": "No sourced limit",
+     "unit": "m",
+     "method": "Measure tower face to podium edge",
+     "basis": "Direction of effect sourced, magnitude not",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Lower building within one tower height upwind",
+     "good": "None within one tower height in a strong-wind sector",
+     "bad": "Present within one tower height",
+     "unit": "m",
+     "method": "Distance from tower to lower upwind buildings along each strong-wind sector",
+     "basis": "Mechanism sourced (Toronto, Hamilton); the one-tower-height distance is an editable placeholder",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Gap aligned with strong-wind sector",
+     "good": "Not aligned (outside one 22.5 degree sector)",
+     "bad": "Aligned within one 22.5 degree sector of a strong-wind direction",
+     "unit": "degrees",
+     "method": "Gap axis angle vs sector with strong-wind frequency from M01",
+     "basis": "Editable placeholder; mechanism sourced, angle not",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Composite wind-risk index per facade, corner and zone",
+     "good": "Low band (editable cut-off)",
+     "bad": "High band (editable cut-off)",
+     "unit": "0-100",
+     "method": "Weighted sum of rule flags by sector frequency; weights and cut-offs are team assumptions to be recalibrated against CFD",
+     "basis": "No sourced scoring scheme exists",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "method": "For each of 16 wind sectors, weighted by seasonal strong-wind frequency from M01: (1) compute each tower's exposure height above the upwind context within the M02 radius and its windward width; (2) detect lower buildings within one tower height upwind (team assumption); (3) find gaps and passages whose axis lies within one sector of the wind; (4) flag windward corners by turning angle and treatment (sharp, chamfer, round, step); (5) check podium offset and canopy presence at entrance and sidewalk zones. Each rule gives Low/Medium/High and a reason code with clause link. Flags combine into an editable 0-100 index per facade segment, corner and zone (weights are team assumptions). Regulatory height triggers sit in M02. Output priority probes for M04/M05 and a canopy-coverage table for M06.",
+   "visualization": [
+    "Plan view of Layer 0 with arrows per strong-wind sector; windward corners as dots and facade segments as lines coloured Low (blue) / Medium (amber) / High (red)",
+    "Ground-plane zone polygons shaded by index with a 0-100 legend",
+    "Radar chart of the eight factors per tower",
+    "Reason-code table; each row links to the Toronto/Hamilton/RWDI clause, with a banner stating that this is screening and predicts no speeds"
+   ],
+   "libraries": [
+    {
+     "name": "shapely",
+     "role": "2D footprint, projected width and gap geometry (licence not re-verified)",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "trimesh",
+     "role": "Mesh heights, corner angles, ray queries (licence not re-verified)",
+     "license": "MIT",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "ladybug-core",
+     "role": "Wind-rose objects and analysis periods",
+     "license": "AGPL-3.0",
+     "url": "https://github.com/ladybug-tools/ladybug"
+    },
+    {
+     "name": "three.js",
+     "role": "3D overlay of flags in the web canvas (licence not re-verified)",
+     "license": "MIT",
+     "url": "https://threejs.org"
+    }
+   ],
+   "limits": "Rule-based screening ranks risk; it does not predict speeds or class compliance. Interaction of several towers, supertall scale (over 244 m), complex context and topography break simple rules. Use it to compare options and place CFD probes. Numeric rule cut-offs, including the one-tower-height upwind distance, are unsourced and editable.",
+   "human_judgment": "Weighing wind against daylight, program, structure and 'City in Nature' placemaking, and deciding how much residual risk the scheme accepts.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "depends_on": [
+    "P03-M01"
+   ]
+  },
+  {
+   "module_id": "P03-M04",
+   "name": "Pedestrian wind comfort and safety classifier",
+   "phase": "basic",
+   "category": "CLIM",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: 6-8 person-days in total; core subset (typed VAF import with reference gate, probe-hour engine, season classes, zone pass/fail, indicative safety) about 4-5 days; delta and low-wind maps follow in v1",
+   "design_question": "Given directional amplification factors at probes on a stated reference, what comfort class and safety status result per season, and do entrances, sidewalks, plazas and terraces meet their intended use?",
+   "inputs": [
+    "WindClimate and ReferenceSpec from M01",
+    "VAFField with its own ReferenceSpec: from M05, or a typed CSV import (Eddy3D, wind-tunnel or consultant data) checked against an import template; M05 is optional",
+    "ProbeSet with zone tags from Layer 0 (entrance, sidewalk, seating, transit plaza, terrace)",
+    "CriteriaSet from M02 (with its safety criterion)",
+    "Optional turbulent kinetic energy or gust factor per probe"
+   ],
+   "outputs": [
+    "ReferenceGateReport: pass, or refusal with the mismatched fields, or the logged conversion applied",
+    "ComfortMap: per probe and season, exceedance fraction, class, pass/fail against the zone requirement",
+    "SafetyFlags (indicative below L3; blocked when the CriteriaSet has no safety criterion)",
+    "ZoneComplianceTable",
+    "ProbeWindSeries: hourly mean and GEM series at the probe, with time base and ReferenceSpec, for M06"
+   ],
+   "parameters": [
+    {
+     "name": "Reference chain (U_ref and VAF normalisation)",
+     "unit": "ReferenceSpec",
+     "relationship": "V_p = VAF x U_ref needs U_ref at the height, roughness and profile law that normalised the VAF. Eddy3D ABL defaults (10 m, z0 1 m) and City of London (above 100 m) differ; a mismatch scales every probe speed and moves classes.",
+     "source_ids": [
+      "P03-S43",
+      "P03-S46",
+      "P03-S06",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Criteria family and exceedance basis",
+     "unit": "% of time",
+     "relationship": "Lower allowed exceedance (City Lawson 5% against Toronto, Hamilton and RWDI 20%) -> stricter class for the same wind; speed limits are used only with their own exceedance basis, averaging and safety criterion.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Gust treatment",
+     "unit": "km/h",
+     "relationship": "GEM is the larger of mean speed and gust divided by 1.85, gust being mean plus 3 RMS; higher turbulence -> higher GEM -> worse class at the same mean. City Lawson uses mean and GEM and takes the worse; the Hagbo version uses mean only.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S23",
+      "P03-S43",
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Zone to required class",
+     "unit": "category",
+     "relationship": "Toronto: Sitting for seating, balconies and terraces; Standing for entrances and bus stops; Walking for sidewalks and laneways. RWDI: walking or strolling suits sidewalks. Stricter intended use -> lower tolerable speed -> more failures.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S03",
+      "P03-S02",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Number of simulated wind directions",
+     "unit": "count",
+     "relationship": "Fewer directions -> coarser, less reliable class map. In one case 16 directions reproduced the 64-direction class over 96% of the area, 8 over 92%, 4 over 79%; City of London requires 36.",
+     "source_ids": [
+      "P03-S06",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Season and governing season",
+     "unit": "season",
+     "relationship": "The worst season sets the verdict, but which season governs Vancouver must be read from the M01 wind rose; Ontario statements about winter and spring do not transfer. Hamilton accepts some winter degradation as outdoor use falls.",
+     "source_ids": [
+      "P03-S02",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Probe density and placement",
+     "unit": "m spacing",
+     "relationship": "Sparser probes can miss corner and entrance hot spots; Toronto and Hamilton expect probes about every 10 m along frontages and at least about 50 locations; City of London asks for about 3 probes at each corner.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Reference-chain gate",
+     "good": "VAF reference equals the U_ref reference, or a logged conversion is applied",
+     "bad": "Mismatched or missing reference: classification refused",
+     "unit": "n/a",
+     "method": "Compare ReferenceSpec fields (z_ref, z0, profile law, averaging time, probe height)",
+     "basis": "City of London: reference at a height and location unaffected by the models, with scale factors 0.96-1.48; Toronto 6.4.4: terrain-corrected, gradient-height-scaled data",
+     "status": "verified",
+     "source_ids": [
+      "P03-S43",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Empty-domain unit test",
+     "good": "Probe without buildings reproduces the undisturbed profile speed at probe height within 5%",
+     "bad": "Deviation above 5%",
+     "unit": "%",
+     "method": "Run the import or M05 with no buildings and compare with the profile from the ReferenceSpec",
+     "basis": "Test design; the 5% tolerance is an editable placeholder",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Seasonal comfort category (Toronto 2022, three classes)",
+     "good": "GEM at or below the zone limit for at least 80% of 06:00-23:00 hours: Sitting 10, Standing 15, Walking 20 km/h",
+     "bad": "GEM above 20 km/h for more than 20% of hours (Uncomfortable), or class worse than the zone requires",
+     "unit": "km/h (GEM)",
+     "method": "Exceedance of the hourly GEM series per season (four seasons)",
+     "basis": "Toronto ToR Table 3; earlier label 'RWDI/Toronto' merged two different sets and is corrected",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Seasonal comfort category (Hamilton 2026, four classes)",
+     "good": "Sitting under 10, Standing under 14, Strolling under 17, Walking under 20 km/h at 80% occurrence, two seasons (May-Oct, Nov-Apr)",
+     "bad": "Over 20 km/h (Uncomfortable)",
+     "unit": "km/h (GEM)",
+     "method": "As above with Hamilton limits and two seasons",
+     "basis": "Hamilton Table 1, last updated 20 Feb 2026",
+     "status": "verified",
+     "source_ids": [
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Seasonal comfort category (RWDI, mph)",
+     "good": "GEM at or below 6 (Sitting), 8 (Standing), 10 (Strolling), 12 mph (Walking), i.e. about 9.7/12.9/16.1/19.3 km/h, at 20% exceedance, 06:00-23:00",
+     "bad": "Above 12 mph (Uncomfortable) or class worse than the zone requires",
+     "unit": "mph (GEM)",
+     "method": "As above with RWDI limits; summer May-Oct, winter Nov-Apr",
+     "basis": "RWDI Cambridge report criteria table; not identical to Hamilton's 14 and 17 km/h",
+     "status": "verified",
+     "source_ids": [
+      "P03-S03"
+     ]
+    },
+    {
+     "name": "Seasonal comfort category (City Lawson, London 2019)",
+     "good": "Mean and GEM at or below 2.5 (Frequent Sitting), 4 (Occasional Sitting), 6 (Standing), 8 m/s (Walking) for 95% of comfort hours; the worse of mean and GEM governs",
+     "bad": "Above 8 m/s (Uncomfortable) or class worse than the zone requires",
+     "unit": "m/s",
+     "method": "Exceedance at the 5% level on both series; worst season plus June-August",
+     "basis": "City of London 2019 guideline, a modified Lawson LDDC set",
+     "status": "verified",
+     "source_ids": [
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Lawson, Hagbo 2022 version (mean speed only)",
+     "good": "Mean speed at or below 4 (Sitting), 6 (Standing), 8 (Strolling), 10 m/s (Business walking) for at most 5% of hours; comfort only",
+     "bad": "Safety reported from this set, or described as a GEM set",
+     "unit": "m/s",
+     "method": "Exceedance at the 5% level on mean speed",
+     "basis": "Secondary source: 'a version of' Lawson, mean speed only, no safety criterion; primary Lawson text not opened",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Safety criterion bound to the family",
+     "good": "Gust over 90 km/h for no more than 0.1% of 24 h hours (about 9 h/yr) for Toronto, Hamilton, RWDI (56 mph); City Lawson 15 m/s mean and GEM at 0.022% (about 2 h/yr)",
+     "bad": "Toronto safety applied to a Lawson run, or a set with no safety limit reporting safety",
+     "unit": "km/h or m/s",
+     "method": "Read the safety field of the CriteriaSet; compute the annual exceedance on 24 h hours",
+     "basis": "Toronto Table 3, Hamilton Table 2, RWDI 56 mph, City of London safety table",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Low-wind flag",
+     "good": "GEM under 5 km/h for less than 80% of hours",
+     "bad": "GEM under 5 km/h for 80% or more: low air circulation, possible exhaust build-up and heat in full sun",
+     "unit": "km/h",
+     "method": "Share of hours below 5 km/h",
+     "basis": "Toronto Table 3 note 3",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Significance of change against baseline",
+     "good": "Negligible or beneficial: class unchanged or calmer",
+     "bad": "Major adverse: safe becomes unsafe, or suitable becomes unsuitable",
+     "unit": "class shift",
+     "method": "Delta of class per probe, existing vs proposed, rated with the City of London scheme",
+     "basis": "City of London 2019 significance tables; Hamilton: improve where possible, no significant degradation, winter allowance",
+     "status": "verified",
+     "source_ids": [
+      "P03-S43",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Sidewalk required class",
+     "good": "Walking at least; Strolling preferred where the set has it",
+     "bad": "Uncomfortable on a sidewalk, or Sitting demanded of all sidewalks",
+     "unit": "category",
+     "method": "Zone map in the CriteriaSet",
+     "basis": "RWDI says walking or strolling suits sidewalks; the earlier wording 'strolling or better' is corrected",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S03",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Mixed criteria check",
+     "good": "One family per run (speed limits with their own exceedance basis, averaging and safety)",
+     "bad": "Lawson speeds applied at 20% or RWDI speeds at 5%",
+     "unit": "n/a",
+     "method": "Validate CriteriaSet consistency before classification",
+     "basis": "Assumption that Lawson and RWDI limits are interchangeable is corrected: bases differ",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S01",
+      "P03-S06",
+      "P03-S43"
+     ]
+    }
+   ],
+   "method": "Gate: stop if the VAFField ReferenceSpec differs from the WindClimate one, unless a logged transfer applies. For each probe p and hour h: V_p(h) = VAF_p(theta_h) x U_ref(h), interpolating between the two nearest simulated directions (Eddy3D offers Interpolate or Nearest). Gust from mean + 3 x RMS, or from turbulent kinetic energy when supplied (Eddy3D: U + g x sqrt(2k/3)). GEM = max(mean, gust/1.85) for GEM families; mean-only and mean-and-GEM rules follow the family. Per season, take the best class whose exceedance fraction over comfort hours is within the family's allowance (20% or 5%). Safety: share of 24 h hours above the family's limit; no safety criterion means no safety output. Compare with the zone requirement, flag low-wind probes, rate change against the existing scenario.",
+   "visualization": [
+    "Four false-colour maps (one per season) on the ground plane at 1.5 m: Sitting, Standing, Walking, Uncomfortable in a colour-blind-safe sequential ramp, plus Strolling or the two Lawson sitting classes when those sets are chosen",
+    "Black hatched markers for probes violating the safety criterion, labelled indicative below L3",
+    "Per-zone pass/fail badges (entrance, sidewalk, plaza, terrace) linked to the clause that sets the limit, and a reference-chain badge (z_ref, z0, averaging time)",
+    "Existing-vs-proposed delta map rated with the City of London significance scheme, and a probe table with GEM, exceedance and class; banner 'No VAFField imported: M03 screening only' when no data are loaded"
+   ],
+   "libraries": [
+    {
+     "name": "numpy / pandas / scipy",
+     "role": "Probe-hour arithmetic, exceedance, Weibull or empirical statistics (licences not re-verified)",
+     "license": "BSD-3-Clause",
+     "url": "https://scipy.org"
+    },
+    {
+     "name": "Eddy3D Pedestrian Wind Comfort component",
+     "role": "Reference implementation offering Lawson General, LDDC, 2001, Davenport and NEN 8100 classes; thresholds not stated on its page; free per its docs, source licence not stated",
+     "license": "Free for all users; open-source status unresolved",
+     "url": "https://docs.eddy3d.com/latest/components/Pedestrian_Wind_Comfort/"
+    },
+    {
+     "name": "plotly.js / three.js",
+     "role": "Maps and 3D ground overlay",
+     "license": "MIT",
+     "url": "https://threejs.org"
+    }
+   ],
+   "limits": "The classification is only as reliable as its input factors. Steady RANS differed from a wind tunnel by -1% to -35% in mean speed in one benchmark, and mean-only criteria ignore gusts. Airport statistics are assumed spatially uniform. High-trigger rezonings need tunnel evidence for safety. The core release has no VAF engine: without an imported VAFField the UI shows M03 screening only.",
+   "human_judgment": "Deciding the intended use of each space (for example Sitting at the transit plaza), accepting or arguing an exceedance, and trading wind comfort against program and public-realm goals.",
+   "jury_criteria": [
+    "human_scale_40",
+    "urban_integration_10",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "P03-M01",
+    "P03-M02"
+   ]
+  },
+  {
+   "module_id": "P03-M05",
+   "name": "Fast wind simulation engine: CFD and surrogates",
+   "phase": "basic",
+   "category": "CLIM",
+   "nature": "objective",
+   "priority": "v1",
+   "effort": "v1 scope: XS (1-2 days) Eddy3D/tunnel workflow guide and import template feeding M04; S (3-5 days) documented OpenFOAM case template run offline. Hosted OpenFOAM pipeline: L (3-5 person-weeks), roadmap",
+   "design_question": "How should the tool produce directional velocity amplification factors for a massing quickly, on a stated reference, at what fidelity, and how is the accuracy declared?",
+   "inputs": [
+    "Layer 0 mesh (STL/OBJ) of the scheme plus context to the ContextSpec radius, at least max(400 m, about 2H)",
+    "Approved and future towers as a required cumulative context scenario, plus influential taller towers beyond the radius when upwind",
+    "Wind sectors and ReferenceSpec from M01",
+    "ProbeSet and priority probes from M03",
+    "Atmospheric boundary layer parameters (reference height, roughness length, profile law)",
+    "Fidelity level selected by the user"
+   ],
+   "outputs": [
+    "VAFField: probe x direction speed ratios with ReferenceSpec (reference height, z0, profile law, probe height), optionally with turbulent kinetic energy",
+    "MethodMetadata: code and version, mesh, turbulence model, domain size in H and blockage ratio, validation case, uncertainty tag",
+    "FlowViz meshes: streamlines, vertical slices"
+   ],
+   "parameters": [
+    {
+     "name": "Proximity model radius",
+     "unit": "m",
+     "relationship": "Toronto asks about 350 m, Hamilton and City of London 400 m, plus influential taller buildings beyond. That is only about 1.1-1.6 tower heights for 244-305 m towers; a larger radius capturing upwind towers -> truer approach flow and wakes.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43",
+      "P03-S03"
+     ]
+    },
+    {
+     "name": "Domain size relative to H",
+     "unit": "m",
+     "relationship": "Top, lateral and outlet distances scale with the tallest building. The Hagbo and Giljarhus run used height 6 H and outlet and lateral 15 H, citing 5 H above the tallest building; smaller domains raise blockage, so it is logged. COST 732 and AIJ limits not opened.",
+     "source_ids": [
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Number of wind directions",
+     "unit": "count",
+     "relationship": "Toronto requires at least 16 for CFD and 36 for tunnel; City of London 36 for all studies; Hamilton CFD may use prevailing directions only, weighted over all directions. Fewer directions -> coarser classes (79% same class with 4, 96% with 16, by area, one case).",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43",
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Turbulence model and steadiness",
+     "unit": "model",
+     "relationship": "Steady RANS tends to overpredict high-speed areas and underpredict wakes against a tunnel; Toronto accepts two-equation RANS or LES; City of London avoids standard k-epsilon. Transient or LES may reduce wake bias.",
+     "source_ids": [
+      "P03-S06",
+      "P03-S01",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Mesh and probe height",
+     "unit": "m",
+     "relationship": "Features under 1 m rarely matter (Toronto), but City of London asks for cells of 0.3 m near entrances and corners, 10 cells across a street canyon and 3 prism layers below 1.5 m. Coarser near-ground mesh -> poorer 1.5 m speeds.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Reference and inflow profile",
+     "unit": "m, m",
+     "relationship": "VAF depends on where U_ref is defined: the Eddy3D ABL defaults to 10 m, 5 m/s and z0 1 m with a log law; City of London wants a reference above 100 m clear of the model. Log-law validity at 150-300 m is unverified.",
+     "source_ids": [
+      "P03-S46",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Fidelity level",
+     "unit": "L0-L3",
+     "relationship": "Rules (M03) -> ML surrogate -> RANS -> wind tunnel: reliability for gusts rises, speed falls. Surrogate vendors claim seconds to minutes; independent accuracy for supertall downtown contexts is not verified.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S27",
+      "P03-S24"
+     ]
+    },
+    {
+     "name": "Context scenario",
+     "unit": "scenario",
+     "relationship": "Existing plus approved towers change upwind sheltering and channelling; Toronto models projects approved in the last 5 years, City of London consented schemes, Hamilton future cases only if warranted. The VTC brief names future approved towers, so the cumulative case is required.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Directions simulated",
+     "good": "At least 16 equal sectors for CFD (Toronto); 36 for tunnel (Toronto, Hamilton) and for any City of London study",
+     "bad": "Fewer than 16 for CFD; Hamilton's prevailing-only CFD is accepted by Hamilton but fails Toronto",
+     "unit": "count",
+     "method": "Check run metadata",
+     "basis": "Toronto 6.4.2 and 6.4.3; Hamilton Technical Requirement 1.A allows prevailing directions for qualitative CFD and 1.B requires 36 for tunnel; City of London 36. The earlier claim that both cities require 16 CFD directions is corrected",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Modelled context radius",
+     "good": "At least max(400 m, about 2H) plus influential towers beyond it",
+     "bad": "350 m or less, or no upwind towers beyond the radius",
+     "unit": "m",
+     "method": "Measure from site boundary to the domain context edge; list added towers",
+     "basis": "Toronto 6.4.1: 350 m is a minimum and tall buildings outside it that could influence the site must be included; Hamilton and City of London 400 m; the 2H term is a team assumption",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "ReferenceSpec on the VAFField",
+     "good": "Reference height, z0, profile law and probe height declared; empty-domain run passes",
+     "bad": "Reference missing: M04 refuses the field",
+     "unit": "n/a",
+     "method": "Schema check plus the empty-domain test of M04",
+     "basis": "City of London requires a stated reference; Eddy3D's VAF page names no reference height, so users must copy their ABL settings",
+     "status": "verified",
+     "source_ids": [
+      "P03-S43",
+      "P03-S46",
+      "P03-S22"
+     ]
+    },
+    {
+     "name": "Bias-sensitive validation (FAC2, FB, NMSE)",
+     "good": "FAC2 at least 0.5, absolute fractional bias at most 0.3, NMSE at most 4 on an AIJ benchmark (editable)",
+     "bad": "Outside these bands, or no benchmark run",
+     "unit": "dimensionless",
+     "method": "Compute at benchmark probes; report with hit rate; r only as supplementary",
+     "basis": "Bands recalled from air-quality-model evaluation practice (Chang and Hanna 2004), not opened and not a wind-comfort standard; Hagbo and Giljarhus report none of these metrics",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Hit rate against reference data (COST 732 / VDI 3783-9 style)",
+     "good": "66% or higher (recalled, to confirm)",
+     "bad": "Below 66%",
+     "unit": "%",
+     "method": "Fraction of probes within stated tolerance of the reference",
+     "basis": "Recalled from COST 732/VDI practice; Toronto only cites COST 732 as the guideline to follow; originals not opened",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Agreement with wind-tunnel benchmark (Pearson r)",
+     "good": "Report r per direction as supplementary information only",
+     "bad": "Used as pass/fail: r is scale-invariant and would pass a model that underpredicts speeds by 35%",
+     "unit": "r",
+     "method": "Correlation of CFD vs tunnel at probes for an AIJ benchmark",
+     "basis": "Hagbo and Giljarhus Table 5: r 0.61 (247.5 deg) to 0.84 (180 deg), text says 0.71-0.84; mean speed differences -1% to -35%. The earlier 0.71-0.84 pass/fail band is corrected",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Domain and blockage logged",
+     "good": "Domain height, lateral and outlet distances in H and the blockage ratio stored in MethodMetadata",
+     "bad": "Not logged",
+     "unit": "H",
+     "method": "Compute from the case files",
+     "basis": "Hagbo and Giljarhus used 6 H, 15 H and 15 H; blockage limits in COST 732/AIJ not opened",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S06"
+     ]
+    },
+    {
+     "name": "Solver version pinned",
+     "good": "OpenFOAM Foundation v12 pinned for Eddy3D compatibility, or v13 after re-test; version in MethodMetadata",
+     "bad": "Unpinned or silently upgraded",
+     "unit": "n/a",
+     "method": "Read the container tag",
+     "basis": "Eddy3D uses OpenFOAM 12; Foundation v13 repository exists",
+     "status": "verified",
+     "source_ids": [
+      "P03-S20",
+      "P03-S47"
+     ]
+    },
+    {
+     "name": "Surrogate accuracy claim",
+     "good": "Independently validated for supertall, dense downtown contexts",
+     "bad": "Vendor claim only (for example 90%+ accuracy)",
+     "unit": "%",
+     "method": "Run the surrogate and RANS on the same massing and compare",
+     "basis": "Vendor statements; no independent validation opened",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S27"
+     ]
+    }
+   ],
+   "method": "Fidelity ladder. L0: M03 rules. L1: ML surrogate (Eddy3D Wind Predictor, GAN surrogate, Infrared.city API), labelled screening-only. L2: OpenFOAM RANS: massing STL plus context to max(400 m, about 2H) and approved towers; domain scaled to H (Hagbo: 6 H high, 15 H outlet and lateral); ABL inflow with a declared ReferenceSpec; snappyHexMesh with 0.3 m cells near entrances and corners; realizable k-epsilon or k-omega SST; one steady run per sector (16 minimum, 36 preferred); probes at 1.5 m; VAF = U_probe/U_ref on the ReferenceSpec; an empty-domain run checks the reference chain. L3: consultant tunnel study (36 directions, about 50 probes). Validate on an AIJ case with FAC2, FB, NMSE and hit rate. Outputs carry method metadata and an uncertainty tag; M04 reads any VAFField, including imported CSV.",
+   "visualization": [
+    "Contour map of VAF at 1.5 m per direction, diverging colour ramp centred on 1.0 (legend 0-2, editable), with streamlines",
+    "Vertical slice through the tower and podium at the worst corner",
+    "Residual and convergence plots for L2 runs",
+    "Validation scatter (CFD vs reference) with 1:2 and 2:1 lines marking the FAC2 band, and a fidelity badge reading 'L1 surrogate: screening only' or 'L2 RANS'"
+   ],
+   "libraries": [
+    {
+     "name": "OpenFOAM (Foundation v12)",
+     "role": "Open CFD solver for RANS/LES runs; v12 pinned for Eddy3D compatibility",
+     "license": "GPL-3.0 per README",
+     "url": "https://github.com/OpenFOAM/OpenFOAM-12"
+    },
+    {
+     "name": "OpenFOAM (Foundation v13)",
+     "role": "Newer Foundation release; adopt only after the case template is re-tested",
+     "license": "GPL-3.0 per README",
+     "url": "https://github.com/OpenFOAM/OpenFOAM-13"
+    },
+    {
+     "name": "Butterfly",
+     "role": "NOT USED: unmaintained (last commit 11 Sep 2020; last OpenFOAM compatibility update targets ESI OF1706+); build case templates directly for Foundation v12",
+     "license": "GPL-3.0",
+     "url": "https://github.com/ladybug-tools/butterfly"
+    },
+    {
+     "name": "Eddy3D",
+     "role": "Rhino 8 / Grasshopper toolkit: OpenFOAM 12, ABL inflow (reference height, z0, log law), VAF, streamlines, wind ML predictor; desktop only, so import its CSV or run own server",
+     "license": "Free for all users; source licence not stated",
+     "url": "https://www.eddy3d.com/"
+    },
+    {
+     "name": "urbanMicroclimateFoam",
+     "role": "Coupled OpenFOAM solver for urban microclimate (also used by Eddy3D Outdoor+)",
+     "license": "GPL-3.0",
+     "url": "https://github.com/OpenFOAM-BuildingPhysics/urbanMicroclimateFoam"
+    },
+    {
+     "name": "Infrared.city",
+     "role": "Commercial ML climate platform with REST API, Rhino and Revit plugins (wind comfort, UTCI); pricing not listed",
+     "license": "Commercial",
+     "url": "https://www.infrared.city/"
+    },
+    {
+     "name": "PyVista",
+     "role": "Mesh and result visualisation, slices",
+     "license": "MIT",
+     "url": "https://github.com/pyvista/pyvista"
+    },
+    {
+     "name": "Claude Code skills / MCP servers",
+     "role": "None found: MCP registry and skill catalogue searches (repeated in r1) returned no CFD, OpenFOAM or wind tools; a custom MCP wrapper around a containerised OpenFOAM job runner would have to be built",
+     "license": "n/a",
+     "url": "https://github.com/OpenFOAM/OpenFOAM-12"
+    }
+   ],
+   "limits": "CFD at massing stage cannot reliably predict gusts, flow separation or safety exceedances (Toronto). Steady RANS shows bias against tunnels. Surrogates have undisclosed training domains and may not transfer to 244-305 m towers in a dense downtown. Eddy3D needs Rhino 8 on Windows or macOS, so a web tool must import its results or run its own OpenFOAM service. Log-law inflow validity above about 100 m is unverified.",
+   "human_judgment": "Choosing the fidelity level, judging mesh quality and validation, deciding when a consultant wind-tunnel study is warranted, and signing off any safety conclusion.",
+   "jury_criteria": [
+    "design_excellence_20",
+    "human_scale_40"
+   ],
+   "depends_on": [
+    "P03-M01",
+    "P03-M03"
+   ]
+  },
+  {
+   "module_id": "P03-M06",
+   "name": "Outdoor thermal comfort and rain exposure",
+   "phase": "advanced",
+   "category": "CLIM",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M: 6-8 person-days (UTCI engine, clamping and counters, time-base switch, MRT input from the sun/shade module, driving-rain index, category maps)",
+   "design_question": "In which public spaces and seasons do wind, sun, temperature and rain give acceptable outdoor comfort, and where does tower-induced wind or canopy cover help or hurt?",
+   "inputs": [
+    "WindClimate with concurrent temperature and humidity (time base 'concurrent-30y') or EPW/TMYx (time base 'TMYx'); the choice is stored in MethodMetadata",
+    "ProbeWindSeries (mean speed series on the same time base) from M04",
+    "Mean radiant temperature series from the sun/shadow module (other packet); fallback ladybug-comfort solar-adjusted MRT, labelled approximate",
+    "Hourly precipitation concurrent with wind direction (station record; availability in ECCC hourly files not verified)",
+    "CanopyCoverageTable from M03 and M07, zone tags and occupancy hours"
+   ],
+   "outputs": [
+    "UTCIMap: per probe and hour, UTCI and stress category with a validity flag (valid, clipped-calm, storm-excluded, out-of-range)",
+    "ThermalComfortSummary per zone and season, with excluded-hour counts",
+    "WindHelpsOrHurts flag per zone",
+    "RainExposureIndex per frontage and sector, and WeatherProtectionCoverage per frontage"
+   ],
+   "parameters": [
+    {
+     "name": "Pedestrian-level mean wind speed",
+     "unit": "m/s",
+     "relationship": "Higher wind lowers UTCI: relief in heat, added cold stress in cold. This tool feeds mean speed, not GEM (team choice). Calm (GEM under 5 km/h most of the time) in full sun risks poor circulation, so Sitting-class wind is not automatically thermally good.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S08"
+     ]
+    },
+    {
+     "name": "Mean radiant temperature (sun and shade)",
+     "unit": "deg C",
+     "relationship": "Shade from tower, podium or trees lowers Tmrt -> lower UTCI in summer, but also removes winter solar gain. Tmrt minus air temperature must stay within -30 to +70 K for valid UTCI.",
+     "source_ids": [
+      "P03-S12",
+      "P03-S08"
+     ]
+    },
+    {
+     "name": "Air temperature and humidity",
+     "unit": "deg C, %",
+     "relationship": "UTCI is the equivalent air temperature of a reference environment (50% RH, calm air); valid for air temperature -50 to 50 C and vapour pressure up to 5 kPa.",
+     "source_ids": [
+      "P03-S08",
+      "P03-S12"
+     ]
+    },
+    {
+     "name": "Wind reference conversion to 10 m",
+     "unit": "factor",
+     "relationship": "UTCI expects 10 m wind; Ladybug docs say 10 m speed is 1.5 times the speed felt at ground (attributed to the original Fiala model, no citation). Unscaled pedestrian speed -> cold stress understated, heat stress overstated.",
+     "source_ids": [
+      "P03-S11",
+      "P03-S12"
+     ]
+    },
+    {
+     "name": "Activity and clothing assumption",
+     "unit": "met",
+     "relationship": "UTCI assumes walking at about 2.4 met with adaptive clothing; seated plaza users fall outside the assumption and the docs suggest PET for such cases, so sitting-zone results are less certain.",
+     "source_ids": [
+      "P03-S11"
+     ]
+    },
+    {
+     "name": "Time base and concurrency",
+     "unit": "n/a",
+     "relationship": "A typical-year file is internally consistent but under-represents storms; a 30-year record keeps temperature, humidity and wind concurrent (Arctic outflow, 1-3 times per winter) but has no concurrent solar. Mixing the two scrambles cold-and-windy hours.",
+     "source_ids": [
+      "P03-S37",
+      "P03-S38"
+     ]
+    },
+    {
+     "name": "Input clamping and exclusion",
+     "unit": "m/s",
+     "relationship": "pythermalcomfort returns NaN below 0.5 or above 17 m/s (the official program accepts up to 30 m/s but documents 17). Clipping sheltered hours to 0.5 m/s and counting storm hours keeps calm zones in the denominator; dropping them biases shares.",
+     "source_ids": [
+      "P03-S12"
+     ]
+    },
+    {
+     "name": "Wind-driven rain exposure",
+     "unit": "mm per sector",
+     "relationship": "Rain falling with wind from a sector slants onto frontages facing it; stronger wind and wider windward frontage -> more wetted pedestrian area. Magnitude not quantified; a driving-rain index (ISO 15927-3) is a candidate, not opened.",
+     "source_ids": []
+    },
+    {
+     "name": "Weather-protection coverage",
+     "unit": "% of frontage",
+     "relationship": "Continuous deep canopies and covered walkways shelter pedestrians from rain and, per Toronto and Hamilton, deflect downwash at the base. Coverage targets in Vancouver guidance were not opened.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "UTCI category",
+     "good": "9 to 26 deg C: no thermal stress",
+     "bad": "Above 32 (strong heat stress, up to extreme above 46) or below -13 (strong cold stress, down to extreme below -40)",
+     "unit": "deg C",
+     "method": "Classify each hourly UTCI with thresholds 46/38/32/26(28)/9/0/-13/-27/-40; Ladybug splits 26-32 at 28 into slight and moderate heat stress",
+     "basis": "Ladybug-comfort default thresholds implementing the Broede et al. scale; scale itself not opened",
+     "status": "verified",
+     "source_ids": [
+      "P03-S10",
+      "P03-S08"
+     ]
+    },
+    {
+     "name": "Input validity",
+     "good": "10 m wind 0.5-17 m/s; air temperature -50 to 50 C; Tr minus Ta -30 to 70 K; RH 0-100%; vapour pressure 0-5 kPa",
+     "bad": "Outside range: result is NaN or unrealistic if extrapolated; UTCI can also be non-monotonic in wind speed",
+     "unit": "mixed",
+     "method": "Enforce limit_inputs in pythermalcomfort",
+     "basis": "pythermalcomfort documentation",
+     "status": "verified",
+     "source_ids": [
+      "P03-S12"
+     ]
+    },
+    {
+     "name": "Clamping rule and excluded hours",
+     "good": "Calm hours clipped to 0.5 m/s; hours above 17 m/s or otherwise out of range counted per probe and shown as a separate class; shares use all occupied hours",
+     "bad": "NaN hours silently dropped from the denominator",
+     "unit": "% of hours",
+     "method": "Counters per probe and season; show valid and excluded hours side by side",
+     "basis": "Editable rule built on the documented validity limits; the 0.5 m/s clip is a team choice",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S12"
+     ]
+    },
+    {
+     "name": "Time base declared",
+     "good": "Concurrent temperature, humidity and wind from one record, or all variables from one TMYx year; label shown on every map",
+     "bad": "Typical-year temperature with a 30-year wind record",
+     "unit": "n/a",
+     "method": "Check the time-base tag of every input series",
+     "basis": "Design rule; default is TMYx because solar is needed",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S38"
+     ]
+    },
+    {
+     "name": "Share of occupied hours with no thermal stress",
+     "good": "At least 50% of occupied hours in 9-26 C (editable placeholder)",
+     "bad": "Below 25% of occupied hours (editable placeholder)",
+     "unit": "% of hours",
+     "method": "Count hours per zone in each UTCI category",
+     "basis": "No sourced target; team to set per space type",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Ground-to-10 m wind conversion",
+     "good": "Documented and justified conversion",
+     "bad": "Unscaled pedestrian speed fed into UTCI",
+     "unit": "factor",
+     "method": "Apply 1.5 only as an editable default; show a sensitivity band",
+     "basis": "Ladybug doc statement attributed to the Fiala model; pythermalcomfort gives no conversion; not checked against the UTCI primary documentation",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S11",
+      "P03-S12"
+     ]
+    },
+    {
+     "name": "Weather-protection coverage",
+     "good": "Higher share of retail and transit-plaza frontage under canopy than the baseline scheme",
+     "bad": "Lower share than the baseline scheme",
+     "unit": "% of frontage length",
+     "method": "Canopy footprint along each frontage divided by frontage length",
+     "basis": "No sourced target; City of Vancouver weather-protection guidance not opened",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Driving-rain exposure",
+     "good": "Smaller wetted frontage length than the baseline scheme",
+     "bad": "Larger wetted frontage length than the baseline scheme",
+     "unit": "relative index",
+     "method": "Weight hourly rain by wind direction and frontage orientation, reduced by canopy coverage",
+     "basis": "Candidate method ISO 15927-3 not opened; no Vancouver threshold found",
+     "status": "unverified",
+     "source_ids": []
+    }
+   ],
+   "method": "Choose a time base: B) one TMYx year for all variables (default), or A) concurrent 30-year ECCC/ISD temperature, humidity and wind with Tmrt from the sun/shade module (cold-stress screening, no concurrent solar). Per probe and hour: air temperature and humidity from that base; mean pedestrian wind from M04 converted to the UTCI 10 m convention (editable factor, default 1.5), clipped to 0.5 m/s, excluded above 17 m/s and counted; Tmrt from the sun/shadow module. Compute UTCI with the Broede polynomial via pythermalcomfort with limits on; classify with the 10-threshold scale. Aggregate per zone and season over occupancy hours, excluded hours as their own class. Flag zones where wind moves the category versus a calm baseline. Rain: weight hourly precipitation by wind direction and frontage orientation and compare with canopy coverage.",
+   "visualization": [
+    "Ground-plane false-colour map of percent of occupied hours in 'no thermal stress' (0-100%), seasonal toggle, with a grey excluded-hours overlay",
+    "Calendar heat map (day x hour) for a selected probe coloured by the UTCI scale (-40 to 46 C, diverging blue-white-red)",
+    "Stacked bars per zone of hours in each stress category plus a grey 'excluded' segment",
+    "Wind-effect arrow chips per zone (helps/hurts)",
+    "Plan of frontage lines coloured by driving-rain index (0-1), hatched where canopy coverage exists"
+   ],
+   "libraries": [
+    {
+     "name": "pythermalcomfort",
+     "role": "UTCI polynomial, validity limits, wind chill, heat index",
+     "license": "MIT",
+     "url": "https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort"
+    },
+    {
+     "name": "ladybug-comfort",
+     "role": "UTCI collections and category thresholds, solar-adjusted MRT utilities; AGPL-3.0",
+     "license": "AGPL-3.0",
+     "url": "https://github.com/ladybug-tools/ladybug-comfort"
+    },
+    {
+     "name": "Eddy3D UTCI and PET Simulation components",
+     "role": "Alternative implementation inside Grasshopper (needs Rhino 8)",
+     "license": "Free for all users; source licence not stated",
+     "url": "https://docs.eddy3d.com/latest/"
+    }
+   ],
+   "limits": "UTCI is an outdoor index; Tmrt needs a radiation model beyond Layer 0, and trees and surfaces ('City in Nature') are not modelled by default. The 10 m wind conversion is unverified and UTCI can be non-monotonic in wind speed. A typical year under-represents Vancouver heat events and cold snaps; no future climate files are applied. The rain method and weather-protection targets are unverified.",
+   "human_judgment": "Setting the acceptable stress level per space type, trading summer shade against winter sun, judging comfort for seated and children's uses outside the UTCI activity assumption, and deciding how much rain cover the public realm needs.",
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "P03-M01",
+    "P03-M04",
+    "EXT: Tmrt series from the sun/shadow module (other packet, id to be assigned; fallback ladybug-comfort MRT)"
+   ]
+  },
+  {
+   "module_id": "P03-M07",
+   "name": "Wind mitigation comparison and advisor",
+   "phase": "advanced",
+   "category": "CLIM",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "M: 5-7 person-days (scenario graph, delta maps, ordered mitigation library, significance scheme)",
+   "design_question": "Which design changes reduce wind exceedances most, tried in order of large-scale massing first, then architectural details, then localised screens, and what does each cost the design?",
+   "inputs": [
+    "ComfortMap scenarios: existing, proposed, mitigation, phasing",
+    "WindRiskField from M03",
+    "Geometry change log from Layer 0",
+    "Program and floor-area data"
+   ],
+   "outputs": [
+    "MitigationScenarioSet",
+    "DeltaComfortMap (scenario minus baseline) with City of London significance classes",
+    "RankedMitigations (3-tier order)",
+    "SignificantChangeLog: which edits require re-running M05",
+    "CanopyCoverageUpdate (to M06)"
+   ],
+   "parameters": [
+    {
+     "name": "Orientation, siting and massing changes",
+     "unit": "categorical",
+     "relationship": "Largest area of influence: building shape, height, podium and corner changes alter flow over the whole frontage; Toronto instructs applicants to try these first, before details or screens.",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Canopies, recessed entrances, base articulation",
+     "unit": "m depth",
+     "relationship": "Local mitigation at entrances and walkways; deep and wrap-around canopies redirect downwash away from ground and add rain cover (M06). Effect is confined to a small area and applied after massing options are exhausted.",
+     "source_ids": [
+      "P03-S01",
+      "P03-S04",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Wind screens and landscaping",
+     "unit": "m height, % porosity",
+     "relationship": "Screens at least 6 ft (about 1.8 m) tall and 20-40% porous diffused corner winds in one RWDI project; Toronto requires written City approval to rely on them, and landscaping must be effective at installation.",
+     "source_ids": [
+      "P03-S04",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Construction phasing",
+     "unit": "scenario",
+     "relationship": "Interim phases before later buildings arrive can be windier than the final scheme, so phased projects need separate scenarios.",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Significant design changes",
+     "unit": "event",
+     "relationship": "Changes in building count, orientation, setback, massing, height, tower offset from podium or canopies can alter wind enough to require a new study; any such edit marks results stale.",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Significance of a class shift",
+     "unit": "class shift",
+     "relationship": "City of London rates a change by class shift: windier by one class but still suitable is moderate adverse; safe becoming unsafe or suitable becoming unsuitable is major adverse. This replaces an undefined 'significant degradation'.",
+     "source_ids": [
+      "P03-S43"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Net effect against existing conditions",
+     "good": "Improves existing conditions where possible; no probe worsens by a class",
+     "bad": "Major adverse: safe becomes unsafe or suitable becomes unsuitable (City of London); Hamilton: significant degradation, especially of safety",
+     "unit": "class shift",
+     "method": "Delta ComfortMap per zone and season rated with the City of London scheme",
+     "basis": "City of London 2019 significance tables; Hamilton assessment text",
+     "status": "verified",
+     "source_ids": [
+      "P03-S43",
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Mitigation order followed",
+     "good": "Massing first, architectural details second, localised features third",
+     "bad": "Screens or trees used to rescue an unmitigated massing",
+     "unit": "order",
+     "method": "Check the mitigation scenario history",
+     "basis": "Toronto 6.7.2 prioritisation",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Significant-change trigger",
+     "good": "No change in the Toronto 6.2 list since the last run",
+     "bad": "Any listed change marks M04 results stale",
+     "unit": "event",
+     "method": "Classify each Layer 0 edit against the list",
+     "basis": "Toronto 6.2 significant design changes",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Wind-screen specification",
+     "good": "At least 1.8 m tall and 20-40% porous, confirmed by an M05 or tunnel re-run",
+     "bad": "Lower or solid screens, or credit taken without a re-run",
+     "unit": "m, % porosity",
+     "method": "Check screen objects in the mitigation scenario and the re-run record",
+     "basis": "One RWDI project recommendation (Cambridge MA 2021), not a standard; Toronto requires written City approval to rely on screens",
+     "status": "team_assumption",
+     "source_ids": [
+      "P03-S04",
+      "P03-S01"
+     ]
+    }
+   ],
+   "method": "Maintain a scenario graph (Existing, Proposed, Mitigation A..n, Phase n). Each edit to Layer 0 is classified against the Toronto significant-change list and marks M04 results stale. For each scenario pair compute per-probe change in class and in exceedance fraction, rate it with the City of London significance scheme, and compute the area of public realm moved into or out of the required class. Rank candidate mitigations by tier (massing, architectural, localised) and by area improved, using results from re-runs rather than assumed effectiveness. The mitigation library stores sourced notes (for example screens at least 1.8 m tall and 20-40% porous, wrap-around corner canopies, podium step-backs) as hypotheses with their source project. Output the order, the deltas and a reason log for the board text.",
+   "visualization": [
+    "Before/after slider on the ground-plane comfort map",
+    "Delta map: blue where class improves, red where it worsens, with safety-class changes outlined in black and significance class in the legend",
+    "Ordered list with a tier badge and area improved per option",
+    "Pareto scatter: public-realm area meeting target versus floor area or design intent lost"
+   ],
+   "libraries": [
+    {
+     "name": "numpy / pandas",
+     "role": "Scenario deltas and ranking (licences not re-verified)",
+     "license": "BSD-3-Clause",
+     "url": "https://pandas.pydata.org"
+    },
+    {
+     "name": "plotly.js / three.js",
+     "role": "Slider, delta overlay and Pareto chart",
+     "license": "MIT",
+     "url": "https://github.com/plotly/plotly.js"
+    }
+   ],
+   "limits": "Mitigation effectiveness is project-specific. No general effectiveness coefficients were found, so each option needs a re-run in M05 or a tunnel test. Screens and trees are excluded at massing stage in Toronto-style reviews and need approval. The screen specification comes from one consultant report and is an editable assumption.",
+   "human_judgment": "Which trade-off to accept (floor area, form, public programme, trees against wind), design intent and aesthetics, and whether to seek City approval for localised features.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20",
+    "cultural_context_30"
+   ],
+   "depends_on": [
+    "P03-M03",
+    "P03-M04"
+   ]
+  },
+  {
+   "module_id": "P03-M08",
+   "name": "Elevated public terrace and sky-lobby wind check",
+   "phase": "advanced",
+   "category": "PUBL",
+   "nature": "mixed",
+   "priority": "roadmap",
+   "effort": "M: about 5 person-days after M05 exists; wind-tunnel confirmation outside tool scope",
+   "design_question": "Are publicly accessible terraces, sky gardens and podium roofs high in the tower usable for their intended activity in each season, or do they need screens, enclosure or re-siting?",
+   "inputs": [
+    "Layer 0 levels tagged public or amenity at height",
+    "VAFField with ReferenceSpec at terrace probes (CFD or ML roof-level prediction) from M05 or imported",
+    "WindClimate",
+    "CriteriaSet (with safety criterion)",
+    "Parapet or screen geometry"
+   ],
+   "outputs": [
+    "TerraceSuitabilityTable per level and season",
+    "RecommendedScreens or enclosure list",
+    "Hand-off note to P10: tower height, corner treatment and taper used (no structural calculation here; confirm the current Vancouver Building By-law edition first)"
+   ],
+   "parameters": [
+    {
+     "name": "Height above ground",
+     "unit": "m",
+     "relationship": "Wind speed increases with elevation, so terraces higher in the tower meet stronger wind; the brief's vertically distributed public uses raise exposure. A quantified gradient is not given in the opened sources.",
+     "source_ids": [
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Terrace position on the facade",
+     "unit": "categorical",
+     "relationship": "Terrace corners and windward faces receive accelerated and downwashing flow; RWDI used guardrails at least 6 ft tall and wrap-around canopies to cut speeds at exposed terrace corners.",
+     "source_ids": [
+      "P03-S04",
+      "P03-S01"
+     ]
+    },
+    {
+     "name": "Season of use",
+     "unit": "season",
+     "relationship": "Summer sitting use needs the calmest class; winter use is lower so Hamilton accepts some winter degradation, which can justify seasonal closure.",
+     "source_ids": [
+      "P03-S02"
+     ]
+    },
+    {
+     "name": "Parapet and screen height",
+     "unit": "m",
+     "relationship": "Taller parapets or porous screens lower speed at terrace level; amount depends on geometry and is not quantified in sources.",
+     "source_ids": [
+      "P03-S04"
+     ]
+    },
+    {
+     "name": "Reference profile at terrace height",
+     "unit": "m",
+     "relationship": "A VAF normalised near 10 m with a log-law inflow may not describe wind at 150-300 m; a wrong profile there scales terrace speeds and classes. Eddy3D ABL uses a log law; validity aloft is unverified.",
+     "source_ids": [
+      "P03-S46"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Terrace comfort class",
+     "good": "Sitting for seating terraces in the season of use (Toronto 10 km/h; City Lawson Occasional Sitting 4 m/s); Standing for circulation",
+     "bad": "Walking or Uncomfortable (over 20 km/h at 20% in Toronto) for a space meant for sitting",
+     "unit": "km/h (GEM)",
+     "method": "Reuse the M04 engine with terrace probes",
+     "basis": "Toronto Table 3 lists balconies and amenity terraces under Sitting; RWDI recommends sitting conditions for terraces and podiums; City of London lists balconies and terraces as Occasional Sitting",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S03",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Terrace gust safety",
+     "good": "Within the safety criterion of the chosen family (Toronto: gust at or below 90 km/h for 0.1% of hours or less; City Lawson: 15 m/s at 0.022%)",
+     "bad": "Above the family's limit",
+     "unit": "km/h or m/s",
+     "method": "24 h annual exceedance at terrace probes",
+     "basis": "Toronto Table 3; City of London safety table",
+     "status": "verified",
+     "source_ids": [
+      "P03-S01",
+      "P03-S43"
+     ]
+    },
+    {
+     "name": "Prediction confidence at height",
+     "good": "Tunnel-validated",
+     "bad": "Unvalidated RANS or surrogate at 100+ m levels",
+     "unit": "qualitative",
+     "method": "Read MethodMetadata from M05",
+     "basis": "No sourced validation of height-level predictions in opened material",
+     "status": "unverified",
+     "source_ids": [
+      "P03-S23",
+      "P03-S06"
+     ]
+    }
+   ],
+   "method": "Select Layer 0 spaces tagged public or amenity above grade. Place probes 1.5 m above the terrace floor on a grid and at corners (City of London lists upper-level terraces and balconies as critical locations). Obtain VAF with ReferenceSpec at those probes from M05 (CFD sampling, or the Eddy3D roof-level ML output when building geometry is supplied). Run the M04 engine with the terrace-specific required class, season of use and the family's safety criterion, and report class and safety. Where a terrace fails, propose screens (height and porosity from the M07 library), enclosure or relocation to a leeward face, and re-run. Add the P10 hand-off note listing the tower height, corner treatment and taper that changed.",
+   "visualization": [
+    "Tower elevation or section with terrace markers coloured by summer and winter class",
+    "Per-level table with class, gust margin and confidence badge",
+    "Corner-hotspot plan for each terrace with screen suggestions"
+   ],
+   "libraries": [
+    {
+     "name": "Eddy3D Wind Comfort Predictor (ML)",
+     "role": "Roof-level wind via ONNX model, needs TKE and geometry for gust-based classes",
+     "license": "Free for all users; source licence not stated",
+     "url": "https://docs.eddy3d.com/latest/components/Wind_Comfort_Predictor_ML/"
+    },
+    {
+     "name": "OpenFOAM / PyVista",
+     "role": "Sampling probes on terrace planes",
+     "license": "GPL-3.0 / MIT",
+     "url": "https://github.com/OpenFOAM/OpenFOAM-12"
+    }
+   ],
+   "limits": "Prediction at height is the least validated part of this packet; steady RANS and surrogates trained mainly on ground-level probes may not transfer to 150-300 m, and the inflow profile aloft is unverified. Wind tunnel testing is the reference. Structural and facade wind loads are separate (P10). Safety sign-off at height needs a specialist.",
+   "human_judgment": "Programme decisions (open, seasonal closure, enclose or relocate), occupant safety sign-off, and how much high-level exposure is part of the design experience.",
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "depends_on": [
+    "P03-M04",
+    "P03-M05",
+    "P03-M07"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P03-S01",
+   "title": "Pedestrian Level Wind Study Terms of Reference Guide",
+   "url": "https://www.toronto.ca/wp-content/uploads/2022/03/8f9c-CityPlanning-ToR-Wind-Guide.pdf",
+   "publisher": "City of Toronto, Urban Design, with RWDI",
+   "year": "2022",
+   "type": "municipal terms of reference",
+   "opened": true,
+   "extract": "Re-read in r1. Table 1 (Area 1 High over 100 m), Table 2, 3.b shifts; 5.1 scenarios incl. projects approved in last 5 years; 5.3 four seasons; 6.2 significant changes; 6.4.1 proximity radius about 350 m minimum plus tall buildings beyond; 6.4.2 CFD (COST 732, two-equation RANS or LES, 16 directions, safety may be assessed numerically or by experience); 6.4.4 30-year hourly data corrected for terrain, gradient height 600 m example; Table 3 three classes 10/15/20 km/h at 80% with zone mapping, 90 km/h gust at 0.1%, low-wind note; 6.7.2 mitigation order."
+  },
+  {
+   "id": "P03-S02",
+   "title": "Development Application Guidelines: Wind Study (last updated 20 February 2026)",
+   "url": "https://www.hamilton.ca/sites/default/files/2026-02/pedguidelines-wind-study-ph1proposed.pdf",
+   "publisher": "City of Hamilton",
+   "year": "2026",
+   "type": "municipal guideline",
+   "opened": true,
+   "extract": "Re-read in r1. Triggers (20 m, 44 m, 2x surroundings, 2+ buildings, 3 ha); qualitative CFD may simulate prevailing directions only; tunnel 36 directions, 400 m, sensors every 10 m and about 50 locations; Table 1 under 10/14/17/20 km/h at 80%; Table 2 90 km/h gust at 0.1%; Summer May-Oct and Winter Nov-Apr although the text says 'four-season basis'; winter allowance. Adoption status unconfirmed: file name says 'ph1proposed', text carries only 'last updated 20 February 2026'."
+  },
+  {
+   "id": "P03-S03",
+   "title": "Watermark Central, Cambridge MA: Pedestrian Wind Consultation (RWDI #1601643)",
+   "url": "https://www.cambridgema.gov/-/media/files/cdd/zoningdevel/specialpermitsadvisory/sp321/sp321_app_wind.pdf",
+   "publisher": "RWDI for Twining Properties",
+   "year": "2016",
+   "type": "consultant report",
+   "opened": true,
+   "extract": "Re-read in r1. Four classes 6/8/10/12 mph GEM at 20% exceedance, 06:00-23:00; safety 56 mph at 0.1%; summer May-Oct, winter Nov-Apr; Boston Logan 1995-2015, anemometer 30 ft; 1200 ft radius, 86 sensors, 36 directions. Text: walking or strolling suit sidewalks, sitting for terraces and podiums, standing at main entrances. Vendor statement that criteria are widely accepted by municipalities."
+  },
+  {
+   "id": "P03-S04",
+   "title": "IDCP V3, Cambridge MA: Pedestrian Wind Study (RWDI #2101718)",
+   "url": "https://www.cambridgema.gov/-/media/files/cdd/zoningdevel/specialpermitsadvisory/sp315/sp315_amend2appappendixa.pdf",
+   "publisher": "RWDI for BXP",
+   "year": "2021",
+   "type": "consultant report",
+   "opened": true,
+   "extract": "Generalised flows (downwashing, corner acceleration, channelling); podium set-back, deep canopies, screens; screens at least 6 ft tall and 20-40% porous; guardrails and wrap-around canopies at terrace corners; effect best confirmed by tunnel tests."
+  },
+  {
+   "id": "P03-S05",
+   "title": "Wind Study Terms of Reference 2026",
+   "url": "https://www.barrie.ca/Planning/Terms-of-Reference-Wind-Study.pdf",
+   "publisher": "City of Barrie",
+   "year": "2026",
+   "type": "municipal terms of reference",
+   "opened": true,
+   "extract": "Study may be required for buildings of 6 storeys or more; preliminary study with at least 15 sensors; final tunnel study with 1:500 model and 480 m context; comfort judged on wind force, thermal comfort and wind chill."
+  },
+  {
+   "id": "P03-S06",
+   "title": "Pedestrian Wind Comfort Assessment Using CFD Simulations With Varying Number of Wind Directions",
+   "url": "https://www.frontiersin.org/journals/built-environment/articles/10.3389/fbuil.2022.858067/full",
+   "publisher": "Frontiers in Built Environment (Hagbo, Giljarhus)",
+   "year": "2022",
+   "type": "peer-reviewed paper",
+   "opened": true,
+   "extract": "Re-read in r1. OpenFOAM steady RANS on AIJ case E; U_ref at 10 m = 5 m/s, results at 2 m; domain height 6 H_max, outlet and lateral 15 H_max; 'a version of' Lawson, mean speed only, 4/6/8/10 m/s at 5%, no distress criterion; class agreement by area with 64 directions 79/92/96/99% (4/8/16/32); Table 5 r 0.61-0.84 (text says 0.71-0.84); mean-speed difference -1% to -35%; no FAC2, hit rate or NMSE. Reference list cites Franke 2007 (COST 732), Tominaga 2008 (AIJ), City of London 2019."
+  },
+  {
+   "id": "P03-S07",
+   "title": "Numerical Study of Flow Structure and Pedestrian Level Wind Comfort Inside Urban Street Canyons (arXiv 1703.08963)",
+   "url": "https://arxiv.org/pdf/1703.08963",
+   "publisher": "Pancholy et al., University of Canterbury (preprint)",
+   "year": "2020",
+   "type": "preprint",
+   "opened": true,
+   "extract": "Idealised steady-RANS canyons; wind comfort via Extended Land Beaufort Scale; gap of 1x height comfortable, 2x height gave a larger uncomfortable zone on the upwind face of the downwind building; building width had little effect."
+  },
+  {
+   "id": "P03-S08",
+   "title": "Deriving the operational procedure for the Universal Thermal Climate Index (UTCI), Brode et al.",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/21626294/",
+   "publisher": "Int J Biometeorol 56:481-494 via PubMed",
+   "year": "2012",
+   "type": "peer-reviewed paper (abstract opened)",
+   "opened": true,
+   "extract": "UTCI is the air temperature of a reference environment (50% RH, calm, Tmrt = Ta) giving the same physiological response; inputs air temperature, wind, radiation, humidity; thermal stress scale and fast polynomial routines provided. Scale values not in abstract."
+  },
+  {
+   "id": "P03-S10",
+   "title": "ladybug_comfort.parameter.utci documentation",
+   "url": "https://www.ladybug.tools/ladybug-comfort/docs/ladybug_comfort.parameter.utci.html",
+   "publisher": "Ladybug Tools",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Default UTCI thresholds in deg C: -40, -27, -13, 0, 9 (cold), 26, 28, 32, 38, 46 (heat); Ladybug splits 26-32 into slight and moderate heat stress at 28."
+  },
+  {
+   "id": "P03-S11",
+   "title": "ladybug_comfort.utci documentation",
+   "url": "https://www.ladybug.tools/ladybug-comfort/docs/ladybug_comfort.utci.html",
+   "publisher": "Ladybug Tools",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Re-read in r1. Wind input is speed 10 m above ground; states 10 m speed is 1.5 times the speed felt at ground in the original Fiala model (no specific citation); UTCI is outdoor only, assumes walking at about 2.4 met; PET recommended otherwise. Page gives no validity limits or out-of-range handling."
+  },
+  {
+   "id": "P03-S12",
+   "title": "pythermalcomfort documentation: models (UTCI)",
+   "url": "https://pythermalcomfort.readthedocs.io/en/latest/documentation/models.html",
+   "publisher": "Center for the Built Environment, UC Berkeley",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Re-read in r1. utci(tdb, tr, v, rh, limit_inputs=True): v is wind at 10 m; limits tdb -50 to 50 C, tr-tdb -30 to 70, v 0.5 to 17 m/s, RH 0-100%, vapour pressure 0-5 kPa; NaN outside limits by default; official program accepts up to 30 m/s but documents 17; approximation can be non-monotonic in wind speed; no pedestrian-to-10 m conversion given."
+  },
+  {
+   "id": "P03-S13",
+   "title": "pythermalcomfort repository",
+   "url": "https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort",
+   "publisher": "Center for the Built Environment",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "MIT licence; UTCI, wind chill, heat index, PMV, SET, adaptive models; cite Tartarini and Schiavon, SoftwareX 12 (2020)."
+  },
+  {
+   "id": "P03-S14",
+   "title": "ladybug-comfort repository",
+   "url": "https://github.com/ladybug-tools/ladybug-comfort",
+   "publisher": "Ladybug Tools",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "AGPL-3.0; Python UTCI class from EPW with sun and wind toggles."
+  },
+  {
+   "id": "P03-S15",
+   "title": "ladybug repository",
+   "url": "https://github.com/ladybug-tools/ladybug",
+   "publisher": "Ladybug Tools",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "AGPL-3.0; EPW analysis, sun path; derivative notices for PVLib (BSD-3) and PsychroLib (MIT)."
+  },
+  {
+   "id": "P03-S16",
+   "title": "Butterfly repository and commit history",
+   "url": "https://github.com/ladybug-tools/butterfly",
+   "publisher": "Ladybug Tools",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "GPL-3.0; 253 commits, 97 open issues. Commit page https://github.com/ladybug-tools/butterfly/commits/master (opened in r1): latest commits 11 Sep 2020 (docs and Windows fixes); only OpenFOAM compatibility commit seen is 'Updated butterfly to work with OF1706+' (24 Aug 2017). Effectively unmaintained; not suited to OpenFOAM Foundation v12."
+  },
+  {
+   "id": "P03-S17",
+   "title": "OpenFOAM-12 repository",
+   "url": "https://github.com/OpenFOAM/OpenFOAM-12",
+   "publisher": "OpenFOAM Foundation",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Free open-source CFD under GNU GPL version 3 or later per README."
+  },
+  {
+   "id": "P03-S18",
+   "title": "urbanMicroclimateFoam repository",
+   "url": "https://github.com/OpenFOAM-BuildingPhysics/urbanMicroclimateFoam",
+   "publisher": "OpenFOAM-BuildingPhysics",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "GPL-3.0 coupled solver for urban microclimate (air flow, heat and moisture in materials, radiation by view factors); tested with OpenFOAM-org v6, v7, v8, v12; no validation statements on the page."
+  },
+  {
+   "id": "P03-S19",
+   "title": "Eddy3D home page",
+   "url": "https://www.eddy3d.com/",
+   "publisher": "Georgia Tech / Cornell (Kastner, Dogan and team)",
+   "year": "2026",
+   "type": "software product page",
+   "opened": true,
+   "extract": "Airflow and microclimate simulation toolkit for Rhino and Grasshopper, with urban wind flow analysis and annual outdoor thermal comfort; licence not stated on this page."
+  },
+  {
+   "id": "P03-S20",
+   "title": "Eddy3D documentation (latest)",
+   "url": "https://docs.eddy3d.com/latest/",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Modules incl. Pedestrian Wind Comfort, VAF, Wind Predictor ML, UTCI and PET; OpenFOAM 12 (Foundation); Docker, Podman, BlueCFD or WSL engines; states 'Eddy3D is free for all users'; limitations on MPI, install path, Rhino 8.27."
+  },
+  {
+   "id": "P03-S21",
+   "title": "Eddy3D docs: Pedestrian Wind Comfort component",
+   "url": "https://docs.eddy3d.com/latest/components/Pedestrian_Wind_Comfort/",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Comfort metrics offered: Lawson General, Lawson LDDC, Lawson 2001, Davenport, NEN 8100 Comfort and Safety; input is the VAF-derived 8760-hour wind series; full year, season or month periods; thresholds, mean-versus-GEM basis and reference height are not stated on the page."
+  },
+  {
+   "id": "P03-S22",
+   "title": "Eddy3D docs: Velocity Amplification Factors (VAF)",
+   "url": "https://docs.eddy3d.com/latest/components/Velocity_Amplification_Factors_VAF/",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Re-read in r1. VAF is local speed divided by undisturbed reference speed; above 1 accelerates, below 1 shelters; reference comes from the Boundary Conditions input (ABL or Uniform Flow component); page states no reference height or roughness and does not explain how EPW wind speed enters; EPW used for direction mapping by Interpolate or Nearest."
+  },
+  {
+   "id": "P03-S23",
+   "title": "Eddy3D docs: Wind Comfort Predictor (ML)",
+   "url": "https://docs.eddy3d.com/latest/components/Wind_Comfort_Predictor_ML/",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "ONNX-predicted wind fields; GEM = U + g x sqrt(2k/3) when TKE supplied; ground and roof level outputs; method cited to a Kastner et al. 2026 preprint; no accuracy metrics on the page."
+  },
+  {
+   "id": "P03-S24",
+   "title": "Eddy3D publications",
+   "url": "https://www.eddy3d.com/publications",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "publication list",
+   "opened": true,
+   "extract": "Lists a GAN urban wind surrogate (Kastner and Dogan 2023, Build. Environ. 242:110384), a physics-informed GAN (2026 preprint), an ML urban wind review (Karadag et al. 2026) and OpenFOAM microclimate validation papers."
+  },
+  {
+   "id": "P03-S25",
+   "title": "Eddy3D download and changelog",
+   "url": "https://www.eddy3d.com/download",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "software product page",
+   "opened": true,
+   "extract": "Requires Rhino 8 (tested 8.27, not Rhino 7); Windows and macOS; stable 1.18.0.827 dated 17 Oct 2026; licence not stated."
+  },
+  {
+   "id": "P03-S27",
+   "title": "infrared.city",
+   "url": "https://www.infrared.city/",
+   "publisher": "Infrared.city",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "AI climate simulation (wind comfort, UTCI, solar, sky view); claims under 1 min per simulation, models trained on 500K+ simulations, '90%+ accuracy'; Rhino/Revit plugins and REST API; pricing not listed; no independent validation shown."
+  },
+  {
+   "id": "P03-S28",
+   "title": "Higher Buildings Policy Review (Shape Your City)",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city project page",
+   "opened": true,
+   "extract": "Review Phase 1 early directions spring-summer 2026, Phase 2 draft policies fall 2026-winter 2027, final policy winter-spring 2027, hearing spring 2027; Vancouver Tall ideas competition open until 30 Nov 2026; page text says nothing on wind or microclimate (re-checked r1)."
+  },
+  {
+   "id": "P03-S29",
+   "title": "FAQ: Bay Parkade rezoning and the Higher Buildings Policy Review",
+   "url": "https://shapeyourcity.ca/higher-buildings/faqs",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city FAQ",
+   "opened": true,
+   "extract": "Policy dates to 1997, last updated 2011 with minor changes to upper height limits; up to 600 ft considered in policy area; Bay Parkade proposal (783/889/1034 ft) exceeds it; no wind content."
+  },
+  {
+   "id": "P03-S30",
+   "title": "Vancouver Tall Challenge: Building Higher Downtown",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "publisher": "Buildner / architecturecompetitions.com",
+   "year": "2026",
+   "type": "competition page",
+   "opened": true,
+   "extract": "Registration deadline 29 Oct 2026, Q&A deadline 3 Nov, submission 30 Nov 2026 23:59 London time, winners 26 Jan 2027; page lists no wind deliverable or jury weights (brief PDF not reachable)."
+  },
+  {
+   "id": "P03-S31",
+   "title": "Higher Buildings Policy, approved by Council 6 May 1997",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "city policy",
+   "opened": false,
+   "extract": "Named in the brief; fetch returned HTTP 403 again in r1. Search listing confirms title and 6 May 1997 approval; wording on microclimate not verified for this version."
+  },
+  {
+   "id": "P03-S32",
+   "title": "Guidelines: General Policy for Higher Buildings (H005, 13 Feb 2018 version)",
+   "url": "https://guidelines.vancouver.ca/H005_2018Feb13.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2018",
+   "type": "city policy",
+   "opened": false,
+   "extract": "HTTP 403. Search snippets of the 2011 and 2018 versions say a higher building should not contribute to adverse microclimate effects and should minimise shadow and view impacts; 2018 applies to applications from 1 Nov 2018. Unverified."
+  },
+  {
+   "id": "P03-S33",
+   "title": "Higher Buildings Policy Review: summary of exhibit",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/summary-of-exhibit-english.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city exhibit",
+   "opened": false,
+   "extract": "HTTP 403. Search snippets say wind and shadow at street level are risks of poorly planned towers and that prevailing winds were among factors in the height-limits technical study. Unverified."
+  },
+  {
+   "id": "P03-S34",
+   "title": "Referral Report, West End rezoning 1059-1075 Nelson Street (14 April 2020)",
+   "url": "https://council.vancouver.ca/20200428/documents/rr2.pdf",
+   "publisher": "City of Vancouver Council",
+   "year": "2020",
+   "type": "council report",
+   "opened": false,
+   "extract": "HTTP 403. Search snippet: rezoning condition requiring design development to mitigate wind effects from the tower on pedestrian areas, as recommended by qualified professionals; evidence that wind is handled as a condition, not as a numeric rule."
+  },
+  {
+   "id": "P03-S35",
+   "title": "Guide: CD-1 Rezoning",
+   "url": "https://vancouver.ca/files/cov/application-for-cd1-rezoning-guide.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city guide",
+   "opened": false,
+   "extract": "HTTP 403. Search excerpts show shadow-study requirements for buildings over 11 m but no wind-study requirement; Appendix B not seen. Whether wind is mandatory remains unverified."
+  },
+  {
+   "id": "P03-S36",
+   "title": "Vancouver Building By-law 2019, Part 4/5.2.1.3 (structural wind loads)",
+   "url": "https://free.bcpublications.ca/civix/document/id/public/vbbl2019/283565687",
+   "publisher": "Province of BC / City of Vancouver",
+   "year": "2019",
+   "type": "building by-law",
+   "opened": false,
+   "extract": "Page failed with an expired certificate (not bypassed). Search snippet: environmental-separator wind load follows Article 4.1.7.1; by-law covers structural wind, not pedestrian comfort. Whether a newer by-law edition applies is unchecked; confirm before the hand-off to P10."
+  },
+  {
+   "id": "P03-S37",
+   "title": "Climate of Vancouver",
+   "url": "https://en.wikipedia.org/wiki/Climate_of_Vancouver",
+   "publisher": "Wikipedia (cites ECCC normals)",
+   "year": "2026",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Winter Arctic outflow 1-3 times per winter; Dec 2006 windstorm gusts 70-125 km/h; summer sea breezes; airport record high 34.4 C (2009). No seasonal wind-rose data."
+  },
+  {
+   "id": "P03-S38",
+   "title": "Climate.OneBuilding.Org",
+   "url": "https://climate.onebuilding.org/default.html",
+   "publisher": "Climate.OneBuilding.Org",
+   "year": "2026",
+   "type": "data repository",
+   "opened": true,
+   "extract": "EPW/TMYx files built from NOAA ISD hourly data through 2023 using TMY/ISO 15927-4; disclaimer only, no licence; says nothing on wind data quality."
+  },
+  {
+   "id": "P03-S40",
+   "title": "AIJ guidelines for practical applications of CFD to pedestrian wind environment around buildings (Tominaga et al.)",
+   "url": "https://doi.org/10.1016/j.jweia.2008.02.058",
+   "publisher": "J. Wind Eng. Ind. Aerodyn. 96:1749-1761",
+   "year": "2008",
+   "type": "peer-reviewed guideline",
+   "opened": false,
+   "extract": "Citation confirmed in r1 from the Hagbo and Giljarhus reference list; doi.org redirects to the Elsevier linking hub, text not opened. AIJ benchmark cases underlie the validation in Hagbo and Giljarhus. Domain and validation criteria not read."
+  },
+  {
+   "id": "P03-S42",
+   "title": "Higher Buildings Policy Review (full review document)",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city review document",
+   "opened": false,
+   "extract": "Named in the brief; HTTP 403. Search snippet: review covers design, public benefits, sustainability and climate considerations (wind and shadows). Unverified."
+  },
+  {
+   "id": "P03-S43",
+   "title": "Wind Microclimate Guidelines for Developments in the City of London (August 2019)",
+   "url": "https://www.cityoflondon.gov.uk/assets/Services-Environment/wind-microclimate-guidelines.pdf",
+   "publisher": "City of London Corporation",
+   "year": "2019",
+   "type": "municipal guideline",
+   "opened": true,
+   "extract": "Opened in r1. Approach table by building height (above 100 m: tunnel or CFD for massing, then tunnel and CFD by independent consultants); 36 directions; models within 400 m plus taller buildings beyond; reference wind speed at a height and location unaffected by the models, ideally above 100 m, scale factors 0.96 (100 m) to 1.48 (600 m); probes at 1.5 m; CFD mesh 0.3 m near critical points, 10 cells across canyon, 3 prism layers below 1.5 m, avoid standard k-epsilon. City Lawson criteria on mean and GEM at 5%: 2.5/4/6/8 m/s; safety 15 m/s at 0.022%; worst season plus June-August; significance tables for on-site and off-site receptors."
+  },
+  {
+   "id": "P03-S44",
+   "title": "Glossary, Canadian Climate Data (ECCC)",
+   "url": "https://climate.weather.gc.ca/glossary_e.html",
+   "publisher": "Environment and Climate Change Canada",
+   "year": "2026",
+   "type": "data documentation",
+   "opened": true,
+   "extract": "Wind speed observed at 10 m as an average over a one-, two- or ten-minute period ending at the observation time; direction a two-minute average in tens of degrees, true (not magnetic); gust is an instantaneous peak lasting about 3-5 s; the glossary does not say which period applies to hourly data."
+  },
+  {
+   "id": "P03-S45",
+   "title": "Search Historical Climate Data: stations (ECCC), query 'Vancouver Harbour'",
+   "url": "https://climate.weather.gc.ca/historical_data/search_historic_data_stations_e.html",
+   "publisher": "Environment and Climate Change Canada",
+   "year": "2026",
+   "type": "data portal",
+   "opened": true,
+   "extract": "Two stations match: VANCOUVER HARBOUR (hourly and daily, year options 2023-2026) and VANCOUVER HARBOUR CS (hourly, daily, monthly, year options 1976-2026). The page does not state hourly coverage, wind sensor presence or exposure; station and climate IDs not shown."
+  },
+  {
+   "id": "P03-S46",
+   "title": "Eddy3D docs: Atmospheric Boundary Layer (ABL)",
+   "url": "https://docs.eddy3d.com/latest/components/Atmospheric_Boundary_Layer/",
+   "publisher": "Eddy3D",
+   "year": "2026",
+   "type": "software documentation",
+   "opened": true,
+   "extract": "Log-law inflow; reference height Zref default 10 m, reference velocity default 5 m/s per direction, roughness length z0 default 1 m (Revised Davenport terrain classes 0.0002-2 m), ground height Zgnd; one solver case per direction."
+  },
+  {
+   "id": "P03-S47",
+   "title": "OpenFOAM-13 repository",
+   "url": "https://github.com/OpenFOAM/OpenFOAM-13",
+   "publisher": "OpenFOAM Foundation",
+   "year": "2026",
+   "type": "software repository",
+   "opened": true,
+   "extract": "Public repository 'OpenFOAM Foundation repository for OpenFOAM version 13'; README states GNU GPL version 3; no releases or tags shown, so v12 is no longer the newest Foundation version."
+  },
+  {
+   "id": "P03-S48",
+   "title": "Higher Buildings Policy (PDF 0.9 MB) as linked on Shape Your City Key Documents",
+   "url": "https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city policy (download link)",
+   "opened": false,
+   "extract": "Linked from the project page under Key Documents; the fetch returned only a 'file will begin downloading' interstitial, so no policy text was read. A manual download by a team member could settle the microclimate wording."
+  }
+ ],
+ "flags": [
+  {
+   "type": "UNVERIFIED",
+   "claim": "The City of Vancouver publishes numeric pedestrian wind-comfort criteria or a mandatory wind-study trigger.",
+   "detail": "None found. vancouver.ca, guidelines.vancouver.ca, bylaws.vancouver.ca, council.vancouver.ca and rezoning.vancouver.ca returned HTTP 403 again in r1; the Shape Your City copy of the Higher Buildings Policy returned only a download interstitial. Snippets show only a qualitative Higher Buildings Policy microclimate criterion and an example rezoning condition. Ask the Rezoning Centre.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Higher Buildings Policy wording: a higher building should not contribute to adverse microclimate effects.",
+   "detail": "Taken from search snippets of the 2011 and 2018 versions. The 1997 PDF named in the brief and the current 2026 review documents could not be opened. The 1997 policy as amended governs until Council adopts the updated policy (targeted spring 2027); the amendment trail itself is unverified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Default criteria for Vancouver runs are the Toronto 2022 three-class set (Sitting 10, Standing 15, Walking 20 km/h GEM at 80%; safety gust 90 km/h at 0.1% annual).",
+   "detail": "Updated in r1 (earlier text merged 'RWDI/Toronto'). Chosen as a Canadian downtown tall-building analog because no Vancouver set was found; Hamilton 2026 (10/14/17/20 km/h, equal or stricter at shared classes), RWDI mph and City Lawson are selectable, each with its own safety criterion. Edits stay visible as team assumptions.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Toronto, Hamilton and City of London trigger rules are used as stand-ins for 'when Vancouver requires a wind study'.",
+   "detail": "All three place a 244-305 m tower in the highest tier (wind-tunnel evidence). Vancouver practice is unconfirmed; for an ideas competition a CFD-level screening is assumed adequate.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Lawson thresholds and RWDI/Toronto thresholds are interchangeable.",
+   "correction": "They differ in exceedance basis and speed limits: Lawson-type sets use m/s at 5% of time (City Lawson 2.5/4/6/8 m/s on mean and GEM); RWDI/Toronto/Hamilton use GEM in km/h or mph at 20%. Using one speed table with the other exceedance gives wrong classes.",
+   "detail": "M04 enforces one family per run and shows the basis next to each result.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Airport (YVR) or typical-year EPW wind equals the wind at the downtown site.",
+   "correction": "Toronto requires 30 years of hourly airport data corrected for terrain and scaled via gradient height to the site; a typical-meteorological-year file is not a 30-year record and under-represents storms.",
+   "detail": "M01 shows a data-quality badge and logs the correction model.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Early CFD can certify gust-safety compliance of a supertall scheme.",
+   "correction": "Toronto states CFD struggles with separation, eddies and gusts and is not suited to safety-based issues; wind-tunnel testing is required for high triggers. Steady RANS also showed bias against tunnels.",
+   "detail": "M05 labels outputs by fidelity level and M04 shows safety results as indicative below L3.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Calmer is always better: a Sitting-class wind condition is automatically good for outdoor use.",
+   "correction": "Toronto notes GEM under 5 km/h most of the time can cause low air circulation, exhaust build-up and heat in full sun.",
+   "detail": "M04 raises a low-wind flag and M06 tests the thermal side.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Narrow tower gaps are always windier (simple Venturi rule).",
+   "detail": "Toronto, Hamilton and RWDI describe channelling in narrow gaps, but an idealised steady-RANS study found larger uncomfortable zones at gap = 2x height than at 1x height. The relationship is non-monotonic and unquantified for supertall towers.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Infrared.city and other ML surrogates reach 90%+ accuracy within a minute.",
+   "detail": "Vendor claim; no method or independent validation opened. Training domain unknown; transfer to 244-305 m towers in dense downtown is unproven.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Eddy3D can be embedded in the open-source web tool.",
+   "detail": "Docs say it is free for all users but state no source licence, and it needs Rhino 8 on Windows or macOS. Treat it as an external tool whose CSV output is imported, until its licence is confirmed. Its GPL-3.0 OpenFOAM solvers are separate.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "A hit rate of 66% or more validates a CFD run (COST 732/VDI practice).",
+   "detail": "Recalled from memory; Toronto only cites COST 732 as the guideline. Original not opened in r1 either. M05 now lists hit rate beside FAC2, FB and NMSE and does not use it alone.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "UTCI wind input equals about 1.5 times the wind felt at ground.",
+   "detail": "Ladybug documentation attributes the factor to the original Fiala model without citation; pythermalcomfort gives no conversion; the UTCI primary documentation was not opened. Kept as an editable default with a sensitivity band.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Target of at least 50% of occupied hours in the UTCI 'no thermal stress' band; rule weights and cut-offs in the M03 risk index.",
+   "detail": "No sourced targets. These are editable placeholders and must be recalibrated against M05 runs and project goals.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Claude Code skills or MCP servers exist for CFD, OpenFOAM or urban wind analysis.",
+   "detail": "The MCP registry and skill catalogue searches returned nothing in round 1 and again in r1. A custom MCP wrapper would have to be built.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "RWDI and Toronto share one GEM criteria set of 10/15/20 km/h at 80%.",
+   "correction": "Treat Toronto 2022 (three classes 10/15/20 km/h), Hamilton 2026 (four classes 10/14/17/20 km/h) and RWDI (four classes 6/8/10/12 mph, about 9.7/12.9/16.1/19.3 km/h) as separate CriteriaSets, each with its own safety criterion.",
+   "detail": "Toronto Table 3 has no Strolling class; RWDI and Hamilton do, and Hamilton's 14 and 17 km/h differ from RWDI's 8 and 10 mph. Evidence: RWDI Cambridge report (S03), Toronto Table 3 (S01), Hamilton Table 1 (S02), re-read in r1.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Toronto and Hamilton both require at least 16 CFD wind directions.",
+   "correction": "The 16-direction CFD minimum is a Toronto 6.4.2 requirement. Hamilton's qualitative CFD may simulate only the prevailing directions (assessment still weights all directions) and Hamilton requires 36 directions only for tunnel tests; City of London asks for 36 in all studies.",
+   "detail": "Hamilton Technical Requirements 1.A and 1.B (S02), Toronto 6.4.2 (S01), City of London general requirements (S43).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Steady RANS in Hagbo and Giljarhus achieved Pearson r of 0.71-0.84, so 0.71 is the lower end and r can serve as pass/fail.",
+   "correction": "Table 5 lists r down to 0.61 (247.5 degrees) up to 0.84 (180 degrees); the 0.71-0.84 range comes from the text only. r is scale-invariant and cannot detect the -1% to -35% mean-speed bias the same paper reports, so it is supplementary only.",
+   "detail": "Frontiers 2022, Table 5 and validation text, re-read in r1 (S06). M05 now uses FAC2, FB, NMSE and hit rate.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Butterfly is a viable Python API for an OpenFOAM (Foundation v12) pipeline.",
+   "correction": "Butterfly is unmaintained: latest commits 11 Sep 2020; the only OpenFOAM compatibility commit seen targets ESI OF1706+. Build case templates directly for the pinned Foundation version or use Eddy3D-generated cases.",
+   "detail": "GitHub commit history opened in r1 (S16). Foundation v13 also exists (S47), so v12 is pinned deliberately for Eddy3D compatibility.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The Lawson criteria in Hagbo and Giljarhus are a verified mean/GEM criteria set.",
+   "correction": "The paper uses 'a version of' Lawson, mean speed only, with no distress or safety criterion. The verified primary Lawson-type set in this packet is the City of London 2019 City Lawson (mean and GEM, 2.5/4/6/8 m/s at 5%, safety 15 m/s at 0.022%).",
+   "detail": "Hagbo and Giljarhus Table 4 and discussion (S06); City of London 2019 (S43). The Hagbo set is kept as comfort-only and unverified lineage; safety output is blocked for it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "RWDI considers sidewalks to need strolling or better.",
+   "correction": "RWDI says conditions comfortable for walking or strolling are appropriate for sidewalks. Sidewalk requirement: Walking, with Strolling as a preference where the set has that class.",
+   "detail": "RWDI Cambridge report, section 5.1 (S03); Toronto Table 3 also maps sidewalks to Walking (S01).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A modelled context radius of about 350 m is adequate for this tower.",
+   "correction": "Toronto states 350 m is a minimum and that tall buildings outside it that could influence the site must be included; Hamilton and City of London use 400 m. For H = 244-305 m, 350-400 m is about 1.1-1.6 H and the brief names approved towers of similar height. Use at least max(400 m, about 2H) plus influential towers beyond.",
+   "detail": "Toronto 6.4.1 (S01), Hamilton 1 (S02), City of London CFD requirements (S43). The 2H term is a team assumption.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Minimum context radius max(400 m, about 2H), with approved and future towers as a mandatory cumulative scenario.",
+   "detail": "The 350 m and 400 m minima are sourced; the 2H term and the mandatory cumulative case are editable team choices justified by the VTC context. COST 732 and AIJ domain rules were not opened to confirm.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Imported VAF data (Eddy3D, tunnel, consultant CSV) share one normalisation reference.",
+   "detail": "They do not necessarily. The Eddy3D VAF page names no reference height; its ABL component defaults to Zref 10 m, 5 m/s and z0 1 m; City of London uses a reference above 100 m; Hagbo normalise at 10 m. M04 therefore requires a ReferenceSpec on every VAFField and refuses to classify on a mismatch.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "ECCC hourly station speeds can be treated as hourly mean winds, and Vancouver Harbour CS provides a usable downtown cross-check.",
+   "detail": "ECCC states speeds are 1-, 2- or 10-minute means ending at the observation; no sourced conversion factor was found. Vancouver Harbour CS appears in the ECCC station list (hourly year options 1976-2026) but wind sensor presence, hourly coverage and exposure were not verified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Winter and spring storm winds set the worst comfort class in Vancouver.",
+   "detail": "The statement came from Ontario practice. Vancouver's strong winds are described as Pacific storms and winter outflow, but no seasonal wind-rose source was opened. M04 derives the governing season from the M01 wind rose instead.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "M04 stays core as an importer and classifier; core users get M01-M03 plus M04 only when a VAF file is imported.",
+   "detail": "Resolves the core-versus-v1 conflict with M05 (hosted OpenFOAM is not feasible before 30 Nov). The UI states that without a VAFField only M03 screening is shown. An Eddy3D workflow guide and import template are the minimal VAF path.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "UTCI runs by default on a TMYx time base; calm hours are clipped to 0.5 m/s and hours above 17 m/s are excluded and counted.",
+   "detail": "TMYx keeps temperature, humidity, solar and wind internally consistent. The 30-year concurrent option has no concurrent solar and is used for cold-stress screening. The clipping rule is a team choice built on the pythermalcomfort limits (S12); excluded hours stay in the denominator.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Weather-protection coverage and wind-driven rain exposure can be judged against Vancouver guidance.",
+   "detail": "City of Vancouver weather-protection guidance and any rain thresholds could not be opened; ISO 15927-3 driving-rain index not opened. M06 reports relative comparison against the baseline scheme only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "CFD acceptance bands FAC2 at least 0.5, absolute FB at most 0.3, NMSE at most 4.",
+   "detail": "Recalled from air-quality-model evaluation practice (Chang and Hanna 2004), not opened and not a wind-comfort standard. Editable placeholders until COST 732, VDI 3783-9 or AIJ texts are read.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The Hamilton guideline is an adopted City document.",
+   "detail": "Text says 'last updated February 20, 2026' but the file name ends 'ph1proposed'; the text also says 'four-season basis' while listing two seasons. Adoption status and the season definition should be confirmed with Hamilton staff.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Quantified reduction of pedestrian-level GEM per metre of tower-to-podium step-back, podium height or canopy depth (direction sourced, magnitude not).",
+  "Gap-to-height ratio that minimises channelling between adjacent supertall towers (Venturi versus buffeting); only idealised low-rise RANS results seen.",
+  "Dominant strong-wind directions and speeds at the downtown Vancouver site compared with Vancouver International Airport and ECCC Vancouver Harbour CS, including Burrard Inlet channelling and winter outflow; needs ECCC or site data.",
+  "Percentage speed reduction from chamfered, rounded, stepped or re-entrant corners on a 244-305 m tower.",
+  "General effectiveness of wind screens, canopies and trees beyond the single RWDI project (screens at least 1.8 m tall, 20-40% porous), including winter versus summer foliage and 'City in Nature' planting.",
+  "How Vancouver staff and the Urban Design Panel judge 'adverse microclimate effects' under the Higher Buildings Policy (no numeric rule found); City of London defines significance by class shift, but Vancouver has no equivalent found.",
+  "Correct conversion between pedestrian-level (1.5 m) speed and the 10 m wind input of UTCI.",
+  "Effect of neighbouring approved or future towers (named in the brief) on wind at the site, and how a Vancouver review would define the cumulative scenario.",
+  "Accuracy of ML surrogates and steady RANS for 244-305 m towers, and for terraces at height; no validation found.",
+  "Effect of corner treatment, taper and tower height on structural wind loads and vortex shedding; deferred to P10 (confirm the current Vancouver Building By-law edition first).",
+  "Conversion between ECCC 1-, 2- or 10-minute mean speeds and the hourly means the criteria assume; no sourced factor found.",
+  "Transfer from open-terrain airport 10 m wind to the downtown reference (z0, displacement height, gradient height): City of London uses ESDU 01008; applicability to Vancouver and Burrard Inlet exposure is unverified.",
+  "Validity of a log-law inflow profile above about 100 m for 244-305 m towers and for terraces at 150-300 m.",
+  "Normalisation convention of Eddy3D VAF output (the VAF page names no reference; the ABL component defaults to 10 m, 5 m/s, z0 1 m).",
+  "Acceptance bands for CFD wind-speed validation (hit rate per COST 732/VDI 3783-9; FAC2, FB, NMSE): primary texts not opened.",
+  "Domain size and blockage-ratio limits for supertall towers from COST 732 and AIJ primary texts; only the Hagbo and Giljarhus choices (6 H, 15 H, 15 H) were seen.",
+  "Wind-driven rain exposure versus canopy depth, and the Vancouver weather-protection requirements; driving-rain method ISO 15927-3 not opened.",
+  "Whether ECCC Vancouver Harbour CS has an hourly wind record of adequate length and exposure.",
+  "Concurrent hourly solar for a 30-year record: no co-located series identified; TMYx radiation is a typical year.",
+  "Effect of climate change on Vancouver wind and temperature statistics; no future weather files applied.",
+  "Governing season for Vancouver pedestrian wind: derive from the M01 wind rose rather than assume."
+ ],
+ "change_log": [
+  "Round 1: Built P03 with 8 modules: wind climate (M01), trigger and criteria selector (M02), massing screening (M03), comfort and safety classifier (M04), CFD and surrogate engine (M05), UTCI (M06), mitigation advisor (M07), elevated terraces (M08).",
+  "Round 1: Replaced the assumption 'Vancouver has its own wind criteria' with analog Canadian municipal criteria after no Vancouver numeric criteria could be found or opened; flagged UNVERIFIED and TEAM_ASSUMPTION.",
+  "Round 1: Corrected FALSE ASSUMPTIONS: Lawson and RWDI limits are not interchangeable; airport or typical-year wind is not site wind; early CFD cannot certify gust safety; calm is not always better.",
+  "Round 1: Priority split: M01-M04 core for the 13 Nov working core and VTC entrants before 30 Nov; M05-M07 v1 by 10 Dec; M08 roadmap.",
+  "Round 1: Process note: the shared web-search budget ran out part-way; City of Vancouver domains returned HTTP 403 and the VBBL page failed on an expired certificate (not bypassed).",
+  "r1: BLOCKER fixed. Added a typed ReferenceSpec (z_ref, z0, profile law, averaging time, direction reference) to WindClimate (M01) and VAFField (M05, import template); M04 now has a reference gate that refuses to classify on a mismatch unless a logged conversion applies, and an empty-domain unit test. Evidence: City of London scale factors 0.96-1.48 (S43), Toronto 6.4.4 (S01), Eddy3D ABL defaults (S46).",
+  "r1: Split the merged 'RWDI/Toronto' criteria into five versioned CriteriaSets (Toronto 2022 three-class; Hamilton 2026 four-class; RWDI mph; City Lawson London 2019; Lawson Hagbo version) in M02 and M04; default for Vancouver set to Toronto 2022 with the reason stated; Hamilton adoption status and its two-versus-four season wording recorded.",
+  "r1: Safety criterion is now a mandatory field of every CriteriaSet: 90 km/h at 0.1% for Toronto, Hamilton and RWDI (56 mph); 15 m/s at 0.022% for City Lawson (opened primary source S43); a set without one, such as the Hagbo Lawson version, blocks safety output. Lawson metric downgraded to unverified and mean-only.",
+  "r1: Context radius raised to at least max(400 m, about 2H) plus influential towers beyond, with approved and future towers a mandatory cumulative scenario (M02 ContextSpec, M05); domain size in H and blockage ratio are logged; City of London mesh and turbulence-model rules added to M05.",
+  "r1: Resolved core-versus-v1: M04 kept core as typed-import classifier with M05 removed from depends_on, UI banner 'No VAFField imported: M03 screening only', Eddy3D workflow guide and import template as the minimal VAF path; M05 v1 scope reduced to guide, template and offline OpenFOAM case, hosted pipeline moved to roadmap.",
+  "r1: M06 renamed 'Outdoor thermal comfort and rain exposure': concurrent time base declared (TMYx default, concurrent 30-year option for cold-stress screening), clipping rule (0.5 m/s floor, above 17 m/s excluded and counted, shares over all occupied hours), mean wind (not GEM) fed to UTCI, cross-packet Tmrt dependency declared with fallback.",
+  "r1: Added wind-driven rain and weather-protection coverage parameters, metrics and outputs to M06 (and a canopy coverage table from M03, update from M07); marked unverified because Vancouver weather-protection guidance and ISO 15927-3 were not opened.",
+  "r1: M05 validation: Pearson r demoted to supplementary with the corrected 0.61-0.84 range; added FAC2, fractional bias, NMSE and hit rate (bands marked unverified, from air-quality practice); Butterfly marked unmaintained and not used; OpenFOAM v12 pinned deliberately, v13 noted; Hamilton's prevailing-only CFD allowance attributed correctly.",
+  "r1: M03: moved regulatory height triggers (always red for VTC) to M02; replaced them with discriminating measures (sector-weighted exposure height above upwind context, windward width, offset); tagged the one-tower-height upwind distance as a team assumption.",
+  "r1: M04 corrections: sidewalk class set to Walking with Strolling preferred (RWDI wording); governing season derived from the M01 wind rose, Ontario statement flagged unverified for Vancouver; significance of change now uses the City of London class-shift scheme (S43).",
+  "r1: M07: wind-screen specification (1.8 m, 20-40% porous) changed from verified to team_assumption pending an M05 re-run; added City of London significance scheme. M08: added reference-profile-at-height parameter and family-specific safety criterion.",
+  "r1: M01: added ECCC averaging-period and true-north direction facts (S44), station gust kept for QA only, Vancouver Harbour CS named as an unverified cross-check station (S45), concurrency rule, climate-change limit.",
+  "r1: Sources: added S43-S48 (City of London 2019, ECCC glossary, ECCC station list, Eddy3D ABL, OpenFOAM-13, Shape Your City policy link); dropped unused S09, S26, S39, S41; updated extracts of S01, S02, S03, S06, S11, S12, S16, S21, S22, S40; all earlier FALSE_ASSUMPTION flags kept and seven new ones added; default-criteria TEAM_ASSUMPTION flag rewritten.",
+  "r1: Process note: the shared web-search budget was already exhausted at the start of r1, so only WebFetch on direct URLs was used. Re-opened and text-extracted Toronto, Hamilton, RWDI and City of London PDFs. City of Vancouver domains still return HTTP 403; COST 732, VDI 3783-9, AIJ 2008 and UTCI primary texts remain unopened."
+ ],
+ "notes": "Key finding unchanged: no City of Vancouver numeric pedestrian wind-comfort criteria or mandatory trigger could be found or opened (vancouver.ca, guidelines.vancouver.ca and council domains return HTTP 403; the Shape Your City copy of the Higher Buildings Policy gave only a download page). The Higher Buildings Policy (1997, amended; review draft policies due fall 2026-winter 2027, adoption targeted spring 2027) carries a qualitative microclimate criterion seen only in snippets. The packet therefore uses opened analogs: Toronto 2022 (three classes 10/15/20 km/h GEM at 80%, gust 90 km/h at 0.1%, High trigger over 100 m downtown), Hamilton Feb 2026 (four classes 10/14/17/20 km/h, tunnel at 44 m or more, adoption status unconfirmed), RWDI (6/8/10/12 mph) and City of London 2019 (City Lawson 2.5/4/6/8 m/s on mean and GEM at 5%, safety 15 m/s at 0.022%, reference above 100 m, significance by class shift). These are separate CriteriaSets, never merged; Toronto 2022 is the editable default. r1 additions: every speed chain carries a ReferenceSpec and M04 refuses mismatches; context radius at least max(400 m, about 2H) with approved towers mandatory; M04 is core only as an importer and classifier, with M03 screening as the only output when no VAF file exists; CFD validation uses bias-sensitive metrics (bands unverified); UTCI uses one declared time base, a logged clamping rule and a rain and weather-protection add-on. Every VTC tower height (244-305 m) lands in the highest analog tier. Early-stage prediction remains limited: CFD is weak on gusts and safety, steady RANS is biased against tunnels (-1% to -35% in one benchmark), surrogates are unvalidated for supertall towers. Structural wind (1-in-50-year design pressures) is handled in P10. Open items for the next round: Vancouver policy text, weather-protection guidance, COST 732/VDI 3783-9/AIJ primary texts, UTCI wind-conversion source, ECCC Vancouver Harbour CS wind record."
+}

@@ -1,0 +1,278 @@
+{
+ "expert_role": "Computational design educator (architecture-school tool ecosystems: Rhino/Grasshopper, Ladybug, agent workflows, course-repo reuse)",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Arch540_2026 agents_demo as the core module contract",
+   "issue": "The packet calls the four demos 'runnable' and makes the pattern the core recommendation, but they assume macOS or Linux. C_design_space/complete/tools/evaluate.py has an unconditional `import fcntl` (line 33, used at line 215), and fcntl does not exist on Windows. Every hook in .claude/settings.json runs `python3 ...`, and the README uses `cp -r` and `~/Desktop`. On the session machine `python3` resolves to the Microsoft Store alias stub (WindowsApps). Claude Code treats a hook that cannot run as a non-blocking error, so the gate that 'refuses failing output' is silently skipped. That is the exact safeguard the packet wants to copy.",
+   "fix": "Record this as a known incompatibility. In our own re-implementation, call hooks with an explicit venv interpreter (e.g. `.venv/Scripts/python.exe`) and never `python3`. Use cross-platform file locking (portalocker, or msvcrt behind an os.name check). Add a CI test that fails if a hook exits with anything other than 0 or 2. If the team runs Xun's demos as-is, do it under WSL."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Python environment recommendation",
+   "issue": "The packet says 3.13 'exists via the py launcher' and that numpy, scipy and shapely have cp313 wheels. On the session machine, though, `py -0` marks 3.13t (free-threaded) as the default (*). The latest PyPI releases of numpy 2.5.4, scipy 1.18.1, shapely 2.2.0 and rhino3dm 8.35.0 publish cp313-win_amd64 wheels but no cp313t-win_amd64 wheels. A bare `py -m pip install` would therefore try source builds and fail, which stalls the v1 massing node (shapely, trimesh, rhino3dm) and the evaluators.",
+   "fix": "In the environment recommendation, say: create the project venv with `py -3.13 -m venv .venv` (not 3.13t, not PATH python 3.9.13), pin it in a requirements lock, and record `python -VV` in the README. Teammates should check `py -0` too."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Sun/shadow node source choice (Ladybug vs pvlib)",
+   "issue": "The packet frames the sun module as a Ladybug (AGPL-3.0) or pvlib question, but it misses that the instructor's own C_design_space evaluator already does the core calculation. It computes winter-solstice direct-sun hours, 9:00-15:00 solar time at latitude 49.25 N, on a numpy/scipy heightfield of the lot plus a 15 m ring, so off-site shadows count. That needs no AGPL dependency and has no EPW gap, and it is the method the course will recognise. For the browser, mourner/suncalc (BSD-2-Clause, 3.5k stars) gives sun position for three.js shadow views.",
+   "fix": "Make the v1 sun/shadow node a re-implemented heightfield sun-hours evaluator, citing Arch540 as the method source, with suncalc for interactive shadows. Leave Ladybug/Radiance irradiance (the Thermal-Sandbox-Web pattern) as an optional precompute for the energy node. Re-implement rather than copy until Xun grants a licence."
+  },
+  {
+   "severity": "MINOR",
+   "item": "rhino-gh-mcp risk statement",
+   "issue": "The packet says 'Ladybug must be installed'. The README says only the bundled `ladybug-environmental` skill (a draft) needs Ladybug. The packet also says only 'bundles four skills' and leaves out `facade-design`: seven facade typology recipes with reference .gh files, directly relevant to the schematic-design modules. The README roadmap plans massing, structural-grid and daylighting skills, which overlap with our modules.",
+   "fix": "Correct the Ladybug risk. List facade-design as a reference for the facade schematic module. Note the planned massing and structural-grid skills as a reason to coordinate with Xun instead of duplicating work."
+  },
+  {
+   "severity": "MINOR",
+   "item": "hairline install name",
+   "issue": "The packet never names the npm package. The unscoped npm name `hairline` belongs to an unrelated 2022 package ('CSS retina hairline', repo ufologist/hairline, v1.0.0). The real package is `@lucasmarkes/hairline` (latest 0.5.1, MIT). The README's shadcn route fetches from the author's personal domain.",
+   "fix": "Say: install `@lucasmarkes/hairline@0.5.1` exactly, or vendor the files. Never `npm i hairline`. Do not use the shadcn URL route in CI."
+  },
+  {
+   "severity": "MINOR",
+   "item": "text-to-cad telemetry advice",
+   "issue": "CADGEN_TELEMETRY=0 and DO_NOT_TRACK=1 turn telemetry off for one process only. The persistent switch, `uvx cadgen telemetry off`, also deletes data already sent and queued state files. Per the README, sending starts at the first cadgen command, so a teammate who forgets the env var leaks usage stats on first run.",
+   "fix": "Before first use, run `uvx cadgen telemetry off` once per machine; also set CADGEN_UPDATE_CHECK=0."
+  },
+  {
+   "severity": "MINOR",
+   "item": "RhinoAI Rhino version (previous-round item)",
+   "issue": "Still unresolved. The getting-started page says only 'assumes you have Rhino 3D already installed and licensed', and the default branch is rhino-9.x.",
+   "fix": "Keep it on the roadmap. Ask on the McNeel forum thread, or test the connector .mcpb on Rhino 8, before suggesting it to teammates."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Course-use vs open-source redistribution",
+   "issue": "The packet treats unlicensed course repos as 'all rights reserved, reading list only'. Arch540_2026's own description says 'course materials you can download and run', which implies permission for in-course use but not for republishing in an open-source platform or a competition entry. It is the redistribution that needs a licence.",
+   "fix": "Split the licence plan into two parts. (a) Using the code locally inside ARCH 540 is fine per the course description: say so, with credit. (b) Anything committed to the public repo needs MIT or written permission. Also confirm the ARCH 540 policy on AI use and on reusing classmates' A1 work for graded deliverables."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Scope creep and token cost",
+   "issue": "Q01 asks for Xun's tools. The packet's 28 findings and 10 recommendations also pick xyflow, web-ifc and rhino3dm, re-checks covered by other packets. It does hand off final choices, but at a token cost the project goal wants to save.",
+   "fix": "Trim the browser-library rows to one-line pointers to the import and canvas packets. Keep Q01 focused on instructor, course and starred tools."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Unopened xunliuDesign repos",
+   "issue": "GenAI_Visual_Examples is listed as unopened. It is empty (size 0, no tree, README 404), so it cannot be an AI-render reference.",
+   "fix": "Move it from unresolved to 'checked: empty repo'."
+  },
+  {
+   "severity": "MINOR",
+   "item": "anatomy fit for architectural explainers",
+   "issue": "SKILL.md requires every figure to be 'highly detailed... a dense, real machine, never a few slabs', with 40-80 parts minimum even for a Figure. A sun-path or stack-effect explainer will come out as a machine-like object, at odds with the calm, focused visual language taken from hairline.",
+   "fix": "Keep anatomy on the roadmap. Before spending tokens, test one Figure against our hairline-derived style rules, and drop it if the two languages clash on the boards."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The Arch540 agents_demo demos are runnable, and their hook-gated pattern can be adopted as-is on the team's Windows 11 setup.",
+   "why_false": "evaluate.py imports fcntl (Unix-only). The hooks invoke `python3`, which on this machine resolves to the Microsoft Store stub, so the gate does not run. The README uses POSIX commands.",
+   "correction": "Run them under WSL, or re-implement with an explicit venv interpreter in hook commands and cross-platform locking.",
+   "evidence": "raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/complete/tools/evaluate.py lines 33, 215; B_testfit/complete/.claude/settings.json; `command -v python3` -> /c/Users/hp/AppData/Local/Microsoft/WindowsApps/python3"
+  },
+  {
+   "claim": "Python 3.13 via the py launcher is ready for numpy, scipy, shapely and rhino3dm (cp313 Windows wheels exist).",
+   "why_false": "The launcher's default is 3.13t (free-threaded), and none of those packages' latest releases ship cp313t-win_amd64 wheels.",
+   "correction": "Always use `py -3.13` (the GIL build) to create the project venv.",
+   "evidence": "`py -0` output (3.13t marked *); pypi.org/pypi/{numpy,scipy,shapely,rhino3dm}/json file lists"
+  },
+  {
+   "claim": "rhino-gh-mcp requires Ladybug to be installed.",
+   "why_false": "Only its ladybug-environmental skill (draft) requires Ladybug.",
+   "correction": "Ladybug is optional and needed only for that skill. The core bridge needs Rhino 8 only (Rhino 7 is unsupported).",
+   "evidence": "github.com/GenEnv/rhino-gh-mcp README lines 354-357, 136-137"
+  },
+  {
+   "claim": "The sun/energy module must choose between Ladybug (AGPL) and an unevaluated pvlib.",
+   "why_false": "The instructor's Arch540 evaluator already implements a Vancouver-latitude solstice sun-hours heightfield method with numpy/scipy, and suncalc (BSD-2) covers browser sun position.",
+   "correction": "Use a re-implemented heightfield sun-hours evaluator plus suncalc for v1. Keep Ladybug or pvlib for irradiance and energy only.",
+   "evidence": "evaluate.py docstring lines 23-25 and sun_vectors/sun_map functions; api.github.com/repos/mourner/suncalc (BSD-2-Clause)"
+  }
+ ],
+ "missing": [
+  "Windows compatibility notes for the Arch540 demos (fcntl, python3 hooks) and a cross-platform hook recipe",
+  "An explicit venv recipe that avoids the free-threaded 3.13t default",
+  "The Arch540 heightfield sun-hours evaluator as the v1 sun/shadow method; suncalc for the browser",
+  "The rhino-gh-mcp facade-design skill and its planned massing, structural-grid and daylighting skills",
+  "The correct npm scope for hairline (@lucasmarkes/hairline) and a warning about the unrelated unscoped package",
+  "Course policy check: AI use and reuse of classmates' A1 tools in graded ARCH 540 work",
+  "Persistent text-to-cad telemetry opt-out (`uvx cadgen telemetry off`)",
+  "RhinoAI Rhino 8 support still unconfirmed"
+ ],
+ "previous_round": [
+  {
+   "item": "GenEnv/Thermal-Sandbox-Web (missed)",
+   "status": "addressed",
+   "residue": "Fork of christinachiu verified (upstream pushed 2026-08-14, no licence). The upstream profile has no name or affiliation, so the permission contact is unclear."
+  },
+  {
+   "item": "Licence status of course and student repos",
+   "status": "addressed",
+   "residue": "Verified that licence=null across the GenEnv org except rhino-gh-mcp. The plan should still separate in-course use from public redistribution."
+  },
+  {
+   "item": "Vista (RuijieLiu6/vancouver-tall-view-tool)",
+   "status": "addressed",
+   "residue": "Ownership left as a TEAM_ASSUMPTION to confirm, which is appropriate."
+  },
+  {
+   "item": "text-to-cad Windows/Python risk",
+   "status": "addressed",
+   "residue": "Telemetry opt-out should be the persistent command, not only per-process env vars."
+  },
+  {
+   "item": "text-to-cad as v1 massing generator",
+   "status": "addressed",
+   "residue": "The replacement stack (shapely, trimesh, rhino3dm) inherits the 3.13t wheel problem unless the venv is pinned to the GIL build."
+  },
+  {
+   "item": "Integration advice skews to desktop Rhino",
+   "status": "addressed",
+   "residue": "Rhino MCPs are now optional bridges; browser libraries are handed to other packets."
+  },
+  {
+   "item": "RhinoAI version claim (minor)",
+   "status": "partly",
+   "residue": "Still unresolved; the docs say only 'Rhino 3D installed and licensed'."
+  },
+  {
+   "item": "Social-media and forum evidence (minor)",
+   "status": "partly",
+   "residue": "HN covered; Reddit and LinkedIn still unread."
+  }
+ ],
+ "sources_checked": [
+  {
+   "url": "https://api.github.com/repos/lucasmarkes/hairline",
+   "ok": true,
+   "note": "MIT, pushed 2026-10-14, 2567 stars; releases v0.1.0-rc.0 to v0.5.1 confirmed; description still says 'Six'"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/lucasmarkes/hairline/main/README.md",
+   "ok": true,
+   "note": "Thirty-three figures; npm @lucasmarkes/hairline; zero deps; reduced-motion handling"
+  },
+  {
+   "url": "https://registry.npmjs.org/hairline",
+   "ok": true,
+   "note": "Unscoped name is an unrelated 'CSS retina hairline' package (ufologist)"
+  },
+  {
+   "url": "https://registry.npmjs.org/@lucasmarkes%2Fhairline",
+   "ok": true,
+   "note": "latest 0.5.1, MIT"
+  },
+  {
+   "url": "https://api.github.com/repos/wheresryan22/anatomy",
+   "ok": true,
+   "note": "MIT, pushed 2026-10-18, 18.0k stars, created 2026-10-08"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy/main/SKILL.md",
+   "ok": true,
+   "note": "Figure/Hero/Epic tiers confirmed (building = Epic); 390 px capture; A4/Letter print only"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy/main/README.md",
+   "ok": true,
+   "note": "Node 20.10+ kit; CLI 1.7.1 needs Node 22.20+; headless Chrome checks"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/wheresryan22/anatomy-community/HEAD/LICENSE",
+   "ok": true,
+   "note": "MIT with per-figure CC-BY-4.0 line; API NOASSERTION"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/earthtojake/text-to-cad/main/README.md",
+   "ok": true,
+   "note": "uv-pinned Python 3.13, cadgen==0.7.26; telemetry default on; daily update check; Smart App Control section confirmed"
+  },
+  {
+   "url": "https://api.github.com/repos/earthtojake/text-to-cad",
+   "ok": true,
+   "note": "MIT, pushed 2026-10-20, 22.1k stars; v0.7.26 released 2026-10-20"
+  },
+  {
+   "url": "https://api.github.com/users/xunliuDesign/starred",
+   "ok": true,
+   "note": "20 stars; the three tools are the most recent"
+  },
+  {
+   "url": "https://api.github.com/users/xunliuDesign/repos",
+   "ok": true,
+   "note": "15 repos; 2 MIT forks; des212-2026 newest push 2026-07-17; GenAI_Visual_Examples empty"
+  },
+  {
+   "url": "https://api.github.com/orgs/GenEnv/repos",
+   "ok": true,
+   "note": "9 repos; only rhino-gh-mcp licensed (MIT); Thermal-Sandbox-Web is a fork"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/rhino-gh-mcp/main/README.md",
+   "ok": true,
+   "note": "v0.2.6, Rhino 8 only, Scenario modes confirmed; Ladybug only for one skill; facade-design skill"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/complete/tools/evaluate.py",
+   "ok": true,
+   "note": "Unconditional import fcntl; 49.25 N solstice sun-hours heightfield"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/.claude/settings.json",
+   "ok": true,
+   "note": "PreToolUse hook runs python3"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/README.md",
+   "ok": true,
+   "note": "POSIX commands; long runs use plan allowance"
+  },
+  {
+   "url": "https://api.github.com/repos/GenEnv/Thermal-Sandbox-Web",
+   "ok": true,
+   "note": "Fork of christinachiu/Thermal-Sandbox-Web, no licence"
+  },
+  {
+   "url": "https://mcneel.github.io/RhinoAI/docs/getting-started/",
+   "ok": true,
+   "note": "No Rhino version stated"
+  },
+  {
+   "url": "https://api.github.com/repos/mcneel/RhinoAI",
+   "ok": true,
+   "note": "MIT, default branch rhino-9.x, pushed 2026-10-20"
+  },
+  {
+   "url": "https://api.github.com/repos/ladybug-tools/ladybug",
+   "ok": true,
+   "note": "AGPL-3.0 confirmed (honeybee-energy also AGPL-3.0)"
+  },
+  {
+   "url": "https://api.github.com/repos/mourner/suncalc",
+   "ok": true,
+   "note": "BSD-2-Clause alternative for browser sun position"
+  },
+  {
+   "url": "https://pypi.org/pypi/rhino3dm/json",
+   "ok": true,
+   "note": "8.35.0 cp313-win wheel; no cp313t wheel (same for numpy, scipy, shapely)"
+  }
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Document that the Arch540 demos are POSIX-only (fcntl, python3 hooks). Our re-implementation must use explicit venv interpreters and cross-platform locks, and must test that hooks actually run on Windows.",
+   "Environment recommendation: create the venv with `py -3.13` (GIL build), not the default 3.13t, and record the version.",
+   "Make the v1 sun/shadow node a re-implemented Arch540-style heightfield sun-hours evaluator plus suncalc; Ladybug only as an optional energy precompute.",
+   "Correct the rhino-gh-mcp Ladybug claim and add the facade-design skill.",
+   "Name @lucasmarkes/hairline@0.5.1 explicitly.",
+   "Split the licence plan into in-course use and public redistribution, and check the ARCH 540 policy on reusing AI and classmates' work."
+  ]
+ },
+ "verdict": "Round 2 addresses all six previous MAJOR items. I re-checked licences, dates, stars and the three tools' READMEs, and they match. Three new MAJOR gaps remain. First, the core Arch540 pattern assumes macOS or Linux: evaluate.py imports fcntl, and the hooks call python3, which here is the Microsoft Store stub, so the gate silently does not run on Windows. Second, the py launcher defaults to free-threaded 3.13t, which has no Windows wheels for numpy, scipy, shapely or rhino3dm. Third, the packet misses that Xun's own evaluator already does a Vancouver-latitude sun-hours calculation, which avoids the Ladybug AGPL question for v1. The minor items are the rhino-gh-mcp Ladybug wording, the hairline npm scope and persistent telemetry opt-out. The gate passes on these conditions."
+}

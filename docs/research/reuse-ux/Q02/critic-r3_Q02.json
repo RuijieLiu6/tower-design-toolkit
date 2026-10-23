@@ -1,0 +1,298 @@
+{
+ "expert_role": "Accessibility (WCAG 2.2) and ethical-design reviewer, gatekeeper auditing cited sources, round 3 of Q02",
+ "previous_round": [
+  {
+   "item": "Execution and liveness model",
+   "status": "addressed",
+   "residue": "Cost classes, debounce, evaluate-on-release, Auto-run lock, stale propagation and lazy nodes are all defined. Thresholds are flagged as team assumptions. Nothing has been tested."
+  },
+  {
+   "item": "Phase journey (stage rail vs expertise)",
+   "status": "addressed",
+   "residue": "The five-stage rail and the per-module Essentials/Advanced setting are separate axes. The 3-task test is still to run."
+  },
+  {
+   "item": "State/command architecture",
+   "status": "addressed",
+   "residue": "There is one command bus with spike acceptance tests and a zundo default. The spike has not run, so nothing is recorded in CLAUDE.md yet."
+  },
+  {
+   "item": "Cognitive Dimensions walkthrough",
+   "status": "partly",
+   "residue": "Seven dimensions now map to concrete rules. The walkthrough table itself has not been written or applied, and Green and Petre 1996 was read only through a review."
+  },
+  {
+   "item": "Attention and flow evidence",
+   "status": "addressed",
+   "residue": "Mark 2008 is cited correctly, Iqbal and Bailey is added, and the Wikipedia citation is gone. Flow is now an instrument score."
+  },
+  {
+   "item": "Measures for focused and engaging",
+   "status": "addressed",
+   "residue": "The protocol is defined. Participant consent and the ethics position for classmate sessions are missing (see findings)."
+  },
+  {
+   "item": "Competing status systems on node cards",
+   "status": "addressed",
+   "residue": "The three-channel palette and aggregate chip are defined. I recomputed the contrast and CVD figures and they reproduce (see sources_checked)."
+  },
+  {
+   "item": "React Flow defaults vs shortcuts (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "Animated wires and WCAG 2.2.2 (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "FALSE ASSUMPTION styling and CVD (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "AI-render resolution vs A2 (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "Viewport theme vs colour maps (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "Gamification evidence (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "Human-AI guidelines (MINOR)",
+   "status": "addressed"
+  },
+  {
+   "item": "Benchmark depth / annotated screenshots (MINOR)",
+   "status": "not",
+   "residue": "Annotated screenshots were deferred to the team. Observable was added as a liveness reference."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "WCAG 2.2 checklist (finding 'WCAG 2.2', principle 13)",
+   "issue": "The checklist names only three of the six A/AA criteria that WCAG 2.2 added (2.4.11, 2.5.7, 2.5.8). It leaves out 3.2.6 Consistent Help (A), 3.3.7 Redundant Entry (A) and 3.3.8 Accessible Authentication (Minimum) (AA), and it does not say that 4.1.1 Parsing was removed. The community features (upload, comment, fork) need sign-in, so 3.3.8 applies, and multi-step module upload forms trigger 3.3.7.",
+   "fix": "Add all six new A/AA criteria to the AA checklist. Sign-in must allow paste and password managers, with no cognitive-function test or transcription CAPTCHA (an OAuth or passkey option is fine). Module-upload forms prefill data the user already entered. The Help/What's new entry keeps the same relative position on every stage (3.2.6). Remove 4.1.1 from any copied checklist."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Single-key shortcuts (palette, wires, relays, panel shortcuts)",
+   "issue": "The packet takes Speckle's Shift+letter panel shortcuts, Blender's J and Foblex's C as precedents but never cites WCAG 2.1.4 Character Key Shortcuts (Level A). The Understanding page says the criterion covers upper- and lower-case letters, so Shift+letter counts. Speech-input users trigger single-letter shortcuts by accident.",
+   "fix": "Every shortcut that uses only printable characters must be one of three things: active only while its component has focus (for example C or J on a focused port), remappable to include Ctrl/Alt, or switchable off in Settings. The shortcut map and cheat sheet should come from one registry that supports remapping and a 'disable single-key shortcuts' switch. Test this in the keyboard pass."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Hover inspection on ports and linked point inspection (principles 4 and 9)",
+   "issue": "'Hover on any port shows value, type, unit, source...' and Forma-style hover inspection are pointer-only. WCAG 1.4.13 Content on Hover or Focus (AA) requires such content to be dismissable (Esc), hoverable and persistent. 2.1.1 requires the same information through keyboard focus. React Flow's default handle accessible name is the generic 'Handle' (accessibility page, updated 11 Oct 2026), so screen-reader users get no type or unit.",
+   "fix": "Show the port popover on hover and on focus. Make it hoverable, closable with Esc, and keep it open until dismissed. Set ariaLabelConfig so each handle has an accessible name such as 'Output, Shadow hours, number, h, connected to 2'. Viewport point inspection gets a keyboard cursor (arrow keys step across facade or zone cells) that reads values into the same panel, with 'View as table' as the fallback."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Target size at canvas zoom (2.5.8)",
+   "issue": "'24 px port hit areas' only holds at zoom 1. React Flow scales handles with the viewport, so at 0.5 zoom a 24 px port is 12 CSS px and 2.5.8 fails for pointer users. The packet does not say whether it relies on the 'equivalent control' exception (keyboard Connect is not a pointer equivalent).",
+   "fix": "Either counter-scale the handle hit area (an invisible ::before at least 24 CSS px at any zoom) or provide a pointer-operable equivalent at 24 px or more: a node context menu 'Connect from...' or the Edges list with full-size buttons. Add a Playwright test that measures handle hit boxes at zoom 0.5 and 1.0."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "3D viewport keyboard and non-visual access",
+   "issue": "The WCAG plan gives viewport results a table and a text summary but no keyboard camera control (orbit, pan, zoom, preset views, zoom-to-fit). There is also no keyboard route to select surfaces, start a section or take a saved view. axe cannot inspect WebGL (the packet says so), so nothing in CI covers this.",
+   "fix": "Add viewport keyboard bindings (arrows orbit, Shift+arrows pan, +/- zoom, number keys for saved views, F to fit), active only while the viewport has focus (2.1.4). Give the canvas element a role, name and instructions. Expose the selected element in a DOM inspector, and announce camera changes politely. Add a manual keyboard script for the viewport to the 13 Nov core."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Governance of FALSE ASSUMPTION flags in a community (ethics)",
+   "issue": "The packet styles FALSE ASSUMPTION carefully but never says who may apply the flag to someone else's forked or uploaded module, what evidence is needed, or how authors respond. A permanent, high-salience magenta mark on a classmate's or community author's work, applied without a citation or right of reply, becomes public shaming. A GitHub-like community also brings stars, fork counts and 'trending' lists, which are the social-proof mechanics the packet bans elsewhere.",
+   "fix": "A flag must cite a source and quote the contradicting passage. It targets a claim, never a person or account. The author is notified at a breakpoint and can reply or attach counter-evidence. Flag and reply history stays visible next to the claim, and maintainers can resolve disputes, with a code of conduct and a report route. Module listings sort by evidence completeness and recency by default, not stars. Show fork and use counts neutrally without 'trending' or rank badges. Add these items to the deceptive.design PR checklist."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Ethics of think-aloud sessions with classmates (recommendation 9)",
+   "issue": "The protocol records behaviour, NASA-TLX, UMUX-Lite and flow scores from ARCH 540 classmates who are graded by the same instructor. Consent, voluntariness, recording and data handling, and whether TCPS2 research-ethics review applies are not mentioned. Course-improvement testing is generally outside REB scope under TCPS2 Article 2.5, but publishing results (for example in the competition or a paper) may change that. I could not check UBC's page because the web-search budget was used up.",
+   "fix": "Before the first session, ask the instructor whether UBC Behavioural REB review is needed or whether the activity counts as course-based quality improvement. Use a one-page consent sheet: voluntary, no effect on grades, right to withdraw, no audio or video unless opted in, anonymised IDs, data deleted after 10 Dec. Never run sessions with the participants' grader present."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Screen-reader announcements and notification restraint",
+   "issue": "The restraint rules cover visual toasts only. React Flow ships an assertive live region (node-move announcements), and run state changes on many nodes could flood screen-reader users. WCAG 4.1.3 Status Messages is not cited.",
+   "fix": "Use one app-level live-region service. Run completions and stale changes are announced politely and batched ('3 modules finished, 1 failed'). Use assertive only for failures that block the current task. Follow the same breakpoint deferral as visual notices, with a user setting for verbosity."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Windows forced-colors (High Contrast) mode",
+   "issue": "The team and many users run Windows 11, but the packet's 'high-contrast by user choice' theme ignores the OS forced-colors mode. In that mode author hues are replaced by system colours, so the three evidence hues, the ochre/magenta distinction and the low-chroma category tints disappear. The SVG wires and the WebGL viewport may not follow system colours.",
+   "fix": "Add @media (forced-colors: active) rules. Evidence status relies on icon, word, outline style (solid, dashed, hatch) and system colours (CanvasText, Highlight, Mark). Wires and focus rings use currentColor. Test in Windows Contrast themes with Playwright's forcedColors emulation plus a manual check."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Vercel Web Interface Guidelines finding",
+   "issue": "The finding says 'Repo has no LICENSE file', but vercel-labs/web-interface-guidelines (the cited URL) lists a LICENSE file identified as MIT, alongside command.md, AGENTS.md and install.sh. The missing licence field applies to agent-skills, not to this repo.",
+   "fix": "Correct the risk text. Vendor command.md from web-interface-guidelines with its MIT notice and a commit hash."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Impeccable finding and UNVERIFIED flag",
+   "issue": "The README does name the telemetry endpoint: roll requests go to impeccable.style. It also lists more opt-outs than DO_NOT_TRACK: 'npx impeccable telemetry off', IMPECCABLE_NO_TELEMETRY=1, and '\"telemetry\": false' in .impeccable/config.json. Live-mode copy edits run a package.json script in a shell. Open issues are 36 plus 13 PRs, not 49 issues. Only the binary download host is still unnamed.",
+   "fix": "Narrow the UNVERIFIED flag to the binary host. Use the config-file opt-out so it persists, add it to the review steps, and never enable live mode on the repo without reading the manual-edit-validate script."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Tailwind dark-mode syntax (finding 'Tailwind CSS')",
+   "issue": "The risk 'data-attribute dark-mode syntax was not read' can be closed. The Tailwind dark-mode docs give the syntax as '@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));'.",
+   "fix": "Put this line in the token CSS and in CLAUDE.md, and remove the risk."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Competition page details",
+   "issue": "The page lists the full brief, site plans and a 3D model in five languages (the links are currently '#'). The terms (wording dated 14 Jul 2026) set the deadline at '24.00 London Time'. The packet's 'one starter graph on the real Vancouver block' does not mention that the organisers' 3D model may be the base, or under what terms it may be used.",
+   "fix": "When the team downloads the brief, also download the site plans and 3D model, check their usage terms, and use them as the starter-graph context if allowed. Do not redistribute them through the community feature."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Evidence-completeness indicator (ethical engagement)",
+   "issue": "A per-stage completeness indicator is useful but can drift into a progress-bar nag or an implied score, the pattern the packet bans.",
+   "fix": "Show it as a checklist of named missing inputs or sources with links, never a percentage ring or a colour that changes to 'success'. Add no reminders when a stage is incomplete, and never block navigation."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The Vercel Web Interface Guidelines repo has no LICENSE file.",
+   "why_false": "The repository page lists a LICENSE file identified as MIT, alongside command.md, AGENTS.md and install.sh.",
+   "correction": "The guidelines repo is MIT with a LICENSE file. Vendor command.md with the notice and a pinned commit.",
+   "evidence": "https://github.com/vercel-labs/web-interface-guidelines (opened 21 Oct 2026)"
+  },
+  {
+   "claim": "Impeccable's telemetry endpoint is not named; DO_NOT_TRACK=1 is the opt-out.",
+   "why_false": "The README says roll requests go to impeccable.style and lists 'npx impeccable telemetry off', IMPECCABLE_NO_TELEMETRY=1 and a config.json setting as further opt-outs. Only the engine-binary download host is unnamed.",
+   "correction": "Name impeccable.style as the telemetry endpoint and use the persistent config opt-out. Keep the binary host as UNVERIFIED.",
+   "evidence": "https://github.com/pbakaus/impeccable (README, opened 21 Oct 2026)"
+  },
+  {
+   "claim": "24 px port hit areas satisfy WCAG 2.5.8 on the canvas.",
+   "why_false": "React Flow scales handles with viewport zoom, so the 24 px figure only holds at zoom 1. Keyboard Connect is not a pointer-operable equivalent for the 2.5.8 'equivalent' exception.",
+   "correction": "Counter-scale hit areas, or provide a 24 px pointer equivalent (node menu 'Connect from...' or Edges list buttons), and test at several zoom levels.",
+   "evidence": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html ; https://reactflow.dev/learn/advanced-use/accessibility"
+  },
+  {
+   "claim": "Shift+letter panel shortcuts (the Speckle precedent) avoid single-character shortcut problems.",
+   "why_false": "The WCAG 2.1.4 Understanding page says the criterion covers upper- and lower-case letters and that what matters is reliance on a printable character, so Shift+letter is in scope (Level A).",
+   "correction": "Make printable-character shortcuts active only on focus, remappable, or switchable off.",
+   "evidence": "https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html (read 21 Oct 2026)"
+  }
+ ],
+ "missing": [
+  "The remaining new WCAG 2.2 criteria (3.2.6, 3.3.7, 3.3.8) and the removal of 4.1.1",
+  "WCAG 2.1.4 Character Key Shortcuts and 1.4.13 Content on Hover or Focus",
+  "Keyboard camera and selection model for the WebGL viewport, and a manual test script for it",
+  "Accessible names for React Flow handles (ariaLabelConfig); the default is just 'Handle'",
+  "Live-region and announcement policy (WCAG 4.1.3), with batching and politeness levels",
+  "Windows forced-colors mode handling and testing",
+  "Flag governance: who flags, evidence required, author reply, dispute resolution, code of conduct, report route",
+  "Community ranking ethics: stars, fork counts and trending as social proof",
+  "Consent and research-ethics position for classmate usability sessions (instructor or UBC BREB check, data handling)",
+  "Usage terms of the organisers' site plans and 3D model for the starter graph",
+  "Annotated benchmark screenshots (carried over from round 2)",
+  "A written Cognitive Dimensions walkthrough table (carried over)"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Download the competition brief, site plans and 3D model before registration closes on 29 Oct 2026, and send questions by 3 Nov",
+   "Extend the AA checklist with 2.1.4, 1.4.13, 3.2.6, 3.3.7, 3.3.8 and 4.1.3, plus zoom-independent port target size, before canvas code is written",
+   "Specify viewport keyboard controls and handle accessible names (ariaLabelConfig) in the node-canvas contract for 13 Nov",
+   "Write flag-governance rules (citation required, author reply, dispute path) before any community or fork feature ships",
+   "Settle consent and the ethics position with the instructor before the first think-aloud session",
+   "Run the state-layer spike and write the Cognitive Dimensions walkthrough table in the first build week"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html",
+   "ok": true,
+   "note": "Level A. Covers upper- and lower-case letters. Three compliance routes: turn off, remap, or active only on focus."
+  },
+  {
+   "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+   "ok": true,
+   "note": "Updated 11 Oct 2026. Assertive live region for moves. Default handle label is 'Handle'. ARIA text says 'press delete'. No keyboard edge creation."
+  },
+  {
+   "url": "https://reactflow.dev/api-reference/react-flow",
+   "ok": true,
+   "note": "deleteKeyCode 'Backspace', panActivationKeyCode 'Space', zoomOnDoubleClick true, connectOnClick true, multiSelection Control on Windows, autoPanOnNodeFocus true. No reduced-motion prop."
+  },
+  {
+   "url": "https://ui.shadcn.com/docs/changelog",
+   "ok": true,
+   "note": "Has a July 2026 entry 'Base UI as the Default'. The CLI flags were not visible in this excerpt (the packet says it read the CLI page)."
+  },
+  {
+   "url": "https://zenodo.org/records/8409685",
+   "ok": true,
+   "note": "Scientific colour maps 8.0.1, 5 Oct 2023, MIT. No newer version shown."
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "JPEG, 10 MB, one to four panels per the brief, anonymity, no AI rule. Wording dated 14 Jul 2026. Deadline '24.00 London'."
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Dates confirmed (29 Oct, 3 Nov, 30 Nov, 26 Jan 2027). AI FAQ wording confirmed. Brief, site plans and 3D model links are '#'. Panel size not stated."
+  },
+  {
+   "url": "https://github.com/vercel-labs/web-interface-guidelines",
+   "ok": true,
+   "note": "MIT LICENSE present (contradicts the packet). About 1.0k stars. Contains command.md."
+  },
+  {
+   "url": "https://github.com/dip/cmdk",
+   "ok": true,
+   "note": "MIT, 13.0k stars. Issues tab shows 52, so the packet's 76 likely includes PRs. The FAQ claims VoiceOver testing."
+  },
+  {
+   "url": "https://github.com/pbakaus/impeccable",
+   "ok": true,
+   "note": "Apache-2.0, 84.1k stars, 36 issues plus 13 PRs. Telemetry goes to impeccable.style with several opt-outs. Binary host unnamed. Inter listed as overused."
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "gpt-image-2.5 variants. 3840 px edge, 655,360 to 8,294,400 px, multiples of 16, 1:3 to 3:1, above 2560x1440 experimental. No C2PA text in the first 100k characters."
+  },
+  {
+   "url": "https://www.nngroup.com/articles/dark-mode/",
+   "ok": true,
+   "note": "Supports light default with dark as a user option. The low-vision nuance is consistent with the packet."
+  },
+  {
+   "url": "https://vispero.com/resources/screen-readers-support-for-text-level-html-semantics/",
+   "ok": true,
+   "note": "26 Jan 2023. <s> is announced only by NVDA. <del> is not announced by macOS VoiceOver and the Narrator data conflict, so the visible word 'superseded' is necessary, as the packet says."
+  },
+  {
+   "url": "https://tailwindcss.com/docs/dark-mode",
+   "ok": true,
+   "note": "Data-attribute syntax via @custom-variant confirmed, which closes the packet's open risk."
+  },
+  {
+   "url": "https://api.github.com/repos/vercel-labs/web-interface-guidelines",
+   "ok": false,
+   "note": "HTTP 403 (rate limit). Used the web page instead."
+  },
+  {
+   "url": "local computation (Python, WCAG relative luminance, Machado 2009 severity 1.0, CIELAB dE76)",
+   "ok": true,
+   "note": "Reproduced the packet: light tokens are 5.43 to 6.64:1 on white and #F4F5F7, and dark tokens are 5.5 to 9.13:1 on #16181C and #22252B. Sourced vs FALSE is 31.9 for protan in light and 17.1 for protan in dark. Additional results: dark Team vs Failed is 22.0 for deutan, and FALSE vs Failed (dark) and Team vs FALSE (dark) are about 22.6 and 27.3 for tritan, all above the team threshold of 20."
+  },
+  {
+   "url": "WebSearch (UBC BREB course-based research)",
+   "ok": false,
+   "note": "Not run because the per-turn web-search budget was used up. The ethics finding relies on TCPS2 Article 2.5 from my own knowledge and asks the team to confirm with the instructor."
+  }
+ ],
+ "verdict": "Round 3 resolves all seven earlier MAJOR items. The Cognitive Dimensions item is only partly done because the walkthrough table is unwritten, and benchmark screenshots are still missing. I re-opened key sources and they mostly hold; my own computation reproduces the contrast and colour-vision figures. New gaps: the WCAG 2.2 list misses 3.2.6, 3.3.7 and 3.3.8; 2.1.4 single-key shortcuts and 1.4.13 hover popovers are absent; port target size breaks at canvas zoom; the WebGL viewport has no keyboard model; React Flow handles are named only 'Handle'. On ethics, FALSE ASSUMPTION flags need governance and classmate sessions need consent and an ethics check. Two small factual errors: the Vercel licence and Impeccable's telemetry endpoint. Gate passes conditionally; the team can start now."
+}

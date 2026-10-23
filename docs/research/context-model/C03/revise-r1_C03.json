@@ -1,0 +1,2102 @@
+{
+ "packet_id": "C03",
+ "modules": [
+  {
+   "module_id": "C03-M01",
+   "name": "Layer manifest and provenance schema",
+   "design_question": "What single manifest lets any module find, verify, cache, credit and datum-check a layer, and trace each value to a source, without opening the data?",
+   "method": "Extend Vista's release-manifest (per-file bytes, sha256) into manifest.json 'vcm-layers/1' with a JSON Schema. One record per layer: id, theme, version; source {publisher, dataset_id, url, retrieved, source_modified}; licence {id, attribution, share_alike, redistribution}; crs {horizontal datum, epoch, EPSG; vertical {datum, epsg|null, z_offset_m, basis}}; geometry; lod; accuracy; vintage; bbox; count; fields; files [{path, role, format, bytes, sha256, content_type, range_safe}]; derived_from; build {script, commit}; modules_using; status. File paths are content-addressed (layers/<id>/<sha256[:12]>.<ext>); only manifest.json keeps a fixed name, because Pages caches every file for 10 minutes. Policy documents (council reports, guideline PDFs) get source records with URL, retrieved date, sha256 and page count. CI rejects: missing licence, datum or CRS; hash, byte or path-hash mismatch; file over cap; an ODbL ancestor in derived_from without share_alike; range_safe true without a passing browser probe; GeoParquet metadata containing '-dev'. Modules declare requires:[layer ids]; the registry computes what to fetch. Rule: every coordinate and height traces to a survey or open-data file; GPT-6 Astra may draft code and text only.",
+   "priority": "core",
+   "effort": "est. 3-4 days (team estimate)",
+   "human_judgment": "Decide which layers ship in the core bundle; confirm attribution wording and datum statements with each publisher; choose which policy documents the registry tracks.",
+   "inputs": [
+    "Vista release-manifest.json and unified_manifest.json (bytes, sha256, build methods)",
+    "Portal dataset metadata (data_processed, licence, fields, record counts)",
+    "Licence register (C03-M05) and datum registry (C03-M06)",
+    "Hashes of council reports (C03-S42 to C03-S45)"
+   ],
+   "outputs": [
+    "manifest.json (vcm-layers/1) plus JSON Schema",
+    "CI validator and generated NOTICE/attribution file",
+    "Per-layer fact sheet shown in the UI",
+    "Policy-source register with sha256 and page counts"
+   ],
+   "parameters": [
+    {
+     "name": "max size per layer file",
+     "relationship": "Team budget 20 MB for whole-file GET latency (not a jsDelivr limit: CI-built data never enters git). Git warns at 50 MiB and blocks at 100 MiB.",
+     "unit": "MB",
+     "source_ids": [
+      "C03-S16"
+     ]
+    },
+    {
+     "name": "lod",
+     "relationship": "Biljecki 2016 labels: LOD1.2 single-height extrusion; LOD1.3 when top surfaces differ by more than a threshold such as 2 m.",
+     "unit": "label",
+     "source_ids": [
+      "C03-S35"
+     ]
+    },
+    {
+     "name": "z_ref",
+     "relationship": "Datum name plus EPSG: 5713 CGVD28; 9245 CGVD2013a(2010), which replaces 6647; 4979 WGS84 3D; null for CGVD28GVRD (no EPSG code found).",
+     "unit": "label",
+     "source_ids": [
+      "C03-S40",
+      "C03-S06"
+     ]
+    },
+    {
+     "name": "crs.horizontal",
+     "relationship": "NAD83(CSRS): EPSG:4617 geographic, 3157 UTM 10N. Portal 'WGS84' lon/lat measured as NAD83(CSRS) values. Write GeoParquet crs as PROJJSON (compound where z exists), never bare EPSG:4326.",
+     "unit": "label",
+     "source_ids": [
+      "C03-S36",
+      "C03-S21",
+      "C03-S40"
+     ]
+    },
+    {
+     "name": "file path rule",
+     "relationship": "layers/<id>/<first 12 hex of sha256>.<ext>; manifest.json fixed; previous version's files stay one deploy cycle so a stale manifest never meets a missing file.",
+     "unit": "rule",
+     "source_ids": [
+      "C03-S36"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Manifest completeness",
+     "good": "100% of layers carry licence, datum, CRS, bytes, sha256, modules_using",
+     "bad": "Any layer missing licence or datum",
+     "unit": "% of layers",
+     "status": "team_assumption",
+     "basis": "Design rule; Vista manifest already carries bytes and sha256 per file",
+     "source_ids": [
+      "C03-S37"
+     ]
+    },
+    {
+     "name": "Checksum and path integrity",
+     "good": "0 mismatches in CI and in client; path hash equals file hash",
+     "bad": "Any mismatch",
+     "unit": "count",
+     "status": "team_assumption",
+     "basis": "Design rule; content-addressed paths answer the 10-minute Pages cache (max-age=600 measured)",
+     "source_ids": [
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "Policy-source coverage",
+     "good": "Every clause-citing warning links a hashed, read source record",
+     "bad": "Citation to an unhashed or unread PDF",
+     "unit": "% of warnings",
+     "status": "team_assumption",
+     "basis": "Design rule; adopted Public Views Guidelines PDF still unread (HTTP 403)",
+     "source_ids": [
+      "C03-S39"
+     ]
+    }
+   ],
+   "visualization": [
+    "Layer registry panel: toggle, licence badge, datum chip, size bar, source date",
+    "Provenance drawer per feature",
+    "Policy-source list with hash and amendment date"
+   ],
+   "limits": "The manifest records what the builder knows; it cannot prove source accuracy, a publisher's datum statement, or that a policy PDF is the adopted version."
+  },
+  {
+   "module_id": "C03-M02",
+   "name": "Storage formats and tiling",
+   "design_question": "Which format and tiling per layer minimises bytes yet lets the browser load only what the current view needs, while keeping absolute heights for cone tests?",
+   "method": "Choose format by access pattern. Points and tables (trees, heritage, stations, parcel and tax attributes): GeoParquet 1.1 with an explicit geometry column, crs as PROJJSON, bbox covering column, Hilbert sort, zstd; read with hyparquet, passing byteLength from the manifest. Display polygons (parcels, footprints, zoning, parks): PMTiles v3 MVT, about z10-z16 with overzoom; keep the same data as GeoParquet for analysis. LOD1: store footprint plus absolute elevations (z_ground_m, z_roof_max_m, z_roof_p50_m), vintage and flags, never baked meshes; derive height_m = z_roof - z_ground for display only; MapLibre fill-extrusion takes height and base in metres. Mark LOD1.3 where tops differ by more than about 2 m. Terrain and canopy rasters: quantised uint16 decimetres or uint8 half-metres as WebP/PNG tiles in PMTiles, or COG, datum in manifest. Hand-modelled meshes: glTF with KHR_mesh_quantization and EXT_meshopt_compression. 3D Tiles only if Cesium is adopted (ellipsoidal heights). View cones: analytic parameters, not meshes. Point clouds: link NRCan COPC, never mirror. Metric work EPSG:3157. Publish a measured size table before committing any layer.",
+   "priority": "core",
+   "effort": "est. 5-7 days",
+   "human_judgment": "Choose which layers need analysis-grade geometry (Parquet) versus display-only tiles; accept lossy simplification for far context buildings; set the change-detection threshold for 2015 footprints.",
+   "inputs": [
+    "Layer list with geometry types and feature counts (C03 datasets)",
+    "Access patterns: map overview, site analysis, 3D viewpoint",
+    "Hosting constraint from C03-M03",
+    "City LiDAR 2022 class 2 and 6 returns; 2013 and 2018 LiDAR for change checks"
+   ],
+   "outputs": [
+    "Format decision table per layer",
+    "Build scripts for GeoParquet, PMTiles and raster tiles",
+    "Measured size report per layer",
+    "Footprint-versus-LiDAR change report"
+   ],
+   "parameters": [
+    {
+     "name": "row group size",
+     "relationship": "10k-50k rows with a bbox covering column so readers prune by extent (team choice; the GeoParquet spec gives no size). Portal exports declare 1.1.0-dev with a centroid primary column: rewrite them.",
+     "unit": "rows",
+     "source_ids": [
+      "C03-S21",
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "PMTiles header and root directory",
+     "relationship": "127-byte header; compressed root directory fits in the first 16,384 bytes; tiles use gzip, brotli or zstd internally.",
+     "unit": "bytes",
+     "source_ids": [
+      "C03-S20"
+     ]
+    },
+    {
+     "name": "LOD1 feature schema",
+     "relationship": "Rings at 0.1 m in EPSG:3157; z_ground_m; z_roof_max_m; z_roof_p50_m; height_basis; footprint_year; lidar_year; change_flag. Elevations absolute in the declared datum; height_m is derived for display.",
+     "unit": "fields",
+     "source_ids": [
+      "C03-S47"
+     ]
+    },
+    {
+     "name": "ground statistic",
+     "relationship": "3DBAG takes ground as the 5th percentile of ground points within 4 m of the building and stores roof elevations (50p, 70p, max, min) above NAP; adopt the pattern and name the statistic in the manifest.",
+     "unit": "label",
+     "source_ids": [
+      "C03-S47"
+     ]
+    },
+    {
+     "name": "coordinate quantisation",
+     "relationship": "0.1 m grid in EPSG:3157 for footprints and trees (team choice).",
+     "unit": "m",
+     "source_ids": []
+    },
+    {
+     "name": "measured prototype sizes",
+     "relationship": "Trees (184,267 valid): 8.26 B each raw, 4.75 B with zlib-9. Footprints (first 40,000, outer rings): 27.1 B raw, 20.0 B zlib lossless, 15.9 B with 0.5 m simplification; add about 5 B for z fields.",
+     "unit": "B/feature",
+     "source_ids": [
+      "C03-S36"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Bytes per LOD1 building",
+     "good": "40 B or less (target)",
+     "bad": "184 B (portal Parquet export: 28,347,956 B for 154,124 footprints) or 320 B (Vista OSM extension meshes)",
+     "unit": "B/building",
+     "status": "team_assumption",
+     "basis": "Prototype geometry 15.9-20 B plus about 5 B heights suggests the target is reachable; Parquet and PMTiles overhead unmeasured; sample is not random",
+     "source_ids": [
+      "C03-S36",
+      "C03-S37"
+     ]
+    },
+    {
+     "name": "First-load payload, downtown view",
+     "good": "5 MB or less transferred",
+     "bad": "More than 15 MB",
+     "unit": "MB",
+     "status": "team_assumption",
+     "basis": "Vista release ships 51,990,003 B in 60 files, far above this",
+     "source_ids": [
+      "C03-S37"
+     ]
+    },
+    {
+     "name": "Parquet pruning",
+     "good": "bbox covering column present; row groups 10k-50k rows",
+     "bad": "No covering column or one huge row group",
+     "unit": "flag",
+     "status": "team_assumption",
+     "basis": "GeoParquet 1.1 covering columns support spatial filtering",
+     "source_ids": [
+      "C03-S21"
+     ]
+    },
+    {
+     "name": "Footprint vintage and change flags",
+     "good": "Every footprint carries vintage 2015 and a change flag; unmatched LiDAR roof clusters listed",
+     "bad": "Heights served for demolished or missing buildings without a flag",
+     "unit": "flag",
+     "status": "team_assumption",
+     "basis": "Footprints are 2015 and not updated; 12,013 New Building permits issued 2017-2026, 4,635 since 1 Sep 2022 (permits are a proxy)",
+     "source_ids": [
+      "C03-S07"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "PMTiles JS",
+     "license": "BSD-3 (reference implementations); spec CC0",
+     "role": "Read PMTiles over range requests; MapLibre protocol",
+     "url": "https://github.com/protomaps/PMTiles"
+    },
+    {
+     "name": "go-pmtiles",
+     "license": "BSD (see LICENSE)",
+     "role": "Convert and verify archives in CI",
+     "url": "https://github.com/protomaps/go-pmtiles"
+    },
+    {
+     "name": "tippecanoe",
+     "license": "BSD-style (Protomaps and Mapbox copyright)",
+     "role": "Build MVT tiles from GeoJSON",
+     "url": "https://github.com/felt/tippecanoe"
+    },
+    {
+     "name": "MapLibre GL JS",
+     "license": "BSD-style (MapLibre contributors)",
+     "role": "Render tiles; fill-extrusion for LOD1",
+     "url": "https://github.com/maplibre/maplibre-gl-js"
+    },
+    {
+     "name": "hyparquet",
+     "license": "MIT",
+     "role": "Dependency-free Parquet reader with range requests; sizes files from HEAD unless byteLength is passed",
+     "url": "https://github.com/hyparam/hyparquet"
+    },
+    {
+     "name": "flatgeobuf",
+     "license": "BSD 2-Clause",
+     "role": "Bounding-box streaming of vectors",
+     "url": "https://github.com/flatgeobuf/flatgeobuf"
+    },
+    {
+     "name": "meshoptimizer",
+     "license": "MIT",
+     "role": "Compress glTF meshes (EXT_meshopt_compression)",
+     "url": "https://github.com/zeux/meshoptimizer"
+    },
+    {
+     "name": "glTF-Transform",
+     "license": "MIT",
+     "role": "Quantise and optimise glTF in CI",
+     "url": "https://github.com/donmccurdy/glTF-Transform"
+    },
+    {
+     "name": "DuckDB-WASM",
+     "license": "MIT",
+     "role": "Optional SQL over Parquet in the browser",
+     "url": "https://github.com/duckdb/duckdb-wasm"
+    }
+   ],
+   "visualization": [
+    "Treemap of bytes per layer",
+    "LOD badge and vintage badge per building layer",
+    "Before/after size table"
+   ],
+   "limits": "Byte targets are partly prototype-measured (in memory, not Parquet or PMTiles); low-zoom simplification loses detail; Parquet and PMTiles need JavaScript readers; footprint change detection is untested."
+  },
+  {
+   "module_id": "C03-M03",
+   "name": "GitHub hosting, size budgets and range/compression",
+   "design_question": "How do we host a multi-layer open dataset within GitHub limits while keeping range-read formats working in every target browser?",
+   "method": "Limits (docs): Pages site 1 GB, deploy timeout 10 minutes, bandwidth soft 100 GB/month; the 10 builds/hour soft limit does not apply to custom Actions workflows. Git warns at 50 MiB, blocks at 100 MiB; releases 2 GiB per file, 1,000 assets, no CORS; LFS free 10 GiB and unusable with Pages. Measured 21 Oct 2026 on the team's Pages site: max-age=600, ACAO *, no Access-Control-Expose-Headers; octet-stream and JSON are gzip-encoded for clients that ask. Chromium 152 sends identity when Range is present: fetch returned 206 with raw size and no encoding, so ranges work. A browser HEAD returns the gzip Content-Length (2,383,874 versus 9,722,568 raw), which misleads readers that size files from HEAD. Plan: (1) build in CI, deploy with upload-pages-artifact; (2) release zips for citation, never browser delivery; (3) Playwright probe in Chromium, Firefox and WebKit per extension: 206, raw total, magic bytes; curl is diagnostic only; (4) content-addressed paths, previous version kept one cycle; (5) pass byteLength from the manifest; (6) fallback: 1 km shards or a CORS object store.",
+   "priority": "core",
+   "effort": "est. 2-3 days including Playwright probes",
+   "human_judgment": "If Firefox or WebKit probes fail, decide between sharding and a CORS-enabled object store (adds an account and possible cost).",
+   "inputs": [
+    "GitHub Pages, repository, LFS and release limits (docs)",
+    "Measured HTTP behaviour of the team's Pages site in curl and Chromium",
+    "Layer sizes from C03-M02"
+   ],
+   "outputs": [
+    "Repository and deploy topology",
+    "Size budget table",
+    "Browser range probe script (Playwright) and CI gate"
+   ],
+   "parameters": [
+    {
+     "name": "Pages published site",
+     "relationship": "Hard limit 1 GB; deploy times out at 10 minutes; design budget 400 MB (team choice).",
+     "unit": "MB",
+     "source_ids": [
+      "C03-S15"
+     ]
+    },
+    {
+     "name": "Pages bandwidth",
+     "relationship": "Soft 100 GB/month; at 8 MB per session about 12,500 sessions (arithmetic).",
+     "unit": "GB/month",
+     "source_ids": [
+      "C03-S15"
+     ]
+    },
+    {
+     "name": "Release asset",
+     "relationship": "Under 2 GiB per file, up to 1,000 assets, no total cap; no CORS header on either hop, so CLI and CI only.",
+     "unit": "GiB",
+     "source_ids": [
+      "C03-S19",
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "Git LFS",
+     "relationship": "Free 10 GiB storage and 10 GiB bandwidth; fork pulls count against the parent; cannot be used with Pages.",
+     "unit": "GiB",
+     "source_ids": [
+      "C03-S17"
+     ]
+    },
+    {
+     "name": "browser range behaviour",
+     "relationship": "Fetch standard appends Accept-Encoding: identity when Range is present, so browser ranges return raw bytes; HEAD without Range gets gzip Content-Length. Cross-origin Content-Range is unreadable (no expose header).",
+     "unit": "rule",
+     "source_ids": [
+      "C03-S46",
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "cache TTL",
+     "relationship": "Pages sends Cache-Control max-age=600 on every file and a weak ETag; content-addressed paths avoid mixed versions.",
+     "unit": "s",
+     "source_ids": [
+      "C03-S36"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Largest single file",
+     "good": "20 MB or less (team budget)",
+     "bad": "Above 50 MiB (git warning); 100 MiB blocked",
+     "unit": "MB",
+     "status": "verified",
+     "basis": "Docs: 50 MiB warning, 100 MiB block; CI-built files never enter git",
+     "source_ids": [
+      "C03-S16"
+     ]
+    },
+    {
+     "name": "Published site size",
+     "good": "400 MB or less (budget)",
+     "bad": "Above 1 GB (hard limit)",
+     "unit": "MB",
+     "status": "team_assumption",
+     "basis": "1 GB limit is documented; the 400 MB budget is ours",
+     "source_ids": [
+      "C03-S15"
+     ]
+    },
+    {
+     "name": "Range probe, Chromium 152",
+     "good": "206, Content-Range total equals raw size, no Content-Encoding, magic bytes match",
+     "bad": "Content-Encoding gzip or total differs from raw size",
+     "unit": "pass/fail",
+     "status": "verified",
+     "basis": "Measured: .bin 0-99/9,722,568, first bytes 85 23 83 c4; .fgb on a GitHub Pages site returned 206 with 'fgb' magic",
+     "source_ids": [
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "Range probe, Firefox and WebKit",
+     "good": "Same result as Chromium",
+     "bad": "Gzip bytes or wrong total",
+     "unit": "pass/fail",
+     "status": "unverified",
+     "basis": "Not run in this round; .parquet and .pmtiles on Pages also untested",
+     "source_ids": [
+      "C03-S46"
+     ]
+    },
+    {
+     "name": "Range safety probe via curl with Accept-Encoding gzip",
+     "good": "Diagnostic only",
+     "bad": "Used as the gate: marks every Pages file range-unsafe",
+     "unit": "pass/fail",
+     "status": "false_assumption_corrected",
+     "basis": "curl sends gzip; browsers send identity with Range (206, raw total in Chromium)",
+     "source_ids": [
+      "C03-S36",
+      "C03-S46"
+     ]
+    },
+    {
+     "name": "File size source",
+     "good": "Manifest bytes passed as byteLength",
+     "bad": "Reader sizes the file from HEAD Content-Length",
+     "unit": "rule",
+     "status": "verified",
+     "basis": "Browser HEAD returned 2,383,874 versus 9,722,568 raw; hyparquet uses HEAD unless byteLength is given",
+     "source_ids": [
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "Monthly Pages transfer",
+     "good": "50 GB or less (budget)",
+     "bad": "Above 100 GB (soft limit)",
+     "unit": "GB/month",
+     "status": "team_assumption",
+     "basis": "Soft limit documented; 50% margin is ours",
+     "source_ids": [
+      "C03-S15"
+     ]
+    }
+   ],
+   "libraries": [
+    {
+     "name": "actions/upload-pages-artifact",
+     "license": "MIT",
+     "role": "Package built data for Pages without committing it",
+     "url": "https://github.com/actions/upload-pages-artifact"
+    },
+    {
+     "name": "actions/deploy-pages",
+     "license": "MIT",
+     "role": "Deploy the artifact",
+     "url": "https://github.com/actions/deploy-pages"
+    },
+    {
+     "name": "Playwright",
+     "license": "Apache-2.0",
+     "role": "Run fetch Range probes in Chromium, Firefox and WebKit",
+     "url": "https://github.com/microsoft/playwright"
+    },
+    {
+     "name": "go-pmtiles",
+     "license": "BSD (see LICENSE)",
+     "role": "Verify archives and magic bytes in CI",
+     "url": "https://github.com/protomaps/go-pmtiles"
+    }
+   ],
+   "visualization": [
+    "Budget gauge: site MB versus 1 GB",
+    "Probe results table per file extension and browser"
+   ],
+   "limits": "Limits come from docs read 21 Oct 2026 and may change. Only Chromium 152 and .bin/.fgb were tested; .parquet, .pmtiles, .zip and other browsers are untested."
+  },
+  {
+   "module_id": "C03-M04",
+   "name": "Local cache and layer subscription",
+   "design_question": "How do tools subscribe to layers, stay fresh as open data and policy change, and work offline with minimal bandwidth?",
+   "method": "Subscription is manifest plus versions. The client fetches manifest.json (Pages caches it 10 minutes), compares each layer's version and sha256 with its cache, and downloads only changed content-addressed files, so a stale manifest and a fresh file cannot mix. Browser cache: Cache Storage or OPFS keyed by sha256; keep current and previous. Desktop/Python: %LOCALAPPDATA%/vancouver-context/<layer>/<version>/ with a lock file. Modules call registry.require(['cov-public-trees']) and receive a handle plus attribution; they re-render on a layer-updated event. A weekly GitHub Action reads each portal dataset's data_processed, rebuilds changed layers, carries the previous version's files forward one cycle, validates and deploys. The same job re-hashes tracked policy PDFs (Public Views Guidelines, Solar Access Guidelines, City-wide Design and Development Guidelines) and opens an issue when a hash or amendment date changes. Offline mode serves cached layers and shows source dates. Optional live fallback: City portal exports send Access-Control-Allow-Origin * (HEAD-tested), but rate limits are unverified, so never depend on them at runtime.",
+   "priority": "v1",
+   "effort": "est. 3-4 days",
+   "human_judgment": "Set refresh policy per layer and decide whether students may enable live portal fallback.",
+   "inputs": [
+    "manifest.json from C03-M01",
+    "Portal data_processed timestamps and update cadences",
+    "Browser storage (Cache Storage, OPFS) and a local Windows cache folder",
+    "Council report index for policy changes"
+   ],
+   "outputs": [
+    "registry.require and subscribe API contract",
+    "Weekly rebuild and policy-watch workflow",
+    "Local cache layout and eviction rule"
+   ],
+   "parameters": [
+    {
+     "name": "manifest TTL",
+     "relationship": "Pages serves max-age=600, so clients see updates within about 10 minutes.",
+     "unit": "s",
+     "source_ids": [
+      "C03-S36"
+     ]
+    },
+    {
+     "name": "source cadence",
+     "relationship": "City trees weekdays; parcels, zoning, tax and building lines weekly; permits daily; stations and lines rarely; heritage annual (last 2023-03-24); LiDAR and 2015 footprints static.",
+     "unit": "days",
+     "source_ids": [
+      "C03-S01",
+      "C03-S03",
+      "C03-S07"
+     ]
+    },
+    {
+     "name": "cache versions kept",
+     "relationship": "Current plus previous per layer, keyed by sha256 (team choice).",
+     "unit": "versions",
+     "source_ids": []
+    },
+    {
+     "name": "policy watch",
+     "relationship": "Public Views Guidelines approved 10 Jul 2024, amended 2025 and 4 Feb 2026 (RTS 18292); City-wide Design and Development Guidelines proposed effective 27 Oct 2026 (RTS 18459); adoption unconfirmed.",
+     "unit": "dates",
+     "source_ids": [
+      "C03-S42",
+      "C03-S43",
+      "C03-S44"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Layer staleness",
+     "good": "Within source cadence plus 1 day",
+     "bad": "More than 2 cadences old",
+     "unit": "days",
+     "status": "team_assumption",
+     "basis": "Portal dates read 21 Oct 2026; heritage last modified 2023-03-24 shows stale sources exist",
+     "source_ids": [
+      "C03-S07"
+     ]
+    },
+    {
+     "name": "Bytes re-downloaded per update",
+     "good": "Only changed layer files",
+     "bad": "Whole store",
+     "unit": "MB",
+     "status": "team_assumption",
+     "basis": "Design rule using sha256 comparison",
+     "source_ids": []
+    }
+   ],
+   "visualization": [
+    "Cache panel: version, source date, bytes, last check",
+    "Update toast listing changed layers and policy changes"
+   ],
+   "limits": "Portal rate limits and uptime are unverified; the 10-minute Pages cache means a rebuild is not instantly visible; policy re-hashing cannot tell an amendment from a re-upload."
+  },
+  {
+   "module_id": "C03-M05",
+   "name": "Licence, attribution and share-alike",
+   "design_question": "Which licence and attribution does each layer carry, and how do we keep ODbL share-alike from spreading to other layers, including inherited Vista assets?",
+   "method": "Licence register keyed by layer. OGL-Vancouver (v1.0, based on OGL-BC 2.0), OGL-Metro Vancouver (v1.0), OGL-BC 2.0 and OGL-Canada 2.0 allow commercial use, modification and redistribution with attribution; default statement 'Contains information licensed under the Open Government Licence – Vancouver' (same pattern for Metro Vancouver). Exclusions: personal information, third-party rights, official marks; no endorsement. OSM and Overture buildings are ODbL. Per the OSMF Collective Database guideline, each feature type and region must be all-OSM or all-non-OSM with no cross-references, else the merge is ODbL. Keep ODbL layers in separate files with share_alike=true; rendered PNG/PDF are Produced Works but the database must stay available. Do not merge OSM heights into City footprints. Audit inherited Vista assets: OSM coastline and water clip the terrain; shoreline, water and extension buildings are OSM; the supplied Rhino model was built from 2022 OSM data per its manifest. Flag them ODbL or rebuild coast and water from City LiDAR class 5. TransLink data is permission-based, legend required, revocable: fetch optionally, never mirror. BC Assessment bulk data is not open: use the City tax report. Code MIT or Apache-2.0; NOTICE generated from the manifest.",
+   "priority": "core",
+   "effort": "est. 2-3 days",
+   "human_judgment": "Ask the City and Metro Vancouver whether the default attribution suffices; decide whether to include any ODbL layer at all or rebuild coast and water from non-OSM sources.",
+   "inputs": [
+    "Portal licence pages (OGL-Vancouver, OGL-Metro Vancouver) and OGL-BC, OGL-Canada texts",
+    "OSMF guidelines: collective database, horizontal layers, produced work",
+    "Vista unified_manifest.json, extension_manifest.json and README attribution",
+    "Publisher terms (TransLink, BC Assessment)"
+   ],
+   "outputs": [
+    "Licence register",
+    "Generated NOTICE and on-screen attribution",
+    "Validator rule for transitive ODbL lineage",
+    "Vista asset lineage table"
+   ],
+   "parameters": [
+    {
+     "name": "attribution string",
+     "relationship": "Verified: 'Contains information licensed under the Open Government Licence – Vancouver' (v1.0 text read 21 Oct 2026); same pattern for Metro Vancouver. Layers may carry a provider-specified statement instead.",
+     "unit": "text",
+     "source_ids": [
+      "C03-S41",
+      "C03-S25",
+      "C03-S09",
+      "C03-S10"
+     ]
+    },
+    {
+     "name": "share_alike",
+     "relationship": "true for OSM and Overture buildings (ODbL), for any layer with an ODbL ancestor, and for Vista meshes built from OSM; separate files; no cross-references between OSM and non-OSM feature types.",
+     "unit": "boolean",
+     "source_ids": [
+      "C03-S11",
+      "C03-S12",
+      "C03-S34",
+      "C03-S37"
+     ]
+    },
+    {
+     "name": "redistribution",
+     "relationship": "open, permission or no: TransLink needs permission and legend; BC Assessment bulk is no.",
+     "unit": "enum",
+     "source_ids": [
+      "C03-S33"
+     ]
+    },
+    {
+     "name": "Vista lineage",
+     "relationship": "Terrain clipped by OSM coast and water; water, shoreline and extension buildings from OSM Overpass; central model built from 2022 OSM data (manifest note); SRTM backdrop is the only clearly non-OSM mesh.",
+     "unit": "files",
+     "source_ids": [
+      "C03-S37"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "ODbL separation violations",
+     "good": "0",
+     "bad": "1 or more layers mixing OSM and non-OSM data for one feature type and extent, or lacking derived_from for an inherited asset",
+     "unit": "count",
+     "status": "verified",
+     "basis": "OSMF guideline endorsed 17 June 2016; interpretation, not legal advice; at least 5 of 8 Vista mesh files carry OSM lineage by the manifests' own statements",
+     "source_ids": [
+      "C03-S12",
+      "C03-S37"
+     ]
+    },
+    {
+     "name": "Attribution coverage",
+     "good": "100% of layers have attribution text",
+     "bad": "Any layer without",
+     "unit": "% of layers",
+     "status": "team_assumption",
+     "basis": "Design rule; OGL licences require attribution",
+     "source_ids": [
+      "C03-S41",
+      "C03-S09",
+      "C03-S10"
+     ]
+    }
+   ],
+   "visualization": [
+    "Licence badge per layer",
+    "Attribution footer generated from active layers",
+    "Lineage graph with ODbL ancestors highlighted"
+   ],
+   "limits": "Not legal advice. OGL-Vancouver and OGL-Metro Vancouver texts were read; TransLink terms beyond the quoted summary were not fully read; the supplied Rhino model's own provenance is unverified."
+  },
+  {
+   "module_id": "C03-M06",
+   "name": "Vertical datum and CRS registry",
+   "design_question": "How do heights from CGVD28, CGVD28GVRD, CGVD2013, EGM96 and ellipsoid layers, and portal lon/lat labelled WGS84, stay comparable for cone and airspace tests?",
+   "method": "Every z-bearing file declares z_ref. Known: City LiDAR 2013 CGVD28 and 2018/2022 CGVD28GVRD (Metro Vancouver geoid HTMVBC00); NRCan HRDEM CGVD2013 in EPSG:3979 COGs; Vista SRTM EGM96; 3D Tiles WGS84 ellipsoid; City 2013 DEM zip and YVR 'above sea level' not named; cone heights 'geodetic' with the datum unnamed (council reports give only NAD 1983 UTM 10N corner coordinates). EPSG: 5713 CGVD28; 9245 CGVD2013a(2010), replacing 6647; 4979; 3157; 4617. Horizontal: portal 'WGS84' lon/lat equal NAD83(CSRS) values (LiDAR tile corners project to round kilometres; a parcel vertex matches the City's UTM corner within 0.113 m), so label them NAD83(CSRS); EPSG lists NAD83(CSRS) to WGS 84 transformations of 1 m and 2 m accuracy, so mixing with GNSS, web imagery or 3D Tiles needs a declared transform. Vertical: estimate z_offset_m by differencing NRCan HRDEM VILLE_VANCOUVER (acquired 2013-02-19, CGVD2013) against City 2013 LiDAR GeoTIFFs (flown February 2013, CGVD28) on bare ground. Keep +0.15 m only as a labelled placeholder. Transforms apply on load, never inside source files. Cone results carry 'cone datum unconfirmed' until the City replies.",
+   "priority": "core",
+   "effort": "est. 3-4 days including the offset study",
+   "human_judgment": "Confirm with the City which datum cone geodetic heights use and whether 'measured from' a corner means absolute elevation, before choosing the canonical datum.",
+   "inputs": [
+    "City LiDAR 2013, 2018 and 2022 metadata",
+    "NRCan HRDEM STAC items and COGs",
+    "BC height-transformation page",
+    "Vista SRTM manifest",
+    "Council reports RTS 16338 and RTS 18292 (cone wording and heights)"
+   ],
+   "outputs": [
+    "Datum registry with z_offset_m and uncertainty per layer",
+    "Load-time transform step",
+    "Warning chips when datum is unconfirmed",
+    "Offset study report"
+   ],
+   "parameters": [
+    {
+     "name": "z_offset_m, CGVD2013 minus CGVD28",
+     "relationship": "+0.15 m at Vancouver, preliminary 2013 NRCan table (HTv2.0 versus CGG2010); replace with the HRDEM-versus-City-2013 differencing result.",
+     "unit": "m",
+     "source_ids": [
+      "C03-S31"
+     ]
+    },
+    {
+     "name": "City LiDAR vertical datum",
+     "relationship": "2013: CGVD28 with HTMVBC00; 2018 and 2022: CGVD28GVRD with HTMVBC00 geoid; horizontal NAD83(CSRS), UTM 10.",
+     "unit": "label",
+     "source_ids": [
+      "C03-S06",
+      "C03-S30"
+     ]
+    },
+    {
+     "name": "NRCan HRDEM datum",
+     "relationship": "CGVD2013, projected to EPSG:3979 per project, no edge-matching between projects.",
+     "unit": "label",
+     "source_ids": [
+      "C03-S27"
+     ]
+    },
+    {
+     "name": "3D Tiles heights",
+     "relationship": "Metres above the WGS84 ellipsoid; needs geoid conversion to compare with orthometric layers.",
+     "unit": "m",
+     "source_ids": [
+      "C03-S23"
+     ]
+    },
+    {
+     "name": "horizontal datum test",
+     "relationship": "Six LiDAR tile corners project to round kilometres within 0.001 m; parcel vertex at 2670 Victoria Drive lies 0.113 m from the City's UTM corner. A real 1-2 m datum shift would show.",
+     "unit": "m",
+     "source_ids": [
+      "C03-S06",
+      "C03-S04",
+      "C03-S43"
+     ]
+    },
+    {
+     "name": "published cone heights",
+     "relationship": "Geodetic heights: 27.1 59.8 m; 27.2 54.3 m (68.9 m proposed); 28 Clinton Park 65.7 m, each 'measured from' a corner. Absolute-elevation reading is plausible but unproven.",
+     "unit": "m",
+     "source_ids": [
+      "C03-S43"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Residual offset between layers",
+     "good": "0.05 m or less after correction (team target)",
+     "bad": "0.15 m or more, uncorrected at Vancouver",
+     "unit": "m",
+     "status": "unverified",
+     "basis": "0.15 m is a preliminary NRCan figure for HTv2.0 versus CGG2010, not HTMVBC00",
+     "source_ids": [
+      "C03-S31"
+     ]
+    },
+    {
+     "name": "LiDAR vertical accuracy",
+     "good": "2022: 0.081 m at 95%; 2013 and 2018: 0.18 m vertical, 0.36 m horizontal",
+     "bad": "Larger than the offset being tested",
+     "unit": "m",
+     "status": "verified",
+     "basis": "City dataset metadata",
+     "source_ids": [
+      "C03-S06"
+     ]
+    },
+    {
+     "name": "Horizontal datum residual",
+     "good": "0.2 m or less after labelling portal lon/lat as NAD83(CSRS)",
+     "bad": "1-2 m if treated as true WGS84",
+     "unit": "m",
+     "status": "verified",
+     "basis": "Measured 0.113 m at one parcel vertex and 0.000 m at tile corners; EPSG gives 1 m and 2 m for NAD83(CSRS) to WGS 84",
+     "source_ids": [
+      "C03-S06",
+      "C03-S40"
+     ]
+    },
+    {
+     "name": "Minor-encroachment tolerance context",
+     "good": "Datum error far below 2 m (6.5 ft)",
+     "bad": "Unknown datum treated as exact",
+     "unit": "m",
+     "status": "verified",
+     "basis": "Clause numbered 3.1.5 (under heading 3.2), App A p. 7 of RTS 16338: encroachment no greater than 2 m (6.5 ft) where hardship is shown",
+     "source_ids": [
+      "C03-S42"
+     ]
+    }
+   ],
+   "visualization": [
+    "Datum chip per layer",
+    "Stack diagram of offsets between layers",
+    "Horizontal datum note on the map footer"
+   ],
+   "limits": "No EPSG code for CGVD28GVRD and no Vancouver conversion grid found; +0.15 m is preliminary; the offset study assumes the 2013 HRDEM and City 2013 LiDAR share a flight, which is unconfirmed."
+  },
+  {
+   "module_id": "C03-M07",
+   "name": "Trees and canopy layers",
+   "design_question": "How do we store street trees and canopy compactly while stating height and crown uncertainty honestly?",
+   "method": "Trees: build cov-public-trees from the portal Parquet export (10,358,425 B raw). Keep asset_id, genus/species dictionary ids, diameter_cm (uint16, 0.1 cm), height class and position (0.1 m, EPSG:3157). Drop or flag 477 zero diameters, 3 zero heights and 1 null geometry. height_m has 84 distinct values but ten classes hold 95.6% of trees (4.6 to 32.0 m); these equal 15 to 105 ft in 10 ft steps, so label them 'recorded class value (inferred 10 ft bins)', uncertainty about plus or minus 1.5 m, never 'measured'. Crown width is not supplied: estimate from diameter and genus (team assumption; calibrate on LiDAR). Canopy: derive a canopy height model from City LiDAR 2022 (class 4, DSM minus DTM) at 2 m, uint8 half-metre tiles; 2013 and 2018 LiDAR give change checks; Metro Vancouver 2020 5 m land cover is the regional cross-check. Private trees exist only in the CHM. Prototype: 184,267 valid trees pack to 874,891 B (4.75 B each) with zlib-9. Instance one low-poly crown per genus.",
+   "priority": "v1",
+   "effort": "est. 5-7 days",
+   "human_judgment": "Decide the acceptable crown model and whether to request City canopy polygons.",
+   "inputs": [
+    "City public-trees export",
+    "City LiDAR 2022 tiles (classes 2, 4, 6)",
+    "Metro Vancouver 2020 land cover (5 m)",
+    "Genus lookup for deciduous or evergreen"
+   ],
+   "outputs": [
+    "cov-public-trees GeoParquet",
+    "Canopy height model tiles",
+    "Crown parameter table with uncertainty",
+    "Data-quality counts in the fact sheet"
+   ],
+   "parameters": [
+    {
+     "name": "tree height classes",
+     "relationship": "Ten values 4.6-32.0 m (15-105 ft) hold 95.6% of 184,268 trees; use as classes with +/-1.5 m (inference).",
+     "unit": "m",
+     "source_ids": [
+      "C03-S01"
+     ]
+    },
+    {
+     "name": "crown width",
+     "relationship": "f(diameter_cm, genus); not in the dataset; calibrate on LiDAR canopy height model (team assumption).",
+     "unit": "m",
+     "source_ids": [
+      "C03-S01"
+     ]
+    },
+    {
+     "name": "CHM resolution",
+     "relationship": "2 m cells, uint8 at 0.5 m steps (team choice); source LiDAR density 49 points per m2.",
+     "unit": "m",
+     "source_ids": [
+      "C03-S06"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tree-height uncertainty",
+     "good": "+/-1.5 m stated alongside class heights",
+     "bad": "Heights presented as measured",
+     "unit": "m",
+     "status": "unverified",
+     "basis": "Inferred from 10 ft class spacing; not calibrated",
+     "source_ids": [
+      "C03-S01"
+     ]
+    },
+    {
+     "name": "Tree record hygiene",
+     "good": "Flagged rows reported in the fact sheet",
+     "bad": "Zero diameters, zero heights or null geometry loaded silently",
+     "unit": "rows",
+     "status": "verified",
+     "basis": "Counted 21 Oct 2026: 477 zero diameters, 3 zero heights, 1 null geometry of 184,268",
+     "source_ids": [
+      "C03-S01"
+     ]
+    },
+    {
+     "name": "Regional canopy classification accuracy",
+     "good": "88.3% overall; 80% deciduous; 94% coniferous",
+     "bad": "Local check below these",
+     "unit": "%",
+     "status": "verified",
+     "basis": "Metro Vancouver 2020 report, pp. 4-5",
+     "source_ids": [
+      "C03-S26"
+     ]
+    }
+   ],
+   "visualization": [
+    "Tree instances coloured by height class",
+    "Canopy raster hillshade",
+    "Shadow study at chosen date and hour"
+   ],
+   "limits": "Public trees exclude private trees; attributes can be years old; crown shape is not modelled; the City canopy assessment PDF could not be opened."
+  },
+  {
+   "module_id": "C03-M08",
+   "name": "Future layers: land value, zoning, heritage, transit, traffic, view-cone parameters, shadow, airspace",
+   "design_question": "How do land value, zoning, heritage, transit, traffic, cone parameters, shadow-sensitive spaces and airspace plug into the store without new geometry, and which are safe to use in warnings?",
+   "method": "Store each future layer as attribute-light tables keyed to existing geometry. Land value: aggregate the 2026 tax report (228,935 folios) by land_coordinate (sum land and improvement values, count folios, keep legal_type) and dissolve parcels by tax_coord before joining; mark strata sums. Zoning: keep zoning_district and cd_1_number; no height field. Heritage: category, evaluationgroup, status. Transit: 20 unique stations; add Broadway Subway as 'planned' (BC government: fall 2027). Traffic: locations only; volumes unresolved. View-cone parameters: store policy-sourced reference corners and geodetic heights with page citations (cov-public-views-params). Shadow-sensitive spaces: parks, schools and the Council Table 1 list with rule parameters (equinox, 10 am to 4 pm). Airspace: store SOR/80-902 parameters only, no surface geometry; layer 'unconfirmed', excluded from compliance warnings until Plan BC 1280 and the 2026 proposed-limit maps are obtained.",
+   "priority": "roadmap",
+   "effort": "est. 1-2 days per layer",
+   "human_judgment": "Order the layers by Tall Challenge needs; ask Transport Canada for Plan BC 1280 and the proposed-limit map; confirm cone height reading with the City.",
+   "inputs": [
+    "City parcels, tax report, zoning, heritage, stations, lines, parks, schools",
+    "Council reports RTS 16338, 16506, 18292, 18459",
+    "SOR/80-902 text and the 2026 consultation page",
+    "TransLink GTFS (optional)"
+   ],
+   "outputs": [
+    "Parcel layer with aggregated land-value columns",
+    "Zoning and heritage overlays",
+    "cov-public-views-params table",
+    "Shadow-sensitive space table with rule parameters and citations",
+    "YVR parameter file (unconfirmed)"
+   ],
+   "parameters": [
+    {
+     "name": "parcel-tax join key",
+     "relationship": "tax_coord = land_coordinate; site_id = PID without dashes; aggregate folios per coordinate; dissolve polygons per tax_coord.",
+     "unit": "key",
+     "source_ids": [
+      "C03-S03",
+      "C03-S04"
+     ]
+    },
+    {
+     "name": "join coverage (measured)",
+     "relationship": "99.12% of parcel polygons (98,821 of 99,698) have a 2026 tax record; 93,405 of 93,406 tax coordinates match a parcel; 3,030 coordinates span several polygons; 492 polygons have null tax_coord.",
+     "unit": "%",
+     "source_ids": [
+      "C03-S03",
+      "C03-S04"
+     ]
+    },
+    {
+     "name": "cone reference data",
+     "relationship": "Lower boundaries are defined by reference-building roofs (for example view A: roof of the tower at 1008 Cambie Street) and, for 27.1, 27.2 and 28, by geodetic heights; cite report and page.",
+     "unit": "table",
+     "source_ids": [
+      "C03-S42",
+      "C03-S43"
+     ]
+    },
+    {
+     "name": "solar access rule",
+     "relationship": "Outside Downtown: no new shadow on public parks and school sites, spring and fall equinoxes, 10 am-4 pm PDT. Downtown: fall equinox 22 Sept, 10 am-4 pm PDT, Table 1 spaces. PDT to PT amendment recommended.",
+     "unit": "hours",
+     "source_ids": [
+      "C03-S42",
+      "C03-S45",
+      "C03-S44"
+     ]
+    },
+    {
+     "name": "YVR parameters",
+     "relationship": "SOR/80-902: ARP 2 m above sea level; outer surface 45 m above it (about 47 m, calculated), at least 9 m above ground; approach 1:50; transitional 1:7. Horizontal extent only on Plan BC 1280.",
+     "unit": "m and ratio",
+     "source_ids": [
+      "C03-S32",
+      "C03-S48"
+     ]
+    },
+    {
+     "name": "planned transit",
+     "relationship": "Broadway Subway: six new underground stations, scheduled fall 2027 (BC government release 24 Oct 2025); no open geometry found.",
+     "unit": "stations",
+     "source_ids": [
+      "C03-S07",
+      "C03-S36"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Parcel to tax join coverage",
+     "good": "98% or more of polygons and 100% of tax coordinates matched",
+     "bad": "Below 90% of polygons",
+     "unit": "% of polygons",
+     "status": "verified",
+     "basis": "Measured from portal exports 21 Oct 2026: 99.12% polygons, 99.62% of distinct parcel coordinates, 93,405 of 93,406 tax coordinates",
+     "source_ids": [
+      "C03-S03",
+      "C03-S04"
+     ]
+    },
+    {
+     "name": "YVR outer-surface height",
+     "good": "About 47 m shown only as a parameter in an 'unconfirmed' layer",
+     "bad": "Applying 45 m or 47 m as a city-wide cap or in compliance warnings",
+     "unit": "m",
+     "status": "false_assumption_corrected",
+     "basis": "SOR/80-902 s.3 and Part IV give the sum; the horizontal extent is on Plan BC 1280, and Vancouver may fall outside current Part II",
+     "source_ids": [
+      "C03-S32",
+      "C03-S48"
+     ]
+    },
+    {
+     "name": "Solar rule provenance",
+     "good": "Rule parameters cited to RTS 16338 App C and RTS 16506 App A",
+     "bad": "Presented as a City list of protected spaces without citation",
+     "unit": "flag",
+     "status": "verified",
+     "basis": "Read in council report appendices; adopted PDFs on guidelines.vancouver.ca not opened (403)",
+     "source_ids": [
+      "C03-S42",
+      "C03-S45"
+     ]
+    },
+    {
+     "name": "Heritage layer age",
+     "good": "Modified within 1 year",
+     "bad": "Older than 3 years",
+     "unit": "years",
+     "status": "team_assumption",
+     "basis": "Last modified 2023-03-24; thresholds are ours",
+     "source_ids": [
+      "C03-S07"
+     ]
+    }
+   ],
+   "visualization": [
+    "Parcel choropleth of land value per m2",
+    "Zoning and heritage overlays",
+    "YVR parameter panel marked unconfirmed",
+    "Shadow footprint on parks and schools",
+    "Cone parameter table with citations"
+   ],
+   "limits": "Traffic volumes, mid-block counts, canopy polygons, height-limit maps and Plan BC 1280 were not obtained. YVR proposed limits (consultation closed 12 Sept 2026) and Trout Lake cone amendments are in flux."
+  }
+ ],
+ "datasets": [
+  {
+   "name": "City of Vancouver Public trees",
+   "url": "https://opendata.vancouver.ca/explore/dataset/public-trees/",
+   "publisher": "City of Vancouver (Park Board data team)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports: parquet (10,358,425 B), geojson, csv, fgb (HEAD-tested 200); gpkg returned 400",
+   "key_fields": "asset_id, common_name, genus_name, species_name, cultivar_name, height_m (double), diameter_cm (double), local_area, geom Point. No height-range field.",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84; sibling datasets measure as NAD83(CSRS) values (trees not tested). No vertical datum; heights are tree heights.",
+   "date": "data_processed 2026-10-19; refreshed weekdays",
+   "size": "184,268 records; measured prototype 874,891 B (4.75 B/tree, zlib-9, not Parquet)",
+   "accuracy": "2016 street-tree coordinates; attributes may be years old; 84 height values, ten classes 95.6%; 477 zero diameters, 3 zero heights, 1 null geometry.",
+   "use": "Tree instances for shade, sky-view and climate layers.",
+   "simplify_and_store": "GeoParquet: 0.1 m positions, uint16 diameter, height class, dictionary species (706 genus-species pairs); drop or flag bad rows.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "City of Vancouver Property parcel polygons",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/",
+   "publisher": "City of Vancouver",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (parquet 13,104,935 B); Polygon, MultiPolygon",
+   "key_fields": "civic_number, streetname, tax_coord, site_id, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, measured as NAD83(CSRS) values (vertex 0.113 m from City UTM corner); 2D, no vertical datum.",
+   "date": "modified 2026-10-19; extract updated weekly",
+   "size": "99,698 polygons; tiles estimate 5-12 MB (unmeasured)",
+   "accuracy": "Assessment-based land polygons; positional accuracy not stated. 93,763 distinct tax_coord, 492 null, 3,030 shared by several polygons (up to 63).",
+   "use": "Site boundaries; join key for land value and zoning.",
+   "simplify_and_store": "Round to 0.1 m; dissolve by tax_coord; PMTiles z12-z16 plus GeoParquet with aggregated land-value columns.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Property tax report",
+   "url": "https://opendata.vancouver.ca/explore/dataset/property-tax-report/",
+   "publisher": "City of Vancouver; data owners City and BC Assessment",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (tabular, no geometry)",
+   "key_fields": "pid, land_coordinate, legal_type, zoning_district, current_land_value, current_improvement_value, tax_assessment_year, year_built, report_year, neighbourhood_code",
+   "crs_and_vertical_datum": "Non-spatial; join to parcels by land_coordinate = tax_coord.",
+   "date": "modified 2026-10-19; current year updated weekly",
+   "size": "1,553,514 rows; 2026 = 228,935 folios on 93,406 land_coordinates (STRATA 139,191; LAND 89,529; OTHER 215)",
+   "accuracy": "BC Assessment market values, not appraisals; up to 623 folios on one coordinate, so values are summed unit assessments.",
+   "use": "Land value by parcel layer.",
+   "simplify_and_store": "Keep latest year; aggregate by land_coordinate (sum values, count folios); about 0.5-2 MB (unmeasured).",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Zoning districts and labels",
+   "url": "https://opendata.vancouver.ca/explore/dataset/zoning-districts-and-labels/",
+   "publisher": "City of Vancouver (Planning)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (parquet 914,540 B); Polygon",
+   "key_fields": "zoning_classification, zoning_category, zoning_district, cd_1_number, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "modified 2026-06-29; extract updated weekly",
+   "size": "1,621 polygons; raw export 914,540 B",
+   "accuracy": "Survey-grade in many places, less precise elsewhere (portal text).",
+   "use": "Zoning overlay; CD-1 lookup; no height limits in data.",
+   "simplify_and_store": "Simplify to 0.1 m; district as dictionary id; PMTiles plus small GeoParquet.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Heritage sites",
+   "url": "https://opendata.vancouver.ca/explore/dataset/heritage-sites/",
+   "publisher": "City of Vancouver (Planning)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (parquet 147,437 B); Point",
+   "key_fields": "category, buildingnamespecifics, evaluationgroup, status, municipaldesignationm, provincialdesignationp, streetnumber, streetname, localarea",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "last modified 2023-03-24 (portal says updated annually)",
+   "size": "2,495 records; raw export 147,437 B",
+   "accuracy": "Points only; monuments, trees and parks records have no coordinates and are omitted.",
+   "use": "Heritage overlay and warnings near sites.",
+   "simplify_and_store": "GeoParquet with dictionary-coded category and status.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver View cones",
+   "url": "https://opendata.vancouver.ca/explore/dataset/view-cones/",
+   "publisher": "City of Vancouver",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports; Polygon",
+   "key_fields": "view_number, view_cone_name, description, url, object_id, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values. No height field; cone heights are geodetic per guideline, vertical datum unnamed.",
+   "date": "modified 2026-10-19",
+   "size": "24 polygons; Vista copy 37,707 B",
+   "accuracy": "Plan boundaries only; list has 28 Clinton Park and lacks 12.2 Granville Bridge; portal calls bylaws authoritative; site questions go to views@vancouver.ca.",
+   "use": "Plan footprint of cones; heights come from the parameters layer.",
+   "simplify_and_store": "GeoJSON under 50 KB plus cov-public-views-params with page citations and datum flag.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Building footprints 2015 (with Orthophoto imagery 2022)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/building-footprints-2015/",
+   "publisher": "City of Vancouver (GIS and CADD Services)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (parquet 28,347,956 B); Polygon, MultiPolygon. Orthophoto 2022: 470 tiles, MrSID/ECW links",
+   "key_fields": "object_id, geom (no height, elevation, base or top fields)",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; 2D. Orthophoto 2022 is EPSG:26910, 7.5 cm.",
+   "date": "modified 2022-06-09; reflects 2015, not updated; orthophoto 2022 captured Jun-Jul 2022",
+   "size": "154,124 polygons; prototype 15.9-20 B per footprint geometry",
+   "accuracy": "Traced from 2015 orthophotos; approximate, 'best used for comparison purposes only' (portal text).",
+   "use": "Base footprints for LOD1 with change detection against LiDAR 2022; orthophoto as tracing source.",
+   "simplify_and_store": "Simplify at 0.5 m; add z_ground_m, z_roof_max_m, vintage and change_flag; add footprints traced from LiDAR class 6 where missing; record derived_from.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver LiDAR 2022 (with LiDAR 2013 and 2018)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
+   "publisher": "City of Vancouver (GIS and CADD Services)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Zipped LAS per 1 km tile named by UTM SW corner (181 tiles; 2013: 168 tiles with GeoTIFF and LAS; 2018: 181)",
+   "key_fields": "name, lidar_url, geom; classes 2 ground, 3 low veg, 4 high veg, 5 water, 6 buildings, 7 other, 8 noise",
+   "crs_and_vertical_datum": "UTM 10, NAD83(CSRS) 4.0.0.BC.1.GVRD; vertical CGVD28GVRD (HTMVBC00). 2013: CGVD28; 2018: CGVD28GVRD.",
+   "date": "2022 acquired 7 and 9 Sept 2022; modified 2023-04-18; 2013 flown Feb 2013",
+   "size": "2022 zips 16.45 MB to 2.74 GB per tile; AOI about 134 km2",
+   "accuracy": "2022: 49 pts/m2, 0.081 m vertical (95%). 2013: 12+ pts/m2, 0.18 m vertical, 0.36 m horizontal. 2018: 30 pts/m2, 0.18 m.",
+   "use": "Derive DTM, DSM, canopy height, building heights and change detection.",
+   "simplify_and_store": "Do not store; process offline; ship derived tiles with z_ref and tile index citation.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver legacy terrain and shoreline (DEM 2013, 1 m contours 2002, Shoreline 2002)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/digital-elevation-model/",
+   "publisher": "City of Vancouver (GIS and CADD Services)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "DEM: zipped GeoTIFF 1.91 GB; contours: 5,929 lines with elevation; shoreline: 2 records",
+   "key_fields": "DEM raster; contours: elevation, geom; shoreline: geom",
+   "crs_and_vertical_datum": "DEM UTM 10, NAD83(CSRS); vertical datum not stated for DEM or contours.",
+   "date": "DEM modified 2015-08-18; contours 2002; shoreline 2002; none updated",
+   "size": "1.91 GB zipped DEM; contours and shoreline small",
+   "accuracy": "Approximate: contours and shoreline digitised from 2002 orthophotos; DEM 2013 'approximate elevations'.",
+   "use": "Sanity checks and a non-OSM coast fallback; prefer LiDAR 2022 products.",
+   "simplify_and_store": "Do not store the DEM; keep contours as a check layer only; datum unknown blocks cone tests.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Rapid transit stations and lines",
+   "url": "https://opendata.vancouver.ca/explore/dataset/rapid-transit-stations/",
+   "publisher": "City of Vancouver (Engineering)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports; stations Point (22 rows), lines LineString (3)",
+   "key_fields": "station, geo_local_area, geom; lines: line, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "stations modified 2023-02-22; lines 2020-11-19",
+   "size": "22 rows = 20 unique names (Waterfront and Commercial - Broadway twice); 3 lines; negligible",
+   "accuracy": "Only portions within city boundary; underground lines approximate; no Broadway Subway stations.",
+   "use": "Transit proximity layer.",
+   "simplify_and_store": "Deduplicate by name; inline JSON in the manifest bundle; add planned stations as a separate layer.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "City of Vancouver Parks (polygon representation)",
+   "url": "https://opendata.vancouver.ca/explore/dataset/parks-polygon-representation/",
+   "publisher": "City of Vancouver (Park Board)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (parquet 418,111 B); Polygon, MultiPolygon",
+   "key_fields": "park_name, classification, area_hectare, local_area, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "modified 2026-09-28; portal says data taken from Park Board site July 2009, extract updated weekly",
+   "size": "254 polygons; raw export 418,111 B",
+   "accuracy": "As accurate as the Park Board site; boundary accuracy not stated.",
+   "use": "Shadow-sensitive public space candidates; join to Council Table 1 by park name.",
+   "simplify_and_store": "Simplify to 0.1 m; GeoParquet plus tiles.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Schools",
+   "url": "https://opendata.vancouver.ca/explore/dataset/schools/",
+   "publisher": "City of Vancouver",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports (parquet 14,628 B); Point",
+   "key_fields": "school_name, school_category, address, geo_local_area, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "modified 2023-07-01; portal says Ministry data extracted July 2009",
+   "size": "194 points; negligible",
+   "accuracy": "Points, not school-ground polygons; source extract is old.",
+   "use": "Shadow-sensitive space candidates (school yards need polygons).",
+   "simplify_and_store": "Inline JSON; add polygons later from parcels.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Intersection traffic movement counts and Directional traffic count locations",
+   "url": "https://opendata.vancouver.ca/explore/dataset/intersection-traffic-movement-counts/",
+   "publisher": "City of Vancouver (Engineering)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API; Point (659) and LineString (6,680)",
+   "key_fields": "intersection, url (VanMap link); location, geom",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "both modified 2020-11-19; static",
+   "size": "659 points; 6,680 lines; under 1 MB estimated",
+   "accuracy": "Locations approximate; no volume values in the open data.",
+   "use": "Count-site index only; volumes unresolved.",
+   "simplify_and_store": "GeoParquet of locations; keep VanMap links as attributes.",
+   "status": "verified"
+  },
+  {
+   "name": "City of Vancouver Issued building permits",
+   "url": "https://opendata.vancouver.ca/explore/dataset/issued-building-permits/",
+   "publisher": "City of Vancouver (Development, Buildings and Licensing)",
+   "licence": "Open Government Licence - Vancouver",
+   "format": "Portal API and exports; geom",
+   "key_fields": "permitnumber, issuedate, issueyear, typeofwork, projectvalue, propertyuse, address, geom (no height or storeys)",
+   "crs_and_vertical_datum": "Lon/lat labelled WGS84, presumed NAD83(CSRS) values; no vertical datum.",
+   "date": "modified 2026-10-20; current year daily",
+   "size": "52,421 records since 2017: New Building 12,013 (4,635 since 1 Sep 2022); Demolition 7,162",
+   "accuracy": "Quality lower before May 2016; 178 New Building records lack geometry; a permit is not a completed building.",
+   "use": "Proxy for the 2015-to-2026 footprint gap and trigger for LOD1 refresh.",
+   "simplify_and_store": "Keep New Building and Demolition; date, address, point; small GeoParquet.",
+   "status": "verified"
+  },
+  {
+   "name": "Metro Vancouver Land Cover Classification 2020 and Tree canopy and impervious surface by block",
+   "url": "https://open-data-portal-metrovancouver.hub.arcgis.com/api/search/v1/collections/all/items?q=land%20cover%20classification&limit=8",
+   "publisher": "Metro Vancouver Regional Planning (Caslys Consulting)",
+   "licence": "Open Government Licence - Metro Vancouver (v1.0; licence text read)",
+   "format": "Land cover tif item (type Map Template, zip, 23,604,635 B); raster File Geodatabase 23,917,329 B; canopy-by-block ArcGIS Feature Service",
+   "key_fields": "Land cover classes incl. coniferous, deciduous, shrub, paved, buildings; canopy, impervious and potential planting percentages per 2021 dissemination block",
+   "crs_and_vertical_datum": "CRS not read; no vertical datum.",
+   "date": "tif item modified 2026-02-25; imagery 2020; canopy service item modified 2024-04-04",
+   "size": "5 m raster 23.6 MB zipped; canopy service item 22,528,000 B",
+   "accuracy": "Overall 88.3%; deciduous 80%; coniferous 94% (report); block summaries derive from the 5 m raster.",
+   "use": "Regional canopy cross-check; North Shore vegetation context.",
+   "simplify_and_store": "Clip to study area; tree classes as 1-bit or 2-bit tiles; keep three block percentages.",
+   "status": "verified"
+  },
+  {
+   "name": "NRCan HRDEM CanElevation Series (DTM and DSM)",
+   "url": "https://datacube.services.geo.ca/stac/api/collections/hrdem-lidar",
+   "publisher": "Natural Resources Canada",
+   "licence": "Open Government Licence - Canada 2.0",
+   "format": "Cloud-optimised GeoTIFF on S3 (ACAO *, range 206 verified); STAC API; 1 m and 2 m products",
+   "key_fields": "dtm, dsm, extent, coverage assets per project; datetime per project",
+   "crs_and_vertical_datum": "EPSG:3979 (Canada Atlas Lambert) per STAC; vertical CGVD2013; projects not edge-matched.",
+   "date": "collection items updated 2026-01-21; VILLE_VANCOUVER 2013-02-19, BC Lower Mainland 2016-09-12, Sunshine Coast 2018-10-01",
+   "size": "DTM COGs 22.7 GB (Lower Mainland) and 71.5 GB (Sunshine Coast); VILLE_VANCOUVER 30,868 x 35,645 px",
+   "accuracy": "Not stated on record; downtown intersects three projects; North Shore points return Sunshine Coast 2018 only.",
+   "use": "North Shore mountain terrain and backdrop; offset study against City 2013 LiDAR.",
+   "simplify_and_store": "Range-read COGs offline or in CI; ship derived terrain tiles with project id, datum and offset.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "NRCan CanElevation LiDAR point clouds (COPC)",
+   "url": "https://registry.opendata.aws/canelevation-pointcloud/",
+   "publisher": "Natural Resources Canada",
+   "licence": "Open Government Licence - Canada",
+   "format": "COPC LAZ on public S3 bucket canelevation-lidar-point-clouds (ca-central-1)",
+   "key_fields": "Point cloud by project",
+   "crs_and_vertical_datum": "NAD83(CSRS) epoch 2010, UTM; vertical CGVD2013 orthometric.",
+   "date": "record modified 2026-06-12; projects from 2014",
+   "size": "Not stated",
+   "accuracy": "Not stated on record.",
+   "use": "Streaming source for terrain and tree heights beyond the City.",
+   "simplify_and_store": "Do not mirror; link tile index; derive small rasters.",
+   "status": "unverified"
+  },
+  {
+   "name": "LidarBC Open LiDAR Data Portal",
+   "url": "https://catalogue.data.gov.bc.ca/dataset/lidarbc-open-lidar-data-portal",
+   "publisher": "GeoBC (Province of British Columbia)",
+   "licence": "Open Government Licence - British Columbia",
+   "format": "LAZ tiles via portal",
+   "key_fields": "Point clouds and derived DEM/DSM from five contributors",
+   "crs_and_vertical_datum": "Not verified for Metro Vancouver and North Shore tiles.",
+   "date": "catalogue record read 2026-10-21",
+   "size": "Not stated",
+   "accuracy": "Not stated",
+   "use": "North Shore terrain and canopy if NRCan coverage is missing.",
+   "simplify_and_store": "Derive and store small rasters only; check tile metadata for datum.",
+   "status": "unverified"
+  },
+  {
+   "name": "ParcelMap BC Parcel Polygons (open)",
+   "url": "https://catalogue.data.gov.bc.ca/dataset/parcelmap-bc-parcel-polygons-ogl",
+   "publisher": "Province of British Columbia (LTSA)",
+   "licence": "Open Government Licence - British Columbia",
+   "format": "File geodatabase, WMS, KML",
+   "key_fields": "Subset of parcel attributes; strata as one polygon per plan",
+   "crs_and_vertical_datum": "NAD83(CSRS); 3D polygons with height 0.",
+   "date": "metadata modified 2026-10-20",
+   "size": "Over two million parcels province-wide",
+   "accuracy": "Not the legal boundary; plans of survey govern.",
+   "use": "Cross-check City parcels; extend beyond Vancouver (North Shore).",
+   "simplify_and_store": "Clip to study area; store geometry only, no tax values.",
+   "status": "verified"
+  },
+  {
+   "name": "Transport Canada Vancouver International Airport Zoning Regulations (SOR/80-902)",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "publisher": "Government of Canada (Justice Laws); consultation by Transport Canada",
+   "licence": "Crown regulation text; reuse terms not checked",
+   "format": "Legal text; surfaces plotted on Plan BC 1280 sheets 1-32 (2 Nov 1978); no GIS data",
+   "key_fields": "s.3 ARP 2 m above sea level; Part II outer limits; Part III approach 1:50, 15 000 m; Part IV outer 45 m; Part VI transitional 1:7",
+   "crs_and_vertical_datum": "Heights relative to ARP assigned elevation; sea-level datum not named; ARP given by offsets, no coordinates.",
+   "date": "current to 2026-09-30; consultation 14 Jul to 12 Sep 2026",
+   "size": "Parameters only",
+   "accuracy": "Part II boundary follows the Richmond-Vancouver line on the North Arm (Vancouver coverage inferred, not stated); proposed 2026 limits cover much of Vancouver and Burnaby; maps on request.",
+   "use": "Unconfirmed airspace parameters; no compliance warnings until plans are obtained.",
+   "simplify_and_store": "Parameter JSON plus generator script; no meshes; mark 'unconfirmed'; heliport and water-aerodrome surfaces unresolved.",
+   "status": "false_assumption_corrected"
+  },
+  {
+   "name": "TransLink GTFS static",
+   "url": "https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/gtfs/gtfs-data",
+   "publisher": "TransLink",
+   "licence": "TransLink terms: limited, revocable, non-exclusive; legend required",
+   "format": "GTFS zip, weekly",
+   "key_fields": "stops, routes, trips, stop_times, shapes",
+   "crs_and_vertical_datum": "Lon/lat; no vertical datum.",
+   "date": "weekly",
+   "size": "Not measured",
+   "accuracy": "Feed passes Google validator at error level.",
+   "use": "Optional transit service layer.",
+   "simplify_and_store": "Optional client-side fetch; do not mirror or commit.",
+   "status": "verified"
+  },
+  {
+   "name": "BC Ministry of Transportation Traffic Data Program",
+   "url": "https://www.th.gov.bc.ca/trafficData/",
+   "publisher": "Province of British Columbia",
+   "licence": "Unresolved; DataBC 2004-2010 volumes are Open Government Licence - British Columbia",
+   "format": "Interactive map; legacy zip 1997-2015; DataBC xlsx",
+   "key_fields": "AADT and summer volumes by segment (DataBC 2004-2010)",
+   "crs_and_vertical_datum": "Not read.",
+   "date": "Unresolved for current years",
+   "size": "Not measured",
+   "accuracy": "Counts factored from permanent stations since 2004.",
+   "use": "Highway volumes near the city edge; not local streets.",
+   "simplify_and_store": "Do not store until licence and format are confirmed.",
+   "status": "unverified"
+  },
+  {
+   "name": "Overture Maps buildings",
+   "url": "https://docs.overturemaps.org/guides/buildings/",
+   "publisher": "Overture Maps Foundation",
+   "licence": "ODbL; credit OpenStreetMap contributors and each source",
+   "format": "Monthly Parquet on S3 and Azure; release 2026-09-23.1",
+   "key_fields": "building footprints, height, parts; building_part from OSM only",
+   "crs_and_vertical_datum": "Lon/lat; height is above ground, no datum.",
+   "date": "release 2026-09-23.1",
+   "size": "Not measured",
+   "accuracy": "Guide lists City of Vancouver among sources; the attribution page does not; height coverage and vintage not documented; ML footprints less precise.",
+   "use": "Optional height fallback; separate ODbL layer only.",
+   "simplify_and_store": "Keep in separate ODbL files; never merge with City footprints.",
+   "status": "verified"
+  },
+  {
+   "name": "City Council policy tables: view-cone reference data and solar-access spaces",
+   "url": "https://council.vancouver.ca/20260204/documents/cfsc2.pdf",
+   "publisher": "City of Vancouver (Planning, Urban Design and Sustainability)",
+   "licence": "Not stated on reports; confirm before redistributing tables",
+   "format": "Council report PDFs (RTS 16338, 16506, 18292, 18459, 19750); parameters hand-transcribed",
+   "key_fields": "view id; reference building or parcel corner; UTM corner coordinates; geodetic height m and ft; park or school name and class; solar rule hours",
+   "crs_and_vertical_datum": "Corner coordinates NAD 1983 UTM Zone 10N; vertical datum for geodetic heights not named.",
+   "date": "RTS 16338 (10 Jul 2024); 16506 (23 Jul 2025); 18292 (4 Feb 2026); 18459 (28 Jul 2026); 19750 (14 Jul 2026)",
+   "size": "Three numeric cone heights (27.1, 27.2, 28); roof-reference list for other views; Table 1 of parks, schools and plazas",
+   "accuracy": "Policy drafts appended to reports; adopted PDFs on guidelines.vancouver.ca returned 403; Trout Lake amendments referred back (RTS 19750).",
+   "use": "Cone parameters, solar rules and validation of height-limit surfaces.",
+   "simplify_and_store": "Transcribe to JSON with page citations and report sha256; mirror no PDFs.",
+   "status": "verified"
+  },
+  {
+   "name": "BC Assessment Data Advice (bulk assessment data)",
+   "url": "https://info.BCassessment.ca/Shared%20Documents/Appendix-6-Assessment-Search-Subscription.pdf",
+   "publisher": "BC Assessment",
+   "licence": "Negotiated licence; bulk redistribution reported as prohibited (unopened)",
+   "format": "Subscription feed",
+   "key_fields": "Assessment values",
+   "crs_and_vertical_datum": "Not applicable",
+   "date": "Not applicable",
+   "size": "Not applicable",
+   "accuracy": "Authoritative source of City report values",
+   "use": "Do not use; take land values from the City property tax report.",
+   "simplify_and_store": "Do not store.",
+   "status": "false_assumption_corrected"
+  }
+ ],
+ "validation_cases": [
+  {
+   "case": "Tree record spot-check",
+   "input": "public-trees records where asset_id = 249225",
+   "expected": "2835 E 3RD AV, Pacific Sunset maple, height_m 4.6, diameter_cm 11.4, Hastings-Sunrise, lon -123.046092 lat 49.267646; store must match within 0.1 m",
+   "source": "C03-S01"
+  },
+  {
+   "case": "Tree height classes and hygiene",
+   "input": "records?select=height_m,count(*)&group_by=height_m; where diameter_cm=0; height_m=0; geom is null",
+   "expected": "84 distinct values; 4.6 m = 47,282; 7.6 m = 42,846; ten class values total 176,200 (95.6%); 477 zero diameters; 3 zero heights; 1 null geometry",
+   "source": "C03-S01"
+  },
+  {
+   "case": "Parcel to tax join example",
+   "input": "tax_coord 60011996 in parcels; land_coordinate 60011996, report_year 2026 in tax report",
+   "expected": "Parcel 1030 W GEORGIA ST, site_id 003903826; tax: PID 003-903-826, zoning DD, land 69,902,000, improvement 86,190,000, year_built 1956",
+   "source": "C03-S03; C03-S04"
+  },
+  {
+   "case": "Join coverage and strata aggregation (exact)",
+   "input": "Export land_coordinate (report_year 2026) and parcel tax_coord; count distinct and intersect; count folios on coordinate 32071895",
+   "expected": "93,406 tax coordinates; 93,763 parcel coordinates (492 null polygons); 93,405 matched; 98,821 of 99,698 polygons (99.12%); 3,030 coordinates span several polygons; coordinate 32071895 has 623 folios; API count(distinct) says 94,111 (approximate)",
+   "source": "C03-S03; C03-S04"
+  },
+  {
+   "case": "Row-count reconciliation",
+   "input": "Compare manifest count with portal total_count",
+   "expected": "Parcels 99,698; tax report 1,553,514 (2026: 228,935); trees 184,268; footprints 154,124; zoning 1,621; heritage 2,495; view cones 24; station rows 22 = 20 names; lines 3; permits 52,421 (as of 2026-10-21)",
+   "source": "C03-S01; C03-S03; C03-S04; C03-S05; C03-S07"
+  },
+  {
+   "case": "View cone list and heights absent from portal",
+   "input": "view-cones records versus RTS 16338 Table 1 (24 views)",
+   "expected": "24 polygons, no height field; portal lists 28 Clinton Park and lacks 12.2 Granville Bridge; numbers 3.2.1-3.2.4, 9.1, 9.2, 10, 20, 21, 22, 27.1, 27.2, 28, A, B1, B2, D, E, G1, G2, H, J1, J2, K",
+   "source": "C03-S05; C03-S42; C03-S43"
+  },
+  {
+   "case": "Published geodetic heights",
+   "input": "RTS 18292 Appendix A pp. 6-8 (PDF pages 14-16)",
+   "expected": "27.1 lower boundary 59.8 m (196 ft) from NE corner of parcel at 1975 E 12th Avenue; 27.2 54.3 m (178 ft), proposed 68.9 m (226 ft); 28 Clinton Park 65.7 m (215 ft); corners in NAD 1983 UTM 10N; datum unconfirmed flag set",
+   "source": "C03-S43"
+  },
+  {
+   "case": "Site check, 2611 Victoria Drive",
+   "input": "RTS 19750: 83 m, 26 storeys, in view 27.1; ground from LiDAR 2022 DTM versus the 59.8 m plane",
+   "expected": "Staff: encroaches above about the 10th storey. With ground about 37 m (2002 contour, approximate) the plane leaves about 23 m, roughly 7 storeys at 3.2 m; report the residual and the datum flag instead of tuning it away",
+   "source": "C03-S44; C03-S43; C03-S07"
+  },
+  {
+   "case": "Horizontal datum of portal lon/lat",
+   "input": "Project lidar-2022 tile 481000_5456000 corners (-123.261110, 49.256472) etc. with plain UTM 10N (GRS80, no shift); compare parcel 2670 Victoria Drive vertex with City corner X 495,340.12 Y 5,456,431.39",
+   "expected": "Corners give E 481000.000, N 5456000.000 and +1 km steps; vertex within 0.113 m; so portal lon/lat are NAD83(CSRS) values; EPSG lists 1 m and 2 m transformations to WGS 84",
+   "source": "C03-S06; C03-S36; C03-S43; C03-S40"
+  },
+  {
+   "case": "LiDAR datum and accuracy",
+   "input": "lidar-2022, lidar-2018 and lidar-2013 metadata",
+   "expected": "2022: 181 tiles, 49 pts/m2, 0.081 m, CGVD28GVRD. 2013: 168 tiles, 0.18 m, CGVD28. 2018: 30 pts/m2, 0.18 m, CGVD28GVRD. Derived tiles keep z_ref; +0.15 m (preliminary) only as placeholder",
+   "source": "C03-S06; C03-S31"
+  },
+  {
+   "case": "Pages range probe in a browser",
+   "input": "In Chromium on the team's site: fetch(.../generated/unified_buildings.bin, {headers:{Range:'bytes=0-99'}}); then HEAD; then bytes=-8; then curl with Accept-Encoding: gzip",
+   "expected": "Browser Range: 206, Content-Range 0-99/9722568, no Content-Encoding, bytes 85 23 83 c4. HEAD: gzip, Content-Length 2,383,874. bytes=-8: 9722560-9722567/9722568. curl gzip: total 2,383,874, Content-Encoding gzip",
+   "source": "C03-S36; C03-S46"
+  },
+  {
+   "case": "FlatGeobuf on GitHub Pages",
+   "input": "Chromium fetch Range 0-99 on https://flatgeobuf.org/test/data/UScounties.fgb (Server: GitHub.com)",
+   "expected": "206, 100 bytes, magic 66 67 62 03; cross-origin Content-Range unreadable; curl identity total 14,100,008; curl gzip total 7,936,003 with gzip",
+   "source": "C03-S36"
+  },
+  {
+   "case": "Portal GeoParquet metadata",
+   "input": "Read the footer 'geo' key of the rapid-transit-stations parquet export (3,318 B)",
+   "expected": "version 1.1.0-dev; primary_column geo_point_2d; columns geom and geo_point_2d as WKB Point; no crs; no covering; validator must reject",
+   "source": "C03-S36; C03-S21"
+  },
+  {
+   "case": "Release asset has no CORS",
+   "input": "HEAD with Origin header on https://github.com/protomaps/go-pmtiles/releases/download/v1.31.2/go-pmtiles_1.31.2_Linux_arm64.tar.gz, then follow Location",
+   "expected": "302 then 206 on release-assets.githubusercontent.com; neither hop returns Access-Control-Allow-Origin (tested 2026-10-21)",
+   "source": "C03-S36; C03-S19"
+  },
+  {
+   "case": "HRDEM coverage and CRS",
+   "input": "STAC search collections=hrdem-lidar at lon -123.12 lat 49.283 and at -123.0786 lat 49.3796; HEAD a COG with Origin header",
+   "expected": "Downtown: three items (VILLE_VANCOUVER 2013-02-19, BC Lower Mainland 2016, Sunshine Coast 2018), proj:epsg 3979; Grouse point: Sunshine Coast only; COG range 206 with ACAO *",
+   "source": "C03-S27"
+  },
+  {
+   "case": "YVR current-law numbers",
+   "input": "SOR/80-902 s.3, Part II, Part IV; consultation page",
+   "expected": "ARP 2 m; outer plane 45 m above it, about 47 m (calculation); minimum 9 m above ground; extent on Plan BC 1280 sheets 1-32; Part II follows the North Arm boundary; layer stays 'unconfirmed'",
+   "source": "C03-S32; C03-S48"
+  },
+  {
+   "case": "Size baselines",
+   "input": "release-manifest.json and unified_manifest.json; portal parquet export sizes; first 40,000 footprints encoded at 0.1 m",
+   "expected": "Vista 60 files, 51,990,003 B; ext buildings 51,510 in 16,473,300 B = 320 B each; portal footprints 28,347,956 B = 184 B; prototype 15.9 B geometry at 0.5 m simplification",
+   "source": "C03-S37; C03-S36"
+  },
+  {
+   "case": "ODbL separation gate",
+   "input": "Layer B (City footprints plus LiDAR heights) lists OSM buildings layer A in derived_from; Vista terrain lists OSM coastline clip",
+   "expected": "Validator fails unless B and terrain are flagged ODbL; OSM and non-OSM data for one feature type and extent stay in separate layers",
+   "source": "C03-S12; C03-S37"
+  },
+  {
+   "case": "Permit gap proxy",
+   "input": "issued-building-permits group by typeofwork and issueyear",
+   "expected": "New Building 2017-2026 = 12,013 (2022: 1,469; 2026: 775); since 2022-09-01 = 4,635; Demolition 7,162; 178 New Building records without geometry",
+   "source": "C03-S07"
+  },
+  {
+   "case": "Solar rule parameters",
+   "input": "RTS 16338 App C clause 6.1.1; RTS 16506 App A clause 3.1.1",
+   "expected": "Outside Downtown: no new shadow on public parks and school sites, spring and fall equinoxes, 10 a.m.-4 p.m. PDT. Downtown: fall equinox (22 Sept), 10 am-4 pm PDT, Table 1 spaces; RTS 18459 App D recommends PDT to PT",
+   "source": "C03-S42; C03-S45; C03-S44"
+  },
+  {
+   "case": "Metro Vancouver canopy raster",
+   "input": "Hub item Land Cover Classification 2020 (tif) and report pp. 4-5",
+   "expected": "5 m raster; item type Map Template zip, 23,604,635 B; licence link 'Open Government Licence | Metro Vancouver Open Data Portal'; overall accuracy 88.3%, deciduous 80%, coniferous 94%",
+   "source": "C03-S25; C03-S26"
+  }
+ ],
+ "sources": [
+  {
+   "id": "C03-S01",
+   "title": "Public trees: API metadata, records, group-by and exports",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/public-trees",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "184,268 records; OGL-Vancouver; processed 2026-10-19; 84 height_m values, ten classes 95.6%; 477 zero diameters, 3 zero heights, 1 null geometry; parquet export 10,358,425 B; asset 249225 matches."
+  },
+  {
+   "id": "C03-S03",
+   "title": "Property tax report (metadata, queries, CSV export)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-tax-report",
+   "publisher": "City of Vancouver; BC Assessment data",
+   "year": "2026",
+   "opened": true,
+   "extract": "1,553,514 rows; 2026 has 228,935 folios on 93,406 land_coordinates (exact from export; API count-distinct 94,111 is approximate); STRATA 139,191; max 623 folios; 1030 W Georgia checked."
+  },
+  {
+   "id": "C03-S04",
+   "title": "Property parcel polygons (metadata, CSV and parquet exports)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "99,698 polygons; 93,763 distinct tax_coord, 492 null, 3,030 shared; 99.12% of polygons have a 2026 tax record; parquet export 13,104,935 B; vertex of 2670 Victoria Drive 0.113 m from City UTM corner."
+  },
+  {
+   "id": "C03-S05",
+   "title": "View cones (metadata and 24 records)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "24 polygons; no height field; includes 28 Clinton Park, lacks 12.2; modified 2026-10-19; portal says bylaws are authoritative and site questions go to views@vancouver.ca; OGL-Vancouver."
+  },
+  {
+   "id": "C03-S06",
+   "title": "LiDAR 2022, 2018 and 2013 (portal metadata and tile records)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "2022: 181 1 km tiles named by UTM SW corner, 49 pts/m2, 0.081 m, CGVD28GVRD. 2013: 168 tiles, 0.18 m, CGVD28. 2018: 30 pts/m2. Grid map in WGS 84, LAS in NAD83(CSRS)."
+  },
+  {
+   "id": "C03-S07",
+   "title": "City open data catalogue and dataset metadata (footprints, orthophoto, shoreline, contours, DEM, stations, lines, parks, schools, permits)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets?limit=100&select=dataset_id&order_by=dataset_id",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "200 datasets; footprints 2015 'comparison only'; orthophoto 2022 7.5 cm EPSG:26910; stations 22 rows, 20 names; permits New Building 12,013; no canopy raster or traffic volume dataset."
+  },
+  {
+   "id": "C03-S09",
+   "title": "Open Government Licence - British Columbia v2.0",
+   "url": "https://www2.gov.bc.ca/gov/content/data/policy-standards/open-data/open-government-licence-bc",
+   "publisher": "Province of British Columbia",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Worldwide, royalty-free, perpetual use incl. commercial; attribution statement required; exclusions: personal information, third-party rights, official marks."
+  },
+  {
+   "id": "C03-S10",
+   "title": "Open Government Licence - Canada v2.0",
+   "url": "https://open.canada.ca/en/open-government-licence-canada",
+   "publisher": "Government of Canada",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Commercial use, copying, modification and distribution allowed; standard attribution statement for multiple sources; exclusions as OGL-BC."
+  },
+  {
+   "id": "C03-S11",
+   "title": "OpenStreetMap copyright and licence",
+   "url": "https://www.openstreetmap.org/copyright",
+   "publisher": "OpenStreetMap Foundation",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Data under ODbL; credit required; if you alter or build upon the data you may distribute the result only under the same licence."
+  },
+  {
+   "id": "C03-S12",
+   "title": "OSMF guidelines: Collective Database, Horizontal Map Layers, Produced Work",
+   "url": "https://osmfoundation.org/wiki/Community_Guidelines/Collective_Database_Guideline_Guideline",
+   "publisher": "OpenStreetMap Foundation",
+   "year": "2016",
+   "opened": true,
+   "extract": "Collective Database endorsed 17 June 2016: independent when each data type per regional cut is all OSM or all non-OSM and datasets do not reference each other. Produced Work: image outputs need the database available."
+  },
+  {
+   "id": "C03-S15",
+   "title": "GitHub Pages limits",
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "publisher": "GitHub",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Site no larger than 1 GB; source repo 1 GB recommended; soft 100 GB/month bandwidth; soft 10 builds/hour, not applicable to custom Actions workflows; 10-minute deploy timeout; 429 on rate limit."
+  },
+  {
+   "id": "C03-S16",
+   "title": "About large files on GitHub",
+   "url": "https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github",
+   "publisher": "GitHub",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Warning above 50 MiB; blocked above 100 MiB; repos under 1 GB where possible, under 5 GB strongly recommended; releases have no total size limit."
+  },
+  {
+   "id": "C03-S17",
+   "title": "About Git LFS and Git LFS billing",
+   "url": "https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage",
+   "publisher": "GitHub",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Per-file maximum 2 GB Free/Pro; Git LFS cannot be used with GitHub Pages sites. Billing page: free plan 10 GiB storage and 10 GiB bandwidth; fork pulls count against the parent."
+  },
+  {
+   "id": "C03-S19",
+   "title": "About releases",
+   "url": "https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases",
+   "publisher": "GitHub",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Each release file under 2 GiB; up to 1,000 assets per release; no limit on total release size or bandwidth; CORS not mentioned."
+  },
+  {
+   "id": "C03-S20",
+   "title": "PMTiles v3 specification",
+   "url": "https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md",
+   "publisher": "Protomaps",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "127-byte header; root directory within first 16 KiB; tile types MVT, PNG, JPEG, WebP, AVIF; gzip, brotli or zstd compression; Hilbert tile ids."
+  },
+  {
+   "id": "C03-S21",
+   "title": "GeoParquet 1.1.0",
+   "url": "https://geoparquet.org/releases/v1.1.0/",
+   "publisher": "GeoParquet (OGC community)",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "CRS MUST be PROJJSON, default OGC:CRS84; bbox covering columns; WKB x,y order; epoch field; Z allowed; vertical datums and compound CRS not discussed; no row group size advice."
+  },
+  {
+   "id": "C03-S22",
+   "title": "FlatGeobuf",
+   "url": "https://flatgeobuf.org/",
+   "publisher": "FlatGeobuf project",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Packed Hilbert R-tree index; HTTP range access; read-only; BSD 2-Clause; compression not part of format; Z support and CRS not stated on page."
+  },
+  {
+   "id": "C03-S23",
+   "title": "3D Tiles 1.1 specification",
+   "url": "https://github.com/CesiumGS/3d-tiles/blob/main/specification/README.adoc",
+   "publisher": "Cesium / OGC community",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "glTF content; implicit tiling; region volumes in radians with heights in metres above the WGS84 ellipsoid; legacy b3dm and i3dm deprecated."
+  },
+  {
+   "id": "C03-S25",
+   "title": "Metro Vancouver Hub items and Open Government Licence page",
+   "url": "https://open-data-portal-metrovancouver.hub.arcgis.com/api/search/v1/collections/all/items?q=land%20cover%20classification&limit=8",
+   "publisher": "Metro Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Land Cover 2020 tif item type Map Template zip 23,604,635 B; raster geodatabase 23,917,329 B; canopy-by-block service 22,528,000 B. OGL-Metro Vancouver v1.0 text read; attribution pattern as OGL-Vancouver."
+  },
+  {
+   "id": "C03-S26",
+   "title": "2020 Regional Tree Canopy Cover and Impervious Surface in Metro Vancouver",
+   "url": "https://metrovancouver.org/services/regional-planning/Documents/regional-tree-canopy-cover-impervious-surface-2020.pdf",
+   "publisher": "Metro Vancouver",
+   "year": "2024",
+   "opened": true,
+   "extract": "5 m land cover from PlanetScope and LiDAR; overall accuracy 88.3% (kappa 0.85); deciduous 80%, coniferous 94%; shrubs under about 3-4 m (pp. 4-5, App. C)."
+  },
+  {
+   "id": "C03-S27",
+   "title": "HRDEM STAC collection and items (with open.canada.ca record)",
+   "url": "https://datacube.services.geo.ca/stac/api/collections/hrdem-lidar",
+   "publisher": "Natural Resources Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "OGL-Canada 2.0; CGVD2013; reprojected to EPSG:3979, no edge-matching; downtown intersects VILLE_VANCOUVER 2013, Lower Mainland 2016, Sunshine Coast 2018; COGs on S3 return 206 with ACAO *."
+  },
+  {
+   "id": "C03-S28",
+   "title": "CanElevation LiDAR point clouds on AWS and LidarBC catalogue records",
+   "url": "https://registry.opendata.aws/canelevation-pointcloud/",
+   "publisher": "Natural Resources Canada / AWS Open Data; Province of British Columbia",
+   "year": "2026",
+   "opened": true,
+   "extract": "COPC LAZ 1.4; OGL-Canada; CGVD2013, NAD83(CSRS) epoch 2010; public S3. LidarBC under OGL-BC, five contributors, GeoBC; datum for Metro Vancouver tiles not stated."
+  },
+  {
+   "id": "C03-S30",
+   "title": "BC height transformations",
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "publisher": "Province of British Columbia",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "States CGVD28 is the current vertical datum; HTMVBC00 hybrid geoid covers Metro Vancouver to Hope; HTv2.0 gives approximate CGVD28 elevations; no regional shift values."
+  },
+  {
+   "id": "C03-S31",
+   "title": "Height Modernization: A New Canadian Vertical Datum (slides)",
+   "url": "https://www.pxw1.snb.ca/snb7001/e/PDF/presentationANBL-e.pdf",
+   "publisher": "Slides hosted by Service New Brunswick; describe NRCan height modernization",
+   "year": "2013",
+   "opened": true,
+   "extract": "Preliminary CGVD2013 minus CGVD28 heights: Vancouver +15 cm, Banff +55 cm, Halifax -64 cm; CGVD28(HTv2.0) versus CGVD2013(CGG2010)."
+  },
+  {
+   "id": "C03-S32",
+   "title": "Vancouver International Airport Zoning Regulations (SOR/80-902)",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "publisher": "Government of Canada, Justice Laws",
+   "year": "2026",
+   "opened": true,
+   "extract": "ARP 2 m above sea level (s.3); outer surface 45 m above it, 9 m above ground minimum (Part IV); approach 1:50 (Part III); transitional 1:7 (Part VI); extents on Plan BC 1280 sheets 1-32, 2 Nov 1978."
+  },
+  {
+   "id": "C03-S33",
+   "title": "TransLink Open API terms of use and GTFS data page",
+   "url": "https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/terms-of-use",
+   "publisher": "TransLink",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Limited, revocable, non-exclusive licence; written approval and API key for the Open API; legend required; GTFS static zip weekly at gtfs-static.translink.ca."
+  },
+  {
+   "id": "C03-S34",
+   "title": "Overture Maps buildings guide and attribution page",
+   "url": "https://docs.overturemaps.org/guides/buildings/",
+   "publisher": "Overture Maps Foundation",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "Guide lists OSM, Esri Community Maps, IGN Spain, City of Vancouver, Microsoft, Google as sources; theme ODbL. Attribution page lists OSM, Esri, Microsoft, Google, USGS 3DEP and others, not City of Vancouver."
+  },
+  {
+   "id": "C03-S35",
+   "title": "An improved LOD specification for 3D building models",
+   "url": "https://3d.bk.tudelft.nl/hledoux/pdfs/16_ceus_lod_specs.pdf",
+   "publisher": "Biljecki, Ledoux, Stoter; Computers, Environment and Urban Systems 59",
+   "year": "2016",
+   "opened": true,
+   "extract": "LOD1 usually extrusion to uniform height; LOD1.0 aggregated; 1.2 most common; 1.3 allows multiple top surfaces above a threshold such as 2 m (pp. 11-13)."
+  },
+  {
+   "id": "C03-S36",
+   "title": "Team measurements 21 Oct 2026: curl and Chromium 152 probes, portal exports, prototype encodings, hyparquet and BC release reading",
+   "url": "https://ruijieliu6.github.io/vancouver-tall-view-tool/generated/unified_terrain.bin",
+   "publisher": "Team measurement (curl, Browser pane fetch, portal API)",
+   "year": "2026",
+   "opened": true,
+   "extract": "Pages: 206, ACAO *, max-age=600; browser Range raw; HEAD gzip length; release hops lack ACAO; hyparquet sizes via HEAD; portal exports and prototype sizes; BC release 24 Oct 2025: Broadway Subway fall 2027."
+  },
+  {
+   "id": "C03-S37",
+   "title": "Vista local files: release-manifest.json, unified_manifest.json, extension_manifest.json, README, guideline.json",
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/vancouver-tall-view-tool/release-manifest.json",
+   "publisher": "Team repo vancouver-tall-view-tool v09.16",
+   "year": "2026",
+   "opened": true,
+   "extract": "60 files, 51,990,003 B with sha256; ext buildings 51,510 in 16,473,300 B; OSM coastline, water and extension buildings; model 'built from 2022 OSM data'; SRTM EGM96; README attributes OSM and SRTM."
+  },
+  {
+   "id": "C03-S39",
+   "title": "Public Views Guidelines PDF",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": false,
+   "extract": "HTTP 403 to curl and WebFetch; browser navigation raised a save dialog and was not retried. Title page: Approved by Council on July 10, 2024 (search listing). Adopted text unread."
+  },
+  {
+   "id": "C03-S40",
+   "title": "EPSG registry entries 5713, 6647, 9245, 3157, 4617",
+   "url": "https://epsg.io/6647",
+   "publisher": "EPSG / epsg.io",
+   "year": "n.d.",
+   "opened": true,
+   "extract": "6647 CGVD2013(CGG2013) replaced by CGVD2013a (9245: CGVD2013a(2010), epoch 2010). 4617 is NAD83(CSRS); 3157 its UTM 10N; transformations to WGS 84 listed at 1.0 m and 2.0 m accuracy."
+  },
+  {
+   "id": "C03-S41",
+   "title": "Open Government Licence - Vancouver (portal licence page)",
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "Version 1.0, based on OGL-BC 2.0; commercial use and redistribution with attribution; default statement 'Contains information licensed under the Open Government Licence – Vancouver'; exclusions for personal information, third-party rights, official marks."
+  },
+  {
+   "id": "C03-S42",
+   "title": "Council report RTS 16338: Public Views, Solar Access, Residential Tower Floorplates (10 Jul 2024)",
+   "url": "https://council.vancouver.ca/20240710/documents/pspc1.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "opened": true,
+   "extract": "105 pages, 37,180,742 B, sha256 f0cf782cda9c6e262d3b15e34338a0fb78d83a497661dedec6848f1eff01d72b. App A: geodetic-height cone wording, clause 3.1.5 (2 m) under heading 3.2; App B: reference roofs; App C: solar rule 6.1.1."
+  },
+  {
+   "id": "C03-S43",
+   "title": "Council report RTS 18292: Targeted Refinements (4 Feb 2026)",
+   "url": "https://council.vancouver.ca/20260204/documents/cfsc2.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "55 pages, 3,562,353 B, sha256 21cd965edf0c6ad1658cc3cc52fba9611cbd8bbd1730e0fce9206d5b81b59ff7. App A: Public Views Guidelines (2024, last amended 2025); cone heights 59.8, 54.3 (68.9 proposed), 65.7 m; NAD 1983 UTM 10N corners."
+  },
+  {
+   "id": "C03-S44",
+   "title": "Council reports RTS 18459 (City-wide Design and Development Guidelines) and RTS 19750 (2611 Victoria Drive)",
+   "url": "https://council.vancouver.ca/20260728/documents/r2.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "opened": true,
+   "extract": "RTS 18459: 156 pages, sha256 0e41aaa14d5c3bb28799e41e83ed3633869d7e6b56ec17f9b854760fac237e03; CDDG effective 27 Oct 2026 if adopted; 4.10 refers to Public Views Guidelines; PDT to PT. RTS 19750 (r26.pdf): 83 m tower, view 27.1, Trout Lake amendments referred back."
+  },
+  {
+   "id": "C03-S45",
+   "title": "Council report RTS 16506: Solar Access Guidelines for the Downtown Peninsula (23 Jul 2025)",
+   "url": "https://council.vancouver.ca/20250723/documents/cfsc1.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2025",
+   "opened": true,
+   "extract": "39 pages, 467,468 B, sha256 a754c818adbfa223e571eca5415f39d3af1638f2355cce244a5132c526a6c4c5. App A 3.1.1: no new shadow on Table 1 parks and school sites, fall equinox 22 Sept, 10 am-4 pm PDT; special cases 4.1-4.3."
+  },
+  {
+   "id": "C03-S46",
+   "title": "Fetch Standard: HTTP-network-or-cache fetch",
+   "url": "https://fetch.spec.whatwg.org/",
+   "publisher": "WHATWG",
+   "year": "2026",
+   "opened": true,
+   "extract": "If the request header list contains Range, append Accept-Encoding: identity; rationale: avoids failures handling content codings with a part of an encoded response, as many servers ignore Range when a non-identity encoding is accepted."
+  },
+  {
+   "id": "C03-S47",
+   "title": "3DBAG attribute documentation",
+   "url": "https://docs.3dbag.nl/en/schema/attributes/",
+   "publisher": "TU Delft 3D geoinformation group",
+   "year": "2026",
+   "opened": true,
+   "extract": "b3_h_50p, b3_h_70p, b3_h_max, b3_h_min roof elevations above NAP; b3_h_maaiveld ground = 5th percentile of ground points within 4 m; b3_pw_datum acquisition year; RMSE and val3dity per LoD."
+  },
+  {
+   "id": "C03-S48",
+   "title": "Transport Canada: updating Vancouver International Airport Zoning Regulations (consultation)",
+   "url": "https://tc.canada.ca/en/corporate-services/consultations/updating-vancouver-international-airport-zoning-regulations",
+   "publisher": "Transport Canada",
+   "year": "2026",
+   "opened": true,
+   "extract": "Consultation 14 Jul to 12 Sep 2026; proposes height limits in Vancouver and Burnaby limiting buildings and tree growth; map of proposed area available on request (aviation.pac@tc.gc.ca); heliports and water aerodromes not mentioned."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "City tree data has a height-range field",
+   "detail": "Current schema has height_m and diameter_cm doubles; no height_range_id.",
+   "correction": "Use height_m, but treat as class midpoints: 84 values, ten classes hold 95.6%.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "GitHub Pages serves any file with usable range requests",
+   "detail": "application/octet-stream and JSON are gzip-encoded; browser range requests return gzip-stream bytes.",
+   "correction": "Probe every extension; default to whole-file GETs up to 20 MB; shard or use another host if probes fail. (Superseded r1: the gzip-bytes claim was wrong for browsers; see next range flag.)",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Release assets can feed the browser viewer",
+   "detail": "Neither the 302 hop nor the final asset host returned Access-Control-Allow-Origin.",
+   "correction": "Use releases for archives and CI; serve browser data from Pages.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Git LFS can hold Pages data",
+   "detail": "GitHub docs state LFS cannot be used with Pages; free quota is 10 GiB.",
+   "correction": "Build in CI and deploy by artifact; no LFS.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "BC Assessment values are open data",
+   "detail": "Bulk data is sold under licence (search snippet, unopened).",
+   "correction": "Use City property tax report under OGL-Vancouver.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "TransLink data is open under an OGL",
+   "detail": "Terms are limited, revocable, with legend and approval.",
+   "correction": "Treat as optional, fetched at runtime, never mirrored.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "City portal offers canopy rasters and traffic volumes",
+   "detail": "None among 200 datasets; traffic datasets hold locations and VanMap links only.",
+   "correction": "Derive canopy from LiDAR; mark volumes unresolved.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Mixing OSM heights into City footprints is acceptable (Vista practice)",
+   "detail": "Merged data can be an ODbL derivative database.",
+   "correction": "Separate ODbL layers; choose City+LiDAR or OSM per feature type and extent.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "OGL-Vancouver default attribution wording (RESOLVED r1)",
+   "detail": "Licence page text read in a browser 21 Oct 2026: version 1.0, based on OGL-BC 2.0.",
+   "correction": "Verified wording: 'Contains information licensed under the Open Government Licence – Vancouver.' Metro Vancouver pattern also read.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": ".parquet, .pmtiles, .fgb files get no gzip on Pages",
+   "detail": "Only .fgb tested r1 (flatgeobuf.org on GitHub Pages): curl gzip gets gzip; browser Range gets raw bytes. .parquet and .pmtiles untested.",
+   "correction": "Run the Playwright one-file probe per extension and browser before committing.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Cone heights share a datum with City LiDAR",
+   "detail": "Council reports give geodetic heights 'measured from' corners with NAD 1983 UTM 10N coordinates; vertical datum unnamed; PDF unread.",
+   "correction": "Ask the City; carry a datum-unconfirmed flag.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Size budgets and byte estimates",
+   "detail": "400 MB site, 20 MB file, 5 MB first load, 40 B per building are ours; r1 prototypes measured trees (4.75 B) and footprint geometry (15.9-20 B) in memory only.",
+   "correction": "Measure Parquet and PMTiles after first build.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Crown width can be estimated from diameter and genus",
+   "detail": "No crown data in the portal.",
+   "correction": "Calibrate against LiDAR canopy height.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "GPT-6 Astra released September 2026",
+   "detail": "Only secondary press reports found; irrelevant to this store.",
+   "correction": "Keep survey data as geography source; model drafts code and text only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "On GitHub Pages a browser Range request returns gzip-stream bytes, so range reads of octet-stream/JSON are broken",
+   "detail": "Fetch standard sends Accept-Encoding: identity with Range. Chromium 152 fetch on the team's site: 206, Content-Range 0-99/9722568, no Content-Encoding. Only curl with gzip gets gzip ranges.",
+   "correction": "Gate range_safe on a Playwright browser probe; Firefox and WebKit untested. Whole-file GETs still gain from gzip. Browser HEAD returns gzip Content-Length, so pass byteLength from the manifest.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "NRCan HRDEM is in UTM NAD83(CSRS) and Vancouver coverage is not confirmed",
+   "detail": "STAC says reprojected to EPSG:3979; items cover downtown (VILLE_VANCOUVER 2013, Lower Mainland 2016) and the North Shore (Sunshine Coast 2018); COGs on S3 return 206 with ACAO *.",
+   "correction": "Record EPSG:3979, CGVD2013, project id per tile; range-read COGs offline or in CI.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "EPSG:6647 is the code for current CGVD2013 heights",
+   "detail": "EPSG:9245 CGVD2013a(2010) height replaces CGVD2013(CGG2013) height (6647).",
+   "correction": "Register 9245 and 6647; record geoid realisation (CGG2013 versus CGG2013a) per layer.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "SOR/80-902 parameters (45 m above a 2 m ARP, about 47 m; 1:50; 1:7) are enough to generate the YVR height ceiling",
+   "detail": "Extent is only on Plan BC 1280 sheets 1-32 (1978); Part II follows the Richmond-Vancouver boundary; 2026 proposed Vancouver and Burnaby limits are mapped only on request.",
+   "correction": "Obtain plans and the proposed-limit map; keep the layer 'unconfirmed' and out of compliance warnings.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The 10 builds/hour soft limit constrains the deploy design",
+   "detail": "GitHub docs: the limit does not apply to sites built and published with a custom Actions workflow.",
+   "correction": "Drop it; relevant limits are 1 GB site, 10-minute deploy timeout and 100 GB/month bandwidth.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rapid transit stations layer = 22 stations",
+   "detail": "22 rows include duplicates (Waterfront x2, Commercial - Broadway x2): 20 unique names; no Broadway Subway stations.",
+   "correction": "Count deduplicated stations; add planned stations separately (BC government: six new stations, fall 2027).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Portal lon/lat labelled WGS84 are WGS84 values",
+   "detail": "LiDAR tile corners project to round UTM kilometres with no datum shift; a parcel vertex matches the City's UTM corner within 0.113 m. Values are NAD83(CSRS) numerically.",
+   "correction": "Label NAD83(CSRS) (EPSG:4617/3157); write PROJJSON crs; declare any transform to true WGS84 (EPSG lists 1-2 m).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Relative height_m and base_m are enough for cone and viewpoint tests",
+   "detail": "Cones use geodetic heights; 'above local ground' is undefined on slopes.",
+   "correction": "Store z_ground_m, z_roof_max_m, z_roof_p50_m, height_basis, vintage in a declared datum; derive height_m for display.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "City 2015 footprints plus LiDAR 2022 heights give a current LOD1 context",
+   "detail": "Footprints are 2015 and not updated; 4,635 New Building permits issued since 1 Sep 2022 and 7,162 demolition permits since 2017.",
+   "correction": "Run change detection against LiDAR class 6, add footprints traced from LiDAR, show vintage and a 'context newer than 2022 not modelled' notice.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "ODbL separation applies to buildings only; Vista terrain and water are free of OSM",
+   "detail": "Vista terrain is clipped by OSM coast and water; water, shoreline and extension buildings are OSM; the model is noted as built from 2022 OSM data.",
+   "correction": "Validate every inherited asset's derived_from; flag ODbL or rebuild coast and water from LiDAR class 5.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Overture lists City of Vancouver as a building source",
+   "detail": "The buildings guide lists it; the attribution page does not. Critique said it was unlisted; r1 found it in the guide.",
+   "correction": "Keep claim with citation; ask Overture which City release and vintage feed the theme.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Clause numbers cited from the Public Views Guidelines",
+   "detail": "RTS 16338 App A prints clauses 3.1.1-3.1.5 under heading 3.2 and 3.3.x under 3.3; adopted and amended PDFs are unread.",
+   "correction": "Cite report and page until the adopted PDF is hashed and checked; block clause-citing warnings meanwhile.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Cone 'geodetic height' datum and meaning: council reports give heights 'measured from' a corner (NAD 1983 UTM 10N); vertical datum unnamed; absolute versus above-ground reading unproven; guidelines PDF 403. YVR 'sea level' datum also unnamed.",
+  "Gzip behaviour of .parquet, .pmtiles and .zip on Pages, and Firefox and WebKit range behaviour: only Chromium 152 and .bin/.fgb tested; no github.io sample found for .parquet or .pmtiles.",
+  "City mid-block traffic volumes: 200-dataset listing and City traffic page (403) show only location indices and VanMap links.",
+  "BC MoTI current AADT licence and download: CKAN queries returned only Annual Traffic Volumes 2004-2010 (xlsx, OGL-BC).",
+  "City canopy raster or polygons: none in portal; 2022 canopy assessment PDF and Park Board solar memo returned 403.",
+  "LidarBC Metro Vancouver and North Shore tile datum and vintage: catalogue record names licence only.",
+  "EPSG code and Vancouver grid for CGVD28GVRD to CGVD2013: HTMVBC00 not downloaded; +0.15 m is preliminary; the HRDEM-versus-City-2013 offset study is not yet run.",
+  "Whether NRCan HRDEM VILLE_VANCOUVER (2013-02-19) and City LiDAR 2013 (flown Feb 2013) share one flight: unverified; City 2013 GeoTIFF datum is CGVD28 per portal text.",
+  "Trout Lake 27.1 and 27.2: RTS 18292 proposed new boundaries and 68.9 m for 27.2, but RTS 19750 says Council referred Trout Lake amendments back to staff; which geometry the portal holds is unknown.",
+  "Whether Council adopted the City-wide Design and Development Guidelines on 28 Jul 2026 (effective 27 Oct 2026) and the PDT to PT amendment: report read, minutes not found.",
+  "Adopted and amended Public Views Guidelines PDF (amended 4 Feb 2026 per user brief, consistent with RTS 18292): unread; clause numbering may differ from RTS 16338 App A.",
+  "Plan BC 1280 sheets, the 2026 proposed YVR limit map, and downtown water aerodrome (CYHC) and heliport (CBC7) obstacle surfaces: not obtained; request aviation.pac@tc.gc.ca.",
+  "Orthophoto 2022 is labelled EPSG:26910 (NAD83 original) while LiDAR is NAD83(CSRS); size of the offset in Vancouver not measured. Null datum transform tested only on LiDAR tile index and two parcel and park corners.",
+  "Broadway Subway station geometry and names: no open dataset found; station names come from search summaries, not opened sources.",
+  "Height-limit layers (CD-1 by-laws, ODP and Broadway Plan height maps): no open data found; zoning polygons carry no height.",
+  "Metro Vancouver land cover tif CRS and contents (item type Map Template zip) unread; earlier 'custom' licence reading on one raster record not reproduced.",
+  "Whether strata folios share one parcel polygon: 3,030 tax coordinates span several polygons, but per-folio polygon sharing is unverified.",
+  "Footprint change-detection thresholds and Parquet and PMTiles sizes of derived layers: prototypes only; City portal rate limits unmeasured.",
+  "Overture: City of Vancouver release, vintage and height coverage inside the buildings theme are undocumented."
+ ],
+ "change_log": [
+  "r1: Replaced the curl-gzip range probe with a browser fetch probe; Chromium 152 on the team's Pages site returned 206, raw size, no encoding. Firefox and WebKit remain untested; probe moves to Playwright.",
+  "r1: Added HEAD finding: browser HEAD returns gzip Content-Length (2,383,874 vs 9,722,568 raw) and hyparquet sizes files from HEAD; manifest bytes now passed as byteLength; suffix-range check added.",
+  "r1: Corrected the range flag and the Pages range validation case; tested .fgb on a GitHub Pages site (206, raw magic bytes); .parquet and .pmtiles still untested.",
+  "r1: LOD1 schema now stores absolute z_ground_m, z_roof_max_m, z_roof_p50_m, height_basis, vintage and flags (3DBAG pattern); height_m is derived for display only.",
+  "r1: Added footprint-versus-LiDAR change detection and gap proxies: 12,013 New Building permits 2017-2026 (4,635 since 1 Sep 2022) and 7,162 demolitions; LiDAR 2013 and 2018 added; vintage shown.",
+  "r1: Tested portal horizontal CRS: LiDAR tile corners project to round kilometres and a parcel vertex matches the City UTM corner within 0.113 m, so 'WGS84' lon/lat are NAD83(CSRS) values; crs rules updated.",
+  "r1: Content-addressed file paths (layers/<id>/<sha256[:12]>.<ext>) with the previous version kept one cycle; validator checks path-hash agreement; cache logic updated.",
+  "r1: YVR layer downgraded to unconfirmed: extent only on Plan BC 1280, Part II follows the North Arm boundary, 2026 proposed limits unmapped; heliport and water-aerodrome surfaces unresolved; no compliance warnings.",
+  "r1: ODbL audit of Vista: OSM coastline and water clip terrain; shoreline, water and extension buildings are OSM; the supplied model is noted as built from 2022 OSM data; validator checks all inherited assets.",
+  "r1: Read council reports RTS 16338, 18292, 18459, 19750, 16506 in-page: cone lower boundaries use reference roofs and, for 27.1, 27.2, 28, geodetic heights; source clause numbering is inconsistent; hashes recorded.",
+  "r1: Guidelines PDF still 403 to curl and WebFetch; browser navigation raised a save dialog and was not retried. Clause-citing warnings stay blocked until the adopted PDF is hashed and checked.",
+  "r1: Measured exact parcel-tax join: 93,406 tax coordinates, 93,763 parcel coordinates, 99.12% of polygons joined, 3,030 coordinates shared by several polygons; API count-distinct figures (94,111) are approximate; aggregation added.",
+  "r1: Added EPSG 9245 and 4617; 6647 marked replaced; HRDEM corrected to EPSG:3979 with downtown and North Shore coverage via STAC; COG range reads return 206 with ACAO *.",
+  "r1: Proposed offset study: difference HRDEM VILLE_VANCOUVER (2013-02-19, CGVD2013) against City 2013 LiDAR GeoTIFFs (CGVD28); +0.15 m kept only as placeholder.",
+  "r1: Removed the 10 builds/hour constraint (not applicable to Actions workflows); 20 MB cap reframed as a team latency budget, not a jsDelivr limit.",
+  "r1: Stations corrected to 20 unique names (22 rows); added lines (3) and Broadway Subway as planned (BC government: six stations, fall 2027).",
+  "r1: Portal GeoParquet export checked: 1.1.0-dev, geo_point_2d primary, no crs, no covering; build scripts rewrite it and the validator rejects '-dev'.",
+  "r1: Tree hygiene counts verified (477 zero diameters, 3 zero heights, 1 null geometry); height_m labelled recorded class value; measured prototype 4.75 B per tree.",
+  "r1: Shadow-sensitive spaces now sourced: outside Downtown equinoxes 10 am-4 pm PDT (RTS 16338 App C); Downtown fall equinox 22 Sept (RTS 16506 App A); PDT to PT amendment recommended (RTS 18459 App D).",
+  "r1: OGL-Vancouver and OGL-Metro Vancouver licence texts read (v1.0); attribution wording verified; the OGL attribution UNVERIFIED flag marked resolved.",
+  "r1: Overture critique checked: the buildings guide lists City of Vancouver as a source but the attribution page does not; claim kept with citation and an UNRESOLVED flag.",
+  "r1: Merged and retired sources to hold the 40-source cap (S02, S08, S13, S14, S18, S24, S29, S38 folded or dropped); added S41-S48.",
+  "r1: Replaced the 98% join target with measured coverage; byte target checked against prototype (15.9 B geometry at 0.5 m plus about 5 B heights) and portal baseline 184 B per footprint.",
+  "r1: Added cov-public-views-params layer design: policy-sourced reference corners and geodetic heights with page citations; absolute-elevation reading stays unproven.",
+  "r1: Merged datasets to keep 25: Metro Vancouver land cover and canopy; City legacy terrain and shoreline; stations and lines; added Council policy tables; footprints row now cites orthophoto 2022."
+ ],
+ "notes": "guidelines.vancouver.ca PDF: curl and WebFetch 403; browser navigation raised a save dialog, not retried. Council reports were read in-page without saving. Prototype sizes are in-memory measurements, not production builds; Firefox and WebKit not run."
+}

@@ -1,0 +1,2840 @@
+{
+ "packet_id": "P14",
+ "modules": [
+  {
+   "module_id": "P14-M01",
+   "name": "Layer 0 schema, versioning and open-schema mapping",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "What minimum geometry-plus-program record, versioned and staged, lets every module read one design consistently, including storeys, voids, podium and access points, and export to IFC, Speckle, glTF and BOT?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "M: core schema v0 (schema_version, FloorPlate with has_floor, Ajv validation, one migration stub), JSON and GLB-with-extras export about 3.5 person-days; v1: IFC4 ADD2 exporter about 2, BOT mapper 1, Speckle 2026.9 mapper 2 (team estimate)",
+   "depends_on": [],
+   "jury_criteria": [],
+   "inputs": [
+    "Class and port-type definitions (JSON Schema files) proposed by modules, each with a schema_version",
+    "Program-tag vocabulary (office, residential, hotel, retail, cultural/civic, public, amenity, mechanical, core), published as one local IfcClassification",
+    "Any staged Layer 0 document (Draft, Georef, Checked, Complete) passed in by callers for validation, migration or export; M01 is a schema package with no canvas ports"
+   ],
+   "outputs": [
+    "Layer 0 JSON Schema (Z-up, right-handed, metres) with semver schema_version and typed ports: Site, Podium, Tower, Level (negative elevations below grade), ProgramVolume, FloorPlate (has_floor), OpenSpace, Frontage, AccessPoint, Viewpoint, ViewCone, ContextBuilding, Assumption",
+    "Staged document types, each produced by one module: Layer0Draft (M02), Layer0Georef (M03), Layer0Checked (M05), Layer0Complete (M04)",
+    "Mapping table: each class to its IFC, Speckle, glTF and BOT target with status mapped, custom property set or missing",
+    "Pure exporter functions: GLB with node extras (core); IFC4 ADD2 (IfcSite > IfcBuilding > IfcBuildingStorey > IfcSpace, IfcSpatialZone), BOT Turtle graph and Speckle 2026.9 version (v1)",
+    "Migration functions vN to vN+1 with CI fixtures; result-card provenance fields (source_id, snapshot hash, schema_version)"
+   ],
+   "parameters": [
+    {
+     "name": "Spatial hierarchy and shared podium",
+     "unit": "levels",
+     "relationship": "A storey belongs to one building; composition types COMPLEX/ELEMENT/PARTIAL let a shared podium be a PARTIAL section. Zones may overlap, so tower footprints on podium levels use IfcSpatialZone. Finer records enable per-floor metrics but raise tagging effort.",
+     "source_ids": [
+      "P14-S03",
+      "P14-S19"
+     ]
+    },
+    {
+     "name": "Storey slicing, voids and mezzanines",
+     "unit": "records",
+     "relationship": "Slicing a volume on the storey schedule gives per-floor area, but atria, double-height lobbies and sky gardens would count as floors, inflating gross and FSR area. A has_floor flag lists void area apart; mezzanines map to PARTIAL storeys.",
+     "source_ids": [
+      "P14-S03",
+      "P14-S34"
+     ]
+    },
+    {
+     "name": "Program vocabulary (9 tags)",
+     "unit": "tags",
+     "relationship": "More tags split uses finely but each needs a classification entry. Tags roll up to the brief's use groups and travel as IfcClassificationReference to a declared local IfcClassification, readable by IFC tools, not only as a custom property.",
+     "source_ids": [
+      "P14-S54",
+      "P14-S60"
+     ]
+    },
+    {
+     "name": "FSR-counted area and denominator",
+     "unit": "m2",
+     "relationship": "The 9.0 FSR minimum is about 103,200 m2 on 11,468 m2 (derived). Gross versus counted area, exclusions, employment flags and the denominator (brief rectangle, polygon or net parcel) each move the shortfall; 1% of the denominator is about 1,032 m2. By-law wording is unread.",
+     "source_ids": [
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "Geometry carrier (display mesh vs exact B-rep)",
+     "unit": "type",
+     "relationship": "Triangle meshes approximate curved faces, so area and volume error grows with tessellation tolerance; exact B-rep keeps volume but is heavy in a browser. Speckle's earlier object graph likewise separated display meshes from source objects.",
+     "source_ids": [
+      "P14-S09",
+      "P14-S20"
+     ]
+    },
+    {
+     "name": "Z origin, vertical datum and height definition",
+     "unit": "m",
+     "relationship": "Tower height and storey count depend on where Z = 0 sits; CTBUH measures from the lowest significant open-air entrance. Z0 also needs a geodetic elevation and datum so City context and view limits stated as elevations line up.",
+     "source_ids": [
+      "P14-S34",
+      "P14-S35",
+      "P14-S36"
+     ]
+    },
+    {
+     "name": "Identity scheme (GlobalId, applicationId, own hash)",
+     "unit": "id",
+     "relationship": "Stable ids let tags, versions and diffs survive re-import. IFC rooted entities carry a GlobalId; Speckle 2026.9 keys objects by applicationId (the older graph used content hashes). Layer 0 stores GlobalId, applicationId, its own SHA-256 and a UUID separately.",
+     "source_ids": [
+      "P14-S60",
+      "P14-S10",
+      "P14-S09"
+     ]
+    },
+    {
+     "name": "Internal frame (metres, Z-up, right-handed)",
+     "unit": "frame",
+     "relationship": "glTF fixes metres and +Y up, while Layer 0 is Z-up like Rhino and IFC authoring (convention, not checked here). The GLB exporter rotates the root node -90 degrees about X; a missed rotation lays the tower on its side and corrupts sun-direction tests.",
+     "source_ids": [
+      "P14-S17",
+      "P14-S10"
+     ]
+    },
+    {
+     "name": "IFC export baseline and elevation attributes",
+     "unit": "schema",
+     "relationship": "IfcOpenShell claims extensive geometry support only for IFC2x3 and IFC4 Add2. IFC4 ADD2 export writes storey Elevation, IfcBuilding.ElevationOfRefHeight (Z0 geodetic) and IfcSite.RefElevation, which IFC4.3 deprecates (ADD2 inferred). IFC4X3 waits for a round-trip pass.",
+     "source_ids": [
+      "P14-S05",
+      "P14-S07",
+      "P14-S03",
+      "P14-S27"
+     ]
+    },
+    {
+     "name": "Schema version and migration",
+     "unit": "semver",
+     "relationship": "A MAJOR change breaks stored snapshots, result-card replays and forked modules unless every document and port type carries schema_version and a tested migration vN to vN+1. Module manifests pin the port schema; replay migrates first, then compares hashes.",
+     "source_ids": [
+      "P14-S75"
+     ]
+    },
+    {
+     "name": "Targets for non-spatial classes",
+     "unit": "mapping",
+     "relationship": "OpenSpace stays an external IfcSpace under IfcSite. Frontage, AccessPoint, Viewpoint and ViewCone map to IfcAnnotation with a custom pset; ContextBuilding to an IfcBuilding under a separate context IfcSite; Assumption to IfcDocumentReference. BOT has no such classes, so a vtc: namespace extends it.",
+     "source_ids": [
+      "P14-S03",
+      "P14-S60",
+      "P14-S19"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Mandatory-field completeness",
+     "good": "100% of fields required at the document's stage present: Draft (geometry, source unit); Georef (site polygon, Z0 geodetic elevation and datum, north record and type); Complete (at least one tower, storeys with elevation, every volume tagged, has_floor set)",
+     "bad": "Any gap: dependent modules show a provisional label",
+     "unit": "%",
+     "method": "Ajv JSON Schema validation on every write, with the required list chosen by stage",
+     "basis": "Required fields are our own schema v0 definition",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "IFC round-trip fidelity (v1)",
+     "good": "100% of ids, tags, units, axis assertion, storey Elevation, ElevationOfRefHeight, RefElevation, plate-to-storey and zone-to-plate links survive IFC4 ADD2 export then re-import with IfcOpenShell and web-ifc; IFC4X3 reported separately",
+     "bad": "Any tag, id, unit, elevation or link lost",
+     "unit": "% of properties",
+     "method": "Automated test on each test model, including a tower, diffing before and after",
+     "basis": "Team test criterion; IFC4X3 geometry support unverified (IfcOpenShell README)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S05",
+      "P14-S07"
+     ]
+    },
+    {
+     "name": "Mapping coverage",
+     "good": "Every Layer 0 class has an IFC, Speckle 2026.9, glTF and BOT target documented (13 of 13)",
+     "bad": "Any class without a documented target",
+     "unit": "classes mapped / total",
+     "method": "Coverage matrix generated from the mapping table",
+     "basis": "Own mapping table. r1 left six classes without targets and the zone-to-space direction open; r2 adds targets for all 13 classes and confirms IfcSpatialZone as RelatingStructure of IfcRelReferencedInSpatialStructure (IFC4.3 pages; FALSE_ASSUMPTION r2 flag)",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P14-S01",
+      "P14-S03",
+      "P14-S10",
+      "P14-S18",
+      "P14-S19",
+      "P14-S59",
+      "P14-S60"
+     ]
+    },
+    {
+     "name": "Schema migration replay",
+     "good": "100% of stored fixtures migrate to the current schema_version and re-validate; replayed output hashes match after migration",
+     "bad": "Any fixture fails to migrate, validate or hash",
+     "unit": "% of fixtures",
+     "method": "CI runs every stored fixture through the migration chain, then validates and replays result cards",
+     "basis": "Team rule; semver defines MAJOR as a breaking change",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S75"
+     ]
+    }
+   ],
+   "visualization": [
+    "Schema browser: tree Site > Podium/Tower > Level > Volume > FloorPlate with object counts and void share per volume",
+    "Coverage matrix: rows are Layer 0 classes, columns IFC / Speckle / glTF / BOT; green mapped, amber custom property set, red missing",
+    "Type badges on canvas node ports with a schema_version chip; clicking a badge opens the schema clause and its source",
+    "Stage ribbon Draft > Georef > Checked > Complete showing which module produced the current document"
+   ],
+   "method": "Define Layer 0 as a JSON Schema validated with Ajv, with semver schema_version and one tested migration function per version. Documents are staged (Draft from M02, Georef from M03, Checked from M05, Complete from M04), so the module graph stays acyclic; CI checks that and that each depends_on equals the producers of its inputs. Mapping: Site to IfcSite and bot:Site; Podium and Tower to IfcBuilding (PARTIAL sections) and bot:Building; Level to IfcBuildingStorey; ProgramVolume to IfcSpatialZone and bot:Zone, linked to storeys by bot:intersectsZone and to its plates by bot:containsZone; FloorPlate to IfcSpace, referenced by the zone through IfcRelReferencedInSpatialStructure. Tags become IfcClassificationReference, areas Qto_SpaceBaseQuantities, project flags a custom pset not named Pset_. Exporters are pure functions; CI re-imports every export with IfcOpenShell and web-ifc and diffs.",
+   "human_judgment": "Which tag a volume gets, which tags count as non-residential employment area, which levels of a volume have floors, how storeys and the entrance Z0 are defined, and what counts toward FSR stay with the designer; the schema only records the decision and its origin.",
+   "limits": "Mapping massing volumes to IfcSpatialZone and IfcSpace is a convention. IFC4.3 pages were read (zone-space relation, PARTIAL storeys, deprecations); IFC4 ADD2 pages were not, so ADD2 behaviour is inferred until the round-trip spike. BOT is a W3C public draft with no stated licence. EXT_structural_metadata is a Cesium draft, so v0 uses plain glTF extras. Speckle 2026.9 site and building containers are undocumented. Schema v0 will change after VTC test models.",
+   "libraries": [
+    {
+     "name": "Ajv",
+     "role": "JSON Schema validation (drafts 2019-09 and 2020-12) in browser and CI",
+     "license": "MIT",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "IFC read/write, round-trip tests, ifcdiff",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "web-ifc",
+     "role": "IFC parse and export in browser",
+     "license": "MPL-2.0",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "Speckle server and SDKs (2026.9 build)",
+     "role": "Versioned object store and viewer; send3 / receive3 (v1)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/specklesystems/speckle-server"
+    },
+    {
+     "name": "three.js",
+     "role": "GLB generation and display",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "manifold-3d",
+     "role": "Storey slicing and volume checks in WASM",
+     "license": "Apache-2.0",
+     "url": "https://github.com/elalish/manifold"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M02",
+   "name": "Multi-format import pipeline",
+   "phase": "basic",
+   "category": "DATA",
+   "design_question": "Which route gets each file type (.3dm, OBJ, IFC, glTF/FBX, DXF/DWG, SketchUp, Revit) into Layer 0 with units, hierarchy, metadata and meshes preserved, and what is lost on each?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "L: core .3dm, OBJ, GLB adapters about 3.5 person-days; fallback mesher 2; IFC (web-ifc) adapter and SketchUp/Revit export cards 1.5 (after 6 Nov); v1: FBX and DXF 2D route about 2, Speckle 2026.9 and APS routes about 4 (team estimate)",
+   "depends_on": [
+    "P14-M01"
+   ],
+   "jury_criteria": [],
+   "inputs": [
+    "Uploaded file (.3dm, .obj, .ifc/.ifczip, .glb/.gltf; v1: .fbx, .dxf; via export: .skp, .rvt, .dwg)",
+    "User-declared source unit (mandatory for OBJ)",
+    "Layer or name filter",
+    "Tessellation tolerance"
+   ],
+   "outputs": [
+    "Layer0Draft: meshes, raw property bag per object, mesh source label (cached, prism, planar, subd-net or none), source provenance",
+    "Import report: objects read, skipped and why, units, warnings, unmeshed objects (blocking for ProgramVolumes)",
+    "Source-file hash for P14-M06",
+    "Raw layer paths, names and IFC classes for P14-M04",
+    "Fixture manifest: organiser 'Site plans & 3D model' once obtained, plus 5 VTC-style test massings (including an extrusion-only file and a no-render-mesh file) run in CI"
+   ],
+   "parameters": [
+    {
+     "name": "Source unit",
+     "unit": "m/mm/cm/ft/in",
+     "relationship": "OBJ stores no unit, so a wrong guess scales the model by 1,000 (mm) or 3.28 (ft) and breaks the 244-305 m range. rhino3dm exposes ModelUnitSystem, glTF is metres, and SketchUp's OBJ export has a unit drop-down.",
+     "source_ids": [
+      "P14-S52",
+      "P14-S21",
+      "P14-S17",
+      "P14-S26"
+     ]
+    },
+    {
+     "name": "Render meshes in .3dm files",
+     "unit": "mm",
+     "relationship": "openNURBS cannot tessellate Breps, so Brep faces need meshes saved in the file; extrusions and SubDs expose the same cached meshes (Extrusion getMesh, SubD control net). Files saved without meshes need the fallback mesher or an export from Rhino.",
+     "source_ids": [
+      "P14-S68",
+      "P14-S21"
+     ]
+    },
+    {
+     "name": "Fallback mesher route",
+     "unit": "route",
+     "relationship": "Polyline extrusions become exact prisms; planar Brep faces are triangulated from edge loops with earcut and area-checked; SubDs use the control net (volume biased); curved Breps need Rhino meshes. Coarser curve sampling cuts triangles but adds area error.",
+     "source_ids": [
+      "P14-S69",
+      "P14-S21"
+     ]
+    },
+    {
+     "name": "Import route per format",
+     "unit": "route",
+     "relationship": "Native readers exist for 3dm, OBJ, IFC and glTF. SketchUp and Revit need a vendor export or connector, which adds a user step but keeps names, layers and properties. DWG/DXF 2D plans need a Rhino 8 conversion or a DXF parser.",
+     "source_ids": [
+      "P14-S25",
+      "P14-S11",
+      "P14-S27",
+      "P14-S28",
+      "P14-S24",
+      "P14-S47"
+     ]
+    },
+    {
+     "name": "IFC schema of the incoming file (2x3 / 4 / 4x3)",
+     "unit": "schema",
+     "relationship": "web-ifc enumerates IFC2X3, IFC4 and IFC4X3, but IfcOpenShell claims extensive geometry support only for IFC2x3 and IFC4 Add2. Ask authors for IFC4 and do not send IFC4X3 to the server fallback until the round-trip spike passes.",
+     "source_ids": [
+      "P14-S07",
+      "P14-S05"
+     ]
+    },
+    {
+     "name": "Layer and name filter",
+     "unit": "layer set",
+     "relationship": "Dropping furniture, annotation and context layers cuts triangles and mis-tagging; keeping everything preserves provenance but slows load and pollutes floor-area sums.",
+     "source_ids": []
+    },
+    {
+     "name": "Metadata retention",
+     "unit": "property bag",
+     "relationship": "Retained properties feed P14-M04 labelling. Connectors differ: Rhino sends name, colour, user strings; SketchUp custom attributes; Revit category, family, type, level and parameters.",
+     "source_ids": [
+      "P14-S11",
+      "P14-S12",
+      "P14-S13"
+     ]
+    },
+    {
+     "name": "Organiser model format (unknown)",
+     "unit": "format",
+     "relationship": "The page lists 'Site plans & 3D model' with no formats, and its download links still point to '#' (21 Oct). If it is .skp or .dwg, no core adapter reads it, so entrants need a Rhino 8 or SketchUp conversion first.",
+     "source_ids": [
+      "P14-S53"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Object accounting",
+     "good": "100% of source objects imported or listed as skipped with a reason",
+     "bad": "Any silent drop",
+     "unit": "% of objects",
+     "method": "Count source objects against imported plus skipped",
+     "basis": "Team rule: nothing disappears without a record",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "ProgramVolumes without usable mesh",
+     "good": "0 after the fallback mesher",
+     "bad": ">= 1 (blocks dependent modules)",
+     "unit": "count",
+     "method": "Count ProgramVolume-class objects whose mesh source label is none",
+     "basis": "Corrects the r1 UNVERIFIED claim: openNURBS has no tessellation, but Extrusion getMesh/setMesh/toBrep and Mesh.createFromSubDControlNet are bound, so a deterministic fallback exists. Team rule that a missing tower must never pass silently, since FSR and height checks would run on an empty model",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P14-S21",
+      "P14-S68"
+     ]
+    },
+    {
+     "name": "Fallback mesher area error",
+     "good": "<= 0.1% of source-reported area for planar faces (earcut deviation check)",
+     "bad": "> 1%",
+     "unit": "%",
+     "method": "Compare triangulated area with the polygon area per face and with the Rhino-reported area",
+     "basis": "Team presets; earcut gives no correctness guarantee on invalid rings but reports a deviation",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S69"
+     ]
+    },
+    {
+     "name": "Volume parity with source application",
+     "good": "<= 1% difference between imported mesh volume and source-reported volume",
+     "bad": "> 5%",
+     "unit": "%",
+     "method": "Compare signed mesh volume with the volume the user reads from Rhino, SketchUp or IFC quantities",
+     "basis": "Team assumption; no source threshold found",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "IFC import time (<= 50 MB, mid-range laptop)",
+     "good": "<= 10 s to meshes, in a worker",
+     "bad": "> 30 s",
+     "unit": "s",
+     "method": "Time web-ifc open plus mesh extraction on a VTC-sized test model on a mid-range Windows laptop",
+     "basis": "web-ifc benchmark on an Apple M1: files of 26-70 MB opened in 0.17-1.16 s and executed in 0.52-7.6 s; time does not track size (47 MB in 0.52 s, 34 MB in 7.6 s). Thresholds are padded presets to be replaced by our own measurement (r1 subset quote is a FALSE ASSUMPTION flag)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S08"
+     ]
+    },
+    {
+     "name": "UI responsiveness during import (INP p75)",
+     "good": "<= 200 ms",
+     "bad": "> 500 ms",
+     "unit": "ms",
+     "method": "Event timing for clicks and key presses while a worker imports (INP does not observe drags or scrolling)",
+     "basis": "web.dev INP thresholds",
+     "status": "verified",
+     "source_ids": [
+      "P14-S44"
+     ]
+    },
+    {
+     "name": "Peak memory of an import",
+     "good": "<= 50% of the WASM module's declared maximum memory",
+     "bad": ">= 80% of the declared maximum",
+     "unit": "% of declared max",
+     "method": "Compare memory.buffer.byteLength with the module's declared maximum, read from the WASM binary, during imports",
+     "basis": "Team presets. Memory64 is stable in Chrome 133 and Firefox 134 but only a Safari Technical Preview, so Safari and each module's own maximum bind (r1 4 GiB ceiling is a FALSE ASSUMPTION flag)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S58"
+     ]
+    }
+   ],
+   "visualization": [
+    "Import report panel: one row per source object with status chips (imported, merged, skipped, unmeshed) and reason",
+    "Unit-detection banner showing candidate scales and the resulting selected-polygon bounding box against 79.2 x 144.8 m",
+    "3D preview coloured by import status (green ok, amber heuristic or fallback mesh, red skipped or unmeshed) with a triangle-count-per-layer bar chart",
+    "Dated supported-formats table in the import dialog; each row links to its how-to card and lists what is lost"
+   ],
+   "method": "Sniff format, then run an adapter in a Web Worker that emits one ImportedObject list. .3dm: rhino3dm File3dm read, layer paths, names, attributes, instance definitions, ModelUnitSystem, EarthAnchorPoint; use saved meshes via BrepFace.getMesh and Extrusion.getMesh, else the fallback mesher (prism, earcut planar faces, SubD control net) and a blocking report line for unmeshed ProgramVolumes. IFC: web-ifc mesh streaming plus property sets for IFC2x3 and IFC4; IfcOpenShell server fallback for oversized files; IFC4X3 after the spike. OBJ: groups and usemtl, unit required. glTF/GLB: three.js GLTFLoader, read extras. FBX and DXF: v1, unit prompt. SKP and RVT: accept exported OBJ/GLB/IFC or Speckle versions with an export how-to card. The result is Layer0Draft; P14-M03 then adds units and georeference.",
+   "human_judgment": "Choosing the source unit when detection is ambiguous, deciding which layers are building versus context or clutter, accepting skipped objects and fallback meshes, and re-exporting from Rhino when a curved Brep has no mesh.",
+   "limits": "Browsers cannot read .skp or .rvt: the SketchUp C SDK needs registration and Trimble terms; Revit is proprietary. Curved Breps without saved meshes cannot be meshed here (openNURBS has no tessellation). McNeel says core-hour billing (USD 0.10) is incompatible with Educational and Commercial licences; Rhino.Compute workstation use is unverified. OBJ loses hierarchy and metadata. Speckle connectors transfer no image textures.",
+   "libraries": [
+    {
+     "name": "rhino3dm.js / rhino3dm.py",
+     "role": ".3dm reader (no Brep meshing)",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "earcut",
+     "role": "Planar-face triangulation for the fallback mesher",
+     "license": "ISC",
+     "url": "https://github.com/mapbox/earcut"
+    },
+    {
+     "name": "web-ifc",
+     "role": "IFC in browser",
+     "license": "MPL-2.0",
+     "url": "https://github.com/ThatOpen/engine_web-ifc"
+    },
+    {
+     "name": "IfcOpenShell",
+     "role": "IFC server-side fallback (IFC2x3 and IFC4 Add2 geometry first)",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "three.js loaders",
+     "role": "GLTF, OBJ, FBX parsing (loader list not confirmed on repo page)",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "Online 3D Viewer",
+     "role": "Reference importer: 3dm, obj, ifc, fbx, gltf, step (no skp, no dwg)",
+     "license": "MIT",
+     "url": "https://github.com/kovacsv/Online3DViewer"
+    },
+    {
+     "name": "dxf-parser",
+     "role": "DXF 2D site-plan reader (v1); DXF only, no DWG",
+     "license": "MIT",
+     "url": "https://github.com/gdsestimating/dxf-parser"
+    },
+    {
+     "name": "LibreDWG",
+     "role": "Server-side DWG to DXF conversion; no JS or WASM binding found in its README",
+     "license": "GPL-3.0-or-later",
+     "url": "https://github.com/LibreDWG/libredwg"
+    },
+    {
+     "name": "Speckle connectors and file importers",
+     "role": "Rhino 7-8 (Windows), SketchUp 2021-2026, Revit 2023-2027 (Windows) to Speckle versions (v1, 2026.9 SDK)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/specklesystems/speckle-server"
+    },
+    {
+     "name": "Autodesk revit-ifc",
+     "role": "Open-source Revit IFC exporter",
+     "license": "LGPLv2",
+     "url": "https://github.com/Autodesk/revit-ifc"
+    },
+    {
+     "name": "rhinomcp (MCP server)",
+     "role": "Lets Claude Code inspect and clean a Rhino model before export",
+     "license": "MIT",
+     "url": "https://github.com/jingcheng-chen/rhinomcp"
+    },
+    {
+     "name": "APS Model Derivative",
+     "role": "Hosted Revit translation (route unverified)",
+     "license": "Commercial service; Free tier with monthly caps, paid Flex tokens",
+     "url": "https://aps.autodesk.com/en/docs/model-derivative/v2/supported-translations"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M03",
+   "name": "Units, true north and georeferencing",
+   "phase": "basic",
+   "category": "SITE",
+   "design_question": "Where is the model and which way is north? Fix units, anchor the site in EPSG:3157 with a geodetic Z0, and reconcile the plan's arrow with true north.",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "S-M: core unit check, four-way north confirmation, site polygon and frontage, CRS and Z0 record about 2 person-days; v1: IfcMapConversion export, parcel-derived street bearing, WMM evaluator and LiDAR frame test about 1.5 more (team estimate)",
+   "depends_on": [
+    "P14-M01",
+    "P14-M02",
+    "P14-M08"
+   ],
+   "jury_criteria": [],
+   "inputs": [
+    "Layer0Draft and import report (declared units)",
+    "User-selected site polygon or tower object for scale detection; site boundary polygon, street frontage lines (with street type) and access points drawn by the user",
+    "North arrow bearing: two points clicked on the plan, or IFC TrueNorth, or Rhino ModelNorth; plus the north type declared by the user: true, magnetic, projection (UTM) grid or street-grid (plan)",
+    "Any IfcMapConversion / IfcProjectedCRS in the file, Rhino EarthAnchorPoint, and the entrance-level Z0 geodetic elevation",
+    "Optional (v1, from P14-M08): parcel polygons, derived street-grid bearing and LiDAR ground at the entrance"
+   ],
+   "outputs": [
+    "Layer0Georef with a georeference record: crs EPSG:3157 (EPSG:26910 accepted as alias with a warning), datum-shift option (null or EPSG 1946 position-vector) and its test result, origin easting/northing, z0_geodetic_m, vertical_datum, true_north_deg, north_type, magnetic_declination_deg (model, epoch), grid_convergence_deg, ground_to_grid_scale (Layer 0 and custom pset only), LoGeoRef level",
+    "Unit scale factor applied",
+    "Street-grid bearing (default 44.7 and 134.7 degrees from true north, derived; live value from P14-M08)",
+    "IfcMapConversion (Scale 1.0, OrthogonalHeight = Z0) and IfcProjectedCRS (VerticalDatum); IfcMapConversionScaled for IFC4X3; local-to-map 4x4 matrix",
+    "True-north vector for sun and wind modules, released only after the north type is confirmed and the street-edge check passes or is waived"
+   ],
+   "parameters": [
+    {
+     "name": "Declared source unit",
+     "unit": "m/mm/cm/ft/in",
+     "relationship": "Scales every coordinate: a mm/m slip changes tower height 1,000-fold, ft/m 3.28-fold. Detection tests candidate scales on the user-selected site polygon or tower against 79.2 x 144.8 m, never the whole file, and the user confirms with one click.",
+     "source_ids": [
+      "P14-S54",
+      "P14-S21",
+      "P14-S17"
+     ]
+    },
+    {
+     "name": "North type (true, magnetic, projection grid, street-grid)",
+     "unit": "enum",
+     "relationship": "Magnetic, UTM grid and street-grid north differ from true north by about 15.4, 0.09 and 44.7 degrees here (derived). Picking UTM 'grid' for a street-grid arrow leaves about 44.6 degrees unapplied, so CLIM modules stay blocked until the user confirms.",
+     "source_ids": [
+      "P14-S54",
+      "P14-S38",
+      "P14-S70",
+      "P14-S32"
+     ]
+    },
+    {
+     "name": "True-north angle (model north vs +Y)",
+     "unit": "deg",
+     "relationship": "Rotates every sun-path, shadow and wind result by the same angle. For a 300 m tower at latitude 49.29 N, 1 degree moves the shadow tip about 6 m at equinox noon and about 17 m at winter-solstice noon (derived).",
+     "source_ids": []
+    },
+    {
+     "name": "Magnetic declination (WMM2025)",
+     "unit": "deg",
+     "relationship": "Declination at the site and date converts a magnetic arrow to true north. Our WMM2025 evaluation gives about 15.4 degrees east for October 2026 (derived; it reproduces pygeomag's Seattle example). The tool records model, epoch and uncertainty; WMM2025 is valid to late 2029.",
+     "source_ids": [
+      "P14-S62",
+      "P14-S70"
+     ]
+    },
+    {
+     "name": "Street-grid bearing (parcel edges)",
+     "unit": "deg",
+     "relationship": "Parcel edges within 700 m of 49.283 N, 123.121 W run at about 44.7 and 134.7 degrees from true north (derived, 969 parcels). A model aligned to the street grid must still carry true north separately, or sun and wind results rotate by about 45 degrees.",
+     "source_ids": [
+      "P14-S38"
+     ]
+    },
+    {
+     "name": "Horizontal CRS and datum shift",
+     "unit": "EPSG code",
+     "relationship": "Use EPSG:3157 NAD83(CSRS) / UTM 10N (City LiDAR frame). A null shift versus EPSG 1946 with arc-second position-vector rotations differs by about 1.3 m here; the epsg.io string as copied drops its rotations and errs about 0.9 m (both derived).",
+     "source_ids": [
+      "P14-S57",
+      "P14-S66",
+      "P14-S33",
+      "P14-S67",
+      "P14-S30",
+      "P14-S36"
+     ]
+    },
+    {
+     "name": "Z0 geodetic elevation and vertical datum",
+     "unit": "m",
+     "relationship": "City footprint heights are geodetic and LiDAR uses CGVD28GVRD, and view limits are elevations, so Z0 must be stored as a geodetic height plus datum, not a bare local zero. Default it from LiDAR ground at the entrance; the user confirms.",
+     "source_ids": [
+      "P14-S35",
+      "P14-S36",
+      "P14-S59"
+     ]
+    },
+    {
+     "name": "Ground-to-grid scale",
+     "unit": "ratio",
+     "relationship": "UTM scales distances by about 0.9996 near the zone centre, so areas shrink about 0.08%: roughly 83 m2 on the 103,200 m2 minimum (derived). Keep the factor in Layer 0 and a custom pset; IfcMapConversion.Scale stays 1.0 because it converts units, not grid scale.",
+     "source_ids": [
+      "P14-S30",
+      "P14-S32",
+      "P14-S54",
+      "P14-S59"
+     ]
+    },
+    {
+     "name": "Model origin",
+     "unit": "m",
+     "relationship": "UTM northings near 5.46 million m exceed float32 resolution (about 0.5 m steps, derived), so raw coordinates jitter in WebGL. A site-local origin keeps precision; three-mesh-bvh documents errors for large off-centre geometry.",
+     "source_ids": [
+      "P14-S49"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Unit plausibility",
+     "good": "Selected site polygon or tower within +/-2% of 79.2 x 144.8 m after scaling, and tower height inside 244-305 m",
+     "bad": "Off by 3x or more, or tower height outside 244-305 m, signalling a unit error",
+     "unit": "% deviation",
+     "method": "Compare the selected polygon bounds with the brief site after each candidate scale; also test floor-to-floor against an editable 2.5-6 m preset (no source; typical values belong to the program and structure packets)",
+     "basis": "Brief gives approximate size; the 2% tolerance and the floor-to-floor preset are team assumptions",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "True-north error (independent street-edge check)",
+     "good": "<= 0.25 deg between the site's street-facing edges and the nearest parcel-derived street bearing (44.7 or 134.7 deg from true north) after the chosen rotation",
+     "bad": ">= 1 deg",
+     "unit": "deg",
+     "method": "After the confirmed north type is applied, compute true bearings of the site's edges and compare with the parcel-derived axes; also report the arrow-to-street angle (about 44.7 or 45.3 deg for a true or UTM-grid arrow, about 29.3 or 60.7 deg for a magnetic arrow, derived). Result is 'unchecked' if the site is not on the CBD grid",
+     "basis": "Team presets. r1 compared the arrow-converted bearing with a 'confirmed true north' usually taken from the same arrow, which is circular. Parcel edges scatter about 0.1-0.2 deg, so 0.25 deg is resolvable. Derived: 1 deg moves a 300 m tower's shadow tip about 17 m at winter-solstice noon (965 m shadow) and 6 m at equinox noon; 0.25 deg gives about 1.5-4 m",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P14-S38",
+      "P14-S70"
+     ]
+    },
+    {
+     "name": "North type confirmed",
+     "good": "User has confirmed one of the four north types and the matching correction (declination, convergence or street-grid angle) is applied",
+     "bad": "Unconfirmed: CLIM modules blocked",
+     "unit": "boolean",
+     "method": "Check the required georeference field before releasing the true-north vector",
+     "basis": "Team rule; the brief gives no north type",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "Georeference level (LoGeoRef)",
+     "good": "50: IfcMapConversion (Scale 1.0) plus IfcProjectedCRS (EPSG:3157 and vertical datum)",
+     "bad": "20 or lower: single latitude/longitude, no rotation",
+     "unit": "level 10-50",
+     "method": "Inspect the IFC attributes present; emit IfcMapConversion on export",
+     "basis": "Level definitions from the City2BIM wiki; the target level is a team choice",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S04",
+      "P14-S59"
+     ]
+    },
+    {
+     "name": "Site position agreement with City reference data",
+     "good": "<= 0.3 m after the selected datum shift",
+     "bad": "> 1.0 m, which suggests a datum, unit or CRS mix-up",
+     "unit": "m",
+     "method": "Distance between placed site corners and nearest City parcel vertices in the same portal frame (v1); against LiDAR 2022 building edges once the COPC pipeline exists (roadmap)",
+     "basis": "Editable team presets. r1 used 1.0 and 2.0 m, the EPSG 1946 and 1842 accuracies, so its good limit equalled the transformation's own accuracy and could not separate a correct pipeline from a broken one (dropping the rotations alone errs about 0.9 m, derived); parcels are 'not as precise' in places",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P14-S57",
+      "P14-S66",
+      "P14-S38"
+     ]
+    },
+    {
+     "name": "Transform unit test against PROJ",
+     "good": "<= 0.01 m at three site points (two corners and centre) for each datum option versus PROJ",
+     "bad": "> 0.1 m",
+     "unit": "m",
+     "method": "Run proj4js and PROJ for EPSG:3157 to EPSG:4326 (null shift and EPSG 1946) and compare in CI",
+     "basis": "Team preset; guards against the radian/arc-second and sign errors in the epsg.io string",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S66",
+      "P14-S67",
+      "P14-S33"
+     ]
+    },
+    {
+     "name": "Z0 agreement with City LiDAR ground",
+     "good": "<= 1.0 m between confirmed Z0 and LiDAR ground at the entrance",
+     "bad": "> 3.0 m, which suggests a datum or Z0 error",
+     "unit": "m",
+     "method": "Sample LiDAR 2022 ground class at the site entrance and compare with the stated geodetic Z0",
+     "basis": "Editable presets; LiDAR vertical accuracy 0.081 m at 95%, so metre-scale gaps are datum or Z0 errors, not noise",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S36"
+     ]
+    }
+   ],
+   "visualization": [
+    "Plan view with a four-way north diagram in plain language: true, magnetic, projection (UTM) grid and street-grid north, plus the plan's own arrow, each labelled with its angle from true north",
+    "Site outline over City parcel polygons with a distance heat-line and the two street axes (44.7 and 134.7 deg) drawn as dashed lines",
+    "Unit-detection card listing candidate scales, and a LoGeoRef 10-50 badge with a checklist of IFC attributes present",
+    "Z0 card: local Z0, geodetic elevation and datum beside a LiDAR ground profile at the entrance"
+   ],
+   "method": "1) Units: rhino3dm ModelUnitSystem, IFC IfcUnitAssignment, glTF metres, OBJ ask. 2) Scale check on the selected site polygon or tower, not the whole file: candidates (1, 0.001, 0.01, 0.3048, 0.0254) against 79.2 x 144.8 m within 2%, plus tower-height and floor-to-floor plausibility; the user confirms. 3) CRS: register EPSG:3157 in proj4js with rotations in arc-seconds and position-vector sign (+towgs84=-0.991,1.9072,0.5129,0.025790,0.009650,0.011660,0) or a null shift, chosen by the LiDAR frame test; unit-test against PROJ. 4) Z0: default from City LiDAR ground at the entrance, user confirms; store CGVD28GVRD or CGVD2013. 5) North: the user picks one of four plain-language types; arrow bearing from two clicks; WMM declination, grid convergence (about 0.09 deg), street-grid bearing from parcels (default 44.7/134.7); independent street-edge check. 6) Emit IfcMapConversion (Scale 1.0, OrthogonalHeight = Z0) and IfcProjectedCRS; store float64, render relative to the origin.",
+   "human_judgment": "Confirming which north the site plan's arrow shows (true, magnetic, UTM grid or street-grid/plan), choosing site origin, entrance level and Z0, and deciding whether to align the model to the street grid.",
+   "limits": "The organiser's arrow type, vertical datum and the datum name behind footprint 'geodetic' heights are unknown; confirm with the organiser. Whether portal lon/lat is NAD83(CSRS) relabelled as WGS84 is untested. Declination comes from our own WMM evaluation, not checked against NOAA's calculator. The street-grid bearing is derived from one 700 m sample. Georeferencing a hypothetical block is a convention, not a survey.",
+   "libraries": [
+    {
+     "name": "proj4js",
+     "role": "Coordinate transforms; EPSG:3157 must be added with proj4.defs (not predefined), rotations in arc-seconds",
+     "license": "MIT per project (LICENSE.md not read)",
+     "url": "https://github.com/proj4js/proj4js"
+    },
+    {
+     "name": "PROJ",
+     "role": "Reference implementation and server-side transforms for the CI test",
+     "license": "X/MIT",
+     "url": "https://proj.org/en/stable/about.html"
+    },
+    {
+     "name": "IfcOpenShell util.geolocation",
+     "role": "IfcMapConversion, TrueNorth and grid-north helpers",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "EarthAnchorPoint and ModelUnitSystem from .3dm",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "pygeomag",
+     "role": "WMM2025 declination; test oracle for our own small JS evaluator that reads the NOAA coefficient file",
+     "license": "MIT",
+     "url": "https://github.com/boxpet/pygeomag"
+    },
+    {
+     "name": "geomagnetism (npm)",
+     "role": "JS declination candidate; WMM2025 support not confirmed from its README",
+     "license": "Apache-2.0",
+     "url": "https://github.com/naturalatlas/geomagnetism"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M04",
+   "name": "Storey schedule, volume slicing, semantic labelling and Layer 0 assembly",
+   "phase": "basic",
+   "category": "DATA",
+   "design_question": "How do massing volumes and detailed models become per-storey floor plates, voids and confirmed program tags, with evidence, confidence and an area cross-check, ending in a complete Layer 0?",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: core Path A (storey schedule UI, slicing, has_floor voids, manual tagging, area/FSR table) about 3.5 person-days; v1: detailed-model Path B 1.5, rules, LLM stage, review queue and overlap/gap checks about 5 more (team estimate)",
+   "depends_on": [
+    "P14-M01",
+    "P14-M02",
+    "P14-M03",
+    "P14-M05"
+   ],
+   "jury_criteria": [],
+   "inputs": [
+    "Layer0Checked from P14-M05: closed ProgramVolumes, georeference, site, frontage and access points, trust levels",
+    "User storey schedule: ground-floor elevation (Z0), floor-to-floor height per program band, below-grade levels, podium and tower assignment, and per-volume floors-present list (default all levels)",
+    "Property bag per object (layer path, name, user strings, IFC class and psets)",
+    "Geometry summary (bounding box, area, normals, Z extents)",
+    "Layer 0 tag vocabulary; FSR denominator choice; optional designer examples for few-shot prompts"
+   ],
+   "outputs": [
+    "Level table {name, elevation, floor-to-floor, below_grade, origin: schedule | imported | detected}",
+    "FloorPlate records {volume_id, level_id, tag, has_floor, gross_area, outline polygon}",
+    "Per-level, per-tag area table: gross_area, floored_area, void_area, counted_fsr_area, counts_to_employment_FSR, fsr_exclusion_reason, with the FSR denominator and its source",
+    "Plate-sum area cross-check per volume; ProposedTag list {object_id, tag, confidence, evidence[], origin rule|AI} and review queue (v1)",
+    "Layer0Complete: accepted tags with tag_origin and confidence; result card names the path that ran"
+   ],
+   "parameters": [
+    {
+     "name": "Storey schedule (floor-to-floor per program band)",
+     "unit": "m",
+     "relationship": "A taller floor-to-floor in a band gives fewer plates within a fixed tower height and so less floor area; the schedule, not the mesh, sets storey count for massing. Typical values belong to the structure and program packets and are not sourced here.",
+     "source_ids": []
+    },
+    {
+     "name": "Slicing method (mid-height slice vs band intersection)",
+     "unit": "method",
+     "relationship": "A slice at mid-storey height gives plate area exactly for prismatic volumes but only approximates tapered or curved ones; intersecting each slab band and dividing volume by floor-to-floor tracks the taper. manifold-3d exposes slice(height) and volume().",
+     "source_ids": [
+      "P14-S48"
+     ]
+    },
+    {
+     "name": "Voids, atria and mezzanines (has_floor)",
+     "unit": "flag",
+     "relationship": "A per-volume floors-present list and FloorPlate.has_floor stop atria, double-height lobbies and sky gardens counting as floor. Only floored plates add to gross and counted FSR area; void area is listed apart. A mezzanine becomes a PARTIAL storey.",
+     "source_ids": [
+      "P14-S34",
+      "P14-S03"
+     ]
+    },
+    {
+     "name": "Zero-level definition (entrance floor)",
+     "unit": "m",
+     "relationship": "Which level is ground changes storey numbering and tower height; CTBUH uses the lowest significant open-air pedestrian entrance, and below-grade levels get negative elevations.",
+     "source_ids": [
+      "P14-S34"
+     ]
+    },
+    {
+     "name": "Floor-detection Z tolerance and path gate (Path B, v1)",
+     "unit": "m",
+     "relationship": "For detailed models only: a wider tolerance merges mezzanines and double-height floors, a narrower one splits sloped slabs. A single extrusion has only top and bottom faces, so detection needs at least 3 horizontal-face clusters; counting follows CTBUH.",
+     "source_ids": [
+      "P14-S34"
+     ]
+    },
+    {
+     "name": "Rule layer (IFC class and layer-name dictionary)",
+     "unit": "rules",
+     "relationship": "Deterministic rules explain themselves and cover well-labelled IFC/Revit exports; coverage falls for .3dm and OBJ with ad-hoc layer names, which is where the AI step is needed.",
+     "source_ids": [
+      "P14-S05"
+     ]
+    },
+    {
+     "name": "AI model and structured-output schema",
+     "unit": "model",
+     "relationship": "A schema-constrained reply guarantees parseable tags with evidence strings, not correct ones. The API cannot enforce numeric min/max (SDK helpers validate locally), and refusals or truncation can break the schema, so confidence gating and human confirmation are required.",
+     "source_ids": [
+      "P14-S45"
+     ]
+    },
+    {
+     "name": "Auto-accept confidence threshold",
+     "unit": "0-1",
+     "relationship": "A higher threshold gives fewer wrong auto-tags but more manual confirmations; items below it go to the review queue. Values are team assumptions until calibrated on a labelled set.",
+     "source_ids": []
+    },
+    {
+     "name": "Hosted-API data handling",
+     "unit": "opt-in",
+     "relationship": "Sending names and layer text to a hosted model exposes project information. Anthropic states API inputs and outputs are deleted within 30 days by default, with zero retention only by agreement; the tool is opt-in per project with a rules-only mode.",
+     "source_ids": [
+      "P14-S63",
+      "P14-S45"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Plate-sum area cross-check",
+     "good": "<= 0.5% difference between the sum of floored plate area x floor-to-floor and the volume's own volume (void volume excluded)",
+     "bad": "> 2%",
+     "unit": "%",
+     "method": "Compare manifold volume of each ProgramVolume with the sum over its FloorPlates",
+     "basis": "Team presets; prismatic volumes should agree to rounding, tapered ones show the mid-height slice error",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S48"
+     ]
+    },
+    {
+     "name": "Void flag consistency",
+     "good": "0 plates with has_floor = false counted in gross or FSR area; void share reported per volume",
+     "bad": ">= 1",
+     "unit": "plates",
+     "method": "Scan the area table for void plates with non-zero counted area; report void area divided by gross volume footprint area",
+     "basis": "Team rule; void share is design intent and is reported, not judged",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Storey count error vs author's count",
+     "good": "0",
+     "bad": ">= 2",
+     "unit": "storeys",
+     "method": "Scheduled or detected storeys (CTBUH counting) minus the count the author states",
+     "basis": "Counting rule from CTBUH; thresholds are team assumptions (off by one shown amber)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S34"
+     ]
+    },
+    {
+     "name": "Program overlap volume (v1)",
+     "good": "<= 0.1% of total program volume",
+     "bad": "> 1%",
+     "unit": "%",
+     "method": "Mesh Boolean intersection of volumes within each storey, run after tags are confirmed",
+     "basis": "Team assumption (moved from P14-M05 stage B in r2)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S48"
+     ]
+    },
+    {
+     "name": "Tag precision on a gold set (v1)",
+     "good": ">= 95% for auto-accepted tags",
+     "bad": "< 80%: disable auto-accept",
+     "unit": "%",
+     "method": "Hold-out set of team-labelled models (including VTC test massings)",
+     "basis": "No literature benchmark retrieved; editable preset",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Tag coverage after confirmation",
+     "good": "100% of enclosed floored area tagged and confirmed",
+     "bad": "< 100%: downstream results marked provisional",
+     "unit": "%",
+     "method": "Tagged plate area divided by total floored plate area",
+     "basis": "Team rule",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Human override rate (v1)",
+     "good": "<= 10% of AI tags changed by the user",
+     "bad": "> 30%",
+     "unit": "%",
+     "method": "Changed tags divided by AI-proposed tags per project",
+     "basis": "Team assumption; signals prompt or dictionary quality",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "visualization": [
+    "3D view: each ProgramVolume cut by translucent storey planes with elevation ticks and labels; plates coloured by tag, opacity or hatch showing confidence; void plates (has_floor = false) cross-hatched",
+    "Level x tag area table with gross, floored, void and counted columns, employment-flagged tags outlined, and a plate-sum error badge per volume (green <= 0.5%, red > 2%)",
+    "Review table sorted by lowest confidence; click zooms to the object with an evidence popover (for example 'layer L12_OFFICE matched rule R3')"
+   ],
+   "method": "Path A (massing, default): the user enters a storey schedule (Z0, floor-to-floor per program band, below-grade levels) and, per volume, which levels have floors (default all). Each closed ProgramVolume is cut by manifold-3d (slice, volume) at schedule elevations into FloorPlate records; plate areas times heights are compared with the volume. Void plates are kept with has_floor = false and excluded from gross and FSR area. Path B (v1, detailed IFC/Revit): read IfcBuildingStorey or levels, else cluster slab Z values when at least 3 clusters exist. Tagging: stage 1 rules (IFC class, Revit category, layer tokens); stage 2 stacked-footprint cores; stage 3 (v1) LLM for unresolved items from names and layers only; stage 4 human review. After tags are confirmed, overlap and gap checks (v1) and tag coverage run, and M04 emits Layer0Complete. AI calls log model id, prompt hash and output for P14-M06.",
+   "human_judgment": "The storey schedule, the entrance zero level, which levels of a volume have floors and every tag are the designer's decisions; rules and AI only propose. Ambiguous uses (hotel lobby versus public space, amenity versus residential) remain a judgement.",
+   "limits": "Slicing needs closed manifold volumes and horizontal storey bands; split levels beyond PARTIAL mezzanines are not handled in v1. No labelling benchmark was retrieved, so thresholds stay team assumptions. The 3-cluster gate is our assumption. LLM output varies with model version, and hosted use raises confidentiality questions for competition entries. manifold-3d JS slice(height), volume() and CrossSection.area() are confirmed in its type file.",
+   "libraries": [
+    {
+     "name": "manifold-3d",
+     "role": "Storey slicing, volume and Booleans in WASM (serial build)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/elalish/manifold"
+    },
+    {
+     "name": "Claude API structured outputs",
+     "role": "Schema-constrained tag proposals (opt-in, v1)",
+     "license": "Proprietary service, per-token cost",
+     "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs"
+    },
+    {
+     "name": "IfcOpenShell util.selector / classification / shape",
+     "role": "IFC class filters, classification, geometry quantities",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Layer paths and object names from .3dm",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "rhinomcp (MCP server)",
+     "role": "Claude Code can inspect Rhino layers interactively during labelling",
+     "license": "MIT",
+     "url": "https://github.com/jingcheng-chen/rhinomcp"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M05",
+   "name": "Geometry health and brief precheck",
+   "phase": "basic",
+   "category": "DATA",
+   "design_question": "Is the imported geometry closed, correctly scaled, inside plausible brief limits and clear of protected view cones before slicing? What fails, where, and under which height convention?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "S-M: core stage A (closed volumes, normals, scale, envelope, three height conventions) about 2 person-days; v1: protected-view cone check about 0.5 (team estimate). Overlap and gap checks moved to P14-M04.",
+   "depends_on": [
+    "P14-M01",
+    "P14-M02",
+    "P14-M03",
+    "P14-M08"
+   ],
+   "jury_criteria": [],
+   "inputs": [
+    "Layer0Georef from P14-M03 (meshes, units, georeference, site boundary, frontage, access points)",
+    "Import report from P14-M02",
+    "Optional (v1, from P14-M08): ViewCone polygons and hand-entered limit elevations"
+   ],
+   "outputs": [
+    "Layer0Checked",
+    "Health report: severity, location and suggested fix per rule",
+    "Trust level per downstream input (pass / warn / block)",
+    "Brief precheck table: tower height under three conventions, site size, view-cone status (v1)",
+    "Auto-fix actions (weld, flip normals, rescale)"
+   ],
+   "parameters": [
+    {
+     "name": "Weld tolerance",
+     "unit": "mm",
+     "relationship": "Larger tolerance closes small gaps but collapses thin features; too small leaves open edges that make volume and floor area wrong.",
+     "source_ids": []
+    },
+    {
+     "name": "Closed-volume requirement by class",
+     "unit": "class rule",
+     "relationship": "ProgramVolumes must be closed for volume and area to be valid; context surfaces and site plates may stay open without affecting shadow or wind results.",
+     "source_ids": []
+    },
+    {
+     "name": "Brief envelope (height 244-305 m, site 79.2 x 144.8 m)",
+     "unit": "m",
+     "relationship": "Heights or site sizes outside the envelope usually signal unit or zero-level mistakes. The brief allows justified breaches, so flags warn rather than block.",
+     "source_ids": [
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "Height measurement convention",
+     "unit": "convention",
+     "relationship": "One tower reads different heights: CTBUH entrance to architectural top, geodetic top elevation (Z0 plus height), or height above the City by-law base surface (definition not read). Showing all three makes the 244-305 m check state its convention.",
+     "source_ids": [
+      "P14-S34",
+      "P14-S35",
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "Protected-view cone check (v1)",
+     "unit": "status",
+     "relationship": "A tower footprint touching a cone polygon whose hand-entered limit lies below the geodetic top (Z0 plus height) is flagged; with no limit entered the result is 'unchecked'. The dataset gives polygons only, so limits come from the by-laws.",
+     "source_ids": [
+      "P14-S37"
+     ]
+    },
+    {
+     "name": "Analysis triangle budget",
+     "unit": "triangles",
+     "relationship": "More triangles improve accuracy but slow BVH queries; three-mesh-bvh quotes 500 rays at 60 fps on an 80,000-polygon model as a reference scale.",
+     "source_ids": [
+      "P14-S49"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Closed-manifold share of ProgramVolumes",
+     "good": "100%",
+     "bad": "Any open volume feeding area or volume metrics",
+     "unit": "%",
+     "method": "Edge-use count (each edge shared by exactly two faces); Brep.IsSolid and IsManifold for .3dm",
+     "basis": "Team rule; rhino3dm binds IsSolid and IsManifold",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S21"
+     ]
+    },
+    {
+     "name": "Tower height (shown under three conventions)",
+     "good": "244-305 m under the active convention (default: CTBUH entrance to architectural top, excluding antennas and signage)",
+     "bad": "Outside the range (warn; a justified breach may be rewarded)",
+     "unit": "m",
+     "method": "CTBUH: Z of architectural top minus Z of the lowest significant open-air entrance floor; geodetic: Z0 plus that height; by-law base-surface height only when the user enters it",
+     "basis": "UNVERIFIED: the 244-305 m range comes from the project packet; the brief PDF was not opened (P14-S54 opened=false; the public page still links the brief to '#' on 21 Oct 2026) and its measurement convention is unknown. The r1 'verified' and 'false_assumption_corrected' labels were both wrong for this metric (FALSE ASSUMPTION flags r1 and r2). The CTBUH rule itself is sourced",
+     "status": "unverified",
+     "source_ids": [
+      "P14-S54",
+      "P14-S34"
+     ]
+    },
+    {
+     "name": "Site bounding-box match",
+     "good": "Within 2% of 79.2 x 144.8 m",
+     "bad": "> 10%",
+     "unit": "%",
+     "method": "Compare site polygon bounds with the brief",
+     "basis": "Brief gives approximate size; tolerances are team assumptions",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "View-cone check status (v1)",
+     "good": "Every cone polygon touching the site has a limit with source and status, and the tower's geodetic top is at or below it",
+     "bad": "A touching cone with no limit ('unchecked'), or the top above the limit",
+     "unit": "status",
+     "method": "2D intersection of the site footprint with the 24 cones from P14-M08, then comparison of Z0 plus tower height with the entered limit",
+     "basis": "Team logic; the dataset has no height fields and the by-laws are authoritative, so limits stay hand-entered",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S37"
+     ]
+    }
+   ],
+   "visualization": [
+    "3D overlay: open edges red lines, flipped faces magenta, out-of-envelope parts hatched, view-cone breach in orange",
+    "Checklist of pass/warn/block rules, each linked to its source clause (for example 'VTC brief: 244-305 m')",
+    "Height card: three bars (CTBUH, geodetic, by-law base) against the 244-305 m band",
+    "Trust badge on each downstream node input"
+   ],
+   "method": "Run in a worker, before slicing. (1) Edge-use histogram: every edge shared by exactly two faces means closed and manifold; IsSolid/IsManifold for .3dm B-reps. (2) Signed volume sign to detect inverted normals. (3) Degenerate and duplicate faces. (4) Unit sanity and brief envelope, with height reported under three conventions (CTBUH from the user-confirmed entrance floor to the architectural top, geodetic top, City base surface when entered). (5) v1: intersect the site footprint with P14-M08's ViewCone polygons and compare the geodetic top with hand-entered limits. Each rule returns severity, location and fix. 'Block' stops dependent modules; 'warn' lets them run with a provisional label shown on every result card. Overlap, gap and tag-coverage checks run in P14-M04 after slicing, which keeps the graph acyclic.",
+   "human_judgment": "Deciding whether an open volume is a modelling error or design intent, whether an out-of-envelope result is a justified breach, and which view-cone limits to enter from the by-laws.",
+   "limits": "Mesh checks cannot prove design intent; open context meshes are legitimate. The brief says its documents are academic and the jury may reward justified breaches, so envelope flags are warnings. The CTBUH rule needs the user to identify the lowest significant entrance. The brief's own height convention and the by-law base-surface definition were not read.",
+   "libraries": [
+    {
+     "name": "manifold-3d",
+     "role": "Guaranteed-manifold mesh Booleans in WASM (serial build)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/elalish/manifold"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "Spatial queries and ray casting",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Brep IsSolid / IsManifold",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "IfcOpenShell util.shape",
+     "role": "Volumes and areas from IFC geometry",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M06",
+   "name": "Design-state versioning, provenance, visibility and anonymised export",
+   "phase": "cross-cutting",
+   "category": "DATA",
+   "design_question": "How are design states, assumptions and module results stored, shared and anonymised so any result can be reproduced, compared, forked and traced to sources, including flagged false assumptions that stay visible?",
+   "nature": "objective",
+   "priority": "v1",
+   "effort": "M: snapshots, hashing, schema pinning and result cards about 4 person-days (minimal provenance fields ship in P14-M01 for core); visibility and anonymised export about 2; diff view about 4; fork and merge about 5 (team estimate)",
+   "depends_on": [
+    "P14-M01",
+    "P14-M04",
+    "P14-M08"
+   ],
+   "jury_criteria": [],
+   "inputs": [
+    "Layer0Complete and geometry blobs; optional ContextLayer hash from P14-M08",
+    "Module graph configuration (nodes on/off, parameter values, assumption overrides)",
+    "Module outputs and source ids",
+    "Author and timestamp",
+    "Anonymise flag and pseudonym; visibility choice (private, team, public)"
+   ],
+   "outputs": [
+    "Snapshot ids (content hash) with parent links and pinned schema_version",
+    "Diff {objects added/removed/changed, tag changes, parameter changes}",
+    "Provenance graph of Entity, Activity and Agent, including schema migrations",
+    "Result cards: 'computed from snapshot X, schema vS, module vY, parameters Z'",
+    "Append-only assumption log including FALSE ASSUMPTION flags",
+    "Anonymised export package plus a residual-identifier scan report; visibility record per state and fork"
+   ],
+   "parameters": [
+    {
+     "name": "Snapshot granularity (per edit / per module run / manual commit)",
+     "unit": "events",
+     "relationship": "Finer snapshots give exact undo and reproducibility but multiply storage and noise; manual commits are cheap but results may refer to uncommitted state, so every result card must pin a snapshot.",
+     "source_ids": [
+      "P14-S10"
+     ]
+    },
+    {
+     "name": "Hashing and canonical form",
+     "unit": "hash",
+     "relationship": "Content hashes deduplicate identical states and expose silent changes. Speckle's older graph used content identity; 2026.9 keys objects by applicationId, so Layer 0 computes its own SHA-256. Unsorted JSON keys or unrounded floats break hashes unless canonicalised.",
+     "source_ids": [
+      "P14-S09",
+      "P14-S10"
+     ]
+    },
+    {
+     "name": "Storage backend (Speckle / git-in-browser / custom)",
+     "unit": "backend",
+     "relationship": "Speckle brings versions, viewer and connectors, but its format changed at 2026.9 and the Free plan keeps 100 versions with 30-day history. Browser git is free but needs a CORS proxy for clone and push and can reorder writes.",
+     "source_ids": [
+      "P14-S10",
+      "P14-S14",
+      "P14-S42"
+     ]
+    },
+    {
+     "name": "Module version pinning",
+     "unit": "semver",
+     "relationship": "Forked modules may change thresholds. Without module version and threshold sources stored on each result, a diff of metrics cannot tell a design change from a rule change.",
+     "source_ids": []
+    },
+    {
+     "name": "Assumption log retention",
+     "unit": "append-only",
+     "relationship": "Entries move team assumption to verified or FALSE ASSUMPTION but are never deleted; deletion would hide why earlier results changed. This is a project requirement, not an external standard.",
+     "source_ids": []
+    },
+    {
+     "name": "Merge model (snapshot fork vs real-time sync)",
+     "unit": "model",
+     "relationship": "Snapshot fork and three-way merge matches GitHub-like community forking and is simpler; real-time CRDT sync merges concurrent edits automatically but needs per-object conflict rules and is deferred.",
+     "source_ids": []
+    },
+    {
+     "name": "Anonymised export (identifier stripping)",
+     "unit": "fields",
+     "relationship": "VTC entries are evaluated anonymously. The IFC header FILE_NAME carries author and organization, IfcOwnerHistory (optional in IFC4) names people and applications, and Speckle versions carry an author; the export blanks or pseudonymises each and the ledger keeps real identity locally.",
+     "source_ids": [
+      "P14-S53",
+      "P14-S61",
+      "P14-S60",
+      "P14-S54"
+     ]
+    },
+    {
+     "name": "Visibility and sharing default",
+     "unit": "enum",
+     "relationship": "Design states are private by default; team and public are opt-in. The VTC terms bar visual materials 'previously published' (clause 4.1, read via a page tool), so public forks of design-state geometry stay blocked until 30 Nov 2026 unless the owner opts in. Module code and thresholds are shared separately. Speckle Free public links stop after 30 days.",
+     "source_ids": [
+      "P14-S64",
+      "P14-S14"
+     ]
+    },
+    {
+     "name": "Schema version in replay",
+     "unit": "semver",
+     "relationship": "Replays migrate stored states to the current schema_version before comparing hashes and log the migration as a PROV Activity; otherwise a schema change is indistinguishable from a design change or a rule change.",
+     "source_ids": [
+      "P14-S75",
+      "P14-S41"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Reproducibility",
+     "good": "100% of deterministic results regenerate with an identical output hash from snapshot plus module version, after migration to the current schema",
+     "bad": "Any mismatch",
+     "unit": "%",
+     "method": "Nightly replay of stored result cards",
+     "basis": "Course requirement to show work; threshold is a team rule",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Provenance completeness",
+     "good": "100% of displayed numbers link to a source id and snapshot, or carry a 'team assumption' badge",
+     "bad": "Any unsourced number without a badge",
+     "unit": "%",
+     "method": "Scan result cards for missing source_ids",
+     "basis": "Course requirement (every result cites its source)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S41"
+     ]
+    },
+    {
+     "name": "UI latency while snapshotting or diffing (INP p75)",
+     "good": "<= 200 ms",
+     "bad": "> 500 ms",
+     "unit": "ms",
+     "method": "Run hashing and diff in workers; measure event timing for clicks and key presses",
+     "basis": "web.dev INP thresholds",
+     "status": "verified",
+     "source_ids": [
+      "P14-S44"
+     ]
+    },
+    {
+     "name": "Residual identifiers in anonymised export",
+     "good": "0 found in IFC header and OwnerHistory, GLB asset and extras, Speckle author, PROV agents, file paths and image EXIF",
+     "bad": ">= 1",
+     "unit": "count",
+     "method": "Automated scan of every exported file after pseudonymisation",
+     "basis": "Team rule derived from the VTC anonymity statement and terms clause 5.1",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S53",
+      "P14-S54",
+      "P14-S64"
+     ]
+    },
+    {
+     "name": "Visibility default audit",
+     "good": "100% of new design states and forks created private; 0 public design-state forks before the submission deadline without an owner opt-in",
+     "bad": ">= 1 public state or fork without opt-in",
+     "unit": "count",
+     "method": "Automated check of the visibility record on every snapshot and fork",
+     "basis": "Team rule from VTC terms 4.1 (interpretation unconfirmed)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S64"
+     ]
+    }
+   ],
+   "visualization": [
+    "Commit graph (git-style DAG) coloured by author and fork, with a lock icon on private states",
+    "Two-snapshot diff: 3D ghost overlay (added green, removed red, moved amber) with a table of parameter and metric deltas",
+    "Result card chain source > snapshot > schema > module version > metric, drawn with PROV-style arrows; FALSE ASSUMPTION entries in the special colour on the timeline",
+    "Anonymise dialog listing each scrubbed field before and after, with a pass/fail scan badge"
+   ],
+   "method": "Canonicalise Layer 0 JSON (sorted keys, floats rounded to 1e-6 m) and hash geometry blobs (SHA-256). A snapshot is a Merkle-style manifest {layer0_hash, schema_version, geometry_hashes, context_layer_hash, graph_config_hash, assumptions_hash, parent_ids, author, time, visibility}. Diff by object id (added, removed, then attribute diffs). Results are PROV-O: a result Entity wasGeneratedBy a module-run Activity that used the snapshot and sources, wasAttributedTo an Agent; replay migrates old snapshots first and logs it as an Activity. Forks copy manifest pointers; merge is three-way with conflicts listed for a human. New states are private; a public geometry fork needs an owner opt-in and is blocked before 30 Nov 2026 by default. Anonymised export blanks FILE_NAME author and organization, omits OwnerHistory, pseudonymises Speckle author, PROV agents and file paths, then scans for residual identifiers.",
+   "human_judgment": "When to commit, how to name a design state, resolving merge conflicts, deciding when an assumption has been disproved and must be flagged, whether an export is safe to share, and whether sharing a state breaches the competition's publication rule.",
+   "limits": "Hash reproducibility holds only for deterministic modules; WASM or browser floating-point differences and LLM steps (P14-M04) break bit-exactness, so those results store the produced output. Speckle Free keeps 100 versions and 30 days. Whether private or team sharing counts as 'previously published' is unconfirmed. VTC boards are JPEG images (clause 4.8), so board metadata belongs to PRES; this scrubber covers shared model files and forks.",
+   "libraries": [
+    {
+     "name": "Speckle server, specklepy",
+     "role": "Versions, viewer, SDK (2026.9 build)",
+     "license": "Apache-2.0",
+     "url": "https://github.com/specklesystems/speckle-server"
+    },
+    {
+     "name": "isomorphic-git",
+     "role": "Git in the browser for snapshots and forks",
+     "license": "MIT",
+     "url": "https://github.com/isomorphic-git/isomorphic-git"
+    },
+    {
+     "name": "IfcOpenShell ifcdiff",
+     "role": "IFC-level model comparison",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "W3C PROV-O",
+     "role": "Provenance vocabulary",
+     "license": "W3C Recommendation",
+     "url": "https://www.w3.org/TR/prov-o/"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M07",
+   "name": "Browser geometry kernel and performance budget",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "Which in-browser and optional server geometry stack handles tower-scale models fast enough for interactive evaluation, and when must work move to a worker, a server or Rhino.Compute?",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "S-M: core shell, workers and float64 store about 1.5 person-days; performance HUD about 1 (v1); OpenCascade and Compute integration roadmap (team estimate)",
+   "depends_on": [],
+   "jury_criteria": [],
+   "inputs": [
+    "Mesh buffers and compute requests passed by callers (M02, M04, M05 and other packets' modules); M07 is a runtime service with no data ports, so it sits outside the module DAG",
+    "Device capability, hosting headers and file size"
+   ],
+   "outputs": [
+    "Render mesh with LOD and analysis mesh with BVH",
+    "Section polylines and Boolean results",
+    "Performance report (ms, MB per node)",
+    "Offload-recommended flag per task"
+   ],
+   "parameters": [
+    {
+     "name": "Tessellation tolerance and LOD",
+     "unit": "mm",
+     "relationship": "Coarser meshes speed ray casting for sun and view modules but understate curved-facade area; three-mesh-bvh's 500 rays at 60 fps on 80,000 polygons is a reference scale for analysis meshes.",
+     "source_ids": [
+      "P14-S49"
+     ]
+    },
+    {
+     "name": "Compute location (main thread / worker / server / Rhino.Compute)",
+     "unit": "location",
+     "relationship": "Main-thread work over 50 ms hurts responsiveness; workers keep the canvas interactive. Rhino.Compute adds exact Rhino geometry but needs Rhino 8 for Windows; McNeel says core-hour billing (USD 0.10 per core-hour) is incompatible with Educational licences; workstation use is unaddressed.",
+     "source_ids": [
+      "P14-S43",
+      "P14-S22",
+      "P14-S23"
+     ]
+    },
+    {
+     "name": "Kernel choice (mesh vs B-rep vs rhino3dm)",
+     "unit": "kernel",
+     "relationship": "Mesh kernels (three.js, three-mesh-bvh, manifold) are small and fast but approximate. OCCT-based opencascade.js gives exact B-rep and STEP but its WASM is large; rhino3dm reads Rhino data but has no Brep meshing or tessellation.",
+     "source_ids": [
+      "P14-S51",
+      "P14-S48",
+      "P14-S50",
+      "P14-S21",
+      "P14-S68"
+     ]
+    },
+    {
+     "name": "Numeric precision (float64 store, origin-relative render)",
+     "unit": "bits",
+     "relationship": "UTM northings near 5.46 million m exceed float32's 0.5 m resolution (derived); subtracting a site origin before upload keeps sub-millimetre precision at tower scale.",
+     "source_ids": [
+      "P14-S49"
+     ]
+    },
+    {
+     "name": "Memory ceiling and streaming",
+     "unit": "% of declared max",
+     "relationship": "In practice each WASM module's declared maximum memory, not a browser-wide 4 GiB, is the limit, to be read per module. Memory64 is stable in Chrome and Firefox but only a Safari preview. City LiDAR tiles reach 2.74 GB zipped, so COPC range requests are used.",
+     "source_ids": [
+      "P14-S58",
+      "P14-S36",
+      "P14-S40"
+     ]
+    },
+    {
+     "name": "Hosting and cross-origin isolation",
+     "unit": "headers",
+     "relationship": "The multithreaded web-ifc build needs SharedArrayBuffer, which needs COOP and COEP headers; static hosts such as GitHub Pages cannot set them. A service-worker shim reloads once on first visit, or the single-thread build loads, trading import speed for simple hosting.",
+     "source_ids": [
+      "P14-S71",
+      "P14-S72",
+      "P14-S07"
+     ]
+    },
+    {
+     "name": "Distribution licences of bundled WASM",
+     "unit": "licence",
+     "relationship": "opencascade.js is LGPL-2.1: a statically linked bundle needs source and relinking terms, while a separately fetched, replaceable WASM file fits LGPL section 6(b). LibreDWG is GPL-3.0 and stays server-side. The project's own licence is a team decision.",
+     "source_ids": [
+      "P14-S73",
+      "P14-S50"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Input latency (INP, p75)",
+     "good": "<= 200 ms",
+     "bad": "> 500 ms",
+     "unit": "ms",
+     "method": "PerformanceObserver event timing for clicks and key presses during imports; INP does not observe drags or scrolling, so slider drags are covered by the frame-time metric",
+     "basis": "web.dev INP thresholds",
+     "status": "verified",
+     "source_ids": [
+      "P14-S44"
+     ]
+    },
+    {
+     "name": "Frame work per frame",
+     "good": "<= 10 ms (16 ms budget at 60 fps)",
+     "bad": "> 16 ms",
+     "unit": "ms",
+     "method": "Render stats and performance marks while orbiting the model",
+     "basis": "RAIL: produce frames in 10 ms because the browser needs about 6 ms. Source verified, but RAIL targets mobile web pages; applying it to a desktop WASM canvas is our assumption",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S43"
+     ]
+    },
+    {
+     "name": "Task chunk length",
+     "good": "<= 50 ms chunks",
+     "bad": "> 100 ms blocking",
+     "unit": "ms",
+     "method": "Long Task observer",
+     "basis": "RAIL: idle work in 50 ms chunks, respond within 100 ms (mobile page-load model; applicability assumed)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S43"
+     ]
+    },
+    {
+     "name": "Canvas shell interactive (no model loaded)",
+     "good": "<= 5 s on mid-range mobile over slow 3G; later loads < 2 s",
+     "bad": "> 5 s",
+     "unit": "s",
+     "method": "Lighthouse; lazy-load rhino3dm, web-ifc and OCCT WASM after the shell",
+     "basis": "RAIL load target for mobile; a desktop-first design tool may relax it (assumption)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S43"
+     ]
+    },
+    {
+     "name": "Peak WASM heap",
+     "good": "<= 50% of the module's declared maximum memory",
+     "bad": ">= 80% of the declared maximum",
+     "unit": "% of declared max",
+     "method": "Sample memory.buffer.byteLength against the module's declared maximum, per module and per browser (Safari first)",
+     "basis": "Team presets. r1 replaced a 4 GiB wasm32 ceiling (general knowledge, unopened; FALSE ASSUMPTION flag) because a module stops at its own maximum",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S58"
+     ]
+    }
+   ],
+   "visualization": [
+    "Performance HUD in the canvas corner (fps, frame ms, long-task count, heap MB and % of declared max) with traffic-light bands from the thresholds (v1)",
+    "Per-node timing bar on each canvas node showing parse, mesh, BVH and compute time",
+    "Offload banner naming the task and the measured cost when a threshold is crossed",
+    "Hosting badge showing crossOriginIsolated true or false and which web-ifc build loaded"
+   ],
+   "method": "Parse in a worker (rhino3dm, web-ifc) into a Float64 geometry store, subtract the site origin, and upload Float32 buffers to three.js BufferGeometry. Build an analysis mesh with decimation and a three-mesh-bvh tree. Modules call workers by RPC for ray casts (sun, view), section planes, area and volume. Use manifold-3d for mesh Booleans, slicing and validation; lazy-load opencascade.js (custom build, separate file) only when a module needs exact B-rep or STEP. Check self.crossOriginIsolated at start; load web-ifc-mt only when true. Offload rule: if a task exceeds 100 ms measured, or a file exceeds the tested size, move it to a server worker running IfcOpenShell or rhino3dm.py; use Rhino.Compute only if a licensed server exists. Record timings with PerformanceObserver and memory against each module's declared maximum. CI checks the licence column of every bundled component.",
+   "human_judgment": "Choosing speed versus accuracy (tessellation, offloading), accepting approximations on curved geometry, and choosing the project licence and host.",
+   "limits": "The opencascade.js repo page shows an OCCT 7.6.2 badge and no listed releases, so maintenance is unclear and its bundle is large unless custom-built (unverified). McNeel calls rhino3dm.wasm fairly large. Benchmarks quoted are on an Apple M1 and will not match student laptops. Rhino.Compute needs Windows and Rhino 8; whether workstation use is allowed for students is unverified.",
+   "libraries": [
+    {
+     "name": "three.js",
+     "role": "Rendering",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "Ray casting and spatial queries",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "manifold-3d",
+     "role": "Mesh Booleans and slicing",
+     "license": "Apache-2.0",
+     "url": "https://github.com/elalish/manifold"
+    },
+    {
+     "name": "opencascade.js",
+     "role": "Exact B-rep in WASM (optional, custom build, separate file)",
+     "license": "LGPL-2.1",
+     "url": "https://github.com/donalffons/opencascade.js"
+    },
+    {
+     "name": "rhino3dm.js",
+     "role": ".3dm reading",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "coi-serviceworker",
+     "role": "Adds COOP/COEP headers on static hosts so SharedArrayBuffer builds can load",
+     "license": "MIT",
+     "url": "https://github.com/gzuidhof/coi-serviceworker"
+    },
+    {
+     "name": "Rhino.Compute",
+     "role": "Server-side Rhino geometry (optional)",
+     "license": "MIT code; Rhino 8 for Windows licence or core-hour billing required",
+     "url": "https://github.com/mcneel/compute.rhino3d"
+    }
+   ]
+  },
+  {
+   "module_id": "P14-M08",
+   "name": "City of Vancouver context ingest, view cones and viewpoints",
+   "phase": "basic",
+   "category": "SITE",
+   "design_question": "What surrounding buildings, terrain and protected views can City open data supply, how current and accurate are they, and what must be added by hand, such as approved towers?",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "S-M: Queen Elizabeth Park cones, viewpoint, footprints and parcels about 4.5 person-days; LiDAR to COPC pipeline about 1 week, roadmap (team estimate). Skip if the organiser's 3D model already includes context.",
+   "depends_on": [
+    "P14-M01"
+   ],
+   "jury_criteria": [
+    "urban_integration_10"
+   ],
+   "inputs": [
+    "Site anchor (longitude/latitude or EPSG:3157 easting/northing picked on a map) and context radius",
+    "Organiser's context model, if provided",
+    "Selected City datasets",
+    "User-entered viewpoints and view-limit elevations (with source and status)",
+    "Organiser's reference photo heights (five labelled towers)"
+   ],
+   "outputs": [
+    "ContextLayer in EPSG:3157 with geodetic heights (the local frame comes from P14-M03's matrix)",
+    "ContextBuilding list {footprint, base_elev, top_elev, parts, source dataset, year, licence}",
+    "Terrain surface",
+    "ViewCone records {polygon, viewpoint_xyz, limit_elevation_m, limit_source, limit_status} for the 24 polygons",
+    "Viewpoint objects (Queen Elizabeth Park skyline, mid-city) shared with PRES",
+    "Parcel polygons, rapid transit lines, street-grid bearing from parcel edges and LiDAR ground at the anchor (optional inputs to P14-M03)",
+    "Context currency report; manual-add queue for approved towers"
+   ],
+   "parameters": [
+    {
+     "name": "Context radius",
+     "unit": "m",
+     "relationship": "A larger radius adds distant towers that cast long shadows or channel wind but increases triangles and download. The radius needed as a function of tower height is not sourced here and belongs to the CLIM packets.",
+     "source_ids": []
+    },
+    {
+     "name": "Height source (footprints 2009 / LiDAR 2022 / organiser model / OSM and Overture)",
+     "unit": "dataset",
+     "relationship": "Footprints derive from 2009 LiDAR and are not updated, so towers built since are missing. LiDAR 2022 (about 49 points/m2, 0.081 m vertical accuracy at 95%) catches them but needs processing; Overture and OSM add newer footprints under ODbL.",
+     "source_ids": [
+      "P14-S35",
+      "P14-S36",
+      "P14-S39"
+     ]
+    },
+    {
+     "name": "Part handling (one building id, several polygons)",
+     "unit": "parts",
+     "relationship": "A building appears as stacked polygons with different base and top elevations. Extruding each from baseelev_m to topelev_m reproduces podium plus tower; maxht_m is the maximum over all parts of the building, so use it only for building-level summaries.",
+     "source_ids": [
+      "P14-S35"
+     ]
+    },
+    {
+     "name": "Coordinate frame and vertical datum of City data",
+     "unit": "CRS / datum",
+     "relationship": "LiDAR 2022 is NAD83(CSRS) UTM 10 with CGVD28GVRD heights; footprint heights are 'geodetic' without a named datum, and parcel and footprint pages state no CRS. Portal lon/lat may be relabelled NAD83(CSRS) or true WGS84, about 1.3 m apart here; test against LiDAR.",
+     "source_ids": [
+      "P14-S36",
+      "P14-S35",
+      "P14-S38",
+      "P14-S57",
+      "P14-S66"
+     ]
+    },
+    {
+     "name": "Manual additions (approved, unbuilt towers)",
+     "unit": "count",
+     "relationship": "The brief says context includes approved towers; no open dataset of approved massing was found. The tallest 2009 footprint within 2.5 km of the CBD is 208.6 m (maxht_m, derived), so nothing in the 244-305 m class is present; omitting approved towers under-predicts shadow and wind interaction.",
+     "source_ids": [
+      "P14-S54",
+      "P14-S35"
+     ]
+    },
+    {
+     "name": "Protected view cones and limit elevations (24 polygons)",
+     "unit": "polygons",
+     "relationship": "Building heights inside cones are limited, but the dataset gives polygons only, no height fields. The check in P14-M05 intersects the tower footprint with each polygon and compares its geodetic top with a hand-entered limit; with no limit the result is 'unchecked'.",
+     "source_ids": [
+      "P14-S37"
+     ]
+    },
+    {
+     "name": "Viewpoints (Queen Elizabeth Park skyline, mid-city)",
+     "unit": "viewpoints",
+     "relationship": "The brief asks for a Queen Elizabeth Park skyline view and a mid-city view. The dataset has four Queen Elizabeth Park cones (3.2.1-3.2.4) but no viewpoint coordinates; the organiser's reference photo shows the framing and labels five tower heights. Position and direction are entered as Viewpoint objects.",
+     "source_ids": [
+      "P14-S37",
+      "P14-S54",
+      "P14-S65"
+     ]
+    },
+    {
+     "name": "Licence and attribution",
+     "unit": "licence",
+     "relationship": "City data is under Open Government Licence - Vancouver; OSM-derived layers are ODbL (share-alike). The tool must show attribution and keep ODbL layers separable.",
+     "source_ids": [
+      "P14-S35",
+      "P14-S39"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Data age",
+     "good": "<= 5 years",
+     "bad": "> 10 years",
+     "unit": "years",
+     "method": "2026 minus acquisition year: footprints 2009 = 17 (bad), LiDAR 2022 = 4 (good)",
+     "basis": "Team assumption; ages from dataset metadata",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S35",
+      "P14-S36"
+     ]
+    },
+    {
+     "name": "Stated vertical accuracy",
+     "good": "Published and <= 0.2 m (LiDAR 2022: 0.081 m at 95%)",
+     "bad": "Not stated (footprints 2009: 'approximate, best used for comparison')",
+     "unit": "m",
+     "method": "Read from dataset metadata",
+     "basis": "Team assumption; values quoted from City metadata",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S35",
+      "P14-S36"
+     ]
+    },
+    {
+     "name": "Missed tall buildings",
+     "good": "0 buildings taller than 100 m (LiDAR building class) without a matching footprint part",
+     "bad": ">= 1",
+     "unit": "count",
+     "method": "Compare LiDAR 2022 building-class heights with footprint extrusions and list unmatched peaks",
+     "basis": "Team assumption; 100 m cut-off is an editable preset",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S36",
+      "P14-S35"
+     ]
+    },
+    {
+     "name": "Agreement with organiser reference heights",
+     "good": "<= 5% difference for each of the five labelled towers (141-201 m)",
+     "bad": "> 10% for any, or a labelled tower missing",
+     "unit": "%",
+     "method": "Compare footprint or LiDAR heights at each tower's position with the labels in the organiser's Queen Elizabeth Park photo",
+     "basis": "Team presets. Indicative r2 check by position only (the dataset has no names): the footprint at Living Shangri-La's location has parts of 188.6 and 192.9 m and maxht_m 208.6 m against 201 m; at Harbour Centre a 135.3 m part and maxht_m 160.2 m against 147 m",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S35",
+      "P14-S65"
+     ]
+    },
+    {
+     "name": "Attribution completeness",
+     "good": "100% of context layers carry dataset id, licence and year",
+     "bad": "Any layer missing",
+     "unit": "%",
+     "method": "Check metadata on each context object",
+     "basis": "Licence terms of the cited datasets (full City licence text not opened)",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S35",
+      "P14-S39"
+     ]
+    },
+    {
+     "name": "View-cone limit entry",
+     "good": "Every cone polygon touching the site has a hand-entered limit elevation with source and status",
+     "bad": "A touching cone with no limit ('unchecked')",
+     "unit": "status",
+     "method": "2D intersection of the site footprint with the 24 cones; the pass/fail height comparison runs in P14-M05",
+     "basis": "Team logic; the dataset has no height fields and the by-laws are authoritative",
+     "status": "team_assumption",
+     "source_ids": [
+      "P14-S37"
+     ]
+    }
+   ],
+   "visualization": [
+    "Context massing extruded from City data, coloured by data year (cool recent, warm old), with a ring at the chosen radius",
+    "View-cone polygons as translucent ground wedges with labels and a pass/unchecked/fail chip; LiDAR-derived terrain as hillshade",
+    "Viewpoint markers with a camera frustum for the Queen Elizabeth Park and mid-city views, with the organiser's five labelled towers as height ticks",
+    "Badge per layer showing source, licence and age; suspected missing towers as dashed outlines"
+   ],
+   "method": "Fetch GeoJSON from the City open-data API (building-footprints-2009, property-parcel-polygons, view-cones, rapid-transit-lines) within the radius, starting with the four Queen Elizabeth Park cones (3.2.1-3.2.4) and the viewpoint. Check returned coordinates against LiDAR before choosing the datum shift, then reproject with proj4js (EPSG:3157 registered, shift per P14-M03). Group by bldgid; extrude each part from baseelev_m to topelev_m, check topelev_m minus baseelev_m equals hgt_agl, and keep heights geodetic; P14-M03's matrix places them in the local frame. Derive the street-grid bearing from parcel edges and sample ground at the anchor for Z0. Roadmap: convert LiDAR 2022 LAS tiles (up to 2.74 GB zipped) to COPC server-side. The organiser's model takes priority; users add approved towers as boxes tagged 'manual, team assumption'.",
+   "human_judgment": "Which context matters, adding approved-but-unbuilt towers, entering view-limit elevations from the by-laws, placing the viewpoints, and deciding whether to trust an old dataset over the organiser's model.",
+   "limits": "Footprints 2009 are generalised and not updated; towers completed since are absent or wrong. The view-cone dataset has polygons only: allowable height surfaces are in by-laws, and the City's view pages and policy PDFs returned HTTP 403. The vertical datum name behind topelev_m is not stated beyond 'geodetic'. The City licence text could not be opened. Matching labelled towers to footprints is by position only.",
+   "libraries": [
+    {
+     "name": "proj4js",
+     "role": "Portal lon/lat to EPSG:3157 (definition registered by the tool)",
+     "license": "MIT per project (LICENSE.md not read)",
+     "url": "https://github.com/proj4js/proj4js"
+    },
+    {
+     "name": "copc.js / COPC format",
+     "role": "Streaming LiDAR subsets (roadmap)",
+     "license": "MIT (copc.js); COPC spec licence not stated on its page",
+     "url": "https://copc.io/"
+    },
+    {
+     "name": "three.js",
+     "role": "Context massing display",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    },
+    {
+     "name": "Overture Maps buildings / OpenStreetMap",
+     "role": "Newer footprints and heights as fallback",
+     "license": "ODbL",
+     "url": "https://docs.overturemaps.org/guides/buildings/"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "P14-S01",
+   "title": "buildingSMART IFC4.3.x-development repository",
+   "url": "https://github.com/buildingSMART/IFC4.3.x-development",
+   "publisher": "buildingSMART International",
+   "type": "standard repository",
+   "year": "2026",
+   "opened": true,
+   "extract": "ifc4.3-main branch holds IFC4.3.2.0; approved release is ISO (iso.org/standard/84123.html); formal releases are CC BY-ND 4.0. HTML docs at standards.buildingsmart.org returned HTTP 403, but the markdown schema docs under docs/schemas were readable via raw.githubusercontent.com and are cited as P14-S03, S59 and S60."
+  },
+  {
+   "id": "P14-S03",
+   "title": "IFC 4.3 spatial structure pages: IfcSpace, IfcSpatialZone, IfcBuildingStorey, IfcBuilding, IfcSite, IfcRelReferencedInSpatialStructure, IfcAnnotation (GitHub docs)",
+   "url": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/core/IfcProductExtension/Entities/IfcSpatialZone.md",
+   "publisher": "buildingSMART International",
+   "type": "standard documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. IfcSpace belongs to a storey, or to a site if exterior. IfcSpatialZone (new in IFC4): non-hierarchical, may overlap, own placement and shape; spaces it references use IfcRelReferencedInSpatialStructure, with the zone as RelatingStructure and spaces as RelatedElements (an 'IFC4 CHANGE' allows IfcSpace there); a zone can itself be referenced by another spatial element. IfcBuildingStorey: aggregated by its building; PARTIAL = partial storey (split-level example); Elevation deprecated in 4.3 (use Pset_BuildingStoreyCommon ElevationOfSSLRelative/FFLRelative). IfcBuilding: COMPLEX/ELEMENT/PARTIAL (building section); ElevationOfRefHeight deprecated in 4.3. IfcSite.RefElevation is the site reference height. IfcAnnotation: points, curves and symbolic information that are not products or spatial structure. IFC4 ADD2 equivalents not read."
+  },
+  {
+   "id": "P14-S04",
+   "title": "City2BIM IFCGeoRefChecker wiki (LoGeoRef levels)",
+   "url": "https://github.com/dd-bim/City2BIM/wiki/IFCGeoRefChecker",
+   "publisher": "dd-bim / HTW Dresden",
+   "type": "tool documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "LoGeoRef 10 postal address; 20 IfcSite RefLatitude/RefLongitude; 30 placement of a spatial element; 40 IfcGeometricRepresentationContext WorldCoordinateSystem plus TrueNorth; 50 IfcMapConversion plus IfcProjectedCRS (EPSG)."
+  },
+  {
+   "id": "P14-S05",
+   "title": "IfcOpenShell repository",
+   "url": "https://github.com/IfcOpenShell/IfcOpenShell",
+   "publisher": "IfcOpenShell",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "Core LGPL-3.0-or-later; README: complete parsing for IFC2x3 TC1, IFC4 Add2 TC1, IFC4x1, IFC4x2 and IFC4x3 Add2, but extensive geometric support only for IFC2x3 TC1 and IFC4 Add2 TC1 (re-read 21 Oct 2026; page shows tag v0.9.0); includes IfcConvert, IfcClash, ifcpatch, ifcdiff."
+  },
+  {
+   "id": "P14-S07",
+   "title": "web-ifc (That Open Company)",
+   "url": "https://github.com/ThatOpen/engine_web-ifc",
+   "publisher": "That Open Company",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MPL-2.0; reads and writes IFC via WebAssembly in browser or Node. README (re-read 21 Oct 2026) lists web-ifc.wasm, web-ifc-mt.wasm (multithreaded) and a worker file; it names no schema versions and does not mention SharedArrayBuffer. ifc-schema.ts (read earlier) enumerates IFC2X3, IFC4 and IFC4X3 and entity ids IFCBUILDINGSTOREY, IFCSPACE, IFCMAPCONVERSION, IFCPROJECTEDCRS."
+  },
+  {
+   "id": "P14-S08",
+   "title": "web-ifc benchmark results",
+   "url": "https://github.com/ThatOpen/engine_web-ifc/blob/main/benchmark.md",
+   "publisher": "That Open Company",
+   "type": "benchmark",
+   "year": "2026",
+   "opened": true,
+   "extract": "Apple M1; free RAM 137.48, total RAM 8192 (units not stated). 31 files. For files of 26-70 MB: open 166-1,158 ms, execute-all 523-7,623 ms; e.g. 70 MB 448 ms / 5,530 ms, 55 MB 339 / 2,052, 47 MB 301 / 523, 34 MB 1,134 / 7,623 (ifczip), 30 MB 196 / 5,338. Time does not track file size."
+  },
+  {
+   "id": "P14-S09",
+   "title": "Speckle data schema overview (pre-2026.9 object graph, historical)",
+   "url": "https://docs.speckle.systems/developers/data-schema/overview",
+   "publisher": "Speckle Systems",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "States it describes versions published before 2026.9. Objects identified by content hash for deduplication; applicationId gives stable version tracking; Collections hold hierarchy; DataObject displayValue holds visual meshes; a version is an immutable snapshot. Historical for design decisions."
+  },
+  {
+   "id": "P14-S10",
+   "title": "Speckle object model overview (2026.9 bundles) and relations page",
+   "url": "https://docs.speckle.systems/developers/object-model/overview",
+   "publisher": "Speckle Systems",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Columnar property store plus relational layer, no root object; units per object; no Level object (ON_LEVEL relation), no Proxy types (HAS_MATERIAL replaces material proxies); other relations IN_SYSTEM, SUBELEMENT, CONNECTS_TO, containers IN_COLLECTION/IN_MODEL/IN_GROUP; objects keyed by applicationId (pages do not mention content hashes); site/building containers not described; pre-2026.9 SDKs get a 404 on new versions; send3/receive3; compatibility mode for ACC sync and file uploads until 1 November 2026."
+  },
+  {
+   "id": "P14-S11",
+   "title": "Speckle Revit connector",
+   "url": "https://docs.speckle.systems/connectors/revit",
+   "publisher": "Speckle Systems",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Revit 2023-2027, Windows only; exports model categories with family, type, level, parameters and meshes; image textures not transferred; objects load as Direct Shapes; licence and cost not covered."
+  },
+  {
+   "id": "P14-S12",
+   "title": "Speckle SketchUp connector",
+   "url": "https://docs.speckle.systems/connectors/sketchup",
+   "publisher": "Speckle Systems",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "SketchUp 2021-2026 on Windows and macOS; publishes components, groups, faces, lines, custom attributes and render materials; image textures not supported."
+  },
+  {
+   "id": "P14-S13",
+   "title": "Speckle Rhino connector",
+   "url": "https://docs.speckle.systems/connectors/rhino",
+   "publisher": "Speckle Systems",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Rhino 7 and 8, Windows only; sends geometry with name, colour, material and user strings, blocks, layer structure; image textures not transferred; brep conversion not documented on the page."
+  },
+  {
+   "id": "P14-S14",
+   "title": "Speckle pricing",
+   "url": "https://speckle.systems/pricing/",
+   "publisher": "Speckle Systems",
+   "type": "vendor pricing",
+   "year": "2026",
+   "opened": true,
+   "extract": "Free Explore plan: 1 project, 3 users, 100 versions, 30-day history (older versions inaccessible, public links stop working), all file importers and connectors; free for students and educators; custom plans not priced on the page."
+  },
+  {
+   "id": "P14-S15",
+   "title": "speckle-server repository",
+   "url": "https://github.com/specklesystems/speckle-server",
+   "publisher": "Speckle Systems",
+   "type": "open-source repository",
+   "year": "2026",
+   "opened": true,
+   "extract": "Apache-2.0 unless stated; monorepo with server, frontend, three.js viewer, objectloader and file-import service; Docker Compose files for self-hosting."
+  },
+  {
+   "id": "P14-S17",
+   "title": "glTF 2.0 specification",
+   "url": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html",
+   "publisher": "Khronos Group",
+   "type": "standard",
+   "year": "2021",
+   "opened": true,
+   "extract": "Units for all linear distances are metres; right-handed coordinate system with +Y up and +Z forward (first 200,000 characters read; extras text not seen)."
+  },
+  {
+   "id": "P14-S18",
+   "title": "EXT_structural_metadata (glTF extension, Cesium draft)",
+   "url": "https://github.com/CesiumGS/glTF/tree/3d-tiles-next/extensions/2.0/Vendor/EXT_structural_metadata",
+   "publisher": "Cesium / community",
+   "type": "draft extension",
+   "year": "2026",
+   "opened": true,
+   "extract": "Status line: Draft; contributors mostly Cesium; page does not claim Khronos ratification. The Khronos glTF main repo's Vendor listing does not contain it, and a guessed canonical path returned 404, so v0 uses plain glTF extras."
+  },
+  {
+   "id": "P14-S19",
+   "title": "Building Topology Ontology (BOT)",
+   "url": "https://w3c-lbd-cg.github.io/bot/",
+   "publisher": "W3C Linked Building Data Community Group",
+   "type": "ontology (public draft)",
+   "year": "2026",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Public Draft, no date or licence stated. Classes Site, Building, Storey, Space, Zone, Element, Interface. bot:containsZone (transitive; domain and range Zone, which includes Site, Building, Storey, Space) is the super-property of hasBuilding, hasStorey, hasSpace; intersectsZone is symmetric and disjoint with adjacentZone; alignment to ifcOWL provided."
+  },
+  {
+   "id": "P14-S20",
+   "title": "rhino3dm repository",
+   "url": "https://github.com/mcneel/rhino3dm",
+   "publisher": "McNeel",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; .NET, Python (CPython 3.8-3.14) and JavaScript/WASM; reads and writes .3dm, layers and attributes; client for Rhino Compute; .wasm is fairly large per the JS README."
+  },
+  {
+   "id": "P14-S21",
+   "title": "rhino3dm bindings (settings, brep, beam/extrusion, mesh, subd, layer)",
+   "url": "https://github.com/mcneel/rhino3dm/tree/main/src/bindings",
+   "publisher": "McNeel",
+   "type": "source code",
+   "year": "2026",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026 (main branch). bnd_brep binds BrepFace.GetMesh/SetMesh, IsSolid, IsManifold and Brep.CreateFromMesh but no Brep-to-mesh call. bnd_beam.cpp binds Extrusion with Create, ToBrep, Profile3d, PathLineCurve, WallSurface, GetMesh and SetMesh (JS getMesh, setMesh, toBrep). bnd_mesh.cpp binds Mesh.CreateFromSubDControlNet (JS createFromSubDControlNet). bnd_subd binds IsSolid. bnd_3dm_settings binds ModelUnitSystem and EarthAnchorPoint; bnd_layer binds name, full path, colour, visibility."
+  },
+  {
+   "id": "P14-S22",
+   "title": "Rhino.Compute repository and LICENSE.md",
+   "url": "https://github.com/mcneel/compute.rhino3d",
+   "publisher": "McNeel",
+   "type": "open-source repository",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT licence (rhino.compute, Hops); built on Rhino 8 for Windows; REST API for RhinoCommon and Grasshopper."
+  },
+  {
+   "id": "P14-S23",
+   "title": "Rhino licensing and core-hour billing",
+   "url": "https://developer.rhino3d.com/guides/compute/core-hour-billing/",
+   "publisher": "McNeel",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "USD 0.10 per core per hour while Rhino runs; core-hour billing is not compatible with Educational or Commercial licences and cannot be enabled on a team containing any licences; required on Windows Server-based systems, where single-computer keys cannot be entered; the page does not mention Rhino.Compute or workstation use."
+  },
+  {
+   "id": "P14-S24",
+   "title": "Rhino 8 index of import/export file types",
+   "url": "https://docs.mcneel.com/rhino/8/help/en-us/fileio/_index_of_import_export_file_types.htm",
+   "publisher": "McNeel",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Import and export both list skp, glb/gltf, obj, fbx, dwg, step; IFC and rvt not listed in the Rhino 8 or Rhino 9 index; dialogs show only formats whose plug-ins are enabled."
+  },
+  {
+   "id": "P14-S25",
+   "title": "Is the SketchUp SDK free to use for me? (SketchUp forum)",
+   "url": "https://forums.sketchup.com/t/is-the-sketchup-sdk-free-to-use-for-me/220079",
+   "publisher": "SketchUp community forum",
+   "type": "forum thread",
+   "year": "2023",
+   "opened": true,
+   "extract": "C SDK access needs developer registration and agreement to Trimble API terms; SDK has its own licence; a forum answer says .skp can be read without SketchUp; cost unclear; not legal advice."
+  },
+  {
+   "id": "P14-S26",
+   "title": "SketchUp help: Exporting OBJ files",
+   "url": "https://help.sketchup.com/en/sketchup/exporting-obj-files",
+   "publisher": "Trimble SketchUp",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "OBJ export is SketchUp Pro only; Units drop-down (default model units); polygon faces only; no hierarchy; edges optional."
+  },
+  {
+   "id": "P14-S27",
+   "title": "Autodesk revit-ifc (open-source Revit IFC exporter) and releases",
+   "url": "https://github.com/Autodesk/revit-ifc",
+   "publisher": "Autodesk",
+   "type": "open-source repository",
+   "year": "2026",
+   "opened": true,
+   "extract": "IFC add-in for Revit and Revit LT 2019+; LGPLv2; includes a proprietary Autodesk DLL usable under Autodesk terms. Releases page: 24.3.40, 25.4.40 and 26.4.1 added IFC4.3 Reference View exchange requirements; 25.4.3 allowed export of the map conversion scale and improved EPSG support; 27.3.0.12 fixes IFC4x3 pipe fitting alignment; true north not mentioned."
+  },
+  {
+   "id": "P14-S28",
+   "title": "APS Free and Paid tiers announcement",
+   "url": "https://aps.autodesk.com/node/3776",
+   "publisher": "Autodesk Platform Services",
+   "type": "vendor announcement",
+   "year": "2025",
+   "opened": true,
+   "extract": "Free tier gives monthly access with usage caps for Model Derivative; exceeding a cap suspends the API until next month; Paid: Prepay Flex tokens (minimum 100, expire after 1 year) or Pay As You Go in select countries; cap numbers are in an image."
+  },
+  {
+   "id": "P14-S29",
+   "title": "APS Model Derivative supported translations",
+   "url": "https://aps.autodesk.com/en/docs/model-derivative/v2/supported-translations",
+   "publisher": "Autodesk Platform Services",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": false,
+   "extract": "Page is script-rendered and returned no table to my fetcher; claims about RVT, SKP and IFC input/output support are unverified; pricing of 0.5 Flex tokens per complex job came from a search snippet only."
+  },
+  {
+   "id": "P14-S30",
+   "title": "EPSG:26910 NAD83 / UTM zone 10N",
+   "url": "https://epsg.io/26910",
+   "publisher": "EPSG registry via epsg.io",
+   "type": "registry",
+   "year": "2026",
+   "opened": true,
+   "extract": "Metres; 126 W to 120 W; central meridian 123 W; scale factor 0.9996; PROJ string has towgs84=0,0,0; remark: for accuracies better than 1 m replaced by NAD83(CSRS) / UTM zone 10N in Canada; default transformation to WGS84 listed at 4.0 m accuracy (code 1188), remarks say 2 m per axis."
+  },
+  {
+   "id": "P14-S32",
+   "title": "Transverse Mercator projection (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Transverse_Mercator_projection",
+   "publisher": "Wikipedia",
+   "type": "secondary reference",
+   "year": "2026",
+   "opened": true,
+   "extract": "Convergence gamma = arctan(tan(lambda) sin(phi)); point scale k0 / sqrt(1 - sin^2 lambda cos^2 phi). Derived r2: at 49.2827 N, 123.1207 W this gives convergence about 0.09 degree and point scale about 0.99960."
+  },
+  {
+   "id": "P14-S33",
+   "title": "proj4js (repository, lib/datum.js and lib/datumUtils.js)",
+   "url": "https://github.com/proj4js/proj4js",
+   "publisher": "proj4js contributors",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "Predefines EPSG 4326, 4269, 3857 and WGS84 UTM zones (not 26910 or 3157); custom definitions via proj4.defs; accepts WKT and PROJJSON; licence not named on the page. Code re-read 21 Oct 2026: datum.js multiplies the +towgs84 rotation terms by SEC_TO_RAD (arc-seconds to radians) and datumUtils.js applies position-vector formulas (x' = x - rz*y + ry*z + dx), so radian values pasted as arc-seconds are effectively zero. The nad83 datum entry has towgs84 0,0,0 and there is no NAD83 CSRS entry."
+  },
+  {
+   "id": "P14-S34",
+   "title": "CTBUH height criteria",
+   "url": "https://skyscrapercenter.com/criteria",
+   "publisher": "Council on Tall Buildings and Urban Habitat",
+   "type": "industry standard",
+   "year": "2026",
+   "opened": true,
+   "extract": "Height from the lowest significant open-air pedestrian entrance; architectural top excludes antennas and signage; floors counted above ground including significant mezzanines and major mechanical floors, excluding plant above the general roof."
+  },
+  {
+   "id": "P14-S35",
+   "title": "City of Vancouver open data: Building footprints 2009",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/building-footprints-2009",
+   "publisher": "City of Vancouver",
+   "type": "open dataset",
+   "year": "2019",
+   "opened": true,
+   "extract": "Open Government Licence - Vancouver; 124,181 polygons derived from 2009 LiDAR; 'approximate, best used for comparison, not updated'. Fields: baseelev_m and topelev_m lowest/highest elevation (geodetic, datum not named); hgt_agl essentially topelev minus baseelev; avght_m average height of the element; maxht_m and minht_m max/min over all elements sharing BLDGID; base_m base elevation of all elements sharing BLDGID. Sample building 149845: base 30.7, top 219.29, hgt_agl 188.59, maxht_m 208.63. API query 21 Oct 2026 (derived): the largest maxht_m within 2.5 km of 49.2827 N, 123.1207 W is 208.63 m, the next 160.17 m."
+  },
+  {
+   "id": "P14-S36",
+   "title": "City of Vancouver open data: LiDAR 2022",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "publisher": "City of Vancouver",
+   "type": "open dataset",
+   "year": "2022",
+   "opened": true,
+   "extract": "Acquired 7 and 9 Sep 2022; about 49 points/m2; vertical accuracy 0.081 m at 95%; 181 LAS tiles from 16.45 MB to 2.74 GB zipped; horizontal NAD 83 (CSRS) 4.0.0.BC.1.GVRD in UTM 10, portal grid map in WGS 84; vertical CGVD28GVRD; Metro Vancouver Geoid listed; building class 6 inferred from list position."
+  },
+  {
+   "id": "P14-S37",
+   "title": "City of Vancouver open data: View cones",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "publisher": "City of Vancouver",
+   "type": "open dataset",
+   "year": "2026",
+   "opened": true,
+   "extract": "24 polygons of protected views; fields object_id, view_number, view_cone_name, description, url, shape_length, shapre_area, geom, geo_point_2d; no height fields; development inside is height-limited and the City's by-laws are authoritative; four records are Queen Elizabeth Park (3.2.1-3.2.4); view pages at vancouver.ca returned HTTP 403; updated 2026-10-19; Open Government Licence - Vancouver."
+  },
+  {
+   "id": "P14-S38",
+   "title": "City of Vancouver open data: Property parcel polygons",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons",
+   "publisher": "City of Vancouver",
+   "type": "open dataset",
+   "year": "2026",
+   "opened": true,
+   "extract": "Assessment-based polygons; 'much of the land base is created using survey accuracy however some features are not as precise'; website extract updated weekly; metadata states no CRS (the API returns lon/lat). Derived 21 Oct 2026 from the API: 969 parcels within 700 m of 49.2827 N, 123.1207 W; their edges of 15 m or more cluster at 44.6-44.8 degrees (mod 90) from true north, length-weighted mean 44.7, identical for the western and eastern halves; parcel 669 Howe St has edges at 44.7 and 134.6-134.7 degrees (76.1 m and 36.5 m)."
+  },
+  {
+   "id": "P14-S39",
+   "title": "Overture Maps buildings theme",
+   "url": "https://docs.overturemaps.org/guides/buildings/",
+   "publisher": "Overture Maps Foundation",
+   "type": "open dataset documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "ODbL because OpenStreetMap is included; sources include City of Vancouver open data; building and building_part types; height merged on IoU above 0.5; heights of 900 m or more excluded."
+  },
+  {
+   "id": "P14-S40",
+   "title": "COPC: Cloud Optimized Point Cloud",
+   "url": "https://copc.io/",
+   "publisher": "Hobu, Inc.",
+   "type": "format specification",
+   "year": "2021",
+   "opened": true,
+   "extract": "LAZ 1.4 with clustered octree; range-request streaming; only LAS point formats 6, 7 or 8; specification page shows a copyright notice and names no open licence."
+  },
+  {
+   "id": "P14-S41",
+   "title": "PROV-O: The PROV Ontology",
+   "url": "https://www.w3.org/TR/prov-o/",
+   "publisher": "W3C",
+   "type": "W3C Recommendation",
+   "year": "2013",
+   "opened": true,
+   "extract": "Recommendation of 30 April 2013; classes Entity, Activity, Agent; properties wasGeneratedBy, used, wasDerivedFrom, wasAttributedTo."
+  },
+  {
+   "id": "P14-S42",
+   "title": "isomorphic-git",
+   "url": "https://github.com/isomorphic-git/isomorphic-git",
+   "publisher": "isomorphic-git contributors",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; pure JS git for browser and Node; browser clone and push need a CORS proxy; LightningFS may reorder writes (call fs.flush); maintained by two volunteers."
+  },
+  {
+   "id": "P14-S43",
+   "title": "Measure performance with the RAIL model",
+   "url": "https://web.dev/articles/rail",
+   "publisher": "Google web.dev",
+   "type": "performance guideline",
+   "year": "2020",
+   "opened": true,
+   "extract": "Last updated 2020-06-10. Respond within 100 ms; process input events within 50 ms; produce frames in 10 ms (16 ms budget); idle work in chunks of 50 ms; interactive within 5 s on mid-range mobile devices over slow 3G, later loads under 2 s. The page says Core Web Vitals is now the recommended approach. Targets are for mobile web pages; fit to a desktop WASM design canvas is our assumption."
+  },
+  {
+   "id": "P14-S44",
+   "title": "Interaction to Next Paint (INP)",
+   "url": "https://web.dev/articles/inp",
+   "publisher": "Google web.dev",
+   "type": "performance guideline",
+   "year": "2024",
+   "opened": true,
+   "extract": "Good <= 200 ms, needs improvement 200-500 ms, poor > 500 ms at the 75th percentile (segmented by mobile and desktop). Only clicks, taps and key presses are observed; hover, scroll and zoom are not."
+  },
+  {
+   "id": "P14-S45",
+   "title": "Claude API: Structured outputs",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+   "publisher": "Anthropic",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "JSON-schema constrained responses; API does not support minimum/maximum or length constraints (SDK helpers strip them and validate locally); no recursive schemas; refusals or max_tokens truncation can produce output that does not match the schema; Sonnet 5.5 listed as supported; ZDR eligible (JSON schema cached up to 24 hours)."
+  },
+  {
+   "id": "P14-S46",
+   "title": "rhinomcp",
+   "url": "https://github.com/jingcheng-chen/rhinomcp",
+   "publisher": "jingcheng-chen",
+   "type": "MCP server",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; connects Claude and other MCP clients to Rhino 8 (Windows or macOS) and Grasshopper; needs Python 3.10+, uv and a Rhino plugin."
+  },
+  {
+   "id": "P14-S47",
+   "title": "Online 3D Viewer",
+   "url": "https://github.com/kovacsv/Online3DViewer",
+   "publisher": "Viktor Kovacs",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; imports 3DM, 3DS, 3MF, AMF, BIM, BREP, DAE, FBX, FCStd, glTF, IFC, IGES, STEP, STL, OBJ, OFF, PLY, WRL (no SKP, no DWG); built on three.js, rhino3dm, web-ifc and occt-import-js."
+  },
+  {
+   "id": "P14-S48",
+   "title": "Manifold geometry library (repository, C++ API page and JS type file)",
+   "url": "https://github.com/elalish/manifold",
+   "publisher": "Emmett Lalish and contributors",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "Apache-2.0; guaranteed-manifold mesh Booleans; npm manifold-3d WASM build is serial-only. C++ API: Slice(height), TrimByPlane, SplitByPlane, Volume(), SurfaceArea(), Project(). JS types (bindings/wasm/manifold-encapsulated-types.d.ts, read 21 Oct 2026): Manifold.slice(height) returns a CrossSection, volume(), surfaceArea(), trimByPlane, splitByPlane, project(), status(), getMesh(); CrossSection.area()."
+  },
+  {
+   "id": "P14-S49",
+   "title": "three-mesh-bvh",
+   "url": "https://github.com/gkjohnson/three-mesh-bvh",
+   "publisher": "Garrett Johnson",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; BVH raycasting and spatial queries for three.js; 500 rays against an 80,000-polygon model at 60 fps (conditions not given); large or off-centre geometry can cause precision errors, so centre it."
+  },
+  {
+   "id": "P14-S50",
+   "title": "opencascade.js",
+   "url": "https://github.com/donalffons/opencascade.js",
+   "publisher": "donalffons",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "LGPL-2.1; OpenCascade port to WebAssembly; OCCT 7.6.2 badge; no releases listed in the captured page; 2,069 commits, 51 open issues; builds folder and a manual 'Build OpenCascade.js' workflow for custom builds; page does not say how the WASM is linked or distributed."
+  },
+  {
+   "id": "P14-S51",
+   "title": "three.js",
+   "url": "https://github.com/mrdoob/three.js",
+   "publisher": "three.js authors",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; WebGL and WebGPU renderers; loader list not shown on the repo page."
+  },
+  {
+   "id": "P14-S52",
+   "title": "Wavefront OBJ format description",
+   "url": "https://www.loc.gov/preservation/digital/formats/fdd/fdd000507.shtml",
+   "publisher": "Library of Congress",
+   "type": "format description",
+   "year": "2026",
+   "opened": true,
+   "extract": "ASCII format; no unit stated for coordinates; no animation, lights or structured metadata; materials in a separate .mtl file; viewers differ in MTL handling."
+  },
+  {
+   "id": "P14-S53",
+   "title": "Vancouver Tall Challenge page",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "publisher": "Buildner / architecturecompetitions.com",
+   "type": "competition page",
+   "year": "2026",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026: brief download buttons and the 'Site plans & 3D model' link still have no real URL ('#' or none); no formats, CRS or north arrow stated; registration closes 29 Oct 2026; Q&A until 3 Nov 2026; submission 30 Nov 2026 23:59 London; winners 26 Jan 2027. FAQ: entries are judged anonymously, registration type revealed only at results; a previously published design may be resubmitted by its author (conflicts with terms 4.1, see P14-S64); AI tools: check the tool's terms. An introduction image titled 'Reference Photo - Queen Elizabeth View Tower Heights' (P14-S65)."
+  },
+  {
+   "id": "P14-S54",
+   "title": "VTC brief facts as quoted in the project packet",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "publisher": "Buildner with City of Vancouver and UBC SALA",
+   "type": "competition brief",
+   "year": "2026",
+   "opened": false,
+   "extract": "Site about 79.2 x 144.8 m (260 x 475 ft); towers 244-305 m; minimum 9.0 FSR non-residential high-employment area; north arrow rotated relative to the street grid; boards with no identifying information. The brief PDF link on the public page is a placeholder (re-checked 21 Oct 2026), so the PDF was not read by me."
+  },
+  {
+   "id": "P14-S55",
+   "title": "Higher Buildings Policy for Rezonings (1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "type": "municipal policy",
+   "year": "1997",
+   "opened": false,
+   "extract": "Not opened: HTTP 403 (retried 21 Oct 2026). The City's Shape Your City page (P14-S76) says the 1997 policy is under review and not replaced."
+  },
+  {
+   "id": "P14-S56",
+   "title": "Higher Buildings Policy Review engagement document",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "publisher": "City of Vancouver",
+   "type": "municipal engagement document",
+   "year": "2026",
+   "opened": false,
+   "extract": "Not opened: HTTP 403 (retried 21 Oct 2026)."
+  },
+  {
+   "id": "P14-S57",
+   "title": "EPSG:3157 NAD83(CSRS) / UTM zone 10N",
+   "url": "https://epsg.io/3157",
+   "publisher": "EPSG registry via epsg.io",
+   "type": "registry",
+   "year": "2026",
+   "opened": true,
+   "extract": "Area 126 W to 120 W, British Columbia, NWT, Yukon; datum NAD83(CSRS) on GRS 1980; 2D projected CRS with no vertical axis; PROJ string +proj=utm +zone=10 +ellps=GRS80 +towgs84=-0.991,1.9072,0.5129,-1.25033e-07,-4.6785e-08,-5.6529e-08,0 +units=m (rotations are EPSG 1946's radian values, so not valid as +towgs84 arc-seconds); default transformation to WGS 84 code 1946 accuracy 1.0 m, alternative code 1842 accuracy 2.0 m."
+  },
+  {
+   "id": "P14-S58",
+   "title": "WebAssembly feature support table (memory64)",
+   "url": "https://raw.githubusercontent.com/WebAssembly/website/main/features.json",
+   "publisher": "WebAssembly Community Group",
+   "type": "feature table",
+   "year": "2026",
+   "opened": true,
+   "extract": "memory64 (Phase 5): Chrome 133, Firefox 134, Node 24.0 with no flag; Safari only in Technical Preview 251 behind a flag."
+  },
+  {
+   "id": "P14-S59",
+   "title": "IFC 4.3 IfcMapConversion, IfcMapConversionScaled and IfcProjectedCRS (GitHub docs)",
+   "url": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/resource/IfcRepresentationResource/Entities/IfcMapConversion.md",
+   "publisher": "buildingSMART International",
+   "type": "standard documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "IfcMapConversion (new in IFC4): Eastings, Northings, OrthogonalHeight (relative to the vertical datum specified), XAxisAbscissa/XAxisOrdinate for rotation, one Scale on x, y, z 'to convert units' (default 1.0). IfcMapConversionScaled (new in IFC4X3 ADD1) adds FactorX/Y/Z 'to scale coordinates, not units'. IfcProjectedCRS: Name, GeodeticDatum, VerticalDatum (needed for 3D systems when Name does not define it), MapProjection, MapZone, MapUnit."
+  },
+  {
+   "id": "P14-S60",
+   "title": "IFC 4.3 property, quantity, classification and root pages (GitHub docs)",
+   "url": "https://raw.githubusercontent.com/buildingSMART/IFC4.3.x-development/master/docs/schemas/core/IfcProductExtension/QuantitySets/Qto_SpaceBaseQuantities.md",
+   "publisher": "buildingSMART International",
+   "type": "standard documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Qto_SpaceBaseQuantities: GrossFloorArea, GrossPerimeter, Height, NetFloorArea, NetVolume. IfcPropertySet: user-defined sets must not use the Pset_ prefix. IfcClassification: Source, Edition, EditionDate, Name; a declared classification may be formally published (OmniClass, Uniclass) or locally defined. IfcClassificationReference: Identification, Name, ReferencedSource (lightweight or full classification). IfcRoot: GlobalId; OwnerHistory optional in IFC4. Pset_SpaceCommon page lists IsExternal."
+  },
+  {
+   "id": "P14-S61",
+   "title": "ISO 10303-21 (STEP-File) header structure (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/ISO_10303-21",
+   "publisher": "Wikipedia",
+   "type": "secondary reference",
+   "year": "2026",
+   "opened": true,
+   "extract": "HEADER holds FILE_DESCRIPTION, FILE_NAME and FILE_SCHEMA; FILE_NAME has name, time_stamp, author, organization, preprocessor_version, originating_system, authorization; apart from time_stamp and FILE_SCHEMA fields may be left empty."
+  },
+  {
+   "id": "P14-S62",
+   "title": "NOAA NCEI World Magnetic Model",
+   "url": "https://www.ncei.noaa.gov/products/world-magnetic-model",
+   "publisher": "NOAA NCEI",
+   "type": "geomagnetic model",
+   "year": "2025",
+   "opened": true,
+   "extract": "WMM2025 epoch 2025.0, valid until late 2029 (expires 31 Dec 2029); software outputs an uncertainty per component; no declination value for Vancouver was retrieved from NOAA (the online calculator was reported to need a registered API key and was not used)."
+  },
+  {
+   "id": "P14-S63",
+   "title": "Anthropic privacy centre: data retention for API inputs and outputs",
+   "url": "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data",
+   "publisher": "Anthropic",
+   "type": "vendor policy",
+   "year": "2026",
+   "opened": true,
+   "extract": "Inputs and outputs for API users are deleted from the backend within 30 days by default, with exceptions (longer retention you control, agreed terms, Usage Policy enforcement, legal requirements); zero retention only by agreement; page does not state training use."
+  },
+  {
+   "id": "P14-S64",
+   "title": "Vancouver Tall Challenge competition terms and conditions",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "publisher": "Buildner / architecturecompetitions.com",
+   "type": "competition rules",
+   "year": "2026",
+   "opened": true,
+   "extract": "Read through a page-to-text tool on 21 Oct 2026 (clause numbers to be re-read by a person). 4.1: the visual materials of the Submission must not have been previously published by the Participant or team members. 4.8: each panel saved as JPEG (.jpg or .jpeg), at most 10 MB. 5.1: no marks, logos or symbols identifying the source (disqualification); 5.3: the jury learns identities after winners are selected. 12.2 and 12.3: non-exclusive licence to the organiser, authors keep rights. No rule on AI tools found."
+  },
+  {
+   "id": "P14-S65",
+   "title": "Organiser reference photo: Queen Elizabeth View Tower Heights",
+   "url": "https://storage.architecturecompetitions.com/upload/0-mood-images/Reference%20Photo%20-%20Queen%20Elizabeth%20View%20Tower%20Heights.png",
+   "publisher": "Buildner / architecturecompetitions.com",
+   "type": "competition image",
+   "year": "2026",
+   "opened": true,
+   "extract": "Image viewed 21 Oct 2026: a skyline photograph from Queen Elizabeth Park with five labelled towers: Butterfly 586 ft (179 m), One Wall Centre 491 ft (150 m), Living Shangri-La 659 ft (201 m), Royal Centre 463 ft (141 m), Harbour Centre 482 ft (147 m). No caption, viewpoint coordinates or datum."
+  },
+  {
+   "id": "P14-S66",
+   "title": "EPSG:1946 NAD83(CSRS) to WGS 84 (2)",
+   "url": "https://epsg.io/1946",
+   "publisher": "EPSG registry via epsg.io",
+   "type": "registry",
+   "year": "2026",
+   "opened": true,
+   "extract": "Method Coordinate Frame rotation (EPSG 9607); accuracy 1.0 m; translations -0.991, 1.9072, 0.5129 m; rotations -1.25033E-07, -4.6785E-08, -5.6529E-08 radian (the page's PROJ string shows -0.0257899, -0.0096501, -0.0116599 arc-seconds with +convention=coordinate_frame); scale 0 ppm; an approximation from tfm code 6864 ignoring time-dependent parameters. Derived r2: in position-vector form the rotations are +0.025790, +0.009650, +0.011660 arc-seconds; at the site the rotation terms alone shift a point about 0.9 m (0.75 m east, 0.50 m south) and the full 7-parameter shift differs from a null shift by about 1.3 m."
+  },
+  {
+   "id": "P14-S67",
+   "title": "PROJ: Helmert transform",
+   "url": "https://proj.org/en/stable/operations/transformations/helmert.html",
+   "publisher": "PROJ contributors",
+   "type": "software documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "Rotations are in arc seconds; once a rotation is given a convention is required: coordinate_frame (clockwise, EPSG 9607 or 1032) or position_vector (anticlockwise, EPSG 9606 or 1033); negating the rotations converts between them. The PROJ usage page states neither the +towgs84 rotation unit nor its convention."
+  },
+  {
+   "id": "P14-S68",
+   "title": "What is openNURBS?",
+   "url": "https://developer.rhino3d.com/guides/opennurbs/what-is-opennurbs/",
+   "publisher": "McNeel",
+   "type": "vendor documentation",
+   "year": "2026",
+   "opened": true,
+   "extract": "openNURBS is an open-source toolkit for only reading and writing 3DM models; it does not include surface tessellation (meshing), Booleans, SubD to Brep conversion, closest point and intersection, interpolation, or area and mass properties."
+  },
+  {
+   "id": "P14-S69",
+   "title": "earcut polygon triangulation",
+   "url": "https://github.com/mapbox/earcut",
+   "publisher": "Mapbox",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "ISC; fast polygon triangulation with holes for WebGL; trades quality for speed and gives no correctness guarantee on invalid input (self-crossing rings, duplicate points can leave overlaps or gaps); a deviation function compares the triangulated area with the input area; output may contain T-junctions."
+  },
+  {
+   "id": "P14-S70",
+   "title": "pygeomag (WMM-2025 implementation)",
+   "url": "https://github.com/boxpet/pygeomag",
+   "publisher": "pygeomag contributors",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; supports WMM-2025 (default), WMMHR-2025, WMM-2020 and earlier; README example: Seattle 47.6205 N, 122.3493 W, 2025.25, declination 15.0656 degrees. Its WMM_2025.COF coefficient file (epoch 2025.0) was read from the repository on 21 Oct 2026 and evaluated with our own spherical-harmonic code, which reproduces the Seattle value to 4 decimals; the same code gives 15.37 degrees east at 49.2827 N, 123.1207 W for 2026.8 (derived, not checked against NOAA's calculator)."
+  },
+  {
+   "id": "P14-S71",
+   "title": "Making your website cross-origin isolated using COOP and COEP",
+   "url": "https://web.dev/articles/coop-coep",
+   "publisher": "Google web.dev",
+   "type": "web platform guide",
+   "year": "2022",
+   "opened": true,
+   "extract": "Published 2020-04-13, updated 2022-06-21. A page needs Cross-Origin-Opener-Policy: same-origin and Cross-Origin-Embedder-Policy: require-corp on the main document to be cross-origin isolated (self.crossOriginIsolated is true); SharedArrayBuffer requires it on Chrome desktop from version 92."
+  },
+  {
+   "id": "P14-S72",
+   "title": "coi-serviceworker",
+   "url": "https://github.com/gzuidhof/coi-serviceworker",
+   "publisher": "gzuidhof",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; a service worker that enables cross-origin isolation where you cannot control headers (README example: GitHub Pages); reloads the page once on first load; needs HTTPS or localhost; must be its own file served from your own origin."
+  },
+  {
+   "id": "P14-S73",
+   "title": "GNU Lesser General Public License v2.1",
+   "url": "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html",
+   "publisher": "Free Software Foundation",
+   "type": "licence text",
+   "year": "1999",
+   "opened": true,
+   "extract": "Section 6: a work that uses the Library may be combined and distributed under chosen terms if recipients can modify the Library and relink; the distributor provides the Library source and the using work in object or source form (a), or uses a shared-library mechanism that loads a modified, interface-compatible copy (b), with licence text and notices included."
+  },
+  {
+   "id": "P14-S74",
+   "title": "British Columbia statutory holidays",
+   "url": "https://www2.gov.bc.ca/gov/content/employment-business/employment-standards-advice/employment-standards/statutory-holidays",
+   "publisher": "Province of British Columbia",
+   "type": "government page",
+   "year": "2026",
+   "opened": true,
+   "extract": "Remembrance Day (Wednesday 11 November 2026) and Thanksgiving (Monday 12 October 2026) are the only statutory holidays in October and November 2026."
+  },
+  {
+   "id": "P14-S75",
+   "title": "Semantic Versioning 2.0.0",
+   "url": "https://semver.org/",
+   "publisher": "semver.org",
+   "type": "specification",
+   "year": "2013",
+   "opened": true,
+   "extract": "Increase MAJOR for breaking changes to the public API, MINOR for backward-compatible functionality and PATCH for backward-compatible fixes; lower numbers reset to 0."
+  },
+  {
+   "id": "P14-S76",
+   "title": "Higher Buildings Policy Review (Shape Your City)",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "publisher": "City of Vancouver",
+   "type": "municipal project page",
+   "year": "2026",
+   "opened": true,
+   "extract": "Last updated 13 Jul 2026. Review of the 1997 Higher Buildings Policy: Phase 1 early directions (spring-summer 2026), Phase 2 draft policies (fall 2026-winter 2027), Phase 3 final policy (winter-spring 2027), Phase 4 hearing and adoption (spring 2027); the ideas competition runs to 30 Nov 2026. The page does not say the 1997 policy is replaced or amended, gives no height limits, and says protected public views will not be reviewed or updated."
+  },
+  {
+   "id": "P14-S77",
+   "title": "Ajv JSON schema validator",
+   "url": "https://github.com/ajv-validator/ajv",
+   "publisher": "Ajv contributors",
+   "type": "open-source library",
+   "year": "2026",
+   "opened": true,
+   "extract": "MIT; supports JSON Schema drafts 2019-09 and 2020-12 (plus 06 and 07); Node 18+ and browsers; the project claims it is the fastest validator (own benchmarks)."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "City of Vancouver building footprints and heights can serve as a current context model",
+   "correction": "The dataset 'Building footprints 2009' is derived from 2009 LiDAR, 'approximate, best used for comparison' and 'not being updated'. Use LiDAR 2022 (about 49 points/m2) or the organiser's 3D model for current heights.",
+   "detail": "Data age of footprints is 17 years against 4 years for LiDAR 2022; towers built since 2009 are missing or wrong. r2 check: the tallest footprint within 2.5 km of the CBD is 208.6 m (maxht_m), so nothing in the brief's 244-305 m class is present. See P14-M08.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Rhino can import or export IFC natively, so IFC is a universal route from .3dm",
+   "detail": "McNeel's Rhino 8 and Rhino 9 import/export indexes list skp, glb/gltf, obj, fbx, dwg and step, but not ifc or rvt. The page notes dialogs show only formats whose plug-ins are enabled, so a plug-in route may exist; not confirmed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Rhino.Compute can be used by the student team for server-side geometry",
+   "detail": "Code is MIT but runs on Rhino 8 for Windows. McNeel's page says core-hour billing (USD 0.10 per core per hour) is not compatible with Educational or Commercial licences, cannot be enabled on a team containing licences, and is required on Windows Server-based systems; it does not address workstation use. Whether the course or UBC holds a suitable licence is unknown, so Compute stays optional and not core.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "proj4js can transform EPSG:3157 (or 26910) out of the box",
+   "correction": "proj4js predefines WGS84 UTM zones, not 26910 or 3157; the module must register the NAD83(CSRS) UTM zone 10N definition with proj4.defs, with rotations in arc-seconds (see the r2 FALSE_ASSUMPTION flag on the epsg.io string). Do not use +datum=NAD83, which proj4js defines with towgs84 0,0,0.",
+   "detail": "r2: the registered definition is still untested against a PROJ reference; the unit test in P14-M03 is the gate.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "SketchUp .skp can be read directly with the SketchUp C SDK in an open-source tool",
+   "detail": "Access needs developer registration and agreement to Trimble API terms; redistribution terms were not read (forum thread only). Recommended route is export to OBJ/GLB/IFC, Speckle connector, or Rhino 8 import then save .3dm.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Revit .rvt can be converted to IFC or meshes through APS Model Derivative at acceptable cost",
+   "detail": "The supported-translations table and pricing page are script-rendered and could not be read. Free tier has monthly caps (numbers not retrieved); paid tier uses Flex tokens; per-job price came from a search snippet only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "IFC4X3 geometry imports reliably in web-ifc and IfcOpenShell",
+   "detail": "web-ifc enumerates IFC4X3 in its schema file, but the IfcOpenShell README states extensive geometry support only for IFC2x3 TC1 and IFC4 Add2 TC1. IFC4 ADD2 is the default export and import baseline; IFC4X3 stays optional until a tower round-trip spike (IfcSpace, IfcSpatialZone, IfcMapConversion, tessellated geometry) passes in both libraries.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Speckle object model is stable enough to map Layer 0 to",
+   "detail": "Speckle 2026.9 replaced the nested object graph with bundles (units per object, no Level object, no proxies); compatibility mode for ACC sync and file uploads ends 1 November 2026, and pre-2026.9 SDKs get a 404 on new versions. The mapping targets the 2026.9 model only, pins the 2026.9 SDK and sits in v1; the relations page does not describe site or building containers, so the hierarchy mapping is open.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Organiser's 'Site plans & 3D model' download is in a format and CRS the tool can read",
+   "detail": "Re-checked 21 Oct 2026: the brief and model links on the public page still have no real URL and no formats, CRS, vertical datum or north-arrow type are stated. Registration closes 29 Oct and Q&A closes 3 Nov 2026, so a team member must register and obtain the package by 28 Oct, with the Q&A list sent by 31 Oct (list in notes). The organiser's Queen Elizabeth View reference photo (P14-S65) is read. If obtainable, add the model as a named CI fixture.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Higher Buildings Policy (1997) is the governing policy for height and view protection",
+   "detail": "Both policy PDFs returned HTTP 403 again, as did the City's view pages. r2: the City's Shape Your City page (updated 13 Jul 2026) shows the 1997 policy still under review (draft policies fall 2026-winter 2027, adoption spring 2027), so it is not replaced yet, and says protected views are not being reviewed. The view-cones dataset says the City's by-laws are authoritative.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "AI-assisted labelling accuracy thresholds (95% auto-accept precision, 80% floor)",
+   "detail": "No literature on IFC/BIM element classification accuracy was retrieved. These numbers are editable team assumptions to be measured on a labelled VTC test set.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "IFC class definitions used in the Layer 0 mapping (IfcSpace, IfcSpatialZone, IfcMapConversion semantics)",
+   "detail": "r2 closed the IFC4.3 questions: the zone is the RelatingStructure and its spaces the RelatedElements of IfcRelReferencedInSpatialStructure (IFC4 change), PARTIAL storeys and building sections exist, and IfcMapConversion.Scale converts units. Still unconfirmed: the IFC4 ADD2 pages (IfcSpatialZone, IfcMapConversion, Elevation attributes) and that mapping massing to IfcSpace is accepted practice. The round-trip spike settles these.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "All thresholds with status team_assumption in P14 (completeness, parity, overlap, true-north street-edge check 0.25/1 deg, parcel agreement 0.3/1 m, Z0 agreement 1/3 m, plate-sum error 0.5/2%, memory 50/80% of declared maximum, data age, 100 m tall-building cut-off, floor-to-floor 2.5-6 m, 3-cluster gate, RAIL targets applied to a desktop WASM canvas, etc.)",
+   "detail": "Shown in the tool as editable presets with the reasoning in each metric's basis; none has a published source for this use. Where an EPSG accuracy or derived geometry motivates a value, the basis says so. r2 reset r1-corrected metrics to this status so the FALSE ASSUMPTION colour marks only the logged claims.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "EPSG:26910 (proj4 +datum=NAD83) is the right CRS for City of Vancouver data, and mixing it with WGS84 shifts positions 2-4 m",
+   "detail": "City LiDAR 2022 is NAD83(CSRS) 4.0.0.BC.1.GVRD, not NAD83 original. proj4js defines its nad83 datum with towgs84 0,0,0, so no shift would ever be applied; epsg.io's EPSG:26910 remarks say it is replaced by NAD83(CSRS) / UTM zone 10N in Canada for accuracy better than 1 m. Evidence: P14-S36, P14-S30, P14-S33, P14-S57.",
+   "correction": "Project CRS is EPSG:3157 NAD83(CSRS) / UTM 10N. EPSG lists the CSRS-to-WGS84 transformation accuracy as 1.0 m (alternative 2.0 m); EPSG:26910 stays an accepted import alias with a warning. See the r2 flag on how the 3157 definition must be registered.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A local Z = 0 at the entrance floor sidesteps vertical datum mixing",
+   "detail": "City context heights are geodetic (footprints: baseelev_m and topelev_m 'geodetic'; sample building base 30.7 m, top 219.29 m, height above grade 188.59 m) and LiDAR is CGVD28GVRD; protected-view limits are stated as elevations. A bare local zero cannot be stacked on context or tested against view limits. Evidence: P14-S35, P14-S36, P14-S37.",
+   "correction": "Z0 geodetic elevation and vertical datum are required georeference fields, defaulted from LiDAR ground at the entrance and confirmed by the user, exported as IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum. EPSG:3157 itself has no vertical axis (P14-S57).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Speckle keys objects by applicationId (cited to the pre-2026.9 data-schema page)",
+   "detail": "As cited, wrong: P14-S09 says objects are identified by content hash and applicationId gives stable version tracking, and it covers only versions published before 2026.9. The 2026.9 model pages (P14-S10) key objects by applicationId and do not mention content hashes, so identity depends on the Speckle version.",
+   "correction": "Store IFC GlobalId, source applicationId, Layer 0 UUID and our own SHA-256 separately; cite P14-S10 for the 2026.9 model and treat P14-S09 as historical.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The meaning of avght_m, maxht_m and the datum of topelev_m in Building footprints 2009 is undocumented",
+   "detail": "The dataset page documents the fields: baseelev_m and topelev_m are the lowest and highest elevations (geodetic), hgt_agl is essentially topelev minus baseelev, avght_m the average element height, maxht_m and minht_m the max and min over all elements sharing a BLDGID, base_m the base elevation of all elements sharing a BLDGID. Sample building 149845 fits. The page names no vertical datum beyond 'geodetic'.",
+   "correction": "Field meanings moved to resolved (use maxht_m only for building-level summaries); the name of the vertical datum behind topelev_m stays unresolved.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "web-ifc benchmark: 29-70 MB files open in 0.45-1.2 s and mesh in 4.6-7.6 s",
+   "detail": "This picked a subset. In the same table 47 MB executed in 0.52 s, 55 MB in 2.05 s and 70 MB in 5.5 s while 30 MB took 5.3 s and 34 MB took 7.6 s; open times for 26-70 MB range 0.17-1.16 s. Time does not scale with size, and the M1 listed free RAM of about 137 (units not stated). Evidence: P14-S08.",
+   "correction": "Quote the full range (open 0.17-1.16 s, execute 0.52-7.6 s for 26-70 MB) and set thresholds from our own measurement of a VTC-sized model on a mid-range Windows laptop.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A 1 degree true-north error moves a shadow tip about 1.7 m, which justifies a 0.5 degree target",
+   "detail": "The geometry is right but the 100 m shadow was the wrong scale. Derived at latitude 49.29 N: noon altitude at winter solstice = 90 - 49.29 - 23.44 = 17.3 degrees, so a 300 m tower casts about 965 m and 1 degree moves the tip about 17 m; at equinox noon the shadow is about 349 m and the shift about 6 m (244-305 m towers: about 5-6 m equinox, 14-17 m solstice).",
+   "correction": "Tolerance restated as good <= 0.25 degree, bad >= 1 degree (team assumption that depends on the CLIM packets).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The wasm32 4 GiB memory ceiling is the browser limit for imports",
+   "detail": "The 4 GiB figure was general knowledge, not an opened page, and as a 'bad' threshold it is unreachable because each module stops at its own declared maximum. Memory64 shipped in Chrome 133, Firefox 134 and Node 24 while Safari has it only in a Technical Preview (P14-S58).",
+   "correction": "Use each WASM module's declared maximum memory as the limit (good <= 50%, bad >= 80%) and treat Safari as the constraining browser.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Rhino.Compute is not available to Educational licences (in general)",
+   "detail": "McNeel's page says only that core-hour billing is incompatible with Educational and Commercial licences and that Windows Server cannot take single-computer keys. It does not mention Rhino.Compute or workstation use.",
+   "correction": "Narrow the claim to what the page says; record workstation licensing as unverified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Tower height (244-305 m) threshold status is 'verified'",
+   "detail": "The source P14-S54 is marked opened=false and the metric's own basis said the brief PDF was not opened, so the status contradicted the evidence. The brief's measurement convention is also unknown (CTBUH versus City base surface versus geodetic).",
+   "correction": "Status corrected; the range is unverified until the brief PDF is read, and the height is shown under three conventions in P14-M05.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Magnetic declination at the Vancouver site is about 15 degrees east (r1: informal; r2: computed)",
+   "detail": "r2: our own WMM2025 evaluation (NOAA coefficients from pygeomag's WMM_2025.COF, validated on pygeomag's Seattle example to 4 decimals) gives 15.37 degrees east at 49.2827 N, 123.1207 W for 2026.8 (derived). It has not been checked against NOAA's calculator, which was reported to need an API key; check one value by hand and record model, epoch and uncertainty.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Height limits inside the Queen Elizabeth Park view cones (3.2.1-3.2.4) and the CRS of City portal GeoJSON exports",
+   "detail": "The view-cones dataset has polygons only and points to by-laws; the City's view pages returned HTTP 403. The parcel, footprint and cone dataset metadata state no CRS (only the LiDAR page names its frame; the API returns lon/lat). Limits are hand-entered with source and status; see the r2 flag on the lon/lat frame test.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Hosted-LLM labelling is acceptable for competition entries",
+   "detail": "Anthropic states API inputs and outputs are deleted within 30 days by default, with zero retention only by agreement; whether the competition rules or the course allow sending project text to a hosted model is not known (the VTC terms read in r2 contain no AI rule; the FAQ only says to check the tool's terms). The labelling stage is opt-in per project, sends names and layers only, and a rules-only mode must work.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Core scope fits the time to 13 Nov 2026",
+   "detail": "r2 recompute from the module efforts: core about 19.5 person-days (M01 3.5, M02 7, M03 2, M04 3.5, M05 2, M07 1.5), not about 17; the entrant-ready slice for 6 Nov is about 18.0 (no IFC adapter). Capacity: 17 working days to 13 Nov (18 weekdays minus Remembrance Day, 11 Nov) and 13 to 6 Nov, for two students who also own other packets; nominal 34 and 26 person-days, so the slice needs about 70% of both students' time. Cut order if late: IFC adapter, normals and degenerate-face checks, SubD and curved fallback paths, table-only M04 UI.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "EPSG:3157 can be registered in proj4js directly from the epsg.io PROJ string",
+   "detail": "The string +towgs84=-0.991,1.9072,0.5129,-1.25033e-07,-4.6785e-08,-5.6529e-08,0 carries the EPSG 1946 rotations in radians and in Coordinate Frame form, while proj4js multiplies +towgs84 rotations by SEC_TO_RAD (arc-seconds) and applies position-vector formulas, so the rotations are effectively dropped. Derived at the site: dropping them errs about 0.9 m (0.75 m east, 0.50 m south); a wrong sign errs about 1.8 m; a null shift versus the full EPSG 1946 shift differs by about 1.3 m. EPSG 1946 also ignores time-dependent parameters. Evidence: P14-S57, P14-S66, P14-S33, P14-S67.",
+   "correction": "Register +towgs84=-0.991,1.9072,0.5129,0.025790,0.009650,0.011660,0 (arc-seconds, position-vector sign, derived) or a null shift for City-to-City data, chosen by a LiDAR frame test, and unit-test both against PROJ to under 1 cm. Parcel agreement restated at 0.3 m good and 1.0 m bad.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Extrusion and SubD mesh access in rhino3dm is unconfirmed, and no Extrusion binding file exists",
+   "detail": "bnd_beam.cpp binds Extrusion with GetMesh, SetMesh and ToBrep (JS getMesh, setMesh, toBrep) and bnd_mesh.cpp binds Mesh.CreateFromSubDControlNet. These return cached meshes or a control-net approximation, and openNURBS has no tessellation, so a Brep or an extrusion saved without meshes stays unmeshed. Evidence: P14-S21, P14-S68.",
+   "correction": "Add a deterministic fallback mesher: exact prism for polyline-profile extrusions, earcut triangulation of planar Brep faces, SubD control net labelled 'volume biased', and a Rhino export how-to for the rest; block on unmeshed ProgramVolumes.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "No source gives the downtown street-grid skew",
+   "detail": "The City parcel polygons cited as P14-S38 give it: 969 parcels within 700 m of 49.2827 N, 123.1207 W have edges of 15 m or more clustering at 44.6-44.8 degrees (mod 90) from true north, mean 44.7, so the street axes run at about 44.7 and 134.7 degrees (derived); parcel 669 Howe St shows 44.7 and 134.6-134.7.",
+   "correction": "Show the skew as a derived value (default 44.7 and 134.7 deg), keep it separate from UTM grid convergence (about 0.09 deg), and use it for an independent street-edge check of the true-north rotation. Which north the organiser's arrow shows stays unresolved.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Tower-height metric status 'false_assumption_corrected' reflects the evidence",
+   "detail": "The range was never shown to be false; it is unverified because the brief PDF has not been opened and the public page still links the brief to '#'. Evidence: P14-S53, P14-S54.",
+   "correction": "Status 'unverified'; the earlier wrong 'verified' label stays logged as the r1 FALSE ASSUMPTION flag above.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The direction of IfcRelReferencedInSpatialStructure between zone and spaces is unconfirmed",
+   "detail": "The IFC4.3 IfcSpatialZone page says spaces referenced by the zone use this relationship, and IfcRelReferencedInSpatialStructure has RelatingStructure (the spatial element within which objects are referenced) and RelatedElements; an 'IFC4 CHANGE' allows IfcSpace there, in particular for IfcSpatialZone. Evidence: P14-S03.",
+   "correction": "IfcSpatialZone is the RelatingStructure and its IfcSpaces the RelatedElements; reference each zone from its IfcBuilding too, and add bot:containsZone from the zone to its plates. Only the IFC4 ADD2 pages remain to confirm in the round-trip spike.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The north-type enum 'true, grid or magnetic' is unambiguous for a Vancouver designer",
+   "detail": "'Grid' in the surveying sense is UTM grid north (convergence about 0.09 degrees here), but a designer reads it as street-grid or plan north, and the brief says the arrow is rotated relative to the street grid (about 44.7 degrees here, derived). Picking 'grid' would apply 0.09 degrees where about 45 are needed. Evidence: P14-S32, P14-S38.",
+   "correction": "Four plain-language types with a diagram: true north, magnetic north (about 15.4 degrees east, derived), projection (UTM) grid north, street-grid (plan) north.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The true-north error can be checked by comparing the arrow-derived bearing with a 'confirmed true north'",
+   "detail": "The confirmed value is usually taken from the same arrow, so the check is circular and cannot catch a wrong north type. Evidence: critique of round 2; P14-S38 gives an independent reference.",
+   "correction": "Check instead that the site's street-facing edges align with the parcel-derived street bearings after the chosen rotation (good <= 0.25 degree, bad >= 1 degree), and report the arrow-to-street angle (about 44.7 deg for a true or UTM-grid arrow, about 29.3 deg for a magnetic one).",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Every ProgramVolume can be sliced into floor plates at every storey elevation without distorting area",
+   "detail": "Atria, double-height lobbies, sky gardens and the vertically extended public spaces the brief asks for would become stacked 'floor plates', inflating gross and FSR-counted area and distorting the 9.0 employment-FSR check. CTBUH also counts mezzanines, which slicing at storey heights misses. Evidence: P14-S34, P14-S03.",
+   "correction": "Add a per-volume floors-present list and FloorPlate.has_floor; count only floored plates in gross and counted FSR area, list void area apart, and map mezzanines to PARTIAL storeys.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The ground-to-grid scale factor can be stored in IfcMapConversion.Scale",
+   "detail": "IfcMapConversion.Scale applies one factor to x, y and z 'to convert units'; writing 0.9996 would also shrink heights (about 0.12 m on 300 m) and make viewers rescale the model. IFC4X3 ADD1 adds IfcMapConversionScaled with FactorX/Y/Z for coordinate scaling. Evidence: P14-S59.",
+   "correction": "Keep Scale = 1.0 in the IFC4 ADD2 export; store the grid factor in Layer 0 and a custom pset; use IfcMapConversionScaled with a Z factor of 1 for IFC4X3.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "City portal GeoJSON lon/lat is true WGS84 rather than NAD83(CSRS) coordinates relabelled as WGS84",
+   "detail": "The dataset pages state no CRS. The two readings differ by about 1.3 m here (derived), the same size as the EPSG 1946 accuracy, so EPSG alone cannot decide. Test: reproject footprint corners both ways and compare with LiDAR 2022 building edges (native NAD83(CSRS) UTM 10). Relative positions among portal datasets are unaffected because they share one frame.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Sharing design states or forks before 30 Nov 2026 does not breach the VTC rule on previously published material",
+   "detail": "Terms clause 4.1 (read through a page tool) says visual materials must not have been previously published by the participant or team, while the FAQ says a previously published design may be resubmitted by its author. Whether private, team or public sharing of a design state counts is unconfirmed; public forks stay blocked by default. Ask the organiser by 3 Nov.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "IFC4 ADD2 still carries IfcBuildingStorey.Elevation, IfcBuilding.ElevationOfRefHeight and IfcSite.RefElevation",
+   "detail": "Inferred from the IFC4.3 pages, which mark the first two deprecated in 4.3 and describe the third as the site reference height; the IFC4 ADD2 pages were not readable. The round-trip spike confirms.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "The by-law definitions of floor area and site area (the FSR denominator) are known",
+   "detail": "The Zoning and Development By-law pages returned HTTP 403, so the denominator (brief rectangle 11,468 m2, drawn polygon or net parcel) and the excluded floor areas are unread; the tool records the choice beside counted_fsr_area.",
+   "raised_in_round": 2
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Community-uploaded module code can run safely in the browser and under which project licence",
+   "detail": "No sandboxing or execution policy is specified here (it belongs to another platform packet), and the project's own licence is a team decision; LGPL and GPL components stay separate units with source links.",
+   "raised_in_round": 2
+  }
+ ],
+ "unresolved_relationships": [
+  "Which north (true, magnetic, UTM grid or street-grid/plan) the VTC site-plan arrow shows, and whether the hypothetical site follows the CBD street grid (about 44.7 and 134.7 degrees from true north, derived from 969 City parcels): ask the organiser before 3 Nov 2026.",
+  "Magnetic declination at the site for the design date: WMM2025 gives about 15.4 degrees east for October 2026 (own evaluation, validated on pygeomag's Seattle example); check one value by hand against NOAA's calculator and record model, epoch and uncertainty.",
+  "Whether City portal GeoJSON lon/lat is true WGS84 or NAD83(CSRS) relabelled (about 1.3 m apart at the site, derived): test against LiDAR 2022 building edges before choosing the null shift or the EPSG 1946 shift.",
+  "Context radius needed for shadow and wind studies as a function of tower height: no sourced relationship found; belongs to the CLIM packets.",
+  "Name of the vertical datum behind baseelev_m and topelev_m in Building footprints 2009: the dataset page says only 'geodetic'; whether it equals CGVD28GVRD (LiDAR 2022) is unconfirmed.",
+  "Which program tags count toward the minimum 9.0 FSR of non-residential, high-employment floor area (brief names office and commercial; hotel and cultural/civic open), and the by-law definitions of floor area and site area (the FSR denominator): Zoning and Development By-law pages returned HTTP 403; belongs to the program packet.",
+  "Accuracy of rule-based versus LLM labelling of massing models, and the effect of the confidence threshold on override rate: no benchmark retrieved.",
+  "Floor-to-floor height priors by use, used by the storey schedule defaults and the 2.5-6 m plausibility preset: not sourced in this packet (structure and program packets).",
+  "Whether APS Model Derivative converts RVT to IFC or meshes, and its per-job price and free-tier caps: documentation pages not readable.",
+  "Whether the SketchUp C SDK terms permit use in an open-source web tool: official Trimble API terms not opened.",
+  "Whether the Higher Buildings Policy Review changes height or base-surface rules before 30 Nov 2026: the City's review page (13 Jul 2026) shows the 1997 policy under review with draft policies due fall 2026-winter 2027; the policy PDFs are HTTP 403.",
+  "Formats, units, CRS, vertical datum, Z0 and north type of the organiser's 'Site plans & 3D model' download: a team member must register before 29 Oct 2026 to obtain the package by 28 Oct; send the Q&A list by 31 Oct (Q&A closes 3 Nov).",
+  "How Layer 0 should map to the Speckle 2026.9 bundle format: the relations page lists ON_LEVEL, IN_COLLECTION, IN_MODEL and IN_GROUP but describes no site or building containers; compatibility window ends 1 Nov 2026.",
+  "Whether IfcSpatialZone, IfcMapConversion, IfcBuilding composition types and the Elevation, ElevationOfRefHeight and RefElevation attributes behave in IFC4 ADD2 as in IFC4.3 (the zone-to-space direction and IFC4 change are confirmed from IFC4.3 pages): settle with the round-trip spike in IfcOpenShell and web-ifc.",
+  "Height limit elevations (geodetic) inside the four Queen Elizabeth Park cones and the other 20 view cones, and which cone corresponds to the brief's Queen Elizabeth Park viewpoint: by-law and view-page sources not readable.",
+  "Which height convention the brief's 244-305 m range uses (CTBUH, geodetic, or by-law base surface): brief PDF not opened.",
+  "Whether the competition rules or the course allow sending project text to a hosted LLM for labelling: not found in the VTC terms.",
+  "Whether VTC terms clause 4.1 ('previously published') treats private, team or public sharing of design states or forks before 30 Nov 2026 as publication: ask the organiser by 3 Nov.",
+  "Team capacity: whether two students with other packets can give about 18 person-days to the 6 Nov entrant-ready slice and about 19.5 to the 13 Nov core (17 working days).",
+  "Which WMM JavaScript implementation ships (own evaluator reading the NOAA coefficient file, or the geomagnetism npm package, whose WMM2025 support is unconfirmed), and the project's own licence.",
+  "Sandboxing and execution policy for community-uploaded module code: outside this data packet; belongs to the platform packet.",
+  "Source of approved but unbuilt tower massing for the context (no open dataset found; no 2009 footprint within 2.5 km exceeds 208.6 m)."
+ ],
+ "change_log": [
+  "Round 1: first specification of packet P14 with 8 modules (M01 Layer 0 schema, M02 import pipeline, M03 units/north/georeference, M04 AI labelling and floor detection, M05 geometry health, M06 versioning and provenance, M07 browser kernel and performance, M08 City context ingest).",
+  "Priorities: core = M01, M02, M03, M05, M07; v1 = M04, M06, M08 (manual tagging and the organiser's context model are the core fallbacks). Core effort totals about 22 person-days (team estimate), tight for 13 Nov 2026.",
+  "Corrected scope assumption: City 'Building footprints 2009' is not current (2009 LiDAR, not updated); LiDAR 2022 is the current City source. Flagged FALSE_ASSUMPTION.",
+  "Corrected: Rhino.Compute is MIT code but needs Rhino 8 for Windows and core-hour billing, not compatible with Educational licences; moved out of core.",
+  "Corrected: Rhino 8 and 9 index lists SketchUp, OBJ, FBX and glTF but not IFC or Revit; IFC via Rhino is not assumed.",
+  "Corrected: proj4js predefines WGS84 UTM zones, not EPSG:26910; the georeference module registers the CRS explicitly.",
+  "Derived numbers (computed in round 1, not quoted): site area 11,468 m2 and 9.0 FSR about 103,200 m2; UTM area scale 0.08% about 83 m2; grid convergence about 0.1 deg at lon -123.12, lat 49.29; float32 step about 0.5 m at northing 5.46 million m.",
+  "Limitation: the shared web-search budget ran out mid-round 1. Not retrieved: AI-labelling accuracy literature, buildingSMART HTML class pages (HTTP 403), City licence text, APS tables and pricing, Higher Buildings PDFs (HTTP 403), SketchUp IFC export page.",
+  "r1: P14-M01 extended with FloorPlate (per-storey slices), Podium, below-grade Levels, OpenSpace, Frontage, AccessPoint, Viewpoint and ViewCone. ProgramVolume now maps to IfcSpatialZone grouping per-storey IfcSpace plates and to bot:Zone with bot:intersectsZone to each storey (critic BLOCKERs 1 and 2).",
+  "r1: P14-M04 rebuilt as 'Storey schedule, volume slicing and semantic labelling': Path A (user schedule plus manifold slicing) is core, Path B reads imported storeys or clusters slabs only when at least 3 clusters exist; AI labelling stays as a v1 stage; added plate-sum area cross-check and hosted-API data-handling parameter; the former M04 floor detection was valid only for detailed models.",
+  "r1: Project CRS changed from EPSG:26910 to EPSG:3157 NAD83(CSRS) / UTM 10N (EPSG:26910 kept as an import alias); parcel-agreement thresholds restated at 1.0 m and 2.0 m from EPSG accuracies. FALSE_ASSUMPTION flagged and the metric marked false_assumption_corrected.",
+  "r1: Z0 geodetic elevation and vertical datum are now required georeference fields, exported as IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum; added a Z0-versus-LiDAR-ground metric. FALSE_ASSUMPTION flagged.",
+  "r1: North handling reworked in P14-M03: required north type (true, grid, magnetic), WMM2025-based declination, street-grid bearing from parcel edges; true-north tolerance restated at 0.25 and 1 degree from 300 m shadow lengths (derived, 965 m winter, 349 m equinox). FALSE_ASSUMPTION flagged.",
+  "r1: IFC export baseline set to IFC4 ADD2 with IFC4X3 only after a round-trip spike; IFC4X3 server fallback routing removed from P14-M02; IFC export, BOT mapper and Speckle export moved to v1.",
+  "r1: Program tags now travel as IfcClassificationReference, areas in Qto_SpaceBaseQuantities, project flags in a custom pset not named Pset_ (IFC4.3 IfcPropertySet page); added FSR fields (gross, counted, employment flag, exclusion reason) as a Layer 0 output.",
+  "r1: Speckle mapping retargeted to the 2026.9 model (ON_LEVEL relation, per-object units, no Level object, no proxies); legacy page P14-S09 marked historical. Critic's content-hash claim holds only for the pre-2026.9 graph, since the 2026.9 pages key objects by applicationId; flagged with that nuance.",
+  "r1: P14-M05 tower-height metric status changed from verified to false_assumption_corrected (range unverified until the brief PDF is read); added a height-measurement-convention parameter showing CTBUH, geodetic and by-law base readings; checks split into stage A (pre-slice, core) and stage B (post-slice, v1).",
+  "r1: P14-M06 gained an anonymised export (IFC FILE_NAME author/organization, OwnerHistory, Speckle author, PROV agents, file paths) and a residual-identifier scan metric, because VTC entries are judged anonymously.",
+  "r1: P14-M08 gained ViewCone and Viewpoint records (four Queen Elizabeth Park cones 3.2.1-3.2.4 found in the dataset), hand-entered limit elevations with source and status, and a cone intersection check; footprint field meanings resolved from the dataset page, datum name still unresolved.",
+  "r1: Corrected the web-ifc benchmark quote (26-70 MB: open 0.17-1.16 s, execute 0.52-7.6 s, time not tracking size) and replaced the 4 GiB wasm32 ceiling with per-module declared maximum memory plus a Memory64 support note (Safari binding).",
+  "r1: Narrowed the Rhino.Compute limit to McNeel's wording (core-hour billing incompatible with Educational and Commercial licences, required on Windows Server, workstation use unaddressed and unverified).",
+  "r1: Re-scoped core to about 17 person-days (from about 22): IFC export, BOT, Speckle, AI stage, FBX, DXF/DWG route, Boolean overlap checks and parcel snapping moved to v1. Plan: publish a dated supported-formats list by 28 Oct 2026 and send organiser Q&A questions before 3 Nov 2026.",
+  "r1: Added DXF/DWG 2D site-plan route to P14-M02 (Rhino 8 import then save .3dm; dxf-parser MIT, DXF only; LibreDWG GPL-3.0, server-side), extrusion and SubD mesh reporting, and the organiser model plus 5 VTC-style massings as CI fixtures.",
+  "r1: Minor fixes: Z-up Layer 0 with -90 degree X rotation in the GLB exporter; EXT_structural_metadata treated as a draft (plain glTF extras for v0); jury tag removed from P14-M03; unit detection moved to the user-selected site polygon with one-click confirmation; structured-output limit restated (API cannot enforce numeric min/max, SDK helpers validate locally).",
+  "r1: Sources: dropped uncited P14-S02, S16 and S31; added P14-S57 to S63; P14-S03 now opened (IFC4.3 docs read from the GitHub markdown); extracts updated for S05, S08, S09, S10, S18, S19, S21, S23, S27, S30, S33, S35 to S38, S45, S47, S48, S53.",
+  "r2: Module graph made acyclic within the 8-module cap: Layer 0 is a staged document (Draft from M02, Georef from M03, Checked from M05, Complete from M04); P14-M01 is now a schema package with no ports (depends_on empty) and exporters are library functions; M05 stage B (overlap, gap, tag coverage) moved to M04; M08 reads no M03 output (EPSG:3157 context with geodetic heights; M03 and M05 take M08 outputs as optional inputs); M07 is a runtime service outside the DAG. depends_on rebuilt from input producers and a CI acyclicity check added. Splitting M01 and M05 into 10 modules was rejected because of the 8-module cap.",
+  "r2: Priorities made consistent: core = M01, M02, M03, M04 (Path A only), M05 (stage A), M07 (shell, workers, float64 store); v1 = M06, M08, M04 Path B, rules, LLM, review queue and overlap/gap checks, M05 view-cone check, M07 performance HUD. The r1 line 'core = M01, M02, M03, M05, M07' omitted M04.",
+  "r2: North handling rebuilt in P14-M03: enum renamed to true north, magnetic north, projection (UTM) grid north and street-grid (plan) north with a four-way diagram; street-grid bearing derived from 969 City parcels (about 44.7 and 134.7 degrees from true north; FALSE_ASSUMPTION flagged that no source gave it); the circular true-north check replaced by an independent street-edge alignment check (0.25 and 1 degree); WMM2025 declination computed (about 15.4 degrees east, derived, own evaluator validated on pygeomag's Seattle example).",
+  "r2: EPSG:3157 registration fixed: the epsg.io +towgs84 string carries EPSG 1946 rotations in radians and Coordinate Frame sign, proj4js reads arc-seconds in position-vector form, so rotations were dropped (about 0.9 m, derived); now arc-second position-vector parameters (0.025790, 0.009650, 0.011660) or a null shift chosen by a LiDAR frame test, plus a PROJ unit test (0.01 m); parcel agreement restated at 0.3 m good and 1.0 m bad; FALSE_ASSUMPTION flagged.",
+  "r2: P14-M02 gained a deterministic fallback mesher (exact prism for polyline extrusions, earcut for planar Brep faces, SubD control net), mesh-source labels, a blocking report line for unmeshed ProgramVolumes and two metrics; the r1 UNVERIFIED flag was replaced by a FALSE_ASSUMPTION flag (Extrusion getMesh/setMesh/toBrep and createFromSubDControlNet are bound; openNURBS has no tessellation).",
+  "r2: P14-M01 and P14-M04: FloorPlate.has_floor, per-volume floors-present list, void area listed apart, mezzanines as PARTIAL storeys, FSR denominator parameter; the area table gains floored_area and void_area; FALSE_ASSUMPTION flagged for slicing every volume at every storey.",
+  "r2: Added schema_version (semver) with tested migrations, a migration-replay metric and migrate-before-hash replay in P14-M06; module manifests pin the port schema.",
+  "r2: P14-M06 gained private-by-default visibility with public forks of design-state geometry blocked until 30 Nov 2026 unless the owner opts in (VTC terms 4.1 'previously published' and 4.8 JPEG panels read through a page tool; interpretation unresolved) and a visibility audit metric.",
+  "r2: IFC4 ADD2 export now writes storey Elevation, IfcBuilding.ElevationOfRefHeight (Z0) and IfcSite.RefElevation (IFC4.3 deprecates the first two; ADD2 inferred); IfcMapConversion.Scale stays 1.0 and the grid factor goes to Layer 0 and a custom pset, IfcMapConversionScaled for IFC4X3 (FALSE_ASSUMPTION flagged).",
+  "r2: Targets added for Frontage, AccessPoint, Viewpoint, ViewCone, ContextBuilding and Assumption (IfcAnnotation, context IfcSite, IfcDocumentReference, vtc: namespace); local IfcClassification for the 9 tags; IfcSpatialZone confirmed as RelatingStructure of IfcRelReferencedInSpatialStructure (FALSE_ASSUMPTION flagged) and bot:containsZone added.",
+  "r2: Status labels reset: r1-corrected metrics (IFC import time, WASM heap in M02 and M07) now carry team_assumption; the tower-height metric is unverified; false_assumption_corrected stays only on metrics changed in r2 (true-north error, parcel agreement, unmeshed volumes, mapping coverage). All earlier FALSE_ASSUMPTION flags remain in the log.",
+  "r2: Effort recomputed from the module JSON: core about 19.5 person-days (M01 3.5, M02 7, M03 2, M04 3.5, M05 2, M07 1.5) against 17 working days to 13 Nov (18 weekdays minus Remembrance Day on 11 Nov); entrant-ready slice for 6 Nov about 18.0 (no IFC adapter); Path B, FBX and the performance HUD moved out of core; cut order recorded in the TEAM_ASSUMPTION flag.",
+  "r2: P14-M07: hosting and cross-origin isolation parameter (SharedArrayBuffer needs COOP and COEP; coi-serviceworker shim or single-thread web-ifc), distribution-licence parameter (LGPL-2.1 section 6(b), GPL kept server-side); RAIL-derived metrics set to team_assumption because RAIL targets mobile pages; INP method restricted to clicks and key presses.",
+  "r2: P14-M08: organiser's Queen Elizabeth Park reference photo read (five labelled towers, 141-201 m) and used for viewpoint framing and a height-agreement metric; derived that the tallest 2009 footprint within 2.5 km is 208.6 m, so no building in the 244-305 m class exists in that dataset; ingest stays in EPSG:3157 with geodetic heights; the cone height check moved to P14-M05; Queen Elizabeth Park cones first.",
+  "r2: Higher Buildings Policy Review page (Shape Your City, 13 Jul 2026) read: the 1997 policy is under review, not replaced, and protected views are not under review; the policy PDFs and by-law pages remain HTTP 403.",
+  "r2: Closed r1 flags: manifold-3d JS method names (slice, volume, surfaceArea, trimByPlane, splitByPlane confirmed in the type file) and the rhino3dm extrusion/SubD item (superseded by an r2 FALSE_ASSUMPTION flag).",
+  "r2: Sources: dropped uncited P14-S06; added P14-S64 to S77 (VTC terms, reference photo, EPSG:1946, PROJ Helmert, openNURBS, earcut, pygeomag, COOP/COEP, coi-serviceworker, LGPL-2.1, BC holidays, semver, Shape Your City, Ajv); refreshed extracts of S03, S07, S19, S21, S32, S33, S35, S38, S43, S44, S48, S50, S53, S54, S55, S56, S57, S59, S60 and S62.",
+  "r2: Limitation: the web-search budget was used up in r2, so work used direct page fetches and public API queries only; the organiser brief PDF and model, City by-law and policy PDFs (HTTP 403) and NOAA's calculator remain unread."
+ ],
+ "notes": "Format routes: .3dm = rhino3dm.js/py (layers, names, ModelUnitSystem, EarthAnchorPoint); Breps need saved render meshes because openNURBS cannot tessellate, so r2 adds a fallback mesher (exact prism for polyline extrusions, earcut for planar faces, SubD control net) and blocks on unmeshed ProgramVolumes. OBJ = declared unit, no hierarchy. IFC = web-ifc in browser, IfcOpenShell server-side; IFC4X3 only after the round-trip spike. glTF/GLB = metres, Y-up, extras. FBX, DXF and Speckle/APS routes = v1. SketchUp = export OBJ/GLB (OBJ needs Pro), Speckle connector, or Rhino 8 import then save .3dm. Revit = IFC export, Speckle connector or APS (unverified).\n\nGeoreference: project CRS EPSG:3157 with arc-second position-vector shift or a null shift chosen by a LiDAR frame test; Z0 stored as geodetic elevation plus datum; four plain-language north types; street axes at about 44.7 and 134.7 degrees from true north (derived from 969 parcels); magnetic declination about 15.4 degrees east (derived).\n\nGraph: Layer 0 is a staged document (Draft M02, Georef M03, Checked M05, Complete M04); M01 is a schema package, M07 a runtime service; DAG order M01, M07, M08, M02, M03, M05, M04, M06.\n\nSchedule: core about 19.5 person-days against 17 working days to 13 Nov (Remembrance Day excluded); entrant-ready slice for 6 Nov about 18.0; capacity unknown. Publish a dated supported-formats list on 28 Oct, before registration closes on 29 Oct.\n\nQ&A list to send by 31 Oct (closes 3 Nov): formats, units, CRS, vertical datum and Z0 of 'Site plans & 3D model'; which north the arrow shows; whether context and approved towers are included; height convention for 244-305 m; which uses count toward the 9.0 FSR and the site-area denominator; whether sharing work-in-progress design states counts as prior publication (terms 4.1); whether hosted AI labelling is allowed.\n\nAnonymity: entries are judged anonymously and submitted as JPEG boards (terms 4.8), so P14-M06 scrubs shared model files and forks; board metadata belongs to PRES. Design states are private by default.\n\nSources: 73, above the target of about 40, because licence, cost and per-class IFC facts were needed per tool; 4 could not be opened (P14-S29, S54, S55, S56). The VTC terms were read through a page-to-text tool and need a person to re-check the clause numbers."
+}

@@ -1,0 +1,262 @@
+{
+ "expert_role": "City environmental / urban design reviewer (solar access, shadow policy), acting as gatekeeper and source auditor",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P02-M02",
+   "issue": "After four rounds the governing Downtown Peninsula guideline (S02) has still not been opened by anyone on the team. I also got HTTP 403 on 21 Oct 2026. The City page I opened today still links it (418 KB, labelled 17 Sept 2025, Table 1 at #page=5, Maps 2-3 at #page=8). Everything in M02 depends on relay: the Table-1 v0 input dataset, the class routing, the s.4.2 plazas, Robson 10-15, the cenotaph 'PST' wording, the definition of 'new shadow', the time basis, coverage % and the 4-instant Basic study. EXPLORATION mode is an honest stop-gap. But exploration areas still come from a protected-space list that nobody has checked against Table 1.",
+   "fix": "Today a team member opens the PDF in an ordinary browser (their own action, 418 KB). They should also open Decision Trees A-C, model-submission-standards.pdf, pspc9Memo.pdf and the 4 Feb 2026 cfsc2.pdf. Transcribe Table 1, Maps 2-3, ss.3-6 and any s.6.2 text, and log page numbers, cover date and SHA-256; a second reader confirms. Until that log exists, label Table-1 v0 itself 'relay list', and list on the result card the spaces that the relay may have missed."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "PACKET",
+   "issue": "The delivery plan does not fit the competition calendar. Entrants' submissions close 30 Nov 2026 23:59 London time (VTC page, opened). Stage B is due 10 Dec, after that close, yet it carries the 11 Nov dual-reading cenotaph test, the board shadow sheet, block sensitivity and the tower-position sweep. So do M04, M07 and M08. The Stage A core is already over capacity: 28-34 dev-days plus 3-5 data days against about 34 person-days. The tool therefore cannot give VTC entrants the board deliverable the brief recommends (solar/shadow studies on four A2 boards).",
+   "fix": "Re-plan to the entrant calendar. Set a feature freeze around 16 Nov so entrants have two weeks. Move the board shadow sheet and block sensitivity into Stage A, and apply the cut list now: M02 exploration only, M03 for one date, M06 deferred. Mark every module that will not ship before 30 Nov as 'post-competition' in the canvas, and remove VTC claims for those modules."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The exception-grounds flag gets the evidence backwards. UDI (S07, opened today) states the approved exceptions as affordable or social housing, major public amenities such as public childcare, and significant city-building priorities 'such as the Hotel Development Policy'. It also says a motion removed section 6.2, the exemption for 100% social housing. The spec flags this UDI-supported claim as FALSE ASSUMPTION and replaces it with the unopened relay list (below-market rental, heritage conservation). It also drops the Hotel Development Policy example, which matters directly because the brief's programme includes a hotel.",
+   "fix": "Change the flag to UNVERIFIED (conflict between relay and an opened secondary source). In ExceptionFlags, carry 'city-building priority, e.g. Hotel Development Policy' with evidence verified_secondary (S07). Keep below-market rental and heritage conservation as unverified relay. Record that the s.6.2 blanket social-housing exemption was removed. Add a human-judgment prompt asking whether the hotel component could support an exception case."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The CDDG exclusion is misread. The CDDG page (opened 21 Oct 2026) says the CDDG 'does not apply in some areas', including Victory Square. That exclusion governs applications on sites in those areas, not receivers. The spec says the exclusion 'may change which document governs' the cenotaph. A CBD tower site is inside the CDDG scope, so the open question is whether the CDDG solar chapter (not yet posted) keeps the cenotaph protection.",
+   "fix": "Reword the flag and parameter: the CDDG applies to the tower site, and the 13 Nov gate must check whether the posted CDDG solar text keeps s.4.3.1. Send that question to cddg@vancouver.ca along with the clock and total-or-new questions."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M01",
+   "issue": "The mirror check uses angular sectors, which does not work with edge picks or with eastern candidate blocks. On this grid the edge normals sit at about 45/135/225/315 degrees, so an edge-picked label can be up to 45 degrees off the true bearing, beyond the +/-30 tolerance. The 'good' criterion also hard-codes BC Place as SE. From a block near Waterfront station, BC Place bears about 175-180 degrees (my derivation from approximate coordinates), outside the 105-165 sector, so the check would wrongly block M02.",
+   "fix": "Test handedness directly. Take the sign of the cyclic order (triangle orientation) of three labels (Stanley Park, BC Place, Burrard Inlet) in the model frame and compare it with geography. A reflection reverses that sign whatever the tolerance. Centre any sector on the per-block computed bearing and widen it to at least 50 degrees for edge picks."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The envelope formula h = z_p + d tan(alt at azimuth p->c) leaves several cases unspecified. It does not say what happens when the sun never reaches that azimuth inside the window (the cell is then unconstrained). It does not say how several rule windows combine (minimum over windows). It treats cells as points rather than finite areas, and it ignores receivers on sloping terrain. The swept-hull method likewise assumes a planar receiver.",
+   "fix": "Define h = +inf when the azimuth p->c lies outside the window's azimuth range, and take the minimum over all rules and windows. Evaluate each cell at its corner nearest p, or subtract a cell-size margin. For non-planar receivers, cast hulls per receiver sample elevation band. Add a fixture: a single-cell spike placed between two instants' azimuths must be caught."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The noise floor is defined as 'one raster cell area', but the compliance path is vector-based (Shapely hulls clipped to polygons). No raster or cell size is defined, so the floor is undefined in the main path.",
+   "fix": "State the floor as the receiver sample-grid cell (e.g. 0.5 m x 0.5 m = 0.25 m2), capped at 0.5% of the space area and 0 for 'no shadow' rules. Print it on every result."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "There is no reachability pre-filter, although shadows only point 306-52 degrees (22 Sept) and 317-1 degrees (11 Nov). From most CBD blocks west of Cambie, the Victory Square cenotaph (S-SE of the CBD) cannot be reached by a morning shadow. The costly Stage B dual-reading work may therefore be irrelevant for most candidate blocks, and the effort is never triaged.",
+   "fix": "Precompute, for each candidate block, which Table-1 spaces fall inside the bearing wedge and reach. Show 'not reachable from this block' instead of running those rules, and use the result to order the remaining work."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "PACKET",
+   "issue": "The AGPL-3.0 decision is still open. M02, M03, M04, M07 and M08 all depend on Ladybug components, and only a 'proposed default' exists. Releasing a hosted service to entrants before the decision is made is a compliance risk.",
+   "fix": "Record the decision (platform under AGPL-3.0-or-later, or Ladybug calls in a separately published source-offering service) before any public release, and add the source link to the UI footer."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M07",
+   "issue": "The claim that EPW stamps are local standard time is still unverified (S58 is silent), yet it shifts every occupancy schedule by one hour under BC's year-round UTC-7.",
+   "fix": "Open the EnergyPlus Input Output Reference or Engineering Reference section on weather-data time. Until then, keep the shared fixture test and show 'EPW time basis assumed LST' on M03, M04, M05 and M07 outputs."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The exception grounds 'affordable or social housing, major public amenities such as childcare, or city-building priorities' are a FALSE ASSUMPTION; the true list is social housing, below-market rental, public childcare, heritage conservation or a major city-building priority (3.1.2)",
+   "why_false": "The 'correction' rests on an unopened PDF relayed by a reviewer, while an opened secondary source that reports the approved text supports the original claim. Calling it false inverts the evidence hierarchy, and it also loses the Hotel Development Policy example, which matters for a tower with hotel programme.",
+   "correction": "Make it an UNVERIFIED conflict. Cite UDI for affordable or social housing, public childcare and city-building priorities such as the Hotel Development Policy (verified_secondary), and keep the relay-only items (below-market rental, heritage) as unverified. Section 6.2 (blanket 100% social-housing exemption) was removed.",
+   "evidence": "https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines (opened 21 Oct 2026): 17 Sept 2025 entry lists case-by-case exceptions for 'affordable or social housing, major public amenities such as public childcare, and significant city-building priorities such as the Hotel Development Policy'; 'A motion to remove section 6.2' removed the 100% social housing exemption."
+  },
+  {
+   "claim": "Victory Square being excluded from the CDDG area may change which document governs the cenotaph receiver after 27 Oct 2026",
+   "why_false": "The CDDG exclusion lists areas where the CDDG does not apply to applications, because area-specific policies continue there. It concerns the development site, not a protected receiver. A CBD tower site lies inside CDDG scope.",
+   "correction": "The CDDG governs the tower site. The open question is whether the posted CDDG solar chapter keeps the s.4.3.1 cenotaph protection; check it at the 13 Nov gate and ask cddg@vancouver.ca.",
+   "evidence": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx (opened 21 Oct 2026): 'The CDDG is intended to apply to most conditional development permit and rezoning applications city-wide. The CDDG does not apply in some areas where area-specific or site-specific policies and guidelines continue to apply, including ... Victory Square'; 'The final guidelines will be posted soon'; effective 27 Oct 2026."
+  }
+ ],
+ "missing": [
+  "Entrant-calendar release plan: a per-module 'available to entrants on' date against the 30 Nov 2026 submission close, plus a feature freeze",
+  "Reachability pre-filter per candidate block (bearing wedge and reach) before rule evaluation",
+  "Hotel Development Policy as a named exception ground in ExceptionFlags (UDI-sourced)",
+  "Handedness test by cyclic label order to replace or supplement the sector-based mirror check",
+  "Envelope edge cases: azimuth outside the window, multi-window minimum, finite cell size, sloped receivers",
+  "Defined receiver sample grid and cell size for the noise floor in the vector compliance path",
+  "Primary transcription of s.6 (including the removed s.6.2) and of Decision Trees A-C",
+  "Check of whether the posted CDDG solar chapter keeps the cenotaph and the s.4.2 plaza rules (CDDG text not yet posted on 21 Oct 2026)",
+  "Higher Buildings Policy (S16), named in the brief for the policy reflection, is still relay-only; TEDI and the 'no numeric shadow criteria' claim are unverified"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "A team member opens and transcribes S02 (Table 1, Maps 2-3, ss.3-6 including s.6.2) and Decision Trees A-C, logging page numbers, cover date and SHA-256; a second reader confirms. Until then M02 stays in EXPLORATION mode and Table-1 v0 is labelled 'relay list'",
+   "The VTC 'SITE PLANS & 3D MODEL' package is requested with a team member's own email before registration closes on 29 Oct, and its format, CRS, north arrow and context are recorded in S51",
+   "The schedule is re-planned so that every module and output claimed for VTC entrants (including the board shadow sheet) ships before the 30 Nov 2026 submission close, with a feature freeze and the cut list applied",
+   "The exception-grounds flag is reclassified as UNVERIFIED, and ExceptionFlags carry the UDI-sourced grounds, including the Hotel Development Policy",
+   "The posted CDDG solar text is checked at the 13 Nov gate (applicability to CBD sites, survival of the cenotaph rule) and every result is stamped with the rule-set version",
+   "The cenotaph clock and total-or-new basis are confirmed in writing by the City, or both readings stay with total shadow as the default",
+   "The mirror check is made robust to edge-pick quantisation (cyclic-order handedness test) and its sectors are centred on per-block bearings",
+   "The AGPL licence decision is recorded before any hosted release"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M02: no primary evidence; cite the 23 July 2025 report; exploration mode with watermark",
+   "status": "partly",
+   "residue": "EXPLORATION mode, watermark and the Clerk routes S59-S61 were added, but S02 is still 'NOT OPENED by any team member or by the r2 and r3 agents'; Table-1 v0 still comes from relay"
+  },
+  {
+   "item": "MAJOR M02: discrete instants are non-conservative; build the envelope and compliance from 15-min instants or a continuous sweep",
+   "status": "addressed",
+   "residue": "Swept hull plus 1-min SunTable; the 4 instants are labelled 'format, not compliance'. I reproduced the fixtures: azimuths 125.9/158.9/197.9/231.6 and tip travel 30-59 m and up to 174 m"
+  },
+  {
+   "item": "MAJOR M01: runtime clock not pinned; store explicit UTC and add a runtime self-test",
+   "status": "addressed",
+   "residue": "Server-side UTC instants, browser lint rule and self-test (17:00Z, 18:00Z, sun 12.65/137.2) added; reproduced by my own NOAA code"
+  },
+  {
+   "item": "MAJOR M02: VTC site plans and 3D model obtainable now",
+   "status": "partly",
+   "residue": "The package is now the first-ranked source, but 'A team member must request it with their own email (not done by this agent)'; registration closes 29 Oct"
+  },
+  {
+   "item": "MAJOR M02: baseline context centred on the wrong point",
+   "status": "addressed",
+   "residue": "Site disc plus receiver sun wedges, with the 'baseline incomplete: new shadow overstated (conservative)' label"
+  },
+  {
+   "item": "MAJOR M02: evidence levels too generous (Robson, Sun Yat-Sen, Basic study)",
+   "status": "addressed",
+   "residue": "draft_only added and the metrics split per rule. A new inversion appears in the exception-grounds flag (see findings)"
+  },
+  {
+   "item": "MINOR ALL: three status fields with no rendering rule",
+   "status": "addressed",
+   "residue": "Badge colour comes from evidence and the FALSE ASSUMPTION highlight from history, with a schema test"
+  },
+  {
+   "item": "MINOR M01: mirror check has no input in the model frame",
+   "status": "partly",
+   "residue": "An underlay or edge picks are now required, but the +/-30 sectors fail with edge-pick quantisation (up to 45 degrees)"
+  },
+  {
+   "item": "MINOR M02: cenotaph basis default and routing to the City",
+   "status": "addressed",
+   "residue": "Total shadow is the default and the questions go to cddg@vancouver.ca; the CDDG-exclusion reasoning is misread (see false_assumptions)"
+  },
+  {
+   "item": "MINOR M03: EPW clock alignment",
+   "status": "partly",
+   "residue": "Hour-ending is verified (S58); the local-standard-time basis is still unverified"
+  },
+  {
+   "item": "MINOR M05: west/east ratio horizon setting",
+   "status": "addressed",
+   "residue": "Both values quoted (17.6% and 7.4%)"
+  },
+  {
+   "item": "MINOR M02: absolute noise floor",
+   "status": "partly",
+   "residue": "Now 'one raster cell area', but the vector compliance path defines no raster"
+  },
+  {
+   "item": "MINOR PACKET: data tasks missing from the schedule",
+   "status": "partly",
+   "residue": "A 3-5 day data line was added, but the total (28-34 plus 3-5) exceeds about 34 person-days, and Stage B lands after the 30 Nov submission close"
+  },
+  {
+   "item": "MINOR PACKET: AGPL unresolved",
+   "status": "not",
+   "residue": "Only a 'proposed default (not legal advice)'; decision deferred to 13 Nov"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P02-S02",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "ok": false,
+   "note": "HTTP 403 on 21 Oct 2026 (WebFetch). The link is still live on the City page with labels for Table 1 (#page=5) and Map 2/3 (#page=8). Not downloaded."
+  },
+  {
+   "source_id": "P02-S01",
+   "url": "https://vancouver.ca/home-property-development/solar-access-in-public-spaces.aspx",
+   "ok": true,
+   "note": "Opened in the browser pane. Matches the spec: rotated grid, Decision Trees A-C, 3D model requirements ('solar budget analyses'), stale 'July 2025' adoption text, and '10am to 4pm to 10am to 2pm PST' in the outside-downtown report-back."
+  },
+  {
+   "source_id": "P02-S09",
+   "url": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx",
+   "ok": true,
+   "note": "Opened in the browser pane. Approved 28 July 2026, effective 27 Oct 2026, 'final guidelines will be posted soon'. The exclusions (including Victory Square) apply to application sites, not receivers."
+  },
+  {
+   "source_id": "P02-S07",
+   "url": "https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines",
+   "ok": true,
+   "note": "Supports 22 Sept 10-16 PDT, Davie north sidewalk, Robson 'similar', removal of the spring study on 4 Feb 2026, and CDDG dates. Exceptions include the Hotel Development Policy, and s.6.2 was removed; this contradicts the spec's exception FALSE_ASSUMPTION. Gives 5 Aug 2025 as the referral date, whereas the Clerk agenda says 23 July."
+  },
+  {
+   "source_id": "P02-S04",
+   "url": "https://dailyhive.com/vancouver/downtown-vancouver-solar-access-guidelines-building-shadowing-policies-approved",
+   "ok": true,
+   "note": "Matches the spec extract: 17 Sept 2025, 10-16 on 22 Sept, spring equinox dropped, special protection for Victory Square (Remembrance Day mornings, no hours), Robson Square, Jack Poole Plaza and Sun Yat-Sen; social-housing exemption removed."
+  },
+  {
+   "source_id": "P02-S60",
+   "url": "https://council.vancouver.ca/20250917/pspc20250917ag.htm",
+   "ok": true,
+   "note": "Item 9 confirms the referral on 23 July 2025, the return on 17 Sept 2025 and the attached updated memo."
+  },
+  {
+   "source_id": "P02-S55",
+   "url": "https://news.gov.bc.ca/releases/2026AG0013-000209",
+   "ok": true,
+   "note": "Confirms the final change on 8 Mar 2026, Pacific time UTC-7, no change on 1 Nov 2026, and East Kootenay/Golden as exceptions."
+  },
+  {
+   "source_id": "P02-S56",
+   "url": "https://raw.githubusercontent.com/eggert/tz/main/NEWS",
+   "ok": true,
+   "note": "Confirms 2026b (22 Apr): permanent -07, modelled at 2026-11-01 02:00 as a CLDR 48.1 workaround, abbreviation MST, and the slim-zic caveat; 2026c-e make no BC change."
+  },
+  {
+   "source_id": "P02-S28",
+   "url": "https://github.com/mourner/suncalc",
+   "ok": true,
+   "note": "v2: degrees clockwise from north, apparent altitude, about 0.08 degree error, BSD-2-Clause. Version 2.1.1 not checked on npm."
+  },
+  {
+   "source_id": "P02-S30",
+   "url": "https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=49.283&lon=-123.12&peakpower=1&loss=14&angle=90&aspect=45&raddatabase=PVGIS-ERA5&mountingplace=building&usehorizon=0&outputformat=json",
+   "ok": true,
+   "note": "Reproduced SW building-integrated, no horizon: E_y 800.07 kWh/kWp and H(i)_y 1045.8 kWh/m2."
+  },
+  {
+   "source_id": "P02-S19",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/ladybug/master/ladybug/sunpath.py",
+   "ok": true,
+   "note": "north_angle is CCW from +Y ('90 is West'), so Ladybug = Rhino - 90 and the IFC atan2(-x, y) are consistent."
+  },
+  {
+   "source_id": "P02-S51",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Registration closes 29 Oct, Q&A 3 Nov, submission 30 Nov 23:59 London, winners 26 Jan 2027. 'SITE PLANS & 3D MODEL' is listed; whether the email modal delivers it is unstated."
+  },
+  {
+   "source_id": "P02-S62",
+   "url": "https://gml.noaa.gov/grad/solcalc/calcdetails.html",
+   "ok": true,
+   "note": "Not re-fetched. My independent NOAA-equation code reproduces every fixture: 26.92/125.9, 28.17/231.6, 12.65/137.2, 18.38/150.7, noon 13:05 UTC-7 and 11:56 UTC-8, tip travel 30-59 m and up to 174 m, 300 m shadows of 591, 903 and 1336 m."
+  },
+  {
+   "source_id": "P02-S58",
+   "url": "https://bigladdersoftware.com/epx/docs/24-2/auxiliary-programs/energyplus-weather-file-epw-data-dictionary.html",
+   "ok": false,
+   "note": "Not checked: the fetch tool hit its session limit. The local-standard-time basis is still unverified."
+  }
+ ],
+ "verdict": "Gate fails. Round 4 fixes the r3 technical faults: swept-window compliance, UTC instants with a runtime self-test, receiver-wedge baselines and per-rule evidence levels. I reproduced every solar fixture and a PVGIS value. Entrants still cannot rely on it. The governing guideline PDF remains unopened by anyone, so the Table-1 input, the class routing and the cenotaph wording are relay. The VTC site package has not been requested. Stage B and the board shadow sheet are scheduled after the 30 Nov submission close. A new evidence inversion marks the UDI-sourced exception list, including the Hotel Development Policy, as FALSE. Open the PDF today, request the package before 29 Oct, re-plan to the competition calendar and fix the exception flag."
+}

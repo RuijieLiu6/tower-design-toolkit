@@ -1,0 +1,15 @@
+# Synthetic massing for Tower Design Toolkit import tests (not a competition model)
+o Tower
+v 491621 5458741 0
+v 491651 5458741 0
+v 491651 5458771 0
+v 491621 5458771 0
+v 491621 5458741 120
+v 491651 5458741 120
+v 491651 5458771 120
+v 491621 5458771 120
+f 1 4 3 2
+f 1 2 6 5
+f 6 7 3 2
+f 3 4 8 7
+f 4 1 5 8

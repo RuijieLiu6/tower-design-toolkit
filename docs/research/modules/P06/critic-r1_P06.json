@@ -1,0 +1,286 @@
+{
+ "expert_role": "Urban designer specialising in public life studies (independent reviewer, round 1, packet P06)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P06-M03",
+   "issue": "The protected-space shadow test is marked 'verified', but it treats every urban plaza as 'actively minimise'. The Downtown Peninsula Solar Access Guidelines have special cases. Section 4.2 sends Dilawri Square South, Jack Poole Plaza and Robson Square to the no-new-shadow test of 3.1. Section 4.1 bans any new shadow on Dr Sun Yat-Sen Classical Chinese Gardens and Park from 10:00 to 16:00. Section 4.3.1 bans shadow on the Victory Square Cenotaph circle from 10:00 to 12:00 on 11 November. As written, the tool would mark a breach of a CBD no-new-shadow space amber when it should fail unless an exception is argued.",
+   "fix": "Encode Table 1 classes plus special cases 4.1-4.3 as rows in the threshold table, each with its own date and time window, including a second solar date of 11 November. Make no-new-shadow spaces fail by default, with a 'justified exception' path: shadow rationale statement, 3.1.2(a) public benefit, detailed study. Re-label the urban-plaza rule (3.2.1) as 'minimise where possible'."
+  },
+  {
+   "severity": "BLOCKER",
+   "module_id": "P06-M03",
+   "issue": "The shadow analysis has no defined domain, and the method cannot scale to it. On 22 Sep at 10:00 PT the sun at 49.28 N is about 27 degrees up, so a 300 m tower casts a shadow of about 600 m. On 11 Nov at 10:00 it is about 13 degrees up, giving about 1.3 km. The spec sets a 0.5-1.0 m ground grid and trimesh ray casts but no extent. Over 1 km at 0.5 m that is over 300 million rays per run, so either the protected spaces are left out or the browser stalls.",
+   "fix": "Size the domain from the tower height and the lowest sun elevation in each test window (report the radius). For protected spaces, project shadow polygons with shapely: project the mesh onto the ground per time step, union, intersect with the space polygon. This is exact and matches the City's 'area take-offs in sq m'. Keep the fine raster only for on-site POPS sun hours. Say where the computation runs (server or Pyodide). trimesh's fast ray engine (embree) is not available in the browser."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M03",
+   "issue": "The open-space target lists three alternatives (20% large or unique site, 10% mid-sized site, about 10% POPS) as 'verified'. The CDDG glossary defines mid-sized sites as more than 4,000 and less than 8,000 m2, so the 11,468 m2 VTC block cannot use S1.9.2. 'Large sites' points to the Rezoning Policy for Sustainable Large Developments. From memory (not opened), that policy covers sites of 8,000 m2 or more, or 45,000 m2 or more of new floor area; the VTC block meets both. The tool could pass a scheme at 10% that should be tested at 20%.",
+   "fix": "Remove the mid-sized option for the VTC preset. Default to 20% public open space (S1.9.1), plus a POPS of about 10% (S1.10.2) as a component, not an alternative. Open the Sustainable Large Developments policy to confirm. Until then, label the large-site trigger UNVERIFIED but keep 20% as the default."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M04",
+   "issue": "The connection-width metric offers 4.5 / 5.4 / 7.3 m as passing values. S1.12.2(c) sets 9.1 m face to face 'for large sites or sites identified in S1.12.1', and the spec itself says the station trigger S1.12.1(b) applies. A 5.4 m link would wrongly pass.",
+   "fix": "For the VTC preset, make 9.1 m face to face the governing minimum, with a 2.4 m clear path (S3.8.1). Show the other widths only as context rows. Any narrower link gets a 'G1.12.1 variation, justify' chip, not a pass."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M02",
+   "issue": "The Table 1.5 transcription is incomplete and the method is too narrow. The table has residential-hotel 24.4 m (S1.5.2 allows 18.3 m with conditions) and hotel-hotel 15.2 m, and the spec omits both. G1.5.1 asks for more separation where towers exceed typical heights, which applies directly to 244-305 m towers. The method measures only own tower to neighbour, although the VTC allows several towers on one block. S1.5.1 also splits separation equally between sites.",
+   "fix": "Transcribe the full 3x3 matrix. Add the S1.5.2 and S1.5.3 reductions as conditional rows and a G1.5.1 'consider more' flag for very tall towers. Measure intra-site tower pairs, and use a half-separation-to-property-line test for future neighbours."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M01",
+   "issue": "Ground-floor 'activity' is counted only by frontage length and tag. There is no depth test, so a 1-2 m-deep display strip or an office lobby sleeve counts as active. Lobbies have no defined class, and hours of operation are ignored. CDDG G2.10.2(c) gives a 9.1 m minimum active-use depth (in the parking context), G3.1.3 asks for interior layouts that keep views in, and G2.11.1 asks for separate residential and hotel entrances.",
+   "fix": "Add an ActiveDepth parameter, measured from the facade to the first back-of-house or core line, with a 9.1 m preset (cite G2.10.2c as an analogue, team assumption). Add a 'lobby' class (semi-active by default) and an hours attribute so night-time activation feeds M08. Check that residential and hotel uses have their own entries (G2.11.1)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M03",
+   "issue": "Pedestrian wind comfort is linked only to seating. Downwash from a 300 m tower is felt most at tower-base sidewalks, entrances, corners, the transit plaza and the mid-block link. Those are the places that carry the 40% human-scale criterion, and the brief asks for wind studies.",
+   "fix": "Add a wind-linkage metric in P06, with criteria owned by CLIM: comfort class at entrances (from M01 Entrances), sidewalk segments (M05), the transit plaza and mid-block links (M04), and terraces (M07). Add a parameter for mitigation through podium, canopy and step-back geometry. Show it as 'unverified until CLIM sources exist'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M04",
+   "issue": "The required below-grade secondary transit entrance is public realm, and no module evaluates its quality. Width, daylight, active edges, sightlines to grade, lift redundancy and wayfinding are all unchecked. M04 treats it only as a graph edge, and the transit plaza check is just 6.1 x 6.1 m. CDDG G4.4.1 has station-overbuild guidance (complementary paving, seating, weather protection, integrating vents and grates) that is not used.",
+   "fix": "Add a sub-module (or M04 metrics) for the below-grade link: clear width, visual connection to grade, active-edge share, number of lifts (at least two for redundancy, team assumption), level changes, and G4.4.1 items as a checklist. Link it to M06 step-free routing and to MOBI."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M02",
+   "issue": "A governing Downtown source is missing. CDDG section 4.18 says that new developments in Downtown (except the Granville Street Plan area, Downtown South and the West End) must also refer to the 'DD (Except Downtown South) C-5, C-6, HA-1 and HA-2 Character Area Descriptions'. In the Granville Street Plan area, the Granville Street Plan applies. Neither is cited, although the HBP review is tied to the Granville Street Plan.",
+   "fix": "Add both documents as sources (opened or flagged). Add a SITE input saying which character area or plan the hypothetical block sits in. Note that character-area guidance may change the streetwall and frontage presets."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M05",
+   "issue": "Several external benchmarks are marked 'verified' as if they were Vancouver thresholds: NYC ZR 37-741 seating, TfL PCL, TfL Appendix B widths, and DfT Inclusive Mobility. The course rule asks for status to match evidence. The text is verified, but its applicability is not.",
+   "fix": "Add a status 'external_benchmark' (verified text, not locally adopted), drawn in its own style. Keep 'verified' for City of Vancouver sources only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M05",
+   "issue": "The pedestrian demand model has no sourced rates, and the flow-to-comfort mapping is underspecified for a supertall. Peak-hour average flow hides the end-of-day egress and train surges that set sidewalk comfort. TfL Appendix B widths apply only up to about 2,000 pph: the 5.3 m width, or 3.3 m without furniture, is described as comfortable 'up to 2,000 pph'. Above that, a width must be derived.",
+   "fix": "Run the static check for both peak hour and a peak 15 minutes. Use TfL's average-of-maximum for interchange segments. Above 2,000 pph, compute the required width from ppmm at B+ instead of using the Appendix B table. Expose generation rates as dashed assumptions, with a sensitivity band (low, central, high)."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M08",
+   "issue": "The scorecard says 'never output a single composite', yet each criterion row gets a 0-100 score built from weighted proxies, which is the same composite problem one level down. The rows also merge criteria (sit/see, hear/talk/play, climate/sensory), so the 'n of 12' count cannot be computed. The criteria wording is recalled from memory, not from an opened source.",
+   "fix": "Use one row per criterion (12 rows). Instead of 0-100, report the underlying checks (pass/amber/fail counts plus evidence mode). Mark the criteria list itself UNVERIFIED until Cities for People or a Gehl source is opened, and keep the PPS Place Diagram (opened) as the verified framework."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P06-M01",
+   "issue": "Cyclist and micromobility conflict at grade is missing everywhere. Driveway and loading crossings over protected bike lanes are an EDM design issue (crossing treatments at major driveways), and the arterial edge will probably carry a bike facility. The method checks only pedestrian-vehicle conflict.",
+   "fix": "Add a bike-lane flag to StreetEdges (SITE). Count driveway and loading crossings over bike facilities separately. Feed this to MOBI and to M08 'protection against traffic'."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M03",
+   "issue": "The spec says 'Vancouver tests 10:00-16:00 in 15-minute steps'. The guidelines require a Basic Fall Equinox study at two-hour intervals from all Downtown applicants. The 15-minute Detailed study and coverage formula apply only to applicants seeking a relaxation (5.2). Context must also include 'known proposed developments' and topography (5.1).",
+   "fix": "Offer both study types. Default to Basic, and switch to Detailed when a protected space is shadowed. Add proposed (not only approved) context towers and terrain to the context inputs."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M03",
+   "issue": "Time base: Council report RTS 18459 says BC adopted permanent year-round daylight time and changed PDT to PT. The spec says 'local Pacific time' without an offset. IANA tzdata may not yet reflect the change, and the Victory Square rule still says 'PST'.",
+   "fix": "Hard-code UTC-7 for all solar tests, show the offset in the UI, and flag the ambiguity of the Victory Square 'PST' wording as UNRESOLVED."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M03",
+   "issue": "The sun-hours arithmetic is off by one: 25 instants x 0.25 h = 6.25 h, but the window is 6 h and the legend runs 0-6 h. The 2-hour test also moves BRE practice (whole day, 21 March) to a 10:00-16:00 window on 22 September without saying so.",
+   "fix": "Integrate over 24 intervals (trapezoid, or the midpoint of each 15-minute interval). Note the date and window adaptation in the team-assumption basis."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "Table 2.2b is stated inconsistently. The band starts 'up to 27.5 m', but the derived ratio uses 15.2/24.4, and the PDF text shows a 24.4 m row plus separate columns for 'Downtown and Broadway Plan Area' and 'Other Contexts'. S2.2.8 also allows 21.3 m for 'sites with a frontage greater than 60.7 m where enhanced open space is provided', which the VTC block meets; the spec calls this a residential-only 'listed exception'.",
+   "fix": "Re-transcribe Table 2.2b with both columns and all four rows, and keep the reconstruction caveat. Add an S2.2.8 path for frontage over 60.7 m with enhanced open space. State which rule governs a mixed-use tower with residential floors: S2.2.6 or the S2.2.7 18.3 m cap."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "Derived values carry the 'verified' label: the 0.6-0.75 height-to-width ratio and the 1.5-3.0 m step-back, which is a CDDG design tip about volumetric breaks, not a step-back standard. Splitting Table 2.3 floorplates by use portion in a stacked tower is also an interpretation.",
+   "fix": "Add a status 'derived' (or mark these team assumptions) and say in the basis that the 1.5-3.0 m figure is a design tip. Add the CDDG design tip on 6:1-8:1 slenderness for tall and very tall towers as a reported indicator."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M05",
+   "issue": "Two TfL area-type claims are wrong. Figure 9 does not show interchanges and tourist areas as stricter than residential: residential and tourist areas are unacceptable at B-, office/retail and interchange are 'at risk' at B, and the high street is the most tolerant. A single 'bad = C+' is too lenient for residential and tourist segments.",
+   "fix": "Encode the Figure 9 matrix per area type (peak and average-of-maximum) instead of one fail line."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M03",
+   "issue": "The NYC seating benchmark is under-specified. Plazas over 5,000 sq ft (465 m2) need at least three seating types. The 50% backs rule applies to fixed seating, plus a rule within 15 ft of the street line. A 10-20% POPS on the VTC block (1,147-2,294 m2) exceeds 10,000 sq ft, so moveable seating applies.",
+   "fix": "Encode the size-dependent rules: three types above 465 m2; moveable seating above 929 m2 (one chair per 200 sq ft); backs as a share of fixed seating."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M05",
+   "issue": "The rule 'furniture at least 1.0 m from vehicle crossings and entrances' is attributed to the EDM, but a text search of EDM 2026 (sections 8.4.3 and 8.4.9) did not find it. Section 8.4.9 places furniture in the front boulevard and keeps the Table 8-3 clear width.",
+   "fix": "Cite the exact EDM clause, or move the 1.0 m figure to team assumption or DfT (external)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M07",
+   "issue": "The CDDG S3.3.1 room size (about 93 m2 and about 9.1 m high) is a condition for an FSR exclusion, and the glossary requires a covenant. Using it as a 'verified' quality floor for sky-level public rooms transfers it to a use it was not written for. The module also never tests visibility and legibility of public uses from the street, or ground-level queues for public lifts, which spill onto sidewalks (M05).",
+   "fix": "Label the S3.3.1 transfer as 'derived'. Add a metric for a street-level public-lift lobby with its own frontage, and pass queue length and area to M05."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P06-M02",
+   "issue": "The sky view factor uses 145 unweighted Tregenza rays. That is coarse, and SVF needs cosine weighting.",
+   "fix": "Use cosine-weighted hemispherical sampling (500 or more rays) or an analytic view-factor method, and state the weighting."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "New shadow on urban plazas only needs to be 'actively minimised' (P06-M03 protected-space metric).",
+   "why_false": "The Solar Access Guidelines send three named urban plazas to the strict test and add two more special cases.",
+   "correction": "Dilawri Square South, Jack Poole Plaza and Robson Square fall under 3.1 (no new shadow, 22 Sep, 10:00-16:00). Dr Sun Yat-Sen Gardens and Park: no new shadow 10:00-16:00. Victory Square Cenotaph circle: no shadow 10:00-12:00 on 11 November. Other urban plazas and West End miniparks: minimise where possible.",
+   "evidence": "https://council.vancouver.ca/20250917/documents/pspc9Memo.pdf Appendix A, sections 3.2.1, 4.1.1, 4.2.1, 4.3.1."
+  },
+  {
+   "claim": "Vancouver's shadow test is the 10:00-16:00 run in 15-minute steps.",
+   "why_false": "All Downtown applicants submit a Basic study at two-hour intervals. The 15-minute Detailed study and coverage formula are only for applicants seeking a relaxation of 3.1.1 or 3.3.1.",
+   "correction": "Run the Basic study (2-hour intervals) by default. Run the Detailed study (15 minutes, 25 instants, coverage formula) when a protected space is shadowed and an exception is argued.",
+   "evidence": "https://council.vancouver.ca/20250917/documents/pspc9Memo.pdf Appendix A section 5.2."
+  },
+  {
+   "claim": "The 10% public open space target for mid-sized sites (S1.9.2) is a valid passing target for the VTC block.",
+   "why_false": "The CDDG glossary defines mid-sized sites as more than 4,000 and less than 8,000 m2. The VTC block is about 11,468 m2.",
+   "correction": "S1.9.2 does not apply. Use S1.9.1 (20%, large site, pending confirmation of the Large Developments policy trigger) with S1.10.2 POPS of about 10% as a component.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf Appendix A, glossary 'Mid-sized sites' and 'Large sites', S1.9.1, S1.9.2, S1.10.2."
+  },
+  {
+   "claim": "Mid-block connections of 5.4 m (non-residential), 7.3 m or 4.5 m (half share) are acceptable on the VTC block.",
+   "why_false": "S1.12.2(c) requires 9.1 m face to face 'for large sites or sites identified in S1.12.1', and S1.12.1(b) covers sites adjacent to or including a transit station entrance, which the VTC brief requires.",
+   "correction": "For the VTC preset the minimum is 9.1 m face to face with a 2.4 m clear path. Narrower widths are only possible as a G1.12.1 case-by-case variation.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf Appendix A p.20 (S1.12.1, S1.12.2, G1.12.1) and p.62 (S3.8.1)."
+  },
+  {
+   "claim": "CDDG Table 1.5 tower separation is employment-employment 15.2, employment-hotel 15.2, employment-residential 18.3 and residential-residential 24.4 m.",
+   "why_false": "The table also sets residential-hotel at 24.4 m (reducible to 18.3 m under S1.5.2) and hotel-hotel at 15.2 m, and G1.5.1 asks for more separation where towers exceed typical heights.",
+   "correction": "Use the full 3x3 matrix with the S1.5.2 and S1.5.3 conditional reductions and a G1.5.1 flag for very tall towers.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf Appendix A p.11 (S1.5.1-S1.5.4, G1.5.1, Table 1.5)."
+  },
+  {
+   "claim": "Transport interchanges and tourist areas tolerate less crowding than residential streets (TfL).",
+   "why_false": "TfL Figure 9 marks residential and tourist areas unacceptable from B-, office/retail and transport interchange 'at risk' at B, and the high street as the most tolerant (B acceptable, B- at risk).",
+   "correction": "Encode the Figure 9 tolerance per area type. B+ is the recommended level for all areas, and C+ is the floor even with compensations such as cafe seating.",
+   "evidence": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf p.13 (Figure 8) and p.14 (Figure 9)."
+  },
+  {
+   "claim": "TfL Appendix B gives 5.3 m total footway width for any flow above 1,200 pph.",
+   "why_false": "TfL says 5.3 m (or 3.3 m without furniture) gives comfortable movement up to 2,000 pph. Higher flows need a site-specific PCL assessment.",
+   "correction": "Above 2,000 pph, derive the required clear width from ppmm at B+ (flow / 60 / 11) plus buffers.",
+   "evidence": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf Appendix B, p.25."
+  },
+  {
+   "claim": "Solar tests run in 'local Pacific time', which implies seasonal PST/PDT switching.",
+   "why_false": "RTS 18459 states that BC adopted permanent year-round daylight-saving time, and Council changed PDT to PT on 28 Jul 2026 (Recommendation D, carried).",
+   "correction": "Use UTC-7 year-round in the solar engine. Flag the Victory Square 'PST' wording as unresolved.",
+   "evidence": "https://council.vancouver.ca/20260728/documents/r2.pdf p.5 and Appendix D; minutes https://council.vancouver.ca/20260728/documents/regu20260728min.pdf p.23-24."
+  }
+ ],
+ "missing": [
+  "CDDG 4.18 reference: DD (Except Downtown South) C-5, C-6, HA-1, HA-2 Character Area Descriptions, and the Granville Street Plan, as Downtown sources that sit alongside the CDDG.",
+  "Rezoning Policy for Sustainable Large Developments (needed to settle the 20% large-site trigger), not opened.",
+  "Solar special cases (Jack Poole Plaza, Robson Square, Dilawri Square South, Dr Sun Yat-Sen, Victory Square on 11 Nov) and a shadow-domain radius computed from tower height.",
+  "Pedestrian wind comfort at entrances, tower-base sidewalks, corners, transit plaza and mid-block link (link to CLIM), plus podium and canopy mitigation as parameters.",
+  "Below-grade secondary station entrance as public realm: width, daylight or visual link to grade, active edges, lift redundancy, wayfinding, CDDG G4.4.1 checklist.",
+  "Active-use depth, a lobby class and hours of operation (night-time activation, CDDG G3.1.1 lighting) in M01.",
+  "Cyclist and micromobility conflicts at driveways and loading crossings, and bike-lane presence on street edges.",
+  "Intra-site tower separation when the scheme has several towers; slenderness indicator (CDDG design tip 6:1-8:1).",
+  "Crossing and corner waiting comfort (TfL crossing PCL, Figure 11). The spec outputs CornerQueueAreas without a metric.",
+  "Public-lift queue spill-over from vertical public uses onto sidewalks (M07 to M05).",
+  "Hostile or exclusionary design features (seat dividers, spikes, gates) as a computable partial proxy for 'who is welcome'.",
+  "Urban noise (CDDG 4.11) as a sourced input to M08, and bird-friendly glazing (CDDG 4.8) as a counter-constraint on the transparency metric.",
+  "A status category for external benchmarks and derived values, separate from 'verified'.",
+  "Where computation runs (server or Pyodide) and performance budgets for ray casting and shadow projection."
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Fix the protected-space solar table: add the 4.1-4.3 special cases and an 11 Nov date, make no-new-shadow spaces fail by default with a justified-exception path, and offer both Basic (2-hour) and Detailed (15-minute) studies.",
+   "Define the shadow analysis domain from tower height (about 600 m on 22 Sep, about 1.3 km on 11 Nov for 300 m) and switch protected-space take-offs to shadow-polygon projection. State where the computation runs.",
+   "Set the VTC open-space preset to 20% public open space (S1.9.1), with POPS of about 10% as a component. Remove the mid-sized 10% option. Open the Large Developments policy.",
+   "Set the mid-block link minimum to 9.1 m face to face for the VTC preset (S1.12.2c).",
+   "Transcribe the full Table 1.5, add G1.5.1, and measure intra-site tower pairs.",
+   "Add the 'external_benchmark' and 'derived' statuses and relabel the NYC, TfL and DfT rows and the derived ratios.",
+   "Add wind-at-grade linkage for entrances, sidewalks, transit plaza and links; add active-use depth and lobby class to M01; add below-grade station link quality metrics.",
+   "Use UTC-7 in the solar engine and fix the 6.25 h sun-hours arithmetic."
+  ]
+ },
+ "sources_checked": [
+  {
+   "source_id": "P06-S01",
+   "url": "https://council.vancouver.ca/20260728/documents/r2.pdf",
+   "ok": true,
+   "note": "Opened via the browser and text-extracted (156 pp). Confirmed S3.1.1 (8-12 m entrances, 'most' glazing), S2.7.1/S2.7.2, S3.2.1/S3.2.2, S2.2.1-S2.2.10, Table 2.2b text, Table 1.5 (includes res-hotel 24.4 m), Table 2.3, S1.9-S1.12, S3.3.1 and glossary, S3.6.1, S3.8.1, S4.4.1, G2.10.1, 4.18 Downtown Character Areas, glossary mid-sized sites 4,000-8,000 m2, large sites = Large Developments policy, report date 15 Jul 2026, BC permanent DST, Appendix D PDT to PT. Draft Appendix A watermark ('APPENDIX A DRAFT') confirmed."
+  },
+  {
+   "source_id": "P06-S01 (minutes)",
+   "url": "https://council.vancouver.ca/20260728/documents/regu20260728min.pdf",
+   "ok": true,
+   "note": "Recommendations A-D carried unanimously without amendment, effective 27 Oct 2026 (D effective immediately)."
+  },
+  {
+   "source_id": "P06-S02",
+   "url": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx",
+   "ok": true,
+   "note": "Approved 28 Jul 2026, effective 27 Oct 2026, final text 'posted soon'. Excludes Chinatown, Gastown, Victory Square and some zones. Matches the spec."
+  },
+  {
+   "source_id": "P06-S09",
+   "url": "https://council.vancouver.ca/20250917/documents/pspc9Memo.pdf",
+   "ok": true,
+   "note": "Confirmed the 22 Sep 10:00-16:00 window, Davie and Robson rules, coverage formula and 5-15% staff note. Found special cases 4.1-4.3 that the spec omits, and that the 15-minute Detailed study applies only to relaxation applicants (the Basic study uses 2-hour intervals)."
+  },
+  {
+   "source_id": "P06-S11",
+   "url": "https://vancouver.ca/files/cov/engineering-design-manual.pdf",
+   "ok": true,
+   "note": "Opened via the browser (402 pp, 2026). Confirmed Table 8-3, 5.5 m from back of curb, 4.0 m for high-volume corridors, crossfall 2% (1-4%), 5% running slope, Table 8-2 rest distances, truncated domes below a 5% grade break. The '1.0 m furniture clearance from vehicle crossings and entrances' was not found."
+  },
+  {
+   "source_id": "P06-S16",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "ok": true,
+   "note": "Confirmed the PCL bands, B+ recommended for all areas, C+ floor, ppmm formula, 0.2 m buffers, and 2.9/4.2/5.3 m widths. The 5.3 m and 3.3 m widths hold only up to 2,000 pph. The area-type tolerance claim in the spec is inaccurate."
+  },
+  {
+   "source_id": "P06-S17",
+   "url": "https://assets.publishing.service.gov.uk/media/61d32bb7d3bf7f1f72b5ffd2/inclusive-mobility-a-guide-to-best-practice-on-access-to-pedestrian-and-transport-infrastructure.pdf",
+   "ok": true,
+   "note": "Confirmed 2,000/1,500/1,000 mm widths with a 6 m maximum restriction, 2,300 mm headroom, a landing every 500 mm of rise, crossfall 1:50 preferred and 1:40 maximum, seats at most 50 m apart, 1:12 maximum and 1:20 preferred gradients."
+  },
+  {
+   "source_id": "P06-S18",
+   "url": "https://zr.planning.nyc.gov/article-iii/chapter-7/37-741",
+   "ok": true,
+   "note": "1 linear ft per 30 sq ft confirmed. Three seating types above 5,000 sq ft and the 50% backs rule on fixed seating were omitted in the spec."
+  },
+  {
+   "source_id": "P06-S19",
+   "url": "https://zr.planning.nyc.gov/article-iii/chapter-7/37-727",
+   "ok": true,
+   "note": "Open at all times by default. Closing only by authorisation, with 7-22 (15 Apr-31 Oct) and 7-20 hours. New plazas need documented safety issues. The spec matches."
+  },
+  {
+   "source_id": "Large Developments policy",
+   "url": "https://guidelines.vancouver.ca/policy-rezoning-sustainable-large-developments.pdf",
+   "ok": false,
+   "note": "Not opened: CORS/403, and the web-search budget was exhausted for this turn. The 8,000 m2 / 45,000 m2 trigger is recalled, not verified."
+  }
+ ],
+ "previous_round": [],
+ "verdict": "Not ready. P06 is well structured and honest about its gaps, and most CDDG, EDM, TfL and DfT figures match what I opened. But several 'verified' checks would give entrants wrong verdicts on the 40% criterion. The shadow test leaves out the no-new-shadow special cases (Jack Poole, Robson Square, Dilawri South, Victory Square on 11 Nov) and has no analysis domain to cover 600 m to 1.3 km shadows. The open-space target allows a 10% mid-sized-site option that cannot apply to an 11,468 m2 block. The mid-block link should be 9.1 m. Table 1.5 is incomplete. External benchmarks are labelled 'verified'. Wind at grade, active depth and the below-grade station link are missing. All of these are fixable in one round."
+}

@@ -1,0 +1,251 @@
+{
+ "expert_role": "City environmental / urban design reviewer (solar access and shadow policy), gatekeeper for round 3 of packet P02",
+ "previous_round": [
+  {
+   "item": "BLOCKER M02: 'verified' rules rest on one reviewer's relay of an unopened PDF",
+   "status": "partly",
+   "residue": "Labels are downgraded and the evidence gate is in place. However, S02 is still 'NOT OPENED by any team member or by the r2 agents'. Every M02 PASS/FAIL badge, the Table-1 membership, the minimise class, Robson 10-15, the PST wording and the 3.1.2 list still rest on the relay. I also got HTTP 403 today (21 Oct 2026)."
+  },
+  {
+   "item": "MAJOR M02: rule set about to be superseded by the CDDG (27 Oct 2026)",
+   "status": "addressed",
+   "residue": "Rule-set version stamp and 13 Nov release gate added. The CDDG page (re-opened today) still says 'The final guidelines will be posted soon', so the gate check cannot be pre-filled."
+  },
+  {
+   "item": "MAJOR M02: no georeferenced site placement or context source",
+   "status": "partly",
+   "residue": "SitePlacement input and block-sensitivity mode added. The VTC 'SITE PLANS & 3D MODEL' is still treated as unobtainable until the Q&A, although the page offers an email-gated download now. The brief's own site cues (station on the neighbouring site, transit plaza diagonally across, arterial on the long side) are not used to choose candidate blocks."
+  },
+  {
+   "item": "MAJOR M01: up-axis and handedness mirror errors",
+   "status": "addressed",
+   "residue": "Normalisation (+90 deg about X, det +1) and a blocking named-direction check added. The spec does not say how the site-plan labels enter the model frame (see findings)."
+  },
+  {
+   "item": "MAJOR M03: 1 km context radius fails for low sun",
+   "status": "addressed",
+   "residue": "Radius = H/tan(cut-off), printed on outputs. The radius is centred on the site, not on the receivers (see findings). I reproduced the fixtures: 21 Dec 09:00 UTC-8 apparent altitude 5.97 deg (L/H 9.56), 10:00 11.75 deg (4.81)."
+  },
+  {
+   "item": "MAJOR M02: hard 0 m2 threshold gives sliver fails; north tolerance sensitivity",
+   "status": "addressed",
+   "residue": "ROBUST PASS / FAIL / INDETERMINATE with perturbation set and a separate noise floor. The noise floor is absolute (1 m2) and not scaled to space size or mesh resolution."
+  },
+  {
+   "item": "MAJOR M02: SolarEnvelope optional and without existing-shadow relief",
+   "status": "partly",
+   "residue": "Promoted to core with baseline relief and receiver elevation. Stage A (13 Nov) builds it from the 4 Basic instants only, which over-states the allowable height between instants."
+  },
+  {
+   "item": "MAJOR ALL: 'false_assumption_corrected' status hides the evidence level",
+   "status": "partly",
+   "residue": "'history' and 'evidence' fields added, but 'status' still reads false_assumption_corrected (e.g. Victory Square, plazas, PV cut-offs) and no rule says which field drives the badge colour. Some evidence levels are too generous: Robson 10-15 and the Sun Yat-Sen absolute rule rest on a draft source (S06), and no opened source gives the 4-instant Basic study."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P02-M02",
+   "issue": "The core policy module still has no primary evidence. The Downtown Peninsula PDF (S02) has not been opened by anyone on the team; I got HTTP 403 again today. Table-1 membership, the class routing (s.4.2 plazas, minimise class), Robson 10:00-15:00, the cenotaph '10:00-12:00 PST' wording, the 3.1.2 exception list, the definition of 'new shadow', the area tolerance and the per-instant compliance basis are all unconfirmed. Entrants would put PASS badges on boards on that basis. The packet also never cites the second primary route that the City page (opened today) links: the 23 July 2025 committee report (council.vancouver.ca/20250723/documents/cfsc1.pdf, 457 KB) and its minutes.",
+   "fix": "Before any release to entrants, a team member downloads S02 in an ordinary browser, with the user's own action. They transcribe Table 1 (p.5), Maps 2-3 (p.8) and the clauses, log page numbers, cover date and SHA-256, and a second reader confirms. Also obtain and cite the 23 July 2025 report and minutes plus the 17 Sept 2025 Council minutes, to trace the amendments. Until then M02 ships only in 'exploration' mode: shadow areas shown, no PASS/FAIL badge, and a watermark reading 'relay reading of an unopened guideline'."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "Discrete instants are non-conservative. The Stage A SolarEnvelope and the robust PASS are computed at the 4 Basic instants (10, 12, 14, 16). The rule as quoted protects the whole 10:00-16:00 window. Between 2-hour instants the shadow bearing turns about 33-40 degrees (306 -> 339 -> 18 -> 52, NOAA recomputation). A slender tower's shadow can cross a small park or the north sidewalk between instants and still 'PASS', and the envelope built from 4 instants allows heights that fail at 11:00 or 13:00.",
+   "fix": "Build the envelope and any compliance badge from at least the 25 instants at 15 min (or a swept-volume envelope over the continuous window) from Stage A onward. Keep the 4-instant output only as the 'Basic study submission sheet', labelled 'format, not compliance'. Transcribe whether the guideline judges compliance at discrete instants or continuously, and encode that per rule."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M01",
+   "issue": "Clock conversion at runtime is not pinned. tzdata 2026b+ is checked at build time only, but SunCalc and the three.js preview run in the entrant's browser, whose ICU/CLDR tz data may predate 2026b. tz NEWS 2026b warns about a CLDR 48.1 limitation and slim zic files ignoring the 1 Nov transition. In such a browser, 11 Nov 10:00 'wall clock' resolves to UTC-8, so reading B collapses into reading A. The 09:00-11:00 PST window, the longest reach (about 1,340 m), is never tested, and the dual-reading rule returns a false PASS.",
+   "fix": "Compute every rule instant as an explicit UTC timestamp from the stored per-rule offset, server-side or in the rule data. Never convert with Intl or Date local time in the browser. Add a runtime self-test that asserts the 11 Nov 2026 reading-B instant equals 17:00 UTC and blocks M02 otherwise."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The VTC site plans and 3D model can be obtained now. The competition page (opened today) offers 'SITE PLANS & 3D MODEL' through a modal that emails a download link. The spec treats it as unknown until the 3 Nov Q&A, while registration closes 29 Oct. SitePlacement, context, the rotated north arrow, the named-direction labels and the baseline all depend on this file.",
+   "fix": "The user requests the package now (it needs the user's own email). Record its format, CRS, units, north arrow and context content as S51 evidence. Make it the first-ranked SitePlacement and context source. Use the brief's site cues (station on the neighbouring site, transit plaza diagonally across, arterial on a long side, retail high street) to narrow the 3-5 candidate blocks, and record that rationale."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The baseline context is centred on the wrong point. The radius H_max/tan(alt_min) is drawn around the site. New shadow is proposal minus baseline, and the existing or approved towers that already shade a protected space can stand up to about 0.6 km (22 Sept) or 1.4 km (11 Nov reading B) beyond that space on its sunward (S) side. They then fall outside a site-centred radius. 'Building footprints 2009' (S52) also misses post-2009 and approved towers. Both gaps overstate new shadow, inflate the 'minimise' numbers and make the core envelope over-restrictive. The bias direction is not stated anywhere.",
+   "fix": "Set context extent = site reach disc UNION each in-reach protected space buffered by H_ctx_max/tan(alt_min) toward the sun azimuths of its rule window. Flag any space whose buffer relies on 2009 footprints. Print 'baseline incomplete: new shadow overstated (conservative)' on such results. List the approved towers added by hand, each with its source."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "Evidence levels are still too generous in places. The Village metric gives one 'verified_secondary' label to Davie 10-16, which UDI (final) corroborates, and Robson 10-15, which only the 2025 draft (S06) gives. The Dr. Sun Yat-Sen absolute rule rests on the same draft. Basic-study completeness ('4 instants, UTC-7, delineation') is 'verified_secondary', but no opened source states the 4 instants. A draft is superseded text, not corroboration of the approved one.",
+   "fix": "Split the metrics per rule. Add an evidence value 'draft_only', or map draft-only rules to 'unverified', for Robson 10-15, the Sun Yat-Sen absolute rule and the 4-instant Basic study. Reserve verified_secondary for content that an opened source on the approved text states."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "ALL",
+   "issue": "Three status fields with no rendering rule. Metrics carry status, history and evidence, but 'status' still shows false_assumption_corrected for values whose evidence is 'unverified' or 'team_assumption' (Victory Square, plazas, PV cut-offs). Nothing says which field sets the badge colour, so a user can still read 'corrected' as 'reliable'.",
+   "fix": "State that the badge colour comes from 'evidence' and the FALSE ASSUMPTION highlight from 'history', and derive or drop 'status'. Add a schema test that fails when status implies higher confidence than evidence."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M01",
+   "issue": "The named-direction (mirror) check has no defined input in the model frame. The bearings are computed from SitePlacement in world coordinates. Unless the site-plan labels are attached to the model (an underlay or picked block edges), the check compares the rotated model with itself and cannot detect a mirror.",
+   "fix": "Require the VTC site plan as a georegistered underlay in the same import, or require the user to pick the block edge facing each label. Unit-test that a Y/Z-swapped import of the L fixture plus underlay fails, and that a mirror across the NW-SE axis is caught by the Burrard Inlet sector."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The cenotaph rule's total-versus-new basis has no default, and the clock question is routed to the VTC organisers, who do not interpret City rules. The CDDG also excludes Victory Square as an area, which may change which document governs that receiver after 27 Oct.",
+   "fix": "Default to total shadow (the conservative reading) and show both. Send the clock-basis and total-shadow questions to the City (cddg@vancouver.ca or planning), not to Buildner. Record the answer, its date and the sender."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M03",
+   "issue": "The EPW clock and hour-ending convention is raised only for M07. M03 probable-sun hours (DNI of at least 120 W/m2 per step) and the hourly loads in M04/M05 also pair EPW hours, which are by convention local standard time and hour-ending, with UTC-7 sun vectors. That misaligns them by one hour or more.",
+   "fix": "Convert EPW records to UTC using the header's time-zone field, and align hour-ending records to mid-interval sun vectors in M03, M04, M05 and M07. Add one shared fixture test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M05",
+   "issue": "The '17% more on west than east' figure (809 vs 688) uses the default DEM horizon. Without the horizon it is 809 vs 753, about 7%. This is the same like-for-like trap that M04 now fixes.",
+   "fix": "State the horizon setting next to the ratio, or quote both values."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The noise floor is absolute (1 m2 total) whatever the size of the space and the mesh resolution. On a small receiver such as the cenotaph circle, 1 m2 is a material share, and the 'no shadow' wording may tolerate none.",
+   "fix": "Derive the floor from the sensor or mesh resolution (for example one cell area), cap it as a share of space area, and set it to 0 for 'no shadow' rules unless the transcribed text says otherwise."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "PACKET",
+   "issue": "The schedule leaves out the data tasks. The 24-29 dev-day core estimate excludes PDF transcription with a second reader, hand-digitising Table-1 polygons (Jack Poole Plaza and Robson Square are not in open data), adding approved towers by hand, and obtaining the VTC model, all before 13 Nov.",
+   "fix": "Add a data line item (about 3-5 days), start it this week, and make the Table-1 v0 and VTC model acquisition the first milestone (target 29 Oct)."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "PACKET",
+   "issue": "AGPL-3.0 compatibility of Ladybug Tools components with the hosted platform is still UNRESOLVED, although M02, M03, M04, M07 and M08 all depend on them.",
+   "fix": "Decide the platform licence (AGPL-compatible open source) or isolate the AGPL components server-side with published source before the 13 Nov release."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The VTC 'SITE PLANS & 3D MODEL' download link is not exposed, so its content must be asked about by the 3 Nov 2026 Q&A deadline",
+   "why_false": "The competition page offers the package through a download modal that asks for an email address and sends the link. It is obtainable now, before registration closes on 29 Oct.",
+   "correction": "The user requests the package now. Record its format, north arrow, CRS and context content, and use it as the first SitePlacement and context source.",
+   "evidence": "https://architecturecompetitions.com/vancouvertallchallenge/ (fetched 21 Oct 2026): Brief section lists 'SITE PLANS & 3D MODEL'; the download modal asks for an email address to receive the download link; registration closes 29 Oct, Q&A 3 Nov."
+  },
+  {
+   "claim": "Pinning tzdata 2026b or later at build time guarantees UTC-7 on 11 Nov 2026 for every rule instant",
+   "why_false": "Build-time tzdata does not govern the entrant's browser. SunCalc and the preview run there on the browser's ICU/CLDR tz data, which may predate 2026b. tz 2026b itself says the 1 Nov 2026 modelling works around a CLDR 48.1 limitation, and that older slim zic files may ignore that transition.",
+   "correction": "Store explicit UTC instants (or fixed offsets) per rule and never convert local time at runtime. Add a runtime assertion that the reading-B instant for 11 Nov 2026 10:00 equals 17:00 UTC.",
+   "evidence": "https://raw.githubusercontent.com/eggert/tz/main/NEWS (2026b): BC's 2026-03-08 spring forward was its last; the change is modelled 'to occur on 2026-11-01 at 02:00 instead'; abbreviation MST. https://news.gov.bc.ca/releases/2026AG0013-000209: clocks stay the same on 1 Nov 2026, Pacific time UTC-7."
+  },
+  {
+   "claim": "A SolarEnvelope from the 4 Basic-study instants gives the 'maximum compliant massing' per footprint cell (Stage A)",
+   "why_false": "The protected window is continuous (10:00-16:00). Between 2-hour instants the sun azimuth moves about 33-40 degrees, so heights allowed by 4 instants can shade protected polygons at intermediate times.",
+   "correction": "Build the envelope from at least 25 instants at 15 min, or from a swept volume over the window. Label the 4-instant output a submission format only.",
+   "evidence": "NOAA recomputation for 49.283 N, 123.12 W, 22 Sept 2026, UTC-7: azimuth 125.9 (10:00), 158.9 (12:00), 197.9 (14:00), 231.6 (16:00); shadow bearings 306, 339, 18, 52."
+  }
+ ],
+ "missing": [
+  "Primary transcription of S02 (Table 1 p.5, Maps 2-3 p.8, clauses), plus citations to the 23 July 2025 committee report and minutes (council.vancouver.ca/20250723/...) and the 17 Sept 2025 Council minutes",
+  "Per-rule encoding of whether compliance is judged at discrete instants or over the continuous window",
+  "VTC site-plan and 3D-model acquisition, recorded as a source with format, CRS, north arrow and context content",
+  "Receiver-centred baseline context extent and a stated bias direction for an incomplete baseline (2009 footprints, approved towers)",
+  "Runtime clock self-test (UTC instants stored per rule)",
+  "Input that places the site-plan direction labels in the model frame for the mirror check",
+  "Tower-position sweep on the 79.2 x 144.8 m block (where on the block the tower(s) can stand) linked to the envelope",
+  "On-site tower-to-tower separation and mutual daylight and overlook for multi-tower schemes (the brief allows one or more towers); Vancouver tower-separation guidance not cited",
+  "EPW time-zone and hour-ending alignment applied in M03, M04 and M05, not only M07",
+  "Shadow-diagram export spec for the brief's required solar/shadow study on the A2 boards (scale, north arrow, the 4 instants, legend with rule-set version)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "A team member opens and transcribes S02 (Table 1, Maps 2-3, cited clauses) with page numbers, cover date, SHA-256 and a second reader; until then M02 shows no PASS/FAIL badge to entrants",
+   "The posted CDDG solar text is compared with the July 2026 text at the 13 Nov gate, and every result carries the rule-set version stamp",
+   "Compliance and envelope are computed from at least the 15-min instant set (or continuous sweep), never from the 4 Basic instants alone",
+   "Rule instants are stored as explicit UTC times, with a runtime assertion for 11 Nov 2026 reading B (17:00 UTC)",
+   "The VTC site plan and 3D model are obtained and recorded as the SitePlacement and context source, with candidate blocks justified from the brief's site cues",
+   "The baseline context is receiver-centred, with the bias of an incomplete baseline printed on results",
+   "Evidence levels are split per rule (draft-only claims are not verified_secondary), and the badge colour is driven by the evidence field",
+   "The cenotaph clock basis and total-versus-new basis are confirmed in writing by the City, or both readings are kept with total shadow as the default"
+  ]
+ },
+ "sources_checked": [
+  {
+   "source_id": "P02-S02",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "ok": false,
+   "note": "HTTP 403 via WebFetch on 21 Oct 2026; not downloaded. The City page links Table 1 at #page=5 and Maps 2-3 at #page=8, labelled 'September 17, 2025', 418 KB."
+  },
+  {
+   "source_id": "P02-S01",
+   "url": "https://vancouver.ca/home-property-development/solar-access-in-public-spaces.aspx",
+   "ok": true,
+   "note": "Opened in the browser pane with accordions expanded. Confirms the rotated downtown grid, Decision Trees A-C, 3D Model Submission Requirements, and the '10am to 2pm PST' loose wording. Also links the 23 July 2025 council report and minutes (cfsc1.pdf), which the packet does not cite."
+  },
+  {
+   "source_id": "P02-S09",
+   "url": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx",
+   "ok": true,
+   "note": "Browser pane: approved 28 July 2026; 'The final guidelines will be posted soon'; effective 27 Oct 2026; excludes Victory Square, Chinatown, Gastown and others. Matches the spec."
+  },
+  {
+   "source_id": "P02-S07",
+   "url": "https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines",
+   "ok": true,
+   "note": "22 Sept 10 am-4 pm PDT; schools, parks, Davie north sidewalk; Robson 'similar' (no hours); 4 Feb 2026 removed the spring study; repeal of bulk of guidelines 27 Oct. Does not confirm Robson 10-15."
+  },
+  {
+   "source_id": "P02-S04",
+   "url": "https://dailyhive.com/vancouver/downtown-vancouver-solar-access-guidelines-building-shadowing-policies-approved",
+   "ok": true,
+   "note": "Approved 17 Sept 2025; 10-4 on 22 Sept; Victory Square on Remembrance Day mornings; special protection for Robson Square, Jack Poole Plaza and Sun Yat-Sen without timing; social-housing exemption removed; March 20 consideration eliminated. Matches the spec's extract."
+  },
+  {
+   "source_id": "P02-S55",
+   "url": "https://news.gov.bc.ca/releases/2026AG0013-000209",
+   "ok": true,
+   "note": "Final change 8 Mar 2026; clocks stay the same 1 Nov 2026; Pacific time UTC-7. Matches the spec."
+  },
+  {
+   "source_id": "P02-S56",
+   "url": "https://raw.githubusercontent.com/eggert/tz/main/NEWS",
+   "ok": true,
+   "note": "2026b: permanent -07, modelled from 2026-11-01 02:00, abbreviation MST, CLDR workaround. Matches the spec; supports the runtime-tz finding."
+  },
+  {
+   "source_id": "P02-S28",
+   "url": "https://github.com/mourner/suncalc",
+   "ok": true,
+   "note": "README: degrees clockwise from north, apparent altitude, about 0.08 deg, validated against JPL Horizons and USNO; v2 has breaking changes. Matches the spec (version 2.1.1 not shown on the page)."
+  },
+  {
+   "source_id": "P02-S30",
+   "url": "https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=49.283&lon=-123.12&peakpower=1&loss=14&angle=90&aspect=45&mountingplace=building&usehorizon=0&raddatabase=PVGIS-ERA5&outputformat=json",
+   "ok": true,
+   "note": "Reproduced SW building-integrated no-horizon E_y 800.07 kWh/kWp, H(i)_y 1045.8; NE (aspect -135, default) E_y 272.79, H 387.67. Aspect convention 0 = S confirmed."
+  },
+  {
+   "source_id": "P02-S51",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Dates match; 'SITE PLANS & 3D MODEL' available through an email download modal, contrary to the spec's 'not exposed'."
+  },
+  {
+   "source_id": "council-20250723",
+   "url": "https://council.vancouver.ca/20250723/documents/cfsc1.pdf",
+   "ok": false,
+   "note": "HTTP 403; linked from S01; uncited primary route to the guideline content."
+  },
+  {
+   "source_id": "derived-NOAA",
+   "url": "https://gml.noaa.gov/grad/solcalc/calcdetails.html",
+   "ok": true,
+   "note": "Own NOAA-algorithm recomputation reproduces all fixtures: 22 Sept 26.92/125.9 (10:00 UTC-7), 28.17/231.6 (16:00), noon 13:05; 11 Nov 18.38 (10:00 UTC-8), 12.65 (09:00), noon 11:56; 21 Dec 5.97 (09:00), 11.75 (10:00); 21 Mar 09:00 UTC-7 16.45. The web-search budget was exhausted, so no further searches were run."
+  }
+ ],
+ "verdict": "Gate fails. Round 3 fixes most of the earlier MAJOR items: versioning, robustness bands, up-axis normalisation, the cut-off-based radius, the envelope with baseline relief and split evidence fields. The solar geometry, PVGIS values and time-zone facts reproduce. But the core policy module still rests on a guideline PDF nobody on the team has opened. The Stage A envelope and PASS use only 4 instants, which over-states the allowable height. Browser tz data can silently collapse the 11 Nov dual reading. The VTC site and 3D model, available now through an email download, are not used. The baseline context is centred on the site rather than on the receivers. Entrants cannot rely on M02 compliance badges until the PDF is transcribed and these fixes land."
+}

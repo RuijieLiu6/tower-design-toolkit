@@ -1,0 +1,106 @@
+# modules / P14: research log
+
+## research: draft saved as `research_P14.json`
+  - Round 1: first specification of packet P14 with 8 modules (M01 Layer 0 schema, M02 import pipeline, M03 units/north/georeference, M04 AI labelling and floor detection, M05 geometry health, M06 versioning and provenance, M07 browser kernel and performance, M08 City context ingest).
+  - Priorities: core = M01, M02, M03, M05, M07; v1 = M04, M06, M08 (manual tagging and the organiser's context model are the core fallbacks). Core effort totals about 22 person-days (team estimate), tight for 13 Nov 2026.
+  - Corrected scope assumption: City 'Building footprints 2009' is not current (2009 LiDAR, not updated); LiDAR 2022 is the current City source. Flagged FALSE_ASSUMPTION.
+  - Corrected: Rhino.Compute is MIT code but needs Rhino 8 for Windows and core-hour billing, not compatible with Educational licences; moved out of core.
+  - Corrected: Rhino 8 and 9 index lists SketchUp, OBJ, FBX and glTF but not IFC or Revit; IFC via Rhino is not assumed.
+  - Corrected: proj4js predefines WGS84 UTM zones, not EPSG:26910; the georeference module registers NAD83 UTM 10N explicitly.
+  - Derived numbers (computed here, not quoted): site area 11,468 m2 and 9.0 FSR about 103,200 m2; UTM area scale 0.08% about 83 m2; grid convergence about 0.1 deg at lon -123.12, lat 49.29; float32 step about 0.5 m at northing 5.46 million m; 1 degree error moves a 100 m shadow tip about 1.7 m.
+  - Limitation: the shared web-search budget ran out mid-round. Not retrieved: AI-labelling accuracy literature, buildingSMART class pages (HTTP 403), City licence text, APS tables and pricing, Higher Buildings PDFs (HTTP 403), SketchUp IFC export page.
+
+## critic-r1: AEC interoperability engineer (IFC/BIM, georeferencing, web geometry pipelines)
+- Gate pass: **False**
+  - condition: Add storey slicing and per-storey FloorPlate records, and remap ProgramVolume to IfcSpatialZone plus per-storey IfcSpace (BLOCKER 1)
+  - condition: Extend Layer 0 with podium, below-grade, public realm, frontage, access point and viewpoint classes, or explicitly reassign them to named packets with typed ports (BLOCKER 2)
+  - condition: Switch the project CRS to EPSG:3157 and make the geodetic Z0 and vertical datum required fields
+  - condition: Resolve the IFC4 versus IFC4X3 export baseline with a tested spike, and fix status labels (tower height to unverified)
+  - condition: Retarget the Speckle mapping to the 2026.9 object model or move it to v1
+  - condition: Submit the organiser Q&A on file formats, north type and datum before 3 Nov 2026
+  - condition: Add an anonymised export and re-scope core to fit the time remaining before 13 Nov
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: EPSG:26910 (proj4 +datum=NAD83) is the right CRS for City of Vancouver data, and mixing it with WGS84 shifts positions 2-4 m → Use EPSG:3157 NAD83(CSRS) / UTM zone 10N (towgs84 -0.991,1.9072,0.5129,...). The NAD83(CSRS)-WGS84 offset is about 1-2 m (EPSG 1946 accuracy 1.0 m).
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: A local Z = 0 at the entrance floor sidesteps vertical datum mixing → Store Z0 geodetic elevation and the vertical datum (CGVD28GVRD) as required georeference fields and export them in IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Speckle keys objects by applicationId → Identity = content hash; cross-version tracking = applicationId. Map to the 2026.9 object model (ON_LEVEL relations, per-object units, no proxies).
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: The meaning of avght_m, maxht_m and the datum of topelev_m in Building footprints 2009 is undocumented → baseelev_m and topelev_m are geodetic lowest and highest elevations of the element; hgt_agl is essentially topelev minus baseelev; maxht_m and minht_m are the max and min over all elements sharing a BLDGID.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: web-ifc benchmark: 29-70 MB files open in 0.45-1.2 s and mesh in 4.6-7.6 s → Quote the full range (0.5-7.6 s for 26-70 MB) and set thresholds from your own measurements on VTC-sized models.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: A 1 degree true-north error moves a shadow tip about 1.7 m, which justifies a 0.5 degree target → 1 degree corresponds to about 6 m (equinox) to about 17 m (winter solstice) at the shadow tip of a 300 m tower. Restate the tolerance on that basis.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: The wasm32 4 GiB memory ceiling is the browser limit for imports → Use each module's declared maximum memory as the limit, and treat Safari as the constraining browser.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Rhino.Compute is not available to Educational licences (in general) → Narrow the claim to what the page says, and mark workstation licensing as unverified.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Tower height (244-305 m) threshold status is 'verified' → Set the status to unverified until the brief PDF is read and its measurement convention confirmed.
+- Findings: {'BLOCKER': 2, 'MAJOR': 13, 'MINOR': 9}
+- Verdict: P14 is careful about sources, but it does not pass yet. Two gaps block it. First, Layer 0 cannot turn massing volumes into per-storey floor plates, so the FSR check, per-floor area and IFC export all break. Second, it has no classes for the podium, below-grade levels, public realm, frontages, access points or viewpoints, which the human-scale (40%) and urban-integration (10%) criteria evaluate. Other problems: the CRS should be NAD83(CSRS) EPSG:3157 (the City LiDAR datum) rather than EPSG:26910, Z0 needs a geodetic elevation and datum, and the IFC4.3 export target conflicts with IfcOpenShell's stated geometry support. The Speckle mapping targets a superseded schema, one status label overstates its evidence, and there is no anonymised export. The schedule is also tight. Note: the web-search budget ran out, so several checks (magnetic declination, APS translations, the glTF extension's status) remain unverified.
+
+## revise-r1: draft saved as `revise-r1_P14.json`
+  - Round 1: first specification of packet P14 with 8 modules (M01 Layer 0 schema, M02 import pipeline, M03 units/north/georeference, M04 AI labelling and floor detection, M05 geometry health, M06 versioning and provenance, M07 browser kernel and performance, M08 City context ingest).
+  - Priorities: core = M01, M02, M03, M05, M07; v1 = M04, M06, M08 (manual tagging and the organiser's context model are the core fallbacks). Core effort totals about 22 person-days (team estimate), tight for 13 Nov 2026.
+  - Corrected scope assumption: City 'Building footprints 2009' is not current (2009 LiDAR, not updated); LiDAR 2022 is the current City source. Flagged FALSE_ASSUMPTION.
+  - Corrected: Rhino.Compute is MIT code but needs Rhino 8 for Windows and core-hour billing, not compatible with Educational licences; moved out of core.
+  - Corrected: Rhino 8 and 9 index lists SketchUp, OBJ, FBX and glTF but not IFC or Revit; IFC via Rhino is not assumed.
+  - Corrected: proj4js predefines WGS84 UTM zones, not EPSG:26910; the georeference module registers the CRS explicitly.
+  - Derived numbers (computed in round 1, not quoted): site area 11,468 m2 and 9.0 FSR about 103,200 m2; UTM area scale 0.08% about 83 m2; grid convergence about 0.1 deg at lon -123.12, lat 49.29; float32 step about 0.5 m at northing 5.46 million m.
+  - Limitation: the shared web-search budget ran out mid-round 1. Not retrieved: AI-labelling accuracy literature, buildingSMART HTML class pages (HTTP 403), City licence text, APS tables and pricing, Higher Buildings PDFs (HTTP 403), SketchUp IFC export page.
+  - r1: P14-M01 extended with FloorPlate (per-storey slices), Podium, below-grade Levels, OpenSpace, Frontage, AccessPoint, Viewpoint and ViewCone. ProgramVolume now maps to IfcSpatialZone grouping per-storey IfcSpace plates and to bot:Zone with bot:intersectsZone to each storey (critic BLOCKERs 1 and 2).
+  - r1: P14-M04 rebuilt as 'Storey schedule, volume slicing and semantic labelling': Path A (user schedule plus manifold slicing) is core, Path B reads imported storeys or clusters slabs only when at least 3 clusters exist; AI labelling stays as a v1 stage; added plate-sum area cross-check and hosted-API data-handling parameter; the former M04 floor detection was valid only for detailed models.
+  - r1: Project CRS changed from EPSG:26910 to EPSG:3157 NAD83(CSRS) / UTM 10N (EPSG:26910 kept as an import alias); parcel-agreement thresholds restated at 1.0 m and 2.0 m from EPSG accuracies. FALSE_ASSUMPTION flagged and the metric marked false_assumption_corrected.
+  - r1: Z0 geodetic elevation and vertical datum are now required georeference fields, exported as IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum; added a Z0-versus-LiDAR-ground metric. FALSE_ASSUMPTION flagged.
+
+## critic-r2: Computational design developer (Rhino/Grasshopper, rhino3dm, IFC/IfcOpenShell, Speckle, web geometry), independent reviewer of round 2 of packet P14
+- Gate pass: **False**
+  - condition: Rename the north-type enum (UTM grid vs street-grid/project north), derive the street-grid bearing from parcels, and replace the circular true-north metric
+  - condition: Fix the EPSG:3157 transform (null shift tested against LiDAR, or arc-second Position Vector parameters validated against PROJ)
+  - condition: Add a fallback mesher for .3dm extrusions and planar Breps without render meshes, and block on unmeshed ProgramVolumes
+  - condition: Make the module graph acyclic (split M01 assembler and M05a/M05b) and reconcile M04's priority
+  - condition: Add void/has_floor handling to FloorPlates before the FSR table is trusted
+  - condition: Add schema_version plus migrations, and a private-by-default visibility setting for design states
+  - condition: Get the organiser package and brief before 29 Oct, then restate the tower-height status as unverified or verified from the PDF
+  - condition: Recompute core effort and publish an entrant-ready subset date
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: EPSG:3157 can be registered in proj4js directly from the epsg.io PROJ string → Use a null shift for City-to-City data once tested against LiDAR. Otherwise use +towgs84=-0.991,1.9072,0.5129,0.025790,0.009650,0.011660,0 (radians converted to arc-seconds, sign flipped for Position Vector; derived), validated against PROJ.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Extrusion and SubD mesh access in rhino3dm is unconfirmed, and no Extrusion binding file exists → Extrusions can return cached meshes or convert to Brep. SubDs can be meshed from the control net (an approximation). Neither generates a fresh mesh of a Brep, so a fallback mesher (exact prism or planar-face triangulation) is still needed.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: No source I could open gives the downtown street-grid skew → The downtown CBD street grid is rotated about 45 degrees from true north (derived; confirm across more parcels). Show it as a derived value, and separate street-grid north from UTM grid north (about 0.09 degrees).
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Tower-height metric status 'false_assumption_corrected' reflects the evidence → Status 'unverified'. Keep the earlier wrong 'verified' label as a FALSE ASSUMPTION entry in the assumption log.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: The direction of IfcRelReferencedInSpatialStructure between zone and spaces is unconfirmed → IfcSpatialZone is the RelatingStructure and its IfcSpaces are the RelatedElements. Confirm only the IFC4 ADD2 entity in the round-trip spike.
+- Findings: {'MAJOR': 10, 'MINOR': 7}
+- Verdict: Round 2 fixes both blockers in substance: storey slicing with FloorPlates and IfcSpatialZone, an extended Layer 0 schema, EPSG:3157, a geodetic Z0, IFC4 ADD2 as the baseline, and Speckle moved to v1. The arithmetic checks out. Some things are still not safe for entrants. 'Grid north' is ambiguous while the street grid is skewed about 45 degrees (derived from City parcels). The epsg.io towgs84 string is wrong for PROJ/proj4js. Core .3dm import silently depends on cached render meshes. The module graph has cycles. Voids are sliced as floor area. There is no schema versioning or private-by-default visibility. Status labels still misuse 'false_assumption_corrected'. The organiser package must be obtained before registration closes on 29 Oct. The web-search budget was exhausted mid-review; the remaining checks used direct fetches.
+
+## revise-r2: draft saved as `revise-r2_P14.json`
+  - Round 1: first specification of packet P14 with 8 modules (M01 Layer 0 schema, M02 import pipeline, M03 units/north/georeference, M04 AI labelling and floor detection, M05 geometry health, M06 versioning and provenance, M07 browser kernel and performance, M08 City context ingest).
+  - Priorities: core = M01, M02, M03, M05, M07; v1 = M04, M06, M08 (manual tagging and the organiser's context model are the core fallbacks). Core effort totals about 22 person-days (team estimate), tight for 13 Nov 2026.
+  - Corrected scope assumption: City 'Building footprints 2009' is not current (2009 LiDAR, not updated); LiDAR 2022 is the current City source. Flagged FALSE_ASSUMPTION.
+  - Corrected: Rhino.Compute is MIT code but needs Rhino 8 for Windows and core-hour billing, not compatible with Educational licences; moved out of core.
+  - Corrected: Rhino 8 and 9 index lists SketchUp, OBJ, FBX and glTF but not IFC or Revit; IFC via Rhino is not assumed.
+  - Corrected: proj4js predefines WGS84 UTM zones, not EPSG:26910; the georeference module registers the CRS explicitly.
+  - Derived numbers (computed in round 1, not quoted): site area 11,468 m2 and 9.0 FSR about 103,200 m2; UTM area scale 0.08% about 83 m2; grid convergence about 0.1 deg at lon -123.12, lat 49.29; float32 step about 0.5 m at northing 5.46 million m.
+  - Limitation: the shared web-search budget ran out mid-round 1. Not retrieved: AI-labelling accuracy literature, buildingSMART HTML class pages (HTTP 403), City licence text, APS tables and pricing, Higher Buildings PDFs (HTTP 403), SketchUp IFC export page.
+  - r1: P14-M01 extended with FloorPlate (per-storey slices), Podium, below-grade Levels, OpenSpace, Frontage, AccessPoint, Viewpoint and ViewCone. ProgramVolume now maps to IfcSpatialZone grouping per-storey IfcSpace plates and to bot:Zone with bot:intersectsZone to each storey (critic BLOCKERs 1 and 2).
+  - r1: P14-M04 rebuilt as 'Storey schedule, volume slicing and semantic labelling': Path A (user schedule plus manifold slicing) is core, Path B reads imported storeys or clusters slabs only when at least 3 clusters exist; AI labelling stays as a v1 stage; added plate-sum area cross-check and hosted-API data-handling parameter; the former M04 floor detection was valid only for detailed models.
+  - r1: Project CRS changed from EPSG:26910 to EPSG:3157 NAD83(CSRS) / UTM 10N (EPSG:26910 kept as an import alias); parcel-agreement thresholds restated at 1.0 m and 2.0 m from EPSG accuracies. FALSE_ASSUMPTION flagged and the metric marked false_assumption_corrected.
+  - r1: Z0 geodetic elevation and vertical datum are now required georeference fields, exported as IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum; added a Z0-versus-LiDAR-ground metric. FALSE_ASSUMPTION flagged.
+
+## critic-r3: Software architect and licence/source gatekeeper (BIM interoperability, web geometry, open-data licensing)
+- Gate pass: **False**
+  - condition: Rewrite the planar-Brep fallback mesher using duplicateFace and edge chaining, and pass a CI fixture of a BooleanUnion polysurface with no render meshes
+  - condition: Obtain the brief and organiser package (register or go through UBC SALA) by 28 Oct, send the Q&A list by 31 Oct (hard close possibly 1 Nov), and update P14-S54 and every brief-based status
+  - condition: Declare the platform licence, the module inbound licence and the design-state data licence, and record Speckle's EE carve-out
+  - condition: Reset the four remaining 'false_assumption_corrected' metrics to their evidence status
+  - condition: Close the IFC4 ADD2 attribute flag using web-ifc's IFC4 schema and map OpenSpace to IfcExternalSpatialElement
+  - condition: Extend the public-fork warning or block for design states to the results date, or get organiser confirmation
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: The rhino3dm fallback mesher can triangulate planar Brep faces 'from edge loops with earcut' → Rebuild each face's loops from face.duplicateFace(false).edges() by chaining endpoints, use the surface's isPlanar and frameAt, then run earcut and weld vertices across faces. Test on a BooleanUnion fixture with no render meshes.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: Speckle server and SDKs are licensed Apache-2.0 → Record a mixed licence (Apache-2.0 except EE modules). Self-hosting excludes those modules or accepts the EE terms. Verify the connectors' licence in their own repository.
+- <span style='color:#d4148c'>**FALSE ASSUMPTION**</span>: maxht_m for the Living Shangri-La footprint (208.6 m) can be compared with its 201 m labelled height as a height-agreement check → Compare per-part topelev_m minus the entrance-level ground with CTBUH heights, and treat maxht_m as a summary field only.
+- Findings: {'MAJOR': 5, 'MINOR': 11}
+- Verdict: Gate fails. Round 3 fixed most of the previous round's items: north types, the EPSG:3157 parameters (I confirmed them against the proj4js code), the acyclic graph, has_floor, schema_version and the schedule. Several problems remain. The core fallback mesher assumes Brep edge loops that rhino3dm does not bind, so typical Boolean polysurfaces would stay blocked. Speckle is not plain Apache-2.0: its workspaces and gatekeeper modules carry an Enterprise licence. The platform, module and design-state licences are still undecided. The brief and organiser package are still unread, and the Q&A close may be 1 Nov, not 3 Nov. Four metrics keep stale status labels. The IFC4 ADD2 attribute flag can now be closed from web-ifc's schema. My web-search budget ran out mid-audit, so I used direct fetches and API queries only.
+
+## revise-r3: draft saved as `revise-r3_P14.json`
+  - Round 1: first specification of packet P14 with 8 modules (M01 Layer 0 schema, M02 import pipeline, M03 units/north/georeference, M04 AI labelling and floor detection, M05 geometry health, M06 versioning and provenance, M07 browser kernel and performance, M08 City context ingest).
+  - Priorities: core = M01, M02, M03, M05, M07; v1 = M04, M06, M08 (manual tagging and the organiser's context model are the core fallbacks). Core effort totals about 22 person-days (team estimate), tight for 13 Nov 2026.
+  - Corrected scope assumption: City 'Building footprints 2009' is not current (2009 LiDAR, not updated); LiDAR 2022 is the current City source. Flagged FALSE_ASSUMPTION.
+  - Corrected: Rhino.Compute is MIT code but needs Rhino 8 for Windows and core-hour billing, not compatible with Educational licences; moved out of core.
+  - Corrected: Rhino 8 and 9 index lists SketchUp, OBJ, FBX and glTF but not IFC or Revit; IFC via Rhino is not assumed.
+  - Corrected: proj4js predefines WGS84 UTM zones, not EPSG:26910; the georeference module registers the CRS explicitly.
+  - Derived numbers (computed in round 1, not quoted): site area 11,468 m2 and 9.0 FSR about 103,200 m2; UTM area scale 0.08% about 83 m2; grid convergence about 0.1 deg at lon -123.12, lat 49.29; float32 step about 0.5 m at northing 5.46 million m.
+  - Limitation: the shared web-search budget ran out mid-round 1. Not retrieved: AI-labelling accuracy literature, buildingSMART HTML class pages (HTTP 403), City licence text, APS tables and pricing, Higher Buildings PDFs (HTTP 403), SketchUp IFC export page.
+  - r1: P14-M01 extended with FloorPlate (per-storey slices), Podium, below-grade Levels, OpenSpace, Frontage, AccessPoint, Viewpoint and ViewCone. ProgramVolume now maps to IfcSpatialZone grouping per-storey IfcSpace plates and to bot:Zone with bot:intersectsZone to each storey (critic BLOCKERs 1 and 2).
+  - r1: P14-M04 rebuilt as 'Storey schedule, volume slicing and semantic labelling': Path A (user schedule plus manifold slicing) is core, Path B reads imported storeys or clusters slabs only when at least 3 clusters exist; AI labelling stays as a v1 stage; added plate-sum area cross-check and hosted-API data-handling parameter; the former M04 floor detection was valid only for detailed models.
+  - r1: Project CRS changed from EPSG:26910 to EPSG:3157 NAD83(CSRS) / UTM 10N (EPSG:26910 kept as an import alias); parcel-agreement thresholds restated at 1.0 m and 2.0 m from EPSG accuracies. FALSE_ASSUMPTION flagged and the metric marked false_assumption_corrected.
+  - r1: Z0 geodetic elevation and vertical datum are now required georeference fields, exported as IfcMapConversion.OrthogonalHeight and IfcProjectedCRS.VerticalDatum; added a Z0-versus-LiDAR-ground metric. FALSE_ASSUMPTION flagged.

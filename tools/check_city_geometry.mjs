@@ -1,0 +1,48 @@
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve('../tools-cache/ms-playwright')
+const { chromium } = await import('playwright')
+const out = resolve('../context-data/work/building-street-upgrade-2026-10-22')
+mkdirSync(out,{recursive:true})
+const browser = await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']})
+const page = await browser.newPage({viewport:{width:1600,height:1000}})
+const errors=[];page.on('pageerror',e=>errors.push(e.message))
+async function openCity(p) {
+ await p.goto('http://127.0.0.1:5202/#/start')
+ await p.getByRole('button',{name:'Open the demo project'}).click()
+ await p.waitForURL(/#\/guided/)
+ await p.evaluate(async()=>{
+  const {useStore}=await import('/src/store.ts');useStore.getState().set({showOnboarding:false,reducedMotion:true});useStore.getState().setProject('city');useStore.getState().setEnabled([])
+ })
+}
+await openCity(page)
+await page.getByText('1,573 measured roof parts · City streets loaded',{exact:true}).waitFor({timeout:60000})
+await page.locator('summary').filter({hasText:'Context layers'}).click()
+await page.getByRole('button',{name:'Inspect extracted buildings'}).click()
+await page.locator('summary').filter({hasText:'Context layers'}).click()
+await page.waitForTimeout(2000)
+await page.screenshot({path:resolve(out,'buildings-and-streets.png')})
+await page.evaluate(async()=>{
+ const {useStore}=await import('/src/store.ts');useStore.getState().set({cameraRequest:{position:[-800,900,1100],target:[-800,900,0],fov:46}})
+})
+await page.waitForTimeout(1800)
+await page.screenshot({path:resolve(out,'building-plan.png')})
+await page.locator('summary').filter({hasText:'Context layers'}).click()
+await page.getByLabel('Main street names',{exact:true}).check()
+await page.getByLabel('Approximate road surfaces',{exact:true}).uncheck()
+await page.waitForTimeout(500)
+await page.getByLabel('Approximate road surfaces',{exact:true}).check()
+await page.setViewportSize({width:800,height:1000})
+await page.screenshot({path:resolve(out,'geometry-controls-compact.png')})
+await page.close()
+const fallback=await browser.newPage({viewport:{width:1280,height:800}})
+fallback.on('pageerror',e=>errors.push(e.message))
+await fallback.route('**/data/building_forms.json',r=>r.abort('failed'))
+await openCity(fallback)
+await fallback.getByText('0 measured roof parts · City streets loaded',{exact:true}).waitFor({timeout:60000})
+await fallback.locator('summary').filter({hasText:'Context layers'}).click()
+await fallback.getByRole('alert').filter({hasText:'Some detailed context could not load'}).waitFor()
+await fallback.screenshot({path:resolve(out,'geometry-fallback.png')})
+const report={pageErrors:errors,measuredRoofParts:1573,streetsLoaded:true,controlsChecked:true,missingFormsRetainsStreetsAndBase:true}
+writeFileSync(resolve(out,'browser-check.json'),JSON.stringify(report,null,2))
+console.log(JSON.stringify(report));await browser.close();if(errors.length)process.exitCode=1

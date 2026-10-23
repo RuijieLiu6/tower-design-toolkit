@@ -1,0 +1,268 @@
+{
+ "expert_role": "Open-data licensing specialist (with geodetic/datum review), round 2 critique of packet C03",
+ "previous_round": [
+  {
+   "item": "C03-M03 range probe and range_safe gate",
+   "status": "addressed",
+   "residue": "The gate design is fixed (browser fetch, Playwright, curl used only as a diagnostic). Firefox and WebKit, and .parquet/.pmtiles on Pages, are still unprobed, so range_safe must stay false for them."
+  },
+  {
+   "item": "C03-M02 LOD1 schema",
+   "status": "addressed",
+   "residue": "The absolute z_ground/z_roof fields and the 3DBAG-style statistic are now specified. The ground-statistic name still needs to be fixed per layer in the manifest."
+  },
+  {
+   "item": "Footprints 2015 + LiDAR 2022 change detection",
+   "status": "addressed",
+   "residue": "This is designed but untested, and the thresholds are not set."
+  },
+  {
+   "item": "C03-M01/M02 horizontal CRS",
+   "status": "addressed",
+   "residue": "Tested on the LiDAR index and on parcels. ParcelMap BC (NAD83/BC Albers) and the orthophoto (EPSG:26910) are still mislabelled or unmeasured (see the new finding)."
+  },
+  {
+   "item": "C03-M04 cache consistency",
+   "status": "addressed"
+  },
+  {
+   "item": "C03-M08 YVR airspace",
+   "status": "addressed",
+   "residue": "Re-read SOR/80-902: s.3 gives the ARP as 2 m, and Part IV gives 45 m plus a 9 m minimum above ground. Part II follows the Richmond–Vancouver boundary, and its exceptions are a Richmond land portion and a Strait of Georgia portion. This matches the spec's 'unconfirmed' handling."
+  },
+  {
+   "item": "C03-M05 ODbL audit of Vista assets",
+   "status": "partly",
+   "residue": "Lineage is identified, but nothing is decided. The rights of the supplied studio Rhino model are unresolved, yet its derived export is publicly served on Pages and reused in program-value-visualizer/basemap. The Vista README credits OSM only for buildings 'outside the supplied model', although unified_manifest says the central buildings are 'supplied OSM footprint meshes'."
+  },
+  {
+   "item": "View-cone provenance / clause citation",
+   "status": "partly",
+   "residue": "guidelines.vancouver.ca still returns 403 (WebFetch, 21 Oct 2026). Clause-citing warnings are correctly blocked. The City document library lists the adopted Public Views PDF at only 222 KB, plus separate adopted Solar Access (Downtown 418 KB; Outside Downtown 231 KB) PDFs that the spec does not track."
+  },
+  {
+   "item": "C03-M08 parcel–tax join",
+   "status": "addressed",
+   "residue": "The tax report lists BC Assessment as co-data-owner; the licence point is not resolved (see the new finding)."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "Repository licensing (all four team repos)",
+   "issue": "None of vancouver-tall-view-tool, form-studio, program-value-visualizer or vancouver-tower-toolbench has a LICENSE, COPYING or NOTICE file. The code is therefore all-rights-reserved by default, which contradicts the 'open source (MIT/Apache)' claim. The repos and the Pages deploy also mix code with OGL-V, OGL-BC, ODbL and public-domain data under no repository-level licence map. If someone later adds a root MIT LICENSE, it would appear to relicense ODbL and OGL data as MIT.",
+   "fix": "Before VCM is public, add a root LICENSE (MIT or Apache-2.0) scoped to code. Add a LICENSES/ folder and REUSE-style SPDX headers or a .reuse/dep5 file mapping data paths to their licences. Write the data licence per layer only through manifest.json and the generated NOTICE. The CI should fail if any published data path lacks a licence mapping."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C03-M05 supplied studio Rhino model and inherited Vista assets",
+   "issue": "The Vista README calls the central context 'a derived browser export of a supplied studio Rhino model'. unified_manifest.json says the central buildings 'retain supplied OSM footprint meshes', and extension_manifest says the model 'was built from 2022 OSM data'. The supplier's own rights and permission to redistribute are undocumented. The export (generated/unified_buildings.bin, 9.7 MB) is already publicly served on Pages and copied into program-value-visualizer/basemap. The README's OSM credit covers only buildings outside the model, so the central buildings carry no ODbL notice.",
+   "fix": "Do not inherit unified_buildings.bin, unified_terrain.bin, water or shoreline into VCM until two things are in writing: the supplier's permission (licence and who made the model) and an ODbL classification. Otherwise rebuild from City footprints with LiDAR heights (non-OSM) and coast/water from LiDAR class 5 or the City shoreline. Fix Vista's README and report credits so the central model is also credited '© OpenStreetMap contributors, ODbL'. Add program-value-visualizer/basemap to the lineage audit."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "OGL-Vancouver non-endorsement vs clause-citing compliance warnings",
+   "issue": "OGL-V (read 21 Oct 2026) states that it gives 'no right to use the Information in a way that suggests any official status'. A 'Vancouver Context Model' that issues warnings citing City guideline clauses and draws an estimated 'height-limit surface' from City data can read as an official determination. The spec has no disclaimer or naming rule.",
+   "fix": "Label every height surface, cone test and warning 'Unofficial estimate – not a City of Vancouver determination; by-laws and the adopted guidelines govern; contact views@vancouver.ca'. Never use the City crest or logo. Put the non-endorsement and 'as is' statements in the generated NOTICE and in every PDF export. Have CI check that the warning templates contain the disclaimer."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C03-M08 cov-public-views-params legal status",
+   "issue": "The params table stores 59.8 m (27.1), 54.3 m with 68.9 m proposed (27.2) and 65.7 m (28) from RTS 18292 Appendix A. RTS 19750 says the Trout Lake amendments were referred back. The record schema has no per-value legal status, so a proposed or referred-back value can be served as the height in force. This is a height presented as official when it is not confirmed.",
+   "fix": "Add per-record fields: status (in_force | proposed | referred_back | superseded), adopted_by (RTS number, date), source_doc_sha256, page, and datum_confirmed:false. Allow only in_force values with a hashed adopted-PDF source to drive warnings. Show proposed values only as a comparison."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Policy-source register coverage",
+   "issue": "The adopted Public Views Guidelines PDF is still unread (403). The City document library lists it at 222 KB, which is small for a document that would hold per-view origin and cone diagrams, so the cone geometry may live in companion documents the register does not track. The library also lists adopted 'Solar Access for Downtown' (418 KB) and 'Solar Access Outside Downtown' (231 KB) PDFs, but the solar rules are sourced only to council-report drafts (RTS 16338 App C, RTS 16506 App A).",
+   "fix": "Obtain all three adopted PDFs manually (browser download by a person, or by email to views@vancouver.ca). Record sha256, bytes, page count and amendment date for each. Find out whether per-view diagrams exist as separate documents. Re-source the solar parameters to the adopted guidelines and keep the council reports as history."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M01 licence object",
+   "issue": "OGL-V says use is 'governed by the terms of the licence in force as of the date you accessed the Information' and requires 'where possible, provide a link to this licence'. The manifest licence object {id, attribution, share_alike, redistribution} has no licence version, URL or accessed date. Free-text ids make share_alike hand-entered and error-prone.",
+   "fix": "Use SPDX ids where they exist (ODbL-1.0, OGL-Canada-2.0). Otherwise use LicenseRef-OGL-Vancouver-1.0, LicenseRef-OGL-BC-2.0 or LicenseRef-OGL-MetroVancouver-1.0. Add licence.url, licence.version and licence.accessed. Derive share_alike from the id in CI. Put the licence link in the NOTICE and in the on-map credit."
+  },
+  {
+   "severity": "MINOR",
+   "item": "TransLink GTFS characterisation",
+   "issue": "The GTFS page grants 'a limited, revocable and non-exclusive license to use, reproduce, and redistribute the Data', on condition of the legend 'Route and arrival data used in this product or service is provided by permission of TransLink'. The terms also include identification on request, an indemnity, and possible conditions. Redistribution is therefore permitted, not 'permission needed'. However, the data is not open and cannot be relicensed.",
+   "fix": "Set redistribution to 'permitted_revocable_nonopen' and keep the data out of the open bundle and NOTICE licence pool. If it is fetched at runtime, the legend must still be shown, and the team must accept the indemnity knowingly. Record the terms' retrieved date and sha256."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Property tax report: third-party data owner",
+   "issue": "The portal metadata lists data-owner ['City of Vancouver', 'BC Assessment']. OGL-V excludes 'third party rights the Information Provider is not authorized to licence'. The spec treats the City report as a clean substitute for licensed BC Assessment data without recording this exclusion.",
+   "fix": "Record data_owner in the source record. Ask the City (open data team) to confirm that redistribution of derived per-parcel land and improvement sums is covered. Until it replies, ship aggregated values with a note that the source portal lists BC Assessment as co-owner."
+  },
+  {
+   "severity": "MINOR",
+   "item": "ParcelMap BC CRS",
+   "issue": "The BC catalogue record (modified 2026-10-20) describes a 30 Jan 2022 reprojection 'from NAD83(CSRS)/BC Albers to NAD83/BC Albers', with shifts up to 21.43 m for 536 parcels. The spec labels the dataset NAD83(CSRS).",
+   "fix": "Register it as EPSG:3005 (NAD83 original). Apply a declared NAD83 to NAD83(CSRS) transformation before cross-checking against City parcels, or treat 0.5–1 m offsets as expected. Store the reprojection note in accuracy."
+  },
+  {
+   "severity": "MINOR",
+   "item": "LidarBC licence",
+   "issue": "In the CKAN record, license_title is 'Access Only', while the notes say the data is released under OGL-BC. The spec states OGL-BC without noting the conflict.",
+   "fix": "Record both, set status 'licence_conflict', ask LiDAR@gov.bc.ca, and check per-tile metadata before deriving or shipping any LidarBC product."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Policy and council-report sources vs the 'missing licence' CI rule",
+   "issue": "Council reports and guideline PDFs carry no licence, but CI rejects any layer missing a licence. This pushes the team either to invent an OGL label for cov-public-views-params and the solar tables, or to block them.",
+   "fix": "Add licence id 'LicenseRef-facts-cited-no-grant' with redistribution 'facts_only'. Store only transcribed numbers with page citations, never PDF text or figures. Allow this id only for parameter tables."
+  },
+  {
+   "severity": "MINOR",
+   "item": "ODbL produced-work notices",
+   "issue": "osm.org/copyright requires credit and a statement that the data is available under ODbL, with the full URL on printed works. Vista PDF reports credit OSM for extension buildings and footprints, but not for the central OSM-derived model or the OSM coastline-clipped terrain. form-studio uses OSM street tiles, which are subject to the OSM tile usage policy.",
+   "fix": "Generate report and screenshot footers from the active layers' lineage, including '© OpenStreetMap contributors, data available under the ODbL, https://www.openstreetmap.org/copyright' whenever any ODbL ancestor is visible. Replace tile.openstreetmap.org with a self-hosted PMTiles basemap, or follow the tile usage policy."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C03-M04 refresh trigger",
+   "issue": "The building-footprints-2015 metadata shows modified 2022-06-09 but data_processed 2026-10-20. data_processed is a reprocessing stamp, not a content change. Triggering on it rebuilds static layers weekly and invites false 'updated' toasts.",
+   "fix": "Trigger on modified plus a sha256 of the normalised export (sorted, rounded). Announce a layer update only when the content hash changes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Overture City of Vancouver content",
+   "issue": "Re-checked: the buildings guide lists City of Vancouver as a source and the attribution page does not. Any City footprints inside Overture are now distributed under ODbL, so an Overture-sourced height fallback inside the city brings ODbL in even for City-origin geometry.",
+   "fix": "Keep Overture out of the city-extent building layer entirely. If it is used beyond the city, treat it as an ODbL regional cut with no cross-reference to City footprints."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "TransLink data requires permission and cannot be redistributed (redistribution: permission)",
+   "why_false": "The GTFS static terms grant use, reproduction and redistribution under a limited, revocable, non-exclusive licence, on condition of a legend. The approval and API key apply to the Open API, not to the GTFS static data.",
+   "correction": "GTFS static data may be redistributed with the legend, but it is non-open, revocable and carries an indemnity. Keep it outside the open bundle as a separately licensed optional layer.",
+   "evidence": "translink.ca .../gtfs/gtfs-data (fetched 21 Oct 2026): 'limited, revocable and non-exclusive license to use, reproduce, and redistribute the Data'; legend 'provided by permission of TransLink'."
+  },
+  {
+   "claim": "ParcelMap BC Parcel Polygons (open) are NAD83(CSRS)",
+   "why_false": "The catalogue record says the data were reprojected on 30 Jan 2022 from NAD83(CSRS)/BC Albers to NAD83/BC Albers, with a maximum deviation of 21.43 m.",
+   "correction": "Register the dataset as EPSG:3005 (NAD83 original) and apply a declared transformation to NAD83(CSRS) before comparing it with City data.",
+   "evidence": "catalogue.data.gov.bc.ca/api/3/action/package_show?id=parcelmap-bc-parcel-polygons-ogl, metadata_modified 2026-10-20."
+  },
+  {
+   "claim": "LidarBC is licensed OGL-BC (no qualification)",
+   "why_false": "The CKAN licence field reads 'Access Only'; only the notes text says OGL-BC.",
+   "correction": "Record the licence as conflicting until GeoBC confirms it per tile.",
+   "evidence": "catalogue.data.gov.bc.ca package_show lidarbc-open-lidar-data-portal: license_title 'Access Only'."
+  },
+  {
+   "claim": "Vista's central context is credited correctly, with OSM credit needed only for buildings outside the supplied model",
+   "why_false": "Vista's own unified_manifest states that the central buildings 'retain supplied OSM footprint meshes', and extension_manifest says the model was 'built from 2022 OSM data'.",
+   "correction": "Credit the central model and the derived terrain as ODbL, and clear the supplier's rights before reuse.",
+   "evidence": "vancouver-tall-view-tool/generated/unified_manifest.json notes; README line 59–60."
+  }
+ ],
+ "missing": [
+  "Root LICENSE/NOTICE and a REUSE-style data-path licence map in every team repo",
+  "Written provenance and licence for the supplied studio Rhino model",
+  "The non-endorsement and unofficial-estimate disclaimer as a CI-checked UI and report requirement",
+  "Per-record legal status (in force, proposed or referred back) for cone and solar parameters",
+  "Hashed adopted PDFs for Public Views, Solar Access Downtown and Solar Access Outside Downtown, and identification of any companion view diagrams",
+  "Confirmation from the City that the BC Assessment co-owned tax fields are covered by OGL-V",
+  "Licence version, URL and accessed date in the manifest licence object; SPDX/LicenseRef ids",
+  "Metro Vancouver 'Land Cover Classification 2014 – 2 m LiDAR' (OGL-MV, 47 MB) as a canopy cross-check, not listed",
+  "An OSM tile-usage plan, or a self-hosted basemap, for form-studio and future map views",
+  "Answers from the City on the cone geodetic-height datum and the HTMVBC00 to CGVD2013 offset (carried over)",
+  "OSMF Collective Database guideline not re-read this round (osmfoundation.org returned 503)"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Add code LICENSE and a data licence map (REUSE/SPDX) to the repos before any public VCM deploy",
+   "Remove inherited Vista OSM-derived and supplied-model assets from the VCM base, or clear them in writing (supplier rights plus ODbL flag and credit)",
+   "Ship the non-endorsement and unofficial-estimate disclaimer on every warning, height surface and export, checked by CI",
+   "Add legal status to cone and solar parameter records; only in-force values from a hashed adopted PDF may drive warnings",
+   "Hash the adopted Public Views and both Solar Access guideline PDFs before any clause-citing warning",
+   "Correct the TransLink, ParcelMap BC (EPSG:3005) and LidarBC licence/CRS records; add licence version, URL and accessed date to the manifest"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": true,
+   "note": "Read in the browser: OGL-V v1.0 is based on OGL-BC 2.0. Default statement verified; a link to the licence is required where possible. Non-endorsement (no official status), third-party and official-marks exclusions confirmed; terms apply as in force on the access date."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/{public-trees,property-tax-report,property-parcel-polygons,view-cones,building-footprints-2015,lidar-2022,zoning-districts-and-labels,heritage-sites,rapid-transit-stations,issued-building-permits}",
+   "ok": true,
+   "note": "All OGL-V; attributions null, so the default statement applies. Record counts match the spec. The tax report lists data-owner City and BC Assessment. Footprints: modified 2022-06-09, data_processed 2026-10-20."
+  },
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "WebFetch 403. A browser cross-origin fetch failed. The City document library lists it at 222 KB, alongside adopted Solar Access Downtown (418 KB) and Outside Downtown (231 KB) PDFs."
+  },
+  {
+   "url": "https://vancouver.ca/home-property-development/zoning-and-land-use-policies-document-library.aspx",
+   "ok": true,
+   "note": "Links and file sizes for the adopted guideline PDFs."
+  },
+  {
+   "url": "https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/gtfs/gtfs-data",
+   "ok": true,
+   "note": "Licence to use, reproduce and redistribute; revocable; legend required; indemnity; no API key mentioned."
+  },
+  {
+   "url": "https://docs.overturemaps.org/guides/buildings/",
+   "ok": true,
+   "note": "Lists City of Vancouver as a source; theme under ODbL."
+  },
+  {
+   "url": "https://docs.overturemaps.org/attribution/",
+   "ok": true,
+   "note": "Buildings ODbL; City of Vancouver not listed (conflict confirmed)."
+  },
+  {
+   "url": "https://www.openstreetmap.org/copyright",
+   "ok": true,
+   "note": "Share-alike, credit plus statement of ODbL availability, full URL in print."
+  },
+  {
+   "url": "https://osmfoundation.org/wiki/Licence/Community_Guidelines/Collective_Database_Guideline_Guideline",
+   "ok": false,
+   "note": "HTTP 503 in WebFetch and the browser; not re-verified this round."
+  },
+  {
+   "url": "https://catalogue.data.gov.bc.ca/api/3/action/package_show?id=parcelmap-bc-parcel-polygons-ogl",
+   "ok": true,
+   "note": "OGL-BC; reprojected 2022 to NAD83/BC Albers; strata as one polygon."
+  },
+  {
+   "url": "https://catalogue.data.gov.bc.ca/api/3/action/package_show?id=lidarbc-open-lidar-data-portal",
+   "ok": true,
+   "note": "license_title 'Access Only' vs notes OGL-BC; no datum stated."
+  },
+  {
+   "url": "https://open-data-portal-metrovancouver.hub.arcgis.com/api/search/v1/collections/all/items?q=land%20cover%20classification&limit=8",
+   "ok": true,
+   "note": "Sizes and OGL-MV licence match the spec; a 2014 2 m LiDAR land-cover raster is also available."
+  },
+  {
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "ok": true,
+   "note": "ARP 2 m; outer 45 m with 9 m minimum; Plan BC 1280; Part II follows the Richmond–Vancouver boundary; current to 2026-09-30."
+  },
+  {
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "ok": true,
+   "note": "1 GB site, 10-minute deploy timeout, 100 GB/month soft limit; build limit exempt for Actions; not to be used as a free business host."
+  },
+  {
+   "url": "https://epsg.io/9245",
+   "ok": true,
+   "note": "CGVD2013a(2010) height; replaces CGVD2013(CGG2013) height."
+  },
+  {
+   "url": "C:/Users/hp/AppData/Local/Temp/claude/F--UBC-Master-of-Architecture-ARCH540-AI-Studio/b24e3d2c-c0f0-4671-9589-93c630974442/scratchpad/user-repos/vancouver-tall-view-tool/generated/unified_manifest.json",
+   "ok": true,
+   "note": "Central buildings are 'supplied OSM footprint meshes'; OSM coastline clip; EGM96 SRTM. No LICENSE file in any of the four repos."
+  }
+ ],
+ "verdict": "Round 2 fixes most of the technical issues: range probing, absolute LOD1 elevations, CRS testing, content-addressed paths, the YVR downgrade and the parcel–tax join. The licensing side is not ready for designers to rely on. None of the four repos has a licence file. The supplied studio model is OSM-derived, its rights are undocumented, and its export is already public. Clause-citing warnings would conflict with OGL-Vancouver's non-endorsement term. Cone parameters have no legal status, so proposed or referred-back heights could be shown as in force. The adopted Public Views and Solar Access PDFs are still unhashed. TransLink, ParcelMap BC (EPSG:3005) and LidarBC ('Access Only') are mislabelled. Gate: fail until those conditions are met. The web-search budget ran out mid-round, and the OSMF guideline page was down (503)."
+}

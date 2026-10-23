@@ -1,0 +1,1687 @@
+{
+ "packet_id": "P17",
+ "modules": [],
+ "sources": [
+  {
+   "id": "P17-S01",
+   "title": "Vancouver Tall Challenge: Building Higher Downtown (competition listing)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "publisher": "Buildner / architecturecompetitions.com",
+   "year": "2026 (accessed 21 Oct 2026, re-opened in r1)",
+   "type": "competition page",
+   "opened": true,
+   "extract": "Organisers Buildner with City of Vancouver and UBC SALA. Registration closes 29 Oct 2026; Q&A closes 3 Nov 2026 (no new questions after); submission 30 Nov 2026 23:59 London time; winners 26 Jan 2027. Individuals or teams of up to 4 (members editable until deadline); anonymous judging; fee EUR 140 / EUR 120 plus 4.5% VAT (an instalment option is mentioned; which fee applies to whom and the instalment amounts were not clear in the r1 fetch); no software specified; FAQ: AI-generated images may be based on pre-existing work, check the tool's terms, not advised as sole original work. The 'Download brief' and 'Site plans & 3D model' links had no URL in the fetched text. Page shows an image titled 'Reference Photo - Queen Elizabeth View Tower Heights' (title only). Page text has no view-cone, FSR-basis or deliverables text."
+  },
+  {
+   "id": "P17-S02",
+   "title": "GenEnv/Arch540_2026 (course repository root)",
+   "url": "https://github.com/GenEnv/Arch540_2026",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Public repo, ARCH 540 Fall 2026 UBC SALA, 3 commits on main, 0 stars; contains README.md and agents_demo/. No licence stated on the page; clone or ZIP download. agents_demo/ holds A_writing, B_testfit, C_design_space, D_team, notes_files, agents_notes.html, README.md, requirements.txt, .gitignore (r1 listing)."
+  },
+  {
+   "id": "P17-S03",
+   "title": "Arch540_2026 agents_demo README",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/README.md",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Demos A to D (A_writing under 1 min; B 3-10 min; C 10-30 min; D about 10 agents, 30-60 min). B-D need Python 3 and pip install -r requirements.txt (numpy, scipy, shapely, matplotlib per the requirements file). Each demo has complete/, steps/, PROMPTS.md. Warns long runs use a lot of plan allowance."
+  },
+  {
+   "id": "P17-S04",
+   "title": "Arch540_2026 B_testfit PROMPTS.md",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/PROMPTS.md",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Core prompt: lay out buildings on a site for maximum floor area within the planning rules, then draw the plan. Variants add rule-checking script, skill, reviewer, hook (step 5 tries to write a developer scheme unchanged), and with/without-skill comparison."
+  },
+  {
+   "id": "P17-S05",
+   "title": "Arch540_2026 B_testfit/complete folder listing (includes .claude/)",
+   "url": "https://github.com/GenEnv/Arch540_2026/tree/main/agents_demo/B_testfit/complete",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Files: CLAUDE.md, brief.md, check.py, layout_format.md, lot.json, rules.md, output/, work/, and .claude/ containing agents/, hooks/, skills/site-layout/ and settings.json (the .claude sub-listing was opened separately)."
+  },
+  {
+   "id": "P17-S06",
+   "title": "Arch540_2026 B_testfit rules.md",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/rules.md",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Five rules: 3 m setback; sun gap of at least 0.7 x height of the southern building where east-west extents overlap; 12 m minimum spacing; 40 m maximum height with storey ranges per type; at least 25% of lot unbuilt."
+  },
+  {
+   "id": "P17-S07",
+   "title": "Arch540_2026 B_testfit check.py",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/check.py",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Shapely-based checker: reads layout JSON and lot polygon, tests R1-R5, prints PASS/FAIL per rule with offending buildings, total GFA and open-space percent; exit codes 0/1/2. Limits: simplified sun-gap test, axis-aligned rectangles, hard-coded thresholds, GFA = footprint x storeys with no core/efficiency deduction."
+  },
+  {
+   "id": "P17-S08",
+   "title": "Arch540_2026 B_testfit brief.md",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/B_testfit/complete/brief.md",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026",
+   "type": "course repository",
+   "opened": true,
+   "extract": "2D residential test-fit; tower 18x18 m 8-12 storeys, slab 40x12 m 4-8 storeys, short 24x12 m 4-8 storeys; storey height 3.2 m; deliverables layout.json, plan.png and a final message naming the binding rule."
+  },
+  {
+   "id": "P17-S09",
+   "title": "Arch540_2026 agents_notes.html (session 4 notes, demos B, C, D)",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/agents_notes.html",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026 (re-read in r1, attribution corrected)",
+   "type": "course notes",
+   "opened": true,
+   "extract": "B_testfit: lot 5,276 m2 (about 90 x 70 m, street south); B1 same prompt gave 16,272 / 13,968 / 15,552 m2; B4 reviewer APPROVE (R1-R5 PASS, both runs); B5 hook gate.py blocked a layout (R2 FAIL, gap 12.0 m, needs 26.9 m), hook never fired in 7 normal runs, and a B5 hook watching the file tool missed the command line; B6 skill changed method (scheme gallery drawn 3 of 3 vs 0 of 3) not floor area. C_design_space: 80 x 60 m Vancouver housing lot (lat 49.25 N), goals GFA, winter sun (average direct-sun hours on open ground, 21 Dec 9:00-15:00, max 6.0) and shape factor; C0 grid search 7,308 combos, 3,680 valid, 8 on the front, all bars; C2 no scorer 50 of 75 valid vs scorer 61 of 75; C3 one run imported the scoring functions directly so evaluations were never counted; C5 six helpers, 329 evaluations, main context near 50k tokens; C6 impossible target, agent stopped after 5 (no hook) or 7 (hook) evaluations. D_team: 100 x 70 m corner block, FSR 2.8, 220-280 homes; hidden contradiction (CEO asks >=250 homes, FSR allows about 239) caught by the constraints helper in 3 of 3 runs; three runs gave three different schemes (237, 222, 226 homes); D3 without the constraints helper a designer estimated about 255 homes, the tool measured 223. Closing lessons: checks in code hold where requests do not; a guard covers only the path it watches; measure rather than estimate; run several times. (An earlier packet text attributed 255 vs 223 to B and the import bypass to B; both claims are corrected here.)"
+  },
+  {
+   "id": "P17-S10",
+   "title": "TestFit pricing",
+   "url": "https://www.testfit.io/pricing",
+   "publisher": "TestFit",
+   "year": "2026 (accessed 21 Oct 2026; FAQ read in r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Parking Solver USD 195/month (unlimited users; add-ons Site Intelligence +150/month, Pro Forma +170/month, MCP +100/month); Site Solver from USD 15,000/year (includes MCP Connection, generative design, high-detail building presets, custom unit types, onboarding and account manager); Site Solver Portfolio from USD 20,000/year. FAQ: Site Solver gives detailed typology solutions suitable for mixed-use developments; generative design only with Site Solver; works globally but some data layers vary by country; support English-only, US business hours; Revit and SketchUp supported on all plans. Typology list: parking, low-detail massing, multi-family, industrial, retail, single-family, data center, hotel (office, high-rise and tower not listed). No free tier or trial mentioned; 'For Universities' and 'For Students' links go to /solutions/universities."
+  },
+  {
+   "id": "P17-S11",
+   "title": "TestFit home",
+   "url": "https://www.testfit.io/",
+   "publisher": "TestFit",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "AI-generated site plans editable to parking-stall level; parcel/zoning/unit-mix testing; real-time metrics and takeoffs; Parking Solver; Pro Forma; exports to Revit, AutoCAD, SketchUp, Excel, PDF. Performance figures are testimonials/marketing."
+  },
+  {
+   "id": "P17-S12",
+   "title": "TestFit MCP Connection",
+   "url": "https://www.testfit.io/mcp",
+   "publisher": "TestFit",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Add-on lets a user's own AI assistant (Claude, ChatGPT named) drive TestFit by plain-language prompts; TestFit's deterministic engine does the design and returns plans, geometry and numbers; one live model edited by hand or by prompt; vendor says it does not see prompts or train on data. The page does not state which building types MCP supports or its price (r1 re-read)."
+  },
+  {
+   "id": "P17-S13",
+   "title": "Hypar docs (space planning)",
+   "url": "https://docs.hypar.io/",
+   "publisher": "Hypar",
+   "year": "2026",
+   "type": "vendor documentation",
+   "opened": true,
+   "extract": "Plan buildings in 3D with rooms, circulation, doors, windows, equipment; net/gross areas and counts vs targets; import program from spreadsheet or dRofus and site data (CAD, images, PDFs, laser scans); compare layouts; export PDF, image, Excel, Revit, Rhino; real-time collaboration; AI furniture/equipment suggestions. No pricing shown."
+  },
+  {
+   "id": "P17-S14",
+   "title": "Hypar GitHub organisation",
+   "url": "https://github.com/hypar-io",
+   "publisher": "GitHub / Hypar",
+   "year": "2026",
+   "type": "GitHub organisation",
+   "opened": true,
+   "extract": "71 repos. Elements ('the smallest useful BIM'), HyparSpace (office test-fit functions) and BuildingBlocks are MIT; Function-SpacePlanning is public but no licence shown on the listing."
+  },
+  {
+   "id": "P17-S15",
+   "title": "Speckle pricing",
+   "url": "https://www.speckle.systems/pricing",
+   "publisher": "Speckle",
+   "year": "2026 (re-read in r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Free 'Explore' plan: 1 project; up to 3 users counting internal and external collaborators; 100 versions across the workspace; 30-day version history (older versions inaccessible, public links stop working); community support; all importers and connectors. Page states Speckle is free for students and educators and points to /academia. Paid 'Custom Plans': unlimited projects, users and versions, SSO, custom data regions, CDE integrations; prices not listed."
+  },
+  {
+   "id": "P17-S16",
+   "title": "Speckle integrations",
+   "url": "https://www.speckle.systems/integrations",
+   "publisher": "Speckle",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Connectors/integrations include Revit, Rhino, Grasshopper, SketchUp, Navisworks, Blender, Archicad, Civil 3D, AutoCAD, ETABS, Tekla, Vectorworks, Solibri, Power BI; IFC import; file upload without a design-tool licence. Docs page notes IFC and OBJ upload; STL/FBX compatibility mode ends 1 Nov 2026."
+  },
+  {
+   "id": "P17-S17",
+   "title": "specklesystems/speckle-server",
+   "url": "https://github.com/specklesystems/speckle-server",
+   "publisher": "GitHub / Speckle",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "Apache-2.0 'unless otherwise described'; Node.js server, Nuxt/Vue frontend, Three.js viewer; Docker Compose files for deployment; lists connectors (SketchUp, Excel, Unity, Blender, Unreal, QGIS, Power BI) and specklepy; 853 stars."
+  },
+  {
+   "id": "P17-S18",
+   "title": "Ladybug Tools home",
+   "url": "https://www.ladybug.tools/",
+   "publisher": "Ladybug Tools",
+   "year": "2026",
+   "type": "project site",
+   "opened": true,
+   "extract": "Free and open-source collection linking 3D CAD interfaces to Radiance, EnergyPlus/OpenStudio, THERM/WINDOW and OpenFOAM; Ladybug, Honeybee, Dragonfly, Butterfly; runs inside Grasshopper; written in Python."
+  },
+  {
+   "id": "P17-S19",
+   "title": "Ladybug Tools about (history, licensing)",
+   "url": "https://www.ladybug.tools/about.html",
+   "publisher": "Ladybug Tools",
+   "year": "undated (possibly older page; re-read in r1)",
+   "type": "project site",
+   "opened": true,
+   "extract": "Started 2012; Ladybug = weather, solar radiation, sunlight hours; Honeybee = Radiance/EnergyPlus; Butterfly = OpenFOAM CFD, plugin released 20 March 2017, maintenance status not stated; Dragonfly = urban scale; page says code is GPL v3 unless stated (older than the repository LICENSE files, which are AGPL v3); legacy Rhino/Grasshopper plugins need paid CAD; Python libraries run from command line at no cost; Pollination is the cloud successor."
+  },
+  {
+   "id": "P17-S20",
+   "title": "ladybug-tools/ladybug (core library)",
+   "url": "https://github.com/ladybug-tools/ladybug",
+   "publisher": "GitHub / Ladybug Tools",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "AGPL-3.0; Python library for EPW weather data, sun position (altitude/azimuth); pip install ladybug-core; 228 stars."
+  },
+  {
+   "id": "P17-S21",
+   "title": "ladybug-tools/ladybug-grasshopper",
+   "url": "https://github.com/ladybug-tools/ladybug-grasshopper",
+   "publisher": "GitHub / Ladybug Tools",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "AGPL-3.0; all Grasshopper components of the Ladybug plugin as user objects and Python source; requires Rhino and Grasshopper plus ladybug core libraries. LICENSE file re-read in r1: GNU Affero GPL v3."
+  },
+  {
+   "id": "P17-S22",
+   "title": "ladybug-tools/honeybee-radiance",
+   "url": "https://github.com/ladybug-tools/honeybee-radiance",
+   "publisher": "GitHub / Ladybug Tools",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "AGPL-3.0; Radiance extension for Honeybee (daylight and radiation simulation); pip install -U honeybee-radiance; command-line interface; Dockerfile; page does not say whether Radiance binaries are installed separately. LICENSE file re-read in r1: GNU Affero GPL v3."
+  },
+  {
+   "id": "P17-S23",
+   "title": "ladybug-tools/butterfly",
+   "url": "https://github.com/ladybug-tools/butterfly",
+   "publisher": "GitHub / Ladybug Tools",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "GPL-3.0+; light Python API for creating and running OpenFOAM CFD cases; 253 commits; no archived or deprecation banner; no OpenFOAM version named; last-commit date not visible in the fetch, so maintenance status is not established."
+  },
+  {
+   "id": "P17-S24",
+   "title": "Pollination",
+   "url": "http://pollination.solutions/",
+   "publisher": "Pollination",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Cloud applications for environmental simulation affiliated with Ladybug Tools; Revit and Rhino plugins that build energy models from geometry; exports to EnergyPlus, OpenStudio, IES VE, Dragonfly, DesignBuilder etc.; 'start your free trial' (length not stated); no prices or student access on the page."
+  },
+  {
+   "id": "P17-S25",
+   "title": "Rhino 8 buy page (prices)",
+   "url": "https://www.rhino3d.com/buy/",
+   "publisher": "McNeel",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Commercial single user USD 995 new / 595 upgrade; student/faculty single user USD 195 new / 95 upgrade; lab licence (30 users) USD 975 per the r1 critic's read of the page (not re-fetched by the reviser); permanent licences, no maintenance fees; educational licence same as commercial but not transferable; proof of status required; Cloud Zoo licence sharing free."
+  },
+  {
+   "id": "P17-S26",
+   "title": "Rhino features",
+   "url": "https://www.rhino3d.com/features/",
+   "publisher": "McNeel",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Grasshopper is included with Rhino; reads/writes 3DM; Rhino 8 adds USD export and glTF import/export; developer tools RhinoCommon, Rhino.Python; Windows and macOS."
+  },
+  {
+   "id": "P17-S27",
+   "title": "Archistar products",
+   "url": "https://www.archistar.ai/products/",
+   "publisher": "Archistar",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "AI PreCheck (formerly eCheck): AI plan review checking submitted PDF/CAD/BIM against local code and zoning, pass/fail; custom solutions for cities; industry/certifier version. Offices in Culver City and Vancouver; Canadian client logos include Burnaby; the products page itself describes no feasibility or design-generation product (but see P17-S52); no prices; reported results (55% fewer review cycles, 90% first-submission quality) are vendor claims."
+  },
+  {
+   "id": "P17-S28",
+   "title": "UpCodes home",
+   "url": "https://up.codes/",
+   "publisher": "UpCodes",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Describes itself as a searchable platform for building codes, assemblies and building products; 'Try it for Free' link only. Jurisdictions and pricing not shown on the page."
+  },
+  {
+   "id": "P17-S29",
+   "title": "UpCodes Copilot",
+   "url": "https://up.codes/copilot",
+   "publisher": "UpCodes",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Chat assistant: find an assembly, ask a code question, get definitions, perform calculations, generate a checklist. Page does not state jurisdictions, citation behaviour or limitations; points to the Help Desk."
+  },
+  {
+   "id": "P17-S30",
+   "title": "Infrared.city home",
+   "url": "https://www.infrared.city/",
+   "publisher": "Infrared.city",
+   "year": "2026 (re-read in r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "AI-based urban climate simulation: wind comfort, solar radiation, thermal comfort (UTCI), heat/cold stress, daylight and sky view factor; models trained on 500K+ simulations from 100+ cities with '90%+ accuracy' (no method for the accuracy figure); about a minute or less per run; cloud app (button reads 'Try the platform Beta'), Rhino/Grasshopper, Revit and GIS plugins, REST API. Speed, cost and accuracy are vendor claims; no height, building-size or area limits, no limitations and no academic programme stated."
+  },
+  {
+   "id": "P17-S31",
+   "title": "Infrared.city pricing",
+   "url": "https://www.infrared.city/pricing",
+   "publisher": "Infrared.city",
+   "year": "2026 (re-read in r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Annual billing. Free EUR 0 with 900 one-time tokens (about 90 standard analyses, extra token EUR 0.10) that expire 42 days after registration; Starter EUR 240/yr (500 tokens/month, EUR 0.08); Advanced EUR 1,200/yr (4,000, EUR 0.05); Pro EUR 6,000/yr (50,000, EUR 0.02). Standard analysis 10 tokens; pedestrian wind comfort 50 tokens; costs for solar, UTCI and daylight not listed; analysis area does not change token price (AI workflows priced by area bracket). Tier taglines as read on 21 Oct 2026 by the reviser: Free 'Students & small studies', Starter 'Small sites', Advanced 'Quarter scale', Pro 'District to city'. The r1 critic read the student label on Starter; the two reads disagree (logged as UNRESOLVED)."
+  },
+  {
+   "id": "P17-S32",
+   "title": "Giraffe home",
+   "url": "https://www.giraffe.build/",
+   "publisher": "Giraffe",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Platform for real estate development: data layers, apps/workflows for feasibility, due diligence and site analysis, generative design, JavaScript SDK; SOC and ISO 27001 mentioned. Page references Australian clients; Canada/Vancouver data not mentioned."
+  },
+  {
+   "id": "P17-S33",
+   "title": "Giraffe pricing",
+   "url": "https://www.giraffe.build/pricing",
+   "publisher": "Giraffe",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Self-serve and Enterprise tiers; enterprise by contact; no education pricing on the page; separate Education and Universities page linked."
+  },
+  {
+   "id": "P17-S34",
+   "title": "Giraffe self-serve",
+   "url": "https://www.giraffe.build/self-serve",
+   "publisher": "Giraffe",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Core USD 45/month (unlimited projects, diagrams, 3D modelling, layered maps, calculation engine, visual scripting, view-only sharing); Teams USD 1,500 per user per year; free sign-up without credit card but free plan limits not described; Canada/Vancouver layers not mentioned."
+  },
+  {
+   "id": "P17-S35",
+   "title": "Snaptrude home",
+   "url": "https://www.snaptrude.com/",
+   "publisher": "Snaptrude",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "AI-assisted BIM: programme from prompt or RFP with spreadsheet-like tables updating the 3D model, massing-to-BIM conversion, area and solar-exposure analysis, Revit and Rhino export, sheets, AI renders, real-time collaboration, SOC 2 Type 2."
+  },
+  {
+   "id": "P17-S36",
+   "title": "Snaptrude pricing",
+   "url": "https://www.snaptrude.com/pricing",
+   "publisher": "Snaptrude",
+   "year": "2026 (re-read in r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Free USD 0 (1 project, basic BIM and Revit export, single user, limited presentation outputs); Individual USD 60/month; Organization USD 100/month billed annually (teams, 3 licence transfers/yr, BIM library); Enterprise custom (SSO, open API). No student, education or academic offer on the page (r1 re-read); snaptrude.com/education returned 404."
+  },
+  {
+   "id": "P17-S37",
+   "title": "Finch home",
+   "url": "https://www.finch3d.com/",
+   "publisher": "Finch",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "AI-native building design: encode firm design systems, explore options with real-time metrics, AI agents, floor plans/area calculations/BIM geometry; use cases master plan, residential, high-rise (vertical alignment), office test fits checked against codes. Grasshopper/Rhino/Revit integration not mentioned on the page."
+  },
+  {
+   "id": "P17-S38",
+   "title": "Finch pricing",
+   "url": "https://www.finch3d.com/pricing",
+   "publisher": "Finch",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Free (single user, all editing tools, real-time building performance metrics); Basic EUR 79/month (optimised unit mix and circulation, 14-day trial); Enterprise from EUR 14,500/year, minimum 3 seats (firm-wide plan library, AI floor plan generation, code checks, BIM export, AI agent, SSO). No education pricing mentioned; finch3d.com/education returned 404 (r1)."
+  },
+  {
+   "id": "P17-S39",
+   "title": "ShapeDiver home",
+   "url": "https://www.shapediver.com/",
+   "publisher": "ShapeDiver",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Runs Rhino and Grasshopper in the cloud so a definition becomes a hosted web app; free Grasshopper plug-in for publishing; App Builder; open-source WebGL viewer with JS API; backend/viewer APIs with TypeScript, .NET, Python, PHP SDKs; Speckle integration; AI agent preview; SOC 2 Type II."
+  },
+  {
+   "id": "P17-S40",
+   "title": "ShapeDiver pricing",
+   "url": "https://www.shapediver.com/pricing",
+   "publisher": "ShapeDiver",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Startup EUR 199/month annual (2 seats, 2,000 credits, computations up to 30 s, for companies under EUR 1M revenue); Business EUR 499/month annual (5 seats, 10,000 credits, up to 60 s); Enterprise custom; 14-day trial (computations up to 60 s per the r1 critic's read), no permanent free plan; academic programme up to 50% off or up to 3 months extended trial, non-commercial; extra credits EUR 0.04."
+  },
+  {
+   "id": "P17-S41",
+   "title": "cove.inc home (cove.tool redirect target)",
+   "url": "http://cove.inc/",
+   "publisher": "cove",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "covetool.com and cove.tools redirect here. Page is an architecture firm site citing AI-driven daylight/energy simulation and cost analytics; does not describe cove.tool as a product or give pricing. Footer links (not opened in round 0) lead to the analysis.tool client hub and an education page (see P17-S48, P17-S47)."
+  },
+  {
+   "id": "P17-S42",
+   "title": "cove Vitras.ai",
+   "url": "https://cove.inc/products/vitras-ai",
+   "publisher": "cove",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Vitras.ai is cove's internal AI system for feasibility, zoning, code-risk checks, layout generation and cost; not sold as a standalone product; no mention of cove.tool, energy, daylight or EUI."
+  },
+  {
+   "id": "P17-S43",
+   "title": "Autodesk Forma overview",
+   "url": "https://www.autodesk.com/products/forma/overview",
+   "publisher": "Autodesk",
+   "year": "2026",
+   "type": "vendor page",
+   "opened": false,
+   "extract": "Could not be opened (HTTP 403 in rounds 0 and r1); Autodesk pricing, features, education, help.autodesk.com/view/FORMA and aps.autodesk.com Forma docs pages returned 403, 404 or only a title. All Forma capability and cost statements are therefore unverified."
+  },
+  {
+   "id": "P17-S44",
+   "title": "spacemakerai GitHub organisation (Forma extensions)",
+   "url": "https://github.com/spacemakerai",
+   "publisher": "GitHub / Autodesk Forma team",
+   "year": "2026",
+   "type": "GitHub organisation",
+   "opened": true,
+   "extract": "Repos: forma-dynamo-extension (TypeScript, MIT), forma-extension-parking-demand-calculator (MIT), public-api-examples (C#/Node/Python folders; 'Utils and examples for working with public Forma HTTP APIs'; 16 commits; no licence shown on the page), several archived samples. Shows Forma has an extension/HTTP API ecosystem; page does not document analyses."
+  },
+  {
+   "id": "P17-S45",
+   "title": "spacemakerai/forma-dynamo-extension",
+   "url": "https://github.com/spacemakerai/forma-dynamo-extension",
+   "publisher": "GitHub / Autodesk Forma team",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "MIT; a Forma Embedded View Extension built with the Forma SDK that acts as a Dynamo Player for Forma, connecting to the DynamoFormaBeta package in Dynamo Sandbox, Revit or Civil 3D."
+  },
+  {
+   "id": "P17-S46",
+   "title": "specklesystems/specklepy",
+   "url": "https://github.com/specklesystems/specklepy",
+   "publisher": "GitHub / Speckle",
+   "year": "2026",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "Apache-2.0 'unless otherwise described'; Python SDK: send/receive to a Speckle server, SpeckleClient API, custom Base objects; 140 stars."
+  },
+  {
+   "id": "P17-S47",
+   "title": "cove educational licence programme (ended)",
+   "url": "https://cove.inc/education-resources/",
+   "publisher": "cove",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Free academic programme (analysis.tool, drawing.tool, loadmodeling.tool, Vitras.ai) ended: no new licences from 1 Oct 2025; active licences kept access until 31 Dec 2025; 'no replacement'; page points educators to AIA 2030 Commitment, Architecture 2030 and USGBC; reason given: shift to AI-enabled architecture, Vitras.ai integrated into the platform."
+  },
+  {
+   "id": "P17-S48",
+   "title": "cove analysis.tool client hub",
+   "url": "https://cove.inc/analysis-client-support/",
+   "publisher": "cove",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Client hub for 'analysis.tool, cove's platform' for existing customers: login to the cove app, Assembly Builder, operational and embodied carbon measure/compare, Help Center, App Store, cove Academy, past webinars (compliance, modelling, simulation); contact account manager or support@cove.inc. No pricing, no sign-up or trial. The page does not state that analysis.tool was formerly called cove.tool (rename is an inference from the covetool.com redirect and the education page)."
+  },
+  {
+   "id": "P17-S49",
+   "title": "Speckle academia programme",
+   "url": "https://www.speckle.systems/academia",
+   "publisher": "Speckle",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Free Speckle workspace for educational institutions, adoption sessions, peer connections, migration help; apply by email to academia@speckle.systems with subject 'Academia Programme'. No eligibility criteria, limits or terms listed."
+  },
+  {
+   "id": "P17-S50",
+   "title": "Giraffe for universities and education",
+   "url": "https://www.giraffe.build/universities-and-education",
+   "publisher": "Giraffe",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "'Provides free licenses to students and universities', no trial expiry, no credit card, sign up via free signup page or 'Talk to us' form; a semester studio framework (weeks 1-2 site and zoning, 3-4 massing and constraints, 5-6 feasibility and scenarios, 7+ optimisation and presentation); mentions real parcels, zoning rules, WFS/WMS/vector-tile services but not which regions are covered."
+  },
+  {
+   "id": "P17-S51",
+   "title": "TestFit for universities",
+   "url": "https://www.testfit.io/solutions/universities",
+   "publisher": "TestFit",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Invites schools to enrol a whole class; claims 175+ universities; lists student competitions (Eisenberg Foundation Real Estate Challenge, a NAIOP competition); exports to Revit, SketchUp, AutoCAD, Excel; links to Pricing and 'Talk to Sales'. No free-licence statement, pricing or terms. (The /universities path returns 404.)"
+  },
+  {
+   "id": "P17-S52",
+   "title": "Archistar AI PreCheck for Industry & Certifiers",
+   "url": "https://www.archistar.ai/aiprecheck/industry-certifiers/",
+   "publisher": "Archistar",
+   "year": "2026 (opened r1 via the Property Developers navigation link; final URL inferred from page links)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Homepage footer lists Property Developers, Architects, Home builders, Government & planners, Enterprises; the Property Developers link served this industry page; the Architects page returned 404. Page text: 'Use the power of Archistar's 3D Generative design library to surface 1000's of compliant designs on any site'; 'Environmental Intelligence: sunlight, wind, and noise' labelled a 'NEW and FREE' Autodesk Forma integration ('Try for free', no terms); 'over 1,000 industry professionals', 'over 25 municipalities'. All figures are vendor claims; footer lists Public User Agreements for Australia, Canada and USA."
+  },
+  {
+   "id": "P17-S53",
+   "title": "autodesk-platform-services/aps-forma-extension-shadow-study",
+   "url": "https://github.com/autodesk-platform-services/aps-forma-extension-shadow-study",
+   "publisher": "GitHub / Autodesk Platform Services",
+   "year": "2026 (opened r1)",
+   "type": "GitHub repository",
+   "opened": true,
+   "extract": "MIT. Forma extension that generates a shadow study: user picks date, time range and interval and the extension screenshots the proposal at each sun position. README example uses Forma.sun.getDate()/setDate(), Forma.camera.capture(), Forma.project.getTimezone(); placed in the right-hand analysis panel (RIGHT_MENU_ANALYSIS_PANEL). Does not document Forma's built-in analyses."
+  },
+  {
+   "id": "P17-S54",
+   "title": "City of Vancouver Open Data: View cones dataset",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "publisher": "City of Vancouver",
+   "year": "2026 (modified 19 Oct 2026; opened r1)",
+   "type": "open data catalogue",
+   "opened": true,
+   "extract": "'Boundaries of the City's protected views, where building height is limited to preserve those public views'; questions to views@vancouver.ca; licence Open Government Licence - Vancouver; 24 records; 9 fields (object_id, view_number, view_cone_name, description, url, shape_length, shape_area, geom, geo_point_2d); GeoJSON export returns polygons. Four records are Queen Elizabeth Park views: 3.2.1 (Mount Strachan, Hollyburn Mountain and the Lions), 3.2.2 (Magic and Wizard Peak), 3.2.3 (Capilano and Crown Mountains), 3.2.4 (Grouse and Fromme Mountains). No height field: the permitted heights are not in the dataset."
+  },
+  {
+   "id": "P17-S55",
+   "title": "City of Vancouver Open Data: dataset search (building, zoning)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets?where=search(title,%22building%22)%20OR%20search(title,%22zoning%22)&limit=20&select=dataset_id,title",
+   "publisher": "City of Vancouver",
+   "year": "2026 (opened r1)",
+   "type": "open data catalogue",
+   "opened": true,
+   "extract": "Title search returned building-footprints-1999, -2009 and -2015, zoning-districts-and-labels, building-lines, issued-building-permits (and garbage-zone datasets). No 3D massing or topography dataset appeared in this title search (other titles were not searched). Licences of these datasets were not checked."
+  },
+  {
+   "id": "P17-S56",
+   "title": "Arch540_2026 C_design_space PROMPTS.md",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/C_design_space/PROMPTS.md",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026 (opened r1)",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Demo C: Vancouver housing site with three goals (gfa, winter sun, shape factor). Variants: 1a one round, 1b up to 6 rounds, 2a guessing (no scorer) vs 2b measuring (ranking guess vs measured ranking), 3a limit in prompt (200 evaluations, stop after 2 stalled rounds) vs 3b limit in code, 4 skill vs none, 5 family-explorer helpers (about 40 evaluations per strategy; most expensive), 6 impossible target (gfa >= 50,000 m2, sun >= 4.5 h, shape < 0.10) with and without a hook. Page does not use the term Pareto front; the notes (P17-S09) use 'front'."
+  },
+  {
+   "id": "P17-S57",
+   "title": "Arch540_2026 D_team PROMPTS.md",
+   "url": "https://raw.githubusercontent.com/GenEnv/Arch540_2026/main/agents_demo/D_team/PROMPTS.md",
+   "publisher": "GitHub / GenEnv",
+   "year": "2026 (opened r1)",
+   "type": "course repository",
+   "opened": true,
+   "extract": "Demo D: a run starts about 10 agents, takes 30 to 60 minutes and can use up a Pro plan's 5-hour allowance; complete/ is the template, steps/no_constraints/ is the variant without the constraints helper; prompt asks for several distinct massing ideas on the mixed-use block in brief.md, compared fairly against every rule, with one defensible recommendation."
+  },
+  {
+   "id": "P17-S58",
+   "title": "SimScale pricing",
+   "url": "https://www.simscale.com/product/pricing/",
+   "publisher": "SimScale",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Community plan free: selected analysis types, 10 simulations, up to 2,000 core hours; after the simulation limit only qualitative output; private projects start at the Mechanical plan. Professional: price on request. Pedestrian wind comfort is a 'Specialized' add-on on Professional and Enterprise only. No academic or student plan listed. AEC and 'Wind & Built Environment' are listed as industry/application."
+  },
+  {
+   "id": "P17-S59",
+   "title": "Building Transparency (EC3, tallyLCA)",
+   "url": "https://buildingtransparency.org/",
+   "publisher": "Building Transparency",
+   "year": "2026 (opened r1)",
+   "type": "vendor/non-profit page",
+   "opened": true,
+   "extract": "Describes EC3 as 'the free, open-access EC3 tool and its underlying digitized EPD database' for estimating upfront embodied carbon and setting baselines and targets; sign-up form; also describes tallyLCA whole-building life cycle assessment for architects. Terms of use and limits not read."
+  },
+  {
+   "id": "P17-S60",
+   "title": "Autodesk Platform Services: Forma APIs overview",
+   "url": "https://aps.autodesk.com/developer/overview/forma",
+   "publisher": "Autodesk",
+   "year": "2026 (opened r1)",
+   "type": "vendor page",
+   "opened": true,
+   "extract": "Calls Forma APIs 'part of the Forma industry cloud: construction, design, and AEC data'; lists related APIs (Sustainability Data API, Autodesk CFD), Integration Partner Program and Autodesk Developer Network. Does not list sun, wind, solar or noise analyses and gives no pricing."
+  },
+  {
+   "id": "P17-S61",
+   "title": "ladybug-tools/ladybug LICENSE (raw)",
+   "url": "https://raw.githubusercontent.com/ladybug-tools/ladybug/master/LICENSE",
+   "publisher": "GitHub / Ladybug Tools",
+   "year": "2026 (opened r1)",
+   "type": "licence text",
+   "opened": true,
+   "extract": "GNU Affero General Public License v3, 19 November 2007. Section 13: if you modify the Program, your modified version must prominently offer all users interacting with it remotely over a network the Corresponding Source; GPLv3 works may be combined with AGPL works."
+  },
+  {
+   "id": "P17-S62",
+   "title": "Higher Buildings Policy for rezonings (1997)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997 (named in the VTC brief)",
+   "type": "policy PDF",
+   "opened": false,
+   "extract": "HTTP 403 in rounds 0 and r1; the syc.vancouver.ca review PDF and a guessed View Protection Guidelines URL also returned 403. Content on view cones and heights is therefore UNVERIFIED; a human must open it in a browser."
+  },
+  {
+   "id": "P17-S63",
+   "title": "City of Vancouver: Queen Elizabeth Park public view page",
+   "url": "https://vancouver.ca/home-property-development/queen-elizabeth-park-public-view.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2026",
+   "type": "city web page",
+   "opened": false,
+   "extract": "URL taken from the url field of the view-cones dataset (P17-S54); returned HTTP 403 to the fetch tool, so the height rules for the four QE Park views are unverified."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Archistar is a site-feasibility or massing-generation tool comparable to TestFit or Giraffe",
+   "correction": "The Archistar products page describes AI PreCheck (formerly eCheck), a permit-stage plan-review tool for governments and certifiers. (r1 update: the Industry & Certifiers page also advertises a generative design library and a Forma integration; see the later flag on Archistar's product line.)",
+   "detail": "Opened https://www.archistar.ai/products/ on 21 Oct 2026. The assumption was implicit in the scope list. r1: the Property Developers navigation link served the Industry & Certifiers page, so the audience pages do not show a separate developer feasibility product; the Architects page returned 404.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "cove.tool is a currently available energy/daylight SaaS",
+   "detail": "Round 0: covetool.com and cove.tools redirect to cove.inc, an architecture firm; Vitras.ai is internal. r1 update: resolved by opening the footer links, see the FALSE_ASSUMPTION flag on cove.tool: the platform persists as analysis.tool for existing clients only, and educational access ended 31 Dec 2025. Not available to student VTC teams.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "All Autodesk Forma capabilities, analyses, pricing and education access",
+   "detail": "Autodesk overview, pricing, education and help pages again returned HTTP 403/404 in r1; the APS Forma overview lists no analyses (S60). Verified only: SDK access to sun date, camera capture and project time zone (S53, MIT sample), a Dynamo Player extension (S45), public HTTP API examples (S44), and Archistar's claim of a free Forma integration with sunlight, wind and noise analysis (S52, third-party). A team member should open https://www.autodesk.com/products/forma/overview logged in and record analyses, cost and student eligibility.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Vendor performance claims: Archistar 55% fewer review cycles and '1000s of compliant designs'; Infrared 90%+ accuracy, 100x faster than CFD, 1 second runs; TestFit '4x faster'",
+   "detail": "All come from vendor marketing or testimonials with no independent validation opened. Do not use as thresholds or benchmarks.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Infrared.city surrogate models are valid for towers of 244-305 m and for a full-block site, and area limits",
+   "detail": "Docs would not load; the training domain (100+ cities) is stated but its height range is not. r1: the homepage shows no height or area limits, no accuracy method, and the platform button reads 'Try the platform Beta'. Test against a known CFD or wind-tunnel case before relying on it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Ladybug Tools licence",
+   "detail": "Round 0 saw AGPL-3.0 on repo pages and GPL v3 on the about page. r1 update: LICENSE files confirmed AGPL v3 for ladybug (S61), ladybug-grasshopper (S21) and honeybee-radiance (S22); Butterfly is GPL-3.0+ (S23); the about page's GPL v3 line is older. Consequence for a hosted tool and the hand-off to DATA are in the FALSE_ASSUMPTION and TEAM_ASSUMPTION flags below.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "UpCodes covers the BC Building Code and Vancouver Building By-law",
+   "detail": "Opened UpCodes pages do not list jurisdictions or pricing. Confirm coverage or use City of Vancouver primary documents.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "TestFit can generate tall office or mixed-use towers",
+   "detail": "r1 update: the pricing FAQ says Site Solver provides typology solutions for mixed-use developments (S10), so mixed-use is claimed; office, high-rise and tower are still not listed, and the MCP page names no building types (S12). Tower-height capability needs a vendor answer or a trial.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Hypar pricing, free tier and AI features beyond furniture suggestions",
+   "detail": "hypar.io pages rendered only a title; only docs.hypar.io and the GitHub organisation were readable.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Giraffe has Vancouver/Canada data layers and 3D massing",
+   "detail": "Round 0: pages mention Australian clients only. r1 update: the Core plan lists '3D modelling' (S34) and the education page's studio framework includes 'massing and constraints' (S50), so 3D modelling is stated; coverage of Canada or Vancouver data is still not stated on any opened page.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Reuse terms of GenEnv/Arch540_2026",
+   "detail": "No licence is shown on the repo page. Ask the course owner before copying check.py, the skill, hooks or the constraints-helper pattern into the tool.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "The as-is workflow, time shares, and pain points (for example wind often skipped, ground level drawn last, number drift between sheet and boards, cultural research compressed, protected views checked late)",
+   "detail": "Synthesised from competition rules, tool documentation and general practice, not from a measured study of a team. r1 added steps 0b, 1b, 4b, 6b and 7b from the expert critique; their pain points are equally team assumptions. Recommend a 15-minute interview and a one-week time log with two or three real teams before treating any time share as data.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Derived numbers: site area about 11,468 m2 and about 103,200 m2 of minimum non-residential floor area at 9.0 FSR; office-floor counts at assumed plates; 23:59 London equals 15:59 Pacific; 40 days to submission; Infrared token expiry dates",
+   "detail": "Arithmetic from brief and vendor figures (79.2 x 144.8 m = 11,468 m2; x 9.0 = 103,213 m2 if the FSR basis is the full block, which is not confirmed). Floor plates (1,500 / 2,000 / 2,500 m2) and 4.0 m floor-to-floor are editable placeholders, not sourced. Infrared: a grant activated 19 Oct runs to about 30 Nov (day 42), one activated 21 Oct to about 2 Dec; exact expiry time is not stated.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The cove.tool SaaS is not described anywhere on the cove.inc pages, and its availability cannot be confirmed (round-0 case study and UNRESOLVED flag)",
+   "detail": "Why false: the cove.inc footer links were never opened. https://cove.inc/analysis-client-support/ (S48) is a client hub for 'analysis.tool, cove's platform' with login, Assembly Builder and operational and embodied carbon tools; https://cove.inc/education-resources/ (S47) says no new educational licences after 1 Oct 2025, active access ended 31 Dec 2025, and 'no replacement'. The rename cove.tool to analysis.tool is an inference (the hub page does not say 'formerly cove.tool').",
+   "correction": "The platform survives as analysis.tool for existing paying clients only; there is no student or academic access, so VTC student teams cannot use it. Treat as a design pattern only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Speckle's free plan caps at 3 users, so a 4-person VTC team would exceed it and must pay",
+   "detail": "Why false: the Speckle pricing page states Speckle is free for students and educators and /academia offers educational institutions a free workspace by email application (S15, S49). The Explore plan also has a 100-version cap, omitted in round 0. Terms of the academic workspace (whether it lifts the 3-user and 100-version caps) are not stated on the page.",
+   "correction": "For a UBC team, apply to academia@speckle.systems; Explore limits are 1 project, 3 users including external collaborators, 100 versions and 30-day history. Treat the academic terms as UNVERIFIED until UBC applies. The earlier note that a 4-person team must pay is withdrawn.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Giraffe has no education pricing, and its free-plan and education terms are unconfirmed",
+   "detail": "Why false: https://www.giraffe.build/universities-and-education (S50) says Giraffe 'provides free licenses to students and universities', with no trial expiry and no credit card, and describes a semester studio framework (site and zoning, massing and constraints, feasibility and scenarios, optimisation and presentation). The page does not name covered regions.",
+   "correction": "Giraffe is free for students and universities (vendor statement). Vancouver data coverage remains UNVERIFIED.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "In the B_testfit demo, hand estimates were wrong (255 vs 223 homes measured) and the guard was bypassed by a counter import",
+   "detail": "Why false: agents_notes.html (S09) places 255 vs 223 in demo D step 3 (no constraints helper) and the scoring-function import that escaped the evaluation counter in demo C step 3. B_testfit's own evidence is the three runs (16,272 / 13,968 / 15,552 m2), reviewer APPROVE, and the gate.py block (R2 gap 12.0 m, needs 26.9 m); its B5 hook also missed the command-line path.",
+   "correction": "Attribute 255 vs 223 to D, the import bypass to C, and keep the B evidence to B. The case study is split into B, C and D.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Ladybug licence: 'copyleft either way', so the difference between AGPL and GPL does not matter",
+   "detail": "Why false: the ladybug core LICENSE (S61) is GNU Affero GPL v3, as are ladybug-grasshopper and honeybee-radiance; Butterfly is GPL-3.0+. AGPL section 13 adds a network-interaction duty that GPL v3 lacks: if you modify the Program, your modified version must offer its source to users interacting with it remotely. For a web platform that wraps or modifies ladybug/honeybee on a server, that duty may attach to the service; whether calling the libraries unmodified, or as a separate process, triggers it is a legal question not settled here.",
+   "correction": "Record the core libraries as AGPL-3.0. Decision for the DATA packet (not legal advice): either run ladybug/honeybee client-side or in a separately licensed service, or license the platform (or that service) so its source can be offered to users. Hosting any modified Ladybug code means publishing it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "TestFit does not show tall mixed-use buildings (it is only parking, multi-family and similar)",
+   "detail": "Why false: the TestFit pricing FAQ (S10) says Site Solver provides detailed typology solutions suitable for mixed-use developments. The typology list still omits office, high-rise and tower, and the MCP page (S12) names no building types. /solutions/universities (S51) exists for schools; the /universities path 404s.",
+   "correction": "Mixed-use is claimed for Site Solver only (from USD 15,000/yr). Office and tower capability are unverified. A university route exists with unknown terms.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Infrared.city's free tier is aimed at students and small studies (round-0 S31 extract); r1 critique says the label belongs to the Starter tier",
+   "detail": "The two reads disagree. The reviser re-fetched https://www.infrared.city/pricing on 21 Oct 2026 and the page text gave tier taglines Free 'Students & small studies', Starter 'Small sites', Advanced 'Quarter scale', Pro 'District to city', placing the student label in the Free column. The critique's FALSE_ASSUMPTION is therefore not reproduced and the original extract is kept. Both reads came through text extraction, so a person should look at the live page.",
+   "correction": "No change to the license_cost beyond extra detail (EUR 0.10 per extra token on Free, 900 one-time tokens, 42-day expiry; only standard (10) and pedestrian wind comfort (50) token costs are listed).",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Archistar's current product line is plan review only; no design generation is described (round-0 case study and S27 extract)",
+   "detail": "Why false: the Industry & Certifiers page (S52) advertises a '3D Generative design library' that surfaces '1000's of compliant designs on any site' and a 'NEW and FREE' Autodesk Forma integration with sunlight, wind and noise analysis. These are vendor claims; no terms, no Vancouver rule set and no tower capability are stated, and the products page (S27) still lists only AI PreCheck.",
+   "correction": "Describe Archistar as AI plan review (AI PreCheck) plus an advertised generative-design library and Forma integration whose capability is unverified.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Protected-view rules: Vancouver's View Protection Guidelines and the Higher Buildings Policy govern permissible tower heights downtown, and the QE Park skyline view is checked against them",
+   "detail": "The City's open-data 'View cones' dataset (S54) says the polygons are protected views 'where building height is limited', with 24 records, four of them QE Park views (3.2.1-3.2.4); but it has no height field. The Higher Buildings Policy PDF (S62), the QE Park view page (S63) and the review PDF returned HTTP 403, so how heights are calculated, whether the VTC's hypothetical block lies inside any cone, and which document now governs are not verified. A human must open them in a browser.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Education or student access for TestFit, Snaptrude, Finch and Autodesk Forma",
+   "detail": "r1 results: TestFit /solutions/universities invites class enrolment, terms not stated (S51); Snaptrude pricing has no student offer and /education returned 404 (S36); Finch has no education pricing and /education returned 404 (S38); Autodesk education page returned 403. The web-search budget was exhausted, so targeted searches could not be run; negative results here mean 'not found on the pages opened', not 'does not exist'. Repeat in round 2 with search available.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Terms of Speckle's free academic workspace",
+   "detail": "The academia page (S49) lists no eligibility criteria, limits or terms. Whether it applies to a student competition team, lifts the 3-user and 100-version caps, or keeps the 30-day history limit is unknown until UBC applies.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Licence decision for the open-source platform: AGPL (Ladybug, Honeybee) vs Apache-2.0 (Speckle server, specklepy) vs MIT (Hypar Elements, HyparSpace) vs GPL-3.0+ (Butterfly)",
+   "detail": "Not decided in this packet. Handed to the DATA packet: choose the platform licence and the deployment boundary (client-side, separate service, or AGPL-compatible whole) before any CLIM or ENER module bundles Ladybug code. Apache-2.0 and MIT components can be combined into an AGPL or GPL-3.0 whole in one direction only; confirm with a licence review.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "'Rhino + Grasshopper + Ladybug is the dominant competition modelling stack' and 'Butterfly is the wind route' (round-0 wording)",
+   "detail": "No source for 'dominant'; relabelled as a team assumption. Butterfly plugin dates from March 2017 (S19) with no stated maintenance status. Other wind routes (SimScale Community plan S58, Infrared S30, Eddy3D which could not be opened) are candidates, not recommendations.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "How much time each as-is step takes for a 2-4 person team (no measured source found; needs interviews or time logs).",
+  "Causal effect of the number of massing options tested on final design quality or jury score (no sourced relationship).",
+  "Whether any commercial tool's built-in thresholds (TestFit, Forma, Infrared, Archistar) match Vancouver policy or VTC criteria (vendors do not expose them).",
+  "How Infrared.city surrogate accuracy changes with building height above about 200 m (no sourced figure).",
+  "How much a Claude Code agent's run-to-run variation (13,968 to 16,272 m2 in demo B; three different schemes in demo D) carries over to supertall massing; the demos are 40-45 m housing and mixed-use toys.",
+  "Required non-residential area (about 103,200 m2 at 9.0 FSR on the full block, basis unconfirmed) -> number of office floors -> share of the 244-305 m height and core size: only the arithmetic N = area / floor plate and height = N x floor-to-floor is known; typical tower plate sizes and floor-to-floor heights have no sourced value here.",
+  "Which of Vancouver's 24 protected view cones (including the four Queen Elizabeth Park cones 3.2.1-3.2.4) intersect the VTC's hypothetical block, and what height each permits: the open-data polygons carry no height and the policy PDFs returned 403.",
+  "Whether Speckle's academic workspace lifts the Explore caps (3 users, 100 versions, 30-day history), which matter for a 4-person team working 40 days.",
+  "Whether UBC SALA already holds Rhino lab licences, Autodesk education access, or a TestFit class agreement (no source; ask the course instructor).",
+  "Legal effect of AGPL-3.0 section 13 on a hosted platform that calls or wraps ladybug/honeybee unmodified (needs a licence review; handed to the DATA packet).",
+  "Token cost of Infrared solar, UTCI and daylight analyses (only standard 10 and pedestrian wind 50 are listed), hence how many full option sweeps the free 900 tokens allow.",
+  "Whether SimScale's Community plan (10 simulations, qualitative output after the limit) or any wind route is adequate for a 244-305 m tower context (no sourced validity range)."
+ ],
+ "change_log": [
+  "Round 1 (21 Oct 2026): initial packet. WebSearch budget for the turn was already exhausted, so no searches were run; all evidence comes from direct fetches of vendor pages, GitHub repos and the course repo.",
+  "Autodesk Forma official pages, the Higher Buildings Policy PDF and its review PDF returned HTTP 403, so Forma statements are flagged UNVERIFIED and the two policy documents were not used.",
+  "Archistar re-characterised as AI PreCheck (plan review) and cove.tool flagged UNRESOLVED after opened pages contradicted the scope's implied descriptions.",
+  "Course demo repo GenEnv/Arch540_2026 was reachable and read (README, PROMPTS, rules, brief, check.py, lot area from notes, notes on reviewer and hook).",
+  "No modules defined for this packet (modules may be empty); as-is workflow built as a 10-step table with derived numbers labelled.",
+  "r1: web search was again unavailable (budget exhausted), so all r1 research is direct page fetches; negative results on education offers are recorded as 'not found on the pages opened'.",
+  "r1: cove.tool resolved: product persists as analysis.tool for existing clients only; educational licences stopped 1 Oct 2025 and access ended 31 Dec 2025 (new sources S47, S48); FALSE_ASSUMPTION flag added; marked not usable by VTC student teams.",
+  "r1: Speckle corrected: free for students and educators, free academic workspace by email application (S49), Explore plan also has a 100-version cap and 30-day history; 'a 4-person team must pay' removed from stops_at and notes; academic terms flagged UNVERIFIED.",
+  "r1: Giraffe corrected: free licences for students and universities, no trial expiry (S50); Vancouver data still UNVERIFIED; Core plan lists 3D modelling (S34), studio framework includes massing.",
+  "r1: Arch540 demo case study split into B_testfit, C_design_space and D_team with correct attribution: 255 vs 223 homes belongs to D step 3, the counter-bypass import to C step 3, B keeps its three runs, reviewer and gate.py evidence. Added demo C (winter-sun trade-off front on an 80 x 60 m Vancouver lot) and demo D (constraints helper catching a 250-vs-239 homes FSR contradiction) as templates for CLIM and PROG modules (S09, S56, S57).",
+  "r1: Ladybug licence resolved from LICENSE files (AGPL v3, S61, S21, S22; Butterfly GPL-3.0+); consequence under AGPL section 13 stated precisely (applies to modified versions offered over a network; unmodified use is a legal question) and the platform-licence decision handed to the DATA packet; 'dominant stack' relabelled as team assumption; Butterfly 2017 and unknown maintenance noted.",
+  "r1: TestFit corrected: mixed-use claimed for Site Solver (FAQ), office and tower not listed, universities page exists (S51) with no stated terms.",
+  "r1: Archistar updated: industry page also advertises a generative design library and a free Forma integration (S52, vendor claims); extra FALSE_ASSUMPTION flag added; Architects page 404.",
+  "r1: Forma what_it_does now holds only verified facts (SDK sun-date, camera and time-zone access in the MIT shadow-study sample S53; Dynamo Player S45; APS overview S60; Archistar's third-party mention S52); the unsourced analysis list moved to a labelled unverified_claims field.",
+  "r1: Infrared: the critique's 'student label belongs to Starter' was NOT reproduced; the reviser's re-fetch placed 'Students & small studies' under the Free tier. Logged as UNRESOLVED instead of silently changing the text; token arithmetic restated (activated 19 Oct runs to about 30 Nov; 21 Oct to about 2 Dec; run wind studies by mid-November).",
+  "r1: Added to every case study the fields as_is_step_ids, taxonomy_codes, jury_tags and access_for_vtc_team (free/student/trial/paid, seats, setup time as team assumption, usable before 30 Nov yes/no/unknown, sources); workflow_step now cites as-is step ids.",
+  "r1: as-is workflow extended to 15 steps with step_id, taxonomy_codes, jury_tags: added 0b cultural, reconciliation and precedent research (human judgment, 30% weight), 1b protected views and skyline envelope (City open-data view cones S54 verified, policy content UNVERIFIED), 4b sustainability, energy and carbon, 6b plans and sections, 7b policy reflection; step 0 now has a 40-day back-plan and the 29 Oct / 3 Nov deadlines; step 3 gained the floor-count relationship with editable plate assumptions.",
+  "r1: Added two compact case studies outside the original scope because new steps need a tool: SimScale (wind route, S58) and EC3/tallyLCA (embodied carbon, S59). Eddy3D could not be opened (403) and is listed only as an unverified candidate.",
+  "r1: Source count is now 63 (guidance is about 40) because each tool needs its own pricing, licence and education evidence and the critique required new pages; if the count must shrink, merge the five B_testfit file sources (S04-S08) and the four Ladybug repository sources (S20-S23, S61)."
+ ],
+ "case_studies": [
+  {
+   "tool": "Autodesk Forma",
+   "what_it_does": "Autodesk's cloud 'Forma industry cloud' platform for AEC data and early design, with an SDK and public HTTP APIs (S60, S44). Verified from opened pages only: extensions can read and set the project sun date, capture camera views and read the project time zone, and appear in an analysis panel (S53, MIT sample); a Dynamo Player extension runs Dynamo graphs in Forma (S45); Archistar advertises a 'NEW and FREE' Forma integration with sunlight, wind and noise analysis (S52, third-party claim). Which analyses Forma itself provides, and their criteria, are not verified.",
+   "how_used": "Work in the Forma web app and add embedded-view extensions; a shadow-study extension steps the sun date through a time range and screenshots each state (S53); Dynamo graphs can run inside Forma (S45).",
+   "strengths": "Verified: documented extension points and MIT sample code that a third-party tool could study; SDK access to sun position. Analysis quality and speed are not confirmed.",
+   "stops_at": "Hypothesis, not verified: analysis engines whose criteria are not auditable here, so results may not meet the course rule 'show the source of each threshold'; no Vancouver Higher Buildings Policy or VTC jury criteria built in; supertall (244-305 m) behaviour unconfirmed.",
+   "license_cost": "Unverified: Autodesk pricing and education pages returned 403/404. Treat as a commercial Autodesk subscription until a person opens the pricing page and checks Autodesk Education eligibility. Sample extensions (forma-dynamo-extension, parking-demand-calculator, shadow-study) are MIT; public-api-examples shows no licence on its page.",
+   "unverified_claims": "General knowledge only, not citable: Forma (successor of Spacemaker) bundles sun, daylight, wind, noise and carbon analyses; pricing; student access; tall-building behaviour.",
+   "ai_opportunity": "Forma extensions are TypeScript/C# against a public SDK and API, so Claude Code could scaffold an extension or batch sun-date screenshots if a team has access. Unverified for VTC use.",
+   "ai_wont_improve": "Whether the vendor's analysis criteria match Vancouver policy; choosing which analysis result to believe; any judgement on skyline, culture or reconciliation.",
+   "workflow_step": "As-is steps 1, 2, 4 (site and massing; sun, shadow and wind studies)",
+   "source_ids": [
+    "P17-S43",
+    "P17-S44",
+    "P17-S45",
+    "P17-S53",
+    "P17-S60",
+    "P17-S52"
+   ],
+   "as_is_step_ids": [
+    "1",
+    "2",
+    "4"
+   ],
+   "taxonomy_codes": [
+    "SITE",
+    "CLIM"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "UNKNOWN. Cost, seats and student eligibility unverified (Autodesk pages 403). Archistar claims a free integration (no terms). Usable before 30 Nov: unknown; a team member must open Autodesk pages logged in and check UBC education eligibility. Setup time: unmeasured (team assumption). Sources: S43, S52."
+  },
+  {
+   "tool": "TestFit",
+   "what_it_does": "Real-estate feasibility platform that auto-generates site plans (typology list: parking, low-detail massing, multi-family, industrial, retail, single-family, data center, hotel) with live unit, parking and yield metrics, optional pro forma, and exports to Revit, AutoCAD, SketchUp, Excel and PDF. Site Solver is said to give typology solutions suitable for mixed-use developments (FAQ).",
+   "how_used": "User draws or imports a parcel, sets zoning, unit mix and parking ratios, and the solver returns options with real-time metrics and takeoffs. An optional MCP Connection lets the user's own AI assistant (Claude or ChatGPT) drive the same live model by prompt.",
+   "strengths": "Fast, deterministic option generation; metrics update live; the MCP add-on keeps geometry in the engine and uses the LLM only for conversation, the same 'code wins' pattern the course notes recommend; a university route exists.",
+   "stops_at": "Mixed-use is claimed for Site Solver only (from USD 15,000/yr); office, high-rise and tower are not listed and tower-height capability is unverified; built around developer pro forma and site yield rather than VTC jury criteria, public realm, culture or a below-grade transit link; support runs on US business hours in English; thresholds sit inside the product with no sources shown.",
+   "license_cost": "Commercial SaaS: Parking Solver USD 195/month; Site Solver from USD 15,000/year (includes generative design and MCP Connection); Portfolio from USD 20,000/year; add-ons Site Intelligence +150/month, Pro Forma +170/month, MCP +100/month. No free tier or trial; a 'For Universities' page invites class enrolment, terms not stated.",
+   "ai_opportunity": "Natural-language option sweeps through MCP, reading the brief and translating it to parameters, narrating trade-offs, batch-comparing schemes while the engine supplies the numbers.",
+   "ai_wont_improve": "Typology coverage of the engine (no office tower listed); whether a scheme is good for 'City in Nature' or human scale; verifying the vendor's rules against Vancouver policy.",
+   "workflow_step": "As-is steps 2, 3 (massing options; programme and FSR)",
+   "source_ids": [
+    "P17-S10",
+    "P17-S11",
+    "P17-S12",
+    "P17-S51"
+   ],
+   "as_is_step_ids": [
+    "2",
+    "3"
+   ],
+   "taxonomy_codes": [
+    "PROG",
+    "SITE"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "PAID by default (USD 195/month minimum, more for generative design). Possible class route via /solutions/universities (S51), terms unknown. Seats: Parking Solver says unlimited users. Usable before 30 Nov: unknown, depends on a UBC SALA arrangement; ask the instructor. Setup time unmeasured (team assumption). Sources: S10, S51."
+  },
+  {
+   "tool": "Hypar",
+   "what_it_does": "Browser space-planning tool: model rooms, circulation, openings and equipment in 3D, track net/gross area and counts against a programme, compare layouts, and export PDF, image, Excel, Revit and Rhino. Open-source Elements library ('smallest useful BIM'), HyparSpace and BuildingBlocks are MIT.",
+   "how_used": "Import a programme from a spreadsheet or dRofus and a site underlay, then place spaces in 3D and watch area-vs-target metrics; collaborators edit the same project in real time.",
+   "strengths": "Programme-versus-target tracking and Excel/Revit/Rhino export; open-source building-element code (MIT) that a community tool could learn from.",
+   "stops_at": "Operates at floor-plan and room scale, not whole-tower massing, shadow, wind or structure; pricing and free tier could not be retrieved; no VTC or Vancouver rules.",
+   "license_cost": "Product pricing not retrieved (pricing pages rendered only a title). Elements, HyparSpace, BuildingBlocks MIT; Function-SpacePlanning has no licence shown.",
+   "ai_opportunity": "AI furniture/equipment suggestions are advertised; an LLM could convert a written programme into a space list and populate typical floor plates through the open Elements code.",
+   "ai_wont_improve": "Deciding how public-facing uses run vertically through the tower; judging spatial quality; the plate efficiency and core assumptions an engineer would sign off.",
+   "workflow_step": "As-is steps 3, 6b (programme and FSR; typical floor plans)",
+   "source_ids": [
+    "P17-S13",
+    "P17-S14"
+   ],
+   "as_is_step_ids": [
+    "3",
+    "6b"
+   ],
+   "taxonomy_codes": [
+    "PROG",
+    "SPAC"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "UNKNOWN for the hosted product (pricing and free tier not retrievable). The MIT Elements library is free to use in code. Usable before 30 Nov: product unknown; library yes. Setup time unmeasured (team assumption). Sources: S13, S14."
+  },
+  {
+   "tool": "Rhino + Grasshopper + Ladybug Tools",
+   "what_it_does": "Rhino is the NURBS/mesh modeller (3DM native, glTF in Rhino 8); Grasshopper, included with Rhino, is the visual-programming canvas the project's node UI imitates; Ladybug Tools add weather/sun path/radiation (Ladybug), Radiance daylight and EnergyPlus (Honeybee), urban scale (Dragonfly) and OpenFOAM CFD (Butterfly). Pollination is the cloud successor.",
+   "how_used": "Model massing in Rhino, wire Grasshopper definitions, load an EPW weather file, run sun-hours/radiation/daylight components on the geometry, and read false-colour meshes. Libraries are also pip-installable Python for headless use.",
+   "strengths": "Transparent and scriptable; sources and thresholds are inspectable; the Rhino file format is widely used in competition work (team assumption, not sourced: 'dominant' withdrawn); Ladybug libraries run without a GUI (pip install ladybug-core, honeybee-radiance with a CLI).",
+   "stops_at": "Needs a Rhino licence for the Grasshopper plug-ins; CFD via Butterfly/OpenFOAM needs setup skill and compute, the plugin dates from March 2017 and its maintenance status is not stated; nothing opened supplies Vancouver policy thresholds, pedestrian wind criteria or a jury-weighted verdict. Learning curve is a team assumption, not measured.",
+   "license_cost": "Rhino 8: USD 995 commercial single user; USD 195 student/faculty (proof of status, non-transferable); lab licence for 30 users USD 975 (critic's read); perpetual; Grasshopper included. Ladybug Tools free. Licences: ladybug, ladybug-grasshopper and honeybee-radiance are AGPL-3.0 (LICENSE files); Butterfly GPL-3.0+; the about page's 'GPL v3' is older. Consequence for a hosted tool: AGPL section 13 applies to modified versions offered over a network, so server-side modified Ladybug code means publishing source; keep Ladybug client-side or in a separate service until the DATA packet decides. Pollination paid, price not listed.",
+   "ai_opportunity": "Claude Code can write and debug Grasshopper Python and the Ladybug command-line workflows, batch many massing variants through sun/radiation/daylight runs, and generate the visual summary, because the libraries are plain pip-installable Python.",
+   "ai_wont_improve": "Choosing the weather file, analysis period and comfort criterion; CFD boundary conditions and mesh judgement; validating results; deciding what 'good' sun on the transit plaza means. Copyleft licences constrain how an open-source tool may embed the code.",
+   "workflow_step": "As-is steps 1, 2, 4, 4b (site modelling; massing; sun, shadow, wind; energy)",
+   "source_ids": [
+    "P17-S18",
+    "P17-S19",
+    "P17-S20",
+    "P17-S21",
+    "P17-S22",
+    "P17-S23",
+    "P17-S24",
+    "P17-S25",
+    "P17-S26",
+    "P17-S61"
+   ],
+   "as_is_step_ids": [
+    "1",
+    "2",
+    "4",
+    "4b"
+   ],
+   "taxonomy_codes": [
+    "SITE",
+    "CLIM",
+    "ENER"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "STUDENT price: Rhino USD 195 (proof of status; Windows or macOS), or a lab/Cloud Zoo licence if UBC has one (unknown). Ladybug free, no seat limit. Usable before 30 Nov: yes if a Rhino licence is in hand; Pollination trial length not stated. Setup and learning time unmeasured (team assumption). Sources: S25, S18, S24."
+  },
+  {
+   "tool": "Speckle",
+   "what_it_does": "Open-source AEC data hub: connectors publish geometry and properties from Revit, Rhino, Grasshopper, SketchUp, Archicad, Blender and others to a versioned server with a web viewer, comments, and Python/C#/JS SDKs; IFC and OBJ can be uploaded without a design-tool licence.",
+   "how_used": "Install a connector in the authoring tool, publish a version, share the viewer link or pull the data in another tool or script; self-host from the Apache-2.0 server code if needed.",
+   "strengths": "Interoperability layer closest to the project's 'Layer 0' idea; server code Apache-2.0 'unless otherwise described'; broad connector list; Python SDK (specklepy, Apache-2.0); free for students and educators through an academia workspace.",
+   "stops_at": "Transports and views data but runs no evaluation; the free Explore plan is capped at 1 project, 3 users (external collaborators count), 100 versions and 30-day history, so versions published on 21 Oct become inaccessible about 20 Nov (derived) unless the academic workspace removes the limit (terms UNVERIFIED); program tags are not a standard Speckle concept.",
+   "license_cost": "Explore free (1 project, up to 3 users incl. external collaborators, 100 versions, 30-day history); free for students and educators via academia@speckle.systems (terms not stated); paid Custom Plans unpriced; server and specklepy Apache-2.0 with some modules under other licences.",
+   "ai_opportunity": "An LLM agent can use the Python SDK to read geometry and properties, flatten objects into a program-tagged schema, and push results back.",
+   "ai_wont_improve": "The semantic standard itself (what 'office' or 'core' means on a layer); mapping messy files with inconsistent layers requires human conventions; data transport does not make a design better.",
+   "workflow_step": "As-is steps 1, 2 (site modelling; handovers between modellers and analysts)",
+   "source_ids": [
+    "P17-S15",
+    "P17-S16",
+    "P17-S17",
+    "P17-S46",
+    "P17-S49"
+   ],
+   "as_is_step_ids": [
+    "1",
+    "2"
+   ],
+   "taxonomy_codes": [
+    "DATA"
+   ],
+   "jury_tags": [],
+   "access_for_vtc_team": "FREE tier now (Explore, immediately, no card); ACADEMIC workspace free by email application to academia@speckle.systems (reply time and limits unknown, UNVERIFIED). Seats: 3 on Explore including externals; academic unknown. Usable before 30 Nov: yes on Explore, with the 30-day history caveat; academic uncertain. Setup time unmeasured (team assumption). Sources: S15, S49."
+  },
+  {
+   "tool": "Archistar",
+   "what_it_does": "AI PreCheck (formerly eCheck): AI plan review that checks submitted PDF/CAD/BIM drawings against local code and zoning rules and returns pass/fail reports; versions for municipalities and for industry/certifiers; Vancouver office and Canadian municipal clients (e.g. Burnaby). The Industry & Certifiers page also advertises a '3D Generative design library' that surfaces 1000's of compliant designs on a site and a 'NEW and FREE' Forma integration (sunlight, wind, noise); both are vendor claims with no stated terms.",
+   "how_used": "Upload drawings, get pass/fail against configured local rules, revise and resubmit; cities use dashboards to track trends. The generative library and Forma link are described only in marketing text.",
+   "strengths": "Closest example of code compliance as a pass/fail list tied to rules; Canadian presence.",
+   "stops_at": "Core product is permit-stage review of finished drawings, not ideation or ranking; whether the generative library handles towers or Vancouver rules is not stated; City of Vancouver is not among the named clients; the VTC states its documents are not legal and breaches may be rewarded, so a strict pass/fail gate is the wrong model for this competition.",
+   "license_cost": "Not listed; demo request only; the Forma integration is labelled free with no terms. Vendor claims (55% fewer review cycles, about 90% first-submission quality, 1,000+ users, 25+ municipalities) are unverified marketing.",
+   "ai_opportunity": "Pattern for turning rules into explicit pass/fail checks with the clause cited, which the project can copy in an open, editable form.",
+   "ai_wont_improve": "Whether a justified breach is worth taking; local interpretation by officials; equivalencies and discretion.",
+   "workflow_step": "As-is steps 0, 7b (brief and policy reading; policy reflection and compliance checking)",
+   "source_ids": [
+    "P17-S27",
+    "P17-S52"
+   ],
+   "as_is_step_ids": [
+    "0",
+    "7b"
+   ],
+   "taxonomy_codes": [
+    "SYST",
+    "SITE"
+   ],
+   "jury_tags": [],
+   "access_for_vtc_team": "UNKNOWN: demo request only; no student route found. Usable before 30 Nov: unlikely for students (team assumption). Sources: S27, S52."
+  },
+  {
+   "tool": "UpCodes",
+   "what_it_does": "Searchable platform for building codes, assemblies and building products with an AI Copilot that answers code questions, gives definitions, does calculations, finds assemblies and generates checklists.",
+   "how_used": "Search a code or ask Copilot a question, bookmark sections to a project.",
+   "strengths": "Fast clause lookup and checklists; reduces hunting through PDFs.",
+   "stops_at": "Pages opened do not state jurisdictions, so coverage of the BC Building Code and Vancouver Building By-law is unconfirmed; do not assume. Does not read a model. The Copilot page gives no statement of citation behaviour or limitations.",
+   "license_cost": "Pricing not retrieved; 'Try it for Free' link only.",
+   "ai_opportunity": "Natural-language retrieval of clauses; an open tool could do the same against primary documents with the clause cited.",
+   "ai_wont_improve": "Legal interpretation, alternative-solution arguments, and deciding which guideline to breach; the VTC brief is explicitly not a legal document.",
+   "workflow_step": "As-is steps 0, 5 (brief and policy reading; structure, core and life-safety sketching)",
+   "source_ids": [
+    "P17-S28",
+    "P17-S29"
+   ],
+   "as_is_step_ids": [
+    "0",
+    "5"
+   ],
+   "taxonomy_codes": [
+    "SYST"
+   ],
+   "jury_tags": [],
+   "access_for_vtc_team": "UNKNOWN: free trial link only; jurisdictions and limits unknown. Usable before 30 Nov: probably (sign-up), coverage unconfirmed. Sources: S28, S29."
+  },
+  {
+   "tool": "Infrared.city",
+   "what_it_does": "AI-surrogate urban climate simulation: wind comfort, solar radiation, UTCI thermal comfort, heat/cold stress, daylight and sky view factor, with an AI insights layer; Rhino/Grasshopper, Revit and GIS plugins plus REST API. The page's button reads 'Try the platform Beta'.",
+   "how_used": "Set an analysis area and context, choose a simulation, receive a map in about a minute or less (vendor claim), compare options and read AI-generated KPIs.",
+   "strengths": "Makes a wind-comfort check feasible for a student team in minutes rather than a CFD project; token pricing with a free tier; API for automation.",
+   "stops_at": "Vendor claims '90%+ accuracy' (no method stated), speed and training on 100+ cities are unverified; whether the surrogate holds for towers of 244-305 m could not be confirmed (no height or area limits stated); black-box results conflict with the course rule to show its work; free tokens expire 42 days after registration.",
+   "license_cost": "Free EUR 0 (900 one-time tokens, extra EUR 0.10, expire 42 days after sign-up; about 90 standard runs or 18 pedestrian-wind runs, derived); Starter EUR 240/yr (500 tokens/month); Advanced EUR 1,200/yr (4,000); Pro EUR 6,000/yr (50,000). Only standard (10 tokens) and pedestrian wind comfort (50) costs are listed. A grant activated 19 Oct runs to about 30 Nov, one activated 21 Oct to about 2 Dec (derived; expiry time not stated). Run wind studies by mid-November (team assumption) instead of relying on tokens for last-week revisions.",
+   "ai_opportunity": "A surrogate model allows many design iterations quickly; an LLM agent could call the REST API in a loop and tabulate results per massing option.",
+   "ai_wont_improve": "Physical validity outside the training domain; choice of wind climate data and comfort criterion; whether a windy plaza is acceptable given programming; the CFD expertise required if the surrogate is questioned.",
+   "workflow_step": "As-is step 4 (sun, shadow, wind studies)",
+   "source_ids": [
+    "P17-S30",
+    "P17-S31"
+   ],
+   "as_is_step_ids": [
+    "4"
+   ],
+   "taxonomy_codes": [
+    "CLIM"
+   ],
+   "jury_tags": [
+    "human_scale_40"
+   ],
+   "access_for_vtc_team": "FREE tier: EUR 0, 900 one-time tokens, per-account (whether a team can share one is not stated); paid from EUR 240/yr. Usable before 30 Nov: yes if activated now; tokens expire about 2 Dec if activated 21 Oct. Setup time: sign-up only (unmeasured, team assumption). Sources: S31, S30."
+  },
+  {
+   "tool": "cove.tool (now analysis.tool)",
+   "what_it_does": "RESOLVED in r1. covetool.com and cove.tools redirect to cove.inc, an architecture firm. Its client hub (S48) presents 'analysis.tool, cove's platform' with login, an Assembly Builder and tools to measure and compare operational and embodied carbon; the firm site cites AI-driven daylight/energy simulation and cost analytics (S41). The rename from cove.tool is an inference. Vitras.ai is cove's internal feasibility/zoning/layout system, not sold standalone (S42).",
+   "how_used": "Existing customers log in to the cove app; help via Help Center, cove Academy, account manager. No sign-up or trial offered on the page.",
+   "strengths": "Design pattern only: bundled energy, daylight, carbon and cost workflow aimed at compliance work.",
+   "stops_at": "Not available to student teams: educational licences stopped being issued on 1 Oct 2025, academic access ended on 31 Dec 2025, and there is no replacement (S47). Cannot be a dependency of the project.",
+   "license_cost": "Commercial, for existing clients; price not listed; free academic programme ended (S47).",
+   "ai_opportunity": "Vitras.ai's advertised parts (optimisation engine, knowledge graph, AI-native geometry, text and sketch input) are a design pattern, not an available tool.",
+   "ai_wont_improve": "Not applicable as a tool; the human choice of energy and carbon targets and trade-offs against daylight remains.",
+   "workflow_step": "As-is step 4b (sustainability, energy and carbon; not accessible to students)",
+   "source_ids": [
+    "P17-S41",
+    "P17-S42",
+    "P17-S47",
+    "P17-S48"
+   ],
+   "as_is_step_ids": [
+    "4b"
+   ],
+   "taxonomy_codes": [
+    "ENER",
+    "CLIM"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "NO. Educational access ended 31 Dec 2025, no replacement; no public sign-up. Usable before 30 Nov: no (unless a team member is at a paying client firm). Sources: S47, S48."
+  },
+  {
+   "tool": "Giraffe",
+   "what_it_does": "Platform for real-estate development: curated and user-supplied spatial data layers, apps and workflows for feasibility, due diligence and site analysis, generative design, calculation engine, 3D modelling in Core, and a JavaScript SDK. The education page presents a semester studio framework from site and zoning to massing and constraints, feasibility and optimisation.",
+   "how_used": "Draw or select a site, overlay zoning and other layers, run calculations or apps, and share view-only projects; teams can build their own apps with the SDK.",
+   "strengths": "Data-layer and calculation-engine model is conceptually close to the project's node/graph idea; free licences for students and universities (vendor statement); SOC and ISO 27001 mentioned.",
+   "stops_at": "Pages cite Australian clients and name no regions covered, so Canada or Vancouver data is UNVERIFIED; environmental simulation is not described; free-plan limits not described.",
+   "license_cost": "Free licences for students and universities, no trial expiry, no credit card (vendor statement, S50); otherwise Core USD 45/month; Teams USD 1,500 per user per year; Enterprise by quote; SDK licence not stated.",
+   "ai_opportunity": "Scripted calculations and map-layer queries can be generated from plain language; the SDK invites agent-built apps.",
+   "ai_wont_improve": "Local data currency (Vancouver zoning, view cones); trade-offs between height, shadow and public benefit.",
+   "workflow_step": "As-is steps 1, 3 (site modelling; programme and FSR)",
+   "source_ids": [
+    "P17-S32",
+    "P17-S33",
+    "P17-S34",
+    "P17-S50"
+   ],
+   "as_is_step_ids": [
+    "1",
+    "3"
+   ],
+   "taxonomy_codes": [
+    "SITE",
+    "PROG"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE for students (vendor statement), sign up on the free signup page or via 'Talk to us'; seats and free-plan limits not stated. Usable before 30 Nov: probably yes; Vancouver data coverage unverified. Setup time unmeasured (team assumption). Sources: S50, S34."
+  },
+  {
+   "tool": "Snaptrude",
+   "what_it_does": "Browser-based AI-assisted BIM: generate a room programme from a prompt or RFP in spreadsheet-like tables linked to the 3D model, concept massing, area and solar-exposure analysis, one-click massing-to-BIM, Revit and Rhino export, presentation sheets and AI renders, with real-time collaboration.",
+   "how_used": "Upload an RFP or describe the project, attach a site, generate a starting scheme, refine in the editor, then present or export to Revit/Rhino.",
+   "strengths": "Programme table to model sync and presentation sheets in one place; has a free single-user tier.",
+   "stops_at": "Generic building scale; no tower-specific structure, wind or VTC criteria seen; Rhino import not confirmed; scoring and sources of thresholds are not exposed; no student offer found.",
+   "license_cost": "Free USD 0 (1 project, single user); Individual USD 60/month; Organization USD 100/month billed annually; Enterprise custom; no student price listed (education page 404).",
+   "ai_opportunity": "Brief or RFP to programme table, adjacency suggestions from code and programme, AI render generation.",
+   "ai_wont_improve": "Validity of AI-researched zoning statements (must be checked against primary documents); VTC guidance that AI-generated images are not advised as sole original work.",
+   "workflow_step": "As-is steps 3, 7, 8 (programme; renderings; boards)",
+   "source_ids": [
+    "P17-S35",
+    "P17-S36",
+    "P17-S01"
+   ],
+   "as_is_step_ids": [
+    "3",
+    "7",
+    "8"
+   ],
+   "taxonomy_codes": [
+    "PROG",
+    "PRES",
+    "SPAC"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE tier is single user, 1 project, so a 4-person team needs four accounts or a paid plan (USD 60/month individual, per person assumed); no student offer found. Usable before 30 Nov: yes on the free tier with limited outputs. Setup time unmeasured. Sources: S36."
+  },
+  {
+   "tool": "Finch",
+   "what_it_does": "AI-native building-design platform: encode a firm's design rules, generate and compare layouts with live area metrics, and output floor plans, area calculations and BIM geometry; use cases include master plan, residential, high-rise (vertical alignment) and office test fits checked against codes.",
+   "how_used": "Set rules and unit or space inputs, generate options, compare metrics, then export; Enterprise adds firm-wide plan libraries and an AI agent.",
+   "strengths": "Explicit high-rise and office typologies with vertical alignment; free single-user tier with real-time performance metrics.",
+   "stops_at": "Strongest for unit and floor-plan generation; optimised unit mix and code checks are in paid tiers; Grasshopper/Rhino/Revit integration not stated; no environmental, wind or VTC jury criteria.",
+   "license_cost": "Free single user; Basic EUR 79/month (14-day trial); Enterprise from EUR 14,500/year, minimum 3 seats; no education pricing (education page 404).",
+   "ai_opportunity": "Generating typical-floor layouts and vertically aligned plates from a written programme, with metrics updated live.",
+   "ai_wont_improve": "Whether residential-unit logic suits a mixed-use supertower with large public and civic floors; judging the spatial quality of the generated plans.",
+   "workflow_step": "As-is steps 3, 6b (programme; typical lower, mid and upper floor plans)",
+   "source_ids": [
+    "P17-S37",
+    "P17-S38"
+   ],
+   "as_is_step_ids": [
+    "3",
+    "6b"
+   ],
+   "taxonomy_codes": [
+    "PROG",
+    "SPAC"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE single-user tier; Basic EUR 79/month with 14-day trial; no student offer found. Usable before 30 Nov: yes on free tier, one seat per account. Setup time unmeasured. Sources: S38."
+  },
+  {
+   "tool": "ShapeDiver",
+   "what_it_does": "Hosts Grasshopper definitions as web apps by running Rhino and Grasshopper in the cloud; publish from a free Grasshopper plug-in, build interfaces with App Builder, drive from backend/viewer APIs (TypeScript, .NET, Python, PHP SDKs), integrate with Speckle; open-source WebGL viewer and an AI-agent preview.",
+   "how_used": "Author a Grasshopper definition, expose chosen parameters, publish, and share a link or embed; teammates use sliders without Rhino.",
+   "strengths": "Lets a non-Rhino teammate run a parametric definition in a browser; it is the closest existing analogue to 'a published, forkable module'.",
+   "stops_at": "Needs a Grasshopper author and a ShapeDiver plan; computations are limited to 30 s (Startup) or 60 s (Business), which would truncate heavy radiation or CFD runs (inference from the sourced limits); no permanent free plan; not a place for sourcing thresholds.",
+   "license_cost": "Startup EUR 199/month annual (companies under EUR 1M revenue); Business EUR 499/month annual; Enterprise custom; 14-day trial; academic programme up to 50% off or up to 3 months extended trial, non-commercial. Viewer licence not verified.",
+   "ai_opportunity": "An AI agent can change a published model by description if the author defines its allowed tools; agent-written front ends use the Viewer API.",
+   "ai_wont_improve": "Writing the underlying definition correctly; domain validity of the model; versioning and provenance of results.",
+   "workflow_step": "As-is steps 2, 4 (sharing parametric tools across the team)",
+   "source_ids": [
+    "P17-S39",
+    "P17-S40"
+   ],
+   "as_is_step_ids": [
+    "2",
+    "4"
+   ],
+   "taxonomy_codes": [
+    "DATA",
+    "SITE"
+   ],
+   "jury_tags": [],
+   "access_for_vtc_team": "TRIAL 14 days, or ACADEMIC programme (up to 50% off or up to 3 months extended trial, non-commercial; application and approval time unknown). Seats: Startup 2, Business 5. Usable before 30 Nov: yes on the 14-day trial; a longer academic trial is uncertain. Requires a Grasshopper author (Rhino licence). Sources: S40."
+  },
+  {
+   "tool": "GenEnv/Arch540_2026 demo B_testfit (site test-fit)",
+   "what_it_does": "Course demo: an agent lays out towers, slabs and short slabs on a 5,276 m2 six-sided lot (about 90 x 70 m, street south) to maximise floor area, checked by a Shapely script against five rules (3 m setback, sun gap 0.7 x southern height, 12 m spacing, 40 m height, 25% open space), with a skill, a reviewer sub-agent and a hook that blocks failing layouts.",
+   "how_used": "Install requirements, copy complete/ (or a steps/ folder) to a new directory, run claude, and paste the prompt from PROMPTS.md. CLAUDE.md caps revisions at six then ends UNRESOLVED.",
+   "strengths": "Demonstrates the validation pattern the course wants: results come from a checker script, a hook enforces it, a reviewer confirms. Evidence in the notes: B1 same prompt gave 16,272 / 13,968 / 15,552 m2; B4 reviewer APPROVE; B5 hook blocked a layout (R2 gap 12.0 m, needs 26.9 m) and never fired in seven normal runs; B6 the skill changed the method (scheme gallery 3 of 3 vs 0 of 3), not the floor area.",
+   "stops_at": "2D residential toy: 40 m height cap vs 244-305 m VTC towers, three fixed rectangular types, axis-aligned footprints, simplified sun-gap rule instead of a real shadow test, hard-coded thresholds, no cores or efficiency, no VTC site or policy. The B5 hook watched the file tool but not the command line. No licence stated, so reuse terms are unclear.",
+   "license_cost": "Free to clone; no licence declared; running agent demos consumes Claude plan allowance (README warns about long runs).",
+   "ai_opportunity": "Agent loop plus code checker plus hook plus reviewer is a template for evaluation modules: the LLM proposes, the script measures, the gate refuses failures.",
+   "ai_wont_improve": "The choice of which rules matter; the checker's own correctness (notes say to test it by hand); a guard covers only the path it watches.",
+   "workflow_step": "As-is steps 2, 3 (massing options and test-fit; verification pattern for all modules)",
+   "source_ids": [
+    "P17-S02",
+    "P17-S03",
+    "P17-S04",
+    "P17-S05",
+    "P17-S06",
+    "P17-S07",
+    "P17-S08",
+    "P17-S09"
+   ],
+   "as_is_step_ids": [
+    "2",
+    "3"
+   ],
+   "taxonomy_codes": [
+    "PROG",
+    "SITE"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE to clone (no licence stated); needs Python 3 and a Claude plan with spare allowance (3-10 min run per README). Usable before 30 Nov: yes for learning the pattern; code reuse terms unresolved. Sources: S02, S03."
+  },
+  {
+   "tool": "GenEnv/Arch540_2026 demo C_design_space (Vancouver winter-sun trade-off front)",
+   "what_it_does": "Course demo on an 80 x 60 m Vancouver housing lot (latitude 49.25 N, street south): massings of boxes (3.2 m storeys, 45 m max, 3 m setback, 6 m spacing) are scored on three conflicting goals, GFA, average winter-sun hours on open ground (21 Dec, 9:00-15:00, 15 m ring, max 6.0 h) and shape factor; the 'front' is the set of designs no other design beats on all three goals.",
+   "how_used": "Copy complete/ or a steps/ folder, run claude, paste a PROMPTS.md variant (one round vs up to six rounds, scorer vs guessing, limit in prompt vs code, skill, family-explorer helpers, impossible target with or without a hook).",
+   "strengths": "Closest existing pattern to a CLIM and PROG trade-off module: grid search gave 7,308 combinations, 3,680 valid, 8 on the front (all bars); several rounds grew the front; with a scorer 61 of 75 designs were valid vs 50 of 75 when the agent guessed, and the guessed best family (courtyard) was wrong; a strategy-library skill surfaced towers, north-high-south-low and terraced forms; six helpers ran 329 evaluations with the main context near 50k tokens; an impossible target ended in a stop after 5 (no hook) or 7 (hook) evaluations without tampering.",
+   "stops_at": "Housing-scale (45 m) and box-only massing; winter-sun metric is an average over open ground, not shadow on a plaza or transit station; no cores, no wind, no view cones. One run imported the scoring functions directly, so the evaluation counter never saw those calls; the complete project's reported counts (180) do not add up to its 300 budget, so reporting is incomplete. No licence stated.",
+   "license_cost": "Free to clone; no licence declared; C runs are 10-30 min and use plan allowance (README).",
+   "ai_opportunity": "Template for module-level optimisation: scorer in code, front in a file, rounds aimed at empty regions of the front, per-family helpers, spending caps enforced by code.",
+   "ai_wont_improve": "Which goals count and how to weigh them against jury criteria; the scorer's own correctness; limits enforced only in the prompt can be bypassed.",
+   "workflow_step": "As-is steps 2, 4 (massing options; sun and shadow trade-offs)",
+   "source_ids": [
+    "P17-S09",
+    "P17-S56",
+    "P17-S02",
+    "P17-S03"
+   ],
+   "as_is_step_ids": [
+    "2",
+    "4"
+   ],
+   "taxonomy_codes": [
+    "CLIM",
+    "PROG"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE to clone; needs Python 3 and Claude plan allowance (10-30 min per README). Usable before 30 Nov: yes as a pattern; reuse terms unresolved. Sources: S03, S56."
+  },
+  {
+   "tool": "GenEnv/Arch540_2026 demo D_team (mixed-use block with a hidden FSR contradiction)",
+   "what_it_does": "Course demo of about 10 agents on a 100 x 70 m corner block (streets south and east, park north; FSR 2.8, 220-280 homes, daycare, no new park shadow 10:00-14:00 at equinox): an orchestrator, a constraints helper that turns the brief into a checklist and flags contradictions before design, four parallel designers, an analyst that reports numbers only, and a reviewer that sees only the checklist and metrics; blackboard files have one owner each, hooks block edits to tools and failing final schemes.",
+   "how_used": "Copy complete/ (or steps/no_constraints/), run claude, paste the prompt; a run takes 30-60 min and can use up a Pro plan's 5-hour allowance (S57).",
+   "strengths": "Constraints helper caught the contradiction (CEO wants at least 250 homes, FSR allows about 239) in 3 of 3 runs, before design, with a calculation; without it a designer estimated about 255 homes and the tool measured 223 (D3). Same brief and team gave three different recommendations (237, 222, 226 homes). Round 1: 4 of 12 schemes failed a hard rule; round 2: 12 of 12 passed. A direct template for a PROG constraints reader that checks the VTC's 9.0 FSR non-residential minimum against height and plate assumptions.",
+   "stops_at": "Housing-scale block with FSR 2.8, not 9.0 non-residential; different recommendations per run mean a single run cannot be trusted; expensive in plan allowance; no licence stated.",
+   "license_cost": "Free to clone; no licence declared; heavy plan allowance use.",
+   "ai_opportunity": "A brief-to-checklist reader that flags contradictions before design, an analyst role that only reports measured numbers, and an evaluator-optimiser loop with limits in limits.json (18 agent calls, 8 designer calls, 2 rounds).",
+   "ai_wont_improve": "Which contradiction to resolve and how (relax a target, argue a breach); whether the recommended scheme suits the site's culture and public realm.",
+   "workflow_step": "As-is steps 0, 3 (brief reading and programme/FSR checking)",
+   "source_ids": [
+    "P17-S09",
+    "P17-S57",
+    "P17-S02",
+    "P17-S03"
+   ],
+   "as_is_step_ids": [
+    "0",
+    "3"
+   ],
+   "taxonomy_codes": [
+    "PROG"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE to clone; needs Python 3 and a Claude plan (30-60 min runs, may exhaust a Pro 5-hour allowance). Usable before 30 Nov: yes as a pattern, at a cost in allowance; reuse terms unresolved. Sources: S03, S57."
+  },
+  {
+   "tool": "SimScale (added in r1; wind route candidate)",
+   "what_it_does": "Cloud engineering simulation (CFD, structural, thermal) with AEC listed as an industry and 'Wind & Built Environment' as an application; Community plan free.",
+   "how_used": "Upload geometry, set up a simulation in the browser, run in the cloud (setup depth not opened).",
+   "strengths": "Free Community plan with 10 simulations and up to 2,000 core hours (vendor page); a real CFD route if a surrogate is not trusted.",
+   "stops_at": "After the simulation limit only qualitative output is shown; pedestrian wind comfort is a 'Specialized' add-on on Professional and Enterprise only; no academic plan listed; no stated validity range for 244-305 m towers; setup skill needed.",
+   "license_cost": "Community free; Professional price on request; no student plan found.",
+   "ai_opportunity": "Scripting case set-up via API (not verified) and tabulating results across massing options.",
+   "ai_wont_improve": "CFD boundary conditions, mesh quality and comfort criteria need an expert's judgement.",
+   "workflow_step": "As-is step 4 (wind study alternative)",
+   "source_ids": [
+    "P17-S58"
+   ],
+   "as_is_step_ids": [
+    "4"
+   ],
+   "taxonomy_codes": [
+    "CLIM"
+   ],
+   "jury_tags": [
+    "human_scale_40"
+   ],
+   "access_for_vtc_team": "FREE Community plan (10 simulations; qualitative output beyond the limit; pedestrian-wind comfort not included). Usable before 30 Nov: yes for basic CFD; adequacy for a tower context unknown. Setup time unmeasured (team assumption). Sources: S58."
+  },
+  {
+   "tool": "EC3 and tallyLCA (Building Transparency; added in r1)",
+   "what_it_does": "EC3 is described as a free, open-access tool and EPD database for estimating upfront embodied carbon and setting baselines; tallyLCA is a whole-building life cycle assessment tool for architects.",
+   "how_used": "Sign up, search and compare product EPDs, estimate embodied carbon of a project (workflow not opened).",
+   "strengths": "Free and open-access EC3; a sourced route to embodied-carbon numbers instead of unsourced rules of thumb.",
+   "stops_at": "Early-stage massing use is not described on the page; terms of use and limits not read; tallyLCA availability and cost not stated; not a Vancouver or VTC benchmark.",
+   "license_cost": "EC3 free (vendor page); tallyLCA not stated.",
+   "ai_opportunity": "Mapping a programme and structure assumption to EPD queries and tabulating options.",
+   "ai_wont_improve": "Choosing structural system and materials; deciding which carbon benchmark applies in Vancouver.",
+   "workflow_step": "As-is step 4b (embodied carbon)",
+   "source_ids": [
+    "P17-S59"
+   ],
+   "as_is_step_ids": [
+    "4b"
+   ],
+   "taxonomy_codes": [
+    "ENER"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "access_for_vtc_team": "FREE (EC3, sign-up form; terms unread). Usable before 30 Nov: probably yes; tallyLCA unknown. Sources: S59."
+  }
+ ],
+ "as_is_workflow": [
+  {
+   "step": "0. Register, plan the 40 days, read the brief",
+   "step_id": "0",
+   "who": "All 2-4 members; one person owns the checklist and the calendar",
+   "software": "PDF reader, shared drive, chat, spreadsheet or whiteboard, calendar; Buildner account",
+   "input": "VTC brief PDF, site plans and 3D model (download buttons on the competition page; links not retrievable by script), the two policy links named in the brief",
+   "output": "Requirements checklist (deliverables, 9.0 FSR non-residential minimum, jury weights 40/30/20/10, deadlines); role split; back-plan. Illustrative back-plan (team assumption, editable): massing frozen about 9 Nov; studies done about 16 Nov; plans and sections about 21 Nov; board drafts about 25 Nov; upload dry-run about 28 Nov.",
+   "pain_points": "As of 21 Oct 2026: registration closes in 8 days (29 Oct), Q&A closes in 13 days (3 Nov, no later questions answered), submission in 40 days (30 Nov 23:59 London = 15:59 Pacific, derived), course working core in 23 days (13 Nov). Ambiguities (FSR basis, view-cone applicability, georeference of the hypothetical site) must be found in week one or they cannot be asked. Obligations are scattered across the brief and two policy documents; vancouver.ca policy PDFs returned HTTP 403 to scripts, so a person must open them in a browser. Fee EUR 140 / EUR 120 plus 4.5% VAT, instalment option mentioned. Time share: unmeasured (team assumption).",
+   "handover": "Reading notes to everyone else; usually a chat message or a doc nobody updates",
+   "automatable_or_judgment": "Extracting dates, numbers and deliverables, and checking the brief for contradictions (the demo D constraints-helper pattern), is automatable. Interpreting 'City in Nature', reconciliation and which guidelines to justify breaching is human judgment.",
+   "taxonomy_codes": [
+    "SITE",
+    "PROG"
+   ],
+   "jury_tags": [],
+   "tools_from_case_studies": [
+    "Arch540 demo D_team",
+    "Archistar",
+    "UpCodes"
+   ]
+  },
+  {
+   "step": "0b. Cultural, geographic and precedent research and narrative",
+   "step_id": "0b",
+   "who": "All members read; 1-2 lead the narrative; no tool substitutes for engagement",
+   "software": "Library and web sources, reading notes, shared document, image collection",
+   "input": "Brief statement that the site is on the unceded territories of the Musqueam, Squamish and Tsleil-Waututh Nations; 'City in Nature'; precedent towers and public spaces; Nation- and City-published material (none opened in this packet)",
+   "output": "Written cultural and environmental narrative with cited sources; precedent list; design principles that feed massing, ground level and boards",
+   "pain_points": "Carries 30% of jury weight yet is easily compressed into a paragraph at the end (team assumption); risk of generic or placeless motifs, which the brief warns against; sources must be cited and the boards carry no identifying information. Time share: unmeasured (team assumption).",
+   "handover": "Narrative to board designers late; principles often do not reach massing or ground-level decisions",
+   "automatable_or_judgment": "Retrieval, summarising and citation bookkeeping of published documents can be assisted. Interpreting Indigenous perspectives, deciding what to represent and how, and any engagement must not be delegated to a tool; it stays with the team, working from sources by the Nations and the City.",
+   "taxonomy_codes": [
+    "CULT",
+    "ECOL"
+   ],
+   "jury_tags": [
+    "cultural_context_30"
+   ],
+   "tools_from_case_studies": []
+  },
+  {
+   "step": "1. Site and context modelling",
+   "step_id": "1",
+   "who": "One modeller, sometimes two",
+   "software": "Rhino (or SketchUp), imported OBJ/IFC/3DM, maybe Speckle; City of Vancouver open data for context",
+   "input": "Provided site plan and 3D model; context towers, approved future towers; north arrow rotated from the street grid; City open data (building footprints 1999/2009/2015, zoning districts, building lines found in a title search; no 3D massing dataset appeared, other titles not searched; licences not checked)",
+   "output": "Georeferenced site and context model, true-north vector, block area (79.2 x 144.8 m = 11,468 m2)",
+   "pain_points": "Orientation error is the costly one: the plan's north arrow is rotated from the street grid, so a wrong angle corrupts every later sun and shadow result. Units come in ft and m (260 x 475 ft = 79.2 x 144.8 m). Imports lose layers or tags (team assumption). Time share unmeasured.",
+   "handover": "Model file passed by drive or email; versions drift; no program tags yet; Speckle Explore keeps only 30 days of versions",
+   "automatable_or_judgment": "Import, unit conversion, area and orientation checks are automatable. Deciding which context matters is judgment.",
+   "taxonomy_codes": [
+    "SITE",
+    "DATA"
+   ],
+   "jury_tags": [
+    "urban_integration_10"
+   ],
+   "tools_from_case_studies": [
+    "Rhino + Grasshopper + Ladybug",
+    "Speckle",
+    "Giraffe",
+    "Autodesk Forma"
+   ]
+  },
+  {
+   "step": "1b. Protected views and skyline envelope",
+   "step_id": "1b",
+   "who": "One designer with the modeller; checked by the whole team",
+   "software": "Rhino with imported view-cone polygons (City GeoJSON export), sketching, photo montage",
+   "input": "City open-data 'View cones' (24 protected-view polygons, four of them Queen Elizabeth Park views 3.2.1-3.2.4; Open Government Licence - Vancouver; updated 19 Oct 2026); View Protection Guidelines and Higher Buildings Policy (not opened: HTTP 403); the competition page's 'Queen Elizabeth View Tower Heights' reference photo; brief requirement for a skyline view from Queen Elizabeth Park",
+   "output": "Permissible-height envelope per view cone (once heights are read from the policy), skyline sketch, list of any intended breach with justification",
+   "pain_points": "UNVERIFIED: the dataset says building height is limited inside these views but carries no height field, and the policy PDFs could not be opened, so how heights are set, whether the hypothetical block lies in a cone and which document now governs is unknown. Checked late, a 244-305 m massing may have to be reworked (team assumption). The brief's remark that justified breaches may be rewarded makes the check a judgment, not only a gate.",
+   "handover": "Envelope from views person to massing designers; skyline view to rendering step 7",
+   "automatable_or_judgment": "Clipping a massing against view-cone volumes is automatable once the height rule is read from the policy. Choosing to breach, and the skyline composition, are judgment.",
+   "taxonomy_codes": [
+    "SITE",
+    "CLIM"
+   ],
+   "jury_tags": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "Rhino + Grasshopper + Ladybug"
+   ]
+  },
+  {
+   "step": "2. Massing options",
+   "step_id": "2",
+   "who": "Designers (2-3), modeller",
+   "software": "Rhino/Grasshopper, SketchUp, sketch paper; sometimes Forma or TestFit if licensed",
+   "input": "Site model, view envelope, brief heights (244-305 m), required mix, hand sketches",
+   "output": "2-5 massing models; each tagged by use if time allows (becomes Layer 0)",
+   "pain_points": "Options compared by eye; every change means recomputing areas by hand; option count limited by modelling time. Time share: unmeasured, believed largest (team assumption).",
+   "handover": "Models to the spreadsheet person and to the environmental analyst, usually as screenshots or a copied file",
+   "automatable_or_judgment": "Generating variants and measuring them is automatable (demo C pattern: scorer in code, front in a file). Form, skyline silhouette, expression and the public-uses-through-the-tower idea are judgment.",
+   "taxonomy_codes": [
+    "PROG",
+    "SITE"
+   ],
+   "jury_tags": [
+    "design_excellence_20",
+    "cultural_context_30"
+   ],
+   "tools_from_case_studies": [
+    "Rhino + Grasshopper + Ladybug",
+    "TestFit",
+    "Autodesk Forma",
+    "Arch540 demo B_testfit",
+    "Arch540 demo C_design_space",
+    "ShapeDiver"
+   ]
+  },
+  {
+   "step": "3. Programme and FSR spreadsheet",
+   "step_id": "3",
+   "who": "One person (often the least modelling-heavy member)",
+   "software": "Excel or Google Sheets",
+   "input": "Floor areas read off the models; use mix; efficiency and core assumptions",
+   "output": "GFA by use, non-residential FSR (brief minimum 9.0), area schedule for the boards",
+   "pain_points": "Manual copy from model to sheet drifts out of date after each massing change. Derived check, assuming the full block as FSR basis (unconfirmed): 11,468 m2 x 9.0 = about 103,200 m2 of non-residential floor area. Derived relationship (editable placeholders, not sourced): office floors N = 103,200 / floor plate; plate 1,500 m2 gives about 69 floors, 2,000 gives about 52, 2,500 gives about 41; at an assumed 4.0 m floor-to-floor that is about 276, 208 and 165 m, so a small plate could use up most of a 244-305 m height and leave little for residential or hotel unless podium floors carry area. Efficiency ratios are usually unsourced team assumptions.",
+   "handover": "Spreadsheet numbers to the board designer; numbers on boards later disagree with the model",
+   "automatable_or_judgment": "Area take-off, FSR arithmetic, the floors-versus-height calculation and consistency checks are automatable. Choosing the mix, efficiencies and what counts as high-employment use is judgment.",
+   "taxonomy_codes": [
+    "PROG"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "TestFit",
+    "Hypar",
+    "Giraffe",
+    "Snaptrude",
+    "Finch",
+    "Arch540 demo B_testfit",
+    "Arch540 demo D_team"
+   ]
+  },
+  {
+   "step": "4. Sun, shadow and wind studies",
+   "step_id": "4",
+   "who": "One 'environment' person, usually self-taught",
+   "software": "SketchUp shadows or Rhino sun, Ladybug/Grasshopper, optionally Infrared.city or SimScale; CFD rarely",
+   "input": "Massing model, context, weather/EPW or sun-angle settings, true north",
+   "output": "Shadow images, sun-hour maps, a qualitative or surrogate wind note",
+   "pain_points": "Run once on the final option rather than to compare options; results are pictures without a pass/fail criterion or source; wind is the study most likely to be skipped or reduced to a statement (team assumption); tool access and learning curve (Rhino USD 195 student; Infrared free tokens expire 42 days after sign-up, about 2 Dec if activated 21 Oct; run wind by mid-November, team assumption).",
+   "handover": "Images to boards; findings rarely feed back into massing",
+   "automatable_or_judgment": "Sun hours, shadow areas and surrogate wind maps are automatable. Selecting the criterion, the day/season and deciding whether a result is acceptable is judgment.",
+   "taxonomy_codes": [
+    "CLIM"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "Rhino + Grasshopper + Ladybug",
+    "Infrared.city",
+    "SimScale",
+    "Autodesk Forma",
+    "Arch540 demo C_design_space"
+   ]
+  },
+  {
+   "step": "4b. Sustainability, energy and carbon",
+   "step_id": "4b",
+   "who": "The environment person plus one designer",
+   "software": "Ladybug/Honeybee, spreadsheet, EC3 (free), possibly Pollination trial; cove analysis.tool is not available to students",
+   "input": "Massing, envelope assumptions (glazing ratio, systems), weather file, material quantities",
+   "output": "Sustainability diagram or short study for the boards (brief lists sustainability studies among recommended deliverables); embodied-carbon estimate",
+   "pain_points": "Benchmarks and efficiency targets are usually unsourced; energy models need envelope and systems assumptions that students invent (team assumption); often reduced to a diagram late in the schedule. Time share unmeasured.",
+   "handover": "Numbers and diagrams to boards; rarely fed back into facade or massing",
+   "automatable_or_judgment": "Weather processing, solar radiation, simple energy runs and EPD look-ups are automatable. Choosing strategy, targets and trade-offs against daylight and cost is judgment.",
+   "taxonomy_codes": [
+    "ENER",
+    "CLIM"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "Rhino + Grasshopper + Ladybug",
+    "cove.tool (now analysis.tool)",
+    "EC3 and tallyLCA"
+   ]
+  },
+  {
+   "step": "5. Structure and core sketches",
+   "step_id": "5",
+   "who": "Designer; no engineer on most student teams",
+   "software": "Hand sketches, Illustrator or CAD, rules of thumb",
+   "input": "Massing, height, programme, lift and stair rules of thumb",
+   "output": "Structural strategy diagram, core layout, typical plan cores",
+   "pain_points": "Core and structure sizes are rule-of-thumb and unsourced; core area in the spreadsheet and in plans disagree; structure rarely tested against massing changes (team assumption).",
+   "handover": "Core areas back to the spreadsheet by hand",
+   "automatable_or_judgment": "Preliminary sizing from stated rules can be automated if the rules are sourced. The structural concept and its architectural expression are judgment.",
+   "taxonomy_codes": [
+    "STRC",
+    "SYST"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "UpCodes"
+   ]
+  },
+  {
+   "step": "6. Ground level, transit, servicing and public realm",
+   "step_id": "6",
+   "who": "Designers",
+   "software": "Rhino/CAD plans, sketching, Photoshop collage",
+   "input": "Site edges (arterial, retail high street, lanes, mid-block connections), below-grade secondary transit entrance requirement, loading and parking needs",
+   "output": "Ground-floor plan, site plan, below-grade connection, servicing diagram",
+   "pain_points": "This is where human-scale experience (40% of jury weight) is decided yet it is often drawn last (team assumption); loading, parking and transit link are coordinated by eye.",
+   "handover": "Plans to renderings and boards",
+   "automatable_or_judgment": "Clearances, loading counts and path lengths can be checked automatically. Public-space quality, entrances and cultural expression are mostly judgment.",
+   "taxonomy_codes": [
+    "MOBI",
+    "PUBL",
+    "SITE"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "urban_integration_10"
+   ],
+   "tools_from_case_studies": []
+  },
+  {
+   "step": "6b. Drawing production: plans and sections",
+   "step_id": "6b",
+   "who": "2 members, with the modeller",
+   "software": "Rhino/CAD (Make2D or equivalent), Illustrator or AutoCAD, Revit or Archicad if used",
+   "input": "Frozen massing, programme, cores and structure, ground-level design",
+   "output": "Site plan, ground floor plan, typical lower, mid and upper plans, at least two sections (brief's recommended deliverables)",
+   "pain_points": "Plans are redrawn after every massing or core change; cut positions chosen late; core and area labels disagree with the spreadsheet (team assumption); line weights and scale inconsistencies across boards. Time share unmeasured.",
+   "handover": "Drawings to board designers as PDFs or Illustrator files, often in mixed formats",
+   "automatable_or_judgment": "Plan and section extraction from the model and area labelling are automatable. Which cuts to show, drawing conventions and spatial quality are judgment.",
+   "taxonomy_codes": [
+    "PRES",
+    "SPAC"
+   ],
+   "jury_tags": [
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "Hypar",
+    "Finch"
+   ]
+  },
+  {
+   "step": "7. Renderings and views",
+   "step_id": "7",
+   "who": "1-2 members",
+   "software": "Enscape, Twinmotion, Lumion, V-Ray or similar; Photoshop; possibly AI image tools",
+   "input": "Final model, camera positions (skyline from Queen Elizabeth Park, mid-city, at least four ground-level perspectives)",
+   "output": "Views for the boards",
+   "pain_points": "Render time and re-rendering after model changes; camera placement for the skyline view; the competition page says AI-generated images may carry ownership and licensing restrictions and are not advised as sole original work.",
+   "handover": "Images to the board layout; file size to be kept for the 10 MB board limit",
+   "automatable_or_judgment": "Batch rendering and camera setup from coordinates are automatable. Composition, story and drawing choices are judgment.",
+   "taxonomy_codes": [
+    "PRES"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "cultural_context_30"
+   ],
+   "tools_from_case_studies": [
+    "Snaptrude"
+   ]
+  },
+  {
+   "step": "7b. Policy reflection",
+   "step_id": "7b",
+   "who": "1-2 members, reviewed by all",
+   "software": "Word processor or shared document; policy PDFs opened by hand",
+   "input": "Higher Buildings Policy (1997) and the Higher Buildings Policy Review named in the brief; the scheme's actual heights, FSR and view-cone position; the brief's statement that its documents are academic, not legal",
+   "output": "Written policy reflection for the boards, listing where the scheme follows, tests or breaches guidelines, with justification",
+   "pain_points": "Policy PDFs are hard for a script to reach (HTTP 403) so clauses are quoted second-hand; written last, so justifications are thin (team assumption); the jury may reward justified breaches, so the argument matters more than compliance.",
+   "handover": "Text to board designers; figures must match the spreadsheet",
+   "automatable_or_judgment": "Clause retrieval with citation and listing which numeric thresholds the scheme exceeds are automatable. Deciding which guideline to breach and why is judgment.",
+   "taxonomy_codes": [
+    "SITE",
+    "CULT"
+   ],
+   "jury_tags": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ],
+   "tools_from_case_studies": [
+    "Archistar",
+    "UpCodes",
+    "Arch540 demo D_team"
+   ]
+  },
+  {
+   "step": "8. Boards (four A2 landscape)",
+   "step_id": "8",
+   "who": "1-2 board designers, whole team reviews",
+   "software": "InDesign, Illustrator, Affinity, Figma or Canva",
+   "input": "Spreadsheet figures, plans, sections, diagrams, renderings, policy reflection text",
+   "output": "Four A2 landscape boards, each at most 10 MB, in English, with no identifying information",
+   "pain_points": "Last-week crunch; layouts rebuilt when options change; numbers on boards drift from the model; identifying metadata or file names can break anonymity (team assumption).",
+   "handover": "Everything converges here; inputs arrive late and in mixed formats",
+   "automatable_or_judgment": "Number synchronisation, file-size and metadata checks are automatable. Narrative, hierarchy and what to emphasise are judgment.",
+   "taxonomy_codes": [
+    "PRES"
+   ],
+   "jury_tags": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20",
+    "urban_integration_10"
+   ],
+   "tools_from_case_studies": [
+    "Snaptrude"
+   ]
+  },
+  {
+   "step": "9. Submission",
+   "step_id": "9",
+   "who": "Team lead",
+   "software": "Buildner account, unique identification code, PDF export",
+   "input": "Final boards, team member details (editable until the deadline)",
+   "output": "Uploaded entry before 30 Nov 2026 23:59 London time (15:59 Pacific, derived)",
+   "pain_points": "Time-zone confusion, upload failure and size limit at the last minute; fee EUR 140 / EUR 120 plus VAT paid at registration.",
+   "handover": "Final files to upload portal",
+   "automatable_or_judgment": "Pre-flight checks (size, language, metadata, dimensions) are automatable. The decision to submit is the team's.",
+   "taxonomy_codes": [
+    "DATA",
+    "PRES"
+   ],
+   "jury_tags": [],
+   "tools_from_case_studies": []
+  }
+ ],
+ "notes": "Method: every claim is from a page opened on 21 Oct 2026 (round 0 or r1) unless labelled UNVERIFIED or 'general knowledge'. Prices are as shown on vendor pages that day, in the vendor's currency, and may change. WebSearch was exhausted in r1, so no targeted searches for education offers could run; negative results mean 'not found on the pages opened'. Page text came through a summarising fetch tool; one disagreement with the critique (Infrared tier label) is logged UNRESOLVED rather than silently changed.\n\nKey facts for the team (21 Oct 2026): registration closes 29 Oct, Q&A 3 Nov, submission 30 Nov 23:59 London (40 days from today); teams up to 4. What a student team can get before 30 Nov: Rhino USD 195 student (or a UBC lab licence, ask); Ladybug Tools free; Speckle Explore free (3 users incl. externals, 100 versions, 30-day history) plus a free academic workspace by email application (terms unknown); Giraffe free for students (vendor statement, Vancouver data unverified); Infrared free 900 tokens (expire 42 days after sign-up); Finch and Snaptrude free single-user tiers; SimScale Community free; EC3 free; ShapeDiver 14-day trial or academic programme. Not available to students: cove analysis.tool (academic access ended 31 Dec 2025). Unknown: Autodesk Forma, TestFit (class route), Hypar, Archistar, UpCodes.\n\nDesign lessons for the tool: (1) none of the commercial tools expose sourced thresholds, so they are benchmarks, not dependencies; (2) open, scriptable options are Ladybug Tools (AGPL-3.0 for ladybug, ladybug-grasshopper, honeybee-radiance; GPL-3.0+ for Butterfly), Speckle (Apache-2.0) and Hypar Elements/HyparSpace (MIT); the platform licence and deployment boundary are handed to the DATA packet because AGPL section 13 attaches to modified versions offered over a network; (3) the course demos give three module patterns: B (checker script + hook + reviewer), C (scorer, front file, rounds, spending cap in code, per-family helpers) and D (constraints reader that flags contradictions before design, analyst that reports only measured numbers); each also shows a guard covers only the path it watches; (4) AI reduces effort on take-off, scripting, option sweeps, retrieval and contradiction checks, but not on choosing criteria, interpreting 'City in Nature' and reconciliation, deciding which guideline to breach, or any engagement with the Nations; (5) the as-is workflow now includes the steps critics found missing (protected views, cultural research, sustainability, plans and sections, policy reflection). Vancouver's open-data view cones are a verified starting point, but heights and the governing document must be read by a person from the City policy PDFs, which returned HTTP 403. The competition page advises caution with AI-generated images as sole original work."
+}

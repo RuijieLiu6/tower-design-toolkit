@@ -1,0 +1,393 @@
+{
+ "expert_role": "AI safety and ethics reviewer (gatekeeper, source auditor) for packet P16, round 3",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M06 / P16-M08",
+   "issue": "The cost governor and every cost figure leave out thinking tokens. On Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5, thinking is adaptive and billed as output tokens. Anthropic's own testing found that telling Haiku 5.5 to answer directly did not stop it thinking. The spec prices an entailment check at 100 output tokens on the cheap tier, and a cited answer at 500 output tokens, with no allowance for thinking. Changing effort between requests also invalidates cache breakpoints, which the caching plan does not account for. As a result, the $0.05 per-answer threshold, the $2 session cap and the $13.3 suite estimate are all likely low. Reasoning tokens on OpenAI's gpt-6.x models may raise the same problem; this was not checked.",
+   "fix": "Add effort and max_tokens to the capability table and to adapter.run. Keep effort fixed for each cached conversation. Record usage.output_tokens_details.thinking_tokens, plus OpenAI reasoning tokens, in LLMCallRecord. Recompute the M06 illustration and the M08 suite cost from a measured pilot of about 20 calls per route. Until that pilot is done, show the cost thresholds as UNVERIFIED."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16 (schedule / scope)",
+   "issue": "The tool's first users are VTC 2026 entrants, but all LLM features (retrieval, cited Q&A, extraction, adapter, evaluation, option comparison) are planned for 10 Dec. Submissions close 30 Nov 2026. The 13 Nov slice is still about 4 person-days over budget (14.5-15 needed against 10-11 available), and after the stated cuts it is still 1-2 days over. An entrant reading this spec would expect AI grounding features that will not exist before the deadline.",
+   "fix": "Add an explicit 'VTC 2026 entrant scope' statement: manual rule cards, flags, the trace and anonymised export only, with no LLM features before 30 Nov. Rebalance the 13 Nov slice so it fits the available days, for example by moving the M04 timeline UI and the M07 CI flags into a dated week-of-16-Nov item. Do not ship a partly working cited Q&A to entrants."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M02 / P16-M08",
+   "issue": "After three rounds, the clause text of the Higher Buildings Policy is still unread. I re-fetched the Shape Your City link today and again got only a download page with a blank filename. As a result, the height Permission card, the derived Prohibition card, the scope rule and the M08 boundary answers all rest on two FAQ sentences, one of which concerns a site outside the policy area.",
+   "fix": "A named team member downloads the 0.9 MB PDF in a browser (not WebFetch), records its SHA-256, edition and download date in S78, and opens it in the M01 viewer. A second person then reviews the height, policy-area and criteria clauses and confirms or corrects both height cards. If the download fails, record the date and the browser error in the change log."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M02 / P16-M05 / P16-M08",
+   "issue": "The VTC brief PDF is still unread. The competition page's brief links are '#' placeholders in all five languages (re-checked today). The 9.0 FSR minimum, the 244-305 m range, the 40/30/20/10 weights and the justified-breach clause all come from the project statement. The brief is normally released to registered entrants, and registration closes 29 Oct 2026, eight days from today.",
+   "fix": "Register, or have a registered team member download the brief from the entrant area, before 29 Oct. Store it with its SHA-256 as S58 (opened=true, licence noted). A second person reviews every brief card blind-first. Record that the brief is available only to registered entrants, so it cannot be redistributed in a public KB."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M06 (module trust tier)",
+   "issue": "The spec claims that a capability token with its own budget and no key access means 'a malicious fork cannot drain the user's keys or send raw geometry out'. The token only limits the module's access to the adapter. A community module that runs as JavaScript in the page or on the server can still call fetch(), read the DOM or storage, or post Layer 0 geometry to any host. That would break both the privacy rules and the competition-anonymity rules. No sandbox is specified, and no test covers this.",
+   "fix": "Specify how modules are isolated: for example a sandboxed cross-origin iframe or Worker with CSP connect-src 'none' and no access to storage or cookies, where modules talk only through typed postMessage ports and receive geometry as summarised, typed inputs. Add an M08 control case in which a planted module tries to exfiltrate geometry, and it must fail closed. Until both exist, reword the claim as a goal, not a guarantee."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16 (status labelling across modules)",
+   "issue": "The packet breaks its own verification rule. Under P16-M03, verified needs a source, all three facets confirmed, and a reviewer who is not the proposer. Even so, M06 labels the store:false basis 'verified by vendor documentation (read through a page summary)', the M07 pinned-tools metric says 'verified (repository page)', and the M07 MCP metric says 'verified for the docs wording'. Each is an agent's reading, often through an automatic summary, and none records a human reviewer. Under the packet's own rules that is anchored or machine evidence, which renders as UNVERIFIED.",
+   "fix": "Relabel these items as unverified (sourced, unreviewed) until a second person reads the primary page and records a reviewer id. Add reviewer and read_mode fields (full text or summary) to each source record, so the source list follows the same rule as the chips."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M04 (libraries)",
+   "issue": "The sharp library entry cites 'https://github.com/lcovarrubias/sharp-placeholder-not-used', which returns 404 and is plainly a placeholder. sharp has no S-number. Its role, stripping EXIF, XMP and ICC by default, is the evidence behind the anonymity export control. In a packet whose purpose is provenance, a fabricated URL is a citation-integrity failure.",
+   "fix": "Replace the URL with https://github.com/lovell/sharp, add a source entry for the sharp output docs (https://sharp.pixelplumbing.com/api-output), and record the licence after a person reads it (it was not stated on the docs page). The docs confirm that 'By default all metadata will be removed' and that ICC is removed unless keepMetadata or withMetadata is used. Add a CI link check that fails on any 404 library or source URL."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M05 / P16-M06 (CULT interface)",
+   "issue": "Privacy rule 6 and the OCAP flag are not enforceable. The Document schema has no cultural-material class and no permission record, and the M06 data classes do not stop Indigenous material from being embedded through the API, cached or batched. Nothing stops an LLM from writing text that presents itself as Musqueam, Squamish or Tsleil-Waututh perspective. M05 also turns 'reconciliation' into a 0-1 manual rating that is fed into a weighted aggregate. TCPS 2 chapter 9 governs research; it does not by itself govern design use of Nations' knowledge.",
+   "fix": "Add a 'restricted_cultural' document and data class. It requires a permission record (granted by, under which agreement or protocol, permitted uses, expiry) before ingest, and it blocks provider upload, API embedding, batch, caching and LLM summarisation. Add a no-generation rule: the tool never drafts text attributed to a Nation, and every such passage must be a cited, permitted quote. In M05, show reconciliation as qualitative evidence with sources rather than a scored axis, or exclude it from every aggregate. Name the Nations' own protocols, to be confirmed with the course, as the governing frame."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M02 / P16-M08",
+   "issue": "Reviewer independence is not staffed. The spec needs a third person to audit 10% of verified cards (minimum 3), seeded wrong cards that the reviewer cannot recognise, and a third person or recorded team decision to resolve disagreements. The team is two students. If the proposer also writes the drill cards, a two-person team can work. The audit and the tie-break, though, have no named person, and 'who audits' is left as a human judgment.",
+   "fix": "Name the role: the course instructor or TA, or a reciprocal audit with another course team, with a time estimate. State who writes the drill cards (the proposer, never the reviewer). If no third person is available by 13 Nov, cap brief and policy cards at 'reviewed, not audited' and show that state on the chip."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M03",
+   "issue": "The r2 luminance problem comes back in the dark theme. The team-assumption outline #E69F00 and the FALSE fill #FF9A66 differ by only 1.08:1 (computed here). The separation metric reports 'about 9:1 against the page', which compares FALSE to the background, not the two chips to each other. Under CVD simulation the two chips are told apart only by outline versus fill, plus hatch and icon.",
+   "fix": "Restate the metric as contrast between the two chips' signature colours, plus a required silhouette difference (outline vs solid fill). Either darken or shift the dark-theme team-assumption hue, or accept the silhouette cue and record that choice. Include the dark-theme pair in the CVD snapshot test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M08",
+   "issue": "TCPS 2 Article 2.5 is paraphrased as exempting 'testing within normal educational requirements'. That phrase refers to educational assessment of students. A legend and over-reliance study with 5-8 outside designers fits better under the 'quality improvement' clause, and only while the data are used exclusively for improvement. Reporting the results in a course paper or at a jury could count as secondary research use that 'may require REB review'.",
+   "fix": "Cite the quality-improvement wording, and state that results will not be reused as research without REB review. Do not recruit VTC entrants to work on their live entries, because that would expose entry content before judging."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01 (seed documents)",
+   "issue": "Seeding the brief, the policy PDF and the FAQ into an open-source, community-shared tool redistributes them. The licence for each is UNRESOLVED, and the brief appears to be released only to registered entrants. The licence gate covers provider uploads but not redistribution to other users of the tool.",
+   "fix": "Ship seed documents as metadata only (URL, SHA-256, edition). Each user fetches or uploads their own copy, and the hash check confirms it matches. Redistribution stays off until a person records a licence that allows it."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M07",
+   "issue": "The Codex plugin uses whatever Codex CLI sign-in exists on the machine, including ChatGPT plans (Free included). The spec allows ChatGPT sign-in for interactive review. Repository content sent that way falls under ChatGPT data controls, not the API terms that privacy rule 4 relies on. The spec does not cover this.",
+   "fix": "Require API-key auth for the plugin as well, or document the ChatGPT plan's data controls and turn off model training before first use. Keep entry geometry and traces out of the repository so that review never sends them."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M04",
+   "issue": "Entries are kept private until 'winners are announced (January 2027)'. The competition page now gives 26 January 2027. A fixed calendar date could unlock entries too early if the announcement slips.",
+   "fix": "Tie the unlock to an organiser-announcement event confirmed by a person, with 26 Jan 2027 as the earliest possible date. Record S56 as the source."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M06",
+   "issue": "Anthropic's retention page now says conversation content 'is not retained by default; the exception is Covered Models'. The privacy article (S08) says inputs and outputs are deleted within 30 days. The spec uses only S08 and does not reconcile the two statements.",
+   "fix": "Record both statements in the retention table. Plan for the longer period until a person confirms which applies to standard API traffic."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01 / P16-M08",
+   "issue": "The canary metric ('100% of planted canaries flagged') tests a detector against strings the same team wrote, so it is close to circular. It does not measure resistance to injections the team did not anticipate.",
+   "fix": "Have someone other than the detector's author write a held-out set of canaries and injection documents. Report the injection-success count (model output changed) as the primary metric, and ingest detection as secondary."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "The sharp library used for metadata stripping is at https://github.com/lcovarrubias/sharp-placeholder-not-used.",
+   "why_false": "That URL returns HTTP 404 and is a placeholder; sharp's repository is lovell/sharp.",
+   "correction": "Cite https://github.com/lovell/sharp and the output docs, which say all metadata, including the ICC profile, is stripped by default unless keepMetadata or withMetadata is used. Record the licence after a person reads it.",
+   "evidence": "WebFetch of the placeholder URL returned 404. https://sharp.pixelplumbing.com/api-output says 'By default all metadata will be removed, which includes EXIF-based orientation' and names https://github.com/lovell/sharp as the repository."
+  },
+  {
+   "claim": "LLM cost per call is input plus cache plus a small fixed output (500 tokens for cited QA; 100 output tokens for an entailment check on Haiku 5.5), so a cited answer costs at most about $0.02-$0.05.",
+   "why_false": "On Claude 5.5 models thinking is adaptive and billed as output tokens, and Haiku 5.5 kept thinking even when told to answer directly. Changing effort between requests also invalidates the prompt cache.",
+   "correction": "Model thinking or reasoning tokens explicitly. Fix effort for each cached conversation, record thinking_tokens, and recalibrate thresholds from a measured pilot.",
+   "evidence": "https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost: thinking tokens are 'billed as output tokens'; 'telling Claude Haiku 5.5 in the prompt to answer directly didn't stop it from thinking'; 'changing it [effort] between requests invalidates cache breakpoints'."
+  },
+  {
+   "claim": "A capability token with its own budget, a task allow-list and no key access means a malicious community fork cannot send raw geometry out.",
+   "why_false": "The token limits only the module's access to the adapter. Any module code that runs with page or server privileges can make its own network requests, so the control does not stop exfiltration.",
+   "correction": "Add runtime isolation (a sandboxed iframe or Worker with connect-src 'none' and typed message ports) and a control test. Until then, state the claim as a goal.",
+   "evidence": "Spec P16-M06 'Module trust tier' parameter. No sandbox, CSP or network restriction appears anywhere in the packet."
+  },
+  {
+   "claim": "TCPS 2 Article 2.5 exempts the planned designer studies as 'testing within normal educational requirements used only for assessment or improvement'.",
+   "why_false": "That clause covers educational testing. A usability study of outside designers can fall only under 'quality improvement studies', and only while the data are used exclusively for improvement. Later research use is secondary use that may need REB review.",
+   "correction": "Cite the quality-improvement wording, commit to no research reuse without REB review, and let the instructor and UBC ethics decide.",
+   "evidence": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter2-chapitre2.html Article 2.5: 'Quality assurance and quality improvement studies, program evaluation activities, and performance reviews, or testing within normal educational requirements when used exclusively for assessment, management or improvement purposes...'; application note: later research use 'may require REB review'."
+  }
+ ],
+ "missing": [
+  "Effort and max_tokens parameters, and thinking/reasoning-token accounting, in P16-M06 and LLMCallRecord",
+  "Runtime sandbox specification for community and forked modules (network, storage and DOM isolation) and a matching M08 exfiltration control case",
+  "A 'restricted_cultural' data class with a permission record, and a no-generation rule for text attributed to the Musqueam, Squamish or Tsleil-Waututh Nations",
+  "A VTC 2026 entrant-scope statement saying which P16 features exist before the 30 Nov submission deadline",
+  "A brief-acquisition step before registration closes on 29 Oct 2026, and a rule against redistributing seed documents",
+  "A named third-person auditor role and the person who writes the seeded drill cards",
+  "Reviewer id and read_mode (full text vs automatic summary) on every source record",
+  "A link-check CI job for every library and source URL",
+  "Data controls for Codex used through a ChatGPT sign-in (the plugin inherits the local CLI auth)",
+  "Visibility unlock tied to the official winner announcement (26 Jan 2027 per competition page)",
+  "Governing privacy statute (BC FIPPA via UBC vs PIPA/PIPEDA): still unresolved, and no owner or date assigned"
+ ],
+ "previous_round": [
+  {
+   "item": "MAJOR M02/M03 automation bias and self-review",
+   "status": "addressed",
+   "residue": "Proposer != reviewer, blind-first review, drill cards and the 'k of N samples agree' bar are all in place, but 'a third person audits 10% of verified cards' has no named person in a two-student team."
+  },
+  {
+   "item": "MAJOR M03 split Flag into fidelity / interpretation / applicability facets",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03 team assumption ranked above unverified",
+   "status": "addressed",
+   "residue": "The two are now incomparable tiers, and a property test checks that attaching a source never lowers a badge."
+  },
+  {
+   "item": "MAJOR M03/M04/M05 export-gate loophole",
+   "status": "addressed",
+   "residue": "One rule across all three modules plus an M08 control case."
+  },
+  {
+   "item": "MAJOR M04 AI-drafted rationale relabelled as human",
+   "status": "addressed",
+   "residue": "Permanent authorship record with origin and edit_ratio."
+  },
+  {
+   "item": "MAJOR M08 missing human-centred evaluation",
+   "status": "addressed",
+   "residue": "Ethics basis misreads TCPS 2 Art. 2.5 ('testing within normal educational requirements')."
+  },
+  {
+   "item": "MAJOR M05 false precision of the weighted jury score",
+   "status": "addressed",
+   "residue": "Evidence-share gate, Dirichlet draws and frontier stability are added; reconciliation is still scored numerically."
+  },
+  {
+   "item": "MAJOR M07 credential-expansion statement too broad",
+   "status": "addressed",
+   "residue": "Checked against code.claude.com/docs/en/mcp today: only the named categories are blanked; 'A name outside this set, such as API_KEY, expands as written'; -p, SDK and cloud runs load project servers; v2.1.246 is needed for the strict-mode prompt skip."
+  },
+  {
+   "item": "MAJOR M01/M02 Higher Buildings Policy PDF obtainable via Shape Your City",
+   "status": "partly",
+   "residue": "'WebFetch of that link returned only an HTML download will begin page with a blank filename ... the text itself is still unread'. Confirmed again today; no person has downloaded it."
+  },
+  {
+   "item": "MAJOR M04 community platform vs competition anonymity",
+   "status": "addressed",
+   "residue": "Private by default until 'January 2027'; tie the unlock to the official 26 Jan 2027 announcement."
+  },
+  {
+   "item": "MINOR M01 anchor uniqueness (W3C 4.2.4)",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M01/M02 NFKC on displayed text",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M03 #B86B00 vs #D55E00 luminance",
+   "status": "partly",
+   "residue": "Light theme is fixed (7.67:1). In the dark theme, #E69F00 vs #FF9A66 is 1.08:1, and the metric compares FALSE against the page rather than against the team-assumption chip."
+  },
+  {
+   "item": "MINOR false_assumption_corrected used as a status",
+   "status": "partly",
+   "residue": "The value is kept as a schema value, with the current evidence state given in the basis text."
+  },
+  {
+   "item": "MINOR S36 used for cross-provider agreement",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M04 undefined decision events",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M06 covered models",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M08 extraction cost recompute",
+   "status": "addressed",
+   "residue": "The arithmetic is correct ($0.02045 per run, $13.26 total), but it leaves out thinking tokens (new MAJOR)."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P16-S78",
+   "url": "https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245",
+   "ok": false,
+   "note": "Still returns only a download page with a blank filename; policy text not readable by fetch. Download not attempted (needs a person)."
+  },
+  {
+   "source_id": "P16-S37",
+   "url": "https://shapeyourcity.ca/higher-buildings/faqs",
+   "ok": true,
+   "note": "Confirms 'buildings up to 600ft (183 m) may be considered', Bay Parkade outside the policy area, 'exceed the heights contemplated', 'exceptions to the current heigh limits', Phase 2 early 2027, and that the competition 'will not determine the policy'. 'may be considered' appears twice."
+  },
+  {
+   "source_id": "P16-S60",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Phases 1-4 and the key documents (Higher Buildings Policy PDF 0.9 MB) confirmed; protected public views 'will not be reviewed or updated'; winner announced January 2027."
+  },
+  {
+   "source_id": "P16-S20",
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Credential categories, 'A name outside this set, such as API_KEY, expands as written', -p/SDK/cloud loading of project servers, disabledMcpjsonServers, --setting-sources, --strict-mcp-config, v2.1.246: all match the spec."
+  },
+  {
+   "source_id": "P16-S01",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "ok": true,
+   "note": "Valid-pointer guarantee, all-or-none citations, sentence chunking, 400 error with structured outputs, and compatibility with caching and batch confirmed. ZDR eligibility excludes Covered Models."
+  },
+  {
+   "source_id": "P16-S03",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "ok": true,
+   "note": "Opus 5.5 $4/$20 (read $0.20), Sonnet 5.5 $2/$10 (read $0.10), Sonnet 5 read $0.20, Haiku 5.5 $0.10/$0.50 up to 100K and $0.50/$2.50 above, Batch 50%, US-only 1.1x: all match."
+  },
+  {
+   "source_id": "P16-S04",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+   "ok": true,
+   "note": "Per-model minimums (512 for the 5.5 models; 1,024 for Sonnet 5 and Opus 4.8), 5-minute default, 1.25x/2x/0.1x multipliers (0.05x on Opus and Sonnet 5.5), workspace isolation: all match."
+  },
+  {
+   "source_id": "P16-S07",
+   "url": "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+   "ok": true,
+   "note": "Covered Models (Fable and Mythos 5 and 5.1) need 30-day retention and are not under ZDR; Batch and Files are not ZDR. Also says conversation content 'is not retained by default' apart from Covered Models, which the spec has not reconciled with S08."
+  },
+  {
+   "source_id": "(new)",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost",
+   "ok": true,
+   "note": "Thinking billed as output tokens; effort defaults to medium on Opus and Haiku 5.5; effort changes invalidate the cache; Haiku 5.5 thinks despite prompts not to. Missing from the spec's cost model."
+  },
+  {
+   "source_id": "(new)",
+   "url": "https://code.claude.com/docs/en/costs",
+   "ok": true,
+   "note": "About $13 per developer per active day and $150-250 per month confirmed; LiteLLM 'unaffiliated ... not audited for security'. Thinking cannot be turned off on the 5.5 models in Claude Code."
+  },
+  {
+   "source_id": "P16-S10",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": true,
+   "note": "gpt-6.1-sol $2/$0.10/$10 (over 272K $4/$0.20/$15), luna, astra, text-embedding-3-small $0.02, file search $2.50 per 1k calls, storage $0.10/GB-day, gpt-image-2 $30, Batch 50%: match. gpt-image-2.5 price not shown."
+  },
+  {
+   "source_id": "P16-S14",
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "ok": true,
+   "note": "30-day abuse logs; Responses state 30 days unless store:false; files, vector stores, batches and conversations kept until deleted; Canada storage only with MAM/ZDR. Images in Canada need enhanced ZDR/MAM (not in spec)."
+  },
+  {
+   "source_id": "P16-S61",
+   "url": "https://developers.openai.com/api/docs/deprecations",
+   "ok": true,
+   "note": "gpt-image-1 shuts down 23 Oct 2026; 1-mini and 1.5 on 1 Dec 2026; replacements sunburst/flare confirmed."
+  },
+  {
+   "source_id": "P16-S15",
+   "url": "https://learn.chatgpt.com/docs/mcp-server",
+   "ok": true,
+   "note": "codex mcp-server and the binary 'have been removed', with no version or date; app server is experimental and not MCP. Matches."
+  },
+  {
+   "source_id": "P16-S16",
+   "url": "https://learn.chatgpt.com/docs/non-interactive-mode.md",
+   "ok": true,
+   "note": "API keys for automation; ChatGPT-managed workflow not for public or open-source repos; per-invocation CODEX_API_KEY; no job-level keys; read-only default sandbox. Matches."
+  },
+  {
+   "source_id": "P16-S18",
+   "url": "https://github.com/openai/codex-plugin-cc",
+   "ok": true,
+   "note": "Commands, install steps, Node 18.18+, Apache-2.0 and the review-gate warning match. Plugin uses the local Codex auth, ChatGPT plans included."
+  },
+  {
+   "source_id": "P16-S28",
+   "url": "https://www.w3.org/TR/annotation-model/",
+   "ok": true,
+   "note": "4.2.4: multiple matches 'SHOULD be treated as matching all'; TextPositionSelector 'very brittle'; nothing on pagination. Matches."
+  },
+  {
+   "source_id": "P16-S57",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "4.1 (not previously published), 4.8 (JPEG under 10 MB), 5.1, 5.3, 6.1 and 12.2-12.3 publicity licence; no AI clause; no restriction on entrants' publicity after submission. Matches."
+  },
+  {
+   "source_id": "P16-S56",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Brief links are '#' placeholders in all five languages; registration closes 29 Oct; submission closes 30 Nov 23:59 London; winners 26 Jan 2027; caution on AI images."
+  },
+  {
+   "source_id": "P16-S68",
+   "url": "https://arxiv.org/abs/2102.09692",
+   "ok": true,
+   "note": "N=199; cognitive forcing reduced overreliance; explanations did not; least-favoured ratings; Need for Cognition moderates. Matches."
+  },
+  {
+   "source_id": "P16-S75",
+   "url": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter2-chapitre2.html",
+   "ok": true,
+   "note": "Article 2.5 wording supports the quality-improvement route, not 'testing within educational requirements', for designer studies; secondary use may need REB review."
+  },
+  {
+   "source_id": "P16-S64",
+   "url": "https://huggingface.co/voyageai/voyage-4-nano",
+   "ok": true,
+   "note": "Apache-2.0, about 0.3B parameters, 32K context, 2048 dimensions with truncation, trust_remote_code required, transformers 4.56+. Matches."
+  },
+  {
+   "source_id": "P16-M04 lib (sharp)",
+   "url": "https://github.com/lcovarrubias/sharp-placeholder-not-used",
+   "ok": false,
+   "note": "HTTP 404 placeholder; real repo github.com/lovell/sharp."
+  },
+  {
+   "source_id": "(sharp docs)",
+   "url": "https://sharp.pixelplumbing.com/api-output",
+   "ok": true,
+   "note": "All metadata, including ICC, stripped by default unless keepMetadata or withMetadata is used; licence not stated on the page."
+  },
+  {
+   "source_id": "P16-S40/S72 (computed)",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+   "ok": true,
+   "note": "Recomputed every contrast pair with the WCAG formula; all spec values reproduce. Dark-theme TA outline vs FALSE fill is 1.08:1. Dirichlet SDs (6.86/6.42/5.6/4.2) and the M08 cost arithmetic also reproduce."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "A named person downloads the Higher Buildings Policy PDF in a browser, records its SHA-256 and edition, and has a second person review the height, policy-area and criteria clauses. Both height cards are then confirmed or corrected (or the failed attempt is logged with date and error).",
+   "The VTC brief PDF is obtained through registration before 29 Oct 2026, hashed and stored, and every brief card (9.0 FSR, 244-305 m, 40/30/20/10, four boards, justified breaches) is reviewed blind-first by a person other than the proposer.",
+   "An explicit VTC 2026 entrant-scope statement says that no LLM feature ships before 30 Nov, and the 13 Nov slice is rebalanced to fit the available person-days.",
+   "The cost model includes thinking and reasoning tokens and effort (pinned per cached conversation), and thresholds are recalibrated from a measured pilot.",
+   "A community-module sandbox is specified (no network, no storage, typed ports) with a failing-closed exfiltration control case, or the 'cannot send geometry out' claim is withdrawn.",
+   "A restricted_cultural data class with a permission record and a no-generation rule is added, and reconciliation is removed from numeric aggregates.",
+   "The placeholder sharp URL is replaced with lovell/sharp and its docs as a sourced entry, with a CI link check on all URLs.",
+   "Self-applied 'verified' labels based on an agent's or summary reading are relabelled unverified until a human reviewer is recorded.",
+   "A third-person auditor (instructor, TA or another course team) is named, or cards are capped at 'reviewed, not audited'."
+  ]
+ },
+ "verdict": "Gate fails. Round 3 dealt with nearly every r2 MAJOR. Facets, reviewer independence, the single export rule, authorship records, the M05 evidence gate and the MCP credential fix are all present and match the primary sources I re-read. An entrant still cannot rely on the spec. The policy and brief PDFs are both unread, and the brief is reachable through registration, which closes 29 Oct. The LLM features arrive after the 30 Nov deadline. The cost model leaves out billed thinking tokens. A sandbox claim for community modules is unsupported. A library URL is a 404 placeholder. Several 'verified' labels break the packet's own reviewer rule. Indigenous-knowledge controls exist only as prose. Fix those conditions and the design is close to passing."
+}

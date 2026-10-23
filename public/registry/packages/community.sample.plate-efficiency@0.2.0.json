@@ -1,0 +1,50 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.sample.plate-efficiency",
+  "version": "0.2.0",
+  "licence": "MIT",
+  "name": "Floor-plate efficiency (sample)",
+  "author": { "name": "Tower Design Toolkit sample registry" },
+  "category": "PROG",
+  "stage": "schematic",
+  "question": "How much of a typical tower floor is usable once the core is taken out?",
+  "jury": ["design_excellence_20"],
+  "projects": ["vtc", "city"],
+  "inputs": ["tower.netToGross", "tower.plateArea", "tower.coreArea"],
+  "method": "Reads the core share Tower Design Toolkit sizes to the lifts and stairs (or the share you set) and reports net-to-gross on a typical tower floor, plus the net area that is left.",
+  "human": "Which efficiency a tenant or developer will accept for this use and height, and whether a bigger core buys something worth it (sky lobbies, public lifts, wider stairs).",
+  "limits": "A sample package for the development registry: its thresholds are team presets, not a sourced benchmark. Only the core is deducted; columns, walls and shafts outside the core are not.",
+  "metrics": [
+    {
+      "id": "net_to_gross",
+      "label": "Net-to-gross on a typical floor",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.netToGross",
+      "decimals": 2,
+      "threshold": {
+        "direction": "higher_is_better",
+        "good": 0.75,
+        "bad": 0.65,
+        "flag": "team_assumption",
+        "source": {
+          "label": "Sample registry entry: a team preset for demonstration, not a sourced benchmark",
+          "page": "Replace with a sourced value before relying on it (research P08-M02 lists comparators)"
+        }
+      }
+    },
+    {
+      "id": "net_area",
+      "label": "Net area on a typical floor",
+      "unit": "m²",
+      "per": "tower",
+      "expression": "tower.plateArea - tower.coreArea",
+      "decimals": 0,
+      "threshold": {
+        "flag": "unresolved",
+        "source": { "label": "No threshold: reported only" }
+      }
+    }
+  ],
+  "createdWith": "Tower Design Toolkit sample registry (development data, not a real submission)"
+}

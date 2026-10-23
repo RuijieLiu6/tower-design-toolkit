@@ -1,0 +1,2402 @@
+{
+ "packet_id": "P15",
+ "modules": [
+  {
+   "module_id": "P15-M01",
+   "name": "Node canvas and typed ports",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "Which browser node-canvas library and typed-port scheme lets designers wire Layer 0 and module outputs together safely, accessibly, and without wiring mistakes reaching execution?",
+   "nature": "mixed",
+   "priority": "core",
+   "inputs": [
+    "Module manifests with port declarations (P15-M03)",
+    "User edits: add node, connect, move, group, collapse",
+    "Layer 0 payload type ids (geometry, program tags)"
+   ],
+   "outputs": [
+    "Graph document JSON: nodes {id, module@version, params, enabled}, edges {fromPort, toPort}",
+    "Port-type registry (nominal type id to JSON Schema $id)",
+    "Connection-rejected events with the expected type"
+   ],
+   "parameters": [
+    {
+     "name": "connection_rule (exact type id | declared subtype | via converter node)",
+     "relationship": "Stricter rule -> fewer invalid wires reach execution but more converter nodes for the user. React Flow lets the app veto a connection before it is created (isValidConnection).",
+     "source_ids": [
+      "P15-S01",
+      "P15-S05"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "cycle_policy (reject at connect time)",
+     "relationship": "A cycle -> no topological order exists, so the graph cannot execute; blocking the wire at connect time keeps the graph a DAG.",
+     "source_ids": [
+      "P15-S05",
+      "P15-S13"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "port_cardinality (item | list | tree)",
+     "relationship": "Tree ports (path -> branch -> item) let one module evaluate many floors or towers in one run, as Grasshopper data trees do; adds a concept users must learn.",
+     "source_ids": [
+      "P15-S12"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "canvas_library (xyflow | Rete | Baklava | litegraph)",
+     "relationship": "A maintained library with a large user base lowers forced-migration risk; an archived or stale one raises it. Observed push dates and weekly downloads are in the metrics.",
+     "source_ids": [
+      "P15-S02",
+      "P15-S06",
+      "P15-S08",
+      "P15-S09",
+      "P15-S10",
+      "P15-S11"
+     ],
+     "unit": "choice"
+    },
+    {
+     "name": "collapsed_groups (hidden flag)",
+     "relationship": "Collapsing node trees through the hidden property -> fewer rendered nodes -> lower re-render cost on pan, zoom and edit.",
+     "source_ids": [
+      "P15-S03"
+     ],
+     "unit": "count of visible nodes"
+    },
+    {
+     "name": "handle_size and non-drag alternative",
+     "relationship": "Handles under 24 CSS px, or drag-only wiring, fail WCAG 2.2 AA -> keyboard, touch and motor-impaired users cannot build graphs.",
+     "source_ids": [
+      "P15-S49",
+      "P15-S50"
+     ],
+     "unit": "CSS px"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Canvas interaction latency (INP, 75th percentile)",
+     "good": "<= 200 ms",
+     "bad": "> 500 ms",
+     "status": "verified",
+     "unit": "ms",
+     "method": "Measure Interaction to Next Paint on drag, connect and param edit with a web-vitals style observer in the test build.",
+     "basis": "web.dev Core Web Vitals INP bands; our application to a canvas editor is an adaptation, since the bands are defined for page-load field data.",
+     "source_ids": [
+      "P15-S47"
+     ]
+    },
+    {
+     "name": "Pointer target size of handles and buttons",
+     "good": ">= 24 x 24 CSS px (or spacing exception)",
+     "bad": "< 24 x 24 CSS px without an exception",
+     "status": "verified",
+     "unit": "CSS px",
+     "method": "Automated DOM measurement of every interactive element plus manual review.",
+     "basis": "WCAG 2.2 SC 2.5.8 Target Size (Minimum), Level AA.",
+     "source_ids": [
+      "P15-S49"
+     ]
+    },
+    {
+     "name": "Single-pointer or keyboard alternative to drag",
+     "good": "Every drag action (connect, move, resize) has an alternative",
+     "bad": "Any drag-only action",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Checklist test; implement click-to-connect and keyboard connect commands.",
+     "basis": "WCAG 2.2 SC 2.5.7 Dragging Movements, Level AA. The understanding page does not mention node editors, so applying it here is our reading.",
+     "source_ids": [
+      "P15-S50"
+     ]
+    },
+    {
+     "name": "Non-text contrast of ports, wires and status chips",
+     "good": ">= 3:1 against adjacent colours",
+     "bad": "< 3:1",
+     "status": "verified",
+     "unit": "contrast ratio",
+     "method": "Automated contrast check of the theme tokens in light and dark mode.",
+     "basis": "WCAG 2.2 SC 1.4.11 Non-text Contrast, Level AA.",
+     "source_ids": [
+      "P15-S48"
+     ]
+    },
+    {
+     "name": "Invalid connections accepted by the canvas",
+     "good": "0",
+     "bad": ">= 1",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Property test: random pairs of ports must be accepted only when the type rule allows.",
+     "basis": "Course requirement that outputs are typed inputs of the next node; zero tolerance is our policy.",
+     "source_ids": []
+    },
+    {
+     "name": "Canvas library maintenance health",
+     "good": "Not archived and pushed within 90 days",
+     "bad": "Archived, or no push for more than 12 months",
+     "status": "team_assumption",
+     "unit": "days since last push",
+     "method": "Read GitHub pushed_at and archived flag; npm weekly downloads for adoption. Observed 21 Oct 2026: xyflow pushed 2026-10-20 (8.35 M downloads/week); Rete pushed 2026-10-18 (47 k); Baklava pushed 2026-09-16 (1.7 k); litegraph.js pushed 2024-08-01; Comfy-Org litegraph fork archived (pushed 2026-01-14).",
+     "basis": "Threshold days are an editable team preset; the observed values are verified.",
+     "source_ids": [
+      "P15-S02",
+      "P15-S06",
+      "P15-S08",
+      "P15-S09",
+      "P15-S10",
+      "P15-S11"
+     ]
+    },
+    {
+     "name": "Interactive node/edge capacity at 60 fps on a mid-range laptop",
+     "good": "unverified: to be benchmarked",
+     "bad": "unverified: to be benchmarked",
+     "status": "unverified",
+     "unit": "nodes",
+     "method": "Benchmark with synthetic graphs of increasing size; React Flow's performance guide gives no node-count figures.",
+     "basis": "No published sourced figure found.",
+     "source_ids": [
+      "P15-S03"
+     ]
+    }
+   ],
+   "visualization": [
+    "The canvas itself: node cards with a category colour stripe (13 taxonomy codes), a title, ports on left (inputs) and right (outputs), and a status badge (verified / team assumption / FALSE ASSUMPTION in its reserved colour).",
+    "Ports coloured and shaped by type (circle = item, square = list, diamond = tree) with a collapsible legend; colour is never the only cue.",
+    "A rejected connection shows a red dashed ghost wire and a tooltip 'expects Layer0.Geometry, got Table'.",
+    "Minimap and collapsed group frames; auto-layout button."
+   ],
+   "method": "Build on @xyflow/react. Custom node components are generated from manifests (P15-M03); each Handle carries a nominal port-type id (the $id of a JSON Schema). isValidConnection rejects: a type mismatch without a declared converter, a cycle (walk getOutgoers from the target), and a second wire into a single-cardinality input. The graph JSON (nodes, edges, parameters, enabled flags) is the single source of truth; React Flow keeps only view state. Memoise node components, keep derived state such as selected ids outside the nodes array, and collapse groups with the hidden property. Provide click-to-connect and keyboard connect commands, 24 px handles and 3:1 contrast. Auto-layout with dagre. Keep the React Flow attribution visible unless a Pro subscription is bought.",
+   "libraries": [
+    {
+     "name": "@xyflow/react 12.12.0",
+     "license": "MIT",
+     "role": "Primary node canvas (custom nodes, handles, validation hooks, minimap)",
+     "url": "https://github.com/xyflow/xyflow"
+    },
+    {
+     "name": "rete 2.0.6",
+     "license": "MIT",
+     "role": "Fallback canvas plus dataflow engine if React is dropped",
+     "url": "https://github.com/retejs/rete"
+    },
+    {
+     "name": "@baklavajs/core 2.8.1",
+     "license": "MIT",
+     "role": "Vue-based alternative with engine and interface types",
+     "url": "https://github.com/newcat/baklavajs"
+    },
+    {
+     "name": "@dagrejs/dagre 3.1.1",
+     "license": "MIT",
+     "role": "Auto-layout of the DAG",
+     "url": "https://www.npmjs.com/package/@dagrejs/dagre"
+    },
+    {
+     "name": "elkjs 0.12.0",
+     "license": "EPL-2.0 OR GPL-3.0-or-later",
+     "role": "Optional layered layout for large graphs (licence needs review)",
+     "url": "https://www.npmjs.com/package/elkjs"
+    },
+    {
+     "name": "litegraph.js (original) - NOT recommended",
+     "license": "MIT",
+     "role": "Rejected: last push 2024-08-01; Comfy-Org fork archived",
+     "url": "https://github.com/jagenjo/litegraph.js"
+    }
+   ],
+   "effort": "Core: about 1.5 dev-weeks for canvas, typed ports and status badges; +3 days accessibility pass (team estimate).",
+   "human_judgment": "Maintainers decide the port-type vocabulary, category colours and what counts as unit-compatible; the designer decides which wires express the design intent.",
+   "limits": "Nominal type ids avoid structural JSON Schema subset checks but need a maintained type registry. WCAG bands are applied to an editor by our interpretation. Node capacity is unmeasured. React Flow attribution terms and Pro pricing (Starter $169/month, Professional $289/month at retrieval) can change.",
+   "jury_criteria": [
+    "No direct jury criterion; enabler for all four tags (human_scale_40, cultural_context_30, design_excellence_20, urban_integration_10)."
+   ],
+   "depends_on": [
+    "P15-M03"
+   ]
+  },
+  {
+   "module_id": "P15-M02",
+   "name": "DAG execution, run-all vs step-into, provenance",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "How does the tool run a wired graph deterministically, let users run everything or step into one node, and log inputs, thresholds and sources so every result shows its work?",
+   "nature": "objective",
+   "priority": "core",
+   "inputs": [
+    "Graph JSON (P15-M01)",
+    "Validated manifests (P15-M03)",
+    "Layer 0 payload",
+    "Per-node enabled flag and user threshold overrides"
+   ],
+   "outputs": [
+    "RunRecord JSON: run_id, graph hash, per node {module@version, parameter values, input hashes, outputs, metrics with threshold basis and source ids, status flag, duration, error}",
+    "Typed node results consumed by downstream nodes",
+    "Stale/blocked status map for the canvas"
+   ],
+   "parameters": [
+    {
+     "name": "execution_mode (auto | run-all | step-into)",
+     "relationship": "Auto keeps results fresh but recomputes on every edit; run-all gives the user control over cost; step-into exposes one node's inputs, parameters and thresholds for audit. Design choice; no sourced evidence on trust effects.",
+     "source_ids": [],
+     "unit": "enum"
+    },
+    {
+     "name": "cache_key = hash(module@version, parameters, upstream hashes)",
+     "relationship": "Same key -> reuse the cached output; changed key -> recompute only that node and descendants. Rete's dataflow engine caches outputs and requires an explicit reset when inputs change.",
+     "source_ids": [
+      "P15-S07"
+     ],
+     "unit": "hash"
+    },
+    {
+     "name": "topological schedule (Kahn)",
+     "relationship": "Ordering nodes so each runs after its inputs costs O(V+E); edges left over after the queue empties reveal a cycle, so a cyclic graph is refused.",
+     "source_ids": [
+      "P15-S13"
+     ],
+     "unit": "V+E steps"
+    },
+    {
+     "name": "port cardinality (item | list | tree)",
+     "relationship": "Whether a module runs once or once per branch depends on the input structure; trees map paths to branches of items.",
+     "source_ids": [
+      "P15-S12"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "disabled-node mode (bypass | block)",
+     "relationship": "Bypass forwards type-compatible data, so downstream metrics keep computing on different inputs; block marks descendants blocked. The choice changes what a downstream pass/fail means. Design logic.",
+     "source_ids": [],
+     "unit": "enum"
+    },
+    {
+     "name": "timeout and cancel",
+     "relationship": "Longer budget -> fewer false kills on heavy modules but a longer stall; Pyodide can be interrupted from a worker with a SharedArrayBuffer, which needs cross-origin isolation headers, else terminate the worker.",
+     "source_ids": [
+      "P15-S16",
+      "P15-S20",
+      "P15-S21"
+     ],
+     "unit": "seconds"
+    },
+    {
+     "name": "threshold_override (editable team assumption)",
+     "relationship": "Editing a threshold changes the cache key of every dependent node, so the new run is recorded with the value actually used.",
+     "source_ids": [],
+     "unit": "module-specific"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Determinism",
+     "good": "100% identical output hashes on two consecutive runs with the same inputs and versions",
+     "bad": "Any hash difference",
+     "status": "team_assumption",
+     "unit": "% identical",
+     "method": "Run twice in CI with canonical JSON serialisation (sorted keys, fixed float precision) and compare hashes.",
+     "basis": "Course requirement that results show their work; threshold is our policy.",
+     "source_ids": []
+    },
+    {
+     "name": "Provenance completeness",
+     "good": "100% of result values carry module@version, parameters, input hash, threshold basis and source id/status",
+     "bad": "< 100%",
+     "status": "team_assumption",
+     "unit": "% complete",
+     "method": "Schema check of every RunRecord entry.",
+     "basis": "Course requirement: every result cites its source and shows its work.",
+     "source_ids": []
+    },
+    {
+     "name": "Scheduling cost",
+     "good": "O(V+E)",
+     "bad": "Worse than linear",
+     "status": "verified",
+     "unit": "complexity",
+     "method": "Kahn or DFS topological sort.",
+     "basis": "Standard algorithm complexity.",
+     "source_ids": [
+      "P15-S13"
+     ]
+    },
+    {
+     "name": "Main-thread responsiveness during a run (INP)",
+     "good": "<= 200 ms",
+     "bad": "> 500 ms",
+     "status": "verified",
+     "unit": "ms",
+     "method": "Run heavy modules in workers; measure INP during run-all.",
+     "basis": "web.dev INP bands (adapted to an editor).",
+     "source_ids": [
+      "P15-S47"
+     ]
+    },
+    {
+     "name": "Incremental re-run time after one parameter change",
+     "good": "<= 5 s",
+     "bad": "> 30 s",
+     "status": "team_assumption",
+     "unit": "s",
+     "method": "Wall-clock of re-run with warm cache on the reference VTC graph.",
+     "basis": "Editable preset; no sourced benchmark.",
+     "source_ids": []
+    }
+   ],
+   "visualization": [
+    "Node status chips (idle, stale, running, ok, warn, error, blocked) and a pulse travelling along wires during a run.",
+    "Bottom timeline (Gantt) of per-node durations.",
+    "Step-into side panel in three columns: Inputs (hash, preview) | Method, parameters, thresholds with source links | Outputs with pass/fail badges.",
+    "Run-diff table between two RunRecords and a 'download provenance' button."
+   ],
+   "method": "Load the graph, validate it against manifests (P15-M03), Kahn-sort it and reject cycles. For each node compute the cache key; on a hit reuse the stored output, otherwise call the module runtime (P15-M04), validate inputs and outputs with Ajv against the declared JSON Schemas, and append an entry to the RunRecord. Run-all executes the full order; step-into pauses before a chosen node, shows inputs, lets the user edit parameters and thresholds, then resumes. A failed node marks descendants blocked, never ok. Disabled nodes follow their mode (bypass or block). Results are immutable; any edit creates a new run. Canonical JSON and fixed float precision make determinism testable.",
+   "libraries": [
+    {
+     "name": "rete + rete-engine 2.0.6",
+     "license": "MIT",
+     "role": "Pull-based dataflow engine with caching, or use as a design reference",
+     "url": "https://retejs.org/docs/guides/processing/dataflow"
+    },
+    {
+     "name": "comlink 4.4.2",
+     "license": "Apache-2.0",
+     "role": "Worker RPC for running nodes off the main thread",
+     "url": "https://www.npmjs.com/package/comlink"
+    },
+    {
+     "name": "ajv 8.20.0",
+     "license": "MIT",
+     "role": "Runtime validation of node inputs and outputs (draft 2020-12)",
+     "url": "https://github.com/ajv-validator/ajv"
+    }
+   ],
+   "effort": "Core: about 1.5-2 dev-weeks including run-all, step-into, cache and RunRecord export (team estimate). The simple on/off toggle ships here.",
+   "human_judgment": "The designer chooses which modules to enable, whether to override a threshold, and whether a pass/fail verdict means anything for the design; the tool only computes and logs.",
+   "limits": "Cross-browser floating-point determinism is unverified for numerically heavy modules. Cache keys ignore changes in external data. Step-into is our UX design, not a standard. Time budgets are untested presets. Auto vs manual mode effects on user trust have no sourced evidence.",
+   "jury_criteria": [
+    "No direct jury criterion; supports evidence traceability for all four tags (human_scale_40, cultural_context_30, design_excellence_20, urban_integration_10)."
+   ],
+   "depends_on": [
+    "P15-M01",
+    "P15-M03",
+    "P15-M04"
+   ]
+  },
+  {
+   "module_id": "P15-M03",
+   "name": "Module manifest and validator",
+   "phase": "cross-cutting",
+   "category": "DATA",
+   "design_question": "What manifest makes every module self-describing, source-cited and machine-checkable, so thresholds, assumptions and licences are validated before a module can run or be published?",
+   "nature": "objective",
+   "priority": "core",
+   "inputs": [
+    "manifest.json per module",
+    "Module bundle and test fixtures",
+    "Taxonomy enumerations (13 category codes, 5 phases, 4 jury tags)",
+    "SPDX licence list"
+   ],
+   "outputs": [
+    "Validated manifest object",
+    "Port-type registry entries",
+    "Lint report (errors and warnings)",
+    "Module-card data for palette, registry and review (P15-M05, P15-M06)"
+   ],
+   "parameters": [
+    {
+     "name": "id and name rules",
+     "relationship": "A unique lowercase id keeps forks distinct and saved graphs resolvable. VS Code requires lowercase names, Obsidian a unique id, Yak restricted characters, crates.io case-insensitive collision checks.",
+     "source_ids": [
+      "P15-S29",
+      "P15-S36",
+      "P15-S37",
+      "P15-S33"
+     ],
+     "unit": "string rule"
+    },
+    {
+     "name": "version (SemVer 2.0.0)",
+     "relationship": "The number encodes change impact: a backward-incompatible input/output schema change must raise MAJOR, so graphs pinned to a MAJOR keep working.",
+     "source_ids": [
+      "P15-S32"
+     ],
+     "unit": "MAJOR.MINOR.PATCH"
+    },
+    {
+     "name": "category, phase, jury_tags (enumerations)",
+     "relationship": "Category decides palette placement and colour; jury tags let a dashboard aggregate which criteria a graph evidences. VS Code similarly limits categories to a fixed list.",
+     "source_ids": [
+      "P15-S29"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "inputs / outputs as JSON Schema 2020-12",
+     "relationship": "Typed ports derive from schemas; changing a schema changes which wires are valid, so a schema diff drives the version bump.",
+     "source_ids": [
+      "P15-S30",
+      "P15-S31"
+     ],
+     "unit": "JSON Schema"
+    },
+    {
+     "name": "parameters[] with relationship text, unit, source_ids",
+     "relationship": "Making the causal relationship a required field stops a module from hiding assumptions; empty relationship -> lint error.",
+     "source_ids": [],
+     "unit": "text"
+    },
+    {
+     "name": "metrics[] with good, bad, status, source_ids",
+     "relationship": "Status enum (verified | team_assumption | unverified | false_assumption_corrected) decides chip colour and whether a source is mandatory.",
+     "source_ids": [],
+     "unit": "enum"
+    },
+    {
+     "name": "licence (SPDX expression)",
+     "relationship": "The declared licence decides who may fork and redistribute; a missing licence means no reuse rights.",
+     "source_ids": [
+      "P15-S59"
+     ],
+     "unit": "SPDX id"
+    },
+    {
+     "name": "permissions[] and runtime tier",
+     "relationship": "Each declared permission widens what the sandbox grants; a new permission in an update forces re-approval, as Chrome does.",
+     "source_ids": [
+      "P15-S28"
+     ],
+     "unit": "enum list"
+    },
+    {
+     "name": "engines (platform version range)",
+     "relationship": "Declares compatible platform versions so incompatible modules are not loaded, as VS Code's engines.vscode field does.",
+     "source_ids": [
+      "P15-S29"
+     ],
+     "unit": "semver range"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Manifest schema validity",
+     "good": "0 validation errors",
+     "bad": ">= 1 error",
+     "status": "team_assumption",
+     "unit": "errors",
+     "method": "Ajv validation at editor save, registry CI and graph load.",
+     "basis": "CI gate policy; validator mechanism is standard JSON Schema.",
+     "source_ids": [
+      "P15-S30",
+      "P15-S31"
+     ]
+    },
+    {
+     "name": "Threshold classification coverage",
+     "good": "100% of thresholds have status verified (with at least one opened source), team_assumption, or unverified",
+     "bad": "Any unclassified threshold, or verified without a source",
+     "status": "team_assumption",
+     "unit": "% classified",
+     "method": "Lint rule over metrics[].",
+     "basis": "Course requirement: unsourced thresholds appear as editable team assumptions.",
+     "source_ids": []
+    },
+    {
+     "name": "SemVer compliance",
+     "good": "No breaking input/output schema diff without a MAJOR bump",
+     "bad": "Breaking diff shipped as MINOR or PATCH",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Compare two manifest versions' schemas (removed or narrowed fields, changed types) and compare with the bump.",
+     "basis": "SemVer 2.0.0 rule: backward-incompatible API change -> MAJOR; released versions are immutable.",
+     "source_ids": [
+      "P15-S32"
+     ]
+    },
+    {
+     "name": "Licence field validity",
+     "good": "Valid SPDX expression; code licence is OSI-approved",
+     "bad": "Missing or unknown identifier",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Parse with spdx-expression-parse; check against the SPDX list with its OSI-approved flag.",
+     "basis": "SPDX License List identifiers and OSI flag.",
+     "source_ids": [
+      "P15-S59",
+      "P15-S55"
+     ]
+    },
+    {
+     "name": "Source link health",
+     "good": "All source URLs resolve at CI time",
+     "bad": "Any 404 or 403 without an archived copy",
+     "status": "team_assumption",
+     "unit": "% resolving",
+     "method": "HEAD requests in CI; opened flag recorded per source.",
+     "basis": "Team policy; several sources in this packet returned 403, so a fallback is needed.",
+     "source_ids": []
+    },
+    {
+     "name": "Test presence",
+     "good": ">= 1 passing fixture per metric",
+     "bad": "No fixture",
+     "status": "team_assumption",
+     "unit": "fixtures per metric",
+     "method": "Run fixtures in Vitest; compare outputs with expected values.",
+     "basis": "JOSS requires an automated test suite or documented manual tests; a numeric coverage threshold is deliberately not set because none was sourced.",
+     "source_ids": [
+      "P15-S55"
+     ]
+    }
+   ],
+   "visualization": [
+    "Manifest editor form with live inline validation (red/green).",
+    "Module card in the palette: category stripe, version, SPDX badge, and a stacked bar counting verified / team assumption / unverified thresholds.",
+    "Per-threshold chip linked to its source; FALSE ASSUMPTION chips in the reserved colour with the old value struck through and the corrected value beside it.",
+    "Lint report grouped by severity."
+   ],
+   "method": "Define the manifest as a JSON Schema (2020-12) with enumerations for category (13 codes), phase (basic, advanced, present, platform, cross-cutting), jury tags (4) and metric status (4). Validate with Ajv at three points: editor save, registry CI (P15-M05) and graph load (P15-M02). Ports reference named type ids; actual payloads are validated at run time. A manifest-diff tool compares two versions and suggests MAJOR, MINOR or PATCH. Lint rules: at least one opened source per verified threshold, non-empty relationship text per parameter, SPDX licence, declared permissions, at least one fixture per metric, SemVer version, unique id. Dependencies and graph pins use SemVer ranges via the semver package.",
+   "libraries": [
+    {
+     "name": "ajv 8.20.0",
+     "license": "MIT",
+     "role": "JSON Schema 2020-12 validator",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "semver 7.8.5",
+     "license": "ISC",
+     "role": "Version parsing and range resolution",
+     "url": "https://www.npmjs.com/package/semver"
+    },
+    {
+     "name": "spdx-expression-parse 5.0.0",
+     "license": "MIT",
+     "role": "Licence expression validation",
+     "url": "https://www.npmjs.com/package/spdx-expression-parse"
+    },
+    {
+     "name": "vitest 5.0.5",
+     "license": "MIT",
+     "role": "Module fixture tests in CI",
+     "url": "https://www.npmjs.com/package/vitest"
+    }
+   ],
+   "effort": "Core: about 1 dev-week for schema, Ajv wiring and lint; v1: +1 week for the manifest-diff tool (team estimate).",
+   "human_judgment": "Whether a source really supports a threshold, whether a relationship statement is true, and whether category and jury tags fit remain reviewer decisions; the linter checks presence and format only.",
+   "limits": "Validation proves shape, not truth: a wrongly sourced 'verified' passes lint. Ajv does not decide whether one JSON Schema is a subset of another, so compatibility uses nominal type ids. Fields such as i18n, icons and dependency conflict resolution are not specified here.",
+   "jury_criteria": [
+    "No direct jury criterion; the status field is what makes evidence honest across design_excellence_20 and the other tags."
+   ],
+   "depends_on": []
+  },
+  {
+   "module_id": "P15-M04",
+   "name": "Sandbox for community code",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "How can the platform run community-contributed module code without exposing user models, tokens or the host page to malicious or buggy code?",
+   "nature": "objective",
+   "priority": "v1",
+   "inputs": [
+    "Module bundle and manifest (runtime tier, permissions)",
+    "Validated input payload (JSON or transferred ArrayBuffer)",
+    "Resource limits (time, memory)"
+   ],
+   "outputs": [
+    "Schema-validated module output",
+    "Telemetry {cpu_ms, peak_memory, terminated, denied_calls[]}",
+    "Permission-grant record per module@version"
+   ],
+   "parameters": [
+    {
+     "name": "runtime_tier (T0 declarative | T1 JS in QuickJS-WASM or SES | T2 Pyodide in isolated worker | T3 server container)",
+     "relationship": "Higher tier -> more expressive (Python, native libraries) but larger attack surface and heavier load. Pyodide alone is not a security boundary, so T2 needs host-level isolation and maintainer review.",
+     "source_ids": [
+      "P15-S17",
+      "P15-S23",
+      "P15-S24",
+      "P15-S14"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "granted_permissions (network, storage, geometry read/write)",
+     "relationship": "Default-deny plus declared permissions: each added permission enlarges what a compromised module can read or exfiltrate. Chrome warns users and disables an extension until it accepts a newly added permission.",
+     "source_ids": [
+      "P15-S26",
+      "P15-S28"
+     ],
+     "unit": "enum list"
+    },
+    {
+     "name": "origin isolation (separate origin; iframe sandbox without allow-same-origin)",
+     "relationship": "Same-origin content with both allow-scripts and allow-same-origin can remove its own sandbox attribute -> no isolation; a unique opaque origin blocks cookies and storage access.",
+     "source_ids": [
+      "P15-S19"
+     ],
+     "unit": "header/attribute"
+    },
+    {
+     "name": "worker CSP",
+     "relationship": "A worker is generally not governed by the creating page's CSP; unless its own response carries a CSP header, code in the worker can still use eval and the network.",
+     "source_ids": [
+      "P15-S18"
+     ],
+     "unit": "CSP header"
+    },
+    {
+     "name": "memory, stack and time limits",
+     "relationship": "Caps stop runaway modules; QuickJS offers memory, stack and interrupt-deadline limits, whereas SES does not mitigate memory or CPU exhaustion.",
+     "source_ids": [
+      "P15-S24",
+      "P15-S23"
+     ],
+     "unit": "MB, s"
+    },
+    {
+     "name": "cross-origin isolation (COOP and COEP headers)",
+     "relationship": "Needed for SharedArrayBuffer-based Pyodide interrupts; static hosts that cannot set headers need a service-worker shim, with a page reload on first load. Side effect on third-party embeds is unverified.",
+     "source_ids": [
+      "P15-S16",
+      "P15-S20",
+      "P15-S27"
+     ],
+     "unit": "HTTP headers"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Sandbox-escape suite pass rate",
+     "good": "100% of red-team cases blocked (ctypes, Emscripten exports, fetch, DOM, storage, parent postMessage, eval)",
+     "bad": "Any escape",
+     "status": "team_assumption",
+     "unit": "% blocked",
+     "method": "CI red-team suite per tier, seeded with the failure classes from the Aug 2026 Pyodide disclosure.",
+     "basis": "Policy threshold; failure classes verified in the Cyera report (seven products affected, including n8n CVE-2025-68668).",
+     "source_ids": [
+      "P15-S17"
+     ]
+    },
+    {
+     "name": "Permission least-privilege",
+     "good": "Used permissions equal declared permissions",
+     "bad": "Undeclared use attempted (blocked and flagged)",
+     "status": "team_assumption",
+     "unit": "pass/fail",
+     "method": "Instrument host API calls; compare with manifest.",
+     "basis": "Chrome guidance to request only permissions the main function needs.",
+     "source_ids": [
+      "P15-S28"
+     ]
+    },
+    {
+     "name": "Runaway-module containment",
+     "good": "Module killed within its budget; UI INP <= 200 ms",
+     "bad": "UI INP > 500 ms or module not killable",
+     "status": "verified",
+     "unit": "ms",
+     "method": "Infinite-loop fixture; watchdog calls Worker.terminate, which stops a worker immediately.",
+     "basis": "INP bands from web.dev; terminate semantics from MDN.",
+     "source_ids": [
+      "P15-S47",
+      "P15-S21"
+     ]
+    },
+    {
+     "name": "Resource caps enforced",
+     "good": "Memory and time caps set and enforced for every tier",
+     "bad": "Any tier unlimited",
+     "status": "team_assumption",
+     "unit": "MB, s",
+     "method": "Per-tier preset in platform config; numeric defaults to be set after benchmarking.",
+     "basis": "SES explicitly leaves exhaustion unmitigated; QuickJS provides the knobs.",
+     "source_ids": [
+      "P15-S23",
+      "P15-S24"
+     ]
+    },
+    {
+     "name": "Pyodide cold-start time and download size",
+     "good": "unverified: to be benchmarked",
+     "bad": "unverified: to be benchmarked",
+     "status": "unverified",
+     "unit": "s, MB",
+     "method": "Measure first load and warm load on campus network; npm core package unpacked size is 13,879,282 bytes (core only).",
+     "basis": "No sourced figure for end-to-end cold start.",
+     "source_ids": [
+      "P15-S11",
+      "P15-S14"
+     ]
+    },
+    {
+     "name": "Release provenance",
+     "good": "100% of community releases built in CI with signed provenance",
+     "bad": "Unsigned release",
+     "status": "team_assumption",
+     "unit": "% signed",
+     "method": "Verify attestations before listing; npm provenance links a package to source and build and is signed via Sigstore.",
+     "basis": "Provenance proves origin, not safety.",
+     "source_ids": [
+      "P15-S40"
+     ]
+    }
+   ],
+   "visualization": [
+    "Install-time permission card in plain language with icons (reads geometry: yes; network: none; storage: none; CPU/memory caps) modelled on browser extension permission warnings.",
+    "Per-node runtime badge: tier T0-T3, shield colour for 'reviewed' vs 'unreviewed community', small live meters for CPU ms and memory.",
+    "Red 'terminated' banner with reason; sandbox report log with denied calls."
+   ],
+   "method": "First-party modules run in a trusted worker. Community modules run in a dedicated Worker created inside an iframe on a separate sandbox origin (sandbox attribute, no allow-same-origin). The worker response carries its own CSP (connect-src none). The only API is postMessage/MessagePort; Layer 0 data is passed as transferred copies. A watchdog calls Worker.terminate on timeout. T1: QuickJS-WASM with memory, stack and interrupt limits, or SES Compartments with frozen intrinsics. T2: Pyodide with ctypes blocked, Emscripten exports stripped, import allowlist, no network, inside the isolated worker, enabled only after maintainer review. T3 (roadmap): server job in a gVisor or microVM sandbox, no network, no secrets. A red-team test suite runs in CI for each tier.",
+   "libraries": [
+    {
+     "name": "quickjs-emscripten 0.32.0",
+     "license": "MIT",
+     "role": "T1: untrusted JS in WASM with memory, stack and deadline limits",
+     "url": "https://github.com/justjake/quickjs-emscripten"
+    },
+    {
+     "name": "ses 2.3.0 (Endo)",
+     "license": "Apache-2.0",
+     "role": "T1 alternative: Hardened JS compartments",
+     "url": "https://github.com/endojs/endo/tree/master/packages/ses"
+    },
+    {
+     "name": "Pyodide 314.0.7",
+     "license": "MPL-2.0",
+     "role": "T2: Python in WASM, only inside host isolation",
+     "url": "https://github.com/pyodide/pyodide"
+    },
+    {
+     "name": "@extism/extism 2.0.0-rc13",
+     "license": "BSD-3-Clause",
+     "role": "WASM plug-in framework with limiters (release candidate)",
+     "url": "https://github.com/extism/extism"
+    },
+    {
+     "name": "coi-serviceworker",
+     "license": "MIT",
+     "role": "COOP/COEP on static hosts",
+     "url": "https://github.com/gzuidhof/coi-serviceworker"
+    },
+    {
+     "name": "gVisor (runsc)",
+     "license": "Apache-2.0",
+     "role": "T3: user-space kernel for container isolation",
+     "url": "https://github.com/google/gvisor"
+    }
+   ],
+   "effort": "v1: T0 plus T1 about 2 dev-weeks; hardened T2 about 2 more weeks; T3 roadmap, 4+ weeks (team estimate).",
+   "human_judgment": "Maintainers decide which tier and permissions a module may have, review T2 code, triage vulnerability reports and decide takedowns.",
+   "limits": "No browser sandbox is a proven boundary against every attack: side channels and SharedArrayBuffer timers remain possible per the WebAssembly and SES documentation. Pyodide hardening is an arms race; two of the seven products in the Aug 2026 disclosure got no fix because maintainers left isolation to deployers. COEP effects on embeds are unverified.",
+   "jury_criteria": [
+    "No direct jury criterion; protects entrants' unpublished designs, which VTC rules require to stay anonymous until judging."
+   ],
+   "depends_on": [
+    "P15-M03"
+   ]
+  },
+  {
+   "module_id": "P15-M05",
+   "name": "Registry and distribution",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "How should modules be published, reviewed, versioned, forked and installed so the community can share them GitHub-style while maintainers keep quality and security?",
+   "nature": "mixed",
+   "priority": "v1",
+   "inputs": [
+    "Pull request adding a module version (manifest, bundle, tests)",
+    "Index repository state",
+    "Maintainer review decisions and CI results"
+   ],
+   "outputs": [
+    "Registry index: one JSON-lines file per module id, one line per version {version, bundle URL, SHA-256, dependency ranges, tier, permissions, yanked, forked_from}",
+    "Installable bundles with provenance attestations",
+    "Fork lineage graph and workspace lockfile entries"
+   ],
+   "parameters": [
+    {
+     "name": "index_model (git index repo | sparse static JSON)",
+     "relationship": "A git index gives reviewable history and zero server cost; sparse per-file fetching lowers client download. Cargo supports both; Homebrew taps are plain git repositories installed by name.",
+     "source_ids": [
+      "P15-S33",
+      "P15-S34"
+     ],
+     "unit": "choice"
+    },
+    {
+     "name": "review_gate (CI plus human approval)",
+     "relationship": "Homebrew merges only after CI passes and an organisation member approves; Obsidian review is automated and blocks installation until errors are fixed; Yak describes no review step. Stricter gate -> higher quality, slower publishing.",
+     "source_ids": [
+      "P15-S35",
+      "P15-S36",
+      "P15-S38"
+     ],
+     "unit": "policy"
+    },
+    {
+     "name": "immutability and yank",
+     "relationship": "A published version is never edited; yanking sets a flag so new installs skip it while existing pinned graphs still resolve (Cargo yanked flag; Comfy and Yak versions cannot be overwritten).",
+     "source_ids": [
+      "P15-S33",
+      "P15-S39",
+      "P15-S38"
+     ],
+     "unit": "boolean"
+    },
+    {
+     "name": "version resolution and lockfile",
+     "relationship": "Exact pins in the lockfile keep results reproducible; ranges apply to dependencies only. ComfyUI stores node versions in workflow JSON for the same reason.",
+     "source_ids": [
+      "P15-S32",
+      "P15-S39"
+     ],
+     "unit": "semver"
+    },
+    {
+     "name": "fork lineage (forked_from)",
+     "relationship": "A fork is a separate repository linked to its upstream; forks in a network share git data, and upstream owners can read all forks -> lineage and licence continuity can be tracked.",
+     "source_ids": [
+      "P15-S43"
+     ],
+     "unit": "link"
+    },
+    {
+     "name": "naming and namespace",
+     "relationship": "Case-insensitive collision checks and treating '-' and '_' as equal reduce confusing or look-alike names (crates.io rules).",
+     "source_ids": [
+      "P15-S33"
+     ],
+     "unit": "rule"
+    },
+    {
+     "name": "hosting limits",
+     "relationship": "GitHub Pages allows a 1 GB published site and a 100 GB/month soft bandwidth limit; larger assets such as Python wheels must come from a CDN.",
+     "source_ids": [
+      "P15-S42"
+     ],
+     "unit": "GB"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "CI gate before merge",
+     "good": "100% of merged module PRs passed all automated checks",
+     "bad": "Any merge with failing CI",
+     "status": "verified",
+     "unit": "% passed",
+     "method": "Branch protection requires status checks and a CODEOWNERS review.",
+     "basis": "Homebrew contributing guide: pull requests with failing CI should not be merged.",
+     "source_ids": [
+      "P15-S35"
+     ]
+    },
+    {
+     "name": "Time to first maintainer response",
+     "good": "<= 3 days",
+     "bad": "> 14 days",
+     "status": "team_assumption",
+     "unit": "days",
+     "method": "Median interval from PR open to first non-bot response.",
+     "basis": "Editable preset; CHAOSS defines the metric and says to exclude bot replies but gives no numeric bands.",
+     "source_ids": [
+      "P15-S46"
+     ]
+    },
+    {
+     "name": "SemVer breaking-change detection",
+     "good": "Every schema-breaking change shipped as MAJOR",
+     "bad": "Breaking change shipped as MINOR or PATCH",
+     "status": "verified",
+     "unit": "pass/fail",
+     "method": "Automated manifest diff in CI (P15-M03).",
+     "basis": "SemVer 2.0.0.",
+     "source_ids": [
+      "P15-S32"
+     ]
+    },
+    {
+     "name": "Published registry size",
+     "good": "<= 1 GB",
+     "bad": "> 1 GB",
+     "status": "verified",
+     "unit": "GB",
+     "method": "Measure the Pages artifact in CI.",
+     "basis": "GitHub Pages published-site limit.",
+     "source_ids": [
+      "P15-S42"
+     ]
+    },
+    {
+     "name": "Releases with signed provenance",
+     "good": "100%",
+     "bad": "< 100%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "CI verifies attestation before the index line is accepted.",
+     "basis": "npm provenance mechanism; threshold is our policy.",
+     "source_ids": [
+      "P15-S40"
+     ]
+    },
+    {
+     "name": "Flagged or yanked versions shown with reason in the client",
+     "good": "100%",
+     "bad": "< 100%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Client integration test against flags.json and the yanked field.",
+     "basis": "Course requirement that wrong claims stay visible.",
+     "source_ids": [
+      "P15-S41"
+     ]
+    }
+   ],
+   "visualization": [
+    "Registry grid with filters by category code, phase, jury tag, licence and status; cards show version, SPDX badge, tests pass/fail, counts of verified and team-assumption thresholds, expert-reviewed badge.",
+    "Module detail page: README, manifest summary, source list, version timeline with yanked and FALSE ASSUMPTION markers, dependents.",
+    "Fork lineage drawn as a DAG; PR review checklist sidebar with CI status badges.",
+    "Install button adds module@version to the workspace lockfile."
+   ],
+   "method": "The registry is a public GitHub repository (index repo) with one JSON-lines file per module id and one line per version, following the Cargo index layout. An author opens a PR adding a version line; CI runs manifest lint (P15-M03), fixtures, the sandbox red-team smoke test (P15-M04), the SPDX licence check and the source-link check; a CODEOWNERS maintainer approves; merge publishes the index through GitHub Pages. Bundles are built by GitHub Actions with provenance attestations. Clients resolve exact versions into a workspace lockfile. Yanking flips a flag; other fields never change. Forks are repositories with forked_from and their own index lines.",
+   "libraries": [
+    {
+     "name": "GitHub Actions + npm provenance / Sigstore (sigstore 5.0.0)",
+     "license": "Apache-2.0 (sigstore)",
+     "role": "Signed build provenance for module releases",
+     "url": "https://docs.npmjs.com/generating-provenance-statements"
+    },
+    {
+     "name": "semver 7.8.5",
+     "license": "ISC",
+     "role": "Range resolution",
+     "url": "https://www.npmjs.com/package/semver"
+    },
+    {
+     "name": "ajv 8.20.0",
+     "license": "MIT",
+     "role": "Index line validation in CI",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "github/github-mcp-server",
+     "license": "MIT",
+     "role": "MCP server letting Claude Code read repos and open or review index PRs",
+     "url": "https://github.com/github/github-mcp-server"
+    },
+    {
+     "name": "Cargo registry index format; Homebrew tap model",
+     "license": "design references, not dependencies",
+     "role": "Index layout and tap-style distribution models",
+     "url": "https://doc.rust-lang.org/cargo/reference/registry-index.html"
+    }
+   ],
+   "effort": "v1: about 2-3 dev-weeks for index repo, CI, browse UI and install flow (team estimate).",
+   "human_judgment": "Maintainers judge scope fit, duplication, quality of sources, merge and yank decisions.",
+   "limits": "A static registry has no server-side rate limiting or private modules; Pages bandwidth is a soft cap; the PR queue is a maintainer bottleneck. Provenance proves where code was built, not that it is safe. Typosquatting and look-alike names are only partly addressed. Food4Rhino could not be opened, so its review and rating practices are not used as evidence.",
+   "jury_criteria": [
+    "No direct jury criterion; enabler for all four tags through community-contributed evaluation modules."
+   ],
+   "depends_on": [
+    "P15-M03",
+    "P15-M04",
+    "P15-M08"
+   ]
+  },
+  {
+   "module_id": "P15-M06",
+   "name": "Comments, reviews, ratings and flags",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "How do users comment on, review, rate and flag modules or single thresholds so wrong assumptions stay visible, corrections are traceable, and ratings are not misleading?",
+   "nature": "mixed",
+   "priority": "v1",
+   "inputs": [
+    "Discussion threads (GitHub Discussions via giscus)",
+    "Structured reviews (usefulness vote, evidence link)",
+    "Flag submissions {module@version, threshold id, claim, evidence URL, proposed correction, flag type}"
+   ],
+   "outputs": [
+    "Rating summary {n, positive fraction, Wilson lower bound}",
+    "Flag records with status, affected versions and corrected value",
+    "Chip colour state per threshold; moderation queue"
+   ],
+   "parameters": [
+    {
+     "name": "rating_score (Wilson lower bound, z = 1.96)",
+     "relationship": "Small samples inflate plain averages; the lower bound ranks 2 of 2 positive ratings at about 0.34 and 180 of 200 at about 0.85 (computed from the formula), so thinly rated modules do not outrank well-tested ones.",
+     "source_ids": [
+      "P15-S45"
+     ],
+     "unit": "0-1"
+    },
+    {
+     "name": "min_votes_to_display",
+     "relationship": "Below a minimum n the interval is wide, so show 'not enough ratings' instead of a number.",
+     "source_ids": [
+      "P15-S45"
+     ],
+     "unit": "count"
+    },
+    {
+     "name": "flag_taxonomy (FALSE_ASSUMPTION | UNVERIFIED | UNRESOLVED | TEAM_ASSUMPTION)",
+     "relationship": "A flagged claim is never deleted; the record keeps affected versions and the fixed version, as OSV records introduced, fixed and withdrawn events for advisories.",
+     "source_ids": [
+      "P15-S41"
+     ],
+     "unit": "enum"
+    },
+    {
+     "name": "discussion_backend (giscus on GitHub Discussions | own database)",
+     "relationship": "giscus stores threads in GitHub Discussions, needs no database and moderates on GitHub, but users need GitHub accounts; own database removes that dependency at the cost of hosting and moderation tooling.",
+     "source_ids": [
+      "P15-S44"
+     ],
+     "unit": "choice"
+    },
+    {
+     "name": "moderator_response_time",
+     "relationship": "Longer time to first response -> lower perceived activity and weaker contributor retention (CHAOSS objective; no numeric relationship given).",
+     "source_ids": [
+      "P15-S46"
+     ],
+     "unit": "days"
+    },
+    {
+     "name": "expert vs crowd separation",
+     "relationship": "Crowd ratings measure perceived usefulness; expert review (P15-M08) measures correctness. Showing them separately prevents a popular but wrong module looking verified. Design logic.",
+     "source_ids": [],
+     "unit": "display rule"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Wilson lower-bound rating",
+     "good": ">= 0.80 with n >= 5",
+     "bad": "< 0.50 with n >= 5",
+     "status": "team_assumption",
+     "unit": "0-1",
+     "method": "Count positive and negative votes; apply the Wilson score formula at 95% confidence.",
+     "basis": "Formula and z = 1.96 verified; the good/bad cut-offs and minimum n are editable team presets.",
+     "source_ids": [
+      "P15-S45"
+     ]
+    },
+    {
+     "name": "Time to first response to comments and flags",
+     "good": "<= 3 days",
+     "bad": "> 14 days",
+     "status": "team_assumption",
+     "unit": "days",
+     "method": "CHAOSS Time to First Response, excluding bot replies.",
+     "basis": "Definition verified; bands are presets.",
+     "source_ids": [
+      "P15-S46"
+     ]
+    },
+    {
+     "name": "Flag completeness",
+     "good": "Every FALSE_ASSUMPTION flag has evidence URL, corrected value and affected version range",
+     "bad": "Flag without evidence (displayed as 'disputed')",
+     "status": "team_assumption",
+     "unit": "% complete",
+     "method": "Issue form validation plus maintainer checklist.",
+     "basis": "Modelled on the OSV schema fields.",
+     "source_ids": [
+      "P15-S41"
+     ]
+    },
+    {
+     "name": "Flag visibility",
+     "good": "100% of flags render in their reserved colour with an icon and text label",
+     "bad": "Any flag hidden or colour-only",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "UI test; contrast of the flag colour at least 3:1.",
+     "basis": "Course requirement (flagged claims stay visible); WCAG non-text contrast.",
+     "source_ids": [
+      "P15-S48"
+     ]
+    }
+   ],
+   "visualization": [
+    "Per-threshold chip: green verified, amber team assumption, grey unverified, reserved magenta-red FALSE ASSUMPTION with the old value struck through and the corrected value beside it; hover shows the source and flag history.",
+    "Rating histogram with a Wilson-interval whisker and an 'n' label.",
+    "Version strip showing affected and fixed version range, in OSV style.",
+    "Embedded giscus thread under each module; moderation queue for maintainers."
+   ],
+   "method": "Each module page embeds a giscus thread mapped to the module id. Structured reviews are discussion replies using a template (vote plus evidence link); a GitHub Action parses them into ratings.json. Ratings count positives and negatives and compute the Wilson lower bound with z = 1.96, hiding the score below the minimum n. Flags come from an Issue form that records {module@version, threshold id, claim, evidence URL, proposed value, type}. Maintainers set status; an Action writes flags.json in the registry and never deletes entries. The client overlays flags on threshold chips. A confirmed false claim keeps the old value visible (struck) and links to the corrected version, with status false_assumption_corrected. The expert-reviewed badge is separate (P15-M08).",
+   "libraries": [
+    {
+     "name": "giscus (and @giscus/react 3.1.0)",
+     "license": "MIT (per giscus repository)",
+     "role": "Comments and reactions stored in GitHub Discussions",
+     "url": "https://github.com/giscus/giscus"
+    },
+    {
+     "name": "OSV schema",
+     "license": "specification",
+     "role": "Model for affected ranges, fixed and withdrawn events",
+     "url": "https://ossf.github.io/osv-schema/"
+    },
+    {
+     "name": "GitHub Actions + GraphQL Discussions API",
+     "license": "GitHub terms",
+     "role": "Aggregate ratings and flags into static JSON",
+     "url": "https://github.com/giscus/giscus"
+    }
+   ],
+   "effort": "v1: about 1 dev-week for giscus, ratings.json, flag form and chip overlay; own database is roadmap (team estimate).",
+   "human_judgment": "Moderators decide whether a flag is valid, whether a comment breaks the code of conduct, and when a correction is accepted; users judge usefulness.",
+   "limits": "giscus needs a GitHub account; whether a public repository is required was not stated on the page read. Ratings can be gamed and measure perceived usefulness, not correctness. GitHub API rate limits were not verified. Colour alone is insufficient; icons and text are required.",
+   "jury_criteria": [
+    "No direct jury criterion; keeps design_excellence_20 evidence honest by exposing wrong assumptions."
+   ],
+   "depends_on": [
+    "P15-M03",
+    "P15-M05"
+   ]
+  },
+  {
+   "module_id": "P15-M07",
+   "name": "Workflow templates and on/off toggles",
+   "phase": "platform",
+   "category": "DATA",
+   "design_question": "How can users save, share and fork whole graphs as templates, pin module versions for reproducibility, and switch modules on or off without silently breaking downstream results?",
+   "nature": "mixed",
+   "priority": "v1",
+   "inputs": [
+    "Graph JSON (P15-M01)",
+    "Registry index and lockfile (P15-M05)",
+    "Flags and yanked versions (P15-M06)",
+    "User on/off choices"
+   ],
+   "outputs": [
+    "Template package: graph.json, lockfile.json, README, LICENSE, preview image, requires.json (Layer 0 port types and units)",
+    "Enabled-state map and dependency-impact report",
+    "Resolved/unresolved module list"
+   ],
+   "parameters": [
+    {
+     "name": "lockfile pins (module@exact version)",
+     "relationship": "Pinning keeps results reproducible when a module later changes; ComfyUI stores node versions in workflow JSON so workflows can be reproduced.",
+     "source_ids": [
+      "P15-S39"
+     ],
+     "unit": "semver"
+    },
+    {
+     "name": "toggle semantics (bypass | block | remove)",
+     "relationship": "Bypass keeps downstream nodes computing on different inputs; block marks them stale; remove deletes wires. The choice changes whether downstream metrics still mean what the user thinks. Design logic.",
+     "source_ids": [],
+     "unit": "enum"
+    },
+    {
+     "name": "template_jury_tags",
+     "relationship": "Tagging a template with the jury criteria its modules evidence shows entrants which of the 40/30/20/10 weights the graph can support; it does not measure design quality.",
+     "source_ids": [],
+     "unit": "tag list"
+    },
+    {
+     "name": "template licence",
+     "relationship": "Graph JSON and docs are content (CC BY 4.0 suits); code keeps an OSI licence. Creative Commons advises against CC licences for software.",
+     "source_ids": [
+      "P15-S58"
+     ],
+     "unit": "SPDX id"
+    },
+    {
+     "name": "embedded third-party material",
+     "relationship": "Embedding brief text or images would redistribute copyrighted material; link and cite instead. VTC terms leave entrants' rights with entrants and state no licence to redistribute the brief.",
+     "source_ids": [
+      "P15-S60"
+     ],
+     "unit": "policy"
+    },
+    {
+     "name": "anonymity of exports",
+     "relationship": "Board exports must not carry author or team identifiers; VTC terms require submissions free of identifying marks.",
+     "source_ids": [
+      "P15-S60"
+     ],
+     "unit": "policy"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Template reproducibility",
+     "good": "100% identical output hashes on re-run with pinned versions",
+     "bad": "< 100%",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Import template, resolve lockfile, run twice, compare RunRecords.",
+     "basis": "Course requirement of showing work; threshold is our policy.",
+     "source_ids": [
+      "P15-S39"
+     ]
+    },
+    {
+     "name": "Dependency resolvability",
+     "good": "100% of pinned modules resolve; yanked versions warned",
+     "bad": "Any unresolved module",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Resolve each pin against the registry index.",
+     "basis": "Policy; yank semantics from Cargo index.",
+     "source_ids": [
+      "P15-S33"
+     ]
+    },
+    {
+     "name": "Unwired required inputs",
+     "good": "0",
+     "bad": ">= 1",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Static graph check against manifests.",
+     "basis": "Policy.",
+     "source_ids": []
+    },
+    {
+     "name": "Silent breakage after toggling off",
+     "good": "0 downstream nodes left unmarked",
+     "bad": ">= 1",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Reachability from the toggled node; all descendants must show stale or blocked.",
+     "basis": "Policy.",
+     "source_ids": []
+    },
+    {
+     "name": "Identifying strings in export metadata",
+     "good": "0",
+     "bad": ">= 1",
+     "status": "verified",
+     "unit": "count",
+     "method": "Scan exported image/PDF metadata and filenames for author, team, institution, path.",
+     "basis": "VTC terms: submissions must not show marks identifying the author (section 5.1).",
+     "source_ids": [
+      "P15-S60"
+     ]
+    }
+   ],
+   "visualization": [
+    "Template gallery cards: graph thumbnail, jury-tag dots, module count, licence badge.",
+    "Template detail: dependency list with lock status and flag chips.",
+    "On/off switch on every node; on toggle, descendants turn hatched with a banner 'n results depend on this module'.",
+    "Graph diff view for forks."
+   ],
+   "method": "A template is an archive of graph.json (nodes with module id@exact version, parameters, enabled flags; edges), lockfile.json, README.md, LICENSE, preview.png and requires.json. Importing resolves each pinned module from the registry, warns on yanked or flagged versions (P15-M06) and runs lint (P15-M03). Toggling sets enabled=false; the scheduler (P15-M02) applies the node's mode and the UI computes descendants by reachability to display impact. Forking a template copies it with forked_from. Export-for-boards strips author, team and path metadata and scans embedded metadata. Templates are published through the same index-repo pattern as modules, with category 'template'.",
+   "libraries": [
+    {
+     "name": "@xyflow/react 12.12.0",
+     "license": "MIT",
+     "role": "Copy/paste, subflows and thumbnails of graphs",
+     "url": "https://github.com/xyflow/xyflow"
+    },
+    {
+     "name": "ajv 8.20.0 and semver 7.8.5",
+     "license": "MIT / ISC",
+     "role": "Template lint and lockfile resolution",
+     "url": "https://github.com/ajv-validator/ajv"
+    },
+    {
+     "name": "Claude Code skill-creator / mcp-builder skills (Anthropic)",
+     "license": "unverified in this session",
+     "role": "Could package a template or the registry as a reusable skill or MCP server",
+     "url": "https://github.com/github/github-mcp-server"
+    }
+   ],
+   "effort": "v1: about 1.5 dev-weeks for template import/export, lockfile, diff and impact view (team estimate).",
+   "human_judgment": "Which template fits the project, which modules to switch off, and whether a disabled module's absence undermines the design argument.",
+   "limits": "Templates inherit module sandbox and licence risks; pinned versions may later be yanked. No sourced evidence on the best template granularity. The anonymity scan covers metadata only, not names visible in drawings or text. The VTC page set no stated usage restriction on the brief downloads, but also no explicit redistribution licence.",
+   "jury_criteria": [
+    "Indirect: templates may carry jury tags (human_scale_40, cultural_context_30, design_excellence_20, urban_integration_10) to show which criteria a graph evidences."
+   ],
+   "depends_on": [
+    "P15-M01",
+    "P15-M02",
+    "P15-M05",
+    "P15-M06"
+   ]
+  },
+  {
+   "module_id": "P15-M08",
+   "name": "Governance, licensing and expert-reviewed badge",
+   "phase": "cross-cutting",
+   "category": "DATA",
+   "design_question": "What contribution rules, code of conduct, maintainer roles, licences and expert-review process keep the open-source tool trustworthy, lawful, and respectful of Indigenous and copyright constraints?",
+   "nature": "subjective",
+   "priority": "core",
+   "inputs": [
+    "Repository health files",
+    "Contributor submissions and AI-use disclosures",
+    "Reviewer pool and review threads",
+    "Licence declarations from manifests"
+   ],
+   "outputs": [
+    "Governance documents: CONTRIBUTING, CODE_OF_CONDUCT, GOVERNANCE, SECURITY, LICENSE and content-licence matrix",
+    "Community-health checklist and Scorecard result",
+    "Review records {module@version, reviewers, expertise, thread URL, date} driving the badge",
+    "Licence audit report"
+   ],
+   "parameters": [
+    {
+     "name": "governance_model (BDFL | meritocracy | liberal contribution)",
+     "relationship": "A small student-run project can start with named maintainers and a written contributor process, formalising later; documenting how someone becomes a maintainer in GOVERNANCE.md reduces the 'private clique' perception.",
+     "source_ids": [
+      "P15-S57"
+     ],
+     "unit": "choice"
+    },
+    {
+     "name": "code_of_conduct text and version",
+     "relationship": "Contributor Covenant 3.0 is CC BY-SA 4.0, so derived conduct texts must share alike; it needs a real reporting contact and an enforcement ladder (warning, limited activities, suspension, ban).",
+     "source_ids": [
+      "P15-S51"
+     ],
+     "unit": "version"
+    },
+    {
+     "name": "code vs content licence",
+     "relationship": "Code under an OSI-approved licence (MIT or Apache-2.0); documentation and templates under CC BY 4.0. Creative Commons recommends against CC licences for software and allows them for documentation and artistic elements.",
+     "source_ids": [
+      "P15-S58",
+      "P15-S59"
+     ],
+     "unit": "SPDX id"
+    },
+    {
+     "name": "review depth for the expert-reviewed badge",
+     "relationship": "rOpenSci uses two external reviewers in a public thread; JOSS checks OSI licence, tests and documentation. More reviewers -> more confidence but longer lead time; the optimal number has no evidence.",
+     "source_ids": [
+      "P15-S56",
+      "P15-S55"
+     ],
+     "unit": "reviewers"
+    },
+    {
+     "name": "CODEOWNERS and branch protection",
+     "relationship": "Requiring a code-owner review makes an owner of each path approve changes to it; owners need write access or their approval is not requested.",
+     "source_ids": [
+      "P15-S53"
+     ],
+     "unit": "policy"
+    },
+    {
+     "name": "AI-use disclosure",
+     "relationship": "Homebrew requires disclosure of AI/LLM use and personal accountability for generated content; JOSS has an AI policy for reviews.",
+     "source_ids": [
+      "P15-S35",
+      "P15-S55"
+     ],
+     "unit": "policy"
+    },
+    {
+     "name": "Indigenous-knowledge and data policy",
+     "relationship": "CARE principles (collective benefit, authority to control, responsibility, ethics) imply that modules or data touching Indigenous cultural knowledge need consent and attribution checks before listing.",
+     "source_ids": [
+      "P15-S61"
+     ],
+     "unit": "policy"
+    },
+    {
+     "name": "brief and third-party redistribution",
+     "relationship": "Do not upload the VTC PDF or site model; store citations and derived parameters. No redistribution licence for the brief is stated, so treat it as all rights reserved (team assumption).",
+     "source_ids": [
+      "P15-S60"
+     ],
+     "unit": "policy"
+    }
+   ],
+   "metrics": [
+    {
+     "name": "GitHub community-profile completeness",
+     "good": "README, code of conduct, CONTRIBUTING, LICENSE, security policy and issue templates all present",
+     "bad": "Any missing",
+     "status": "verified",
+     "unit": "files present",
+     "method": "Read the repository's community profile.",
+     "basis": "GitHub community profile checklist.",
+     "source_ids": [
+      "P15-S52"
+     ]
+    },
+    {
+     "name": "OpenSSF Scorecard aggregate",
+     "good": ">= 7",
+     "bad": "< 4",
+     "status": "team_assumption",
+     "unit": "0-10",
+     "method": "Run Scorecard on the registry and tool repositories in CI.",
+     "basis": "Scale 0-10 and check weights verified; the cut-offs are editable presets.",
+     "source_ids": [
+      "P15-S54"
+     ]
+    },
+    {
+     "name": "Expert-reviewed badge criteria",
+     "good": ">= 2 independent reviewers with declared expertise, public review thread, passing tests, OSI licence",
+     "bad": "Badge shown without a thread or with fewer than 2 reviewers",
+     "status": "team_assumption",
+     "unit": "checklist",
+     "method": "Badge is issued only when a review record exists and links to the thread.",
+     "basis": "Practice taken from rOpenSci (two reviewers, badge links to thread) and JOSS (OSI licence, tests); adopting it here is our decision.",
+     "source_ids": [
+      "P15-S56",
+      "P15-S55"
+     ]
+    },
+    {
+     "name": "Licence audit",
+     "good": "100% of modules have a valid SPDX licence and compatible dependency licences",
+     "bad": "Any module without a licence",
+     "status": "team_assumption",
+     "unit": "%",
+     "method": "Parse manifests and dependency trees.",
+     "basis": "SPDX list; a missing licence leaves no reuse right.",
+     "source_ids": [
+      "P15-S59"
+     ]
+    },
+    {
+     "name": "Copyrighted brief files in the registry",
+     "good": "0",
+     "bad": ">= 1",
+     "status": "team_assumption",
+     "unit": "count",
+     "method": "Hash and filename scan against the VTC downloads.",
+     "basis": "Precaution: no redistribution licence stated.",
+     "source_ids": [
+      "P15-S60"
+     ]
+    }
+   ],
+   "visualization": [
+    "Governance dashboard: health checklist with ticks linked to the files on GitHub, Scorecard gauge 0-10.",
+    "Badge on each module card: 'Expert-reviewed' (tooltip lists reviewers, expertise, date and links to the review thread), 'First-party', or none.",
+    "Licence matrix table: component x licence x SPDX id x OSI flag."
+   ],
+   "method": "Adopt one repository skeleton: LICENSE (code), LICENSE-content (CC BY 4.0), CONTRIBUTING (module PR checklist: manifest, sources opened, tests, licence, AI-use disclosure), CODE_OF_CONDUCT (Contributor Covenant with a real contact and a backup recipient), GOVERNANCE (maintainer roles and how to join), SECURITY, CODEOWNERS per category. Expert review: maintainers invite two reviewers with relevant expertise; review happens in a public thread against a checklist (sources open, thresholds correct, relationship statements true, tests pass); on approval a review record is added to the registry and the badge links to the thread. CI runs Scorecard and the licence audit. Content from Indigenous communities is held until consent and attribution are confirmed.",
+   "libraries": [
+    {
+     "name": "OpenSSF Scorecard",
+     "license": "Apache-2.0",
+     "role": "Automated repository security health score",
+     "url": "https://github.com/ossf/scorecard"
+    },
+    {
+     "name": "GitHub CODEOWNERS and community profile",
+     "license": "GitHub feature",
+     "role": "Review ownership and health checklist",
+     "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners"
+    },
+    {
+     "name": "Contributor Covenant 3.0",
+     "license": "CC BY-SA 4.0",
+     "role": "Code of conduct text",
+     "url": "https://www.contributor-covenant.org/version/3/0/code_of_conduct/"
+    },
+    {
+     "name": "spdx-expression-parse 5.0.0",
+     "license": "MIT",
+     "role": "Licence audit",
+     "url": "https://www.npmjs.com/package/spdx-expression-parse"
+    },
+    {
+     "name": "github/github-mcp-server",
+     "license": "MIT",
+     "role": "Claude Code assisted triage and review-thread creation",
+     "url": "https://github.com/github/github-mcp-server"
+    }
+   ],
+   "effort": "Core: about 2 days for LICENSE, README, CONTRIBUTING, code of conduct; v1: about 1 week for GOVERNANCE, CODEOWNERS, review workflow; external expert pool is roadmap (team estimate).",
+   "human_judgment": "Who counts as an expert, how conduct reports are handled, licence interpretation, and any decision about Indigenous cultural content (to be made with Indigenous advisors) stay with people.",
+   "limits": "The badge signals peer review, not code-compliance certification or professional sign-off; the VTC brief says its documents are for an academic exercise. Reviewer scarcity in a student project. This is not legal advice. The CARE page was only partly readable and OCAP pages returned 403.",
+   "jury_criteria": [
+    "cultural_context_30 (Indigenous data and reconciliation constraints on community content)",
+    "No other direct jury criterion"
+   ],
+   "depends_on": []
+  }
+ ],
+ "sources": [
+  {
+   "id": "P15-S01",
+   "title": "React Flow - Learn (overview)",
+   "url": "https://reactflow.dev/learn",
+   "publisher": "xyflow",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "@xyflow/react: custom nodes and edges, Handle component, connection validation and cycle-prevention examples, sub flows, built-in Background/Controls/MiniMap; MIT footer; React Flow Pro exists.",
+   "opened": true
+  },
+  {
+   "id": "P15-S02",
+   "title": "xyflow/xyflow repository metadata (GitHub API)",
+   "url": "https://api.github.com/repos/xyflow/xyflow",
+   "publisher": "GitHub",
+   "type": "repository metadata",
+   "year": "2026",
+   "extract": "MIT; 38,731 stars; pushed 2026-10-20; not archived; packages @xyflow/react, @xyflow/svelte, @xyflow/system.",
+   "opened": true
+  },
+  {
+   "id": "P15-S03",
+   "title": "React Flow - Performance",
+   "url": "https://reactflow.dev/learn/advanced-use/performance",
+   "publisher": "xyflow",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Memoise custom nodes/edges and callbacks, avoid reading the full nodes array, collapse node trees with hidden, simplify CSS; no node-count figures given.",
+   "opened": true
+  },
+  {
+   "id": "P15-S04",
+   "title": "React Flow - Remove attribution",
+   "url": "https://reactflow.dev/learn/troubleshooting/remove-attribution",
+   "publisher": "xyflow",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Library will stay MIT; attribution may be removed only with a Pro subscription (Starter $169/month, Professional $289/month, Enterprise by quote).",
+   "opened": true
+  },
+  {
+   "id": "P15-S05",
+   "title": "React Flow example - Prevent cycles",
+   "url": "https://reactflow.dev/examples/interaction/prevent-cycles",
+   "publisher": "xyflow",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Uses getOutgoers to check whether a new connection would cause a cycle; isValidConnection is the veto hook (code not shown on page).",
+   "opened": true
+  },
+  {
+   "id": "P15-S06",
+   "title": "retejs/rete repository metadata (GitHub API)",
+   "url": "https://api.github.com/repos/retejs/rete",
+   "publisher": "GitHub",
+   "type": "repository metadata",
+   "year": "2026",
+   "extract": "MIT; 12,295 stars; pushed 2026-10-18; not archived; framework for visual programming with dataflow and control-flow engines.",
+   "opened": true
+  },
+  {
+   "id": "P15-S07",
+   "title": "Rete.js - Dataflow engine guide",
+   "url": "https://retejs.org/docs/guides/processing/dataflow",
+   "publisher": "Rete.js",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Pull-based engine.fetch(nodeId); nodes receive inputs and return outputs; outputs are cached; engine.reset() clears caches after input changes.",
+   "opened": true
+  },
+  {
+   "id": "P15-S08",
+   "title": "jagenjo/litegraph.js repository metadata (GitHub API)",
+   "url": "https://api.github.com/repos/jagenjo/litegraph.js",
+   "publisher": "GitHub",
+   "type": "repository metadata",
+   "year": "2026",
+   "extract": "MIT; 8,170 stars; pushed 2024-08-01; latest master commit shown on the commits page is 8 Jan 2024; canvas-based, typed slots, subgraphs; 1,220 npm downloads in the week of 12-18 Oct 2026.",
+   "opened": true
+  },
+  {
+   "id": "P15-S09",
+   "title": "Comfy-Org/litegraph.js repository metadata (GitHub API)",
+   "url": "https://api.github.com/repos/Comfy-Org/litegraph.js",
+   "publisher": "GitHub",
+   "type": "repository metadata",
+   "year": "2026",
+   "extract": "Fork of litegraph.js; archived: true; last push 2026-01-14; MIT.",
+   "opened": true
+  },
+  {
+   "id": "P15-S10",
+   "title": "newcat/baklavajs repository metadata (GitHub API)",
+   "url": "https://api.github.com/repos/newcat/baklavajs",
+   "publisher": "GitHub",
+   "type": "repository metadata",
+   "year": "2026",
+   "extract": "MIT; 2,097 stars; pushed 2026-09-16; Vue-based editor with engine, interface types and plugin system.",
+   "opened": true
+  },
+  {
+   "id": "P15-S11",
+   "title": "npm registry and download statistics snapshot (12-18 Oct 2026)",
+   "url": "https://api.npmjs.org/downloads/point/last-week/@xyflow/react",
+   "publisher": "npm, Inc.",
+   "type": "registry metadata",
+   "year": "2026",
+   "extract": "@xyflow/react 12.12.0 MIT, 8,349,970 weekly downloads; rete 2.0.6 MIT, 47,478; @baklavajs/core 2.8.1 MIT, 1,677; litegraph.js 1,220; @comfyorg/litegraph 0.17.2 MIT; ajv 8.20.0 MIT; quickjs-emscripten 0.32.0 MIT; ses 2.3.0 Apache-2.0; pyodide 314.0.7 MPL-2.0 (unpacked 13,879,282 bytes); comlink 4.4.2 Apache-2.0; semver 7.8.5 ISC; spdx-expression-parse 5.0.0 MIT; vitest 5.0.5 MIT; sigstore 5.0.0 Apache-2.0; elkjs 0.12.0 EPL-2.0 OR GPL-3.0-or-later; @dagrejs/dagre 3.1.1 MIT. Fetched via several registry.npmjs.org/<pkg>/latest URLs.",
+   "opened": true
+  },
+  {
+   "id": "P15-S12",
+   "title": "Grasshopper data trees and Python",
+   "url": "https://developer.rhino3d.com/guides/rhinopython/grasshopper-datatrees-and-python/",
+   "publisher": "McNeel / Rhino Developer Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "A tree maps paths to branches; branches hold items; paths can be sparse. The page does not cover item/list/tree access types.",
+   "opened": true
+  },
+  {
+   "id": "P15-S13",
+   "title": "Topological sorting",
+   "url": "https://en.wikipedia.org/wiki/Topological_sorting",
+   "publisher": "Wikipedia",
+   "type": "reference",
+   "year": "2026",
+   "extract": "Ordering exists iff the graph is acyclic; Kahn and DFS algorithms run in O(V+E); leftover edges or a temporary-marked revisit reveal a cycle.",
+   "opened": true
+  },
+  {
+   "id": "P15-S14",
+   "title": "Pyodide repository",
+   "url": "https://github.com/pyodide/pyodide",
+   "publisher": "Pyodide project",
+   "type": "repository",
+   "year": "2026",
+   "extract": "CPython port to WebAssembly; MPL-2.0; in a browser Python has full access to Web APIs; no sandbox statement on the page.",
+   "opened": true
+  },
+  {
+   "id": "P15-S15",
+   "title": "Pyodide - Using Pyodide in a web worker",
+   "url": "https://pyodide.org/en/stable/usage/webworker.html",
+   "publisher": "Pyodide project",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Pyodide needs a module-type worker; the main thread posts messages with ids; workers cannot touch the DOM or share globals.",
+   "opened": true
+  },
+  {
+   "id": "P15-S16",
+   "title": "Pyodide - Keyboard interrupts",
+   "url": "https://pyodide.org/en/stable/usage/keyboard-interrupts.html",
+   "publisher": "Pyodide project",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Interrupt with a SharedArrayBuffer passed to setInterruptBuffer; must run in a worker; server must send the headers SharedArrayBuffer requires.",
+   "opened": true
+  },
+  {
+   "id": "P15-S17",
+   "title": "Sandcastles, Not Sandboxes: How One Architectural Flaw Exposed Seven Products",
+   "url": "https://www.cyera.com/research/sandcastles-not-sandboxes-how-one-architectural-flaw-exposed-seven-products",
+   "publisher": "Cyera Research",
+   "type": "security research",
+   "year": "2026",
+   "extract": "Published 7 Aug 2026: Python-level denylists in Pyodide sandboxes missed ctypes and Emscripten exports; seven products affected (n8n CVE-2025-68668 CVSS 9.9, Grist, cohere-terrarium, smolagents, langchain-sandbox, stlite, cibuildwheel); mitigations: allowlist, strip exports, OS-level isolation, least privilege; Python controls are an additional control, not the sole boundary.",
+   "opened": true
+  },
+  {
+   "id": "P15-S18",
+   "title": "MDN - Using Web Workers",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers",
+   "publisher": "MDN Web Docs",
+   "type": "reference",
+   "year": "2026",
+   "extract": "Workers have no DOM access and communicate by structured clone; they are generally not governed by the creating document's CSP (set a CSP header on the worker script response; blob/data workers inherit).",
+   "opened": true
+  },
+  {
+   "id": "P15-S19",
+   "title": "MDN - iframe element (sandbox attribute)",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe",
+   "publisher": "MDN Web Docs",
+   "type": "reference",
+   "year": "2026",
+   "extract": "Without allow-same-origin content gets a unique opaque origin; allow-scripts plus allow-same-origin on same-origin content lets it remove the sandbox; serve untrusted content from a separate origin.",
+   "opened": true
+  },
+  {
+   "id": "P15-S20",
+   "title": "MDN - Window.crossOriginIsolated",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated",
+   "publisher": "MDN Web Docs",
+   "type": "reference",
+   "year": "2026",
+   "extract": "Cross-origin isolation requires COOP same-origin and COEP require-corp or credentialless; needed to use SharedArrayBuffer.",
+   "opened": true
+  },
+  {
+   "id": "P15-S21",
+   "title": "MDN - Worker.terminate()",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/Worker/terminate",
+   "publisher": "MDN Web Docs",
+   "type": "reference",
+   "year": "2026",
+   "extract": "Immediately stops a Web Worker without letting it finish pending operations.",
+   "opened": true
+  },
+  {
+   "id": "P15-S22",
+   "title": "WebAssembly - Security",
+   "url": "https://webassembly.org/docs/security/",
+   "publisher": "WebAssembly Community Group",
+   "type": "specification note",
+   "year": "2026",
+   "extract": "Modules run in fault-isolated sandboxes with bounds-checked linear memory and control-flow integrity; side channels, race conditions and overflows within linear memory remain possible.",
+   "opened": true
+  },
+  {
+   "id": "P15-S23",
+   "title": "SES (Secure ECMAScript) - Endo",
+   "url": "https://github.com/endojs/endo/tree/master/packages/ses",
+   "publisher": "Endo / Agoric",
+   "type": "repository documentation",
+   "year": "2026",
+   "extract": "lockdown() freezes intrinsics; Compartments start with no ambient authority; limits: guests can run forever and allocate unlimited memory; availability and exhaustion threats not mitigated. Repository licence shown as Apache-2.0.",
+   "opened": true
+  },
+  {
+   "id": "P15-S24",
+   "title": "quickjs-emscripten",
+   "url": "https://github.com/justjake/quickjs-emscripten",
+   "publisher": "justjake",
+   "type": "repository",
+   "year": "2026",
+   "extract": "QuickJS compiled to WebAssembly; memory limits, stack limits and interrupt/deadline handlers; host functions exposed explicitly; MIT per npm.",
+   "opened": true
+  },
+  {
+   "id": "P15-S25",
+   "title": "Extism",
+   "url": "https://github.com/extism/extism",
+   "publisher": "Extism",
+   "type": "repository",
+   "year": "2026",
+   "extract": "BSD-3-Clause; plug-in framework on WebAssembly for untrusted code; JS host SDK for web, Node, Deno, Bun; runtime limiters and timers (details not given).",
+   "opened": true
+  },
+  {
+   "id": "P15-S26",
+   "title": "Deno - Security and permissions",
+   "url": "https://docs.deno.com/runtime/fundamentals/security/",
+   "publisher": "Deno",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Default-deny permissions; --allow-run and --allow-ffi are equivalent to allow-all; for untrusted code use layered defence: minimal permissions, Web Worker, OS sandboxing, and gVisor or Firecracker VMs.",
+   "opened": true
+  },
+  {
+   "id": "P15-S27",
+   "title": "coi-serviceworker",
+   "url": "https://github.com/gzuidhof/coi-serviceworker",
+   "publisher": "gzuidhof",
+   "type": "repository",
+   "year": "2026",
+   "extract": "MIT; enables COOP/COEP via service worker on hosts such as GitHub Pages that cannot set headers; must be a separate same-origin file; first load triggers a reload.",
+   "opened": true
+  },
+  {
+   "id": "P15-S28",
+   "title": "Chrome extensions - Permission warnings",
+   "url": "https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings",
+   "publisher": "Google Chrome for Developers",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Permissions declared in the manifest; some trigger install-time warnings; optional permissions requested at runtime; an update adding a warned permission disables the extension until accepted.",
+   "opened": true
+  },
+  {
+   "id": "P15-S29",
+   "title": "VS Code - Extension manifest",
+   "url": "https://code.visualstudio.com/api/references/extension-manifest",
+   "publisher": "Microsoft",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "package.json fields: lowercase unique name, SemVer version, publisher, engines.vscode (not *), fixed categories list, activationEvents, contributes, license.",
+   "opened": true
+  },
+  {
+   "id": "P15-S30",
+   "title": "JSON Schema specification",
+   "url": "https://json-schema.org/specification",
+   "publisher": "JSON Schema Org",
+   "type": "specification",
+   "year": "2026",
+   "extract": "Current version is 2020-12 (previous 2019-09); Core and Validation specifications plus meta-schemas.",
+   "opened": true
+  },
+  {
+   "id": "P15-S31",
+   "title": "Ajv JSON Schema validator",
+   "url": "https://github.com/ajv-validator/ajv",
+   "publisher": "Ajv",
+   "type": "repository",
+   "year": "2026",
+   "extract": "MIT; supports drafts 2020-12, 2019-09, 07 (04 via separate package); fast validator for Node.js and browsers.",
+   "opened": true
+  },
+  {
+   "id": "P15-S32",
+   "title": "Semantic Versioning 2.0.0",
+   "url": "https://semver.org/",
+   "publisher": "semver.org",
+   "type": "specification",
+   "year": "2026",
+   "extract": "Declare a public API; MAJOR for incompatible changes, MINOR for compatible features, PATCH for fixes; 0.y.z is initial development; released versions must not be modified.",
+   "opened": true
+  },
+  {
+   "id": "P15-S33",
+   "title": "Cargo - Registry index format",
+   "url": "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+   "publisher": "The Cargo Book",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Git or sparse index; one file per package with one JSON line per version (vers, deps, cksum, yanked); entries immutable except yanked; crates.io naming rules (case-insensitive collisions, '-' and '_' equivalent).",
+   "opened": true
+  },
+  {
+   "id": "P15-S34",
+   "title": "Homebrew - How to create and maintain a tap",
+   "url": "https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap",
+   "publisher": "Homebrew",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "A tap is a git repository of formulae (name homebrew-*); install via brew install user/repo/formula; non-official taps need trust; semantic version tags recommended.",
+   "opened": true
+  },
+  {
+   "id": "P15-S35",
+   "title": "homebrew-core CONTRIBUTING",
+   "url": "https://github.com/Homebrew/homebrew-core/blob/master/CONTRIBUTING.md",
+   "publisher": "Homebrew",
+   "type": "contribution guide",
+   "year": "2026",
+   "extract": "PR tested locally then CI; failing CI should not be merged; an organisation member must approve; BrewTestBot merges; AI/LLM use must be disclosed and the contributor answers for it.",
+   "opened": true
+  },
+  {
+   "id": "P15-S36",
+   "title": "Obsidian - Submit your plugin",
+   "url": "https://docs.obsidian.md/Plugins/Releasing/Submit+your+plugin",
+   "publisher": "Obsidian",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "README, LICENSE, manifest.json required; version x.y.z must match the release tag; id unique across plugins; review is automatic and errors block installation.",
+   "opened": true
+  },
+  {
+   "id": "P15-S37",
+   "title": "Yak - The package manifest",
+   "url": "https://developer.rhino3d.com/guides/yak/the-package-manifest/",
+   "publisher": "McNeel / Rhino Developer Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "manifest.yml with required name, version, authors, description and recommended url, keywords, icon; SemVer 2.0.0 or four-digit System.Version; restricted name characters.",
+   "opened": true
+  },
+  {
+   "id": "P15-S38",
+   "title": "Yak - Pushing a package to the server",
+   "url": "https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server/",
+   "publisher": "McNeel / Rhino Developer Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "yak login with a Rhino Account; first pusher owns the package; versions cannot be deleted or overwritten, only yanked; no review or moderation step mentioned; test server wiped nightly.",
+   "opened": true
+  },
+  {
+   "id": "P15-S39",
+   "title": "Comfy Registry - Overview",
+   "url": "https://docs.comfy.org/registry/overview",
+   "publisher": "Comfy Org",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Registry for custom nodes: semantic versioning, published versions immutable, deprecation, globally unique names, workflow JSON stores node versions, nodes scanned for malicious behaviour and given a verification flag.",
+   "opened": true
+  },
+  {
+   "id": "P15-S40",
+   "title": "npm - Generating provenance statements",
+   "url": "https://docs.npmjs.com/generating-provenance-statements",
+   "publisher": "npm, Inc.",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Provenance and publish attestations signed via Sigstore and logged publicly; need GitHub Actions or GitLab CI, id-token write; provenance does not guarantee the package is free of malicious code.",
+   "opened": true
+  },
+  {
+   "id": "P15-S41",
+   "title": "OSV schema",
+   "url": "https://ossf.github.io/osv-schema/",
+   "publisher": "OpenSSF",
+   "type": "specification",
+   "year": "2026",
+   "extract": "JSON format for vulnerabilities: id, modified, published, withdrawn, aliases, affected packages with SEMVER/ECOSYSTEM/GIT ranges and introduced/fixed events, references.",
+   "opened": true
+  },
+  {
+   "id": "P15-S42",
+   "title": "GitHub Pages limits",
+   "url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+   "publisher": "GitHub Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Published site max 1 GB; source repo recommended 1 GB; 100 GB/month soft bandwidth; 10 builds/hour soft (not for custom Actions workflows).",
+   "opened": true
+  },
+  {
+   "id": "P15-S43",
+   "title": "GitHub Docs - About forks",
+   "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks",
+   "publisher": "GitHub Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "A fork is a separate repository linked to upstream; fork network shares git data; upstream owners can read all forks; public forks do not inherit permissions.",
+   "opened": true
+  },
+  {
+   "id": "P15-S44",
+   "title": "giscus",
+   "url": "https://github.com/giscus/giscus",
+   "publisher": "giscus",
+   "type": "repository",
+   "year": "2026",
+   "extract": "MIT; comments and reactions stored in GitHub Discussions, no database; users authorise via GitHub OAuth; moderation on GitHub; self-hosting possible.",
+   "opened": true
+  },
+  {
+   "id": "P15-S45",
+   "title": "How Not To Sort By Average Rating",
+   "url": "https://www.evanmiller.org/how-not-to-sort-by-average-rating.html",
+   "publisher": "Evan Miller",
+   "type": "article",
+   "year": "2009",
+   "extract": "Wilson score lower bound = [p + z^2/2n - z*sqrt((p(1-p) + z^2/4n)/n)] / (1 + z^2/n); z = 1.96 for 95% confidence.",
+   "opened": true
+  },
+  {
+   "id": "P15-S46",
+   "title": "CHAOSS metric - Time to First Response",
+   "url": "https://chaoss.community/kb/metric-time-to-first-response/",
+   "publisher": "CHAOSS",
+   "type": "metric definition",
+   "year": "2026",
+   "extract": "Interval between creation of an item needing attention and first response; exclude bot responses; no numeric good/bad bands given.",
+   "opened": true
+  },
+  {
+   "id": "P15-S47",
+   "title": "web.dev - Interaction to Next Paint (INP)",
+   "url": "https://web.dev/articles/inp",
+   "publisher": "Google web.dev",
+   "type": "official guidance",
+   "year": "2026",
+   "extract": "Good <= 200 ms; needs improvement up to 500 ms; poor > 500 ms at the 75th percentile of field loads, by mobile and desktop.",
+   "opened": true
+  },
+  {
+   "id": "P15-S48",
+   "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
+   "url": "https://www.w3.org/TR/WCAG22/",
+   "publisher": "W3C",
+   "type": "standard",
+   "year": "2023",
+   "extract": "SC 1.4.3 contrast 4.5:1 (3:1 large text); SC 1.4.11 non-text contrast 3:1; SC 2.1.1 keyboard operability (only the first 100,000 characters of the page were read).",
+   "opened": true
+  },
+  {
+   "id": "P15-S49",
+   "title": "Understanding SC 2.5.8 Target Size (Minimum)",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+   "publisher": "W3C WAI",
+   "type": "standard guidance",
+   "year": "2023",
+   "extract": "Pointer targets at least 24 by 24 CSS pixels unless spacing, equivalent, inline, user-agent or essential exception applies (Level AA).",
+   "opened": true
+  },
+  {
+   "id": "P15-S50",
+   "title": "Understanding SC 2.5.7 Dragging Movements",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html",
+   "publisher": "W3C WAI",
+   "type": "standard guidance",
+   "year": "2023",
+   "extract": "Dragging functionality must also be achievable with a single pointer without dragging unless essential (Level AA); node-graph editors not mentioned.",
+   "opened": true
+  },
+  {
+   "id": "P15-S51",
+   "title": "Contributor Covenant 3.0 Code of Conduct",
+   "url": "https://www.contributor-covenant.org/version/3/0/code_of_conduct/",
+   "publisher": "Organization for Ethical Source",
+   "type": "code of conduct",
+   "year": "2025",
+   "extract": "Stewarded by the Organization for Ethical Source and licensed under CC BY-SA 4.0; four-rung enforcement ladder (warning, temporarily limited activities, temporary suspension, permanent ban).",
+   "opened": true
+  },
+  {
+   "id": "P15-S52",
+   "title": "GitHub Docs - About community profiles for public repositories",
+   "url": "https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/about-community-profiles-for-public-repositories",
+   "publisher": "GitHub Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "Checklist of README, code of conduct, contributing guide, licence, security policy and issue templates.",
+   "opened": true
+  },
+  {
+   "id": "P15-S53",
+   "title": "GitHub Docs - About code owners",
+   "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners",
+   "publisher": "GitHub Docs",
+   "type": "official documentation",
+   "year": "2026",
+   "extract": "CODEOWNERS in .github/, root or docs/; last matching pattern wins; owners need write access; branch protection can require code-owner review.",
+   "opened": true
+  },
+  {
+   "id": "P15-S54",
+   "title": "OpenSSF Scorecard",
+   "url": "https://github.com/ossf/scorecard",
+   "publisher": "OpenSSF",
+   "type": "repository",
+   "year": "2026",
+   "extract": "Apache-2.0; checks score 0-10 with risk weights (Critical 10, High 7.5, Medium 5, Low 2.5); examples Code-Review, Branch-Protection, Signed-Releases, Dangerous-Workflow.",
+   "opened": true
+  },
+  {
+   "id": "P15-S55",
+   "title": "JOSS review criteria",
+   "url": "https://joss.readthedocs.io/en/latest/review_criteria.html",
+   "publisher": "Journal of Open Source Software",
+   "type": "review policy",
+   "year": "2026",
+   "extract": "OSI-approved licence file, statement of need, installation and usage docs, community guidelines, automated tests or documented manual tests, sustained development history, AI usage disclosure.",
+   "opened": true
+  },
+  {
+   "id": "P15-S56",
+   "title": "rOpenSci software peer review - introduction",
+   "url": "https://devguide.ropensci.org/softwarereview_intro.html",
+   "publisher": "rOpenSci",
+   "type": "review policy",
+   "year": "2026",
+   "extract": "Two external reviewers per submission, associate editor, public review thread as a GitHub issue; accepted packages show a peer-reviewed badge linking to the review.",
+   "opened": true
+  },
+  {
+   "id": "P15-S57",
+   "title": "Open Source Guides - Leadership and governance",
+   "url": "https://opensource.guide/leadership-and-governance/",
+   "publisher": "GitHub Open Source Guides",
+   "type": "guide",
+   "year": "2026",
+   "extract": "Governance models (BDFL, meritocracy, liberal contribution); document how to become a maintainer in GOVERNANCE.md; use an organisation with a backup admin.",
+   "opened": true
+  },
+  {
+   "id": "P15-S58",
+   "title": "Creative Commons FAQ",
+   "url": "https://creativecommons.org/faq/",
+   "publisher": "Creative Commons",
+   "type": "FAQ",
+   "year": "2026",
+   "extract": "Recommends against CC licences for software (CC0 is the exception); CC licences may be used for documentation and separate artistic elements (only first 100,000 characters of the page were read).",
+   "opened": true
+  },
+  {
+   "id": "P15-S59",
+   "title": "SPDX License List",
+   "url": "https://spdx.org/licenses/",
+   "publisher": "SPDX / Linux Foundation",
+   "type": "reference list",
+   "year": "2026",
+   "extract": "Short identifiers for licences, with an OSI-approved column; expressions combine identifiers with WITH and +.",
+   "opened": true
+  },
+  {
+   "id": "P15-S60",
+   "title": "Vancouver Tall Challenge - Terms and conditions",
+   "url": "https://www.architecturecompetitions.com/vancouvertallchallenge/terms",
+   "publisher": "Buildner",
+   "type": "competition terms",
+   "year": "2026",
+   "extract": "Entrants retain ownership (12.3); non-exclusive perpetual licence to organiser for publicity (12.2); submissions must carry no identifying marks (5.1); jury learns identities only after winners are selected (5.3). No statement on redistribution of the brief.",
+   "opened": true
+  },
+  {
+   "id": "P15-S61",
+   "title": "GIDA - CARE Principles for Indigenous Data Governance",
+   "url": "https://www.gida-global.org/careprinciples",
+   "publisher": "Global Indigenous Data Alliance",
+   "type": "principles",
+   "year": "2026",
+   "extract": "Page text read supports Collective Benefit and Authority to Control only; Responsibility and Ethics were not defined in the portion retrieved.",
+   "opened": true
+  },
+  {
+   "id": "P15-S62",
+   "title": "City of Vancouver - Terms of use (open data licence)",
+   "url": "https://vancouver.ca/your-government/terms-of-use.aspx",
+   "publisher": "City of Vancouver",
+   "type": "terms",
+   "year": "2026",
+   "extract": "Intended for open-data licence and attribution wording; the page returned HTTP 403, so nothing was verified.",
+   "opened": false
+  },
+  {
+   "id": "P15-S63",
+   "title": "Food4Rhino",
+   "url": "https://www.food4rhino.com/",
+   "publisher": "McNeel / Food4Rhino",
+   "type": "platform",
+   "year": "2026",
+   "extract": "Named in the scope as a distribution precedent; the site returned HTTP 403, so publishing, rating and moderation practices were not verified.",
+   "opened": false
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "Pyodide/WebAssembly isolation is enough to run untrusted community Python safely in the browser.",
+   "correction": "Treat Pyodide as one layer only. A 7 Aug 2026 disclosure showed escapes in seven products (ctypes and Emscripten exports reached the JS host). Add host-level isolation (separate origin, worker CSP, no network), allowlists, stripped exports, maintainer review, or run server-side in a sandbox.",
+   "detail": "WebAssembly's own docs list side channels and in-memory overflows as remaining risks; two of the seven products received no fix because maintainers treated isolation as the deployer's job.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "A Web Worker created by our page inherits the page's Content-Security-Policy and is therefore a safe place for community code.",
+   "correction": "Workers are generally not governed by the creating document's CSP; a worker script must be served with its own CSP header (blob: and data: workers inherit). Workers also still have network access unless blocked.",
+   "detail": "MDN: a page with script-src 'self' blocks eval(), yet code in a worker it creates can still call eval().",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "litegraph.js (or its Comfy fork) is a maintained, safe choice for the node canvas.",
+   "correction": "Original litegraph.js last pushed 2024-08-01 with about 1.2 k weekly downloads; the Comfy-Org fork is archived (2026-01-14). Use @xyflow/react (pushed 2026-10-20, about 8.3 M weekly downloads) with Rete as the fallback.",
+   "detail": "Observed 21 Oct 2026 from GitHub API and npm download API.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "MIT licensing of React Flow means the on-canvas attribution can be removed without paying.",
+   "detail": "The vendor states attribution may be removed only with a Pro subscription (Starter $169/month, Professional $289/month) while the library itself stays MIT. Whether MIT legally obliges the on-canvas badge was not verified; default is to leave it visible.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The Contributor Covenant text is CC BY 4.0.",
+   "correction": "Version 3.0 is stated on its own page to be CC BY-SA 4.0 (share-alike). CC BY 4.0 for earlier versions (2.1) was seen only in a search snippet, not on an opened primary page.",
+   "detail": "Pick one version and record its licence in the repo; a share-alike text constrains derivative conduct documents.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Editable presets without literature source: INP applied to a canvas editor; incremental re-run <= 5 s good / > 30 s bad; time to first response <= 3 d good / > 14 d bad; Wilson score >= 0.80 good / < 0.50 bad with n >= 5; Scorecard >= 7 good / < 4 bad; library 'maintained' = pushed within 90 days; expert badge needs >= 2 reviewers.",
+   "detail": "Shown in the tool as editable team assumptions per the course rule; replace with sourced values when found."
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "React Flow node/edge capacity at 60 fps; Pyodide cold-start time; COEP side effects on third-party embeds (giscus, tiles); giscus repository-visibility requirement; GitHub API rate limits.",
+   "detail": "No sourced figures found; each needs a benchmark or a read of the relevant documentation.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "City of Vancouver open-data licence text and attribution rules for datasets other modules may import.",
+   "detail": "vancouver.ca terms page and the open-data licence page could not be read (HTTP 403 or no licence text). Needs a manual check before any dataset is redistributed.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Whether the VTC brief PDF, site plan and 3D model may be redistributed inside the registry.",
+   "detail": "Terms state entrants keep their IP and grant the organiser a licence; they say nothing about redistributing competition materials, and the competition page sets no stated usage restriction. Policy until clarified: link and cite only, do not host.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Who qualifies as an expert reviewer for the expert-reviewed badge, and who stands behind it (UBC SALA faculty, practitioners, a named panel).",
+   "detail": "Needs a governance decision with the course team; rOpenSci and JOSS show the process but not a qualification standard.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Food4Rhino moderation, rating and publishing practices, and Dynamo run-mode behaviour (automatic, manual, periodic).",
+   "detail": "Food4Rhino returned HTTP 403; the Dynamo primer pages read did not cover run modes. Neither is used as evidence in any threshold.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Graph size (node and edge count) vs canvas frame time and recompute time in React Flow: the performance guide gives no figures; needs a benchmark.",
+  "Pyodide package set and cold-start time vs user abandonment: no sourced numbers; measure first and warm loads.",
+  "Number of expert reviewers vs defect escape rate for community modules: rOpenSci uses two but gives no evidence of the optimum.",
+  "Rating count and Wilson score vs actual module correctness: the statistic handles sampling uncertainty only; no source links crowd ratings to correctness.",
+  "Review response time vs contributor retention in a student-run registry: CHAOSS names the objective but gives no numeric relationship.",
+  "Sandbox permission granularity vs contributor and user friction: no sourced evidence.",
+  "Auto-run vs manual run vs step-into mode vs user trust in results: no sourced evidence.",
+  "Template granularity (nodes per template) vs reuse and learning: no sourced evidence.",
+  "Disabled-node mode (bypass vs block) vs correctness of downstream verdicts: design logic only, not empirically sourced.",
+  "Effect of COEP require-corp or credentialless on third-party embeds (giscus, map tiles) and on Pyodide interrupts: not verified."
+ ],
+ "change_log": [
+  "21 Oct 2026: initial packet P15 compiled; 8 modules, 63 sources (above the soft target of about 40 because every library licence, library health check and platform precedent was fetched and cited separately).",
+  "Added Aug 2026 Pyodide sandbox-escape disclosure (Cyera) and corrected the scope's implied assumption that Pyodide/WASM/Web Workers are sandboxes (two FALSE_ASSUMPTION flags).",
+  "Rejected litegraph.js after checking GitHub and npm activity; selected @xyflow/react as primary canvas, Rete as fallback.",
+  "Corrected Contributor Covenant licensing: v3.0 is CC BY-SA 4.0 per its own page; CC BY 4.0 for earlier versions left unverified.",
+  "WebSearch budget ran out mid-session and several sites returned 403 (Food4Rhino, City of Vancouver terms, GitHub API for a few repos); related claims marked unverified or opened=false."
+ ],
+ "case_studies": [
+  {
+   "tool": "Grasshopper ecosystem: Yak package manager and Food4Rhino",
+   "what_it_does": "Yak packages Grasshopper plug-ins with a manifest.yml (name, version, authors, description), installs them through Rhino's Package Manager, and lets owners push versions that cannot be overwritten, only yanked. Food4Rhino is the named community download site.",
+   "workflow_step": "Distribution and discovery of analysis plug-ins",
+   "how_used": "Designers find a plug-in, install it, wire it into a definition by hand.",
+   "strengths": "Simple manifest, SemVer or four-digit versions, immutable versions with yank, ownership by first pusher.",
+   "stops_at": "The Yak push page describes no review or moderation step and no sandbox; it records no per-threshold sources or assumptions. Food4Rhino could not be opened.",
+   "ai_opportunity": "Automated manifest lint, source-link checking and test running before listing.",
+   "ai_wont_improve": "Judging whether a plug-in's thresholds are right for Vancouver policy.",
+   "license_cost": "Not verified.",
+   "source_ids": [
+    "P15-S37",
+    "P15-S38",
+    "P15-S63"
+   ]
+  },
+  {
+   "tool": "ComfyUI node registry (Comfy Registry)",
+   "what_it_does": "Public registry of custom nodes with semantic versioning, immutable published versions, deprecation, globally unique names, malicious-behaviour scanning with a verification flag, and workflow JSON that stores node versions.",
+   "workflow_step": "Module registry, reproducible templates",
+   "how_used": "Users install nodes through ComfyUI-Manager and share workflows.",
+   "strengths": "Closest precedent for a node canvas with community modules, versioned workflows and a security verification flag.",
+   "stops_at": "Scanning looks for patterns such as custom pip wheels and arbitrary system calls; the page does not claim it proves safety or describe runtime sandboxing. Licence and pyproject requirements were not on the page.",
+   "ai_opportunity": "Pattern-based scanning and triage of new versions.",
+   "ai_wont_improve": "Assuring correctness of architectural thresholds.",
+   "license_cost": "Not verified.",
+   "source_ids": [
+    "P15-S39"
+   ]
+  },
+  {
+   "tool": "Obsidian community plugins",
+   "what_it_does": "Plugins ship README, LICENSE and manifest.json; version must match the release tag; ids are unique; submission through the directory with automatic review that blocks installation until errors are fixed.",
+   "workflow_step": "Plugin submission and automated review",
+   "how_used": "Author publishes a GitHub release, submits, fixes automated review errors.",
+   "strengths": "Low-friction, manifest-centred review pipeline.",
+   "stops_at": "The page describes automatic review only; no human expert review or sandbox is described.",
+   "ai_opportunity": "More automated checks (licence, links, tests).",
+   "ai_wont_improve": "Domain judgment about design correctness.",
+   "license_cost": "Not verified.",
+   "source_ids": [
+    "P15-S36"
+   ]
+  },
+  {
+   "tool": "Homebrew taps and homebrew-core",
+   "what_it_does": "Taps are git repositories of formulae installable by name; homebrew-core accepts changes by pull request with CI, organisation-member approval and bot merge; AI/LLM use must be disclosed.",
+   "workflow_step": "Index repository, PR review, forks and third-party taps",
+   "how_used": "Maintainers review PRs; users add third-party taps and must trust them.",
+   "strengths": "Reviewable git history, CI gate, clear maintainer approval, tap model for unofficial sources.",
+   "stops_at": "Non-official taps rely on user trust; the pages do not describe sandboxing of formula code.",
+   "ai_opportunity": "CI automation and disclosure checks.",
+   "ai_wont_improve": "Maintainer trust decisions.",
+   "license_cost": "Not verified.",
+   "source_ids": [
+    "P15-S34",
+    "P15-S35"
+   ]
+  },
+  {
+   "tool": "rOpenSci software peer review and JOSS",
+   "what_it_does": "Public, expert peer review of software: rOpenSci uses two external reviewers and gives a badge linking to the review thread; JOSS checks OSI licence, tests, documentation and development history.",
+   "workflow_step": "Expert-reviewed badge",
+   "how_used": "Authors submit; reviewers work through a checklist in a public GitHub thread.",
+   "strengths": "Transparent, named reviewers, badge points to evidence.",
+   "stops_at": "Neither source defines reviewer qualifications in a way we can copy; both review software quality, not architectural correctness.",
+   "ai_opportunity": "Pre-filling the checklist (licence, tests, links) for reviewers.",
+   "ai_wont_improve": "Expert judgment on wind, structure or planning thresholds.",
+   "license_cost": "Not verified.",
+   "source_ids": [
+    "P15-S55",
+    "P15-S56"
+   ]
+  },
+  {
+   "tool": "Node-canvas libraries: React Flow (xyflow) vs Rete vs Baklava vs litegraph",
+   "what_it_does": "React Flow renders custom nodes, handles and validation hooks; Rete adds a pull-based dataflow engine with caching; Baklava is Vue-based with an engine and interface types; litegraph.js is canvas-based with typed slots.",
+   "workflow_step": "Node canvas and execution",
+   "how_used": "Embedded as the editor and, for Rete and Baklava, the engine.",
+   "strengths": "All MIT. xyflow has by far the largest use (about 8.3 M weekly downloads) and active pushes; Rete has a built-in cached dataflow engine.",
+   "stops_at": "React Flow provides no execution engine or domain port typing (app code); litegraph.js is stale and its Comfy fork archived; Baklava has small adoption.",
+   "ai_opportunity": "Generating node components from manifests.",
+   "ai_wont_improve": "Deciding what the port-type vocabulary should be.",
+   "license_cost": "MIT for all four; React Flow Pro is optional and starts at $169/month for attribution removal.",
+   "source_ids": [
+    "P15-S01",
+    "P15-S02",
+    "P15-S04",
+    "P15-S06",
+    "P15-S07",
+    "P15-S08",
+    "P15-S09",
+    "P15-S10",
+    "P15-S11"
+   ]
+  }
+ ],
+ "as_is_workflow": [
+  {
+   "step": "1. Find an analysis tool or plug-in",
+   "who": "Designer",
+   "software": "Food4Rhino, Yak / Rhino Package Manager, GitHub",
+   "input": "Need (e.g. wind or daylight study)",
+   "output": "Candidate plug-in",
+   "pain_points": "Team assumption to confirm by interviews: no common place that shows sources, thresholds or assumptions; Food4Rhino could not be opened to check.",
+   "automatable_or_judgment": "Judgment (is the tool suitable and trustworthy)",
+   "handover": "Install package"
+  },
+  {
+   "step": "2. Install and trust the package",
+   "who": "Designer",
+   "software": "Rhino Package Manager (Yak)",
+   "input": "Package name and version",
+   "output": "Installed plug-in",
+   "pain_points": "Yak push page mentions no review or moderation step; trust is the user's decision.",
+   "automatable_or_judgment": "Judgment (trust) with automatable checks (signature, licence)",
+   "handover": "Open Grasshopper"
+  },
+  {
+   "step": "3. Wire the definition by hand",
+   "who": "Designer",
+   "software": "Grasshopper (trees of items, lists, branches)",
+   "input": "Rhino geometry and parameters",
+   "output": "Grasshopper definition",
+   "pain_points": "Team assumption: wiring conventions and units differ between plug-ins; mistakes surface at run time.",
+   "automatable_or_judgment": "Mixed",
+   "handover": "Run and read previews"
+  },
+  {
+   "step": "4. Run and inspect results",
+   "who": "Designer",
+   "software": "Grasshopper, Rhino viewport",
+   "input": "Definition and geometry",
+   "output": "Numbers and previews",
+   "pain_points": "Team assumption: thresholds and their sources are not recorded with the result; provenance is lost when the file is edited.",
+   "automatable_or_judgment": "Automatable computation; judgment on meaning",
+   "handover": "Screenshots or exports"
+  },
+  {
+   "step": "5. Compose boards and cite",
+   "who": "Designer",
+   "software": "Image/layout software, PDF",
+   "input": "Exports",
+   "output": "A2 boards and policy reflection",
+   "pain_points": "Team assumption: figures and citations are linked by hand; export metadata may identify authors although VTC requires anonymity.",
+   "automatable_or_judgment": "Judgment (argument) with automatable citation and metadata checks",
+   "handover": "Submission by 30 Nov 2026"
+  }
+ ],
+ "notes": "Verification state at 21 Oct 2026. Library versions, licences, weekly downloads and push dates come from the npm registry and GitHub API; GitHub API rate limits (HTTP 403) blocked a few later checks, so Pyodide, giscus and quickjs-emscripten licences rest on their repository pages and npm metadata. WebSearch budget was exhausted mid-session, so some precedents (Food4Rhino, Dynamo run modes, ComfyUI malicious-node incidents) were not verified and are not used as evidence. Source count (63) exceeds the soft target of about 40; if a trim is needed, drop P15-S21, P15-S25, P15-S43, P15-S57 and the two unopened sources first. Priority mapping: core = needed by the 13 Nov 2026 course milestone or VTC entrants before 30 Nov (M01, M02, M03, and the minimum files of M08); v1 = by 10 Dec 2026 (M04-M07); expert pool, T3 server sandbox and own comment database are roadmap. Effort figures are team estimates, not sourced. This packet does not touch the VTC brief text beyond the terms page; it recommends linking to the brief rather than redistributing it."
+}

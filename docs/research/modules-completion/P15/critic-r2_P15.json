@@ -1,0 +1,314 @@
+{
+ "expert_role": "HCI researcher on visual programming for designers (node-based end-user programming, accessibility, evaluation), reviewing P15 round 2",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P15 packet (priorities/effort, M01/M02/M03/M07/M08)",
+   "issue": "The spec's own figures say the schedule cannot be met. Core work is about 6.5-7 dev-weeks against an assumed capacity of about 3 dev-weeks before 13 Nov. Even the proposed cut line (M01 without dagre or the outline view, M02 1.5-2 wk, M03 schema plus T0 about 1.5 wk, M07 core about 1 wk, M08 2 days) adds up to roughly 5-6 dev-weeks. Entrants would then have only 17 days (13-30 Nov) with an untested tool. The round-1 schedule item is acknowledged but not resolved.",
+   "fix": "Re-baseline to about 3 dev-weeks and say what is dropped. One option is a minimal M01 (typed ports, click-to-connect, keyboard outline), M02 run-all plus RunRecord, an M03 schema plus T0 evaluator, and an M07 local store plus metadata scan. Move the step-into inspector, the publish gate UI beyond a static notice, and the M08 extras to after 13 Nov. Otherwise, state plainly that VTC entrants are not the first users and that the 2026 VTC is a pilot only."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01",
+   "issue": "The cut line lets the outline/table view slip to v1. That view is the only planned route for keyboard connect and disconnect (React Flow's accessibility page does not document keyboard connections) and the only screen-reader view. It is also the natural 'Equivalent' exception under WCAG 2.5.8. If it slips, the core release fails its own SC 2.1.1 metric, which is still labelled 'verified'.",
+   "fix": "Keep a minimal outline view with connect and disconnect buttons in core (it can be a plain table) and cut dagre or visual polish instead. If it must slip, set the keyboard metric to 'not met in core' and show that limitation on the canvas."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01",
+   "issue": "The drag inventory for WCAG 2.5.7 is incomplete. The checklist covers connect, move and resize only. The React Flow API reference shows panOnDrag defaults to true and edgesReconnectable defaults to true (an edge is re-targeted by dragging its endpoint). Marquee selection and minimap panning are also drags. These would ship as drag-only actions.",
+   "fix": "List every pointer-drag action and pair each with a single-pointer alternative: pan buttons or arrow-key panning, click an edge and then click a new target to reconnect, shift-click multi-select, and a clickable minimap. Alternatively set edgesReconnectable=false and use delete plus click-to-connect. Add a Playwright check that enumerates enabled drag props."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01/M02/M04",
+   "issue": "The latency method cannot measure what it claims. The W3C Event Timing spec does not expose continuous events (pointermove, mousemove, touchmove, wheel, drag), so 'script drag ... record Event Timing durations' records nothing for the drag itself. MDN also says entries below durationThreshold (default 104 ms, minimum 16 ms) are not reported and durations are rounded to 8 ms. A p98 over only the reported entries is therefore biased toward slow events.",
+   "fix": "Measure discrete interactions (click-to-connect, key, parameter input, run button) with PerformanceObserver at durationThreshold 16 and compute p98 over all scripted interactions, counting unreported ones as under 16 ms. Measure drag and pan smoothness separately as frame times (rAF deltas or Long Animation Frames), for example p95 frame time at most 16.7/33 ms as a team assumption."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M02",
+   "issue": "The incremental re-run thresholds (good <= 5 s, bad > 30 s) are labelled 'no sourced benchmark', but an established HCI source exists. Nielsen's response-time limits are 0.1 s (feels instant), 1 s (flow of thought kept) and 10 s (attention kept). Delays over 10 s need a percent-done indicator and a way to interrupt. A 30 s 'not bad' band means designers lose attention during the parameter-tweak loop, the core interaction of a Grasshopper-like tool.",
+   "fix": "Rebase the bands on Nielsen (1993/2014): good <= 1 s for T0/formula nodes, acceptable <= 10 s, bad > 10 s unless a percent-done progress bar and a cancel control are shown. Cite the source and mark it 'sourced HCI guideline applied by our reading'. Add metrics for progress-indicator and cancel coverage."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15 packet (evaluation)",
+   "issue": "No module or metric tests whether designers can actually use the tool: no task-based usability study, no time-to-first-result, no wiring-error rate, and no check that users understand the status chips and provenance. Green and Petre's cognitive-dimensions framework for dataflow visual languages (JVLC 1996) is not used to assess viscosity, hidden dependencies or secondary notation. All human-facing metrics are WCAG or performance checks.",
+   "fix": "Add a formative evaluation before entrants rely on it, for example 5-8 M.Arch or VTC designers, think-aloud on three VTC tasks (wire massing to a daylight or FSR check, read a RunRecord, find a FALSE ASSUMPTION). Measure task success, time, wiring errors and chip-comprehension accuracy, and do a cognitive-dimensions walkthrough. Bands are team assumptions. Schedule a pilot by about 10 Nov and a follow-up after 30 Nov."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M03/M02 (course requirement)",
+   "issue": "The course requires every result to separate what code, AI and people decide, yet neither the manifest nor the RunRecord has a field for it. human_judgment is free text per module. AI appears only as tooling (github-mcp-server, Claude Code skills) with no record of AI-generated thresholds, relationships or manifests.",
+   "fix": "Add decided_by {code | ai | person} with actor and date to every parameter, threshold and metric in the manifest, and per value in the RunRecord. Require AI-drafted fields to be confirmed by a named person before status can be 'verified'. Render a three-colour provenance strip on node cards and in the step-into panel. Lint any missing decided_by."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M03/M06/M01",
+   "issue": "Status semantics mix the current state with its history. 'false_assumption_corrected' is a metric status, but its basis says the threshold is now a team assumption (INP), and M03 says status decides the chip colour. A corrected, currently valid preset would therefore display in the reserved FALSE ASSUMPTION colour. The status sets also disagree across modules: M01 badges, M03 metric enum (4 values) and M06 flag taxonomy (FALSE_ASSUMPTION/UNVERIFIED/UNRESOLVED/TEAM_ASSUMPTION). Designers and jurors cannot tell whether a number is wrong now or was wrong earlier.",
+   "fix": "Split status into current_status {verified | team_assumption | unverified | false} and history[] {was_false_in, corrected_in, evidence}. Chip colour follows current_status, with a small 'corrected' history icon. Use one enum across M01, M03 and M06 and add a comprehension test to the usability study."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M01 (Layer 0 dependency)",
+   "issue": "The round-1 item on port types and units is only partly addressed. Type ids are versioned and carry units, but the Layer 0 schema owner remains UNRESOLVED three weeks before core, and every typed port depends on it. The grid_to_true_north parameter rests on P15-S82, which was not opened (brief behind an email form). Search evidence (Spacing Vancouver) describes the downtown grid as roughly 45 degrees off the cardinal grid, but no angle value or sourced definition is given.",
+   "fix": "Name the owning packet and person this week and freeze layer0.*/v1 by about 1 Nov. Source the true-north angle from City of Vancouver open data or a survey plan, mark it unverified until opened, and store it with its source id. Add a fixture comparing a shadow direction at a known date and time."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P15-M08",
+   "issue": "The Indigenous governance item is only partly addressed. The hold rule and disclaimer were added, but OCAP and City UNDRIP pages are still unread, the UBC SALA advisory route is unconfirmed, and no contact, timeline or decision owner exists. The cultural_context_30 jury criterion is 30% of the score, and in practice the hold means the platform offers entrants nothing for it before 30 Nov. That is not stated to users.",
+   "fix": "Say on the CULT palette that no Nation-authorised modules exist for VTC 2026 and that the tool does not evaluate cultural context. Name the person who will contact UBC SALA or the First Nations House of Learning by a date. Retry OCAP through an archived copy, or mark it unverified and list it."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M02",
+   "issue": "The 'longest-list default with graft/flatten' is called design logic and cites P15-S12, which the spec itself says does not cover matching rules. McNeel's own wiki documents Longest List as Grasshopper's default, repeating the last item of the shorter stream. That repetition is a known source of silent errors, and in an evidence tool a repeated item can produce a pass/fail result that nobody asked for.",
+   "fix": "Cite the McNeel data-stream-matching page. Keep longest-list for Grasshopper familiarity, but stamp results in the RunRecord and on the wire when items were repeated, and offer strict matching (error on length mismatch) for metric nodes."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01",
+   "issue": "Counter-scaling handle hit areas to 24 CSS px at minZoom 0.5 makes each handle 48 canvas px. On dense nodes these areas overlap, and the WCAG 2.5.8 Understanding page says overlapping areas are not counted toward target size, so the fix can cause mis-targeting and still fail. The page also recognises Essential (dense visualizations, maps) and Equivalent exceptions.",
+   "fix": "Below a zoom threshold, hide or disable handles and route connection through click-to-connect at readable zoom or through the outline view (Equivalent exception). Cap counter-scaling so hit areas never intersect, and test overlap in the DOM measurement."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01",
+   "issue": "Thirteen category colours on node stripes exceed the number of hues people can reliably tell apart, especially with colour-vision deficiency, and the M01 visualization does not say the stripe carries a text code. The status badges use green, amber and red hues.",
+   "fix": "Print the category code (SITE, CLIM and so on) on every stripe. Use at most about 8 hue families with lightness variants and validate them with a CVD simulator. Status badges always pair an icon with a text label, as M06 already requires."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01/M07",
+   "issue": "Graph legibility at scale is treated only as rendering performance (hidden groups, onlyRenderVisibleElements). Davis, Burry and Burry (IJAC 2011) report that architects rarely modularise Grasshopper scripts and that modules affect legibility, reuse and collaboration. The spec offers collapse but no named sub-graphs with declared interfaces, naming conventions or annotations.",
+   "fix": "Add named clusters (sub-graphs exposing typed ports) and required group labels or notes as secondary notation. Ship the VTC starter template pre-modularised, and add 'can a teammate explain the graph in 5 minutes' to the usability study."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M02",
+   "issue": "The execution-mode default is unspecified (auto | run-all | step-into) and marked as having no evidence. Grasshopper users, the target designers, are used to recompute-on-change, and a manual default risks stale numbers being read as current.",
+   "fix": "Default to auto for T0/formula nodes with a debounce and to run-all for heavy nodes, with a prominent stale hatch. Record the mode in the RunRecord and test stale-result recognition in the usability study."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M07",
+   "issue": "Local-first storage is the only copy of an entrant's work in the weeks before a hard deadline. OPFS is deleted when site data are cleared and is subject to quota eviction. 'Backup export is mandatory' has no mechanism or metric, and a 2-4 person team has no merge path in core.",
+   "fix": "Call navigator.storage.persist() and show the result. Add an auto-export reminder (for example daily, and before closing with unexported changes). Add a metric 'last backup older than 24 h' (team assumption). For core teams, document a single-writer hand-off with a graph-JSON file and a basic diff."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M07",
+   "issue": "The embargo runs 'until VTC results' and the leaving-device metric only until 30 Nov. Terms 5.3 say the jury learns identities only after winners are selected, so the risk continues past 30 Nov. Terms 4.7 also say a submission cannot be changed after the first upload without a fee, so the anonymity scan must run before upload, not after.",
+   "fix": "Store the embargo end as an explicit, editable date (results announcement, unverified) and keep the gate active until then. Make the anonymity scan a required pre-upload step in the export flow, with a 'scan passed' stamp."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P15-M01",
+   "issue": "The keyboard metric is labelled 'verified', but its good criterion includes team design rules (an outline view supporting connect and disconnect, a defined focus order), and applying WCAG to a node editor is 'our reading' elsewhere in the spec. Status labels are inconsistent between the 2.5.7 and 2.1.1 metrics.",
+   "fix": "Label threshold provenance per part: SC 2.1.1 'all functionality by keyboard' is verified; the outline-view and focus-order design is a team_assumption."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Incremental re-run time bands (good <= 5 s, bad > 30 s) have no sourced benchmark (M02 basis).",
+   "why_false": "A long-standing HCI source gives response-time limits. A 30 s threshold is far beyond the 10 s limit for keeping attention, and delays over 10 s need progress feedback and an interrupt.",
+   "correction": "Good <= 1 s for cheap nodes, acceptable <= 10 s, bad > 10 s unless a percent-done indicator and a cancel control are shown. Cite Nielsen and mark it 'sourced guideline applied by our reading'.",
+   "evidence": "https://www.nngroup.com/articles/response-times-3-important-limits/ (1993, updated 2014): 0.1 s instantaneous, 1 s flow of thought, 10 s attention; percent-done indicator and a clearly marked interrupt for longer operations."
+  },
+  {
+   "claim": "Scripting a drag and recording Event Timing durations measures canvas drag latency (M01 latency metric method).",
+   "why_false": "Event Timing does not expose continuous events such as pointermove, mousemove, touchmove, wheel or drag. Entries below durationThreshold (default 104 ms) are not reported at all.",
+   "correction": "Use Event Timing (durationThreshold 16) only for discrete interactions, computing p98 over all scripted interactions. Measure drag and pan as frame times (rAF or Long Animation Frames).",
+   "evidence": "https://www.w3.org/TR/event-timing/ lists mousemove, pointermove, pointerrawupdate, touchmove, wheel and drag as continuous events that 'are not exposed'. https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming gives the 104 ms default, 16 ms minimum and 8 ms rounding."
+  },
+  {
+   "claim": "Connect, move and resize are the drag actions needing single-pointer alternatives (M01 2.5.7 metric).",
+   "why_false": "React Flow enables further drag-only interactions by default: panning the pane and reconnecting an edge by dragging its endpoint.",
+   "correction": "Inventory all drag props and provide pan buttons or keys and a click-based reconnect, or disable edgesReconnectable.",
+   "evidence": "https://reactflow.dev/api-reference/react-flow: panOnDrag default true; edgesReconnectable default true."
+  },
+  {
+   "claim": "The longest-list matching default is design logic and is supported by P15-S12.",
+   "why_false": "P15-S12 does not cover matching rules (the spec says so itself). Longest List is Grasshopper's documented default, so it is sourced practice rather than design logic, and the cited source is the wrong one.",
+   "correction": "Cite McNeel's data-stream-matching page and note that longest-list repeats the last item, which needs a stamp in the RunRecord.",
+   "evidence": "https://wiki.mcneel.com/labs/explicithistory/datastreammatchingalgorithms (via search result; Longest List is the default and continues until all streams run dry)."
+  }
+ ],
+ "missing": [
+  "A formative usability evaluation plan with target designers (tasks, measures, sample, date before entrant use) and a cognitive-dimensions walkthrough.",
+  "A decided_by {code | ai | person} field in the manifest and RunRecord to meet the course rule separating code, AI and human decisions.",
+  "A VTC starter graph template (Layer 0 -> FSR, height-band, daylight checks) and onboarding for entrants with about 17 days of use.",
+  "Frame-time metrics for drag, pan and zoom smoothness, separate from Event Timing.",
+  "A full inventory of drag interactions (pan, edge reconnect, marquee, minimap) with non-drag alternatives.",
+  "Progress-indicator and cancel coverage for any run over about 10 s.",
+  "A sourced value and definition for the grid-to-true-north angle of the VTC block, and the named Layer 0 owner with a freeze date.",
+  "Named sub-graphs or clusters with typed interfaces and annotation (secondary notation) for graph legibility.",
+  "Persistent-storage request (navigator.storage.persist) and backup reminders for the local-first store; a team hand-off or merge path in core.",
+  "A single status vocabulary shared by M01 badges, M03 metric status and M06 flags, with history kept separate from the current state.",
+  "A user-facing statement that the CULT category has no Nation-authorised modules for VTC 2026.",
+  "Execution-mode default and stale-result signalling, tested with users."
+ ],
+ "previous_round": [
+  {
+   "item": "BLOCKER: public-by-default sharing conflicts with VTC 4.1/5.1/5.3",
+   "status": "addressed",
+   "residue": "Local-first M07, publish gate and leaving-device metric added. The embargo end date is undefined and the metric stops at 30 Nov, although the jury learns identities only after winners are chosen (5.3)."
+  },
+  {
+   "item": "BLOCKER: module visualizations unsandboxed (XSS and img-src exfiltration)",
+   "status": "addressed",
+   "residue": "Declarative payloads drawn by host code, Vega interpreter, img-src allowlist and containment red-team cases are in place. This is v1, so only first-party and T0 modules run before then."
+  },
+  {
+   "item": "MAJOR: worker CSP incoherent; GitHub Pages cannot send headers",
+   "status": "addressed",
+   "residue": "CSP and sandbox header now sit on the sandbox document on a header-capable host. Whether blob workers start in opaque-origin iframes is still unverified; fallback B is recorded."
+  },
+  {
+   "item": "MAJOR: connect-src none blocks runtime .wasm and package fetches",
+   "status": "addressed",
+   "residue": "Host-supplied pinned bytes; feasibility per runtime is untested."
+  },
+  {
+   "item": "MAJOR: WCAG 2.5.7 misread; handles shrink with zoom",
+   "status": "partly",
+   "residue": "Metric renamed and keyboard tested separately. Pan and edge-reconnect drags (React Flow defaults) are not covered. Counter-scaling can make handles overlap. The outline view is on the cut line."
+  },
+  {
+   "item": "MAJOR: INP labelled verified",
+   "status": "partly",
+   "residue": "Reclassified, but the Event Timing method cannot measure drag (continuous events are not exposed) and the default 104 ms threshold biases p98."
+  },
+  {
+   "item": "MAJOR: SemVer 0.y.z and schema variance",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: unversioned port types; no units or true north; no Layer 0 owner",
+   "status": "partly",
+   "residue": "Versioned ids, dimensions, units and site_frame added. The owner is still UNRESOLVED and the true-north claim rests on the unopened P15-S82."
+  },
+  {
+   "item": "MAJOR: determinism and provenance under-specified",
+   "status": "addressed",
+   "residue": "Per-metric tolerances are untested presets. There is no code/AI/person decision field, which the course requires."
+  },
+  {
+   "item": "MAJOR: schedule vs users; what runs before M04",
+   "status": "partly",
+   "residue": "T0 and first-party-only rule added. Core is still about 6.5-7 dev-weeks against about 3 of capacity, and the cut line is about 5-6."
+  },
+  {
+   "item": "MAJOR: thin Indigenous data policy",
+   "status": "partly",
+   "residue": "Hold rule, disclaimer and full CARE added. OCAP and City UNDRIP are unread, the advisory route is unconfirmed with no owner or date, and users are not told CULT support is empty."
+  },
+  {
+   "item": "MAJOR: npm provenance misapplied to URL bundles",
+   "status": "addressed",
+   "residue": "Attestation eligibility by plan and the mutability of release assets are unverified."
+  },
+  {
+   "item": "MAJOR: copyrighted standards text in modules and extracts",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: inconsistent and unsafe toggle semantics",
+   "status": "addressed"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P15-S60",
+   "url": "https://www.architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "Confirmed 4.1 (original, unpublished visuals), 4.8 (JPEG, 10 MB per panel), 5.1, 5.3, 7.5.5 and 7.5.6. Also 4.7: no changes after first upload without a fee. No clause on tools, AI or work-in-progress sharing."
+  },
+  {
+   "source_id": "P15-S77",
+   "url": "https://reactflow.dev/api-reference/react-flow",
+   "ok": true,
+   "note": "connectOnClick true, minZoom 0.5, maxZoom 2 and onlyRenderVisibleElements false all confirmed. panOnDrag true and edgesReconnectable true are drag-only defaults the spec does not cover."
+  },
+  {
+   "source_id": "P15-S76",
+   "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+   "ok": true,
+   "note": "Tab, Enter and arrow keys and an aria-live region confirmed. Keyboard connection and handle focus are not documented. The page says it 'can help' meet WCAG 2.1 AA; this is not a conformance claim."
+  },
+  {
+   "source_id": "P15-S49",
+   "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+   "ok": true,
+   "note": "Independent of page zoom; overlapping areas are excluded from target size; Equivalent exception; Essential exception for dense visualizations and maps. CSS transforms not discussed."
+  },
+  {
+   "source_id": "P15-S47",
+   "url": "https://web.dev/articles/inp",
+   "ok": true,
+   "note": "Bands are field p75. One outlier is ignored per 50 interactions; the JS section uses the 98th percentile. Spec extract is accurate."
+  },
+  {
+   "url": "https://www.w3.org/TR/event-timing/",
+   "ok": true,
+   "note": "New. Continuous events (pointermove, touchmove, wheel, drag) are not exposed, so the drag latency method is invalid."
+  },
+  {
+   "url": "https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming",
+   "ok": true,
+   "note": "New. Default durationThreshold 104 ms, minimum 16 ms, 8 ms rounding; Baseline 2025."
+  },
+  {
+   "url": "https://www.nngroup.com/articles/response-times-3-important-limits/",
+   "ok": true,
+   "note": "New. 0.1/1/10 s limits; progress indicator and interrupt over 10 s. Contradicts the 'no sourced benchmark' basis for re-run time."
+  },
+  {
+   "url": "https://wiki.mcneel.com/labs/explicithistory/datastreammatchingalgorithms",
+   "ok": true,
+   "note": "Seen through a search summary only, not opened directly. Longest List is the Grasshopper default; should replace P15-S12 as the citation."
+  },
+  {
+   "url": "https://www.danieldavis.com/papers/ijac_davis_burry_burry.pdf",
+   "ok": true,
+   "note": "Search summary only: Davis, Burry and Burry, IJAC 2011, DOI 10.1260/1478-0771.9.4.361. Architects rarely modularise visual scripts; modules affect legibility and collaboration. Full text not read."
+  },
+  {
+   "url": "https://www.academia.edu/3050347/Usability_Analysis_of_Visual_Programming_Environments_a_cognitive_dimensions_framework",
+   "ok": true,
+   "note": "Search summary only: Green and Petre, JVLC 7(2):131-174, 1996, cognitive dimensions for dataflow visual languages. Full text not read."
+  },
+  {
+   "source_id": "P15-S11",
+   "url": "https://registry.npmjs.org/@xyflow/react/latest",
+   "ok": true,
+   "note": "12.12.0 MIT confirmed. pyodide 314.0.7 MPL-2.0 also confirmed."
+  },
+  {
+   "source_id": "P15-S78",
+   "url": "https://developers.cloudflare.com/pages/configuration/headers/",
+   "ok": true,
+   "note": "100 rules, 2,000 characters per line, not applied to Pages Functions responses: confirmed."
+  },
+  {
+   "source_id": "P15-S82",
+   "url": "https://spacing.ca/vancouver/?p=757",
+   "ok": false,
+   "note": "Search snippet only; describes the downtown grid as roughly 45 degrees. P15-S82 itself was unopened, so the true-north claim is unsourced and no angle value is given."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Re-baseline core scope to the stated capacity (about 3 dev-weeks), or state that VTC 2026 entrants are a pilot only; publish the resulting cut list.",
+   "Keep keyboard connect and the outline view in core, or downgrade the 2.1.1 metric; inventory all drag interactions (pan, edge reconnect, marquee, minimap) with single-pointer alternatives.",
+   "Replace the drag latency method with frame-time metrics, set Event Timing durationThreshold to 16 for discrete interactions, and rebase re-run bands on Nielsen's 1/10 s limits with progress and cancel.",
+   "Add a decided_by {code | ai | person} field to manifest and RunRecord, and split current status from correction history with one shared enum.",
+   "Name the Layer 0 owner and freeze date; source the grid-to-true-north angle or mark it unverified.",
+   "Schedule a formative usability test with target designers before entrants rely on the tool."
+  ]
+ },
+ "verdict": "The round-1 revision fixed most security, licensing and VTC-terms issues well; the versions, terms clauses, React Flow defaults and Cloudflare limits check out. It should still not pass, for HCI and planning reasons. Core is still about twice the stated capacity, and the cut line drops the outline view, which is the only route for keyboard and screen-reader editing. The drag-latency method cannot work, because Event Timing does not expose continuous events. Re-run bands ignore well-known response-time limits. Pan and edge-reconnect drags lack alternatives. Status chips mix current state with history. No field separates code, AI and human decisions, as the course requires. No test with real designers is planned before entrants use it. The Layer 0 owner is still unnamed."
+}

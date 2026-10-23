@@ -1,0 +1,224 @@
+{
+ "expert_role": "UX designer of professional 3D design tools (view analysis, warning UX, geospatial viewers)",
+ "previous_round": [
+  {
+   "item": "BLOCKER: City LiDAR 2022 missing; SRTM used for origins and grade",
+   "status": "addressed",
+   "residue": "LiDAR-2022 is now primary and the U budget has been re-derived. The spec says the 0.081 m figure is 'on open ground', but the portal states only 0.081 m at 95% and does not say open ground."
+  },
+  {
+   "item": "BLOCKER: 8 km far plane clips the view subjects",
+   "status": "partly",
+   "residue": "The far plane is now at least 60 km with reversed-Z or log depth. Vista's observer fog still ends at 9,000 m (explorer.js computeCamera, fogFar 9000), which washes out peaks 12.5-24.6 km away. The spec mentions this fog but never says to change it."
+  },
+  {
+   "item": "BLOCKER: equirectangular frame; kernels need a metric CRS",
+   "status": "partly",
+   "residue": "The frame is replaced and the expected values are regenerated geodesically. However, raw EPSG:3157 grid values are 1.85 m short and 0.085 deg off on QE to Barclay. That breaks the spec's own 0.05 m / 0.001 deg metric and its 'UTM agreement within 0.1 m and 0.01 deg' claim (see findings)."
+  },
+  {
+   "item": "MAJOR: sloped lower boundary generalised from one 9.1 sheet",
+   "status": "addressed",
+   "residue": "H0 is the flat default and H1 is labelled historical. The 36 m per km figure is deleted."
+  },
+  {
+   "item": "MAJOR: T1 calibration ill-conditioned, no covariance, stale targets",
+   "status": "addressed",
+   "residue": "Calibration now needs 2 or more sites spanning at least 30% of the cone length, values dated after 2024-07-10, and an OLS prediction variance. The Barclay (2020) and Robson/Cambie values are still unread search summaries."
+  },
+  {
+   "item": "MAJOR: datum chain uncertainty, no plan uncertainty, silent 'outside'",
+   "status": "partly",
+   "residue": "A plan buffer and a near-edge state are added. The EGM96 to HTMVBC00 offsets per origin are still not computed (grid not downloaded). U has no stated coverage factor."
+  },
+  {
+   "item": "MAJOR: clause citations unverified",
+   "status": "partly",
+   "residue": "The format is now 'view {ref} ({name})' plus clause 3.1.1, p.6. The 2026-02-04 text is still unread (the City PDF returns HTTP 403 again today). The SHA-256 check is listed as a human judgment but not as a hard release gate."
+  },
+  {
+   "item": "MAJOR: no governing minimum; zoning/ODP ignored",
+   "status": "addressed",
+   "residue": "L_gov is now the minimum over covering cones, and a ZoningLimit port is added. The governing rule ignores tier and uncertainty when comparing a T1b limit with a T1a limit."
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C04-M01 coordinate frame / C04-M04 near-edge test",
+   "issue": "The spec treats EPSG:3157 and geodesic values as interchangeable. Recomputed here: from the QE apex (UTM 491,816.07, 5,454,381.79) to 1060 Barclay, the UTM grid distance is 4,637.11 m against a 4,638.97 m GRS80 geodesic (1.85 m short, scale about 0.9996). The grid bearing is 346.986 deg against an azimuth of 346.900 deg (0.085 deg meridian convergence). The spec claims 'agreement within 0.1 m and 0.01 deg', and its metric asks for at most 0.05 m and 0.001 deg over 6 km; neither holds in raw grid. The method also uses GeographicLib for 'sector edges' while the kernels run in grid. Mixing the two shifts an edge by about 2.5 m at 1.7 km, which is 13 times the 0.19 m that separates 828 Cambie from cone A.",
+   "fix": "Pick one frame per test. Do plan containment entirely in EPSG:3157, with polygon, design and site all projected. Use GeographicLib only for reported distances, azimuths and Dx. Never compare a geodesic azimuth with a grid polygon edge. Restate the frame metric as 'grid vs geodesic after scale and convergence correction', or relax it to 2 m / 0.1 deg for raw grid. Regenerate the 828 Cambie case in grid."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04-M01/M04 'per-cone ENU' and C04-M05 render vs profile",
+   "issue": "The spec offers a per-cone ENU frame as an alternative. In a true ENU frame the up axis departs from orthometric height by d^2/2R: 0.23 m at 1.7 km, 1.66 m at 4.6 km and 2.83 m at 6 km. That is far larger than sigma_L of 0.003 m for a published T1a limit. Separately, curvature and refraction are applied to the skyline profile but not to the 3D ViewRender. The rendered peaks sit 15-43 m (up to 0.1 deg) higher than the computed profile, so the two can disagree in the same report.",
+   "fix": "Specify a hybrid frame: plan coordinates in EPSG:3157 or a local tangent plane, with z always orthometric height in the limit's datum. Never use the ENU up axis for e = z_top - L. In the renderer, either apply the (1-k)d^2/2R drop in the vertex shader for terrain beyond about 2 km, or state that the render omits it. Add a test in which the profile and the render top-pixel agree within 0.02 deg."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04-M04 state machine",
+   "issue": "The states (outside, near edge, clear, within uncertainty, above) assume every covering cone has a limit L. For most cones there is no T1a or T1b value yet, and some DesignMassing inputs have vertical datum UNKNOWN. Neither case has a state. The tool would then show nothing, quietly fall back to the T0 user ceiling, or render a number it should not render. Each of these is a silent clear or a false precision.",
+   "fix": "Add explicit states: 'inside plan, limit unknown' (plan overlap only, amber, with a prompt to enter or confirm a limit) and 'inside plan, datum unknown' (relative only, numbers blocked). Make T0 an opt-in that is labelled 'your what-if ceiling' on every card. Add both states to the zero-silent-clears test suite."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C04-M04 uncertainty U and thresholds",
+   "issue": "U = sqrt(sum of sigma^2) mixes 1-sigma terms (sigma_grade 0.04 m, derived from 0.081 m at 95%) but is printed as '+-U' with no coverage factor. The rule that separates 'clear', 'within uncertainty' and 'above' is not stated. With the T1b placeholder sigma_L of 3 m at 1 sigma, a 'clear' at e = -3.1 m still has about a 16% chance of being wrong.",
+   "fix": "Report an expanded uncertainty U95 = 2 x u_c, in GUM style. Define the states as: clear if e < -U95; within uncertainty if |e| <= U95; above if e > U95. Print '(95%)' beside every +-. Show the dominant term (for example 'reference-roof ambiguity 3 m') so designers know what to improve."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "First users: Vancouver Tall Challenge context",
+   "issue": "The team's own brief extract (program-value-visualizer/briefs/vtc-2026/brief.json, brief pp.15 and 19) describes a hypothetical full-block site of about 79.2 x 144.8 m and requires towers of 244-305 m. Most downtown cones have limits of roughly 100-150 m, so placing an entry almost anywhere in a cone will produce red warnings. The spec has no mode for a hypothetical site, no way to find where such heights clear, and no statement of how the brief's rules relate to the Guidelines. The competition model cannot be bundled (Form Studio omits it).",
+   "fix": "Add a Site mode 'hypothetical / competition model', with local coordinates loaded from the user's own download and no cone test until the user places it. Add a 'try locations' interaction: drag the block and watch per-cone headroom live, plus a headroom map (L_gov minus grade) as a node output. Ask in the 3 Nov Buildner Q&A whether view cones apply to the hypothetical site, and print the answer in the warning card."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Delivery scope vs 13 Nov 2026 and 30 Nov 2026",
+   "issue": "Total effort is 31.5 person-days; the core modules M01, M02, M04 and M08 alone are 14.5. There are 23 calendar days to the course deadline and 40 to the competition deadline, for two students with other studio work. There is no cut line, and v1 features such as rooftops, IFC and the skyline (M03, M05, M06) are described in the same depth as core.",
+   "fix": "Define a 13 Nov MVP: plan containment in EPSG:3157; LiDAR origin z; the cone-fit camera with 60 km far plane and fog fixed; the five states plus two unknown states; a warning card with T0 or T1b limits; the existing Vista PDF with a provenance page. Defer BVH rooftops, IFC, skyline integration, Workers and the heightfield pipeline to after 30 Nov. Publish the cut list."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Clause text and release gate",
+   "issue": "The 2026-02-04 Guidelines text is still unread (HTTP 403 on 2026-10-21). Table 1 for 9.1, 9.2, 27.1, 27.2, 12.2 and 28 differs between the copies that were read. Vista's guideline.json files clause 3.1.1 under heading '3.2 Building Height and Massing'. Clause 3.1.1 says sites 'should be designed' to avoid encroachment, which is guidance wording, yet the node's output is named 'ViolationReport'.",
+   "fix": "Make the hand-downloaded 2026 PDF, with SHA-256, page check and a named signer, a hard CI release gate, not just a human-judgment note. Rename the output to ExceedanceReport and use 'above estimated limit' wording, never 'violation' or 'non-compliant', consistent with Vista's wording guards."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C04-M02 atmospheric fog and depth",
+   "issue": "Vista's observer fogFar is 9,000 m and the backdrop pass is 42,000 m (explorer.js lines 406-433). A 60 km far plane alone does not make peaks visible. The 'named subject visible' test checks only depth clipping. reversedDepthBuffer depends on EXT_clip_control, whose support on Safari and integrated GPUs is unverified.",
+   "fix": "Set fog per preset: no fog or light haze out to 30 km for protected-view captures. Extend the subject-visibility test to check pixel contrast against the sky. Detect EXT_clip_control at runtime, fall back to the log depth buffer, and record which path was used on the camera record."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C04-M02 field of view for wide cones",
+   "issue": "For the 53 deg cone, clamp(1.5 x spread + 8) gives an 87.5 deg rectilinear view. Perspective stretch at the edges distorts building widths and the mountain skyline, and the image no longer reads like what a person sees.",
+   "fix": "For hfov above about 60 deg, offer a cylindrical panorama strip as the cone-fit preset and keep the 39.6 deg rectilinear view as a 'human view'. Label both with hfov in the image and in the PDF."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C04-M04 plan buffer and governing limit",
+   "issue": "In the near-edge band outside a polygon, no cone L is defined. The spec does not say which L applies there, or which applies where buffers of two cones overlap. L_gov takes a plain minimum, even when it compares a 3 m-uncertain T1b limit with a calibrated T1a limit. An 11 m buffer will also flag many sites amber, which risks alert fatigue.",
+   "fix": "In the band, use the nearest cone's L and show the distance to the edge in metres. Pick the governing cone by the smallest upper bound (L + U95) and also show the minimum-L cone when they differ. Show near-edge cases as a quieter amber with an edge-distance chip instead of a full warning."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C04-M05 existing-skyline epoch",
+   "issue": "The LiDAR flight of September 2022 misses towers completed in 2023-2026 and all approved but unbuilt towers. A Proposed versus Existing comparison downtown therefore understates the existing skyline.",
+   "fix": "Add a 'pipeline' layer of user-supplied or digitised LOD1 masses with status (built after 2022, approved, under review). Print the context epoch on the wipe, and let users toggle between existing as of 2022 and existing plus pipeline."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C04-M04 warning copy hierarchy",
+   "issue": "The template puts view, state, e, U, element, lat, lon, z, datum, clause and disclaimer in a single sentence. That is hard to scan in a live 3D tool, and latitude and longitude mean little to designers.",
+   "fix": "Use two levels. Headline: 'Estimate: above View 3.2.1 (Queen Elizabeth Park) limit by {e} m (+-{U95} m, 95%)'. Second line: element and level, then 'show me' (fly to the worst point plus a section). Put coordinates, datum, tier, clause and the 'Not a City determination' note in an expandable detail and in the PDF. Run a 5-user usability test with entrants before release."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C04-M08 PDF limits and costs",
+   "issue": "RTS 16338 is 37.2 MB, which exceeds Claude's 32 MB per request. On the Astra model page, prompts over 272K input tokens cost 2x input and 1.5x output, and the page lists file search but no PDF input. The Buildner AI-image policy is now readable.",
+   "fix": "Split large PDFs by page range (Appendix B, pp.24-30) before model reads. Budget for Astra's long-context surcharge. Update the AI-policy flag: the FAQ does not ban AI images, advises checking the tool's terms, and does not recommend AI images as sole work."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Licences",
+   "issue": "None of the four local repos has a LICENSE file (checked 2026-10-21). The PDF writer listed as a library therefore has no reuse terms.",
+   "fix": "Add MIT or Apache-2.0 to all four repos before the platform imports their code. Add a NOTICE for ODbL tiles and OGL-Vancouver data."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "A UTM 10 projection agrees with the Vincenty GRS80 inverse within 0.1 m and 0.01 deg on QE to Barclay, so EPSG:3157 kernels meet <= 0.05 m and <= 0.001 deg.",
+   "why_false": "Raw UTM grid distance carries the point scale factor (about 0.9996), and grid bearing carries meridian convergence (about 0.085 deg at -123.11 deg, 49.25 deg N).",
+   "correction": "Grid 4,637.11 m at 346.986 deg against geodesic 4,638.97 m at 346.900 deg, a difference of -1.85 m and +0.085 deg. Either correct for scale and convergence, or keep each test entirely within one frame.",
+   "evidence": "Local Kruger-series UTM (GRS80, k0 0.9996, CM -123) reproduces the spec's QE easting/northing to the centimetre; Vincenty inverse computed alongside."
+  },
+  {
+   "claim": "LiDAR-2022 accuracy is 0.081 m at 95% on open ground.",
+   "why_false": "The portal states 0.081 m at the 95% confidence level and names neither the standard nor the land cover.",
+   "correction": "Write '0.081 m at 95% (standard and land cover not stated)'. Roof and edge accuracy will be worse and should be measured.",
+   "evidence": "opendata.vancouver.ca lidar-2022 metadata, fetched 2026-10-21."
+  },
+  {
+   "claim": "The Buildner answer on AI-generated images is unread and unknown.",
+   "why_false": "The competition page FAQ is readable.",
+   "correction": "AI images are not banned. The FAQ advises checking the AI tool's terms and does not recommend treating AI images as sole work or IP without explicit permission.",
+   "evidence": "architecturecompetitions.com/vancouvertallchallenge/ fetched 2026-10-21."
+  },
+  {
+   "claim": "The first users' designs sit on real downtown sites, where the cone test applies directly.",
+   "why_false": "The team's brief extract describes a hypothetical full-block site with mandated 244-305 m towers.",
+   "correction": "Cone checks for entrants are what-if location studies. The node needs a hypothetical-site mode and a headroom map.",
+   "evidence": "program-value-visualizer/briefs/vtc-2026/brief.json (brief pp.15 and 19); Form Studio README 'Competition model' mode."
+  }
+ ],
+ "missing": [
+  "States for 'inside plan, limit unknown' and 'inside plan, datum unknown'",
+  "Coverage factor for U and numeric state thresholds",
+  "A frame rule: plan in EPSG:3157, z always orthometric; no mixing of grid and geodesic azimuths",
+  "Hypothetical-site mode for competition entrants and a headroom (L_gov minus grade) map output",
+  "An MVP cut list for 13 Nov 2026",
+  "Fog and haze settings per preset; EXT_clip_control fallback detection",
+  "Cylindrical panorama for wide cones",
+  "A pipeline (post-2022 and approved) context layer for the existing skyline",
+  "Usability test plan with entrants (task: place, read warning, export PDF)",
+  "Hard CI release gate on the hand-checked 2026 Guidelines PDF and its SHA-256",
+  "Buildner Q&A question on whether view cones bind the hypothetical site"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Fix the frame rule: one projected frame for containment, orthometric z for exceedance, grid and geodesic never mixed; correct the UTM agreement claim and metric",
+   "Add 'limit unknown' and 'datum unknown' states, and use U95 with explicit thresholds",
+   "Specify hypothetical-site mode and headroom map for Tall Challenge entrants",
+   "Publish a 13 Nov MVP cut list",
+   "Make the hand-checked 2026 Guidelines PDF (SHA-256, signer) a hard release gate; rename ViolationReport",
+   "Fix observer fog so the subject-visibility test checks contrast, not only depth"
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "HTTP 403 on 2026-10-21; the 2026 text is still unverified"
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "ok": true,
+   "note": "24 records, modified 2026-10-19, no height or datum fields, CRS not stated, OGL-Vancouver, field 'shapre_area' confirmed"
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "NAD83(CSRS) 4.0.0.BC.1.GVRD UTM10, CGVD28GVRD, HTMVBC00, 0.081 m at 95% (no land cover stated), 49 pts/m2, 7 and 9 Sep 2022, 181 tiles"
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/models/gpt-6-astra.md",
+   "ok": true,
+   "note": "Text and image in, text out; 1.05 M context, 922K max input, cutoff 2026-04-30; 2x input price above 272K tokens; file search listed, PDF not"
+  },
+  {
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Deadlines 29 Oct, 3 Nov, 30 Nov 2026; AI-image FAQ answer readable; site not described on the page"
+  },
+  {
+   "url": "local: vancouver-tall-view-tool/explorer/report.js lines 106-111; explorer.js lines 404-433; data/guideline.json",
+   "ok": true,
+   "note": "hfov rule confirmed (2 x half x 1.5 + 8, clamped 24-100); observer far 45,000 m and fog 9,000 m; clause 3.1.1 under heading 3.2, 'should' wording, appurtenances included"
+  },
+  {
+   "url": "local: program-value-visualizer/briefs/vtc-2026/brief.json; form-studio/README.md",
+   "ok": true,
+   "note": "Hypothetical 79.2 x 144.8 m block; towers 244-305 m; competition model not bundled"
+  },
+  {
+   "url": "local: all four repos",
+   "ok": true,
+   "note": "No LICENSE file in any repo"
+  }
+ ],
+ "verdict": "Round 2 fixes most of round 1: LiDAR-2022 is now primary, the far plane is 60 km, H0/H1 are competing hypotheses, calibration carries covariance, and there is a governing minimum. Some correctness gaps remain. Raw UTM grid is 1.85 m and 0.085 deg off geodesic, which contradicts the spec's own cross-check claim, and mixing grid with geodesic azimuths can flip the near-edge cases. A true ENU up axis would add up to 2.8 m of error. There are no states for 'limit unknown' or 'datum unknown', and U has no coverage factor. For UX, the spec ignores that entrants design 244-305 m towers on a hypothetical site, and it has no MVP for 13 Nov. Fog still hides the peaks. Do not pass until these are fixed."
+}

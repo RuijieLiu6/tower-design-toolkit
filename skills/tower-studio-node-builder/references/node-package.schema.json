@@ -1,0 +1,586 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tower-studio:schema:node-package:1",
+  "title": "Tower Design Toolkit node package (tower-studio-node@1)",
+  "description": "A declarative evaluation node: formulas over the fixed Layer 0 summary, each metric with a sourced threshold and an evidence flag. Tower Design Toolkit validates packages against this schema on import, then checks formulas, thresholds and tests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "id",
+    "version",
+    "licence",
+    "name",
+    "author",
+    "category",
+    "stage",
+    "question",
+    "inputs",
+    "method",
+    "human",
+    "limits",
+    "metrics"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": "tower-studio-node@1",
+      "description": "Package format and version."
+    },
+    "id": {
+      "type": "string",
+      "maxLength": 80,
+      "pattern": "^community\\.[a-z0-9]+(-[a-z0-9]+)*\\.[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "community.<your-handle>.<node-name>, lowercase with hyphens, e.g. community.rliu.daylight-depth."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "description": "Semantic version, e.g. 0.1.0."
+    },
+    "licence": {
+      "enum": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "CC-BY-4.0",
+        "CC0-1.0"
+      ],
+      "description": "Licence for the package. MIT matches Tower Design Toolkit's code."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 60,
+      "description": "Short name shown in the library."
+    },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "contact": {
+          "type": "string",
+          "maxLength": 120
+        }
+      }
+    },
+    "category": {
+      "enum": [
+        "SITE",
+        "PROG",
+        "CLIM",
+        "ENER",
+        "ECOL",
+        "PUBL",
+        "CULT",
+        "MOBI",
+        "STRC",
+        "SYST",
+        "SPAC",
+        "PRES",
+        "DATA"
+      ],
+      "description": "One of Tower Design Toolkit's 13 node categories."
+    },
+    "stage": {
+      "enum": [
+        "massing",
+        "schematic",
+        "present"
+      ],
+      "description": "Design stage the node belongs to."
+    },
+    "question": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 300,
+      "description": "The design question the node answers, in one sentence."
+    },
+    "jury": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "human_scale_40",
+          "cultural_context_30",
+          "design_excellence_20",
+          "urban_integration_10"
+        ]
+      }
+    },
+    "projects": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "vtc",
+          "city"
+        ]
+      },
+      "description": "Where the node runs: vtc = competition site, city = Real Vancouver. Leave out for both."
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "The Layer 0 values the node reads. Every variable used in a formula must be listed.",
+      "items": {
+        "enum": [
+          "tower.height",
+          "tower.width",
+          "tower.depth",
+          "tower.rotation",
+          "tower.f2f",
+          "tower.floors",
+          "tower.towerFloors",
+          "tower.podiumFloors",
+          "tower.podiumHeight",
+          "tower.podiumWidth",
+          "tower.podiumDepth",
+          "tower.podiumArea",
+          "tower.plateArea",
+          "tower.perimeter",
+          "tower.minSide",
+          "tower.maxSide",
+          "tower.slenderness",
+          "tower.coreShare",
+          "tower.coreArea",
+          "tower.netToGross",
+          "tower.plantFloors",
+          "tower.skyLobbies",
+          "tower.gfa",
+          "tower.gfa_retail",
+          "tower.gfa_office",
+          "tower.gfa_hotel",
+          "tower.gfa_residential",
+          "tower.gfa_civic",
+          "tower.gfa_amenity",
+          "tower.gfa_mechanical",
+          "project.towerCount",
+          "project.siteArea",
+          "project.gfa",
+          "project.gfa_retail",
+          "project.gfa_office",
+          "project.gfa_hotel",
+          "project.gfa_residential",
+          "project.gfa_civic",
+          "project.gfa_amenity",
+          "project.gfa_mechanical",
+          "project.fsr",
+          "project.maxHeight",
+          "project.groundElevation",
+          "project.isVtc",
+          "project.isCity",
+          "sun.month",
+          "sun.day",
+          "sun.hour",
+          "sun.altitude",
+          "sun.azimuth"
+        ]
+      }
+    },
+    "method": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "How the node works, in plain words, including simplifications."
+    },
+    "human": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 1000,
+      "description": "What stays a human judgment."
+    },
+    "limits": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 1000,
+      "description": "What the node cannot tell you."
+    },
+    "parameters": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/parameter"
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "falseAssumptions": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/falseAssumption"
+      }
+    },
+    "tests": {
+      "type": "array",
+      "maxItems": 60,
+      "items": {
+        "$ref": "#/$defs/test"
+      }
+    },
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "source"
+      ],
+      "description": "Optional code (research P15-M04). JavaScript that defines function run(input) and returns { metric_id: number } for project metrics and { metric_id: [one number per tower] } for tower metrics whose expression is \"code\". It runs only in Tower Design Toolkit's sandbox (no network, no storage, no page access, time-limited) and only after the user allows this node. Prefer formulas: a code node needs that extra trust.",
+      "properties": {
+        "language": {
+          "const": "javascript"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 20000
+        }
+      }
+    },
+    "createdWith": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Optional: which assistant and skill version helped write it."
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 300,
+          "description": "Document title and publisher, or 'Team assumption: who, date, why'."
+        },
+        "page": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Page, clause, table or quoted sentence."
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^https?://"
+        }
+      }
+    },
+    "evidenceFlag": {
+      "enum": [
+        "verified",
+        "team_assumption",
+        "unverified",
+        "unresolved"
+      ]
+    },
+    "pair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number"
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flag",
+        "source"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "higher_is_better",
+            "lower_is_better",
+            "range",
+            "info"
+          ],
+          "description": "info = a value shown on purpose with no good or bad."
+        },
+        "good": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/pair"
+            }
+          ]
+        },
+        "bad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/pair"
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional wording, e.g. 'at most 29.0 m, or clear articulation'."
+        },
+        "flag": {
+          "$ref": "#/$defs/evidenceFlag"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "flag": {
+                "const": "unresolved"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "direction"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "direction"
+            ],
+            "properties": {
+              "direction": {
+                "enum": [
+                  "higher_is_better",
+                  "lower_is_better",
+                  "range"
+                ]
+              },
+              "flag": {
+                "not": {
+                  "const": "unresolved"
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "good"
+            ]
+          }
+        }
+      ]
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "unit",
+        "per",
+        "expression",
+        "threshold"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "per": {
+          "enum": [
+            "tower",
+            "project"
+          ]
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "A formula over the Layer 0 values, or the word \"code\" when the package's code computes this metric."
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "threshold": {
+          "$ref": "#/$defs/threshold"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "unit",
+        "default",
+        "flag",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "default": {
+          "type": "number"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "flag": {
+          "$ref": "#/$defs/evidenceFlag"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "falseAssumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim",
+        "correction",
+        "source"
+      ],
+      "properties": {
+        "claim": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 400
+        },
+        "correction": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 600
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture",
+        "metric"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "required": [
+            "state"
+          ]
+        }
+      ],
+      "properties": {
+        "fixture": {
+          "enum": [
+            "vtc-default",
+            "city-study",
+            "vtc-two-towers"
+          ]
+        },
+        "tower": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metric": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Expected value; null when the input is not available in that fixture."
+        },
+        "tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}

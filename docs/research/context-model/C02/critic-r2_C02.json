@@ -1,0 +1,274 @@
+{
+ "expert_role": "3D city modelling researcher (CityGML LOD1/LOD2, LiDAR building extraction, vertical datums and accuracy assessment)",
+ "previous_round": [
+  {
+   "item": "BLOCKER M05 R2: HRDEM bbox treated as North Shore coverage",
+   "status": "addressed",
+   "residue": "Coverage was measured using extent polygons, WMS nulls and the LidarBC index. Ridge terrain is now labelled MRDEM-30 (GLO-30-derived). Two loose ends: the coverage percentages do not add up (2016 5% + 2019 15% + 2025 0% = 20%, but the union is reported as 25%), and the LidarBC DEM sheets have not been read."
+  },
+  {
+   "item": "MAJOR M07 Vista frame (110,574 m/deg constant)",
+   "status": "addressed",
+   "residue": "I reproduced the 0.58% and 0.19% errors. However, the 'offsets from UTM' include UTM grid convergence (about -0.09 deg at E 491 km) and the 0.9996 scale. These belong to UTM, not to Vista. The +6.3 m E at 3.94 km N is mostly convergence. Vista's distortion should be stated against a true-north ENU frame."
+  },
+  {
+   "item": "MAJOR M01 geoid HTMVBC00, epochs, same-source bridge, sign test",
+   "status": "partly",
+   "residue": "HTMVBC00 is now recorded, but conversions still go through the national HT2_1997 grid and call the local difference 'unquantified'. The HTMVBC00 BYN (37.5 KB) can be downloaded and GDAL reads BYN, so the difference can be computed now. Separately, the bridge tolerance is too loose to detect the shift it is testing (see findings)."
+  },
+  {
+   "item": "MAJOR M02 parcel IoU conflation",
+   "status": "addressed",
+   "residue": "Coverage ratios and height-break splitting are specified. None of the thresholds has been tested on tile 490000_5459000 yet."
+  },
+  {
+   "item": "MAJOR M02 orthophoto tower outlines and EPSG:26910",
+   "status": "addressed",
+   "residue": "The 30 m LiDAR-outline rule, DSM hillshade QA, EPSG:9119 and the not-ballpark assertion are all in. EPSG:9119 targets NAD83(CSRS)v4, which matches the City's 4.0.0.BC.1 realisation."
+  },
+  {
+   "item": "MAJOR M04 h_allow presented as zoning height",
+   "status": "addressed",
+   "residue": "Absolute elevation is now primary, with labels, sigma and the regression check. One new gap: the curvature convention for cone surfaces is undefined (see findings)."
+  },
+  {
+   "item": "MAJOR M04 tile acquisition (20 tiles, 403)",
+   "status": "addressed",
+   "residue": "I verified the tile rule. Geometrically 14 and 21 tiles intersect, but 492000_5460000 is not in the portal, so 13 and 20 is correct. Say this in the spec."
+  },
+  {
+   "item": "MAJOR scope vs schedule",
+   "status": "partly",
+   "residue": "The core is 14 person-days against about 13.6 person-days of total two-student capacity to 13 Nov. That leaves nothing for the other packets or for the cone-height packet that M04 depends on."
+  },
+  {
+   "item": "MINOR M03 percentile operator",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M06 Vista benchmark incl. index",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR M05 mountain accuracy metric",
+   "status": "addressed",
+   "residue": "The peak check still relies on Wikipedia heights rather than geodetic control monuments."
+  },
+  {
+   "item": "MINOR library and grid licences",
+   "status": "partly",
+   "residue": "The NGA EGM grid licence is still 'not verified' (NGA products are US Government works). The HTMVBC00 licence is not stated."
+  },
+  {
+   "item": "MINOR M01 horizontal epochs",
+   "status": "partly",
+   "residue": "The registry tags realisation and epoch, but there is no test measuring the planimetric offset between City 2022 and NRCan COPC 2016 on roof corners."
+  },
+  {
+   "item": "MINOR view-origin eye height",
+   "status": "addressed"
+  }
+ ],
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "item": "C02-M01 conversion chain (CGVD2013 to the City's CGVD28GVRD)",
+   "issue": "The spec names HTMVBC00 as the City's geoid. It then converts HRDEM, MRDEM and LidarBC with the national grid ca_nrc_HT2_1997_CGG2013a and calls the HTMVBC00-versus-HTv2.0 difference 'unquantified'. That is unnecessary. GeoBC publishes HTMVBC00 as a 37.5 KB BYN (www2.gov.bc.ca/assets/gov/data/geobc/htmvbc00_abbbyn.zip), and GDAL has a BYN driver. As a result, the canonical transform does not reproduce the model the City actually used.",
+   "fix": "Convert HTMVBC00 to GeoTIFF with gdal_translate -unscale -ot Float32. Build the canonical operation as H28GVRD = H2013 + N_CGG2013a - N_HTMVBC00, through ellipsoidal height. Map HTMVBC00 minus HT2_1997 over the AOI and report the maximum. Keep HT2_1997 only as a cross-check. Record the HTMVBC00 licence, or ask GeoBC."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M01 metric 'City DTM minus converted HRDEM DTM'",
+   "issue": "The 'good' threshold is an absolute median of 0.15 m or less. The expected CGVD2013-CGVD28 shift at Vancouver is about 0.12 m (CHS). So a pipeline that applies no conversion at all passes, and a sign error (0.24 m) only just fails. The test cannot detect the error it exists to catch.",
+   "fix": "On hard open ground in the same-source 2013 pair, require |median residual| of 0.03 m or less after conversion. Add an explicit negative test: the unconverted median must sit at the grid value ±0.03 m, with the expected sign. Report the 95% spread separately."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M04 / M01 cone surface versus Earth curvature",
+   "issue": "The Guidelines (s.2, quoted in Vista guideline.json) define the lower boundary as 'horizontal' and establishing a 'maximum geodetic height'. Geodetic height is measured from a curved level surface. M01 renders in a local ENU frame with a curvature correction, but it never says in which frame the cone test is evaluated. Queen Elizabeth Park to 1040 Barclay is about 5.1 km (computed), where d^2/2R is 2.04 m (1.77 m with refraction). A cone reconstructed as a flat plane or ray in UTM or ENU would therefore be off by 1.7 to 2 m, against a sigma_allow target of 0.25 m.",
+   "fix": "Evaluate every cone test as building H (canonical datum) against cone H at the same (E,N), with no curvature terms. Apply curvature only to line-of-sight rendering. Ask views@vancouver.ca whether the published cone elevations already include curvature and refraction, and add curvature to the sigma_allow budget until they answer. Add a unit test: a level cone at 5 km in ENU must sit 2.04 m below the tangent plane."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Validation case 'Thurlow and Haro, view 3.2.1'",
+   "issue": "The case subtracts 361 ft (110.03 m) from the 123.201 m value taken at the Barclay site. That mixes two different locations and assumes 361 ft is above grade, which is unknown. It then predicts the ground at Thurlow/Haro to be about 13 m. My HRDEM WMS DTM query near 1045 Haro (49.2853, -123.1275) returned 40.6 m. The case will therefore 'fail' by about 27 m, and the failure would be wrongly read as a datum error. The Barclay snippet (3.2.1 points from 123.2 to 143.4 m on one site) also conflicts with the Guidelines' 'horizontal lower boundary', which suggests a 1989-style sloped cone or a mixed edition.",
+   "fix": "Delete this inference. Keep 361 ft as an unverified figure with its definition (geodetic or above grade) and edition marked unknown. Use only same-site, same-edition values, after opening the PDFs in a browser. Add a flag that the Barclay range conflicts with the 'horizontal' wording."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M03 / M07 use of the 3D BAG RMSE as height-accuracy tolerance",
+   "issue": "In Dukai et al. 2019 (s.3.2), RMSE is the geometric difference between the point cloud and the extruded block, and it 'includes both the points on the walls and on the roof'. It measures how well a block fits the points, not how accurate the height is against truth. The flat-roof group is also mostly roughly 2.5 m sheds. The spec uses 0.31 m and 1.06 m as the basis for 'Tower height error versus published' and the M07 tower metric.",
+   "fix": "Keep 0.31 m and 1.06 m only as a block-to-point fit metric. Base tower height accuracy on an error budget instead: LiDAR 0.081 m (95%), plus the ground estimate, plus the roof-definition ambiguity. Validate against a surveyed or City-sourced reference (the City 2009 topelev, UBC bldgheight), with the published-height definition stated per building."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "C02-M03 class and spike rules for the max used in cone tests",
+   "issue": "Roof points are taken from 'building-class first returns' with spikes above 5 MAD from the 1 m cell median removed. Rooftop appurtenances, mechanical penthouses, masts and spires may sit in Other (7), Unclassified (1) or Noise (8). The spike filter also removes exactly the thin elements that clause 3.1.1 counts. The 'max' used in the existing-tower regression is then not conservative. Cranes in Sept 2022 push the other way. Together these decide whether the regression, the main safeguard on the datum, passes or fails.",
+   "fix": "Store two maxima. max_bldg is building class with the spike filter. max_all is every non-vegetation, non-water return inside the footprint plus 0.5 m, unfiltered, with point counts above the max_bldg level. Use max_all for the regression and list the gaps for manual review (crane, spire or noise). Read the actual LAS class codes from a tile header before coding."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Packet scope vs 13 Nov",
+   "issue": "The core is 14 person-days. Two students at 40% over 17 working days give about 13.6 person-days for ALL packets. M04's primary output also depends on cone heights from another packet that do not yet exist, and the City has not answered on the datum.",
+   "fix": "Cut the 13 Nov core to about 6 to 7 person-days. M01 registry plus the HTMVBC00 transform and tests (1). Tile 490000_5459000 and the R0 tiles, with P90 and max_all on City 2015 footprints and no conflation (2.5). City 2 m DTM plus MRDEM-30 int16 tiles (1.5). layers.json plus tiling (1). Move the coverage-ratio conflation, the LidarBC 2025 differencing and M07 to v1."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C02-M01 parameter 'Epoch variants accuracy 0.0'",
+   "issue": "EPSG:10617 lists accuracy 0.0 because the 1997 grid matches the datum's definition epoch. That is not a statement of real error. A zero must not enter sigma_datum.",
+   "fix": "Set sigma_datum from measurement: the same-source bridge residual plus the HTMVBC00-minus-HT2 map. Note that EPSG operations 10617, 10618 and 10619 have CGVD28(HTv2.0) as their source, not CGVD28GVRD."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C02-M07 Vista-versus-UTM offsets",
+   "issue": "The offset table compares Vista with UTM grid coordinates. Part of each offset is UTM's own grid convergence (about 0.09 deg, so about 6 m E over 3.9 km) and its 0.9996 scale. Vista's axes are true north, which is correct for an ENU renderer.",
+   "fix": "Report Vista's error against a local ENU (true-north, ground-scale) frame. Report the UTM offsets separately as the conversion needed for data exchange."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Water surface and tide",
+   "issue": "Vista puts the ocean at 0.0 m in EGM96. City LiDAR water returns record the tide at the moment of acquisition. No sea level in the canonical datum is defined, yet it sets the base of waterfront towers and the reflection plane in views.",
+   "fix": "Set the water level as a parameter in CGVD28GVRD from CHS 07735, for example mean water level or HHWL, with its source. Flatten water-class cells to it, and record this in the registry."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C02-M05 coverage statistics",
+   "issue": "The per-year shares (5% + 15% + 0%) sum to less than the 25% union, so another year or project is missing from the breakdown.",
+   "fix": "List every project and year that contributes to the 25%."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Dataset row Microsoft GlobalMLBuildingFootprints",
+   "issue": "The repo now says CDLA Permissive 2.0 (verified). It also reports 431K height estimates added on 2026-07-24 from 2025 Vexcel imagery, which might give a post-2022 cross-check. The spec ignores this.",
+   "fix": "Spatially query the Vancouver quadkeys once and record coverage and height population. Use them only as a cross-check for built_after_lidar, never as a height authority."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Provenance rule for AI assistance",
+   "issue": "The context says GPT-6 Astra will assist, but nothing in M08 stops model-generated heights, coordinates or citations from entering layers.json or the override table.",
+   "fix": "Add a rule: every geometry, height or override must cite a dataset id and checksum, or a document plus page. Values with no traceable source are rejected in CI."
+  },
+  {
+   "severity": "MINOR",
+   "item": "C02-M01 horizontal realisation test",
+   "issue": "The previous-round fix is not implemented. There is no measured planimetric offset between City 2022 (CSRS 4.0.0.BC.1.GVRD) and NRCan COPC 2016 (CSRS epoch 2010).",
+   "fix": "Add a test on 10 or more flat-roof corners on the fixture tile. The expected difference is a few centimetres; flag anything above 0.15 m."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Validation case: if view 3.2.1 is 123.201 m (Barclay), 361 ft at Thurlow/Haro implies City DTM there is about 13 m ±1 m.",
+   "why_false": "The two values come from different sites and possibly different editions, and it is unknown whether 361 ft is above grade. Ground there is about 40 m, not 13 m.",
+   "correction": "Remove the inference. Treat 361 ft as an unverified figure of unknown definition, and compare only same-site, same-edition values.",
+   "evidence": "HRDEM mosaic WMS GetFeatureInfo, layer dtm, at (49.2853, -123.1275), near 1045 Haro: 40.65 m (CGVD2013)."
+  },
+  {
+   "claim": "The 3D BAG median RMSE (0.31 m flat, 1.06 m non-flat) is a benchmark for tower height error versus published heights.",
+   "why_false": "The paper's RMSE is the point-cloud-to-block geometric difference, including wall points. It measures block fit, not height accuracy, and its flat-roof class is dominated by about 2.5 m structures.",
+   "correction": "Use it only as a block-fit metric. Derive height accuracy from the LiDAR, ground and roof-definition error budget, checked against independent references.",
+   "evidence": "Dukai, Ledoux, Stoter 2019, s.3.2: 'The RMSE calculation includes both the points on the walls and on the roof'; median 1.06 m non-flat, 0.31 m flat; median flat-roof building height around 2.5 m."
+  },
+  {
+   "claim": "The local difference between HTMVBC00 and national HTv2.0 is unquantifiable because HTMVBC00 is not in PROJ.",
+   "why_false": "GeoBC publishes HTMVBC00 as a BYN file, and GDAL reads BYN natively.",
+   "correction": "Convert the BYN to GeoTIFF, use it directly in the CGVD2013-to-CGVD28GVRD chain, and map its difference from HT2_1997.",
+   "evidence": "www2.gov.bc.ca height-transformations page: 'HTMVBC00 Abbotsford (ZIP, 37.5KB)'; gdal.org BYN driver page."
+  },
+  {
+   "claim": "A City-DTM-minus-converted-HRDEM median of 0.15 m or less demonstrates correct datum handling.",
+   "why_false": "The expected shift is about 0.12 m, so an unconverted layer also passes.",
+   "correction": "Require 0.03 m or less on hard surfaces, and add a negative test on the unconverted data.",
+   "evidence": "Spec's own CHS-derived +0.12 m and EPSG grid accuracy of 0.02 to 0.05 m."
+  }
+ ],
+ "missing": [
+  "Frame in which cone compliance is evaluated (geodetic H, not ENU), and the City's curvature/refraction convention",
+  "HTMVBC00 grid converted and used in the canonical transform, with its licence",
+  "Sea or water level in the canonical datum (CHS 07735)",
+  "Dual maxima (building-class and all-returns) for appurtenances and cranes",
+  "Height-accuracy budget separate from the block-fit RMSE",
+  "Planimetric City-versus-NRCan offset test",
+  "Provenance rule excluding LLM-generated geometry or heights",
+  "Reduced 13 Nov core that fits roughly 6 to 7 person-days",
+  "Note that 492000_5460000 is absent from the portal (geometric count is 14 and 21 tiles)"
+ ],
+ "gate": {
+  "pass": true,
+  "conditions": [
+   "Build the CGVD2013-to-CGVD28GVRD transform from HTMVBC00 (BYN via GDAL), and tighten the bridge tolerance to 0.03 m or less with a negative test.",
+   "State that cone tests compare geodetic H directly, add the curvature unit test, and ask the City about its curvature convention.",
+   "Delete the Thurlow/Haro ground inference and flag the conflict between the Barclay range and the 'horizontal' wording.",
+   "Replace the 3D BAG RMSE as the height-accuracy basis, and add max_all for the regression.",
+   "Cut the 13 Nov core to about 7 person-days on the fixture and R0 tiles.",
+   "Keep every height-limit figure labelled 'estimate' until views@vancouver.ca confirms the datum."
+  ]
+ },
+ "sources_checked": [
+  {
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "ok": false,
+   "note": "HTTP 403 again. Wording checked through Vista data/guideline.json: s.2 'horizontal lower boundary that establishes the maximum geodetic height'."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022",
+   "ok": true,
+   "note": "Confirms CGVD28GVRD, HTMVBC00_Abbbyn.zip, NAD83(CSRS) 4.0.0.BC.1.GVRD, 0.081 m (95%), 49 pts/m2, 8 named classes, 7 and 9 Sep 2022, modified 2023-04-18."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/lidar-2022/records?where=startswith(name,\"492000\")",
+   "ok": true,
+   "note": "492000_5460000 absent, so the 13 and 20 tile counts are correct (geometric 14 and 21)."
+  },
+  {
+   "url": "https://epsg.io/10617",
+   "ok": true,
+   "note": "Source CRS is CGVD28(HTv2.0). Accuracy 0.0. vgridshift with ca_nrc_HT2_1997_CGG2013a.tif and multiplier -1."
+  },
+  {
+   "url": "https://epsg.io/9119",
+   "ok": true,
+   "note": "NAD83 to NAD83(CSRS)v4, NTv2 BC_93_05, accuracy 0.1, mainland BC. Matches the spec."
+  },
+  {
+   "url": "https://www2.gov.bc.ca/gov/content/data/geographic-data-services/geo-spatial-referencing/height-transformations",
+   "ok": true,
+   "note": "HTMVBC00 BYN downloadable (37.5 KB), renamed from HTGVRDBC00 and extended east. No accuracy stated."
+  },
+  {
+   "url": "https://gdal.org/en/stable/drivers/raster/byn.html",
+   "ok": true,
+   "note": "GDAL reads NRCan BYN geoid files."
+  },
+  {
+   "url": "https://datacube.services.geo.ca/ows/elevation (GetFeatureInfo dtm at 49.2853,-123.1275)",
+   "ok": true,
+   "note": "HRDEM DTM 40.65 m near 1045 Haro. Contradicts the about-13 m expectation."
+  },
+  {
+   "url": "https://isprs-annals.copernicus.org/articles/IV-4-W8/51/2019/isprs-annals-IV-4-W8-51-2019.pdf",
+   "ok": true,
+   "note": "Median RMSE 1.06 and 0.31 m confirmed, but RMSE includes wall points (fit metric). Ground percentiles 0 to 50 in a 0.5 m buffer confirmed."
+  },
+  {
+   "url": "https://github.com/microsoft/GlobalMLBuildingFootprints",
+   "ok": true,
+   "note": "CDLA Permissive 2.0 confirmed. Refresh 2026-08-13. 431K height estimates added 2026-07-24 from 2025 Vexcel imagery."
+  },
+  {
+   "url": "https://opendata.vancouver.ca/pages/licence/",
+   "ok": false,
+   "note": "Navigation only. OGL-Vancouver text still unread."
+  },
+  {
+   "url": "local: vancouver-tall-view-tool/data/geo.json, guideline.json, generated/unified_manifest.json",
+   "ok": true,
+   "note": "Formula constants 111320 and 110574 confirmed. Ocean level 0.0 m (EGM96). Re-seat z shift median 0.48 m (-12.24 to +21.61). Index file sizes match."
+  },
+  {
+   "url": "computed (Krueger TM, GRS80)",
+   "ok": true,
+   "note": "Anchor E 491221.77, N 5458889.98. Tile corner within 0.0002 m. Meridian 111,215.2 m/deg (0.577% short), parallel 72,756.8 m/deg (0.192% short). QE Park to Barclay 5.1 km gives a 2.04 m curvature drop."
+  }
+ ],
+ "verdict": "Round 2 fixes the earlier BLOCKER (North Shore coverage) and most MAJOR items, and its numbers check out. Gate passes with conditions; no new BLOCKER. Four problems remain. First, the datum chain uses the national HT2 grid even though the City's own HTMVBC00 grid is downloadable and readable by GDAL. Second, the datum test tolerance (0.15 m) is looser than the 0.12 m shift it should detect. Third, cone tests have no stated frame, which risks 1.7 to 2 m curvature errors at 5 km. Fourth, the Thurlow/Haro validation case compares two different sites and predicts 13 m ground where HRDEM reads about 40 m. The 3D BAG RMSE is misused as a height-accuracy benchmark, and the core plan still exceeds capacity."
+}

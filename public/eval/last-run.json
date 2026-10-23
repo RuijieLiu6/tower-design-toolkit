@@ -1,0 +1,226 @@
+{
+ "date": "2026-10-22",
+ "time": "15:36",
+ "total": 27,
+ "passed": 27,
+ "failed": [],
+ "report": "04 Tool Plan/evaluation/2026-10-22/report.md",
+ "cases": [
+  {
+   "id": "C1",
+   "type": "typical",
+   "node": "built.viewcones",
+   "title": "Regression against the City site sheet (cone A)",
+   "pass": true,
+   "observed": "104.02 m"
+  },
+  {
+   "id": "C2",
+   "type": "typical",
+   "node": "built.viewcones",
+   "title": "Regression against the City site sheet (cone 3.2.3)",
+   "pass": true,
+   "observed": "126.37 m"
+  },
+  {
+   "id": "C3",
+   "type": "out-of-scope",
+   "node": "built.viewcones",
+   "title": "Inside 3.2.2 only: must stop",
+   "pass": true,
+   "observed": "3.2.2: limit_unknown; 3.2.2: limit_unknown; 3.2.2: limit_unknown"
+  },
+  {
+   "id": "C4",
+   "type": "out-of-scope",
+   "node": "built.viewcones",
+   "title": "Inside 3.2.1 and D: both stop",
+   "pass": true,
+   "observed": "3.2.1, D"
+  },
+  {
+   "id": "C5",
+   "type": "boundary",
+   "node": "built.viewcones",
+   "title": "Inside 3.2.3: estimate and the boundary band",
+   "pass": true,
+   "observed": "limit 126.37 m; within_uncertainty, above, clear"
+  },
+  {
+   "id": "C6",
+   "type": "definition",
+   "node": "built.viewcones",
+   "title": "Definition anchor: cone 28 on its axis",
+   "pass": true,
+   "observed": "106.07 m at 1 km (reference distance reads 65.90 m vs 65.7 m in the report)"
+  },
+  {
+   "id": "C7",
+   "type": "repeated",
+   "node": "built.viewcones",
+   "title": "Case 5 run five times",
+   "pass": true,
+   "observed": "1 distinct output(s) in 5 runs"
+  },
+  {
+   "id": "LIFT-T",
+   "type": "typical",
+   "node": "built.core-lifts",
+   "title": "Default VTC tower: rises stay within 15 floors",
+   "pass": true,
+   "observed": "6 rises, 33 cars, longest rise 12 floors"
+  },
+  {
+   "id": "LIFT-O",
+   "type": "out-of-scope",
+   "node": "built.core-lifts",
+   "title": "A tower with no floors above the podium",
+   "pass": true,
+   "observed": "0 rises, 0 cars"
+  },
+  {
+   "id": "PR-T",
+   "type": "typical",
+   "node": "built.pr-streetwall",
+   "title": "Streetwall band by street width",
+   "pass": true,
+   "observed": "15.2 / 18.3 / 15.2 m; 12 streetwall rules"
+  },
+  {
+   "id": "PR-O",
+   "type": "out-of-scope",
+   "node": "built.pr-frontage",
+   "title": "No massing on the block",
+   "pass": true,
+   "observed": "7 frontage and 13 ground-plane rules, no error"
+  },
+  {
+   "id": "SUN-T",
+   "type": "typical",
+   "node": "built.solar-access",
+   "title": "Sun position self-test (NOAA)",
+   "pass": true,
+   "observed": "altitude 12.65°, azimuth 137.15°"
+  },
+  {
+   "id": "SUN-O",
+   "type": "out-of-scope",
+   "node": "built.solar-access",
+   "title": "Night: no sun, so no shadow test",
+   "pass": true,
+   "observed": "altitude -34.0°"
+  },
+  {
+   "id": "STR-T",
+   "type": "typical",
+   "node": "built.wind-procedure",
+   "title": "A 285 m tower is dynamically sensitive",
+   "pass": true,
+   "observed": "tunnel (slenderness over 6), H/w 6.04"
+  },
+  {
+   "id": "STR-O",
+   "type": "out-of-scope",
+   "node": "built.wind-procedure",
+   "title": "A 40 m building is not dynamically sensitive by height",
+   "pass": true,
+   "observed": "height rule: pass; procedure dynamic"
+  },
+  {
+   "id": "EN-T",
+   "type": "typical",
+   "node": "built.energy-carbon",
+   "title": "All-office tower gets the office row of Table A",
+   "pass": true,
+   "observed": "TEUI 100, TEDI 20, GHGI 3"
+  },
+  {
+   "id": "EN-O",
+   "type": "out-of-scope",
+   "node": "built.energy-carbon",
+   "title": "Only floors with no table row (plant)",
+   "pass": true,
+   "observed": "TEUI NaN"
+  },
+  {
+   "id": "MOB-T",
+   "type": "typical",
+   "node": "built.mobility",
+   "title": "Downtown parking maximum on office GFA",
+   "pass": true,
+   "observed": "139 stalls; flag unverified"
+  },
+  {
+   "id": "MOB-O",
+   "type": "out-of-scope",
+   "node": "built.mobility",
+   "title": "Rates the research could not find stay unresolved",
+   "pass": true,
+   "observed": "accessible unresolved/unknown, visitor unresolved/unknown, loading unresolved/unknown, passenger unresolved/unknown, bike-b unresolved/unknown"
+  },
+  {
+   "id": "VIEW-T",
+   "type": "typical",
+   "node": "built.view-from",
+   "title": "Standing on a LiDAR roof: eye at roof P90 + 1.6 m",
+   "pass": true,
+   "observed": "eye 41.60 m; drop 1.96 m"
+  },
+  {
+   "id": "VIEW-O",
+   "type": "out-of-scope",
+   "node": "built.view-from",
+   "title": "A building without a LiDAR height cannot be stood on",
+   "pass": true,
+   "observed": "refused: This building has no LiDAR roof height yet (outside processe…"
+  },
+  {
+   "id": "VISTA-T",
+   "type": "typical",
+   "node": "built.vista",
+   "title": "Vista's Shangri-La example, converted into the grid",
+   "pass": true,
+   "observed": "3.2.1 1255.6 m²; 9.1 1.18 m out (near_edge); D 8.40 m out"
+  },
+  {
+   "id": "VISTA-K",
+   "type": "definition",
+   "node": "built.vista",
+   "title": "Ported kernel reproduces Vista's own ceiling test",
+   "pass": true,
+   "observed": "97.00 m at (-3.00, 0.00)"
+  },
+  {
+   "id": "VISTA-F",
+   "type": "definition",
+   "node": "built.vista",
+   "title": "Vista's legacy frame is short (false assumption, corrected)",
+   "pass": true,
+   "observed": "N–S -0.577%, E–W -0.192%; apex off by 0.004 m"
+  },
+  {
+   "id": "VISTA-H",
+   "type": "boundary",
+   "node": "built.vista",
+   "title": "Cone-fit field: Vista frame vs grid, and the clamp",
+   "pass": true,
+   "observed": "27.2 87.5° / 87.2°; 3.2.3 25.7° / 25.6°; 9.1 24.0°"
+  },
+  {
+   "id": "VISTA-B",
+   "type": "boundary",
+   "node": "built.vista",
+   "title": "Exact clip vs the sampled check at the case-5 site",
+   "pass": true,
+   "observed": "exact 126.359 m, sampled 126.359 m, overlap 900.00 m²"
+  },
+  {
+   "id": "VISTA-O",
+   "type": "out-of-scope",
+   "node": "built.vista",
+   "title": "No what-if plane entered: unknown, never unlimited",
+   "pass": true,
+   "observed": "unknown; ceiling null; missing 3.2.2"
+  }
+ ]
+}

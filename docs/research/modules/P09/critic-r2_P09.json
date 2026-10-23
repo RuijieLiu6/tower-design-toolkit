@@ -1,0 +1,298 @@
+{
+ "expert_role": "Transit-oriented development academic (station-area planning, travel-demand evidence, pedestrian comfort)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P09 (MVP: M01, M02, M04, M05)",
+   "issue": "The competition MVP cannot give a sourced result to anyone by 30 Nov, which is 40 days away. M01 blocks every attraction run until someone loads a destination-based share, and none is loaded ('No values are loaded; M01 blocks attraction runs without them'). Office and commercial floor area is the dominant program: the brief's 9.0 FSR non-residential minimum on a block of about 11,470 m2 means at least about 103,000 m2. So by default the tool returns no office trips, and therefore nothing for M02, M04, M05 or M07. M02 has no checked rule pack ('No pack exists until two people have transcribed and checked it'). The M05 vehicle library is empty. M04 Figure 9 is not yet transcribed.",
+   "fix": "Publish a dated data sprint with named owners. (1) One checked M02 pack (Sections 4, 5 and 6) by 7 Nov. (2) One destination-based CBD commute-share row by 7 Nov, from 2016 Census (pre-COVID) and 2021 place-of-work, with basis and year. (3) The Figure 9 lookup and three default TAC vehicles, transcribed and two-person checked. (4) Until each pack exists, a fallback mode that runs attraction trips on user-entered scenario shares, rendered as team assumptions with an 'unsourced scenario' watermark instead of a hard block. State on the canvas which outputs are empty on launch day."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M04",
+   "issue": "The Figure 9 thresholds are still wrong for most area types. In the TfL text (Figure 9, p.14), B is 'at risk' at peak for Office and Retail, Residential and Transport Interchange. For these types the at-risk level is lower only for the Average of Maximum. B- shows as 'UNACCEPTABLE/UNCOMFORTABLE' in at least the Residential column. The Tourist Attraction column puts 'AT RISK' at B+ and unacceptable at B. The C+ 'floor' (p.12) is a limit on the vitality exception for cafe seating, not the general fail line. The spec's universal 'bad: C+ or worse; B- at risk' therefore passes footways that TfL rates unacceptable.",
+   "fix": "Encode Figure 9 cell by cell: 5 area types x (peak, Average of Maximum) x (comfortable, acceptable, at risk, unacceptable). Use the C+ floor only when the user invokes a vitality exception, with a written justification. Add Tourist Attraction to the area-type mapping for the transit plaza, cultural or civic frontage and event-day scenarios. Keep the result unverified until two people confirm the cells."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M04",
+   "issue": "The design question covers entrances and street footways, but the module leaves out two parts of the TfL guidance that apply directly here. First, TfL Step 2 assesses crossings, with its own bands: B- is the recommended level for crossing arms, and B- runs 15-18 ppmm there. The brief puts the station plaza diagonally across an intersection, so surface crossings carry the transit walk flow that the below-grade link does not take. Second, TfL gives recommended minimum total footway widths: 2.9 m below 600 pph, 4.2 m at 600-1,200 pph, and 5.3 m above 1,200 pph up to about 2,000 pph.",
+   "fix": "Add a TfL crossing-arm metric (crossing PCL and the number of waiting rows on islands) for the intersections between the site and the transit plaza. Add a quick-check footway-width metric using the 2.9, 4.2 and 5.3 m minima, cited to S17. Both should carry the London-guidance applicability status."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M07",
+   "issue": "The k-scaling rule (k = site auto share / evidence auto share, capped at 1) runs against the cited source. In VTPI tdm9 (Ewing 1993, Table 1), a 100% subsidy is predicted to cut commute travel by 35% in a CBD, 25% within 660 ft of a station and 10% elsewhere. VTPI also states that 'proximity to quality transit service tends to increase program effectiveness'. So the source predicts larger percentage effects in transit-rich centres, while k mechanically shrinks them. As written, k is an unsourced rule presented as a correction.",
+   "fix": "Drop k as the default. Pick the evidence row by context: use the Ewing CBD and near-station columns where they exist, and flag them as Sacramento predictions. Keep k only as an optional, labelled team-assumption sensitivity. Bound claims in absolute terms instead: the adjusted auto-driver share may not fall below the lowest observed same-basis CBD share loaded in M01."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M01",
+   "issue": "The sustainable-mode-share metric is circular. The modelled share is the loaded baseline row, so 'good: at or above the loaded baseline' always passes unless the user overrides it. The 'bad' test compares against the Metro Vancouver average, a different basis that breaks the module's own trip-end rule.",
+   "fix": "Turn the metric into a claimed-deviation test. Show the modelled share minus the same-basis baseline. Any improvement claim needs a linked design or TDM justification from M07 or M02 and shows as a team assumption. Remove the regional-average 'bad' threshold, or restrict it to residents on a residence basis."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The station assumptions are inconsistent. The spec says the neighbouring station is hypothetical, yet tells users to read GTFS 'for the actual station'. It also defaults to combined Expo and Canada trunk headways. According to S23, Waterfront is the only station where the Canada Line connects directly with the Expo Line, and other downtown stations are served by one line. Combining both trunks overstates frequency and understates platoon size at any station except Waterfront.",
+   "fix": "Add a required 'proxy station' input. The user picks an existing station (for example Burrard, Granville, Vancouver City Centre or Waterfront) or a new-station scenario, and the tool loads only that station's lines and GTFS headways. Train capacity per line is a user-entered field: Canada Line two-car trains and Expo multi-car consists differ a lot. Label everything derived from the proxy as team-applied."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03",
+   "issue": "The packet scope names station capacity, but nothing about the line or platform is assessed ('Platform and train-load capacity are not computed'). For a TOD tower that adds thousands of peak transit trips, the first-order question is how many peak-direction riders it adds against line capacity and platform storage. The spec silently drops it.",
+   "fix": "Add a tier-1 metric: tower-added peak-direction riders as a percentage of the proxy line's peak-hour-per-direction capacity (user-entered with source), plus platform storage per train arrival. Report it as context, not pass/fail, and route it to the policy reflection. Cite TransLink station-boarding data (Transit Service Performance Review) once it is opened."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09 (sources), M01/M08",
+   "issue": "The source page the spec re-opened (S16) also lists the TransLink 2023 Screenline Survey dashboard, earlier screenline reports and the 2014 Truck Classification Survey. The spec ignores all three while declaring auto occupancy, cordon flows, background traffic and truck shares unsourced ('No pedestrian-count, cordon-count ... dataset').",
+   "fix": "Add the 2023 Screenline Survey as a source for auto occupancy, vehicle classification and mode volumes across the downtown screenlines. Use it for M01 occupancy and the M08 background and truck share, and add the 2014 truck survey to the M05 freight presets. Record each as residence-independent cordon data with its year."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09 (missing module/metric)",
+   "issue": "Human scale (40%) explicitly includes connectivity, and the brief stresses mid-block connections. Yet P09 has no pedestrian permeability or route-directness metric. Nor does it measure transit accessibility (jobs or destinations reachable by walking and transit), which is the core TOD performance measure. M04 measures crowding only.",
+   "fix": "Add a metric to M04 or a new node: route directness (network distance divided by straight-line distance) and walking time from the station entrances, plaza and high street to each building entry, and through the block via mid-block connections, with and without the proposed passages. Use OSMnx and Shapely. Optionally add a cumulative-opportunities accessibility map from GTFS. Tag both human_scale_40."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M03,M04,M07,M08 (status model)",
+   "issue": "The round-1 status split is only half applied. Several metrics carry status 'false_assumption_corrected' as their current status, for example M04 PCL, M07 claimed reductions and M08 v/c, while their applicability is team-applied. A corrected metric therefore inherits the FALSE ASSUMPTION colour even though its current basis is a team assumption. M08 delay is marked value_status 'sourced' although its v/c LOS-F override is unverified.",
+   "fix": "Keep correction history in a separate field (corrected_in_round, with a pointer to the flag). Derive the displayed status only from value_status and applicability_status. Split the M08 delay metric into a sourced delay band and an unverified v/c override."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P09-M05",
+   "issue": "The design-vehicle library and the lane-width default are empty or unspecified, so swept-path and dock outputs are not reproducible across entrants ('The design-vehicle library is empty until a user transcribes TAC values'). Dock depth and floor-to-floor height at grade feed STRC and SPAC, so empty values spread to other modules.",
+   "fix": "Before 30 Nov, ship three checked default vehicles (Class B and C loading vehicles plus the City refuse truck) transcribed from a cited TAC edition, and a numeric lane-width default with its source or a team-assumption badge. Until then, grey out the swept-path result instead of returning pass/fail."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "The Census place-of-work fallback is cited only for 2021, which is COVID-affected. Journey to work is also commute-only, reports usual mode and says nothing about retail, hotel or civic visitors. No pre-COVID option is listed.",
+   "fix": "Add the 2016 Census place-of-work table as the pre-COVID destination baseline beside 2021. Label both commute-only, and keep visitor shares as labelled scenarios."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M01",
+   "issue": "The peak-hour share K and the directional split are both unsourced presets. The weekday Trip Diary dashboard probably reports trips by start time and purpose, at least on a residence basis (not confirmed).",
+   "fix": "Check the dashboard for a time-of-day profile by purpose. If it exists, load K for resident trips with its source, and keep office and visitor K as team assumptions."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M02",
+   "issue": "The spec says 'one community pack per consolidation date', but Sections 4, 5 and 6 carry different consolidation dates (June, May and February 2026), so a pack version is ambiguous.",
+   "fix": "Version the pack per section (section id plus consolidation date plus checksum) and show a pack manifest listing all three."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M05",
+   "issue": "Erlang C (M/M/c) assumes Poisson arrivals and exponential dwell. Booked docks are scheduled and dwell is not exponential, so P(wait) can be badly off in either direction.",
+   "fix": "Label M/M/c as a screening approximation. Make the SimPy run, with lognormal dwell and a booked-arrival option, the reported value once v1 ships."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09 (sources)",
+   "issue": "The GTFS feed itself (TransLink static GTFS and its licence terms) is not listed as a source, although M01, M03 and M08 depend on it. The gtfs_kit licence on Codeberg is still unread (the repository page shows LICENSE.txt but no licence text).",
+   "fix": "Add the TransLink GTFS feed with its URL, retrieval date and licence. Read gtfs_kit's LICENSE.txt and pyproject before shipping."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09 (jury tags)",
+   "issue": "No P09 module is tagged cultural_context_30, and the human_judgment fields never mention Indigenous co-design of the station connection, plaza arrival and wayfinding. The site is on the unceded territories of the Musqueam, Squamish and Tsleil-Waututh Nations, and arrival sequences are a key place for that response.",
+   "fix": "Add a hand-off from M03 and M04 to CULT for arrival, naming and wayfinding in the connection and on the plaza frontages, and tag cultural_context_30 where it applies. Keep it a human judgement with no metric."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P09-M08",
+   "issue": "Vehicle LOS D is the 'good' threshold even though the spec ranks walking, cycling and transit first. Pedestrian signal delay at the intersections serving the plaza is not reported.",
+   "fix": "Show pedestrian crossing wait (cycle length minus walk time) beside vehicle LOS in the mode-priority panel, and default vehicle LOS to context only, without a pass/fail badge."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Published TDM reductions should be scaled down for a low-auto CBD site by k = site auto share / evidence auto share (capped at 1), so a CBD site gets a smaller claim.",
+   "why_false": "The cited source gives larger predicted percentage reductions in CBDs and near transit, not smaller ones.",
+   "correction": "Select the evidence row by context (the Ewing CBD and near-station columns, labelled as predictions). Use k only as an optional sensitivity marked team assumption. Bound claims by an absolute same-basis floor.",
+   "evidence": "https://www.vtpi.org/tdm/tdm9.htm: Ewing 1993 Table 1 lists a 100% transit/rideshare subsidy at 35% for the CBD, 25% within 660 ft of a transit station and 10% elsewhere. The page also states 'Proximity to quality transit service tends to increase program effectiveness.'"
+  },
+  {
+   "claim": "On street footways, C+ (18 ppmm) is the fail line for every TfL area type, B- (15-17) is only 'at risk', and B+ or better is good for every area type.",
+   "why_false": "C+ is the limit on the vitality exception, not the general fail line. Figure 9 rates B at risk at peak for Office and Retail, Residential and Transport Interchange. It shows B- as unacceptable/uncomfortable in at least the Residential column, and B+ at risk and B unacceptable for Tourist Attraction.",
+   "correction": "Use the cell-level Figure 9 lookup by area type and by peak versus Average of Maximum. Apply C+ only when a documented vitality exception is invoked, and add the Tourist Attraction area type.",
+   "evidence": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf (text extracted, pp.12-14): 'the vitality provided by on street cafe seating could compensate ... However, even in this situation the PCL should not be lower than C+ at peak times'; Figure 9 rows 'B ACCEPTABLE | AT RISK AT RISK | AT RISK AT RISK | ... | AT RISK AT RISK' and 'B- AT RISK ... UNACCEPTABLE/UNCOMFORTABLE'. Column alignment is garbled in the extraction, so the cells need two-person confirmation."
+  },
+  {
+   "claim": "For the neighbouring station, use the Expo trunk (2-3 min) and the Canada Line trunk (about 3 min) headways.",
+   "why_false": "Only Waterfront is served directly by both lines. Every other downtown station is on one line, so combining the two trunks overstates frequency and understates platoon size.",
+   "correction": "Require a proxy-station choice and load only that station's lines from GTFS. Treat a new-station scenario as user-entered.",
+   "evidence": "https://en.wikipedia.org/wiki/SkyTrain_(Vancouver): Waterfront 'is the only station where the Canada Line directly connects with the Expo Line'; Vancouver City Centre is a Canada Line station with only an unofficial transfer to the Expo Line via Granville."
+  },
+  {
+   "claim": "No cordon or screenline data exist, so auto occupancy, background volumes and truck shares are unsourced presets.",
+   "why_false": "TransLink publishes screenline survey products on the same page the spec re-opened as S16.",
+   "correction": "Add the 2023 Screenline Survey dashboard (and the 2014 Truck Classification Survey) as sources for occupancy, vehicle class and cross-screenline volumes.",
+   "evidence": "https://www.translink.ca/plans-and-projects/data-and-information/research-and-insights lists the 2023 Screenline Survey interactive dashboard, the 2017 executive summary and dashboard, the 2011 report, and Goods Movement surveys (the 2014 Truck Classification and Dangerous Goods Survey)."
+  }
+ ],
+ "missing": [
+  "Fallback scenario mode for M01 attraction trips while destination shares are unloaded (the alternative is no office trips on launch day)",
+  "Use of the brief's 9.0 FSR non-residential minimum (about 103,000 m2 on an 11,470 m2 block) as an M01 input check and PROG hand-off",
+  "TfL crossing-arm assessment (Step 2) for intersections between the site and the diagonal transit plaza",
+  "TfL recommended minimum footway widths (2.9 m, 4.2 m and 5.3 m by flow) as a quick check in M04",
+  "Tourist Attraction area type in the M04 mapping (plaza, cultural and civic frontage, BC Place event days)",
+  "Pedestrian permeability and route-directness metric through the block and mid-block connections (human_scale_40 connectivity)",
+  "Transit accessibility metric (jobs or destinations reachable within X minutes) from GTFS, a core TOD measure",
+  "Proxy-station selection input and per-line train capacity in M03",
+  "Line and platform loading metric (tower-added peak-direction riders versus line capacity) in M03",
+  "TransLink 2023 Screenline Survey and 2014 Truck Classification Survey as sources",
+  "TransLink station-level boardings (Transit Service Performance Review) as the station-patron baseline (not opened; URL tried returned 404)",
+  "2016 Census place-of-work as the pre-COVID destination baseline",
+  "TransLink GTFS feed source entry with licence",
+  "Per-section rule-pack versioning in M02",
+  "Pedestrian signal delay in the M08 mode-priority panel",
+  "CULT hand-off for arrival, naming and wayfinding in the station connection"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "The MVP has dated, owned data packs (checked M02 pack, destination-share row, Figure 9 lookup, default TAC vehicles), plus a labelled scenario fallback so M01 produces office trips on launch day",
+   "The M04 Figure 9 lookup is encoded cell by cell for all five area types, including Tourist Attraction, with C+ used only for a documented vitality exception; TfL crossing-arm and minimum-width checks are added",
+   "M07 drops k-scaling as the default in favour of context-matched evidence rows (Ewing CBD and near-station columns), with an absolute same-basis floor",
+   "The M01 sustainable-share metric becomes a claimed-deviation test on the same basis",
+   "M03 requires a proxy-station choice, uses only that station's lines and adds a line or platform loading context metric",
+   "The status display is derived only from value and applicability status, with correction history held separately",
+   "The Screenline Survey is added as a source for occupancy, background and truck inputs",
+   "A connectivity or route-directness metric is added for human_scale_40"
+  ]
+ },
+ "verdict": "Round 2 fixed the round-1 blockers on paper: the trip-end split, station demand plus the egress hand-off, TfL used for footways only, and the queuing scales. It is still not shippable for 30 Nov. Every core module depends on data packs that do not exist yet, and M01 blocks office trips by default, so the dominant program yields nothing. The M04 Figure 9 reading is too lax outside High Street, and C+ is misused as a general fail line. M07's k-scaling runs against VTPI's own CBD evidence. M03 combines two lines that meet only at Waterfront. Sources the spec had already opened (the Screenline Survey) go unused. Connectivity is missing, though it falls under the 40% human-scale criterion. The web-search budget was exhausted, so only direct fetches were possible.",
+ "previous_round": [
+  {
+   "item": "BLOCKER M01: residence-based Trip Diary shares applied to all uses",
+   "status": "addressed",
+   "residue": "Basis split and blocking are in place, but 'No values are loaded; M01 blocks attraction runs without them', so office trips are empty by default (see new BLOCKER)."
+  },
+  {
+   "item": "BLOCKER M03: sized on tower demand only; egress ignored",
+   "status": "addressed",
+   "residue": "Station-patron and through-flow scenarios and the egress watermark were added. The station basis is now inconsistent ('the neighbouring station is hypothetical' versus GTFS 'for the actual station')."
+  },
+  {
+   "item": "MAJOR M03: TfL bands on peak-minute flow",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: TfL used outside its scope (underground)",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: Fruin walkway and queuing scales mislabelled",
+   "status": "addressed",
+   "residue": "Both scales remain unverified ('exhibit not read')."
+  },
+  {
+   "item": "MAJOR M04: Figure 9 collapsed to a single 11/18 pair",
+   "status": "partly",
+   "residue": "'bad: C+ or worse (18 ppmm or more), the TfL floor; B- (15-17) at risk'. This treats the vitality-exception floor as the general fail line, ignores the stricter Figure 9 cells and omits Tourist Attraction."
+  },
+  {
+   "item": "MAJOR M07: VTPI ranges applied against car-oriented baselines",
+   "status": "partly",
+   "residue": "k = site auto share / evidence auto share shrinks CBD claims, contrary to Ewing's CBD column (35% versus 10% elsewhere)."
+  },
+  {
+   "item": "MAJOR M07: City TDM policy not modelled",
+   "status": "addressed",
+   "residue": "The rule row is 'unverified pending the City bulletin'."
+  },
+  {
+   "item": "MAJOR M01: internal capture double-discounting",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03: mode-choice elasticity used for entrance choice",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR: status taxonomy inconsistent",
+   "status": "partly",
+   "residue": "Metrics still carry status 'false_assumption_corrected' while applicability is 'team-applied'. The M08 delay metric is value_status 'sourced' although it includes an unverified v/c override."
+  },
+  {
+   "item": "MAJOR M02: no passenger-loading rows",
+   "status": "addressed",
+   "residue": "Rows are 'unverified (rows not located)'."
+  },
+  {
+   "item": "MAJOR M05: no design vehicles or lane-width input",
+   "status": "partly",
+   "residue": "'The design-vehicle library is empty until a user transcribes TAC values'. No numeric lane-width default is given."
+  },
+  {
+   "item": "MAJOR M06: placeholder rates",
+   "status": "addressed",
+   "residue": "Demoted to experimental. The City storage guidance is still not attached."
+  },
+  {
+   "item": "MAJOR packet: schedule does not fit 30 Nov",
+   "status": "partly",
+   "residue": "MVP scope is defined, but 'No pack exists until two people have transcribed and checked it', no destination shares are loaded, and the Figure 9 cells are untranscribed."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P09-S17",
+   "url": "https://content.tfl.gov.uk/pedestrian-comfort-guidance-technical-guide.pdf",
+   "ok": true,
+   "note": "Text extracted locally. ppmm = people per hour / 60 / clear footway width; Figure 8 bands match the spec. The C+ floor is stated as the limit on the vitality exception. Figure 9 is stricter than the spec for Office and Retail, Residential, Tourist Attraction and Transport Interchange. Crossing-arm method (B- recommended) and minimum footway widths of 2.9, 4.2 and 5.3 m are not used by the spec."
+  },
+  {
+   "source_id": "P09-S18",
+   "url": "https://ops.fhwa.dot.gov/publications/fhwahop08024/chapter3.htm",
+   "ok": true,
+   "note": "Tables 3-2 and 3-3 match the spec exactly. The page does not map v/c above 1.0 to LOS F, so the override stays unverified."
+  },
+  {
+   "source_id": "P09-S19",
+   "url": "https://www.vtpi.org/tdm/tdm9.htm",
+   "ok": true,
+   "note": "The Ewing table gives CBD 35%, near-station 25% and elsewhere 10% for a 100% subsidy. The page says proximity to quality transit increases effectiveness, which contradicts the k-scaling rule. Spack and Finkelstein's baseline is ITE average rates, as the spec states."
+  },
+  {
+   "source_id": "P09-S16",
+   "url": "https://www.translink.ca/plans-and-projects/data-and-information/research-and-insights",
+   "ok": true,
+   "note": "Confirms no destination-based Trip Diary product is listed. It does list the 2023 Screenline Survey dashboard and the 2014 Truck Classification Survey, which the spec omits."
+  },
+  {
+   "source_id": "P09-S23",
+   "url": "https://en.wikipedia.org/wiki/SkyTrain_(Vancouver)",
+   "ok": true,
+   "note": "Headways confirmed: Expo 2-3 min Waterfront to Columbia; Canada 6 min per branch and 3 min combined. Waterfront is the only direct Canada-Expo connection. No capacity figures."
+  },
+  {
+   "source_id": "P09-S38",
+   "url": "https://codeberg.org/araichev/gtfs_kit",
+   "ok": true,
+   "note": "Version 13.0.1 dated 31 Aug 2026 confirmed. LICENSE.txt exists but its text could not be read, so the licence is still unconfirmed."
+  },
+  {
+   "source_id": "P09-S06",
+   "url": "https://bylaws.vancouver.ca/parking/sec05.pdf",
+   "ok": false,
+   "note": "HTTP 403 (one attempt, not bypassed). Passenger rows remain unverified."
+  },
+  {
+   "url": "https://www.translink.ca/plans-and-projects/data-and-information/transit-service-performance-review",
+   "ok": false,
+   "note": "HTTP 404. A station-boardings source is still needed; the web-search budget was exhausted, so the correct URL could not be found."
+  },
+  {
+   "url": "https://www.translink.ca/plans-and-projects/data-and-information",
+   "ok": true,
+   "note": "Index page only (Accountability Centre, Research and Insight). No GTFS licence visible."
+  }
+ ]
+}

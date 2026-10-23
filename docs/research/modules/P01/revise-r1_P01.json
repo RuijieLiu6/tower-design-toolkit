@@ -1,0 +1,2289 @@
+{
+ "packet_id": "P01",
+ "notes": "Round 1 revision, 21 Oct 2026, after the expert critique (gate: fail). ACCESS LIMITS: every City of Vancouver host (vancouver.ca, guidelines/bylaws/council/syc/rezoning.vancouver.ca) still returns HTTP 403 to automated fetch and was not bypassed, so City policy text stays unopened (opened=false) and is never marked verified. The shared WebSearch budget was exhausted, so this round used direct fetches of known primary pages only. NEWLY OPENED: City open-data portal (24 view-cone polygons, 29 Downtown ODP sub-area polygons, stations, 2013 LiDAR DEM metadata), Canadian Aviation Regulations ss.601.23-601.24, Standard 621 (first 200,000 of 233,211 characters, read through a summarising fetch), BC transit-oriented-area page, Vancouver Official Development Plan page, Vancouver Charter ss.565-565.17, 574.61-574.64 and Part XXIV-B, Transport Canada 2026 consultation, 2024 Gazette text, NAV CANADA page, Storeys and Daily Hive pages. The critic's recollections (CBD jobs policy, large-sites thresholds, Green Buildings, public art, bird-friendly guidelines, Hotel as a Service Use, 2023 provincial parking rules in Vancouver's by-law) could not be checked and are recorded unverified. STRUCTURE: still 8 modules. M03 (ODP sheet) merged into M02 (static register); the departure log moved from M02 into M08 (downstream); new M09 (site georeference, datum, height measures). Dependency graph is acyclic: M02, M07, M09 have no upstream; M06, M05 <- M09; M01 <- M07, M09; M04 <- M02, M09; M08 <- M01, M02, M04, M05, M06, M07 (add a CI cycle check over depends_on). KEY FINDINGS: (1) every VTC tower is an obstacle to air navigation under CAR 601.23(1)(d) (above 150 m AGL), so Standard 621 marking and lighting applies, daytime marking is always required above 150 m AGL, and Transport Canada must be notified at least 90 days before construction. (2) The City's open view-cone polygons are 2D with no elevation fields; sampled central-CBD points fall inside QEP cones 3.2.1-3.2.3 (team-derived, approximate), so the cone floor is the likely binding cap on a real CBD block, and floors must come from the Public Views Guidelines or a City assessment. (3) The 600 ft (183 m) Higher Buildings figure is quoted by the City only for the sites across from Bay Parkade; policy heights are site-specific. (4) A city-wide Vancouver ODP replaced the Vancouver Plan on 31 Mar 2026; its effect on downtown policy is unread. (5) Bay Parkade is a hotel plus residential precedent, not an employment-led one. TIME-CRITICAL: registration closes 29 Oct 2026; Q&A closes 3 Nov 2026. Ask Buildner: (a) which uses count toward 9.0, and is FSR gross or zoning floor area; (b) must every tower be 244-305 m, by which height measure and datum; (c) does the brief package give a real location, view cones or the station portal point; (d) may volumes encroach over streets; (e) may the transit link cross under a public street. TEAM ACTIONS: register and download the brief package; download by hand the Higher Buildings Policy (Shape Your City document link https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245), Public Views Guidelines, Downtown ODP, DD schedule and Vancouver ODP and update the unverified rows; email aviation.pac@tc.gc.ca for the detailed 2026 airport-zoning map; email views@vancouver.ca for a View Cone Assessment once a real block is assumed. Shadow, energy and wind are pointers only (CLIM/ENER packets). The brief says its documents are academic, not legal.",
+ "modules": [
+  {
+   "module_id": "P01-M01",
+   "name": "VTC hard-rules checker",
+   "phase": "basic",
+   "category": "SITE",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "S: about 4 person-days (rules 3, submission checklist 1)",
+   "design_question": "Does the massing satisfy the VTC hard rules (height band, 9.0 non-residential FSR, site limits, below-grade transit link, submission format), and which results depend on interpretation?",
+   "inputs": [
+    "Layer0.Massing: tower and podium meshes with level planes",
+    "P01-M07 fsr_ledger: one named ledger (default gross) and the three use-tier FSRs",
+    "P01-M09 site_frame and height table (CTBUH measures per tower)",
+    "Layer0.SitePolygon: 79.2 m x 144.8 m block",
+    "Layer0.TransitConnection: tagged below-grade path plus the station portal point placed by the user from the brief's site plan",
+    "Submission facts (editable): four A2 landscape boards, 10 MB each, English, anonymous, 30 Nov 2026 23:59 London"
+   ],
+   "parameters": [
+    {
+     "name": "Tower height H (architectural top, highest occupied floor, tip)",
+     "unit": "m",
+     "relationship": "Height up -> storey count up at fixed floor-to-floor. Pass only inside 244-305 m (800-1000 ft), measured as set in P01-M09. Greater height raises view-cone and aviation exposure (P01-M04, P01-M05).",
+     "source_ids": [
+      "P01-S02",
+      "P01-S37"
+     ]
+    },
+    {
+     "name": "Which towers must lie in the band (all vs at least one)",
+     "unit": "switch",
+     "relationship": "Brief wording is 'one or more towers'. Default requires every tower in band; 'at least one' lets a shorter second tower pass. The switch moves pass/fail without moving the design; ask Buildner.",
+     "source_ids": [
+      "P01-S02",
+      "P01-S01"
+     ]
+    },
+    {
+     "name": "Counted non-residential floor area (tier chosen)",
+     "unit": "m2",
+     "relationship": "Counted area up -> non-residential FSR up in proportion. Site 79.2 x 144.8 m = about 11,468 m2, so 9.0 FSR needs about 103,200 m2 (derived arithmetic, not a brief figure).",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Ledger basis (gross vs zoning)",
+     "unit": "switch",
+     "relationship": "Gross counts every enclosed slab; the zoning ledger subtracts exclusions, so FSR falls. The brief's basis is unstated: M01 reads one named ledger (default gross) and flags when the two straddle 9.0.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Containment of above-grade volume (encroachment switch)",
+     "unit": "m, %",
+     "relationship": "Coverage up -> fewer storeys for the same area but less open ground for public realm. Volume stays inside the block unless the switch allows air-space encroachment over streets, logged as a departure.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Below-grade transit connection: continuity and off-site length",
+     "unit": "path yes/no, m",
+     "relationship": "A continuous path from a core to the station portal point, crossing under street outside the polygon, meets 'connecting directly'. Off-site length up -> walking time and City/transit agreements up (MOBI packet).",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Level bands holding public-tagged area",
+     "unit": "count",
+     "relationship": "More bands with public-tagged area -> closer to 'public-facing uses extend vertically'. The brief says 'should', so this is a soft rule.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Interpretation switches (height measure; all towers vs one; use tier; ledger)",
+     "unit": "switch",
+     "relationship": "Each switch moves pass/fail without moving the design, so each is logged as an assumption until Buildner answers (Q&A closes 3 Nov 2026).",
+     "source_ids": [
+      "P01-S01"
+     ]
+    },
+    {
+     "name": "Submission format rules (boards, size, file limit, language, anonymity, deadline)",
+     "unit": "checklist",
+     "relationship": "Breaking any rule is a submission risk, not a design result. Only the 30 Nov 2026 23:59 London deadline is confirmed on the competition page; the rest comes from the brief extract. Pointer to PRES board layout.",
+     "source_ids": [
+      "P01-S01",
+      "P01-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Tower height band",
+     "unit": "m",
+     "good": "244-305 m for every tower, CTBUH architectural top from P01-M09 (strict default)",
+     "bad": "below 244 m or above 305 m for any tower",
+     "method": "H_arch from the lowest significant open-air pedestrian entrance; H_occ and H_tip also reported.",
+     "basis": "Band 800-1000 ft from the project's extract of the brief PDF (gated, not opened); CTBUH definitions opened. Corrected r1: was labelled verified; treated as unverified until a page and clause is cited.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S02",
+      "P01-S37"
+     ]
+    },
+    {
+     "name": "Non-residential FSR vs 9.0 minimum (default tier 2)",
+     "unit": "FSR",
+     "good": ">= 9.0 on the named ledger",
+     "bad": "< 9.0",
+     "method": "Tier-2 area (office + retail + service incl. hotel) / site area, from P01-M07.",
+     "basis": "Brief minimum 9.0 non-residential, high-employment floor area (extract, S02 unopened). Corrected r1: was labelled verified.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Interpretation state of the 9.0 test",
+     "unit": "state",
+     "good": "tier 1 (office only) >= 9.0: passes under every reading (green)",
+     "bad": "tier 3 (all non-residential) < 9.0: fails under every reading (red); between is amber 'needs interpretation'",
+     "method": "Compare tiers 1-3 and the zoning-ledger value against 9.0; amber also when gross >= 9.0 > zoning.",
+     "basis": "Wording gap in the brief ('office, commercial'); question for Buildner.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S02",
+      "P01-S01"
+     ]
+    },
+    {
+     "name": "Site boundary containment",
+     "unit": "m / m2",
+     "good": "all above-grade volume inside the polygon of about 11,470 m2 (tolerance editable, default 0.1 m)",
+     "bad": "any above-grade volume outside the polygon without the encroachment switch",
+     "method": "Extruded-polygon containment test.",
+     "basis": "Brief gives only an approximate size, no containment or no-cantilever rule: team assumption.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Below-grade secondary transit entrance",
+     "unit": "yes/no, m",
+     "good": "tagged below-grade path continuous from a core to the user-placed station portal point",
+     "bad": "absent or discontinuous; off-site length reported as a flag",
+     "method": "Graph path from a core node to the portal point, allowing off-site below-grade segments.",
+     "basis": "Requirement from the brief extract (unopened); the path test is a team method because the brief puts the station diagonally across the intersection.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Vertical presence of public uses",
+     "unit": "level bands",
+     "good": ">= 3 bands (base, mid, upper) contain public-tagged area",
+     "bad": "public tags only at grade",
+     "method": "Count distinct level bands with public, cultural/civic or amenity tags.",
+     "basis": "Team preset (editable); brief only says 'should extend vertically'.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Submission format checklist",
+     "unit": "rules met",
+     "good": "all six rules met (4 boards, A2 landscape, <= 10 MB each, English, no identifying information, before 30 Nov 2026 23:59 London)",
+     "bad": "any rule unmet",
+     "method": "Checklist ticked by the user; file sizes read from exports.",
+     "basis": "Deadline confirmed on the competition page (opened); other rules from the brief extract.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S01",
+      "P01-S02"
+     ]
+    }
+   ],
+   "method": "1) Read the site polygon and compute its area (Shapely): 79.2 x 144.8 m = about 11,468 m2. 2) Take H_arch, H_occ and H_tip per tower from P01-M09 (CTBUH measures). 3) Read one named ledger from P01-M07 (default gross; zoning ledger shown beside it); FSR = tier area / site area for tiers 1-3. 4) Test that all above-grade mesh lies inside the polygon within tolerance; the encroachment switch logs a departure. 5) Build a graph of tagged below-grade spaces; test a path from a core node to the user-placed station portal point, allowing off-site segments; report off-site length. 6) Count level bands with public tags. 7) Tick the submission checklist. 8) Emit one record per check: value, threshold, state (pass / fail / needs interpretation / unknown), switches used, source id. No rule silently passes; missing tags give 'unknown'.",
+   "visualization": [
+    "Row of badges (green pass, red fail, amber needs interpretation, grey hatched unknown), each linked to the brief clause and source id; rules from the unopened brief carry a dashed outline",
+    "Elevation silhouette of each tower on a metre ruler with the 244-305 m band shaded and 800/1000 ft ticks; three heights marked per tower",
+    "FSR gauge 0-12 with a vertical line at 9.0, three markers (tiers 1-3) and a ghost marker for the zoning ledger",
+    "Plan view: site rectangle 79.2 x 144.8 m, tower footprints, below-grade path as a dashed line leaving the site to the station portal point with off-site length labelled",
+    "Submission checklist grid (boards, size, MB, language, anonymity, deadline) with ticks"
+   ],
+   "outputs": [
+    "compliance_report: list of {rule_id, value, threshold, state, switches, source_id}",
+    "tower_heights: H_arch, H_occ, H_tip per tower, m (from P01-M09)",
+    "fsr_nonres_tier1, fsr_nonres_tier2, fsr_nonres_tier3: dimensionless, on the named ledger",
+    "site_area_m2: number",
+    "transit_offsite_length_m: number",
+    "submission_checklist: list of {rule, state}"
+   ],
+   "human_judgment": "Reading ambiguous brief wording (uses counted as non-residential, height measure, all towers or one); deciding to breach a rule on purpose and arguing it; asking Buildner before 3 Nov 2026. Jury link: urban_integration_10 (transit entrance) and human_scale_40 (public uses up the tower); height and FSR are eligibility checks, not design merit.",
+   "limits": "The brief PDF is email-gated (register by 29 Oct 2026), so every brief rule is the team's extract and none is verified until a page and clause is cited. The package may also contain a site plan, 3D model, station portal and view cones: check it first. The checker tests geometry and tags, not design quality. The brief is academic and the jury may reward justified breaches, so failures are flags.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "role": "Polygon area, containment, distance",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Read Rhino .3dm massing",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "IfcOpenShell (core)",
+     "role": "Read IFC spaces and quantities",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "trimesh",
+     "role": "Mesh bounds and containment",
+     "license": "MIT",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "json-rules-engine",
+     "role": "Rules as editable JSON with source ids",
+     "license": "ISC",
+     "url": "https://github.com/CacheControl/json-rules-engine"
+    }
+   ],
+   "depends_on": [
+    "P01-M07",
+    "P01-M09"
+   ],
+   "jury_criteria": [
+    "urban_integration_10",
+    "human_scale_40"
+   ]
+  },
+  {
+   "module_id": "P01-M02",
+   "name": "Policy, zoning and CBD land-use register",
+   "phase": "cross-cutting",
+   "category": "SITE",
+   "nature": "objective",
+   "priority": "core",
+   "effort": "S-M: about 5 person-days, plus monthly register updates",
+   "design_question": "Which Vancouver, provincial and federal documents govern a tall tower here, what is each one's status and clause, and which rows are still unverified?",
+   "inputs": [
+    "Static policy register (JSON): document, version, date, status, URL, clause, opened flag",
+    "User-entered Downtown ODP and DD schedule values (FSR min and max, parking, loading), typed from the PDFs",
+    "Higher Buildings policy-area flag and site height set by the user from the policy's Figure 1",
+    "Pointer rows handed to CLIM, ENER, MOBI and P01-M04/M05"
+   ],
+   "parameters": [
+    {
+     "name": "Policy status and version date",
+     "unit": "date / status",
+     "relationship": "Newer or under-review documents change which clause applies. Higher Buildings draft policies are due fall 2026-winter 2027 and the hearing spring 2027, so every result stays provisional until then.",
+     "source_ids": [
+      "P01-S03"
+     ]
+    },
+    {
+     "name": "Higher Buildings policy-area membership and site-specific height",
+     "unit": "in/out; ft (m)",
+     "relationship": "Inside the area, allowed height differs by site (summaries cite about 700 ft on Georgia/Burrard/Granville, 425-500 ft at bridgeheads; unverified). The City quotes 600 ft (183 m) only for sites across from Bay Parkade. Outside: rezoning on its merits.",
+     "source_ids": [
+      "P01-S04",
+      "P01-S08",
+      "P01-S09"
+     ]
+    },
+    {
+     "name": "Downtown ODP sub-area",
+     "unit": "label",
+     "relationship": "The sub-area (letters A-O, K1-K3, L1-L2, C2 in the City's 29 polygons) selects permitted uses and FSR minimum and maximum. Which letter is the CBD core is read from the ODP. A hypothetical block makes this an assumption that moves every cap.",
+     "source_ids": [
+      "P01-S34",
+      "P01-S46",
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "FSR minimum and maximum, interpretive height, relaxation",
+     "unit": "FSR; label",
+     "relationship": "Cap up -> permitted floor area up; above it, density needs bonus or CD-1 rezoning. ODP height provisions are interpretive and relaxable by the Development Permit Board, so zoning alone does not cap a supertall. Values are typed from the PDF.",
+     "source_ids": [
+      "P01-S34"
+     ]
+    },
+    {
+     "name": "CBD land-use designation and job-space policy",
+     "unit": "label",
+     "relationship": "If residential is restricted in the CBD core and job space protected (Metro Core Jobs and Economy plan, reviewer recollection, unverified), the residential share becomes a departure and replacement rules may apply; VTC's 9.0 minimum may mirror it.",
+     "source_ids": []
+    },
+    {
+     "name": "Parking cap, loading minimum and transit-oriented area",
+     "unit": "stalls, bays, in/out",
+     "relationship": "Inside a transit-oriented area (within 800 m of a rapid transit station) local governments cannot require off-street residential parking; accessible, commercial parking and loading may still be required. Parking cap down -> fewer below-grade levels.",
+     "source_ids": [
+      "P01-S44",
+      "P01-S31",
+      "P01-S34",
+      "P01-S47"
+     ]
+    },
+    {
+     "name": "Rezoning policies likely triggered",
+     "unit": "checklist",
+     "relationship": "Large-site sustainability policy (thresholds 0.8 ha or 45,000 m2 recalled, unverified), Green Buildings Policy for Rezonings, public art and bird-friendly guidelines each add submissions and design duties. The block (about 1.15 ha, over 103,000 m2 non-residential) would exceed both thresholds if recalled correctly.",
+     "source_ids": []
+    },
+    {
+     "name": "Zoning path (outright, relaxation, CD-1)",
+     "unit": "label",
+     "relationship": "A CD-1 sets site-specific height, FSR and conditions; Bay Parkade's sets only a maximum height. Council's May 2023 direction sends non-conforming schemes to rezoning on their merits. The path sets the scale of the benefits negotiation (P01-M08).",
+     "source_ids": [
+      "P01-S28",
+      "P01-S04"
+     ]
+    },
+    {
+     "name": "Precedent register (Bay Parkade rezoning, 27 Jul 2026, 7-3)",
+     "unit": "record",
+     "relationship": "Council accepted three towers above policy heights with a large benefits package. The scheme is hotel plus residential, outside the policy area: evidence of a path for height beyond policy, not a rule and not a program precedent.",
+     "source_ids": [
+      "P01-S04",
+      "P01-S28",
+      "P01-S29"
+     ]
+    },
+    {
+     "name": "Pointer rows: shadow, wind, energy, public views, aviation",
+     "unit": "pointer",
+     "relationship": "Rows name the governing documents handed on: shadow criteria for named parks and plazas and wind comfort (CLIM), energy and emissions limits (ENER), cones (P01-M04), airspace (P01-M05). All unverified until read.",
+     "source_ids": [
+      "P01-S03"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Policy-area height reference (lookup)",
+     "unit": "ft (m)",
+     "good": "site-specific value read from the policy's Figure 1 and typed with its clause",
+     "bad": "one universal 600 ft figure applied to any site",
+     "method": "Lookup by policy-area site. 600 ft (183 m) is stored only for 'sites immediately across the street' from Bay Parkade; other sites stay unknown (grey hatched); the summarised 700 ft and 425-500 ft figures are stored as unverified.",
+     "basis": "City FAQ (opened) ties 600 ft to the sites across from Bay Parkade; 2011 and 2018 summaries give site-specific heights; policy PDFs unopened. Corrected r1: was a universal verified threshold.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S04",
+      "P01-S08",
+      "P01-S09"
+     ]
+    },
+    {
+     "name": "Review-status banner",
+     "unit": "state",
+     "good": "every policy-based result carries 'provisional: review in progress, hearing spring 2027'",
+     "bad": "results presented as final",
+     "method": "Banner on every node that reads a register row.",
+     "basis": "City project page: draft policies fall 2026-winter 2027; hearing and adoption spring 2027.",
+     "status": "verified",
+     "source_ids": [
+      "P01-S03"
+     ]
+    },
+    {
+     "name": "Register completeness",
+     "unit": "%",
+     "good": "every row has status, URL, opened flag and clause or 'not read'",
+     "bad": "any row blank",
+     "method": "Count complete rows / total.",
+     "basis": "Course rule that every result cites its source (team preset).",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Register freshness",
+     "unit": "days since last manual check",
+     "good": "<= 14 days before 30 Nov 2026 (editable)",
+     "bad": "> 14 days",
+     "method": "Date stamp per register row.",
+     "basis": "Team preset: review drafts and Bay Parkade follow-ups are moving targets.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S03"
+     ]
+    }
+   ],
+   "method": "One row per document: policy, version, date, status, URL, clause, opened flag. Seed rows: Higher Buildings Policy (1997; 2003, 2011, 2018 cited; adoption 22 Apr vs 6 May unresolved) and its 2026 review; Council May 2023 direction; Public Views Guidelines (10 Jul 2024); Downtown ODP and DD schedule; Vancouver ODP (31 Mar 2026); Granville Street Plan (4 Jun 2025) and its contribution policy; Zoning and Development By-law 3575; CBD land-use policy; large-sites, green-buildings, public-art, bird-friendly policies; CAC policy; DCL; ACC; transit-oriented areas; federal aviation rows; Bay Parkade. Values are typed by hand; the tool never guesses. Unknown cells are grey hatched; superseded or corrected rows stay visible struck through in the FALSE ASSUMPTION colour. No upstream dependency, so P01-M04 and P01-M08 can read it.",
+   "visualization": [
+    "Horizontal timeline 1997 > 2003 > 2011 > 2018 > Jul 2024 Public Views Guidelines > Jun 2025 Granville Street Plan > 31 Mar 2026 Vancouver ODP > 2026 review phases > spring 2027 hearing, coloured in force / amended / under review / superseded",
+    "Register table with status chips; opened documents drawn solid, unopened dashed, each row linked to its source id",
+    "Zoning data sheet: ODP values typed by hand; empty cap cells hatched grey",
+    "Map of the 29 Downtown ODP sub-area polygons (City open data) with the assumed block marked",
+    "FALSE ASSUMPTION rows in a fixed magenta that stays on screen"
+   ],
+   "outputs": [
+    "policy_register: list of {doc, version, date, status, url, opened, clause}",
+    "zoning_envelope: {sub_area, fsr_max, fsr_min, height_note, parking_cap, loading_min, toa_flag, path, source_ids, status}",
+    "hb_policy_area: {in_out, site_height_ft, source_ids}",
+    "zoning_gaps: list of unknown rows",
+    "pointer_rows: list handed to CLIM, ENER, P01-M04, P01-M05"
+   ],
+   "human_judgment": "Choosing the real block and sub-area assumption; reading policy intent; confirming current consolidations with City planning; deciding which policies the scheme must answer. Jury link: design_excellence_20 (policy reflection).",
+   "limits": "City hosts returned HTTP 403, so clause text, the 1997 adoption date (22 Apr vs 6 May), Figure 1, ODP and by-law values are unread; the Higher Buildings Policy PDF is linked on Shape Your City as a download for hand reading. Draft 2026-27 policy is not public until early 2027. The brief says its documents are academic, not legal.",
+   "libraries": [
+    {
+     "name": "json-rules-engine",
+     "role": "Register rows and rule links as JSON",
+     "license": "ISC",
+     "url": "https://github.com/CacheControl/json-rules-engine"
+    },
+    {
+     "name": "GeoPandas",
+     "role": "Load Downtown ODP sub-area and zoning polygons from City open data",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/geopandas/geopandas"
+    }
+   ],
+   "depends_on": [],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P01-M04",
+   "name": "Public view-cone checker",
+   "phase": "basic",
+   "category": "SITE",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "L: about 8-12 person-days (manual-parameter and hypothetical-cone modes, about 4 days, are core; open-data ingestion 4-8 days is v1)",
+   "design_question": "Does the massing penetrate a protected public view cone (Queen Elizabeth Park or others), by how much, and does that trigger a Higher Buildings special review?",
+   "inputs": [
+    "Layer0.Massing; highest physical point per tower from P01-M09 in the cone's datum",
+    "P01-M09 site_frame: assumed real block, ground elevation, vertical datum",
+    "Cone polygons: City open data (24 cones, 2D, dated), or cones supplied in the brief package if any",
+    "Cone floors and azimuths typed from the Public Views Guidelines or a City View Cone Assessment (views@vancouver.ca)",
+    "P01-M02 hb_policy_area flag",
+    "Context massing (existing and approved towers), optional"
+   ],
+   "parameters": [
+    {
+     "name": "Cone lower-boundary elevation at the site",
+     "unit": "m geodetic",
+     "relationship": "Cone floor up -> allowable top up; allowable height = cone floor - ground elevation. Older documents suggest floors near 100-145 m at downtown sites, far below 244-305 m (derived, unverified). The open dataset carries no elevations.",
+     "source_ids": [
+      "P01-S12",
+      "P01-S17",
+      "P01-S18",
+      "P01-S19",
+      "P01-S11",
+      "P01-S45"
+     ]
+    },
+    {
+     "name": "Footprint position relative to the cone polygon",
+     "unit": "in/out, azimuth deg",
+     "relationship": "Footprint outside the polygon -> no penetration at any height; inside, every metre above the cone floor penetrates. Team check: sampled CBD points fell inside QEP cones 3.2.1-3.2.3 (2D, approximate coordinates; re-run on the real block).",
+     "source_ids": [
+      "P01-S45"
+     ]
+    },
+    {
+     "name": "View origin and subject",
+     "unit": "x, y, z",
+     "relationship": "The origin is the camera for the skyline view; moving it changes every result. The four QEP polygons share a southern apex near 49.242 N (derived from polygon extents). The brief requires one skyline view from the QEP viewpoint.",
+     "source_ids": [
+      "P01-S45",
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Cone status after 10 Jul 2024 (retained, updated, eliminated)",
+     "unit": "label per cone",
+     "relationship": "QEP 3.2.1-3.2.4 were retained and not updated; 3.1 and 3.2.4a were eliminated; 11 other cones were updated. Retained cones' pre-2024 geometry may still hold (confirm); eliminated cones are not tested.",
+     "source_ids": [
+      "P01-S14",
+      "P01-S45"
+     ]
+    },
+    {
+     "name": "Higher Buildings site status",
+     "unit": "in/out",
+     "relationship": "Only select downtown Higher Buildings sites may enter QEP cone boundaries, through a special review (City page summary, unopened). Elsewhere penetration is not an option. The 2026 review does not revise protected views.",
+     "source_ids": [
+      "P01-S13",
+      "P01-S03"
+     ]
+    },
+    {
+     "name": "Ground elevation at the tower",
+     "unit": "m",
+     "relationship": "Ground elevation up -> allowable height above grade down for a fixed cone floor (arithmetic). Taken from P01-M09 (City 2013 LiDAR DEM or typed).",
+     "source_ids": [
+      "P01-S48"
+     ]
+    },
+    {
+     "name": "Highest physical point tested (spire, plant, rig)",
+     "unit": "m",
+     "relationship": "Rooftop plant, antennae and window-washing rigs count in a cone test, so penetration uses the highest physical point, not the CTBUH architectural top, in the cone's vertical datum.",
+     "source_ids": [
+      "P01-S12"
+     ]
+    },
+    {
+     "name": "Angular width of the tower from the origin",
+     "unit": "deg",
+     "relationship": "Width up -> more of the mountain skyline covered. No sourced acceptable-occlusion threshold found (see unresolved relationships).",
+     "source_ids": []
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Maximum penetration per cone",
+     "unit": "m",
+     "good": "0 m (all parts outside the cone)",
+     "bad": "> 0 m",
+     "method": "Max over vertices and subdivided edges of (z_highest_point - cone_floor); 'unknown' when no floor is entered.",
+     "basis": "Search summary of the Public Views Guidelines: all parts of a building should lie outside cone boundaries. PDF unopened.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S12",
+      "P01-S13"
+     ]
+    },
+    {
+     "name": "Higher Buildings review trigger",
+     "unit": "yes/no",
+     "good": "no penetration, or penetration only at an identified Higher Buildings site with review planned",
+     "bad": "penetration at a site not in the policy area",
+     "method": "Penetration > 0 AND hb_policy_area flag from P01-M02.",
+     "basis": "City page summary of the special review; policy area map unopened.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S13",
+      "P01-S08"
+     ]
+    },
+    {
+     "name": "Cone dataset vintage and per-cone status",
+     "unit": "date, label",
+     "good": "dataset dated after 10 Jul 2024 (City open data modified 19 Oct 2026, 24 cones) and each cone tagged retained or updated",
+     "bad": "38-cone pre-2024 data for an updated cone, or any test of an eliminated cone",
+     "method": "Check dataset date and cone id against the Storeys list; retained cones may use older geometry with an 'unverified, confirm unchanged' badge.",
+     "basis": "Council replaced the View Protection Guidelines on 10 Jul 2024. Corrected r1: the claim that pre-2024 data overstates restriction is false for retained QEP cones 3.2.1-3.2.4.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S14",
+      "P01-S15",
+      "P01-S20",
+      "P01-S45"
+     ]
+    },
+    {
+     "name": "Cone-floor data present",
+     "unit": "yes/no",
+     "good": "floors and azimuths typed from a City document or the brief, with source id",
+     "bad": "no floor values: result 'unknown' (grey hatched), never pass",
+     "method": "Required field per cone; hypothetical-cone mode shows the floor in team-assumption colour and gives no pass/fail.",
+     "basis": "Open dataset has polygons only; hypothetical block.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S45"
+     ]
+    },
+    {
+     "name": "Occlusion of the mountain skyline from the origin",
+     "unit": "% of view-subject width",
+     "good": "0% (team target)",
+     "bad": "any occlusion; severity judged by people",
+     "method": "Ray grid from the origin through the cone window; share of rays hitting the massing before the subject.",
+     "basis": "Team preset; no sourced threshold.",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "method": "1) Check the brief package for cones, a real location or a station portal; use them as the default (S02). 2) If absent, pick an assumed real block in P01-M09 (team assumption) or use 'hypothetical cone' mode with an editable floor and no pass/fail. 3) Load the 24 City cone polygons (2D) with their date; tag each retained, updated or eliminated. 4) Type cone floors and azimuths from the Public Views Guidelines or a City View Cone Assessment. 5) For each vertex and subdivided edge of the highest-point set inside a wedge compute margin = z - cone_floor; penetration = max margin. 6) Cast rays from the origin across the cone window (three-mesh-bvh) against massing and context towers. 7) Render the origin-point view for the PRES skyline image. Missing floors give 'unknown'.",
+   "visualization": [
+    "Plan: cone polygons in translucent colour by status (retained, updated), origin point, site outline",
+    "Section along the cone axis: cone floor line, tower, penetrating part in red",
+    "Origin-point panorama: cone window outline, mountain subject, tower silhouette against context towers (also feeds the PRES skyline view; shown without pass/fail in hypothetical mode)",
+    "False-colour on the tower mesh: green below the cone to red above, legend 0-200 m penetration"
+   ],
+   "outputs": [
+    "view_cone_report: list per cone {cone_id, status_2024, penetration_m, margin_m, state, source_id}",
+    "max_penetration_m: number",
+    "penetration_mesh: mesh with per-vertex margin",
+    "hb_review_trigger: boolean",
+    "qep_skyline_view: image for PRES",
+    "cone_data_gaps: list of cones without floors"
+   ],
+   "human_judgment": "Whether penetration is justified; judging skyline silhouette and the 'City in Nature' relationship; requesting an official View Cone Assessment for a real parcel; moving towers to avoid cones. Jury link: cultural_context_30 (views to the North Shore mountains) and design_excellence_20 (skyline contribution).",
+   "limits": "The Public Views Guidelines PDF and VanMap returned HTTP 403. The open dataset has polygons but no elevations, so cone floors are user-supplied; figures such as 322.8 ft (1997) and 361 ft (2022) are historical or site-specific. The block is hypothetical: cone results exist only after an assumed real location and datum.",
+   "libraries": [
+    {
+     "name": "trimesh",
+     "role": "Mesh clipping and ray queries (manifold3d for booleans)",
+     "license": "MIT",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "three-mesh-bvh",
+     "role": "Fast raycast against massing in the browser",
+     "license": "MIT",
+     "url": "https://github.com/gkjohnson/three-mesh-bvh"
+    },
+    {
+     "name": "Shapely",
+     "role": "Wedge polygons and inside tests",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "GeoPandas",
+     "role": "Load City view-cone dataset",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/geopandas/geopandas"
+    },
+    {
+     "name": "pyproj",
+     "role": "CRS transforms (vertical datum grids not confirmed)",
+     "license": "MIT",
+     "url": "https://github.com/pyproj4/pyproj"
+    },
+    {
+     "name": "CesiumJS",
+     "role": "Georeferenced 3D context view",
+     "license": "Apache-2.0",
+     "url": "https://github.com/CesiumGS/cesium"
+    }
+   ],
+   "depends_on": [
+    "P01-M02",
+    "P01-M09"
+   ],
+   "jury_criteria": [
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P01-M05",
+   "name": "Airspace height screening and obstruction marking",
+   "phase": "basic",
+   "category": "SITE",
+   "nature": "mixed",
+   "priority": "v1",
+   "effort": "S-M: about 4-5 person-days (marking and checklist 2; optional surface heightfields 2-3)",
+   "design_question": "Could federal aviation rules (YVR zoning, NAV CANADA procedures, harbour aerodromes) cap tower height, which obstruction marking and lighting apply, and what must the team file or ask?",
+   "inputs": [
+    "Highest physical point per tower, AGL and AMSL, from P01-M09 (roof additions count)",
+    "Site latitude/longitude from P01-M09",
+    "Optional heliport FATO position, approach azimuth, number of paths, performance class",
+    "Optional Transport Canada map or surface heights; crane height assumption"
+   ],
+   "parameters": [
+    {
+     "name": "Highest physical point, AGL and AMSL",
+     "unit": "m",
+     "relationship": "Top up -> more likely to penetrate an obstacle surface or instrument procedure and to need NAV CANADA mitigation. A roof mast counts toward height (CAR 601.23(2)). At Bay Parkade, City staff relayed that about 27 m (88 ft) may need cutting.",
+     "source_ids": [
+      "P01-S41",
+      "P01-S27"
+     ]
+    },
+    {
+     "name": "Obstacle status under CAR 601.23",
+     "unit": "label",
+     "relationship": "A structure above 150 m AGL is an obstacle; above 90 m AGL it is one within 6 km of an aerodrome's geographical centre or 3.7 km of a VFR route. Every VTC tower qualifies, so Standard 621 marking and lighting apply.",
+     "source_ids": [
+      "P01-S41",
+      "P01-S42",
+      "P01-S43"
+     ]
+    },
+    {
+     "name": "Marking and lighting configuration",
+     "unit": "label",
+     "relationship": "Above 150 m AGL daytime marking is always required, even with medium-intensity white lights; high-intensity white (CL-856) is an option; strobe-type lights are not recommended in urban areas; glare shielding may be needed. The choice shapes crown and facade design.",
+     "source_ids": [
+      "P01-S43"
+     ]
+    },
+    {
+     "name": "Distance and bearing to YVR runway strips",
+     "unit": "m, deg",
+     "relationship": "Under SOR/80-902 approach surfaces rise 1 m per 50 m to 15 km along runway centrelines; outer limits are described mainly in Richmond and along the Richmond-Vancouver boundary. No opened source puts downtown inside: applicability unknown, probably outside.",
+     "source_ids": [
+      "P01-S23"
+     ]
+    },
+    {
+     "name": "Proposed 2026 zoning extension",
+     "unit": "area / surface",
+     "relationship": "The July 2026 consultation adds an area covering much of Vancouver north of the Fraser, west to English Bay, to the April 2024 proposal. If the CBD is inside, a new surface may cap new towers. Heights are unpublished; request the map.",
+     "source_ids": [
+      "P01-S21",
+      "P01-S22"
+     ]
+    },
+    {
+     "name": "Existing taller buildings under the 2024 proposal",
+     "unit": "label",
+     "relationship": "In the 2024 text, buildings existing at entry into force become legally non-conforming and may not be raised. The 2026 page is silent on this. Exceptions ('bump-outs') were granted in five specific areas, Richmond among them.",
+     "source_ids": [
+      "P01-S22",
+      "P01-S21"
+     ]
+    },
+    {
+     "name": "Heliport surfaces (operator impact)",
+     "unit": "% slope",
+     "relationship": "Standard 325 sets heliport certification surfaces: non-instrument approach 245 m at 6-10%, then 830 m at 16%; transitional 50% to 45 m. A building penetrating them affects the heliport's certification; it is not barred. Heliport, FATO and class are unknown.",
+     "source_ids": [
+      "P01-S24"
+     ]
+    },
+    {
+     "name": "Instrument procedures and harbour water aerodrome (CYHC)",
+     "unit": "unknown",
+     "relationship": "NAV CANADA instrument-procedure obstacle clearance and floatplane and helicopter routes near Coal Harbour may bind height more than any zoning surface. Not modelled; carried as named unknowns for NAV CANADA to answer.",
+     "source_ids": [
+      "P01-S25",
+      "P01-S26"
+     ]
+    },
+    {
+     "name": "Assessment and notice timing",
+     "unit": "weeks / months / days",
+     "relationship": "NAV CANADA attempts replies in 8-12 weeks, which 'can go up to 12 to 18 months pending necessary mitigations' in or around an airport; the letter is not a permit. Transport Canada notice is due 90 days before construction. Late filing risks floor cuts.",
+     "source_ids": [
+      "P01-S25",
+      "P01-S43"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Marking and lighting plan declared",
+     "unit": "yes/no",
+     "good": "Standard 621 system chosen for each tower and Transport Canada notice logged at least 90 days before construction",
+     "bad": "no plan, or notice after design freeze",
+     "method": "Checklist with dates; marking_lighting_required is true for every tower above 150 m AGL.",
+     "basis": "CAR 601.23(1)(d), 601.24 and Standard 621 s.2.5 and s.4.2 (opened).",
+     "status": "verified",
+     "source_ids": [
+      "P01-S41",
+      "P01-S42",
+      "P01-S43"
+     ]
+    },
+    {
+     "name": "YVR zoning surface penetration (formula)",
+     "unit": "m",
+     "good": "<= 0 m, or site outside the outer limits",
+     "bad": "> 0 m",
+     "method": "Optional heightfield: approach 1:50 to 15 km, outer plane 45 m above the reference point (reference 2 m), transitional 1:7. Default state 'outside current zoning (unverified)'.",
+     "basis": "Formulas verified in SOR/80-902; applicability to downtown unknown. Corrected r1: was labelled verified for this tower.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S23",
+      "P01-S22"
+     ]
+    },
+    {
+     "name": "Proposed 2026 zoning surface",
+     "unit": "m",
+     "good": "detailed map obtained and tower top at or below the surface",
+     "bad": "top above the surface, or no map (state 'unknown', grey hatched, never green)",
+     "method": "Placeholder until Transport Canada supplies the map (aviation.pac@tc.gc.ca).",
+     "basis": "Transport Canada page: map by request, no heights published, consultation closed 12 Sep 2026.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S21"
+     ]
+    },
+    {
+     "name": "Heliport OLS conflict (operator impact)",
+     "unit": "m",
+     "good": "no penetration of Standard 325 surfaces for an identified heliport",
+     "bad": "penetration: FLAG for the operator (not a fail); default 'unknown' until the heliport is identified",
+     "method": "Surfaces from Table 4-1 values for the entered FATO, path count and class.",
+     "basis": "Table values opened; the standard certifies heliports and does not bar buildings; heliport, FATO and class unknown.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S24"
+     ]
+    },
+    {
+     "name": "Bay Parkade aviation precedent marker",
+     "unit": "m (measure unstated)",
+     "good": "display only: marker at 288 m in P01-M08's height ladder, no pass/fail",
+     "bad": "not applicable",
+     "method": "Marker, not a threshold.",
+     "basis": "Daily Hive: possible cut of about 88 ft from 1,034 ft (315 m) to 946 ft (288 m), relayed by City staff; no datum; constraint named only as 'federal aviation requirements'. Corrected r1: was a screening flag at 288 m above grade.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S27"
+     ]
+    },
+    {
+     "name": "NAV CANADA request timing",
+     "unit": "stage",
+     "good": "assessment requested at concept or pre-design stage (usual reply 8-12 weeks)",
+     "bad": "requested after design freeze (up to 12-18 months pending mitigations near airports)",
+     "method": "Checklist date logged by the user; no duration is predicted.",
+     "basis": "NAV CANADA page quoted exactly. Corrected r1: 12-18 months is conditional on mitigations, not a standard near-airport time.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S25"
+     ]
+    }
+   ],
+   "method": "1) Take the highest physical point per tower from P01-M09 (AGL and AMSL). 2) Apply the CAR 601.23 tests (above 150 m AGL; above 90 m AGL within 6 km of an aerodrome centre) and output marking_lighting_required with the Standard 621 options. 3) Default YVR zoning state is 'outside current zoning (unverified)'; optionally build approach, outer and transitional surfaces as a heightfield when the user supplies runway data. 4) Keep a placeholder for the 2026 surfaces, 'unknown' until the Transport Canada map arrives. 5) Optional heliport flag from Standard 325 Table 4-1 for a user-entered FATO. 6) Build the checklist: Transport Canada Aeronautical Assessment Form (at least 90 days before construction), NAV CANADA Land Use portal (separate, not connected to Transport Canada), map request, DND note, crane assumption. The module never reports 'approved'.",
+   "visualization": [
+    "Status cards: pass (green), flag (amber), fail (red), UNKNOWN (grey hatched, never green)",
+    "Schematic elevation of each tower with obstruction-light levels at the Standard 621 spacing for the chosen system (45 m red intervals; 150 m white intervals) and the daytime-marking note",
+    "3D translucent surfaces with the tower when surfaces are known; penetrating mesh in red, legend 0-30 m",
+    "Chart of allowable height against distance along an approach, tower top as a marker, drawn only when surfaces are known"
+   ],
+   "outputs": [
+    "airspace_flags: {yvr_zoning, proposed_2026_zoning, heliport, instrument_procedures, nav_canada} each pass / flag / unknown",
+    "marking_lighting_required: boolean per tower",
+    "allowable_top_m_amsl: number when computable",
+    "submission_checklist: list with dates"
+   ],
+   "human_judgment": "Engaging NAV CANADA and Transport Canada; deciding to trim floors or reposition; crown and lighting design; helicopter and floatplane routes; bird impacts of obstruction lighting. No output is an aviation approval. Jury link: design_excellence_20 (crown, risk and cost of late cuts).",
+   "limits": "Downtown applicability of every zoning surface is unconfirmed. The 2026 proposal's surface heights are unpublished (consultation closed 12 Sep 2026). Instrument procedures, CYHC water-aerodrome data, heliport certification and the last 33,000 characters of Standard 621 were not read. Standard 621 details come from a summarising fetch and need confirming in the text. Screening only.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "role": "Footprint and wedge geometry",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "pyproj",
+     "role": "Geodetic transforms",
+     "license": "MIT",
+     "url": "https://github.com/pyproj4/pyproj"
+    },
+    {
+     "name": "trimesh",
+     "role": "Surface meshes and tower intersections",
+     "license": "MIT",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "CesiumJS",
+     "role": "Georeferenced surface display",
+     "license": "Apache-2.0",
+     "url": "https://github.com/CesiumGS/cesium"
+    },
+    {
+     "name": "three.js",
+     "role": "Browser 3D view",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "depends_on": [
+    "P01-M09"
+   ],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P01-M06",
+   "name": "Tower siting, separation and floor plate",
+   "phase": "basic",
+   "category": "SITE",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "S: about 3-4 person-days",
+   "design_question": "Do tower positions, floor plates, street walls and separations from on-site and neighbouring existing or approved towers meet downtown guidelines for each use, and which departures need justification?",
+   "inputs": [
+    "Layer0.Towers: floor-plate polygon per level, with use tags (residential, office, hotel)",
+    "Layer0.Podium and site edges (streets, lanes)",
+    "Context massing tagged existing or approved-not-built",
+    "P01-M09 site_frame: grid-to-true-north rotation"
+   ],
+   "parameters": [
+    {
+     "name": "Tower-to-tower separation above podium, by use",
+     "unit": "m",
+     "relationship": "Separation up -> daylight, privacy and sky view up, usable footprint down. A residential candidate of 24.4 m (80 ft) is recalled from Downtown South practice, unverified; office and hotel bands have no known value. The brief asks entrants to consider spacing.",
+     "source_ids": [
+      "P01-S39"
+     ]
+    },
+    {
+     "name": "Cross-street separation",
+     "unit": "m",
+     "relationship": "Towers across a street or lane: separation up with street width, usable plate down. No sourced value; computed from facade normals and reported, not graded.",
+     "source_ids": []
+    },
+    {
+     "name": "Floor-plate area and width by level and use",
+     "unit": "m2, m",
+     "relationship": "Plate width up -> shadow width and wind-facing width up (quantified in CLIM packets), slenderness down. A residential candidate near 6,500 sq ft (about 604 m2) is recalled, unverified; no downtown office or hotel cap was found.",
+     "source_ids": []
+    },
+    {
+     "name": "Street-wall (podium) height and setbacks",
+     "unit": "m",
+     "relationship": "Podium height up -> stronger street wall and more shelter, less sky view from the street; setback to lot lines and lanes up -> public realm and lane width up, plate area down. No sourced value for Georgia-type streets.",
+     "source_ids": []
+    },
+    {
+     "name": "Distance to approved-not-built towers",
+     "unit": "m",
+     "relationship": "Closer approved towers in the same height range -> separation shrinks and needs negotiation. Context must include approved towers such as Bay Parkade.",
+     "source_ids": [
+      "P01-S02",
+      "P01-S28"
+     ]
+    },
+    {
+     "name": "Grid-to-true-north rotation",
+     "unit": "deg",
+     "relationship": "Rotation decides which facade faces which compass direction in sun, wind and energy modules. Read from P01-M09; the brief's north arrow is rotated against the street grid.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Minimum tower-to-tower separation, residential bands only",
+     "unit": "m",
+     "good": ">= 24.4 m (80 ft) (candidate, editable)",
+     "bad": "< 24.4 m",
+     "method": "Minimum polygon distance and facade-normal distance per residential band above podium; office and hotel bands return 'unknown'.",
+     "basis": "Recalled residential guideline value; no City guideline could be opened.",
+     "status": "unverified",
+     "source_ids": []
+    },
+    {
+     "name": "Residential floor-plate area (candidate cap)",
+     "unit": "m2",
+     "good": "<= about 604 m2 (6,500 sq ft), editable",
+     "bad": "> 604 m2",
+     "method": "Slab polygon area per residential level.",
+     "basis": "Recalled residential practice; not found in an opened source.",
+     "status": "unverified",
+     "source_ids": []
+    },
+    {
+     "name": "Office and hotel floor-plate band",
+     "unit": "m2",
+     "good": "inside the team-entered band (no default supplied)",
+     "bad": "outside the band; 'unknown' when no band is entered",
+     "method": "Area per level from slab polygons.",
+     "basis": "No sourced downtown floor-plate cap for office or hotel; team setting.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Context completeness",
+     "unit": "yes/no",
+     "good": "all existing and approved towers within the review radius (editable) are in the model",
+     "bad": "any missing",
+     "method": "Compare the context list with the City's approved-tower list.",
+     "basis": "Brief context includes existing high-rises and approved towers.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S02"
+     ]
+    }
+   ],
+   "method": "Slice each tower into level bands above the podium (Shapely) and tag each band by dominant use. For every tower pair, on-site and context, compute the minimum polygon distance and, for facing facades, the perpendicular distance along facade normals; keep the minimum per band. Compute floor-plate area, perimeter and bounding width per level, plus podium height and setbacks to lot lines and lanes. Compute each facade's grid and true bearing using the rotation from P01-M09. Apply thresholds only to the uses they were recalled for: residential candidates grade residential bands; office and hotel bands return 'unknown' unless the team enters a band. Return a pair matrix, cross-street distances and closest pairs. Approved-not-built towers are drawn hatched.",
+   "visualization": [
+    "Plan with separation lines coloured green (meets), red (below), amber (unverified threshold), grey (no threshold) and distances labelled",
+    "Elevation strip showing sky corridors between towers by level band",
+    "Floor-plate area bar chart by level and use with the team band shaded",
+    "Context towers coloured by status: existing, approved, proposed; approved-not-built drawn with hatched outline"
+   ],
+   "outputs": [
+    "separation_matrix: pair x band distances, m",
+    "cross_street_distances: list",
+    "floor_plate_table: area, width per level and use",
+    "street_wall_table: podium height, setbacks",
+    "facade_orientation_table: grid and true bearings",
+    "closest_pairs: list with coordinates"
+   ],
+   "human_judgment": "Judging tower rhythm, views between towers and urban-design quality; deciding to depart from a guideline; anticipating the final form of approved neighbours. Jury link: human_scale_40 (sky corridors, daylight, street wall) and design_excellence_20.",
+   "limits": "No City guideline PDF on tower separation, floor plate or street wall could be opened. 24.4 m and 604 m2 are recalled residential candidates and must not be applied to office or hotel towers. Approved-but-unbuilt towers may change. Shadow, wind and daylight consequences belong to the CLIM packets.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "role": "Slicing, distances",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "trimesh",
+     "role": "Context and tower meshes",
+     "license": "MIT",
+     "url": "https://github.com/mikedh/trimesh"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Import Rhino geometry",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "three.js",
+     "role": "Browser plan and 3D view",
+     "license": "MIT",
+     "url": "https://github.com/mrdoob/three.js"
+    }
+   ],
+   "depends_on": [
+    "P01-M09"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P01-M07",
+   "name": "Program and FSR accounting",
+   "phase": "basic",
+   "category": "PROG",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 5-7 person-days (ledger 4, use tiers and core allocation 2-3)",
+   "design_question": "How much floor area counts toward total FSR and the 9.0 non-residential minimum under gross and zoning accounting, and how sensitive is compliance to use tiers, core allocation and exclusions?",
+   "inputs": [
+    "Layer0 program-tagged slab polygons by level (or IFC spaces or mesh volumes)",
+    "Site area (gross, optionally net of dedications)",
+    "Exclusion preset (editable list with clause ids)",
+    "Use-tier switch (tiers 1-3) and core/mechanical allocation switch"
+   ],
+   "parameters": [
+    {
+     "name": "Accounting basis (gross vs zoning ledger)",
+     "unit": "switch",
+     "relationship": "Gross counts every enclosed slab; the zoning ledger subtracts listed exclusions, so FSR goes down. The brief's own basis is unstated, so both ledgers are shown and one is named for P01-M01.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Exclusion rules (example set)",
+     "unit": "m2, %",
+     "relationship": "Each enabled exclusion -> counted area down -> FSR down. CD-1 by-law examples (site-specific): parking, loading, mechanical at or below base surface; balconies to 8%; amenity to 1,000 m2; storage 3.7 m2 per unit; wall allowance 152 mm.",
+     "source_ids": [
+      "P01-S35"
+     ]
+    },
+    {
+     "name": "Use tier for the 9.0 minimum",
+     "unit": "switch",
+     "relationship": "Tier 1 office; tier 2 adds retail and service uses incl. hotel; tier 3 adds cultural/civic, public and non-residential amenity. Residential amenity never counts. Each step raises non-residential FSR without changing the design.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Hotel classification",
+     "unit": "switch",
+     "relationship": "Hotel in tier 2 follows ordinary 'commercial' usage; the Zoning and Development By-law is recalled (unverified) to list Hotel under Service Uses. Moving hotel in or out changes FSR by hotel area / site area.",
+     "source_ids": []
+    },
+    {
+     "name": "Core, circulation and mechanical allocation",
+     "unit": "switch, m2",
+     "relationship": "Sharing core and mechanical area out to uses by served floor area raises office FSR; leaving them as separate tags understates it. More mechanical floors -> gross area and height up; exclusions decide whether they count.",
+     "source_ids": [
+      "P01-S35"
+     ]
+    },
+    {
+     "name": "Site-area basis",
+     "unit": "m2",
+     "relationship": "Site area down (for example after dedications) -> FSR up for the same floor area. The brief gives only a gross block size.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Non-residential FSR, tier 1 (office only)",
+     "unit": "FSR",
+     "good": ">= 9.0: passes under every reading",
+     "bad": "< 9.0",
+     "method": "Office area / site area on the named ledger.",
+     "basis": "9.0 minimum from the brief extract (S02 unopened); tier definitions are team presets.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Non-residential FSR, tier 2 (office + retail + service incl. hotel; default claim reading)",
+     "unit": "FSR",
+     "good": ">= 9.0",
+     "bad": "< 9.0",
+     "method": "Tier-2 area, core and mechanical shared out when the switch is on, / site area.",
+     "basis": "Brief wording 'office, commercial' (extract). Corrected r1: was a 'strict' reading labelled verified, with hotel excluded and core unallocated.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Non-residential FSR, tier 3 (all non-residential)",
+     "unit": "FSR",
+     "good": ">= 9.0 (weakest reading)",
+     "bad": "< 9.0: fails under every reading",
+     "method": "Adds cultural/civic, public and non-residential amenity; residential amenity excluded.",
+     "basis": "Brief wording gap; team presets.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Interpretation gap (tier 3 minus tier 1)",
+     "unit": "FSR",
+     "good": "gap does not change pass/fail",
+     "bad": "tier 1 < 9.0 <= tier 3: result depends on interpretation",
+     "method": "Three tiers run side by side.",
+     "basis": "Wording gap in the brief; ask Buildner.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S02",
+      "P01-S01"
+     ]
+    },
+    {
+     "name": "Total FSR (all uses)",
+     "unit": "FSR",
+     "good": "reported only; no overall cap in the brief extract",
+     "bad": "n/a (no cap)",
+     "method": "All counted area / site area; compare with Bay Parkade 27.4 (press, consolidated site) for orientation only.",
+     "basis": "Brief extract (unopened); press figure from Storeys (opened).",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S02",
+      "P01-S29"
+     ]
+    },
+    {
+     "name": "Ledger reconciliation and exclusion documentation",
+     "unit": "%",
+     "good": "level totals equal the ledger total, untagged area 0, 100% of exclusions carry a clause id and status",
+     "bad": "any mismatch, untagged area or exclusion without a clause",
+     "method": "Count documented / total; sum check.",
+     "basis": "Course rule: show work and sources.",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "method": "Per level and tag, sum slab polygon areas (Shapely) or IfcSpace quantities (IfcOpenShell). Build two ledgers: gross (all enclosed floor area) and zoning (gross minus enabled exclusions, each with a clause id and status). When the switch is on, share core, circulation and mechanical area out to uses by served floor area. Divide by site area. Compute non-residential FSR for tier 1 (office), tier 2 (adds retail and service uses including hotel) and tier 3 (adds cultural/civic, public and non-residential amenity); residential amenity is never counted. Run one-at-a-time sensitivity on each exclusion, tier and allocation switch. Reconcile the ledger total with level totals; warn on untagged slab area. CD-1 exclusion values are shown as 'unverified examples', never as Downtown District rules.",
+   "visualization": [
+    "Stacked bar by level (y = floor, x = m2) coloured by program tag",
+    "Waterfall: gross GFA -> exclusions -> counted area -> tier 1, 2, 3 non-residential",
+    "FSR gauge with the 9.0 line; three tier markers and a ghost marker for the zoning ledger",
+    "Tornado chart of FSR change per switch"
+   ],
+   "outputs": [
+    "fsr_ledger: level x tag table, gross and zoning",
+    "gfa_by_tag: m2 per tag",
+    "fsr_total: number",
+    "fsr_nonres_tier1, fsr_nonres_tier2, fsr_nonres_tier3: numbers, gross and zoning",
+    "sensitivity_table: switch, delta FSR",
+    "allocation_report: core and mechanical shares by use"
+   ],
+   "human_judgment": "Classifying mixed or ambiguous spaces; choosing which interpretation to claim; defending exclusions and the hotel classification to the jury; confirming wording with Buildner. Jury link: design_excellence_20 (programme diagram, compliance).",
+   "limits": "Vancouver's exclusion rules in the Zoning and Development By-law and DD schedule were not read (HTTP 403); CD-1 values are site-specific examples; hotel as a Service Use is recalled. Massing-stage areas are approximate; net areas need core and MEP presets from other packets. Not a plan check.",
+   "libraries": [
+    {
+     "name": "Shapely",
+     "role": "Slab area",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/shapely/shapely"
+    },
+    {
+     "name": "IfcOpenShell (core)",
+     "role": "IfcSpace quantities",
+     "license": "LGPL-3.0-or-later",
+     "url": "https://github.com/IfcOpenShell/IfcOpenShell"
+    },
+    {
+     "name": "rhino3dm",
+     "role": "Rhino slab and mesh import",
+     "license": "MIT",
+     "url": "https://github.com/mcneel/rhino3dm"
+    },
+    {
+     "name": "openpyxl",
+     "role": "Export the ledger to xlsx (Python)",
+     "license": "MIT",
+     "url": "https://pypi.org/project/openpyxl/"
+    },
+    {
+     "name": "SheetJS Community Edition",
+     "role": "Export the ledger to xlsx in the browser",
+     "license": "Apache-2.0",
+     "url": "https://github.com/SheetJS/sheetjs"
+    },
+    {
+     "name": "Claude skill anthropic-skills:xlsx",
+     "role": "Authoring aid only, not shipped with the tool",
+     "license": "n/a (not a dependency)",
+     "url": ""
+    }
+   ],
+   "depends_on": [],
+   "jury_criteria": [
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P01-M08",
+   "name": "Departure log and public-benefit ledger",
+   "phase": "cross-cutting",
+   "category": "PROG",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "M: about 6-7 person-days (departure log 3, core; benefit ledger and tool mapping 3-4, v1)",
+   "design_question": "Where does the scheme depart from policy, what public benefits does it offer for that density and height, and which statutory or policy tool covers each?",
+   "inputs": [
+    "Rule results from P01-M01, P01-M04, P01-M05, P01-M06, P01-M07",
+    "policy_register, zoning_envelope and hb_policy_area from P01-M02",
+    "gfa_by_tag from P01-M07 (public, cultural/civic, amenity areas)",
+    "Public-realm and plaza areas from Layer 0",
+    "Non-floor benefit items (transit entrance, free-access deck) with user values",
+    "User departure notes: free text plus evidence source ids"
+   ],
+   "parameters": [
+    {
+     "name": "Written departure rationale",
+     "unit": "text + source ids",
+     "relationship": "A sourced rationale per departure turns a breach into an argument. The brief states the jury may reward justified breaches. The tool never writes the rationale.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Height beyond policy",
+     "unit": "m (ft)",
+     "relationship": "Height above the site's policy height -> larger departure. Every VTC tower (244-305 m) exceeds 600 ft (183 m) and the summarised 700 ft (213 m), so each needs a record with clause, values, delta, evidence and jury tag.",
+     "source_ids": [
+      "P01-S04",
+      "P01-S08",
+      "P01-S09"
+     ]
+    },
+    {
+     "name": "Density above base",
+     "unit": "FSR",
+     "relationship": "The Charter allows base density plus higher density when amenities or affordable units are provided, so more extra FSR requested -> more benefit expected. No formula was found.",
+     "source_ids": [
+      "P01-S31"
+     ]
+    },
+    {
+     "name": "Form of benefit (five categories)",
+     "unit": "category",
+     "relationship": "In-kind conditions (s.565(1)(f.1), s.565.17); payment in lieu (s.565.13); DCL (s.523D); ACC (s.523E, in-kind s.523M); negotiated policy CAC (not statutory). An ACC cannot apply where a DCL may be imposed (s.523I(2)).",
+     "source_ids": [
+      "P01-S31",
+      "P01-S32",
+      "P01-S33"
+     ]
+    },
+    {
+     "name": "Free-access floor area given",
+     "unit": "m2",
+     "relationship": "Free-access area up -> benefit up, saleable area down. Bay Parkade secured free resident access to its observation deck by rezoning condition.",
+     "source_ids": [
+      "P01-S28"
+     ]
+    },
+    {
+     "name": "Transit entrance and public plaza as benefits",
+     "unit": "m2",
+     "relationship": "Bay Parkade counted new street-level and underground station entrances and a plaza among its benefits, so VTC's below-grade entrance can be logged as a benefit item.",
+     "source_ids": [
+      "P01-S28"
+     ]
+    },
+    {
+     "name": "Plan-area contribution expectations",
+     "unit": "policy",
+     "relationship": "The Granville Street Plan (approved 4 Jun 2025) lists a development contribution expectations policy; if the block lies in or near the plan area its terms apply. Text not read.",
+     "source_ids": [
+      "P01-S36"
+     ]
+    },
+    {
+     "name": "Other rezoning obligations as benefit categories",
+     "unit": "m2, $",
+     "relationship": "Affordable housing, public art and large-site sustainability measures (recalled, unverified) are separate benefit categories beside CACs; each needs its own ledger line and tool tag.",
+     "source_ids": []
+    },
+    {
+     "name": "Precedent fit (Bay Parkade)",
+     "unit": "record",
+     "relationship": "Hotel plus residential, no office, outside the policy area; 27.4 FSR consolidated; storeys differ by source. Fit is height beyond policy, aviation risk and benefit scale, not program or the 9.0 non-residential test.",
+     "source_ids": [
+      "P01-S28",
+      "P01-S29",
+      "P01-S04"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Departure log completeness",
+     "unit": "%",
+     "good": "100% of departures have rationale, evidence id and jury tag",
+     "bad": "any departure blank",
+     "method": "Count complete records / total; every fail, amber or unknown rule result must have a record or an 'accepted' note.",
+     "basis": "Course rule that every result cites its source (team preset).",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Height delta vs policy reference",
+     "unit": "m (ft)",
+     "good": "<= the site's Figure 1 height once read (600 ft only for sites across from Bay Parkade)",
+     "bad": "above it: departure required; 'unknown' when the site height is not entered",
+     "method": "Each tower's H_arch minus the reference from P01-M02.",
+     "basis": "Policy PDFs unopened; City FAQ for the 600 ft case.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S04",
+      "P01-S08",
+      "P01-S09"
+     ]
+    },
+    {
+     "name": "Benefit-to-tool mapping completeness",
+     "unit": "%",
+     "good": "100% of benefit items mapped to in-kind condition, payment in lieu, DCL, ACC or policy CAC (policy, unverified)",
+     "bad": "any item unmapped",
+     "method": "Count mapped / total.",
+     "basis": "Vancouver Charter ss.565, 565.1, 565.13, 565.17, 523D, 523E, 523I, 523M (opened). Corrected r1: cash CAC is policy-based, not a Charter charge.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S31",
+      "P01-S32",
+      "P01-S33"
+     ]
+    },
+    {
+     "name": "Public-benefit floor-area share",
+     "unit": "% of total GFA",
+     "good": "team sets a target (no sourced value)",
+     "bad": "below the team target",
+     "method": "Free-access public, civic and amenity GFA / total GFA.",
+     "basis": "Team preset; no sourced threshold.",
+     "status": "team_assumption",
+     "source_ids": []
+    },
+    {
+     "name": "Bay Parkade benchmark panel",
+     "unit": "$ million, FSR",
+     "good": "shown with a precedent-fit note (program, policy-area status, height measure) and labelled press and staff figures",
+     "bad": "shown as a benchmark for an employment-led tower",
+     "method": "Report only: cash CAC about $20 million, in-kind about $184 million, package about $305 million, 27.4 FSR.",
+     "basis": "Daily Hive and Storeys (opened); hotel plus residential, outside the policy area. Corrected r1: not a program benchmark.",
+     "status": "false_assumption_corrected",
+     "source_ids": [
+      "P01-S28",
+      "P01-S29",
+      "P01-S04"
+     ]
+    },
+    {
+     "name": "Jury linkage",
+     "unit": "%",
+     "good": "every benefit and departure tagged to a jury criterion",
+     "bad": "no tags",
+     "method": "Count tagged / total.",
+     "basis": "Team preset.",
+     "status": "team_assumption",
+     "source_ids": []
+    }
+   ],
+   "method": "1) Collect rule results from P01-M01, M04, M05, M06, M07 and register rows from M02. 2) For every fail, amber or unknown result and every policy the design departs from, require a departure record: clause, design value, policy value, delta, rationale, evidence ids, jury tag. 3) Draw the height ladder (183 m, 213 m, VTC band, towers, Bay Parkade 238.59, 270.97, 314.89 m, and the 288 m marker labelled 'measure unstated'). 4) Build the benefit ledger (item, type, area or value, free-access flag, tool, jury tag, source) and map each item to in-kind condition, payment in lieu, DCL, ACC or policy CAC. 5) Compute the public floor-area share from M07 tags. 6) Show the Bay Parkade panel with the precedent-fit note. 7) Export markdown for the policy reflection. The tool never writes rationale or estimates the City's CAC, which is negotiated from a land-lift analysis.",
+   "visualization": [
+    "Height ladder in metres: 183 m (600 ft), 213 m (700 ft), VTC band 244-305 m, each tower as a marker, Bay Parkade towers and the 288 m marker hatched",
+    "Clause table with pass, depart, n.a. badges linked to source ids; FALSE ASSUMPTION rows in fixed magenta",
+    "Sankey (d3-sankey) from density above base to benefit items to tools",
+    "Benchmark bars: scheme vs Bay Parkade for cash, in-kind and floor-area share, labelled press and staff figures",
+    "Matrix of benefit items and departures against the four jury criteria"
+   ],
+   "outputs": [
+    "departure_register: list of {clause, design_value, policy_value, delta, rationale, evidence_ids, jury_tag}",
+    "benefit_ledger: list of items",
+    "public_floor_area_m2: number",
+    "benefit_tool_map: item -> tool",
+    "benchmark_comparison: table",
+    "policy_reflection_text: markdown for the PRES boards"
+   ],
+   "human_judgment": "Whether and why to depart; what counts as a real public benefit; Indigenous and community partnership content (CULT packet); economic viability; negotiating the package; all policy-reflection writing. Jury link: human_scale_40 and cultural_context_30 (benefits), design_excellence_20 (departures).",
+   "limits": "Vancouver's CAC and density-bonus policies, current DCL rates and any Vancouver ACC by-law were not opened, so no rates or percentages are given. Whether the large-site policy applies to a block of about 1.15 ha is unconfirmed. Precedent figures are press and staff figures as reported. Not a pro forma.",
+   "libraries": [
+    {
+     "name": "json-rules-engine",
+     "role": "Benefit-to-tool mapping and departure rules",
+     "license": "ISC",
+     "url": "https://github.com/CacheControl/json-rules-engine"
+    },
+    {
+     "name": "d3-sankey",
+     "role": "Sankey diagram",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/d3/d3-sankey"
+    },
+    {
+     "name": "GeoPandas",
+     "role": "Public-realm area from site polygons",
+     "license": "BSD-3-Clause",
+     "url": "https://github.com/geopandas/geopandas"
+    },
+    {
+     "name": "openpyxl",
+     "role": "Export the ledgers to xlsx",
+     "license": "MIT",
+     "url": "https://pypi.org/project/openpyxl/"
+    },
+    {
+     "name": "Claude skills anthropic-skills:docx / xlsx",
+     "role": "Authoring aids for the reflection text, not shipped with the tool",
+     "license": "n/a (not a dependency)",
+     "url": ""
+    }
+   ],
+   "depends_on": [
+    "P01-M01",
+    "P01-M02",
+    "P01-M04",
+    "P01-M05",
+    "P01-M06",
+    "P01-M07"
+   ],
+   "jury_criteria": [
+    "human_scale_40",
+    "cultural_context_30",
+    "design_excellence_20"
+   ]
+  },
+  {
+   "module_id": "P01-M09",
+   "name": "Site georeference, datum and height measures",
+   "phase": "basic",
+   "category": "SITE",
+   "nature": "mixed",
+   "priority": "core",
+   "effort": "S: about 3 person-days (transforms and height converter), plus 1 day to load City DEM and cone data",
+   "design_question": "Where is the hypothetical block, what are its ground elevation, vertical datum and grid rotation, and how do tower heights convert between brief, CTBUH, view-cone and aviation measures?",
+   "inputs": [
+    "Layer0.Massing with level planes",
+    "Assumed block (lat/long or City parcel pick), or the brief's site plan and 3D model if they give a location",
+    "North-arrow rotation read from the brief's site plan (deg)",
+    "Optional City 2013 LiDAR DEM tile or a typed ground elevation",
+    "Station portal point from the brief's site plan"
+   ],
+   "parameters": [
+    {
+     "name": "Assumed real location of the block",
+     "unit": "lat/long",
+     "relationship": "Moving the block along the peninsula changes the ODP sub-area, view cones, airspace surfaces and ground elevation that apply. Results in P01-M02, M04 and M05 are valid only for the recorded assumption (team assumption until the brief gives a site).",
+     "source_ids": [
+      "P01-S02",
+      "P01-S46"
+     ]
+    },
+    {
+     "name": "Ground elevation at the tower base",
+     "unit": "m above vertical datum",
+     "relationship": "Ground elevation up -> top elevation above sea level up by the same amount for a fixed height above grade, so allowable height above grade under a cone or surface falls by that amount (arithmetic). City DEM cells are about 1 m.",
+     "source_ids": [
+      "P01-S48"
+     ]
+    },
+    {
+     "name": "Vertical datum of each dataset (CGVD28 vs CGVD2013)",
+     "unit": "m offset",
+     "relationship": "A datum mismatch shifts every cone and aviation test by the offset between datums (assumed sub-metre, unverified). Record the datum of cone documents, DEM and aviation data before comparing; the City DEM description states none.",
+     "source_ids": [
+      "P01-S48"
+     ]
+    },
+    {
+     "name": "Grid-to-true-north rotation",
+     "unit": "deg",
+     "relationship": "Rotation up -> every facade bearing shifts by the same angle in sun, wind and energy modules. The brief's north arrow is rotated against the street grid; the value is read from the site plan.",
+     "source_ids": [
+      "P01-S02"
+     ]
+    },
+    {
+     "name": "Height measure (architectural top, highest occupied floor, tip, highest physical point)",
+     "unit": "m",
+     "relationship": "Each measure adds or removes rooftop elements: CTBUH architectural top excludes antennae, while aviation height counts roof additions such as a mast (CAR 601.23(2)). Cone and aviation tests therefore use the highest physical point.",
+     "source_ids": [
+      "P01-S37",
+      "P01-S41"
+     ]
+    },
+    {
+     "name": "Reference level for CTBUH height",
+     "unit": "m",
+     "relationship": "CTBUH measures from the lowest significant open-air pedestrian entrance. On a sloping downtown block a lower reference entrance -> reported height up by the difference, which can flip the 244-305 m test.",
+     "source_ids": [
+      "P01-S37"
+     ]
+    },
+    {
+     "name": "Ground point that defines AGL for aviation",
+     "unit": "m",
+     "relationship": "Which ground point (lowest, highest or footprint centroid) defines AGL on a sloping block is not stated in the text read; a different choice moves the 150 m and 90 m tests by the slope across the footprint.",
+     "source_ids": [
+      "P01-S41"
+     ]
+    }
+   ],
+   "metrics": [
+    {
+     "name": "Height conversion traceability",
+     "unit": "%",
+     "good": "100% of heights passed to P01-M01, M04, M05 carry measure, datum and ground reference",
+     "bad": "any bare number",
+     "method": "Type check on every height output.",
+     "basis": "Course rule: show work; critique finding that measures differed between modules.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S37",
+      "P01-S41"
+     ]
+    },
+    {
+     "name": "Datum recorded",
+     "unit": "yes/no",
+     "good": "datum named for cone data, DEM and aviation inputs",
+     "bad": "datum unknown: downstream tests return 'unknown'",
+     "method": "Required field per dataset.",
+     "basis": "City DEM description names the CRS (UTM zone 10, NAD83 CSRS) but no vertical datum.",
+     "status": "team_assumption",
+     "source_ids": [
+      "P01-S48"
+     ]
+    },
+    {
+     "name": "Grid rotation recorded",
+     "unit": "deg",
+     "good": "rotation entered with source (site plan)",
+     "bad": "default 0 deg used silently",
+     "method": "Required field; warns when left at default.",
+     "basis": "Brief site plan north arrow is rotated against the street grid; value not obtained.",
+     "status": "unverified",
+     "source_ids": [
+      "P01-S02"
+     ]
+    }
+   ],
+   "method": "1) Record the assumed block (lat/long) or load the brief's site plan; mark it team assumption. 2) Pick a projected CRS (UTM zone 10, NAD83 CSRS matches the City DEM and open data) with pyproj and store the rotation between the street grid and true north. 3) Sample ground elevation from the City DEM or let the user type it; store the vertical datum of each dataset. 4) For each tower find the reference entrance Z, highest occupied floor, architectural top, tip and highest physical point (plant, window-washing rig, lightning rod). 5) Convert to AGL, AMSL in the chosen datum and CTBUH. 6) Publish site_frame and the height table; downstream modules call convert_height and never convert themselves.",
+   "visualization": [
+    "Table of the height measures per tower with conversion arrows (AGL -> AMSL -> CTBUH)",
+    "Vertical ruler diagram: ground, CTBUH reference entrance, highest occupied floor, architectural top, tip, highest physical point",
+    "Plan with north arrow showing true north against the street grid; map pin on a City base with the ODP sub-area and cone outlines"
+   ],
+   "outputs": [
+    "site_frame: {crs, origin, grid_rotation_deg, ground_elev_m, vertical_datum, source_ids, status}",
+    "height_table: per tower, all measures, m",
+    "convert_height(value, from_measure, to_measure): function",
+    "highest_point_m: per tower, AGL and AMSL"
+   ],
+   "human_judgment": "Choosing the assumed real block and defending it; deciding which entrance is the CTBUH reference; confirming the datum with City staff or the brief package.",
+   "limits": "The block is hypothetical and the brief's site plan, rotation and station portal are in the gated package. The City DEM (2013 LiDAR, approximate elevations) states no vertical datum; datum offsets are unverified. The AGL ground reference on sloping sites is not defined in the text read.",
+   "libraries": [
+    {
+     "name": "pyproj",
+     "role": "CRS transforms (vertical datum grids not confirmed)",
+     "license": "MIT",
+     "url": "https://github.com/pyproj4/pyproj"
+    },
+    {
+     "name": "geotiff.js",
+     "role": "Read the City DEM GeoTIFF in the browser",
+     "license": "MIT",
+     "url": "https://github.com/geotiffjs/geotiff.js"
+    },
+    {
+     "name": "CesiumJS",
+     "role": "Georeferenced context view",
+     "license": "Apache-2.0",
+     "url": "https://github.com/CesiumGS/cesium"
+    }
+   ],
+   "depends_on": [],
+   "jury_criteria": []
+  }
+ ],
+ "sources": [
+  {
+   "id": "P01-S01",
+   "title": "Vancouver Tall Challenge: Building Higher Downtown (competition page)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge",
+   "publisher": "Buildner",
+   "year": "2026",
+   "type": "competition page",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Registration closes 29 Oct 2026; Q&A closes 3 Nov 2026 (no new questions after); submissions 30 Nov 2026 23:59 London time; winners 26 Jan 2027; CAD 15,000 prizes; seven-member jury; organisers Buildner, City of Vancouver, UBC SALA. Brief, site plans and 3D model are email-gated; the page states no height, FSR, site, transit or board rules."
+  },
+  {
+   "id": "P01-S02",
+   "title": "VTC full competition brief (gated PDF; facts as supplied in project context)",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "publisher": "Buildner with City of Vancouver and UBC SALA",
+   "year": "2026",
+   "type": "competition brief",
+   "opened": false,
+   "extract": "Not opened by any agent. Rules used here (site about 79.2 x 144.8 m; towers 244-305 m; minimum 9.0 non-residential FSR; no overall FSR limit; below-grade transit entrance; jury weights 40/30/20/10; policy reflection; four A2 boards, 10 MB, English, anonymous) are the project's extract. Page and clause references pending."
+  },
+  {
+   "id": "P01-S03",
+   "title": "Higher Buildings Policy Review (project page)",
+   "url": "https://www.shapeyourcity.ca/higher-buildings",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2026",
+   "type": "government project page",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Policy adopted 1997. Phases: early directions (spring-summer 2026), draft policies (fall 2026-winter 2027), final policy (winter-spring 2027), hearing and adoption (spring 2027). 'Protected public views will not be reviewed or updated as part of this work.' Competition closes 30 Nov 2026. Policy PDF is a download link (documents/166245), not parsed."
+  },
+  {
+   "id": "P01-S04",
+   "title": "Higher Buildings Policy Review FAQ",
+   "url": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2026",
+   "type": "government FAQ",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Bay Parkade (heights about 783 ft/238.59 m, 889 ft/270.97 m, 1,034 ft/314.89 m) lies outside the current policy area and exceeds heights contemplated by the policy; 'sites immediately across the street are within the policy area, where buildings up to 600ft (183 m) may be considered'; May 2023 Council directed staff to discontinue the Policy Enquiry Process and let non-compliant applications proceed by rezoning; the competition will not determine policy."
+  },
+  {
+   "id": "P01-S07",
+   "title": "Higher Buildings Policy for rezonings (current PDF)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "publisher": "City of Vancouver",
+   "year": "1997, amended",
+   "type": "policy",
+   "opened": false,
+   "extract": "HTTP 403 again on 21 Oct 2026. Named in the brief; text not read. The same policy is linked as a download on the Shape Your City review page for hand reading."
+  },
+  {
+   "id": "P01-S08",
+   "title": "Higher Buildings Policy, July 2018 version (H005)",
+   "url": "https://guidelines.vancouver.ca/H005.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2018",
+   "type": "policy",
+   "opened": false,
+   "extract": "HTTP 403; search summary: tallest buildings about 550-700 ft in the CBD; Queen Elizabeth view corridor is a trigger; enhanced review incl. Urban Design Panel."
+  },
+  {
+   "id": "P01-S09",
+   "title": "Higher Buildings Policy, 1 Feb 2011 version (H005_2011Feb01)",
+   "url": "https://guidelines.vancouver.ca/H005_2011Feb01.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2011",
+   "type": "policy",
+   "opened": false,
+   "extract": "HTTP 403; search summary: adopted 1997; Figure 1 site map; about 700 ft on Georgia, Burrard or Granville; about 500 and 425 ft at bridgeheads."
+  },
+  {
+   "id": "P01-S10",
+   "title": "Council report and memo on Higher Buildings (20 Jan 2011)",
+   "url": "https://council.vancouver.ca/20110120/documents/penv5.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2011",
+   "type": "council report",
+   "opened": false,
+   "extract": "HTTP 403; search summary: aim to add capacity without penetrating protected views."
+  },
+  {
+   "id": "P01-S11",
+   "title": "Urban Design Panel minutes, 26 Aug 2020",
+   "url": "https://vancouver.ca/files/cov/udp-minutes-08262020.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2020",
+   "type": "minutes",
+   "opened": false,
+   "extract": "HTTP 403; search summary: a 469 ft proposal in the Queen Elizabeth cone where the cone crosses the site at 332 ft triggers the Higher Buildings Policy."
+  },
+  {
+   "id": "P01-S12",
+   "title": "Public Views Guidelines (replaced View Protection Guidelines, 10 Jul 2024)",
+   "url": "https://guidelines.vancouver.ca/guidelines-public-views.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "guideline",
+   "opened": false,
+   "extract": "HTTP 403; search summary: view = origin point, cone(s), subject(s); cone has two vertical bounds and a lower boundary giving maximum geodetic height; buildings should lie outside cones; VanMap and open data hold cone geometry."
+  },
+  {
+   "id": "P01-S13",
+   "title": "Protecting public views (City page)",
+   "url": "https://vancouver.ca/home-property-development/protecting-public-views.aspx",
+   "publisher": "City of Vancouver",
+   "year": "2024",
+   "type": "government page",
+   "opened": false,
+   "extract": "HTTP 403; search summary: Council replaced the guidelines on 10 Jul 2024; select Higher Buildings sites may enter Queen Elizabeth Park cone boundaries through a special review."
+  },
+  {
+   "id": "P01-S14",
+   "title": "Vancouver view cones policy change",
+   "url": "https://storeys.com/vancouver-view-cones-policy-change/",
+   "publisher": "Storeys",
+   "year": "2024",
+   "type": "news",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Approved 10 Jul 2024; 38 cones from 18 origins cut to 24; 11 updated (A, E2.1, G1.1, G1.2, J1.1, J1.2, 9.1, 9.2.1, 20.1, 21, 22), 13 retained (B1, B2, D, H, K, 3.2.1-3.2.4, 10, 12.2, 27.1, 27.2), 14 eliminated incl. 3.1 and 3.2.4a. No QEP cone among the updated. No height figures."
+  },
+  {
+   "id": "P01-S15",
+   "title": "Protected views Vancouver (4 Jul 2024)",
+   "url": "https://globalnews.ca/news/10604105/protected-views-vancouver",
+   "publisher": "Global News",
+   "year": "2024",
+   "type": "news",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Staff report recommended reducing the bottom of the view cone, which could add more than a million sq ft; the article does not say which view, and only that Council would review it on 10 Jul. Does not say whether adopted."
+  },
+  {
+   "id": "P01-S17",
+   "title": "Preliminary view cone calculation, 1070 Barclay St",
+   "url": "https://rezoning.vancouver.ca/applications/1040-1080_barclay/documents/03-sitecontext.pdf",
+   "publisher": "City of Vancouver",
+   "year": "undated",
+   "type": "rezoning document",
+   "opened": false,
+   "extract": "HTTP 403; search summary: cone 3.2.1 maximum geodetic elevations about 123-143 m at that West End site."
+  },
+  {
+   "id": "P01-S18",
+   "title": "Council report, Wall Centre site (6 Feb 1997)",
+   "url": "https://council.vancouver.ca/970206/pe1.htm",
+   "publisher": "City of Vancouver",
+   "year": "1997",
+   "type": "council report",
+   "opened": false,
+   "extract": "HTTP 403; search summary: 1989 Queen Elizabeth corridor set 322.8 ft at the site, relaxable to 450 ft. Historical, superseded."
+  },
+  {
+   "id": "P01-S19",
+   "title": "Council staff presentation (5 Jul 2022), West End rezoning",
+   "url": "https://council.vancouver.ca/20220705/documents/r8staffpresentation.pdf",
+   "publisher": "City of Vancouver",
+   "year": "2022",
+   "type": "council presentation",
+   "opened": false,
+   "extract": "HTTP 403; search summary: view 3.2.1 at 361 ft for that site."
+  },
+  {
+   "id": "P01-S20",
+   "title": "Open data catalogue: View cones (archive record, Jan 2020)",
+   "url": "https://searcharchives.vancouver.ca/open-data-catalogue-view-cones-january-2020",
+   "publisher": "City of Vancouver Archives",
+   "year": "2020",
+   "type": "data catalogue",
+   "opened": false,
+   "extract": "HTTP 403; search summary: archived 2020 and 2015 snapshots exist; pre-2024 geometry."
+  },
+  {
+   "id": "P01-S21",
+   "title": "Updating Vancouver International Airport Zoning Regulations (consultation)",
+   "url": "https://tc.canada.ca/en/corporate-services/consultations/updating-vancouver-international-airport-zoning-regulations",
+   "publisher": "Transport Canada",
+   "year": "2026",
+   "type": "government consultation",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Follows the 2024 consultation; 'the new proposal adds an area to the earlier one'; new area covers much of Vancouver north of the Fraser, east to the city boundary, west to the English Bay shoreline; no surface heights, detailed map on request; consultation 14 Jul-12 Sep 2026, closed; treatment of existing buildings not stated; contact aviation.pac@tc.gc.ca."
+  },
+  {
+   "id": "P01-S22",
+   "title": "Canada Gazette Part I, vol. 158, no. 17: Vancouver International Airport Zoning Regulations",
+   "url": "https://gazette.gc.ca/rp-pr/p1/2024/2024-04-27/html/reg5-eng.html",
+   "publisher": "Government of Canada",
+   "year": "2024",
+   "type": "regulatory proposal",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026 (first 100,000 of 129,740 characters). Outer surface a horizontal plane at a radius of 4 km around the airport (schedule: 45 m above the reference point); new areas Richmond City Centre, Marpole, East Fraser Lands, Big Bend (Burnaby), Delta; downtown not mentioned; existing buildings become legally non-conforming and may not be raised; exceptions ('bump-outs') in five specific areas, in Richmond."
+  },
+  {
+   "id": "P01-S23",
+   "title": "Vancouver International Airport Zoning Regulations (SOR/80-902)",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html",
+   "publisher": "Justice Laws, Government of Canada",
+   "year": "1980, current",
+   "type": "regulation",
+   "opened": true,
+   "extract": "s.5 bars structures above approach, outer or transitional surfaces; approach 1:50 with 15% divergence to 15,000 m; outer plane 45 m above reference point (reference at 2 m); transitional 1:7; outer limits described mainly in Richmond and along the Richmond-Vancouver boundary."
+  },
+  {
+   "id": "P01-S24",
+   "title": "Standard 325 - Heliports (Canadian Aviation Regulations)",
+   "url": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-325-heliports-canadian-aviation-regulations-cars",
+   "publisher": "Transport Canada",
+   "year": "current",
+   "type": "standard",
+   "opened": true,
+   "extract": "Heliport certification standard (first 100,000 of 151,763 characters read). Table 4-1 non-instrument approach surfaces: 245 m at 6-10%, then 830 m at 16%; transitional 50% to 45 m; H1 heliports use a critical-obstacle line and five-year survey. It sets heliport standards; it does not bar buildings."
+  },
+  {
+   "id": "P01-S25",
+   "title": "Land Use Program (NAV CANADA)",
+   "url": "https://www.navcanada.ca/en/aeronautical-information/land-use-program.aspx",
+   "publisher": "NAV CANADA",
+   "year": "2026",
+   "type": "agency page",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. 'Usually, NAV CANADA attempts to respond within 8 to 12 weeks'; for a project in or around an airport 'these times can go up to 12 to 18 months pending necessary mitigations'; Transport Canada is the authority for obstacles to be marked and lit; the portal does not connect to Transport Canada; the assessment is NOT a permit."
+  },
+  {
+   "id": "P01-S26",
+   "title": "Vancouver Harbour Flight Centre (Vancouver Harbour Water Aerodrome, CYHC)",
+   "url": "https://en.wikipedia.org/wiki/Vancouver_Harbour_Water_Aerodrome",
+   "publisher": "Wikipedia",
+   "year": "undated",
+   "type": "encyclopedia",
+   "opened": true,
+   "extract": "Replaces the earlier Harbour Control Tower entry (r1). Water aerodrome at Coal Harbour, ICAO CYHC, operated by Harbour Air, opened 25 May 2011; HeliJet heliport within walking distance. No lane layout, airspace class or height limits given. Encyclopedia source: locations only."
+  },
+  {
+   "id": "P01-S27",
+   "title": "Holborn Bay Parkade towers and NAV CANADA aviation constraint",
+   "url": "https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation",
+   "publisher": "Daily Hive",
+   "year": "2026",
+   "type": "news",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. City staff said NAV CANADA advised design changes may be required to satisfy federal aviation requirements; possible cut of about 88 ft (27 m) from the 1,034 ft (315 m), 68-storey hotel tower to 946 ft (288 m); no datum stated; YVR not named as the constraint; Oakridge crane concern quoted from the architect."
+  },
+  {
+   "id": "P01-S28",
+   "title": "Holborn tallest tower, Bay Parkade redevelopment approved",
+   "url": "https://dailyhive.com/vancouver/holborn-vancouver-western-canada-tallest-tower-bay-parkade-redevelopment-approved",
+   "publisher": "Daily Hive",
+   "year": "2026",
+   "type": "news",
+   "opened": true,
+   "extract": "Approved 27 Jul 2026, 7-3; cash CAC $20 million, in-kind social housing about $184 million, package about $305 million; free resident access to observation deck; new station entrances; program hotel plus residential, no office."
+  },
+  {
+   "id": "P01-S29",
+   "title": "Holborn supertall council approved",
+   "url": "https://storeys.com/holborn-vancouver-supertall-council-approved/",
+   "publisher": "Storeys",
+   "year": "2026",
+   "type": "news",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Approved 27 Jul 2026, 7-3; consolidated site 27.4 FSR (original 31.29); north tower 63 storeys and south tower 79 storeys (residential), hotel tower 68 storeys, social housing tower on Abbott; no office; aviation constraints still to be worked through."
+  },
+  {
+   "id": "P01-S30",
+   "title": "City council approves Vancouver's tallest tower project",
+   "url": "https://www.constructioncanada.net/?p=112752",
+   "publisher": "Construction Canada",
+   "year": "2026",
+   "type": "news",
+   "opened": true,
+   "extract": "Block bounded by Georgia, Seymour, Dunsmuir, Richards; 79-storey hotel and two 68-storey residential towers (conflicts with Daily Hive and Storeys); NAV CANADA may require shorter towers."
+  },
+  {
+   "id": "P01-S31",
+   "title": "Vancouver Charter, Part XXVII (zoning, density benefits, ODPs, transit-oriented areas)",
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/vanch_28",
+   "publisher": "BC Laws",
+   "year": "current",
+   "type": "statute",
+   "opened": true,
+   "extract": "Read all 115,510 characters across two reads. s.565(1)(f.1) amenity provision as a condition of approving a form of development; s.565.1 base plus higher density for amenities or affordable units, (2.1) no amenity condition for items in an ACC by-law, (2.4) payment option; s.565.13 payment equals estimated capital cost; s.565.17 affordable housing requirement; ss.574.61-574.64 transit-oriented areas (council must designate TOAs by by-law)."
+  },
+  {
+   "id": "P01-S32",
+   "title": "Vancouver Charter, Part XXIV-A (development cost levies)",
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/vanch_255",
+   "publisher": "BC Laws",
+   "year": "current",
+   "type": "statute",
+   "opened": true,
+   "extract": "s.523D: DCLs fund sewer, water, drainage, fire, police, highways, solid waste, parks and daycare; payable as a building-permit condition; not a percentage of construction cost."
+  },
+  {
+   "id": "P01-S33",
+   "title": "Vancouver Charter, Part XXIV-B (amenity cost charges)",
+   "url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/vanch_256",
+   "publisher": "BC Laws",
+   "year": "current",
+   "type": "statute",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. ss.523E-523R: amenities include community, youth and seniors' centres, recreation, libraries, public squares; charge per lot or unit or per m2 of floor space (523K); condition of building permit (523G); in-kind provision by agreement (523M); no ACC where a DCL may be imposed (523I(2)). No Vancouver ACC by-law found."
+  },
+  {
+   "id": "P01-S34",
+   "title": "Downtown Official Development Plan (DD.pdf)",
+   "url": "https://bylaws.vancouver.ca/ODP/DD.pdf",
+   "publisher": "City of Vancouver",
+   "year": "consolidated Jul 2022",
+   "type": "by-law",
+   "opened": false,
+   "extract": "HTTP 403; search summary: regulates land use, minimum and maximum FSR, parking caps and loading minimums; height and amenities are interpretive; Development Permit Board may relax for hardship."
+  },
+  {
+   "id": "P01-S35",
+   "title": "CD-1 by-laws used as FSR-exclusion examples (CD-1 (254), (287), (318), (323), (331), (503))",
+   "url": "https://cd1-bylaws.vancouver.ca/ByCD-1Number/cd1s/iCD-1(254).PDF",
+   "publisher": "City of Vancouver",
+   "year": "various",
+   "type": "by-law",
+   "opened": false,
+   "extract": "HTTP 403; search summaries: parking, loading, mechanical at or below base surface excluded; balconies up to 8%; amenity up to 1,000 m2 or a share; storage 3.7 m2 per unit; wall allowance 152 mm. Site-specific."
+  },
+  {
+   "id": "P01-S36",
+   "title": "Granville Street Plan (project page)",
+   "url": "https://www.shapeyourcity.ca/granville-street-planning",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2025",
+   "type": "government project page",
+   "opened": true,
+   "extract": "Re-read 21 Oct 2026. Approved 4 Jun 2025 with a rezoning policy and Special Design District Guidelines; a 'development contribution expectations policy in areas undergoing community planning' is listed by title only; no heights or FSR on the page."
+  },
+  {
+   "id": "P01-S37",
+   "title": "Criteria for defining and measuring tall buildings",
+   "url": "https://skyscrapercenter.com/criteria",
+   "publisher": "CTBUH",
+   "year": "current",
+   "type": "standard",
+   "opened": true,
+   "extract": "Height to architectural top (antennae excluded), to highest occupied floor, to tip; all measured from the lowest significant open-air pedestrian entrance; supertall 300 m; storey-counting rules."
+  },
+  {
+   "id": "P01-S38",
+   "title": "Library licence checks (GitHub and PyPI pages, opened 21 Oct 2026)",
+   "url": "https://github.com/shapely/shapely",
+   "publisher": "GitHub",
+   "year": "2026",
+   "type": "software",
+   "opened": true,
+   "extract": "Shapely BSD-3-Clause; trimesh MIT; IfcOpenShell LGPL-3.0 core; rhino3dm MIT; pyproj MIT; CesiumJS Apache-2.0; three-mesh-bvh MIT; three.js MIT; GeoPandas BSD-3-Clause; json-rules-engine ISC. Added r1: d3-sankey BSD-3-Clause; geotiff.js MIT; openpyxl MIT (PyPI); SheetJS Community Edition Apache-2.0. rasterio and proj4js pages did not state a licence and are not used."
+  },
+  {
+   "id": "P01-S39",
+   "title": "Vancouver Tall Challenge article (design brief themes)",
+   "url": "https://www.reminetwork.com/?p=47754",
+   "publisher": "REMI Network",
+   "year": "2026",
+   "type": "news",
+   "opened": true,
+   "extract": "Brief asks entrants to consider tower placement, spacing and massing, skyline effects, sunlight, wind and livability; no numeric rules."
+  },
+  {
+   "id": "P01-S40",
+   "title": "Vancouver Official Development Plan (project page)",
+   "url": "https://www.shapeyourcity.ca/odp",
+   "publisher": "City of Vancouver (Shape Your City)",
+   "year": "2026",
+   "type": "government project page",
+   "opened": true,
+   "extract": "City-wide land use plan that builds on and replaces the Vancouver Plan; process launched June 2024 as required by provincial legislation (Bill 18); header says adopted by Council 31 Mar 2026 (hearing 11 Mar 2026, effect subject to Metro Vancouver accepting the Regional Context Statement); next update by June 2030. The Vancouver Plan page says the 2022 plan was rescinded and replaced in March 2026. No downtown, Metro Core, job-space or height text on the page; the ODP PDF returned HTTP 403."
+  },
+  {
+   "id": "P01-S41",
+   "title": "Canadian Aviation Regulations (SOR/96-433), s.601.23 Obstacles to air navigation",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.23.html",
+   "publisher": "Justice Laws, Government of Canada",
+   "year": "current",
+   "type": "regulation",
+   "opened": true,
+   "extract": "601.23(1): an obstacle penetrates an obstacle limitation surface, or is higher than 90 m AGL within 6 km of the geographical centre of an aerodrome, or higher than 90 m AGL within 3.7 km of the centreline of a recognized VFR route, or higher than 150 m AGL. 601.23(2): an addition such as a mast or tower on a roof counts toward height."
+  },
+  {
+   "id": "P01-S42",
+   "title": "Canadian Aviation Regulations (SOR/96-433), s.601.24 Marking and lighting of obstacles",
+   "url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-96-433/section-601.24.html",
+   "publisher": "Justice Laws, Government of Canada",
+   "year": "current",
+   "type": "regulation",
+   "opened": true,
+   "extract": "601.24(1): a person planning to construct or modify a building, structure or object that will be an obstacle must notify the Minister in accordance with Standard 621. 601.24(2): the person responsible must mark and light it per Standard 621 or equivalent marking and lighting approved under 601.27(2)."
+  },
+  {
+   "id": "P01-S43",
+   "title": "Standard 621 - Obstruction Marking and Lighting (Canadian Aviation Regulations)",
+   "url": "https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-621-obstruction-marking-lighting-canadian-aviation-regulations-cars",
+   "publisher": "Transport Canada",
+   "year": "current",
+   "type": "standard",
+   "opened": true,
+   "extract": "First 200,000 of 233,211 characters read through a summarising fetch. s.2.5(1): notify the Transport Canada regional office at least 90 days before construction, using the Aeronautical Assessment Form; s.2.5(3): also NAV CANADA's Land Use Proposal Submission Form. Above 150 m AGL daytime marking is always required, even with medium-intensity white lights; CL-856 high-intensity white top lights at each end and every 150 m; strobe-type lights not recommended in urban areas (s.6.2 note); glare shielding (s.4.6); bird-fatality information note (s.12.1)."
+  },
+  {
+   "id": "P01-S44",
+   "title": "Transit-oriented areas (Province of BC)",
+   "url": "https://www2.gov.bc.ca/gov/content/housing-tenancy/local-governments-and-housing/housing-initiatives/transit-oriented-areas",
+   "publisher": "Province of British Columbia",
+   "year": "2026",
+   "type": "government page",
+   "opened": true,
+   "extract": "Page updated 22 Jul 2026. TOAs lie within 800 m of a rapid transit station (400 m for bus exchanges and West Coast Express); local governments cannot require off-street residential parking in a TOA; accessible parking, commercial parking and loading may still be required; 104 TOAs in 31 municipalities in effect; Order-in-Council 678-2023 lists them; minimum densities set by regulation. Vancouver's designation by-law not read."
+  },
+  {
+   "id": "P01-S45",
+   "title": "City open data: View cones (24 polygons)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/view-cones",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2026",
+   "type": "open data",
+   "opened": true,
+   "extract": "Modified 2026-10-19; 24 records; Open Government Licence - Vancouver; fields object_id, view_number, view_cone_name, description, url, geometry (2D polygons, no elevation field). Description: development within the polygons is limited in height to maintain these views; site-specific implications via views@vancouver.ca. QEP records 3.2.1, 3.2.2, 3.2.3, 3.2.4. Team-derived: sampled central-CBD points lie inside 3.2.1-3.2.3 polygons."
+  },
+  {
+   "id": "P01-S46",
+   "title": "City open data: Downtown district sub areas",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/downtown-district-sub-areas",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2020",
+   "type": "open data",
+   "opened": true,
+   "extract": "Modified 2020-11-19; 29 polygons labelled A, B, C, C2, E, F, G, H, J, K1-K3, L1, L2, M, N, O; areas with specific land-use and density regulations inside the Downtown District (a CD district); boundaries approximate (street or lane centrelines). Letter-to-designation mapping is in the unopened ODP."
+  },
+  {
+   "id": "P01-S47",
+   "title": "City open data: Rapid transit stations",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/rapid-transit-stations",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2023",
+   "type": "open data",
+   "opened": true,
+   "extract": "Modified 2023-02-22; 22 station points inside the City, incl. Burrard, Granville, Vancouver City Centre, Waterfront; used to place transit-oriented-area distances and the station portal point."
+  },
+  {
+   "id": "P01-S48",
+   "title": "City open data: Digital elevation model (2013 LiDAR)",
+   "url": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/digital-elevation-model",
+   "publisher": "City of Vancouver Open Data Portal",
+   "year": "2015",
+   "type": "open data",
+   "opened": true,
+   "extract": "DEM from 2013 LiDAR, cells about 1 m, TIF 1.91 GB zipped, UTM zone 10 NAD83 (CSRS), not updated after 2013, approximate elevations; vertical datum not stated in the description."
+  }
+ ],
+ "flags": [
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "The View Protection Guidelines are the governing view policy.",
+   "correction": "Council replaced them with the Public Views Guidelines on 10 Jul 2024: 38 cones cut to 24, view 3.1 removed, 3.2.1-3.2.4 retained. Use post-2024 geometry.",
+   "detail": "Confirmed by Storeys and by the City open-data set of 24 cones (both opened); the City page is unopened. The scope text and older council documents still use the old name.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M02: 'Sites inside the policy area, buildings up to 600 ft may be considered' is a verified, general threshold.",
+   "correction": "Policy heights are site-specific (policy Figure 1). 600 ft (183 m) is verified only for the sites immediately across the street from Bay Parkade; elsewhere it is unverified. M02 now stores a lookup, status unverified until the PDF is read.",
+   "detail": "The City FAQ (opened 21 Oct 2026) says 'sites immediately across the street are within the policy area, where buildings up to 600ft (183 m) may be considered'; Bay Parkade itself lies outside the policy area. The packet's own summaries of the 2011 and 2018 policy (S08, S09, unopened) give about 700 ft on Georgia/Burrard/Granville and 425-500 ft at bridgeheads. Evidence: https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M05: The YVR zoning surface penetration metric is 'verified' for this tower.",
+   "correction": "Formula verified; applicability to downtown unknown (probably outside current zoning). The July 2026 proposal adds an area to the 2024 one and its surfaces are unpublished.",
+   "detail": "SOR/80-902 places the outer limits mainly in Richmond and along the Richmond-Vancouver boundary, and approach surfaces follow runway centrelines. The April 2024 Gazette proposal describes a 4 km outer plane and names Richmond City Centre, Marpole, East Fraser Lands, Big Bend and Delta; downtown is not mentioned. No opened source puts the downtown peninsula inside current zoning. Evidence: https://laws-lois.justice.gc.ca/eng/regulations/SOR-80-902/FullText.html ; https://gazette.gc.ca/rp-pr/p1/2024/2024-04-27/html/reg5-eng.html",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M04: Pre-2024 cone data overstates restriction for the QEP tests.",
+   "correction": "Record retained, updated or eliminated per cone. For retained QEP cones 3.2.1-3.2.4 pre-2024 geometry may be unchanged: accept it with an 'unverified, confirm unchanged' badge. Do not test eliminated cones.",
+   "detail": "Storeys lists QEP views 3.2.1-3.2.4 as retained and none of the QEP views among the 11 updated cones; only 3.1 and 3.2.4a were eliminated. Global News reports a staff recommendation to reduce the bottom of the QEP cone without naming the view or saying it was adopted. City open data now holds 24 polygons including 3.2.1-3.2.4. Evidence: https://storeys.com/vancouver-view-cones-policy-change/ ; https://globalnews.ca/news/10604105/protected-views-vancouver",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M05: The precedent screening flag is 288 m above grade.",
+   "correction": "288 m is a display marker labelled 'height measure unstated' in the height ladder of P01-M08; it is not a threshold and not on M05's pass/fail cards.",
+   "detail": "Daily Hive gives 1,034 ft (315 m) with a possible cut of about 88 ft to 946 ft (288 m), attributed to City staff relaying NAV CANADA; it states no datum and names no constraint beyond 'federal aviation requirements'. The issue is specific to the Bay Parkade block. Evidence: https://dailyhive.com/vancouver/holborn-bay-parkade-vancouver-supertall-tower-nav-canada-federal-aviation",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M05: NAV CANADA replies take 12-18 months near airports.",
+   "correction": "Quote the conditional wording; base the metric on whether a request was logged at concept stage; add the Transport Canada Aeronautical Assessment Form (at least 90 days before construction) as a separate checklist item.",
+   "detail": "NAV CANADA 'attempts to respond within 8 to 12 weeks' and 'these times can go up to 12 to 18 months pending necessary mitigations' for a project in or around an airport. It also says Transport Canada reviews obstacles to be marked and lit and that the portal does not connect to Transport Canada. Evidence: https://www.navcanada.ca/en/aeronautical-information/land-use-program.aspx",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M01 and P01-M07: The brief rules (244-305 m band, 9.0 non-residential FSR, site size, transit entrance) are 'verified'.",
+   "correction": "Downgraded to unverified (the two core metrics are marked false_assumption_corrected). The team registers by 29 Oct 2026, downloads the brief and cites page and clause for each rule.",
+   "detail": "Their only source, S02, is opened=false because the PDF is email-gated. The competition page (S01, opened 21 Oct 2026) states dates, organisers and prizes but no height, FSR, site, transit or board rules. The packet's convention forbids 'verified' without an opened source. Evidence: https://architecturecompetitions.com/vancouvertallchallenge",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M08: Mapping benefits to 'cash CAC' is a verified Vancouver Charter statutory mapping (ss. 565.1, 565.13).",
+   "correction": "Five separate categories: in-kind condition (s.565(1)(f.1), s.565.17), payment in lieu of density-bonus conditions (s.565.13), DCL (s.523D), ACC (s.523E, in-kind s.523M), and policy-based CAC (negotiated; status 'policy, unverified').",
+   "detail": "s.565.1 sets base plus higher density for amenities and s.565.13 lets a by-law offer payment in place of conditions at estimated capital cost; neither sets Vancouver's negotiated rezoning CAC, which follows City policy (unopened). ACCs are a separate charge and cannot apply where a DCL may be imposed (s.523I(2)) or duplicate amenity conditions (s.565.1(2.1)). Evidence: https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/vanch_28 ; https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/vanch_256",
+   "raised_in_round": 1
+  },
+  {
+   "type": "FALSE_ASSUMPTION",
+   "claim": "P01-M08: Bay Parkade is a usable benchmark for a VTC employment-led tower.",
+   "correction": "Use Bay Parkade only for height beyond policy, aviation risk and benefit scale. Show a precedent-fit note (program, policy-area status, height measure). Never use it for the program mix or the 9.0 non-residential test.",
+   "detail": "Bay Parkade is a 100% hotel tower plus residential towers and a social housing tower, with no office (Daily Hive, Storeys), and it lies outside the Higher Buildings policy area (City FAQ). Storey counts conflict: Storeys gives 63 (north), 79 (south), 68 (hotel); Daily Hive gives 68 for the hotel; Construction Canada gives 79 for the hotel. Evidence: https://dailyhive.com/vancouver/holborn-vancouver-western-canada-tallest-tower-bay-parkade-redevelopment-approved ; https://storeys.com/holborn-vancouver-supertall-council-approved/",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "YVR airport zoning caps downtown tower heights.",
+   "detail": "Current SOR/80-902 outer limits are described mainly in Richmond and along the Richmond-Vancouver boundary; no source says downtown is inside. Transport Canada's July 2026 proposal adds an area covering much of Vancouver north of the Fraser to the April 2024 proposal; surface heights are unpublished and treatment of existing buildings is not stated for it. Bay Parkade shows that aviation can still cut height, but the constraint was relayed only as 'federal aviation requirements'.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Higher Buildings Policy height range is about 550-700 ft in the CBD.",
+   "detail": "From search summaries of the 2011 and 2018 versions; the City FAQ (opened) gives 600 ft only for the sites across from Bay Parkade. Read the policy PDF (Shape Your City document link). The adoption date also differs between summaries (22 Apr vs 6 May 1997); amendments cited: 2003, 2011, 2018.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Do hotel, cultural/civic and public-oriented floor area count toward the 9.0 non-residential minimum, and on which ledger (gross or zoning)?",
+   "detail": "Brief says 'office, commercial'. P01-M01 and P01-M07 now show three tiers side by side (office; plus retail and service incl. hotel; plus cultural/civic, public and non-residential amenity), with residential amenity never counted and core/mechanical shared out by switch. Ask Buildner before the Q&A closes on 3 Nov 2026; registration closes 29 Oct 2026.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Which height measure and which towers must lie inside 244-305 m?",
+   "detail": "Brief wording is 'one or more towers in the range'. Default is strict: every tower, CTBUH architectural top above the lowest significant pedestrian entrance (P01-M09). Put the question, including the datum, to Buildner by 3 Nov 2026.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Downtown tower separation is 24.4 m (80 ft) and floor plates are capped near 6,500 sq ft.",
+   "detail": "Recalled from Downtown South practice and residential only; not found or opened. The critic notes it must not be applied to CBD office or hotel towers. Shown only as editable residential candidates in P01-M06; office and hotel bands return unknown until the team enters a band.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Queen Elizabeth cone floors near downtown are about 100-145 m geodetic.",
+   "detail": "Derived from older documents: 322.8 ft (1997, 1989 cones), 361 ft (2022), 332 ft (2020), and 123-143 m (1070 Barclay); all unopened and pre-2024 or site-specific. The City's open view-cone data (opened) holds polygons only and no elevation fields. Use the Public Views Guidelines or a City View Cone Assessment.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Bay Parkade tower heights and storeys.",
+   "detail": "City FAQ gives 238.59, 270.97 and 314.89 m. Storeys: north 63, south 79, hotel 68; Daily Hive: hotel 68 storeys, 315 m; Construction Canada: hotel 79 storeys. FSR 27.4 comes from Storeys only. Use as a precedent range only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Where is the hypothetical block, and what vertical datum do cone elevations use?",
+   "detail": "Cone, zoning, ODP sub-area and airspace results all depend on an assumed real location and datum (CGVD28 vs CGVD2013 not confirmed; the City DEM states none). P01-M09 records one assumption and its datum; the team must fix it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Do the City's rezoning policies for large sites, the CAC policy and the Metro Core jobs policy apply to a block of about 1.15 ha?",
+   "detail": "Not opened: City hosts blocked and search quota ran out. The critic recalls a large-sites policy at 0.8 ha or 45,000 m2 (unverified). Also unknown whether VTC's 9.0 non-residential minimum mirrors an ODP or Metro Core rule.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "CBD land use: residential is restricted in the CBD core and job space is protected (Metro Core Jobs and Economy Land Use Plan).",
+   "detail": "Reviewer recollection; no source opened (City hosts 403; the Vancouver Plan and ODP pages do not mention it). If true, the brief's residential share is a policy departure. Plan date unconfirmed (reviewer recalls 2009). New city-wide Vancouver ODP (31 Mar 2026) replaced the Vancouver Plan; its effect on this policy is unread.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Rezoning Policy for Sustainable Large Developments applies at 0.8 ha or 45,000 m2.",
+   "detail": "Reviewer recollection, not opened. VTC block is about 1.15 ha with over 103,000 m2 non-residential area, so both thresholds would be met if recalled correctly. Required measures (sustainable site design, green mobility, rainwater, zero waste, low-carbon energy, affordable housing) are also recalled only.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Green Buildings Policy for Rezonings, the public art requirement for rezonings and the Bird Friendly Design Guidelines apply to this scheme.",
+   "detail": "Reviewer recollection; none opened and no numbers given. Registered as pointer rows: energy and emissions to ENER, bird-friendly design to ECOL, public art as a benefit category in P01-M08.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The Zoning and Development By-law lists Hotel under Service Uses (so hotel is commercial for the 9.0 test).",
+   "detail": "Reviewer recollection; the by-law returned HTTP 403. Ordinary usage also treats hotel as commercial. P01-M07 keeps hotel in tier 2 and shows tier 1 (office only) beside it.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "The VTC block lies in a transit-oriented area, so residential parking minimums are zero.",
+   "detail": "The Province's page (opened) sets TOAs within 800 m of a rapid transit station and bars residential parking requirements there; Vancouver's TOA designation by-law and map were not read. The brief places a station beside the site; City open data holds Burrard, Granville, Vancouver City Centre and Waterfront stations. Commercial parking and loading may still be required.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Central CBD blocks fall inside Queen Elizabeth Park cone polygons.",
+   "detail": "Team-derived on 21 Oct 2026 from City open data: sampled intersections (Georgia/Burrard, Georgia/Granville, Hastings/Burrard, Pender/Howe, Nelson/Burrard) fell inside polygons 3.2.1, 3.2.2 or 3.2.3. Coordinates were approximate and the polygons are 2D, so this shows the cone floor is the likely binding cap, not a result for any block. Re-run on the assumed block.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Does the brief package (site plan, 3D model) include a real location, view cones or the station portal point?",
+   "detail": "Not checked: the package is email-gated. If it does, P01-M04 and P01-M09 use it as the default dataset (source S02); if not, hypothetical-cone mode gives the QEP render without pass/fail.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Heliport, harbour water aerodrome and instrument-procedure constraints on downtown towers.",
+   "detail": "No heliport was identified (HeliJet heliport near the harbour flight centre; hospital pads possible); CYHC lane layout and NAV CANADA instrument-procedure obstacle clearance were not found. Carried as named unknowns in P01-M05; Standard 325 is a certification standard, so penetration is an operator-impact flag, not a ban.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNVERIFIED",
+   "claim": "Standard 621 details (90 days notice, CL-856 spacing, daytime marking above 150 m AGL).",
+   "detail": "Read through a summarising fetch of the first 200,000 of 233,211 characters; CAR s.601.23-601.24 were read directly. Confirm exact clause wording in the text before citing on a board.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "UNRESOLVED",
+   "claim": "Does the Vancouver ODP (31 Mar 2026) change downtown height, job-space or tower-design policy?",
+   "detail": "The Shape Your City ODP page says the plan builds on and replaces the Vancouver Plan and gives no downtown detail; the PDF is blocked. Register row added, content unread.",
+   "raised_in_round": 1
+  },
+  {
+   "type": "TEAM_ASSUMPTION",
+   "claim": "Default rule readings (strict tower band, tier-2 claim reading for 9.0, public-use level bands, register freshness, named gross ledger).",
+   "detail": "Presets are editable and shown in the team-assumption colour until a source replaces them.",
+   "raised_in_round": 1
+  }
+ ],
+ "unresolved_relationships": [
+  "Acceptable occlusion of the North Shore mountain skyline from Queen Elizabeth Park versus tower angular width: no sourced threshold found.",
+  "Relationship between tower height or density beyond policy and the size of the CAC or benefits package: only one precedent (Bay Parkade), no formula.",
+  "Allowable tower height versus distance under Transport Canada's proposed 2026 zoning surfaces over downtown: surfaces unpublished, and how the July 2026 added area treats existing taller buildings is not stated.",
+  "Relationship between floor-plate width and required tower separation in downtown guidelines, and any office or hotel floor-plate cap: no sourced relationship found.",
+  "Which uses count toward the VTC 9.0 non-residential FSR, on which ledger, and how exclusions apply: brief wording and DD schedule not confirmed.",
+  "Skew angle between the downtown street grid and true north for the brief's site plan: value not obtained.",
+  "Whether Higher Buildings Policy review drafts will raise heights or change tower design criteria: drafts not public until early 2027.",
+  "Cone floor elevation versus distance and azimuth for QEP cones 3.2.1-3.2.4 across the CBD: the open dataset has polygons only and the Public Views Guidelines are unopened.",
+  "Offset between CGVD28 and CGVD2013 (and the datum of the City DEM and cone documents) at downtown sites, and which ground point defines AGL on a sloping block: not found.",
+  "Whether CBD residential limits or job-space replacement rules apply to the VTC block and whether the 9.0 minimum mirrors them: Metro Core plan unread.",
+  "Effect of NAV CANADA instrument-procedure obstacle clearance and harbour heliport and floatplane operations on allowable tower height: no source found.",
+  "Relationship between Standard 621 lighting configuration (CL-856 white vs red CL-864) and bird collisions or crown design: only an information note (s.12.1); no sourced relationship.",
+  "Effect of transit-oriented-area status on commercial parking and below-grade level count: only residential parking minimums are removed in the page read; no relationship for office use found.",
+  "Whether the Vancouver ODP (31 Mar 2026) alters downtown height, job-space or tower-design policy: text unread."
+ ],
+ "change_log": [
+  "r1: Split the dependency cycle. Old M02 became a static register (P01-M02, no upstream) and its departure log moved into P01-M08 (downstream of M01, M02, M04, M05, M06, M07). M04 now depends on M02 and M09 only. Graph is acyclic; add a CI cycle check over depends_on.",
+  "r1: Added P01-M09 Site georeference, datum and height measures (assumed block, ground elevation, vertical datum, grid rotation, CTBUH vs AGL vs AMSL vs highest physical point). M01, M04, M05, M06 consume it; M04 and M05 test the highest physical point in the cone or surface datum.",
+  "r1: Merged P01-M03 (zoning and ODP sheet) into P01-M02 to stay at 8 modules; the M03 id is retired, not reused. Zoning comparisons moved to the departure log in P01-M08.",
+  "r1: Downgraded brief-derived statuses (height band, 9.0 FSR, site, transit entrance) from verified because S02 is unopened; two core metrics marked false_assumption_corrected; site containment set to team_assumption; transit test reframed around a user-placed station portal point with off-site length flagged.",
+  "r1: Replaced the two-way strict/broad FSR classification with three tiers (office; plus retail and service incl. hotel; plus cultural/civic, public, non-residential amenity), residential amenity never counted, core and mechanical shared out by switch; M01 reads one named ledger (default gross, zoning shown beside it) using the same tags as M07.",
+  "r1: Replaced the universal 600 ft threshold with a site-specific lookup (600 ft stored only for the sites across from Bay Parkade); added FALSE_ASSUMPTION flag.",
+  "r1: M05 reworked: CAR 601.23-601.24 and Standard 621 added (every VTC tower is an obstacle above 150 m AGL; daytime marking always required; Transport Canada notice 90 days before construction, separate from NAV CANADA); YVR zoning split into verified formula and unknown applicability; heliport surfaces relabelled as operator-impact flag; NAV CANADA timing corrected to the conditional wording; 288 m precedent made display-only; 2024 Gazette versus July 2026 proposal relationship explained.",
+  "r1: M04 reworked: per-cone retained, updated or eliminated status from Storeys; City open data (24 polygons, 2D, no elevations, modified 19 Oct 2026) added; hypothetical-cone mode and brief-package check added; jury tags cut to cultural_context_30 and design_excellence_20; false_assumption_corrected on the vintage metric.",
+  "r1: M06 thresholds made use-specific (residential candidates only; office and hotel unknown); added street-wall and podium height, setbacks and cross-street separation.",
+  "r1: M02 register extended with CBD land-use/job-space row, large-sites, green-buildings, public-art, bird-friendly, Vancouver ODP (31 Mar 2026), transit-oriented areas (800 m, residential parking), Downtown ODP sub-areas (29 polygons), and pointer rows for shadow, wind, energy; all unverified rows kept visibly unverified.",
+  "r1: M08 now holds the departure log and the benefit ledger; benefit categories split into in-kind conditions, payment in lieu, DCL, ACC and policy CAC; Bay Parkade benchmark given a precedent-fit note; storey conflict (63 vs 68 vs 79) recorded.",
+  "r1: M01 gained the submission-format checklist (4 A2 boards, 10 MB, English, anonymous, 30 Nov 2026 23:59 London) as a pointer to PRES.",
+  "r1: Sources: dropped S05, S06 (unopened, unused) and S16 (opinion, unused); repurposed S26 to the Harbour Flight Centre page; added S40-S48 (Vancouver ODP, CAR 601.23, 601.24, Standard 621, BC TOA page, City open data for cones, ODP sub-areas, stations, DEM); updated extracts of S01-S04, S14, S15, S21-S25, S27-S29, S31, S33, S36, S38.",
+  "r1: Libraries: Claude skills moved to 'authoring aid only' entries; added openpyxl (MIT), SheetJS Community Edition (Apache-2.0), geotiff.js (MIT); d3-sankey licence verified BSD-3-Clause.",
+  "r1: Eight FALSE_ASSUMPTION flags added from the critique; earlier View Protection Guidelines flag kept; unresolved_relationships extended (cone floors, datum, CBD jobs policy, instrument procedures, lighting and birds, TOA, Vancouver ODP)."
+ ]
+}

@@ -1,0 +1,134 @@
+{
+ "expert_role": "Senior computational designer and Rhino/Grasshopper instructor. I re-opened the main McNeel and Autodesk sources and read the Tower Studio source and the team's icon files.",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "issue": "The packet never inspected the code, so it misdiagnoses the 'Basic has more nodes' bug. In tower-studio/src/components/NodeLibrary.tsx:14-19, stageOf() splits nodes into disjoint sets using ADVANCED_CATS=['STRC','SYST','SPAC','ENER','MOBI']. That gives Basic 60 nodes (4 built + 56 researched) and Advanced 58, with no overlap. The category override also moves 11 nodes that research_registry.json declares as phase 'basic' into Advanced (MOBI 4, ENER 3, SPAC 2, STRC 2). The 20 'cross-cutting' nodes fall through to Basic by default. Nothing is inverted: Basic and Advanced are separate lists by design, which is why the switch feels like 'a different list'.",
+   "fix": "Delete the ADVANCED_CATS override and use the declared phase. Decide explicitly where 'cross-cutting' belongs. Make Advanced = Basic plus the rest. Add a vitest test asserting the superset (vitest is already a dependency). Cite file and line numbers in the packet."
+  },
+  {
+   "severity": "BLOCKER",
+   "issue": "The proposed 'felt shift' assumes model content that does not exist. Viewport.tsx never reads phase; only RightPanel.tsx does, and only for Present. engine/massing.ts generates floors only: no core, no structure grid, no facade modules. Only 4 of 176 nodes are built, all in Basic; every Advanced node is 'researched' and cannot run. Dramatic transitions into Advanced would therefore open a room full of inert nodes, which is gimmicky, and the Medium/Fine 'tower gains resolution' idea is costed M when it needs new geometry.",
+   "fix": "Scope v0.2 to changes that are real: a stage look preset, a stage panel layout, and one real geometric addition (core plus floorplate outlines derived from towerFloors()). Ghost unbuilt nodes with a 'researched, not runnable' badge and icon. Re-cost Detail Fine as L/later."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "Too many overlapping concepts: stage rail, Basic/Advanced tier, Detail level, Look, LOD badges, scenes and design options. Tier, Detail and LOD all mean 'resolution', so students will not know which control to use. None of the surveyed tools has an expertise toggle: Grasshopper, Rhino and Revit show every tool all the time. GH_Exposure only orders ribbon sections and marks 'obscure' items to drop first when the ribbon narrows; it is not a novice/expert tier.",
+   "fix": "Keep two axes: Stage (swaps the workspace) and Detail (a viewport chip). Replace the Basic/Advanced peer tab with a Grasshopper-style 'Show obscure / roadmap nodes' filter; the existing 'Every phase' checkbox already does most of this. Defer LOD badges until elements are actually editable at 300."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "Revit Detail Level is misdescribed. Autodesk says it is set when a view's scale is chosen at creation and can be overridden in view properties; it does not track camera distance. 'Auto follows camera distance with hysteresis' is an invention. Geometry that changes while the user orbits also breaks the spatial memory the packet wants to protect elsewhere (fixed node footprint).",
+   "fix": "Make Detail an explicit chip (Coarse/Medium/Fine) whose default is set by the stage. No distance-driven Auto in v0.x. Correct the evidence text."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "'Advanced raises the node canvas as a drawer' conflicts with the existing view switcher (3D / canvas / split in TopBar.tsx, ViewMode in store.ts). It also tells Grasshopper users that the graph is 'advanced', when for them the graph is the basic way of working.",
+   "fix": "Keep the canvas as a view choice in every stage. A stage may set a default view, but the user's choice persists. Drop the drawer from design_spec."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The design spec moves the camera (within 600 ms) on every stage change. Rhino's tab-linked sidebar does not move the camera, and SketchUp scenes move it only when the user picks a scene. Tower design loops between massing and evaluation, so moving the camera without being asked destroys the user's framing.",
+   "fix": "Use camera presets only in Present and in scene playback. In other stages, offer a 'Frame for this stage' button and never change the camera automatically."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The icon plan targets the wrong repo and mixes icon families. Tower Studio already uses lucide-react, a stroke icon set (NodeLibrary.tsx:1; Box and Columns2 in TopBar.tsx), but the packet proposes adding Phosphor filled paths to program-value-visualizer/app/icons/ui_icons.js. The 112 glyphs (14 prefixes, AM to WK) belong to the value-visualizer's taxonomy and are not mapped to Tower Studio's 7 bands. The GPT-traced fills were drawn on a 256 box and have not been tested at 16-20 px.",
+   "fix": "Use one line family (lucide, already a dependency). Specify 13 category icons and 5 stage icons on a 24 px grid with a 2 px stroke, tinted with the existing CATEGORIES colours in registry.ts. Use glyph tiles only for programme bands, and only after mapping each band to a glyph and testing legibility at 16 px."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The canvas patterns are over-scoped. NodeCanvas.tsx is 82 lines: it auto-lays out about 7 cards at computed positions from the built nodes. There is no user placement and no subgraphs. Semantic zoom, clusters, category frames, payload-coded wires and per-node saved positions solve problems this canvas does not yet have.",
+   "fix": "Move them to 'later'. 'Now' means icon + label cards plus a state glyph that reuses the evidence-flag palette."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "Several patterns marked 'verified' are really interpretation or are misdated. Mapping GH exposure ranks to tiers is the packet's own interpretation. Rutten's zoom-threshold reply is dated 14 Mar 2014 (the packet says undated), so it is GH1-era. His 2009 icons-versus-names post was about audiences following projected demos, not general findability. The Rhino guide calls the panel that follows the tab the 'Sidebar'.",
+   "fix": "Relabel these as interpretation, add the dates, and paraphrase the Rutten posts accurately."
+  },
+  {
+   "severity": "MAJOR",
+   "issue": "The user test does not measure what the user asked for, a felt and experiential difference between modes. It has no baseline-rating step, no counterbalancing of v0.1 versus the rail build, and a 4-of-5 pass rule on n=5 that cannot separate the two builds.",
+   "fix": "Counterbalance build order. Add a 7-point 'felt change of stage' rating and a timed task: go from massing to structure and back. Use the results formatively and drop the pass threshold."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The Rhino Technical mode is described wrongly. The display-modes page says objects behind others are hidden; it does not mention dotted hidden edges.",
+   "fix": "Correct the description. If dashed hidden lines are wanted, label them as Tower Studio's own choice."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "'Wireframe-like Clay keeps interaction fast' borrows Rhino's speed claim, which does not carry over to a three.js clay material with no shadows.",
+   "fix": "Drop the speed rationale and justify Clay on legibility."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The packet ignores existing bindings: keys 1/2/3 set the phase (App.tsx:25-27), Onboarding.tsx tells users about them, and RightPanel switches tab on Present. A five-stage rail breaks all three.",
+   "fix": "Specify the migration: 1-5 map to stages, update the Onboarding copy, and move RightPanel's Present logic to the stage record."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The 'Existing' phase-filter override for context is largely done already. Viewport.tsx draws context in greys (#b9b6ae, #cfccc4 and others).",
+   "fix": "Turn the existing colours into CSS-variable tokens per look rather than building a new override system. Re-cost as S/now."
+  },
+  {
+   "severity": "MINOR",
+   "issue": "The Present look reduces programme colour to a faint tint, but programme bands are the project's main content for the jury.",
+   "fix": "Ship Present with two variants, Arctic-clay and Programme-diagram, and test both on a printed board."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Basic lists more nodes than Advanced probably because a filter is inverted or keyed to the wrong tier.",
+   "correction": "Basic and Advanced are deliberately separate lists split by category. A hard-coded ADVANCED_CATS list overrides each node's declared phase, so the two lists never overlap and 11 'basic' nodes are moved to Advanced.",
+   "evidence": "tower-studio/src/components/NodeLibrary.tsx:14-19 (stageOf). Counts from src/data/research_registry.json plus BUILT_NODES: basic 60, advanced 58, platform 53, present 9."
+  },
+  {
+   "claim": "Revit Detail Level 'Auto' can follow camera distance.",
+   "correction": "Detail Level is set from the view scale when a view is created, and can then be overridden in view properties. It does not respond to zoom.",
+   "evidence": "Autodesk Revit 2024 help, Detail Levels (GUID-0BB861D5): the auto-set applies when you create a view and set its scale."
+  },
+  {
+   "claim": "Professional tools differentiate users with additive Basic/Advanced tiers, citing Grasshopper exposure ranks.",
+   "correction": "GH_Exposure only places components in ribbon sections, plus an 'obscure' flag that drops items first when the ribbon resizes. Grasshopper, Rhino and Revit have no expertise mode.",
+   "evidence": "GH_Exposure API page (primary..octonary, hidden, obscure)."
+  },
+  {
+   "claim": "Rhino Technical mode shows dotted hidden edges.",
+   "correction": "The page lists silhouettes, intersections, creases and borders, and says objects behind others are hidden.",
+   "evidence": "docs.mcneel.com Rhino 8 sak_displaymodes.htm"
+  },
+  {
+   "claim": "Rutten's zoom thresholds (80/60/41%) come from an undated reply.",
+   "correction": "The reply is dated 14 March 2014, so these are Grasshopper 1 values from 12 years ago.",
+   "evidence": "grasshopper3d.com Comment:1025973"
+  },
+  {
+   "claim": "Grasshopper's developer finds components easier to locate by name than by icon.",
+   "correction": "His 2009 post concerns audiences following projected demos and says he has no firm preference between names and icons.",
+   "evidence": "grasshopper3d.com Comment:29877 (11 Nov 2009)"
+  },
+  {
+   "claim": "Tower Studio's UI icon family is Phosphor (ui_icons.js).",
+   "correction": "Tower Studio depends on lucide-react. ui_icons.js belongs to the separate program-value-visualizer repo.",
+   "evidence": "tower-studio/package.json (lucide-react ^1.61.0); NodeLibrary.tsx:1 imports from lucide-react."
+  },
+  {
+   "claim": "Medium/Fine detail (core, structure grid, facade modules) is an M-cost viewport feature.",
+   "correction": "No such geometry exists. The massing engine produces floors only, and the viewport ignores phase.",
+   "evidence": "src/engine/massing.ts exports towerFloors, gfaByUse and rectCorners only; grep shows Viewport.tsx never references phase."
+  }
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Diagnose the Basic/Advanced split from NodeLibrary.tsx:14-19 and the registry counts, and specify the superset fix and its vitest test.",
+   "Re-cost every 'felt shift' item against existing code: only 4 of 176 nodes are built, there is no core or structure geometry, and Viewport ignores phase.",
+   "Collapse to two axes (Stage, Detail) or justify each extra axis; drop the expertise tier as a peer of stages.",
+   "Correct the Revit Detail Level, Rhino Technical and Rutten date/claim errors, and relabel interpretation-level patterns.",
+   "Rewrite the icon plan against lucide-react in tower-studio, with a band-to-glyph mapping and a 16 px legibility check.",
+   "Remove camera auto-moves and the canvas-drawer-equals-Advanced idea, or reconcile them with the existing ViewMode."
+  ]
+ },
+ "verdict": "The source reading is solid and the stage rail is sensible, but the packet fails the gate. It never opened Tower Studio's code. Basic and Advanced are separate lists split by category (NodeLibrary.tsx:14-19), not an inverted filter. Advanced is almost entirely unbuilt: only 4 of 176 nodes run, the viewport ignores phase, and there is no core or structure geometry. Its 'felt shift' would wrap inert nodes in motion and colour. It piles on overlapping axes (tier, detail, LOD, look) that none of the cited tools has. It misreads Revit Detail Level as distance-driven, and aims icons at the wrong repo and family. Fix the diagnosis, cut to Stage plus Detail, and scope to geometry that exists."
+}

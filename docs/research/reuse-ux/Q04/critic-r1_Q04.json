@@ -1,0 +1,335 @@
+{
+ "expert_role": "Open-source community and developer-relations analyst (AEC computational design tooling, MCP ecosystem)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "item": "Scope part 1: practitioner and student sentiment",
+   "issue": "Half the packet's scope is unmet. There is no Reddit, X, LinkedIn or YouTube signal, and no practitioner sentiment on Forma, TestFit, Hypar, Veras, LookX, Krea, Midjourney or ComfyUI for tall-building massing. Sentiment rests on McNeel threads of about 7-13 voices, one Ladybug title list and three HN threads, none of them about tall buildings. Even so, the principles are worded as findings, for example 'top complaint'.",
+   "fix": "Round 2 should cover what can be reached: AEC Magazine and Archinect comment threads, YouTube video pages via the transcript or description, OSArch forum, the McNeel AI category (beyond 4 threads), TestFit and Hypar community pages, and Product Hunt or G2 reviews for Veras and LookX. Keep recommendation 6 (manual Reddit and LinkedIn export with UBC interviews), but set a deadline before 13 Nov. Until then, relabel every sentiment principle 'signal (n=X, source)'."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Principle: install friction ('four McNeel forum users reported setup failures')",
+   "issue": "In the Rhino MCP Server thread, one of those reporters (Shaw Kaake) retracted his report and called it an AI-generated hallucination. Callum Sykes answered the rest with a workaround. Only Jeff Willden's points about Claude Desktop instructions and the missing Intel Mac build stand. The count is inflated.",
+   "fix": "Restate as 'two users reported install-doc problems (one retracted), plus a missing Intel Mac build'. Base the browser-first principle mainly on the Ladybug forum evidence and general reasoning, not on McNeel counts."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Principle: token and quota anxiety as 'top complaint'",
+   "issue": "Calling it the top complaint rests on about 6 voices across self-selected McNeel threads. That is no ranking. The thread does support the narrower point: one user burned half a daily Pro quota, and the developer said low-token operations must come first.",
+   "fix": "Drop 'top'. Keep the design rule (cost estimate, caching, deterministic modules with no LLM), but justify it with the quoted quota anecdote and the Claude Code docs. Do not present it as a frequency claim."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "rhino-gh-mcp permission pattern",
+   "issue": "The README defines five Scenario levels: Inspect (read-only), Tune (parameters only), Coach (default, highlighted curated edits), Execute (only what the active Skill declares) and Author (free hands). The packet's principle and recommendation 3 reduce this to Inspect, Coach, Author. That drops Tune and Execute, the two levels most relevant to per-module permissions.",
+   "fix": "Adopt the full ladder. Map Tune to 'edit team assumptions only' and Execute to 'a module may write only the outputs its manifest declares'."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Recommendation 7 (security policy relies on .mcp.json approval prompts)",
+   "issue": "The Claude Code MCP docs say claude -p runs, Agent SDK sessions and cloud sessions cannot show the approval prompt, so they load project-scoped servers without asking. This team runs workflow subagents, so the claimed safeguard does not apply there. An enableAllProjectMcpServers setting committed in an untrusted folder is ignored, but nothing stops a teammate's PR from adding a server.",
+   "fix": "Add rules: list servers in disabledMcpjsonServers by default for headless or SDK runs, have the reviewer approve any .mcp.json change through CODEOWNERS, and keep tokens as ${ENV} expansions so no secrets sit in .mcp.json."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Speckle trust essay characterisation and recommendation 3 (build our own MCP)",
+   "issue": "The essay (Virginia Senf, 4 Sep 2026) does not mention self-hosted open-source users. That claim belongs to another post. The essay argues against tool-specific MCPs, saying a general LLM using a single-tool MCP must reason from first principles on every query. Recommendation 3 adopts the essay's provenance idea but ignores this counter-argument against the very thing it proposes.",
+   "fix": "Correct the attribution. In recommendation 3, address the critique: the platform MCP should expose cross-module queries (options, metrics, provenance) rather than thin per-tool wrappers, and every result should carry its query and sources, as the essay asks."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missed open-source AEC channels",
+   "issue": "The packet omits OSArch Community (community.osarch.org), the main open-source AEC forum. It is active, with threads updated on 20 Oct 2026, including 'Text to IFC in the browser, built on IfcOpenShell' (14 Oct). It also omits the That Open Company (web-ifc/That Open Engine) community and the Hypar 'functions' model (AEC Magazine, 'Hypar's big bet against schema'), the closest commercial analogue to forkable typed modules.",
+   "fix": "Add OSArch and That Open Company to the weekly scan, and study the Hypar function manifest as prior art for the community module manifest."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "Missed reuse candidate in the instructor's own org",
+   "issue": "GenEnv hosts Thermal-Sandbox-Web, a fork of christinachiu/Thermal-Sandbox-Web. It is a vanilla three.js, no-build, JSON-driven solar-load and shade sandbox that includes a UBC Lee Square site, which makes it directly relevant to a browser-native sun module. The packet's GenEnv entry does not mention it. Its README says no licence yet.",
+   "fix": "Add it to the GenEnv reuse pool. Ask Xun and Christina Chiu for a licence before reusing any code."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "MCP connectors for IFC import and test fixtures",
+   "issue": "No IFC-oriented MCP was evaluated, although the platform imports IFC. Bonsai_mcp (JotaDeRodriguez, a BlenderMCP fork using IfcOpenShell, Python 3.12+, 11 IFC tools plus an execute-code tool) can inspect and generate IFC fixtures. Autodesk's official APS MCP (autodesk-platform-services/aps-mcp-server-nodejs, experimental, needs ACC or BIM360 and a server-to-server app) was not assessed either, even though recommendation 3 discusses Autodesk MCPs.",
+   "fix": "Evaluate Bonsai_mcp as a roadmap fixture tool and check its licence and activity. Record APS MCP as a reject for students without ACC."
+  },
+  {
+   "severity": "MAJOR",
+   "item": "gpt-image recommendation vs A2 boards and deadlines",
+   "issue": "The packet says to use gpt-image 'for the 13 Nov boards', but 13 Nov is the working-core deadline; the boards are due 30 Nov and 10 Dec. OpenAI docs cap any edge at 3840 px, call anything above 2560x1440 experimental, and note that masking is prompt-based and may not follow the mask's shape. An A2 board at 300 dpi needs about 7016x4961 px.",
+   "fix": "Fix the milestone. Add an upscaling or tiling step, or compose the boards from vector layout plus AI images at their native size. Note that masks are approximate and the geometry-override control has to come from conditioning passes."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Context7 alternatives",
+   "issue": "No no-key alternative was considered. DeepWiki's public MCP (mcp.deepwiki.com/mcp, no authentication per Portkey docs) answers questions about public GitHub repos such as three.js, web-ifc and IfcOpenShell. The packet also omits that npx ctx7 setup --claude installs a skill alongside the key.",
+   "fix": "List DeepWiki as an optional complement and check its terms. Prefer the Context7 skill or CLI route once Node is installed."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Chrome DevTools MCP",
+   "issue": "The packet misses the --slim and --headless modes and the --no-performance-crux flag. Only usage statistics are mentioned as an opt-out.",
+   "fix": "Add --slim --headless --no-usage-statistics --no-performance-crux to the recommended configuration."
+  },
+  {
+   "severity": "MINOR",
+   "item": "MCP for Blender security notes",
+   "issue": "Open issues are now 31, not 54. The packet omits BLENDER_MCP_SAFE_MODE=1, which blocks file, network and process access. Telemetry by default is anonymous metadata only; content collection is opt-in.",
+   "fix": "Update the counts and include safe mode and DISABLE_TELEMETRY=true in the security policy."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Popularity and issue counts",
+   "issue": "Several counts are off: anthropics/skills shows about 410 open issues, not 1,425 (about 1k is PRs); github-mcp-server shows 193 issues, not 381; the registry shows 134 open issues, not 188. The packet admits these came from a summariser.",
+   "fix": "Recount with an authenticated gh api call and record issues and PRs separately."
+  },
+  {
+   "severity": "MINOR",
+   "item": "McNeel RhinoAI Grasshopper and docs details",
+   "issue": "Callum Sykes said GH 1 and GH 2 are both supported, with GH 1 working well and v0.2 coming. The packet says GH 2 is 'planned'. The forum gives the docs URL as mcneel.github.io/RhinoMCP; the packet says RhinoAI. Builds exist for win-arm64, win-x64 and Apple Silicon, with no Intel Mac build.",
+   "fix": "Correct these and note the missing Intel Mac build under 'Windows and Mac parity'."
+  },
+  {
+   "severity": "MINOR",
+   "item": "Ladybug licence note",
+   "issue": "The packet says ladybug-core's AGPL-3.0 obliges source sharing 'if linked into our code'. For a browser platform, AGPL section 13 also applies when users interact over a network with a modified version running in the backend.",
+   "fix": "State that running modified ladybug in the backend triggers source obligations to web users. Choose a project licence compatible with AGPL or keep ladybug as a separate service."
+  },
+  {
+   "severity": "MINOR",
+   "item": "TestFit MCP claim",
+   "issue": "TestFit's MCP is included in Site Solver plans and is an add-on only for Parking Solver self-serve accounts. It is desktop-app only and has write access to the study. The packet says 'sells an MCP connection add-on'.",
+   "fix": "Restate it precisely. Note that TestFit's own position, that the AI directs and never generates the numbers, supports the principle that deterministic modules compute."
+  },
+  {
+   "severity": "MINOR",
+   "item": "MCP registry API version",
+   "issue": "The packet uses v0/servers. The registry README says API v0.1 has been frozen since 2025-10-24 and is still a preview with no GA date. A rhino search returns only an unrelated SEO tool, io.rhinorank.app, which supports the noise point.",
+   "fix": "Use /v0.1/servers and cite the rhinorank result as a concrete example of name-search noise."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "Four McNeel forum users reported outdated or failing Rhino MCP install steps.",
+   "why_false": "One of the reporters retracted his report on the thread as an AI hallucination. The remaining complaints are about Claude Desktop instructions and the missing Intel Mac build.",
+   "correction": "Two users raised install-doc problems (one retracted). Callum Sykes supplied a workaround (connect to the HTTP port MCPStart prints).",
+   "evidence": "https://discourse.mcneel.com/t/rhino-mcp-server/216568"
+  },
+  {
+   "claim": "rhino-gh-mcp offers an Inspect, Coach, Author permission ladder.",
+   "why_false": "The README lists five levels.",
+   "correction": "Inspect, Tune, Coach (default), Execute (skill-declared scope only), Author.",
+   "evidence": "https://github.com/GenEnv/rhino-gh-mcp"
+  },
+  {
+   "claim": "The Speckle trust essay says self-hosted open-source users stay on the current viewer.",
+   "why_false": "The 4 Sep 2026 essay does not discuss self-hosting. It argues that tool-specific MCPs cannot reason across tools.",
+   "correction": "Attribute the self-hosting note to the source it came from, probably the Design Explorer post, and engage with the essay's critique of single-tool MCPs.",
+   "evidence": "https://speckle.systems/blog/ai-in-aec-has-an-access-problem-solved-and-a-trust-problem-unsolved"
+  },
+  {
+   "claim": "Grasshopper 2 support in McNeel's server is only planned.",
+   "why_false": "On the forum, the McNeel developer said both GH 1 and GH 2 are supported, with GH 1 working well and v0.2 pending.",
+   "correction": "GH 1 works. GH 2 is claimed as supported but untested. Verify before relying on it.",
+   "evidence": "https://discourse.mcneel.com/t/rhino-mcp-server/216568"
+  },
+  {
+   "claim": "Project-scoped .mcp.json approval prompts protect against unwanted servers.",
+   "why_false": "The Claude Code docs say claude -p, Agent SDK and cloud sessions load project-scoped servers without a prompt.",
+   "correction": "Add disabledMcpjsonServers for headless runs and require review of .mcp.json changes.",
+   "evidence": "https://code.claude.com/docs/en/mcp"
+  },
+  {
+   "claim": "anthropics/skills has about 1,425 open issues; github-mcp-server has 381.",
+   "why_false": "The repo pages show about 410 and 193 open issues. The higher figures appear to include PRs.",
+   "correction": "Report issues and PRs separately.",
+   "evidence": "https://github.com/anthropics/skills ; https://github.com/github/github-mcp-server"
+  },
+  {
+   "claim": "gpt-image can serve the '13 Nov boards' directly.",
+   "why_false": "13 Nov is the working-core milestone, not the board deadline. gpt-image output is capped at a 3840 px edge, too small for 300-dpi A2.",
+   "correction": "Boards are due 30 Nov and 10 Dec. Plan upscaling or vector composition.",
+   "evidence": "https://developers.openai.com/api/docs/guides/image-generation"
+  }
+ ],
+ "missing": [
+  "Any Reddit, X, LinkedIn or YouTube signal, and practitioner sentiment on Forma, TestFit, Hypar, Veras, LookX, Krea, Midjourney or ComfyUI (scope part 1)",
+  "Sentiment specific to tall buildings or supertalls (structure, wind, vertical transport) rather than residential or CAD in general",
+  "OSArch Community forum and That Open Company (web-ifc) community as channels",
+  "Hypar functions as prior art for forkable typed modules",
+  "GenEnv Thermal-Sandbox-Web (three.js solar sandbox with a UBC site) as a reuse candidate",
+  "IFC-oriented MCP (Bonsai_mcp) and an assessment of Autodesk's official APS MCP",
+  "No-key doc-grounding alternative (DeepWiki MCP)",
+  "Hugging Face MCP server evaluation (mentioned but not opened)",
+  "Newsletters not verified: TLDR AI and Parametric Architecture are named without opened sources. AEC-specific ones (Archinect, AEC+Tech, the NXT BLD and NXT DEV channels) are missing.",
+  "Licence check on the Impeccable detector binary and the Vercel skills used in CI",
+  "A2 print-resolution pipeline for AI renderings",
+  "Last-commit dates for Impeccable, Vercel agent-skills, Figma guide and Chrome DevTools MCP"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "Gather at least 25 dated practitioner or student signals from 4 or more distinct platforms on the named tools, labelled n and source, or explicitly downgrade the sentiment principles to 'hypotheses'",
+   "Correct the McNeel install count, the rhino-gh-mcp permission ladder, the Speckle essay attribution and the 13 Nov board date",
+   "Amend the security policy for headless or SDK sessions (disabledMcpjsonServers, .mcp.json review, ${ENV} secrets)",
+   "Add OSArch, That Open Company, Hypar functions, Thermal-Sandbox-Web and Bonsai_mcp to the evaluation",
+   "Recount issue and PR numbers with authenticated gh api calls"
+  ]
+ },
+ "previous_round": [],
+ "sources_checked": [
+  {
+   "url": "https://github.com/mcneel/rhinoai",
+   "ok": true,
+   "note": "MIT, 371 stars, 8 issues, rhino-9.x branch, Claude Code listed; versions not stated"
+  },
+  {
+   "url": "https://discourse.mcneel.com/t/rhino-mcp-server/216568",
+   "ok": true,
+   "note": "7 participants on page 1; one install report retracted as hallucination; GH1+GH2 claimed; no Intel Mac build"
+  },
+  {
+   "url": "https://github.com/upstash/context7",
+   "ok": true,
+   "note": "MIT, 63.4k stars, Node 22.13+, accuracy disclaimer, private backend confirmed"
+  },
+  {
+   "url": "https://github.com/microsoft/playwright-mcp",
+   "ok": true,
+   "note": "Apache-2.0, 38.4k, Node 18+, not a security boundary, CLI more token-efficient confirmed"
+  },
+  {
+   "url": "https://github.com/GenEnv/rhino-gh-mcp",
+   "ok": true,
+   "note": "MIT, 8 stars, Python 3.11/3.12, Rhino 8 only; five Scenario levels not three"
+  },
+  {
+   "url": "https://github.com/GenEnv",
+   "ok": true,
+   "note": "9 repos; includes Thermal-Sandbox-Web fork missed by packet; only rhino-gh-mcp licensed"
+  },
+  {
+   "url": "https://github.com/christinachiu/Thermal-Sandbox-Web",
+   "ok": true,
+   "note": "three.js solar and shade sandbox, UBC Lee Square, no licence yet"
+  },
+  {
+   "url": "https://github.com/xunliuDesign",
+   "ok": true,
+   "note": "15 repos; no hairline, anatomy or text-to-cad visible in popular list"
+  },
+  {
+   "url": "https://github.com/ahujasid/blender-mcp",
+   "ok": true,
+   "note": "MIT, 31.8k, 31 open issues (not 54), safe mode and DISABLE_TELEMETRY exist"
+  },
+  {
+   "url": "https://github.com/github/github-mcp-server",
+   "ok": true,
+   "note": "MIT, 33.8k, 193 issues, --read-only flag confirmed; lockdown text not reached"
+  },
+  {
+   "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+   "ok": true,
+   "note": "Apache-2.0, 53.9k, usage stats default-on, CrUX opt-out, --slim mode"
+  },
+  {
+   "url": "https://github.com/figma/mcp-server-guide",
+   "ok": true,
+   "note": "No licence, 2.1k stars, 6 calls per month for Starter/View/Collab, write-to-canvas paid later"
+  },
+  {
+   "url": "https://github.com/pbakaus/impeccable",
+   "ok": true,
+   "note": "Apache-2.0, 84k, 24 commands, 61 deterministic rules, binary download avoids Node"
+  },
+  {
+   "url": "https://github.com/anthropics/skills",
+   "ok": true,
+   "note": "Apache-2.0 plus source-available doc skills, 182.6k stars, about 410 open issues"
+  },
+  {
+   "url": "https://developers.openai.com/learn/docs-mcp",
+   "ok": true,
+   "note": "Read-only docs MCP, no auth, claude mcp add command confirmed"
+  },
+  {
+   "url": "https://developers.openai.com/api/docs/guides/image-generation",
+   "ok": true,
+   "note": "gpt-image-2.5-sunburst and -flare confirmed; verification 'may' be needed; 3840 px edge cap"
+  },
+  {
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Tool search on by default; 25k output cap; headless sessions skip project approval; protocol 2026-07-28 via SDK v2"
+  },
+  {
+   "url": "https://registry.modelcontextprotocol.io/v0/servers?search=rhino",
+   "ok": true,
+   "note": "Only unrelated io.rhinorank.app result"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/registry",
+   "ok": true,
+   "note": "Preview, API v0.1 frozen, 134 open issues, no GA date"
+  },
+  {
+   "url": "https://skills.sh/",
+   "ok": true,
+   "note": "Vercel-run, 1.41M installs, reddit-automation in top 10; audit method not described"
+  },
+  {
+   "url": "https://paperswithcode.com/",
+   "ok": true,
+   "note": "302 to huggingface.co/papers/trending confirmed"
+  },
+  {
+   "url": "https://hn.algolia.com/api/v1/items/47970497",
+   "ok": true,
+   "note": "Text-to-CAD, 186 points, 1 May 2026, 18 direct comments"
+  },
+  {
+   "url": "https://hn.algolia.com/api/v1/items/48543908",
+   "ok": true,
+   "note": "Drafted Launch HN, 60 points, 24 top-level comments; zoning, code and structure critiques confirmed (residential, not tall)"
+  },
+  {
+   "url": "https://speckle.systems/blog/ai-in-aec-has-an-access-problem-solved-and-a-trust-problem-unsolved",
+   "ok": true,
+   "note": "4 Sep 2026; critiques tool-specific MCPs; no self-hosting mention"
+  },
+  {
+   "url": "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/",
+   "ok": true,
+   "note": "11 Oct 2026, Martyn Day; revision test and weak-to-moderate evidence confirmed"
+  },
+  {
+   "url": "https://www.testfit.io/blog/testfit-mcp-feasibility-studies-in-plain-language",
+   "ok": true,
+   "note": "Included in Site Solver, add-on for Parking Solver, desktop-only, write access"
+  },
+  {
+   "url": "https://github.com/ladybug-tools/ladybug",
+   "ok": true,
+   "note": "AGPL-3.0 confirmed"
+  },
+  {
+   "url": "https://community.osarch.org/",
+   "ok": true,
+   "note": "Active open-source AEC forum missed by packet; browser text-to-IFC thread 14 Oct 2026"
+  },
+  {
+   "url": "https://github.com/JotaDeRodriguez/Bonsai_mcp",
+   "ok": false,
+   "note": "Seen via search mirrors only; licence and activity not verified"
+  },
+  {
+   "url": "https://github.com/autodesk-platform-services/aps-mcp-server-nodejs",
+   "ok": false,
+   "note": "Seen via search only; experimental, needs ACC or BIM360"
+  }
+ ],
+ "verdict": "The tooling half is sound. Repos, licences, Node and Python constraints and security warnings were checked on the source pages, and the core MCP set (Context7, Playwright, read-only GitHub, OpenAI docs) is justified. The sentiment half fails its scope. It has no Reddit, X, LinkedIn or YouTube signal and no practitioner views on Forma, TestFit, Hypar or the AI renderers, yet the principles read as frequency findings. Two of those counts are wrong: a retracted install complaint was counted, and a 'top complaint' rests on about 6 voices. Further errors: the rhino-gh-mcp ladder has five levels, not three, a self-hosting claim is pinned on the wrong Speckle post, and the security policy wrongly assumes approval prompts in headless runs. It also misses OSArch, Hypar functions, Thermal-Sandbox-Web and IFC MCPs. Fix these, then re-gate."
+}

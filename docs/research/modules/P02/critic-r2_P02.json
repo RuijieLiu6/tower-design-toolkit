@@ -1,0 +1,260 @@
+{
+ "expert_role": "Academic researcher on urban solar access and shadow regulation (independent reviewer, round 2 of packet P02)",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "module_id": "P02-M02",
+   "issue": "Every M02 rule marked 'verified' (the 0 m2 park/school/s.4.2 test, Sun Yat-Sen, the Village hours, Basic-study completeness) depends on one outside reviewer's reading of a PDF that the packet authors have never opened. I could not open it either: WebFetch and curl both returned HTTP 403. Opened secondary sources corroborate only part of it. Daily Hive (S04) names special protection for Victory Square on Remembrance Day mornings, Robson Square, Jack Poole Plaza and Sun Yat-Sen, and UDI (S07) gives 22 Sept 10-16 PDT and the Davie north sidewalk. None of these confirms Table 1 membership, the 'minimise' class for plazas, Robson 10-15, the PST wording or the 3.1.2 exception list. The course requires an honest source status, and a relayed reading is secondary evidence.",
+   "fix": "Before release to entrants, a team member downloads the PDF in an ordinary browser. The City landing page loads in a browser, and the PDF link triggers a normal file download. That person transcribes Table 1 and the clauses, records page numbers and the cover date, and only then sets status 'verified'. Until that happens, label every M02 rule 'verified_secondary (reviewer relay)'. Make the build fail if a 'verified' status lacks an opened-by-team primary citation."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The rule set is about to be superseded. The City CDDG page (opened today) says the final guidelines 'will be posted soon' and take effect 27 Oct 2026. It also says the CDDG work includes revised Solar Access Guidelines. UDI says the bulk of existing guidelines are repealed on 27 Oct. Core M02 ships 13 Nov and the competition closes 30 Nov, so entrants will run a rule set dated 29 July 2026 against a framework that has changed in between. The spec only flags this as UNRESOLVED.",
+   "fix": "Version the Table-1/clause data file with a source-document date, an effective date and a 'superseded_check' date. Add a release gate on 13 Nov: compare the posted CDDG solar chapter with the July 2026 text, and print the rule-set version on every PolicyResult and board export."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The hypothetical site has no real-world location, but M02 tests it against real Table-1 spaces. Whether Jack Poole Plaza, Robson Square, Art Phillips Park or Victory Square fall inside the 592 m (22 Sept) or 905 m (11 Nov) shadow reach depends entirely on which CBD block the team assumes. The only location input is a default point (49.283 N, 123.12 W). There is no georeferenced footprint polygon, no record of the placement decision, and no check of whether Buildner supplies a context model.",
+   "fix": "Add a required SitePlacement input: a georeferenced block polygon, its source (brief site plan matched to the city grid, or a team choice), and human-judgment text. Offer a sensitivity mode that runs the Basic study on 3-5 plausible CBD blocks. Confirm whether the competition package includes a 3D context or approved-tower model, and use it as the baseline if it exists."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M01",
+   "issue": "NorthFrame is defined as an angle 'CCW from model +Y', which assumes Z-up plan coordinates. OBJ and SketchUp/Revit exports are often Y-up, and three.js is Y-up. A wrong up-axis swap or handedness flip mirrors the model east-west. A mirror error passes every angle-agreement check yet sends 10:00 shadows to the NE instead of the NW.",
+   "fix": "Record up-axis and handedness explicitly for each import, and normalise to right-handed Z-up before applying NorthFrame. Make the brief's named directions a blocking check, not a visual one: after rotation, Stanley Park must lie NW, BC Place SE and Burrard Inlet N-NE. Add a unit test with an asymmetric L-shaped fixture."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M03",
+   "issue": "The context-radius rule ('about 1 km captures winter shadows') holds only at winter noon. My NOAA recomputation gives L/H 4.84 at 10:00 PST and 9.79 at 09:00 PST on 21 Dec, and 7.0 at 15:00. On 21 Mar at 09:00 PDT it is 3.4. M03 runs sunrise-to-sunset on four dates (and the BRE whole-day test on 21 Mar), and M08 runs 21 Dec on neighbour facades. With a 1 km context they will overstate sun hours wherever towers 1-3 km away block low sun.",
+   "fix": "Set a minimum solar altitude cut-off for sun-hour studies (editable team assumption, e.g. 5-10 degrees, labelled), and derive the context radius as H_max / tan(cut-off). Alternatively, use a distant-horizon mask from LiDAR. Report the cut-off on every sun-hour output."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "A hard 0 m2 threshold, evaluated with polygon booleans and mesh shadow casting, will produce sliver 'fails' from floating-point and mesh tolerance. It is also sensitive to the 1-degree north tolerance that M01 accepts: 1 degree on a 905 m (11 Nov) shadow moves the tip about 16 m, and on 592 m about 10 m. The spec says the City tolerance is unknown but offers no handling for it.",
+   "fix": "Report three outcomes: robust PASS, robust FAIL, and INDETERMINATE. Get them by re-running with north at plus or minus the accepted tolerance and the model at plus or minus its geometric tolerance. Add a labelled numerical-noise floor (team assumption, e.g. under 1 m2 or slivers narrower than 0.1 m) shown separately, never silently rounded to pass."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P02-M02",
+   "issue": "The design question asks 'where must the massing be cut', but the only answer is an optional solar envelope built on Ladybug Solar Envelope logic. That logic does not account for existing-shadow relief or for receivers on terrain at different elevations. For this brief the envelope is the main design-informing result: it gives the maximum compliant height per footprint cell.",
+   "fix": "Make SolarEnvelope a core output. For each instant, take protected polygon minus baseline shadow (at its real elevation), extrude it along the reversed sun vector, union the results over the 25 Detailed instants (plus the 11 Nov set where it applies), and subtract from the site column. Show which space and instant governs each part of the envelope."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "ALL",
+   "issue": "Status 'false_assumption_corrected' hides the evidence behind the corrected value. The plaza 'minimise' class, the s.4.2 upgrades, the cenotaph 10:00-12:00 PST, the assessment dates and the M04 PV cut-offs all carry this status, though the replacement values are respectively reviewer-relay, reviewer-relay, reviewer-relay plus press, press, and team presets. A user sees 'corrected' and reads 'reliable'. The previous critique's request for a verified_secondary status was met only as a prefix in free text.",
+   "fix": "Split status into two fields: history (original / false_assumption_corrected) and evidence (verified / verified_secondary / team_assumption / unverified). Add verified_secondary to the schema enum and render it in a distinct colour."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M01",
+   "issue": "The method insists on tz-database offsets ('never fixed offsets'), but the guideline clauses state their zones explicitly ('PT (UTC-7)' in 5.1 per the reviewer, 'PST' in 4.3.1). City wording is also loose: the City landing page (opened) calls the outside-downtown equinox window '10am to 2pm PST', though September is PDT. BC's 2019 permanent-DST legislation could also change the tzdata result for 11 Nov in future.",
+   "fix": "For each rule, store the literal zone text and offset from the clause, and compute the tzdata offset separately. Show a warning if they differ. Flag the cenotaph 'PST' wording for the team's second reader to confirm."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The cenotaph rule is inconsistent. The metric says 'no shadow on the circle' (absolute), but method step 5 computes new shadow (proposal minus baseline). The coverage formula is hard-coded to 25 instants, while the 11 Nov 10:00-12:00 window at 15 min has 9. The 11 Nov time step is itself an assumption.",
+   "fix": "Once the clause is confirmed, encode for each rule whether it tests total shadow or new shadow. Make the instant count N a parameter of the coverage formula. Label the 11 Nov 15-min step a team assumption."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The Table-1 seeding plan uses Park Board open data, which classifies Art Phillips Park, Cathedral Square and Victory Square as 'Urban Plaza'. If those classes are carried into Table-1 classes, the spaces would be routed to the 3.2.1 'minimise' rule, and Victory Square would lose its s.4.3 rule. Jack Poole Plaza and Robson Square are absent from the dataset.",
+   "fix": "Never derive Table-1 class from the Park Board classification. Keep a hand-checked crosswalk keyed to the Table-1 page, and fail the data build when a space has no Table-1 class."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M02",
+   "issue": "The jury tags omit cultural_context_30, although the protected set includes the Dr. Sun Yat-Sen Classical Chinese Garden and the Victory Square cenotaph. The brief also asks for reconciliation and Indigenous perspectives, which bear on which gathering spaces deserve sun.",
+   "fix": "Add cultural_context_30 to M02. Add a human-judgment field for culturally significant spaces that are not in Table 1, such as Indigenous gathering or ceremonial space proposed on site."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M04",
+   "issue": "There are three hidden convention traps in the PVGIS reference. (a) PVGIS aspect is 0 = south, 90 = west, -90 = east (confirmed in my queries), not true azimuth clockwise from north. (b) The queries use mounting 'free-standing', while facade BIPV runs hotter and yields less. (c) The DEM horizon (North Shore mountains) is included by default, which the Radiance/EPW run will not include.",
+   "fix": "Convert with aspect = azimuth_true - 180 and unit-test it against the SW = 823 kWh/kWp fixture. Re-query with mountingplace=building for BIPV faces. State the horizon setting, or set usehorizon=0, so the QA comparison is like-for-like."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M03",
+   "issue": "The four-date delta metric ('zero or positive at every sensor') is stricter than any cited practice and will flag almost any CBD tower. The UK comparison already present (BR 209) uses a relative test: an area that fails the 2 h / 50% rule is acceptable if it keeps at least 0.8 times its former value (recalled, unverified). M08's '20% loss' cut-off resembles the same rule but cites nothing.",
+   "fix": "Offer the BR 209 0.8x-former-value test as a labelled, unverified UK comparison in M03 and M08, and keep the absolute-delta map descriptive with no bad badge."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M03",
+   "issue": "Sun hours are clear-sky geometric. In Vancouver's overcast winter that overstates actual sunlight, and it does not weight hours by how likely sun is to occur. The limits mention this, but no output corrects for it.",
+   "fix": "Add an optional 'probable sunlight hours' output that weights each sunlit timestep by EPW direct-normal availability, kept separate from the City-style clear-sky test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P02-M01",
+   "issue": "'SunCalc pinned at 2.0 or later' is a range, not a pin. The npm registry (checked) lists 2.1.1 as latest, and the 2.0 rewrite changed units and conventions, so further changes are possible.",
+   "fix": "Pin the exact version (2.1.1) with a lockfile integrity hash, and keep the pvlib cross-check fixtures (26.9/125.9 deg at 10:00 PDT, 28.1/231.6 at 16:00) as regression tests."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "PACKET",
+   "issue": "Schedule risk. The core modules (M01 3-4, M02 10-14, M03 5-6, M06 2-3 dev-days, 20-27 in total) are due 13 Nov, 23 calendar days from today. That leaves entrants 17 days before the 30 Nov deadline, and the 13 Nov date falls after the 27 Oct CDDG change.",
+   "fix": "Ship an M01 plus M02 Basic-study minimum first (22 Sept 4 instants, robust pass/fail, Table-1 v0 with confirmed spaces only). Defer the Detailed study and M03 small multiples."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "About 1 km of context captures winter shadows of a 300 m tower (P02-M03 context radius; also used for M08 on 21 Dec)",
+   "why_false": "It holds only at winter solar noon (L/H 3.22). The whole-day studies include low-sun hours with much longer shadows.",
+   "correction": "Derive the radius from a stated minimum solar altitude (radius = H / tan(cut-off)), or use a far-horizon mask, and print the cut-off with the results.",
+   "evidence": "My NOAA-algorithm recomputation for 49.283 N, 123.12 W: 21 Dec 09:00 PST altitude 5.8 deg (L/H 9.79), 10:00 PST 11.7 deg (L/H 4.84), 15:00 PST 8.1 deg (L/H 7.0); 21 Mar 09:00 PDT 16.4 deg (L/H 3.4). The same script reproduces the packet's fixtures (22 Sept 26.89/125.9 at 10:00 PDT, 28.14/231.6 at 16:00; 11 Nov 10:00 PST 18.33 deg; solar noon 13:05 PDT and 11:56 PST)."
+  },
+  {
+   "claim": "City shadow-policy time labels can be taken literally ('PST' means UTC-8), so per-rule offsets can simply be taken from tzdata",
+   "why_false": "The City uses 'PST' loosely. Its own solar-access page describes the outside-downtown equinox-season window as '10am to 2pm PST', but in September Vancouver clocks are on PDT (UTC-7), as UDI (S07) and the guideline s.5.1 (per the reviewer) state.",
+   "correction": "Store the literal clause wording and offset for each rule, compare it with tzdata, and have the team's second reader confirm the cenotaph 'PST' wording against the PDF.",
+   "evidence": "https://vancouver.ca/home-property-development/solar-access-in-public-spaces.aspx ('What's new', July 2024 entry, opened in the browser 21 Oct 2026); https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines ('fall equinox (September 22) from 10 am to 4 pm PDT')"
+  }
+ ],
+ "missing": [
+  "Georeferenced SitePlacement input (block polygon, how it was placed, human judgment) plus a sensitivity run over candidate CBD blocks",
+  "Check whether the VTC package supplies a 3D context or approved-tower model to use as the baseline",
+  "Up-axis and handedness normalisation, with a blocking named-direction check (Stanley Park NW, BC Place SE)",
+  "Robustness band on pass/fail (north tolerance, geometric tolerance, numerical-noise floor)",
+  "Core SolarEnvelope with existing-shadow relief and terrain-elevation receivers",
+  "Minimum-solar-altitude cut-off and a context radius derived from it for whole-day sun-hour studies",
+  "Rule-set versioning with document date, effective date and superseded-check date (CDDG effective 27 Oct 2026; final text not yet posted)",
+  "Per-rule flag for total shadow vs new shadow (cenotaph), and a coverage formula parameterised by instant count",
+  "Hand-checked crosswalk from Table-1 classes to Park Board classes",
+  "Split status schema (history vs evidence) including verified_secondary",
+  "Probable-sunlight-hours weighting from EPW for the public-realm and neighbour-facade outputs",
+  "PVGIS aspect conversion, building-integrated mounting and horizon setting for like-for-like QA",
+  "cultural_context_30 tag on M02, and a judgment field for culturally significant spaces not in Table 1"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "A team member opens the Downtown Peninsula PDF (normal browser download), transcribes Table 1 and the cited clauses with page numbers, and only then uses 'verified'; until then M02 rules are verified_secondary",
+   "Rule-set versioning plus a 13 Nov release check against the posted CDDG solar text",
+   "SitePlacement input and a context-model source defined for the hypothetical block",
+   "Up-axis/handedness normalisation and a blocking named-direction check in M01",
+   "Robust PASS / FAIL / INDETERMINATE outputs with a declared numerical-noise floor",
+   "SolarEnvelope promoted to core with existing-shadow relief",
+   "Altitude cut-off and derived context radius for M03 and M08 whole-day studies",
+   "Status schema split so corrected values carry their own evidence level"
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "BLOCKER M02 rule set does not match approved guideline (plaza minimise, no decision trees, Robson 10-15, s.4.2 plazas, cenotaph 10-12 PST, Sun Yat-Sen only absolute)",
+   "status": "partly",
+   "residue": "All rules re-encoded per clause, but 'clause readings ... are the reviewer's; a team second reader must confirm them'. Table 1 is still not transcribed (the dataset is only planned). Daily Hive corroborates the special-case spaces, but not the hours or classes."
+  },
+  {
+   "item": "BLOCKER terrain-aware casting, three scenarios, tree exclusion",
+   "status": "addressed",
+   "residue": "Context radius rule is insufficient for whole-day low-sun studies in M03/M08 (not M02)."
+  },
+  {
+   "item": "BLOCKER status labels do not match evidence; add verified_secondary; build-fail rule",
+   "status": "partly",
+   "residue": "verified_secondary is written only as a prefix in basis text ('the status enum has no such value'). M02 is still 'verified' on a relayed reading. No build-fail rule is specified."
+  },
+  {
+   "item": "MAJOR Basic (4 instants) and Detailed (25 instants, coverage %) outputs",
+   "status": "addressed",
+   "residue": "Coverage formula hard-coded to 25 instants, which does not fit the 11 Nov window."
+  },
+  {
+   "item": "MAJOR M01 Remembrance Day PST preset and per-rule time zone",
+   "status": "addressed",
+   "residue": "Offsets taken from tzdata rather than the literal clause offset; the City uses 'PST' loosely."
+  },
+  {
+   "item": "MAJOR Table-1 protected-space dataset",
+   "status": "partly",
+   "residue": "'Versioned Table-1 protected-space GeoJSON' is listed as an input but not built; plazas are 'digitised' with no named source; Park Board classes risk being used as Table-1 classes."
+  },
+  {
+   "item": "MAJOR M04 cardinal orientation classes and 843 kWh/kWp threshold",
+   "status": "addressed",
+   "residue": "PVGIS aspect convention, mounting type and horizon setting not stated."
+  },
+  {
+   "item": "MAJOR M05 HBP s.2.2 energy targets missing",
+   "status": "addressed",
+   "residue": "TEDI 15 rests on the reviewer's reading only (marked unverified, which is correct)."
+  },
+  {
+   "item": "MAJOR M04 bias direction of missing inter-reflections",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M07 LEED sDA without blinds; WELL L01 missing",
+   "status": "addressed"
+  },
+  {
+   "item": "MAJOR M03 four-date zero-loss rule presented as City criterion",
+   "status": "addressed",
+   "residue": "Still an absolute 'negative at any sensor = bad' preset; a relative test would be more defensible."
+  },
+  {
+   "item": "MAJOR no module for neighbouring-site facades or reflected sun",
+   "status": "addressed",
+   "residue": "Merged into M08. The 20% loss cut-off is unsourced, and the reflected-sun screen is roadmap only."
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P02-S02",
+   "url": "https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf",
+   "ok": false,
+   "note": "WebFetch and curl returned HTTP 403. Opening it in the browser pane triggered a file-download save dialog for the user; I did not complete or retry the download. The clauses remain unverified by me."
+  },
+  {
+   "source_id": "P02-S01",
+   "url": "https://vancouver.ca/home-property-development/solar-access-in-public-spaces.aspx",
+   "ok": true,
+   "note": "Opened in the browser. Confirms: rotated grid; PDF labelled 17 Sept 2025; Table 1, Maps 2-3; Decision Trees A-C as companion PDFs; 3D Model Submission Requirements; stale 'July 2025' text; City text uses '10am to 2pm PST' for the equinox window outside downtown."
+  },
+  {
+   "source_id": "P02-S09",
+   "url": "https://vancouver.ca/home-property-development/city-wide-design-and-development-guidelines.aspx",
+   "ok": true,
+   "note": "Opened in the browser. CDDG approved 28 July 2026, takes effect 27 Oct 2026; 'final guidelines will be posted soon'; work includes revised Solar Access Guidelines; excludes Victory Square, Chinatown, Gastown."
+  },
+  {
+   "source_id": "P02-S07",
+   "url": "https://udi.org/advocacy/updates/city-of-vancouver-citywide-design-and-development-guidelines",
+   "ok": true,
+   "note": "22 Sept 10-16 PDT; parks, schools, Davie north sidewalk; Robson 'similar'; exceptions; spring study removed 4 Feb 2026; bulk of guidelines repealed 27 Oct 2026. Does not say whether the downtown solar PDF survives."
+  },
+  {
+   "source_id": "P02-S04",
+   "url": "https://dailyhive.com/vancouver/downtown-vancouver-solar-access-guidelines-building-shadowing-policies-approved",
+   "ok": true,
+   "note": "Corroborates special protection for Victory Square (Remembrance Day mornings), Robson Square, Jack Poole Plaza and Sun Yat-Sen; spring equinox dropped; social-housing exemption removed; the draft had a low-rise (under 4 storeys) exemption."
+  },
+  {
+   "source_id": "P02-S30",
+   "url": "https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=49.283&lon=-123.12&peakpower=1&loss=14&angle=90&aspect=45&raddatabase=PVGIS-ERA5&outputformat=json",
+   "ok": true,
+   "note": "SW vertical: 1,044.89 kWh/m2, 823.06 kWh/kWp. The NE query (aspect -135) gives 387.67 / 272.79. Both match the spec. Aspect convention 0 = S, 90 = W; mounting free-standing; DEM horizon included."
+  },
+  {
+   "source_id": "P02-S28",
+   "url": "https://github.com/mourner/suncalc",
+   "ok": true,
+   "note": "v2.0 rewrite: azimuth in degrees clockwise from north, apparent altitude, about 0.08 deg; BSD-2-Clause. npm registry (https://registry.npmjs.org/suncalc/latest) lists 2.1.1."
+  },
+  {
+   "source_id": "derived",
+   "url": "local NOAA solar-position script (scratchpad sun.py)",
+   "ok": true,
+   "note": "Reproduces every fixture in the spec. Adds the low-sun values for 21 Dec and 21 Mar used in the context-radius finding."
+  }
+ ],
+ "verdict": "Round 2 fixes most of round 1. The rules are clause-keyed, terrain and baselines are in, the Basic and Detailed studies are in, and the M04, M05 and M07 corrections hold. My recomputed solar geometry and PVGIS values match. The gate still fails. First, the M02 'verified' rules rest on one reviewer's relayed reading of a PDF that neither the team nor I could open, and the CDDG replaces the framework on 27 Oct, before the core module ships. Second, the hypothetical site has no georeferenced placement, so the pass/fail tests against real Table-1 spaces are arbitrary. Third, the up-axis/mirror check, the pass/fail robustness under tolerance, the core solar envelope, and the context radius for low winter sun are all missing."
+}

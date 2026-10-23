@@ -1,0 +1,380 @@
+{
+ "expert_role": "AI safety and ethics reviewer and gatekeeper (source audit), round 4 of P16",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M02 / P16-M08",
+   "issue": "The Higher Buildings Policy clause text is still unread after four rounds. I fetched the Shape Your City copy again today: it still returns only the 'will begin downloading' page with a blank filename, and guidelines.vancouver.ca still returns 403. The download is scheduled for 23 Oct and has not happened. The height Permission card, the derived Prohibition card, the policy-area scope rule and every M08 boundary answer therefore still rest on two FAQ sentences. The FAQ also contains a source typo ('heigh limits') and uses 'may be considered' twice.",
+   "fix": "Carry out the dated procedure. A named person downloads the PDF in a browser by 23 Oct and records the SHA-256, edition and date in S78. A second person reviews the height, policy-area and criteria clauses by 30 Oct. Both height cards are then confirmed or corrected and the M08 boundary answers updated. If the download fails, log the date and the error. Add the 'heigh limits' typo as an anchor-fidelity case: the match key must never spell-correct source text."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M02 / P16-M05 / P16-M08",
+   "issue": "The VTC brief is still unread. The competition page (re-fetched today) shows an email popup 'to receive download link'; it does not show the jury criteria, weights or board rules. The 9.0 FSR minimum, the 244-305 m range, the 40/30/20/10 weights, four A2 boards and the justified-breach clause are all still relayed facts, not read ones. Registration closes 29 Oct and the Q&A deadline is 3 Nov, so questions about AI use or anonymity must reach the organiser before then.",
+   "fix": "Request the brief by 28 Oct, hash it, and have a non-proposer review every brief card blind-first. Before 3 Nov, submit Q&A questions on AI-tool disclosure and on whether sharing work in progress in the tool counts as previous publication under clause 4.1. Record the answers as sources."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M07",
+   "issue": "The MCP guard assumes project servers load without approval only in -p, Agent SDK and cloud runs. The Claude Code MCP docs also say the approval prompt is skipped in a session started in bypassPermissions mode with skipDangerousModePermissionPrompt set. Team members on Windows who work in bypass mode would load an edited .mcp.json, including a ${OPENAI_API_KEY} header aimed at any host, with no prompt. --strict-mcp-config is planned only for CI and -p.",
+   "fix": "Add bypass mode to the threat model. Pin enabledMcpjsonServers (allow-list) or disabledMcpjsonServers in user or managed settings on every developer machine. Forbid skipDangerousModePermissionPrompt for this repository. Extend the planted .mcp.json control case to cover an interactive bypassPermissions session as well as -p."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M08 (human-centred track)",
+   "issue": "The over-reliance probe deliberately shows outside designers wrong rule cards without telling them. Under TCPS 2 that is partial disclosure or deception: Article 3.7A lets only an REB approve it, and Article 3.7B requires a debriefing. The Article 2.5 application note describes an organisation assessing its own performance, employees or students within its mandate. A student-built tool tested on outside designers is a poor fit for that limb, so calling it the 'likely basis' overstates the case. The packet also specifies no consent, withdrawal or data-retention procedure for participants.",
+   "fix": "Treat the human track as research unless the instructor and UBC Behavioural REB rule otherwise in writing. Drop the seeded wrong cards from studies with outside participants, or include them only under REB approval with a debriefing. Add informed-consent, withdrawal, de-identification and retention fields to HumanStudyReport. Drill cards for the team's own reviewers can stay as they are."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M03 / P16-M04 (export gate)",
+   "issue": "The export gate can block an entrant's board in the final hours before 30 Nov 23:59 London time. A missing rationale blocks export, and a FALSE-dependent figure can only be exported corrected or hatched, with 'no rationale unlocks' it. The tool then decides what goes on the entrant's own submission, which contradicts the course rule that final judgments stay human. Entrants could also simply screenshot around the gate, and that bypass would leave no trace record at all.",
+   "fix": "Keep the marked rendering as the default. Add a deliberate human override that requires a typed reason, is logged in the private trace (never drawn on the board) and appears in the AI-use statement. Make the 'missing rationale' block a warning during the last 48 h. Test that an export always succeeds offline."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M01 / P16-M06 (restricted_cultural)",
+   "issue": "The restricted_cultural class takes effect only if a person labels the document. A community upload or user PDF that contains Musqueam, Squamish or Tsleil-Waututh knowledge but is left unlabelled defaults to 'reference-only, untrusted'. It can then be embedded through the API, cached, batched and summarised. The privacy rule therefore fails open on a labelling omission.",
+   "fix": "Require a declaration at upload (is there Indigenous or community knowledge in this document?). Screen ingested text for Nation names, place names and the hən̓q̓əmin̓əm̓ and Sḵwx̱wú7mesh orthographies, and quarantine any matching document as restricted_cultural until a person classifies it. Add an unlabelled planted file to the M08 privacy cases."
+  },
+  {
+   "severity": "MAJOR",
+   "module_id": "P16-M02 / P16-M03 (audit staffing)",
+   "issue": "Only part of the previous fix landed. A role is named, but no person is assigned. If the reciprocal auditor comes from another course team that is also a VTC entrant, the audit could expose traces or entry decisions to a competitor.",
+   "fix": "Name the auditor by 13 Nov. Limit the audit scope to brief and policy rule cards, with no access to entry projects, Layer 0 or traces, and enforce that limit in the access-control test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M01 to M08 (metric status)",
+   "issue": "Several metrics use status 'false_assumption_corrected', which is not one of the five flag states. The actual state appears only as text in 'basis' ('Current evidence state: team assumption'). The packet's own outputs therefore do not follow the flag schema that M03 says CI enforces.",
+   "fix": "Set status to one of verified, team_assumption, unverified, unresolved or FALSE ASSUMPTION. Move the correction history into a separate 'corrections[]' field holding round and date."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M06 (capability table)",
+   "issue": "Several provider behaviours I confirmed today are not in the table. Per-message effort returns HTTP 400 on Haiku 5.5 with thinking disabled and on Sonnet 5.5 with between_tools. Thinking blocks kept from earlier turns are billed as input. gpt-6-luna defaults to medium effort (the spec lists this as unchecked). gpt-6.1-sol rejects effort none and minimal. OpenAI regional processing carries a 10% uplift. OpenAI Canada storage requires ZDR or Modified Abuse Monitoring.",
+   "fix": "Add these rows to the CapabilityMatrix and the price table, and close the 'gpt-6-luna not checked' item in the UNVERIFIED flag."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M08 (cost arithmetic)",
+   "issue": "The unit prices and scenario sums all check out: $13.26, $23.43 and $60.66 recompute exactly. What is not shown is how a 40-case suite at N=10 on two providers becomes '600 runs' and '90 extraction calls' (40 x 10 x 2 = 800).",
+   "fix": "Show the per-class case counts behind 600 and 90, or recompute the suite costs for 800 runs."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M03 (palette)",
+   "issue": "All quoted contrast ratios recompute correctly. However, the light team-assumption fill #FFF3DC against white is 1.10:1, and no light-theme outline is specified. Label text colours are also missing for the verified, unresolved and unverified chips. If #0072B2 or #009E73 is used as text on dark or white backgrounds, it fails 4.5:1 (3.21 to 3.61 and 3.42).",
+   "fix": "Specify a #8A5200 outline for the light team-assumption chip, and specify label text colours for all five chips in both themes in the CI test."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M02 (shared RuleSet)",
+   "issue": "Seeds ship as metadata only, but the 'reviewed course RuleSet' that solo users inherit carries verbatim brief and policy quotes. Those quotes are a partial redistribution of documents whose licences are unrecorded.",
+   "fix": "Keep the quotes in shared RuleSets short, as anchors (exact plus a hash). Render the full clause only from the user's own hash-checked copy."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M06 (sandbox)",
+   "issue": "MDN's CSP reference lists no webrtc or navigate-to directive. The planned test can therefore find open channels, such as self-navigation with data in the URL, that no CSP setting can close.",
+   "fix": "State the fallback in advance: if navigation or WebRTC leaks, community modules receive only summarised, non-identifying inputs, or run server-side under Deno with no network access. Upload stays off."
+  },
+  {
+   "severity": "MINOR",
+   "module_id": "P16-M04 (anonymised export)",
+   "issue": "Terms 5.1 bar 'marks, logos, symbols, or signs' that may identify the source of an entry. Tool branding, chip legends that carry reviewer ids, or trace ids drawn into pixels could arguably qualify. Metadata stripping does not cover pixel content.",
+   "fix": "Draw no tool logo, URL, user id or reviewer id into board pixels. Add an OCR pass to the export scan that looks for planted ids."
+  }
+ ],
+ "false_assumptions": [
+  {
+   "claim": "In claude -p, Agent SDK and cloud runs project servers load without approval, so starting CI and -p with --strict-mcp-config closes the planted-.mcp.json path (P16-M07).",
+   "why_false": "The docs name one more no-prompt path: an interactive session in bypassPermissions mode with skipDangerousModePermissionPrompt set.",
+   "correction": "Pin enabledMcpjsonServers or disabledMcpjsonServers in user or managed settings on every machine, forbid skipDangerousModePermissionPrompt for the repository, and test bypass mode in the control case.",
+   "evidence": "https://code.claude.com/docs/en/mcp: 'Claude Code also skips the prompt in a session you start in bypassPermissions mode with skipDangerousModePermissionPrompt set in your user settings or in managed settings.'"
+  },
+  {
+   "claim": "The TCPS 2 Article 2.5 quality-improvement limb is the likely basis for the planned designer studies (P16-M08, privacy rule 12).",
+   "why_false": "The Article 2.5 application note describes an organisation assessing its own performance, employees or students. The over-reliance probe also uses undisclosed wrong cards, which is partial disclosure, and only an REB can approve that.",
+   "correction": "Treat the studies as research pending a written UBC REB or instructor ruling. Use no undisclosed wrong cards with outside participants unless REB-approved with a debriefing (Articles 3.7A and 3.7B), and add consent and withdrawal procedures.",
+   "evidence": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter2-chapitre2.html (Art. 2.5 and application note); https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter3-chapitre3.html Art. 3.7A: an REB may approve partial disclosure or deception only if it documents minimal risk and impracticability, with a debriefing plan under 3.7B."
+  }
+ ],
+ "missing": [
+  "A deadline-safe export override for entrants: a human reason logged in the private trace, with an offline export path",
+  "A consent, withdrawal and retention protocol for HumanStudyReport, plus a decision on the REB route",
+  "An upload-time declaration and screen that quarantines likely Indigenous or community content as restricted_cultural by default",
+  "A bypassPermissions-mode case in the planted .mcp.json control test, and per-machine MCP allow-lists",
+  "Q&A submissions to the organiser by 3 Nov 2026 on AI disclosure and on clause 4.1 (previous publication)",
+  "A named auditor, with an access scope that excludes entry projects and traces",
+  "CapabilityMatrix rows for per-message-effort incompatibilities, effort levels per OpenAI model, the regional uplift and Canada's ZDR/MAM requirement",
+  "A derivation of the 600 QA runs and 90 extraction calls in the M08 cost model",
+  "Light-theme team-assumption outline and label text colours for all five chips",
+  "An OCR scan for ids drawn into board pixels"
+ ],
+ "gate": {
+  "pass": false,
+  "conditions": [
+   "The Higher Buildings Policy PDF is downloaded in a browser by 23 Oct, with SHA-256, edition and date recorded; a second person reviews the height, policy-area and criteria clauses by 30 Oct and both height cards are confirmed or corrected. If the download fails, the failure is logged.",
+   "The VTC brief is obtained by 28 Oct and hashed, and every brief card is reviewed blind-first by a non-proposer. Questions on AI disclosure and clause 4.1 go to the Q&A before 3 Nov.",
+   "The M07 guard covers bypassPermissions sessions: per-machine MCP allow-lists, no skipDangerousModePermissionPrompt, and a bypass-mode control case.",
+   "The human track either drops undisclosed wrong cards for outside participants or obtains REB approval with a debriefing; a consent and withdrawal protocol is added, and 'likely basis' wording is replaced by a written ruling.",
+   "Export has a logged human override and an offline path, so no entrant board can be blocked at the deadline.",
+   "restricted_cultural fails closed: an upload declaration plus a screen that quarantines unlabelled matches.",
+   "An auditor is named by 13 Nov, with access limited to brief and policy cards."
+  ]
+ },
+ "previous_round": [
+  {
+   "item": "MAJOR: cost model omits thinking tokens",
+   "status": "addressed",
+   "residue": "Unit prices and sums recompute exactly. Not yet modelled: thinking blocks from earlier turns billed as input, and the per-message effort 400 cases. The '600 runs' figure is not derived."
+  },
+  {
+   "item": "MAJOR: VTC 2026 entrant scope and 13 Nov over-budget",
+   "status": "addressed",
+   "residue": "'30 Nov-10 Dec ... = 7.0, slightly over' against about 6 days; the 13 Nov slice has 'no slack'."
+  },
+  {
+   "item": "MAJOR: Higher Buildings Policy clause text unread",
+   "status": "partly",
+   "residue": "'Shape Your City link returned a download page on 21 Oct'. The procedure is dated 23 Oct and has not been executed. I re-fetched today with the same result."
+  },
+  {
+   "item": "MAJOR: VTC brief unread",
+   "status": "partly",
+   "residue": "'PDF URL unknown; a team member requests it through the page's email link before 29 Oct'. The email popup is confirmed, and the registration-only claim was corrected."
+  },
+  {
+   "item": "MAJOR: capability-token claim and no module sandbox",
+   "status": "addressed",
+   "residue": "Isolation is now stated as a goal, with upload off until the test passes. MDN shows no CSP directive for WebRTC or navigation, so a fallback is needed."
+  },
+  {
+   "item": "MAJOR: self-applied 'verified' labels",
+   "status": "addressed",
+   "residue": "Metrics still use the non-schema status 'false_assumption_corrected'."
+  },
+  {
+   "item": "MAJOR: sharp placeholder URL",
+   "status": "addressed",
+   "residue": "The output docs confirm 'By default all metadata will be removed'; the licence is read from the README and not yet reviewed by a person."
+  },
+  {
+   "item": "MAJOR: no restricted_cultural class, and reconciliation scored",
+   "status": "addressed",
+   "residue": "The class works only when a person applies the label; unlabelled uploads fail open."
+  },
+  {
+   "item": "MAJOR: reviewer audit unstaffed",
+   "status": "partly",
+   "residue": "'Role named ... no person assigned'."
+  },
+  {
+   "item": "MINOR: dark-theme TA vs FALSE 1.08:1",
+   "status": "addressed",
+   "residue": "Fill 6.58:1 recomputed. The light TA fill against white is 1.10:1, with no outline specified."
+  },
+  {
+   "item": "MINOR: TCPS 2 Article 2.5 wording",
+   "status": "partly",
+   "residue": "The spec still calls the QI limb 'the likely basis'. The deception aspect (Art. 3.7A) and consent procedures are not addressed."
+  },
+  {
+   "item": "MINOR: seed redistribution",
+   "status": "addressed",
+   "residue": "The shared course RuleSet still carries verbatim quotes."
+  },
+  {
+   "item": "MINOR: Codex plugin under ChatGPT sign-in",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: date-based entry unlock",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: two Anthropic retention statements",
+   "status": "addressed"
+  },
+  {
+   "item": "MINOR: circular canary metric",
+   "status": "addressed"
+  }
+ ],
+ "sources_checked": [
+  {
+   "source_id": "P16-S78",
+   "url": "https://www.shapeyourcity.ca/51604/widgets/218772/documents/166245",
+   "ok": false,
+   "note": "Still only a 'will begin downloading' page with a blank filename; the policy text remains unread."
+  },
+  {
+   "source_id": "P16-S38",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "ok": false,
+   "note": "HTTP 403."
+  },
+  {
+   "source_id": "P16-S37",
+   "url": "https://shapeyourcity.ca/higher-buildings/faqs",
+   "ok": true,
+   "note": "Confirms 600ft (183 m) 'may be considered' (occurs twice), 'does not conform to its height limits', 'heigh limits' typo, Phase 2 early 2027, 1997/2011."
+  },
+  {
+   "source_id": "P16-S60",
+   "url": "https://shapeyourcity.ca/higher-buildings",
+   "ok": true,
+   "note": "Phases match the spec; protected views not reviewed; policy PDF 0.9 MB; FAQ also exists as a 0.3 MB PDF."
+  },
+  {
+   "source_id": "P16-S56",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/",
+   "ok": true,
+   "note": "Registration closes 29 Oct, Q&A deadline 3 Nov, submission 30 Nov 23:59 London, winners 26 Jan 2027; email popup for the brief; no criteria or weights shown."
+  },
+  {
+   "source_id": "P16-S57",
+   "url": "https://architecturecompetitions.com/vancouvertallchallenge/terms",
+   "ok": true,
+   "note": "Clauses 4.1, 4.8, 5.1, 5.3, 6.1, 12.2, 12.3 and 7.5.5 confirmed; no AI clause; teams of 2-4 (3.2)."
+  },
+  {
+   "source_id": "P16-S81",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost",
+   "ok": true,
+   "note": "Spec accurate. Omits that earlier-turn thinking blocks are billed as input."
+  },
+  {
+   "source_id": "P16-S82",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/effort",
+   "ok": true,
+   "note": "Defaults and disable rules match the spec. Per-message effort returns 400 with Haiku 5.5 thinking disabled or Sonnet 5.5 between_tools (not in spec)."
+  },
+  {
+   "source_id": "P16-S03",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "ok": true,
+   "note": "Prices, 0.05x cache reads, batch 50%, Haiku 5.5 over-100K tier and 1.1x US inference all match."
+  },
+  {
+   "source_id": "P16-S04",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+   "ok": true,
+   "note": "512 minimum on the 5.5 models, 1,024 on Sonnet 5, 5-minute default, workspace isolation."
+  },
+  {
+   "source_id": "P16-S07",
+   "url": "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+   "ok": true,
+   "note": "'not retained by default' except Covered Models (30 days); Batch 29 days; Files API until deleted; flagged content up to 2 years."
+  },
+  {
+   "source_id": "P16-S08",
+   "url": "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data",
+   "ok": true,
+   "note": "1 Jul 2026; 30 days; flagged content 2 years, scores 7 years, feedback 5 years."
+  },
+  {
+   "source_id": "P16-S01",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/citations",
+   "ok": true,
+   "note": "All-or-none rule, valid pointers, sentence chunking and 400 with structured outputs confirmed."
+  },
+  {
+   "source_id": "P16-S02",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/search-results",
+   "ok": true,
+   "note": "Schema confirmed; all active models except Haiku 3."
+  },
+  {
+   "source_id": "P16-S05",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+   "ok": true,
+   "note": "No numeric or string constraints; limits of 24 optional and 16 union parameters confirmed."
+  },
+  {
+   "source_id": "P16-S10",
+   "url": "https://developers.openai.com/api/docs/pricing",
+   "ok": true,
+   "note": "gpt-6.x prices, file search, storage, embeddings and image $30 confirmed; 10% regional uplift not in spec."
+  },
+  {
+   "source_id": "P16-S14",
+   "url": "https://developers.openai.com/api/docs/guides/your-data",
+   "ok": true,
+   "note": "store:false behaviour and persistence confirmed; Canada is storage only and requires ZDR or MAM."
+  },
+  {
+   "source_id": "P16-S61",
+   "url": "https://developers.openai.com/api/docs/deprecations",
+   "ok": true,
+   "note": "gpt-image-1 23 Oct 2026; 1-mini and 1.5 on 1 Dec 2026; replacements confirmed."
+  },
+  {
+   "source_id": "P16-S83",
+   "url": "https://developers.openai.com/api/docs/guides/reasoning",
+   "ok": true,
+   "note": "Reasoning billing confirmed and 25,000-token reserve confirmed; luna defaults to medium; sol rejects none and minimal."
+  },
+  {
+   "source_id": "P16-S20",
+   "url": "https://code.claude.com/docs/en/mcp",
+   "ok": true,
+   "note": "Credential blanking and v2.1.246 confirmed. Also lists the bypassPermissions + skipDangerousModePermissionPrompt no-prompt path, which the spec omits."
+  },
+  {
+   "source_id": "P16-S18",
+   "url": "https://github.com/openai/codex-plugin-cc",
+   "ok": true,
+   "note": "Apache-2.0; commands; ChatGPT (Free included) or API key; uses local Codex auth; no data terms."
+  },
+  {
+   "source_id": "P16-S15",
+   "url": "https://learn.chatgpt.com/docs/mcp-server",
+   "ok": true,
+   "note": "codex mcp-server removed, no version or date; app server is JSON-RPC and experimental."
+  },
+  {
+   "source_id": "P16-S16",
+   "url": "https://learn.chatgpt.com/docs/non-interactive-mode.md",
+   "ok": true,
+   "note": "Warning against public or open-source repositories, per-invocation CODEX_API_KEY and read-only default confirmed."
+  },
+  {
+   "source_id": "P16-S79",
+   "url": "https://sharp.pixelplumbing.com/api-output",
+   "ok": true,
+   "note": "'By default all metadata will be removed'; keepMetadata and withMetadata as stated; no licence on the page."
+  },
+  {
+   "source_id": "P16-S85",
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/connect-src",
+   "ok": true,
+   "note": "Lists ping, fetch, fetchLater, XHR, WebSocket, EventSource and sendBeacon; silent on WebRTC and navigation."
+  },
+  {
+   "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy",
+   "ok": true,
+   "note": "No webrtc or navigate-to directive listed, so CSP cannot close those channels."
+  },
+  {
+   "source_id": "P16-S75",
+   "url": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter2-chapitre2.html",
+   "ok": true,
+   "note": "Article 2.5 text matches, but the application note frames it as an organisation's own assessment; secondary use may need REB review."
+  },
+  {
+   "url": "https://ethics.gc.ca/eng/tcps2-eptc2_2022_chapter3-chapitre3.html",
+   "ok": true,
+   "note": "Articles 3.7A and 3.7B: partial disclosure or deception needs REB approval and a debriefing. Applies to the seeded wrong cards."
+  },
+  {
+   "source_id": "P16-S64",
+   "url": "https://huggingface.co/voyageai/voyage-4-nano",
+   "ok": true,
+   "note": "Apache 2.0, 0.3B, 32k context, 2048 dimensions; trust_remote_code in all examples; transformers>=4.56."
+  }
+ ],
+ "verdict": "Gate fails. Round 4 fixed most earlier items. The cost figures, pricing, retention, citation, effort, MCP-expansion and contrast claims all recompute or match their sources. Two jobs are still not done: the Higher Buildings Policy PDF (Shape Your City still serves only a download page) and the VTC brief are both unread, so the height and brief cards entrants would use are unconfirmed. New issues: (1) the MCP guard misses bypassPermissions sessions; (2) the over-reliance study shows outside participants undisclosed wrong cards, which TCPS 2 Art. 3.7A lets only an REB approve; (3) the export gate can block an entrant's board at the deadline with no human override; (4) restricted_cultural material fails open when nobody labels it. Fix these and finish the dated document reviews before entrants rely on the tool."
+}
