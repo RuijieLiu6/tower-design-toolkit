@@ -52,8 +52,8 @@ export function offlineApp({ pages }: { pages: boolean }): Plugin {
   }
 }
 
-/** Repository path for GitHub Pages ("/tower-studio/" unless PAGES_BASE says otherwise), always with both slashes. */
+/** Repository path for GitHub Pages ("/tower-design-toolkit/" unless PAGES_BASE says otherwise), always with both slashes. */
 export function pagesBase(env?: string): string {
-  const p = (env ?? 'tower-studio').replace(/^\/+|\/+$/g, '')
+  const p = (env ?? 'tower-design-toolkit').replace(/^\/+|\/+$/g, '')
   return p ? `/${p}/` : '/'
 }

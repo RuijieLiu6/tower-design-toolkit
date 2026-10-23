@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => ({
   // offlineApp writes the service worker (works offline after the first visit) and, for GitHub Pages, the 404 page.
   plugins: [react(), tailwindcss(), offlineApp({ pages: mode === 'pages' })],
   // './' keeps every URL relative, so a local build runs from any folder. `npm run build:pages` (mode "pages") uses the
-  // repository path instead (PAGES_BASE, default /tower-studio/), so GitHub Pages' 404 page works at any depth.
+  // repository path instead (PAGES_BASE, default /tower-design-toolkit/), so GitHub Pages' 404 page works at any depth.
   base: mode === 'pages' ? pagesBase(process.env.PAGES_BASE) : './',
   // Only the lazy node builder dialog uses these; pre-bundle them so its first open doesn't reload the dev page.
   // rhino3dm and web-ifc (massing import) are served as-is: they find their .wasm through ?url imports.
