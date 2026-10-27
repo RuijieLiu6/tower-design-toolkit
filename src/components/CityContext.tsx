@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { create } from 'zustand'
-import type { Look } from '../data/stages'
+import { LOOKS, type Look } from '../data/stages'
 import { rectCorners } from '../engine/massing'
 import { CONES, CONE_PARAMS } from '../engine/viewCones'
 import { indexFootprints, type FootprintIndex } from '../engine/viewFrom'
@@ -19,7 +19,8 @@ import { REMOVAL_CAVEAT, REMOVAL_FLAG, maskHeights, maskIndex, removalCounts, re
 import { rtinIndices } from '../lib/terrainMesh'
 import { cellInside, groundDisplayPatch, isGroundDetail, isTerrainDetail, loadTerrainDetails, nameTerrain, terrainBasis } from '../lib/terrainDetails'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
-import { applyBuildingForms, loadCityGeometry, type StreetData } from '../lib/cityGeometry'
+import { withoutHistory } from '../lib/project/history'
+import { applyBuildingForms, is2009Part, loadCityGeometry, type StreetData } from '../lib/cityGeometry'
 import CityStreets, { useStreetDisplay } from './CityStreets'
 import { useViewFromStore } from '../lib/viewFromStore'
 import ContextLayersScene, { ContextLayersPanel } from './ContextLayers'
@@ -27,7 +28,12 @@ import HeightSurfaceLayer, { HeightSurfacePanel, drawClick } from './HeightSurfa
 import Label from './Label'
 import { CONE_STYLE, FlagChip } from './ui'
 
-interface CityData { streets: StreetData | null; roofParts: number; manifest: Manifest; footprints: Footprint[]; heights: FootprintHeights | null; r1: HeightGrid; r2: HeightGrid; ground: HeightGrid[]; grids: HeightGrid[]; detailStatus: 'loading' | 'ready' | 'partial'; detailErrors: string[] }
+interface CityData {
+  streets: StreetData | null; roofParts: number; manifest: Manifest; footprints: Footprint[]; heights: FootprintHeights | null
+  r1: HeightGrid; r2: HeightGrid; ground: HeightGrid[]; grids: HeightGrid[]; detailStatus: 'loading' | 'ready' | 'partial'; detailErrors: string[]
+  /** Indices into footprints: outlines with no height in any source, drawn as display-only placeholders (never in a calculation). */
+  placeholders: ReadonlySet<number>; placeholderHeight: number
+}
 
 let cache: Promise<CityData> | null = null
 /** Loads every layer once per session (the canvas remounts when switching projects). */
@@ -48,7 +54,7 @@ function loadCity(): Promise<CityData> {
     const footprints = decodeFootprints(fb)
     const r1 = nameTerrain(decodeTerrain(b1, t1.grid), t1), r2 = nameTerrain(decodeTerrain(b2, t2.grid), t2)
     return { manifest, footprints, streets: null, roofParts: 0, heights: hb ? decodeHeights(hb, footprints.length) : null,
-      r1, r2, ground: [], grids: [r1, r2], detailStatus: 'loading', detailErrors: [] }
+      r1, r2, ground: [], grids: [r1, r2], detailStatus: 'loading', detailErrors: [], placeholders: new Set<number>(), placeholderHeight: 0 }
 
   })()
   cache.catch(() => { cache = null })
@@ -69,7 +75,7 @@ function loadDetailedCity(base: CityData): Promise<CityData> {
     const ground = details.loaded.filter((d) => isGroundDetail(d.layer)).map((d) => d.grid).sort((a, b) => a.step - b.step)
     const r2 = details.loaded.find((d) => d.layer.id === 'terrain_r2_detail')?.grid ?? base.r2
     return { ...base, ...buildings, streets: geometry.streets, roofParts: geometry.forms?.forms.length ?? 0, ground, r2, grids: [...ground, base.r1, r2],
-      detailStatus: errors.length ? 'partial' : 'ready', detailErrors: errors }
+      placeholderHeight: geometry.forms?.placeholderHeight ?? 0, detailStatus: errors.length ? 'partial' : 'ready', detailErrors: errors }
   })()
   return detailedCache
 }
@@ -80,7 +86,9 @@ export function useCityData() {
     let live = true
     loadCity().then(async (base) => {
       if (live) setState({ data: base, error: null })
+      if (!detailedCache) followTerrain(base)
       const data = await loadDetailedCity(base)
+      followTerrain(data)
       if (live) setState({ data, error: null })
     }, (e: Error) => live && setState({ data: null, error: e.message }))
     return () => { live = false }
@@ -148,10 +156,12 @@ function terrainGeometry(g: HeightGrid, look: Look, inner: HeightGrid | null, pa
   const { cols, rows, step, x0, y0, z } = g
   const pos = new Float32Array(cols * rows * 3)
   const col = new Float32Array(cols * rows * 3)
+  const uv = new Float32Array(cols * rows * 2)
   const shown = new Float32Array(cols * rows)
-  const sea = new THREE.Color(look.ground)
-  const low = sea.clone().multiplyScalar(0.86)
-  const high = sea.clone().multiplyScalar(0.66)
+  const sea = new THREE.Color(look.water)
+  const land = new THREE.Color(look.ground)
+  const low = land.clone().multiplyScalar(0.86)
+  const high = land.clone().multiplyScalar(0.66)
   const c = new THREE.Color()
   const half = inner ? -inner.x0 : 0
   for (let r = 0; r < rows; r++) {
@@ -161,6 +171,7 @@ function terrainGeometry(g: HeightGrid, look: Look, inner: HeightGrid | null, pa
       if (inner && Math.abs(x) <= half && Math.abs(y) <= half) h = sampleGrid(inner, x, y) ?? h
       shown[i] = h
       pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = h
+      uv[i * 2] = (x + PLANE_HALF) / (2 * PLANE_HALF); uv[i * 2 + 1] = (y + PLANE_HALF) / (2 * PLANE_HALF)
       ;(h > 0 ? c.copy(low).lerp(high, Math.min(1, h / 1000)) : c.copy(sea)).toArray(col, i * 3)
     }
   }
@@ -191,28 +202,96 @@ function terrainGeometry(g: HeightGrid, look: Look, inner: HeightGrid | null, pa
   const geom = new THREE.BufferGeometry()
   geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
   geom.setAttribute('color', new THREE.BufferAttribute(col, 3))
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
   geom.setIndex(new THREE.BufferAttribute(index, 1))
   geom.computeVertexNormals()
   return geom
 }
 
+// ---------- visual finish: City parks tint the ground; the City's 2002 shoreline is drawn over the sea plane ----------
+interface Finish { parks: { names: string[]; polys: [number, number[]][] } | null; shoreline: { lines: number[][] } | null }
+let finishCache: Promise<Finish> | null = null
+function useFinish(manifest: Manifest): Finish {
+  const [f, setF] = useState<Finish>({ parks: null, shoreline: null })
+  useEffect(() => {
+    const get = async (id: string) => {
+      const e = manifest.layers.find((l) => l.id === id)
+      if (!e) return null
+      const r = await fetch(`./data/${e.file}`)
+      return r.ok ? r.json() : null
+    }
+    finishCache ??= Promise.all([get('parks'), get('shoreline')]).then(([parks, shoreline]) => ({ parks, shoreline }), () => ({ parks: null, shoreline: null }))
+    let live = true
+    finishCache.then((v) => live && setF(v))
+    return () => { live = false }
+  }, [manifest])
+  return f
+}
+
+/** Park outlines painted into a texture over the 0 m plane's square; the terrain multiplies it in (white = no tint). */
+function parkTexture(parks: Finish['parks'], tint: string): THREE.CanvasTexture | null {
+  if (!parks || typeof document === 'undefined') return null
+  const n = 2048, s = n / (2 * PLANE_HALF)
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = n
+  const g = cv.getContext('2d')
+  if (!g) return null
+  g.fillStyle = '#ffffff'
+  g.fillRect(0, 0, n, n)
+  g.fillStyle = tint
+  for (const [, flat] of parks.polys) {
+    g.beginPath()
+    for (let i = 0; i + 1 < flat.length; i += 2) {
+      const px = (flat[i] / 10 + PLANE_HALF) * s, py = n - (flat[i + 1] / 10 + PLANE_HALF) * s
+      if (i) g.lineTo(px, py); else g.moveTo(px, py)
+    }
+    g.closePath()
+    g.fill()
+  }
+  const t = new THREE.CanvasTexture(cv)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.anisotropy = 4
+  return t
+}
+
+function Shoreline({ lines, grids, color }: { lines: number[][]; grids: HeightGrid[]; color: string }) {
+  const geom = useMemo(() => {
+    const p: number[] = []
+    for (const flat of lines) {
+      for (let i = 0; i + 3 < flat.length; i += 2) {
+        const ax = flat[i] / 10, ay = flat[i + 1] / 10, bx = flat[i + 2] / 10, by = flat[i + 3] / 10
+        p.push(ax, ay, Math.max(0, sampleTerrain(grids, ax, ay) ?? 0) + 0.4, bx, by, Math.max(0, sampleTerrain(grids, bx, by) ?? 0) + 0.4)
+      }
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3))
+    return g
+  }, [lines, grids])
+  useEffect(() => () => geom.dispose(), [geom])
+  return <lineSegments geometry={geom}><lineBasicMaterial color={color} transparent opacity={0.9} /></lineSegments>
+}
+
 function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (x: number, y: number) => void }) {
+  const finish = useFinish(data.manifest)
   const patches = useMemo(() => data.ground.map((g) => groundDisplayPatch(g, data.r1)), [data])
   const detailed = useMemo(() => patches.map((g) => terrainGeometry(g, look, null, [], true)), [patches, look])
   const r1 = useMemo(() => terrainGeometry(data.r1, look, null, patches), [data, look, patches])
   const r2 = useMemo(() => terrainGeometry(data.r2, look, data.r1), [data, look])
+  const parks = useMemo(() => parkTexture(finish.parks, look.park), [finish.parks, look.park])
   useEffect(() => () => { r1.dispose(); r2.dispose(); detailed.forEach((g) => g.dispose()) }, [r1, r2, detailed])
+  useEffect(() => () => parks?.dispose(), [parks])
   // Only R1 takes clicks (placing towers); raycasting R2's half a million triangles is not worth it.
   // While the height surface is drawing an area, ground clicks set its corners instead of moving the tower.
   const pick = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); if (!drawClick(e.point.x, -e.point.z)) onPick(e.point.x, -e.point.z) }
   return (
     <>
       <mesh geometry={r1} receiveShadow onPointerDown={pick}>
-        <meshStandardMaterial vertexColors roughness={1} metalness={0} />
+        <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>
       {detailed.map((geometry, i) => <mesh key={i} geometry={geometry} receiveShadow onPointerDown={pick}>
-        <meshStandardMaterial vertexColors roughness={1} metalness={0} />
+        <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>)}
+      {finish.shoreline && <Shoreline lines={finish.shoreline.lines} grids={data.grids} color={look.shore} />}
       <mesh geometry={r2} receiveShadow>
         <meshStandardMaterial vertexColors roughness={1} metalness={0} />
       </mesh>
@@ -221,38 +300,94 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
 }
 
 // ---------- buildings ----------
-/** Stepped LiDAR roof parts, with legacy LOD1 blocks only outside replacement coverage. Same rule as the VTC context: solid clay, ghosted in x-ray. */
-function Buildings({ data, color, ghost, hidden }: { data: CityData; color: string; ghost: boolean; hidden: ReadonlySet<number> }) {
-  const { geom, ranges } = useMemo(() => {
-    const parts: THREE.BufferGeometry[] = []
-    const ranges: [number, number, number][] = []
-    let at = 0
-    const h = data.heights
-    data.footprints.forEach((f, i) => {
-      if (!hasHeight(h, i)) return
-      const shape = new THREE.Shape(f.outer.map(([x, y]) => new THREE.Vector2(x, y)))
-      shape.holes = f.holes.map((ring) => new THREE.Path(ring.map(([x, y]) => new THREE.Vector2(x, y))))
-      let g: THREE.BufferGeometry = new THREE.ExtrudeGeometry(shape, { depth: h!.roof[i] - h!.ground[i], bevelEnabled: false })
-      g.translate(0, 0, h!.ground[i])
-      if (g.index) { const indexed = g; g = indexed.toNonIndexed(); indexed.dispose() }
-      g.deleteAttribute('uv')
-      g.computeVertexNormals()
-      const n = g.getAttribute('position').count
-      ranges.push([i, at, n])
-      at += n
-      parts.push(g)
-    })
-    const merged = parts.length ? mergeGeometries(parts) : null
-    parts.forEach((p) => p.dispose())
-    return { geom: merged, ranges }
+/** Extrudes the chosen footprints from `base(i)` to `top(i)` into one merged mesh, with the draw ranges useHiddenParts needs. */
+function prisms(data: CityData, pick: (i: number) => boolean, base: (i: number) => number, top: (i: number) => number, uv = false) {
+  const parts: THREE.BufferGeometry[] = []
+  const ranges: [number, number, number][] = []
+  let at = 0
+  data.footprints.forEach((f, i) => {
+    if (!pick(i)) return
+    const shape = new THREE.Shape(f.outer.map(([x, y]) => new THREE.Vector2(x, y)))
+    shape.holes = f.holes.map((ring) => new THREE.Path(ring.map(([x, y]) => new THREE.Vector2(x, y))))
+    let g: THREE.BufferGeometry = new THREE.ExtrudeGeometry(shape, { depth: top(i) - base(i), bevelEnabled: false })
+    g.translate(0, 0, base(i))
+    if (g.index) { const indexed = g; g = indexed.toNonIndexed(); indexed.dispose() }
+    if (!uv) g.deleteAttribute('uv')
+    g.computeVertexNormals()
+    const n = g.getAttribute('position').count
+    ranges.push([i, at, n])
+    at += n
+    parts.push(g)
+  })
+  const geom = parts.length ? mergeGeometries(parts) : null
+  parts.forEach((p) => p.dispose())
+  return { geom, ranges }
+}
+
+/**
+ * Stepped LiDAR 2022 roof parts, then the City's 2009 heights in the ring outside the 2022 core (a shade darker, an
+ * older survey), with legacy LOD1 blocks only outside replacement coverage. Solid clay, ghosted in x-ray.
+ */
+function Buildings({ data, look, ghost, hidden }: { data: CityData; look: Look; ghost: boolean; hidden: ReadonlySet<number> }) {
+  const h = data.heights
+  const meshes = useMemo(() => [false, true].map((older) => prisms(data,
+    (i) => hasHeight(h, i) && is2009Part(data.footprints[i].id) === older, (i) => h!.ground[i], (i) => h!.roof[i])), [data, h])
+  useEffect(() => () => meshes.forEach((m) => m.geom?.dispose()), [meshes])
+  useHiddenParts(meshes[0].geom, meshes[0].ranges, hidden)
+  useHiddenParts(meshes[1].geom, meshes[1].ranges, hidden)
+  return (
+    <>
+      {meshes.map((m, k) => m.geom && (
+        <mesh key={k} geometry={m.geom} castShadow={!ghost} receiveShadow>
+          <meshStandardMaterial color={k ? look.older : look.context} roughness={0.92} metalness={0} transparent opacity={ghost ? 0.45 : 1} depthWrite={!ghost} />
+        </mesh>
+      ))}
+    </>
+  )
+}
+
+/** Diagonal hatch, one stripe every 4 m (extrusion UVs are in metres). */
+function hatchTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = 32
+  const g = cv.getContext('2d')
+  if (!g) return null
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 32, 32)
+  g.strokeStyle = '#6b7079'; g.lineWidth = 5
+  for (const d of [-32, 0, 32]) { g.beginPath(); g.moveTo(d, 32); g.lineTo(d + 32, 0); g.stroke() }
+  const t = new THREE.CanvasTexture(cv)
+  t.wrapS = t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(0.25, 0.25)
+  return t
+}
+
+/**
+ * Outlines with no height in any source (on the 2015 map with nothing of the City's 2009 heights on them: mostly small
+ * garages and laneway houses the generalised 2009 survey leaves out, or newer buildings): hatched, translucent blocks
+ * of a nominal height, chosen by Ruijie (27 Oct) as display only. They are not picked, cast no shadow and stay
+ * "height unknown" for views, solar and cones.
+ */
+function Placeholders({ data, xray, hidden }: { data: CityData; xray: boolean; hidden: ReadonlySet<number> }) {
+  const { geom, ranges, anchor } = useMemo(() => {
+    const grids = data.grids, base = new Map<number, number>()
+    for (const i of data.placeholders) base.set(i, Math.max(0, Math.min(...data.footprints[i].outer.map(([x, y]) => sampleTerrain(grids, x, y) ?? 0))))
+    const m = prisms(data, (i) => data.placeholders.has(i), (i) => base.get(i)!, (i) => base.get(i)! + data.placeholderHeight, true)
+    const first = [...data.placeholders][0]
+    const at = first === undefined ? null : data.footprints[first].outer[0]
+    return { ...m, anchor: at ? [at[0], at[1], base.get(first)! + data.placeholderHeight + 40] as [number, number, number] : null }
   }, [data])
-  useEffect(() => () => geom?.dispose(), [geom])
+  const hatch = useMemo(() => hatchTexture(), [])
+  useEffect(() => () => { geom?.dispose(); hatch?.dispose() }, [geom, hatch])
   useHiddenParts(geom, ranges, hidden)
   if (!geom) return null
   return (
-    <mesh geometry={geom} castShadow={!ghost} receiveShadow>
-      <meshStandardMaterial color={color} roughness={0.92} metalness={0} transparent opacity={ghost ? 0.45 : 1} depthWrite={!ghost} />
-    </mesh>
+    <>
+      <mesh geometry={geom} raycast={() => null} renderOrder={2}>
+        <meshStandardMaterial color="#c3c6cb" map={hatch} roughness={1} transparent opacity={xray ? 0.22 : 0.45} depthWrite={false} />
+      </mesh>
+      {anchor && <Label text={`${data.placeholders.size.toLocaleString()} placeholders: no height data (display only, ${data.placeholderHeight} m)`} position={anchor} size={0.014} color="#4a4f57" />}
+    </>
   )
 }
 
@@ -333,8 +468,6 @@ function DrapedCones({ data }: { data: CityData }) {
 }
 
 // ---------- ground under the selected tower ----------
-/** Where the project's base elevation came from when the ground card set it (the main store keeps only the number). */
-const useGroundSource = create<{ value: number | null; prev: number | null; follow: boolean }>(() => ({ value: null, prev: null, follow: false }))
 const round1 = (v: number) => Math.round(v * 10) / 10
 
 /** Terrain under the selected tower's footprint (corner average, range over corners and centre). */
@@ -361,59 +494,60 @@ function GroundCheck({ data }: { data: CityData }) {
 }
 
 /**
- * Offers the terrain as the tower base, without changing it on its own: the base moves every view-cone result
- * (top = base + height), so the user decides. The value stays visible with its source.
+ * In 'terrain' mode (the default) the project base follows the terrain under the selected tower. A store
+ * subscription, not a component: the 3D view only commits on animation frames, which stop while it is hidden and
+ * take seconds in software WebGL. The follow-up is folded into the edit that caused it (withoutHistory), so undoing
+ * a move restores the base it had. Re-armed with the detailed ground once it loads.
+ */
+let followed: CityData | null = null, unfollow: (() => void) | null = null
+function followTerrain(data: CityData) {
+  if (followed === data) return
+  followed = data
+  unfollow?.()
+  const apply = (s: ReturnType<typeof useStore.getState>) => {
+    if (s.project !== 'city' || s.groundMode !== 'terrain') return
+    const t = s.towers.city.find((k) => k.id === s.selectedTower)
+    const g = t ? groundUnder(data.grids, rectCorners(t.x, t.y, t.width, t.depth, t.rotation)) : null
+    if (g && Math.abs(round1(g.value) - s.groundElevation) >= 0.05) withoutHistory(() => useStore.getState().set({ groundElevation: round1(g.value) }))
+  }
+  unfollow = useStore.subscribe(apply)
+  apply(useStore.getState())
+}
+
+/**
+ * Says where the tower base comes from: the terrain (default, flagged unverified) or a value set by hand, with a
+ * one-click switch either way. The base moves every view-cone result (top = base + height).
  */
 function GroundCard({ data }: { data: CityData }) {
   const base = useStore((s) => s.groundElevation)
+  const mode = useStore((s) => s.groundMode)
   const { t, g, basis } = useTowerGround(data)
-  const src = useGroundSource()
   const terrain = g ? round1(g.value) : null
-  const fromTerrain = src.value !== null && Math.abs(src.value - base) < 0.005
-  const applyTerrain = (v: number) => {
-    useGroundSource.setState({ value: v, prev: fromTerrain ? src.prev : base })
-    useStore.getState().set({ groundElevation: v })
-  }
-  useEffect(() => {
-    if (src.follow && terrain !== null && Math.abs(terrain - useStore.getState().groundElevation) >= 0.05) {
-      useGroundSource.setState({ value: terrain })
-      useStore.getState().set({ groundElevation: terrain })
-    }
-  }, [src.follow, terrain])
-  if (!t || !g || terrain === null) return null
-  const initial = useStore.getInitialState().groundElevation
-  const baseSource = fromTerrain ? 'from the terrain' : base === initial ? 'team assumption (default)' : 'set by hand'
+  if (!t) return null
+  const following = mode === 'terrain' && terrain !== null
+  const btn = 'rounded border border-line bg-white px-1.5 py-0.5 font-medium text-ink hover:bg-slate-50'
   return (
-    <div className="w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm">
+    <div className="w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm" data-testid="ground-card">
       <div className="flex items-center justify-between gap-2">
-        <b className="text-ink">Ground at {t.name}</b>
-        <FlagChip flag="unverified" />
+        <b className="text-ink">Tower base {base.toFixed(1)} m</b>
+        <FlagChip flag={following ? 'unverified' : 'team_assumption'} />
       </div>
-      <div>
-        Terrain <b className="text-ink">{terrain.toFixed(1)} m</b> (corner average; {g.min.toFixed(1)}–{g.max.toFixed(1)} m under the footprint) · {basis} · CGVD28
+      <div aria-live="polite">
+        {following
+          ? <>From the terrain under {t.name} · follows the tower when it moves</>
+          : mode === 'terrain'
+            ? <>No terrain under {t.name}: the base stays at {base.toFixed(1)} m</>
+            : <>Set by hand{terrain !== null && Math.abs(terrain - base) >= 0.05 ? <> · <b className="text-flag-unresolved">{Math.abs(terrain - base).toFixed(1)} m {base < terrain ? 'below' : 'above'} the terrain</b></> : null}</>}
       </div>
-      <div>Tower base <b className="text-ink">{base.toFixed(1)} m</b> · {baseSource}</div>
+      {g && terrain !== null && (
+        <div>Terrain {terrain.toFixed(1)} m (corner average; {g.min.toFixed(1)}–{g.max.toFixed(1)} m under the footprint) · {basis} · CGVD28</div>
+      )}
       <div className="mt-1 flex flex-wrap items-center gap-2">
-        {!fromTerrain && Math.abs(terrain - base) >= 0.05 && (
-          <button type="button" className="rounded border border-line bg-white px-1.5 py-0.5 font-medium text-ink hover:bg-slate-50" onClick={() => applyTerrain(terrain)}>
-            Use terrain ({terrain.toFixed(1)} m)
-          </button>
-        )}
-        {fromTerrain && src.prev !== null && (
-          <button type="button" className="rounded border border-line bg-white px-1.5 py-0.5 text-ink hover:bg-slate-50"
-            onClick={() => { useStore.getState().set({ groundElevation: src.prev! }); useGroundSource.setState({ value: null, follow: false }) }}>
-            Undo ({src.prev.toFixed(1)} m)
-          </button>
-        )}
-        <label className="flex items-center gap-1">
-          <input type="checkbox" checked={src.follow} onChange={(e) => {
-            if (e.target.checked && !fromTerrain) useGroundSource.setState({ prev: base })
-            useGroundSource.setState({ follow: e.target.checked })
-          }} />
-          Follow the terrain when the tower moves
-        </label>
+        {mode === 'terrain'
+          ? <button type="button" className={btn} onClick={() => useStore.getState().set({ groundMode: 'manual' })}>Set the base by hand</button>
+          : terrain !== null && <button type="button" className={btn} onClick={() => useStore.getState().set({ groundMode: 'terrain', groundElevation: terrain })}>Follow the terrain ({terrain.toFixed(1)} m)</button>}
       </div>
-      <div className="mt-1 text-[10px] text-slate-500">The base moves every view-cone result (top = base + height). One base for all towers in this project.</div>
+      <div className="mt-1 text-[10px] text-slate-500">The base moves every view-cone result (top = base + height). One base for all towers in this project; edit it in Design.</div>
     </div>
   )
 }
@@ -466,8 +600,9 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
     <>
       <Terrain data={data} look={look} onPick={onPick} />
       <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />
-      <Buildings data={data} color={look.context} ghost={xray} hidden={hidden} />
+      <Buildings data={data} look={look} ghost={xray} hidden={hidden} />
       <UnknownOutlines data={data} xray={xray} hidden={hidden} />
+      <Placeholders data={data} xray={xray} hidden={hidden} />
       <DrapedCones data={data} />
       <GroundCheck data={data} />
       <HeightSurfaceLayer grids={grids} />
@@ -493,9 +628,10 @@ export function CityLegend() {
   if (!data) return <div className="absolute right-3 top-3 rounded-md bg-white/90 px-2 py-1 text-[11px] text-slate-500 shadow-sm">Loading Vancouver context…</div>
   const { manifest, footprints, heights } = data
   const withHeight = footprints.filter((_, i) => hasHeight(heights, i)).length
+  const older = footprints.filter((f) => is2009Part(f.id)).length
   const firstLoad = manifest.layers.filter((l) => !l.lazy)
   const total = firstLoad.reduce((s, l) => s + layerBytes(l), 0)
-  const onDemand = manifest.layers.filter((l) => l.lazy && !isTerrainDetail(l) && !['building_forms', 'city_streets'].includes(l.id)).length
+  const onDemand = manifest.layers.filter((l) => l.lazy && !isTerrainDetail(l) && !['building_forms', 'building_forms_2009', 'city_streets', 'shoreline', 'parks'].includes(l.id)).length
   const fas = manifest.layers.flatMap((l) => l.false_assumptions ?? [])
   return (
     <div className="absolute right-3 top-3 flex max-h-[calc(100%-1.5rem)] max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 overflow-y-auto">
@@ -503,14 +639,17 @@ export function CityLegend() {
       <summary className="cursor-pointer select-none px-2 py-1.5 text-ink">
         <b>Context layers</b> · {firstLoad.length} · {mb(total)}{onDemand ? ` · ${onDemand} more on demand` : ''}
         <span className="block font-normal text-slate-600" role="status">{data.detailStatus === 'loading' ? 'Loading building forms, streets and terrain…' : `Ground: ${data.ground.length ? 'City LiDAR 1 m where covered' : 'MRDEM 30 m'} · Mountains: ${data.r2.step} m`}</span>
-        <span className="block font-normal text-slate-500">{data.roofParts.toLocaleString()} measured roof parts · {data.streets ? 'City streets loaded' : 'Streets unavailable'}</span>
+        <span className="block font-normal text-slate-500">{data.roofParts.toLocaleString()} measured building parts (LiDAR 2022 core, City 2009 elsewhere in the view cones) · {data.streets ? 'City streets loaded' : 'Streets unavailable'}</span>
       </summary>
       <div className="space-y-2 border-t border-line px-2 py-2">
         <p>
-          <b className="text-ink">{data.roofParts.toLocaleString()} extracted roof parts</b> (2022 LiDAR). {withHeight.toLocaleString()} solid parts in total;{' '}
-          <b>{(footprints.length - withHeight).toLocaleString()} height unknown</b> (flat outlines, never a guessed height).
+          <b className="text-ink">{(data.roofParts - older).toLocaleString()} roof parts from City LiDAR 2022</b> (the 2 × 2 km core) and{' '}
+          <span className="mr-1 inline-block h-2.5 w-3.5 rounded-sm border border-black/10 align-middle" style={{ background: LOOKS.clay.older }} />
+          <b className="text-ink">{older.toLocaleString()} from the City's 2009 heights</b> around it and across the 24 view cones (an older survey, a shade darker; 2009 buildings no longer on the 2015 map are left out).{' '}
+          {withHeight.toLocaleString()} solid parts in total; <b>{(footprints.length - withHeight).toLocaleString()} height unknown</b> (flat outlines, never a guessed height)
+          {data.placeholders.size > 0 && <>, of which {data.placeholders.size.toLocaleString()} with nothing of 2009 on them (mostly garages and laneway houses under 60 m², which the generalised 2009 survey leaves out or which are newer) show as hatched {data.placeholderHeight} m placeholders: display only, in no calculation</>}.
         </p>
-        <p>Detailed ground covers {data.ground.length} City LiDAR tile{data.ground.length === 1 ? '' : 's'} in the West End / Coal Harbour area. Elsewhere, and in gaps under buildings or water, ground uses MRDEM at 30 m. The 2022 survey and 2015 footprints do not represent all current development.</p>
+        <p>Detailed ground covers {data.ground.length} City LiDAR 1 km tile{data.ground.length === 1 ? '' : 's'} ({manifest.layers.filter(isGroundDetail).map((l) => l.id.replace('terrain_ground_', '')).join(', ')}). Elsewhere, and in gaps under buildings or water, ground uses MRDEM at 30 m. The 2022 survey and 2015 footprints do not represent all current development.</p>
         {data.detailErrors.length > 0 && <p role="alert">Some detailed context could not load. The available base layers remain visible; reload to try again. {data.detailErrors.join('; ')}</p>}
         <p>Roof forms retain measured setbacks and separate podium levels at 1 m plan resolution. Roofs are grouped in 3 m elevation bands; slopes and facades remain approximate. The 2015 outlines outside the processed area have not been updated.</p>
         {data.roofParts > 0 && <button type="button" className="rounded border border-line px-2 py-1 font-medium text-ink hover:bg-slate-50" onClick={() => {
@@ -523,7 +662,8 @@ export function CityLegend() {
           <label className="flex items-center gap-1"><input type="checkbox" checked={streetDisplay.names} onChange={(e) => useStreetDisplay.setState({ names: e.target.checked })} /> Main street names</label>
           <p>City centre lines with recorded surface widths. Centre lines follow the right of way and may differ from the physical road centre. Curbs, sidewalks and medians are not surveyed by this layer. Missing widths and bridges are shown as reference lines.</p>
         </div>}
-        <p>Ground uses only bare-earth returns. The City's published 8.1 cm vertical accuracy describes the source survey, not this interpolated model. The sea plane is a visual reference at 0 m; it is not a surveyed shoreline or bathymetry.</p>
+        <p>Ground uses only bare-earth returns. The City's published 8.1 cm vertical accuracy describes the source survey, not this interpolated model.</p>
+        <p><span className="mr-1 inline-block h-2.5 w-3.5 rounded-sm border border-black/10 align-middle" style={{ background: LOOKS.clay.water }} /><b className="text-ink">Water</b> is a plane at 0 m CGVD28: it shows wherever the ground model is at or below 0 m, so the coast follows the terrain. <span className="mr-1 inline-block h-0.5 w-3.5 align-middle" style={{ background: LOOKS.clay.shore }} />The line is the City's approximate 2002 shoreline (not updated since). Neither is a surveyed shoreline or bathymetry. <span className="mr-1 inline-block h-2.5 w-3.5 rounded-sm border border-black/10 align-middle" style={{ background: '#cfdcc4' }} />Green ground marks City parks.</p>
         <ul className="space-y-1.5">
           {manifest.layers.map((l) => (
             <li key={l.id} className="leading-snug">

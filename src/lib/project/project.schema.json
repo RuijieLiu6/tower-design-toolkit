@@ -659,6 +659,13 @@
               ],
               "description": "Geodetic elevation of grade (m); null where heights are above local grade only."
             },
+            "groundMode": {
+              "enum": [
+                "terrain",
+                "manual"
+              ],
+              "description": "Real Vancouver: 'terrain' = the base follows the terrain under the selected tower; 'manual' = set by hand. Missing in files saved before 27 Oct 2026 (read as 'manual')."
+            },
             "basis": {
               "type": "string",
               "maxLength": 300

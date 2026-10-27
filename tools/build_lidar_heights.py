@@ -1,7 +1,9 @@
 """Derive per-footprint ground and roof heights from City of Vancouver LiDAR 2022 tiles.
 
 Usage (pipeline venv, isolated mode; one zip per tile, downloaded by hand from the City portal):
-    python -I tools/build_lidar_heights.py <out_dir> <zip_dir> <extract_root> <retrieved YYYY-MM-DD> [--keep-las]
+    python -I tools/build_lidar_heights.py <out_dir> <zip_dir> <extract_root> <retrieved YYYY-MM-DD> [--keep-las] [TILE=YYYY-MM-DD ...]
+
+<retrieved> is the latest download date; TILE=YYYY-MM-DD records an earlier date for one tile (e.g. 490000_5459000=2026-10-22).
 
 Reads <out_dir>/footprints_downtown.bin (same order as the app), extracts each <zip_dir>/<E>_<N>.zip into its own new
 folder under <extract_root>, processes it, and deletes the extracted LAS unless --keep-las. Writes
@@ -34,6 +36,7 @@ from shapely.geometry import Polygon
 
 OUT_DIR, ZIP_DIR, EXTRACT_ROOT, RETRIEVED = sys.argv[1:5]
 KEEP_LAS = "--keep-las" in sys.argv[5:]
+TILE_DATES = dict(a.split("=", 1) for a in sys.argv[5:] if "=" in a)
 PX = 0.25                       # id raster pixel (m)
 GROW_PX = 2                     # 0.5 m partition growth
 SHRINK_PX = 2                   # 0.5 m shrink for the roof sample
@@ -206,7 +209,7 @@ for zname in zips:
     tile = zname[:-4]
     e0, n0 = (int(v) for v in tile.split("_"))
     zpath = os.path.join(ZIP_DIR, zname)
-    meta = {"tile": tile, "zip_bytes": os.path.getsize(zpath), "zip_sha256": hashlib.sha256(open(zpath, "rb").read()).hexdigest()}
+    meta = {"tile": tile, "retrieved": TILE_DATES.get(tile, RETRIEVED), "zip_bytes": os.path.getsize(zpath), "zip_sha256": hashlib.sha256(open(zpath, "rb").read()).hexdigest()}
     dest = os.path.join(EXTRACT_ROOT, tile)
     las = safe_extract(zpath, dest)
     if not las:
@@ -271,7 +274,7 @@ entry = {
         "url": "https://opendata.vancouver.ca/explore/dataset/lidar-2022/",
         "retrieved": RETRIEVED,
         "note": "Tiles downloaded by hand in a browser (the portal blocks scripted downloads). Raw LAS deleted after processing.",
-        "tiles": [{k: t[k] for k in ("tile", "zip_bytes", "zip_sha256", "classes", "headers") if k in t} for t in tiles],
+        "tiles": [{k: t[k] for k in ("tile", "retrieved", "zip_bytes", "zip_sha256", "classes", "headers") if k in t} for t in tiles],
     },
     "licence": {"name": "Open Government Licence - Vancouver", "url": "https://opendata.vancouver.ca/pages/licence/"},
     "attribution": "Contains information licensed under the Open Government Licence - Vancouver (LiDAR 2022).",

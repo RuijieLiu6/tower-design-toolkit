@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { sampleTerrain } from '../lib/cityLayers'
+import { heightSource, is2009Part } from '../lib/cityGeometry'
 import { terrainBasis } from '../lib/terrainDetails'
 import { pickAt } from '../engine/viewFrom'
 import { eyeZ, useViewFromStore } from '../lib/viewFromStore'
@@ -38,7 +39,7 @@ export default function ViewFromRig() {
     const state = useViewFromStore.getState(), vp = state.viewpoint
     if (!data || !idx || vp?.kind !== 'roof') return
     const p = pickAt(idx, heights, vp.x, vp.y, state.eye)
-    if (p.kind === 'roof') state.set({ viewpoint: { ...vp, footprint: p.index, stand: p.roof, basis: `LiDAR 2022 roof surface ${p.roof.toFixed(1)} m CGVD28` } })
+    if (p.kind === 'roof') state.set({ viewpoint: { ...vp, footprint: p.index, stand: p.roof, basis: `${heightSource(data.footprints[p.index].id)} roof surface ${p.roof.toFixed(1)} m CGVD28` } })
     else state.set({ looking: false, viewpoint: null, note: vp.footprint !== undefined && removed.has(vp.footprint) ? 'That roof is hidden under the design (hypothetical removal). Choose another roof.' : 'Roof geometry changed. Select a measured roof again.' })
   }, [data, idx]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -57,7 +58,11 @@ export default function ViewFromRig() {
       const p = pickAt(idx, heights, x, y, s.eye)
       if (p.kind === 'unknown') { s.set({ note: p.reason }); return }
       if (p.kind === 'roof') {
-        s.set({ picking: false, note: null, viewpoint: { kind: 'roof', x, y, stand: p.roof, footprint: p.index, label: data.footprints[p.index].id < 0 ? `LiDAR roof part ${-data.footprints[p.index].id}` : `Roof of building #${data.footprints[p.index].id}`, basis: `LiDAR 2022 ${data.footprints[p.index].id < 0 ? 'roof-level median' : 'whole-footprint P90'} ${p.roof.toFixed(1)} m (${data.footprints[p.index].id < 0 ? 'cell P99' : 'supported max'} ${p.max.toFixed(1)} m, ground ${p.ground.toFixed(1)} m, ${p.points >= 65535 ? '65,535+' : p.points.toLocaleString()} roof points)` } })
+        const id = data.footprints[p.index].id
+        s.set({ picking: false, note: null, viewpoint: is2009Part(id)
+          ? { kind: 'roof', x, y, stand: p.roof, footprint: p.index, label: `2009 height part ${-id - 1_000_000}`,
+            basis: `City 2009 heights (Building footprints 2009, older survey): base + average height ${p.roof.toFixed(1)} m (top ${p.max.toFixed(1)} m, base ${p.ground.toFixed(1)} m)` }
+          : { kind: 'roof', x, y, stand: p.roof, footprint: p.index, label: id < 0 ? `LiDAR roof part ${-id}` : `Roof of building #${id}`, basis: `LiDAR 2022 ${id < 0 ? 'roof-level median' : 'whole-footprint P90'} ${p.roof.toFixed(1)} m (${id < 0 ? 'cell P99' : 'supported max'} ${p.max.toFixed(1)} m, ground ${p.ground.toFixed(1)} m, ${p.points >= 65535 ? '65,535+' : p.points.toLocaleString()} roof points)` } })
         return
       }
       const ground = sampleTerrain(data.grids, x, y)
@@ -133,7 +138,7 @@ export default function ViewFromRig() {
     }
     g.textAlign = 'left'; g.font = '12px Inter, system-ui, sans-serif'; g.fillStyle = '#3d434b'
     g.fillText(`360° from ${vp.label} · eye ${eyeZ(vp, s.eye).toFixed(1)} m geodetic (CGVD28) · ${vp.basis}`, 8, sh + 40)
-    g.fillText(`Buildings: LiDAR 2022 roof parts where processed, historical outlines elsewhere; buildings without a height are not drawn.${removed.size ? ` ${removed.size} existing footprint${removed.size === 1 ? '' : 's'} under the design hidden (hypothetical removal, team assumption).` : ''} Terrain: City LiDAR 1 m where available; MRDEM 30 m, 60 m fallback. Eight 45° frames, not a cylindrical panorama.`, 8, sh + 58)
+    g.fillText(`Buildings: LiDAR 2022 roof parts in the core, City 2009 heights around it (older survey); buildings without a height do not block (placeholders are display only).${removed.size ? ` ${removed.size} existing footprint${removed.size === 1 ? '' : 's'} under the design hidden (hypothetical removal, team assumption).` : ''} Terrain: City LiDAR 1 m where available; MRDEM 30 m, 60 m fallback. Eight 45° frames, not a cylindrical panorama.`, 8, sh + 58)
     const st = useStore.getState()
     st.addShot({ id: `view360-${Date.now().toString(36)}`, dataUrl: strip.toDataURL('image/jpeg', 0.9), stage: st.phase, representation: 'clay', project: 'city', at: new Date().toISOString() })
     st.set({ announce: `360° view from ${vp.label} added to the filmstrip` })

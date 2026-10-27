@@ -90,7 +90,7 @@ describe('views pass through hidden buildings', () => {
     const before = castRay({ ...inp, idx, heights }, 0)
     const after = castRay({ ...inp, idx: mIdx, heights: mH }, 0)
     expect(before.near.distance).toBeLessThan(125)
-    expect(after.near.label).toBe('a building (LiDAR roof)')
+    expect(after.near.label).toBe('a building (measured roof)')
     expect(after.near.distance).toBeGreaterThan(295)
   })
 

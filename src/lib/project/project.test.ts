@@ -5,7 +5,7 @@ import example from '../../../skills/tower-studio-node-builder/references/exampl
 import type { NodePackage } from '../nodePackages'
 import { defaultDesign, pickDesign, type Design } from './design'
 import { exportProject, readProject, stableStringify, toDesign, toProjectFile, type ProjectFile } from './projectFile'
-import { MERGE_MS, redo, resetHistory, startHistory, undo } from './history'
+import { MERGE_MS, redo, resetHistory, startHistory, undo, withoutHistory } from './history'
 import { getProject, listProjects, putProject, storageAvailable } from './storage'
 import { openText } from './session'
 
@@ -56,7 +56,20 @@ describe('project file: deterministic export and import', () => {
     expect(f.site.vtc.datum.groundElevation).toBeNull()
     expect(f.site.city.datum.vertical).toMatch(/CGVD28/)
     expect(f.site.city.datum.groundElevation).toBe(15)
+    expect(f.site.city.datum.groundMode).toBe('terrain') // the base follows the terrain by default (27 Oct)
+    expect(f.site.city.datum.basis).toMatch(/follows the terrain/)
     expect(f.site.city.frame).toMatch(/EPSG:26910/)
+  })
+  it('keeps the base of files saved before the ground mode existed (set by hand)', () => {
+    const f = file()
+    delete f.site.city.datum.groundMode
+    f.site.city.datum.groundElevation = 18.5
+    const r = readProject(JSON.stringify(f))
+    expect(r.ok).toBe(true)
+    const d = toDesign(r.file!)
+    expect([d.groundElevation, d.groundMode]).toEqual([18.5, 'manual'])
+    expect(toDesign(readProject(exportProject({ ...d, groundMode: 'terrain' })).file!).groundMode).toBe('terrain')
+    expect(problems({ ...f, site: { ...f.site, city: { ...f.site.city, datum: { ...f.site.city.datum, groundMode: 'guess' } } } })).toMatch(/groundMode|allowed/)
   })
   it('switches on built nodes that did not exist when the file was saved', () => {
     const f = file()
@@ -153,6 +166,19 @@ describe('undo and redo', () => {
     expect(redo()).toBe(true)
     expect(height()).toBe(260)
     expect(redo()).toBe(false)
+  })
+  it('folds the base following the terrain into the move that caused it', () => {
+    const s = useStore.getState()
+    s.setProject('city')
+    s.updateTower('c1', { x: 500 }); t += MERGE_MS + 1
+    withoutHistory(() => useStore.getState().set({ groundElevation: 41.3 })) // what CityContext's GroundFollow does
+    t += MERGE_MS + 1
+    expect(undo()).toBe(true)
+    expect(useStore.getState().towers.city[0].x).not.toBe(500)
+    expect(useStore.getState().groundElevation).toBe(15) // the base it had before the move
+    expect(undo()).toBe(false) // the follow-up was not a step of its own
+    expect(redo()).toBe(true)
+    expect(useStore.getState().groundElevation).toBe(41.3)
   })
   it('merges a quick run of edits (a slider drag) into one step', () => {
     const s = useStore.getState()

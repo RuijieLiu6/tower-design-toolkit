@@ -237,7 +237,7 @@ function viewPage(doc: D, inp: ReportInput, v: ReportView, page: number) {
   const iw = PT.w - 2 * M, ih = Math.min(250, iw / v.aspect)
   if (v.shot) doc.image(p, v.shot, M, 80, iw, ih)
   else { doc.rect(p, M, 80, iw, ih, '#ebe8e1', LINE); doc.text(p, PT.w / 2, 80 + ih / 2, 'No render: open the Real Vancouver 3D view before exporting to include eye-level renders.', 8, false, MUTED, { align: 'center' }) }
-  doc.paragraph(p, M, 80 + ih + 11, `Eye ${fmt(v.eye, 2)} m CGVD28 (the City's Lv at this origin) · horizontal field ${fmt(v.hfov, 1)}° (Vista's cone-fit rule) · pitch ${fmt(v.pitch, 1)}° · real ground and buildings: City LiDAR 2022 roofs where processed, MRDEM-30 terrain (NRCan) to the North Shore mountains, converted to CGVD28; no haze. Buildings without a LiDAR height are not drawn, so the view is optimistic.`, 6.8, iw, { color: MUTED })
+  doc.paragraph(p, M, 80 + ih + 11, `Eye ${fmt(v.eye, 2)} m CGVD28 (the City's Lv at this origin) · horizontal field ${fmt(v.hfov, 1)}° (Vista's cone-fit rule) · pitch ${fmt(v.pitch, 1)}° · real ground and buildings: City LiDAR 2022 roofs in the core and the City's 2009 heights around it (older survey), MRDEM-30 terrain (NRCan) to the North Shore mountains, converted to CGVD28; no haze. Buildings without a LiDAR height are not drawn, so the view is optimistic.`, 6.8, iw, { color: MUTED })
   const top = 80 + ih + 34
   const secBox = { x: M, y: top, w: 430, h: PT.h - top - 30 }
   const { dCentre } = section(doc, p, inp, v, secBox)
@@ -277,7 +277,7 @@ function sources(doc: D, inp: ReportInput, page: number) {
     ['verified', 'City of Vancouver ViewCone layer (24 plan polygons, origins and viewpoint elevations Lv), Open Government Licence - Vancouver, retrieved 2026-10-21.'],
     ['verified', 'City of Vancouver, Public Views Guidelines, approved 2024-07-10, amended 2026-02-04 (the team copy in Vista matches SHA-256 597f0da2…b0ca, the Feb 2026 copy in research C01).'],
     ['verified', 'Planar slopes k for A and 3.2.3 (City site sheet, 3 Oct 2024), 28, 27.1, 27.2 (Council reports); 3.2.4, H, J2 endorsed values are team assumptions (research C01).'],
-    ['unverified', 'Terrain: NRCan MRDEM-30 (Open Government Licence - Canada), CGVD2013 converted to CGVD28 with NRCan grids; City LiDAR 2022 1 m ground and roof parts where processed (OGL-Vancouver).'],
+    ['unverified', 'Terrain: NRCan MRDEM-30 (Open Government Licence - Canada), CGVD2013 converted to CGVD28 with NRCan grids; City LiDAR 2022 1 m ground and roof parts in the core, City Building footprints 2009 heights around it (OGL-Vancouver).'],
     ['team_assumption', 'Vista cone-fit camera rule (hfov = clamp(1.5 × spread + 8, 24, 100), pitch rule) and eye height 1.6 m where no Lv exists.'],
     ['unverified', 'Vista v10.1 (Ruijie Liu, ARCH 540, handoff 22 Oct 2026): exact cone clip, study planes, report layout and examples, ported into Tower Design Toolkit (MIT). Vista was read, not run.'],
   ]

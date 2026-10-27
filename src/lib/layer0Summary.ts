@@ -44,7 +44,7 @@ export const PROJECT_VARS: VarInfo[] = [
   ...USE_IDS.map((u) => ({ name: `gfa_${u}`, unit: 'm²', label: `Gross floor area, all towers: ${USES[u].label.toLowerCase()}` })),
   { name: 'fsr', unit: 'ratio', label: 'Gross floor area ÷ site area', note: 'Gross, no exclusions; not available in Real Vancouver' },
   { name: 'maxHeight', unit: 'm', label: 'Tallest tower' },
-  { name: 'groundElevation', unit: 'm', label: 'Ground elevation, geodetic', note: 'Real Vancouver only (assumed, editable); not available on the competition site' },
+  { name: 'groundElevation', unit: 'm', label: 'Ground elevation, geodetic', note: 'Real Vancouver only (follows the terrain under the selected tower unless set by hand); not available on the competition site' },
   { name: 'isVtc', unit: '0/1', label: '1 on the competition site' },
   { name: 'isCity', unit: '0/1', label: '1 in Real Vancouver' },
 ]

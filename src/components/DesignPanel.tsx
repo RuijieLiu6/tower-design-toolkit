@@ -127,7 +127,7 @@ function SkyRoomFields({ room, onChange, suggested }: { room: SkyRoom; onChange:
 
 export default function DesignPanel() {
   const towers = useTowers()
-  const { project, phase, selectedTower, selectTower, updateTower, addTower, removeTower, placing, set, fsrTier, transitLink, groundElevation, sun, enabled, sectionOn, sectionLevel, explode, liftPresets, setLiftPresets, egressPresets, setEgressPresets } = useStore()
+  const { project, phase, selectedTower, selectTower, updateTower, addTower, removeTower, placing, set, fsrTier, transitLink, groundElevation, groundMode, sun, enabled, sectionOn, sectionLevel, explode, liftPresets, setLiftPresets, egressPresets, setEgressPresets } = useStore()
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
   const { fsr, lifts } = useResults()
   if (!t) return null
@@ -306,8 +306,10 @@ export default function DesignPanel() {
             </>
           )}
           {project === 'city' && (
-            <NumberField label="Ground elevation at the site (geodetic)" value={groundElevation} onChange={(v) => set({ groundElevation: v })} unit="m"
-              hint="Team assumption until the City LiDAR ground layer is loaded" />
+            <NumberField label="Ground elevation at the site (geodetic)" value={groundElevation} onChange={(v) => set({ groundElevation: v, groundMode: 'manual' })} unit="m"
+              hint={groundMode === 'terrain'
+                ? 'From the terrain under the selected tower (City LiDAR 2022 or MRDEM-30, CGVD28; unverified). Typing a value sets it by hand.'
+                : 'Set by hand (team assumption). The Ground card can switch it back to the terrain.'} />
           )}
           {enabled['built.sun'] && (
             <div className="grid grid-cols-3 gap-2">

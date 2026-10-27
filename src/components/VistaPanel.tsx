@@ -15,6 +15,7 @@ import {
   type ConvertedBlock, type ExactCone, type Pt, type VistaStudy,
 } from '../engine/vista'
 import { groundUnder, sampleTerrain } from '../lib/cityLayers'
+import { heightSource, is2009Part } from '../lib/cityGeometry'
 import { useViewFromStore, type Viewpoint } from '../lib/viewFromStore'
 import { requestCaptures, useVistaStore, type CaptureSpec } from '../lib/vistaStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
@@ -183,7 +184,7 @@ function RoofViews({ tower, ground }: { tower: Tower; ground: number }) {
     const f = data.footprints[r.index]
     // Aim between the tower's base and top as seen from the roof (Vista's face-the-proposal framing).
     const pitch = Math.max(-30, Math.min(30, (elevAngle(ground, r.eye, r.distance) + elevAngle(ground + tower.height, r.eye, r.distance)) / 2))
-    v.set({ viewpoint: { kind: 'roof', x: r.at[0], y: r.at[1], stand: r.roof, footprint: r.index, label: f.id < 0 ? `LiDAR roof part ${-f.id}` : `Roof of building #${f.id}`, basis: `LiDAR 2022 roof ${r.roof.toFixed(1)} m CGVD28 (chosen by Vista's nearby-roof list)` },
+    v.set({ viewpoint: { kind: 'roof', x: r.at[0], y: r.at[1], stand: r.roof, footprint: r.index, label: is2009Part(f.id) ? `2009 height part ${-f.id - 1_000_000}` : f.id < 0 ? `LiDAR roof part ${-f.id}` : `Roof of building #${f.id}`, basis: `${heightSource(f.id)} roof ${r.roof.toFixed(1)} m CGVD28 (chosen by Vista's nearby-roof list)` },
       bearing: Math.round(r.bearing), pitch: Math.round(pitch * 10) / 10, hfov: 60, looking: true, picking: false, note: null })
   }
   return (
@@ -282,7 +283,7 @@ function Studies() {
       const pk = pickAt(idx, heights, o[0], o[1])
       const g = sampleTerrain(data.grids, o[0], o[1])
       const vp: Viewpoint = pk.kind === 'roof'
-        ? { kind: 'roof', x: o[0], y: o[1], stand: pk.roof, footprint: pk.index, label: `${label}: Vista's viewpoint (LiDAR roof)`, basis: `LiDAR 2022 roof ${pk.roof.toFixed(1)} m CGVD28 at Vista's observer` }
+        ? { kind: 'roof', x: o[0], y: o[1], stand: pk.roof, footprint: pk.index, label: `${label}: Vista's viewpoint (measured roof)`, basis: `${heightSource(data.footprints[pk.index].id)} roof ${pk.roof.toFixed(1)} m CGVD28 at Vista's observer` }
         : { kind: 'street', x: o[0], y: o[1], stand: g ?? 0, label: `${label}: Vista's viewpoint`, basis: `Terrain ${g == null ? '–' : g.toFixed(1)} m CGVD28 at Vista's observer${s.observer.source === 'rooftop' ? ' (Vista stood on a studio-model roof; no LiDAR roof here yet)' : ''}` }
       const tc = loc(topB.centre)
       useViewFromStore.getState().set({ viewpoint: vp, bearing: Math.round(((Math.atan2(tc[0] - o[0], tc[1] - o[1]) * 180) / Math.PI + 360) % 360), hfov: s.observer.fov, looking: false, picking: false, note: null })

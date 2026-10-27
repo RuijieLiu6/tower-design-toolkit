@@ -33,6 +33,7 @@ import { CONE_STYLE } from './ui'
 
 /** Model frame (x, y, z-up) to three.js (y-up). */
 const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, -y)
+const coneEstimates = CONES.filter((c) => CONE_PARAMS[c.id]).length
 
 type Ctl = { target: THREE.Vector3; update: () => void; addEventListener: (t: string, f: () => void) => void; removeEventListener: (t: string, f: () => void) => void }
 
@@ -190,7 +191,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
   }, [])
   return (
     <>
-      <Ground size={14000} color={look.ground} onPick={onPick} />
+      <Ground size={14000} color={look.water} onPick={onPick} />
       <lineSegments geometry={grid}><lineBasicMaterial color={xray ? '#c9d4df' : '#d6d9de'} /></lineSegments>
       {CONES.map((c) => <ConeWedge key={c.id} id={c.id} state={checks.find((k) => k.cone.id === c.id)?.state ?? null} />)}
       <CityContext look={look} xray={xray} onPick={onPick} />
@@ -588,7 +589,7 @@ export default function Viewport() {
       </div>
       {project === 'city' && phase === 'basic' && (
         <div className="pointer-events-none absolute left-3 top-3 max-w-sm rounded-md border border-line bg-white/90 p-2 text-[11px] text-slate-600 shadow-sm">
-          <b className="text-ink">24 protected view cones</b> (City open data). Blue sheets show estimated height limits; dashed outlines have <b>no estimate yet</b>. Ground, buildings and mountains are real data; see Context layers.
+          <b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b>{coneEstimates} have an estimated height limit</b> (blue sheets); the other <b>{CONES.length - coneEstimates} are dashed: no estimate</b> until the City answers Request 0. Ground, buildings and mountains are real data; see Context layers.
         </div>
       )}
       {project === 'city' && !present && <CityLegend />}

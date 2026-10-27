@@ -5,7 +5,7 @@ import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from
 import { CLASS_LABEL, type LiftResult } from '../engine/lifts'
 import { coreSide, towerFloors } from '../engine/massing'
 import { USES, type RuleResult, type Tower, type UseId } from '../engine/types'
-import { CONE_ATTRIBUTION, STATE_LABEL, bisector, type ConeCheck } from '../engine/viewCones'
+import { CONES, CONE_ATTRIBUTION, CONE_PARAMS, STATE_LABEL, bisector, type ConeCheck } from '../engine/viewCones'
 import { TIER_LABEL } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { CITY_ORIGIN, useStore } from '../store'
@@ -241,6 +241,33 @@ function StairPlan({ t, e }: { t: Tower; e: EgressResult }) {
   )
 }
 
+/** All 24 cones at a glance: which have a height estimate, and which stop at "no estimate" until the City answers. */
+function ConeCoverage() {
+  const known = CONES.filter((c) => CONE_PARAMS[c.id]), unknown = CONES.filter((c) => !CONE_PARAMS[c.id])
+  const chip = 'rounded border px-1 py-px text-[10px] tabular-nums'
+  return (
+    <Section title="Cone coverage" right={<span className="text-[10px] text-muted">{known.length} of {CONES.length} with an estimate</span>}>
+      <div className="mb-2 flex h-2 overflow-hidden rounded-sm border border-line" aria-hidden>
+        <div style={{ width: `${(known.length / CONES.length) * 100}%`, background: '#4f7fae' }} />
+        <div className="hatch flex-1" />
+      </div>
+      <p className="text-[11px]">
+        <b>{unknown.length} of {CONES.length} cones have no height estimate.</b> No opened City sheet or Council report gives their slope, so the tool says
+        "no estimate" instead of guessing. They wait on City Request 0 (draft in <code>docs/city-requests/</code>). In 3D they are the dashed grey outlines.
+      </p>
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted">With an estimate (blue sheets)</div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {known.map((c) => <span key={c.id} title={`${c.name}: ${CONE_PARAMS[c.id].source}`} className={`${chip} border-[#4f7fae] text-[#2f5578]`}>{c.id}</span>)}
+      </div>
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted">No estimate (dashed)</div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {unknown.map((c) => <span key={c.id} title={`${c.name}: no slope in any opened City source`} className={`${chip} border-dashed border-slate-400 text-slate-700`}>{c.id}</span>)}
+      </div>
+      <div className="mt-2 flex items-center gap-1"><FlagChip flag="unresolved" /><span className="text-[10px] text-muted">Limit unknown for these cones; the City View Cone Assessment governs.</span></div>
+    </Section>
+  )
+}
+
 function ConeRow({ c }: { c: ConeCheck }) {
   const set = useStore((s) => s.set)
   const viewFrom = () => {
@@ -275,7 +302,7 @@ function ConeRow({ c }: { c: ConeCheck }) {
 }
 
 export default function Inspector() {
-  const { selectedNode, project, fsrTier, sun, enabled } = useStore()
+  const { selectedNode, project, fsrTier, sun, enabled, groundMode } = useStore()
   const n = nodeById(selectedNode)
   const { rules, fsr, cones, lifts, egress, skyRooms } = useResults()
   if (selectedNode?.startsWith('community.')) return <CommunityInspector id={selectedNode} />
@@ -326,7 +353,7 @@ export default function Inspector() {
       {n.id === 'built.viewcones' && project === 'city' && enabled[n.id] && cones.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
           <div className={`mb-2 rounded-md border p-2 text-xs ${CONE_STYLE[r.overall].chip}`}>
-            <b>{STATE_LABEL[r.overall]}</b>: top of tower at {r.topZ.toFixed(1)} m geodetic ({r.tower.height} m above an assumed ground of {(r.topZ - r.tower.height).toFixed(0)} m).
+            <b>{STATE_LABEL[r.overall]}</b>: top of tower at {r.topZ.toFixed(1)} m geodetic ({r.tower.height} m above a base of {(r.topZ - r.tower.height).toFixed(1)} m, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}).
           </div>
           <div className="grid gap-2">
             {r.checks.filter((c) => c.state !== 'outside').map((c) => <ConeRow key={c.cone.id} c={c} />)}
@@ -337,6 +364,7 @@ export default function Inspector() {
           </div>
         </Section>
       ))}
+      {n.id === 'built.viewcones' && project === 'city' && enabled[n.id] && <ConeCoverage />}
 
       {n.id === 'built.core-lifts' && enabled[n.id] && lifts.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>

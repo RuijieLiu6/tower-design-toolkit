@@ -17,7 +17,7 @@ describe('picking a viewpoint', () => {
   it('refuses a roof without a LiDAR height, with a plain reason', () => {
     const p = pickAt(idx, heights, 10, 110)
     expect(p.kind).toBe('unknown')
-    if (p.kind === 'unknown') expect(p.reason).toMatch(/no LiDAR roof height/)
+    if (p.kind === 'unknown') expect(p.reason).toMatch(/no measured roof height/)
   })
   it('treats anything else as the street', () => {
     expect(pickAt(idx, heights, 60, 60).kind).toBe('street')

@@ -1,10 +1,11 @@
 {
- "date": "2026-10-22",
- "time": "15:36",
+ "date": "2026-10-27",
+ "time": "16:39",
  "total": 27,
  "passed": 27,
  "failed": [],
- "report": "04 Tool Plan/evaluation/2026-10-22/report.md",
+ "uiRunFailed": false,
+ "report": "04 Tool Plan/evaluation/2026-10-27/report.md",
  "cases": [
   {
    "id": "C1",
@@ -172,7 +173,7 @@
    "node": "built.view-from",
    "title": "A building without a LiDAR height cannot be stood on",
    "pass": true,
-   "observed": "refused: This building has no LiDAR roof height yet (outside processe…"
+   "observed": "refused: This building has no measured roof height (no LiDAR 2022 roo…"
   },
   {
    "id": "VISTA-T",

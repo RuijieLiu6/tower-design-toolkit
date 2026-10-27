@@ -61,7 +61,7 @@ export type Pick =
 export function pickAt(idx: FootprintIndex, heights: HeightsLike | null, x: number, y: number, eye = EYE_HEIGHT): Pick {
   const i = footprintAt(idx, x, y)
   if (i == null) return { kind: 'street' }
-  if (!hasHeight(heights, i)) return { kind: 'unknown', index: i, reason: 'This building has no LiDAR roof height yet (outside processed roof coverage), so a camera cannot be placed on it. Pick a solid building, or the street.' }
+  if (!hasHeight(heights, i)) return { kind: 'unknown', index: i, reason: 'This building has no measured roof height (no LiDAR 2022 roof and no City 2009 height; placeholders are display only), so a camera cannot be placed on it. Pick a solid building, or the street.' }
   const h = heights!
   // Roof P90 (the 90th percentile of roof points) is the standing surface; the maximum includes parapets and plant.
   return { kind: 'roof', index: i, ground: h.ground[i], roof: h.roof[i], max: h.max[i], points: h.points[i], eye: h.roof[i] + eye }
@@ -122,7 +122,7 @@ export function castRay(inp: SkylineInput, bearing: number): Ray {
       const i = footprintAt(inp.idx, x, y)
       if (i != null && i !== own && hasHeight(inp.heights, i)) {
         const ang = elevAngle(inp.heights!.roof[i], ez, d)
-        if (ang > near.angle) near = { angle: ang, label: 'a building (LiDAR roof)', distance: d }
+        if (ang > near.angle) near = { angle: ang, label: 'a building (measured roof)', distance: d }
       }
       for (const o of inp.towers) if (inRing([x, y], o.poly)) {
         const ang = elevAngle(o.top, ez, d)

@@ -38,6 +38,8 @@ const rows = results.map((r) => {
 const failed = rows.filter((r) => !r.pass)
 const engineCrash = engine.status !== 0 && !results.length
 const uiCrash = ui.status !== 0 && !Object.keys(uiRes).length
+// A UI case that times out or fails before recording leaves no row to mark: the Playwright exit code still fails the run.
+const uiFailed = ui.status !== 0 && !uiCrash
 
 const esc = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ')
 const md = [
@@ -45,7 +47,7 @@ const md = [
   '',
   `Run ${date} ${time} (Vancouver) with \`npm run eval\` · Tower Design Toolkit ${pkg.version} · engine cases: vitest; UI cases: Playwright ${pkg.devDependencies?.['@playwright/test'] ?? ''} in Chrome Headless Shell.`,
   '',
-  `**${rows.length - failed.length} of ${rows.length} cases pass.**${failed.length ? ` Failing: ${failed.map((f) => f.id).join(', ')}.` : ''}${engineCrash ? ' The engine run crashed before writing results.' : ''}${uiCrash ? ' The UI run crashed before writing results.' : ''}`,
+  `**${rows.length - failed.length} of ${rows.length} cases pass.**${failed.length ? ` Failing: ${failed.map((f) => f.id).join(', ')}.` : ''}${engineCrash ? ' The engine run crashed before writing results.' : ''}${uiCrash ? ' The UI run crashed before writing results.' : ''}${uiFailed ? ' The UI run failed: at least one UI case timed out or failed before recording (see the Playwright output); cases without a UI result show –.' : ''}`,
   '',
   'Course types: typical, boundary, out of scope (must stop), repeated, definition anchor. Expectations come from a source (research, by-law, City sheet) or, where labelled *team reasoning*, from the team. Cases 1-7: `04 Tool Plan/mid-review/FIRST_ATTEMPT_SPEC.md`. The deterministic engines run with no model in the loop.',
   '',
@@ -61,8 +63,8 @@ const md = [
 ].join('\n')
 writeFileSync(join(out, 'report.md'), md)
 
-const summary = { date, time, total: rows.length, passed: rows.length - failed.length, failed: failed.map((f) => f.id), report: `04 Tool Plan/evaluation/${date}/report.md`, cases: rows.map((r) => ({ id: r.id, type: r.type, node: r.node, title: r.title, pass: r.pass, observed: r.observed })) }
+const summary = { date, time, total: rows.length, passed: rows.length - failed.length, failed: failed.map((f) => f.id), uiRunFailed: uiFailed || uiCrash, report: `04 Tool Plan/evaluation/${date}/report.md`, cases: rows.map((r) => ({ id: r.id, type: r.type, node: r.node, title: r.title, pass: r.pass, observed: r.observed })) }
 mkdirSync(join(root, 'public', 'eval'), { recursive: true })
 writeFileSync(join(root, 'public', 'eval', 'last-run.json'), JSON.stringify(summary, null, 1))
 console.log(`\n${summary.passed} of ${summary.total} cases pass. Report: ${join(out, 'report.md')}`)
-if (failed.length || engineCrash || uiCrash || !existsSync(join(out, 'report.md'))) process.exit(1)
+if (failed.length || engineCrash || uiCrash || uiFailed || !existsSync(join(out, 'report.md'))) process.exit(1)

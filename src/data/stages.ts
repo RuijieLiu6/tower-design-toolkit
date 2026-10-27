@@ -39,10 +39,18 @@ export interface Look {
   heritage: string
   edge: string
   hemi: number
+  /** Real Vancouver: the 0 m sea plane and terrain at or below 0 m. */
+  water: string
+  /** Real Vancouver: the City's 2002 shoreline line. */
+  shore: string
+  /** Real Vancouver: park tint, multiplied into the ground colour (white = no change). */
+  park: string
+  /** Real Vancouver: buildings with the City's 2009 heights (older survey), a shade off the measured 2022 clay. */
+  older: string
 }
 export const LOOKS: Record<'clay' | 'xray', Look> = {
-  clay: { background: '#eef0f2', ground: '#e7e6e1', site: '#f7f3ea', context: '#f1efea', heritage: '#e9dfcd', edge: '#b9b6ae', hemi: 0.9 },
-  xray: { background: '#e9eef3', ground: '#dfe6ed', site: '#eef3f8', context: '#f4f7fa', heritage: '#eef1f4', edge: '#9fb0c2', hemi: 1.25 },
+  clay: { background: '#eef0f2', ground: '#e7e6e1', site: '#f7f3ea', context: '#f1efea', heritage: '#e9dfcd', edge: '#b9b6ae', hemi: 0.9, water: '#c4d4e1', shore: '#6f8ba1', park: '#e1efd6', older: '#ddd6ca' },
+  xray: { background: '#e9eef3', ground: '#dfe6ed', site: '#eef3f8', context: '#f4f7fa', heritage: '#eef1f4', edge: '#9fb0c2', hemi: 1.25, water: '#bccee0', shore: '#7393b2', park: '#e3efe6', older: '#e2e8ee' },
 }
 
 /** Motion tokens (ms). Exits run shorter than entries. */

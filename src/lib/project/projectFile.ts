@@ -15,7 +15,7 @@ import type { Tower } from '../../engine/types'
 import { DEFAULT_ON } from '../../data/registry'
 import type { NodePackage } from '../nodePackages'
 import type { Trace } from '../trace/trace'
-import { CITY_ORIGIN, type ProjectKind } from '../../store'
+import { CITY_ORIGIN, type GroundMode, type ProjectKind } from '../../store'
 import { DESIGN_KEYS, type Design } from './design'
 import { stableStringify } from './stable'
 
@@ -25,7 +25,7 @@ export const PROJECT_FORMAT = 'tower-studio-project@1'
 import { APP_LABEL } from './appLabel'
 export { APP_LABEL }
 
-interface Site { north: { deg: number; basis: string }; datum: { vertical: string; groundElevation: number | null; basis: string }; frame: string }
+interface Site { north: { deg: number; basis: string }; datum: { vertical: string; groundElevation: number | null; groundMode?: GroundMode; basis: string }; frame: string }
 export interface ProjectFile {
   format: typeof PROJECT_FORMAT
   app: string
@@ -50,7 +50,7 @@ export interface ProjectFile {
 }
 
 /** North and datum as the app uses them; written into every file so a reader knows the frame. */
-export function siteInfo(groundElevation: number): Record<ProjectKind, Site> {
+export function siteInfo(groundElevation: number, groundMode: GroundMode = 'manual'): Record<ProjectKind, Site> {
   return {
     vtc: {
       north: { deg: VTC_NORTH_DEG, basis: "Read from the VTC model's drawn north arrow; the file's own north setting is the grid (false assumption corrected)" },
@@ -59,7 +59,12 @@ export function siteInfo(groundElevation: number): Record<ProjectKind, Site> {
     },
     city: {
       north: { deg: 0, basis: 'EPSG:26910 grid north (UTM 10N); grid convergence not applied' },
-      datum: { vertical: 'CGVD28 (assumed, as City LiDAR 2022)', groundElevation, basis: 'Ground elevation entered by the user (editable); cone heights are geodetic' },
+      datum: {
+        vertical: 'CGVD28 (assumed, as City LiDAR 2022)', groundElevation, groundMode,
+        basis: groundMode === 'terrain'
+          ? 'Ground elevation follows the terrain under the selected tower (City LiDAR 2022 ground or NRCan MRDEM-30, unverified); cone heights are geodetic'
+          : 'Ground elevation entered by the user (editable); cone heights are geodetic',
+      },
       frame: `EPSG:26910, local origin E ${CITY_ORIGIN[0]} N ${CITY_ORIGIN[1]}`,
     },
   }
@@ -70,7 +75,7 @@ export function toProjectFile(d: Design, community?: ProjectFile['communityNodes
     format: PROJECT_FORMAT,
     app: APP_LABEL,
     project: d.project,
-    site: siteInfo(d.groundElevation),
+    site: siteInfo(d.groundElevation, d.groundMode),
     towers: d.towers,
     selectedTower: d.selectedTower,
     rules: { fsrTier: d.fsrTier, transitLink: d.transitLink },
@@ -153,6 +158,8 @@ export function toDesign(file: ProjectFile): Design {
     fsrTier: file.rules.fsrTier,
     transitLink: file.rules.transitLink,
     groundElevation: file.site.city.datum.groundElevation ?? 15,
+    // Files from before 27 Oct have no mode: keep their saved base, so they reopen exactly as saved.
+    groundMode: file.site.city.datum.groundMode ?? 'manual',
     sun: file.sun,
     liftPresets,
     egressPresets,

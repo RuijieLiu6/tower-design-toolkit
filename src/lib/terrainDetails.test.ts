@@ -40,8 +40,9 @@ describe('City LiDAR ground and native mountain detail', () => {
     for (let c = 0; c < p.cols; c++) for (const r of [0, p.rows - 1]) {
       expect(p.z[r*p.cols+c]).toBeCloseTo(sampleGrid(coarse, p.x0+c*p.step, p.y0+r*p.step)!, 4)
     }
-    expect(fine.z).toEqual(before)
-    expect([...p.z].every(Number.isFinite)).toBe(true)
+    // Element loops instead of toEqual on a million samples (toEqual alone took ~5 s under a loaded test run).
+    expect(fine.z.every((v, i) => Object.is(v, before[i]))).toBe(true)
+    expect(p.z.every(Number.isFinite)).toBe(true)
   })
 
   it('loads useful details even if one optional file fails', async () => {

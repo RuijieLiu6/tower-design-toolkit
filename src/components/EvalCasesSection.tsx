@@ -4,7 +4,7 @@ import { ClipboardCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { CASES } from '../eval/cases'
 
-interface LastRun { date: string; time: string; total: number; passed: number; failed: string[]; report: string; cases: { id: string; pass: boolean; observed: string }[] }
+interface LastRun { date: string; time: string; total: number; passed: number; failed: string[]; uiRunFailed?: boolean; report: string; cases: { id: string; pass: boolean; observed: string }[] }
 
 const TYPE_LABEL: Record<string, string> = { typical: 'Typical', boundary: 'Boundary', 'out-of-scope': 'Out of scope', repeated: 'Repeated', definition: 'Definition' }
 
@@ -23,7 +23,7 @@ export default function EvalCasesSection() {
         <h2 id="eval-title" className="flex items-center gap-1.5 text-sm font-semibold"><ClipboardCheck size={14} aria-hidden />Evaluation cases</h2>
         <span className="text-[11px] text-muted">{CASES.length} cases: typical, boundary, out of scope, repeated</span>
         <span className="ml-auto text-[11px]">
-          {state === 'ok' && run ? <><b className={run.failed.length ? 'text-red-700' : 'text-emerald-800'}>{run.passed} of {run.total} pass</b> · last run {run.date} {run.time} · report <code className="text-[10px]">{run.report}</code></>
+          {state === 'ok' && run ? <><b className={run.failed.length || run.uiRunFailed ? 'text-red-700' : 'text-emerald-800'}>{run.passed} of {run.total} pass</b>{run.uiRunFailed && <b className="text-red-700"> · UI run incomplete</b>} · last run {run.date} {run.time} · report <code className="text-[10px]">{run.report}</code></>
             : state === 'loading' ? 'Loading the last run…' : 'Not run yet: npm run eval'}
         </span>
       </div>

@@ -85,7 +85,8 @@ export function restoreIteration(id: string) {
   const it = useTrace.getState().iterations.find((x) => x.id === id)
   if (!it) return
   breakStep()
-  applyDesign({ ...defaultDesign(), ...it.design }, `Restored “${it.label}”. Ctrl+Z goes back.`)
+  // Iterations saved before 27 Oct have no ground mode: they restore with the base they recorded (set by hand).
+  applyDesign({ ...defaultDesign(), ...it.design, groundMode: it.design.groundMode ?? 'manual' }, `Restored “${it.label}”. Ctrl+Z goes back.`)
   breakStep()
 }
 
@@ -158,6 +159,7 @@ export function diffDesign(a: Design, b: Design): string[] {
   if (a.fsrTier !== b.fsrTier) out.push(`FSR reading: tier ${a.fsrTier} → tier ${b.fsrTier}`)
   if (a.transitLink !== b.transitLink) out.push(`Transit link: ${a.transitLink ? 'declared' : 'not declared'} → ${b.transitLink ? 'declared' : 'not declared'}`)
   if (a.groundElevation !== b.groundElevation) out.push(`Ground elevation (Real Vancouver): ${M(a.groundElevation)} → ${M(b.groundElevation)}`)
+  if (a.groundMode !== b.groundMode) out.push(`Tower base (Real Vancouver): ${a.groundMode === 'terrain' ? 'follows the terrain' : 'set by hand'} → ${b.groundMode === 'terrain' ? 'follows the terrain' : 'set by hand'}`)
   if (!same(a.sun, b.sun)) out.push(`Sun setting: ${a.sun.month}/${a.sun.day} ${a.sun.hour}:00 → ${b.sun.month}/${b.sun.day} ${b.sun.hour}:00`)
   const presets: string[] = []
   leafDiff('Lift preset', a.liftPresets, b.liftPresets, presets)

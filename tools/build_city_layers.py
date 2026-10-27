@@ -7,6 +7,8 @@ Usage (pipeline venv, isolated mode, on downloaded files):
     python -I tools/build_city_layers.py zoning   <out_dir> <retrieved> <request_url> <zoning.geojson>
     python -I tools/build_city_layers.py heritage <out_dir> <retrieved> <request_url> <heritage.geojson>
     python -I tools/build_city_layers.py traffic  <out_dir> <retrieved> <request_url> <movement-counts.geojson> <directional-locations.geojson>
+    python -I tools/build_city_layers.py shoreline <out_dir> <retrieved> <request_url> <shoreline-2002.geojson>
+    python -I tools/build_city_layers.py parks    <out_dir> <retrieved> <request_url> <parks-polygon-representation.geojson>
 
 Frame: City lon/lat projected with GRS80 UTM 10N, no datum shift (the City's own EPSG:26910 numbers; see
 build_city_footprints.py), stored in decimetres from CITY_ORIGIN. Nothing is invented: a tree without a height
@@ -21,6 +23,8 @@ Formats (all little endian; decoders in src/lib/contextLayers.ts):
     zoning.json   {"districts", "polys": [[district, [x, y, ...] dm ring]]}
     heritage.json {"rows": [[x, y, name, address, category, evaluation group, designations]]}
     traffic.json  {"intersections": [[x, y, name, url]], "segments": [[name, [x, y, ...] dm]]}
+    shoreline.json {"lines": [[x, y, ...] dm]}
+    parks.json    {"names", "polys": [[name, [x, y, ...] dm ring]]}
 """
 import csv
 import hashlib
@@ -349,7 +353,56 @@ def pack_traffic(out_dir, retrieved, request, movement_path, directional_path):
     return entry
 
 
-PACKERS = {"trees": (pack_trees, 1), "parcels": (pack_parcels, 2), "zoning": (pack_zoning, 1), "heritage": (pack_heritage, 1), "traffic": (pack_traffic, 2)}
+# ---------- visual finish: shoreline and parks (loaded with the detailed context, drawn under everything else) ----------
+def line_dm(coords, tol):
+    from shapely.geometry import LineString
+    ln = LineString([to_utm.transform(*c[:2]) for c in coords]).simplify(tol)
+    out = []
+    for x, y in ln.coords:
+        p = (round((x - ORIGIN[0]) / Q), round((y - ORIGIN[1]) / Q))
+        if not out or p != out[-1]:
+            out.append(p)
+    return [v for p in out for v in p]
+
+
+def pack_shoreline(out_dir, retrieved, request, path):
+    lines = []
+    for f in features(path):
+        g = f["geometry"]
+        for coords in (g["coordinates"] if g["type"] == "MultiLineString" else [g["coordinates"]]):
+            flat = line_dm(coords, 0.5)
+            if len(flat) >= 4:
+                lines.append(flat)
+    files = [write(out_dir, "shoreline.json", {"lines": lines})]
+    entry = base_entry("shoreline", "Shoreline 2002 (approximate)", files, ("shoreline-2002", "Shoreline 2002"), retrieved, request, [path],
+                       sum(len(l) // 2 for l in lines),
+                       "The City's approximate shoreline, digitised from 2002 orthophotos and not updated (City metadata). Later waterfront changes are not in it. Drawn as a line over the 0 m sea plane; not a surveyed shoreline.",
+                       {"processing": {"script": "tools/build_city_layers.py", "simplify_m": 0.5, "lines": len(lines)},
+                        "datum": {"vertical": None, "note": "2D line; drawn on the terrain or the 0 m sea plane, whichever is higher."}})
+    manifest_entry(out_dir, entry)
+    return entry
+
+
+def pack_parks(out_dir, retrieved, request, path):
+    names, polys = {}, []
+    for f in features(path):
+        p = f["properties"]
+        n = names.setdefault((p.get("park_name") or "Park").strip(), len(names))
+        for poly in utm_polygon(f["geometry"]):
+            poly = orient(poly.simplify(1.0, preserve_topology=True), 1.0)
+            r = ring_dm(poly.exterior)
+            if len(r) >= 6:
+                polys.append([n, r])
+    files = [write(out_dir, "parks.json", {"names": list(names), "polys": polys})]
+    entry = base_entry("parks", "Parks (ground tint)", files, ("parks-polygon-representation", "Parks polygon representation"), retrieved, request, [path],
+                       len(polys), "City park outlines (outer rings), used only to tint the ground; the Park Board's records govern.",
+                       {"processing": {"script": "tools/build_city_layers.py", "simplify_m": 1.0, "parks": len(names)}})
+    manifest_entry(out_dir, entry)
+    return entry
+
+
+PACKERS = {"trees": (pack_trees, 1), "parcels": (pack_parcels, 2), "zoning": (pack_zoning, 1), "heritage": (pack_heritage, 1), "traffic": (pack_traffic, 2),
+           "shoreline": (pack_shoreline, 1), "parks": (pack_parks, 1)}
 
 if __name__ == "__main__":
     layer, out_dir, retrieved, request, *inputs = sys.argv[1:]

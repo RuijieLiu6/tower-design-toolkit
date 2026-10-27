@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { applyBuildingForms, loadCityGeometry, solidRings, type BuildingForms } from './cityGeometry'
+import { applyBuildingForms, is2009Part, loadCityGeometry, solidRings, type BuildingForms } from './cityGeometry'
 import { decodeFootprints, decodeHeights, type Footprint, type Manifest } from './cityLayers'
 import { indexFootprints, pickAt } from '../engine/viewFrom'
 import { footprintMask, gridOver, ringArea, shadowMask } from '../engine/shadow'
@@ -49,12 +49,27 @@ describe('measured City building forms and streets', () => {
     const fp = decodeFootprints(await read('footprints_downtown.bin'))
     const heights = decodeHeights(await read('footprint_heights.bin'), fp.length)
     const merged = applyBuildingForms(fp, heights, geo.forms)
-    expect(merged.footprints.length).toBe(fp.length - new Set(geo.forms!.replace).size + geo.forms!.forms.length + (geo.forms!.repairs ?? []).reduce((sum, r) => sum + r.parts.length - 1, 0))
+    const replaced = new Set(geo.forms!.replace)
+    expect(merged.footprints.length).toBe(fp.length - replaced.size + geo.forms!.forms.length + (geo.forms!.repairs ?? []).filter((r) => !replaced.has(r.index)).reduce((sum, r) => sum + r.parts.length - 1, 0) + (geo.forms!.outlines?.length ?? 0))
     expect(merged.heights!.roof.length).toBe(merged.footprints.length)
-    for (const f of geo.forms!.forms) for (const [x,y] of f.outer) {
-      expect(x).toBeGreaterThanOrEqual(-1300); expect(x).toBeLessThanOrEqual(-300)
-      expect(y).toBeGreaterThanOrEqual(400); expect(y).toBeLessThanOrEqual(1400)
+    // Every 2022 roof part lies inside the processed LiDAR mosaic (four 1 km tiles since 27 Oct: E 490000-492000, N 5458000-5460000);
+    // the City's 2009 heights fill the ring around it, never a footprint the 2022 forms replaced.
+    const [x0, y0, x1, y1] = [-1300, -600, 700, 1400]
+    const lidar = geo.forms!.forms.filter((f) => !is2009Part(f.id)), older = geo.forms!.forms.filter((f) => is2009Part(f.id))
+    expect(lidar.length).toBeGreaterThan(5000)
+    expect(older.length).toBeGreaterThan(3000)
+    for (const f of lidar) for (const [x,y] of f.outer) {
+      expect(x).toBeGreaterThanOrEqual(x0); expect(x).toBeLessThanOrEqual(x1)
+      expect(y).toBeGreaterThanOrEqual(y0); expect(y).toBeLessThanOrEqual(y1)
     }
+    expect(new Set(geo.forms!.replace).size).toBe(geo.forms!.replace.length) // the two layers replace different outlines
+    // Placeholders are outlines that stay "height unknown": drawn for display, never given a height.
+    expect(merged.placeholders.size).toBe(geo.forms!.placeholders!.length + (geo.forms!.outlinePlaceholders?.length ?? 0))
+    // The view-cone ring (27 Oct): 2009 parts and outlines reach Queen Elizabeth Park (south) and Trout Lake (east).
+    const ys = older.flatMap((f) => f.outer.map(([, y]) => y)), xs = older.flatMap((f) => f.outer.map(([x]) => x))
+    expect(Math.min(...ys)).toBeLessThan(-3500)
+    expect(Math.max(...xs)).toBeGreaterThan(5000)
+    for (const i of merged.placeholders) expect(Number.isFinite(merged.heights!.roof[i])).toBe(false)
     expect(geo.streets!.lines.some((l) => l.name.includes('ROBSON'))).toBe(true)
     expect(geo.streets!.lines.some((l) => l.width === null)).toBe(true)
   })

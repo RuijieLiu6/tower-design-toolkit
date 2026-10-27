@@ -63,6 +63,11 @@ def make_inputs(d):
     dump("movement.geojson", fc([point(DT[0], DT[1], intersection="BURRARD ST AND W GEORGIA ST", url="https://app.vancouver.ca/vanmapmtc_net/#000001")]))
     dump("directional.geojson", fc([{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [[DT[0], DT[1]], [DT[0] + 0.001, DT[1] + 0.001]]},
                                      "properties": {"location": "900 W GEORGIA ST"}}]))
+    # Shoreline: a straight run with a 1 cm wiggle (simplified away) and one real bend.
+    dump("shoreline.geojson", fc([{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [
+        [CORNER[0], CORNER[1]], [CORNER[0] + 0.0005, CORNER[1] + 0.0000001], [CORNER[0] + 0.001, CORNER[1]], [CORNER[0] + 0.001, CORNER[1] + 0.001]]},
+        "properties": {}}]))
+    dump("parks.geojson", fc([square(DT[0], DT[1], 0.002, park_name="Harbour Green Park"), square(DT[0] + 0.004, DT[1], 0.001, park_name=None)]))
     return files
 
 
@@ -100,6 +105,8 @@ class PackerTests(unittest.TestCase):
         L["pack_zoning"](cls.out, *args, cls.inp["zoning.geojson"])
         L["pack_heritage"](cls.out, *args, cls.inp["heritage.geojson"])
         L["pack_traffic"](cls.out, *args, cls.inp["movement.geojson"], cls.inp["directional.geojson"])
+        L["pack_shoreline"](cls.out, *args, cls.inp["shoreline.geojson"])
+        L["pack_parks"](cls.out, *args, cls.inp["parks.geojson"])
         with open(os.path.join(cls.out, "layers.json"), encoding="utf-8") as fh:
             cls.man = {l["id"]: l for l in json.load(fh)["layers"]}
 
@@ -141,8 +148,18 @@ class PackerTests(unittest.TestCase):
         self.assertEqual(attrs["breaks"], sorted(attrs["breaks"]))
         self.assertEqual(struct.unpack_from("<4sI", self.read("parcels.bin"), 0), (b"TSF1", 3))
 
+    def test_shoreline_and_parks(self):
+        lines = json.loads(self.read("shoreline.json"))["lines"]
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(len(lines[0]), 6)  # 4 points in, the 1 cm wiggle simplified away
+        self.assertAlmostEqual(lines[0][0] / 10, -10300.0, delta=0.1)
+        self.assertIsNone(self.man["shoreline"]["datum"]["vertical"])
+        parks = json.loads(self.read("parks.json"))
+        self.assertEqual(parks["names"], ["Harbour Green Park", "Park"])  # a park without a name is just "Park"
+        self.assertEqual([p[0] for p in parks["polys"]], [0, 1])
+
     def test_manifest_cites_and_checks_every_file(self):
-        for lid in ("trees", "parcels", "zoning", "heritage", "traffic"):
+        for lid in ("trees", "parcels", "zoning", "heritage", "traffic", "shoreline", "parks"):
             e = self.man[lid]
             self.assertTrue(e["lazy"])
             self.assertEqual(e["licence"]["name"], "Open Government Licence - Vancouver")

@@ -50,16 +50,27 @@ async function node(p: Page, name: string) {
   await p.waitForTimeout(1200)
 }
 
-/** Moves the selected tower through the app's own store (the same instance the UI uses). */
+/**
+ * Moves the selected tower through the app's own store (the same instance the UI uses), lets the base follow the
+ * terrain there (the default since 27 Oct), then sets the height so the top lands on the case's geodetic elevation.
+ */
 async function placeTower(p: Page, utm: [number, number], top: number) {
-  await p.evaluate(async ({ x, y, top }) => {
+  await p.evaluate(async ({ x, y }) => {
     const url = performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /\/src\/store\.ts/.test(n)).pop()!
     const { useStore } = await import(/* @vite-ignore */ url)
     const s = useStore.getState()
     const t = s.towers[s.project][0]
-    s.updateTower(t.id, { x, y, height: top - s.groundElevation, podiumHeight: 0 })
     s.selectTower(t.id)
-  }, { x: utm[0] - CITY_ORIGIN[0], y: utm[1] - CITY_ORIGIN[1], top })
+    s.updateTower(t.id, { x, y, podiumHeight: 0 })
+  }, { x: utm[0] - CITY_ORIGIN[0], y: utm[1] - CITY_ORIGIN[1] })
+  await p.waitForTimeout(600)
+  await p.evaluate(async ({ top }) => {
+    const url = performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /\/src\/store\.ts/.test(n)).pop()!
+    const { useStore } = await import(/* @vite-ignore */ url)
+    const s = useStore.getState()
+    const t = s.towers[s.project][0]
+    s.updateTower(t.id, { height: top - s.groundElevation })
+  }, { top })
   await p.waitForTimeout(800)
 }
 
@@ -73,7 +84,10 @@ async function shot(p: Page, id: string) {
   return `shots/${id}.png`
 }
 
-test.describe.configure({ mode: 'serial' })
+// Real Vancouver now draws about 14,000 measured building parts (LiDAR 2022 core + City 2009 ring, 27 Oct). In software
+// WebGL (SwiftShader) one frame takes seconds and a screenshot can take over a minute, so the 90 s default is too short.
+// The checks themselves are unchanged.
+test.describe.configure({ mode: 'serial', timeout: 300_000 })
 
 test('C3 · out of scope: inside 3.2.2 only, the UI stops', async ({ page }) => {
   await open(page, 'city'); await node(page, 'View-cone height check')
@@ -96,7 +110,7 @@ test('C5 · boundary: 3.2.3 at its limit reads within uncertainty', async ({ pag
 test('C7 · repeated: the same result five times', async ({ page }) => {
   // Five fresh loads of the Real Vancouver scene in software WebGL take about 88 s since the terrain upgrade (22 Oct):
   // the 90 s default left no room for the screenshot. The check itself is unchanged.
-  test.setTimeout(240_000)
+  test.setTimeout(900_000)
   const runs: string[] = []
   for (let i = 0; i < 5; i++) {
     await open(page, 'city'); await node(page, 'View-cone height check')

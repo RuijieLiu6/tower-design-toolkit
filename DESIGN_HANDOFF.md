@@ -126,6 +126,8 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 
 Cones with a parameter estimate but no hit show as `#4f7fae`; cones without an estimate as `#7d838c`.
 
+**Cone coverage** (view-cone node, Real Vancouver): a bar split `#4f7fae` (cones with an estimate) and the `.hatch` pattern (no estimate), then two rows of cone-id chips: solid `#4f7fae` border for estimates, dashed slate border for "no estimate", matching the dashed outlines in 3D. The Massing overlay states the same counts.
+
 ### 3.4 Node categories (badge colour + icon)
 
 | Code | Label | Colour | Icon |
@@ -162,6 +164,17 @@ Cones with a parameter estimate but no hit show as `#4f7fae`; cones without an e
 |---|---|---|---|---|---|---|---|
 | Clay (Massing) | `#eef0f2` | `#e7e6e1` | `#f7f3ea` | `#f1efea` | `#e9dfcd` | `#b9b6ae` | 0.9 |
 | X-ray (Schematic) | `#e9eef3` | `#dfe6ed` | `#eef3f8` | `#f4f7fa` (context ghosted to 45%) | `#eef1f4` | `#9fb0c2` | 1.25 |
+
+**Real Vancouver water and parks** (added 27 Oct; same `Look` objects):
+
+| Look | Water (0 m sea plane, terrain at or below 0 m) | Shoreline line (City 2002) | Park tint (multiplied into the ground; white = none) |
+|---|---|---|---|
+| Clay | `#c4d4e1` | `#6f8ba1` | `#e1efd6` |
+| X-ray | `#bccee0` | `#7393b2` | `#e3efe6` |
+
+**Buildings by source** (Real Vancouver): LiDAR 2022 parts use the look's `context` colour; parts with the City's 2009 heights use `older` (clay `#ddd6ca`, x-ray `#e2e8ee`), a shade off so the older survey reads as such; outlines with no height in any source are hatched translucent placeholders (`#c3c6cb` with a 4 m diagonal hatch, 45% opacity, 22% in x-ray), not pickable and casting no shadow.
+
+The coast is where the terrain crosses 0 m, so it is drawn from data, not from the line. The legend in Context layers says that neither the plane nor the 2002 line is a surveyed shoreline.
 
 **Schematic drawing colours:**
 
@@ -322,6 +335,7 @@ Tokens in `src/data/stages.ts`. Easing for chrome: `cubic-bezier(0.2, 0, 0, 1)`.
 | Board frame | A2 landscape (1.414:1) on the grey wall, crop marks; the capture equals the frame | `Viewport.tsx`, `index.css` |
 | Hatch | Diagonal hatch: unverified chips (CSS) and plant floors (3D texture) | `index.css`, `Viewport.tsx` |
 | Anatomy row | Element, LOD 100 chip, show/hide eye; roadmap rows greyed with a flask | `Anatomy.tsx` |
+| Ground card | Real Vancouver tower base: value, source ("from the terrain" with an Unverified chip, or "set by hand" with a Team assumption chip), the terrain range under the footprint, one button to switch | `CityContext.tsx` |
 | Filmstrip | Captured shots, labelled with representation and time; downloadable | `Filmstrip.tsx` |
 
 ---

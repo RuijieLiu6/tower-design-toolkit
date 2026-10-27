@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 import { useStore } from '../../store'
 
 type AppState = ReturnType<typeof useStore.getState>
-const KEYS = ['towers', 'enabled', 'fsrTier', 'transitLink', 'groundElevation', 'sun', 'liftPresets', 'egressPresets', 'publicRealm', 'cityInNature', 'windPresets', 'systemsPresets'] as const
+const KEYS = ['towers', 'enabled', 'fsrTier', 'transitLink', 'groundElevation', 'groundMode', 'sun', 'liftPresets', 'egressPresets', 'publicRealm', 'cityInNature', 'windPresets', 'systemsPresets'] as const
 type Snap = Pick<AppState, (typeof KEYS)[number]>
 
 /** Edits closer together than this (ms) are one undo step. */
@@ -88,6 +88,15 @@ export function resetHistory() {
 
 /** Close the current merge window, so the next edit starts a new step (e.g. after opening a file). */
 export function breakStep() { lastAt = -Infinity }
+
+/**
+ * Apply a change that follows from the design rather than being an edit (the base following the terrain after a
+ * move). It folds into the current state, so undoing the move also restores the base it had before.
+ */
+export function withoutHistory(fn: () => void) {
+  applying = true
+  try { fn() } finally { applying = false }
+}
 
 const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l) }
 export function useHistory() {

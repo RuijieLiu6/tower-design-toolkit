@@ -11,7 +11,7 @@ export interface LayerEntry {
   sha256: string
   count?: number
   grid?: TerrainGridMeta
-  source: { name: string; publisher: string; url: string; retrieved: string; note?: string; request?: string }
+  source: { name: string; publisher: string; url: string; retrieved: string; note?: string; request?: string | string[] }
   licence: { name: string; url: string }
   attribution: string
   crs: { horizontal: string; note?: string }

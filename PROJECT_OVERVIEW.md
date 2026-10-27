@@ -112,7 +112,7 @@ Diagram `02-case-study.svg`:
   - a registry browser with a PR helper. The shared registry and live comments are not online yet.
 - **Two projects:**
   - **Competition site:** the VTC block, with the private base model.
-  - **Real Vancouver:** City view cones, 6,721 footprints, LiDAR roof heights where available, North Shore terrain, the height-limit surface, and views from roofs and streets.
+  - **Real Vancouver:** City view cones, 6,721 footprints, LiDAR roof heights where available, North Shore terrain, the height-limit surface, and views from roofs and streets. Since 27 Oct also: street trees, parcels with land value, zoning, heritage and traffic count locations (loaded when switched on); water, the City's 2002 shoreline and park tint; a tower base that follows the terrain by default (flagged unverified, one click to set by hand); a cone-coverage list (8 of 24 with an estimate); buildings across all 24 view cones (LiDAR 2022 in the 2 × 2 km core, the City's 2009 heights elsewhere, hatched display-only placeholders where no height exists).
 
 ## 6. Tool logic (agent-workflow notation, as built)
 
@@ -142,7 +142,7 @@ The AI is not an open agent inside the tool. It works before the tool (research,
   - Vitest, plus Playwright and axe for end-to-end and accessibility tests;
   - Python 3.13 scripts for the data pipeline (`tools/`).
 - **Data:**
-  - City of Vancouver open data (OGL-Vancouver): view cones, 2015 footprints, LiDAR 2022 (1 of 4 downtown tiles processed so far), streets, parks, schools;
+  - City of Vancouver open data (OGL-Vancouver): view cones, 2015 footprints, LiDAR 2022 (the 4 central tiles processed 27 Oct: 1,358 footprints with heights, 5,363 still unknown outside the core), streets, parks, schools; since 27 Oct public trees, parcel polygons, the 2026 property tax report, zoning, heritage sites, traffic count locations and Shoreline 2002;
   - NRCan MRDEM-30 terrain (OGL-Canada), converted to CGVD28 with NRCan geoid grids;
   - Environment Canada weather at YVR, 2016–2025;
   - VTC brief, Public Views Guidelines, Solar Access Guidelines for the Downtown Peninsula, VBBL / NBC clauses, cited per rule.
@@ -240,8 +240,8 @@ There is also one typical and one out-of-scope case for each major node, plus Vi
 
 **Left to build** (full list: `docs/overnight/MORNING_REPORT_2026-10-22.md` §C):
 - **By 13 Nov (working core):**
-  - LiDAR heights for the remaining 3 downtown tiles (needs a manual browser download);
-  - context layers in the app (trees, zoning and heritage, traffic, land value; the code is ready, the City data isn't downloaded yet);
+  - ~~LiDAR heights for the remaining 3 downtown tiles~~ done 27 Oct (4 tiles mosaicked). 5,363 footprints outside the 2 × 2 km core stay "height unknown"; more tiles (browser download, ~1 GB each) would extend it;
+  - ~~context layers in the app~~ done 27 Oct (trees, parcels and land value, zoning, heritage, traffic locations);
   - cone calibration against City sheets (waits on City Request 0);
   - workflow run modes (run-all / step-in);
   - Form Studio, Sinnie's and Willem's tools as nodes (permissions);

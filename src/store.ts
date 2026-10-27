@@ -22,6 +22,7 @@ export type Phase = 'basic' | 'advanced' | 'present'
 export type ViewMode = '3d' | 'canvas' | 'split'
 export type ProjectKind = 'vtc' | 'city'
 export type Representation = 'clay' | 'xray'
+export type GroundMode = 'terrain' | 'manual'
 
 /** Local origin of the "Real Vancouver" project, in EPSG:26910 (downtown peninsula). */
 export const CITY_ORIGIN: [number, number] = [491300, 5458600]
@@ -63,6 +64,8 @@ interface State {
   fsrTier: FsrTier
   transitLink: boolean
   groundElevation: number
+  /** Real Vancouver base: follow the terrain under the selected tower (default) or a value set by hand. */
+  groundMode: GroundMode
   sun: { month: number; day: number; hour: number }
   placing: boolean
   showOnboarding: boolean
@@ -128,7 +131,9 @@ export const useStore = create<State>((set, get) => ({
   selectedNode: BUILT_NODES[0].id,
   fsrTier: 2,
   transitLink: false,
+  // 15 m is only the placeholder until the terrain loads; in 'terrain' mode CityContext replaces it (decided by Ruijie, 27 Oct).
   groundElevation: 15,
+  groundMode: 'terrain',
   sun: { month: 9, day: 22, hour: 12 },
   placing: false,
   showOnboarding: true,

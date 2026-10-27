@@ -205,7 +205,7 @@ describe('Vista nearby roofs on LiDAR roofs', () => {
     const a = r.find((k) => k.index === 0)!, b = r.find((k) => k.index === 1)!
     expect(a.visibleM).toBeCloseTo(150, 0)
     expect(a.bearing).toBeCloseTo(0, 6)
-    expect(b.blockedBy).toBe('a building (LiDAR roof)')
+    expect(b.blockedBy).toBe('a building (measured roof)')
     // From 41.6 m over a 130 m roof at 150 m: the line reaches about 218 m at the tower, above its 160 m top.
     expect(b.visibleM).toBe(0)
     expect(r.some((k) => k.index === 2)).toBe(true)
