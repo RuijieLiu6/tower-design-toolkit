@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { decodeTerrain, sampleGrid, sampleTerrain, type HeightGrid, type Manifest } from './cityLayers'
-import { groundDisplayPatch, loadTerrainDetails, terrainBasis } from './terrainDetails'
+import { groundDisplayPatch, loadTerrainDetails, mosaicGrids, terrainBasis } from './terrainDetails'
 import { sampleCityTerrain } from '../engine/solarCity'
 
 const DIR = new URL('../../public/data/', import.meta.url)
@@ -43,6 +43,21 @@ describe('City LiDAR ground and native mountain detail', () => {
     // Element loops instead of toEqual on a million samples (toEqual alone took ~5 s under a loaded test run).
     expect(fine.z.every((v, i) => Object.is(v, before[i]))).toBe(true)
     expect(p.z.every(Number.isFinite)).toBe(true)
+  })
+
+  it('joins adjacent ground tiles into one grid, so they are drawn once with no seam', () => {
+    const tile = (x0: number, v: number): HeightGrid => ({ cols: 3, rows: 2, step: 1, x0, y0: 0.5, z: Float32Array.from([v, v, v, v, v, NaN]) })
+    const [m, ...rest] = mosaicGrids([tile(0.5, 1), tile(3.5, 2), { ...tile(0.25, 9), step: 0.5 }])
+    expect(rest).toHaveLength(1) // a grid that does not align stays on its own
+    expect([m.x0, m.cols, m.rows]).toEqual([0.5, 6, 2])
+    expect([...m.z.subarray(0, 6)]).toEqual([1, 1, 1, 2, 2, 2])
+    expect(Number.isNaN(m.z[8]) && Number.isNaN(m.z[11])).toBe(true) // missing samples stay missing
+    expect(sampleGrid(m, 3.5, 0.5)).toBe(2)
+    // The real four tiles: one 2 x 2 km grid, one display patch.
+    const ground = manifest.layers.filter((l) => l.id.startsWith('terrain_ground_')).map((l) => decodeTerrain(read(l.file), l.grid!))
+    const joined = mosaicGrids(ground)
+    expect(joined).toHaveLength(1)
+    expect([joined[0].cols, joined[0].rows]).toEqual([2000, 2000])
   })
 
   it('loads useful details even if one optional file fails', async () => {

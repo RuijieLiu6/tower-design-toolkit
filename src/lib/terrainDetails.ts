@@ -35,6 +35,33 @@ export const cellInside = (g: HeightGrid, x: number, y: number, step: number) =>
 }
 
 /**
+ * Joins aligned grids of one step (adjacent City LiDAR tiles) into one grid, so a display patch blends to the coarse
+ * terrain only at the outer edge of the mosaic. Drawn tile by tile, neighbouring patches overlapped along every shared
+ * edge and dipped towards MRDEM there (27 Oct). Cells no tile covers stay NaN; grids that do not align stay separate.
+ */
+export function mosaicGrids(grids: HeightGrid[]): HeightGrid[] {
+  const groups = new Map<string, HeightGrid[]>()
+  const phase = (v: number, step: number) => ((v % step) + step) % step
+  for (const g of grids) {
+    const key = `${g.step}:${phase(g.x0, g.step)}:${phase(g.y0, g.step)}`
+    groups.set(key, [...(groups.get(key) ?? []), g])
+  }
+  return [...groups.values()].map((gs) => {
+    if (gs.length === 1) return gs[0]
+    const step = gs[0].step
+    const x0 = Math.min(...gs.map((g) => g.x0)), y0 = Math.min(...gs.map((g) => g.y0))
+    const cols = Math.round((Math.max(...gs.map((g) => g.x0 + (g.cols - 1) * step)) - x0) / step) + 1
+    const rows = Math.round((Math.max(...gs.map((g) => g.y0 + (g.rows - 1) * step)) - y0) / step) + 1
+    const z = new Float32Array(cols * rows).fill(NaN)
+    for (const g of gs) {
+      const c0 = Math.round((g.x0 - x0) / step), r0 = Math.round((g.y0 - y0) / step)
+      for (let r = 0; r < g.rows; r++) z.set(g.z.subarray(r * g.cols, (r + 1) * g.cols), (r0 + r) * cols + c0)
+    }
+    return { cols, rows, step, x0, y0, z, source: gs[0].source }
+  })
+}
+
+/**
  * Display-only patch aligned with the coarse cell edges. Missing source cells use coarse terrain; a 30 m
  * transition joins the perimeter without changing the measured grid used by views and solar analysis.
  */

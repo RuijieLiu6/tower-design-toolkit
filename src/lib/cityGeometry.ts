@@ -63,8 +63,10 @@ export async function loadCityGeometry(manifest: Manifest, read: (file: string) 
 /** One replacement from the 2022 LiDAR forms and the 2009 ring (either may be missing); the 2022 parts come first. */
 export function mergeForms(a: BuildingForms | null, b: BuildingForms | null): BuildingForms | null {
   if (!a || !b) return a ?? b
+  // b's repairs are the de-duplicated (clipped) outlines, made from a's repaired geometry: they win for the same outline.
+  const reworked = new Set((b.repairs ?? []).map((r) => r.index))
   return { ...a, tile: `${a.tile} + ${b.tile}`, forms: [...a.forms, ...b.forms], replace: [...new Set([...a.replace, ...b.replace])],
-    repairs: [...(a.repairs ?? []), ...(b.repairs ?? [])], placeholders: b.placeholders ?? a.placeholders, placeholderHeight: b.placeholderHeight ?? a.placeholderHeight,
+    repairs: [...(a.repairs ?? []).filter((r) => !reworked.has(r.index)), ...(b.repairs ?? [])], placeholders: b.placeholders ?? a.placeholders, placeholderHeight: b.placeholderHeight ?? a.placeholderHeight,
     outlines: b.outlines ?? a.outlines, outlinePlaceholders: b.outlinePlaceholders ?? a.outlinePlaceholders }
 }
 

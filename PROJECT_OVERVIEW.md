@@ -112,7 +112,7 @@ Diagram `02-case-study.svg`:
   - a registry browser with a PR helper. The shared registry and live comments are not online yet.
 - **Two projects:**
   - **Competition site:** the VTC block, with the private base model.
-  - **Real Vancouver:** City view cones, 6,721 footprints, LiDAR roof heights where available, North Shore terrain, the height-limit surface, and views from roofs and streets. Since 27 Oct also: street trees, parcels with land value, zoning, heritage and traffic count locations (loaded when switched on); water, the City's 2002 shoreline and park tint; a tower base that follows the terrain by default (flagged unverified, one click to set by hand); a cone-coverage list (8 of 24 with an estimate); buildings across all 24 view cones (LiDAR 2022 in the 2 × 2 km core, the City's 2009 heights elsewhere, hatched display-only placeholders where no height exists).
+  - **Real Vancouver:** City view cones, 6,721 footprints, LiDAR roof heights where available, North Shore terrain, the height-limit surface, and views from roofs and streets. Since 27 Oct also: street trees, parcels with land value, zoning, heritage and traffic count locations (loaded when switched on); water, the City's 2002 shoreline and park tint; a tower base that follows the terrain by default (flagged unverified, one click to set by hand); a cone-coverage list (8 of 24 with an estimate); buildings across all 24 view cones and the gaps between them, about 36,700 parts (LiDAR 2022 in the 2 × 2 km core, the City's 2009 heights elsewhere, hatched 3 m display-only placeholders where no height exists).
 
 ## 6. Tool logic (agent-workflow notation, as built)
 

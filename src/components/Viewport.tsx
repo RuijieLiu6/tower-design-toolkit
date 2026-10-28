@@ -161,7 +161,7 @@ function ConeWedge({ id, state }: { id: string; state: ConeState | null }) {
       <mesh geometry={ground} position={[0, 0, 0.2]}>
         <meshBasicMaterial color={color} transparent opacity={active ? 0.35 : 0.16} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
-      <Line points={ring.map(([x, y]) => [x, y, 0.3] as [number, number, number])} color={color} lineWidth={active ? 2.5 : 1.5} dashed={!prm} dashSize={40} gapSize={25} />
+      {/* The outline is drawn once, draped on the ground (CityContext DrapedCones); a flat copy here doubled it. */}
       {sheet && (
         <mesh geometry={sheet}>
           <meshStandardMaterial color={color} transparent opacity={active ? 0.3 : 0.14} depthWrite={false} side={THREE.DoubleSide} />

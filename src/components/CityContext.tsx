@@ -17,7 +17,7 @@ import {
 } from '../lib/cityLayers'
 import { REMOVAL_CAVEAT, REMOVAL_FLAG, maskHeights, maskIndex, removalCounts, removalUnder, visibleIndex, type Removal } from '../lib/cityRemoval'
 import { rtinIndices } from '../lib/terrainMesh'
-import { cellInside, groundDisplayPatch, isGroundDetail, isTerrainDetail, loadTerrainDetails, nameTerrain, terrainBasis } from '../lib/terrainDetails'
+import { cellInside, groundDisplayPatch, isGroundDetail, mosaicGrids, isTerrainDetail, loadTerrainDetails, nameTerrain, terrainBasis } from '../lib/terrainDetails'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { withoutHistory } from '../lib/project/history'
 import { applyBuildingForms, is2009Part, loadCityGeometry, type StreetData } from '../lib/cityGeometry'
@@ -273,7 +273,7 @@ function Shoreline({ lines, grids, color }: { lines: number[][]; grids: HeightGr
 
 function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (x: number, y: number) => void }) {
   const finish = useFinish(data.manifest)
-  const patches = useMemo(() => data.ground.map((g) => groundDisplayPatch(g, data.r1)), [data])
+  const patches = useMemo(() => mosaicGrids(data.ground).map((g) => groundDisplayPatch(g, data.r1)), [data])
   const detailed = useMemo(() => patches.map((g) => terrainGeometry(g, look, null, [], true)), [patches, look])
   const r1 = useMemo(() => terrainGeometry(data.r1, look, null, patches), [data, look, patches])
   const r2 = useMemo(() => terrainGeometry(data.r2, look, data.r1), [data, look])
@@ -369,25 +369,20 @@ function hatchTexture(): THREE.CanvasTexture | null {
  * "height unknown" for views, solar and cones.
  */
 function Placeholders({ data, xray, hidden }: { data: CityData; xray: boolean; hidden: ReadonlySet<number> }) {
-  const { geom, ranges, anchor } = useMemo(() => {
+  const { geom, ranges } = useMemo(() => {
     const grids = data.grids, base = new Map<number, number>()
     for (const i of data.placeholders) base.set(i, Math.max(0, Math.min(...data.footprints[i].outer.map(([x, y]) => sampleTerrain(grids, x, y) ?? 0))))
-    const m = prisms(data, (i) => data.placeholders.has(i), (i) => base.get(i)!, (i) => base.get(i)! + data.placeholderHeight, true)
-    const first = [...data.placeholders][0]
-    const at = first === undefined ? null : data.footprints[first].outer[0]
-    return { ...m, anchor: at ? [at[0], at[1], base.get(first)! + data.placeholderHeight + 40] as [number, number, number] : null }
+    return prisms(data, (i) => data.placeholders.has(i), (i) => base.get(i)!, (i) => base.get(i)! + data.placeholderHeight, true)
   }, [data])
   const hatch = useMemo(() => hatchTexture(), [])
   useEffect(() => () => { geom?.dispose(); hatch?.dispose() }, [geom, hatch])
   useHiddenParts(geom, ranges, hidden)
   if (!geom) return null
+  // Labelled together with the flat outlines (UnknownOutlines), so no building class has two labels.
   return (
-    <>
-      <mesh geometry={geom} raycast={() => null} renderOrder={2}>
-        <meshStandardMaterial color="#c3c6cb" map={hatch} roughness={1} transparent opacity={xray ? 0.22 : 0.45} depthWrite={false} />
-      </mesh>
-      {anchor && <Label text={`${data.placeholders.size.toLocaleString()} placeholders: no height data (display only, ${data.placeholderHeight} m)`} position={anchor} size={0.014} color="#4a4f57" />}
-    </>
+    <mesh geometry={geom} raycast={() => null} renderOrder={2}>
+      <meshStandardMaterial color="#c3c6cb" map={hatch} roughness={1} transparent opacity={xray ? 0.22 : 0.45} depthWrite={false} />
+    </mesh>
   )
 }
 
@@ -399,7 +394,7 @@ function UnknownOutlines({ data, xray, hidden }: { data: CityData; xray: boolean
     const ranges: [number, number, number][] = []
     let sx = 0, sy = 0, count = 0
     data.footprints.forEach((f, i) => {
-      if (hasHeight(data.heights, i)) return
+      if (hasHeight(data.heights, i) || data.placeholders.has(i)) return // placeholders are drawn as blocks instead
       count++
       sx += f.outer[0][0]; sy += f.outer[0][1]
       const start = pts.length / 3
@@ -419,14 +414,17 @@ function UnknownOutlines({ data, xray, hidden }: { data: CityData; xray: boolean
   }, [data])
   useEffect(() => () => geom.dispose(), [geom])
   useHiddenParts(geom, ranges, hidden)
-  const shown = count - [...hidden].filter((i) => !hasHeight(data.heights, i)).length
-  if (!shown) return null
+  const shown = count - [...hidden].filter((i) => !hasHeight(data.heights, i) && !data.placeholders.has(i)).length
+  const blocks = data.placeholders.size - [...hidden].filter((i) => data.placeholders.has(i)).length
+  if (!shown && !blocks) return null
+  // One label for everything without a height: the flat outlines and the hatched placeholders.
+  const text = [shown && `${shown.toLocaleString()} 2015 outlines`, blocks && `${blocks.toLocaleString()} hatched ${data.placeholderHeight} m placeholders`].filter(Boolean).join(' + ')
   return (
     <>
-      <lineSegments geometry={geom}>
+      {shown > 0 && <lineSegments geometry={geom}>
         <lineBasicMaterial color={xray ? '#6f8299' : '#80858d'} transparent opacity={0.85} />
-      </lineSegments>
-      <Label text={`${shown.toLocaleString()} historical outlines (2015): roof height unknown`} position={anchor} size={0.015} color="#4a4f57" />
+      </lineSegments>}
+      <Label text={`No height data: ${text} (display only)`} position={anchor} size={0.015} color="#4a4f57" />
     </>
   )
 }
@@ -639,15 +637,16 @@ export function CityLegend() {
       <summary className="cursor-pointer select-none px-2 py-1.5 text-ink">
         <b>Context layers</b> · {firstLoad.length} · {mb(total)}{onDemand ? ` · ${onDemand} more on demand` : ''}
         <span className="block font-normal text-slate-600" role="status">{data.detailStatus === 'loading' ? 'Loading building forms, streets and terrain…' : `Ground: ${data.ground.length ? 'City LiDAR 1 m where covered' : 'MRDEM 30 m'} · Mountains: ${data.r2.step} m`}</span>
-        <span className="block font-normal text-slate-500">{data.roofParts.toLocaleString()} measured building parts (LiDAR 2022 core, City 2009 elsewhere in the view cones) · {data.streets ? 'City streets loaded' : 'Streets unavailable'}</span>
+        <span className="block font-normal text-slate-500">{data.roofParts.toLocaleString()} measured building parts (LiDAR 2022 core, City 2009 around it to the view cones' outer edge) · {data.streets ? 'City streets loaded' : 'Streets unavailable'}</span>
       </summary>
       <div className="space-y-2 border-t border-line px-2 py-2">
         <p>
           <b className="text-ink">{(data.roofParts - older).toLocaleString()} roof parts from City LiDAR 2022</b> (the 2 × 2 km core) and{' '}
           <span className="mr-1 inline-block h-2.5 w-3.5 rounded-sm border border-black/10 align-middle" style={{ background: LOOKS.clay.older }} />
-          <b className="text-ink">{older.toLocaleString()} from the City's 2009 heights</b> around it and across the 24 view cones (an older survey, a shade darker; 2009 buildings no longer on the 2015 map are left out).{' '}
-          {withHeight.toLocaleString()} solid parts in total; <b>{(footprints.length - withHeight).toLocaleString()} height unknown</b> (flat outlines, never a guessed height)
-          {data.placeholders.size > 0 && <>, of which {data.placeholders.size.toLocaleString()} with nothing of 2009 on them (mostly garages and laneway houses under 60 m², which the generalised 2009 survey leaves out or which are newer) show as hatched {data.placeholderHeight} m placeholders: display only, in no calculation</>}.
+          <b className="text-ink">{older.toLocaleString()} from the City's 2009 heights</b> around it, across the 24 view cones and the gaps between them (an older survey, a shade darker; 2009 buildings no longer on the 2015 map are left out).{' '}
+          {withHeight.toLocaleString()} solid parts in total. <b>No height data</b> (never a guessed height): {(footprints.length - withHeight - data.placeholders.size).toLocaleString()} flat 2015 outlines
+          {data.placeholders.size > 0 && <> and {data.placeholders.size.toLocaleString()} hatched {data.placeholderHeight} m placeholders (mostly garages and laneway houses under 60 m², which the generalised 2009 survey leaves out or which are newer; display only, in no calculation)</>}.
+          One building, one representation: a LiDAR 2022 part wins over a City 2009 part, which wins over a 2015 outline or placeholder; anything overlapping a higher-ranked building by half of the smaller footprint is left out, smaller overlaps are cut away.
         </p>
         <p>Detailed ground covers {data.ground.length} City LiDAR 1 km tile{data.ground.length === 1 ? '' : 's'} ({manifest.layers.filter(isGroundDetail).map((l) => l.id.replace('terrain_ground_', '')).join(', ')}). Elsewhere, and in gaps under buildings or water, ground uses MRDEM at 30 m. The 2022 survey and 2015 footprints do not represent all current development.</p>
         {data.detailErrors.length > 0 && <p role="alert">Some detailed context could not load. The available base layers remain visible; reload to try again. {data.detailErrors.join('; ')}</p>}

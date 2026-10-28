@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { create } from 'zustand'
-import { groundDisplayPatch } from '../lib/terrainDetails'
+import { groundDisplayPatch, mosaicGrids } from '../lib/terrainDetails'
 import { sampleTerrain, type HeightGrid } from '../lib/cityLayers'
 import type { StreetData } from '../lib/cityGeometry'
 import Label from './Label'
@@ -11,7 +11,7 @@ export const useStreetDisplay = create<{ surfaces: boolean; names: boolean }>(()
 /** City street ROW centre lines, with approximate road ribbons using recorded engineering surface widths. */
 export default function CityStreets({ streets, ground, coarse }: { streets: StreetData | null; ground: HeightGrid[]; coarse: HeightGrid }) {
   const { surfaces, names } = useStreetDisplay()
-  const grids = useMemo(() => [...ground.map((g) => groundDisplayPatch(g, coarse)), coarse], [ground, coarse])
+  const grids = useMemo(() => [...mosaicGrids(ground).map((g) => groundDisplayPatch(g, coarse)), coarse], [ground, coarse])
   const { meshes, lines, labels } = useMemo(() => {
     const z = (x: number, y: number) => Math.max(0, sampleTerrain(grids, x, y) ?? 0) + 0.18
     const meshes = streets ? Object.entries(streets.meshes).map(([kind, m]) => {

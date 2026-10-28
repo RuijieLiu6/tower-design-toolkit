@@ -66,9 +66,10 @@ describe('measured City building forms and streets', () => {
     // Placeholders are outlines that stay "height unknown": drawn for display, never given a height.
     expect(merged.placeholders.size).toBe(geo.forms!.placeholders!.length + (geo.forms!.outlinePlaceholders?.length ?? 0))
     // The view-cone ring (27 Oct): 2009 parts and outlines reach Queen Elizabeth Park (south) and Trout Lake (east).
-    const ys = older.flatMap((f) => f.outer.map(([, y]) => y)), xs = older.flatMap((f) => f.outer.map(([x]) => x))
-    expect(Math.min(...ys)).toBeLessThan(-3500)
-    expect(Math.max(...xs)).toBeGreaterThan(5000)
+    let minY = Infinity, maxX = -Infinity
+    for (const f of older) for (const [x, y] of f.outer) { minY = Math.min(minY, y); maxX = Math.max(maxX, x) }
+    expect(minY).toBeLessThan(-3500)
+    expect(maxX).toBeGreaterThan(5000)
     for (const i of merged.placeholders) expect(Number.isFinite(merged.heights!.roof[i])).toBe(false)
     expect(geo.streets!.lines.some((l) => l.name.includes('ROBSON'))).toBe(true)
     expect(geo.streets!.lines.some((l) => l.width === null)).toBe(true)
