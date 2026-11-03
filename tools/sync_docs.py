@@ -17,6 +17,7 @@ INCLUDE = [
     "PLAN.md",
     "CONTEXT_MODEL_SPEC.md",
     "TERRAIN_UPGRADE_2026-10-22.md",
+    "INTERCHANGE.md",
     "research",
     "evaluation",
     "mid-review",

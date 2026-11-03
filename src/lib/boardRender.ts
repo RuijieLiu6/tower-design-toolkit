@@ -2,6 +2,7 @@
 // what is uploaded) and encodes it as JPEG under the size limit (research P13-M06b, browser route).
 import { BOARD_H, BOARD_W, CAPTION_BAND, CAPTION_MM, TARGET_BYTES, imagePlacement, printedCaption, pxForDpi, searchQuality, type Board, type BoardImage, type Frame } from '../engine/boards'
 import type { Flag, RuleResult, RuleState } from '../engine/types'
+import { unitText } from './units'
 
 const FONT = '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif'
 const INK = '#1f2328', MUTED = '#6b7280'
@@ -79,8 +80,9 @@ function evidenceBox(ctx: CanvasRenderingContext2D, k: number, f: Frame, set: Ev
   for (let i = 0; i < rules.length; i++) {
     const r = rules[i]
     ctx.font = `600 ${size * k}px ${FONT}`
-    const head = `${r.label}: ${r.value}`
-    const tail = `needs ${r.threshold} · ${FLAG_TEXT[r.flag]} · ${r.source.label}${r.source.page ? ` ${r.source.page}` : ''}`
+    // Values and thresholds in the viewer's display unit (lib/units.ts); sources stay as cited.
+    const head = `${r.label}: ${unitText(r.value)}`
+    const tail = `needs ${unitText(r.threshold)} · ${FLAG_TEXT[r.flag]} · ${r.source.label}${r.source.page ? ` ${r.source.page}` : ''}`
     const hl = wrap(ctx, head, (box.w - 4) * k).length
     ctx.font = `400 ${size * k}px ${FONT}`
     const tl = wrap(ctx, tail, (box.w - 4) * k).length

@@ -5,11 +5,13 @@ import { useMemo } from 'react'
 import { VTC_NORTH_DEG } from '../context'
 import { stairEnclosure, stairSpots, storeyLoads, PLACEMENT_LABEL } from '../engine/egress'
 import { liftCheck } from '../engine/lifts'
-import { towerFloors } from '../engine/massing'
+import { blockSpans, spanAt, towerFloors } from '../engine/massing'
 import { UNIT_SHORT, bands, floorLayout } from '../engine/interior'
 import { coreLayout, fitScale, typicalFloor } from '../engine/plan'
 import { USES } from '../engine/types'
 import { DaylightPlanOverlay } from './DaylightBands'
+import { useUnits } from '../lib/units'
+import { U } from './Units'
 import { useStore, useTowers } from '../store'
 
 const SHEET = { w: 594, h: 420 }
@@ -25,6 +27,7 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
   const towers = useTowers()
   const { selectedTower, planLevel: boardLevel, planGrid, liftPresets, egressPresets, project } = useStore()
   const planLevel = level !== undefined ? level : boardLevel
+  const unit = useUnits((st) => st.unit)
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
 
   const d = useMemo(() => {
@@ -37,13 +40,16 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
     const storey = storeyLoads(t, egressPresets, liftPresets).find((s) => s.level === f.level)!
     const enc = stairEnclosure(storey.stairMm, storey.f2f, egressPresets)
     const stairs = stairSpots(t, Math.max(2, Math.round(egressPresets.stairs)), enc.a, enc.b)
-    const W = f.podium ? t.podiumWidth : t.width, D = f.podium ? t.podiumDepth : t.depth
+    // The plate of the stacked block at this level (an old two-field tower: podium or tower).
+    const blk = t.blocks?.length && !t.imported ? spanAt(blockSpans(t), (f.z0 + f.z1) / 2)?.block ?? null : null
+    const W = blk ? blk.width : f.podium ? t.podiumWidth : t.width, D = blk ? blk.depth : f.podium ? t.podiumDepth : t.depth
     const scale = fitScale(W + 20, D + 20, AREA.w, AREA.h)
-    return { floors, f, lift, layout, storey, enc, stairs, W, D, scale, typical: planLevel === null }
+    return { floors, f, lift, layout, storey, enc, stairs, W, D, scale, typical: planLevel === null, blk }
   }, [t, planLevel, liftPresets, egressPresets])
 
   if (!t || !d) return <div className="flex h-full items-center justify-center text-xs text-muted">No floor to draw.</div>
-  const { floors, f, layout, storey, enc, stairs, W, D, scale } = d
+  const { floors, f, layout, storey, enc, stairs, W, D, scale, blk } = d
+  const moved = !!blk && (Math.abs(blk.dx) > 0.05 || Math.abs(blk.dy) > 0.05 || Math.abs(blk.rotation) > 0.05)
   const mm = (m: number) => (m * 1000) / scale
   const cx = AREA.x + AREA.w / 2, cy = AREA.y + AREA.h / 2
   const X = (x: number) => cx + mm(x), Y = (y: number) => cy - mm(y)
@@ -72,7 +78,10 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
   const tower = floors.filter((x) => x.z0 >= 0)
   const keyH = 150, keyY = 78
   const kh = keyH / Math.max(1, tower.length)
-  const bar = [0, 5, 10, 20].filter((v) => mm(v) <= 120)
+  // Scale bar: metres, or round foot steps when the viewer shows feet (lib/units.ts).
+  const ftBar = unit === 'ft'
+  const bar = (ftBar ? [0, 10, 20, 50] : [0, 5, 10, 20]).filter((v) => mm(ftBar ? v * 0.3048 : v) <= 120)
+  const barMm = (v: number) => mm(ftBar ? v * 0.3048 : v)
   const today = new Date().toISOString().slice(0, 10)
 
   return (
@@ -121,12 +130,12 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
           <rect x={X(-W / 2 + 6)} y={Y(D / 2 - 6)} width={mm(W - 12)} height={mm(D - 12)} fill="none" stroke="#2a8f86" strokeWidth="0.3" strokeDasharray="2 1.2" />
           <text x={X(-W / 2 + 6) + 1} y={Y(D / 2 - 6) + 3} fill="#2a8f86">6 m from glazing · {Math.round(lay.within6 * 100)}% of the floor</text>
           <line x1={X(0)} y1={Y(-D / 2)} x2={X(0)} y2={Y(-D / 2 + lay.leaseDepth)} stroke={INK} strokeWidth="0.25" markerStart="url(#dimTick)" markerEnd="url(#dimTick)" />
-          <text x={X(0) + 1.2} y={Y(-D / 2 + lay.leaseDepth / 2)}>lease depth {lay.leaseDepth.toFixed(1)} m</text>
+          <text x={X(0) + 1.2} y={Y(-D / 2 + lay.leaseDepth / 2)}><U>{`lease depth ${lay.leaseDepth.toFixed(1)} m`}</U></text>
         </g>
       )}
       {lay && lay.kind === 'public' && (
         <g data-interior="public" fontSize="2.3" fill={INK}>
-          {lay.activities.map((a, i) => <text key={a.id} x={X(-W / 2 + 1.5)} y={Y(-D / 2 + 1.5) - 2 - (lay.activities.length - 1 - i) * 3.2}>{a.name}: {Math.round(a.area)} m², about {Math.round(a.design)} people · {a.hours}</text>)}
+          {lay.activities.map((a, i) => <text key={a.id} x={X(-W / 2 + 1.5)} y={Y(-D / 2 + 1.5) - 2 - (lay.activities.length - 1 - i) * 3.2}><U>{`${a.name}: ${Math.round(a.area)} m², about ${Math.round(a.design)} people · ${a.hours}`}</U></text>)}
         </g>
       )}
       {/* Daylight screen bands (DaylightBands.tsx), when that node is on. */}
@@ -184,29 +193,30 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
         <line x1={X(W / 2 + 0.8)} y1={Y(-D / 2)} x2={X(W / 2 + 5)} y2={Y(-D / 2)} />
         {[-D / 2, D / 2].map((y) => <line key={y} x1={X(W / 2 + 4) - 1} y1={Y(y) + 1} x2={X(W / 2 + 4) + 1} y2={Y(y) - 1} strokeWidth="0.35" />)}
       </g>
-      <text x={X(0)} y={Y(-D / 2 - 4) - 1.2} fontSize="2.8" textAnchor="middle" fill={INK}>{W.toFixed(1)} m</text>
-      <text x={X(W / 2 + 4) - 1.2} y={Y(0)} fontSize="2.8" textAnchor="middle" fill={INK} transform={`rotate(-90 ${X(W / 2 + 4) - 1.2} ${Y(0)})`}>{D.toFixed(1)} m</text>
-      <text x={X(0)} y={Y(-c / 2) + 3.6} fontSize="2.2" textAnchor="middle" fill={INK}>Core {c.toFixed(1)} × {c.toFixed(1)} m</text>
+      <text x={X(0)} y={Y(-D / 2 - 4) - 1.2} fontSize="2.8" textAnchor="middle" fill={INK}><U>{`${W.toFixed(1)} m`}</U></text>
+      <text x={X(W / 2 + 4) - 1.2} y={Y(0)} fontSize="2.8" textAnchor="middle" fill={INK} transform={`rotate(-90 ${X(W / 2 + 4) - 1.2} ${Y(0)})`}><U>{`${D.toFixed(1)} m`}</U></text>
+      <text x={X(0)} y={Y(-c / 2) + 3.6} fontSize="2.2" textAnchor="middle" fill={INK}><U>{`Core ${c.toFixed(1)} m × ${c.toFixed(1)} m`}</U></text>
 
       {/* Floor data, inside the plate */}
       <g fontSize="2.6" fill={INK}>
         <text x={X(-W / 2 + 1.5)} y={Y(D / 2 - 1.5) + 3.4} fontSize="3.4" fontWeight="700">{label.toUpperCase()} · LEVEL {f.level}</text>
-        <text x={X(-W / 2 + 1.5)} y={Y(D / 2 - 1.5) + 7.4}>Gross {fmt(f.area)} m² · net {fmt(net)} m² ({Math.round((net / Math.max(1, f.area)) * 100)}%)</text>
-        <text x={X(-W / 2 + 1.5)} y={Y(D / 2 - 1.5) + 10.8}>Occupant load {fmt(storey.load)} ({storey.basis})</text>
+        <text x={X(-W / 2 + 1.5)} y={Y(D / 2 - 1.5) + 7.4}><U>{`Gross ${fmt(f.area)} m² · net ${fmt(net)} m² (${Math.round((net / Math.max(1, f.area)) * 100)}%)`}</U></text>
+        <text x={X(-W / 2 + 1.5)} y={Y(D / 2 - 1.5) + 10.8}><U>{`Occupant load ${fmt(storey.load)} (${storey.basis})`}</U></text>
         {room && <text x={X(-W / 2 + 1.5)} y={Y(D / 2 - 1.5) + 14.2} fill="#6d3f8a">{room.postedLimit != null ? `Posted limit ${fmt(room.postedLimit)} visitors` : `${Math.round(room.visitorShare * 100)}% of the floor open to visitors`} · {room.free ? 'free' : 'ticketed'}, {room.hoursOpen} h a day</text>}
+        {moved && <text x={X(-W / 2 + 1.5)} y={Y(-D / 2 + 1.5) - 1} fill="#7a4b00" data-block-offset=""><U>{`Block ${blk!.name ?? ''} drawn centred on the core; in the model it is shifted ${blk!.dx.toFixed(1)} m, ${blk!.dy.toFixed(1)} m and turned ${blk!.rotation.toFixed(0)}°`}</U></text>}
       </g>
 
       {/* Scale bar */}
       <g transform={`translate(${AREA.x + 4} ${SHEET.h - 26})`}>
-        {bar.slice(0, -1).map((v, i) => <rect key={v} x={mm(v)} y="0" width={mm(bar[i + 1] - v)} height="1.6" fill={i % 2 ? '#fff' : INK} stroke={INK} strokeWidth="0.2" />)}
-        {bar.map((v) => <text key={v} x={mm(v)} y="5" fontSize="2.4" textAnchor="middle" fill={INK}>{v}</text>)}
-        <text x={mm(bar[bar.length - 1]) + 3} y="1.8" fontSize="2.4" fill={INK}>m</text>
+        {bar.slice(0, -1).map((v, i) => <rect key={v} x={barMm(v)} y="0" width={barMm(bar[i + 1]) - barMm(v)} height="1.6" fill={i % 2 ? '#fff' : INK} stroke={INK} strokeWidth="0.2" />)}
+        {bar.map((v) => <text key={v} x={barMm(v)} y="5" fontSize="2.4" textAnchor="middle" fill={INK}>{v}</text>)}
+        <text x={barMm(bar[bar.length - 1]) + 3} y="1.8" fontSize="2.4" fill={INK}>{ftBar ? 'ft' : 'm'}</text>
         <text x="0" y="10" fontSize="2.8" fontWeight="700" fill={INK}>1:{scale} at A2 (594 × 420 mm)</text>
       </g>
 
       {/* Right column: title, north, level key, legend, title block */}
       <text x={COL.x} y="24" fontSize="6" fontWeight="700" fill={INK}>{d.typical ? 'TYPICAL FLOOR PLAN' : 'FLOOR PLAN'}</text>
-      <text x={COL.x} y="31" fontSize="3.4" fill={INK}>Level {f.level} · {label} · +{f.z0.toFixed(1)} m</text>
+      <text x={COL.x} y="31" fontSize="3.4" fill={INK}><U>{`Level ${f.level} · ${label} · +${f.z0.toFixed(1)} m`}</U></text>
       <text x={COL.x} y="36" fontSize="2.6" fill="#6b6f76">Exit stairs {PLACEMENT_LABEL[t.stairPlacement ?? 'core']}</text>
       <g transform={`translate(${COL.x + COL.w - 12} 56)`}>
         <circle r="9" fill="none" stroke={INK} strokeWidth="0.3" />
@@ -227,10 +237,10 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
 
       <g transform={`translate(${COL.x} ${keyY + keyH + 12})`} fontSize="2.4" fill={INK}>
         <text y="0" fontSize="2.6" fontWeight="700">LEGEND</text>
-        <rect y="3" width="6" height="3.4" fill="#2b2f36" /><text x="9" y="5.9">Core walls (400 mm, indicative)</text>
+        <rect y="3" width="6" height="3.4" fill="#2b2f36" /><text x="9" y="5.9"><U>Core walls (400 mm, indicative)</U></text>
         <rect y="9" width="6" height="3.4" fill={GROUP_COLOR.office} fillOpacity="0.28" stroke={INK} strokeWidth="0.2" /><line x1="0" y1="9" x2="6" y2="12.4" stroke={INK} strokeWidth="0.12" /><text x="9" y="11.9">Lift shaft, group label (R rise, S shuttle)</text>
         <line x1="0" y1="16.5" x2="6" y2="16.5" stroke={GROUP_COLOR.office} strokeWidth="0.9" /><text x="9" y="17.6">Lift door: cars stop on this floor</text>
-        <rect y="20.5" width="6" height="3.4" fill="#f6dcdb" stroke="#c0504d" strokeWidth="0.3" /><text x="9" y="23.4">Exit stair (ES), {fmt(storey.stairMm)} mm clear</text>
+        <rect y="20.5" width="6" height="3.4" fill="#f6dcdb" stroke="#c0504d" strokeWidth="0.3" /><text x="9" y="23.4"><U>{`Exit stair (ES), ${fmt(storey.stairMm)} mm clear`}</U></text>
         <rect y="26.5" width="6" height="3.4" fill={GROUP_COLOR.service} fillOpacity="0.28" stroke={INK} strokeWidth="0.2" /><text x="9" y="29.4">FF firefighter lift · SV service lift</text>
         {t.skyRoom && <><rect y="32.5" width="6" height="3.4" fill="#8e5ba8" fillOpacity="0.3" /><text x="9" y="35.4">Public sky room (level {t.skyRoom.level})</text></>}
       </g>
@@ -248,7 +258,7 @@ export default function PlanDrawing({ level, standalone = false }: { level?: num
           ['Lifts stopping here', [...groups.entries()].filter(([, cells]) => cells.some((s) => s.stops.has(f.level) && s.cls !== 'service')).map(([g]) => g).join(', ') || 'none'],
           ['Exit stairs', `${Math.max(2, Math.round(egressPresets.stairs))} × ${fmt(storey.stairMm)} mm clear`],
         ].map(([k, v], i) => (
-          <g key={k}><text y={5 + i * 4.4} fill="#6b6f76">{k}</text><text x="34" y={5 + i * 4.4}>{v}</text></g>
+          <g key={k}><text y={5 + i * 4.4} fill="#6b6f76">{k}</text><text x="34" y={5 + i * 4.4}><U>{v}</U></text></g>
         ))}
       </g>
 

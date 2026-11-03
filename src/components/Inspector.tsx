@@ -26,6 +26,7 @@ import ViewFromPanel from './ViewFromPanel'
 import VistaPanel from './VistaPanel'
 import CultureResults from './CultureResults'
 import ProvenanceResults from './ProvenanceResults'
+import ModelPanel from './import/ModelPanel'
 import LiftStrategy from './LiftStrategy'
 import WindScreenResults from './WindScreenResults'
 import TripsResults from './TripsResults'
@@ -33,13 +34,14 @@ import PublicRealmResults from './PublicRealmResults'
 import SolarResults from './SolarResults'
 import DaylightResults from './DaylightResults'
 import { CONE_STYLE, FlagChip, Section, StateChip } from './ui'
+import { U } from './Units'
 
 function RuleCard({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b>{r.value}</b> <span className="text-muted">· needs {r.threshold}</span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600">{r.note}</div>}
+      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
         {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
           : <span className="text-[10px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
@@ -233,8 +235,8 @@ function StairPlan({ t, e }: { t: Tower; e: EgressResult }) {
         <circle cx={X(e.farCorner[0])} cy={Y(e.farCorner[1])} r="2.5" fill={travelOk ? '#1d5fa8' : '#c0392b'} />
       </svg>
       <figcaption className="grid gap-1 text-[10px] text-muted">
-        <span><b className={sepOk ? 'text-emerald-800' : 'text-red-700'}>Solid line: {e.separation.toFixed(1)} m</b> between the stairs; needs {e.separationNeeded.toFixed(1)} m.</span>
-        <span><b className={travelOk ? 'text-accent' : 'text-red-700'}>Dashed: {e.travel.toFixed(1)} m</b> from the farthest corner to a stair; limit 45 m.</span>
+        <span><b className={sepOk ? 'text-emerald-800' : 'text-red-700'}>Solid line: <U>{`${e.separation.toFixed(1)} m`}</U></b> between the stairs; needs <U>{`${e.separationNeeded.toFixed(1)} m`}</U>.</span>
+        <span><b className={travelOk ? 'text-accent' : 'text-red-700'}>Dashed: <U>{`${e.travel.toFixed(1)} m`}</U></b> from the farthest corner to a stair; limit <U>45 m</U>.</span>
         <span>Red = exit stairs ({PLACEMENT_LABEL[e.placement]}); dark = core. Typical tower floor, {t.width} × {t.depth} m.</span>
       </figcaption>
     </figure>
@@ -282,12 +284,12 @@ function ConeRow({ c }: { c: ConeCheck }) {
         <span className="text-xs font-semibold">{c.cone.id} · {c.cone.name}</span>
         <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${CONE_STYLE[c.state].chip}`}>{STATE_LABEL[c.state]}</span>
       </div>
-      <div className="mt-0.5 text-[11px] text-muted">View to {c.cone.subject} · origin elevation {c.cone.Lv} m</div>
+      <div className="mt-0.5 text-[11px] text-muted">View to {c.cone.subject} · origin elevation <U>{`${c.cone.Lv} m`}</U></div>
       {c.limit !== null ? (
         <div className="mt-1 text-[11px]">
-          Estimated limit <b className="tabular-nums">{c.limit.toFixed(1)} m</b> geodetic ·
-          {c.exceed! > 0 ? <span className="text-red-700"> {c.exceed!.toFixed(1)} m above</span> : <span className="text-emerald-700"> {(-c.exceed!).toFixed(1)} m below</span>}
-          <span className="text-muted"> (±{c.param!.u95} m)</span>
+          Estimated limit <b className="tabular-nums"><U>{`${c.limit.toFixed(1)} m`}</U></b> geodetic ·
+          {c.exceed! > 0 ? <span className="text-red-700"> <U>{`${c.exceed!.toFixed(1)} m`}</U> above</span> : <span className="text-emerald-700"> <U>{`${(-c.exceed!).toFixed(1)} m`}</U> below</span>}
+          <span className="text-muted"> (±<U>{`${c.param!.u95} m`}</U>)</span>
           <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={c.param!.flag} /><span className="text-[10px] text-muted">{c.param!.tier} · {c.param!.source}</span></div>
         </div>
       ) : c.state === 'limit_unknown' ? (
@@ -353,7 +355,7 @@ export default function Inspector() {
       {n.id === 'built.viewcones' && project === 'city' && enabled[n.id] && cones.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
           <div className={`mb-2 rounded-md border p-2 text-xs ${CONE_STYLE[r.overall].chip}`}>
-            <b>{STATE_LABEL[r.overall]}</b>: top of tower at {r.topZ.toFixed(1)} m geodetic ({r.tower.height} m above a base of {(r.topZ - r.tower.height).toFixed(1)} m, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}).
+            <b>{STATE_LABEL[r.overall]}</b>: top of tower at <U>{`${r.topZ.toFixed(1)} m`}</U> geodetic (<U>{`${r.tower.height} m`}</U> above a base of <U>{`${(r.topZ - r.tower.height).toFixed(1)} m`}</U>, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}).
           </div>
           <div className="grid gap-2">
             {r.checks.filter((c) => c.state !== 'outside').map((c) => <ConeRow key={c.cone.id} c={c} />)}
@@ -442,6 +444,7 @@ export default function Inspector() {
       {n.id === 'built.vista' && enabled[n.id] && <VistaPanel />}
       {n.id === 'built.culture-claims' && enabled[n.id] && <CultureResults />}
       {n.id === 'built.provenance' && enabled[n.id] && <ProvenanceResults />}
+      {n.id === 'built.model' && enabled[n.id] && <ModelPanel />}
       {n.id === 'built.solar-access' && enabled[n.id] && <SolarResults />}
 
       {n.id === 'built.sun' && enabled[n.id] && (() => {

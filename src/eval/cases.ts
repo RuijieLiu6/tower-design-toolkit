@@ -13,6 +13,10 @@ import { VBBL_TABLE_A, weightedLimits, areas } from '../engine/energyCarbon'
 import { DEFAULT_MOBILITY, mobilityCheck, DOWNTOWN_MAX_M2 } from '../engine/mobility'
 import { curvatureDrop, indexFootprints, pickAt, type HeightsLike } from '../engine/viewFrom'
 import { VISTA_EXAMPLES, coneCamera, coneFitHfov, convertBlock, evaluateCeiling, exactCones, frameScaleError, parseVistaHash, vistaFrameSpread, vistaToCity, whatIfCeiling } from '../engine/vista'
+import { envelopeCheck, fitPlane, prismTriangles, proposalTriangles, surfaceCheck } from '../engine/viewEnvelope'
+import { matchParcels, validateRing } from '../engine/site'
+import { fromCity, normalizeCrs, toCity } from '../engine/geoLocate'
+import { addressLabel, cityRecords, createLookup, suggest } from '../lib/addressSearch'
 import type { Flag, Tower } from '../engine/types'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
@@ -31,8 +35,10 @@ export interface EvalCase {
   basisFlag: Flag
   /** UI run in e2e/eval.e2e.ts (screenshot + flag shown). */
   ui?: boolean
-  run: () => { observed: string; pass: boolean; flag?: Flag }
+  /** Engine cases are synchronous; the upload cases read a Rhino file with rhino3dm, so they may return a promise. */
+  run: () => Outcome | Promise<Outcome>
 }
+type Outcome = { observed: string; pass: boolean; flag?: Flag }
 
 const square = (x: number, y: number, h = 1): [number, number][] => [[x - h, y - h], [x + h, y - h], [x + h, y + h], [x - h, y + h]]
 const cone = (id: string) => CONES.find((c) => c.id === id)!
@@ -260,11 +266,272 @@ export const CASES: EvalCase[] = [
     basis: 'Vista integration handoff §9 (missing planes give partial or unknown)', basisFlag: 'verified',
     run: () => { const r = whatIfCeiling(square(491272.2, 5458589.7), {}, 15, 165); return { observed: `${r.status}; ceiling ${r.ceilingElevationM}; missing ${r.missingViews.join(', ')}`, pass: r.status === 'unknown' && r.ceilingElevationM === null && r.maxHeightM === null && r.missingViews.join() === '3.2.2', flag: 'unresolved' } },
   },
+
+  // ---------- Vista v34 site and envelope tools (3 Nov; Ruijie Liu's Vista as reference, ported on City data) ----------
+  {
+    id: 'ENV-T', node: 'built.vista', type: 'typical', title: 'Exact triangle check equals the View-cone check at the case 5 site',
+    input: 'Default study tower (30 × 30 m at 491636, 5458756), base 32.8 m, top 152.8 m, cone 3.2.3', expected: 'Clearance = −(top − limit) of checkFootprint and the cone overlay governing limit, to 1 mm',
+    basis: 'Same planar estimate (CONE_PARAMS); a flat roof is lowest-clearance at a corner, which both find', basisFlag: 'team_assumption',
+    run: () => {
+      const t = box({ x: 491636 - 491300, y: 5458756 - 5458600, width: 30, depth: 30, height: 120, podiumHeight: 0, podiumWidth: 30, podiumDepth: 30 })
+      const fp = square(491636, 5458756, 15), r = envelopeCheck(proposalTriangles([t], 32.8, [491300, 5458600]).tris).cones.find((k) => k.cone.id === '3.2.3')!
+      const s = checkFootprint(fp, 152.8).find((k) => k.cone.id === '3.2.3')!
+      return { observed: `exact ${r.clearance?.toFixed(3)} m, check ${(-s.exceed!).toFixed(3)} m (${r.state})`, pass: Math.abs(r.clearance! + s.exceed!) < 0.001 && r.state === 'above', flag: 'verified' }
+    },
+  },
+  {
+    id: 'ENV-V', node: 'built.vista', type: 'definition', title: "Vista's envelope self-test: rotated stacked blocks, exact vs a box",
+    input: 'Blocks 120 m and 80 m (20 × 20 m) at site ± 20 m, Vista rotations 17° / −11°; plane at top + 80 m rising 20° to the east', expected: 'Exact minimum clearance 83.012086 m; bounding prism 68.175785 m; 24 triangles',
+    basis: 'Vista v34 envelope-selftest.js fixture (values derived in the porting spec)', basisFlag: 'verified',
+    run: () => {
+      const t = box({ x: 0, y: 0, rotation: 0, blocks: [{ id: 'l', height: 120, width: 20, depth: 20, dx: -20, dy: 0, rotation: -17 }, { id: 'u', height: 80, width: 20, depth: 20, dx: 20, dy: 0, rotation: 11 }] })
+      const { tris } = proposalTriangles([t], 0, [0, 0])
+      const ring: [number, number][] = [[-1000, -1000], [1000, -1000], [1000, 1000], [-1000, 1000]], k = Math.tan((20 * Math.PI) / 180)
+      const [r] = surfaceCheck(tris, [{ id: 's', ring, z: (x) => 280 + x * k }])
+      const xs = tris.flatMap((q) => [q.a[0], q.b[0], q.c[0]]), ys = tris.flatMap((q) => [q.a[1], q.b[1], q.c[1]])
+      const [b] = surfaceCheck(prismTriangles([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)], [Math.min(...xs), Math.max(...ys)]], 0, 200, 'box', 'box'), [{ id: 's', ring, z: (x) => 280 + x * k }])
+      return { observed: `exact ${r.clearance?.toFixed(6)} m, box ${b.clearance?.toFixed(6)} m, ${tris.length} triangles`, pass: Math.abs(r.clearance! - 83.012086) < 1e-5 && Math.abs(b.clearance! - 68.175785) < 1e-5 && tris.length === 24, flag: 'verified' }
+    },
+  },
+  {
+    id: 'ENV-F', node: 'built.vista', type: 'boundary', title: 'Plane re-fitted from three points in UTM predicts the fourth (888 W Broadway, 3.2.1)',
+    input: 'Points E, F, G of the 2022 City sheet for 888 W Broadway (via Vista source-catalogue.json), held-back H', expected: 'z at H 134.4377 m (sheet 134.4373 m, +0.0004 m); a Vista bearing/pitch is never reused across frames',
+    basis: 'Vista v34 source-catalogue.json worked example; the City sheet itself not opened here', basisFlag: 'unverified',
+    run: () => {
+      const p = fitPlane([[491043.0543, 5456686.6408, 134.2757], [491071.9994, 5456723.9471, 134.395], [491070.8462, 5456685.8175, 134.2476]])
+      const h = p.a + p.b * 491030.385 + p.c * 5456725.3488
+      return { observed: `z at H ${h.toFixed(4)} m; bearing ${p.bearingDeg.toFixed(3)}°, slope ${p.slopeDeg.toFixed(5)}°`, pass: Math.abs(h - 134.4373) < 0.001, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'ENV-O', node: 'built.vista', type: 'out-of-scope', title: 'Triangles only in a view without an estimate: no clearance',
+    input: 'A 2 × 2 m, 150 m tower at the case 3 site (3.2.2 only)', expected: 'View 3.2.2 reported as "no estimate"; no controlling point',
+    basis: 'Vista view-envelope: a missing surface is missing_ceiling_surface, never a number', basisFlag: 'verified',
+    run: () => { const r = envelopeCheck(proposalTriangles([box({ x: 491272.2 - 491300, y: 5458589.7 - 5458600, width: 2, depth: 2, height: 150, podiumHeight: 0, podiumWidth: 2, podiumDepth: 2 })], 15, [491300, 5458600]).tris); const c = r.cones.find((k) => k.cone.id === '3.2.2')!; return { observed: `${c.state}; controlling ${r.controlling?.cone.id ?? 'none'}`, pass: c.state === 'no_estimate' && !r.controlling, flag: 'unresolved' } },
+  },
+  {
+    id: 'SITE-T', node: 'built.vista', type: 'typical', title: 'Strata parcels count once; a lot line is not crossed by drawing slack',
+    input: 'Two lots joined exactly plus two identical strata records of one; a site drawn 0.5 m past a lot line', expected: 'Joined area 400 m² with the repeats counted once; the neighbour beyond 0.5 m is only "touching"',
+    basis: "Vista import-parcels.js exact union (no snapping); 1128 W Georgia St has four records with one outline in the City layer (found 3 Nov); 95% / 5% shares are team presets", basisFlag: 'team_assumption',
+    run: () => {
+      const sq = (x: number, y: number, s: number): [number, number][] => [[x, y], [x + s, y], [x + s, y + s], [x, y + s]]
+      const lots = [sq(0, 0, 20), sq(20, 0, 20), sq(0, 0, 20), sq(0, 0, 20)].map((outer) => ({ outer, holes: [] as [number, number][][] }))
+      const m = matchParcels([[-1, -1], [41, -1], [41, 21], [-1, 21]], lots), s = matchParcels([[0, 0], [20.5, 0], [20.5, 20], [0, 20]], lots)
+      const area = m.join.status === 'joined' ? m.join.area : NaN
+      return { observed: `joined ${area} m² (${m.join.reason.slice(0, 60)}…); neighbour ${s.hits.find((h) => h.index === 1)?.kind}`, pass: area === 800 && /repeat/.test(m.join.reason) && s.hits.find((h) => h.index === 1)?.kind === 'touching', flag: 'team_assumption' }
+    },
+  },
+  {
+    id: 'SITE-O', node: 'built.vista', type: 'out-of-scope', title: 'Overlapping lots and a self-crossing boundary are refused, not guessed',
+    input: 'Two lots overlapping by 5 m; a bow-tie boundary', expected: 'Join status "review" (no parcel area); the bow-tie fails with "Polygon edges cross or touch."',
+    basis: 'Vista site-geometry.js validate and import-parcels.js union (ambiguous topology stays explicit)', basisFlag: 'verified',
+    run: () => {
+      const sq = (x: number, y: number, s: number): [number, number][] => [[x, y], [x + s, y], [x + s, y + s], [x, y + s]]
+      const m = matchParcels([[-1, -1], [30, -1], [30, 21], [-1, 21]], [sq(0, 0, 20), sq(5, 0, 20)].map((outer) => ({ outer, holes: [] as [number, number][][] })))
+      const v = validateRing([[0, 0], [10, 10], [0, 10], [10, 0]])
+      return { observed: `${m.join.status}; ${v}`, pass: m.join.status === 'review' && v === 'Polygon edges cross or touch.', flag: 'verified' }
+    },
+  },
+  {
+    id: 'GEO-T', node: 'built.vista', type: 'typical', title: 'Typed lon/lat of the QE Park origin lands on the City apex',
+    input: '−123.1124363, 49.2421562 (EPSG:4326); the same point through Web Mercator', expected: 'Within 0.05 m of 491816.07, 5454381.78; Web Mercator round trip < 1 mm',
+    basis: 'Research C04 r3 (open-data lon/lat = City EPSG:26910 vertices); Vista georeference.js transforms', basisFlag: 'verified',
+    run: () => {
+      const p = toCity(-123.1124363, 49.2421562, 'EPSG:4326'), w = fromCity(p, 'EPSG:3857'), back = toCity(w[0], w[1], 'EPSG:3857')
+      const d = Math.hypot(p[0] - 491816.07, p[1] - 5454381.78), rt = Math.hypot(back[0] - p[0], back[1] - p[1])
+      return { observed: `${d.toFixed(3)} m from the apex; Web Mercator round trip ${(rt * 1000).toFixed(3)} mm`, pass: d < 0.05 && rt < 0.001, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'GEO-O', node: 'built.vista', type: 'out-of-scope', title: 'An unnamed CRS or swapped lat/lon is refused, never guessed',
+    input: 'CRS "EPSG:2154"; 49.28, −123.12 typed as lon, lat', expected: 'Both refused with a message; nothing converted',
+    basis: 'Vista georeference.js normalizeCrs ("coordinates are never guessed")', basisFlag: 'verified',
+    run: () => {
+      const tries = [() => normalizeCrs('EPSG:2154'), () => toCity(49.28, -123.12, 'EPSG:4326')].map((f) => { try { f(); return 'accepted' } catch (e) { return (e as Error).message.slice(0, 40) } })
+      return { observed: tries.join(' | '), pass: tries.every((t) => t !== 'accepted'), flag: 'verified' }
+    },
+  },
+  {
+    id: 'ADDR-T', node: 'built.vista', type: 'typical', title: 'A misspelt address finds the City record, labelled as a suggestion',
+    input: '"1128 w gerogia" against City records 1128 / 1133 W Georgia St', expected: '1128 W Georgia St offered first, as an approximate ("guess") match, not asserted',
+    basis: 'Vista address-search.js suggest (Damerau distance on City records); browser check 3 Nov: same first suggestion live', basisFlag: 'verified',
+    run: () => {
+      const recs = cityRecords([{ civic_number: '1128', std_street: 'W GEORGIA ST', geo_point_2d: { lon: -123.1236, lat: 49.2857 } }, { civic_number: '1133', std_street: 'W GEORGIA ST', geo_point_2d: { lon: -123.1239, lat: 49.2862 } }])
+      const s = suggest(recs, '1128 w gerogia')
+      return { observed: `${s.kind}: ${s.items.map((i) => ('number' in i ? addressLabel(i) : i.label)).join(', ')}`, pass: s.kind === 'guess' && 'number' in s.items[0] && addressLabel(s.items[0]) === '1128 W Georgia St', flag: 'verified' }
+    },
+  },
+  {
+    id: 'ADDR-O', node: 'built.vista', type: 'out-of-scope', title: 'Offline: no request is made and the search says why',
+    input: 'Live lookup with the browser offline', expected: 'State "offline"; the fetcher is never called',
+    basis: 'Today item 1: works only online and fails gracefully offline (installable app)', basisFlag: 'team_assumption',
+    run: () => {
+      let calls = 0
+      const L = createLookup({ fetcher: async () => { calls++; return { ok: true, status: 200, json: async () => ({}) } }, online: () => false })
+      const seen: string[] = []
+      L.search('1128 w georgia', (s) => seen.push(s.state === 'error' ? s.reason : s.state))
+      return { observed: `${seen.join(', ')}; ${calls} request(s)`, pass: seen.join() === 'offline' && calls === 0, flag: 'team_assumption' }
+    },
+  },
 ]
 
 export interface CaseResult { id: string; node: string; type: CaseType; title: string; input: string; expected: string; basis: string; basisFlag: Flag; observed: string; pass: boolean; flag?: Flag; error?: string }
 
-export function runCase(c: EvalCase): CaseResult {
+export async function runCase(c: EvalCase): Promise<CaseResult> {
   const { run: _run, ui: _ui, ...meta } = c
-  try { const r = c.run(); return { ...meta, ...r } } catch (e) { return { ...meta, observed: 'error', pass: false, error: (e as Error).message } }
+  try { const r = await c.run(); return { ...meta, ...r } } catch (e) { return { ...meta, observed: 'error', pass: false, error: (e as Error).message } }
 }
+
+// ---------- Rhino upload and the Layer 0 interchange (3 Nov 2026) ----------
+// Fixtures are built in memory with rhino3dm by the same builder as tools/make_import_fixtures.mjs (synthetic files,
+// never the competition model). Loaded on demand, so the Status page that lists these cases does not load rhino3dm.
+async function upload(which: 'typicalTower' | 'mixedUnitsNoNorth' | 'noGeometry' | 'noRenderMesh' | 'nestedBlocks') {
+  const [{ default: rhino3dm }, fx, { read3dmWith }, { autoMapping }, { buildModel, defaultOptions }] = await Promise.all([
+    import('rhino3dm/rhino3dm.module.js'), import('../lib/interchange/fixtures'), import('../lib/import/rhino'), import('../lib/interchange/mapping'), import('../lib/interchange/build'),
+  ])
+  const rh = await rhino3dm()
+  const f = fx[which](rh)
+  const raw = read3dmWith(rh, f.bytes, f.name)
+  const mapping = autoMapping(raw)
+  const frame = { project: 'vtc' as const, northDeg: 0, siteCentre: [0, 0] as [number, number], groundElevation: 0, utmOrigin: null }
+  const built = buildModel({ raw, mapping, opts: defaultOptions(raw, mapping, frame, 4.2), frame, bands: [{ use: 'office', share: 1 }], podiumUse: 'retail' })
+  return { rh, raw, built, frame }
+}
+/**
+ * Latitude, longitude to UTM 10N by the sixth-order Krüger series with PROJ's coefficients, as in Vista v34
+ * georeference.js (Ruijie Liu): an independent check on the app's own toUtm10 (third order).
+ */
+function vistaUtm(lon: number, lat: number): [number, number] {
+  const RAD = Math.PI / 180, R = 6378137, f = 1 / 298.257222101, e = Math.sqrt(f * (2 - f)), n = f / (2 - f)
+  const A = (R / (1 + n)) * (1 + n * n / 4 + n ** 4 / 64 + n ** 6 / 256) * 0.9996
+  const rows = [[1 / 2, -2 / 3, 5 / 16, 41 / 180, -127 / 288, 7891 / 37800], [13 / 48, -3 / 5, 557 / 1440, 281 / 630, -1983433 / 1935360], [61 / 240, -103 / 140, 15061 / 26880, 167603 / 181440], [49561 / 161280, -179 / 168, 6601661 / 7257600], [34729 / 80640, -3418889 / 1995840], [212378941 / 319334400]]
+  const alpha = rows.map((row, i) => row.reduce((v, c, j) => v + c * n ** (i + j + 1), 0))
+  const phi = lat * RAD, lambda = (lon + 123) * RAD
+  const chi = Math.atan(Math.sinh(Math.asinh(Math.tan(phi)) - e * Math.atanh(e * Math.sin(phi))))
+  const xi0 = Math.atan2(Math.tan(chi), Math.cos(lambda)), eta0 = Math.asinh(Math.sin(lambda) / Math.hypot(Math.tan(chi), Math.cos(lambda)))
+  let xi = xi0, eta = eta0
+  alpha.forEach((c, i) => { const k = 2 * (i + 1); xi += c * Math.sin(k * xi0) * Math.cosh(k * eta0); eta += c * Math.cos(k * xi0) * Math.sinh(k * eta0) })
+  return [500000 + A * eta, A * xi]
+}
+
+const polyArea = (r: [number, number][]) => Math.abs(r.reduce((x, p, i) => x + p[0] * r[(i + 1) % r.length][1] - r[(i + 1) % r.length][0] * p[1], 0) / 2)
+
+CASES.push(
+  {
+    id: 'RHINO-T', node: 'built.model', type: 'typical', title: 'A typical Rhino file: two towers, program volumes, core, lot line, context blocks',
+    input: 'typical-two-towers-mm.3dm: millimetres, Earth anchor; layers Massing::Tower A/B, Massing::Podium, Program::Office/Hotel/Residential, Core, Site::Lot line, Context (2 block instances + 1 extrusion), Annotation, Setbacks',
+    expected: 'Layers guessed to roles; 2 towers; Tower A 285 m, 4 podium storeys to 18 m, every storey tagged from its volume, core 9.0%; lot line 11,468 m²; 3 context prisms (60, 60, 90 m); text dot and setback line left out with reasons',
+    basis: 'The drawn geometry of the fixture (src/lib/interchange/fixtures.ts TYPICAL): a 12 × 12 m core in a 40 × 40 m plate, a 144.8 × 79.2 m lot', basisFlag: 'team_assumption',
+    run: async () => {
+      const { built } = await upload('typicalTower')
+      const m = built.model, a = built.towers[0]?.tower
+      const floored = a?.imported?.storeys.filter((s) => s.hasFloor) ?? []
+      const site = m.elements.filter((e) => e.role === 'site').reduce((s, e) => s + (e.geometry.kind === 'polygon' ? polyArea(e.geometry.rings[0]) : 0), 0)
+      const ctx = m.elements.filter((e) => e.role === 'context').map((e) => (e.geometry.kind === 'prism' ? e.geometry.z1 : 0)).sort((x, y) => x - y)
+      const obs = `${built.towers.length} towers; ${a?.name} ${a?.height} m, ${floored.filter((s) => s.podium).length} podium storeys to ${m.towers[0]?.schedule.podiumTop} m, ${m.towers[0]?.taggedStoreys}/${floored.length} storeys tagged, core ${((m.towers[0]?.coreShare ?? 0) * 100).toFixed(1)}%; site ${Math.round(site).toLocaleString('en-CA')} m²; context ${ctx.join(', ')} m; left out ${m.ignored.length}`
+      const pass = built.towers.length === 2 && a?.height === 285 && floored.filter((s) => s.podium).length === 4 && m.towers[0].taggedStoreys === floored.length && m.towers[0].coreShare === 0.09 && Math.round(site) === 11468 && ctx.join() === '60,60,90' && m.ignored.length === 2
+      return { observed: obs, pass, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'RHINO-B', node: 'built.model', type: 'boundary', title: 'Mixed units and no north: said in plain words, nothing silently fixed',
+    input: 'mixed-units-no-north.3dm: millimetres, no Earth anchor; one context object drawn in metres values (1000× too small)',
+    expected: 'The tower loads (262 m); north stays unresolved and is flagged; a warning names the context layer as about 1000× smaller than the massing; the object is used as it is',
+    basis: 'Research P14-M03 (north and units are never assumed); team rule for mixed scale (a row under 1/200 of the massing extent)', basisFlag: 'team_assumption',
+    run: async () => {
+      const { built } = await upload('mixedUnitsNoNorth')
+      const warn = built.model.checks.find((c) => c.id === 'scale-Context')
+      const obs = `${built.towers.length} tower, ${built.towers[0]?.tower.height} m; north ${built.model.frame.north.label} (${built.model.frame.north.flag}); ${warn ? warn.text : 'no scale warning'}`
+      return { observed: obs, pass: built.blocked === null && built.towers[0]?.tower.height === 262 && built.model.frame.north.flag === 'unresolved' && !!warn && /\d,\d{3}× smaller/.test(warn.text), flag: 'unresolved' }
+    },
+  },
+  {
+    id: 'RHINO-O', node: 'built.model', type: 'out-of-scope', title: 'No usable geometry: stop and explain',
+    input: 'no-usable-geometry.3dm: a text dot, three points and an open curve; no closed volume',
+    expected: 'No tower is made; the upload stops with a plain explanation that lists what the file holds and what is needed',
+    basis: 'Course brief (out-of-scope cases must stop); team rule: no closed volume, no storeys, no estimate', basisFlag: 'team_assumption',
+    run: async () => {
+      const { built } = await upload('noGeometry')
+      return { observed: `${built.towers.length} towers; ${built.blocked ?? 'not stopped'}`, pass: built.towers.length === 0 && !!built.blocked && /no closed volumes/.test(built.blocked) && /1 TextDot, 3 Points, 1 open curve/.test(built.blocked), flag: 'unresolved' }
+    },
+  },
+  {
+    id: 'RHINO-N', node: 'built.model', type: 'boundary', title: 'Saved without render meshes: exact planar faces rebuilt, curved faces reported, never faked',
+    input: 'no-render-mesh-mm.3dm ("Save small"): an L-shaped polysurface tower (concave caps), an atrium tower (caps with a hole), a cylinder (curved faces)',
+    expected: 'L tower and atrium tower rebuilt from their BRep edges, closed, volume = plate area × height (1,200 m² × 120 m; 1,152 m² × 90 m); the cylinder left out as "3 curved faces not imported", no bounding box',
+    basis: 'Vista v34 rhino-planar.js (Ruijie Liu): exact planar rebuild with an area check, curved faces never sampled; research P14 correction in src/data/evidence_index.json', basisFlag: 'team_assumption',
+    run: async () => {
+      const { raw } = await upload('noRenderMesh')
+      const [{ signedVolume }, { topology }] = await Promise.all([import('../engine/importGeom'), import('../engine/meshHealth')])
+      const o = (n: string) => raw.objects.find((x) => x.name === n)
+      const vol = (n: string) => { const x = o(n); return x ? Math.round(signedVolume(x.mesh) / 1e9) : null }
+      const open = (n: string) => { const x = o(n); return x ? topology(x.mesh, 0.001).openEdges : null }
+      const cyl = raw.skipped.find((x) => x.name === 'Round tower')?.reason ?? 'imported'
+      return { observed: `L tower ${vol('L tower')} m³ (${open('L tower')} open edges); atrium ${vol('Atrium tower')} m³ (${open('Atrium tower')} open edges); cylinder: ${cyl.split('. ')[0]}`, pass: vol('L tower') === 144000 && vol('Atrium tower') === 103680 && open('L tower') === 0 && open('Atrium tower') === 0 && !o('Round tower') && /3 curved faces not imported/.test(cyl), flag: 'unresolved' }
+    },
+  },
+  {
+    id: 'RHINO-K', node: 'built.model', type: 'typical', title: 'Blocks done right: nested, rotated and scaled, mirrored; no phantom definitions',
+    input: 'nested-blocks-m.3dm: a Tower block holding two Floor stack blocks, placed plainly, rotated 30° and scaled 1.5 in plan, mirrored, and once on a hidden layer',
+    expected: '6 stacks (3 visible towers × 2), every one closed with outward normals (volume 20,000 m³, or 45,000 m³ scaled); the upper stack 50 m up; the hidden one listed with its reason; no copy of the definitions',
+    basis: 'Vista v34 browser-rhino.js (Ruijie Liu): nested instance transforms, reflected winding fixed, definitions never imported; Rhino audit row 7', basisFlag: 'team_assumption',
+    run: async () => {
+      const { raw } = await upload('nestedBlocks')
+      const { signedVolume } = await import('../engine/importGeom')
+      const vols = raw.objects.map((x) => Math.round(signedVolume(x.mesh)))
+      const hidden = raw.skipped.find((x) => x.name === 'Tower on a hidden layer')?.reason ?? 'not listed'
+      const ok = raw.objects.length === 6 && vols.filter((v) => v === 20000).length === 4 && vols.filter((v) => v === 45000).length === 2 && /^Hidden in Rhino/.test(hidden)
+      return { observed: `${raw.objects.length} stacks, volumes ${vols.join(', ')} m³; hidden: ${hidden.split(':')[0]}`, pass: ok, flag: 'team_assumption' }
+    },
+  },
+  {
+    id: 'RHINO-A', node: 'built.model', type: 'typical', title: 'Align to the map: anchor point and turn, or the file\u2019s Earth anchor',
+    input: 'typical-two-towers-mm.3dm in Real Vancouver: (a) podium south-west corner (-50, -32 m) on project point (120, 340), turned 90°; (b) the file\u2019s Earth anchor 49.2827, -123.1207 at the base point',
+    expected: '(a) that corner lands exactly on (120, 340) and the 100 × 64 m podium spans 64 × 100 m; (b) tower A (centred on the base point) sits on the anchor\u2019s UTM 10N point, within 1 mm of Vista\u2019s sixth-order Krüger series',
+    basis: 'Vista v34 georeference.js (Ruijie Liu; Krüger series, PROJ tmerc/utm, checked 2 Nov 2026); NAD83 and WGS84 taken as equal (about 1 m), so the placement is unverified', basisFlag: 'unverified',
+    run: async () => {
+      const [{ read3dmWith }, { autoMapping }, { buildModel, defaultOptions }, fx, { default: rhino3dm }] = await Promise.all([import('../lib/import/rhino'), import('../lib/interchange/mapping'), import('../lib/interchange/build'), import('../lib/interchange/fixtures'), import('rhino3dm/rhino3dm.module.js')])
+      const rh = await rhino3dm()
+      const f = fx.typicalTower(rh)
+      const raw = read3dmWith(rh, f.bytes, f.name)
+      const mapping = autoMapping(raw)
+      const city = { project: 'city' as const, northDeg: 0, siteCentre: [0, 0] as [number, number], groundElevation: 30, utmOrigin: [491300, 5458600] as [number, number] }
+      const opts = defaultOptions(raw, mapping, city, 4.2)
+      const a = buildModel({ raw, mapping, opts: { ...opts, placement: 'anchor', anchor: { model: [-50, -32], city: [120, 340], turn: 90 } }, frame: city, bands: [{ use: 'office', share: 1 }], podiumUse: 'retail' })
+      const pod = a.model.elements.find((e) => e.role === 'podium')!.geometry
+      const box = pod.kind === 'mesh' ? pod.bbox : null
+      const e = buildModel({ raw, mapping, opts: { ...opts, placement: 'earth' }, frame: city, bands: [{ use: 'office', share: 1 }], podiumUse: 'retail' })
+      const [E, N] = vistaUtm(-123.1207, 49.2827)
+      const t = e.towers[0].tower
+      const err = Math.hypot(t.x + 491300 - E, t.y + 5458600 - N)
+      const corner = box ? [box[1][0], box[0][1]] : [NaN, NaN]
+      return { observed: `(a) corner at ${corner.map((v) => v.toFixed(3)).join(', ')}, podium ${box ? `${(box[1][0] - box[0][0]).toFixed(2)} × ${(box[1][1] - box[0][1]).toFixed(2)}` : '?'} m; (b) tower A at E ${(t.x + 491300).toFixed(3)}, N ${(t.y + 5458600).toFixed(3)}, ${(err * 1000).toFixed(2)} mm from Vista's series; default placement in Real Vancouver: ${opts.placement}`, pass: !!box && Math.abs(corner[0] - 120) < 1e-3 && Math.abs(corner[1] - 340) < 1e-3 && Math.abs(box[1][0] - box[0][0] - 64) < 1e-3 && err < 0.001 && opts.placement === 'earth', flag: 'unverified' }
+    },
+  },
+  {
+    id: 'RHINO-R', node: 'built.model', type: 'repeated', title: 'Round trip: upload, Layer 0, export .3dm, upload again',
+    input: 'typical-two-towers-mm.3dm uploaded, exported as .3dm with roles (toExportScene), the export uploaded again',
+    expected: 'Same towers, storey count, podium storeys and uses; every storey area within 1%; site and context come back with the same element ids',
+    basis: 'Team definition of a lossless interchange (INTERCHANGE.md: 1% area, 1 cm levels)', basisFlag: 'team_assumption',
+    run: async () => {
+      const { rh, built, frame } = await upload('typicalTower')
+      const [{ toExportScene }, { to3dm }, { read3dmWith }, { autoMapping }, { buildModel, defaultOptions }, { towerFloors }] = await Promise.all([
+        import('../lib/interchange/converters'), import('../lib/export/writers'), import('../lib/import/rhino'), import('../lib/interchange/mapping'), import('../lib/interchange/build'), import('../engine/massing'),
+      ])
+      const meshes = new Map(built.towers.map((t) => [t.tower.imported!.meshId, t.mesh]))
+      const towers = built.towers.map((t) => t.tower)
+      const bytes = to3dm(rh, toExportScene(towers, built.model, { project: 'vtc', northDeg: 0, groundElevation: 0, utmOrigin: null, meshOf: (id) => meshes.get(id) as never, date: '2026-11-03' }), { northDeg: 0, lat: 49.2827, lon: -123.1207 })
+      const raw = read3dmWith(rh, bytes, 'roundtrip.3dm')
+      const mapping = autoMapping(raw)
+      const again = buildModel({ raw, mapping, opts: defaultOptions(raw, mapping, frame, 3.5), frame, bands: [{ use: 'civic', share: 1 }], podiumUse: 'civic' })
+      let worst = 0, same = again.towers.length === towers.length
+      again.towers.forEach((t, n) => {
+        const a = towerFloors(towers[n]), b = towerFloors(t.tower)
+        if (a.length !== b.length) same = false
+        b.forEach((f, i) => { if (!a[i] || f.use !== a[i].use || f.podium !== a[i].podium) same = false; else worst = Math.max(worst, Math.abs(f.area - a[i].area) / a[i].area) })
+      })
+      const ids = (m: typeof built.model) => m.elements.filter((e) => e.role === 'site' || e.role === 'context').map((e) => e.id).sort().join()
+      return { observed: `${again.towers.length} towers, storeys and uses ${same ? 'identical' : 'differ'}, worst area difference ${(worst * 100).toFixed(3)}%, site and context ids ${ids(again.model) === ids(built.model) ? 'kept' : 'changed'}`, pass: same && worst < 0.01 && ids(again.model) === ids(built.model), flag: 'team_assumption' }
+    },
+  },
+)

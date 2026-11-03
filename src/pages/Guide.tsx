@@ -9,10 +9,11 @@ import type { Flag } from '../engine/types'
 import { installApp, installHint, useOffline } from '../lib/pwa/install'
 import { navigate, type Route } from '../lib/route'
 import { useStore } from '../store'
+import { UnitSelect } from '../components/Units'
 
 const SECTIONS = [
   ['start', 'Getting started'], ['projects', 'Two projects'], ['stages', 'The three stages'], ['nodes', 'Nodes'], ['evidence', 'Evidence flags'],
-  ['customize', 'Customize'], ['files', 'Saving, import and export'], ['options', 'Design options'], ['offline', 'Offline and install'], ['keys', 'Keyboard'],
+  ['customize', 'Customize'], ['files', 'Saving, import and export'], ['options', 'Design options'], ['offline', 'Offline and install'], ['units', 'Units'], ['keys', 'Keyboard'],
 ] as const
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -122,10 +123,19 @@ export default function Guide() {
             <p>The private competition model (<code>public/local/</code>) is never stored by the offline copy and is left out of any build meant for publishing, so offline the Competition site shows no neighbouring buildings.</p>
           </Section>
 
+          <Section id="units" title="Units">
+            <div className="flex flex-wrap items-center gap-2"><span>Show lengths, heights and areas in</span><UnitSelect /><span className="text-muted">(also in the top bar; remembered in this browser)</span></div>
+            <p><b>Metres</b> show the app as written. <b>Feet</b> are decimal feet (984.25 ft, not 984′ 3″), with areas in ft². <b>Millimetres</b> show lengths in mm and keep areas in m², as Canadian drawings do. On drawings the scale bar is in feet when feet are shown, otherwise in metres.</p>
+            <p>Only what you see and type changes. Every calculation, the saved project, the decision trace and every export stay in metres, and a value shown in feet and typed back returns the same metres. Rates per area (such as $/m²), speeds (m/s), volumes (m³) and kilometres are left as written.</p>
+            <p className="text-[12px] text-muted">Conversion follows Ruijie Liu's Vista (explorer/units.js, github.com/RuijieLiu6/vancouver-tall-view-tool).</p>
+          </Section>
+
           <Section id="keys" title="Keyboard">
             <ul className="space-y-1">
               <li><Key>1</Key> <Key>2</Key> <Key>3</Key> switch stage (Massing, Schematic, Present)</li>
-              <li><Key>P</Key> place the tower on the map; <Key>Esc</Key> stops placing</li>
+              <li><Key>P</Key> place the tower on the map: a click shows a ghost of the tower there with its site fit and view cones; <Key>Enter</Key> or Confirm places it, <Key>Esc</Key> or Cancel keeps it where it was</li>
+              <li>Click a tower in the 3D view to select it as one object; <Key>M</Key> <b>Move</b> and <Key>R</Key> <b>Rotate</b> show a gizmo at its base (drag the arrows or the square to move it in plan, the arc to turn it). It snaps to the site boundary and parcel edges first, then to a 1 m or 5 m grid and 5° or 15° steps; hold <Key>Shift</Key> for free. A drag leaves a ghost to <Key>Enter</Key> confirm or <Key>Esc</Key> cancel; nothing changes until you confirm, and each confirmed move is one undo step. With Move on, the arrow keys nudge it one grid step (<Key>Shift</Key>: 0.1 m); with Rotate on, <Key>[</Key> <Key>]</Key> turn it one step. <Key>Esc</Key> cancels a drag, then the pending move, then deselects. Present keeps the model locked</li>
+              <li><Key>H</Key> hides or shows everything over the 3D view (the layers dock, compass and title block) for a clean view; captures never include them</li>
               <li><Key>Ctrl</Key> + <Key>Z</Key> undo; opening a project or an option is one undo step</li>
             </ul>
           </Section>

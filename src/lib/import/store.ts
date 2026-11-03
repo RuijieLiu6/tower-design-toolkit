@@ -95,7 +95,9 @@ export function tagStoreys(t: Tower, levels: number[], patch: Partial<Pick<Impor
   const m = t.imported
   if (!m) return
   const set = new Set(levels)
-  useStore.getState().updateTower(t.id, towerPatch({ ...m, storeys: m.storeys.map((s) => (set.has(s.level) ? { ...s, ...patch } : s)) }))
+  // A use set by hand replaces the one the model's program element gave, so its element id goes too.
+  const retag = (s: ImportedMass['storeys'][number]) => { const { src: _src, ...rest } = s; return { ...(patch.use ? rest : s), ...patch } }
+  useStore.getState().updateTower(t.id, towerPatch({ ...m, storeys: m.storeys.map((s) => (set.has(s.level) ? retag(s) : s)) }))
 }
 
 /** Meshes as plain arrays, for a project file (save/load can call this). */

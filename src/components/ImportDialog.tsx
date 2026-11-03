@@ -1,39 +1,60 @@
-// Import massing dialog (research P14-M02 import, M03 units / north / datum, M05 health, M04 storeys).
-// Loaded on demand by ImportHost. Every choice that changes the numbers is shown and confirmed; nothing is assumed.
-import { Compass, FileUp, Layers, Loader2, Ruler, ScanLine, TriangleAlert, Upload, X } from 'lucide-react'
+// Upload a model (research P14-M02 import, M03 units / north / datum, M05 health, M04 storeys; Rhino upload audit and
+// Layer 0 interchange, 3 Nov 2026). Two screens: 1. map layers to roles with a live preview; 2. check units, north,
+// datum and health in plain words, then use the model. The file is read in this browser (a Web Worker for .3dm and
+// OBJ) and never uploaded. Loaded on demand by ImportHost. Every choice that changes the numbers is shown; nothing is assumed.
+import { ArrowLeft, ArrowRight, CircleAlert, CircleCheck, Compass, FileUp, Info, Layers, Loader2, Lock, Ruler, ScanLine, TriangleAlert, Upload, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { VTC_NORTH_DEG } from '../context'
-import { PODIUM_F2F } from '../engine/massing'
-import { fmtLen, guessUnit, guessUpAxis, looksLikeUtm10, unitCandidates, UNIT_LABEL, UNIT_SCALE, type Unit } from '../engine/meshHealth'
-import { bounds, mergeMeshes } from '../engine/importGeom'
+import { fmtLen, unitCandidates, UNIT_LABEL, UNIT_SCALE } from '../engine/meshHealth'
+import { bounds, mergeMeshes, type MeshData } from '../engine/importGeom'
 import { USES, type ImportedStorey } from '../engine/types'
-import { ACCEPT, readModelFile, type LoadedImport } from '../lib/import/load'
-import { buildMass, DATUM_LABEL, healthFor, MAGNETIC_DECLINATION, NORTH_LABEL, stageA, stageB, stageC, STREET_GRID_NORTH, topology, type DatumMode, type ImportOptions, type NorthMode, type Placement, type ProjectFrame } from '../lib/import/pipeline'
-import { addImportedTower, useImportStore } from '../lib/import/store'
+import { ACCEPT, isCancelled, readModelFile, type LoadedImport } from '../lib/import/load'
+import { DATUM_LABEL, MAGNETIC_DECLINATION, NORTH_LABEL, STREET_GRID_NORTH, type DatumMode, type ImportOptions, type NorthMode, type Placement, type ProjectFrame } from '../lib/import/pipeline'
+import { useImportStore } from '../lib/import/store'
 import { FORMAT_LABEL, FORMATS } from '../lib/import/types'
+import { applyModel, type ApplyMode } from '../lib/interchange/apply'
+import { buildModel, defaultOptions } from '../lib/interchange/build'
+import { autoMapping, itemsOf, recallMapping, roleOf } from '../lib/interchange/mapping'
+import { MASSING_ROLES, type Mapping, type ModelCheck } from '../lib/interchange/model'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { HealthList } from './ImportHealth'
+import RoleMapper, { useShapes } from './import/RoleMapper'
+import { AlignBlock, CityAlign } from './import/Align'
+import { useHideUnderDesign } from './CityContext'
 import { FlagChip } from './ui'
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-const SKIP_LAYER = /context|site|surround|existing|tree|furniture|annot|dimension|text|grid|camera|light/i
+/** Above this a file is "large": the dialog says so (the reader still runs, in the worker). */
+const LARGE_BYTES = 50 * 1024 * 1024
 
 export default function ImportDialog() {
   const pendingFile = useImportStore((s) => s.pendingFile)
   const replaceId = useImportStore((s) => s.replaceId)
   const close = useImportStore((s) => s.closeDialog)
   const project = useStore((s) => s.project)
+  const setProject = useStore((s) => s.setProject)
   const ground = useStore((s) => s.groundElevation)
   const towers = useTowers()
+  const liftPresets = useStore((s) => s.liftPresets)
+  const egressPresets = useStore((s) => s.egressPresets)
   const selectedId = useStore((s) => s.selectedTower)
   const sel = towers.find((t) => t.id === selectedId) ?? towers[0]
   const panel = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const [raw, setRaw] = useState<LoadedImport | null>(null)
+  const [file, setFile] = useState<{ name: string; size: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState<string | null>(null)
+  const [loading, setLoading] = useState<{ phase: string; done: number; total: number } | null>(null)
   const [opts, setOpts] = useState<ImportOptions | null>(null)
+  const [mapping, setMapping] = useState<Mapping | null>(null)
+  const [recalled, setRecalled] = useState(false)
+  const [step, setStep] = useState<'map' | 'check'>('map')
+  const [shown, setShown] = useState(0)
+  // Item 11: picking the map point on the preview, keeping the City buildings under the model, and how many there are.
+  const [picking, setPicking] = useState(false)
+  const [keep, setKeep] = useState(false)
+  const [demolishCount, setDemolishCount] = useState(0)
   const up = (patch: Partial<ImportOptions>) => setOpts((o) => (o ? { ...o, ...patch } : o))
 
   const frame: ProjectFrame = useMemo(() => ({
@@ -42,14 +63,28 @@ export default function ImportDialog() {
     groundElevation: ground, utmOrigin: project === 'city' ? CITY_ORIGIN : null,
   }), [project, ground, sel?.x, sel?.y])
 
-  const read = async (file: File) => {
-    setError(null); setRaw(null); setOpts(null); setLoading(`Reading ${file.name}…`)
+  const reading = useRef<AbortController | null>(null)
+  // Closing the dialog while a file is read cancels the read.
+  useEffect(() => () => reading.current?.abort(), [])
+  const read = async (f: File) => {
+    reading.current?.abort()
+    const ctrl = new AbortController()
+    reading.current = ctrl
+    setError(null); setRaw(null); setOpts(null); setMapping(null); setStep('map'); setFile({ name: f.name, size: f.size })
+    setLoading({ phase: 'Opening the file', done: 0, total: 1 })
     try {
-      const r = await readModelFile(file)
-      if (!r.objects.length) throw new Error(`Nothing in ${file.name} could be turned into a mesh.${r.skipped.length ? ` Skipped: ${r.skipped.slice(0, 3).map((s) => `${s.name} (${s.reason})`).join('; ')}` : ''}`)
-      setRaw(r)
-      setOpts(defaults(r, frame, sel?.f2f ?? 4.2))
+      const r = await readModelFile(f, (p) => { if (!ctrl.signal.aborted) setLoading(p) }, ctrl.signal)
+      if (!r.objects.length && !(r.curves ?? []).length) {
+        const { explainEmpty } = await import('../lib/interchange/build')
+        throw new Error(explainEmpty(r))
+      }
+      const remembered = recallMapping(r)
+      const m = remembered ?? autoMapping(r)
+      setRecalled(!!remembered)
+      setRaw(r); setMapping(m)
+      setOpts(defaultOptions(r, m, frame, sel?.f2f ?? 4.2))
     } catch (e) {
+      if (isCancelled(e)) { if (reading.current === ctrl) setFile(null); return }
       setError((e as Error).message || String(e))
     } finally { setLoading(null) }
   }
@@ -71,32 +106,21 @@ export default function ImportDialog() {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
   }
 
-  // Pipeline stages, each recomputed only when its inputs change.
-  const A = useMemo(() => (raw && opts ? stageA(raw, { excluded: opts.excluded, unit: opts.unit, upAxis: opts.upAxis, scaleOverride: raw.unitScaleOverride }) : null), [raw, opts?.excluded, opts?.unit, opts?.upAxis]) // eslint-disable-line react-hooks/exhaustive-deps
-  const topo = useMemo(() => (A ? topology(A.mesh) : null), [A])
-  const B = useMemo(() => (raw && A && opts ? stageB(raw, A, opts, frame) : null), [raw, A, opts?.placement, opts?.offset, opts?.datum, opts?.dz, opts?.north, opts?.northDeg, frame]) // eslint-disable-line react-hooks/exhaustive-deps
-  const C = useMemo(() => {
-    if (!B || !topo || !opts || !A || A.triangles === 0) return null
-    const h = bounds(B.local).max[2]
-    if (h > 2000 || h < 1) return null // unit slip: do not slice thousands of storeys
-    return stageC(B.local, topo, opts, { bands: sel?.bands ?? [{ use: 'office', share: 1 }], podiumUse: sel?.podiumUse ?? 'retail' })
-  }, [B, topo, opts?.f2f, opts?.podiumTop, opts?.podiumF2F]) // eslint-disable-line react-hooks/exhaustive-deps
-  const health = useMemo(() => (B && topo && opts ? healthFor(B, topo, C, frame, opts.unit) : []), [B, topo, C, frame, opts?.unit]) // eslint-disable-line react-hooks/exhaustive-deps
-  const blocked = health.some((h) => h.severity === 'block') || !C || !C.storeys.length
+  const shapes = useShapes(raw ?? { format: 'obj', fileName: '', objects: [], skipped: [], unit: null, unitNote: '', upAxis: 'z', upNote: '', fileNorthDeg: null, northNote: '', notes: [] }, opts?.upAxis ?? 'z')
+  const massObjects = useMemo(() => (raw && mapping ? itemsOf(raw).filter((it) => MASSING_ROLES.includes(roleOf(it, mapping).role)).flatMap((it) => (it.curve ? [] : [it])) : []), [raw, mapping])
+  // The full build (slicing every tower) runs on the check screen only.
+  const built = useMemo(() => (raw && opts && mapping && step === 'check'
+    ? buildModel({ raw, mapping, opts, frame, bands: sel?.bands ?? [{ use: 'office', share: 1 }], podiumUse: sel?.podiumUse ?? 'retail', takenIds: towers.map((t) => t.id), liftPresets, egressPresets })
+    : null), [raw, opts, mapping, step, frame, sel?.bands, sel?.podiumUse, towers, liftPresets, egressPresets])
   const needsUnit = !!opts && !opts.unitConfirmed && !(raw?.unit && raw.unit === opts.unit)
+  const blocked = !!built?.blocked
+  const one = built?.towers[Math.min(shown, Math.max(0, (built?.towers.length ?? 1) - 1))]
 
-  const add = (replace: boolean) => {
-    if (!raw || !opts || !A || !B || !C || !topo) return
-    const meshId = `m${Date.now().toString(36)}`
-    const [cx, cy] = B.rawCentre
-    const open = Float32Array.from(topo.openSegments, (v, i) => v - (i % 3 === 0 ? cx : i % 3 === 1 ? cy : B.datumShift))
-    useImportStore.getState().putMesh(meshId, {
-      positions: Float32Array.from(B.local.positions), indices: Uint32Array.from(B.local.indices),
-      openSegments: open, flippedTriangles: Uint32Array.from(topo.flippedTriangles), health,
-      report: { objects: A.objects, triangles: A.triangles, sources: A.sources, skipped: raw.skipped, notes: raw.notes, unitNote: raw.unitNote, northNote: raw.northNote },
-    })
-    const mass = buildMass(raw, opts, B, C, health, meshId)
-    addImportedTower(mass, { x: B.x, y: B.y, rotation: B.rotation }, replace ? (replaceId ?? sel?.id ?? null) : null)
+  const use = (mode: ApplyMode) => {
+    if (!raw || !built || built.blocked) return
+    applyModel(built, raw, mode, mode === 'replace-one' ? replaceId ?? sel?.id ?? null : null)
+    // Buildings under the model: demolished (hidden from views, shadows and roofs) unless the person kept them.
+    if (project === 'city' && demolishCount > 0) useHideUnderDesign.setState({ on: !keep })
     close()
   }
 
@@ -104,57 +128,90 @@ export default function ImportDialog() {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) close() }}>
       <div ref={panel} role="dialog" aria-modal="true" aria-labelledby="imp-title" onKeyDown={onKeyDown}
-        className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-panel text-ink shadow-xl">
+        className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-panel text-ink shadow-xl">
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><FileUp size={18} /></span>
             <div>
-              <h2 id="imp-title" className="text-base font-semibold">Import massing</h2>
-              <p className="mt-0.5 text-xs text-muted">Bring in a mass from Rhino, SketchUp, Revit or Blender. You confirm units, north and the zero level; storeys are sliced and run through the same checks as the parametric towers.</p>
+              <h2 id="imp-title" className="text-base font-semibold">Upload a model</h2>
+              <p className="mt-0.5 text-xs text-muted">Bring in your Rhino model (or OBJ, glTF, IFC). Map its layers to roles, check units, north and the zero level, and every tool on the site runs on it, with each result traced back to your layers.</p>
             </div>
           </div>
+          {raw && <Steps step={step} />}
           <button aria-label="Close" onClick={close} className="rounded p-1 text-muted hover:bg-black/5"><X size={18} /></button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!raw && (
             <div className="grid gap-4 p-5">
-              <DropZone loading={loading} onFile={read} inputRef={input} />
+              <DropZone loading={loading} file={file} onFile={read} inputRef={input} onCancel={() => { reading.current?.abort(); setLoading(null); setFile(null) }} />
               {error && <ErrorBox text={error} />}
               <FormatsTable />
             </div>
           )}
-          {raw && opts && A && B && topo && (
-            <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div className="grid content-start gap-3 border-line p-5 md:border-r">
-                <FileSummary raw={raw} objects={A.objects} triangles={A.triangles} onOther={() => { setRaw(null); setOpts(null) }} />
-                <LayerPicker raw={raw} excluded={opts.excluded} onChange={(excluded) => up({ excluded })} />
-                <UnitsBlock raw={raw} opts={opts} up={up} />
-                <PlaceBlock opts={opts} up={up} frame={frame} rawCentre={B.rawCentre} minZ={A.bounds.min[2]} />
-                <NorthBlock raw={raw} opts={opts} up={up} frame={frame} rotation={B.rotation} />
-                <StoreyBlock opts={opts} up={up} detected={C?.podiumTop ?? 0} defaultF2F={sel?.f2f ?? 4.2} />
-              </div>
-              <div className="grid content-start gap-3 bg-black/[0.015] p-5">
-                <PreviewBlock storeys={C?.storeys ?? []} top={C?.top ?? 0} volume={C?.volume ?? null} hull={B.local} rotation={B.rotation} northDeg={frame.northDeg} fileNorth={B.fileNorthDeg} />
-                <HealthList items={health} />
-                {raw.notes.length > 0 && <div className="rounded-md border border-line bg-panel p-2 text-[11px] text-muted">{raw.notes.map((n, i) => <p key={i}>{n}</p>)}</div>}
-              </div>
-            </div>
+          {raw && opts && mapping && (
+            <>
+              <FileSummary raw={raw} size={file?.size ?? raw.fileSize ?? null} onOther={() => { setRaw(null); setOpts(null); setMapping(null) }} />
+              {step === 'map' && <RoleMapper raw={raw} mapping={mapping} onChange={setMapping} shapes={shapes} recalled={recalled} />}
+              {step === 'check' && (
+                <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <div className="grid content-start gap-3 border-line p-5 md:border-r">
+                    <ProjectBlock project={project} onPick={(p) => setProject(p)} />
+                    <UnitsBlock raw={raw} objects={massObjects} opts={opts} up={up} />
+                    <PlaceBlock opts={opts} up={up} frame={frame} rawCentre={built?.placed?.rawCentre ?? [0, 0]} minZ={built?.massing?.bounds.min[2] ?? 0} earth={!!raw.earthAnchor && !!frame.utmOrigin} centre={built?.massing ? [(built.massing.bounds.min[0] + built.massing.bounds.max[0]) / 2, (built.massing.bounds.min[1] + built.massing.bounds.max[1]) / 2] : [0, 0]} />
+                    <AlignBlock raw={raw} opts={opts} up={up} frame={frame} built={built} picking={picking} setPicking={setPicking} />
+                    <NorthBlock raw={raw} opts={opts} up={up} frame={frame} rotation={built?.placed?.rotation ?? 0} />
+                    <StoreyBlock opts={opts} up={up} detected={built?.model.towers[0]?.schedule.podiumTop ?? 0} defaultF2F={sel?.f2f ?? 4.2} />
+                  </div>
+                  <div className="grid content-start gap-3 bg-black/[0.015] p-5">
+                    {project === 'city' && built && !built.blocked && <CityAlign built={built} picking={picking} keep={keep} setKeep={setKeep} onCount={setDemolishCount}
+                      onPick={(p) => { up({ placement: 'anchor', anchor: { model: opts.anchor?.model ?? [0, 0], turn: opts.anchor?.turn ?? 0, city: p } }); setPicking(false) }} />}
+                    {built && <ChecksList checks={built.model.checks} />}
+                    {built && built.towers.length > 1 && (
+                      <div role="tablist" aria-label="Towers found" className="flex flex-wrap gap-1">
+                        {built.towers.map((t, n) => <button key={t.key} role="tab" aria-selected={one === t} onClick={() => setShown(n)} className={`rounded-md border px-2 py-1 text-[11px] ${one === t ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>{t.tower.name}</button>)}
+                      </div>
+                    )}
+                    {one && <PreviewBlock storeys={one.tower.imported!.storeys} top={one.tower.imported!.top} volume={one.tower.imported!.volume} hull={built!.placed!.local} rotation={built!.placed!.rotation} northDeg={frame.northDeg} fileNorth={built!.placed!.fileNorthDeg} />}
+                    {one && <HealthList items={one.health} />}
+                    {built && built.model.ignored.length > 0 && (
+                      <details className="rounded-md border border-line bg-panel p-2 text-[11px]">
+                        <summary className="cursor-pointer text-muted hover:text-ink">{built.model.ignored.length} item{built.model.ignored.length === 1 ? '' : 's'} left out, and why</summary>
+                        <ul className="mt-1 grid max-h-40 gap-1 overflow-y-auto">{built.model.ignored.map((s, i) => <li key={i}><b>{s.name}</b> <span className="text-muted">({s.kind}{s.layer ? `, ${s.layer}` : ''})</span>: {s.reason}</li>)}</ul>
+                      </details>
+                    )}
+                    {raw.notes.length > 0 && <div className="rounded-md border border-line bg-panel p-2 text-[11px] text-muted">{raw.notes.map((n, i) => <p key={i}>{n}</p>)}</div>}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           {raw && error && <div className="p-5"><ErrorBox text={error} /></div>}
         </div>
 
-        {raw && opts && (
+        {raw && opts && mapping && (
           <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
-            <div className="mr-auto text-[11px] text-muted">
-              {needsUnit ? <span className="font-medium text-[#8a5a00]">Confirm the units first (the file does not say).</span>
-                : blocked ? <span className="font-medium text-red-700">Fix the blocking problem above to import.</span>
+            <div className="mr-auto flex items-center gap-1.5 text-[11px] text-muted">
+              {step === 'map' ? <><Lock size={12} aria-hidden />Read in this browser; nothing is uploaded to a server.</>
+                : needsUnit ? <span className="font-medium text-[#8a5a00]">Confirm the units first (the file does not say).</span>
+                : blocked ? <span className="font-medium text-red-700">{built?.blocked}</span>
+                : !built ? <span>Checking…</span>
                 : opts.north === 'unresolved' ? <span className="inline-flex items-center gap-1"><FlagChip flag="unresolved" />North stays unresolved: sun and wind results will say so.</span>
-                : <span>{C?.storeys.filter((s) => s.hasFloor).length} storeys ready.</span>}
+                : <span>{built.towers.length} tower{built.towers.length === 1 ? '' : 's'}, {built.towers.reduce((s, t) => s + t.tower.imported!.storeys.filter((x) => x.hasFloor).length, 0)} storeys ready.</span>}
             </div>
             <button onClick={close} className="rounded-md border border-line px-3 py-1.5 text-xs hover:border-accent">Cancel</button>
-            {sel && <button disabled={blocked || needsUnit} onClick={() => add(true)} className="rounded-md border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40">Replace {towers.find((t) => t.id === (replaceId ?? sel.id))?.name ?? sel.name}</button>}
-            <button disabled={blocked || needsUnit} onClick={() => add(false)} data-autofocus className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40">Add as a new tower</button>
+            {step === 'map' ? (
+              <button data-autofocus disabled={!massObjects.length} title={massObjects.length ? undefined : 'Map at least one layer with volumes to Tower massing, Podium or Program'}
+                onClick={() => { setMapping({ ...mapping, confirmed: Object.keys(mapping.rules) }); setOpts(defaultOptions(raw, mapping, frame, sel?.f2f ?? 4.2)); setShown(0); setStep('check') }}
+                className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40">Check units, north and datum<ArrowRight size={13} /></button>
+            ) : (
+              <>
+                <button onClick={() => setStep('map')} className="flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-xs hover:border-accent"><ArrowLeft size={13} />Mapping</button>
+                {replaceId && built?.towers.length === 1 && <button disabled={blocked || needsUnit} onClick={() => use('replace-one')} className="rounded-md border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40">Replace {towers.find((t) => t.id === replaceId)?.name ?? 'the tower'}</button>}
+                <button disabled={blocked || needsUnit || !built} onClick={() => use('add')} className="rounded-md border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40">Add to the {project === 'vtc' ? 'competition site' : 'Real Vancouver'} towers</button>
+                <button disabled={blocked || needsUnit || !built} onClick={() => use('replace-all')} data-autofocus className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40">Use this model (replaces the {towers.length} tower{towers.length === 1 ? '' : 's'})</button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -163,45 +220,65 @@ export default function ImportDialog() {
   )
 }
 
-function defaults(raw: LoadedImport, frame: ProjectFrame, f2f: number): ImportOptions {
-  const all = mergeMeshes(raw.objects.map((o) => o.mesh))
-  const b = bounds(all)
-  const upAxis = raw.upAxis ?? guessUpAxis(b)
-  const h = upAxis === 'y' ? b.max[1] - b.min[1] : b.max[2] - b.min[2]
-  const w = b.max[0] - b.min[0], d = upAxis === 'y' ? b.max[2] - b.min[2] : b.max[1] - b.min[1]
-  const unit: Unit = raw.unit ?? guessUnit({ height: h, width: w, depth: d })
-  const layers = [...new Set(raw.objects.map((o) => o.layer))]
-  const skip = layers.filter((l) => SKIP_LAYER.test(l))
-  const s = raw.unitScaleOverride ?? UNIT_SCALE[unit]
-  const cx = ((b.min[0] + b.max[0]) / 2) * s, cy = (upAxis === 'y' ? -(b.min[2] + b.max[2]) / 2 : (b.min[1] + b.max[1]) / 2) * s
-  const minZ = (upAxis === 'y' ? b.min[1] : b.min[2]) * s
-  const placement: Placement = looksLikeUtm10(cx, cy) ? (frame.utmOrigin ? 'utm' : 'centre') : Math.hypot(cx, cy) > 2000 ? 'centre' : 'keep'
-  return {
-    excluded: skip.length < layers.length ? skip : [],
-    unit, unitConfirmed: !!raw.unit, upAxis,
-    placement, offset: [0, 0],
-    datum: Math.abs(minZ) < 0.5 ? 'zero' : 'lowest', dz: 0,
-    north: raw.fileNorthDeg != null ? 'file' : 'unresolved', northDeg: 0,
-    f2f, podiumTop: null, podiumF2F: PODIUM_F2F,
-  }
-}
-
 // ---------- pieces ----------
 
-function DropZone({ loading, onFile, inputRef }: { loading: string | null; onFile: (f: File) => void; inputRef: RefObject<HTMLInputElement | null> }) {
+function Steps({ step }: { step: 'map' | 'check' }) {
+  const s = (n: number, label: string, on: boolean) => <li className={`flex items-center gap-1.5 ${on ? 'font-semibold text-accent' : 'text-muted'}`} aria-current={on ? 'step' : undefined}><span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${on ? 'bg-accent text-white' : 'border border-line'}`}>{n}</span>{label}</li>
+  return <ol className="ml-auto hidden items-center gap-3 self-center text-[11px] md:flex" aria-label="Steps">{s(1, 'Map layers to roles', step === 'map')}{s(2, 'Check and use', step === 'check')}</ol>
+}
+
+function DropZone({ loading, file, onFile, inputRef, onCancel }: { loading: { phase: string; done: number; total: number } | null; file: { name: string; size: number } | null; onFile: (f: File) => void; inputRef: RefObject<HTMLInputElement | null>; onCancel: () => void }) {
   const [over, setOver] = useState(false)
+  const pct = loading && loading.total > 1 ? Math.round((loading.done / loading.total) * 100) : null
   return (
     <div onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f) onFile(f) }}
       className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center ${over ? 'border-accent bg-accent/5' : 'border-line'}`}>
-      {loading ? <><Loader2 size={22} className="animate-spin text-accent" /><span className="text-sm">{loading}</span><span className="text-[11px] text-muted">Rhino and IFC files load a WebAssembly reader the first time (about 3 MB and 5 MB, then cached).</span></>
-        : <>
-            <Upload size={22} className="text-accent" />
-            <span className="text-sm font-medium">Drop a model here, or</span>
-            <button data-autofocus onClick={() => inputRef.current?.click()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white">Choose a file</button>
-            <span className="text-[11px] text-muted">.3dm · .obj · .glb / .gltf · .ifc — the file stays on this computer</span>
-          </>}
+      {loading ? (
+        <>
+          <Loader2 size={22} className="animate-spin text-accent" aria-hidden />
+          <span className="text-sm" role="status">{file?.name}: {loading.phase.toLowerCase()}{pct != null ? ` (${loading.done.toLocaleString('en-CA')} of ${loading.total.toLocaleString('en-CA')} objects)` : '…'}</span>
+          {pct != null && <div className="h-1.5 w-64 overflow-hidden rounded-full bg-black/10" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Reading the file"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>}
+          <span className="text-[11px] text-muted">{file && file.size > LARGE_BYTES ? `A large file (${(file.size / 1048576).toFixed(0)} MB): reading may take a minute; the page stays usable. ` : ''}Rhino and IFC files load a WebAssembly reader the first time (about 3 MB and 5 MB, then cached). It all runs on this device.</span>
+          <button onClick={onCancel} className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent">Cancel</button>
+        </>
+      ) : (
+        <>
+          <Upload size={22} className="text-accent" aria-hidden />
+          <span className="text-sm font-medium">Drop a Rhino model here, or</span>
+          <button data-autofocus onClick={() => inputRef.current?.click()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white">Choose a file</button>
+          <span className="text-[11px] text-muted">.3dm · .obj · .glb / .gltf · .ifc</span>
+          <span className="flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />Read in this browser; nothing is uploaded to a server.</span>
+        </>
+      )}
       <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
+    </div>
+  )
+}
+
+const SEVERITY_ICON = { info: <CircleCheck size={13} className="mt-0.5 shrink-0 text-emerald-700" aria-label="OK" />, warn: <CircleAlert size={13} className="mt-0.5 shrink-0 text-[#8a5a00]" aria-label="Check" />, block: <TriangleAlert size={13} className="mt-0.5 shrink-0 text-red-700" aria-label="Blocks the upload" /> }
+
+/** The model in plain words: units, north, datum, towers, program, core, site, context, health, what is left out. */
+function ChecksList({ checks }: { checks: ModelCheck[] }) {
+  const order = { block: 0, warn: 1, info: 2 }
+  return (
+    <section className="rounded-lg border border-line bg-panel p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><Info size={13} className="text-accent" />In plain words</div>
+      <ul className="grid gap-1.5">
+        {[...checks].sort((a, b) => order[a.severity] - order[b.severity]).map((c) => (
+          <li key={c.id} className="flex items-start gap-1.5 text-[11.5px] leading-snug">{SEVERITY_ICON[c.severity]}<span className="min-w-0 flex-1">{c.text}</span>{c.flag && <FlagChip flag={c.flag} />}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function ProjectBlock({ project, onPick }: { project: 'vtc' | 'city'; onPick: (p: 'vtc' | 'city') => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2 text-xs">
+      <span className="font-semibold">Place it in</span>
+      {(['vtc', 'city'] as const).map((p) => <button key={p} onClick={() => onPick(p)} aria-pressed={project === p} className={`rounded border px-2 py-0.5 text-[11px] ${project === p ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>{p === 'vtc' ? 'Competition site' : 'Real Vancouver'}</button>)}
+      <span className="text-[10px] text-muted">north, datum and placement follow the project</span>
     </div>
   )
 }
@@ -241,46 +318,22 @@ function Radio<T extends string>({ name, value, current, onPick, children }: { n
   )
 }
 
-function FileSummary({ raw, objects, triangles, onOther }: { raw: LoadedImport; objects: number; triangles: number; onOther: () => void }) {
+function FileSummary({ raw, size, onOther }: { raw: LoadedImport; size: number | null; onOther: () => void }) {
+  const curves = raw.curves?.length ?? 0
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-black/[0.03] px-3 py-2 text-xs">
-      <FileUp size={14} className="text-accent" />
+    <div className="flex flex-wrap items-center gap-2 border-b border-line bg-black/[0.03] px-5 py-2 text-xs">
+      <FileUp size={14} className="text-accent" aria-hidden />
       <span className="truncate font-medium">{raw.fileName}</span>
-      <span className="text-muted">{FORMAT_LABEL[raw.format]} · {objects} object{objects === 1 ? '' : 's'} · {triangles.toLocaleString()} triangles{raw.skipped.length ? ` · ${raw.skipped.length} skipped` : ''}</span>
+      <span className="text-muted">{FORMAT_LABEL[raw.format]}{size != null ? ` · ${size >= 1048576 ? `${(size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`}` : ''} · {raw.objects.length} volume{raw.objects.length === 1 ? '' : 's'}{curves ? ` · ${curves} curve${curves === 1 ? '' : 's'}` : ''} · {raw.objects.reduce((s, o) => s + o.mesh.indices.length / 3, 0).toLocaleString('en-CA')} triangles{raw.skipped.length ? ` · ${raw.skipped.length} unreadable` : ''}</span>
+      <span className="flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />stays in this browser</span>
       <button onClick={onOther} className="ml-auto shrink-0 text-[11px] text-accent hover:underline">Other file</button>
     </div>
   )
 }
 
-function LayerPicker({ raw, excluded, onChange }: { raw: LoadedImport; excluded: string[]; onChange: (x: string[]) => void }) {
-  const layers = useMemo(() => {
-    const m = new Map<string, { objects: number; tris: number }>()
-    for (const o of raw.objects) { const e = m.get(o.layer) ?? { objects: 0, tris: 0 }; e.objects++; e.tris += o.mesh.indices.length / 3; m.set(o.layer, e) }
-    return [...m.entries()]
-  }, [raw])
-  return (
-    <Block icon={<Layers size={14} className="text-accent" />} title="What to import" right={<span className="text-[10px] font-normal text-muted">{raw.format === 'ifc' ? 'IFC classes' : raw.format === '3dm' ? 'Rhino layers' : 'Groups'}</span>}>
-      <div className="grid max-h-32 gap-0.5 overflow-y-auto">
-        {layers.map(([l, e]) => (
-          <label key={l} className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={!excluded.includes(l)} onChange={() => onChange(excluded.includes(l) ? excluded.filter((x) => x !== l) : [...excluded, l])} className="accent-accent" />
-            <span className="truncate">{l}</span><span className="ml-auto shrink-0 text-[10px] text-muted">{e.objects} obj · {e.tris.toLocaleString()} tri</span>
-          </label>
-        ))}
-      </div>
-      {raw.skipped.length > 0 && (
-        <details className="mt-2 text-[11px]">
-          <summary className="cursor-pointer text-muted hover:text-ink">{raw.skipped.length} object{raw.skipped.length === 1 ? '' : 's'} skipped, and why</summary>
-          <ul className="mt-1 grid max-h-28 gap-1 overflow-y-auto">{raw.skipped.map((s, i) => <li key={i}><b>{s.name}</b> <span className="text-muted">({s.kind}{s.layer ? `, ${s.layer}` : ''})</span>: {s.reason}</li>)}</ul>
-        </details>
-      )}
-      <p className="mt-1.5 text-[10px] text-muted">Context, site and annotation layers are left out by name (team assumption); tick them back if they are part of the mass.</p>
-    </Block>
-  )
-}
-
-function UnitsBlock({ raw, opts, up }: { raw: LoadedImport; opts: ImportOptions; up: (p: Partial<ImportOptions>) => void }) {
-  const all = useMemo(() => bounds(mergeMeshes(raw.objects.filter((o) => !opts.excluded.includes(o.layer)).map((o) => o.mesh))), [raw, opts.excluded])
+function UnitsBlock({ raw, objects, opts, up }: { raw: LoadedImport; objects: { mesh: MeshData }[]; opts: ImportOptions; up: (p: Partial<ImportOptions>) => void }) {
+  // Extent of the massing (tower, podium and program rows), so context far away does not skew the unit guess.
+  const all = useMemo(() => bounds(mergeMeshes((objects.length ? objects : raw.objects).map((o) => o.mesh))), [raw, objects])
   const yUp = opts.upAxis === 'y'
   const ext = { height: yUp ? all.max[1] - all.min[1] : all.max[2] - all.min[2], width: all.max[0] - all.min[0], depth: yUp ? all.max[2] - all.min[2] : all.max[1] - all.min[1] }
   const cands = unitCandidates(ext)
@@ -315,13 +368,15 @@ function UnitsBlock({ raw, opts, up }: { raw: LoadedImport; opts: ImportOptions;
   )
 }
 
-function PlaceBlock({ opts, up, frame, rawCentre, minZ }: { opts: ImportOptions; up: (p: Partial<ImportOptions>) => void; frame: ProjectFrame; rawCentre: [number, number]; minZ: number }) {
+function PlaceBlock({ opts, up, frame, rawCentre, minZ, earth, centre }: { opts: ImportOptions; up: (p: Partial<ImportOptions>) => void; frame: ProjectFrame; rawCentre: [number, number]; minZ: number; earth: boolean; centre: [number, number] }) {
   return (
     <Block icon={<ScanLine size={14} className="text-accent" />} title="Placement and zero level">
       <div className="grid gap-0.5">
         <Radio name="place" value="keep" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>Keep the file's coordinates <span className="text-muted">(the file origin is this project's origin; centre at {fmtLen(rawCentre[0])}, {fmtLen(rawCentre[1])})</span></Radio>
         <Radio name="place" value="centre" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>Centre on the {frame.project === 'vtc' ? 'VTC site' : 'study site (selected tower)'}</Radio>
         {frame.utmOrigin && <Radio name="place" value="utm" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>File uses UTM 10N map coordinates <span className="text-muted">(EPSG:26910; subtract the project origin)</span></Radio>}
+        {earth && <Radio name="place" value="earth" current={opts.placement} onPick={(v: Placement) => up({ placement: v, anchor: opts.anchor ?? { model: centre, city: frame.siteCentre, turn: 0 } })}>Use the file's Earth anchor <span className="text-muted">(its latitude and longitude put the base point on the map)</span></Radio>}
+        <Radio name="place" value="anchor" current={opts.placement} onPick={(v: Placement) => up({ placement: v, anchor: opts.anchor ?? { model: centre, city: frame.siteCentre, turn: 0 } })}>Anchor a point of the model on the {frame.utmOrigin ? 'map' : 'site'}, plus a turn</Radio>
         <Radio name="place" value="custom" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>
           Move by an offset
           {opts.placement === 'custom' && (

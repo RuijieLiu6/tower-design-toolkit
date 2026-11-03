@@ -4,6 +4,7 @@
 import { screenUse, SCREENED, type DaylightBand, type UseScreen } from '../engine/daylightDepth'
 import type { Floor, Tower } from '../engine/types'
 import { useStore } from '../store'
+import { U } from './Units'
 
 /** Sequential, light to dark as daylight falls off; every band is also named in text, never colour alone. */
 export const BAND_STYLE: Record<DaylightBand, { fill: string; opacity: number; label: string }> = {
@@ -51,7 +52,7 @@ export function DaylightPlanOverlay({ t, f, X, Y, mm }: { t: Tower; f: Floor } &
   return (
     <g data-daylight-overlay="">
       <BandLayer u={u} m={{ X, Y, mm }} />
-      <text x={X(-t.width / 2)} y={Y(-t.depth / 2) + 5} fontSize="2.3" fill="#1f2328">Daylight screen (proxy): head {u.head.toFixed(1)} m · daylit ≤ {u.d1.toFixed(1)} m · marginal ≤ {u.d2.toFixed(1)} m · {Math.round(u.withinReach * 100)}% within reach</text>
+      <text x={X(-t.width / 2)} y={Y(-t.depth / 2) + 5} fontSize="2.3" fill="#1f2328"><U>{`Daylight screen (proxy): head ${u.head.toFixed(1)} m · daylit ≤ ${u.d1.toFixed(1)} m · marginal ≤ ${u.d2.toFixed(1)} m · ${Math.round(u.withinReach * 100)}% within reach`}</U></text>
     </g>
   )
 }

@@ -3,6 +3,7 @@
 import { ClipboardCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { CASES } from '../eval/cases'
+import { U } from './Units'
 
 interface LastRun { date: string; time: string; total: number; passed: number; failed: string[]; uiRunFailed?: boolean; report: string; cases: { id: string; pass: boolean; observed: string }[] }
 
@@ -39,12 +40,12 @@ export default function EvalCasesSection() {
               const r = byId.get(c.id)
               return (
                 <tr key={c.id} className="border-b border-line/70 align-top">
-                  <td className="px-3 py-1.5"><b>{c.id}</b> {c.title}<div className="text-[10px] text-muted">{c.node}{c.ui ? ' · also run through the UI' : ''}</div></td>
+                  <td className="px-3 py-1.5"><b>{c.id}</b> <U>{c.title}</U><div className="text-[10px] text-muted">{c.node}{c.ui ? ' · also run through the UI' : ''}</div></td>
                   <td className="px-3 py-1.5">{TYPE_LABEL[c.type]}</td>
-                  <td className="px-3 py-1.5">{c.expected}</td>
+                  <td className="px-3 py-1.5"><U>{c.expected}</U></td>
                   <td className="px-3 py-1.5 text-muted">{c.basis}{c.basisFlag === 'team_assumption' ? ' (team reasoning)' : ''}</td>
                   <td className="px-3 py-1.5">{!r ? <span className="text-muted">not run</span> : r.pass ? <span className="font-semibold text-emerald-800">Pass</span> : <span className="font-semibold text-red-700">Fail</span>}
-                    {r && <div className="text-[10px] text-muted">{r.observed}</div>}</td>
+                    {r && <div className="text-[10px] text-muted"><U>{r.observed}</U></div>}</td>
                 </tr>
               )
             })}

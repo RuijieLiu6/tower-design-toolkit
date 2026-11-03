@@ -1,8 +1,9 @@
 // Project menu in the top bar: undo / redo, New, Open, Save as, Export, Import, and the autosave status.
 // Projects live in this browser (IndexedDB); Export writes a deterministic .json to keep or share.
-import { ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from 'lucide-react'
+import { Box, ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { saveFile } from '../lib/download'
+import { useImportStore } from '../lib/import/store'
 import { redo, startHistory, undo, useHistory } from '../lib/project/history'
 import { currentText, exportName, newProject, openStored, openText, refreshList, removeStored, saveAs, startPersistence, useProjectMeta } from '../lib/project/session'
 import { useStore } from '../store'
@@ -123,6 +124,7 @@ export default function ProjectMenu() {
                 <button type="submit" className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:opacity-90">Save</button>
               </form>
             )}
+            <Item icon={<Box size={14} />} onClick={() => { setOpen(false); useImportStore.getState().openDialog() }} disabled={present} hint={locked ?? 'Rhino .3dm, OBJ, glTF or IFC: map its layers, check units and north; read in this browser only'}>Upload a Rhino model…</Item>
             <Item icon={<FileDown size={14} />} onClick={async () => { saveFile(exportName(), await currentText()); useStore.setState({ announce: 'Project exported' }) }}>Export .json</Item>
             <Item icon={<FileUp size={14} />} onClick={() => fileInput.current?.click()} disabled={present} hint={locked}>Import .json…</Item>
             <input ref={fileInput} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readFile(f); e.target.value = '' }} />

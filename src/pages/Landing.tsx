@@ -1,11 +1,12 @@
 // Landing page: choose the guided process (the default staged app) or Customize (build your own workflow).
-import { ArrowRight, Blocks, BookOpen, Download, FlaskConical, ListChecks, PlayCircle, Route as RouteIcon, Sparkles, Upload, Workflow } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { ArrowRight, Blocks, BookOpen, Box, Download, FlaskConical, ListChecks, Lock, PlayCircle, Route as RouteIcon, Sparkles, Upload, Workflow } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { FlagChip } from '../components/ui'
 import { CATEGORY_ICONS } from '../data/icons'
 import { ALL_NODES, BUILT_NODES, CATEGORIES, type Category } from '../data/registry'
 import { STAGES } from '../data/stages'
 import { installApp, installHint, useOffline } from '../lib/pwa/install'
+import { useImportStore } from '../lib/import/store'
 import { navigate, setSkipTarget, skipTarget } from '../lib/route'
 import { openDemo, useTour } from '../lib/tour'
 import { useStore } from '../store'
@@ -148,6 +149,8 @@ export default function Landing() {
           </Choice>
         </div>
 
+        <UploadStrip />
+
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
             <input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} className="h-4 w-4 accent-accent" />
@@ -182,5 +185,49 @@ export default function Landing() {
         </footer>
       </div>
     </div>
+  )
+}
+
+const MODEL_FILE = /\.(3dm|obj|glb|gltf|ifc)$/i
+
+/** Opens the guided app with the upload dialog reading this file. */
+function uploadModel(f: File) {
+  useImportStore.getState().openDialog(f)
+  // Straight into the upload, like the demo: the first-visit guide would cover the dialog.
+  useStore.setState({ showOnboarding: false })
+  navigate('guided')
+}
+
+/** "Bring your Rhino model": choose or drop a file here (or anywhere on this page) and map it in the guided app. */
+function UploadStrip() {
+  const input = useRef<HTMLInputElement>(null)
+  const [over, setOver] = useState(false)
+  useEffect(() => {
+    const has = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes('Files')
+    const over = (e: DragEvent) => { if (has(e)) { e.preventDefault(); setOver(true) } }
+    const leave = (e: DragEvent) => { if (!e.relatedTarget) setOver(false) }
+    const drop = (e: DragEvent) => {
+      setOver(false)
+      const f = [...(e.dataTransfer?.files ?? [])].find((x) => MODEL_FILE.test(x.name))
+      if (!f) return
+      e.preventDefault()
+      uploadModel(f)
+    }
+    window.addEventListener('dragover', over)
+    window.addEventListener('dragleave', leave)
+    window.addEventListener('drop', drop)
+    return () => { window.removeEventListener('dragover', over); window.removeEventListener('dragleave', leave); window.removeEventListener('drop', drop) }
+  }, [])
+  return (
+    <section aria-labelledby="upload-title" className={`mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border-2 border-dashed bg-panel px-5 py-4 transition-colors ${over ? 'border-accent bg-accent/5' : 'border-line'}`}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent"><Box size={20} aria-hidden /></span>
+      <div className="mr-auto min-w-0">
+        <h2 id="upload-title" className="text-sm font-semibold">Bring your Rhino model</h2>
+        <p className="text-[12.5px] text-muted">Drop a .3dm here (or OBJ, glTF, IFC). Map its layers to tower, podium, program, core, site and context in one screen; every check then runs on it, traced back to your layers.</p>
+        <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />Read in this browser; nothing is uploaded to a server.</p>
+      </div>
+      <button onClick={() => input.current?.click()} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Upload size={14} aria-hidden />Choose a model file</button>
+      <input ref={input} type="file" accept=".3dm,.obj,.glb,.gltf,.ifc" className="hidden" aria-label="Model file to upload" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadModel(f); e.target.value = '' }} />
+    </section>
   )
 }

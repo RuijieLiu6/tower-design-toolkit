@@ -4,7 +4,7 @@ import type { VtcContext } from '../context'
 import { sampleCityTerrain } from './solarCity'
 import type { RuleResult, RuleState, Tower } from './types'
 import { dayWindow, solarPosition, studyWindow, type StudyWindow } from './solar'
-import { emptyOccluders, gridOver, type Pt } from './shadow'
+import { emptyOccluders, gridOver, mergeOccluders, type Occluders, type Pt } from './shadow'
 import { cenotaphSpace, centroidOf, cityBaseline, distanceTo, elevationOf, liftOccluders, MISSING_SPACES, SPACES_SOURCE, table1Spaces, unknownNear, type CityInput } from './solarCity'
 import {
   evaluateSpace, ruleForClass, ruleState, RULES, solarRuleResults, summariseHours, sunHoursMap, towerOccluders, vtcOccluders, vtcSpaces,
@@ -24,6 +24,8 @@ export interface SolarJobInput {
   groundElevation?: number
   /** Names the baseline (e.g. "vtc:1"): baseline masks are kept between runs while it stays the same. */
   ctxKey?: string
+  /** Existing buildings from an uploaded model (lib/interchange contextOccluders), z from the tower base: added to the baseline. */
+  modelContext?: Occluders
   readings: Record<string, Reading>
   mapDate: MapDate
   /** Map cell size (m). */
@@ -89,6 +91,7 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
   const zb = city ? (i.groundElevation ?? 0) : 0
   const opts = { northDeg, cache: i.ctxKey ? cacheFor(`${i.project}:${i.ctxKey}:${zb}`) : undefined }
   const prop = towerOccluders(i.towers)
+  const mc = i.modelContext ?? emptyOccluders()
   const centre: Pt = !city || !i.towers.length ? [0, 0] : [i.towers[0].x, i.towers[0].y]
   const window = (s: { t1: { cls: Parameters<typeof ruleForClass>[0]; note?: '4.1' | '4.2' | '4.3' } | null; rule?: keyof typeof RULES }) => studyWindow(s.rule ? RULES[s.rule].window : s.t1 ? RULES[ruleForClass(s.t1.cls, s.t1.note)].window : 'equinox')
 
@@ -99,7 +102,7 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
   let cenotaph: { a: SpaceResult; b: SpaceResult; z: number } | null = null
 
   if (!city) {
-    base = i.ctx ? vtcOccluders(i.ctx) : base
+    base = mergeOccluders(i.ctx ? vtcOccluders(i.ctx) : base, mc)
     for (const s of i.ctx ? vtcSpaces(i.ctx) : []) { results.push(evaluateSpace(s, base, prop, window(s), opts)); elevation.set(s.id, 0) }
   } else {
     const terrain = i.city?.terrain ?? null
@@ -112,7 +115,7 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
       // A space beyond the longest shadow of the window (at its own elevation) cannot get new shadow.
       const reach = Math.max(0, top - zr) / Math.tan((minAlt * Math.PI) / 180)
       if (!i.towers.some((t) => distanceTo(s.rings, [t.x, t.y]) - Math.hypot(t.width, t.depth) / 2 <= reach)) { beyond++; continue }
-      const b = i.city ? cityBaseline(i.city, centroidOf(s.rings), BASELINE_RADIUS, zr) : emptyOccluders()
+      const b = mergeOccluders(i.city ? cityBaseline(i.city, centroidOf(s.rings), BASELINE_RADIUS, zr) : emptyOccluders(), liftOccluders(mc, zb - zr))
       results.push(evaluateSpace(s, b, liftOccluders(prop, zb - zr), window(s), opts))
       elevation.set(s.id, zr)
     }
@@ -120,11 +123,11 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
     const cen = cenotaphSpace()
     if (cen && i.towers.length) {
       const zr = elevationOf(cen.rings, terrain) ?? zb
-      const b = i.city ? cityBaseline(i.city, centroidOf(cen.rings), BASELINE_RADIUS, zr) : emptyOccluders()
+      const b = mergeOccluders(i.city ? cityBaseline(i.city, centroidOf(cen.rings), BASELINE_RADIUS, zr) : emptyOccluders(), liftOccluders(mc, zb - zr))
       const p = liftOccluders(prop, zb - zr)
       cenotaph = { a: evaluateSpace(cen, b, p, studyWindow('cenotaphA'), opts), b: evaluateSpace(cen, b, p, studyWindow('cenotaphB'), opts), z: zr }
     }
-    if (i.city) base = cityBaseline(i.city, centre, (i.half ?? 640) + 700, zb)
+    if (i.city) base = mergeOccluders(cityBaseline(i.city, centre, (i.half ?? 640) + 700, zb), mc)
     cityInfo = i.city
       ? {
           tested: results.length, beyond, missing: MISSING_SPACES.map((m) => m.name),

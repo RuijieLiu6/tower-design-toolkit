@@ -2,6 +2,7 @@
 // running app, and every case gets a screenshot of its node's panel with the evidence flags shown there. Results go to
 // EVAL_OUT/ui.json for tools/run_eval.mjs; a failing case is recorded, not hidden.
 import { expect, test, type Page } from '@playwright/test'
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -132,7 +133,8 @@ const EVIDENCE: { ids: string[]; project: 'vtc' | 'city'; stage: '1' | '2'; name
   { ids: ['EN-T', 'EN-O'], project: 'vtc', stage: '2', name: 'Energy & carbon' },
   { ids: ['MOB-T', 'MOB-O'], project: 'vtc', stage: '2', name: 'Parking, loading & bikes' },
   { ids: ['VIEW-T', 'VIEW-O'], project: 'city', stage: '1', name: 'View from here' },
-  { ids: ['VISTA-T', 'VISTA-K', 'VISTA-F', 'VISTA-H', 'VISTA-B', 'VISTA-O'], project: 'city', stage: '1', name: 'Vista view studies' },
+  { ids: ['VISTA-T', 'VISTA-K', 'VISTA-F', 'VISTA-H', 'VISTA-B', 'VISTA-O', 'ENV-T', 'ENV-V', 'ENV-F', 'ENV-O', 'SITE-T', 'SITE-O', 'GEO-T', 'GEO-O', 'ADDR-T', 'ADDR-O'], project: 'city', stage: '1', name: 'Vista view studies' },
+  { ids: ['RHINO-B', 'RHINO-O', 'RHINO-R', 'RHINO-N', 'RHINO-K', 'RHINO-A'], project: 'vtc', stage: '1', name: 'Your model: upload & provenance' },
 ]
 
 for (const e of EVIDENCE) {
@@ -146,3 +148,33 @@ for (const e of EVIDENCE) {
     expect(text.length).toBeGreaterThan(50)
   })
 }
+
+// Rhino upload (3 Nov 2026): the typical fixture dropped on the app, mapped, checked and used through the dialog, then the
+// "Your model" panel. The fixture is synthetic (tools/make_import_fixtures.mjs); it is written first if missing.
+test('RHINO-T · upload a Rhino file through the dialog', async ({ page }) => {
+  test.setTimeout(300_000)
+  const fixture = join(process.cwd(), 'tools', 'import-fixtures', 'typical-two-towers-mm.3dm')
+  if (!existsSync(fixture)) execFileSync(process.execPath, ['tools/make_import_fixtures.mjs'], { cwd: process.cwd() })
+  const bytes = [...readFileSync(fixture)]
+  await open(page, 'vtc', '1')
+  await dismiss(page)
+  await page.evaluate((b) => {
+    const dt = new DataTransfer()
+    dt.items.add(new File([new Uint8Array(b)], 'typical-two-towers-mm.3dm'))
+    window.dispatchEvent(new DragEvent('dragenter', { dataTransfer: dt }))
+    window.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, cancelable: true }))
+  }, bytes)
+  await page.getByRole('combobox', { name: 'Role for Core' }).waitFor({ timeout: 120_000 })
+  await shot(page, 'RHINO-T-map')
+  await page.getByRole('button', { name: /Check units, north and datum/ }).click()
+  await page.getByText('In plain words').waitFor({ timeout: 120_000 })
+  await shot(page, 'RHINO-T-check')
+  const checks = (await page.locator('[role="dialog"]').innerText()).replace(/\s+/g, ' ')
+  await page.getByRole('button', { name: /Use this model/ }).click()
+  await node(page, 'Your model: upload & provenance')
+  const file = await shot(page, 'RHINO-T')
+  const text = await panelText(page)
+  const pass = /2 towers, found by plan overlap/.test(checks) && /Site boundary: 1 outline, 11,468 m²/.test(checks) && /typical-two-towers-mm\.3dm/.test(text) && /Lot line 11,468 m²/.test(text)
+  record({ id: 'RHINO-T', screenshot: file, flags: await flags(page), observed: pass ? 'Dropped, mapped, checked and used in the app; panel shows 2 towers, the lot line and the provenance list' : text.slice(0, 300), pass, note: 'Uploaded through the dialog (drop on the app, map, check, use); screenshots RHINO-T-map and RHINO-T-check show the two steps' })
+  expect(pass).toBe(true)
+})

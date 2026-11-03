@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { renderCleanFrame } from './editorOverlay'
 
 const stamp = (at: string) => at.slice(0, 19).replace(/[:T]/g, '-')
 
@@ -64,6 +65,7 @@ export function captureShot(download_ = false): string | null {
   if (s.phase === 'present' && s.boardView === 'plan') { void capturePlan(download_); return null }
   const canvas = document.querySelector('[data-viewport] canvas') as HTMLCanvasElement | null
   if (!canvas) return null
+  renderCleanFrame() // the tower gizmo and selection outline are never in a shot
   const dataUrl = canvas.toDataURL('image/png')
   const at = new Date().toISOString()
   s.addShot({ id: at, dataUrl, stage: s.phase, representation: s.phase === 'basic' ? 'clay' : s.phase === 'advanced' ? 'xray' : s.presentRep, project: s.project, at })

@@ -3,12 +3,14 @@
 // area, where the preset came from and its evidence flag) and document notes for units, north and datum.
 // Pure: the writers (obj.ts, rhino.ts, gltf.ts) turn this into files. Coordinates: project frame, metres, Z up,
 // z = 0 at the tower base.
-import { coreSide, towerFloors, towerFootprint } from '../../engine/massing'
+import { coreSide, towerFloors, floorRing } from '../../engine/massing'
 import { USES, type Tower, type UseId } from '../../engine/types'
 
 export type RGB = [number, number, number]
 export interface ExportSolid { name: string; layer: string; color: RGB; positions: number[]; indices: number[]; strings: Record<string, string> }
-export interface ExportScene { solids: ExportSolid[]; layers: { path: string; color: RGB }[]; notes: Record<string, string> }
+/** A polyline (x, y, z per point), e.g. the site boundary of an uploaded model (lib/interchange). */
+export interface ExportCurve { name: string; layer: string; color: RGB; points: number[]; closed: boolean; strings: Record<string, string> }
+export interface ExportScene { solids: ExportSolid[]; curves?: ExportCurve[]; layers: { path: string; color: RGB }[]; notes: Record<string, string> }
 
 export interface SceneOptions {
   project: 'vtc' | 'city'
@@ -66,7 +68,8 @@ export function buildScene(towers: Tower[], o: SceneOptions): ExportScene {
     }
     const floors = towerFloors(t)
     for (const f of floors) {
-      const ring = towerFootprint(t, f.podium)
+      // The plate of the block at this level (stacked, shifted and twisted blocks included).
+      const ring = floorRing(t, f)
       const { positions, indices } = prism(ring, f.z0, f.z1)
       const plant = f.use === 'mechanical'
       const layer = plant ? LAYER.plant : f.skyLobby ? LAYER.sky : LAYER.use(f.use)

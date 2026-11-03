@@ -7,6 +7,7 @@ import schema from './project.schema.json'
 import { VTC_NORTH_DEG } from '../../context'
 import { DEFAULT_EGRESS_PRESETS } from '../../engine/egress'
 import { DEFAULT_LIFT_PRESETS, withAutoCore } from '../../engine/lifts'
+import { migrateTower } from '../../engine/massing'
 import { DEFAULT_PUBLIC_REALM } from '../../engine/publicRealm'
 import { DEFAULT_NATURE } from '../../engine/cityInNature'
 import { DEFAULT_WIND_PRESETS } from '../../engine/windStructure'
@@ -15,6 +16,7 @@ import type { Tower } from '../../engine/types'
 import { DEFAULT_ON } from '../../data/registry'
 import type { NodePackage } from '../nodePackages'
 import type { Trace } from '../trace/trace'
+import type { InterchangeModel } from '../interchange/model'
 import { CITY_ORIGIN, type GroundMode, type ProjectKind } from '../../store'
 import { DESIGN_KEYS, type Design } from './design'
 import { stableStringify } from './stable'
@@ -47,6 +49,8 @@ export interface ProjectFile {
   trace?: Trace
   /** Meshes of imported towers (Export and Save as only; autosave leaves them to the import store). */
   importedMeshes?: Record<string, { positions: number[]; indices: number[] }>
+  /** Uploaded models (tower-studio-interchange@1, INTERCHANGE.md): elements by role, provenance, units, north and datum. Optional: files without it load as before. */
+  models?: Partial<Record<ProjectKind, InterchangeModel>>
 }
 
 /** North and datum as the app uses them; written into every file so a reader knows the frame. */
@@ -90,6 +94,8 @@ export function toProjectFile(d: Design, community?: ProjectFile['communityNodes
   if (community && community.packages.length) file.communityNodes = community
   if (trace && (trace.iterations.length || trace.decisions.length || trace.reviews?.length)) file.trace = trace
   if (meshes && Object.keys(meshes).length) file.importedMeshes = meshes
+  const models = Object.fromEntries((['vtc', 'city'] as const).filter((k) => d.models?.[k]).map((k) => [k, d.models[k]]))
+  if (Object.keys(models).length) file.models = models
   return file
 }
 
@@ -147,11 +153,13 @@ function explain(errors: ErrorObject[]): string[] {
 export function toDesign(file: ProjectFile): Design {
   const liftPresets = { ...DEFAULT_LIFT_PRESETS, ...file.presets.lifts } as Design['liftPresets']
   const egressPresets = { ...DEFAULT_EGRESS_PRESETS, ...file.presets.egress } as Design['egressPresets']
-  const towers = (list: Tower[]) => list.map((t) => withAutoCore(t, liftPresets, egressPresets))
+  // Old saves (no blocks) become two explicit blocks, podium and tower, with the same floors (engine/massing.ts).
+  const towers = (list: Tower[]) => list.map((t) => withAutoCore(migrateTower(t), liftPresets, egressPresets))
   const t = { vtc: towers(file.towers.vtc), city: towers(file.towers.city) }
   const design: Design = {
     project: file.project,
     towers: t,
+    models: { vtc: file.models?.vtc ?? null, city: file.models?.city ?? null },
     selectedTower: t[file.project].some((x) => x.id === file.selectedTower) ? file.selectedTower : t[file.project][0].id,
     // Built nodes added after the file was saved start switched on, like in a new project.
     enabled: Object.fromEntries([...file.nodes.enabled, ...(file.nodes.known ? DEFAULT_ON.filter((id) => !file.nodes.known!.includes(id)) : [])].map((id) => [id, true])),

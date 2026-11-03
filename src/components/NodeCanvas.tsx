@@ -17,6 +17,7 @@ import { useProvenanceIssues } from './ProvenanceResults'
 import { money, VERDICT_LABEL } from '../engine/economics'
 import { useResults } from '../hooks/useResults'
 import { useCommunityStore } from '../lib/communityStore'
+import { toCustomize } from '../lib/interchange/converters'
 import { useStore, useTowers } from '../store'
 import { interiorCheck } from '../engine/interior'
 import { towerFloors } from '../engine/massing'
@@ -62,12 +63,13 @@ export default function NodeCanvas() {
   const selectedTower = useStore((s) => s.selectedTower)
   const culture = useCultureGate()
   const provenance = useProvenanceIssues()
+  const model = useStore((s) => s.models[s.project])
   const packages = useCommunityStore((s) => s.packages)
 
   const { nodes, edges } = useMemo(() => {
     const l0: Node<CardData>[] = [
       { id: 'l0.site', type: 'card', position: { x: 0, y: 0 }, data: { title: 'Site & context', category: 'L0', subtitle: project === 'vtc' ? 'VTC block · supplied context' : 'Downtown · City view cones', outputs: true } },
-      { id: 'l0.massing', type: 'card', position: { x: 0, y: 120 }, data: { title: 'Massing', category: 'L0', subtitle: 'Towers, podium, floors', outputs: true } },
+      { id: 'l0.massing', type: 'card', position: { x: 0, y: 120 }, data: { title: 'Massing', category: 'L0', subtitle: model ? `From ${model.source.fileName}` : 'Towers, podium, floors', outputs: true } },
       { id: 'l0.program', type: 'card', position: { x: 0, y: 240 }, data: { title: 'Program', category: 'L0', subtitle: 'Uses by floor band', outputs: true } },
     ]
     const evals: Node<CardData>[] = []
@@ -106,6 +108,10 @@ export default function NodeCanvas() {
         const done = culture.gate.filter((g) => g.ok).length, bad = culture.findings.filter((f) => !f.pass).length
         status = `${done} of ${culture.gate.length} export checks${bad ? ` · ${bad} claim${bad > 1 ? 's' : ''} above status` : ''}`
         tone = bad ? 'bad' : done === culture.gate.length ? 'ok' : 'warn'
+      } else if (n.id === 'built.model') {
+        const out = toCustomize(model, towers)
+        status = out.headline
+        tone = out.state === 'idle' ? 'muted' : out.state === 'fail' ? 'bad' : out.state === 'warn' ? 'warn' : 'ok'
       } else if (n.id === 'built.provenance') {
         status = provenance.prov.length ? `${provenance.prov.length} elements · ${provenance.issues.length ? `${provenance.issues.length} to fix` : 'complete'}` : 'No elements logged yet'
         tone = !provenance.prov.length ? 'muted' : provenance.issues.length ? 'warn' : 'ok'
@@ -160,7 +166,7 @@ export default function NodeCanvas() {
     }
     const report: Node<CardData> = { id: 'report', type: 'card', position: { x: 640, y: Math.max(0, (slots - 1) * 60) }, data: { title: 'Evidence report', category: 'PRES', subtitle: 'Results + sources + flags', inputs: true } }
     return { nodes: [...l0, ...evals, report], edges: e }
-  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, trips, facade, towers, selectedTower])
+  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, trips, facade, towers, selectedTower, model])
 
   return (
     <div className="h-full w-full bg-paper" aria-label="Node canvas">

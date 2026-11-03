@@ -12,6 +12,7 @@ import { eyeZ, useViewFromStore, type Viewpoint } from '../lib/viewFromStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityObstacles } from './CityContext'
 import { FlagChip, Section, StateChip } from './ui'
+import { U } from './Units'
 
 /** Terrain at or above this height counts as the mountains (team preset; downtown sits below 60 m, the North Shore rises to about 1,400 m). */
 const FAR_MIN = 200
@@ -20,8 +21,8 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b>{r.value}</b>{r.threshold && <span className="text-muted"> · {r.threshold}</span>}</div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600">{r.note}</div>}
+      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b>{r.threshold && <span className="text-muted"> · <U>{r.threshold}</U></span>}</div>
+      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} /><span className="text-[10px] text-muted">{r.source.label}</span></div>
     </div>
   )

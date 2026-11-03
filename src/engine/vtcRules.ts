@@ -1,7 +1,7 @@
 // VTC hard-rules checker (research module P01-M01 + P01-M07, simplified for v0.1).
 // Every rule cites the competition brief, which the team holds locally:
 // "03 Vancouver Tall Competition Brief/.../_Vancouver Tall Challenge - ENG.pdf" (Buildner, 2026).
-import { gfaByUse, towerFootprint } from './massing'
+import { gfaByUse, towerFootprint, towerMasses } from './massing'
 import type { RuleResult, Tower, UseId } from './types'
 
 export const BRIEF = 'Vancouver Tall Challenge brief (Buildner 2026)'
@@ -66,7 +66,8 @@ export function vtcRules(towers: Tower[], opts: { fsrTier: FsrTier; transitLink:
 
   // 3. Containment within the block.
   const hx = SITE.width / 2 + 0.1, hy = SITE.depth / 2 + 0.1
-  const outside = towers.filter((t) => [...towerFootprint(t), ...towerFootprint(t, true)]
+  // Every stacked block's outline (shifted and twisted blocks included).
+  const outside = towers.filter((t) => towerMasses(t).flatMap((m) => m.ring)
     .some(([x, y]) => Math.abs(x) > hx || Math.abs(y) > hy))
   out.push({
     id: 'containment',

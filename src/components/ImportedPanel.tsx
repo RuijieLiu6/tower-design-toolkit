@@ -11,6 +11,7 @@ import { resliceTower, setTowerNorth, tagStoreys, useImportStore, useMeshEntry }
 import { useStore } from '../store'
 import { HealthList } from './ImportHealth'
 import { FlagChip, Section } from './ui'
+import { fieldUnit, useUnits } from '../lib/units'
 
 export default function ImportedPanel({ t }: { t: Tower }) {
   const m = t.imported!
@@ -129,15 +130,19 @@ function Row({ icon, label, value, flag, action }: { icon: ReactNode; label: str
 
 /** Number field that re-slices on Enter or blur, not on every keystroke. */
 function Num({ label, value, step, onCommit, disabled }: { label: string; value: number; step: number; onCommit: (v: number) => void; disabled?: boolean }) {
-  const [v, setV] = useState(String(value))
-  const [last, setLast] = useState(value)
-  if (last !== value) { setLast(value); setV(String(value)) }
-  const commit = () => { const n = Number(v); if (Number.isFinite(n) && n !== value) onCommit(n) }
+  // Metres stored; shown and typed in the viewer's display unit (lib/units.ts).
+  const f = fieldUnit('m', useUnits((st) => st.unit))
+  // Shown to 3 decimals in a converted unit; only a different number typed is committed, so nothing drifts.
+  const shown = f ? Math.round(f.toShown(value) * 1000) / 1000 : value
+  const [v, setV] = useState(String(shown))
+  const [last, setLast] = useState(shown)
+  if (last !== shown) { setLast(shown); setV(String(shown)) }
+  const commit = () => { const n = Number(v); if (Number.isFinite(n) && n !== shown) onCommit(f ? f.fromShown(n) : n) }
   return (
     <label className="grid gap-1"><span className="text-muted">{label}</span>
       <span className="flex items-center gap-1">
-        <input type="number" step={step} value={v} disabled={disabled} onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
-          className="w-16 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums disabled:opacity-50" aria-label={label} />m
+        <input type="number" step={f ? 'any' : step} value={v} disabled={disabled} onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
+          className="w-16 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums disabled:opacity-50" aria-label={label} />{f ? f.label : 'm'}
       </span>
     </label>
   )

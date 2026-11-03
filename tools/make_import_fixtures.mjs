@@ -1,9 +1,12 @@
 // Writes small synthetic massing files for trying the import (research P14-M02 fixture idea). Never derived from the
 // competition base model. Run: node tools/make_import_fixtures.mjs  ->  tools/import-fixtures/
+// The Rhino upload fixtures (typical, boundary, out of scope) come from src/lib/interchange/fixtures.ts, the same
+// builder the tests and evaluation cases use; Node 22.18+ reads that TypeScript file directly (type stripping).
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import rhino3dm from 'rhino3dm/rhino3dm.module.js'
+import { rhinoFixtures } from '../src/lib/interchange/fixtures.ts'
 
 const out = join(dirname(fileURLToPath(import.meta.url)), 'import-fixtures')
 mkdirSync(out, { recursive: true })
@@ -112,4 +115,15 @@ DATA;
 ENDSEC;
 END-ISO-10303-21;
 `)
+// 5-7. Rhino upload and interchange fixtures (3 Nov 2026): typical, boundary (mixed units, no north), out of scope.
+const lines = []
+for (const f of rhinoFixtures(rh)) {
+  writeFileSync(join(out, f.name), f.bytes)
+  lines.push(`- \`${f.name}\` (${(f.bytes.length / 1024).toFixed(0)} KB): ${f.about}`)
+}
+writeFileSync(join(out, 'README.md'), ['# Import fixtures', '', 'Synthetic files written by `node tools/make_import_fixtures.mjs`. Never derived from the competition base model.', '',
+  '- `podium-tower-mm-yup.obj`: podium, tower and tapered crown in millimetres, y-up (SketchUp-style OBJ)',
+  '- `broken-tower-utm.obj`: a missing roof face and one flipped wall, at UTM 10N coordinates',
+  '- `podium-extrusion-mm.3dm`: mesh podium, extrusion tower without a render mesh, context layer, Earth anchor',
+  '- `mass-ifc4-mm.ifc`: IFC4 mass in millimetres with TrueNorth', ...lines, ''].join(String.fromCharCode(10)))
 console.log('Wrote fixtures to', out)

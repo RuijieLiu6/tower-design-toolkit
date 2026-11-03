@@ -3,6 +3,7 @@
 // last amended 29 Jul 2026), read by an AI agent on 22 Oct 2026: every reading is "unverified" until a second reader
 // checks it (04 Tool Plan/research/sources/city-of-vancouver/solar-access-downtown_transcription.md).
 import type { VtcContext } from '../context'
+import { blockSpans } from './blocks'
 import type { RuleResult, RuleState, Source, Tower } from './types'
 import { clockLabel, instants, selfTest, solarPosition, sunDirection, type StudyWindow } from './solar'
 import { cellCentre, emptyOccluders, footprintMask, gridOver, meshTris, polygonMask, shadowMask, type Grid, type Occluders, type Prism, type Pt } from './shadow'
@@ -90,6 +91,8 @@ export function towerOccluders(towers: Tower[]): Occluders {
       }
       continue
     }
+    // Stacked blocks: each block from the ground to its top (as the old podium and tower were; conservative under a cantilever).
+    if (t.blocks?.length) { for (const b of blockSpans(t)) prisms.push({ ring: b.ring, z0: 0, z1: b.z1 }); continue }
     if (t.podiumHeight > 0) prisms.push({ ring: rect(t.x, t.y, t.podiumWidth, t.podiumDepth, t.rotation), z0: 0, z1: t.podiumHeight })
     const top = Math.max(t.podiumHeight, t.height)
     prisms.push({ ring: rect(t.x, t.y, t.width, t.depth, t.rotation), z0: 0, z1: top })
@@ -413,6 +416,12 @@ export function solarRuleResults(spaces: SpaceResult[], readings: Record<string,
 /** Storeys of a tower (podium floors at 4.5 m, as engine/massing does), without pulling the import pipeline into the worker. */
 export function storeyCount(t: Tower): number {
   if (t.imported) return t.imported.storeys.length
+  if (t.blocks?.length) {
+    // As engine/massing towerFloors: podium floors per podium block, then whole tower floors above the podium.
+    const sp = blockSpans(t), pod = sp.filter((b) => b.podium), top = pod.length ? pod[pod.length - 1].z1 : 0
+    const n = pod.reduce((s, b) => s + (b.z1 > b.z0 ? Math.max(1, Math.round((b.z1 - b.z0) / 4.5)) : 0), 0)
+    return n + Math.max(0, Math.floor(((sp[sp.length - 1]?.z1 ?? 0) - top) / t.f2f))
+  }
   const podium = t.podiumHeight > 0 ? Math.max(1, Math.round(t.podiumHeight / 4.5)) : 0
   return podium + Math.max(0, Math.floor((t.height - t.podiumHeight) / t.f2f))
 }

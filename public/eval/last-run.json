@@ -1,11 +1,11 @@
 {
- "date": "2026-10-27",
- "time": "17:25",
- "total": 27,
- "passed": 27,
+ "date": "2026-11-02",
+ "time": "22:34",
+ "total": 34,
+ "passed": 34,
  "failed": [],
- "uiRunFailed": false,
- "report": "04 Tool Plan/evaluation/2026-10-27/report.md",
+ "uiRunFailed": true,
+ "report": "04 Tool Plan/evaluation/2026-11-02/report.md",
  "cases": [
   {
    "id": "C1",
@@ -222,6 +222,62 @@
    "title": "No what-if plane entered: unknown, never unlimited",
    "pass": true,
    "observed": "unknown; ceiling null; missing 3.2.2"
+  },
+  {
+   "id": "RHINO-T",
+   "type": "typical",
+   "node": "built.model",
+   "title": "A typical Rhino file: two towers, program volumes, core, lot line, context blocks",
+   "pass": true,
+   "observed": "2 towers; Tower A 285 m, 4 podium storeys to 18 m, 67/67 storeys tagged, core 9.0%; site 11,468 m²; context 60, 60, 90 m; left out 2"
+  },
+  {
+   "id": "RHINO-B",
+   "type": "boundary",
+   "node": "built.model",
+   "title": "Mixed units and no north: said in plain words, nothing silently fixed",
+   "pass": true,
+   "observed": "1 tower, 262 m; north Unresolved (unresolved); \"Context\" is about 4,367× smaller than the massing: was it pasted from a file in other units? It is used as it is."
+  },
+  {
+   "id": "RHINO-O",
+   "type": "out-of-scope",
+   "node": "built.model",
+   "title": "No usable geometry: stop and explain",
+   "pass": true,
+   "observed": "0 towers; Nothing in no-usable-geometry.3dm can be used: it has no closed volumes (polysurfaces, extrusions or meshes), only 1 TextDot, 3 Points, 1 open curve. Tower Design Toolkit needs the tower as closed volumes to slice storeys, and estimates nothing without them. In Rhino, model or select the massing, check it is closed (ShowEdges, naked edges), save, and upload again."
+  },
+  {
+   "id": "RHINO-N",
+   "type": "boundary",
+   "node": "built.model",
+   "title": "Saved without render meshes: exact planar faces rebuilt, curved faces reported, never faked",
+   "pass": true,
+   "observed": "L tower 144000 m³ (0 open edges); atrium 103680 m³ (0 open edges); cylinder: Saved without render meshes: 3 curved faces not imported"
+  },
+  {
+   "id": "RHINO-K",
+   "type": "typical",
+   "node": "built.model",
+   "title": "Blocks done right: nested, rotated and scaled, mirrored; no phantom definitions",
+   "pass": true,
+   "observed": "6 stacks, volumes 20000, 20000, 45000, 45000, 20000, 20000 m³; hidden: Hidden in Rhino (the object or its layer is off)"
+  },
+  {
+   "id": "RHINO-A",
+   "type": "typical",
+   "node": "built.model",
+   "title": "Align to the map: anchor point and turn, or the file’s Earth anchor",
+   "pass": true,
+   "observed": "(a) corner at 120.000, 340.000, podium 64.00 × 100.00 m; (b) tower A at E 491221.771, N 5458889.980, 0.33 mm from Vista's series; default placement in Real Vancouver: earth"
+  },
+  {
+   "id": "RHINO-R",
+   "type": "repeated",
+   "node": "built.model",
+   "title": "Round trip: upload, Layer 0, export .3dm, upload again",
+   "pass": true,
+   "observed": "2 towers, storeys and uses identical, worst area difference 0.000%, site and context ids kept"
   }
  ]
 }

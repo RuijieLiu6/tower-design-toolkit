@@ -9,6 +9,7 @@ import { SITE } from '../engine/vtcRules'
 import { useStore, useTowers } from '../store'
 import { CardChip } from './RuleCardView'
 import { FlagChip, Section, StateChip } from './ui'
+import { U } from './Units'
 
 /** The ledger for the current design; cones come from the view-cone results in Real Vancouver. */
 export function useNature(cones: { overall: string }[] | null) {
@@ -61,9 +62,9 @@ function Row({ r, children }: { r: NatureRow; children?: ReactNode }) {
         <span className="text-xs font-semibold">{r.name}</span>
         {r.entered === null && r.state === 'unknown' ? <span className="rounded border border-slate-200 px-1.5 py-0.5 text-[10px] text-muted">Not entered</span> : <StateChip state={r.state} />}
       </div>
-      <div className="mt-0.5 text-[11px]"><b className="tabular-nums">{r.value}</b> <span className="text-muted">· {r.threshold}</span></div>
+      <div className="mt-0.5 text-[11px]"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
       {children && <div className="mt-1.5">{children}</div>}
-      {r.note && <div className="mt-1 text-[10px] text-slate-600">{r.note}</div>}
+      {r.note && <div className="mt-1 text-[10px] text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1">
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700" title={isBinding(r.force) ? 'Binding: can pass or fail' : 'Reference line: shown, never scored as compliance'}>{FORCE_LABEL[r.force]}</span>
         <FlagChip flag={r.flag} />

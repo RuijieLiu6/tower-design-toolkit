@@ -596,6 +596,19 @@
           "type": "boolean"
         }
       }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Uploaded models per project (tower-studio-interchange@1, docs/INTERCHANGE.md). Optional: files without it load as before.",
+      "properties": {
+        "vtc": {
+          "$ref": "#/$defs/interchangeModel"
+        },
+        "city": {
+          "$ref": "#/$defs/interchangeModel"
+        }
+      }
     }
   },
   "$defs": {
@@ -886,6 +899,676 @@
         "imported": {
           "type": "object",
           "description": "Imported massing (storeys sliced from a model). The mesh itself is not in the file."
+        },
+        "blocks": {
+          "type": "array",
+          "maxItems": 64,
+          "description": "Stacked-block massing (core-and-lift session, 3 Nov 2026): blocks bottom-up in list order; dx, dy = block centre in the tower frame (m); rotation = degrees counter-clockwise relative to the tower; only the leading run may be podium. Optional: a tower without blocks reads as podium + tower, and height, width, depth and the podium fields stay as values derived from the blocks.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "height",
+              "width",
+              "depth",
+              "dx",
+              "dy",
+              "rotation"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0
+              },
+              "width": {
+                "type": "number",
+                "minimum": 0
+              },
+              "depth": {
+                "type": "number",
+                "minimum": 0
+              },
+              "dx": {
+                "type": "number"
+              },
+              "dy": {
+                "type": "number"
+              },
+              "rotation": {
+                "type": "number"
+              },
+              "podium": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "boxFromBlocks": {
+          "type": "object",
+          "description": "Snapshot of the box fields withBlocks derived from the blocks (core-and-lift session, 3 Nov 2026). A later box field that differs from it is fitted onto the blocks; without a snapshot the blocks win.",
+          "required": [
+            "height",
+            "width",
+            "depth",
+            "podiumHeight",
+            "podiumWidth",
+            "podiumDepth"
+          ],
+          "properties": {
+            "height": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number"
+            },
+            "depth": {
+              "type": "number"
+            },
+            "podiumHeight": {
+              "type": "number"
+            },
+            "podiumWidth": {
+              "type": "number"
+            },
+            "podiumDepth": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "interchangeModel": {
+      "type": "object",
+      "description": "One uploaded model: elements by role with stable ids, semantic tags, source provenance, and the units, north and datum it was placed with. Later minor versions may add properties, so unknown properties are allowed inside.",
+      "required": [
+        "version",
+        "id",
+        "project",
+        "source",
+        "frame",
+        "mapping",
+        "elements",
+        "towers",
+        "ignored",
+        "checks"
+      ],
+      "properties": {
+        "version": {
+          "const": "tower-studio-interchange@1"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project": {
+          "enum": [
+            "vtc",
+            "city"
+          ]
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "fileName",
+            "format"
+          ],
+          "properties": {
+            "fileName": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "fileSize": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "fingerprint": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "unitNote": {
+              "type": "string"
+            },
+            "northNote": {
+              "type": "string"
+            }
+          }
+        },
+        "frame": {
+          "type": "object",
+          "required": [
+            "units",
+            "fileUnit",
+            "unitSource",
+            "scale",
+            "upAxis",
+            "north",
+            "datum",
+            "placement"
+          ],
+          "properties": {
+            "units": {
+              "const": "m"
+            },
+            "fileUnit": {
+              "type": "string"
+            },
+            "unitSource": {
+              "enum": [
+                "file",
+                "confirmed",
+                "chosen"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "upAxis": {
+              "enum": [
+                "z",
+                "y"
+              ]
+            },
+            "north": {
+              "type": "object",
+              "required": [
+                "fileNorthDeg",
+                "rotation",
+                "label",
+                "flag"
+              ],
+              "properties": {
+                "fileNorthDeg": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "rotation": {
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "flag": {
+                  "enum": [
+                    "verified",
+                    "team_assumption",
+                    "unverified",
+                    "unresolved",
+                    "false_assumption"
+                  ]
+                }
+              }
+            },
+            "datum": {
+              "type": "object",
+              "required": [
+                "shift",
+                "label",
+                "flag"
+              ],
+              "properties": {
+                "shift": {
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "flag": {
+                  "enum": [
+                    "verified",
+                    "team_assumption",
+                    "unverified",
+                    "unresolved",
+                    "false_assumption"
+                  ]
+                }
+              }
+            },
+            "placement": {
+              "type": "object",
+              "required": [
+                "mode",
+                "fileCentre",
+                "x",
+                "y"
+              ],
+              "properties": {
+                "mode": {
+                  "type": "string"
+                },
+                "fileCentre": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "mapping": {
+          "type": "object",
+          "required": [
+            "by",
+            "key",
+            "rules"
+          ],
+          "properties": {
+            "by": {
+              "enum": [
+                "layer",
+                "name",
+                "userString"
+              ]
+            },
+            "key": {
+              "type": "string"
+            },
+            "rules": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "$ref": "#/$defs/role"
+                  },
+                  "use": {
+                    "$ref": "#/$defs/use"
+                  }
+                }
+              }
+            },
+            "confirmed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modelElement"
+          }
+        },
+        "towers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "elementIds",
+              "schedule",
+              "coreShare",
+              "taggedStoreys"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "elementIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "schedule": {
+                "type": "object",
+                "required": [
+                  "f2f",
+                  "podiumTop",
+                  "podiumF2F",
+                  "podiumSource"
+                ],
+                "properties": {
+                  "f2f": {
+                    "type": "number"
+                  },
+                  "podiumTop": {
+                    "type": "number"
+                  },
+                  "podiumF2F": {
+                    "type": "number"
+                  },
+                  "podiumSource": {
+                    "type": "string"
+                  }
+                }
+              },
+              "coreShare": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "taggedStoreys": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "ignored": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "layer",
+              "kind",
+              "reason"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "layer": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "objectId": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "severity",
+              "text"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "severity": {
+                "enum": [
+                  "info",
+                  "warn",
+                  "block"
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "flag": {
+                "enum": [
+                  "verified",
+                  "team_assumption",
+                  "unverified",
+                  "unresolved",
+                  "false_assumption"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "role": {
+      "enum": [
+        "tower",
+        "podium",
+        "site",
+        "context",
+        "program",
+        "core",
+        "ignore"
+      ]
+    },
+    "modelElement": {
+      "type": "object",
+      "required": [
+        "id",
+        "role",
+        "name",
+        "tags",
+        "geometry",
+        "provenance"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "$ref": "#/$defs/role"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "object",
+          "properties": {
+            "use": {
+              "$ref": "#/$defs/use"
+            },
+            "level": {
+              "type": "number"
+            },
+            "towerId": {
+              "type": "string"
+            }
+          }
+        },
+        "geometry": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "mesh",
+                "polygon",
+                "prism"
+              ]
+            },
+            "bbox": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "footprint": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "triangles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "meshId": {
+              "type": "string"
+            },
+            "rings": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "z": {
+              "type": "number"
+            },
+            "z0": {
+              "type": "number"
+            },
+            "z1": {
+              "type": "number"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "mesh"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "bbox",
+                  "footprint",
+                  "triangles"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "polygon"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "rings",
+                  "z"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "prism"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "rings",
+                  "z0",
+                  "z1"
+                ]
+              }
+            }
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "required": [
+            "file",
+            "format",
+            "layer",
+            "objectId",
+            "objectName",
+            "objectType",
+            "geometrySource",
+            "mappedBy",
+            "evidence"
+          ],
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "layer": {
+              "type": "string"
+            },
+            "objectId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "objectName": {
+              "type": "string"
+            },
+            "objectType": {
+              "type": "string"
+            },
+            "userStrings": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "geometrySource": {
+              "type": "string"
+            },
+            "block": {
+              "type": "string"
+            },
+            "mappedBy": {
+              "type": "string"
+            },
+            "evidence": {
+              "enum": [
+                "verified",
+                "team_assumption",
+                "unverified",
+                "unresolved",
+                "false_assumption"
+              ]
+            }
+          }
         }
       }
     }

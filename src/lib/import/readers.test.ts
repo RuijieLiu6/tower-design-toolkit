@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import rhino3dm from 'rhino3dm/rhino3dm.module.js'
 import { signedVolume, mergeMeshes } from '../../engine/importGeom'
 import { topology } from '../../engine/meshHealth'
@@ -7,6 +7,9 @@ import { read3dmWith } from './rhino'
 import { IfcAPI, IFCGEOMETRICREPRESENTATIONCONTEXT } from 'web-ifc'
 import { readIfcWith } from './ifc'
 import { bounds } from '../../engine/importGeom'
+
+// rhino3dm starts its WebAssembly per file; under load (the evaluation run in parallel) that can pass 5 s.
+vi.setConfig({ testTimeout: 30_000 })
 
 describe('OBJ reader', () => {
   it('reads groups, quads and negative indices', () => {
@@ -42,8 +45,8 @@ describe('Rhino 3DM reader (rhino3dm WebAssembly in Node)', () => {
     const ex = rh.Extrusion.create(pl.toNurbsCurve(), 285000, true)
     const a2 = new rh.ObjectAttributes(); a2.name = 'Tower'; a2.layerIndex = layer
     doc.objects().add(ex, a2)
-    // A Brep box saved without render meshes: openNURBS cannot mesh it, so it must be listed as skipped.
-    // rhino3dm's typings name it CreateFromBox; the binding is createFromBox.
+    // A Brep box saved without render meshes: openNURBS cannot mesh it, but its faces are planar, so they are meshed
+    // from their edges (audit 3 Nov 2026, row 9). rhino3dm's typings name it CreateFromBox; the binding is createFromBox.
     const R = rh as any // eslint-disable-line @typescript-eslint/no-explicit-any
     doc.objects().add(R.Brep.createFromBox(new R.Box(new R.BoundingBox([0, 0, 0], [10, 10, 10]))), null as never)
     doc.objects().addLine([0, 0, 0], [1, 1, 1])
@@ -52,16 +55,65 @@ describe('Rhino 3DM reader (rhino3dm WebAssembly in Node)', () => {
     const r = read3dmWith(rh, bytes, 'massing.3dm')
     expect(r.unit).toBe('mm')
     expect(r.fileNorthDeg).toBeNull()
-    expect(r.objects.map((o) => o.name)).toEqual(['Podium', 'Tower'])
+    expect(r.objects.map((o) => o.name)).toEqual(['Podium', 'Tower', 'object 3'])
     expect(r.objects[1].meshSource).toMatch(/Prism/)
     expect(r.objects[0].layer).toBe('Massing::Tower')
-    expect(r.skipped.map((s) => s.kind)).toEqual(['Brep', 'Curve'])
+    expect(r.skipped).toEqual([])
+    expect(r.objects[2].meshSource).toBe('Exact planar faces rebuilt from the BRep (closed)')
+    expect(signedVolume(r.objects[2].mesh)).toBeCloseTo(1000, 6)
+    expect(topology(r.objects[2].mesh, 1e-6).openEdges).toBe(0)
+    expect(r.curves).toHaveLength(1)
+    expect(r.curves![0]).toMatchObject({ kind: 'Curve', closed: false })
     const prism = r.objects[1].mesh
     expect(Math.abs(signedVolume(prism))).toBeCloseTo(40000 * 40000 * 285000, -9)
     expect(signedVolume(prism)).toBeGreaterThan(0)
     const t = topology(mergeMeshes([prism]), 1)
     expect(t.openEdges).toBe(0)
     expect(t.flippedEdges).toBe(0)
+  })
+})
+
+describe('Rhino 3DM reader: what the audit of 3 Nov 2026 found missing', () => {
+  it('places block instances (nested, mirrored), never reads definition geometry alone, and keeps ids, user strings, colours and curves', async () => {
+    const rh = await rhino3dm()
+    const R = rh as any // eslint-disable-line @typescript-eslint/no-explicit-any
+    const doc = new rh.File3dm()
+    doc.settings().modelUnitSystem = rh.UnitSystem.Meters
+    const ctx = doc.layers().addLayer('Context', { r: 160, g: 150, b: 140, a: 255 })
+    const site = doc.layers().addLayer('Site', { r: 0, g: 128, b: 0, a: 255 })
+    // Block "Box": a 10 x 10 x 20 m Brep box at the origin (no render mesh).
+    const inner = new R.ObjectAttributes(); inner.layerIndex = ctx
+    const idx = doc.instanceDefinitions().add('Box', '', '', '', [0, 0, 0], [R.Brep.createFromBox(new R.Box(new R.BoundingBox([0, 0, 0], [10, 10, 20])))], [inner])
+    const boxDef = doc.instanceDefinitions().get(idx)
+    // Block "Pair": two Box instances, 30 m apart (nested blocks).
+    const pairIdx = doc.instanceDefinitions().add('Pair', '', '', '', [0, 0, 0], [new R.InstanceReference(boxDef.id, R.Transform.translationXYZ(0, 0, 0)), new R.InstanceReference(boxDef.id, R.Transform.translationXYZ(30, 0, 0))], [inner, inner])
+    const pairDef = doc.instanceDefinitions().get(pairIdx)
+    const place = new R.ObjectAttributes(); place.layerIndex = ctx; place.name = 'Neighbours'; place.setUserString('role', 'context')
+    doc.objects().addInstanceObject(new R.InstanceReference(pairDef.id, R.Transform.translationXYZ(200, 100, 0)), place)
+    // A mirrored instance: normals must still face out.
+    const mirror = R.Transform.mirror([500, 0, 0], [1, 0, 0])
+    doc.objects().addInstanceObject(new R.InstanceReference(boxDef.id, mirror), place)
+    const curveAttr = new R.ObjectAttributes(); curveAttr.layerIndex = site; curveAttr.name = 'Lot line'
+    doc.objects().add(new R.PolylineCurve([[0, 0, 0], [80, 0, 0], [80, 60, 0], [0, 60, 0], [0, 0, 0]]), curveAttr)
+    const r = read3dmWith(rh, doc.toByteArray(), 'blocks.3dm')
+    // 3 boxes placed (two through the nested pair, one mirrored); the definitions' own geometry is not read.
+    expect(r.objects).toHaveLength(3)
+    const xs = r.objects.map((o) => Math.round(bounds(o.mesh).min[0])).sort((a, b) => a - b)
+    expect(xs).toEqual([200, 230, 990])
+    for (const o of r.objects) {
+      expect(o.layer).toBe('Context')
+      expect(o.name).toBe('Neighbours')
+      expect(o.userStrings).toEqual({ role: 'context' })
+      expect(o.layerColor).toBe('#a0968c')
+      expect(o.objectId).toMatch(/^[0-9a-f-]{36}$/)
+      expect(signedVolume(o.mesh)).toBeCloseTo(2000, 6)
+    }
+    expect(r.objects[0].block).toMatch(/^Pair > Box/)
+    expect(r.notes.join(' ')).toMatch(/inside block definitions read through their placed instances only/)
+    expect(r.curves).toHaveLength(1)
+    expect(r.curves![0]).toMatchObject({ name: 'Lot line', layer: 'Site', closed: true })
+    expect(r.curves![0].points).toHaveLength(4)
+    expect(r.layers!.map((l) => l.path)).toEqual(['Context', 'Site'])
   })
 })
 
@@ -105,7 +157,7 @@ ENDSEC;
 END-ISO-10303-21;
 `
 
-describe('IFC reader (web-ifc WebAssembly in Node)', () => {
+describe('IFC reader (web-ifc WebAssembly in Node)', { timeout: 30_000 }, () => {
   it('reads a millimetre mass in metres, y-up, with its TrueNorth', async () => {
     const api = new IfcAPI()
     await api.Init()
@@ -118,5 +170,50 @@ describe('IFC reader (web-ifc WebAssembly in Node)', () => {
     expect(b.max[1] - b.min[1]).toBeCloseTo(285, 3)
     expect(b.max[0] - b.min[0]).toBeCloseTo(40, 3)
     expect(Math.abs(signedVolume(r.objects[0].mesh))).toBeCloseTo(40 * 40 * 285, 0)
+  })
+})
+
+describe('Rhino items 9 and 10 (3 Nov 2026, after Vista v34 rhino-planar.js and browser-rhino.js)', () => {
+  it('rebuilds planar polysurfaces saved without render meshes exactly and reports curved faces, never fakes them', async () => {
+    const { noRenderMesh, NO_MESH } = await import('../interchange/fixtures')
+    const rh = await rhino3dm()
+    const f = noRenderMesh(rh)
+    const r = read3dmWith(rh, f.bytes, f.name)
+    const byName = (n: string) => r.objects.find((o) => o.name === n)!
+    for (const [name, spec] of [['L tower', NO_MESH.lTower], ['Atrium tower', NO_MESH.atrium]] as const) {
+      const o = byName(name)
+      expect(o.meshSource).toBe('Exact planar faces rebuilt from the BRep (closed)')
+      // Volume = plate area x height, in mm³: concave caps and caps with a hole are covered exactly.
+      expect(signedVolume(o.mesh) / 1e9).toBeCloseTo(spec.area * spec.height, 3)
+      const t = topology(o.mesh, 0.001)
+      expect(t.openEdges).toBe(0)
+      expect(t.flippedEdges).toBe(0)
+    }
+    // The cylinder's three faces are all curved (two caps have a circular edge): left out and counted, no bounding box.
+    expect(r.objects.find((o) => o.name === 'Round tower')).toBeUndefined()
+    const cyl = r.skipped.find((s) => s.name === 'Round tower')!
+    expect(cyl.reason).toMatch(/^Saved without render meshes: 3 curved faces not imported\. In Rhino: shade the view/)
+  })
+
+  it('places nested, rotated, scaled and mirrored blocks, keeps normals outward, and leaves hidden layers out with a reason', async () => {
+    const { nestedBlocks } = await import('../interchange/fixtures')
+    const rh = await rhino3dm()
+    const f = nestedBlocks(rh)
+    const r = read3dmWith(rh, f.bytes, f.name)
+    // 3 visible towers x 2 nested stacks; the definitions' own boxes never appear.
+    expect(r.objects).toHaveLength(6)
+    const of = (n: string) => r.objects.filter((o) => o.name === n)
+    for (const n of ['Tower plain', 'Tower rotated and scaled', 'Tower mirrored']) expect(of(n)).toHaveLength(2)
+    // Every stack is a closed box with outward normals, including the mirrored ones; the scaled ones are 1.5² larger.
+    // (Block meshes keep single-precision vertices, so a rotated and scaled copy is within a few litres.)
+    for (const o of r.objects) expect(signedVolume(o.mesh)).toBeCloseTo((o.name === 'Tower rotated and scaled' ? 2.25 : 1) * 20 * 20 * 50, 1)
+    // Inner transform first: the upper stack of each tower sits 50 m up.
+    expect(of('Tower plain').map((o) => Math.round(bounds(o.mesh).min[2])).sort((a, b) => a - b)).toEqual([0, 50])
+    // Rotated 30° about the tower base and moved 100 m east: the corner (15, -15) of the 1.5 x stack lands where R x it says.
+    const c = Math.cos(Math.PI / 6), s = Math.sin(Math.PI / 6)
+    const xs = of('Tower rotated and scaled').flatMap((o) => { const b = bounds(o.mesh); return [b.max[0]] })
+    expect(xs[0]).toBeCloseTo(100 + 15 * c + 15 * s, 4)
+    expect(of('Tower mirrored')[0].block).toMatch(/^Tower > Floor stack/)
+    expect(r.skipped.find((x) => x.name === 'Tower on a hidden layer')!.reason).toMatch(/^Hidden in Rhino/)
   })
 })

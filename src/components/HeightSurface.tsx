@@ -11,6 +11,7 @@ import { CONES, CONE_PARAMS } from '../engine/viewCones'
 import { sampleTerrain, type HeightGrid } from '../lib/cityLayers'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { FlagChip } from './ui'
+import { U } from './Units'
 
 /** Geodetic limit bands. One blue ramp, light to dark (validated as an ordinal ramp: monotone, visible steps). */
 export const LIMIT_BANDS = [
@@ -188,8 +189,8 @@ function Readout() {
       {at.state === 'limit' && at.governing ? (
         <>
           <div>
-            Max height here <b className="text-ink">{(at.limit as number).toFixed(1)} m</b> geodetic ±{at.u95} m
-            {ground !== null && <> (about {((at.limit as number) - Math.max(0, ground)).toFixed(0)} m above the terrain)</>}
+            Max height here <b className="text-ink"><U>{`${(at.limit as number).toFixed(1)} m`}</U></b> geodetic ±<U>{`${at.u95} m`}</U>
+            {ground !== null && <> (about <U>{`${((at.limit as number) - Math.max(0, ground)).toFixed(0)} m`}</U> above the terrain)</>}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-1">
             Set by {at.governing.id} {at.governing.name} · {CONE_PARAMS[at.governing.id].tier}
@@ -225,7 +226,7 @@ function ConeParameters() {
           return (
             <div key={c.id} className="leading-snug">
               <div className="flex items-center justify-between gap-2">
-                <span><b className="text-ink">{c.id}</b> {c.name} · Lv {c.Lv} m</span>
+                <span><b className="text-ink">{c.id}</b> {c.name} · Lv <U>{`${c.Lv} m`}</U></span>
                 <FlagChip flag={p ? p.flag : 'unresolved'} />
               </div>
               {p ? (
@@ -244,7 +245,7 @@ function ConeParameters() {
 }
 
 /** The layer's controls, legend, readout and parameters (shown in the Real Vancouver overlay column). */
-export function HeightSurfacePanel() {
+export function HeightSurfacePanel({ bare = false }: { bare?: boolean }) {
   const { on, area, drawing, corner, drawn } = useHeightSurface()
   const towers = useTowers()
   const sel = useStore((s) => s.selectedTower)
@@ -255,7 +256,7 @@ export function HeightSurfacePanel() {
       className={`rounded border px-1.5 py-0.5 ${area === a && on ? 'border-accent bg-accent/10 font-medium text-ink' : 'border-line bg-white text-ink hover:bg-slate-50'}`}>{label}</button>
   )
   return (
-    <div className="w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm">
+    <div className={bare ? 'space-y-1.5 text-[11px] text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
       <div className="flex items-center justify-between gap-2">
         <label className="flex items-center gap-1.5 font-semibold text-ink">
           <input type="checkbox" checked={on} onChange={(e) => set({ on: e.target.checked, hover: null })} /> Height limit surface

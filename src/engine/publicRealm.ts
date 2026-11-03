@@ -3,7 +3,7 @@
 // Design and Development Guidelines (CDDG, Council report RTS 18459 Appendix A, approved 28 Jul 2026, final text not
 // yet posted), so every clause value carries that caveat; presets without a source are team assumptions.
 // Research: 04 Tool Plan/research/modules-completion/P06/revise-r2_P06.json (single pass since 22 Oct).
-import { towerFloors, towerFootprint } from './massing'
+import { towerFloors, towerFootprint, towerMasses } from './massing'
 import type { RuleResult, RuleState, Tower, UseId } from './types'
 
 // ---------- site ----------
@@ -78,12 +78,23 @@ export const DEFAULT_PUBLIC_REALM: PublicRealmInput = {
 type Pt = [number, number]
 interface Mass { poly: Pt[]; height: number; base: number; kind: 'podium' | 'tower'; tower: Tower }
 
-/** Plan footprints at grade: each tower's podium (if any) and tower shaft, rotated with the tower. */
+/** Plan outlines of a tower's blocks above the podium (an imported mass: its hull). */
+function shafts(t: Tower): [number, number][][] {
+  if (t.imported) return [towerFootprint(t)]
+  const up = towerMasses(t).filter((m) => !m.podium)
+  return up.length ? up.map((m) => m.ring) : [towerFootprint(t)]
+}
+
+/** Plan footprints: every stacked block of each tower (podium blocks first), rotated and shifted with it. */
 export function masses(towers: Tower[]): Mass[] {
   const out: Mass[] = []
   for (const t of towers) {
-    if (t.podiumHeight > 0) out.push({ poly: towerFootprint(t, true), height: t.podiumHeight, base: 0, kind: 'podium', tower: t })
-    out.push({ poly: towerFootprint(t), height: t.height, base: t.podiumHeight > 0 ? t.podiumHeight : 0, kind: 'tower', tower: t })
+    if (t.imported) {
+      if (t.podiumHeight > 0) out.push({ poly: towerFootprint(t, true), height: t.podiumHeight, base: 0, kind: 'podium', tower: t })
+      out.push({ poly: towerFootprint(t), height: t.height, base: t.podiumHeight > 0 ? t.podiumHeight : 0, kind: 'tower', tower: t })
+      continue
+    }
+    for (const m of towerMasses(t)) out.push({ poly: m.ring, height: m.z1, base: m.z0, kind: m.podium ? 'podium' : 'tower', tower: t })
   }
   return out
 }
@@ -306,12 +317,13 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
   // Tower separation: every own pair, and own towers to the context's future towers (use unknown: residential assumed).
   const pairs: { a: string; b: string; d: number; need: number; h: number }[] = []
   for (let i = 0; i < towers.length; i++) {
-    const A = towerFootprint(towers[i])
+    // Closest pair of blocks above the podium (shifted or twisted blocks can come closer than the typical plate).
+    const A = shafts(towers[i])
     for (let j = i + 1; j < towers.length; j++) {
-      const B = towerFootprint(towers[j])
-      pairs.push({ a: towers[i].name, b: towers[j].name, d: polyDistance(A, B), need: sepNeeded(sepUses(towers[i]), sepUses(towers[j])), h: Math.max(towers[i].height, towers[j].height) })
+      const B = shafts(towers[j])
+      pairs.push({ a: towers[i].name, b: towers[j].name, d: Math.min(...A.flatMap((a) => B.map((b) => polyDistance(a, b)))), need: sepNeeded(sepUses(towers[i]), sepUses(towers[j])), h: Math.max(towers[i].height, towers[j].height) })
     }
-    for (const nb of neighbours) pairs.push({ a: towers[i].name, b: nb.label, d: polyDistance(A, nb.footprint), need: sepNeeded(sepUses(towers[i]), ['residential']), h: Math.max(towers[i].height, nb.height) })
+    for (const nb of neighbours) pairs.push({ a: towers[i].name, b: nb.label, d: Math.min(...A.map((a) => polyDistance(a, nb.footprint))), need: sepNeeded(sepUses(towers[i]), ['residential']), h: Math.max(towers[i].height, nb.height) })
   }
   if (pairs.length) {
     const worst = pairs.reduce((m, p) => (p.d - p.need < m.d - m.need ? p : m))
@@ -354,7 +366,8 @@ export interface EdgeFrontage { edge: SiteEdge; length: number; activeLength: nu
 function frontageLength(towers: Tower[], e: SiteEdge): number {
   const spans: [number, number][] = []
   for (const t of towers) {
-    const poly = t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)
+    // The block standing at grade (an imported mass: podium or hull, as before).
+    const poly = t.imported ? (t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)) : (towerMasses(t)[0]?.ring ?? towerFootprint(t))
     const o = onEdge(poly, e)
     if (o.to > o.from) spans.push([o.from, o.to])
   }

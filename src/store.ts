@@ -3,6 +3,7 @@ import type { FsrTier } from './engine/vtcRules'
 import type { Band, Tower } from './engine/types'
 import { BUILT_NODES, DEFAULT_ON } from './data/registry'
 import { DEFAULT_LIFT_PRESETS, withAutoCore, type LiftPresets } from './engine/lifts'
+import { applyTowerPatch, migrateTower } from './engine/massing'
 import { DEFAULT_EGRESS_PRESETS, type EgressPresets } from './engine/egress'
 import { DEFAULT_PUBLIC_REALM, type PublicRealmInput } from './engine/publicRealm'
 import { DEFAULT_NATURE, type NatureInput } from './engine/cityInNature'
@@ -10,6 +11,7 @@ import { DEFAULT_WIND_PRESETS, type WindPresets } from './engine/windStructure'
 import { DEFAULT_SYSTEMS_PRESETS, type SystemsPresets } from './engine/lifeSafety'
 import type { SkyRoom } from './engine/types'
 import type { AiMeta } from './engine/renderPrompt'
+import type { InterchangeModel } from './lib/interchange/model'
 
 /** Defaults for a newly opened public sky room (all team assumptions, research P06-M07 and P11-M02). */
 export const DEFAULT_SKY_ROOM: Omit<SkyRoom, 'level'> = { access: 'shared', free: true, hoursOpen: 12, visitorShare: 0.6, loadBasis: 'dining', visitMinutes: 60, postedLimit: null }
@@ -58,6 +60,8 @@ interface State {
   prevPhase: Phase
   view: ViewMode
   towers: Record<ProjectKind, Tower[]>
+  /** Uploaded model per project (Layer 0 interchange, lib/interchange): elements by role with provenance; null = none. */
+  models: Record<ProjectKind, InterchangeModel | null>
   selectedTower: string
   enabled: Record<string, boolean>
   selectedNode: string | null
@@ -125,7 +129,8 @@ export const useStore = create<State>((set, get) => ({
   phase: 'basic',
   prevPhase: 'basic',
   view: '3d',
-  towers: { vtc: [withAutoCore(vtcTower())], city: [withAutoCore(cityTower())] },
+  towers: { vtc: [withAutoCore(migrateTower(vtcTower()))], city: [withAutoCore(migrateTower(cityTower()))] },
+  models: { vtc: null, city: null },
   selectedTower: 't1',
   enabled: Object.fromEntries(DEFAULT_ON.map((id) => [id, true])),
   selectedNode: BUILT_NODES[0].id,
@@ -171,16 +176,19 @@ export const useStore = create<State>((set, get) => ({
       [s.project]: s.towers[s.project].map((t) => {
         if (t.id !== id) return t
         // Setting the core share by hand switches the core to manual; otherwise an auto core follows its lifts.
-        const merged: Tower = keepRoomValid({ ...t, ...patch, ...('coreShare' in patch && patch.coreAuto === undefined ? { coreAuto: false } : {}) })
+        // Stacked blocks: edits of height, width, depth or the podium are mapped onto the blocks (engine/massing.ts).
+        const merged: Tower = keepRoomValid(applyTowerPatch(t, { ...patch, ...('coreShare' in patch && patch.coreAuto === undefined ? { coreAuto: false } : {}) }))
         return withAutoCore(merged, s.liftPresets, s.egressPresets)
       }),
     },
   })),
   addTower: () => set((s) => {
     const list = s.towers[s.project]
-    const base = list[list.length - 1] ?? vtcTower()
+    const base = list[list.length - 1] ?? migrateTower(vtcTower())
     const id = `t${Date.now().toString(36)}`
-    const t: Tower = { ...base, id, name: `Tower ${list.length + 1}`, x: base.x + 50, height: Math.max(244, base.height - 30), podiumHeight: 0, bands: base.bands.map((b) => ({ ...b })), skyLobbies: [], skyRoom: null }
+    // A copy without the podium, then 30 m lower (the height edit lands on the top block once the podium is gone).
+    const bare: Tower = applyTowerPatch({ ...base, blocks: base.blocks?.map((b) => ({ ...b })) }, { id, name: `Tower ${list.length + 1}`, x: base.x + 50, podiumHeight: 0, bands: base.bands.map((b) => ({ ...b })), skyLobbies: [], skyRoom: null })
+    const t = applyTowerPatch(bare, { height: Math.max(244, base.height - 30) })
     return { towers: { ...s.towers, [s.project]: [...list, withAutoCore(t, s.liftPresets, s.egressPresets)] }, selectedTower: id }
   }),
   removeTower: (id) => set((s) => {

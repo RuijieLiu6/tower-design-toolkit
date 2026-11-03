@@ -30,7 +30,7 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 **Accessibility rules:**
 - WCAG AA contrast;
 - every icon button has a label;
-- keyboard shortcuts: `1`/`2`/`3` switch stages, `P` places the tower, `Esc` cancels;
+- keyboard shortcuts: `1`/`2`/`3` switch stages, `P` places the tower, `M` / `R` toggle Move / Rotate for the selected tower (arrow keys and `[` `]` nudge it one snap step, `Shift` for fine), `Esc` cancels (a drag, then the selection), `H` hides or shows the viewport overlays;
 - a reduced-motion toggle in the top bar, plus `prefers-reduced-motion`;
 - an `aria-live` announcement on every stage change;
 - axe checks pass on 13 screens (`npm run test:a11y`).
@@ -47,9 +47,13 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 │ Site › Volume › Program › Plates, core, plant › Frame and capture  [Evaluate]  │
 ├──────────────┬─────────────────────────────────────────┬───────────────────────┤
 │ Left panel   │ Viewport (3D) / node canvas / split     │ Right panel           │
-│ library ·    │ (in Present: grey wall + A2 board frame,│ Design · Results &    │
-│ anatomy ·    │  1.414:1, crop marks; the capture is    │ evidence · Present ·  │
-│ filmstrip    │  exactly this frame)                    │ Trace                 │
+│ library ·    │                        ┌ Viewport dock ┐│ Design · Results &    │
+│ anatomy ·    │                        │ Layers & ctx  ││ evidence · Present ·  │
+│ filmstrip    │                        │ ▸ sections    ││ Trace                 │
+│              │ (N) compass   [title   └───────────────┘│                       │
+│              │                block]                   │                       │
+│              │ (in Present: grey wall + A2 board frame,│                       │
+│              │  crop marks; the capture is this frame) │                       │
 ├──────────────┴─────────────────────────────────────────┴───────────────────────┤
 │ Status bar: evidence legend (5 flags) · data credits · "Study tool, not a      │
 │ compliance determination"                                                     │
@@ -68,7 +72,18 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 | `#/status` | Built vs to-build, evaluation cases |
 | `#/guide` | User guide |
 
+**Viewport dock** (`ViewportDock.tsx`, 28 Oct): everything that floats over the 3D view sits in **one panel snapped to the right edge** of the viewport, never scattered over the model.
+- **Sections** collapse (button headers with `aria-expanded`; a closed section still shows its state on the right of its header). Real Vancouver: Data sources & context layers · Ground & tower base · Existing buildings under the design · Height-limit surface & cone parameters · More layers. Competition site: Site, north & datum · Competition context model. Each section keeps its evidence flags and source lines.
+- **Hints** (e.g. the 24-cones note) are dismissible cards at the top of the dock and stay dismissed.
+- **Collapsed**, the dock is a slim tab on the right edge: `Layers` icon + the word "Layers".
+- **Translucent**: white at 80% with `backdrop-blur-md`, so the city shows through. Over the darkest likely backdrop (#e5e6e7) ink text is 12.6:1; small `slate-500` and `muted` text inside the dock is drawn as `slate-600` (≥ 6:1). While the camera is dragged the dock fades to 35% (200 ms `chrome` token; instant with reduced motion) and comes back on release.
+- **Hide overlays** (`H`, or the dock header button) hides the dock, compass, title block, hint pill and inset map for a clean view; a small "Show overlays · H" pill is the way back. Captures read the WebGL canvas only, so no overlay is ever in a shot or a board.
+- Remembered per viewer in `localStorage` (`ts.viewportDock.v1`: open, open sections, dismissed hints; read and written in try/catch). The hidden state is not remembered.
+- **Compass**: a small translucent pill at bottom left (arrow + "N"); on the competition site it adds "45° · corrected" in magenta, and the full false-assumption note is in the dock's Site section.
+- **Schematic title block**: translucent (`bg-panel/75` + blur), bottom right, kept clear of the dock (`right-[21.5rem]` when the dock is open).
+
 **Panel widths:**
+- viewport dock: 20 rem (`w-80`), height fits its content up to the viewport;
 - left panel: 18 rem (`w-72`), shrinking to 8 rem (`w-32`) in Present;
 - right panel: 22 rem;
 - top bar: 56 px;
@@ -126,6 +141,14 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 
 Cones with a parameter estimate but no hit show as `#4f7fae`; cones without an estimate as `#7d838c`.
 
+**View-cone solids** (3D, Real Vancouver, 3 Nov; `ConeVolumes.tsx`, geometry in `engine/coneSection.ts`):
+- A cone **with an estimate** is a solid that reads as a view cone: every face meets at the **apex, the viewpoint at the City's eye level (Lv)**. Lower face: the estimate Z = Lv + k·D clipped to the wedge. Upper face: the sight line from the eye to the North Shore skyline in MRDEM-30 (curvature with refraction as View from here), sampled every 1° of bearing; where no skyline rises above the estimate, a fixed 1° cap (`SKYLINE_CAP_DEG`). The upper face is a **visual construction (team assumption)**: the City publishes only the lower boundary. Side faces run along the wedge edges, and a far face closes it where the wedge ends.
+- All solids are **one merged mesh and one merged edge set** (per-vertex colour and alpha): fill at 10% in the state colour when the selected tower is in the cone, 3.5% in `#4f7fae` otherwise; edges at 95% / 45%; `depthWrite` off.
+- A cone **without an estimate** gets no solid (nothing implies a height): dashed outline draped on the ground, and its label reads "· limit unknown" when the tower is in it.
+- **Existing City buildings** that rise above a cone's estimate inside its wedge (computed once per data load): their part inside the view tinted the neutral cone blue `#4f7fae` at 50% (35% in x-ray), their section by the estimate a 3 px `#24496b` line. The dock's "View-cone solids" section counts them per cone, worded neutrally (many predate the protected views or were approved under them).
+- **A design tower in an estimated cone**: the part above the limit and inside the wedge tinted `#d0453a` (the "above" state colour) at 62% (50% in x-ray), cut exactly by clipping planes; the section of the mass by the limit, clipped to the wedge, a **4 px `#7f1d16` line** (`CONE_SECTION_LINE`); a label on the limit at the check's governing point with the check's own number: "3.2.3: 26.4 m above estimated limit (±0.5 m)".
+- The wording stays "estimate"; the City View Cone Assessment governs.
+
 **Cone coverage** (view-cone node, Real Vancouver): a bar split `#4f7fae` (cones with an estimate) and the `.hatch` pattern (no estimate), then two rows of cone-id chips: solid `#4f7fae` border for estimates, dashed slate border for "no estimate", matching the dashed outlines in 3D. The Massing overlay states the same counts.
 
 ### 3.4 Node categories (badge colour + icon)
@@ -176,6 +199,26 @@ Cones with a parameter estimate but no hit show as `#4f7fae`; cones without an e
 
 The coast is where the terrain crosses 0 m, so it is drawn from data, not from the line. The legend in Context layers says that neither the plane nor the 2002 line is a surveyed shoreline.
 
+**Site-model base (plinth)** (3 Nov; `lib/plinth.ts`, `components/Plinth.tsx`): both projects sit on a finite base, like a physical model, so the ground never reads as an endless plane.
+
+| Look | Skirt walls and underside (`plinth`) | Top edge line (`plinthEdge`, 1 px) |
+|---|---|---|
+| Clay | `#cfccc3` | `#7f7b72` |
+| X-ray | `#c6d0db` | `#6f849c` |
+
+- **Real Vancouver:** 15.8 × 15 km (x −8,640…7,140 m, y −9,000…6,000 m from the origin): every building and every draped City layer, on node lines shared by the terrain grids. Top = terrain (LiDAR 1 m patches in MRDEM 30 m) and the flat sea; walls 160 m deep. The North Shore past the north edge is a **fogged backdrop**: MRDEM terrain fading toward the background over 8 km (up to 55%), with its own wall where it reaches past the plinth. Nothing is drawn to the south, east or west. The 2002 shoreline is clipped to the plinth.
+- **Competition site:** the context model's extent (blocks, curbs, buildings, street labels) plus 20 m, rounded to 10 m; flat street level on top, 16 m deep (about 3 cm at 1:500).
+- Walls are lit like the rest of the model (no outline). The edge line sits just outside the top edge, so it never fights the ground for depth. Both looks keep the ground opaque, x-ray included.
+- **No undersides:** city building bases go 1 m below the lowest ground at their corners. Where the ground falls away under a design tower, a footing in the plinth colour fills it up to the tower's base (display only).
+
+**Camera** (3 Nov; `lib/cameraClamp.ts`, `components/CameraClamp.tsx`): the orbit never goes below the ground.
+- The eye stays at least 1.2 m above the drawn ground under it, read from the scene's height grids (no raycast). This covers orbit, pan, zoom, the Schematic lens, presets and viewpoint views.
+- The orbit target stays over the plinth and on or above the ground, so a pan stops at the edge without turning the view.
+- A preset target inside a hill slides back along the line of sight, so the eye and the view stay as asked.
+- The polar limit is 89.1°. A preset that starts below its target (the VTC street view, 1.6 m, looking up at the tower) keeps its angle, and the limit eases back as the user orbits up.
+- The near plane shrinks close to the ground (at most half the eye's height), so the ground is never cut open.
+- View from here and the gizmo drag own the camera while they hold the controls, so the clamp leaves them alone.
+
 **Schematic drawing colours:**
 
 | Element | Colour |
@@ -189,6 +232,7 @@ The coast is where the terrain crosses 0 m, so it is drawn from data, not from t
 
 Other fixed colours:
 - **Selected tower** (Massing): emissive `#1f5f8b` at 8%.
+- **Picked tower** (clicked in 3D, Massing and Schematic): the whole tower outlined in the stage accent (`#1f5f8b` / `#1d5fa8`), 2.5 px, plus a 35% copy drawn through everything. **Gizmo** (3 Nov, `TowerGizmo.tsx`): x arrow `#c8372d`, y arrow `#23824a`, plane handle and turn arc `#1f5f8b`, hover `#eda100`; 120 px on screen at any zoom, drawn on top. **Ghost** of a move waiting for Confirm: the stage accent at 16% (volume), 35% (footprint), dashed 2 px outline; lines it snapped to in `#eda100`, 4 px. Outline, gizmo and ghost are editor-only: never in a capture, a print-size capture or a board.
 - **Present:** wall `#b8b8b8`, crop marks `#2c2c2a`, board shadow `0 12px 40px rgba(0,0,0,.28)`.
 - **Customize canvas:** dot grid `#cfccc4`, connection line `#2a9d8f`, unknown node `#8a8f98`.
 
@@ -333,10 +377,12 @@ Tokens in `src/data/stages.ts`. Easing for chrome: `cubic-bezier(0.2, 0, 0, 1)`.
 | Program icon | 20 px square in the use colour, white icon | `DesignPanel.tsx` |
 | Title block | Schematic drawing label: view, shell, core, plant, LOD | `Viewport.tsx` |
 | Board frame | A2 landscape (1.414:1) on the grey wall, crop marks; the capture equals the frame | `Viewport.tsx`, `index.css` |
+| Viewport dock | One translucent, collapsible panel on the right edge of the viewport with collapsible sections, dismissible hints, a "Layers" tab when collapsed and "Hide overlays" (`H`) | `ViewportDock.tsx` (used by `CityContext.tsx` CityLegend and `Viewport.tsx` VtcDock) |
 | Hatch | Diagonal hatch: unverified chips (CSS) and plant floors (3D texture) | `index.css`, `Viewport.tsx` |
 | Anatomy row | Element, LOD 100 chip, show/hide eye; roadmap rows greyed with a flask | `Anatomy.tsx` |
 | Ground card | Real Vancouver tower base: value, source ("from the terrain" with an Unverified chip, or "set by hand" with a Team assumption chip), the terrain range under the footprint, one button to switch | `CityContext.tsx` |
 | Filmstrip | Captured shots, labelled with representation and time; downloadable | `Filmstrip.tsx` |
+| Tower gizmo | Click a tower to select it as one object (outline); a toolbar top left of the viewport (clear of the dock) gives its name and height, **Move** (`M`) and **Rotate** (`R`) toggles as icon + word, typed x / y / rotation, and Snap (site boundary and parcel edges first, then 1 m / 5 m and 5° / 15°; `Shift` while dragging = free). Moves stay in plan (z locked), turns are about the tower's own vertical axis. **Confirm before placing** (Vista v10.1, 3 Nov): a gizmo drag or a "Place on map" click leaves a ghost, and the toolbar shows what the spot would mean (site fit from the existing containment rule or the site boundary, land or water, view cones from the cone check, the base there; each line with its state, word and evidence flag, and the current result beside it when it differs), with Confirm (`Enter`) and Cancel (`Esc`). Nothing is written until Confirm, which is one undo step. Present: the toolbar only says the model is locked. Click empty ground or `Esc` to deselect | `TowerGizmo.tsx`, `TowerToolbar.tsx`, `lib/towerEdit.ts`, `lib/proposalCheck.ts`, `lib/edgeSnap.ts`, `lib/siteGeometry.ts` |
 
 ---
 

@@ -1,4 +1,4 @@
-// Mounts the import dialog on demand and lets a model file be dropped anywhere on the app (research P14-M02).
+// Mounts the upload dialog on demand and lets a model file be dropped anywhere on the app (research P14-M02).
 import { FileUp } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useImportStore } from '../lib/import/store'
@@ -36,7 +36,7 @@ export default function ImportHost() {
       {dragging && !open && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-accent/10 p-6">
           <div className="flex items-center gap-2 rounded-xl border-2 border-dashed border-accent bg-panel px-6 py-4 text-sm font-medium text-accent shadow-lg">
-            <FileUp size={18} />Drop a 3DM, OBJ, glTF or IFC massing to import it
+            <FileUp size={18} />Drop a Rhino (.3dm), OBJ, glTF or IFC model to upload it: read in this browser, nothing leaves it
           </div>
         </div>
       )}

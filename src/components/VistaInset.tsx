@@ -28,7 +28,7 @@ export default function VistaInset() {
   const wedge = `M${S / 2},${S / 2} L${X(vp.x + Math.sin(a0) * r)},${Y(vp.y + Math.cos(a0) * r)} L${X(vp.x + Math.sin(a1) * r)},${Y(vp.y + Math.cos(a1) * r)}Z`
   const bar = [100, 250, 500, 1000, 2000].reduce((b, m) => (m * k <= 70 ? m : b), 100)
   return (
-    <div className="pointer-events-none absolute bottom-14 left-3 rounded-md border border-line bg-white/92 p-1.5 text-[10px] text-slate-600 shadow-sm" aria-label="Location map of the current view">
+    <div className="pointer-events-none absolute bottom-12 left-3 rounded-md border border-line bg-white/80 p-1.5 text-[10px] text-slate-700 shadow-sm backdrop-blur-md" aria-label="Location map of the current view">
       <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="img" aria-label={`Plan: looking ${compass(v.bearing)} with a ${Math.round(v.hfov)}° field from ${vp.label}`}>
         <defs><clipPath id="vista-inset-clip"><rect x={0} y={0} width={S} height={S} rx={4} /></clipPath></defs>
         <g clipPath="url(#vista-inset-clip)">

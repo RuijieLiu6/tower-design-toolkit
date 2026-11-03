@@ -87,6 +87,10 @@ export const DECLARED: Record<string, Source[]> = {
     { label: 'City of Vancouver, Public Views Guidelines (Feb 2026; team copy SHA-256 597f0da2…b0ca)', url: 'https://guidelines.vancouver.ca/guidelines-public-views.pdf' },
     { label: 'Vista v10.1 (Ruijie Liu, ARCH 540, handoff 2026-10-22): exact cone clip, study planes, cone-fit camera, report; research C04 (Vista audit, frame rule)' },
     { label: 'NRCan MRDEM-30 terrain (CGVD28 after conversion) and City LiDAR 2022 roofs, as in the Real Vancouver context layers' },
+    { label: 'Vista v34 (Ruijie Liu, github.com/RuijieLiu6/vancouver-tall-view-tool, read 3 Nov 2026): site drawing and validation, building replacement, parcel matching with exact joins, georeference and GeoJSON, address search, exact view envelope', url: 'https://github.com/RuijieLiu6/vancouver-tall-view-tool' },
+    { label: 'City of Vancouver, Property parcel polygons (OGL-Vancouver, retrieved 2026-10-27): parcels under the study site', url: 'https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/' },
+    { label: 'City of Vancouver, Property addresses and Local area boundary (OGL-Vancouver), read live by the address search', url: 'https://opendata.vancouver.ca/explore/dataset/property-addresses/' },
+    { label: 'BC Address Geocoder (Province of British Columbia), live suggestions; typed text is sent there', url: 'https://www2.gov.bc.ca/gov/content/data/geographic-data-services/location-services/geocoder' },
   ],
   'built.solar-access': [
     { label: 'City of Vancouver, Solar Access Guidelines for the Downtown Peninsula (approved 17 Sep 2025, amended 29 Jul 2026)', url: 'https://guidelines.vancouver.ca/guidelines-solar-access-downtown.pdf' },
@@ -94,6 +98,7 @@ export const DECLARED: Record<string, Source[]> = {
   ],
   'built.culture-claims': [{ label: 'Research P07-M01 (round 4): engagement ledger and claims guard, team rules awaiting paid Indigenous review' }],
   'built.provenance': [{ label: 'IPTC NewsCodes, digital source type (research P07-M07, P07-S38)', url: 'http://cv.iptc.org/newscodes/digitalsourcetype/' }],
+  'built.model': [{ label: 'Rhino upload audit (research/rhino-interchange/AUDIT.md, 3 Nov 2026) and the Layer 0 interchange (INTERCHANGE.md); import research P14-M02 to P14-M05' }, { label: 'rhino3dm 8.35.0 (openNURBS in WebAssembly, McNeel, MIT)', url: 'https://github.com/mcneel/rhino3dm' }],
   // The energy screen runs hourly PV only when switched on; its sources are listed either way.
   'built.energy-carbon': Object.values(ENERGY_SOURCES) as Source[],
   'built.wind-screen': Object.values(WIND_SCREEN_SOURCES) as Source[],

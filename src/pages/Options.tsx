@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowDown, ArrowUp, Equal, FolderOpen, Minus, Route as Route
 import { useEffect, useMemo, useState } from 'react'
 import { TraceRecorder } from '../components/TracePanel'
 import { FlagChip, StateChip } from '../components/ui'
+import { U } from '../components/Units'
 import { USES, type Tower } from '../engine/types'
 import { navigate } from '../lib/route'
 import {
@@ -54,13 +55,13 @@ function Massing({ o, color, top, baseline }: { o: OptionRecord; color: string; 
     <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-full" role="img" aria-label={`Elevation of ${o.name}: ${towers.map((t) => `${t.name} ${Math.round(t.height)} m`).join(', ')}`}>
       <rect x="0" y="0" width={W} height={H} fill="var(--color-paper)" />
       <line x1="4" x2={W - 4} y1={base} y2={base} stroke="var(--color-ink)" strokeWidth="1" />
-      {baseline !== null && <><line x1="8" x2={W - 8} y1={base - baseline * k} y2={base - baseline * k} stroke="var(--color-muted)" strokeWidth="0.8" strokeDasharray="3 3" /><text x={W - 8} y={base - baseline * k - 3} fontSize="7.5" textAnchor="end" fill="var(--color-muted)">baseline {Math.round(baseline)} m</text></>}
+      {baseline !== null && <><line x1="8" x2={W - 8} y1={base - baseline * k} y2={base - baseline * k} stroke="var(--color-muted)" strokeWidth="0.8" strokeDasharray="3 3" /><text x={W - 8} y={base - baseline * k - 3} fontSize="7.5" textAnchor="end" fill="var(--color-muted)"><U>{`baseline ${Math.round(baseline)} m`}</U></text></>}
       {towers.map((t) => (
         <g key={t.id}>
           {t.podiumHeight > 0 && <rect x={X(t.x - t.podiumWidth / 2)} y={base - t.podiumHeight * k} width={t.podiumWidth * k} height={t.podiumHeight * k} fill={USES[t.podiumUse].color} opacity={0.75} />}
           {shaft(t)}
           <rect x={X(t.x - t.width / 2)} y={base - t.height * k} width={t.width * k} height={(t.height - t.podiumHeight) * k} fill="none" stroke="var(--color-ink)" strokeWidth="0.6" />
-          <text x={X(t.x)} y={base - t.height * k - 3} fontSize="8" textAnchor="middle" fill="var(--color-ink)">{Math.round(t.height)} m</text>
+          <text x={X(t.x)} y={base - t.height * k - 3} fontSize="8" textAnchor="middle" fill="var(--color-ink)"><U>{`${Math.round(t.height)} m`}</U></text>
         </g>
       ))}
       <rect x="0" y="0" width="4" height={H} fill={color} />
@@ -266,8 +267,8 @@ export default function Options() {
                       const d = i === 0 ? 'n/a' : compareNode(summaries[0].find((x) => x.nodeId === id), n)
                       return (
                         <td key={i} className="px-3 py-1.5">
-                          {!n ? <span className="text-muted">off</span> : !n.recorded ? <span className="text-muted">{n.headline}</span> : (
-                            <span className="flex flex-wrap items-center gap-1">{n.counts.pass + n.counts.warn + n.counts.fail > 0 && <StateChip state={n.state} />}{n.flag && <FlagChip flag={n.flag} />}<DeltaChip d={d} /><span className="w-full text-muted">{n.headline}</span></span>
+                          {!n ? <span className="text-muted">off</span> : !n.recorded ? <span className="text-muted"><U>{n.headline}</U></span> : (
+                            <span className="flex flex-wrap items-center gap-1">{n.counts.pass + n.counts.warn + n.counts.fail > 0 && <StateChip state={n.state} />}{n.flag && <FlagChip flag={n.flag} />}<DeltaChip d={d} /><span className="w-full text-muted"><U>{n.headline}</U></span></span>
                           )}
                         </td>
                       )
@@ -293,9 +294,9 @@ export default function Options() {
                 <ul className="mt-2 space-y-2">
                   {explain.inputs.map((x) => (
                     <li key={x.change} className="rounded-md border border-line p-2 text-[11.5px]">
-                      <div className="font-medium">{x.change}</div>
+                      <div className="font-medium"><U>{x.change}</U></div>
                       {x.moved.length ? (
-                        <ul className="mt-1 space-y-0.5 text-[11px]">{x.moved.slice(0, showAll.has(x.change) ? undefined : 10).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted">{m.before?.value ?? '—'} → {m.after?.value ?? '—'}</span></li>)}
+                        <ul className="mt-1 space-y-0.5 text-[11px]">{x.moved.slice(0, showAll.has(x.change) ? undefined : 10).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}
                           {x.moved.length > 10 && !showAll.has(x.change) && <li><button onClick={() => setShowAll(new Set([...showAll, x.change]))} className="text-accent hover:underline">Show all {x.moved.length} results it moved</button></li>}</ul>
                       ) : <p className="mt-0.5 text-[11px] text-muted">{x.steps ? 'Changed on its own in the trace, but none of those results differ between these options.' : 'Not seen changing on its own in the trace yet: change only this input in the guided app to see what it moves.'}</p>}
                     </li>
@@ -304,7 +305,7 @@ export default function Options() {
                 {explain.unexplained.length > 0 && (
                   <div className="mt-3">
                     <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Results that differ, not yet attributed ({explain.unexplained.length})</h3>
-                    <ul className="mt-1 space-y-0.5 text-[11px]">{explain.unexplained.slice(0, 20).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted">{m.before?.value ?? '—'} → {m.after?.value ?? '—'}</span></li>)}</ul>
+                    <ul className="mt-1 space-y-0.5 text-[11px]">{explain.unexplained.slice(0, 20).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}</ul>
                   </div>
                 )}
                 {!explain.inputs.length && <p className="mt-2 text-[11px] text-muted">The two options have the same design inputs.</p>}

@@ -12,6 +12,7 @@ import { useStore } from '../store'
 import { CardChip } from './RuleCardView'
 import { FalseAssumptions } from './WindStructurePanel'
 import { FlagChip, NumberField, Section, StateChip } from './ui'
+import { U } from './Units'
 
 export function useLifeSafety(): LifeSafetyResult[] {
   const { lifts, egress } = useResults()
@@ -34,11 +35,11 @@ function Row({ r }: { r: ChecklistItem | RuleResult }) {
         </span>
         <StateChip state={r.state} />
       </button>
-      <div className="ml-4 mt-0.5 text-slate-700">{r.value}</div>
+      <div className="ml-4 mt-0.5 text-slate-700"><U>{r.value}</U></div>
       {open && (
         <div className="ml-4 mt-1 grid gap-1">
-          <div className="text-[10px] text-muted">Needs: {r.threshold}</div>
-          {r.note && <div className="text-[10px] text-slate-600">{r.note}</div>}
+          <div className="text-[10px] text-muted">Needs: <U>{r.threshold}</U></div>
+          {r.note && <div className="text-[10px] text-slate-600"><U>{r.note}</U></div>}
           <div className="flex flex-wrap items-center gap-1">
             <FlagChip flag={r.flag} />
             {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>

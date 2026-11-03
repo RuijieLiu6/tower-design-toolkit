@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 import { useStore } from '../../store'
 
 type AppState = ReturnType<typeof useStore.getState>
-const KEYS = ['towers', 'enabled', 'fsrTier', 'transitLink', 'groundElevation', 'groundMode', 'sun', 'liftPresets', 'egressPresets', 'publicRealm', 'cityInNature', 'windPresets', 'systemsPresets'] as const
+const KEYS = ['towers', 'models', 'enabled', 'fsrTier', 'transitLink', 'groundElevation', 'groundMode', 'sun', 'liftPresets', 'egressPresets', 'publicRealm', 'cityInNature', 'windPresets', 'systemsPresets'] as const
 type Snap = Pick<AppState, (typeof KEYS)[number]>
 
 /** Edits closer together than this (ms) are one undo step. */

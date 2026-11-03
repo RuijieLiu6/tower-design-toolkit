@@ -321,11 +321,11 @@ function ReadoutBox() {
 }
 
 /** Toggles for the on-demand layers, with their sources, legends and the readout. */
-export function ContextLayersPanel({ manifest }: { manifest: Manifest }) {
+export function ContextLayersPanel({ manifest, bare = false }: { manifest: Manifest; bare?: boolean }) {
   const { on, status } = useContextLayers()
   return (
-    <div className="w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm">
-      <div className="flex items-center justify-between"><b className="text-ink">More layers</b><span className="text-[10px] text-slate-500">load when switched on</span></div>
+    <div className={bare ? 'space-y-1.5 text-[11px] text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
+      {!bare && <div className="flex items-center justify-between"><b className="text-ink">More layers</b><span className="text-[10px] text-slate-500">load when switched on</span></div>}
       {CONTEXT_LAYER_IDS.map((id) => {
         const entry = manifest.layers.find((l) => l.id === id)
         return (

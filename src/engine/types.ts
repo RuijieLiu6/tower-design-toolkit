@@ -53,6 +53,33 @@ export interface Tower {
   imported?: ImportedMass
   /** Schematic: interior layout (unit mix, hotel keys, activities). When set, lifts, egress and economics use its counts (engine/interior.ts). */
   interior?: InteriorInput
+  /**
+   * Stacked blocks, bottom-up (after Vista's proposal parts, Ruijie Liu). When present they are the massing; height,
+   * width, depth and the podium fields are then derived from them (engine/massing.ts `withBlocks`). Absent on old saves:
+   * the tower then reads as two blocks, podium and tower.
+   */
+  blocks?: Block[]
+  /**
+   * The box fields as derived when the blocks were last set. A box field changed later (without new blocks) is fitted
+   * onto the blocks; with no snapshot, the blocks win (engine/blocks.ts `blocksOf`).
+   */
+  boxFromBlocks?: Pick<Tower, 'height' | 'width' | 'depth' | 'podiumHeight' | 'podiumWidth' | 'podiumDepth'>
+}
+
+/** One stacked block of a parametric tower: a rectangle in plan, sitting on the block below. */
+export interface Block {
+  id: string
+  name?: string
+  height: number
+  width: number
+  depth: number
+  /** Plan offset of the block centre from the tower centre, in the tower's own frame (m). */
+  dx: number
+  dy: number
+  /** Rotation relative to the tower, degrees counter-clockwise (a twist). */
+  rotation: number
+  /** Podium block: podium floor-to-floor and the podium use. Only the leading run of blocks counts as podium. */
+  podium?: boolean
 }
 
 /** One storey of an imported mass, cut at mid-height (research P14-M04, Path A). */
@@ -68,6 +95,8 @@ export interface ImportedStorey {
   hasFloor: boolean
   /** Plate outlines in the tower frame (m); outer rings counter-clockwise, holes clockwise. */
   loops: [number, number][][]
+  /** Id of the model element (Layer 0 interchange) that set this storey's use; absent when it follows the program bands. */
+  src?: string
 }
 
 /** How an imported file was placed: units, north and zero level are confirmed by the user, never assumed. */
@@ -96,6 +125,8 @@ export interface ImportedMass {
   /** Highest point above the entrance floor (m). */
   top: number
   health: { block: number; warn: number }
+  /** The uploaded model this tower came from (lib/interchange): model id, the tower's key in it and its element ids. */
+  source?: { modelId: string; towerKey: string; elementIds: string[] }
 }
 
 /**

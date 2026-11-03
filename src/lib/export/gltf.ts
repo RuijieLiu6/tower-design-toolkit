@@ -26,6 +26,14 @@ export async function toGlb(scene: ExportScene): Promise<ArrayBuffer> {
     mesh.userData = { layer: s.layer, ...s.strings }
     root.add(mesh)
   }
+  for (const c of scene.curves ?? []) {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(c.points, 3))
+    const line = c.closed ? new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: new THREE.Color(c.color[0] / 255, c.color[1] / 255, c.color[2] / 255) })) : new THREE.Line(g, new THREE.LineBasicMaterial())
+    line.name = c.name
+    line.userData = { layer: c.layer, ...c.strings }
+    root.add(line)
+  }
   root.updateMatrixWorld(true)
   const result = await new GLTFExporter().parseAsync(root, { binary: true })
   return result as ArrayBuffer

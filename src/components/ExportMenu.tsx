@@ -3,9 +3,10 @@
 import { Download, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { VTC_NORTH_DEG } from '../context'
-import { buildScene } from '../lib/export/scene'
+import { toExportScene } from '../lib/interchange/converters'
 import { useImportStore } from '../lib/import/store'
 import { CITY_ORIGIN, useStore } from '../store'
+import { useUnits } from '../lib/units'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let rhino: Promise<any> | null = null
@@ -21,6 +22,7 @@ function save(data: BlobPart, name: string, type: string) {
 }
 
 export default function ExportMenu() {
+  const unit = useUnits((st) => st.unit)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
@@ -38,7 +40,8 @@ export default function ExportMenu() {
     const towers = s.towers[s.project]
     const meshes = useImportStore.getState().meshes
     return {
-      scene: buildScene(towers, { project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0, groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null, meshOf: (id) => meshes[id] }),
+      // Roles, uses, levels and provenance travel as user strings, so uploading the export reads back the same model.
+      scene: toExportScene(towers, s.models[s.project], { project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0, groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null, meshOf: (id) => meshes[id] }),
       base: `massing-${s.project}-${new Date().toISOString().slice(0, 10)}`,
       north: s.project === 'vtc' ? VTC_NORTH_DEG : 0,
     }
@@ -71,12 +74,12 @@ export default function ExportMenu() {
         className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}><Download size={13} />Export model</button>
       {open && (
         <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-72 rounded-md border border-line bg-panel p-1.5 text-ink shadow-lg">
-          <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('3dm')} className={item}>{busy === '3dm' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>Rhino (.3dm)</b><br /><span className="text-[10px] text-muted">Layer per use with its colour; core and plant layers; user text on each storey; north on the Earth anchor</span></span></button>
+          <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('3dm')} className={item}>{busy === '3dm' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>Rhino (.3dm)</b><br /><span className="text-[10px] text-muted">Layer per use with its colour; role, use, level and provenance as user text, so it uploads back as the same model; site curve and context; north on the Earth anchor</span></span></button>
           <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('obj')} className={item}>{busy === 'obj' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>SketchUp and others (OBJ + MTL, .zip)</b><br /><span className="text-[10px] text-muted">Metres, Y up; one material per layer. In SketchUp Pro: File › Import, units metres</span></span></button>
           <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('glb')} className={item}>{busy === 'glb' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>glTF (.glb)</b><br /><span className="text-[10px] text-muted">For Blender, web viewers and render tools; user text in extras</span></span></button>
           <button role="menuitem" type="button" disabled className={item}><Download size={13} className="mt-0.5" /><span><b>IFC (roadmap)</b><br /><span className="text-[10px] text-muted">Storeys and spaces with use for Revit. Until then: link the .3dm (newer Revit versions, unverified) or convert the OBJ</span></span></button>
           {msg && <p className="px-2 pb-1 pt-0.5 text-[10px] text-muted">{msg}</p>}
-          <p className="border-t border-line px-2 pt-1 text-[10px] text-muted">One closed solid per storey, LOD 100. Files are made in this browser; nothing is uploaded.</p>
+          <p className="border-t border-line px-2 pt-1 text-[10px] text-muted">One closed solid per storey, LOD 100. Files are always in metres{unit !== 'm' ? ` (you are viewing ${unit === 'ft' ? 'feet' : 'millimetres'})` : ''}. Made in this browser; nothing is uploaded.</p>
         </div>
       )}
     </div>

@@ -6,6 +6,9 @@ import type { GateItem, ClaimFinding } from '../engine/culture'
 import type { ProvIssue, ProvEntry } from '../engine/provenance'
 import type { RuleResult, RuleState } from '../engine/types'
 import type { Item, NodeOutput } from './workflowLogic'
+import type { Tower } from '../engine/types'
+import type { InterchangeModel } from './interchange/model'
+import { toCustomize } from './interchange/converters'
 
 export interface ExtraInputs {
   econ: EconResult
@@ -13,6 +16,8 @@ export interface ExtraInputs {
   facade: FacadeResult
   culture: { findings: ClaimFinding[]; gate: GateItem[] }
   provenance: { prov: ProvEntry[]; issues: ProvIssue[] }
+  /** The uploaded model of the current project and its towers (Layer 0 interchange). */
+  model?: { model: InterchangeModel | null; towers: Tower[] }
 }
 
 const item = (r: RuleResult): Item => ({ id: r.id, label: r.label, value: r.value, threshold: r.threshold, state: r.state, flag: r.flag, source: r.source, note: r.note })
@@ -46,6 +51,8 @@ export function extraOutput(id: string, x: ExtraInputs): NodeOutput | null {
       const n = x.provenance.prov.length, k = x.provenance.issues.length
       return { state: !n ? 'unknown' : k ? 'warn' : 'pass', headline: n ? `${n} elements · ${k ? `${k} to fix` : 'complete'}` : 'No elements logged yet', items: [] }
     }
+    case 'built.model':
+      return toCustomize(x.model?.model ?? null, x.model?.towers ?? [])
     default:
       return null
   }

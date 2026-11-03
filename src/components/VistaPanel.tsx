@@ -21,6 +21,8 @@ import { requestCaptures, useVistaStore, type CaptureSpec } from '../lib/vistaSt
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { HideUnderDesignCard, useCityData, useCityObstacles, useRemoval } from './CityContext'
 import { CONE_STYLE, FlagChip, Section } from './ui'
+import EnvelopeSection from './EnvelopeSection'
+import SitePanel from './SitePanel'
 
 const ORIGINS = (origins as unknown as { cones: Record<string, { vistaEye: number | null }> }).cones
 const REPORT_ASPECT = 2.1
@@ -68,7 +70,9 @@ function VistaCity() {
         <Note flag="verified">Plan relations from the City ViewCone polygons (OGL-Vancouver, retrieved 2026-10-21), clipped exactly with Vista's kernel. Heights: the View-cone height check's estimates; the City View Cone Assessment governs.</Note>
         <p className="mt-1.5 text-[10px] text-muted">Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, LiDAR 2022 roofs and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</p>
       </Section>
+      <SitePanel />
       <OverlapTable exact={exact} top={top} />
+      <EnvelopeSection />
       <Viewpoints exact={exact} tower={t} ground={ground} />
       <RoofViews tower={t} ground={ground} />
       <WhatIf exact={inside} fp={fp} ground={ground} top={top} />

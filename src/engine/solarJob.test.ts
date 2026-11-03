@@ -82,3 +82,16 @@ describe('solar job in Real Vancouver', () => {
     expect(raised.mapTerrain?.z[0]).toBe(80)
   })
 })
+
+describe('solar job with context from an uploaded model (lib/interchange converter 3)', () => {
+  it('adds the uploaded context to the baseline, so the map counts it as existing shadow', () => {
+    const opts = { project: 'vtc' as const, towers: [tower], ctx: null, readings: {}, mapDate: 'equinox' as const, half: 160, cell: 8 }
+    const without = runSolarJob(opts)
+    // A 120 m block 60 m east of the tower: existing, so it darkens the baseline, not the proposal's new shadow.
+    const modelContext = { prisms: [{ ring: [[60, -20], [100, -20], [100, 20], [60, 20]] as [number, number][], z0: 0, z1: 120 }], tris: [] }
+    const withCtx = runSolarJob({ ...opts, ctxKey: 'model-test', modelContext })
+    const sum = (a: Float32Array) => a.reduce((s, v) => s + v, 0)
+    expect(sum(withCtx.map!.baseline)).toBeLessThan(sum(without.map!.baseline))
+    expect(sum(without.map!.baseline)).toBeCloseTo(without.map!.possible * without.map!.baseline.length, 0)
+  })
+})

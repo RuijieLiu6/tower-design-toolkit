@@ -52,7 +52,7 @@ export function carryTags(next: ImportedStorey[], prev: ImportedStorey[]): Impor
   return next.map((s) => {
     const mid = (s.z0 + s.z1) / 2
     const old = prev.find((p) => mid >= p.z0 && mid < p.z1)
-    return old ? { ...s, use: old.use, hasFloor: old.hasFloor && s.area >= MIN_FLOOR_AREA ? true : s.hasFloor && old.hasFloor } : s
+    return old ? { ...s, use: old.use, hasFloor: old.hasFloor && s.area >= MIN_FLOOR_AREA ? true : s.hasFloor && old.hasFloor, ...(old.src ? { src: old.src } : {}) } : s
   })
 }
 

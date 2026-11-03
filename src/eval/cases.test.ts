@@ -10,17 +10,17 @@ const results: CaseResult[] = []
 
 describe('evaluation cases (engine level)', () => {
   for (const c of CASES) {
-    it(`${c.id} · ${c.type} · ${c.title}`, () => {
-      const r = runCase(c)
+    it(`${c.id} · ${c.type} · ${c.title}`, async () => {
+      const r = await runCase(c)
       results.push(r)
       if (OUT) writeFileSync(OUT_URL!, JSON.stringify(results, null, 1))
       expect(r.error ?? null).toBeNull()
       expect({ id: r.id, observed: r.observed, pass: r.pass }).toEqual({ id: r.id, observed: r.observed, pass: true })
-    })
+    }, 60_000) // the upload cases start rhino3dm and read, export and re-read a file
   }
   it('covers every case type and each new node with a typical and an out-of-scope case', () => {
     expect(new Set(CASES.map((c) => c.type))).toEqual(new Set(['typical', 'boundary', 'out-of-scope', 'repeated', 'definition']))
-    for (const n of ['built.core-lifts', 'built.solar-access', 'built.wind-procedure', 'built.energy-carbon', 'built.mobility', 'built.view-from', 'built.vista']) {
+    for (const n of ['built.core-lifts', 'built.solar-access', 'built.wind-procedure', 'built.energy-carbon', 'built.mobility', 'built.view-from', 'built.vista', 'built.model']) {
       const types = CASES.filter((c) => c.node === n).map((c) => c.type)
       expect(types, n).toContain('typical'); expect(types, n).toContain('out-of-scope')
     }

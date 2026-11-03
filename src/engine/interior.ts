@@ -2,7 +2,7 @@
 // layouts by use (unit mix for homes, keys for hotels, lease depth for offices) and an activity programme for public
 // floors. When a tower has `interior` set, the lift check, egress and economics read the counts from here instead of
 // their area proxies; without it they keep the proxies (flagged as such). Every preset is a team assumption.
-import { coreSide } from './massing'
+import { coreSide, blockSpans, spanAt } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type UnitType = 'studio' | 'one' | 'two' | 'three'
@@ -170,13 +170,27 @@ export function publicFloor(t: Tower, f: Floor, i: InteriorInput, net: number): 
   return { kind: 'public', activities, design: activities.reduce((s, a) => s + a.design, 0), egress: activities.reduce((s, a) => s + a.egress, 0), net, room }
 }
 
+/**
+ * The tower as seen on one floor: the plate of the stacked block at that level, with the core kept at the tower's own
+ * size (the core runs through every block). Layouts assume the core at the block centre (team approximation for a
+ * shifted block).
+ */
+export function plateTower(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): Tower {
+  if (t.imported || !t.blocks?.length) return t
+  const b = spanAt(blockSpans(t), (f.z0 + f.z1) / 2)?.block
+  if (!b || (b.width === t.width && b.depth === t.depth)) return t
+  const c = coreSide(t)
+  return { ...t, width: b.width, depth: b.depth, coreShare: Math.min(0.6, (c * c) / Math.max(1, b.width * b.depth)) }
+}
+
 export function floorLayout(t: Tower, f: Floor): FloorLayout | null {
   const i = t.interior
   if (!i || f.podium) return null
-  if (f.use === 'residential' && !f.skyLobby) return homeFloor(t, i)
-  if (f.use === 'hotel' && !f.skyLobby) return hotelFloor(t, i)
-  if (f.use === 'office') return officeFloor(t, f, i)
-  if (f.use === 'amenity' || f.skyLobby) return publicFloor(t, f, i, Math.max(0, f.area - t.coreShare * t.width * t.depth))
+  const pt = plateTower(t, f)
+  if (f.use === 'residential' && !f.skyLobby) return homeFloor(pt, i)
+  if (f.use === 'hotel' && !f.skyLobby) return hotelFloor(pt, i)
+  if (f.use === 'office') return officeFloor(pt, f, i)
+  if (f.use === 'amenity' || f.skyLobby) return publicFloor(pt, f, i, Math.max(0, f.area - coreSide(t) ** 2))
   return null
 }
 
@@ -210,12 +224,22 @@ export function interiorCheck(t: Tower, floors: Floor[]): InteriorResult {
   const homeF = floors.filter((f) => !f.podium && !f.skyLobby && f.use === 'residential')
   const hotelF = floors.filter((f) => !f.podium && !f.skyLobby && f.use === 'hotel')
   const officeF = floors.filter((f) => !f.podium && f.use === 'office')
-  const home = homeF.length ? homeFloor(tw, i) : null
-  const hotel = hotelF.length ? hotelFloor(tw, i) : null
-  const office = officeF.length ? officeFloor(tw, officeF[Math.floor(officeF.length / 2)], i) : null
-  const publics = floors.filter((f) => !f.podium && (f.use === 'amenity' || f.skyLobby)).map((f) => ({ level: f.level, layout: publicFloor(tw, f, i, Math.max(0, f.area - t.coreShare * t.width * t.depth)) }))
-  const units = Object.fromEntries(UNIT_TYPES.map((u) => [u, (home?.units[u] ?? 0) * homeF.length])) as Record<UnitType, number>
-  const totals = { homes: (home?.homes ?? 0) * homeF.length, bedrooms: (home?.bedrooms ?? 0) * homeF.length, keys: (hotel?.keys ?? 0) * hotelF.length, units }
+  // Stacked blocks: floors of one use can sit on different plates, so each plate is laid out once and counted per floor.
+  const byPlate = <L,>(list: Floor[], lay: (pt: Tower) => L) => {
+    const groups = new Map<string, { pt: Tower; n: number }>()
+    for (const f of list) { const pt = plateTower(tw, f), k = `${pt.width}x${pt.depth}`; const g = groups.get(k); if (g) g.n++; else groups.set(k, { pt, n: 1 }) }
+    return [...groups.values()].map((g) => ({ layout: lay(g.pt), n: g.n }))
+  }
+  const homes = byPlate(homeF, (pt) => homeFloor(pt, i)), hotels = byPlate(hotelF, (pt) => hotelFloor(pt, i))
+  // The typical layout shown is the plate with the most floors.
+  const most = <L,>(l: { layout: L; n: number }[]) => (l.length ? l.reduce((a, b) => (b.n > a.n ? b : a)).layout : null)
+  const home = most(homes)
+  const hotel = most(hotels)
+  const officeMid = officeF[Math.floor(officeF.length / 2)]
+  const office = officeF.length ? officeFloor(plateTower(tw, officeMid), officeMid, i) : null
+  const publics = floors.filter((f) => !f.podium && (f.use === 'amenity' || f.skyLobby)).map((f) => ({ level: f.level, layout: publicFloor(plateTower(tw, f), f, i, Math.max(0, f.area - coreSide(t) ** 2)) }))
+  const units = Object.fromEntries(UNIT_TYPES.map((u) => [u, homes.reduce((s, g) => s + g.layout.units[u] * g.n, 0)])) as Record<UnitType, number>
+  const totals = { homes: homes.reduce((s, g) => s + g.layout.homes * g.n, 0), bedrooms: homes.reduce((s, g) => s + g.layout.bedrooms * g.n, 0), keys: hotels.reduce((s, g) => s + g.layout.keys * g.n, 0), units }
   const rules: RuleResult[] = []
   rules.push(rule('in-feed', 'Counts used by lifts, egress and economics', on ? 'from this layout' : 'area proxies (no layout yet)', 'a layout per use once the unit mix is chosen', on ? 'pass' : 'warn', on ? 'team_assumption' : 'unverified', TEAM,
     on ? 'Homes, bedrooms and hotel keys come from the drawn layout; office and retail keep their area densities.' : 'Lifts use 75 m² per home and 40 m² per key, egress 1.5 bedrooms per home: proxies. Switch on the layout to replace them.'))

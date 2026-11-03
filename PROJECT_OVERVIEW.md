@@ -122,7 +122,7 @@ Diagram `03-tool-logic.svg`. The suggested updates are in `docs/mid-review/DIAGR
 |---|---|---|---|---|
 | R | Research lane (before any design session) | AI research agents → team review | Policy PDFs, Council reports, by-laws → cited parameters with flags (`docs/research/`) | **G2b**: the team accepts or rejects parameters before they enter an engine |
 | 1 | Architect intent | Person | Project kind, tower parameters or an imported model | — |
-| 2 | Import adapter | Script | .3dm / OBJ / glTF / IFC → Layer 0 storeys and program tags | Geometry health check; units, north and datum confirmed by the person |
+| 2 | Upload and role mapping (since 3 Nov) | Script + person | .3dm / OBJ / glTF / IFC → layers mapped to roles (tower, podium, program, core, site, context, ignore) → Layer 0 interchange model (`tower-studio-interchange@1`, `docs/INTERCHANGE.md`) with provenance per element | The person confirms the mapping, units, north and datum; geometry health check; plain-language checks; stops when nothing can be used |
 | 3 | Layer 0 assembly | Code | Towers, floors, uses → project JSON (`tower-studio-project@1`) | Schema validation (Ajv) |
 | 4 | Metric engines (the nodes) | Deterministic code | Layer 0 + context data → results with state and flag | Stops: "no estimate", "limit unknown", "unresolved" |
 | 5 | Harness guards | Code checks | Results → tests | Evidence lint (no source = fail), evaluation cases (`npm run eval`), accessibility checks |
@@ -186,7 +186,7 @@ There is also one typical and one out-of-scope case for each major node, plus Vi
 
 ## 10. What is built (22 Oct 2026)
 
-**Built nodes (29):**
+**Built nodes (30; *Your model: upload & provenance* added 3 Nov):**
 
 | Node | Category | Stage | Projects |
 |---|---|---|---|
@@ -194,6 +194,7 @@ There is also one typical and one out-of-scope case for each major node, plus Vi
 | Program & FSR accounting | PROG | Massing | both |
 | View-cone height check | SITE | Massing | Real Vancouver |
 | Vista view studies | SITE | Massing | Real Vancouver |
+| Your model: upload & provenance | SITE | Massing | both |
 | View from here (roofs, floors, street) | SITE | Massing | Real Vancouver |
 | Relaxations & aviation | SITE | Massing | both |
 | Sun & shadow preview | CLIM | Massing | both |
@@ -230,6 +231,7 @@ There is also one typical and one out-of-scope case for each major node, plus Vi
 | Design options compare | `#/options` |
 | Sources & assumptions | `#/sources` |
 | Status: done / to-build, evaluation | `#/status` |
+| Upload a Rhino model (map layers to roles; read in the browser only) | Landing page, Project menu, drop anywhere; *Your model* node |
 | Import, export, save/load/undo | Project and Export menus |
 | Boards, drawings, AI render workflow | Present stage |
 | Decision trace and rule cards | Trace tab |
@@ -297,7 +299,7 @@ tower-studio/
     components/  UI (Viewport, NodeLibrary, Inspector, Present, ...)
     pages/       Landing, Guide, Customize, Options, Sources, Status
     data/        registry.ts (built nodes), research_registry.json, ruleCards.ts, stages.ts, icons.ts
-    lib/         import / export, project file, evidence lint, PWA, sandbox, registry
+    lib/         import / export, interchange (Layer 0 model + converters), project file, evidence lint, PWA, sandbox, registry
     eval/        evaluation cases (cases.ts)
     store.ts     Zustand state
   public/data/   compact City and NRCan layers (with layers.json provenance)
@@ -322,7 +324,7 @@ The competition model is optional and private: `npm run context:vtc` (see `tools
 
 ## 16. Glossary
 
-- **Layer 0:** the project's base data. Towers, storeys, program by floor, core, north and datum; everything the nodes read.
+- **Layer 0:** the project's base data. Towers, storeys, program by floor, core, north and datum; everything the nodes read. An uploaded model adds the **interchange model** (`models` in the project file): its elements by role, with provenance (`docs/INTERCHANGE.md`).
 - **Node:** one evaluation or tool, with a category, stage, sources and flags.
 - **Lv, k:** a view cone's origin elevation and lower-boundary slope, in `Z = Lv + k·D`.
 - **CGVD28:** the vertical datum used throughout.

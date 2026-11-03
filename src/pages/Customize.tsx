@@ -67,6 +67,7 @@ function Builder() {
   const enabled = useStore((s) => s.enabled)
   const reduced = useStore((s) => s.reducedMotion)
   const towers = useTowers()
+  const model = useStore((s) => s.models[s.project])
   const results = useResults()
   // Nodes whose results live outside useResults (import session: economics, parking, facade, claims guard, provenance).
   const econ = useEconomics().result, mobility = useMobility(), facade = useFacade(), culture = useCultureGate(), provenance = useProvenanceIssues()
@@ -120,7 +121,7 @@ function Builder() {
     const t0 = towers[0]
     const sourceHeadline = (ref: string) => {
       if (ref === 'src.site') return project === 'vtc' ? 'VTC block · supplied context model' : 'Downtown · City view cones, footprints, terrain'
-      if (ref === 'src.massing') return `${towers.length} tower${towers.length === 1 ? '' : 's'} · ${towers.map((t) => `${Math.round(t.height)} m`).join(', ')}`
+      if (ref === 'src.massing') return `${model ? `${model.source.fileName} · ` : ''}${towers.length} tower${towers.length === 1 ? '' : 's'} · ${towers.map((t) => `${Math.round(t.height)} m`).join(', ')}`
       return t0 ? t0.bands.map((b) => `${USES[b.use].label.split(' ')[0]} ${Math.round(b.share * 100)}%`).join(' · ') : 'No tower'
     }
     const evalNode = (n: GraphNode): NodeOutput => {
@@ -128,10 +129,10 @@ function Builder() {
       if (!e?.def) return { state: 'idle', headline: 'Not in this library', items: [] }
       if (e.status === 'researched') return { state: 'idle', headline: 'Researched, not runnable', items: [] }
       if (e.status === 'community') return communityOutput(e.def) ?? { state: 'idle', headline: 'Imported node: no result yet', items: [] }
-      return builtOutput(e.def, results, project, solarLines) ?? extraOutput(e.def.id, { econ, mobility, facade, culture, provenance }) ?? { state: 'idle', headline: 'Built: open it in the guided app for results', items: [] }
+      return builtOutput(e.def, results, project, solarLines) ?? extraOutput(e.def.id, { econ, mobility, facade, culture, provenance, model: { model, towers } }) ?? { state: 'idle', headline: 'Built: open it in the guided app for results', items: [] }
     }
     return evaluateGraph(graph, edges, { evalNode, sourceHeadline, towers: towers.map((t) => ({ id: t.id, name: t.name })) })
-  }, [graph, edgeKey, results, project, towers, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [graph, edgeKey, results, project, towers, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- adding nodes ----
   const centre = useCallback(() => {

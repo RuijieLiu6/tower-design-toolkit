@@ -14,3 +14,6 @@ __pycache__/
 # Local-only scratch from tests and builds
 .vitest-cache/
 .offline-e2e/
+
+# Synthetic test fixtures made by tools/make_import_fixtures.mjs (safe to publish; never the competition model)
+!tools/import-fixtures/*.3dm

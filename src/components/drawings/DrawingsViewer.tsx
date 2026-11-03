@@ -11,6 +11,7 @@ import { USES, type Tower } from '../../engine/types'
 import { useBoardStore } from '../../lib/boardStore'
 import { useStore, useTowers } from '../../store'
 import PlanDrawing from '../PlanDrawing'
+import { useUnits } from '../../lib/units'
 
 type Choice = { kind: 'plan'; level: number; label: string } | { kind: 'section' } | { kind: 'elevation'; face: number }
 
@@ -60,7 +61,8 @@ export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
   const { selectedTower, project } = useStore()
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
-  const opts = useMemo(() => ({ northDeg: north, projectLabel: project === 'vtc' ? 'Competition site (VTC)' : 'Real Vancouver', date: new Date().toISOString().slice(0, 10) }), [north, project])
+  const unit = useUnits((st) => st.unit)
+  const opts = useMemo(() => ({ northDeg: north, projectLabel: project === 'vtc' ? 'Competition site (VTC)' : 'Real Vancouver', date: new Date().toISOString().slice(0, 10), unit }), [north, project, unit])
   const plans = useMemo(() => (t ? planChoices(t) : []), [t])
   const facesList = useMemo(() => (t ? mainFaces(t, north) : []), [t, north])
   const [choice, setChoice] = useState<Choice>(() => (plans[0] ? { kind: 'plan', ...plans[0] } : { kind: 'section' }))

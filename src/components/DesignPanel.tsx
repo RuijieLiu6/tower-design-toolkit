@@ -8,6 +8,7 @@ import { USES, type SkyRoom, type StairPlacement, type UseId } from '../engine/t
 import { SITE, TIER_LABEL, type FsrTier } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { DEFAULT_SKY_ROOM, useStore, useTowers } from '../store'
+import BlockEditor from './BlockEditor'
 import ImportedPanel from './ImportedPanel'
 import { useImportStore } from '../lib/import/store'
 import PublicRealmPanel from './PublicRealmPanel'
@@ -240,22 +241,16 @@ export default function DesignPanel() {
         <div className="grid gap-2.5">
           <NumberField label="Height (architectural top)" value={t.height} onChange={(v) => up({ height: v })} min={60} max={420} step={1} unit="m" />
           <div className="grid grid-cols-2 gap-2">
-            <NumberField label="Width" value={t.width} onChange={(v) => up({ width: v })} unit="m" />
-            <NumberField label="Depth" value={t.depth} onChange={(v) => up({ depth: v })} unit="m" />
-            <NumberField label="Rotation" value={t.rotation} onChange={(v) => up({ rotation: v })} unit="°" />
+            <NumberField label="Rotation (whole tower)" value={t.rotation} onChange={(v) => up({ rotation: v })} unit="°" />
             <NumberField label="Floor-to-floor" value={t.f2f} onChange={(v) => up({ f2f: Math.max(2.8, v) })} step={0.1} unit="m" />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <NumberField label="Podium height" value={t.podiumHeight} onChange={(v) => up({ podiumHeight: Math.max(0, v) })} unit="m" />
-            <NumberField label="Podium width" value={t.podiumWidth} onChange={(v) => up({ podiumWidth: v })} unit="m" />
-            <NumberField label="Podium depth" value={t.podiumDepth} onChange={(v) => up({ podiumDepth: v })} unit="m" />
-          </div>
+          <BlockEditor t={t} />
           <label className="flex items-center justify-between text-xs"><span className="text-muted">Podium use</span>
             <select value={t.podiumUse} onChange={(e) => up({ podiumUse: e.target.value as UseId })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
               {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
             </select>
           </label>
-          <div className="text-[11px] text-muted">{floors.length} floors · plate {(t.width * t.depth).toFixed(0)} m² · podium {(t.podiumWidth * t.podiumDepth).toFixed(0)} m²</div>
+          <div className="text-[11px] text-muted">{floors.length} floors · {Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m² gross · typical plate {(t.width * t.depth).toFixed(0)} m²{t.podiumHeight > 0 ? ` · podium ${t.podiumHeight.toFixed(1)} m` : ''}</div>
         </div>
       </Section>
 

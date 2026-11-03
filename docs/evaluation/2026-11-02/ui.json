@@ -1,0 +1,49 @@
+{
+ "RHINO-B": {
+  "id": "RHINO-B",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-O": {
+  "id": "RHINO-O",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-R": {
+  "id": "RHINO-R",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-N": {
+  "id": "RHINO-N",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-K": {
+  "id": "RHINO-K",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-A": {
+  "id": "RHINO-A",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-T": {
+  "id": "RHINO-T",
+  "screenshot": "shots/RHINO-T.png",
+  "flags": [
+   "Unverified",
+   "Team assumption"
+  ],
+  "observed": "Dropped, mapped, checked and used in the app; panel shows 2 towers, the lot line and the provenance list",
+  "pass": true,
+  "note": "Uploaded through the dialog (drop on the app, map, check, use); screenshots RHINO-T-map and RHINO-T-check show the two steps"
+ }
+}

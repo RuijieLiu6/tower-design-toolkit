@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { FLAG_ICONS } from '../data/icons'
+import { fieldUnit, useUnits } from '../lib/units'
 import type { Flag, RuleState } from '../engine/types'
 import type { ConeState } from '../engine/viewCones'
 
@@ -54,17 +55,22 @@ export function Section({ title, children, right }: { title: string; children: R
 export function NumberField({ label, value, onChange, step = 1, min, max, unit, hint }: {
   label: string; value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number; unit?: string; hint?: string
 }) {
+  // Fields stored in m, mm or m² show in the viewer's display unit (lib/units.ts); the value saved stays in its own unit.
+  const f = fieldUnit(unit, useUnits((st) => st.unit))
+  const shown = f ? f.toShown(value) : value
+  const set = (v: number) => onChange(f ? f.fromShown(v) : v)
+  const round = f ? 1000 : 100
   return (
     <label className="flex flex-col gap-1 text-xs" title={hint}>
       <span className="text-muted">{label}</span>
       <div className="flex items-center gap-2">
         {min !== undefined && max !== undefined && (
-          <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-accent" aria-label={label} />
+          <input type="range" min={f ? f.toShown(min) : min} max={f ? f.toShown(max) : max} step={f ? f.toShown(step) : step} value={shown} onChange={(e) => set(Number(e.target.value))} className="w-full accent-accent" aria-label={label} />
         )}
         <div className="flex items-center rounded border border-line bg-panel">
-          <input type="number" step={step} value={Number.isFinite(value) ? Math.round(value * 100) / 100 : 0} onChange={(e) => onChange(Number(e.target.value))}
+          <input type="number" step={f ? 'any' : step} value={Number.isFinite(shown) ? Math.round(shown * round) / round : 0} onChange={(e) => set(Number(e.target.value))}
             className="w-16 bg-transparent px-1.5 py-1 text-right tabular-nums outline-none" aria-label={`${label} value`} />
-          {unit && <span className="pr-1.5 text-muted">{unit}</span>}
+          {unit && <span className="pr-1.5 text-muted">{f ? f.label : unit}</span>}
         </div>
       </div>
     </label>

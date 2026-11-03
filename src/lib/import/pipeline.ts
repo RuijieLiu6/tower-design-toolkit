@@ -7,9 +7,17 @@ import { carryTags, hullOf, meshVolume, sliceStoreys, tagByBands, MIN_FLOOR_AREA
 import { plateAreas, sliceSegments } from '../../engine/importGeom'
 import { healthReport, topology, UNIT_SCALE, type HealthItem, type Topology, type Unit } from '../../engine/meshHealth'
 import type { Band, ImportedMass, ImportedStorey, UseId } from '../../engine/types'
+import { toUtm10 } from '../../engine/relaxAviation'
 import type { RawImport } from './types'
 
-export type Placement = 'keep' | 'centre' | 'utm' | 'custom'
+export type Placement = 'keep' | 'centre' | 'utm' | 'custom' | 'anchor' | 'earth'
+
+/**
+ * Aligning an uploaded model to the map (Rhino item 11, after Vista's georeference.js, Ruijie Liu): a point of the model
+ * (file plan, scaled to metres) lands on a point of the project (project frame), turned by `turn` degrees
+ * counter-clockwise on top of the north rotation. 'earth' uses the file's Earth anchor for the model point.
+ */
+export interface AnchorOptions { model: [number, number]; city: [number, number]; turn: number }
 export type DatumMode = 'zero' | 'lowest' | 'geodetic' | 'custom'
 export type NorthMode = 'base' | 'true' | 'street' | 'magnetic' | 'file' | 'custom' | 'unresolved'
 
@@ -30,6 +38,8 @@ export interface ImportOptions {
   /** null = detect from the model. */
   podiumTop: number | null
   podiumF2F: number
+  /** Used when placement is 'anchor' (and the turn when it is 'earth'). */
+  anchor?: AnchorOptions
 }
 
 export interface ProjectFrame {
@@ -108,12 +118,18 @@ export function stageB(raw: RawImport, a: { mesh: MeshData; bounds: Bounds }, o:
   const b = a.bounds
   const cx = (b.min[0] + b.max[0]) / 2, cy = (b.min[1] + b.max[1]) / 2
   const fn = fileNorth(raw, o, frame)
-  // Rotate counter-clockwise by (file north - project north) so the file's north lands on the project's.
-  const rotation = fn == null ? 0 : normDeg(fn - frame.northDeg)
+  // Rotate counter-clockwise by (file north - project north) so the file's north lands on the project's; an anchor
+  // placement adds its own turn.
+  const turn = o.placement === 'anchor' || o.placement === 'earth' ? o.anchor?.turn ?? 0 : 0
+  const rotation = normDeg((fn == null ? 0 : fn - frame.northDeg) + turn)
   const r = (rotation * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r)
   const rc: [number, number] = [cx * c - cy * s, cx * s + cy * c]
   let x = rc[0], y = rc[1]
-  if (o.placement === 'centre') [x, y] = frame.siteCentre
+  const onto = (model: [number, number], city: [number, number]): [number, number] => [city[0] + (cx - model[0]) * c - (cy - model[1]) * s, city[1] + (cx - model[0]) * s + (cy - model[1]) * c]
+  const ea = earthPoint(raw, o, frame)
+  if (o.placement === 'anchor' && o.anchor) [x, y] = onto(o.anchor.model, o.anchor.city)
+  else if (o.placement === 'earth' && ea) [x, y] = onto(ea.model, ea.city)
+  else if (o.placement === 'centre') [x, y] = frame.siteCentre
   else if (o.placement === 'utm' && frame.utmOrigin) { x = rc[0] - frame.utmOrigin[0]; y = rc[1] - frame.utmOrigin[1] }
   else if (o.placement === 'custom') { x = rc[0] + o.offset[0]; y = rc[1] + o.offset[1] }
   const datumShift = o.datum === 'lowest' ? b.min[2] : o.datum === 'geodetic' ? frame.groundElevation : o.datum === 'custom' ? o.dz : 0
@@ -150,6 +166,21 @@ export function stageC(local: MeshData, topo: Topology, o: Pick<ImportOptions, '
   const total = meshVolume(local, simple)
   const volume = total != null ? total - integrate(local, lastTop, b.max[2]) - integrate(local, b.min[2], 0) : closed ? integrate(local, 0, lastTop) : null
   return { storeys, podiumTop, top, volume, overlapArea }
+}
+
+/**
+ * The file's Earth anchor as a placement: its base point (file plan, scaled to metres) and where its latitude and
+ * longitude fall in the project frame (EPSG:26910 by the Krüger series, minus the project origin). Real Vancouver only;
+ * null when the file has no location or the project has no map frame.
+ */
+export function earthPoint(raw: RawImport & { unitScaleOverride?: number }, o: Pick<ImportOptions, 'unit' | 'upAxis'>, frame: ProjectFrame): { model: [number, number]; city: [number, number]; utm: [number, number] } | null {
+  const ea = raw.earthAnchor
+  if (!ea || !frame.utmOrigin) return null
+  const s = raw.unitScaleOverride ?? UNIT_SCALE[o.unit]
+  const [bx, by, bz] = ea.basePoint
+  const model: [number, number] = o.upAxis === 'y' ? [bx * s, -bz * s] : [bx * s, by * s]
+  const utm = toUtm10(ea.lat, ea.lon)
+  return { model, city: [utm[0] - frame.utmOrigin[0], utm[1] - frame.utmOrigin[1]], utm }
 }
 
 export function healthFor(placed: Placed, topo: Topology, sliced: Sliced | null, frame: ProjectFrame, unit: string): HealthItem[] {

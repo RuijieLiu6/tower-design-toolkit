@@ -11,6 +11,7 @@ import { STAGE_LABEL, paramValues, type CommunityResult, type NodePackage } from
 import { useStore } from '../store'
 import { FlagChip, NumberField, Section, StateChip, Toggle } from './ui'
 import CodeNodeGate from './CodeNodeGate'
+import { U } from './Units'
 
 /** State chip, or "Info" for a value the node shows on purpose with no good or bad. */
 export function ResultChip({ r }: { r: CommunityResult }) {
@@ -22,8 +23,8 @@ function ResultCard({ r }: { r: CommunityResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><ResultChip r={r} /></div>
-      <div className="mt-0.5 text-[11px]"><b className="tabular-nums">{r.value}</b> <span className="text-muted">· {r.threshold}</span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600">{r.note}</div>}
+      <div className="mt-0.5 text-[11px]"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1">
         <FlagChip flag={r.flag} />
         {r.claimed === 'verified' && <span className="inline-flex items-center gap-0.5 text-[10px] text-muted" title="Flag set by the node's author; a reviewer hasn't opened the source yet"><ClaimIcon size={11} />author: verified</span>}
@@ -51,7 +52,7 @@ function Parameters({ p }: { p: NodePackage }) {
               <FlagChip flag={overrides[x.id] !== undefined ? 'team_assumption' : x.flag === 'verified' ? 'unverified' : x.flag} />
               <span className="text-[10px] text-muted">{overrides[x.id] !== undefined ? `Your value (default ${x.default} ${x.unit}: ${x.source.label})` : `${x.source.label}${x.source.page ? `, ${x.source.page}` : ''}`}</span>
             </div>
-            {x.note && <div className="mt-0.5 text-[10px] text-muted">{x.note}</div>}
+            {x.note && <div className="mt-0.5 text-[10px] text-muted"><U>{x.note}</U></div>}
           </div>
         ))}
       </div>

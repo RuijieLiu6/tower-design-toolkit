@@ -8,14 +8,16 @@ import { LOOKS, MOTION, type Look } from '../data/stages'
 import { stairEnclosure, stairSpots, storeyLoads } from '../engine/egress'
 import { liftCheck, type LiftClass } from '../engine/lifts'
 import { coreLayout } from '../engine/plan'
-import { coreSide, rectCorners, towerFloors } from '../engine/massing'
+import { blockSpans, coreSide, rectCorners, spanAt, towerFloors } from '../engine/massing'
 import { USES, type Tower, type UseId } from '../engine/types'
 import { sunPosition, sunVector, vancouverTime } from '../engine/sun'
-import { CONES, CONE_PARAMS, bisector, type ConeState } from '../engine/viewCones'
+import { CONES, CONE_PARAMS, type ConeState } from '../engine/viewCones'
 import { useResults } from '../hooks/useResults'
 import { CITY_ORIGIN, useStore, useTowers, type Phase, type Representation } from '../store'
 import CityContext, { CityLegend } from './CityContext'
+import { ShowOverlaysButton, ViewportDock, useDock, useOverlayLook, useOverlayShortcut } from './ViewportDock'
 import ImportedMass from './ImportedMass'
+import { ConeOverlays } from './ConeVolumes'
 import Label from './Label'
 import ViewFromRig from './ViewFromRig'
 import VistaRig from './VistaRig'
@@ -29,13 +31,19 @@ import HiResCapture from './HiResCapture'
 import SolarOverlay from './SolarOverlay'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import RelaxationMasks from './RelaxationMasks'
+import TowerGizmo, { TowerMover } from './TowerGizmo'
+import TowerToolbar from './TowerToolbar'
+import { proposePlace } from '../lib/towerEdit'
+import CameraClamp from './CameraClamp'
+import PlinthBase from './Plinth'
+import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
+import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
 import { CONE_STYLE } from './ui'
 
 /** Model frame (x, y, z-up) to three.js (y-up). */
 const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, -y)
-const coneEstimates = CONES.filter((c) => CONE_PARAMS[c.id]).length
 
-type Ctl = { target: THREE.Vector3; update: () => void; addEventListener: (t: string, f: () => void) => void; removeEventListener: (t: string, f: () => void) => void }
+type Ctl = { target: THREE.Vector3; maxPolarAngle: number; update: () => void; addEventListener: (t: string, f: () => void) => void; removeEventListener: (t: string, f: () => void) => void }
 
 /** Massing draws clay; Schematic draws x-ray; Present keeps whichever the user picks. */
 function useRep(): Representation {
@@ -78,10 +86,11 @@ function ContextMeshes({ items, color, ghost = false }: { items: ContextItem[]; 
   )
 }
 
-function Ground({ size, color, onPick }: { size: number; color: string; onPick: (x: number, y: number) => void }) {
+/** The flat top of the site model's base (the street level at the competition site, the sea in Real Vancouver); clicks on it place towers. */
+function Ground({ rect, color, onPick }: { rect: Plinth; color: string; onPick: (x: number, y: number) => void }) {
   return (
-    <mesh receiveShadow position={[0, 0, -0.05]} onPointerDown={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
-      <planeGeometry args={[size, size]} />
+    <mesh receiveShadow position={[(rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2, SEA_Z]} onPointerDown={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
+      <planeGeometry args={[rect.x1 - rect.x0, rect.y1 - rect.y0]} />
       <meshStandardMaterial color={color} roughness={1} />
     </mesh>
   )
@@ -90,9 +99,14 @@ function Ground({ size, color, onPick }: { size: number; color: string; onPick: 
 function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const { ctx, missing } = useVtcContext()
   const towers = useTowers()
+  // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
+  const plinth = useMemo(() => vtcPlinth(ctx), [ctx])
+  const ring = useMemo(() => plinthRing(plinth, () => SEA_Z), [plinth])
+  useEffect(() => registerGround({ at: () => 0, plinth }), [plinth])
   return (
     <>
-      <Ground size={4000} color={look.ground} onPick={onPick} />
+      <Ground rect={plinth} color={look.ground} onPick={onPick} />
+      <PlinthBase plinth={plinth} ring={ring} look={look} pad={0.1} />
       {ctx?.site && (
         <>
           <mesh position={[0, 0, 0.02]} receiveShadow onPointerDown={(e) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
@@ -120,7 +134,7 @@ function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => vo
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold />
       ))}
       {missing && <Label text="Context model not found: run npm run context:vtc (kept local, never published)" position={[0, -60, 2]} color="#7a4b00" background="rgba(255,243,205,0.95)" />}
-      {towers.map((t) => (t.imported ? <ImportedMass key={t.id} t={t} baseZ={0} xray={xray} /> : <TowerMesh key={t.id} t={t} baseZ={0} xray={xray} />))}
+      {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
       <PublicRealmOverlay />
       <EnergyOverlay />
       <WindScreenOverlay />
@@ -140,21 +154,6 @@ function ConeWedge({ id, state }: { id: string; state: ConeState | null }) {
     const s = new THREE.Shape(ring.slice(0, -1).map(([x, y]) => new THREE.Vector2(x, y)))
     return new THREE.ShapeGeometry(s)
   }, [ring])
-  const sheet = useMemo(() => {
-    if (!prm) return null
-    const u = bisector(cone)
-    const O = cone.ring[0]
-    const pts = cone.ring.slice(0, -1).map(([X, Y], i) => {
-      const z = i === 0 ? cone.Lv : cone.Lv + prm.k * ((X - O[0]) * u[0] + (Y - O[1]) * u[1])
-      return [X - CITY_ORIGIN[0], Y - CITY_ORIGIN[1], z]
-    })
-    const g = new THREE.BufferGeometry()
-    const pos: number[] = []
-    for (let i = 1; i < pts.length - 1; i++) pos.push(...pts[0], ...pts[i], ...pts[i + 1])
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
-    g.computeVertexNormals()
-    return g
-  }, [cone, prm])
   const active = state && state !== 'outside'
   return (
     <group>
@@ -162,17 +161,13 @@ function ConeWedge({ id, state }: { id: string; state: ConeState | null }) {
         <meshBasicMaterial color={color} transparent opacity={active ? 0.35 : 0.16} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       {/* The outline is drawn once, draped on the ground (CityContext DrapedCones); a flat copy here doubled it. */}
-      {sheet && (
-        <mesh geometry={sheet}>
-          <meshStandardMaterial color={color} transparent opacity={active ? 0.3 : 0.14} depthWrite={false} side={THREE.DoubleSide} />
-        </mesh>
-      )}
+      {/* An estimated cone is drawn as a solid from its viewpoint (CityContext → ConeSolids); a cone without an estimate gets none. */}
       <mesh position={[ring[0][0], ring[0][1], cone.Lv]}>
         <sphereGeometry args={[12, 16, 16]} />
         <meshStandardMaterial color={color} />
       </mesh>
       {active && (
-        <Label text={`${cone.id} · ${cone.name}`} position={[ring[0][0], ring[0][1], cone.Lv + 40]} size={0.016} />
+        <Label text={`${cone.id} · ${cone.name}${prm ? '' : ' · limit unknown'}`} position={[ring[0][0], ring[0][1], cone.Lv + 40]} size={0.016} />
       )}
     </group>
   )
@@ -191,13 +186,14 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
   }, [])
   return (
     <>
-      <Ground size={14000} color={look.water} onPick={onPick} />
+      <Ground rect={CITY_PLINTH} color={look.water} onPick={onPick} />
       <lineSegments geometry={grid}><lineBasicMaterial color={xray ? '#c9d4df' : '#d6d9de'} /></lineSegments>
       {CONES.map((c) => <ConeWedge key={c.id} id={c.id} state={checks.find((k) => k.cone.id === c.id)?.state ?? null} />)}
       <CityContext look={look} xray={xray} onPick={onPick} />
       <ViewFromRig />
       <VistaRig />
-      {towers.map((t) => (t.imported ? <ImportedMass key={t.id} t={t} baseZ={ground} xray={xray} /> : <TowerMesh key={t.id} t={t} baseZ={ground} xray={xray} />))}
+      {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} />}</TowerMover>)}
+      <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
       <WindScreenOverlay base={ground} />
       <SolarOverlay />
@@ -228,14 +224,17 @@ function hatchTexture() {
   return HATCH
 }
 
-interface Zone { use: UseId; z0: number; z1: number; podium: boolean; levels: number[] }
+/** A run of floors of one use inside one stacked block; w, d, dx, dy and rot are the block's, in the tower frame. */
+interface Zone { use: UseId; z0: number; z1: number; podium: boolean; levels: number[]; block: number; w: number; d: number; dx: number; dy: number; rot: number }
 type Anatomy = { plates: boolean; core: boolean; plant: boolean; shell: boolean; lifts: boolean; stairs: boolean }
 
 function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, coreRef }: {
   b: Zone; t: Tower; xray: boolean; selected: boolean; anatomy: Anatomy; clip: THREE.Plane[] | null; hatch: THREE.Texture; core: number
   shellRef: (m: THREE.MeshStandardMaterial | null) => void; coreRef: (m: THREE.Mesh | null) => void
 }) {
-  const w = b.podium ? t.podiumWidth : t.width, d = b.podium ? t.podiumDepth : t.depth, h = b.z1 - b.z0
+  const w = b.w, d = b.d, h = b.z1 - b.z0
+  // The core stays on the tower centre through shifted and twisted blocks: undo the block's offset and turn.
+  const ra = (-b.rot * Math.PI) / 180, coreAt: [number, number] = [-(b.dx * Math.cos(ra) - b.dy * Math.sin(ra)), -(b.dx * Math.sin(ra) + b.dy * Math.cos(ra))]
   const box = useMemo(() => new THREE.BoxGeometry(w, d, h), [w, d, h])
   const edges = useMemo(() => new THREE.EdgesGeometry(box), [box])
   const plates = useMemo(() => {
@@ -260,7 +259,7 @@ function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, 
       <lineSegments geometry={plates} visible={xray ? anatomy.plates : selected}>
         <lineBasicMaterial color={xray ? '#4a6a8c' : '#ffffff'} transparent opacity={xray ? 0.5 : 0.55} clippingPlanes={clip} />
       </lineSegments>
-      <mesh ref={coreRef} geometry={coreGeom} position={[0, 0, -h / 2]} visible={false}>
+      <mesh ref={coreRef} geometry={coreGeom} position={[coreAt[0], coreAt[1], -h / 2]} rotation={[0, 0, ra]} visible={false}>
         <meshStandardMaterial color={CORE_COLOR} roughness={0.6} transparent opacity={xray && anatomy.lifts ? 0.32 : 0.88} depthWrite={!(xray && anatomy.lifts)} clippingPlanes={clip} />
       </mesh>
     </>
@@ -340,15 +339,18 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
   const reduced = useStore((s) => s.reducedMotion)
   const floors = useMemo(() => towerFloors(t), [t])
   // Consecutive floors of one use form a zone; plant floors split zones, which is where the model explodes.
+  const spans = useMemo(() => blockSpans(t), [t])
   const zones = useMemo(() => {
     const out: Zone[] = []
     for (const f of floors) {
+      const sp = spanAt(spans, (f.z0 + f.z1) / 2)
+      const blk = sp?.block, bi = sp?.index ?? 0
       const last = out[out.length - 1]
-      if (last && last.use === f.use && last.podium === f.podium) { last.z1 = f.z1; last.levels.push(f.z0) }
-      else out.push({ use: f.use, z0: f.z0, z1: f.z1, podium: f.podium, levels: [f.z0] })
+      if (last && last.use === f.use && last.podium === f.podium && last.block === bi) { last.z1 = f.z1; last.levels.push(f.z0) }
+      else out.push({ use: f.use, z0: f.z0, z1: f.z1, podium: f.podium, levels: [f.z0], block: bi, w: blk?.width ?? t.width, d: blk?.depth ?? t.depth, dx: blk?.dx ?? 0, dy: blk?.dy ?? 0, rot: blk?.rotation ?? 0 })
     }
     return out
-  }, [floors])
+  }, [floors, spans, t.width, t.depth])
   const top = floors.length ? floors[floors.length - 1].z1 : 0
   const core = coreSide(t)
   // Section: world y is model z, so keep y <= base + level.
@@ -395,13 +397,14 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
   })
 
   const cut = section && sectionLevel > 0 && sectionLevel < top
-  const inPodium = sectionLevel < t.podiumHeight
-  const cw = inPodium ? t.podiumWidth : t.width, cd = inPodium ? t.podiumDepth : t.depth
-  const cutRing = rectCorners(0, 0, cw, cd, 0)
+  // The cut shows the block at the section level.
+  const cutBlock = spanAt(spans, sectionLevel)?.block
+  const cw = cutBlock?.width ?? t.width, cd = cutBlock?.depth ?? t.depth
+  const cutRing = rectCorners(cutBlock?.dx ?? 0, cutBlock?.dy ?? 0, cw, cd, cutBlock?.rotation ?? 0)
   return (
     <group position={[t.x, t.y, baseZ]} rotation={[0, 0, (t.rotation * Math.PI) / 180]} onPointerDown={(e) => { e.stopPropagation(); selectTower(t.id) }}>
       {zones.map((b, i) => (
-        <group key={i} ref={(g) => { groups.current[i] = g }} position={[0, 0, (b.z0 + b.z1) / 2]}>
+        <group key={i} ref={(g) => { groups.current[i] = g }} position={[b.dx, b.dy, (b.z0 + b.z1) / 2]} rotation={[0, 0, (b.rot * Math.PI) / 180]}>
           <ZoneBody b={b} t={t} xray={xray} selected={selected} anatomy={anatomy} clip={clip} hatch={hatch} core={core}
             shellRef={(m) => { shells.current[i] = m }} coreRef={(m) => { cores.current[i] = m }} />
         </group>
@@ -411,17 +414,20 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
       <OutriggerFloors t={t} floors={floors} visible={xray && !explode} clip={clip} />
       {xray && !explode && floors.filter((f) => f.skyLobby).map((f) => {
         const isPublic = t.skyRoom?.level === f.level
+        const sb = spanAt(spans, (f.z0 + f.z1) / 2)?.block
         return (
-          <group key={`sky${f.level}`} position={[0, 0, f.z0 + 0.1]}>
-            <mesh><planeGeometry args={[t.width + 4, t.depth + 4]} /><meshBasicMaterial color={isPublic ? SHAFT_COLOR.public : SHUTTLE_COLOR} transparent opacity={isPublic ? 0.45 : 0.35} side={THREE.DoubleSide} depthWrite={false} clippingPlanes={clip} /></mesh>
-            <Label text={isPublic ? `Public sky room L${f.level}` : `Sky lobby L${f.level}`} position={[t.width / 2 + 8, 0, 2]} size={0.014} color="#ffffff" background={isPublic ? 'rgba(142,91,168,0.94)' : 'rgba(42,143,134,0.92)'} bold />
+          <group key={`sky${f.level}`} position={[sb?.dx ?? 0, sb?.dy ?? 0, f.z0 + 0.1]} rotation={[0, 0, ((sb?.rotation ?? 0) * Math.PI) / 180]}>
+            <mesh><planeGeometry args={[(sb?.width ?? t.width) + 4, (sb?.depth ?? t.depth) + 4]} /><meshBasicMaterial color={isPublic ? SHAFT_COLOR.public : SHUTTLE_COLOR} transparent opacity={isPublic ? 0.45 : 0.35} side={THREE.DoubleSide} depthWrite={false} clippingPlanes={clip} /></mesh>
+            <Label text={isPublic ? `Public sky room L${f.level}` : `Sky lobby L${f.level}`} position={[(sb?.width ?? t.width) / 2 + 8, 0, 2]} size={0.014} color="#ffffff" background={isPublic ? 'rgba(142,91,168,0.94)' : 'rgba(42,143,134,0.92)'} bold />
           </group>
         )
       })}
       {cut && (
         <group position={[0, 0, sectionLevel]}>
-          <mesh><planeGeometry args={[cw * 1.9, cd * 1.9]} /><meshBasicMaterial color="#1d5fa8" transparent opacity={0.08} side={THREE.DoubleSide} depthWrite={false} /></mesh>
-          <mesh position={[0, 0, 0.05]}><planeGeometry args={[cw, cd]} /><meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} /></mesh>
+          <group position={[cutBlock?.dx ?? 0, cutBlock?.dy ?? 0, 0]} rotation={[0, 0, ((cutBlock?.rotation ?? 0) * Math.PI) / 180]}>
+            <mesh><planeGeometry args={[cw * 1.9, cd * 1.9]} /><meshBasicMaterial color="#1d5fa8" transparent opacity={0.08} side={THREE.DoubleSide} depthWrite={false} /></mesh>
+            <mesh position={[0, 0, 0.05]}><planeGeometry args={[cw, cd]} /><meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} /></mesh>
+          </group>
           {anatomy.core && <mesh position={[0, 0, 0.1]}><planeGeometry args={[core, core]} /><meshBasicMaterial color={CORE_COLOR} side={THREE.DoubleSide} /></mesh>}
           <Line points={[...cutRing, cutRing[0]].map(([x, y]) => [x, y, 0.15] as [number, number, number])} color="#1d5fa8" lineWidth={2} />
           <Label text={`Section +${sectionLevel.toFixed(0)} m`} position={[cw * 0.95, 0, 4]} size={0.014} />
@@ -532,12 +538,15 @@ function CameraRig() {
   useEffect(() => {
     if (!req) return
     lens.tween = null
-    const p = toThree(...req.position), t = toThree(...req.target)
+    // A target inside the ground (behind a hill) slides back along the line of sight: same eye, same view.
+    const aim = sightTarget(req.position, req.target, sceneGround.at)
+    const p = toThree(...req.position), t = toThree(...aim)
     camera.position.copy(p)
     camera.fov = req.fov ?? BASE_FOV
     camera.near = req.fov && req.fov < 15 ? Math.max(1, p.distanceTo(t) / 60) : 1
     camera.updateProjectionMatrix()
-    if (controls) { controls.target.copy(t); controls.update() } else camera.lookAt(t)
+    // An eye-level preset may look up at its target: the orbit starts from there, and CameraClamp eases the limit back.
+    if (controls) { controls.maxPolarAngle = Math.max(MAX_POLAR, polarOf(req.position, aim) + 1e-6); controls.target.copy(t); controls.update() } else camera.lookAt(t)
   }, [req, camera, controls])
   return null
 }
@@ -547,7 +556,6 @@ export default function Viewport() {
   const phase = useStore((s) => s.phase)
   const placing = useStore((s) => s.placing)
   const selected = useStore((s) => s.selectedTower)
-  const updateTower = useStore((s) => s.updateTower)
   const enabled = useStore((s) => s.enabled)
   const groundElevation = useStore((s) => s.groundElevation)
   const towers = useTowers()
@@ -557,12 +565,16 @@ export default function Viewport() {
   const present = phase === 'present'
   const boardView = useStore((s) => s.boardView)
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
-  const onPick = (x: number, y: number) => { if (placing && selected && !present) updateTower(selected, { x, y }) }
+  // A click while placing proposes the spot (ghost + checks); the toolbar's Confirm moves the tower (Vista v10.1).
+  const onPick = (x: number, y: number) => { if (placing && selected && !present) proposePlace(selected, x, y) }
   const sunOn = enabled['built.sun']
   const sel = towers.find((t) => t.id === selected) ?? towers[0]
   const baseZ = project === 'city' ? groundElevation : 0
   const focus = (sel ? toThree(sel.x, sel.y, baseZ + sel.height / 2) : new THREE.Vector3(0, 60, 0)).toArray() as [number, number, number]
   const fog: [number, number] = project === 'vtc' ? [1600, 5100] : [1500, 30000]
+  const hidden = useDock((s) => s.hidden)
+  const dockOpen = useDock((s) => s.open)
+  useOverlayShortcut()
   return (
     <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'bg-paper p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
@@ -578,34 +590,37 @@ export default function Viewport() {
             {sunOn ? <Sun north={north} /> : <directionalLight position={[600, 1200, 400]} intensity={1.1} />}
             <group rotation={[-Math.PI / 2, 0, 0]}>
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
+              <TowerGizmo />
             </group>
-            <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : [0, 0, -400]} maxPolarAngle={Math.PI / 2.02} enableDamping />
+            <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : [0, 0, -400]} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
+              onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
             <CameraRig />
             <Lens focus={focus} fit={(sel?.height ?? 200) * 1.5} fog={fog} />
+            <CameraClamp />
           </Canvas>
-          {present && boardView === 'plan' ? <PlanDrawing /> : <NorthCompass north={north} />}
-          {phase === 'advanced' && sel && <TitleBlock t={sel} />}
+          {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && <NorthCompass north={north} />}
+          {phase === 'advanced' && sel && !hidden && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : 'right-12'} />}
         </div>
       </div>
-      {project === 'city' && phase === 'basic' && (
-        <div className="pointer-events-none absolute left-3 top-3 max-w-sm rounded-md border border-line bg-white/90 p-2 text-[11px] text-slate-600 shadow-sm">
-          <b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b>{coneEstimates} have an estimated height limit</b> (blue sheets); the other <b>{CONES.length - coneEstimates} are dashed: no estimate</b> until the City answers Request 0. Ground, buildings and mountains are real data; see Context layers.
-        </div>
-      )}
+      {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
       {project === 'city' && !present && <CityLegend />}
-      {project === 'city' && !present && <VistaInset />}
+      {project === 'vtc' && !present && <VtcDock />}
+      {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
-      {placing && <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white">Click the ground to place the selected tower · Esc to stop</div>}
+      {placing && !hidden && <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white">Click the ground to place the selected tower · Esc to stop</div>}
+      {!present && <ShowOverlaysButton />}
+      <TowerToolbar />
     </div>
   )
 }
 
 /** Schematic: a drafting title block that names the drawing and its assumptions. */
-function TitleBlock({ t }: { t: Tower }) {
+function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
   const presets = useStore((s) => s.liftPresets)
   const egressP = useStore((s) => s.egressPresets)
   const lifts = useMemo(() => liftCheck(t, presets, egressP), [t, presets, egressP])
   const stairMm = useMemo(() => Math.max(...storeyLoads(t, egressP, presets).map((s) => s.stairMm)), [t, presets, egressP])
+  const fade = useOverlayLook().split(' ').filter((c) => c.startsWith('opacity') || c.startsWith('transition') || c.startsWith('duration')).join(' ')
   const rows: [string, string][] = [
     ['View', 'Isometric, near-parallel'],
     ['Shell', `Ghosted ${Math.round(XRAY_OPACITY * 100)}%`],
@@ -617,7 +632,7 @@ function TitleBlock({ t }: { t: Tower }) {
     ['LOD', '100 · space reservation'],
   ]
   return (
-    <div className="pointer-events-none absolute bottom-3 right-3 border border-[#2b3f55]/40 bg-panel/90 font-mono text-[10px] text-[#2b3f55]">
+    <div className={`pointer-events-none absolute bottom-3 ${clear} border border-[#2b3f55]/40 bg-panel/75 font-mono text-[10px] text-[#2b3f55] backdrop-blur-md ${fade}`}>
       <div className="border-b border-[#2b3f55]/30 px-2 py-1 font-semibold uppercase tracking-wider">Schematic · x-ray axonometric</div>
       <div className="grid grid-cols-[auto_auto] gap-x-3 px-2 py-1">
         {rows.flatMap(([k, v]) => [<span key={`${k}k`} className="uppercase opacity-70">{k}</span>, <span key={`${k}v`}>{v}</span>])}
@@ -626,17 +641,38 @@ function TitleBlock({ t }: { t: Tower }) {
   )
 }
 
+/** Small and translucent; the VTC north correction stays visible (a false assumption is never hidden). */
 function NorthCompass({ north }: { north: number }) {
+  const look = useOverlayLook()
+  const label = `True north ${north ? `${north}° from the model grid` : '(grid north)'}`
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-md bg-white/85 px-2 py-1.5 text-[10px] text-slate-600 shadow-sm">
-      <svg width="28" height="28" viewBox="-14 -14 28 28" style={{ transform: `rotate(${north}deg)` }} aria-hidden>
+    <div role="img" aria-label={north ? `${label}. False assumption corrected: the file's saved north is the grid.` : label} title={label}
+      className={`pointer-events-none absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-line/70 py-0.5 pl-0.5 pr-2 text-[10px] text-slate-700 shadow-sm ${look}`}>
+      <svg width="22" height="22" viewBox="-14 -14 28 28" style={{ transform: `rotate(${north}deg)` }} aria-hidden>
         <circle r="12" fill="none" stroke="#9aa0a6" />
         <path d="M0 -11 L4 4 L0 1 L-4 4 Z" fill="#1f5f8b" />
       </svg>
-      <div>
-        <div className="font-semibold text-slate-700">True north {north ? `${north}° from model grid` : '(grid north)'}</div>
-        {north !== 0 && <div><span className="font-semibold text-flag-false">False assumption corrected:</span> the file's saved north is the grid</div>}
-      </div>
+      <span className="font-semibold">N</span>
+      {north !== 0 && <span className="font-semibold text-flag-false">{north}° · corrected</span>}
     </div>
+  )
+}
+
+/** Competition site: the same dock as Real Vancouver, with the site's north, datum and context model. */
+function VtcDock() {
+  const { ctx, missing } = useVtcContext()
+  return (
+    <ViewportDock sections={[
+      { id: 'vtc-site', title: 'Site, north & datum', defaultOpen: true, summary: `true north ${VTC_NORTH_DEG}°`, children: (
+        <div className="space-y-1.5">
+          <p>True north is <b className="text-ink">{VTC_NORTH_DEG}° from the model grid</b>, read from the competition model's drawn north arrow.</p>
+          <p className="border-l-2 border-flag-false pl-2"><span className="font-semibold text-flag-false">False assumption corrected: </span>the file's saved north is the grid.</p>
+          <p>Heights are above local grade (0 m = site grade); the competition model supplies no geodetic datum.</p>
+        </div>
+      ) },
+      { id: 'vtc-context', title: 'Competition context model', summary: missing ? 'not found' : ctx ? 'local only' : 'loading…', children: missing
+        ? <p>Context model not found: run <code>npm run context:vtc</code> (kept local in <code>public/local/</code>, never published).</p>
+        : <p>Competition context © Buildner, loaded from <code>public/local/</code> on this computer only (git-ignored, never published). Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p> },
+    ]} />
   )
 }

@@ -3,7 +3,7 @@
 // Pure geometry: which City footprints and LiDAR roof parts a design outline overlaps, and copies of the picking and
 // ray-cast inputs without them. Indices never shift, so data.footprints[i] keeps meaning the same building.
 // Hiding is a hypothetical removal (team assumption), never evidence of vacancy or redevelopment eligibility.
-import { towerFootprint } from '../engine/massing'
+import { towerFootprint, towerMasses } from '../engine/massing'
 import type { Tower } from '../engine/types'
 import { hasHeight, inRing, type FootprintIndex, type FootprintLike, type HeightsLike, type Pt } from '../engine/viewFrom'
 
@@ -91,9 +91,9 @@ export function footprintsUnder(footprints: readonly FootprintLike[], designs: P
   })
 }
 
-/** Plan outlines of each design tower (local frame): its footprint and, for a box tower with a podium, the podium. */
+/** Plan outlines of each design tower (local frame): every stacked block (an imported mass: its hull). */
 export function designOutlines(t: Tower): Pt[][] {
-  return [towerFootprint(t), ...(t.podiumHeight > 0 && !t.imported ? [towerFootprint(t, true)] : [])]
+  return towerMasses(t).map((m) => m.ring)
 }
 
 export interface Removal {

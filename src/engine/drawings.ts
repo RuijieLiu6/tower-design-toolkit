@@ -2,9 +2,10 @@
 // SVG at a standard scale on the A2 sheet (sheet millimetres) or tight around the drawing for a board frame. Level
 // labels with heights, program fills in the USES colours, core, plant floors and sky lobbies, scale bar, north arrow
 // on a key plan, and the LOD 100 note. Pure string builders, so they can be tested and exported as they are.
-import { coreSide, towerFloors, towerFootprint } from './massing'
+import { coreSide, towerFloors, towerFootprint, blockSpans, towerMasses } from './massing'
 import { fitScale } from './plan'
 import { USES, type Floor, type Tower, type UseId } from './types'
+import { convertText, type LengthUnit } from '../lib/units'
 
 export const SHEET = { w: 594, h: 420 }
 const AREA = { x: 16, y: 16, w: 408, h: 362 }
@@ -13,7 +14,8 @@ const FONT = 'Inter, Segoe UI, Arial, sans-serif'
 const INK = '#1f2328', MUTED = '#6b6f76'
 export const LOD_NOTE = 'LOD 100: schematic space reservation from the massing model, not a design or construction drawing.'
 
-export interface DrawOpts { northDeg: number; projectLabel: string; mode: 'sheet' | 'tight'; date?: string }
+/** `unit`: display unit for labels and the scale bar (lib/units.ts); the geometry is always drawn from metres. */
+export interface DrawOpts { northDeg: number; projectLabel: string; mode: 'sheet' | 'tight'; date?: string; unit?: LengthUnit }
 export interface Drawing { svg: string; title: string; scale: number; levels: number; labelled: number; widthMm: number; heightMm: number }
 
 // ---------------------------------------------------------------- tiny SVG writer
@@ -48,28 +50,35 @@ function defs() {
     + el('pattern', { id: 'core', width: 1.2, height: 1.2, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, el('line', { x1: 0, y1: 0, x2: 0, y2: 1.2, stroke: '#2b2f36', 'stroke-width': 0.35 })))
 }
 
-function scaleBar(x: number, y: number, scale: number): string {
-  const mm = (m: number) => (m * 1000) / scale
-  const steps = [0, 10, 20, 50, 100].filter((v) => mm(v) <= 70)
+/** Scale bar in metres, or in feet with round foot steps when the viewer shows feet. */
+function scaleBar(x: number, y: number, scale: number, unit: LengthUnit = 'm'): string {
+  const ft = unit === 'ft'
+  const mm = (v: number) => ((ft ? v * 0.3048 : v) * 1000) / scale
+  const steps = (ft ? [0, 25, 50, 100, 200, 300] : [0, 10, 20, 50, 100]).filter((v) => mm(v) <= 70)
   let s = ''
   for (let i = 0; i + 1 < steps.length; i++) s += el('rect', { x: x + mm(steps[i]), y, width: mm(steps[i + 1] - steps[i]), height: 1.4, fill: i % 2 ? '#fff' : INK, stroke: INK, 'stroke-width': 0.2 })
   s += steps.map((v) => text(x + mm(v), y + 4.4, String(v), { 'font-size': 2.2, 'text-anchor': 'middle' })).join('')
-  s += text(x + mm(steps[steps.length - 1]) + 3, y + 1.6, 'm', { 'font-size': 2.2 })
+  s += text(x + mm(steps[steps.length - 1]) + 3, y + 1.6, ft ? 'ft' : 'm', { 'font-size': 2.2 })
   return el('g', { 'data-scale-bar': steps[steps.length - 1] }, s)
 }
 
 /** Key plan: podium and tower footprints, a north arrow, and the cut line or the elevated face. */
 function keyPlan(t: Tower, x: number, y: number, size: number, northDeg: number, mark: { kind: 'cut'; a: [number, number]; b: [number, number]; look: [number, number] } | { kind: 'face'; a: [number, number]; b: [number, number]; normal: [number, number] }): string {
   const fp = towerFootprint(t), pf = t.podiumHeight > 0 ? towerFootprint(t, true) : fp
-  const all = [...fp, ...pf]
+  // Stacked blocks: every block's outline (podium blocks tinted), drawn bottom-up.
+  const extra = t.imported || !t.blocks?.length ? [] : towerMasses(t)
+  const all = [...fp, ...pf, ...extra.flatMap((m) => m.ring)]
   const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minY = Math.min(...all.map((p) => p[1])), maxY = Math.max(...all.map((p) => p[1]))
   const k = (size - 14) / Math.max(maxX - minX, maxY - minY, 1)
   const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
   const X = (v: number) => x + size / 2 + (v - cx) * k, Y = (v: number) => y + size / 2 - (v - cy) * k
   const poly = (p: [number, number][], fill: string) => el('polygon', { points: p.map(([a, b]) => `${n(X(a))},${n(Y(b))}`).join(' '), fill, stroke: INK, 'stroke-width': 0.25 })
   let s = el('rect', { x, y, width: size, height: size, fill: 'none', stroke: '#c9ced4', 'stroke-width': 0.2 })
-  if (pf !== fp) s += poly(pf, '#f1e1d5')
-  s += poly(fp, '#dfe6ee')
+  if (extra.length) for (const m of extra) s += poly(m.ring, m.podium ? '#f1e1d5' : '#dfe6ee')
+  else {
+    if (pf !== fp) s += poly(pf, '#f1e1d5')
+    s += poly(fp, '#dfe6ee')
+  }
   if (mark.kind === 'cut') {
     const ext = 6 / k
     const [ax, ay] = mark.a, [bx, by] = mark.b, ux = (bx - ax), uy = (by - ay), L = Math.hypot(ux, uy) || 1
@@ -150,12 +159,25 @@ interface Body {
   podium: Span | null
   core: Span | null
   key: Parameters<typeof keyPlan>[5]
+  /** Stacked blocks: each block's horizontal extent in this view and its height span (bottom-up). */
+  blocks?: { span: Span; z0: number; z1: number; podium: boolean }[]
+}
+
+/** Labels in the viewer's unit (lib/units.ts convertText); paper sizes (data-keep-units) stay in millimetres. */
+function localize(svg: string, unit: LengthUnit | undefined): string {
+  if (!unit || unit === 'm') return svg
+  return svg.replace(/<text([^>]*)>([^<]*)<\/text>/g, (all, attrs: string, body: string) => (attrs.includes('data-keep-units') ? all : `<text${attrs}>${convertText(body, unit)}</text>`))
 }
 
 function draw(t: Tower, body: Body, o: DrawOpts): Drawing {
   const floors = towerFloors(t)
   const H = Math.max(t.height, ...floors.map((f) => f.z1))
-  const spans = [body.tower, ...(body.podium ? [body.podium] : [])]
+  const spans = body.blocks?.length ? body.blocks.map((b) => b.span) : [body.tower, ...(body.podium ? [body.podium] : [])]
+  // The extent a floor is drawn at: the block at its mid-height, else the podium or tower span.
+  const spanFor = (f: { z0: number; z1: number; podium: boolean }): Span => {
+    const m = (f.z0 + f.z1) / 2, b = body.blocks?.find((x) => m >= x.z0 && m < x.z1) ?? body.blocks?.[body.blocks.length - 1]
+    return b ? b.span : f.podium && body.podium ? body.podium : body.tower
+  }
   const u0 = Math.min(...spans.map((s) => s.u0)) - 12, u1 = Math.max(...spans.map((s) => s.u1)) + 12
   const sheet = o.mode === 'sheet'
   const labelCol = 30, dimCol = 16
@@ -172,7 +194,7 @@ function draw(t: Tower, body: Body, o: DrawOpts): Drawing {
   g += el('line', { x1: X(u0), y1: Y(0), x2: X(u1), y2: Y(0), stroke: INK, 'stroke-width': 0.5 })
   const isSection = body.core !== null
   for (const f of floors) {
-    const s = f.podium && body.podium ? body.podium : body.tower
+    const s = spanFor(f)
     const fill = f.use === 'mechanical' ? 'url(#plant)' : f.skyLobby ? '#6cc0b8' : USES[f.use].color
     g += el('g', { 'data-level': f.level, 'data-use': f.use },
       el('rect', { x: X(s.u0), y: Y(f.z1), width: (s.u1 - s.u0) * k, height: (f.z1 - f.z0) * k, fill, 'fill-opacity': f.use === 'mechanical' ? 1 : f.skyLobby ? 0.7 : 0.5 })
@@ -180,8 +202,12 @@ function draw(t: Tower, body: Body, o: DrawOpts): Drawing {
   }
   // Outline and roof.
   const outline = (s: Span, top: number) => el('rect', { x: X(s.u0), y: Y(top), width: (s.u1 - s.u0) * k, height: top * k, fill: 'none', stroke: INK, 'stroke-width': isSection ? 0.5 : 0.35 })
-  if (body.podium && t.podiumHeight > 0) g += outline(body.podium, t.podiumHeight)
-  g += el('rect', { x: X(body.tower.u0), y: Y(t.height), width: (body.tower.u1 - body.tower.u0) * k, height: (t.height - (t.podiumHeight > 0 ? t.podiumHeight : 0)) * k, fill: 'none', stroke: INK, 'stroke-width': isSection ? 0.5 : 0.35 })
+  if (body.blocks?.length) {
+    for (const b of body.blocks) g += el('rect', { x: X(b.span.u0), y: Y(b.z1), width: (b.span.u1 - b.span.u0) * k, height: (b.z1 - b.z0) * k, fill: 'none', stroke: INK, 'stroke-width': isSection ? 0.5 : 0.35, 'data-block': '' })
+  } else {
+    if (body.podium && t.podiumHeight > 0) g += outline(body.podium, t.podiumHeight)
+    g += el('rect', { x: X(body.tower.u0), y: Y(t.height), width: (body.tower.u1 - body.tower.u0) * k, height: (t.height - (t.podiumHeight > 0 ? t.podiumHeight : 0)) * k, fill: 'none', stroke: INK, 'stroke-width': isSection ? 0.5 : 0.35 })
+  }
   // Section: the core walls (cut) and the core interior, rising 4 m above the roof for the lift overrun (team).
   if (body.core) {
     const c = body.core, wall = Math.max(0.4 * k, 0.6), top = t.height + 4
@@ -192,7 +218,7 @@ function draw(t: Tower, body: Body, o: DrawOpts): Drawing {
     g += text((X(c.u0) + X(c.u1)) / 2, Y(top) - 1.2, 'core', { 'font-size': 2.1, fill: MUTED, 'text-anchor': 'middle' })
   }
   // Sky lobby labels inside the tower.
-  for (const f of floors.filter((x) => x.skyLobby)) g += text(X(body.tower.u0) + 1.2, Y(f.z1) + 2.2, t.skyRoom?.level === f.level ? 'Public sky room' : 'Sky lobby', { 'font-size': 2, fill: '#0f5a53', 'font-weight': 700 })
+  for (const f of floors.filter((x) => x.skyLobby)) g += text(X(spanFor(f).u0) + 1.2, Y(f.z1) + 2.2, t.skyRoom?.level === f.level ? 'Public sky room' : 'Sky lobby', { 'font-size': 2, fill: '#0f5a53', 'font-weight': 700 })
   // Height dimension on the left.
   const dx = X(Math.min(...spans.map((s) => s.u0))) - 8
   g += el('line', { x1: dx, y1: Y(0), x2: dx, y2: Y(t.height), stroke: INK, 'stroke-width': 0.2 })
@@ -212,10 +238,10 @@ function draw(t: Tower, body: Body, o: DrawOpts): Drawing {
     // Tight: drawing, labels, scale bar, a one-line title and the LOD note; the view box hugs them.
     const w = lx + 26, h = bottom + 16
     const head = text(dimCol, 6, `${body.title.toUpperCase()} · ${body.subtitle}`, { 'font-size': 3, 'font-weight': 700 })
-    const foot = scaleBar(dimCol, bottom + 3, scale) + text(dimCol, bottom + 12, `Scale bar in metres (drawn at 1:${scale}). ${LOD_NOTE}`, { 'font-size': 2, fill: MUTED, 'data-lod': '100' })
+    const foot = scaleBar(dimCol, bottom + 3, scale, o.unit) + text(dimCol, bottom + 12, `Scale bar in ${o.unit === 'ft' ? 'feet' : 'metres'} (drawn at 1:${scale}). ${LOD_NOTE}`, { 'font-size': 2, fill: MUTED, 'data-lod': '100' })
     const svg = el('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${n(w)} ${n(h)}`, width: `${n(w)}mm`, height: `${n(h)}mm`, 'font-family': FONT, 'data-drawing': body.title, 'data-scale': scale },
       defs() + el('rect', { x: 0, y: 0, width: w, height: h, fill: '#ffffff' }) + head + g + foot)
-    return { svg, title: body.title, scale, levels: floors.length, labelled: lab.length, widthMm: w, heightMm: h }
+    return { svg: localize(svg, o.unit), title: body.title, scale, levels: floors.length, labelled: lab.length, widthMm: w, heightMm: h }
   }
   let side = text(COL.x, 24, body.title.toUpperCase(), { 'font-size': 6, 'font-weight': 700 }) + text(COL.x, 31, body.subtitle, { 'font-size': 3.2 })
   side += text(COL.x, 37, `${t.name} · ${t.height.toFixed(1)} m · ${floors.length} levels`, { 'font-size': 2.6, fill: MUTED })
@@ -223,10 +249,27 @@ function draw(t: Tower, body: Body, o: DrawOpts): Drawing {
   side += text(COL.x, 110, o.northDeg ? `True north ${o.northDeg}° from the model grid` : 'Grid north', { 'font-size': 2.3, fill: MUTED })
   side += legend(COL.x, 120, uses, hasPlant, hasSky, isSection)
   side += titleBlock(body.title, scale, o)
-  const below = el('g', { transform: `translate(${n(AREA.x + dimCol)} ${n(SHEET.h - 30)})` }, scaleBar(0, 0, scale) + text(0, 10, `1:${scale} at A2 (594 × 420 mm)`, { 'font-size': 2.8, 'font-weight': 700 }))
+  const below = el('g', { transform: `translate(${n(AREA.x + dimCol)} ${n(SHEET.h - 30)})` }, scaleBar(0, 0, scale, o.unit) + text(0, 10, `1:${scale} at A2 (594 × 420 mm)`, { 'data-keep-units': 'paper', 'font-size': 2.8, 'font-weight': 700 }))
   const svg = el('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${SHEET.w} ${SHEET.h}`, width: '594mm', height: '420mm', 'font-family': FONT, 'data-drawing': body.title, 'data-scale': scale },
     defs() + el('rect', { x: 0, y: 0, width: SHEET.w, height: SHEET.h, fill: '#ffffff' }) + el('rect', { x: 8, y: 8, width: SHEET.w - 16, height: SHEET.h - 16, fill: 'none', stroke: INK, 'stroke-width': 0.5 }) + g + below + side)
-  return { svg, title: body.title, scale, levels: floors.length, labelled: lab.length, widthMm: SHEET.w, heightMm: SHEET.h }
+  return { svg: localize(svg, o.unit), title: body.title, scale, levels: floors.length, labelled: lab.length, widthMm: SHEET.w, heightMm: SHEET.h }
+}
+
+/** Where a line through `o` along unit `u` crosses a convex ring, as distances along u; the ring's projection if it misses. */
+function chord(ring: [number, number][], o: [number, number], u: [number, number]): Span {
+  const n: [number, number] = [-u[1], u[0]]
+  const ts: number[] = []
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length]
+    const da = (a[0] - o[0]) * n[0] + (a[1] - o[1]) * n[1], db = (b[0] - o[0]) * n[0] + (b[1] - o[1]) * n[1]
+    if ((da <= 0 && db >= 0) || (da >= 0 && db <= 0)) {
+      const k = da === db ? 0 : da / (da - db)
+      const x = a[0] + k * (b[0] - a[0]), y = a[1] + k * (b[1] - a[1])
+      ts.push((x - o[0]) * u[0] + (y - o[1]) * u[1])
+    }
+  }
+  const v = ts.length >= 2 ? ts : ring.map((p) => (p[0] - o[0]) * u[0] + (p[1] - o[1]) * u[1])
+  return { u0: Math.min(...v), u1: Math.max(...v) }
 }
 
 /** Section A–A: a cut through the tower centre along its width, looking across its depth. */
@@ -234,9 +277,11 @@ export function sectionDrawing(t: Tower, o: DrawOpts): Drawing {
   const r = (t.rotation * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r)
   const along: [number, number] = [c, s], look: [number, number] = [-s, c]
   const half = t.width / 2, ph = t.podiumHeight > 0 ? t.podiumWidth / 2 : 0, cs = coreSide(t) / 2
+  // Stacked blocks: where the cut line (through the tower centre, along its width) crosses each block's plate.
+  const blocks = t.imported || !t.blocks?.length ? undefined : blockSpans(t).map((b) => ({ span: chord(b.ring, [t.x, t.y], along), z0: b.z0, z1: b.z1, podium: b.podium }))
   return draw(t, {
     title: 'Section A–A', subtitle: `Looking ${dirName(bearing(look[0], look[1], o.northDeg))}, through the core`,
-    tower: { u0: -half, u1: half }, podium: ph ? { u0: -ph, u1: ph } : null, core: { u0: -cs, u1: cs },
+    tower: { u0: -half, u1: half }, podium: ph ? { u0: -ph, u1: ph } : null, core: { u0: -cs, u1: cs }, blocks,
     key: { kind: 'cut', a: [t.x - along[0] * half, t.y - along[1] * half], b: [t.x + along[0] * half, t.y + along[1] * half], look },
   }, o)
 }
@@ -249,6 +294,7 @@ export function elevationDrawing(t: Tower, face: Face, o: DrawOpts): Drawing {
   return draw(t, {
     title: face.name, subtitle: `Face looking ${dirName(face.bearing)}, seen from outside`,
     tower: span(towerFootprint(t)), podium: t.podiumHeight > 0 ? span(towerFootprint(t, true)) : null, core: null,
+    blocks: t.imported || !t.blocks?.length ? undefined : blockSpans(t).map((b) => ({ span: span(b.ring), z0: b.z0, z1: b.z1, podium: b.podium })),
     key: { kind: 'face', a: face.a, b: face.b, normal: face.normal },
   }, o)
 }

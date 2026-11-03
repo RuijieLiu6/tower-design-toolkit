@@ -14,6 +14,13 @@ export function toObj(scene: ExportScene, mtlName = 'model.mtl'): { obj: string;
     for (let i = 0; i < s.indices.length; i += 3) lines.push(`f ${s.indices[i] + base} ${s.indices[i + 1] + base} ${s.indices[i + 2] + base}`)
     base += s.positions.length / 3
   }
+  for (const c of scene.curves ?? []) {
+    lines.push(`o ${slug(c.name)}`, `usemtl ${slug(c.layer)}`)
+    for (let i = 0; i < c.points.length; i += 3) lines.push(`v ${c.points[i].toFixed(4)} ${c.points[i + 2].toFixed(4)} ${(-c.points[i + 1]).toFixed(4)}`)
+    const n = c.points.length / 3
+    lines.push(`l ${Array.from({ length: n }, (_, i) => base + i).concat(c.closed ? [base] : []).join(' ')}`)
+    base += n
+  }
   const mtl = ['# Tower Design Toolkit materials: one per layer']
   for (const l of scene.layers) mtl.push(`newmtl ${slug(l.path)}`, `Kd ${(l.color[0] / 255).toFixed(4)} ${(l.color[1] / 255).toFixed(4)} ${(l.color[2] / 255).toFixed(4)}`, 'Ka 0 0 0', 'd 1', '')
   return { obj: lines.join('\n') + '\n', mtl: mtl.join('\n') }
@@ -37,6 +44,16 @@ export function to3dm(rh: any, scene: ExportScene, o: { northDeg: number; lat: n
     a.layerIndex = layerIndex.get(s.layer) ?? 0
     for (const [k, v] of Object.entries(s.strings)) a.setUserString(k, v)
     doc.objects().add(m, a)
+  }
+  for (const c of scene.curves ?? []) {
+    const pts: number[][] = []
+    for (let i = 0; i < c.points.length; i += 3) pts.push([c.points[i], c.points[i + 1], c.points[i + 2]])
+    if (c.closed && pts.length) pts.push(pts[0])
+    const a = new rh.ObjectAttributes()
+    a.name = c.name
+    a.layerIndex = layerIndex.get(c.layer) ?? 0
+    for (const [k, v] of Object.entries(c.strings)) a.setUserString(k, v)
+    doc.objects().add(new rh.PolylineCurve(pts), a)
   }
   for (const [k, v] of Object.entries(scene.notes)) doc.strings().set(k, v)
   // Model north on the Earth anchor point (Rhino reads north from it once a location is set).

@@ -185,6 +185,21 @@ Each packet in `research/modules/` lists 8 modules with: inputs, parameters with
 | 3 Dec | User session 3 | Near-final tool |
 | **10 Dec** | Final review | Live tool, updated diagrams, evaluation cases, user-study log, build log |
 
+## 7a. Phase 1 plan: close before 13 Nov (Ruijie, 27 Oct)
+
+| # | Ruijie's item | Starting point in the app (27 Oct) | Status |
+|---|---|---|---|
+| 1 | A workable function for adding nodes | Customize canvas (drag nodes in); "Build your own node" (copy skill → external AI → import JSON); My nodes; sandboxed code nodes. **No in-app authoring:** a node can't be made without an outside AI | 🟨 |
+| 2 | Adding-nodes UX: identity acknowledged, intuitive workflows, immersive design experience | Packages carry an author name only; no profiles, credit or attribution trail in the canvas | 🟨 |
+| 2.1 | Community forum | Registry browser + PR helper (local); comments are a giscus stub; no forum | ⬜ |
+| 3 | Refine and test the "Build your own node" prompt | Skill + paste-in prompt exist; one ChatGPT-made test package in `src/lib/testdata/`; no systematic test across models | 🟨 |
+| 4 | Turn GitHub design tools into nodes (a prompt that guides the user's AI agent) | PVV and Vista were ported by hand; no reusable tool-to-node guide | ⬜ |
+| 5 | Core tool functions for completing the competition, built and refined one by one | 29 nodes, breadth first; Present boards and checks exist; no per-tool UX pass against the VTC deliverables | 🟨 |
+| 6 | Built-in AI bot / agent to help users navigate | None (needs an API-key and privacy decision) | ⬜ |
+| 7 | Imperial / metric settings | **Built 3 Nov:** m / ft / mm in the top bar and the user guide (remembered per browser). Decimal feet; areas in ft² in feet mode, m² otherwise. Results, rule cards, view-cone and height-limit readouts, number inputs, plan and drawing labels and scale bars (feet bar in feet mode), board evidence, Status page and Options convert; calculations, saved files, the trace and exports stay in metres (`lib/units.ts`, method from Vista `units.js`). Not yet: 3D sprite labels in the viewport, the Customize canvas lines, the tower gizmo's typed x/y | ✅ |
+| 8 | Full internal run-through of entering the competition | Not done (could also serve as the first entry in the user-study log, but real users are still required) | ⬜ |
+| 9 | Role on first open (VTC student / Vancouver practitioner) loads a preset workflow; the left panel's evaluation toggles become **design tools**, each with preliminary controls (Ruijie, 27 Oct) | **Stage 1 done 27 Oct:** workflow study `research/workflows/WORKFLOW_STUDY.md` (both workflows as step tables, comparison, all 29 nodes placed in 15 design tools plus 7 new ones, a preset per role, 9 open questions). **3 Nov:** Vista's stepped flow and study strip (TODAY item 8) added as §8a, with 4 more questions. **Stage 2 (interface) waits for Ruijie's review of the study** | 🟨 |
+
 ## 8. Needed from Ruijie
 
 1. Answer **Y** in the GitHub sign-in tab and finish the browser step.
@@ -193,6 +208,7 @@ Each packet in `research/modules/` lists 8 modules with: inputs, parameters with
 4. ~~Approval for dataset downloads~~ (approved 22 Oct). Still needed: download the City LiDAR 2022 tiles `490000_5459000`, `491000_5459000`, `490000_5458000`, `491000_5458000` in a browser into `context-data/raw/lidar-2022/`.
 5. Permissions: Xun (GenEnv repos have **no licence**, so all rights are reserved), Sinnie, Willem.
 6. Write the 150-word proposal (skeleton in `mid-review/`).
+7. Review and approve the workflow study (`research/workflows/WORKFLOW_STUDY.md`, open questions in §9) before the role screen and design-tool panel are built.
 
 ## 9. Key risks
 

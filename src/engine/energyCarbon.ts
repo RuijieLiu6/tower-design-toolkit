@@ -4,8 +4,33 @@
 // gate); every intensity used to *estimate* the design is a team assumption or unverified, and says so.
 import { solarPosition } from './solar'
 import { sunVector } from './sun'
-import { towerFloors, towerFootprint } from './massing'
+import { towerFloors, towerFootprint, towerMasses } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower, UseId } from './types'
+
+/** A tower as plan prisms: each stacked block; an imported mass as its hull below and above the podium (as before). */
+function partsOf(t: Tower): { ring: [number, number][]; z0: number; z1: number; podium: boolean }[] {
+  if (!t.imported) return towerMasses(t)
+  const fp = towerFootprint(t), ph = t.podiumHeight > 0 ? t.podiumHeight : 0
+  return ph > 0 ? [{ ring: fp, z0: 0, z1: ph, podium: true }, { ring: fp, z0: ph, z1: t.height, podium: false }] : [{ ring: fp, z0: 0, z1: t.height, podium: false }]
+}
+
+/** Area shared by two convex plan polygons (Sutherland–Hodgman clip of a by b; either winding). */
+export function overlapArea(a: [number, number][], b: [number, number][]): number {
+  const signed = (r: [number, number][]) => r.reduce((s, [x, y], i) => { const [x2, y2] = r[(i + 1) % r.length]; return s + x * y2 - x2 * y }, 0) / 2
+  const w = Math.sign(signed(b)) || 1
+  let out = a
+  for (let i = 0; i < b.length && out.length; i++) {
+    const p = b[i], q = b[(i + 1) % b.length], input = out
+    const side = (v: [number, number]) => w * ((q[0] - p[0]) * (v[1] - p[1]) - (q[1] - p[1]) * (v[0] - p[0]))
+    out = []
+    for (let j = 0; j < input.length; j++) {
+      const s0 = input[j], e = input[(j + 1) % input.length], ds = side(s0), de = side(e)
+      if (ds >= 0) out.push(s0)
+      if ((ds >= 0) !== (de >= 0)) { const k = ds / (ds - de); out.push([s0[0] + k * (e[0] - s0[0]), s0[1] + k * (e[1] - s0[1])]) }
+    }
+  }
+  return out.length >= 3 ? Math.abs(signed(out)) : 0
+}
 
 // ---------------------------------------------------------------- sources (as opened in research P04 r2)
 const HBP: Source = { label: 'Higher Buildings Policy (City of Vancouver, amended 31 Mar 2026)', page: 's2.2', url: 'https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf' }
@@ -123,8 +148,7 @@ export function areas(towers: Tower[]): Areas {
     const floors = towerFloors(t)
     for (const f of floors) byUse[f.use] += f.area
     storeys = Math.max(storeys, floors.length)
-    const podiumH = t.podiumHeight > 0 ? t.podiumHeight : 0
-    wall += perimeter(towerFootprint(t)) * (t.height - podiumH) + (podiumH > 0 ? perimeter(towerFootprint(t, true)) * podiumH : 0)
+    wall += partsOf(t).reduce((s, m) => s + perimeter(m.ring) * (m.z1 - m.z0), 0)
   }
   const mfa = Object.values(byUse).reduce((a, b) => a + b, 0)
   return { byUse, mfa, storeys, wall, vfar: mfa ? wall / mfa : 0 }
@@ -288,7 +312,8 @@ export function pvPotential(towers: Tower[], input: EnergyInput, ctx: { northDeg
   const [sx, sy] = southVec(ctx.northDeg)
   const roofN: [number, number, number] = [sx * Math.sin((tiltRoof * Math.PI) / 180), sy * Math.sin((tiltRoof * Math.PI) / 180), Math.cos((tiltRoof * Math.PI) / 180)]
   const ref = poaAt([[0, 0, 1e5]], roofN, tiltRoof, sun, []).poa
-  const own: Obstacle[] = towers.flatMap((t) => [{ footprint: towerFootprint(t), height: t.height }, ...(t.podiumHeight > 0 ? [{ footprint: towerFootprint(t, true), height: t.podiumHeight }] : [])])
+  // Each stacked block shades from the ground to its top (a cantilevered block shades a little too much: conservative).
+  const own: Obstacle[] = towers.flatMap((t) => partsOf(t).map((m) => ({ footprint: m.ring, height: m.z1 })))
   const surfaces: PvSurface[] = []
   const add = (s: Omit<PvSurface, 'yieldKwhKwp' | 'kwh' | 'kwp'>, kwpPerM2: number, on: boolean) => {
     const kwp = on ? s.area * s.usable * kwpPerM2 : 0
@@ -296,42 +321,61 @@ export function pvPotential(towers: Tower[], input: EnergyInput, ctx: { northDeg
     surfaces.push({ ...s, kwp, yieldKwhKwp: y, kwh: kwp * y })
   }
   for (const t of towers) {
-    const fp = towerFootprint(t)
     // Own boxes can stay in the list: points sit above their own roof or outside a convex face, so they never self-hit.
     const others = prepObstacles([...ctx.obstacles, ...own])
-    // Roof: 3 × 3 points inside the footprint at roof height (+0.5 m).
-    const cx = fp.reduce((s, p) => s + p[0], 0) / fp.length, cy = fp.reduce((s, p) => s + p[1], 0) / fp.length
-    const roofPts = fp.flatMap(([x, y]) => [[cx + (x - cx) * 0.6, cy + (y - cy) * 0.6, t.height + 0.5] as [number, number, number]]).concat([[cx, cy, t.height + 0.5]])
-    const r = poaAt(roofPts, roofN, tiltRoof, sun, others)
-    add({ id: `${t.id}-roof`, kind: 'roof', towerId: t.id, label: `${t.name}: roof`, area: polyArea(fp), usable: input.pv.roofUsable, poa: r.poa, shaded: r.shaded, azimuth: null, quad: fp.map(([x, y]) => [x, y, t.height + 0.3]) }, input.pv.kwpRoof, input.pv.roof)
-    if (t.podiumHeight > 0) {
-      const pf = towerFootprint(t, true)
-      const pcx = pf.reduce((s, p) => s + p[0], 0) / pf.length, pcy = pf.reduce((s, p) => s + p[1], 0) / pf.length
-      const pts = pf.map(([x, y]) => [pcx + (x - pcx) * 0.8, pcy + (y - pcy) * 0.8, t.podiumHeight + 0.5] as [number, number, number])
-      const pr = poaAt(pts, roofN, tiltRoof, sun, others)
-      add({ id: `${t.id}-podium`, kind: 'podium', towerId: t.id, label: `${t.name}: podium roof`, area: Math.max(0, polyArea(pf) - polyArea(fp)), usable: input.pv.podiumUsable, poa: pr.poa, shaded: pr.shaded, azimuth: null, quad: pf.map(([x, y]) => [x, y, t.podiumHeight + 0.3]) }, input.pv.kwpRoof, input.pv.podium)
-    }
-    // Facades: each footprint edge, in height bands above the podium.
-    const ccw = fp.reduce((s, [x, y], i) => { const [x2, y2] = fp[(i + 1) % fp.length]; return s + x * y2 - x2 * y }, 0) > 0
-    const z0 = t.podiumHeight > 0 ? t.podiumHeight : 0
-    const bands = Math.max(1, Math.min(12, Math.round((t.height - z0) / 25)))
-    const bh = (t.height - z0) / bands
-    for (let i = 0; i < fp.length; i++) {
-      const [ax, ay] = fp[i], [bx, by] = fp[(i + 1) % fp.length]
-      const len = Math.hypot(bx - ax, by - ay)
-      if (len < 1) continue
-      let nx = (by - ay) / len, ny = -(bx - ax) / len
-      if (!ccw) { nx = -nx; ny = -ny }
-      const az = ((Math.atan2(nx, ny) * 180) / Math.PI - ctx.northDeg + 720) % 360
-      const dirName = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(az / 45) % 8]
-      for (let b = 0; b < bands; b++) {
-        const za = z0 + b * bh, zb = za + bh, zc = (za + zb) / 2
-        const pts = [0.15, 0.5, 0.85].map((u) => [ax + (bx - ax) * u + nx * 0.2, ay + (by - ay) * u + ny * 0.2, zc] as [number, number, number])
-        const res = poaAt(pts, [nx, ny, 0], 90, sun, others)
-        add({ id: `${t.id}-f${i}-b${b}`, kind: 'facade', towerId: t.id, label: `${t.name}: ${dirName} face, ${Math.round(za)}–${Math.round(zb)} m`, area: len * bh, usable: (input.pv.facadeUsable * (1 - input.wwr)) / 0.6 /* preset is for a 40% WWR facade */, poa: res.poa, shaded: res.shaded, azimuth: az,
-          quad: [[ax + nx * 0.3, ay + ny * 0.3, za], [bx + nx * 0.3, by + ny * 0.3, za], [bx + nx * 0.3, by + ny * 0.3, zb], [ax + nx * 0.3, ay + ny * 0.3, zb]] }, input.pv.kwpFacade, input.pv.facade)
+    const parts = partsOf(t)
+    const roofs: Omit<PvSurface, 'yieldKwhKwp' | 'kwh' | 'kwp'>[] = [], podiums: typeof roofs = [], setbacks: typeof roofs = []
+    const podiumCount = parts.filter((q) => q.podium).length
+    parts.forEach((m, k) => {
+      const above = parts[k + 1]
+      const ring = m.ring
+      const exposed = Math.max(0, polyArea(ring) - (above ? overlapArea(ring, above.ring) : 0))
+      const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length, cy = ring.reduce((s, p) => s + p[1], 0) / ring.length
+      const quad = ring.map(([x, y]) => [x, y, m.z1 + 0.3] as [number, number, number])
+      if (!above) {
+        // Roof: 3 × 3 points inside the footprint at roof height (+0.5 m).
+        const pts = ring.flatMap(([x, y]) => [[cx + (x - cx) * 0.6, cy + (y - cy) * 0.6, m.z1 + 0.5] as [number, number, number]]).concat([[cx, cy, m.z1 + 0.5]])
+        const r = poaAt(pts, roofN, tiltRoof, sun, others)
+        roofs.push({ id: `${t.id}-roof`, kind: 'roof', towerId: t.id, label: `${t.name}: roof`, area: exposed, usable: input.pv.roofUsable, poa: r.poa, shaded: r.shaded, azimuth: null, quad })
+        return
       }
-    }
+      const pts = ring.map(([x, y]) => [cx + (x - cx) * 0.8, cy + (y - cy) * 0.8, m.z1 + 0.5] as [number, number, number])
+      if (m.podium) {
+        const pr = poaAt(pts, roofN, tiltRoof, sun, others)
+        podiums.push({ id: podiumCount > 1 ? `${t.id}-podium-${k}` : `${t.id}-podium`, kind: 'podium', towerId: t.id, label: `${t.name}: podium roof${podiumCount > 1 ? ` at ${Math.round(m.z1)} m` : ''}`, area: exposed, usable: input.pv.podiumUsable, poa: pr.poa, shaded: pr.shaded, azimuth: null, quad })
+      } else if (exposed > 1) {
+        // A setback terrace between stacked blocks counts as roof.
+        const sr = poaAt(pts, roofN, tiltRoof, sun, others)
+        setbacks.push({ id: `${t.id}-roof-${k}`, kind: 'roof', towerId: t.id, label: `${t.name}: setback roof at ${Math.round(m.z1)} m`, area: exposed, usable: input.pv.roofUsable, poa: sr.poa, shaded: sr.shaded, azimuth: null, quad })
+      }
+    })
+    for (const r of roofs) add(r, input.pv.kwpRoof, input.pv.roof)
+    for (const r of podiums) add(r, input.pv.kwpRoof, input.pv.podium)
+    for (const r of setbacks) add(r, input.pv.kwpRoof, input.pv.roof)
+    // Facades: each edge of each block above the podium, in height bands.
+    parts.filter((q) => !q.podium).forEach((m, j) => {
+      const fp = m.ring
+      const ccw = fp.reduce((s, [x, y], i) => { const [x2, y2] = fp[(i + 1) % fp.length]; return s + x * y2 - x2 * y }, 0) > 0
+      const z0 = m.z0
+      const bands = Math.max(1, Math.min(12, Math.round((m.z1 - z0) / 25)))
+      const bh = (m.z1 - z0) / bands
+      for (let i = 0; i < fp.length; i++) {
+        const [ax, ay] = fp[i], [bx, by] = fp[(i + 1) % fp.length]
+        const len = Math.hypot(bx - ax, by - ay)
+        if (len < 1) continue
+        let nx = (by - ay) / len, ny = -(bx - ax) / len
+        if (!ccw) { nx = -nx; ny = -ny }
+        const az = ((Math.atan2(nx, ny) * 180) / Math.PI - ctx.northDeg + 720) % 360
+        const dirName = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(az / 45) % 8]
+        for (let b = 0; b < bands; b++) {
+          const za = z0 + b * bh, zb = za + bh, zc = (za + zb) / 2
+          const pts = [0.15, 0.5, 0.85].map((u) => [ax + (bx - ax) * u + nx * 0.2, ay + (by - ay) * u + ny * 0.2, zc] as [number, number, number])
+          const res = poaAt(pts, [nx, ny, 0], 90, sun, others)
+          add({ id: j === 0 ? `${t.id}-f${i}-b${b}` : `${t.id}-k${j}-f${i}-b${b}`, kind: 'facade', towerId: t.id, label: `${t.name}: ${dirName} face, ${Math.round(za)}–${Math.round(zb)} m`, area: len * bh, usable: (input.pv.facadeUsable * (1 - input.wwr)) / 0.6 /* preset is for a 40% WWR facade */, poa: res.poa, shaded: res.shaded, azimuth: az,
+            quad: [[ax + nx * 0.3, ay + ny * 0.3, za], [bx + nx * 0.3, by + ny * 0.3, za], [bx + nx * 0.3, by + ny * 0.3, zb], [ax + nx * 0.3, ay + ny * 0.3, zb]] }, input.pv.kwpFacade, input.pv.facade)
+        }
+      }
+    })
   }
   const kwh = surfaces.reduce((s, x) => s + x.kwh, 0), kwp = surfaces.reduce((s, x) => s + x.kwp, 0)
   const yRoof = surfaces.filter((s) => s.kind !== 'facade' && s.kwp > 0), yFac = surfaces.filter((s) => s.kind === 'facade' && s.kwp > 0)
@@ -364,7 +408,7 @@ export function embodied(towers: Tower[], a: Areas, input: EnergyInput, shortlis
   const scm = input.scm === 20 ? 1 : input.scm === 30 ? 0.93 : 0.86 // MH 2023 SCM cuts relative to its 20% baseline (team arithmetic)
   const scmF = 1 - (1 - scm) * sys.concrete
   const fac = (input.facade === 'curtain-wall' ? 1.08 : 1) * (input.triple ? 1.02 : 1)
-  const podiumFoot = towers.reduce((s, t) => s + (t.podiumHeight > 0 ? polyArea(towerFootprint(t, true)) : polyArea(towerFootprint(t))), 0)
+  const podiumFoot = towers.reduce((s, t) => s + polyArea(partsOf(t)[0]?.ring ?? towerFootprint(t)), 0)
   // Parkade: presets include the archetype's 4-level parkade; each level more or less moves 0.30 tCO₂e per m² of parkade floor (team).
   const parkDelta = a.mfa ? ((input.parkadeLevels - 4) * podiumFoot * 300) / a.mfa : 0
   const band = sys.band.map((v, i) => Math.max(0, v * premium[i] * scmF * fac + parkDelta)) as [number, number, number]

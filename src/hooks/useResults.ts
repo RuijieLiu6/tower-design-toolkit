@@ -2,9 +2,9 @@ import { useMemo } from 'react'
 import { egressCheck } from '../engine/egress'
 import { liftCheck } from '../engine/lifts'
 import { frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
-import { towerFootprint } from '../engine/massing'
 import { skyRoomCheck } from '../engine/skyRoom'
-import { checkFootprint, overall } from '../engine/viewCones'
+import { overall } from '../engine/viewCones'
+import { checkTowerCones } from '../engine/towerCones'
 import { fsrSummary, vtcRules } from '../engine/vtcRules'
 import { useVtcNeighbours } from '../lib/vtcNeighbours'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
@@ -26,8 +26,8 @@ export function useResults() {
     const rules = project === 'vtc' ? vtcRules(towers, { fsrTier, transitLink }) : []
     const cones = project === 'city'
       ? towers.map((t) => {
-          const fp = towerFootprint(t).map(([x, y]) => [x + CITY_ORIGIN[0], y + CITY_ORIGIN[1]] as [number, number])
-          const checks = checkFootprint(fp, ground + t.height)
+          // Every stacked block at its own top (engine/towerCones.ts).
+          const checks = checkTowerCones(t, ground, CITY_ORIGIN)
           return { tower: t, checks, overall: overall(checks), topZ: ground + t.height }
         })
       : []
