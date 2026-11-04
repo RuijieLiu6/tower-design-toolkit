@@ -253,3 +253,18 @@ describe('placedTriangles: towers as world triangles for the exact cone check (I
     expect(Math.max(...s.tris.filter((_, i) => i % 3 === 2))).toBeCloseTo(a.tower.imported!.storeys[a.tower.imported!.storeys.length - 1].z1, 6)
   })
 })
+
+describe('placedTriangles on a parametric tower of stacked blocks', () => {
+  it('is one closed prism per block, crown included, so offset and twisted blocks are exact', async () => {
+    const { towerMasses } = await import('../../engine/massing')
+    const t = defaultDesign().towers.vtc[0]
+    const r = placedTriangles(t, undefined, { origin: null, groundElevation: 0 })
+    expect(r.source).toBe('storeys')
+    const masses = towerMasses(t)
+    expect(r.tris.length % 9).toBe(0)
+    expect(Math.max(...r.tris.filter((_, i) => i % 3 === 2))).toBeCloseTo(Math.max(...masses.map((m) => m.z1)), 6)
+    const xs = r.tris.filter((_, i) => i % 3 === 0), ringXs = masses.flatMap((m) => m.ring.map((p) => p[0]))
+    expect(Math.min(...xs)).toBeCloseTo(Math.min(...ringXs), 6)
+    expect(Math.max(...xs)).toBeCloseTo(Math.max(...ringXs), 6)
+  })
+})

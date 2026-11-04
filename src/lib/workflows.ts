@@ -21,6 +21,8 @@ export interface WfNode {
   /** Group this node sits in (its x, y are then relative to the group). */
   parent?: string
   params?: Params
+  /** Switched off on the canvas: the checks after it are blocked, never computed on missing data (P15-M02). */
+  off?: boolean
 }
 export interface WfEdge { id: string; source: string; sourceHandle: string; target: string; targetHandle: string }
 
@@ -89,6 +91,7 @@ export function parseWorkflow(text: string, known?: (ref: string, kind: NodeKind
     if (typeof n.label === 'string') node.label = n.label
     if (isStr(n.parent)) node.parent = n.parent
     if (n.params && typeof n.params === 'object' && !Array.isArray(n.params)) node.params = n.params
+    if (n.off === true) node.off = true
     nodes.push(node)
   })
   if (errors.length) return { ok: false, errors }

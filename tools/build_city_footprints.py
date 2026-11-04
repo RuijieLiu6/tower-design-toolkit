@@ -138,6 +138,8 @@ src_sha = hashlib.sha256(open(SRC, "rb").read()).hexdigest()
 entry = {
     "id": "footprints",
     "title": "Building footprints (downtown)",
+    # Loaded only for the City comparison model since Vista's model became the default (3 Nov).
+    "lazy": True,
     "file": OUT_NAME,
     "format": "TSF1 (varint deltas, decimetres; layout in tools/build_city_footprints.py)",
     "bytes": len(buf),

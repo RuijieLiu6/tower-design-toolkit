@@ -6,9 +6,10 @@ import type { Tower } from '../engine/types'
 import { useTrips } from '../hooks/useTrips'
 import { useStore } from '../store'
 import { FlagChip, StateChip } from './ui'
+import { useShallow } from 'zustand/react/shallow'
 
 export default function LiftStrategy({ t }: { t: Tower }) {
-  const { liftPresets, egressPresets } = useStore()
+  const { liftPresets, egressPresets } = useStore(useShallow((s) => ({ liftPresets: s.liftPresets, egressPresets: s.egressPresets })))
   const s = useMemo(() => liftStrategies(t, liftPresets, egressPresets), [t, liftPresets, egressPresets])
   const trips = useTrips()
   const cell = 'px-1 text-right tabular-nums'

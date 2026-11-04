@@ -11,8 +11,10 @@ export interface CityBuilding { ring: Pt[]; ground: number; roof: number }
 
 /** What the worker hands the job for the Real Vancouver project (absolute CGVD28 heights, local frame). */
 export interface CityInput {
-  /** Footprints with a LiDAR ground and roof (P90) height. */
+  /** Footprints with a ground and roof height (City model: LiDAR P90; Vista's model: OSM heights on the City ground). */
   buildings: CityBuilding[]
+  /** Which heights those are; absent = measured (City LiDAR 2022 and 2009). */
+  heights?: { label: string; estimated: boolean }
   /** Centroids of footprints whose height is unknown. */
   unknown: Pt[]
   /** Detailed City ground first, followed by 30 m MRDEM fallback; null when unavailable. */

@@ -2,15 +2,18 @@
 // vertical axis with the gizmo (components/TowerGizmo.tsx), "Place on map" (P), the keyboard or typed values
 // (components/TowerToolbar.tsx). Gizmo moves and placements are proposals first (Vista v10.1 "confirm before placing"):
 // a ghost shows the new footprint with its site fit and view-cone overlap (lib/proposalCheck.ts), and only Confirm
-// writes the store, as one undo step. Cancel leaves the tower where it was. The maths here is pure; the edit state is
-// a small store of its own, so the app store only ever receives tower fields through updateTower.
+// writes the store, as one undo step. Cancel leaves the tower where it was. Placements and "Align to lot" (L) line the
+// tower up with the lot under it (lib/lotAlign.ts). The maths here is pure; the edit state is a small store of its
+// own, so the app store only ever receives tower fields through updateTower.
 import { create } from 'zustand'
 import { towerMasses } from '../engine/massing'
 import type { Tower } from '../engine/types'
 import { useStore } from '../store'
 import { snapAngle, snapFootprint, type Pt, type SnapKind } from './edgeSnap'
+import { NEARBY_LOT_M, chooseRotation, footBox, inLot, lotAt, lotFrame, nearestLot, parallelEdges, placeOnLot, type Lots } from './lotAlign'
 import { MERGE_MS, breakStep } from './project/history'
-import { loadCityParcels, snapTargets } from './siteGeometry'
+import { setCityParcels, snapTargets, useSiteGeometry } from './siteGeometry'
+import { loadParcelLayer, parcelLabel } from './siteParcels'
 import { unitText } from './units'
 
 /** Plan position (model frame, metres) and rotation (degrees, counter-clockwise as in rectCorners). */
@@ -68,7 +71,15 @@ export const poseOf = (t: Pick<Tower, 'x' | 'y' | 'rotation'>): Pose => ({ x: t.
 // ---------- snapping to the grid, the site and parcels ----------
 
 /** What a move or turn snapped to: shown in the toolbar, and its lines are highlighted in the 3D view. */
-export interface SnapHit { kind: SnapKind | 'grid'; how: 'corner' | 'edge' | 'parallel' | 'step'; segments: [Pt, Pt][] }
+export interface SnapHit { kind: SnapKind | 'grid'; how: 'corner' | 'edge' | 'parallel' | 'step' | 'aligned'; segments: [Pt, Pt][] }
+
+/** What a placement lined the tower up with, said in the toolbar (lib/lotAlign.ts has the rule). */
+export interface AlignInfo {
+  how: 'site' | 'lot' | 'nearby' | 'none' | 'free' | 'loading'
+  text: string
+  /** Inside the lot or site (true), bigger than it or no spot inside (false); null when it doesn't apply. */
+  fits: boolean | null
+}
 
 export interface SnapOptions { project: 'vtc' | 'city'; snap: boolean; free: boolean; step: number; tol: number }
 
@@ -120,8 +131,9 @@ export interface Proposal {
   id: string
   start: Pose
   pose: Pose
-  via: 'gizmo' | 'place'
+  via: 'gizmo' | 'place' | 'align'
   hit: SnapHit | null
+  align?: AlignInfo | null
 }
 
 interface EditState {
@@ -184,7 +196,7 @@ export function toggleMode(mode: 'move' | 'rotate') {
   if (locked()) { say(LOCKED); return }
   const on = !useTowerEdit.getState()[mode]
   useTowerEdit.setState({ [mode]: on })
-  if (on && app().project === 'city') void loadCityParcels()
+  if (on && app().project === 'city') void loadLots()
   say(`${mode === 'move' ? 'Move' : 'Rotate'} ${on ? 'on' : 'off'}`)
 }
 
@@ -230,9 +242,72 @@ function propose(p: Proposal, name: string) {
   say(`${name}: proposed position ${where(p.pose)}. Enter to confirm, Esc to cancel`)
 }
 
+// ---------- lining up with the lot (lib/lotAlign.ts) ----------
+
+let cityLots: Lots | null = null
+let lotsLoading: Promise<void> | null = null
+
+/** The City parcel layer as lots (one fetch, shared with the site tools); it also feeds edge snapping. */
+export function loadLots(): Promise<void> {
+  lotsLoading ??= loadParcelLayer()
+    .then((layer) => {
+      cityLots = { rings: layer.polys.map((p) => p.outer as Pt[]), label: (i) => parcelLabel(layer, i) }
+      setCityParcels(cityLots.rings)
+    })
+    .catch(() => { lotsLoading = null })
+  return lotsLoading
+}
+/** For tests: lots without the fetch. */
+export function setLotsForTest(lots: Lots | null) {
+  cityLots = lots
+  lotsLoading = lots ? Promise.resolve() : null
+  setCityParcels(lots?.rings ?? null)
+}
+
+/** Every number with its unit, so the viewer's unit setting converts both. */
+const size = (w: number, d: number) => `${num(w)} m × ${num(d)} m`
+
 /**
- * "Place on map" click: the clicked point (snapped like a move) becomes the proposal; another click moves it. The
- * tower keeps its rotation.
+ * Where a placement at `click` goes, lined up with what is under it: the study site or competition block, else the
+ * City lot, else the nearest lot lines within 30 m (angle only), else as before (rotation kept, edges and grid).
+ */
+function alignedPlacement(t: Tower, click: Pt, o: SnapOptions): { pose: Pose; hit: SnapHit | null; align: AlignInfo } {
+  const project = app().project
+  const from = poseOf(t)
+  const box = footBox(t), tw = box.x1 - box.x0, td = box.y1 - box.y0
+  const onRing = (ring: Pt[], kind: 'site' | 'parcel', name: string, how: 'site' | 'lot'): { pose: Pose; hit: SnapHit; align: AlignInfo } => {
+    const r = placeOnLot(t, click, ring, o.tol)
+    const lot = lotFrame(ring)
+    const dims = `${size(tw, td)} on ${size(2 * lot.hu, 2 * lot.hv)}`
+    const tail = r.spans ? (how === 'lot' ? `; the tower spans more than one lot (${dims})` : `; the tower is bigger than ${name} (${dims})`)
+      : r.fits ? '' : '; no spot inside this irregular outline fits the tower'
+    return { pose: r.pose, hit: { kind, how: 'aligned', segments: r.segments }, align: { how, text: `Aligned to ${name}${tail}`, fits: r.fits } }
+  }
+  const site = useSiteGeometry.getState().site[project]
+  if (site && inLot(click, site.ring)) return onRing(site.ring, 'site', project === 'vtc' ? 'the competition block' : `the study site (${site.label})`, 'site')
+  if (project === 'city' && !cityLots) {
+    const m = moveSnapped(t, from, { x: click[0], y: click[1] }, 'xy', o)
+    return { ...m, align: { how: 'loading', text: 'Lot lines are still loading: placed without aligning', fits: null } }
+  }
+  const lots: Lots | null = project === 'city' ? cityLots : site ? { rings: [site.ring], label: () => 'the competition block' } : null
+  const i = lots && project === 'city' ? lotAt(lots, click) : null
+  if (lots && i !== null) return onRing(lots.rings[i], 'parcel', `the lot lines (lot at ${lots.label(i)})`, 'lot')
+  const near = lots ? nearestLot(lots, click, NEARBY_LOT_M) : null
+  if (lots && near) {
+    // A street or water: the nearest lot lines turn the tower; it stays where it was clicked (edges and grid as usual).
+    const ring = lots.rings[near.index]
+    const rotation = chooseRotation(lotFrame(ring), box, t.rotation)
+    const m = moveSnapped({ ...t, rotation }, { ...from, rotation }, { x: click[0], y: click[1] }, 'xy', o)
+    const what = project === 'city' ? `the lot lines ${num(near.distance)} m away (lot at ${lots.label(near.index)})` : `the competition block ${num(near.distance)} m away`
+    return { pose: { ...m.pose, rotation }, hit: { kind: project === 'city' ? 'parcel' : 'site', how: 'aligned', segments: parallelEdges(ring, rotation) }, align: { how: 'nearby', text: `Nothing under the click: turned to ${what}`, fits: null } }
+  }
+  const m = moveSnapped(t, from, { x: click[0], y: click[1] }, 'xy', o)
+  return { ...m, align: { how: 'none', text: `No lot lines within ${NEARBY_LOT_M} m: rotation kept`, fits: null } }
+}
+
+/**
+ * "Place on map" click: the tower lined up with the lot under the click (lib/lotAlign.ts) becomes the proposal;
+ * another click moves it. Shift places it freely, unaligned.
  */
 export function proposePlace(id: string, x: number, y: number): boolean {
   if (locked()) { say(LOCKED); return false }
@@ -240,10 +315,41 @@ export function proposePlace(id: string, x: number, y: number): boolean {
   if (!t) return false
   const cur = useTowerEdit.getState().proposal
   const from = cur?.id === id ? cur.pose : poseOf(t)
-  if (app().project === 'city') void loadCityParcels()
-  const { pose, hit } = moveSnapped(t, from, { x, y }, 'xy', snapOptions())
+  const o = snapOptions()
+  if (app().project === 'city' && !cityLots) {
+    // Not loaded yet: propose now, and line up the same click once the lots arrive (unless the user moved on).
+    void loadLots().then(() => {
+      const p = useTowerEdit.getState().proposal
+      if (cityLots && p?.id === id && p.via === 'place' && p.align?.how === 'loading') proposePlace(id, x, y)
+    })
+  }
+  const r = o.free
+    ? { ...moveSnapped(t, from, { x, y }, 'xy', o), align: { how: 'free', text: 'Placed freely (Shift): not aligned', fits: null } as AlignInfo }
+    : alignedPlacement({ ...t, rotation: from.rotation }, [x, y], o)
   pickTower(id)
-  propose({ id, start: cur?.id === id ? cur.start : poseOf(t), pose, via: 'place', hit }, t.name)
+  propose({ id, start: cur?.id === id ? cur.start : poseOf(t), pose: r.pose, via: 'place', hit: r.hit, align: r.align }, t.name)
+  return true
+}
+
+/**
+ * "Align to lot" (L): the tower, where it stands (or its pending proposal), lined up with the lot under its centre,
+ * as a proposal to confirm. Returns false when it is already aligned or nothing applies.
+ */
+export function alignToLot(id: string): boolean {
+  if (locked()) { say(LOCKED); return false }
+  const t = towerOf(id)
+  if (!t) return false
+  if (app().project === 'city' && !cityLots) {
+    say('Loading the lot lines…')
+    void loadLots().then(() => { if (cityLots) alignToLot(id) })
+    return false
+  }
+  const cur = useTowerEdit.getState().proposal
+  const from = cur?.id === id ? cur.pose : poseOf(t)
+  const r = alignedPlacement({ ...t, ...from }, [from.x, from.y], { ...snapOptions(), free: false })
+  pickTower(id)
+  if (samePose(r.pose, from)) { say(`${t.name}: ${r.align.how === 'none' ? r.align.text : `already lined up. ${r.align.text}`}`); return false }
+  propose({ id, start: cur?.id === id ? cur.start : poseOf(t), pose: r.pose, via: 'align', hit: r.hit, align: r.align }, t.name)
   return true
 }
 
@@ -295,7 +401,7 @@ export function setPose(id: string, patch: Partial<Pose>): boolean {
   const prop = useTowerEdit.getState().proposal
   if (prop?.id === id) {
     if (!Object.keys(p).length || samePose({ ...prop.pose, ...p }, prop.pose)) return false
-    propose({ ...prop, pose: { ...prop.pose, ...p }, hit: null }, t.name)
+    propose({ ...prop, pose: { ...prop.pose, ...p }, hit: null, align: null }, t.name)
     return true
   }
   if (!Object.keys(p).length || samePose({ ...poseOf(t), ...p }, poseOf(t))) return false
@@ -326,7 +432,7 @@ export function nudge(id: string, dx: number, dy: number, dTurn: number, fine = 
   if (dTurn) p.rotation = fine ? from.rotation + dTurn * FINE_TURN : s.snap ? snapTo(from.rotation + dTurn * s.rotateStep, s.rotateStep) : from.rotation + dTurn * s.rotateStep
   const c = clean(p)
   if (!Object.keys(c).length || samePose({ ...from, ...c }, from)) return false
-  if (prop) { propose({ ...prop, pose: { ...from, ...c }, hit: null }, t.name); return true }
+  if (prop) { propose({ ...prop, pose: { ...from, ...c }, hit: null, align: null }, t.name); return true }
   if (now - lastNudge > MERGE_MS) breakStep()
   lastNudge = now
   app().updateTower(id, c)

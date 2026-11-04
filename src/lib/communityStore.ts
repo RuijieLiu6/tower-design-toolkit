@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { useMemo } from 'react'
 import { toNodeDef, type NodePackage } from './nodePackages'
 
-export type BuilderTab = 'build' | 'import'
+export type BuilderTab = 'build' | 'make' | 'import'
 
 interface CommunityState {
   packages: NodePackage[]
@@ -14,6 +14,9 @@ interface CommunityState {
   /** Node builder dialog: which tab is open, and the library search that led there (a starting point for the prompt). */
   dialog: BuilderTab | null
   seed: string
+  /** A package made in the "Make it here" form, waiting for the Import tab to check it (not persisted). */
+  draft: string | null
+  setDraft: (text: string | null) => void
   addPackage: (pkg: NodePackage) => void
   removePackage: (id: string) => void
   setParam: (nodeId: string, paramId: string, value: number | null) => void
@@ -63,6 +66,8 @@ export const useCommunityStore = create<CommunityState>()(persist((set) => ({
     else cur[paramId] = value
     return { params: { ...s.params, [nodeId]: cur } }
   }),
+  draft: null,
+  setDraft: (draft) => set({ draft }),
   openDialog: (dialog, seed = '') => set({ dialog, seed }),
   closeDialog: () => set({ dialog: null }),
 }), {

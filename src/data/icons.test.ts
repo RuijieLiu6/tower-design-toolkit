@@ -1,0 +1,42 @@
+import { describe, expect, it } from 'vitest'
+import { COMMUNITY_ICON_POOL, NODE_ICONS, communityIcons } from './icons'
+import { BUILT_NODES } from './registry'
+
+// The node bar shows icons only (names on hover), so no two nodes may share an icon.
+describe('node icons', () => {
+  it('gives every built node its own icon', () => {
+    const missing = BUILT_NODES.filter((n) => !NODE_ICONS[n.id]).map((n) => n.id)
+    expect(missing, 'add an entry to NODE_ICONS in data/icons.ts').toEqual([])
+    const byIcon = new Map<unknown, string[]>()
+    for (const n of BUILT_NODES) byIcon.set(NODE_ICONS[n.id], [...(byIcon.get(NODE_ICONS[n.id]) ?? []), n.id])
+    expect([...byIcon.values()].filter((ids) => ids.length > 1), 'built nodes sharing an icon').toEqual([])
+  })
+
+  it('has no icon entries for nodes that are not built', () => {
+    const built = new Set(BUILT_NODES.map((n) => n.id))
+    expect(Object.keys(NODE_ICONS).filter((id) => !built.has(id))).toEqual([])
+  })
+
+  it('keeps the community pool unique and apart from the built icons', () => {
+    expect(new Set(COMMUNITY_ICON_POOL).size).toBe(COMMUNITY_ICON_POOL.length)
+    const builtIcons = new Set(Object.values(NODE_ICONS))
+    expect(COMMUNITY_ICON_POOL.filter((i) => builtIcons.has(i))).toEqual([])
+  })
+
+  it('gives every community node a different icon, independent of list order', () => {
+    const ids = COMMUNITY_ICON_POOL.map((_, i) => `community.test-node-${i}`)
+    const a = communityIcons(ids)
+    const b = communityIcons([...ids].reverse())
+    const icons = ids.map((id) => a.get(id))
+    expect(icons.every(Boolean)).toBe(true)
+    expect(new Set(icons).size).toBe(ids.length)
+    expect(ids.every((id) => a.get(id) === b.get(id))).toBe(true)
+    const builtIcons = new Set(Object.values(NODE_ICONS))
+    expect(icons.filter((i) => builtIcons.has(i!))).toEqual([])
+  })
+
+  it('falls back to initials (null) once the pool is used up', () => {
+    const ids = [...COMMUNITY_ICON_POOL.map((_, i) => `community.n${i}`), 'community.one-more']
+    expect([...communityIcons(ids).values()].filter((v) => v === null)).toHaveLength(1)
+  })
+})

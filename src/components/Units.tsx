@@ -6,7 +6,12 @@ import { convertText, LENGTH_UNITS, setUnit, UNITS, useUnits, type LengthUnit } 
 /** An engine's result text with its lengths and areas in the chosen unit. */
 export function U({ children }: { children?: string | null }) {
   const unit = useUnits((s) => s.unit)
-  return <>{children ? convertText(children, unit) : children}</>
+  return <>{children ? keepUnits(convertText(children, unit)) : children}</>
+}
+
+/** A number and its unit never break across lines (UI review, 3 Nov: "93.5 / m" wrapped in the results). Display only. */
+export function keepUnits(text: string): string {
+  return text.replace(/(\d)\s+(m²|ft²|m|ft|mm|km|%|°)(?=$|[\s),.;:/±])/g, '$1 $2')
 }
 
 /** The same conversion as a function, for titles and other attributes. */

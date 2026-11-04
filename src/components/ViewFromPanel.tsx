@@ -11,6 +11,7 @@ import type { RuleResult } from '../engine/types'
 import { eyeZ, useViewFromStore, type Viewpoint } from '../lib/viewFromStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityObstacles } from './CityContext'
+import { rayBuildingsLabel, standableNote } from '../lib/vistaBuildings'
 import { FlagChip, Section, StateChip } from './ui'
 import { U } from './Units'
 
@@ -82,7 +83,7 @@ export default function ViewFromPanel() {
           )}
         </div>
         {v.note && <p role="status" className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">{v.note}</p>}
-        <p className="mt-1.5 text-[10px] text-muted">{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a measured height (LiDAR 2022 in the core, the City's 2009 heights around it); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p>
+        <p className="mt-1.5 text-[10px] text-muted">{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a height ({data ? standableNote(data) : '…'}); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p>
         {vp && (
           <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
             <div className="font-semibold">{vp.label}</div>
@@ -120,7 +121,7 @@ export default function ViewFromPanel() {
         <Section title="What this sightline sees">
           <Skyline rays={rays} bearing={v.bearing} onPick={(b) => v.set({ bearing: b })} />
           <div className="mt-2 grid gap-2">
-            <Card r={mountainRule(now, visibleDirs.length, rays.length, hidden.size)} />
+            <Card r={mountainRule(now, visibleDirs.length, rays.length, hidden.size, data ? rayBuildingsLabel(data) : undefined)} />
             <Card r={{ id: 'vf-cones', label: 'Protected view cones on this sightline', value: crossed.length ? crossed.map((c) => `${c.id} ${c.name}${c.inside ? ' (you stand inside it)' : ` from ${(c.from / 1000).toFixed(1)} km`}`).join('; ') : 'None within 6 km', threshold: `looking ${compass(v.bearing)}, first 6 km`, state: 'unknown', flag: 'verified', source: { label: 'City of Vancouver ViewCone layer (OGL-Vancouver, retrieved 2026-10-21), plan polygons' }, note: 'Plan crossing only: whether the design breaks a cone is the View-cone height check.' }} />
           </div>
         </Section>
@@ -129,7 +130,7 @@ export default function ViewFromPanel() {
   )
 }
 
-function mountainRule(r: Ray, visible: number, total: number, hidden = 0): RuleResult {
+function mountainRule(r: Ray, visible: number, total: number, hidden = 0, buildings = 'measured roofs (LiDAR 2022 P90 in the core, City 2009 heights around it)'): RuleResult {
   const value = !r.far ? `No terrain above ${FAR_MIN} m ${compass(r.bearing)} of here`
     : r.farVisible ? `Visible: the ridge (${Math.round(r.far.height)} m, ${(r.far.distance / 1000).toFixed(1)} km) clears the skyline by ${(r.far.angle - r.near.angle).toFixed(1)}°`
     : `Hidden behind ${r.near.label} ${(r.near.distance / 1000).toFixed(2)} km away (${(r.near.angle - r.far.angle).toFixed(1)}° above the ridge)`
@@ -137,8 +138,8 @@ function mountainRule(r: Ray, visible: number, total: number, hidden = 0): RuleR
     id: 'vf-mountains', label: `North Shore mountains, looking ${compass(r.bearing)}`, value,
     threshold: `terrain ≥ ${FAR_MIN} m above everything nearer · over the full circle: visible in ${visible} of ${total} directions`,
     state: !r.far ? 'unknown' : r.farVisible ? 'pass' : 'warn', flag: 'unverified',
-    source: { label: 'Ray cast over measured roofs (LiDAR 2022 P90 in the core, City 2009 heights around it), the design towers and City ground / MRDEM-30 terrain (CGVD28), curvature d²/2R × (1 − 0.13) (research C02)' },
-    note: `Optimistic: buildings without a LiDAR height (most of downtown until the other tiles are processed) are not obstacles. Trees and bridges are not modelled. "Mountains" means terrain at 200 m or more (team preset).${hidden ? ` ${hidden.toLocaleString()} existing building footprint${hidden === 1 ? '' : 's'} under the design ${hidden === 1 ? 'is' : 'are'} left out (hypothetical removal, team assumption; not evidence of vacancy or redevelopment eligibility).` : ''}`,
+    source: { label: `Ray cast over ${buildings}, the design towers and City ground / MRDEM-30 terrain (CGVD28), curvature d²/2R × (1 − 0.13) (research C02)` },
+    note: `Buildings are the model shown in the Layers dock: heights come from City LiDAR 2022 or 2009 where they cover a building, else from Vista’s OpenStreetMap values (unverified; many are estimates per building type), so a view can be blocked or cleared wrongly there; in the City model, buildings without a measured height are not obstacles (optimistic). Trees and bridges are not modelled. "Mountains" means terrain at 200 m or more (team preset).${hidden ? ` ${hidden.toLocaleString()} existing building footprint${hidden === 1 ? '' : 's'} under the design ${hidden === 1 ? 'is' : 'are'} left out (hypothetical removal, team assumption; not evidence of vacancy or redevelopment eligibility).` : ''}`,
   }
 }
 

@@ -5,14 +5,15 @@ import { towerFloors } from '../engine/massing'
 import { typicalFloor } from '../engine/plan'
 import { USES } from '../engine/types'
 import { useStore, useTowers, type Representation } from '../store'
-import AiRenderSection from './AiRenderSection'
 import DrawingsSection from './drawings/DrawingsSection'
 import BoardsSection from './BoardsSection'
 import { captureHiResShot } from '../lib/hiresCapture'
 import { Section } from './ui'
+import { useShallow } from 'zustand/react/shallow'
+import { useSceneStyle, type SceneStyle } from '../lib/sceneStyle'
 
 export default function PresentPanel() {
-  const { project, set, presentRep, groundElevation, selectedTower, boardView, planLevel, planGrid } = useStore()
+  const { project, set, presentRep, groundElevation, selectedTower, boardView, planLevel, planGrid } = useStore(useShallow((s) => ({ project: s.project, set: s.set, presentRep: s.presentRep, groundElevation: s.groundElevation, selectedTower: s.selectedTower, boardView: s.boardView, planLevel: s.planLevel, planGrid: s.planGrid })))
   const towers = useTowers()
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
 
@@ -27,7 +28,8 @@ export default function PresentPanel() {
   type Preset = { name: string; position: number[]; target: number[]; fov?: number }
   const presets: Preset[] = project === 'vtc' ? [
     { name: 'Aerial', position: [380, -420, 520], target: [0, 0, 80] },
-    { name: 'Street: retail high street', position: [10, -75, 1.6], target: [t?.x ?? 0, t?.y ?? 0, 60], fov: 60 },
+    // On the retail high street (y -64 to -40, between the heritage block and the site); y -75 was inside the heritage block.
+    { name: 'Street: retail high street', position: [10, -52, 1.6], target: [t?.x ?? 0, t?.y ?? 0, 60], fov: 60 },
     { name: 'Skyline from the south (toward QE Park)', position: [south[0] * 3200, south[1] * 3200, 125], target: [0, 0, 150], fov: 28 },
     axo,
   ] : [
@@ -89,6 +91,7 @@ export default function PresentPanel() {
               className={`flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${presentRep === id ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Icon size={13} />{label}</button>
           ))}
         </div>
+        {project === 'city' && <CityStyle />}
         <p className="mt-1.5 text-[10px] text-muted">The model is locked here: go back to Massing or Schematic to change it.</p>
       </Section>
       <Section title="Camera presets">
@@ -107,8 +110,22 @@ export default function PresentPanel() {
         <p className="mt-1 text-[10px] text-muted">The capture is the board frame (A2 landscape, 1.414:1). Shots also collect in the strip on the left. A screen capture is about 1,000–1,500 px: use print size for images that fill a board.</p>
       </Section>
       <DrawingsSection />
-      <AiRenderSection />
       <BoardsSection />
+    </div>
+  )
+}
+
+/** Real Vancouver's style for the board: Plain (pure tints by building type) or Context (Vista's textures). */
+function CityStyle() {
+  const style = useSceneStyle((s) => s.style)
+  const opt = (id: SceneStyle, label: string, hint: string) => (
+    <button key={id} role="radio" aria-checked={style === id} title={hint} onClick={() => useSceneStyle.setState({ style: id })}
+      className={`rounded-md border px-2 py-1.5 text-xs ${style === id ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>{label}</button>
+  )
+  return (
+    <div role="radiogroup" aria-label="Style" className="mt-1.5 grid grid-cols-2 gap-1.5">
+      {opt('plain', 'Plain', 'Pure colours: existing buildings tinted by type')}
+      {opt('context', 'Context', "Vista's textures: facades, paving, asphalt, grass and water")}
     </div>
   )
 }

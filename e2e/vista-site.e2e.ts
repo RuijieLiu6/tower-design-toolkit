@@ -16,10 +16,10 @@ async function openVista(p: Page) {
   await p.getByRole('tab', { name: 'Real Vancouver' }).or(p.getByRole('button', { name: 'Real Vancouver' })).first().click()
   await p.waitForTimeout(4000)
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
-  const row = p.locator('aside').getByText('Vista view studies', { exact: true }).first()
-  await row.click()
-  const sw = p.getByRole('switch', { name: 'Use Vista view studies' })
-  if (await sw.count() && (await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+  // Switching a node on in the bottom bar selects it; one already on is picked in "Show results for".
+  const sw = p.getByRole('switch', { name: 'Use Vista view studies', exact: true })
+  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+  else { await p.getByRole('tab', { name: /Results/ }).click().catch(() => {}); await p.getByLabel('Show results for').selectOption({ label: 'Vista view studies' }) }
   await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
   await p.waitForTimeout(1500)
 }
@@ -60,8 +60,18 @@ test('import a GeoJSON site boundary with its provenance; the envelope section r
   const geo = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: { name: 'Test lot' }, geometry: { type: 'Polygon', coordinates: [[[-123.11553, 49.28197], [-123.11512, 49.28197], [-123.11512, 49.28224], [-123.11553, 49.28224], [-123.11553, 49.28197]]] } }] }
   await page.locator('input[aria-label="Site boundary GeoJSON file"]').setInputFiles({ name: 'lot.geojson', mimeType: 'application/geo+json', buffer: Buffer.from(JSON.stringify(geo)) })
   await page.waitForTimeout(2500)
-  await expect(page.getByText(/Boundary imported: [\d,]+ m²/)).toBeVisible()
+  // The Site step's start panel shows the same status (3 Nov); read the one in the Vista panel this test drives.
+  await expect(page.getByRole('tabpanel', { name: 'Results & evidence' }).getByText(/Boundary imported: [\d,]+ m²/)).toBeVisible()
   await expect(section(page, 'Site boundary')).toContainText('GeoJSON lot.geojson (Test lot), EPSG:4326 → EPSG:26910')
   await expect(section(page, 'Exact geometry check (triangles)')).toContainText(/triangle/)
   await page.screenshot({ path: join(SHOTS, 'imported-site.png') })
+  // The Program design tool's FSR now divides by the study site, says which area, and cites it.
+  const program = page.locator('[data-tool="program"] button[aria-expanded]')
+  if ((await program.getAttribute('aria-expanded')) === 'false') await program.click()
+  await expect(section(page, 'Floor area (all towers, gross)')).toContainText(/Total FSR \(study site [\d,]+ m², (joined City parcels|site boundary)\)/)
+  await page.screenshot({ path: join(SHOTS, 'fsr-study-site.png') })
+  // The site is part of the project now (citySite), so the autosave brings it back after a reload.
+  await page.waitForTimeout(2000)
+  await openVista(page)
+  await expect(section(page, 'Site boundary')).toContainText('GeoJSON lot.geojson (Test lot)', { timeout: 20_000 })
 })

@@ -13,7 +13,7 @@ import { baseAt, useGroundUnder } from '../hooks/useProposal'
 import { groundUnder } from '../lib/cityLayers'
 import { setCleanRender } from '../lib/editorOverlay'
 import {
-  beginDrag, cancelDrag, cancelProposal, clearPick, confirmProposal, dragTo, endDrag, moveSnapped, noteGizmoPress, nudge,
+  alignToLot, beginDrag, cancelDrag, cancelProposal, clearPick, confirmProposal, dragTo, endDrag, loadLots, moveSnapped, noteGizmoPress, nudge,
   pickTower, poseOf, setMetresPerPx, setShiftHeld, snapOptions, takeGizmoPress, toggleMode, turnDeg, turnSnapped,
   useTowerEdit, type DragKind, type Pose,
 } from '../lib/towerEdit'
@@ -251,6 +251,8 @@ export default function TowerGizmo() {
   }), [])
   // The canvas is keyed by project, so a project switch starts with nothing picked. Present ends a drag and a proposal.
   useEffect(() => () => clearPick(), [])
+  // Placing in Real Vancouver lines the tower up with the lot under the click: have the lots ready before the click.
+  useEffect(() => { if (project === 'city' && placing) void loadLots() }, [project, placing])
   useEffect(() => { if (phase === 'present') { cancelDrag(); cancelProposal() } }, [phase])
 
   // Gizmo handles win over the tower behind them (they sit inside the podium), so a press on a handle never orbits or picks.
@@ -303,7 +305,7 @@ export default function TowerGizmo() {
     }
   }, [gl, get])
 
-  // M / R toggle Move / Rotate (picking the selected tower if nothing is picked); arrows and [ ] nudge; Enter confirms
+  // M / R toggle Move / Rotate and L aligns to the lot (picking the selected tower if nothing is picked); arrows and [ ] nudge; Enter confirms
   // a pending move; Esc cancels a drag, then the pending move, then the selection. 1/2/3, P, H, Ctrl+Z/Y/S unchanged.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -321,13 +323,14 @@ export default function TowerGizmo() {
         return
       }
       const k = e.key.toLowerCase()
-      if (k === 'm' || k === 'r') {
+      if (k === 'm' || k === 'r' || k === 'l') {
         if (!s.picked) {
           const sel = useStore.getState().selectedTower
           if (!sel) return
           pickTower(sel)
         }
-        toggleMode(k === 'm' ? 'move' : 'rotate')
+        if (k === 'l') { if (!s.drag) alignToLot(useTowerEdit.getState().picked!) }
+        else toggleMode(k === 'm' ? 'move' : 'rotate')
         return
       }
       if (!s.picked || s.drag) return

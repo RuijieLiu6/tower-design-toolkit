@@ -6,6 +6,7 @@ import type { VtcContext } from '../context'
 import type { MapDate, SolarJobInput, SolarJobOutput } from '../engine/solarJob'
 import type { Reading } from '../engine/solarRules'
 import { contextOccluders } from '../lib/interchange/converters'
+import { useCityModel, type CityModel } from '../lib/cityModel'
 import { useStore, useTowers } from '../store'
 
 export const SOLAR_NODE = 'built.solar-access'
@@ -51,11 +52,11 @@ function getWorker(): Worker {
   return worker
 }
 
-function run(input: Omit<SolarJobInput, 'ctx' | 'city'>, ctx: VtcContext | null) {
+function run(input: Omit<SolarJobInput, 'ctx' | 'city'>, ctx: VtcContext | null, cityModel: CityModel) {
   const w = getWorker()
-  const msg: { id: number; input: Omit<SolarJobInput, 'ctx' | 'city'>; ctx?: VtcContext | null; cityBase?: string } = { id: ++seq, input }
-  // The worker fetches the Real Vancouver layers itself, relative to the app (base "./").
-  if (input.project === 'city') msg.cityBase = new URL('./', document.baseURI).href
+  const msg: { id: number; input: Omit<SolarJobInput, 'ctx' | 'city'>; ctx?: VtcContext | null; cityBase?: string; cityModel?: CityModel } = { id: ++seq, input }
+  // The worker fetches the Real Vancouver layers itself, relative to the app (base "./"), for the buildings model shown.
+  if (input.project === 'city') { msg.cityBase = new URL('./', document.baseURI).href; msg.cityModel = cityModel }
   if (ctx !== sentCtx) { msg.ctx = ctx; sentCtx = ctx }
   useSolar.setState({ status: 'running' })
   w.postMessage(msg)
@@ -68,6 +69,7 @@ export function useSolarAccess(force = false) {
   const ground = useStore((s) => s.groundElevation)
   // Existing buildings from an uploaded model join the baseline (lib/interchange, converter 3).
   const model = useStore((s) => s.models[s.project])
+  const cityModel = useCityModel((s) => s.model)
   const on = useStore((s) => force || !!s.enabled[SOLAR_NODE])
   const { mapDate, readings } = useSolar()
   const state = useSolar()
@@ -78,7 +80,7 @@ export function useSolarAccess(force = false) {
     const geometry = towers.map((t) => [t.id, t.x, t.y, t.rotation, t.width, t.depth, t.height, t.podiumHeight, t.podiumWidth, t.podiumDepth, t.f2f, t.imported?.meshId ?? '', JSON.stringify(t.blocks ?? null)])
     const modelContext = model ? contextOccluders(model) : undefined
     const mkey = model && modelContext?.prisms.length ? `+${model.id}:${modelContext.prisms.length}` : ''
-    const key = JSON.stringify({ project, geometry, readings, mapDate, ground: project === 'city' ? ground : 0, mkey })
+    const key = JSON.stringify({ project, geometry, readings, mapDate, ground: project === 'city' ? ground : 0, mkey, cityModel: project === 'city' ? cityModel : '' })
     if (key === useSolar.getState().key) return
     useSolar.setState({ key })
     clearTimeout(timer)
@@ -86,7 +88,7 @@ export function useSolarAccess(force = false) {
       fired = true
       const go = (ctx: VtcContext | null) => {
         if (cancelled) { if (useSolar.getState().key === key) useSolar.setState({ key: '' }); return }
-        run({ project, towers, readings, mapDate, groundElevation: ground, ctxKey: (project === 'city' ? 'city-layers' : ctx ? 'vtc-model' : 'none') + mkey, ...(modelContext?.prisms.length ? { modelContext } : {}) }, project === 'vtc' ? ctx : null)
+        run({ project, towers, readings, mapDate, groundElevation: ground, ctxKey: (project === 'city' ? `city-layers:${cityModel}` : ctx ? 'vtc-model' : 'none') + mkey, ...(modelContext?.prisms.length ? { modelContext } : {}) }, project === 'vtc' ? ctx : null, cityModel)
       }
       if (project === 'vtc' && ctxValue === undefined) loadCtx().then(go)
       else go(project === 'vtc' ? ctxValue ?? null : null)
@@ -96,7 +98,7 @@ export function useSolarAccess(force = false) {
       // Unmounted before the run started: let the next caller start it.
       if (!fired && useSolar.getState().key === key) { clearTimeout(timer); useSolar.setState({ key: '' }) }
     }
-  }, [on, towers, project, mapDate, readings, ground, model])
+  }, [on, towers, project, mapDate, readings, ground, model, cityModel])
 
   return { ...state, on }
 }

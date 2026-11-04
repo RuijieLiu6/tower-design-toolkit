@@ -8,6 +8,7 @@ import { USES, type ImportedStorey, type Tower, type UseId } from '../engine/typ
 import { useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
 import { useStore } from '../store'
 import Label from './Label'
+import { PROPOSED, proposedLook } from '../lib/vistaLook'
 
 const XRAY_OPACITY = 0.18
 const CORE_COLOR = '#2b3f55'
@@ -23,6 +24,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
   const selected = useStore((s) => s.selectedTower) === t.id
   const selectTower = useStore((s) => s.selectTower)
   const schematic = useStore((s) => s.phase) === 'advanced'
+  const proposed = useStore(proposedLook)
   const anatomy = useStore((s) => s.anatomy)
   const section = useStore((s) => s.sectionOn) && schematic
   const sectionLevel = useStore((s) => s.sectionLevel)
@@ -57,18 +59,22 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
       {geom && bands.map((b, i) => {
         const clip = [new THREE.Plane(new THREE.Vector3(0, 1, 0), -(baseZ + b.z0)), new THREE.Plane(new THREE.Vector3(0, -1, 0), baseZ + b.z1), ...(section ? [sectionPlane] : [])]
         const color = b.use === 'void' ? VOID_COLOR : USES[b.use].color
+        // Real Vancouver Massing: the proposed tower in one strong colour (lib/vistaLook.ts PROPOSED), as Viewport's towers.
+        const glow = proposed && !xray
         return (
-          <mesh key={`${i}-${b.use}`} geometry={geom} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
-            <meshStandardMaterial color={color} roughness={0.75} side={THREE.DoubleSide} clippingPlanes={clip} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray}
-              emissive={selected && !xray ? '#1f5f8b' : '#000000'} emissiveIntensity={selected && !xray ? 0.08 : 0} />
+          <mesh key={`${i}-${b.use}-${glow ? 'p' : 'u'}`} geometry={geom} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
+            <meshStandardMaterial color={glow ? PROPOSED.fill : color} roughness={0.75} side={THREE.DoubleSide} clippingPlanes={clip} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} toneMapped={!glow} fog={!glow}
+              emissive={glow ? PROPOSED.fill : selected && !xray ? '#1f5f8b' : '#000000'} emissiveIntensity={glow ? 0.45 : selected && !xray ? 0.08 : 0} />
           </mesh>
         )
       })}
       {slabs && (
-        <mesh geometry={slabs} castShadow={!xray} receiveShadow>
-          <meshStandardMaterial vertexColors roughness={0.75} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} clippingPlanes={section ? [sectionPlane] : null} />
+        <mesh key={proposed && !xray ? 'p' : 'u'} geometry={slabs} castShadow={!xray} receiveShadow>
+          <meshStandardMaterial vertexColors={!(proposed && !xray)} color={proposed && !xray ? PROPOSED.fill : '#ffffff'} toneMapped={!(proposed && !xray)} roughness={0.75} fog={!(proposed && !xray)} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} clippingPlanes={section ? [sectionPlane] : null}
+            emissive={proposed && !xray ? PROPOSED.fill : '#000000'} emissiveIntensity={proposed && !xray ? 0.45 : 0} />
         </mesh>
       )}
+      {edges && proposed && !xray && <lineSegments geometry={edges}><lineBasicMaterial color={PROPOSED.line} toneMapped={false} /></lineSegments>}
       {edges && <lineSegments geometry={edges} visible={xray}><lineBasicMaterial color="#3d5a78" transparent opacity={0.6} clippingPlanes={section ? [sectionPlane] : null} /></lineSegments>}
       <lineSegments geometry={plates} visible={xray ? anatomy.plates : selected}>
         <lineBasicMaterial color={xray ? '#4a6a8c' : '#ffffff'} transparent opacity={xray ? 0.5 : 0.6} clippingPlanes={section ? [sectionPlane] : null} />

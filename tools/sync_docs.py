@@ -31,6 +31,9 @@ INCLUDE = [
     "overnight/a11y",
 ]
 EXCLUDE_DIRS = {"sources", "snapshots", "node-builder-test", "__pycache__"}
+# Screenshots that show the competition base model (Buildner; never published, like public/local/): the run-through's
+# written log is shared, its pictures stay on this computer.
+EXCLUDE_PATHS = {("evaluation", "2026-11-04-run-through", "shots")}
 
 
 def copy(src: Path, dst: Path) -> int:
@@ -41,6 +44,12 @@ def copy(src: Path, dst: Path) -> int:
     n = 0
     for p in src.rglob("*"):
         rel = p.relative_to(src)
+        full = (src.name,) + rel.parts
+        if any(full[i:i + len(x)] == x for x in EXCLUDE_PATHS for i in range(len(full))):
+            continue
+        # Any evaluation picture named after the competition site shows the competition model: it stays local.
+        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and any(k in p.name.lower() for k in ("vtc", "competition")):
+            continue
         if any(part in EXCLUDE_DIRS for part in rel.parts) or not p.is_file():
             continue
         n += copy(p, dst / rel)

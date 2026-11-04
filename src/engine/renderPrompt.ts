@@ -16,6 +16,8 @@ export const STYLES: Record<StyleId, { label: string; text: string }> = {
 /** Lines every prompt carries; the user cannot remove them (fidelity and anonymity, research P13-M05). */
 export const FIXED_CONSTRAINTS = [
   'Same massing, same camera, label nothing.',
+  // Added after the first test render (3 Nov 2026) moved the camera and redrew the city.
+  'Keep the framing: laid over the input image, the result must line up with it (same horizon, same picture edges).',
   'Keep every building where it is: the same outlines, heights, setbacks and floor lines. Do not add, remove, move or resize any tower.',
   'Keep the sun direction and the shadows of the input image.',
   'No text, signage, logos, watermarks, names or numbers anywhere in the image.',
@@ -43,6 +45,8 @@ export function buildPrompt(f: PromptFields): BuiltPrompt {
   if (BLOCKED.test(notes)) warnings.push('Your notes ask for a mark, a name or signage. The fixed lines forbid them; reword the notes.')
   const parts = [
     'This image is a 3D capture of a tower design in downtown Vancouver.',
+    // The capture is massing only (lib/aiRender.ts): the design keeps its programme colours, the context is plain.
+    'The coloured block is the proposed tower; the plain light grey blocks are existing buildings.',
     STYLES[f.style].text,
     f.cameraNote ? `Camera: ${f.cameraNote}. Do not change the viewpoint or the lens.` : '',
     f.programNote ? `The tower holds ${f.programNote}.` : '',

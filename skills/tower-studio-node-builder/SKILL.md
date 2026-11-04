@@ -22,10 +22,10 @@ A node is one JSON file, a *node package*. It runs in the designer's browser. It
 
 ## Rules that never bend
 
-1. **One question at a time.** Ask, then wait for the answer. Offer two to four example answers when that helps a designer who isn't sure.
-2. **Never invent a threshold, a number or a source.** Only use a value if the designer gives it, or you are quoting a document that was actually opened in this conversation. Otherwise the threshold is `unverified` (say where the number seems to come from and that nobody has checked it) or `unresolved` (no number yet). Ask before you suggest any value, and label suggestions as yours.
+1. **One question at a time.** Ask, then wait for the answer. Offer two to four example answers when that helps a designer who isn't sure. If the designer gives their answers in one block, or can't reply, take the block as their answers: still show the spec and the flag list, mark each point "from your answers", and end with the questions still open instead of guessing.
+2. **Never invent a threshold, a number or a source.** Only use a value if the designer gives it, or you are quoting a document that was actually opened in this conversation. Otherwise the threshold is `unverified` (say where the number seems to come from and that nobody has checked it) or `unresolved` (no number yet). **Never propose a threshold number yourself, even when asked to "just pick one":** offer instead to leave it `unresolved` (the node shows the value only), to show it for information only (`"direction": "info"`), or to use the designer's own number as a `team_assumption` with their reason. You may name documents where such a number might be found.
 3. **Every claim gets a flag:** verified, team assumption, unverified, unresolved or false assumption. Rules in [references/evidence-flags.md](references/evidence-flags.md).
-4. **Keep wrong beliefs visible.** When something the designer or you believed turns out to be false, it goes into `falseAssumptions` with its correction and source. Never quietly delete it.
+4. **Keep wrong beliefs visible.** When something the designer or you believed turns out to be false, it goes into `falseAssumptions` with its correction and source. Never quietly delete it. A belief nobody has checked yet is not a false assumption: write it in `limits` as "Unchecked belief: …", never as a threshold.
 5. **Plain words.** The designer is an architect, not a programmer. Don't show JSON until step 4 unless they ask.
 6. **Nothing gets published.** The package stays with the designer until they import it into their own browser. The shared registry is not open yet.
 
@@ -112,6 +112,7 @@ Format v1 is deliberately simple: formulas over a fixed summary, so anyone can r
 - **logic a formula can't express** (loops over towers, lookup tables, iteration) over the same summary: a **code node** is possible, but only as a last resort. Formulas first: anyone can read them, and they run without asking. Read [references/code-nodes.md](references/code-nodes.md) before writing one; [references/example-code-node.json](references/example-code-node.json) is the model.
 - **an input that isn't in the list:** make it a parameter the designer types in, and note it as a request for a new Layer 0 value.
 - **something Tower Design Toolkit already does** (VTC rules, FSR, view cones, sun preview, core and lifts): tell them where it is, and build a node only for what's missing.
+- **an existing tool of their own** (a GitHub repository, a Grasshopper definition, a spreadsheet): follow [references/tool-to-node.md](references/tool-to-node.md). Check the licence first, sort each question the tool answers into formula / code node / port request / judgement, map its inputs, and test the node against the tool on the same cases.
 
 ## Reference files
 
@@ -123,6 +124,7 @@ Format v1 is deliberately simple: formulas over a fixed summary, so anyone can r
 | [references/evidence-flags.md](references/evidence-flags.md) | When to use each flag, and how Tower Design Toolkit shows them |
 | [references/upload-steps.md](references/upload-steps.md) | Import into Tower Design Toolkit; sharing with the team; the coming registry |
 | [references/fixtures.json](references/fixtures.json) | Sample designs with every Layer 0 value, for tests |
+| [references/tool-to-node.md](references/tool-to-node.md) | Bringing an existing design tool in: licence, the four kinds, input mapping, testing against the tool, port requests |
 | [references/code-nodes.md](references/code-nodes.md) | Code nodes: when to use one, the run(input) contract, what the sandbox blocks, how users allow them |
 | [references/example-code-node.json](references/example-code-node.json) | A worked code node (core-to-facade depth) |
 | [scripts/check_node.mjs](scripts/check_node.mjs) | `node scripts/check_node.mjs my-node.json`: checks and test-runs a package (Node 18+, no installs) |

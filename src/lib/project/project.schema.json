@@ -609,6 +609,9 @@
           "$ref": "#/$defs/interchangeModel"
         }
       }
+    },
+    "citySite": {
+      "$ref": "#/$defs/studySite"
     }
   },
   "$defs": {
@@ -801,6 +804,12 @@
                 "type": "number",
                 "minimum": 0,
                 "maximum": 1
+              },
+              "f2f": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 20,
+                "description": "Floor-to-floor of this band's floors (m); absent = the tower's floor-to-floor (Section tool, core-and-lift session, 4 Nov 2026)."
               }
             }
           }
@@ -981,6 +990,16 @@
               "type": "number"
             }
           }
+        },
+        "plantLevels": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Tower levels made plant (mechanical) floors one by one (Section tool, core-and-lift session, 4 Nov 2026), on top of plantEvery."
         }
       }
     },
@@ -1569,6 +1588,93 @@
               ]
             }
           }
+        }
+      }
+    },
+    "studySite": {
+      "type": "object",
+      "description": "Real Vancouver study site (engine/site.ts StudySite, Integrate Vista session, 4 Nov 2026): a 2D ring in the local frame (EPSG:26910 minus the City origin 491300, 5458600), open and counter-clockwise; no vertical datum. Provenance is in source, note, label and parcelLayer.",
+      "required": [
+        "ring",
+        "source",
+        "note",
+        "label",
+        "replaced",
+        "keepReplaced",
+        "parcelsAdd",
+        "parcelsSkip",
+        "parcelLayer",
+        "areaBasis"
+      ],
+      "properties": {
+        "ring": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 1024,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "source": {
+          "enum": [
+            "drawn",
+            "buildings",
+            "parcels",
+            "geojson"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 160
+        },
+        "replaced": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "keepReplaced": {
+          "type": "boolean"
+        },
+        "parcelsAdd": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "parcelsSkip": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "parcelLayer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "areaBasis": {
+          "enum": [
+            "parcels",
+            "boundary"
+          ]
         }
       }
     }

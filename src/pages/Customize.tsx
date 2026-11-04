@@ -28,7 +28,9 @@ import { SOLAR_NODE, useSolarAccess } from '../hooks/useSolarAccess'
 import { startPersistence, whenRestored } from '../lib/project/session'
 import { navigate } from '../lib/route'
 import { builtOutput } from '../lib/workflowLive'
-import { canConnect, evaluateGraph, isLogic, SOURCES, type GraphNode, type NodeOutput } from '../lib/workflowLogic'
+import { canConnect, evaluateGraph, isLogic, runSchedule, SOURCES, type GraphNode, type NodeOutput } from '../lib/workflowLogic'
+import { makeRunRecord, type RunMode } from '../lib/runRecord'
+import RunBar from '../components/workflow/RunBar'
 import { browserStorage, deleteWorkflow, exportName, listWorkflows, loadWorkflow, nodesToEnable, parseWorkflow, saveWorkflow, serializeWorkflow, type SavedEntry } from '../lib/workflows'
 import { useStore, useTowers, type ProjectKind } from '../store'
 
@@ -113,8 +115,13 @@ function Builder() {
     return () => clearTimeout(t)
   }, [fit, rf, reduced])
 
+  // ---- run modes (research P15-M02): Live (as before), Run all (results held until pressed), Step through ----
+  const [runMode, setRunMode] = useState<RunMode>('live')
+  const [step, setStep] = useState(0)
+  const [frozen, setFrozen] = useState<{ outputs: Record<string, NodeOutput>; source: Record<string, NodeOutput>; ranAt: string } | null>(null)
+
   // ---- live evaluation (re-runs when structure, params or the design change; not while dragging) ----
-  const structKey = nodes.map((n) => `${n.id}|${n.data.ref}|${n.data.label}|${n.parentId ?? ''}|${JSON.stringify(n.data.params ?? null)}`).join(';')
+  const structKey = nodes.map((n) => `${n.id}|${n.data.ref}|${n.data.label}|${n.parentId ?? ''}|${JSON.stringify(n.data.params ?? null)}|${n.data.off ? 1 : 0}`).join(';')
   const graph = useMemo<GraphNode[]>(() => toGraph(nodes), [structKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const edgeKey = edges.map((e) => `${e.source}.${e.sourceHandle}>${e.target}.${e.targetHandle}`).join(';')
   const outputs = useMemo<Record<string, NodeOutput>>(() => {
@@ -131,8 +138,45 @@ function Builder() {
       if (e.status === 'community') return communityOutput(e.def) ?? { state: 'idle', headline: 'Imported node: no result yet', items: [] }
       return builtOutput(e.def, results, project, solarLines) ?? extraOutput(e.def.id, { econ, mobility, facade, culture, provenance, model: { model, towers } }) ?? { state: 'idle', headline: 'Built: open it in the guided app for results', items: [] }
     }
-    return evaluateGraph(graph, edges, { evalNode, sourceHeadline, towers: towers.map((t) => ({ id: t.id, name: t.name })) })
-  }, [graph, edgeKey, results, project, towers, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance]) // eslint-disable-line react-hooks/exhaustive-deps
+    return evaluateGraph(graph, edges, { evalNode, sourceHeadline, towers: towers.map((t) => ({ id: t.id, name: t.name })) }, { until: runMode === 'step' ? step : undefined })
+  }, [graph, edgeKey, results, project, towers, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance, runMode, step]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const schedule = useMemo(() => runSchedule(graph, edges), [graph, edgeKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const notRun = useMemo<Record<string, NodeOutput>>(() => Object.fromEntries(graph.map((n) => [n.id, { state: 'idle', headline: 'Not run yet: press Run all', items: [] } as NodeOutput])), [graph])
+  // Run all shows the held results; anything that changes the live results since (canvas, params, design) makes them stale.
+  const shown = runMode === 'manual' ? frozen?.outputs ?? notRun : outputs
+  const stale = runMode === 'manual' && !!frozen && frozen.source !== outputs
+  const offCount = graph.filter((n) => n.off).length
+  const goStep = useCallback((to: number) => {
+    const i = Math.max(0, Math.min(schedule.length - 1, to))
+    setStep(i)
+    const id = schedule[i]
+    if (!id) return
+    useEditor.setState((st) => ({ nodes: st.nodes.map((n) => (!!n.selected === (n.id === id) ? n : { ...n, selected: n.id === id })) }))
+    setInspector(true)
+    setTimeout(() => rf.fitView({ nodes: [{ id }], padding: 1.2, duration: reduced ? 0 : 300, maxZoom: 1 }), 30)
+  }, [schedule, rf, reduced])
+  const runAll = () => { setFrozen({ outputs, source: outputs, ranAt: new Date().toISOString() }); ed().say(`Ran ${schedule.length} nodes`) }
+  const chooseMode = (m: RunMode) => {
+    setRunMode(m)
+    if (m === 'manual' && !frozen) setFrozen({ outputs, source: outputs, ranAt: new Date().toISOString() })
+    if (m === 'step') goStep(0)
+  }
+  const downloadRecord = async () => {
+    const wf = ed().toWorkflow()
+    const r = await makeRunRecord({
+      workflow: { id: wf.id, name: wf.name }, mode: runMode, nodes: graph, edges, outputs: shown,
+      design: { project, towers }, environment: { app: 'Tower Design Toolkit', engine: navigator.userAgent },
+      ranAt: (runMode === 'manual' && frozen?.ranAt) || new Date().toISOString(),
+    })
+    const url = URL.createObjectURL(new Blob([r.text], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `run-${(wf.name || 'workflow').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${r.hash.slice(0, 8)}.json`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 4000)
+    ed().say(`Run record downloaded: fingerprint ${r.hash.slice(0, 12)}…`)
+  }
 
   // ---- adding nodes ----
   const centre = useCallback(() => {
@@ -300,7 +344,7 @@ function Builder() {
         <div ref={wrap} className="relative min-w-0 flex-1" onDragOver={(e) => { if (e.dataTransfer.types.includes(DRAG_MIME)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' } }} onDrop={onDrop} onDoubleClick={onDoubleClick}
           aria-label="Workflow canvas">
           <CommunityContext.Provider value={community}>
-            <OutputsContext.Provider value={outputs}>
+            <OutputsContext.Provider value={shown}>
               <ReactFlow<WfNodeT, Edge>
                 nodes={nodes} edges={edges} nodeTypes={nodeTypes}
                 onNodesChange={(c) => ed().onNodesChange(c)} onEdgesChange={(c) => ed().onEdgesChange(c)}
@@ -317,6 +361,13 @@ function Builder() {
                 <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} color="#cfccc4" />
                 <MiniMap<WfNodeT> pannable zoomable nodeColor={nodeColor} nodeStrokeWidth={2} maskColor="rgba(246,245,242,0.7)" ariaLabel="Mini map" style={{ width: 168, height: 112 }} className="!hidden !rounded-md !border !border-line xl:!block" />
                 <Controls showInteractive={false} />
+                {nodes.length > 0 && (
+                  <Panel position="bottom-center">
+                    <RunBar mode={runMode} setMode={chooseMode} ranAt={frozen?.ranAt ?? null} stale={stale} onRunAll={runAll}
+                      step={step} steps={schedule.length} current={graph.find((n) => n.id === schedule[step])?.label ?? null} onStep={goStep}
+                      onRecord={downloadRecord} offCount={offCount} />
+                  </Panel>
+                )}
                 {!nodes.length && (
                   <Panel position="top-center">
                     <div className="mt-16 w-[380px] rounded-xl border border-line bg-panel p-5 text-center shadow-lg">
@@ -338,7 +389,7 @@ function Builder() {
             </button>
           )}
         </div>
-        {inspector && <WfInspector outputs={outputs} onClose={() => setInspector(false)} />}
+        {inspector && <WfInspector outputs={shown} onClose={() => setInspector(false)} />}
       </div>
 
       <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-chrome px-3 text-[11px] text-muted">

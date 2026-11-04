@@ -7,6 +7,7 @@
 import { CONES, CONE_PARAMS, bisector, limitAt, type Cone, type ConeParam } from './viewCones'
 import { convexHull, edgeFunctions, type P2, type P3 } from './coneSection'
 import { towerMasses } from './massing'
+import { placedTriangles } from '../lib/interchange/converters'
 import type { Tower } from './types'
 
 export interface Tri { a: P3; b: P3; c: P3; tower: string; part: string }
@@ -37,20 +38,20 @@ export interface MeshLike { positions: ArrayLike<number>; indices: ArrayLike<num
 export function proposalTriangles(towers: Tower[], base: number, origin: P2, meshes: Record<string, MeshLike | undefined> = {}): { tris: Tri[]; notes: string[] } {
   const tris: Tri[] = [], notes: string[] = []
   for (const t of towers) {
-    const mesh = t.imported ? meshes[t.imported.meshId] : undefined
-    if (t.imported && mesh) {
-      const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
-      const P = (i: number): P3 => {
-        const u = mesh.positions[i * 3], v = mesh.positions[i * 3 + 1], z = mesh.positions[i * 3 + 2]
-        return [origin[0] + t.x + u * c - v * s, origin[1] + t.y + u * s + v * c, base + z]
+    if (t.imported) {
+      // The interchange session's placement (lib/interchange/converters.ts): the mesh in EPSG:26910 + CGVD28, or its sliced storeys.
+      const r = placedTriangles(t, meshes[t.imported.meshId], { origin, groundElevation: base })
+      const part = r.source === 'mesh' ? t.imported.fileName : `${t.imported.fileName} (storey prisms)`
+      for (let k = 0; k + 8 < r.tris.length; k += 9) {
+        const q = r.tris
+        tris.push({ a: [q[k], q[k + 1], q[k + 2]], b: [q[k + 3], q[k + 4], q[k + 5]], c: [q[k + 6], q[k + 7], q[k + 8]], tower: t.name, part })
       }
-      for (let k = 0; k + 2 < mesh.indices.length; k += 3) tris.push({ a: P(mesh.indices[k]), b: P(mesh.indices[k + 1]), c: P(mesh.indices[k + 2]), tower: t.name, part: t.imported.fileName })
+      if (r.source !== 'mesh') notes.push(`${t.name}: the uploaded mesh is not loaded in this browser, so its sliced storeys stand in (nothing above the last storey; unverified)`)
       continue
     }
-    if (t.imported) notes.push(`${t.name}: the uploaded mesh is not loaded, so its hull over the full height stands in (conservative)`)
     for (const m of towerMasses(t)) {
       const ring = m.ring.map(([x, y]) => [x + origin[0], y + origin[1]] as P2)
-      tris.push(...prismTriangles(ring, base + m.z0, base + m.z1, t.name, t.imported ? 'hull' : m.podium ? `podium block ${m.blockId}` : `block ${m.blockId}`))
+      tris.push(...prismTriangles(ring, base + m.z0, base + m.z1, t.name, m.podium ? `podium block ${m.blockId}` : `block ${m.blockId}`))
     }
   }
   return { tris, notes }

@@ -21,7 +21,7 @@ function record(r: UiResult) {
 const CITY_ORIGIN = [491300, 5458600]
 
 async function open(p: Page, project: 'vtc' | 'city', stage: '1' | '2' = '1') {
-  await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0') } catch { /* ignore */ } })
+  await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0'); localStorage.setItem('ts.onboarding.seen', '1') } catch { /* ignore */ } })
   await p.goto('/#/guided')
   await p.waitForSelector('#root > *', { timeout: 30_000 })
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 5000 }).catch(() => {})
@@ -40,14 +40,28 @@ async function dismiss(p: Page) {
   }
 }
 
-/** Selects a node in the library (switching it on if needed) and shows its results tab. */
-async function node(p: Page, name: string) {
-  await dismiss(p)
-  const row = p.locator('aside').getByText(name, { exact: true }).first()
-  await row.click()
-  const sw = p.getByRole('switch', { name: `Use ${name}` })
-  if (await sw.count() && (await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+/**
+ * Shows a node's results. Switching a node on in the bottom bar also selects it; a node that is already on is picked
+ * in the results panel's "Show results for" list (clicking its icon would switch it off).
+ */
+async function showNode(p: Page, name: string) {
+  const sw = p.getByRole('switch', { name: `Use ${name}`, exact: true })
+  await sw.waitFor({ timeout: 20_000 })
+  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+  else {
+    await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+    await p.getByLabel('Show results for').selectOption({ label: name })
+  }
   await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+}
+
+/** Switches a node on in the bottom bar if needed and shows its results tab. */
+async function node(p: Page, name: string) {
+  // The onboarding card can come back after a project switch, sometimes just after the first check: dismiss again and retry.
+  for (let k = 0; ; k++) {
+    await dismiss(p)
+    try { await showNode(p, name); break } catch (e) { if (k >= 2) throw e }
+  }
   await p.waitForTimeout(1200)
 }
 
@@ -75,9 +89,9 @@ async function placeTower(p: Page, utm: [number, number], top: number) {
   await p.waitForTimeout(800)
 }
 
-async function panelText(p: Page) { return (await p.locator('aside[aria-label="Design and results"]').innerText()).replace(/\s+/g, ' ') }
+async function panelText(p: Page) { return (await p.locator('aside[aria-label="Results and evidence"]').innerText()).replace(/\s+/g, ' ') }
 async function flags(p: Page) {
-  return [...new Set(await p.locator('aside[aria-label="Design and results"]').locator('span[title]').filter({ hasText: /Verified|Team assumption|Unverified|Unresolved|False assumption/ }).allInnerTexts())].map((s) => s.trim()).filter(Boolean)
+  return [...new Set(await p.locator('aside[aria-label="Results and evidence"]').locator('span[title]').filter({ hasText: /Verified|Team assumption|Unverified|Unresolved|False assumption/ }).allInnerTexts())].map((s) => s.trim()).filter(Boolean)
 }
 async function shot(p: Page, id: string) {
   const file = join(SHOTS, `${id}.png`)

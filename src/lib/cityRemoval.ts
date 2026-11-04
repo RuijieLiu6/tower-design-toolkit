@@ -112,11 +112,28 @@ export function removalUnder(footprints: readonly FootprintLike[], towers: Tower
   return { hidden: new Set(byTower.flatMap((b) => b.indices)), byTower }
 }
 
-/** How many hidden footprints had a LiDAR roof (solid) and how many were height-unknown 2015 outlines. */
+/** How many hidden footprints had a height (solid) and how many were height-unknown outlines. */
 export function removalCounts(hidden: ReadonlySet<number>, heights: HeightsLike | null): { total: number; measured: number; outlines: number } {
   let measured = 0
   for (const i of hidden) if (hasHeight(heights, i)) measured++
   return { total: hidden.size, measured, outlines: hidden.size - measured }
+}
+
+/**
+ * The overlap rule in words. A building part that the inset outline overlaps at all is hidden whole, including any of
+ * it outside the tower, so nothing existing shows through the proposal. A building drawn as several parts loses only
+ * the parts the tower touches.
+ */
+export const REMOVAL_RULE = 'Every existing building part that a tower or podium outline overlaps (outline inset 0.5 m, so a shared wall or an overlap under 0.5 m keeps the neighbour) is hidden whole, including any of it outside the outline; parts of the same building that the outline does not touch stay.'
+
+/**
+ * One statement for reports and captions: how many footprints are hidden, under which towers, and the caveat. `site`
+ * counts footprints the study site replaces (lib/siteStore). Null when nothing is hidden.
+ */
+export function removalNote(total: number, towers: string[], site = 0): string | null {
+  if (!total) return null
+  const where = [towers.length ? `under ${towers.join(', ')}` : '', site ? `${site} replaced by the study site` : ''].filter(Boolean).join('; ')
+  return `Existing buildings under the design: ${total.toLocaleString('en-CA')} existing building footprint${total === 1 ? ' is' : 's are'} hidden${where ? ` (${where})` : ''}, so ${total === 1 ? 'it is' : 'they are'} not drawn and do not block sightlines or host viewpoints. ${REMOVAL_RULE} ${REMOVAL_CAVEAT}`
 }
 
 /** The same footprint index without the hidden footprints, so picking and ray casts pass through them (indices unchanged). */

@@ -1,5 +1,6 @@
 import { useStore } from '../store'
 import { renderCleanFrame } from './editorOverlay'
+import { creditedDataUrl, sceneCredit } from './credit'
 
 const stamp = (at: string) => at.slice(0, 19).replace(/[:T]/g, '-')
 
@@ -66,7 +67,7 @@ export function captureShot(download_ = false): string | null {
   const canvas = document.querySelector('[data-viewport] canvas') as HTMLCanvasElement | null
   if (!canvas) return null
   renderCleanFrame() // the tower gizmo and selection outline are never in a shot
-  const dataUrl = canvas.toDataURL('image/png')
+  const dataUrl = creditedDataUrl(canvas, sceneCredit()) // OSM credit on Real Vancouver captures (ODbL)
   const at = new Date().toISOString()
   s.addShot({ id: at, dataUrl, stage: s.phase, representation: s.phase === 'basic' ? 'clay' : s.phase === 'advanced' ? 'xray' : s.presentRep, project: s.project, at })
   if (download_) download(dataUrl, `tower-studio-${s.project}-${stamp(at)}.png`)

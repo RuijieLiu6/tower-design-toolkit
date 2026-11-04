@@ -16,13 +16,16 @@ function load(): Promise<Neighbour[]> {
   return cache
 }
 
+// One empty list for every caller: a new [] per render made useResults recompute every check on every render.
+const NONE: Neighbour[] = []
+
 export function useVtcNeighbours(enabled: boolean): Neighbour[] {
-  const [list, setList] = useState<Neighbour[]>([])
+  const [list, setList] = useState<Neighbour[]>(NONE)
   useEffect(() => {
     if (!enabled) return
     let live = true
     load().then((n) => { if (live) setList(n) })
     return () => { live = false }
   }, [enabled])
-  return enabled ? list : []
+  return enabled ? list : NONE
 }

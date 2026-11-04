@@ -9,7 +9,7 @@
 //   toPresent        drawings, boards and Present captures: outlines and the provenance caption
 //   toCustomize      the Customize canvas: the model as a node output (lines with flags and sources)
 //   toExportScene    export back to .3dm, OBJ and glTF with roles and provenance as user strings
-import { towerFloors, towerFootprint, PODIUM_F2F } from '../../engine/massing'
+import { floorRing, towerFloors, towerFootprint, towerMasses, PODIUM_F2F } from '../../engine/massing'
 import { ringArea } from '../../engine/importGeom'
 import type { Occluders, Prism } from '../../engine/shadow'
 import { towerOccluders } from '../../engine/solarRules'
@@ -80,8 +80,10 @@ export function toViewConeInputs(model: InterchangeModel, towers: Tower[], groun
 /**
  * World triangles of one tower for exact geometric checks (the exact cone check after Vista's view-envelope.js): x, y, z
  * per vertex, 9 numbers per triangle. Real Vancouver: EPSG:26910 metres and CGVD28 z (origin and base added); the
- * competition site: the project frame, z above grade. The uploaded mesh when this browser has it; otherwise (and for
- * parametric towers) closed prisms of the storeys, which leave out the crown above the last storey.
+ * competition site: the project frame, z above grade. The uploaded mesh when this browser has it, else closed prisms of
+ * its storeys (no crown above the last storey); a parametric tower is one closed prism per stacked block (towerMasses).
+ * Contract: engine/viewEnvelope.ts (the exact cone check) calls this for every imported tower. Keep the signature and
+ * the flat output (9 numbers per triangle, EPSG:26910 + CGVD28 in Real Vancouver) stable, or agree a change with it first.
  */
 export function placedTriangles(t: Tower, entry: { positions: ArrayLike<number>; indices: ArrayLike<number> } | undefined, o: { origin: [number, number] | null; groundElevation: number }): { tris: number[]; source: 'mesh' | 'storeys'; flag: Flag } {
   const [ox, oy] = o.origin ?? [0, 0], oz = o.origin ? o.groundElevation : 0
@@ -94,7 +96,7 @@ export function placedTriangles(t: Tower, entry: { positions: ArrayLike<number>;
   }
   const prisms: { ring: Pt[]; z0: number; z1: number }[] = t.imported
     ? t.imported.storeys.flatMap((st) => st.loops.filter((l) => ringArea(l) > 0).map((l) => ({ ring: placeRing(t, l), z0: st.z0, z1: st.z1 })))
-    : towerFloors(t).map((f) => ({ ring: towerFootprint(t, f.podium), z0: f.z0, z1: f.z1 }))
+    : towerMasses(t).map((m) => ({ ring: m.ring, z0: m.z0, z1: m.z1 })) // one prism per stacked block, crown included
   for (const pr of prisms) {
     const m = closedPrism([pr.ring], pr.z0, pr.z1)
     for (const k of m.indices) out.push(ox + m.positions[3 * k], oy + m.positions[3 * k + 1], oz + m.positions[3 * k + 2])
@@ -296,7 +298,7 @@ export function toExportScene(towers: Tower[], model: InterchangeModel | null, o
       const floors = towerFloors(t)
       const last = floors.length ? floors[floors.length - 1].z1 : 0
       if (t.height - last > 0.05) {
-        const ring: Pt[] = towerFootprint(t)
+        const ring: Pt[] = floorRing(t, { z0: last, z1: t.height }) // the block the crown belongs to
         add({ name: `${t.name} · crown`, layer: ROLE_LAYER.crown, color: [190, 194, 200], ...closedPrism([ring], last, t.height), strings: { role: 'tower', element_id: `${t.id}-crown`, ...common, source: 'tower height above the last storey (Design panel)' } })
       }
       continue

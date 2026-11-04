@@ -21,6 +21,7 @@ import { CONES, CONE_PARAMS, type Cone, type ConeCheck, type ConeState } from '.
 import { useResults } from '../hooks/useResults'
 import { sampleTerrain, type Footprint, type FootprintHeights, type HeightGrid } from '../lib/cityLayers'
 import { CITY_ORIGIN, useStore } from '../store'
+import { useConeVisibility } from '../lib/coneVisibility'
 import Label from './Label'
 import { CONE_STYLE } from './ui'
 
@@ -29,6 +30,8 @@ export const CONE_SECTION_LINE = '#7f1d16'
 /** Existing buildings inside a cone: the neutral estimated-cone blue, and a darker blue for their section line. */
 export const CONE_EXISTING = '#4f7fae'
 export const CONE_EXISTING_LINE = '#24496b'
+/** Vista's intrusion red (explorer.js drawViewconeOverlay: 0.96, 0.08, 0.11). */
+export const VISTA_INTRUSION = '#f5141c'
 const ESTIMATED = '#4f7fae'
 const ESTIMATED_CONES = CONES.filter((c) => CONE_PARAMS[c.id])
 
@@ -114,10 +117,13 @@ export function coneCrossingsFor(footprints: Footprint[], heights: FootprintHeig
 /** Their part inside the protected view tinted neutral blue (one mesh per cone that has any), sections as one thick line set. */
 export function ExistingConeCrossings({ footprints, heights, hidden, xray }: { footprints: Footprint[]; heights: FootprintHeights | null; hidden: ReadonlySet<number>; xray: boolean }) {
   const all = useMemo(() => coneCrossingsFor(footprints, heights), [footprints, heights])
+  // A cone hidden in the Viewcone tab or the Layers dock (lib/coneVisibility.ts) hides its readings here too.
+  const off = useConeVisibility((s) => s.hidden)
   const built = useMemo(() => {
     const meshes: { geom: THREE.BufferGeometry; clip: THREE.Plane[] }[] = []
     const segs: P3[] = []
     for (const p of all) {
+      if (off[p.cone.id]) continue
       const shown = p.crossings.filter((c) => !hidden.has(c.index))
       if (!shown.length || !heights) continue
       const parts = shown.map(({ index }) => {
@@ -135,7 +141,7 @@ export function ExistingConeCrossings({ footprints, heights, hidden, xray }: { f
       for (const c of shown) c.section.forEach((q, i) => segs.push(q, c.section[(i + 1) % c.section.length]))
     }
     return { meshes, segs }
-  }, [all, hidden, footprints, heights])
+  }, [all, hidden, footprints, heights, off])
   useEffect(() => () => built.meshes.forEach((m) => m.geom.dispose()), [built])
   return (
     <>
@@ -183,13 +189,14 @@ function TowerInCone({ t, check, base, xray }: { t: Tower; check: ConeCheck; bas
     <>
       {built.geoms.map((g, i) => (
         <mesh key={i} geometry={g} raycast={() => null} renderOrder={3}>
-          <meshBasicMaterial color={CONE_STYLE.above.color} transparent opacity={xray ? 0.5 : 0.62} depthWrite={false} side={THREE.DoubleSide}
+          {/* Vista's intrusion (drawViewconeOverlay): an opaque red skin where the tower rises above the ceiling; x-ray keeps it see-through. */}
+          <meshBasicMaterial key={xray ? 'x' : 'c'} color={xray ? CONE_STYLE.above.color : VISTA_INTRUSION} transparent={xray} opacity={xray ? 0.5 : 1} depthWrite={!xray} side={THREE.DoubleSide} toneMapped={false}
             clippingPlanes={built.clip} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
         </mesh>
       ))}
       {built.lines.map((pts, i) => <Line key={i} points={pts} color={CONE_SECTION_LINE} lineWidth={4} renderOrder={4} />)}
       {/* At the governing point, on the limit (where the overshoot starts), clear of the tower's name label at its top. */}
-      {showLabel && <Label text={text} position={[built.at![0], built.at![1], (check.limit ?? base) + 3]} size={0.014} color={CONE_SECTION_LINE} />}
+      {showLabel && <Label text={text} position={[built.at![0], built.at![1], (check.limit ?? base) + 3]} size={0.014} color={CONE_SECTION_LINE} maxDistance={1500} />}
     </>
   )
 }
@@ -197,9 +204,10 @@ function TowerInCone({ t, check, base, xray }: { t: Tower; check: ConeCheck; bas
 /** Every design tower inside an estimated cone (Real Vancouver). States and numbers come from the view-cone check. */
 export function ConeOverlays({ base, xray }: { base: number; xray: boolean }) {
   const { cones } = useResults()
+  const off = useConeVisibility((s) => s.hidden) // drawing only: the check and its numbers stay
   return (
     <>
-      {cones.flatMap((r) => r.checks.filter((c) => c.param && c.limit !== null).map((c) => (
+      {cones.flatMap((r) => r.checks.filter((c) => c.param && c.limit !== null && !off[c.cone.id]).map((c) => (
         <TowerInCone key={`${r.tower.id}:${c.cone.id}`} t={r.tower} check={c} base={base} xray={xray} />
       )))}
     </>

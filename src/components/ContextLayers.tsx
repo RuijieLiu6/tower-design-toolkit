@@ -11,6 +11,7 @@ import {
   type ContextLayerId, type HeritageData, type ParcelAttrs, type TrafficData, type Tree, type ZoningData,
 } from '../lib/contextLayers'
 import Label from './Label'
+import { parcelHeightLines } from '../lib/heightReadout'
 import { FlagChip } from './ui'
 
 /** Land value per m2, quintiles. One orange ramp, light to dark (validated as an ordinal ramp); blue is taken by the height limits. */
@@ -138,12 +139,13 @@ function ParcelsLayer({ data, grids, xray }: { data: ParcelsData; grids: HeightG
   const readout = (e: ThreeEvent<PointerEvent>): Readout | null => {
     if (e.faceIndex === undefined || e.faceIndex === null) return null
     const r = parcelRow(data.attrs, built.tri[e.faceIndex])
+    const heights = parcelHeightLines(data.polys[built.tri[e.faceIndex]].outer, grids) // Vista height model (Integrate Vista)
     return {
       layer: 'parcels', title: r.address || 'Parcel',
-      lines: r.landK === null ? ['No row in the property tax report: no land value shown'] : [
+      lines: [...(r.landK === null ? ['No row in the property tax report: no land value shown'] : [
         `Land ${money(r.landK)}${r.perM2 !== null ? ` · $${Math.round(r.perM2).toLocaleString()}/m²` : ''} · improvements ${money(r.improvementK ?? 0)}`,
         `${r.zoning ? `Zoning ${r.zoning} · ` : ''}${r.folios} folio${r.folios === 1 ? '' : 's'} · ${r.m2.toLocaleString()} m² · assessed ${data.attrs.year ?? '?'}`,
-      ],
+      ]), ...heights],
     }
   }
   return (
@@ -279,7 +281,7 @@ function Legend({ id, entry }: { id: ContextLayerId; entry: LayerEntry }) {
     const edges = [0, ...breaks]
     return (
       <div className="ml-5 space-y-0.5">
-        <div className="text-[10px] uppercase tracking-wider text-slate-500">Land value per m² (quintiles)</div>
+        <div className="text-[11px] uppercase tracking-wider text-slate-500">Land value per m² (quintiles)</div>
         {VALUE_RAMP.map((c, i) => (
           <div key={c} className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-4 rounded-sm border border-black/10" style={{ background: c }} />
@@ -312,7 +314,7 @@ function ReadoutBox() {
     <div className="rounded border border-line bg-slate-50 px-1.5 py-1">
       <div className="flex items-center justify-between gap-2">
         <b className="text-ink">{r.title}</b>
-        {pinned && !hover && <button type="button" className="text-[10px] text-slate-500 underline" onClick={() => useContextLayers.setState({ pinned: null })}>clear</button>}
+        {pinned && !hover && <button type="button" className="text-[11px] text-slate-500 underline" onClick={() => useContextLayers.setState({ pinned: null })}>clear</button>}
       </div>
       {r.lines.filter(Boolean).map((l) => <div key={l}>{l}</div>)}
       {r.link && <a className="text-ink underline" href={r.link} target="_blank" rel="noreferrer">City count sheet</a>}
@@ -325,7 +327,7 @@ export function ContextLayersPanel({ manifest, bare = false }: { manifest: Manif
   const { on, status } = useContextLayers()
   return (
     <div className={bare ? 'space-y-1.5 text-[11px] text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
-      {!bare && <div className="flex items-center justify-between"><b className="text-ink">More layers</b><span className="text-[10px] text-slate-500">load when switched on</span></div>}
+      {!bare && <div className="flex items-center justify-between"><b className="text-ink">More layers</b><span className="text-[11px] text-slate-500">load when switched on</span></div>}
       {CONTEXT_LAYER_IDS.map((id) => {
         const entry = manifest.layers.find((l) => l.id === id)
         return (
@@ -341,7 +343,7 @@ export function ContextLayersPanel({ manifest, bare = false }: { manifest: Manif
               </label>
               {entry && <FlagChip flag={entry.flag} />}
             </div>
-            <div className="ml-5 text-[10px] text-slate-500">
+            <div className="ml-5 text-[11px] text-slate-500">
               {entry ? <>{entry.source.publisher} · {entry.licence.name} · retrieved {entry.source.retrieved}</> : 'Not downloaded yet (City of Vancouver open data)'}
             </div>
             {entry && on[id] && <Legend id={id} entry={entry} />}

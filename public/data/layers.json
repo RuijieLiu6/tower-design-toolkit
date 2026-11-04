@@ -360,7 +360,8 @@
     "band_points_listed_not_counted": 159803,
     "unknown": 5363
    },
-   "flag": "unverified"
+   "flag": "unverified",
+   "lazy": true
   },
   {
    "id": "footprints",
@@ -415,7 +416,8 @@
     "vertices_out": 97900,
     "max_simplify_shift_m": 0.295
    },
-   "flag": "unverified"
+   "flag": "unverified",
+   "lazy": true
   },
   {
    "id": "heritage",
@@ -1448,6 +1450,325 @@
     "script": "tools/build_city_layers.py"
    },
    "flag": "unverified"
+  },
+  {
+   "id": "vista_streets",
+   "title": "Streets for the Context style: Vista's OpenStreetMap network",
+   "file": "vista_streets.json",
+   "format": "JSON, local decimetres east/north from CITY_ORIGIN; columns listed in the file",
+   "bytes": 2428240,
+   "sha256": "aa03164931e4089cd1a09aa996db4fb33379dc75f22beeb3121bd05ce9220d6e",
+   "count": 61964,
+   "source": {
+    "name": "Vista street network: generated/street_network.json",
+    "publisher": "Ruijie Liu, Vista (vancouver-tall-view-tool), from OpenStreetMap",
+    "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/917b28e/generated",
+    "retrieved": "2026-11-03",
+    "commit": "917b28e",
+    "request": "gh api repos/RuijieLiu6/vancouver-tall-view-tool/contents/generated/street_network.json?ref=917b28e (read only)",
+    "inputs_sha256": {
+     "street_network.json": "8a6c9ba55c338dd9acf02c8b768660d6ed2e2af6ce612ab21eed6a4b326bad93"
+    },
+    "note": "Overpass query of 2026-10-25T22:45:57.262163+00:00 (OSM data 2026-10-25T22:44:50Z); 12,916 vehicular ways, tunnels left out. Drawn only in the Context style."
+   },
+   "licence": {
+    "name": "Open Database License (ODbL) 1.0",
+    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+   },
+   "attribution": "Streets (c) OpenStreetMap contributors (ODbL), via Vista (Ruijie Liu). A derivative database of OpenStreetMap, offered under ODbL 1.0.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "Vista's model X/Y -> latitude/longitude with Vista's own formula -> EPSG:4617 -> EPSG:3157 (pure projection)"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "Draped on the City ground in the app; deck heights interpolated between approach ends (illustrative)."
+   },
+   "processing": {
+    "build": "python -I tools/build_vista_streets.py <raw_dir> public/data <commit> <retrieved>",
+    "length_km": 1399.3
+   },
+   "flag": "unverified",
+   "lazy": true
+  },
+  {
+   "id": "vista_buildings",
+   "title": "Buildings: Vista unified model (OpenStreetMap)",
+   "file": "vista_buildings.bin",
+   "format": "TSF1 footprints (layout in tools/build_city_footprints.py), id = OSM way number; per-part attributes in vista_buildings.json (same order)",
+   "bytes": 1202521,
+   "sha256": "03f41fa6076d231c7a680f4862d1c4482e6a1510849e5eb6380b11a0796e6302",
+   "count": 62372,
+   "source": {
+    "name": "Vista unified context model: generated/unified_buildings + unified_ext_buildings",
+    "publisher": "Ruijie Liu, Vista (vancouver-tall-view-tool), from OpenStreetMap",
+    "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/917b28e/generated",
+    "retrieved": "2026-11-03",
+    "commit": "917b28e",
+    "request": "gh api repos/RuijieLiu6/vancouver-tall-view-tool/contents/generated/<file>?ref=917b28e (read only)",
+    "inputs_sha256": {
+     "unified_buildings.bin": "67318a6196abb1daded227ba584154210b69118ab068b01aec72d9bc8b96b2be",
+     "unified_ext_buildings.bin": "695eed8e32374924854382d919d70c7e43a7dd225abefcc76550b34e91b74ddd",
+     "unified_buildings_index.json": "4b9c8468a886e5fd98b5060f88454f3aa9d2792579d84cc46a0d47882cd6ed25",
+     "unified_ext_buildings_index.json": "897c99a1b4a2db1da869836aa699de8cd531aa38fc4377aff8d5b388011797e0",
+     "unified_manifest.json": "73edf36dc0de8808474fec7faad2d23115b7cfa3aafde8d89852e045c6fcb70b"
+    },
+    "note": "61,402 buildings (62,372 footprint parts): the central model is a browser export of the studio Rhino 'Vancouver DT context.3dm', itself built from 2022 OpenStreetMap; the extension is current OpenStreetMap via Overpass (accessed 2026-09-24). Published with Ruijie's permission (3 Nov 2026)."
+   },
+   "licence": {
+    "name": "Open Database License (ODbL) 1.0",
+    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+   },
+   "attribution": "Building footprints and heights (c) OpenStreetMap contributors (ODbL), via Vista (Ruijie Liu). This layer is a derivative database of OpenStreetMap, offered under ODbL 1.0.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "Vista's model X/Y taken back to latitude/longitude with Vista's own formula, then EPSG:4617 -> EPSG:3157 (pure projection, the City's EPSG:26910 numbers); metres from the local origin"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "Heights are above each building's own base. The app seats each building on its ground at the footprint's bounding-box centre (City LiDAR 2022 1 m, else MRDEM; CGVD28). Vista's SRTM / EGM96 base Z is not used.",
+    "unverified": [
+     "building heights (OSM tags, floor counts and type estimates)",
+     "Vista's terrain and its vertical datum"
+    ]
+   },
+   "processing": {
+    "build": "python -I tools/build_vista_buildings.py <raw_dir> public/data <commit> <retrieved>",
+    "footprint": "union of each object's triangles in plan (extrusions: only the roof shape is lost); parts under 1 m2 dropped; simplified within 5 cm",
+    "height_sources": {
+     "buildings": {
+      "OSM height tag": 1440,
+      "OSM floor count (3.2 m per level, +1 m from 2 levels)": 3652,
+      "estimate per building type": 4800
+     },
+     "ext_buildings": {
+      "OSM height tag": 3940,
+      "OSM floor count (3.2 m per level, +1 m from 2 levels)": 2955,
+      "estimate per building type": 44615
+     }
+    },
+    "height_check": {
+     "vs_lidar_2022_p90_roof": {
+      "OSM height tag": {
+       "n": 618,
+       "median_m": -2.8,
+       "median_abs_m": 3.9,
+       "p90_abs_m": 38.9
+      },
+      "OSM floor count (3.2 m per level, +1 m from 2 levels)": {
+       "n": 1292,
+       "median_m": -2.1,
+       "median_abs_m": 3.2,
+       "p90_abs_m": 15.2
+      },
+      "estimate per building type": {
+       "n": 143,
+       "median_m": -6.4,
+       "median_abs_m": 6.4,
+       "p90_abs_m": 54.3
+      }
+     },
+     "vs_city_2009": {
+      "OSM height tag": {
+       "n": 727,
+       "median_m": 2.2,
+       "median_abs_m": 3.5,
+       "p90_abs_m": 24.3
+      },
+      "OSM floor count (3.2 m per level, +1 m from 2 levels)": {
+       "n": 3490,
+       "median_m": 1.0,
+       "median_abs_m": 2.1,
+       "p90_abs_m": 7.6
+      },
+      "estimate per building type": {
+       "n": 19331,
+       "median_m": 2.5,
+       "median_abs_m": 2.5,
+       "p90_abs_m": 5.1
+      }
+     },
+     "towers_over_60m_by_lidar": 510,
+     "towers_within_10pct": 273
+    },
+    "measured_matches": {
+     "lidar_2022": {
+      "roof forms": 2050,
+      "whole footprint": 3
+     },
+     "city_2009": {
+      "covering parts": 23548,
+      "whole footprint": 0
+     }
+    },
+    "building_use": {
+     "rule": "the building's own OSM tags, else the points of interest inside it (majority; a tie goes to the non-retail use), else other; never guessed",
+     "parts_by_use": {
+      "residential": 17712,
+      "retail": 2804,
+      "office": 419,
+      "hotel": 119,
+      "cultural": 220,
+      "institutional": 384,
+      "transit": 27,
+      "other": 40687
+     },
+     "parts_by_basis": {
+      "no use in OpenStreetMap": 40687,
+      "OpenStreetMap tag on the building": 20251,
+      "point of interest inside the building": 1434
+     },
+     "osm_files": {
+      "building_way_tags.json": "a7be27f0d45fcf32150b8260724accd926bedfadabd2285139eda0b2d95f6900",
+      "use_pois.json": "d53ae7f562bf23e9e3d355f24e770146f6f09db34af645eee10a1df05e009ec7"
+     },
+     "osm_requests": [
+      {
+       "file": "building_way_tags.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:180];way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611);out tags;",
+       "retrieved": "2026-11-04T01:10:27+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors"
+      },
+      {
+       "file": "use_pois.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:180];(node[\"shop\"](49.2367299,-123.1652987,49.3183317,-123.0425611);node[\"amenity\"](49.2367299,-123.1652987,49.3183317,-123.0425611);node[\"office\"](49.2367299,-123.1652987,49.3183317,-123.0425611);node[\"tourism\"](49.2367299,-123.1652987,49.3183317,-123.0425611);node[\"railway\"=\"station\"](49.2367299,-123.1652987,49.3183317,-123.0425611);node[\"public_transport\"=\"station\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out;",
+       "retrieved": "2026-11-04T01:12:12+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors"
+      }
+     ]
+    },
+    "alignment": {
+     "city_2015_footprints": {
+      "matches": 4266,
+      "mean_shift_m": [
+       0.77,
+       -0.4
+      ],
+      "median_offset_m": 1.42,
+      "p95_offset_m": 3.37,
+      "max_offset_m": 42.84
+     },
+     "city_2009_footprints": {
+      "matches": 14691,
+      "mean_shift_m": [
+       0.17,
+       0.01
+      ],
+      "median_offset_m": 1.1,
+      "p95_offset_m": 2.57,
+      "max_offset_m": 26.12
+     },
+     "match": "same building = intersection over union >= 0.6; offset = distance between footprint centroids"
+    }
+   },
+   "false_assumptions": [
+    {
+     "claim": "Vista's model X/Y are metres (equirectangular about 49.2827 N with the equator's degree lengths)",
+     "correction": "Those degree lengths read north-south 0.58% short and east-west 0.19% short at 49.28 N; every vertex is taken back to latitude/longitude with Vista's formula and projected to UTM 10."
+    }
+   ],
+   "flag": "unverified",
+   "lazy": true,
+   "files": [
+    {
+     "file": "vista_buildings.bin",
+     "bytes": 1202521,
+     "sha256": "03f41fa6076d231c7a680f4862d1c4482e6a1510849e5eb6380b11a0796e6302"
+    },
+    {
+     "file": "vista_buildings.json",
+     "bytes": 1763677,
+     "sha256": "92b26ecd7cb703557a72c21653c16f3bbdeac9b476d67ce163f2a1cfed91b80d"
+    }
+   ]
+  },
+  {
+   "id": "vista_labels",
+   "title": "Place labels for the City overview: Vista's neighbourhood and landmark names",
+   "file": "vista_labels.json",
+   "format": "JSON, local metres east/north from CITY_ORIGIN",
+   "bytes": 2340,
+   "sha256": "fd5bbac510db1fa752953ec569a84df372c921b5353cd57b4b702ecb39286b29",
+   "count": 34,
+   "source": {
+    "name": "Vista place labels: generated/labels.json + generated/extension_labels.json",
+    "publisher": "Ruijie Liu, Vista (vancouver-tall-view-tool)",
+    "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/917b28e/generated",
+    "retrieved": "2026-11-03",
+    "commit": "917b28e",
+    "request": "gh api repos/RuijieLiu6/vancouver-tall-view-tool/contents/generated/<file>?ref=917b28e (read only)",
+    "inputs_sha256": {
+     "labels.json": "53b4b2319a8631fcd6bf3c7e90759922104e38c40dfeeb28d600a8bed0a5c020",
+     "extension_labels.json": "9d1cc6027df37d718769c24c1eba1319e892a48ddbd8ca433165e29449378805"
+    },
+    "note": "Vista records no source for these anchors; treated as Vista's (Ruijie Liu's) own work. Positions are label anchors, not boundaries."
+   },
+   "licence": {
+    "name": "Ruijie Liu's own work (Vista), used with Ruijie's permission in this course project",
+    "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/917b28e"
+   },
+   "attribution": "Place labels: Vista (Ruijie Liu).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "Vista's model X/Y -> latitude/longitude with Vista's own formula -> EPSG:4617 -> EPSG:3157 (pure projection)"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "z is Vista's anchor height on its SRTM surface (display only, not a survey height); the app floats each label 40 m above the higher of z and the Toolkit ground, as Vista does."
+   },
+   "processing": {
+    "build": "python -I tools/build_vista_labels.py <raw_dir> public/data <commit> <retrieved>",
+    "outside_core_model": 16
+   },
+   "flag": "unverified",
+   "lazy": true
+  },
+  {
+   "id": "water",
+   "title": "Water in the view: OpenStreetMap coastline sea and inland water (display only)",
+   "file": "water.json",
+   "format": "JSON, local decimetres east/north from CITY_ORIGIN; polygons as [outer, holes...] flat x,y rings",
+   "bytes": 94646,
+   "sha256": "c1ed3ccd66b0022c58826011d65f0dababf9c6dc382424ee5b0d544d86f97d75",
+   "count": 190,
+   "source": {
+    "name": "OpenStreetMap natural=coastline, natural=water and landuse=reservoir (Overpass API)",
+    "publisher": "OpenStreetMap contributors",
+    "url": "https://www.openstreetmap.org/",
+    "retrieved": "2026-11-04",
+    "request": "https://overpass-api.de/api/interpreter [out:json][timeout:180];way[\"natural\"=\"coastline\"](49.195952,-123.241671,49.337123,-123.018414);out geom; ; https://overpass-api.de/api/interpreter [out:json][timeout:180];(way[\"natural\"=\"water\"](49.195952,-123.241671,49.337123,-123.018414);relation[\"natural\"=\"water\"](49.195952,-123.241671,49.337123,-123.018414);way[\"landuse\"=\"reservoir\"](49.195952,-123.241671,49.337123,-123.018414););out geom;",
+    "inputs_sha256": {
+     "coastline.json": "719688903ea36cd232f8080d7359d914ba5f704a4f11de94fe62e0c7d7092584",
+     "water.json": "3ef7bf97b3c7e940e15881379651bb602dfd8ea5763e9e38c3408177fa54f811"
+    },
+    "note": "Same approach as Vista's water (OSM coastline polygonized, land on the left; plus closed water ways), over the whole Toolkit plinth."
+   },
+   "licence": {
+    "name": "Open Database License (ODbL) 1.0",
+    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+   },
+   "attribution": "Water (c) OpenStreetMap contributors (ODbL).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "OSM latitude/longitude taken as EPSG:4617 -> EPSG:3157 (pure projection), as the other OSM layers"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "Display only: the terrain inside these polygons is drawn in the water colour. No elevation is changed; the checks keep the City ground and MRDEM (CGVD28)."
+   },
+   "processing": {
+    "build": "python -I tools/build_water_mask.py <raw_dir> public/data <retrieved>",
+    "sea_km2": 66.14,
+    "inland_bodies": 229,
+    "area_km2": 71.82,
+    "simplify_m": 1.0
+   },
+   "flag": "unverified",
+   "lazy": true
   }
  ]
 }

@@ -22,12 +22,23 @@ async function project(p: Page, which: Proj) {
   await dismiss(p)
 }
 async function stage(p: Page, key: '1' | '2' | '3') { await dismiss(p); await p.keyboard.press(key); await p.waitForTimeout(1800) }
+/**
+ * Shows a node's results. Switching a node on in the bottom bar also selects it; a node that is already on is picked
+ * in the results panel's "Show results for" list (clicking its icon would switch it off).
+ */
+async function showNode(p: Page, name: string) {
+  const sw = p.getByRole('switch', { name: `Use ${name}`, exact: true })
+  await sw.waitFor({ timeout: 20_000 })
+  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+  else {
+    await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+    await p.getByLabel('Show results for').selectOption({ label: name })
+  }
+  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+}
 async function node(p: Page, name: string) {
   await dismiss(p)
-  await p.locator('aside').getByText(name, { exact: true }).first().click()
-  const sw = p.getByRole('switch', { name: `Use ${name}` })
-  if (await sw.count() && (await sw.getAttribute('aria-checked')) === 'false') await sw.click()
-  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await showNode(p, name)
   await p.waitForTimeout(1500)
 }
 /** Landing → "Open the demo project" → the guided app on the given project and stage. */
@@ -58,7 +69,6 @@ test('stages', async ({ page: p }) => {
   await shot(p, '02-massing-vtc')
 
   await stage(p, '2')
-  await p.getByRole('tab', { name: 'Design' }).click().catch(() => {})
   await p.getByRole('button', { name: 'Section cut' }).click().catch(() => {})
   await shot(p, '03a-schematic-xray-section')
   await p.getByRole('button', { name: 'Section cut' }).click().catch(() => {})
@@ -93,7 +103,6 @@ test('view from here + import dialog', async ({ page: p }) => {
   await demo(p, 'Real Vancouver')
   await panels(p, [[20, 'View from here']])
   await project(p, 'Competition site')
-  await p.getByRole('tab', { name: 'Design' }).click().catch(() => {})
   await p.locator('button[title^="Import a massing"]').first().click().catch(() => p.getByRole('button', { name: 'Import', exact: true }).first().click())
   await p.waitForTimeout(800)
   await shot(p, '10-node-21-import-massing-dialog')

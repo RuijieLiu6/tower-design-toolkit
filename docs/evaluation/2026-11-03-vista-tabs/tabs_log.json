@@ -1,0 +1,229 @@
+{
+ "errors": [],
+ "log": {
+  "01_city_default": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "02_plan": {
+   "cam": {
+    "pos": [
+     336,
+     156,
+     12738
+    ],
+    "target": [
+     336,
+     156,
+     33
+    ],
+    "fov": 20
+   },
+   "pressed": [
+    "Plan"
+   ],
+   "caption": "Plan · north up · drag to pan · scroll to zoom."
+  },
+  "03_city_again": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "04_inspect": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "Inspect"
+   ],
+   "caption": "Inspect · click a building for its height, type and sources."
+  },
+  "05_observer_default_cone": {
+   "cam": {
+    "pos": [
+     516,
+     -4218,
+     125
+    ],
+    "target": [
+     516,
+     -4217,
+     125
+    ],
+    "fov": 19.3
+   },
+   "pressed": [
+    "Observer"
+   ],
+   "caption": "Observer · from a protected viewpoint · drag to look around · Esc to leave."
+  },
+  "observerSelect": "3.2.3",
+  "06_observer_cone_E": {
+   "cam": {
+    "pos": [
+     350,
+     -1159,
+     18
+    ],
+    "target": [
+     351,
+     -1159,
+     18
+    ],
+    "fov": 22.2
+   },
+   "pressed": [
+    "Observer"
+   ],
+   "caption": "Observer · from a protected viewpoint · drag to look around · Esc to leave."
+  },
+  "07_viewcone_panel": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City",
+    "Viewcone"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "08_only_over_site": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City",
+    "Viewcone"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "09_all_off": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City",
+    "Viewcone"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "layersSummary": "View cone layersall 24 shown",
+  "10_city_cones_vs_vista": {
+   "cam": {
+    "pos": [
+     9914,
+     -118,
+     6161
+    ],
+    "target": [
+     2365,
+     -251,
+     20
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "timing": {
+   "msPerFrame": 37.7,
+   "calls": 67,
+   "triangles": 5619586,
+   "size": [
+    1070,
+    799
+   ],
+   "renderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "11_cone_closer": {
+   "cam": {
+    "pos": [
+     2600,
+     -2600,
+     1500
+    ],
+    "target": [
+     400,
+     300,
+     60
+    ],
+    "fov": 45
+   },
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  }
+ }
+}

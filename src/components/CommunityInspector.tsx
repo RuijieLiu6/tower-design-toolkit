@@ -12,6 +12,7 @@ import { useStore } from '../store'
 import { FlagChip, NumberField, Section, StateChip, Toggle } from './ui'
 import CodeNodeGate from './CodeNodeGate'
 import { U } from './Units'
+import { useShallow } from 'zustand/react/shallow'
 
 /** State chip, or "Info" for a value the node shows on purpose with no good or bad. */
 export function ResultChip({ r }: { r: CommunityResult }) {
@@ -63,7 +64,7 @@ function Parameters({ p }: { p: NodePackage }) {
 export default function CommunityInspector({ id }: { id: string }) {
   const p = useCommunityStore((s) => s.packages.find((x) => x.id === id))
   const removePackage = useCommunityStore((s) => s.removePackage)
-  const { enabled, toggleNode, project } = useStore()
+  const { enabled, toggleNode, project } = useStore(useShallow((s) => ({ enabled: s.enabled, toggleNode: s.toggleNode, project: s.project })))
   const run = useCommunityResults().get(id)
   const [confirmRemove, setConfirmRemove] = useState(false)
   if (!p) return <div className="p-4 text-xs text-muted">This node is no longer in My nodes. Select another node in the library.</div>

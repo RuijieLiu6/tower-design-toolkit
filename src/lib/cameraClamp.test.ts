@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EYE_CLEARANCE, MAX_POLAR, clampView, nearFor, polarOf, registerGround, relaxPolar, sceneGround, sightTarget, type V3 } from './cameraClamp'
+import { EYE_CLEARANCE, MAX_POLAR, TARGET_CEILING, clampView, nearFor, polarOf, registerGround, relaxPolar, sceneGround, sightTarget, type V3 } from './cameraClamp'
 import type { Plinth } from './plinth'
 
 const plinth: Plinth = { x0: -100, y0: -100, x1: 100, y1: 100, bottom: -10 }
@@ -21,6 +21,12 @@ describe('camera clamp', () => {
     expect(r.target).toEqual([100, 10, 0])
     expect(r.cam).toEqual([120, -40, 300])
     dir(r.cam, r.target).forEach((v, i) => expect(v).toBeCloseTo(dir(cam, target)[i]))
+  })
+
+  it('stops a pan that would carry the target into the sky', () => {
+    const r = clampView([2360, -3800, 18500], [160, 0, 16200], () => 0, plinth)
+    expect(r.target).toEqual([100, 0, TARGET_CEILING]) // also held at the plinth edge
+    expect(r.cam).toEqual([2300, -3800, 18500 - 16200 + TARGET_CEILING])
   })
 
   it('brings a target below the ground up to it, camera and all', () => {

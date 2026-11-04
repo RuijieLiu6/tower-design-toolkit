@@ -1,10 +1,11 @@
 // Inspector panel of the "Your model" node: the uploaded model (Layer 0 interchange), what each tool reads from it
 // through its converter, and where every element came from. Nothing here computes a result of its own.
-import { Box, FileUp, Trash2 } from 'lucide-react'
+import { Box, FileUp, Link2, RefreshCw, Trash2, Unlink } from 'lucide-react'
 import { useMemo } from 'react'
 import { VTC_NORTH_DEG } from '../../context'
 import { USES, type UseId } from '../../engine/types'
 import { forgetModel } from '../../lib/interchange/apply'
+import { checkLinkNow, stopLink, useLiveLink } from '../../lib/interchange/live'
 import { toCustomize, toFloorAreas, toNodeTowers, toPresent, toPublicRealm, toShadowCasters, toViewConeInputs } from '../../lib/interchange/converters'
 import { ROLE_COLOR, ROLE_LABEL } from '../../lib/interchange/model'
 import { useImportStore } from '../../lib/import/store'
@@ -22,6 +23,7 @@ export default function ModelPanel() {
     realm: toPublicRealm(model, towers, north), floors: toFloorAreas(model, towers), present: toPresent(model, towers), canvas: toCustomize(model, towers),
   } : null), [model, towers, ground, north])
   const upload = () => useImportStore.getState().openDialog()
+  const live = useLiveLink()
 
   if (!model || !c) {
     return (
@@ -52,6 +54,15 @@ export default function ModelPanel() {
           <dt className="text-muted">North</dt><dd>{f.north.label}{f.north.fileNorthDeg != null ? ` (${f.north.fileNorthDeg}° from file +Y)` : ''}</dd><FlagChip flag={f.north.flag} />
           <dt className="text-muted">Zero level</dt><dd>{f.datum.label}{f.datum.shift ? ` (${f.datum.shift} m subtracted)` : ''}</dd><FlagChip flag={f.datum.flag} />
         </dl>
+        {live.status !== 'off' && (
+          <div className={`mt-2 rounded-md border px-2 py-1.5 text-[11px] ${live.status === 'error' ? 'border-red-200 bg-red-50 text-red-900' : 'border-accent/30 bg-accent/5'}`} role="status">
+            <div className="flex items-center gap-1.5"><Link2 size={12} className="shrink-0 text-accent" aria-hidden /><b className="truncate">Linked to {live.name}</b>
+              <button onClick={() => void checkLinkNow()} className="ml-auto flex items-center gap-1 text-accent hover:underline"><RefreshCw size={11} />Check now</button>
+              <button onClick={stopLink} className="flex items-center gap-1 text-muted hover:text-ink"><Unlink size={11} />Unlink</button>
+            </div>
+            <p className="mt-0.5 text-muted">{live.status === 'reading' ? 'Reading the new save…' : live.message} Checked every 2 s while this tab is open; the link ends when the tab closes.</p>
+          </div>
+        )}
         {removed.length > 0 && <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">{removed.map((t) => t.name).join(', ')} {removed.length === 1 ? 'was' : 'were'} removed from the project after upload; the checks below leave {removed.length === 1 ? 'it' : 'them'} out.</p>}
       </Section>
 

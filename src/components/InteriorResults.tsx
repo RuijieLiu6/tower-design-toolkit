@@ -15,6 +15,7 @@ import { useStore, useTowers } from '../store'
 import PlanDrawing from './PlanDrawing'
 import { FlagChip, NumberField, Section, StateChip, Toggle } from './ui'
 import { U } from './Units'
+import { useShallow } from 'zustand/react/shallow'
 
 function Card({ r }: { r: RuleResult }) {
   return (
@@ -49,7 +50,7 @@ function ActivityRows({ list, onChange }: { list: Activity[]; onChange: (l: Acti
 
 export default function InteriorResults() {
   const towers = useTowers()
-  const { selectedTower, updateTower, liftPresets, egressPresets } = useStore()
+  const { selectedTower, updateTower, liftPresets, egressPresets } = useStore(useShallow((s) => ({ selectedTower: s.selectedTower, updateTower: s.updateTower, liftPresets: s.liftPresets, egressPresets: s.egressPresets })))
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
   const econ = useEconomics()
   const { permitYear, landPrice, includeRegional } = useEconStore()

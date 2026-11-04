@@ -6,7 +6,7 @@ import { VISTA_EXAMPLES, convertBlock, nearbyRoofs, parseVistaHash } from '../en
 import { applyBuildingForms, type BuildingForms } from './cityGeometry'
 import { decodeFootprints, decodeHeights, type Manifest } from './cityLayers'
 import {
-  designOutlines, footprintsUnder, maskHeights, maskIndex, overlaps, removalCounts, removalUnder, shrinkRing, visibleIndex,
+  designOutlines, footprintsUnder, maskHeights, maskIndex, overlaps, removalCounts, removalNote, removalUnder, shrinkRing, visibleIndex,
 } from './cityRemoval'
 
 const sq = (x: number, y: number, s: number, holes: Pt[][] = []): FootprintLike => ({ outer: [[x, y], [x + s, y], [x + s, y + s], [x, y + s]], holes })
@@ -64,6 +64,35 @@ describe('which existing footprints a design outline hides', () => {
     expect(removalUnder(fps, [tower({ width: 40, depth: 4, rotation: 0 })]).byTower[0].indices).toEqual([1])
   })
 
+  it('hides a building half under the tower whole, so nothing existing shows through the proposal', () => {
+    // A 30 × 20 m building, its west half under a 20 m tower (x ∈ [-10, 10]): the whole footprint goes, east half too.
+    const half = { outer: rect(0, -10, 30, 10), holes: [] }
+    expect(removalUnder([half], [tower({})]).byTower[0].indices).toEqual([0])
+  })
+
+  it('a building drawn as several parts loses only the parts the tower touches', () => {
+    // One building as three parts west to east; the tower covers the west part and reaches 3 m (2.5 m after the inset)
+    // into the middle one; the east part stays.
+    const parts = [{ outer: rect(-12, -8, 6, 8), holes: [] }, { outer: rect(7, -8, 20, 8), holes: [] }, { outer: rect(20, -8, 40, 8), holes: [] }]
+    const t = tower({ x: 0, width: 20 }) // x ∈ [-10, 10]
+    expect(removalUnder(parts, [t]).byTower[0].indices).toEqual([0, 1])
+  })
+
+  it('an overlap under 0.5 m deep keeps the neighbour (shared-wall rule); 0.6 m hides it', () => {
+    const t = tower({}) // x ∈ [-10, 10]
+    expect(removalUnder([sq(9.6, -5, 10)], [t]).hidden.size).toBe(0) // 0.4 m under the tower's east face
+    expect(removalUnder([sq(9.4, -5, 10)], [t]).hidden.size).toBe(1) // 0.6 m
+  })
+
+  it('states the removal with its rule and caveat, and says nothing when nothing is hidden', () => {
+    expect(removalNote(0, ['T'])).toBeNull()
+    const n = removalNote(3, ['Shangri-La Vancouver'], 1)!
+    expect(n).toMatch(/^Existing buildings under the design: 3 existing building footprints are hidden \(under Shangri-La Vancouver; 1 replaced by the study site\)/)
+    expect(n).toContain('hidden whole, including any of it outside the outline')
+    expect(n).toContain('Hypothetical removal; not evidence of vacancy or redevelopment eligibility.')
+    expect(removalNote(1, [])).toMatch(/1 existing building footprint is hidden, so it is not drawn/)
+  })
+
   it('counts measured roofs and height-unknown outlines separately', () => {
     const h: HeightsLike = { ground: Float32Array.from([10, NaN, 10]), roof: Float32Array.from([40, NaN, 50]), max: Float32Array.from([42, NaN, 52]), points: Uint16Array.from([100, 0, 90]) }
     expect(removalCounts(new Set([0, 1]), h)).toEqual({ total: 2, measured: 1, outlines: 1 })
@@ -90,7 +119,7 @@ describe('views pass through hidden buildings', () => {
     const before = castRay({ ...inp, idx, heights }, 0)
     const after = castRay({ ...inp, idx: mIdx, heights: mH }, 0)
     expect(before.near.distance).toBeLessThan(125)
-    expect(after.near.label).toBe('a building (measured roof)')
+    expect(after.near.label).toBe('a building')
     expect(after.near.distance).toBeGreaterThan(295)
   })
 

@@ -1,5 +1,5 @@
 // Right panel of the builder: the selected node's question, live lines with sources and flags, and its settings.
-import { Copy, ExternalLink, FlaskConical, Keyboard, PanelRightClose, Plus, Trash, Ungroup } from 'lucide-react'
+import { Copy, ExternalLink, FlaskConical, Keyboard, PanelRightClose, Plus, Trash, Ungroup, Power, PowerOff } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
 import type { ReactNode } from 'react'
 import { CATEGORIES, JURY_LABEL } from '../../data/registry'
@@ -215,13 +215,21 @@ export default function WfInspector({ outputs, onClose }: { outputs: Record<stri
               <div className="mt-2 flex gap-1.5">
                 <button onClick={() => duplicateSelected()} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent"><Copy size={12} aria-hidden />Duplicate</button>
                 <button onClick={() => deleteElements({ nodes: [{ id: node.id }] })} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-red-400 hover:text-red-700"><Trash size={12} aria-hidden />Remove</button>
+                {node.data.kind !== 'source' && (
+                  <button onClick={() => updateData(node.id, { off: !node.data.off })} aria-pressed={!!node.data.off}
+                    title={node.data.off ? 'Switch this node back on' : 'Switch this node off: it gives no verdict and the checks after it are blocked (never computed on missing data)'}
+                    className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] ${node.data.off ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-line hover:border-accent'}`}>
+                    {node.data.off ? <><Power size={12} aria-hidden />Switch on</> : <><PowerOff size={12} aria-hidden />Switch off</>}
+                  </button>
+                )}
               </div>
             </Block>
             {node.data.ref === 'logic.score' && <ScoreSettings node={node} />}
             {node.data.ref === 'logic.compare' && <CompareSettings node={node} />}
             {entry?.status === 'researched' ? <Researched e={entry} /> : out && node.data.kind !== 'source' && (
-              <Block title="Live result" right={<StateWord state={out.state} />}>
+              <Block title={out.run?.status === 'waiting' ? 'Not run yet' : out.run ? 'Run status' : 'Live result'} right={out.run ? <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">{out.run.status === 'off' ? 'Off' : out.run.status === 'blocked' ? 'Blocked' : 'Waiting'}</span> : <StateWord state={out.state} />}>
                 <p className="mb-2 text-[11.5px]">{out.headline}</p>
+                {out.ms !== undefined && !out.run && <p className="-mt-1 mb-2 text-[11px] text-muted">Computed in {out.ms < 1 ? 'under 1' : out.ms.toFixed(0)} ms</p>}
                 {out.breakdown && node.data.ref === 'logic.score' && (
                   <ul className="mb-2 space-y-0.5 text-[10.5px] text-muted">{out.breakdown.map((b) => <li key={b.id} className="flex justify-between gap-2"><span className="truncate">{b.label} × {b.weight}</span><span className="tabular-nums">{Number.isFinite(b.score) ? `${Math.round(b.score * 100)} / 100` : 'not scored'} ({b.scored} scored{b.unscored ? `, ${b.unscored} unknown` : ''})</span></li>)}</ul>
                 )}

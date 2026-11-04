@@ -1,0 +1,313 @@
+{
+ "errors": [],
+ "log": {
+  "plain_overview_all": {
+   "ms": 47.5,
+   "calls": 41,
+   "triangles": 5568064,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_overview_noGlow": {
+   "ms": 45.6,
+   "calls": 36,
+   "triangles": 5566414,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_overview_noEdge": {
+   "ms": 46.5,
+   "calls": 38,
+   "triangles": 5565838,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_overview_noFill": {
+   "ms": 46.3,
+   "calls": 39,
+   "triangles": 5567712,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_overview_noTrace": {
+   "ms": 47.7,
+   "calls": 40,
+   "triangles": 5568064,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_overview_noOutline": {
+   "ms": 47.4,
+   "calls": 41,
+   "triangles": 5568064,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_overview_conesOff": {
+   "ms": 43.5,
+   "calls": 30,
+   "triangles": 5563836,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_all": {
+   "ms": 59.8,
+   "calls": 36,
+   "triangles": 5567952,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_noGlow": {
+   "ms": 56.6,
+   "calls": 31,
+   "triangles": 5566302,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_noEdge": {
+   "ms": 57.3,
+   "calls": 33,
+   "triangles": 5565726,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_noFill": {
+   "ms": 56.1,
+   "calls": 34,
+   "triangles": 5567600,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_noTrace": {
+   "ms": 57.5,
+   "calls": 35,
+   "triangles": 5567952,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_noOutline": {
+   "ms": 58.5,
+   "calls": 36,
+   "triangles": 5567952,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "plain_close_conesOff": {
+   "ms": 52.4,
+   "calls": 25,
+   "triangles": 5563724,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_all": {
+   "ms": 61.2,
+   "calls": 47,
+   "triangles": 5877978,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_noGlow": {
+   "ms": 59.3,
+   "calls": 42,
+   "triangles": 5876328,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_noEdge": {
+   "ms": 60,
+   "calls": 44,
+   "triangles": 5875752,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_noFill": {
+   "ms": 58.3,
+   "calls": 45,
+   "triangles": 5877626,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_noTrace": {
+   "ms": 62.9,
+   "calls": 46,
+   "triangles": 5877978,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_noOutline": {
+   "ms": 56.1,
+   "calls": 47,
+   "triangles": 5877978,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_overview_conesOff": {
+   "ms": 53.8,
+   "calls": 36,
+   "triangles": 5873750,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_all": {
+   "ms": 75,
+   "calls": 42,
+   "triangles": 5877866,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_noGlow": {
+   "ms": 73.8,
+   "calls": 37,
+   "triangles": 5876216,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_noEdge": {
+   "ms": 73.7,
+   "calls": 39,
+   "triangles": 5875640,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_noFill": {
+   "ms": 72.3,
+   "calls": 40,
+   "triangles": 5877514,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_noTrace": {
+   "ms": 74.3,
+   "calls": 41,
+   "triangles": 5877866,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_noOutline": {
+   "ms": 74.8,
+   "calls": 42,
+   "triangles": 5877866,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  },
+  "context_close_conesOff": {
+   "ms": 69,
+   "calls": 31,
+   "triangles": 5873638,
+   "objects": {
+    "cone:fill": 1,
+    "cone:glow": 5,
+    "cone:edge": 3,
+    "cone:trace": 1
+   }
+  }
+ }
+}

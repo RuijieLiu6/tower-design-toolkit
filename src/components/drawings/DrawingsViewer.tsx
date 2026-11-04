@@ -12,6 +12,7 @@ import { useBoardStore } from '../../lib/boardStore'
 import { useStore, useTowers } from '../../store'
 import PlanDrawing from '../PlanDrawing'
 import { useUnits } from '../../lib/units'
+import { useShallow } from 'zustand/react/shallow'
 
 type Choice = { kind: 'plan'; level: number; label: string } | { kind: 'section' } | { kind: 'elevation'; face: number }
 
@@ -58,7 +59,7 @@ function planText(root: HTMLElement | null): string | null {
 
 export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
   const towers = useTowers()
-  const { selectedTower, project } = useStore()
+  const { selectedTower, project } = useStore(useShallow((s) => ({ selectedTower: s.selectedTower, project: s.project })))
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
   const unit = useUnits((st) => st.unit)

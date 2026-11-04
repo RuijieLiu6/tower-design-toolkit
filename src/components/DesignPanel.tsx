@@ -1,3 +1,6 @@
+// The guided app's design tools (left panel). Each export is one tool's body; the tool definitions that place them in the
+// panel are in tools/builtin.tool.tsx.
+import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Crosshair, Expand, FileUp, Plus, Scissors, Sparkles, Trash2 } from 'lucide-react'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
@@ -5,14 +8,16 @@ import { stablePostedLimit } from '../engine/skyRoom'
 import { DEFAULT_LIFT_PRESETS, suggestSkyLobby, type LiftPresets } from '../engine/lifts'
 import { coreSide, towerFloors } from '../engine/massing'
 import { USES, type SkyRoom, type StairPlacement, type UseId } from '../engine/types'
-import { SITE, TIER_LABEL, type FsrTier } from '../engine/vtcRules'
+import { TIER_LABEL, type FsrTier } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { DEFAULT_SKY_ROOM, useStore, useTowers } from '../store'
 import BlockEditor from './BlockEditor'
+import FsrSiteLine from './FsrSiteLine'
 import ImportedPanel from './ImportedPanel'
 import { useImportStore } from '../lib/import/store'
 import PublicRealmPanel from './PublicRealmPanel'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
+import { useShallow } from 'zustand/react/shallow'
 
 function ProgramIcon({ use, small = false }: { use: UseId; small?: boolean }) {
   const Icon = PROGRAM_ICONS[use]
@@ -45,7 +50,7 @@ function LiftPresetFields({ presets, onChange }: { presets: LiftPresets; onChang
             value={presets[f.key] * (f.scale ?? 1)} onChange={(v) => onChange({ [f.key]: Math.max(f.key === 'wallAllowance' ? 0 : f.key === 'utilisation' ? 0.05 : 0.1, v / (f.scale ?? 1)) })} />
         ))}
         <div className="col-span-2 flex items-center gap-1"><FlagChip flag="team_assumption" />
-          <button onClick={() => onChange(DEFAULT_LIFT_PRESETS)} className="ml-auto text-[10px] text-accent hover:underline">Reset presets</button>
+          <button onClick={() => onChange(DEFAULT_LIFT_PRESETS)} className="ml-auto text-[11px] text-accent hover:underline">Reset presets</button>
         </div>
       </div>
     </details>
@@ -74,10 +79,10 @@ function EgressPresetFields({ presets, onChange }: { presets: EgressPresets; onC
         <NumberField label="Riser" unit="mm" value={Math.round(presets.riser * 1000)} onChange={(v) => onChange({ riser: Math.max(100, v) / 1000 })} step={5} hint="At most 180 mm keeps the 8 mm per person rate" />
         <NumberField label="Tread" unit="mm" value={Math.round(presets.tread * 1000)} onChange={(v) => onChange({ tread: Math.max(200, v) / 1000 })} step={5} hint="At least 280 mm keeps the 8 mm per person rate" />
         <NumberField label="Amenity floors, m² per person" value={presets.amenityFactor} onChange={(v) => onChange({ amenityFactor: Math.max(0.3, v) })} step={0.1} hint="4.6 personal services until programmed; 1.2 dining; 0.4 standing (VBBL Table 3.1.17.1)" />
-        <span className="self-end pb-1 text-[10px] text-muted">4.6 until programmed · 1.2 dining · 0.4 standing</span>
+        <span className="self-end pb-1 text-[11px] text-muted">4.6 until programmed · 1.2 dining · 0.4 standing</span>
         <label className="col-span-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={presets.officeCorridor} onChange={() => onChange({ officeCorridor: !presets.officeCorridor })} />Office floors have a public corridor (exits then need only be 9 m apart)</label>
         <div className="col-span-2 flex items-center gap-1"><FlagChip flag="team_assumption" />
-          <button onClick={() => onChange(DEFAULT_EGRESS_PRESETS)} className="ml-auto text-[10px] text-accent hover:underline">Reset presets</button>
+          <button onClick={() => onChange(DEFAULT_EGRESS_PRESETS)} className="ml-auto text-[11px] text-accent hover:underline">Reset presets</button>
         </div>
       </div>
     </details>
@@ -86,7 +91,7 @@ function EgressPresetFields({ presets, onChange }: { presets: EgressPresets; onC
 
 /** Settings of the public sky room; every one is a team assumption (research P06-M07, P11-M02). */
 function SkyRoomFields({ room, onChange, suggested }: { room: SkyRoom; onChange: (patch: Partial<SkyRoom>) => void; suggested: { limit: number; widthMm: number } | null }) {
-  const seg = (on: boolean) => `flex-1 rounded px-2 py-1 text-[11px] ${on ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`
+  const seg = (on: boolean) => `flex-1 rounded px-2 py-1 text-[11px] ${on ? 'bg-panel font-semibold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'}`
   return (
     <div className="mt-1.5 grid gap-2 rounded-md border border-[#8e5ba8]/40 bg-[#8e5ba8]/[0.05] p-2">
       <div className="flex items-center gap-1.5 text-xs font-medium text-[#6d3f8a]"><Sparkles size={13} />Public sky room at level {room.level}</div>
@@ -118,26 +123,198 @@ function SkyRoomFields({ room, onChange, suggested }: { room: SkyRoom; onChange:
             ? <button onClick={() => onChange({ postedLimit: suggested.limit })} className="justify-self-start text-left text-[11px] text-accent hover:underline">
                 Post {suggested.limit} visitors: the room then needs no wider stairs than the other floors ({Math.round(suggested.widthMm)} mm)
               </button>
-            : <span className="text-[10px] text-muted">The rest of this floor alone needs wider stairs than the other floors: give the room a larger share of the floor.</span>
+            : <span className="text-[11px] text-muted">The rest of this floor alone needs wider stairs than the other floors: give the room a larger share of the floor.</span>
         )}
       </div>
-      <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">The 1997 Higher Buildings Policy asks for a public deck or amenity where possible; sizes, hours and visitor numbers are team presets.</span></div>
+      <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">The 1997 Higher Buildings Policy asks for a public deck or amenity where possible; sizes, hours and visitor numbers are team presets.</span></div>
     </div>
   )
 }
 
-export default function DesignPanel() {
+/** The tower the design tools edit: the selected one, or the first. */
+function useEditedTower() {
   const towers = useTowers()
-  const { project, phase, selectedTower, selectTower, updateTower, addTower, removeTower, placing, set, fsrTier, transitLink, groundElevation, groundMode, sun, enabled, sectionOn, sectionLevel, explode, liftPresets, setLiftPresets, egressPresets, setEgressPresets } = useStore()
+  const selectedTower = useStore((s) => s.selectedTower)
+  const updateTower = useStore((s) => s.updateTower)
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
-  const { fsr, lifts } = useResults()
+  const up = (patch: Parameters<typeof updateTower>[1]) => { if (t) updateTower(t.id, patch) }
+  return { t, towers, up }
+}
+
+/** A block inside a design tool: an optional small heading, then the controls. */
+export function ToolBlock({ title, right, children }: { title?: string; right?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="border-b border-line px-4 py-3 last:border-b-0">
+      {(title || right) && (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          {title && <h4 className="text-[11px] font-semibold text-muted">{title}</h4>}
+          {right}
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
+
+/** Which tower the other tools are editing (they all follow the Towers & site selection). */
+function EditingTag({ name }: { name: string }) {
+  return <p className="mb-2 text-[11px] text-muted">Editing <span className="font-semibold text-ink">{name}</span> · pick another tower in Towers &amp; site</p>
+}
+
+/** Towers & site: pick, add, import, place and remove towers; the site's ground level in Real Vancouver. */
+export function TowersTool() {
+  const { t, towers } = useEditedTower()
+  const { project, selectTower, addTower, removeTower, placing, set, groundElevation, groundMode } = useStore(useShallow((s) => ({ project: s.project, selectTower: s.selectTower, addTower: s.addTower, removeTower: s.removeTower, placing: s.placing, set: s.set, groundElevation: s.groundElevation, groundMode: s.groundMode })))
   if (!t) return null
-  const up = (patch: Parameters<typeof updateTower>[1]) => updateTower(t.id, patch)
+  return (
+    <>
+      <ToolBlock title="Towers" right={<span className="flex items-center gap-3"><button onClick={() => useImportStore.getState().openDialog()} title="Import a massing model (3DM, OBJ, glTF, IFC)" className="flex items-center gap-1 text-[11px] text-accent hover:underline"><FileUp size={12} />Import</button><button onClick={addTower} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add tower</button></span>}>
+        <div className="flex flex-wrap gap-1">
+          {towers.map((x) => (
+            <button key={x.id} onClick={() => selectTower(x.id)} aria-pressed={x.id === t.id} className={`rounded-md border px-2 py-1 text-xs ${x.id === t.id ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{x.name}</button>
+          ))}
+        </div>
+        <div className="mt-2 flex gap-2">
+          <button onClick={() => set({ placing: !placing })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${placing ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`} title="Then click the ground in the 3D view (P)">
+            <Crosshair size={13} />{placing ? 'Click the ground…' : 'Place on map'}
+          </button>
+          {towers.length > 1 && <button onClick={() => removeTower(t.id)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-muted hover:text-red-700"><Trash2 size={13} />Remove</button>}
+        </div>
+      </ToolBlock>
+      {project === 'city' && (
+        <ToolBlock title="Site">
+          <NumberField label="Ground elevation at the site (geodetic)" value={groundElevation} onChange={(v) => set({ groundElevation: v, groundMode: 'manual' })} unit="m"
+            hint={groundMode === 'terrain'
+              ? 'From the terrain under the selected tower (City LiDAR 2022 or MRDEM-30, CGVD28; unverified). Typing a value sets it by hand.'
+              : 'Set by hand (team assumption). The Ground card can switch it back to the terrain.'} />
+        </ToolBlock>
+      )}
+    </>
+  )
+}
+
+/** Massing: height, rotation, floor-to-floor, the stacked blocks and the podium use (or the imported model). */
+export function MassingTool() {
+  const { t, up } = useEditedTower()
+  if (!t) return null
+  if (t.imported) return <ImportedPanel t={t} />
   const floors = towerFloors(t)
+  return (
+    <ToolBlock>
+      <EditingTag name={t.name} />
+      <div className="grid gap-2.5">
+        <NumberField label="Height (architectural top)" value={t.height} onChange={(v) => up({ height: v })} min={60} max={420} step={1} unit="m" />
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Rotation (whole tower)" value={t.rotation} onChange={(v) => up({ rotation: v })} unit="°" />
+          <NumberField label="Floor-to-floor" value={t.f2f} onChange={(v) => up({ f2f: Math.max(2.8, v) })} step={0.1} unit="m" />
+        </div>
+        <BlockEditor t={t} />
+        <label className="flex items-center justify-between text-xs"><span className="text-muted">Podium use</span>
+          <select value={t.podiumUse} onChange={(e) => up({ podiumUse: e.target.value as UseId })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
+            {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
+          </select>
+        </label>
+        <div className="text-[11px] text-muted">{floors.length} floors · {Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m² gross · typical plate {(t.width * t.depth).toFixed(0)} m²{t.podiumHeight > 0 ? ` · podium ${t.podiumHeight.toFixed(1)} m` : ''}</div>
+      </div>
+    </ToolBlock>
+  )
+}
+
+/** Program: uses by floor band, the gross floor area by use and the FSR, and which uses count toward 9.0 (competition). */
+export function ProgramTool() {
+  const { t, up } = useEditedTower()
+  const { project, fsrTier, set } = useStore(useShallow((s) => ({ project: s.project, fsrTier: s.fsrTier, set: s.set })))
+  const { fsr } = useResults()
+  if (!t) return null
   const setBand = (i: number, patch: Partial<{ use: UseId; share: number }>) => up({ bands: t.bands.map((b, k) => (k === i ? { ...b, ...patch } : b)) })
   const moveBand = (i: number, d: number) => { const b = [...t.bands]; const j = i + d; if (j < 0 || j >= b.length) return; [b[i], b[j]] = [b[j], b[i]]; up({ bands: b }) }
   const shareTotal = t.bands.reduce((s, b) => s + b.share, 0) || 1
   const maxGfa = Math.max(...Object.values(fsr.gfa), 1)
+  return (
+    <>
+      {!t.imported && (
+        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Band</button>}>
+          <div className="grid gap-1.5">
+            {t.bands.map((b, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <ProgramIcon use={b.use} />
+                <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="w-32 rounded border border-line bg-panel px-1 py-0.5 text-[11px]" aria-label={`Band ${i + 1} use`}>
+                  {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
+                </select>
+                <input type="range" min={0} max={1} step={0.01} value={b.share} onChange={(e) => setBand(i, { share: Number(e.target.value) })} className="w-full accent-accent" aria-label={`Band ${i + 1} share`} />
+                <span className="w-9 text-right text-[11px] tabular-nums text-muted">{Math.round((b.share / shareTotal) * 100)}%</span>
+                <button onClick={() => moveBand(i, -1)} aria-label="Move band down" className="text-muted hover:text-ink"><ArrowDown size={12} /></button>
+                <button onClick={() => moveBand(i, 1)} aria-label="Move band up" className="text-muted hover:text-ink"><ArrowUp size={12} /></button>
+                <button onClick={() => up({ bands: t.bands.filter((_, k) => k !== i) })} aria-label="Remove band" className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
+              </div>
+            ))}
+          </div>
+        </ToolBlock>
+      )}
+      <Section title="Floor area (all towers, gross)">
+        <div className="grid gap-1">
+          {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (
+            <div key={u} className="flex items-center gap-2 text-[11px]">
+              <ProgramIcon use={u as UseId} small />
+              <span className="w-24 truncate text-muted">{USES[u as UseId].label}</span>
+              <div className="h-2 flex-1 rounded bg-slate-100"><div className="h-2 rounded" style={{ width: `${(v / maxGfa) * 100}%`, background: USES[u as UseId].color }} /></div>
+              <span className="w-20 text-right tabular-nums">{Math.round(v).toLocaleString()} m²</span>
+            </div>
+          ))}
+          <FsrSiteLine totalFsr={fsr.totalFsr} siteArea={fsr.siteArea} />
+        </div>
+      </Section>
+      {project === 'vtc' && (
+        <ToolBlock>
+          <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Which uses count toward the 9.0 non-residential FSR <FlagChip flag="team_assumption" /></span>
+            <select value={fsrTier} onChange={(e) => set({ fsrTier: Number(e.target.value) as FsrTier })} className="rounded border border-line px-1.5 py-1">
+              {([1, 2, 3] as FsrTier[]).map((k) => <option key={k} value={k}>{TIER_LABEL[k]}</option>)}
+            </select>
+          </label>
+        </ToolBlock>
+      )}
+    </>
+  )
+}
+
+/** Ground & public realm (competition site): streetwall, frontage and open-space inputs, and the transit link. */
+export function GroundTool() {
+  const { transitLink, set } = useStore(useShallow((s) => ({ transitLink: s.transitLink, set: s.set })))
+  return (
+    <>
+      <PublicRealmPanel />
+      <ToolBlock>
+        <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={transitLink} onChange={() => set({ transitLink: !transitLink })} /> Below-grade link to the transit station is designed</label>
+      </ToolBlock>
+    </>
+  )
+}
+
+/** Sun & time: the date and hour the shadow preview and sun-based views use. */
+export function SunTool() {
+  const { sun, set, enabled, toggleNode } = useStore(useShallow((s) => ({ sun: s.sun, set: s.set, enabled: s.enabled, toggleNode: s.toggleNode })))
+  return (
+    <ToolBlock>
+      <div className="grid grid-cols-3 gap-2">
+        <NumberField label="Month" value={sun.month} onChange={(v) => set({ sun: { ...sun, month: Math.min(12, Math.max(1, Math.round(v))) } })} />
+        <NumberField label="Day" value={sun.day} onChange={(v) => set({ sun: { ...sun, day: Math.min(31, Math.max(1, Math.round(v))) } })} />
+        <NumberField label="Hour" value={sun.hour} onChange={(v) => set({ sun: { ...sun, hour: Math.min(21, Math.max(5, v)) } })} step={0.25} />
+        <input type="range" min={5} max={21} step={0.25} value={sun.hour} onChange={(e) => set({ sun: { ...sun, hour: Number(e.target.value) } })} className="col-span-3 accent-accent" aria-label="Time of day" />
+      </div>
+      {!enabled['built.sun'] && (
+        <button onClick={() => toggleNode('built.sun')} className="mt-2 text-left text-[11px] text-accent hover:underline">Show the shadows: switch on “Sun &amp; shadow preview”</button>
+      )}
+    </ToolBlock>
+  )
+}
+
+/** Core & floors (Schematic): core share, plant floors, sky lobbies and the sky room, exit stairs, section and explode. */
+export function CoreTool() {
+  const { t, up } = useEditedTower()
+  const { set, sectionOn, sectionLevel, explode, liftPresets, setLiftPresets, egressPresets, setEgressPresets } = useStore(useShallow((s) => ({ set: s.set, sectionOn: s.sectionOn, sectionLevel: s.sectionLevel, explode: s.explode, liftPresets: s.liftPresets, setLiftPresets: s.setLiftPresets, egressPresets: s.egressPresets, setEgressPresets: s.setEgressPresets })))
+  const { lifts } = useResults()
+  if (!t) return null
+  const floors = towerFloors(t)
   const plantFloors = floors.filter((f) => f.use === 'mechanical' && !f.podium).length
   const top = floors.length ? floors[floors.length - 1].z1 : t.height
   const lift = lifts.find((l) => l.tower.id === t.id)
@@ -152,170 +329,73 @@ export default function DesignPanel() {
   const togglePublic = (lv: number) => up({ skyRoom: t.skyRoom?.level === lv ? null : { ...DEFAULT_SKY_ROOM, ...(t.skyRoom ?? {}), level: lv } })
 
   return (
-    <div>
-      {phase === 'advanced' && (
-        <Section title={`Schematic: ${t.name}`}>
-          <div className="grid gap-2.5">
-            <div>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="font-medium">Core</span>
-                <span className="flex items-center gap-1.5 text-[11px] text-muted"><Toggle checked={!!t.coreAuto} onChange={() => up({ coreAuto: !t.coreAuto })} label="Size the core to the lifts" />Size to the lifts</span>
-              </div>
-              <NumberField label={t.coreAuto ? 'Share of the tower plate: follows the lifts (drag to set by hand)' : 'Share of the tower plate: set by hand'} value={Math.round(t.coreShare * 1000) / 10}
-                onChange={(v) => up({ coreShare: Math.min(0.6, Math.max(0.05, v / 100)) })} min={5} max={60} step={0.5} unit="%" />
-            </div>
-            <NumberField label="Plant floor every N tower floors (0 = none)" value={t.plantEvery} onChange={(v) => up({ plantEvery: Math.max(0, Math.round(v)) })} min={0} max={40} step={1} />
-            <div>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="font-medium">Sky lobbies</span>
-                {suggestion !== null && <button onClick={() => up({ skyLobbies: [...sky, suggestion].sort((a, b) => a - b) })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add at level {suggestion}</button>}
-              </div>
-              {sky.length === 0 && <p className="text-[10px] text-muted">None: every rise runs from the ground lobby. A sky lobby puts the upper rises on shuttles, so their shafts stop running through the floors below.</p>}
-              <div className="grid gap-1">
-                {sky.map((lv, i) => (
-                  <div key={`${i}-${lv}`} className="flex items-center gap-2 text-xs">
-                    <span className="rounded bg-[#6cc0b8] px-1.5 py-0.5 text-[10px] font-semibold text-white">S{i + 1}</span>
-                    <label className="flex items-center gap-1 text-muted">Level
-                      <input type="number" defaultValue={lv} min={minSky} max={maxSky} onBlur={(e) => setSky(i, Number(e.target.value))} onKeyDown={(e) => { if (e.key === 'Enter') setSky(i, Number((e.target as HTMLInputElement).value)) }}
-                        className="w-14 rounded border border-line bg-panel px-1.5 py-0.5 text-ink tabular-nums" aria-label={`Sky lobby ${i + 1} level`} />
-                    </label>
-                    <span className="text-[10px] text-muted">+{Math.round(floors.find((f) => f.level === lv)?.z0 ?? 0)} m</span>
-                    <span className="ml-auto flex items-center gap-1 text-[10px] text-muted"><Toggle checked={t.skyRoom?.level === lv} onChange={() => togglePublic(lv)} label={`Public sky room at level ${lv}`} />Public</span>
-                    <button onClick={() => up({ skyLobbies: sky.filter((_, k) => k !== i) })} aria-label={`Remove sky lobby at level ${lv}`} className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
-                  </div>
-                ))}
-              </div>
-              {t.skyRoom && <SkyRoomFields room={t.skyRoom} onChange={(patch) => up({ skyRoom: { ...t.skyRoom!, ...patch } })} suggested={stablePostedLimit(t, liftPresets, egressPresets)} />}
-              {sky.length > 0 && <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">The sky lobby floor counts as public amenity; people above it change lifts once.{!t.skyRoom ? ' Switch one to Public to open it as a sky room.' : ''}</span></div>}
-            </div>
-            <div className="grid grid-cols-2 gap-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
-              <div><div className="text-muted">Core modelled</div><div className="font-semibold tabular-nums">{Math.round(t.coreShare * t.width * t.depth)} m² · {coreSide(t).toFixed(1)} m sq</div></div>
-              {lift && <div><div className="text-muted">Lifts and stairs need</div><div className={`font-semibold tabular-nums ${lift.requiredMax > lift.modelledCore + 0.5 ? 'text-red-700' : ''}`}>{Math.round(lift.requiredMax)} m² · {lift.totalCars} cars</div></div>}
-              {lift && <div><div className="text-muted">Net-to-gross</div><div className="font-semibold tabular-nums">{Math.round(lift.ntg * 100)}%</div></div>}
-              <div><div className="text-muted">Plant floors</div><div className="font-semibold tabular-nums">{plantFloors}</div></div>
-            </div>
-            <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Core share, plant spacing and the lift and egress presets are team assumptions, not code minimums. Net-to-gross uses the larger of the modelled and needed core.</span></div>
-            <div>
-              <div className="mb-1 text-xs font-medium">Exit stairs</div>
-              <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label="Exit stair placement">
-                {(['core', 'mixed', 'perimeter'] as StairPlacement[]).map((k) => {
-                  const on = (t.stairPlacement ?? 'core') === k
-                  return (
-                    <button key={k} role="radio" aria-checked={on} title={PLACEMENT_LABEL[k]} onClick={() => up({ stairPlacement: k })}
-                      className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-[11px] ${on ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
-                      <StairGlyph placement={k} />{k === 'core' ? 'In the core' : k === 'mixed' ? 'Core + edge' : 'At the edges'}
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="mt-1 text-[10px] text-muted">Stairs at the plate edge pass exit separation more easily and shrink the core, but take lettable floor and facade. Placement is a team assumption on geometry.</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => set({ sectionOn: !sectionOn, explode: false })} aria-pressed={sectionOn}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${sectionOn ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Scissors size={13} />Section cut</button>
-              <button onClick={() => set({ explode: !explode, sectionOn: false })} aria-pressed={explode}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${explode ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Expand size={13} />Explode zones</button>
-            </div>
-            {sectionOn && <NumberField label="Cut height above grade" value={sectionLevel} onChange={(v) => set({ sectionLevel: Math.min(top - 1, Math.max(1, v)) })} min={1} max={Math.max(2, Math.floor(top - 1))} step={1} unit="m" />}
-            <LiftPresetFields presets={liftPresets} onChange={setLiftPresets} />
-            <EgressPresetFields presets={egressPresets} onChange={setEgressPresets} />
+    <ToolBlock>
+      <EditingTag name={t.name} />
+      <div className="grid gap-2.5">
+        <div>
+          <div className="mb-1 flex items-center justify-between text-xs">
+            <span className="font-medium">Core</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-muted"><Toggle checked={!!t.coreAuto} onChange={() => up({ coreAuto: !t.coreAuto })} label="Size the core to the lifts" />Size to the lifts</span>
           </div>
-        </Section>
-      )}
-      <Section title="Towers" right={<span className="flex items-center gap-3"><button onClick={() => useImportStore.getState().openDialog()} title="Import a massing model (3DM, OBJ, glTF, IFC)" className="flex items-center gap-1 text-[11px] text-accent hover:underline"><FileUp size={12} />Import</button><button onClick={addTower} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add tower</button></span>}>
-        <div className="flex flex-wrap gap-1">
-          {towers.map((x) => (
-            <button key={x.id} onClick={() => selectTower(x.id)} className={`rounded-md border px-2 py-1 text-xs ${x.id === t.id ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{x.name}</button>
-          ))}
+          <NumberField label={t.coreAuto ? 'Share of the tower plate: follows the lifts (drag to set by hand)' : 'Share of the tower plate: set by hand'} value={Math.round(t.coreShare * 1000) / 10}
+            onChange={(v) => up({ coreShare: Math.min(0.6, Math.max(0.05, v / 100)) })} min={5} max={60} step={0.5} unit="%" />
         </div>
-        <div className="mt-2 flex gap-2">
-          <button onClick={() => set({ placing: !placing })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${placing ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`} title="Then click the ground in the 3D view (P)">
-            <Crosshair size={13} />{placing ? 'Click the ground…' : 'Place on map'}
-          </button>
-          {towers.length > 1 && <button onClick={() => removeTower(t.id)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-muted hover:text-red-700"><Trash2 size={13} />Remove</button>}
-        </div>
-      </Section>
-
-      {t.imported ? <ImportedPanel t={t} /> : (<>
-      <Section title={`Massing: ${t.name}`}>
-        <div className="grid gap-2.5">
-          <NumberField label="Height (architectural top)" value={t.height} onChange={(v) => up({ height: v })} min={60} max={420} step={1} unit="m" />
-          <div className="grid grid-cols-2 gap-2">
-            <NumberField label="Rotation (whole tower)" value={t.rotation} onChange={(v) => up({ rotation: v })} unit="°" />
-            <NumberField label="Floor-to-floor" value={t.f2f} onChange={(v) => up({ f2f: Math.max(2.8, v) })} step={0.1} unit="m" />
+        <NumberField label="Plant floor every N tower floors (0 = none)" value={t.plantEvery} onChange={(v) => up({ plantEvery: Math.max(0, Math.round(v)) })} min={0} max={40} step={1} />
+        <div>
+          <div className="mb-1 flex items-center justify-between text-xs">
+            <span className="font-medium">Sky lobbies</span>
+            {suggestion !== null && <button onClick={() => up({ skyLobbies: [...sky, suggestion].sort((a, b) => a - b) })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add at level {suggestion}</button>}
           </div>
-          <BlockEditor t={t} />
-          <label className="flex items-center justify-between text-xs"><span className="text-muted">Podium use</span>
-            <select value={t.podiumUse} onChange={(e) => up({ podiumUse: e.target.value as UseId })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
-              {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
-            </select>
-          </label>
-          <div className="text-[11px] text-muted">{floors.length} floors · {Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m² gross · typical plate {(t.width * t.depth).toFixed(0)} m²{t.podiumHeight > 0 ? ` · podium ${t.podiumHeight.toFixed(1)} m` : ''}</div>
+          {sky.length === 0 && <p className="text-[11px] text-muted">None: every rise runs from the ground lobby. A sky lobby puts the upper rises on shuttles, so their shafts stop running through the floors below.</p>}
+          <div className="grid gap-1">
+            {sky.map((lv, i) => (
+              <div key={`${i}-${lv}`} className="flex items-center gap-2 text-xs">
+                <span className="rounded bg-[#6cc0b8] px-1.5 py-0.5 text-[11px] font-semibold text-white">S{i + 1}</span>
+                <label className="flex items-center gap-1 text-muted">Level
+                  <input type="number" defaultValue={lv} min={minSky} max={maxSky} onBlur={(e) => setSky(i, Number(e.target.value))} onKeyDown={(e) => { if (e.key === 'Enter') setSky(i, Number((e.target as HTMLInputElement).value)) }}
+                    className="w-14 rounded border border-line bg-panel px-1.5 py-0.5 text-ink tabular-nums" aria-label={`Sky lobby ${i + 1} level`} />
+                </label>
+                <span className="text-[11px] text-muted">+{Math.round(floors.find((f) => f.level === lv)?.z0 ?? 0)} m</span>
+                <span className="ml-auto flex items-center gap-1 text-[11px] text-muted"><Toggle checked={t.skyRoom?.level === lv} onChange={() => togglePublic(lv)} label={`Public sky room at level ${lv}`} />Public</span>
+                <button onClick={() => up({ skyLobbies: sky.filter((_, k) => k !== i) })} aria-label={`Remove sky lobby at level ${lv}`} className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
+              </div>
+            ))}
+          </div>
+          {t.skyRoom && <SkyRoomFields room={t.skyRoom} onChange={(patch) => up({ skyRoom: { ...t.skyRoom!, ...patch } })} suggested={stablePostedLimit(t, liftPresets, egressPresets)} />}
+          {sky.length > 0 && <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">The sky lobby floor counts as public amenity; people above it change lifts once.{!t.skyRoom ? ' Switch one to Public to open it as a sky room.' : ''}</span></div>}
         </div>
-      </Section>
-
-      <Section title="Program by floor band (bottom → top)" right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Band</button>}>
-        <div className="grid gap-1.5">
-          {t.bands.map((b, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <ProgramIcon use={b.use} />
-              <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="w-32 rounded border border-line bg-panel px-1 py-0.5 text-[11px]" aria-label={`Band ${i + 1} use`}>
-                {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
-              </select>
-              <input type="range" min={0} max={1} step={0.01} value={b.share} onChange={(e) => setBand(i, { share: Number(e.target.value) })} className="w-full accent-accent" aria-label={`Band ${i + 1} share`} />
-              <span className="w-9 text-right text-[11px] tabular-nums text-muted">{Math.round((b.share / shareTotal) * 100)}%</span>
-              <button onClick={() => moveBand(i, -1)} aria-label="Move band down" className="text-muted hover:text-ink"><ArrowDown size={12} /></button>
-              <button onClick={() => moveBand(i, 1)} aria-label="Move band up" className="text-muted hover:text-ink"><ArrowUp size={12} /></button>
-              <button onClick={() => up({ bands: t.bands.filter((_, k) => k !== i) })} aria-label="Remove band" className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
+          <div><div className="text-muted">Core modelled</div><div className="font-semibold tabular-nums">{Math.round(t.coreShare * t.width * t.depth)} m² · {coreSide(t).toFixed(1)} m sq</div></div>
+          {lift && <div><div className="text-muted">Lifts and stairs need</div><div className={`font-semibold tabular-nums ${lift.requiredMax > lift.modelledCore + 0.5 ? 'text-red-700' : ''}`}>{Math.round(lift.requiredMax)} m² · {lift.totalCars} cars</div></div>}
+          {lift && <div><div className="text-muted">Net-to-gross</div><div className="font-semibold tabular-nums">{Math.round(lift.ntg * 100)}%</div></div>}
+          <div><div className="text-muted">Plant floors</div><div className="font-semibold tabular-nums">{plantFloors}</div></div>
         </div>
-      </Section>
-      </>)}
-
-      <Section title="Floor area (all towers, gross)">
-        <div className="grid gap-1">
-          {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (
-            <div key={u} className="flex items-center gap-2 text-[11px]">
-              <ProgramIcon use={u as UseId} small />
-              <span className="w-24 truncate text-muted">{USES[u as UseId].label}</span>
-              <div className="h-2 flex-1 rounded bg-slate-100"><div className="h-2 rounded" style={{ width: `${(v / maxGfa) * 100}%`, background: USES[u as UseId].color }} /></div>
-              <span className="w-20 text-right tabular-nums">{Math.round(v).toLocaleString()} m²</span>
-            </div>
-          ))}
-          <div className="mt-1 flex justify-between text-[11px]"><span className="text-muted">Total FSR (site {SITE.area.toFixed(0)} m²)</span><span className="font-semibold tabular-nums">{fsr.totalFsr.toFixed(2)}</span></div>
+        <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">Core share, plant spacing and the lift and egress presets are team assumptions, not code minimums. Net-to-gross uses the larger of the modelled and needed core.</span></div>
+        <div>
+          <div className="mb-1 text-xs font-medium">Exit stairs</div>
+          <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label="Exit stair placement">
+            {(['core', 'mixed', 'perimeter'] as StairPlacement[]).map((k) => {
+              const on = (t.stairPlacement ?? 'core') === k
+              return (
+                <button key={k} role="radio" aria-checked={on} title={PLACEMENT_LABEL[k]} onClick={() => up({ stairPlacement: k })}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-[11px] ${on ? 'bg-panel font-semibold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'}`}>
+                  <StairGlyph placement={k} />{k === 'core' ? 'In the core' : k === 'mixed' ? 'Core + edge' : 'At the edges'}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-1 text-[11px] text-muted">Stairs at the plate edge pass exit separation more easily and shrink the core, but take lettable floor and facade. Placement is a team assumption on geometry.</p>
         </div>
-      </Section>
-
-      {project === 'vtc' && phase === 'basic' && <PublicRealmPanel />}
-      <Section title="Project settings">
-        <div className="grid gap-2 text-xs">
-          {project === 'vtc' && (
-            <>
-              <label className="flex flex-col gap-1"><span className="text-muted">Which uses count toward the 9.0 non-residential FSR <FlagChip flag="team_assumption" /></span>
-                <select value={fsrTier} onChange={(e) => set({ fsrTier: Number(e.target.value) as FsrTier })} className="rounded border border-line px-1.5 py-1">
-                  {([1, 2, 3] as FsrTier[]).map((k) => <option key={k} value={k}>{TIER_LABEL[k]}</option>)}
-                </select>
-              </label>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={transitLink} onChange={() => set({ transitLink: !transitLink })} /> Below-grade link to the transit station is designed</label>
-            </>
-          )}
-          {project === 'city' && (
-            <NumberField label="Ground elevation at the site (geodetic)" value={groundElevation} onChange={(v) => set({ groundElevation: v, groundMode: 'manual' })} unit="m"
-              hint={groundMode === 'terrain'
-                ? 'From the terrain under the selected tower (City LiDAR 2022 or MRDEM-30, CGVD28; unverified). Typing a value sets it by hand.'
-                : 'Set by hand (team assumption). The Ground card can switch it back to the terrain.'} />
-          )}
-          {enabled['built.sun'] && (
-            <div className="grid grid-cols-3 gap-2">
-              <NumberField label="Month" value={sun.month} onChange={(v) => set({ sun: { ...sun, month: Math.min(12, Math.max(1, Math.round(v))) } })} />
-              <NumberField label="Day" value={sun.day} onChange={(v) => set({ sun: { ...sun, day: Math.min(31, Math.max(1, Math.round(v))) } })} />
-              <NumberField label="Hour" value={sun.hour} onChange={(v) => set({ sun: { ...sun, hour: Math.min(21, Math.max(5, v)) } })} step={0.25} />
-              <input type="range" min={5} max={21} step={0.25} value={sun.hour} onChange={(e) => set({ sun: { ...sun, hour: Number(e.target.value) } })} className="col-span-3 accent-accent" aria-label="Time of day" />
-            </div>
-          )}
+        <div className="flex gap-2">
+          <button onClick={() => set({ sectionOn: !sectionOn, explode: false })} aria-pressed={sectionOn}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${sectionOn ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Scissors size={13} />Section cut</button>
+          <button onClick={() => set({ explode: !explode, sectionOn: false })} aria-pressed={explode}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${explode ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Expand size={13} />Explode zones</button>
         </div>
-      </Section>
-    </div>
+        {sectionOn && <NumberField label="Cut height above grade" value={sectionLevel} onChange={(v) => set({ sectionLevel: Math.min(top - 1, Math.max(1, v)) })} min={1} max={Math.max(2, Math.floor(top - 1))} step={1} unit="m" />}
+        <LiftPresetFields presets={liftPresets} onChange={setLiftPresets} />
+        <EgressPresetFields presets={egressPresets} onChange={setEgressPresets} />
+      </div>
+    </ToolBlock>
   )
 }

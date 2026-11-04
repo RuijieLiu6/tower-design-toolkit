@@ -14,7 +14,12 @@ export const USES: Record<UseId, { label: string; color: string; nonResidential:
 }
 
 /** A program band: a share of the tower's floors, stacked bottom-up in list order. */
-export interface Band { use: UseId; share: number }
+export interface Band {
+  use: UseId
+  share: number
+  /** Floor-to-floor of this band's floors (m); absent = the tower's floor-to-floor (Section tool). */
+  f2f?: number
+}
 
 export interface Tower {
   id: string
@@ -39,6 +44,8 @@ export interface Tower {
   coreShare: number
   /** Schematic: a plant (mechanical) floor every N tower floors; 0 = none (team assumption). */
   plantEvery: number
+  /** Schematic: tower levels made plant (mechanical) floors one by one (Section tool), on top of `plantEvery`. */
+  plantLevels?: number[]
   /** Schematic: core share follows what the lifts, stairs and risers need (default on). */
   coreAuto?: boolean
   /** Schematic: tower floor levels used as sky lobbies (transfer floors, counted as public amenity). */

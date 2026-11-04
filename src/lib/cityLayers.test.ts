@@ -11,12 +11,14 @@ const sha256 = async (b: ArrayBuffer) => [...new Uint8Array(await crypto.subtle.
 const manifest = JSON.parse(readFileSync(new URL('layers.json', DIR), 'utf8')) as Manifest
 const layer = (id: string) => manifest.layers.find((l) => l.id === id)!
 
-describe('Real Vancouver context layers', () => {
+// Real data (megabytes): a single test takes a second or two alone, longer while the whole suite runs in parallel.
+describe('Real Vancouver context layers', { timeout: 30_000 }, () => {
   it('every layer cites source, licence, attribution, retrieval date, datum and a matching checksum', async () => {
     for (const l of manifest.layers) {
       expect(l.source.url, l.id).toMatch(/^https:\/\//)
       expect(l.source.retrieved, l.id).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-      expect(l.licence.name, l.id).toMatch(/Open Government Licence|Creative Commons Attribution/)
+      // Open data only; Vista's OpenStreetMap buildings are ODbL (share-alike, attribution in the app and the docs).
+      expect(l.licence.name, l.id).toMatch(/Open Government Licence|Creative Commons Attribution|Open Database License|Ruijie Liu's own work \(Vista\)/)
       expect(l.attribution.length, l.id).toBeGreaterThan(20)
       expect(l.crs.horizontal, l.id).toBe('EPSG:26910')
       expect('vertical' in l.datum, l.id).toBe(true)

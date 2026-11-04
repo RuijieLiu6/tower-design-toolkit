@@ -5,6 +5,7 @@ import { ALL_NODES, BUILT_NODES, CATEGORIES, WORKFLOWS, type Category, type Node
 import { useStore } from '../store'
 import { BuildYourOwn, MyNodes, NoMatch, useMyNodeMatches } from './NodeBuilder'
 import { Toggle } from './ui'
+import { useShallow } from 'zustand/react/shallow'
 
 /** Design stage a node belongs to. Categories decide first, so each stage has its own toolset. */
 const ADVANCED_CATS = ['STRC', 'SYST', 'SPAC', 'ENER', 'MOBI']
@@ -21,22 +22,23 @@ function CategoryBadge({ cat, size = 14 }: { cat: Category; size?: number }) {
 }
 
 function BuiltRow({ n }: { n: NodeDef }) {
-  const { project, enabled, toggleNode, selectNode, selectedNode } = useStore()
+  // Only this row's own state, so flipping one switch doesn't re-render all the rows (mouse response, 4 Nov).
+  const { project, on, toggleNode, selectNode, selected } = useStore(useShallow((s) => ({ project: s.project, on: !!s.enabled[n.id], toggleNode: s.toggleNode, selectNode: s.selectNode, selected: s.selectedNode === n.id })))
   const usable = !n.projects || n.projects.includes(project)
   return (
-    <div onClick={() => selectNode(n.id)} className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-black/5 ${selectedNode === n.id ? 'bg-accent/10' : ''}`}>
+    <div onClick={() => selectNode(n.id)} className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-black/5 ${selected ? 'bg-accent/10' : ''}`}>
       <CategoryBadge cat={n.category} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-medium text-ink">{n.name}</div>
         <div className="text-[10px] text-muted">{CATEGORIES[n.category].label}{!usable && <span className="text-amber-700"> · other project</span>}{n.status === 'preview' && ' · preview'}</div>
       </div>
-      <div onClick={(e) => e.stopPropagation()}><Toggle checked={!!enabled[n.id]} onChange={() => toggleNode(n.id)} label={`Use ${n.name}`} /></div>
+      <div onClick={(e) => e.stopPropagation()}><Toggle checked={on} onChange={() => toggleNode(n.id)} label={`Use ${n.name}`} /></div>
     </div>
   )
 }
 
 export default function NodeLibrary() {
-  const { phase, selectNode, selectedNode, setEnabled, libraryQuery, set } = useStore()
+  const { phase, selectNode, selectedNode, setEnabled, libraryQuery, set } = useStore(useShallow((s) => ({ phase: s.phase, selectNode: s.selectNode, selectedNode: s.selectedNode, setEnabled: s.setEnabled, libraryQuery: s.libraryQuery, set: s.set })))
   const [platform, setPlatform] = useState(false)
   const [roadmapOpen, setRoadmapOpen] = useState(false)
   const [carriedOpen, setCarriedOpen] = useState(false)
@@ -44,7 +46,8 @@ export default function NodeLibrary() {
   const q = libraryQuery.trim().toLowerCase()
   const match = (n: NodeDef) => !q || `${n.name} ${n.question} ${n.id}`.toLowerCase().includes(q)
 
-  const builtHere = BUILT_NODES.filter((n) => stageOf(n) === phase && match(n))
+  // Opened from the bottom bar's Library popover; Present has no checks of its own, so it lists them all.
+  const builtHere = BUILT_NODES.filter((n) => (phase === 'present' || stageOf(n) === phase) && match(n))
   const carried = phase === 'advanced' ? BUILT_NODES.filter((n) => stageOf(n) === 'basic' && match(n)) : []
   const groups = useMemo(() => {
     const list = ALL_NODES.filter((n) => n.status === 'researched' && (stageOf(n) === phase || (platform && stageOf(n) === 'platform')) && match(n))

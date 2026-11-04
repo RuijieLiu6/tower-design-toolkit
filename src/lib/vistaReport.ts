@@ -45,6 +45,13 @@ export interface ReportInput {
   /** Terrain (CGVD28 m) at an EPSG:26910 point, or null. */
   terrain: (x: number, y: number) => number | null
   date: string
+  /** Which buildings the renders and sightlines use (lib/vistaBuildings buildingsNote); absent = the City LiDAR model. */
+  buildings?: string
+  /**
+   * Existing buildings hidden under the design: the count, stated on every view page, and the full statement
+   * (lib/cityRemoval removalNote) in the sources. Absent or null = none hidden.
+   */
+  removal?: { hidden: number; note: string } | null
 }
 
 const fmt = (v: number | null | undefined, d = 1) => (v == null || !Number.isFinite(v) ? '–' : v.toLocaleString('en-CA', { minimumFractionDigits: d, maximumFractionDigits: d }))
@@ -69,7 +76,7 @@ function chip(doc: D, p: P, x: number, y: number, flag: Flag): number {
 
 function header(doc: D, p: P, title: string, sub: string, page: number) {
   doc.rect(p, 0, 0, PT.w, PT.h, PAPER)
-  doc.text(p, M, 26, 'TOWER STUDIO · REAL VANCOUVER · VISTA VIEW STUDY', 6.8, true, MUTED, { spacing: 0.6 })
+  doc.text(p, M, 26, 'TOWER DESIGN TOOLKIT · REAL VANCOUVER · VISTA VIEW STUDY', 6.8, true, MUTED, { spacing: 0.6 })
   doc.text(p, PT.w - M, 26, `p. ${page}`, 6.8, false, MUTED, { align: 'right' })
   doc.text(p, M, 48, title, 15, true, INK)
   if (sub) doc.text(p, M, 62, sub, 8, false, MUTED)
@@ -237,8 +244,8 @@ function viewPage(doc: D, inp: ReportInput, v: ReportView, page: number) {
   const iw = PT.w - 2 * M, ih = Math.min(250, iw / v.aspect)
   if (v.shot) doc.image(p, v.shot, M, 80, iw, ih)
   else { doc.rect(p, M, 80, iw, ih, '#ebe8e1', LINE); doc.text(p, PT.w / 2, 80 + ih / 2, 'No render: open the Real Vancouver 3D view before exporting to include eye-level renders.', 8, false, MUTED, { align: 'center' }) }
-  doc.paragraph(p, M, 80 + ih + 11, `Eye ${fmt(v.eye, 2)} m CGVD28 (the City's Lv at this origin) · horizontal field ${fmt(v.hfov, 1)}° (Vista's cone-fit rule) · pitch ${fmt(v.pitch, 1)}° · real ground and buildings: City LiDAR 2022 roofs in the core and the City's 2009 heights around it (older survey), MRDEM-30 terrain (NRCan) to the North Shore mountains, converted to CGVD28; no haze. Buildings without a LiDAR height are not drawn, so the view is optimistic.`, 6.8, iw, { color: MUTED })
-  const top = 80 + ih + 34
+  const below = doc.paragraph(p, M, 80 + ih + 11, `Eye ${fmt(v.eye, 2)} m CGVD28 (the City's Lv at this origin) · horizontal field ${fmt(v.hfov, 1)}° (Vista's cone-fit rule) · pitch ${fmt(v.pitch, 1)}° · real ground (City LiDAR 1 m in the core, MRDEM-30 terrain from NRCan to the North Shore mountains, converted to CGVD28; no haze). ${inp.buildings ?? 'Buildings: City LiDAR 2022 roofs in the core and the City\'s 2009 heights around it (older survey); buildings without a LiDAR height are not drawn, so the view is optimistic.'}${inp.removal ? ` In this render ${inp.removal.hidden.toLocaleString('en-CA')} existing building footprint${inp.removal.hidden === 1 ? ' is' : 's are'} hidden under the design: a hypothetical removal (team assumption), not evidence of vacancy or redevelopment eligibility; the rule is on the sources page.` : ''}`, 6.8, iw, { color: MUTED })
+  const top = Math.max(80 + ih + 34, below + 8)
   const secBox = { x: M, y: top, w: 430, h: PT.h - top - 30 }
   const { dCentre } = section(doc, p, inp, v, secBox)
   // numbers
@@ -277,8 +284,10 @@ function sources(doc: D, inp: ReportInput, page: number) {
     ['verified', 'City of Vancouver ViewCone layer (24 plan polygons, origins and viewpoint elevations Lv), Open Government Licence - Vancouver, retrieved 2026-10-21.'],
     ['verified', 'City of Vancouver, Public Views Guidelines, approved 2024-07-10, amended 2026-02-04 (the team copy in Vista matches SHA-256 597f0da2…b0ca, the Feb 2026 copy in research C01).'],
     ['verified', 'Planar slopes k for A and 3.2.3 (City site sheet, 3 Oct 2024), 28, 27.1, 27.2 (Council reports); 3.2.4, H, J2 endorsed values are team assumptions (research C01).'],
-    ['unverified', 'Terrain: NRCan MRDEM-30 (Open Government Licence - Canada), CGVD2013 converted to CGVD28 with NRCan grids; City LiDAR 2022 1 m ground and roof parts in the core, City Building footprints 2009 heights around it (OGL-Vancouver).'],
+    ['unverified', 'Terrain: NRCan MRDEM-30 (Open Government Licence - Canada), CGVD2013 converted to CGVD28 with NRCan grids; City LiDAR 2022 1 m ground in the core (OGL-Vancouver).'],
+    ['unverified', inp.buildings ?? 'Buildings: City LiDAR 2022 roof parts in the core, City Building footprints 2009 heights around it (OGL-Vancouver).'],
     ['team_assumption', 'Vista cone-fit camera rule (hfov = clamp(1.5 × spread + 8, 24, 100), pitch rule) and eye height 1.6 m where no Lv exists.'],
+    ...(inp.removal ? [['team_assumption', inp.removal.note] as [Flag, string]] : []),
     ['unverified', 'Vista v10.1 (Ruijie Liu, ARCH 540, handoff 22 Oct 2026): exact cone clip, study planes, report layout and examples, ported into Tower Design Toolkit (MIT). Vista was read, not run.'],
   ]
   doc.text(p, M, y, 'Sources', 9, true, INK); y += 14
@@ -291,7 +300,7 @@ function sources(doc: D, inp: ReportInput, page: number) {
   }
   y += 6
   doc.text(p, M, y, 'Limits', 9, true, INK); y += 14
-  const limits = 'Only 8 of 24 views have a slope estimate; the others read "no estimate". The planar form Z = Lv + k·D and whether each lower boundary is sloped or horizontal are unresolved per view (research C04). Buildings without a LiDAR height (most of downtown outside the processed tile) are not drawn or tested, so renders and sightlines are optimistic. Imported or parametric massing is tested by its outline; what-if planes are the team\'s own and never a City limit. Plan coordinates EPSG:26910; heights CGVD28.'
+  const limits = 'Only 8 of 24 views have a slope estimate; the others read "no estimate". The planar form Z = Lv + k·D and whether each lower boundary is sloped or horizontal are unresolved per view (research C04). Buildings follow the model shown: City LiDAR 2022 or 2009 heights where they cover a building, else Vista\'s OpenStreetMap heights (unverified; about half the parts are estimates per building type), so renders and sightlines can be wrong either way there; in the City model, buildings without a measured height are not drawn or tested (optimistic). Imported or parametric massing is tested by its outline; what-if planes are the team\'s own and never a City limit. Plan coordinates EPSG:26910; heights CGVD28.'
   for (const ln of wrap(limits, 7.4, PT.w - 2 * M)) { doc.text(p, M, y, ln, 7.4, false, INK); y += 10 }
   doc.text(p, M, PT.h - 30, `Generated ${inp.date} by Tower Design Toolkit in the browser; nothing was uploaded.`, 6.6, false, MUTED)
 }

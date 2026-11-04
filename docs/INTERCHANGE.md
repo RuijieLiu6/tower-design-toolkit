@@ -24,6 +24,7 @@ buildModel(): units → north → placement → zero level; towers grouped, slic
 
 - **Project file** `tower-studio-project@1` gains one optional top-level key, `models: { vtc?, city? }`. Files saved before 3 Nov 2026 have no `models` and open exactly as before (`toDesign` fills `{ vtc: null, city: null }`). The JSON Schema (`src/lib/project/project.schema.json`, `$defs/interchangeModel`, `$defs/modelElement`, `$defs/role`) validates it on the way in.
 - **Version**: every model carries `version: "tower-studio-interchange@1"`. Inside a model, unknown properties are allowed, so a later minor version can add fields without breaking older readers. A breaking change gets `@2`.
+- **Neighbours in the same file** (added for other sessions, 3-4 Nov 2026): `towers[].blocks` and `towers[].boxFromBlocks` (stacked-block massing, core-and-lift session) and `citySite` (the Real Vancouver study site, `engine/site.ts` StudySite, Integrate Vista session; a 2D ring in the local frame with its provenance). Both are optional; older files open without them.
 - **Undo and autosave**: `models` is a design key (`design.ts`, `history.ts`), so an upload is one undo step together with the towers it adds.
 - **Meshes** stay out of the model, as before: the import store keeps them in this browser (IndexedDB `tower-studio-imports`), and *Export .json* writes them under `importedMeshes`. Without them a tower draws as stacked plates and every check still runs.
 
@@ -107,7 +108,7 @@ Coordinates are metres in the project frame (competition model grid, or EPSG:269
 | 6 | `toPresent` | Drawings, boards, captures | Model + towers | Caption, evidence lines, plan overlays | Model panel (caption to copy onto a board) | §6 |
 | 7 | `toCustomize` | Customize canvas | Model + towers | A node output (one line per tower, site, context, north, datum, left out) | Node "Your model: upload & provenance" on the canvas and in the library; the Massing source card names the file | §7 |
 | 8 | `toExportScene` | Export .3dm / OBJ / glTF | Towers + model | Role-tagged solids and the site curve | Export menu | §8 + round trips |
-| 9 | `placedTriangles` | Exact cone check (Vista view-envelope, Integrate Vista session) | One tower + its mesh | World triangles: EPSG:26910 + CGVD28 in Real Vancouver; storey prisms when the mesh is not in this browser | Offered to that session | `placedTriangles` block |
+| 9 | `placedTriangles` | Exact cone check (Vista view-envelope, Integrate Vista session) | One tower + its mesh | World triangles: EPSG:26910 + CGVD28 in Real Vancouver; storey prisms when the mesh is not in this browser; a parametric tower as one prism per stacked block (`towerMasses`) | Offered to that session | `placedTriangles` block |
 
 ## 6. Export: the round-trip contract
 
@@ -150,12 +151,18 @@ A curved face, or a planar face bounded by a curved edge, is **never sampled and
 
 The check screen shows a **preview on the City footprints** (north up, 50 m scale bar): your towers, lot line and context, and every City footprint under the towers hatched red as **demolished**, with a **"Keep the N existing buildings"** checkbox. On *Use this model* the City buildings under it are hidden from views, shadows and roofs unless kept (`lib/cityRemoval.ts` and the existing "Existing buildings under the design" switch; a hypothetical removal, team assumption). After that, the towers are ordinary towers, so the move and rotate gizmo works on them.
 
+**A tool, new versions and a live link (4 Nov 2026).**
+- *Rhino import* is a design tool in the left panel (Massing and Schematic): `src/components/import/rhinoImport.tool.tsx`, collected by `components/tools/registry.ts`; icon lucide `Spline` (a NURBS curve with control points), never a brand logo. Its body is one button that opens the upload flow, and a card with what came in.
+- *Update*: when the project already holds an uploaded model, the dialog offers "Update <file>": only that model's towers are replaced; each keeps its id, name and design inputs (program bands, sky lobbies, plant floors, interior, stairs), takes the new geometry and placement, and keeps the storey uses the person set by hand where the file does not tag them (`updateTower` in `apply.ts`). The person's own towers stay.
+- *Live link* (Chrome and Edge, File System Access API): "Link a file: update on each save" in the dialog. After the model is used, the file is re-read every 2 s while the tab is open (and at once when the tab comes back into view); a new save is rebuilt with the same mapping (new layers get guessed roles), units, north, datum and placement, and applied as an update. A save that fails a check is not used, and says why. The link ends with the tab; the file never leaves the computer (`lib/interchange/live.ts`).
+- *3D view*: the uploaded lot line (teal) and context prisms (grey, edges) are drawn in both scenes (`components/import/ModelOverlay.tsx`, static geometry: no `useFrame`, so it follows the render-on-demand rule).
+
 ## 9. Limits
 
 - Curved faces saved without render meshes cannot be meshed in the browser; they are counted, never faked. SubD is skipped with its fix.
 - Setbacks and street lines are read as curves but no tool uses them yet.
 - Context roofs are flat; overhangs are not modelled.
-- The 3D view does not yet draw the uploaded site line and context (Viewport.tsx belongs to another work stream; the solar check already counts the context).
+- No Rhino plugin or Rhino.Compute link: the live link re-reads the saved file; it does not see unsaved edits in Rhino.
 
 ## 10. Fixtures, tests and evaluation
 

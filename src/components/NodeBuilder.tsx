@@ -9,6 +9,7 @@ import { useCommunityStore } from '../lib/communityStore'
 import { STAGE_LABEL, summarize, type NodePackage } from '../lib/nodePackages'
 import { useStore } from '../store'
 import { Toggle } from './ui'
+import { useShallow } from 'zustand/react/shallow'
 
 // If the dialog's code can't load (offline, or a stale dev server), say so instead of blanking the whole app.
 const NodeBuilderDialog = lazy(() => import('./NodeBuilderDialog').catch(() => ({ default: DialogLoadError })))
@@ -39,7 +40,7 @@ export function useMyNodeMatches(q: string) {
 const TONE: Record<string, string> = { ok: 'text-emerald-700', warn: 'text-amber-700', bad: 'text-red-700', muted: 'text-muted' }
 
 function MyNodeRow({ p, run }: { p: NodePackage; run?: CommunityRun }) {
-  const { enabled, toggleNode, selectNode, selectedNode } = useStore()
+  const { enabled, toggleNode, selectNode, selectedNode } = useStore(useShallow((s) => ({ enabled: s.enabled, toggleNode: s.toggleNode, selectNode: s.selectNode, selectedNode: s.selectedNode })))
   const Icon = CATEGORY_ICONS[p.category]
   const status = run?.error ? { text: 'could not run', tone: 'bad' }
     : run && !run.applies ? { text: 'other project', tone: 'warn' }

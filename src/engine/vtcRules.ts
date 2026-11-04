@@ -23,11 +23,12 @@ export const TIER_LABEL: Record<FsrTier, string> = {
   3: 'Tier 3: all non-residential (incl. civic, amenity)',
 }
 
-export function fsrSummary(towers: Tower[]) {
+/** `siteArea`: the competition block by default; Real Vancouver passes its study site's area (insert by Integrate Vista, 4 Nov). */
+export function fsrSummary(towers: Tower[], siteArea: number = SITE.area) {
   const gfa = gfaByUse(towers)
   const total = Object.values(gfa).reduce((a, b) => a + b, 0)
-  const tier = (t: FsrTier) => TIER_USES[t].reduce((s, u) => s + gfa[u], 0) / SITE.area
-  return { gfa, total, totalFsr: total / SITE.area, tier1: tier(1), tier2: tier(2), tier3: tier(3) }
+  const tier = (t: FsrTier) => TIER_USES[t].reduce((s, u) => s + gfa[u], 0) / siteArea
+  return { gfa, total, totalFsr: total / siteArea, tier1: tier(1), tier2: tier(2), tier3: tier(3), siteArea }
 }
 
 export function vtcRules(towers: Tower[], opts: { fsrTier: FsrTier; transitLink: boolean }): RuleResult[] {

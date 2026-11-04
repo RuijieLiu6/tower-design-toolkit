@@ -15,11 +15,12 @@ import {
   type ConvertedBlock, type ExactCone, type Pt, type VistaStudy,
 } from '../engine/vista'
 import { groundUnder, sampleTerrain } from '../lib/cityLayers'
-import { heightSource, is2009Part } from '../lib/cityGeometry'
+import { buildingLabel, buildingSource, buildingsNote, rayBuildingsLabel } from '../lib/vistaBuildings'
 import { useViewFromStore, type Viewpoint } from '../lib/viewFromStore'
 import { requestCaptures, useVistaStore, type CaptureSpec } from '../lib/vistaStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { HideUnderDesignCard, useCityData, useCityObstacles, useRemoval } from './CityContext'
+import { REMOVAL_CAVEAT, removalNote } from '../lib/cityRemoval'
 import { CONE_STYLE, FlagChip, Section } from './ui'
 import EnvelopeSection from './EnvelopeSection'
 import SitePanel from './SitePanel'
@@ -32,7 +33,7 @@ const abs = (p: Pt): Pt => [p[0] + CITY_ORIGIN[0], p[1] + CITY_ORIGIN[1]]
 const loc = (p: Pt): Pt => [p[0] - CITY_ORIGIN[0], p[1] - CITY_ORIGIN[1]]
 
 function Note({ flag, children }: { flag: Flag; children: React.ReactNode }) {
-  return <div className="mt-1 flex items-start gap-1.5"><span className="shrink-0"><FlagChip flag={flag} /></span><span className="text-[10px] leading-snug text-muted">{children}</span></div>
+  return <div className="mt-1 flex items-start gap-1.5"><span className="shrink-0"><FlagChip flag={flag} /></span><span className="text-[11px] leading-snug text-muted">{children}</span></div>
 }
 
 /** Camera at a protected origin with Vista's cone-fit field and pitch, through the View from here rig. */
@@ -68,7 +69,7 @@ function VistaCity() {
       <Section title="Vista view study">
         <p className="text-[11px] leading-snug text-ink">{studySentence(t.name, t.height, exact)}</p>
         <Note flag="verified">Plan relations from the City ViewCone polygons (OGL-Vancouver, retrieved 2026-10-21), clipped exactly with Vista's kernel. Heights: the View-cone height check's estimates; the City View Cone Assessment governs.</Note>
-        <p className="mt-1.5 text-[10px] text-muted">Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, LiDAR 2022 roofs and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</p>
+        <p className="mt-1.5 text-[11px] text-muted">Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, Vista's own OpenStreetMap buildings on the City ground, at City LiDAR 2022 or 2009 heights where measured (the City LiDAR model is one switch away in the Layers dock), and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</p>
       </Section>
       <SitePanel />
       <OverlapTable exact={exact} top={top} />
@@ -97,7 +98,7 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
             <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-[11px]">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{e.cone.id} · {e.cone.name}</span>
-                <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${CONE_STYLE[e.state].chip}`}>{STATE_LABEL[e.state]}</span>
+                <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${CONE_STYLE[e.state].chip}`}>{STATE_LABEL[e.state]}</span>
               </div>
               <div>{e.overlapM2 > 0
                 ? <>Inside: <b>{fmt(e.overlapM2, 0)} m²</b> of the footprint <span className="text-muted">(Vista's frame would say {fmt(e.vistaFrameM2, 0)} m²)</span></>
@@ -111,7 +112,7 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
           )
         })}
       </div>
-      <p className="mt-1.5 text-[10px] text-muted">A plane is lowest at a corner of the overlap, so the exact limit is the lowest value at the clipped vertices; the sampled check can only read the same or higher.</p>
+      <p className="mt-1.5 text-[11px] text-muted">A plane is lowest at a corner of the overlap, so the exact limit is the lowest value at the clipped vertices; the sampled check can only read the same or higher.</p>
     </Section>
   )
 }
@@ -126,7 +127,7 @@ function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower
   const active = v.viewpoint?.kind === 'cone' ? CONES.find((c) => c.id === v.viewpoint?.coneId) ?? null : null
   const target = { x: tower.x, y: tower.y, top: ground + tower.height }
   return (
-    <Section title="From the protected viewpoints" right={<button type="button" onClick={() => setAll(!all)} className="text-[10px] text-accent underline">{all ? 'Fewer' : 'All 24 views'}</button>}>
+    <Section title="From the protected viewpoints" right={<button type="button" onClick={() => setAll(!all)} className="text-[11px] text-accent underline">{all ? 'Fewer' : 'All 24 views'}</button>}>
       <div className="grid gap-1">
         {list.map((c) => {
           const cam = coneCamera(c)
@@ -144,7 +145,7 @@ function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower
       </div>
       {active && <ConeCompare cone={active} />}
       <label className="mt-2 flex items-center gap-2 text-[11px]"><input type="checkbox" checked={haze} onChange={() => useVistaStore.getState().set({ haze: !haze })} />Light haze in eye-level views (visual only; off = evidence view)</label>
-      <p className="mt-1 flex items-center gap-1 text-[10px] text-muted"><Mountain size={11} />Mountains: NRCan MRDEM-30 to 25 km, CGVD28; far plane 60 km while looking, so no peak is clipped.</p>
+      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted"><Mountain size={11} />Mountains: NRCan MRDEM-30 to 25 km, CGVD28; far plane 60 km while looking, so no peak is clipped.</p>
     </Section>
   )
 }
@@ -185,16 +186,15 @@ function RoofViews({ tower, ground }: { tower: Tower; ground: number }) {
   }, [data, idx, heights, tower.x, tower.y, tower.width, tower.depth, tower.height, ground, v.eye])
   const stand = (r: (typeof roofs)[number]) => {
     if (!data) return
-    const f = data.footprints[r.index]
     // Aim between the tower's base and top as seen from the roof (Vista's face-the-proposal framing).
     const pitch = Math.max(-30, Math.min(30, (elevAngle(ground, r.eye, r.distance) + elevAngle(ground + tower.height, r.eye, r.distance)) / 2))
-    v.set({ viewpoint: { kind: 'roof', x: r.at[0], y: r.at[1], stand: r.roof, footprint: r.index, label: is2009Part(f.id) ? `2009 height part ${-f.id - 1_000_000}` : f.id < 0 ? `LiDAR roof part ${-f.id}` : `Roof of building #${f.id}`, basis: `${heightSource(f.id)} roof ${r.roof.toFixed(1)} m CGVD28 (chosen by Vista's nearby-roof list)` },
+    v.set({ viewpoint: { kind: 'roof', x: r.at[0], y: r.at[1], stand: r.roof, footprint: r.index, label: buildingLabel(data, r.index), basis: `${buildingSource(data, r.index)}: roof ${r.roof.toFixed(1)} m CGVD28 (chosen by Vista's nearby-roof list)` },
       bearing: Math.round(r.bearing), pitch: Math.round(pitch * 10) / 10, hfov: 60, looking: true, picking: false, note: null })
   }
   return (
     <Section title="Rooftop views of the tower">
       {!data && <p className="text-[11px] text-muted">Loading City roofs…</p>}
-      {data && !roofs.length && <p className="text-[11px] text-muted">No LiDAR-measured roof within 1.5 km of this tower yet (only one City LiDAR tile is processed). View from here can still stand on the street.</p>}
+      {data && !roofs.length && <p className="text-[11px] text-muted">No roof with a height within 1.5 km of this tower. View from here can still stand on the street.</p>}
       <div className="grid gap-1">
         {roofs.map((r) => (
           <div key={r.index} className="flex items-center justify-between gap-2 text-[11px]">
@@ -203,7 +203,7 @@ function RoofViews({ tower, ground }: { tower: Tower; ground: number }) {
           </div>
         ))}
       </div>
-      {roofs.length > 0 && <Note flag="unverified">One sightline from each roof (eye = LiDAR P90 + {v.eye} m) to the tower, over LiDAR roofs and terrain, curvature with k = 0.13. Optimistic: buildings without a LiDAR height do not block. "Stand here" faces the tower, aimed between its base and top (Vista's face-the-proposal).</Note>}
+      {roofs.length > 0 && <Note flag="unverified">One sightline from each roof (eye = roof + {v.eye} m) to the tower, over {data ? rayBuildingsLabel(data) : 'the city buildings'} and terrain, curvature with k = 0.13. Optimistic: buildings without a height do not block. "Stand here" faces the tower, aimed between its base and top (Vista's face-the-proposal).</Note>}
       {hidden.size > 0 && <Note flag="team_assumption">{hidden.size} existing building footprint{hidden.size === 1 ? ' is' : 's are'} hidden under the design: not offered as roofs and not blocking. Hypothetical removal; not evidence of vacancy or redevelopment eligibility.</Note>}
     </Section>
   )
@@ -218,8 +218,8 @@ function WhatIf({ exact, fp, ground, top }: { exact: ExactCone[]; fp: Pt[]; grou
   if (!exact.length) return null
   const num = (s: string) => (s.trim() === '' || !Number.isFinite(Number(s)) ? null : Number(s))
   return (
-    <Section title="What-if study planes (Vista v10)" right={<label className="flex items-center gap-1 text-[10px]"><input type="checkbox" checked={showPlanes} onChange={() => useVistaStore.getState().set({ showPlanes: !showPlanes })} /><Layers size={11} />3D</label>}>
-      <p className="mb-1.5 text-[10px] text-muted">Enter a lower boundary you want to test for a view this footprint is in: its elevation at the City origin, its slope and the bearing of the slope. Blank = no plane (the view then stays unknown).</p>
+    <Section title="What-if study planes (Vista v10)" right={<label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={showPlanes} onChange={() => useVistaStore.getState().set({ showPlanes: !showPlanes })} /><Layers size={11} />3D</label>}>
+      <p className="mb-1.5 text-[11px] text-muted">Enter a lower boundary you want to test for a view this footprint is in: its elevation at the City origin, its slope and the bearing of the slope. Blank = no plane (the view then stays unknown).</p>
       <div className="grid gap-2">
         {exact.map((e) => {
           const p = planes[e.cone.id]
@@ -227,8 +227,8 @@ function WhatIf({ exact, fp, ground, top }: { exact: ExactCone[]; fp: Pt[]; grou
           return (
             <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-[11px]">
               <div className="flex items-center justify-between"><b>{e.cone.id} · {e.cone.name}</b>
-                <span className="flex gap-2">{prm && <button type="button" className="text-[10px] text-accent underline" onClick={() => setPlane(e.cone.id, { elevation: e.cone.Lv, pitch: Math.round((Math.atan(prm.k) * 180) / Math.PI * 10000) / 10000, bearing: Math.round(axisBearing(e.cone) * 100) / 100, note: `Start from Tower Design Toolkit's estimate (${prm.source})` })}>Start from the estimate</button>}
-                  {p && <button type="button" className="text-[10px] text-muted underline" onClick={() => setPlane(e.cone.id, null)}>Clear</button>}</span>
+                <span className="flex gap-2">{prm && <button type="button" className="text-[11px] text-accent underline" onClick={() => setPlane(e.cone.id, { elevation: e.cone.Lv, pitch: Math.round((Math.atan(prm.k) * 180) / Math.PI * 10000) / 10000, bearing: Math.round(axisBearing(e.cone) * 100) / 100, note: `Start from Tower Design Toolkit's estimate (${prm.source})` })}>Start from the estimate</button>}
+                  {p && <button type="button" className="text-[11px] text-muted underline" onClick={() => setPlane(e.cone.id, null)}>Clear</button>}</span>
               </div>
               <div className="mt-1 grid grid-cols-3 gap-1.5">
                 <label className="grid gap-0.5"><span className="text-muted">At origin (m)</span><input type="number" step={0.1} value={p?.elevation ?? ''} placeholder={String(e.cone.Lv)} onChange={(ev) => setPlane(e.cone.id, { elevation: num(ev.target.value) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={`What-if elevation at origin, view ${e.cone.id}`} /></label>
@@ -287,7 +287,7 @@ function Studies() {
       const pk = pickAt(idx, heights, o[0], o[1])
       const g = sampleTerrain(data.grids, o[0], o[1])
       const vp: Viewpoint = pk.kind === 'roof'
-        ? { kind: 'roof', x: o[0], y: o[1], stand: pk.roof, footprint: pk.index, label: `${label}: Vista's viewpoint (measured roof)`, basis: `${heightSource(data.footprints[pk.index].id)} roof ${pk.roof.toFixed(1)} m CGVD28 at Vista's observer` }
+        ? { kind: 'roof', x: o[0], y: o[1], stand: pk.roof, footprint: pk.index, label: `${label}: Vista's viewpoint (roof)`, basis: `${buildingSource(data, pk.index)}: roof ${pk.roof.toFixed(1)} m CGVD28 at Vista's observer` }
         : { kind: 'street', x: o[0], y: o[1], stand: g ?? 0, label: `${label}: Vista's viewpoint`, basis: `Terrain ${g == null ? '–' : g.toFixed(1)} m CGVD28 at Vista's observer${s.observer.source === 'rooftop' ? ' (Vista stood on a studio-model roof; no LiDAR roof here yet)' : ''}` }
       const tc = loc(topB.centre)
       useViewFromStore.getState().set({ viewpoint: vp, bearing: Math.round(((Math.atan2(tc[0] - o[0], tc[1] - o[1]) * 180) / Math.PI + 360) % 360), hfov: s.observer.fov, looking: false, picking: false, note: null })
@@ -327,7 +327,7 @@ function Studies() {
           <Note flag="false_assumption">Vista's frame shortens metres (0.58% north–south); each corner was converted through latitude/longitude into EPSG:26910. Heights are the published tower heights; the base is the project base.</Note>
         </div>
       )}
-      <p className="mt-1.5 text-[10px] text-muted">Only the site point, block sizes, observer and study planes are read; Vista's context model, building ids and imported models are not. Nothing leaves this browser.</p>
+      <p className="mt-1.5 text-[11px] text-muted">Only the site point, block sizes, observer and study planes are read; Vista's context model, building ids and imported models are not. Nothing leaves this browser.</p>
       <HideUnderDesignCard inline />
     </Section>
   )
@@ -352,7 +352,11 @@ function FrameRule({ tower, exact }: { tower: Tower; exact: ExactCone[] }) {
 /** Vista's PDF report on Tower Design Toolkit results, with renders from the real context. */
 function Report({ tower, fp, ground, exact }: { tower: Tower; fp: Pt[]; ground: number; exact: ExactCone[] }) {
   const { data } = useCityData()
-  const { hidden } = useRemoval(data)
+  const { hidden, byTower } = useRemoval(data)
+  // What the renders leave out, stated in the PDF (view pages and sources): towers that hide something, and the study site's own.
+  const underTowers = byTower.filter((b) => b.indices.length)
+  const bySite = hidden.size - new Set(underTowers.flatMap((b) => b.indices)).size
+  const removal = hidden.size ? { hidden: hidden.size, note: removalNote(hidden.size, underTowers.map((b) => b.name), bySite)! } : null
   const planes = useVistaStore((s) => s.planes)
   const defaults = useMemo(() => {
     const ids = exact.filter((e) => e.overlapM2 > 0 || (e.gapM ?? Infinity) < 1.5).map((e) => e.cone.id)
@@ -383,6 +387,8 @@ function Report({ tower, fp, ground, exact }: { tower: Tower; fp: Pt[]; ground: 
         views: cones.map((c, i) => { const cam = coneCamera(c); const vs = vistaFrameSpread(c); return { cone: c, shot: shots[i], eye: cam.eye, vistaEye: ORIGINS[c.id]?.vistaEye ?? null, hfov: cam.hfov, vistaHfov: coneFitHfov(vs), spread: cam.spread, vistaSpread: vs, bearing: cam.bearing, pitch: specs[i].pitch, aspect: REPORT_ASPECT } }),
         terrain: (x, y) => (data ? sampleTerrain(data.grids, x - CITY_ORIGIN[0], y - CITY_ORIGIN[1]) : null),
         date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Vancouver' }),
+        buildings: data ? buildingsNote(data) : undefined,
+        removal,
       })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -394,7 +400,7 @@ function Report({ tower, fp, ground, exact }: { tower: Tower; fp: Pt[]; ground: 
   }
   return (
     <Section title="View-study report (PDF)">
-      <p className="text-[10px] text-muted">Vista's report, on these results: cover sentence, key plan, one page per view (render from the City origin with the real mountains, section along the cone axis, both Vista and Tower Design Toolkit numbers with their flags), sources.</p>
+      <p className="text-[11px] text-muted">Vista's report, on these results: cover sentence, key plan, one page per view (render from the City origin with the real mountains, section along the cone axis, both Vista and Tower Design Toolkit numbers with their flags), sources.</p>
       <div className="mt-1.5 flex flex-wrap gap-1">
         {candidates.map((id) => {
           const on = ids.includes(id)
@@ -404,8 +410,8 @@ function Report({ tower, fp, ground, exact }: { tower: Tower; fp: Pt[]; ground: 
       </div>
       <button type="button" disabled={!!busy && busy.endsWith('…')} onClick={run} className="mt-2 flex items-center gap-1 rounded-md border border-accent bg-accent px-2 py-1 text-xs font-medium text-white disabled:opacity-60"><FileDown size={13} />Export view study PDF</button>
       {busy && <p role="status" className="mt-1 text-[11px] text-muted"><Camera size={11} className="mr-1 inline" />{busy}</p>}
-      <p className="mt-1 text-[10px] text-muted">Renders need the 3D view on screen. The PDF is made in this browser; nothing is uploaded.</p>
-      {hidden.size > 0 && <Note flag="team_assumption">The renders leave out the {hidden.size} existing building footprint{hidden.size === 1 ? '' : 's'} hidden under the design, and the PDF does not say so yet. Untick "Hide existing buildings under the design" before exporting for the existing-context evidence view.</Note>}
+      <p className="mt-1 text-[11px] text-muted">Renders need the 3D view on screen. The PDF is made in this browser; nothing is uploaded.</p>
+      {hidden.size > 0 && <Note flag="team_assumption">The renders leave out the {hidden.size} existing building footprint{hidden.size === 1 ? '' : 's'} hidden under the design; the PDF states it on every view page and in its sources. {REMOVAL_CAVEAT} For the existing-context view, choose "Show the existing buildings again" before exporting.</Note>}
     </Section>
   )
 }

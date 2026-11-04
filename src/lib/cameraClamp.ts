@@ -12,6 +12,8 @@ export const EYE_CLEARANCE = 1.2
 export const MAX_POLAR = Math.PI / 2.02
 /** The closest the orbit camera can come to its target, so zooming in never collapses onto it. */
 export const MIN_DISTANCE = 2
+/** The highest the orbit target may go (m): above every tower and the North Shore peaks, so a pan never carries it into the sky. */
+export const TARGET_CEILING = 2000
 
 export interface SceneGround { at: (x: number, y: number) => number; plinth: Plinth | null }
 const flat = () => 0
@@ -25,13 +27,14 @@ export function registerGround(g: SceneGround): () => void {
 }
 
 /**
- * Keeps the orbit target over the plinth and on or above the ground by moving camera and target together (a pan that
- * stops at the edge), then keeps the camera at least EYE_CLEARANCE above the ground under it.
+ * Keeps the orbit target over the plinth, on or above the ground and below TARGET_CEILING by moving camera and target
+ * together (a pan that stops at the edge), then keeps the camera at least EYE_CLEARANCE above the ground under it.
  */
 export function clampView(cam: V3, target: V3, ground: (x: number, y: number) => number, plinth: Plinth | null): { cam: V3; target: V3; moved: boolean; above: number } {
   const dx = plinth ? Math.min(plinth.x1, Math.max(plinth.x0, target[0])) - target[0] : 0
   const dy = plinth ? Math.min(plinth.y1, Math.max(plinth.y0, target[1])) - target[1] : 0
-  const dz = Math.max(0, ground(target[0] + dx, target[1] + dy) - target[2])
+  const floor = ground(target[0] + dx, target[1] + dy)
+  const dz = target[2] < floor ? floor - target[2] : target[2] > TARGET_CEILING ? TARGET_CEILING - target[2] : 0
   const t: V3 = [target[0] + dx, target[1] + dy, target[2] + dz]
   const c: V3 = [cam[0] + dx, cam[1] + dy, cam[2] + dz]
   const under = ground(c[0], c[1])

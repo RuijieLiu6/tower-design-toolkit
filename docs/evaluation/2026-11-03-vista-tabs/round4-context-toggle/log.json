@@ -1,0 +1,45 @@
+{
+ "errors": [
+  "legend: TimeoutError: locator.screenshot: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('list', { name: 'Legend' }).first()\u001b[22m\n"
+ ],
+ "log": {
+  "pressed_plain": "false",
+  "timing_plain_overview": {
+   "msPerFrame": 43,
+   "calls": 41,
+   "triangles": 5568342,
+   "size": [
+    1070,
+    799
+   ]
+  },
+  "timing_plain_close": {
+   "msPerFrame": 50.2,
+   "calls": 36,
+   "triangles": 5568230,
+   "size": [
+    1070,
+    799
+   ]
+  },
+  "pressed_context": "true",
+  "timing_context_overview": {
+   "msPerFrame": 50.2,
+   "calls": 47,
+   "triangles": 5878256,
+   "size": [
+    1070,
+    799
+   ]
+  },
+  "timing_context_close": {
+   "msPerFrame": 125.1,
+   "calls": 42,
+   "triangles": 5878144,
+   "size": [
+    1070,
+    799
+   ]
+  }
+ }
+}

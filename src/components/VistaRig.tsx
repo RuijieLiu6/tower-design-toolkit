@@ -15,6 +15,8 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { useVistaStore, type CaptureSpec } from '../lib/vistaStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import SiteRig from './SiteRig'
+import ImagineLayer from './heights/ImagineLayer'
+import SiteMapMenu from './site/SiteMapMenu'
 
 /** Model frame (x, y, z-up) to three.js world (y-up), as in ViewFromRig. */
 const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, -y)
@@ -108,7 +110,7 @@ export default function VistaRig() {
     useVistaStore.setState({ job: null })
   }, [job]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <><WhatIfPlanes /><SiteRig /></>
+  return <><WhatIfPlanes /><SiteRig /><ImagineLayer /><SiteMapMenu /></>
 }
 
 /** Vista v10's clipped study plane over the footprint, with a vertical marker at the limiting point. */

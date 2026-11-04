@@ -1,0 +1,79 @@
+{
+ "errors": [],
+ "log": {
+  "default": {
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "layers": {
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "plan": {
+   "pressed": [
+    "Plan"
+   ],
+   "caption": "Plan · north up · drag to pan · scroll to zoom."
+  },
+  "plan_dragged": {
+   "pressed": [
+    "Plan"
+   ],
+   "caption": "Plan · north up · drag to pan · scroll to zoom."
+  },
+  "city_back": {
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "inspect": {
+   "pressed": [
+    "Inspect"
+   ],
+   "caption": "Inspect · click a building for its height, type and sources."
+  },
+  "observer": {
+   "pressed": [
+    "Observer"
+   ],
+   "caption": "Observer · click a street or a roof to stand there · Esc to leave."
+  },
+  "viewcone": {
+   "pressed": [
+    "Viewcone"
+   ],
+   "caption": "Viewcone · the view from the protected viewpoint · Esc to leave."
+  },
+  "zoomed": {
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "focus": {
+   "pressed": [
+    "City"
+   ],
+   "caption": "City · drag to orbit · right-drag to pan · scroll to zoom."
+  },
+  "timing": {
+   "msPerFrame": 36,
+   "calls": 128,
+   "triangles": 5631236,
+   "size": [
+    1070,
+    799
+   ],
+   "renderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "present": {
+   "pressed": [],
+   "caption": null
+  }
+ }
+}

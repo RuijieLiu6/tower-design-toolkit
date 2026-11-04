@@ -12,6 +12,7 @@ import { DEFAULT_SYSTEMS_PRESETS, type SystemsPresets } from './engine/lifeSafet
 import type { SkyRoom } from './engine/types'
 import type { AiMeta } from './engine/renderPrompt'
 import type { InterchangeModel } from './lib/interchange/model'
+import type { StudySite } from './engine/site'
 
 /** Defaults for a newly opened public sky room (all team assumptions, research P06-M07 and P11-M02). */
 export const DEFAULT_SKY_ROOM: Omit<SkyRoom, 'level'> = { access: 'shared', free: true, hoursOpen: 12, visitorShare: 0.6, loadBasis: 'dining', visitMinutes: 60, postedLimit: null }
@@ -62,6 +63,8 @@ interface State {
   towers: Record<ProjectKind, Tower[]>
   /** Uploaded model per project (Layer 0 interchange, lib/interchange): elements by role with provenance; null = none. */
   models: Record<ProjectKind, InterchangeModel | null>
+  /** Real Vancouver study site (engine/site.ts, Integrate Vista): drawn, from buildings or parcels, or GeoJSON; null = none. */
+  citySite: StudySite | null
   selectedTower: string
   enabled: Record<string, boolean>
   selectedNode: string | null
@@ -131,6 +134,7 @@ export const useStore = create<State>((set, get) => ({
   view: '3d',
   towers: { vtc: [withAutoCore(migrateTower(vtcTower()))], city: [withAutoCore(migrateTower(cityTower()))] },
   models: { vtc: null, city: null },
+  citySite: null,
   selectedTower: 't1',
   enabled: Object.fromEntries(DEFAULT_ON.map((id) => [id, true])),
   selectedNode: BUILT_NODES[0].id,

@@ -10,7 +10,6 @@ import { create } from 'zustand'
 import { rectCorners } from '../engine/massing'
 import type { Flag } from '../engine/types'
 import { SITE } from '../engine/vtcRules'
-import { decodeFootprints } from './cityLayers'
 import type { Pt, SnapTarget } from './edgeSnap'
 
 type Project = 'vtc' | 'city'
@@ -58,19 +57,12 @@ const box = (ring: Pt[]): Boxed => {
 }
 
 let cityParcels: Boxed[] | null = null
-let loading: Promise<void> | null = null
 
-/** Fetch the City parcel outlines once (140 kB). Snapping works without them; it just has fewer lines to catch. */
-export function loadCityParcels(): Promise<void> {
-  loading ??= fetch('./data/parcels.bin')
-    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`parcels.bin: HTTP ${r.status}`))))
-    .then((b) => { cityParcels = decodeFootprints(b).map((f) => box(f.outer)) })
-    .catch(() => { loading = null })
-  return loading
-}
-
-/** For tests: supply the City parcel outlines directly. */
-export function setCityParcelsForTest(rings: Pt[][] | null) { cityParcels = rings ? rings.map(box) : null }
+/**
+ * The City parcel outlines to snap to. lib/towerEdit hands them over once lib/siteParcels has loaded the layer (one
+ * fetch for snapping, lot alignment and the site tools). Snapping works without them; it just has fewer lines to catch.
+ */
+export function setCityParcels(rings: Pt[][] | null) { cityParcels = rings ? rings.map(box) : null }
 
 /** Lines to snap to within `r` of (x, y): the site boundary first, then parcels (the site tools' own, else the City layer). */
 export function snapTargets(project: Project, x: number, y: number, r: number): SnapTarget[] {

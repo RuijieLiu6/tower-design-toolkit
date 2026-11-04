@@ -20,7 +20,7 @@ describe('evaluation cases (engine level)', () => {
   }
   it('covers every case type and each new node with a typical and an out-of-scope case', () => {
     expect(new Set(CASES.map((c) => c.type))).toEqual(new Set(['typical', 'boundary', 'out-of-scope', 'repeated', 'definition']))
-    for (const n of ['built.core-lifts', 'built.solar-access', 'built.wind-procedure', 'built.energy-carbon', 'built.mobility', 'built.view-from', 'built.vista', 'built.model']) {
+    for (const n of ['built.core-lifts', 'built.solar-access', 'built.wind-procedure', 'built.energy-carbon', 'built.mobility', 'built.view-from', 'built.vista', 'built.model', 'built.heights']) {
       const types = CASES.filter((c) => c.node === n).map((c) => c.type)
       expect(types, n).toContain('typical'); expect(types, n).toContain('out-of-scope')
     }

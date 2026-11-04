@@ -66,14 +66,14 @@ describe('view envelope: exact triangles against the estimated cone surfaces', (
     expect(c.clearance).toBeNull()
     expect(r.controlling).toBeNull()
   })
-  it('an imported tower uses its mesh triangles when loaded, else says it used the hull', () => {
+  it('an imported tower uses its mesh triangles when loaded, else its sliced storeys, and says so', () => {
     const t = tower({ imported: { meshId: 'm1', fileName: 'tower.obj', format: 'obj', unit: 'm', unitSource: 'file', fileNorthDeg: 0, northSource: '', datumShift: 0, datumSource: '', f2f: 4, podiumTop: 0, podiumF2F: 4, storeys: [], hull: [[-15, -15], [15, -15], [15, 15], [-15, 15]], volume: null, top: 120, health: { block: 0, warn: 0 } } })
     const mesh = { positions: [-15, -15, 120, 15, -15, 120, 0, 15, 130], indices: [0, 1, 2] }
     const withMesh = proposalTriangles([t], 30, ORIGIN, { m1: mesh })
     expect(withMesh.tris).toHaveLength(1); expect(withMesh.notes).toEqual([])
     expect(withMesh.tris[0].c).toEqual([491636, 5458771, 160])
     const without = proposalTriangles([t], 30, ORIGIN, {})
-    expect(without.notes[0]).toMatch(/hull/)
+    expect(without.notes[0]).toMatch(/sliced storeys/)
   })
   it("reproduces Vista's envelope self-test: stacked rotated blocks, exact 83.012086 m vs 68.175785 m for the bounding prism", () => {
     // envelope-selftest.js fixture: blocks 120 m and 80 m (20 × 20 m) at site ± 20 m, Vista rotations 17° and −11°

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { CONES } from '../engine/viewCones'
 import { coneCamera, exactCones, studySentence, vistaFrameSpread, coneFitHfov, type Pt } from '../engine/vista'
 import { jpegSize, latin1, wrap } from './pdf/miniPdf'
+import { removalNote } from './cityRemoval'
 import { buildVistaReport } from './vistaReport'
 
 const fp: Pt[] = [[491621, 5458741], [491651, 5458741], [491651, 5458771], [491621, 5458771]]
@@ -28,6 +29,25 @@ describe('Vista view-study PDF', () => {
     expect(text.slice(start, start + 4)).toBe('xref')
     const offsets = text.slice(start).split('\n').slice(3).filter((l) => /^\d{10} 00000 n/.test(l)).map((l) => Number(l.slice(0, 10)))
     offsets.forEach((o, i) => expect(text.slice(o, o + `${i + 1} 0 obj`.length)).toBe(`${i + 1} 0 obj`))
+  })
+  it('states existing buildings hidden under the design on every view page and in the sources', async () => {
+    const exact = exactCones(fp, 135)
+    const views = ['3.2.3', '28'].map((id) => {
+      const c = CONES.find((k) => k.id === id)!, cam = coneCamera(c), vs = vistaFrameSpread(c)
+      return { cone: c, shot: null, eye: c.Lv, vistaEye: null, hfov: cam.hfov, vistaHfov: coneFitHfov(vs), spread: cam.spread, vistaSpread: vs, bearing: cam.bearing, pitch: 2, aspect: 2.1 }
+    })
+    const base = { towerName: 'Test tower', height: 120, ground: 15, groundBasis: 'project base', footprint: fp, sentence: studySentence('Test tower', 120, exact), exact, whatIf: null, views, terrain: () => 30, date: '2026-11-03' }
+    const words = async (b: Blob) => {
+      const t = Array.from(new Uint8Array(await b.arrayBuffer()), (x) => String.fromCharCode(x)).join('')
+      return [...t.matchAll(/\(((?:\\.|[^\\)])*)\)\s*Tj/g)].map((m) => m[1].replace(/\\([()\\])/g, '$1')).join(' ').replace(/\s+/g, ' ')
+    }
+    const note = removalNote(4, ['Test tower'])!
+    const on = await words(buildVistaReport({ ...base, removal: { hidden: 4, note } }))
+    expect(on.match(/In this render 4 existing building footprints are hidden under the design/g)?.length).toBe(views.length)
+    expect(on).toContain('not evidence of vacancy or redevelopment eligibility')
+    expect(on).toContain('Existing buildings under the design: 4 existing building footprints are hidden (under Test tower)')
+    const off = await words(buildVistaReport({ ...base, removal: null }))
+    expect(off).not.toContain('hidden under the design')
   })
   it('folds characters outside WinAnsi instead of dropping text', () => {
     expect(latin1('m² · 25.6° · −1.9 m – ok')).toBe('m\xB2 \xB7 25.6\xB0 \xB7 -1.9 m \x96 ok')

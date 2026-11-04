@@ -1,6 +1,6 @@
 // Component ribbon, Grasshopper style: one tab per category, icon tiles grouped into panels (two rows of icons,
 // or labelled tiles with "Names" on). Drag a tile onto the canvas, or press Enter / click to drop it in the view.
-import { FlaskConical, Hammer, Search, Type, Upload, Users } from 'lucide-react'
+import { FlaskConical, Hammer, Search, Type, Upload, Users, Wand2 } from 'lucide-react'
 import { useMemo, useState, type DragEvent } from 'react'
 import type { NodeDef } from '../../data/registry'
 import { catalog, STATUS_LABEL, TABS, type Entry, type TabId } from './catalog'
@@ -46,7 +46,7 @@ function Panel({ title, entries, onAdd, names, onHover }: { title: string; entri
 }
 
 export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNodeBuilder, onBrowse }: {
-  tab: TabId; setTab: (t: TabId) => void; onAdd: (e: Entry) => void; onSearch: () => void; community: NodeDef[]; onNodeBuilder: (tab: 'build' | 'import') => void; onBrowse?: () => void
+  tab: TabId; setTab: (t: TabId) => void; onAdd: (e: Entry) => void; onSearch: () => void; community: NodeDef[]; onNodeBuilder: (tab: 'build' | 'make' | 'import') => void; onBrowse?: () => void
 }) {
   const [names, setNames] = useState(readNames)
   const [hover, setHover] = useState<Entry | null>(null)
@@ -113,6 +113,10 @@ export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNode
                 <button onClick={() => onNodeBuilder('build')} title="Copy the node-builder skill to your AI, then paste the package it writes"
                   className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 font-medium text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
                   <Hammer size={13} aria-hidden />Build a node
+                </button>
+                <button onClick={() => onNodeBuilder('make')} title="Make a node here with a form: a formula, a threshold and its source, no AI needed"
+                  className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 font-medium text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
+                  <Wand2 size={13} aria-hidden />Make one here
                 </button>
                 <button onClick={() => onNodeBuilder('import')} title="Import a node package (.json) someone shared with you"
                   className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 font-medium text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">

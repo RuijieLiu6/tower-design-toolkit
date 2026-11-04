@@ -132,6 +132,7 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
       ? {
           tested: results.length, beyond, missing: MISSING_SPACES.map((m) => m.name),
           withHeight: base.prisms.length, unknownHeight: unknownNear(i.city, centre, (i.half ?? 640) + 700), terrain: !!terrain, towerBase: zb, source: SPACES_SOURCE,
+          heights: i.city.heights,
         }
       : undefined
   }

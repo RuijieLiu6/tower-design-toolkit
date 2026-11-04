@@ -88,7 +88,7 @@ export default function Guide() {
           </Section>
 
           <Section id="nodes" title="Nodes">
-            <p>Every check is a <b>node</b> in the library on the left: VTC hard rules, FSR, view cones, core and lifts, egress, solar access and many more. Switch a node on to run it; presets switch on a set at once. <b>Built</b> nodes compute live from your design. <b>Researched</b> nodes show their method, thresholds and sources but don't compute yet.</p>
+            <p>Every check is a <b>node</b>: VTC hard rules, FSR, view cones, core and lifts, egress, solar access and many more. In the guided app the design tools are on the left and the results on the right; the nodes are the icons in the bar at the bottom. Hover an icon to read its name and click it to switch the node on. <b>Library</b> at the bar's left end searches every node and has the presets, which switch on a set at once. <b>Built</b> nodes compute live from your design. <b>Researched</b> nodes show their method, thresholds and sources but don't compute yet.</p>
             <p>Each result shows a state, its value, and the source it comes from: <StateChip state="pass" /> <StateChip state="warn" /> <StateChip state="fail" /> <StateChip state="unknown" />. "Check" means the design is close to a limit or needs a judgement; "Unknown" means the tool cannot tell, and it says why instead of guessing.</p>
             <p>You can build your own nodes with the node builder and install shared ones from <b>Community</b> in Customize. <Go to="sources">Sources &amp; assumptions</Go> lists every source any node cites and every team assumption you can edit.</p>
           </Section>
@@ -108,7 +108,7 @@ export default function Guide() {
 
           <Section id="files" title="Saving, import and export">
             <p>Your design is saved in this browser as you work and comes back when you return. The <b>project menu</b> (top left in the guided app) has <b>New project</b>, <b>Open…</b>, <b>Save</b>, <b>Save as…</b>, <b>Export .json</b> and <b>Import .json…</b>. A project file holds the design, your decisions and the trace; send it to a teammate to share the whole state.</p>
-            <p>To bring in your own massing, use <b>Import</b> in the Design tab: Rhino <code>.3dm</code>, OBJ, glTF / GLB and IFC. SketchUp and Revit files can't be read in a browser; the app tells you how to export them (OBJ from SketchUp, IFC from Revit). Imported masses are cut into storeys so the checks can read them.</p>
+            <p>To bring in your own massing, use <b>Import</b> in the <b>Towers &amp; site</b> design tool: Rhino <code>.3dm</code>, OBJ, glTF / GLB and IFC. SketchUp and Revit files can't be read in a browser; the app tells you how to export them (OBJ from SketchUp, IFC from Revit). Imported masses are cut into storeys so the checks can read them.</p>
             <p>Browser storage belongs to one browser on one computer: export a project file to keep a copy or to move to another machine.</p>
           </Section>
 
@@ -133,7 +133,7 @@ export default function Guide() {
           <Section id="keys" title="Keyboard">
             <ul className="space-y-1">
               <li><Key>1</Key> <Key>2</Key> <Key>3</Key> switch stage (Massing, Schematic, Present)</li>
-              <li><Key>P</Key> place the tower on the map: a click shows a ghost of the tower there with its site fit and view cones; <Key>Enter</Key> or Confirm places it, <Key>Esc</Key> or Cancel keeps it where it was</li>
+              <li><Key>P</Key> place the tower on the map: a click shows a ghost of the tower there with its site fit and view cones; <Key>Enter</Key> or Confirm places it, <Key>Esc</Key> or Cancel keeps it where it was. The tower lines up with the lot under the click: it turns parallel to the lot lines (read from the lot's smallest enclosing rectangle) and sits inside them when it fits, never resized; the lines it used show in amber. On a street it turns to the nearest lot lines within 30 m; <Key>Shift</Key> places it freely. <Key>L</Key> (<b>Align to lot</b>) does the same for a tower already placed</li>
               <li>Click a tower in the 3D view to select it as one object; <Key>M</Key> <b>Move</b> and <Key>R</Key> <b>Rotate</b> show a gizmo at its base (drag the arrows or the square to move it in plan, the arc to turn it). It snaps to the site boundary and parcel edges first, then to a 1 m or 5 m grid and 5° or 15° steps; hold <Key>Shift</Key> for free. A drag leaves a ghost to <Key>Enter</Key> confirm or <Key>Esc</Key> cancel; nothing changes until you confirm, and each confirmed move is one undo step. With Move on, the arrow keys nudge it one grid step (<Key>Shift</Key>: 0.1 m); with Rotate on, <Key>[</Key> <Key>]</Key> turn it one step. <Key>Esc</Key> cancels a drag, then the pending move, then deselects. Present keeps the model locked</li>
               <li><Key>H</Key> hides or shows everything over the 3D view (the layers dock, compass and title block) for a clean view; captures never include them</li>
               <li><Key>Ctrl</Key> + <Key>Z</Key> undo; opening a project or an option is one undo step</li>

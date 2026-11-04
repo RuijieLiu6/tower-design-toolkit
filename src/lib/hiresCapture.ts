@@ -2,14 +2,16 @@
 // chunk); this file only holds the hook, so panels can call it without pulling three.js into the main bundle.
 import { useStore } from '../store'
 
-type Capture = (targetWidth: number) => string | null
+/** `massingOnly`: buildings and ground only, without labels, lines or see-through overlays (input for AI renders). */
+export type CaptureOptions = { massingOnly?: boolean }
+type Capture = (targetWidth: number, opts?: CaptureOptions) => string | null
 let capture: Capture | null = null
 
 export function setHiResCapture(fn: Capture | null) { capture = fn }
 
 /** PNG data URL of the current 3D view about `targetWidth` px wide (capped by the GPU), or null if no view is mounted. */
-export function captureHiRes(targetWidth = 3508): string | null {
-  return capture ? capture(targetWidth) : null
+export function captureHiRes(targetWidth = 3508, opts?: CaptureOptions): string | null {
+  return capture ? capture(targetWidth, opts) : null
 }
 
 /** Print-size capture filed in the shot strip. An A2 board at 150 dpi is 3508 px wide. */

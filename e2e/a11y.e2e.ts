@@ -51,11 +51,25 @@ async function guided(p: Page, stage: '1' | '2' | '3' = '1') {
   await p.waitForTimeout(1200)
 }
 
-/** Select a node in the library and show its results. */
+/**
+ * Shows a node's results. Switching a node on in the bottom bar also selects it; a node that is already on is picked
+ * in the results panel's "Show results for" list (clicking its icon would switch it off).
+ */
+async function showNode(p: Page, name: string) {
+  const sw = p.getByRole('switch', { name: `Use ${name}`, exact: true })
+  await sw.waitFor({ timeout: 20_000 })
+  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+  else {
+    await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+    await p.getByLabel('Show results for').selectOption({ label: name })
+  }
+  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+}
+
+/** Opens the guided app and shows a node's results. */
 async function node(p: Page, name: string, stage: '1' | '2' = '1') {
   await guided(p, stage)
-  await p.locator('aside').getByText(name, { exact: true }).first().click()
-  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await showNode(p, name)
   await p.waitForTimeout(800)
 }
 
@@ -67,12 +81,12 @@ const screens: { name: string; go: (p: Page) => Promise<void> }[] = [
   { name: 'Guided: Present', go: async (p) => { await open(p, '#/guided'); await p.getByRole('button', { name: 'Start designing' }).click().catch(() => {}); await p.keyboard.press('3'); await p.waitForTimeout(1500) } },
   { name: 'Customize (#/customize)', go: (p) => open(p, '#/customize') },
   { name: 'Status (#/status)', go: (p) => open(p, '#/status') },
-  { name: 'Import dialog', go: async (p) => { await guided(p); await p.getByRole('tab', { name: 'Design' }).click().catch(() => {}); await p.locator('button[title^="Import a massing"]').click(); await p.waitForSelector('[role=dialog]') } },
+  { name: 'Import dialog', go: async (p) => { await guided(p); await p.locator('button[title^="Import a massing"]').click(); await p.waitForSelector('[role=dialog]') } },
   { name: 'Node: Program value & land residual', go: (p) => node(p, 'Program value & land residual') },
   { name: 'Node: Engagement & claims guard', go: (p) => node(p, 'Engagement & claims guard') },
   { name: 'Node: Parking, loading & bikes', go: (p) => node(p, 'Parking, loading & bikes', '2') },
   { name: 'Node: Facade: glazing & bird safety', go: (p) => node(p, 'Facade: glazing & bird safety', '2') },
-  { name: 'Node: View from here (Real Vancouver)', go: async (p) => { await guided(p); await p.getByRole('tab', { name: 'Real Vancouver' }).or(p.getByRole('button', { name: 'Real Vancouver' })).first().click(); await p.waitForTimeout(2500); await p.locator('aside').getByText('View from here', { exact: true }).first().click(); await p.getByRole('tab', { name: /Results/ }).click().catch(() => {}); await p.waitForTimeout(800) } },
+  { name: 'Node: View from here (Real Vancouver)', go: async (p) => { await guided(p); await p.getByRole('tab', { name: 'Real Vancouver' }).or(p.getByRole('button', { name: 'Real Vancouver' })).first().click(); await p.waitForTimeout(2500); await showNode(p, 'View from here'); await p.waitForTimeout(800) } },
 ]
 
 for (const s of screens) {

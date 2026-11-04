@@ -118,3 +118,36 @@ export function spanAt(spans: BlockSpan[], z: number): BlockSpan | null {
   return spans.find((s) => z >= s.z0 - 1e-9 && z < s.z1 - 1e-9) ?? (z < spans[0].z0 ? spans[0] : spans[spans.length - 1])
 }
 
+
+/** Floor-to-floor of each band's floors: its own, or the tower's. */
+export const bandF2f = (t: Pick<Tower, 'bands' | 'f2f'>) => t.bands.map((x) => (x.f2f && x.f2f > 0 ? x.f2f : t.f2f))
+
+/**
+ * Floors per program band above the podium in `height` metres. Bands share the floors by their shares (largest
+ * remainder). When every band uses the tower's floor-to-floor this is the old allocation exactly; with a band's own
+ * floor-to-floor (Section tool) the floor count is the one whose total height fits, then remainders are added while
+ * they still fit.
+ */
+export function bandCounts(t: Pick<Tower, 'bands' | 'f2f'>, height: number): number[] {
+  const total = t.bands.reduce((s, x) => s + Math.max(0, x.share), 0) || 1
+  const share = t.bands.map((x) => Math.max(0, x.share) / total)
+  const f = bandF2f(t)
+  if (f.every((v) => v === t.f2f)) {
+    // A floor that fits exactly counts (214.2 m / 4.2 m is 50.999… in floating point).
+    const n = Math.max(0, Math.floor(height / t.f2f + 1e-6))
+    const raw = share.map((s) => s * n)
+    const counts = raw.map(Math.floor)
+    let left = n - counts.reduce((a, c) => a + c, 0)
+    raw.map((v, i) => [v - Math.floor(v), i] as const).sort((a, c) => c[0] - a[0]).forEach(([, i]) => { if (left > 0) { counts[i]++; left-- } })
+    return counts
+  }
+  const mean = share.reduce((s, x, i) => s + x * f[i], 0) || t.f2f
+  const n = Math.max(0, height / mean + 1e-6)
+  const raw = share.map((s) => s * n)
+  const counts = raw.map(Math.floor)
+  let used = counts.reduce((s, c, i) => s + c * f[i], 0)
+  for (const [, i] of raw.map((v, k) => [v - Math.floor(v), k] as const).sort((a, c) => c[0] - a[0])) {
+    if (used + f[i] <= height + 1e-6) { counts[i]++; used += f[i] }
+  }
+  return counts
+}

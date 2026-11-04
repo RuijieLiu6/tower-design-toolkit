@@ -80,11 +80,14 @@ function codexPrompt(job) {
     job.prompt,
     job.size ? `Make the output landscape, ${job.size.w} x ${job.size.h} px if the tool allows it.` : '',
     `Save the image in the current working folder as ${job.id}.ai.png. Do not create or edit any other files.`,
+    'When it is saved, reply with one line: "Model: " and the name of the image model you used.', // read into the manifest
   ].filter(Boolean).join(' ')
 }
 
 function codexArgs(job, png, work) {
-  return ['exec', '--skip-git-repo-check', '-s', 'workspace-write', '-C', work, '-o', join(work, 'last_message.txt'), '-i', png, codexPrompt(job)]
+  // `--` ends the options: Codex's -i takes several files and otherwise reads the prompt as a second image, then waits
+  // for a prompt on stdin (first test run from the Render tab, 3 Nov 2026).
+  return ['exec', '--skip-git-repo-check', '-s', 'workspace-write', '-C', work, '-o', join(work, 'last_message.txt'), '-i', png, '--', codexPrompt(job)]
 }
 
 function collect(o, inbox) {
@@ -142,7 +145,7 @@ async function main() {
   const all = readJobs(inbox).filter((j) => !o.only || j.job.id === o.only)
   const todo = all.filter((j) => j.ok && (o.force || !existsSync(join(outbox, `${j.job.id}.ai.json`))))
   for (const j of all.filter((x) => !x.ok)) console.log(`skip ${j.job.id}: capture ${basename(j.png)} is missing`)
-  if (!todo.length) { console.log(all.length ? 'Every inbox item already has a result (use --force to redo one).' : `No prepared items in ${inbox}. In Present, use "Prepare AI render", then run with --collect.`); return 0 }
+  if (!todo.length) { console.log(all.length ? 'Every inbox item already has a result (use --force to redo one).' : `No prepared items in ${inbox}. In Present → Render, use "Prepare the files", then run with --collect.`); return 0 }
 
   const codex = codexCommand(o)
   console.log(`${todo.length} item${todo.length > 1 ? 's' : ''} to render with: ${codex.label}`)
@@ -179,7 +182,7 @@ async function main() {
     appendFileSync(join(dir, 'render-log.jsonl'), JSON.stringify({ id: job.id, rendered: result.rendered, tool: version, model, input: result.inputSha256, output: result.outputSha256, data: 'ChatGPT plan; retention per your OpenAI data controls (not read by this script)' }) + '\n')
     console.log(`  saved ${join(outbox, image)}`)
   }
-  console.log(`\nDone: ${todo.length - failed} rendered, ${failed} failed. In Present, use "Import AI results" and pick the .ai files in ${outbox}.`)
+  console.log(`\nDone: ${todo.length - failed} rendered, ${failed} failed. In Present → Render, use "Import results" and pick the .ai files in ${outbox}.`)
   return failed ? 1 : 0
 }
 

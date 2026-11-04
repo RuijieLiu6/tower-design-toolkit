@@ -2,10 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { offlineApp, pagesBase } from './pwa.plugin.ts'
+import { renderHelper } from './render.plugin.ts'
 
 export default defineConfig(({ mode }) => ({
   // offlineApp writes the service worker (works offline after the first visit) and, for GitHub Pages, the 404 page.
-  plugins: [react(), tailwindcss(), offlineApp({ pages: mode === 'pages' })],
+  // renderHelper lets the Render tab run the user's Codex CLI, in `vite` and `vite preview` on this computer only.
+  plugins: [react(), tailwindcss(), offlineApp({ pages: mode === 'pages' }), renderHelper()],
   // './' keeps every URL relative, so a local build runs from any folder. `npm run build:pages` (mode "pages") uses the
   // repository path instead (PAGES_BASE, default /tower-design-toolkit/), so GitHub Pages' 404 page works at any depth.
   base: mode === 'pages' ? pagesBase(process.env.PAGES_BASE) : './',

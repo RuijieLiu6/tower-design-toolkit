@@ -15,7 +15,8 @@ const data: BuildingForms = { version: 1, origin: [491300,5458600], baseCount: 1
   { ...tower, ground: 0, roof: 60, max: 61, points: 100000 },
 ] }
 
-describe('measured City building forms and streets', () => {
+// Real data (megabytes): a single test takes a second or two alone, longer while the whole suite runs in parallel.
+describe('measured City building forms and streets', { timeout: 30_000 }, () => {
   it('picks podium and tower at their separate roof levels and removes the old whole-footprint extrusion', () => {
     const merged = applyBuildingForms([base], null, data)
     expect(merged.footprints).toHaveLength(2)

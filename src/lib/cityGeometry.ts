@@ -23,12 +23,15 @@ export interface StreetData {
 }
 const finiteRing = (r: number[][]) => r.length >= 3 && r.every((p) => p.length === 2 && p.every(Number.isFinite))
 
-/** Both viewport and analysis load the same optional building replacement. Independent failures retain the base. */
-export async function loadCityGeometry(manifest: Manifest, read: (file: string) => Promise<ArrayBuffer>, buildingsOnly = false) {
+/**
+ * Both viewport and analysis load the same optional building replacement. Independent failures retain the base.
+ * `forms` false loads the streets only (Vista's model replaces the City roof forms; they stay for the comparison model).
+ */
+export async function loadCityGeometry(manifest: Manifest, read: (file: string) => Promise<ArrayBuffer>, buildingsOnly = false, forms = true) {
   const loaded: Partial<Record<string, BuildingForms>> = {}
   let streets: StreetData | null = null
   const errors: string[] = []
-  await Promise.all([...FORM_LAYERS, ...(buildingsOnly ? [] : ['city_streets'])].map(async (id) => {
+  await Promise.all([...(forms ? FORM_LAYERS : []), ...(buildingsOnly ? [] : ['city_streets'])].map(async (id) => {
     const layer = manifest.layers.find((l) => l.id === id)
     if (!layer) return
     try {

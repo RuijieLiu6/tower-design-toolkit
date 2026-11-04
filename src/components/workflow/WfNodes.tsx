@@ -1,6 +1,6 @@
 // Node cards for the Customize canvas: icon, typed ports, live result with its evidence flags, and group frames.
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { CircleAlert, CircleCheck, CircleDashed, CircleHelp, CircleX, FlaskConical, PlugZap } from 'lucide-react'
+import { CircleAlert, CircleCheck, CircleDashed, CircleHelp, CircleX, FlaskConical, PlugZap, Ban, Hourglass, PowerOff } from 'lucide-react'
 import { createContext, memo, useContext } from 'react'
 import type { Flag, RuleState } from '../../engine/types'
 import { flagCounts, PORT_COLOR, portsFor, type NodeOutput } from '../../lib/workflowLogic'
@@ -58,7 +58,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
   const isSource = data.kind === 'source'
 
   return (
-    <div className={`w-[232px] rounded-lg border bg-panel shadow-sm transition-shadow ${selected ? 'border-accent shadow-md ring-2 ring-accent/30' : researched || missing ? 'border-dashed border-slate-400' : 'border-line'}`}
+    <div data-run={out?.run?.status ?? undefined} className={`w-[232px] rounded-lg border bg-panel shadow-sm transition-shadow ${selected ? 'border-accent shadow-md ring-2 ring-accent/30' : researched || missing ? 'border-dashed border-slate-400' : 'border-line'} ${out?.run?.status === 'off' || out?.run?.status === 'blocked' ? 'opacity-60' : out?.run?.status === 'waiting' ? 'opacity-75' : ''}`}
       style={{ minHeight: HEADER + rows * ROW + 8 }}>
       <div className="flex items-center gap-2 rounded-t-lg px-2.5 pb-1.5 pt-2" style={{ borderTop: `3px solid ${color}` }}>
         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${researched ? 'bg-slate-200 text-slate-600' : 'text-white'}`} style={researched ? undefined : { background: color }}>
@@ -95,6 +95,12 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
       ))}
 
       <div className="border-t border-line px-2.5 py-2">
+        {out?.run && (
+          // Run status (P15-M02): off, blocked by an upstream node that is off, or waiting in step-through.
+          <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: out.run.status === 'waiting' ? '#62666d' : '#8a4b00' }}>
+            {out.run.status === 'off' ? <><PowerOff size={11} aria-hidden />Off</> : out.run.status === 'blocked' ? <><Ban size={11} aria-hidden />Blocked</> : <><Hourglass size={11} aria-hidden />Waiting</>}
+          </div>
+        )}
         {researched ? (
           <div className="flex items-start gap-1.5 text-[10.5px] text-muted"><FlaskConical size={12} className="mt-0.5 shrink-0" aria-hidden />Researched, not runnable: a placeholder that passes "unknown" downstream.</div>
         ) : missing ? (
@@ -102,7 +108,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
         ) : out ? (
           <>
             <div className="flex items-start gap-1.5">
-              {!isSource && <StateWord state={out.state} />}
+              {!isSource && !out.run && <StateWord state={out.state} />}
               <span className={`min-w-0 text-[11px] leading-snug ${out.state === 'idle' && out.missing ? 'text-amber-800' : 'text-ink'}`}>{out.headline}</span>
             </div>
             {data.ref === 'logic.score' && Number.isFinite(out.score) && (

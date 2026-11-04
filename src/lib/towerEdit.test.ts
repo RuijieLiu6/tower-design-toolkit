@@ -4,7 +4,7 @@ import { rectCorners } from '../engine/massing'
 import type { ImportedMass } from '../engine/types'
 import { useStore } from '../store'
 import { redo, resetHistory, startHistory, undo } from './project/history'
-import { setCityParcelsForTest } from './siteGeometry'
+import { setCityParcels } from './siteGeometry'
 import {
   beginDrag, cancelDrag, cancelProposal, clearPick, confirmProposal, dragTo, endDrag, moveSnapped, normalizeDeg, nudge,
   pickTower, proposePlace, setMetresPerPx, setPose, setShiftHeld, snapMove, snapRotate, snapTo, toggleMode, turnDeg,
@@ -73,7 +73,7 @@ describe('snapping maths', () => {
 
 describe('snapping to the site and parcels', () => {
   const opts = (o: Partial<SnapOptions> = {}): SnapOptions => ({ project: 'vtc', snap: true, free: false, step: 1, tol: 4, ...o })
-  beforeEach(() => { useStore.setState(useStore.getInitialState(), true); setCityParcelsForTest(null) })
+  beforeEach(() => { useStore.setState(useStore.getInitialState(), true); setCityParcels(null) })
 
   it('catches the competition block edge before the grid, and lets Shift or Snap off move freely', () => {
     // Tower 46 m wide: its east face at x + 23 lands on the block edge at 72.4 m (144.8 m / 2) from x = 49.4.
@@ -100,13 +100,13 @@ describe('snapping to the site and parcels', () => {
     useStore.getState().setProject('city')
     const t = useStore.getState().towers.city[0]
     const parcel = rectCorners(t.x + 40, t.y, 30, 20, 31) // a parcel next to the tower, turned 31°
-    setCityParcelsForTest([parcel])
+    setCityParcels([parcel])
     const start = { x: t.x, y: t.y, rotation: 0 }
     expect(turnSnapped(t, start, 29.2, { project: 'city', snap: true, free: false, step: 15 }).pose.rotation).toBeCloseTo(31, 6)
     expect(turnSnapped(t, start, 29.2, { project: 'city', snap: true, free: false, step: 15 }).hit).toMatchObject({ kind: 'parcel', how: 'parallel' })
     expect(turnSnapped(t, start, 20, { project: 'city', snap: true, free: false, step: 15 }).pose.rotation).toBe(15)
     expect(turnSnapped(t, start, 29.2, { project: 'city', snap: true, free: true, step: 15 }).pose.rotation).toBe(29.2)
-    setCityParcelsForTest(null)
+    setCityParcels(null)
   })
 })
 
@@ -186,16 +186,18 @@ describe('confirm before placing: proposals, Confirm as one undo step, Cancel', 
     expect(proposal()).toBeNull()
   })
 
-  it('Place on map: a click proposes the snapped spot, another click moves it, Confirm places and stops placing', () => {
+  it('Place on map: a click proposes the spot lined up with the competition block, another click moves it, Confirm places and stops placing', () => {
     useStore.getState().set({ placing: true })
     expect(proposePlace('t1', 12.4, -3.6)).toBe(true)
     expect(pose()).toEqual({ x: -20, y: 0, rotation: 0 }) // not moved yet
-    expect(proposal()).toMatchObject({ via: 'place', pose: { x: 12, y: -4, rotation: 0 } }) // 1 m grid
+    // Inside the block: centred on the click, turned to the block's lines (0°: the 100 m podium along its 144.8 m side).
+    expect(proposal()).toMatchObject({ via: 'place', pose: { x: 12.4, y: -3.6, rotation: 0 }, align: { how: 'site', fits: true } })
+    expect(proposal()?.align?.text).toMatch(/competition block/)
     expect(useTowerEdit.getState().picked).toBe('t1')
-    proposePlace('t1', 30.2, 2.1)
-    expect(proposal()).toMatchObject({ start: { x: -20, y: 0, rotation: 0 }, pose: { x: 30, y: 2, rotation: 0 } })
+    proposePlace('t1', 30.2, 2.1) // the podium would cross the block's east line at 72.4 m: held flush with it
+    expect(proposal()).toMatchObject({ start: { x: -20, y: 0, rotation: 0 }, pose: { x: 22.4, y: 2.1, rotation: 0 } })
     confirmProposal()
-    expect(pose()).toEqual({ x: 30, y: 2, rotation: 0 })
+    expect(pose()).toEqual({ x: 22.4, y: 2.1, rotation: 0 })
     expect(useStore.getState().placing).toBe(false)
     undo()
     expect(pose()).toEqual({ x: -20, y: 0, rotation: 0 })

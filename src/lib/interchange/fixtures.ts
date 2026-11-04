@@ -56,7 +56,7 @@ function earthAnchor(doc: Rh, northDeg: number) {
  * volumes and a core in tower A, a lot-line curve, context as block instances and an extrusion, an annotation dot and
  * an open setback line. Geometry types on purpose: a Brep without render meshes, extrusions, meshes and blocks.
  */
-export function typicalTower(rh: Rh): FixtureFile {
+export function typicalTower(rh: Rh, version: { towerBTop?: number } = {}): FixtureFile {
   const s = 1000, T = TYPICAL
   const doc = new rh.File3dm()
   doc.settings().modelUnitSystem = rh.UnitSystem.Millimeters
@@ -69,7 +69,8 @@ export function typicalTower(rh: Rh): FixtureFile {
   const o = doc.objects()
   o.add(extrusion(rh, T.podium.x0, T.podium.y0, T.podium.x1, T.podium.y1, T.podium.top, s), attrs(rh, podium, 'Podium', { use: 'retail' }))
   o.add(brepBox(rh, T.towerA.x0, T.towerA.y0, 0, T.towerA.x1, T.towerA.y1, T.towerA.top, s), attrs(rh, towerA, 'Tower A shaft', { tower: 'Tower A' }))
-  o.add(extrusion(rh, T.towerB.x0, T.towerB.y0, T.towerB.x1, T.towerB.y1, T.towerB.top, s), attrs(rh, towerB, 'Tower B', { tower: 'Tower B' }))
+  // A later save can change tower B's height (the update and live-link tests).
+  o.add(extrusion(rh, T.towerB.x0, T.towerB.y0, T.towerB.x1, T.towerB.y1, version.towerBTop ?? T.towerB.top, s), attrs(rh, towerB, 'Tower B', { tower: 'Tower B' }))
   const zoneLayer: Record<string, number> = { office, hotel, residential: resid }
   for (const z of T.zones) o.add(meshBox(rh, T.towerA.x0, T.towerA.y0, z.z0, T.towerA.x1, T.towerA.y1, z.z1, s), attrs(rh, zoneLayer[z.use], `${z.use} zone`, { use: z.use }))
   o.add(meshBox(rh, T.core.x0, T.core.y0, 0, T.core.x1, T.core.y1, T.towerA.top, s), attrs(rh, core, 'Core A'))

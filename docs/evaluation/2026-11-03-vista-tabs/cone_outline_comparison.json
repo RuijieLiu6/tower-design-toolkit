@@ -1,0 +1,248 @@
+{
+ "what": "Vista's view-cone outlines (data/viewcones.json @ 917b28e: City open data 'view-cones', accessed 2026-09-23) against the Toolkit's (src/data/viewcones.json: City ViewCone layer, retrieved 2026-10-21), both in EPSG:26910.",
+ "method": "Vista's polygon_lonlat through EPSG:4326 -> EPSG:26910; Vista's polygon_model_xy through latitude/longitude with Vista's own formula (110574 m/deg lat, 111320 x cos(lat0) m/deg lon) -> EPSG:4617 -> EPSG:3157. Symmetric Hausdorff distance to the Toolkit ring.",
+ "max_m": 0.01,
+ "cones": [
+  {
+   "cone": "10",
+   "name": "Granville Island",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.01
+  },
+  {
+   "cone": "20",
+   "name": "Granville Street",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.004,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.005
+  },
+  {
+   "cone": "21",
+   "name": "Commercial Drive",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.01
+  },
+  {
+   "cone": "22",
+   "name": "Main Street",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.004,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.006
+  },
+  {
+   "cone": "27.1",
+   "name": "Trout Lake",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.007
+  },
+  {
+   "cone": "27.2",
+   "name": "Trout Lake",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  },
+  {
+   "cone": "28",
+   "name": "Clinton Park",
+   "vertices": [
+    5,
+    5
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  },
+  {
+   "cone": "3.2.1",
+   "name": "Queen Elizabeth Park",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.007,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.006
+  },
+  {
+   "cone": "3.2.2",
+   "name": "Queen Elizabeth Park",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.009
+  },
+  {
+   "cone": "3.2.3",
+   "name": "Queen Elizabeth Park",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.006
+  },
+  {
+   "cone": "3.2.4",
+   "name": "Queen Elizabeth Park",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.009
+  },
+  {
+   "cone": "9.1",
+   "name": "Cambie Street",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.004,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.004
+  },
+  {
+   "cone": "9.2",
+   "name": "Cambie Street",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.002,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  },
+  {
+   "cone": "A",
+   "name": "Alder Terrace",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.004,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.006
+  },
+  {
+   "cone": "B1",
+   "name": "Charleson Seawall",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  },
+  {
+   "cone": "B2",
+   "name": "Charleson Seawall",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.009
+  },
+  {
+   "cone": "D",
+   "name": "Heather Bay",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  },
+  {
+   "cone": "E",
+   "name": "Cambie Bridge",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  },
+  {
+   "cone": "G1",
+   "name": "Olympic Shipyard Pier",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.007
+  },
+  {
+   "cone": "G2",
+   "name": "Olympic Shipyard Pier",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.007
+  },
+  {
+   "cone": "H",
+   "name": "Olympic Plaza Stage",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.004,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.01
+  },
+  {
+   "cone": "J1",
+   "name": "Creekside Park",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.005,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.005
+  },
+  {
+   "cone": "J2",
+   "name": "Creekside Park",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.006,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.01
+  },
+  {
+   "cone": "K",
+   "name": "Drake Street",
+   "vertices": [
+    3,
+    3
+   ],
+   "hausdorff_m_lonlat_vs_toolkit": 0.004,
+   "hausdorff_m_vista_xy_via_latlon_vs_toolkit": 0.008
+  }
+ ],
+ "conclusion": "Same City polygons: no outline or limit moved. The drawing uses the Toolkit outlines; limits keep their sources."
+}

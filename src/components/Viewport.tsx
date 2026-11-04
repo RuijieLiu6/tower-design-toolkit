@@ -1,6 +1,6 @@
 import { Line, OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { VTC_NORTH_DEG, isExtruded, useVtcContext, type ContextItem } from '../context'
@@ -11,14 +11,14 @@ import { coreLayout } from '../engine/plan'
 import { blockSpans, coreSide, rectCorners, spanAt, towerFloors } from '../engine/massing'
 import { USES, type Tower, type UseId } from '../engine/types'
 import { sunPosition, sunVector, vancouverTime } from '../engine/sun'
-import { CONES, CONE_PARAMS, type ConeState } from '../engine/viewCones'
-import { useResults } from '../hooks/useResults'
-import { CITY_ORIGIN, useStore, useTowers, type Phase, type Representation } from '../store'
+import { useStore, useTowers, type Phase, type Representation } from '../store'
 import CityContext, { CityLegend } from './CityContext'
 import { ShowOverlaysButton, ViewportDock, useDock, useOverlayLook, useOverlayShortcut } from './ViewportDock'
 import ImportedMass from './ImportedMass'
+import ModelOverlay from './import/ModelOverlay'
 import { ConeOverlays } from './ConeVolumes'
 import Label from './Label'
+import { useResults } from '../hooks/useResults'
 import ViewFromRig from './ViewFromRig'
 import VistaRig from './VistaRig'
 import VistaInset from './VistaInset'
@@ -35,10 +35,18 @@ import TowerGizmo, { TowerMover } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
 import { proposePlace } from '../lib/towerEdit'
 import CameraClamp from './CameraClamp'
+import { BvhWarmup, eventsWithoutWheel, installFastRaycast } from '../lib/fastRaycast'
+import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
 import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
 import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
-import { CONE_STYLE } from './ui'
+import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { casterSignature, signatureChanged } from '../lib/shadowCache'
+import { useSceneStyle } from '../lib/sceneStyle'
+import { PlaceLabels, VistaChrome, VistaLookRig } from './VistaLook'
+
+// Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
+installFastRaycast()
 
 /** Model frame (x, y, z-up) to three.js (y-up). */
 const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, -y)
@@ -86,10 +94,19 @@ function ContextMeshes({ items, color, ghost = false }: { items: ContextItem[]; 
   )
 }
 
-/** The flat top of the site model's base (the street level at the competition site, the sea in Real Vancouver); clicks on it place towers. */
-function Ground({ rect, color, onPick }: { rect: Plinth; color: string; onPick: (x: number, y: number) => void }) {
+/**
+ * The flat top of the site model's base (the street level at the competition site, the sea in Real Vancouver); clicks on
+ * it place towers. In Vista's Plain look (Real Vancouver) the sea takes Vista's water shading (lib/vistaLook.ts).
+ */
+function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: string; onPick: (x: number, y: number) => void; vista?: boolean }) {
+  const water = useMemo(() => (vista ? vistaShaded(new THREE.MeshStandardMaterial({ color, roughness: 1, metalness: 0 }), 'water') : null), [vista, color])
+  useEffect(() => () => water?.dispose(), [water])
+  const at: [number, number, number] = [(rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2, SEA_Z]
+  const pick = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }
+  // Separate keys: switching a mesh between a material prop and a child material leaves three's default material (R3F).
+  if (water) return <mesh key="vista" receiveShadow position={at} material={water} onPointerDown={pick}><planeGeometry args={[rect.x1 - rect.x0, rect.y1 - rect.y0]} /></mesh>
   return (
-    <mesh receiveShadow position={[(rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2, SEA_Z]} onPointerDown={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
+    <mesh key="plain" receiveShadow position={at} onPointerDown={pick}>
       <planeGeometry args={[rect.x1 - rect.x0, rect.y1 - rect.y0]} />
       <meshStandardMaterial color={color} roughness={1} />
     </mesh>
@@ -135,6 +152,7 @@ function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => vo
       ))}
       {missing && <Label text="Context model not found: run npm run context:vtc (kept local, never published)" position={[0, -60, 2]} color="#7a4b00" background="rgba(255,243,205,0.95)" />}
       {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
+      <ModelOverlay base={0} xray={xray} />
       <PublicRealmOverlay />
       <EnergyOverlay />
       <WindScreenOverlay />
@@ -143,56 +161,27 @@ function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => vo
   )
 }
 
-function coneLocal(ring: [number, number][]) { return ring.map(([x, y]) => [x - CITY_ORIGIN[0], y - CITY_ORIGIN[1]] as [number, number]) }
-
-function ConeWedge({ id, state }: { id: string; state: ConeState | null }) {
-  const cone = CONES.find((c) => c.id === id)!
-  const ring = useMemo(() => coneLocal(cone.ring), [cone])
-  const prm = CONE_PARAMS[id]
-  const color = state && state !== 'outside' ? CONE_STYLE[state].color : prm ? '#4f7fae' : '#7d838c'
-  const ground = useMemo(() => {
-    const s = new THREE.Shape(ring.slice(0, -1).map(([x, y]) => new THREE.Vector2(x, y)))
-    return new THREE.ShapeGeometry(s)
-  }, [ring])
-  const active = state && state !== 'outside'
-  return (
-    <group>
-      <mesh geometry={ground} position={[0, 0, 0.2]}>
-        <meshBasicMaterial color={color} transparent opacity={active ? 0.35 : 0.16} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-      {/* The outline is drawn once, draped on the ground (CityContext DrapedCones); a flat copy here doubled it. */}
-      {/* An estimated cone is drawn as a solid from its viewpoint (CityContext → ConeSolids); a cone without an estimate gets none. */}
-      <mesh position={[ring[0][0], ring[0][1], cone.Lv]}>
-        <sphereGeometry args={[12, 16, 16]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {active && (
-        <Label text={`${cone.id} · ${cone.name}${prm ? '' : ' · limit unknown'}`} position={[ring[0][0], ring[0][1], cone.Lv + 40]} size={0.016} />
-      )}
-    </group>
-  )
-}
-
 function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const towers = useTowers()
   const ground = useStore((s) => s.groundElevation)
-  const { cones } = useResults()
-  const sel = useStore((s) => s.selectedTower)
-  const checks = cones.find((c) => c.tower.id === sel)?.checks ?? []
   const grid = useMemo(() => {
     const pts: number[] = []
     for (let v = -6000; v <= 6000; v += 500) { pts.push(v, -6000, 0.1, v, 6000, 0.1, -6000, v, 0.1, 6000, v, 0.1) }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); return g
   }, [])
+  const vista = look === VISTA_LOOK
   return (
     <>
-      <Ground rect={CITY_PLINTH} color={look.water} onPick={onPick} />
-      <lineSegments geometry={grid}><lineBasicMaterial color={xray ? '#c9d4df' : '#d6d9de'} /></lineSegments>
-      {CONES.map((c) => <ConeWedge key={c.id} id={c.id} state={checks.find((k) => k.cone.id === c.id)?.state ?? null} />)}
+      <Ground rect={CITY_PLINTH} color={look.water} onPick={onPick} vista={vista} />
+      {/* Vista's water has no grid; the 500 m grid stays in the other looks. */}
+      {!vista && <lineSegments geometry={grid}><lineBasicMaterial color={xray ? '#c9d4df' : '#d6d9de'} /></lineSegments>}
+      <VistaLookRig />
+      {/* View cones: drawn as Vista draws them in CityContext (components/VistaCones.tsx), replacing the flat wedges and Lv spheres. */}
       <CityContext look={look} xray={xray} onPick={onPick} />
       <ViewFromRig />
       <VistaRig />
       {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} />}</TowerMover>)}
+      <ModelOverlay base={ground} xray={xray} />
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
       <WindScreenOverlay base={ground} />
@@ -228,9 +217,9 @@ function hatchTexture() {
 interface Zone { use: UseId; z0: number; z1: number; podium: boolean; levels: number[]; block: number; w: number; d: number; dx: number; dy: number; rot: number }
 type Anatomy = { plates: boolean; core: boolean; plant: boolean; shell: boolean; lifts: boolean; stairs: boolean }
 
-function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, coreRef }: {
+function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, coreRef, proposed = false }: {
   b: Zone; t: Tower; xray: boolean; selected: boolean; anatomy: Anatomy; clip: THREE.Plane[] | null; hatch: THREE.Texture; core: number
-  shellRef: (m: THREE.MeshStandardMaterial | null) => void; coreRef: (m: THREE.Mesh | null) => void
+  shellRef: (m: THREE.MeshStandardMaterial | null) => void; coreRef: (m: THREE.Mesh | null) => void; proposed?: boolean
 }) {
   const w = b.w, d = b.d, h = b.z1 - b.z0
   // The core stays on the tower centre through shifted and twisted blocks: undo the block's offset and turn.
@@ -244,12 +233,23 @@ function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, 
   }, [w, d, b])
   const coreGeom = useMemo(() => new THREE.BoxGeometry(core, core, h).translate(0, 0, h / 2), [core, h])
   const tint = selected && !xray
+  // Real Vancouver Massing: the proposed tower in one strong colour, with a glow line around its edges (screen pixels,
+  // so it reads at any zoom). Schematic and Present keep the programme colours.
+  const glow = proposed && !xray
+  const edgePts = useMemo(() => {
+    const a = edges.getAttribute('position').array as Float32Array, out: [number, number, number][] = []
+    for (let i = 0; i < a.length; i += 3) out.push([a[i], a[i + 1], a[i + 2]])
+    return out
+  }, [edges])
   return (
     <>
-      <mesh geometry={box} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
-        <meshStandardMaterial ref={shellRef} color={USES[b.use].color} roughness={0.75} transparent clippingPlanes={clip}
-          emissive={tint ? '#1f5f8b' : '#000000'} emissiveIntensity={tint ? 0.08 : 0} />
+      <mesh key={glow ? 'proposed' : 'programme'} geometry={box} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
+        <meshStandardMaterial ref={shellRef} color={glow ? PROPOSED.fill : USES[b.use].color} roughness={0.75} transparent clippingPlanes={clip} toneMapped={!glow} fog={!glow}
+          emissive={glow ? PROPOSED.fill : tint ? '#1f5f8b' : '#000000'} emissiveIntensity={glow ? 0.45 : tint ? 0.08 : 0} />
       </mesh>
+      {/* Both lines in the transparent pass, glow first: an opaque core would draw before the glow and sit under it. */}
+      {glow && <Line points={edgePts} segments color={PROPOSED.glow} lineWidth={5} transparent opacity={0.55} depthWrite={false} renderOrder={5} />}
+      {glow && <Line points={edgePts} segments color={PROPOSED.line} lineWidth={1.5} transparent opacity={1} renderOrder={6} />}
       {b.use === 'mechanical' && (
         <mesh geometry={box} scale={1.004} visible={xray && anatomy.plant}>
           <meshStandardMaterial map={hatch} transparent opacity={0.95} clippingPlanes={clip} />
@@ -332,6 +332,14 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
   const selected = useStore((s) => s.selectedTower) === t.id
   const selectTower = useStore((s) => s.selectTower)
   const schematic = useStore((s) => s.phase) === 'advanced'
+  const proposed = useStore(proposedLook)
+  const planMode = useVistaLook((s) => s.mode === 'plan')
+  const planView = planMode && useStore.getState().project === 'city'
+  const coneChecks = useResults().cones.find((r) => r.tower.id === t.id)?.checks
+  const over = useMemo(() => {
+    const worst = (coneChecks ?? []).filter((c) => c.state === 'above' && c.exceed !== null).sort((a, b) => b.exceed! - a.exceed!)[0]
+    return worst ? `${worst.exceed!.toFixed(1)} m over view ${worst.cone.id} (±${worst.param?.u95 ?? 0} m)` : null
+  }, [coneChecks])
   const anatomy = useStore((s) => s.anatomy)
   const explode = useStore((s) => s.explode) && schematic
   const section = useStore((s) => s.sectionOn) && schematic
@@ -368,15 +376,20 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
   const shells = useRef<(THREE.MeshStandardMaterial | null)[]>([])
   const cores = useRef<(THREE.Mesh | null)[]>([])
   const label = useRef<THREE.Group>(null)
+  const ring = useRef<THREE.Group>(null)
+  const ringPts = useMemo(() => Array.from({ length: 65 }, (_, i) => [Math.cos((i / 64) * 2 * Math.PI), Math.sin((i / 64) * 2 * Math.PI), 0] as [number, number, number]), [])
   const shafts = useRef<THREE.Group | null>(null)
   const stairs = useRef<THREE.Group | null>(null)
   const showLifts = xray && anatomy.lifts && !explode
   const showStairs = xray && anatomy.stairs && !explode
   const anim = useRef({ ghost: xray ? 1 : 0, core: xray && anatomy.core ? 1 : 0, explode: explode ? 1 : 0, lifts: showLifts ? 1 : 0, stairs: showStairs ? 1 : 0 })
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const a = anim.current
-    // Exponential approach; about 4 time constants = the 480 ms stage-in.
-    const k = reduced ? 1 : 1 - Math.exp(-dt / (MOTION.stageIn / 4000))
+    // Exponential approach; about 4 time constants = the 480 ms stage-in. The view draws on demand
+    // (lib/renderPacer.tsx): the first frame after a pause gets a long dt, so it is capped, and the easing asks for
+    // the next frame until it settles.
+    const k = reduced ? 1 : 1 - Math.exp(-Math.min(dt, 0.05) / (MOTION.stageIn / 4000))
+    const before = a.ghost + a.core + a.explode + a.lifts + a.stairs
     a.ghost += ((xray ? 1 : 0) - a.ghost) * k
     a.core += ((xray && anatomy.core ? 1 : 0) - a.core) * k
     a.explode += ((explode ? 1 : 0) - a.explode) * k
@@ -385,6 +398,7 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
     if (shafts.current) { shafts.current.scale.z = Math.max(1e-4, a.lifts); shafts.current.visible = a.lifts > 0.001 }
     a.stairs += ((showStairs ? 1 : 0) - a.stairs) * k
     if (stairs.current) { stairs.current.scale.z = Math.max(1e-4, a.stairs); stairs.current.visible = a.stairs > 0.001 }
+    if (Math.abs(a.ghost + a.core + a.explode + a.lifts + a.stairs - before) > 1e-4) state.invalidate()
     zones.forEach((b, i) => {
       const g = groups.current[i]
       if (g) g.position.z = (b.z0 + b.z1) / 2 + a.explode * i * GAP
@@ -393,7 +407,21 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
       const c = cores.current[i]
       if (c) { const s = Math.min(1, Math.max(0, (a.core * top - b.z0) / (b.z1 - b.z0))); c.scale.z = Math.max(1e-4, s); c.visible = s > 0.001 }
     })
-    if (label.current) label.current.position.z = top + 10 + a.explode * (zones.length - 1) * GAP
+    if (label.current) {
+      label.current.position.z = top + 10 + a.explode * (zones.length - 1) * GAP
+      // Plan looks straight down: the name sits just south of the footprint on screen (about 18 px clear of it), so it
+      // never covers the tower it names. Elsewhere it floats above the top.
+      if (planView) {
+        const cam = state.camera as THREE.PerspectiveCamera
+        const mpp = (2 * Math.max(1, cam.position.y - (baseZ + top)) * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2))) / Math.max(1, state.size.height)
+        // The plan marker: a ring 12 px clear of the footprint at any scale.
+        if (ring.current) ring.current.scale.setScalar(Math.hypot(t.width, t.depth) / 2 + 12 * mpp)
+        // World south (0, -off) in the tower's turned frame: rotate by minus the tower's rotation.
+        const off = Math.hypot(t.width, t.depth) / 2 + 18 * mpp, r = (-t.rotation * Math.PI) / 180
+        label.current.position.x = off * Math.sin(r)
+        label.current.position.y = -off * Math.cos(r)
+      } else { label.current.position.x = 0; label.current.position.y = 0 }
+    }
   })
 
   const cut = section && sectionLevel > 0 && sectionLevel < top
@@ -405,7 +433,7 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
     <group position={[t.x, t.y, baseZ]} rotation={[0, 0, (t.rotation * Math.PI) / 180]} onPointerDown={(e) => { e.stopPropagation(); selectTower(t.id) }}>
       {zones.map((b, i) => (
         <group key={i} ref={(g) => { groups.current[i] = g }} position={[b.dx, b.dy, (b.z0 + b.z1) / 2]} rotation={[0, 0, (b.rot * Math.PI) / 180]}>
-          <ZoneBody b={b} t={t} xray={xray} selected={selected} anatomy={anatomy} clip={clip} hatch={hatch} core={core}
+          <ZoneBody b={b} t={t} xray={xray} selected={selected} anatomy={anatomy} clip={clip} hatch={hatch} core={core} proposed={proposed}
             shellRef={(m) => { shells.current[i] = m }} coreRef={(m) => { cores.current[i] = m }} />
         </group>
       ))}
@@ -433,8 +461,19 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
           <Label text={`Section +${sectionLevel.toFixed(0)} m`} position={[cw * 0.95, 0, 4]} size={0.014} />
         </group>
       )}
+      {/* Plan (Real Vancouver Massing): a glowing ring around the proposed tower, drawn over everything, so it reads at any scale. */}
+      {planView && proposed && (
+        <group ref={ring} position={[0, 0, top + 2]}>
+          <Line points={ringPts} color={PROPOSED.glow} lineWidth={7} transparent opacity={0.6} depthTest={false} renderOrder={20} />
+          <Line points={ringPts} color={PROPOSED.fill} lineWidth={3} transparent opacity={1} depthTest={false} renderOrder={21} />
+        </group>
+      )}
       <group ref={label} position={[0, 0, top + 10]}>
-        <Label text={`${t.name} · ${t.height.toFixed(0)} m`} position={[0, 0, 0]} color="#ffffff" background="rgba(31,35,40,0.88)" size={0.017} bold />
+        {/* Plan: both hang below the anchor (which sits just south of the footprint), name first and the tag under it, clear of the ring. */}
+        <Label text={`${t.name} · ${t.height.toFixed(0)} m`} position={[0, 0, 0]} color="#ffffff" background="rgba(31,35,40,0.88)" size={0.017} bold lift={planView ? -(0.004 + 0.017) : over ? 0.021 : 0.004} />
+        {/* The worst view-cone overshoot, both above the tower so they never cover it (UI review, 3 Nov: the separate tag at the limit collided with the name
+            and could not be read from afar; that tag now only shows up close, ConeVolumes.tsx). */}
+        {over && <Label text={over} position={[0, 0, 0]} color="#ffffff" background="rgba(178,34,34,0.92)" size={0.015} bold lift={planView ? -(0.021 + 0.002 + 0.015) : 0.004} />}
       </group>
     </group>
   )
@@ -509,7 +548,7 @@ function Lens({ focus, fit, fog }: { focus: [number, number, number]; fit: numbe
     }
     const tw = lens.tween
     if (tw) {
-      tw.t += dt * 1000
+      tw.t += Math.min(dt, 0.05) * 1000 // capped: the first frame after a pause (render on demand) has a long dt
       const x = reduced ? 1 : Math.min(1, tw.t / tw.dur)
       const e = x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
       cam.fov = THREE.MathUtils.lerp(tw.f0, tw.f1, e)
@@ -523,10 +562,32 @@ function Lens({ focus, fit, fog }: { focus: [number, number, number]; fit: numbe
       cam.updateProjectionMatrix()
       if (ctl) { ctl.target.copy(c); ctl.update() } else cam.lookAt(c)
       if (x >= 1) lens.tween = null
+      else state.invalidate() // next frame of the move
     }
     // Fog follows the camera distance so far context fades the same way through any lens.
     const f = state.scene.fog
     if (f instanceof THREE.Fog) { const dd = cam.position.distanceTo(target); f.near = dd + fog[0]; f.far = dd + fog[1] }
+  })
+  return null
+}
+
+/**
+ * Re-renders the sun's shadow map only when the light or a shadow caster changes (lib/shadowCache.ts): a 4096 x 4096 map
+ * cost 10-11 ms a frame on the team laptop, and orbiting never changes it.
+ */
+function ShadowCache() {
+  const gl = useThree((s) => s.gl)
+  const last = useRef<number[] | null>(null)
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false
+    gl.shadowMap.needsUpdate = true
+    return () => { gl.shadowMap.autoUpdate = true }
+  }, [gl])
+  useFrame(({ scene }) => {
+    // This runs before the render updates the world matrices: update them now, so a moved tower is seen this frame.
+    scene.updateMatrixWorld()
+    const sig = casterSignature(scene)
+    if (signatureChanged(last.current, sig)) { gl.shadowMap.needsUpdate = true; last.current = sig }
   })
   return null
 }
@@ -556,35 +617,41 @@ export default function Viewport() {
   const phase = useStore((s) => s.phase)
   const placing = useStore((s) => s.placing)
   const selected = useStore((s) => s.selectedTower)
-  const enabled = useStore((s) => s.enabled)
+  // Only the sun switch matters here; each overlay reads its own switch. Reading the whole map re-rendered the 3D scene
+  // and the dock on every node switch. Deferred, so the switch itself flips at once (mouse response, 4 Nov).
+  const sunOn = useDeferredValue(useStore((s) => !!s.enabled['built.sun']))
   const groundElevation = useStore((s) => s.groundElevation)
   const towers = useTowers()
   const rep = useRep()
-  const look = LOOKS[rep]
+  // Real Vancouver in clay and the Plain style takes Vista's Plain look (lib/vistaLook.ts); x-ray and Context keep theirs.
+  const style = useSceneStyle((s) => s.style)
+  const look = project === 'city' && rep === 'clay' && style === 'plain' ? VISTA_LOOK : LOOKS[rep]
   const xray = rep === 'xray'
   const present = phase === 'present'
   const boardView = useStore((s) => s.boardView)
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
   // A click while placing proposes the spot (ghost + checks); the toolbar's Confirm moves the tower (Vista v10.1).
   const onPick = (x: number, y: number) => { if (placing && selected && !present) proposePlace(selected, x, y) }
-  const sunOn = enabled['built.sun']
   const sel = towers.find((t) => t.id === selected) ?? towers[0]
   const baseZ = project === 'city' ? groundElevation : 0
   const focus = (sel ? toThree(sel.x, sel.y, baseZ + sel.height / 2) : new THREE.Vector3(0, 60, 0)).toArray() as [number, number, number]
   const fog: [number, number] = project === 'vtc' ? [1600, 5100] : [1500, 30000]
   const hidden = useDock((s) => s.hidden)
-  const dockOpen = useDock((s) => s.open)
+  const dockOpen = useDock((s) => (project === 'city' ? s.menu : s.open))
   useOverlayShortcut()
   return (
     <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'bg-paper p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
         <div data-viewport className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
-          <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }}
+          <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
             onCreated={({ gl }) => { gl.localClippingEnabled = true }}
-            camera={{ position: project === 'vtc' ? [520, 430, 640] : [3200, 5200, 5600], fov: BASE_FOV, near: 1, far: 40000 }}>
+            camera={{ position: project === 'vtc' ? [520, 430, 640] : toThree(...VISTA_OVERVIEW.position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
             <color attach="background" args={[look.background]} />
             <HiResCapture />
+            <BvhWarmup />
+            <RenderPacer />
+            <ShadowCache />
             <fog attach="fog" args={[look.background, 2500, 6000]} />
             <hemisphereLight args={['#ffffff', '#d8d4cc', sunOn ? look.hemi : look.hemi + 0.7]} />
             {sunOn ? <Sun north={north} /> : <directionalLight position={[600, 1200, 400]} intensity={1.1} />}
@@ -592,13 +659,15 @@ export default function Viewport() {
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
               <TowerGizmo />
             </group>
-            <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : [0, 0, -400]} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
+            <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
             <CameraRig />
             <Lens focus={focus} fit={(sel?.height ?? 200) * 1.5} fog={fog} />
             <CameraClamp />
           </Canvas>
-          {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && <NorthCompass north={north} />}
+          {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
+          {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
+          {project === 'city' && !present && !hidden && <><PlaceLabels /><VistaChrome /></>}
           {phase === 'advanced' && sel && !hidden && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : 'right-12'} />}
         </div>
       </div>

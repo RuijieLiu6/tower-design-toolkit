@@ -1,11 +1,10 @@
 // Real Vancouver context: City footprints (LiDAR heights where processed, "height unknown" outlines elsewhere) and the
 // MRDEM terrain rings out to the North Shore mountains. Data: public/data/ (layers.json), built by tools/build_city_*.py.
 import { Line } from '@react-three/drei'
-import type { ThreeEvent } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { create } from 'zustand'
 import { LOOKS, type Look } from '../data/stages'
 import { rectCorners, towerFootprint } from '../engine/massing'
 import { CONES, CONE_PARAMS } from '../engine/viewCones'
@@ -15,105 +14,137 @@ import {
   decodeFootprints, decodeHeights, decodeTerrain, groundUnder, layerBytes, sampleGrid, sampleTerrain,
   type Footprint, type FootprintHeights, type HeightGrid, type Manifest,
 } from '../lib/cityLayers'
-import { REMOVAL_CAVEAT, REMOVAL_FLAG, maskHeights, maskIndex, removalCounts, removalUnder, visibleIndex, type Removal } from '../lib/cityRemoval'
+import { REMOVAL_CAVEAT, REMOVAL_FLAG, REMOVAL_RULE, maskHeights, maskIndex, removalCounts, removalUnder, visibleIndex, type Removal } from '../lib/cityRemoval'
+import { useHideUnderDesign } from '../lib/hideUnderDesign'
 import { rtinIndices } from '../lib/terrainMesh'
 import { registerGround } from '../lib/cameraClamp'
+import { footprintBounds, registerViewLimit } from '../lib/viewLimit'
 import { CITY_PLINTH, SEA_Z, insidePlinth, plinthRing, plinthTopGrid, sampleDrawn, skirtPositions, type Side } from '../lib/plinth'
 import PlinthBase from './Plinth'
 import { cellInside, groundDisplayPatch, isGroundDetail, mosaicGrids, isTerrainDetail, loadTerrainDetails, nameTerrain, terrainBasis } from '../lib/terrainDetails'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { withoutHistory } from '../lib/project/history'
 import { applyBuildingForms, is2009Part, loadCityGeometry, type StreetData } from '../lib/cityGeometry'
+import { VISTA_ATTRIBUTION, VISTA_SOURCES, chooseHeight, isEstimate, loadVistaBuildings, seatVista, type BuildingModel, type HeightBasis, type VistaBuildings } from '../lib/vistaBuildings'
+import { useCityModel, type CityModel } from '../lib/cityModel'
+import { useSceneStyle, type SceneStyle } from '../lib/sceneStyle'
+import { VISTA, VISTA_LOOK, setParkMask, setWaterMask, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { BUILDING_USES, SWATCH_BORDER, USE_BASES, USE_BASIS_TEXT, partUse, useColor, type BuildingUse, type UseBasis } from '../lib/buildingUse'
+import { contextFacadeMaterial, contextGroundMaterial, contextPavingMaterial, contextWaterMaterial, facadeAttribute, useVistaTextures, vistaFamily, vistaSeed, type VistaTextures } from './ContextStyle'
 import CityStreets, { useStreetDisplay } from './CityStreets'
+import VistaStreets, { VistaStreetLines } from './VistaStreets'
 import { useViewFromStore } from '../lib/viewFromStore'
+import { demolishedIndices, useSiteStore } from '../lib/siteStore'
 import ContextLayersScene, { ContextLayersPanel, useContextLayers } from './ContextLayers'
 import HeightSurfaceLayer, { HeightSurfacePanel, drawClick, useHeightSurface } from './HeightSurface'
 import Label from './Label'
 import { CONE_STYLE, FlagChip } from './ui'
 import { ViewportDock, useDock } from './ViewportDock'
-import { ConeSolids, ExistingConeCrossings, coneCrossingsFor, useConeSolids } from './ConeVolumes'
+import { ExistingConeCrossings, coneCrossingsFor } from './ConeVolumes'
+import VistaCones, { ConeVisibilityPanel } from './VistaCones'
+import { earClip } from '../lib/coneVolume'
+import { shownSummary, useConeVisibility } from '../lib/coneVisibility'
 import { SKYLINE_CAP_DEG } from '../engine/coneSection'
 
-interface CityData {
+
+interface CityData extends BuildingModel {
   streets: StreetData | null; roofParts: number; manifest: Manifest; footprints: Footprint[]; heights: FootprintHeights | null
   r1: HeightGrid; r2: HeightGrid; ground: HeightGrid[]; grids: HeightGrid[]; detailStatus: 'loading' | 'ready' | 'partial'; detailErrors: string[]
   /** Indices into footprints: outlines with no height in any source, drawn as display-only placeholders (never in a calculation). */
   placeholders: ReadonlySet<number>; placeholderHeight: number
 }
 
-let cache: Promise<CityData> | null = null
-/** Loads every layer once per session (the canvas remounts when switching projects). */
-function loadCity(): Promise<CityData> {
-  cache ??= (async () => {
-    const get = async (f: string) => {
-      const r = await fetch(`./data/${f}`)
-      if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`)
-      return r.arrayBuffer()
-    }
+const read = async (file: string) => {
+  const r = await fetch(`./data/${file}`)
+  if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`)
+  return r.arrayBuffer()
+}
+
+const cache: Partial<Record<CityModel, Promise<CityData>>> = {}
+/** The first stage: terrain (and, for the City model, its footprints with LiDAR heights). Once per session and model. */
+function loadCity(model: CityModel): Promise<CityData> {
+  const p = cache[model] ??= (async () => {
     const r = await fetch('./data/layers.json')
     if (!r.ok) throw new Error(`layers.json: HTTP ${r.status}`)
     const manifest = (await r.json()) as Manifest
     const layer = (id: string) => manifest.layers.find((l) => l.id === id)
-    const fp = layer('footprints'), t1 = layer('terrain_r1'), t2 = layer('terrain_r2'), h = layer('footprint_heights')
-    if (!fp || !t1?.grid || !t2?.grid) throw new Error('layers.json lacks footprints or terrain')
-    const [fb, b1, b2, hb] = await Promise.all([get(fp.file), get(t1.file), get(t2.file), h ? get(h.file) : null])
-    const footprints = decodeFootprints(fb)
+    const fp = model === 'city' ? layer('footprints') : undefined, h = model === 'city' ? layer('footprint_heights') : undefined
+    const t1 = layer('terrain_r1'), t2 = layer('terrain_r2')
+    if (!t1?.grid || !t2?.grid || (model === 'city' && !fp)) throw new Error('layers.json lacks footprints or terrain')
+    const [fb, b1, b2, hb] = await Promise.all([fp ? read(fp.file) : null, read(t1.file), read(t2.file), h ? read(h.file) : null])
+    const footprints = fb ? decodeFootprints(fb) : []
     const r1 = nameTerrain(decodeTerrain(b1, t1.grid), t1), r2 = nameTerrain(decodeTerrain(b2, t2.grid), t2)
-    return { manifest, footprints, streets: null, roofParts: 0, heights: hb ? decodeHeights(hb, footprints.length) : null,
-      r1, r2, ground: [], grids: [r1, r2], detailStatus: 'loading', detailErrors: [], placeholders: new Set<number>(), placeholderHeight: 0 }
-
+    return { model, vista: null, manifest, footprints, streets: null, roofParts: 0, heights: hb ? decodeHeights(hb, footprints.length) : null,
+      r1, r2, ground: [], grids: [r1, r2], detailStatus: 'loading', detailErrors: [], placeholders: new Set<number>(), placeholderHeight: 0 } as CityData
   })()
-  cache.catch(() => { cache = null })
-  return cache
+  p.catch(() => { delete cache[model] })
+  return p
 }
 
-let detailedCache: Promise<CityData> | null = null
+const detailedCache: Partial<Record<CityModel, Promise<CityData>>> = {}
+/** The second stage: detailed ground, streets and the buildings (Vista's model, or the City roof forms). */
 function loadDetailedCity(base: CityData): Promise<CityData> {
-  detailedCache ??= (async () => {
-    const read = async (file: string) => {
-      const r = await fetch(`./data/${file}`)
-      if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`)
-      return r.arrayBuffer()
-    }
-    const [details, geometry] = await Promise.all([loadTerrainDetails(base.manifest, read), loadCityGeometry(base.manifest, read)])
-    const buildings = applyBuildingForms(base.footprints, base.heights, geometry.forms)
+  return detailedCache[base.model] ??= (async () => {
+    const vistaModel = base.model === 'vista'
+    const [details, geometry, vistaLoad] = await Promise.all([
+      loadTerrainDetails(base.manifest, read), loadCityGeometry(base.manifest, read, false, !vistaModel),
+      vistaModel ? loadVistaBuildings(base.manifest, read).catch((e: Error) => e) : null,
+    ])
     const errors = [...details.errors, ...geometry.errors]
     const ground = details.loaded.filter((d) => isGroundDetail(d.layer)).map((d) => d.grid).sort((a, b) => a.step - b.step)
     const r2 = details.loaded.find((d) => d.layer.id === 'terrain_r2_detail')?.grid ?? base.r2
-    return { ...base, ...buildings, streets: geometry.streets, roofParts: geometry.forms?.forms.length ?? 0, ground, r2, grids: [...ground, base.r1, r2],
-      placeholderHeight: geometry.forms?.placeholderHeight ?? 0, detailStatus: errors.length ? 'partial' : 'ready', detailErrors: errors }
+    const grids = [...ground, base.r1, r2]
+    let buildings: Pick<CityData, 'footprints' | 'heights' | 'placeholders' | 'vista' | 'roofParts' | 'placeholderHeight'>
+    if (vistaModel) {
+      const v = vistaLoad instanceof Error || !vistaLoad ? null : vistaLoad
+      if (vistaLoad instanceof Error) errors.push(`Vista buildings: ${vistaLoad.message}`)
+      else if (!vistaLoad) errors.push('Vista buildings: layer missing from layers.json')
+      buildings = { footprints: v?.footprints ?? [], heights: v ? seatVista(v.footprints, v.vista, grids) : null, vista: v?.vista ?? null,
+        placeholders: new Set<number>(), roofParts: v?.footprints.length ?? 0, placeholderHeight: 0 }
+    } else {
+      buildings = { ...applyBuildingForms(base.footprints, base.heights, geometry.forms), vista: null,
+        roofParts: geometry.forms?.forms.length ?? 0, placeholderHeight: geometry.forms?.placeholderHeight ?? 0 }
+    }
+    return { ...base, ...buildings, streets: geometry.streets, ground, r2, grids, detailStatus: errors.length ? 'partial' : 'ready', detailErrors: errors }
   })()
-  return detailedCache
 }
 
 export function useCityData() {
+  const model = useCityModel((s) => s.model)
   const [state, setState] = useState<{ data: CityData | null; error: string | null }>({ data: null, error: null })
   useEffect(() => {
     let live = true
-    loadCity().then(async (base) => {
+    loadCity(model).then(async (base) => {
       if (live) setState({ data: base, error: null })
-      if (!detailedCache) followTerrain(base)
+      if (!detailedCache[model]) followTerrain(base)
       const data = await loadDetailedCity(base)
       followTerrain(data)
       if (live) setState({ data, error: null })
     }, (e: Error) => live && setState({ data: null, error: e.message }))
     return () => { live = false }
-  }, [])
+  }, [model])
   return state
 }
 
 const hasHeight = (h: FootprintHeights | null, i: number) => !!h && Number.isFinite(h.ground[i]) && Number.isFinite(h.roof[i]) && h.roof[i] > h.ground[i]
 
-// ---------- existing buildings under the design (opt-in, after Vista's automatic demolition; lib/cityRemoval.ts) ----------
-/** Session only and off by default, so the default demo draws every City building and every one blocks views. */
-export const useHideUnderDesign = create<{ on: boolean }>(() => ({ on: false }))
+// ---------- existing buildings under the design (after Vista's automatic demolition; lib/cityRemoval.ts) ----------
+// The switch lives in lib/hideUnderDesign.ts: on by default since 3 Nov (Ruijie), the person's choice remembered in this
+// browser. Re-exported here so existing imports keep working.
+export { useHideUnderDesign }
 const NO_REMOVAL: Removal = { hidden: new Set(), byTower: [] }
 
 /** Footprints hidden under the Real Vancouver design towers while the toggle is on (indices into data.footprints). */
 export function useRemoval(data: CityData | null): Removal {
   const on = useHideUnderDesign((s) => s.on)
   const towers = useStore((s) => s.towers.city)
-  const r = useMemo(() => (on && data && towers.length ? removalUnder(data.footprints, towers) : NO_REMOVAL), [on, data, towers])
+  const r0 = useMemo(() => (on && data && towers.length ? removalUnder(data.footprints, towers) : NO_REMOVAL), [on, data, towers])
+  // Buildings the Real Vancouver study site replaces are demolished too, unless the user keeps them (insert by Integrate Vista, 4 Nov).
+  const site = useSiteStore((s) => s.site)
+  const r = useMemo(() => {
+    const extra = data ? demolishedIndices(data.footprints, site) : []
+    return extra.length ? { hidden: new Set([...r0.hidden, ...extra]), byTower: r0.byTower } : r0
+  }, [r0, data, site])
   // Keep the same set while the same buildings stay hidden, so meshes and sightlines only redo work when it changes.
   const key = [...r.hidden].join(',')
   const hidden = useMemo(() => r.hidden, [data, key]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -192,8 +223,10 @@ function terrainGeometry(g: HeightGrid, look: Look, opt: { patches?: HeightGrid[
   const shown = new Float32Array(cols * rows)
   const sea = new THREE.Color(look.water)
   const land = new THREE.Color(look.ground)
-  const low = land.clone().multiplyScalar(0.86)
-  const high = land.clone().multiplyScalar(0.66)
+  // Vista's Plain look keeps one terrain colour (its shader adds the light and the paper grain); the others darken with height.
+  const vista = look === VISTA_LOOK
+  const low = vista ? land.clone() : land.clone().multiplyScalar(0.86)
+  const high = vista ? land.clone() : land.clone().multiplyScalar(0.66)
   const bg = new THREE.Color(look.background)
   const c = new THREE.Color()
   for (let r = 0; r < rows; r++) {
@@ -324,6 +357,57 @@ function parkTexture(parks: Finish['parks'], tint: string): THREE.CanvasTexture 
   return t
 }
 
+/**
+ * OSM water (public/data/water.json, tools/build_water_mask.py) as a black-on-white mask over the same square as the park
+ * mask (about 5.9 m a pixel), for Vista's terrain shader. Display only: no elevation changes.
+ */
+let waterCache: Promise<number[][][] | null> | null = null
+function loadWater(manifest: Manifest): Promise<number[][][] | null> {
+  waterCache ??= (async () => {
+    const layer = manifest.layers.find((l) => l.id === 'water')
+    if (!layer) return null
+    const r = await fetch(`./data/${layer.file}`)
+    if (!r.ok) throw new Error(`${layer.file}: HTTP ${r.status}`)
+    const j = (await r.json()) as { version: number; origin: number[]; polygons: number[][][] }
+    if (j.version !== 1 || j.origin[0] !== 491300 || j.origin[1] !== 5458600) throw new Error('water: unsupported frame')
+    return j.polygons
+  })()
+  return waterCache
+}
+
+function waterTexture(polys: number[][][] | null): THREE.CanvasTexture | null {
+  if (!polys || typeof document === 'undefined') return null
+  const n = 3072, s = n / (2 * PLANE_HALF)
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = n
+  const g = cv.getContext('2d')
+  if (!g) return null
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, n, n)
+  g.fillStyle = '#000000'
+  for (const rings of polys) {
+    g.beginPath()
+    for (const flat of rings) {
+      for (let i = 0; i + 1 < flat.length; i += 2) {
+        const px = (flat[i] / 10 + PLANE_HALF) * s, py = n - (flat[i + 1] / 10 + PLANE_HALF) * s
+        if (i) g.lineTo(px, py); else g.moveTo(px, py)
+      }
+      g.closePath()
+    }
+    g.fill('evenodd')
+  }
+  const t = new THREE.CanvasTexture(cv)
+  t.colorSpace = THREE.NoColorSpace
+  t.anisotropy = 4
+  return t
+}
+
+function useWaterMask(manifest: Manifest, on: boolean) {
+  const [polys, setPolys] = useState<number[][][] | null>(null)
+  useEffect(() => { if (!on) return; let live = true; loadWater(manifest).then((p) => live && setPolys(p), () => {}); return () => { live = false } }, [manifest, on])
+  const tex = useMemo(() => (on ? waterTexture(polys) : null), [on, polys])
+  useEffect(() => { setWaterMask(tex); return () => { tex?.dispose(); setWaterMask(null) } }, [tex])
+}
+
 function Shoreline({ lines, grids, color }: { lines: number[][]; grids: HeightGrid[]; color: string }) {
   const geom = useMemo(() => {
     const p: number[] = []
@@ -354,22 +438,38 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   const parks = useMemo(() => parkTexture(finish.parks, look.park), [finish.parks, look.park])
   useEffect(() => () => { r1.dispose(); r2.dispose(); front.dispose(); detailed.forEach((g) => g.dispose()) }, [r1, r2, front, detailed])
   useEffect(() => () => parks?.dispose(), [parks])
+  // Context style: Vista's paving on land and its grass watercolour in the City's parks (a black-on-white park mask).
+  const context = useSceneStyle((s) => s.style) === 'context'
+  const tex = useVistaTextures(context)
+  const contextGround = useMemo(() => (tex ? contextGroundMaterial(tex, parkTexture(finish.parks, '#000000'), PLANE_HALF) : null), [tex, finish.parks])
+  useEffect(() => () => contextGround?.dispose(), [contextGround])
+  // Vista's Plain look: Vista's terrain shading with its park wash, from the same black-on-white park mask.
+  const vista = look === VISTA_LOOK && !context
+  const vistaGround = useMemo(() => (vista ? vistaShaded(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }), 'terrain') : null), [vista])
+  const mask = useMemo(() => (vista ? parkTexture(finish.parks, '#000000') : null), [vista, finish.parks])
+  useEffect(() => { setParkMask(mask, PLANE_HALF); return () => { mask?.dispose(); setParkMask(null, PLANE_HALF) } }, [mask])
+  useEffect(() => () => vistaGround?.dispose(), [vistaGround])
+  // The water specks: OSM water drawn over the terrain in the water colour (display only).
+  useWaterMask(data.manifest, vista)
+  const ground = contextGround ?? vistaGround
+  const groundKey = contextGround ? 'context' : 'vista'
   // Only the plinth top takes clicks (placing towers); the backdrop is scenery.
   // While the height surface is drawing an area, ground clicks set its corners instead of moving the tower.
   const pick = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); if (!drawClick(e.point.x, -e.point.z)) onPick(e.point.x, -e.point.z) }
   return (
     <>
-      <mesh geometry={r1} receiveShadow onPointerDown={pick}>
+      {ground ? <mesh key={groundKey} geometry={r1} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key="plain" geometry={r1} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
-      </mesh>
-      {detailed.map((geometry, i) => <mesh key={i} geometry={geometry} receiveShadow onPointerDown={pick}>
+      </mesh>}
+      {detailed.map((geometry, i) => ground ? <mesh key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>)}
+      {tex && <ContextWater tex={tex} />}
       {finish.shoreline && <Shoreline lines={finish.shoreline.lines} grids={data.grids} color={look.shore} />}
       <PlinthBase plinth={CITY_PLINTH} ring={ring} look={look} pad={1} edges={CITY_EDGES} />
-      <mesh geometry={r2} receiveShadow>
+      {vistaGround ? <mesh key="vista-r2" geometry={r2} material={vistaGround} receiveShadow /> : <mesh key="plain-r2" geometry={r2} receiveShadow>
         <meshStandardMaterial vertexColors roughness={1} metalness={0} />
-      </mesh>
+      </mesh>}
       <mesh geometry={front}>
         <meshStandardMaterial color={look.plinth} roughness={1} metalness={0} />
       </mesh>
@@ -377,7 +477,38 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   )
 }
 
+/** Context style's sea: Vista's turquoise wash with ripples, laid just over the plinth's flat sea (Viewport's Ground still takes clicks). */
+function ContextWater({ tex }: { tex: VistaTextures }) {
+  const size: [number, number] = [CITY_PLINTH.x1 - CITY_PLINTH.x0, CITY_PLINTH.y1 - CITY_PLINTH.y0]
+  const mat = useMemo(() => { const m = contextWaterMaterial(tex, size); m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -1; return m }, [tex]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { mat.normalMap?.dispose(); mat.dispose() }, [mat])
+  return (
+    <mesh material={mat} position={[(CITY_PLINTH.x0 + CITY_PLINTH.x1) / 2, (CITY_PLINTH.y0 + CITY_PLINTH.y1) / 2, SEA_Z + 0.02]} receiveShadow raycast={() => null}>
+      <planeGeometry args={size} />
+    </mesh>
+  )
+}
+
 // ---------- buildings ----------
+/**
+ * The same prism without its downward-facing cap: every base sits in the ground (BASE_SINK) or over a clearance no
+ * camera can see from below (CameraClamp), so it is never seen, and dropping it saves about a fifth of the triangles.
+ */
+function withoutUnderside(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const nrm = g.getAttribute('normal')
+  const keep: number[] = []
+  for (let t = 0; t < nrm.count; t += 3) if (nrm.getZ(t) > -0.5) keep.push(t)
+  if (keep.length * 3 === nrm.count) return g
+  const out = new THREE.BufferGeometry()
+  for (const name of Object.keys(g.attributes)) {
+    const src = g.getAttribute(name), size = src.itemSize, arr = new Float32Array(keep.length * 3 * size)
+    keep.forEach((t, k) => { for (let v = 0; v < 3; v++) for (let c = 0; c < size; c++) arr[(k * 3 + v) * size + c] = src.getComponent(t + v, c) })
+    out.setAttribute(name, new THREE.BufferAttribute(arr, size))
+  }
+  g.dispose()
+  return out
+}
+
 /** Extrudes the chosen footprints from `base(i)` to `top(i)` into one merged mesh, with the draw ranges useHiddenParts needs. */
 function prisms(data: CityData, pick: (i: number) => boolean, base: (i: number) => number, top: (i: number) => number, uv = false) {
   const parts: THREE.BufferGeometry[] = []
@@ -392,6 +523,7 @@ function prisms(data: CityData, pick: (i: number) => boolean, base: (i: number) 
     if (g.index) { const indexed = g; g = indexed.toNonIndexed(); indexed.dispose() }
     if (!uv) g.deleteAttribute('uv')
     g.computeVertexNormals()
+    g = withoutUnderside(g)
     const n = g.getAttribute('position').count
     ranges.push([i, at, n])
     at += n
@@ -403,16 +535,82 @@ function prisms(data: CityData, pick: (i: number) => boolean, base: (i: number) 
 }
 
 /**
- * Stepped LiDAR 2022 roof parts, then the City's 2009 heights in the ring outside the 2022 core (a shade darker, an
- * older survey), with legacy LOD1 blocks only outside replacement coverage. Solid clay, ghosted in x-ray.
+ * Vista's model: OpenStreetMap buildings, those with a height from a tag or a floor count in clay and those with an
+ * estimate per building type a shade off. City model: stepped LiDAR 2022 roof parts, then the City's 2009 heights in
+ * the ring outside the 2022 core (a shade off, an older survey). Solid clay, ghosted in x-ray.
  */
-function Buildings({ data, look, ghost, hidden }: { data: CityData; look: Look; ghost: boolean; hidden: ReadonlySet<number> }) {
+function Buildings(props: { data: CityData; look: Look; ghost: boolean; hidden: ReadonlySet<number> }) {
+  return props.data.vista ? <VistaBuildingMesh {...props} vista={props.data.vista} /> : <CityBuildings {...props} />
+}
+
+/**
+ * Vista's model in one mesh. Plain: each building in the light tint of its type (lib/buildingUse.ts), a shade off where
+ * its height is a type estimate. Context: Vista's facades (ContextStyle.tsx), once its textures have loaded.
+ */
+function VistaBuildingMesh({ data, look, ghost, hidden, vista: v }: { data: CityData; look: Look; ghost: boolean; hidden: ReadonlySet<number>; vista: VistaBuildings }) {
+  const style = useSceneStyle((s) => s.style)
+  const typeColours = useVistaLook((s) => s.typeColours)
+  const invalidate = useThree((s) => s.invalidate)
+  const vistaLook = look === VISTA_LOOK && !ghost
+  const h = data.heights
+  const m = useMemo(() => {
+    const at = citySurface(data).at
+    const base = (i: number) => (v.clearance[i] > 0 ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
+    const out = prisms(data, (i) => hasHeight(h, i), base, (i) => h!.roof[i])
+    if (!out.geom) return out
+    const count = out.geom.getAttribute('position').count
+    out.geom.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(count * 3), 3, true)) // filled below
+    out.geom.setAttribute('aFacade', facadeAttribute(count, out.ranges, (i) => {
+      const f = data.footprints[i]
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+      for (const [x, y] of f.outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y) }
+      const seed = vistaSeed(v.osmId[i])
+      return { ...vistaFamily(v.osmType[i], h!.roof[i] - h!.ground[i], Math.max(x1 - x0, y1 - y0), seed), seed, base: h!.ground[i], top: h!.roof[i] }
+    }))
+    return out
+  }, [data, h, v])
+  useEffect(() => () => m.geom?.dispose(), [m])
+  // Colours: the light tint of each building's type ("Colour buildings by type", on by default), or Vista's white;
+  // a building whose height is a type estimate a shade off.
+  useEffect(() => {
+    const attr = m.geom?.getAttribute('color') as THREE.BufferAttribute | undefined
+    if (!attr) return
+    const rgb = attr.array as Uint8Array, c = new THREE.Color()
+    for (const [i, start, n] of m.ranges) {
+      c.set(typeColours ? useColor(partUse(v, i).use) : VISTA.buildings).multiplyScalar(isEstimate(data, i) ? 0.93 : 1)
+      const r = Math.round(c.r * 255), g = Math.round(c.g * 255), b = Math.round(c.b * 255)
+      for (let k = start; k < start + n; k++) { rgb[k * 3] = r; rgb[k * 3 + 1] = g; rgb[k * 3 + 2] = b }
+    }
+    attr.needsUpdate = true
+    invalidate()
+  }, [m, typeColours, v, data, invalidate])
+  useHiddenParts(m.geom, m.ranges, hidden)
+  const vistaMat = useMemo(() => (vistaLook ? vistaShaded(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }), 'buildings') : null), [vistaLook])
+  useEffect(() => () => vistaMat?.dispose(), [vistaMat])
+  const tex = useVistaTextures(style === 'context' && !ghost)
+  const facade = useMemo(() => (tex ? contextFacadeMaterial(tex) : null), [tex])
+  useEffect(() => () => facade?.dispose(), [facade])
+  if (!m.geom) return null
+  // Separate keys: reusing one mesh across styles would leave three's default material behind when `material` is dropped.
+  if (facade) return <mesh key="context" geometry={m.geom} material={facade} castShadow receiveShadow />
+  if (vistaMat) return <mesh key="vista" geometry={m.geom} material={vistaMat} castShadow receiveShadow />
+  return (
+    <mesh key="plain" geometry={m.geom} castShadow={!ghost} receiveShadow>
+      <meshStandardMaterial vertexColors color={ghost ? look.context : '#ffffff'} roughness={0.92} metalness={0} transparent opacity={ghost ? 0.45 : 1} depthWrite={!ghost} />
+    </mesh>
+  )
+}
+
+/** The City model (comparison): LiDAR 2022 roof parts in clay, the City's 2009 heights a shade off. */
+function CityBuildings({ data, look, ghost, hidden }: { data: CityData; look: Look; ghost: boolean; hidden: ReadonlySet<number> }) {
   const h = data.heights
   const meshes = useMemo(() => {
-    // Drawn from just below the lowest ground at the corners (heights unchanged), so no base floats where the ground falls.
+    // Drawn from just below the lowest ground at the corners (heights unchanged), so no base floats where the ground falls;
+    // elevated parts (bridges, overhangs) keep their clearance.
     const at = citySurface(data).at
-    const base = (i: number) => data.footprints[i].outer.reduce((m, [x, y]) => Math.min(m, at(x, y)), h!.ground[i]) - BASE_SINK
-    return [false, true].map((older) => prisms(data, (i) => hasHeight(h, i) && is2009Part(data.footprints[i].id) === older, base, (i) => h!.roof[i]))
+    const base = (i: number) => (data.vista && data.vista.clearance[i] > 0 ? h!.ground[i]
+      : data.footprints[i].outer.reduce((m, [x, y]) => Math.min(m, at(x, y)), h!.ground[i]) - BASE_SINK)
+    return [false, true].map((older) => prisms(data, (i) => hasHeight(h, i) && isEstimate(data, i) === older, base, (i) => h!.roof[i]))
   }, [data, h])
   useEffect(() => () => meshes.forEach((m) => m.geom?.dispose()), [meshes])
   useHiddenParts(meshes[0].geom, meshes[0].ranges, hidden)
@@ -513,40 +711,6 @@ function UnknownOutlines({ data, xray, hidden }: { data: CityData; xray: boolean
 }
 
 // ---------- view-cone plan outlines draped on the terrain ----------
-/** The flat cone wedges sit at 0.2 m and vanish under land; these outlines follow the ground (colour rule as ConeWedge). */
-function DrapedCones({ data }: { data: CityData }) {
-  const { cones } = useResults()
-  const sel = useStore((s) => s.selectedTower)
-  const checks = cones.find((c) => c.tower.id === sel)?.checks ?? []
-  const lines = useMemo(() => {
-    const grids = data.grids
-    return CONES.map((cone) => {
-      const pts: [number, number, number][] = []
-      const ring = cone.ring.map(([x, y]) => [x - CITY_ORIGIN[0], y - CITY_ORIGIN[1]] as [number, number])
-      for (let i = 0; i < ring.length - 1; i++) {
-        const [ax, ay] = ring[i], [bx, by] = ring[i + 1]
-        const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 20))
-        for (let s = 0; s < steps; s++) {
-          const x = ax + ((bx - ax) * s) / steps, y = ay + ((by - ay) * s) / steps
-          pts.push([x, y, Math.max(0, sampleTerrain(grids, x, y) ?? 0) + 0.8])
-        }
-      }
-      pts.push(pts[0])
-      return { id: cone.id, pts }
-    })
-  }, [data])
-  return (
-    <>
-      {lines.map(({ id, pts }) => {
-        const state = checks.find((k) => k.cone.id === id)?.state ?? null
-        const prm = CONE_PARAMS[id]
-        const active = !!state && state !== 'outside'
-        const color = state && state !== 'outside' ? CONE_STYLE[state].color : prm ? '#4f7fae' : '#7d838c'
-        return <Line key={id} points={pts} color={color} lineWidth={active ? 2.5 : 1.5} dashed={!prm} dashSize={40} gapSize={25} />
-      })}
-    </>
-  )
-}
 
 // ---------- footings under design towers ----------
 /**
@@ -621,6 +785,7 @@ function followTerrain(data: CityData) {
   followed = data
   unfollow?.()
   const apply = (s: ReturnType<typeof useStore.getState>) => {
+    if (followed !== data) return // a newer data set took over (never two followers setting the base back and forth)
     if (s.project !== 'city' || s.groundMode !== 'terrain') return
     const t = s.towers.city.find((k) => k.id === s.selectedTower)
     const g = t ? groundUnder(data.grids, rectCorners(t.x, t.y, t.width, t.depth, t.rotation)) : null
@@ -629,6 +794,9 @@ function followTerrain(data: CityData) {
   unfollow = useStore.subscribe(apply)
   apply(useStore.getState())
 }
+// Dev only: a hot reload of this file must drop the old copy's subscription, or the old and new copies (each with its own
+// ground grids) set groundElevation back and forth until the stack overflows (Integrate Vista, 4 Nov).
+if (import.meta.hot) import.meta.hot.dispose(() => { unfollow?.(); unfollow = null; followed = null })
 
 /**
  * Says where the tower base comes from: the terrain (default, flagged unverified) or a value set by hand, with a
@@ -671,39 +839,66 @@ function GroundCard({ data, bare = false }: { data: CityData; bare?: boolean }) 
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`
 
 /**
- * Opt-in: hide the City buildings under the design (Vista's automatic demolition). Says what is hidden, under which
- * tower, and that it is the team's hypothesis. Also mounted inline in the Vista panel.
+ * The existing buildings under the design (Vista's automatic demolition): hidden by default since 3 Nov (Ruijie), so no
+ * existing building shows through a proposal. Says what is hidden, under which tower, and that it is the team's
+ * hypothesis; one click shows them again (remembered in this browser). In the Layers dock and inline in the Vista panel.
  */
 export function HideUnderDesignCard({ inline = false, bare = false }: { inline?: boolean; bare?: boolean }) {
   const { data } = useCityData()
   const on = useHideUnderDesign((s) => s.on)
   const towers = useStore((s) => s.towers.city)
   const { hidden, byTower } = useRemoval(data)
+  // While shown, how many existing footprints the towers overlap, so the card can say they show through the proposal.
+  const overlap = useMemo(() => (!on && data && towers.length ? removalUnder(data.footprints, towers).hidden.size : 0), [on, data, towers])
   if (!data || !towers.length) return null
   const c = removalCounts(hidden, data.heights)
-  const under = byTower.filter((b) => b.indices.length).map((b) => b.name)
+  const underTowers = byTower.filter((b) => b.indices.length)
+  const bySite = hidden.size - new Set(underTowers.flatMap((b) => b.indices)).size
+  const where = [underTowers.length ? `under ${underTowers.map((b) => b.name).join(', ')}` : '', bySite ? `${bySite.toLocaleString()} replaced by the study site` : ''].filter(Boolean).join('; ')
+  const btn = 'mt-1 rounded border border-line bg-white px-2 py-0.5 font-medium text-ink hover:bg-slate-50'
   return (
     <div className={bare ? 'text-[11px] text-slate-600' : inline ? 'mt-2 rounded-md border border-line p-2 text-[11px]' : 'w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
-      <label className="flex items-center gap-1.5 font-medium text-ink">
-        <input type="checkbox" checked={on} onChange={(e) => useHideUnderDesign.setState({ on: e.target.checked })} />
-        Hide existing buildings under the design
-      </label>
-      {!on && <div className="text-[10px] text-slate-500">Off: every City building is drawn and blocks sightlines.</div>}
-      {on && (
-        <>
-          <div aria-live="polite">
-            {c.total
-              ? <>Hidden: <b className="text-ink">{plural(c.total, 'existing building footprint')}</b> under {under.join(', ')} ({plural(c.measured, 'LiDAR 2022 roof part')}, {plural(c.outlines, '2015 outline')} with no height).</>
-              : 'No City building lies under the design towers.'}
-          </div>
-          <div className="mt-1 flex items-start gap-1.5">
-            <span className="shrink-0"><FlagChip flag={REMOVAL_FLAG} /></span>
-            <span className="text-[10px] leading-snug text-slate-500">{REMOVAL_CAVEAT} Footprints that overlap a tower or podium outline (inset 0.5 m, so shared walls stay) leave the drawing, View from here and Vista's rooftop views. Parts of a building outside the outline stay. Rule from Vista's automatic demolition.</span>
-          </div>
-        </>
-      )}
+      {inline && <div className="font-medium text-ink">Existing buildings under the design</div>}
+      <div aria-live="polite">
+        {on
+          ? c.total
+            ? <>Hidden: <b className="text-ink">{plural(c.total, 'existing building footprint')}</b> {where} ({data.model === 'vista' ? plural(c.measured, 'OSM building part') : <>{plural(c.measured, 'LiDAR 2022 roof part')}, {plural(c.outlines, '2015 outline')} with no height</>}).</>
+            : 'No existing building lies under the design towers.'
+          : <>All existing buildings are drawn{overlap ? <>, including <b className="text-ink">{plural(overlap, 'footprint')}</b> under the design that show through it</> : ''}; every one blocks sightlines.</>}
+      </div>
+      {on
+        ? <button type="button" className={btn} onClick={() => useHideUnderDesign.setState({ on: false })}>Show the existing buildings again</button>
+        : <button type="button" className={btn} onClick={() => useHideUnderDesign.setState({ on: true })}>Hide the existing buildings under the design</button>}
+      <div className="mt-1 flex items-start gap-1.5">
+        <span className="shrink-0"><FlagChip flag={REMOVAL_FLAG} /></span>
+        <span className="text-[10px] leading-snug text-slate-500">{REMOVAL_CAVEAT} {REMOVAL_RULE} Hidden buildings leave the drawing, View from here and Vista's rooftop views; the view-study PDF states them. On by default (rule from Vista's automatic demolition); your choice is remembered in this browser.</span>
+      </div>
     </div>
   )
+}
+
+/**
+ * The study site as a lot surface in the Context style (Ruijie, 3 Nov: "for conbine property line of the earlier tab it
+ * will change the context as well"): Vista's paving, warm-tinted, over the site the Site step made (drawn, from
+ * buildings, or combined City parcels; lib/siteStore.ts `site.ring`), draped on the ground. The buildings it replaces are
+ * already gone from the drawing (useRemoval, a hypothetical removal), and SiteRig draws the boundary in both styles.
+ * Display only.
+ */
+function SiteSurface({ grids, tex }: { grids: HeightGrid[]; tex: VistaTextures }) {
+  const site = useSiteStore((s) => s.site)
+  const geom = useMemo(() => {
+    if (!site || site.ring.length < 3) return null
+    const ring = site.ring as [number, number][], pos: number[] = []
+    for (const [a, b, c] of earClip(ring)) for (const k of [a, b, c]) { const [x, y] = ring[k]; pos.push(x, y, Math.max(0, sampleTerrain(grids, x, y) ?? 0) + 0.25) }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    g.computeVertexNormals()
+    return g
+  }, [site, grids])
+  const mat = useMemo(() => { const m = contextPavingMaterial(tex, false); m.color.set('#f2dfc4'); m.polygonOffsetFactor = -4; m.polygonOffsetUnits = -4; return m }, [tex])
+  useEffect(() => () => { geom?.dispose(); mat.dispose() }, [geom, mat])
+  if (!geom) return null
+  return <mesh geometry={geom} material={mat} receiveShadow raycast={() => null} renderOrder={1} />
 }
 
 /** Everything the Real Vancouver scene draws from public/data. Rendered inside CityScene's z-up group. */
@@ -713,17 +908,31 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
   const grids = useMemo(() => (data ? data.grids : []), [data])
   const surface = data ? citySurface(data) : null
   useEffect(() => (surface ? registerGround({ at: surface.at, plinth: CITY_PLINTH }) : undefined), [surface])
+  // The orbit view stays over the built model (lib/viewLimit.ts; Ruijie, 3 Nov): its edge is the buildings' bounding box.
+  const builtEdge = useMemo(() => (data ? footprintBounds(data.footprints) : null), [data])
+  useEffect(() => (builtEdge ? registerViewLimit(builtEdge) : undefined), [builtEdge])
+  // Context style: Vista's streets replace the City street surfaces (finer detail around the selected tower).
+  const context = useSceneStyle((s) => s.style) === 'context'
+  const tex = useVistaTextures(context)
+  const towers = useTowers()
+  const sel = useStore((s) => s.selectedTower)
+  const t = towers.find((k) => k.id === sel) ?? towers[0]
   if (!data || !surface) return null
   return (
     <>
       <Terrain data={data} look={look} onPick={onPick} />
       <TowerFootings at={surface.at} look={look} />
-      <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />
+      {/* Context: Vista's street surfaces; Vista's Plain look: its street lines; x-ray and the City model: City streets. */}
+      {context && tex && <SiteSurface grids={grids} tex={tex} />}
+      {context
+        ? tex && <VistaStreets manifest={data.manifest} ground={surface.at} centre={[t?.x ?? 0, t?.y ?? 0]} tex={tex} />
+        : look === VISTA_LOOK ? <VistaStreetLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} />
+        : <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />}
       <Buildings data={data} look={look} ghost={xray} hidden={hidden} />
       <UnknownOutlines data={data} xray={xray} hidden={hidden} />
       <Placeholders data={data} xray={xray} hidden={hidden} />
-      <DrapedCones data={data} />
-      <ConeSolids grids={grids} />
+      {/* Vista's view cones (outline, ceiling, featured corridor and origin, observer ray and wedge): components/VistaCones.tsx. */}
+      <VistaCones grids={grids} />
       <ExistingConeCrossings footprints={data.footprints} heights={data.heights} hidden={hidden} xray={xray} />
       <GroundCheck data={data} />
       <HeightSurfaceLayer grids={grids} />
@@ -736,37 +945,128 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
 const mb = (b: number) => `${(b / 1e6).toFixed(2)} MB`
 
 /** Lists every context layer with its source, licence, retrieval date, datum and flag. */
-/** Dock section: how the cone solids are built, and per cone how many existing buildings rise above its estimate (as drawn). */
-function ConeSolidsInfo({ data }: { data: CityData }) {
+/**
+ * Dock section: the view cones as Vista draws them, which ones show (the same switches as the Viewcone tab), and per
+ * estimated cone how many existing buildings rise above its estimate (as drawn).
+ */
+function ConeLayersInfo({ data }: { data: CityData }) {
   const { hidden } = useRemoval(data)
-  const solids = useConeSolids(data.grids)
-  const rows = coneCrossingsFor(data.footprints, data.heights).map((p) => ({
-    cone: p.cone, n: p.crossings.filter((c) => !hidden.has(c.index)).length,
-    capped: solids.find((s) => s.cone.id === p.cone.id)?.solid.capped.every(Boolean) ?? false,
-  }))
+  const shown = useConeVisibility((s) => s.hidden)
+  const rows = coneCrossingsFor(data.footprints, data.heights).map((p) => ({ cone: p.cone, n: p.crossings.filter((c) => !hidden.has(c.index)).length }))
   return (
     <div className="space-y-1.5">
+      <ConeVisibilityPanel compact />
       <p>
-        Each cone with an estimate is drawn as a solid from its viewpoint: the apex at the City's eye level (Lv), the lower face on the
-        estimated lower boundary Z = Lv + k·D, side faces along the wedge and a far face where it ends.
+        Drawn as Vista's Viewcone volumes: each cone's ceiling over its corridor, curtains standing on the ceiling along every side up to
+        a display cut (320–600 m, a scene cut, never a policy cap), and glowing edges. The featured cone (picked in Observer, else the one
+        controlling the selected tower) is at Vista's single-cone strength and shows the buildings under it traced on its ceiling; the
+        others are fainter. In Plan, as in Vista, only the plan outlines show. The outlines are the City ViewCone polygons, the same as
+        Vista's to 0.01 m.
       </p>
       <p className="flex items-start gap-1.5">
         <span className="shrink-0"><FlagChip flag="team_assumption" /></span>
-        <span>The upper face is a visual construction: the sight line from the eye to the North Shore skyline in MRDEM-30 (curvature and refraction as in View from here), or a fixed {SKYLINE_CAP_DEG}° above the estimate where no skyline rises above it. The City publishes only the lower boundary.</span>
+        <span>Ceilings: the City-sourced estimate Z = Lv + k·D for the {CONES.filter((c) => CONE_PARAMS[c.id]).length} cones that have one; for the other {CONES.filter((c) => !CONE_PARAMS[c.id]).length}, Vista's study surface, fainter and dashed: an assumption, not a City ceiling.</span>
       </p>
       <ul className="space-y-0.5">
-        {rows.map((r) => (
+        {rows.filter((r) => !shown[r.cone.id]).map((r) => (
           <li key={r.cone.id}>
             <b className="text-ink">{r.cone.id}</b> {r.cone.name}: {r.n.toLocaleString()} existing building part{r.n === 1 ? '' : 's'} (measured roof levels) rise{r.n === 1 ? 's' : ''} above its estimated lower boundary
-            {r.capped && <span> · upper face at the fixed cap</span>}
           </li>
         ))}
       </ul>
       <p className="text-[10px]">
         Existing buildings are tinted blue inside the view with a dark blue line where the estimate crosses them; the design tower is red.
         Many existing buildings predate the protected views or were approved under them: this is a geometric reading of an estimate, not a finding.
-        Cones without an estimate get no solid. The City View Cone Assessment governs.
+        Hiding a cone hides its drawing only; checks and results are unchanged. The City View Cone Assessment governs.
       </p>
+    </div>
+  )
+}
+
+function ConeSummary() { return <>{shownSummary(useConeVisibility((s) => s.hidden))}</> }
+
+/** Plain (pure tints by building type) or Context (Vista's textures), with the type legend. */
+function StyleCard({ data }: { data: CityData }) {
+  const style = useSceneStyle((s) => s.style)
+  const typeColours = useVistaLook((s) => s.typeColours)
+  const labels = useVistaLook((s) => s.labels)
+  const v = data.vista
+  const counts = useMemo(() => {
+    const by = Object.fromEntries(BUILDING_USES.map((u) => [u.id, 0])) as Record<BuildingUse, number>
+    const basis = Object.fromEntries(USE_BASES.map((b) => [b, 0])) as Record<UseBasis, number>
+    if (v) { const seen = new Set<string>(); v.osmId.forEach((id, i) => { if (!seen.has(id)) { seen.add(id); const u = partUse(v, i); by[u.use]++; basis[u.basis]++ } }) }
+    return { by, basis }
+  }, [v])
+  const opt = (s: SceneStyle, label: string) => (
+    <label className="flex items-center gap-1"><input type="radio" name="scene-style" checked={style === s} onChange={() => useSceneStyle.setState({ style: s })} /> {label}</label>
+  )
+  return (
+    <div className="space-y-2">
+      <div role="radiogroup" aria-label="Style" className="flex gap-3">{opt('plain', 'Plain')}{opt('context', 'Context')}</div>
+      <label className="flex items-center gap-1"><input type="checkbox" checked={labels} onChange={(e) => useVistaLook.setState({ labels: e.target.checked })} /> Place labels (Vista's neighbourhood names)</label>
+      {style === 'plain' && v && <label className="flex items-center gap-1"><input type="checkbox" checked={typeColours} onChange={(e) => useVistaLook.setState({ typeColours: e.target.checked })} /> Colour buildings by type</label>}
+      {style === 'plain' && <p>Plain is Vista's Plain look (City overview, Vista @ 917b28e): paper background, warm-grey terrain, blue-grey water, muted parks and white buildings with soft shading; with <b>Colour buildings by type</b> each building takes a light tint of its type instead of white.</p>}
+      {style === 'plain' ? (v ? typeColours && <>
+        <ul className="grid grid-cols-1 gap-0.5">
+          {BUILDING_USES.map((u) => (
+            <li key={u.id} className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-4 shrink-0 rounded-sm" style={{ background: useColor(u.id), border: `1px solid ${SWATCH_BORDER}` }} />
+              <span className="min-w-0 flex-1">{u.label}</span><span className="tabular-nums text-slate-600">{counts.by[u.id].toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+        <p>Type from {USE_BASES.filter((b) => b !== 'none').map((b) => `${USE_BASIS_TEXT[b]} (${counts.basis[b].toLocaleString()})`).join(', then ')}; {counts.basis.none.toLocaleString()} buildings have {USE_BASIS_TEXT.none} and stay <b>other</b>, never guessed from height or shape. Light tints of the design tower's programme colours, so an office reads as office everywhere; the design tower keeps its full colours and outline. A building whose height is an estimate per type is a shade darker.</p>
+      </> : <p>Building types come from Vista's OpenStreetMap model; the City model has none, so it stays in plain clay.</p>) : (
+        <p>Vista's <b>Context</b> look: facades by family with illustrative windows (Poly Haven textures, CC0), pale concrete paving and asphalt with centre dashes (Ruijie Liu's own images), grass watercolour in the City's parks, water with ripples (ProcTexture, CC0) and illustrative bridge decks. Streets © OpenStreetMap contributors (ODbL), via Vista. Materials, windows, widths and decks are illustrative, never surveyed.</p>
+      )}
+    </div>
+  )
+}
+
+/** Vista's model is the default; the earlier City model (LiDAR 2022 + City 2009 heights) stays one click away for comparison. */
+function BuildingModelSwitch() {
+  const model = useCityModel((s) => s.model)
+  const opt = (m: CityModel, label: string) => (
+    <label className="flex items-start gap-1"><input type="radio" name="city-model" className="mt-0.5" checked={model === m} onChange={() => useCityModel.setState({ model: m })} /> {label}</label>
+  )
+  return (
+    <fieldset className="space-y-0.5">
+      <legend className="font-semibold text-ink">Buildings model</legend>
+      {opt('vista', "Vista's unified model (OpenStreetMap; default)")}
+      {opt('city', 'City model for comparison: LiDAR 2022 roofs in the core, City 2009 heights around them')}
+      <p className="text-slate-500">Every check (solar, View from here, Vista, view cones, demolition) uses the model shown.</p>
+    </fieldset>
+  )
+}
+
+/** What Vista's buildings are, how their heights were made, and how they compare with the City's measured heights. */
+function VistaBuildingsNote({ data }: { data: CityData }) {
+  const v = data.vista
+  const entry = data.manifest.layers.find((l) => l.id === 'vista_buildings')
+  const check = entry?.processing?.height_check as { towers_over_60m_by_lidar?: number; towers_within_10pct?: number } | undefined
+  const align = (entry?.processing?.alignment as Record<string, { median_offset_m: number; max_offset_m: number }> | undefined)?.city_2015_footprints
+  const counts = useMemo(() => {
+    const by: Record<HeightBasis, number> = { lidar2022: 0, city2009: 0, 'osm-tag': 0, 'osm-levels': 0, 'type-estimate': 0 }
+    if (v) v.heightM.forEach((_, i) => { by[chooseHeight(v, i).basis]++ })
+    return { by, buildings: v ? new Set(v.osmId).size : 0 }
+  }, [v])
+  if (!v) return <p role="alert">Vista's buildings did not load; see the error below.</p>
+  const n = (b: HeightBasis) => <b className="text-ink">{counts.by[b].toLocaleString()}</b>
+  return (
+    <div className="space-y-1.5">
+      <p>
+        <b className="text-ink">{counts.buildings.toLocaleString()} buildings from Vista's unified model</b> ({data.footprints.length.toLocaleString()} footprint parts):
+        the studio model's 2022 OpenStreetMap export in the centre and current OpenStreetMap around it. Footprints are taken through latitude/longitude into
+        EPSG:26910{align ? ` (median ${align.median_offset_m} m from the City's 2015 footprints)` : ''}; each building stands on the City ground at its footprint's centre (CGVD28), never on Vista's SRTM terrain.
+      </p>
+      <p>
+        Each part at its <b>best height</b> (Ruijie, 3 Nov): {n('lidar2022')} from City LiDAR 2022 roofs and {n('city2009')} from the City's 2009 heights where they cover at least half the footprint (measured),
+        then Vista's OpenStreetMap values, <b>unverified</b>: {n('osm-tag')} from an {VISTA_SOURCES[0]}, {n('osm-levels')} from an {VISTA_SOURCES[1]} (3.2 m per level),{' '}
+        <span className="mr-1 inline-block h-2.5 w-3.5 rounded-sm border border-black/10 align-middle" style={{ background: LOOKS.clay.older }} />
+        {n('type-estimate')} {VISTA_SOURCES[2]} (a shade off; e.g. a house 8 m, an office 15 m). Picking a roof names its source.
+        {check?.towers_over_60m_by_lidar ? <> Vista's own heights are within 10% of LiDAR for only {check.towers_within_10pct} of {check.towers_over_60m_by_lidar} parts over 60 m, which is why measured heights come first.</> : null}
+      </p>
+      <p className="text-[10px] text-slate-500">{VISTA_ATTRIBUTION}. The building layer, and the per-building height table combining it with City heights, are derivative databases of OpenStreetMap, offered under the Open Database License 1.0.</p>
     </div>
   )
 }
@@ -774,51 +1074,54 @@ function ConeSolidsInfo({ data }: { data: CityData }) {
 export function CityLegend() {
   const { data, error } = useCityData()
   const streetDisplay = useStreetDisplay()
+  const style = useSceneStyle((s) => s.style)
   const base = useStore((s) => s.groundElevation)
   const mode = useStore((s) => s.groundMode)
   const hideOn = useHideUnderDesign((s) => s.on)
+  const hiddenCount = useRemoval(data).hidden.size
   const surfaceOn = useHeightSurface((s) => s.on)
   const layersOn = useContextLayers((s) => Object.values(s.on).filter(Boolean).length)
   const estimates = CONES.filter((c) => CONE_PARAMS[c.id]).length
   // Was a permanent box over the top-left of the view; now a note that stays dismissed once dismissed.
-  const hint = { id: 'city-cones', content: <><b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b className="text-ink">{estimates} have an estimated height limit</b> (blue sheets); the other <b className="text-ink">{CONES.length - estimates} are dashed: no estimate</b> until the City answers Request 0. Ground, buildings and mountains are real data: see Data sources below.</> }
+  const hint = { id: 'city-cones', content: <><b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b className="text-ink">{estimates} have an estimated height limit</b> (solid outline, ceiling drawn in Vista's study-ceiling colour); the other <b className="text-ink">{CONES.length - estimates} are dashed: no City estimate</b> until the City answers Request 0, so their ceiling is Vista's study surface (an assumption). Show or hide them with the Viewcone tab. Ground, buildings and mountains are real data: see Data sources below.</> }
   const sources = 'Data sources & context layers'
   if (error) {
-    return <ViewportDock hint={hint} sections={[{ id: 'sources', title: sources, defaultOpen: true, children: (
+    return <ViewportDock anchored hint={hint} sections={[{ id: 'sources', title: sources, defaultOpen: true, children: (
       <p role="alert"><b className="text-ink">Context layers not loaded.</b> {error}. Build them with the scripts in <code>tools/</code> (see README).</p>
     ) }]} />
   }
-  if (!data) return <ViewportDock hint={hint} sections={[{ id: 'sources', title: sources, summary: 'loading…', defaultOpen: true, children: <p role="status">Loading Vancouver context…</p> }]} />
+  if (!data) return <ViewportDock anchored hint={hint} sections={[{ id: 'sources', title: sources, summary: 'loading…', defaultOpen: true, children: <p role="status">Loading Vancouver context…</p> }]} />
   const { manifest, footprints, heights } = data
   const withHeight = footprints.filter((_, i) => hasHeight(heights, i)).length
-  const older = footprints.filter((f) => is2009Part(f.id)).length
+  const older = data.model === 'city' ? footprints.filter((f) => is2009Part(f.id)).length : 0
   const firstLoad = manifest.layers.filter((l) => !l.lazy)
   const total = firstLoad.reduce((s, l) => s + layerBytes(l), 0)
   const onDemand = manifest.layers.filter((l) => l.lazy && !isTerrainDetail(l) && !['building_forms', 'building_forms_2009', 'city_streets', 'shoreline', 'parks'].includes(l.id)).length
   const fas = manifest.layers.flatMap((l) => l.false_assumptions ?? [])
   return (
-    <ViewportDock hint={hint} sections={[
+    <ViewportDock anchored hint={hint} sections={[
       { id: 'sources', title: sources, summary: `${firstLoad.length} · ${mb(total)}${onDemand ? ` · ${onDemand} on demand` : ''}`, children: (
         <div className="space-y-2">
           <p role="status">
-            {data.detailStatus === 'loading' ? 'Loading building forms, streets and terrain…' : `Ground: ${data.ground.length ? 'City LiDAR 1 m where covered' : 'MRDEM 30 m'} · Mountains: ${data.r2.step} m`}
-            {' · '}{data.roofParts.toLocaleString()} measured building parts · {data.streets ? 'City streets loaded' : 'Streets unavailable'}
+            {data.detailStatus === 'loading' ? 'Loading buildings, streets and terrain…' : `Ground: ${data.ground.length ? 'City LiDAR 1 m where covered' : 'MRDEM 30 m'} · Mountains: ${data.r2.step} m`}
+            {' · '}{data.roofParts.toLocaleString()} {data.model === 'vista' ? 'building parts (Vista)' : 'measured building parts'} · {data.streets ? 'City streets loaded' : 'Streets unavailable'}
           </p>
-          <p>
+          <BuildingModelSwitch />
+          {data.model === 'vista' ? <VistaBuildingsNote data={data} /> : <p>
             <b className="text-ink">{(data.roofParts - older).toLocaleString()} roof parts from City LiDAR 2022</b> (the 2 × 2 km core) and{' '}
             <span className="mr-1 inline-block h-2.5 w-3.5 rounded-sm border border-black/10 align-middle" style={{ background: LOOKS.clay.older }} />
             <b className="text-ink">{older.toLocaleString()} from the City's 2009 heights</b> around it, across the 24 view cones and the gaps between them (an older survey, a shade darker; 2009 buildings no longer on the 2015 map are left out).{' '}
             {withHeight.toLocaleString()} solid parts in total. <b>No height data</b> (never a guessed height): {(footprints.length - withHeight - data.placeholders.size).toLocaleString()} flat 2015 outlines
             {data.placeholders.size > 0 && <> and {data.placeholders.size.toLocaleString()} hatched {data.placeholderHeight} m placeholders (mostly garages and laneway houses under 60 m², which the generalised 2009 survey leaves out or which are newer; display only, in no calculation)</>}.
             One building, one representation: a LiDAR 2022 part wins over a City 2009 part, which wins over a 2015 outline or placeholder; anything overlapping a higher-ranked building by half of the smaller footprint is left out, smaller overlaps are cut away.
-          </p>
-          <p>Detailed ground covers {data.ground.length} City LiDAR 1 km tile{data.ground.length === 1 ? '' : 's'} ({manifest.layers.filter(isGroundDetail).map((l) => l.id.replace('terrain_ground_', '')).join(', ')}). Elsewhere, and in gaps under buildings or water, ground uses MRDEM at 30 m. The model base is 15.8 × 15 km, enough for every building and City layer; north of it, the North Shore is a fogged backdrop (MRDEM terrain only). The 2022 survey and 2015 footprints do not represent all current development.</p>
+            {' '}Roof forms retain measured setbacks and separate podium levels at 1 m plan resolution, grouped in 3 m elevation bands. The 2022 survey and 2015 footprints do not represent all current development.
+          </p>}
+          <p>Detailed ground covers {data.ground.length} City LiDAR 1 km tile{data.ground.length === 1 ? '' : 's'} ({manifest.layers.filter(isGroundDetail).map((l) => l.id.replace('terrain_ground_', '')).join(', ')}). Elsewhere, and in gaps under buildings or water, ground uses MRDEM at 30 m. The model base is 15.8 × 15 km, enough for every building and City layer; north of it, the North Shore is a fogged backdrop (MRDEM terrain only).</p>
           {data.detailErrors.length > 0 && <p role="alert">Some detailed context could not load. The available base layers remain visible; reload to try again. {data.detailErrors.join('; ')}</p>}
-          <p>Roof forms retain measured setbacks and separate podium levels at 1 m plan resolution. Roofs are grouped in 3 m elevation bands; slopes and facades remain approximate. The 2015 outlines outside the processed area have not been updated.</p>
           {data.roofParts > 0 && <button type="button" className="rounded border border-line px-2 py-1 font-medium text-ink hover:bg-slate-50" onClick={() => {
             useViewFromStore.getState().set({ looking: false, picking: false })
             useStore.getState().set({ cameraRequest: { position: [-1700, -150, 650], target: [-800, 900, 30], fov: 50 } })
-          }}>Inspect extracted buildings</button>}
+          }}>{data.model === 'vista' ? 'Inspect downtown buildings' : 'Inspect extracted buildings'}</button>}
           {data.streets && <div className="space-y-1">
             <b className="text-ink">Streets and lanes</b>
             <label className="flex items-center gap-1"><input type="checkbox" checked={streetDisplay.surfaces} onChange={(e) => useStreetDisplay.setState({ surfaces: e.target.checked })} /> Approximate road surfaces</label>
@@ -847,10 +1150,11 @@ export function CityLegend() {
           <p className="text-[10px] text-slate-500">{[...new Set(manifest.layers.map((l) => l.attribution))].join(' ')}</p>
         </div>
       ) },
+      { id: 'style', title: 'Style & building types', defaultOpen: true, summary: style === 'context' ? 'Context (Vista textures)' : 'Plain', children: <StyleCard data={data} /> },
       { id: 'ground', title: 'Ground & tower base', defaultOpen: true, summary: `${base.toFixed(1)} m · ${mode === 'terrain' ? 'from the terrain' : 'set by hand'}`, children: <GroundCard data={data} bare /> },
-      { id: 'existing', title: 'Existing buildings under the design', summary: hideOn ? 'hidden under the design' : 'all drawn', children: <HideUnderDesignCard bare /> },
+      { id: 'existing', title: 'Existing buildings under the design', summary: hideOn ? (hiddenCount ? `${hiddenCount.toLocaleString()} hidden (hypothetical)` : 'none under the design') : 'all drawn', children: <HideUnderDesignCard bare /> },
       { id: 'height', title: 'Height-limit surface & cone parameters', summary: surfaceOn ? 'surface on' : 'off', children: <HeightSurfacePanel bare /> },
-      { id: 'cones', title: 'View-cone solids', summary: `${CONES.filter((c) => CONE_PARAMS[c.id]).length} with an estimate`, children: <ConeSolidsInfo data={data} /> },
+      { id: 'cones', title: 'View cone layers', summary: <ConeSummary />, children: <ConeLayersInfo data={data} /> },
       { id: 'more', title: 'More layers', summary: layersOn ? `${layersOn} on` : 'load when switched on', children: <ContextLayersPanel manifest={manifest} bare /> },
     ]} />
   )

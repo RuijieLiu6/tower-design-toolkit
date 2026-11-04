@@ -1,0 +1,104 @@
+{
+ "from": "Vista (Ruijie Liu), github.com/RuijieLiu6/vancouver-tall-view-tool @ 917b28e, explorer/textures; provenance in FACADE_TEXTURES.json, PAVING_TEXTURES.json, GRASS_TEXTURE.txt, WATER_TEXTURE.txt there",
+ "retrieved": "2026-11-03",
+ "use": "Real Vancouver's Context style: illustrative surfaces, not surveyed materials",
+ "files": [
+  {
+   "file": "facade-white-brick.jpg",
+   "role": "facade: white brick",
+   "source": "explorer/textures/whitewashed_brick_diff_1k.jpg",
+   "sourceSha256": "a2cb551d73a4488cc5816c1ca48e9114875d8c2f3f0f39947b6dfcd913d792f3",
+   "sha256": "a2cb551d73a4488cc5816c1ca48e9114875d8c2f3f0f39947b6dfcd913d792f3",
+   "bytes": 844123,
+   "unchanged": true,
+   "licence": "CC0-1.0",
+   "url": "https://polyhaven.com/license",
+   "author": "Charlotte Baglioni (Poly Haven)"
+  },
+  {
+   "file": "facade-brick.jpg",
+   "role": "facade: brick",
+   "source": "explorer/textures/brick_wall_003_diffuse_1k.jpg",
+   "sourceSha256": "cb691df78201bd292c1004a796b76ef8ee9895548fb545a4a4d6d77903eeec01",
+   "sha256": "cb691df78201bd292c1004a796b76ef8ee9895548fb545a4a4d6d77903eeec01",
+   "bytes": 665706,
+   "unchanged": true,
+   "licence": "CC0-1.0",
+   "url": "https://polyhaven.com/license",
+   "author": "Rob Tuytel, Dimitrios Savva (Poly Haven)"
+  },
+  {
+   "file": "facade-concrete.jpg",
+   "role": "facade: concrete / mineral",
+   "source": "explorer/textures/concrete_wall_001_diff_1k.jpg",
+   "sourceSha256": "c3c936da86d57997d9fc4022371c3798c8d438aeecb8f41546104da6d3947c02",
+   "sha256": "c3c936da86d57997d9fc4022371c3798c8d438aeecb8f41546104da6d3947c02",
+   "bytes": 79320,
+   "unchanged": true,
+   "licence": "CC0-1.0",
+   "url": "https://polyhaven.com/license",
+   "author": "Dimitrios Savva, Rico Cilliers (Poly Haven)"
+  },
+  {
+   "file": "water-normal.png",
+   "role": "water ripples (normal map)",
+   "source": "explorer/textures/ocean-normal-map-1k.png",
+   "sourceSha256": "adc44dd8d95d138990369989cad79a067797e220e5ead4cc1de4da33cbf55cb0",
+   "sha256": "adc44dd8d95d138990369989cad79a067797e220e5ead4cc1de4da33cbf55cb0",
+   "bytes": 929899,
+   "unchanged": true,
+   "licence": "CC0-1.0",
+   "url": "https://proctexture.com/textures/water/normal-maps/ocean-normal-map",
+   "author": "ProcTexture"
+  },
+  {
+   "file": "asphalt.jpg",
+   "role": "carriageway asphalt",
+   "source": "explorer/textures/asphalt-user-v01.png",
+   "sourceSha256": "08afd8008bf88532370bbe786d3ad469d0ee005475d982f046ecf72919482687",
+   "sha256": "4374a59f7cf7f4841d8c9d9d5dc75aa86e88faa92c9971139eb9bfb246d2f04d",
+   "bytes": 212955,
+   "resizedTo": [
+    480,
+    960
+   ],
+   "encoding": "JPEG q0.86",
+   "licence": "Ruijie Liu's own image (user-supplied to Vista, 27 Oct 2026)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "author": "Ruijie Liu"
+  },
+  {
+   "file": "paving.jpg",
+   "role": "sidewalks and building ground",
+   "source": "explorer/textures/paving-concrete-user-v01.png",
+   "sourceSha256": "8eac9cece5a953f42586aa894608ae111c197a6308a03409f1b5d28bd0c08118",
+   "sha256": "9e012f4b5f823df704d580bb2a9db08e37f683e1efc9e4f5741912ef22774112",
+   "bytes": 93191,
+   "resizedTo": [
+    540,
+    1024
+   ],
+   "encoding": "JPEG q0.86",
+   "licence": "Ruijie Liu's own image (user-supplied to Vista, 27 Oct 2026)",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "author": "Ruijie Liu",
+   "note": "Vista samples inside the photo's grey border (UV inset 0.055, 0.025, scale 0.89, 0.95); the crop is applied here"
+  },
+  {
+   "file": "grass.jpg",
+   "role": "park ground (illustrative watercolour)",
+   "source": "explorer/textures/grass-watercolour-v01.png",
+   "sourceSha256": "aab68048ff8db89de1ea30a435e47199ba3caee88d48f945abdfcac89ec3da0c",
+   "sha256": "16e5e3bb05ee2d1bef2aa6d340f28bad4ea9666623c029eabf2809c4952c3f1d",
+   "bytes": 275736,
+   "resizedTo": [
+    1024,
+    1024
+   ],
+   "encoding": "JPEG q0.86",
+   "licence": "Generated for Vista from Ruijie Liu's reference (27 Oct 2026); no third-party licence",
+   "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool",
+   "author": "Ruijie Liu (reference), image-generation tool"
+  }
+ ]
+}

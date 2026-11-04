@@ -23,7 +23,7 @@ test('opens offline after the first visit', async ({ page, context }) => {
 
   // The guided app, with the 3D view (three.js) and its data, all from the offline copy.
   await page.evaluate(() => { window.location.hash = '#/guided' })
-  await expect(page.getByRole('tab', { name: 'Design' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('heading', { name: 'Design tools' })).toBeVisible({ timeout: 30_000 })
   await expect(page.locator('canvas').first()).toBeVisible()
 
   const cachedPrivate = await page.evaluate(async () => {

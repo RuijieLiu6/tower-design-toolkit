@@ -1,11 +1,11 @@
 {
- "date": "2026-11-02",
- "time": "22:34",
- "total": 34,
- "passed": 34,
+ "date": "2026-11-03",
+ "time": "17:56",
+ "total": 50,
+ "passed": 50,
  "failed": [],
- "uiRunFailed": true,
- "report": "04 Tool Plan/evaluation/2026-11-02/report.md",
+ "uiRunFailed": false,
+ "report": "04 Tool Plan/evaluation/2026-11-03/report.md",
  "cases": [
   {
    "id": "C1",
@@ -163,7 +163,7 @@
    "id": "VIEW-T",
    "type": "typical",
    "node": "built.view-from",
-   "title": "Standing on a LiDAR roof: eye at roof P90 + 1.6 m",
+   "title": "Standing on a roof: eye at roof + 1.6 m",
    "pass": true,
    "observed": "eye 41.60 m; drop 1.96 m"
   },
@@ -171,9 +171,9 @@
    "id": "VIEW-O",
    "type": "out-of-scope",
    "node": "built.view-from",
-   "title": "A building without a LiDAR height cannot be stood on",
+   "title": "A building without a height cannot be stood on",
    "pass": true,
-   "observed": "refused: This building has no measured roof height (no LiDAR 2022 roo…"
+   "observed": "refused: This building has no roof height in the model shown (in the …"
   },
   {
    "id": "VISTA-T",
@@ -222,6 +222,134 @@
    "title": "No what-if plane entered: unknown, never unlimited",
    "pass": true,
    "observed": "unknown; ceiling null; missing 3.2.2"
+  },
+  {
+   "id": "ENV-T",
+   "type": "typical",
+   "node": "built.vista",
+   "title": "Exact triangle check equals the View-cone check at the case 5 site",
+   "pass": true,
+   "observed": "exact -26.441 m, check -26.441 m (above)"
+  },
+  {
+   "id": "ENV-V",
+   "type": "definition",
+   "node": "built.vista",
+   "title": "Vista's envelope self-test: rotated stacked blocks, exact vs a box",
+   "pass": true,
+   "observed": "exact 83.012086 m, box 68.175785 m, 24 triangles"
+  },
+  {
+   "id": "ENV-F",
+   "type": "boundary",
+   "node": "built.vista",
+   "title": "Plane re-fitted from three points in UTM predicts the fourth (888 W Broadway, 3.2.1)",
+   "pass": true,
+   "observed": "z at H 134.4377 m; bearing 347.042°, slope 0.22887°"
+  },
+  {
+   "id": "ENV-O",
+   "type": "out-of-scope",
+   "node": "built.vista",
+   "title": "Triangles only in a view without an estimate: no clearance",
+   "pass": true,
+   "observed": "no_estimate; controlling none"
+  },
+  {
+   "id": "SITE-T",
+   "type": "typical",
+   "node": "built.vista",
+   "title": "Strata parcels count once; a lot line is not crossed by drawing slack",
+   "pass": true,
+   "observed": "joined 800 m² (Joined along shared lot lines (exact; no snapping). 2 more r…); neighbour touching"
+  },
+  {
+   "id": "SITE-O",
+   "type": "out-of-scope",
+   "node": "built.vista",
+   "title": "Overlapping lots and a self-crossing boundary are refused, not guessed",
+   "pass": true,
+   "observed": "review; Polygon edges cross or touch."
+  },
+  {
+   "id": "GEO-T",
+   "type": "typical",
+   "node": "built.vista",
+   "title": "Typed lon/lat of the QE Park origin lands on the City apex",
+   "pass": true,
+   "observed": "0.007 m from the apex; Web Mercator round trip 0.607 mm"
+  },
+  {
+   "id": "GEO-O",
+   "type": "out-of-scope",
+   "node": "built.vista",
+   "title": "An unnamed CRS or swapped lat/lon is refused, never guessed",
+   "pass": true,
+   "observed": "Unsupported or missing horizontal CRS. U | Geographic input requires longitude, lat"
+  },
+  {
+   "id": "ADDR-T",
+   "type": "typical",
+   "node": "built.vista",
+   "title": "A misspelt address finds the City record, labelled as a suggestion",
+   "pass": true,
+   "observed": "guess: 1128 W Georgia St, 1133 W Georgia St"
+  },
+  {
+   "id": "ADDR-O",
+   "type": "out-of-scope",
+   "node": "built.vista",
+   "title": "Offline: no request is made and the search says why",
+   "pass": true,
+   "observed": "offline; 0 request(s)"
+  },
+  {
+   "id": "HGT-T",
+   "type": "typical",
+   "node": "built.heights",
+   "title": "Zoning height at known parcels: the district the tax report names, at its basic height",
+   "pass": true,
+   "observed": "1265 Beach Av: ready 18.3 RM-5A; 1935 Cornwall Av: ready 23 C-2A; 2424 Maple St: ready 84 R5-3; 1551 Cypress St: ready 10.7 RM-4"
+  },
+  {
+   "id": "HGT-DD",
+   "type": "out-of-scope",
+   "node": "built.heights",
+   "title": "A DD site has no zoning number and is never given a guessed height",
+   "pass": true,
+   "observed": "unknown, height none, rules unresolved:DD, unresolved:CD-1 (392); \"no zoning number (DD)\" unresolved; suggestion none"
+  },
+  {
+   "id": "HGT-QE",
+   "type": "definition",
+   "node": "built.heights",
+   "title": "Queen Elizabeth Park cones: the combined limit names its controlling source and kind",
+   "pass": true,
+   "observed": "case 5: 3.2.3 estimate (verified), 93.8 m partial; case 3: 3.2.2 study (team_assumption), 93.6 m partial"
+  },
+  {
+   "id": "HGT-F",
+   "type": "repeated",
+   "node": "built.heights",
+   "title": "Vista's zones land on the City's own zoning layer after the frame conversion",
+   "pass": true,
+   "observed": "8413 vertices, median 3.4 cm, max 0.52 m"
+  },
+  {
+   "id": "HGT-S",
+   "type": "boundary",
+   "node": "built.heights",
+   "title": "Vista's stacked-block suggestion: the top block clears the lowest surface over it by 0.1 m",
+   "pass": true,
+   "observed": "partial, max 93.756 m (expected 93.756), scale 0.4688, block u"
+  },
+  {
+   "id": "HGT-I",
+   "type": "typical",
+   "node": "built.heights",
+   "title": "Imagine Vancouver: every Vista building joins Vista's table, and every lowered part clears the surfaces over it",
+   "pass": true,
+   "observed": "62372 parts, 0 missing; 44862 changed (1295 lower), cut by estimate 298, by study surface 564, zero height 110; 0 parts above a surface"
   },
   {
    "id": "RHINO-T",

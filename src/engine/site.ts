@@ -5,6 +5,29 @@
 
 export type Pt = [number, number]
 
+export type SiteSource = 'drawn' | 'buildings' | 'parcels' | 'geojson'
+
+/** A Real Vancouver study site (saved with the design). */
+export interface StudySite {
+  /** Local frame (EPSG:26910 minus the City origin, metres), open ring, counter-clockwise. */
+  ring: Pt[]
+  source: SiteSource
+  /** How it was made, in words (shown and exported). */
+  note: string
+  /** Address or place it was placed from, if any. */
+  label: string | null
+  /** City footprint ids the design replaces (Vista "replace existing buildings"). */
+  replaced: number[]
+  /** Keep the replaced buildings standing instead of showing them as demolished. */
+  keepReplaced: boolean
+  /** Parcel choices by index into the parcel layer named by `parcelLayer` (its sha256): partial parcels added, inside ones left out. */
+  parcelsAdd: number[]
+  parcelsSkip: number[]
+  parcelLayer: string | null
+  /** Area for FSR: the parcels when they join exactly (default), or the boundary. */
+  areaBasis: 'parcels' | 'boundary'
+}
+
 // ---------------------------------------------------------------- Vista site-geometry.js, ported
 /** Tolerances scale with the polygon extent (Vista), so the same checks work at any scale. */
 function extent(points: Pt[]): number {

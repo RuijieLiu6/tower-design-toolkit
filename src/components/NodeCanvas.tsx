@@ -22,6 +22,7 @@ import { useStore, useTowers } from '../store'
 import { interiorCheck } from '../engine/interior'
 import { towerFloors } from '../engine/massing'
 import { communityCanvas } from './communityCanvas'
+import { useShallow } from 'zustand/react/shallow'
 
 type CardData = { title: string; category: Category | 'L0'; subtitle: string; status?: string; tone?: 'ok' | 'warn' | 'bad' | 'muted'; inputs?: boolean; outputs?: boolean }
 
@@ -50,7 +51,7 @@ function Card({ data, selected }: NodeProps<Node<CardData>>) {
 const nodeTypes = { card: Card }
 
 export default function NodeCanvas() {
-  const { enabled, project, selectedNode, selectNode } = useStore()
+  const { enabled, project, selectedNode, selectNode } = useStore(useShallow((s) => ({ enabled: s.enabled, project: s.project, selectedNode: s.selectedNode, selectNode: s.selectNode })))
   const { rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane } = useResults()
   const community = useCommunityResults()
   const econ = useEconomics().result

@@ -17,6 +17,7 @@ import { DEFAULT_ON } from '../../data/registry'
 import type { NodePackage } from '../nodePackages'
 import type { Trace } from '../trace/trace'
 import type { InterchangeModel } from '../interchange/model'
+import type { StudySite } from '../../engine/site'
 import { CITY_ORIGIN, type GroundMode, type ProjectKind } from '../../store'
 import { DESIGN_KEYS, type Design } from './design'
 import { stableStringify } from './stable'
@@ -51,6 +52,8 @@ export interface ProjectFile {
   importedMeshes?: Record<string, { positions: number[]; indices: number[] }>
   /** Uploaded models (tower-studio-interchange@1, INTERCHANGE.md): elements by role, provenance, units, north and datum. Optional: files without it load as before. */
   models?: Partial<Record<ProjectKind, InterchangeModel>>
+  /** Real Vancouver study site (engine/site.ts): 2D ring in the local frame, with how it was made. Optional: files without it open with none. */
+  citySite?: StudySite
 }
 
 /** North and datum as the app uses them; written into every file so a reader knows the frame. */
@@ -96,6 +99,7 @@ export function toProjectFile(d: Design, community?: ProjectFile['communityNodes
   if (meshes && Object.keys(meshes).length) file.importedMeshes = meshes
   const models = Object.fromEntries((['vtc', 'city'] as const).filter((k) => d.models?.[k]).map((k) => [k, d.models[k]]))
   if (Object.keys(models).length) file.models = models
+  if (d.citySite) file.citySite = d.citySite
   return file
 }
 
@@ -160,6 +164,7 @@ export function toDesign(file: ProjectFile): Design {
     project: file.project,
     towers: t,
     models: { vtc: file.models?.vtc ?? null, city: file.models?.city ?? null },
+    citySite: file.citySite ?? null,
     selectedTower: t[file.project].some((x) => x.id === file.selectedTower) ? file.selectedTower : t[file.project][0].id,
     // Built nodes added after the file was saved start switched on, like in a new project.
     enabled: Object.fromEntries([...file.nodes.enabled, ...(file.nodes.known ? DEFAULT_ON.filter((id) => !file.nodes.known!.includes(id)) : [])].map((id) => [id, true])),

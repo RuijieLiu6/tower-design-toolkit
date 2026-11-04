@@ -13,6 +13,7 @@ import { DaylightPlanOverlay } from './DaylightBands'
 import { useUnits } from '../lib/units'
 import { U } from './Units'
 import { useStore, useTowers } from '../store'
+import { useShallow } from 'zustand/react/shallow'
 
 const SHEET = { w: 594, h: 420 }
 const AREA = { x: 16, y: 16, w: 408, h: 362 }
@@ -25,7 +26,7 @@ const fmt = (v: number) => Math.round(v).toLocaleString()
 /** `level` overrides the board's level picker; `standalone` draws it for the Drawings viewer (not over the 3D view). */
 export default function PlanDrawing({ level, standalone = false }: { level?: number | null; standalone?: boolean } = {}) {
   const towers = useTowers()
-  const { selectedTower, planLevel: boardLevel, planGrid, liftPresets, egressPresets, project } = useStore()
+  const { selectedTower, planLevel: boardLevel, planGrid, liftPresets, egressPresets, project } = useStore(useShallow((s) => ({ selectedTower: s.selectedTower, planLevel: s.planLevel, planGrid: s.planGrid, liftPresets: s.liftPresets, egressPresets: s.egressPresets, project: s.project })))
   const planLevel = level !== undefined ? level : boardLevel
   const unit = useUnits((st) => st.unit)
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]

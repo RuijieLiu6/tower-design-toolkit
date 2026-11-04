@@ -1,0 +1,185 @@
+{
+ "errors": [],
+ "log": {
+  "overview": {
+   "total": 49.1,
+   "calls": 41,
+   "conesAll": {
+    "with": 49.2,
+    "without": 43.9,
+    "costs": 5.3,
+    "objects": 10
+   },
+   "glow": {
+    "with": 48.3,
+    "without": 47.7,
+    "costs": 2,
+    "objects": 5
+   },
+   "edge": {
+    "with": 48.8,
+    "without": 47.2,
+    "costs": 1.4,
+    "objects": 3
+   },
+   "fill": {
+    "with": 48.2,
+    "without": 46.9,
+    "costs": 1,
+    "objects": 1
+   },
+   "trace": {
+    "with": 47.9,
+    "without": 48.5,
+    "costs": -0.3,
+    "objects": 1
+   },
+   "fatLinesOther": {
+    "with": 47.6,
+    "without": 48.3,
+    "costs": 0.4,
+    "objects": 6
+   },
+   "meshes": [
+    {
+     "indices": 5938458,
+     "size": [
+      2040,
+      2010
+     ],
+     "vertexColors": true,
+     "with": 48.3,
+     "without": 44.5,
+     "costs": 6,
+     "objects": 1
+    },
+    {
+     "indices": 3650514,
+     "size": [
+      51840,
+      19200
+     ],
+     "vertexColors": true,
+     "with": 48.5,
+     "without": 46.1,
+     "costs": 3.2,
+     "objects": 1
+    },
+    {
+     "indices": 2952357,
+     "size": [
+      9061,
+      9149
+     ],
+     "vertexColors": true,
+     "with": 49.3,
+     "without": 29.8,
+     "costs": 19.4,
+     "objects": 1
+    },
+    {
+     "indices": 1160664,
+     "size": [
+      15780,
+      15000
+     ],
+     "vertexColors": true,
+     "with": 49,
+     "without": 38.7,
+     "costs": 10.2,
+     "objects": 1
+    }
+   ]
+  },
+  "close": {
+   "total": 54.4,
+   "calls": 36,
+   "conesAll": {
+    "with": 52,
+    "without": 48,
+    "costs": 6.3,
+    "objects": 10
+   },
+   "glow": {
+    "with": 56.8,
+    "without": 55.9,
+    "costs": 2.5,
+    "objects": 5
+   },
+   "edge": {
+    "with": 58.3,
+    "without": 56.4,
+    "costs": 2.5,
+    "objects": 3
+   },
+   "fill": {
+    "with": 59.5,
+    "without": 56,
+    "costs": 3.4,
+    "objects": 1
+   },
+   "trace": {
+    "with": 59.2,
+    "without": 57.7,
+    "costs": 2.6,
+    "objects": 1
+   },
+   "fatLinesOther": {
+    "with": 58,
+    "without": 59.8,
+    "costs": -1.4,
+    "objects": 6
+   },
+   "meshes": [
+    {
+     "indices": 5938458,
+     "size": [
+      2040,
+      2010
+     ],
+     "vertexColors": true,
+     "with": 59.1,
+     "without": 38.9,
+     "costs": 19.9,
+     "objects": 1
+    },
+    {
+     "indices": 3650514,
+     "size": [
+      51840,
+      19200
+     ],
+     "vertexColors": true,
+     "with": 58.7,
+     "without": 55.4,
+     "costs": 3.3,
+     "objects": 1
+    },
+    {
+     "indices": 2952357,
+     "size": [
+      9061,
+      9149
+     ],
+     "vertexColors": true,
+     "with": 57.6,
+     "without": 37.9,
+     "costs": 20.1,
+     "objects": 1
+    },
+    {
+     "indices": 1160664,
+     "size": [
+      15780,
+      15000
+     ],
+     "vertexColors": true,
+     "with": 56.7,
+     "without": 53,
+     "costs": 2.4,
+     "objects": 1
+    }
+   ]
+  }
+ }
+}

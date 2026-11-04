@@ -1,0 +1,428 @@
+{
+ "C3": {
+  "id": "C3",
+  "screenshot": "shots/C3.png",
+  "flags": [
+   "Unresolved"
+  ],
+  "observed": "3.2.2 · In cone: no estimate at 50, 150 and 400 m",
+  "pass": true
+ },
+ "C5": {
+  "id": "C5",
+  "screenshot": "shots/C5.png",
+  "flags": [
+   "Verified",
+   "Unresolved"
+  ],
+  "observed": "3.2.3 · Queen Elizabeth Park Within uncertainty View to North Shore Mountains · origin elevation 124",
+  "pass": true
+ },
+ "C7": {
+  "id": "C7",
+  "screenshot": "shots/C7.png",
+  "flags": [
+   "Verified",
+   "Unresolved"
+  ],
+  "observed": "1 distinct panel text(s) over 5 fresh loads",
+  "pass": true
+ },
+ "C1": {
+  "id": "C1",
+  "screenshot": "shots/C1.png",
+  "flags": [
+   "Verified",
+   "Unresolved"
+  ],
+  "note": "View-cone height check panel, default design (Real Vancouver)"
+ },
+ "C2": {
+  "id": "C2",
+  "screenshot": "shots/C1.png",
+  "flags": [
+   "Verified",
+   "Unresolved"
+  ],
+  "note": "View-cone height check panel, default design (Real Vancouver)"
+ },
+ "C4": {
+  "id": "C4",
+  "screenshot": "shots/C1.png",
+  "flags": [
+   "Verified",
+   "Unresolved"
+  ],
+  "note": "View-cone height check panel, default design (Real Vancouver)"
+ },
+ "C6": {
+  "id": "C6",
+  "screenshot": "shots/C1.png",
+  "flags": [
+   "Verified",
+   "Unresolved"
+  ],
+  "note": "View-cone height check panel, default design (Real Vancouver)"
+ },
+ "LIFT-T": {
+  "id": "LIFT-T",
+  "screenshot": "shots/LIFT-T.png",
+  "flags": [
+   "Verified",
+   "Unresolved",
+   "Unverified",
+   "Team assumption"
+  ],
+  "note": "Core & lift check panel, default design (Competition site)"
+ },
+ "LIFT-O": {
+  "id": "LIFT-O",
+  "screenshot": "shots/LIFT-T.png",
+  "flags": [
+   "Verified",
+   "Unresolved",
+   "Unverified",
+   "Team assumption"
+  ],
+  "note": "Core & lift check panel, default design (Competition site)"
+ },
+ "PR-T": {
+  "id": "PR-T",
+  "screenshot": "shots/PR-T.png",
+  "flags": [
+   "Verified",
+   "Team assumption",
+   "Unverified"
+  ],
+  "note": "Streetwall & tower form panel, default design (Competition site)"
+ },
+ "PR-O": {
+  "id": "PR-O",
+  "screenshot": "shots/PR-T.png",
+  "flags": [
+   "Verified",
+   "Team assumption",
+   "Unverified"
+  ],
+  "note": "Streetwall & tower form panel, default design (Competition site)"
+ },
+ "SUN-T": {
+  "id": "SUN-T",
+  "screenshot": "shots/SUN-T.png",
+  "flags": [
+   "Unresolved",
+   "Verified",
+   "Team assumption"
+  ],
+  "note": "Solar access & sun hours panel, default design (Competition site)"
+ },
+ "SUN-O": {
+  "id": "SUN-O",
+  "screenshot": "shots/SUN-T.png",
+  "flags": [
+   "Unresolved",
+   "Verified",
+   "Team assumption"
+  ],
+  "note": "Solar access & sun hours panel, default design (Competition site)"
+ },
+ "STR-T": {
+  "id": "STR-T",
+  "screenshot": "shots/STR-T.png",
+  "flags": [
+   "Verified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Wind procedure (slenderness) panel, default design (Competition site)"
+ },
+ "STR-O": {
+  "id": "STR-O",
+  "screenshot": "shots/STR-T.png",
+  "flags": [
+   "Verified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Wind procedure (slenderness) panel, default design (Competition site)"
+ },
+ "EN-T": {
+  "id": "EN-T",
+  "screenshot": "shots/EN-T.png",
+  "flags": [
+   "Verified",
+   "Team assumption",
+   "Unverified",
+   "False assumption"
+  ],
+  "note": "Energy & carbon panel, default design (Competition site)"
+ },
+ "EN-O": {
+  "id": "EN-O",
+  "screenshot": "shots/EN-T.png",
+  "flags": [
+   "Verified",
+   "Team assumption",
+   "Unverified",
+   "False assumption"
+  ],
+  "note": "Energy & carbon panel, default design (Competition site)"
+ },
+ "MOB-T": {
+  "id": "MOB-T",
+  "screenshot": "shots/MOB-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Unresolved",
+   "Team assumption"
+  ],
+  "note": "Parking, loading & bikes panel, default design (Competition site)"
+ },
+ "MOB-O": {
+  "id": "MOB-O",
+  "screenshot": "shots/MOB-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Unresolved",
+   "Team assumption"
+  ],
+  "note": "Parking, loading & bikes panel, default design (Competition site)"
+ },
+ "VIEW-T": {
+  "id": "VIEW-T",
+  "screenshot": "shots/VIEW-T.png",
+  "flags": [],
+  "note": "View from here panel, default design (Real Vancouver)"
+ },
+ "VIEW-O": {
+  "id": "VIEW-O",
+  "screenshot": "shots/VIEW-T.png",
+  "flags": [],
+  "note": "View from here panel, default design (Real Vancouver)"
+ },
+ "VISTA-T": {
+  "id": "VISTA-T",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "VISTA-K": {
+  "id": "VISTA-K",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "VISTA-F": {
+  "id": "VISTA-F",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "VISTA-H": {
+  "id": "VISTA-H",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "VISTA-B": {
+  "id": "VISTA-B",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "VISTA-O": {
+  "id": "VISTA-O",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "ENV-T": {
+  "id": "ENV-T",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "ENV-V": {
+  "id": "ENV-V",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "ENV-F": {
+  "id": "ENV-F",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "ENV-O": {
+  "id": "ENV-O",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "SITE-T": {
+  "id": "SITE-T",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "SITE-O": {
+  "id": "SITE-O",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "GEO-T": {
+  "id": "GEO-T",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "GEO-O": {
+  "id": "GEO-O",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "ADDR-T": {
+  "id": "ADDR-T",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "ADDR-O": {
+  "id": "ADDR-O",
+  "screenshot": "shots/VISTA-T.png",
+  "flags": [
+   "Verified",
+   "Unverified",
+   "Team assumption",
+   "False assumption"
+  ],
+  "note": "Vista view studies panel, default design (Real Vancouver)"
+ },
+ "RHINO-B": {
+  "id": "RHINO-B",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-O": {
+  "id": "RHINO-O",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-R": {
+  "id": "RHINO-R",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-N": {
+  "id": "RHINO-N",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-K": {
+  "id": "RHINO-K",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-A": {
+  "id": "RHINO-A",
+  "screenshot": "shots/RHINO-B.png",
+  "flags": [],
+  "note": "Your model: upload & provenance panel, default design (Competition site)"
+ },
+ "RHINO-T": {
+  "id": "RHINO-T",
+  "screenshot": "shots/RHINO-T.png",
+  "flags": [
+   "Unverified",
+   "Team assumption"
+  ],
+  "observed": "Dropped, mapped, checked and used in the app; panel shows 2 towers, the lot line and the provenance list",
+  "pass": true,
+  "note": "Uploaded through the dialog (drop on the app, map, check, use); screenshots RHINO-T-map and RHINO-T-check show the two steps"
+ }
+}

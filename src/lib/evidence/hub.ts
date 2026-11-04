@@ -80,13 +80,13 @@ export const DECLARED: Record<string, Source[]> = {
   ],
   'built.view-from': [
     { label: 'City of Vancouver ViewCone layer (OGL-Vancouver, retrieved 2026-10-21), plan polygons' },
-    { label: 'Ray cast over LiDAR 2022 roofs (P90), the design towers and MRDEM-30 terrain (CGVD28), research C02' },
+    { label: 'Ray cast over the buildings model shown: by default Vista’s OpenStreetMap buildings (© OpenStreetMap contributors, ODbL) on the City ground, each at its best height: City LiDAR 2022 or 2009 where measured, else OpenStreetMap (unverified). The combined height table (OSM geometry with City heights) is a derivative database of OpenStreetMap, offered under ODbL 1.0; for comparison City LiDAR 2022 roofs (P90) and City 2009 heights. Plus the design towers and MRDEM-30 terrain (CGVD28), research C02' },
   ],
   'built.vista': [
     { label: 'City of Vancouver ViewCone layer (OGL-Vancouver, retrieved 2026-10-21): plan polygons, origins and viewpoint elevations (Lv)' },
     { label: 'City of Vancouver, Public Views Guidelines (Feb 2026; team copy SHA-256 597f0da2…b0ca)', url: 'https://guidelines.vancouver.ca/guidelines-public-views.pdf' },
     { label: 'Vista v10.1 (Ruijie Liu, ARCH 540, handoff 2026-10-22): exact cone clip, study planes, cone-fit camera, report; research C04 (Vista audit, frame rule)' },
-    { label: 'NRCan MRDEM-30 terrain (CGVD28 after conversion) and City LiDAR 2022 roofs, as in the Real Vancouver context layers' },
+    { label: 'NRCan MRDEM-30 terrain (CGVD28 after conversion) and the Real Vancouver buildings model shown (Vista’s OpenStreetMap buildings by default with City-measured heights where they exist, ODbL, the combined height table included; City LiDAR 2022 for comparison), as in the context layers' },
     { label: 'Vista v34 (Ruijie Liu, github.com/RuijieLiu6/vancouver-tall-view-tool, read 3 Nov 2026): site drawing and validation, building replacement, parcel matching with exact joins, georeference and GeoJSON, address search, exact view envelope', url: 'https://github.com/RuijieLiu6/vancouver-tall-view-tool' },
     { label: 'City of Vancouver, Property parcel polygons (OGL-Vancouver, retrieved 2026-10-27): parcels under the study site', url: 'https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/' },
     { label: 'City of Vancouver, Property addresses and Local area boundary (OGL-Vancouver), read live by the address search', url: 'https://opendata.vancouver.ca/explore/dataset/property-addresses/' },
@@ -103,6 +103,14 @@ export const DECLARED: Record<string, Source[]> = {
   'built.energy-carbon': Object.values(ENERGY_SOURCES) as Source[],
   'built.wind-screen': Object.values(WIND_SCREEN_SOURCES) as Source[],
   'built.trips': Object.values(TRIP_SOURCES) as Source[],
+  // Height references & suggestion (Integrate Vista session, 3 Nov 2026; Real Vancouver only).
+  'built.heights': [
+    { label: 'Vista v37 (Ruijie Liu, github.com/RuijieLiu6/vancouver-tall-view-tool @ 917b28e, read 3 Nov 2026): zoning height references (height-policy.js, height_policy.json), Imagine default study surfaces (viewcone-ui.js), stacked-block height suggestion (view-height-suggestion.js) and Imagine Vancouver', url: 'https://github.com/RuijieLiu6/vancouver-tall-view-tool' },
+    { label: 'City of Vancouver, Zoning districts and labels, and Property parcel polygons (OGL-Vancouver, retrieved 2026-10-27, via Vista height_policy.json SHA-256 85f7ddf7…d7fa)', url: 'https://opendata.vancouver.ca/explore/dataset/zoning-districts-and-labels/' },
+    { label: 'City of Vancouver Zoning and Development By-law district schedules and ODPs, as cited by Vista per district (not opened by the team: unverified)', url: 'https://bylaws.vancouver.ca/' },
+    { label: 'City of Vancouver ViewCone layer (OGL-Vancouver, retrieved 2026-10-21) and the team’s lower-boundary estimates (research C01, CONE_PARAMS), as in the View-cone height check' },
+    { label: 'NRCan MRDEM-30 terrain (CGVD28 after conversion), as in the Real Vancouver context layers: the ground under each point and the eye at each cone origin' },
+  ],
 }
 
 /** False assumptions each node keeps visible (engine lists; the nature ledger's come with its results). */

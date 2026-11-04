@@ -1,0 +1,55 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.test-student.slenderness-efficiency",
+  "version": "0.1.0",
+  "licence": "CC-BY-4.0",
+  "name": "Slenderness and floor plate efficiency",
+  "author": { "name": "Test Student" },
+  "category": "STRC",
+  "stage": "massing",
+  "question": "Is my tower too skinny, measured as height divided by the narrowest side of the floor plate, and how efficient is the floor plate (net over gross)?",
+  "inputs": ["tower.height", "tower.minSide", "tower.netToGross"],
+  "method": "Slenderness is the tower height divided by the shorter plan side. Floor plate efficiency is shown as the net-to-gross ratio, which Tower Design Toolkit computes as 1 minus the core share (core only; columns, walls and other shafts are not deducted).",
+  "human": "Whether the structural system can take the slenderness is for the engineer to decide.",
+  "limits": "Ignores the core and outriggers. Net-to-gross counts only the core, so it overstates efficiency. The efficiency metric has no threshold yet. The slenderness limits come from an instructor lecture and have not been checked. The belief that anything over 6 always needs a wind tunnel test is not encoded here because it has no checked source.",
+  "metrics": [
+    {
+      "id": "slenderness",
+      "label": "Slenderness (height / narrowest side)",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.height / tower.minSide",
+      "decimals": 2,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 8,
+        "bad": 10,
+        "text": "up to 8 is comfortable; above 10 gets expensive for structure",
+        "flag": "unverified",
+        "source": { "label": "Instructor lecture, as recalled by the designer; not checked against any other source", "page": "Lecture and slide not recorded" }
+      },
+      "note": "The lecture said 'expensive' above 10, which is a cost remark, not a pass/fail rule."
+    },
+    {
+      "id": "net_to_gross",
+      "label": "Floor plate efficiency (net / gross)",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.netToGross",
+      "decimals": 2,
+      "threshold": {
+        "flag": "unresolved",
+        "source": { "label": "No threshold given by the designer, who asked the assistant to pick one; none supplied, so none set. Needs a sourced value, e.g. from a studio brief or a design guide.", "page": "Nothing searched yet" }
+      }
+    }
+  ],
+  "tests": [
+    { "fixture": "vtc-default", "metric": "slenderness", "value": 6.196, "state": "pass" },
+    { "fixture": "city-study", "metric": "slenderness", "value": 4, "state": "pass" },
+    { "fixture": "vtc-two-towers", "tower": 0, "metric": "slenderness", "value": 9.357, "state": "warn" },
+    { "fixture": "vtc-two-towers", "tower": 1, "metric": "slenderness", "value": 6.25, "state": "pass" },
+    { "fixture": "vtc-default", "metric": "net_to_gross", "value": 0.68, "state": "unknown" },
+    { "fixture": "city-study", "metric": "net_to_gross", "value": 0.76, "state": "unknown" }
+  ],
+  "createdWith": "Claude with the Tower Design Toolkit node builder prompt v1"
+}

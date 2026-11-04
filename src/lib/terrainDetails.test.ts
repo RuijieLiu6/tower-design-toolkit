@@ -10,7 +10,8 @@ const read = (f: string) => { const b = readFileSync(new URL(f, DIR)); return b.
 const grid = (id: string) => { const l = manifest.layers.find((l) => l.id === id)!; return decodeTerrain(read(l.file), l.grid!) }
 const fine = grid('terrain_ground_490000_5459000'), coarse = grid('terrain_r1')
 
-describe('City LiDAR ground and native mountain detail', () => {
+// Real data (megabytes): a single test takes a second or two alone, longer while the whole suite runs in parallel.
+describe('City LiDAR ground and native mountain detail', { timeout: 30_000 }, () => {
   it('retains the source extent, metre spacing and explicit missing coverage', () => {
     expect([fine.x0, fine.y0, fine.cols, fine.rows, fine.step]).toEqual([-1299.5, 400.5, 1000, 1000, 1])
     expect([...fine.z].filter(Number.isFinite).length).toBe(826374)

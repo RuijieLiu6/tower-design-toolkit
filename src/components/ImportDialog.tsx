@@ -14,6 +14,7 @@ import { DATUM_LABEL, MAGNETIC_DECLINATION, NORTH_LABEL, STREET_GRID_NORTH, type
 import { useImportStore } from '../lib/import/store'
 import { FORMAT_LABEL, FORMATS } from '../lib/import/types'
 import { applyModel, type ApplyMode } from '../lib/interchange/apply'
+import { canLink, pickLinkedFile, startLink, type FileHandleLike } from '../lib/interchange/live'
 import { buildModel, defaultOptions } from '../lib/interchange/build'
 import { autoMapping, itemsOf, recallMapping, roleOf } from '../lib/interchange/mapping'
 import { MASSING_ROLES, type Mapping, type ModelCheck } from '../lib/interchange/model'
@@ -36,6 +37,8 @@ export default function ImportDialog() {
   const setProject = useStore((s) => s.setProject)
   const ground = useStore((s) => s.groundElevation)
   const towers = useTowers()
+  const prior = useStore((s) => s.models[s.project])
+  const priorTowers = towers.filter((t) => prior && t.imported?.source?.modelId === prior.id).length
   const liftPresets = useStore((s) => s.liftPresets)
   const egressPresets = useStore((s) => s.egressPresets)
   const selectedId = useStore((s) => s.selectedTower)
@@ -55,6 +58,8 @@ export default function ImportDialog() {
   const [picking, setPicking] = useState(false)
   const [keep, setKeep] = useState(false)
   const [demolishCount, setDemolishCount] = useState(0)
+  // A file linked through the browser's file picker (Chrome, Edge): watched for new saves after it is used.
+  const [linked, setLinked] = useState<{ handle: FileHandleLike; file: File } | null>(null)
   const up = (patch: Partial<ImportOptions>) => setOpts((o) => (o ? { ...o, ...patch } : o))
 
   const frame: ProjectFrame = useMemo(() => ({
@@ -66,7 +71,8 @@ export default function ImportDialog() {
   const reading = useRef<AbortController | null>(null)
   // Closing the dialog while a file is read cancels the read.
   useEffect(() => () => reading.current?.abort(), [])
-  const read = async (f: File) => {
+  const read = async (f: File, handle: FileHandleLike | null = null) => {
+    setLinked(handle ? { handle, file: f } : null)
     reading.current?.abort()
     const ctrl = new AbortController()
     reading.current = ctrl
@@ -119,6 +125,7 @@ export default function ImportDialog() {
   const use = (mode: ApplyMode) => {
     if (!raw || !built || built.blocked) return
     applyModel(built, raw, mode, mode === 'replace-one' ? replaceId ?? sel?.id ?? null : null)
+    if (linked && mapping && opts) startLink(linked.handle, { mapping, opts, project }, linked.file)
     // Buildings under the model: demolished (hidden from views, shadows and roofs) unless the person kept them.
     if (project === 'city' && demolishCount > 0) useHideUnderDesign.setState({ on: !keep })
     close()
@@ -144,14 +151,15 @@ export default function ImportDialog() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!raw && (
             <div className="grid gap-4 p-5">
-              <DropZone loading={loading} file={file} onFile={read} inputRef={input} onCancel={() => { reading.current?.abort(); setLoading(null); setFile(null) }} />
+              <DropZone loading={loading} file={file} onFile={read} inputRef={input} onCancel={() => { reading.current?.abort(); setLoading(null); setFile(null) }}
+                onLink={canLink() ? async () => { const p = await pickLinkedFile(); if (p) void read(p.file, p.handle) } : undefined} />
               {error && <ErrorBox text={error} />}
               <FormatsTable />
             </div>
           )}
           {raw && opts && mapping && (
             <>
-              <FileSummary raw={raw} size={file?.size ?? raw.fileSize ?? null} onOther={() => { setRaw(null); setOpts(null); setMapping(null) }} />
+              <FileSummary raw={raw} size={file?.size ?? raw.fileSize ?? null} linked={!!linked} onOther={() => { setRaw(null); setOpts(null); setMapping(null); setLinked(null) }} />
               {step === 'map' && <RoleMapper raw={raw} mapping={mapping} onChange={setMapping} shapes={shapes} recalled={recalled} />}
               {step === 'check' && (
                 <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -209,7 +217,14 @@ export default function ImportDialog() {
                 <button onClick={() => setStep('map')} className="flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-xs hover:border-accent"><ArrowLeft size={13} />Mapping</button>
                 {replaceId && built?.towers.length === 1 && <button disabled={blocked || needsUnit} onClick={() => use('replace-one')} className="rounded-md border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40">Replace {towers.find((t) => t.id === replaceId)?.name ?? 'the tower'}</button>}
                 <button disabled={blocked || needsUnit || !built} onClick={() => use('add')} className="rounded-md border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40">Add to the {project === 'vtc' ? 'competition site' : 'Real Vancouver'} towers</button>
-                <button disabled={blocked || needsUnit || !built} onClick={() => use('replace-all')} data-autofocus className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40">Use this model (replaces the {towers.length} tower{towers.length === 1 ? '' : 's'})</button>
+                {prior && priorTowers > 0 ? (
+                  <>
+                    <button disabled={blocked || needsUnit || !built} onClick={() => use('replace-all')} className="rounded-md border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40">Replace all {towers.length} towers</button>
+                    <button disabled={blocked || needsUnit || !built} onClick={() => use('update')} data-autofocus title="A new version of the uploaded model: its towers are replaced, keeping their names and the storey uses you set by hand; your other towers stay" className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40">Update {prior.source.fileName} ({priorTowers} tower{priorTowers === 1 ? '' : 's'})</button>
+                  </>
+                ) : (
+                  <button disabled={blocked || needsUnit || !built} onClick={() => use('replace-all')} data-autofocus className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40">Use this model (replaces the {towers.length} tower{towers.length === 1 ? '' : 's'})</button>
+                )}
               </>
             )}
           </div>
@@ -227,7 +242,7 @@ function Steps({ step }: { step: 'map' | 'check' }) {
   return <ol className="ml-auto hidden items-center gap-3 self-center text-[11px] md:flex" aria-label="Steps">{s(1, 'Map layers to roles', step === 'map')}{s(2, 'Check and use', step === 'check')}</ol>
 }
 
-function DropZone({ loading, file, onFile, inputRef, onCancel }: { loading: { phase: string; done: number; total: number } | null; file: { name: string; size: number } | null; onFile: (f: File) => void; inputRef: RefObject<HTMLInputElement | null>; onCancel: () => void }) {
+function DropZone({ loading, file, onFile, inputRef, onCancel, onLink }: { loading: { phase: string; done: number; total: number } | null; file: { name: string; size: number } | null; onFile: (f: File) => void; inputRef: RefObject<HTMLInputElement | null>; onCancel: () => void; onLink?: () => void }) {
   const [over, setOver] = useState(false)
   const pct = loading && loading.total > 1 ? Math.round((loading.done / loading.total) * 100) : null
   return (
@@ -246,7 +261,10 @@ function DropZone({ loading, file, onFile, inputRef, onCancel }: { loading: { ph
         <>
           <Upload size={22} className="text-accent" aria-hidden />
           <span className="text-sm font-medium">Drop a Rhino model here, or</span>
-          <button data-autofocus onClick={() => inputRef.current?.click()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white">Choose a file</button>
+          <span className="flex flex-wrap items-center justify-center gap-2">
+            <button data-autofocus onClick={() => inputRef.current?.click()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white">Choose a file</button>
+            {onLink && <button onClick={onLink} title="The model then updates by itself each time you save the file in Rhino, while this tab is open (Chrome and Edge)" className="rounded-md border border-accent px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10">Link a file: update on each save</button>}
+          </span>
           <span className="text-[11px] text-muted">.3dm · .obj · .glb / .gltf · .ifc</span>
           <span className="flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />Read in this browser; nothing is uploaded to a server.</span>
         </>
@@ -318,12 +336,13 @@ function Radio<T extends string>({ name, value, current, onPick, children }: { n
   )
 }
 
-function FileSummary({ raw, size, onOther }: { raw: LoadedImport; size: number | null; onOther: () => void }) {
+function FileSummary({ raw, size, onOther, linked }: { raw: LoadedImport; size: number | null; onOther: () => void; linked?: boolean }) {
   const curves = raw.curves?.length ?? 0
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-line bg-black/[0.03] px-5 py-2 text-xs">
       <FileUp size={14} className="text-accent" aria-hidden />
       <span className="truncate font-medium">{raw.fileName}</span>
+      {linked && <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">linked: updates on each save</span>}
       <span className="text-muted">{FORMAT_LABEL[raw.format]}{size != null ? ` · ${size >= 1048576 ? `${(size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`}` : ''} · {raw.objects.length} volume{raw.objects.length === 1 ? '' : 's'}{curves ? ` · ${curves} curve${curves === 1 ? '' : 's'}` : ''} · {raw.objects.reduce((s, o) => s + o.mesh.indices.length / 3, 0).toLocaleString('en-CA')} triangles{raw.skipped.length ? ` · ${raw.skipped.length} unreadable` : ''}</span>
       <span className="flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />stays in this browser</span>
       <button onClick={onOther} className="ml-auto shrink-0 text-[11px] text-accent hover:underline">Other file</button>

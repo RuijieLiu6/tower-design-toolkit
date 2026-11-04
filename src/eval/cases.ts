@@ -17,6 +17,7 @@ import { envelopeCheck, fitPlane, prismTriangles, proposalTriangles, surfaceChec
 import { matchParcels, validateRing } from '../engine/site'
 import { fromCity, normalizeCrs, toCity } from '../engine/geoLocate'
 import { addressLabel, cityRecords, createLookup, suggest } from '../lib/addressSearch'
+import { HEIGHT_CASES } from './heightCases'
 import type { Flag, Tower } from '../engine/types'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
@@ -196,13 +197,13 @@ export const CASES: EvalCase[] = [
 
   // ---------- View from here ----------
   {
-    id: 'VIEW-T', node: 'built.view-from', type: 'typical', title: 'Standing on a LiDAR roof: eye at roof P90 + 1.6 m',
-    input: 'A roof with P90 40.0 m', expected: 'Eye 41.6 m geodetic; curvature drop 1.96 m at 5 km without refraction',
+    id: 'VIEW-T', node: 'built.view-from', type: 'typical', title: 'Standing on a roof: eye at roof + 1.6 m',
+    input: 'A roof at 40.0 m (Vista model: OSM height on the City ground; City model: LiDAR P90)', expected: 'Eye 41.6 m geodetic; curvature drop 1.96 m at 5 km without refraction',
     basis: 'Research C04 r3 (ground + 1.6 m); C02 r3 hand check (1.96 m at 5.0 km)', basisFlag: 'verified',
     run: () => { const idx = indexFootprints([{ outer: [[0, 0], [20, 0], [20, 20], [0, 20]], holes: [] }]); const h: HeightsLike = { ground: Float32Array.from([10]), roof: Float32Array.from([40]), max: Float32Array.from([43]), points: Uint16Array.from([100]) }; const p = pickAt(idx, h, 10, 10); const eye = p.kind === 'roof' ? p.eye : NaN; const drop = curvatureDrop(5000, 0); return { observed: `eye ${eye.toFixed(2)} m; drop ${drop.toFixed(2)} m`, pass: Math.abs(eye - 41.6) < 1e-6 && Math.abs(drop - 1.96) < 0.01, flag: 'team_assumption' } },
   },
   {
-    id: 'VIEW-O', node: 'built.view-from', type: 'out-of-scope', title: 'A building without a LiDAR height cannot be stood on',
+    id: 'VIEW-O', node: 'built.view-from', type: 'out-of-scope', title: 'A building without a height cannot be stood on',
     input: 'Click on a footprint whose roof height is unknown', expected: 'Refused with a plain reason; no camera placed',
     basis: 'Backlog item 21 spec (heights unknown → that roof cannot be picked)', basisFlag: 'team_assumption',
     run: () => { const idx = indexFootprints([{ outer: [[0, 0], [20, 0], [20, 20], [0, 20]], holes: [] }]); const h: HeightsLike = { ground: Float32Array.from([NaN]), roof: Float32Array.from([NaN]), max: Float32Array.from([NaN]), points: Uint16Array.from([0]) }; const p = pickAt(idx, h, 10, 10); return { observed: p.kind === 'unknown' ? `refused: ${p.reason.slice(0, 60)}…` : p.kind, pass: p.kind === 'unknown', flag: 'unresolved' } },
@@ -373,6 +374,8 @@ export const CASES: EvalCase[] = [
       return { observed: `${seen.join(', ')}; ${calls} request(s)`, pass: seen.join() === 'offline' && calls === 0, flag: 'team_assumption' }
     },
   },
+  // Height references & suggestion (Vista v37 height model, 3 Nov): eval/heightCases.ts.
+  ...HEIGHT_CASES,
 ]
 
 export interface CaseResult { id: string; node: string; type: CaseType; title: string; input: string; expected: string; basis: string; basisFlag: Flag; observed: string; pass: boolean; flag?: Flag; error?: string }

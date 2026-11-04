@@ -1,10 +1,11 @@
 import { ArrowUpDown, Building2, Eye, EyeOff, Fan, FlaskConical, Footprints, Ghost, Layers2, PanelsTopLeft, Square } from 'lucide-react'
 import { useStore } from '../store'
 import { FlagChip } from './ui'
+import { useShallow } from 'zustand/react/shallow'
 
 /** Schematic: the tower's anatomy, with development (LOD) tags. Rows exist only for what a parameter or module produces. */
-export default function Anatomy() {
-  const { anatomy, set } = useStore()
+export default function Anatomy({ embedded = false }: { embedded?: boolean }) {
+  const { anatomy, set } = useStore(useShallow((s) => ({ anatomy: s.anatomy, set: s.set })))
   const rows = [
     { key: 'shell' as const, label: 'Shell (ghosted)', icon: Ghost, lod: null },
     { key: 'plates' as const, label: 'Floor plates', icon: Layers2, lod: 100 },
@@ -18,8 +19,8 @@ export default function Anatomy() {
     { label: 'Facade', icon: PanelsTopLeft, node: 'P12-M06' },
   ]
   return (
-    <div className="border-b border-line p-2">
-      <h3 className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Tower anatomy</h3>
+    <div className={embedded ? 'px-2 py-2' : 'border-b border-line p-2'}>
+      {!embedded && <h3 className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Tower anatomy</h3>}
       {rows.map(({ key, label, icon: Icon, lod }) => (
         <div key={key} className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-black/5">
           <Icon size={14} className="text-accent" />

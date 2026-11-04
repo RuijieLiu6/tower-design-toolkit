@@ -1,9 +1,9 @@
-import { blockSpans, blocksOf, legacyBlocks, rectCorners, spanAt, summarize, typicalIndex, type BlockSpan } from './blocks'
+import { bandCounts, bandF2f, blockSpans, blocksOf, legacyBlocks, rectCorners, spanAt, summarize, typicalIndex, type BlockSpan } from './blocks'
 import { importedFloors } from './imported'
 import type { Block, Floor, Tower, UseId } from './types'
 
 // Block geometry lives in ./blocks (no dependencies, usable in workers); re-exported here for every other reader.
-export { blockSpans, blocksOf, fitBlocks, legacyBlocks, podiumRun, rectCorners, spanAt, summarize, typicalBlock, typicalIndex, type BlockSpan, type BoxFields } from './blocks'
+export { bandCounts, bandF2f, blockSpans, blocksOf, fitBlocks, legacyBlocks, podiumRun, rectCorners, spanAt, summarize, typicalBlock, typicalIndex, type BlockSpan, type BoxFields } from './blocks'
 
 export const PODIUM_F2F = 4.5
 
@@ -65,30 +65,28 @@ export function towerFloors(t: Tower): Floor[] {
     const f2f = n ? h / n : 0
     for (let i = 0; i < n; i++) floors.push({ level: floors.length + 1, z0: s.z0 + i * f2f, z1: s.z0 + (i + 1) * f2f, use: t.podiumUse, area: s.block.width * s.block.depth, podium: true })
   }
-  // Above the podium: floors at the tower floor-to-floor, each taking the block at its mid-height.
-  const towerFloorCount = Math.max(0, Math.floor((height - podiumTop) / t.f2f))
-  const total = t.bands.reduce((s, b) => s + Math.max(0, b.share), 0) || 1
-  // Largest-remainder allocation so the band counts add up exactly.
-  const raw = t.bands.map((b) => (Math.max(0, b.share) / total) * towerFloorCount)
-  const counts = raw.map(Math.floor)
-  let left = towerFloorCount - counts.reduce((a, b) => a + b, 0)
-  raw.map((v, i) => [v - Math.floor(v), i] as const).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { counts[i]++; left-- } })
+  // Above the podium: floors at each band's floor-to-floor (the tower's unless the band sets its own), each taking the
+  // block at its mid-height; band counts by largest remainder (engine/blocks.ts bandCounts).
+  const counts = bandCounts(t, height - podiumTop)
+  const f2f = bandF2f(t)
   let z = podiumTop
   let level = floors.length
   let towerIndex = 0
   const sky = new Set(t.skyLobbies ?? [])
+  const plantAt = new Set(t.plantLevels ?? [])
   const above = spans.slice(podium.length)
   t.bands.forEach((b, bi) => {
+    const h = f2f[bi]
     for (let k = 0; k < counts[bi]; k++) {
       level++
       towerIndex++
       // Schematic: a sky lobby replaces the program floor at that level (counted as public amenity, team assumption);
-      // plant floors replace it at every Nth tower floor.
-      const plant = t.plantEvery > 0 && towerIndex % t.plantEvery === 0
+      // plant floors replace it at every Nth tower floor and at the levels placed one by one.
+      const plant = (t.plantEvery > 0 && towerIndex % t.plantEvery === 0) || plantAt.has(level)
       const isSky = sky.has(level) && z > 0.5
-      const blk = (spanAt(above.length ? above : spans, z + t.f2f / 2)?.block) ?? null
-      floors.push({ level, z0: z, z1: z + t.f2f, use: isSky ? 'amenity' : plant ? 'mechanical' : b.use, area: blk ? blk.width * blk.depth : t.width * t.depth, podium: false, ...(isSky ? { skyLobby: true } : {}) })
-      z += t.f2f
+      const blk = (spanAt(above.length ? above : spans, z + h / 2)?.block) ?? null
+      floors.push({ level, z0: z, z1: z + h, use: isSky ? 'amenity' : plant ? 'mechanical' : b.use, area: blk ? blk.width * blk.depth : t.width * t.depth, podium: false, ...(isSky ? { skyLobby: true } : {}) })
+      z += h
     }
   })
   return floors

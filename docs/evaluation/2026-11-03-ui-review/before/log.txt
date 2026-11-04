@@ -1,0 +1,10 @@
+shot 01_city_1440.png
+shot 02_layers_open.png
+shot 03_inspect.png
+shot 04_plan.png
+shot 05_observer.png
+shot 06_city_again.png
+shot 07_right_heights.png
+shot 08_left_expanded.png
+shot 09_city_1280x720.png
+console errors: 0

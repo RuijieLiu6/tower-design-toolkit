@@ -4,7 +4,7 @@ import {
   ArrowRight, BadgeCheck, Check, CircleCheckBig, ClipboardCopy, Copy, FileDown, FileUp, FlaskConical, FolderDown, GitPullRequest,
   MessagesSquare, OctagonX, PackagePlus, ShieldQuestionMark, TriangleAlert, X,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import example from '../../skills/tower-studio-node-builder/references/example-node.json'
 import { CATEGORIES } from '../data/registry'
@@ -14,6 +14,8 @@ import { validatePackageText, type Report } from '../lib/nodeValidate'
 import { SKILL_FILES, SKILL_NAME, promptText, saveFile, sizeLabel, skillZip } from '../lib/skillFiles'
 import { ResultChip } from './CommunityInspector'
 import { FlagChip } from './ui'
+// The "Make it here" form loads only when its tab opens.
+const NodeAuthor = lazy(() => import('./NodeAuthor'))
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])'
 
@@ -58,13 +60,13 @@ export default function NodeBuilderDialog() {
           <button aria-label="Close" onClick={close} className="rounded p-1 text-muted hover:bg-black/5"><X size={18} /></button>
         </div>
         <div role="tablist" aria-label="Node builder" className="mx-5 mt-4 flex gap-1 rounded-lg bg-black/[0.04] p-1">
-          {([['build', 'Build with your AI'], ['import', 'Import a node']] as const).map(([id, label]) => (
+          {([['build', 'Build with your AI'], ['make', 'Make it here'], ['import', 'Import a node']] as const).map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => openDialog(id, seed)}
               className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${tab === id ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{label}</button>
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-4">
-          {tab === 'build' ? <BuildTab seed={seed} onImport={() => openDialog('import', seed)} /> : <ImportTab />}
+          {tab === 'build' ? <BuildTab seed={seed} onImport={() => openDialog('import', seed)} /> : tab === 'make' ? <Suspense fallback={<p className="text-xs text-muted">Loading the form…</p>}><NodeAuthor /></Suspense> : <ImportTab />}
         </div>
       </div>
     </div>,
@@ -207,6 +209,13 @@ function ImportTab() {
   const close = useCommunityStore((s) => s.closeDialog)
 
   const check = (t: string) => { setReport(validatePackageText(t)); setCopied(false) }
+  // A package from the "Make it here" form arrives as a draft: check it at once, the same way as a file.
+  const draft = useCommunityStore((s) => s.draft)
+  useEffect(() => {
+    if (!draft) return
+    setText(draft); setFileName('made-here.json'); check(draft)
+    useCommunityStore.getState().setDraft(null)
+  }, [draft]) // eslint-disable-line react-hooks/exhaustive-deps
   const readFile = async (f: File) => { const t = await f.text(); setText(t); setFileName(f.name); check(t) }
   const tryExample = () => { const t = JSON.stringify(example, null, 2); setText(t); setFileName('example-node.json'); check(t) }
   const problems = report?.problems ?? []

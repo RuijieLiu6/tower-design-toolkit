@@ -1,0 +1,38 @@
+{
+ "errors": [],
+ "log": {
+  "viewport": {
+   "x": 352,
+   "y": 92,
+   "width": 1070,
+   "height": 799
+  },
+  "timing_overview": {
+   "msPerFrame": 45,
+   "calls": 41,
+   "triangles": 5568342,
+   "size": [
+    1070,
+    799
+   ]
+  },
+  "timing_fit": {
+   "msPerFrame": 45,
+   "calls": 41,
+   "triangles": 5568342,
+   "size": [
+    1070,
+    799
+   ]
+  },
+  "timing_off": {
+   "msPerFrame": 39.3,
+   "calls": 21,
+   "triangles": 5558022,
+   "size": [
+    1070,
+    799
+   ]
+  }
+ }
+}

@@ -33,8 +33,10 @@ interface DockState extends DockPrefs {
   hidden: boolean
   /** The camera is being dragged: the dock fades so the city shows through. */
   orbiting: boolean
+  /** Real Vancouver's Vista layout: the dock opened from the "Layers" button (closed at first, as in Vista; not remembered). */
+  menu: boolean
 }
-export const useDock = create<DockState>(() => ({ ...readDockPrefs(storage()), hidden: false, orbiting: false }))
+export const useDock = create<DockState>(() => ({ ...readDockPrefs(storage()), hidden: false, orbiting: false, menu: false }))
 useDock.subscribe((s, prev) => {
   if (s.open !== prev.open || s.sections !== prev.sections || s.hints !== prev.hints) writeDockPrefs(storage(), { open: s.open, sections: s.sections, hints: s.hints })
 })
@@ -81,7 +83,7 @@ function Section({ s }: { s: DockSection }) {
         onClick={() => useDock.setState((d) => ({ sections: { ...d.sections, [s.id]: !open } }))}>
         {open ? <ChevronDown size={13} aria-hidden className="shrink-0" /> : <ChevronRight size={13} aria-hidden className="shrink-0" />}
         <span className="font-semibold text-ink">{s.title}</span>
-        {s.summary && <span className="ml-auto truncate pl-2 text-[10px] text-slate-600">{s.summary}</span>}
+        {s.summary && <span className="ml-auto truncate pl-2 text-[11px] text-slate-600">{s.summary}</span>}
       </button>
       <div id={id} hidden={!open} className="px-2.5 pb-2.5">{s.children}</div>
     </section>
@@ -90,12 +92,15 @@ function Section({ s }: { s: DockSection }) {
 
 /**
  * The dock itself: a header (title, hide overlays, collapse), an optional dismissible hint, then the sections.
- * Collapsed, it is a slim tab on the right edge (icon + word).
+ * Collapsed, it is a slim tab on the right edge (icon + word). `anchored`: Real Vancouver's Vista layout, where the
+ * "Layers" button in the top-right column opens and closes it, so it opens under that column and has no tab of its own.
  */
-export function ViewportDock({ sections, hint, label = 'Layers & context' }: { sections: DockSection[]; hint?: { id: string; content: ReactNode }; label?: string }) {
-  const { open, hidden, hints } = useDock()
+export function ViewportDock({ sections, hint, label = 'Layers & context', anchored = false }: { sections: DockSection[]; hint?: { id: string; content: ReactNode }; label?: string; anchored?: boolean }) {
+  const { open: docked, menu, hidden, hints } = useDock()
+  const open = anchored ? menu : docked
   const look = useOverlayLook()
   if (hidden) return null
+  if (!open && anchored) return null
   if (!open) {
     return (
       <button type="button" aria-expanded={false} aria-controls="vp-dock" onClick={() => useDock.setState({ open: true })}
@@ -109,16 +114,16 @@ export function ViewportDock({ sections, hint, label = 'Layers & context' }: { s
   // Over the city the backdrop can be as dark as #e5e6e7: slate-500 and muted grey text (~3.8:1 there) read as slate-600 (>= 6:1).
   return (
     <aside id="vp-dock" aria-label={label}
-      className={`vp-dock absolute right-3 top-3 z-10 flex max-h-[calc(100%-1.5rem)] w-80 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-md border border-line/80 text-[11px] text-slate-600 shadow-sm [&_.text-muted]:text-slate-600 [&_.text-slate-500]:text-slate-600 ${look}`}>
+      className={`vp-dock absolute ${anchored ? 'right-2.5 top-[14rem] max-h-[calc(100%-14.75rem)]' : 'right-3 top-3 max-h-[calc(100%-1.5rem)]'} z-10 flex w-80 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-md border border-line/80 text-[11px] text-slate-600 shadow-sm [&_.text-muted]:text-slate-600 [&_.text-slate-500]:text-slate-600 ${look}`}>
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line/80 px-2.5 py-1.5">
         <Layers size={14} aria-hidden className="text-ink" />
         <b className="text-ink">{label}</b>
         <button type="button" onClick={toggleOverlays} title="Hide every overlay for a clean view (H)"
-          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <EyeOff size={12} aria-hidden />Hide overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
         </button>
         <button type="button" aria-expanded={true} aria-controls="vp-dock" aria-label="Collapse the layers panel" title="Collapse"
-          onClick={() => useDock.setState({ open: false })}
+          onClick={() => useDock.setState(anchored ? { menu: false } : { open: false })}
           className="rounded p-1 text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <PanelRightClose size={14} aria-hidden />
         </button>
@@ -146,7 +151,7 @@ export function ShowOverlaysButton() {
   if (!hidden) return null
   return (
     <button type="button" onClick={toggleOverlays} title="Show the overlays again (H)"
-      className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-1 text-[10px] text-slate-700 opacity-70 backdrop-blur-md hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+      className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-1 text-[11px] text-slate-700 opacity-70 backdrop-blur-md hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
       <Eye size={12} aria-hidden />Show overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
     </button>
   )

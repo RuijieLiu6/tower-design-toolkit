@@ -7,6 +7,7 @@ import ProjectMenu from './ProjectMenu'
 import ExportMenu from './ExportMenu'
 import { UnitSelect } from './Units'
 import { useStore, type ProjectKind, type ViewMode } from '../store'
+import { useShallow } from 'zustand/react/shallow'
 
 const PROJECTS: { id: ProjectKind; label: string; hint: string }[] = [
   { id: 'vtc', label: 'Competition site', hint: 'Hypothetical VTC block with the supplied context model' },
@@ -19,7 +20,7 @@ const VIEWS: { id: ViewMode; icon: typeof Axis3d; label: string }[] = [
 ]
 
 export default function TopBar() {
-  const { project, phase, view, setProject, setPhase, setView, set, reducedMotion } = useStore()
+  const { project, phase, view, setProject, setPhase, setView, set, reducedMotion } = useStore(useShallow((s) => ({ project: s.project, phase: s.phase, view: s.view, setProject: s.setProject, setPhase: s.setPhase, setView: s.setView, set: s.set, reducedMotion: s.reducedMotion })))
   const present = phase === 'present'
   // The bar is about 1,580 px wide with every label (1,780 px in Present): below that, labels give way to icons
   // (names kept for screen readers) so no control is pushed off screen on a 1,366–1,600 px laptop.

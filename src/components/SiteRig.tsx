@@ -7,11 +7,12 @@ import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { ringMetrics, siteFromFootprints, validateRing, normalizeRing, type Pt } from '../engine/site'
+import { earTriangles, ringMetrics, siteFromFootprints, validateRing, normalizeRing, type Pt } from '../engine/site'
 import { footprintAt, indexFootprints } from '../engine/viewFrom'
 import { sampleTerrain } from '../lib/cityLayers'
+import { useSceneStyle } from '../lib/sceneStyle'
 import { useSiteAnalysis } from '../lib/siteParcels'
-import { newSite, useSiteStore } from '../lib/siteStore'
+import { idsToIndices, newSite, useSiteStore } from '../lib/siteStore'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { useStore } from '../store'
 import { useCityData } from './CityContext'
@@ -24,13 +25,6 @@ const CLOSE_PX = 12
 /** A click that moved more than this between press and release was an orbit, not a click (pixels). */
 const CLICK_SLOP = 6
 
-/** Footprint indices by City id (ids are kept in the site, indices are per data load). */
-export function idsToIndices(footprints: { id: number }[], ids: number[]): number[] {
-  if (!ids.length) return []
-  const want = new Set(ids), out: number[] = []
-  footprints.forEach((f, i) => { if (want.has(f.id)) out.push(i) })
-  return out
-}
 
 export default function SiteRig() {
   const { data } = useCityData()
@@ -134,6 +128,7 @@ function drape(grids: CityData['grids'], ring: Pt[], lift: number, closed = true
 function SiteLayer({ data }: { data: CityData }) {
   const { site, match, area, layer } = useSiteAnalysis()
   const s = useSiteStore()
+  const context = useSceneStyle((st) => st.style) === 'context'
   const grids = data.grids
   const replaced = useMemo(() => (site && !site.keepReplaced ? idsToIndices(data.footprints, site.replaced) : []), [site, data])
   const preview = useMemo(() => (s.tool === 'pick' && s.picked.length ? siteFromFootprints(s.picked.map((i) => data.footprints[i])) : null), [s.tool, s.picked, data])
@@ -144,6 +139,8 @@ function SiteLayer({ data }: { data: CityData }) {
   )
   return (
     <group>
+      {/* Plain: a light wash. Context draws the lot in Vista's paving itself (CityContext SiteSurface, real-vancouver-finish). */}
+      {ringOk && !context && <SiteSurface grids={grids} ring={site!.ring} />}
       {ringOk && L(drape(grids, site!.ring, 1.2), COLORS.site, 3.5)}
       {ringOk && centre && area && <Label text={`Study site · ${Math.round(area.area).toLocaleString('en-CA')} m² (${area.basis === 'parcels' ? 'parcels' : 'boundary'})`} position={[centre[0], centre[1], (sampleTerrain(grids, centre[0], centre[1]) ?? 0) + 18]} size={0.016} color="#ffffff" background="rgba(234,88,12,0.92)" bold />}
       {match && layer && match.hits.filter((h) => h.kind !== 'touching').map((h) => (
@@ -168,5 +165,29 @@ function SiteLayer({ data }: { data: CityData }) {
         )
       })()}
     </group>
+  )
+}
+
+/**
+ * The site as a light surface on the ground (Site step, 3 Nov): with the replaced buildings gone, the lot reads in both
+ * the Plain and the Context render. Ear-clipped from the boundary, each vertex on the terrain plus 0.6 m; drawn over the
+ * ground (no depth write), ignored by the site tools' own picking (userData.siteOverlay).
+ */
+function SiteSurface({ grids, ring }: { grids: CityData['grids']; ring: Pt[] }) {
+  const geom = useMemo(() => {
+    const tris = earTriangles(normalizeRing(ring))
+    if (!tris.length) return null
+    const pos = new Float32Array(tris.length * 9)
+    tris.forEach((t, k) => t.forEach(([x, y], j) => { pos.set([x, y, (sampleTerrain(grids, x, y) ?? 0) + 0.6], k * 9 + j * 3) }))
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    return g
+  }, [grids, ring])
+  useEffect(() => () => geom?.dispose(), [geom])
+  if (!geom) return null
+  return (
+    <mesh geometry={geom} renderOrder={18} userData={{ siteOverlay: true }} raycast={() => null}>
+      <meshBasicMaterial color={COLORS.site} transparent opacity={0.16} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+    </mesh>
   )
 }

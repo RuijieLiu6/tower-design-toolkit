@@ -15,6 +15,9 @@ test('the demo opens over an existing autosave, and Undo brings the design back'
   await p.goto('/#/guided')
   await p.waitForFunction(() => performance.getEntriesByType('resource').some((e) => /\/src\/store\.ts/.test(e.name)))
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 8000 }).catch(() => {})
+  // A first open with nothing saved starts in Real Vancouver (Site step, 3 Nov); the design edited here is the
+  // competition one, so switch to it as a user would. (updateTower edits the open project's towers only.)
+  await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click()
   await p.evaluate(async () => {
     const url = performance.getEntriesByType('resource').map((e) => e.name).filter((x) => /\/src\/store\.ts/.test(x)).pop()!
     const { useStore } = await import(/* @vite-ignore */ url)

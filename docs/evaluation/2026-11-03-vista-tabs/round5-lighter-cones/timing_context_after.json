@@ -1,0 +1,203 @@
+{
+ "errors": [],
+ "log": {
+  "overview": {
+   "total": 36.3,
+   "calls": 42,
+   "conesAll": {
+    "with": 36,
+    "without": 34.4,
+    "costs": 1.8,
+    "objects": 8
+   },
+   "glow": {
+    "with": 35.9,
+    "without": 35.4,
+    "costs": 0.6,
+    "objects": 3
+   },
+   "edge": {
+    "with": 35.9,
+    "without": 35.3,
+    "costs": 0.7,
+    "objects": 3
+   },
+   "fill": {
+    "with": 35.9,
+    "without": 35.4,
+    "costs": 0.5,
+    "objects": 1
+   },
+   "trace": {
+    "with": 35.8,
+    "without": 35.8,
+    "costs": 0.2,
+    "objects": 1
+   },
+   "fatLinesOther": {
+    "with": 35.7,
+    "without": 35.7,
+    "costs": 0.2,
+    "objects": 6
+   },
+   "shadowPass": {
+    "with": 44.2,
+    "without": 36.1,
+    "costs": 8.1
+   },
+   "shadowSize": [
+    4096,
+    4096
+   ],
+   "meshes": [
+    {
+     "indices": 5938458,
+     "size": [
+      2040,
+      2010
+     ],
+     "vertexColors": false,
+     "with": 36.2,
+     "without": 32.1,
+     "costs": 4.3,
+     "objects": 1
+    },
+    {
+     "indices": 3650514,
+     "size": [
+      51840,
+      19200
+     ],
+     "vertexColors": true,
+     "with": 40,
+     "without": 36.8,
+     "costs": 2.6,
+     "objects": 1
+    },
+    {
+     "indices": 2952357,
+     "size": [
+      9061,
+      9149
+     ],
+     "vertexColors": false,
+     "with": 40.5,
+     "without": 26.5,
+     "costs": 14.2,
+     "objects": 1
+    },
+    {
+     "indices": 1160664,
+     "size": [
+      15780,
+      15000
+     ],
+     "vertexColors": false,
+     "with": 42.4,
+     "without": 33.2,
+     "costs": 8.4,
+     "objects": 1
+    }
+   ]
+  },
+  "close": {
+   "total": 52.5,
+   "calls": 37,
+   "conesAll": {
+    "with": 51.4,
+    "without": 48.3,
+    "costs": 3.2,
+    "objects": 8
+   },
+   "glow": {
+    "with": 51.5,
+    "without": 51,
+    "costs": -1.3,
+    "objects": 3
+   },
+   "edge": {
+    "with": 51.1,
+    "without": 49.9,
+    "costs": 1.4,
+    "objects": 3
+   },
+   "fill": {
+    "with": 52.1,
+    "without": 51.4,
+    "costs": 0.3,
+    "objects": 1
+   },
+   "trace": {
+    "with": 53,
+    "without": 53,
+    "costs": 0,
+    "objects": 1
+   },
+   "fatLinesOther": {
+    "with": 55.5,
+    "without": 53.1,
+    "costs": 1.3,
+    "objects": 6
+   },
+   "shadowPass": {
+    "with": 59.3,
+    "without": 51.2,
+    "costs": 10.6
+   },
+   "shadowSize": [
+    4096,
+    4096
+   ],
+   "meshes": [
+    {
+     "indices": 5938458,
+     "size": [
+      2040,
+      2010
+     ],
+     "vertexColors": false,
+     "with": 50.8,
+     "without": 33.1,
+     "costs": 19.4,
+     "objects": 1
+    },
+    {
+     "indices": 3650514,
+     "size": [
+      51840,
+      19200
+     ],
+     "vertexColors": true,
+     "with": 49.2,
+     "without": 45.5,
+     "costs": 3.8,
+     "objects": 1
+    },
+    {
+     "indices": 2952357,
+     "size": [
+      9061,
+      9149
+     ],
+     "vertexColors": false,
+     "with": 47.8,
+     "without": 33,
+     "costs": 15.9,
+     "objects": 1
+    },
+    {
+     "indices": 1160664,
+     "size": [
+      15780,
+      15000
+     ],
+     "vertexColors": false,
+     "with": 47.8,
+     "without": 45.7,
+     "costs": 2.4,
+     "objects": 1
+    }
+   ]
+  }
+ }
+}

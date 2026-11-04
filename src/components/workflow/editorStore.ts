@@ -7,7 +7,7 @@ import { browserStorage, DRAFT_KEY, emptyWorkflow, newId, parseWorkflow, seriali
 import { canConnect, evalInputs, LOGIC_DEFAULTS, PORT_COLOR, SOURCES, isLogic, type GraphNode, type NodeKind, type Params, type PortType } from '../../lib/workflowLogic'
 import { findEntry, type Entry } from './catalog'
 
-export type WfData = { kind: NodeKind; ref: string; label: string; category?: Category; params?: Params; color?: string }
+export type WfData = { kind: NodeKind; ref: string; label: string; category?: Category; params?: Params; color?: string; /** Switched off: the checks after it are blocked (P15-M02). */ off?: boolean }
 export type WfNodeT = Node<WfData>
 type Snap = { nodes: WfNodeT[]; edges: Edge[] }
 
@@ -26,7 +26,7 @@ export function styleEdge(e: Edge, nodes: WfNodeT[]): Edge {
 }
 
 export const toGraph = (nodes: WfNodeT[]): GraphNode[] =>
-  nodes.map((n) => ({ id: n.id, kind: n.data.kind, ref: n.data.ref, label: n.data.label, category: n.data.category, params: n.data.params }))
+  nodes.map((n) => ({ id: n.id, kind: n.data.kind, ref: n.data.ref, label: n.data.label, category: n.data.category, params: n.data.params, ...(n.data.off ? { off: true } : {}) }))
 
 /** Absolute canvas position (groups are one level deep). */
 export function absPos(n: WfNodeT, nodes: WfNodeT[]): { x: number; y: number } {
@@ -194,6 +194,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         id: n.id, kind: n.data.kind, ref: n.data.ref, x: Math.round(n.position.x), y: Math.round(n.position.y), label: n.data.label,
         ...(n.parentId ? { parent: n.parentId } : {}),
         ...(n.data.params ? { params: n.data.params } : {}),
+        ...(n.data.off ? { off: true } : {}),
         ...(n.type === 'wfgroup' ? { w: Math.round(n.width ?? n.measured?.width ?? 300), h: Math.round(n.height ?? n.measured?.height ?? 200), params: { color: n.data.color ?? GROUP_COLORS[0] } } : {}),
       })),
       edges: s.edges.map((e) => ({ id: e.id, source: e.source, sourceHandle: e.sourceHandle ?? 'out', target: e.target, targetHandle: e.targetHandle ?? 'in' })),
@@ -210,7 +211,7 @@ function fromWf(n: WfNode): WfNodeT {
   const e = findEntry(n.ref)
   const node = makeNode(
     { kind: n.kind, ref: n.ref, name: e?.name ?? n.label ?? n.ref, category: e?.category },
-    { x: n.x, y: n.y }, n.params ? { params: { ...(isLogic(n.ref) ? LOGIC_DEFAULTS[n.ref] : {}), ...n.params } } : {}, n.id,
+    { x: n.x, y: n.y }, { ...(n.params ? { params: { ...(isLogic(n.ref) ? LOGIC_DEFAULTS[n.ref] : {}), ...n.params } } : {}), ...(n.off ? { off: true } : {}) }, n.id,
   )
   return n.parent ? { ...node, parentId: n.parent } : node
 }

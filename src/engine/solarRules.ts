@@ -3,7 +3,7 @@
 // last amended 29 Jul 2026), read by an AI agent on 22 Oct 2026: every reading is "unverified" until a second reader
 // checks it (04 Tool Plan/research/sources/city-of-vancouver/solar-access-downtown_transcription.md).
 import type { VtcContext } from '../context'
-import { blockSpans } from './blocks'
+import { bandCounts, blockSpans } from './blocks'
 import type { RuleResult, RuleState, Source, Tower } from './types'
 import { clockLabel, instants, selfTest, solarPosition, sunDirection, type StudyWindow } from './solar'
 import { cellCentre, emptyOccluders, footprintMask, gridOver, meshTris, polygonMask, shadowMask, type Grid, type Occluders, type Prism, type Pt } from './shadow'
@@ -326,9 +326,11 @@ export interface CitySummary {
   beyond: number
   /** Table-1 spaces without a polygon in the City parks data (not tested). */
   missing: string[]
-  /** Baseline buildings with a LiDAR height near the tested spaces and the map, and footprints left out for want of one. */
+  /** Baseline buildings with a height near the tested spaces and the map, and footprints left out for want of one. */
   withHeight: number
   unknownHeight: number
+  /** Which heights the baseline buildings carry; absent = measured (City LiDAR 2022 and 2009). */
+  heights?: { label: string; estimated: boolean }
   terrain: boolean
   towerBase: number
   source: Source
@@ -398,9 +400,9 @@ export function solarRuleResults(spaces: SpaceResult[], readings: Record<string,
         source: cite('5', '10'), note: ctx.project === 'vtc' ? 'The model\'s future towers count as approved (team assumption). Missing context makes new shadow look larger (conservative).' : undefined,
       }
     : {
-        id: 'solar-baseline', label: 'Baseline context', value: `${c.withHeight} buildings with LiDAR heights; ${c.unknownHeight} nearby footprints without a height left out${c.terrain ? '; terrain MRDEM 30 m' : '; no terrain'}`,
+        id: 'solar-baseline', label: 'Baseline context', value: `${c.withHeight} buildings with ${c.heights?.label ?? 'LiDAR heights'}; ${c.unknownHeight} nearby footprints without a height left out${c.terrain ? '; terrain MRDEM 30 m' : '; no terrain'}`,
         threshold: 'complete built and approved context with topography; trees and shade structures excluded (s.5, p.10)', state: 'warn', flag: c.unknownHeight ? 'unresolved' : 'unverified', source: cite('5', '10'),
-        note: `A footprint without a LiDAR height casts no shadow here (it is never given a guessed height), so new shadow may be overstated: conservative for compliance. Approved and proposed towers are not in the City data. ${c.terrain ? 'Each space is tested at its own terrain elevation (median of its outline); the map is a flat plane at the tower base' : 'Flat ground'} (tower base ${c.towerBase.toFixed(1)} m, the project's ground setting).`,
+        note: `${c.heights?.estimated ? "Building heights come from the City’s LiDAR 2022 and 2009 surveys where they cover a building, else from Vista’s OpenStreetMap values (height tags, floor counts and estimates per building type, unverified), so existing shadow can be over- or understated either way where no survey covers it." : 'A footprint without a LiDAR height casts no shadow here (it is never given a guessed height), so new shadow may be overstated: conservative for compliance.'} Approved and proposed towers are not in the City data. ${c.terrain ? 'Each space is tested at its own terrain elevation (median of its outline); the map is a flat plane at the tower base' : 'Flat ground'} (tower base ${c.towerBase.toFixed(1)} m, the project's ground setting).`,
       })
   if (ctx.hours) {
     const h = ctx.hours
@@ -420,7 +422,7 @@ export function storeyCount(t: Tower): number {
     // As engine/massing towerFloors: podium floors per podium block, then whole tower floors above the podium.
     const sp = blockSpans(t), pod = sp.filter((b) => b.podium), top = pod.length ? pod[pod.length - 1].z1 : 0
     const n = pod.reduce((s, b) => s + (b.z1 > b.z0 ? Math.max(1, Math.round((b.z1 - b.z0) / 4.5)) : 0), 0)
-    return n + Math.max(0, Math.floor(((sp[sp.length - 1]?.z1 ?? 0) - top) / t.f2f))
+    return n + bandCounts(t, (sp[sp.length - 1]?.z1 ?? 0) - top).reduce((a, c) => a + c, 0)
   }
   const podium = t.podiumHeight > 0 ? Math.max(1, Math.round(t.podiumHeight / 4.5)) : 0
   return podium + Math.max(0, Math.floor((t.height - t.podiumHeight) / t.f2f))

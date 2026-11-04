@@ -8,7 +8,8 @@ import { matchParcels, ringMetrics, validateRing, type ParcelMatch, type Pt } fr
 import { decodeFootprints, type Footprint } from './cityLayers'
 import { parcelRow, type ParcelAttrs } from './contextLayers'
 import { setSiteBoundary, setSiteParcels } from './siteGeometry'
-import { useSiteStore, type StudySite } from './siteStore'
+import { adoptLegacySite, useSiteStore, type StudySite } from './siteStore'
+import { whenRestored } from './project/session'
 
 export interface ParcelLayer { polys: Footprint[]; attrs: ParcelAttrs; sha: string | null }
 let cache: Promise<ParcelLayer> | null = null
@@ -59,6 +60,7 @@ export function boundarySource(site: StudySite): { source: string; flag: Flag } 
 /** Parcels under the site and the area FSR uses. Parcel choices made against another parcel-layer version are ignored (said). */
 export function useSiteAnalysis(): { site: StudySite | null; match: ParcelMatch | null; area: SiteArea | null; layer: ParcelLayer | null; error: string | null; staleChoices: boolean } {
   const site = useSiteStore((s) => s.site)
+  useEffect(() => { void adoptLegacySite(whenRestored()) }, [])
   const { layer, error } = useParcelLayer(!!site)
   const staleChoices = !!(site && layer?.sha && site.parcelLayer && site.parcelLayer !== layer.sha)
   const match = useMemo(() => {
@@ -73,6 +75,12 @@ export function useSiteAnalysis(): { site: StudySite | null; match: ParcelMatch 
     const b = boundarySource(site)
     return { area: boundaryArea, basis: 'boundary', source: b.source, flag: b.flag, boundaryArea, parcelArea }
   }, [site, match])
+  // FSR in Real Vancouver divides by this (useResults reads it from the site store).
+  useEffect(() => {
+    const cur = useSiteStore.getState().fsrArea
+    const next = area ? { area: area.area, basis: area.basis, source: area.source, flag: area.flag } : null
+    if (JSON.stringify(cur) !== JSON.stringify(next)) useSiteStore.getState().set({ fsrArea: next })
+  }, [area])
   // The tower tools read the site and parcels from lib/siteGeometry (their hook for this session).
   useEffect(() => {
     if (!site || validateRing(site.ring)) { setSiteBoundary('city', null); setSiteParcels('city', null); return }

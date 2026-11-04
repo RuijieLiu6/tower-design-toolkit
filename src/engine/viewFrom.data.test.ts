@@ -16,7 +16,8 @@ const r2 = decodeTerrain(read(layer('terrain_r2').file), layer('terrain_r2').gri
 const idx = indexFootprints(footprints)
 const terrain = (x: number, y: number) => sampleTerrain([r1, r2], x, y)
 
-describe('views over the real context data', () => {
+// Real data (megabytes): a single test takes a second or two alone, longer while the whole suite runs in parallel.
+describe('views over the real context data', { timeout: 30_000 }, () => {
   it('can stand on every building with a LiDAR roof, at its own centroid', () => {
     let ok = 0, n = 0
     footprints.forEach((f, i) => {

@@ -92,9 +92,13 @@ export interface NodeOutput {
   score?: number
   /** Per input node: its 0–1 score and weight (weighted score), or per option (compare). */
   breakdown?: { id: string; label: string; score: number; weight?: number; scored: number; unscored: number }[]
+  /** Run status other than "ran" (P15-M02): switched off, blocked by an upstream node that is off, or waiting in step-through. */
+  run?: { status: 'off' | 'blocked' | 'waiting'; by?: string }
+  /** Time this node took to compute (ms). */
+  ms?: number
 }
 
-export interface GraphNode { id: string; kind: NodeKind; ref: string; label: string; category?: Category; params?: Params }
+export interface GraphNode { id: string; kind: NodeKind; ref: string; label: string; category?: Category; params?: Params; off?: boolean }
 export interface GraphEdge { id?: string; source: string; sourceHandle?: string | null; target: string; targetHandle?: string | null }
 export interface TowerRef { id: string; name: string }
 
@@ -254,21 +258,42 @@ export function topoOrder(nodes: GraphNode[], edges: GraphEdge[]): { order: stri
   return { order, looped: nodes.map((n) => n.id).filter((id) => !order.includes(id)) }
 }
 
-/** Evaluate every node once, upstream first. */
-export function evaluateGraph(nodes: GraphNode[], edges: GraphEdge[], ctx: EvalContext): Record<string, NodeOutput> {
+/** Options for a run (P15-M02): step-through runs only the first `until` + 1 nodes of the schedule. */
+export interface RunOptions { until?: number; now?: () => number }
+
+/** The nodes a run computes, upstream first (Kahn): checks and logic, without groups or data sources. Step-through walks this list. */
+export function runSchedule(nodes: GraphNode[], edges: GraphEdge[]): string[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  return topoOrder(nodes, edges).order.filter((id) => { const k = byId.get(id)?.kind; return k === 'eval' || k === 'logic' })
+}
+
+/**
+ * Evaluate every node once, upstream first. A node switched off (`off`) gives no verdict and blocks every node after
+ * it (block, never bypass: no result is computed on missing data; research P15-M02). In step-through (`until`) the
+ * nodes after the current step wait. Each computed node records how long it took (`ms`).
+ */
+export function evaluateGraph(nodes: GraphNode[], edges: GraphEdge[], ctx: EvalContext, opts: RunOptions = {}): Record<string, NodeOutput> {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const { order, looped } = topoOrder(nodes, edges)
   const res: Record<string, NodeOutput> = {}
   for (const id of looped) res[id] = { state: 'idle', headline: 'On a loop: remove a wire', items: [] }
+  const now = opts.now ?? (() => (typeof performance !== 'undefined' ? performance.now() : Date.now()))
+  const schedule = runSchedule(nodes, edges)
+  const stopped = new Map<string, string>() // node id -> label of the node that is off, for every node off or blocked
   for (const id of order) {
     const n = byId.get(id)!
     const incoming = edges.filter((e) => e.target === id && byId.has(e.source))
     if (n.kind === 'group') continue
+    if (n.off) { stopped.set(id, n.label); res[id] = { state: 'idle', headline: 'Switched off: the checks after it are blocked', items: [], run: { status: 'off' } }; continue }
+    const blocker = incoming.map((e) => stopped.get(e.source)).find(Boolean)
+    if (blocker) { stopped.set(id, blocker); res[id] = { state: 'idle', headline: 'Blocked: ' + blocker + ' is switched off', items: [], run: { status: 'blocked', by: blocker } }; continue }
+    if (opts.until !== undefined && schedule.indexOf(id) > opts.until) { res[id] = { state: 'idle', headline: 'Waiting: not run yet in this step-through', items: [], run: { status: 'waiting' } }; continue }
+    const t0 = now()
     if (n.kind === 'source') { res[id] = { state: 'idle', headline: ctx.sourceHeadline?.(n.ref) ?? '', items: [] }; continue }
     if (n.kind === 'eval') {
       const need = portsFor('eval', n.ref, n.category).inputs.map((p) => p.id)
       const missing = need.filter((p) => !incoming.some((e) => e.targetHandle === p))
-      res[id] = missing.length ? { state: 'idle', headline: `Connect ${missing.join(' + ')}`, items: [], missing } : ctx.evalNode(n)
+      res[id] = missing.length ? { state: 'idle', headline: `Connect ${missing.join(' + ')}`, items: [], missing } : { ...ctx.evalNode(n), ms: now() - t0 }
       continue
     }
     // Logic: gather the upstream lines, tagged with where they came from.
@@ -282,6 +307,7 @@ export function evaluateGraph(nodes: GraphNode[], edges: GraphEdge[], ctx: EvalC
     else if (n.ref === 'logic.score') res[id] = weightedScore(inputs, n.params)
     else if (n.ref === 'logic.compare') res[id] = compareOptions(flat, ctx.towers, n.params)
     else res[id] = { state: 'idle', headline: 'Unknown logic node', items: [] }
+    res[id] = { ...res[id], ms: now() - t0 }
   }
   return res
 }

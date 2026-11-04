@@ -263,6 +263,8 @@ with open(os.path.join(OUT_DIR, name), "wb") as fh:
 entry = {
     "id": "footprint_heights",
     "title": "Building heights (LiDAR 2022)",
+    # Loaded only for the City comparison model since Vista's model became the default (3 Nov).
+    "lazy": True,
     "file": name,
     "format": "TSH1: u32 count, then per footprint (footprints order) int16 ground, roof P90, roof max in dm (-32768 = unknown), uint16 roof points",
     "bytes": len(buf),

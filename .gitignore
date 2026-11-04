@@ -17,3 +17,5 @@ __pycache__/
 
 # Synthetic test fixtures made by tools/make_import_fixtures.mjs (safe to publish; never the competition model)
 !tools/import-fixtures/*.3dm
+# AI renders when the app runs outside the course folder (render.plugin.ts, tools/render.mjs): your images, not the repo
+renders/

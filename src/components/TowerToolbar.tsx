@@ -3,13 +3,13 @@
 // for Confirm, it shows what the new position would mean (site fit, view cones, base; lib/proposalCheck.ts) with
 // Confirm and Cancel. Present locks the model, so there the toolbar only says why. Top left of the viewport, clear of
 // the dock on the right and the placing hint in the middle.
-import { Building2, Check, LockKeyhole, Magnet, Move, RotateCw, X, type LucideIcon } from 'lucide-react'
+import { Building2, Check, LandPlot, LockKeyhole, Magnet, Move, RotateCw, X, type LucideIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Tower } from '../engine/types'
 import { STATE_LABEL, type ConeCheck } from '../engine/viewCones'
 import { useLivePose, useProposalReport } from '../hooks/useProposal'
 import type { ProposalReport } from '../lib/proposalCheck'
-import { MOVE_STEPS, ROTATE_STEPS, cancelProposal, clearPick, confirmProposal, poseOf, setPose, toggleMode, useTowerEdit, type Pose } from '../lib/towerEdit'
+import { MOVE_STEPS, ROTATE_STEPS, alignToLot, cancelProposal, clearPick, confirmProposal, poseOf, setPose, toggleMode, useTowerEdit, type Pose } from '../lib/towerEdit'
 import { UNITS, convertText, fieldUnit, formatLength, useUnits } from '../lib/units'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { useStore, useTowers } from '../store'
@@ -34,7 +34,7 @@ export default function TowerToolbar() {
   const phase = useStore((s) => s.phase)
   const reduced = useStore((s) => s.reducedMotion)
   const hidden = useDock((s) => s.hidden)
-  const dockOpen = useDock((s) => s.open)
+  const dockOpen = useDock((s) => (project === 'city' ? s.menu : s.open))
   const orbiting = useDock((s) => s.orbiting)
   const viewing = useViewFromStore((s) => s.looking || s.picking)
   const unit = useUnits((s) => s.unit)
@@ -52,12 +52,14 @@ export default function TowerToolbar() {
   // Clear of the dock (20 rem + gutter) when it shows, but never narrower than 17 rem (a narrow view overlaps the dock
   // instead); faded like the other overlays while the camera orbits, not while dragging.
   const width = !locked && dockOpen ? 'max-w-[max(17rem,calc(100%-22.5rem))]' : 'max-w-[calc(100%-1.5rem)]'
+  // Real Vancouver's Vista layout (components/VistaLook.tsx): under the mode tabs and "Study scene", clear of both.
+  const top = project === 'city' && !locked ? 'top-[5.5rem]' : 'top-3'
   const fade = orbiting && !dragging ? 'opacity-35' : 'opacity-100'
   const tools = move || rotate || !!live
 
   return (
     <div role="toolbar" aria-label={`Selected tower: ${t.name}`}
-      className={`absolute left-3 top-3 z-10 flex ${width} flex-col gap-1 rounded-md border border-line/80 bg-white/90 p-1 text-xs text-ink shadow-sm backdrop-blur-md ${reduced ? '' : 'transition-opacity duration-200'} ${fade}`}>
+      className={`absolute left-3 ${top} z-10 flex ${width} flex-col gap-1 rounded-md border border-line bg-white/95 p-1 text-xs text-ink shadow-sm ${reduced ? '' : 'transition-opacity duration-200'} ${fade}`}>
       <div className="flex flex-wrap items-center gap-1">
         <span className="flex items-center gap-1.5 px-1.5 py-0.5">
           <Building2 size={14} aria-hidden className="text-accent" />
@@ -72,6 +74,12 @@ export default function TowerToolbar() {
           <>
             <ModeButton on={move} icon={Move} label="Move" keyHint="M" onClick={() => toggleMode('move')} />
             <ModeButton on={rotate} icon={RotateCw} label="Rotate" keyHint="R" onClick={() => toggleMode('rotate')} />
+            <button type="button" onClick={() => alignToLot(t.id)} aria-keyshortcuts="L"
+              title={project === 'city' ? 'Turn and place the tower to the lot lines under it (L). A proposal: confirm to apply' : 'Turn and place the tower to the competition block (L). A proposal: confirm to apply'}
+              className={`flex items-center gap-1.5 rounded px-2 py-1 font-medium text-ink hover:bg-black/5 ${focusRing}`}>
+              <LandPlot size={14} aria-hidden />Align to lot
+              <kbd aria-hidden className="rounded border border-line px-1 font-mono text-[11px] text-slate-600">L</kbd>
+            </button>
           </>
         )}
         <button type="button" onClick={clearPick} aria-label="Deselect the tower" aria-keyshortcuts="Escape" title="Deselect (Esc)"
@@ -97,7 +105,7 @@ export default function TowerToolbar() {
             </button>
             {snap && move && <Steps label="Grid step" options={MOVE_STEPS} value={moveStep} unit=" m" onPick={(v) => useTowerEdit.setState({ moveStep: v })} />}
             {snap && rotate && <Steps label="Angle step" options={ROTATE_STEPS} value={rotateStep} unit="°" onPick={(v) => useTowerEdit.setState({ rotateStep: v })} />}
-            <span className="text-[10px] text-slate-600">{snap ? 'edges, then grid · Shift: free' : 'Free'}</span>
+            <span className="text-[11px] text-slate-600">{snap ? 'edges, then grid · Shift: free' : 'Free'}</span>
           </div>
         </div>
       )}
@@ -120,12 +128,13 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
   const unit = useUnits((s) => s.unit)
   const tx = (text: string) => convertText(text, unit)
   const hit = useTowerEdit((s) => (s.drag?.id === t.id ? s.drag.hit : s.proposal?.id === t.id ? s.proposal.hit : null))
+  const align = useTowerEdit((s) => (!s.drag && s.proposal?.id === t.id ? s.proposal.align ?? null : null))
   const from = useMemo(() => start ?? poseOf(t), [start, t])
   const report = useProposalReport(t, pose)
   const now = useProposalReport(t, from)
   if (!report) return null
   const dist = Math.hypot(pose.x - from.x, pose.y - from.y), turn = pose.rotation - from.rotation
-  const snapped = hit && hit.kind !== 'grid' ? SNAP_TEXT[`${hit.kind}:${hit.how}`] : null
+  const snapped = !align && hit && hit.kind !== 'grid' ? SNAP_TEXT[`${hit.kind}:${hit.how}`] : null
   return (
     <section aria-label="Proposed position" className="rounded border border-accent/40 bg-accent/5 px-1.5 py-1">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -133,6 +142,13 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
         <span className="tabular-nums text-slate-600">{dist >= 0.005 ? formatLength(dist, unit) : ''}{dist >= 0.005 && Math.abs(turn) >= 0.005 ? ', ' : ''}{Math.abs(turn) >= 0.005 ? `turned ${turn > 0 ? '+' : ''}${fmt(turn)}°` : ''}</span>
         {snapped && <span className="flex items-center gap-1 rounded bg-[#fff3d6] px-1 text-[11px] text-[#6e4a00]"><Magnet size={11} aria-hidden />{snapped}</span>}
       </div>
+      {align && (
+        // What the placement lined the tower up with (lib/lotAlign.ts); the lot lines it used are amber in 3D.
+        <p className="mt-0.5 flex items-start gap-1 rounded bg-[#fff3d6] px-1 py-0.5 text-[11px] text-[#6e4a00]" data-testid="align-hint"
+          title={align.how === 'lot' || align.how === 'nearby' ? 'City of Vancouver, Property parcel polygons (OGL-Vancouver, retrieved 2026-10-27)' : undefined}>
+          <LandPlot size={12} aria-hidden className="mt-px shrink-0" /><span>{tx(align.text)}</span>
+        </p>
+      )}
       <ul className="mt-1 space-y-0.5">
         {report.fit.map((f) => {
           const was = now?.fit.find((x) => x.id === f.id)
@@ -141,7 +157,7 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
               <StateChip state={f.state} />
               <span>{tx(f.text)}</span>
               <FlagChip flag={f.flag} />
-              {was && was.state !== f.state && <span className="text-[10px] text-slate-600">(now: {tx(was.text)})</span>}
+              {was && was.state !== f.state && <span className="text-[11px] text-slate-600">(now: {tx(was.text)})</span>}
             </li>
           )
         })}
@@ -153,13 +169,13 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <button type="button" disabled={dragging} onClick={() => confirmProposal()} aria-keyshortcuts="Enter"
           className={`flex items-center gap-1.5 rounded bg-accent px-2.5 py-1 font-medium text-white hover:opacity-90 disabled:opacity-50 ${focusRing}`}>
-          <Check size={14} aria-hidden />Confirm<kbd aria-hidden className="rounded border border-white/50 px-1 font-mono text-[10px]">Enter</kbd>
+          <Check size={14} aria-hidden />Confirm<kbd aria-hidden className="rounded border border-white/50 px-1 font-mono text-[11px]">Enter</kbd>
         </button>
         <button type="button" disabled={dragging} onClick={() => cancelProposal()} aria-keyshortcuts="Escape"
           className={`flex items-center gap-1.5 rounded border border-line bg-white px-2.5 py-1 font-medium text-ink hover:bg-slate-50 disabled:opacity-50 ${focusRing}`}>
-          <X size={14} aria-hidden />Cancel<kbd aria-hidden className="rounded border border-line px-1 font-mono text-[10px] text-slate-600">Esc</kbd>
+          <X size={14} aria-hidden />Cancel<kbd aria-hidden className="rounded border border-line px-1 font-mono text-[11px] text-slate-600">Esc</kbd>
         </button>
-        <span className="text-[10px] text-slate-600">{dragging ? 'Release to review' : 'Nothing changes until you confirm (one undo step)'}</span>
+        <span className="text-[11px] text-slate-600">{dragging ? 'Release to review' : 'Nothing changes until you confirm (one undo step)'}</span>
       </div>
     </section>
   )
@@ -175,7 +191,7 @@ function ConeLines({ report, now, tx }: { report: ProposalReport; now: ProposalR
     <>
       {covering.slice(0, 4).map((c) => <ConeLine key={c.cone.id} c={c} tx={tx} />)}
       {covering.length > 4 && <li className="text-[11px] text-slate-600">and {covering.length - 4} more cones (Results &amp; evidence after confirming)</li>}
-      {changed && <li className="text-[10px] text-slate-600">View cones{changed}</li>}
+      {changed && <li className="text-[11px] text-slate-600">View cones{changed}</li>}
     </>
   )
 }
@@ -196,7 +212,7 @@ function ModeButton({ on, icon: Icon, label, keyHint, onClick }: { on: boolean; 
     <button type="button" aria-pressed={on} aria-keyshortcuts={keyHint} onClick={onClick} title={`${label} (${keyHint})`}
       className={`flex items-center gap-1.5 rounded px-2 py-1 font-medium ${on ? 'bg-accent text-white' : 'text-ink hover:bg-black/5'} ${focusRing}`}>
       <Icon size={14} aria-hidden />{label}
-      <kbd aria-hidden className={`rounded border px-1 font-mono text-[10px] ${on ? 'border-white/50 text-white' : 'border-line text-slate-600'}`}>{keyHint}</kbd>
+      <kbd aria-hidden className={`rounded border px-1 font-mono text-[11px] ${on ? 'border-white/50 text-white' : 'border-line text-slate-600'}`}>{keyHint}</kbd>
     </button>
   )
 }
