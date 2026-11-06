@@ -56,6 +56,16 @@ describe.skipIf(!have)('competition context built in the browser (rhino3dm.js) m
     expect(js.labels.map((l) => l.text)).toEqual(py.labels.map((l) => l.text))
     js.labels.forEach((l, i) => near(l.at, py.labels[i].at, `labels[${i}]`))
     expect(js.meta.true_north_deg_clockwise_from_plus_y).toBe(45)
+
+    // Ground-level use areas (6 Nov): 138 hatches on the Ground Level Use Plan layers, same order, same outlines.
+    expect(js.ground_uses).toHaveLength(138)
+    expect(py.ground_uses, 'rebuild public/local/vtc_context.json with tools/build_vtc_context.py').toHaveLength(138)
+    js.ground_uses!.forEach((u, i) => {
+      expect(u.use, `ground_uses[${i}].use`).toBe(py.ground_uses![i].use)
+      expect(u.rings.length, `ground_uses[${i}] rings`).toBe(py.ground_uses![i].rings.length)
+      u.rings.forEach((r, k) => near(flat(r), flat(py.ground_uses![i].rings[k]), `ground_uses[${i}].rings[${k}]`))
+    })
+    expect(new Set(js.ground_uses!.map((u) => u.use))).toEqual(new Set(['Retail', 'Office', 'Cultural', 'Hotel', 'Institutional', 'Residential', 'Transit Station']))
   })
 })
 

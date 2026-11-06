@@ -12,6 +12,8 @@ type Rh = any
 
 /** Centre of the 144.8 x 79.2 m competition site block in the model's own coordinates (measured from the model). */
 export const SITE_CENTRE: [number, number] = [439.7, 143.3]
+/** Ground-level use hatches, drawn over the same coordinates as the 3D model; the last layer name is the use. */
+const USE_PREFIX = 'Ground Level Use Plan::Ground Level Use::'
 const SITE_W = 144.8, SITE_D = 79.2
 
 /** 1 cm precision keeps the context small (the Python script rounds the same way). */
@@ -47,7 +49,7 @@ function build(rh: Rh, doc: Rh): VtcContext {
       true_north_deg_clockwise_from_plus_y: 45.0,
       north_note: 'Read from the drawn north arrow. FALSE ASSUMPTION in the file: its saved north is +Y and its saved location is 49.16 N, -123.07 W (Richmond).',
     },
-    site: null, blocks: [], curbs: [], plazas: [], midblock: [], buildings: [], heritage: [], future_towers: [], labels: [],
+    site: null, blocks: [], curbs: [], plazas: [], midblock: [], buildings: [], heritage: [], future_towers: [], labels: [], ground_uses: [],
   }
   const futureOutlines: { z0: number; ring: [number, number][] }[] = []
   const futureRails: { at: [number, number]; z1: number }[] = []
@@ -56,9 +58,22 @@ function build(rh: Rh, doc: Rh): VtcContext {
   for (let i = 0; i < table.count; i++) {
     const obj = table.get(i)
     const layer = layers[obj.attributes().layerIndex] ?? ''
-    if (!layer.startsWith('3D Model')) continue
     const g = obj.geometry()
     if (!g) continue
+    // A use hatch: rhino3dm has no hatch loops, so its outline is read from the planar Brep it converts to.
+    if (layer.startsWith(USE_PREFIX)) {
+      const brep = g instanceof rh.Hatch ? rh.Brep.tryConvertBrep(g) : null
+      if (!brep) continue
+      const edges = brep.edges(), rings: [number, number][][] = []
+      for (let k = 0; k < edges.count; k++) {
+        const r = ring(edges.get(k)).map((p) => local(p[0], p[1]))
+        if (r.length >= 4) rings.push(r)
+      }
+      try { brep.delete?.() } catch { /* freed */ }
+      if (rings.length) out.ground_uses!.push({ use: layer.slice(USE_PREFIX.length), rings })
+      continue
+    }
+    if (!layer.startsWith('3D Model')) continue
     const name = layer.split('::').pop() as string
 
     if (g instanceof rh.Extrusion) {

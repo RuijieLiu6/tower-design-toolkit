@@ -6,6 +6,9 @@ Usage:
     python tools/build_vtc_context.py "<path to Vancouver Tall Base Model.3dm>" public/local/vtc_context.json
 
 Output frame: metres, origin at the centre of the competition site block, +Y = model +Y (drawn grid "up").
+Ground-level uses: the hatches of "Ground Level Use Plan::Ground Level Use::<use>" (drawn over the same coordinates as the
+3D model), each converted to a planar Brep to read its outline (rhino3dm has no hatch loops). The app gives each building
+the use covering most of its footprint (src/lib/vtcUses.ts). src/lib/vtcContextBuild.ts is the same reader in the browser.
 True north is read from the drawn north arrow (45 deg clockwise from +Y); the file's own north setting (+Y) is wrong.
 """
 import json
@@ -16,6 +19,7 @@ import rhino3dm as r
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 SITE_CENTRE = (439.7, 143.3)      # centre of the 144.8 x 79.2 m site block (measured from the model)
+USE_PREFIX = "Ground Level Use Plan::Ground Level Use::"
 R = lambda v: round(v, 2)         # 1 cm precision keeps the file small
 
 
@@ -47,7 +51,7 @@ out = {
         "north_note": "Read from the drawn north arrow. FALSE ASSUMPTION in the file: its saved north is +Y and its saved location is 49.16 N, -123.07 W (Richmond).",
     },
     "site": None, "blocks": [], "curbs": [], "plazas": [], "midblock": [],
-    "buildings": [], "heritage": [], "future_towers": [], "labels": [],
+    "buildings": [], "heritage": [], "future_towers": [], "labels": [], "ground_uses": [],
 }
 
 future_outlines = []
@@ -55,6 +59,14 @@ future_rails = []
 
 for obj in model.Objects:
     layer = layers[obj.Attributes.LayerIndex]
+    if layer.startswith(USE_PREFIX):
+        brep = r.Brep.TryConvertBrep(obj.Geometry) if isinstance(obj.Geometry, r.Hatch) else None
+        if brep is not None:
+            rings = [[local(p.X, p.Y) for p in polyline_points(brep.Edges[i])] for i in range(len(brep.Edges))]
+            rings = [ring for ring in rings if len(ring) >= 4]
+            if rings:
+                out["ground_uses"].append({"use": layer[len(USE_PREFIX):], "rings": rings})
+        continue
     if not layer.startswith("3D Model"):
         continue
     g = obj.Geometry
@@ -131,4 +143,4 @@ with open(OUT, "w", encoding="utf-8") as f:
     json.dump(out, f, separators=(",", ":"))
 
 print(f"site: {out['site'] and out['site']['area_m2']} m2 | buildings {len(out['buildings'])} | heritage {len(out['heritage'])} | "
-      f"future towers {[(t['z1']) for t in out['future_towers']]} | labels {len(out['labels'])}")
+      f"future towers {[(t['z1']) for t in out['future_towers']]} | labels {len(out['labels'])} | ground uses {len(out['ground_uses'])}")
