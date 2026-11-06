@@ -5,7 +5,8 @@
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { CircleAlert, FileUp, Loader2, LockKeyhole, Trash2, X } from './icons'
 import Help from './Help'
-import { addVtcModel, removeVtcModel, useVtcSource } from '../lib/vtcContextSource'
+import { BRIEF_SITE, addVtcModel, removeVtcModel, useVtcSource } from '../lib/vtcContextSource'
+import { useStore } from '../store'
 
 const NOTE = 'Read in this browser and kept on this computer only. Never uploaded. Context © Buildner.'
 
@@ -96,23 +97,25 @@ export function VtcBaseModelPanel() {
   )
 }
 
-/** The card over the competition view while its context is missing (or being read). Closing it hides it for this visit. */
+/** The card over the competition view while its context is missing (or being read). Closing it hides it for this visit;
+ * it steps aside while a tower is being placed (the placing hint sits at the top of the view). */
 export function VtcContextCard() {
   const status = useVtcSource((s) => s.status)
   const hasCtx = useVtcSource((s) => !!s.ctx)
+  const placing = useStore((s) => s.placing)
   const [closed, setClosed] = useState(false)
   const pick = usePicker()
-  if (hasCtx || closed || status === 'idle' || status === 'loading') return null
+  if (hasCtx || closed || placing || status === 'idle' || status === 'loading') return null
   return (
     <section aria-labelledby="vtc-card-title" {...pick.drop}
-      className={`absolute bottom-16 left-3 z-20 w-[min(23rem,calc(100%-1.5rem))] rounded-lg border bg-panel/95 p-3 text-xs text-muted shadow-lg backdrop-blur-md ${pick.over ? 'border-2 border-dashed border-accent' : 'border-line'}`}>
+      className={`absolute left-3 top-3 z-20 w-[min(23rem,calc(100%-1.5rem))] rounded-lg border bg-panel/95 p-3 text-xs text-muted shadow-lg backdrop-blur-md ${pick.over ? 'border-2 border-dashed border-accent' : 'border-line'}`}>
       {pick.field}
       <div className="flex items-start gap-2">
         <h2 id="vtc-card-title" className="flex-1 text-sm font-semibold text-ink">Competition context not loaded</h2>
         <HelpText />
         <button type="button" onClick={() => setClosed(true)} aria-label="Close" className="-mr-1 -mt-1 rounded p-1 text-muted hover:bg-paper hover:text-ink"><X size={14} aria-hidden /></button>
       </div>
-      <p className="mt-1">The neighbouring buildings and future towers come from Buildner's base model, which this website can't include. Add your copy of <b className="text-ink">Vancouver Tall Base Model.3dm</b>, or drop it on this card.</p>
+      <p className="mt-1">The site shown is the brief's {BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m block. The neighbouring buildings, heritage and future towers come from Buildner's base model, which this website can't include. Add your copy of <b className="text-ink">Vancouver Tall Base Model.3dm</b>, or drop it on this card.</p>
       <div className="mt-2.5 space-y-2">
         <ErrorLine announce />
         <AddButton open={pick.open}>Add your copy of the base model (.3dm)</AddButton>

@@ -39,7 +39,9 @@ import { BvhWarmup, eventsWithoutWheel, installFastRaycast } from '../lib/fastRa
 import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
 import { VtcBaseModelPanel, VtcContextCard } from './VtcBaseModel'
-import { useVtcSource } from '../lib/vtcContextSource'
+import VtcBriefSite from './VtcBriefSite'
+import ViewGuard from './ViewGuard'
+import { BRIEF_SITE, useVtcSource } from '../lib/vtcContextSource'
 import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
 import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
 import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
@@ -120,6 +122,8 @@ function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: s
 
 function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const { ctx } = useVtcContext()
+  // Without the base model (another computer, before the entrant adds their copy): the brief's block is the site.
+  const site = ctx?.site ?? BRIEF_SITE
   const towers = useTowers()
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
   const plinth = useMemo(() => vtcPlinth(ctx), [ctx])
@@ -129,15 +133,16 @@ function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => vo
     <>
       <Ground rect={plinth} color={look.ground} onPick={onPick} />
       <PlinthBase plinth={plinth} ring={ring} look={look} pad={0.1} />
-      {ctx?.site && (
+      {site && (
         <>
-          <mesh position={[0, 0, 0.02]} receiveShadow onPointerDown={(e) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
-            <planeGeometry args={[ctx.site.width_m, ctx.site.depth_m]} />
+          <mesh name="vtc-site" position={[0, 0, 0.02]} receiveShadow onPointerDown={(e) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
+            <planeGeometry args={[site.width_m, site.depth_m]} />
             <meshStandardMaterial color={look.site} />
           </mesh>
-          <Line points={[...ctx.site.outline.map(([x, y]) => [x, y, 0.1] as [number, number, number])]} color="#1f5f8b" lineWidth={2.5} />
+          <Line points={[...site.outline.map(([x, y]) => [x, y, 0.1] as [number, number, number])]} color="#1f5f8b" lineWidth={2.5} />
         </>
       )}
+      {!ctx && <VtcBriefSite />}
       {ctx?.blocks.map((b, i) => <Line key={`b${i}`} points={b.map(([x, y]) => [x, y, 0.05] as [number, number, number])} color={look.edge} lineWidth={1} />)}
       {ctx?.curbs.map((b, i) => <Line key={`c${i}`} points={b.map(([x, y]) => [x, y, 0.04] as [number, number, number])} color="#cfccc4" lineWidth={1} />)}
       {ctx && <ContextMeshes items={ctx.buildings} color={look.context} ghost={xray} />}
@@ -651,6 +656,7 @@ export default function Viewport() {
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
         <div data-viewport className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
+          <ViewGuard>
           <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
             onCreated={({ gl }) => { gl.localClippingEnabled = true }}
             camera={{ position: project === 'vtc' ? [520, 430, 640] : toThree(...VISTA_OVERVIEW.position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
@@ -673,6 +679,7 @@ export default function Viewport() {
             <Lens focus={focus} fit={(sel?.height ?? 200) * 1.5} fog={fog} />
             <CameraClamp />
           </Canvas>
+          </ViewGuard>
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
           {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}

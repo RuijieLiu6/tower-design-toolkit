@@ -7,6 +7,7 @@
 
 import { create } from 'zustand'
 import type { VtcContext } from '../context'
+import { SITE } from '../engine/vtcRules'
 
 export type VtcStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'reading' | 'error'
 
@@ -24,6 +25,16 @@ interface VtcSourceState {
 }
 
 export const useVtcSource = create<VtcSourceState>(() => ({ ctx: null, status: 'idle', source: null, version: 0, fileName: '', addedAt: '', error: '' }))
+
+/**
+ * The competition block from the brief (p.15: 144.8 x 79.2 m), centred on the model origin like the containment rule
+ * (engine/vtcRules SITE, lib/siteGeometry VTC_SITE). Drawn as the site when no base model is loaded, so the design and
+ * its checks still have a site to sit on. Not from Buildner's model file.
+ */
+export const BRIEF_SITE: NonNullable<VtcContext['site']> = (() => {
+  const w = SITE.width / 2, d = SITE.depth / 2
+  return { outline: [[-w, -d], [w, -d], [w, d], [-w, d], [-w, -d]], width_m: SITE.width, depth_m: SITE.depth, area_m2: SITE.area }
+})()
 
 /** The base model's file name in the competition download, used to route a dropped copy here instead of the massing import. */
 export const BASE_MODEL_NAME = /vancouver\s*tall.*base\s*model.*\.3dm$/i
