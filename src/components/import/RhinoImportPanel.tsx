@@ -5,7 +5,7 @@ import { Check, Copy, Download, FileUp, Link2, Loader2, Plug, Spline, Unplug } f
 import { useState } from 'react'
 import { useImportStore } from '../../lib/import/store'
 import { stopLink, useLiveLink } from '../../lib/interchange/live'
-import { connectRhino, RHINO_COMMAND, RHINO_SCRIPT } from '../../lib/interchange/rhinoLink'
+import { connectRhino, RHINO_COMMAND, RHINO_SCRIPT, useRhinoState } from '../../lib/interchange/rhinoLink'
 import { useStore, useTowers } from '../../store'
 import Help from '../Help'
 
@@ -42,6 +42,20 @@ const RHINO_LINK_NAME = 'Rhino (live link)'
 const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
 
 /** Link Rhino live: the three steps, the plugin to download, what to type in Rhino, and the link's state. */
+/** What Rhino's window is set to (link 2): instant sync, or changes held until Send now; the ground and basements it sends. */
+function RhinoSyncLine() {
+  const last = useRhinoState((s) => s.last)
+  if (!last || last.instant === undefined) return null
+  const s = last.settings ?? {}
+  const below = Number(s.levels) > 0 ? `${s.levels} basement level${s.levels === '1' ? '' : 's'}${s.f2f ? ` at ${s.f2f} m` : ''}` : null
+  return (
+    <p className="text-muted" data-testid="rhino-sync">
+      {last.instant ? 'Instant sync is on in Rhino.' : <b className="text-amber-900">Instant sync is off in Rhino: changes wait there until you press Send now.</b>}
+      {s.ground !== undefined && ` Ground level z = ${s.ground}.`}{below && ` ${below}.`}
+    </p>
+  )
+}
+
 function RhinoLive({ disabled }: { disabled: boolean }) {
   const live = useLiveLink()
   const linked = live.name === RHINO_LINK_NAME && live.status !== 'off'
@@ -56,7 +70,8 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
       <h4 id="rhino-live-title" className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
         <Plug size={12} className="text-accent" aria-hidden />Link Rhino live
         <Help label="About the Rhino live link">
-          <span className="block">A small script for Rhino 7 and 8 serves the model open in Rhino to this page, on your own computer (http://127.0.0.1:8798). The first time, you map its layers and place it, as with an upload; after that it updates a second or two after each change you make in Rhino, with the same mapping.</span>
+          <span className="block">A small script for Rhino 7 and 8 serves the model open in Rhino to this page, on your own computer (http://127.0.0.1:8798), and opens a Tower Design Toolkit window in Rhino. The first time, you map its layers and place it, as with an upload; after that it updates a second or two after each change you make in Rhino, with the same mapping.</span>
+          <span className="block">In Rhino's window: turn Instant sync off to hold changes until you press Send now; Set up Toolkit layers (Tower massing, Podium, Below grade, Landscape, Urban design, Context, Site boundary) so nothing needs mapping; set the ground level and the basement levels, or draw the basement under the selected massing. Basements, landscape and urban design come across with their roles.</span>
           <span className="block">Nothing is uploaded, and only the Toolkit's own pages can read the model while the link runs. Works in Chrome and Edge; if the browser asks to let this site reach devices on your local network, allow it.</span>
         </Help>
         <span className="ml-auto flex items-center gap-1 font-normal text-muted" role="status"><i aria-hidden className={`h-2 w-2 rounded-full ${state.dot}`} />{state.word}</span>
@@ -64,7 +79,8 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
       {linked ? (
         <div className="mt-1.5 grid gap-1.5 text-[11px]">
           <p className={live.status === 'error' ? 'text-amber-900' : 'text-ink'}>{live.message}</p>
-          <button type="button" onClick={() => { stopLink(); setNote('Link stopped here. To stop it in Rhino too, run tdt_link.py again.') }} className={`${btn} w-fit border-line hover:border-accent`}><Unplug size={12} />Stop the link</button>
+          <RhinoSyncLine />
+          <button type="button" onClick={() => { stopLink(); setNote('Link stopped here. To stop it in Rhino too, press Stop link in Rhino\'s Tower Design Toolkit window.') }} className={`${btn} w-fit border-line hover:border-accent`}><Unplug size={12} />Stop the link</button>
         </div>
       ) : (
         <ol className="mt-1.5 grid list-none gap-2 text-[11px]">
@@ -81,7 +97,7 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
                 <code className="rounded border border-line bg-black/[0.04] px-1.5 py-0.5 font-mono text-[11.5px] text-ink">{RHINO_COMMAND}</code>
                 <button type="button" onClick={copy} className={`${btn} border-line hover:border-accent`} aria-label={`Copy ${RHINO_COMMAND}`}>{copied ? <Check size={12} /> : <Copy size={12} />}{copied ? 'Copied' : 'Copy'}</button>
               </span>
-              <span className="text-muted">Rhino's command line then says <i>running on http://127.0.0.1:8798</i>.</span>
+              <span className="text-muted">A <i>Tower Design Toolkit</i> window opens in Rhino. Running the script again brings the window back.</span>
             </div>
           </li>
           <li className="flex gap-1.5"><Num n={3} />
@@ -96,7 +112,7 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
       <details className="mt-1.5 text-[11px] text-muted">
         <summary className="cursor-pointer hover:text-ink">Stop, or make it a one-word command</summary>
         <div className="mt-1 grid gap-1">
-          <span>To stop the link, run {RHINO_SCRIPT} again in Rhino (or close Rhino).</span>
+          <span>To stop the link, press Stop link in Rhino's Tower Design Toolkit window (or close Rhino). Closing the window keeps the link running; run {RHINO_SCRIPT} again to open it.</span>
           <span>One-word command: in Rhino, Options › Aliases › New, alias <code className="font-mono text-ink">TDTLink</code>, command <code className="break-all font-mono text-ink">! _-RunPythonScript "C:\path\to\{RHINO_SCRIPT}"</code> (the folder you saved it in). Then type TDTLink.</span>
           <span>Rhino 8 runs it in Python 3; Rhino 7 in IronPython. You can also open it in Rhino 8's Script Editor and press Run.</span>
         </div>

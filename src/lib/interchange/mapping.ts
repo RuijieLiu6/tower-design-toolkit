@@ -62,6 +62,11 @@ const USE_WORDS: [RegExp, UseId][] = [
   [/amenity|public|sky ?room|observ|lobby/i, 'amenity'], [/mech|plant|services?\b|m&e|mep/i, 'mechanical'],
 ]
 const PROGRAM = /program|programme|\buse\b|\buses\b|zone|function/i
+// The Rhino link's layers (Toolkit::Below grade, ::Landscape, ::Urban design) and the usual names for the same things;
+// checked before the ignore list, which would otherwise drop trees, furniture and streets.
+const BASEMENT = /below ?grade|basement|underground|car ?park|parking (level|garage)|\bb[1-9]\b/i
+const LANDSCAPE = /landscape|planting|soft ?scape|\blawns?\b|\btrees?\b|vegetation|\bgreen ?(roof|space)?\b|garden/i
+const URBAN = /urban ?design|public ?realm|hard ?scape|paving|street ?furniture|bench|bollard|lighting|bike ?rack|canop(y|ies)|\bplaza\b/i
 
 export function guessUse(text: string): UseId | undefined {
   for (const [re, u] of USE_WORDS) if (re.test(text)) return u
@@ -76,6 +81,9 @@ export function guessRule(row: MappingRow, onlyMeshRow: boolean): MappingRule {
   const k = row.key.replace(/[_.]+/g, ' ')
   const use = row.useString ?? guessUse(k)
   if (!row.objects) return { role: SITE.test(k) && row.closedCurves ? 'site' : 'ignore' }
+  if (BASEMENT.test(k)) return { role: 'basement' }
+  if (URBAN.test(k)) return { role: 'urban' }
+  if (LANDSCAPE.test(k)) return { role: 'landscape' }
   if (IGNORE.test(k)) return { role: 'ignore' }
   if (CORE.test(k)) return { role: 'core' }
   if (PODIUM.test(k)) return { role: 'podium', use: use ?? 'retail' }

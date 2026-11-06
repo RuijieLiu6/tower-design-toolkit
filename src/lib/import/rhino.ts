@@ -155,11 +155,23 @@ export function read3dmWith(rh: Rh, bytes: Uint8Array, fileName: string, onProgr
     visit(o.geometry(), { name: attr.name || `object ${i + 1}`, layer: l.path, layerColor: l.color, objectId: String(attr.id ?? ''), ...(strings ? { userStrings: strings } : {}) }, null, 0)
   }
   onProgress?.(total, total)
+  // Document user text: the Toolkit link's settings (tdt.ground_z, tdt.basement_levels, tdt.basement_f2f, tdt.basement_use).
+  const docStrings: Record<string, string> = {}
+  try {
+    const st = doc.strings()
+    for (let k = 0; k < st.count; k++) {
+      const kv = st.get(k) as unknown
+      const key = Array.isArray(kv) ? String(kv[0]) : String((kv as { key?: unknown })?.key ?? '')
+      const value = Array.isArray(kv) ? String(kv[1]) : String(st.getvalue(k) ?? '')
+      if (key) docStrings[key] = value
+    }
+  } catch { /* older files: no document strings */ }
   if (inDefinitions) notes.push(`${inDefinitions} object${inDefinitions === 1 ? '' : 's'} inside block definitions read through their placed instances only.`)
   return {
     format: '3dm', fileName, objects, curves, skipped, unit, unitNote, upAxis: 'z', upNote: 'Rhino is z-up',
     layers: [...layerInfo.values()],
     fileNorthDeg, northNote, notes, ...(earthAnchor ? { earthAnchor } : {}), ...(scaleOverride ? { unitScaleOverride: scaleOverride } : {}),
+    ...(Object.keys(docStrings).length ? { docStrings } : {}),
   }
 }
 

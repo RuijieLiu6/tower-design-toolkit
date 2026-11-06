@@ -48,6 +48,8 @@ export interface RawImport {
   curves?: RawCurve[]
   /** Layer table in file order, with colours (Rhino only so far). */
   layers?: { path: string; color: string }[]
+  /** Document user text (Rhino), e.g. the Toolkit link's tdt.ground_z, tdt.basement_levels, tdt.basement_f2f. */
+  docStrings?: Record<string, string>
   /** Size of the file (bytes) and a short content fingerprint, so a mapping can be remembered per file. */
   fileSize?: number
   fingerprint?: string

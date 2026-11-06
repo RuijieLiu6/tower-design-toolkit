@@ -4,6 +4,7 @@
 // copy, a .3dm with render meshes. Here it becomes a FileHandleLike for lib/interchange/live.ts, so the first copy goes
 // through the upload dialog (layer roles, units, north, placement) and every later one updates the model in place with
 // the same mapping, exactly as a linked file does. Nothing is uploaded: the page reads it from your own computer.
+import { create } from 'zustand'
 import { useImportStore } from '../import/store'
 import type { FileHandleLike } from './live'
 
@@ -12,7 +13,16 @@ export const RHINO_SCRIPT = 'tdt_link.py'
 /** What to type in Rhino (7 or 8): the command, then pick the downloaded script. */
 export const RHINO_COMMAND = 'RunPythonScript'
 
-export interface RhinoRev { rev: number; doc: string; objects: number; units: string; port: number; version: string }
+export interface RhinoRev {
+  rev: number; doc: string; objects: number; units: string; port: number; version: string
+  /** Link 2: instant sync on, or changes held in Rhino until Send now; the ground and basement settings it sends. */
+  instant?: boolean
+  pending?: number
+  settings?: Record<string, string>
+}
+
+/** What the Rhino link last said about itself, for the panel (lib/interchange/rhinoLink.ts polling). */
+export const useRhinoState = create<{ last: RhinoRev | null }>(() => ({ last: null }))
 export const rhinoBase = (port: number) => `http://127.0.0.1:${port}`
 
 type Fetch = typeof fetch
@@ -43,6 +53,7 @@ export function rhinoHandle(port: number, f: Fetch = fetch): FileHandleLike & { 
       const r = await f(`${rhinoBase(port)}/tdt/rev`, { cache: 'no-store' })
       if (!r.ok) throw new Error(`the Rhino link answered HTTP ${r.status}`)
       const h = (await r.json()) as RhinoRev
+      useRhinoState.setState({ last: h })
       if (cached && cached.lastModified === h.rev) return cached
       const m = await f(`${rhinoBase(port)}/tdt/model.3dm`, { cache: 'no-store' })
       if (!m.ok) throw new Error(m.status === 503 ? 'Rhino is still writing the first copy' : `the Rhino link answered HTTP ${m.status}`)
@@ -54,7 +65,7 @@ export function rhinoHandle(port: number, f: Fetch = fetch): FileHandleLike & { 
 }
 
 /** Why the page could not reach the plugin, in words the person can act on. */
-export const NOT_FOUND = `No Rhino link found on this computer. In Rhino, type ${RHINO_COMMAND}, pick ${RHINO_SCRIPT} and wait for "running on http://127.0.0.1:8798" in Rhino's command line; then press Connect again. If your browser asks to let this site reach devices on your local network, allow it.`
+export const NOT_FOUND = `No Rhino link found on this computer. In Rhino, type ${RHINO_COMMAND} and pick ${RHINO_SCRIPT}: a Tower Design Toolkit window opens in Rhino. Then press Connect again. If your browser asks to let this site reach devices on your local network, allow it.`
 
 /**
  * Connects: finds the plugin, reads its current copy, and opens the upload dialog with it as a linked model. Returns a

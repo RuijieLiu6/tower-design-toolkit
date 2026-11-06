@@ -12,9 +12,9 @@ import { towerPatch } from '../../engine/imported'
 import { withAutoCore, type LiftPresets } from '../../engine/lifts'
 import type { EgressPresets } from '../../engine/egress'
 import { fmtLen, guessUnit, guessUpAxis, looksLikeUtm10, topology, UNIT_LABEL, UNIT_SCALE, type HealthItem, type Topology, type Unit } from '../../engine/meshHealth'
-import { PODIUM_F2F } from '../../engine/massing'
+import { PODIUM_F2F, towerFootprint } from '../../engine/massing'
 import type { Band, Flag, ImportedMass, Tower, UseId } from '../../engine/types'
-import { buildMass, DATUM_LABEL, earthPoint, healthFor, NORTH_LABEL, stageB, stageC, type ImportOptions, type Placed, type ProjectFrame } from '../import/pipeline'
+import { buildMass, DATUM_LABEL, earthPoint, healthFor, NORTH_LABEL, stageB, stageC, type DatumMode, type ImportOptions, type Placed, type ProjectFrame } from '../import/pipeline'
 import type { RawImport } from '../import/types'
 import { itemsOf, roleOf, type Item, type ItemRole } from './mapping'
 import { hash8, INTERCHANGE_VERSION, MASSING_ROLES, ROLE_LABEL, type IgnoredItem, type InterchangeModel, type Mapping, type ModelCheck, type ModelElement, type ModelTower, type P3, type Provenance, type Pt } from './model'
@@ -293,10 +293,10 @@ export function buildModel(i: BuildInput): BuildResult {
     }
   })
 
-  // ---- context buildings: extruded footprints ----
+  // ---- context buildings, and the ground's landscape, urban design and below-grade volumes: extruded footprints ----
   items.forEach((it, k) => {
     const role = roles[k].role
-    if (role !== 'context' && role !== 'core') return
+    if (role !== 'context' && role !== 'core' && role !== 'landscape' && role !== 'urban' && role !== 'basement') return
     if (it.curve) { ignore(k, `Curves on a ${ROLE_LABEL[role]} row are not used: only volumes are`); return }
     if (role === 'core') return
     const m = meshOf(k), b = bounds(m)
@@ -304,11 +304,29 @@ export function buildModel(i: BuildInput): BuildResult {
     let rings = plateAt(m, cut).loops.filter((l) => ringArea(l) > 0)
     if (!rings.length) rings = [convexHull(planHull(m))]
     elements.push({
-      id: ids[k], role: 'context', name: it.name, tags: {},
+      id: ids[k], role, name: it.name, tags: {},
       geometry: { kind: 'prism', rings: rings.map((r) => ccw(r.map(([x, y]) => toProj(x, y)))), z0: r2(b.min[2] - dz), z1: r2(b.max[2] - dz) },
       provenance: prov(it, roles[k]),
     })
   })
+  // ---- below grade (the Rhino link, 6 Nov): basement volumes give the tower above them its basement levels, at the
+  // floor-to-floor the link sends (tdt.basement_f2f, else 3.2 m); with no volumes, tdt.basement_levels sets them. ----
+  {
+    const docS = raw.docStrings ?? {}
+    const f2fB = Number(docS['tdt.basement_f2f']) > 0 ? Number(docS['tdt.basement_f2f']) : 3.2
+    const useB = docS['tdt.basement_use'] === 'mixed' ? 'mixed' as const : 'parking' as const
+    const typed = Math.round(Number(docS['tdt.basement_levels']) || 0)
+    const below = elements.filter((e) => e.role === 'basement' && e.geometry.kind === 'prism')
+    built.forEach((b) => {
+      const fp = towerFootprint(b.tower, true)
+      const mine = below.filter((e) => e.geometry.kind === 'prism' && e.geometry.rings.some((r) => r.some((p) => inRing(p, fp)) || fp.some((p) => inRing(p, r))))
+      const depth = Math.max(0, ...mine.map((e) => (e.geometry.kind === 'prism' ? -e.geometry.z0 : 0)))
+      const levels = Math.min(8, mine.length ? Math.max(1, Math.round(depth / f2fB)) : typed > 0 ? typed : 0)
+      if (!levels) return
+      b.tower = { ...b.tower, basement: { levels, f2f: f2fB, use: useB, extent: 'podium' } }
+      checks.push({ id: `basement-${b.key}`, severity: 'info', text: `${b.tower.name}: ${levels} basement level${levels === 1 ? '' : 's'} at ${f2fB} m${mine.length ? `, from ${mine.length} below-grade volume${mine.length === 1 ? '' : 's'} ${depth.toFixed(1)} m deep` : ', as set in Rhino'}.`, flag: 'team_assumption' })
+    })
+  }
   items.forEach((it, k) => { if (it.curve && MASSING_ROLES.includes(roles[k].role)) ignore(k, `Curves on a ${ROLE_LABEL[roles[k].role]} row are not used: only closed volumes are sliced`) })
   massIdx.filter((k) => roles[k].role === 'program' && !roles[k].use).forEach((k) => checks.push({ id: `nouse-${ids[k]}`, severity: 'warn', text: `"${items[k].name}" is program without a use: it counts as massing, and its storeys follow the program bands.`, flag: 'unresolved' }))
 
@@ -473,8 +491,21 @@ export function defaultOptions(raw: RawImport & { unitScaleOverride?: number }, 
   const placement = looksLikeUtm10(cx, cy) ? (frame.utmOrigin ? 'utm' : 'centre') : raw.earthAnchor && frame.utmOrigin ? 'earth' : Math.hypot(cx, cy) > 2000 ? 'centre' : 'keep'
   return {
     excluded: [], unit, unitConfirmed: !!raw.unit, upAxis, placement, offset: [0, 0],
-    datum: Math.abs(minZ) < 0.5 ? 'zero' : 'lowest', dz: 0,
+    // A ground level set in Rhino (the Toolkit link's tdt.ground_z, file units) is the entrance floor.
+    ...(Number.isFinite(Number(raw.docStrings?.['tdt.ground_z'])) && raw.docStrings?.['tdt.ground_z'] !== ''
+      ? { datum: 'custom' as const, dz: Number(raw.docStrings!['tdt.ground_z']) * s }
+      : { datum: (Math.abs(minZ) < 0.5 ? 'zero' : 'lowest') as DatumMode, dz: 0 }),
     north: raw.fileNorthDeg != null ? 'file' : 'unresolved', northDeg: 0,
     f2f, podiumTop: null, podiumF2F: PODIUM_F2F,
   }
+}
+
+/** Point in a ring (even-odd), for matching below-grade volumes to the tower above them. */
+function inRing(p: Pt, ring: Pt[]): boolean {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j]
+    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
 }

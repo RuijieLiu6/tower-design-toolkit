@@ -1372,7 +1372,10 @@
         "context",
         "program",
         "core",
-        "ignore"
+        "ignore",
+        "basement",
+        "landscape",
+        "urban"
       ]
     },
     "modelElement": {

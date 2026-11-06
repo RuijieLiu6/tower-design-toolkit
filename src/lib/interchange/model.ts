@@ -6,7 +6,7 @@ import type { Flag, UseId } from '../../engine/types'
 
 export const INTERCHANGE_VERSION = 'tower-studio-interchange@1'
 
-export type Role = 'tower' | 'podium' | 'site' | 'context' | 'program' | 'core' | 'ignore'
+export type Role = 'tower' | 'podium' | 'site' | 'context' | 'program' | 'core' | 'basement' | 'landscape' | 'urban' | 'ignore'
 export type Pt = [number, number]
 export type P3 = [number, number, number]
 
@@ -18,6 +18,10 @@ export const ROLES: { id: Role; label: string; hint: string; color: string }[] =
   { id: 'core', label: 'Core', hint: 'Core outline per storey sets the core share (instead of the lift sizing)', color: '#2b3f55' },
   { id: 'site', label: 'Site boundary', hint: 'Closed curves (or a flat surface) for the lot line', color: '#2a9d8f' },
   { id: 'context', label: 'Context buildings', hint: 'Existing buildings: cast shadows in the solar check', color: '#9a958b' },
+  // From the Rhino link's layers (6 Nov): what is dug below grade, and the ground's landscape and urban design.
+  { id: 'basement', label: 'Below grade', hint: 'Basement volumes under the entrance floor: they set the basement levels of the tower above them', color: '#3d5a80' },
+  { id: 'landscape', label: 'Landscape', hint: 'Planting, lawns, trees and soft ground: drawn on the site', color: '#6f9f5a' },
+  { id: 'urban', label: 'Urban design', hint: 'Paving, plazas, canopies, street furniture and lighting: drawn on the site', color: '#b39a6b' },
   { id: 'ignore', label: 'Ignore', hint: 'Left out, and listed as ignored', color: '#c9ccd1' },
 ]
 export const ROLE_LABEL = Object.fromEntries(ROLES.map((r) => [r.id, r.label])) as Record<Role, string>

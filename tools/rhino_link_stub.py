@@ -1,6 +1,7 @@
 """Runs public/rhino/tdt_link.py without Rhino, for testing the Toolkit's live link (no Rhino on the build machine).
 
     python tools/rhino_link_stub.py [model.3dm] [--edit-every SECONDS]
+    python tools/rhino_link_stub.py --selftest      the link's own logic: no endless re-sends, manual sync, settings
 
 Stand-ins for the few RhinoCommon pieces the script uses (RhinoApp, RhinoDoc events and ActiveDoc, Write3dmFile,
 FileWriteOptions, mesh settings) and for scriptcontext.sticky. "Writing" the document copies the given .3dm (default:
@@ -39,17 +40,39 @@ class Event(object):
 
 
 class Obj(object):
+    """Like a Brep in Rhino: it has no render mesh until one is made, and making one fires a document event (as Rhino
+    does), which is what kept version 1 of the link re-sending forever."""
     IsDeleted = False
-    ObjectType = "Mesh"
+    ObjectType = "Brep"
+
+    def __init__(self):
+        self.meshes = []
+
+    def GetMeshes(self, *a):
+        return self.meshes
 
     def CreateMeshes(self, *a):
+        self.meshes = ["render mesh"]
+        Rhino.RhinoDoc.ReplaceRhinoObject.fire()
         return 1
+
+
+class Strings(object):
+    def __init__(self):
+        self.values = {}
+
+    def GetValue(self, key):
+        return self.values.get(key)
+
+    def SetString(self, key, value):
+        self.values[key] = value
 
 
 class Doc(object):
     Name = os.path.basename(MODEL)
     ModelUnitSystem = "Millimeters"
     Objects = [Obj(), Obj()]
+    Strings = Strings()
 
     def GetCurrentMeshingParameters(self):
         return None
@@ -77,6 +100,32 @@ ns = {"__name__": "tdt_link"}
 script = os.path.join(ROOT, "public", "rhino", "tdt_link.py")
 exec(compile(open(script, encoding="utf-8").read(), script, "exec"), ns)
 ns["main"]()
+
+
+def selftest():
+    link = sc.sticky["tower_design_toolkit_link"]
+    idle = lambda n=15: [(Rhino.RhinoApp.Idle.fire(), time.sleep(0.12)) for _ in range(n)]
+    idle()
+    assert link.rev == 1, "the first copy: rev %s" % link.rev
+    idle(25)  # 3 s and no edit: version 1 kept going here (its own meshes counted as edits)
+    assert link.rev == 1, "re-sent without an edit: rev %s" % link.rev
+    Rhino.RhinoDoc.AddRhinoObject.fire(); idle()
+    assert link.rev == 2, "an edit is sent: rev %s" % link.rev
+    link.instant = False
+    Rhino.RhinoDoc.AddRhinoObject.fire(); idle()
+    assert link.rev == 2 and link.dirty, "manual sync waits for Send now: rev %s" % link.rev
+    link.send_now = True; idle(3)
+    assert link.rev == 3 and not link.dirty, "Send now sends: rev %s" % link.rev
+    link.instant = True
+    link.set_setting("levels", 3); idle()
+    assert Doc.Strings.values["tdt.basement_levels"] == "3" and link.rev == 4 and link.snapshot.settings == {"levels": "3"}, "a setting travels with the model"
+    ns["stop_link"]()
+    print("selftest: ok (no re-send without an edit, manual sync, Send now, settings)", flush=True)
+
+
+if "--selftest" in sys.argv:
+    selftest()
+    sys.exit(0)
 last_edit = time.time()
 try:
     while True:
@@ -87,4 +136,4 @@ try:
             Rhino.RhinoDoc.AddRhinoObject.fire()
             print("stub: an edit in 'Rhino'", flush=True)
 except KeyboardInterrupt:
-    ns["main"]()  # the second run stops the link
+    ns["stop_link"]()
