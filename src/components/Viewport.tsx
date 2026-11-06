@@ -45,6 +45,8 @@ import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
 import { VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
+import NorthTurnRig from './NorthTurnRig'
+import { faceNorth, northView } from '../lib/northView'
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()
@@ -663,6 +665,7 @@ export default function Viewport() {
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
             <CameraRig />
+            <NorthTurnRig />
             <Lens focus={focus} fit={(sel?.height ?? 200) * 1.5} fog={fog} />
             <CameraClamp />
           </Canvas>
@@ -711,20 +714,32 @@ function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
   )
 }
 
-/** Small and translucent; the VTC north correction stays visible (a false assumption is never hidden). */
+/**
+ * Small and translucent; the arrow points to true north on screen (turned by NorthTurnRig) and a click turns the view to
+ * face north (Ruijie, 6 Nov). The VTC north correction stays visible (a false assumption is never hidden).
+ */
 function NorthCompass({ north }: { north: number }) {
   const look = useOverlayLook()
   const label = `True north ${north ? `${north}° from the model grid` : '(grid north)'}`
+  const arrow = useRef<SVGSVGElement>(null)
+  useEffect(() => {
+    const el = arrow.current as unknown as HTMLElement | null
+    if (!el) return
+    northView.arrows.set(el, north)
+    northView.invalidate?.()
+    return () => { northView.arrows.delete(el) }
+  }, [north])
   return (
-    <div role="img" aria-label={north ? `${label}. False assumption corrected: the file's saved north is the grid.` : label} title={label}
-      className={`pointer-events-none absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-line/70 py-0.5 pl-0.5 pr-2 text-[10px] text-slate-700 shadow-sm ${look}`}>
-      <svg width="22" height="22" viewBox="-14 -14 28 28" style={{ transform: `rotate(${north}deg)` }} aria-hidden>
+    <button type="button" onClick={() => faceNorth(north)} data-testid="north-arrow"
+      aria-label={`Turn the view to face north. ${label}${north ? ". False assumption corrected: the file's saved north is the grid." : '.'}`} title={`Face north · ${label}`}
+      className={`pointer-events-auto absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-line/70 py-0.5 pl-0.5 pr-2 text-[10px] text-slate-700 shadow-sm hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}>
+      <svg ref={arrow} width="22" height="22" viewBox="-14 -14 28 28" style={{ transform: `rotate(${north}deg)` }} aria-hidden>
         <circle r="12" fill="none" stroke="#9aa0a6" />
         <path d="M0 -11 L4 4 L0 1 L-4 4 Z" fill="#1f5f8b" />
       </svg>
       <span className="font-semibold">N</span>
       {north !== 0 && <span className="font-semibold text-flag-false">{north}° · corrected</span>}
-    </div>
+    </button>
   )
 }
 

@@ -22,6 +22,7 @@ import { fitPoints } from '../lib/fitView'
 import { useSceneStyle } from '../lib/sceneStyle'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
+import { faceNorth } from '../lib/northView'
 import { CHROME, MAP_MODES, MODE_HINT, PROPOSED, VISTA, VISTA_OVERVIEW, planCamera, proposedLook, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
@@ -375,14 +376,15 @@ function ModeTabs() {
   )
 }
 
-/** North on screen; turned each frame by VistaLookRig. */
+/** North on screen; turned each frame by VistaLookRig. A click turns the view to face north (Ruijie, 6 Nov). */
 function Compass() {
   return (
-    <div role="img" aria-label="North arrow: points to true north on screen" title="North (grid north = true north here, UTM 10N)"
-      className="flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-[11px] font-semibold leading-[16px]" style={box}>
+    <button type="button" data-testid="north-arrow" onClick={() => { flight.to = null; faceNorth(0) }}
+      aria-label="Turn the view to face north. The arrow points to true north on screen." title="Face north (grid north = true north here, UTM 10N)"
+      className={`flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-[11px] font-semibold leading-[16px] hover:bg-[#dde6dc] ${focusRing}`} style={box}>
       <span>N</span>
       <span ref={(el) => { live.compass = el }} className="text-[22px] font-normal leading-[20px]" style={{ transform: 'rotate(0deg)' }} aria-hidden>↑</span>
-    </div>
+    </button>
   )
 }
 
