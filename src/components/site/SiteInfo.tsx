@@ -72,7 +72,7 @@ function TowerList() {
               <div className="flex items-center gap-1.5 px-2 py-1.5">
                 <button type="button" onClick={() => { useStore.getState().selectTower(t.id); seenTower(t.id) }} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-current={t.id === selected ? 'true' : undefined}>
                   <span className="flex items-center gap-1.5"><b className="truncate text-ink">{t.name}</b>{isNew && <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-900">New</span>}</span>
-                  <span className="block text-muted"><U>{`${Math.round(t.height)} m`}</U> · {floors} floor{floors === 1 ? '' : 's'}{t.imported ? ' · from your model' : ''}</span>
+                  <span className="block text-muted"><U>{`${Math.round(t.height)} m`}</U> · {floors} floor{floors === 1 ? '' : 's'}{t.imported ? (t.imported.format === 'generated' ? ' · generated' : ' · from your model') : ''}</span>
                 </button>
                 <button type="button" onClick={() => { setEditing(open ? null : t.id); seenTower(t.id) }} aria-expanded={open} aria-label={`Rename or delete ${t.name}`} title="Rename or delete"
                   className={`shrink-0 rounded-md border p-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${open ? 'border-accent bg-accent text-white' : 'border-line text-muted hover:border-accent hover:text-ink'}`}><Pencil size={12} /></button>

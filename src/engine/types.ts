@@ -87,6 +87,13 @@ export interface Block {
   rotation: number
   /** Podium block: podium floor-to-floor and the podium use. Only the leading run of blocks counts as podium. */
   podium?: boolean
+  /**
+   * Use of this podium block's floors, when it differs from the tower's podium use (a generated podium with retail at
+   * grade and office or amenity storeys above it, engine/dtmassGen.ts). Absent: the tower's `podiumUse`.
+   */
+  use?: UseId
+  /** Storey height of this podium block's floors (a generated podium: retail at 5 m, office at 3.9 m); absent: about 4.5 m. */
+  f2f?: number
 }
 
 /** One storey of an imported mass, cut at mid-height (research P14-M04, Path A). */

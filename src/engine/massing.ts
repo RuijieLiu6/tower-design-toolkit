@@ -61,9 +61,9 @@ export function towerFloors(t: Tower): Floor[] {
   // Podium blocks: whole floors near the podium floor-to-floor in each block.
   for (const s of podium) {
     const h = s.z1 - s.z0
-    const n = h > 0 ? Math.max(1, Math.round(h / PODIUM_F2F)) : 0
+    const n = h > 0 ? Math.max(1, Math.round(h / (s.block.f2f && s.block.f2f > 0 ? s.block.f2f : PODIUM_F2F))) : 0
     const f2f = n ? h / n : 0
-    for (let i = 0; i < n; i++) floors.push({ level: floors.length + 1, z0: s.z0 + i * f2f, z1: s.z0 + (i + 1) * f2f, use: t.podiumUse, area: s.block.width * s.block.depth, podium: true })
+    for (let i = 0; i < n; i++) floors.push({ level: floors.length + 1, z0: s.z0 + i * f2f, z1: s.z0 + (i + 1) * f2f, use: s.block.use ?? t.podiumUse, area: s.block.width * s.block.depth, podium: true })
   }
   // Above the podium: floors at each band's floor-to-floor (the tower's unless the band sets its own), each taking the
   // block at its mid-height; band counts by largest remainder (engine/blocks.ts bandCounts).

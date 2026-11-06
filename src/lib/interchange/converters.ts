@@ -368,7 +368,8 @@ export function toExportScene(towers: Tower[], model: InterchangeModel | null, o
 
 function scheduleOf(t: Tower): { f2f: number; podiumTop: number; podiumF2F: number } {
   if (t.imported) return { f2f: t.imported.f2f, podiumTop: t.imported.podiumTop, podiumF2F: t.imported.podiumF2F }
-  const n = t.podiumHeight > 0 ? Math.max(1, Math.round(t.podiumHeight / PODIUM_F2F)) : 0
+  // The podium's storeys as the floors count them (a generated podium's blocks carry their own storey heights).
+  const n = t.podiumHeight > 0 ? Math.max(1, towerFloors(t).filter((f) => f.podium).length) : 0
   return { f2f: t.f2f, podiumTop: t.podiumHeight, podiumF2F: n ? t.podiumHeight / n : PODIUM_F2F }
 }
 

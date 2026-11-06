@@ -2,7 +2,7 @@
 // experience"). The Volume step leads with one card: "Place a tower" puts the project's starting tower on the site
 // (the study site's centre in Real Vancouver, the competition block otherwise), then the usual placing follows: click
 // the ground where it goes, Confirm in the toolbar, or Esc to keep it where it stands. Other steps say where to start.
-import { ArrowLeft, Building2, Crosshair, MapPin } from '../icons'
+import { ArrowLeft, Building2, Crosshair, MapPin, Wand2 } from '../icons'
 import { useShallow } from 'zustand/react/shallow'
 import { defaultTower, useStore } from '../../store'
 import { goToStep } from '../../lib/step'
@@ -23,7 +23,8 @@ export function placeFirstTower() {
   }
 }
 
-export function PlaceFirstTower() {
+/** `onGenerate`: opens Generate (a massing from a brief, Sinnie Choi's generator) below the card. */
+export function PlaceFirstTower({ onGenerate }: { onGenerate?: () => void } = {}) {
   const { project, site } = useStore(useShallow((s) => ({ project: s.project, site: s.citySite })))
   const start = defaultTower(project)
   const where = project === 'vtc' ? 'on the competition block' : site ? `on your site${site.label ? ` (${site.label})` : ''}` : null
@@ -43,6 +44,12 @@ export function PlaceFirstTower() {
         className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
         <Crosshair size={14} />Place a tower
       </button>
+      {onGenerate && (
+        <button type="button" onClick={onGenerate} data-testid="open-generate"
+          className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-line bg-panel px-3 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
+          <Wand2 size={13} />Or generate a massing from a brief
+        </button>
+      )}
       {project === 'city' && !site && (
         <button type="button" onClick={() => goToStep('site')} className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
           <MapPin size={13} />Choose a site first

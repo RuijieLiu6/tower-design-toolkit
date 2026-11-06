@@ -4,7 +4,8 @@
 // name and what it does; clicking it opens its controls below the row (one tool at a time, remembered per step).
 // Tools come from the registry (registry.ts). Massing shows only the current step's tools (Site = site and Rhino
 // import; past Site they leave the panel). A project with no tower leads Volume with "Place your tower"
-// (tools/NoTower.tsx) and points Program and Schematic there.
+// (tools/NoTower.tsx), keeping only the tools that make towers (Generate) beside it, and points Program and Schematic
+// there.
 import { TriangleAlert } from '../icons'
 import { Component, Suspense, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useStore, useTowers } from '../../store'
@@ -42,11 +43,11 @@ class ToolBoundary extends Component<{ label: string; children: ReactNode }, { e
 }
 
 /** One tool: its icon and key words; the full name and what it does on hover or focus (components/IconTile.tsx). */
-function ToolTile({ tool, active, tabStop, onPick, onKey }: { tool: DesignTool; active: boolean; tabStop: boolean; onPick: () => void; onKey: (e: KeyboardEvent<HTMLButtonElement>) => void }) {
+function ToolTile({ tool, active, tabStop, panelOpen, onPick, onKey }: { tool: DesignTool; active: boolean; tabStop: boolean; panelOpen: boolean; onPick: () => void; onKey: (e: KeyboardEvent<HTMLButtonElement>) => void }) {
   const hint = useStore((s) => (typeof tool.hint === 'function' ? tool.hint(s) : tool.hint))
   return (
     <IconTile icon={tool.icon} word={shortName(tool)} label={tool.label} hint={hint} active={active}
-      role="tab" id={`tool-${tool.id}-head`} data-tool={tool.id} aria-selected={active} aria-controls="tool-panel" tabIndex={tabStop ? 0 : -1}
+      role="tab" id={`tool-${tool.id}-head`} data-tool={tool.id} aria-selected={active} aria-controls={panelOpen ? 'tool-panel' : undefined} tabIndex={tabStop ? 0 : -1}
       onClick={onPick} onKeyDown={onKey} />
   )
 }
@@ -62,11 +63,12 @@ export default function ToolPanel() {
   const stepTools = useMemo(() => (phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step])
   // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
   const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
-  const shown = empty ? [] : stepTools
+  // No tower on Volume: only the tools that make towers stay (Generate), and none opens until it is picked.
+  const shown = empty === 'place' ? stepTools.filter((t) => t.worksWithoutTower) : empty ? [] : stepTools
   // The open tool, per step (Massing) or stage: the one picked here before, else the first that opens by default.
   const where = phase === 'basic' ? `basic:${step}` : phase
   const [picked, setPicked] = useState<Record<string, string>>(readActive)
-  const activeId = shown.find((t) => t.id === picked[where])?.id ?? (shown.find((t) => t.defaultOpen) ?? shown[0])?.id
+  const activeId = shown.find((t) => t.id === picked[where])?.id ?? (empty ? undefined : (shown.find((t) => t.defaultOpen) ?? shown[0])?.id)
   const active = shown.find((t) => t.id === activeId)
   const pick = (id: string) => setPicked((o) => { const next = { ...o, [where]: id }; writeActive(next); return next })
   const stepLabel = phase === 'basic' ? PROCESS.find((p) => p.id === step)?.label : null
@@ -93,11 +95,11 @@ export default function ToolPanel() {
       </div>
       {shown.length > 0 && (
         <div role="tablist" aria-label="Design tools" className="flex flex-wrap gap-0.5 border-b border-line px-2 py-1.5">
-          {shown.map((t) => <ToolTile key={t.id} tool={t} active={t.id === activeId} tabStop={t.id === activeId} onPick={() => pick(t.id)} onKey={onKey} />)}
+          {shown.map((t, i) => <ToolTile key={t.id} tool={t} active={t.id === activeId} tabStop={activeId ? t.id === activeId : i === 0} panelOpen={!!activeId} onPick={() => pick(t.id)} onKey={onKey} />)}
         </div>
       )}
       <div className="flex-1 overflow-y-auto">
-        {empty === 'place' && <PlaceFirstTower />}
+        {empty === 'place' && <PlaceFirstTower onGenerate={shown.some((t) => t.id === 'generate') && activeId !== 'generate' ? () => pick('generate') : undefined} />}
         {empty === 'none' && <NoTowerYet />}
         {active && Body && (
           <div id="tool-panel" role="tabpanel" aria-labelledby={`tool-${active.id}-head`} data-tool-body={active.id} className="pb-1">

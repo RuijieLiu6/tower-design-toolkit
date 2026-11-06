@@ -210,8 +210,9 @@ export function MassingTool() {
           <NumberField label="Floor-to-floor" value={t.f2f} onChange={(v) => up({ f2f: Math.max(2.8, v) })} step={0.1} unit="m" />
         </div>
         <BlockEditor t={t} />
-        <label className="flex items-center justify-between text-xs"><span className="text-muted">Podium use</span>
-          <select value={t.podiumUse} onChange={(e) => up({ podiumUse: e.target.value as UseId })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
+        {/* A generated podium can hold a use per block (retail at grade, office above); picking one use here sets them all. */}
+        <label className="flex items-center justify-between text-xs"><span className="text-muted">Podium use{t.blocks?.some((b) => b.podium && b.use) ? ' (mixed: set by block)' : ''}</span>
+          <select value={t.podiumUse} onChange={(e) => up({ podiumUse: e.target.value as UseId, ...(t.blocks?.some((b) => b.use) ? { blocks: t.blocks.map((b) => ({ ...b, use: undefined })) } : {}) })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
             {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
           </select>
         </label>

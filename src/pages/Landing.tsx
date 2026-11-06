@@ -184,7 +184,7 @@ export default function Landing() {
         </div>
 
         <footer className="mt-auto pt-10 text-[11px] text-muted">
-          UBC SALA ARCH 540 · Ruijie Liu and Sinnie Choi · instructor Xun Liu · An early estimate tool: the City and the competition rules govern.
+          UBC SALA ARCH 540 · Ruijie Liu and Sinnie Choi · instructor Xun Liu · Generate uses the massing generator from Sinnie Choi's <a href="https://github.com/xubynii/dtmass" target="_blank" rel="noreferrer" className="underline">Downtown Massing Tool</a>, with her permission · An early estimate tool: the City and the competition rules govern.
         </footer>
       </div>
     </div>

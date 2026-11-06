@@ -42,6 +42,11 @@ export interface DesignTool {
   when?: (s: StoreState) => boolean
   /** Massing steps the tool leads (lib/step.ts); without it, lib/step.ts TOOL_STEPS or "More tools". Never hides a tool. */
   steps?: StepId[]
+  /**
+   * The tool makes towers rather than shaping one (Generate, engine/dtmassGen.ts), so a site with no tower yet still
+   * offers it, next to "Place your tower" on the Volume step.
+   */
+  worksWithoutTower?: boolean
 }
 
 type ToolModule = { default: DesignTool | DesignTool[] }
