@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { placeStartingTower } from './helpers'
+import { openResultDetails, placeStartingTower } from './helpers'
 
 const OUT = process.env.EVAL_OUT ?? join(process.cwd(), 'test-results', 'eval')
 const SHOTS = join(OUT, 'shots')
@@ -67,6 +67,7 @@ async function node(p: Page, name: string) {
     try { await showNode(p, name); break } catch (e) { if (k >= 2) throw e }
   }
   await p.waitForTimeout(1200)
+  await openResultDetails(p) // the cards these cases read sit under Details (6 Nov)
 }
 
 /**

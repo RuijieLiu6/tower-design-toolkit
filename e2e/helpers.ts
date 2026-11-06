@@ -26,3 +26,13 @@ export async function openDesignTool(p: Page, id: string) {
   if ((await tile.getAttribute('aria-selected')) !== 'true') await tile.click()
   await p.locator(`[data-tool-body="${id}"]`).waitFor({ timeout: 60_000 })
 }
+
+/**
+ * Results open with a pass/fail checklist and fold the full cards under "Details, sources and settings" (6 Nov):
+ * tests that read a card's words open the fold first. No fold (a check without result lines): nothing to do.
+ */
+export async function openResultDetails(p: Page) {
+  const fold = p.getByTestId('result-details').first()
+  if (!(await fold.count())) return
+  if (!(await fold.evaluate((e) => (e as HTMLDetailsElement).open))) await fold.locator('summary').first().click()
+}
