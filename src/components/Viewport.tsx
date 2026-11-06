@@ -34,7 +34,7 @@ import TowerGizmo, { TowerMover } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
 import MassingEdit3D from './MassingEdit3D'
 import MassingEditReadout from './MassingEditReadout'
-import { proposePlace } from '../lib/towerEdit'
+import { proposePlace, useTowerEdit } from '../lib/towerEdit'
 import CameraClamp from './CameraClamp'
 import { BvhWarmup, eventsWithoutWheel, installFastRaycast } from '../lib/fastRaycast'
 import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
@@ -604,6 +604,8 @@ export default function Viewport() {
   const phase = useStore((s) => s.phase)
   const looking = useViewFromStore((s) => s.looking)
   const placing = useStore((s) => s.placing)
+  // With a tower picked, its toolbar says how to place it (the floating hint would sit on top of the toolbar).
+  const picked = useTowerEdit((s) => !!s.picked)
   const selected = useStore((s) => s.selectedTower)
   // Only the sun switch matters here; each overlay reads its own switch. Reading the whole map re-rendered the 3D scene
   // and the dock on every node switch. Deferred, so the switch itself flips at once (mouse response, 4 Nov).
@@ -673,7 +675,7 @@ export default function Viewport() {
       {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
-      {placing && !hidden && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
+      {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
       <TowerToolbar />
       <MassingEditReadout />

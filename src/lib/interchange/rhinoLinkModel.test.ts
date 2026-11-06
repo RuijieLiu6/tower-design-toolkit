@@ -30,7 +30,7 @@ describe('a model from the Rhino link: below grade, landscape and urban design',
     expect(built.towers).toHaveLength(1)
     const t = built.towers[0].tower
     expect(t.height).toBeCloseTo(120, 1)
-    expect(t.basement).toEqual({ levels: 2, f2f: 3.2, use: 'parking', extent: 'podium' })
+    expect(t.basement).toEqual({ levels: 2, f2f: 3.2, use: 'parking', extent: 'podium', from: 'model' })
     const roles = built.model.elements.map((e) => e.role)
     expect(roles).toContain('landscape')
     expect(roles).toContain('urban')

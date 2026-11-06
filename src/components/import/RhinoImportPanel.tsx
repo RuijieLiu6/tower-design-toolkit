@@ -8,6 +8,7 @@ import { stopLink, useLiveLink } from '../../lib/interchange/live'
 import { connectRhino, RHINO_COMMAND, RHINO_SCRIPT, useRhinoState } from '../../lib/interchange/rhinoLink'
 import { useStore, useTowers } from '../../store'
 import Help from '../Help'
+import PlaceModelGuide from './PlaceModelGuide'
 
 export default function RhinoImportPanel() {
   const present = useStore((s) => s.phase === 'present')
@@ -33,6 +34,7 @@ export default function RhinoImportPanel() {
           <button type="button" onClick={details} className="mt-1 text-[11px] text-accent hover:underline">Details and provenance</button>
         </div>
       )}
+      {model && !present && <PlaceModelGuide />}
       <RhinoLive disabled={present} />
     </div>
   )
@@ -41,7 +43,6 @@ export default function RhinoImportPanel() {
 const RHINO_LINK_NAME = 'Rhino (live link)'
 const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
 
-/** Link Rhino live: the three steps, the plugin to download, what to type in Rhino, and the link's state. */
 /** What Rhino's window is set to (link 2): instant sync, or changes held until Send now; the ground and basements it sends. */
 function RhinoSyncLine() {
   const last = useRhinoState((s) => s.last)
@@ -56,6 +57,7 @@ function RhinoSyncLine() {
   )
 }
 
+/** Link Rhino live: the three steps, the plugin to download, what to type in Rhino, and the link's state. */
 function RhinoLive({ disabled }: { disabled: boolean }) {
   const live = useLiveLink()
   const linked = live.name === RHINO_LINK_NAME && live.status !== 'off'
@@ -102,7 +104,7 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
           </li>
           <li className="flex gap-1.5"><Num n={3} />
             <div className="grid gap-1">
-              <span>Connect, then map the layers and place the model the first time.</span>
+              <span>Connect, then map the layers. The first time, place the building on your site, set its basement and confirm.</span>
               <button type="button" onClick={connect} disabled={disabled || busy} data-testid="rhino-connect" className={`${btn} w-fit border-accent text-accent hover:bg-accent/5`}>{busy ? <Loader2 size={12} className="animate-spin" /> : <Plug size={12} />}{busy ? 'Looking for Rhino…' : 'Connect to Rhino'}</button>
             </div>
           </li>

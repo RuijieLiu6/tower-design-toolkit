@@ -9,6 +9,7 @@ import type { Tower } from '../../engine/types'
 import { useMobilityStore } from '../../lib/mobilityStore'
 import { useStore, useTowers } from '../../store'
 import { useDig } from '../BelowGrade'
+import { guideSite } from '../../lib/import/placeModel'
 import Help from '../Help'
 import { FlagChip, NumberField } from '../ui'
 
@@ -16,7 +17,7 @@ const btn = 'flex items-center justify-center gap-1.5 rounded-md border px-2 py-
 const fmt = (v: number, d = 0) => v.toLocaleString('en-CA', { maximumFractionDigits: d, minimumFractionDigits: d })
 
 /** The dig view looks at the tower's base from low down, so the levels under the ground read. */
-function lookBelow(t: Tower) {
+export function lookBelow(t: Tower) {
   const s = useStore.getState(), base = s.project === 'city' ? s.groundElevation : 0, depth = basementDepth(t)
   const span = Math.max(80, Math.max(t.podiumWidth, t.podiumDepth, t.width, t.depth) * 1.6)
   s.set({ cameraRequest: { position: [t.x - span * 0.9, t.y - span * 1.2, base + span * 0.45], target: [t.x, t.y, base - depth / 2], fov: 40 } })
@@ -29,7 +30,10 @@ export default function BasementTool() {
   const t = towers.find((x) => x.id === selected) ?? towers[0]
   if (!t) return null
   const b = t.basement
-  const set = (patch: Partial<Basement>) => updateTower(t.id, { basement: { ...(b ?? DEFAULT_BASEMENT), ...patch } })
+  // An edit here makes the basement the person's own (no longer the uploaded model's).
+  const set = (patch: Partial<Basement>) => updateTower(t.id, { basement: { ...(b ?? DEFAULT_BASEMENT), ...patch, from: undefined } })
+  const site = guideSite()
+  const extent = (v: Basement['extent']) => set(v === 'site' && site ? { extent: v, ring: site.ring } : { extent: v })
   const sum = basementSummary(t)
   const thick = groundThickness(towers)
   return (
@@ -56,9 +60,10 @@ export default function BasementTool() {
               <option value="mixed">Mixed: parking, storage, plant</option>
             </select></label>
           <label className="flex items-center justify-between gap-2"><span className="text-muted">Dug under</span>
-            <select value={b.extent} onChange={(e) => set({ extent: e.target.value as Basement['extent'] })} className="rounded border border-line bg-panel px-1.5 py-1">
+            <select value={b.extent} onChange={(e) => extent(e.target.value as Basement['extent'])} className="rounded border border-line bg-panel px-1.5 py-1">
               <option value="podium">The podium</option>
               <option value="tower">The tower only</option>
+              {(site || b.extent === 'site') && <option value="site">The whole site</option>}
             </select></label>
           <div role="group" aria-label="Basement actions" className="grid grid-cols-2 gap-1.5">
             <button type="button" onClick={() => { useDig.setState({ dig: !dig }); if (!dig) lookBelow(t) }} aria-pressed={dig} data-testid="basement-dig"

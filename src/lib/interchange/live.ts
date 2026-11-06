@@ -10,6 +10,7 @@ import type { LoadedImport } from '../import/load'
 import { applyModel } from './apply'
 import { buildModel } from './build'
 import { autoMapping } from './mapping'
+import { ringMetrics } from '../../engine/site'
 import type { Mapping } from './model'
 
 /** How often a linked file is checked while the tab is open (ms). */
@@ -28,12 +29,19 @@ interface LiveState {
 }
 export const useLiveLink = create<LiveState>(() => ({ name: null, status: 'off', lastSync: null, message: null }))
 
+/** Where "centre on the site" puts a model: the competition block, the study site's centre, else the selected tower. */
+export function siteCentreOf(s = useStore.getState()): [number, number] {
+  if (s.project === 'vtc') return [0, 0]
+  if (s.citySite && s.citySite.ring.length >= 3) return ringMetrics(s.citySite.ring).centre
+  const sel = s.towers[s.project].find((t) => t.id === s.selectedTower) ?? s.towers[s.project][0]
+  return [sel?.x ?? 0, sel?.y ?? 0]
+}
+
 /** The project frame an upload is placed in (north, site centre, ground, map origin), as the upload dialog uses it. */
 export function projectFrame(s = useStore.getState()): ProjectFrame {
-  const sel = s.towers[s.project].find((t) => t.id === s.selectedTower) ?? s.towers[s.project][0]
   return {
     project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0,
-    siteCentre: s.project === 'vtc' ? [0, 0] : [sel?.x ?? 0, sel?.y ?? 0],
+    siteCentre: siteCentreOf(s),
     groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null,
   }
 }
@@ -63,6 +71,20 @@ export function startLink(handle: FileHandleLike, cfg: LinkConfig, file: File, o
   if (o.poll !== false && typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible)
   useLiveLink.setState({ name: handle.name, status: 'watching', message: handle.kind === 'rhino' ? 'Linked to Rhino: the model updates a second or two after each change you make there.' : `Linked to ${handle.name}: the model updates when you save it in Rhino.`, lastSync: null })
 }
+
+/** The project the link updates, or null when nothing is linked. */
+export const linkProject = () => link?.cfg.project ?? null
+
+/**
+ * Changes how the link places the model from its next update on (the place step after an upload: the model moved and
+ * turned on the site becomes an anchor placement, so Rhino's next change keeps it there).
+ */
+export function setLinkPlacement(patch: Partial<ImportOptions>) {
+  if (link) link.cfg = { ...link.cfg, opts: { ...link.cfg.opts, ...patch } }
+}
+
+/** The link's placement options (for tests and the place step). */
+export const linkOptions = () => link?.cfg.opts ?? null
 
 export function stopLink() {
   if (link?.timer) clearInterval(link.timer)

@@ -35,6 +35,7 @@ export default function TowerToolbar() {
   const proposal = useTowerEdit((s) => (s.proposal?.id === s.picked ? s.proposal : null))
   const live = useLivePose(picked)
   const towers = useTowers()
+  const placing = useStore((s) => s.placing)
   const project = useStore((s) => s.project)
   const phase = useStore((s) => s.phase)
   const reduced = useStore((s) => s.reducedMotion)
@@ -75,6 +76,7 @@ export default function TowerToolbar() {
         <button type="button" onClick={clearPick} aria-label="Deselect the tower" aria-keyshortcuts="Escape" title="Deselect (Esc)"
           className={`ml-auto rounded p-1 text-slate-600 hover:bg-black/5 hover:text-ink ${focusRing}`}><X size={14} aria-hidden /></button>
       </div>
+      {placing && !locked && <p data-testid="toolbar-placing" className="rounded bg-ink/85 px-1.5 py-0.5 text-[11px] text-white">Click the ground where it should stand · Esc keeps it where it is</p>}
       {locked ? (
         <p className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
           <LockKeyhole size={13} aria-hidden />Locked in Present

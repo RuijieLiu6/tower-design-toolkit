@@ -323,7 +323,7 @@ export function buildModel(i: BuildInput): BuildResult {
       const depth = Math.max(0, ...mine.map((e) => (e.geometry.kind === 'prism' ? -e.geometry.z0 : 0)))
       const levels = Math.min(8, mine.length ? Math.max(1, Math.round(depth / f2fB)) : typed > 0 ? typed : 0)
       if (!levels) return
-      b.tower = { ...b.tower, basement: { levels, f2f: f2fB, use: useB, extent: 'podium' } }
+      b.tower = { ...b.tower, basement: { levels, f2f: f2fB, use: useB, extent: 'podium', from: 'model' } }
       checks.push({ id: `basement-${b.key}`, severity: 'info', text: `${b.tower.name}: ${levels} basement level${levels === 1 ? '' : 's'} at ${f2fB} m${mine.length ? `, from ${mine.length} below-grade volume${mine.length === 1 ? '' : 's'} ${depth.toFixed(1)} m deep` : ', as set in Rhino'}.`, flag: 'team_assumption' })
     })
   }
@@ -488,7 +488,11 @@ export function defaultOptions(raw: RawImport & { unitScaleOverride?: number }, 
   const cx = ((b.min[0] + b.max[0]) / 2) * s, cy = (upAxis === 'y' ? -(b.min[2] + b.max[2]) / 2 : (b.min[1] + b.max[1]) / 2) * s
   const minZ = (upAxis === 'y' ? b.min[1] : b.min[2]) * s
   // Map coordinates in the file win; then (Real Vancouver) the file's Earth anchor; then the file origin or the site centre.
-  const placement = looksLikeUtm10(cx, cy) ? (frame.utmOrigin ? 'utm' : 'centre') : raw.earthAnchor && frame.utmOrigin ? 'earth' : Math.hypot(cx, cy) > 2000 ? 'centre' : 'keep'
+  // In Real Vancouver a file without map coordinates lands on the study site (the place step after the upload then moves
+  // and confirms it), unless it was exported from this toolkit in its local frame (the export's 'frame' note).
+  const ownFrame = /^Real Vancouver local frame/.test(raw.docStrings?.frame ?? '')
+  const placement = looksLikeUtm10(cx, cy) ? (frame.utmOrigin ? 'utm' : 'centre') : raw.earthAnchor && frame.utmOrigin ? 'earth'
+    : Math.hypot(cx, cy) > 2000 || (frame.project === 'city' && !ownFrame) ? 'centre' : 'keep'
   return {
     excluded: [], unit, unitConfirmed: !!raw.unit, upAxis, placement, offset: [0, 0],
     // A ground level set in Rhino (the Toolkit link's tdt.ground_z, file units) is the entrance floor.

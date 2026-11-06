@@ -14,7 +14,9 @@ import { DATUM_LABEL, MAGNETIC_DECLINATION, NORTH_LABEL, STREET_GRID_NORTH, type
 import { useImportStore } from '../lib/import/store'
 import { FORMAT_LABEL, FORMATS } from '../lib/import/types'
 import { applyModel, type ApplyMode } from '../lib/interchange/apply'
-import { canLink, pickLinkedFile, startLink, type FileHandleLike } from '../lib/interchange/live'
+import { canLink, pickLinkedFile, siteCentreOf, startLink, type FileHandleLike } from '../lib/interchange/live'
+import { guideSite, startPlaceGuide, watchPlacement } from '../lib/import/placeModel'
+import { flyToFit } from './VistaLook'
 import { buildModel, defaultOptions } from '../lib/interchange/build'
 import { autoMapping, itemsOf, recallMapping, roleOf } from '../lib/interchange/mapping'
 import { MASSING_ROLES, type Mapping, type ModelCheck } from '../lib/interchange/model'
@@ -42,6 +44,7 @@ export default function ImportDialog() {
   const liftPresets = useStore((s) => s.liftPresets)
   const egressPresets = useStore((s) => s.egressPresets)
   const selectedId = useStore((s) => s.selectedTower)
+  const citySite = useStore((s) => s.citySite)
   const sel = towers.find((t) => t.id === selectedId) ?? towers[0]
   const panel = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -64,9 +67,10 @@ export default function ImportDialog() {
 
   const frame: ProjectFrame = useMemo(() => ({
     project, northDeg: project === 'vtc' ? VTC_NORTH_DEG : 0,
-    siteCentre: project === 'vtc' ? [0, 0] : [sel?.x ?? 0, sel?.y ?? 0],
+    // The study site's centre (Real Vancouver), the competition block, else the selected tower (lib/interchange/live).
+    siteCentre: siteCentreOf(),
     groundElevation: ground, utmOrigin: project === 'city' ? CITY_ORIGIN : null,
-  }), [project, ground, sel?.x, sel?.y])
+  }), [project, ground, sel?.x, sel?.y, citySite]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const reading = useRef<AbortController | null>(null)
   // Closing the dialog while a file is read cancels the read.
@@ -88,7 +92,11 @@ export default function ImportDialog() {
       const m = remembered ?? autoMapping(r)
       setRecalled(!!remembered)
       setRaw(r); setMapping(m)
-      setOpts(defaultOptions(r, m, frame, sel?.f2f ?? 4.2))
+      // A new version of a model whose placement was confirmed on the site goes back where it was put.
+      const prev = useStore.getState().models[project]?.frame.placement
+      const same = useStore.getState().models[project]?.source.fileName === r.fileName
+      const o = defaultOptions(r, m, frame, sel?.f2f ?? 4.2)
+      setOpts(same && prev?.confirmed && prev.anchor ? { ...o, placement: 'anchor', anchor: prev.anchor } : o)
     } catch (e) {
       if (isCancelled(e)) { if (reading.current === ctrl) setFile(null); return }
       setError((e as Error).message || String(e))
@@ -124,11 +132,26 @@ export default function ImportDialog() {
 
   const use = (mode: ApplyMode) => {
     if (!raw || !built || built.blocked) return
+    // Placed and confirmed before, and reused here: the new model keeps that confirmation and skips the place step.
+    const before = useStore.getState().models[project]?.frame.placement
+    const kept = opts?.placement === 'anchor' && before?.confirmed && before.anchor === opts.anchor ? before.confirmed : null
     applyModel(built, raw, mode, mode === 'replace-one' ? replaceId ?? sel?.id ?? null : null)
-    if (linked && mapping && opts) startLink(linked.handle, { mapping, opts, project }, linked.file)
+    if (kept) useStore.setState((st) => { const m = st.models[project]; return m ? { models: { ...st.models, [project]: { ...m, frame: { ...m.frame, placement: { ...m.frame.placement, confirmed: kept } } } } } : {} })
+    if (linked && mapping && opts) { startLink(linked.handle, { mapping, opts, project }, linked.file); watchPlacement() }
     // Buildings under the model: demolished (hidden from views, shadows and roofs) unless the person kept them.
     if (project === 'city' && demolishCount > 0) useHideUnderDesign.setState({ on: !keep })
     close()
+    // Then place it on the site and confirm (lib/import/placeModel.ts), unless it is a new version of a placed model.
+    const model = useStore.getState().models[project]
+    if (mode !== 'update' && model && !kept) {
+      startPlaceGuide(project, model.id)
+      if (project === 'city') {
+        const g = useStore.getState().groundElevation
+        const pts: [number, number, number][] = [...(guideSite()?.ring ?? []).map(([x, y]) => [x, y, g] as [number, number, number]),
+          ...built.towers.map((t) => [t.tower.x, t.tower.y, g + t.tower.height] as [number, number, number])]
+        flyToFit(pts, 250)
+      }
+    }
   }
 
   const host = document.querySelector('[data-stage]') ?? document.body
@@ -205,7 +228,7 @@ export default function ImportDialog() {
                 : blocked ? <span className="font-medium text-red-700">{built?.blocked}</span>
                 : !built ? <span>Checking…</span>
                 : opts.north === 'unresolved' ? <span className="inline-flex items-center gap-1"><FlagChip flag="unresolved" />North stays unresolved: sun and wind results will say so.</span>
-                : <span>{built.towers.length} tower{built.towers.length === 1 ? '' : 's'}, {built.towers.reduce((s, t) => s + t.tower.imported!.storeys.filter((x) => x.hasFloor).length, 0)} storeys ready.</span>}
+                : <span>{built.towers.length} tower{built.towers.length === 1 ? '' : 's'}, {built.towers.reduce((s, t) => s + t.tower.imported!.storeys.filter((x) => x.hasFloor).length, 0)} storeys ready. Next, you place it on the site, set its basement and confirm.</span>}
             </div>
             <button onClick={close} className="rounded-md border border-line px-3 py-1.5 text-xs hover:border-accent">Cancel</button>
             {step === 'map' ? (
@@ -388,11 +411,12 @@ function UnitsBlock({ raw, objects, opts, up }: { raw: LoadedImport; objects: { 
 }
 
 function PlaceBlock({ opts, up, frame, rawCentre, minZ, earth, centre }: { opts: ImportOptions; up: (p: Partial<ImportOptions>) => void; frame: ProjectFrame; rawCentre: [number, number]; minZ: number; earth: boolean; centre: [number, number] }) {
+  const site = useStore((s) => (s.project === 'city' && s.citySite ? s.citySite.label ?? 'your study site' : null))
   return (
     <Block icon={<ScanLine size={14} className="text-accent" />} title="Placement and zero level">
       <div className="grid gap-0.5">
         <Radio name="place" value="keep" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>Keep the file's coordinates <span className="text-muted">(the file origin is this project's origin; centre at {fmtLen(rawCentre[0])}, {fmtLen(rawCentre[1])})</span></Radio>
-        <Radio name="place" value="centre" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>Centre on the {frame.project === 'vtc' ? 'VTC site' : 'study site (selected tower)'}</Radio>
+        <Radio name="place" value="centre" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>Centre on {frame.project === 'vtc' ? 'the competition block' : site ? `your study site (${site})` : 'the selected tower (no study site chosen yet)'} <span className="text-muted">(then you move and confirm it on the site)</span></Radio>
         {frame.utmOrigin && <Radio name="place" value="utm" current={opts.placement} onPick={(v: Placement) => up({ placement: v })}>File uses UTM 10N map coordinates <span className="text-muted">(EPSG:26910; subtract the project origin)</span></Radio>}
         {earth && <Radio name="place" value="earth" current={opts.placement} onPick={(v: Placement) => up({ placement: v, anchor: opts.anchor ?? { model: centre, city: frame.siteCentre, turn: 0 } })}>Use the file's Earth anchor <span className="text-muted">(its latitude and longitude put the base point on the map)</span></Radio>}
         <Radio name="place" value="anchor" current={opts.placement} onPick={(v: Placement) => up({ placement: v, anchor: opts.anchor ?? { model: centre, city: frame.siteCentre, turn: 0 } })}>Anchor a point of the model on the {frame.utmOrigin ? 'map' : 'site'}, plus a turn</Radio>

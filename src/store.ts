@@ -13,6 +13,7 @@ import type { SkyRoom } from './engine/types'
 import type { AiMeta } from './engine/renderPrompt'
 import type { InterchangeModel } from './lib/interchange/model'
 import type { StudySite } from './engine/site'
+import { setSiteBoundary } from './lib/siteGeometry'
 
 /** Defaults for a newly opened public sky room (all team assumptions, research P06-M07 and P11-M02). */
 export const DEFAULT_SKY_ROOM: Omit<SkyRoom, 'level'> = { access: 'shared', free: true, hoursOpen: 12, visitorShare: 0.6, loadBasis: 'dining', visitMinutes: 60, postedLimit: null }
@@ -264,3 +265,11 @@ export const useStore = create<State>((set, get) => ({
 
 export const useTowers = () => useStore((s) => s.towers[s.project])
 export const STAGE_LABEL = STAGE_NAME
+
+// The study site is also the Real Vancouver site boundary that placing checks and edge snapping use (lib/siteGeometry.ts):
+// without this, a tower placed on the chosen site was reported as "no site chosen yet".
+const siteBoundary = (c: StudySite | null) => (c && c.ring.length >= 3
+  ? { ring: c.ring, label: c.label ?? 'Study site', flag: (c.source === 'parcels' ? 'unverified' : 'team_assumption') as 'unverified' | 'team_assumption', source: c.note }
+  : null)
+setSiteBoundary('city', siteBoundary(useStore.getState().citySite))
+useStore.subscribe((s, p) => { if (s.citySite !== p.citySite) setSiteBoundary('city', siteBoundary(s.citySite)) })

@@ -129,6 +129,8 @@ export interface InterchangeModel {
       anchor?: { model: Pt; city: Pt; turn: number }
       /** Aligned by the file's Earth anchor (Rhino): its latitude and longitude, plus any turn. */
       earth?: { lat: number; lon: number; turn: number }
+      /** Placed on the site and confirmed by the person after the upload: when, and on which site. */
+      confirmed?: { at: string; site: string }
     }
   }
   mapping: Mapping

@@ -15,8 +15,13 @@ export interface Basement {
   f2f: number
   /** Parking (stalls, ramps, loading) or mixed (parking with storage, plant and a transit concourse). */
   use: BasementUse
-  /** Dug under the podium (default) or only under the tower. */
-  extent: 'podium' | 'tower'
+  /** Dug under the podium (default), only under the tower, or to the site boundary (`ring`). */
+  extent: 'podium' | 'tower' | 'site'
+  /** The site boundary the dig follows when `extent` is 'site' (project frame, m; kept with the basement, so it stays
+   * with the site when the tower moves). */
+  ring?: [number, number][]
+  /** 'model': set by the uploaded model (Rhino's window or its Below grade layer); the model's next update sets it again. */
+  from?: 'model'
 }
 
 /** A first basement when the person adds one (team assumption; parking floor-to-floor after Sinnie Choi's dtmass, 3.2 m). */
@@ -38,8 +43,9 @@ type Pt = [number, number]
 
 export const hasBasement = (t: Tower) => (t.basement?.levels ?? 0) > 0
 
-/** Plan outline of the dig, project frame: the widest podium block (or, for the tower extent, the tower's footprint). */
+/** Plan outline of the dig, project frame: the widest podium block, the tower's footprint, or the site boundary. */
 export function basementRing(t: Tower): Pt[] {
+  if (t.basement?.extent === 'site' && (t.basement.ring?.length ?? 0) >= 3) return t.basement.ring!
   if (t.basement?.extent === 'tower') return towerFootprint(t)
   if (!t.imported && t.blocks?.length) {
     const pod = blockSpans(t).filter((s) => s.podium)

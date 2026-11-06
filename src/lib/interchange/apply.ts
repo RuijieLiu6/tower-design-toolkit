@@ -32,7 +32,9 @@ export function updateTower(old: Tower, next: Tower): Tower {
     return o && !o.src ? { ...s, use: o.use, hasFloor: o.hasFloor && s.area >= MIN_FLOOR_AREA } : s
   }) : m.storeys
   const core = next.coreAuto === false ? { coreShare: next.coreShare, coreAuto: false } : {}
-  return { ...old, ...towerPatch({ ...m, storeys }), x: next.x, y: next.y, rotation: next.rotation, ...core, id: old.id, name: old.name }
+  // Basements set in the model (Rhino's window, Below grade volumes) win; one set here stays when the model has none.
+  const below = next.basement ? { basement: next.basement } : old.basement?.from === 'model' ? { basement: undefined } : {}
+  return { ...old, ...towerPatch({ ...m, storeys }), x: next.x, y: next.y, rotation: next.rotation, ...core, ...below, id: old.id, name: old.name }
 }
 
 export function applyModel(b: BuildResult, raw: RawImport, mode: ApplyMode, replaceId: string | null = null): string[] {
