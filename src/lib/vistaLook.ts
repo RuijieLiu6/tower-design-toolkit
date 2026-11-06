@@ -48,12 +48,12 @@ export const CHROME = {
 export const VISTA_OVERVIEW = { position: [9914.4, -118.2, 6160.9] as [number, number, number], target: [2365.1, -251.1, 20] as [number, number, number], fov: 45 }
 
 /**
- * Plan: north up from straight above the proposed tower, 3 km across the view. Ruijie called about 6 km "a good scale in
- * general" (3 Nov) and later asked for the tower "to the right scale": at 6 km a 30 m tower is 5 px, a dot; at 3 km it
- * is about 11 px with its blocks and streets readable, Downtown to Gastown and Yaletown in view (screenshots in
- * evaluation/2026-11-03-vista-tabs/). Zoom stays free.
+ * Plan: north up from straight above the proposed tower, 1 km across the view. Ruijie called about 6 km "a good scale in
+ * general" (3 Nov), then asked for the tower "to the right scale" (3 km), then (6 Nov) "when I click on plan … the view
+ * could be more zoomed in to the tower": at 1 km a 30 m tower is about 3% of the view's width, with its lot, the
+ * neighbouring blocks and the streets around it readable. Zoom stays free (wheel, or Zoom in / Zoom out).
  */
-export const PLAN_WIDTH_M = 3000
+export const PLAN_WIDTH_M = 1000
 export const PLAN_FOV = 20
 export function planCamera(centre: [number, number, number], aspect: number): { position: [number, number, number]; target: [number, number, number]; fov: number } {
   const h = PLAN_WIDTH_M / 2 / (Math.tan(THREE.MathUtils.degToRad(PLAN_FOV / 2)) * Math.max(0.3, aspect))
@@ -66,7 +66,7 @@ export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
   { id: 'city', label: 'City', title: 'Back to the whole of Vancouver (the overview)' },
   { id: 'observer', label: 'Observer', title: 'Look from a protected viewpoint (choose the view cone)' },
   { id: 'inspect', label: 'Inspect', title: 'The proposed tower in axonometric, close up; click a building for its height, type and sources' },
-  { id: 'plan', label: 'Plan', title: 'North-up plan centred on the proposed tower, 3 km across · drag to pan' },
+  { id: 'plan', label: 'Plan', title: 'North-up plan centred on the proposed tower, 1 km across · drag to pan' },
   { id: 'viewcone', label: 'Viewcone', title: 'All view cones on, or all off' },
 ]
 

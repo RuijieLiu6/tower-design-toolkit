@@ -1,5 +1,5 @@
 // The five map tabs over Real Vancouver's view (Vista layout, 3 Nov), driven like a user: City returns to the overview,
-// Plan looks straight down 3 km across, Inspect frames the proposed tower in axonometric and reads a click, Observer goes to a protected viewpoint with a
+// Plan looks straight down 1 km across, Inspect frames the proposed tower in axonometric and reads a click, Observer goes to a protected viewpoint with a
 // cone picker, Viewcone turns every cone on or off (in step with the Layers dock). Screenshots go to
 // test-results/vista-tabs/.
 import { expect, test, type Page } from '@playwright/test'
@@ -44,14 +44,14 @@ test('the five map tabs change the view; Viewcone and Context toggle cones and t
   await expect(tab(page, 'City')).toHaveAttribute('aria-pressed', 'true')
   const box = (await page.locator('[data-viewport] canvas').first().boundingBox())!
 
-  // Plan: straight down, north up, centred on the proposed tower, 3 km across.
+  // Plan: straight down, north up, centred on the proposed tower, 1 km across (Ruijie, 6 Nov: closer to the tower).
   await tab(page, 'Plan').click()
   await expect(tab(page, 'Plan')).toHaveAttribute('aria-pressed', 'true')
   await expect.poll(async () => (await camera(page)).fov, { timeout: 30_000 }).toBeCloseTo(20, 0)
   await page.waitForTimeout(1500)
   const plan = await camera(page)
   const width = 2 * (plan.pos[2] - plan.target[2]) * Math.tan((plan.fov / 2) * Math.PI / 180) * (box.width / box.height)
-  expect(width).toBeGreaterThan(2600); expect(width).toBeLessThan(3400)
+  expect(width).toBeGreaterThan(850); expect(width).toBeLessThan(1150)
   expect(Math.hypot(plan.pos[0] - plan.target[0], plan.pos[1] - plan.target[1])).toBeLessThan(1)
   await page.screenshot({ path: join(SHOTS, '01-plan.png') })
 

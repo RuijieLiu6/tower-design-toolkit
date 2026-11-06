@@ -61,7 +61,7 @@ describe("Vista's Plain look for Real Vancouver", () => {
 })
 
 describe('Plan scale and the view-cone switches', () => {
-  it('opens Plan north up over the proposed tower, PLAN_WIDTH_M (3 km) across whatever the aspect', async () => {
+  it('opens Plan north up over the proposed tower, PLAN_WIDTH_M (1 km) across whatever the aspect', async () => {
     const { planCamera, PLAN_FOV, PLAN_WIDTH_M } = await import('./vistaLook')
     for (const aspect of [1.0, 1.34, 1.8]) {
       const c = planCamera([100, 200, 30], aspect)
@@ -75,7 +75,7 @@ describe('Plan scale and the view-cone switches', () => {
   it('shows, hides and isolates cones in one store, and picks the controlling cone from the check', async () => {
     const { useConeVisibility, showAllCones, showOnlyCones, toggleCone, controllingCone, shownSummary, conesOverSite } = await import('./coneVisibility')
     const { PLAN_WIDTH_M } = await import('./vistaLook')
-    expect(PLAN_WIDTH_M).toBe(3000)
+    expect(PLAN_WIDTH_M).toBe(1000)
     const { CONES } = await import('../engine/viewCones')
     showAllCones(false); expect(shownSummary(useConeVisibility.getState().hidden)).toBe('all hidden')
     showAllCones(true); expect(shownSummary(useConeVisibility.getState().hidden)).toBe(`all ${CONES.length} shown`)

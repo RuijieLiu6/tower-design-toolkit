@@ -23,6 +23,7 @@ import { useSceneStyle } from '../lib/sceneStyle'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth } from '../lib/northView'
+import { stepConeId } from '../lib/coneNav'
 import { CHROME, MAP_MODES, MODE_HINT, PROPOSED, VISTA, VISTA_OVERVIEW, planCamera, proposedLook, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
@@ -429,8 +430,9 @@ function Utilities() {
       <Compass />
       <div className="h-3" />
       {utilityButton('Focus site', 'Frame the selected tower', focusSite, 'px-2.5')}
-      {utilityButton('+', 'Zoom in', () => zoom(-0.35), 'w-[34px]', 'Zoom in')}
-      {utilityButton('−', 'Zoom out', () => zoom(0.35), 'w-[34px]', 'Zoom out')}
+      {/* The sign and the word (Ruijie, 6 Nov: "a zoom in and zoom out button with the + and - sign with words written"). */}
+      {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">+</span>Zoom in</span>, 'Zoom in', () => zoom(-0.35), 'px-2.5', 'Zoom in')}
+      {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">−</span>Zoom out</span>, 'Zoom out', () => zoom(0.35), 'px-2.5', 'Zoom out')}
       <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" onClick={() => useDock.setState({ menu: !dockOpen })}
         className={`flex h-[33px] items-center gap-1.5 rounded-[2px] px-2.5 text-[12px] font-medium hover:bg-[#dde6dc] ${focusRing}`} style={box}>
         <span aria-hidden className="text-[9px]">{dockOpen ? '▼' : '▶'}</span>Layers
@@ -528,12 +530,17 @@ function InspectCard() {
 }
 
 // ---------- Observer: the cone picker ----------
-/** Protected views by number and name; the eye at the City's viewpoint elevation Lv, looking along the cone's axis. */
+/**
+ * Protected views by number and name; the eye at the City's viewpoint elevation Lv, looking along the cone's axis.
+ * Previous / Next step through them in order (Ruijie, 6 Nov, after Vista's "← Previous · Protected views 3 / 27 · Next →").
+ */
 function ConePicker() {
   const vp = useViewFromStore((s) => s.viewpoint)
   const looking = useViewFromStore((s) => s.looking)
   const current = looking && vp?.kind === 'cone' ? vp.coneId ?? '' : ''
   const cone = CONES.find((c) => c.id === current)
+  const at = CONES.findIndex((c) => c.id === current)
+  const navBtn = `rounded-[2px] border px-2 py-0.5 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`
   return (
     <div className="max-w-[22rem] space-y-1 px-2 py-1.5 text-[12px]" style={box}>
       <label className="flex items-center gap-1.5">
@@ -544,6 +551,15 @@ function ConePicker() {
           {CONES.map((c) => <option key={c.id} value={c.id}>{c.id} · {c.name}{hasEstimate(c.id) ? '' : ' (no City estimate)'}</option>)}
         </select>
       </label>
+      <nav aria-label="Protected view navigation" data-testid="cone-nav" className="flex items-center gap-1.5">
+        <button type="button" onClick={() => goToCone(stepConeId(current, -1))} aria-label="Previous protected view" aria-describedby="cone-position"
+          className={navBtn} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>← Previous</button>
+        <span id="cone-position" role="status" aria-live="polite" aria-atomic="true" className="flex-1 text-center text-[11px] tabular-nums">
+          Protected views · {at < 0 ? `${CONES.length} available` : `${at + 1} / ${CONES.length}`}
+        </span>
+        <button type="button" onClick={() => goToCone(stepConeId(current, 1))} aria-label="Next protected view" aria-describedby="cone-position"
+          className={navBtn} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>Next →</button>
+      </nav>
       {cone && <p className="text-[11px] leading-snug">Eye at the City's viewpoint elevation Lv {cone.Lv} m (ViewCone service), looking along the cone's axis. Esc or City to leave.</p>}
       {!cone && looking && <p className="text-[11px] leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
       <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
