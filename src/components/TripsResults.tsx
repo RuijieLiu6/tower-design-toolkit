@@ -1,6 +1,6 @@
 // Results of the trips & station-entrance node (research P09-M01, M03 tier 0): AM peak-hour trips by use and mode, the
 // station-entrance load and link width (comfort only), what feeds parking and the lifts, and the presets.
-import { RotateCcw, TrainFront } from 'lucide-react'
+import { RotateCcw, TrainFront } from './icons'
 import type { RuleResult } from '../engine/types'
 import { DEFAULT_TRIPS, STATIONS, type TripPresets } from '../engine/trips'
 import { useTrips } from '../hooks/useTrips'

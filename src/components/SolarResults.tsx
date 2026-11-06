@@ -1,6 +1,6 @@
 // Inspector section of the solar-access node (research P02-M01–M03): map settings, each public space under the
 // Downtown Peninsula guideline with its clause and page, the Detailed-study take-offs, and what the guideline leaves open.
-import { ExternalLink, Loader2 } from 'lucide-react'
+import { ExternalLink, Loader2 } from './icons'
 import { MAP_DATES, type MapDate } from '../engine/solarDates'
 import { GUIDELINE, type Reading } from '../engine/solarRules'
 import type { RuleResult } from '../engine/types'

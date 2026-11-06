@@ -156,6 +156,41 @@ export default function VistaStreets({ manifest, ground, centre, tex }: { manife
  * Vista's Plain look draws its street network as thin lines (explorer.js: GL lines in COLLAGE_COLORS.roads, half a metre
  * up), not surfaces. Same network as the Context streets; decks at their interpolated heights, the rest on the ground.
  */
+/**
+ * Trails (OpenStreetMap paths, tracks and bridleways; tools/build_osm_green.py) as faint dashed lines on the ground, so
+ * park and forest land shows its trail network (5 Nov: Pacific Spirit Regional Park read as an empty patch). Display only.
+ */
+export function TrailLines({ manifest, ground, color }: { manifest: Manifest; ground: (x: number, y: number) => number; color: string }) {
+  const [segs, setSegs] = useState<Int32Array | null>(null)
+  useEffect(() => {
+    let live = true
+    const layer = manifest.layers.find((l) => l.id === 'trails')
+    if (!layer) return
+    fetch(`./data/${layer.file}`).then((r) => (r.ok ? r.json() : null)).then((j: { version: number; origin: number[]; segments: number[][] } | null) => {
+      if (!live || !j || j.version !== 1 || j.origin[0] !== 491300 || j.origin[1] !== 5458600) return
+      const a = new Int32Array(j.segments.length * 4)
+      j.segments.forEach((s, i) => a.set([s[0], s[1], s[2], s[3]], i * 4))
+      setSegs(a)
+    }, () => {})
+    return () => { live = false }
+  }, [manifest])
+  const line = useMemo(() => {
+    if (!segs) return null
+    const n = segs.length / 4, pos = new Float32Array(n * 6)
+    for (let i = 0; i < n; i++) {
+      const ax = segs[i * 4] / 10, ay = segs[i * 4 + 1] / 10, bx = segs[i * 4 + 2] / 10, by = segs[i * 4 + 3] / 10
+      pos.set([ax, ay, Math.max(0, ground(ax, ay)) + 0.4, bx, by, Math.max(0, ground(bx, by)) + 0.4], i * 6)
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    const l = new THREE.LineSegments(g, new THREE.LineDashedMaterial({ color, dashSize: 6, gapSize: 4, transparent: true, opacity: 0.75, toneMapped: false }))
+    l.computeLineDistances(); l.name = 'trails'; l.raycast = () => {}
+    return l
+  }, [segs, ground, color])
+  useEffect(() => () => { line?.geometry.dispose(); (line?.material as THREE.Material | undefined)?.dispose() }, [line])
+  return line ? <primitive object={line} /> : null
+}
+
 export function VistaStreetLines({ manifest, ground, color }: { manifest: Manifest; ground: (x: number, y: number) => number; color: string }) {
   const [streets, setStreets] = useState<Streets | null>(null)
   useEffect(() => { let live = true; loadStreets(manifest).then((s) => live && setStreets(s), () => {}); return () => { live = false } }, [manifest])

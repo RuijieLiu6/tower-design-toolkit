@@ -3,7 +3,7 @@
 // the right edge, in collapsible sections. The dock folds to a slim "Layers" tab, fades while the camera is dragged, and
 // H hides every overlay for a clean view. Captures read the WebGL canvas only, so they never include the dock.
 // Open/closed state, open sections and dismissed hints are remembered per viewer (localStorage, guarded).
-import { ChevronDown, ChevronRight, Eye, EyeOff, Layers, PanelRightClose, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, EyeOff, Layers, PanelRightClose, X } from './icons'
 import { useEffect, type ReactNode } from 'react'
 import { create } from 'zustand'
 import { useStore } from '../store'

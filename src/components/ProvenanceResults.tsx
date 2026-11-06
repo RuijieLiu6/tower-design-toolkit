@@ -1,6 +1,6 @@
 // AI use and provenance log (research P07-M07): who or what made each board element, what a person decided, the IPTC
 // term for images, and a board appendix with AI use, sources and module licences only (no people).
-import { Check, Copy, Plus, Trash2 } from 'lucide-react'
+import { Check, Copy, Plus, Trash2 } from './icons'
 import { useMemo, useState } from 'react'
 import { boardAppendix, DECIDER_LABEL, IPTC, IPTC_BASE, MODULES, provenanceIssues, type Decider, type ElementKind, type Involvement } from '../engine/provenance'
 import { useCultureStore } from '../lib/cultureStore'

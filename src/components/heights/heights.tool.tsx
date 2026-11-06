@@ -1,6 +1,6 @@
 // Left-panel design tool: Vista's height suggestion for the selected tower (Real Vancouver only). Body: HeightTool.tsx.
 import { lazy } from 'react'
-import { ArrowDownToLine } from 'lucide-react'
+import { ArrowDownToLine } from '../icons'
 import type { DesignTool } from '../tools/registry'
 
 export default {

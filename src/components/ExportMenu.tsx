@@ -1,6 +1,6 @@
 // "Export model" next to the project menu (backlog item 32): Layer 0 out to Rhino (.3dm), SketchUp and most tools
 // (OBJ + MTL), glTF (.glb); IFC is on the roadmap. Files are made in the browser; nothing is uploaded.
-import { Download, Loader2 } from 'lucide-react'
+import { Download, Loader2 } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { VTC_NORTH_DEG } from '../context'
 import { toExportScene } from '../lib/interchange/converters'

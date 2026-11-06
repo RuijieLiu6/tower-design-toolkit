@@ -1,4 +1,4 @@
-import { ChevronRight, Cuboid, Layers, MapPin, PencilRuler, Presentation } from 'lucide-react'
+import { ChevronRight, Cuboid, Layers, MapPin, PencilRuler, Presentation } from './icons'
 import { useEffect } from 'react'
 import { EVALUATE, PROCESS } from '../data/stages'
 import { whenRestored } from '../lib/project/session'

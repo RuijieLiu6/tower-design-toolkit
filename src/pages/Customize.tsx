@@ -6,7 +6,7 @@ import {
   type Edge, type FinalConnectionState, type OnBeforeDelete,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ChevronDown, Download, FilePlus2, FolderOpen, PanelRightOpen, Play, Route as RouteIcon, Save, Scale, Trash, Upload, Users, Workflow } from 'lucide-react'
+import { ChevronDown, Download, FilePlus2, FolderOpen, PanelRightOpen, Play, Route as RouteIcon, Save, Scale, Trash, Upload, Users, Workflow } from '../components/icons'
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as RMouseEvent, type ReactNode } from 'react'
 import CommunityDrawer from '../components/community/CommunityDrawer'
 import { catalog, findEntry, isRunnable, type Entry, type TabId } from '../components/workflow/catalog'

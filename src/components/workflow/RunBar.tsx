@@ -2,7 +2,7 @@
 // last run's results until "Run all" is pressed again and says when the canvas has changed since; Step through walks
 // the schedule (upstream first) one node at a time, selecting each so the details panel shows its inputs, parameters,
 // thresholds and lines. A run record (canonical JSON + SHA-256, lib/runRecord.ts) can be downloaded in any mode.
-import { ChevronLeft, ChevronRight, FileJson, Play, Radio, StepForward } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileJson, Play, Radio, StepForward } from '../icons'
 import type { RunMode } from '../../lib/runRecord'
 
 const MODES: { id: RunMode; label: string; icon: typeof Play; title: string }[] = [

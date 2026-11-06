@@ -1,5 +1,5 @@
 // Everything the workflow builder can place: Layer 0 sources, workflow logic, every registry node, and "My nodes".
-import { Box, CircleCheck, CircleX, GitCompareArrows, Layers, MapPin, Package, Scale, Workflow, type LucideIcon } from 'lucide-react'
+import { Box, CircleCheck, CircleX, GitCompareArrows, Layers, MapPin, Package, Scale, Workflow, type LucideIcon } from '../icons'
 import { CATEGORY_ICONS } from '../../data/icons'
 import { ALL_NODES, CATEGORIES, type Category, type NodeDef, type Priority } from '../../data/registry'
 import { LOGIC, SOURCES, type NodeKind } from '../../lib/workflowLogic'

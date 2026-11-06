@@ -1,5 +1,5 @@
 // Quick search, like Grasshopper's double-click search: type, pick with the arrow keys, Enter drops the node there.
-import { FlaskConical, Search } from 'lucide-react'
+import { FlaskConical, Search } from '../icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { searchEntries, STATUS_LABEL, type Entry } from './catalog'
 

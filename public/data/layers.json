@@ -1953,6 +1953,101 @@
    },
    "flag": "unverified",
    "lazy": true
+  },
+  {
+   "id": "osm_green",
+   "title": "Green space: OpenStreetMap parks, nature reserves, golf courses, forest and grass",
+   "file": "green.json",
+   "format": "JSON, rings in local decimetres east/north from CITY_ORIGIN; columns listed in the file",
+   "bytes": 534371,
+   "sha256": "6f427c7915d462a182af992c8e113f93e1b5c105e417570e3c85304ab64e9cde",
+   "count": 2717,
+   "source": {
+    "name": "OpenStreetMap leisure / landuse / natural green areas (Overpass API)",
+    "publisher": "OpenStreetMap contributors",
+    "url": "https://overpass-api.de/api/interpreter",
+    "retrieved": "2026-11-06",
+    "request": "tools/fetch_osm_green.py (3 x 3 tiles over the model base)",
+    "inputs_sha256": {
+     "requests.json": "f38aeb4223005ebea3e30bb2c039ff90b5a4f2652e941e120d150e3fc135c199"
+    },
+    "note": "Adds the green space the City's parks layer leaves out (regional parks such as Pacific Spirit, golf courses, forest, the University lands) to the ground tint. Display only."
+   },
+   "processing": {
+    "build": "python -I tools/build_osm_green.py <raw dir> public/data",
+    "min_area_m2": 150.0,
+    "simplify_m": 1.5,
+    "kinds": {
+     "leisure=park": 434,
+     "leisure=golf_course": 16,
+     "natural=wood": 626,
+     "leisure=nature_reserve": 5,
+     "landuse=grass": 1056,
+     "natural=scrub": 86,
+     "leisure=pitch": 47,
+     "leisure=garden": 135,
+     "landuse=meadow": 29,
+     "natural=grassland": 15,
+     "landuse=forest": 47,
+     "landuse=cemetery": 8,
+     "landuse=recreation_ground": 33,
+     "natural=wetland": 180
+    }
+   },
+   "licence": {
+    "name": "Open Database License (ODbL) 1.0",
+    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+   },
+   "attribution": "(c) OpenStreetMap contributors (ODbL)",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "EPSG:4617 -> EPSG:3157 (pure projection), local decimetres from CITY_ORIGIN"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "Draped on the City ground in the app (display only)."
+   },
+   "flag": "unverified",
+   "lazy": true
+  },
+  {
+   "id": "trails",
+   "title": "Trails: OpenStreetMap paths, tracks and bridleways",
+   "file": "trails.json",
+   "format": "JSON, local decimetres east/north from CITY_ORIGIN; columns listed in the file",
+   "bytes": 394165,
+   "sha256": "f5ad488cd7f1d966b55cb20badb09f48af0dfab413ae6d32eb5277d56013ec45",
+   "count": 11736,
+   "source": {
+    "name": "OpenStreetMap highway=path / track / bridleway (Overpass API)",
+    "publisher": "OpenStreetMap contributors",
+    "url": "https://overpass-api.de/api/interpreter",
+    "retrieved": "2026-11-06",
+    "request": "tools/fetch_osm_green.py (3 x 3 tiles over the model base)",
+    "inputs_sha256": {
+     "requests.json": "f38aeb4223005ebea3e30bb2c039ff90b5a4f2652e941e120d150e3fc135c199"
+    },
+    "note": "Drawn as faint dashed lines, so park and forest land shows its trail network. Tunnels left out. Display only."
+   },
+   "processing": {
+    "build": "python -I tools/build_osm_green.py <raw dir> public/data",
+    "length_km": 177.2
+   },
+   "licence": {
+    "name": "Open Database License (ODbL) 1.0",
+    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+   },
+   "attribution": "(c) OpenStreetMap contributors (ODbL)",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "EPSG:4617 -> EPSG:3157 (pure projection), local decimetres from CITY_ORIGIN"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "Draped on the City ground in the app (display only)."
+   },
+   "flag": "unverified",
+   "lazy": true
   }
  ]
 }

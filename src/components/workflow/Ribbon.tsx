@@ -1,6 +1,6 @@
 // Component ribbon, Grasshopper style: one tab per category, icon tiles grouped into panels (two rows of icons,
 // or labelled tiles with "Names" on). Drag a tile onto the canvas, or press Enter / click to drop it in the view.
-import { FlaskConical, Hammer, Search, Type, Upload, Users, Wand2 } from 'lucide-react'
+import { FlaskConical, Hammer, Search, Type, Upload, Users, Wand2 } from '../icons'
 import { useMemo, useState, type DragEvent } from 'react'
 import type { NodeDef } from '../../data/registry'
 import { catalog, STATUS_LABEL, TABS, type Entry, type TabId } from './catalog'

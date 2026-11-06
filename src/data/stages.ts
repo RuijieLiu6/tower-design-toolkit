@@ -1,7 +1,7 @@
 // The three design stages. A stage changes how the model is drawn, which tools are offered and the
 // chrome palette; it never removes capability (except the Present model lock). Evaluate is a lens on every stage.
 // Design source: 04 Tool Plan/research/ux-modes (U1, U2), one critique round.
-import { Cuboid, Gauge, PencilRuler, Presentation, type LucideIcon } from 'lucide-react'
+import { Cuboid, Gauge, PencilRuler, Presentation, type LucideIcon } from '../components/icons'
 import type { Phase } from '../store'
 
 export interface StageDef {

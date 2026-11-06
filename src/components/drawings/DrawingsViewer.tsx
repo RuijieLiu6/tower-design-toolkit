@@ -1,6 +1,6 @@
 // Present → Drawings: typical floor plans per use zone, section A–A and two elevations of the selected tower, each on
 // an A2 sheet at a standard scale. Export as SVG (prints at scale) or PNG, or add to the boards as a vector image.
-import { Download, FileImage, LayoutGrid, Plus, X } from 'lucide-react'
+import { Download, FileImage, LayoutGrid, Plus, X } from '../icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { VTC_NORTH_DEG } from '../../context'

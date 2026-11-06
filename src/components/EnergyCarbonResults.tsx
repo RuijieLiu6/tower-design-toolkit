@@ -1,6 +1,6 @@
 // Inspector for the Energy & carbon node (research P04-M01/M02/M05/M07, P11-M04): charts against the by-law and
 // policy limits, rule cards with their sources and flags, and the inputs (every preset says what it is).
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw } from './icons'
 import type { ReactNode } from 'react'
 import {
   ENERGY_FALSE_ASSUMPTIONS, ENVELOPE_LABEL, HEATING_LABEL, IEA_YIELD, SYSTEMS, type EnergyCarbonResult, type Envelope, type Heating, type Metric, type SystemId,

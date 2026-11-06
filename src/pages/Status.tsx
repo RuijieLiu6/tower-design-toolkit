@@ -1,6 +1,6 @@
 // Build status (#/status): the original request's "done / to-build tracking", read live from the node registry.
 // Built vs researched nodes by category and stage, and by plan milestone (13 Nov working core, 10 Dec v1, roadmap).
-import { ArrowLeft, BookOpen, CalendarDays, Check, FlaskConical, Package, Route as RouteIcon, Workflow } from 'lucide-react'
+import { ArrowLeft, BookOpen, CalendarDays, Check, FlaskConical, Package, Route as RouteIcon, Workflow } from '../components/icons'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { stageOf } from '../components/NodeLibrary'
 import { CATEGORY_ICONS } from '../data/icons'

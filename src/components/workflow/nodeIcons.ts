@@ -5,7 +5,7 @@ import {
   Compass, Database, Droplets, Eye, Factory, FileText, Flame, Footprints, Gauge, GitCompareArrows, Hammer, Image, KeyRound, Landmark, Layers,
   LayoutGrid, Leaf, Lightbulb, Map as MapIcon, MapPin, MessageSquare, Mountain, Network, Package, Palette, Plane, Recycle, Ruler, Scale, ScrollText,
   ShieldCheck, Sigma, Sparkles, Sun, Thermometer, TrainFront, TreePine, Truck, Users, Waypoints, Wind, Zap, type LucideIcon,
-} from 'lucide-react'
+} from '../icons'
 import { CATEGORY_ICONS } from '../../data/icons'
 import type { Category } from '../../data/registry'
 

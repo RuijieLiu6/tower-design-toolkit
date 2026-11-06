@@ -1,6 +1,6 @@
 // Hide and show the side panels (lib/panels.ts): the button in each panel's header, and the thin rail a hidden panel
 // leaves behind with the button that brings it back. Keys: [ for the left panel, ] for the right.
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from './icons'
 import { PANEL_NAME, togglePanel, type Side } from '../lib/panels'
 
 const keyOf = (side: Side) => (side === 'left' ? '[' : ']')

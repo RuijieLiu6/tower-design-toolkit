@@ -1,6 +1,6 @@
 // "Section" in the Schematic design-tool panel (components/tools/registry.ts collects every *.tool.tsx): the card opens
 // the full-size Section editor over the 3D view. Icon: lucide Rows3 (stacked floors), always shown with its word.
-import { Rows3 } from 'lucide-react'
+import { Rows3 } from '../icons'
 import { lazy } from 'react'
 import type { DesignTool } from '../tools/registry'
 

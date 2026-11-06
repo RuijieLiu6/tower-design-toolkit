@@ -1,7 +1,7 @@
 // Design options (#/options, backlog item 26): save up to four named options, compare them side by side (massing,
 // every switched-on node's result with state and evidence, deltas against a baseline), chart them by jury criterion
 // with the user's weights, and explain the difference between two options through the decision trace.
-import { ArrowLeft, ArrowDown, ArrowUp, Equal, FolderOpen, Minus, Route as RouteIcon, Save, Trash, Workflow } from 'lucide-react'
+import { ArrowLeft, ArrowDown, ArrowUp, Equal, FolderOpen, Minus, Route as RouteIcon, Save, Trash, Workflow } from '../components/icons'
 import { useEffect, useMemo, useState } from 'react'
 import { TraceRecorder } from '../components/TracePanel'
 import { FlagChip, StateChip } from '../components/ui'

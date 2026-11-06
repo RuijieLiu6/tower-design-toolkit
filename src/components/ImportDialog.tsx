@@ -2,7 +2,7 @@
 // Layer 0 interchange, 3 Nov 2026). Two screens: 1. map layers to roles with a live preview; 2. check units, north,
 // datum and health in plain words, then use the model. The file is read in this browser (a Web Worker for .3dm and
 // OBJ) and never uploaded. Loaded on demand by ImportHost. Every choice that changes the numbers is shown; nothing is assumed.
-import { ArrowLeft, ArrowRight, CircleAlert, CircleCheck, Compass, FileUp, Info, Layers, Loader2, Lock, Ruler, ScanLine, TriangleAlert, Upload, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CircleAlert, CircleCheck, Compass, FileUp, Info, Layers, Loader2, Lock, Ruler, ScanLine, TriangleAlert, Upload, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { VTC_NORTH_DEG } from '../context'

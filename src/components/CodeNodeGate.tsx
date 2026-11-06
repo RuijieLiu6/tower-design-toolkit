@@ -1,7 +1,7 @@
 // "This node runs code" panel for a community code node (research P15-M04): what the sandbox allows, the code itself
 // to read first, an explicit per-node "Allow this node to run code" (kept in this browser only), and the last run's
 // outcome, including a stop by the watchdog or a refused network call.
-import { Code2, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Code2, ShieldAlert, ShieldCheck } from './icons'
 import { useState } from 'react'
 import type { NodePackage } from '../lib/nodePackages'
 import { allowCode, isAllowed, revokeCode, useCodeRuns } from '../lib/sandbox/codeRuns'

@@ -1,5 +1,5 @@
 // The design tools that ship with the guided app. Their bodies live in DesignPanel.tsx and Anatomy.tsx.
-import { Building, Cuboid, Layers, Layers2, MapPinned, PersonStanding, Sun } from 'lucide-react'
+import { Building, Cuboid, Layers, Layers2, MapPinned, PersonStanding, Sun } from '../icons'
 import Anatomy from '../Anatomy'
 import { CoreTool, GroundTool, MassingTool, ProgramTool, SunTool, TowersTool } from '../DesignPanel'
 import type { DesignTool } from './registry'

@@ -2,7 +2,7 @@
 // where the tool makes each one. Competition site only; first on the Site step. Icon: lucide
 // ClipboardList (a brief's checklist), always with its word.
 import { lazy } from 'react'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList } from '../icons'
 import type { DesignTool } from '../tools/registry'
 
 export default {

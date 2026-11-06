@@ -32,7 +32,7 @@ import { VISTA, VISTA_LOOK, setParkMask, setWaterMask, useVistaLook, vistaShaded
 import { BUILDING_USES, SWATCH_BORDER, USE_BASES, USE_BASIS_TEXT, partUse, useColor, type BuildingUse, type UseBasis } from '../lib/buildingUse'
 import { contextFacadeMaterial, contextGroundMaterial, contextPavingMaterial, contextWaterMaterial, facadeAttribute, useVistaTextures, vistaFamily, vistaSeed, type VistaTextures } from './ContextStyle'
 import CityStreets, { useStreetDisplay } from './CityStreets'
-import VistaStreets, { VistaStreetLines } from './VistaStreets'
+import VistaStreets, { TrailLines, VistaStreetLines } from './VistaStreets'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { demolishedIndices, useSiteStore } from '../lib/siteStore'
 import ContextLayersScene, { ContextLayersPanel, useContextLayers } from './ContextLayers'
@@ -313,10 +313,12 @@ function backdropFront(r2: HeightGrid, top: HeightGrid): THREE.BufferGeometry {
 }
 
 // ---------- visual finish: City parks tint the ground; the City's 2002 shoreline is drawn over the sea plane ----------
-interface Finish { parks: { names: string[]; polys: [number, number[]][] } | null; shoreline: { lines: number[][] } | null }
+/** OpenStreetMap green space (tools/build_osm_green.py): [name, kind, rings: outer then holes, flat decimetres]. */
+type Green = { names: string[]; kinds: string[]; polys: [number, number, number[][]][] }
+interface Finish { parks: { names: string[]; polys: [number, number[]][] } | null; shoreline: { lines: number[][] } | null; green: Green | null }
 let finishCache: Promise<Finish> | null = null
 function useFinish(manifest: Manifest): Finish {
-  const [f, setF] = useState<Finish>({ parks: null, shoreline: null })
+  const [f, setF] = useState<Finish>({ parks: null, shoreline: null, green: null })
   useEffect(() => {
     const get = async (id: string) => {
       const e = manifest.layers.find((l) => l.id === id)
@@ -324,7 +326,9 @@ function useFinish(manifest: Manifest): Finish {
       const r = await fetch(`./data/${e.file}`)
       return r.ok ? r.json() : null
     }
-    finishCache ??= Promise.all([get('parks'), get('shoreline')]).then(([parks, shoreline]) => ({ parks, shoreline }), () => ({ parks: null, shoreline: null }))
+    // The City's parks and OpenStreetMap's green space (5 Nov: regional parks such as Pacific Spirit, golf courses and
+    // forest read as holes with the City's parks alone), painted into one ground tint.
+    finishCache ??= Promise.all([get('parks'), get('shoreline'), get('osm_green')]).then(([parks, shoreline, green]) => ({ parks, shoreline, green }), () => ({ parks: null, shoreline: null, green: null }))
     let live = true
     finishCache.then((v) => live && setF(v))
     return () => { live = false }
@@ -332,9 +336,10 @@ function useFinish(manifest: Manifest): Finish {
   return f
 }
 
-/** Park outlines painted into a texture over the plinth's square; the terrain multiplies it in (white = no tint). */
-function parkTexture(parks: Finish['parks'], tint: string): THREE.CanvasTexture | null {
-  if (!parks || typeof document === 'undefined') return null
+/** Park and green outlines painted into a texture over the plinth's square; the terrain multiplies it in (white = no tint). */
+function parkTexture(finish: Finish, tint: string): THREE.CanvasTexture | null {
+  const parks = finish.parks
+  if ((!parks && !finish.green) || typeof document === 'undefined') return null
   const n = 2048, s = n / (2 * PLANE_HALF)
   const cv = document.createElement('canvas')
   cv.width = cv.height = n
@@ -343,15 +348,16 @@ function parkTexture(parks: Finish['parks'], tint: string): THREE.CanvasTexture 
   g.fillStyle = '#ffffff'
   g.fillRect(0, 0, n, n)
   g.fillStyle = tint
-  for (const [, flat] of parks.polys) {
-    g.beginPath()
+  const ring = (flat: number[]) => {
     for (let i = 0; i + 1 < flat.length; i += 2) {
       const px = (flat[i] / 10 + PLANE_HALF) * s, py = n - (flat[i + 1] / 10 + PLANE_HALF) * s
       if (i) g.lineTo(px, py); else g.moveTo(px, py)
     }
     g.closePath()
-    g.fill()
   }
+  for (const [, flat] of parks?.polys ?? []) { g.beginPath(); ring(flat); g.fill() }
+  // Green space with its holes (a clearing, a clubhouse lot): one path per polygon, filled even-odd.
+  for (const [, , rings] of finish.green?.polys ?? []) { g.beginPath(); rings.forEach(ring); g.fill('evenodd') }
   const t = new THREE.CanvasTexture(cv)
   t.colorSpace = THREE.SRGBColorSpace
   t.anisotropy = 4
@@ -466,18 +472,18 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   const front = useMemo(() => backdropFront(data.r2, surface.top), [data, surface])
   // The walls meet the top on its boundary nodes (30 m), where the sea is the flat plane, not MRDEM's -2 m.
   const ring = useMemo(() => plinthRing(CITY_PLINTH, (x, y) => Math.max(SEA_Z, sampleGrid(surface.top, x, y) ?? SEA_Z), surface.top.step), [surface])
-  const parks = useMemo(() => parkTexture(finish.parks, look.park), [finish.parks, look.park])
+  const parks = useMemo(() => parkTexture(finish, look.park), [finish, look.park])
   useEffect(() => () => { r1.dispose(); r2.dispose(); front.dispose(); detailed.forEach((g) => g.dispose()) }, [r1, r2, front, detailed])
   useEffect(() => () => parks?.dispose(), [parks])
   // Context style: Vista's paving on land and its grass watercolour in the City's parks (a black-on-white park mask).
   const context = useSceneStyle((s) => s.style) === 'context'
   const tex = useVistaTextures(context)
-  const contextGround = useMemo(() => (tex ? contextGroundMaterial(tex, parkTexture(finish.parks, '#000000'), PLANE_HALF) : null), [tex, finish.parks])
+  const contextGround = useMemo(() => (tex ? contextGroundMaterial(tex, parkTexture(finish, '#000000'), PLANE_HALF) : null), [tex, finish])
   useEffect(() => () => contextGround?.dispose(), [contextGround])
   // Vista's Plain look: Vista's terrain shading with its park wash, from the same black-on-white park mask.
   const vista = look === VISTA_LOOK && !context
   const vistaGround = useMemo(() => (vista ? vistaShaded(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }), 'terrain') : null), [vista])
-  const mask = useMemo(() => (vista ? parkTexture(finish.parks, '#000000') : null), [vista, finish.parks])
+  const mask = useMemo(() => (vista ? parkTexture(finish, '#000000') : null), [vista, finish])
   useEffect(() => { setParkMask(mask, PLANE_HALF); return () => { mask?.dispose(); setParkMask(null, PLANE_HALF) } }, [mask])
   useEffect(() => () => vistaGround?.dispose(), [vistaGround])
   // The water specks: OSM water drawn over the terrain in the water colour (display only).
@@ -1023,7 +1029,7 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
       {context && tex && <SiteSurface grids={grids} tex={tex} />}
       {context
         ? tex && <VistaStreets manifest={data.manifest} ground={surface.at} centre={[t?.x ?? 0, t?.y ?? 0]} tex={tex} />
-        : look === VISTA_LOOK ? <VistaStreetLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} />
+        : look === VISTA_LOOK ? <><VistaStreetLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} /><TrailLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} /></>
         : <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />}
       <Buildings data={data} look={look} ghost={xray} hidden={hidden} />
       <SelectedBuildings data={data} hidden={hidden} />

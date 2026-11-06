@@ -5,7 +5,7 @@
 // placing, Inspect, eye-level views, the height-surface area): a click on a design tower still picks the tower.
 import { Html, Line } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Box, Building2, Check, Combine, Hammer, MousePointerClick, Square, SquareMinus, SquarePlus, Undo2, X } from 'lucide-react'
+import { Box, Building2, Check, Combine, Hammer, MousePointerClick, Square, SquareMinus, SquarePlus, Undo2, X } from '../icons'
 import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import * as THREE from 'three'
 import { footprintAt } from '../../engine/viewFrom'

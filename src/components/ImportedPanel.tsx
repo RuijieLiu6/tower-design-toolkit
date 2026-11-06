@@ -1,6 +1,6 @@
 // Side panel for an imported tower (research P14-M03 north and datum, M04 storeys and program tags, M05 health).
 // Replaces the box fields; the Schematic tools (core, plant floors, sky lobbies) keep working on the sliced storeys.
-import { Compass, Eye, EyeOff, FileUp, Layers, RotateCcw, Ruler, Square } from 'lucide-react'
+import { Compass, Eye, EyeOff, FileUp, Layers, RotateCcw, Ruler, Square } from './icons'
 import { useMemo, useState, type ReactNode } from 'react'
 import { PROGRAM_ICONS } from '../data/icons'
 import { VTC_NORTH_DEG } from '../context'

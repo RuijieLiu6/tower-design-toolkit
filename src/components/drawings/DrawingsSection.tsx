@@ -1,5 +1,5 @@
 // Present panel entry to the generated drawings (plans per use zone, section, elevations).
-import { PenTool } from 'lucide-react'
+import { PenTool } from '../icons'
 import { lazy, Suspense, useState } from 'react'
 import { FlagChip, Section } from '../ui'
 

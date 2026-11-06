@@ -1,7 +1,7 @@
 // "Brief & plan" (workflow study §7.1, tool 1 for VTC students; Phase 1 #9): the brief's key dates and its suggested
 // deliverables (p.30, "a suggestion only"), each with where Tower Design Toolkit makes it today, what is not built yet
 // (the 4 Nov run-through gaps, said plainly) and how many frames on the boards carry it. Reads the boards; changes nothing.
-import { CalendarClock, CircleCheck, CircleDashed, Presentation } from 'lucide-react'
+import { CalendarClock, CircleCheck, CircleDashed, Presentation } from '../icons'
 import { coverage, deadlineInfo, DELIVERABLES, MILESTONES, type DeliverableId } from '../../engine/boards'
 import { useBoardStore } from '../../lib/boardStore'
 import { useStore } from '../../store'

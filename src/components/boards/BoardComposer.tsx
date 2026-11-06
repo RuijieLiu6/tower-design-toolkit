@@ -1,7 +1,7 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from 'lucide-react'
+import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'

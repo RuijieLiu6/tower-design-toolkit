@@ -1,7 +1,7 @@
 // User guide (#/guide, backlog item 30): what each stage does, how evidence works, Customize, files, options, and the
 // offline app. Stage names and flag meanings come from the app's own definitions (data/stages.ts, components/ui.tsx), so
 // the guide cannot drift from what the app shows.
-import { ArrowLeft, BookOpen, Download, Route as RouteIcon, WifiOff, Workflow } from 'lucide-react'
+import { ArrowLeft, BookOpen, Download, Route as RouteIcon, WifiOff, Workflow } from '../components/icons'
 import { useEffect, useState, type ReactNode } from 'react'
 import { STAGES } from '../data/stages'
 import { FLAG_META, FlagChip, StateChip } from '../components/ui'

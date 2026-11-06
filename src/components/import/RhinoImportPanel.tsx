@@ -1,7 +1,7 @@
 // Body of the "Rhino import" design tool: the upload button, and once a model is in, what it brought and its live link;
 // then "Link Rhino live" (Ruijie, 5 Nov): a short tutorial with the plugin to download (public/rhino/tdt_link.py), what
 // to type in Rhino, and Connect to Rhino (lib/interchange/rhinoLink.ts).
-import { Check, Copy, Download, FileUp, Link2, Loader2, Plug, Spline, Unplug } from 'lucide-react'
+import { Check, Copy, Download, FileUp, Link2, Loader2, Plug, Spline, Unplug } from '../icons'
 import { useState } from 'react'
 import { useImportStore } from '../../lib/import/store'
 import { stopLink, useLiveLink } from '../../lib/interchange/live'

@@ -10,8 +10,8 @@ import {
   Store, Sun, SunDim, SunMedium, Sunrise, Target, Telescope, Tent, TrainFront, TramFront, Trees, Triangle, Trophy, Umbrella, Users,
   WandSparkles, Wind, Wrench, Eye, Plane, Zap,
   type LucideIcon,
-} from 'lucide-react'
-import { Ruler } from 'lucide-react'
+} from '../components/icons'
+import { Ruler } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
 

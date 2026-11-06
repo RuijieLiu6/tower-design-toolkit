@@ -1,7 +1,7 @@
 // Exact geometry check against the protected views' estimated lower surfaces (after Vista v34 view-envelope.js,
 // Ruijie Liu): the proposal's own triangles (parametric towers, stacked blocks, uploaded meshes), the controlling
 // point and clearance per view, side by side with the View-cone height check, and the surfaces as OBJ / JSON.
-import { Download } from 'lucide-react'
+import { Download } from './icons'
 import { useMemo } from 'react'
 import { envelopeCheck, envelopeJson, envelopeObj, proposalTriangles } from '../engine/viewEnvelope'
 import { STATE_LABEL } from '../engine/viewCones'

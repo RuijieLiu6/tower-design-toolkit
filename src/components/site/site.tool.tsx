@@ -2,7 +2,7 @@
 // panel by step): an address, a neighbourhood, or a click on the map, in Real Vancouver; the competition block in one
 // click. Icon: lucide MapPin (a place), always with its word. The body loads lazily, so this file stays light.
 import { lazy } from 'react'
-import { MapPin } from 'lucide-react'
+import { MapPin } from '../icons'
 import type { DesignTool } from '../tools/registry'
 
 export default {

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { X } from './icons'
 import { useEffect } from 'react'
 import { navigate } from '../lib/route'
 import { useStore } from '../store'

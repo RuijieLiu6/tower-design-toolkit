@@ -1,4 +1,4 @@
-import { Eye, ExternalLink } from 'lucide-react'
+import { Eye, ExternalLink } from './icons'
 import { CATEGORIES, JURY_LABEL, nodeById } from '../data/registry'
 import { sunPosition, vancouverTime } from '../engine/sun'
 import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from '../engine/egress'

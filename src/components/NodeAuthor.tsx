@@ -2,7 +2,7 @@
 // three formula metrics. Every threshold needs a source or is marked unresolved / shown as information; the formula is
 // checked as you type and run live on the three sample designs. "Check and add" hands the package to the Import tab,
 // so the same checker, tests and preview decide whether it joins My nodes (one importer, not two). Nothing is uploaded.
-import { Plus, Trash2, Wand2 } from 'lucide-react'
+import { Plus, Trash2, Wand2 } from './icons'
 import { useMemo, useState } from 'react'
 import { CATEGORIES, type Category } from '../data/registry'
 import { VARIABLES } from '../lib/layer0Summary'

@@ -1,7 +1,7 @@
 // The guided app's design tools (left panel). Each export is one tool's body; the tool definitions that place them in the
 // panel are in tools/builtin.tool.tsx.
 import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Crosshair, Expand, FileUp, Plus, Scissors, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Crosshair, Expand, FileUp, Plus, Scissors, Sparkles, Trash2 } from './icons'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
 import { stablePostedLimit } from '../engine/skyRoom'

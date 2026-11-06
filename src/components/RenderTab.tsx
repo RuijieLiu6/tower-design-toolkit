@@ -2,7 +2,7 @@
 // helper (render.plugin.ts) runs the user's own Codex CLI and ChatGPT plan after asking; on the published site the
 // capture and its prompt file are downloaded and rendered with tools/render.mjs, then imported. Every render is
 // labelled AI-generated, linked to its capture, and needs the four review checks before it can be accepted.
-import { Camera, Check, Copy, Download, FileUp, Loader2, Sparkles, Wand2, X } from 'lucide-react'
+import { Camera, Check, Copy, Download, FileUp, Loader2, Sparkles, Wand2, X } from './icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { STYLES, buildPrompt, checkSize, fitSize, pairFiles, type StyleId } from '../engine/renderPrompt'
 import {

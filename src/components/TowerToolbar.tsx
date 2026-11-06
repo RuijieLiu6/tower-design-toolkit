@@ -3,7 +3,7 @@
 // for Confirm, it shows what the new position would mean (site fit, view cones, base; lib/proposalCheck.ts) with
 // Confirm and Cancel. Present locks the model, so there the toolbar only says why. Top left of the viewport, clear of
 // the dock on the right and the placing hint in the middle.
-import { Building2, Check, LandPlot, LockKeyhole, Magnet, Move, RotateCw, X, type LucideIcon } from 'lucide-react'
+import { Building2, Check, LandPlot, LockKeyhole, Magnet, Move, RotateCw, X, type LucideIcon } from './icons'
 import { useMemo, useState } from 'react'
 import type { Tower } from '../engine/types'
 import { STATE_LABEL, type ConeCheck } from '../engine/viewCones'

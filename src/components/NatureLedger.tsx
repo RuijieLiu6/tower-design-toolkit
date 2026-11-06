@@ -1,6 +1,6 @@
 // City in Nature evidence ledger (research P05-M01): indicators with value, threshold, force, flag and source, values
 // entered here until the modules that compute them are built. No composite score, by design.
-import { OctagonX } from 'lucide-react'
+import { OctagonX } from './icons'
 import { useMemo, type ReactNode } from 'react'
 import { DIRECTIONS, FORCE_LABEL, cityInNature, fourthStoreyTop, isBinding, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
 import { towerFloors } from '../engine/massing'

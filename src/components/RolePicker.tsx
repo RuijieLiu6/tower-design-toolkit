@@ -1,7 +1,7 @@
 // "Who are you?" (workflow study §8.1, approved 4 Nov): the role cards on the start page and the compact switch in the
 // top bar. Choosing a role applies its preset once (lib/role.ts): the project and the checks that start on. The design
 // is never changed, and nothing stops the user switching any check afterwards.
-import { Compass, GraduationCap, HardHat } from 'lucide-react'
+import { Compass, GraduationCap, HardHat } from './icons'
 import { chooseRole, ROLE_PRESETS, useRole, type Role } from '../lib/role'
 import { navigate } from '../lib/route'
 import { useStore } from '../store'

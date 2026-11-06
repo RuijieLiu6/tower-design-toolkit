@@ -1,7 +1,7 @@
 // Check and export (research P13-M01 tracker + P13-M06v validator + M06c release gate): checks per board, the brief's
 // deliverables, the deadline, JPEG export under 10 MB with the validator run on the exported bytes, a validator for
 // boards made elsewhere, the deny-list and the upload gates. The tool never uploads.
-import { CheckCircle2, ChevronDown, Clock, Download, FileCheck2, Loader2, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Clock, Download, FileCheck2, Loader2, ShieldAlert } from '../icons'
 import { useEffect, useMemo, useState } from 'react'
 import {
   DELIVERABLES, GATES, MILESTONES, boardChecks, coverage, deadlineInfo, isBoardUsed, submissionChecks, validateJpeg, type Manifest,

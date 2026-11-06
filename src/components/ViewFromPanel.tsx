@@ -1,7 +1,7 @@
 // "View from here" panel (Real Vancouver; Context Model "views from cones and rooftops", research C02 and C04):
 // pick a LiDAR roof, a street point or a floor of a design tower, look at eye height, capture a 360° strip, and read
 // what the sightline sees: the North Shore terrain over the skyline, and the protected cones it crosses.
-import { Camera, Eye, EyeOff, MousePointerClick } from 'lucide-react'
+import { Camera, Eye, EyeOff, MousePointerClick } from './icons'
 import { useMemo } from 'react'
 import { sampleTerrain } from '../lib/cityLayers'
 import { towerFloors, towerFootprint } from '../engine/massing'

@@ -1,7 +1,7 @@
 // Stacked-block massing editor (after Vista's proposal parts, Ruijie Liu): add, reorder, edit and delete the blocks of
 // a parametric tower. Blocks stack bottom-up; offsets and twist are relative to the tower, which the gumball moves and
 // turns as a whole. Every edit writes the block list, so an old two-field tower becomes explicit blocks on first edit.
-import { ArrowDown, ArrowUp, Copy, Layers, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Copy, Layers, Plus, Trash2 } from './icons'
 import { blocksOf, blockSpans, towerFloors } from '../engine/massing'
 import type { Block, Tower } from '../engine/types'
 import { useStore } from '../store'

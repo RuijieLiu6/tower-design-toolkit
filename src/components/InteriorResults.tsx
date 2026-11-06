@@ -1,7 +1,7 @@
 // Inspector for the Interior & activity programme node (research P12-M04, M03): unit mix, hotel keys, office lease
 // depth and the activities on public floors, drawn on the typical plan, with what the layout changes in the lift
 // check, egress and economics compared with the area proxies.
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw } from './icons'
 import { useMemo, useState } from 'react'
 import { economics, money } from '../engine/economics'
 import { egressCheck } from '../engine/egress'

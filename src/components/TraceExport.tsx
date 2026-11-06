@@ -1,5 +1,5 @@
 // Export the decision trace as a W3C PROV-O bundle (JSON-LD), for the team's own audit (research P16-M04).
-import { Download } from 'lucide-react'
+import { Download } from './icons'
 import { useState } from 'react'
 import { RULE_CARDS } from '../data/ruleCards'
 import { saveFile } from '../lib/download'

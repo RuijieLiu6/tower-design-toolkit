@@ -2,7 +2,7 @@
 // the block (the opposite edge stays), the plate moves it, the round grip turns it, the core's edges size the core.
 // Lifts and stairs come from engine/plan.ts and engine/egress.ts. A drag shows a preview and is written to the store
 // once, on release: one undo step, nothing committed mid-drag (the gizmo's rule). Esc cancels a drag.
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw } from '../icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { coreSideEdit, moveBlock, planChecks, preview, resizeBlockEdge, rotateBlock, type Edge } from '../../engine/designEdit'
 import { stairEnclosure, stairSpots, storeyLoads } from '../../engine/egress'

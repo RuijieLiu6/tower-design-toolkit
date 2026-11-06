@@ -1,6 +1,6 @@
 // Results & evidence for an imported community node: live results with their flags, editable parameters, false
 // assumptions kept visible, and the package itself (download, remove).
-import { FileDown, OctagonX, RotateCcw, ShieldQuestionMark, Trash } from 'lucide-react'
+import { FileDown, OctagonX, RotateCcw, ShieldQuestionMark, Trash } from './icons'
 import { useState } from 'react'
 import { CATEGORIES, JURY_LABEL } from '../data/registry'
 import { FLAG_ICONS } from '../data/icons'

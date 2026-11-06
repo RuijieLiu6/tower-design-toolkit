@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, FlaskConical, Search } from 'lucide-react'
+import { ChevronDown, ChevronRight, FlaskConical, Search } from './icons'
 import { useMemo, useState } from 'react'
 import { CATEGORY_ICONS } from '../data/icons'
 import { ALL_NODES, BUILT_NODES, CATEGORIES, WORKFLOWS, type Category, type NodeDef } from '../data/registry'

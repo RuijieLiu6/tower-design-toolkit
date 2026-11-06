@@ -1,7 +1,7 @@
 // Bottom bar of the guided app: every evaluation node as an icon-only switch. The name shows on hover and on keyboard
 // focus; switching a node on also shows its results in the right panel. Search, workflow presets, My nodes and the
 // roadmap live in the Library popover at the bar's left end.
-import { Library, X } from 'lucide-react'
+import { Library, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { NODE_ICONS, communityIcons } from '../data/icons'

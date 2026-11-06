@@ -1,5 +1,5 @@
 // Present panel summary of the four boards, and the door into the board composer (research P13-M01 / M06).
-import { LayoutGrid } from 'lucide-react'
+import { LayoutGrid } from './icons'
 import { DELIVERABLES, boardChecks, coverage, deadlineInfo, isBoardUsed } from '../engine/boards'
 import { useBoardStore } from '../lib/boardStore'
 import BoardComposer from './boards/BoardComposer'

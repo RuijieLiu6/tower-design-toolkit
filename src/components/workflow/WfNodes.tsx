@@ -1,6 +1,6 @@
 // Node cards for the Customize canvas: icon, typed ports, live result with its evidence flags, and group frames.
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { CircleAlert, CircleCheck, CircleDashed, CircleHelp, CircleX, FlaskConical, PlugZap, Ban, Hourglass, PowerOff } from 'lucide-react'
+import { CircleAlert, CircleCheck, CircleDashed, CircleHelp, CircleX, FlaskConical, PlugZap, Ban, Hourglass, PowerOff } from '../icons'
 import { createContext, memo, useContext } from 'react'
 import type { Flag, RuleState } from '../../engine/types'
 import { flagCounts, PORT_COLOR, portsFor, type NodeOutput } from '../../lib/workflowLogic'

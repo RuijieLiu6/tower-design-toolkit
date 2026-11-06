@@ -2,7 +2,7 @@
 // its own data (audit: 04 Tool Plan/research/vista-audit-2026-10-22.md). One view-cone system: the City cones and the
 // View-cone height check's estimates, seen through Vista's exact clipping kernel; one camera: View from here, which now
 // also stands at protected-view origins (eye = City Lv); the North Shore mountains are the MRDEM-30 terrain.
-import { Camera, Eye, FileDown, FileUp, Layers, MapPin, Mountain, Plus } from 'lucide-react'
+import { Camera, Eye, FileDown, FileUp, Layers, MapPin, Mountain, Plus } from './icons'
 import { useMemo, useRef, useState } from 'react'
 import origins from '../data/vistaOrigins.json'
 import { towerFootprint } from '../engine/massing'

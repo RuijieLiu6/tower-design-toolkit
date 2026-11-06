@@ -7,7 +7,7 @@
 // button they can name the components and delete them"): each with a "New" mark when just added (lib/towerAdds.ts),
 // and an edit button on the right that opens its name and Delete.
 import { useState } from 'react'
-import { Building2, Check, Compass, MapPin, Pencil, Trash2, Undo2 } from 'lucide-react'
+import { Building2, Check, Compass, MapPin, Pencil, Trash2, Undo2 } from '../icons'
 import { towerFloors } from '../../engine/massing'
 import { ringMetrics, validateRing } from '../../engine/site'
 import { breakStep, undo, useHistory } from '../../lib/project/history'

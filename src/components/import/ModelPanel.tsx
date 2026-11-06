@@ -1,6 +1,6 @@
 // Inspector panel of the "Your model" node: the uploaded model (Layer 0 interchange), what each tool reads from it
 // through its converter, and where every element came from. Nothing here computes a result of its own.
-import { Box, FileUp, Link2, RefreshCw, Trash2, Unlink } from 'lucide-react'
+import { Box, FileUp, Link2, RefreshCw, Trash2, Unlink } from '../icons'
 import { useMemo } from 'react'
 import { VTC_NORTH_DEG } from '../../context'
 import { USES, type UseId } from '../../engine/types'

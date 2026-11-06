@@ -1,4 +1,4 @@
-import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, ListChecks, LockKeyhole, Network, PlayCircle, Scale, Waves, Workflow } from 'lucide-react'
+import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, ListChecks, LockKeyhole, Network, PlayCircle, Scale, Waves, Workflow } from './icons'
 import { STAGES } from '../data/stages'
 import { captureShot } from '../lib/capture'
 import { navigate } from '../lib/route'

@@ -1,7 +1,7 @@
 // One rule card (research P16-M02) and a list of cited sources, shared by the Inspector ("Rules behind this node", the
 // chip on each result) and the Trace tab. Card text is a summary, never a quotation: the link opens the source to check
 // it. While someone reviews a card, the card is hidden until they have typed their own reading (blind-first).
-import { ScrollText } from 'lucide-react'
+import { ScrollText } from './icons'
 import { useState } from 'react'
 import { CARDS_DRAFTED_BY, RULE_CARDS, type RuleCard } from '../data/ruleCards'
 import type { ResultLine } from '../lib/trace/digest'

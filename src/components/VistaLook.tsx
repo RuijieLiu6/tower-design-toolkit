@@ -9,7 +9,7 @@
 // off all"), in step with the Layers dock (lib/coneVisibility.ts).
 // VistaLookRig runs inside the canvas (model frame x east, y north, z up); the rest is DOM over the view.
 import { useFrame, useThree } from '@react-three/fiber'
-import { ChevronDown, ChevronUp, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { USES } from '../engine/types'

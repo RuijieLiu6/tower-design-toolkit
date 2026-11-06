@@ -1,6 +1,6 @@
 // Results for the wind procedure & structure node (P10-M02, P10-M01) and the pedestrian wind-study node (P03-M02).
 // Classification and shortlists only; the wind engineer and the tunnel test set the final procedure.
-import { OctagonX } from 'lucide-react'
+import { OctagonX } from './icons'
 import { useMemo } from 'react'
 import { ANALOG_LABEL, NO_ENGINE_NOTE, WIND_FALSE_ASSUMPTIONS, windProcedure, windStudyTriggers } from '../engine/windStructure'
 import type { RuleResult, Source } from '../engine/types'

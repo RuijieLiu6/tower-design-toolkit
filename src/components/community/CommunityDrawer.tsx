@@ -5,7 +5,7 @@ import { strToU8, zipSync } from 'fflate'
 import {
   ArrowLeft, BadgeCheck, Check, ClipboardCopy, Download, ExternalLink, FileJson, FlaskConical, GitPullRequest, History, Loader2, MessagesSquare,
   PackageCheck, PackagePlus, Search, ShieldAlert, Star, Users, X,
-} from 'lucide-react'
+} from '../icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CATEGORY_ICONS } from '../../data/icons'
 import { CATEGORIES, type Category } from '../../data/registry'

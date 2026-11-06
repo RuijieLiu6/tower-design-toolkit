@@ -1,6 +1,6 @@
 // Results of the pedestrian wind screen (research P03-M03 with a reduced M01 wind climate and the M02 triggers): the
 // study verdict, the airport wind rose, per-tower risk by strong-wind sector, the rules with their sources, and presets.
-import { RotateCcw, Wind } from 'lucide-react'
+import { RotateCcw, Wind } from './icons'
 import { ENGINE_NOTE, SCREEN_LABEL, DEFAULT_WIND_SCREEN, YVR_ROSE, type Level, type SectorStat, type WindScreenPresets } from '../engine/windScreen'
 import type { RuleResult } from '../engine/types'
 import { ANALOG_LABEL } from '../engine/windStructure'

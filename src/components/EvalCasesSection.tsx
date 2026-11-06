@@ -1,6 +1,6 @@
 // "Evaluation cases" on the Status page (backlog item 28): every case with its type, expectation and basis, and the
 // last run's result from public/eval/last-run.json (written by `npm run eval`). A case that failed shows as failed.
-import { ClipboardCheck } from 'lucide-react'
+import { ClipboardCheck } from './icons'
 import { useEffect, useState } from 'react'
 import { CASES } from '../eval/cases'
 import { U } from './Units'

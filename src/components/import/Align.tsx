@@ -2,7 +2,7 @@
 // Liu): an anchor point on the model and on the map plus a turn, or the file's own Earth anchor; a plan preview on the
 // real City footprints; the buildings under the model shown as demolished, with a "keep them" checkbox. The person
 // confirms with the dialog's Use button. Coordinates: project frame (EPSG:26910 minus the Real Vancouver origin).
-import { Crosshair, MapPinned } from 'lucide-react'
+import { Crosshair, MapPinned } from '../icons'
 import { useEffect, useMemo, useState } from 'react'
 import { towerFootprint } from '../../engine/massing'
 import type { Tower } from '../../engine/types'

@@ -1,7 +1,7 @@
 // Decision trace tab (research P16-M04, with rule cards from P16-M02): what changed since the last iteration, a
 // timeline of iterations coloured by their worst result, the diff to the previous one, human-written decisions, and
 // the rule cards behind the checks. The tool records; people decide and write the reasons.
-import { BookOpen, ChevronDown, ChevronRight, Diamond, GitCommitHorizontal, MessageSquarePlus, RotateCcw, ScrollText } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Diamond, GitCommitHorizontal, MessageSquarePlus, RotateCcw, ScrollText } from './icons'
 import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { RULE_CARDS } from '../data/ruleCards'

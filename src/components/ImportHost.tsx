@@ -1,5 +1,5 @@
 // Mounts the upload dialog on demand and lets a model file be dropped anywhere on the app (research P14-M02).
-import { FileUp } from 'lucide-react'
+import { FileUp } from './icons'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useImportStore } from '../lib/import/store'
 

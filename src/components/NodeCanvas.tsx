@@ -1,7 +1,7 @@
 import { Background, Controls, Handle, Position, ReactFlow, type Edge, type Node, type NodeProps } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useMemo } from 'react'
-import { Box } from 'lucide-react'
+import { Box } from './icons'
 import { CATEGORY_ICONS } from '../data/icons'
 import { BUILT_NODES, CATEGORIES, nodeById, type Category } from '../data/registry'
 import { STATE_LABEL } from '../engine/viewCones'

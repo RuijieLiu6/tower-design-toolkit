@@ -6,7 +6,7 @@
 // tests (Table 1) do not depend on the map's area. Rectangle maths: lib/solarArea.ts.
 import { Html, Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import { Move, RotateCcw, SquareDashed } from 'lucide-react'
+import { Move, RotateCcw, SquareDashed } from './icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { MapBounds } from '../engine/solarJob'

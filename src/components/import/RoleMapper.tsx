@@ -1,6 +1,6 @@
 // Step 1 of the upload: map Rhino layers (or object names, or user-string values) to roles, with a live plan and
 // elevation preview. One screen; the guesses are team assumptions until the person moves on (then they count as theirs).
-import { Info, Tags } from 'lucide-react'
+import { Info, Tags } from '../icons'
 import { useMemo } from 'react'
 import { convexHull, type Pt } from '../../engine/importGeom'
 import { USES, type UseId } from '../../engine/types'

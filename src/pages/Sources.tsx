@@ -2,7 +2,7 @@
 // metadata where the packets list it; the team's editable presets with their current values; every unverified or
 // unresolved result; every false assumption in magenta with its correction. Filter by flag, category and node; each
 // entry links back to its node and rule card. Exports a bibliography for the boards (Markdown, or a numbered block).
-import { ArrowLeft, BookOpen, ClipboardCopy, Download, ExternalLink, Search } from 'lucide-react'
+import { ArrowLeft, BookOpen, ClipboardCopy, Download, ExternalLink, Search } from '../components/icons'
 import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { RuleCardView } from '../components/RuleCardView'

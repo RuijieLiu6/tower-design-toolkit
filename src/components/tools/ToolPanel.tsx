@@ -1,6 +1,6 @@
 // Left panel of the guided app (Massing and Schematic): the design tools for the stage, as an accordion.
 // Tools come from the registry (registry.ts); which ones are open is remembered per browser.
-import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react'
+import { ChevronDown, ChevronRight, TriangleAlert } from '../icons'
 import { Component, Suspense, useMemo, useState, type ReactNode } from 'react'
 import { useStore } from '../../store'
 import Help from '../Help'

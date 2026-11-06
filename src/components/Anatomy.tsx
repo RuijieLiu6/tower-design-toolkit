@@ -1,4 +1,4 @@
-import { ArrowUpDown, Building2, Eye, EyeOff, Fan, FlaskConical, Footprints, Ghost, Layers2, PanelsTopLeft, Square } from 'lucide-react'
+import { ArrowUpDown, Building2, Eye, EyeOff, Fan, FlaskConical, Footprints, Ghost, Layers2, PanelsTopLeft, Square } from './icons'
 import { useStore } from '../store'
 import { FlagChip } from './ui'
 import { useShallow } from 'zustand/react/shallow'

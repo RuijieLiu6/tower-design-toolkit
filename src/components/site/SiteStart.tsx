@@ -3,7 +3,7 @@
 // the map (place names that fly to their neighbourhood, PlaceNames.tsx, and the click menu in SiteMapMenu.tsx); the
 // way on to Volume. The site as it stands is the right panel's Your site tab (SiteInfo.tsx). Site actions: lib/siteActions.ts.
 // 4 Nov (Ruijie): the neighbourhood list ("Or start from a neighbourhood") is gone; the names on the map do its job.
-import { ArrowRight, Combine, FileUp, MousePointerClick } from 'lucide-react'
+import { ArrowRight, Combine, FileUp, MousePointerClick } from '../icons'
 import type { Pt } from '../../engine/site'
 import { tell, useSiteStep } from '../../lib/siteActions'
 import { useSiteStore } from '../../lib/siteStore'

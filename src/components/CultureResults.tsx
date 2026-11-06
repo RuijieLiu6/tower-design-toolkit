@@ -1,5 +1,5 @@
 // Engagement ledger and claims guard (research P07-M01). Guardrails only: no cultural content, no AI verdict, no score.
-import { Check, Copy, ShieldAlert } from 'lucide-react'
+import { Check, Copy, ShieldAlert } from './icons'
 import { useMemo, useState } from 'react'
 import { CLAIM_RULES, CONTACT_RULE, COUNTERPART_LABEL, exportGate, LADDER, lintClaims, NATIONS, NON_ENDORSEMENT, recordIssues, statementFor, type ClaimFinding, type Counterpart, type Nation } from '../engine/culture'
 import { useCultureStore } from '../lib/cultureStore'

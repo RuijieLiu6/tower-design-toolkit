@@ -3,7 +3,7 @@
 import {
   ArrowRight, BadgeCheck, Check, CircleCheckBig, ClipboardCopy, Copy, FileDown, FileUp, FlaskConical, FolderDown, GitPullRequest,
   MessagesSquare, OctagonX, PackagePlus, ShieldQuestionMark, TriangleAlert, X,
-} from 'lucide-react'
+} from './icons'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import example from '../../skills/tower-studio-node-builder/references/example-node.json'

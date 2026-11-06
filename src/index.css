@@ -70,3 +70,6 @@ body { background: var(--color-paper); color: var(--color-ink); -webkit-font-smo
 /* Map place names that answer a click (components/VistaLook.tsx usePlacePicks): a pointer, and the name outlined. */
 [data-place-hover] { cursor: pointer !important; }
 [data-place][data-hover] { outline: 2px solid #426b61; outline-offset: 0; }
+
+/* The Toolkit icon set (components/icons): its stroke keeps the same width on screen at any icon size. */
+.tdt-icon * { vector-effect: non-scaling-stroke; }

@@ -1,7 +1,7 @@
 // Blind-first rule-card review (research P16-M02): first the reviewer reads the clause in the source and types their own
 // reading, without seeing the card; then the card is shown beside their reading and they give a verdict. The tool fills
 // nothing in for them and never records a review on its own.
-import { Check, X } from 'lucide-react'
+import { Check, X } from './icons'
 import { useRef, useState } from 'react'
 import type { Deontic, RuleCard, Strength } from '../data/ruleCards'
 import { makeReview, type Reading, type Verdict } from '../lib/trace/review'

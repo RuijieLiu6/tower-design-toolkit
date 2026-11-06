@@ -1,6 +1,6 @@
 // Results of the parking, loading and bicycle node (research P09-M02, M05). By-law rows stay grey until a person has
 // transcribed and checked the Parking By-law sections (the City site blocks automated reading).
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from './icons'
 import type { ReactNode } from 'react'
 import { type EdgeId } from '../engine/publicRealm'
 import type { RuleResult } from '../engine/types'

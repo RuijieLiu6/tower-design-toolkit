@@ -1,6 +1,6 @@
 // Project menu in the top bar: undo / redo, New, Open, Save as, Export, Import, and the autosave status.
 // Projects live in this browser (IndexedDB); Export writes a deterministic .json to keep or share.
-import { Box, ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from 'lucide-react'
+import { Box, ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { saveFile } from '../lib/download'
 import { useImportStore } from '../lib/import/store'

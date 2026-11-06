@@ -1,4 +1,4 @@
-import { Box } from 'lucide-react'
+import { Box } from '../icons'
 import { describe, expect, it, vi } from 'vitest'
 import { collectTools, DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
 

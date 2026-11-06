@@ -2,7 +2,7 @@
 // checklist, barrier-free vertical access, and plant floors, risers and emergency power. Items the Egress and Core & lift
 // nodes check are linked to them, not re-checked. The plant and riser estimate can feed the core and the plant floors,
 // but only when the designer presses the button.
-import { ArrowRight, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronRight } from './icons'
 import { useMemo, useState } from 'react'
 import { DEFAULT_SYSTEMS_PRESETS, LIFE_SAFETY_FALSE_ASSUMPTIONS, MECH_FLOOR_SOURCE, NOT_CERTIFICATION, lifeSafety, type ChecklistItem, type LifeSafetyResult, type SystemsPresets } from '../engine/lifeSafety'
 import type { RuleResult } from '../engine/types'

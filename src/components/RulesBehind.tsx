@@ -1,6 +1,6 @@
 // "Rules behind this node" in the Inspector (research P16-M02): the curated rule cards a built node applies, with the
 // live result each one backs, then every other source its results cite that has no card yet. Folded by default.
-import { ChevronDown, ChevronRight, ScrollText } from 'lucide-react'
+import { ChevronDown, ChevronRight, ScrollText } from './icons'
 import { useMemo, useState } from 'react'
 import { NODE_GROUPS, RULE_CARDS } from '../data/ruleCards'
 import { rulesBehind } from '../lib/trace/sources'

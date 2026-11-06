@@ -1,6 +1,6 @@
 // Library entries for community nodes: "My nodes", the "can't find it?" prompt when a search finds nothing, and the
 // permanent "Build your own node" entry that opens the node builder dialog.
-import { FileUp, PackagePlus, SearchX } from 'lucide-react'
+import { FileUp, PackagePlus, SearchX } from './icons'
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { CATEGORY_ICONS } from '../data/icons'
 import { CATEGORIES } from '../data/registry'

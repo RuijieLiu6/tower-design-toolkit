@@ -6,7 +6,7 @@
 //
 //   // src/components/design/plan.tool.tsx
 //   import { lazy } from 'react'
-//   import { Grid2x2 } from 'lucide-react'
+//   import { Grid2x2 } from '../icons'
 //   import type { DesignTool } from '../tools/registry'
 //   export default { id: 'plan', label: 'Plan', icon: Grid2x2, stages: ['advanced'], order: 30,
 //     hint: 'Edit a floor plate', component: lazy(() => import('./PlanTool')) } satisfies DesignTool
@@ -14,7 +14,7 @@
 // Keep the tool file itself light: it is loaded with the guided app, so put three.js, WASM or other heavy code
 // behind React.lazy (the panel renders every tool inside Suspense).
 import type { ComponentType, LazyExoticComponent } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '../icons'
 import type { Phase, useStore } from '../../store'
 import type { StepId } from '../../lib/step'
 

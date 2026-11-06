@@ -1,6 +1,6 @@
 // Guided-tour overlay (lib/tour.ts): a card at the bottom of the screen and a ring around the element the step is
 // about. Keyboard: → or Enter next, ← back, Esc ends the tour. No animation under reduced motion.
-import { ArrowLeft, ArrowRight, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { TOUR, useTour } from '../lib/tour'
 import { useStore } from '../store'

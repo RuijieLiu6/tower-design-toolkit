@@ -1,4 +1,4 @@
-import { Aperture, Download } from 'lucide-react'
+import { Aperture, Download } from './icons'
 import { aiLabel } from '../engine/renderPrompt'
 import { captureShot } from '../lib/capture'
 import { STAGE_LABEL, useStore } from '../store'

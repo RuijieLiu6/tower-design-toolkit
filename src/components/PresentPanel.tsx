@@ -1,4 +1,4 @@
-import { Box, Camera, Download, LayoutPanelTop, ScanEye } from 'lucide-react'
+import { Box, Camera, Download, LayoutPanelTop, ScanEye } from './icons'
 import { VTC_NORTH_DEG } from '../context'
 import { captureShot, downloadPlanSvg } from '../lib/capture'
 import { towerFloors } from '../engine/massing'

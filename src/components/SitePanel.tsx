@@ -1,7 +1,7 @@
 // Study site tools for Real Vancouver (after Vista v34 step 1, Ruijie Liu): find an address or neighbourhood, type a
 // coordinate, draw the boundary or take it from existing buildings or a GeoJSON file, and see the City parcels under
 // it with the area FSR uses. Every number carries its source and flag; the site is a study boundary, not a legal one.
-import { Crosshair, Download, FileUp, MapPin, MousePointerClick, PencilLine, Search, Trash2, WifiOff } from 'lucide-react'
+import { Crosshair, Download, FileUp, MapPin, MousePointerClick, PencilLine, Search, Trash2, WifiOff } from './icons'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { fromCity, INPUT_CRS, parsePasted, siteFromGeoJson, siteToGeoJson, toCity, type InputCrs } from '../engine/geoLocate'
 import { overlapArea, pointInRing, polyArea, ringMetrics, siteFromFootprints, validateRing, type Pt } from '../engine/site'

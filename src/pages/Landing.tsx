@@ -1,5 +1,5 @@
 // Landing page: choose the guided process (the default staged app) or Customize (build your own workflow).
-import { ArrowRight, Blocks, BookOpen, Box, Download, FlaskConical, ListChecks, Lock, PlayCircle, Route as RouteIcon, Sparkles, Upload, Workflow } from 'lucide-react'
+import { ArrowRight, Blocks, BookOpen, Box, Download, FlaskConical, ListChecks, Lock, PlayCircle, Route as RouteIcon, Sparkles, Upload, Workflow } from '../components/icons'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { FlagChip } from '../components/ui'
 import { CATEGORY_ICONS } from '../data/icons'

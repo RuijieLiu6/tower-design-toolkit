@@ -1,5 +1,5 @@
 // Right panel of the builder: the selected node's question, live lines with sources and flags, and its settings.
-import { Copy, ExternalLink, FlaskConical, Keyboard, PanelRightClose, Plus, Trash, Ungroup, Power, PowerOff } from 'lucide-react'
+import { Copy, ExternalLink, FlaskConical, Keyboard, PanelRightClose, Plus, Trash, Ungroup, Power, PowerOff } from '../icons'
 import { useReactFlow } from '@xyflow/react'
 import type { ReactNode } from 'react'
 import { CATEGORIES, JURY_LABEL } from '../../data/registry'
