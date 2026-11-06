@@ -1,6 +1,7 @@
 // Schematic design tools (core-and-lift session): drag a block top in the Section editor and a core edge in the Plan
 // editor, check the store after each release, then undo each drag in one step.
 import { expect, test, type Page } from '@playwright/test'
+import { openDesignTool, placeStartingTower } from './helpers'
 
 test.describe.configure({ mode: 'serial', timeout: 300_000 })
 
@@ -21,14 +22,14 @@ async function openSchematic(p: Page) {
   await p.goto('/#/guided')
   await p.waitForSelector('#root > *', { timeout: 60_000 })
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click({ timeout: 120_000 })
+  // A project opens with no tower (6 Nov): place Tower 1 first, as a user does.
+  await placeStartingTower(p)
   await p.keyboard.press('2')
   await p.waitForTimeout(1500)
 }
 
 async function openTool(p: Page, id: 'plan' | 'section') {
-  const head = p.locator(`[data-tool="${id}"] button[aria-expanded]`).first() // tools/ToolPanel.tsx wraps each tool in a div
-  await head.waitFor({ timeout: 60_000 })
-  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click()
+  await openDesignTool(p, id) // the tool's icon in the left panel (tools/ToolPanel.tsx)
   await p.getByTestId(`open-${id}-tool`).click()
   await p.locator(`[data-design-tool="${id}"]`).waitFor({ timeout: 60_000 })
 }

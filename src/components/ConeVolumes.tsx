@@ -81,7 +81,9 @@ export function ConeSolids({ grids }: { grids: HeightGrid[] }) {
   const solids = useConeSolids(grids)
   const { cones } = useResults()
   const sel = useStore((s) => s.selectedTower)
-  const checks = cones.find((c) => c.tower.id === sel)?.checks
+  // Analysis off (process rail): the cones are drawn without the check's colours.
+  const analysis = useStore((s) => s.analysis)
+  const checks = analysis ? cones.find((c) => c.tower.id === sel)?.checks : undefined
   const key = ESTIMATED_CONES.map((c) => checks?.find((k) => k.cone.id === c.id)?.state ?? '').join(',')
   const geo = useMemo(() => solidsGeometry(solids, (id) => checks?.find((k) => k.cone.id === id)?.state ?? null), [solids, key]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { geo.mesh.dispose(); geo.edges.dispose() }, [geo])
@@ -205,6 +207,8 @@ function TowerInCone({ t, check, base, xray }: { t: Tower; check: ConeCheck; bas
 export function ConeOverlays({ base, xray }: { base: number; xray: boolean }) {
   const { cones } = useResults()
   const off = useConeVisibility((s) => s.hidden) // drawing only: the check and its numbers stay
+  const analysis = useStore((s) => s.analysis)
+  if (!analysis) return null // analysis off (process rail): no above-the-limit parts
   return (
     <>
       {cones.flatMap((r) => r.checks.filter((c) => c.param && c.limit !== null && !off[c.cone.id]).map((c) => (

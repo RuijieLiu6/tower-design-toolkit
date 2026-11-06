@@ -6,6 +6,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { placeStartingTower } from './helpers'
 
 const SHOTS = join(process.cwd(), '..', '04 Tool Plan', 'evaluation', '2026-11-04-hide-under')
 mkdirSync(SHOTS, { recursive: true })
@@ -31,6 +32,8 @@ async function openCity(p: Page, first: boolean) {
   await p.getByRole('tab', { name: 'Real Vancouver' }).or(p.getByRole('button', { name: 'Real Vancouver' })).first().click()
   await p.waitForTimeout(5000)
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
+  // A project opens with no tower (6 Nov): place the study tower first, as a user does (a reload keeps it: autosave).
+  if (first) await placeStartingTower(p)
 }
 
 /** The dock's "Existing buildings under the design" section, opened. */

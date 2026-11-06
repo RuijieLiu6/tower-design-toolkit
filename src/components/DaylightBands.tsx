@@ -5,6 +5,7 @@ import { screenUse, SCREENED, type DaylightBand, type UseScreen } from '../engin
 import type { Floor, Tower } from '../engine/types'
 import { useStore } from '../store'
 import { U } from './Units'
+import { nodeOn } from '../lib/analysis'
 
 /** Sequential, light to dark as daylight falls off; every band is also named in text, never colour alone. */
 export const BAND_STYLE: Record<DaylightBand, { fill: string; opacity: number; label: string }> = {
@@ -45,7 +46,7 @@ export function BandLayer({ u, m, labels = true, fontSize = 2.3 }: { u: UseScree
 
 /** The board plan's daylight layer (PlanDrawing): the plan's own floor, when the node is on and the use is screened. */
 export function DaylightPlanOverlay({ t, f, X, Y, mm }: { t: Tower; f: Floor } & Map2) {
-  const on = useStore((s) => !!s.enabled['built.daylight-depth'])
+  const on = useStore((s) => nodeOn(s, 'built.daylight-depth'))
   if (!on || f.podium || f.skyLobby || !(SCREENED as readonly string[]).includes(f.use)) return null
   const u = screenUse(t, f.use as UseScreen['use'], [f])
   if (!u) return null

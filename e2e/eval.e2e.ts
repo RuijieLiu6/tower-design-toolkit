@@ -5,6 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { placeStartingTower } from './helpers'
 
 const OUT = process.env.EVAL_OUT ?? join(process.cwd(), 'test-results', 'eval')
 const SHOTS = join(OUT, 'shots')
@@ -28,6 +29,9 @@ async function open(p: Page, project: 'vtc' | 'city', stage: '1' | '2' = '1') {
   const label = project === 'city' ? 'Real Vancouver' : 'Competition site'
   await p.getByRole('tab', { name: label }).or(p.getByRole('button', { name: label })).first().click()
   await p.waitForTimeout(project === 'city' ? 3000 : 1200)
+  // A project opens with no tower (6 Nov): place the starting tower first (the cases' default design), as a user does.
+  await dismiss(p)
+  await placeStartingTower(p)
   if (stage !== '1') { await p.keyboard.press(stage); await p.waitForTimeout(1500) }
 }
 

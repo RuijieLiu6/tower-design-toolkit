@@ -7,6 +7,7 @@ import { useTripStore } from '../lib/tripStore'
 import { useStore } from '../store'
 import { useMobility } from './useMobility'
 import { useResults } from './useResults'
+import { nodeOn } from '../lib/analysis'
 
 export const TRIPS_NODE = 'built.trips'
 
@@ -17,7 +18,7 @@ export function populationFrom(lifts: LiftResult[], retailCivicM2: number): Popu
 }
 
 export function useTrips(): TripResult | null {
-  const on = useStore((s) => !!s.enabled[TRIPS_NODE])
+  const on = useStore((s) => nodeOn(s, TRIPS_NODE))
   const presets = useTripStore((s) => s.presets)
   const { lifts } = useResults()
   const mob = useMobility()

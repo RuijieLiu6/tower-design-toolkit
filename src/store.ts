@@ -50,6 +50,34 @@ const cityTower = (): Tower => ({
   coreAuto: true, skyLobbies: [],
 })
 
+/**
+ * The starting tower of each project, placed by "Place a tower" (Volume step). A project opens with no tower (Ruijie,
+ * 6 Nov: "start the project with no tower, then introduce the placing tower experience"); the first tower stands on the
+ * study site's centre (Real Vancouver) or the competition block, and the user then clicks where it goes.
+ */
+export function defaultTower(project: ProjectKind, at?: [number, number] | null): Tower {
+  const t = withAutoCore(migrateTower(project === 'vtc' ? vtcTower() : cityTower()))
+  return at ? { ...t, x: at[0], y: at[1] } : t
+}
+
+/** Centre of a ring (area-weighted; the vertex mean for a degenerate one). */
+function ringCentre(ring: [number, number][]): [number, number] {
+  let a = 0, cx = 0, cy = 0
+  for (let i = 0; i < ring.length; i++) {
+    const [x0, y0] = ring[i], [x1, y1] = ring[(i + 1) % ring.length], k = x0 * y1 - x1 * y0
+    a += k; cx += (x0 + x1) * k; cy += (y0 + y1) * k
+  }
+  if (Math.abs(a) < 1e-9) return [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length]
+  return [cx / (3 * a), cy / (3 * a)]
+}
+
+/** What a new project holds: no tower in either project (the Volume step offers "Place a tower"). */
+export const startingTowers = (): Record<ProjectKind, Tower[]> => ({ vtc: [], city: [] })
+
+/** Analysis on or off (the process rail switch), remembered in this browser; on unless switched off here. */
+const ANALYSIS_KEY = 'ts.analysis'
+const readAnalysis = () => { try { return localStorage.getItem(ANALYSIS_KEY) !== '0' } catch { return true } }
+
 export interface Shot { id: string; dataUrl: string; stage: Phase; representation: Representation | 'plan'; project: ProjectKind; at: string; /** AI render imported from the render workflow (always labelled AI-generated). */ ai?: AiMeta }
 
 const prefersReduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false } }
@@ -75,6 +103,9 @@ interface State {
   groundMode: GroundMode
   sun: { month: number; day: number; hour: number }
   placing: boolean
+  /** Analysis switch (process rail): off = the evaluation nodes don't run and their results and overlays are hidden. */
+  analysis: boolean
+  setAnalysis: (on: boolean) => void
   showOnboarding: boolean
   libraryQuery: string
   /** Camera request in the model frame (x, y, z-up); a new object each time so repeats re-apply. */
@@ -111,6 +142,7 @@ interface State {
   setPhase: (p: Phase) => void
   setView: (v: ViewMode) => void
   updateTower: (id: string, patch: Partial<Tower>) => void
+  /** Adds a tower: the first one is the project's starting tower on the site; later ones copy the last tower. */
   addTower: () => void
   removeTower: (id: string) => void
   selectTower: (id: string) => void
@@ -134,10 +166,10 @@ export const useStore = create<State>((set, get) => ({
   phase: 'basic',
   prevPhase: 'basic',
   view: '3d',
-  towers: { vtc: [withAutoCore(migrateTower(vtcTower()))], city: [withAutoCore(migrateTower(cityTower()))] },
+  towers: startingTowers(),
   models: { vtc: null, city: null },
   citySite: null,
-  selectedTower: 't1',
+  selectedTower: '',
   enabled: Object.fromEntries(DEFAULT_ON.map((id) => [id, true])),
   selectedNode: BUILT_NODES[0].id,
   fsrTier: 2,
@@ -147,6 +179,8 @@ export const useStore = create<State>((set, get) => ({
   groundMode: 'terrain',
   sun: { month: 9, day: 22, hour: 12 },
   placing: false,
+  analysis: readAnalysis(),
+  setAnalysis: (analysis) => { try { localStorage.setItem(ANALYSIS_KEY, analysis ? '1' : '0') } catch { /* storage blocked */ } set({ analysis, announce: `Analysis ${analysis ? 'on' : 'off'}` }) },
   showOnboarding: true,
   libraryQuery: '',
   cameraRequest: null,
@@ -191,7 +225,13 @@ export const useStore = create<State>((set, get) => ({
   })),
   addTower: () => set((s) => {
     const list = s.towers[s.project]
-    const base = list[list.length - 1] ?? migrateTower(vtcTower())
+    if (!list.length) {
+      // The first tower: the project's starting tower, on the study site (Real Vancouver) or the competition block.
+      const at = s.project === 'city' && s.citySite?.ring.length ? ringCentre(s.citySite.ring) : null
+      const first = withAutoCore(defaultTower(s.project, at), s.liftPresets, s.egressPresets)
+      return { towers: { ...s.towers, [s.project]: [first] }, selectedTower: first.id }
+    }
+    const base = list[list.length - 1]
     const id = `t${Date.now().toString(36)}`
     // A copy without the podium, then 30 m lower (the height edit lands on the top block once the podium is gone).
     const bare: Tower = applyTowerPatch({ ...base, blocks: base.blocks?.map((b) => ({ ...b })) }, { id, name: `Tower ${list.length + 1}`, x: base.x + 50, podiumHeight: 0, bands: base.bands.map((b) => ({ ...b })), skyLobbies: [], skyRoom: null })
@@ -199,8 +239,9 @@ export const useStore = create<State>((set, get) => ({
     return { towers: { ...s.towers, [s.project]: [...list, withAutoCore(t, s.liftPresets, s.egressPresets)] }, selectedTower: id }
   }),
   removeTower: (id) => set((s) => {
+    // The last tower can go too: the project is back to an empty site (Volume offers "Place a tower" again).
     const list = s.towers[s.project].filter((t) => t.id !== id)
-    return list.length ? { towers: { ...s.towers, [s.project]: list }, selectedTower: list[0].id } : {}
+    return { towers: { ...s.towers, [s.project]: list }, selectedTower: list[0]?.id ?? '', placing: list.length ? s.placing : false }
   }),
   selectTower: (selectedTower) => set({ selectedTower }),
   toggleNode: (id) => set((s) => ({ enabled: { ...s.enabled, [id]: !s.enabled[id] } })),

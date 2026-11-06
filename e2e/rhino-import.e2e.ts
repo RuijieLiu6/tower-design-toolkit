@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { openDesignTool } from './helpers'
 
 const FIXTURE = join(process.cwd(), 'tools', 'import-fixtures', 'typical-two-towers-mm.3dm')
 
@@ -16,10 +17,16 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   await page.waitForSelector('#root > *', { timeout: 60_000 })
   await page.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
   await page.getByRole('tab', { name: 'Competition site' }).or(page.getByRole('button', { name: 'Competition site' })).first().click()
-  // A Rhino model brings the lot line, the context and the towers, so the tool leads the Site step (and Volume).
+  // A Rhino model brings the lot line, the context and the towers, so the tool is in the Site step (only there, 6 Nov).
   const rail = page.getByRole('navigation', { name: 'Design process' })
   await rail.getByRole('button', { name: 'Site' }).click()
   await expect(rail.getByRole('button', { name: 'Site' })).toHaveAttribute('aria-current', 'step')
+  // Its icon reads "Import"; the full name and what it does show on hover (6 Nov).
+  const tile = page.locator('[role="tab"][data-tool="rhino-import"]')
+  await expect(tile).toContainText('Import')
+  await tile.hover()
+  await expect(page.getByRole('tooltip')).toContainText('Rhino import')
+  await openDesignTool(page, 'rhino-import')
 
   // One click on the tool opens the upload flow.
   const tool = page.locator('[data-tool="tool.rhino-import"]')
@@ -47,12 +54,13 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   await page.getByRole('tab', { name: 'Results & evidence' }).click()
   await expect(page.getByText('Height band: Tower A').first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText('Height band: Tower B').first()).toBeVisible()
-  // The tool now shows what came in, and it leads the Volume step too.
+  // The tool now shows what came in. Past Site it leaves the panel (Ruijie, 6 Nov), and the imported towers are there.
   await expect(tool).toHaveText(/Upload a new version/)
   await expect(page.getByText('typical-two-towers-mm.3dm').first()).toBeVisible()
   await rail.getByRole('button', { name: 'Volume' }).click()
   await expect(rail.getByRole('button', { name: 'Volume' })).toHaveAttribute('aria-current', 'step')
-  await expect(tool).toHaveText(/Upload a new version/)
+  await expect(tile).toHaveCount(0)
+  await expect(page.locator('[role="tab"][data-tool="towers"]')).toBeVisible()
 })
 
 test('the uploaded lot line and context buildings are drawn in the 3D view', async ({ page }) => {

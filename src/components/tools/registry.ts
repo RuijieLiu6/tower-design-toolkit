@@ -23,14 +23,16 @@ type StoreState = ReturnType<typeof useStore.getState>
 export interface DesignTool {
   /** Unique, stable id. Also the key for the panel's open/closed memory. */
   id: string
-  /** Short name shown next to the icon (icon + word, never the icon alone). */
+  /** Full name, shown when the pointer is over the tool's icon (with the hint). */
   label: string
+  /** One or two key words under the icon (Ruijie, 6 Nov: "Import", "Place", "Massing"); the label when absent. */
+  short?: string
   icon: LucideIcon
   /** Stages that show the tool: 'basic' = Massing, 'advanced' = Schematic, 'present' = Present. */
   stages: Phase[]
   /** Sort key in the panel, lower first. A per-stage record sets a different place in each stage. */
   order: number | Partial<Record<Phase, number>>
-  /** What the tool does, behind the "?" beside its name; a function when it depends on the open project. */
+  /** What the tool does, shown in full when the pointer is over its icon; a function when it depends on the open project. */
   hint?: string | ((s: StoreState) => string)
   /** The tool's body: no props, reads the store itself. */
   component: ComponentType | LazyExoticComponent<ComponentType>

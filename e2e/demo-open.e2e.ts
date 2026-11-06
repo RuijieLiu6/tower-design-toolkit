@@ -3,6 +3,7 @@
 // the step wasn't recorded, so Ctrl+Z couldn't bring the user's design back. Fixed in lib/tour.ts (loadDemo).
 // Run: node node_modules/playwright/cli.js test e2e/demo-open.e2e.ts
 import { expect, test, type Page } from '@playwright/test'
+import { placeStartingTower } from './helpers'
 
 const heights = (p: Page) => p.evaluate(async () => {
   const url = performance.getEntriesByType('resource').map((e) => e.name).filter((x) => /\/src\/store\.ts/.test(x)).pop()!
@@ -20,6 +21,8 @@ test('the demo opens over an existing autosave, and Undo brings the design back'
   // A first open with nothing saved starts in Real Vancouver (Site step, 3 Nov); the design edited here is the
   // competition one, so switch to it as a user would. (updateTower edits the open project's towers only.)
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click()
+  // A project opens with no tower (6 Nov): place Tower 1 first, as a user does.
+  await placeStartingTower(p)
   await p.evaluate(async () => {
     const url = performance.getEntriesByType('resource').map((e) => e.name).filter((x) => /\/src\/store\.ts/.test(x)).pop()!
     const { useStore } = await import(/* @vite-ignore */ url)

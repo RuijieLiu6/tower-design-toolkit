@@ -36,5 +36,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  test: { environment: 'node' },
+  // Tests run with the starting tower placed in each project (src/test/startingTowers.ts); the app itself opens empty.
+  test: { environment: 'node', setupFiles: ['src/test/startingTowers.ts'] },
 }))

@@ -41,9 +41,10 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
   const results = p.getByRole('complementary', { name: 'Results and evidence' })
   const bar = p.getByRole('toolbar', { name: 'Checks: switch each on or off' })
 
-  // Massing: tools left, results right, every Massing check as an icon switch at the bottom.
+  // Massing: tools left (the Volume step's icons, 6 Nov), results right, every Massing check as an icon switch at the bottom.
   await expect(tools.getByRole('heading', { name: 'Design tools' })).toBeVisible()
-  await expect(tools.getByRole('button', { name: /^Massing/ })).toBeVisible()
+  await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="volume"]').click()
+  await expect(tools.getByRole('tab', { name: 'Massing', exact: true })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Results & evidence' })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Design' })).toHaveCount(0)
   expect(await bar.getByRole('switch').count()).toBeGreaterThanOrEqual(17)
@@ -53,7 +54,7 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
 
   // Schematic: Core & floors leads the tools; the bar adds the Schematic checks.
   await stage(p, '2')
-  await expect(tools.getByRole('button', { name: /^Core & floors/ })).toBeVisible()
+  await expect(tools.getByRole('tab', { name: 'Core & floors', exact: true })).toBeVisible()
   await expect(bar.getByRole('switch', { name: 'Use Core & lift check', exact: true })).toBeVisible()
   await bar.getByRole('switch', { name: 'Use Core & lift check', exact: true }).hover()
   await p.screenshot({ path: join(OUT, 'schematic-1440x900.png') })

@@ -18,6 +18,7 @@ import { useResults } from '../hooks/useResults'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData } from './CityContext'
 import { FlagChip, Section } from './ui'
+import Fold from './Fold'
 
 const fmt = (v: number | null | undefined, d = 0) => (v == null || !Number.isFinite(v) ? '–' : v.toLocaleString('en-CA', { minimumFractionDigits: d, maximumFractionDigits: d }))
 const local = (utm: [number, number]): Pt => [utm[0] - CITY_ORIGIN[0], utm[1] - CITY_ORIGIN[1]]
@@ -157,9 +158,13 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
   const body = (
     <>
       {!consent ? (
-        <div className="rounded-md border border-line bg-black/[0.02] p-2 text-[11px]">
-          <p><b>Search uses online services.</b> What you type is sent to the <b>BC Address Geocoder</b> (Province of British Columbia) for live suggestions. City of Vancouver civic address points and local areas are downloaded once from the <b>City open-data portal</b> (no typed text). Nothing else leaves this browser. It works only online; drawing, picking and coordinates work offline.</p>
-          <p className="mt-1 text-[11px] text-muted">Geocoder <a className="underline" href={PRIVACY.geocoderPrivacy} target="_blank" rel="noreferrer">privacy statement</a> and <a className="underline" href={PRIVACY.geocoderLicence} target="_blank" rel="noreferrer">licence</a> · City data under the <a className="underline" href={PRIVACY.cityLicence} target="_blank" rel="noreferrer">Open Government Licence - Vancouver</a>.</p>
+        // The consent point stays readable in the fold's title (Ruijie, 6 Nov: long texts behind a summary title); the
+        // services, what is sent, the licences and the offline note are one click away.
+        <div className="rounded-md border border-line bg-black/[0.02] p-2 text-[11px]" data-testid="search-consent">
+          <Fold summary={<span className="text-ink">Online search: <b>what you type is sent to the BC Address Geocoder</b>.</span>}>
+            <p>The Province of British Columbia's BC Address Geocoder gives the live suggestions. City of Vancouver civic address points and local areas are downloaded once from the <b>City open-data portal</b> (no typed text). Nothing else leaves this browser. It works only online; drawing, picking and coordinates work offline.</p>
+            <p>Geocoder <a className="underline" href={PRIVACY.geocoderPrivacy} target="_blank" rel="noreferrer">privacy statement</a> and <a className="underline" href={PRIVACY.geocoderLicence} target="_blank" rel="noreferrer">licence</a> · City data under the <a className="underline" href={PRIVACY.cityLicence} target="_blank" rel="noreferrer">Open Government Licence - Vancouver</a>.</p>
+          </Fold>
           <button type="button" className={`${btn} mt-1.5 border-accent bg-accent text-white`} onClick={() => { setConsent(true); setC(true) }}><Search size={12} />Search online</button>
         </div>
       ) : !online ? (

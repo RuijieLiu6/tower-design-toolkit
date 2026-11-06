@@ -6,6 +6,7 @@
 import { expect, test } from '@playwright/test'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
+import { openDesignTool } from './helpers'
 
 let stub: ChildProcess | null = null
 test.beforeAll(async () => {
@@ -25,6 +26,7 @@ test('Link Rhino live: tutorial, download, connect, map once, then updates from 
   await page.getByRole('tab', { name: 'Competition site' }).or(page.getByRole('button', { name: 'Competition site' })).first().click()
   const rail = page.getByRole('navigation', { name: 'Design process' })
   await rail.getByRole('button', { name: 'Site' }).click()
+  await openDesignTool(page, 'rhino-import') // its icon, "Import", in the Site step's tools
 
   // The tutorial: the script to download, the Rhino command, and Connect.
   const box = page.getByTestId('rhino-live')

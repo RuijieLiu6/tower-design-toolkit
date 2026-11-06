@@ -6,7 +6,7 @@ import { MapPin } from '../icons'
 import type { DesignTool } from '../tools/registry'
 
 export default {
-  id: 'site', label: 'Site', icon: MapPin, stages: ['basic'], steps: ['site'], order: 5, defaultOpen: true,
+  id: 'site', label: 'Site', short: 'Site', icon: MapPin, stages: ['basic'], steps: ['site'], order: 5, defaultOpen: true,
   // Ruijie (5 Nov): the site is chosen only in Real Vancouver; the competition's Site tool states the fixed block.
   hint: (s) => (s.project === 'vtc' ? 'The competition site: the VTC block, fixed by the brief' : 'Address, neighbourhood or a click on the map'),
   component: lazy(() => import('./SiteStart')),

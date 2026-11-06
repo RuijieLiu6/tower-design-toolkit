@@ -81,14 +81,20 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   // 5 Nov (Ruijie): no Real Vancouver / Competition choice inside the Site tool; the project is the top bar's switch.
   await expect(page.getByRole('radiogroup', { name: 'Where the site is' })).toHaveCount(0)
   await expect(page.getByTestId('tools-step')).toHaveText('· Site step')
-  await expect(page.locator('[data-tool]').first()).toHaveAttribute('data-tool', 'site')
-  await expect(page.getByRole('button', { name: /More tools/ })).toBeVisible()
+  // 6 Nov (Ruijie): the Site step shows only its own tools, Site and Rhino import, as icons with key words.
+  const toolTabs = page.getByRole('tablist', { name: 'Design tools' }).getByRole('tab')
+  await expect(toolTabs).toHaveCount(2)
+  await expect(toolTabs.nth(0)).toHaveAttribute('data-tool', 'site')
+  await expect(toolTabs.nth(1)).toHaveAttribute('data-tool', 'rhino-import')
+  await expect(toolTabs.nth(1)).toContainText('Import')
   // The city's buildings have loaded and the map menu answers clicks (SiteMapMenu marks the canvas).
   await page.locator('[data-viewport] canvas[data-site-map="ready"]').waitFor({ state: 'attached', timeout: 420_000 })
   await page.waitForTimeout(3000)
   const urls = { fiber: (await mod(page, '@react-three_fiber'))!, store: (await mod(page, '/src/store\\.ts'))! }
   expect(urls.fiber && urls.store).toBeTruthy()
-  const tower0 = await page.evaluate(async (u) => { const { useStore } = await import(/* @vite-ignore */ u); const t = useStore.getState().towers.city[0]; return { x: t.x, y: t.y } }, urls.store)
+  // A project opens with no tower (Ruijie, 6 Nov): the first one is placed later (4f).
+  const towers0 = await page.evaluate(async (u) => { const { useStore } = await import(/* @vite-ignore */ u); return useStore.getState().towers.city.length }, urls.store)
+  expect(towers0).toBe(0)
   await page.screenshot({ path: join(SHOTS, '01-first-open-site-step.png'), ...SHOT })
 
   // 2. Type an address (City civic address point, canned) and place the site on its lot.
@@ -207,7 +213,8 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(summary(page)).toContainText(/City lots? joined/)
   await page.screenshot({ path: join(SHOTS, '07-box-over-lots.png'), ...SHOT })
 
-  // 4f. Build the massing here: a proposal lined up with the lot; Enter confirms it as one step.
+  // 4f. Build the massing here: with no tower yet, the first tower is placed and proposed at the click, lined up with
+  // the lot; Enter confirms it as one step.
   await openMenu(homer)
   await menu(page).getByRole('menuitem', { name: /Build the massing here/ }).click()
   await expect(toast(page)).toContainText('proposed here')
@@ -215,8 +222,8 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await page.screenshot({ path: join(SHOTS, '08-build-here-proposal.png'), ...SHOT })
   await page.keyboard.press('Enter')
   await page.waitForTimeout(2000)
-  const tower1 = await page.evaluate(async (u) => { const { useStore } = await import(/* @vite-ignore */ u); const t = useStore.getState().towers.city[0]; return { x: t.x, y: t.y } }, urls.store)
-  expect(Math.hypot(tower1.x - tower0.x, tower1.y - tower0.y)).toBeGreaterThan(30)
+  const tower1 = await page.evaluate(async (u) => { const { useStore } = await import(/* @vite-ignore */ u); const s = useStore.getState(); const t = s.towers.city[0]; return { x: t.x, y: t.y, n: s.towers.city.length } }, urls.store)
+  expect(tower1.n).toBe(1)
   expect(Math.hypot(tower1.x - HOMER.x, tower1.y - HOMER.y)).toBeLessThan(45)
 
   // 5. On to Volume: the massing tools lead there, and the step bar lights Volume alone.
@@ -224,6 +231,8 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(rail.getByRole('button', { name: 'Volume' })).toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Site' })).not.toHaveAttribute('aria-current', 'step')
   await expect(page.locator('[data-tool]').first()).toHaveAttribute('data-tool', 'towers')
+  // Past Site, the site and the Rhino import leave the panel (Ruijie, 6 Nov).
+  await expect(page.locator('[role="tab"][data-tool="site"], [role="tab"][data-tool="rhino-import"]')).toHaveCount(0)
   await page.screenshot({ path: join(SHOTS, '09-volume-step.png'), ...SHOT })
 
   // 6. Context on (Ruijie, 3 Nov): Vista's textured render; the combined site is paved and the replaced buildings stay gone.

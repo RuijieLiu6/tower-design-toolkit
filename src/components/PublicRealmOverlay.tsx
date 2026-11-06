@@ -37,6 +37,7 @@ function Rect({ x0, x1, y0, y1, color, opacity = 0.35, z = 0.25 }: { x0: number;
 export default function PublicRealmOverlay() {
   const selected = useStore((s) => s.selectedNode)
   const enabled = useStore((s) => s.enabled)
+  const analysis = useStore((s) => s.analysis)
   const input = useStore((s) => s.publicRealm)
   const towers = useTowers()
   const { streetwall, frontage, groundPlane } = useResults()
@@ -59,7 +60,7 @@ export default function PublicRealmOverlay() {
     }
     return out
   }, [which, towers, neighbours])
-  if (!which || !enabled[which]) return null
+  if (!which || !enabled[which] || !analysis) return null
 
   if (which === 'built.pr-streetwall' && streetwall) {
     return (

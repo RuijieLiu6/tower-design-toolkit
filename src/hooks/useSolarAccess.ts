@@ -9,6 +9,7 @@ import { contextOccluders } from '../lib/interchange/converters'
 import { useCityModel, type CityModel } from '../lib/cityModel'
 import { loadVtcContext, useVtcSource } from '../lib/vtcContextSource'
 import { useStore, useTowers } from '../store'
+import { nodeOn } from '../lib/analysis'
 
 export const SOLAR_NODE = 'built.solar-access'
 
@@ -74,7 +75,7 @@ export function useSolarAccess(force = false) {
   // Existing buildings from an uploaded model join the baseline (lib/interchange, converter 3).
   const model = useStore((s) => s.models[s.project])
   const cityModel = useCityModel((s) => s.model)
-  const on = useStore((s) => force || !!s.enabled[SOLAR_NODE])
+  const on = useStore((s) => force || nodeOn(s, SOLAR_NODE))
   const { mapDate, readings } = useSolar()
   const area = useSolar((s) => s.areas[project])
   const state = useSolar()

@@ -8,9 +8,11 @@ import type { DesignTool } from '../tools/registry'
 export default {
   id: 'rhino-import',
   label: 'Rhino import',
+  short: 'Import',
   icon: Spline,
-  stages: ['basic', 'advanced'],
-  order: { basic: 15, advanced: 90 },
+  // Site step only: a Rhino model starts the design; past Site the panel keeps to the step's own tools (Ruijie, 6 Nov).
+  stages: ['basic'],
+  order: 15,
   hint: 'Upload a .3dm and map its layers',
   defaultOpen: true,
   component: lazy(() => import('./RhinoImportPanel')),

@@ -211,8 +211,14 @@ function MenuAt({ data }: { data: CityData }) {
   const withLayer = (fn: (l: ParcelLayer) => void) => () => { close(); if (layer) fn(layer); else loadParcelLayer().then(fn, (e: Error) => tell(`The City parcel layer did not load (${e.message}).`, { kind: 'error', ...where })) }
   type Item = { key: string; icon: typeof Box; label: string; hint: string; run: () => void; disabled?: boolean }
   const items: Item[] = []
-  items.push({ key: 'build', icon: Building2, label: 'Build the massing here', hint: t ? `${t.name}, lined up with the lot; confirm in the toolbar (Enter)` : 'No design tower', disabled: !t,
-    run: () => { close(); if (t && proposePlace(t.id, menu.at[0], menu.at[1])) tell(`${t.name} proposed here, lined up with the lot under the click. Confirm (Enter) or Cancel (Esc) in the toolbar; Confirm is one undo step.`, where) } })
+  // No tower yet (a project opens empty, 6 Nov): the project's starting tower is placed and proposed at the click.
+  items.push({ key: 'build', icon: Building2, label: 'Build the massing here', hint: t ? `${t.name}, lined up with the lot; confirm in the toolbar (Enter)` : 'Your first tower, lined up with the lot; confirm in the toolbar (Enter)',
+    run: () => {
+      close()
+      let k: typeof t | undefined = towers.length ? t : undefined
+      if (!k) { useStore.getState().addTower(); const st = useStore.getState(); k = st.towers[st.project].find((x) => x.id === st.selectedTower) }
+      if (k && proposePlace(k.id, menu.at[0], menu.at[1])) tell(`${k.name} proposed here, lined up with the lot under the click. Confirm (Enter) or Cancel (Esc) in the toolbar; Confirm is one undo step.`, where)
+    } })
   if (menu.building !== null) {
     items.push({ key: 'replace', icon: Hammer, label: 'Replace this building', hint: 'Shown as demolished; Undo brings it back', run: () => { close(); replaceBuildings([menu.building!], data.footprints, where, 'this building') } })
     items.push({ key: 'multi', icon: MousePointerClick, label: 'Select several buildings to replace', hint: 'Click more buildings (or Shift-click), then Done', run: () => {

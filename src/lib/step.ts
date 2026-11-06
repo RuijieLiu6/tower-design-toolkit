@@ -17,19 +17,23 @@ export const stageOf = (s: StepId): Phase => (PROCESS.find((p) => p.id === s)?.s
 
 /**
  * Which step each design tool belongs to (tools/registry.ts ids). A tool can also say it itself (`DesignTool.steps`).
- * Tools of the stage with no step here are listed under "More tools" in every step of that stage, never hidden.
+ * Each Massing step shows only its own topic (Ruijie, 6 Nov): Site = choosing the site and bringing in a Rhino model;
+ * Volume = placing and shaping the towers; Program = uses, the brief's areas and the ground floor. Once past Site, the
+ * site and the import leave the panel. A tool with no step (an add-on) shows in Volume, the modelling step.
  */
 export const TOOL_STEPS: Record<string, StepId[]> = {
   site: ['site'],
-  ground: ['site'],
+  // A Rhino model brings the lot line, the context buildings and the towers in one go: it starts the design, on Site.
+  'rhino-import': ['site'],
   towers: ['volume'],
   massing: ['volume'],
   'height-suggestion': ['volume'],
-  // A Rhino model brings the lot line and the context buildings (Site) as well as the towers (Volume).
-  'rhino-import': ['site', 'volume'],
   sun: ['volume'],
   program: ['program'],
+  ground: ['program'],
 }
+/** The step a tool with no step of its own joins. */
+export const DEFAULT_TOOL_STEP: StepId = 'volume'
 
 const KEY = 'ts.step'
 function readSession(): { step: StepId; lastBasic: StepId } | null {
@@ -105,10 +109,7 @@ export function pristineDesign(): boolean {
   return s.towers === i.towers && s.models === i.models && s.citySite === i.citySite && s.enabled === i.enabled
 }
 
-/** The tools of a stage split for a step: the step's own first (in panel order), then the rest under "More tools". */
-export function splitForStep<T extends { id: string; steps?: StepId[] }>(tools: T[], step: StepId): { main: T[]; more: T[] } {
-  const stepsOf = (t: T) => t.steps ?? TOOL_STEPS[t.id] ?? null
-  const main = tools.filter((t) => stepsOf(t)?.includes(step))
-  const more = tools.filter((t) => !stepsOf(t)?.includes(step))
-  return { main, more }
+/** The tools of a Massing step, in panel order: only that step's own (no "More tools", Ruijie 6 Nov). */
+export function toolsForStep<T extends { id: string; steps?: StepId[] }>(tools: T[], step: StepId): T[] {
+  return tools.filter((t) => (t.steps ?? TOOL_STEPS[t.id] ?? [DEFAULT_TOOL_STEP]).includes(step))
 }

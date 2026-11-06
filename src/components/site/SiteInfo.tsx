@@ -7,7 +7,7 @@
 // button they can name the components and delete them"): each with a "New" mark when just added (lib/towerAdds.ts),
 // and an edit button on the right that opens its name and Delete.
 import { useState } from 'react'
-import { Building2, Check, Compass, MapPin, Pencil, Trash2, Undo2 } from '../icons'
+import { Building2, Check, Compass, Crosshair, MapPin, Pencil, Trash2, Undo2 } from '../icons'
 import { towerFloors } from '../../engine/massing'
 import { ringMetrics, validateRing } from '../../engine/site'
 import { breakStep, undo, useHistory } from '../../lib/project/history'
@@ -22,6 +22,8 @@ import { FlagChip } from '../ui'
 import { U } from '../Units'
 import { flyToFit } from '../VistaLook'
 import { onGround } from './PlaceNames'
+import { goToStep } from '../../lib/step'
+import { placeFirstTower } from '../tools/NoTower'
 
 const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent'
 const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
@@ -44,7 +46,6 @@ function TowerList() {
   const added = useTowerAdds((s) => s.added)
   const [editing, setEditing] = useState<string | null>(null)
   const [gone, setGone] = useState<string | null>(null)
-  const only = towers.length === 1
   const rename = (id: string, name: string, was: string) => { const n = name.trim(); if (n && n !== was) useStore.getState().updateTower(id, { name: n }) }
   const remove = (id: string, name: string) => {
     breakStep(); useStore.getState().removeTower(id); breakStep()
@@ -54,8 +55,14 @@ function TowerList() {
     <section aria-labelledby="site-towers-title" data-testid="site-towers" className="mx-3 mb-3 rounded-lg border border-line bg-white px-3 py-2.5 text-[11px]">
       <h3 id="site-towers-title" className="flex items-center gap-1.5 text-xs font-semibold text-ink">
         <Building2 size={14} className="text-accent" aria-hidden />Towers on this site<span className="font-normal text-muted">({towers.length})</span>
-        <Help label="About the towers list">Every tower or volume you add (Volume step, an upload, a Rhino link) shows here, marked New at first. Click a tower to select it; the pencil on the right opens its name and Delete. Undo brings a deleted tower back. A project keeps at least one tower.</Help>
+        <Help label="About the towers list">Every tower or volume you add (Volume step, an upload, a Rhino link) shows here, marked New at first. Click a tower to select it; the pencil on the right opens its name and Delete. Undo brings a deleted tower back. Deleting the last one leaves the site empty again, ready to place a new tower.</Help>
       </h3>
+      {towers.length === 0 && (
+        <div data-testid="site-towers-empty" className="mt-1.5 flex items-center gap-2 text-muted">
+          No tower yet.
+          <button type="button" onClick={() => { goToStep('volume'); placeFirstTower() }} className={`${btn} ml-auto border-line text-ink hover:border-accent`}><Crosshair size={12} />Place a tower</button>
+        </div>
+      )}
       <ul className="mt-1.5 grid gap-1">
         {towers.map((t) => {
           const isNew = !!added[t.id], open = editing === t.id
@@ -76,7 +83,7 @@ function TowerList() {
                     <input name="name" defaultValue={t.name} maxLength={60} autoFocus onBlur={(e) => rename(t.id, e.target.value, t.name)} onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null) }}
                       className="min-w-0 flex-1 rounded border border-line bg-panel px-1.5 py-0.5 text-xs text-ink" /></label>
                   <button type="submit" className={`${btn} border-line hover:border-accent`}><Check size={12} />Save</button>
-                  <button type="button" disabled={only} onClick={() => remove(t.id, t.name)} title={only ? 'A project keeps at least one tower' : `Delete ${t.name} (Undo brings it back)`}
+                  <button type="button" onClick={() => remove(t.id, t.name)} title={`Delete ${t.name} (Undo brings it back)`}
                     className={`${btn} border-line text-red-700 hover:border-red-400 disabled:opacity-40`}><Trash2 size={12} />Delete</button>
                 </form>
               )}

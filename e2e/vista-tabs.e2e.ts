@@ -5,6 +5,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { placeStartingTower } from './helpers'
 
 const SHOTS = join(process.cwd(), 'test-results', 'vista-tabs')
 mkdirSync(SHOTS, { recursive: true })
@@ -16,6 +17,8 @@ async function openCity(p: Page) {
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 8000 }).catch(() => {})
   await p.getByRole('tab', { name: 'Real Vancouver' }).or(p.getByRole('button', { name: 'Real Vancouver' })).first().click()
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
+  // A project opens with no tower (6 Nov): place the study tower first (Plan and Inspect frame it), as a user does.
+  await placeStartingTower(p)
   // The place labels need the city data and a drawn frame: once any shows (which ones depends on the view's width), the scene is up.
   await p.waitForFunction(() => [...document.querySelectorAll<HTMLElement>('[data-viewport] [data-x]')].some((d) => d.style.display === ''), null, { timeout: 420_000 })
 }

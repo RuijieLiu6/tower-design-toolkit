@@ -4,6 +4,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { openDesignTool, placeStartingTower } from './helpers'
 
 const SHOTS = join(process.cwd(), 'test-results', 'vista-site')
 mkdirSync(SHOTS, { recursive: true })
@@ -16,6 +17,8 @@ async function openVista(p: Page) {
   await p.getByRole('tab', { name: 'Real Vancouver' }).or(p.getByRole('button', { name: 'Real Vancouver' })).first().click()
   await p.waitForTimeout(4000)
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
+  // A project opens with no tower (6 Nov): place the study tower first, as a user does (a reload keeps it: autosave).
+  await placeStartingTower(p)
   // Switching a node on in the bottom bar selects it; one already on is picked in "Show results for".
   const sw = p.getByRole('switch', { name: 'Use Vista view studies', exact: true })
   if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
@@ -65,9 +68,9 @@ test('import a GeoJSON site boundary with its provenance; the envelope section r
   await expect(section(page, 'Site boundary')).toContainText('GeoJSON lot.geojson (Test lot), EPSG:4326 → EPSG:26910')
   await expect(section(page, 'Exact geometry check (triangles)')).toContainText(/triangle/)
   await page.screenshot({ path: join(SHOTS, 'imported-site.png') })
-  // The Program design tool's FSR now divides by the study site, says which area, and cites it.
-  const program = page.locator('#tool-program-head')
-  if ((await program.getAttribute('aria-expanded')) === 'false') await program.click()
+  // The Program design tool's FSR now divides by the study site, says which area, and cites it (Program step).
+  await page.getByRole('navigation', { name: 'Design process' }).locator('[data-step="program"]').click()
+  await openDesignTool(page, 'program')
   await expect(section(page, 'Floor area (all towers, gross)')).toContainText(/Total FSR \(study site [\d,]+ m², (joined City parcels|site boundary)\)/)
   await page.screenshot({ path: join(SHOTS, 'fsr-study-site.png') })
   // The site is part of the project now (citySite), so the autosave brings it back after a reload.

@@ -18,6 +18,7 @@ import { useCityData } from './CityContext'
 import { U } from './Units'
 import { flyToFit } from './VistaLook'
 import Help from './Help'
+import { nodeOn } from '../lib/analysis'
 
 const ORANGE = '#ea580c'
 const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
@@ -48,7 +49,7 @@ export function editSolarArea(on: boolean, b: MapBounds | null) {
 // ---------------------------------------------------------------- on the map
 export function SolarAreaEditor() {
   const editing = useSolar((s) => s.editing)
-  const on = useStore((s) => !!s.enabled[SOLAR_NODE])
+  const on = useStore((s) => nodeOn(s, SOLAR_NODE))
   const project = useStore((s) => s.project)
   const { b: area } = useArea()
   const { data } = useCityData()

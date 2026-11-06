@@ -3,6 +3,8 @@
 // the map (place names that fly to their neighbourhood, PlaceNames.tsx, and the click menu in SiteMapMenu.tsx); the
 // way on to Volume. The site as it stands is the right panel's Your site tab (SiteInfo.tsx). Site actions: lib/siteActions.ts.
 // 4 Nov (Ruijie): the neighbourhood list ("Or start from a neighbourhood") is gone; the names on the map do its job.
+// 6 Nov (Ruijie): the actions are icons with a key word under each (Replace, Combine, Upload, Next), the full name and
+// what each does on hover (components/IconTile.tsx), like the design tools.
 import { ArrowRight, Combine, FileUp, MousePointerClick } from '../icons'
 import type { Pt } from '../../engine/site'
 import { tell, useSiteStep } from '../../lib/siteActions'
@@ -15,8 +17,9 @@ import { AddressSearch, placeSiteAt } from '../SitePanel'
 import { SOLAR_NODE } from '../../hooks/useSolarAccess'
 import { SolarAreaControls } from '../SolarArea'
 import Help from '../Help'
+import IconTile from '../IconTile'
+import { nodeOn } from '../../lib/analysis'
 
-const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent'
 const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
 
 /** A numbered step; `help` (how the step works) sits behind a "?" beside its title (Ruijie, 5 Nov). */
@@ -51,21 +54,15 @@ function VtcSite() {
   )
 }
 
-/** The way on from the Site tool: a massing made elsewhere, or the Volume step. */
+/** The way on from the Site tool: a massing made elsewhere (the import dialog, as the Import tool), or the Volume step. */
 function SiteFooter() {
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-1.5 border-t border-line px-3 py-2.5">
-      <ImportMassing />
-      <button type="button" onClick={() => goToStep('volume')} className={`${btn} ml-auto border-accent bg-accent text-white`}>Next: Volume<ArrowRight size={12} /></button>
+    <div className="mt-1 flex flex-wrap items-start gap-1 border-t border-line px-2 py-2">
+      <IconTile size="sm" icon={FileUp} word="Upload" label="Upload a massing model" onClick={() => useImportStore.getState().openDialog()}
+        hint="Start from a massing made elsewhere (Rhino, SketchUp, Revit…): 3DM, OBJ, glTF or IFC. Read in this browser; nothing is uploaded to a server." />
+      <IconTile size="sm" icon={ArrowRight} word="Next" label="Next: Volume" primary className="ml-auto" onClick={() => goToStep('volume')}
+        hint="On to the Volume step: place your tower and shape it." />
     </div>
-  )
-}
-
-/** Starting from a massing made elsewhere (Rhino, SketchUp, Revit…): the import dialog, also in Volume › Towers & site. */
-function ImportMassing() {
-  return (
-    <button type="button" onClick={() => useImportStore.getState().openDialog()} title="Import a massing model (3DM, OBJ, glTF, IFC)"
-      className={`${btn} border-line hover:border-accent`}><FileUp size={12} />Import a massing</button>
   )
 }
 
@@ -98,25 +95,27 @@ function PickOnMapHelp() {
 function PickOnMap() {
   const { box, multi } = useSiteStep()
   return (
-    <div>
-      <div className="flex flex-wrap gap-1.5">
-        <button type="button" aria-pressed={multi} onClick={() => {
+    <div className="flex flex-wrap gap-1">
+      <IconTile size="sm" icon={MousePointerClick} word="Replace" label="Select buildings to replace" aria-pressed={multi} active={multi}
+        hint={multi ? 'Selecting: click the buildings your design replaces, then Done at the top of the view. Click again to stop.' : 'Click the buildings your design replaces (Shift-click adds more), then Done at the top of the view. They are shown as demolished; Undo brings them back.'}
+        onClick={() => {
           if (multi) { useSiteStore.getState().set({ tool: null, picked: [] }); useSiteStep.setState({ multi: false }); return }
           useSiteStore.getState().set({ tool: 'pick', picked: [], draft: [], message: null }); useSiteStep.setState({ multi: true, box: false })
           tell('Click the buildings to replace, then Done at the top of the view.')
-        }} className={`${btn} ${multi ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><MousePointerClick size={12} />{multi ? 'Selecting buildings…' : 'Select buildings to replace'}</button>
-        <button type="button" aria-pressed={box} onClick={() => {
+        }} />
+      <IconTile size="sm" icon={Combine} word="Combine" label="Combine lots: draw a box over them" aria-pressed={box} active={box}
+        hint={box ? 'Drawing: drag a box across the lots; every lot it touches joins the site. Esc cancels.' : 'Drag a box across City lots: every lot it touches joins into one site (one block at a time). Esc cancels.'}
+        onClick={() => {
           useSiteStep.setState({ box: !box, boxDraft: null, multi: false })
           if (!box) { useSiteStore.getState().set({ tool: null, picked: [] }); tell('Drag a box across the lots to combine; every lot it touches joins (one block at a time). Esc cancels.') }
-        }} className={`${btn} ${box ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Combine size={12} />{box ? 'Drawing a box…' : 'Draw a box over lots'}</button>
-      </div>
+        }} />
     </div>
   )
 }
 
 // ---------------------------------------------------------------- the sun-hours map's area (Ruijie, 4 Nov: "add a function to modify the boundary")
 function SunArea() {
-  const on = useStore((s) => !!s.enabled[SOLAR_NODE])
+  const on = useStore((s) => nodeOn(s, SOLAR_NODE))
   if (!on) return null
   return <div className="border-t border-line px-3 py-2.5"><SolarAreaControls /></div>
 }

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useStore } from '../store'
-import { followStage, goToStep, pristineDesign, splitForStep, startOnSite, startStepFollow, useStep } from './step'
+import { followStage, goToStep, pristineDesign, startOnSite, toolsForStep, startStepFollow, useStep } from './step'
 
-const tools = [{ id: 'towers' }, { id: 'site' }, { id: 'program' }, { id: 'massing' }, { id: 'extra' }, { id: 'mine', steps: ['program' as const] }]
+const tools = [{ id: 'towers' }, { id: 'site' }, { id: 'rhino-import' }, { id: 'program' }, { id: 'massing' }, { id: 'extra' }, { id: 'mine', steps: ['program' as const] }]
 
 describe('design steps inside the stages', () => {
   beforeEach(() => {
@@ -28,13 +28,12 @@ describe('design steps inside the stages', () => {
     expect(useStep.getState().step).toBe('plates')
     stop()
   })
-  it("the step's tools lead; the rest stay under More tools, none hidden", () => {
-    const site = splitForStep(tools, 'site')
-    expect(site.main.map((t) => t.id)).toEqual(['site'])
-    expect(site.more.map((t) => t.id)).toEqual(['towers', 'program', 'massing', 'extra', 'mine'])
-    const program = splitForStep(tools, 'program')
-    expect(program.main.map((t) => t.id)).toEqual(['program', 'mine'])
-    expect(program.main.length + program.more.length).toBe(tools.length)
+  it("each step shows only its own tools; a tool without a step joins Volume, so none is lost", () => {
+    expect(toolsForStep(tools, 'site').map((t) => t.id)).toEqual(['site', 'rhino-import'])
+    expect(toolsForStep(tools, 'volume').map((t) => t.id)).toEqual(['towers', 'massing', 'extra'])
+    expect(toolsForStep(tools, 'program').map((t) => t.id)).toEqual(['program', 'mine'])
+    const all = new Set((['site', 'volume', 'program'] as const).flatMap((s) => toolsForStep(tools, s).map((t) => t.id)))
+    expect(all.size).toBe(tools.length)
   })
   it('a first open starts on Site in Real Vancouver; a design already opened keeps its project', () => {
     goToStep('program')

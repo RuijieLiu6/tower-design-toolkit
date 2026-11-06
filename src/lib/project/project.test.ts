@@ -103,10 +103,10 @@ describe('project file: validation in plain words', () => {
     expect(m).toMatch(/rules › fsrTier must be equal to one of the allowed values/)
     expect(m).toMatch(/sun › month must be <= 12/)
   })
-  it('needs at least one tower per project, and unique tower ids', () => {
+  it('accepts a project with no tower yet (a new project starts empty), and needs unique tower ids', () => {
     const f = file()
     f.towers.city = []
-    expect(problems(f)).toMatch(/towers › city must NOT have fewer than 1 items/)
+    expect(problems(f)).toBe('')
     const g = file()
     g.towers.vtc.push({ ...g.towers.vtc[0] })
     expect(problems(g)).toMatch(/share the id "t1"/)

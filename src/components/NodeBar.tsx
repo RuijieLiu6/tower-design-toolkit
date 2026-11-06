@@ -1,5 +1,6 @@
-// Bottom bar of the guided app: every evaluation node as an icon-only switch. The name shows on hover and on keyboard
-// focus; switching a node on also shows its results in the right panel. Search, workflow presets, My nodes and the
+// Bottom bar of the guided app: every evaluation node as a switch, its icon with a key word under it (Ruijie, 6 Nov: the
+// design tools' icon + key word treatment). The full name and what it checks show on hover and on keyboard focus;
+// switching a node on also shows its results in the right panel. Search, workflow presets, My nodes and the
 // roadmap live in the Library popover at the bar's left end.
 import { Library, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
@@ -21,6 +22,21 @@ function barGroups(phase: Phase): { label: string; nodes: NodeDef[] }[] {
   if (phase === 'advanced') return [{ label: 'Schematic checks', nodes: of('advanced') }, { label: 'Carried from Massing', nodes: of('basic') }]
   return [{ label: 'Massing checks', nodes: of('basic') }, { label: 'Schematic checks', nodes: of('advanced') }]
 }
+
+/** The key word under each check's icon: one or two words, taken from its name where possible (voice control). */
+export const NODE_WORDS: Record<string, string> = {
+  'built.vtc-rules': 'Hard rules', 'built.fsr': 'FSR', 'built.viewcones': 'View-cone', 'built.relax-aviation': 'Aviation',
+  'built.sun': 'Shadow', 'built.core-lifts': 'Lift check', 'built.egress': 'Egress', 'built.life-safety': 'Life safety',
+  'built.sky-room': 'Sky room', 'built.economics': 'Value', 'built.culture-claims': 'Claims', 'built.model': 'Model',
+  'built.provenance': 'AI use', 'built.mobility': 'Parking', 'built.facade': 'Facade', 'built.interior': 'Interior',
+  'built.daylight-depth': 'Daylight', 'built.view-from': 'View from', 'built.vista': 'Vista', 'built.heights': 'Height',
+  'built.pr-streetwall': 'Streetwall', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
+  'built.city-in-nature': 'Nature', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
+  'built.structure': 'Structure', 'built.wind-study': 'Wind trigger', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',
+  'built.energy-carbon': 'Energy',
+}
+/** A node without a word of its own (a community node): the first word of its name. */
+export const nodeWord = (n: { id: string; name: string }) => NODE_WORDS[n.id] ?? n.name.split(/[\s:&,(]+/).filter(Boolean)[0] ?? n.name
 
 const initials = (name: string) => name.split(/[^A-Za-z0-9]+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('')
 
@@ -51,8 +67,9 @@ function LibraryPopover({ onClose, anchor }: { onClose: () => void; anchor: RefO
 }
 
 export default function NodeBar() {
-  const { phase, project, enabled, toggleNode, selectNode, selectedNode } = useStore(useShallow((s) => ({
+  const { phase, project, enabled, toggleNode, selectNode, selectedNode, analysis, setAnalysis } = useStore(useShallow((s) => ({
     phase: s.phase, project: s.project, enabled: s.enabled, toggleNode: s.toggleNode, selectNode: s.selectNode, selectedNode: s.selectedNode,
+    analysis: s.analysis, setAnalysis: s.setAnalysis,
   })))
   const community = useCommunityNodeDefs()
   const groups = useMemo(() => barGroups(phase), [phase])
@@ -99,9 +116,12 @@ export default function NodeBar() {
         onFocus={(e) => { setActive(n.id); showTip(n, e.currentTarget) }} onBlur={() => setTip(null)}
         // UI review (3 Nov): colour belongs on the data, not the chrome. On: a white tile in ink with a bar in its category
         // colour; off: no tile, a faint icon and no bar. Selected (its results showing): an ink ring.
-        className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''} ${usable ? '' : 'opacity-40'}`}>
-        {Icon ? <Icon size={16} /> : <span className="text-[11px] font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
-        {on && <span className="absolute inset-x-1 bottom-[2px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
+        className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''} ${usable ? '' : 'opacity-40'}`}>
+        <span className="relative flex h-5 w-6 items-center justify-center">
+          {Icon ? <Icon size={16} /> : <span className="text-[11px] font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
+          {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
+        </span>
+        <span aria-hidden className={`w-full truncate text-center text-[10px] leading-tight ${on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
         {isCommunity && <span className="absolute -right-1 -top-1 rounded-sm bg-panel px-[2px] text-[7px] font-bold leading-[9px] text-ink ring-1 ring-line" aria-hidden>C</span>}
       </button>
     )
@@ -110,13 +130,20 @@ export default function NodeBar() {
   const t = tip?.n
   const tOn = t ? !!enabled[t.id] : false
   return (
-    <div className="relative z-20 flex h-11 shrink-0 items-center gap-2 border-t border-line bg-panel px-2">
+    <div className="relative z-20 flex h-14 shrink-0 items-center gap-2 border-t border-line bg-panel px-2">
       <button ref={libButton} type="button" onClick={() => setLib((o) => !o)} aria-expanded={lib} aria-controls={lib ? 'node-library-pop' : undefined}
         className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${lib ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>
         <Library size={14} />Library
       </button>
       {lib && <LibraryPopover onClose={() => setLib(false)} anchor={libButton} />}
-      <div role="toolbar" aria-label="Checks: switch each on or off" onKeyDown={onKey} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1" onScroll={() => setTip(null)}>
+      {/* Analysis off (process rail switch): the checks don't run, so their switches give way to one way back on. */}
+      {!analysis && (
+        <p data-testid="analysis-off-bar" className="flex min-w-0 flex-1 items-center gap-2 text-[11px] text-muted">
+          Analysis is off: no check runs.
+          <button type="button" onClick={() => setAnalysis(true)} className="rounded-md border border-line px-2 py-0.5 text-[11px] text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">Run analysis</button>
+        </p>
+      )}
+      {analysis && <div role="toolbar" aria-label="Checks: switch each on or off" onKeyDown={onKey} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1" onScroll={() => setTip(null)}>
         {groups.map((g, gi) => (
           <div key={g.label} className="flex items-center gap-1" role="group" aria-label={g.label}>
             {gi > 0 && <span className="mx-1 h-6 w-px shrink-0 bg-line" aria-hidden />}
@@ -129,12 +156,13 @@ export default function NodeBar() {
             {community.map((n) => button(n, true))}
           </div>
         )}
-      </div>
-      <span className="shrink-0 text-[11px] tabular-nums text-muted">{onCount} of {all.length} on</span>
+      </div>}
+      {analysis && <span className="shrink-0 text-[11px] tabular-nums text-muted">{onCount} of {all.length} on</span>}
       {t && (
         <div id="node-bar-tip" role="tooltip" className="pointer-events-none fixed z-50 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md bg-ink px-2 py-1.5 text-[11px] leading-snug text-white shadow-lg"
           style={{ left: tip!.x, top: tip!.y - 6 }}>
           <div className="font-semibold">{t.name}</div>
+          {t.question && <div className="mb-0.5 text-white/90">{t.question}</div>}
           <div className="text-white/80">
             {tOn ? 'On' : 'Off'} · {CATEGORIES[t.category].label}{(t.status as string) === 'community' ? ' · Community' : ` · ${STAGE_NAME[stageOf(t)] ?? ''}`}
             {t.status === 'preview' ? ' · preview' : ''}{t.projects && !t.projects.includes(project) ? ` · runs in ${t.projects.includes('city') ? 'Real Vancouver' : 'Competition site'}` : ''}

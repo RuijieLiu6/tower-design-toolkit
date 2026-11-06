@@ -133,7 +133,7 @@ export function readProject(text: string): ReadResult {
     const dup = ids.find((id, i) => ids.indexOf(id) !== i)
     if (dup) problems.push(`Two towers in the ${kind === 'vtc' ? 'competition site' : 'Real Vancouver'} project share the id "${dup}".`)
   }
-  if (!file.towers[file.project].some((t) => t.id === file.selectedTower)) notes.push('The selected tower was missing; the first tower is selected instead.')
+  if (file.towers[file.project].length && !file.towers[file.project].some((t) => t.id === file.selectedTower)) notes.push('The selected tower was missing; the first tower is selected instead.')
   const site = siteInfo(file.site.city.datum.groundElevation ?? 15)
   if (file.site.vtc.north.deg !== site.vtc.north.deg) notes.push(`The file records true north at ${file.site.vtc.north.deg}° for the competition site; this version uses ${site.vtc.north.deg}°.`)
   return { ok: !problems.length, file: problems.length ? undefined : file, problems, notes }
@@ -165,7 +165,7 @@ export function toDesign(file: ProjectFile): Design {
     towers: t,
     models: { vtc: file.models?.vtc ?? null, city: file.models?.city ?? null },
     citySite: file.citySite ?? null,
-    selectedTower: t[file.project].some((x) => x.id === file.selectedTower) ? file.selectedTower : t[file.project][0].id,
+    selectedTower: t[file.project].some((x) => x.id === file.selectedTower) ? file.selectedTower : t[file.project][0]?.id ?? '',
     // Built nodes added after the file was saved start switched on, like in a new project.
     enabled: Object.fromEntries([...file.nodes.enabled, ...(file.nodes.known ? DEFAULT_ON.filter((id) => !file.nodes.known!.includes(id)) : [])].map((id) => [id, true])),
     fsrTier: file.rules.fsrTier,

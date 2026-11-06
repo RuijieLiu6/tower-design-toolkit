@@ -103,7 +103,7 @@ test('view from here + import dialog', async ({ page: p }) => {
   await demo(p, 'Real Vancouver')
   await panels(p, [[20, 'View from here']])
   await project(p, 'Competition site')
-  await p.locator('button[title^="Import a massing"]').first().click().catch(() => p.getByRole('button', { name: 'Import', exact: true }).first().click())
+  await p.getByRole('button', { name: 'Upload a massing model' }).first().click()
   await p.waitForTimeout(800)
   await shot(p, '10-node-21-import-massing-dialog')
   await p.keyboard.press('Escape')

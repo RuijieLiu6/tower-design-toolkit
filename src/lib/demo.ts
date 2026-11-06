@@ -4,7 +4,7 @@
 import { BUILT_NODES } from '../data/registry'
 import { suggestSkyLobby, withAutoCore } from '../engine/lifts'
 import type { Tower } from '../engine/types'
-import { DEFAULT_SKY_ROOM, useStore } from '../store'
+import { DEFAULT_SKY_ROOM, defaultTower, useStore } from '../store'
 import { pickDesign, type Design } from './project/design'
 
 export const DEMO_FILE = './demo/demo-project.json'
@@ -12,7 +12,9 @@ export const DEMO_NAME = 'Demo: VTC two-tower scheme'
 
 export function demoDesign(): Design {
   const base = pickDesign(useStore.getInitialState())
-  const [t1] = base.towers.vtc
+  // Built from the starting towers (a new project opens empty since 6 Nov): the competition's Tower 1, and Real
+  // Vancouver's study tower so the demo has a tower there too.
+  const t1 = defaultTower('vtc')
   // Tower 1: the default 285 m mixed-use tower with a sky lobby opened to the public as a free sky room.
   const lobby = suggestSkyLobby({ ...t1, skyLobbies: [] })
   const main: Tower = withAutoCore({
@@ -27,7 +29,7 @@ export function demoDesign(): Design {
   return {
     ...base,
     project: 'vtc',
-    towers: { ...base.towers, vtc: [main, second] },
+    towers: { vtc: [main, second], city: [defaultTower('city')] },
     selectedTower: main.id,
     enabled: Object.fromEntries(BUILT_NODES.map((n) => [n.id, true])),
     sun: { month: 9, day: 22, hour: 15 },

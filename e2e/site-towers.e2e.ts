@@ -4,6 +4,7 @@
 // button opens the name and Delete; Undo brings it back.
 // Run: node node_modules/playwright/cli.js test e2e/site-towers.e2e.ts
 import { expect, test } from '@playwright/test'
+import { placeStartingTower } from './helpers'
 
 test('a tower added shows in Your site, marked New, and can be renamed, deleted and brought back', async ({ page }) => {
   test.setTimeout(300_000)
@@ -11,8 +12,8 @@ test('a tower added shows in Your site, marked New, and can be renamed, deleted 
   await page.goto('/#/guided')
   await page.waitForSelector('#root > *', { timeout: 60_000 })
   await page.getByRole('tab', { name: 'Competition site' }).or(page.getByRole('button', { name: 'Competition site' })).first().click()
-  const rail = page.getByRole('navigation', { name: 'Design process' })
-  await rail.getByRole('button', { name: 'Volume' }).click()
+  // A project opens with no tower (6 Nov): place Tower 1 first, as a user does; then Add tower adds a second.
+  await placeStartingTower(page, { stay: true })
   await page.getByRole('tab', { name: 'Results & evidence' }).click()
 
   const rows = page.getByTestId('site-tower')

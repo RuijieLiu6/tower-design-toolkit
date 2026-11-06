@@ -17,6 +17,7 @@ import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import SiteRig from './SiteRig'
 import ImagineLayer from './heights/ImagineLayer'
 import SiteMapMenu from './site/SiteMapMenu'
+import { nodeOn } from '../lib/analysis'
 
 /** Model frame (x, y, z-up) to three.js world (y-up), as in ViewFromRig. */
 const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, -y)
@@ -115,7 +116,7 @@ export default function VistaRig() {
 
 /** Vista v10's clipped study plane over the footprint, with a vertical marker at the limiting point. */
 function WhatIfPlanes() {
-  const on = useStore((s) => s.enabled['built.vista'])
+  const on = useStore((s) => nodeOn(s, 'built.vista'))
   const show = useVistaStore((s) => s.showPlanes)
   const planes = useVistaStore((s) => s.planes)
   const towers = useTowers()

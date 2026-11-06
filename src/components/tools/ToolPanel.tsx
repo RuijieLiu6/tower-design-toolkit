@@ -1,23 +1,30 @@
-// Left panel of the guided app (Massing and Schematic): the design tools for the stage, as an accordion.
-// Tools come from the registry (registry.ts); which ones are open is remembered per browser.
-import { ChevronDown, ChevronRight, TriangleAlert } from '../icons'
-import { Component, Suspense, useMemo, useState, type ReactNode } from 'react'
-import { useStore } from '../../store'
-import Help from '../Help'
+// Left panel of the guided app (Massing and Schematic): the design tools of the step as a row of icons, each with one
+// or two key words under it (Ruijie, 6 Nov: "only leave the icon shown and one or two key words … once the user hover
+// their mouse over the icon, then reveal the functions in whole"). Hovering or focusing an icon shows the tool's full
+// name and what it does; clicking it opens its controls below the row (one tool at a time, remembered per step).
+// Tools come from the registry (registry.ts). Massing shows only the current step's tools (Site = site and Rhino
+// import; past Site they leave the panel). A project with no tower leads Volume with "Place your tower"
+// (tools/NoTower.tsx) and points Program and Schematic there.
+import { TriangleAlert } from '../icons'
+import { Component, Suspense, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useStore, useTowers } from '../../store'
 import { HidePanelButton } from '../PanelToggle'
+import IconTile from '../IconTile'
 import { DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
-import { splitForStep, useStep } from '../../lib/step'
+import { toolsForStep, useStep } from '../../lib/step'
+import { NoTowerYet, PlaceFirstTower } from './NoTower'
 
-const KEY = 'ts.tools.open'
-/** "More tools" (the stage's tools that don't lead the current step) open or folded; open unless folded here before. */
-const MORE_KEY = 'ts.tools.more'
-function readMore(): boolean { try { return localStorage.getItem(MORE_KEY) !== '0' } catch { return true } }
-function writeMore(v: boolean) { try { localStorage.setItem(MORE_KEY, v ? '1' : '0') } catch { /* storage blocked */ } }
-function readOpen(): Record<string, boolean> {
+const KEY = 'ts.tools.active'
+/** Steps whose tools work without a tower (choosing the site, importing a model). */
+const NO_TOWER_STEPS = new Set(['site'])
+function readActive(): Record<string, string> {
   try { const v = JSON.parse(localStorage.getItem(KEY) ?? '{}'); return v && typeof v === 'object' ? v : {} } catch { return {} }
 }
-function writeOpen(v: Record<string, boolean>) { try { localStorage.setItem(KEY, JSON.stringify(v)) } catch { /* storage blocked: the panel still works */ } }
+function writeActive(v: Record<string, string>) { try { localStorage.setItem(KEY, JSON.stringify(v)) } catch { /* storage blocked: the panel still works */ } }
+
+/** The key words under a tool's icon. */
+export const shortName = (t: Pick<DesignTool, 'short' | 'label'>) => t.short ?? t.label
 
 /** One tool failing (e.g. an add-on tool) must not take the rest of the panel with it. */
 class ToolBoundary extends Component<{ label: string; children: ReactNode }, { error: Error | null }> {
@@ -34,31 +41,13 @@ class ToolBoundary extends Component<{ label: string; children: ReactNode }, { e
   }
 }
 
-function ToolSection({ tool, open, onToggle }: { tool: DesignTool; open: boolean; onToggle: () => void }) {
-  const { icon: Icon, component: Body } = tool
+/** One tool: its icon and key words; the full name and what it does on hover or focus (components/IconTile.tsx). */
+function ToolTile({ tool, active, tabStop, onPick, onKey }: { tool: DesignTool; active: boolean; tabStop: boolean; onPick: () => void; onKey: (e: KeyboardEvent<HTMLButtonElement>) => void }) {
   const hint = useStore((s) => (typeof tool.hint === 'function' ? tool.hint(s) : tool.hint))
-  const head = `tool-${tool.id}-head`, body = `tool-${tool.id}-body`
   return (
-    <div className="border-b border-line" data-tool={tool.id}>
-      {/* The tool's description sits behind a "?" beside its name (Ruijie, 5 Nov), outside the fold button. */}
-      <h3 className="relative">
-        <button id={head} type="button" onClick={onToggle} aria-expanded={open} aria-controls={body}
-          className={`flex w-full items-center gap-2.5 px-3 py-2 text-left outline-none hover:bg-black/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${open ? 'bg-black/[0.02]' : ''}`}>
-          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${open ? 'bg-accent text-white' : 'bg-accent/10 text-accent'}`}><Icon size={15} /></span>
-          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">{tool.label}</span>
-          {hint && <span aria-hidden className="w-5 shrink-0" />}
-          {open ? <ChevronDown size={14} className="text-muted" /> : <ChevronRight size={14} className="text-muted" />}
-        </button>
-        {hint && <span className="absolute right-8 top-1/2 flex -translate-y-1/2"><Help label={`About ${tool.label}`}>{hint}</Help></span>}
-      </h3>
-      {open && (
-        <div id={body} role="region" aria-labelledby={head} className="pb-1">
-          <ToolBoundary label={tool.label}>
-            <Suspense fallback={<p className="px-4 py-3 text-[11px] text-muted">Loading {tool.label}…</p>}><Body /></Suspense>
-          </ToolBoundary>
-        </div>
-      )}
-    </div>
+    <IconTile icon={tool.icon} word={shortName(tool)} label={tool.label} hint={hint} active={active}
+      role="tab" id={`tool-${tool.id}-head`} data-tool={tool.id} aria-selected={active} aria-controls="tool-panel" tabIndex={tabStop ? 0 : -1}
+      onClick={onPick} onKeyDown={onKey} />
   )
 }
 
@@ -68,19 +57,30 @@ export default function ToolPanel() {
   const step = useStep((s) => s.step)
   // `when` conditions read the store; the list follows the stage and the project.
   const tools = useMemo(() => toolsFor(DESIGN_TOOLS, phase, useStore.getState()), [phase, project])
-  // Massing has three steps (Site, Volume, Program): the step's own tools lead, the others follow under "More tools".
-  const { main, more } = useMemo(() => (phase === 'basic' ? splitForStep(tools, step) : { main: tools, more: [] as DesignTool[] }), [tools, phase, step])
-  const [open, setOpen] = useState<Record<string, boolean>>(readOpen)
-  const [moreOpen, setMoreOpenState] = useState(readMore)
-  const setMoreOpen = (v: boolean) => { setMoreOpenState(v); writeMore(v) }
-  const moreIds = new Set(more.map((t) => t.id))
-  // A tool under "More tools" starts folded (its default is for the step it leads); a tool the user opened stays open.
-  const isOpen = (t: DesignTool) => open[t.id] ?? (!moreIds.has(t.id) && !!t.defaultOpen)
-  const toggle = (t: DesignTool) => setOpen((o) => { const next = { ...o, [t.id]: !isOpen(t) }; writeOpen(next); return next })
-  const shown = moreOpen ? [...main, ...more] : main
-  const allOpen = shown.length > 0 && shown.every(isOpen)
-  const setAll = (v: boolean) => setOpen((o) => { const next = { ...o, ...Object.fromEntries(shown.map((t) => [t.id, v])) }; writeOpen(next); return next })
+  const noTower = useTowers().length === 0
+  // Massing has three steps (Site, Volume, Program), each with only its own tools.
+  const stepTools = useMemo(() => (phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step])
+  // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
+  const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
+  const shown = empty ? [] : stepTools
+  // The open tool, per step (Massing) or stage: the one picked here before, else the first that opens by default.
+  const where = phase === 'basic' ? `basic:${step}` : phase
+  const [picked, setPicked] = useState<Record<string, string>>(readActive)
+  const activeId = shown.find((t) => t.id === picked[where])?.id ?? (shown.find((t) => t.defaultOpen) ?? shown[0])?.id
+  const active = shown.find((t) => t.id === activeId)
+  const pick = (id: string) => setPicked((o) => { const next = { ...o, [where]: id }; writeActive(next); return next })
   const stepLabel = phase === 'basic' ? PROCESS.find((p) => p.id === step)?.label : null
+  // Arrow keys, Home and End move along the icons (tabs pattern); the icon reached opens.
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const i = shown.findIndex((t) => t.id === activeId)
+    const j = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? shown.length - 1 : null
+    if (j === null || !shown.length) return
+    e.preventDefault()
+    const next = shown[(j + shown.length) % shown.length]
+    pick(next.id)
+    document.getElementById(`tool-${next.id}-head`)?.focus()
+  }
+  const Body = active?.component
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -89,26 +89,24 @@ export default function ToolPanel() {
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Design tools</h2>
           {stepLabel && <span className="truncate text-[11px] text-muted" data-testid="tools-step">· {stepLabel} step</span>}
         </span>
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => setAll(!allOpen)} className="rounded px-1 text-[11px] text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{allOpen ? 'Collapse all' : 'Expand all'}</button>
-          <HidePanelButton side="left" />
-        </div>
+        <HidePanelButton side="left" />
       </div>
+      {shown.length > 0 && (
+        <div role="tablist" aria-label="Design tools" className="flex flex-wrap gap-0.5 border-b border-line px-2 py-1.5">
+          {shown.map((t) => <ToolTile key={t.id} tool={t} active={t.id === activeId} tabStop={t.id === activeId} onPick={() => pick(t.id)} onKey={onKey} />)}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
-        {main.map((t) => <ToolSection key={t.id} tool={t} open={isOpen(t)} onToggle={() => toggle(t)} />)}
-        {!main.length && !!more.length && <p className="px-4 py-3 text-[11px] text-muted">No tool leads this step here; the stage's tools are under More tools.</p>}
-        {more.length > 0 && (
-          <>
-            <h3 className="border-b border-line bg-black/[0.03]">
-              <button type="button" onClick={() => setMoreOpen(!moreOpen)} aria-expanded={moreOpen} aria-controls="tools-more"
-                className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
-                {moreOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}More tools <span className="font-normal normal-case tracking-normal">· {more.length} for the other steps</span>
-              </button>
-            </h3>
-            {moreOpen && <div id="tools-more">{more.map((t) => <ToolSection key={t.id} tool={t} open={isOpen(t)} onToggle={() => toggle(t)} />)}</div>}
-          </>
+        {empty === 'place' && <PlaceFirstTower />}
+        {empty === 'none' && <NoTowerYet />}
+        {active && Body && (
+          <div id="tool-panel" role="tabpanel" aria-labelledby={`tool-${active.id}-head`} data-tool-body={active.id} className="pb-1">
+            <ToolBoundary key={active.id} label={active.label}>
+              <Suspense fallback={<p className="px-4 py-3 text-[11px] text-muted">Loading {active.label}…</p>}><Body /></Suspense>
+            </ToolBoundary>
+          </div>
         )}
-        {!tools.length && <p className="p-4 text-xs text-muted">No design tools in this stage.</p>}
+        {!empty && !shown.length && <p className="p-4 text-xs text-muted">No design tools in this step.</p>}
       </div>
     </div>
   )

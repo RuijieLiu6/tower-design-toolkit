@@ -20,6 +20,23 @@ const renderModules = import.meta.glob<{ default: ComponentType }>('./RenderTab.
 const RenderTab = renderModules['./RenderTab.tsx'] ? lazy(renderModules['./RenderTab.tsx']) : null
 const SiteInfo = lazy(() => import('./site/SiteInfo'))
 
+/** Results with the analysis switched off (process rail): nothing runs; one click turns it back on. */
+function AnalysisOff() {
+  const setAnalysis = useStore((s) => s.setAnalysis)
+  return (
+    <div data-testid="analysis-off" className="m-3 rounded-lg border border-line bg-black/[0.02] p-3">
+      <p className="text-xs font-semibold text-ink">Analysis is off</p>
+      <p className="mt-1 text-[11px] text-muted">No check runs while you design. The checks you picked stay remembered.</p>
+      <button type="button" onClick={() => setAnalysis(true)} className="mt-2 rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Run analysis</button>
+    </div>
+  )
+}
+
+/** Results before any tower: the checks read the towers, so say what to do first. */
+function NothingToAnalyse() {
+  return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-[11px] text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Volume step, or import a model on the Site step.</p>
+}
+
 type Tab = 'site' | 'results' | 'present' | 'render' | 'trace'
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
@@ -78,6 +95,8 @@ export default function RightPanel() {
   const tabs: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
     : [{ id: 'site', label: 'Your site' }, { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
+  const analysis = useStore((s) => s.analysis)
+  const noTower = useStore((s) => s.towers[s.project].length === 0)
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
   return (
     <aside className="flex h-full w-[22rem] shrink-0 flex-col border-l border-line bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
@@ -97,7 +116,7 @@ export default function RightPanel() {
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
-        {shown === 'results' && <><ResultsPicker /><Inspector /></>}
+        {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><Inspector /></> : <AnalysisOff />)}
         {shown === 'present' && <PresentPanel />}
         {shown === 'render' && RenderTab && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Render…</p>}><RenderTab /></Suspense>}
         {shown === 'trace' && <TracePanel />}

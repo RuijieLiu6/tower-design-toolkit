@@ -339,11 +339,14 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
   const proposed = useStore(proposedLook)
   const planMode = useVistaLook((s) => s.mode === 'plan')
   const planView = planMode && useStore.getState().project === 'city'
+  // Analysis off (process rail): no verdict on the tower.
+  const analysis = useStore((s) => s.analysis)
   const coneChecks = useResults().cones.find((r) => r.tower.id === t.id)?.checks
   const over = useMemo(() => {
+    if (!analysis) return null
     const worst = (coneChecks ?? []).filter((c) => c.state === 'above' && c.exceed !== null).sort((a, b) => b.exceed! - a.exceed!)[0]
     return worst ? `${worst.exceed!.toFixed(1)} m over view ${worst.cone.id} (±${worst.param?.u95 ?? 0} m)` : null
-  }, [coneChecks])
+  }, [coneChecks, analysis])
   const anatomy = useStore((s) => s.anatomy)
   const explode = useStore((s) => s.explode) && schematic
   const section = useStore((s) => s.sectionOn) && schematic
@@ -682,7 +685,8 @@ export default function Viewport() {
       {project === 'vtc' && !present && !hidden && <VtcContextCard />}
       {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
-      {placing && !hidden && <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white">Click the ground to place the selected tower · Esc to stop</div>}
+      {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
+      {placing && !hidden && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
       <TowerToolbar />
     </div>

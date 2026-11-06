@@ -1,7 +1,7 @@
 // The guided app's design tools (left panel). Each export is one tool's body; the tool definitions that place them in the
 // panel are in tools/builtin.tool.tsx.
 import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Crosshair, Expand, FileUp, Plus, Scissors, Sparkles, Trash2 } from './icons'
+import { ArrowDown, ArrowUp, Crosshair, Expand, Plus, Scissors, Sparkles, Trash2 } from './icons'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
 import { stablePostedLimit } from '../engine/skyRoom'
@@ -14,9 +14,9 @@ import { DEFAULT_SKY_ROOM, useStore, useTowers } from '../store'
 import BlockEditor from './BlockEditor'
 import FsrSiteLine from './FsrSiteLine'
 import ImportedPanel from './ImportedPanel'
-import { useImportStore } from '../lib/import/store'
 import PublicRealmPanel from './PublicRealmPanel'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
+import Fold from './Fold'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
 
@@ -157,19 +157,19 @@ export function ToolBlock({ title, right, help, children }: { title?: string; ri
   )
 }
 
-/** Which tower the other tools are editing (they all follow the Towers & site selection). */
+/** Which tower the other tools are editing (they all follow the Place towers selection). */
 function EditingTag({ name }: { name: string }) {
-  return <p className="mb-2 text-[11px] text-muted">Editing <span className="font-semibold text-ink">{name}</span> · pick another tower in Towers &amp; site</p>
+  return <p className="mb-2 text-[11px] text-muted">Editing <span className="font-semibold text-ink">{name}</span> · pick another tower under Place</p>
 }
 
-/** Towers & site: pick, add, import, place and remove towers; the site's ground level in Real Vancouver. */
+/** Towers: pick, add, place and remove towers; the site's ground level in Real Vancouver. Importing is on the Site step. */
 export function TowersTool() {
   const { t, towers } = useEditedTower()
   const { project, selectTower, addTower, removeTower, placing, set, groundElevation, groundMode } = useStore(useShallow((s) => ({ project: s.project, selectTower: s.selectTower, addTower: s.addTower, removeTower: s.removeTower, placing: s.placing, set: s.set, groundElevation: s.groundElevation, groundMode: s.groundMode })))
   if (!t) return null
   return (
     <>
-      <ToolBlock title="Towers" right={<span className="flex items-center gap-3"><button onClick={() => useImportStore.getState().openDialog()} title="Import a massing model (3DM, OBJ, glTF, IFC)" className="flex items-center gap-1 text-[11px] text-accent hover:underline"><FileUp size={12} />Import</button><button onClick={addTower} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add tower</button></span>}>
+      <ToolBlock title="Towers" right={<button onClick={addTower} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add tower</button>}>
         <div className="flex flex-wrap gap-1">
           {towers.map((x) => (
             <button key={x.id} onClick={() => selectTower(x.id)} aria-pressed={x.id === t.id} className={`rounded-md border px-2 py-1 text-xs ${x.id === t.id ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{x.name}</button>
@@ -179,7 +179,7 @@ export function TowersTool() {
           <button onClick={() => set({ placing: !placing })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${placing ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`} title="Then click the ground in the 3D view (P)">
             <Crosshair size={13} />{placing ? 'Click the ground…' : 'Place on map'}
           </button>
-          {towers.length > 1 && <button onClick={() => removeTower(t.id)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-muted hover:text-red-700"><Trash2 size={13} />Remove</button>}
+          {towers.length > 0 && <button onClick={() => removeTower(t.id)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-muted hover:text-red-700"><Trash2 size={13} />Remove</button>}
         </div>
       </ToolBlock>
       {project === 'city' && (
@@ -371,7 +371,7 @@ export function CoreTool() {
           {lift && <div><div className="text-muted">Net-to-gross</div><div className="font-semibold tabular-nums">{Math.round(lift.ntg * 100)}%</div></div>}
           <div><div className="text-muted">Plant floors</div><div className="font-semibold tabular-nums">{plantFloors}</div></div>
         </div>
-        <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">Core share, plant spacing and the lift and egress presets are team assumptions, not code minimums. Net-to-gross uses the larger of the modelled and needed core.</span></div>
+        <div className="flex items-start gap-1"><FlagChip flag="team_assumption" /><Fold summary="Team assumptions, not code minimums">Core share, plant spacing and the lift and egress presets are team assumptions, not code minimums. Net-to-gross uses the larger of the modelled and needed core.</Fold></div>
         <div>
           <div className="mb-1 flex items-center gap-1.5 text-xs font-medium">Exit stairs<Help label="About exit stair placement">Stairs at the plate edge pass exit separation more easily and shrink the core, but take lettable floor and facade. Placement is a team assumption on geometry.</Help></div>
           <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label="Exit stair placement">

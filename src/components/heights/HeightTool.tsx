@@ -7,6 +7,7 @@ import type { Block } from '../../engine/types'
 import { breakStep } from '../../lib/project/history'
 import { useStore, useTowers } from '../../store'
 import { FlagChip } from '../ui'
+import Fold from '../Fold'
 import { U } from '../Units'
 import { useTowerHeights } from '../useHeights'
 
@@ -78,7 +79,7 @@ export default function HeightTool() {
           </div>
         </div>
       )}
-      <p className="text-[10px] text-slate-500">A study height after Vista (Ruijie Liu), not a City height entitlement. Zoning numbers are Vista's by-law transcriptions (unverified); study surfaces are assumptions.</p>
+      <Fold summary="A study height, not a City height entitlement">After Vista (Ruijie Liu). Zoning numbers are Vista's by-law transcriptions (unverified); study surfaces are assumptions.</Fold>
     </div>
   )
 }

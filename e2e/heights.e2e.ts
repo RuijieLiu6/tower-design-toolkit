@@ -4,6 +4,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { openDesignTool, placeStartingTower } from './helpers'
 
 const SHOTS = join(process.cwd(), 'test-results', 'heights')
 mkdirSync(SHOTS, { recursive: true })
@@ -23,10 +24,11 @@ test('height suggestion, results and the map layer in Real Vancouver', async ({ 
   test.setTimeout(720_000) // SwiftShader draws the city, cone volumes included, at seconds a frame
   await openCity(page)
 
-  // 1. The design tool on the study tower (left panel, Real Vancouver only).
-  const tool = page.getByRole('button', { name: /Height suggestion/ }).first()
-  await expect(tool).toBeVisible({ timeout: 120_000 })
-  if ((await tool.getAttribute('aria-expanded')) === 'false') await tool.click()
+  // 1. The design tool on the study tower (left panel, Volume step, Real Vancouver only). A project opens with no tower
+  // (6 Nov): place the study tower first, as a user does.
+  await placeStartingTower(page, { stay: true })
+  await openDesignTool(page, 'height-suggestion')
+  const tool = page.locator('[role="tab"][data-tool="height-suggestion"]')
   await expect(page.getByText(/(Suggested|Cones allow) up to/).first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/Set by /).first()).toBeVisible()
   await tool.scrollIntoViewIfNeeded()

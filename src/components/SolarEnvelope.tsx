@@ -12,6 +12,7 @@ import { SOLAR_NODE, useSolar } from '../hooks/useSolarAccess'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, Toggle } from './ui'
 import Help from './Help'
+import { nodeOn } from '../lib/analysis'
 
 export const useEnvelopeStore = create<{ show: boolean; set: (show: boolean) => void }>((set) => ({ show: false, set: (show) => set({ show }) }))
 
@@ -21,7 +22,7 @@ const CELL = 4, MARGIN = 24, CAP = 400
 export function useSolarEnvelope() {
   const show = useEnvelopeStore((s) => s.show)
   const project = useStore((s) => s.project)
-  const on = useStore((s) => !!s.enabled[SOLAR_NODE])
+  const on = useStore((s) => nodeOn(s, SOLAR_NODE))
   const ground = useStore((s) => s.groundElevation)
   const selected = useStore((s) => s.selectedTower)
   const towers = useTowers()

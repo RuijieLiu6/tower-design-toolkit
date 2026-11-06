@@ -9,11 +9,12 @@ import { useEnergyStore } from '../lib/energyStore'
 import { useVtcShadeContext } from '../lib/vtcShadeContext'
 import { useStore, useTowers } from '../store'
 import { useResults } from './useResults'
+import { nodeOn } from '../lib/analysis'
 
 export const ENERGY_NODE = 'built.energy-carbon'
 
 export function useEnergyCarbon(): EnergyCarbonResult | null {
-  const on = useStore((s) => !!s.enabled[ENERGY_NODE])
+  const on = useStore((s) => nodeOn(s, ENERGY_NODE))
   const project = useStore((s) => s.project)
   const towers = useTowers()
   const input = useEnergyStore((s) => s.input)

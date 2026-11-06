@@ -6,11 +6,12 @@ import { windScreen, type WindScreenResult } from '../engine/windScreen'
 import { useVtcShadeContext } from '../lib/vtcShadeContext'
 import { useWindScreenStore } from '../lib/windScreenStore'
 import { useStore, useTowers } from '../store'
+import { nodeOn } from '../lib/analysis'
 
 export const WIND_SCREEN_NODE = 'built.wind-screen'
 
 export function useWindScreen(): WindScreenResult | null {
-  const on = useStore((s) => !!s.enabled[WIND_SCREEN_NODE])
+  const on = useStore((s) => nodeOn(s, WIND_SCREEN_NODE))
   const project = useStore((s) => s.project)
   const towers = useTowers()
   const presets = useWindScreenStore((s) => s.presets)

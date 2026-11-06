@@ -6,6 +6,7 @@ import { blocksOf, blockSpans, towerFloors } from '../engine/massing'
 import type { Block, Tower } from '../engine/types'
 import { useStore } from '../store'
 import { NumberField } from './ui'
+import Fold from './Fold'
 
 const newId = () => `b${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`
 
@@ -74,7 +75,7 @@ export default function BlockEditor({ t }: { t: Tower }) {
           </div>
         )
       })}
-      <p className="text-[10px] text-muted">Floors run at the tower floor-to-floor above the podium and take the block at their mid-height, so a block height that isn’t a multiple of {t.f2f} m shares a floor with its neighbour. Every check reads the plate of the block at each level.</p>
+      <Fold summary="How floors meet the blocks">Floors run at the tower floor-to-floor above the podium and take the block at their mid-height, so a block height that isn’t a multiple of {t.f2f} m shares a floor with its neighbour. Every check reads the plate of the block at each level.</Fold>
     </div>
   )
 }
