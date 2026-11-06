@@ -2,6 +2,7 @@
 import { FileUp } from './icons'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useImportStore } from '../lib/import/store'
+import { BASE_MODEL_NAME, addVtcModel, useVtcSource } from '../lib/vtcContextSource'
 
 const ImportDialog = lazy(() => import('./ImportDialog'))
 const MODEL = /\.(3dm|obj|glb|gltf|ifc|skp|rvt)$/i
@@ -23,6 +24,8 @@ export default function ImportHost() {
       const f = [...(e.dataTransfer?.files ?? [])].find((x) => MODEL.test(x.name))
       if (!f) return
       e.preventDefault()
+      // The competition base model, dropped while its context is missing: it is the context, not a massing upload.
+      if (BASE_MODEL_NAME.test(f.name) && !useVtcSource.getState().ctx) { void addVtcModel(f); return }
       useImportStore.getState().openDialog(f)
     }
     window.addEventListener('dragenter', enter)

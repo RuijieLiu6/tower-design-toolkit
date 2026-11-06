@@ -425,8 +425,9 @@ function inPolygon(ring: [number, number][], p: [number, number]) {
   return inside
 }
 
-/** Samples a curve into points (polylines exactly, curves at 48 steps). */
-function curvePoints(c: Rh): number[][] {
+/** Samples a curve into points (polylines exactly, curves at `steps` steps). The closing duplicate of a closed curve is
+ * dropped unless `keepClosing` (the competition context keeps it, as tools/build_vtc_context.py does). */
+export function curvePoints(c: Rh, steps = 48, keepClosing = false): number[][] {
   const [t0, t1] = c.domain as number[]
   let pts: number[][] | null = null
   try {
@@ -434,7 +435,8 @@ function curvePoints(c: Rh): number[][] {
     if (pl && typeof pl.count === 'number' && pl.count >= 3) { pts = []; for (let i = 0; i < pl.count; i++) pts.push(pl.get(i)) }
     else if (pl && Array.isArray(pl) && pl.length >= 3) pts = pl
   } catch { pts = null }
-  if (!pts) { pts = []; for (let i = 0; i <= 48; i++) pts.push(c.pointAt(t0 + ((t1 - t0) * i) / 48)) }
+  if (!pts) { pts = []; for (let i = 0; i <= steps; i++) pts.push(c.pointAt(t0 + ((t1 - t0) * i) / steps)) }
+  if (keepClosing) return pts
   // Drop the closing duplicate.
   const a = pts[0], b = pts[pts.length - 1]
   if (pts.length > 3 && Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 1e-9) pts = pts.slice(0, -1)

@@ -7,6 +7,7 @@ import type { MapBounds, MapDate, SolarJobInput, SolarJobOutput } from '../engin
 import type { Reading } from '../engine/solarRules'
 import { contextOccluders } from '../lib/interchange/converters'
 import { useCityModel, type CityModel } from '../lib/cityModel'
+import { loadVtcContext, useVtcSource } from '../lib/vtcContextSource'
 import { useStore, useTowers } from '../store'
 
 export const SOLAR_NODE = 'built.solar-access'
@@ -36,11 +37,6 @@ export const useSolar = create<SolarState>((set) => ({
   mapDate: 'equinox', view: 'hours', showMap: true, readings: {}, areas: {}, editing: false, status: 'idle', error: '', out: null, key: '',
   set: (p) => set(p),
 }))
-
-// The competition model is local-only; loaded once and shared.
-let ctxPromise: Promise<VtcContext | null> | null = null
-let ctxValue: VtcContext | null | undefined
-const loadCtx = () => (ctxPromise ??= fetch('./local/vtc_context.json').then((r) => (r.ok ? r.json() : null)).catch(() => null).then((c) => (ctxValue = c)))
 
 let worker: Worker | null = null
 let seq = 0
@@ -82,14 +78,18 @@ export function useSolarAccess(force = false) {
   const { mapDate, readings } = useSolar()
   const area = useSolar((s) => s.areas[project])
   const state = useSolar()
+  // The competition context (the entrant's own copy of the base model, kept in this browser): -1 until it has loaded (or
+  // is known missing), then its version, so the map runs once on load and again when a copy is added or removed.
+  const vtcVersion = useVtcSource((s) => (s.status === 'idle' || s.status === 'loading' ? -1 : s.version))
 
   useEffect(() => {
     if (!on) return
+    if (project === 'vtc' && vtcVersion < 0) { void loadVtcContext(); return }
     let cancelled = false, fired = false
     const geometry = towers.map((t) => [t.id, t.x, t.y, t.rotation, t.width, t.depth, t.height, t.podiumHeight, t.podiumWidth, t.podiumDepth, t.f2f, t.imported?.meshId ?? '', JSON.stringify(t.blocks ?? null)])
     const modelContext = model ? contextOccluders(model) : undefined
     const mkey = model && modelContext?.prisms.length ? `+${model.id}:${modelContext.prisms.length}` : ''
-    const key = JSON.stringify({ project, geometry, readings, mapDate, area: area ?? null, ground: project === 'city' ? ground : 0, mkey, cityModel: project === 'city' ? cityModel : '' })
+    const key = JSON.stringify({ project, geometry, readings, mapDate, area: area ?? null, ground: project === 'city' ? ground : 0, mkey, cityModel: project === 'city' ? cityModel : '', vtc: project === 'vtc' ? vtcVersion : 0 })
     if (key === useSolar.getState().key) return
     useSolar.setState({ key })
     clearTimeout(timer)
@@ -97,17 +97,16 @@ export function useSolarAccess(force = false) {
       fired = true
       const go = (ctx: VtcContext | null) => {
         if (cancelled) { if (useSolar.getState().key === key) useSolar.setState({ key: '' }); return }
-        run({ project, towers, readings, mapDate, ...(area ? { bounds: area } : {}), groundElevation: ground, ctxKey: (project === 'city' ? `city-layers:${cityModel}` : ctx ? 'vtc-model' : 'none') + mkey, ...(modelContext?.prisms.length ? { modelContext } : {}) }, project === 'vtc' ? ctx : null, cityModel)
+        run({ project, towers, readings, mapDate, ...(area ? { bounds: area } : {}), groundElevation: ground, ctxKey: (project === 'city' ? `city-layers:${cityModel}` : ctx ? `vtc-model:${vtcVersion}` : 'none') + mkey, ...(modelContext?.prisms.length ? { modelContext } : {}) }, project === 'vtc' ? ctx : null, cityModel)
       }
-      if (project === 'vtc' && ctxValue === undefined) loadCtx().then(go)
-      else go(project === 'vtc' ? ctxValue ?? null : null)
+      go(project === 'vtc' ? useVtcSource.getState().ctx : null)
     }, 250)
     return () => {
       cancelled = true
       // Unmounted before the run started: let the next caller start it.
       if (!fired && useSolar.getState().key === key) { clearTimeout(timer); useSolar.setState({ key: '' }) }
     }
-  }, [on, towers, project, mapDate, readings, area, ground, model, cityModel])
+  }, [on, towers, project, mapDate, readings, area, ground, model, cityModel, vtcVersion])
 
   return { ...state, on }
 }

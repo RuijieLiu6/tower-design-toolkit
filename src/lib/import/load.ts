@@ -45,11 +45,7 @@ async function readBytes(file: File, onProgress?: ReadProgress, signal?: AbortSi
   if (ext === 'rvt' || ext === 'rfa') throw new Error('Revit files cannot be read in a browser. In Revit: File > Export > IFC (IFC4, the mass only), then import the IFC.')
   if (ext === 'dwg' || ext === 'dxf') throw new Error('2D plans (DWG/DXF) are not massing. Export the 3D mass as 3DM, OBJ or IFC.')
   if (ext === '3dm' || head.startsWith('3D Geometry File Format')) {
-    rhino ??= (async () => {
-      const [{ default: rhino3dm }, { default: wasmUrl }] = await Promise.all([import('rhino3dm/rhino3dm.module.js'), import('rhino3dm/rhino3dm.wasm?url')])
-      return rhino3dm({ locateFile: () => wasmUrl })
-    })()
-    const [rh, { read3dmWith }] = await Promise.all([rhino, import('./rhino')])
+    const [rh, { read3dmWith }] = await Promise.all([loadRhino3dm(), import('./rhino')])
     return { ...read3dmWith(rh, bytes, name, (done, total) => onProgress?.({ phase: 'Reading objects', done, total })), fingerprint }
   }
   if (ext === 'ifc' || head.startsWith('ISO-10303-21')) {
@@ -68,6 +64,14 @@ async function readBytes(file: File, onProgress?: ReadProgress, signal?: AbortSi
   }
   if (ext === 'obj') return { ...readObj(new TextDecoder().decode(bytes), name), fingerprint }
   throw new Error(`.${ext || '?'} is not a format Tower Design Toolkit reads. Use 3DM, OBJ, glTF/GLB or IFC.`)
+}
+
+/** rhino3dm (openNURBS in WebAssembly) on the page, loaded once and shared (also by lib/vtcContextSource.ts). */
+export function loadRhino3dm(): Promise<any> {
+  return (rhino ??= (async () => {
+    const [{ default: rhino3dm }, { default: wasmUrl }] = await Promise.all([import('rhino3dm/rhino3dm.module.js'), import('rhino3dm/rhino3dm.wasm?url')])
+    return rhino3dm({ locateFile: () => wasmUrl })
+  })())
 }
 
 export const ACCEPT = '.3dm,.obj,.glb,.gltf,.ifc,.skp,.rvt'

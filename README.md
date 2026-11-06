@@ -38,7 +38,9 @@ The in-app **User guide** (start page > User guide, or `#/guide`) explains the s
 
 ### Add the competition model (optional, stays on your computer)
 
-The VTC base model belongs to Buildner and is **never published**. If you are an entrant and have it, convert it locally (Python 3.11+ with `pip install rhino3dm`):
+The VTC base model belongs to Buildner and is **never published**, so the website has no copy. If you are an entrant, open the Competition site and click **Add your copy of the base model (.3dm)** (or drop `Vancouver Tall Base Model.3dm` on the view). The app reads it in your browser and keeps it in that browser's own storage on your computer; nothing is uploaded, and other visitors never see it. Remove it any time from the view's dock (Competition context model).
+
+For development you can instead convert it once (Python 3.11+ with `pip install rhino3dm`); the app uses this file first when it exists:
 
 ```bash
 python tools/build_vtc_context.py "<path>/Vancouver Tall Base Model.3dm" public/local/vtc_context.json

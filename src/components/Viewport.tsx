@@ -38,6 +38,8 @@ import CameraClamp from './CameraClamp'
 import { BvhWarmup, eventsWithoutWheel, installFastRaycast } from '../lib/fastRaycast'
 import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
+import { VtcBaseModelPanel, VtcContextCard } from './VtcBaseModel'
+import { useVtcSource } from '../lib/vtcContextSource'
 import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
 import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
 import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
@@ -117,7 +119,7 @@ function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: s
 }
 
 function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
-  const { ctx, missing } = useVtcContext()
+  const { ctx } = useVtcContext()
   const towers = useTowers()
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
   const plinth = useMemo(() => vtcPlinth(ctx), [ctx])
@@ -153,7 +155,6 @@ function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => vo
       {ctx?.labels.filter((l) => !['N', 'SITE'].includes(l.text)).map((l, i) => (
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold />
       ))}
-      {missing && <Label text="Context model not found: run npm run context:vtc (kept local, never published)" position={[0, -60, 2]} color="#7a4b00" background="rgba(255,243,205,0.95)" />}
       {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
       <ModelOverlay base={0} xray={xray} />
       <PublicRealmOverlay />
@@ -678,6 +679,7 @@ export default function Viewport() {
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
       {project === 'city' && !present && <CityLegend />}
       {project === 'vtc' && !present && <VtcDock />}
+      {project === 'vtc' && !present && !hidden && <VtcContextCard />}
       {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {placing && !hidden && <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white">Click the ground to place the selected tower · Esc to stop</div>}
@@ -745,7 +747,8 @@ function NorthCompass({ north }: { north: number }) {
 
 /** Competition site: the same dock as Real Vancouver, with the site's north, datum and context model. */
 function VtcDock() {
-  const { ctx, missing } = useVtcContext()
+  const { ctx, missing, status } = useVtcContext()
+  const source = useVtcSource((s) => s.source)
   return (
     <ViewportDock sections={[
       { id: 'vtc-site', title: 'Site, north & datum', defaultOpen: true, summary: `true north ${VTC_NORTH_DEG}°`, children: (
@@ -755,9 +758,7 @@ function VtcDock() {
           <p>Heights are above local grade (0 m = site grade); the competition model supplies no geodetic datum.</p>
         </div>
       ) },
-      { id: 'vtc-context', title: 'Competition context model', summary: missing ? 'not found' : ctx ? 'local only' : 'loading…', children: missing
-        ? <p>Context model not found: run <code>npm run context:vtc</code> (kept local in <code>public/local/</code>, never published).</p>
-        : <p>Competition context © Buildner, loaded from <code>public/local/</code> on this computer only (git-ignored, never published). Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p> },
+      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )
 }

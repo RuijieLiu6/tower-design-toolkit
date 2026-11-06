@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { loadVtcContext, useVtcSource } from './lib/vtcContextSource'
 
 export interface Extruded { footprint: [number, number][]; z0: number; z1: number }
 export interface MeshItem { positions: number[]; indices: number[] }
@@ -19,19 +20,15 @@ export interface VtcContext {
 export const isExtruded = (c: ContextItem): c is Extruded => 'footprint' in c
 
 /**
- * The competition model belongs to Buildner and is never published, so it is read from public/local/
- * (git-ignored), produced by tools/build_vtc_context.py. Without it, the app still runs with the site alone.
+ * The competition model belongs to Buildner and is never published. It comes from the entrant's own copy, read and kept
+ * in this browser (lib/vtcContextSource.ts), or on a developer's computer from public/local/ (git-ignored, made by
+ * tools/build_vtc_context.py). Without it, the app still runs with the site alone.
  */
 export function useVtcContext() {
-  const [ctx, setCtx] = useState<VtcContext | null>(null)
-  const [missing, setMissing] = useState(false)
-  useEffect(() => {
-    fetch('./local/vtc_context.json')
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then(setCtx)
-      .catch(() => setMissing(true))
-  }, [])
-  return { ctx, missing }
+  const ctx = useVtcSource((s) => s.ctx)
+  const status = useVtcSource((s) => s.status)
+  useEffect(() => { void loadVtcContext() }, [])
+  return { ctx, missing: !ctx && (status === 'missing' || status === 'error'), status }
 }
 
 /** True north in the VTC model, read from its drawn arrow (the file's own north setting is wrong). */

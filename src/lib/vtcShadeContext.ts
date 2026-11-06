@@ -1,8 +1,11 @@
 // Shading obstacles around the competition block for the PV check: each supplied context building reduced to the
-// convex hull of its plan and its top height, plus the future towers. Read at run time from the local context model
-// (public/local, never published); without the file, PV shading counts the project's own towers only.
-import { useEffect, useState } from 'react'
+// convex hull of its plan and its top height, plus the future towers. From the competition context (lib/vtcContextSource:
+// the entrant's own copy of the base model, or public/local on a developer's computer; never published); without it, PV
+// shading counts the project's own towers only.
+import { useEffect } from 'react'
+import type { VtcContext } from '../context'
 import type { Obstacle } from '../engine/energyCarbon'
+import { loadVtcContext, useVtcSource } from './vtcContextSource'
 
 type Ctx = { buildings?: { positions?: number[]; footprint?: [number, number][]; z1?: number | null }[]; future_towers?: { footprint: [number, number][]; z1: number | null }[] }
 
@@ -17,41 +20,33 @@ export function hull(points: [number, number][]): [number, number][] {
   return lower.slice(0, -1).concat(upper.slice(0, -1))
 }
 
-let cache: Promise<Obstacle[]> | null = null
-function load(): Promise<Obstacle[]> {
-  if (!cache) {
-    cache = fetch('./local/vtc_context.json')
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((ctx: Ctx) => {
-        const out: Obstacle[] = []
-        for (const b of ctx.buildings ?? []) {
-          if (b.footprint && b.z1) { out.push({ footprint: b.footprint, height: b.z1 }); continue }
-          const pos = b.positions
-          if (!pos || pos.length < 9) continue
-          const pts: [number, number][] = []
-          let top = 0
-          for (let i = 0; i + 2 < pos.length; i += 3) { pts.push([pos[i], pos[i + 1]]); top = Math.max(top, pos[i + 2]) }
-          const fp = hull(pts)
-          if (fp.length >= 3 && top > 3) out.push({ footprint: fp, height: top })
-        }
-        for (const f of ctx.future_towers ?? []) if (f.z1) out.push({ footprint: f.footprint, height: f.z1 })
-        return out
-      })
-      .catch(() => [])
+const shades = new WeakMap<VtcContext, { obstacles: Obstacle[]; loaded: boolean }>()
+function obstaclesOf(vtc: VtcContext): { obstacles: Obstacle[]; loaded: boolean } {
+  let hit = shades.get(vtc)
+  if (hit) return hit
+  const ctx = vtc as unknown as Ctx
+  const out: Obstacle[] = []
+  for (const b of ctx.buildings ?? []) {
+    if (b.footprint && b.z1) { out.push({ footprint: b.footprint, height: b.z1 }); continue }
+    const pos = b.positions
+    if (!pos || pos.length < 9) continue
+    const pts: [number, number][] = []
+    let top = 0
+    for (let i = 0; i + 2 < pos.length; i += 3) { pts.push([pos[i], pos[i + 1]]); top = Math.max(top, pos[i + 2]) }
+    const fp = hull(pts)
+    if (fp.length >= 3 && top > 3) out.push({ footprint: fp, height: top })
   }
-  return cache
+  for (const f of ctx.future_towers ?? []) if (f.z1) out.push({ footprint: f.footprint, height: f.z1 })
+  hit = { obstacles: out, loaded: out.length > 0 }
+  shades.set(vtc, hit)
+  return hit
 }
 
 const NONE = { obstacles: [] as Obstacle[], loaded: false }
 
 /** Obstacles for the competition site (empty until loaded, or always empty off the competition site). */
 export function useVtcShadeContext(enabled: boolean): { obstacles: Obstacle[]; loaded: boolean } {
-  const [state, setState] = useState<{ obstacles: Obstacle[]; loaded: boolean }>({ obstacles: [], loaded: false })
-  useEffect(() => {
-    if (!enabled) return
-    let live = true
-    load().then((o) => { if (live) setState({ obstacles: o, loaded: o.length > 0 }) })
-    return () => { live = false }
-  }, [enabled])
-  return enabled ? state : NONE
+  const ctx = useVtcSource((s) => s.ctx)
+  useEffect(() => { if (enabled) void loadVtcContext() }, [enabled])
+  return enabled && ctx ? obstaclesOf(ctx) : NONE
 }
