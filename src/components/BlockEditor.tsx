@@ -7,6 +7,8 @@ import type { Block, Tower } from '../engine/types'
 import { useStore } from '../store'
 import { NumberField } from './ui'
 import Fold from './Fold'
+import { useEffect } from 'react'
+import { useBlockEdit } from '../lib/blockEdit'
 
 const newId = () => `b${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`
 
@@ -15,6 +17,9 @@ export default function BlockEditor({ t }: { t: Tower }) {
   const blocks = blocksOf(t)
   const spans = blockSpans(t)
   const floors = towerFloors(t)
+  // The block picked on the model (Massing's Face / Mass editing) is highlighted here and scrolled into view.
+  const picked = useBlockEdit((s) => s.block)
+  useEffect(() => { if (picked) document.querySelector(`[data-block="${CSS.escape(picked)}"]`)?.scrollIntoView({ block: 'nearest' }) }, [picked])
   const set = (next: Block[]) => updateTower(t.id, { blocks: next })
   const edit = (i: number, patch: Partial<Block>) => set(blocks.map((b, k) => (k === i ? { ...b, ...patch } : b)))
   const move = (i: number, by: number) => { const j = i + by; if (j < 0 || j >= blocks.length) return; const next = [...blocks];[next[i], next[j]] = [next[j], next[i]]; set(next) }
@@ -50,7 +55,8 @@ export default function BlockEditor({ t }: { t: Tower }) {
         const b = blocks[i], s = spans[i], n = floorsIn(i)
         const podiumIgnored = !!b.podium && i >= run
         return (
-          <div key={b.id} className={`rounded-md border p-2 ${b.podium && !podiumIgnored ? 'border-orange-200 bg-orange-50/40' : 'border-line'}`}>
+          <div key={b.id} data-block={b.id} aria-current={picked === b.id || undefined} onPointerDown={() => useBlockEdit.setState({ block: b.id })}
+            className={`rounded-md border p-2 ${picked === b.id ? 'border-accent ring-2 ring-accent/40' : b.podium && !podiumIgnored ? 'border-orange-200 bg-orange-50/40' : 'border-line'}`}>
             <div className="flex items-center gap-1">
               <input aria-label="Block name" value={b.name ?? ''} placeholder={b.podium ? 'Podium' : `Block ${i + 1}`} onChange={(e) => edit(i, { name: e.target.value || undefined })}
                 className="w-24 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-xs font-semibold hover:border-line focus:border-accent focus:outline-none" />

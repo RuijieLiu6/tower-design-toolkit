@@ -122,6 +122,8 @@ export const ListChecks = make('ListChecks', p('M3.5 6L5 7.5L8 4.5M3.5 12.5L5 14
 export const Loader2 = make('Loader2', p('M20.5 12A8.5 8.5 0 1 1 12 3.5'))
 export const Lock = make('Lock', lock)
 export const LockKeyhole = make('LockKeyhole', lock + p('M12 14V17.5'))
+/** An open padlock: the shackle lifted off one side (the view is free). */
+export const Unlock = make('Unlock', p('M5 11H19V20.5H5ZM8 11V7.5C8 5.3 9.8 3.5 12 3.5C13.7 3.5 15.1 4.5 15.7 6'))
 export const Magnet = make('Magnet', p('M5 3.5V12C5 15.9 8.1 19 12 19C15.9 19 19 15.9 19 12V3.5H15V12C15 13.7 13.7 15 12 15C10.3 15 9 13.7 9 12V3.5ZM5 7.5H9M15 7.5H19'))
 export const MapPin = make('MapPin', p('M12 21C12 21 5.5 14.5 5.5 9.5C5.5 5.9 8.4 3 12 3C15.6 3 18.5 5.9 18.5 9.5C18.5 14.5 12 21 12 21Z') + '<circle cx="12" cy="9.5" r="2.5"/>')
 export const MapPinned = make('MapPinned', p('M12 17C12 17 7 12.5 7 8.5C7 5.7 9.2 3.5 12 3.5C14.8 3.5 17 5.7 17 8.5C17 12.5 12 17 12 17ZM8 16H4.5L3 21H21L19.5 16H16') + '<circle cx="12" cy="8.5" r="2"/>')

@@ -47,6 +47,10 @@ export interface DesignTool {
    * offers it, next to "Place your tower" on the Volume step.
    */
   worksWithoutTower?: boolean
+  /** Shown only while the site has no tower; once there is one the tool lives inside the tool named by `opensIn`. */
+  emptyOnly?: boolean
+  /** The tool that holds this one once it leaves the row (`emptyOnly`): picking it then opens that tool. */
+  opensIn?: string
 }
 
 type ToolModule = { default: DesignTool | DesignTool[] }

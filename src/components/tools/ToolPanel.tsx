@@ -64,11 +64,13 @@ export default function ToolPanel() {
   // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
   const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
   // No tower on Volume: only the tools that make towers stay (Generate), and none opens until it is picked.
-  const shown = empty === 'place' ? stepTools.filter((t) => t.worksWithoutTower) : empty ? [] : stepTools
+  // With a tower, a tool that only leads an empty site (Generate) moves inside another one (Massing).
+  const shown = empty === 'place' ? stepTools.filter((t) => t.worksWithoutTower) : empty ? [] : stepTools.filter((t) => !t.emptyOnly)
   // The open tool, per step (Massing) or stage: the one picked here before, else the first that opens by default.
   const where = phase === 'basic' ? `basic:${step}` : phase
   const [picked, setPicked] = useState<Record<string, string>>(readActive)
-  const activeId = shown.find((t) => t.id === picked[where])?.id ?? (empty ? undefined : (shown.find((t) => t.defaultOpen) ?? shown[0])?.id)
+  const heldIn = stepTools.find((t) => t.id === picked[where])?.opensIn
+  const activeId = shown.find((t) => t.id === picked[where] || t.id === heldIn)?.id ?? (empty ? undefined : (shown.find((t) => t.defaultOpen) ?? shown[0])?.id)
   const active = shown.find((t) => t.id === activeId)
   const pick = (id: string) => setPicked((o) => { const next = { ...o, [where]: id }; writeActive(next); return next })
   const stepLabel = phase === 'basic' ? PROCESS.find((p) => p.id === step)?.label : null

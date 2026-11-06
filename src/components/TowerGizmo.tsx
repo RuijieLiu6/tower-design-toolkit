@@ -44,7 +44,8 @@ type Controls = { enabled: boolean }
 // Editor-only objects are drawn on the frame loop's own render and hidden on any other render (captures, Vista report
 // renders, 360° strips), so they never reach a shot or a board.
 const editorRoots = new Set<THREE.Object3D>()
-function useEditorRoot() {
+/** Marks a group as editor-only (also used by MassingEdit3D, the Massing tool's editing on the model). */
+export function useEditorRoot() {
   return useCallback((o: THREE.Object3D | null) => {
     if (!o) return
     editorRoots.add(o)

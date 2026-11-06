@@ -64,7 +64,8 @@ test('Generate: Podium + Tower and Courtyard on the competition site, then Undo'
   expect(court.n).toBe(1)
   expect(court.towers[0].imported).toBe('generated')
   expect(court.towers[0].ring).toBe(true)
-  await expect(p.getByText('· generated')).toBeVisible()
+  // The towers list says where it came from (the Massing panel, open now, says it too).
+  await expect(p.getByText('· generated').first()).toBeVisible()
   await p.screenshot({ path: join(SHOTS, '02-courtyard.png') })
 
   // Undo: back to Podium + Tower, then to the empty site.

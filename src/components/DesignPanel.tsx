@@ -19,6 +19,7 @@ import { FlagChip, NumberField, Section, Toggle } from './ui'
 import Fold from './Fold'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
+import { GenerateFold, MassingEditCard, useMassingEditSession } from './MassingEditPanel'
 
 function ProgramIcon({ use, small = false }: { use: UseId; small?: boolean }) {
   const Icon = PROGRAM_ICONS[use]
@@ -197,13 +198,17 @@ export function TowersTool() {
 /** Massing: height, rotation, floor-to-floor, the stacked blocks and the podium use (or the imported model). */
 export function MassingTool() {
   const { t, up } = useEditedTower()
+  // Open = the view edits the tower (Sinnie Choi's Face / Mass, components/MassingEdit3D.tsx).
+  useMassingEditSession()
   if (!t) return null
-  if (t.imported) return <ImportedPanel t={t} />
+  if (t.imported) return <><ImportedPanel t={t} /><GenerateFold /></>
   const floors = towerFloors(t)
   return (
+    <>
     <ToolBlock>
       <EditingTag name={t.name} />
       <div className="grid gap-2.5">
+        <MassingEditCard t={t} />
         <NumberField label="Height (architectural top)" value={t.height} onChange={(v) => up({ height: v })} min={60} max={420} step={1} unit="m" />
         <div className="grid grid-cols-2 gap-2">
           <NumberField label="Rotation (whole tower)" value={t.rotation} onChange={(v) => up({ rotation: v })} unit="°" />
@@ -219,6 +224,8 @@ export function MassingTool() {
         <div className="text-[11px] text-muted">{floors.length} floors · {Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m² gross · typical plate {(t.width * t.depth).toFixed(0)} m²{t.podiumHeight > 0 ? ` · podium ${t.podiumHeight.toFixed(1)} m` : ''}</div>
       </div>
     </ToolBlock>
+    <GenerateFold />
+    </>
   )
 }
 

@@ -33,6 +33,8 @@ import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import RelaxationMasks from './RelaxationMasks'
 import TowerGizmo, { TowerMover } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
+import MassingEdit3D from './MassingEdit3D'
+import MassingEditReadout from './MassingEditReadout'
 import { proposePlace } from '../lib/towerEdit'
 import CameraClamp from './CameraClamp'
 import { BvhWarmup, eventsWithoutWheel, installFastRaycast } from '../lib/fastRaycast'
@@ -671,6 +673,7 @@ export default function Viewport() {
             <group rotation={[-Math.PI / 2, 0, 0]}>
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
               <TowerGizmo />
+              <MassingEdit3D />
             </group>
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
@@ -696,6 +699,7 @@ export default function Viewport() {
       {placing && !hidden && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
       <TowerToolbar />
+      <MassingEditReadout />
     </div>
   )
 }
