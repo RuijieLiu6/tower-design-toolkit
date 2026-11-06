@@ -203,7 +203,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
 
   // 4e. Draw a box over lots: every lot it touches joins (one block).
   await openMenu(homer)
-  await menu(page).getByRole('menuitem', { name: /Draw a box over lots/ }).click()
+  await menu(page).getByRole('menuitem', { name: /Combine lots/ }).click()
   await expect(page.getByTestId('site-box-hint')).toBeVisible()
   await page.mouse.move(homer.x - 15, homer.y + 15)
   await page.mouse.down()

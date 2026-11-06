@@ -3,6 +3,7 @@
 import { DEFAULT_PUBLIC_REALM, VTC_EDGES, VTC_SITE, type EdgeId, type FrontageInput, type PublicRealmInput } from '../engine/publicRealm'
 import { useStore } from '../store'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
+import Help from './Help'
 
 const cell = 'w-full rounded border border-line bg-panel px-1 py-0.5 text-right text-[11px] tabular-nums'
 
@@ -38,7 +39,7 @@ export default function PublicRealmPanel() {
               })}
             </tbody>
           </table>
-          <p className="mt-1 text-[10px] text-muted">Shares of the building frontage on each street. Hotel lobbies and transit entrances count active; office and residential lobbies semi-active.</p>
+          <p className="mt-1 flex items-center gap-1 text-[10px] text-muted">Shares of each street's building frontage<Help label="About frontage shares">Hotel lobbies and transit entrances count as active; office and residential lobbies as semi-active.</Help></p>
         </div>
 
         <NumberField label="Unbuilt site that is public (secured by right-of-way)" unit="%" value={Math.round(input.openPublicShare * 100)} onChange={(v) => up({ openPublicShare: Math.min(1, Math.max(0, v / 100)) })} min={0} max={100} step={5}

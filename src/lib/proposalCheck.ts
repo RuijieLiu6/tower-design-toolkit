@@ -12,7 +12,8 @@ import type { Pt } from './edgeSnap'
 import type { SiteBoundary } from './siteGeometry'
 import type { Pose } from './towerEdit'
 
-export interface FitLine { id: 'site' | 'land'; state: RuleState; text: string; flag: Flag; source: string }
+/** One check of the proposed position: a short `title` and `value` for the status row, the full `text` for its details. */
+export interface FitLine { id: 'site' | 'land'; state: RuleState; title: string; value: string; text: string; flag: Flag; source: string }
 
 export interface ProposalReport {
   /** Plan outline at the proposed pose (project frame). */
@@ -53,7 +54,7 @@ export function proposalReport({ project, tower, pose, site, ground, rules }: Pr
   if (project === 'vtc') {
     // The competition rule itself, run on this tower alone.
     const r = vtcRules([t], rules).find((x) => x.id === 'containment')
-    if (r) fit.push({ id: 'site', state: r.state, text: r.state === 'pass' ? 'Inside the competition block' : `${r.value} (${r.threshold})`, flag: r.flag, source: `${r.source.label}, ${r.source.page ?? ''}` })
+    if (r) fit.push({ id: 'site', state: r.state, title: 'Competition block', value: r.state === 'pass' ? 'inside' : r.value, text: r.state === 'pass' ? 'Inside the competition block' : `${r.value} (${r.threshold})`, flag: r.flag, source: `${r.source.label}, ${r.source.page ?? ''}` })
     return { footprint, base: 0, baseNote: 'Site grade (0 m, the competition model has no datum)', fit, cones: [], overall: null }
   }
 
@@ -70,17 +71,17 @@ export function proposalReport({ project, tower, pose, site, ground, rules }: Pr
     const out = corners.filter((p) => !pointInRing(p, site.ring))
     const by = out.length ? Math.max(...out.map((p) => edgeDistance(p, closed))) : 0
     fit.push(out.length
-      ? { id: 'site', state: 'fail', text: `Extends past the site by up to ${by.toFixed(1)} m (${site.label})`, flag: site.flag, source: site.source }
-      : { id: 'site', state: 'pass', text: `Inside the site (${site.label})`, flag: site.flag, source: site.source })
+      ? { id: 'site', state: 'fail', title: 'Site', value: `${by.toFixed(1)} m past the edge`, text: `Extends past the site by up to ${by.toFixed(1)} m (${site.label})`, flag: site.flag, source: site.source }
+      : { id: 'site', state: 'pass', title: 'Site', value: 'inside', text: `Inside the site (${site.label})`, flag: site.flag, source: site.source })
   } else {
-    fit.push({ id: 'site', state: 'unknown', text: 'No site boundary for Real Vancouver yet (the site tools will supply one)', flag: 'unresolved', source: 'lib/siteGeometry.ts: no site set for this project' })
+    fit.push({ id: 'site', state: 'unknown', title: 'Site', value: 'none chosen yet', text: 'No site boundary for Real Vancouver yet: choose one in the Site step', flag: 'unresolved', source: 'lib/siteGeometry.ts: no site set for this project' })
   }
   const land = ground.under ? ground.under(outlines.flat()) : null
   fit.push(!land
-    ? { id: 'land', state: 'unknown', text: 'No terrain under the footprint yet', flag: 'unresolved', source: TERRAIN }
+    ? { id: 'land', state: 'unknown', title: 'Land', value: 'terrain not loaded yet', text: 'No terrain under the footprint yet', flag: 'unresolved', source: TERRAIN }
     : land.min <= 0
-      ? { id: 'land', state: 'fail', text: `Partly over water: terrain down to ${round1(land.min)} m (0 m or below is water)`, flag: 'unverified', source: TERRAIN }
-      : { id: 'land', state: 'pass', text: `On land: terrain ${round1(land.min)}–${round1(land.max)} m`, flag: 'unverified', source: TERRAIN })
+      ? { id: 'land', state: 'fail', title: 'Land', value: 'partly over water', text: `Partly over water: terrain down to ${round1(land.min)} m (0 m or below is water)`, flag: 'unverified', source: TERRAIN }
+      : { id: 'land', state: 'pass', title: 'Land', value: 'on land', text: `On land: terrain ${round1(land.min)}–${round1(land.max)} m`, flag: 'unverified', source: TERRAIN })
 
   // The same check as Results & evidence (useResults), on the base the tower would get here.
   const cones = checkTowerCones(t, base, CITY_ORIGIN)

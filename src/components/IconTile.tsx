@@ -23,10 +23,15 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-la
   primary?: boolean
   /** 'md' for the design tools, 'sm' for the actions inside a tool. */
   size?: 'md' | 'sm'
+  /** 'tile': the icon over its word (panels, menus); 'inline': the icon beside its word (toolbars over the 3D view). */
+  layout?: 'tile' | 'inline'
   [data: `data-${string}`]: string | undefined
 }
 
-export default function IconTile({ icon: Icon, word, label, hint, active = false, primary = false, size = 'md', className = '', onClick, onKeyDown, ...rest }: Props) {
+/** The accessible name: the full label, led by the visible word when the label does not already contain it. */
+export const tileName = (word: string, label: string) => (label.toLowerCase().includes(word.toLowerCase()) ? label : `${word}: ${label}`)
+
+export default function IconTile({ icon: Icon, word, label, hint, active = false, primary = false, size = 'md', layout = 'tile', className = '', onClick, onKeyDown, ...rest }: Props) {
   const tipId = `tip-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const btn = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -54,16 +59,25 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
   }, [tip])
   const lit = active || primary
   const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
+  const events = {
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => { quiet.current = true; hide(); onClick?.(e) }, onKeyDown,
+    onMouseEnter: () => show(250), onMouseLeave: () => { quiet.current = false; hide() },
+    onFocus: (e: React.FocusEvent<HTMLButtonElement>) => { if (e.currentTarget.matches(':focus-visible')) show(0) }, onBlur: hide,
+  }
   return (
     <>
-      <button ref={btn} type="button" {...rest} aria-label={label} aria-describedby={hint ? tipId : undefined}
-        onClick={(e) => { quiet.current = true; hide(); onClick?.(e) }} onKeyDown={onKeyDown}
-        onMouseEnter={() => show(250)} onMouseLeave={() => { quiet.current = false; hide() }}
-        onFocus={(e) => { if (e.currentTarget.matches(':focus-visible')) show(0) }} onBlur={hide}
-        className={`group flex ${size === 'md' ? 'w-[4.25rem]' : 'w-[3.75rem]'} flex-col items-center gap-1 rounded-md px-1 pb-1 pt-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${active ? 'bg-accent/[0.07]' : 'hover:bg-black/[0.04]'} ${className}`}>
-        <span className={`flex ${box} items-center justify-center rounded-md ${lit ? 'bg-accent text-white' : 'bg-accent/10 text-accent group-hover:bg-accent/15'}`}><Icon size={size === 'md' ? 18 : 16} /></span>
-        <span aria-hidden className={`w-full truncate text-center text-[11px] leading-tight ${active || primary ? 'font-semibold text-ink' : 'text-muted group-hover:text-ink'}`}>{word}</span>
-      </button>
+      {layout === 'inline' ? (
+        <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}
+          className={`flex items-center gap-1.5 rounded px-2 py-1 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 ${lit ? 'bg-accent text-white hover:opacity-90' : 'text-ink hover:bg-black/5'} ${className}`}>
+          <Icon size={14} aria-hidden /><span aria-hidden>{word}</span>
+        </button>
+      ) : (
+        <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}
+          className={`group flex ${size === 'md' ? 'w-[4.25rem]' : 'w-[3.75rem]'} flex-col items-center gap-1 rounded-md px-1 pb-1 pt-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${active ? 'bg-accent/[0.07]' : 'hover:bg-black/[0.04]'} ${className}`}>
+          <span className={`flex ${box} items-center justify-center rounded-md ${lit ? 'bg-accent text-white' : 'bg-accent/10 text-accent group-hover:bg-accent/15'}`}><Icon size={size === 'md' ? 18 : 16} /></span>
+          <span aria-hidden className={`w-full truncate text-center text-[11px] leading-tight ${active || primary ? 'font-semibold text-ink' : 'text-muted group-hover:text-ink'}`}>{word}</span>
+        </button>
+      )}
       {hint && <span id={tipId} hidden>{hint}</span>}
       {tip && createPortal(
         <div ref={panel} role="tooltip" style={{ position: 'fixed', left: at?.left ?? -9999, top: at?.top ?? -9999, width: TIP_W, zIndex: 1000 }}
