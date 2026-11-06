@@ -11,10 +11,14 @@ import Label from './Label'
 
 /** From the south-east like the default view, close enough that the block fills the middle of the frame. */
 const FRAME = { position: [190, -240, 165] as [number, number, number], target: [0, 0, 10] as [number, number, number], fov: 40 }
+/** The competition view's opening camera (Viewport: three [520, 430, 640] looking at [0, 60, 0]), in the model frame. */
+const OVERVIEW = { position: [520, -640, 430] as [number, number, number], target: [0, 0, 60] as [number, number, number] }
 
 export default function VtcBriefSite() {
   const missing = useVtcSource((s) => s.status === 'missing' || s.status === 'error')
   useEffect(() => { if (missing) useStore.getState().set({ cameraRequest: { ...FRAME } }) }, [missing])
+  // Unmounted because the model has just been added (the context arrived): back to the overview of the whole context.
+  useEffect(() => () => { if (useVtcSource.getState().ctx && useStore.getState().project === 'vtc') useStore.getState().set({ cameraRequest: { ...OVERVIEW } }) }, [])
   const w = BRIEF_SITE.width_m / 2, d = BRIEF_SITE.depth_m / 2
   return (
     <group name="vtc-brief-site">

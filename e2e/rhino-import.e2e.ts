@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { openDesignTool } from './helpers'
+import { openDesignTool, openResultDetails } from './helpers'
 
 const FIXTURE = join(process.cwd(), 'tools', 'import-fixtures', 'typical-two-towers-mm.3dm')
 
@@ -52,13 +52,15 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   // The towers are in the results (the competition rules check each tower's height).
   // In the Site step the right panel opens on Your site (5 Nov); the towers' results are under Results & evidence.
   await page.getByRole('tab', { name: 'Results & evidence' }).click()
-  await expect(page.getByText('Height band: Tower A').first()).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText('Height band: Tower B').first()).toBeVisible()
+  await openResultDetails(page) // the rule cards sit under Details below the pass/fail checklist (6 Nov)
+  // The checklist's passing rows are folded too; the card under Details is the one that shows.
+  await expect(page.getByText('Height band: Tower A').filter({ visible: true }).first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText('Height band: Tower B').filter({ visible: true }).first()).toBeVisible()
   // The tool now shows what came in. Past Site it leaves the panel (Ruijie, 6 Nov), and the imported towers are there.
   await expect(tool).toHaveText(/Upload a new version/)
   await expect(page.getByText('typical-two-towers-mm.3dm').first()).toBeVisible()
-  await rail.getByRole('button', { name: 'Volume' }).click()
-  await expect(rail.getByRole('button', { name: 'Volume' })).toHaveAttribute('aria-current', 'step')
+  await rail.getByRole('button', { name: 'Form' }).click()
+  await expect(rail.getByRole('button', { name: 'Form' })).toHaveAttribute('aria-current', 'step')
   await expect(tile).toHaveCount(0)
   await expect(page.locator('[role="tab"][data-tool="towers"]')).toBeVisible()
 })

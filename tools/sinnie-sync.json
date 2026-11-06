@@ -1,0 +1,17 @@
+{
+  "note": "Last commit of each of Sinnie Choi's repositories that the Toolkit matches (tools/sinnie_sync.mjs; 04 Tool Plan/SINNIE_SYNC.md). Clones are read-only siblings of tower-studio.",
+  "repos": {
+    "dtmass": {
+      "github": "xubynii/dtmass",
+      "clone": "dtmass",
+      "synced": "2ef1d96f9f04662efd0e66f799dfca7859bb77a3",
+      "syncedAt": "2026-11-06T22:00:00.000Z"
+    },
+    "sun-wind-studio": {
+      "github": "xubynii/sun-wind-studio",
+      "clone": "sun-wind-studio",
+      "synced": "75ab7900cfe7189bab03a864333d12dbb2c55f6b",
+      "syncedAt": "2026-11-06T21:00:00.000Z"
+    }
+  }
+}

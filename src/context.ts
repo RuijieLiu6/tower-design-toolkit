@@ -15,7 +15,14 @@ export interface VtcContext {
   heritage: ContextItem[]
   future_towers: { footprint: [number, number][]; z0: number; z1: number | null }[]
   labels: { text: string; at: [number, number] }[]
+  /**
+   * Ground-level use areas from the model's Ground Level Use Plan: the layer name under "Ground Level Use" (Retail,
+   * Office, Cultural, Hotel, Institutional, Residential, Transit Station) and the outline rings. Absent in contexts built
+   * before 6 Nov; lib/vtcUses.ts gives each building the use covering most of its footprint.
+   */
+  ground_uses?: GroundUseArea[]
 }
+export interface GroundUseArea { use: string; rings: [number, number][][] }
 
 export const isExtruded = (c: ContextItem): c is Extruded => 'footprint' in c
 

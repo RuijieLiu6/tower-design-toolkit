@@ -54,14 +54,14 @@ function VtcSite() {
   )
 }
 
-/** The way on from the Site tool: a massing made elsewhere (the import dialog, as the Import tool), or the Volume step. */
+/** The way on from the Site tool: a massing made elsewhere (the import dialog, as the Import tool), or the Form step. */
 function SiteFooter() {
   return (
     <div className="mt-1 flex flex-wrap items-start gap-1 border-t border-line px-2 py-2">
       <IconTile size="sm" icon={FileUp} word="Upload" label="Upload a massing model" onClick={() => useImportStore.getState().openDialog()}
         hint="Start from a massing made elsewhere (Rhino, SketchUp, Revit…): 3DM, OBJ, glTF or IFC. Read in this browser; nothing is uploaded to a server." />
-      <IconTile size="sm" icon={ArrowRight} word="Next" label="Next: Volume" primary className="ml-auto" onClick={() => goToStep('volume')}
-        hint="On to the Volume step: place your tower and shape it." />
+      <IconTile size="sm" icon={ArrowRight} word="Next" label="Next: Form" primary className="ml-auto" onClick={() => goToStep('volume')}
+        hint="On to the Form step: place your tower and shape it." />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-// The Generate tool's inputs (Volume step): the brief per project, the typology and its parameters, the street side and
+// The Generate tool's inputs (Form step): the brief per project, the typology and its parameters, the street side and
 // the variation, kept for the browser session. Running and placing go through engine/dtmassGen.ts (Sinnie Choi's
 // generator) and lib/generateTowers.ts.
 import { useMemo } from 'react'

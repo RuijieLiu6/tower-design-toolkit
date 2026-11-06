@@ -24,7 +24,7 @@ test('height suggestion, results and the map layer in Real Vancouver', async ({ 
   test.setTimeout(720_000) // SwiftShader draws the city, cone volumes included, at seconds a frame
   await openCity(page)
 
-  // 1. The design tool on the study tower (left panel, Volume step, Real Vancouver only). A project opens with no tower
+  // 1. The design tool on the study tower (left panel, Form step, Real Vancouver only). A project opens with no tower
   // (6 Nov): place the study tower first, as a user does.
   await placeStartingTower(page, { stay: true })
   await openDesignTool(page, 'height-suggestion')

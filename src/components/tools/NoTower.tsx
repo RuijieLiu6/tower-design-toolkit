@@ -1,5 +1,5 @@
 // A project opens with no tower (Ruijie, 6 Nov: "start the project with no tower, and then introduce the placing tower
-// experience"). The Volume step leads with one card: "Place a tower" puts the project's starting tower on the site
+// experience"). The Form step leads with one card: "Place a tower" puts the project's starting tower on the site
 // (the study site's centre in Real Vancouver, the competition block otherwise), then the usual placing follows: click
 // the ground where it goes, Confirm in the toolbar, or Esc to keep it where it stands. Other steps say where to start.
 import { ArrowLeft, Building2, Crosshair, MapPin, Wand2 } from '../icons'
@@ -67,7 +67,7 @@ export function NoTowerYet() {
       <p className="mt-1 text-[11px] text-muted">These tools shape a tower. Place one first.</p>
       <button type="button" onClick={() => goToStep('volume')}
         className="mt-2 flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
-        <ArrowLeft size={13} />Go to Volume
+        <ArrowLeft size={13} />Go to Form
       </button>
     </section>
   )

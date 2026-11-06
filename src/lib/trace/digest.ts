@@ -3,7 +3,11 @@
 import type { CommunityRun } from '../../hooks/useCommunityResults'
 import type { Flag, RuleState } from '../../engine/types'
 
-export interface ResultLine { id: string; group: string; label: string; value: string; state: RuleState; flag: string; source?: { label: string; page?: string } }
+export interface ResultLine {
+  id: string; group: string; label: string; value: string; state: RuleState; flag: string; source?: { label: string; page?: string }
+  /** The rule's threshold, when it states one (live only: saved iterations leave it out, lib/trace/trace.ts). */
+  threshold?: string
+}
 export interface Digest { lines: ResultLine[]; metrics: Record<string, number> }
 
 const STATES: RuleState[] = ['pass', 'warn', 'fail', 'unknown']
@@ -33,7 +37,8 @@ export function digestResults(results: Record<string, unknown>, community?: Map<
     if (isRule(o)) {
       const src = o.source as { label?: unknown; page?: unknown } | undefined
       add({ id: `${group}:${towerId ? `${towerId}:` : ''}${o.id}`, group: GROUP[group] ?? group, label: towerName && !(o.label as string).includes(towerName) ? `${o.label as string} (${towerName})` : (o.label as string), value: o.value as string, state: o.state as RuleState, flag: o.flag as string,
-        ...(src && typeof src.label === 'string' ? { source: { label: src.label, ...(typeof src.page === 'string' ? { page: src.page } : {}) } } : {}) })
+        ...(src && typeof src.label === 'string' ? { source: { label: src.label, ...(typeof src.page === 'string' ? { page: src.page } : {}) } } : {}),
+        ...(typeof o.threshold === 'string' && o.threshold ? { threshold: o.threshold } : {}) })
       return
     }
     if (typeof o.overall === 'string' && typeof o.topZ === 'number' && t) {

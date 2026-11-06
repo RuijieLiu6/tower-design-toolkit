@@ -1,5 +1,5 @@
 // Generate (Sinnie Choi's massing generator from her Downtown Massing Tool, ported with her permission, 6 Nov 2026): on
-// the competition site's empty Volume step, open Generate from the "Place your tower" card, place Podium + Tower (one
+// the competition site's empty Form step, open Generate from the "Place your tower" card, place Podium + Tower (one
 // parametric tower with its podium storeys), then the Courtyard (one exact generated mass with the open court), and
 // Undo back through both to the empty site.
 import { expect, test, type Page } from '@playwright/test'

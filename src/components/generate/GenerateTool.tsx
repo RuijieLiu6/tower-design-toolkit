@@ -1,4 +1,4 @@
-// "Generate" on the Volume step: Sinnie Choi's massing generator from her Downtown Massing Tool (engine/dtmassGen.ts,
+// "Generate" on the Form step: Sinnie Choi's massing generator from her Downtown Massing Tool (engine/dtmassGen.ts,
 // ported with her permission, 6 Nov 2026). Pick a typology, enter the brief (target area, mix, floorplate, height
 // target), see the massing on the site with requested against generated area, conflicts and notes, then place it: the
 // project's towers are replaced in one undo step (lib/generateStore.ts).

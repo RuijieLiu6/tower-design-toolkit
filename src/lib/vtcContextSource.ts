@@ -41,8 +41,8 @@ export const BASE_MODEL_NAME = /vancouver\s*tall.*base\s*model.*\.3dm$/i
 
 // ---------------------------------------------------------------- IndexedDB (this browser, this computer)
 const DB = 'tower-studio-local', STORE = 'vtc', KEY = 'base-model'
-/** Bump when vtcContextBuild changes its output: a saved context is then rebuilt from the saved file. */
-const BUILD_VERSION = 1
+/** Bump when vtcContextBuild changes its output: a saved context is then rebuilt from the saved file. 2: ground uses. */
+const BUILD_VERSION = 2
 
 interface Saved { buildVersion: number; ctx: VtcContext; bytes: ArrayBuffer; fileName: string; addedAt: string }
 

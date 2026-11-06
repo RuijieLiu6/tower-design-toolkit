@@ -2,8 +2,7 @@ import { Line, OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { VTC_NORTH_DEG, isExtruded, useVtcContext, type ContextItem } from '../context'
+import { VTC_NORTH_DEG, useVtcContext } from '../context'
 import { LOOKS, MOTION, type Look } from '../data/stages'
 import { stairEnclosure, stairSpots, storeyLoads } from '../engine/egress'
 import { liftCheck, type LiftClass } from '../engine/lifts'
@@ -42,10 +41,13 @@ import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
 import { VtcBaseModelPanel, VtcContextCard } from './VtcBaseModel'
 import VtcBriefSite from './VtcBriefSite'
+import { PlainEnvironment, VtcContextModel, VtcLookBar, useVtcLook, vtcSceneLook } from './VtcLook'
 import ViewGuard from './ViewGuard'
 import { BRIEF_SITE, useVtcSource } from '../lib/vtcContextSource'
 import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
 import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
+import { groundThickness } from '../engine/basement'
+import BelowGrade from './BelowGrade'
 import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
@@ -69,40 +71,6 @@ function useRep(): Representation {
   return phase === 'basic' ? 'clay' : phase === 'advanced' ? 'xray' : presentRep
 }
 
-// ---------- context geometry ----------
-function buildMerged(items: ContextItem[]): THREE.BufferGeometry | null {
-  const geoms: THREE.BufferGeometry[] = []
-  for (const it of items) {
-    let g: THREE.BufferGeometry
-    if (isExtruded(it)) {
-      if (it.footprint.length < 3 || it.z1 - it.z0 <= 0.01) continue
-      const shape = new THREE.Shape(it.footprint.map(([x, y]) => new THREE.Vector2(x, y)))
-      g = new THREE.ExtrudeGeometry(shape, { depth: it.z1 - it.z0, bevelEnabled: false })
-      g.translate(0, 0, it.z0)
-    } else {
-      g = new THREE.BufferGeometry()
-      g.setAttribute('position', new THREE.Float32BufferAttribute(it.positions, 3))
-      g.setIndex(it.indices)
-    }
-    g = g.index ? g.toNonIndexed() : g
-    g.deleteAttribute('uv')
-    g.computeVertexNormals()
-    geoms.push(g)
-  }
-  return geoms.length ? mergeGeometries(geoms) : null
-}
-
-/** Context is solid clay in Massing and see-through in x-ray, so it never hides the tower being studied. */
-function ContextMeshes({ items, color, ghost = false }: { items: ContextItem[]; color: string; ghost?: boolean }) {
-  const geom = useMemo(() => buildMerged(items), [items])
-  if (!geom) return null
-  return (
-    <mesh geometry={geom} castShadow={!ghost} receiveShadow>
-      <meshStandardMaterial color={color} roughness={0.92} metalness={0} transparent opacity={ghost ? 0.45 : 1} depthWrite={!ghost} />
-    </mesh>
-  )
-}
-
 /**
  * The flat top of the site model's base (the street level at the competition site, the sea in Real Vancouver); clicks on
  * it place towers. In Vista's Plain look (Real Vancouver) the sea takes Vista's water shading (lib/vistaLook.ts).
@@ -122,13 +90,18 @@ function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: s
   )
 }
 
-function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
+function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const { ctx } = useVtcContext()
+  // Program (buildings in their ground-level use, with a legend) or Plain (a white, Rhino-like model): components/VtcLook.
+  const lookId = useVtcLook((s) => s.look)
+  const look = useMemo(() => vtcSceneLook(stageLook, lookId, xray), [stageLook, lookId, xray])
   // Without the base model (another computer, before the entrant adds their copy): the brief's block is the site.
   const site = ctx?.site ?? BRIEF_SITE
   const towers = useTowers()
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
-  const plinth = useMemo(() => vtcPlinth(ctx), [ctx])
+  // A thick ground (at least 30 m, 10 m under the deepest basement) that basements are dug into (engine/basement.ts).
+  const thickness = useMemo(() => groundThickness(towers), [towers])
+  const plinth = useMemo(() => vtcPlinth(ctx, 20, thickness), [ctx, thickness])
   const ring = useMemo(() => plinthRing(plinth, () => SEA_Z), [plinth])
   useEffect(() => registerGround({ at: () => 0, plinth }), [plinth])
   return (
@@ -147,9 +120,8 @@ function VtcScene({ onPick, look, xray }: { onPick: (x: number, y: number) => vo
       {!ctx && <VtcBriefSite />}
       {ctx?.blocks.map((b, i) => <Line key={`b${i}`} points={b.map(([x, y]) => [x, y, 0.05] as [number, number, number])} color={look.edge} lineWidth={1} />)}
       {ctx?.curbs.map((b, i) => <Line key={`c${i}`} points={b.map(([x, y]) => [x, y, 0.04] as [number, number, number])} color="#cfccc4" lineWidth={1} />)}
-      {ctx && <ContextMeshes items={ctx.buildings} color={look.context} ghost={xray} />}
-      {ctx && <ContextMeshes items={ctx.heritage} color={look.heritage} ghost={xray} />}
-      {ctx && <ContextMeshes items={[...ctx.plazas, ...ctx.midblock]} color="#dfe8dc" />}
+      {ctx && <VtcContextModel ctx={ctx} look={look} id={lookId} xray={xray} />}
+      {lookId === 'plain' && !xray && <PlainEnvironment />}
       {ctx?.future_towers.filter((f) => f.z1).map((f, i) => (
         <group key={`f${i}`}>
           <mesh position={[0, 0, 0]}>
@@ -674,6 +646,7 @@ export default function Viewport() {
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
               <TowerGizmo />
               <MassingEdit3D />
+              <BelowGrade />
             </group>
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
@@ -693,6 +666,7 @@ export default function Viewport() {
       {project === 'city' && !present && <CityLegend />}
       {project === 'vtc' && !present && <VtcDock />}
       {project === 'vtc' && !present && !hidden && <VtcContextCard />}
+      {project === 'vtc' && !present && !hidden && <VtcLookBar />}
       {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}

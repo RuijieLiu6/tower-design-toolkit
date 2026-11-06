@@ -24,7 +24,7 @@ export const EVALUATE = { label: 'Evaluate', icon: Gauge }
 /** Process rail: the mental map of the design, each step owned by a stage. */
 export const PROCESS: { id: string; label: string; stage: Phase }[] = [
   { id: 'site', label: 'Site', stage: 'basic' },
-  { id: 'volume', label: 'Volume', stage: 'basic' },
+  { id: 'volume', label: 'Form', stage: 'basic' },
   { id: 'program', label: 'Program', stage: 'basic' },
   { id: 'plates', label: 'Plates, core, plant', stage: 'advanced' },
   { id: 'frame', label: 'Frame and capture', stage: 'present' },

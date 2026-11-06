@@ -55,7 +55,7 @@ function TowerList() {
     <section aria-labelledby="site-towers-title" data-testid="site-towers" className="mx-3 mb-3 rounded-lg border border-line bg-white px-3 py-2.5 text-[11px]">
       <h3 id="site-towers-title" className="flex items-center gap-1.5 text-xs font-semibold text-ink">
         <Building2 size={14} className="text-accent" aria-hidden />Towers on this site<span className="font-normal text-muted">({towers.length})</span>
-        <Help label="About the towers list">Every tower or volume you add (Volume step, an upload, a Rhino link) shows here, marked New at first. Click a tower to select it; the pencil on the right opens its name and Delete. Undo brings a deleted tower back. Deleting the last one leaves the site empty again, ready to place a new tower.</Help>
+        <Help label="About the towers list">Every tower or volume you add (Form step, an upload, a Rhino link) shows here, marked New at first. Click a tower to select it; the pencil on the right opens its name and Delete. Undo brings a deleted tower back. Deleting the last one leaves the site empty again, ready to place a new tower.</Help>
       </h3>
       {towers.length === 0 && (
         <div data-testid="site-towers-empty" className="mt-1.5 flex items-center gap-2 text-muted">
@@ -121,7 +121,7 @@ function SiteNow() {
           {site!.replaced.length > 0 && <div className="flex flex-wrap items-center gap-1">{site!.replaced.length} existing building{site!.replaced.length === 1 ? '' : 's'} {site!.keepReplaced ? 'kept' : 'shown as demolished'} <FlagChip flag="team_assumption" /></div>}
           {area && <div className="flex items-start gap-1.5"><FlagChip flag={area.flag} /><span className="text-muted">{area.source}</span></div>}
         </div>
-      ) : <p className="mt-1 text-xs text-ink">No study site yet: set one with the Site tool on the left (an address, or a click on the map). The design tower can still be placed anywhere (Volume step).</p>}
+      ) : <p className="mt-1 text-xs text-ink">No study site yet: set one with the Site tool on the left (an address, or a click on the map). The design tower can still be placed anywhere (Form step).</p>}
       {message && <p data-testid="site-message" className={`mt-1.5 rounded px-2 py-1 ${message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{message.text}</p>}
       <div className="mt-2 flex flex-wrap gap-1.5">
         <button type="button" disabled={!canUndo} onClick={() => { if (undo()) tell('Undone.') }} className={`${btn} border-line hover:border-accent disabled:opacity-50`}><Undo2 size={12} />Undo</button>

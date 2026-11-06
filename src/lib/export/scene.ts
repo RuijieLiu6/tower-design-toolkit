@@ -5,6 +5,7 @@
 // z = 0 at the tower base.
 import { coreSide, towerFloors, floorRing } from '../../engine/massing'
 import { USES, type Tower, type UseId } from '../../engine/types'
+import { basementLevels, basementRing } from '../../engine/basement'
 
 export type RGB = [number, number, number]
 export interface ExportSolid { name: string; layer: string; color: RGB; positions: number[]; indices: number[]; strings: Record<string, string> }
@@ -32,6 +33,7 @@ export const LAYER = {
   plant: 'Plant',
   core: 'Core',
   imported: 'Imported massing',
+  below: 'Below grade',
 }
 
 /** A closed prism over a convex ring (CCW in plan) from z0 to z1: bottom, top and sides, outward-facing. */
@@ -91,6 +93,15 @@ export function buildScene(towers: Tower[], o: SceneOptions): ExportScene {
     add({ name: `${t.name} · Core`, layer: LAYER.core, color: [60, 64, 72], ...core,
       strings: { tower: t.name, core_share: t.coreShare.toFixed(3), core_side_m: (half * 2).toFixed(2), core_mode: t.coreAuto === false ? 'set by hand' : 'sized to the lifts, stairs and risers',
         source: 'core & lift check and egress check (team presets)', evidence: 'team_assumption (LOD 100 space reservation)' } })
+  }
+  // Basement levels (engine/basement.ts), one closed solid each, below z = 0, on their own layer.
+  for (const t of towers) {
+    const ring = basementRing(t)
+    for (const l of basementLevels(t)) {
+      add({ name: `${t.name} · ${l.name} ${t.basement!.use === 'parking' ? 'Parking' : 'Basement'}`, layer: LAYER.below, color: [91, 100, 112], ...prism(ring, l.z0, l.z1),
+        strings: { tower: t.name, level: l.name, use: t.basement!.use, z0_m: l.z0.toFixed(2), z1_m: l.z1.toFixed(2), gross_area_m2: l.area.toFixed(1), below_grade: 'yes',
+          source: 'Below grade tool (Form step)', evidence: 'team_assumption: basement extent, floor-to-floor and use' } })
+    }
   }
   const north = Math.round(o.northDeg * 100) / 100
   const notes: Record<string, string> = {

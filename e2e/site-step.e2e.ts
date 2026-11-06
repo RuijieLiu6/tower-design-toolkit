@@ -75,7 +75,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   // 1. A first open with nothing saved: the Site step alone is lit, Real Vancouver is open, the Site tool leads.
   const rail = page.getByRole('navigation', { name: 'Design process' })
   await expect(rail.getByRole('button', { name: 'Site' })).toHaveAttribute('aria-current', 'step')
-  await expect(rail.getByRole('button', { name: 'Volume' })).not.toHaveAttribute('aria-current', 'step')
+  await expect(rail.getByRole('button', { name: 'Form' })).not.toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Program' })).not.toHaveAttribute('aria-current', 'step')
   await expect(page.getByRole('tablist', { name: 'Project' }).getByRole('tab', { name: 'Real Vancouver' })).toHaveAttribute('aria-selected', 'true')
   // 5 Nov (Ruijie): no Real Vancouver / Competition choice inside the Site tool; the project is the top bar's switch.
@@ -227,8 +227,8 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   expect(Math.hypot(tower1.x - HOMER.x, tower1.y - HOMER.y)).toBeLessThan(45)
 
   // 5. On to Volume: the massing tools lead there, and the step bar lights Volume alone.
-  await palette.getByRole('button', { name: /Next: Volume/ }).click()
-  await expect(rail.getByRole('button', { name: 'Volume' })).toHaveAttribute('aria-current', 'step')
+  await palette.getByRole('button', { name: /Next: Form/ }).click()
+  await expect(rail.getByRole('button', { name: 'Form' })).toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Site' })).not.toHaveAttribute('aria-current', 'step')
   await expect(page.locator('[data-tool]').first()).toHaveAttribute('data-tool', 'towers')
   // Past Site, the site and the Rhino import leave the panel (Ruijie, 6 Nov).
