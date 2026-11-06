@@ -63,7 +63,7 @@ function scaleBar(x: number, y: number, scale: number, unit: LengthUnit = 'm'): 
 }
 
 /** Key plan: podium and tower footprints, a north arrow, and the cut line or the elevated face. */
-function keyPlan(t: Tower, x: number, y: number, size: number, northDeg: number, mark: { kind: 'cut'; a: [number, number]; b: [number, number]; look: [number, number] } | { kind: 'face'; a: [number, number]; b: [number, number]; normal: [number, number] }): string {
+function keyPlan(t: Tower, x: number, y: number, size: number, northDeg: number, mark: { kind: 'cut'; a: [number, number]; b: [number, number]; look: [number, number]; letter?: string } | { kind: 'face'; a: [number, number]; b: [number, number]; normal: [number, number] }): string {
   const fp = towerFootprint(t), pf = t.podiumHeight > 0 ? towerFootprint(t, true) : fp
   // Stacked blocks: every block's outline (podium blocks tinted), drawn bottom-up.
   const extra = t.imported || !t.blocks?.length ? [] : towerMasses(t)
@@ -84,7 +84,8 @@ function keyPlan(t: Tower, x: number, y: number, size: number, northDeg: number,
     const [ax, ay] = mark.a, [bx, by] = mark.b, ux = (bx - ax), uy = (by - ay), L = Math.hypot(ux, uy) || 1
     const pa: [number, number] = [ax - (ux / L) * ext, ay - (uy / L) * ext], pb: [number, number] = [bx + (ux / L) * ext, by + (uy / L) * ext]
     s += el('line', { x1: X(pa[0]), y1: Y(pa[1]), x2: X(pb[0]), y2: Y(pb[1]), stroke: '#c0392b', 'stroke-width': 0.4, 'stroke-dasharray': '2 1 0.5 1' })
-    for (const [p, lab] of [[pa, 'A'], [pb, 'A']] as const) {
+    const letter = mark.letter ?? 'A'
+    for (const [p, lab] of [[pa, letter], [pb, letter]] as const) {
       const tx = X(p[0]) + mark.look[0] * 3, ty = Y(p[1]) - mark.look[1] * 3
       s += el('line', { x1: X(p[0]), y1: Y(p[1]), x2: tx, y2: ty, stroke: '#c0392b', 'stroke-width': 0.4 }) + text(tx + mark.look[0] * 1.5, ty - mark.look[1] * 1.5 + 1, lab, { 'font-size': 2.6, 'font-weight': 700, fill: '#c0392b', 'text-anchor': 'middle' })
     }
@@ -272,17 +273,20 @@ function chord(ring: [number, number][], o: [number, number], u: [number, number
   return { u0: Math.min(...v), u1: Math.max(...v) }
 }
 
-/** Section A–A: a cut through the tower centre along its width, looking across its depth. */
-export function sectionDrawing(t: Tower, o: DrawOpts): Drawing {
+/**
+ * Section A–A: a cut through the tower centre along its width, looking across its depth. Section B–B (`cut: 'B'`): the
+ * cut at right angles, along the depth. The brief suggests at least two primary cross sections (p.30; run-through G6).
+ */
+export function sectionDrawing(t: Tower, o: DrawOpts, cut: 'A' | 'B' = 'A'): Drawing {
   const r = (t.rotation * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r)
-  const along: [number, number] = [c, s], look: [number, number] = [-s, c]
-  const half = t.width / 2, ph = t.podiumHeight > 0 ? t.podiumWidth / 2 : 0, cs = coreSide(t) / 2
+  const along: [number, number] = cut === 'A' ? [c, s] : [-s, c], look: [number, number] = cut === 'A' ? [-s, c] : [-c, -s]
+  const half = (cut === 'A' ? t.width : t.depth) / 2, ph = t.podiumHeight > 0 ? (cut === 'A' ? t.podiumWidth : t.podiumDepth) / 2 : 0, cs = coreSide(t) / 2
   // Stacked blocks: where the cut line (through the tower centre, along its width) crosses each block's plate.
   const blocks = t.imported || !t.blocks?.length ? undefined : blockSpans(t).map((b) => ({ span: chord(b.ring, [t.x, t.y], along), z0: b.z0, z1: b.z1, podium: b.podium }))
   return draw(t, {
-    title: 'Section A–A', subtitle: `Looking ${dirName(bearing(look[0], look[1], o.northDeg))}, through the core`,
+    title: `Section ${cut}–${cut}`, subtitle: `Looking ${dirName(bearing(look[0], look[1], o.northDeg))}, through the core${cut === 'B' ? ', at right angles to A–A' : ''}`,
     tower: { u0: -half, u1: half }, podium: ph ? { u0: -ph, u1: ph } : null, core: { u0: -cs, u1: cs }, blocks,
-    key: { kind: 'cut', a: [t.x - along[0] * half, t.y - along[1] * half], b: [t.x + along[0] * half, t.y + along[1] * half], look },
+    key: { kind: 'cut', a: [t.x - along[0] * half, t.y - along[1] * half], b: [t.x + along[0] * half, t.y + along[1] * half], look, letter: cut },
   }, o)
 }
 

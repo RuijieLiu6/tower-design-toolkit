@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
 import { MAX_POLAR, clampView, nearFor, relaxPolar, sceneGround, type V3 } from '../lib/cameraClamp'
-import { limitView, viewLimit } from '../lib/viewLimit'
+import { EDGE_SLACK, limitView, viewLimit } from '../lib/viewLimit'
 
 type Controls = { target: THREE.Vector3; enabled: boolean; maxPolarAngle: number; getPolarAngle: () => number }
 const toModel = (v: THREE.Vector3): V3 => [v.x, -v.z, v.y]
@@ -30,7 +30,7 @@ export default function CameraClamp() {
       const lim = limitView(toModel(cam.position), toModel(ctl.target), {
         tanHalf: Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), aspect: cam.aspect,
         right: [right.x / rl, -right.z / rl], up: [up.x, -up.z],
-      }, edge)
+      }, edge, EDGE_SLACK)
       if (lim.moved) {
         cam.position.set(lim.cam[0], lim.cam[2], -lim.cam[1])
         ctl.target.set(lim.target[0], lim.target[2], -lim.target[1])

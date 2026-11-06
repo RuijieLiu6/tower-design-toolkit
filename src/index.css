@@ -66,3 +66,7 @@ body { background: var(--color-paper); color: var(--color-ink); -webkit-font-smo
     linear-gradient(#2c2c2a, #2c2c2a) right 0 bottom 10px / 8px 1px no-repeat,
     linear-gradient(#2c2c2a, #2c2c2a) right 10px bottom 0 / 1px 8px no-repeat; }
 .crop-marks::after { display: none; }
+
+/* Map place names that answer a click (components/VistaLook.tsx usePlacePicks): a pointer, and the name outlined. */
+[data-place-hover] { cursor: pointer !important; }
+[data-place][data-hover] { outline: 2px solid #426b61; outline-offset: 0; }

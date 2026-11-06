@@ -72,8 +72,7 @@ function CitySite() {
   const siteAt = (p: Pt, label: string, source: string) => placeSiteAt(p, label, source, data?.footprints)
   return (
     <>
-      <Section title="Study site (after Vista)">
-        <p className="text-[11px] text-muted">Find a place, then set the site: the City parcel at an address or coordinate, a boundary you draw, existing buildings you replace, or a GeoJSON file. Vista's site step (Ruijie Liu), on City parcels and footprints in EPSG:26910.</p>
+      <Section title="Study site (after Vista)" help="Find a place, then set the site: the City parcel at an address or coordinate, a boundary you draw, existing buildings you replace, or a GeoJSON file. Vista's site step (Ruijie Liu), on City parcels and footprints in EPSG:26910.">
         {s.message && <p className={`mt-1.5 rounded px-2 py-1 text-[11px] ${s.message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{s.message.text}</p>}
         {error && <p role="alert" className="mt-1 text-[11px] text-red-700">Parcel layer did not load: {error}</p>}
       </Section>

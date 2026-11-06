@@ -120,7 +120,7 @@ export const HEIGHT_CASES: EvalCase[] = [
   },
   {
     id: 'HGT-I', node: 'built.heights', type: 'typical', title: "Imagine Vancouver: every Vista building joins Vista's table, and every lowered part clears the surfaces over it",
-    input: "All 62,000 parts of Vista's buildings (public/data/vista_buildings), seated on the Real Vancouver ground; With view cones",
+    input: "All 62,000 parts of Vista's own buildings (public/data/vista_buildings, less the OpenStreetMap fill beyond Vista's model), seated on the Real Vancouver ground; With view cones",
     expected: "no part missing from Vista's table; 44,402 buildings with a zoning number; every lowered part's roof ≤ lowest surface − 0.1 m (or zero height); both kinds of surface cut somewhere",
     basis: 'Vista v37 imagine-city-engine.js (0.1 m clearance, one scale per connected assembly); Ruijie: never a guessed height', basisFlag: 'verified',
     run: async () => {
@@ -135,11 +135,13 @@ export const HEIGHT_CASES: EvalCase[] = [
       const table = await json<import('../engine/imagine').ImagineTable>('data/vista/imagine_zoning.json')
       const prep = prepareImagine(table, { footprints: vb.footprints, ground: seated.ground, roof: seated.roof }, d.surfaces, ORIGIN)
       const v = imagine(prep, 'views')
-      const missing = [...prep.partRow].filter((r) => r < 0).length
+      // Only Vista's own parts are in Vista's table; the OpenStreetMap fill beyond Vista's model (4 Nov) has no zoning row and stays as it is.
+      const fill = vb.vista.fill, own = vb.footprints.length - (fill < 0 ? 0 : vb.vista.asset.filter((a) => a === fill).length)
+      const missing = [...prep.partRow].filter((r, p) => r < 0 && vb.vista.asset[p] !== fill).length
       let bad = 0
       prep.hits.forEach((h, p) => { const g = v.groups[prep.partGroup[p]]; if (h.length && g.changed && g.scale > 0 && v.roof[p] > h[0].z - 0.1 + 1e-4) bad++ })
       const pass = missing === 0 && table.status.filter((s) => s === 0).length === 44402 && bad === 0 && v.stats.byEstimate > 0 && v.stats.byStudy > 0
-      return { observed: `${vb.footprints.length} parts, ${missing} missing; ${v.stats.changed} changed (${v.stats.reduced} lower), cut by estimate ${v.stats.byEstimate}, by study surface ${v.stats.byStudy}, zero height ${v.stats.noPositiveHeight}; ${bad} parts above a surface`, pass, flag: 'verified' }
+      return { observed: `${own} of Vista's parts (${vb.footprints.length} with the fill), ${missing} missing; ${v.stats.changed} changed (${v.stats.reduced} lower), cut by estimate ${v.stats.byEstimate}, by study surface ${v.stats.byStudy}, zero height ${v.stats.noPositiveHeight}; ${bad} parts above a surface`, pass, flag: 'verified' }
     },
   },
 ]

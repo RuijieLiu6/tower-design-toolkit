@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { VTC_NORTH_DEG } from '../../context'
 import { elevationDrawing, mainFaces, sectionDrawing, type Drawing } from '../../engine/drawings'
+import { stackingDiagram } from '../../engine/stacking'
 import { towerFloors } from '../../engine/massing'
 import { typicalFloor } from '../../engine/plan'
 import { USES, type Tower } from '../../engine/types'
@@ -14,7 +15,7 @@ import PlanDrawing from '../PlanDrawing'
 import { useUnits } from '../../lib/units'
 import { useShallow } from 'zustand/react/shallow'
 
-type Choice = { kind: 'plan'; level: number; label: string } | { kind: 'section' } | { kind: 'elevation'; face: number }
+type Choice = { kind: 'plan'; level: number; label: string } | { kind: 'section'; cut: 'A' | 'B' } | { kind: 'elevation'; face: number } | { kind: 'stacking' }
 
 /** One plan per use zone (its middle floor), sky lobbies, the podium and the top floor. */
 export function planChoices(t: Tower): { level: number; label: string }[] {
@@ -24,10 +25,18 @@ export function planChoices(t: Tower): { level: number; label: string }[] {
   const add = (level: number | undefined, label: string) => { if (level === undefined || seen.has(level)) return; seen.add(level); out.push({ level, label }) }
   const typ = typicalFloor(t)
   if (typ) add(typ.level, `Typical floor (${USES[typ.use].label.toLowerCase()})`)
-  for (const use of [...new Set(floors.filter((f) => !f.podium && !f.skyLobby && f.use !== 'mechanical' && f.z0 > 0.5).map((f) => f.use))]) {
-    const of = floors.filter((f) => f.use === use && !f.podium && !f.skyLobby && f.z0 > 0.5)
-    add(of[Math.floor(of.length / 2)]?.level, `${USES[use].label} zone`)
-  }
+  // Each use zone's middle floor, bottom to top, named as the brief's suggested set (p.30): typical lower-, mid- and
+  // upper-level plans (run-through G5, 4 Nov).
+  const zones = [...new Set(floors.filter((f) => !f.podium && !f.skyLobby && f.use !== 'mechanical' && f.z0 > 0.5).map((f) => f.use))]
+    .map((use) => { const of = floors.filter((f) => f.use === use && !f.podium && !f.skyLobby && f.z0 > 0.5); return { use, level: of[Math.floor(of.length / 2)]?.level } })
+    .filter((z) => z.level !== undefined).sort((a, b) => a.level! - b.level!)
+  zones.forEach((z, i) => {
+    const pos = zones.length < 2 ? '' : i === 0 ? ' · lower-level plan' : i === zones.length - 1 ? ' · upper-level plan' : ' · mid-level plan'
+    // The typical floor is often this zone's middle floor: name its position there instead of dropping it.
+    const same = out.find((o) => o.level === z.level)
+    if (same) { if (pos && !same.label.includes('level plan')) same.label += pos; return }
+    add(z.level, `${USES[z.use].label} zone${pos}`)
+  })
   for (const f of floors.filter((x) => x.skyLobby)) add(f.level, t.skyRoom?.level === f.level ? 'Public sky room' : 'Sky lobby')
   add(floors.find((f) => f.podium)?.level, 'Ground floor (podium)')
   add(floors[floors.length - 1]?.level, 'Top floor')
@@ -66,7 +75,7 @@ export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
   const opts = useMemo(() => ({ northDeg: north, projectLabel: project === 'vtc' ? 'Competition site (VTC)' : 'Real Vancouver', date: new Date().toISOString().slice(0, 10), unit }), [north, project, unit])
   const plans = useMemo(() => (t ? planChoices(t) : []), [t])
   const facesList = useMemo(() => (t ? mainFaces(t, north) : []), [t, north])
-  const [choice, setChoice] = useState<Choice>(() => (plans[0] ? { kind: 'plan', ...plans[0] } : { kind: 'section' }))
+  const [choice, setChoice] = useState<Choice>(() => (plans[0] ? { kind: 'plan', ...plans[0] } : { kind: 'section', cut: 'A' }))
   const [msg, setMsg] = useState('')
   const planRef = useRef<HTMLDivElement>(null)
 
@@ -78,7 +87,11 @@ export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
 
   const built: { sheet: Drawing; tight: Drawing } | null = useMemo(() => {
     if (!t || choice.kind === 'plan') return null
-    if (choice.kind === 'section') return { sheet: sectionDrawing(t, { ...opts, mode: 'sheet' }), tight: sectionDrawing(t, { ...opts, mode: 'tight' }) }
+    if (choice.kind === 'section') return { sheet: sectionDrawing(t, { ...opts, mode: 'sheet' }, choice.cut), tight: sectionDrawing(t, { ...opts, mode: 'tight' }, choice.cut) }
+    if (choice.kind === 'stacking') {
+      const d = stackingDiagram(t, opts), drawing: Drawing = { svg: d.svg, title: d.title, scale: 0, levels: d.zones.length, labelled: d.zones.length, widthMm: d.widthMm, heightMm: d.heightMm }
+      return { sheet: drawing, tight: drawing }
+    }
     const f = facesList[choice.face]
     return f ? { sheet: elevationDrawing(t, f, { ...opts, mode: 'sheet' }), tight: elevationDrawing(t, f, { ...opts, mode: 'tight' }) } : null
   }, [t, choice, opts, facesList])
@@ -122,8 +135,11 @@ export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
         <nav aria-label="Drawing list" className="w-60 shrink-0 overflow-y-auto border-r border-white/10 p-3">
           <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Floor plans</div>
           {plans.map((p) => <button key={p.level} type="button" onClick={() => setChoice({ kind: 'plan', ...p })} className={item(choice.kind === 'plan' && choice.level === p.level)}>{p.label} · L{p.level}</button>)}
-          <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Section</div>
-          <button type="button" onClick={() => setChoice({ kind: 'section' })} className={item(choice.kind === 'section')}>Section A–A, through the core</button>
+          <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Sections</div>
+          <button type="button" onClick={() => setChoice({ kind: 'section', cut: 'A' })} className={item(choice.kind === 'section' && choice.cut === 'A')}>Section A–A, through the core</button>
+          <button type="button" onClick={() => setChoice({ kind: 'section', cut: 'B' })} className={item(choice.kind === 'section' && choice.cut === 'B')}>Section B–B, at right angles</button>
+          <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Diagrams</div>
+          <button type="button" onClick={() => setChoice({ kind: 'stacking' })} className={item(choice.kind === 'stacking')}>Programme stacking</button>
           <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Elevations</div>
           {facesList.map((f, i) => <button key={f.index} type="button" onClick={() => setChoice({ kind: 'elevation', face: i })} className={item(choice.kind === 'elevation' && choice.face === i)}>{f.name}</button>)}
           <p className="mt-4 text-[10px] leading-snug text-slate-400">Every drawing carries the LOD 100 note: floors, core and plant come from the massing and team presets, and the structure is not sized. SVG files print at the stated scale; on a board, the scale bar stays true.</p>

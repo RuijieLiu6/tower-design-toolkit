@@ -37,6 +37,7 @@ import DaylightResults from './DaylightResults'
 import { CONE_STYLE, FlagChip, Section, StateChip } from './ui'
 import { U } from './Units'
 import { useShallow } from 'zustand/react/shallow'
+import Help from './Help'
 
 function RuleCard({ r }: { r: RuleResult }) {
   return (
@@ -320,14 +321,8 @@ export default function Inspector() {
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: cat.color }} />{cat.label} · {n.phase} · {n.priority}
         </div>
-        <h2 className="mt-1 text-sm font-semibold">{n.name}</h2>
-        {/* UI review (3 Nov): the results lead. The question's first sentence stays; the rest folds under "More". */}
-        {(() => {
-          const first = n.question.match(/^.+?[?.:](?=\s|$)/)?.[0] ?? n.question, rest = n.question.slice(first.length).trim()
-          return rest
-            ? <details className="mt-1 text-xs text-slate-700"><summary className="cursor-pointer marker:text-muted">{first} <span className="text-[11px] text-accent">More</span></summary><p className="mt-1">{rest}</p></details>
-            : <p className="mt-1 text-xs text-slate-700">{first}</p>
-        })()}
+        {/* The results lead (UI review, 3 Nov); what the check does sits behind a "?" beside its name (Ruijie, 5 Nov). */}
+        <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{n.name}<Help label={`About ${n.name}`}>{n.question}</Help></h2>
         <div className="mt-1.5 flex flex-wrap gap-1">{n.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>
         {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">Switched off in your workflow. Turn it on in the bar at the bottom to see live results.</div>}
         {wrongProject && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-[11px] text-slate-700">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}

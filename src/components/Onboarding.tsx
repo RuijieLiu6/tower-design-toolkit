@@ -6,11 +6,11 @@ import { Kbd } from './ui'
 import { useShallow } from 'zustand/react/shallow'
 
 const STEPS = [
-  { n: 1, title: 'Massing: shape your tower', text: 'The design tools on the left set height, blocks, podium and the program by floor band. Use "Place on map" in Towers & site to move it.' },
+  { n: 1, title: 'Site, Volume, Program', text: 'Massing runs in three steps, shown in the bar under the top bar. Site: type an address, pick a neighbourhood or click the map (build here, replace buildings, combine lots); the competition block is one click. Volume: height, blocks and podium. Program: uses by floor band. The left panel shows each step\'s tools first.' },
   { n: 2, title: 'Switch on the nodes you need', text: 'Each evaluation is an icon in the bar at the bottom: hover to read its name, click to switch it on. Library (bottom left) searches every node, including researched ones with their method and thresholds.' },
   { n: 3, title: 'Read results with their evidence', text: 'Every number shows where it comes from: verified, team assumption, unverified, unresolved, or a false assumption kept visible.' },
   { n: 4, title: 'Schematic, then Present', text: 'Schematic (key 2) turns the clay into an x-ray axonometric: floor plates, core and plant floors, with a section cut and an exploded view. Present (key 3) locks the model and frames an A2 board for captures.' },
-  { n: 5, title: 'Try the real city', text: 'Switch to "Real Vancouver" and place a tower downtown: the view-cone node estimates how high each protected view allows, or stops and says "no estimate".' },
+  { n: 5, title: 'Try the real city', text: 'In "Real Vancouver" the tower lines up with the lot you place it on and the buildings under it are hidden. The view-cone node estimates how high each protected view allows, or stops and says "no estimate".' },
 ]
 
 /** Once closed, the card stays closed on later visits in this browser ("How it works" in the top bar opens it again). */

@@ -23,7 +23,7 @@ estimate per building type). Vista's Z (SRTM, EGM96, unknown datum) is kept for 
 building on its own ground (CGVD28). Elevated parts (bridges, overhangs) keep their clearance: height_m minus the mesh's
 own height span.
 """
-import hashlib, json, math, os, struct, sys
+import hashlib, json, math, os, re, struct, sys
 import numpy as np
 import shapely
 from shapely.geometry import Polygon
@@ -31,6 +31,21 @@ from shapely.geometry.polygon import orient
 from shapely.strtree import STRtree
 from pyproj import Transformer
 
+def _flag(name):
+    """Takes `--name value` out of sys.argv, so the positional arguments keep their places."""
+    if name not in sys.argv:
+        return None
+    i = sys.argv.index(name)
+    value = sys.argv[i + 1]
+    del sys.argv[i:i + 2]
+    return value
+
+
+# Optional fill (Ruijie, 4 Nov 2026: "for the part where the building footprints are missing make sure to find the data and
+# fill in the box"): --fill <dir from tools/fetch_osm_buildings.py> adds current OSM buildings over the rest of the model
+# base; --city2009 <the City's whole 2009 footprints export> gives every part without one a City 2009 measured height.
+FILL = _flag("--fill")
+CITY2009_ALL = _flag("--city2009")
 RAW, OUT, COMMIT, RETRIEVED = sys.argv[1:5]  # optional 6th: the OSM use-tag dir from tools/fetch_osm_use_tags.py
 ORIGIN = (491300, 5458600)
 Q = 0.1
@@ -170,6 +185,134 @@ for a, asset in enumerate(ASSETS):
             parts.append(dict(osm=oid, asset=a, h=h, src=s, typ=idx["osm_type"][i], clear=clearance, base=round(float(z.min()), 2),
                               poly=orient(p.simplify(0.05, preserve_topology=True), 1.0)))
 print(f"{objects} Vista objects -> {len(parts)} footprint parts", src_counts)
+vista_objects = objects
+
+# ---------- fill: current OpenStreetMap buildings over the rest of the model base ----------
+# Vista's model stops at its own rectangle; the model base (lib/plinth.ts CITY_PLINTH) runs to the Fraser, UBC, Boundary
+# Road and the North Shore. Same rules as Vista's extension (extension_manifest.json height_rules: the OSM height tag,
+# else 3.2 m per level + 1 m from 2 levels, else Vista's own table by building type), same licence (ODbL). One building,
+# one representation: a fill outline that covers half of a Vista part, or half of itself is covered, is the same
+# building and is left out; a smaller overlap is cut away.
+PLINTH = (-8640.0, -9000.0, 7140.0, 6000.0)
+BASE_BOX = shapely.box(PLINTH[0] + 0.5, PLINTH[1] + 0.5, PLINTH[2] - 0.5, PLINTH[3] - 0.5)
+fill_stats = None
+if FILL:
+    ASSETS.append("osm_fill")
+    FILL_INDEX = len(ASSETS) - 1
+    src_counts["osm_fill"] = [0, 0, 0]
+    rules = json.load(open(os.path.join(RAW, "extension_manifest.json"), encoding="utf-8"))["height_rules"]
+    TYPE_H, TYPE_DEFAULT = rules["type_table"], float(rules["default_type_height_m"])
+    elems, files = {}, []
+    for f in sorted(os.listdir(FILL)):
+        if f.startswith("buildings_") and f.endswith(".json"):
+            files.append(f)
+            for e in json.load(open(os.path.join(FILL, f), encoding="utf-8"))["elements"]:
+                elems[(e["type"], e["id"])] = e  # a way in two tiles counts once
+    have = {p["osm"] for p in parts}
+    vgeoms = [p["poly"] for p in parts]
+    vtree = STRtree(vgeoms)
+
+    def metres(v):
+        """A length tag in metres ('12', '12 m', '12.5m'; feet when it says so), or None."""
+        m = re.match(r"\s*(\d+(?:\.\d+)?)\s*(m|metres?|meters?|ft|feet|')?\s*$", str(v or ""))
+        if not m:
+            return None
+        x = float(m.group(1))
+        return x * 0.3048 if m.group(2) in ("ft", "feet", "'") else x
+
+    def fill_height(t):
+        """(height, source index in SOURCES) by Vista's extension rules."""
+        h = metres(t.get("height"))
+        if h and h > 0:
+            return round(h, 2), 0
+        try:
+            levels = float(t.get("building:levels"))
+        except (TypeError, ValueError):
+            levels = 0.0
+        if levels > 0:
+            return round(3.2 * levels + (1.0 if levels >= 2 else 0.0), 2), 1
+        return float(TYPE_H.get(t.get("building", "yes"), TYPE_DEFAULT)), 2
+
+    def local_line(geom):
+        ll = np.array([[g["lon"], g["lat"]] for g in geom if g])
+        e, n = to_utm.transform(ll[:, 0], ll[:, 1])
+        return np.column_stack([np.asarray(e) - ORIGIN[0], np.asarray(n) - ORIGIN[1]])
+
+    def fill_shape(e):
+        """The plan shape of a closed way or a multipolygon relation (outer rings less inner rings), or None."""
+        if e["type"] == "way":
+            g = e.get("geometry") or []
+            if len(g) < 4 or e["nodes"][0] != e["nodes"][-1]:
+                return None
+            return shapely.make_valid(Polygon(local_line(g)))
+        lines = {r: [shapely.LineString(local_line(m["geometry"])) for m in e.get("members", [])
+                     if m["type"] == "way" and m.get("role") == r and len(m.get("geometry") or []) >= 2] for r in ("outer", "inner")}
+        if not lines["outer"]:
+            return None
+        outer = shapely.union_all(shapely.get_parts(shapely.polygonize(lines["outer"])))
+        inner = shapely.union_all(shapely.get_parts(shapely.polygonize(lines["inner"]))) if lines["inner"] else None
+        return shapely.make_valid(outer.difference(inner) if inner is not None else outer)
+
+    def polygons(g):
+        return [p for p in shapely.get_parts(g) if p.geom_type == "Polygon" and p.area >= 1.0] if g is not None and not g.is_empty else []
+
+    fill_stats = {"fetched": len(elems), "added": 0, "parts": 0, "relations": 0, "clipped": 0,
+                  "skipped": {"already in Vista's model (same OSM id)": 0, "open way or no area": 0, "outside the model base": 0,
+                              "same building as a Vista part (overlap >= 50%)": 0}}
+    for (kind, eid), e in sorted(elems.items()):
+        key = ("w" if kind == "way" else "r") + str(eid)
+        if key in have:
+            fill_stats["skipped"]["already in Vista's model (same OSM id)"] += 1
+            continue
+        polys = polygons(fill_shape(e))
+        if not polys:
+            fill_stats["skipped"]["open way or no area"] += 1
+            continue
+        c = shapely.union_all(polys).representative_point()
+        if not (PLINTH[0] <= c.x <= PLINTH[2] and PLINTH[1] <= c.y <= PLINTH[3]):
+            fill_stats["skipped"]["outside the model base"] += 1
+            continue
+        # Cut at the base's edge, as a physical model is (0.5 m inside, so no wall stands on the edge line).
+        polys = [q for p in polys for q in polygons(shapely.make_valid(p.intersection(BASE_BOX)))]
+        kept, same = [], False
+        for p in polys:
+            cut = []
+            for b in vtree.query(p, predicate="intersects"):
+                a = p.intersection(vgeoms[b]).area
+                if a >= 0.5 * min(p.area, vgeoms[b].area):
+                    same = True
+                    break
+                if a > 0:
+                    cut.append(vgeoms[b])
+            if same:
+                break
+            if cut:
+                fill_stats["clipped"] += 1
+                kept += polygons(shapely.make_valid(p.difference(shapely.union_all(cut))))
+            else:
+                kept.append(p)
+        if same:
+            fill_stats["skipped"]["same building as a Vista part (overlap >= 50%)"] += 1
+            continue
+        if not kept:
+            fill_stats["skipped"]["open way or no area"] += 1
+            continue
+        t = e.get("tags", {})
+        h, s = fill_height(t)
+        try:
+            clear = metres(t.get("min_height")) or 3.2 * float(t.get("building:min_level") or 0)
+        except ValueError:
+            clear = 0.0
+        objects += 1
+        src_counts["osm_fill"][s] += 1
+        fill_stats["added"] += 1
+        fill_stats["relations"] += kind == "relation"
+        for p in kept:
+            parts.append(dict(osm=key, asset=FILL_INDEX, h=max(h, clear + 1.0), src=s, typ=t.get("building", "yes"), clear=round(min(clear, h), 2),
+                              base=0.0, poly=orient(p.simplify(0.05, preserve_topology=True), 1.0), tags=t))
+            fill_stats["parts"] += 1
+    fill_stats["files"] = {f: sha(os.path.join(FILL, f)) for f in files}
+    print("fill", json.dumps(fill_stats["skipped"]), f"added {fill_stats['added']} buildings, {fill_stats['parts']} parts, clipped {fill_stats['clipped']}", src_counts["osm_fill"])
 
 # ---------- alignment and measured heights (City 2015 + LiDAR 2022, City 2009) ----------
 geoms = [p["poly"] for p in parts]
@@ -247,6 +390,39 @@ for a, b in m09.items():
     if c09[a] is None:
         c09[a] = round(f09[b]["roof"] - f09[b]["ground"], 1)
         c09_by["whole footprint"] += 1
+# The rest of the city: every part still without a 2009 height reads the City's whole 2009 export the same way (base +
+# average height, at least 2 m, as tools/build_city_forms_2009.py), covering parts first, then the matched footprint.
+if CITY2009_ALL:
+    a09, h09 = [], []
+    for f in json.load(open(CITY2009_ALL, encoding="utf-8"))["features"]:
+        p, g = f["properties"], f.get("geometry")
+        base, top, avg = p.get("baseelev_m"), p.get("topelev_m"), p.get("avght_m")
+        if not g or base is None or top is None or top <= base:
+            continue
+        roof = max(base + (avg if avg is not None and 0 < avg <= top - base else top - base), base + 2)
+        rings = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"] if g["type"] == "MultiPolygon" else []
+        for poly in rings:
+            loc = []
+            for r in poly:
+                r = np.asarray(r, dtype=float)[:, :2]
+                e, n = to_utm.transform(r[:, 0], r[:, 1])
+                loc.append(np.column_stack([np.asarray(e) - ORIGIN[0], np.asarray(n) - ORIGIN[1]]))
+            q = shapely.make_valid(Polygon(loc[0], loc[1:]))
+            for part in shapely.get_parts(q):
+                if part.geom_type == "Polygon" and part.area >= 4:
+                    a09.append(part)
+                    h09.append(round(roof - base, 1))
+    all09 = covering(a09, lambda b: h09[b], lambda b: h09[b])
+    c09_by["whole city (covering parts)"] = c09_by["whole city (matched footprint)"] = 0
+    for k, v in enumerate(all09):
+        if c09[k] is None and v is not None:
+            c09[k] = v[0]
+            c09_by["whole city (covering parts)"] += 1
+    for a, b in best_match(a09).items():
+        if c09[a] is None:
+            c09[a] = h09[b]
+            c09_by["whole city (matched footprint)"] += 1
+    c09_by["whole city export sha256"] = sha(CITY2009_ALL)
 print("measured matches", json.dumps({"lidar_2022": lidar_by, "city_2009": c09_by}))
 
 # ---------- building use (Plain style types) ----------
@@ -307,7 +483,7 @@ if len(sys.argv) > 5:
     OSM = sys.argv[5]
     way_tags = {f"w{e['id']}": e.get("tags", {}) for e in json.load(open(os.path.join(OSM, "building_way_tags.json"), encoding="utf-8"))["elements"]}
     for k, p in enumerate(parts):
-        u = building_use(way_tags.get(p["osm"], {"building": p["typ"]}))
+        u = building_use(way_tags.get(p["osm"]) or p.get("tags") or {"building": p["typ"]})  # fill parts carry their own tags
         if u:
             use[k], basis[k] = u, 1
     pois = [e for e in json.load(open(os.path.join(OSM, "use_pois.json"), encoding="utf-8"))["elements"] if e.get("type") == "node" and tag_use(e.get("tags", {}))]
@@ -353,7 +529,7 @@ for k in order:
     p = parts[k]["poly"]
     outer = quantise(p.exterior)
     holes = [h for h in (quantise(i) for i in p.interiors) if len(h) >= 3]
-    oid = int(parts[k]["osm"][1:])
+    oid = int(parts[k]["osm"][1:]) * (-1 if parts[k]["osm"][0] == "r" else 1)  # a multipolygon relation (fill) as a negative id
     varint(zigzag(oid - prev_oid), buf)
     prev_oid = oid
     varint(len(outer) * 2 + (1 if holes else 0), buf)
@@ -393,7 +569,8 @@ attrs = {
     "notes": {
         "heightM": "Vista's building height above its own base (unverified); the app seats it on the Toolkit ground",
         "clearanceM": "elevated parts: height above the ground of the part's underside (Vista height minus mesh height span)",
-        "osmId": "the footprint id in vista_buildings.bin is the OSM way number: osmId = 'w' + id (Vista's join key)",
+        "osmId": "the footprint id in vista_buildings.bin is the OSM way number: osmId = 'w' + id (Vista's join key); a negative id is a multipolygon relation of the fill: osmId = 'r' + (-id)",
+        "asset": "0 Vista's central model, 1 Vista's extension, 2 osm_fill: current OpenStreetMap buildings over the rest of the model base (tools/fetch_osm_buildings.py), added by the Toolkit with Vista's height rules",
         "lidar2022P90Dm": f"P90 roof height above ground (dm): area-weighted over the City LiDAR 2022 roof forms covering >= {MIN_COVER:.0%} of the footprint, else of the matched City 2015 footprint (IoU >= {MATCH_IOU}); -1 = none",
         "lidar2022MaxDm": "highest roof return above ground (dm) of the same LiDAR match; -1 = none",
         "city2009Dm": f"height (dm): area-weighted P90 over the City 2009 parts covering >= {MIN_COVER:.0%} of the footprint, else of the matched 2009 part (IoU >= {MATCH_IOU}); -1 = none",
@@ -407,7 +584,7 @@ print(f"wrote {bin_path} ({os.path.getsize(bin_path):,} B), {json_path} ({os.pat
 lj_path = os.path.join(OUT, "layers.json")
 lj = json.load(open(lj_path, encoding="utf-8"))
 entry = {
-    "id": "vista_buildings", "title": "Buildings: Vista unified model (OpenStreetMap)", "file": "vista_buildings.bin",
+    "id": "vista_buildings", "title": "Buildings: Vista unified model + OpenStreetMap fill" if FILL else "Buildings: Vista unified model (OpenStreetMap)", "file": "vista_buildings.bin",
     "format": "TSF1 footprints (layout in tools/build_city_footprints.py), id = OSM way number; per-part attributes in vista_buildings.json (same order)",
     "bytes": os.path.getsize(bin_path), "sha256": sha(bin_path), "count": len(order),
     "source": {
@@ -417,9 +594,17 @@ entry = {
         "retrieved": RETRIEVED, "commit": COMMIT,
         "request": f"gh api repos/RuijieLiu6/vancouver-tall-view-tool/contents/generated/<file>?ref={COMMIT} (read only)",
         "inputs_sha256": {f: sha(os.path.join(RAW, f)) for f in ["unified_buildings.bin", "unified_ext_buildings.bin", "unified_buildings_index.json", "unified_ext_buildings_index.json", "unified_manifest.json"]},
-        "note": (f"{objects:,} buildings ({len(order):,} footprint parts): the central model is a browser export of the studio Rhino "
+        "note": (f"{vista_objects:,} Vista buildings: the central model is a browser export of the studio Rhino "
                  "'Vancouver DT context.3dm', itself built from 2022 OpenStreetMap; the extension is current OpenStreetMap via Overpass "
-                 "(accessed 2026-09-24). Published with Ruijie's permission (3 Nov 2026)."),
+                 "(accessed 2026-09-24). Published with Ruijie's permission (3 Nov 2026)."
+                 + (f" Fill: {fill_stats['added']:,} more buildings from current OpenStreetMap over the rest of the model base (Overpass, 4 Nov 2026), "
+                    f"{objects:,} buildings and {len(order):,} footprint parts in all." if fill_stats else f" {len(order):,} footprint parts.")),
+        "fill": ({"source": "OpenStreetMap via the Overpass API (tools/fetch_osm_buildings.py): building ways and multipolygon relations in the model base minus Vista's rectangle",
+                  "requests": [{k: r[k] for k in ("file", "endpoint", "query", "retrieved", "user_agent", "licence", "sha256")} for r in json.load(open(os.path.join(FILL, "requests.json"), encoding="utf-8"))],
+                  "height_rules": "Vista's extension rules (extension_manifest.json height_rules): OSM height tag, else 3.2 m x levels + 1 m from 2 levels, else Vista's type table (default 9 m)",
+                  "dedupe": "same OSM id as a Vista part, or overlapping a Vista part by >= 50% of the smaller: left out; a smaller overlap is cut away",
+                  "base": "kept when a point inside the outline lies on the model base (lib/plinth.ts CITY_PLINTH)",
+                  "stats": fill_stats} if fill_stats else None),
     },
     "licence": {"name": "Open Database License (ODbL) 1.0", "url": "https://opendatacommons.org/licenses/odbl/1-0/"},
     "attribution": "Building footprints and heights (c) OpenStreetMap contributors (ODbL), via Vista (Ruijie Liu). This layer is a derivative database of OpenStreetMap, offered under ODbL 1.0.",
@@ -429,7 +614,7 @@ entry = {
               "note": "Heights are above each building's own base. The app seats each building on its ground at the footprint's bounding-box centre (City LiDAR 2022 1 m, else MRDEM; CGVD28). Vista's SRTM / EGM96 base Z is not used.",
               "unverified": ["building heights (OSM tags, floor counts and type estimates)", "Vista's terrain and its vertical datum"]},
     "processing": {
-        "build": "python -I tools/build_vista_buildings.py <raw_dir> public/data <commit> <retrieved>",
+        "build": "python -I tools/build_vista_buildings.py <raw_dir> public/data <commit> <retrieved> <osm use-tag dir> [--fill <osm buildings dir>] [--city2009 <whole-city 2009 export>]",
         "footprint": "union of each object's triangles in plan (extrusions: only the roof shape is lost); parts under 1 m2 dropped; simplified within 5 cm",
         "height_sources": {a: dict(zip(SOURCES, src_counts[a])) for a in ASSETS},
         "height_check": heights_check,

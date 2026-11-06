@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react'
 import { Component, Suspense, useMemo, useState, type ReactNode } from 'react'
 import { useStore } from '../../store'
+import Help from '../Help'
 import { HidePanelButton } from '../PanelToggle'
 import { DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
@@ -35,19 +36,20 @@ class ToolBoundary extends Component<{ label: string; children: ReactNode }, { e
 
 function ToolSection({ tool, open, onToggle }: { tool: DesignTool; open: boolean; onToggle: () => void }) {
   const { icon: Icon, component: Body } = tool
+  const hint = useStore((s) => (typeof tool.hint === 'function' ? tool.hint(s) : tool.hint))
   const head = `tool-${tool.id}-head`, body = `tool-${tool.id}-body`
   return (
     <div className="border-b border-line" data-tool={tool.id}>
-      <h3>
+      {/* The tool's description sits behind a "?" beside its name (Ruijie, 5 Nov), outside the fold button. */}
+      <h3 className="relative">
         <button id={head} type="button" onClick={onToggle} aria-expanded={open} aria-controls={body}
           className={`flex w-full items-center gap-2.5 px-3 py-2 text-left outline-none hover:bg-black/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${open ? 'bg-black/[0.02]' : ''}`}>
           <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${open ? 'bg-accent text-white' : 'bg-accent/10 text-accent'}`}><Icon size={15} /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs font-semibold text-ink">{tool.label}</span>
-            {tool.hint && <span className="block truncate text-[11px] text-muted">{tool.hint}</span>}
-          </span>
+          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">{tool.label}</span>
+          {hint && <span aria-hidden className="w-5 shrink-0" />}
           {open ? <ChevronDown size={14} className="text-muted" /> : <ChevronRight size={14} className="text-muted" />}
         </button>
+        {hint && <span className="absolute right-8 top-1/2 flex -translate-y-1/2"><Help label={`About ${tool.label}`}>{hint}</Help></span>}
       </h3>
       {open && (
         <div id={body} role="region" aria-labelledby={head} className="pb-1">

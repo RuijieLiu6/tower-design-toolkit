@@ -18,6 +18,7 @@ import { useImportStore } from '../lib/import/store'
 import PublicRealmPanel from './PublicRealmPanel'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
 import { useShallow } from 'zustand/react/shallow'
+import Help from './Help'
 
 function ProgramIcon({ use, small = false }: { use: UseId; small?: boolean }) {
   const Icon = PROGRAM_ICONS[use]
@@ -142,12 +143,12 @@ function useEditedTower() {
 }
 
 /** A block inside a design tool: an optional small heading, then the controls. */
-export function ToolBlock({ title, right, children }: { title?: string; right?: ReactNode; children: ReactNode }) {
+export function ToolBlock({ title, right, help, children }: { title?: string; right?: ReactNode; help?: ReactNode; children: ReactNode }) {
   return (
     <div className="border-b border-line px-4 py-3 last:border-b-0">
       {(title || right) && (
         <div className="mb-2 flex items-center justify-between gap-2">
-          {title && <h4 className="text-[11px] font-semibold text-muted">{title}</h4>}
+          {title && <h4 className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h4>}
           {right}
         </div>
       )}
@@ -343,10 +344,10 @@ export function CoreTool() {
         <NumberField label="Plant floor every N tower floors (0 = none)" value={t.plantEvery} onChange={(v) => up({ plantEvery: Math.max(0, Math.round(v)) })} min={0} max={40} step={1} />
         <div>
           <div className="mb-1 flex items-center justify-between text-xs">
-            <span className="font-medium">Sky lobbies</span>
+            <span className="flex items-center gap-1.5 font-medium">Sky lobbies<Help label="About sky lobbies">A sky lobby puts the upper rises on shuttles, so their shafts stop running through the floors below.</Help></span>
             {suggestion !== null && <button onClick={() => up({ skyLobbies: [...sky, suggestion].sort((a, b) => a - b) })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add at level {suggestion}</button>}
           </div>
-          {sky.length === 0 && <p className="text-[11px] text-muted">None: every rise runs from the ground lobby. A sky lobby puts the upper rises on shuttles, so their shafts stop running through the floors below.</p>}
+          {sky.length === 0 && <p className="text-[11px] text-muted">None: every rise runs from the ground lobby.</p>}
           <div className="grid gap-1">
             {sky.map((lv, i) => (
               <div key={`${i}-${lv}`} className="flex items-center gap-2 text-xs">
@@ -372,7 +373,7 @@ export function CoreTool() {
         </div>
         <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">Core share, plant spacing and the lift and egress presets are team assumptions, not code minimums. Net-to-gross uses the larger of the modelled and needed core.</span></div>
         <div>
-          <div className="mb-1 text-xs font-medium">Exit stairs</div>
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium">Exit stairs<Help label="About exit stair placement">Stairs at the plate edge pass exit separation more easily and shrink the core, but take lettable floor and facade. Placement is a team assumption on geometry.</Help></div>
           <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label="Exit stair placement">
             {(['core', 'mixed', 'perimeter'] as StairPlacement[]).map((k) => {
               const on = (t.stairPlacement ?? 'core') === k
@@ -384,7 +385,6 @@ export function CoreTool() {
               )
             })}
           </div>
-          <p className="mt-1 text-[11px] text-muted">Stairs at the plate edge pass exit separation more easily and shrink the core, but take lettable floor and facade. Placement is a team assumption on geometry.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => set({ sectionOn: !sectionOn, explode: false })} aria-pressed={sectionOn}

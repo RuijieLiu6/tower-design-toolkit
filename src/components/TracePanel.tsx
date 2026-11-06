@@ -163,9 +163,8 @@ export default function TracePanel() {
 
   return (
     <div>
-      <Section title="Decision trace">
-        <p className="text-[11px] leading-snug text-slate-700">Record iterations as you work: each keeps the design and what every check said, so you can compare, explain and go back. A decision records your reason; the tool never writes one.</p>
-        <form className="mt-2 flex gap-1" onSubmit={(e) => { e.preventDefault(); record() }}>
+      <Section title="Decision trace" help="Record iterations as you work: each keeps the design and what every check said, so you can compare, explain and go back. A decision records your reason; the tool never writes one.">
+        <form className="flex gap-1" onSubmit={(e) => { e.preventDefault(); record() }}>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={`Iteration ${iterations.length + 1}`} aria-label="Iteration name" maxLength={200}
             className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1 text-xs outline-none focus:border-accent" />
           <button type="submit" className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"><GitCommitHorizontal size={14} />Record</button>

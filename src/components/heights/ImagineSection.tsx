@@ -54,9 +54,8 @@ export default function ImagineSection() {
   })() : null
 
   return (
-    <Section title="Imagine Vancouver">
+    <Section title="Imagine Vancouver" help="Vista's comparison of every building in the model: Existing, Height references (the basic zoning height over the whole footprint) and With view cones (also below every cone surface, 0.1 m clearance). Connected parts scale together.">
       <div className="space-y-1.5 text-[11px]">
-        <p className="text-muted">Vista's comparison of every building in the model: Existing, Height references (the basic zoning height over the whole footprint) and With view cones (also below every cone surface, 0.1 m clearance). Connected parts scale together.</p>
         {im.status === 'idle' || (im.status === 'error' && !im.prep) ? (
           <>
             <button type="button" onClick={() => go(im.scenario)} className="rounded border border-accent bg-accent/10 px-2 py-1 font-medium text-ink hover:bg-accent/20">Calculate every building</button>

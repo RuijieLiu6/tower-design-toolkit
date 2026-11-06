@@ -46,8 +46,8 @@ export default function DaylightResults() {
   const r = useMemo(() => (t ? daylightScreen(t, towerFloors(t)) : null), [t])
   if (!t || !r) return null
   return (
-    <Section title={`Daylight screen · ${t.name}`}>
-      <p className="text-[11px] text-slate-600">Distance from the glass on each use's typical floor, against the window head height (floor-to-floor minus the head drop). A geometric proxy: glazing, neighbours, blinds and climate are left out, so run a daylight simulation before relying on it.</p>
+    <Section title={`Daylight screen · ${t.name}`} help="Distance from the glass on each use's typical floor, against the window head height (floor-to-floor minus the head drop).">
+      <p className="text-[11px] text-slate-600">A geometric proxy: glazing, neighbours, blinds and climate are left out, so run a daylight simulation before relying on it.</p>
       <div className="mt-2 flex flex-wrap gap-3 text-[10.5px]" aria-label="Band key">
         {(Object.keys(BAND_STYLE) as (keyof typeof BAND_STYLE)[]).map((b) => (
           <span key={b} className="inline-flex items-center gap-1"><span className="h-2.5 w-3.5 rounded-sm border border-line" style={{ background: BAND_STYLE[b].fill, opacity: 0.4 + BAND_STYLE[b].opacity }} />{b === 'marginal' ? `Marginal (≤ ${r.k} × head)` : b === 'deep' ? `Deep (beyond ${r.k} × head)` : BAND_STYLE[b].label}</span>

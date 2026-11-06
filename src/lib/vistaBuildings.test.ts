@@ -12,7 +12,7 @@ const flat = (z: number): HeightGrid => ({ cols: 2, rows: 2, step: 40000, x0: -2
 
 /** One building part, for the pure functions. */
 const one = (o: Partial<Record<keyof VistaBuildings, number>> = {}): VistaBuildings => ({
-  osmId: ['w1'], vistaId: ['buildings:w1'], asset: Uint8Array.of(0), heightM: Float32Array.of(o.heightM ?? 12), heightSource: Uint8Array.of(o.heightSource ?? 2), osmType: ['yes'], use: null, useBasis: null,
+  osmId: ['w1'], vistaId: ['buildings:w1'], asset: Uint8Array.of(0), fill: -1, heightM: Float32Array.of(o.heightM ?? 12), heightSource: Uint8Array.of(o.heightSource ?? 2), osmType: ['yes'], use: null, useBasis: null,
   clearance: Float32Array.of(o.clearance ?? 0), lidar2022: Float32Array.of(o.lidar2022 ?? NaN), lidar2022Max: Float32Array.of(o.lidar2022Max ?? NaN), city2009: Float32Array.of(o.city2009 ?? NaN),
 })
 const square = { id: 1, outer: [[0, 0], [10, 0], [10, 10], [0, 10]] as [number, number][], holes: [] }
@@ -25,25 +25,36 @@ describe("Vista's unified model as Real Vancouver's buildings", { timeout: 30_00
     expect(layer.attribution).toMatch(/OpenStreetMap contributors/)
     const v = (await loadVistaBuildings(manifest, read))!
     expect(v.footprints.length).toBe(layer.count)
-    expect(v.vista.osmId.every((id, i) => id === `w${v.footprints[i].id}`)).toBe(true)
-    expect(new Set(v.vista.osmId).size).toBe(61402) // Vista's 61,407 objects less 5 under 1 m2 (tools/build_vista_buildings.py)
-    // Vista's own key: asset + ':' + osmId, one per object, never shared between the core and the extension.
-    expect(v.vista.vistaId.every((k, i) => k === `${v.vista.asset[i] ? 'ext_buildings' : 'buildings'}:${v.vista.osmId[i]}`)).toBe(true)
-    expect(new Set(v.vista.vistaId).size).toBe(61402)
+    // A way's id is its OSM way number; a multipolygon relation of the fill has a negative id ("r" + its number).
+    expect(v.vista.osmId.every((id, i) => id === (v.footprints[i].id < 0 ? `r${-v.footprints[i].id}` : `w${v.footprints[i].id}`))).toBe(true)
+    const fill = v.vista.fill, own = v.vista.osmId.filter((_, i) => v.vista.asset[i] !== fill)
+    expect(new Set(own).size).toBe(61402) // Vista's 61,407 objects less 5 under 1 m2 (tools/build_vista_buildings.py)
+    // Vista's own key: asset + ':' + osmId, one per object, never shared between the core, the extension and the fill.
+    const assets = ['buildings', 'ext_buildings', 'osm_fill']
+    expect(v.vista.vistaId.every((k, i) => k === `${assets[v.vista.asset[i]]}:${v.vista.osmId[i]}`)).toBe(true)
+    // The OpenStreetMap fill beyond Vista's model (4 Nov): as many buildings as the build added, none sharing an id with Vista's.
+    const added = ((layer.source as { fill?: { stats: { added: number } } }).fill?.stats.added) ?? 0
+    expect(fill >= 0).toBe(added > 0)
+    expect(new Set(v.vista.vistaId).size).toBe(61402 + added)
+    expect(new Set(v.vista.osmId).size).toBe(61402 + added)
     expect(v.vista.heightM.every((h) => h > 0)).toBe(true)
     for (const f of v.footprints) for (const [x, y] of f.outer) {
       expect(x > CITY_PLINTH.x0 && x < CITY_PLINTH.x1 && y > CITY_PLINTH.y0 && y < CITY_PLINTH.y1).toBe(true)
     }
     // Vista's own counts per height source (unified_*_index.json): tag, floor count, type estimate.
-    const objects = partsByOsmId(v.vista), by = [0, 0, 0]
-    for (const parts of objects.values()) by[v.vista.heightSource[parts[0]]]++
+    const objects = partsByOsmId(v.vista), by = [0, 0, 0], byFill = [0, 0, 0]
+    for (const parts of objects.values()) (v.vista.asset[parts[0]] === fill ? byFill : by)[v.vista.heightSource[parts[0]]]++
     expect(by).toEqual([5380, 6607, 49415])
+    // The fill by Vista's rules (OSM height tag, floor count, type table), as the build counted them.
+    const recorded = (layer.processing as { height_sources: Record<string, Record<string, number>> }).height_sources.osm_fill
+    if (added) expect(byFill).toEqual(Object.values(recorded))
   })
 
   it('carries each part’s building type from OpenStreetMap use tags, other (never guessed) where OSM has none', async () => {
     const v = (await loadVistaBuildings(manifest, read))!.vista
     const by = new Map<string, number>(), basis = [0, 0, 0]
-    v.osmId.forEach((_, i) => { const u = partUse(v, i); by.set(u.use, (by.get(u.use) ?? 0) + 1); basis[v.useBasis![i]]++ })
+    // Vista's own parts (the fill beyond Vista's model takes its type from its own tags, or a point of interest on Vista's edge).
+    v.osmId.forEach((_, i) => { if (v.asset[i] === v.fill) return; const u = partUse(v, i); by.set(u.use, (by.get(u.use) ?? 0) + 1); basis[v.useBasis![i]]++ })
     // tools/build_vista_buildings.py with the Overpass extract of 3 Nov (context-data/raw/osm-use-tags-2026-11-03): per part.
     expect(Object.fromEntries(by)).toEqual({ residential: 17712, retail: 2804, office: 419, hotel: 119, cultural: 220, institutional: 384, transit: 27, other: 40687 })
     expect(basis).toEqual([40687, 20251, 1434])

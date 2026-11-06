@@ -6,6 +6,7 @@ import { GUIDELINE, type Reading } from '../engine/solarRules'
 import type { RuleResult } from '../engine/types'
 import { useSolar, useSolarAccess } from '../hooks/useSolarAccess'
 import { HOURS_RAMP, LOSS_MAX_H, LOSS_RAMP } from './solarRamps'
+import { SolarAreaControls } from './SolarArea'
 import { SolarEnvelopePanel } from './SolarEnvelope'
 import { FlagChip, Section, StateChip, Toggle } from './ui'
 import { U } from './Units'
@@ -40,7 +41,7 @@ export default function SolarResults() {
 
   return (
     <>
-      <Section title="Sun-hours map" right={status === 'running' ? <span className="flex items-center gap-1 text-[10px] text-muted"><Loader2 size={11} className="animate-spin" aria-hidden />Computing</span> : out ? <span className="text-[10px] text-muted">{out.ms} ms</span> : null}>
+      <Section title="Sun-hours map" help={<>Direct sun on open ground, {out?.map?.grid.cell ?? 5} m cells, sampled every 15 minutes{mapDate === 'equinox' ? '' : ' with the sun above 10°'}. Flat ground; no trees, as the guideline asks (s.5). Grey buildings are not counted.</>} right={status === 'running' ? <span className="flex items-center gap-1 text-[10px] text-muted"><Loader2 size={11} className="animate-spin" aria-hidden />Computing</span> : out ? <span className="text-[10px] text-muted">{out.ms} ms</span> : null}>
         <div className="grid gap-2 text-[11px]">
           <label className="flex items-center justify-between gap-2"><span>Show on the ground</span><Toggle checked={showMap} onChange={() => set({ showMap: !showMap })} label="Show the sun-hours map" /></label>
           <label className="flex items-center justify-between gap-2">Date
@@ -48,6 +49,7 @@ export default function SolarResults() {
               {MAP_DATES.map((d) => <option key={d.id} value={d.id}>{d.label} ({d.note})</option>)}
             </select>
           </label>
+          <SolarAreaControls />
           <div role="radiogroup" aria-label="Map shows" className="flex rounded-md bg-black/5 p-0.5">
             {(['hours', 'loss'] as const).map((v) => (
               <button key={v} role="radio" aria-checked={view === v} onClick={() => set({ view: v })}
@@ -60,9 +62,6 @@ export default function SolarResults() {
               <span>{view === 'hours' ? '0 h' : 'under 1 h'}</span><span>{view === 'hours' ? `${possible.toFixed(possible % 1 ? 1 : 0)} h, the whole window` : `${LOSS_MAX_H} h or more`}</span>
             </div>
           </div>
-          <p className="text-[10px] text-muted">
-            Direct sun on open ground, 5 m cells, sampled every 15 minutes{mapDate === 'equinox' ? '' : ' with the sun above 10°'}. Flat ground; no trees, as the guideline asks (s.5). Grey buildings are not counted.
-          </p>
         </div>
         {status === 'error' && <p className="mt-2 rounded bg-red-50 px-2 py-1 text-[11px] text-red-800">The solar run failed: {error}</p>}
       </Section>

@@ -94,7 +94,7 @@ export default function ImportDialog() {
       setError((e as Error).message || String(e))
     } finally { setLoading(null) }
   }
-  useEffect(() => { if (pendingFile) void read(pendingFile) }, [pendingFile]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (pendingFile) void read(pendingFile, useImportStore.getState().pendingLink) }, [pendingFile]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null

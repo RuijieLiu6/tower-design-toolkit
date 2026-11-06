@@ -15,8 +15,8 @@ import type { Mapping } from './model'
 /** How often a linked file is checked while the tab is open (ms). */
 export const POLL_MS = 2000
 
-/** The part of a FileSystemFileHandle the link uses (so tests can pass a stand-in). */
-export interface FileHandleLike { name: string; getFile(): Promise<File> }
+/** The part of a FileSystemFileHandle the link uses (so tests can pass a stand-in); `kind: 'rhino'` is the Rhino plugin (rhinoLink.ts). */
+export interface FileHandleLike { name: string; getFile(): Promise<File>; kind?: 'file' | 'rhino' }
 export interface LinkConfig { mapping: Mapping; opts: ImportOptions; project: 'vtc' | 'city' }
 
 interface LiveState {
@@ -61,7 +61,7 @@ export function startLink(handle: FileHandleLike, cfg: LinkConfig, file: File, o
   const read: Reader = o.read ?? (async (f) => (await import('../import/load')).readModelFile(f))
   link = { handle, cfg, last: file.lastModified, read, busy: false, timer: o.poll === false ? null : setInterval(() => void checkLinkNow(), POLL_MS) }
   if (o.poll !== false && typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible)
-  useLiveLink.setState({ name: handle.name, status: 'watching', message: `Linked to ${handle.name}: the model updates when you save it in Rhino.`, lastSync: null })
+  useLiveLink.setState({ name: handle.name, status: 'watching', message: handle.kind === 'rhino' ? 'Linked to Rhino: the model updates a second or two after each change you make there.' : `Linked to ${handle.name}: the model updates when you save it in Rhino.`, lastSync: null })
 }
 
 export function stopLink() {
@@ -79,8 +79,17 @@ export async function checkLinkNow(now = () => new Date()): Promise<'unchanged' 
   if (!link || link.busy) return 'skipped'
   const l = link
   let file: File
-  try { file = await l.handle.getFile() } catch { useLiveLink.setState({ status: 'error', message: `${l.handle.name} can no longer be read (moved, renamed or permission withdrawn). Link it again.` }); return 'error' }
-  if (file.lastModified === l.last) return 'unchanged'
+  try { file = await l.handle.getFile() } catch {
+    useLiveLink.setState({ status: 'error', message: l.handle.kind === 'rhino'
+      ? 'Rhino stopped answering (the link was stopped, or Rhino closed). Run tdt_link.py in Rhino again; the link picks up again by itself.'
+      : `${l.handle.name} can no longer be read (moved, renamed or permission withdrawn). Link it again.` })
+    return 'error'
+  }
+  if (file.lastModified === l.last) {
+    // Back after a dropout (Rhino restarted, the file readable again) with nothing new: the link is fine again.
+    if (useLiveLink.getState().status === 'error') useLiveLink.setState({ status: 'watching', message: l.handle.kind === 'rhino' ? 'Linked to Rhino again.' : `Linked to ${l.handle.name} again.` })
+    return 'unchanged'
+  }
   const s = useStore.getState()
   if (s.project !== l.cfg.project) { useLiveLink.setState({ message: `${l.handle.name} changed: switch to the ${l.cfg.project === 'vtc' ? 'competition site' : 'Real Vancouver'} project to update it.` }); return 'skipped' }
   l.busy = true
@@ -96,7 +105,8 @@ export async function checkLinkNow(now = () => new Date()): Promise<'unchanged' 
     if (built.blocked) { useLiveLink.setState({ status: 'error', message: `The saved ${l.handle.name} was not used: ${built.blocked}` }); return 'error' }
     applyModel(built, raw, 'update')
     const at = now()
-    useLiveLink.setState({ status: 'watching', lastSync: at.toISOString(), message: `Updated from ${l.handle.name} saved at ${at.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' })}.` })
+    const time = at.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    useLiveLink.setState({ status: 'watching', lastSync: at.toISOString(), message: l.handle.kind === 'rhino' ? `Updated from Rhino at ${time}.` : `Updated from ${l.handle.name} saved at ${time}.` })
     return 'updated'
   } catch (e) {
     useLiveLink.setState({ status: 'error', message: `Could not read the saved ${l.handle.name}: ${(e as Error).message}` })

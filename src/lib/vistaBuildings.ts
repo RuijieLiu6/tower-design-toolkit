@@ -10,14 +10,21 @@ export const VISTA_LAYER = 'vista_buildings'
 /** Vista's height sources (unified_*_index.json height_source codes 0, 1, 2). */
 export const VISTA_SOURCES = ['OSM height tag', 'OSM floor count', 'estimate per building type'] as const
 export const VISTA_ATTRIBUTION = 'Buildings © OpenStreetMap contributors (ODbL), via Vista'
+/**
+ * The asset of the buildings the Toolkit added beyond Vista’s model (Ruijie, 4 Nov 2026: "fill in the box"): current
+ * OpenStreetMap over the rest of the model base, with Vista's height rules (tools/fetch_osm_buildings.py).
+ */
+export const FILL_ASSET = 'osm_fill'
 
 export interface VistaBuildings {
   /** The OSM way, one per footprint part ("w" + OSM way number; a multipart building repeats it). */
   osmId: string[]
   /** Vista's own building key, `${asset}:${osmId}` ("buildings:w27926613"), as in building-view-heights.js and imagine_city.json. */
   vistaId: string[]
-  /** 0 = Vista's central model (studio Rhino export of 2022 OSM), 1 = its OSM extension (current OSM). */
+  /** 0 = Vista's central model (studio Rhino export of 2022 OSM), 1 = its OSM extension (current OSM), `fill` = the OSM fill. */
   asset: Uint8Array
+  /** The asset index of the OpenStreetMap fill (FILL_ASSET), -1 when the layer has none. */
+  fill: number
   heightM: Float32Array
   /** Index into VISTA_SOURCES. */
   heightSource: Uint8Array
@@ -58,7 +65,9 @@ export async function loadVistaBuildings(manifest: Manifest, read: (file: string
   return {
     footprints,
     vista: {
-      osmId: footprints.map((f) => `w${f.id}`), vistaId: footprints.map((f, i) => `${a.assets[c.asset[i]]}:w${f.id}`), asset: Uint8Array.from(c.asset), heightM: Float32Array.from(c.heightM),
+      // A negative id is a multipolygon relation of the OpenStreetMap fill (tools/build_vista_buildings.py --fill).
+      osmId: footprints.map((f) => (f.id < 0 ? `r${-f.id}` : `w${f.id}`)), vistaId: footprints.map((f, i) => `${a.assets[c.asset[i]]}:${f.id < 0 ? `r${-f.id}` : `w${f.id}`}`),
+      fill: a.assets.indexOf(FILL_ASSET), asset: Uint8Array.from(c.asset), heightM: Float32Array.from(c.heightM),
       heightSource: Uint8Array.from(c.heightSource), osmType: c.type.map((t) => a.types[t]), clearance: Float32Array.from(c.clearanceM),
       use: useIndex ? Uint8Array.from(c.use!, (k) => useIndex[k]) : null, useBasis: useIndex ? Uint8Array.from(c.useBasis!) : null,
       lidar2022: dm(c.lidar2022P90Dm), lidar2022Max: dm(c.lidar2022MaxDm), city2009: dm(c.city2009Dm),
@@ -143,8 +152,13 @@ export function buildingType(v: VistaBuildings, i: number): string {
 
 /** Where a building part's height comes from, for captions. */
 export function buildingSource(d: BuildingModel, i: number): string {
-  if (d.model === 'vista' && d.vista) return `Vista model, ${BASIS_TEXT[chooseHeight(d.vista, i).basis]}`
+  if (d.model === 'vista' && d.vista) return `${isFill(d.vista, i) ? 'OpenStreetMap, filled in beyond Vista’s model (4 Nov 2026)' : 'Vista model'}, ${BASIS_TEXT[chooseHeight(d.vista, i).basis]}`
   return is2009Part(d.footprints[i].id) ? 'City 2009 heights (older survey)' : 'LiDAR 2022'
+}
+
+/** Whether a part is one the Toolkit added beyond Vista’s model (current OpenStreetMap), not one of Vista's own. */
+export function isFill(v: VistaBuildings, i: number): boolean {
+  return v.fill >= 0 && v.asset[i] === v.fill
 }
 
 /** Whether a part's height is an estimate (drawn a shade off, like the older survey in the City model). */
@@ -165,6 +179,6 @@ export function rayBuildingsLabel(d: BuildingModel): string {
 
 /** One line on what the buildings are, for captions and reports. */
 export function buildingsNote(d: BuildingModel): string {
-  if (d.model === 'vista') return `Buildings: Vista's unified model (${VISTA_ATTRIBUTION.replace('Buildings ', '')}) on the City ground; heights from City LiDAR 2022 or 2009 where measured, else OpenStreetMap (unverified).`
+  if (d.model === 'vista') return `Buildings: Vista's unified model, filled to the model's edge with current OpenStreetMap (${VISTA_ATTRIBUTION.replace('Buildings ', '')}), on the City ground; heights from City LiDAR 2022 or 2009 where measured, else OpenStreetMap (unverified).`
   return 'Buildings: LiDAR 2022 roof parts in the core, City 2009 heights around it (older survey); buildings without a height do not block (placeholders are display only).'
 }

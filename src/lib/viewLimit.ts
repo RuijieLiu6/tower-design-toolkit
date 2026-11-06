@@ -37,12 +37,22 @@ export interface ViewShape {
 }
 
 /**
+ * How far past the model's edge a view may pan, as a share of its half-extent: 0.5 lets at most a quarter of the view
+ * show the base's edge and what lies beyond. Since 4 Nov the buildings fill the model base to its edge (OpenStreetMap
+ * fill), so a neighbourhood on the edge of the city (Hastings-Sunrise, Killarney, Dunbar) can be fitted in the view
+ * (Ruijie: "bring the view fit the boundary of the neighbourhood") without the edge pushing it aside. Zooming out stays
+ * capped at the model's size.
+ */
+export const EDGE_SLACK = 0.5
+
+/**
  * The orbit camera and target moved as little as possible so the view at the target stays inside `rect`: first the
  * distance shrinks until the view's ground extent around the target fits the rectangle, then the target (and the camera
- * with it) slides back inside. The view's direction never changes. The extent is the frame at the target's distance
- * (exact from straight above; looser for an oblique view, whose far side may show the backdrop and the mountains).
+ * with it) slides back until the view passes the edge by at most `slack` of its half-extent (0: not at all). The view's
+ * direction never changes. The extent is the frame at the target's distance (exact from straight above; looser for an
+ * oblique view, whose far side may show the backdrop and the mountains).
  */
-export function limitView(cam: V3, target: V3, v: ViewShape, rect: Rect): { cam: V3; target: V3; moved: boolean } {
+export function limitView(cam: V3, target: V3, v: ViewShape, rect: Rect, slack = 0): { cam: V3; target: V3; moved: boolean } {
   const off: V3 = [cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]]
   const d = Math.hypot(off[0], off[1], off[2])
   const hw = d * v.tanHalf * v.aspect, hh = d * v.tanHalf
@@ -56,7 +66,8 @@ export function limitView(cam: V3, target: V3, v: ViewShape, rect: Rect): { cam:
   if (!shrink) s = 1
   ex *= s; ey *= s
   const clampAxis = (t: number, lo: number, hi: number, e: number) => (lo + e > hi - e ? (lo + hi) / 2 : Math.min(hi - e, Math.max(lo + e, t)))
-  const tx = clampAxis(target[0], rect.x0, rect.x1, ex), ty = clampAxis(target[1], rect.y0, rect.y1, ey)
+  const keep = 1 - Math.min(1, Math.max(0, slack))
+  const tx = clampAxis(target[0], rect.x0, rect.x1, ex * keep), ty = clampAxis(target[1], rect.y0, rect.y1, ey * keep)
   const t: V3 = [tx, ty, target[2]]
   const c: V3 = [tx + off[0] * s, ty + off[1] * s, target[2] + off[2] * s]
   const moved = shrink || Math.abs(tx - target[0]) > 1e-6 || Math.abs(ty - target[1]) > 1e-6

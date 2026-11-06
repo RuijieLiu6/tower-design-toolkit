@@ -4,7 +4,7 @@
 // (lib/siteActions.ts). Clicks are taken only in the Site step, outside the other map tools (site drawing and picking,
 // placing, Inspect, eye-level views, the height-surface area): a click on a design tower still picks the tower.
 import { Html, Line } from '@react-three/drei'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Box, Building2, Check, Combine, Hammer, MousePointerClick, Square, SquareMinus, SquarePlus, Undo2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import * as THREE from 'three'
@@ -182,6 +182,7 @@ export default function SiteMapMenu() {
       <MultiBar data={data} />
       <BoxDraft data={data} />
       <AreaOutline data={data} />
+      <LotLines data={data} />
       <ToastAt />
     </>
   )
@@ -308,6 +309,46 @@ function BoxDraft({ data }: { data: CityData }) {
         </div>
       </Html>
     </>
+  )
+}
+
+// ---------------------------------------------------------------- the City's lot lines
+/** The view shows lot lines once its target is within this distance of the camera (metres): readable, and cheap enough. */
+const LOT_LINES_RANGE = 3500
+
+/**
+ * The City's property lines in the Site step (Ruijie, 4 Nov: "include property lines in the newly added building
+ * footprint"): every lot of the whole-city parcel layer (99,672 lots, OGL-Vancouver, 4 Nov), faint, on the ground, so a
+ * lot can be read and picked anywhere the buildings reach. Hidden in the far overview, where they would only grey the map.
+ */
+function LotLines({ data }: { data: CityData }) {
+  const { layer } = useParcelLayer()
+  const geom = useMemo(() => {
+    if (!layer) return null
+    const pts: number[] = []
+    const z = (x: number, y: number) => Math.max(0, sampleTerrain(data.grids, x, y) ?? 0) + 0.6
+    for (const f of layer.polys) for (const ring of [f.outer, ...f.holes]) {
+      for (let k = 0; k < ring.length; k++) {
+        const [ax, ay] = ring[k], [bx, by] = ring[(k + 1) % ring.length]
+        pts.push(ax, ay, z(ax, ay), bx, by, z(bx, by))
+      }
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
+    g.computeBoundingSphere()
+    return g
+  }, [layer, data])
+  useEffect(() => () => geom?.dispose(), [geom])
+  const ref = useRef<THREE.LineSegments>(null)
+  useFrame(({ camera, controls }) => {
+    const o = ref.current, t = (controls as unknown as { target?: THREE.Vector3 } | null)?.target
+    if (o) o.visible = !t || camera.position.distanceTo(t) < LOT_LINES_RANGE
+  })
+  if (!geom) return null
+  return (
+    <lineSegments ref={ref} geometry={geom} renderOrder={3} userData={{ siteOverlay: true }}>
+      <lineBasicMaterial color="#6b5a45" transparent opacity={0.4} depthWrite={false} />
+    </lineSegments>
   )
 }
 

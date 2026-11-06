@@ -11,7 +11,7 @@
 // draws many cones at once. Data rules unchanged: the ceiling of a cone with a City-sourced estimate (8) is that
 // estimate; the other 16 show Vista's study surface, fainter, with dashed edges and labelled an assumption
 // (engine/heightModel.ts via lib/heightData.ts, read only); a cone without a surface shows its footprint only. The
-// featured cone also gets Vista's trace of the buildings under it, projected onto its ceiling. In Plan, as in Vista,
+// featured cone also shows the design towers' footprints projected onto its ceiling (not the existing buildings'). In Plan, as in Vista,
 // the volumes are left out and the plan outlines stay. At eye level cones are not drawn unless "Keep map overlays" is on.
 // Which cones show: lib/coneVisibility.ts, shared by the Viewcone tab and the Layers dock. Display only.
 import { Line } from '@react-three/drei'
@@ -28,7 +28,6 @@ import { eyeZ, useViewFromStore } from '../lib/viewFromStore'
 import { CHROME, VISTA, useVistaLook } from '../lib/vistaLook'
 import { coneVolume, displayCut, type V3 } from '../lib/coneVolume'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
-import { useCityObstacles } from './CityContext'
 import Label from './Label'
 
 /** Vista's corridor height (explorer.js CONE_TOP), metres. */
@@ -43,18 +42,20 @@ export const CONE_BLUE = { surface: '#0575f0', walls: '#0587ff', glow: '#0887ff'
  * values the city under the cones washed blue); the edges and glow keep Vista's strengths, so the volumes still read.
  */
 // Lighter to draw (Ruijie, 4 Nov: "can the cones be lighter so the view runs faster"; measured on the Intel UHD: glow
-// ribbons about 2 ms, fat edge lines 1.5-2.5 ms, fills 1-3 ms). Glow and curtains only where the design meets a cone:
-// the featured cone and the other cones over the site. Every other cone is its ceiling plus a one-pixel edge (solid for a
-// City-sourced estimate, dashed for a study surface), all of them in one line set per kind.
+// ribbons about 2 ms, fat edge lines 1.5-2.5 ms, fills 1-3 ms). Glow only where the design meets a cone: the featured
+// cone and the other cones over the site. Every cone is a 3D volume (Ruijie, 4 Nov: "make sure to build up the other
+// viewcone as 3d geometry as well", then "now it only shows one ... until you have all the viewcone"): at the faint
+// many-cone alphas (walls 1-2%, one-pixel edges) only the featured cone could be seen, so every cone now has curtains
+// that read (4-6%), a ceiling, and screen-pixel edges at 0.65-0.9 (solid: City-sourced estimate; dashed: study surface).
 const STRENGTH = {
-  featured: { surface: 0.15, walls: 0.045, edge: 0.95, glow: [[9, 0.035], [5, 0.07], [2, 0.22]] as [number, number][] },
-  site: { surface: 0.06, walls: 0.016, edge: 0.6, glow: [[4, 0.03], [1.5, 0.12]] as [number, number][] },
-  estimate: { surface: 0.045, walls: 0, edge: 0.45, glow: [] as [number, number][] },
-  study: { surface: 0.025, walls: 0, edge: 0.3, glow: [] as [number, number][] },
+  featured: { surface: 0.15, walls: 0.07, edge: 0.95, width: 1.4, glow: [[9, 0.035], [5, 0.07], [2, 0.22]] as [number, number][] },
+  site: { surface: 0.09, walls: 0.06, edge: 0.9, width: 1.3, glow: [[4, 0.04], [1.5, 0.14]] as [number, number][] },
+  estimate: { surface: 0.07, walls: 0.05, edge: 0.85, width: 1.2, glow: [] as [number, number][] },
+  study: { surface: 0.05, walls: 0.04, edge: 0.7, width: 1.1, glow: [] as [number, number][] },
 }
 type Strength = keyof typeof STRENGTH
-/** The kinds drawn with screen-pixel (fat) lines; the rest are plain one-pixel GL lines. */
-const FAT: Strength[] = ['featured', 'site']
+/** Drawing order of the kinds: every kind's edges are screen-pixel (fat) lines, one line set per kind. */
+const KINDS: Strength[] = ['study', 'estimate', 'site', 'featured']
 
 type P2 = [number, number]
 const local = (p: P2): P2 => [p[0] - CITY_ORIGIN[0], p[1] - CITY_ORIGIN[1]]
@@ -89,27 +90,23 @@ function volumeGeometry(surfaces: ConeSurface[], shown: (id: string) => boolean,
     const k: Strength = s.cone.id === featured ? 'featured' : s.kind !== 'estimate' ? 'study' : over.has(s.cone.id) ? 'site' : 'estimate', st = STRENGTH[k]
     const v = coneVolume(openRing(s.cone.ring as P2[]), (p) => planeZ(s.plane, p), -100, cut)
     for (const poly of v.surface) fan(poly, sc, st.surface)
-    // Curtains only where they carry information (featured and over the site); elsewhere the ceiling's own outline.
-    if (st.walls > 0) { for (const poly of v.walls) fan(poly, wc, st.walls); for (const [a, b] of v.edges) edges[k].push(toLocal(a), toLocal(b)) }
-    else for (const poly of v.surface) for (let i = 0; i < poly.length; i++) edges[k].push(toLocal(poly[i]), toLocal(poly[(i + 1) % poly.length]))
+    // Every cone stands as a volume: its curtains, and the curtains' edges (ceiling line, uprights, display cut).
+    for (const poly of v.walls) fan(poly, wc, st.walls)
+    for (const [a, b] of v.edges) edges[k].push(toLocal(a), toLocal(b))
   }
   const mesh = new THREE.BufferGeometry()
   mesh.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
   mesh.setAttribute('color', new THREE.Float32BufferAttribute(col, 4))
-  // One-pixel lines for the plain kinds; dashes need the distances along each segment.
-  const thin = (k: Strength) => {
-    if (!edges[k].length) return null
-    const g = new THREE.BufferGeometry().setFromPoints(edges[k].map((p) => new THREE.Vector3(...p)))
-    return g
-  }
-  return { mesh, edges, thin: { estimate: thin('estimate'), study: thin('study') } }
+  return { mesh, edges }
 }
 
 /**
- * Vista's trace for the featured cone: the footprints of the buildings under it, projected onto its ceiling (blue
- * outlines on the surface), and the design towers' footprints the same way. One line set; nothing is computed from it.
+ * The design towers' footprints under the featured cone, projected onto its ceiling (blue outlines on the surface).
+ * Vista also traced every existing building there; Ruijie (4 Nov): "you dont need to show line overlap of the building
+ * footprint from underneath", so the existing buildings are left out (with the OpenStreetMap fill they covered the
+ * ceiling in lines). One line set; nothing is computed from it.
  */
-function traceGeometry(surface: ConeSurface | undefined, cut: number, footprints: { outer: P2[] }[] | null, hidden: ReadonlySet<number>, towers: { x: number; y: number; width: number; depth: number; rotation: number }[]) {
+function traceGeometry(surface: ConeSurface | undefined, cut: number, towers: { x: number; y: number; width: number; depth: number; rotation: number }[]) {
   if (!surface) return null
   const ring = openRing(surface.cone.ring as P2[]), pts: number[] = []
   const z = (x: number, y: number) => planeZ(surface.plane, [x + CITY_ORIGIN[0], y + CITY_ORIGIN[1]])
@@ -121,11 +118,6 @@ function traceGeometry(surface: ConeSurface | undefined, cut: number, footprints
     }
   }
   const inside = (x: number, y: number) => pointInRing([x + CITY_ORIGIN[0], y + CITY_ORIGIN[1]], ring as [number, number][])
-  if (footprints) footprints.forEach((f, i) => {
-    if (hidden.has(i) || !f.outer.length) return
-    const cx = f.outer.reduce((s, p) => s + p[0], 0) / f.outer.length, cy = f.outer.reduce((s, p) => s + p[1], 0) / f.outer.length
-    if (inside(cx, cy)) add(f.outer)
-  })
   for (const t of towers) {
     if (!inside(t.x, t.y)) continue
     const r = (t.rotation * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r), hw = t.width / 2, hd = t.depth / 2
@@ -226,17 +218,9 @@ export default function VistaCones({ grids }: { grids: HeightGrid[] }) {
   const baseZ = useStore((s) => s.groundElevation)
   const cut = displayCut(towers.length ? baseZ + Math.max(...towers.map((k) => k.height)) : null)
   const vol = useMemo(() => volumeGeometry(surfaces, (id) => !hidden[id], featured, new Set(overKey ? overKey.split(',') : []), cut), [surfaces, hidden, featured, overKey, cut])
-  useEffect(() => () => { vol.mesh.dispose(); vol.thin.estimate?.dispose(); vol.thin.study?.dispose() }, [vol])
-  const studyLines = useMemo(() => {
-    if (!vol.thin.study) return null
-    const l = new THREE.LineSegments(vol.thin.study, new THREE.LineDashedMaterial({ color: CONE_BLUE.edge, dashSize: 24, gapSize: 16, transparent: true, opacity: STRENGTH.study.edge, depthWrite: false, toneMapped: false }))
-    l.computeLineDistances(); l.name = 'cone:edge'; l.renderOrder = 3; l.raycast = () => {}
-    return l
-  }, [vol])
-  useEffect(() => () => { (studyLines?.material as THREE.Material | undefined)?.dispose() }, [studyLines])
-  const { data, hidden: removed } = useCityObstacles()
+  useEffect(() => () => { vol.mesh.dispose() }, [vol])
   const fs = featured && !hidden[featured] ? surfaces.find((s) => s.cone.id === featured) : undefined
-  const trace = useMemo(() => traceGeometry(fs, cut, data?.footprints ?? null, removed, towers), [fs, cut, data, removed, towers])
+  const trace = useMemo(() => traceGeometry(fs, cut, towers), [fs, cut, towers])
   useEffect(() => () => trace?.dispose(), [trace])
   const fc = featured && !hidden[featured] ? CONES.find((c) => c.id === featured) : undefined
   if (looking && !overlays) return null
@@ -251,16 +235,13 @@ export default function VistaCones({ grids }: { grids: HeightGrid[] }) {
         <mesh name="cone:fill" geometry={vol.mesh} raycast={() => null} renderOrder={1}>
           <meshBasicMaterial vertexColors transparent depthWrite={false} side={THREE.DoubleSide} toneMapped={false} />
         </mesh>
-        {FAT.map((k) => vol.edges[k].length > 0 && (
+        {KINDS.map((k) => vol.edges[k].length > 0 && (
           <group key={k}>
             {STRENGTH[k].glow.map(([w, a], i) => <Line key={i} name="cone:glow" points={vol.edges[k]} segments color={CONE_BLUE.glow} lineWidth={w} transparent opacity={a} depthWrite={false} renderOrder={2} toneMapped={false} />)}
-            <Line name="cone:edge" points={vol.edges[k]} segments color={CONE_BLUE.edge} lineWidth={k === 'featured' ? 1.3 : 1.1} transparent opacity={STRENGTH[k].edge} depthWrite={false} renderOrder={3} toneMapped={false} />
+            <Line name="cone:edge" points={vol.edges[k]} segments color={CONE_BLUE.edge} lineWidth={STRENGTH[k].width} transparent opacity={STRENGTH[k].edge}
+              dashed={k === 'study'} dashSize={24} gapSize={16} depthWrite={false} renderOrder={3} toneMapped={false} />
           </group>
         ))}
-        {vol.thin.estimate && <lineSegments name="cone:edge" geometry={vol.thin.estimate} raycast={() => null} renderOrder={3}>
-          <lineBasicMaterial color={CONE_BLUE.edge} transparent opacity={STRENGTH.estimate.edge} depthWrite={false} toneMapped={false} />
-        </lineSegments>}
-        {studyLines && <primitive object={studyLines} />}
         {trace && <lineSegments name="cone:trace" geometry={trace} raycast={() => null} renderOrder={2}><lineBasicMaterial color={CONE_BLUE.trace} transparent opacity={0.45} depthWrite={false} toneMapped={false} /></lineSegments>}
       </>}
       {fc && !looking && <FeaturedCone cone={fc} surface={surfaces.find((s) => s.cone.id === fc.id)} ground={ground} cut={cut} />}

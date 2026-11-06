@@ -14,6 +14,7 @@ import type { BuildResult } from '../../lib/interchange/build'
 import { ROLE_COLOR } from '../../lib/interchange/model'
 import { useCityData } from '../CityContext'
 import { FlagChip } from '../ui'
+import Help from '../Help'
 
 type Pt = [number, number]
 
@@ -87,8 +88,8 @@ export function AlignBlock({ raw, opts, up, frame, built, picking, setPicking }:
       <label className="mt-2 flex items-center gap-2"><span className="text-muted">Turn</span>
         <input type="range" min={-180} max={180} step={0.5} value={a.turn} onChange={(e) => set({ turn: Number(e.target.value) })} className="flex-1 accent-accent" aria-label="Turn in degrees" />
         <input type="number" step={0.5} value={a.turn} onChange={(e) => { const v = num(e.target.value); if (v != null) set({ turn: Math.max(-180, Math.min(180, v)) }) }} className="w-16 rounded border border-line px-1 py-0.5 text-right tabular-nums" aria-label="Turn, degrees counter-clockwise" />°
+        <Help label="About the turn">Counter-clockwise, on top of the north rotation above. After Vista's georeference tool (Ruijie Liu, Vista v34): coordinates are never guessed; you pick or type them.</Help>
       </label>
-      <p className="mt-1 text-[10px] text-muted">Counter-clockwise, on top of the north rotation above. After Vista's georeference tool (Ruijie Liu, Vista v34): coordinates are never guessed; you pick or type them.</p>
     </section>
   )
 }

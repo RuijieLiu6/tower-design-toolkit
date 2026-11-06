@@ -51,7 +51,7 @@ test('height suggestion, results and the map layer in Real Vancouver', async ({ 
   await expect(page.getByText(/Suggested height above the ground/).first()).toBeVisible({ timeout: 30_000 })
   await page.waitForTimeout(4000)
   await page.screenshot({ path: join(SHOTS, '03-layer-suggestion-site.png') })
-  // The Site step has its own "Downtown" chip (fly to the neighbourhood); this one is the layer's area button in the dock.
+  // The layer's area button in the dock (the Site step's map also names Downtown; that name is not a button).
   await page.getByRole('complementary', { name: 'Layers & context' }).getByRole('button', { name: 'Downtown', exact: true }).click()
   await page.getByRole('button', { name: 'Zoning heights', exact: true }).first().click()
   await expect(page.getByText(/Basic zoning height, above the by-law grade/).first()).toBeVisible()

@@ -131,9 +131,10 @@ export const useSiteStep = create<SiteStepState>(() => ({ menu: null, multi: fal
 
 let toastId = 0
 /** Say what an action did, near where it happened; also announced to screen readers. */
-export function tell(text: string, opts: { at?: Pt | null; z?: number; place?: Placement; undoable?: boolean; kind?: 'info' | 'error' } = {}) {
+/** A note at the click on the map; with `panel` (default), also kept as the Site panel's last message. */
+export function tell(text: string, opts: { at?: Pt | null; z?: number; place?: Placement; undoable?: boolean; kind?: 'info' | 'error'; panel?: boolean } = {}) {
   useSiteStep.setState({ toast: { id: ++toastId, text, at: opts.at ?? null, z: opts.z ?? 0, place: opts.place, undoable: !!opts.undoable, kind: opts.kind ?? 'info' } })
-  useSiteStore.getState().set({ message: { text, kind: opts.kind ?? 'info' } }) // announced once by lib/siteStore
+  if (opts.panel !== false) useSiteStore.getState().set({ message: { text, kind: opts.kind ?? 'info' } }) // announced once by lib/siteStore
 }
 
 /** Undo the last design step (the action just done) and say so. */

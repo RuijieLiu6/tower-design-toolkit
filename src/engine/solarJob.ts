@@ -32,7 +32,21 @@ export interface SolarJobInput {
   cell?: number
   /** Half width of the map around its centre (m). */
   half?: number
+  /**
+   * The map's area set by the user (Ruijie, 4 Nov: "add a function to modify the boundary"), [x0, y0, x1, y1] in the
+   * project's frame; absent, the map is the automatic square of `half` around the tower. Cells grow above 5 m only
+   * when the area would need more than MAX_MAP_CELLS of them.
+   */
+  bounds?: MapBounds
 }
+
+export type MapBounds = [number, number, number, number]
+/** The automatic map has 256 × 256 = 65,536 cells; a user's area may hold up to this many before its cells grow. */
+export const MAX_MAP_CELLS = 90_000
+/** Cell size for a map area: 5 m, or larger so that the area holds at most MAX_MAP_CELLS cells. */
+export const mapCell = (b: MapBounds) => Math.max(5, Math.ceil(Math.sqrt(((b[2] - b[0]) * (b[3] - b[1])) / MAX_MAP_CELLS)))
+/** The automatic map area: the square of half width `half` around the first tower (Real Vancouver) or the block (VTC). */
+export const autoBounds = (centre: Pt, half = 640): MapBounds => [centre[0] - half, centre[1] - half, centre[0] + half, centre[1] + half]
 
 export interface SpaceSummary {
   id: string
@@ -65,6 +79,9 @@ export interface SolarJobOutput {
   planeZ: number
   mapTerrain: MapTerrain | null
   centre: Pt
+  /** The map's area as computed, [x0, y0, x1, y1], and whether the user set it. */
+  bounds: MapBounds
+  custom: boolean
   ms: number
 }
 
@@ -93,6 +110,9 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
   const prop = towerOccluders(i.towers)
   const mc = i.modelContext ?? emptyOccluders()
   const centre: Pt = !city || !i.towers.length ? [0, 0] : [i.towers[0].x, i.towers[0].y]
+  const bounds: MapBounds = i.bounds ?? autoBounds(centre, i.half ?? 640)
+  const mapCentre: Pt = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2]
+  const mapReach = Math.max(bounds[2] - bounds[0], bounds[3] - bounds[1]) / 2 + 700
   const window = (s: { t1: { cls: Parameters<typeof ruleForClass>[0]; note?: '4.1' | '4.2' | '4.3' } | null; rule?: keyof typeof RULES }) => studyWindow(s.rule ? RULES[s.rule].window : s.t1 ? RULES[ruleForClass(s.t1.cls, s.t1.note)].window : 'equinox')
 
   const results: SpaceResult[] = []
@@ -127,22 +147,23 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
       const p = liftOccluders(prop, zb - zr)
       cenotaph = { a: evaluateSpace(cen, b, p, studyWindow('cenotaphA'), opts), b: evaluateSpace(cen, b, p, studyWindow('cenotaphB'), opts), z: zr }
     }
-    if (i.city) base = mergeOccluders(cityBaseline(i.city, centre, (i.half ?? 640) + 700, zb), mc)
+    // Buildings that can shade the map: within its half side + 700 m of its centre (as for the automatic square).
+    if (i.city) base = mergeOccluders(cityBaseline(i.city, mapCentre, mapReach, zb), mc)
     cityInfo = i.city
       ? {
           tested: results.length, beyond, missing: MISSING_SPACES.map((m) => m.name),
-          withHeight: base.prisms.length, unknownHeight: unknownNear(i.city, centre, (i.half ?? 640) + 700), terrain: !!terrain, towerBase: zb, source: SPACES_SOURCE,
+          withHeight: base.prisms.length, unknownHeight: unknownNear(i.city, mapCentre, mapReach), terrain: !!terrain, towerBase: zb, source: SPACES_SOURCE,
           heights: i.city.heights,
         }
       : undefined
   }
 
-  const half = i.half ?? 640, cell = i.cell ?? 5
+  const cell = i.cell ?? (i.bounds ? mapCell(bounds) : 5)
   const { win, cutoff } = mapWindow(i.mapDate)
-  const grid = gridOver(centre[0] - half, centre[1] - half, centre[0] + half, centre[1] + half, cell)
+  const grid = gridOver(bounds[0], bounds[1], bounds[2], bounds[3], cell)
   const map = sunHoursMap(base, prop, grid, win, { ...opts, cutoffDeg: cutoff })
-  // The evidence line always reports the City window, whatever date the map shows.
-  const equinoxMap = i.mapDate === 'equinox' ? map : sunHoursMap(base, prop, gridOver(centre[0] - 300, centre[1] - 300, centre[0] + 300, centre[1] + 300, 10), studyWindow('equinox'), opts)
+  // The evidence line always reports the City window around the tower, whatever date and area the map shows.
+  const equinoxMap = i.mapDate === 'equinox' && !i.bounds ? map : sunHoursMap(base, prop, gridOver(centre[0] - 300, centre[1] - 300, centre[0] + 300, centre[1] + 300, 10), studyWindow('equinox'), opts)
   const hours = summariseHours(equinoxMap, centre, 300)
 
   let mapTerrain: MapTerrain | null = null
@@ -175,6 +196,6 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
         z: elevation.get(r.space.id) ?? zb,
       }
     }),
-    project: i.project, map, planeZ: zb, mapTerrain, centre, ms: Date.now() - t0,
+    project: i.project, map, planeZ: zb, mapTerrain, centre, bounds, custom: !!i.bounds, ms: Date.now() - t0,
   }
 }

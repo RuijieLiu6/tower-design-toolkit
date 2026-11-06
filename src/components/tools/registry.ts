@@ -30,8 +30,8 @@ export interface DesignTool {
   stages: Phase[]
   /** Sort key in the panel, lower first. A per-stage record sets a different place in each stage. */
   order: number | Partial<Record<Phase, number>>
-  /** One short line under the label. */
-  hint?: string
+  /** What the tool does, behind the "?" beside its name; a function when it depends on the open project. */
+  hint?: string | ((s: StoreState) => string)
   /** The tool's body: no props, reads the store itself. */
   component: ComponentType | LazyExoticComponent<ComponentType>
   /** Open the first time the panel shows the tool; afterwards the panel remembers what the user opened. */

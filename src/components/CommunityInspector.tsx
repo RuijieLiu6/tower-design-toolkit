@@ -13,6 +13,7 @@ import { FlagChip, NumberField, Section, StateChip, Toggle } from './ui'
 import CodeNodeGate from './CodeNodeGate'
 import { U } from './Units'
 import { useShallow } from 'zustand/react/shallow'
+import Help from './Help'
 
 /** State chip, or "Info" for a value the node shows on purpose with no good or bad. */
 export function ResultChip({ r }: { r: CommunityResult }) {
@@ -83,8 +84,7 @@ export default function CommunityInspector({ id }: { id: string }) {
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: cat.color }} />{cat.label} · {STAGE_LABEL[p.stage]} · community
         </div>
-        <h2 className="mt-1 text-sm font-semibold">{p.name}</h2>
-        <p className="mt-1 text-xs text-slate-700">{p.question}</p>
+        <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{p.name}<Help label={`About ${p.name}`}>{p.question}</Help></h2>
         {!!p.jury?.length && <div className="mt-1.5 flex flex-wrap gap-1">{p.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>}
         <div className="mt-2 flex items-start gap-1.5 rounded bg-black/[0.03] px-2 py-1.5 text-[11px] text-slate-700">
           <ShieldQuestionMark size={14} className="mt-px shrink-0 text-muted" />

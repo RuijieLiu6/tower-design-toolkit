@@ -147,8 +147,7 @@ export default function NatureLedger({ cones }: { cones: { overall: string }[] |
         ))}
       </Section>
 
-      <Section title="Your judgment, by ODP Ecology direction">
-        <p className="mb-2 text-[11px] text-slate-700">Where the ledger has no evidence, write what the design does and why. These notes are yours; the tool never fills them in.</p>
+      <Section title="Your judgment, by ODP Ecology direction" help="Where the ledger has no evidence, write what the design does and why. These notes are yours; the tool never fills them in.">
         <div className="grid gap-2">
           {(Object.keys(DIRECTIONS) as Direction[]).map((d) => (
             <label key={d} className="grid gap-0.5 text-[11px] text-muted">{d} {DIRECTIONS[d]}

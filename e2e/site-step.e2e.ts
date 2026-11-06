@@ -1,6 +1,6 @@
 // The Site step (Ruijie, 3 Nov: "anyone open the website would start with pick the site"), driven like a first-time
 // user: open the guided app with nothing saved → Site step in Real Vancouver → type an address and place the site →
-// pick a neighbourhood → click the map → each menu action (replace a building, select several, use a lot, add the
+// click a neighbourhood's name on the map → click the map → each menu action (replace a building, select several, use a lot, add the
 // next lot = combine two lots, remove it, a box over lots, build the massing here) → Undo where it says so.
 // The address services answer from canned replies (page.route), so nothing typed leaves the machine.
 // Screenshots go to 04 Tool Plan/evaluation/2026-11-03-site-step/.
@@ -49,6 +49,22 @@ const menu = (p: Page) => p.getByTestId('site-map-menu')
 const toast = (p: Page) => p.getByTestId('site-toast')
 const summary = (p: Page) => p.getByTestId('site-summary')
 
+/**
+ * Click a place name on the map (4 Nov: the names replace the neighbourhood list), from the City overview or, with
+ * `view`, from a camera set first (a name the overview hides by Vista's overlap rule).
+ */
+async function clickPlace(p: Page, name: string, view?: () => Promise<void>) {
+  if (view) await view()
+  else await p.getByRole('toolbar', { name: 'Map mode' }).getByRole('button', { name: 'City', exact: true }).click()
+  await p.waitForTimeout(3000)
+  const label = p.locator(`[data-place="${name}"]`)
+  await expect(label).toBeVisible()
+  const b = (await label.boundingBox())!
+  await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
+  await expect(label).toHaveAttribute('data-hover', '')
+  await p.mouse.click(b.x + b.width / 2, b.y + b.height / 2)
+}
+
 test('Site step: address, neighbourhood, map menu actions, combining two lots', async ({ page }) => {
   test.setTimeout(1_500_000)
   await page.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0'); localStorage.setItem('ts.onboarding.seen', '1') } catch { /* ignore */ } })
@@ -61,7 +77,9 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(rail.getByRole('button', { name: 'Site' })).toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Volume' })).not.toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Program' })).not.toHaveAttribute('aria-current', 'step')
-  await expect(page.getByRole('radio', { name: /Real Vancouver/ })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.getByRole('tablist', { name: 'Project' }).getByRole('tab', { name: 'Real Vancouver' })).toHaveAttribute('aria-selected', 'true')
+  // 5 Nov (Ruijie): no Real Vancouver / Competition choice inside the Site tool; the project is the top bar's switch.
+  await expect(page.getByRole('radiogroup', { name: 'Where the site is' })).toHaveCount(0)
   await expect(page.getByTestId('tools-step')).toHaveText('· Site step')
   await expect(page.locator('[data-tool]').first()).toHaveAttribute('data-tool', 'site')
   await expect(page.getByRole('button', { name: /More tools/ })).toBeVisible()
@@ -82,15 +100,38 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(summary(page)).toContainText('777 Homer St', { timeout: 30_000 })
   await expect(summary(page)).toContainText(/existing buildings? shown as demolished/)
   await page.screenshot({ path: join(SHOTS, '02-address-placed.png'), ...SHOT })
-  await palette.getByRole('button', { name: 'Undo' }).click()
+  // The site as it stands is the right panel's Your site tab (5 Nov), opened by itself in the Site step.
+  await expect(page.getByRole('tab', { name: 'Your site' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByTestId('site-info').getByRole('button', { name: 'Undo' }).click()
   await expect(summary(page)).toHaveCount(0)
 
-  // 3. Start from a neighbourhood: the view flies there and marks it; the site does not move.
-  await palette.getByRole('button', { name: 'Downtown', exact: true }).click()
-  await expect(palette.getByRole('button', { name: 'Downtown', exact: true })).toHaveAttribute('aria-pressed', 'true')
-  await expect(toast(page)).toContainText('Downtown is in view and marked')
+  // 3. A neighbourhood's name on the map: the view flies there and marks it; the site does not move. The list in the
+  // palette is gone (Ruijie, 4 Nov).
+  await expect(palette.getByRole('group', { name: 'City local areas' })).toHaveCount(0)
+  await clickPlace(page, 'Strathcona')
+  await expect(toast(page)).toContainText('Strathcona is in view and marked')
+  await expect(page.locator('[data-place="Strathcona"]')).toHaveAttribute('data-active', '')
+  await expect(menu(page)).toHaveCount(0) // the name took the click, not the map menu
   await page.waitForTimeout(2500)
   await page.screenshot({ path: join(SHOTS, '03-neighbourhood.png'), ...SHOT })
+
+  // The view fits the neighbourhood's boundary (Ruijie, 4 Nov), also one far from downtown that Vista's map does not
+  // name, where the buildings were filled in from OpenStreetMap: every vertex of Kerrisdale's outline lands in the view.
+  // Looking straight down on the south of the city, where Kerrisdale's name is not crowded out.
+  await clickPlace(page, 'Kerrisdale', () => page.evaluate(async (u) => { const { useStore } = await import(/* @vite-ignore */ u); useStore.getState().set({ cameraRequest: { position: [-2900, -5000, 9000], target: [-2900, -4990, 40], fov: 40 } }) }, urls.store))
+  await expect(toast(page)).toContainText('Kerrisdale is in view and marked')
+  await page.waitForTimeout(2500)
+  await page.screenshot({ path: join(SHOTS, '03b-neighbourhood-kerrisdale.png'), ...SHOT })
+  const outline = await page.evaluate(async () => {
+    const f = await (await fetch('./data/local_areas.json')).json() as { areas: { name: string; rings: [number, number][][] }[] }
+    return f.areas.find((a) => a.name === 'Kerrisdale')!.rings.flat()
+  })
+  const box = (await page.locator('[data-viewport] canvas').boundingBox())!
+  for (const [x, y] of outline.filter((_, i) => i % 3 === 0)) {
+    const s = await screenAt(page, urls, x, y)
+    expect(s.x).toBeGreaterThan(box.x - 2); expect(s.x).toBeLessThan(box.x + box.width + 2)
+    expect(s.y).toBeGreaterThan(box.y - 2); expect(s.y).toBeLessThan(box.y + box.height + 2)
+  }
 
   // Top-down over the two lots, so each click lands where we mean.
   await page.evaluate(async ({ u, x, y }) => { const { useStore } = await import(/* @vite-ignore */ u); useStore.getState().set({ cameraRequest: { position: [x, y - 2, 520], target: [x, y, 30], fov: 30 } }) }, { u: urls.store, x: (HOMER.x + GEORGIA.x) / 2, y: (HOMER.y + GEORGIA.y) / 2 })

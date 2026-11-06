@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { footprintBounds, limitView, registerViewLimit, viewLimit, type Rect, type ViewShape } from './viewLimit'
+import { EDGE_SLACK, footprintBounds, limitView, registerViewLimit, viewLimit, type Rect, type ViewShape } from './viewLimit'
 
 const rect: Rect = { x0: -4000, y0: -4500, x1: 5000, y1: 4500 } // 9 km by 9 km
 const tanHalf = Math.tan((45 / 2) * Math.PI / 180)
@@ -26,6 +26,16 @@ describe('limitView (Real Vancouver: no zooming or panning past the built model)
     expect(r.target[0]).toBeCloseTo(5000 - half, 6)
     expect(r.cam[0] - r.target[0]).toBeCloseTo(0, 6)
     expect(r.cam[2]).toBeCloseTo(2000, 6)
+  })
+
+  it('with slack, a view on the edge may pass it by that share of its half-extent; zooming out stays capped', () => {
+    const half = 2000 * tanHalf
+    const r = limitView([4800, 0, 2000], [4800, 0, 0], plan(1), rect, EDGE_SLACK)
+    expect(r.target[0]).toBeCloseTo(5000 - half * (1 - EDGE_SLACK), 6)
+    // A target this far inside is left alone, though its view passes the edge by less than the slack.
+    expect(limitView([5000 - half * 0.6, 0, 2000], [5000 - half * 0.6, 0, 0], plan(1), rect, EDGE_SLACK).moved).toBe(false)
+    const far = limitView([500, 0, 30000], [500, 0, 0], plan(1.4), rect, EDGE_SLACK)
+    expect((far.cam[2] - far.target[2]) * tanHalf * 1.4).toBeCloseTo(4500, 3)
   })
 
   it('handles a turned oblique view (the extent follows the screen axes on the ground)', () => {

@@ -218,8 +218,7 @@ function WhatIf({ exact, fp, ground, top }: { exact: ExactCone[]; fp: Pt[]; grou
   if (!exact.length) return null
   const num = (s: string) => (s.trim() === '' || !Number.isFinite(Number(s)) ? null : Number(s))
   return (
-    <Section title="What-if study planes (Vista v10)" right={<label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={showPlanes} onChange={() => useVistaStore.getState().set({ showPlanes: !showPlanes })} /><Layers size={11} />3D</label>}>
-      <p className="mb-1.5 text-[11px] text-muted">Enter a lower boundary you want to test for a view this footprint is in: its elevation at the City origin, its slope and the bearing of the slope. Blank = no plane (the view then stays unknown).</p>
+    <Section title="What-if study planes (Vista v10)" help="Enter a lower boundary you want to test for a view this footprint is in: its elevation at the City origin, its slope and the bearing of the slope. Blank = no plane (the view then stays unknown)." right={<label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={showPlanes} onChange={() => useVistaStore.getState().set({ showPlanes: !showPlanes })} /><Layers size={11} />3D</label>}>
       <div className="grid gap-2">
         {exact.map((e) => {
           const p = planes[e.cone.id]
@@ -399,9 +398,8 @@ function Report({ tower, fp, ground, exact }: { tower: Tower; fp: Pt[]; ground: 
     } catch (e) { setBusy(`Could not write the report: ${(e as Error).message}`) }
   }
   return (
-    <Section title="View-study report (PDF)">
-      <p className="text-[11px] text-muted">Vista's report, on these results: cover sentence, key plan, one page per view (render from the City origin with the real mountains, section along the cone axis, both Vista and Tower Design Toolkit numbers with their flags), sources.</p>
-      <div className="mt-1.5 flex flex-wrap gap-1">
+    <Section title="View-study report (PDF)" help="Vista's report, on these results: cover sentence, key plan, one page per view (render from the City origin with the real mountains, section along the cone axis, both Vista and Tower Design Toolkit numbers with their flags), sources.">
+      <div className="flex flex-wrap gap-1">
         {candidates.map((id) => {
           const on = ids.includes(id)
           return <button key={id} type="button" aria-pressed={on} onClick={() => setPicked(on ? ids.filter((k) => k !== id) : [...ids, id].slice(0, 8))} className={`rounded border px-1.5 py-0.5 text-[11px] ${on ? 'border-accent bg-accent/10 text-ink' : 'border-line text-muted'}`}>{id}</button>

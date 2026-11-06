@@ -10,6 +10,7 @@ import { useImportStore } from '../lib/import/store'
 import { navigate, setSkipTarget, skipTarget } from '../lib/route'
 import { openDemo, useTour } from '../lib/tour'
 import { useStore } from '../store'
+import { RoleCards } from '../components/RolePicker'
 
 const FLAGS = ['verified', 'team_assumption', 'unverified', 'unresolved', 'false_assumption'] as const
 /** Faint drafting grid behind the page. */
@@ -107,6 +108,8 @@ export default function Landing() {
           </div>
           <div className="hidden h-56 md:block"><Elevation /></div>
         </div>
+
+        <RoleCards />
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <Choice accent shortcut="g" icon={<RouteIcon size={22} />} title="Guided process" tag="Default · best for a first visit" cta="Start the guided process" onChoose={() => choose('guided')}

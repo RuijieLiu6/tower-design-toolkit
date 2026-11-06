@@ -11,6 +11,7 @@ import { RULES, ruleForClass, type RuleId } from '../engine/solarRules'
 import { SOLAR_NODE, useSolar } from '../hooks/useSolarAccess'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, Toggle } from './ui'
+import Help from './Help'
 
 export const useEnvelopeStore = create<{ show: boolean; set: (show: boolean) => void }>((set) => ({ show: false, set: (show) => set({ show }) }))
 
@@ -66,8 +67,7 @@ export function SolarEnvelopePanel() {
           <div className="text-muted">{r.env.spaces.length} protected spaces within reach: {r.env.spaces.map((s) => s.name).join(', ') || 'none'}.</div>
         </div>
       )}
-      <p className="mt-1.5 text-[10px] text-muted">Each column is tested every 15 minutes in each space's window (22 Sep 10:00–16:00 PT; Robson Village until 15:00). Conservative: shadow the existing city already casts is not subtracted, so the true "no new shadow" envelope is at least this high. Plazas and miniparks (minimise only, 3.2.1) and the cenotaph (clock unresolved) are left out. {r && !r.terrainKnown ? 'Spaces not yet tested by the solar run are taken at the tower base.' : 'Spaces sit at their terrain elevation where the solar run measured it.'}</p>
-      <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Envelope method (column test, 4 m cells) is a team construction from clauses 3.1.1, 3.3.1, 4.1.1 and 5.2.1.</span></div>
+      <div className="mt-1.5 flex items-center gap-1"><Help label="How the envelope is tested">Each column is tested every 15 minutes in each space's window (22 Sep 10:00–16:00 PT; Robson Village until 15:00). Conservative: shadow the existing city already casts is not subtracted, so the true "no new shadow" envelope is at least this high. Plazas and miniparks (minimise only, 3.2.1) and the cenotaph (clock unresolved) are left out. {r && !r.terrainKnown ? 'Spaces not yet tested by the solar run are taken at the tower base.' : 'Spaces sit at their terrain elevation where the solar run measured it.'}</Help><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Envelope method (column test, 4 m cells) is a team construction from clauses 3.1.1, 3.3.1, 4.1.1 and 5.2.1.</span></div>
     </Section>
   )
 }

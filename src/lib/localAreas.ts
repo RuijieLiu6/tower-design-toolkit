@@ -24,15 +24,3 @@ export function useLocalAreas(): Neighbourhood[] | null {
   }, [])
   return areas
 }
-
-/** A camera over a plan box: oblique from the south-south-west, the whole box in a 40° view (model frame, z up). */
-export function cameraOver(bounds: [number, number, number, number], ground: number): { position: [number, number, number]; target: [number, number, number]; fov: number } {
-  const [x0, y0, x1, y1] = bounds
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
-  const span = Math.max(300, Math.max(x1 - x0, y1 - y0) * 1.15)
-  const d = span / (2 * Math.tan((20 * Math.PI) / 180))
-  // 50° above the horizon, looking north-north-east.
-  const el = (50 * Math.PI) / 180, az = (200 * Math.PI) / 180
-  const dir: [number, number, number] = [Math.sin(az) * Math.cos(el), Math.cos(az) * Math.cos(el), Math.sin(el)]
-  return { position: [cx + dir[0] * d, cy + dir[1] * d, ground + dir[2] * d], target: [cx, cy, ground], fov: 40 }
-}

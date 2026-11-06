@@ -26,8 +26,11 @@ describe('Imagine Vancouver on the Vista buildings', { timeout: 180_000 }, async
   it("joins every Vista building to Vista's own table by OSM way number", () => {
     expect(table.osm).toHaveLength(61407)
     expect(table.status.filter((s) => s === 0)).toHaveLength(44402)
-    const missing = [...prep.partRow].filter((r) => r < 0).length
+    // Vista's own parts only: the OpenStreetMap fill beyond Vista's model (4 Nov) has no row and is never changed.
+    const fill = vb.vista.fill
+    const missing = [...prep.partRow].filter((r, p) => r < 0 && vb.vista.asset[p] !== fill).length
     expect(missing).toBe(0)
+    if (fill >= 0) prep.partRow.forEach((r, p) => { if (vb.vista.asset[p] === fill) expect(r).toBe(-1) })
   })
   it('existing changes nothing; height references change only buildings with a zoning number', () => {
     expect(existing.stats.changed).toBe(0)

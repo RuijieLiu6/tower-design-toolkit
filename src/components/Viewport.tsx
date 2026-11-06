@@ -43,7 +43,8 @@ import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/p
 import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
-import { PlaceLabels, VistaChrome, VistaLookRig } from './VistaLook'
+import { VistaChrome, VistaLookRig } from './VistaLook'
+import { SitePlaceLabels } from './site/PlaceNames'
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()
@@ -667,7 +668,7 @@ export default function Viewport() {
           </Canvas>
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
-          {project === 'city' && !present && !hidden && <><PlaceLabels /><VistaChrome /></>}
+          {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
           {phase === 'advanced' && sel && !hidden && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : 'right-12'} />}
         </div>
       </div>

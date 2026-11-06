@@ -11,6 +11,7 @@ import { findEntry, STATUS_LABEL, type Entry } from './catalog'
 import { useCommunityNodes } from './community'
 import { GROUP_COLORS, useEditor, type WfNodeT } from './editorStore'
 import { StateWord } from './WfNodes'
+import Help from '../Help'
 
 function Block({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   return (
@@ -207,10 +208,10 @@ export default function WfInspector({ outputs, onClose }: { outputs: Record<stri
                 <div className="min-w-0 flex-1">
                   <input value={node.data.label} onChange={(e) => updateData(node.id, { label: e.target.value })} aria-label="Node label"
                     className="w-full rounded border border-transparent px-1 py-0.5 text-sm font-semibold outline-none hover:border-line focus:border-accent" />
-                  <div className="px-1 text-[10.5px] text-muted">{entry?.category ? CATEGORIES[entry.category].label : entry?.status === 'logic' ? 'Workflow logic' : 'Layer 0'} · <span className="font-mono">{node.data.ref}</span></div>
+                  <div className="flex items-center gap-1 px-1 text-[10.5px] text-muted">{entry?.category ? CATEGORIES[entry.category].label : entry?.status === 'logic' ? 'Workflow logic' : 'Layer 0'} · <span className="font-mono">{node.data.ref}</span>
+                    <Help label="About this node">{entry?.def?.question ?? entry?.blurb ?? 'This node is not in the library on this computer. Import its package under My nodes.'}</Help></div>
                 </div>
               </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-ink/80">{entry?.def?.question ?? entry?.blurb ?? 'This node is not in the library on this computer. Import its package under My nodes.'}</p>
               {entry?.def?.jury?.length ? <div className="mt-1.5 flex flex-wrap gap-1">{entry.def.jury.map((j) => <span key={j} className="rounded-full border border-line px-1.5 py-0.5 text-[10px] text-muted">{JURY_LABEL[j] ?? j}</span>)}</div> : null}
               <div className="mt-2 flex gap-1.5">
                 <button onClick={() => duplicateSelected()} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent"><Copy size={12} aria-hidden />Duplicate</button>

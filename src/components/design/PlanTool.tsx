@@ -12,6 +12,7 @@ import { coreLayout, typicalFloor } from '../../engine/plan'
 import { USES, type Tower } from '../../engine/types'
 import { useStore, useTowers } from '../../store'
 import { FlagChip, StateChip } from '../ui'
+import Help from '../Help'
 
 type P = [number, number]
 type Drag =
@@ -181,10 +182,10 @@ export default function PlanTool({ onClose }: { onClose?: () => void }) {
           <text x={edgeMid('e')[0] + 3.2} y={-edgeMid('e')[1]} fontSize={1.6} textAnchor="middle" fill="#1f2328" transform={`rotate(-90 ${edgeMid('e')[0] + 3.2} ${-edgeMid('e')[1]})`}>{b.depth.toFixed(1)} m</text>
           <text x={0} y={c / 2 + 2} fontSize={1.3} textAnchor="middle" fill="#2b3f55">core {c.toFixed(1)} m{t.coreAuto ? ' (sized to the lifts)' : ''}</text>
         </svg>
-        <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-muted">Drag a facade, the plate, the round grip or the core’s edges · 0.5 m and 5° steps, Shift for free · Esc cancels · LOD 100 space reservation (team assumptions)</p>
+        <div className="absolute bottom-2 left-3 flex items-center gap-1 text-[11px] text-muted"><Help label="How to edit the plan">Drag a facade, the plate, the round grip or the core’s edges · 0.5 m and 5° steps, Shift for free · Esc cancels · LOD 100 space reservation (team assumptions)</Help>How to edit</div>
       </div>
       <aside aria-label="Plan checks" className="max-h-[42%] w-full shrink-0 overflow-y-auto border-t border-line bg-panel p-3 @min-[720px]:max-h-none @min-[720px]:w-72 @min-[720px]:border-l @min-[720px]:border-t-0">
-        <div className="text-xs font-semibold">Live checks{drag ? ' (preview)' : ''}</div>
+        <div className="flex items-center gap-1.5 text-xs font-semibold">Live checks{drag ? ' (preview)' : ''}<Help label="About the plan checks">The core stays on the tower centre (an off-centre core is not modelled yet). Lifts and stairs are laid out by the engine; red cells don’t fit in the core.</Help></div>
         <div className="mt-1 text-[11px] text-slate-700">L{floor.level}: {Math.round(floor.area).toLocaleString('en-CA')} m² gross, core {(c * c).toFixed(0)} m²{checks?.ntgFloor != null ? ` · ${(checks.ntgFloor * 100).toFixed(0)}% net of the core` : ''}</div>
         <div className="mt-2 grid gap-2">
           {checks?.rules.map((r) => (
@@ -196,7 +197,6 @@ export default function PlanTool({ onClose }: { onClose?: () => void }) {
           ))}
         </div>
         {!t.coreAuto && <button type="button" onClick={() => updateTower(stored.id, { coreAuto: true })} className="mt-2 flex items-center gap-1 rounded border border-line px-2 py-1 text-[11px] hover:border-accent"><RotateCcw size={11} />Size the core to the lifts again</button>}
-        <p className="mt-2 text-[11px] text-muted">The core stays on the tower centre (an off-centre core is not modelled yet). Lifts and stairs are laid out by the engine; red cells don’t fit in the core.</p>
       </aside>
     </div>
   )

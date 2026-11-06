@@ -10,7 +10,8 @@ import { useStore } from '../store'
 
 export interface DockPrefs { open: boolean; sections: Record<string, boolean>; hints: Record<string, boolean> }
 const KEY = 'ts.viewportDock.v1'
-const DEFAULT_PREFS: DockPrefs = { open: true, sections: {}, hints: {} }
+// Closed by default, as in Vista: the view comes first; Layers opens it (UI review round 2, 4 Nov; run-through F2).
+const DEFAULT_PREFS: DockPrefs = { open: false, sections: {}, hints: {} }
 
 /** Saved dock preferences, or the defaults when storage is missing, blocked or holds something else. */
 export function readDockPrefs(storage: Pick<Storage, 'getItem'> | null): DockPrefs {
@@ -18,7 +19,7 @@ export function readDockPrefs(storage: Pick<Storage, 'getItem'> | null): DockPre
     const v = JSON.parse(storage?.getItem(KEY) ?? 'null')
     if (!v || typeof v !== 'object') return DEFAULT_PREFS
     const rec = (o: unknown) => (o && typeof o === 'object' && !Array.isArray(o) ? Object.fromEntries(Object.entries(o).filter(([, b]) => typeof b === 'boolean')) : {})
-    return { open: typeof v.open === 'boolean' ? v.open : true, sections: rec(v.sections), hints: rec(v.hints) }
+    return { open: typeof v.open === 'boolean' ? v.open : false, sections: rec(v.sections), hints: rec(v.hints) }
   } catch { return DEFAULT_PREFS }
 }
 

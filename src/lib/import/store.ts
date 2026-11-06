@@ -10,6 +10,7 @@ import type { ImportedMass, Tower } from '../../engine/types'
 import { VTC_NORTH_DEG } from '../../context'
 import { useStore, type ProjectKind } from '../../store'
 import type { Skipped } from './types'
+import type { FileHandleLike } from '../interchange/live'
 
 export interface MeshEntry {
   /** Tower frame, metres, z up (float32 is fine here: the mesh is re-centred). */
@@ -34,12 +35,14 @@ interface ImportState {
   meshes: Record<string, MeshEntry>
   dialogOpen: boolean
   pendingFile: File | null
+  /** A link for the pending file (the Rhino plugin, lib/interchange/rhinoLink.ts): the model then updates by itself. */
+  pendingLink: FileHandleLike | null
   /** Tower to replace instead of adding a new one. */
   replaceId: string | null
   georef: Record<ProjectKind, Georef | null>
   /** Show open edges and flipped faces on imported masses. */
   showProblems: boolean
-  openDialog: (file?: File | null, replaceId?: string | null) => void
+  openDialog: (file?: File | null, replaceId?: string | null, link?: FileHandleLike | null) => void
   closeDialog: () => void
   putMesh: (id: string, e: MeshEntry) => void
   set: (patch: Partial<ImportState>) => void
@@ -49,11 +52,12 @@ export const useImportStore = create<ImportState>((set) => ({
   meshes: {},
   dialogOpen: false,
   pendingFile: null,
+  pendingLink: null,
   replaceId: null,
   georef: { vtc: null, city: null },
   showProblems: true,
-  openDialog: (file = null, replaceId = null) => set({ dialogOpen: true, pendingFile: file, replaceId }),
-  closeDialog: () => set({ dialogOpen: false, pendingFile: null, replaceId: null }),
+  openDialog: (file = null, replaceId = null, link = null) => set({ dialogOpen: true, pendingFile: file, pendingLink: link, replaceId }),
+  closeDialog: () => set({ dialogOpen: false, pendingFile: null, pendingLink: null, replaceId: null }),
   putMesh: (id, e) => { set((s) => ({ meshes: { ...s.meshes, [id]: e } })); void saveMesh(id, e) },
   set: (patch) => set(patch),
 }))

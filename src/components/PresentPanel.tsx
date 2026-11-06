@@ -11,6 +11,7 @@ import { captureHiResShot } from '../lib/hiresCapture'
 import { Section } from './ui'
 import { useShallow } from 'zustand/react/shallow'
 import { useSceneStyle, type SceneStyle } from '../lib/sceneStyle'
+import Help from './Help'
 
 export default function PresentPanel() {
   const { project, set, presentRep, groundElevation, selectedTower, boardView, planLevel, planGrid } = useStore(useShallow((s) => ({ project: s.project, set: s.set, presentRep: s.presentRep, groundElevation: s.groundElevation, selectedTower: s.selectedTower, boardView: s.boardView, planLevel: s.planLevel, planGrid: s.planGrid })))
@@ -31,10 +32,14 @@ export default function PresentPanel() {
     // On the retail high street (y -64 to -40, between the heritage block and the site); y -75 was inside the heritage block.
     { name: 'Street: retail high street', position: [10, -52, 1.6], target: [t?.x ?? 0, t?.y ?? 0, 60], fov: 60 },
     { name: 'Skyline from the south (toward QE Park)', position: [south[0] * 3200, south[1] * 3200, 125], target: [0, 0, 150], fov: 28 },
+    // The brief's suggested "mid-city view" (p.30): from inside the city, 700 m south-west and 90 m up (a mid-rise roof),
+    // the tower against its neighbours. Camera choice is a team assumption (run-through G8, 4 Nov).
+    { name: 'Mid-city view (700 m south-west, 90 m up)', position: [(t?.x ?? 0) - 500, (t?.y ?? 0) - 490, 90], target: [t?.x ?? 0, t?.y ?? 0, 120], fov: 40 },
     axo,
   ] : [
     { name: 'Aerial', position: [2600, -3600, 2400], target: [400, 200, 80] },
     { name: 'Tower close-up', position: [(t?.x ?? 0) + 400, (t?.y ?? 0) - 500, 300], target: [t?.x ?? 0, t?.y ?? 0, 80] },
+    { name: 'Mid-city view (700 m south-west, 90 m up)', position: [(t?.x ?? 0) - 500, (t?.y ?? 0) - 490, base + 90], target: [t?.x ?? 0, t?.y ?? 0, base + 120], fov: 40 },
     axo,
   ]
 
@@ -79,7 +84,7 @@ export default function PresentPanel() {
               <button onClick={() => captureShot(true)} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"><Download size={13} />PNG</button>
               <button onClick={() => downloadPlanSvg()} className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs hover:border-accent"><Download size={13} />SVG, to scale</button>
             </div>
-            <p className="text-[10px] text-muted">Drawn at the largest standard scale that fits the A2 board; the SVG prints at that scale. No names or logos on the boards (brief p.27).</p>
+            <p className="flex items-center gap-1 text-[10px] text-muted"><Help label="About the floor plan drawing">Drawn at the largest standard scale that fits the A2 board; the SVG prints at that scale.</Help>No names or logos on the boards (brief p.27).</p>
           </div>
         )}
       </Section>

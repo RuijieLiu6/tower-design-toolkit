@@ -10,6 +10,7 @@ import type { SunHours } from '../engine/solarRules'
 import { useSolarAccess } from '../hooks/useSolarAccess'
 import { useStore } from '../store'
 import Label from './Label'
+import { SolarAreaEditor } from './SolarArea'
 
 import { HOURS_RAMP, LOSS_MAX_H, LOSS_RAMP } from './solarRamps'
 
@@ -122,6 +123,7 @@ export default function SolarOverlay() {
   const city = current.project === 'city'
   return (
     <group>
+      <SolarAreaEditor />
       {showMap && g && tex && (
         <>
           {draped && t ? (

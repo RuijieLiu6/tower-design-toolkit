@@ -117,6 +117,8 @@ interface State {
   toggleNode: (id: string) => void
   setEnabled: (ids: string[]) => void
   selectNode: (id: string | null) => void
+  /** Counts the user's node picks (selectNode); the right panel shows Results on each. A project switch or a restore sets selectedNode without it. */
+  resultsSeq: number
   addShot: (s: Shot) => void
   /** Change the lift presets and resize every core that follows its lifts. */
   setLiftPresets: (patch: Partial<LiftPresets>) => void
@@ -169,8 +171,9 @@ export const useStore = create<State>((set, get) => ({
   setPhase: (phase) => {
     const prev = get().phase
     if (prev === phase) return
-    // Present keeps the representation of the stage you came from.
-    const presentRep: Representation = phase === 'present' ? (prev === 'advanced' ? 'xray' : 'clay') : get().presentRep
+    // Present opens with the representation last chosen there, Clay by default: the first capture is the board's massing
+    // image, not Schematic's ghosted shell (run-through F5, 4 Nov). X-ray stays one click away.
+    const presentRep: Representation = get().presentRep
     set({ phase, prevPhase: prev, placing: false, presentRep, announce: `${STAGE_NAME[phase]} stage` })
   },
   setView: (view) => set({ view }),
@@ -202,7 +205,8 @@ export const useStore = create<State>((set, get) => ({
   selectTower: (selectedTower) => set({ selectedTower }),
   toggleNode: (id) => set((s) => ({ enabled: { ...s.enabled, [id]: !s.enabled[id] } })),
   setEnabled: (ids) => set({ enabled: Object.fromEntries(ids.map((id) => [id, true])) }),
-  selectNode: (selectedNode) => set({ selectedNode }),
+  selectNode: (selectedNode) => set((s) => ({ selectedNode, resultsSeq: s.resultsSeq + 1 })),
+  resultsSeq: 0,
   addShot: (shot) => set((s) => ({ shots: [shot, ...s.shots].slice(0, 12) })),
   setLiftPresets: (patch) => set((s) => {
     const liftPresets = { ...s.liftPresets, ...patch }

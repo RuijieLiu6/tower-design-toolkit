@@ -43,6 +43,8 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   await expect(dialog).toBeHidden()
 
   // The towers are in the results (the competition rules check each tower's height).
+  // In the Site step the right panel opens on Your site (5 Nov); the towers' results are under Results & evidence.
+  await page.getByRole('tab', { name: 'Results & evidence' }).click()
   await expect(page.getByText('Height band: Tower A').first()).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText('Height band: Tower B').first()).toBeVisible()
   // The tool now shows what came in, and it leads the Volume step too.

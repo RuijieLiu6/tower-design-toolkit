@@ -27,8 +27,8 @@ export default function ModelPanel() {
 
   if (!model || !c) {
     return (
-      <Section title="Your model">
-        <p className="mb-2 text-[11px] text-muted">No model uploaded in this project. Upload a Rhino .3dm (or OBJ, glTF, IFC), map its layers to roles, and every check here runs on it, with each result traced back to its layer and object.</p>
+      <Section title="Your model" help="Upload a Rhino .3dm (or OBJ, glTF, IFC), map its layers to roles, and every check here runs on it, with each result traced back to its layer and object.">
+        <p className="mb-2 text-[11px] text-muted">No model uploaded in this project.</p>
         <button onClick={upload} className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-[11px] font-medium text-white hover:opacity-90"><FileUp size={13} />Upload a Rhino model</button>
       </Section>
     )

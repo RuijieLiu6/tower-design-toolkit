@@ -6,6 +6,7 @@ import { useTour } from '../lib/tour'
 import ProjectMenu from './ProjectMenu'
 import ExportMenu from './ExportMenu'
 import { UnitSelect } from './Units'
+import { RoleSelect } from './RolePicker'
 import { useStore, type ProjectKind, type ViewMode } from '../store'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -71,6 +72,7 @@ export default function TopBar() {
         ))}
         <button title={reducedMotion ? 'Motion: reduced (click for full)' : 'Motion: full (click to reduce)'} aria-label="Toggle reduced motion" aria-pressed={reducedMotion}
           onClick={() => set({ reducedMotion: !reducedMotion })} className={`rounded p-1.5 ${reducedMotion ? 'bg-black/10' : 'opacity-60 hover:opacity-100'}`}><Waves size={16} /></button>
+        <RoleSelect className={present ? 'bg-transparent text-inherit' : ''} />
         <UnitSelect className={present ? 'bg-transparent text-inherit' : ''} />
         <button onClick={() => navigate('customize')} aria-label="Customize" title="Customize: build your own workflow from the node library"
           className={`ml-1 flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}><Workflow size={14} aria-hidden /><span className={navLabel}>Customize</span></button>

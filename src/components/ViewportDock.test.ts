@@ -13,10 +13,10 @@ describe('viewport dock preferences (per viewer, localStorage)', () => {
     expect(readDockPrefs(s)).toEqual({ open: false, sections: { more: true, ground: false }, hints: { 'city-cones': true } })
   })
   it('falls back to the defaults when storage is missing, blocked or holds something else', () => {
-    expect(readDockPrefs(null)).toEqual({ open: true, sections: {}, hints: {} })
-    expect(readDockPrefs({ getItem: () => { throw new Error('SecurityError') } })).toEqual({ open: true, sections: {}, hints: {} })
-    expect(readDockPrefs({ getItem: () => '{not json' })).toEqual({ open: true, sections: {}, hints: {} })
-    expect(readDockPrefs({ getItem: () => JSON.stringify({ open: 'yes', sections: { a: 1, b: true }, hints: [] }) })).toEqual({ open: true, sections: { b: true }, hints: {} })
+    expect(readDockPrefs(null)).toEqual({ open: false, sections: {}, hints: {} })
+    expect(readDockPrefs({ getItem: () => { throw new Error('SecurityError') } })).toEqual({ open: false, sections: {}, hints: {} })
+    expect(readDockPrefs({ getItem: () => '{not json' })).toEqual({ open: false, sections: {}, hints: {} })
+    expect(readDockPrefs({ getItem: () => JSON.stringify({ open: 'yes', sections: { a: 1, b: true }, hints: [] }) })).toEqual({ open: false, sections: { b: true }, hints: {} })
   })
   it('never throws when writing fails (private window, quota)', () => {
     expect(() => writeDockPrefs({ setItem: () => { throw new Error('QuotaExceededError') } }, { open: true, sections: {}, hints: {} })).not.toThrow()

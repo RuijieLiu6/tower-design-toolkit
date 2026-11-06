@@ -8,6 +8,7 @@ import { useEconomics } from '../hooks/useEconomics'
 import { useEconStore, type OverrideKey } from '../lib/econStore'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, StateChip } from './ui'
+import Help from './Help'
 
 const STATE: Record<Verdict, RuleState> = { works: 'pass', marginal: 'warn', fails: 'fail', 'land-needed': 'unknown', incomplete: 'unknown' }
 
@@ -125,8 +126,7 @@ function FloorChart({ floors }: { floors: ReturnType<typeof useEconomics>['resul
           )
         })}
       </svg>
-      <div className="flex justify-between text-[10px] text-muted"><span>costs more than it earns: {money(neg)}</span><span>earns more: {money(pos)}</span></div>
-      <p className="mt-0.5 text-[10px] text-muted">Each floor's value against its hard and soft cost, charges, finance and profit (PVV floor chart). Hover a bar for numbers.</p>
+      <div className="flex items-center justify-between gap-2 text-[10px] text-muted"><span className="flex items-center gap-1"><Help label="About the floor chart">Each floor's value against its hard and soft cost, charges, finance and profit (PVV floor chart). Hover a bar for numbers.</Help>costs more than it earns: {money(neg)}</span><span>earns more: {money(pos)}</span></div>
     </div>
   )
 }

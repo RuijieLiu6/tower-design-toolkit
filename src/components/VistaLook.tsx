@@ -18,6 +18,7 @@ import { CONES, pointInRing } from '../engine/viewCones'
 import { useResults } from '../hooks/useResults'
 import { BUILDING_USES, SWATCH_BORDER, useColor } from '../lib/buildingUse'
 import { sampleTerrain, type Manifest } from '../lib/cityLayers'
+import { fitPoints } from '../lib/fitView'
 import { useSceneStyle } from '../lib/sceneStyle'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
@@ -49,7 +50,7 @@ const live = {
 }
 
 // ---------- labels ----------
-interface PlaceLabel { text: string; x: number; y: number; z: number; ext: boolean }
+export interface PlaceLabel { text: string; x: number; y: number; z: number; ext: boolean }
 let labelsCache: Promise<PlaceLabel[]> | null = null
 function loadLabels(manifest: Manifest): Promise<PlaceLabel[]> {
   labelsCache ??= (async () => {
@@ -76,25 +77,109 @@ function usePlaceLabels(): PlaceLabel[] {
   return labels
 }
 
-/** Vista's place labels as DOM boxes, positioned each frame by VistaLookRig (Vista's own overlap rule). */
-export function PlaceLabels() {
-  const labels = usePlaceLabels()
+/** What a click on a place name does (components/site/PlaceNames.tsx): which names answer, when, and where they go. */
+export interface PlacePick {
+  /** Does this name answer a click? (Water names do not.) */
+  can: (text: string) => boolean
+  /** No map tool is taking clicks (placing a tower, drawing or picking a site…): the names answer only then. */
+  idle: () => boolean
+  go: (label: PlaceLabel) => void
+}
+
+/**
+ * Vista's place labels as DOM boxes, positioned each frame by VistaLookRig (Vista's own overlap rule). `extra` names
+ * join after Vista's (the City local areas Vista does not name); `active` is drawn as picked. With `pick`, a click on a
+ * name flies there (Ruijie, 4 Nov: the map's names replace the Site step's neighbourhood list).
+ */
+export function PlaceLabels({ extra, pick, active = null }: { extra?: readonly PlaceLabel[]; pick?: PlacePick; active?: string | null }) {
+  const vista = usePlaceLabels()
+  const labels = useMemo(() => {
+    if (!extra?.length) return vista
+    const have = new Set(vista.map((l) => l.text))
+    return [...vista, ...extra.filter((l) => !have.has(l.text))]
+  }, [vista, extra])
   const on = useVistaLook((s) => s.labels)
   const mode = useActiveMode()
+  const shown = on && mode !== 'observer' && mode !== 'viewcone'
   useEffect(() => { live.labelOrder = labels.map((l) => l.text); live.invalidate?.() }, [labels, on])
-  if (!on || mode === 'observer' || mode === 'viewcone') return null
+  usePlacePicks(shown ? pick : undefined, labels)
+  if (!shown) return null
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {labels.map((l) => (
-        <div key={l.text} ref={(el) => { if (el) live.labels.set(l.text, el); else live.labels.delete(l.text) }}
-          data-x={l.x} data-y={l.y} data-z={l.z} data-ext={l.ext ? 1 : 0}
-          className="absolute whitespace-nowrap rounded-[3px] border px-1.5 leading-[16px]"
-          style={{ display: 'none', transform: 'translate(-50%, -100%)', letterSpacing: '0.15px', fontSize: l.ext ? 10.5 : 11, background: l.ext ? CHROME.labelExtBg : CHROME.labelBg, color: l.ext ? CHROME.labelExtInk : CHROME.labelInk, borderColor: CHROME.labelBorder, boxShadow: '0 1px 3px rgba(43,60,48,0.125)' }}>
-          {l.text}
-        </div>
-      ))}
+      {labels.map((l) => {
+        const picked = l.text === active
+        return (
+          <div key={l.text} ref={(el) => { if (el) live.labels.set(l.text, el); else live.labels.delete(l.text) }}
+            data-x={l.x} data-y={l.y} data-z={l.z} data-ext={l.ext ? 1 : 0} data-place={l.text} data-active={picked ? '' : undefined}
+            className="absolute whitespace-nowrap rounded-[3px] border px-1.5 leading-[16px]"
+            style={{ display: 'none', transform: 'translate(-50%, -100%)', letterSpacing: '0.15px', fontSize: l.ext ? 10.5 : 11, boxShadow: '0 1px 3px rgba(43,60,48,0.125)',
+              ...(picked ? { background: CHROME.active, color: CHROME.activeInk, borderColor: CHROME.active } : { background: l.ext ? CHROME.labelExtBg : CHROME.labelBg, color: l.ext ? CHROME.labelExtInk : CHROME.labelInk, borderColor: CHROME.labelBorder }) }}>
+            {l.text}
+          </div>
+        )
+      })}
     </div>
   )
+}
+
+/**
+ * Clicks on the place names. The names stay click-through, so a drag or a scroll that starts on one still moves the view:
+ * a press and release on the same name (within 6 px) is the click, taken before the map's own click handlers (the Site
+ * step's menu, building cards, tower picking) see it. Hovering a name that answers shows a pointer and outlines it.
+ */
+function usePlacePicks(pick: PlacePick | undefined, labels: readonly PlaceLabel[]) {
+  const ref = useRef(pick)
+  ref.current = pick
+  const byText = useRef(new Map<string, PlaceLabel>())
+  byText.current = new Map(labels.map((l) => [l.text, l]))
+  const enabled = !!pick
+  useEffect(() => {
+    if (!enabled) return
+    let down: { x: number; y: number; text: string } | null = null
+    let hover: string | null = null
+    const hit = (x: number, y: number): string | null => {
+      const p = ref.current
+      if (!p || !p.idle()) return null
+      for (const [text, el] of live.labels) {
+        if (el.style.display === 'none' || !p.can(text)) continue
+        const r = el.getBoundingClientRect()
+        if (x >= r.left - 2 && x <= r.right + 2 && y >= r.top - 2 && y <= r.bottom + 2) return text
+      }
+      return null
+    }
+    const setHover = (text: string | null) => {
+      if (text === hover) return
+      if (hover) live.labels.get(hover)?.removeAttribute('data-hover')
+      hover = text
+      if (text) live.labels.get(text)?.setAttribute('data-hover', '')
+      if (text) live.el?.setAttribute('data-place-hover', ''); else live.el?.removeAttribute('data-place-hover')
+    }
+    const onMove = (e: PointerEvent) => setHover(e.buttons === 0 && e.target === live.el ? hit(e.clientX, e.clientY) : null)
+    const onDown = (e: PointerEvent) => {
+      const text = e.button === 0 && e.target === live.el ? hit(e.clientX, e.clientY) : null
+      down = text ? { x: e.clientX, y: e.clientY, text } : null
+    }
+    const onClick = (e: MouseEvent) => {
+      const d = down
+      down = null
+      if (!d || e.target !== live.el || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6 || hit(e.clientX, e.clientY) !== d.text) return
+      const l = byText.current.get(d.text), p = ref.current
+      if (!l || !p) return
+      // The name took the click: nothing under it (map menu, building card, tower) answers as well.
+      e.stopPropagation(); e.preventDefault()
+      setHover(null)
+      p.go(l)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('pointerdown', onDown, true)
+    window.addEventListener('click', onClick, true)
+    return () => {
+      setHover(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerdown', onDown, true)
+      window.removeEventListener('click', onClick, true)
+    }
+  }, [enabled])
 }
 
 // ---------- modes ----------
@@ -151,6 +236,19 @@ export function towerAxo(aspect: number, insets: { top: number; bottom: number }
   const shift = ((insets.bottom - insets.top) / 2) * span
   const c: [number, number, number] = [t.x - up.x * shift, t.y - up.y * shift, s.groundElevation + t.height / 2 - up.z * shift]
   return { position: [c[0] + iso[0] * d, c[1] + iso[1] * d, c[2] + iso[2] * d], target: c, fov }
+}
+
+/**
+ * Fly to the view that fits `points` (an outline in the model frame, z = ground) into the part of the view the overlays
+ * leave free, north up (Ruijie, 4 Nov: a picked neighbourhood fills the view). Plan stays a top view; Inspect and the
+ * eye-level views go back to the City orbit first, since they hold their own cameras.
+ */
+export function flyToFit(points: [number, number, number][], minSpan = 300) {
+  leaveEyeLevel()
+  const mode = useVistaLook.getState().mode
+  if (mode === 'inspect' || mode === 'observer') useVistaLook.setState({ mode: 'city', inspected: null, note: null })
+  const insets = overlayInsets()
+  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : 60, azimuthDeg: 180, minSpan }))
 }
 
 /** Observer: the eye at a protected viewpoint (the City's Lv), looking along the cone's axis; the tower framed if inside. */

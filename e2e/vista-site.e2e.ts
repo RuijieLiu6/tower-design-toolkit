@@ -9,7 +9,7 @@ const SHOTS = join(process.cwd(), 'test-results', 'vista-site')
 mkdirSync(SHOTS, { recursive: true })
 
 async function openVista(p: Page) {
-  await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0'); localStorage.removeItem('ts.citySite') } catch { /* ignore */ } })
+  await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0'); localStorage.setItem('ts.onboarding.seen', '1'); localStorage.removeItem('ts.citySite') } catch { /* ignore */ } })
   await p.goto('/#/guided')
   await p.waitForSelector('#root > *', { timeout: 60_000 })
   await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 8000 }).catch(() => {})
@@ -66,7 +66,7 @@ test('import a GeoJSON site boundary with its provenance; the envelope section r
   await expect(section(page, 'Exact geometry check (triangles)')).toContainText(/triangle/)
   await page.screenshot({ path: join(SHOTS, 'imported-site.png') })
   // The Program design tool's FSR now divides by the study site, says which area, and cites it.
-  const program = page.locator('[data-tool="program"] button[aria-expanded]')
+  const program = page.locator('#tool-program-head')
   if ((await program.getAttribute('aria-expanded')) === 'false') await program.click()
   await expect(section(page, 'Floor area (all towers, gross)')).toContainText(/Total FSR \(study site [\d,]+ m², (joined City parcels|site boundary)\)/)
   await page.screenshot({ path: join(SHOTS, 'fsr-study-site.png') })

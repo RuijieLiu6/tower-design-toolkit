@@ -12,9 +12,11 @@ const heights = (p: Page) => p.evaluate(async () => {
 
 test('the demo opens over an existing autosave, and Undo brings the design back', async ({ page: p }) => {
   await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0') } catch { /* ignore */ } })
+  // The welcome tour can open late on a slow load (4 Nov: after the old 8 s wait, then it blocked every click for 15 min):
+  // close it whenever it appears.
+  await p.addLocatorHandler(p.getByRole('dialog').filter({ has: p.locator('#ob-title') }), async (d) => { await d.getByRole('button', { name: 'Start designing' }).click() })
   await p.goto('/#/guided')
   await p.waitForFunction(() => performance.getEntriesByType('resource').some((e) => /\/src\/store\.ts/.test(e.name)))
-  await p.getByRole('button', { name: 'Start designing' }).click({ timeout: 8000 }).catch(() => {})
   // A first open with nothing saved starts in Real Vancouver (Site step, 3 Nov); the design edited here is the
   // competition one, so switch to it as a user would. (updateTower edits the open project's towers only.)
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click()

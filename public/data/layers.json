@@ -471,20 +471,20 @@
    "id": "parcels",
    "title": "Parcels and land value",
    "file": "parcels.bin",
-   "bytes": 140570,
-   "sha256": "ce93b429205996c9164a307739b761d6fe4eca50ad0b1048ed201319c563ed45",
+   "bytes": 1527254,
+   "sha256": "f7c5cac9d3ba75293f50de1b00ad9ce063c31f3261e190f2fb584c6a7bcf0a82",
    "lazy": true,
-   "count": 7658,
+   "count": 99672,
    "files": [
     {
      "file": "parcels.bin",
-     "bytes": 140570,
-     "sha256": "ce93b429205996c9164a307739b761d6fe4eca50ad0b1048ed201319c563ed45"
+     "bytes": 1527254,
+     "sha256": "f7c5cac9d3ba75293f50de1b00ad9ce063c31f3261e190f2fb584c6a7bcf0a82"
     },
     {
      "file": "parcels.json",
-     "bytes": 245526,
-     "sha256": "0f399437f20f4a4f658096fb21f675526fdfa861be5abe9425e96e319e46e99c"
+     "bytes": 3022403,
+     "sha256": "8aa15f3236532291a184b77ce13ac32789b76985494df3820f9c9cbecfe8583d"
     }
    ],
    "format": "see tools/build_city_layers.py (parcels)",
@@ -492,9 +492,9 @@
     "name": "Property parcel polygons",
     "publisher": "City of Vancouver",
     "url": "https://opendata.vancouver.ca/explore/dataset/property-parcel-polygons/",
-    "request": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons/exports/geojson?select=civic_number,streetname,tax_coord,site_id,geom&where=intersects(geom, geom'POLYGON((-123.150 49.262,-123.085 49.262,-123.085 49.297,-123.150 49.297,-123.150 49.262))') ; https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-tax-report/exports/csv?select=land_coordinate,current_land_value,current_improvement_value,zoning_district,tax_assessment_year,report_year,legal_type&where=report_year=\"2026\"",
-    "retrieved": "2026-10-27",
-    "sha256": "8008bb9c9a6cfc2ef8aa646b0f19d8c4068bb5d582f19691cd92945da8ebf0cd",
+    "request": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-parcel-polygons/exports/geojson?select=civic_number,streetname,tax_coord,site_id,geom (whole city, 99,685 parcels; Ruijie 4 Nov: property lines for the buildings filled in beyond Vista's model) ; https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-tax-report/exports/csv?select=land_coordinate,current_land_value,current_improvement_value,zoning_district,tax_assessment_year,report_year,legal_type&where=report_year=\"2026\" (retrieved 2026-10-27)",
+    "retrieved": "2026-11-04",
+    "sha256": "348bf1ceeb961860ba5ddf65eefc1f94bee6486a6c3c0720d7c5be7642a82ff2",
     "note": "Parcel polygons joined to the Property tax report (tax_coord = land_coordinate); land and improvement values summed over all folios of a parcel."
    },
    "licence": {
@@ -517,13 +517,13 @@
    },
    "processing": {
     "script": "tools/build_city_layers.py",
-    "with_value": 7539,
-    "without_value": 119,
+    "with_value": 98794,
+    "without_value": 878,
     "value_breaks_per_m2": [
-     4963,
-     7064,
-     12320,
-     23162
+     3916,
+     4387,
+     4961,
+     6301
     ],
     "assessment_year": "2026"
    },
@@ -1404,101 +1404,13 @@
    "flag": "unverified"
   },
   {
-   "id": "zoning",
-   "title": "Zoning districts",
-   "file": "zoning.json",
-   "bytes": 74803,
-   "sha256": "bcc2855ca52198860281c3ed2b3867e293e6cfd1f1a6037d6830dfb43511d718",
-   "lazy": true,
-   "count": 408,
-   "files": [
-    {
-     "file": "zoning.json",
-     "bytes": 74803,
-     "sha256": "bcc2855ca52198860281c3ed2b3867e293e6cfd1f1a6037d6830dfb43511d718"
-    }
-   ],
-   "format": "see tools/build_city_layers.py (zoning)",
-   "source": {
-    "name": "Zoning districts and labels",
-    "publisher": "City of Vancouver",
-    "url": "https://opendata.vancouver.ca/explore/dataset/zoning-districts-and-labels/",
-    "request": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/zoning-districts-and-labels/exports/geojson?where=intersects(geom, geom'POLYGON((-123.150 49.262,-123.085 49.262,-123.085 49.297,-123.150 49.297,-123.150 49.262))')",
-    "retrieved": "2026-10-27",
-    "sha256": "b8ff8ae6d36e8c186af8d11c18756f16c3cde150f016ed2f8793061460cf1880",
-    "note": "District outlines and codes; the Zoning and Development By-law governs."
-   },
-   "licence": {
-    "name": "Open Government Licence - Vancouver",
-    "url": "https://opendata.vancouver.ca/pages/licence/"
-   },
-   "attribution": "Contains information licensed under the Open Government Licence - Vancouver (Zoning districts and labels).",
-   "crs": {
-    "horizontal": "EPSG:26910",
-    "origin": [
-     491300,
-     5458600
-    ],
-    "quantum_m": 0.1,
-    "note": "City lon/lat projected with GRS80 UTM 10N, no datum shift (the City's EPSG:26910 numbers)."
-   },
-   "datum": {
-    "vertical": null,
-    "note": "2D layer; drawn on the terrain in the app."
-   },
-   "processing": {
-    "script": "tools/build_city_layers.py"
-   },
-   "flag": "unverified"
-  },
-  {
-   "id": "vista_streets",
-   "title": "Streets for the Context style: Vista's OpenStreetMap network",
-   "file": "vista_streets.json",
-   "format": "JSON, local decimetres east/north from CITY_ORIGIN; columns listed in the file",
-   "bytes": 2428240,
-   "sha256": "aa03164931e4089cd1a09aa996db4fb33379dc75f22beeb3121bd05ce9220d6e",
-   "count": 61964,
-   "source": {
-    "name": "Vista street network: generated/street_network.json",
-    "publisher": "Ruijie Liu, Vista (vancouver-tall-view-tool), from OpenStreetMap",
-    "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/917b28e/generated",
-    "retrieved": "2026-11-03",
-    "commit": "917b28e",
-    "request": "gh api repos/RuijieLiu6/vancouver-tall-view-tool/contents/generated/street_network.json?ref=917b28e (read only)",
-    "inputs_sha256": {
-     "street_network.json": "8a6c9ba55c338dd9acf02c8b768660d6ed2e2af6ce612ab21eed6a4b326bad93"
-    },
-    "note": "Overpass query of 2026-10-25T22:45:57.262163+00:00 (OSM data 2026-10-25T22:44:50Z); 12,916 vehicular ways, tunnels left out. Drawn only in the Context style."
-   },
-   "licence": {
-    "name": "Open Database License (ODbL) 1.0",
-    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
-   },
-   "attribution": "Streets (c) OpenStreetMap contributors (ODbL), via Vista (Ruijie Liu). A derivative database of OpenStreetMap, offered under ODbL 1.0.",
-   "crs": {
-    "horizontal": "EPSG:26910",
-    "note": "Vista's model X/Y -> latitude/longitude with Vista's own formula -> EPSG:4617 -> EPSG:3157 (pure projection)"
-   },
-   "datum": {
-    "vertical": null,
-    "note": "Draped on the City ground in the app; deck heights interpolated between approach ends (illustrative)."
-   },
-   "processing": {
-    "build": "python -I tools/build_vista_streets.py <raw_dir> public/data <commit> <retrieved>",
-    "length_km": 1399.3
-   },
-   "flag": "unverified",
-   "lazy": true
-  },
-  {
    "id": "vista_buildings",
-   "title": "Buildings: Vista unified model (OpenStreetMap)",
+   "title": "Buildings: Vista unified model + OpenStreetMap fill",
    "file": "vista_buildings.bin",
    "format": "TSF1 footprints (layout in tools/build_city_footprints.py), id = OSM way number; per-part attributes in vista_buildings.json (same order)",
-   "bytes": 1202521,
-   "sha256": "03f41fa6076d231c7a680f4862d1c4482e6a1510849e5eb6380b11a0796e6302",
-   "count": 62372,
+   "bytes": 2844380,
+   "sha256": "ff820bee914d2d576b235658e5b1152b9fe841a4d8bfb1cb36fb430f4a46d702",
+   "count": 157743,
    "source": {
     "name": "Vista unified context model: generated/unified_buildings + unified_ext_buildings",
     "publisher": "Ruijie Liu, Vista (vancouver-tall-view-tool), from OpenStreetMap",
@@ -1513,7 +1425,120 @@
      "unified_ext_buildings_index.json": "897c99a1b4a2db1da869836aa699de8cd531aa38fc4377aff8d5b388011797e0",
      "unified_manifest.json": "73edf36dc0de8808474fec7faad2d23115b7cfa3aafde8d89852e045c6fcb70b"
     },
-    "note": "61,402 buildings (62,372 footprint parts): the central model is a browser export of the studio Rhino 'Vancouver DT context.3dm', itself built from 2022 OpenStreetMap; the extension is current OpenStreetMap via Overpass (accessed 2026-09-24). Published with Ruijie's permission (3 Nov 2026)."
+    "note": "61,402 Vista buildings: the central model is a browser export of the studio Rhino 'Vancouver DT context.3dm', itself built from 2022 OpenStreetMap; the extension is current OpenStreetMap via Overpass (accessed 2026-09-24). Published with Ruijie's permission (3 Nov 2026). Fill: 95,367 more buildings from current OpenStreetMap over the rest of the model base (Overpass, 4 Nov 2026), 156,769 buildings and 157,743 footprint parts in all.",
+    "fill": {
+     "source": "OpenStreetMap via the Overpass API (tools/fetch_osm_buildings.py): building ways and multipolygon relations in the model base minus Vista's rectangle",
+     "requests": [
+      {
+       "file": "buildings_00.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.195952,-123.241671,49.243009,-123.167252); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.195952,-123.241671,49.243009,-123.167252);out geom;",
+       "retrieved": "2026-11-04T22:38:30+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "ce4c3f8902d1a0258a14ab3c0c0b103e2fa6ce2408cef60691fa3f043d120c29"
+      },
+      {
+       "file": "buildings_01.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.195952,-123.167252,49.243009,-123.092833); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.195952,-123.167252,49.243009,-123.092833);out geom;",
+       "retrieved": "2026-11-04T22:44:24+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "ea3a6caaa317f4136d72fc9cc55fac89d63e3546d09d17735ef31d0e9456206b"
+      },
+      {
+       "file": "buildings_02.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.195952,-123.092833,49.243009,-123.018414); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.195952,-123.092833,49.243009,-123.018414);out geom;",
+       "retrieved": "2026-11-04T22:52:31+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "14596165d45cc73a53067d30077c1994c4d6e1fe8c12a95bc4697d68a0c678a9"
+      },
+      {
+       "file": "buildings_10.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.243009,-123.241671,49.290066,-123.167252); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.243009,-123.241671,49.290066,-123.167252);out geom;",
+       "retrieved": "2026-11-04T22:56:44+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "63ea92ebc3920015f40d1be5f01ebdfc972891ab91eda3e05733ade48207cd4a"
+      },
+      {
+       "file": "buildings_11.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.243009,-123.167252,49.290066,-123.092833); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.243009,-123.167252,49.290066,-123.092833);out geom;",
+       "retrieved": "2026-11-04T22:57:45+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "a6b36992c1dcf6753999539f6b8087f6abada67e5ce6991b28a61be61495c7c7"
+      },
+      {
+       "file": "buildings_12.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.243009,-123.092833,49.290066,-123.018414); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.243009,-123.092833,49.290066,-123.018414);out geom;",
+       "retrieved": "2026-11-04T23:00:36+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "385b7a5b7f0b7625739a9945ba0a709900d4c3f7d2105926a795c3f81cf42aef"
+      },
+      {
+       "file": "buildings_20.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.290066,-123.241671,49.337123,-123.167252); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.290066,-123.241671,49.337123,-123.167252);out geom;",
+       "retrieved": "2026-11-04T23:02:42+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "6d639573352a9e69c1d7cd6c93a4d2f07b7ebbccd94f28dcc1f4d5175eb38ac4"
+      },
+      {
+       "file": "buildings_21.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.290066,-123.167252,49.337123,-123.092833); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.290066,-123.167252,49.337123,-123.092833);out geom;",
+       "retrieved": "2026-11-04T23:04:47+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "751259b7693955de2a884f77ab3de98a0947a86f83f78ffd13d8c2625c2d40ba"
+      },
+      {
+       "file": "buildings_22.json",
+       "endpoint": "https://overpass-api.de/api/interpreter",
+       "query": "[out:json][timeout:300];(way[\"building\"](49.290066,-123.092833,49.337123,-123.018414); - way[\"building\"](49.2367299,-123.1652987,49.3183317,-123.0425611););out geom;relation[\"building\"][\"type\"=\"multipolygon\"](49.290066,-123.092833,49.337123,-123.018414);out geom;",
+       "retrieved": "2026-11-04T23:07:04+00:00",
+       "user_agent": "TowerDesignToolkit/0.1 (study tool)",
+       "licence": "ODbL 1.0, (c) OpenStreetMap contributors",
+       "sha256": "4fd1184d625663708d7edf60f42631cc3063e74299a7a72626beb8ddf4e87ee3"
+      }
+     ],
+     "height_rules": "Vista's extension rules (extension_manifest.json height_rules): OSM height tag, else 3.2 m x levels + 1 m from 2 levels, else Vista's type table (default 9 m)",
+     "dedupe": "same OSM id as a Vista part, or overlapping a Vista part by >= 50% of the smaller: left out; a smaller overlap is cut away",
+     "base": "kept when a point inside the outline lies on the model base (lib/plinth.ts CITY_PLINTH)",
+     "stats": {
+      "fetched": 99748,
+      "added": 95367,
+      "parts": 95371,
+      "relations": 107,
+      "clipped": 19,
+      "skipped": {
+       "already in Vista's model (same OSM id)": 0,
+       "open way or no area": 0,
+       "outside the model base": 4368,
+       "same building as a Vista part (overlap >= 50%)": 13
+      },
+      "files": {
+       "buildings_00.json": "ce4c3f8902d1a0258a14ab3c0c0b103e2fa6ce2408cef60691fa3f043d120c29",
+       "buildings_01.json": "ea3a6caaa317f4136d72fc9cc55fac89d63e3546d09d17735ef31d0e9456206b",
+       "buildings_02.json": "14596165d45cc73a53067d30077c1994c4d6e1fe8c12a95bc4697d68a0c678a9",
+       "buildings_10.json": "63ea92ebc3920015f40d1be5f01ebdfc972891ab91eda3e05733ade48207cd4a",
+       "buildings_11.json": "a6b36992c1dcf6753999539f6b8087f6abada67e5ce6991b28a61be61495c7c7",
+       "buildings_12.json": "385b7a5b7f0b7625739a9945ba0a709900d4c3f7d2105926a795c3f81cf42aef",
+       "buildings_20.json": "6d639573352a9e69c1d7cd6c93a4d2f07b7ebbccd94f28dcc1f4d5175eb38ac4",
+       "buildings_21.json": "751259b7693955de2a884f77ab3de98a0947a86f83f78ffd13d8c2625c2d40ba",
+       "buildings_22.json": "4fd1184d625663708d7edf60f42631cc3063e74299a7a72626beb8ddf4e87ee3"
+      }
+     }
+    }
    },
    "licence": {
     "name": "Open Database License (ODbL) 1.0",
@@ -1533,7 +1558,7 @@
     ]
    },
    "processing": {
-    "build": "python -I tools/build_vista_buildings.py <raw_dir> public/data <commit> <retrieved>",
+    "build": "python -I tools/build_vista_buildings.py <raw_dir> public/data <commit> <retrieved> <osm use-tag dir> [--fill <osm buildings dir>] [--city2009 <whole-city 2009 export>]",
     "footprint": "union of each object's triangles in plan (extrusions: only the roof shape is lost); parts under 1 m2 dropped; simplified within 5 cm",
     "height_sources": {
      "buildings": {
@@ -1545,47 +1570,52 @@
       "OSM height tag": 3940,
       "OSM floor count (3.2 m per level, +1 m from 2 levels)": 2955,
       "estimate per building type": 44615
+     },
+     "osm_fill": {
+      "OSM height tag": 5589,
+      "OSM floor count (3.2 m per level, +1 m from 2 levels)": 5282,
+      "estimate per building type": 84496
      }
     },
     "height_check": {
      "vs_lidar_2022_p90_roof": {
       "OSM height tag": {
-       "n": 618,
+       "n": 621,
        "median_m": -2.8,
-       "median_abs_m": 3.9,
-       "p90_abs_m": 38.9
+       "median_abs_m": 3.8,
+       "p90_abs_m": 37.2
       },
       "OSM floor count (3.2 m per level, +1 m from 2 levels)": {
-       "n": 1292,
+       "n": 1296,
        "median_m": -2.1,
-       "median_abs_m": 3.2,
-       "p90_abs_m": 15.2
+       "median_abs_m": 3.1,
+       "p90_abs_m": 15.1
       },
       "estimate per building type": {
-       "n": 143,
-       "median_m": -6.4,
-       "median_abs_m": 6.4,
+       "n": 145,
+       "median_m": -7.3,
+       "median_abs_m": 7.3,
        "p90_abs_m": 54.3
       }
      },
      "vs_city_2009": {
       "OSM height tag": {
-       "n": 727,
-       "median_m": 2.2,
-       "median_abs_m": 3.5,
-       "p90_abs_m": 24.3
+       "n": 10633,
+       "median_m": 0.8,
+       "median_abs_m": 0.9,
+       "p90_abs_m": 3.7
       },
       "OSM floor count (3.2 m per level, +1 m from 2 levels)": {
-       "n": 3490,
-       "median_m": 1.0,
-       "median_abs_m": 2.1,
-       "p90_abs_m": 7.6
+       "n": 9242,
+       "median_m": 0.8,
+       "median_abs_m": 1.8,
+       "p90_abs_m": 6.2
       },
       "estimate per building type": {
-       "n": 19331,
-       "median_m": 2.5,
-       "median_abs_m": 2.5,
-       "p90_abs_m": 5.1
+       "n": 90875,
+       "median_m": 3.1,
+       "median_abs_m": 3.1,
+       "p90_abs_m": 5.7
       }
      },
      "towers_over_60m_by_lidar": 510,
@@ -1593,30 +1623,33 @@
     },
     "measured_matches": {
      "lidar_2022": {
-      "roof forms": 2050,
-      "whole footprint": 3
+      "roof forms": 2058,
+      "whole footprint": 4
      },
      "city_2009": {
-      "covering parts": 23548,
-      "whole footprint": 0
+      "covering parts": 24876,
+      "whole footprint": 0,
+      "whole city (covering parts)": 85874,
+      "whole city (matched footprint)": 0,
+      "whole city export sha256": "b479fef51b6f3f1e16d9df98891f521f330127211d4cce68f182da0da3178ffd"
      }
     },
     "building_use": {
      "rule": "the building's own OSM tags, else the points of interest inside it (majority; a tie goes to the non-retail use), else other; never guessed",
      "parts_by_use": {
-      "residential": 17712,
-      "retail": 2804,
-      "office": 419,
-      "hotel": 119,
-      "cultural": 220,
-      "institutional": 384,
-      "transit": 27,
-      "other": 40687
+      "residential": 35558,
+      "retail": 3631,
+      "office": 462,
+      "hotel": 137,
+      "cultural": 372,
+      "institutional": 623,
+      "transit": 34,
+      "other": 116926
      },
      "parts_by_basis": {
-      "no use in OpenStreetMap": 40687,
-      "OpenStreetMap tag on the building": 20251,
-      "point of interest inside the building": 1434
+      "no use in OpenStreetMap": 116926,
+      "OpenStreetMap tag on the building": 39378,
+      "point of interest inside the building": 1439
      },
      "osm_files": {
       "building_way_tags.json": "a7be27f0d45fcf32150b8260724accd926bedfadabd2285139eda0b2d95f6900",
@@ -1643,7 +1676,7 @@
     },
     "alignment": {
      "city_2015_footprints": {
-      "matches": 4266,
+      "matches": 4281,
       "mean_shift_m": [
        0.77,
        -0.4
@@ -1653,13 +1686,13 @@
       "max_offset_m": 42.84
      },
      "city_2009_footprints": {
-      "matches": 14691,
+      "matches": 15663,
       "mean_shift_m": [
        0.17,
-       0.01
+       0.02
       ],
-      "median_offset_m": 1.1,
-      "p95_offset_m": 2.57,
+      "median_offset_m": 1.09,
+      "p95_offset_m": 2.54,
       "max_offset_m": 26.12
      },
      "match": "same building = intersection over union >= 0.6; offset = distance between footprint centroids"
@@ -1676,13 +1709,13 @@
    "files": [
     {
      "file": "vista_buildings.bin",
-     "bytes": 1202521,
-     "sha256": "03f41fa6076d231c7a680f4862d1c4482e6a1510849e5eb6380b11a0796e6302"
+     "bytes": 2844380,
+     "sha256": "ff820bee914d2d576b235658e5b1152b9fe841a4d8bfb1cb36fb430f4a46d702"
     },
     {
      "file": "vista_buildings.json",
-     "bytes": 1763677,
-     "sha256": "92b26ecd7cb703557a72c21653c16f3bbdeac9b476d67ce163f2a1cfed91b80d"
+     "bytes": 4442929,
+     "sha256": "6fefb368faa26246c8c82431c3ce7d28dc5b68fd6a53324c37464fbe5f287327"
     }
    ]
   },
@@ -1766,6 +1799,157 @@
     "inland_bodies": 229,
     "area_km2": 71.82,
     "simplify_m": 1.0
+   },
+   "flag": "unverified",
+   "lazy": true
+  },
+  {
+   "id": "zoning",
+   "title": "Zoning districts",
+   "file": "zoning.json",
+   "bytes": 74803,
+   "sha256": "bcc2855ca52198860281c3ed2b3867e293e6cfd1f1a6037d6830dfb43511d718",
+   "lazy": true,
+   "count": 408,
+   "files": [
+    {
+     "file": "zoning.json",
+     "bytes": 74803,
+     "sha256": "bcc2855ca52198860281c3ed2b3867e293e6cfd1f1a6037d6830dfb43511d718"
+    }
+   ],
+   "format": "see tools/build_city_layers.py (zoning)",
+   "source": {
+    "name": "Zoning districts and labels",
+    "publisher": "City of Vancouver",
+    "url": "https://opendata.vancouver.ca/explore/dataset/zoning-districts-and-labels/",
+    "request": "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/zoning-districts-and-labels/exports/geojson?where=intersects(geom, geom'POLYGON((-123.150 49.262,-123.085 49.262,-123.085 49.297,-123.150 49.297,-123.150 49.262))')",
+    "retrieved": "2026-10-27",
+    "sha256": "b8ff8ae6d36e8c186af8d11c18756f16c3cde150f016ed2f8793061460cf1880",
+    "note": "District outlines and codes; the Zoning and Development By-law governs."
+   },
+   "licence": {
+    "name": "Open Government Licence - Vancouver",
+    "url": "https://opendata.vancouver.ca/pages/licence/"
+   },
+   "attribution": "Contains information licensed under the Open Government Licence - Vancouver (Zoning districts and labels).",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "origin": [
+     491300,
+     5458600
+    ],
+    "quantum_m": 0.1,
+    "note": "City lon/lat projected with GRS80 UTM 10N, no datum shift (the City's EPSG:26910 numbers)."
+   },
+   "datum": {
+    "vertical": null,
+    "note": "2D layer; drawn on the terrain in the app."
+   },
+   "processing": {
+    "script": "tools/build_city_layers.py"
+   },
+   "flag": "unverified"
+  },
+  {
+   "id": "vista_streets",
+   "title": "Streets: Vista's OpenStreetMap network, filled to the model base",
+   "file": "vista_streets.json",
+   "format": "JSON, local decimetres east/north from CITY_ORIGIN; columns listed in the file",
+   "bytes": 5465579,
+   "sha256": "14da43a707fcba0f6d51d9bb73af60144efbc7cbef46931f6daafd3d0849097a",
+   "count": 135925,
+   "source": {
+    "name": "Vista street network: generated/street_network.json",
+    "publisher": "Ruijie Liu, Vista (vancouver-tall-view-tool), from OpenStreetMap",
+    "url": "https://github.com/RuijieLiu6/vancouver-tall-view-tool/tree/917b28e/generated",
+    "retrieved": "2026-11-03",
+    "commit": "917b28e",
+    "request": "gh api repos/RuijieLiu6/vancouver-tall-view-tool/contents/generated/street_network.json?ref=917b28e (read only)",
+    "inputs_sha256": {
+     "street_network.json": "8a6c9ba55c338dd9acf02c8b768660d6ed2e2af6ce612ab21eed6a4b326bad93"
+    },
+    "note": "Overpass query of 2026-10-25T22:45:57.262163+00:00 (OSM data 2026-10-25T22:44:50Z); vehicular ways, tunnels left out. Drawn as street lines in the Plain look and as roads in the Context style. Beyond Vista's rectangle: 16,964 more ways from OpenStreetMap (tools/fetch_osm_streets.py, Overpass, 2026-11-05), same rules.",
+    "fill": {
+     "dir": "osm-streets-2026-11-05",
+     "requests_sha256": "fd0bd99dbbc92e1bcd53151baf2a8814bd31f2e07c3ea34473d7ffcb80f362e9",
+     "ways": 16964,
+     "segments": 73961,
+     "km": 1937.8,
+     "requests": [
+      {
+       "file": "streets_00.json",
+       "retrieved": "2026-11-05T21:47:49+00:00",
+       "sha256": "77fa190da31fcccf9029a74ac0fa97322e0318f1caf03a9419a1af2eaddd13f6",
+       "elements": 854
+      },
+      {
+       "file": "streets_01.json",
+       "retrieved": "2026-11-05T21:48:36+00:00",
+       "sha256": "c3c2340be5850c1b3ba523df32b923174554f4c62d6e607a5464f8dd17ad2841",
+       "elements": 3820
+      },
+      {
+       "file": "streets_02.json",
+       "retrieved": "2026-11-05T21:49:15+00:00",
+       "sha256": "f8af58c3086cb9aac25e295392f9e041a2a8f0975089e5de717b35980c81e1cc",
+       "elements": 3868
+      },
+      {
+       "file": "streets_10.json",
+       "retrieved": "2026-11-05T21:49:55+00:00",
+       "sha256": "7baf24047e21b95618f7eaa321daf1ce2799af8dfc22c85021107631baf2b2e7",
+       "elements": 1833
+      },
+      {
+       "file": "streets_11.json",
+       "retrieved": "2026-11-05T21:51:42+00:00",
+       "sha256": "7beee8bc5a38adc5ec27189dd08156cb5d9c3122ee0ad07f41c8741e1359ede2",
+       "elements": 62
+      },
+      {
+       "file": "streets_12.json",
+       "retrieved": "2026-11-05T21:53:32+00:00",
+       "sha256": "666454723bb48975abeb8f407e52e1749fb5ddff7de6a6f81d0c36e35038718a",
+       "elements": 2321
+      },
+      {
+       "file": "streets_20.json",
+       "retrieved": "2026-11-05T21:54:10+00:00",
+       "sha256": "ffae3558d28031e8f8b8932fec5df3bc4db1c36719ce8a0a4938e5bb4f7c9452",
+       "elements": 154
+      },
+      {
+       "file": "streets_21.json",
+       "retrieved": "2026-11-05T21:54:49+00:00",
+       "sha256": "e6c220a6dbb1307b7e11bdbea1528cae4240b7ad64b821b343305936400efd4a",
+       "elements": 1992
+      },
+      {
+       "file": "streets_22.json",
+       "retrieved": "2026-11-05T21:55:40+00:00",
+       "sha256": "88e5f1450c85e24af6806e43b402cd4d9eb3198bfe2a3cd708b42d68f4b4c4c6",
+       "elements": 2288
+      }
+     ]
+    }
+   },
+   "licence": {
+    "name": "Open Database License (ODbL) 1.0",
+    "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+   },
+   "attribution": "Streets (c) OpenStreetMap contributors (ODbL), via Vista (Ruijie Liu). A derivative database of OpenStreetMap, offered under ODbL 1.0.",
+   "crs": {
+    "horizontal": "EPSG:26910",
+    "note": "Vista's model X/Y -> latitude/longitude with Vista's own formula -> EPSG:4617 -> EPSG:3157 (pure projection)"
+   },
+   "datum": {
+    "vertical": null,
+    "note": "Draped on the City ground in the app; deck heights interpolated between approach ends (illustrative)."
+   },
+   "processing": {
+    "build": "python -I tools/build_vista_streets.py <raw_dir> public/data <commit> <retrieved>",
+    "length_km": 3337.0
    },
    "flag": "unverified",
    "lazy": true

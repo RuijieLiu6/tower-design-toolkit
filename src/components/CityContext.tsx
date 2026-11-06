@@ -1,8 +1,8 @@
 // Real Vancouver context: City footprints (LiDAR heights where processed, "height unknown" outlines elsewhere) and the
 // MRDEM terrain rings out to the North Shore mountains. Data: public/data/ (layers.json), built by tools/build_city_*.py.
 import { Line } from '@react-three/drei'
-import { useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useState } from 'react'
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { LOOKS, type Look } from '../data/stages'
@@ -45,6 +45,7 @@ import VistaCones, { ConeVisibilityPanel } from './VistaCones'
 import { earClip } from '../lib/coneVolume'
 import { shownSummary, useConeVisibility } from '../lib/coneVisibility'
 import { SKYLINE_CAP_DEG } from '../engine/coneSection'
+import { useSiteStep } from '../lib/siteActions'
 
 
 interface CityData extends BuildingModel {
@@ -426,11 +427,41 @@ function Shoreline({ lines, grids, color }: { lines: number[][]; grids: HeightGr
   return <lineSegments geometry={geom}><lineBasicMaterial color={color} transparent opacity={0.9} /></lineSegments>
 }
 
+/**
+ * Is the camera so far from the 1 m LiDAR patches that a metre is under a third of a pixel? Then they add triangles and
+ * nothing visible (improvement round 3, 4 Nov: the downtown 1 m terrain cost about 5 ms a frame in the overview). The
+ * test is the size of one metre on screen at the patches' centre, so the narrow-lens Inspect view stays detailed.
+ * Hysteresis (3.3 / 2.7 m per pixel) keeps it from flickering at the threshold.
+ */
+function useFarFromPatches(patches: HeightGrid[]): boolean {
+  const centre = useMemo(() => {
+    if (!patches.length) return null
+    const x0 = Math.min(...patches.map((g) => g.x0)), y0 = Math.min(...patches.map((g) => g.y0))
+    const x1 = Math.max(...patches.map((g) => g.x0 + (g.cols - 1) * g.step)), y1 = Math.max(...patches.map((g) => g.y0 + (g.rows - 1) * g.step))
+    return new THREE.Vector3((x0 + x1) / 2, 20, -(y0 + y1) / 2)
+  }, [patches])
+  const [far, setFar] = useState(false)
+  const farRef = useRef(false)
+  useFrame(({ camera, size, invalidate }) => {
+    if (!centre) return
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 45
+    const mPerPx = (camera.position.distanceTo(centre) * 2 * Math.tan(THREE.MathUtils.degToRad(fov / 2))) / Math.max(1, size.height)
+    const next = farRef.current ? mPerPx > 2.7 : mPerPx > 3.3
+    if (next !== farRef.current) { farRef.current = next; setFar(next); invalidate() }
+  })
+  return far
+}
+
 function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (x: number, y: number) => void }) {
   const finish = useFinish(data.manifest)
   const surface = citySurface(data)
   const detailed = useMemo(() => surface.patches.map((g) => terrainGeometry(g, look, { adaptive: true })), [surface, look])
   const r1 = useMemo(() => terrainGeometry(surface.top, look, { patches: surface.patches }), [surface, look])
+  // Far away: the 30 m top in one piece, no holes for the 1 m patches (useFarFromPatches).
+  const r1Whole = useMemo(() => (surface.patches.length ? terrainGeometry(surface.top, look) : null), [surface, look])
+  useEffect(() => () => r1Whole?.dispose(), [r1Whole])
+  const far = useFarFromPatches(surface.patches) && !!r1Whole
+  const top = far ? r1Whole! : r1
   const r2 = useMemo(() => terrainGeometry(backdropGrid(data.r2, CITY_PLINTH.y1), look, { stitch: surface.top }), [data, surface, look])
   const front = useMemo(() => backdropFront(data.r2, surface.top), [data, surface])
   // The walls meet the top on its boundary nodes (30 m), where the sea is the flat plane, not MRDEM's -2 m.
@@ -458,10 +489,10 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   const pick = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); if (!drawClick(e.point.x, -e.point.z)) onPick(e.point.x, -e.point.z) }
   return (
     <>
-      {ground ? <mesh key={groundKey} geometry={r1} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key="plain" geometry={r1} receiveShadow onPointerDown={pick}>
+      {ground ? <mesh key={groundKey} geometry={top} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key="plain" geometry={top} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>}
-      {detailed.map((geometry, i) => ground ? <mesh key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
+      {!far && detailed.map((geometry, i) => ground ? <mesh key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>)}
       {tex && <ContextWater tex={tex} />}
@@ -544,8 +575,15 @@ function Buildings(props: { data: CityData; look: Look; ghost: boolean; hidden: 
 }
 
 /**
- * Vista's model in one mesh. Plain: each building in the light tint of its type (lib/buildingUse.ts), a shade off where
- * its height is a type estimate. Context: Vista's facades (ContextStyle.tsx), once its textures have loaded.
+ * Parts per building chunk. Each chunk is its own mesh, so the renderer skips the chunks outside the view; the parts are
+ * in Hilbert order (tools/build_vista_buildings.py), so a run of them is a compact patch of the city. Since the
+ * OpenStreetMap fill (4 Nov) tripled the parts to about 158,000, one merged mesh made every close view draw the whole city.
+ */
+const CHUNK_PARTS = 3000
+
+/**
+ * Vista's model in chunked meshes (CHUNK_PARTS). Plain: each building in the light tint of its type (lib/buildingUse.ts),
+ * a shade off where its height is a type estimate. Context: Vista's facades (ContextStyle.tsx), once its textures have loaded.
  */
 function VistaBuildingMesh({ data, look, ghost, hidden, vista: v }: { data: CityData; look: Look; ghost: boolean; hidden: ReadonlySet<number>; vista: VistaBuildings }) {
   const style = useSceneStyle((s) => s.style)
@@ -553,52 +591,111 @@ function VistaBuildingMesh({ data, look, ghost, hidden, vista: v }: { data: City
   const invalidate = useThree((s) => s.invalidate)
   const vistaLook = look === VISTA_LOOK && !ghost
   const h = data.heights
-  const m = useMemo(() => {
+  const chunks = useMemo(() => {
     const at = citySurface(data).at
     const base = (i: number) => (v.clearance[i] > 0 ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
-    const out = prisms(data, (i) => hasHeight(h, i), base, (i) => h!.roof[i])
-    if (!out.geom) return out
-    const count = out.geom.getAttribute('position').count
-    out.geom.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(count * 3), 3, true)) // filled below
-    out.geom.setAttribute('aFacade', facadeAttribute(count, out.ranges, (i) => {
-      const f = data.footprints[i]
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-      for (const [x, y] of f.outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y) }
-      const seed = vistaSeed(v.osmId[i])
-      return { ...vistaFamily(v.osmType[i], h!.roof[i] - h!.ground[i], Math.max(x1 - x0, y1 - y0), seed), seed, base: h!.ground[i], top: h!.roof[i] }
-    }))
+    const out: { geom: THREE.BufferGeometry; ranges: [number, number, number][] }[] = []
+    for (let lo = 0; lo < data.footprints.length; lo += CHUNK_PARTS) {
+      const hi = lo + CHUNK_PARTS
+      const c = prisms(data, (i) => i >= lo && i < hi && hasHeight(h, i), base, (i) => h!.roof[i])
+      if (!c.geom) continue
+      const count = c.geom.getAttribute('position').count
+      c.geom.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(count * 3), 3, true)) // filled below
+      c.geom.setAttribute('aFacade', facadeAttribute(count, c.ranges, (i) => {
+        const f = data.footprints[i]
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+        for (const [x, y] of f.outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y) }
+        const seed = vistaSeed(v.osmId[i])
+        return { ...vistaFamily(v.osmType[i], h!.roof[i] - h!.ground[i], Math.max(x1 - x0, y1 - y0), seed), seed, base: h!.ground[i], top: h!.roof[i] }
+      }))
+      c.geom.computeBoundingSphere()
+      out.push({ geom: c.geom, ranges: c.ranges })
+    }
     return out
   }, [data, h, v])
-  useEffect(() => () => m.geom?.dispose(), [m])
+  useEffect(() => () => chunks.forEach((c) => c.geom.dispose()), [chunks])
   // Colours: the light tint of each building's type ("Colour buildings by type", on by default), or Vista's white;
   // a building whose height is a type estimate a shade off.
   useEffect(() => {
-    const attr = m.geom?.getAttribute('color') as THREE.BufferAttribute | undefined
-    if (!attr) return
-    const rgb = attr.array as Uint8Array, c = new THREE.Color()
-    for (const [i, start, n] of m.ranges) {
-      c.set(typeColours ? useColor(partUse(v, i).use) : VISTA.buildings).multiplyScalar(isEstimate(data, i) ? 0.93 : 1)
-      const r = Math.round(c.r * 255), g = Math.round(c.g * 255), b = Math.round(c.b * 255)
-      for (let k = start; k < start + n; k++) { rgb[k * 3] = r; rgb[k * 3 + 1] = g; rgb[k * 3 + 2] = b }
+    const c = new THREE.Color()
+    for (const chunk of chunks) {
+      const attr = chunk.geom.getAttribute('color') as THREE.BufferAttribute
+      const rgb = attr.array as Uint8Array
+      for (const [i, start, n] of chunk.ranges) {
+        c.set(typeColours ? useColor(partUse(v, i).use) : VISTA.buildings).multiplyScalar(isEstimate(data, i) ? 0.93 : 1)
+        const r = Math.round(c.r * 255), g = Math.round(c.g * 255), b = Math.round(c.b * 255)
+        for (let k = start; k < start + n; k++) { rgb[k * 3] = r; rgb[k * 3 + 1] = g; rgb[k * 3 + 2] = b }
+      }
+      attr.needsUpdate = true
     }
-    attr.needsUpdate = true
     invalidate()
-  }, [m, typeColours, v, data, invalidate])
-  useHiddenParts(m.geom, m.ranges, hidden)
+  }, [chunks, typeColours, v, data, invalidate])
   const vistaMat = useMemo(() => (vistaLook ? vistaShaded(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }), 'buildings') : null), [vistaLook])
   useEffect(() => () => vistaMat?.dispose(), [vistaMat])
+  const plainMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, color: ghost ? look.context : '#ffffff', roughness: 0.92, metalness: 0, transparent: true, opacity: ghost ? 0.45 : 1, depthWrite: !ghost }), [ghost, look.context])
+  useEffect(() => () => plainMat.dispose(), [plainMat])
   const tex = useVistaTextures(style === 'context' && !ghost)
   const facade = useMemo(() => (tex ? contextFacadeMaterial(tex) : null), [tex])
   useEffect(() => () => facade?.dispose(), [facade])
-  if (!m.geom) return null
+  if (!chunks.length) return null
   // Separate keys: reusing one mesh across styles would leave three's default material behind when `material` is dropped.
-  if (facade) return <mesh key="context" geometry={m.geom} material={facade} castShadow receiveShadow />
-  if (vistaMat) return <mesh key="vista" geometry={m.geom} material={vistaMat} castShadow receiveShadow />
+  const material = facade ?? vistaMat ?? plainMat
   return (
-    <mesh key="plain" geometry={m.geom} castShadow={!ghost} receiveShadow>
-      <meshStandardMaterial vertexColors color={ghost ? look.context : '#ffffff'} roughness={0.92} metalness={0} transparent opacity={ghost ? 0.45 : 1} depthWrite={!ghost} />
-    </mesh>
+    <group key={facade ? 'context' : vistaMat ? 'vista' : 'plain'}>
+      {chunks.map((c, k) => <BuildingChunk key={k} geom={c.geom} ranges={c.ranges} hidden={hidden} material={material} castShadow={facade || vistaMat ? true : !ghost} />)}
+    </group>
   )
+}
+
+/** Rhino's selection yellow (Ruijie works in Rhino) and a dark amber outline: nothing else in the scene uses them. */
+const SELECTED = { fill: '#ffd21f', edge: '#92400e' } as const
+
+/**
+ * The buildings the user has clicked, marked on the building itself (Ruijie, 5 Nov: "when I click on a building, I want a
+ * visual indicator to show I have selected it"): the building under the Site step's map menu, the buildings being picked
+ * to replace, and the building open in Inspect. Each is drawn again over itself, the same prism as the city mesh, in
+ * selection yellow with a dark outline (and the outline faintly through buildings in front, so a selection behind a
+ * tower still shows). Display only; clicks pass through to the city underneath.
+ */
+function SelectedBuildings({ data, hidden }: { data: CityData; hidden: ReadonlySet<number> }) {
+  const menuBuilding = useSiteStep((s) => s.menu?.building ?? null)
+  const picking = useSiteStore((s) => s.tool === 'pick')
+  const picked = useSiteStore((s) => s.picked)
+  const inspected = useVistaLook((s) => (s.mode === 'inspect' ? s.inspected?.index ?? null : null))
+  const key = [...new Set([menuBuilding, inspected, ...(picking ? picked : [])])]
+    .filter((i): i is number => i !== null && !hidden.has(i)).sort((a, b) => a - b).join(',')
+  const sel = useMemo(() => {
+    if (!key) return null
+    const ids = new Set(key.split(',').map(Number)), h = data.heights, v = data.vista, at = citySurface(data).at
+    // The same base as the city mesh (VistaBuildingMesh), so the highlight sits exactly on the building.
+    const base = (i: number) => (v && v.clearance[i] > 0 ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
+    const { geom } = prisms(data, (i) => ids.has(i) && hasHeight(h, i), base, (i) => h!.roof[i])
+    if (!geom) return null
+    const e = new THREE.EdgesGeometry(geom, 25), p = e.getAttribute('position')
+    const edges: [number, number, number][] = []
+    for (let k = 0; k < p.count; k++) edges.push([p.getX(k), p.getY(k), p.getZ(k)])
+    e.dispose()
+    return { geom, edges }
+  }, [key, data])
+  useEffect(() => () => sel?.geom.dispose(), [sel])
+  if (!sel) return null
+  return (
+    <group name="selected-buildings" userData={{ siteOverlay: true }}>
+      <mesh geometry={sel.geom} raycast={() => null} renderOrder={4} userData={{ siteOverlay: true }}>
+        <meshStandardMaterial color={SELECTED.fill} emissive={SELECTED.fill} emissiveIntensity={0.3} roughness={0.85} metalness={0} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-4} />
+      </mesh>
+      {sel.edges.length > 0 && <>
+        <Line points={sel.edges} segments color={SELECTED.edge} lineWidth={2.4} renderOrder={5} raycast={() => null} />
+        <Line points={sel.edges} segments color={SELECTED.edge} lineWidth={1.2} transparent opacity={0.35} depthTest={false} renderOrder={6} raycast={() => null} />
+      </>}
+    </group>
+  )
+}
+
+/** One chunk of Vista's buildings, with the parts hidden under the design left out of its draw range. */
+function BuildingChunk({ geom, ranges, hidden, material, castShadow }: { geom: THREE.BufferGeometry; ranges: [number, number, number][]; hidden: ReadonlySet<number>; material: THREE.Material; castShadow: boolean }) {
+  useHiddenParts(geom, ranges, hidden)
+  return <mesh geometry={geom} material={material} castShadow={castShadow} receiveShadow />
 }
 
 /** The City model (comparison): LiDAR 2022 roof parts in clay, the City's 2009 heights a shade off. */
@@ -929,6 +1026,7 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
         : look === VISTA_LOOK ? <VistaStreetLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} />
         : <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />}
       <Buildings data={data} look={look} ghost={xray} hidden={hidden} />
+      <SelectedBuildings data={data} hidden={hidden} />
       <UnknownOutlines data={data} xray={xray} hidden={hidden} />
       <Placeholders data={data} xray={xray} hidden={hidden} />
       {/* Vista's view cones (outline, ceiling, featured corridor and origin, observer ray and wedge): components/VistaCones.tsx. */}
@@ -1048,7 +1146,7 @@ function VistaBuildingsNote({ data }: { data: CityData }) {
   const counts = useMemo(() => {
     const by: Record<HeightBasis, number> = { lidar2022: 0, city2009: 0, 'osm-tag': 0, 'osm-levels': 0, 'type-estimate': 0 }
     if (v) v.heightM.forEach((_, i) => { by[chooseHeight(v, i).basis]++ })
-    return { by, buildings: v ? new Set(v.osmId).size : 0 }
+    return { by, buildings: v ? new Set(v.osmId).size : 0, fill: v && v.fill >= 0 ? new Set(v.osmId.filter((_, i) => v.asset[i] === v.fill)).size : 0 }
   }, [v])
   if (!v) return <p role="alert">Vista's buildings did not load; see the error below.</p>
   const n = (b: HeightBasis) => <b className="text-ink">{counts.by[b].toLocaleString()}</b>
@@ -1056,7 +1154,7 @@ function VistaBuildingsNote({ data }: { data: CityData }) {
     <div className="space-y-1.5">
       <p>
         <b className="text-ink">{counts.buildings.toLocaleString()} buildings from Vista's unified model</b> ({data.footprints.length.toLocaleString()} footprint parts):
-        the studio model's 2022 OpenStreetMap export in the centre and current OpenStreetMap around it. Footprints are taken through latitude/longitude into
+        the studio model's 2022 OpenStreetMap export in the centre and current OpenStreetMap around it{counts.fill ? <>; <b className="text-ink">{counts.fill.toLocaleString()}</b> of them were filled in beyond Vista's model, to the edge of the model base, from current OpenStreetMap (4 Nov 2026) with Vista's height rules</> : null}. Footprints are taken through latitude/longitude into
         EPSG:26910{align ? ` (median ${align.median_offset_m} m from the City's 2015 footprints)` : ''}; each building stands on the City ground at its footprint's centre (CGVD28), never on Vista's SRTM terrain.
       </p>
       <p>

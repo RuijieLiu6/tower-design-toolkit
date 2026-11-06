@@ -3,6 +3,7 @@ import { FLAG_ICONS } from '../data/icons'
 import { fieldUnit, useUnits } from '../lib/units'
 import type { Flag, RuleState } from '../engine/types'
 import type { ConeState } from '../engine/viewCones'
+import Help from './Help'
 
 export const FLAG_META: Record<Flag, { label: string; className: string; title: string }> = {
   verified: { label: 'Verified', className: 'bg-flag-verified text-white', title: 'Backed by an opened, cited source' },
@@ -40,11 +41,12 @@ export const CONE_STYLE: Record<ConeState, { chip: string; color: string }> = {
   outside: { chip: 'bg-white text-slate-500 border-slate-200', color: '#c9ccd1' },
 }
 
-export function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
+/** A titled block; `help` is what the block does, behind a "?" beside the title (Ruijie, 5 Nov). */
+export function Section({ title, children, right, help }: { title: string; children: ReactNode; right?: ReactNode; help?: ReactNode }) {
   return (
     <section className="border-b border-line px-4 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted">{title}</h3>
+        <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h3>
         {right}
       </div>
       {children}
@@ -60,9 +62,10 @@ export function NumberField({ label, value, onChange, step = 1, min, max, unit, 
   const shown = f ? f.toShown(value) : value
   const set = (v: number) => onChange(f ? f.fromShown(v) : v)
   const round = f ? 1000 : 100
+  // The hint (what the field means) sits behind a "?" beside the label (Ruijie, 5 Nov); the inputs carry their own labels.
   return (
-    <label className="flex flex-col gap-1 text-xs" title={hint}>
-      <span className="text-muted">{label}</span>
+    <div className="flex flex-col gap-1 text-xs">
+      <span className="flex items-center gap-1 text-muted">{label}{hint && <Help label={`About ${label}`}>{hint}</Help>}</span>
       <div className="flex items-center gap-2">
         {min !== undefined && max !== undefined && (
           <input type="range" min={f ? f.toShown(min) : min} max={f ? f.toShown(max) : max} step={f ? f.toShown(step) : step} value={shown} onChange={(e) => set(Number(e.target.value))} className="w-full accent-accent" aria-label={label} />
@@ -73,7 +76,7 @@ export function NumberField({ label, value, onChange, step = 1, min, max, unit, 
           {unit && <span className="pr-1.5 text-muted">{f ? f.label : unit}</span>}
         </div>
       </div>
-    </label>
+    </div>
   )
 }
 
