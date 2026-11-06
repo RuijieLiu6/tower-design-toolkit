@@ -20,9 +20,11 @@ const COURSE = resolve(here, '..', '..')
 /** Her files → the Toolkit's counterparts (first match wins). `port` = may be ported with her permission; `match` = match the behaviour in our own code; `check` = keep compatible; `note` = report only. */
 const MAP = {
   dtmass: [
-    [/^src\/gen\.js$/, 'port', 'src/engine/dtmassGen.ts (re-record tools/dtmass-fixtures.cjs, run src/engine/dtmassGen.test.ts)'],
-    [/^src\/(views|form|model|stack)\.js$/, 'port', 'Massing tool and in-view block editing (src/components/generate/, src/components/DesignPanel.tsx MassingTool)'],
-    [/^src\/brief\.js$/, 'port', 'Generate brief inputs (src/lib/generateStore.ts startingBrief, GenerateTool)'],
+    // From the Massing session (local_ed0f2466, 6 Nov): what was ported, and how to re-check it.
+    [/^src\/gen\.js$/, 'port', 'generator src/engine/dtmassGen.ts and its preview Gen.axon -> src/components/generate/GenAxon.tsx. Re-record: node tools/dtmass-fixtures.cjs <dtmass/src> src/engine/dtmassGen.fixtures.json, then npx vitest run src/engine/dtmassGen.test.ts (it asserts exactly 120 cases: change that number if her case list changes)'],
+    [/^src\/scene3d\.js$/, 'port', 'direct editing src/lib/blockEdit.ts + src/components/MassingEdit3D.tsx: computePush (side face, opposite face fixed; roof in whole storeys), computeMove (on its floor, carrying what rests on it), 0.5 m steps snapping to other faces, Alt = free, one undo per op, Esc cancels. Not ported yet: typed Offset/Final by clicking a face, pickPair (fire separation), constrain to limits'],
+    [/^src\/(brief|model)\.js$/, 'port', 'read by the fixture recorder (Brief.DEF, USE_F2F): re-record the generator fixtures as for gen.js; brief inputs in src/lib/generateStore.ts startingBrief, GenerateTool'],
+    [/^src\/(views|form|stack)\.js$/, 'note', 'not ported yet (views = 2D plan/section, form = taper/twist/import): report what changed; port only when Ruijie asks'],
     [/^src\/(codes|rules|links|checks)\.js$/, 'note', 'her rule packs are not ported: check whether a Toolkit node\'s threshold or source should follow'],
     [/^src\/(site|map|city-data|osm-data|comp-site)\.js$/, 'match', 'Site step (src/components/site/, src/lib/siteActions.ts)'],
     [/^src\/(daylight|daydiag|sun)\.js$/, 'match', 'Daylight and sun nodes (src/engine/daylight*.ts, src/engine/solar*.ts)'],
