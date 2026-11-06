@@ -118,8 +118,10 @@ describe('competition plinth', () => {
       blocks: [[[-247, -143], [237, 139]]], curbs: [[[-252, -148], [242, 144]]], buildings: [{ footprint: [[0, 0], [10, 10]], z0: 0, z1: 5 }],
       heritage: [], labels: [{ text: 'Main', at: [296, 0] }], site: null,
     } as unknown as VtcContext
-    expect(vtcPlinth(ctx)).toEqual({ x0: -280, y0: -170, x1: 320, y1: 170, bottom: -16 })
-    expect(vtcPlinth(null)).toEqual({ x0: -300, y0: -200, x1: 300, y1: 200, bottom: -16 })
+    // A thick ground (6 Nov): 30 m unless a basement asks for more (engine/basement.ts groundThickness).
+    expect(vtcPlinth(ctx)).toEqual({ x0: -280, y0: -170, x1: 320, y1: 170, bottom: -30 })
+    expect(vtcPlinth(null)).toEqual({ x0: -300, y0: -200, x1: 300, y1: 200, bottom: -30 })
+    expect(vtcPlinth(ctx, 20, 46).bottom).toBe(-46)
   })
 })
 
