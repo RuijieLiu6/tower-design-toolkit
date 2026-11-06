@@ -58,7 +58,7 @@ export default function ToolPanel() {
   // `when` conditions read the store; the list follows the stage and the project.
   const tools = useMemo(() => toolsFor(DESIGN_TOOLS, phase, useStore.getState()), [phase, project])
   const noTower = useTowers().length === 0
-  // Massing has three steps (Site, Volume, Program), each with only its own tools.
+  // Massing has three steps (Site, Form, Program), each with only its own tools.
   const stepTools = useMemo(() => (phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step])
   // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
   const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'

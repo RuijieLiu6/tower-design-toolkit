@@ -26,9 +26,23 @@ const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-xs'
 const say = (text: string, kind: 'info' | 'error' = 'info') => useSiteStore.getState().set({ message: { text, kind } })
 
 /** Zoom the 3D view to a local point (model frame, z up). */
-function zoomTo(p: Pt) {
+/**
+ * Flies the view in on an address (Ruijie, 6 Nov: "when you type an address allow the view to zoom in around the
+ * specific site"): north up, about one block around the point (a 180 m square), inside the part of the view the
+ * overlays leave free, as a picked neighbourhood flies (VistaLook flyToFit).
+ */
+function zoomTo(p: Pt, half = 90) {
   const g = useStore.getState().groundElevation
-  useStore.getState().set({ cameraRequest: { position: [p[0] - 260, p[1] - 360, g + 320], target: [p[0], p[1], g], fov: 40 } })
+  const pts: [number, number, number][] = [[p[0] - half, p[1] - half, g], [p[0] + half, p[1] + half, g]]
+  void import('./VistaLook').then((m) => m.flyToFit(pts, 2 * half))
+}
+
+/** Frames a site's lot: the parcel and a margin around it, so its neighbours read. */
+function zoomToRing(ring: Pt[]) {
+  const g = useStore.getState().groundElevation
+  const xs = ring.map((q) => q[0]), ys = ring.map((q) => q[1]), m = 40
+  const pts: [number, number, number][] = [[Math.min(...xs) - m, Math.min(...ys) - m, g], [Math.max(...xs) + m, Math.max(...ys) + m, g]]
+  void import('./VistaLook').then((mod) => mod.flyToFit(pts, 160))
 }
 
 /** The parcel containing a point (outer ring, not in a courtyard), or null. */
@@ -56,6 +70,7 @@ export async function placeSiteAt(p: Pt, label: string, source: string, footprin
   useSiteStore.getState().setSite(newSite(ring, 'parcels', `City parcel at ${parcelLabel(layer, i)} (found from ${source})`, { label, parcelLayer: layer.sha, replaced, parcelsAdd: [i] }))
   breakStep()
   useSiteStore.getState().set({ pending: null, tool: null, marker: { at: p, label, kind: 'address', source } })
+  zoomToRing(ring)
   say(`Site set to the City parcel at ${parcelLabel(layer, i)}: ${fmt(polyArea([ring]))} m²${replaced.length ? `; ${replaced.length} building${replaced.length === 1 ? '' : 's'} on it shown as demolished` : ''}. An address point finds the parcel; the parcel is a dated City snapshot, not a survey.`)
 }
 
@@ -152,7 +167,8 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
     const p = local_(i.place)
     setQ(i.label); setChosen(i.place)
     useSiteStore.getState().set({ marker: { at: p, label: i.label, kind: i.place.kind === 'address' ? 'address' : i.place.kind === 'neighbourhood' ? 'neighbourhood' : 'street', source: i.place.source }, message: null })
-    zoomTo(p)
+    // An address: about one block around it; a street or a neighbourhood: wider.
+    zoomTo(p, i.place.kind === 'address' ? 90 : i.place.kind === 'neighbourhood' ? 700 : 250)
     say(i.place.kind === 'address' ? `${i.label} is marked on the plan. Your site has not moved: choose "Place site here" to use the City parcel there.` : `${i.label} is marked on the plan (a ${i.place.kind === 'neighbourhood' ? 'local area' : 'street'} reference, not an address).`)
   }
   const body = (

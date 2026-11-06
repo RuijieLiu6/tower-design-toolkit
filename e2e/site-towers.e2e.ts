@@ -1,6 +1,6 @@
 // The towers on the site, in the right panel's Your site tab (Ruijie, 5 Nov: "once you add volume in the map, allow the
 // right site panel to indicate that an tower is added, once the user click on the right side button they can name the
-// components and delete them"): Add tower in the Volume step opens Your site with the new tower marked New; its pencil
+// components and delete them"): Add tower in the Form step opens Your site with the new tower marked New; its pencil
 // button opens the name and Delete; Undo brings it back.
 // Run: node node_modules/playwright/cli.js test e2e/site-towers.e2e.ts
 import { expect, test } from '@playwright/test'

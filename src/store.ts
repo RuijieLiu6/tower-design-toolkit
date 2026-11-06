@@ -51,7 +51,7 @@ const cityTower = (): Tower => ({
 })
 
 /**
- * The starting tower of each project, placed by "Place a tower" (Volume step). A project opens with no tower (Ruijie,
+ * The starting tower of each project, placed by "Place a tower" (Form step). A project opens with no tower (Ruijie,
  * 6 Nov: "start the project with no tower, then introduce the placing tower experience"); the first tower stands on the
  * study site's centre (Real Vancouver) or the competition block, and the user then clicks where it goes.
  */
@@ -71,7 +71,7 @@ function ringCentre(ring: [number, number][]): [number, number] {
   return [cx / (3 * a), cy / (3 * a)]
 }
 
-/** What a new project holds: no tower in either project (the Volume step offers "Place a tower"). */
+/** What a new project holds: no tower in either project (the Form step offers "Place a tower"). */
 export const startingTowers = (): Record<ProjectKind, Tower[]> => ({ vtc: [], city: [] })
 
 /** Analysis on or off (the process rail switch), remembered in this browser; on unless switched off here. */
@@ -239,7 +239,7 @@ export const useStore = create<State>((set, get) => ({
     return { towers: { ...s.towers, [s.project]: [...list, withAutoCore(t, s.liftPresets, s.egressPresets)] }, selectedTower: id }
   }),
   removeTower: (id) => set((s) => {
-    // The last tower can go too: the project is back to an empty site (Volume offers "Place a tower" again).
+    // The last tower can go too: the project is back to an empty site (Form offers "Place a tower" again).
     const list = s.towers[s.project].filter((t) => t.id !== id)
     return { towers: { ...s.towers, [s.project]: list }, selectedTower: list[0]?.id ?? '', placing: list.length ? s.placing : false }
   }),

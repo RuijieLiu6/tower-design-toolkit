@@ -41,7 +41,7 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
   const results = p.getByRole('complementary', { name: 'Results and evidence' })
   const bar = p.getByRole('toolbar', { name: 'Checks: switch each on or off' })
 
-  // Massing: tools left (the Volume step's icons, 6 Nov), results right, every Massing check as an icon switch at the bottom.
+  // Massing: tools left (the Form step's icons, 6 Nov), results right, every Massing check as an icon switch at the bottom.
   await expect(tools.getByRole('heading', { name: 'Design tools' })).toBeVisible()
   await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="volume"]').click()
   await expect(tools.getByRole('tab', { name: 'Massing', exact: true })).toBeVisible()

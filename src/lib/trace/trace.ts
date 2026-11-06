@@ -44,7 +44,7 @@ function commit(label: string, kind: IterationKind, live: { hash: string; digest
   // The same design twice in a row is one iteration, unless this records a save or an open.
   if (last && last.hash === live.hash && (kind === 'checkpoint' || kind === 'decision')) return last
   // Sources stay with the live view (rule cards, sources index); stored iterations keep results only, so files stay lean.
-  const digest: Digest = { metrics: live.digest.metrics, lines: live.digest.lines.map(({ source: _source, ...l }) => l) }
+  const digest: Digest = { metrics: live.digest.metrics, lines: live.digest.lines.map(({ source: _source, threshold: _threshold, ...l }) => l) }
   const it: Iteration = { id: newId('i'), at: new Date().toISOString(), label: label.trim() || 'Iteration', kind, hash: live.hash, design: currentDesign(), digest }
   // Drop the oldest iterations past the cap, but never one a decision points to.
   let list = [...s.iterations, it]

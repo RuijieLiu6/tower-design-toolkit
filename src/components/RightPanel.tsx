@@ -34,7 +34,7 @@ function AnalysisOff() {
 
 /** Results before any tower: the checks read the towers, so say what to do first. */
 function NothingToAnalyse() {
-  return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-[11px] text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Volume step, or import a model on the Site step.</p>
+  return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-[11px] text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Form step, or import a model on the Site step.</p>
 }
 
 type Tab = 'site' | 'results' | 'present' | 'render' | 'trace'
@@ -74,7 +74,7 @@ export default function RightPanel() {
   useEffect(() => { if (siteStep) setTab('site') }, [siteStep])
   // Picking a node (selectNode: the bottom bar, the library, the canvas, a role) shows its results; switching stage alone
   // does not, nor does opening Real Vancouver or restoring a project, which set the node directly (Your site stays in view).
-  // A tower added in Massing (Volume step, an upload, a Rhino link): Your site opens and marks it New (lib/towerAdds.ts).
+  // A tower added in Massing (Form step, an upload, a Rhino link): Your site opens and marks it New (lib/towerAdds.ts).
   useEffect(() => watchTowerAdds(), [])
   const addSeq = useTowerAdds((s) => s.seq)
   const unseen = useTowerAdds((s) => Object.keys(s.added).length > 0)

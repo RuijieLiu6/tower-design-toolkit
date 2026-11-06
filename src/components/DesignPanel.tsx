@@ -1,7 +1,7 @@
 // The guided app's design tools (left panel). Each export is one tool's body; the tool definitions that place them in the
 // panel are in tools/builtin.tool.tsx.
 import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Crosshair, Expand, Plus, Scissors, Sparkles, Trash2 } from './icons'
+import { ArrowDown, ArrowUp, Crosshair, Expand, Move, Plus, Scissors, Sparkles, Trash2 } from './icons'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
 import { stablePostedLimit } from '../engine/skyRoom'
@@ -169,17 +169,24 @@ export function TowersTool() {
   if (!t) return null
   return (
     <>
-      <ToolBlock title="Towers" right={<button onClick={addTower} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add tower</button>}>
+      <ToolBlock title="Towers">
         <div className="flex flex-wrap gap-1">
           {towers.map((x) => (
             <button key={x.id} onClick={() => selectTower(x.id)} aria-pressed={x.id === t.id} className={`rounded-md border px-2 py-1 text-xs ${x.id === t.id ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{x.name}</button>
           ))}
         </div>
-        <div className="mt-2 flex gap-2">
-          <button onClick={() => set({ placing: !placing })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${placing ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`} title="Then click the ground in the 3D view (P)">
-            <Crosshair size={13} />{placing ? 'Click the ground…' : 'Place on map'}
+        {/* Add, Move and Delete side by side, at one level (Ruijie, 6 Nov): the three things done to a tower here. */}
+        <div role="group" aria-label="Tower actions" className="mt-2 grid grid-cols-3 gap-1.5">
+          <button type="button" onClick={addTower} aria-label="Add tower" title="Add a tower next to the last one" className="flex items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink hover:border-accent">
+            <Plus size={14} className="text-accent" />Add
           </button>
-          {towers.length > 0 && <button onClick={() => removeTower(t.id)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-muted hover:text-red-700"><Trash2 size={13} />Remove</button>}
+          <button type="button" onClick={() => set({ placing: !placing })} aria-pressed={placing} aria-label={placing ? 'Moving: click the ground' : `Move ${t.name}`} title="Then click the ground in the 3D view where it should stand (P)"
+            className={`flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium ${placing ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>
+            {placing ? <Crosshair size={14} /> : <Move size={14} className="text-accent" />}{placing ? 'Click…' : 'Move'}
+          </button>
+          <button type="button" onClick={() => removeTower(t.id)} aria-label={`Delete ${t.name}`} title={`Delete ${t.name} (Undo brings it back)`} className="flex items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink hover:border-red-400 hover:text-red-700">
+            <Trash2 size={14} className="text-red-700" />Delete
+          </button>
         </div>
       </ToolBlock>
       {project === 'city' && (

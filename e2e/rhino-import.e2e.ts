@@ -57,8 +57,8 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   // The tool now shows what came in. Past Site it leaves the panel (Ruijie, 6 Nov), and the imported towers are there.
   await expect(tool).toHaveText(/Upload a new version/)
   await expect(page.getByText('typical-two-towers-mm.3dm').first()).toBeVisible()
-  await rail.getByRole('button', { name: 'Volume' }).click()
-  await expect(rail.getByRole('button', { name: 'Volume' })).toHaveAttribute('aria-current', 'step')
+  await rail.getByRole('button', { name: 'Form' }).click()
+  await expect(rail.getByRole('button', { name: 'Form' })).toHaveAttribute('aria-current', 'step')
   await expect(tile).toHaveCount(0)
   await expect(page.locator('[role="tab"][data-tool="towers"]')).toBeVisible()
 })

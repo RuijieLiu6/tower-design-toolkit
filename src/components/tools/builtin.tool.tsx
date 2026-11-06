@@ -19,7 +19,7 @@ const tools: DesignTool[] = [
     hint: 'Uses by floor band, floor area and FSR', component: ProgramTool },
   { id: 'ground', label: 'Ground & public realm', short: 'Ground', icon: PersonStanding, stages: ['basic'], order: 40, when: (s) => s.project === 'vtc',
     hint: 'Streetwall, frontage, open space, transit link', component: GroundTool },
-  { id: 'sun', label: 'Sun & time', short: 'Sun', icon: Sun, stages: ['basic', 'advanced'], order: { basic: 50, advanced: 150 },
+  { id: 'sun', label: 'Sun & time', short: 'Sun', icon: Sun, stages: ['basic', 'advanced'], order: { basic: 14, advanced: 150 },
     hint: 'Date and hour for shadows and sun views', component: SunTool },
 ]
 

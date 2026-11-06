@@ -38,6 +38,7 @@ import { CONE_STYLE, FlagChip, Section, StateChip } from './ui'
 import { U } from './Units'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
+import ResultChecklist, { DetailsFold } from './ResultChecklist'
 
 function RuleCard({ r }: { r: RuleResult }) {
   return (
@@ -328,6 +329,9 @@ export default function Inspector() {
         {wrongProject && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-[11px] text-slate-700">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
       </div>
 
+      {/* Results at a glance (Ruijie, 6 Nov): pass or fail with what to fix; the full cards fold under Details. */}
+      {enabled[n.id] && !wrongProject && <ResultChecklist nodeId={n.id} />}
+      <DetailsFold nodeId={enabled[n.id] && !wrongProject ? n.id : ''}>
       {n.id === 'built.vtc-rules' && project === 'vtc' && enabled[n.id] && (
         <Section title="Results">
           <div className="grid gap-2">
@@ -472,6 +476,7 @@ export default function Inspector() {
       {n.id === 'built.wind-screen' && enabled[n.id] && <WindScreenResults />}
       {n.id === 'built.trips' && enabled[n.id] && <TripsResults />}
       {enabled[n.id] && <RulesBehind nodeId={n.id} />}
+      </DetailsFold>
 
       {n.human &&<Section title="What stays with people"><p className="text-xs text-slate-700">{n.human}</p></Section>}
 

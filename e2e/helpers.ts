@@ -1,10 +1,10 @@
 // Shared steps for the browser tests. A project opens with no tower (Ruijie, 6 Nov), so tests that read a tower place
-// the starting tower first, the way a user does: Volume step › "Place a tower", Esc to keep it where it lands.
+// the starting tower first, the way a user does: Form step › "Place a tower", Esc to keep it where it lands.
 import type { Page } from '@playwright/test'
 
 /**
  * Places the open project's starting tower (if it has none). Goes back to the step the test was on, unless `stay`
- * (then the Volume step stays open, where the tower tools are).
+ * (then the Form step stays open, where the tower tools are).
  */
 export async function placeStartingTower(p: Page, { stay = false } = {}) {
   const rail = p.getByRole('navigation', { name: 'Design process' })
