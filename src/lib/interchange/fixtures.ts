@@ -177,6 +177,26 @@ export function nestedBlocks(rh: Rh): FixtureFile {
   return { name: 'nested-blocks-m.3dm', about: 'Blocks: a nested Tower block placed plainly, rotated 30 degrees and scaled 1.5 in plan, mirrored, and once on a hidden layer', bytes: doc.toByteArray() }
 }
 
+/**
+ * A model as the Rhino link (public/rhino/tdt_link.py 2.x) sends it: metres, its Toolkit layers (tower, below grade,
+ * landscape, urban design), a basement volume 6.4 m deep under the tower, and the link's document settings.
+ */
+export function rhinoLinkModel(rh: Rh): FixtureFile {
+  const doc = new rh.File3dm()
+  doc.settings().modelUnitSystem = rh.UnitSystem.Meters
+  const L = (path: string, c: [number, number, number]) => doc.layers().addLayer(path, { r: c[0], g: c[1], b: c[2], a: 255 })
+  const tower = L('Toolkit::Tower massing', [31, 95, 139]), below = L('Toolkit::Below grade', [61, 90, 128])
+  const land = L('Toolkit::Landscape', [111, 159, 90]), urban = L('Toolkit::Urban design', [179, 154, 107])
+  const o = doc.objects()
+  o.add(extrusion(rh, -15, -15, 15, 15, 120, 1), attrs(rh, tower, 'Tower'))
+  o.add(meshBox(rh, -30, -25, -6.4, 30, 25, 0, 1), attrs(rh, below, 'Parking'))
+  o.add(meshBox(rh, 40, -10, 0, 60, 0, 0.3, 1), attrs(rh, land, 'Lawn'))
+  o.add(meshBox(rh, 40, 5, 0, 42, 7, 4, 1), attrs(rh, urban, 'Canopy'))
+  doc.strings().set('tdt.ground_z', '0')
+  doc.strings().set('tdt.basement_f2f', '3.2')
+  return { name: 'rhino-link-m.3dm', about: 'The Rhino link: Toolkit layers, a basement under the tower, landscape and a canopy, link settings in document text', bytes: doc.toByteArray() }
+}
+
 export function rhinoFixtures(rh: Rh): FixtureFile[] {
-  return [typicalTower(rh), mixedUnitsNoNorth(rh), noGeometry(rh), noRenderMesh(rh), nestedBlocks(rh)]
+  return [typicalTower(rh), mixedUnitsNoNorth(rh), noGeometry(rh), noRenderMesh(rh), nestedBlocks(rh), rhinoLinkModel(rh)]
 }

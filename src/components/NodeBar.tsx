@@ -32,7 +32,7 @@ export const NODE_WORDS: Record<string, string> = {
   'built.daylight-depth': 'Daylight', 'built.view-from': 'View from', 'built.vista': 'Vista', 'built.heights': 'Height',
   'built.pr-streetwall': 'Streetwall', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
   'built.city-in-nature': 'Nature', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
-  'built.structure': 'Structure', 'built.wind-study': 'Wind trigger', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',
+  'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',
   'built.energy-carbon': 'Energy',
 }
 /** A node without a word of its own (a community node): the first word of its name. */

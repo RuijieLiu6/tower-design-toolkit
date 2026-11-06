@@ -17,6 +17,7 @@ import ImportedPanel from './ImportedPanel'
 import PublicRealmPanel from './PublicRealmPanel'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
 import Fold from './Fold'
+import IconTile from './IconTile'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
 import { GenerateFold, MassingEditCard, useMassingEditSession } from './MassingEditPanel'
@@ -176,18 +177,12 @@ export function TowersTool() {
             <button key={x.id} onClick={() => selectTower(x.id)} aria-pressed={x.id === t.id} className={`rounded-md border px-2 py-1 text-xs ${x.id === t.id ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{x.name}</button>
           ))}
         </div>
-        {/* Add, Move and Delete side by side, at one level (Ruijie, 6 Nov): the three things done to a tower here. */}
-        <div role="group" aria-label="Tower actions" className="mt-2 grid grid-cols-3 gap-1.5">
-          <button type="button" onClick={addTower} aria-label="Add tower" title="Add a tower next to the last one" className="flex items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink hover:border-accent">
-            <Plus size={14} className="text-accent" />Add
-          </button>
-          <button type="button" onClick={() => set({ placing: !placing })} aria-pressed={placing} aria-label={placing ? 'Moving: click the ground' : `Move ${t.name}`} title="Then click the ground in the 3D view where it should stand (P)"
-            className={`flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium ${placing ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>
-            {placing ? <Crosshair size={14} /> : <Move size={14} className="text-accent" />}{placing ? 'Click…' : 'Move'}
-          </button>
-          <button type="button" onClick={() => removeTower(t.id)} aria-label={`Delete ${t.name}`} title={`Delete ${t.name} (Undo brings it back)`} className="flex items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink hover:border-red-400 hover:text-red-700">
-            <Trash2 size={14} className="text-red-700" />Delete
-          </button>
+        {/* Add, Move and Delete side by side, at one level (Ruijie, 6 Nov), as icons with a key word like every tool. */}
+        <div role="group" aria-label="Tower actions" className="mt-2 flex flex-wrap gap-0.5">
+          <IconTile size="sm" icon={Plus} word="Add" label="Add tower" onClick={addTower} hint="A new tower next to the last one, 30 m lower and without a podium." />
+          <IconTile size="sm" icon={placing ? Crosshair : Move} word="Move" label={`Move ${t.name}`} active={placing} aria-pressed={placing} onClick={() => set({ placing: !placing })}
+            hint={placing ? 'Click the ground in the 3D view where it should stand, then Confirm. Esc stops.' : 'Then click the ground in the 3D view where it should stand. Key: P.'} />
+          <IconTile size="sm" icon={Trash2} word="Delete" label={`Delete ${t.name}`} onClick={() => removeTower(t.id)} hint="Undo brings it back." />
         </div>
       </ToolBlock>
       {project === 'city' && (
@@ -401,11 +396,12 @@ export function CoreTool() {
             })}
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => set({ sectionOn: !sectionOn, explode: false })} aria-pressed={sectionOn}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${sectionOn ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Scissors size={13} />Section cut</button>
-          <button onClick={() => set({ explode: !explode, sectionOn: false })} aria-pressed={explode}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${explode ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}><Expand size={13} />Explode zones</button>
+        {/* Views of the model in the 3D viewport, as icons with a key word like every tool (Ruijie, 6 Nov). */}
+        <div className="flex gap-0.5">
+          <IconTile size="sm" icon={Scissors} word="Section" label="Section cut" active={sectionOn} aria-pressed={sectionOn} onClick={() => set({ sectionOn: !sectionOn, explode: false })}
+            hint="Cuts the tower at a height in the 3D view to show the plate, core and stairs; set the height below." />
+          <IconTile size="sm" icon={Expand} word="Explode" label="Explode zones" active={explode} aria-pressed={explode} onClick={() => set({ explode: !explode, sectionOn: false })}
+            hint="Pulls the use zones apart in the 3D view to show what sits where." />
         </div>
         {sectionOn && <NumberField label="Cut height above grade" value={sectionLevel} onChange={(v) => set({ sectionLevel: Math.min(top - 1, Math.max(1, v)) })} min={1} max={Math.max(2, Math.floor(top - 1))} step={1} unit="m" />}
         <LiftPresetFields presets={liftPresets} onChange={setLiftPresets} />

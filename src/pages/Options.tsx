@@ -185,7 +185,7 @@ export default function Options() {
               className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1 text-xs outline-none focus:border-accent" onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
           </label>
           <button onClick={save} disabled={options.length >= MAX_OPTIONS} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white outline-none hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Save size={14} aria-hidden />Save option</button>
-          <span role="status" className="w-full text-[11px] text-muted">{msg || 'An option keeps the design and every result with its evidence flag at the moment you save it. Change the design in the guided app, then save the next one.'}</span>
+          <span role="status" className="w-full text-[11px] text-muted">{msg || 'Saves the design and every result as they are now. Change the design, then save the next one.'}</span>
           {error && <span className="w-full text-[11px] text-red-800">{error}</span>}
         </section>
 

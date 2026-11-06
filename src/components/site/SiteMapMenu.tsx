@@ -23,6 +23,8 @@ import { useViewFromStore } from '../../lib/viewFromStore'
 import { useStore } from '../../store'
 import { useCityData, useCityObstacles } from '../CityContext'
 import { useHeightSurface } from '../HeightSurface'
+import IconTile from '../IconTile'
+import Help from '../Help'
 
 /** A press that moved more than this before release was an orbit, not a click (pixels). */
 const CLICK_SLOP = 6
@@ -200,8 +202,8 @@ function MenuAt({ data }: { data: CityData }) {
   const { layer, error: layerError } = useParcelLayer(!!menu)
   const sel = useStore((s) => s.selectedTower)
   const towers = useStore((s) => s.towers.city)
-  const first = useRef<HTMLButtonElement>(null)
-  useEffect(() => { if (menu) requestAnimationFrame(() => first.current?.focus()) }, [menu?.at[0], menu?.at[1]]) // eslint-disable-line react-hooks/exhaustive-deps
+  const list = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (menu) requestAnimationFrame(() => list.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not([disabled])')?.focus()) }, [menu?.at[0], menu?.at[1]]) // eslint-disable-line react-hooks/exhaustive-deps
   const siteLots = useMemo(() => lotsOfSite(site, match?.included), [site, match])
   if (!menu) return null
   const t = towers.find((k) => k.id === sel) ?? towers[0]
@@ -209,19 +211,21 @@ function MenuAt({ data }: { data: CityData }) {
   const close = () => useSiteStep.setState({ menu: null })
   const lotIn = menu.lot !== null && siteLots.includes(menu.lot)
   const withLayer = (fn: (l: ParcelLayer) => void) => () => { close(); if (layer) fn(layer); else loadParcelLayer().then(fn, (e: Error) => tell(`The City parcel layer did not load (${e.message}).`, { kind: 'error', ...where })) }
-  type Item = { key: string; icon: typeof Box; label: string; hint: string; run: () => void; disabled?: boolean }
+  // Each action is an icon with a key word, its full name and what it does on hover (Ruijie, 6 Nov; IconTile.tsx).
+  type Item = { key: string; icon: typeof Box; word: string; label: string; hint: string; run: () => void; disabled?: boolean }
   const items: Item[] = []
   // No tower yet (a project opens empty, 6 Nov): the project's starting tower is placed and proposed at the click.
-  items.push({ key: 'build', icon: Building2, label: 'Build the massing here', hint: t ? `${t.name}, lined up with the lot; confirm in the toolbar (Enter)` : 'Your first tower, lined up with the lot; confirm in the toolbar (Enter)',
+  items.push({ key: 'build', icon: Building2, word: 'Build', label: 'Build the massing here', hint: `${t ? t.name : 'Your first tower'}, lined up with the lot under the click. A proposal: Confirm or Cancel in the toolbar.`,
     run: () => {
       close()
       let k: typeof t | undefined = towers.length ? t : undefined
       if (!k) { useStore.getState().addTower(); const st = useStore.getState(); k = st.towers[st.project].find((x) => x.id === st.selectedTower) }
-      if (k && proposePlace(k.id, menu.at[0], menu.at[1])) tell(`${k.name} proposed here, lined up with the lot under the click. Confirm (Enter) or Cancel (Esc) in the toolbar; Confirm is one undo step.`, where)
+      // A note on the map only: the toolbar's proposal card has Confirm and Cancel (no second note in Your site).
+      if (k && proposePlace(k.id, menu.at[0], menu.at[1])) tell(`${k.name} proposed here. Confirm or Cancel in the toolbar.`, { ...where, panel: false })
     } })
   if (menu.building !== null) {
-    items.push({ key: 'replace', icon: Hammer, label: 'Replace this building', hint: 'Shown as demolished; Undo brings it back', run: () => { close(); replaceBuildings([menu.building!], data.footprints, where, 'this building') } })
-    items.push({ key: 'multi', icon: MousePointerClick, label: 'Select several buildings to replace', hint: 'Click more buildings (or Shift-click), then Done', run: () => {
+    items.push({ key: 'replace', icon: Hammer, word: 'Replace', label: 'Replace this building', hint: 'Your design replaces it: shown as demolished. Undo brings it back.', run: () => { close(); replaceBuildings([menu.building!], data.footprints, where, 'this building') } })
+    items.push({ key: 'multi', icon: MousePointerClick, word: 'Select', label: 'Select several buildings to replace', hint: 'Click more buildings (or Shift-click), then Done at the top of the view.', run: () => {
       close()
       useSiteStore.getState().set({ tool: 'pick', picked: [menu.building!], draft: [], message: null })
       useSiteStep.setState({ multi: true })
@@ -229,38 +233,34 @@ function MenuAt({ data }: { data: CityData }) {
   }
   if (menu.lot !== null) {
     const lot = menu.lot
-    if (siteLots.length && !lotIn) items.push({ key: 'add', icon: SquarePlus, label: 'Add this lot to the site', hint: `Combine with the ${siteLots.length} lot${siteLots.length === 1 ? '' : 's'} of the site (shared lot lines only)`, run: withLayer((l) => siteFromLots([...siteLots, lot], lotLayerOf(l), data.footprints, 'add', where)) })
-    if (lotIn && siteLots.length > 1) items.push({ key: 'remove', icon: SquareMinus, label: 'Remove this lot from the site', hint: 'The other lots stay combined', run: withLayer((l) => siteFromLots(siteLots.filter((k) => k !== lot), lotLayerOf(l), data.footprints, 'remove', where)) })
-    if (!lotIn || siteLots.length > 1) items.push({ key: 'use', icon: Square, label: site ? 'Use this lot alone as the site' : 'Use this lot as the site', hint: site ? 'Replaces the current site' : 'The City parcel; buildings on it shown as demolished', run: withLayer((l) => siteFromLots([lot], lotLayerOf(l), data.footprints, 'use', where)) })
+    if (siteLots.length && !lotIn) items.push({ key: 'add', icon: SquarePlus, word: 'Add lot', label: 'Add this lot to the site', hint: `Joins the ${siteLots.length} lot${siteLots.length === 1 ? '' : 's'} of the site (lots that share a lot line).`, run: withLayer((l) => siteFromLots([...siteLots, lot], lotLayerOf(l), data.footprints, 'add', where)) })
+    if (lotIn && siteLots.length > 1) items.push({ key: 'remove', icon: SquareMinus, word: 'Remove lot', label: 'Remove this lot from the site', hint: 'The other lots stay joined.', run: withLayer((l) => siteFromLots(siteLots.filter((k) => k !== lot), lotLayerOf(l), data.footprints, 'remove', where)) })
+    if (!lotIn || siteLots.length > 1) items.push({ key: 'use', icon: Square, word: 'Use lot', label: site ? 'Use this lot alone as the site' : 'Use this lot as the site', hint: site ? 'This City lot becomes the site, in place of the current one.' : 'This City lot becomes the site; buildings on it are shown as demolished.', run: withLayer((l) => siteFromLots([lot], lotLayerOf(l), data.footprints, 'use', where)) })
   }
-  items.push({ key: 'box', icon: Combine, label: 'Draw a box over lots…', hint: 'Every lot the box touches, combined into one site (one block)', run: () => { close(); useSiteStep.setState({ box: true, boxDraft: null }); tell('Drag a box across the lots to combine (the view holds still while you drag). Esc cancels.', where) } })
+  items.push({ key: 'box', icon: Combine, word: 'Combine', label: 'Combine lots: draw a box over them', hint: 'Drag a box across City lots: every lot it touches joins into one site (one block at a time).', run: () => { close(); useSiteStep.setState({ box: true, boxDraft: null }); tell('Drag a box across the lots to combine (the view holds still while you drag). Esc cancels.', where) } })
 
   const onKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const btns = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]:not([disabled])')]
     const k = btns.indexOf(document.activeElement as HTMLButtonElement)
-    if (e.key === 'ArrowDown') { e.preventDefault(); btns[(k + 1) % btns.length]?.focus() }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); btns[(k - 1 + btns.length) % btns.length]?.focus() }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); btns[(k + 1) % btns.length]?.focus() }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); btns[(k - 1 + btns.length) % btns.length]?.focus() }
     else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
   }
   return (
     <Html position={[menu.at[0], menu.at[1], menu.z + 2]} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto' }}>
       <div data-testid="site-map-menu" onKeyDown={onKey} onPointerDown={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}
         style={{ transform: `translate(${menu.place?.left ? 'calc(-100% - 8px)' : '8px'}, ${menu.place?.up ? 'calc(-100% - 8px)' : '8px'})`, maxHeight: menu.place?.maxH }}
-        className={`${card} w-72 overflow-y-auto p-1 text-[12px]`}>
+        className={`${card} w-[17rem] overflow-y-auto p-1 text-[12px]`}>
         <div className="flex items-start gap-1 px-2 pb-1 pt-1.5">
           <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted">
             <div className="truncate" title={menu.buildingLabel ?? undefined}>{menu.buildingLabel ?? 'No building here'}</div>
-            <div className="truncate" title={menu.lotLabel ?? undefined}>{menu.lot !== null ? `Lot at ${menu.lotLabel}` : layer ? 'No City lot here (street, water, or outside the parcel layer, which covers downtown)' : layerError ? `City lots did not load: ${layerError}` : 'Loading the City lots…'}</div>
+            <div className="truncate" title={menu.lotLabel ?? undefined}>{menu.lot !== null ? `Lot at ${menu.lotLabel}` : layer ? 'No City lot here' : layerError ? `City lots did not load: ${layerError}` : 'Loading the City lots…'}</div>
           </div>
           <button type="button" aria-label="Close the menu" onClick={close} className="rounded p-0.5 text-muted hover:bg-black/5 hover:text-ink"><X size={14} /></button>
         </div>
-        <div role="menu" aria-label="Site actions here">
-        {items.map((it, k) => (
-          <button key={it.key} ref={k === 0 ? first : undefined} type="button" role="menuitem" disabled={it.disabled} onClick={it.run} data-action={it.key}
-            className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left outline-none hover:bg-accent/10 focus-visible:bg-accent/10 focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">
-            <it.icon size={15} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-            <span className="min-w-0"><span className="block font-medium">{it.label}</span><span className="block text-[11px] text-muted">{it.hint}</span></span>
-          </button>
+        <div ref={list} role="menu" aria-label="Site actions here" className="flex flex-wrap gap-0.5 px-0.5 pb-0.5">
+        {items.map((it) => (
+          <IconTile key={it.key} size="sm" role="menuitem" icon={it.icon} word={it.word} label={it.label} hint={it.hint} disabled={it.disabled} onClick={it.run} data-action={it.key} />
         ))}
         </div>
       </div>
@@ -288,9 +288,10 @@ function MultiBar({ data }: { data: CityData }) {
     <Html calculatePosition={topCentre} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto', transform: 'translateX(-50%)' }}>
       <div role="toolbar" aria-label="Select buildings to replace" data-testid="site-multi-bar" className={`${card} flex items-center gap-2 whitespace-nowrap px-3 py-1.5 text-[12px]`} onPointerDown={(e) => e.stopPropagation()}>
         <MousePointerClick size={14} className="text-accent" aria-hidden />
-        <span role="status"><b>{ids.size}</b> building{ids.size === 1 ? '' : 's'} selected · click (or Shift-click) more to add or drop</span>
-        <button type="button" onClick={done} disabled={!picked.length} className="flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 font-medium text-white disabled:opacity-50"><Check size={13} />Done: replace</button>
-        <button type="button" onClick={cancel} className="rounded-md border border-line px-2 py-0.5">Cancel</button>
+        <span role="status"><b>{ids.size}</b> building{ids.size === 1 ? '' : 's'} selected</span>
+        <Help label="How to select">Click (or Shift-click) more buildings to add them, or a selected one to drop it. Done replaces them: they are shown as demolished, and Undo brings them back.</Help>
+        <IconTile layout="inline" primary icon={Check} word="Done" label="Done: replace them" disabled={!picked.length} onClick={done} hint="The selected buildings are shown as demolished; Undo brings them back." />
+        <IconTile layout="inline" icon={X} word="Cancel" label="Cancel the selection" onClick={cancel} className="border border-line bg-white" hint="Nothing is replaced." />
       </div>
     </Html>
   )

@@ -12,6 +12,7 @@ import { useCommunityNodes } from './community'
 import { GROUP_COLORS, useEditor, type WfNodeT } from './editorStore'
 import { StateWord } from './WfNodes'
 import Help from '../Help'
+import Fold from '../Fold'
 
 function Block({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   return (
@@ -69,24 +70,25 @@ function Overview() {
         </label>
         <p className="mt-1.5 text-[11px] text-muted">{nodes.filter((n) => n.type !== 'wfgroup').length} nodes · {edges.length} wires · {runnable.length} of {evals.length} checks runnable</p>
       </Block>
+      {/* How to build: the two moves stay in sight, the shortcuts fold behind them (Ruijie, 6 Nov: long texts behind a
+          summary that says their point; components/Fold.tsx). */}
       <Block title="How to build" right={<Keyboard size={13} className="text-muted" aria-hidden />}>
-        <ul className="space-y-1 text-[11px] text-ink/80">
-          <li>Drag a tile from the ribbon, or <Kbd>/</Kbd> / double-click the canvas to search</li>
-          <li>Wire an output dot to an input dot of the same colour</li>
-          <li><Kbd>Del</Kbd> remove · <Kbd>Ctrl</Kbd><Kbd>Z</Kbd> undo · <Kbd>Ctrl</Kbd><Kbd>Y</Kbd> redo</li>
-          <li><Kbd>Ctrl</Kbd><Kbd>G</Kbd> group selected · <Kbd>Ctrl</Kbd><Kbd>D</Kbd> duplicate · <Kbd>Ctrl</Kbd><Kbd>S</Kbd> save</li>
-          <li>Drag on the empty canvas to box-select (<Kbd>Ctrl</Kbd><Kbd>A</Kbd> all); right-drag or <Kbd>Space</Kbd>-drag to pan; scroll to zoom; <Kbd>F</Kbd> fits the view</li>
-        </ul>
+        <p className="text-[11px] text-ink/80">Drag a tile onto the canvas (or press <Kbd>/</Kbd>), then wire an output dot to an input dot of the same colour.</p>
+        <Fold className="mt-1.5" summary="Keyboard and mouse">
+          <span><Kbd>Del</Kbd> remove · <Kbd>Ctrl</Kbd><Kbd>Z</Kbd> undo · <Kbd>Ctrl</Kbd><Kbd>Y</Kbd> redo</span>
+          <span><Kbd>Ctrl</Kbd><Kbd>G</Kbd> group selected · <Kbd>Ctrl</Kbd><Kbd>D</Kbd> duplicate · <Kbd>Ctrl</Kbd><Kbd>S</Kbd> save</span>
+          <span>Double-click the canvas to search. Drag on the empty canvas to box-select (<Kbd>Ctrl</Kbd><Kbd>A</Kbd> all); right-drag or <Kbd>Space</Kbd>-drag to pan; scroll to zoom; <Kbd>F</Kbd> fits the view.</span>
+        </Fold>
       </Block>
       <Block title="Ports">
         <ul className="grid grid-cols-2 gap-1 text-[11px]">
           {(Object.keys(PORT_COLOR) as PortType[]).map((t) => <li key={t} className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PORT_COLOR[t] }} />{PORT_LABEL[t]}</li>)}
         </ul>
-        <p className="mt-1.5 text-[10.5px] text-muted">Layer 0 sources feed checks; checks feed logic. Logic can feed more logic.</p>
+        <p className="mt-1.5 flex items-center gap-1 text-[10.5px] text-muted">Sources feed checks; checks feed logic<Help label="About ports">Layer 0 sources feed checks; checks feed logic, and logic can feed more logic. A wire joins an output to an input of the same colour.</Help></p>
       </Block>
       <Block title="Evidence">
         <div className="flex flex-wrap gap-1">{FLAGS.map((f) => <FlagChip key={f} flag={f} />)}</div>
-        <p className="mt-1.5 text-[10.5px] text-muted">Logic nodes show the weakest flag of what flows in, so a false assumption upstream stays visible in magenta.</p>
+        <p className="mt-1.5 text-[10.5px] text-muted">Logic shows the weakest flag that flows in, so a false assumption upstream stays magenta.</p>
       </Block>
     </>
   )

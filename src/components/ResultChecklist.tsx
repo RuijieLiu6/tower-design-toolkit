@@ -5,16 +5,14 @@
 // current), and for view cones from the cone checks themselves, one per cone the tower enters. The full cards, sources,
 // flags and settings stay below under Details.
 import { useMemo, type ReactNode } from 'react'
-import { CircleAlert, CircleCheck, CircleHelp, CircleX, Wrench } from './icons'
+import { CircleCheck } from './icons'
 import type { RuleState } from '../engine/types'
 import { useResults } from '../hooks/useResults'
 import { byState, coneRows, fixFor, ruleKey, STATE_WORD, type CheckRow } from '../lib/fixes'
 import { nodeOfLine } from '../lib/options'
 import { useTrace } from '../lib/trace/trace'
-import { FlagChip } from './ui'
+import StatusRow, { STATUS_ICON as ICON } from './StatusRow'
 
-const ICON: Record<RuleState, typeof CircleCheck> = { pass: CircleCheck, fail: CircleX, warn: CircleAlert, unknown: CircleHelp }
-const TONE: Record<RuleState, string> = { pass: 'text-emerald-700', fail: 'text-red-700', warn: 'text-amber-700', unknown: 'text-slate-500' }
 const CHIP: Record<RuleState, string> = { pass: 'border-emerald-200 bg-emerald-50 text-emerald-800', fail: 'border-red-200 bg-red-50 text-red-800', warn: 'border-amber-200 bg-amber-50 text-amber-900', unknown: 'border-slate-200 bg-slate-50 text-slate-700' }
 const ORDER: RuleState[] = ['fail', 'warn', 'unknown', 'pass']
 
@@ -39,18 +37,9 @@ export function useCheckRows(nodeId: string): { rows: CheckRow[]; extra: string 
   }, [nodeId, digest, cones])
 }
 
+/** One result: the shared status row (StatusRow.tsx), also used by the viewport's proposal card. */
 function Row({ r }: { r: CheckRow }) {
-  const Icon = ICON[r.state]
-  return (
-    <li className="grid grid-cols-[1.25rem_1fr] gap-x-1.5 py-1.5" data-testid="check-row" data-state={r.state}>
-      <Icon size={18} className={`mt-px ${TONE[r.state]}`} aria-hidden />
-      <div className="min-w-0">
-        <p className="text-xs leading-snug"><span className="sr-only">{STATE_WORD[r.state]}: </span><b className="font-semibold text-ink">{r.title}</b> <span className="text-muted">· {r.value}</span></p>
-        {r.fix && <p className="mt-0.5 flex items-start gap-1 text-[11px] leading-snug text-ink"><Wrench size={12} className="mt-px shrink-0 text-accent" aria-hidden /><span><span className="sr-only">How to fix: </span>{r.fix}</span></p>}
-        {r.state !== 'pass' && (r.flag === 'unverified' || r.flag === 'unresolved' || r.flag === 'false_assumption') && <span className="mt-0.5 inline-flex"><FlagChip flag={r.flag} /></span>}
-      </div>
-    </li>
-  )
+  return <StatusRow state={r.state} title={r.title} value={r.value} fix={r.fix} flag={r.flag} testId="check-row" />
 }
 
 export default function ResultChecklist({ nodeId }: { nodeId: string }) {

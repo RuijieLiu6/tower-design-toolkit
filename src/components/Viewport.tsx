@@ -49,6 +49,7 @@ import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/p
 import { groundThickness } from '../engine/basement'
 import BelowGrade from './BelowGrade'
 import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
 import { VistaChrome, VistaLookRig } from './VistaLook'
@@ -601,6 +602,7 @@ function CameraRig() {
 export default function Viewport() {
   const project = useStore((s) => s.project)
   const phase = useStore((s) => s.phase)
+  const looking = useViewFromStore((s) => s.looking)
   const placing = useStore((s) => s.placing)
   const selected = useStore((s) => s.selectedTower)
   // Only the sun switch matters here; each overlay reads its own switch. Reading the whole map re-rendered the 3D scene
@@ -659,7 +661,8 @@ export default function Viewport() {
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
           {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
-          {phase === 'advanced' && sel && !hidden && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : 'right-12'} />}
+          {/* Not at eye level (Observer: its corner map takes the bottom right, and the view is not an axonometric). */}
+          {phase === 'advanced' && sel && !hidden && !looking && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : project === 'city' ? 'right-3' : 'right-12'} />}
         </div>
       </div>
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
@@ -696,10 +699,11 @@ function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
     ['LOD', '100 · space reservation'],
   ]
   return (
-    <div className={`pointer-events-none absolute bottom-3 ${clear} border border-[#2b3f55]/40 bg-panel/75 font-mono text-[10px] text-[#2b3f55] backdrop-blur-md ${fade}`}>
+    // At most 17.5 rem wide, so Real Vancouver's legend (which leaves 19 rem in Schematic, VistaLook.tsx) never runs under it.
+    <div className={`pointer-events-none absolute bottom-3 ${clear} max-w-[17.5rem] border border-[#2b3f55]/40 bg-panel/75 font-mono text-[10px] text-[#2b3f55] backdrop-blur-md ${fade}`}>
       <div className="border-b border-[#2b3f55]/30 px-2 py-1 font-semibold uppercase tracking-wider">Schematic · x-ray axonometric</div>
       <div className="grid grid-cols-[auto_auto] gap-x-3 px-2 py-1">
-        {rows.flatMap(([k, v]) => [<span key={`${k}k`} className="uppercase opacity-70">{k}</span>, <span key={`${k}v`}>{v}</span>])}
+        {rows.flatMap(([k, v]) => [<span key={`${k}k`} className="uppercase opacity-70">{k}</span>, <span key={`${k}v`} className="truncate" title={v}>{v}</span>])}
       </div>
     </div>
   )
