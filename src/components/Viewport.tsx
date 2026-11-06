@@ -44,6 +44,8 @@ import ViewGuard from './ViewGuard'
 import { BRIEF_SITE, useVtcSource } from '../lib/vtcContextSource'
 import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
 import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
+import { groundThickness } from '../engine/basement'
+import BelowGrade from './BelowGrade'
 import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
@@ -95,7 +97,9 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   const site = ctx?.site ?? BRIEF_SITE
   const towers = useTowers()
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
-  const plinth = useMemo(() => vtcPlinth(ctx), [ctx])
+  // A thick ground (at least 30 m, 10 m under the deepest basement) that basements are dug into (engine/basement.ts).
+  const thickness = useMemo(() => groundThickness(towers), [towers])
+  const plinth = useMemo(() => vtcPlinth(ctx, 20, thickness), [ctx, thickness])
   const ring = useMemo(() => plinthRing(plinth, () => SEA_Z), [plinth])
   useEffect(() => registerGround({ at: () => 0, plinth }), [plinth])
   return (
@@ -641,6 +645,7 @@ export default function Viewport() {
               <TowerGizmo />
             </group>
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
+              <BelowGrade />
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
             <CameraRig />
             <NorthTurnRig />

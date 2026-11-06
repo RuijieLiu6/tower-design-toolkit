@@ -24,10 +24,11 @@ const VTC_DEFAULT: Plinth = { x0: -300, y0: -200, x1: 300, y1: 200, bottom: -16 
 
 /**
  * Competition site: the context model's extent (blocks, curbs, buildings and street labels) plus a margin, rounded
- * out to 10 m, on a 16 m deep base (about 3 cm at 1:500).
+ * out to 10 m, on a thick base: at least 30 m, and 10 m deeper than the deepest basement (engine/basement.ts
+ * groundThickness; Ruijie, 6 Nov: "assume a safe and thick ground height … users will need to dig on the ground").
  */
-export function vtcPlinth(ctx: VtcContext | null, margin = 20): Plinth {
-  if (!ctx) return VTC_DEFAULT
+export function vtcPlinth(ctx: VtcContext | null, margin = 20, thickness = 30): Plinth {
+  if (!ctx) return { ...VTC_DEFAULT, bottom: -thickness }
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
   const add = ([x, y]: [number, number]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y) }
   for (const ring of [...ctx.blocks, ...ctx.curbs]) ring.forEach(add)
@@ -39,7 +40,7 @@ export function vtcPlinth(ctx: VtcContext | null, margin = 20): Plinth {
   if (ctx.site) ctx.site.outline.forEach(add)
   if (!Number.isFinite(x0)) return VTC_DEFAULT
   const out = (v: number, up: boolean) => (up ? Math.ceil : Math.floor)(v / 10) * 10
-  return { x0: out(x0 - margin, false), y0: out(y0 - margin, false), x1: out(x1 + margin, true), y1: out(y1 + margin, true), bottom: VTC_DEFAULT.bottom }
+  return { x0: out(x0 - margin, false), y0: out(y0 - margin, false), x1: out(x1 + margin, true), y1: out(y1 + margin, true), bottom: -thickness }
 }
 
 export const insidePlinth = (p: Plinth, x: number, y: number) => x >= p.x0 && x <= p.x1 && y >= p.y0 && y <= p.y1
