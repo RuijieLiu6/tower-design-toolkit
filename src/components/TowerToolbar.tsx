@@ -85,7 +85,7 @@ export default function TowerToolbar() {
       ) : (
         <div className="flex flex-wrap gap-0.5">
           <IconTile size="sm" icon={Move} word="Move" label="Move the tower" active={move} aria-pressed={move} aria-keyshortcuts="M" onClick={() => toggleMode('move')}
-            hint="Drag the arrows or the square in the 3D view, or type x and y. A move is a proposal: Confirm or Cancel it. Key: M." />
+            hint="Drag the arrows or the square in the 3D view, or type x and y. A move applies at once; Ctrl+Z undoes it. Key: M." />
           <IconTile size="sm" icon={RotateCw} word="Rotate" label="Rotate the tower" active={rotate} aria-pressed={rotate} aria-keyshortcuts="R" onClick={() => toggleMode('rotate')}
             hint="Drag the arc in the 3D view, or type the angle (counter-clockwise, about the tower's centre). Key: R." />
           <IconTile size="sm" icon={LandPlot} word="Align" label="Align to the lot" aria-keyshortcuts="L" onClick={() => alignToLot(t.id)}
@@ -110,6 +110,7 @@ export default function TowerToolbar() {
         </div>
       )}
       {!locked && live && <ProposalCard t={t} pose={live} start={proposal?.start ?? null} dragging={dragging} />}
+      {!locked && !live && <AppliedNote id={t.id} />}
     </div>
   )
 }
@@ -145,7 +146,7 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
   return (
     <section aria-label="Proposed position" className="rounded border border-accent/40 bg-accent/5 px-1.5 py-1">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-        <b className="font-semibold">{dragging ? `Moving ${t.name}` : `Move ${t.name} here?`}</b>
+        <b className="font-semibold">Moving {t.name}</b>
         <span className="tabular-nums text-slate-600">{dist >= 0.005 ? formatLength(dist, unit) : ''}{dist >= 0.005 && Math.abs(turn) >= 0.005 ? ' · ' : ''}{Math.abs(turn) >= 0.005 ? `${turn > 0 ? '+' : ''}${fmt(turn)}°` : ''}</span>
         {snapped && <span className="flex items-center gap-1 rounded bg-[#fff3d6] px-1 text-[11px] text-[#6e4a00]"><Magnet size={11} aria-hidden />{snapped}</span>}
       </div>
@@ -174,14 +175,23 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
           <Help label="About the base">{tx(report.baseNote)}. Geodetic heights (CGVD28).</Help>
         </p>
       )}
-      <div className="mt-1 flex flex-wrap items-center gap-1">
-        <IconTile layout="inline" primary icon={Check} word="Confirm" label="Confirm the move" disabled={dragging} aria-keyshortcuts="Enter" onClick={() => confirmProposal()}
-          hint="Apply the move as one undo step. Nothing changes until you confirm. Key: Enter." />
-        <IconTile layout="inline" icon={X} word="Cancel" label="Cancel the move" disabled={dragging} aria-keyshortcuts="Escape" onClick={() => cancelProposal()} className="border border-line bg-white"
-          hint="Keep the tower where it was. Key: Esc." />
-        {dragging && <span className="text-[11px] text-slate-600">Release to review</span>}
-      </div>
+      <p className="mt-0.5 text-[11px] text-slate-600">Release to place it here (Ctrl+Z undoes it) · Esc keeps it where it was</p>
     </section>
+  )
+}
+
+/** After a move: what it lined up with (the lot, the block) or snapped to, until the next move. */
+function AppliedNote({ id }: { id: string }) {
+  const unit = useUnits((s) => s.unit)
+  const a = useTowerEdit((s) => (s.applied?.id === id ? s.applied : null))
+  if (!a) return null
+  const snapped = !a.align && a.hit && a.hit.kind !== 'grid' ? SNAP_TEXT[`${a.hit.kind}:${a.hit.how}`] : null
+  const text = a.align ? convertText(a.align.text, unit) : snapped
+  if (!text) return null
+  return (
+    <p className="flex items-start gap-1 rounded bg-[#fff3d6] px-1 py-0.5 text-[11px] text-[#6e4a00]" data-testid="align-hint">
+      {a.align ? <LandPlot size={12} aria-hidden className="mt-px shrink-0" /> : <Magnet size={12} aria-hidden className="mt-px shrink-0" />}<span className="line-clamp-2">{text}</span>
+    </p>
   )
 }
 

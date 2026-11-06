@@ -213,11 +213,11 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(summary(page)).toContainText(/City lots? joined/)
   await page.screenshot({ path: join(SHOTS, '07-box-over-lots.png'), ...SHOT })
 
-  // 4f. Build the massing here: with no tower yet, the first tower is placed and proposed at the click, lined up with
-  // the lot; Enter confirms it as one step.
+  // 4f. Build the massing here: with no tower yet, the first tower is placed at the click, lined up with the lot, at
+  // once (no Confirm since 6 Nov; Enter does nothing more).
   await openMenu(homer)
   await menu(page).getByRole('menuitem', { name: /Build the massing here/ }).click()
-  await expect(toast(page)).toContainText('proposed here')
+  await expect(toast(page)).toContainText('moved here')
   await page.waitForTimeout(1500)
   await page.screenshot({ path: join(SHOTS, '08-build-here-proposal.png'), ...SHOT })
   await page.keyboard.press('Enter')

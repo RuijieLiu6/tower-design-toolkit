@@ -126,7 +126,11 @@ interface Drag {
   hit: SnapHit | null
 }
 
-/** A new position waiting for Confirm or Cancel. The store still holds the tower at `start`. */
+/**
+ * A move as it is applied. Since 6 Nov (Ruijie: "No need to confirm every time when you make a change … get rid of
+ * confirmation of changes in general") a move is written at once as one undo step; `proposal` stays null and only
+ * `applied` keeps what the last move lined up with, for the toolbar to say.
+ */
 export interface Proposal {
   id: string
   start: Pose
@@ -145,10 +149,15 @@ interface EditState {
   moveStep: number
   rotateStep: number
   drag: Drag | null
+  /** Always null since moves apply at once (kept so older callers read nothing pending). */
   proposal: Proposal | null
+  /** The last move: what it snapped to or lined up with (shown in the toolbar until the next move or pick). */
+  applied: { id: string; via: Proposal['via']; hit: SnapHit | null; align: AlignInfo | null } | null
+  /** Placing stays on after a click (the Tower position tool); otherwise a placing click ends placing. */
+  keepPlacing: boolean
 }
 
-export const useTowerEdit = create<EditState>(() => ({ picked: null, move: false, rotate: false, snap: true, moveStep: MOVE_STEPS[0], rotateStep: ROTATE_STEPS[1], drag: null, proposal: null }))
+export const useTowerEdit = create<EditState>(() => ({ picked: null, move: false, rotate: false, snap: true, moveStep: MOVE_STEPS[0], rotateStep: ROTATE_STEPS[1], drag: null, proposal: null, applied: null, keepPlacing: false }))
 
 const app = () => useStore.getState()
 const towerOf = (id: string) => app().towers[app().project].find((t) => t.id === id)
@@ -212,7 +221,7 @@ export function beginDrag(id: string, kind: DragKind): boolean {
   return true
 }
 
-/** Follow the pointer: the ghost and the toolbar read `live`; nothing reaches the store before Confirm. */
+/** Follow the pointer: the ghost and the toolbar read `live`; the store gets the pose on release. */
 export function dragTo(live: Pose, hit: SnapHit | null = null) {
   const d = useTowerEdit.getState().drag
   if (!d) return
@@ -221,7 +230,7 @@ export function dragTo(live: Pose, hit: SnapHit | null = null) {
   useTowerEdit.setState({ drag: { ...d, live, hit: sameHit ? d.hit : hit } })
 }
 
-/** Release: the new pose becomes (or updates) the proposal, waiting for Confirm. */
+/** Release: the new pose is written, one undo step. */
 export function endDrag() {
   const d = useTowerEdit.getState().drag
   if (!d) return
@@ -231,15 +240,22 @@ export function endDrag() {
   propose({ id: d.id, start: useTowerEdit.getState().proposal?.start ?? poseOf(t), pose: d.live, via: 'gizmo', hit: d.hit }, t.name)
 }
 
-/** Esc while dragging: the drag is dropped; a proposal from before it stays as it was. */
+/** Esc while dragging: the drag is dropped and the tower stays where it was. */
 export function cancelDrag() {
   if (useTowerEdit.getState().drag) useTowerEdit.setState({ drag: null })
 }
 
+/** A move, written at once as one undo step (no Confirm since 6 Nov). A placing click ends placing unless kept on. */
 function propose(p: Proposal, name: string) {
-  if (samePose(p.pose, p.start)) { useTowerEdit.setState({ proposal: null }); return }
-  useTowerEdit.setState({ proposal: p })
-  say(`${name}: proposed position ${where(p.pose)}. Enter to confirm, Esc to cancel`)
+  const s = useTowerEdit.getState()
+  useTowerEdit.setState({ proposal: null, applied: { id: p.id, via: p.via, hit: p.hit, align: p.align ?? null } })
+  const t = towerOf(p.id)
+  if (p.via === 'place' && app().placing && !s.keepPlacing) app().set({ placing: false })
+  if (!t || samePose(p.pose, poseOf(t))) return
+  breakStep()
+  app().updateTower(p.id, p.pose)
+  breakStep()
+  say(`${name} moved to ${where(p.pose)}. Ctrl+Z undoes it`)
 }
 
 // ---------- lining up with the lot (lib/lotAlign.ts) ----------
@@ -248,6 +264,13 @@ let cityLots: Lots | null = null
 let lotsLoading: Promise<void> | null = null
 
 /** The City parcel layer as lots (one fetch, shared with the site tools); it also feeds edge snapping. */
+/** The lot under a point (Real Vancouver, once the lots have loaded): its label, or null. */
+export function lotUnder(x: number, y: number): string | null {
+  if (!cityLots) return null
+  const i = lotAt(cityLots, [x, y])
+  return i == null ? null : cityLots.label(i)
+}
+
 export function loadLots(): Promise<void> {
   lotsLoading ??= loadParcelLayer()
     .then((layer) => {
@@ -316,16 +339,21 @@ export function proposePlace(id: string, x: number, y: number): boolean {
   const cur = useTowerEdit.getState().proposal
   const from = cur?.id === id ? cur.pose : poseOf(t)
   const o = snapOptions()
-  if (app().project === 'city' && !cityLots) {
-    // Not loaded yet: propose now, and line up the same click once the lots arrive (unless the user moved on).
-    void loadLots().then(() => {
-      const p = useTowerEdit.getState().proposal
-      if (cityLots && p?.id === id && p.via === 'place' && p.align?.how === 'loading') proposePlace(id, x, y)
-    })
-  }
   const r = o.free
     ? { ...moveSnapped(t, from, { x, y }, 'xy', o), align: { how: 'free', text: 'Placed freely (Shift): not aligned', fits: null } as AlignInfo }
     : alignedPlacement({ ...t, rotation: from.rotation }, [x, y], o)
+  if (app().project === 'city' && !cityLots) {
+    // Not loaded yet: placed now, and lined up with the same click once the lots arrive (unless it was moved since).
+    const keep = useTowerEdit.getState().keepPlacing
+    void loadLots().then(() => {
+      const now = towerOf(id)
+      if (cityLots && now && samePose(poseOf(now), r.pose)) {
+        if (!keep) useTowerEdit.setState({ keepPlacing: true })
+        proposePlace(id, x, y)
+        if (!keep) useTowerEdit.setState({ keepPlacing: false })
+      }
+    })
+  }
   pickTower(id)
   propose({ id, start: cur?.id === id ? cur.start : poseOf(t), pose: r.pose, via: 'place', hit: r.hit, align: r.align }, t.name)
   return true
@@ -353,7 +381,7 @@ export function alignToLot(id: string): boolean {
   return true
 }
 
-/** Confirm: the proposal is written to the store as one undo step; placing ends. */
+/** Kept for older callers: there is nothing to confirm since moves apply at once (returns false). */
 export function confirmProposal(): boolean {
   const p = useTowerEdit.getState().proposal
   if (!p) return false
@@ -371,7 +399,7 @@ export function confirmProposal(): boolean {
   return true
 }
 
-/** Cancel (or Esc): the proposal goes and the tower stays where it was. Placing ends. */
+/** Kept for older callers: nothing is pending since moves apply at once, so this does nothing. */
 export function cancelProposal() {
   const p = useTowerEdit.getState().proposal
   if (!p) return

@@ -203,7 +203,7 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
           {chosen && chosen.kind === 'address' && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               <button type="button" className={`${btn} border-line hover:border-accent`} onClick={() => zoomTo(local_(chosen))}><MapPin size={12} />Zoom to address</button>
-              <button type="button" className={`${btn} border-accent bg-accent text-white`} onClick={() => (site ? useSiteStore.getState().set({ pending: { at: local_(chosen), label: chosen.label, source: chosen.source === 'city' ? 'City civic address point' : 'BC Address Geocoder parcel point' } }) : onPlace(local_(chosen), chosen.label, chosen.source === 'city' ? 'City civic address point' : 'BC Address Geocoder parcel point'))}><Crosshair size={12} />Place site here</button>
+              <button type="button" className={`${btn} border-accent bg-accent text-white`} onClick={() => onPlace(local_(chosen), chosen.label, chosen.source === 'city' ? 'City civic address point' : 'BC Address Geocoder parcel point')}><Crosshair size={12} />Place site here</button>
               <MoveTowerButton at={local_(chosen)} />
             </div>
           )}

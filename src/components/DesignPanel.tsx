@@ -1,6 +1,7 @@
 // The guided app's design tools (left panel). Each export is one tool's body; the tool definitions that place them in the
 // panel are in tools/builtin.tool.tsx.
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { useTowerPosition } from '../lib/towerPosition'
 import { ArrowDown, ArrowUp, Crosshair, Expand, Move, Plus, Scissors, Sparkles, Trash2 } from './icons'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
@@ -166,6 +167,8 @@ function EditingTag({ name }: { name: string }) {
 
 /** Towers: pick, add, place and remove towers; the site's ground level in Real Vancouver. Importing is on the Site step. */
 export function TowersTool() {
+  // Open = the Tower position session: the view locks on the site, towers drag on the ground, Properties on the right.
+  useEffect(() => { useTowerPosition.setState({ on: true, locked: true }); return () => useTowerPosition.setState({ on: false }) }, [])
   const { t, towers } = useEditedTower()
   const { project, selectTower, addTower, removeTower, placing, set, groundElevation, groundMode } = useStore(useShallow((s) => ({ project: s.project, selectTower: s.selectTower, addTower: s.addTower, removeTower: s.removeTower, placing: s.placing, set: s.set, groundElevation: s.groundElevation, groundMode: s.groundMode })))
   if (!t) return null
@@ -181,7 +184,7 @@ export function TowersTool() {
         <div role="group" aria-label="Tower actions" className="mt-2 flex flex-wrap gap-0.5">
           <IconTile size="sm" icon={Plus} word="Add" label="Add tower" onClick={addTower} hint="A new tower next to the last one, 30 m lower and without a podium." />
           <IconTile size="sm" icon={placing ? Crosshair : Move} word="Move" label={`Move ${t.name}`} active={placing} aria-pressed={placing} onClick={() => set({ placing: !placing })}
-            hint={placing ? 'Click the ground in the 3D view where it should stand, then Confirm. Esc stops.' : 'Then click the ground in the 3D view where it should stand. Key: P.'} />
+            hint={placing ? 'Click the ground in the 3D view where it should stand; it moves there at once. Esc stops.' : 'Then click the ground in the 3D view where it should stand. Key: P.'} />
           <IconTile size="sm" icon={Trash2} word="Delete" label={`Delete ${t.name}`} onClick={() => removeTower(t.id)} hint="Undo brings it back." />
         </div>
       </ToolBlock>

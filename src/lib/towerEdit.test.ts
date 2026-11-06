@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { redo, resetHistory, startHistory, undo } from './project/history'
 import { setCityParcels } from './siteGeometry'
 import {
-  beginDrag, cancelDrag, cancelProposal, clearPick, confirmProposal, dragTo, endDrag, moveSnapped, normalizeDeg, nudge,
+  beginDrag, cancelDrag, clearPick, confirmProposal, dragTo, endDrag, moveSnapped, normalizeDeg, nudge,
   pickTower, proposePlace, setMetresPerPx, setPose, setShiftHeld, snapMove, snapRotate, snapTo, toggleMode, turnDeg,
   turnSnapped, useTowerEdit, type Pose, type SnapOptions,
 } from './towerEdit'
@@ -110,7 +110,7 @@ describe('snapping to the site and parcels', () => {
   })
 })
 
-describe('confirm before placing: proposals, Confirm as one undo step, Cancel', () => {
+describe('moves apply at once, one undo step each (no Confirm since 6 Nov)', () => {
   let stop: (() => void) | undefined
   let t = 0
   const fresh = () => {
@@ -132,16 +132,13 @@ describe('confirm before placing: proposals, Confirm as one undo step, Cancel', 
     expect(useStore.getState().selectedTower).toBe('t1')
   })
 
-  it('a gizmo drag leaves the store alone and becomes a proposal; Confirm writes it as one undo step', () => {
+  it('a gizmo drag leaves the store alone while dragging and is written on release as one undo step', () => {
     const before = pose()
     expect(beginDrag('t1', 'xy')).toBe(true)
     dragTo({ x: -10, y: 5, rotation: 0 })
     dragTo({ x: 5, y: 10, rotation: 0 })
     expect(pose()).toEqual(before) // nothing written while dragging
     endDrag()
-    expect(pose()).toEqual(before) // nor on release
-    expect(proposal()).toMatchObject({ id: 't1', start: before, pose: { x: 5, y: 10, rotation: 0 }, via: 'gizmo' })
-    expect(confirmProposal()).toBe(true)
     expect(pose()).toEqual({ x: 5, y: 10, rotation: 0 })
     expect(proposal()).toBeNull()
     expect(tower().height).toBe(285) // nothing else changed
@@ -152,69 +149,62 @@ describe('confirm before placing: proposals, Confirm as one undo step, Cancel', 
     expect(pose()).toEqual({ x: 5, y: 10, rotation: 0 })
   })
 
-  it('Cancel keeps the tower where it was, with no undo step', () => {
+  it('Esc mid-drag keeps the tower where it was, with no undo step', () => {
     const before = pose()
     beginDrag('t1', 'rotate')
     dragTo(snapRotate(before, 31, 15))
+    cancelDrag()
     endDrag()
-    expect(proposal()?.pose.rotation).toBe(30)
-    cancelProposal()
-    expect(proposal()).toBeNull()
     expect(pose()).toEqual(before)
     expect(undo()).toBe(false)
   })
 
-  it('a second drag adjusts the proposal; Esc mid-drag keeps it; Confirm still goes back to the very start in one step', () => {
+  it('two drags are two undo steps, the second starting where the first left the tower', () => {
     const before = pose()
     beginDrag('t1', 'x'); dragTo({ x: 10, y: 0, rotation: 0 }); endDrag()
     beginDrag('t1', 'rotate')
-    expect(useTowerEdit.getState().drag?.from).toEqual({ x: 10, y: 0, rotation: 0 }) // starts from the proposal
-    dragTo({ x: 10, y: 0, rotation: 45 })
-    cancelDrag() // Esc during the second drag
-    expect(proposal()?.pose).toEqual({ x: 10, y: 0, rotation: 0 })
-    beginDrag('t1', 'rotate'); dragTo({ x: 10, y: 0, rotation: 15 }); endDrag()
-    expect(proposal()).toMatchObject({ start: before, pose: { x: 10, y: 0, rotation: 15 } })
-    confirmProposal()
+    expect(useTowerEdit.getState().drag?.from).toEqual({ x: 10, y: 0, rotation: 0 })
+    dragTo({ x: 10, y: 0, rotation: 15 }); endDrag()
     expect(pose()).toEqual({ x: 10, y: 0, rotation: 15 })
     undo()
+    expect(pose()).toEqual({ x: 10, y: 0, rotation: 0 })
+    undo()
     expect(pose()).toEqual(before)
+  })
+
+  it('a drag that ends where it started writes nothing', () => {
+    beginDrag('t1', 'xy'); dragTo({ x: 30, y: 0, rotation: 0 }); dragTo({ x: -20, y: 0, rotation: 0 }); endDrag()
     expect(undo()).toBe(false)
   })
 
-  it('a drag that ends where it started proposes nothing', () => {
-    beginDrag('t1', 'xy'); dragTo({ x: 30, y: 0, rotation: 0 }); dragTo({ x: -20, y: 0, rotation: 0 }); endDrag()
-    expect(proposal()).toBeNull()
-  })
-
-  it('Place on map: a click proposes the spot lined up with the competition block, another click moves it, Confirm places and stops placing', () => {
+  it('Place on map: a click places the tower lined up with the competition block and ends placing; kept on, another click moves it again', () => {
     useStore.getState().set({ placing: true })
     expect(proposePlace('t1', 12.4, -3.6)).toBe(true)
-    expect(pose()).toEqual({ x: -20, y: 0, rotation: 0 }) // not moved yet
     // Inside the block: centred on the click, turned to the block's lines (0°: the 100 m podium along its 144.8 m side).
-    expect(proposal()).toMatchObject({ via: 'place', pose: { x: 12.4, y: -3.6, rotation: 0 }, align: { how: 'site', fits: true } })
-    expect(proposal()?.align?.text).toMatch(/competition block/)
+    expect(pose()).toEqual({ x: 12.4, y: -3.6, rotation: 0 })
+    expect(useTowerEdit.getState().applied).toMatchObject({ id: 't1', align: { how: 'site', fits: true } })
+    expect(useTowerEdit.getState().applied?.align?.text).toMatch(/competition block/)
     expect(useTowerEdit.getState().picked).toBe('t1')
-    proposePlace('t1', 30.2, 2.1) // the podium would cross the block's east line at 72.4 m: held flush with it
-    expect(proposal()).toMatchObject({ start: { x: -20, y: 0, rotation: 0 }, pose: { x: 22.4, y: 2.1, rotation: 0 } })
-    confirmProposal()
-    expect(pose()).toEqual({ x: 22.4, y: 2.1, rotation: 0 })
     expect(useStore.getState().placing).toBe(false)
+    useTowerEdit.setState({ keepPlacing: true })
+    useStore.getState().set({ placing: true })
+    proposePlace('t1', 30.2, 2.1) // the podium would cross the block's east line at 72.4 m: held flush with it
+    expect(pose()).toEqual({ x: 22.4, y: 2.1, rotation: 0 })
+    expect(useStore.getState().placing).toBe(true)
+    undo()
+    expect(pose()).toEqual({ x: 12.4, y: -3.6, rotation: 0 })
     undo()
     expect(pose()).toEqual({ x: -20, y: 0, rotation: 0 })
   })
 
-  it('Place on map with Shift places off the grid; Cancel stops placing and keeps the tower', () => {
+  it('Place on map with Shift places off the grid', () => {
     useStore.getState().set({ placing: true })
     setShiftHeld(true)
     proposePlace('t1', 12.37, -3.61)
-    expect(proposal()?.pose).toEqual({ x: 12.37, y: -3.61, rotation: 0 })
-    cancelProposal()
-    expect(useStore.getState().placing).toBe(false)
-    expect(pose()).toEqual({ x: -20, y: 0, rotation: 0 })
-    expect(undo()).toBe(false)
+    expect(pose()).toEqual({ x: 12.37, y: -3.61, rotation: 0 })
   })
 
-  it('typed values adjust a pending proposal, else are written at once, one step each', () => {
+  it('typed values are written at once, one step each', () => {
     expect(setPose('t1', { x: 12.3456789 })).toBe(true)
     t += 10 // inside the merge window, still its own step
     expect(setPose('t1', { rotation: 370 })).toBe(true)
@@ -226,13 +216,9 @@ describe('confirm before placing: proposals, Confirm as one undo step, Cancel', 
     expect(tower().rotation).toBe(0)
     undo()
     expect(tower().x).toBe(-20)
-    beginDrag('t1', 'x'); dragTo({ x: 0, y: 0, rotation: 0 }); endDrag()
-    setPose('t1', { y: 7 })
-    expect(tower().y).toBe(0)
-    expect(proposal()?.pose).toEqual({ x: 0, y: 7, rotation: 0 })
   })
 
-  it('keyboard nudges snap to the grid, Shift is fine, a quick run of presses is one step, and a proposal is nudged instead', () => {
+  it('keyboard nudges snap to the grid, Shift is fine, and a quick run of presses is one step', () => {
     useTowerEdit.setState({ moveStep: 5 })
     nudge('t1', 1, 0, 0, false, 1000)
     nudge('t1', 1, 0, 0, false, 1100)
@@ -244,14 +230,9 @@ describe('confirm before placing: proposals, Confirm as one undo step, Cancel', 
     expect(undo()).toBe(false)
     nudge('t1', 0, 0, 1, false, 5000) // ] with 15° steps
     expect(tower().rotation).toBe(15)
-    beginDrag('t1', 'x'); dragTo({ x: 0, y: 0, rotation: 15 }); endDrag()
-    nudge('t1', 1, 0, 0, false, 9000)
-    expect(tower().x).toBe(-20)
-    expect(proposal()?.pose.x).toBe(5)
   })
 
-  it('Present locks the model: no drag, no placement, no typed value, no nudge, no mode switch, no confirm', () => {
-    beginDrag('t1', 'x'); dragTo({ x: 0, y: 0, rotation: 0 }); endDrag()
+  it('Present locks the model: no drag, no placement, no typed value, no nudge, no mode switch', () => {
     useStore.getState().setPhase('present')
     expect(confirmProposal()).toBe(false)
     expect(beginDrag('t1', 'xy')).toBe(false)
@@ -270,7 +251,6 @@ describe('confirm before placing: proposals, Confirm as one undo step, Cancel', 
     useStore.getState().updateTower('t1', { imported })
     resetHistory()
     beginDrag('t1', 'rotate'); dragTo({ x: -20, y: 0, rotation: 45 }); endDrag()
-    confirmProposal()
     expect(tower().rotation).toBe(45)
     undo()
     expect(tower().rotation).toBe(0)

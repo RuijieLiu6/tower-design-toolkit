@@ -33,6 +33,7 @@ import RelaxationMasks from './RelaxationMasks'
 import TowerGizmo, { TowerMover } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
 import MassingEdit3D from './MassingEdit3D'
+import TowerPosition3D from './TowerPosition3D'
 import MassingEditReadout from './MassingEditReadout'
 import { proposePlace, useTowerEdit } from '../lib/towerEdit'
 import CameraClamp from './CameraClamp'
@@ -650,6 +651,7 @@ export default function Viewport() {
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
               <TowerGizmo />
               <MassingEdit3D />
+              <TowerPosition3D />
               <BelowGrade />
             </group>
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping

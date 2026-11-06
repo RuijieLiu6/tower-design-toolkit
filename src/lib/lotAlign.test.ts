@@ -122,7 +122,7 @@ describe('the City parcel layer (OGL-Vancouver, public/data)', () => {
   })
 })
 
-describe('placing in Real Vancouver through the proposal flow', () => {
+describe('placing in Real Vancouver: a click lines the tower up and moves it at once', () => {
   let stop: (() => void) | undefined
   // Two downtown-style lots on the 45° grid with a 20 m street between them, centred around the study tower.
   const a45 = (45 * Math.PI) / 180, ux: Pt = [Math.cos(a45), Math.sin(a45)], vx: Pt = [-Math.sin(a45), Math.cos(a45)]
@@ -131,7 +131,8 @@ describe('placing in Real Vancouver through the proposal flow', () => {
   const tiny = rectCorners(...at(0, 120), 12, 12, 45)
   const lots: Lots = { rings: [lotA, lotB, tiny], label: (i) => ['100 Test St', '120 Test St', '10 Small St'][i] }
   const city = () => useStore.getState().towers.city[0]
-  const proposal = () => useTowerEdit.getState().proposal
+  // What the last move did (lined up with, snapped to) and where the tower now stands: moves apply at once (6 Nov).
+  const proposal = () => { const a = useTowerEdit.getState().applied; return a ? { ...a, pose: { x: city().x, y: city().y, rotation: city().rotation } } : null }
   beforeEach(() => {
     useStore.setState(useStore.getInitialState(), true)
     useTowerEdit.setState(useTowerEdit.getInitialState(), true)
@@ -143,7 +144,7 @@ describe('placing in Real Vancouver through the proposal flow', () => {
   })
   afterEach(() => { stop?.(); stop = undefined; setLotsForTest(null) })
 
-  it('a click on a lot turns the tower to its lines and keeps it inside; Confirm is one undo step', () => {
+  it('a click on a lot turns the tower to its lines and keeps it inside, as one undo step', () => {
     const before = { x: city().x, y: city().y, rotation: city().rotation }
     proposePlace(city().id, ...at(-30, 5))
     const p = proposal()!
@@ -153,7 +154,6 @@ describe('placing in Real Vancouver through the proposal flow', () => {
     expect(p.hit).toMatchObject({ kind: 'parcel', how: 'aligned' })
     expect(p.hit!.segments.length).toBe(4)
     expect(inside({ ...city(), ...p.pose }, lotA)).toBe(true)
-    confirmProposal()
     expect(angDiff90(city().rotation, 45)).toBeLessThan(1e-6)
     undo()
     expect({ x: city().x, y: city().y, rotation: city().rotation }).toEqual(before)
@@ -182,13 +182,12 @@ describe('placing in Real Vancouver through the proposal flow', () => {
     expect(proposal()!.align).toMatchObject({ how: 'free' })
     expect(proposal()!.pose).toEqual({ x: Math.round(click[0] * 1e6) / 1e6, y: Math.round(click[1] * 1e6) / 1e6, rotation: 0 })
   })
-  it('"Align to lot" (L) lines up a tower already placed, through the same proposal; a second press has nothing to do', () => {
+  it('"Align to lot" (L) lines up a tower already placed, at once; a second press has nothing to do', () => {
     useStore.getState().updateTower(city().id, { ...((([x, y]) => ({ x, y }))(at(30, -5))), rotation: 10 })
     resetHistory()
     expect(alignToLot(city().id)).toBe(true)
     expect(proposal()).toMatchObject({ via: 'align', align: { how: 'lot', fits: true } })
     expect(proposal()!.align!.text).toMatch(/120 Test St/)
-    confirmProposal()
     expect(angDiff90(city().rotation, 45)).toBeLessThan(1e-6)
     expect(alignToLot(city().id)).toBe(false)
     undo()

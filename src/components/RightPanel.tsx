@@ -8,6 +8,8 @@ import { ALL_NODES, BUILT_NODES, CATEGORIES } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStep } from '../lib/step'
 import { useTowerAdds, watchTowerAdds } from '../lib/towerAdds'
+import { useTowerPosition } from '../lib/towerPosition'
+const TowerProperties = lazy(() => import('./TowerProperties'))
 import { useStore } from '../store'
 import Inspector from './Inspector'
 import { HidePanelButton } from './PanelToggle'
@@ -37,7 +39,7 @@ function NothingToAnalyse() {
   return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-[11px] text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Form step, or import a model on the Site step.</p>
 }
 
-type Tab = 'site' | 'results' | 'present' | 'render' | 'trace'
+type Tab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
 function ResultsPicker() {
@@ -92,9 +94,12 @@ export default function RightPanel() {
     seen.current = resultsSeq
     if (useStore.getState().selectedNode) setTab('results')
   }, [resultsSeq])
+  // Tower position open (Form step): its Properties tab comes first and opens; closing the tool goes back to the results.
+  const positioning = useTowerPosition((s) => s.on) && !present
+  useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
   const tabs: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
-    : [{ id: 'site', label: 'Your site' }, { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
+    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
   const noTower = useStore((s) => s.towers[s.project].length === 0)
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
@@ -115,6 +120,7 @@ export default function RightPanel() {
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
+        {shown === 'properties' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><Inspector /></> : <AnalysisOff />)}
         {shown === 'present' && <PresentPanel />}

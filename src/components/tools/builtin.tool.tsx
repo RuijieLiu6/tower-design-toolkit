@@ -1,5 +1,5 @@
 // The design tools that ship with the guided app. Their bodies live in DesignPanel.tsx and Anatomy.tsx.
-import { Building, Cuboid, Layers, Layers2, MapPinned, PersonStanding, Sun } from '../icons'
+import { Building, Cuboid, Layers, Layers2, PersonStanding, Sun, TowerOnSite } from '../icons'
 import Anatomy from '../Anatomy'
 import { CoreTool, GroundTool, MassingTool, ProgramTool, SunTool, TowersTool } from '../DesignPanel'
 import type { DesignTool } from './registry'
@@ -11,8 +11,10 @@ const tools: DesignTool[] = [
     hint: 'Core sized to the lifts, plant, sky lobbies, stairs', component: CoreTool },
   { id: 'anatomy', label: 'Tower anatomy', short: 'Anatomy', icon: Layers2, stages: ['advanced'], order: 15,
     hint: 'Show or hide shell, plates, core, plant, lifts, stairs', component: AnatomyTool },
-  { id: 'towers', label: 'Place towers', short: 'Place', icon: MapPinned, stages: ['basic', 'advanced'], order: { basic: 10, advanced: 110 }, defaultOpen: true,
-    hint: 'Pick, add, place and remove towers', component: TowersTool },
+  // Tower position (Ruijie, 6 Nov): a tower on its site; opening it locks the view on the site, the tower drags on the
+  // ground, and the right panel's Properties tab takes exact numbers. Every change applies at once (no Confirm).
+  { id: 'towers', label: 'Tower position', short: 'Position', icon: TowerOnSite, stages: ['basic', 'advanced'], order: { basic: 10, advanced: 110 }, defaultOpen: true,
+    hint: 'Where the tower stands: drag it on the site, click the ground, or type the numbers in Properties', component: TowersTool },
   { id: 'massing', label: 'Massing', short: 'Massing', icon: Cuboid, stages: ['basic', 'advanced'], order: { basic: 20, advanced: 120 }, defaultOpen: true,
     hint: 'Height, blocks, rotation, floor-to-floor', component: MassingTool },
   { id: 'program', label: 'Program', short: 'Program', icon: Layers, stages: ['basic', 'advanced'], order: { basic: 30, advanced: 130 },

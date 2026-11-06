@@ -10,7 +10,7 @@ import { basementSummary, DEFAULT_BASEMENT, type Basement } from '../../engine/b
 import type { Tower } from '../../engine/types'
 import { linkProject } from '../../lib/interchange/live'
 import { confirmPlacement, endPlaceGuide, guideSite, modelTowers, setGuideStep, siteFit, startPlaceGuide, usePlaceGuide } from '../../lib/import/placeModel'
-import { alignToLot, confirmProposal, setPose, toggleMode, useTowerEdit } from '../../lib/towerEdit'
+import { alignToLot, setPose, toggleMode, useTowerEdit } from '../../lib/towerEdit'
 import { useStore } from '../../store'
 import { lookBelow } from '../basement/BasementTool'
 import { useDig } from '../BelowGrade'
@@ -36,7 +36,7 @@ export default function PlaceModelGuide() {
     const c = model.frame.placement.confirmed
     return (
       <div data-testid="place-status" className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 text-[11px]">
-        {c ? <><Check size={13} className="shrink-0 text-emerald-700" aria-hidden /><span className="min-w-0 flex-1">Placed on {c.site} and confirmed</span></>
+        {c ? <><Check size={13} className="shrink-0 text-emerald-700" aria-hidden /><span className="min-w-0 flex-1">Placed on {c.site}</span></>
           : <><MapPin size={13} className="shrink-0 text-amber-700" aria-hidden /><span className="min-w-0 flex-1">Not placed on the site yet</span></>}
         <button type="button" onClick={() => startPlaceGuide(project, model.id)} data-testid="place-again" className="shrink-0 text-accent hover:underline">{c ? 'Move again' : 'Place on site'}</button>
       </div>
@@ -47,7 +47,6 @@ export default function PlaceModelGuide() {
 
 function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower; towers: Tower[]; step: 'place' | 'basement'; placing: boolean; linked: boolean; fileName: string }) {
   const project = useStore((s) => s.project)
-  const proposal = useTowerEdit((s) => s.proposal)
   const { move, rotate } = useTowerEdit(useShallow((s) => ({ move: s.move, rotate: s.rotate })))
   const site = guideSite()
   const fit = site ? siteFit(towers, site.ring) : null
@@ -69,7 +68,7 @@ function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower;
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-white"><MapPin size={13} aria-hidden /></span>
         <h3 id="place-guide-head" className="flex-1 text-[12px] font-semibold text-ink">Place your model on the site</h3>
         <Help label="About placing the model">
-          {fileName} came in {project === 'city' ? 'centred on your study site' : 'on the competition block'}, unless the file had map coordinates. Put the building where it stands, give it its basement, then confirm.
+          {fileName} came in {project === 'city' ? 'centred on your study site' : 'on the competition block'}, unless the file had map coordinates. Put the building where it stands and give it its basement: every change applies at once (Ctrl+Z undoes it). Done closes the guide.
           The whole model moves as one piece.{linked ? " The Rhino link keeps this placement: Rhino's next changes land where you put the building." : ''} The placement is yours (team assumption) and is saved with the project.
         </Help>
         <button type="button" onClick={endPlaceGuide} className="text-[11px] text-muted hover:text-ink hover:underline" title="Close the guide; the model stays where it is. Place on site in this tool opens it again.">Later</button>
@@ -90,7 +89,7 @@ function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower;
             <button type="button" onClick={() => setGuideStep('place')} className="font-semibold text-ink hover:underline" aria-expanded={step === 'place'}>Where it stands</button>
             {step === 'place' ? (
               <div className="mt-1 grid gap-1.5">
-                <p className="text-muted">Click the ground where {name} should stand, then Confirm in the toolbar. Or drag its arrows (Move) and its ring (Turn).</p>
+                <p className="text-muted">Click the ground where {name} should stand: it moves there at once. Or drag its arrows (Move) and its ring (Turn). Ctrl+Z undoes a move.</p>
                 <div className="flex flex-wrap gap-1">
                   <button type="button" onClick={() => useStore.getState().set({ placing: !placing })} aria-pressed={placing} data-testid="place-click" className={chip(placing)}><span className="flex items-center gap-1"><Crosshair size={12} aria-hidden />Click to place</span></button>
                   <button type="button" onClick={centre} disabled={!site} data-testid="place-centre" className={chip(false)}><span className="flex items-center gap-1"><Target size={12} aria-hidden />Centre on site</span></button>
@@ -98,12 +97,6 @@ function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower;
                   <button type="button" onClick={() => toggleMode('move')} aria-pressed={move} className={chip(move)}><span className="flex items-center gap-1"><Move size={12} aria-hidden />Move</span></button>
                   <button type="button" onClick={() => toggleMode('rotate')} aria-pressed={rotate} className={chip(rotate)}><span className="flex items-center gap-1"><RotateCw size={12} aria-hidden />Turn</span></button>
                 </div>
-                {proposal && (
-                  <div className="flex items-center gap-2 rounded-md border border-accent/50 bg-panel px-2 py-1">
-                    <span className="min-w-0 flex-1">A new spot is waiting.</span>
-                    <button type="button" onClick={confirmProposal} data-testid="place-take" className="rounded-md bg-accent px-2 py-0.5 font-semibold text-white">Take it</button>
-                  </div>
-                )}
                 {fit && <ul className="rounded-md border border-line bg-panel px-1.5"><StatusRow size="sm" state={fit.state} title="On the site" value={fit.state === 'pass' ? 'inside' : fit.state === 'warn' ? 'past the edge' : 'off the site'} detail={fit.text} testId="place-fit" /></ul>}
                 <button type="button" onClick={() => setGuideStep('basement')} data-testid="place-next" className={`${btn} border-accent text-accent hover:bg-accent/10`}>Next: basement<ArrowRight size={13} aria-hidden /></button>
               </div>
@@ -123,7 +116,7 @@ function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower;
       {step === 'basement' && (
         <div className="mt-2 grid grid-cols-[auto_1fr] gap-1.5">
           <button type="button" onClick={() => setGuideStep('place')} className={`${btn} border-line text-ink hover:border-accent`}><ArrowLeft size={13} aria-hidden />Back</button>
-          <button type="button" onClick={() => confirmPlacement()} data-testid="place-confirm" className={`${btn} border-accent bg-accent text-white hover:bg-accent/90`}><Check size={13} aria-hidden />Confirm site and placement</button>
+          <button type="button" onClick={() => confirmPlacement()} data-testid="place-confirm" className={`${btn} border-accent bg-accent text-white hover:bg-accent/90`}><Check size={13} aria-hidden />Done</button>
         </div>
       )}
     </section>

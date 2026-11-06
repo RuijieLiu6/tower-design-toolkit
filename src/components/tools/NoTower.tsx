@@ -35,7 +35,7 @@ export function PlaceFirstTower({ onGenerate }: { onGenerate?: () => void } = {}
         Place your tower
         <Help label="About placing a tower">
           The tower starts {where ?? 'downtown'} as {start.name}, {start.height} m tall{start.podiumHeight > 0 ? ` on a ${start.podiumHeight} m podium` : ''}.
-          Then click the ground where it should stand; the toolbar's Confirm places it (Esc keeps it where it is).
+          Then click the ground where it should stand: it moves there at once (Ctrl+Z undoes it, Esc stops placing).
           Shape it afterwards in Massing: height, blocks, rotation and floor-to-floor.
         </Help>
       </h3>

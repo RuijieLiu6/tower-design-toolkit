@@ -215,13 +215,13 @@ function MenuAt({ data }: { data: CityData }) {
   type Item = { key: string; icon: typeof Box; word: string; label: string; hint: string; run: () => void; disabled?: boolean }
   const items: Item[] = []
   // No tower yet (a project opens empty, 6 Nov): the project's starting tower is placed and proposed at the click.
-  items.push({ key: 'build', icon: Building2, word: 'Build', label: 'Build the massing here', hint: `${t ? t.name : 'Your first tower'}, lined up with the lot under the click. A proposal: Confirm or Cancel in the toolbar.`,
+  items.push({ key: 'build', icon: Building2, word: 'Build', label: 'Build the massing here', hint: `${t ? t.name : 'Your first tower'}, lined up with the lot under the click, moved at once (Ctrl+Z undoes it).`,
     run: () => {
       close()
       let k: typeof t | undefined = towers.length ? t : undefined
       if (!k) { useStore.getState().addTower(); const st = useStore.getState(); k = st.towers[st.project].find((x) => x.id === st.selectedTower) }
-      // A note on the map only: the toolbar's proposal card has Confirm and Cancel (no second note in Your site).
-      if (k && proposePlace(k.id, menu.at[0], menu.at[1])) tell(`${k.name} proposed here. Confirm or Cancel in the toolbar.`, { ...where, panel: false })
+      // A note on the map only (no second note in Your site); moves apply at once since 6 Nov.
+      if (k && proposePlace(k.id, menu.at[0], menu.at[1])) tell(`${k.name} moved here. Ctrl+Z undoes it.`, { ...where, panel: false })
     } })
   if (menu.building !== null) {
     items.push({ key: 'replace', icon: Hammer, word: 'Replace', label: 'Replace this building', hint: 'Your design replaces it: shown as demolished. Undo brings it back.', run: () => { close(); replaceBuildings([menu.building!], data.footprints, where, 'this building') } })

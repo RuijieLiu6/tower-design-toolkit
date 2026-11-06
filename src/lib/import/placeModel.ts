@@ -197,7 +197,7 @@ export function confirmPlacement(now = () => new Date()): boolean {
   const fit = site ? siteFit(ts, site.ring) : null
   useStore.setState({
     models: { ...s.models, [g.project]: { ...model, frame: { ...model.frame, placement } } },
-    announce: `${model.source.fileName} placed${site ? ` on ${site.label}` : ''} and confirmed${fit && fit.state !== 'pass' ? ` (${fit.text.toLowerCase()})` : ''}. ${linkProject() === g.project ? "Rhino's next changes keep this placement." : ''}`.trim(),
+    announce: `${model.source.fileName} placed${site ? ` on ${site.label}` : ''}${fit && fit.state !== 'pass' ? ` (${fit.text.toLowerCase()})` : ''}. ${linkProject() === g.project ? "Rhino's next changes keep this placement." : ''}`.trim(),
   })
   setLinkPlacement({ placement: 'anchor', anchor: a })
   endPlaceGuide()

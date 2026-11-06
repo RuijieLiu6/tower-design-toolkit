@@ -45,7 +45,7 @@ test('after an upload: place it on the site, set its basement, confirm', async (
 
   await page.getByTestId('place-confirm').click()
   await expect(guide).toBeHidden()
-  await expect(page.getByTestId('place-status')).toContainText('Placed on the competition block and confirmed')
+  await expect(page.getByTestId('place-status')).toContainText('Placed on the competition block')
   await expect(page.getByTestId('toolbar-placing')).toBeHidden()
   // It can be opened again.
   await page.getByTestId('place-again').click()
