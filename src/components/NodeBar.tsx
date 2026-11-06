@@ -116,12 +116,13 @@ export default function NodeBar() {
         onFocus={(e) => { setActive(n.id); showTip(n, e.currentTarget) }} onBlur={() => setTip(null)}
         // UI review (3 Nov): colour belongs on the data, not the chrome. On: a white tile in ink with a bar in its category
         // colour; off: no tile, a faint icon and no bar. Selected (its results showing): an ink ring.
-        className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''} ${usable ? '' : 'opacity-40'}`}>
-        <span className="relative flex h-5 w-6 items-center justify-center">
+        className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''}`}>
+        {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
+        <span className={`relative flex h-5 w-6 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
           {Icon ? <Icon size={16} /> : <span className="text-[11px] font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>
-        <span aria-hidden className={`w-full truncate text-center text-[10px] leading-tight ${on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
+        <span aria-hidden className={`w-full truncate text-center text-[10px] leading-tight ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
         {isCommunity && <span className="absolute -right-1 -top-1 rounded-sm bg-panel px-[2px] text-[7px] font-bold leading-[9px] text-ink ring-1 ring-line" aria-hidden>C</span>}
       </button>
     )
