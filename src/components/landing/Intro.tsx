@@ -229,7 +229,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
   // ---- the ropes (verlet), keyed by link, and the frame loop that moves everything
   const ropes = useRef(new Map<string, Rope>())
-  const ropeUnder = useRef(new Map<string, SVGPathElement | null>())
   const ropeLine = useRef(new Map<string, SVGPathElement | null>())
   const pulses = useRef(new Map<string, SVGCircleElement | null>())
   const links = useMemo(() => edges.map((e) => ({ key: key(e), a: e.a, b: e.b, loop: isLoop(e) })), [edges, chain]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -288,12 +287,15 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           rope = { slack: 1.1, pts: Array.from({ length: SEG + 1 }, (_, k) => { const u = k / SEG, x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u; return { x, y, px: x, py: y } }) }
           ropes.current.set(l.key, rope)
         }
-        const p = rope.pts, g = still ? 0 : (l.loop ? -900 : 900) * dt * dt
+        // A loop runs back from its later node to its earlier one and bulges to the right of that way (on screen), so with
+        // the run it closes a counterclockwise circle (Ruijie, 7 Nov): back from right to left, it arcs above the run.
         const span = Math.max(1, Math.hypot(B.x - A.x, B.y - A.y)), sag = l.loop ? 70 : Math.min(26, span * 0.22)
+        const side = l.loop && span > 1 ? { x: -(B.y - A.y) / span, y: (B.x - A.x) / span } : { x: 0, y: 1 }
+        const p = rope.pts, g = still ? 0 : 900 * dt * dt
         rope.slack = 1 + (8 / 3) * (sag / span) ** 2
         for (let k = 1; k < SEG; k++) {
           const q = p[k], vx = (q.x - q.px) * 0.95, vy = (q.y - q.py) * 0.95
-          q.px = q.x; q.py = q.y; q.x += vx; q.y += vy + g
+          q.px = q.x; q.py = q.y; q.x += vx + g * side.x; q.y += vy + g * side.y
         }
         p[0].x = A.x; p[0].y = A.y; p[SEG].x = B.x; p[SEG].y = B.y
         const rest = (Math.hypot(B.x - A.x, B.y - A.y) * rope.slack) / SEG
@@ -302,19 +304,20 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           if (k > 0) { a.x += dx * diff; a.y += dy * diff }
           if (k + 1 < SEG) { b.x -= dx * diff; b.y -= dy * diff }
         }
-        if (still) for (let k = 1; k < SEG; k++) { const u = k / SEG; p[k].x = A.x + (B.x - A.x) * u; p[k].y = A.y + (B.y - A.y) * u + Math.sin(Math.PI * u) * (l.loop ? -60 : 14) }
+        if (still) for (let k = 1; k < SEG; k++) { const u = k / SEG, bow = Math.sin(Math.PI * u) * (l.loop ? 60 : 14); p[k].x = A.x + (B.x - A.x) * u + side.x * bow; p[k].y = A.y + (B.y - A.y) * u + side.y * bow }
         // draw: a smooth line through the points
         let d = `M${p[0].x.toFixed(1)},${p[0].y.toFixed(1)}`
         for (let k = 1; k < SEG; k++) { const mx = (p[k].x + p[k + 1].x) / 2, my = (p[k].y + p[k + 1].y) / 2; d += ` Q${p[k].x.toFixed(1)},${p[k].y.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}` }
-        ropeUnder.current.get(l.key)?.setAttribute('d', d)
         ropeLine.current.get(l.key)?.setAttribute('d', d)
         ropeHit.current.get(l.key)?.setAttribute('d', d)
-        // a pulse running along it (the workflow running)
+        // a pulse running along it (the workflow running); slow, thin and without a white rim (Ruijie, 7 Nov)
         const c = pulses.current.get(l.key)
         if (c) {
-          const f = still ? 0.5 : ((t / 1600 + (l.loop ? 0 : linksRef.current.indexOf(l) * 0.22)) % 1), at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
-          const x = l.loop ? p[SEG - k].x + (p[SEG - k - 1].x - p[SEG - k].x) * u : p[k].x + (p[k + 1].x - p[k].x) * u
-          const y = l.loop ? p[SEG - k].y + (p[SEG - k - 1].y - p[SEG - k].y) * u : p[k].y + (p[k + 1].y - p[k].y) * u
+          // Every pulse runs the way its wire points (a loop: from its later node back to its earlier one), so around a loop
+          // the pulses go counterclockwise.
+          const f = still ? 0.5 : ((t / 4200 + linksRef.current.indexOf(l) * 0.22) % 1), at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
+          const x = p[k].x + (p[k + 1].x - p[k].x) * u
+          const y = p[k].y + (p[k + 1].y - p[k].y) * u
           c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1))
         }
       }
@@ -604,25 +607,24 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
             {/* the wire's grab area: drag near an end to rewire or cut it */}
             <path ref={(p) => { ropeHit.current.set(l.key, p) }} fill="none" stroke="transparent" strokeWidth={18} data-wire={l.key}
               style={{ pointerEvents: 'stroke', cursor: 'grab' }} onPointerDown={(e) => startRewire(l.key, l.a, l.b, e)} />
-            <path ref={(p) => { ropeUnder.current.set(l.key, p) }} fill="none" stroke="#ffffff" strokeOpacity={0.9} strokeWidth={5} strokeLinecap="round" style={{ pointerEvents: 'none' }} />
             <path ref={(p) => { ropeLine.current.set(l.key, p) }}
-              fill="none" stroke={l.loop ? `hsl(${HUES.violet} 70% 60%)` : 'hsl(206 75% 52%)'} strokeOpacity={0.85} strokeWidth={2} strokeLinecap="round" strokeDasharray={l.loop ? '6 7' : undefined} style={{ pointerEvents: 'none' }} />
-            {chain.length > 0 && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={4} fill={l.loop ? `hsl(${HUES.violet} 80% 62%)` : 'hsl(206 90% 58%)'} stroke="#fff" strokeWidth={1.5} />}
+              fill="none" stroke={l.loop ? `hsl(${HUES.violet} 70% 60%)` : 'hsl(206 75% 52%)'} strokeOpacity={0.85} strokeWidth={1.25} strokeLinecap="round" strokeDasharray={l.loop ? '5 6' : undefined} style={{ pointerEvents: 'none' }} />
+            {chain.length > 0 && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={2.6} fill={l.loop ? `hsl(${HUES.violet} 80% 62%)` : 'hsl(206 90% 58%)'} />}
           </g>
         ))}
         {/* the connector being drawn from a node's handle */}
-        <path ref={linkPreview} d="" fill="none" stroke="hsl(206 85% 52%)" strokeWidth={2.5} strokeDasharray="7 6" strokeLinecap="round" />
+        <path ref={linkPreview} d="" fill="none" stroke="hsl(206 85% 52%)" strokeWidth={1.5} strokeDasharray="6 6" strokeLinecap="round" />
       </svg>
 
       {/* the string's two ends: Start, and Enter (the way into the tool with this workflow) */}
       <div aria-hidden data-cover-start className="absolute flex flex-col items-center gap-1 rounded-xl data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: start.x - tile / 2, top: start.y - tile / 2 }}>
-        <GlassIcon icon={Play} hue={HUES.green} size={tile} />
+        <GlassIcon icon={Play} hue={HUES.green} size={tile} className="gicon-solid" />
         <span className="text-[12px] text-muted">Start</span>
       </div>
       <button type="button" disabled={!chain.length} onClick={(e) => enterWith(e.currentTarget)} data-testid="cover-enter" title="Enter the tool with this workflow"
         aria-label={`Enter the tool with ${name}: ${chain.length} nodes${loop ? ', looped' : ''}`}
         className="group absolute flex flex-col items-center gap-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: enter.x - tile / 2, top: enter.y - tile / 2 }}>
-        <GlassIcon icon={ArrowRight} hue={HUES.sky} size={tile} className="group-hover:scale-105" />
+        <GlassIcon icon={ArrowRight} hue={HUES.sky} size={tile} className="gicon-solid group-hover:scale-105" />
         <span className="text-[12px] font-semibold text-accent">Enter</span>
       </button>
 
@@ -663,7 +665,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
       {/* the box: the name, and the sentence with its role */}
       <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4" style={{ top: band().y1 + 40 }}>
-        <div ref={sentenceEl} className="glass pointer-events-auto relative rounded-xl bg-glass-1 px-7 py-4 text-ink" data-testid="cover-box">
+        <div ref={sentenceEl} className="glass glass-tile pointer-events-auto relative rounded-xl bg-glass-1 px-7 py-4 text-ink" data-testid="cover-box">
           <div className="relative overflow-hidden">
             <p aria-hidden={!showName} className={`${type} whitespace-nowrap transition-all duration-500 ${showName ? 'translate-y-0 opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 -translate-y-full opacity-0'}`}>Tower Design Toolkit</p>
             <p aria-hidden={showName} className={`${type} flex flex-wrap items-baseline justify-center gap-x-3 whitespace-nowrap transition-all duration-500 ${showName ? 'pointer-events-none absolute inset-x-0 top-0 translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
