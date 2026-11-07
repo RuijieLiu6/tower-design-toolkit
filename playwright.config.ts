@@ -24,7 +24,8 @@ export default defineConfig({
     launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
   },
   webServer: {
-    command: `"${process.execPath}" node_modules/vite/bin/vite.js --port 5199 --strictPort`,
+    // --mode e2e: no file watching (vite.config.ts), so edits made while the tests run cannot hot-reload the page.
+    command: `"${process.execPath}" node_modules/vite/bin/vite.js --port 5199 --strictPort --mode e2e`,
     url: 'http://localhost:5199',
     reuseExistingServer: true,
     timeout: 120_000,

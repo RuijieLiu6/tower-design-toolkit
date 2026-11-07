@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => ({
   // Only the lazy node builder dialog uses these; pre-bundle them so its first open doesn't reload the dev page.
   // rhino3dm and web-ifc (massing import) are served as-is: they find their .wasm through ?url imports.
   optimizeDeps: { include: ['ajv/dist/2020', 'fflate', 'react-dom'], exclude: ['rhino3dm', 'web-ifc'] },
+  // The browser tests' server (`vite --mode e2e`, started by playwright.config.ts) does not watch the source: a save
+  // during a run used to push hundreds of hot updates into the open page, reset the store and fail whichever test was
+  // running (heights, align-lot, 7 Nov). A run now tests the code as it was when its server started.
+  ...(mode === 'e2e' ? { server: { watch: null } } : {}),
   build: {
     rolldownOptions: {
       output: {
