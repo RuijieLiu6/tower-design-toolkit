@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultTower } from '../store'
 import { checkTowerCones } from '../engine/towerCones'
 import { vtcRules } from '../engine/vtcRules'
+import { aviationChecklist, relaxationChecklist } from '../engine/relaxAviation'
 import { coneRows, fixFor, ruleKey } from './fixes'
 import { CITY_ORIGIN } from '../store'
 
@@ -29,6 +30,16 @@ describe('pass or fail, with what to fix', () => {
       const key = ruleKey(r.id, t.id)
       if (r.state !== 'pass') expect(fixFor(key, r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Needs |See Details/)
     }
+  })
+  it('every relaxation and aviation line that does not pass gets its own instruction (node audit, 7 Nov)', () => {
+    // A 285 m tower at the default Real Vancouver site (under the Queen Elizabeth Park view, near the harbour aerodromes).
+    const t = { ...defaultTower('city', [240, 472]), height: 285 }
+    const lines = [...relaxationChecklist(t, [], 23.7, 11225, CITY_ORIGIN), ...aviationChecklist(t, [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]])]
+    const open = lines.filter((r) => r.state !== 'pass')
+    expect(open.length).toBeGreaterThan(5)
+    for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Needs |See Details|Not computed|a person has to decide/)
+    expect(fixFor('relax-eds', 'fail', '5,000 m²')).toMatch(/8,000 m²/)
+    expect(fixFor('relax-eds', 'unknown', '')).toMatch(/Site step/)
   })
   it('view cones: one row per cone entered, with the metres to lose for the ones it rises above', () => {
     const t = defaultTower('city')

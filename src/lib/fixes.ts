@@ -69,6 +69,21 @@ const FIXES: [RegExp, string | ((state: RuleState) => string)][] = [
   [/^pr-variation$/, 'Vary the tower heights.'],
   [/^pr-sun$/, 'Switch on Solar access & sun hours to test the shadow on public space.'],
   [/^pr-wind$/, 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'],
+  // Relaxations & aviation (research C01-M06; node audit 7 Nov: the generic "Needs …; now …" read as broken English).
+  // Each instruction restates the rule's own note; none adds a threshold.
+  [/^relax-limit/, 'Lower the top under the lowest binding cone (View-cone height check says by how much), move the tower out of the cone (Place on map), or, if the site may use a relaxation route, switch it on under Details › Relaxations to see the limit with it.'],
+  [/^relax-hbp/, 'Switch on the Higher Buildings Policy route under Details › Relaxations to see the limit with it. Whether this site lies in the policy’s Figure 1 area is for the City to confirm.'],
+  [/^relax-eds/, (st) => (st === 'fail' ? 'Only a site of 8,000 m² or more may use this route: a larger study site (Site step), or another route.'
+    : st === 'unknown' ? 'Choose a study site in the Site step, or type the parcel area under Details › Relaxations, to test the 8,000 m² size.'
+    : 'The site is large enough: switch the route on under Details › Relaxations; the views to the Lions still bind.')],
+  [/^relax-no-route/, 'These views bind whatever route is used: keep the top under them, or move the tower out of them (Place on map).'],
+  [/^car-150/, 'Over 150 m every tower is an aviation obstacle: give notice to Transport Canada (CAR 601.24) and plan marking and lighting to Standard 621.'],
+  [/^car-90-6km/, 'Near an aerodrome a tower over 90 m is an obstacle: give notice (CAR 601.24), and confirm the aerodrome positions in the Canada Flight Supplement.'],
+  [/^car-notice/, 'For a real site, submit the aeronautical assessment form (26-0427) to Transport Canada.'],
+  [/^ac-601-007/, 'The tower rises above the notification surface: submit the aeronautical assessment form (AC 601-007).'],
+  [/^car-vfr/, 'VFR route charts are not machine-readable here: check them with Transport Canada for a real site.'],
+  [/^car-ols/, 'No obstacle limitation surface is published downtown: ask the City for the NAV CANADA height layer it reportedly holds.'],
+  [/^nav-canada/, 'Ask NAV CANADA for a land-use review (and the City for its NAV CANADA height layer); allow for cranes.'],
 ]
 
 /** The instruction for a rule that does not pass, or null when it passes. `key` is the rule id without its tower suffix. */
