@@ -25,7 +25,7 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   const tile = page.locator('[role="tab"][data-tool="rhino-import"]')
   await expect(tile).toContainText('Import')
   await tile.hover()
-  await expect(page.getByRole('tooltip')).toContainText('Rhino import')
+  await expect(page.getByRole('tooltip')).toContainText('Import a model')
   await openDesignTool(page, 'rhino-import')
 
   // One click on the tool opens the upload flow.
@@ -33,7 +33,7 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
   await tool.waitFor({ timeout: 60_000 })
   await expect(tool).toHaveText(/Upload a Rhino model|Upload a new version/)
   await tool.click()
-  const dialog = page.getByRole('dialog', { name: 'Upload a model' })
+  const dialog = page.getByRole('dialog', { name: 'Import a model' })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Read in this browser; nothing is uploaded to a server.')
   await dialog.locator('input[type="file"]').setInputFiles(FIXTURE)
@@ -76,7 +76,7 @@ test('the uploaded lot line and context buildings are drawn in the 3D view', asy
   // Through the Project menu this time (the same dialog).
   await page.getByRole('button', { name: /^Project file/ }).click()
   await page.getByRole('menuitem', { name: /Upload a Rhino model/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Upload a model' })
+  const dialog = page.getByRole('dialog', { name: 'Import a model' })
   await dialog.locator('input[type="file"]').setInputFiles(FIXTURE)
   await dialog.getByRole('button', { name: /Check units, north and datum/ }).click({ timeout: 120_000 })
   await expect(dialog.getByText('In plain words')).toBeVisible({ timeout: 120_000 })

@@ -126,8 +126,8 @@ test('Massing: edit the blocks on the model, one undo step per drag', async ({ p
   await undo.click()
   await expect.poll(async () => (await state(p)).height).toBe(s0.height)
 
-  // Leaving Massing gives zoom and pan back.
-  await p.locator('[role="tab"][data-tool="towers"]').click()
+  // Leaving Massing gives zoom and pan back (for Sun; Tower position locks the view on the site itself, 6 Nov).
+  await p.locator('[role="tab"][data-tool="sun"]').click()
   await expect.poll(async () => (await state(p)).zoom).toBe(true)
   expect(errors).toEqual([])
 })

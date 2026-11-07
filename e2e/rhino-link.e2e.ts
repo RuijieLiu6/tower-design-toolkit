@@ -41,7 +41,7 @@ test('Link Rhino live: tutorial, download, connect, map once, then updates from 
 
   // Connect: the first copy opens the upload dialog, mapped and checked like a file.
   await page.getByTestId('rhino-connect').click()
-  const dialog = page.getByRole('dialog', { name: 'Upload a model' })
+  const dialog = page.getByRole('dialog', { name: 'Import a model' })
   await expect(dialog).toBeVisible({ timeout: 30_000 })
   await expect(dialog.getByRole('combobox', { name: 'Role for Core' })).toHaveValue('core', { timeout: 120_000 })
   await dialog.getByRole('button', { name: /Check units, north and datum/ }).click()

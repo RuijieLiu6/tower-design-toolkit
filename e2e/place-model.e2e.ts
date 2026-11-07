@@ -21,7 +21,7 @@ test('after an upload: place it on the site, set its basement, confirm', async (
   await page.getByRole('navigation', { name: 'Design process' }).getByRole('button', { name: 'Site' }).click()
   await openDesignTool(page, 'rhino-import')
   await page.locator('[data-tool="tool.rhino-import"]').click()
-  const dialog = page.getByRole('dialog', { name: 'Upload a model' })
+  const dialog = page.getByRole('dialog', { name: 'Import a model' })
   await dialog.locator('input[type="file"]').setInputFiles(FIXTURE)
   await dialog.getByRole('button', { name: /Check units, north and datum/ }).click({ timeout: 120_000 })
   await expect(dialog).toContainText('Next, you place it on the site, set its basement and confirm.', { timeout: 120_000 })

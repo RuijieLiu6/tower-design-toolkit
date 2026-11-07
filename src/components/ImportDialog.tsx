@@ -163,7 +163,7 @@ export default function ImportDialog() {
           <div className="flex items-start gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><FileUp size={18} /></span>
             <div>
-              <h2 id="imp-title" className="text-base font-semibold">Upload a model</h2>
+              <h2 id="imp-title" className="text-base font-semibold">Import a model</h2>
               <p className="mt-0.5 text-xs text-muted">Bring in your Rhino model (or OBJ, glTF, IFC). Map its layers to roles, check units, north and the zero level, and every tool on the site runs on it, with each result traced back to your layers.</p>
             </div>
           </div>
