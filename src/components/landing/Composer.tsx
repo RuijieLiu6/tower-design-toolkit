@@ -8,13 +8,12 @@ import { ArrowRight, Building, Camera, ChevronRight, Cuboid, Download, Grid2x2, 
 import { iconFor } from '../workflow/nodeIcons'
 import { NODE_ICONS, STEP_ICONS, TOOL_ICONS, TOOL_WORDS } from '../../data/icons'
 import { BUILT_NODES, CATEGORIES } from '../../data/registry'
-import { firstPhase, PHASES, type PhaseId } from '../../lib/phases'
+import { firstPhase, PHASE_HUE, PHASES } from '../../lib/phases'
 import Help from '../Help'
 import GlassIcon, { HUES, ICON, nodeHue } from '../GlassIcon'
 
 export interface Draft { name: string; nodes: string[]; project: 'vtc' | 'city'; from: string | null }
 
-const PHASE_HUE: Record<PhaseId, number> = { site: HUES.sky, form: HUES.coral, program: HUES.yellow, schematic: HUES.violet, present: HUES.magenta }
 const runsOn = (id: string, project: 'vtc' | 'city') => (BUILT_NODES.find((n) => n.id === id)?.projects ?? ['vtc', 'city']).includes(project)
 
 export default function Composer({ draft, onChange, onStart, onGraph, onSave }: {
@@ -68,7 +67,7 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
                     <span key={id} className="group relative">
                       <button type="button" aria-pressed={pressed} disabled={!ok} onClick={() => toggle(id)} data-node={id} aria-label={`${n.name}${ok ? '' : ` (not on the ${draft.project === 'vtc' ? 'competition site' : 'Vancouver site'})`}`}
                         className="gicon-lift flex rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:translate-y-0 motion-reduce:transition-none">
-                        <GlassIcon icon={NI} hue={nodeHue(id, n.category)} size={ICON.feature} level={pressed ? 'on' : 'off'} />
+                        <GlassIcon icon={NI} hue={PHASE_HUE[ph.id]} size={ICON.feature} level={pressed ? 'on' : 'off'} />
                       </button>
                       <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
                         <b className="block font-semibold">{n.name}</b>

@@ -1,5 +1,6 @@
 import { ArrowRight, ChevronRight } from './icons'
-import { STEP_ICONS } from '../data/icons'
+import { STEP_ICONS, WAY_ICONS } from '../data/icons'
+import { openWorkflowBuilder } from '../lib/intro'
 import { useEffect } from 'react'
 import { EVALUATE, PROCESS, STAGES } from '../data/stages'
 import { whenRestored } from '../lib/project/session'
@@ -9,6 +10,7 @@ import { useStore } from '../store'
 import Help from './Help'
 
 const STEP_ICON = STEP_ICONS
+const BuildIcon = WAY_ICONS.phases
 
 /**
  * The mental map of the design process. Only the current step is lit (lib/step.ts); clicking a step goes to it and to
@@ -70,6 +72,11 @@ export default function ProcessRail() {
         </button>
       )}
       <span className="ml-auto flex items-center gap-1">
+        {/* Not your workflow? The phase board, with this one on it, and the ready-made ones. */}
+        <button type="button" onClick={openWorkflowBuilder} data-testid="rail-workflow" title="Build my workflow: change this one on the phase board, or pick a ready-made one"
+          className="mr-1 flex items-center gap-1.5 rounded-full border border-transparent px-2.5 py-0.5 text-muted outline-none hover:border-accent/40 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+          <BuildIcon size={13} aria-hidden />Build my workflow
+        </button>
         <button type="button" role="switch" aria-checked={analysis} onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
           className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent ${analysis ? 'border-accent/50 bg-panel text-ink' : 'border-line text-muted hover:text-ink'}`}>
           <Gauge size={13} className={analysis ? 'text-accent' : ''} />Analysis

@@ -48,5 +48,14 @@ export const PHASES: Phase[] = [
 ]
 
 export const phaseOfNode = (id: string): Phase | undefined => PHASES.find((p) => p.nodes.includes(id))
+
+/**
+ * Each phase's colour (HSL hue), worn by the phase and by every node that belongs to it wherever nodes are grouped by
+ * phase (Ruijie, 7 Nov: "use the same colour for the phases … and make them match on the icons … so that they would
+ * sort of know which one they should put into"): sky, coral, yellow, violet, magenta.
+ */
+export const PHASE_HUE: Record<PhaseId, number> = { site: 206, form: 14, program: 48, schematic: 268, present: 300 }
+/** A node's phase colour (the Site colour for a node in no phase). */
+export const phaseHue = (id: string) => PHASE_HUE[phaseOfNode(id)?.id ?? 'site']
 /** The first phase that has a node switched on (where the guided app should open), else Site. */
 export const firstPhase = (nodes: string[]): Phase => PHASES.find((p) => p.nodes.some((n) => nodes.includes(n))) ?? PHASES[0]

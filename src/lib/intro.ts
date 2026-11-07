@@ -6,10 +6,17 @@
 import { create } from 'zustand'
 import { navigate } from './route'
 
-export const useIntro = create<{ show: boolean }>(() => ({ show: true }))
+export const useIntro = create<{ show: boolean; focus: 'composer' | null }>(() => ({ show: true, focus: null }))
 
 /** Past the intro, on to the agent. */
 export const enterToolkit = () => useIntro.setState({ show: false })
+
+/**
+ * "Build my workflow", from inside the tool (Ruijie, 7 Nov: "if they enter the tool and find that this is not their
+ * workflow, they could always enter the build my workflow page with a more organized interface or just go with any
+ * prebuilt workflow"): the landing page's phase board, with the running workflow on it, and the ready-made workflows.
+ */
+export const openWorkflowBuilder = () => { useIntro.setState({ show: false, focus: 'composer' }); navigate('start') }
 
 /** The logo: back to the intro, from anywhere. */
 export const showIntro = () => { useIntro.setState({ show: true }); navigate('start') }

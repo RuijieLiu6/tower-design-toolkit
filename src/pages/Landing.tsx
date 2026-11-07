@@ -14,6 +14,7 @@ import { openPresetInCustomize, saveWorkflowFile, startPreset } from '../lib/sta
 import Orbit from '../components/landing/Orbit'
 import Intro from '../components/landing/Intro'
 import { enterToolkit, showIntro, useIntro } from '../lib/intro'
+import { runningWorkflow } from '../lib/startPreset'
 import PresetCards from '../components/landing/PresetCards'
 import ResearchFigures from '../components/landing/ResearchFigures'
 import { installApp, installHint, useOffline } from '../lib/pwa/install'
@@ -36,7 +37,20 @@ export default function Landing() {
   const [result, setResult] = useState<AgentResult | null>(null)
   const [active, setActive] = useState<Preset | null>(null)
   // The workflow on the phase board: a preset or the agent's answer fills it, and every node stays editable.
-  const [draft, setDraft] = useState<Draft>({ name: 'Your workflow', nodes: [], project: 'vtc', from: null })
+  // Opened from inside the tool ("Build my workflow"): the running workflow is on the board, to change.
+  const [draft, setDraft] = useState<Draft>(() => {
+    const run = useIntro.getState().focus === 'composer' ? runningWorkflow() : null
+    return run ? { name: run.name, nodes: [...run.nodes], project: useStore.getState().project, from: null } : { name: 'Your workflow', nodes: [], project: 'vtc', from: null }
+  })
+  const [toBoard] = useState(() => useIntro.getState().focus === 'composer')
+  useEffect(() => {
+    if (intro || !toBoard) return
+    useIntro.setState({ focus: null })
+    // After the returning visitor's workflow cards have rendered above it (they move the board down).
+    const go = () => document.getElementById('composer-title')?.scrollIntoView({ block: 'start' })
+    const t1 = setTimeout(go, 80), t2 = setTimeout(go, 450)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [intro, toBoard])
   const load = (p: Preset, scroll = false) => {
     setDraft({ name: p.name, nodes: [...p.nodes], project: p.project, from: p.id })
     if (scroll) document.getElementById('composer-title')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
