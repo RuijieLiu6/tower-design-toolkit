@@ -1678,6 +1678,88 @@
             "parcels",
             "boundary"
           ]
+        },
+        "streets": {
+          "type": "object",
+          "maxProperties": 64,
+          "description": "Public realm per street (7 Nov 2026): keyed by the City street name; the type is the user's pick (null = not yet), frontage inputs absent = starting values.",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "retail",
+                  "arterial",
+                  "local",
+                  null
+                ]
+              },
+              "active": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "entrances": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "canopy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "crossings": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "link": {
+          "type": "object",
+          "description": "A mid-block link across or along the study site, in the site's own frame (its longest side along x).",
+          "required": [
+            "enabled",
+            "along",
+            "offset",
+            "width",
+            "openToSky",
+            "srw"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "along": {
+              "type": "boolean"
+            },
+            "offset": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "openToSky": {
+              "type": "boolean"
+            },
+            "srw": {
+              "type": "boolean"
+            }
+          }
+        },
+        "station": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120,
+          "description": "The street (City name) a station entrance is on or next to the site, 'none', or null = not answered."
         }
       }
     }

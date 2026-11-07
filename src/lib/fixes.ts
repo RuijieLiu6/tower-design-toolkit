@@ -64,16 +64,19 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Node audit (7 Nov): "pr-share" is the tower's width against the frontage, not active frontage share; it had the
   // active-frontage instruction.
   [/^pr-share/, 'Narrow the tower so it spans less than about 60% of the frontage it faces, or turn it (Massing).'],
-  [/^pr-crossings$/, 'Move driveways and loading off the retail high street and arterial, to the local streets (Program step › Ground & public realm).'],
+  [/^pr-crossings$/, (st) => (st === 'unknown' ? 'Pick the type of each street with a driveway (Your site › Streets): driveways may cross local streets, not retail or arterial ones.' : 'Move driveways and loading off the retail high street and arterial, to the local streets or the lane (Program step › Ground & public realm).')],
   [/^pr-station$/, 'Give the station entrance at least one lift and one stair (Program step › Ground & public realm).'],
   [/^pr-station-active$/, 'Line the below-grade link with active uses and open a view to the concourse (Program step › Ground & public realm).'],
-  [/^pr-active/,'Line more of this street with shops and entrances (Program step › Ground & public realm).'],
+  [/^pr-active/, (st) => (st === 'unknown' ? 'Pick this street’s type (Retail, Arterial or Local) in Your site › Streets: its active-frontage target depends on it.' : 'Line more of this street with shops and entrances (Program step › Ground & public realm).')],
   [/^pr-entrances/, 'Add entrances along this street, about every 8–12 m.'],
   [/^pr-canopy$/, 'Extend weather protection along the frontage.'],
   [/^pr-ground-height$/, 'Make the ground storey 4.6–6.1 m tall (the podium block\'s height in Massing).'],
   [/^pr-open-share$/, 'Free more ground: a smaller podium footprint, or a plaza.'],
   [/^pr-pops/, 'Add publicly open space (POPS) of at least a tenth of the site, in a usable shape.'],
-  [/^pr-transit-plaza$/, 'Leave a 6.1 m plaza at the station corner.'],
+  [/^pr-transit-plaza$/, 'Leave a clear 6.1 m plaza beside the station entrance (the station corner on the competition site).'],
+  [/^pr-street-types/, 'Pick each street’s type (Retail, Arterial or Local) in Your site › Streets or in Ground & public realm.'],
+  [/^pr-station-question$/, 'Say whether a station entrance is on or next to the site, and on which street (Program step › Ground & public realm).'],
+  [/^pr-link$/, (st) => (st === 'unknown' ? 'Answer whether a station entrance is on or next to the site (Program step › Ground & public realm); a link can be added there too.' : 'Keep a mid-block link at least 9.1 m wide, open to the sky and secured for public use.')],
   [/^pr-link/, 'Keep a mid-block link at least 9.1 m wide, open to the sky and secured for public use.'],
   [/^pr-separation/, 'Move the towers further apart (the separation lines in the view show by how much).'],
   [/^pr-plate/, 'Reduce the tower floorplate (width × depth in Massing).'],
@@ -86,9 +89,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^(north|south|east|west)$/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
   // Node audit (7 Nov): this said "Vary the tower heights", but S2.2.1 asks for plane changes along the street.
   [/^pr-variation$/, 'Break the long facade with a step of 1.5 m or more at least every 45.7 m (stacked blocks in Massing), and show it on the boards.'],
-  [/^pr-streets-frontage$/, 'The study site’s street types are not in the Toolkit yet: the street lines run on the competition site.'],
-  [/^pr-streets-ground$/, 'The study site’s streets and station entrance are not in the Toolkit yet: these lines run on the competition site.'],
-  [/^pr-streets$/, 'Street types and widths for Real Vancouver sites are not in the Toolkit yet: the street rules run on the competition site.'],
+  [/^pr-streets-frontage$/, 'Choose a study site in the Site step: the street lines read its streets.'],
+  [/^pr-streets-ground$/, 'Choose a study site in the Site step: the link, frontage and station lines read its streets.'],
+  [/^pr-streets$/, 'Choose a study site in the Site step: the street rules read its streets and their measured widths.'],
   [/^pr-sun$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on Solar access & sun hours to test the shadow on public space.'
     : 'Open Solar access & sun hours to see which spaces get new shadow; moving, turning or slimming the tower changes it.')],
   [/^pr-wind$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'

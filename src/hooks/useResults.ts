@@ -8,6 +8,7 @@ import { checkTowerCones } from '../engine/towerCones'
 import { fsrSummary, vtcRules } from '../engine/vtcRules'
 import { useVtcNeighbours } from '../lib/vtcNeighbours'
 import { useProjectSiteArea } from '../lib/siteArea'
+import { streetsCtx, useSiteStreets } from '../lib/siteStreets'
 import { SOLAR_NODE, useSolar } from './useSolarAccess'
 import { nodeOn } from '../lib/analysis'
 import { useWindScreen } from './useWindScreen'
@@ -40,6 +41,9 @@ export function useResults() {
   const studyArea = useProjectSiteArea().area
   const cityStudyArea = project === 'city' ? studyArea : null
   const cityRing = useStore((s) => (s.project === 'city' ? s.citySite?.ring ?? null : null)) as [number, number][] | null
+  // Real Vancouver: the streets along the study site (found once per outline) and the site's per-street settings (7 Nov).
+  const citySite = useStore((s) => (s.project === 'city' ? s.citySite : null))
+  const streetsFound = useSiteStreets().result
   // Open space & links reads the solar access and wind screen nodes when they are on (engine/publicRealm.ts GroundCross).
   const solarOut = useSolar((s) => s.out)
   // Only while the node is on: its last result stays in the store after it is switched off.
@@ -50,7 +54,7 @@ export function useResults() {
   const windResult = useWindScreen()
   const windGround = windResult ? windResult.zones.filter((z) => z.z <= 1).map((z) => z.level).join(',') : null
 
-  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround], () => {
+  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound], () => {
     const fsr = cityStudyArea ? fsrSummary(towers, cityStudyArea) : fsrSummary(towers)
     const rules = project === 'vtc' ? vtcRules(towers, { fsrTier, transitLink }) : []
     const cones = project === 'city'
@@ -65,17 +69,18 @@ export function useResults() {
     const skyRooms = towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets) }))
     // Public realm checks run on the competition block, whose streets are known (research P06).
     const vtc = project === 'vtc' && towers.length > 0
-    // Real Vancouver: the tower-form lines only, the street lines open until the study site's streets are typed.
-    const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers) : null
-    const frontage = vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers) : null
+    // Real Vancouver: the study site's streets (right-of-way measured, types picked by the user) once they are found.
+    const ctx = project === 'city' ? streetsCtx(citySite, streetsFound) : null
+    const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers, ctx, cityRing, publicRealm.openPublicShare) : null
+    const frontage = vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers, ctx) : null
     const cross = { solar: solarLines, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }
-    // Real Vancouver: open space over the study site, sun and wind; the street and station lines open (engine/publicRealm.ts).
-    const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross) : null
+    // Real Vancouver: open space over the study site, sun and wind; the link, frontage runs and station lines from its streets.
+    const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross, ctx) : null
     // Optional fields, so code that builds a results object by hand (tests, workflows) need not supply them.
     const out: {
       fsr: typeof fsr; rules: typeof rules; cones: typeof cones; lifts: typeof lifts; egress: typeof egress; skyRooms: typeof skyRooms
       streetwall?: typeof streetwall; frontage?: typeof frontage; groundPlane?: typeof groundPlane
     } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane }
     return out
-  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround])
+  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound])
 }

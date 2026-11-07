@@ -42,4 +42,16 @@ describe('citySite in the project file', () => {
     expect(bad({ source: 'guess' as StudySite['source'] })).toMatch(/citySite › source/)
     expect(bad({ note: 'x'.repeat(401) })).toMatch(/citySite › note/)
   })
+
+  it('keeps the street types, frontage inputs, link and station answer (7 Nov), and checks them', () => {
+    const withStreets: StudySite = { ...site, streets: { 'GRANVILLE ST': { type: 'retail', active: 0.95, crossings: 0 }, 'HOWE ST': { type: null } },
+      link: { enabled: true, along: false, offset: 4, width: 9.1, openToSky: true, srw: true }, station: 'GRANVILLE ST' }
+    const text = exportProject({ ...defaultDesign(), citySite: withStreets })
+    const r = readProject(text)
+    expect(r.problems).toEqual([])
+    expect(toDesign(r.file!).citySite).toEqual(withStreets)
+    const f = JSON.parse(text)
+    f.citySite.streets['HOWE ST'].type = 'boulevard'
+    expect(readProject(JSON.stringify(f)).problems.join(' ')).toMatch(/citySite › streets/)
+  })
 })

@@ -4,6 +4,7 @@
 // yet posted), so every clause value carries that caveat; presets without a source are team assumptions.
 // Research: 04 Tool Plan/research/modules-completion/P06/revise-r2_P06.json (single pass since 22 Oct).
 import { towerFloors, towerFootprint, towerMasses } from './massing'
+import { againstStreet, distanceToStreet, extentAlong, spanOn, type CityLinkInput, type SiteStreet, type StreetEdge, type StreetSetting } from './siteStreets'
 import type { RuleResult, RuleState, Tower, UseId } from './types'
 
 // ---------- site ----------
@@ -304,7 +305,10 @@ export interface EdgeFrontage { edge: SiteEdge; length: number; activeLength: nu
  * uses them in place; on Real Vancouver they are the whole node until the study site's streets are typed (node audit,
  * 7 Nov: Streetwall & tower form ran on the competition site only, though most of its tower rules need no street).
  */
-export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], opts: { frontage: boolean } = { frontage: true }): RuleResult[] {
+/** The street a tower faces most and its width against that street's frontage (Real Vancouver: from the typed streets). */
+export type FrontageShare = (t: Tower) => { share: number; street: string; frontage: number; width: number } | null
+
+export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], opts: { frontage: boolean | FrontageShare } = { frontage: true }): RuleResult[] {
   const rules: RuleResult[] = []
   for (const t of towers) {
     const plate = t.width * t.depth
@@ -326,13 +330,20 @@ export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], op
       threshold: '≤ 29.0 m, or clear volumetric articulation', state: dim <= 29.0 ? 'pass' : 'warn', flag: 'verified', source: cddg('S2.3.1, S2.3.2, G2.3.2'),
       note: dim <= 29 ? 'Slender in plan.' : 'Over 29.0 m: mixed-use and non-residential towers must show clear volumetric articulation (S2.3.2). The box model has none; describe it on the boards.',
     }))
-    if (opts.frontage) {
+    if (opts.frontage === true) {
     const share = Math.max(t.width / edgeLength('south'), t.depth / edgeLength('west'))
     rules.push(rule({
       id: `pr-share-${t.id}`, label: `Tower width against the frontage: ${t.name}`, value: `${Math.round(share * 100)}% of the frontage it faces`,
       threshold: 'below about 60% (CDDG tip: wider reads as a slab)', state: share <= 0.6 ? 'pass' : 'warn', flag: 'team_assumption', source: cddg('design tip, section 2.3'),
       note: 'A rule of thumb in the CDDG, not a standard: about 47.5 m on the 79.2 m side, 86.9 m on the 144.8 m side (our arithmetic).',
     }))
+    } else if (opts.frontage) {
+      const f = opts.frontage(t)
+      if (f) rules.push(rule({
+        id: `pr-share-${t.id}`, label: `Tower width against the frontage: ${t.name}`, value: `${Math.round(f.share * 100)}% of the ${fmt(f.frontage)} m frontage on ${f.street} (${f1(f.width)} m along it)`,
+        threshold: 'below about 60% (CDDG tip: wider reads as a slab)', state: f.share <= 0.6 ? 'pass' : 'warn', flag: 'team_assumption', source: cddg('design tip, section 2.3'),
+        note: `A rule of thumb in the CDDG, not a standard: about ${fmt(0.6 * f.frontage)} m on this ${fmt(f.frontage)} m frontage (our arithmetic). The frontage is the study site's on that street, not the whole block's.`,
+      }))
     }
     const slender = t.height / Math.max(1, Math.min(t.width, t.depth))
     rules.push(rule({
@@ -378,20 +389,145 @@ export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], op
   return rules
 }
 
-/** Streetwall & tower form on Real Vancouver: the tower rules, and the street rules marked open. */
-export function cityStreetwallCheck(towers: Tower[]): { rules: RuleResult[]; edges: EdgeWall[] } {
-  if (!towers.length) return { rules: [], edges: [] }
-  return {
-    edges: [],
-    rules: [
-      rule({
-        id: 'pr-streets', label: 'Streetwall height, continuity and step-back', value: 'needs the study site’s street types and right-of-way widths',
-        threshold: 'Table 2.2b podium bands by right-of-way width; a continuous wall on retail and arterial streets', state: 'unknown', flag: 'unresolved', source: cddg('Table 2.2b, S2.2'),
-        note: 'The streets around a Real Vancouver study site are not typed in the Toolkit yet (no City street classification in its data), so the street rules run on the competition site only. The tower rules here need no street.',
-      }),
-      ...towerFormRules(towers, [], { frontage: false }),
-    ],
+// ---------- Real Vancouver: the study site's streets (7 Nov) ----------
+/**
+ * What the Real Vancouver checks know about the study site's streets: the streets found along it (engine/siteStreets.ts,
+ * right-of-way measured to the facing City parcels), the user's per-street settings (type and frontage), the mid-block
+ * link and the station-entrance answer. Null until the streets are loaded: the street rules then stay open.
+ */
+export interface CityStreetsCtx {
+  streets: SiteStreet[]
+  settings: Record<string, StreetSetting>
+  link: CityLinkInput | null
+  /** Street key with a station entrance on or next to the site; 'none'; null = not answered. */
+  station: string | null
+}
+export const STREET_TYPE_WORD: Record<StreetType, string> = { retail: 'retail high street', arterial: 'arterial', local: 'local street' }
+const aType = (t: StreetType) => `${t === 'arterial' ? 'an' : 'a'} ${STREET_TYPE_WORD[t]}`
+export const streetSlug = (key: string) => key.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'street'
+const rowWords = (s: SiteStreet) => s.basis === 'parcels'
+  ? `${f1(s.row)} m right-of-way, measured to the facing lots (${f1(s.rowRange[0])}–${f1(s.rowRange[1])} m over ${s.rays} lines)`
+  : `${f1(s.row)} m right-of-way, twice the distance to the City centreline (no facing lot found)`
+const typeOf = (ctx: CityStreetsCtx, s: SiteStreet): StreetType | null => ctx.settings[s.key]?.type ?? null
+const mainStreets = (ctx: CityStreetsCtx) => ctx.streets.filter((s) => s.kind === 'street')
+
+/** Starting frontage inputs for a street of this type: the competition's, scaled to this frontage (team). */
+export function cityFrontageDefaults(type: StreetType | null, frontage: number): FrontageInput {
+  const d = DEFAULT_PUBLIC_REALM.frontage
+  const [base, ref] = type === 'retail' ? [d.south, edgeLength('south')] : type === 'arterial' ? [d.west, edgeLength('west')] : [d.north, edgeLength('north')]
+  return { ...base, entrances: Math.max(1, Math.round((base.entrances * frontage) / ref)), crossings: type === 'local' ? base.crossings : 0 }
+}
+/** A street's frontage inputs: the user's, else the starting values for its type. */
+export function cityFrontageInput(s: SiteStreet, set: StreetSetting | undefined): FrontageInput {
+  const d = cityFrontageDefaults(set?.type ?? null, s.frontage)
+  return { active: set?.active ?? d.active, entrances: set?.entrances ?? d.entrances, canopy: set?.canopy ?? d.canopy, crossings: set?.crossings ?? d.crossings }
+}
+
+/** One open line naming the streets whose type is still to pick (nothing when all are typed). */
+function typesLine(ctx: CityStreetsCtx, id: string, what: string): RuleResult | null {
+  const open = mainStreets(ctx).filter((s) => !typeOf(ctx, s))
+  if (!open.length) return null
+  return rule({
+    id, label: 'Street types', value: `${open.map((s) => s.name).join(', ')}: type not picked`,
+    threshold: `pick each street's type (retail high street, arterial or local) for ${what}`, state: 'unknown', flag: 'unresolved', source: { label: 'Your choice per street (Site step › Your site › Streets, or Ground & public realm)' },
+    note: 'The Toolkit has no City street classification, so it never guesses a type. The right-of-way widths are measured and need no type.',
+  })
+}
+
+export interface CityWall { street: SiteStreet; wallHeight: number; max: number; stepBack: number | null; setback: number; continuity: number; state: RuleState }
+/**
+ * How far back from the property line a face still forms the streetwall (team preset): the top of the CDDG tip's
+ * 1.5–3.0 m step-back that reads as a break. A tower further back stands behind a forecourt, not in the streetwall.
+ */
+export const STREETWALL_REACH = 3.0
+
+/** Streetwall & tower form on Real Vancouver: the tower rules always; the street rules once the site's streets are known. */
+export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null = null, ring: Pt[] | null = null, openPublicShare = DEFAULT_PUBLIC_REALM.openPublicShare): { rules: RuleResult[]; edges: EdgeWall[]; walls: CityWall[] } {
+  if (!towers.length) return { rules: [], edges: [], walls: [] }
+  if (!ctx || !mainStreets(ctx).length) {
+    return {
+      edges: [], walls: [],
+      rules: [
+        rule({
+          id: 'pr-streets', label: 'Streetwall height, continuity and step-back', value: ctx ? 'no street found along the study site' : 'needs a study site and its streets',
+          threshold: 'Table 2.2b podium bands by right-of-way width; a continuous wall on retail and arterial streets', state: 'unknown', flag: 'unresolved', source: cddg('Table 2.2b, S2.2'),
+          note: ctx ? 'No City street centreline lies within reach of the site’s sides (shared lot lines or open ground all round).' : 'The street rules read the streets along the Real Vancouver study site: choose a site in the Site step (they load with it).',
+        }),
+        ...towerFormRules(towers, [], { frontage: false }),
+      ],
+    }
   }
+  const rules: RuleResult[] = []
+  const os = ring && ring.length >= 3 ? cityOpenSpace(towers, ring, openPublicShare) : null
+  const enhanced = (os?.largest?.area ?? 0) >= 300
+  const walls: CityWall[] = mainStreets(ctx).map((st) => {
+    let wallHeight = 0, stepBack: number | null = null, setback = Infinity, covered = 0
+    for (const t of towers) {
+      const tw = againstStreet(towerFootprint(t), st.edges)
+      if (t.podiumHeight > 0) {
+        const pd = againstStreet(towerFootprint(t, true), st.edges)
+        if (pd.span <= 0) continue
+        setback = Math.min(setback, pd.setback)
+        covered += pd.covered
+        if (pd.setback > STREETWALL_REACH) continue
+        const sb = tw.span > 0 ? tw.setback - pd.setback : Infinity
+        if (Number.isFinite(sb)) stepBack = stepBack === null ? sb : Math.min(stepBack, sb)
+        wallHeight = Math.max(wallHeight, sb >= 1.5 ? t.podiumHeight : t.height)
+      } else {
+        if (tw.span <= 0) continue
+        setback = Math.min(setback, tw.setback)
+        covered += tw.covered
+        if (tw.setback <= STREETWALL_REACH) wallHeight = Math.max(wallHeight, t.height)
+      }
+    }
+    const base = podiumBand(st.row)
+    const max = base < 21.3 && st.frontage > 60.7 && enhanced ? 21.3 : base
+    return { street: st, wallHeight, max, stepBack, setback, continuity: Math.min(1, covered / st.frontage), state: wallHeight <= max + 1e-6 ? 'pass' : 'fail' }
+  })
+  for (const w of walls) {
+    const st = w.street, base = podiumBand(st.row)
+    const edgeNote = [27.5, 30.5].some((b) => Math.abs(st.row - b) < 0.5) ? ' The width is within 0.5 m of a band edge (27.5 / 30.5 m): a surveyed width settles the band.' : ''
+    rules.push(rule({
+      id: `pr-podium-${streetSlug(st.key)}`, label: `Streetwall on ${st.name}`,
+      value: w.wallHeight > 0 ? `${f1(w.wallHeight)} m on a ${f1(st.row)} m street (height to width ${(w.wallHeight / st.row).toFixed(2)})`
+        : Number.isFinite(w.setback) ? `no streetwall: the nearest face is ${f1(w.setback)} m back from ${st.name}` : `no building faces ${st.name}`,
+      threshold: `≤ ${f1(w.max)} m${w.max > base ? ` (Table 2.2b gives ${f1(base)} m; S2.2.8b allows 21.3 m with enhanced open space)` : ' (Table 2.2b)'}`,
+      state: w.state, flag: 'unverified', source: cddg('Table 2.2b, S2.2.6 and S2.2.8'),
+      note: `${rowWords(st)}.${edgeNote} ${w.stepBack !== null && w.stepBack < 1.5 ? `The tower is within ${f1(Math.max(0, w.stepBack))} m of the podium face here, so it counts as streetwall. ` : ''}A face more than ${f1(STREETWALL_REACH)} m back from the property line is not counted as streetwall (team preset, the top of the CDDG's 1.5–3.0 m step-back tip). Table 2.2b covers the Downtown and Broadway Plan Area (that this site lies in it is not checked) and mixed-use and non-residential podiums; S2.2.7 (18.3 m) only exclusively residential ones.`,
+    }))
+  }
+  const steps = walls.filter((w) => w.stepBack !== null).map((w) => w.stepBack as number)
+  if (steps.length) {
+    const least = Math.min(...steps)
+    rules.push(rule({
+      id: 'pr-stepback', label: 'Tower step-back above the podium', value: `${f1(least)} m at the least`,
+      threshold: '≥ 1.5 m planar change, 1.5–3.0 m reads as a break (CDDG tip)', state: least >= 1.5 ? 'pass' : 'warn', flag: 'team_assumption',
+      source: cddg('G2.2.2 and design tip'), note: 'G2.2.2 asks for a setback above the podium without a number; the 1.5–3.0 m figure is a CDDG design tip, not a standard.',
+    }))
+  }
+  const share: FrontageShare = (t) => {
+    let best: ReturnType<FrontageShare> = null
+    for (const st of mainStreets(ctx)) {
+      if (!st.edges.some((e) => spanOn(towerFootprint(t), e))) continue
+      const width = extentAlong(towerFootprint(t), st.edges), v = width / st.frontage
+      if (!best || v > best.share) best = { share: v, street: st.name, frontage: st.frontage, width }
+    }
+    return best
+  }
+  rules.push(...towerFormRules(towers, [], { frontage: share }))
+  for (const w of walls) {
+    const type = typeOf(ctx, w.street)
+    if (type !== 'retail' && type !== 'arterial') continue
+    rules.push(rule({
+      id: `pr-continuity-${streetSlug(w.street.key)}`, label: `Streetwall continuity on ${w.street.name}`,
+      value: `${Math.round(w.continuity * 100)}% within 1 m of the property line${Number.isFinite(w.setback) ? ` (nearest face ${f1(Math.max(0, w.setback))} m back)` : ''}`,
+      threshold: '≥ 80% (team preset)', state: w.continuity >= 0.8 ? 'pass' : w.continuity >= 0.5 ? 'warn' : 'fail', flag: 'team_assumption', source: cddg('G2.2.1'),
+      note: `You typed ${w.street.name} ${aType(type)}. G2.2.1 asks to keep continuity where a continuous streetwall is wanted, with no percentage. A deliberate setback for a plaza can be the better move; say so on the boards.`,
+    }))
+  }
+  const open = typesLine(ctx, 'pr-street-types', 'streetwall continuity')
+  if (open) rules.push(open)
+  return { rules, edges: [], walls }
 }
 
 function frontageLength(towers: Tower[], e: SiteEdge): number {
@@ -465,20 +601,93 @@ export function groundStoreyRule(towers: Tower[]): RuleResult {
   })
 }
 
-/** Active frontage on Real Vancouver (node audit, 7 Nov): the ground storey height; the street lines open until typed. */
-export function cityFrontageCheck(towers: Tower[]): { rules: RuleResult[]; edges: EdgeFrontage[] } {
-  if (!towers.length) return { rules: [], edges: [] }
-  return {
-    edges: [],
-    rules: [
-      rule({
-        id: 'pr-streets-frontage', label: 'Active frontage, entrances, weather protection and driveways by street', value: 'need the study site’s street types',
-        threshold: 'active share by street type; entrances about every 8–12 m; no driveways on retail or arterial streets', state: 'unknown', flag: 'unresolved', source: cddg('S2.5, S2.6, G2.10.1'),
-        note: 'These run on the competition site, whose streets are typed. A Real Vancouver site’s streets are not typed in the Toolkit yet.',
-      }),
-      groundStoreyRule(towers),
-    ],
+export interface CityFrontage { street: SiteStreet; input: FrontageInput; length: number; activeLength: number; spacing: number | null; target: number | null; state: RuleState }
+
+/** Building frontage on a street: the union of the grade blocks' spans along each of its sides. */
+function cityFrontageLength(towers: Tower[], edges: readonly StreetEdge[]): number {
+  let total = 0
+  for (const e of edges) {
+    const spans: [number, number][] = []
+    for (const t of towers) {
+      const poly = t.imported ? (t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)) : (towerMasses(t)[0]?.ring ?? towerFootprint(t))
+      const sp = spanOn(poly, e)
+      if (sp) spans.push(sp)
+    }
+    spans.sort((a, b) => a[0] - b[0])
+    let cur: [number, number] | null = null
+    for (const sp of spans) {
+      if (!cur || sp[0] > cur[1]) { if (cur) total += cur[1] - cur[0]; cur = [sp[0], sp[1]] } else cur[1] = Math.max(cur[1], sp[1])
+    }
+    if (cur) total += cur[1] - cur[0]
   }
+  return total
+}
+
+/** Active frontage on Real Vancouver: by street once the site's streets are known (types picked by the user), and the ground storey. */
+export function cityFrontageCheck(towers: Tower[], ctx: CityStreetsCtx | null = null): { rules: RuleResult[]; edges: EdgeFrontage[]; streets: CityFrontage[] } {
+  if (!towers.length) return { rules: [], edges: [], streets: [] }
+  if (!ctx || !mainStreets(ctx).length) {
+    return {
+      edges: [], streets: [],
+      rules: [
+        rule({
+          id: 'pr-streets-frontage', label: 'Active frontage, entrances, weather protection and driveways by street', value: ctx ? 'no street found along the study site' : 'needs a study site and its streets',
+          threshold: 'active share by street type; entrances about every 8–12 m; no driveways on retail or arterial streets', state: 'unknown', flag: 'unresolved', source: cddg('S2.5, S2.6, G2.10.1'),
+          note: 'The street lines read the streets along the Real Vancouver study site: choose a site in the Site step.',
+        }),
+        groundStoreyRule(towers),
+      ],
+    }
+  }
+  const rules: RuleResult[] = []
+  const streets: CityFrontage[] = mainStreets(ctx).map((st) => {
+    const type = typeOf(ctx, st)
+    const input = cityFrontageInput(st, ctx.settings[st.key])
+    const length = cityFrontageLength(towers, st.edges)
+    const activeLength = length * Math.max(0, Math.min(1, input.active))
+    const target = type === null ? null : type === 'retail' ? 0.9 : 0.7
+    return { street: st, input, length, activeLength, spacing: input.entrances > 0 ? activeLength / input.entrances : null, target,
+      state: target === null ? 'unknown' : input.active >= target ? 'pass' : input.active >= 0.5 ? 'warn' : 'fail' }
+  })
+  for (const x of streets) {
+    const f = x.input, type = typeOf(ctx, x.street), slug = streetSlug(x.street.key)
+    rules.push(rule({
+      id: `pr-active-${slug}`, label: `Active frontage on ${x.street.name}`, value: `${Math.round(f.active * 100)}% of ${f1(x.length)} m of building frontage`,
+      threshold: x.target === null ? 'by street type: pick this street’s type' : `≥ ${Math.round(x.target * 100)}% (team preset for ${type === 'retail' ? 'a retail high street' : type === 'arterial' ? 'an arterial' : 'other streets'}; below 50% fails)`,
+      state: x.state, flag: x.target === null ? 'unresolved' : 'team_assumption', source: cddg('G2.6.1'),
+      note: `${type ? `You typed ${x.street.name} ${aType(type)}. ` : ''}G2.6.1 asks for active uses on fronting streets, corners, open spaces and links, with no percentage. Hotel lobbies and transit entrances count active; office and residential lobbies count semi-active (team).`,
+    }))
+    if (x.activeLength > 0) {
+      rules.push(rule({
+        id: `pr-entrances-${slug}`, label: `Entrance spacing on ${x.street.name}`, value: x.spacing === null ? 'No entrances on the active frontage' : `${f1(x.spacing)} m between ${f.entrances} entrances (${f1((f.entrances / x.activeLength) * 100)} per 100 m)`,
+        threshold: 'typically 8–12 m on fine-grain active frontage', state: x.spacing === null ? 'fail' : x.spacing <= 12 ? 'pass' : 'warn', flag: 'verified', source: cddg('S3.1.1a'),
+        note: '"Typically" makes this discretionary. Major active uses (grocery, cultural venue, hotel lobby) are judged apart and may justify longer spacing.',
+      }))
+    }
+  }
+  const act = streets.reduce((s, x) => s + x.activeLength, 0)
+  const sheltered = streets.reduce((s, x) => s + x.activeLength * Math.max(0, Math.min(1, x.input.canopy)), 0)
+  const cover = act > 0 ? sheltered / act : 0
+  rules.push(rule({
+    id: 'pr-canopy', label: 'Weather protection along active frontage', value: `${Math.round(cover * 100)}% of ${fmt(act)} m`,
+    threshold: '≥ 90% generally continuous (team preset; below 50% fails); canopy 3.0–4.5 m high, at least 1.5 m deep', state: cover >= 0.9 ? 'pass' : cover >= 0.5 ? 'warn' : 'fail', flag: 'team_assumption', source: cddg('G3.2.1, S3.2.1, S3.2.2'),
+    note: 'G3.2.1 asks for generally continuous protection where pedestrian activity is high; the percentages are placeholders. The canopy height and depth ranges are CDDG text (S3.2.1–S3.2.2).',
+  }))
+  const crossing = streets.filter((x) => x.input.crossings > 0)
+  const bad = crossing.filter((x) => { const t = typeOf(ctx, x.street); return t === 'retail' || t === 'arterial' })
+  const untyped = crossing.filter((x) => !typeOf(ctx, x.street))
+  const lanes = ctx.streets.filter((s) => s.kind === 'lane')
+  rules.push(rule({
+    id: 'pr-crossings', label: 'Driveways and loading on the main streets',
+    value: crossing.length ? crossing.map((x) => `${x.input.crossings} on ${x.street.name}`).join(', ') : 'none on the streets',
+    threshold: 'vehicle access from the lane or a side street, none across a retail high street or arterial',
+    state: bad.length ? 'fail' : untyped.length ? 'unknown' : 'pass', flag: untyped.length && !bad.length ? 'unresolved' : 'verified', source: cddg('G2.10.1; Transportation 2040 W 1.1.6'),
+    note: `${untyped.length && !bad.length ? `${untyped.map((x) => x.street.name).join(', ')}: type not picked, so whether a driveway may cross it is open. ` : ''}${lanes.length ? `The site has a lane (${lanes.map((l) => l.name).join(', ')}): access belongs there.` : 'No lane was found along the site: access belongs on a local street.'}`,
+  }))
+  const open = typesLine(ctx, 'pr-street-types-frontage', 'the active-frontage targets and driveways')
+  if (open) rules.push(open)
+  rules.push(groundStoreyRule(towers))
+  return { rules, edges: [], streets }
 }
 
 // ---------- M03 + M04: open space and links ----------
@@ -643,7 +852,7 @@ export function siteFrame(ring: Pt[]): { toLocal: (p: Pt) => Pt; toWorld: (p: Pt
 }
 
 /** Open ground inside a study site (any polygon): area, built footprint and the largest clear rectangle in the site's frame. */
-export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: number): OpenSpace & { siteArea: number; largestRing: Pt[] | null } {
+export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: number, plazaNear: readonly StreetEdge[] | null = null): OpenSpace & { siteArea: number; largestRing: Pt[] | null; plazaRing: Pt[] | null } {
   const f = siteFrame(ring)
   const R = ring.map(f.toLocal)
   const ms = masses(towers).map((m) => m.poly.map(f.toLocal))
@@ -677,24 +886,74 @@ export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: numb
   const cell = cx * cy, area = open * cell, siteArea = siteCells * cell
   const L = largest as OpenSpace['largest']
   const largestRing = L ? ([[L.x0, L.y0], [L.x1, L.y0], [L.x1, L.y1], [L.x0, L.y1]] as Pt[]).map(f.toWorld) : null
-  return { open: area, publicArea: area * Math.max(0, Math.min(1, openPublicShare)), largest, transitPlaza: false, built: siteArea - area, siteArea, largestRing }
+  // Transit plaza (S4.4.1): a clear 6.1 m square of open ground within 15 m of the station street's property line.
+  let plazaRing: Pt[] | null = null
+  if (plazaNear && plazaNear.length) {
+    const sum = new Int32Array((nx + 1) * (ny + 1))
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) sum[(j + 1) * (nx + 1) + i + 1] = free[j * nx + i] + sum[j * (nx + 1) + i + 1] + sum[(j + 1) * (nx + 1) + i] - sum[j * (nx + 1) + i]
+    const sx = Math.ceil(6.1 / cx), sy = Math.ceil(6.1 / cy)
+    let best = Infinity
+    for (let j = 0; j + sy <= ny; j++) for (let i = 0; i + sx <= nx; i++) {
+      const n = sum[(j + sy) * (nx + 1) + i + sx] - sum[j * (nx + 1) + i + sx] - sum[(j + sy) * (nx + 1) + i] + sum[j * (nx + 1) + i]
+      if (n < sx * sy) continue
+      const sq = ([[x0 + i * cx, y0 + j * cy], [x0 + (i + sx) * cx, y0 + j * cy], [x0 + (i + sx) * cx, y0 + (j + sy) * cy], [x0 + i * cx, y0 + (j + sy) * cy]] as Pt[]).map(f.toWorld)
+      const d = Math.min(...sq.map((p) => distanceToStreet(p, plazaNear)))
+      if (d <= 15 && d < best) { best = d; plazaRing = sq }
+    }
+  }
+  return { open: area, publicArea: area * Math.max(0, Math.min(1, openPublicShare)), largest, transitPlaza: !!plazaRing, built: siteArea - area, siteArea, largestRing, plazaRing }
+}
+
+/** A mid-block link across or along the study site (its own frame), in the project frame, and what it passes through. */
+export function cityLinkGeometry(towers: Tower[], ring: Pt[], link: CityLinkInput | null): { ring: Pt[]; centre: [Pt, Pt]; through: LinkGeom['through'] } | null {
+  if (!link?.enabled || ring.length < 3) return null
+  const f = siteFrame(ring)
+  const R = ring.map(f.toLocal)
+  const xs = R.map((p) => p[0]), ys = R.map((p) => p[1])
+  const x0 = Math.min(...xs) - 1, x1 = Math.max(...xs) + 1, y0 = Math.min(...ys) - 1, y1 = Math.max(...ys) + 1
+  const w = Math.max(0.5, link.width) / 2, o = link.offset
+  const rect: Pt[] = link.along ? [[x0, o - w], [x1, o - w], [x1, o + w], [x0, o + w]] : [[o - w, y0], [o + w, y0], [o + w, y1], [o - w, y1]]
+  const centre: [Pt, Pt] = link.along ? [[x0, o], [x1, o]] : [[o, y0], [o, y1]]
+  let through: LinkGeom['through'] = 'clear'
+  for (const m of masses(towers)) {
+    if (polyDistance(rect, m.poly.map(f.toLocal)) === 0) { if (m.kind === 'tower') { through = 'tower'; break } through = 'podium' }
+  }
+  return { ring: rect.map(f.toWorld), centre: [f.toWorld(centre[0]), f.toWorld(centre[1])], through }
+}
+
+/** Where a link's centre line crosses a street's sides (m along the street's frontage, sides taken in ring order). */
+function openingsOn(st: SiteStreet, cut: [Pt, Pt] | null): number[] {
+  if (!cut) return []
+  const out: number[] = []
+  let run = 0
+  for (const e of st.edges) {
+    const d1 = cross(cut[0], cut[1], e.a), d2 = cross(cut[0], cut[1], e.b), d3 = cross(e.a, e.b, cut[0]), d4 = cross(e.a, e.b, cut[1])
+    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) out.push(run + (d1 / (d1 - d2)) * e.length)
+    run += e.length
+  }
+  return out
 }
 
 /**
  * Open space & links on Real Vancouver: the open-space share and the POPS candidate over the study site, sun and wind
- * from their nodes; the link, block perimeter, transit plaza and station lines need the site's streets and its station
- * entrance, which the Toolkit does not know for a Real Vancouver site yet (one open line).
+ * from their nodes; with the site's streets (7 Nov), the mid-block link, the longest frontage without a public route,
+ * and, where the user says a station entrance is on or next to the site, the transit plaza and station lines.
  */
-export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: PublicRealmInput, cross: GroundCross = {}): { rules: RuleResult[]; open: OpenSpace | null; link: null; longestGap: number; pops: Pt[] | null } {
-  if (!towers.length) return { rules: [], open: null, link: null, longestGap: 0, pops: null }
+export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: PublicRealmInput, cross: GroundCross = {}, ctx: CityStreetsCtx | null = null): { rules: RuleResult[]; open: OpenSpace | null; link: null; longestGap: number; pops: Pt[] | null; plaza: Pt[] | null; linkRing: Pt[] | null; linkThrough: LinkGeom['through'] | null } {
+  const none = { rules: [], open: null, link: null, longestGap: 0, pops: null, plaza: null, linkRing: null, linkThrough: null } as const
+  if (!towers.length) return { ...none, rules: [] }
   const rules: RuleResult[] = []
-  let popsRing: Pt[] | null = null
+  let popsRing: Pt[] | null = null, plazaRing: Pt[] | null = null
+  const stationStreet = ctx && ctx.station && ctx.station !== 'none' ? ctx.streets.find((s) => s.key === ctx.station) ?? null : null
+  let large = false
   if (!ring || ring.length < 3) {
     rules.push(rule({ id: 'pr-open-share', label: 'Public open space on the site', value: 'needs a site area', threshold: '≥ 20% of site area on a large site', state: 'unknown', flag: 'unresolved', source: cddg('S1.9.1 and glossary') }))
   } else {
-    const os = cityOpenSpace(towers, ring, input.openPublicShare)
+    const os = cityOpenSpace(towers, ring, input.openPublicShare, stationStreet?.edges ?? null)
     popsRing = os.largestRing
-    const A = os.siteArea, share = os.publicArea / A, large = A >= LARGE_SITE
+    plazaRing = os.plazaRing
+    const A = os.siteArea, share = os.publicArea / A
+    large = A >= LARGE_SITE
     rules.push(rule({
       id: 'pr-open-share', label: 'Public open space on the site', value: `${Math.round(share * 100)}% (${fmt(os.publicArea)} m² of ${fmt(A)} m²)`,
       threshold: large ? '≥ 20% of site area' : '≥ 20% on a large site (8,000 m² or more)', state: !large ? 'unknown' : share >= 0.2 ? 'pass' : share >= 0.1 ? 'warn' : 'fail',
@@ -718,15 +977,84 @@ export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: 
       }))
     }
   }
-  rules.push(rule({
-    id: 'pr-streets-ground', label: 'Mid-block link, block perimeter, transit plaza and station entrance', value: 'need the study site’s streets and its nearest station entrance',
-    threshold: 'S1.12 links; S4.4 transit plazas; G4.4.2 station entrances', state: 'unknown', flag: 'unresolved', source: cddg('S1.12, S4.4, G4.4.2'),
-    note: 'These run on the competition site, whose streets and station are known. A Real Vancouver site’s streets are not typed in the Toolkit yet.',
-  }))
+
+  let longestGap = 0, linkRing: Pt[] | null = null, linkThrough: LinkGeom['through'] | null = null
+  if (!ctx || !ring || !mainStreets(ctx).length) {
+    rules.push(rule({
+      id: 'pr-streets-ground', label: 'Mid-block link, block perimeter, transit plaza and station entrance', value: ctx ? 'no street found along the study site' : 'need the study site and its streets',
+      threshold: 'S1.12 links; S4.4 transit plazas; G4.4.2 station entrances', state: 'unknown', flag: 'unresolved', source: cddg('S1.12, S4.4, G4.4.2'),
+      note: 'These read the streets along the Real Vancouver study site: choose a site in the Site step.',
+    }))
+  } else {
+    const L = cityLinkGeometry(towers, ring, ctx.link)
+    linkRing = L?.ring ?? null
+    linkThrough = L?.through ?? null
+    if (ctx.station === null) rules.push(rule({
+      id: 'pr-station-question', label: 'Station entrance on or next to the site', value: 'not answered',
+      threshold: 'say whether a transit station entrance is on or next to the site, and on which street', state: 'unknown', flag: 'unresolved', source: cddg('S1.12.1b, S4.4.1, G4.4.2'),
+      note: 'It decides whether a mid-block link is required (S1.12.1b) and whether the transit plaza and station-entrance rules apply. The Toolkit has no station-entrance layer, so it asks.',
+    }))
+    const link = ctx.link
+    rules.push(rule({
+      id: 'pr-link', label: 'Mid-block connection', value: L && link ? `${link.along ? 'Along' : 'Across'} the site, ${f1(link.width)} m wide` : 'None',
+      threshold: 'required where the site includes or adjoins a station entrance (S1.12.1b)',
+      state: L ? 'pass' : stationStreet ? 'fail' : 'unknown', flag: L || stationStreet ? 'verified' : 'unresolved', source: cddg('S1.12.1b, G1.12.2'),
+      note: stationStreet ? `You put a station entrance on ${stationStreet.name}, so S1.12.1b applies.` : ctx.station === 'none' ? 'No station entrance on or next to the site, so S1.12.1b does not apply; the other S1.12.1 triggers were not read in research, so whether a link is needed stays open.' : 'Whether a link is required waits for the station-entrance answer.',
+    }))
+    if (L && link) {
+      const need = large || !!stationStreet
+      rules.push(rule({
+        id: 'pr-link-width', label: 'Mid-block connection width', value: `${f1(link.width)} m building face to building face`,
+        threshold: need ? '≥ 9.1 m on this site, with a 2.4 m clear path' : '≥ 9.1 m on large sites or sites S1.12.1 names, with a 2.4 m clear path',
+        state: link.width >= 9.1 - 1e-6 ? 'pass' : need ? 'warn' : 'unknown', flag: need || link.width >= 9.1 - 1e-6 ? 'verified' : 'unresolved', source: cddg('S1.12.2c, S3.8.1'),
+        note: link.width >= 9.1 ? 'Wide enough for daylight and active edges.' : need ? 'Narrower than 9.1 m needs a G1.12.1 variation and a justification.' : 'Under 9.1 m: which width applies on a site under 8,000 m² with no station entrance is open (S1.12.2 read in part).',
+      }))
+      rules.push(rule({
+        id: 'pr-link-sky', label: 'Connection open to the sky', value: L.through === 'tower' ? 'Passes under the tower' : L.through === 'podium' ? (link.openToSky ? 'Cuts through the podium, open to the sky' : 'Covered passage under the podium') : 'Clear of the buildings, open to the sky',
+        threshold: 'primarily open to the sky; a breezeway only at least 2:1 height to width, lined with active uses, direct and public',
+        state: L.through === 'tower' ? 'fail' : L.through === 'podium' ? 'warn' : 'pass', flag: 'verified', source: cddg('S1.12.4, S2.2.10'),
+        note: L.through === 'tower' ? 'Move the link off the tower footprint.' : L.through === 'podium' ? (link.openToSky ? 'The link splits the podium; the podium floor area is not reduced in this model yet, so FSR is overstated slightly.' : `As a breezeway its clear height must be at least ${f1(2 * link.width)} m (2:1).`) : 'Through open ground, as the guidelines prefer.',
+      }))
+      rules.push(rule({
+        id: 'pr-link-srw', label: 'Connection secured for public use', value: link.srw ? 'Statutory right-of-way' : 'No right-of-way',
+        threshold: 'secured by a statutory right-of-way', state: link.srw ? 'pass' : 'fail', flag: 'verified', source: cddg('S1.12.3'),
+        note: '24-hour opening is not stated in the guidelines.',
+      }))
+    }
+    // Longest run of the site's street frontage without a public route: street corners and the link's crossings open it.
+    let worst = ''
+    for (const st of mainStreets(ctx)) {
+      const pts = [0, ...openingsOn(st, L?.centre ?? null).sort((a, b) => a - b), st.frontage]
+      for (let i = 1; i < pts.length; i++) if (pts[i] - pts[i - 1] > longestGap) { longestGap = pts[i] - pts[i - 1]; worst = st.name }
+    }
+    rules.push(rule({
+      id: 'pr-perimeter', label: 'Longest site frontage without a public route', value: `${f1(longestGap)} m on ${worst}`,
+      threshold: '≤ about 100 m (team preset; above 150 m fails)', state: longestGap <= 100 ? 'pass' : longestGap <= 150 ? 'warn' : 'fail', flag: 'team_assumption', source: { label: 'Team preset in research P06-M04; no Vancouver block-length rule found' },
+      note: 'Measured along the study site’s own frontage, street corners and the link counting as routes; lots beside the site on the same block are not counted, so the block side may be longer.',
+    }))
+    if (stationStreet) {
+      rules.push(rule({
+        id: 'pr-transit-plaza', label: 'Transit plaza by the station entrance', value: plazaRing ? `A 6.1 × 6.1 m clear space within 15 m of ${stationStreet.name}` : `No 6.1 × 6.1 m clear space within 15 m of ${stationStreet.name}`,
+        threshold: 'at least about 6.1 × 6.1 m beside a station entrance', state: plazaRing ? 'pass' : 'fail', flag: 'verified', source: cddg('S4.4.1; section 1.9 note'),
+        note: `The station entrance is on ${stationStreet.name} (your answer); the plaza is looked for within 15 m of that street's property line (team). Transit plazas do not count toward park dedication.`,
+      }))
+      const s = input.station
+      rules.push(rule({
+        id: 'pr-station', label: 'Station entrance: lift and stair', value: `${s.lifts} lift${s.lifts === 1 ? '' : 's'}, ${s.stairs} stair${s.stairs === 1 ? '' : 's'}`,
+        threshold: 'at least one elevator and one staircase', state: s.lifts >= 1 && s.stairs >= 1 ? 'pass' : 'fail', flag: 'verified', source: cddg('G4.4.2b'),
+        note: s.lifts < 2 ? 'One lift: an outage breaks step-free access; two is the team preset.' : 'Two or more lifts keep it step-free during an outage (team preset).',
+      }))
+      rules.push(rule({
+        id: 'pr-station-active', label: 'Station entrance: active uses and sightlines', value: s.activeEdges ? 'Active uses and a visual connection to the concourse' : 'Blank link',
+        threshold: 'active uses next to the entrance and a strong visual connection to the concourse', state: s.activeEdges ? 'pass' : 'fail', flag: 'verified', source: cddg('G4.4.2c–e'),
+        note: 'G4.4.2a also pulls in the station plaza fit-out checklist G4.4.1 a–h (paving, seating, shade, weather protection, integrated equipment): a manual evidence list.',
+      }))
+    }
+  }
   rules.push(sunLine(cross.solar))
   rules.push(windLine(cross.wind))
-  // The open field stays null so the 3D overlay (drawn for the competition block) skips Real Vancouver; pops is for the panel's plan.
-  return { rules, open: null, link: null, longestGap: 0, pops: popsRing }
+  // The open field stays null so the 3D overlay (drawn for the competition block) skips Real Vancouver; the rings are for the panel's plan.
+  return { rules, open: null, link: null, longestGap, pops: popsRing, plaza: plazaRing, linkRing, linkThrough }
 }
 
 /** Uses that count as active at grade when nothing else is entered (for display only). */

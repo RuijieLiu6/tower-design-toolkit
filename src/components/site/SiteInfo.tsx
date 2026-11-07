@@ -19,6 +19,8 @@ import { useStore, useTowers } from '../../store'
 import { useCityData } from '../CityContext'
 import Help from '../Help'
 import SitePlan, { TowerGlyph } from './SitePlan'
+import SiteStreets, { planStreets } from './SiteStreets'
+import { useSiteStreets } from '../../lib/siteStreets'
 import { VTC_SITE } from '../../lib/siteGeometry'
 import { VTC_NORTH_DEG } from '../../context'
 import { FlagChip } from '../ui'
@@ -114,12 +116,14 @@ function SiteNow() {
   const lots = match?.included.length ?? 0
   // The site's note once: the area's source line often repeats it word for word, with its flag.
   const note = site?.note && !(area?.source ?? '').includes(site.note) ? site.note : null
+  const streets = useSiteStreets().result?.streets ?? []
   return (
     <section aria-labelledby="your-site-title" aria-live="polite" data-testid="site-info" className={card}>
       <h3 id="your-site-title" className="flex items-center gap-1.5 text-xs font-semibold text-accent"><MapPin size={14} aria-hidden />Your site</h3>
       {ok && m ? (
         <div data-testid="site-summary" className="mt-1 flex items-start gap-2.5">
-          <SitePlan ring={site!.ring as [number, number][]} towers={towers} selected={selected} label={`Plan of the study site with ${towers.length} tower${towers.length === 1 ? '' : 's'}`} />
+          <SitePlan ring={site!.ring as [number, number][]} towers={towers} selected={selected} streets={planStreets(streets, site!.streets ?? {}).map((p) => ({ ...p, label: undefined }))}
+            label={`Plan of the study site with ${towers.length} tower${towers.length === 1 ? '' : 's'}${streets.length ? ` and its ${streets.length} street${streets.length === 1 ? '' : 's'}` : ''}`} />
           <div className="grid min-w-0 gap-1">
             <span className="text-lg font-semibold leading-tight tabular-nums text-ink">{fmt(area?.area ?? m.area)} m²</span>
             {site!.label && <div className="text-xs font-medium text-ink">{site!.label}</div>}
@@ -131,7 +135,9 @@ function SiteNow() {
             </div>
           </div>
         </div>
-      ) : <p className="mt-1 flex items-center gap-1 text-xs text-ink">No site yet: choose one in the Site step.<Help label="About the study site">Type an address or click the map in the Site step's Site tool, or take the default site there (Default: the Granville / W Pender / Howe / Dunsmuir block). The tower can still be placed anywhere (Form step); the site checks wait for a site.</Help></p>}
+      ) : null}
+      {ok && <SiteStreets />}
+      {ok ? null : <p className="mt-1 flex items-center gap-1 text-xs text-ink">No site yet: choose one in the Site step.<Help label="About the study site">Type an address or click the map in the Site step's Site tool, or take the default site there (Default: the Granville / W Pender / Howe / Dunsmuir block). The tower can still be placed anywhere (Form step); the site checks wait for a site.</Help></p>}
       {message && <p data-testid="site-message" className={`mt-1.5 rounded px-2 py-1 ${message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{message.text}</p>}
       <div className="mt-2 flex flex-wrap gap-1.5">
         <button type="button" disabled={!canUndo} onClick={() => { if (undo()) tell('Undone.') }} className={`${btn} border-line hover:border-accent disabled:opacity-50`}><Undo2 size={12} />Undo</button>

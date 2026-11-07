@@ -1,12 +1,14 @@
 // Results for the three public realm nodes (research P06): a site plan coloured by the check, then rule cards.
 import type { ReactNode } from 'react'
-import { STATION_CORNER, VTC_EDGES, VTC_SITE, type EdgeId } from '../engine/publicRealm'
+import { STATION_CORNER, VTC_EDGES, VTC_SITE, type CityFrontage, type CityWall, type EdgeId } from '../engine/publicRealm'
 import { towerFootprint } from '../engine/massing'
 import type { RuleResult, RuleState } from '../engine/types'
 import { useResults } from '../hooks/useResults'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, StateChip } from './ui'
-import StudyPlan from './site/SitePlan'
+import StudyPlan, { type PlanStreet } from './site/SitePlan'
+import { planStreets } from './site/SiteStreets'
+import { useSiteStreets } from '../lib/siteStreets'
 import { U } from './Units'
 
 const STATE_COLOR: Record<RuleState, string> = { pass: '#2e8b57', warn: '#d98b1c', fail: '#d0453a', unknown: '#8a8f98' }
@@ -71,34 +73,10 @@ export default function PublicRealmResults({ id }: { id: string }) {
   const project = useStore((s) => s.project)
   const citySite = useStore((s) => s.citySite)
   const towers = useTowers()
-  // Real Vancouver: Streetwall & tower form runs its tower rules (no street needed); the street rules and the other two
-  // public realm nodes wait for the study site's streets (node audit, 7 Nov).
-  if (project !== 'vtc' && id === 'built.pr-streetwall' && streetwall) {
-    return (
-      <Section title="Results">
-        {citySite && <div className="mb-1 flex justify-center"><StudyPlan ring={citySite.ring as [number, number][]} towers={towers} size={200} label="Plan of the study site with the towers" /></div>}
-        <p className="mb-2 text-[11px] text-muted">The tower rules, which need no street. The streetwall rules need this site's street types and widths, not yet in the Toolkit: they run on the competition site.</p>
-        <div className="grid gap-2">{streetwall.rules.map((r) => <Card key={r.id} r={r} />)}</div>
-      </Section>
-    )
-  }
-  if (project !== 'vtc' && id === 'built.pr-frontage' && frontage) {
-    return (
-      <Section title="Results">
-        <p className="mb-2 text-[11px] text-muted">The ground storey height, which needs no street. The street lines need this site's street types, not yet in the Toolkit: they run on the competition site.</p>
-        <div className="grid gap-2">{frontage.rules.map((r) => <Card key={r.id} r={r} />)}</div>
-      </Section>
-    )
-  }
-  if (project !== 'vtc' && id === 'built.pr-ground' && groundPlane) {
-    return (
-      <Section title="Results">
-        {citySite && <div className="mb-1 flex justify-center"><StudyPlan ring={citySite.ring as [number, number][]} towers={towers} size={200} label="Plan of the study site with the towers and the largest clear rectangle of open ground"
-          marks={'pops' in groundPlane && groundPlane.pops ? [{ ring: groundPlane.pops, fill: 'rgb(60 141 90 / 0.3)', stroke: '#3c8d5a' }] : []} /></div>}
-        <p className="mb-2 text-[11px] text-muted">Green: the largest clear rectangle of open ground (the POPS candidate). Sun and wind come from their nodes. The link, block perimeter, transit plaza and station lines need this site's streets and station entrance, not yet in the Toolkit: they run on the competition site.</p>
-        <div className="grid gap-2">{groundPlane.rules.map((r) => <Card key={r.id} r={r} />)}</div>
-      </Section>
-    )
+  // Real Vancouver (7 Nov): the study site with its streets drawn to their measured width. Streetwall and frontage colour
+  // each street by its check; Open space shows the POPS candidate, the link and the transit plaza.
+  if (project !== 'vtc' && (id === 'built.pr-streetwall' || id === 'built.pr-frontage' || id === 'built.pr-ground')) {
+    return <CityResults id={id} towers={towers} ring={citySite?.ring as [number, number][] | undefined} streetwall={streetwall} frontage={frontage} groundPlane={groundPlane} settings={citySite?.streets ?? {}} />
   }
   if (project !== 'vtc') return <Section title="Results"><p className="text-[11px] text-muted">Runs on the competition site, whose streets are known. Switch to "Competition site".</p></Section>
 
@@ -152,4 +130,45 @@ export default function PublicRealmResults({ id }: { id: string }) {
     )
   }
   return null
+}
+
+type Results = ReturnType<typeof useResults>
+/** The three public realm nodes on Real Vancouver: a plan of the site and its streets, then the rule cards. */
+function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, settings }: { id: string; towers: ReturnType<typeof useTowers>; ring: [number, number][] | undefined
+  streetwall: Results['streetwall']; frontage: Results['frontage']; groundPlane: Results['groundPlane']; settings: Record<string, { type: 'retail' | 'arterial' | 'local' | null } | undefined> }) {
+  const { result, status } = useSiteStreets()
+  const streets = result?.streets ?? []
+  const byType = planStreets(streets, settings)
+  let plan: PlanStreet[] = byType
+  let caption = 'Streets drawn to their measured right-of-way, coloured by the type you picked (grey dashed: not picked yet).'
+  let rules = [] as RuleResult[]
+  const marks: { ring: [number, number][]; fill: string; stroke: string }[] = []
+  if (id === 'built.pr-streetwall' && streetwall) {
+    rules = streetwall.rules
+    const walls: CityWall[] = 'walls' in streetwall ? (streetwall.walls as CityWall[]) : []
+    if (walls.length) {
+      plan = byType.map((p, i) => { const w = walls.find((x) => x.street.key === streets[i]?.key); return w ? { ...p, color: STATE_COLOR[w.state], dashed: false } : p })
+      caption = 'Streets drawn to their measured right-of-way; each property line coloured by its streetwall height against Table 2.2b for that width.'
+    }
+  } else if (id === 'built.pr-frontage' && frontage) {
+    rules = frontage.rules
+    const rows: CityFrontage[] = 'streets' in frontage ? (frontage.streets as CityFrontage[]) : []
+    if (rows.length) {
+      plan = byType.map((p, i) => { const x = rows.find((r) => r.street.key === streets[i]?.key); return x ? { ...p, color: STATE_COLOR[x.state], dashed: x.state === 'unknown' } : p })
+      caption = 'Each street coloured by its active frontage against the target for its type (grey dashed: type not picked).'
+    }
+  } else if (id === 'built.pr-ground' && groundPlane) {
+    rules = groundPlane.rules
+    if ('pops' in groundPlane && groundPlane.pops) marks.push({ ring: groundPlane.pops, fill: 'rgb(60 141 90 / 0.3)', stroke: '#3c8d5a' })
+    if ('linkRing' in groundPlane && groundPlane.linkRing) marks.push({ ring: groundPlane.linkRing, fill: groundPlane.linkThrough === 'tower' ? 'rgb(208 69 58 / 0.25)' : groundPlane.linkThrough === 'podium' ? 'rgb(217 139 28 / 0.25)' : 'rgb(29 95 168 / 0.2)', stroke: '#1d5fa8' })
+    if ('plaza' in groundPlane && groundPlane.plaza) marks.push({ ring: groundPlane.plaza, fill: 'rgb(42 143 134 / 0.6)', stroke: '#2a8f86' })
+    caption = 'Green: the largest clear rectangle of open ground (the POPS candidate). Blue: the mid-block link. Teal: room for a 6.1 m transit plaza by the station street. Sun and wind come from their nodes.'
+  }
+  return (
+    <Section title="Results">
+      {ring && <div className="mb-1 flex justify-center"><StudyPlan ring={ring} towers={towers} size={240} streets={plan} marks={marks} label={`Plan of the study site with its streets and towers: ${caption}`} /></div>}
+      <p className="mb-2 text-[10px] text-muted">{status === 'loading' ? 'Finding the streets along the site…' : caption} Types are picked in Your site or Ground & public realm.</p>
+      <div className="grid gap-2">{rules.map((r) => <Card key={r.id} r={r} />)}</div>
+    </Section>
+  )
 }

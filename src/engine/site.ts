@@ -3,6 +3,8 @@
 // metrics, a site made from existing City footprints, and the City parcels under it, joined only where that is exact.
 // A drawn site or one taken from buildings is a study boundary, not a legal parcel; parcels are a dated City snapshot.
 
+import type { CityLinkInput, StreetSetting } from './siteStreets'
+
 export type Pt = [number, number]
 
 export type SiteSource = 'drawn' | 'buildings' | 'parcels' | 'geojson'
@@ -26,6 +28,15 @@ export interface StudySite {
   parcelLayer: string | null
   /** Area for FSR: the parcels when they join exactly (default), or the boundary. */
   areaBasis: 'parcels' | 'boundary'
+  /**
+   * Public realm on this site (7 Nov): each street's type (picked by the user) and frontage inputs, by the street's City
+   * name (engine/siteStreets.ts), so a re-drawn site keeps them. Absent in files from before 7 Nov.
+   */
+  streets?: Record<string, StreetSetting>
+  /** A mid-block link across the site; absent = none. */
+  link?: CityLinkInput
+  /** The street a station entrance is on or next to the site, 'none', or null / absent = not answered. */
+  station?: string | null
 }
 
 // ---------------------------------------------------------------- Vista site-geometry.js, ported

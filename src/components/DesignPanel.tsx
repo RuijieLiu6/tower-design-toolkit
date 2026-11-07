@@ -297,9 +297,11 @@ export function ProgramTool() {
   )
 }
 
-/** Ground & public realm (competition site): streetwall, frontage and open-space inputs, and the transit link. */
+/** Ground & public realm: streetwall, frontage and open-space inputs (both projects), and the competition's transit link. */
 export function GroundTool() {
-  const { transitLink, set } = useStore(useShallow((s) => ({ transitLink: s.transitLink, set: s.set })))
+  const { transitLink, set, project } = useStore(useShallow((s) => ({ transitLink: s.transitLink, set: s.set, project: s.project })))
+  // Real Vancouver (7 Nov): the study site's streets, frontage, link and station entrance; the brief's transit link is the competition's.
+  if (project === 'city') return <PublicRealmPanel />
   return (
     <>
       <PublicRealmPanel />

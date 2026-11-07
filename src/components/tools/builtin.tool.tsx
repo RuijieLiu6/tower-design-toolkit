@@ -20,7 +20,7 @@ const tools: DesignTool[] = [
     hint: 'Height, blocks, rotation, floor-to-floor', component: MassingTool },
   { id: 'program', label: 'Program', short: 'Program', icon: TOOL_ICONS['program'], stages: ['basic', 'advanced'], order: { basic: 30, advanced: 130 },
     hint: 'Uses by floor band, floor area and FSR', component: ProgramTool },
-  { id: 'ground', label: 'Ground & public realm', short: 'Ground', icon: TOOL_ICONS['ground'], stages: ['basic'], order: 40, when: (s) => s.project === 'vtc',
+  { id: 'ground', label: 'Ground & public realm', short: 'Ground', icon: TOOL_ICONS['ground'], stages: ['basic'], order: 40,
     hint: 'Streetwall, frontage, open space, transit link', component: GroundTool },
   { id: 'sun', label: 'Sun & time', short: 'Sun', icon: TOOL_ICONS['sun'], stages: ['basic', 'advanced'], order: { basic: 14, advanced: 150 },
     hint: 'Date and hour for shadows and sun views', component: SunTool },
