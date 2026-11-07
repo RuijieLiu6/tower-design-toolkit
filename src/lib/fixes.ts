@@ -60,7 +60,13 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^skyroom-none/, 'Open a sky lobby to the public (Schematic › Sky lobbies).'],
   [/^skyroom-access/, 'Make the room free to enter and open daily hours.'],
   // Public realm (draft Central Downtown Design Guidelines)
-  [/^pr-(active|share)/, 'Line more of this street with shops and entrances (Program step › Ground & public realm).'],
+  // Node audit (7 Nov): "pr-share" is the tower's width against the frontage, not active frontage share; it had the
+  // active-frontage instruction.
+  [/^pr-share/, 'Narrow the tower so it spans less than about 60% of the frontage it faces, or turn it (Massing).'],
+  [/^pr-crossings$/, 'Move driveways and loading off the retail high street and arterial, to the local streets (Program step › Ground & public realm).'],
+  [/^pr-station$/, 'Give the station entrance at least one lift and one stair (Program step › Ground & public realm).'],
+  [/^pr-station-active$/, 'Line the below-grade link with active uses and open a view to the concourse (Program step › Ground & public realm).'],
+  [/^pr-active/,'Line more of this street with shops and entrances (Program step › Ground & public realm).'],
   [/^pr-entrances/, 'Add entrances along this street, about every 8–12 m.'],
   [/^pr-canopy$/, 'Extend weather protection along the frontage.'],
   [/^pr-ground-height$/, 'Make the ground storey 4.6–6.1 m tall (the podium block\'s height in Massing).'],

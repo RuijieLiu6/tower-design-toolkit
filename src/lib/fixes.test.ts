@@ -96,3 +96,13 @@ describe('code and life safety lines say what to do', () => {
     expect(fixFor('voice', 'unknown', 'required; not assessed')).toMatch(/does not assess/)
   })
 })
+
+describe('public realm instructions match their rule (node audit, 7 Nov)', () => {
+  it('keeps the tower-width line apart from active frontage, and variation about plane changes', () => {
+    expect(fixFor('pr-share', 'warn', '72% of the frontage it faces')).toMatch(/60% of the frontage/)
+    expect(fixFor('pr-active-south', 'warn', '50%')).toMatch(/shops and entrances/)
+    expect(fixFor('pr-variation', 'warn', '100.0 m of unbroken facade')).toMatch(/45\.7 m/)
+    expect(fixFor('pr-variation', 'warn', '100.0 m')).not.toMatch(/tower heights/)
+    expect(fixFor('pr-crossings', 'fail', '1 on the retail high street')).toMatch(/local streets/)
+  })
+})
