@@ -6,6 +6,7 @@ import { Library, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { NODE_ICONS, communityIcons } from '../data/icons'
+import { Glyph, nodeHue } from './GlassIcon'
 import { BUILT_NODES, CATEGORIES, type Category, type NodeDef } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStore, type Phase } from '../store'
@@ -119,7 +120,7 @@ export default function NodeBar() {
         className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''}`}>
         {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
         <span className={`relative flex h-5 w-6 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
-          {Icon ? <Icon size={16} /> : <span className="text-[11px] font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
+          {Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-[11px] font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>
         <span aria-hidden className={`w-full truncate text-center text-[10px] leading-tight ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>

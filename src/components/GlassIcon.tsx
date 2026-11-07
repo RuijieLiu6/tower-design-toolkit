@@ -9,6 +9,7 @@
 import type { CSSProperties } from 'react'
 import type { Category } from '../data/registry'
 import type { LucideIcon } from './icons'
+import { filledIcon } from './icons/filled'
 
 export type GlassLevel = 'on' | 'soft' | 'off'
 
@@ -34,12 +35,17 @@ export default function GlassIcon({ icon: Icon, mono, hue = HUES.sky, size = ICO
   icon?: LucideIcon; mono?: string; hue?: number; size?: number; level?: GlassLevel; className?: string
 }) {
   const style = { '--gi': `${size}px`, '--gh': hue } as CSSProperties
-  const glyph = Math.round(size * 0.46), stroke = size >= 96 ? size / 40 : size >= 48 ? 2 : 1.75
+  // The filled, many-coloured drawing when the icon has one (icons/filled.tsx), the line icon otherwise.
+  const Filled = Icon ? filledIcon(Icon.displayName) : undefined
+  const stroke = size >= 96 ? size / 40 : size >= 48 ? 2 : 1.75
   return (
-    <span aria-hidden className={`gicon ${className}`} data-level={level} style={style}>
-      {Icon ? <>
-        {level !== 'off' && <span className="gicon-glow"><Icon size={glyph} strokeWidth={stroke * 1.75} /></span>}
-        <span className="gicon-glyph"><Icon size={glyph} strokeWidth={stroke} /></span>
+    <span aria-hidden className={`gicon ${className}`} data-level={level} data-filled={Filled ? '' : undefined} style={style}>
+      {Filled ? <>
+        {level !== 'off' && <span className="gicon-glow"><Filled size={Math.round(size * 0.58)} /></span>}
+        <span className="gicon-glyph"><Filled size={Math.round(size * 0.58)} /></span>
+      </> : Icon ? <>
+        {level !== 'off' && <span className="gicon-glow"><Icon size={Math.round(size * 0.46)} strokeWidth={stroke * 1.75} /></span>}
+        <span className="gicon-glyph"><Icon size={Math.round(size * 0.46)} strokeWidth={stroke} /></span>
       </> : <span className="gicon-glyph font-semibold tracking-tight" style={{ fontSize: Math.round(size * 0.3) }}>{mono}</span>}
     </span>
   )
@@ -49,4 +55,14 @@ export default function GlassIcon({ icon: Icon, mono, hue = HUES.sky, size = ICO
 export const monogram = (name: string) => {
   const words = name.replace(/[^A-Za-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !/^(the|and|for|with|from)$/i.test(w))
   return ((words[0]?.[0] ?? name[0] ?? '?') + (words[1]?.[0] ?? words[0]?.[1] ?? '')).toUpperCase()
+}
+
+/**
+ * A bare icon in colour, without the tile (the node bar's small switches): the filled drawing in the hue's tones when
+ * the icon has one, otherwise the line icon in the hue. Off: the tones fade to grey.
+ */
+export function Glyph({ icon: Icon, hue, size = 20, off = false }: { icon: LucideIcon; hue: number; size?: number; off?: boolean }) {
+  const Filled = filledIcon(Icon.displayName)
+  const style = { '--gh': hue, color: `hsl(${hue} ${off ? 15 : 70}% ${off ? 55 : 45}%)` } as CSSProperties
+  return <span aria-hidden className="ficon inline-flex" data-off={off ? '' : undefined} style={style}>{Filled ? <Filled size={size} /> : <Icon size={size - 4} />}</span>
 }

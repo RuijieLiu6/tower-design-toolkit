@@ -62,3 +62,25 @@ describe('the icon book', () => {
     expect(USER_TYPES.flatMap((t) => t.presets).filter((p) => !PRESET_ICONS[p.id]).map((p) => p.id)).toEqual([])
   })
 })
+
+// The filled icons (Ruijie, 7 Nov: "redesign all the icons refer to the design of Gmail or Google Icons make them actual
+// patterns instead of vector lineworks"): every meaning in the book has a filled drawing of its own.
+import { FILLED_BODIES, filledIcon } from '../components/icons/filled'
+
+describe('the filled icons', () => {
+  const book: Record<string, unknown>[] = [CATEGORY_ICONS, NODE_ICONS, TOOL_ICONS, STEP_ICONS, Object.fromEntries(STAGES.map((s) => [s.id, s.icon])),
+    TYPE_ICONS, WAY_ICONS, PRESET_ICONS, PROGRAM_ICONS, FLAG_ICONS, SOURCE_ICONS, LOGIC_ICONS, LIBRARY_TAB_ICONS]
+  const names = [...new Set([...book.flatMap((m) => Object.values(m)), ...COMMUNITY_ICON_POOL].map((i) => (i as { displayName?: string }).displayName))]
+  it('draws every icon in the book filled', () => {
+    expect(names.filter((n) => !filledIcon(n))).toEqual([])
+  })
+  it('never draws two icons the same', () => {
+    const seen = new Map<string, string>()
+    const twins = Object.entries(FILLED_BODIES).filter(([n, b]) => { const t = seen.get(b); seen.set(b, n); return !!t || !b })
+    expect(twins.map(([n]) => n)).toEqual([])
+  })
+  it('keeps drawings filled: no thin lines (bands are 2 units or more)', () => {
+    const thin = Object.entries(FILLED_BODIES).filter(([, b]) => [...b.matchAll(/stroke-width="([\d.]+)"/g)].some((m) => +m[1] < 2)).map(([n]) => n)
+    expect(thin).toEqual([])
+  })
+})
