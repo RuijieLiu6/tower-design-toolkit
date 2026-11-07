@@ -5,7 +5,7 @@ import { useMemo, type ReactNode } from 'react'
 import { DIRECTIONS, FORCE_LABEL, cityInNature, fourthStoreyTop, isBinding, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
 import { towerFloors } from '../engine/massing'
 import { useFacade } from '../hooks/useFacade'
-import { SITE } from '../engine/vtcRules'
+import { siteAreaNote, useProjectSiteArea } from '../lib/siteArea'
 import { useStore, useTowers } from '../store'
 import { CardChip } from './RuleCardView'
 import { FlagChip, Section, StateChip } from './ui'
@@ -17,8 +17,9 @@ export function useNature(cones: { overall: string }[] | null) {
   const project = useStore((s) => s.project)
   const towers = useTowers()
   const facade = useFacade()
-  return useMemo(() => cityInNature(input, project === 'vtc' ? SITE.area : null, project === 'city' && cones ? cones.map((c) => c.overall) : null,
-    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces }), [input, project, cones, towers, facade])
+  const site = useProjectSiteArea()
+  return useMemo(() => cityInNature(input, site.area, project === 'city' && cones ? cones.map((c) => c.overall) : null,
+    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces }), [input, project, cones, towers, facade, site.area])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */
@@ -80,6 +81,7 @@ export default function NatureLedger({ cones }: { cones: { overall: string }[] |
   const n = useNature(cones)
   const input = useStore((s) => s.cityInNature)
   const project = useStore((s) => s.project)
+  const site = useProjectSiteArea()
   const set = (patch: Partial<NatureInput>) => useStore.setState((s) => ({ cityInNature: { ...s.cityInNature, ...patch } }))
   const row = (id: string) => n.rows.find((r) => r.id === id)!
 
@@ -134,7 +136,7 @@ export default function NatureLedger({ cones }: { cones: { overall: string }[] |
             </div>
           </Row>
         </div>
-        {project === 'vtc' && <p className="mt-2 text-[10px] text-muted">Site area: the competition block, {Math.round(SITE.area).toLocaleString('en-CA')} m² (brief p.15).</p>}
+        <p className="mt-2 text-[10px] text-muted" data-testid="nature-site-area">{siteAreaNote(site)}</p>
       </Section>
 
       <Section title="False assumptions kept visible">

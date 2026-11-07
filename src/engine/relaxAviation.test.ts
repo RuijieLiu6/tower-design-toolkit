@@ -41,6 +41,9 @@ describe('relaxation masks (C01-M06)', () => {
     expect(find(lines, 'relax-limit')).toBeDefined()
     const big = relaxationChecklist(city({ x: x - CITY_ORIGIN[0], y: y - CITY_ORIGIN[1] }), ['eds'], 15, 11468, CITY_ORIGIN)
     expect(find(big, 'relax-eds')?.state).toBe('warn')
+    // Node audit (7 Nov): the area's origin is named, so a study-site area is not mistaken for a surveyed parcel.
+    const named = relaxationChecklist(city({ x: x - CITY_ORIGIN[0], y: y - CITY_ORIGIN[1] }), ['eds'], 15, 11468, CITY_ORIGIN, 'the study site boundary: drawn')
+    expect((named.find((l) => l.id === 'relax-eds') as { note?: string } | undefined)?.note).toBe('Site 11,468 m² (the study site boundary: drawn).')
     const small = relaxationChecklist(city({ x: x - CITY_ORIGIN[0], y: y - CITY_ORIGIN[1] }), ['eds'], 15, 5000, CITY_ORIGIN)
     expect(find(small, 'relax-eds')?.state).toBe('fail')
     const far = relaxationChecklist(city({ x: 30000, y: 30000 }), [], 15, null, CITY_ORIGIN)

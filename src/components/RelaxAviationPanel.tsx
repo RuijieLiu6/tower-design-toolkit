@@ -9,6 +9,7 @@ import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { ROUTE_STYLE } from './RelaxationMasks'
 import { Card, FalseAssumptions } from './WindStructurePanel'
 import { NumberField, Section, Toggle } from './ui'
+import { useProjectSiteArea } from '../lib/siteArea'
 
 export interface RelaxAviationResult { tower: Tower; relax: RuleResult[]; aviation: RuleResult[]; rules: RuleResult[] }
 
@@ -17,19 +18,24 @@ export function useRelaxAviation(): RelaxAviationResult[] {
   const project = useStore((s) => s.project)
   const ground = useStore((s) => s.groundElevation)
   const on = useRelax((s) => s.on)
-  const siteArea = useRelax((s) => s.siteArea)
+  const typed = useRelax((s) => s.siteArea)
+  const study = useProjectSiteArea()
+  // A typed area wins; otherwise the study site's (lib/siteArea.ts), named in the note.
+  const siteArea = typed ?? study.area
+  const areaSource = typed !== null ? 'typed in the Relaxations panel (team assumption)' : study.area !== null ? `${study.basis === 'parcels' ? 'the joined City parcels' : 'the study site boundary'}: ${study.source}` : undefined
   return useMemo(() => towers.map((t) => {
     const city = project === 'city'
-    const relax = city ? relaxationChecklist(t, on, ground, siteArea, CITY_ORIGIN) : []
+    const relax = city ? relaxationChecklist(t, on, ground, siteArea, CITY_ORIGIN, areaSource) : []
     const aviation = aviationChecklist(t, city ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)
     return { tower: t, relax, aviation, rules: [...relax, ...aviation] }
-  }), [towers, project, ground, on, siteArea])
+  }), [towers, project, ground, on, siteArea, areaSource])
 }
 
 export default function RelaxAviationPanel() {
   const results = useRelaxAviation()
   const project = useStore((s) => s.project)
   const { show, on, siteArea } = useRelax()
+  const study = useProjectSiteArea()
   return (
     <>
       <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900">{NOT_A_DETERMINATION}</div>
@@ -43,7 +49,7 @@ export default function RelaxAviationPanel() {
                 <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm align-middle" style={{ background: ROUTE_STYLE[k].color }} /><b>{RELAXATIONS[k].label}</b> ({RELAXATIONS[k].clause}): may enter {RELAXATIONS[k].cones.join(', ')}. <span className="text-muted">{RELAXATIONS[k].eligibility}</span></span>
               </label>
             ))}
-            <NumberField label="Site area for the Exceptional Downtown Site test" unit="m²" value={siteArea ?? 0} min={0} step={100} onChange={(v) => useRelax.setState({ siteArea: v > 0 ? v : null })} hint="0 = not known yet" />
+            <NumberField label="Site area for the Exceptional Downtown Site test" unit="m²" value={siteArea ?? 0} min={0} step={100} onChange={(v) => useRelax.setState({ siteArea: v > 0 ? v : null })} hint={study.area !== null ? `0 = the study site's ${Math.round(study.area).toLocaleString('en-CA')} m²` : '0 = not known yet'} />
             <div className="flex flex-wrap gap-2 text-[10px] text-muted">
               {(['none', 'unlisted'] as const).map((r) => <span key={r} className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm border-2" style={{ borderColor: ROUTE_STYLE[r].color }} />{ROUTE_STYLE[r].label}</span>)}
             </div>

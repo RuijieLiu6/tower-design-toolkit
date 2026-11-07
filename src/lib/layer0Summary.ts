@@ -70,6 +70,8 @@ export interface Layer0Input {
   towers: Tower[]
   sun: { month: number; day: number; hour: number }
   groundElevation: number
+  /** Real Vancouver: the study site's area (lib/siteArea.ts), when one is chosen. */
+  studyArea?: number | null
 }
 
 /** Values are numbers, or null where this project doesn't have the input. */
@@ -118,9 +120,9 @@ export function layer0Summary(input: Layer0Input): Layer0Summary {
   const total = Object.values(gfa).reduce((a, b) => a + b, 0)
   const project: Values = {
     towerCount: input.towers.length,
-    siteArea: vtc ? SITE.area : null,
+    siteArea: vtc ? SITE.area : input.studyArea ?? null,
     gfa: total,
-    fsr: vtc ? total / SITE.area : null,
+    fsr: vtc ? total / SITE.area : input.studyArea ? total / input.studyArea : null,
     maxHeight: input.towers.length ? Math.max(...input.towers.map((t) => t.height)) : 0,
     groundElevation: vtc ? null : input.groundElevation,
     isVtc: vtc ? 1 : 0,

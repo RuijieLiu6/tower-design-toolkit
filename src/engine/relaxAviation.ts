@@ -146,7 +146,7 @@ export function aviationChecklist(t: Tower, where: [number, number] | null): Rul
 }
 
 /** Relaxation lines for one tower: the cones over its footprint and what the switched-on routes do to them. */
-export function relaxationChecklist(t: Tower, on: Instrument[], ground: number, siteArea: number | null, origin: [number, number]): RuleResult[] {
+export function relaxationChecklist(t: Tower, on: Instrument[], ground: number, siteArea: number | null, origin: [number, number], siteAreaSource?: string): RuleResult[] {
   const fp = towerFootprint(t).map(([x, y]) => [x + origin[0], y + origin[1]] as [number, number])
   const centre: [number, number] = [t.x + origin[0], t.y + origin[1]]
   const pts = [centre, ...fp]
@@ -163,7 +163,7 @@ export function relaxationChecklist(t: Tower, on: Instrument[], ground: number, 
   if (hbp.length) out.push({ id: 'relax-hbp', label: 'Higher Buildings Policy route', value: `could allow entering ${hbp.join(', ')}${on.includes('hbp') ? ' (switched on)' : ''}`, threshold: 'a rezoning under the policy; heights are guidance, not caps', state: 'unknown', flag: 'verified', source: { ...HBP, page: '2.1' }, note: RELAXATIONS.hbp.eligibility })
   if (eds.length) out.push({ id: 'relax-eds', label: 'Exceptional Downtown Site route', value: `could allow entering ${eds.join(', ')}${on.includes('eds') ? ' (switched on)' : ''}`, threshold: `site of ${EDS_MIN_SITE.toLocaleString()} m² or more, views to the Lions kept`,
     state: siteArea === null ? 'unknown' : siteArea >= EDS_MIN_SITE ? 'warn' : 'fail', flag: 'verified', source: { ...PVG, page: '3.4.1–3.4.2' },
-    note: siteArea === null ? 'The site area is not known in Real Vancouver: check the parcel.' : `Site ${Math.round(siteArea).toLocaleString()} m².` })
+    note: siteArea === null ? 'The site area is not known in Real Vancouver: choose a study site in the Site step, or type the parcel area.' : `Site ${Math.round(siteArea).toLocaleString()} m²${siteAreaSource ? ` (${siteAreaSource})` : ''}.` })
   if (none.length) out.push({ id: 'relax-no-route', label: 'Views with no relaxation route', value: none.join(', '), threshold: 'no relief under PVG 3.4 (A, E, 9.x, J1, G, H)', state: 'warn', flag: 'verified', source: { ...PVG, page: '3.4' }, note: 'These bind whatever route is used.' })
   if (unlisted.length) out.push({ id: 'relax-unlisted', label: 'Views the research found no route for', value: unlisted.join(', '), threshold: 'treated as binding', state: 'unknown', flag: 'unresolved', source: { ...PVG, page: 'Table 1; 3.4' } })
   const afters = at.map((a) => a.after), unknownAfter = at.some((a) => a.afterState === 'unknown')

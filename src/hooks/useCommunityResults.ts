@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useCommunityStore } from '../lib/communityStore'
 import { layer0Summary } from '../lib/layer0Summary'
+import { useProjectSiteArea } from '../lib/siteArea'
 import { isCodeNode, runPackage, type CommunityResult } from '../lib/nodePackages'
 import { codeNote, isAllowed, requestCodeRun, useCodeRuns } from '../lib/sandbox/codeRuns'
 import { useStore, useTowers } from '../store'
@@ -14,12 +15,13 @@ export function useCommunityResults(): Map<string, CommunityRun> {
   const project = useStore((s) => s.project)
   const sun = useStore((s) => s.sun)
   const ground = useStore((s) => s.groundElevation)
+  const studyArea = useProjectSiteArea().area
   const packages = useCommunityStore((s) => s.packages)
   const params = useCommunityStore((s) => s.params)
   const grants = useCodeRuns((s) => s.grants)
   const runs = useCodeRuns((s) => s.runs)
 
-  const summary = useMemo(() => layer0Summary({ project, towers, sun, groundElevation: ground }), [project, towers, sun, ground])
+  const summary = useMemo(() => layer0Summary({ project, towers, sun, groundElevation: ground, studyArea }), [project, towers, sun, ground, studyArea])
 
   // Ask for sandbox runs (deduplicated by node, code, design and parameters, so many callers start one run).
   useEffect(() => {

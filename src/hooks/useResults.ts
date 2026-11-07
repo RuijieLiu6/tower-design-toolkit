@@ -7,7 +7,7 @@ import { overall } from '../engine/viewCones'
 import { checkTowerCones } from '../engine/towerCones'
 import { fsrSummary, vtcRules } from '../engine/vtcRules'
 import { useVtcNeighbours } from '../lib/vtcNeighbours'
-import { useSiteStore } from '../lib/siteStore'
+import { useProjectSiteArea } from '../lib/siteArea'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 
 // One shared result for identical inputs. About 16 components call useResults(); each used to keep its own memo,
@@ -32,11 +32,12 @@ export function useResults() {
   const egressPresets = useStore((s) => s.egressPresets)
   const publicRealm = useStore((s) => s.publicRealm)
   const neighbours = useVtcNeighbours(project === 'vtc')
-  // Real Vancouver FSR divides by the study site (parcels or boundary, lib/siteParcels.ts); the competition keeps its block.
-  const studyArea = useSiteStore((s) => (project === 'city' ? s.fsrArea?.area ?? null : null))
+  // Real Vancouver FSR divides by the study site (parcels or boundary, lib/siteArea.ts); the competition keeps its block.
+  const studyArea = useProjectSiteArea().area
+  const cityStudyArea = project === 'city' ? studyArea : null
 
-  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, studyArea], () => {
-    const fsr = studyArea ? fsrSummary(towers, studyArea) : fsrSummary(towers)
+  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea], () => {
+    const fsr = cityStudyArea ? fsrSummary(towers, cityStudyArea) : fsrSummary(towers)
     const rules = project === 'vtc' ? vtcRules(towers, { fsrTier, transitLink }) : []
     const cones = project === 'city'
       ? towers.map((t) => {
@@ -59,5 +60,5 @@ export function useResults() {
       streetwall?: typeof streetwall; frontage?: typeof frontage; groundPlane?: typeof groundPlane
     } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane }
     return out
-  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, studyArea])
+  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea])
 }
