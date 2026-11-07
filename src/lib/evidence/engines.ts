@@ -33,6 +33,8 @@ export interface EvidenceInput {
   cityInNature: NatureInput
   windPresets: WindPresets
   systemsPresets?: SystemsPresets
+  /** Real Vancouver: the study site's area (lib/siteArea.ts), when one is chosen. */
+  studyArea?: number | null
 }
 
 /** Both projects' results side by side, so the hub lists every node's sources whichever project is open. */
@@ -57,7 +59,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : [],
-    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : null, null, { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).faces }),
+    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).faces }),
     'built.wind-procedure': wind.map((w) => w.rules),
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k]).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
@@ -66,6 +68,6 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.economics': DEFAULT_ECON,
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
-    'built.relax-aviation': towers.map((t) => [...(i.project === 'city' ? relaxationChecklist(t, [], 15, null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
+    'built.relax-aviation': towers.map((t) => [...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
   }
 }

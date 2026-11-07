@@ -2,6 +2,8 @@
 // metadata where the packets list it; the team's editable presets with their current values; every unverified or
 // unresolved result; every false assumption in magenta with its correction. Filter by flag, category and node; each
 // entry links back to its node and rule card. Exports a bibliography for the boards (Markdown, or a numbered block).
+import { projectSiteArea } from '../lib/siteArea'
+import { useSiteStore } from '../lib/siteStore'
 import { ArrowLeft, BookOpen, ClipboardCopy, Download, ExternalLink, Search } from '../components/icons'
 import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -144,11 +146,14 @@ export default function Sources() {
   const econ = useEconomics()
   const energy = useEnergyCarbon()
   const solar = useSolar((x) => x.out)
+  const studyArea = useSiteStore((x) => x.fsrArea)
+  const citySite = useStore((x) => x.citySite)
+  const cityArea = projectSiteArea('city', studyArea, citySite).area
   const hub = useMemo(() => {
     const base = { fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets }
     const live = { 'built.mobility': mobility.rules, 'built.facade': facade.rules, 'built.economics': [econ.presets, (econ.result as { charges?: { lines?: unknown } } | undefined)?.charges?.lines ?? []], ...(energy ? { 'built.energy-carbon': energy } : {}), ...(solar ? { 'built.solar-access': (solar as { lines?: unknown }).lines ?? [] } : {}) }
-    return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city }), live))
-  }, [s, mobility, facade, econ, energy, solar])
+    return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city, studyArea: cityArea }), live))
+  }, [s, mobility, facade, econ, energy, solar, cityArea])
 
   const [tab, setTab] = useState<Tab>('sources')
   const [flag, setFlag] = useState<Flag | 'all'>('all')
