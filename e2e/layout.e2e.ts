@@ -18,6 +18,8 @@ async function dismiss(p: Page) {
 async function demo(p: Page) {
   await p.addInitScript(() => { try { localStorage.setItem('ts.landing.skip', '0'); localStorage.setItem('ts.onboarding.seen', '1') } catch { /* ignore */ } })
   await p.goto('/#/start')
+  // The cover comes first since 7 Nov: its Enter leads to the landing page, which holds the demo button.
+  await p.getByTestId('intro-enter').click()
   await p.getByRole('button', { name: 'Open the demo project' }).click()
   await p.waitForURL(/#\/guided/)
   await p.waitForTimeout(2500)

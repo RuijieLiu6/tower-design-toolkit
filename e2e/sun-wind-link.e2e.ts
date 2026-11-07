@@ -41,6 +41,8 @@ test('Send to Sun & Wind Studio: the selected tower arrives in place, with its p
   await page.addLocatorHandler(page.getByRole('dialog').filter({ has: page.locator('#ob-title') }), async (d) => { await d.getByRole('button', { name: 'Start designing' }).click() })
   // The demo has two towers on the competition block, whatever the app starts with.
   await page.goto('/#/start')
+  // The cover comes first since 7 Nov: its Enter leads to the landing page, which holds the demo button.
+  await page.getByTestId('intro-enter').click()
   await page.getByRole('button', { name: 'Open the demo project' }).click()
   await page.waitForURL(/#\/guided/)
   await page.waitForFunction(() => performance.getEntriesByType('resource').some((e) => /\/src\/store\.ts/.test(e.name)))
