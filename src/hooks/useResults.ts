@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { egressCheck } from '../engine/egress'
 import { liftCheck } from '../engine/lifts'
-import { frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
+import { cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
 import { skyRoomCheck } from '../engine/skyRoom'
 import { overall } from '../engine/viewCones'
 import { checkTowerCones } from '../engine/towerCones'
@@ -61,7 +61,8 @@ export function useResults() {
     const skyRooms = towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets) }))
     // Public realm checks run on the competition block, whose streets are known (research P06).
     const vtc = project === 'vtc' && towers.length > 0
-    const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : null
+    // Real Vancouver: the tower-form lines only, the street lines open until the study site's streets are typed.
+    const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers) : null
     const frontage = vtc ? frontageCheck(towers, publicRealm) : null
     const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm, { solar: solarLines, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }) : null
     // Optional fields, so code that builds a results object by hand (tests, workflows) need not supply them.

@@ -281,6 +281,31 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
     }))
   }
 
+  rules.push(...towerFormRules(towers, neighbours))
+
+  // Streetwall continuity (team preset), on the streets where a continuous wall is expected.
+  for (const w of edges.filter((x) => x.edge.type !== 'local')) {
+    rules.push(rule({
+      id: `pr-continuity-${w.edge.id}`, label: `Streetwall continuity on the ${w.edge.street.toLowerCase()}`, value: `${Math.round(w.continuity * 100)}% within 1 m of the property line (nearest face ${f1(Math.max(0, w.setback))} m back)`,
+      threshold: '≥ 80% (team preset)', state: w.continuity >= 0.8 ? 'pass' : w.continuity >= 0.5 ? 'warn' : 'fail', flag: 'team_assumption', source: cddg('G2.2.1'),
+      note: 'G2.2.1 asks to keep continuity where a continuous streetwall is wanted, with no percentage. A deliberate setback for a plaza can be the better move; say so on the boards.',
+    }))
+  }
+  return { rules, edges }
+}
+
+// ---------- M01: frontage ----------
+export interface EdgeFrontage { edge: SiteEdge; length: number; activeLength: number; spacing: number | null; target: number; state: RuleState }
+
+/** Building frontage on each street: the street-facing extent of the podium (or tower) footprints. */
+/**
+ * The tower-form lines that need no street: floorplate, plan dimension, slenderness, separation and massing variation
+ * (and, on the competition block, the tower's width against the frontage it faces). The competition's streetwall check
+ * uses them in place; on Real Vancouver they are the whole node until the study site's streets are typed (node audit,
+ * 7 Nov: Streetwall & tower form ran on the competition site only, though most of its tower rules need no street).
+ */
+export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], opts: { frontage: boolean } = { frontage: true }): RuleResult[] {
+  const rules: RuleResult[] = []
   for (const t of towers) {
     const plate = t.width * t.depth
     const uses = new Set(towerFloors(t).filter((f) => !f.podium && f.use !== 'mechanical').map((f) => f.use))
@@ -301,12 +326,14 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
       threshold: '≤ 29.0 m, or clear volumetric articulation', state: dim <= 29.0 ? 'pass' : 'warn', flag: 'verified', source: cddg('S2.3.1, S2.3.2, G2.3.2'),
       note: dim <= 29 ? 'Slender in plan.' : 'Over 29.0 m: mixed-use and non-residential towers must show clear volumetric articulation (S2.3.2). The box model has none; describe it on the boards.',
     }))
+    if (opts.frontage) {
     const share = Math.max(t.width / edgeLength('south'), t.depth / edgeLength('west'))
     rules.push(rule({
       id: `pr-share-${t.id}`, label: `Tower width against the frontage: ${t.name}`, value: `${Math.round(share * 100)}% of the frontage it faces`,
       threshold: 'below about 60% (CDDG tip: wider reads as a slab)', state: share <= 0.6 ? 'pass' : 'warn', flag: 'team_assumption', source: cddg('design tip, section 2.3'),
       note: 'A rule of thumb in the CDDG, not a standard: about 47.5 m on the 79.2 m side, 86.9 m on the 144.8 m side (our arithmetic).',
     }))
+    }
     const slender = t.height / Math.max(1, Math.min(t.width, t.depth))
     rules.push(rule({
       id: `pr-slender-${t.id}`, label: `Tower slenderness: ${t.name}`, value: `${f1(slender)} : 1 (height to width)`,
@@ -348,21 +375,25 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
     note: 'The massing model is a box, so it shows no plane changes; add steps of 1.5 m or more at least every 45.7 m and show them on the boards.',
   }))
 
-  // Streetwall continuity (team preset), on the streets where a continuous wall is expected.
-  for (const w of edges.filter((x) => x.edge.type !== 'local')) {
-    rules.push(rule({
-      id: `pr-continuity-${w.edge.id}`, label: `Streetwall continuity on the ${w.edge.street.toLowerCase()}`, value: `${Math.round(w.continuity * 100)}% within 1 m of the property line (nearest face ${f1(Math.max(0, w.setback))} m back)`,
-      threshold: '≥ 80% (team preset)', state: w.continuity >= 0.8 ? 'pass' : w.continuity >= 0.5 ? 'warn' : 'fail', flag: 'team_assumption', source: cddg('G2.2.1'),
-      note: 'G2.2.1 asks to keep continuity where a continuous streetwall is wanted, with no percentage. A deliberate setback for a plaza can be the better move; say so on the boards.',
-    }))
-  }
-  return { rules, edges }
+  return rules
 }
 
-// ---------- M01: frontage ----------
-export interface EdgeFrontage { edge: SiteEdge; length: number; activeLength: number; spacing: number | null; target: number; state: RuleState }
+/** Streetwall & tower form on Real Vancouver: the tower rules, and the street rules marked open. */
+export function cityStreetwallCheck(towers: Tower[]): { rules: RuleResult[]; edges: EdgeWall[] } {
+  if (!towers.length) return { rules: [], edges: [] }
+  return {
+    edges: [],
+    rules: [
+      rule({
+        id: 'pr-streets', label: 'Streetwall height, continuity and step-back', value: 'needs the study site’s street types and right-of-way widths',
+        threshold: 'Table 2.2b podium bands by right-of-way width; a continuous wall on retail and arterial streets', state: 'unknown', flag: 'unresolved', source: cddg('Table 2.2b, S2.2'),
+        note: 'The streets around a Real Vancouver study site are not typed in the Toolkit yet (no City street classification in its data), so the street rules run on the competition site only. The tower rules here need no street.',
+      }),
+      ...towerFormRules(towers, [], { frontage: false }),
+    ],
+  }
+}
 
-/** Building frontage on each street: the street-facing extent of the podium (or tower) footprints. */
 function frontageLength(towers: Tower[], e: SiteEdge): number {
   const spans: [number, number][] = []
   for (const t of towers) {

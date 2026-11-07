@@ -131,3 +131,26 @@ describe('open space reads the solar access and wind screen nodes', () => {
     expect(r.find((x) => x.id === 'pr-wind')?.state).toBe('pass')
   })
 })
+
+// Node audit (7 Nov): Streetwall & tower form on Real Vancouver runs the rules that need no street.
+import { cityStreetwallCheck, towerFormRules } from './publicRealm'
+
+describe('Streetwall & tower form on Real Vancouver', () => {
+  const second: Tower = { ...vtc, id: 't2', name: 'Tower 2', x: 30 }
+  it('keeps the competition check exactly as it was: its tower lines are the shared helper\'s', () => {
+    const all = streetwallCheck([vtc, second], input).rules.map((r) => r.id)
+    const form = towerFormRules([vtc, second]).map((r) => r.id)
+    expect(form.length).toBeGreaterThan(5)
+    expect(all.filter((id) => form.includes(id))).toEqual(form)
+    expect(form).toContain('pr-share-t1')
+  })
+  it('runs floorplate, plan dimension, slenderness, separation and variation, and leaves the street rules open', () => {
+    const r = cityStreetwallCheck([vtc, second])
+    const ids = r.rules.map((x) => x.id)
+    expect(ids).toEqual(expect.arrayContaining(['pr-plate-t1', 'pr-dim-t1', 'pr-slender-t1', 'pr-separation', 'pr-variation']))
+    expect(ids.some((id) => id.startsWith('pr-share') || id.startsWith('pr-continuity') || id.startsWith('pr-stepback'))).toBe(false)
+    expect(r.rules.find((x) => x.id === 'pr-streets')).toMatchObject({ state: 'unknown', flag: 'unresolved' })
+    expect(r.edges).toEqual([])
+    expect(cityStreetwallCheck([]).rules).toEqual([])
+  })
+})

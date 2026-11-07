@@ -75,7 +75,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^pr-stepback$/, 'Step the tower back from the streetwall (move or narrow the tower block).'],
   [/^pr-(podium|continuity)/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
   [/^(north|south|east|west)$/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
-  [/^pr-variation$/, 'Vary the tower heights.'],
+  // Node audit (7 Nov): this said "Vary the tower heights", but S2.2.1 asks for plane changes along the street.
+  [/^pr-variation$/, 'Break the long facade with a step of 1.5 m or more at least every 45.7 m (stacked blocks in Massing), and show it on the boards.'],
+  [/^pr-streets$/, 'Street types and widths for Real Vancouver sites are not in the Toolkit yet: the street rules run on the competition site.'],
   [/^pr-sun$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on Solar access & sun hours to test the shadow on public space.'
     : 'Open Solar access & sun hours to see which spaces get new shadow; moving, turning or slimming the tower changes it.')],
   [/^pr-wind$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'

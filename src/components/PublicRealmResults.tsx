@@ -68,6 +68,16 @@ export default function PublicRealmResults({ id }: { id: string }) {
   const { streetwall, frontage, groundPlane } = useResults()
   const input = useStore((s) => s.publicRealm)
   const project = useStore((s) => s.project)
+  // Real Vancouver: Streetwall & tower form runs its tower rules (no street needed); the street rules and the other two
+  // public realm nodes wait for the study site's streets (node audit, 7 Nov).
+  if (project !== 'vtc' && id === 'built.pr-streetwall' && streetwall) {
+    return (
+      <Section title="Results">
+        <p className="mb-2 text-[11px] text-muted">The tower rules, which need no street. The streetwall rules need this site's street types and widths, not yet in the Toolkit: they run on the competition site.</p>
+        <div className="grid gap-2">{streetwall.rules.map((r) => <Card key={r.id} r={r} />)}</div>
+      </Section>
+    )
+  }
   if (project !== 'vtc') return <Section title="Results"><p className="text-[11px] text-muted">Runs on the competition site, whose streets are known. Switch to "Competition site".</p></Section>
 
   if (id === 'built.pr-streetwall' && streetwall) {
