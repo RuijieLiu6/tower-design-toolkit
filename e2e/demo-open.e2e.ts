@@ -31,6 +31,8 @@ test('the demo opens over an existing autosave, and Undo brings the design back'
   await p.waitForTimeout(2500) // autosave (800 ms debounce)
 
   await p.goto('/#/start'); await p.reload()
+  // The cover comes first since 7 Nov: its Enter leads to the landing page, which holds the demo button.
+  await p.getByTestId('intro-enter').click()
   await p.getByRole('button', { name: 'Open the demo project' }).click()
   await p.waitForURL(/#\/guided/)
   await p.waitForTimeout(3000)
