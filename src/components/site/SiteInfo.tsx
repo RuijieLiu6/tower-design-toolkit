@@ -131,7 +131,7 @@ function SiteNow() {
             </div>
           </div>
         </div>
-      ) : <p className="mt-1 flex items-center gap-1 text-xs text-ink">No site yet: choose one in the Site step.<Help label="About the study site">Type an address or click the map in the Site step's Site tool. The tower can still be placed anywhere (Form step); the site checks wait for a site.</Help></p>}
+      ) : <p className="mt-1 flex items-center gap-1 text-xs text-ink">No site yet: choose one in the Site step.<Help label="About the study site">Type an address or click the map in the Site step's Site tool, or take the default site there (Default: the Granville / W Pender / Howe / Dunsmuir block). The tower can still be placed anywhere (Form step); the site checks wait for a site.</Help></p>}
       {message && <p data-testid="site-message" className={`mt-1.5 rounded px-2 py-1 ${message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{message.text}</p>}
       <div className="mt-2 flex flex-wrap gap-1.5">
         <button type="button" disabled={!canUndo} onClick={() => { if (undo()) tell('Undone.') }} className={`${btn} border-line hover:border-accent disabled:opacity-50`}><Undo2 size={12} />Undo</button>
