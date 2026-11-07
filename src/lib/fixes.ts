@@ -122,6 +122,18 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^bf-tactile$/, 'Place tactile walking-surface indicators at every location 3.8.2.10.(3) lists (see Details).'],
   [/^bf-hotel$/, 'Plan the accessible hotel rooms and the rooms with visual alarms shown.'],
   [/^bf-adaptable$/, 'Design every home to the adaptable dwelling standard (3.8.5).'],
+  // Egress, ground plane, interior, daylight, mobility (node audit sweep, 7 Nov: the warnings left on the generic text).
+  [/^stair-driver$/, 'Lower that floor’s occupant load (a posted limit, or seats instead of standing room), or widen the stairs from there down (Schematic › Exit stairs).'],
+  [/^pr-perimeter$/, 'Add or move the mid-block link (Program step › Ground & public realm) so no block side runs over about 100 m without a public route.'],
+  [/^in-feed$/, 'Once the unit mix is chosen, switch on "Use this layout for lifts, egress and economics" (Interior & activity programme).'],
+  [/^in-keys$/, 'The hotel band is deeper than a room: a wider corridor, a deeper core or a slimmer plate tightens it (Massing, Schematic).'],
+  [/^in-lease$/, 'Bring the core closer to the glass: a slimmer plate or a larger core (Massing, Schematic).'],
+  [/^dl-.*-(depth|share)$/, 'Bring more floor within daylight reach: a slimmer plate (width × depth in Massing), a smaller core, or a taller floor-to-floor (it raises the window head).'],
+  [/^dl-.*-limit$/, 'Bring L/W + L/H under the limit: a shallower plate or a taller floor-to-floor (Massing).'],
+  [/^mob-transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
+  [/^rain-(detention|first-stage)$/, 'Answer the rainwater pathway under Details: the volume shown is what an engineered pathway must store.'],
+  [/^bird-zone$/, 'Enter the treated share of glass in the bird zone (Facade node) and the mature tree height, if trees are planned.'],
+  [/^eds-criteria$/, 'Answer the three criteria in writing under Details: the Lions views, the open space and canopy strategy, the UNDRIP strategy.'],
   // City in Nature
   [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^nav-canada/, 'Ask NAV CANADA for a land-use review (and the City for its NAV CANADA height layer); allow for cranes.'],
@@ -137,8 +149,8 @@ export function fixFor(key: string, state: RuleState, value: string, threshold?:
   // threshold is a phrase ("Needs over 150 m above ground is an obstacle"). Rule and design, side by side, read right.
   if (state === 'unknown') {
     if (/needs a site area/i.test(value)) return 'Choose a study site in the Site step: the share needs a site area.'
-    if (/(^|; )not assessed/i.test(value)) return 'The Toolkit does not assess this: the code consultant or engineer confirms it (see Details).'
-    if (/^(not entered|not answered|needs (a|the) |not in the model|not modelled|.*not answered$)/i.test(value)) return 'Enter it under Details, sources and settings (below): it is an input, not a result.'
+    if (/\bnot assessed\b/i.test(value)) return 'The Toolkit does not assess this: the code consultant or engineer confirms it (see Details).'
+    if (/^(not entered|not answered|needs (a|the) |not in the model|not modelled)|not (entered|answered)$/i.test(value)) return 'Enter it under Details, sources and settings (below): it is an input, not a result.'
     return 'Open: Details says what would settle it.'
   }
   return threshold ? `Rule: ${threshold}. This design: ${value}.` : 'See Details for the rule and its source.'
