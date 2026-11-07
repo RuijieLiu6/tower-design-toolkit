@@ -94,7 +94,7 @@ function DefaultSite() {
   return (
     <Step n="3" title="Or start from the default site">
       <IconTile size="sm" icon={Crosshair} word="Default" label="Use the default site" data-testid="use-default-site" onClick={() => openCity([600, 2000])}
-        hint="The Granville / W Pender / Howe / Dunsmuir block, chosen by the 6 Nov research as a likely Higher Buildings Policy site (whether it lies inside the policy's Figure 1 area is unresolved). With no tower here yet, the competition design comes along, turned to the street grid. Ctrl+Z undoes it." />
+        hint="The Granville / W Pender / Howe / Dunsmuir block, chosen by the 6 Nov research for the Higher Buildings Policy route (whether it lies inside the policy's Figure 1 area is unresolved). With no tower here yet, the competition design comes along, turned to the street grid. Ctrl+Z undoes it." />
     </Step>
   )
 }
