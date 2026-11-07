@@ -22,6 +22,8 @@ export interface FacadeInput {
   wwr: Record<Quadrant, number | null>
   /** Share of glass in the bird-collision zone with markers, frit or other treatment (0-1). */
   treated: number | null
+  /** Where `treated` came from when it was not entered here (e.g. City in Nature's ledger); said in the line's note. */
+  treatedFrom?: string
   /** Tallest vegetation next to the facade (m above grade); sets the zone top (4 m above it, at least 16 m). */
   vegetation: number
   /** Vision glass properties from the product data (blank until entered). */
@@ -124,7 +126,7 @@ export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: numbe
     id: 'fa-bird', label: 'Bird-friendly glass in the collision zone', value: tr == null ? `${Math.round(zoneGlass).toLocaleString()} m² of glass below ${top} m: treated share not entered` : `${pct(tr)} of ${Math.round(zoneGlass).toLocaleString()} m² treated below ${top} m${tier ? ` (meets UBC Tier ${tier.tier})` : ' (below UBC Tier 3)'}`,
     threshold: '90% treated (Tier 1, aligned with CSA A460); 85% Tier 2; 55% Tier 3; zone to 16 m or 4 m above the tallest vegetation',
     state: birdState, flag: 'unverified', source: { label: 'UBC Bird Backgrounder, Table 1 (research P12-S31, opened); CSA summary in Construction Canada (P12-S32)', url: 'https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf' },
-    note: 'UBC campus policy used as a proxy: the City Bird Friendly Guidelines (2017) and CSA A460-2019 were not opened. Markers 50 mm apart or closer ("2 × 2 rule"); treat glass corners 5 m each way and remove fly-through conditions (all tiers). Sky gardens: apply the 4 m rule around each planted terrace (team reading).',
+    note: (input.treatedFrom && tr != null ? `Treated share from ${input.treatedFrom}. ` : '') + 'UBC campus policy used as a proxy: the City Bird Friendly Guidelines (2017) and CSA A460-2019 were not opened. Markers 50 mm apart or closer ("2 × 2 rule"); treat glass corners 5 m each way and remove fly-through conditions (all tiers). Sky gardens: apply the 4 m rule around each planted terrace (team reading).',
   })
   rules.push({
     id: 'fa-vlt', label: 'Vision glass light transmittance (views)', value: input.vlt == null ? 'Not entered' : pct(input.vlt), threshold: 'above 40% (LEED quality views)',
