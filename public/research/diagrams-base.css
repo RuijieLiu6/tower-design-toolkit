@@ -1,0 +1,147 @@
+/* Base styles for the research figures, taken from github.com/RuijieLiu6/vancouver-tower-toolbench (tower-tools-hub.html,
+   the same authors), scoped to the landing page's figure section. */
+.tdt-research {
+  --stop: #991b1b; --violet: #6a46a8; --violet-soft: #ebe4f6; --picto-ink: #17242c;
+  
+  --ground: #f6f5f2;   
+  --sheet: #ffffff;    
+  --ink: #1f2328;
+  --muted: #62666d;
+  --line: #e3e1dc;
+  --harbour: #1f5f8b;  
+  --harbour-soft: #e4ecf2;
+  --signal: #9a5d00;   
+  --signal-soft: #f8ecd4;
+  --good: #1f6b42;
+  --sky: #eda100;      
+  --display: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 12px; --ease: cubic-bezier(.2, 0, 0, 1);
+  --shadow-sm: 0 1px 2px rgba(31, 35, 40, .06), 0 1px 1px rgba(31, 35, 40, .04);
+}
+.v2host svg { min-width: 1100px; }
+.v2host svg { display: block; width: 100%; min-width: 980px; height: auto; }
+.v2host .v2-pic { transition: opacity .2s; }
+.tdt-research:not([data-theme="light"]) .v2host .v2-pic { filter: invert(1) hue-rotate(180deg); }
+.tdt-research[data-theme="dark"] .v2host .v2-pic { filter: invert(1) hue-rotate(180deg); }
+.v2-hit { fill: transparent; }
+.v2host [role=button] { cursor: pointer; outline: none; }
+.v2host [role=button]:focus-visible .v2-hit { stroke: var(--signal); stroke-width: 2; }
+.v2-ground { stroke: var(--ink); stroke-width: 2.5; }
+.v2-main { stroke: var(--ink); stroke-width: 7; fill: none; stroke-linecap: round; }
+.v2-ink-f { fill: var(--ink); }
+.v2-acc-f { fill: var(--signal); }
+.v2-loop { stroke: var(--signal); stroke-width: 1.8; stroke-dasharray: 6 5; fill: none; }
+.v2-ring { stroke: var(--ink); stroke-width: 3.5; fill: none; }
+.v2-bracket { stroke: var(--muted); fill: none; stroke-width: 1.2; }
+.v2-cap { fill: var(--muted); font: 500 13px var(--body); }
+.v2-cap.acc { fill: var(--signal); font-weight: 600; }
+.v2-num { fill: var(--ink); font: 600 14px var(--mono); }
+.v2-lab { fill: var(--ink); font: 600 14px var(--display); }
+.v2-who-p { fill: var(--signal); stroke: var(--sheet); stroke-width: 2.5; }
+.v2-who-t { fill: var(--sheet); stroke: var(--harbour); stroke-width: 2.5; }
+.v2-lanek { fill: var(--signal); font: 700 16px var(--mono); }
+.v2-lanet { fill: var(--ink); font: 500 14px var(--body); }
+.v2-laneline { stroke: var(--ink); stroke-width: 2; opacity: .55; }
+.v2-drop { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0; }
+.v2-node { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.v2host svg.v2-focus .v2-step, .v2host svg.v2-focus .v2-lane, .v2host svg.v2-focus .v2-tool, .v2host svg.v2-focus .v2-cnode, .v2host svg.v2-focus .v2-col { opacity: .22; transition: opacity .2s; }
+.v2host svg.v2-focus .on { opacity: 1 !important; }
+.v2host svg.v2-focus .v2-lane.on .v2-laneline { stroke: var(--signal); opacity: 1; stroke-width: 3.5; }
+.v2host svg.v2-focus .v2-lane.on .v2-node { fill: var(--signal); stroke: var(--signal); }
+.v2host svg.v2-focus .v2-drop.on { opacity: 1; stroke: var(--signal); stroke-width: 1.5; }
+.v2-colline { stroke: var(--line); stroke-dasharray: 2 5; }
+.v2-cityband { fill: var(--signal-soft); opacity: .7; }
+.v2-sep { stroke: var(--line); }
+.v2-toolname { fill: var(--ink); font: 600 15px var(--display); }
+.v2-tool.team .v2-toolname, .v2-tool.mate .v2-toolname { fill: var(--harbour); }
+.v2-tool.hub .v2-toolname { fill: var(--signal); }
+.v2-track { stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
+.v2-track.part { stroke-width: 2; stroke-dasharray: 3 5; }
+.v2-stop-full { fill: var(--ink); }
+.v2-stop-part { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.v2-tool.hub .v2-track, .v2-tool.hub .v2-stop-full { stroke: var(--signal); fill: var(--signal); }
+.v2-end { stroke: var(--stop); stroke-width: 4; stroke-linecap: round; }
+.v2-stoptx { fill: var(--stop); font: 500 13px var(--body); }
+.v2host svg.v2-focus .v2-tool.on .v2-track { stroke: var(--signal); }
+.v2host svg.v2-focus .v2-tool.on .v2-stop-full { fill: var(--signal); }
+.v2-hub { fill: var(--signal-soft); stroke: var(--signal); stroke-width: 1.5; }
+.v2-hubt { fill: var(--ink); font: 700 18px var(--display); }
+.v2-cbg { fill: var(--sheet); stroke-width: 2.5; }
+.v2-cbg, .v2-cnode.code .v2-cbg { stroke: var(--ink); }
+.v2-cnode.you .v2-cbg, .v2-cbg.you { stroke: var(--signal); fill: var(--signal-soft); }
+.v2-cnode.ai .v2-cbg, .v2-cbg.ai { stroke: var(--violet); fill: var(--violet-soft); stroke-dasharray: 5 4; }
+.v2-cnode.tool .v2-cbg, .v2-cbg.tool { stroke: var(--harbour); fill: var(--harbour-soft); }
+.v2-lab.you { fill: var(--signal); }
+.v2-lab.ai { fill: var(--violet); }
+.v2host .v2-main { stroke-dasharray: 1600; animation: v2draw 1.6s ease-out both; }
+.v2host :is(.v2-cap, .v2-lab, .v2-num, .v2-elab, .v2-elab2, .v2-toolname, .v2-stoptx, .v2-lanek, .v2-lanet, .tdt-note) { paint-order: stroke fill; stroke: var(--halo, var(--sheet)); stroke-width: 4px; stroke-linejoin: round; }
+.v2host :is(.v2-hubt, .tdt-inhub, .tdt-switch text, .v2-gate text, .tdt-pill-group text, .tdt-stage-card-group text) { stroke: none; }
+.v2-dedge { stroke: var(--ink); stroke-width: 2; fill: none; }
+.v2-hitline { stroke: transparent; stroke-width: 24; fill: none; }
+.v2-elab { fill: var(--ink); font: 600 15px var(--body); }
+.v2-elab2 { fill: var(--muted); font: 500 13.5px var(--body); }
+.v2-elab.acc, .v2-elab2.acc { fill: var(--signal); }
+.v2-lab.nope, .v2-cap.nope, .v2-elab2.nope { fill: var(--stop); }
+.v2-fence { fill: color-mix(in srgb, var(--stop) 5%, transparent); stroke: var(--stop); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.v2-nope { fill: var(--sheet); stroke: var(--stop); stroke-width: 1.2; }
+.v2-never { stroke: var(--stop); stroke-width: 2; stroke-dasharray: 3 5; fill: none; }
+.v2-gate rect { fill: var(--signal-soft); stroke: var(--signal); stroke-width: 1.5; }
+.v2-gate .v2-num { fill: var(--signal); }
+.v2-gate, .v2-dedge-g, .v2-nogo-g, .v2-dnode { cursor: pointer; outline: none; }
+.v2-gate:focus-visible rect, .v2-nogo-g:focus-visible .v2-fence { stroke-width: 3; }
+.v2host svg.v2-focus .v2-dnode, .v2host svg.v2-focus .v2-dedge-g, .v2host svg.v2-focus .v2-gate, .v2host svg.v2-focus .v2-nogo-g { opacity: .2; transition: opacity .2s; }
+.v2host svg.v2-focus .v2-dedge-g.on .v2-dedge { stroke: var(--signal); stroke-width: 3.5; }
+.v2host svg.v2-focus .v2-dedge-g.on .v2-loop { stroke-width: 3; }
+.v2host svg.v2-focus .v2-gate.on rect { fill: var(--signal); }
+.v2host svg.v2-focus .v2-gate.on text { fill: var(--sheet); }
+.v2-play { gap: 8px; }
+.v2-play svg { flex: none; }
+.v2host [role="button"]:focus-visible .tdt-hit { stroke: var(--signal);
+  stroke-width: 2.5; }
+.tdt-node .v2-cbg,
+.tdt-output .v2-cbg { fill: var(--sheet);
+  stroke: var(--ink); }
+.tdt-stage .v2-cbg { fill: var(--signal-soft);
+  stroke: var(--signal); }
+.tdt-analysis .v2-cbg { fill: var(--harbour-soft);
+  stroke: var(--harbour); }
+.tdt-analysis.tdt-dashed .v2-cbg { fill: var(--violet-soft);
+  stroke: var(--violet);
+  stroke-dasharray: 6 5; }
+#tdtLoop svg.v2-focus .tdt-stage,
+#tdtLoop svg.v2-focus .tdt-analysis,
+#tdtLoop svg.v2-focus .tdt-output,
+#tdtWhy svg.v2-focus .tdt-row,
+#tdtOpen svg.v2-focus .tdt-node,
+#tdtA svg.v2-focus .tdt-node,
+#tdtA svg.v2-focus .tdt-path-badges,
+#tdtA svg.v2-focus .tdt-legend-button,
+#tdtC svg.v2-focus .tdt-canvas { opacity: .2; }
+.v2host svg.v2-focus .tdt-link,
+.v2host svg.v2-focus .tdt-web,
+.v2host svg.v2-focus .tdt-spoke,
+.v2host svg.v2-focus .tdt-analysis-spoke,
+.v2host svg.v2-focus .tdt-wire,
+.v2host svg.v2-focus .tdt-path-a,
+.v2host svg.v2-focus .tdt-path-b { opacity: .12; }
+.v2host svg.v2-focus .on { opacity: 1 !important; }
+.v2host svg.v2-focus .tdt-link.on,
+.v2host svg.v2-focus .tdt-spoke.on,
+.v2host svg.v2-focus .tdt-analysis-spoke.on,
+.v2host svg.v2-focus .tdt-wire.on { stroke-width: 3.5; }
+.v2host svg.v2-focus .tdt-web.on { stroke: var(--muted);
+  stroke-width: 1.8; }
+.v2host svg.v2-focus .tdt-path-a.on,
+.v2host svg.v2-focus .tdt-path-b.on { stroke-width: 5; }
+.v2fig.tdt .v2-cap { font-size: 15.5px; }
+.v2fig.tdt .v2-num { font-size: 16.5px; }
+.v2fig.tdt .v2-lab { font-size: 17px; }
+.v2fig.tdt .v2-hubt { font-size: 20px; }
+.v2host [role="button"]:hover .v2-cbg,
+  .v2host [role="button"]:hover .tdt-panel-bg,
+  .v2host [role="button"]:hover .tdt-pill,
+  .v2host [role="button"]:hover .tdt-stage-card { stroke-width: 2.5; }
+.v2-lab, .v2-hubt, .v2-toolname, .pv-t, .pn-t, .ls-num, .rules3 b, .cards3 summary b, .gallery figcaption b, .tb-body b { letter-spacing: -0.01em; }
+body.presenting .v2host svg.v2-focus .on { opacity: 1 !important; }

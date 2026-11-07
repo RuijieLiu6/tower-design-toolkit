@@ -24,10 +24,14 @@ export function setSkipTarget(r: Exclude<Route, 'start'> | null) {
 }
 
 /** Resolve an empty or unknown hash once at start-up, without adding a history entry. */
+/**
+ * The tool opens on the landing page (Ruijie, 6 Nov: "make sure the user were brought to this [page] when they open up
+ * this tool"); the old "skip this page" choice no longer applies. A link with its own address (#/guided …) still goes
+ * straight there.
+ */
 export function resolveInitialRoute() {
   if (parseHash(window.location.hash)) return
-  const target = skipTarget() ?? 'start'
-  window.history.replaceState(null, '', `#/${target}`)
+  window.history.replaceState(null, '', '#/start')
 }
 
 export function navigate(r: Route) {

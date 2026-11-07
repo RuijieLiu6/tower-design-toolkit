@@ -4,8 +4,11 @@
 // user can switch anything on or off afterwards, or change role from the top bar. The choice is kept in this browser.
 import { create } from 'zustand'
 import { useStore } from '../store'
+import { userType, type UserTypeId } from './userTypes'
 
-export type Role = 'student' | 'practitioner' | 'explore'
+// Since 6 Nov the roles are the landing page's user types (lib/userTypes.ts); a role's preset is that type's first
+// starting workflow. The old "student" role reads as the passionate designer.
+export type Role = UserTypeId | 'explore'
 
 export interface RolePreset {
   id: Role
@@ -13,43 +16,22 @@ export interface RolePreset {
   short: string
   blurb: string
   project: 'vtc' | 'city' | null
-  /** Checks switched on, in the order of the study's preset (§7). */
+  /** Checks switched on: the type's first starting workflow. */
   nodes: string[]
   /** Tools from the study that are not built yet: listed as coming, never faked. */
   coming: string[]
 }
 
+const fromType = (id: UserTypeId, coming: string[] = []): RolePreset => {
+  const t = userType(id), p = t.presets[0]
+  return { id, label: t.name, short: t.name.replace(/ (architect|or City reviewer|or consultant)$/, ''), blurb: t.who, project: p.project, nodes: p.nodes, coming }
+}
+
 export const ROLE_PRESETS: Record<Role, RolePreset> = {
-  student: {
-    id: 'student', label: 'Student · Vancouver Tall Challenge', short: 'VTC student',
-    blurb: 'The competition site and brief: the deliverables, the 40% human-scale criterion and the boards first (study §7.1).',
-    project: 'vtc',
-    nodes: [
-      'built.vtc-rules', 'built.fsr', // brief & plan, site
-      'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', // ground & public realm, moved forward (40%)
-      'built.economics', 'built.sky-room', // program & value
-      'built.viewcones', 'built.sun', 'built.wind-screen', 'built.wind-study', // views, sun, shadow, wind
-      'built.core-lifts', 'built.egress', 'built.structure', 'built.wind-procedure', // core, floors, structure
-      'built.facade', 'built.energy-carbon', 'built.city-in-nature', // facade, energy, nature
-      'built.culture-claims', 'built.provenance', // culture & engagement guardrails
-    ],
-    coming: ['Research & precedents', 'Concept & narrative'],
-  },
-  practitioner: {
-    id: 'practitioner', label: 'Practitioner · Vancouver high-rise', short: 'Practitioner',
-    blurb: 'Real Vancouver: site and policy, view cones and heights early, then the pro forma and the permit-stage checks (study §7.2).',
-    project: 'city',
-    nodes: [
-      'built.heights', 'built.viewcones', 'built.relax-aviation', 'built.vista', // site, policy, views & skyline
-      'built.economics', 'built.fsr', // program & value
-      'built.solar-access', 'built.sun', 'built.wind-screen', 'built.wind-study', // sun, shadow, wind
-      'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', // ground & public realm
-      'built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', // core, floors, structure, code
-      'built.energy-carbon', 'built.city-in-nature', 'built.facade', 'built.mobility', // energy, nature, facade, servicing
-      'built.culture-claims', // culture & engagement
-    ],
-    coming: ['Policy & zoning pathway', 'Rezoning package', 'Design review prep', 'Consultant hand-off', 'Permit readiness'],
-  },
+  designer: fromType('designer', ['Research & precedents', 'Concept & narrative']),
+  practitioner: fromType('practitioner', ['Rezoning package', 'Design review prep', 'Consultant hand-off']),
+  planner: fromType('planner'),
+  engineer: fromType('engineer'),
   explore: {
     id: 'explore', label: 'Just exploring', short: 'Exploring',
     blurb: 'Keeps the current library and checks as they are.',
@@ -58,8 +40,13 @@ export const ROLE_PRESETS: Record<Role, RolePreset> = {
 }
 
 const KEY = 'ts.role'
+const ROLES: Role[] = ['designer', 'practitioner', 'planner', 'engineer', 'explore']
 const read = (): Role | null => {
-  try { const v = localStorage.getItem(KEY); return v === 'student' || v === 'practitioner' || v === 'explore' ? v : null } catch { return null }
+  try {
+    const v = localStorage.getItem(KEY)
+    if (v === 'student') return 'designer'
+    return ROLES.includes(v as Role) ? (v as Role) : null
+  } catch { return null }
 }
 
 export const useRole = create<{ role: Role | null }>(() => ({ role: read() }))

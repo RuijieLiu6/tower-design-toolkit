@@ -14,13 +14,13 @@ describe('role presets (workflow study §7, approved 4 Nov)', () => {
 
   it('a role opens its project and switches on exactly its checks; the design is not touched', () => {
     const towers = useStore.getState().towers
-    chooseRole('student')
-    expect(useRole.getState().role).toBe('student')
+    chooseRole('designer')
+    expect(useRole.getState().role).toBe('designer')
     expect(useStore.getState().project).toBe('vtc')
-    expect(Object.keys(useStore.getState().enabled).filter((k) => useStore.getState().enabled[k]).sort()).toEqual([...ROLE_PRESETS.student.nodes].sort())
+    expect(Object.keys(useStore.getState().enabled).filter((k) => useStore.getState().enabled[k]).sort()).toEqual([...ROLE_PRESETS.designer.nodes].sort())
     chooseRole('practitioner')
     expect(useStore.getState().project).toBe('city')
-    expect(useStore.getState().enabled['built.heights']).toBe(true)
+    expect(useStore.getState().enabled['built.heights']).toBe(true) // its first workflow: rezoning feasibility
     expect(useStore.getState().towers).toBe(towers)
   })
 

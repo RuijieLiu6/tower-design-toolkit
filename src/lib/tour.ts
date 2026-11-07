@@ -17,7 +17,7 @@ export interface TourStep {
 }
 
 export const TOUR: TourStep[] = [
-  { id: 'start', route: 'start', title: 'Two ways in', body: 'The guided process follows three design stages. Customize lets you lay out your own workflow from the same nodes. Every result in both cites its source.' },
+  { id: 'start', route: 'start', title: 'Start from who you are', body: 'Tell the agent who you are and what you are designing; it offers starting workflows of analysis nodes around one shared model. The guided process and Customize run the same nodes, and every result cites its source.' },
   { id: 'massing', route: 'guided', project: 'vtc', stage: 'basic', target: 'aside[aria-label="Design tools"]', title: 'Massing: shape the volume', body: 'The demo has two towers on the competition block. The design tools on the left shape them; the checks are the icons in the bar at the bottom, and they run live as you change the design.' },
   { id: 'evidence', route: 'guided', project: 'vtc', stage: 'basic', target: 'aside[aria-label="Results and evidence"]', title: 'Read every result with its evidence', body: 'Each line shows a value, the threshold, its source with page or clause, and a flag in icon and word: verified, team assumption, unverified, unresolved. False assumptions stay visible in magenta.' },
   { id: 'schematic', route: 'guided', project: 'vtc', stage: 'advanced', target: '[data-viewport]', title: 'Schematic: can it be built?', body: 'The clay turns into an x-ray axonometric: floor plates, core, lifts, stairs and plant. The core sizes itself to the lift and egress checks; the sky lobby in Tower 1 opens a free public room.' },

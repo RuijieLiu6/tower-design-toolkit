@@ -21,6 +21,7 @@
     "context:vtc": "python tools/build_vtc_context.py"
   },
   "dependencies": {
+    "@huggingface/tokenizers": "0.2.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@xyflow/react": "^12.12.0",

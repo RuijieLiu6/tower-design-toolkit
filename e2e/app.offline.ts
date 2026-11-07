@@ -7,7 +7,7 @@ test('opens offline after the first visit', async ({ page, context }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('/#/start')
-  const start = page.getByRole('heading', { name: /how do you want to design today/i })
+  const start = page.getByRole('heading', { name: /one tower model/i })
   await expect(start).toBeVisible()
   // Active means the install step (downloading every precached file) finished.
   await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.ready).active?.state), { timeout: 30_000 }).toBe('activated')
