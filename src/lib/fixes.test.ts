@@ -46,6 +46,11 @@ describe('pass or fail, with what to fix', () => {
     for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Rule: |See Details|^Open: |a person has to decide/)
     expect(fixFor('relax-eds', 'fail', '5,000 m²')).toMatch(/8,000 m²/)
     expect(fixFor('relax-eds', 'unknown', '')).toMatch(/Site step/)
+    // The brief's height rule no longer catches the wind procedure's "height-60" line (it told Real Vancouver users to
+    // bring the top into the competition band).
+    expect(fixFor('height-60', 'warn', '285 m')).toMatch(/Dynamic or Wind Tunnel/)
+    expect(fixFor('height-60', 'warn', '285 m')).not.toMatch(/244–305/)
+    expect(fixFor('trigger-toronto', 'warn', 'High')).toMatch(/wind study/)
     // The ground plane's sun and wind lines: switch the node on, or read where it found the problem.
     expect(fixFor('pr-sun', 'unknown', 'Switch on Solar access & sun hours')).toMatch(/^Switch on/)
     expect(fixFor('pr-sun', 'fail', '1 pass, 1 fail of 2 solar lines')).toMatch(/^Open Solar access/)
@@ -59,5 +64,18 @@ describe('pass or fail, with what to fix', () => {
     expect(rows.length + outside).toBe(checks.length)
     const above = rows.find((r) => r.state === 'fail')
     expect(above?.fix).toMatch(/Lower Study tower's top by [\d.]+ m \(to [\d.,]+ m geodetic\)/)
+  })
+})
+
+describe('instructions stay with their own node (node audit, 7 Nov)', () => {
+  it('gives every structure and wind procedure line that does not pass its own instruction', async () => {
+    const { structureCheck } = await import('../engine/structure')
+    const { windProcedure, windStudyRules } = await import('../engine/windStructure')
+    const t = { ...defaultTower('city', [240, 472]), height: 285 }
+    const wp = windProcedure(t)
+    const lines = [...structureCheck(t, wp).rules, ...wp.rules, ...windStudyRules(285)]
+    const open = lines.filter((r) => r.state !== 'pass' && r.state !== 'unknown')
+    expect(open.length).toBeGreaterThan(3)
+    for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Rule: |244–305|core walls continuous/)
   })
 })

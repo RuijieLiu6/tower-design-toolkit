@@ -36,8 +36,10 @@ export default function TripsResults() {
       <Section title="Results">
         <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-950">Trip rates and peak-hour shares are unsourced presets; the mode split for trips into the tower is the 2008 Trip Diary row for trips ending downtown (context, not a target); residents’ split is an <b>unsourced scenario</b>. The station check is comfort only, not egress.</div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[340px] text-[11px]">
-            <thead><tr className="text-left text-[10px] uppercase tracking-wider text-muted"><th className="py-0.5 font-medium">AM peak hour</th><th className="text-right font-medium">People</th><th className="text-right font-medium">Transit</th><th className="text-right font-medium">Car drivers</th><th className="text-right font-medium">Other</th></tr></thead>
+          {/* Node audit (7 Nov): the upper-case, letter-spaced headers crowded into each other ("PEOPLETRANSIT") and pushed
+              "Other" out of the 22rem panel; sentence-case headers with a gutter fit, "Car" says "car drivers" on hover. */}
+          <table className="w-full text-[11px] [&_td+td]:pl-2 [&_th+th]:pl-2">
+            <thead><tr className="text-left text-[10px] text-muted"><th className="py-0.5 font-medium">AM peak hour</th><th className="text-right font-medium">People</th><th className="text-right font-medium">Transit</th><th className="text-right font-medium"><abbr title="Car drivers" className="no-underline">Car</abbr></th><th className="text-right font-medium">Other</th></tr></thead>
             <tbody>
               {r.uses.map((u) => (
                 <tr key={u.use} className="border-t border-line/60">

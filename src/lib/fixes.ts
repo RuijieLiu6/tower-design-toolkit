@@ -20,7 +20,9 @@ export interface CheckRow {
 /** Instructions by rule (the rule id without its tower suffix), first match wins. */
 const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] = [
   // Competition rules (VTC brief)
-  [/^height/, 'Bring the top into the brief\'s 244–305 m band: change Height in Massing (Form step).'],
+  // Exactly the brief's height rule: "height-60" (wind procedure) once matched here and, on Real Vancouver, told people to
+  // bring the top into the competition band (node audit, 7 Nov).
+  [/^height$/, 'Bring the top into the brief\'s 244–305 m band: change Height in Massing (Form step).'],
   [/^containment$/, 'Keep the whole tower and podium inside the block: move it (Place on map) or shrink the podium in Massing.'],
   // A warning here passes on the reading in use but not on every reading of the brief (which uses count).
   [/^fsr-nonres$/, (st) => (st === 'warn' ? 'Passes on this reading of the brief but not on the strictest (office only): add office floor area to pass on every reading, or confirm the reading with Buildner.' : 'Add non-residential floor area (office, hotel, retail, civic) in Program until it reaches FSR 9.0.')],
@@ -33,7 +35,14 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^ntg/, 'Win back net area: a sky lobby (fewer shafts low down), a smaller core, or a larger plate.'],
   [/^firefighter/, 'Give firefighters a lift that reaches the top in about a minute with one change at most (a sky-lobby shuttle).'],
   [/^stretcher/, 'Make one car in each group stretcher-sized.'],
-  [/^seismic/, 'Keep the core walls continuous down to the foundation; confirm with a structural engineer.'],
+  // Exactly the lift check's seismic line: "seismic-category" (structure) once matched here too (node audit, 7 Nov).
+  [/^seismic$/, 'Keep the core walls continuous down to the foundation; confirm with a structural engineer.'],
+  // Structure: system & seismic (NBC 4.1.8); each restates its rule's threshold or note.
+  [/^seismic-category$/, 'Every tower here is Seismic Category SC4: choose a lateral system listed without an SC4 height cap (Details lists them) with the structural engineer.'],
+  [/^dynamic$/, 'A dynamic analysis is required: the structural engineer runs it (base shear at least 0.8 V if regular, 1.0 V if irregular).'],
+  [/^weight$/, 'One storey weighs over 150% of the next (usually the podium-to-tower step): step the podium in, or carry it as an irregularity in the dynamic analysis.'],
+  [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
+  [/^continuity$/, 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.'],
   // Egress & stairs
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],
@@ -85,6 +94,13 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^ac-601-007/, 'The tower rises above the notification surface: submit the aeronautical assessment form (AC 601-007).'],
   [/^car-vfr/, 'VFR route charts are not machine-readable here: check them with Transport Canada for a real site.'],
   [/^car-ols/, 'No obstacle limitation surface is published downtown: ask the City for the NAV CANADA height layer it reportedly holds.'],
+  // Wind procedure and study (NBC 4.1.7; analog cities): each restates its rule's note.
+  [/^height-60$/, 'Over 60 m the code sends the tower to the Dynamic or Wind Tunnel Procedure: brief the structural and wind engineers early.'],
+  [/^aspect$/, (st) => (st === 'fail' ? 'Over 6 : 1 with occupants the code asks for a wind tunnel test: widen the effective width (plate or base), or plan the test.' : 'Between 4 and 6 : 1 the tower is dynamically sensitive: the Dynamic Procedure applies.')],
+  [/^across-wind$/, 'Across-wind motion governs at this proportion: the wind engineer checks accelerations; corner softening, tapering or setbacks are the usual shape moves.'],
+  [/^f1$/, (st) => (st === 'fail' ? 'Ask the structural engineer for the model frequency (enter it under Details); without it, towers of 180 m or more go to the tunnel (team default).' : 'Enter the engineer’s model frequency under Details: the code’s seismic period is not a wind frequency.')],
+  [/^super-slender$/, 'Very slender: expect tuned mass dampers, shaping or windbreak floors (precedent, no sourced threshold); a wider base lowers it.'],
+  [/^trigger-/, 'Plan a wind study at the level this analog city asks for; Vancouver has no numeric trigger, and a wind engineer sets the scope.'],
   // City in Nature
   [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^nav-canada/, 'Ask NAV CANADA for a land-use review (and the City for its NAV CANADA height layer); allow for cranes.'],
