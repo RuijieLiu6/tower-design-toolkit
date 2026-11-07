@@ -78,6 +78,14 @@ export default function PublicRealmResults({ id }: { id: string }) {
       </Section>
     )
   }
+  if (project !== 'vtc' && id === 'built.pr-ground' && groundPlane) {
+    return (
+      <Section title="Results">
+        <p className="mb-2 text-[11px] text-muted">Open space over your study site, and sun and wind from their nodes. The link, block perimeter, transit plaza and station lines need this site's streets and station entrance, not yet in the Toolkit: they run on the competition site.</p>
+        <div className="grid gap-2">{groundPlane.rules.map((r) => <Card key={r.id} r={r} />)}</div>
+      </Section>
+    )
+  }
   if (project !== 'vtc') return <Section title="Results"><p className="text-[11px] text-muted">Runs on the competition site, whose streets are known. Switch to "Competition site".</p></Section>
 
   if (id === 'built.pr-streetwall' && streetwall) {
@@ -110,7 +118,7 @@ export default function PublicRealmResults({ id }: { id: string }) {
       </Section>
     )
   }
-  if (id === 'built.pr-ground' && groundPlane) {
+  if (id === 'built.pr-ground' && groundPlane && groundPlane.open) {
     const os = groundPlane.open, L = groundPlane.link
     const pad = 34, W = VTC_SITE.xMax - VTC_SITE.xMin
     const k = 260 / (W + 2 * pad)

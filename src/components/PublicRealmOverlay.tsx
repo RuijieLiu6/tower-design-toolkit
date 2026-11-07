@@ -42,7 +42,9 @@ export default function PublicRealmOverlay() {
   const towers = useTowers()
   const { streetwall, frontage, groundPlane } = useResults()
   const which = selected === 'built.pr-streetwall' || selected === 'built.pr-frontage' || selected === 'built.pr-ground' ? selected : null
-  const neighbours = useVtcNeighbours(which === 'built.pr-streetwall')
+  // The competition context's future towers: only on the competition site (Real Vancouver runs the tower rules alone).
+  const project = useStore((s) => s.project)
+  const neighbours = useVtcNeighbours(which === 'built.pr-streetwall' && project === 'vtc')
   const sepLines = useMemo(() => {
     if (which !== 'built.pr-streetwall') return []
     const out: { a: P3; b: P3; d: number }[] = []
@@ -102,7 +104,7 @@ export default function PublicRealmOverlay() {
     )
   }
 
-  if (which === 'built.pr-ground' && groundPlane) {
+  if (which === 'built.pr-ground' && groundPlane && groundPlane.open) {
     const os = groundPlane.open
     const L = groundPlane.link
     return (

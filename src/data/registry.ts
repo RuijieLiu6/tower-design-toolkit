@@ -150,7 +150,7 @@ export const BUILT_NODES: NodeDef[] = [
     human: 'Whether a use is genuinely active (tenant, hours, display), edge character and materials at touch distance, lighting at night, and whether a civic anchor with a long frontage is a justified breach.',
     limits: 'Layer 0 has no openings, so active share, entrances, canopies and driveways are entered per street; activity is inferred from inputs, not occupancy. Glazing, active depth and night-time activation are not checked yet.',
     packet: 'P06' },
-  { id: 'built.pr-ground', name: 'Open space & links', category: 'PUBL', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc'],
+  { id: 'built.pr-ground', name: 'Open space & links', category: 'PUBL', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'Is there enough contiguous public open space, a transit plaza, and a direct public route through the block to the station?', jury: ['human_scale_40', 'urban_integration_10'],
     human: 'Programming and stewardship, who the space feels welcome to, place-making with Musqueam, Squamish and Tsleil-Waututh, and negotiation with TransLink and the neighbouring site for the station entrance.',
     limits: 'Open space is the unbuilt site at a public share you set; sun on the space, shadow on protected parks and wind are not assessed here (solar access and CLIM nodes). Route directness and block-length presets have no source.',

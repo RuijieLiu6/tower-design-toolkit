@@ -603,6 +603,104 @@ export function groundPlaneCheck(towers: Tower[], input: PublicRealmInput, cross
   return { rules, open: os, link, longestGap }
 }
 
+// ---------- Real Vancouver: open space over the study site (node audit, 7 Nov) ----------
+/** Large-site trigger the competition's 20% share rests on (2013 policy; current policy unread, research P06). */
+const LARGE_SITE = 8000
+
+/** The study site in its own frame: centred, turned so its longest side runs along x (axis-aligned rectangles fit it). */
+export function siteFrame(ring: Pt[]): { toLocal: (p: Pt) => Pt; angle: number; centre: Pt } {
+  let best = 0, angle = 0
+  ring.forEach((a, i) => {
+    const b = ring[(i + 1) % ring.length], l = Math.hypot(b[0] - a[0], b[1] - a[1])
+    if (l > best) { best = l; angle = Math.atan2(b[1] - a[1], b[0] - a[0]) }
+  })
+  const centre: Pt = [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length]
+  const c = Math.cos(-angle), sn = Math.sin(-angle)
+  return { angle, centre, toLocal: ([x, y]) => { const dx = x - centre[0], dy = y - centre[1]; return [dx * c - dy * sn, dx * sn + dy * c] } }
+}
+
+/** Open ground inside a study site (any polygon): area, built footprint and the largest clear rectangle in the site's frame. */
+export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: number): OpenSpace & { siteArea: number } {
+  const f = siteFrame(ring)
+  const R = ring.map(f.toLocal)
+  const ms = masses(towers).map((m) => m.poly.map(f.toLocal))
+  const xs = R.map((p) => p[0]), ys = R.map((p) => p[1])
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
+  const nx = Math.max(1, Math.ceil((x1 - x0) / CELL)), ny = Math.max(1, Math.ceil((y1 - y0) / CELL))
+  const cx = (x1 - x0) / nx, cy = (y1 - y0) / ny
+  const free = new Uint8Array(nx * ny)
+  let siteCells = 0, open = 0
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const p: Pt = [x0 + (i + 0.5) * cx, y0 + (j + 0.5) * cy]
+    if (!inside(p, R)) continue
+    siteCells++
+    if (!ms.some((m) => inside(p, m))) { free[j * nx + i] = 1; open++ }
+  }
+  let largest: OpenSpace['largest'] = null
+  const hgt = new Int32Array(nx)
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) hgt[i] = free[j * nx + i] ? hgt[i] + 1 : 0
+    const st: number[] = []
+    for (let i = 0; i <= nx; i++) {
+      const h = i < nx ? hgt[i] : 0
+      while (st.length && hgt[st[st.length - 1]] >= h) {
+        const top = st.pop()!, height = hgt[top], left = st.length ? st[st.length - 1] + 1 : 0
+        const area = height * (i - left) * cx * cy
+        if (height > 0 && (!largest || area > largest.area)) largest = { area, x0: x0 + left * cx, x1: x0 + i * cx, y0: y0 + (j - height + 1) * cy, y1: y0 + (j + 1) * cy }
+      }
+      st.push(i)
+    }
+  }
+  const cell = cx * cy, area = open * cell, siteArea = siteCells * cell
+  return { open: area, publicArea: area * Math.max(0, Math.min(1, openPublicShare)), largest, transitPlaza: false, built: siteArea - area, siteArea }
+}
+
+/**
+ * Open space & links on Real Vancouver: the open-space share and the POPS candidate over the study site, sun and wind
+ * from their nodes; the link, block perimeter, transit plaza and station lines need the site's streets and its station
+ * entrance, which the Toolkit does not know for a Real Vancouver site yet (one open line).
+ */
+export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: PublicRealmInput, cross: GroundCross = {}): { rules: RuleResult[]; open: OpenSpace | null; link: null; longestGap: number } {
+  if (!towers.length) return { rules: [], open: null, link: null, longestGap: 0 }
+  const rules: RuleResult[] = []
+  if (!ring || ring.length < 3) {
+    rules.push(rule({ id: 'pr-open-share', label: 'Public open space on the site', value: 'needs a site area', threshold: '≥ 20% of site area on a large site', state: 'unknown', flag: 'unresolved', source: cddg('S1.9.1 and glossary') }))
+  } else {
+    const os = cityOpenSpace(towers, ring, input.openPublicShare)
+    const A = os.siteArea, share = os.publicArea / A, large = A >= LARGE_SITE
+    rules.push(rule({
+      id: 'pr-open-share', label: 'Public open space on the site', value: `${Math.round(share * 100)}% (${fmt(os.publicArea)} m² of ${fmt(A)} m²)`,
+      threshold: large ? '≥ 20% of site area' : '≥ 20% on a large site (8,000 m² or more)', state: !large ? 'unknown' : share >= 0.2 ? 'pass' : share >= 0.1 ? 'warn' : 'fail',
+      flag: large ? 'team_assumption' : 'unresolved', source: cddg('S1.9.1 and glossary'),
+      note: `Counts the unbuilt site at ${Math.round(input.openPublicShare * 100)}% public (team, the competition's setting). ${large ? `S1.9.1 covers large or unique sites; that this ${fmt(A)} m² site is "large" rests on the 2013 large-site trigger (8,000 m²), current policy unread.` : 'Under the 2013 large-site trigger (8,000 m²): which open-space share applies is unresolved, so it is reported, not judged.'}`,
+    }))
+    const pops = os.largest ? Math.min(os.largest.area, os.publicArea) : 0
+    rules.push(rule({
+      id: 'pr-pops', label: 'Privately owned public space (POPS)', value: `${fmt(pops)} m² in the largest clear rectangle of open ground (${Math.round((pops / A) * 100)}%)`,
+      threshold: `about 10% of site area (about ${fmt(0.1 * A)} m²)`, state: pops >= 0.1 * A ? 'pass' : pops >= 0.05 * A ? 'warn' : 'fail', flag: 'verified', source: cddg('S1.10.2 and glossary'),
+      note: 'Mixed-use and non-residential tower sites with frontage over 60.7 m. Counted inside the 20% total (whether it is extra is unresolved). Rectangles run along the site’s longest side.',
+    }))
+    if (os.largest) {
+      const w = os.largest.x1 - os.largest.x0, h = os.largest.y1 - os.largest.y0
+      const aspect = Math.max(w, h) / Math.max(0.1, Math.min(w, h))
+      const ok = os.largest.area >= 300 && aspect <= 2
+      rules.push(rule({
+        id: 'pr-pops-shape', label: 'POPS shape', value: `${f1(w)} × ${f1(h)} m (1:${aspect.toFixed(1)}), ${fmt(os.largest.area)} m²`,
+        threshold: 'contiguous, about 300 m² or more, proportion 1:1 to 1:2, free of overhead mass', state: ok ? 'pass' : os.largest.area >= 300 ? 'warn' : 'fail', flag: 'verified', source: cddg('S1.11.1 and glossary (POPS)'),
+        note: `${aspect > 2 ? 'Long and narrow: it reads as a setback, not a place. ' : ''}A statutory right-of-way, public access points and no podium or roof space without public stairs and lifts are also required.`,
+      }))
+    }
+  }
+  rules.push(rule({
+    id: 'pr-streets-ground', label: 'Mid-block link, block perimeter, transit plaza and station entrance', value: 'need the study site’s streets and its nearest station entrance',
+    threshold: 'S1.12 links; S4.4 transit plazas; G4.4.2 station entrances', state: 'unknown', flag: 'unresolved', source: cddg('S1.12, S4.4, G4.4.2'),
+    note: 'These run on the competition site, whose streets and station are known. A Real Vancouver site’s streets are not typed in the Toolkit yet.',
+  }))
+  rules.push(sunLine(cross.solar))
+  rules.push(windLine(cross.wind))
+  return { rules, open: null, link: null, longestGap: 0 }
+}
+
 /** Uses that count as active at grade when nothing else is entered (for display only). */
 export const ACTIVE_USES: UseId[] = ['retail', 'civic', 'amenity', 'hotel']
 void BRIEF

@@ -152,8 +152,8 @@ export default function Sources() {
   const hub = useMemo(() => {
     const base = { fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets }
     const live = { 'built.mobility': mobility.rules, 'built.facade': facade.rules, 'built.economics': [econ.presets, (econ.result as { charges?: { lines?: unknown } } | undefined)?.charges?.lines ?? []], ...(energy ? { 'built.energy-carbon': energy } : {}), ...(solar ? { 'built.solar-access': (solar as { lines?: unknown }).lines ?? [] } : {}) }
-    return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city, studyArea: cityArea }), live))
-  }, [s, mobility, facade, econ, energy, solar, cityArea])
+    return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city, studyArea: cityArea, cityRing: (citySite?.ring ?? null) as [number, number][] | null }), live))
+  }, [s, mobility, facade, econ, energy, solar, cityArea, citySite])
 
   const [tab, setTab] = useState<Tab>('sources')
   const [flag, setFlag] = useState<Flag | 'all'>('all')

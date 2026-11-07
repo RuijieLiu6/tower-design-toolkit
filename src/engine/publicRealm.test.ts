@@ -154,3 +154,40 @@ describe('Streetwall & tower form on Real Vancouver', () => {
     expect(cityStreetwallCheck([]).rules).toEqual([])
   })
 })
+
+// Node audit (7 Nov): Open space & links on Real Vancouver, over the study site in its own frame.
+import { cityGroundPlaneCheck, cityOpenSpace, siteFrame } from './publicRealm'
+import defaultSite from '../data/defaultSite.json'
+
+describe('Open space & links on Real Vancouver', () => {
+  const ring = defaultSite.ring as [number, number][]
+  const cityTower: Tower = { ...vtc, x: 254, y: 486.1, rotation: 45.2 }
+  it('turns the site so its longest side runs along x', () => {
+    const f = siteFrame(ring)
+    const local = ring.map(f.toLocal)
+    const ys = local.map((p) => p[1]), xs = local.map((p) => p[0])
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(141.7, 0)
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(79.2, 0)
+  })
+  it('measures the site, the built footprint and the largest clear rectangle', () => {
+    const os = cityOpenSpace([cityTower], ring, 0.85)
+    expect(os.siteArea).toBeGreaterThan(11224.7 * 0.99)
+    expect(os.siteArea).toBeLessThan(11224.7 * 1.01)
+    // The 100 × 64 m podium covers 6,400 m² (it fits inside the 141.7 × 79.2 m block).
+    expect(os.built).toBeGreaterThan(6400 * 0.98)
+    expect(os.built).toBeLessThan(6400 * 1.02)
+    expect(os.largest!.area).toBeGreaterThan(500)
+  })
+  it('judges the share on a large site, reports it on a small one, and leaves the street lines open', () => {
+    const r = cityGroundPlaneCheck([cityTower], ring, input, { solar: null, wind: null }).rules
+    const share = r.find((x) => x.id === 'pr-open-share')!
+    expect(share.flag).toBe('team_assumption')
+    expect(['pass', 'warn', 'fail']).toContain(share.state)
+    expect(r.find((x) => x.id === 'pr-streets-ground')).toMatchObject({ state: 'unknown', flag: 'unresolved' })
+    expect(r.map((x) => x.id)).toEqual(expect.arrayContaining(['pr-pops', 'pr-sun', 'pr-wind']))
+    const small: [number, number][] = [[200, 450], [260, 450], [260, 520], [200, 520]]
+    expect(cityGroundPlaneCheck([cityTower], small, input).rules.find((x) => x.id === 'pr-open-share')).toMatchObject({ state: 'unknown', flag: 'unresolved' })
+    expect(cityGroundPlaneCheck([cityTower], null, input).rules.find((x) => x.id === 'pr-open-share')?.value).toBe('needs a site area')
+    expect(cityGroundPlaneCheck([], ring, input).rules).toEqual([])
+  })
+})
