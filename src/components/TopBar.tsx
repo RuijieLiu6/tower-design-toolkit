@@ -1,4 +1,5 @@
 import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, ListChecks, LockKeyhole, Network, PlayCircle, Scale, Waves, Workflow } from './icons'
+import { showIntro } from '../lib/intro'
 import { STAGES } from '../data/stages'
 import { captureShot } from '../lib/capture'
 import { navigate } from '../lib/route'
@@ -51,7 +52,7 @@ export default function TopBar() {
   const navLabel = present ? 'hidden min-[1800px]:inline' : 'hidden min-[1440px]:inline'
   return (
     <header className="glass-edge stage-fade flex h-14 shrink-0 items-center gap-3 rounded-2xl bg-chrome px-3 text-chrome-ink 2xl:gap-4">
-      <button onClick={() => navigate('start')} aria-label="Tower Design Toolkit" title="Home: choose the guided process or Customize" className="flex items-center gap-2 rounded-md px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
+      <button onClick={showIntro} aria-label="Tower Design Toolkit" title="Back to the start" className="flex items-center gap-2 rounded-md px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
         <span className="hidden whitespace-nowrap text-sm font-semibold tracking-tight min-[1500px]:inline">Tower Design Toolkit</span>
       </button>
@@ -71,7 +72,7 @@ export default function TopBar() {
           const on = phase === s.id
           return (
             <button key={s.id} role="tab" aria-selected={on} onClick={() => setPhase(s.id)} title={`${s.purpose} (key ${s.key})`}
-              className={`stage-fade flex items-center gap-2 rounded-lg border px-3 py-1 text-left ${on ? (present ? 'border-white/40 bg-white/15' : 'border-accent/40 bg-panel shadow-sm') : 'border-transparent opacity-80 hover:opacity-100'}`}>
+              className={`stage-fade flex items-center gap-2 rounded-lg border px-3 py-1 text-left ${on ? (present ? 'border-white/40 bg-white/15 font-semibold' : 'border-transparent bg-accent text-white') : 'border-transparent opacity-80 hover:opacity-100'}`}>
               <Icon size={18} className={on && !present ? 'text-accent' : ''} />
               <span className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold">{s.label}</span>

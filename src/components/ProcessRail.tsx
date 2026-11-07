@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronRight } from './icons'
 import { STEP_ICONS } from '../data/icons'
 import { useEffect } from 'react'
-import { EVALUATE, PROCESS } from '../data/stages'
+import { EVALUATE, PROCESS, STAGES } from '../data/stages'
 import { whenRestored } from '../lib/project/session'
 import { goToStep, startOnSite, startStepFollow, useStep, type StepId } from '../lib/step'
 import { PHASES } from '../lib/phases'
@@ -23,6 +23,11 @@ export default function ProcessRail() {
     return stop
   }, [])
   const Gauge = EVALUATE.icon
+  // Which mode you are in (Ruijie, 7 Nov: "indicate which mode it is"): named at the start of the rail, and the steps of
+  // this mode backed in glass, so the rail reads as one mode's steps within the whole process.
+  const phase = useStore((s) => s.phase)
+  const mode = STAGES.find((x) => x.id === phase) ?? STAGES[0]
+  const ModeIcon = mode.icon
   const analysis = useStore((s) => s.analysis)
   const setAnalysis = useStore((s) => s.setAnalysis)
   const enabled = useStore((s) => s.enabled)
@@ -40,13 +45,17 @@ export default function ProcessRail() {
   }
   return (
     <nav aria-label="Design process" className="glass-edge stage-fade flex h-10 shrink-0 items-center gap-1 rounded-2xl bg-glass-2 px-3 text-[11px]">
+      <span data-testid="mode-indicator" title={`${mode.label} mode: ${mode.purpose}`} className="flex shrink-0 items-center gap-1.5 pr-1 text-[12.5px] font-semibold text-accent">
+        <ModeIcon size={16} aria-hidden />{mode.label}<span className="sr-only"> mode</span>
+      </span>
+      <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-ink/15" />
       {PROCESS.map((s, i) => {
         const Icon = STEP_ICON[s.id as keyof typeof STEP_ICON]
-        const lit = s.id === step
+        const lit = s.id === step, other = s.stage !== phase
         return (
           <span key={s.id} className="flex items-center gap-1">
             <button onClick={() => goToStep(s.id as StepId)} aria-current={lit ? 'step' : undefined} data-step={s.id}
-              className={`stage-fade flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${lit ? 'border-accent/50 bg-panel font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
+              className={`stage-fade flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${lit ? 'border-accent/50 bg-panel font-semibold text-ink' : `border-transparent text-muted hover:text-ink ${other ? '' : 'bg-white/45'}`}`}>
               <Icon size={13} className={lit ? 'text-accent' : ''} />{s.label}
               {analysis && onIn(s.id).length > 0 && <span className="rounded-full bg-accent/15 px-1.5 text-[10px] font-semibold tabular-nums text-accent" title={`${onIn(s.id).length} check${onIn(s.id).length === 1 ? '' : 's'} of your workflow at this step`} data-testid={`step-count-${s.id}`}>{onIn(s.id).length}</span>}
             </button>

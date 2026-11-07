@@ -40,6 +40,6 @@ export default function CityStreets({ streets, ground, coarse }: { streets: Stre
       <meshStandardMaterial color={m.kind === 'lane' ? '#a9a9a4' : '#8a8e90'} roughness={1} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
     </mesh>)}
     <lineSegments geometry={lines} renderOrder={2}><lineBasicMaterial color="#6b7378" /></lineSegments>
-    {names && labels.map((l) => <Label key={l.name} text={l.name} position={l.position} size={.013} color="#3d434b" />)}
+    {names && labels.map((l) => <Label quiet key={l.name} text={l.name} position={l.position} size={.013} color="#3d434b" />)}
   </>
 }

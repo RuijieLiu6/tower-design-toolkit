@@ -4,6 +4,7 @@
 // clicks are proposals first (Vista v10.1 "confirm before placing"): a ghost shows the new footprint and volume, the
 // tower itself stays put until Confirm. Snapping, proposals and the undo step are in lib/towerEdit.ts.
 import { Line, PivotControls } from '@react-three/drei'
+import { hoverHandlers } from '../lib/hoverLabels'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import * as THREE from 'three'
@@ -73,7 +74,7 @@ export function TowerMover({ t, baseZ, children }: { t: Tower; baseZ: number; ch
   const moving = useTowerEdit((s) => s.drag?.id === t.id || s.proposal?.id === t.id)
   return (
     <>
-      <group ref={setGroup}>{children}</group>
+      <group ref={setGroup} {...hoverHandlers(t.id)}>{children}</group>
       <SelectionOutline t={t} baseZ={baseZ} />
       {moving && <Ghost t={t} />}
     </>

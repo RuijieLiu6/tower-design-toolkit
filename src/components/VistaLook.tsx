@@ -443,7 +443,7 @@ function Utilities() {
 
 // ---------- legend ----------
 function Swatch({ color, border = CHROME.swatchBorder, style }: { color: string; border?: string; style?: CSSProperties }) {
-  return <i aria-hidden className="inline-block h-[9px] w-[9px] shrink-0 rounded-[2px]" style={{ background: color, border: `1px solid ${border}`, ...style }} />
+  return <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: `1px solid ${border}`, ...style }} />
 }
 
 function Legend() {
@@ -456,7 +456,7 @@ function Legend() {
   const plain = style === 'plain'
   const strong = useStore(proposedLook)
   const coneHidden = useConeVisibility((s) => s.hidden)
-  const item = (key: string, sw: ReactNode, text: ReactNode, title?: string) => <span key={key} title={title} className="flex items-center gap-1.5">{sw}{text}</span>
+  const item = (key: string, sw: ReactNode, text: ReactNode, title?: string) => <span key={key} title={title} className="flex items-center gap-1.5">{sw}<span className="sr-only group-hover/legend:not-sr-only group-focus-within/legend:not-sr-only">{text}</span></span>
   const proposal = strong
     ? <i aria-hidden className="inline-block h-[10px] w-[10px] shrink-0 rounded-[2px]" style={{ background: PROPOSED.fill, border: `1.5px solid ${PROPOSED.line}`, boxShadow: `0 0 0 2px ${PROPOSED.glow}88` }} />
     : uses.length
@@ -468,7 +468,7 @@ function Legend() {
   const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   const conesShown = !CONES.every((c) => coneHidden[c.id])
   const proposalItem = <span role="listitem">{item('proposal', proposal, <b className="font-semibold">Proposed tower</b>, strong ? 'Your design tower(s), in one strong colour so they stand out' : 'Your design tower, in its programme colours')}</span>
-  const group = (label: string, title?: string) => <span aria-hidden className="mr-0.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: CHROME.tabInk }} title={title}>{label}</span>
+  const group = (label: string, title?: string) => <span aria-hidden className="mr-0.5 hidden text-[11px] font-semibold uppercase tracking-wide group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }} title={title}>{label}</span>
   const foldButton = (
     <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to one line'} title={folded ? 'Show the legend' : 'Fold the legend'}
       className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-[2px] hover:bg-[#dde6dc] ${focusRing}`}>{folded ? <ChevronUp size={13} aria-hidden /> : <ChevronDown size={13} aria-hidden />}</button>
@@ -481,7 +481,7 @@ function Legend() {
     </div>
   )
   return (
-    <div className="flex max-w-full items-start gap-2 px-2 py-[5px] text-[12px]" style={box}>
+    <div className="group/legend flex max-w-full items-start gap-2 px-2 py-[5px] text-[12px]" style={box} title="Legend: point at it for the names">
       <div className="grid min-w-0 gap-y-[3px]">
         <div role="list" aria-label="Buildings" className="flex flex-wrap items-center gap-x-2 gap-y-[3px]">
           {group('Buildings', plain && typeColours ? 'Each building’s type: its own OpenStreetMap tag, else a point of interest inside it, else Other / unknown; never guessed' : undefined)}

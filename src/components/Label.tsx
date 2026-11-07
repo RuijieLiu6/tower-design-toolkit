@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { useHoverLabels } from '../lib/hoverLabels'
 
 /** tan of half the base 38 deg field of view, the lens label sizes are tuned for. */
 const REF_HALF_FOV = Math.tan(THREE.MathUtils.degToRad(19))
@@ -10,7 +11,7 @@ const REF_HALF_FOV = Math.tan(THREE.MathUtils.degToRad(19))
  * `size` is the label height as a fraction of the viewport height, kept constant through lens changes
  * (an unattenuated sprite would otherwise grow as the field of view narrows, e.g. in the Schematic axonometric).
  */
-export default function Label({ text, position, size = 0.022, color = '#3d434b', background = 'rgba(255,255,255,0.88)', bold = false, keepInView = false, maxDistance, lift }: {
+export default function Label({ text, position, size = 0.022, color = '#3d434b', background = 'rgba(255,255,255,0.88)', bold = false, keepInView = false, maxDistance, lift, hoverKey, quiet = false }: {
   text: string; position: [number, number, number]; size?: number; color?: string; background?: string | null; bold?: boolean
   /** Slide the label along so it stays whole inside the view when its anchor is near (or past) an edge. */
   keepInView?: boolean
@@ -18,6 +19,10 @@ export default function Label({ text, position, size = 0.022, color = '#3d434b',
   maxDistance?: number
   /** Sit the label above its anchor, its bottom edge this fraction of the view height over it (instead of centred on it). */
   lift?: number
+  /** Show only while the pointer is on this object (lib/hoverLabels.ts hoverHandlers with the same key). */
+  hoverKey?: string
+  /** Show only while the pointer is over the 3D view (street and place names). */
+  quiet?: boolean
 }) {
   const { texture, aspect } = useMemo(() => {
     const dpr = 2, fontPx = 22 * dpr, pad = 8 * dpr
@@ -50,7 +55,9 @@ export default function Label({ text, position, size = 0.022, color = '#3d434b',
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 38
     const f = Math.tan(THREE.MathUtils.degToRad(fov / 2)) / REF_HALF_FOV
     s.scale.set(size * aspect * f, size * f, 1)
-    if (maxDistance !== undefined) s.visible = s.getWorldPosition(at).distanceTo(camera.position) <= maxDistance
+    const h = useHoverLabels.getState()
+    s.visible = (hoverKey === undefined || h.over === hoverKey) && (!quiet || h.inView)
+      && (maxDistance === undefined || s.getWorldPosition(at).distanceTo(camera.position) <= maxDistance)
     if (keepInView && s.visible) {
       // An unattenuated sprite spans scale × the projection's diagonal in clip space; its anchor (center) is moved so
       // the whole box stays 1% inside the view's edges (UI review, 3 Nov: "…en Elizabeth Park" was cut at the edge).

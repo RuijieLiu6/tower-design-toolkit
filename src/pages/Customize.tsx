@@ -6,6 +6,7 @@ import {
   type Edge, type FinalConnectionState, type OnBeforeDelete,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { showIntro } from '../lib/intro'
 import { ChevronDown, Download, FilePlus2, FolderOpen, PanelRightOpen, Play, Route as RouteIcon, Save, Scale, Trash, Upload, Users, Workflow } from '../components/icons'
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as RMouseEvent, type ReactNode } from 'react'
 import CommunityDrawer from '../components/community/CommunityDrawer'
@@ -286,7 +287,7 @@ function Builder() {
     <div data-stage="basic" data-reduced={reduced} className="flex h-full flex-col bg-paper text-ink">
       {/* Top bar */}
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-chrome px-3 text-chrome-ink">
-        <button onClick={() => navigate('start')} title="Home: choose guided or customize" aria-label="Tower Design Toolkit home" className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent">
+        <button onClick={showIntro} title="Back to the start" aria-label="Tower Design Toolkit home" className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent">
           <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
           <span className="hidden whitespace-nowrap text-sm font-semibold tracking-tight 2xl:inline">Tower Design Toolkit</span>
         </button>

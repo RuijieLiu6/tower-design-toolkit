@@ -12,6 +12,8 @@ import Composer, { type Draft } from '../components/landing/Composer'
 import { firstPhase } from '../lib/phases'
 import { openPresetInCustomize, saveWorkflowFile, startPreset } from '../lib/startPreset'
 import Orbit from '../components/landing/Orbit'
+import Intro from '../components/landing/Intro'
+import { enterToolkit, showIntro, useIntro } from '../lib/intro'
 import PresetCards from '../components/landing/PresetCards'
 import ResearchFigures from '../components/landing/ResearchFigures'
 import { installApp, installHint, useOffline } from '../lib/pwa/install'
@@ -26,6 +28,11 @@ const quiet = 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] te
 
 export default function Landing() {
   const reduced = useStore((s) => s.reducedMotion)
+  const intro = useIntro((s) => s.show)
+  // Just past the intro: the agent's question takes the focus (not on a plain visit, where a phone keyboard would pop up).
+  const entered = useRef(false)
+  const [arrived, setArrived] = useState(false)
+  useEffect(() => { if (!intro && entered.current) { entered.current = false; document.getElementById('agent-input')?.focus({ preventScroll: true }) } }, [intro])
   const [result, setResult] = useState<AgentResult | null>(null)
   const [active, setActive] = useState<Preset | null>(null)
   // The workflow on the phase board: a preset or the agent's answer fills it, and every node stays editable.
@@ -52,14 +59,22 @@ export default function Landing() {
     { icon: WAY_ICONS.node, hue: HUES.pink, word: 'Your node', hint: 'Turn your own method into a node with the node-builder skill, then wire it in.', go: () => navigate('customize') },
   ]
 
+  // The intro is a screen of its own (lib/intro.ts): the name and its icons, no scroll; the way in is at the name's heart.
+  if (intro) return (
+    <div data-stage="basic" data-reduced={reduced} className="h-full overflow-hidden text-ink">
+      <Intro onEnter={() => { entered.current = true; setArrived(true); enterToolkit() }} />
+    </div>
+  )
+
   return (
-    <div data-stage="basic" data-reduced={reduced} className="h-full overflow-y-auto bg-paper text-ink">
+    <div data-stage="basic" data-reduced={reduced} className={`h-full overflow-y-auto bg-paper text-ink ${arrived ? 'tdt-arrive' : ''}`} onAnimationEnd={() => setArrived(false)}>
       <div className="mx-auto flex min-h-full max-w-6xl flex-col px-5 py-5 md:px-10">
-        <header className="flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-2">
+        <header id="welcome" className="flex scroll-mt-0 flex-wrap items-center justify-between gap-2">
+          <button type="button" onClick={showIntro} title="Back to the start" aria-label="Tower Design Toolkit: back to the start" data-testid="brand-home"
+            className="flex items-center gap-2 rounded-xl px-1 py-0.5 text-ink outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
             <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
             <span className="text-[15px] font-semibold tracking-tight">Tower Design Toolkit</span>
-          </span>
+          </button>
           <nav aria-label="About the toolkit" className="glass-edge flex flex-wrap items-center gap-0.5 rounded-full bg-glass-2 px-1.5 py-1">
             <a href={RESEARCH} target="_blank" rel="noreferrer" className={quiet}><ExternalLink size={14} aria-hidden />Research</a>
             <a href="#/guide" className={quiet}><BookOpen size={14} aria-hidden />User guide</a>
@@ -72,7 +87,7 @@ export default function Landing() {
         {/* The first screen is the agent alone (Ruijie, 7 Nov): the idea in one line, then its one open question. */}
         <main className="flex min-h-[calc(100svh-6rem)] flex-col items-center justify-center gap-9 py-10">
           <div className="grid justify-items-center gap-3 text-center">
-            <h1 className="max-w-[20ch] text-balance text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.025em] md:text-[3.1rem]">One tower model. Every analysis a node. You decide.</h1>
+            <h2 className="max-w-[20ch] text-balance text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.025em] md:text-[3.1rem]">One tower model. Every analysis a node. You decide.</h2>
             <p className="max-w-[36rem] text-pretty text-[16px] leading-[1.6] text-muted">For anyone shaping a tall building in Vancouver: students and curious citizens, architects, planners and engineers.</p>
           </div>
           <Agent onResult={(r) => {

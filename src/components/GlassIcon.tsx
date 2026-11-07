@@ -34,11 +34,11 @@ export default function GlassIcon({ icon: Icon, mono, hue = HUES.sky, size = ICO
   icon?: LucideIcon; mono?: string; hue?: number; size?: number; level?: GlassLevel; className?: string
 }) {
   const style = { '--gi': `${size}px`, '--gh': hue } as CSSProperties
-  const glyph = Math.round(size * 0.46), stroke = size >= 48 ? 2 : 1.75
+  const glyph = Math.round(size * 0.46), stroke = size >= 96 ? size / 40 : size >= 48 ? 2 : 1.75
   return (
     <span aria-hidden className={`gicon ${className}`} data-level={level} style={style}>
       {Icon ? <>
-        {level !== 'off' && <span className="gicon-glow"><Icon size={glyph} strokeWidth={stroke + 1.5} /></span>}
+        {level !== 'off' && <span className="gicon-glow"><Icon size={glyph} strokeWidth={stroke * 1.75} /></span>}
         <span className="gicon-glyph"><Icon size={glyph} strokeWidth={stroke} /></span>
       </> : <span className="gicon-glyph font-semibold tracking-tight" style={{ fontSize: Math.round(size * 0.3) }}>{mono}</span>}
     </span>

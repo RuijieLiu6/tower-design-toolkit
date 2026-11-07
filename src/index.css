@@ -202,6 +202,19 @@ body::before {
     linear-gradient(#2c2c2a, #2c2c2a) right 10px bottom 0 / 1px 8px no-repeat; }
 .crop-marks::after { display: none; }
 
+/* Text over the 3D view waits for the pointer (Ruijie, 7 Nov: "hide as much text as possible"): map place names (all
+   but the picked one) and the mouse hints show while the pointer is over the view (lib/hoverLabels.ts sets
+   data-view-hover), or when one takes keyboard focus. */
+[data-place], [data-testid="mode-gestures"] > span { transition: opacity 200ms; }
+:root:not([data-view-hover]) :is([data-place]:not([data-active]):not(:focus-visible), [data-testid="mode-gestures"] > span:not(.sr-only)) { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { [data-place], [data-testid="mode-gestures"] > span { transition: none; } }
+
+/* Arriving in the site after flying through the intro's name (components/landing/Intro.tsx). */
+@keyframes tdt-arrive { from { opacity: 0; transform: scale(0.94); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.tdt-arrive { animation: tdt-arrive 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .tdt-arrive { animation: none; } }
+[data-reduced="true"].tdt-arrive { animation: none; }
+
 /* Map place names that answer a click (components/VistaLook.tsx usePlacePicks): a pointer, and the name outlined. */
 [data-place-hover] { cursor: pointer !important; }
 [data-place][data-hover] { outline: 2px solid #426b61; outline-offset: 0; }

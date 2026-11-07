@@ -23,7 +23,7 @@ export default function VtcBriefSite() {
   return (
     <group name="vtc-brief-site">
       {VTC_EDGES.map((e) => (
-        <Label key={e.id} text={e.street.toUpperCase()} position={[e.out[0] * (w + e.row / 2), e.out[1] * (d + e.row / 2), 1]} size={0.013} background={null} color="#6b6f76" bold />
+        <Label quiet key={e.id} text={e.street.toUpperCase()} position={[e.out[0] * (w + e.row / 2), e.out[1] * (d + e.row / 2), 1]} size={0.013} background={null} color="#6b6f76" bold />
       ))}
     </group>
   )

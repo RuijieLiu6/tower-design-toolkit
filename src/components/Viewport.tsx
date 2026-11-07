@@ -1,4 +1,5 @@
 import { Line, OrbitControls } from '@react-three/drei'
+import { hoverHandlers, useHoverLabels } from '../lib/hoverLabels'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -127,15 +128,15 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
       {lookId === 'plain' && !xray && <PlainEnvironment />}
       {ctx?.future_towers.filter((f) => f.z1).map((f, i) => (
         <group key={`f${i}`}>
-          <mesh position={[0, 0, 0]}>
+          <mesh position={[0, 0, 0]} {...hoverHandlers(`future-${i}`)}>
             <extrudeGeometry args={[new THREE.Shape(f.footprint.map(([x, y]) => new THREE.Vector2(x, y))), { depth: f.z1 as number, bevelEnabled: false }]} />
             <meshStandardMaterial color="#9fb3c8" transparent opacity={0.28} depthWrite={false} />
           </mesh>
-          <Label text={`Future tower ${(f.z1 as number).toFixed(1)} m`} position={[f.footprint[0][0], f.footprint[0][1], (f.z1 as number) + 6]} size={0.015} />
+          <Label text={`Future tower ${(f.z1 as number).toFixed(1)} m`} position={[f.footprint[0][0], f.footprint[0][1], (f.z1 as number) + 6]} size={0.015} hoverKey={`future-${i}`} />
         </group>
       ))}
       {ctx?.labels.filter((l) => !['N', 'SITE'].includes(l.text)).map((l, i) => (
-        <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold />
+        <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold quiet />
       ))}
       {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
       <ModelOverlay base={0} xray={xray} />
@@ -459,7 +460,7 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
       )}
       <group ref={label} position={[0, 0, top + 10]}>
         {/* Plan: both hang below the anchor (which sits just south of the footprint), name first and the tag under it, clear of the ring. */}
-        <Label text={`${t.name} · ${t.height.toFixed(0)} m`} position={[0, 0, 0]} color="#ffffff" background="rgba(31,35,40,0.88)" size={0.017} bold lift={planView ? -(0.004 + 0.017) : over ? 0.021 : 0.004} />
+        <Label text={`${t.name} · ${t.height.toFixed(0)} m`} position={[0, 0, 0]} color="#ffffff" background="rgba(31,35,40,0.88)" size={0.017} bold hoverKey={t.id} lift={planView ? -(0.004 + 0.017) : over ? 0.021 : 0.004} />
         {/* The worst view-cone overshoot, both above the tower so they never cover it (UI review, 3 Nov: the separate tag at the limit collided with the name
             and could not be read from afar; that tag now only shows up close, ConeVolumes.tsx). */}
         {over && <Label text={over} position={[0, 0, 0]} color="#ffffff" background="rgba(178,34,34,0.92)" size={0.015} bold lift={planView ? -(0.021 + 0.002 + 0.015) : 0.004} />}
@@ -634,7 +635,7 @@ export default function Viewport() {
   return (
     <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'bg-paper p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
-        <div data-viewport className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
+        <div data-viewport onPointerEnter={() => useHoverLabels.getState().setInView(true)} onPointerLeave={() => useHoverLabels.getState().setInView(false)} className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
           <ViewGuard>
           <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
