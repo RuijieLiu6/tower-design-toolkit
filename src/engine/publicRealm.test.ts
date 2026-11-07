@@ -203,3 +203,20 @@ describe('Active frontage on Real Vancouver', () => {
     expect(cityFrontageCheck([]).rules).toEqual([])
   })
 })
+
+describe('the study site frame', () => {
+  it('turns points into the site frame and back', () => {
+    const ring = defaultSite.ring as [number, number][]
+    const f = siteFrame(ring)
+    for (const p of ring) {
+      const q = f.toWorld(f.toLocal(p))
+      expect(q[0]).toBeCloseTo(p[0], 6)
+      expect(q[1]).toBeCloseTo(p[1], 6)
+    }
+    // The POPS rectangle drawn on the plan lies inside the site.
+    const os = cityOpenSpace([{ ...vtc, x: 254, y: 486.1, rotation: 45.2 }], ring, 0.85)
+    const inRing = (p: [number, number]) => { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c } return c }
+    const mid = os.largestRing!.reduce((a, p) => [a[0] + p[0] / 4, a[1] + p[1] / 4], [0, 0]) as [number, number]
+    expect(inRing(mid)).toBe(true)
+  })
+})
