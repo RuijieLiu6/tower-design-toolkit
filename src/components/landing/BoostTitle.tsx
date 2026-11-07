@@ -1,8 +1,8 @@
 // The name on the cover, after spacetypegenerator.com/boost (Ruijie, 7 Nov: "too much going on in the cover page …
-// use this one and make the text expand quickly two times that hint the users to double click on it to enter"). At rest
-// the three words sit still in the middle. Now and then the name gives two quick boosts, coloured echoes leaping out
-// behind it in the site's hues, the rhythm of a double click; a single click gives one boost back; a double click
-// boosts all the way and the cover flies into the site (Intro.tsx). Keyboard: the name is a button, Enter goes in.
+// use this one and make the text expand quickly …"; then: "just make it single click to enter"). At rest the three
+// words sit still in the middle. Now and then the name gives a quick boost, coloured echoes leaping out behind it in the
+// site's hues, inviting a click; a click boosts it all the way and the cover flies into the site (Intro.tsx).
+// Keyboard: the name is a button, Enter goes in.
 // Reduced motion: no boosts, and the hint is said in words instead.
 import { useEffect, useRef } from 'react'
 
@@ -51,8 +51,8 @@ export default function BoostTitle({ onEnter, still }: { onEnter: (heart: { x: n
       if (!raf) paint(0)
     }
     boost.current = (p, h = false) => { cancelAnimationFrame(raf); peaks = p; hold = h; start = performance.now(); raf = requestAnimationFrame(tick) }
-    // The hint: two quick boosts after a moment, then now and then, until the visitor goes in.
-    const hint = () => { if (!entering.current && document.visibilityState === 'visible') boost.current([0.7, 0.7]) }
+    // The hint: a quick boost after a moment, then now and then, until the visitor goes in.
+    const hint = () => { if (!entering.current && document.visibilityState === 'visible') boost.current([0.75]) }
     const first = setTimeout(hint, 1100)
     const again = setInterval(hint, HINT_EVERY)
     return () => { alive = false; cancelAnimationFrame(raf); clearTimeout(first); clearInterval(again) }
@@ -61,7 +61,7 @@ export default function BoostTitle({ onEnter, still }: { onEnter: (heart: { x: n
   const go = () => {
     if (entering.current) return
     entering.current = true
-    boost.current([0.6, 1.4], true)
+    boost.current([1.4], true)
     const r = btn.current!.getBoundingClientRect(), host = btn.current!.offsetParent?.getBoundingClientRect()
     const heart = { x: r.left + r.width / 2 - (host?.left ?? 0), y: r.top + r.height / 2 - (host?.top ?? 0) }
     setTimeout(() => onEnter(heart), still ? 0 : 380)
@@ -72,16 +72,15 @@ export default function BoostTitle({ onEnter, still }: { onEnter: (heart: { x: n
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
       <h1 id="intro-title" className="sr-only">Tower Design Toolkit</h1>
-      <button ref={btn} type="button" data-testid="intro-enter" aria-label="Enter the Tower Design Toolkit (double-click, or press Enter)"
-        onClick={(e) => { if (e.detail === 0) go(); else if (e.detail === 1) boost.current([0.55]) }}
-        onDoubleClick={go}
+      <button ref={btn} type="button" data-testid="intro-enter" aria-label="Enter the Tower Design Toolkit"
+        onClick={go}
         className="pointer-events-auto relative cursor-pointer select-none rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
         {ECHOES.map((c, k) => (
           <span key={k} ref={(el) => { echoes.current[k] = el }} aria-hidden className={`${type} pointer-events-none absolute inset-0 origin-center opacity-0 will-change-transform`} style={{ color: c }}>{words(`e${k}`)}</span>
         ))}
         <span ref={front} aria-hidden className={`${type} relative block origin-center text-ink will-change-transform`}>{words('f')}</span>
       </button>
-      {still && <p className="pointer-events-none mt-6 text-[14px] text-muted">Double-click the name to enter</p>}
+      {still && <p className="pointer-events-none mt-6 text-[14px] text-muted">Click the name to enter</p>}
     </div>
   )
 }

@@ -8,9 +8,9 @@ test('the landing page: say who you are, get starting workflows, start one', asy
   await page.addInitScript(() => { try { localStorage.setItem('ts.onboarding.seen', '1') } catch { /* private mode */ } })
   await page.goto('/')
   await expect(page).toHaveURL(/#\/start$/)
-  // First the name alone with its floating icons; a double click on it goes in (a single click only boosts it).
+  // First the name alone with its floating icons; a click on it goes in.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Tower\s*Design\s*Toolkit/i)
-  await page.getByTestId('intro-enter').dblclick()
+  await page.getByTestId('intro-enter').click()
   await expect(page.getByRole('heading', { name: 'One tower model. Every analysis a node. You decide.' })).toBeVisible()
   // The agent asks for the design concept and suggests workflows: one made from the closest nodes, then presets.
   await expect(page.getByRole('heading', { name: 'What is the concept of your design?' })).toBeVisible()
