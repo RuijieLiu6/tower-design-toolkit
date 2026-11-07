@@ -16,7 +16,13 @@ describe('pass or fail, with what to fix', () => {
     expect(fixFor('fsr-nonres', 'fail', '7.10')).toMatch(/until it reaches FSR 9.0/)
   })
   it('falls back on the rule\'s own threshold, and says when the sources leave it open', () => {
-    expect(fixFor('something-new', 'fail', '12', '≤ 10')).toBe('Needs ≤ 10; now 12.')
+    expect(fixFor('something-new', 'fail', '12', '≤ 10')).toBe('Rule: ≤ 10. This design: 12.')
+    expect(fixFor('something-new', 'warn', '285 m above ground', 'over 150 m above ground is an obstacle')).toBe('Rule: over 150 m above ground is an obstacle. This design: 285 m above ground.')
+    // Unknowns: an input nobody entered asks for it; a value the node cannot judge says where the answer is.
+    expect(fixFor('canopy', 'unknown', 'not entered')).toMatch(/^Enter it under Details/)
+    expect(fixFor('habitat', 'unknown', 'required here (site over 1,000 m²); not answered')).toMatch(/^Enter it under Details/)
+    expect(fixFor('canopy', 'unknown', 'needs a site area')).toMatch(/Site step/)
+    expect(fixFor('period', 'unknown', '3.47 s')).toBe('Open: Details says what would settle it.')
     expect(fixFor('something-new', 'warn', 'n/a', undefined, 'unresolved')).toMatch(/person has to decide/)
   })
   it('strips the tower from a rule id', () => {
@@ -28,7 +34,7 @@ describe('pass or fail, with what to fix', () => {
     const t = { ...defaultTower('vtc'), height: 330 }
     for (const r of vtcRules([t], { fsrTier: 2, transitLink: false })) {
       const key = ruleKey(r.id, t.id)
-      if (r.state !== 'pass') expect(fixFor(key, r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Needs |See Details/)
+      if (r.state !== 'pass') expect(fixFor(key, r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Rule: |See Details/)
     }
   })
   it('every relaxation and aviation line that does not pass gets its own instruction (node audit, 7 Nov)', () => {
@@ -37,7 +43,7 @@ describe('pass or fail, with what to fix', () => {
     const lines = [...relaxationChecklist(t, [], 23.7, 11225, CITY_ORIGIN), ...aviationChecklist(t, [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]])]
     const open = lines.filter((r) => r.state !== 'pass')
     expect(open.length).toBeGreaterThan(5)
-    for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Needs |See Details|Not computed|a person has to decide/)
+    for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Rule: |See Details|^Open: |a person has to decide/)
     expect(fixFor('relax-eds', 'fail', '5,000 m²')).toMatch(/8,000 m²/)
     expect(fixFor('relax-eds', 'unknown', '')).toMatch(/Site step/)
     // The ground plane's sun and wind lines: switch the node on, or read where it found the problem.

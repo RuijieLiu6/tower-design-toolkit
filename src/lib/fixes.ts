@@ -85,6 +85,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^ac-601-007/, 'The tower rises above the notification surface: submit the aeronautical assessment form (AC 601-007).'],
   [/^car-vfr/, 'VFR route charts are not machine-readable here: check them with Transport Canada for a real site.'],
   [/^car-ols/, 'No obstacle limitation surface is published downtown: ask the City for the NAV CANADA height layer it reportedly holds.'],
+  // City in Nature
+  [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^nav-canada/, 'Ask NAV CANADA for a land-use review (and the City for its NAV CANADA height layer); allow for cranes.'],
 ]
 
@@ -93,8 +95,15 @@ export function fixFor(key: string, state: RuleState, value: string, threshold?:
   if (state === 'pass') return null
   for (const [re, text] of FIXES) if (re.test(key)) return typeof text === 'function' ? text(state, value) : text
   if (flag === 'unresolved') return 'The sources leave this open: a person has to decide it (see Details).'
-  if (state === 'unknown') return 'Not computed for this design yet (see Details for what it needs).'
-  return threshold ? `Needs ${threshold}; now ${value}.` : 'See Details for the rule and its source.'
+  // Node audit (7 Nov): "Not computed for this design yet" was shown for inputs nobody had entered and for values the
+  // node had computed but cannot judge; and "Needs <threshold>; now <value>" read as broken English whenever the
+  // threshold is a phrase ("Needs over 150 m above ground is an obstacle"). Rule and design, side by side, read right.
+  if (state === 'unknown') {
+    if (/needs a site area/i.test(value)) return 'Choose a study site in the Site step: the share needs a site area.'
+    if (/^(not entered|not answered|needs (a|the) |not in the model|not modelled|.*not answered$)/i.test(value)) return 'Enter it under Details, sources and settings (below): it is an input, not a result.'
+    return 'Open: Details says what would settle it.'
+  }
+  return threshold ? `Rule: ${threshold}. This design: ${value}.` : 'See Details for the rule and its source.'
 }
 
 /** A rule id without the tower it was computed for ("stair-width-t1" with tower "t1" → "stair-width"). */
