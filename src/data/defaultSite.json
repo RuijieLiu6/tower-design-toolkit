@@ -1,0 +1,423 @@
+{
+ "ring": [
+  [
+   232.2,
+   407.9
+  ],
+  [
+   332,
+   508.5
+  ],
+  [
+   275.8,
+   564.3
+  ],
+  [
+   176,
+   463.8
+  ]
+ ],
+ "source": "drawn",
+ "note": "Default Real Vancouver study site (research 6 Nov 2026): the whole city block bounded by Granville St, W Pender St, Howe St and Dunsmuir St, drawn on the City parcel corners and taken as one consolidated site including its lane (hypothetical, as the competition block). Existing buildings shown as replaced are a hypothetical removal, not evidence of redevelopment.",
+ "label": "Granville / W Pender / Howe / Dunsmuir block (700 W Pender St, 777 Dunsmuir St, 535-543 Granville St)",
+ "replaced": [],
+ "keepReplaced": false,
+ "parcelsAdd": [],
+ "parcelsSkip": [],
+ "parcelLayer": "f7c5cac9d3ba75293f50de1b00ad9ce063c31f3261e190f2fb584c6a7bcf0a82",
+ "areaBasis": "boundary",
+ "flags": {
+  "ring": {
+   "value": [
+    [
+     232.2,
+     407.9
+    ],
+    [
+     332,
+     508.5
+    ],
+    [
+     275.8,
+     564.3
+    ],
+    [
+     176,
+     463.8
+    ]
+   ],
+   "flag": "team_assumption",
+   "source": "City Property parcel polygons (OGL-Vancouver, retrieved 2026-11-04 per layers.json; layer flag unverified) via public/data/parcels.bin; block outline = the 5 lots plus the lane between them (morphological closing, 4.5 m), simplified to its 4 parcel corners (0.08% area change)",
+   "note": "A drawn study boundary, not a legal parcel: the 5 lots do not join exactly (lane gap), so matchParcels returns 'review' and the app uses the boundary area."
+  },
+  "areaM2": {
+   "value": 11224.7,
+   "flag": "team_assumption",
+   "source": "engine/site.ts ringMetrics on the ring above",
+   "note": "Consolidated block incl. the lane; the 5 City lots alone sum to about 10,654 m2 (City parcel areas, unverified)."
+  },
+  "sidesM": {
+   "value": [
+    141.7,
+    79.2,
+    141.6,
+    79.3
+   ],
+   "flag": "team_assumption",
+   "source": "ringMetrics edge lengths",
+   "note": "141.7 m along Granville/Howe, 79.2 m along Pender/Dunsmuir."
+  },
+  "comparedWithCompetition": {
+   "value": {
+    "competition": "about 79.2 m x 144.8 m = 11,468 m2",
+    "thisSite": "79.2 m x 141.7 m = 11,225 m2 (97.9%)"
+   },
+   "flag": "verified",
+   "source": "Vancouver Tall Challenge brief (ENG PDF, p.15 'The site measures approximately 79.2 m x 144.8 m'), opened 6 Nov 2026",
+   "note": "The ratio is derived from the two figures."
+  },
+  "parcels": {
+   "value": [
+    {
+     "index": 28137,
+     "address": "777 Dunsmuir St",
+     "zoning": "CD-1 (455)",
+     "m2": 6224,
+     "folios": 1
+    },
+    {
+     "index": 28128,
+     "address": "700 W Pender St",
+     "zoning": "CD-1 (455)",
+     "m2": 2898,
+     "folios": 1
+    },
+    {
+     "index": 28136,
+     "address": "543 Granville St",
+     "zoning": "DD",
+     "m2": 975,
+     "folios": 17
+    },
+    {
+     "index": 28116,
+     "address": "535 Granville St",
+     "zoning": "DD",
+     "m2": 279,
+     "folios": 1
+    },
+    {
+     "index": 28115,
+     "address": "535 Granville St",
+     "zoning": "DD",
+     "m2": 278,
+     "folios": 1
+    }
+   ],
+   "flag": "unverified",
+   "source": "City Property parcel polygons (retrieved 2026-11-04) + 2026 property tax report (public/data/parcels.bin/.json, layer sha256 f7c5cac9d3ba75293f50de1b00ad9ce063c31f3261e190f2fb584c6a7bcf0a82)",
+   "note": "All 5 lie wholly inside the ring, so matchParcels includes them without parcelsAdd. 543 Granville St carries 17 folios (strata)."
+  },
+  "centroidLocal": {
+   "value": [
+    254.0,
+    486.1
+   ],
+   "flag": "team_assumption",
+   "source": "ringMetrics centre (local frame)",
+   "note": "EPSG:26910 491554.0, 5459086.1"
+  },
+  "groundCGVD28": {
+   "value": {
+    "cornerMean": 23.39,
+    "min": 20.7,
+    "max": 26.06,
+    "defaultTowerBase": 22.98
+   },
+   "flag": "unverified",
+   "source": "City LiDAR 2022 ground 1 m (public/data/terrain_ground_*.bin, layer flag unverified) via lib/cityLayers.ts groundUnder / sampleTerrain",
+   "note": "The base follows the terrain under the tower in the app (groundMode 'terrain')."
+  },
+  "hbpArea": {
+   "value": "unresolved",
+   "flag": "unresolved",
+   "source": "City of Vancouver, Higher Buildings Policy (amended through 31 Mar 2026), https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf, s.2.1(c), as read by research packets C01/C03/P02/P05 (Oct 2026); Figure 1 is an image and was never read; City of Vancouver, Higher Buildings Policy Review FAQ, https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs (opened 6 Nov 2026)",
+   "note": "Not confirmed. The policy text puts the tallest CBD buildings (about 700 ft) on West Georgia, Burrard or Granville; this block fronts Granville. The City FAQ places the Bay Parkade block (Georgia/Dunsmuir/Seymour/Richards) OUTSIDE the area and 'sites immediately across the street' INSIDE it; this block is two blocks from the Bay Parkade (diagonally across Granville and Dunsmuir from the Hudson's Bay block), so the FAQ does not settle it. A person must read Figure 1 of the policy PDF (HTTP 403 to scripts; not bypassed)."
+  },
+  "conesCovering": {
+   "value": [
+    "3.2.3"
+   ],
+   "flag": "verified",
+   "source": "Tower Design Toolkit engine/heightModel.ts surfacesOver + engine/viewCones.ts CONE_PARAMS['3.2.3'] (k 0.000404, 'Fitted to City site sheet (118-150 Robson / 828 Cambie, 3 Oct 2024), 5 points'); cone ring from src/data/viewcones.json (City open data)",
+   "note": "Only Queen Elizabeth Park view 3.2.3 covers the block (100% of it); no other of the 24 cones touches it."
+  },
+  "coneLimitLowestCGVD28": {
+   "value": 126.47,
+   "flag": "verified",
+   "source": "Tower Design Toolkit engine/heightModel.ts surfacesOver + engine/viewCones.ts CONE_PARAMS['3.2.3'] (k 0.000404, 'Fitted to City site sheet (118-150 Robson / 828 Cambie, 3 Oct 2024), 5 points'); cone ring from src/data/viewcones.json (City open data)",
+   "note": "Lowest estimated lower boundary over the ring, at the south corner [232.2, 407.9]; +/-0.5 m (U95). An ESTIMATE: the City View Cone Assessment governs."
+  },
+  "coneLimitAboveGroundM": {
+   "value": 100.4,
+   "flag": "unverified",
+   "source": "Tower Design Toolkit engine/heightModel.ts surfacesOver + engine/viewCones.ts CONE_PARAMS['3.2.3'] (k 0.000404, 'Fitted to City site sheet (118-150 Robson / 828 Cambie, 3 Oct 2024), 5 points'); cone ring from src/data/viewcones.json (City open data); ground City LiDAR 2022 (unverified)",
+   "note": "126.47 m minus the ground 26.06 m at that corner. Above the default tower's base (22.98 m): 103.5 m."
+  },
+  "relaxationRoute": {
+   "value": {
+    "cone": "3.2.3",
+    "route": "hbp",
+    "afterHbp": "none",
+    "binding": []
+   },
+   "flag": "verified",
+   "source": "engine/relaxAviation.ts RELAXATIONS.hbp (cones 3.2.1-3.2.4; flag verified) and relaxationAt at the centre",
+   "note": "With the Higher Buildings route switched on, no estimated cone limit binds here. Whether the route applies to this block depends on hbpArea (unresolved)."
+  },
+  "defaultTowerCheck": {
+   "value": {
+    "tower": "46 x 46 m at the centre (competition default plan)",
+    "base": 22.98,
+    "at285": {
+     "overall": "Above estimated limit",
+     "cones": [
+      {
+       "cone": "3.2.3",
+       "state": "above",
+       "limit": 126.48,
+       "exceed": 181.5,
+       "route": "hbp"
+      }
+     ]
+    }
+   },
+   "flag": "verified",
+   "source": "engine/viewCones.ts checkFootprint + overall",
+   "note": "A 285 m tower is 'Above estimated limit' of 3.2.3 by about 181.5 m without the HBP route: the Toolkit then offers the HBP relaxation (route 'hbp')."
+  },
+  "nearestStation": {
+   "value": {
+    "name": "Granville (Expo Line)",
+    "osm": "node/5324635042",
+    "distanceM": 66
+   },
+   "flag": "unverified",
+   "source": "OpenStreetMap railway=station node (context-data/raw/osm-use-tags-2026-11-03/use_pois.json, (c) OpenStreetMap contributors, ODbL)",
+   "note": "Distance from the block edge to the station node, not to an entrance."
+  },
+  "secondStation": {
+   "value": {
+    "name": "Waterfront",
+    "osm": "node/8576664378",
+    "distanceM": 147
+   },
+   "flag": "unverified",
+   "source": "OpenStreetMap station node (ODbL)",
+   "note": "Edge to node."
+  },
+  "solarPassFail": {
+   "value": "no new shadow",
+   "flag": "unverified",
+   "source": "Tower Design Toolkit engine/solarRules.ts evaluateSpace + engine/solarCity.ts table1Spaces/cityBaseline, window studyWindow('equinox') = 22 Sep 10:00-16:00 PT (UTC-7); guideline transcription itself unverified (solarRules.ts READ_NOTE)",
+   "note": "No Table-1 park, school site, Sun Yat-Sen or Davie/Robson sidewalk with a polygon gets new shadow, for the whole block extruded to 305 m above its ground (worst case) or a 46 x 46 m 305 m tower at the centre; baseline = City LiDAR 2022 + 2009 measured buildings."
+  },
+  "solarMinimise": {
+   "value": [
+    {
+     "space": "Art Phillips Park",
+     "class": "Urban Plaza",
+     "rule": "minimise",
+     "kind": "minimise",
+     "proposal": "envelope",
+     "newShadowM2": 66,
+     "state": "unknown",
+     "first": "10:00",
+     "last": "10:15"
+    },
+    {
+     "space": "Portal Park",
+     "class": "Urban Plaza",
+     "rule": "minimise",
+     "kind": "minimise",
+     "proposal": "envelope",
+     "newShadowM2": 502,
+     "state": "unknown",
+     "first": "10:59",
+     "last": "11:45"
+    },
+    {
+     "space": "Portal Park",
+     "class": "Urban Plaza",
+     "rule": "minimise",
+     "kind": "minimise",
+     "proposal": "tower",
+     "newShadowM2": 106,
+     "state": "unknown",
+     "first": "11:26",
+     "last": "11:36"
+    }
+   ],
+   "flag": "unverified",
+   "source": "Tower Design Toolkit engine/solarRules.ts evaluateSpace + engine/solarCity.ts table1Spaces/cityBaseline, window studyWindow('equinox') = 22 Sep 10:00-16:00 PT (UTC-7); guideline transcription itself unverified (solarRules.ts READ_NOTE)",
+   "note": "Urban Plazas: rule 3.2.1 'minimise where possible' (report only, no pass/fail)."
+  },
+  "solarJackPoole": {
+   "value": {
+    "probeShadowM2": {
+     "envelope": 0,
+     "tower": 0
+    }
+   },
+   "flag": "team_assumption",
+   "source": "Probe: 75 m circle around the 2010 Olympic Cauldron (OSM node 648735254, ODbL), plaza level assumed 5 m; engine/solarRules.ts evaluateSpace, no baseline",
+   "note": "Jack Poole Plaza has no polygon in the Toolkit; Table 1 note 4.2 sends it to the park rules (pass/fail). The probe gets no shadow at all from this block."
+  },
+  "solarUntested": {
+   "value": [
+    "Lot 19 (Hornby St. at Hastings St. Plaza)",
+    "Jack Poole Plaza (polygon)",
+    "Robson Square",
+    "Vancouver Art Gallery North Plaza",
+    "Queen Elizabeth Theatre Plaza",
+    "Dilawri Squares"
+   ],
+   "flag": "unresolved",
+   "source": "src/data/solarSpaces.json 'missing' (13 Table-1 spaces have no polygon)",
+   "note": "Lot 19 (Urban Plaza, minimise) lies north-west of the block within morning shadow reach; Robson Square / VAG / QET plazas lie south or east, outside the 22 Sep 10:00-16:00 shadow fan."
+  },
+  "heritage": {
+   "value": "none on the block",
+   "flag": "unverified",
+   "source": "City Heritage sites layer (public/data/heritage.json, OGL-Vancouver)",
+   "note": "No heritage register entry falls on the block."
+  },
+  "parks": {
+   "value": "none on the block",
+   "flag": "unverified",
+   "source": "City Parks polygon representation (public/data/parks.json)"
+  },
+  "existingBuildings": {
+   "value": [
+    {
+     "id": 684231867,
+     "area": 1300,
+     "name": null,
+     "addr": null,
+     "levels": null,
+     "lidar2022MaxAgl": 91.4,
+     "city2009Agl": 40.7
+    },
+    {
+     "id": 1487549572,
+     "area": 525,
+     "name": null,
+     "addr": null,
+     "levels": "4",
+     "lidar2022MaxAgl": 75.2,
+     "city2009Agl": 17.7
+    },
+    {
+     "id": 1487558709,
+     "area": 454,
+     "name": null,
+     "addr": null,
+     "levels": null,
+     "lidar2022MaxAgl": 75.2,
+     "city2009Agl": 40.7
+    },
+    {
+     "id": 138646507,
+     "area": 945,
+     "name": "Pender Place",
+     "addr": "700 West Pender Street",
+     "levels": "17",
+     "lidar2022MaxAgl": 69.0,
+     "city2009Agl": 40.7
+    },
+    {
+     "id": 416489044,
+     "area": 913,
+     "name": "Pender Place",
+     "addr": "750 West Pender Street",
+     "levels": "16",
+     "lidar2022MaxAgl": 67.9,
+     "city2009Agl": 40.7
+    },
+    {
+     "id": 416489045,
+     "area": 458,
+     "name": null,
+     "addr": null,
+     "levels": "2",
+     "lidar2022MaxAgl": 66.4,
+     "city2009Agl": 40.7
+    }
+   ],
+   "flag": "unverified",
+   "source": "Toolkit Vista model (public/data/vista_buildings.bin: OSM footprints, ids = OSM way numbers, ODbL) with City LiDAR 2022 / City 2009 heights; names from OSM tags",
+   "note": "Pender Place (700 and 750 W Pender St, OSM 17 and 16 levels, LiDAR 2022 about 68-69 m) and a tower of LiDAR 2022 91.4 m (roof incl. plant). Replacing them is hypothetical."
+  },
+  "notARecentLandmark": {
+   "value": "tallest building on the block stood by 2009",
+   "flag": "team_assumption",
+   "source": "City 'Building footprints 2009' (from 2009 LiDAR), context-data/raw/building-footprints-2009-2026-10-27: bldgid 148910 parts on this block up to 86.1 m above ground",
+   "note": "Construction years are not checked against permits."
+  },
+  "replacedIdsIfWanted": {
+   "value": {
+    "vistaModel": [
+     138646507,
+     416489044,
+     416489045,
+     684231867,
+     1487549572,
+     1487558709
+    ],
+    "cityModel": [
+     6530538,
+     6535714,
+     6618301,
+     6618302,
+     6618303
+    ]
+   },
+   "flag": "team_assumption",
+   "source": "Footprints standing >= 50% on the ring (lib/siteActions.ts ON_SITE_SHARE rule), Vista model (OSM way ids) and City 2015 footprints (footprints_downtown.bin ids)",
+   "note": "Left out of `replaced` as asked; the app's replacedFor(ring, null, data.footprints) gives the ids for whichever model is loaded."
+  },
+  "zoning": {
+   "value": [
+    "CD-1 (455)",
+    "DD"
+   ],
+   "flag": "unverified",
+   "source": "City parcels / zoning (public/data/parcels.json)",
+   "note": "CD-1 (455) is shared with the Pacific Centre blocks to the south; DD = Downtown District."
+  },
+  "aviation": {
+   "value": {
+    "CYHC water aerodrome": "about 1,080 m",
+    "CBC7 heliport": "about 700 m"
+   },
+   "flag": "unverified",
+   "source": "engine/relaxAviation.ts AERODROMES (secondary positions, Wikipedia)",
+   "note": "Within 6 km of an aerodrome a structure over 90 m above ground is an obstacle (CAR 601.23, as the Toolkit reads it): applies to every downtown candidate alike."
+  }
+ },
+ "research": {
+  "doc": "04 Tool Plan/research/default-site/DEFAULT_SITE.md",
+  "date": "2026-11-06",
+  "frame": "local = EPSG:26910 minus CITY_ORIGIN (491300, 5458600); heights CGVD28 assumed (the Toolkit's datum chain)",
+  "suggestedFirstTower": {
+   "at": [
+    254.0,
+    486.1
+   ],
+   "rotationDeg": 45,
+   "flag": "team_assumption",
+   "note": "Centre of the block; the street grid runs 45.2 deg from local +x (long side). Check the sign against Tower.rotation in the app; irrelevant for the square 46 x 46 m default tower."
+  },
+  "hbpArea": "unresolved: Higher Buildings Policy Figure 1 not yet read by a person (DEFAULT_SITE.md, open question 1)"
+ }
+}
