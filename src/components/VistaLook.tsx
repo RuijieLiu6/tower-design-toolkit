@@ -24,7 +24,7 @@ import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings
 import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
-import { CHROME, MAP_MODES, MODE_HINT, PROPOSED, VISTA, VISTA_OVERVIEW, planCamera, proposedLook, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
+import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, PROPOSED, VISTA, VISTA_OVERVIEW, planCamera, proposedLook, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -602,7 +602,11 @@ export function VistaChrome() {
       <div data-vista-overlay="bottom" className={`pointer-events-none absolute bottom-2.5 left-2.5 z-10 flex ${looking ? 'max-w-[calc(100%-15.5rem)]' : schematic ? 'max-w-[calc(100%-19rem)]' : 'max-w-[calc(100%-1.25rem)]'} flex-col items-start gap-1.5 [&>*]:pointer-events-auto`}>
         {mode === 'inspect' && <InspectCard />}
         {(note || viewNote) && <div role="status" className="max-w-[30rem] px-2 py-[3px] text-[12px]" style={{ ...box, background: '#f3e9dbee', color: '#684838' }}>{note ?? viewNote}</div>}
-        <div className="px-2 py-[3px] text-[13px] leading-[1.45]" style={box}>{MODE_HINT[mode]}</div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-[3px] text-[12px] leading-[1.45]" style={box} title={MODE_HINT[mode]} data-testid="mode-gestures">
+          <b className="font-semibold">{MAP_MODES.find((m) => m.id === mode)?.label ?? mode}</b>
+          {MODE_GESTURES[mode].map(([g, w]) => <span key={g} className="flex items-center gap-1"><kbd className="rounded border border-current/30 px-1 font-sans text-[10.5px] opacity-80">{g}</kbd>{w}</span>)}
+          <span className="sr-only">{MODE_HINT[mode]}</span>
+        </div>
         {!looking && <Legend />}
       </div>
     </>

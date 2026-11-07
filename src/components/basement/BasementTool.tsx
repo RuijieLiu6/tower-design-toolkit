@@ -3,7 +3,7 @@
 // under the selected tower's podium or tower, see them through the ground, and read what they give (parking) and need
 // (depth, a ramp that fits). engine/basement.ts holds the numbers; components/BelowGrade.tsx draws them.
 import { useShallow } from 'zustand/react/shallow'
-import { CircleAlert, CircleCheck, Eye, EyeOff, Layers2, Trash2 } from '../icons'
+import { Car, Eye, EyeOff, Layers2, Trash2 } from '../icons'
 import { basementDepth, basementSummary, DEFAULT_BASEMENT, groundThickness, MAX_BASEMENT_LEVELS, type Basement } from '../../engine/basement'
 import type { Tower } from '../../engine/types'
 import { useMobilityStore } from '../../lib/mobilityStore'
@@ -11,6 +11,8 @@ import { useStore, useTowers } from '../../store'
 import { useDig } from '../BelowGrade'
 import { guideSite } from '../../lib/import/placeModel'
 import Help from '../Help'
+import StatusRow from '../StatusRow'
+import BasementSection from './BasementSection'
 import { FlagChip, NumberField } from '../ui'
 
 const btn = 'flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent'
@@ -71,15 +73,14 @@ export default function BasementTool() {
             <button type="button" onClick={() => updateTower(t.id, { basement: { ...b, levels: 0 } })} className={`${btn} border-line text-ink hover:border-red-400 hover:text-red-700`}><Trash2 size={14} className="text-red-700" />Remove</button>
           </div>
           {sum && (
-            <section aria-label="Basement results" className="grid gap-1 rounded-md border border-line p-2">
-              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 tabular-nums">
-                <span><b className="text-ink">{fmt(sum.depth, 1)} m</b> deep</span><span><b className="text-ink">{fmt(sum.area)}</b> m² in {sum.levels} level{sum.levels === 1 ? '' : 's'}</span>
-                <span>≈ <b className="text-ink">{fmt(sum.stalls)}</b> stalls</span><span>ramp <b className="text-ink">{fmt(sum.rampLength, 1)} m</b></span>
+            <section aria-label="Basement results" className="grid gap-1.5 rounded-md border border-line p-2">
+              {/* A section and the figures as icons, the checks as status rows (Ruijie, 6 Nov: graphics, not sentences). */}
+              <BasementSection sum={sum} ground={thick} f2f={b.f2f} />
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums">
+                <span className="flex items-center gap-1"><Layers2 size={12} className="text-accent" aria-hidden /><b className="text-ink">{fmt(sum.area)} m²</b> in {sum.levels}</span>
+                <span className="flex items-center gap-1"><Car size={12} className="text-accent" aria-hidden />≈ <b className="text-ink">{fmt(sum.stalls)}</b> stalls</span>
               </div>
-              {sum.rules.filter((r) => r.state !== 'pass').map((r) => (
-                <p key={r.id} className="flex items-start gap-1.5 text-amber-900"><CircleAlert size={14} className="mt-px shrink-0" />{r.label}: {r.note}</p>
-              ))}
-              {sum.rules.every((r) => r.state === 'pass') && <p className="flex items-center gap-1.5 text-emerald-800"><CircleCheck size={14} />Fits: ground deep enough, the ramp fits along the dig.</p>}
+              <ul>{sum.rules.map((r) => <StatusRow key={r.id} size="sm" state={r.state === 'pass' ? 'pass' : r.state === 'fail' ? 'fail' : r.state === 'warn' ? 'warn' : 'unknown'} title={r.label} value={r.state === 'pass' ? 'fits' : 'check'} detail={r.note} />)}</ul>
               <div className="flex flex-wrap items-center gap-1.5"><FlagChip flag="team_assumption" />
                 <button type="button" onClick={() => useMobilityStore.getState().set({ carStalls: sum.stalls })} className="rounded border border-line px-1.5 py-0.5 text-[11px] hover:border-accent" title="Fill Parking, loading & bikes with this number">Use {fmt(sum.stalls)} as stalls provided</button>
               </div>

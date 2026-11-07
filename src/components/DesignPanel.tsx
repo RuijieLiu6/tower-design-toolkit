@@ -2,7 +2,7 @@
 // panel are in tools/builtin.tool.tsx.
 import { useEffect, type ReactNode } from 'react'
 import { useTowerPosition } from '../lib/towerPosition'
-import { ArrowDown, ArrowUp, Crosshair, Expand, Move, Plus, Scissors, Sparkles, Trash2 } from './icons'
+import { ArrowDown, ArrowUp, Building2, Crosshair, Expand, Layers, Move, Plus, Ruler, Scissors, Sparkles, Square, Trash2 } from './icons'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
 import { stablePostedLimit } from '../engine/skyRoom'
@@ -226,7 +226,13 @@ export function MassingTool() {
             {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
           </select>
         </label>
-        <div className="text-[11px] text-muted">{floors.length} floors · {Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m² gross · typical plate {(t.width * t.depth).toFixed(0)} m²{t.podiumHeight > 0 ? ` · podium ${t.podiumHeight.toFixed(1)} m` : ''}</div>
+        {/* The tower in figures, as icon stats (Ruijie, 6 Nov: information as graphics and icons, not a sentence). */}
+        <dl className="grid grid-cols-2 gap-1 text-[11px]" aria-label="The tower in figures" data-testid="massing-stats">
+          <Stat icon={Layers} label="Floors" value={String(floors.length)} />
+          <Stat icon={Building2} label="Gross area" value={`${Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m²`} />
+          <Stat icon={Square} label="Typical plate" value={`${(t.width * t.depth).toFixed(0)} m²`} />
+          {t.podiumHeight > 0 && <Stat icon={Ruler} label="Podium" value={`${t.podiumHeight.toFixed(1)} m`} />}
+        </dl>
       </div>
     </ToolBlock>
     <GenerateFold />
@@ -275,7 +281,7 @@ export function ProgramTool() {
               <span className="w-20 text-right tabular-nums">{Math.round(v).toLocaleString()} m²</span>
             </div>
           ))}
-          <FsrSiteLine totalFsr={fsr.totalFsr} siteArea={fsr.siteArea} />
+          <FsrSiteLine totalFsr={fsr.totalFsr} siteArea={fsr.siteArea} tiers={[fsr.tier1, fsr.tier2, fsr.tier3]} />
         </div>
       </Section>
       {project === 'vtc' && (
@@ -411,5 +417,15 @@ export function CoreTool() {
         <EgressPresetFields presets={egressPresets} onChange={setEgressPresets} />
       </div>
     </ToolBlock>
+  )
+}
+
+/** One figure with its icon: the label under the value, small. */
+function Stat({ icon: Icon, label, value }: { icon: typeof Layers; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-line px-1.5 py-1">
+      <Icon size={14} className="shrink-0 text-accent" aria-hidden />
+      <div className="flex min-w-0 flex-col-reverse leading-tight"><dt className="text-[10px] text-muted">{label}</dt><dd className="font-semibold tabular-nums text-ink">{value}</dd></div>
+    </div>
   )
 }

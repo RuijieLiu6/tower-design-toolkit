@@ -2,18 +2,18 @@
 // "incorporate Sinnie's developed tool … match the functions to the Massing tool"): editing on the model (Face / Mass,
 // the locked view, adding blocks; components/MassingEdit3D.tsx does the 3D side) and her generator, folded below.
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Crosshair, Lock, Move, Plus, Sparkles, Unlock } from './icons'
+import { Crosshair, Lock, Move, Plus, ScanLine, Sparkles, Unlock } from './icons'
 import { addBlockAbove, useBlockEdit, type EditMode } from '../lib/blockEdit'
+import { blockSpans } from '../engine/blocks'
 import { blocksOf } from '../engine/massing'
 import type { Tower } from '../engine/types'
 import { useGenerate } from '../lib/generateStore'
 import { useStore } from '../store'
 import Help from './Help'
+import IconTile from './IconTile'
 
 const GenerateTool = lazy(() => import('./generate/GenerateTool'))
 const newId = () => `b${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`
-const seg = 'flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent'
-const btn = 'flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent'
 
 /** While the Massing tool is open, the view edits the selected tower (Form step only; the 3D side checks the rest). */
 export function useMassingEditSession() {
@@ -28,7 +28,10 @@ const MODES: { id: EditMode; label: string; hint: string }[] = [
   { id: 'mass', label: 'Mass', hint: 'Drag a block to move it on its floor; the blocks resting on it go with it (hold Shift to move it alone).' },
 ]
 
-/** Face / Mass, the locked view and Add block, for a box tower. */
+/**
+ * Face / Mass, the locked view and Add block, for a box tower: icon tiles with a word (what each does on hover), and the
+ * tower's blocks as a small elevation to pick from (Ruijie, 6 Nov: information as graphics and icons, not sentences).
+ */
 export function MassingEditCard({ t }: { t: Tower }) {
   const phase = useStore((s) => s.phase)
   const mode = useBlockEdit((s) => s.mode)
@@ -45,9 +48,8 @@ export function MassingEditCard({ t }: { t: Tower }) {
     useBlockEdit.setState({ block: id })
   }
   if (phase !== 'basic') return null
-  const m = MODES.find((x) => x.id === mode)!
   return (
-    <section aria-labelledby="massing-edit-head" data-testid="massing-edit" className="grid gap-2 rounded-md border border-accent/30 bg-accent/[0.04] p-2">
+    <section aria-labelledby="massing-edit-head" data-testid="massing-edit" className="grid gap-1.5 rounded-md border border-accent/30 bg-accent/[0.04] p-2">
       <h4 id="massing-edit-head" className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
         Edit on the model
         <Help label="About editing on the model">
@@ -57,29 +59,54 @@ export function MassingEditCard({ t }: { t: Tower }) {
           drag is one undo step, Esc cancels it, and the numbers below stay editable. F switches Face and Mass.
         </Help>
       </h4>
-      <div role="radiogroup" aria-label="What a drag on the model does" className="flex gap-0.5 rounded-md border border-line bg-panel p-0.5">
-        {MODES.map((x) => (
-          <button key={x.id} type="button" role="radio" aria-checked={mode === x.id} onClick={() => useBlockEdit.setState({ mode: x.id, hover: null })}
-            title={`${x.hint} (F)`} className={`${seg} ${mode === x.id ? 'bg-accent font-semibold text-white' : 'text-muted hover:text-ink'}`}>
-            {x.id === 'face' ? <Crosshair size={12} aria-hidden /> : <Move size={12} aria-hidden />}{x.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-start gap-0.5">
+        <div role="radiogroup" aria-label="What a drag on the model does" className="flex gap-0.5">
+          {MODES.map((x) => (
+            <IconTile key={x.id} size="sm" role="radio" aria-checked={mode === x.id} active={mode === x.id} icon={x.id === 'face' ? Crosshair : Move}
+              word={x.label} label={`${x.label}: ${x.id === 'face' ? 'push or pull a face' : 'move a block'}`} hint={`${x.hint} Key: F.`}
+              onClick={() => useBlockEdit.setState({ mode: x.id, hover: null })} />
+          ))}
+        </div>
+        <span aria-hidden className="mx-0.5 self-stretch border-l border-line" />
+        <IconTile size="sm" icon={locked ? Lock : Unlock} word={locked ? 'Locked' : 'Free'} label={locked ? 'Unlock the view' : 'Lock the view on the tower'} active={locked} aria-pressed={locked} data-testid="massing-lock"
+          hint={locked ? 'The view is framed on the tower at one scale; zoom and pan are off. Click to move freely.' : 'Frame the view on the tower and lock its scale.'}
+          onClick={() => useBlockEdit.setState({ locked: !locked })} />
+        <IconTile size="sm" icon={ScanLine} word="Frame" label="Frame the tower again" hint="The view frames the tower again, at the fixed scale."
+          onClick={() => useBlockEdit.setState((s) => ({ locked: true, frame: s.frame + 1 }))} />
+        <IconTile size="sm" icon={Plus} word="Add" label={`Add a block${pickedBlock ? ` on ${label(at)}` : ''}`} data-testid="massing-add-block"
+          hint="A new block, three storeys, on top of the picked block with its footprint; the blocks above are lifted." onClick={add} />
       </div>
-      <p className="text-[11px] text-muted" data-testid="massing-edit-hint">{m.hint}</p>
-      <div className="flex flex-wrap gap-1">
-        <button type="button" onClick={() => useBlockEdit.setState({ locked: !locked })} aria-pressed={locked} data-testid="massing-lock"
-          title={locked ? 'The view is framed on the tower; zoom and pan are locked. Unlock to move freely.' : 'Frame the view on the tower and lock its scale'} className={btn}>
-          {locked ? <Lock size={12} aria-hidden /> : <Unlock size={12} aria-hidden />}{locked ? 'View locked' : 'View free'}
-        </button>
-        <button type="button" onClick={() => useBlockEdit.setState((s) => ({ locked: true, frame: s.frame + 1 }))} className={btn} title="Frame the view on the tower again">
-          <Crosshair size={12} aria-hidden />Frame the tower
-        </button>
-        <button type="button" onClick={add} className={btn} data-testid="massing-add-block" title="A new block, three storeys, on top of the picked block with its footprint; the blocks above are lifted">
-          <Plus size={12} aria-hidden />Add block{pickedBlock ? ` on ${label(at)}` : ''}
-        </button>
-      </div>
-      <p className="text-[11px] text-muted">{pickedBlock ? <>Picked: <b className="text-ink">{label(at)}</b> (highlighted below)</> : 'Click a block on the model to pick it.'}</p>
+      <BlockStack t={t} picked={picked} label={label} />
     </section>
+  )
+}
+
+/** The tower's blocks as a small elevation (widths and heights to scale): the picked one lit; a click picks a block. */
+function BlockStack({ t, picked, label }: { t: Tower; picked: string | null; label: (i: number) => string }) {
+  const spans = blockSpans(t)
+  if (!spans.length) return null
+  const top = Math.max(...spans.map((s) => s.z1)), H = 84, W = 220
+  const half = Math.max(...spans.map((s) => Math.abs(s.block.dx) + s.block.width / 2))
+  const k = Math.min((H - 6) / Math.max(1, top), (W / 2 - 4) / Math.max(1, half))
+  return (
+    <figure className="m-0 flex items-end gap-2" aria-label="Blocks, picked one lit">
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-[84px] w-[220px] shrink-0" role="group" aria-label="The tower's blocks: pick one">
+        <line x1={0} x2={W} y1={H - 2} y2={H - 2} stroke="currentColor" className="text-line" />
+        {spans.map((s, i) => {
+          const on = s.block.id === picked
+          const x = W / 2 + (s.block.dx - s.block.width / 2) * k, y = H - 2 - s.z1 * k
+          return (
+            <rect key={s.block.id} x={x} y={y} width={Math.max(1, s.block.width * k)} height={Math.max(1, (s.z1 - s.z0) * k)} rx={0.5}
+              role="button" tabIndex={0} aria-label={`${label(i)}, ${Math.round(s.z1 - s.z0)} m`} aria-pressed={on}
+              onClick={() => useBlockEdit.setState({ block: s.block.id })} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); useBlockEdit.setState({ block: s.block.id }) } }}
+              className={`cursor-pointer outline-none focus-visible:stroke-[2] ${on ? 'fill-accent stroke-accent' : s.podium ? 'fill-slate-300 stroke-slate-500 hover:fill-accent/40' : 'fill-slate-200 stroke-slate-500 hover:fill-accent/40'}`} strokeWidth={0.75}>
+              <title>{`${label(i)}: ${Math.round(s.block.width)} × ${Math.round(s.block.depth)} m, ${Math.round(s.z1 - s.z0)} m tall`}</title>
+            </rect>
+          )
+        })}
+      </svg>
+      <figcaption className="text-[11px] text-muted">{picked && spans.some((s) => s.block.id === picked) ? <><b className="text-ink">{label(spans.findIndex((s) => s.block.id === picked))}</b> picked</> : 'Click a block, here or on the model'}</figcaption>
+    </figure>
   )
 }
 

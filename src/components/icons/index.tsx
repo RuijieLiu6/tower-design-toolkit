@@ -128,6 +128,8 @@ export const Magnet = make('Magnet', p('M5 3.5V12C5 15.9 8.1 19 12 19C15.9 19 19
 export const MapPin = make('MapPin', p('M12 21C12 21 5.5 14.5 5.5 9.5C5.5 5.9 8.4 3 12 3C15.6 3 18.5 5.9 18.5 9.5C18.5 14.5 12 21 12 21Z') + '<circle cx="12" cy="9.5" r="2.5"/>')
 /** A tower standing on its site (the Tower position tool, 6 Nov): a block on a plate drawn in perspective, a pin mark beside it. */
 export const TowerOnSite = make('TowerOnSite', p('M2.5 20L6.5 16.5H21.5L17.5 20ZM9.5 18V3.5H14V18M9.5 7.5H14M9.5 11.5H14M17.5 5.5L17.5 9M16 7.25H19'))
+/** A car seen from the side: parking stalls (the Basement tool's figures). */
+export const Car = make('Car', p('M4 16V11.5L6.5 7H17.5L20 11.5V16ZM4 11.5H20') + '<circle cx="7.5" cy="16.5" r="1.6"/><circle cx="16.5" cy="16.5" r="1.6"/>')
 export const MapPinned = make('MapPinned', p('M12 17C12 17 7 12.5 7 8.5C7 5.7 9.2 3.5 12 3.5C14.8 3.5 17 5.7 17 8.5C17 12.5 12 17 12 17ZM8 16H4.5L3 21H21L19.5 16H16') + '<circle cx="12" cy="8.5" r="2"/>')
 export const MessageSquarePlus = make('MessageSquarePlus', p('M4 4.5H20V16H11L8 19.5V16H4ZM12 7.5V13M9.25 10.25H14.75'))
 export const Minus = make('Minus', p('M5 12H19'))

@@ -3,7 +3,7 @@
 // this browser and kept on this computer (lib/vtcContextSource.ts). Two places use it: the card on the competition view
 // while the context is missing, and the "Competition context model" section of the view's dock.
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { CircleAlert, FileUp, Loader2, LockKeyhole, Trash2, X } from './icons'
+import { Building2, CircleAlert, FileUp, Landmark, Loader2, LockKeyhole, TowerOnSite, Trash2, X } from './icons'
 import Help from './Help'
 import { BRIEF_SITE, addVtcModel, removeVtcModel, useVtcSource } from '../lib/vtcContextSource'
 import { useStore } from '../store'
@@ -115,11 +115,29 @@ export function VtcContextCard() {
         <HelpText />
         <button type="button" onClick={() => setClosed(true)} aria-label="Close" className="-mr-1 -mt-1 rounded p-1 text-muted hover:bg-paper hover:text-ink"><X size={14} aria-hidden /></button>
       </div>
-      <p className="mt-1">The site shown is the brief's {BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m block. The neighbouring buildings, heritage and future towers come from Buildner's base model, which this website can't include. Add your copy of <b className="text-ink">Vancouver Tall Base Model.3dm</b>, or drop it on this card.</p>
+      {/* What is shown, and what the base model adds, as glyphs and chips (Ruijie, 6 Nov: graphics, not paragraphs); the
+          full story is behind the "?". */}
+      <div className="mt-1.5 flex items-center gap-3" data-testid="vtc-card-glyphs">
+        <figure className="m-0 flex shrink-0 flex-col items-center" aria-label={`Shown now: the brief's ${BRIEF_SITE.width_m} by ${BRIEF_SITE.depth_m} m block`}>
+          <svg viewBox="0 0 64 40" className="h-10 w-16" aria-hidden>
+            <rect x={4} y={10} width={56} height={22} className="fill-accent/15 stroke-accent" strokeWidth={1.2} />
+          </svg>
+          <figcaption className="text-[10px] tabular-nums">{BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m</figcaption>
+        </figure>
+        <div className="grid gap-1">
+          <span className="text-[10.5px] text-muted">The base model adds:</span>
+          <ul className="flex flex-wrap gap-1" aria-label="What the base model adds">
+            {[[Building2, 'Neighbours'], [Landmark, 'Heritage'], [TowerOnSite, 'Future towers']].map(([I, w]) => {
+              const Icon = I as typeof Building2
+              return <li key={w as string} className="flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-[11px] text-ink"><Icon size={12} className="text-accent" aria-hidden />{w as string}</li>
+            })}
+          </ul>
+        </div>
+      </div>
       <div className="mt-2.5 space-y-2">
         <ErrorLine announce />
         <AddButton open={pick.open}>Add your copy of the base model (.3dm)</AddButton>
-        <Privacy />
+        <p className="flex items-center gap-1.5 text-[11px] text-muted"><LockKeyhole size={12} className="shrink-0" aria-hidden />{NOTE} Or drop the .3dm on this card.</p>
       </div>
     </section>
   )

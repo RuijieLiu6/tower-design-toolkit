@@ -71,7 +71,8 @@ test('import a GeoJSON site boundary with its provenance; the envelope section r
   // The Program design tool's FSR now divides by the study site, says which area, and cites it (Program step).
   await page.getByRole('navigation', { name: 'Design process' }).locator('[data-step="program"]').click()
   await openDesignTool(page, 'program')
-  await expect(section(page, 'Floor area (all towers, gross)')).toContainText(/Total FSR \(study site [\d,]+ m², (joined City parcels|site boundary)\)/)
+  // Since 6 Nov a figure with an area chip: "FSR total 1.23 · 11,225 m² · lots | boundary".
+  await expect(section(page, 'Floor area (all towers, gross)')).toContainText(/FSR total\s*[\d.]+\s*[\d,]+ m² · (lots|boundary)/)
   await page.screenshot({ path: join(SHOTS, 'fsr-study-site.png') })
   // The site is part of the project now (citySite), so the autosave brings it back after a reload.
   await page.waitForTimeout(2000)

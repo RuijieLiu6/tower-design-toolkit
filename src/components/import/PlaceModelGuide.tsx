@@ -6,7 +6,8 @@
 // (lib/towerEdit.ts); lib/import/placeModel.ts keeps the model in one piece and tells the Rhino link where it now stands.
 import { useShallow } from 'zustand/react/shallow'
 import { ArrowLeft, ArrowRight, Check, Crosshair, Eye, EyeOff, Layers2, Magnet, MapPin, Move, RotateCw, Target } from '../icons'
-import { basementSummary, DEFAULT_BASEMENT, type Basement } from '../../engine/basement'
+import { basementSummary, DEFAULT_BASEMENT, groundThickness, type Basement } from '../../engine/basement'
+import BasementSection from '../basement/BasementSection'
 import type { Tower } from '../../engine/types'
 import { linkProject } from '../../lib/interchange/live'
 import { confirmPlacement, endPlaceGuide, guideSite, modelTowers, setGuideStep, siteFit, startPlaceGuide, usePlaceGuide } from '../../lib/import/placeModel'
@@ -164,9 +165,12 @@ function BasementStep({ t, many, hasSite }: { t: Tower; many: boolean; hasSite: 
             <button type="button" onClick={() => set({ use: 'mixed' })} aria-pressed={b.use === 'mixed'} className={chip(b.use === 'mixed')}>parking, storage, plant</button>
           </div>
           {sum && (
-            <p className="flex flex-wrap items-center gap-x-1.5 tabular-nums text-ink">
-              <Layers2 size={12} className="text-accent" aria-hidden />{fmt(sum.depth, 1)} m deep · {fmt(sum.areaPerLevel)} m² a level · ≈ {fmt(sum.stalls)} stalls <FlagChip flag="team_assumption" />
-            </p>
+            <>
+              <BasementSection sum={sum} ground={groundThickness(useStore.getState().towers[useStore.getState().project])} f2f={b.f2f} />
+              <p className="flex flex-wrap items-center gap-x-1.5 tabular-nums text-ink">
+                <Layers2 size={12} className="text-accent" aria-hidden />{fmt(sum.depth, 1)} m deep · {fmt(sum.areaPerLevel)} m² a level · ≈ {fmt(sum.stalls)} stalls <FlagChip flag="team_assumption" />
+              </p>
+            </>
           )}
           <button type="button" onClick={() => { useDig.setState({ dig: !dig }); if (!dig) lookBelow(t) }} aria-pressed={dig}
             className={`${btn} ${dig ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>{dig ? <EyeOff size={13} aria-hidden /> : <Eye size={13} className="text-accent" aria-hidden />}{dig ? 'Hide the dig' : 'See it under the ground'}</button>

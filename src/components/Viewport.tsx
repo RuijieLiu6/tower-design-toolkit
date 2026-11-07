@@ -34,6 +34,7 @@ import TowerGizmo, { TowerMover } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
 import MassingEdit3D from './MassingEdit3D'
 import TowerPosition3D from './TowerPosition3D'
+import Help from './Help'
 import MassingEditReadout from './MassingEditReadout'
 import { proposePlace, useTowerEdit } from '../lib/towerEdit'
 import CameraClamp from './CameraClamp'
@@ -749,10 +750,33 @@ function VtcDock() {
   return (
     <ViewportDock sections={[
       { id: 'vtc-site', title: 'Site, north & datum', defaultOpen: true, summary: `true north ${VTC_NORTH_DEG}°`, children: (
-        <div className="space-y-1.5">
-          <p>True north is <b className="text-ink">{VTC_NORTH_DEG}° from the model grid</b>, read from the competition model's drawn north arrow.</p>
-          <p className="border-l-2 border-flag-false pl-2"><span className="font-semibold text-flag-false">False assumption corrected: </span>the file's saved north is the grid.</p>
-          <p>Heights are above local grade (0 m = site grade); the competition model supplies no geodetic datum.</p>
+        // Two glyphs with a word each (Ruijie, 6 Nov: information as graphics): north against the grid, and the zero level.
+        <div className="flex items-start gap-3" data-testid="vtc-north-datum">
+          <figure className="m-0 flex flex-col items-center gap-0.5" aria-label={`True north ${VTC_NORTH_DEG} degrees from the model grid`}>
+            <svg viewBox="0 0 48 48" className="h-12 w-12" aria-hidden>
+              <line x1={24} y1={40} x2={24} y2={8} className="stroke-slate-400" strokeWidth={1.5} strokeDasharray="3 2" />
+              <text x={26} y={10} className="fill-slate-500 text-[7px]">grid</text>
+              <g transform={`rotate(${VTC_NORTH_DEG} 24 40)`}>
+                <line x1={24} y1={40} x2={24} y2={8} className="stroke-accent" strokeWidth={2} />
+                <path d="M24 4 L20 12 L28 12 Z" className="fill-accent" />
+              </g>
+              <path d={`M24 26 A14 14 0 0 1 ${24 + 14 * Math.sin((VTC_NORTH_DEG * Math.PI) / 180)} ${40 - 14 * Math.cos((VTC_NORTH_DEG * Math.PI) / 180)}`} fill="none" className="stroke-accent" strokeWidth={0.8} />
+            </svg>
+            <figcaption className="text-[10px]"><b className="text-ink">N {VTC_NORTH_DEG}°</b> <span className="text-flag-false">corrected</span></figcaption>
+          </figure>
+          <figure className="m-0 flex flex-col items-center gap-0.5" aria-label="Zero level: 0 m is the site grade">
+            <svg viewBox="0 0 48 48" className="h-12 w-12" aria-hidden>
+              <rect x={18} y={12} width={12} height={22} className="fill-slate-200 stroke-slate-500" strokeWidth={0.8} />
+              <line x1={4} x2={44} y1={34} y2={34} className="stroke-ink" strokeWidth={1.5} />
+              <path d="M8 34 L4 40 M14 34 L10 40 M20 34 L16 40 M26 34 L22 40 M32 34 L28 40 M38 34 L34 40 M44 34 L40 40" className="stroke-slate-400" strokeWidth={0.8} />
+            </svg>
+            <figcaption className="text-[10px]"><b className="text-ink">0 m</b> = grade</figcaption>
+          </figure>
+          <Help label="About north and the datum">
+            True north is {VTC_NORTH_DEG}° from the model grid, read from the competition model's drawn north arrow. False assumption
+            corrected: the file's saved north is the grid. Heights are above local grade (0 m = site grade); the competition model
+            supplies no geodetic datum.
+          </Help>
         </div>
       ) },
       { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },

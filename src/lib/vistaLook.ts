@@ -71,6 +71,15 @@ export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
 ]
 
 /** Vista's caption under the view, per mode. */
+/** The same hints as gestures: what to do, one word for what it does (Ruijie, 6 Nov: icons and key words, not sentences). */
+export const MODE_GESTURES: Record<MapMode, [string, string][]> = {
+  city: [['drag', 'orbit'], ['right-drag', 'pan'], ['scroll', 'zoom']],
+  observer: [['drag', 'look'], ['Esc', 'leave']],
+  inspect: [['click', 'a building']],
+  plan: [['drag', 'pan'], ['scroll', 'zoom']],
+  viewcone: [['click', 'cones on / off']],
+}
+
 export const MODE_HINT: Record<MapMode, string> = {
   city: 'City · drag to orbit · right-drag to pan · scroll to zoom.',
   observer: 'Observer · from a protected viewpoint · drag to look around · Esc to leave.',
