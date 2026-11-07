@@ -62,7 +62,7 @@ export default function Landing() {
   // The intro is a screen of its own (lib/intro.ts): the name and its icons, no scroll; the way in is at the name's heart.
   if (intro) return (
     <div data-stage="basic" data-reduced={reduced} className="h-full overflow-hidden text-ink">
-      <Intro onEnter={() => { entered.current = true; setArrived(true); enterToolkit() }} />
+      <Intro reduced={reduced} onEnter={() => { entered.current = true; setArrived(true); enterToolkit() }} />
     </div>
   )
 
