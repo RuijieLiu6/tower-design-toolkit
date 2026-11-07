@@ -40,6 +40,10 @@ describe('pass or fail, with what to fix', () => {
     for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Needs |See Details|Not computed|a person has to decide/)
     expect(fixFor('relax-eds', 'fail', '5,000 m²')).toMatch(/8,000 m²/)
     expect(fixFor('relax-eds', 'unknown', '')).toMatch(/Site step/)
+    // The ground plane's sun and wind lines: switch the node on, or read where it found the problem.
+    expect(fixFor('pr-sun', 'unknown', 'Switch on Solar access & sun hours')).toMatch(/^Switch on/)
+    expect(fixFor('pr-sun', 'fail', '1 pass, 1 fail of 2 solar lines')).toMatch(/^Open Solar access/)
+    expect(fixFor('pr-wind', 'warn', '6 high and 0 medium risk zones at the ground')).toMatch(/^Open Pedestrian wind/)
   })
   it('view cones: one row per cone entered, with the metres to lose for the ones it rises above', () => {
     const t = defaultTower('city')

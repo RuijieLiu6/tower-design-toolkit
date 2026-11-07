@@ -103,3 +103,31 @@ describe('links (P06-M04)', () => {
     expect(groundPlaneCheck([vtc], { ...input, link: { ...input.link, offset: 20 } }).link!.through).toBe('podium')
   })
 })
+
+// Node audit (7 Nov): the ground plane's sun and wind lines said "Not assessed" although both nodes are built.
+import { sunLine, windLine } from './publicRealm'
+import type { RuleResult as RR } from './types'
+
+describe('open space reads the solar access and wind screen nodes', () => {
+  const line = (state: RR['state'], flag: RR['flag']): RR => ({ id: `s-${state}-${flag}`, label: 'x', value: 'x', threshold: 'x', state, flag, source: { label: 'x' } })
+  it('says which node answers when it is off', () => {
+    expect(sunLine(null)).toMatchObject({ state: 'unknown', flag: 'unresolved', value: 'Switch on Solar access & sun hours' })
+    expect(windLine(null)).toMatchObject({ state: 'unknown', flag: 'unresolved', value: 'Switch on Pedestrian wind: massing screen' })
+    expect(sunLine(null).source.label).not.toMatch(/next build item/)
+  })
+  it('takes the solar lines\' worst state and weakest flag', () => {
+    expect(sunLine([line('pass', 'verified'), line('pass', 'verified')])).toMatchObject({ state: 'pass', flag: 'verified', value: '2 pass of 2 solar lines' })
+    expect(sunLine([line('pass', 'verified'), line('fail', 'verified'), line('unknown', 'unresolved')])).toMatchObject({ state: 'fail', flag: 'unresolved', value: '1 pass, 1 fail, 1 open of 3 solar lines' })
+    expect(sunLine([line('pass', 'verified'), line('unknown', 'team_assumption')])).toMatchObject({ state: 'unknown', flag: 'team_assumption' })
+  })
+  it('counts only the wind zones that reach the ground, and never fails on a screen', () => {
+    const z = (level: 'low' | 'medium' | 'high', zz = 0) => ({ level, kind: 'downwash', z: zz })
+    expect(windLine({ zones: [z('high'), z('medium'), z('high', 18), z('low')], note: 'screen' })).toMatchObject({ state: 'warn', flag: 'team_assumption', value: '1 high and 1 medium risk zones at the ground' })
+    expect(windLine({ zones: [z('low'), z('high', 18)], note: 'screen' })).toMatchObject({ state: 'pass', value: 'no medium or high risk zone at the ground' })
+  })
+  it('passes them through groundPlaneCheck', () => {
+    const r = groundPlaneCheck([vtc], DEFAULT_PUBLIC_REALM, { solar: [line('pass', 'verified')], wind: { zones: [], note: 'screen' } }).rules
+    expect(r.find((x) => x.id === 'pr-sun')?.state).toBe('pass')
+    expect(r.find((x) => x.id === 'pr-wind')?.state).toBe('pass')
+  })
+})

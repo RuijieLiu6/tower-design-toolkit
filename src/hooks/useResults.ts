@@ -8,6 +8,9 @@ import { checkTowerCones } from '../engine/towerCones'
 import { fsrSummary, vtcRules } from '../engine/vtcRules'
 import { useVtcNeighbours } from '../lib/vtcNeighbours'
 import { useProjectSiteArea } from '../lib/siteArea'
+import { useSolar } from './useSolarAccess'
+import { useWindScreen } from './useWindScreen'
+import { SCREEN_LABEL } from '../engine/windScreen'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 
 // One shared result for identical inputs. About 16 components call useResults(); each used to keep its own memo,
@@ -35,8 +38,15 @@ export function useResults() {
   // Real Vancouver FSR divides by the study site (parcels or boundary, lib/siteArea.ts); the competition keeps its block.
   const studyArea = useProjectSiteArea().area
   const cityStudyArea = project === 'city' ? studyArea : null
+  // Open space & links reads the solar access and wind screen nodes when they are on (engine/publicRealm.ts GroundCross).
+  const solarOut = useSolar((s) => s.out)
+  const solarLines = solarOut && solarOut.project === project ? solarOut.lines : null
+  // The wind screen as a value-stable summary (each caller of useWindScreen gets its own object, which would defeat the
+  // shared cache): the levels of the zones that reach the ground.
+  const windResult = useWindScreen()
+  const windGround = windResult ? windResult.zones.filter((z) => z.z <= 1).map((z) => z.level).join(',') : null
 
-  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea], () => {
+  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, solarLines, windGround], () => {
     const fsr = cityStudyArea ? fsrSummary(towers, cityStudyArea) : fsrSummary(towers)
     const rules = project === 'vtc' ? vtcRules(towers, { fsrTier, transitLink }) : []
     const cones = project === 'city'
@@ -53,12 +63,12 @@ export function useResults() {
     const vtc = project === 'vtc' && towers.length > 0
     const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : null
     const frontage = vtc ? frontageCheck(towers, publicRealm) : null
-    const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm) : null
+    const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm, { solar: solarLines, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }) : null
     // Optional fields, so code that builds a results object by hand (tests, workflows) need not supply them.
     const out: {
       fsr: typeof fsr; rules: typeof rules; cones: typeof cones; lifts: typeof lifts; egress: typeof egress; skyRooms: typeof skyRooms
       streetwall?: typeof streetwall; frontage?: typeof frontage; groundPlane?: typeof groundPlane
     } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane }
     return out
-  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea])
+  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, solarLines, windGround])
 }

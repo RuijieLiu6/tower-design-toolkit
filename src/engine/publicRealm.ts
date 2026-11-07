@@ -447,7 +447,44 @@ export function linkGeometry(towers: Tower[], input: PublicRealmInput): LinkGeom
   return { ...g, through }
 }
 
-export function groundPlaneCheck(towers: Tower[], input: PublicRealmInput): { rules: RuleResult[]; open: OpenSpace; link: LinkGeom | null; longestGap: number } {
+/**
+ * Results of other nodes the ground plane reads when they are on (node audit, 7 Nov: these two lines said "Not assessed"
+ * although the solar access and wind screen nodes are built). Absent, the line says which node answers it.
+ */
+export interface GroundCross {
+  /** The Solar access & sun hours lines for this project (its worker's last result). */
+  solar?: RuleResult[] | null
+  /** The pedestrian wind screen's risk zones (screening, not CFD). */
+  wind?: { zones: { level: 'low' | 'medium' | 'high'; kind: string; z: number }[]; note: string } | null
+}
+const FLAG_RANK: Record<string, number> = { false_assumption: 0, unresolved: 1, unverified: 2, team_assumption: 3, verified: 4 }
+const weakestFlag = (flags: string[]) => flags.reduce((w, f) => ((FLAG_RANK[f] ?? 2) < (FLAG_RANK[w] ?? 2) ? f : w), 'verified') as RuleResult['flag']
+
+/** The ground-plane line for sun, from the solar access node's lines: its worst state and weakest flag. */
+export function sunLine(solar: RuleResult[] | null | undefined): RuleResult {
+  const threshold = 'Downtown Peninsula Solar Access Guidelines (22 Sep, 10:00–16:00)'
+  const source = { label: 'Solar Access Guidelines, memo RTS 16506 Appendix A (2025), via the Solar access & sun hours node' }
+  if (!solar || !solar.length) return { id: 'pr-sun', label: 'Sun on the open space and shadow on protected parks', value: 'Switch on Solar access & sun hours', threshold, state: 'unknown', flag: 'unresolved', source }
+  const n = (s: RuleState) => solar.filter((l) => l.state === s).length
+  const fail = n('fail'), warn = n('warn'), unknown = n('unknown'), pass = n('pass')
+  const state: RuleState = fail ? 'fail' : warn ? 'warn' : unknown ? 'unknown' : 'pass'
+  const parts = [pass && `${pass} pass`, warn && `${warn} to check`, fail && `${fail} fail`, unknown && `${unknown} open`].filter(Boolean)
+  return { id: 'pr-sun', label: 'Sun on the open space and shadow on protected parks', value: `${parts.join(', ')} of ${solar.length} solar lines`, threshold, state, flag: weakestFlag(solar.map((l) => l.flag)), source,
+    note: 'Read from the Solar access & sun hours node: each of its lines keeps its own source and flag there.' }
+}
+
+/** The ground-plane line for wind, from the wind screen's zones that reach the ground (podium-roof zones are left out). */
+export function windLine(wind: GroundCross['wind'], groundZ = 1): RuleResult {
+  const threshold = 'comfort for sitting, standing and walking; gust safety'
+  if (!wind) return { id: 'pr-wind', label: 'Wind at the open space, entrances and links', value: 'Switch on Pedestrian wind: massing screen', threshold, state: 'unknown', flag: 'unresolved',
+    source: { label: 'No Vancouver criteria opened; Toronto 2022 guide is an external benchmark (research P06, CLIM)' } }
+  const ground = wind.zones.filter((z) => z.z <= groundZ)
+  const high = ground.filter((z) => z.level === 'high').length, medium = ground.filter((z) => z.level === 'medium').length
+  return { id: 'pr-wind', label: 'Wind at the open space, entrances and links', value: high + medium ? `${high} high and ${medium} medium risk zones at the ground` : 'no medium or high risk zone at the ground',
+    threshold, state: high + medium ? 'warn' : 'pass', flag: 'team_assumption', source: { label: 'Pedestrian wind: massing screen (research P03-M03; Toronto 2022 analog)' }, note: wind.note }
+}
+
+export function groundPlaneCheck(towers: Tower[], input: PublicRealmInput, cross: GroundCross = {}): { rules: RuleResult[]; open: OpenSpace; link: LinkGeom | null; longestGap: number } {
   const rules: RuleResult[] = []
   const os = openSpace(towers, input)
   const share = os.publicArea / SITE_AREA
@@ -530,14 +567,8 @@ export function groundPlaneCheck(towers: Tower[], input: PublicRealmInput): { ru
     threshold: 'active uses next to the entrance and a strong visual connection to the concourse', state: s.activeEdges ? 'pass' : 'fail', flag: 'verified', source: cddg('G4.4.2c–e'),
     note: 'G4.4.2a also pulls in the station plaza fit-out checklist G4.4.1 a–h (paving, seating, shade, weather protection, integrated equipment): a manual evidence list.',
   }))
-  rules.push(rule({
-    id: 'pr-sun', label: 'Sun on the open space and shadow on protected parks', value: 'Not assessed here', threshold: 'Downtown Peninsula Solar Access Guidelines (22 Sep, 10:00–16:00)',
-    state: 'unknown', flag: 'unresolved', source: { label: 'Solar Access Guidelines, memo RTS 16506 Appendix A (2025); the solar access node is the next build item' },
-  }))
-  rules.push(rule({
-    id: 'pr-wind', label: 'Wind at the open space, entrances and links', value: 'Not assessed: wind', threshold: 'comfort for sitting, standing and walking; gust safety',
-    state: 'unknown', flag: 'unresolved', source: { label: 'No Vancouver criteria opened; Toronto 2022 guide is an external benchmark (research P06, CLIM)' },
-  }))
+  rules.push(sunLine(cross.solar))
+  rules.push(windLine(cross.wind))
   return { rules, open: os, link, longestGap }
 }
 

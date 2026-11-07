@@ -18,7 +18,7 @@ export interface CheckRow {
 }
 
 /** Instructions by rule (the rule id without its tower suffix), first match wins. */
-const FIXES: [RegExp, string | ((state: RuleState) => string)][] = [
+const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] = [
   // Competition rules (VTC brief)
   [/^height/, 'Bring the top into the brief\'s 244–305 m band: change Height in Massing (Form step).'],
   [/^containment$/, 'Keep the whole tower and podium inside the block: move it (Place on map) or shrink the podium in Massing.'],
@@ -67,8 +67,10 @@ const FIXES: [RegExp, string | ((state: RuleState) => string)][] = [
   [/^pr-(podium|continuity)/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
   [/^(north|south|east|west)$/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
   [/^pr-variation$/, 'Vary the tower heights.'],
-  [/^pr-sun$/, 'Switch on Solar access & sun hours to test the shadow on public space.'],
-  [/^pr-wind$/, 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'],
+  [/^pr-sun$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on Solar access & sun hours to test the shadow on public space.'
+    : 'Open Solar access & sun hours to see which spaces get new shadow; moving, turning or slimming the tower changes it.')],
+  [/^pr-wind$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'
+    : 'Open Pedestrian wind: massing screen to see where: a podium step or canopy under the windward face and softer corners lower its risk; a wind tunnel study settles it.')],
   // Relaxations & aviation (research C01-M06; node audit 7 Nov: the generic "Needs …; now …" read as broken English).
   // Each instruction restates the rule's own note; none adds a threshold.
   [/^relax-limit/, 'Lower the top under the lowest binding cone (View-cone height check says by how much), move the tower out of the cone (Place on map), or, if the site may use a relaxation route, switch it on under Details › Relaxations to see the limit with it.'],
@@ -89,7 +91,7 @@ const FIXES: [RegExp, string | ((state: RuleState) => string)][] = [
 /** The instruction for a rule that does not pass, or null when it passes. `key` is the rule id without its tower suffix. */
 export function fixFor(key: string, state: RuleState, value: string, threshold?: string, flag?: string): string | null {
   if (state === 'pass') return null
-  for (const [re, text] of FIXES) if (re.test(key)) return typeof text === 'function' ? text(state) : text
+  for (const [re, text] of FIXES) if (re.test(key)) return typeof text === 'function' ? text(state, value) : text
   if (flag === 'unresolved') return 'The sources leave this open: a person has to decide it (see Details).'
   if (state === 'unknown') return 'Not computed for this design yet (see Details for what it needs).'
   return threshold ? `Needs ${threshold}; now ${value}.` : 'See Details for the rule and its source.'
