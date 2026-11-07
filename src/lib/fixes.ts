@@ -36,7 +36,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^firefighter/, 'Give firefighters a lift that reaches the top in about a minute with one change at most (a sky-lobby shuttle).'],
   [/^stretcher/, 'Make one car in each group stretcher-sized.'],
   // Exactly the lift check's seismic line: "seismic-category" (structure) once matched here too (node audit, 7 Nov).
-  [/^seismic$/, 'Keep the core walls continuous down to the foundation; confirm with a structural engineer.'],
+  // The lift check's seismic line is "not assessed" (CSA B44-16's seismic clause unread): it names who decides (node audit, 7 Nov).
+  [/^seismic$/, 'Not assessed here: a vertical-transportation consultant sets the seismic, rope-sway and stack-effect measures (CSA B44-16).'],
   // Structure: system & seismic (NBC 4.1.8); each restates its rule's threshold or note.
   [/^seismic-category$/, 'Every tower here is Seismic Category SC4: choose a lateral system listed without an SC4 height cap (Details lists them) with the structural engineer.'],
   [/^dynamic$/, 'A dynamic analysis is required: the structural engineer runs it (base shear at least 0.8 V if regular, 1.0 V if irregular).'],
