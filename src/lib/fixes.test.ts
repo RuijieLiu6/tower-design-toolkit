@@ -79,3 +79,20 @@ describe('instructions stay with their own node (node audit, 7 Nov)', () => {
     for (const r of open) expect(fixFor(ruleKey(r.id, t.id), r.state, r.value, r.threshold, r.flag), r.id).not.toMatch(/^Rule: |244–305|core walls continuous/)
   })
 })
+
+describe('code and life safety lines say what to do', () => {
+  it('gives every line that is not a pass or an open item an instruction of its own', async () => {
+    const { lifeSafety } = await import('../engine/lifeSafety')
+    const { liftCheck, DEFAULT_LIFT_PRESETS } = await import('../engine/lifts')
+    const { egressCheck, DEFAULT_EGRESS_PRESETS } = await import('../engine/egress')
+    const t = { ...defaultTower('city', [240, 472]), height: 285 }
+    const lifts = liftCheck(t, DEFAULT_LIFT_PRESETS, DEFAULT_EGRESS_PRESETS), egress = egressCheck(t, DEFAULT_EGRESS_PRESETS, DEFAULT_LIFT_PRESETS)
+    const r = lifeSafety(t, lifts, egress, { transitLink: true, liftPresets: DEFAULT_LIFT_PRESETS })
+    const open = r.rules.filter((x) => x.state === 'warn' || x.state === 'fail')
+    expect(open.length).toBeGreaterThan(8)
+    for (const x of open) expect(fixFor(ruleKey(x.id, t.id), x.state, x.value, x.threshold, x.flag), x.id).not.toMatch(/^Rule: |See Details for the rule/)
+    // Items the Toolkit does not assess say who confirms them.
+    expect(fixFor('standpipes', 'unknown', 'not assessed')).toMatch(/does not assess/)
+    expect(fixFor('voice', 'unknown', 'required; not assessed')).toMatch(/does not assess/)
+  })
+})

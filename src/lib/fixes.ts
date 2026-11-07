@@ -101,6 +101,27 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^f1$/, (st) => (st === 'fail' ? 'Ask the structural engineer for the model frequency (enter it under Details); without it, towers of 180 m or more go to the tunnel (team default).' : 'Enter the engineer’s model frequency under Details: the code’s seismic period is not a wind frequency.')],
   [/^super-slender$/, 'Very slender: expect tuned mass dampers, shaping or windbreak floors (precedent, no sourced threshold); a wider base lowers it.'],
   [/^trigger-/, 'Plan a wind study at the level this analog city asks for; Vancouver has no numeric trigger, and a wind engineer sets the scope.'],
+  // Code & life safety (VBBL 2019 3.2.6, 3.2.7, 3.8): obligations a high building carries, each as the move to make.
+  [/^high-building$/, 'All of 3.2.6 applies above 18 m: plan stair venting, smoke control, the firefighter lift, the central alarm room and voice communication with the code consultant.'],
+  [/^stair-vent$/, 'Give each exit stair a vent at its bottom of at least the area shown.'],
+  [/^corridor-air$/, 'Keep the make-up air to residential and hotel corridors running when the alarm sounds (mechanical engineer).'],
+  [/^connected$/, 'Treat the transit link as a connected building: a smoke measure at the link, a 1 h separation, and doors or travel limits (see Details).'],
+  [/^below-exit-stairs$/, 'Keep the stairs that continue below the lowest exit level smoke-free (3.2.6.2.(2)).'],
+  [/^shafts-below$/, 'Record a vestibule, seal or vent for each lift and service shaft that continues below grade.'],
+  [/^central-alarm$/, 'Place the central alarm and control room by the fire-department entrance.'],
+  [/^conductors$/, 'Keep a protected riser for the emergency, fire-pump and alarm conductors (1 h; smoke management 2 h).'],
+  [/^radio$/, 'Plan the firefighters’ radio system: an equipment room and a communications riser.'],
+  [/^emergency-power$/, 'Size the generator for at least 2 h at full load for every listed load (electrical engineer).'],
+  [/^plant-floors$/, 'Add plant floors: the button under Details puts one every few floors, or set "Plant floor every N tower floors" (Schematic › Core & floors).'],
+  [/^bf-route$/, 'Give every occupied floor a passenger lift stop, the podium floors included (with the lift consultant).'],
+  [/^bf-redundancy$/, 'Give each lift group a second accessible car (Schematic › Core & floors).'],
+  [/^bf-transit$/, 'Show a step-free route from the station link to the lifts.'],
+  [/^bf-entrances$/, 'Make the principal entrance and at least half the pedestrian entrances barrier-free.'],
+  [/^bf-power-doors$/, 'Give every hotel and commercial entrance a power door operator.'],
+  [/^bf-washroom$/, 'Add a universal washroom on the entrance storey, sized to 3.8.3.12.'],
+  [/^bf-tactile$/, 'Place tactile walking-surface indicators at every location 3.8.2.10.(3) lists (see Details).'],
+  [/^bf-hotel$/, 'Plan the accessible hotel rooms and the rooms with visual alarms shown.'],
+  [/^bf-adaptable$/, 'Design every home to the adaptable dwelling standard (3.8.5).'],
   // City in Nature
   [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^nav-canada/, 'Ask NAV CANADA for a land-use review (and the City for its NAV CANADA height layer); allow for cranes.'],
@@ -116,6 +137,7 @@ export function fixFor(key: string, state: RuleState, value: string, threshold?:
   // threshold is a phrase ("Needs over 150 m above ground is an obstacle"). Rule and design, side by side, read right.
   if (state === 'unknown') {
     if (/needs a site area/i.test(value)) return 'Choose a study site in the Site step: the share needs a site area.'
+    if (/(^|; )not assessed/i.test(value)) return 'The Toolkit does not assess this: the code consultant or engineer confirms it (see Details).'
     if (/^(not entered|not answered|needs (a|the) |not in the model|not modelled|.*not answered$)/i.test(value)) return 'Enter it under Details, sources and settings (below): it is an input, not a result.'
     return 'Open: Details says what would settle it.'
   }
