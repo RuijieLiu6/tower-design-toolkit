@@ -11,7 +11,7 @@
 //     string) to thread it; drop it on a wire to put it there; drag a threaded node anywhere; flick it or drag it down to
 //     take it off. Then, like Grasshopper and Miro ("allow for creating loops and allow for drag and unconnect the nodes
 //     like how Grasshopper connects its nodes"): drag from a node's side handle to another node to wire them (a wire back
-//     to an earlier node is a loop; the loop's whole ring is pink); grab a wire near an end and drag to rewire it, or let it go in empty
+//     to an earlier node is a loop; the loop's whole ring is orange); grab a wire near an end and drag to rewire it, or let it go in empty
 //     space to cut it. The workflow is what is reached from Start along the wires, in that order; a node on the board but
 //     wired to nothing shows a dashed outline and is left out until it is wired in. Loop: one click for last → first;
 //   - the box in the middle alternates between the name and "A Tower Design by [role ▾]": a role threads its starting
@@ -67,8 +67,8 @@ type Zone = { x0: number; y0: number; x1: number; y1: number }
 /** A repeatable scatter (no Math.random at render, so the first frame is the same every visit). */
 const rand = (i: number, k: number) => { const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return s - Math.floor(s) }
 const SEG = 14 // points per rope
-/** The loop colour (one for the wire back and the forward wires it closes), apart from the run's blue. */
-const LOOP_LINE = `hsl(${HUES.pink} 78% 56%)`, LOOP_PULSE = `hsl(${HUES.pink} 85% 60%)`
+/** The loop colour (one for the wire back and the forward wires it closes): orange, the complement of the run's blue (206° + 180°; Ruijie, 7 Nov). */
+const LOOP_LINE = 'hsl(26 92% 54%)', LOOP_PULSE = 'hsl(26 96% 56%)'
 
 export default function Intro({ onEnter, reduced = false }: { onEnter: () => void; reduced?: boolean }) {
   const [still] = useState(() => reduced || (typeof window !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches))
