@@ -8,7 +8,8 @@ import { checkTowerCones } from '../engine/towerCones'
 import { fsrSummary, vtcRules } from '../engine/vtcRules'
 import { useVtcNeighbours } from '../lib/vtcNeighbours'
 import { useProjectSiteArea } from '../lib/siteArea'
-import { useSolar } from './useSolarAccess'
+import { SOLAR_NODE, useSolar } from './useSolarAccess'
+import { nodeOn } from '../lib/analysis'
 import { useWindScreen } from './useWindScreen'
 import { SCREEN_LABEL } from '../engine/windScreen'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
@@ -41,7 +42,9 @@ export function useResults() {
   const cityRing = useStore((s) => (s.project === 'city' ? s.citySite?.ring ?? null : null)) as [number, number][] | null
   // Open space & links reads the solar access and wind screen nodes when they are on (engine/publicRealm.ts GroundCross).
   const solarOut = useSolar((s) => s.out)
-  const solarLines = solarOut && solarOut.project === project ? solarOut.lines : null
+  // Only while the node is on: its last result stays in the store after it is switched off.
+  const solarOn = useStore((s) => nodeOn(s, SOLAR_NODE))
+  const solarLines = solarOn && solarOut && solarOut.project === project ? solarOut.lines : null
   // The wind screen as a value-stable summary (each caller of useWindScreen gets its own object, which would defeat the
   // shared cache): the levels of the zones that reach the ground.
   const windResult = useWindScreen()
