@@ -1,21 +1,41 @@
-// Starting a preset workflow from the landing page (lib/userTypes.ts): in the guided app (its project, the step it
-// opens on, its checks switched on) or as a node graph in Customize. The design itself is never changed; in Real
-// Vancouver a study site is set when there is none yet (the default site, lib/defaultSite.ts), so the checks have one.
-// Heavier modules load on demand, so the landing page stays light.
+// Starting a workflow from the landing page: a preset (lib/userTypes.ts) or one designed on the landing page's phase
+// board (components/landing/Composer.tsx). In the guided app it opens its project on the first phase with a node, with
+// exactly its checks on; or it opens as a node graph in Customize; or it is saved as a workflow file. The design itself
+// is never changed; in Real Vancouver a study site is set when there is none yet (the default site), so the checks have
+// one. Heavier modules load on demand, so the landing page stays light.
 import { navigate } from './route'
-import { goToStep } from './step'
-import { rememberUserType, type Preset } from './userTypes'
+import { goToStep, type StepId } from './step'
+import { presetById, rememberUserType, type UserTypeId } from './userTypes'
 import { useRole } from './role'
 import { useStore } from '../store'
 
-/** Remembers the user type and preset, and keeps the top bar's role in step. */
-function remember(p: Preset) {
-  rememberUserType(p.type, p.id)
-  useRole.setState({ role: p.type })
-  try { localStorage.setItem('ts.role', p.type) } catch { /* this visit only */ }
+export interface Runnable {
+  id?: string | null
+  type?: UserTypeId | null
+  name: string
+  goal?: string
+  project: 'vtc' | 'city'
+  step: StepId
+  nodes: string[]
 }
 
-export async function startPreset(p: Preset): Promise<void> {
+/** The workflow running in the guided app (its name and nodes), for the process rail's Next. */
+export const WORKFLOW_KEY = 'ts.workflowRun'
+export function runningWorkflow(): { name: string; nodes: string[] } | null {
+  try { const v = JSON.parse(localStorage.getItem(WORKFLOW_KEY) ?? 'null'); return v && Array.isArray(v.nodes) ? v : null } catch { return null }
+}
+
+/** Remembers the user type and preset, keeps the top bar's role in step, and the running workflow. */
+function remember(p: Runnable) {
+  if (p.type) {
+    rememberUserType(p.type, p.id && presetById(p.id) ? p.id : null)
+    useRole.setState({ role: p.type })
+    try { localStorage.setItem('ts.role', p.type) } catch { /* this visit only */ }
+  }
+  try { localStorage.setItem(WORKFLOW_KEY, JSON.stringify({ name: p.name, nodes: p.nodes })) } catch { /* this visit only */ }
+}
+
+export async function startPreset(p: Runnable): Promise<void> {
   // After the saved project is restored, or the restore would switch the preset's checks straight back.
   const { whenRestored } = await import('./project/session')
   await whenRestored()
@@ -27,7 +47,7 @@ export async function startPreset(p: Preset): Promise<void> {
   if (s.project !== p.project) s.setProject(p.project)
   const st = useStore.getState()
   st.setEnabled(p.nodes)
-  st.selectNode(p.nodes[0])
+  if (p.nodes[0]) st.selectNode(p.nodes[0])
   st.set({ showOnboarding: false })
   remember(p)
   navigate('guided')
@@ -35,14 +55,27 @@ export async function startPreset(p: Preset): Promise<void> {
   useStore.setState({ announce: `${p.name}: ${p.nodes.length} checks switched on${p.project === 'city' ? ' in Real Vancouver' : ' on the competition site'}. Your design is unchanged.` })
 }
 
-/** The same preset as a node graph in Customize (its checks wired to the model and to All pass / Weighted score). */
-export async function openPresetInCustomize(p: Preset): Promise<void> {
-  const [{ templateWorkflow, useEditor }, { browserStorage, DRAFT_KEY, serializeWorkflow }] = await Promise.all([
-    import('../components/workflow/editorStore'), import('./workflows'),
-  ])
-  const wf = { ...templateWorkflow(p.name, p.nodes, { logic: true }), project: p.project, description: p.goal }
+async function asWorkflow(p: Runnable) {
+  const [{ templateWorkflow }, wfs] = await Promise.all([import('../components/workflow/editorStore'), import('./workflows')])
+  return { wf: { ...templateWorkflow(p.name, p.nodes, { logic: true }), project: p.project, ...(p.goal ? { description: p.goal } : {}) }, wfs }
+}
+
+/** The same workflow as a node graph in Customize (its checks wired to the model and to All pass / Weighted score). */
+export async function openPresetInCustomize(p: Runnable): Promise<void> {
+  const [{ wf, wfs }, { useEditor }] = await Promise.all([asWorkflow(p), import('../components/workflow/editorStore')])
   useEditor.getState().load(wf)
-  try { browserStorage()?.setItem(DRAFT_KEY, serializeWorkflow(wf)) } catch { /* the editor has it for this visit */ }
+  try { wfs.browserStorage()?.setItem(wfs.DRAFT_KEY, wfs.serializeWorkflow(wf)) } catch { /* the editor has it for this visit */ }
   remember(p)
   navigate('customize')
+}
+
+/** Saves it as a tower-studio-workflow@1 file, which Customize opens (Import) and anyone can share. */
+export async function saveWorkflowFile(p: Runnable): Promise<void> {
+  const { wf, wfs } = await asWorkflow(p)
+  const blob = new Blob([wfs.serializeWorkflow(wf)], { type: 'application/json' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${p.name.replace(/[^\w-]+/g, '-').replace(/-+/g, '-').toLowerCase() || 'workflow'}.workflow.json`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }

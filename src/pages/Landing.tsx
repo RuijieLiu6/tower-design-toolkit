@@ -3,9 +3,12 @@
 // to help the tool define its users … for each user type at least 3 preset node combinations and workflows"). The
 // first screen of the tool: the idea in one line, the agent that finds the visitor's user type and starting workflows,
 // one live drawing of the idea (components/landing/Orbit.tsx), then the research figures and the other ways in.
-import { BookOpen, Box, Download, ExternalLink, ListChecks, PlayCircle, Route as RouteIcon, Workflow } from '../components/icons'
+import { BookOpen, Box, Download, ExternalLink, FileUp, LayoutGrid, ListChecks, MessageSquare, PlayCircle, Puzzle, Route as RouteIcon, Workflow, type LucideIcon } from '../components/icons'
 import { useEffect, useRef, useState } from 'react'
 import Agent, { type AgentResult } from '../components/landing/Agent'
+import Composer, { type Draft } from '../components/landing/Composer'
+import { firstPhase } from '../lib/phases'
+import { openPresetInCustomize, saveWorkflowFile, startPreset } from '../lib/startPreset'
 import Orbit from '../components/landing/Orbit'
 import PresetCards from '../components/landing/PresetCards'
 import ResearchFigures from '../components/landing/ResearchFigures'
@@ -13,7 +16,7 @@ import { installApp, installHint, useOffline } from '../lib/pwa/install'
 import { useImportStore } from '../lib/import/store'
 import { navigate } from '../lib/route'
 import { openDemo, useTour } from '../lib/tour'
-import type { Preset } from '../lib/userTypes'
+import { USER_TYPES, type Preset } from '../lib/userTypes'
 import { useStore } from '../store'
 
 const RESEARCH = 'https://ruijieliu6.github.io/vancouver-tower-toolbench/#research'
@@ -23,12 +26,29 @@ export default function Landing() {
   const reduced = useStore((s) => s.reducedMotion)
   const [result, setResult] = useState<AgentResult | null>(null)
   const [active, setActive] = useState<Preset | null>(null)
+  // The workflow on the phase board: a preset or the agent's answer fills it, and every node stays editable.
+  const [draft, setDraft] = useState<Draft>({ name: 'Your workflow', nodes: [], project: 'vtc', from: null })
+  const load = (p: Preset, scroll = false) => {
+    setDraft({ name: p.name, nodes: [...p.nodes], project: p.project, from: p.id })
+    if (scroll) document.getElementById('composer-title')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+  }
+  const run = () => ({ id: draft.from, type: result?.type ?? null, name: draft.name, project: draft.project, step: firstPhase(draft.nodes).step, nodes: draft.nodes })
   const [demo, setDemo] = useState<'idle' | 'loading' | 'error'>('idle')
   const { offer, installed } = useOffline()
   const [hint, setHint] = useState('')
   const install = async () => { if (!(await installApp())) setHint(installHint()) }
   useEffect(() => { document.title = 'Tower Design Toolkit' }, [])
-  const lit = active ?? result?.presets[0] ?? null
+  const lit = active ?? (draft.nodes.length ? { name: draft.name, nodes: draft.nodes } : null)
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+  // Six ways to design a workflow, as big icons; what each does is on hover.
+  const WAYS: { icon: LucideIcon; word: string; hint: string; go: () => void }[] = [
+    { icon: MessageSquare, word: 'Ask', hint: 'Say who you are; the agent picks starting workflows for you.', go: () => { scrollTo('agent-input'); document.getElementById('agent-input')?.focus() } },
+    { icon: LayoutGrid, word: 'Presets', hint: 'Start from a ready-made workflow for your kind of work, then change it.', go: () => { if (!result) setResult({ type: 'designer', presets: [...USER_TYPES[0].presets], via: 'picked' }); setTimeout(() => scrollTo('presets-title'), 50) } },
+    { icon: RouteIcon, word: 'Phases', hint: 'Pick the analysis nodes phase by phase, from Site to Present.', go: () => scrollTo('composer-title') },
+    { icon: Workflow, word: 'Graph', hint: 'Wire nodes and logic on an open canvas, like Grasshopper.', go: () => navigate('customize') },
+    { icon: FileUp, word: 'Import', hint: 'Open a workflow file someone shared (Customize › Open).', go: () => navigate('customize') },
+    { icon: Puzzle, word: 'Your node', hint: 'Turn your own method into a node with the node-builder skill, then wire it in.', go: () => navigate('customize') },
+  ]
 
   return (
     <div data-stage="basic" data-reduced={reduced} className="h-full overflow-y-auto bg-paper text-ink">
@@ -56,12 +76,26 @@ export default function Landing() {
                 Tell the agent who you are and it sets up a workflow to start from.
               </p>
             </div>
-            <Agent onResult={(r) => { setResult(r); setActive(null) }} />
+            <Agent onResult={(r) => { setResult(r); setActive(null); if (r?.presets[0]) load(r.presets[0]) }} />
           </div>
           <div className="hidden justify-self-center lg:block lg:pt-2"><Orbit nodes={lit?.nodes ?? []} label={lit?.name ?? null} /></div>
         </main>
 
-        {result && <div className="mt-10"><PresetCards type={result.type} presets={result.presets} onActive={setActive} /></div>}
+        <nav aria-label="Ways to design your workflow" className="mt-12 grid grid-cols-3 gap-2 sm:grid-cols-6" data-testid="landing-ways">
+          {WAYS.map((w) => (
+            <button key={w.word} type="button" onClick={w.go} title={w.hint} aria-label={`${w.word}: ${w.hint}`}
+              className="group flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel px-2 py-3 text-[13px] font-medium text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" aria-hidden><w.icon size={26} /></span>
+              {w.word}
+            </button>
+          ))}
+        </nav>
+
+        {result && <div className="mt-10"><PresetCards type={result.type} presets={result.presets} onActive={setActive} onEdit={(p) => load(p, true)} /></div>}
+
+        <div className="mt-12">
+          <Composer draft={draft} onChange={setDraft} onStart={() => void startPreset(run())} onGraph={() => void openPresetInCustomize(run())} onSave={() => void saveWorkflowFile(run())} />
+        </div>
 
         <div className="mt-14"><ResearchFigures /></div>
 

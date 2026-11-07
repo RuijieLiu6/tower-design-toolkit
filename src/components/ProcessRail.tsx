@@ -1,8 +1,9 @@
-import { ChevronRight, Cuboid, Layers, MapPin, PencilRuler, Presentation } from './icons'
+import { ArrowRight, ChevronRight, Cuboid, Layers, MapPin, PencilRuler, Presentation } from './icons'
 import { useEffect } from 'react'
 import { EVALUATE, PROCESS } from '../data/stages'
 import { whenRestored } from '../lib/project/session'
 import { goToStep, startOnSite, startStepFollow, useStep, type StepId } from '../lib/step'
+import { PHASES } from '../lib/phases'
 import { useStore } from '../store'
 import Help from './Help'
 
@@ -23,6 +24,19 @@ export default function ProcessRail() {
   const Gauge = EVALUATE.icon
   const analysis = useStore((s) => s.analysis)
   const setAnalysis = useStore((s) => s.setAnalysis)
+  const enabled = useStore((s) => s.enabled)
+  // Step to step (Ruijie, 7 Nov: "the experience where the users move on from one step to another"): each step shows how
+  // many of the workflow's checks belong to it, and Next goes on, with that step's first check in the results.
+  const onIn = (id: string) => (PHASES.find((p) => p.step === id)?.nodes ?? []).filter((n) => enabled[n])
+  const at = PROCESS.findIndex((s) => s.id === step)
+  const next = at >= 0 && at < PROCESS.length - 1 ? PROCESS[at + 1] : null
+  const goNext = () => {
+    if (!next) return
+    goToStep(next.id as StepId)
+    const nodes = onIn(next.id)
+    if (nodes[0]) useStore.getState().selectNode(nodes[0])
+    useStore.setState({ announce: `${next.label}: ${nodes.length ? `${nodes.length} check${nodes.length === 1 ? '' : 's'} in your workflow` : 'no checks of your workflow here'}` })
+  }
   return (
     <nav aria-label="Design process" className="stage-fade flex h-9 items-center gap-1 border-b border-line bg-paper px-4 text-[11px]">
       {PROCESS.map((s, i) => {
@@ -33,11 +47,18 @@ export default function ProcessRail() {
             <button onClick={() => goToStep(s.id as StepId)} aria-current={lit ? 'step' : undefined} data-step={s.id}
               className={`stage-fade flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${lit ? 'border-accent/50 bg-panel font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
               <Icon size={13} className={lit ? 'text-accent' : ''} />{s.label}
+              {analysis && onIn(s.id).length > 0 && <span className="rounded-full bg-accent/15 px-1.5 text-[10px] font-semibold tabular-nums text-accent" title={`${onIn(s.id).length} check${onIn(s.id).length === 1 ? '' : 's'} of your workflow at this step`} data-testid={`step-count-${s.id}`}>{onIn(s.id).length}</span>}
             </button>
             {i < PROCESS.length - 1 && <ChevronRight size={12} className="text-muted/60" aria-hidden />}
           </span>
         )
       })}
+      {next && (
+        <button type="button" onClick={goNext} data-testid="rail-next" title={`Go on to ${next.label}${onIn(next.id).length ? `: ${onIn(next.id).length} checks of your workflow` : ''}`}
+          className="ml-2 flex items-center gap-1.5 rounded-full bg-accent px-3 py-0.5 font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1">
+          Next: {next.label}<ArrowRight size={13} aria-hidden />
+        </button>
+      )}
       <span className="ml-auto flex items-center gap-1">
         <button type="button" role="switch" aria-checked={analysis} onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
           className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent ${analysis ? 'border-accent/50 bg-panel text-ink' : 'border-line text-muted hover:text-ink'}`}>

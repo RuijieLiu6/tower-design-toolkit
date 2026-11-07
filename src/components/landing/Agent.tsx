@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Loader2, Lock, Sparkles } from '../icons'
 import { ROLE_ICON } from '../RolePicker'
+import Help from '../Help'
 import { buildIndex, rankPresets, readText, type Index, type Reading } from '../../lib/agent/match'
 import { loadEmbedder, MODEL_BYTES, type Embedder } from '../../lib/agent/model2vec'
 import { USER_TYPES, aType, presetById, typeInSentence, userType, useUserType, type Preset, type UserTypeId } from '../../lib/userTypes'
@@ -13,13 +14,6 @@ import { USER_TYPES, aType, presetById, typeInSentence, userType, useUserType, t
 type Model = { e: Embedder; index: Index }
 interface Msg { from: 'agent' | 'you'; body: ReactNode; id: number }
 export interface AgentResult { type: UserTypeId; presets: Preset[]; via: Reading['via'] | 'picked' }
-
-const EXAMPLES = [
-  "I'm a student entering the Vancouver Tall Challenge",
-  'I live downtown and I am curious',
-  "I'm a planner reviewing a tower",
-  "I'm a structural engineer",
-]
 
 let nextId = 1
 
@@ -57,8 +51,8 @@ export default function Agent({ onResult }: { onResult: (r: AgentResult | null) 
     setAsking(null)
     const t = userType(type), presets = rankPresets(said, type, m)
     say('agent', <>
-      {via === 'picked' ? <>{t.name}.</> : <>You sound like {aType(type).replace(/ .*/, '')} <b>{typeInSentence(type)}</b>: {t.who.charAt(0).toLowerCase() + t.who.slice(1)}.</>}
-      {' '}Here are {presets.length} workflows to start from{said.trim() ? ', the closest to what you said first' : ''}. Each one switches on a set of analysis nodes; you can change any of them later.
+      {via === 'picked' ? <>{t.name}.</> : <>You sound like {aType(type).replace(/ .*/, '')} <b>{typeInSentence(type)}</b>.</>}
+      {' '}Your {presets.length} starting workflows are below{said.trim() ? ', the closest first' : ''}, and the first is on the board to change.
     </>)
     onResult({ type, presets, via })
   }
@@ -84,7 +78,9 @@ export default function Agent({ onResult }: { onResult: (r: AgentResult | null) 
     } finally { setBusy(false) }
   }
 
-  const pick = (type: UserTypeId) => { say('you', userType(type).name); settle(type, last.current, model, 'picked') }
+  // A type picked by hand: its workflows in their curated order (a sentence about another type should not reorder them),
+  // unless the agent was asking between the two closest, when the sentence was about this choice.
+  const pick = (type: UserTypeId) => { say('you', userType(type).name); settle(type, asking?.includes(type) ? last.current : '', model, 'picked') }
 
   return (
     <section aria-labelledby="agent-title" className="grid gap-3" data-testid="landing-agent">
@@ -116,18 +112,21 @@ export default function Agent({ onResult }: { onResult: (r: AgentResult | null) 
           className="rounded-xl bg-accent px-4 py-2 text-[14px] font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-40">Find my workflows</button>
       </form>
 
-      <div className="flex flex-wrap gap-1.5" aria-label="Examples to try">
-        {EXAMPLES.map((x) => <button key={x} type="button" onClick={() => { void warm(); void ask(x) }} className="rounded-full border border-line bg-panel/70 px-3 py-1 text-[12.5px] text-muted outline-none hover:border-accent hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{x}</button>)}
+      {/* Or pick a type: four big tiles, who each one is on hover. */}
+      <div role="group" aria-label="Or pick who you are" className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="agent-types">
+        {USER_TYPES.map((t) => { const Icon = ROLE_ICON[t.id]; return (
+          <button key={t.id} type="button" onClick={() => pick(t.id)} title={t.who} aria-label={`${t.name}: ${t.who}`} data-type={t.id}
+            className="group flex items-center gap-2.5 rounded-2xl border border-line bg-panel p-2 text-left text-[13px] font-medium leading-tight text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" aria-hidden><Icon size={24} /></span>{t.name}
+          </button>
+        ) })}
       </div>
 
-      <p className="flex flex-wrap items-center gap-x-1.5 text-[12px] text-muted" data-testid="agent-model-status">
-        {status === 'ready' ? <Sparkles size={12} className="text-accent" aria-hidden /> : <Lock size={12} aria-hidden />}
-        {status === 'idle' && <>A small language model reads your words in this browser; nothing you type leaves it.</>}
-        {status === 'loading' && <>Loading the language model once ({Math.round(MODEL_BYTES / 1e6)}&nbsp;MB): <span className="tabular-nums">{Math.round(pct * 100)}%</span>. Your words stay in this browser.</>}
-        {status === 'ready' && <>Language model ready, running in this browser. Nothing you type leaves it.</>}
-        {status === 'failed' && <>The language model could not load here, so I match by keywords. You can also pick:</>}
-        {status !== 'failed' && <span>Or pick:</span>}
-        {USER_TYPES.map((t) => <button key={t.id} type="button" onClick={() => pick(t.id)} className="rounded text-accent underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">{typeInSentence(t.id)}</button>)}
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted" data-testid="agent-model-status">
+        {status === 'ready' ? <Sparkles size={14} className="text-accent" aria-hidden /> : <Lock size={14} aria-hidden />}
+        <span>{status === 'ready' ? 'Language model ready, in this browser' : status === 'failed' ? 'Matching by keywords' : 'Runs in this browser'}</span>
+        {status === 'loading' && <span className="h-1.5 w-28 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Loading the language model" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)}><span className="block h-full bg-accent" style={{ width: `${Math.round(pct * 100)}%` }} /></span>}
+        <Help label="About the agent">A small language model (minishlab/potion-base-8M, MIT) reads your words in this browser: {Math.round(MODEL_BYTES / 1e6)}&nbsp;MB, loaded once from Hugging Face, then cached. Nothing you type leaves the browser. Before it has loaded, or if it can't, I match by keywords. I only pick a type and order the presets; I never decide anything for you.</Help>
       </p>
     </section>
   )
