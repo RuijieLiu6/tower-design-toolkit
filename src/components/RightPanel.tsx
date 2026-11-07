@@ -104,7 +104,7 @@ export default function RightPanel() {
   const noTower = useStore((s) => s.towers[s.project].length === 0)
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
   return (
-    <aside className="flex h-full w-[22rem] shrink-0 flex-col border-l border-line bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
+    <aside className="glass-edge flex h-full w-[22rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
       <div className="flex border-b border-line">
       <div role="tablist" aria-label={present ? 'Present and results' : 'Results'} className="flex min-w-0 flex-1">
         {tabs.map((t) => (

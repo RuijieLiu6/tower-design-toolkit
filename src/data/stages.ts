@@ -1,7 +1,7 @@
 // The three design stages. A stage changes how the model is drawn, which tools are offered and the
 // chrome palette; it never removes capability (except the Present model lock). Evaluate is a lens on every stage.
 // Design source: 04 Tool Plan/research/ux-modes (U1, U2), one critique round.
-import { Cuboid, Gauge, PencilRuler, Presentation, type LucideIcon } from '../components/icons'
+import { Blocks, Gauge, PencilRuler, Presentation, type LucideIcon } from '../components/icons'
 import type { Phase } from '../store'
 
 export interface StageDef {
@@ -14,7 +14,7 @@ export interface StageDef {
 }
 
 export const STAGES: StageDef[] = [
-  { id: 'basic', label: 'Massing', subtitle: 'Basic model', key: '1', icon: Cuboid, purpose: 'Find a defensible volume and program mix fast.' },
+  { id: 'basic', label: 'Massing', subtitle: 'Basic model', key: '1', icon: Blocks, purpose: 'Find a defensible volume and program mix fast.' },
   { id: 'advanced', label: 'Schematic', subtitle: 'Advanced model', key: '2', icon: PencilRuler, purpose: 'Test that the massing can be built: plates, core, plant.' },
   { id: 'present', label: 'Present', subtitle: 'Frame and compose', key: '3', icon: Presentation, purpose: 'Compose evidence-labelled shots for the boards.' },
 ]

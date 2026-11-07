@@ -7,7 +7,7 @@ export default function StatusBar() {
   const project = useStore((s) => s.project)
   const vista = useCityModel((s) => s.model === 'vista')
   return (
-    <footer className="flex h-8 shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap border-t border-line bg-panel px-4 text-[10px] text-muted">
+    <footer className="glass-edge flex h-8 shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap rounded-2xl bg-glass-3 px-4 text-[10px] text-muted">
       <span className="font-semibold uppercase tracking-wider">Evidence</span>
       {(['verified', 'team_assumption', 'unverified', 'unresolved', 'false_assumption'] as Flag[]).map((f) => <FlagChip key={f} flag={f} />)}
       <span className="mx-auto" />

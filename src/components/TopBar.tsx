@@ -50,7 +50,7 @@ export default function TopBar() {
   // (names kept for screen readers) so no control is pushed off screen on a 1,366–1,600 px laptop.
   const navLabel = present ? 'hidden min-[1800px]:inline' : 'hidden min-[1440px]:inline'
   return (
-    <header className="stage-fade flex h-14 items-center gap-3 border-b border-line bg-chrome px-4 text-chrome-ink 2xl:gap-4">
+    <header className="glass-edge stage-fade flex h-14 shrink-0 items-center gap-3 rounded-2xl bg-chrome px-3 text-chrome-ink 2xl:gap-4">
       <button onClick={() => navigate('start')} aria-label="Tower Design Toolkit" title="Home: choose the guided process or Customize" className="flex items-center gap-2 rounded-md px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
         <span className="hidden whitespace-nowrap text-sm font-semibold tracking-tight min-[1500px]:inline">Tower Design Toolkit</span>

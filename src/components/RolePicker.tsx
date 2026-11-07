@@ -2,11 +2,13 @@
 // in the top bar. Choosing a role applies its preset once (lib/role.ts): the project and the checks that start on. The design
 // is never changed, and nothing stops the user switching any check afterwards.
 import { Compass, GraduationCap, HardHat, Landmark, Wrench } from './icons'
+import { TYPE_ICONS } from '../data/icons'
+import type { LucideIcon } from './icons'
 import { chooseRole, ROLE_PRESETS, useRole, type Role } from '../lib/role'
 import { navigate } from '../lib/route'
 import { useStore } from '../store'
 
-export const ROLE_ICON: Record<Role, typeof Compass> = { designer: GraduationCap, practitioner: HardHat, planner: Landmark, engineer: Wrench, explore: Compass }
+export const ROLE_ICON: Record<Role, LucideIcon> = TYPE_ICONS
 const ORDER: Role[] = ['designer', 'practitioner', 'planner', 'engineer', 'explore']
 
 /** Apply after the saved project is restored, or the restore would switch the preset's checks straight back. */

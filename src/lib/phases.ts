@@ -3,6 +3,7 @@
 // different tools"). Each phase is a step of the guided app with its design tools (always there) and the analysis nodes
 // that fit it (switched on or off per workflow). Every built node sits in exactly one phase (lib/phases.test.ts).
 import type { StepId } from './step'
+import type { ToolIconId } from '../data/icons'
 
 export type PhaseId = 'site' | 'form' | 'program' | 'schematic' | 'present'
 
@@ -12,8 +13,8 @@ export interface Phase {
   step: StepId
   /** One line, shown on hover. */
   about: string
-  /** The design tools this phase opens with (names as in the left panel). */
-  tools: string[]
+  /** The design tools this phase opens with (tool ids; icons and words in data/icons.ts). */
+  tools: ToolIconId[]
   /** The analysis nodes that fit this phase. */
   nodes: string[]
 }
@@ -21,27 +22,27 @@ export interface Phase {
 export const PHASES: Phase[] = [
   {
     id: 'site', name: 'Site', step: 'site', about: 'Choose the site, bring your model, read the views and heights it allows.',
-    tools: ['Site', 'Import'],
+    tools: ['site', 'rhino-import'],
     nodes: ['built.vtc-rules', 'built.model', 'built.viewcones', 'built.relax-aviation', 'built.heights', 'built.view-from', 'built.vista'],
   },
   {
     id: 'form', name: 'Form', step: 'volume', about: 'Place and shape the tower; read sun, shadow and wind as it changes.',
-    tools: ['Position', 'Height', 'Sun', 'Massing', 'Basement'],
+    tools: ['towers', 'height-suggestion', 'generate', 'massing', 'sun', 'basement'],
     nodes: ['built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature'],
   },
   {
     id: 'program', name: 'Program', step: 'program', about: 'Stack the uses, test floor area and value, shape the ground and public space.',
-    tools: ['Program', 'Ground', 'Brief'],
+    tools: ['program', 'ground', 'brief'],
     nodes: ['built.fsr', 'built.economics', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.trips', 'built.mobility'],
   },
   {
     id: 'schematic', name: 'Schematic', step: 'plates', about: 'Core, lifts, stairs, structure, facade and energy: can it be built?',
-    tools: ['Core', 'Anatomy', 'Plan', 'Section'],
+    tools: ['core', 'anatomy', 'plan', 'section'],
     nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', 'built.interior', 'built.daylight-depth', 'built.facade', 'built.energy-carbon'],
   },
   {
     id: 'present', name: 'Present', step: 'frame', about: 'Frame views, capture and compose the boards, with the claims and AI use on record.',
-    tools: ['Camera', 'Capture', 'Boards', 'Render'],
+    tools: ['camera', 'capture', 'boards', 'drawings', 'render'],
     nodes: ['built.culture-claims', 'built.provenance'],
   },
 ]

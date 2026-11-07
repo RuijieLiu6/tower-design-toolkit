@@ -6,6 +6,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { LucideIcon } from './icons'
+import GlassIcon, { hueFor, ICON } from './GlassIcon'
 
 const TIP_W = 248
 
@@ -58,7 +59,6 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
     setAt({ left, top: r.bottom + 6 + h > window.innerHeight - 8 ? r.top - 6 - h : r.bottom + 6 })
   }, [tip])
   const lit = active || primary
-  const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
   const events = {
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => { quiet.current = true; hide(); onClick?.(e) }, onKeyDown,
     onMouseEnter: () => show(250), onMouseLeave: () => { quiet.current = false; hide() },
@@ -73,15 +73,15 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
         </button>
       ) : (
         <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}
-          className={`group flex ${size === 'md' ? 'w-[4.25rem]' : 'w-[3.75rem]'} flex-col items-center gap-1 rounded-md px-1 pb-1 pt-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${active ? 'bg-accent/[0.07]' : 'hover:bg-black/[0.04]'} ${className}`}>
-          <span className={`flex ${box} items-center justify-center rounded-md ${lit ? 'bg-accent text-white' : 'bg-accent/10 text-accent group-hover:bg-accent/15'}`}><Icon size={size === 'md' ? 18 : 16} /></span>
+          className={`group flex ${size === 'md' ? 'w-[4.25rem]' : 'w-[3.75rem]'} flex-col items-center gap-1 rounded-md px-1 pb-1 pt-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40  ${className}`}>
+          <GlassIcon icon={Icon} hue={hueFor(word)} size={ICON.tool} level={lit ? 'on' : 'soft'} />
           <span aria-hidden className={`w-full truncate text-center text-[11px] leading-tight ${active || primary ? 'font-semibold text-ink' : 'text-muted group-hover:text-ink'}`}>{word}</span>
         </button>
       )}
       {hint && <span id={tipId} hidden>{hint}</span>}
       {tip && createPortal(
         <div ref={panel} role="tooltip" style={{ position: 'fixed', left: at?.left ?? -9999, top: at?.top ?? -9999, width: TIP_W, zIndex: 1000 }}
-          className="pointer-events-none rounded-lg border border-line bg-white px-3 py-2 text-left text-[11.5px] leading-snug text-ink shadow-lg">
+          className="glass pointer-events-none rounded-xl bg-glass-1 px-3 py-2 text-left text-[11.5px] leading-snug text-ink shadow-lg">
           <div className="font-semibold">{label}</div>
           {hint && <div className="mt-0.5 text-muted">{hint}</div>}
         </div>, document.body)}

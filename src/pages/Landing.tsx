@@ -6,6 +6,8 @@
 import { BookOpen, Box, Download, ExternalLink, FileUp, LayoutGrid, ListChecks, MessageSquare, PlayCircle, Puzzle, Route as RouteIcon, Workflow, type LucideIcon } from '../components/icons'
 import { useEffect, useRef, useState } from 'react'
 import Agent, { type AgentResult } from '../components/landing/Agent'
+import GlassIcon, { HUES, ICON } from '../components/GlassIcon'
+import { WAY_ICONS } from '../data/icons'
 import Composer, { type Draft } from '../components/landing/Composer'
 import { firstPhase } from '../lib/phases'
 import { openPresetInCustomize, saveWorkflowFile, startPreset } from '../lib/startPreset'
@@ -20,7 +22,7 @@ import { USER_TYPES, type Preset } from '../lib/userTypes'
 import { useStore } from '../store'
 
 const RESEARCH = 'https://ruijieliu6.github.io/vancouver-tower-toolbench/#research'
-const quiet = 'flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
+const quiet = 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 
 export default function Landing() {
   const reduced = useStore((s) => s.reducedMotion)
@@ -41,13 +43,13 @@ export default function Landing() {
   const lit = active ?? (draft.nodes.length ? { name: draft.name, nodes: draft.nodes } : null)
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
   // Six ways to design a workflow, as big icons; what each does is on hover.
-  const WAYS: { icon: LucideIcon; word: string; hint: string; go: () => void }[] = [
-    { icon: MessageSquare, word: 'Ask', hint: 'Say who you are; the agent picks starting workflows for you.', go: () => { scrollTo('agent-input'); document.getElementById('agent-input')?.focus() } },
-    { icon: LayoutGrid, word: 'Presets', hint: 'Start from a ready-made workflow for your kind of work, then change it.', go: () => { if (!result) setResult({ type: 'designer', presets: [...USER_TYPES[0].presets], via: 'picked' }); setTimeout(() => scrollTo('presets-title'), 50) } },
-    { icon: RouteIcon, word: 'Phases', hint: 'Pick the analysis nodes phase by phase, from Site to Present.', go: () => scrollTo('composer-title') },
-    { icon: Workflow, word: 'Graph', hint: 'Wire nodes and logic on an open canvas, like Grasshopper.', go: () => navigate('customize') },
-    { icon: FileUp, word: 'Import', hint: 'Open a workflow file someone shared (Customize › Open).', go: () => navigate('customize') },
-    { icon: Puzzle, word: 'Your node', hint: 'Turn your own method into a node with the node-builder skill, then wire it in.', go: () => navigate('customize') },
+  const WAYS: { icon: LucideIcon; hue: number; word: string; hint: string; go: () => void }[] = [
+    { icon: WAY_ICONS.ask, hue: HUES.sky, word: 'Ask', hint: 'Say who you are; the agent picks starting workflows for you.', go: () => { window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); document.getElementById('agent-input')?.focus({ preventScroll: true }) } },
+    { icon: WAY_ICONS.presets, hue: HUES.green, word: 'Presets', hint: 'Start from a ready-made workflow for your kind of work, then change it.', go: () => { if (!result) setResult({ type: 'designer', presets: [...USER_TYPES[0].presets], via: 'picked', title: 'Starting workflows for a passionate designer' }); setTimeout(() => scrollTo('presets-title'), 50) } },
+    { icon: WAY_ICONS.phases, hue: HUES.orange, word: 'Phases', hint: 'Pick the analysis nodes phase by phase, from Site to Present.', go: () => scrollTo('composer-title') },
+    { icon: WAY_ICONS.graph, hue: HUES.violet, word: 'Graph', hint: 'Wire nodes and logic on an open canvas, like Grasshopper.', go: () => navigate('customize') },
+    { icon: WAY_ICONS.import, hue: HUES.teal, word: 'Import', hint: 'Open a workflow file someone shared (Customize › Open).', go: () => navigate('customize') },
+    { icon: WAY_ICONS.node, hue: HUES.pink, word: 'Your node', hint: 'Turn your own method into a node with the node-builder skill, then wire it in.', go: () => navigate('customize') },
   ]
 
   return (
@@ -58,7 +60,7 @@ export default function Landing() {
             <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
             <span className="text-[15px] font-semibold tracking-tight">Tower Design Toolkit</span>
           </span>
-          <nav aria-label="About the toolkit" className="flex flex-wrap items-center gap-1">
+          <nav aria-label="About the toolkit" className="glass-edge flex flex-wrap items-center gap-0.5 rounded-full bg-glass-2 px-1.5 py-1">
             <a href={RESEARCH} target="_blank" rel="noreferrer" className={quiet}><ExternalLink size={14} aria-hidden />Research</a>
             <a href="#/guide" className={quiet}><BookOpen size={14} aria-hidden />User guide</a>
             <a href="#/status" className={quiet}><ListChecks size={14} aria-hidden />Build status</a>
@@ -67,31 +69,36 @@ export default function Landing() {
         </header>
         {hint && <p role="status" className="mt-2 self-end rounded-md border border-line bg-panel px-3 py-1.5 text-[12px] text-muted">{hint} After the first visit it also works offline. <button type="button" onClick={() => setHint('')} className="ml-1 text-accent hover:underline">OK</button></p>}
 
-        <main className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-14">
-          <div className="grid gap-7">
-            <div>
-              <h1 className="max-w-[17ch] text-balance text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.025em] md:text-[3.25rem]">One tower model. Every analysis a node. You decide.</h1>
-              <p className="mt-4 max-w-[38rem] text-[16px] leading-[1.6] text-muted">
-                A platform for anyone shaping a tall building in Vancouver, from students and curious citizens to architects, planners and engineers.
-                Tell the agent who you are and it sets up a workflow to start from.
-              </p>
-            </div>
-            <Agent onResult={(r) => { setResult(r); setActive(null); if (r?.presets[0]) load(r.presets[0]) }} />
+        {/* The first screen is the agent alone (Ruijie, 7 Nov): the idea in one line, then its one open question. */}
+        <main className="flex min-h-[calc(100svh-6rem)] flex-col items-center justify-center gap-9 py-10">
+          <div className="grid justify-items-center gap-3 text-center">
+            <h1 className="max-w-[20ch] text-balance text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.025em] md:text-[3.1rem]">One tower model. Every analysis a node. You decide.</h1>
+            <p className="max-w-[36rem] text-pretty text-[16px] leading-[1.6] text-muted">For anyone shaping a tall building in Vancouver: students and curious citizens, architects, planners and engineers.</p>
           </div>
-          <div className="hidden justify-self-center lg:block lg:pt-2"><Orbit nodes={lit?.nodes ?? []} label={lit?.name ?? null} /></div>
+          <Agent onResult={(r) => {
+            setResult(r); setActive(null)
+            if (r?.presets[0]) load(r.presets[0])
+            if (r && !r.quiet) setTimeout(() => scrollTo('presets-title'), 80)
+          }} />
         </main>
 
-        <nav aria-label="Ways to design your workflow" className="mt-12 grid grid-cols-3 gap-2 sm:grid-cols-6" data-testid="landing-ways">
-          {WAYS.map((w) => (
-            <button key={w.word} type="button" onClick={w.go} title={w.hint} aria-label={`${w.word}: ${w.hint}`}
-              className="group flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel px-2 py-3 text-[13px] font-medium text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" aria-hidden><w.icon size={26} /></span>
-              {w.word}
-            </button>
-          ))}
-        </nav>
+        {result && <div className="mt-2"><PresetCards title={result.title} presets={result.presets} onActive={setActive} onEdit={(p) => load(p, true)} /></div>}
 
-        {result && <div className="mt-10"><PresetCards type={result.type} presets={result.presets} onActive={setActive} onEdit={(p) => load(p, true)} /></div>}
+        <section aria-labelledby="ways-title" className="mt-14 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_440px]">
+          <div className="grid gap-5">
+            <h2 id="ways-title" className="text-[22px] font-semibold tracking-[-0.01em] text-ink">Design your workflow your way</h2>
+            <nav aria-label="Ways to design your workflow" className="grid grid-cols-3 gap-x-2 gap-y-5" data-testid="landing-ways">
+              {WAYS.map((w) => (
+                <button key={w.word} type="button" onClick={w.go} title={w.hint} aria-label={`${w.word}: ${w.hint}`}
+                  className="group flex flex-col items-center gap-2 rounded-xl px-2 py-2 text-[13px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                  <GlassIcon icon={w.icon} hue={w.hue} size={ICON.feature} />
+                  <span className="group-hover:text-accent">{w.word}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+          <div className="w-full max-w-[440px] justify-self-center"><Orbit nodes={lit?.nodes ?? []} label={lit?.name ?? null} /></div>
+        </section>
 
         <div className="mt-12">
           <Composer draft={draft} onChange={setDraft} onStart={() => void startPreset(run())} onGraph={() => void openPresetInCustomize(run())} onSave={() => void saveWorkflowFile(run())} />
@@ -99,7 +106,7 @@ export default function Landing() {
 
         <div className="mt-14"><ResearchFigures /></div>
 
-        <section aria-labelledby="other-title" className="mt-12 border-t border-line pt-5">
+        <section aria-labelledby="other-title" className="glass-edge mt-12 rounded-3xl bg-glass-3 px-5 py-4">
           <h2 id="other-title" className="text-[13px] font-semibold text-ink">Other ways in</h2>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
             <button type="button" onClick={async () => { setDemo('loading'); const ok = await openDemo(); setDemo(ok ? 'idle' : 'error') }} disabled={demo === 'loading'} className={quiet}><Box size={14} aria-hidden />Open the demo project</button>

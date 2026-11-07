@@ -4,6 +4,7 @@
 // used, and the visitor can always pick another type or workflow by hand. Pure functions; the UI is in
 // components/landing/Agent.tsx.
 import { USER_TYPES, userType, type Preset, type UserTypeId } from '../userTypes'
+import { BUILT_NODES } from '../../data/registry'
 import type { Embedder } from './model2vec'
 
 export interface TypeScore { type: UserTypeId; score: number }
@@ -35,12 +36,15 @@ export function wordScores(text: string): TypeScore[] {
 export interface Index {
   types: { type: UserTypeId; vecs: Float32Array[] }[]
   presets: { preset: Preset; vecs: Float32Array[] }[]
+  /** Each built analysis node by its name and the question it answers (for a design concept). */
+  nodes: { id: string; vecs: Float32Array[] }[]
 }
 
 export function buildIndex(e: Embedder): Index {
   return {
     types: USER_TYPES.map((t) => ({ type: t.id, vecs: e.embed([`${t.name}: ${t.who}`, ...t.says]) })),
     presets: USER_TYPES.flatMap((t) => t.presets).map((p) => ({ preset: p, vecs: e.embed([p.name, p.goal, ...p.says]) })),
+    nodes: BUILT_NODES.map((n) => ({ id: n.id, vecs: e.embed([n.name, n.question]) })),
   }
 }
 
@@ -79,4 +83,41 @@ export function rankPresets(text: string, type: UserTypeId, model?: { e: Embedde
     score = (p) => { const hay = `${p.name} ${p.goal} ${p.says.join(' ')}`.toLowerCase(); return words.filter((w) => hay.includes(w)).length }
   }
   return list.map((p, i) => ({ p, i, s: score(p) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.p)
+}
+
+// ---------- a design concept (Ruijie, 7 Nov: "more open ended questions like what is the concept of your design and
+// provide suggested workflows") ----------
+
+export interface Suggestion {
+  /** Who the words sound like, when it is clear (only used to remember a role). */
+  reading: Reading
+  /** The preset workflows closest to the concept, from any user type, the closest first. */
+  presets: Preset[]
+  /** The analysis nodes closest to the concept: a workflow of its own. */
+  nodes: string[]
+}
+
+const longWords = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 3)
+
+/** The presets and nodes a concept reads closest to. Never invents a node: it only ranks the built ones. */
+export function suggest(text: string, model?: { e: Embedder; index: Index } | null, take = { presets: 3, nodes: 5 }): Suggestion {
+  const reading = readText(text, model)
+  const all = USER_TYPES.flatMap((t) => t.presets)
+  let preset: (p: Preset) => number, node: (id: string) => number
+  if (model) {
+    const v = model.e.embed([text])[0]
+    const ps = new Map(model.index.presets.map((x) => [x.preset.id, closeness(v, x.vecs)]))
+    const ns = new Map(model.index.nodes.map((x) => [x.id, closeness(v, x.vecs)]))
+    preset = (p) => ps.get(p.id) ?? 0
+    node = (id) => ns.get(id) ?? 0
+  } else {
+    const words = longWords(text)
+    const hits = (hay: string) => words.filter((w) => hay.toLowerCase().includes(w)).length
+    preset = (p) => hits(`${p.name} ${p.goal} ${p.says.join(' ')}`)
+    node = (id) => { const n = BUILT_NODES.find((x) => x.id === id)!; return hits(`${n.name} ${n.question}`) }
+  }
+  const presets = all.map((p, i) => ({ p, i, s: preset(p) })).sort((a, b) => b.s - a.s || a.i - b.i).slice(0, take.presets).map((x) => x.p)
+  const nodes = BUILT_NODES.map((n, i) => ({ id: n.id, i, s: node(n.id) })).filter((x) => x.s > 0)
+    .sort((a, b) => b.s - a.s || a.i - b.i).slice(0, take.nodes).map((x) => x.id)
+  return { reading, presets, nodes }
 }

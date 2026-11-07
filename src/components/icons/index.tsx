@@ -308,3 +308,16 @@ export const WandSparkles = Wand2
 export const Waypoints = make('Waypoints', '<circle cx="12" cy="4.5" r="2"/><circle cx="4.5" cy="12" r="2"/><circle cx="19.5" cy="12" r="2"/><circle cx="12" cy="19.5" r="2"/>' + p('M10.6 5.9L5.9 10.6M13.4 5.9L18.1 10.6M5.9 13.4L10.6 18.1'))
 export const Wrench = make('Wrench', p('M14.5 3.8C12.7 4.5 11.5 6.2 11.5 8.2C11.5 8.8 11.6 9.4 11.8 9.9L3.5 18.2L5.8 20.5L14.1 12.2C14.6 12.4 15.2 12.5 15.8 12.5C17.8 12.5 19.5 11.3 20.2 9.5H17L14.5 7Z'))
 export const Zap = make('Zap', p('M13 3L5 13.5H11.5L10.5 21L19 10H12.5Z'))
+
+// Design tool icons drawn for the toolkit (Ruijie, 7 Nov: "develop different icons for all tools"): each tool its own
+// drawing, none shared with a node, a category or a step (data/icons.ts, checked by icons.test.ts).
+/** Height suggestion: a tower with a height dimension beside it. */
+export const TowerHeight = make('TowerHeight', p('M6.5 20V4.5H11.5V20M3 20H21M14.5 4.5H19.5M17 6.5V18M15 8.5L17 6.5L19 8.5M15 16L17 18L19 16'))
+/** Sun & time: a tower under the sun. */
+export const TowerSun = make('TowerSun', p('M5.5 20V8.5H10V20M3 20H21M16.5 2V3.5M20.5 7.5H22M16.5 11.5V13M12.5 7.5H11') + '<circle cx="16.5" cy="7.5" r="2.5"/>')
+/** Basement: the tower above the ground line, its levels below. */
+export const BelowGrade = make('BelowGrade', p('M9.5 11V3.5H14.5V11M2.5 11H21.5M6 11V20.5H18V11M6 14.5H18M6 17.5H18'))
+/** Program: a tower in bands of use. */
+export const TowerStack = make('TowerStack', p('M7.5 20.5V3.5H16.5V20.5M4 20.5H20M7.5 8H16.5M7.5 12.5H16.5M7.5 16.5H16.5'))
+/** Core & floors: a floor plate with its core and a lift shaft. */
+export const CorePlan = make('CorePlan', square + p('M9.5 9.5H14.5V14.5H9.5ZM9.5 9.5L14.5 14.5M14.5 9.5L9.5 14.5'))

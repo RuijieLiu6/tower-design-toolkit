@@ -68,7 +68,7 @@ export default function TowerToolbar() {
 
   return (
     <div role="toolbar" aria-label={`Selected tower: ${t.name}`}
-      className={`absolute left-3 ${top} z-10 flex ${width} flex-col gap-1 rounded-md border border-line bg-white/95 p-1 text-xs text-ink shadow-sm ${reduced ? '' : 'transition-opacity duration-200'} ${fade}`}>
+      className={`glass absolute left-3 ${top} z-10 flex ${width} flex-col gap-1 rounded-md border border-line bg-panel p-1 text-xs text-ink shadow-sm ${reduced ? '' : 'transition-opacity duration-200'} ${fade}`}>
       <div className="flex items-center gap-1.5 px-1.5 pt-0.5">
         <Building2 size={14} aria-hidden className="shrink-0 text-accent" />
         <b className="truncate font-semibold">{t.name}</b>

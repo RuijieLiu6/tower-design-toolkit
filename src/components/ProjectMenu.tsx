@@ -89,7 +89,7 @@ export default function ProjectMenu() {
           <ChevronDown size={12} aria-hidden />
         </button>
         {open && (
-          <div role="menu" aria-label="Project file" className="absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-panel p-1.5 text-ink shadow-xl">
+          <div role="menu" aria-label="Project file" className="glass absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-panel p-1.5 text-ink shadow-xl">
             <div className="flex items-center gap-1.5 px-2 pb-1.5 pt-1 text-[11px] text-muted"><HardDrive size={12} aria-hidden />{status}</div>
             {meta.message && (
               <div className={`mx-1 mb-1.5 rounded-md px-2 py-1.5 text-[11px] ${meta.message.tone === 'ok' ? 'bg-emerald-50 text-emerald-900' : meta.message.tone === 'warn' ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-900'}`} role="status">

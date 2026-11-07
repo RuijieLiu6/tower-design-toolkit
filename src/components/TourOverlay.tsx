@@ -59,7 +59,7 @@ export default function TourOverlay() {
         <div className="absolute inset-0 bg-[rgba(15,23,42,0.22)]" aria-hidden />
       )}
       <div role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-body"
-        className="pointer-events-auto absolute bottom-6 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
+        className="glass pointer-events-auto absolute bottom-6 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10.5px] font-semibold uppercase tracking-wider text-accent">Tour · {step + 1} of {TOUR.length}</p>

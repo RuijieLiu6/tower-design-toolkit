@@ -1,4 +1,5 @@
-import { ArrowRight, ChevronRight, Cuboid, Layers, MapPin, PencilRuler, Presentation } from './icons'
+import { ArrowRight, ChevronRight } from './icons'
+import { STEP_ICONS } from '../data/icons'
 import { useEffect } from 'react'
 import { EVALUATE, PROCESS } from '../data/stages'
 import { whenRestored } from '../lib/project/session'
@@ -7,7 +8,7 @@ import { PHASES } from '../lib/phases'
 import { useStore } from '../store'
 import Help from './Help'
 
-const STEP_ICON = { site: MapPin, volume: Cuboid, program: Layers, plates: PencilRuler, frame: Presentation } as const
+const STEP_ICON = STEP_ICONS
 
 /**
  * The mental map of the design process. Only the current step is lit (lib/step.ts); clicking a step goes to it and to
@@ -38,7 +39,7 @@ export default function ProcessRail() {
     useStore.setState({ announce: `${next.label}: ${nodes.length ? `${nodes.length} check${nodes.length === 1 ? '' : 's'} in your workflow` : 'no checks of your workflow here'}` })
   }
   return (
-    <nav aria-label="Design process" className="stage-fade flex h-9 items-center gap-1 border-b border-line bg-paper px-4 text-[11px]">
+    <nav aria-label="Design process" className="glass-edge stage-fade flex h-10 shrink-0 items-center gap-1 rounded-2xl bg-glass-2 px-3 text-[11px]">
       {PROCESS.map((s, i) => {
         const Icon = STEP_ICON[s.id as keyof typeof STEP_ICON]
         const lit = s.id === step

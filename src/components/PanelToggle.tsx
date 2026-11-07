@@ -9,7 +9,7 @@ const keyOf = (side: Side) => (side === 'left' ? '[' : ']')
 export function PanelRail({ side, label }: { side: Side; label: string }) {
   const Icon = side === 'left' ? PanelLeftOpen : PanelRightOpen
   return (
-    <div className={`flex w-8 shrink-0 flex-col items-center gap-2 bg-panel py-2 ${side === 'left' ? 'border-r' : 'border-l'} border-line`}>
+    <div className="glass-edge flex w-9 shrink-0 flex-col items-center gap-2 rounded-2xl bg-glass-2 py-2">
       <button type="button" onClick={() => togglePanel(side)} aria-label={`Show ${label} (${keyOf(side)})`} title={`Show ${label} (${keyOf(side)})`}
         className="flex h-7 w-7 items-center justify-center rounded text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
         <Icon size={15} aria-hidden />

@@ -50,25 +50,25 @@ export default function App() {
   }, [set, setPhase])
 
   return (
-    <div data-stage={phase} data-reduced={reduced} className="stage-fade flex h-full flex-col bg-paper text-ink">
+    <div data-stage={phase} data-reduced={reduced} className="stage-fade flex h-full flex-col gap-1.5 bg-paper p-1.5 text-ink">
       <TopBar />
       <ProcessRail />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 gap-1.5">
         {/* Left: the design tools in Massing and Schematic (tools/registry.ts), the shot strip in Present. */}
         {panels.left
           ? <aside aria-label={present ? 'Captured shots' : 'Design tools'}
-              className={`panel-slide stage-fade flex shrink-0 flex-col overflow-hidden border-r border-line ${present ? 'w-32 bg-chrome' : 'w-[22rem] bg-panel'}`}>
+              className={`glass-edge panel-slide stage-fade flex shrink-0 flex-col overflow-hidden rounded-2xl ${present ? 'w-32 bg-chrome' : 'w-[22rem] bg-panel'}`}>
               {present ? <Filmstrip /> : <ToolPanel />}
             </aside>
           : <PanelRail side="left" label={present ? 'Shots' : 'Design tools'} />}
-        <main className="flex min-w-0 flex-1">
+        <main className="flex min-w-0 flex-1 gap-1.5">
           {(view === '3d' || view === 'split') && (
-            <div className={view === 'split' ? 'w-1/2 border-r border-line' : 'w-full'}>
+            <div className={`overflow-hidden rounded-2xl border border-white/70 shadow-[0_12px_32px_-16px_rgb(28_58_48/0.3)] ${view === 'split' ? 'w-1/2' : 'w-full'}`}>
               <Suspense fallback={<Loading what="3D view" />}><Viewport /></Suspense>
             </div>
           )}
           {(view === 'canvas' || view === 'split') && (
-            <div className={view === 'split' ? 'w-1/2' : 'w-full'}>
+            <div className={`overflow-hidden rounded-2xl border border-white/70 bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`}>
               <Suspense fallback={<Loading what="node canvas" />}><NodeCanvas /></Suspense>
             </div>
           )}

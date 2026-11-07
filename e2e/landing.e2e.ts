@@ -9,13 +9,17 @@ test('the landing page: say who you are, get starting workflows, start one', asy
   await page.goto('/')
   await expect(page).toHaveURL(/#\/start$/)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('One tower model. Every analysis a node. You decide.')
-  await page.getByTestId('agent-input').fill("I'm a structural engineer checking a tall tower")
+  // The agent asks for the design concept and suggests workflows: one made from the closest nodes, then presets.
+  await expect(page.getByRole('heading', { name: 'What is the concept of your design?' })).toBeVisible()
+  await page.getByTestId('agent-input').fill('A slender tower that keeps the mountain views and gives its ground floor back to the street')
   await page.getByTestId('agent-send').click()
   const cards = page.locator('[data-preset]')
-  await expect(page.getByTestId('landing-presets')).toContainText('Starting workflows for an engineer or consultant')
+  await expect(page.getByTestId('landing-presets')).toContainText('Workflows for your concept', { timeout: 30_000 })
   expect(await cards.count()).toBeGreaterThanOrEqual(3)
-  await expect(page.locator('[role=log]')).toContainText('You sound like an engineer or consultant')
-  // Picking another type by hand gives that type's workflows.
+  await expect(cards.first()).toContainText('From your concept')
+  await expect(page.getByTestId('agent-reply')).toContainText('Your concept reads closest to')
+  await expect(page.getByTestId('composer-summary')).toContainText('From your concept')
+  // Or pick a role: that role's workflows.
   await page.getByTestId('agent-types').getByRole('button', { name: /^Passionate designer/ }).click()
   await expect(page.getByTestId('landing-presets')).toContainText('Starting workflows for a passionate designer')
   expect(await cards.count()).toBeGreaterThanOrEqual(3)

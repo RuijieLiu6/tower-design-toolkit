@@ -3,6 +3,7 @@
 import { FlaskConical, Hammer, Search, Type, Upload, Users, Wand2 } from '../icons'
 import { useMemo, useState, type DragEvent } from 'react'
 import type { NodeDef } from '../../data/registry'
+import GlassIcon, { hueFor, ICON, monogram, nodeHue } from '../GlassIcon'
 import { catalog, STATUS_LABEL, TABS, type Entry, type TabId } from './catalog'
 
 export const DRAG_MIME = 'application/x-tower-studio-node'
@@ -14,17 +15,18 @@ function Tile({ e, onAdd, names, onHover }: { e: Entry; onAdd: (e: Entry) => voi
   const Icon = e.icon
   const researched = e.status === 'researched'
   const onDragStart = (ev: DragEvent) => { ev.dataTransfer.setData(DRAG_MIME, e.ref); ev.dataTransfer.effectAllowed = 'copy' }
+  // The same depth tile as the rest of the toolkit (GlassIcon): a built node lit in its own hue, a researched one as
+  // clear glass with a flask, so what runs stands out by opacity.
   const glyph = (
-    <span className={`relative flex shrink-0 items-center justify-center rounded-md ${names ? 'h-9 w-9 shadow-sm' : 'h-8 w-8'} ${researched ? 'border border-dashed border-slate-400 bg-panel text-slate-500' : 'text-white'}`}
-      style={researched ? undefined : { background: e.color }}>
-      <Icon size={names ? 18 : 16} aria-hidden />
-      {researched && <FlaskConical size={10} className="absolute -bottom-1 -right-1 rounded-full bg-panel text-slate-500" aria-hidden />}
+    <span className="relative flex shrink-0">
+      <GlassIcon icon={researched ? undefined : Icon} mono={researched ? monogram(e.name) : undefined} hue={e.category ? nodeHue(e.ref, e.category) : hueFor(e.name)} size={ICON.tool} level={researched ? 'off' : 'on'} />
+      {researched && <FlaskConical size={11} className="absolute -bottom-0.5 -right-0.5 rounded-full bg-white/90 p-px text-slate-600" aria-hidden />}
     </span>
   )
   return (
     <button draggable onDragStart={onDragStart} onClick={() => onAdd(e)} onMouseEnter={() => onHover(e)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(e)} onBlur={() => onHover(null)}
       title={`${e.name} · ${STATUS_LABEL[e.status]}`} aria-label={`Add ${e.name} (${STATUS_LABEL[e.status]})`}
-      className={`flex shrink-0 cursor-grab items-center rounded-md outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing ${names ? 'w-[76px] flex-col gap-1 px-1 py-1 text-center' : 'p-0.5'}`}>
+      className={`gicon-lift flex shrink-0 cursor-grab items-center rounded-xl outline-none hover:bg-white/40 focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing ${names ? 'w-[76px] flex-col gap-1 px-1 py-1 text-center' : 'p-0.5'}`}>
       {glyph}
       {names && <span className={`line-clamp-2 text-[10px] leading-tight ${researched ? 'text-muted' : 'text-ink'}`}>{e.name}</span>}
     </button>
@@ -88,7 +90,7 @@ export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNode
           </button>
         </div>
       </div>
-      <div id="ribbon-panel" role="tabpanel" aria-label={tabDef.label} className={`flex overflow-x-auto bg-paper ${names ? 'h-[110px]' : 'h-[102px]'}`} style={NO_BAR}>
+      <div id="ribbon-panel" role="tabpanel" aria-label={tabDef.label} className={`flex overflow-x-auto bg-paper ${names ? 'h-[124px]' : 'h-[122px]'}`} style={NO_BAR}>
         {/* Tab caption, or the hovered node, like Grasshopper's status tip. */}
         <div className="flex w-44 shrink-0 flex-col justify-center gap-0.5 border-r border-line px-3">
           {hover ? (

@@ -1,6 +1,6 @@
 // Everything the workflow builder can place: Layer 0 sources, workflow logic, every registry node, and "My nodes".
-import { Box, CircleCheck, CircleX, GitCompareArrows, Layers, MapPin, Package, Scale, Workflow, type LucideIcon } from '../icons'
-import { CATEGORY_ICONS } from '../../data/icons'
+import type { LucideIcon } from '../icons'
+import { CATEGORY_ICONS, LIBRARY_TAB_ICONS, LOGIC_ICONS, NODE_ICONS, SOURCE_ICONS } from '../../data/icons'
 import { ALL_NODES, CATEGORIES, type Category, type NodeDef, type Priority } from '../../data/registry'
 import { LOGIC, SOURCES, type NodeKind } from '../../lib/workflowLogic'
 import { iconFor } from './nodeIcons'
@@ -26,21 +26,19 @@ export const L0_COLOR = '#1f2328'
 export const LOGIC_COLOR = '#2a9d8f'
 export const MINE_COLOR = '#7a4fb5'
 
-const SOURCE_ICONS: Record<string, LucideIcon> = { 'src.site': MapPin, 'src.massing': Box, 'src.program': Layers }
-const LOGIC_ICONS: Record<string, LucideIcon> = { 'logic.all-pass': CircleCheck, 'logic.any-fail': CircleX, 'logic.score': Scale, 'logic.compare': GitCompareArrows }
 
 export const TABS: { id: TabId; label: string; short: string; icon: LucideIcon; color: string }[] = [
-  { id: 'L0', label: 'Layer 0 sources', short: 'Layer 0', icon: Box, color: L0_COLOR },
-  { id: 'LOGIC', label: 'Workflow logic', short: 'Logic', icon: Workflow, color: LOGIC_COLOR },
+  { id: 'L0', label: 'Layer 0 sources', short: 'Layer 0', icon: LIBRARY_TAB_ICONS.L0, color: L0_COLOR },
+  { id: 'LOGIC', label: 'Workflow logic', short: 'Logic', icon: LIBRARY_TAB_ICONS.LOGIC, color: LOGIC_COLOR },
   ...(Object.keys(CATEGORIES) as Category[]).map((c) => ({ id: c, label: CATEGORIES[c].label, short: c, icon: CATEGORY_ICONS[c], color: CATEGORIES[c].color })),
-  { id: 'MINE', label: 'My nodes (imported or built by you)', short: 'My nodes', icon: Package, color: MINE_COLOR },
+  { id: 'MINE', label: 'My nodes (imported or built by you)', short: 'My nodes', icon: LIBRARY_TAB_ICONS.MINE, color: MINE_COLOR },
 ]
 
 export function defEntry(n: NodeDef, community = false): Entry {
   const status: EntryStatus = community || (n.status as string) === 'community' ? 'community' : n.status
   return {
     kind: 'eval', ref: n.id, name: n.name, tab: status === 'community' ? 'MINE' : n.category, status, category: n.category, priority: n.priority, def: n,
-    icon: iconFor(n.name, n.category), color: CATEGORIES[n.category]?.color ?? MINE_COLOR, blurb: n.question,
+    icon: NODE_ICONS[n.id] ?? iconFor(n.name, n.category), color: CATEGORIES[n.category]?.color ?? MINE_COLOR, blurb: n.question,
   }
 }
 

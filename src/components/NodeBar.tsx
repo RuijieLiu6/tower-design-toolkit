@@ -56,7 +56,7 @@ function LibraryPopover({ onClose, anchor }: { onClose: () => void; anchor: RefO
   return (
     <div ref={ref} id="node-library-pop" role="dialog" aria-label="Node library"
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); anchor.current?.focus() } }}
-      className="absolute bottom-full left-2 z-40 mb-2 flex h-[min(70vh,34rem)] w-80 flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-xl">
+      className="absolute bottom-full left-2 z-40 mb-2 flex h-[min(70vh,34rem)] w-80 flex-col overflow-hidden rounded-2xl glass bg-glass-1 shadow-xl">
       <div className="flex items-center justify-between border-b border-line px-3 py-2">
         <h2 className="text-xs font-semibold">Node library</h2>
         <button type="button" onClick={() => { onClose(); anchor.current?.focus() }} aria-label="Close the node library" className="rounded p-0.5 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={14} /></button>
@@ -131,7 +131,7 @@ export default function NodeBar() {
   const t = tip?.n
   const tOn = t ? !!enabled[t.id] : false
   return (
-    <div className="relative z-20 flex h-14 shrink-0 items-center gap-2 border-t border-line bg-panel px-2">
+    <div className="glass-edge relative z-20 flex h-14 shrink-0 items-center gap-2 rounded-2xl bg-glass-2 px-2">
       <button ref={libButton} type="button" onClick={() => setLib((o) => !o)} aria-expanded={lib} aria-controls={lib ? 'node-library-pop' : undefined}
         className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${lib ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>
         <Library size={14} />Library

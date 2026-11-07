@@ -18,7 +18,7 @@ export default function QuickSearch({ at, entries, onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-40" onMouseDown={onClose}>
-      <div role="dialog" aria-label="Find a node" className="absolute w-[360px] overflow-hidden rounded-lg border border-line bg-panel shadow-xl" style={{ left: Math.max(8, left), top: Math.max(8, top) }}
+      <div role="dialog" aria-label="Find a node" className="glass absolute w-[360px] overflow-hidden rounded-lg border border-line bg-panel shadow-xl" style={{ left: Math.max(8, left), top: Math.max(8, top) }}
         onMouseDown={(e) => e.stopPropagation()}>
         <label className="flex items-center gap-2 border-b border-line px-3 py-2">
           <Search size={15} className="text-muted" aria-hidden />

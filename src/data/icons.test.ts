@@ -40,3 +40,25 @@ describe('node icons', () => {
     expect([...communityIcons(ids).values()].filter((v) => v === null)).toHaveLength(1)
   })
 })
+
+// The icon book (Ruijie, 7 Nov: "no repetitive icons"): across every meaning shown as an icon, one drawing per meaning.
+import { CATEGORY_ICONS, FLAG_ICONS, LIBRARY_TAB_ICONS, LOGIC_ICONS, PRESET_ICONS, PROGRAM_ICONS, SOURCE_ICONS, STEP_ICONS, TOOL_ICONS, TYPE_ICONS, WAY_ICONS } from './icons'
+import { STAGES } from './stages'
+import { USER_TYPES } from '../lib/userTypes'
+
+describe('the icon book', () => {
+  const book: [string, Record<string, unknown>][] = [
+    ['category', CATEGORY_ICONS], ['node', NODE_ICONS], ['tool', TOOL_ICONS], ['step', STEP_ICONS], ['stage', Object.fromEntries(STAGES.map((s) => [s.id, s.icon]))],
+    ['type', TYPE_ICONS], ['way', WAY_ICONS], ['preset', PRESET_ICONS], ['use', PROGRAM_ICONS], ['flag', FLAG_ICONS],
+    ['source', SOURCE_ICONS], ['logic', LOGIC_ICONS], ['library tab', LIBRARY_TAB_ICONS],
+  ]
+  it('never gives one drawing two meanings', () => {
+    const seen = new Map<unknown, string[]>()
+    for (const [kind, map] of book) for (const [id, icon] of Object.entries(map)) seen.set(icon, [...(seen.get(icon) ?? []), `${kind}:${id}`])
+    for (const icon of COMMUNITY_ICON_POOL) seen.set(icon, [...(seen.get(icon) ?? []), 'community pool'])
+    expect([...seen.values()].filter((m) => m.length > 1)).toEqual([])
+  })
+  it('has a picture for every preset workflow', () => {
+    expect(USER_TYPES.flatMap((t) => t.presets).filter((p) => !PRESET_ICONS[p.id]).map((p) => p.id)).toEqual([])
+  })
+})

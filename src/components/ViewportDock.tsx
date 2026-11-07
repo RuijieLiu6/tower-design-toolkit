@@ -105,7 +105,7 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
   if (!open) {
     return (
       <button type="button" aria-expanded={false} aria-controls="vp-dock" onClick={() => useDock.setState({ open: true })}
-        className={`absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-md border border-r-0 border-line px-1.5 py-2.5 text-[11px] font-medium text-ink shadow-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}
+        className={`glass absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-md border border-r-0 border-line px-1.5 py-2.5 text-[11px] font-medium text-ink shadow-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}
         title="Show the layers panel">
         <Layers size={15} aria-hidden />
         <span style={{ writingMode: 'vertical-rl' }}>Layers</span>
