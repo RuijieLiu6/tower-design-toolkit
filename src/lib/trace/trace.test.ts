@@ -117,7 +117,7 @@ describe('recording iterations and decisions', () => {
     const its = useTrace.getState().iterations
     expect(its.length).toBe(MAX_ITERATIONS)
     expect(its.some((i) => i.id === kept)).toBe(true)
-  })
+  }, 30_000) // over a hundred full recomputations: under a loaded machine the default 5 s timed out (7 Nov)
 })
 
 describe('trace in the project file', () => {
