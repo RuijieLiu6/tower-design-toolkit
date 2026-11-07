@@ -91,6 +91,8 @@ export interface NatureContext {
   fourthStoreyTop?: number | null; faces?: { z0: number; z1: number; length: number; wwr: number }[] | null
   /** The Facade node's treated share of glass in the bird zone (0–1), used when the ledger's own is not entered. */
   facadeTreated?: number | null
+  /** Real Vancouver: whether the towers rise into a Queen Elizabeth Park cone (3.2.x), from the view-cone check; null when uncertain. */
+  qeFromCones?: boolean | null
 }
 
 
@@ -133,7 +135,9 @@ const judge = (ok: boolean | null, force: Force): RuleState => (ok === null ? 'u
 export function cityInNature(input0: NatureInput, siteArea: number | null, coneOverall: string[] | null, ctx: NatureContext = {}): NatureResult {
   // One treated share for both nodes (node audit, 7 Nov): the Facade node's, when the ledger's own is not entered.
   const fromFacade = input0.birdTreatedPct === null && ctx.facadeTreated != null
-  const input = fromFacade ? { ...input0, birdTreatedPct: ctx.facadeTreated! * 100 } : input0
+  // The QE Park answer from the view-cone check on Real Vancouver, when the ledger's own is not answered.
+  const fromCones = input0.entersQEView === null && ctx.qeFromCones != null
+  const input = { ...input0, ...(fromFacade ? { birdTreatedPct: ctx.facadeTreated! * 100 } : {}), ...(fromCones ? { entersQEView: ctx.qeFromCones! } : {}) }
   const rows: NatureRow[] = []
   const share = (m2: number | null) => (m2 === null || !siteArea ? null : (m2 / siteArea) * 100)
 
@@ -264,6 +268,7 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     value: input.entersQEView === null ? 'not answered' : input.entersQEView ? 'enters, via the Higher Buildings pathway' : 'stays clear', entered: input.entersQEView === null ? null : true,
     threshold: 'entry is a pathway with the PVG 3.4 checklist and a skyline case, not a failure', state: input.entersQEView === null ? 'unknown' : input.entersQEView ? 'warn' : 'pass',
     force: 'voluntary_guideline', flag: 'verified', source: { ...S.hbpr, page: 'p.9' },
+    ...(fromCones ? { note: 'From the View-cone height check (QE Park cones 3.2.1–3.2.4, estimates; the City View Cone Assessment governs).' } : {}),
   })
 
   const eligible = siteArea === null ? null : siteArea >= 8000

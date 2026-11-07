@@ -100,3 +100,19 @@ describe('one treated share for City in Nature and the Facade node (node audit, 
     expect(bird({}, null).value).toBe('not entered')
   })
 })
+
+describe('the QE Park view answered by the view-cone check on Real Vancouver (node audit, 7 Nov)', () => {
+  const qe = (patch: Partial<NatureInput>, qeFromCones: boolean | null | undefined) => cityInNature({ ...DEFAULT_NATURE, ...patch }, 11225, null, { qeFromCones }).rows.find((r) => r.id === 'qe-view')!
+  it('uses the cones when the ledger is not answered, and keeps a typed answer', () => {
+    expect(qe({}, true)).toMatchObject({ value: 'enters, via the Higher Buildings pathway', state: 'warn' })
+    expect(qe({}, true).note).toMatch(/View-cone height check/)
+    expect(qe({}, false)).toMatchObject({ value: 'stays clear', state: 'pass' })
+    expect(qe({}, null)).toMatchObject({ value: 'not answered', state: 'unknown' })
+    expect(qe({}, undefined)).toMatchObject({ value: 'not answered' })
+    expect(qe({ entersQEView: false }, true)).toMatchObject({ value: 'stays clear' })
+  })
+  it('says what to do when the tower enters the view', async () => {
+    const { fixFor } = await import('../lib/fixes')
+    expect(fixFor('qe-view', 'warn', 'enters, via the Higher Buildings pathway')).toMatch(/pathway, not a failure/)
+  })
+})

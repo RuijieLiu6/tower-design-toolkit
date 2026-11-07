@@ -13,7 +13,17 @@ import { FlagChip, Section, StateChip } from './ui'
 import { U } from './Units'
 
 /** The ledger for the current design; cones come from the view-cone results in Real Vancouver. */
-export function useNature(cones: { overall: string }[] | null) {
+type ConeResult = { overall: string; checks?: { cone: { id: string }; state: string }[] }
+/** Whether the towers rise into a Queen Elizabeth Park cone (3.2.x): true above, false clear or below, null when uncertain. */
+export function qeFromCones(cones: ConeResult[] | null): boolean | null | undefined {
+  if (!cones || !cones.some((c) => c.checks)) return undefined
+  const qe = cones.flatMap((c) => (c.checks ?? []).filter((k) => k.cone.id.startsWith('3.2.')))
+  if (qe.some((k) => k.state === 'above')) return true
+  if (qe.some((k) => k.state === 'within_uncertainty')) return null
+  return false
+}
+
+export function useNature(cones: ConeResult[] | null) {
   const input = useStore((s) => s.cityInNature)
   const project = useStore((s) => s.project)
   const towers = useTowers()
@@ -21,7 +31,7 @@ export function useNature(cones: { overall: string }[] | null) {
   const site = useProjectSiteArea()
   const facadeTreated = useFacadeStore((s) => s.treated)
   return useMemo(() => cityInNature(input, site.area, project === 'city' && cones ? cones.map((c) => c.overall) : null,
-    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, facadeTreated }), [input, project, cones, towers, facade, site.area, facadeTreated])
+    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, facadeTreated, qeFromCones: project === 'city' ? qeFromCones(cones) : undefined }), [input, project, cones, towers, facade, site.area, facadeTreated])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */
@@ -79,7 +89,7 @@ function Row({ r, children }: { r: NatureRow; children?: ReactNode }) {
   )
 }
 
-export default function NatureLedger({ cones }: { cones: { overall: string }[] | null }) {
+export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) {
   const n = useNature(cones)
   const input = useStore((s) => s.cityInNature)
   const project = useStore((s) => s.project)
