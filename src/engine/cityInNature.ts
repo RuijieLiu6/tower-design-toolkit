@@ -87,7 +87,11 @@ export function fourthStoreyTop(floorsPerTower: { z1: number }[][]): number | nu
   const tops = floorsPerTower.filter((f) => f.length).map((f) => f[Math.min(3, f.length - 1)].z1)
   return tops.length ? Math.max(...tops) : null
 }
-export interface NatureContext { fourthStoreyTop?: number | null; faces?: { z0: number; z1: number; length: number; wwr: number }[] | null }
+export interface NatureContext {
+  fourthStoreyTop?: number | null; faces?: { z0: number; z1: number; length: number; wwr: number }[] | null
+  /** The Facade node's treated share of glass in the bird zone (0–1), used when the ledger's own is not entered. */
+  facadeTreated?: number | null
+}
 
 
 export interface NatureRow {
@@ -126,7 +130,10 @@ const judge = (ok: boolean | null, force: Force): RuleState => (ok === null ? 'u
  * @param siteArea site area in m² (null when the project has no site polygon, e.g. Real Vancouver)
  * @param coneOverall worst view-cone state per tower in Real Vancouver (null on the competition site, where cones aren't modelled)
  */
-export function cityInNature(input: NatureInput, siteArea: number | null, coneOverall: string[] | null, ctx: NatureContext = {}): NatureResult {
+export function cityInNature(input0: NatureInput, siteArea: number | null, coneOverall: string[] | null, ctx: NatureContext = {}): NatureResult {
+  // One treated share for both nodes (node audit, 7 Nov): the Facade node's, when the ledger's own is not entered.
+  const fromFacade = input0.birdTreatedPct === null && ctx.facadeTreated != null
+  const input = fromFacade ? { ...input0, birdTreatedPct: ctx.facadeTreated! * 100 } : input0
   const rows: NatureRow[] = []
   const share = (m2: number | null) => (m2 === null || !siteArea ? null : (m2 / siteArea) * 100)
 
@@ -211,7 +218,7 @@ export function cityInNature(input: NatureInput, siteArea: number | null, coneOv
     value: input.birdTreatedPct === null ? 'not entered' : pct(input.birdTreatedPct), entered: input.birdTreatedPct === null ? null : true,
     threshold: '≥ 85% (Toronto EC 5.1); 90% UBC Tier 1 as a stretch', state: judge(input.birdTreatedPct === null ? null : input.birdTreatedPct >= 85, 'comparator_other_jurisdiction'),
     force: 'comparator_other_jurisdiction', flag: 'verified', source: { ...S.tgs, page: 'EC 5.1' },
-    note: 'Vancouver’s Bird Friendly Design Guidelines (2015, amended 2017) encourage treatment but set no percentage; the line comes from Toronto.',
+    note: `${fromFacade ? 'From the Facade node’s treated share. ' : ''}Vancouver’s Bird Friendly Design Guidelines (2015, amended 2017) encourage treatment but set no percentage; the line comes from Toronto.`,
   })
 
   // Bird-friendly glazing zone and lighting (P05-M05): Vancouver's zone from the storeys, glazing from the facade node.

@@ -89,3 +89,14 @@ describe('rainwater and bird-friendly glazing (P05-M04, P05-M05)', () => {
     expect(claims).toMatch(/0–1 m/)
   })
 })
+
+describe('one treated share for City in Nature and the Facade node (node audit, 7 Nov)', () => {
+  it('reads the Facade node’s share when the ledger’s own is not entered, and says so', () => {
+    const bird = (patch: Partial<NatureInput>, facadeTreated: number | null) => cityInNature({ ...DEFAULT_NATURE, ...patch }, SITE.area, null, { facadeTreated }).rows.find((r) => r.id === 'bird')!
+    expect(bird({}, 0.9)).toMatchObject({ value: '90%', state: 'pass' })
+    expect(bird({}, 0.9).note).toMatch(/^From the Facade node/)
+    expect(bird({ birdTreatedPct: 50 }, 0.9)).toMatchObject({ value: '50%' })
+    expect(bird({ birdTreatedPct: 50 }, 0.9).note).not.toMatch(/Facade node/)
+    expect(bird({}, null).value).toBe('not entered')
+  })
+})

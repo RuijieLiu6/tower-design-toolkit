@@ -6,6 +6,7 @@ import { DIRECTIONS, FORCE_LABEL, cityInNature, fourthStoreyTop, isBinding, type
 import { towerFloors } from '../engine/massing'
 import { useFacade } from '../hooks/useFacade'
 import { siteAreaNote, useProjectSiteArea } from '../lib/siteArea'
+import { useFacadeStore } from '../lib/facadeStore'
 import { useStore, useTowers } from '../store'
 import { CardChip } from './RuleCardView'
 import { FlagChip, Section, StateChip } from './ui'
@@ -18,8 +19,9 @@ export function useNature(cones: { overall: string }[] | null) {
   const towers = useTowers()
   const facade = useFacade()
   const site = useProjectSiteArea()
+  const facadeTreated = useFacadeStore((s) => s.treated)
   return useMemo(() => cityInNature(input, site.area, project === 'city' && cones ? cones.map((c) => c.overall) : null,
-    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces }), [input, project, cones, towers, facade, site.area])
+    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, facadeTreated }), [input, project, cones, towers, facade, site.area, facadeTreated])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */
