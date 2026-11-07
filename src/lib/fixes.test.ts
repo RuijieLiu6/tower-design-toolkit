@@ -104,5 +104,7 @@ describe('public realm instructions match their rule (node audit, 7 Nov)', () =>
     expect(fixFor('pr-variation', 'warn', '100.0 m of unbroken facade')).toMatch(/45\.7 m/)
     expect(fixFor('pr-variation', 'warn', '100.0 m')).not.toMatch(/tower heights/)
     expect(fixFor('pr-crossings', 'fail', '1 on the retail high street')).toMatch(/local streets/)
+    expect(fixFor('pr-continuity-south', 'fail', '0% within 1 m')).toMatch(/property line/)
+    expect(fixFor('pr-podium-south', 'fail', '30 m')).toMatch(/streetwall height/)
   })
 })

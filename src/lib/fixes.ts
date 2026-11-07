@@ -79,7 +79,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^pr-dim/, 'Keep the tower\'s longest side within 29 m (Massing).'],
   [/^pr-slender/, 'Make the tower more slender: a narrower plate, or taller.'],
   [/^pr-stepback$/, 'Step the tower back from the streetwall (move or narrow the tower block).'],
-  [/^pr-(podium|continuity)/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
+  // Node audit (7 Nov): continuity is how much of the podium face sits on the property line, not its height.
+  [/^pr-continuity/, 'Bring the podium face to the property line along more of this street (move or widen the podium block in Massing).'],
+  [/^pr-podium/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
   [/^(north|south|east|west)$/, 'Set the streetwall height within this street\'s band (the podium block\'s height in Massing).'],
   // Node audit (7 Nov): this said "Vary the tower heights", but S2.2.1 asks for plane changes along the street.
   [/^pr-variation$/, 'Break the long facade with a step of 1.5 m or more at least every 45.7 m (stacked blocks in Massing), and show it on the boards.'],
