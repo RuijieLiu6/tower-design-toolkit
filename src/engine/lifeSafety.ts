@@ -134,7 +134,11 @@ export interface LifeSafetyResult {
   rules: RuleResult[]
 }
 
-export interface LifeSafetyInput { transitLink: boolean; liftPresets: Pick<LiftPresets, 'homeM2' | 'hotelM2PerKey' | 'servicesM2'>; presets?: SystemsPresets }
+export interface LifeSafetyInput {
+  transitLink: boolean; liftPresets: Pick<LiftPresets, 'homeM2' | 'hotelM2PerKey' | 'servicesM2'>; presets?: SystemsPresets
+  /** Pedestrian entrances on the street frontage (the public realm frontage input, competition site), when known. */
+  entrances?: number | null
+}
 
 const r1 = (v: number) => Math.round(v * 10) / 10
 const fmt = (v: number) => Math.round(v).toLocaleString()
@@ -293,7 +297,10 @@ export function lifeSafety(t: Tower, lifts: LiftResult, egress: EgressResult, in
     item('3.8.2.2.(5)', { id: 'bf-transit', label: 'Step-free route from the transit link', value: link ? 'show a step-free route from the station link to the lifts' : 'no link declared', threshold: 'continuous, link included', state: link ? 'warn' : 'pass', flag: U, source: { ...VBBL_38, page: '3.8.2.2.(5)' },
       note: 'The walkway rule is applied to the link by analogy: code consultant to confirm.' }),
     item('team', { id: 'bf-redundancy', label: 'Two accessible lifts per group', value: singles.length ? `${singles.map((r) => r.label).join(', ')}: one car` : 'every local group has 2 or more cars', threshold: 'at least 2 per group, so one lift out of service leaves a route', state: singles.length ? 'warn' : 'pass', flag: 'team_assumption', source: { label: 'Team redundancy assumption (not a code value; research P11-M07)' } }),
-    item('3.8.2.2.(1)', { id: 'bf-entrances', label: 'Barrier-free entrances', value: 'entrances are not in the model yet', threshold: 'the principal entrance and at least 50% of pedestrian entrances', state: 'warn', flag: U, source: { ...VBBL_38, page: '3.8.2.2.(1)' } }),
+    // Node audit (7 Nov): the frontage input already counts the entrances on each street (competition site).
+    item('3.8.2.2.(1)', { id: 'bf-entrances', label: 'Barrier-free entrances',
+      value: input.entrances ? `${input.entrances} pedestrian entrances on the frontage (team input): the principal one and at least ${Math.ceil(input.entrances / 2)} barrier-free` : 'entrances are not in the model yet',
+      threshold: 'the principal entrance and at least 50% of pedestrian entrances', state: 'warn', flag: U, source: { ...VBBL_38, page: '3.8.2.2.(1)' } }),
     item('3.8.2.7', { id: 'bf-power-doors', label: 'Power door operators', value: has('hotel') || has('retail') ? 'hotel or commercial entrances present' : 'no hotel or commercial entrances', threshold: 'every entrance serving a hotel or a qualifying commercial use', state: has('hotel') || has('retail') ? 'warn' : 'pass', flag: U, source: { ...VBBL_38, page: '3.8.2.7' },
       note: 'BCBC 2024 asks for operators at every entrance (provincial reference only).' }),
     item('3.8.2.8.(3)', { id: 'bf-washroom', label: 'Universal washroom on the entrance storey', value: 'not in the model: provide one', threshold: 'provided, sized to 3.8.3.12', state: 'warn', flag: U, source: { ...VBBL_38, page: '3.8.2.8.(3), 3.8.3.12' } }),

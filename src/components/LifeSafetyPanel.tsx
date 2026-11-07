@@ -19,7 +19,9 @@ export function useLifeSafety(): LifeSafetyResult[] {
   const transitLink = useStore((s) => s.transitLink)
   const liftPresets = useStore((s) => s.liftPresets)
   const presets = useStore((s) => s.systemsPresets) ?? DEFAULT_SYSTEMS_PRESETS
-  return useMemo(() => lifts.map((l, i) => lifeSafety(l.tower, l, egress[i], { transitLink, liftPresets, presets })), [lifts, egress, transitLink, liftPresets, presets])
+  // The competition site's frontage input counts the entrances on each street (Program step › Ground & public realm).
+  const entrances = useStore((s) => (s.project === 'vtc' ? Object.values(s.publicRealm.frontage).reduce((n, f) => n + f.entrances, 0) : null))
+  return useMemo(() => lifts.map((l, i) => lifeSafety(l.tower, l, egress[i], { transitLink, liftPresets, presets, entrances })), [lifts, egress, transitLink, liftPresets, presets, entrances])
 }
 
 function Row({ r }: { r: ChecklistItem | RuleResult }) {

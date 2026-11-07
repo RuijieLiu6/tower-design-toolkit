@@ -54,7 +54,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.vtc-rules': vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : [],
     'built.core-lifts': lifts.map((l) => l.rules),
     'built.egress': egress.map((e) => e.rules),
-    'built.life-safety': towers.map((t, k) => lifeSafety(t, lifts[k], egress[k], { transitLink: i.transitLink, liftPresets: i.liftPresets, presets: i.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS }).rules),
+    'built.life-safety': towers.map((t, k) => lifeSafety(t, lifts[k], egress[k], { transitLink: i.transitLink, liftPresets: i.liftPresets, presets: i.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS, entrances: vtc ? Object.values(i.publicRealm.frontage).reduce((n, f) => n + f.entrances, 0) : null }).rules),
     'built.sky-room': towers.map((t, k) => skyRoomCheck(t, lifts[k], egress[k], i.egressPresets, i.liftPresets).rules),
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : [],

@@ -111,3 +111,15 @@ describe('plant, risers and emergency power (P11-M03)', () => {
     expect(new Set(r.occupancy.map((o) => o.group)).size).toBe(r.occupancy.length) // one row per group: hotel and homes are both Group C
   })
 })
+
+describe('barrier-free entrances read the frontage input (node audit, 7 Nov)', () => {
+  it('counts the entrances half of which must be barrier-free, and says so when none are known', () => {
+    const s = useStore.getState()
+    const t = s.towers.vtc[0] ?? (s.addTower(), useStore.getState().towers[useStore.getState().project][0])
+    const lifts = liftCheck(t, s.liftPresets, s.egressPresets), egress = egressCheck(t, s.egressPresets, s.liftPresets)
+    const row = (entrances: number | null) => lifeSafety(t, lifts, egress, { transitLink: false, liftPresets: s.liftPresets, entrances }).rules.find((r) => r.id.startsWith('bf-entrances'))!
+    expect(row(21).value).toBe('21 pedestrian entrances on the frontage (team input): the principal one and at least 11 barrier-free')
+    expect(row(null).value).toBe('entrances are not in the model yet')
+    expect(row(21).state).toBe('warn')
+  })
+})
