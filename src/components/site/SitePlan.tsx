@@ -6,7 +6,8 @@ import type { Tower } from '../../engine/types'
 
 type Pt = [number, number]
 
-export default function SitePlan({ ring, towers, northDeg = 0, selected, size = 96, label }: { ring: Pt[]; towers: Tower[]; northDeg?: number; selected?: string; size?: number; label: string }) {
+/** `marks`: extra outlines on the plan (a check's result, e.g. Open space & links' POPS rectangle), in the project frame. */
+export default function SitePlan({ ring, towers, northDeg = 0, selected, size = 96, label, marks = [] }: { ring: Pt[]; towers: Tower[]; northDeg?: number; selected?: string; size?: number; label: string; marks?: { ring: Pt[]; fill: string; stroke: string }[] }) {
   const fps = towers.map((t) => ({ id: t.id, ring: towerFootprint(t, true) as Pt[] }))
   const pts = [...ring, ...fps.flatMap((f) => f.ring)]
   if (pts.length < 3) return null
@@ -20,6 +21,7 @@ export default function SitePlan({ ring, towers, northDeg = 0, selected, size = 
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label} data-testid="site-plan" className="shrink-0 rounded-md border border-line bg-[#f7f5f0]">
       <path d={path(ring)} className="fill-accent/10 stroke-accent" strokeWidth={1.2} strokeDasharray="4 2" />
+      {marks.map((m, i) => <path key={`m${i}`} d={path(m.ring)} fill={m.fill} stroke={m.stroke} strokeWidth={0.8} />)}
       {fps.map((f) => <path key={f.id} d={path(f.ring)} className={f.id === selected ? 'fill-accent stroke-accent' : 'fill-slate-400 stroke-slate-600'} strokeWidth={0.6} />)}
       <g transform={`translate(${size - 11} 12) rotate(${northDeg})`} aria-hidden>
         <path d="M0 -8 L3.5 3 L0 1 L-3.5 3 Z" className="fill-ink" />

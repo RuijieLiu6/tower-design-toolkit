@@ -629,7 +629,7 @@ export function groundPlaneCheck(towers: Tower[], input: PublicRealmInput, cross
 const LARGE_SITE = 8000
 
 /** The study site in its own frame: centred, turned so its longest side runs along x (axis-aligned rectangles fit it). */
-export function siteFrame(ring: Pt[]): { toLocal: (p: Pt) => Pt; angle: number; centre: Pt } {
+export function siteFrame(ring: Pt[]): { toLocal: (p: Pt) => Pt; toWorld: (p: Pt) => Pt; angle: number; centre: Pt } {
   let best = 0, angle = 0
   ring.forEach((a, i) => {
     const b = ring[(i + 1) % ring.length], l = Math.hypot(b[0] - a[0], b[1] - a[1])
@@ -637,11 +637,13 @@ export function siteFrame(ring: Pt[]): { toLocal: (p: Pt) => Pt; angle: number; 
   })
   const centre: Pt = [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length]
   const c = Math.cos(-angle), sn = Math.sin(-angle)
-  return { angle, centre, toLocal: ([x, y]) => { const dx = x - centre[0], dy = y - centre[1]; return [dx * c - dy * sn, dx * sn + dy * c] } }
+  const cw = Math.cos(angle), sw = Math.sin(angle)
+  return { angle, centre, toLocal: ([x, y]) => { const dx = x - centre[0], dy = y - centre[1]; return [dx * c - dy * sn, dx * sn + dy * c] },
+    toWorld: ([x, y]) => [centre[0] + x * cw - y * sw, centre[1] + x * sw + y * cw] }
 }
 
 /** Open ground inside a study site (any polygon): area, built footprint and the largest clear rectangle in the site's frame. */
-export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: number): OpenSpace & { siteArea: number } {
+export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: number): OpenSpace & { siteArea: number; largestRing: Pt[] | null } {
   const f = siteFrame(ring)
   const R = ring.map(f.toLocal)
   const ms = masses(towers).map((m) => m.poly.map(f.toLocal))
@@ -673,7 +675,9 @@ export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: numb
     }
   }
   const cell = cx * cy, area = open * cell, siteArea = siteCells * cell
-  return { open: area, publicArea: area * Math.max(0, Math.min(1, openPublicShare)), largest, transitPlaza: false, built: siteArea - area, siteArea }
+  const L = largest as OpenSpace['largest']
+  const largestRing = L ? ([[L.x0, L.y0], [L.x1, L.y0], [L.x1, L.y1], [L.x0, L.y1]] as Pt[]).map(f.toWorld) : null
+  return { open: area, publicArea: area * Math.max(0, Math.min(1, openPublicShare)), largest, transitPlaza: false, built: siteArea - area, siteArea, largestRing }
 }
 
 /**
@@ -681,13 +685,15 @@ export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: numb
  * from their nodes; the link, block perimeter, transit plaza and station lines need the site's streets and its station
  * entrance, which the Toolkit does not know for a Real Vancouver site yet (one open line).
  */
-export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: PublicRealmInput, cross: GroundCross = {}): { rules: RuleResult[]; open: OpenSpace | null; link: null; longestGap: number } {
-  if (!towers.length) return { rules: [], open: null, link: null, longestGap: 0 }
+export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: PublicRealmInput, cross: GroundCross = {}): { rules: RuleResult[]; open: OpenSpace | null; link: null; longestGap: number; pops: Pt[] | null } {
+  if (!towers.length) return { rules: [], open: null, link: null, longestGap: 0, pops: null }
   const rules: RuleResult[] = []
+  let popsRing: Pt[] | null = null
   if (!ring || ring.length < 3) {
     rules.push(rule({ id: 'pr-open-share', label: 'Public open space on the site', value: 'needs a site area', threshold: '≥ 20% of site area on a large site', state: 'unknown', flag: 'unresolved', source: cddg('S1.9.1 and glossary') }))
   } else {
     const os = cityOpenSpace(towers, ring, input.openPublicShare)
+    popsRing = os.largestRing
     const A = os.siteArea, share = os.publicArea / A, large = A >= LARGE_SITE
     rules.push(rule({
       id: 'pr-open-share', label: 'Public open space on the site', value: `${Math.round(share * 100)}% (${fmt(os.publicArea)} m² of ${fmt(A)} m²)`,
@@ -719,7 +725,8 @@ export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: 
   }))
   rules.push(sunLine(cross.solar))
   rules.push(windLine(cross.wind))
-  return { rules, open: null, link: null, longestGap: 0 }
+  // The open field stays null so the 3D overlay (drawn for the competition block) skips Real Vancouver; pops is for the panel's plan.
+  return { rules, open: null, link: null, longestGap: 0, pops: popsRing }
 }
 
 /** Uses that count as active at grade when nothing else is entered (for display only). */

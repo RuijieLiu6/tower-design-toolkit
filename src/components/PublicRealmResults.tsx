@@ -6,6 +6,7 @@ import type { RuleResult, RuleState } from '../engine/types'
 import { useResults } from '../hooks/useResults'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, StateChip } from './ui'
+import StudyPlan from './site/SitePlan'
 import { U } from './Units'
 
 const STATE_COLOR: Record<RuleState, string> = { pass: '#2e8b57', warn: '#d98b1c', fail: '#d0453a', unknown: '#8a8f98' }
@@ -68,11 +69,14 @@ export default function PublicRealmResults({ id }: { id: string }) {
   const { streetwall, frontage, groundPlane } = useResults()
   const input = useStore((s) => s.publicRealm)
   const project = useStore((s) => s.project)
+  const citySite = useStore((s) => s.citySite)
+  const towers = useTowers()
   // Real Vancouver: Streetwall & tower form runs its tower rules (no street needed); the street rules and the other two
   // public realm nodes wait for the study site's streets (node audit, 7 Nov).
   if (project !== 'vtc' && id === 'built.pr-streetwall' && streetwall) {
     return (
       <Section title="Results">
+        {citySite && <div className="mb-1 flex justify-center"><StudyPlan ring={citySite.ring as [number, number][]} towers={towers} size={200} label="Plan of the study site with the towers" /></div>}
         <p className="mb-2 text-[11px] text-muted">The tower rules, which need no street. The streetwall rules need this site's street types and widths, not yet in the Toolkit: they run on the competition site.</p>
         <div className="grid gap-2">{streetwall.rules.map((r) => <Card key={r.id} r={r} />)}</div>
       </Section>
@@ -89,7 +93,9 @@ export default function PublicRealmResults({ id }: { id: string }) {
   if (project !== 'vtc' && id === 'built.pr-ground' && groundPlane) {
     return (
       <Section title="Results">
-        <p className="mb-2 text-[11px] text-muted">Open space over your study site, and sun and wind from their nodes. The link, block perimeter, transit plaza and station lines need this site's streets and station entrance, not yet in the Toolkit: they run on the competition site.</p>
+        {citySite && <div className="mb-1 flex justify-center"><StudyPlan ring={citySite.ring as [number, number][]} towers={towers} size={200} label="Plan of the study site with the towers and the largest clear rectangle of open ground"
+          marks={'pops' in groundPlane && groundPlane.pops ? [{ ring: groundPlane.pops, fill: 'rgb(60 141 90 / 0.3)', stroke: '#3c8d5a' }] : []} /></div>}
+        <p className="mb-2 text-[11px] text-muted">Green: the largest clear rectangle of open ground (the POPS candidate). Sun and wind come from their nodes. The link, block perimeter, transit plaza and station lines need this site's streets and station entrance, not yet in the Toolkit: they run on the competition site.</p>
         <div className="grid gap-2">{groundPlane.rules.map((r) => <Card key={r.id} r={r} />)}</div>
       </Section>
     )
