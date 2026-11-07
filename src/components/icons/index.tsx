@@ -321,3 +321,9 @@ export const BelowGrade = make('BelowGrade', p('M9.5 11V3.5H14.5V11M2.5 11H21.5M
 export const TowerStack = make('TowerStack', p('M7.5 20.5V3.5H16.5V20.5M4 20.5H20M7.5 8H16.5M7.5 12.5H16.5M7.5 16.5H16.5'))
 /** Core & floors: a floor plate with its core and a lift shaft. */
 export const CorePlan = make('CorePlan', square + p('M9.5 9.5H14.5V14.5H9.5ZM9.5 9.5L14.5 14.5M14.5 9.5L9.5 14.5'))
+
+// Drawn for the landing page's research figures (components/landing/figures), where nothing above fits the meaning.
+/** Model in CAD: a desktop screen with a model on it (the separate drawing program of the old workflow). */
+export const Monitor = make('Monitor', p('M3.5 4.5H20.5V16H3.5ZM12 16V19.5M7.5 19.5H16.5M12 6.8L15 8.3V11.7L12 13.2L9 11.7V8.3ZM9 8.3L12 9.8L15 8.3M12 9.8V13.2'))
+/** Design development: a drafting compass (facade, systems and details drawn out). */
+export const DraftingCompass = make('DraftingCompass', '<circle cx="12" cy="5.5" r="1.8"/>' + p('M12 2V3.7M11.2 7.1L5.5 20.5M12.8 7.1L18.5 20.5M6.8 15.6C10 17.8 14 17.8 17.2 15.6'))

@@ -4,13 +4,13 @@
 // them around", after spacetypegenerator.com/clutter). The name, giant, on the site's own backdrop; the toolkit's own
 // icons (GlassIcon, the drawn tool icons first) drift around it, nudge each other, bounce off the edges, and can be
 // picked up and thrown. One frame loop moves them by transform only, and stops while the intro is off screen. Under
-// reduced motion they stay still (and can still be dragged). The name itself is the way in (BoostTitle.tsx).
+// reduced motion they stay still (and can still be dragged). The name itself is the way in (GlassTitle.tsx).
 // Quieter since (Ruijie, 7 Nov: "too much things going on in the cover page … the users could also get to explore the
 // moveable nodes by accident"): fewer, smaller, lighter tiles that wander slowly round the edges, kept clear of the name,
 // there to be bumped into and found out.
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { LucideIcon } from '../icons'
-import BoostTitle from './BoostTitle'
+import GlassTitle from './GlassTitle'
 import { BelowGrade, Cone, CorePlan, Sprout, TowerHeight, TowerOnSite, TowerSun } from '../icons'
 import GlassIcon, { HUES } from '../GlassIcon'
 
@@ -136,7 +136,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           <GlassIcon icon={f.icon} hue={f.hue} size={sizes[i]} level="soft" />
         </div>
       ))}
-      <BoostTitle onEnter={enter} still={still} />
+      <GlassTitle onEnter={enter} still={still} />
     </section>
   )
 }
