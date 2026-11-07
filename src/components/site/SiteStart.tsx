@@ -5,7 +5,7 @@
 // 4 Nov (Ruijie): the neighbourhood list ("Or start from a neighbourhood") is gone; the names on the map do its job.
 // 6 Nov (Ruijie): the actions are icons with a key word under each (Replace, Combine, Upload, Next), the full name and
 // what each does on hover (components/IconTile.tsx), like the design tools.
-import { ArrowRight, Combine, FileUp, MousePointerClick } from '../icons'
+import { ArrowRight, Combine, Crosshair, FileUp, MousePointerClick } from '../icons'
 import type { Pt } from '../../engine/site'
 import { tell, useSiteStep } from '../../lib/siteActions'
 import { useSiteStore } from '../../lib/siteStore'
@@ -19,6 +19,7 @@ import { SolarAreaControls } from '../SolarArea'
 import Help from '../Help'
 import IconTile from '../IconTile'
 import { nodeOn } from '../../lib/analysis'
+import { openCity } from '../../lib/openCity'
 
 const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
 
@@ -75,9 +76,26 @@ function CityStart() {
     <>
       <Step n="1" title="Type an address" help="Type a street address or a neighbourhood. Place site here takes the City parcel at the address; Move Study tower here moves the tower without changing the site."><AddressSearch onPlace={onPlace} bare /></Step>
       <Step n="2" title="Or pick on the map" help={<PickOnMapHelp />}><PickOnMap /></Step>
+      <DefaultSite />
       <SunArea />
       <SiteFooter />
     </>
+  )
+}
+
+/**
+ * The default Real Vancouver site in one click, when there is no study site yet (node audit, 7 Nov: the app can open on
+ * Real Vancouver with no site, and the default site only came with the switch from the competition site, so every
+ * check that needs a site area stayed open). The same action as that switch: one undo step.
+ */
+function DefaultSite() {
+  const site = useStore((s) => s.citySite)
+  if (site) return null
+  return (
+    <Step n="3" title="Or start from the default site">
+      <IconTile size="sm" icon={Crosshair} word="Default" label="Use the default site" data-testid="use-default-site" onClick={() => openCity([600, 2000])}
+        hint="The Granville / W Pender / Howe / Dunsmuir block, chosen by the 6 Nov research as a likely Higher Buildings Policy site (whether it lies inside the policy's Figure 1 area is unresolved). With no tower here yet, the competition design comes along, turned to the street grid. Ctrl+Z undoes it." />
+    </Step>
   )
 }
 

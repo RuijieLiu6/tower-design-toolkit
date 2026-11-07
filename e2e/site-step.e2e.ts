@@ -75,7 +75,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   // 1. A first open with nothing saved: the Site step alone is lit, Real Vancouver is open, the Site tool leads.
   const rail = page.getByRole('navigation', { name: 'Design process' })
   await expect(rail.getByRole('button', { name: 'Site' })).toHaveAttribute('aria-current', 'step')
-  await expect(rail.getByRole('button', { name: 'Form' })).not.toHaveAttribute('aria-current', 'step')
+  await expect(rail.getByRole('button', { name: /^Form/ })).not.toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Program' })).not.toHaveAttribute('aria-current', 'step')
   await expect(page.getByRole('tablist', { name: 'Project' }).getByRole('tab', { name: 'Real Vancouver' })).toHaveAttribute('aria-selected', 'true')
   // 5 Nov (Ruijie): no Real Vancouver / Competition choice inside the Site tool; the project is the top bar's switch.
@@ -104,7 +104,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await page.getByRole('option', { name: /777 Homer St/ }).click()
   await palette.getByRole('button', { name: 'Place site here' }).click()
   await expect(summary(page)).toContainText('777 Homer St', { timeout: 30_000 })
-  await expect(summary(page)).toContainText(/existing buildings? shown as demolished/)
+  await expect(summary(page)).toContainText(/\d+ replaced/) // the count with its icon; "shown as demolished" is its hover title (7 Nov)
   await page.screenshot({ path: join(SHOTS, '02-address-placed.png'), ...SHOT })
   // The site as it stands is the right panel's Your site tab (5 Nov), opened by itself in the Site step.
   await expect(page.getByRole('tab', { name: 'Your site' })).toHaveAttribute('aria-selected', 'true')
@@ -163,7 +163,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   // 4a. Replace this building (no site yet: its footprint becomes the site), then Undo from the note.
   await menu(page).getByRole('menuitem', { name: /Replace this building/ }).click()
   await expect(toast(page)).toContainText('shown as demolished')
-  await expect(summary(page)).toContainText('1 existing building shown as demolished')
+  await expect(summary(page)).toContainText('1 replaced')
   await toast(page).getByRole('button', { name: 'Undo' }).click()
   await expect(summary(page)).toHaveCount(0)
 
@@ -176,20 +176,20 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(bar).toContainText('2 buildings selected')
   await page.screenshot({ path: join(SHOTS, '05-select-several.png'), ...SHOT })
   await bar.getByRole('button', { name: /Done/ }).click()
-  await expect(summary(page)).toContainText('2 existing buildings shown as demolished')
+  await expect(summary(page)).toContainText('2 replaced')
   await toast(page).getByRole('button', { name: 'Undo' }).click()
   await expect(summary(page)).toHaveCount(0)
 
   // 4c. Use this lot, then add the next lot: two lots combined along their shared lot line; the context changes.
   await openMenu(homer)
   await menu(page).getByRole('menuitem', { name: /Use this lot as the site/ }).click()
-  await expect(summary(page)).toContainText('(1 City lot joined)')
+  await expect(summary(page)).toContainText(/1 lot(?!s)/)
   await openMenu(georgia)
   await expect(menu(page)).toContainText(`Lot at ${GEORGIA.label}`)
   await menu(page).getByRole('menuitem', { name: /Add this lot to the site/ }).click()
   await expect(toast(page)).toContainText(/Lot added: site [\d,]+ m² from 2 lots/)
-  await expect(summary(page)).toContainText('(2 City lots joined)')
-  await expect(summary(page)).toContainText(/\d+ existing buildings shown as demolished/)
+  await expect(summary(page)).toContainText(/2 lots/)
+  await expect(summary(page)).toContainText(/\d+ replaced/)
   await expect(summary(page)).toContainText(`${HOMER.label}; ${GEORGIA.label}`)
   await page.waitForTimeout(2500)
   await page.screenshot({ path: join(SHOTS, '06-two-lots-combined.png'), ...SHOT })
@@ -197,9 +197,9 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   // 4d. Remove a lot again, and Undo brings the two-lot site back.
   await openMenu(georgia)
   await menu(page).getByRole('menuitem', { name: /Remove this lot from the site/ }).click()
-  await expect(summary(page)).toContainText('(1 City lot joined)')
+  await expect(summary(page)).toContainText(/1 lot(?!s)/)
   await toast(page).getByRole('button', { name: 'Undo' }).click()
-  await expect(summary(page)).toContainText('(2 City lots joined)')
+  await expect(summary(page)).toContainText(/2 lots/)
 
   // 4e. Draw a box over lots: every lot it touches joins (one block).
   await openMenu(homer)
@@ -210,7 +210,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   for (let k = 1; k <= 6; k++) await page.mouse.move(homer.x - 15 + ((georgia.x - homer.x + 30) * k) / 6, homer.y + 15 + ((georgia.y - homer.y - 30) * k) / 6)
   await page.mouse.up()
   await expect(toast(page)).toContainText(/lots? selected by the box/, { timeout: 30_000 })
-  await expect(summary(page)).toContainText(/City lots? joined/)
+  await expect(summary(page)).toContainText(/\d+ lots?/)
   await page.screenshot({ path: join(SHOTS, '07-box-over-lots.png'), ...SHOT })
 
   // 4f. Build the massing here: with no tower yet, the first tower is placed at the click, lined up with the lot, at
@@ -228,7 +228,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
 
   // 5. On to Volume: the massing tools lead there, and the step bar lights Volume alone.
   await palette.getByRole('button', { name: /Next: Form/ }).click()
-  await expect(rail.getByRole('button', { name: 'Form' })).toHaveAttribute('aria-current', 'step')
+  await expect(rail.getByRole('button', { name: /^Form/ })).toHaveAttribute('aria-current', 'step')
   await expect(rail.getByRole('button', { name: 'Site' })).not.toHaveAttribute('aria-current', 'step')
   await expect(page.locator('[data-tool]').first()).toHaveAttribute('data-tool', 'towers')
   // Past Site, the site and the Rhino import leave the panel (Ruijie, 6 Nov).

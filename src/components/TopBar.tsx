@@ -1,5 +1,6 @@
 import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, ListChecks, LockKeyhole, Network, PlayCircle, Scale, Waves, Workflow } from './icons'
 import { showIntro } from '../lib/intro'
+import { openCity } from '../lib/openCity'
 import { STAGES } from '../data/stages'
 import { captureShot } from '../lib/capture'
 import { navigate } from '../lib/route'
@@ -10,29 +11,6 @@ import { UnitSelect } from './Units'
 import { RoleSelect } from './RolePicker'
 import { useStore, type ProjectKind, type ViewMode } from '../store'
 import { useShallow } from 'zustand/react/shallow'
-
-/**
- * Real Vancouver in one click (Ruijie, 6 Nov): with no site there yet, the default site (lib/defaultSite.ts) and the
- * competition design on it, then the view frames it. Loaded on demand, so the first screen stays light.
- */
-function openCity() {
-  void import('../lib/defaultSite').then(({ openInRealVancouver }) => {
-    const r = openInRealVancouver()
-    if (!r.site && !r.towers) return
-    // The city view opens on its overview first; frame the site once it has (and again, in case it was still loading).
-    void Promise.all([import('./VistaLook'), import('../lib/towerPosition')]).then(([{ flyToFit }, { useTowerPosition }]) => {
-      const frame = () => {
-        const st = useStore.getState(), ring = st.citySite?.ring ?? [], g = st.groundElevation
-        if (st.project !== 'city' || !ring.length) return
-        if (useTowerPosition.getState().on) { useTowerPosition.setState((p) => ({ frame: p.frame + 1, locked: true })); return }
-        const top = Math.max(0, ...st.towers.city.map((t) => t.height))
-        flyToFit([...ring.map(([x, y]) => [x, y, g] as [number, number, number]), [ring[0][0], ring[0][1], g + top]], 300)
-      }
-      setTimeout(frame, 1500)
-      setTimeout(frame, 3500)
-    })
-  })
-}
 
 const PROJECTS: { id: ProjectKind; label: string; hint: string }[] = [
   { id: 'vtc', label: 'Competition site', hint: 'Hypothetical VTC block with the supplied context model' },
