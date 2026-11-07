@@ -191,3 +191,15 @@ describe('Open space & links on Real Vancouver', () => {
     expect(cityGroundPlaneCheck([], ring, input).rules).toEqual([])
   })
 })
+
+import { cityFrontageCheck, groundStoreyRule } from './publicRealm'
+describe('Active frontage on Real Vancouver', () => {
+  it('checks the ground storey height and leaves the street lines open', () => {
+    const r = cityFrontageCheck([vtc]).rules
+    expect(r.map((x) => x.id)).toEqual(['pr-streets-frontage', 'pr-ground-height'])
+    expect(r[0]).toMatchObject({ state: 'unknown', flag: 'unresolved' })
+    expect(r[1]).toEqual(groundStoreyRule([vtc]))
+    expect(frontageCheck([vtc], input).rules.find((x) => x.id === 'pr-ground-height')).toEqual(groundStoreyRule([vtc]))
+    expect(cityFrontageCheck([]).rules).toEqual([])
+  })
+})

@@ -14,7 +14,7 @@ import { CITY_ORIGIN } from '../../store'
 import { liftCheck, type LiftPresets } from '../../engine/lifts'
 import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
-import { cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type PublicRealmInput } from '../../engine/publicRealm'
+import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type PublicRealmInput } from '../../engine/publicRealm'
 import { skyRoomCheck } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import type { Tower } from '../../engine/types'
@@ -59,7 +59,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.life-safety': towers.map((t, k) => lifeSafety(t, lifts[k], egress[k], { transitLink: i.transitLink, liftPresets: i.liftPresets, presets: i.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS, entrances: vtc ? Object.values(i.publicRealm.frontage).reduce((n, f) => n + f.entrances, 0) : null }).rules),
     'built.sky-room': towers.map((t, k) => skyRoomCheck(t, lifts[k], egress[k], i.egressPresets, i.liftPresets).rules),
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers).rules : [],
-    'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : [],
+    'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm).rules : [],
     'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).faces }),
     'built.wind-procedure': wind.map((w) => w.rules),

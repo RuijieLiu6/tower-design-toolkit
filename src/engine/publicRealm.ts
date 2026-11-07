@@ -450,14 +450,35 @@ export function frontageCheck(towers: Tower[], input: PublicRealmInput): { rules
     threshold: 'vehicle access from the lane or a side street, none across the retail high street or arterial', state: bad.length ? 'fail' : 'pass', flag: 'verified', source: cddg('G2.10.1; Transportation 2040 W 1.1.6'),
     note: 'The block is consolidated (no lane), so access belongs on the local streets. Brief p.16: servicing and loading should minimise their impact on pedestrians.',
   }))
+  rules.push(groundStoreyRule(towers))
+  return { rules, edges }
+}
+
+/** Ground storey height for active uses (S2.7.1): needs no street, so it runs on both projects. */
+export function groundStoreyRule(towers: Tower[]): RuleResult {
   const pod = towers.filter((t) => t.podiumHeight > 0)
   const groundF2F = pod.length ? Math.min(...pod.map((t) => towerFloors(t).find((f) => f.podium)?.z1 ?? t.f2f)) : Math.min(...towers.map((t) => t.f2f))
-  rules.push(rule({
+  return rule({
     id: 'pr-ground-height', label: 'Ground storey height for active uses', value: `${f1(groundF2F)} m floor to floor`,
     threshold: '4.6–6.1 m', state: groundF2F >= 4.6 - 1e-6 && groundF2F <= 6.1 + 1e-6 ? 'pass' : 'warn', flag: 'verified', source: cddg('S2.7.1'),
     note: groundF2F < 4.6 ? 'Lower than the active-use range: raise the ground storey (a taller podium base or one fewer podium floor).' : groundF2F > 6.1 ? 'Taller than the range: explain a mezzanine or a double-height use.' : 'Tall enough for shopfronts and mezzanines.',
-  }))
-  return { rules, edges }
+  })
+}
+
+/** Active frontage on Real Vancouver (node audit, 7 Nov): the ground storey height; the street lines open until typed. */
+export function cityFrontageCheck(towers: Tower[]): { rules: RuleResult[]; edges: EdgeFrontage[] } {
+  if (!towers.length) return { rules: [], edges: [] }
+  return {
+    edges: [],
+    rules: [
+      rule({
+        id: 'pr-streets-frontage', label: 'Active frontage, entrances, weather protection and driveways by street', value: 'need the study site’s street types',
+        threshold: 'active share by street type; entrances about every 8–12 m; no driveways on retail or arterial streets', state: 'unknown', flag: 'unresolved', source: cddg('S2.5, S2.6, G2.10.1'),
+        note: 'These run on the competition site, whose streets are typed. A Real Vancouver site’s streets are not typed in the Toolkit yet.',
+      }),
+      groundStoreyRule(towers),
+    ],
+  }
 }
 
 // ---------- M03 + M04: open space and links ----------

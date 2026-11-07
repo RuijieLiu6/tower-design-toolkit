@@ -78,6 +78,14 @@ export default function PublicRealmResults({ id }: { id: string }) {
       </Section>
     )
   }
+  if (project !== 'vtc' && id === 'built.pr-frontage' && frontage) {
+    return (
+      <Section title="Results">
+        <p className="mb-2 text-[11px] text-muted">The ground storey height, which needs no street. The street lines need this site's street types, not yet in the Toolkit: they run on the competition site.</p>
+        <div className="grid gap-2">{frontage.rules.map((r) => <Card key={r.id} r={r} />)}</div>
+      </Section>
+    )
+  }
   if (project !== 'vtc' && id === 'built.pr-ground' && groundPlane) {
     return (
       <Section title="Results">

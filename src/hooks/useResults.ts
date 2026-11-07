@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { egressCheck } from '../engine/egress'
 import { liftCheck } from '../engine/lifts'
-import { cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
+import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
 import { skyRoomCheck } from '../engine/skyRoom'
 import { overall } from '../engine/viewCones'
 import { checkTowerCones } from '../engine/towerCones'
@@ -64,7 +64,7 @@ export function useResults() {
     const vtc = project === 'vtc' && towers.length > 0
     // Real Vancouver: the tower-form lines only, the street lines open until the study site's streets are typed.
     const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers) : null
-    const frontage = vtc ? frontageCheck(towers, publicRealm) : null
+    const frontage = vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers) : null
     const cross = { solar: solarLines, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }
     // Real Vancouver: open space over the study site, sun and wind; the street and station lines open (engine/publicRealm.ts).
     const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross) : null
