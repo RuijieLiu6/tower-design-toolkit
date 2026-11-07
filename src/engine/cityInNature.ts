@@ -129,7 +129,7 @@ const COVER: Partial<Record<SiteType, number>> = { A: 30, B: 40 }
 const judge = (ok: boolean | null, force: Force): RuleState => (ok === null ? 'unknown' : ok ? 'pass' : isBinding(force) ? 'fail' : 'warn')
 
 /**
- * @param siteArea site area in m² (null when the project has no site polygon, e.g. Real Vancouver)
+ * @param siteArea site area in m² (lib/siteArea.ts: the competition block, or the Real Vancouver study site; null before one is chosen)
  * @param coneOverall worst view-cone state per tower in Real Vancouver (null on the competition site, where cones aren't modelled)
  */
 export function cityInNature(input0: NatureInput, siteArea: number | null, coneOverall: string[] | null, ctx: NatureContext = {}): NatureResult {

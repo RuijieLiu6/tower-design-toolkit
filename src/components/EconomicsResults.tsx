@@ -63,7 +63,7 @@ export default function EconomicsResults() {
           </label>
           {landPrice == null && (r.landCurrent != null
             ? <p className="text-[10px] text-muted">Estimate: current-zoning FSR {presets.currentZoningFsr.value} × {money(presets.landRate.value)}/buildable m² × site {Math.round(siteArea ?? 0).toLocaleString()} m² = {money(r.landCurrent)} (PVV pack, grades B and C).</p>
-            : <p className="text-[10px] text-muted">No site area in this project, so no land estimate: enter a land price to get a verdict.</p>)}
+            : <p className="text-[10px] text-muted">No study site yet, so no land estimate: choose one in the Site step, or enter a land price to get a verdict.</p>)}
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeRegional} onChange={() => set({ includeRegional: !includeRegional })} />Include Metro Vancouver and TransLink charges (not in the PVV pack)</label>
         </div>
       </Section>
