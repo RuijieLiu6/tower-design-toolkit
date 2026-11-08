@@ -1,18 +1,15 @@
-// The whole-project workflow, along the bottom of the workspace (Ruijie, 8 Nov: "you should still have the overview
-// workflow underneath with option to expand and rearrange the node order, which will be reflected on the corresponding
-// workflow panels on the left"). One strip, three states:
-//   Compact   one slim row: every tool in order with its phase dot, the open tool in blue, the current phase's tools
-//             underlined in its colour, ↻ on a tool that returns to an earlier one.
-//   Expanded  opens upward (the model stays in view): the main line, branches on a second row, return paths arcing
-//             above; Fit to see it all. It edits directly (Ruijie, 8 Nov: "when you click on Expand … you can drag and
-//             click and add new nodes"): drag a tool to a gap to reorder it; the row under it lists every tool not
-//             in the workflow, to drag into a gap or click; every add asks first (AddConfirm.tsx), reordering doesn't.
-//   Edit      insertion points to drag a tool to, connection handles, Add node, Move before / after, Connect to…,
-//             Remove, Reconnect, the assistant's proposals, Undo / Redo, Save as preset, Done.
-// It is the same project workflow as the phase panels on the left (PhasePanel.tsx) and the start page
-// (lib/workflow/projectWorkflow.ts): a tool moved here moves there at once, and the other way round. Each keeps its own
-// layout (this one: lib/workflow/dockLayout.ts). Outside Edit a tool opens in its phase (a design node its tools, a
-// check its settings and results); nothing is switched on or off and nothing runs. Nothing here touches the model.
+// Overview: the whole project workflow, on demand (overnight brief, 8 Nov: "Remove the permanent bottom whole-workflow
+// strip. Provide one Overview action that opens the complete editable workflow on demand. Closing Overview restores the
+// previous tool, camera and working state"). It opens from the phase row over the workspace (the model is not resized,
+// so the camera never moves) and shows the same five phase lanes as the landing page: every tool in working order from
+// left to right, in its phase's lane, return paths as dashed arcs.
+//   Directly: click a tool to select it (Open in workspace takes you there); drag it to a gap to move it; drag a tool
+//             from the Add tools row into a lane and gap, or click it (every add asks first: AddConfirm.tsx).
+//   Edit:     Move before / after, Connect to… (a return path when the target is earlier; "Create loop" shows on valid
+//             targets), connection handles, Remove, Reconnect, the assistant's proposals, Save as preset, Undo / Redo.
+// Close (or Esc) returns to the design: the phase, each phase's open tool and the results shown are restored.
+// It edits the same project workflow as the phase panels and the start page (lib/workflow/projectWorkflow.ts); each keeps
+// its own layout (this one: lib/workflow/dockLayout.ts columns, phase lanes). Nothing here runs a check or touches the model.
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Expand, Link2, PencilLine, Play, Plus, Redo2, Save, Search, Sparkles, Trash2, Undo2, Workflow, X } from '../icons'
@@ -32,11 +29,11 @@ import { DESIGN_NODES, designForStep, designNode } from '../../lib/workflow/desi
 import { homePhase, PHASE_IDS, PHASE_NAME, PHASE_STEP, STEP_PHASE, usePhaseTools } from '../../lib/workflow/phaseTools'
 import { AddConfirm } from './AddConfirm'
 import { dockLayout } from '../../lib/workflow/dockLayout'
-import { addNode, connect, disconnect, edgeDiff, moveNode, removeNode, runOrder, useProjectWorkflow, wouldLoop } from '../../lib/workflow/projectWorkflow'
+import { addNode, connect, disconnect, edgeDiff, moveNode, openOverview, removeNode, runOrder, useProjectWorkflow, wouldLoop } from '../../lib/workflow/projectWorkflow'
 import { saveMyPreset } from '../../lib/workflow/myPresets'
 import { interpret } from '../../lib/agent/workflowAssistant'
 
-const COL = 96, ROW = 74, TILE = 40, SMALL = 30
+const COL = 104, LANE = 78, TILE = 40, GUT = 8
 const BUILT = new Map(BUILT_NODES.map((n) => [n.id, n]))
 const CAT_PHASE: Partial<Record<Category, PhaseId>> = { SITE: 'site', DATA: 'site', CLIM: 'form', ECOL: 'form', PROG: 'program', PUBL: 'program', MOBI: 'program', STRC: 'schematic', SYST: 'schematic', SPAC: 'schematic', ENER: 'schematic', CULT: 'present', PRES: 'present' }
 
@@ -57,21 +54,29 @@ export function useInfo() {
   }, [packages])
 }
 
-export default function WorkflowDock() {
+export default function WorkflowOverview() {
   const w = useProjectWorkflow()
-  const { selectedNode, selectNode } = useStore(useShallow((s) => ({ selectedNode: s.selectedNode, selectNode: s.selectNode })))
   const step = useStep((s) => s.step)
   const phase = STEP_PHASE[step]
   const activeHere = usePhaseTools((s) => s.active[phase])
-  usePhaseTools((s) => s.placed) // a tool moved to another phase re-renders the strip
+  usePhaseTools((s) => s.placed) // a tool moved to another phase re-renders the lanes
+  const selectedNode = useStore((s) => s.selectedNode)
   const info = useInfo()
+  // Full scale by default, so tool names stay readable (14 px); Fit shrinks the whole workflow into view.
   const [fit, setFit] = useState(false)
+  const box = useRef<HTMLElement>(null)
 
   // The workflow is the landing page's too: read it when the workspace opens and whenever the landing page closes.
   useEffect(() => {
     w.load()
     return useIntro.subscribe((s, p) => { if (p.show && !s.show) useProjectWorkflow.getState().load() })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const shown = w.mode !== 'compact'
+  // focus moves into Overview when it opens, and back to the Overview button when it closes
+  useEffect(() => {
+    if (shown) box.current?.querySelector<HTMLElement>('[data-testid="overview-close"]')?.focus()
+    else if (document.activeElement === document.body) document.querySelector<HTMLElement>('[data-testid="phase-overview"]')?.focus()
+  }, [shown])
 
   const board: Board = w.proposal ?? w.wf
   const order = useMemo(() => runOrder(board), [board])
@@ -84,84 +89,26 @@ export default function WorkflowDock() {
     return null
   }, [activeHere, step, selectedNode, board])
 
-  // Outside Edit, a tool opens where it lives: its phase, then its tools (a design node) or its results (a check).
-  const open = (id: string) => {
+  // Open in workspace: Overview closes without restoring, and the tool opens in its phase.
+  const openTool = (id: string) => {
+    openOverview('close', { keep: true })
     const d = designNode(id)
     const ph = d?.phase ?? homeOf(id)
     goToStep(PHASE_STEP[ph])
     usePhaseTools.getState().setActive(ph, id)
-    if (!d) selectNode(id)
+    if (!d) useStore.getState().selectNode(id)
   }
-  const expanded = w.mode !== 'compact'
-  const btn = 'flex items-center gap-1 rounded-lg bg-panel px-2.5 py-1.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
-
+  if (!shown) return null
   return (
-    <section aria-label="Whole workflow" data-testid="workflow-dock" data-mode={w.mode}
-      className="glass-edge relative flex shrink-0 flex-col rounded-xl bg-panel" onKeyDown={(e) => { if (e.key === 'Escape' && expanded) { e.stopPropagation(); w.setMode(w.mode === 'edit' ? 'overview' : 'compact') } }}>
-      {expanded && <Expanded info={info} order={order} board={board} current={current} open={open} fit={fit} setFit={setFit} />}
-      <div className="flex h-14 items-center gap-2 px-2">
-        <span className="flex shrink-0 items-center gap-1 text-meta text-muted" title="Every phase's tools, in the order you work through them">
-          <Workflow size={14} aria-hidden /><span className="hidden xl:inline">Whole workflow</span>
-        </span>
-        {expanded ? <span className="min-w-0 flex-1" /> : <CompactRow info={info} order={order} board={board} current={current} phase={phase} editing={w.editing} onPick={open}
-          onMark={(k) => { w.setMode('overview'); w.setEdge(k) }} />}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          {!expanded
-            ? <button type="button" onClick={() => w.setMode('overview')} aria-expanded={false} data-testid="dock-overview" title="Expand: the whole workflow" className={btn}><ChevronUp size={15} aria-hidden />Expand</button>
-            : <button type="button" onClick={() => w.setMode('compact')} aria-expanded data-testid="dock-collapse" title="Collapse to one row (Esc)" className={btn}><ChevronDown size={15} aria-hidden />Collapse</button>}
-          {w.mode !== 'edit'
-            ? <button type="button" onClick={() => w.setMode('edit')} data-testid="dock-edit" title="Rearrange the tools, change connections and return paths" className={btn}><PencilLine size={15} aria-hidden />Edit</button>
-            : <button type="button" onClick={() => w.setMode('overview')} data-testid="dock-done"
-                className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-control text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Check size={15} aria-hidden />Done</button>}
-        </div>
-      </div>
+    <section ref={box} role="dialog" aria-modal="true" aria-labelledby="overview-title" data-testid="workflow-overview" data-mode={w.mode}
+      className="absolute inset-0 z-40 flex flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-float"
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') return
+        e.stopPropagation()
+        if (w.mode === 'edit') w.setMode('overview'); else openOverview('close')
+      }}>
+      <Expanded info={info} order={order} board={board} current={current} open={openTool} fit={fit} setFit={setFit} />
     </section>
-  )
-}
-
-/** The compact row: every tool small with its short word; the open tool in blue; the current phase underlined. */
-function CompactRow({ info, order, board, current, phase, editing, onPick, onMark }: {
-  info: (id: string) => Info; order: string[]; board: Board; current: string | null; phase: PhaseId; editing: string | null
-  onPick: (id: string) => void; onMark: (edgeKey: string) => void
-}) {
-  const row = useRef<HTMLOListElement>(null)
-  const layout = useMemo(() => dockLayout(board), [board])
-  useEffect(() => {
-    if (!current) return
-    row.current?.querySelector<HTMLElement>(`[data-dock-id="${CSS.escape(current)}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [current])
-  if (!order.length) return <p className="min-w-0 flex-1 text-meta text-muted">No workflow yet: add tools in a phase panel (Add tool), open Edit here, or choose one on the start page.</p>
-  return (
-    <ol ref={row} aria-label="Workflow steps, in order" className="flex min-w-0 flex-1 items-center overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }} data-testid="dock-row">
-      {order.map((id, i) => {
-        const n = info(id), ph = designNode(id)?.phase ?? homeOf(id), here = ph === phase
-        const returns = layout.edges.filter((e) => e.kind === 'return' && e.a === id), branch = layout.at.get(id)?.row === 1
-        const cur = current === id
-        return (
-          <li key={id} className="flex shrink-0 items-center" data-phase={ph}>
-            {i > 0 && <span aria-hidden className="mx-0.5 flex items-center text-muted"><span className="block h-px w-2.5 bg-current" /><ArrowRight size={11} /></span>}
-            <span className="relative flex flex-col items-center">
-              <button type="button" onClick={() => onPick(id)} data-node={id} data-dock-id={id} data-selected={cur ? '' : undefined} data-current={cur ? '' : undefined}
-                aria-current={cur ? 'step' : undefined} aria-label={`${n.name}, ${PHASE_NAME[ph]}${n.design ? ': open its tools' : ': open its settings and results'}${cur ? ' (open)' : ''}`}
-                title={`${PHASE_NAME[ph]} / ${n.name}`}
-                className={`node-hit flex w-[5.5rem] flex-col items-center gap-0.5 rounded-lg px-0.5 py-0.5 outline-none ${cur ? 'bg-selected' : 'hover:bg-subtle'} ${editing === id ? 'outline-2 outline-dashed outline-ink' : ''}`}>
-                <NodeTile id={id} size={SMALL - 4} art={<NodeArtwork id={id} size={Math.round((SMALL - 4) * 0.9)} category={n.category} />} />
-                <span className={`flex max-w-full items-center gap-1 truncate text-meta leading-tight ${cur ? 'font-semibold text-accent-hover' : 'text-ink'}`}>
-                  <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[ph].accent }} />{n.word}
-                </span>
-              </button>
-              {here && <span aria-hidden className="absolute inset-x-2 -bottom-1 h-[3px] rounded-full" style={{ background: PHASE_COLOR[ph].accent }} />}
-              {returns.length > 0 && (
-                <button type="button" onClick={() => onMark(returns[0].key)} data-loop-mark={returns[0].key}
-                  aria-label={`Return path from ${n.name} to ${info(returns[0].b).name}: show it`} title={`Returns to ${info(returns[0].b).name}`}
-                  className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-line bg-panel px-0.5 text-meta leading-none text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">↻{returns.length > 1 ? returns.length : ''}</button>
-              )}
-              {branch && <span aria-label="On a branch" title="On a branch: expand to see it" className="absolute -left-1 -top-1 rounded-full border border-line bg-panel px-1 text-meta leading-none text-muted">⑂</span>}
-            </span>
-          </li>
-        )
-      })}
-    </ol>
   )
 }
 
@@ -181,6 +128,7 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
   const edit = w.mode === 'edit'
   const layout = useMemo(() => dockLayout(board), [board])
   const box = useRef<HTMLDivElement>(null)
+  const [scrollY, setScrollY] = useState(0)
   const [avail, setAvail] = useState(1200)
   useEffect(() => {
     const el = box.current
@@ -189,11 +137,21 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
     ro.observe(el); setAvail(el.clientWidth)
     return () => ro.disconnect()
   }, [])
-  const top = 18 + layout.levels * 16
-  const W = layout.cols * COL, H = top + layout.rows * ROW + 6
+  // Opening: the open tool scrolled into view.
+  useEffect(() => {
+    if (current) box.current?.querySelector<HTMLElement>(`[data-dock-node="${CSS.escape(current)}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const top = 26 + layout.levels * 12
+  const W = GUT + layout.cols * COL, H = top + PHASE_IDS.length * LANE
   // Fit: the whole workflow in the panel width, never smaller than labels can be read at; then it scrolls.
   const scale = fit ? Math.max(0.62, Math.min(1, avail / W)) : 1
-  const pos = (id: string) => { const p = layout.at.get(id); return p ? { x: p.col * COL + COL / 2, y: top + p.row * ROW + TILE / 2 + 4 } : null }
+  // Each tool in its phase's lane (where it was put, else its home); Start and End beside the first and last tool.
+  const laneOf = (id: string): number => {
+    if (id === 'start') return order.length ? laneOf(order[0]) : 0
+    if (id === 'enter') return order.length ? laneOf(order[order.length - 1]) : PHASE_IDS.length - 1
+    return PHASE_IDS.indexOf(designNode(id)?.phase ?? homeOf(id))
+  }
+  const pos = (id: string) => { const p = layout.at.get(id); return p ? { x: GUT + p.col * COL + COL / 2, y: top + laneOf(id) * LANE + TILE / 2 + 6 } : null }
 
   // ---- edit interactions: drag to an insertion point, draw a connection from a handle, reconnect a selected one
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; gap: number | null } | null>(null)
@@ -201,15 +159,18 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
   const [reconnect, setReconnect] = useState<string | null>(null)
   const press = useRef<{ id: string; x: number; y: number } | null>(null)
   const local = (e: { clientX: number; clientY: number }) => { const r = box.current!.getBoundingClientRect(); return { x: (e.clientX - r.left + box.current!.scrollLeft) / scale, y: (e.clientY - r.top + box.current!.scrollTop) / scale } }
-  const gapAt = (x: number) => Math.max(1, Math.min(layout.cols - 1, Math.round(x / COL)))
+  const gapAt = (x: number) => Math.max(1, Math.min(layout.cols - 1, Math.round((x - GUT) / COL)))
+  const laneAt = (y: number): PhaseId => PHASE_IDS[Math.max(0, Math.min(PHASE_IDS.length - 1, Math.floor((y - top + 6) / LANE)))]
   const nodeAt = (e: { clientX: number; clientY: number }) => (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest<HTMLElement>('[data-dock-node]')?.dataset.dockNode ?? null
   const before = (gap: number) => [...layout.at.entries()].find(([, p]) => p.col === gap)?.[0] ?? 'enter'
 
   // ---- adding from the tray: drag a tool into a gap, or click it; either way it waits for a confirmation
-  const [pending, setPending] = useState<{ id: string; after: string } | null>(null)
-  const [newDrag, setNewDrag] = useState<{ id: string; x: number; y: number; gap: number | null } | null>(null)
+  const [pending, setPending] = useState<{ id: string; after: string; phase: PhaseId } | null>(null)
+  const [newDrag, setNewDrag] = useState<{ id: string; x: number; y: number; gap: number | null; lane: PhaseId | null } | null>(null)
   const prevOf = (gap: number) => [...layout.at.entries()].find(([, p]) => p.col === gap - 1)?.[0] ?? 'start'
   const inBox = (e: { clientX: number; clientY: number }) => { const r = box.current?.getBoundingClientRect(); return !!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom }
+  // a tool added by click goes to the phase of the tool it follows (its own phase when it goes first)
+  const phaseAfter = (id: string, after: string): PhaseId => (after === 'start' ? homeOf(id) : designNode(after)?.phase ?? homeOf(after))
   const fallbackAfter = () => { const ed0 = w.editing && board.nodes.includes(w.editing) ? w.editing : null; return ed0 ?? (current && board.nodes.includes(current) ? current : order[order.length - 1] ?? 'start') }
   const startNew = (id: string, e: RPointerEvent) => {
     if (e.button !== 0) return
@@ -218,13 +179,14 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
     const move = (ev: PointerEvent) => {
       if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return
       moved = true
-      setNewDrag({ id, x: ev.clientX, y: ev.clientY, gap: inBox(ev) ? gapAt(local(ev).x) : null })
+      const inside = inBox(ev), q = local(ev)
+      setNewDrag({ id, x: ev.clientX, y: ev.clientY, gap: inside ? gapAt(q.x) : null, lane: inside ? laneAt(q.y) : null })
     }
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up)
       setNewDrag(null)
-      if (!moved) setPending({ id, after: fallbackAfter() }) // a click
-      else if (inBox(ev)) setPending({ id, after: prevOf(gapAt(local(ev).x)) })
+      const after = !moved ? fallbackAfter() : inBox(ev) ? prevOf(gapAt(local(ev).x)) : null
+      if (after) setPending({ id, after, phase: moved ? laneAt(local(ev).y) : phaseAfter(id, after) }) // a click, or a drop in a lane
     }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
   }
@@ -232,9 +194,8 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
     if (!pending) return
     const { id, after } = pending, b = w.wf
     const next = after === 'start' ? insertAfter({ nodes: b.nodes, edges: b.edges.length ? b.edges : linear([]) }, id, 'start') : addNode(b, id, after)
-    // it shows in the phase panel of the tool it follows (its own phase when it goes first)
-    usePhaseTools.getState().place(id, after === 'start' ? homeOf(id) : designNode(after)?.phase ?? homeOf(after))
-    w.commit(next, `${info(id).name} added after ${after === 'start' ? 'the start' : info(after).name}${designNode(id) ? '' : '; its check is on'}`)
+    usePhaseTools.getState().place(id, designNode(id)?.phase ?? pending.phase)
+    w.commit(next, `${info(id).name} added to ${PHASE_NAME[pending.phase]} after ${after === 'start' ? 'the start' : info(after).name}${designNode(id) ? '' : '; its check is on'}`)
     setPending(null)
   }
   const pendingGap = pending ? (pending.after === 'start' ? 1 : (layout.at.get(pending.after)?.col ?? layout.cols - 2) + 1) : null
@@ -266,7 +227,7 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
     if (s) pick(s.id)
   }
   const pick = (id: string) => {
-    if (!edit) { open(id); return }
+    if (!edit) { w.setEditing(w.editing === id ? null : id); return }
     if (link) {
       if (id !== link.from && id !== 'start') w.commit(connect(board, link.from, id), wouldLoop(board, link.from, id) ? `Loop created: ${info(link.from).name} returns to ${info(id).name}` : `Connected ${info(link.from).name} to ${id === 'enter' ? 'the end' : info(id).name}`)
       setLink(null); return
@@ -288,12 +249,18 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
   const addedNodes = w.proposal ? w.proposal.nodes.filter((x) => !w.wf.nodes.includes(x)) : []
 
   return (
-    <div className="border-b border-line" data-testid="dock-expanded">
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="dock-expanded">
       {/* the bar: what is selected and what can be done with it */}
-      <div className="flex flex-wrap items-center gap-2 px-3 pt-2 text-control">
-        <h2 className="text-control font-semibold text-ink">{edit ? 'Edit workflow' : 'Whole workflow'}</h2>
+      <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5 text-control">
+        <h2 id="overview-title" className="text-section font-semibold text-ink">{edit ? 'Edit the project workflow' : 'Project workflow'}</h2>
         <Help label="About the workflow">The order you work in, the same workflow as on the start page and in the phase panels on the left: a change here shows there at once. Click a tool to open it; drag it to a gap to move it. To add a tool, drag it from the row under the workflow into a gap, or click it: you confirm before it is added, and you can change where it goes. Edit adds more: Move before / after, connect tools (back to an earlier one makes a return path), remove one, Undo and Redo, the assistant, Save as preset. A return path is a route for revisiting work: it never reruns anything on its own. Taking a tool off never deletes your model or its results.</Help>
-        {!edit && !ed && !sel && <span className="text-meta text-muted" data-testid="dock-hint">Drag a tool to move it · drag one up from the row below, or click it, to add it</span>}
+        {!edit && !ed && !sel && <span className="text-meta text-muted" data-testid="dock-hint">Click a tool to select it · drag it to move it · add tools from the row below</span>}
+        {!edit && ed && (
+          <span className="flex flex-wrap items-center gap-2 rounded-lg bg-selected px-2 py-0.5 text-control" data-testid="overview-selected">
+            <span className="font-semibold text-accent-hover">{info(ed).name}</span><span className="text-meta text-muted">{PHASE_NAME[designNode(ed)?.phase ?? homeOf(ed)]}</span>
+            <button type="button" onClick={() => open(ed)} data-testid="overview-open" className="rounded-lg bg-accent px-2.5 py-0.5 text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Open in workspace</button>
+          </span>
+        )}
         {sel && (
           <span className="flex items-center gap-1.5 rounded-lg bg-selected px-2 py-0.5 text-meta text-accent-hover" data-testid="dock-edge">
             {sel.kind === 'return' ? <><span aria-hidden>↻</span>Return to {info(sel.b).name}<span className="text-muted"> · from {info(sel.a).name}</span></> : <>{sel.a === 'start' ? 'Start' : info(sel.a).name} → {sel.b === 'enter' ? 'End' : info(sel.b).name}</>}
@@ -314,10 +281,17 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
         )}
         {link && !link.x && <span className="text-meta text-accent-hover" role="status">Choose a node to connect to; an earlier one creates a loop.</span>}
         <div className="ml-auto flex items-center gap-1">
-          {<button type="button" onClick={w.undo} disabled={!w.past.length} aria-label="Undo the last workflow change" title="Undo" className="rounded-lg bg-panel p-1.5 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Undo2 size={15} aria-hidden /></button>}
-          {<button type="button" onClick={w.redo} disabled={!w.future.length} aria-label="Redo" title="Redo" className="rounded-lg bg-panel p-1.5 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Redo2 size={15} aria-hidden /></button>}
+          {<button type="button" onClick={w.undo} disabled={!w.past.length} aria-label="Undo the last workflow change" title="Undo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Undo2 size={15} aria-hidden /></button>}
+          {<button type="button" onClick={w.redo} disabled={!w.future.length} aria-label="Redo" title="Redo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Redo2 size={15} aria-hidden /></button>}
           {edit && <SaveAsPreset board={board} />}
-          <button type="button" onClick={() => setFit(!fit)} aria-pressed={fit} title="Fit the whole workflow in view" className={`flex items-center gap-1 rounded-lg px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${fit ? 'bg-ink' : 'bg-panel text-ink'}`}><Expand size={13} aria-hidden />Fit</button>
+          <button type="button" onClick={() => setFit(!fit)} aria-pressed={fit} title="Fit the whole workflow in view" className={`flex h-8 items-center gap-1 rounded-lg px-2.5 outline-none focus-visible:ring-2 focus-visible:ring-accent ${fit ? 'bg-ink' : 'bg-panel text-ink'}`}><Expand size={14} aria-hidden />Fit</button>
+          {w.mode !== 'edit'
+            ? <button type="button" onClick={() => w.setMode('edit')} data-testid="dock-edit" title="Move before / after, connect, return paths, remove, the assistant"
+                className="flex h-8 items-center gap-1 rounded-lg bg-panel px-2.5 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><PencilLine size={14} aria-hidden />Edit</button>
+            : <button type="button" onClick={() => w.setMode('overview')} data-testid="dock-done"
+                className="flex h-8 items-center gap-1 rounded-lg bg-panel px-2.5 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><Check size={14} aria-hidden />Done editing</button>}
+          <button type="button" onClick={() => openOverview('close')} data-testid="overview-close" title="Back to the design, where you were (Esc)"
+            className="flex h-8 items-center gap-1 rounded-lg bg-accent px-3 text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><X size={14} aria-hidden />Return to design</button>
         </div>
       </div>
       {edit && <AskAssistant board={w.wf} focus={ed ?? current} />}
@@ -338,15 +312,29 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
               <option value="start">the start</option>
               {order.map((x) => <option key={x} value={x}>{PHASE_NAME[designNode(x)?.phase ?? homeOf(x)]} / {info(x).name}</option>)}
             </select>
-            <span className="ml-1 text-muted">· shows in the {PHASE_NAME[pending.after === 'start' ? homeOf(pending.id) : designNode(pending.after)?.phase ?? homeOf(pending.after)]} panel</span>
+            <span className="ml-1 text-muted">· in the {PHASE_NAME[designNode(pending.id)?.phase ?? pending.phase]} lane and panel</span>
           </>} />
       )}
       {/* the workflow itself; the tools to add are in the row under it */}
-      <div ref={box} className="relative mx-2 mb-1 mt-1 max-h-[min(16rem,30vh)] overflow-auto" style={{ scrollbarWidth: 'thin' }}
+      <div className="mx-2 mb-1 mt-1 flex min-h-0 flex-1">
+      <div aria-hidden className="relative w-28 shrink-0 overflow-hidden" data-testid="lane-labels">
+        <div style={{ transform: `translateY(${-scrollY}px)` }}>
+          {PHASE_IDS.map((ph, i) => (
+            <div key={ph} className={`absolute left-0 right-0 flex items-center gap-1.5 rounded-l-lg pl-2 text-control font-medium ${i % 2 ? '' : 'bg-canvas'}`} style={{ top: (top + i * LANE - 4) * scale, height: (LANE - 4) * scale, color: PHASE_COLOR[ph].ink }}>
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[ph].accent }} />{PHASE_NAME[ph]}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div ref={box} className="relative min-h-0 flex-1 overflow-auto" style={{ scrollbarWidth: 'thin' }} onScroll={(e) => setScrollY(e.currentTarget.scrollTop)}
         onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={() => { if (drag) setDrag(null) }} data-testid="dock-canvas"
         onClick={(e) => { if (edit && e.target === e.currentTarget) { w.setEditing(null); setLink(null); setReconnect(null) } }}>
         <div className="relative origin-top-left" style={{ width: W * scale, height: H * scale }}>
           <div className="absolute left-0 top-0 origin-top-left" style={{ width: W, height: H, transform: `scale(${scale})` }}>
+            {/* the five phase lanes, as on the landing page */}
+            {PHASE_IDS.map((ph, i) => (
+              <div key={ph} aria-hidden data-lane={ph} className={`absolute left-0 rounded-r-lg ${i % 2 ? '' : 'bg-canvas'}`} style={{ top: top + i * LANE - 4, height: LANE - 4, width: W }} />
+            ))}
             <svg width={W} height={H} className="absolute inset-0 overflow-visible" aria-hidden>
               <defs>
                 {[['edge', UI.edge], ['active', UI.accent], ['ai', UI.ai]].map(([k, c]) => <marker key={k} id={`dock-arrow-${k}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill={c} /></marker>)}
@@ -358,7 +346,7 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
                 const col = active ? UI.accent : ai ? UI.ai : UI.edge
                 const mk = active ? 'active' : ai ? 'ai' : 'edge'
                 let d: string
-                if (e.kind === 'return') { const h = 10 + e.level * 16, y0 = A.y - TILE / 2 - 3; d = `M${A.x},${y0} C${A.x},${y0 - h} ${B.x},${y0 - h} ${B.x},${B.y - TILE / 2 - 3}` }
+                if (e.kind === 'return') { const h = 16 + e.level * 12, y0 = Math.min(A.y, B.y) - TILE / 2 - 3; d = `M${A.x},${A.y - TILE / 2 - 3} C${A.x},${y0 - h} ${B.x},${y0 - h} ${B.x},${B.y - TILE / 2 - 3}` }
                 else if (A.y === B.y) d = `M${A.x + TILE / 2 + 4},${A.y} L${B.x - TILE / 2 - 5},${B.y}`
                 else { const mx = A.x + COL / 2; d = `M${A.x + TILE / 2 + 4},${A.y} L${mx},${A.y} L${mx},${B.y} L${B.x - TILE / 2 - 5},${B.y}` }
                 return (
@@ -369,15 +357,16 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
                   </g>
                 )
               })}
-              {dropPreview && <g>{dropPreview.prev && (() => { const A = pos(dropPreview.prev!), x = drag!.gap! * COL; return A ? <path d={`M${A.x + TILE / 2},${A.y} L${x},${top + TILE / 2 + 4}`} stroke={UI.accent} strokeDasharray="4 3" fill="none" /> : null })()}
-                {dropPreview.next && (() => { const B = pos(dropPreview.next!), x = drag!.gap! * COL; return B ? <path d={`M${x},${top + TILE / 2 + 4} L${B.x - TILE / 2},${B.y}`} stroke={UI.accent} strokeDasharray="4 3" fill="none" markerEnd="url(#dock-arrow-active)" /> : null })()}</g>}
+              {dropPreview && <g>{dropPreview.prev && (() => { const A = pos(dropPreview.prev!), D = pos(drag!.id), x = GUT + drag!.gap! * COL; return A && D ? <path d={`M${A.x + TILE / 2},${A.y} L${x},${D.y}`} stroke={UI.accent} strokeDasharray="4 3" fill="none" /> : null })()}
+                {dropPreview.next && (() => { const B = pos(dropPreview.next!), D = pos(drag!.id), x = GUT + drag!.gap! * COL; return B && D ? <path d={`M${x},${D.y} L${B.x - TILE / 2},${B.y}`} stroke={UI.accent} strokeDasharray="4 3" fill="none" markerEnd="url(#dock-arrow-active)" /> : null })()}</g>}
               {link && link.x > 0 && (() => { const A = pos(link.from); return A ? <path d={`M${A.x},${A.y} L${link.x},${link.y}`} stroke={UI.accent} strokeWidth={1.5} strokeDasharray="6 5" fill="none" /> : null })()}
             </svg>
             {/* insertion points while dragging */}
             {(drag || newDrag) && Array.from({ length: layout.cols - 1 }, (_, k) => k + 1).map((g) => (
-              <span key={g} aria-hidden data-gap={g} className={`absolute w-1 rounded-full ${showGap === g ? 'bg-accent' : 'bg-accent/20'}`} style={{ left: g * COL - 2, top: top - 2, height: TILE + 10 }} />
+              <span key={g} aria-hidden data-gap={g} className={`absolute w-1 rounded-full ${showGap === g ? 'bg-accent' : 'bg-accent/20'}`} style={{ left: GUT + g * COL - 2, top: top - 4, height: PHASE_IDS.length * LANE - 4 }} />
             ))}
-            {pendingGap != null && !newDrag && <span aria-hidden data-pending-gap={pendingGap} className="absolute w-1.5 animate-pulse rounded-full bg-accent motion-reduce:animate-none" style={{ left: pendingGap * COL - 3, top: top - 4, height: TILE + 14 }} />}
+            {pendingGap != null && !newDrag && pending && <span aria-hidden data-pending-gap={pendingGap} className="absolute w-1.5 animate-pulse rounded-full bg-accent motion-reduce:animate-none" style={{ left: GUT + pendingGap * COL - 3, top: top + PHASE_IDS.indexOf(designNode(pending.id)?.phase ?? pending.phase) * LANE - 4, height: LANE - 4 }} />}
+            {newDrag?.lane && newDrag.gap != null && <span aria-hidden className="absolute rounded-lg ring-2 ring-accent/50" style={{ left: GUT + newDrag.gap * COL - COL / 2 + 6, top: top + PHASE_IDS.indexOf(newDrag.lane) * LANE - 2, width: COL - 12, height: LANE - 8 }} />}
             {/* the two ends */}
             {(['start', 'enter'] as const).map((id) => { const p = pos(id)!; return (
               <span key={id} data-dock-node={id} className="absolute flex flex-col items-center gap-0.5" style={{ left: p.x - TILE / 2, top: p.y - TILE / 2 }}>
@@ -391,13 +380,11 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
               return (
                 <span key={id} className="group absolute" style={{ left: p.x - COL / 2 + 6, top: p.y - TILE / 2 - 2, width: COL - 12 }}>
                   <button type="button" data-dock-node={id} data-node={id} data-current={cur ? '' : undefined} data-selected={cur || ending ? '' : undefined}
-                    aria-current={cur ? 'step' : undefined} aria-label={`${n.name}${edit ? ', edit' : n.design ? ': open its tool' : ': show its results'}${cur ? ' (current step)' : ''}`}
+                    aria-current={cur ? 'step' : undefined} aria-pressed={w.editing === id} aria-label={`${n.name}, ${PHASE_NAME[designNode(id)?.phase ?? homeOf(id)]}${edit ? ': choose to edit' : ': select'}${cur ? ' (open in the workspace)' : ''}`}
                     onPointerDown={(e) => onNodeDown(id, e)} onClick={(e) => { if (e.detail === 0) pick(id) }}
-                    className={`node-hit flex w-full touch-none flex-col items-center gap-0.5 rounded-lg py-0.5 outline-none ${cur ? 'bg-selected' : ''} ${w.editing === id ? 'outline-2 outline-dashed outline-ink' : ''} ${ai ? 'outline-2 outline-ai' : ''} ${drag?.id === id ? 'opacity-40' : ''} cursor-grab`}>
+                    className={`node-hit flex w-full touch-none flex-col items-center gap-0.5 rounded-lg py-0.5 outline-none ${cur ? 'bg-selected' : ''} ${w.editing === id ? 'outline-2 outline-dashed outline-ink' : ''} ${ai ? 'outline-2 outline-ai' : ''} ${drag?.id === id ? 'opacity-40' : ''} ${layout.unwired.includes(id) ? 'outline-1 outline-dashed outline-boundary' : ''} cursor-grab`} title={layout.unwired.includes(id) ? `${n.name}: not connected yet (Edit, Connect to…)` : n.name}>
                     <NodeTile id={id} size={TILE} art={<NodeArtwork id={id} size={Math.round(TILE * 0.9)} category={n.category} />} />
-                    <span className={`flex max-w-full items-center gap-1 truncate text-meta leading-tight ${cur ? 'font-semibold text-accent-hover' : 'text-ink'}`}>
-                      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[n.phase].accent }} />{n.word}
-                    </span>
+                    <span className={`block max-w-full truncate text-node ${cur ? 'font-semibold text-accent-hover' : 'text-ink'}`} title={n.name}>{n.word}</span>
                   </button>
                   {/* the connection handle: on hover, focus or selection, in Edit */}
                   {edit && (
@@ -414,11 +401,12 @@ function Expanded({ info, order, board, current, open, fit, setFit }: {
                 </span>
               )
             })}
-            {layout.unwired.length > 0 && <span className="absolute text-meta text-muted" style={{ left: (layout.at.get(layout.unwired[0])!.col) * COL + 6, top: top + ROW + TILE + 24 }}>Not connected yet</span>}
+
           </div>
         </div>
       </div>
-      <AddTray info={info} board={board} onStart={startNew} onKey={(id) => setPending({ id, after: fallbackAfter() })} dragging={newDrag?.id ?? null} />
+      </div>
+      <AddTray info={info} board={board} onStart={startNew} onKey={(id) => { const after = fallbackAfter(); setPending({ id, after, phase: phaseAfter(id, after) }) }} dragging={newDrag?.id ?? null} />
       {newDrag && (
         <span aria-hidden className="pointer-events-none fixed z-[70] flex items-center gap-1.5 rounded-lg border border-accent/50 bg-panel px-2 py-1 text-meta text-ink shadow-float" style={{ left: newDrag.x + 10, top: newDrag.y + 10 }}>
           <NodeTile id={newDrag.id} size={22} art={<NodeArtwork id={newDrag.id} size={20} category={info(newDrag.id).category} />} />{info(newDrag.id).name}

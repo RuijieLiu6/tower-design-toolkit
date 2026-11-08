@@ -8,6 +8,7 @@ import { sunPosition, vancouverTime } from '../engine/sun'
 import { USES, type Tower, type UseId } from '../engine/types'
 import { useSolar } from '../hooks/useSolarAccess'
 import { nodeOn } from '../lib/analysis'
+import { BUILT_NODES } from '../data/registry'
 import { MODEL } from '../lib/design/tokens'
 import {
   ANALYSIS_LAYERS, LOSS_SIDE, MISSING_CSS, SEQUENTIAL, cityStyleFor, layerOfNode, modeFromCityStyle, rampCss, ticks,
@@ -186,47 +187,45 @@ function WindKey() {
   )
 }
 
-/** Analysis: which quantity is on the model (one at a time), and its scale; or what to switch on to get one. */
+/**
+ * Analysis: which quantity is on the model (one at a time) and its scale. Showing a layer and computing it are separate
+ * (overnight brief, 8 Nov): the radios only choose what is drawn; a quantity whose check is off or paused says so, with
+ * its own labelled action to compute it. Nothing is switched on by picking a layer.
+ */
 export function AnalysisLegend({ project }: { project: ProjectKind }) {
   const layer = useAnalysisLayer()
+  const wanted = useDisplayMode((s) => s.layer)
   const showLayer = useDisplayMode((s) => s.showLayer)
   const analysisOn = useStore((s) => s.analysis)
   const running = useStore((s) => ANALYSIS_LAYERS.filter((l) => nodeOn(s, l.node)).map((l) => l.id).join(','))
   const runningIds = running ? running.split(',') as AnalysisLayerId[] : []
-  const start = (id: AnalysisLayerId) => {
-    const s = useStore.getState(), l = ANALYSIS_LAYERS.find((k) => k.id === id)!
-    if (!s.analysis) s.setAnalysis(true)
-    if (!s.enabled[l.node]) s.toggleNode(l.node)
-    showLayer(id)
-  }
-  if (!layer) {
-    return (
-      <div className="grid gap-1 text-meta">
-        <span className="text-muted">{analysisOn ? 'No check that colours the model is running. Run one:' : 'Analysis is off (process rail). Run a check that colours the model:'}</span>
-        <div className="flex flex-wrap gap-1">
-          {ANALYSIS_LAYERS.map((l) => (
-            <button key={l.id} type="button" onClick={() => start(l.id)} title={l.hint}
-              className={`rounded-[6px] border border-line bg-panel px-2 py-0.5 font-medium text-ink hover:border-accent ${focusRing}`}>{l.word}</button>
-          ))}
-        </div>
-      </div>
-    )
-  }
+  const pick = wanted ?? layer
+  const def = ANALYSIS_LAYERS.find((l) => l.id === pick)
+  const checkName = def ? BUILT_NODES.find((n) => n.id === def.node)?.name ?? def.node : ''
   return (
     <div className="grid gap-1.5">
-      {/* One quantity at a time. A layer whose check is off stays listed: picking it switches the check on. */}
       <div role="radiogroup" aria-label="Quantity on the model" className="flex flex-wrap gap-1">
         {ANALYSIS_LAYERS.map((l) => {
           const runs = runningIds.includes(l.id)
           return (
-            <button key={l.id} type="button" role="radio" aria-checked={layer === l.id} onClick={() => (runs ? showLayer(l.id) : start(l.id))}
-              title={runs ? l.hint : `${l.hint}. Not running: picking it switches the check on.`}
-              className={`rounded-[6px] border px-2 py-0.5 text-meta font-medium ${focusRing} ${layer === l.id ? 'border-accent bg-selected text-ink' : 'border-line bg-panel text-muted hover:text-ink'}`}>
-              {l.word}{!runs && <span className="font-normal"> · off</span>}
+            <button key={l.id} type="button" role="radio" aria-checked={pick === l.id} onClick={() => showLayer(l.id)}
+              title={runs ? l.hint : `${l.hint}. Not computed: its check is ${analysisOn ? 'off' : 'paused'}.`}
+              className={`rounded-[6px] border px-2 py-0.5 text-control font-medium ${focusRing} ${pick === l.id ? 'border-accent bg-selected text-ink' : 'border-line bg-panel text-muted hover:text-ink'}`}>
+              {l.word}{!runs && <span className="font-normal text-muted"> · not computed</span>}
             </button>
           )
         })}
       </div>
+      {!pick && <span className="text-meta text-muted">Choose the quantity to draw on the model.</span>}
+      {def && !runningIds.includes(def.id) && (
+        <p role="status" data-testid="layer-not-computed" className="flex flex-wrap items-center gap-2 text-meta text-ink">
+          {analysisOn
+            ? <><span>{def.word} is not computed: the {checkName} check is off.</span>
+              <button type="button" data-testid="layer-compute" onClick={() => useStore.getState().toggleNode(def.node)} className={`h-7 rounded-lg bg-panel px-2 text-control text-ink ${focusRing}`}>Switch on {checkName}</button></>
+            : <><span>Checks are paused (Auto-run checks is off), so {def.word} is not computed.</span>
+              <button type="button" onClick={() => useStore.getState().setAnalysis(true)} className={`h-7 rounded-lg bg-panel px-2 text-control text-ink ${focusRing}`}>Turn on auto-run</button></>}
+        </p>
+      )}
       {layer === 'solar' && <SolarScale project={project} />}
       {layer === 'surface-sun' && <ScaleBar title="Sun on surfaces · modelled, per year" unit="kWh/m²·yr, roofs and facade bands" stops={SEQUENTIAL} lo={POA_RANGE[0]} hi={POA_RANGE[1]}
         note="Fixed scale for every option; values beyond it take the end colour." />}

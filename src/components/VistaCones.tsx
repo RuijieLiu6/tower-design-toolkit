@@ -261,8 +261,8 @@ export function ConeVisibilityPanel({ compact = false }: { compact?: boolean }) 
   const towers = useTowers()
   const t = towers.find((k) => k.id === sel) ?? towers[0]
   const over = conesOverSite(cones.find((c) => c.tower.id === t?.id)?.checks ?? [])
-  const btn = 'rounded-[2px] border px-2 py-0.5 text-meta hover:bg-[#dde6dc] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#426b61]'
-  const style = { borderColor: CHROME.border, color: CHROME.ink, background: '#fbfaf4' }
+  const btn = 'rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#426b61]'
+  const style = { borderColor: CHROME.border, color: CHROME.ink, background: '#ffffff' }
   return (
     <div className="space-y-1.5" role="group" aria-label="View cone layers">
       <p className="text-meta" style={{ color: CHROME.ink }}>{shownSummary(hidden)} · solid: City-sourced estimate; dashed: Vista study surface (assumption)</p>

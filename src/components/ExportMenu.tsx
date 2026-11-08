@@ -73,7 +73,7 @@ export default function ExportMenu() {
   return (
     <div ref={box} className="relative">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" title="Export the massing to Rhino, SketchUp and other tools"
-        className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}><Download size={13} />Export model</button>
+        className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-control font-medium ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}><Download size={13} />Export model</button>
       {open && (
         <div role="menu" className="glass absolute left-0 top-full z-50 mt-1 w-80 rounded-md border border-line bg-panel p-1.5 text-ink shadow-lg">
           <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('3dm')} className={item}>{busy === '3dm' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>Rhino (.3dm)</b><br /><span className="text-meta text-muted">Layer per use with its colour; role, use, level and provenance as user text, so it uploads back as the same model; site curve and context; north on the Earth anchor</span></span></button>

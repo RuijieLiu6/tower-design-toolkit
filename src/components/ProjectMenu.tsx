@@ -83,7 +83,7 @@ export default function ProjectMenu() {
       <button className={btn} onClick={() => redo()} disabled={!canRedo || present} title={locked ?? 'Redo (Ctrl+Shift+Z)'} aria-label="Redo"><Redo2 size={16} /></button>
       <div ref={box} className="relative">
         <button onClick={() => (open ? setOpen(false) : openMenu())} aria-haspopup="menu" aria-expanded={open} aria-label={`Project file: ${meta.name ?? 'Untitled project'}`} title="Project file: new, open, save, export, import"
-          className={`ml-0.5 flex max-w-[12rem] items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}>
+          className={`ml-0.5 flex h-8 max-w-[12rem] items-center gap-1.5 rounded-lg border px-2 text-control font-medium ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}>
           <FolderOpen size={14} aria-hidden />
           <span className="truncate">{meta.name ?? 'Untitled project'}</span>
           <ChevronDown size={12} aria-hidden />

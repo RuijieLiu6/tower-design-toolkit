@@ -44,13 +44,19 @@ export async function openResultDetails(p: Page) {
   if (!(await fold.evaluate((e) => (e as HTMLDetailsElement).open))) await fold.locator('summary').first().click()
 }
 
+/** The check library is in the project bar's More menu (8 Nov). */
+async function openLibraryMenu(p: Page) {
+  await p.getByTestId('more-menu').click({ timeout: 120_000 })
+  await p.getByTestId('library-button').click()
+}
+
 /**
- * Switches a check on (every check's switch is in the node library, which opens from Library in the phase row, 8 Nov)
+ * Switches a check on (every check's switch is in the check library: project bar › More › Check library, 8 Nov)
  * and shows its results ("Show results for" in the right panel).
  */
 export async function showCheck(p: Page, name: string) {
   const lib = p.getByRole('dialog', { name: 'Node library' })
-  if (!(await lib.isVisible().catch(() => false))) await p.getByTestId('library-button').click({ timeout: 120_000 })
+  if (!(await lib.isVisible().catch(() => false))) await openLibraryMenu(p)
   const sw = lib.getByRole('switch', { name: `Use ${name}`, exact: true })
   await sw.waitFor({ timeout: 30_000 })
   if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
@@ -62,6 +68,6 @@ export async function showCheck(p: Page, name: string) {
 /** The library's switches (for counting them), with the library open. */
 export async function openLibrary(p: Page) {
   const lib = p.getByRole('dialog', { name: 'Node library' })
-  if (!(await lib.isVisible().catch(() => false))) await p.getByTestId('library-button').click({ timeout: 120_000 })
+  if (!(await lib.isVisible().catch(() => false))) await openLibraryMenu(p)
   return lib
 }

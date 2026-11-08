@@ -49,7 +49,7 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
   await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="volume"]').click()
   await expect(tools.getByRole('heading', { name: 'Form', exact: true })).toBeVisible()
   await expect(tools.getByRole('tab', { name: 'Massing', exact: true })).toBeVisible()
-  await expect(results.getByRole('tab', { name: 'Results & evidence' })).toBeVisible()
+  await expect(results.getByRole('tab', { name: 'Results', exact: true })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Design' })).toHaveCount(0)
   await expect(p.getByTestId('workflow-dock')).toBeVisible() // the whole workflow along the bottom
   const lib = await openLibrary(p)
@@ -72,6 +72,6 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
   await expect(tools.getByTestId('filmstrip')).toBeVisible()
   const present = p.getByRole('complementary', { name: 'Present and results' })
   await expect(present.getByRole('tab', { name: 'Present' })).toHaveAttribute('aria-selected', 'true')
-  await expect(present.getByRole('tab', { name: 'Results & evidence' })).toBeVisible()
+  await expect(present.getByRole('tab', { name: 'Results', exact: true })).toBeVisible()
   await p.screenshot({ path: join(OUT, 'present-1440x900.png') })
 })

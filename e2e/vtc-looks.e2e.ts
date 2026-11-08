@@ -36,22 +36,22 @@ const scene = (p: Page) => p.evaluate(async () => {
   }
 })
 
-const radio = (p: Page, name: string) => p.getByRole('radiogroup', { name: 'Display mode' }).getByRole('radio', { name, exact: true })
+const radio = (p: Page, name: string) => p.getByRole('radiogroup', { name: 'View' }).getByRole('radio', { name, exact: true })
 
 test('without the base model: Massing by default, Program says what is missing, Materials is not faked, the choice is remembered', async ({ page: p }) => {
   test.setTimeout(180_000)
   await open(p)
   const bar = p.getByTestId('vtc-look')
-  await expect(radio(p, 'Massing')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
+  await expect(radio(p, 'Geometry')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
   await expect.poll(() => scene(p), { timeout: 30_000 }).toMatchObject({ fill: true, gradient: true, program: false, plain: false })
   await expect(radio(p, 'Materials')).toHaveAttribute('aria-disabled', 'true')
-  await radio(p, 'Program').click()
-  await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true')
+  await radio(p, 'Building use').click()
+  await expect(radio(p, 'Building use')).toHaveAttribute('aria-checked', 'true')
   await expect(bar).toContainText('Add your copy of the base model to see the surrounding program')
   // Remembered in this browser.
   await p.reload()
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click()
-  await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
+  await expect(radio(p, 'Building use')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
 })
 
 test('with the entrant\'s copy: Program colours the buildings by use with a legend, Massing draws the neutral model', async ({ page: p }) => {
@@ -63,14 +63,14 @@ test('with the entrant\'s copy: Program colours the buildings by use with a lege
   await expect(card).toBeHidden({ timeout: 60_000 })
 
   const bar = p.getByTestId('vtc-look')
-  await radio(p, 'Program').click()
-  await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true')
+  await radio(p, 'Building use').click()
+  await expect(radio(p, 'Building use')).toHaveAttribute('aria-checked', 'true')
   // the legend names the uses around the site (the design system's Program mode, 7 Nov); the proposal wears its own program colours
   for (const label of ['Retail / commercial', 'Office', 'Hotel', 'Residential', 'Heritage']) await expect(bar).toContainText(label)
   await expect.poll(() => scene(p), { timeout: 60_000 }).toMatchObject({ program: true, plain: false, fill: true })
   const uses = (await scene(p))!.uses
   for (const u of ['retail', 'office', 'hotel', 'residential', 'cultural', 'institutional']) expect(uses).toContain(u)
 
-  await radio(p, 'Massing').click()
+  await radio(p, 'Geometry').click()
   await expect.poll(() => scene(p), { timeout: 30_000 }).toMatchObject({ program: false, plain: true, uses: [], fill: true, gradient: true })
 })

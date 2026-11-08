@@ -14,7 +14,7 @@ test('a tower added shows in Your site, marked New, and can be renamed, deleted 
   await page.getByRole('tab', { name: 'Competition site' }).or(page.getByRole('button', { name: 'Competition site' })).first().click()
   // A project opens with no tower (6 Nov): place Tower 1 first, as a user does; then Add tower adds a second.
   await placeStartingTower(page, { stay: true })
-  await page.getByRole('tab', { name: 'Results & evidence' }).click()
+  await page.getByRole('tab', { name: 'Results', exact: true }).click()
 
   const rows = page.getByTestId('site-tower')
   await page.getByRole('button', { name: 'Add tower' }).first().click()

@@ -10,9 +10,11 @@ import { DATA, MODEL } from './design/tokens'
 export type DisplayMode = 'massing' | 'program' | 'analysis' | 'materials'
 export type ProjectKind = 'vtc' | 'city'
 
+// Labels (overnight brief, 8 Nov): "View: Geometry / Building use / Analysis / Materials", so a view never shares a name
+// with the Program phase. The ids (massing, program, analysis, materials) are what is stored, and stay.
 export const DISPLAY_MODES: { id: DisplayMode; word: string; hint: string }[] = [
-  { id: 'massing', word: 'Massing', hint: 'Geometry, height and proportion: a neutral model, your towers lighter than the context, with edges' },
-  { id: 'program', word: 'Program', hint: 'Building uses in one labelled palette: your towers by floor, the context by type' },
+  { id: 'massing', word: 'Geometry', hint: 'Geometry, height and proportion: a neutral model, your towers lighter than the context, with edges' },
+  { id: 'program', word: 'Building use', hint: 'Building uses in one labelled palette: your towers by floor, the context by type' },
   { id: 'analysis', word: 'Analysis', hint: 'One measured or calculated quantity on a neutral model, with its units, range and legend' },
   { id: 'materials', word: 'Materials', hint: 'Illustrative material textures, where the model has them' },
 ]
@@ -68,10 +70,13 @@ export const ANALYSIS_LAYERS: { id: AnalysisLayerId; node: string; word: string;
 ]
 export const layerOfNode = (node: string | null): AnalysisLayerId | null => ANALYSIS_LAYERS.find((l) => l.node === node)?.id ?? null
 
-/** The layer Analysis shows: the one asked for if its check runs, else the first that runs, else none. */
+/**
+ * The layer Analysis shows: the one asked for, only while its check runs (8 Nov: never another quantity in its place, so
+ * the colours on the model always match the quantity the legend names); with none asked for, the first that runs.
+ */
 export function activeLayer(preferred: AnalysisLayerId | null, runs: (node: string) => boolean): AnalysisLayerId | null {
   const want = ANALYSIS_LAYERS.find((l) => l.id === preferred)
-  if (want && runs(want.node)) return want.id
+  if (want) return runs(want.node) ? want.id : null
   return ANALYSIS_LAYERS.find((l) => runs(l.node))?.id ?? null
 }
 
@@ -132,12 +137,17 @@ interface DisplayState {
   setMode: (mode: DisplayMode) => void
   /** Analysis with this layer (picking a check that colours the model opens it). */
   showLayer: (layer: AnalysisLayerId) => void
+  /** Pinned (8 Nov): the View stays as it is when another tool opens (lib/workflow/toolView.ts); this visit only. */
+  pinned: boolean
+  setPinned: (v: boolean) => void
 }
 export const useDisplayMode = create<DisplayState>((set) => ({
   mode: saved(),
   layer: null,
   setMode: (mode) => { set({ mode }); try { localStorage.setItem(KEY, mode) } catch { /* this visit only */ } },
   showLayer: (layer) => { set({ mode: 'analysis', layer }); try { localStorage.setItem(KEY, 'analysis') } catch { /* this visit only */ } },
+  pinned: false,
+  setPinned: (pinned) => set({ pinned }),
 }))
 
 /**

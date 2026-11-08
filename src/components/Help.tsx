@@ -7,7 +7,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
-const WIDTH = 288
+const WIDTH = 320
 const GAP = 6
 
 export default function Help({ children, label = 'What this does', className = '' }: { children: ReactNode; label?: string; className?: string }) {
@@ -52,7 +52,7 @@ export default function Help({ children, label = 'What this does', className = '
       {open && createPortal(
         <div ref={panel} role="tooltip" onMouseEnter={() => clearTimeout(timer.current)} onMouseLeave={hide}
           style={{ position: 'fixed', left: at?.left ?? -9999, top: at?.top ?? -9999, width: WIDTH, zIndex: 1000 }}
-          className="grid gap-1.5 rounded-lg border border-line bg-white px-3 py-2 text-left text-meta font-normal normal-case tracking-normal text-ink shadow-lg">
+          className="grid gap-1.5 rounded-lg border border-line bg-white px-3 py-2 text-left text-body font-normal normal-case tracking-normal text-ink shadow-lg">
           {children}
         </div>, document.body)}
     </>

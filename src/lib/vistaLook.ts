@@ -34,11 +34,16 @@ export const VISTA_LOOK: Look = {
 // The electric-blue proposed tower of 3 Nov (PROPOSED, proposedLook) gave way to the design system's display modes
 // (7 Nov, lib/displayMode.ts): the proposal is picked out by form, edges and contrast, and the selection by an outline.
 
-/** Chrome tokens: computed styles of Vista's live City overview (3 Nov), Plain style. */
+/**
+ * Chrome tokens for Real Vancouver's controls over the map. They were Vista's own green and cream (3 Nov); since the
+ * overnight brief (8 Nov: "There is no separate green map-control theme") they are the shared interface tokens: opaque
+ * white surfaces, the shared line and ink, and the one interaction blue for the selected state. The map's own colours
+ * (VISTA above: terrain, parks, water, buildings) are the model palette and stay.
+ */
 export const CHROME = {
-  box: 'rgba(250,248,241,0.93)', border: '#aab8ad', ink: '#2d4035', tabInk: '#2d3d33', active: '#426b61', activeInk: '#fffdf7',
-  shadow: '0 2px 8px rgba(43,60,48,0.125)', labelBg: 'rgba(250,248,241,0.91)', labelInk: '#314239', labelBorder: '#acb9ae',
-  labelExtBg: 'rgba(250,248,241,0.74)', labelExtInk: '#4f6158', swatchBorder: 'rgba(0,0,0,0.15)',
+  box: '#ffffff', border: '#d9dee7', ink: '#202630', tabInk: '#5f6875', active: '#eaf1ff', activeInk: '#1d4ed8',
+  shadow: '0 1px 2px rgba(32,38,48,0.06), 0 6px 16px -10px rgba(32,38,48,0.18)', labelBg: 'rgba(255,255,255,0.92)', labelInk: '#202630', labelBorder: '#d9dee7',
+  labelExtBg: 'rgba(255,255,255,0.78)', labelExtInk: '#5f6875', swatchBorder: 'rgba(0,0,0,0.15)',
 } as const
 
 /** Vista's City overview camera (Ruijie's link: cam=0.018,0.682,9710.399,2440.256,-534.808,20) in the Toolkit frame. */

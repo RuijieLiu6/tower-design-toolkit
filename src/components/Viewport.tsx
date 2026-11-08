@@ -1,5 +1,6 @@
 import { Line, OrbitControls } from '@react-three/drei'
 import LoadingBar from './LoadingBar'
+import ContextPins from './ContextPins'
 import { hoverHandlers, useHoverLabels } from '../lib/hoverLabels'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
@@ -701,6 +702,8 @@ export default function Viewport() {
       </div>
       {/* While the Real Vancouver map is still downloading: how much has arrived (Ruijie, 7 Nov). */}
       {project === 'city' && <LoadingBar />}
+      {/* The open tool's working view, and anything else drawn as pinned context (8 Nov). */}
+      {!present && !hidden && !looking && <ContextPins project={project} top={project === 'city' ? 'top-14' : 'top-3'} />}
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
       {project === 'city' && !present && <CityLegend />}
       {project === 'vtc' && !present && <VtcDock />}

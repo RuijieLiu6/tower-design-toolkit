@@ -348,7 +348,7 @@ function ModeTabs() {
           return [
             <button key={m.id} type="button" aria-pressed={conesOn} onClick={() => chooseMode(m.id, defaultCone)}
               title={conesOn === true ? 'View cones on: press to hide them all' : 'View cones off: press to show them all'}
-              className={`flex h-[30px] items-center gap-1.5 rounded-[2px] px-2 text-meta hover:bg-[#dde6dc] ${focusRing}`} style={{ color: CHROME.tabInk }}>
+              className={`flex h-[30px] items-center gap-1.5 rounded-lg px-2 text-control hover:bg-subtle ${focusRing}`} style={{ color: CHROME.tabInk }}>
               {/* The lamp: full when every cone shows, its left half when some do, empty when none (two halves, no gradient). */}
               <i aria-hidden className="inline-flex h-2.5 w-2.5 overflow-hidden rounded-full" style={{ border: `1.5px solid ${VISTA.cone}` }}>
                 <i className="h-full w-1/2" style={{ background: conesOn === false ? 'transparent' : VISTA.cone }} />
@@ -361,7 +361,7 @@ function ModeTabs() {
         const on = m.id === active
         return (
           <button key={m.id} type="button" aria-pressed={on} title={m.title} onClick={() => chooseMode(m.id, defaultCone)}
-            className={`h-[30px] rounded-[2px] px-2 text-meta ${on ? '' : 'hover:bg-[#dde6dc]'} ${focusRing}`}
+            className={`h-[30px] rounded-lg px-2 text-control ${on ? '' : 'hover:bg-subtle'} ${focusRing}`}
             style={on ? { background: CHROME.active, color: CHROME.activeInk } : { color: CHROME.tabInk }}>{m.label}</button>
         )
       })}
@@ -374,7 +374,7 @@ function Compass() {
   return (
     <button type="button" data-testid="north-arrow" onClick={() => { flight.to = null; faceNorth(0) }}
       aria-label="Turn the view to face north. The arrow points to true north on screen." title="Face north (grid north = true north here, UTM 10N)"
-      className={`flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-meta font-semibold leading-[16px] hover:bg-[#dde6dc] ${focusRing}`} style={box}>
+      className={`flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-meta font-semibold leading-[16px] hover:bg-subtle ${focusRing}`} style={box}>
       <span>N</span>
       <span ref={(el) => { live.compass = el }} className="text-[22px] font-normal leading-[20px]" style={{ transform: 'rotate(0deg)' }} aria-hidden>↑</span>
     </button>
@@ -384,7 +384,7 @@ function Compass() {
 function utilityButton(label: ReactNode, title: string, onClick: () => void, extra: string, aria?: string, pressed?: boolean) {
   return (
     <button type="button" onClick={onClick} title={title} aria-label={aria} aria-pressed={pressed}
-      className={`h-[30px] rounded-[2px] text-[12.5px] hover:bg-[#dde6dc] ${extra} ${focusRing}`} style={box}>{label}</button>
+      className={`h-[30px] rounded-lg text-control hover:bg-subtle ${extra} ${focusRing}`} style={box}>{label}</button>
   )
 }
 
@@ -426,7 +426,7 @@ function Utilities() {
       {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">+</span>Zoom in</span>, 'Zoom in', () => zoom(-0.35), 'px-2.5', 'Zoom in')}
       {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">−</span>Zoom out</span>, 'Zoom out', () => zoom(0.35), 'px-2.5', 'Zoom out')}
       <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" onClick={() => useDock.setState({ menu: !dockOpen })}
-        className={`flex h-[33px] items-center gap-1.5 rounded-[2px] px-2.5 text-meta font-medium hover:bg-[#dde6dc] ${focusRing}`} style={box}>
+        className={`flex h-[33px] items-center gap-1.5 rounded-lg px-2.5 text-control font-medium hover:bg-subtle ${focusRing}`} style={box}>
         <span aria-hidden className="text-meta">{dockOpen ? '▼' : '▶'}</span>Layers
       </button>
     </div>
@@ -438,12 +438,13 @@ function Legend() {
   const mode = useShownMode()
   const coneHidden = useConeVisibility((s) => s.hidden)
   // UI review (3 Nov): the legend folds to one line (remembered in this browser); folded, the mode switch stays.
-  const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') === '1' } catch { return false } })
+  // Folded by default since 8 Nov (full keys on request); an Analysis scale stays visible folded (units and range).
+  const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') !== '0' } catch { return true } })
   const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   const conesShown = !CONES.every((c) => coneHidden[c.id])
   const foldButton = (
     <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to the mode switch'} title={folded ? 'Show the legend' : 'Fold the legend'}
-      className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-muted hover:bg-subtle hover:text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>
+      data-testid="key-toggle" className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink hover:bg-subtle outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">Key{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>
   )
   const sw = (color: string, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: '1px solid rgb(32 38 48 / 0.18)', ...extra }} />
   return (
@@ -453,6 +454,7 @@ function Legend() {
         <SunChip />
         {foldButton}
       </div>
+      {folded && mode === 'analysis' && <AnalysisLegend project="city" />}
       {!folded && <>
         {mode === 'massing' && <MassingKey />}
         {mode === 'program' && <>
@@ -500,7 +502,7 @@ function InspectCard() {
     <div role="status" aria-live="polite" className="max-w-[26rem] px-2 py-1.5 text-meta leading-snug" style={box}>
       <div className="flex items-start gap-2">
         <b className="font-semibold">{buildingLabel(data, p.index)}</b>
-        <button type="button" aria-label="Close the building details" title="Close" onClick={() => useVistaLook.setState({ inspected: null })} className={`ml-auto flex h-5 w-5 items-center justify-center rounded-[2px] hover:bg-[#dde6dc] ${focusRing}`}><X size={13} aria-hidden /></button>
+        <button type="button" aria-label="Close the building details" title="Close" onClick={() => useVistaLook.setState({ inspected: null })} className={`ml-auto flex h-5 w-5 items-center justify-center rounded-lg hover:bg-subtle ${focusRing}`}><X size={13} aria-hidden /></button>
       </div>
       <div>Height <b className="tabular-nums">{(p.roof - p.ground).toFixed(1)} m</b> · roof {p.roof.toFixed(1)} m CGVD28 · base {p.ground.toFixed(1)} m</div>
       <div className="text-meta">{buildingSource(data, p.index)}{est ? ' · an estimate, not measured' : ''}</div>
@@ -519,30 +521,30 @@ function ConePicker() {
   const current = looking && vp?.kind === 'cone' ? vp.coneId ?? '' : ''
   const cone = CONES.find((c) => c.id === current)
   const at = CONES.findIndex((c) => c.id === current)
-  const navBtn = `rounded-[2px] border px-2 py-0.5 text-meta hover:bg-[#dde6dc] ${focusRing}`
+  const navBtn = `rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`
   return (
     <div className="max-w-[22rem] space-y-1 px-2 py-1.5 text-meta" style={box}>
       <label className="flex items-center gap-1.5">
         <span className="font-medium">View cone</span>
         <select aria-label="Protected view to look from" value={current} onChange={(e) => { if (e.target.value) goToCone(e.target.value) }}
-          className={`min-w-0 flex-1 rounded-[2px] border bg-[#fffcf5] px-1 py-0.5 text-meta ${focusRing}`} style={{ borderColor: CHROME.border, color: CHROME.ink }}>
+          className={`min-w-0 flex-1 rounded-lg border bg-panel px-1 py-0.5 text-meta ${focusRing}`} style={{ borderColor: CHROME.border, color: CHROME.ink }}>
           {!current && <option value="">Choose a protected view…</option>}
           {CONES.map((c) => <option key={c.id} value={c.id}>{c.id} · {c.name}{hasEstimate(c.id) ? '' : ' (no City estimate)'}</option>)}
         </select>
       </label>
       <nav aria-label="Protected view navigation" data-testid="cone-nav" className="flex items-center gap-1.5">
         <button type="button" onClick={() => goToCone(stepConeId(current, -1))} aria-label="Previous protected view" aria-describedby="cone-position"
-          className={navBtn} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>← Previous</button>
+          className={navBtn} style={{ borderColor: CHROME.border, background: '#ffffff' }}>← Previous</button>
         <span id="cone-position" role="status" aria-live="polite" aria-atomic="true" className="flex-1 text-center text-meta tabular-nums">
           Protected views · {at < 0 ? `${CONES.length} available` : `${at + 1} / ${CONES.length}`}
         </span>
         <button type="button" onClick={() => goToCone(stepConeId(current, 1))} aria-label="Next protected view" aria-describedby="cone-position"
-          className={navBtn} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>Next →</button>
+          className={navBtn} style={{ borderColor: CHROME.border, background: '#ffffff' }}>Next →</button>
       </nav>
       {cone && <p className="text-meta leading-snug">Eye at the City's viewpoint elevation Lv {cone.Lv} m (ViewCone service), looking along the cone's axis. Esc or City to leave.</p>}
       {!cone && looking && <p className="text-meta leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
       <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
-        className={`rounded-[2px] border px-2 py-0.5 text-meta hover:bg-[#dde6dc] ${focusRing}`} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>
+        className={`rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`} style={{ borderColor: CHROME.border, background: '#ffffff' }}>
         Or stand on a street or roof (View from here)
       </button>
     </div>

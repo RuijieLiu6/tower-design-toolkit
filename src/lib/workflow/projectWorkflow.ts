@@ -18,6 +18,9 @@ import { presetById } from '../userTypes'
 import { addLoop, clean, edgeKey, insertAfter, insertOn, linear, returnEdges, takeOff, walk, type Board, type Edge } from '../workflowGraph'
 import { BUILT_NODES } from '../../data/registry'
 import { analysisOnly, isDesignNode } from './designNodes'
+import { goToStep, useStep, type StepId } from '../step'
+import { usePhaseTools } from './phaseTools'
+import type { PhaseId } from '../phases'
 
 export interface ProjectWorkflow extends Board {
   role: CoverRole
@@ -179,4 +182,27 @@ export function wouldLoop(b: Board, a: string, bId: string): boolean {
 export function edgeDiff(before: Edge[], after: Edge[]) {
   const k1 = new Set(before.map(edgeKey)), k2 = new Set(after.map(edgeKey))
   return { added: after.filter((e) => !k1.has(edgeKey(e))), removed: before.filter((e) => !k2.has(edgeKey(e))) }
+}
+
+// ---------- Overview on demand (overnight brief, 8 Nov: "Closing Overview restores the previous tool, camera and working
+// state"). Opening it notes where the user is (the step, each phase's open tool, the results shown); closing it puts that
+// back, unless the user chose a tool there (Open in workspace). Overview is drawn over the workspace without resizing
+// the model, so the camera is never moved by opening or closing it.
+interface WorkingState { step: StepId; active: Partial<Record<PhaseId, string>>; selectedNode: string | null }
+let working: WorkingState | null = null
+export function openOverview(to: 'overview' | 'edit' | 'close', opts: { keep?: boolean } = {}) {
+  const w = useProjectWorkflow.getState()
+  if (to !== 'close') {
+    if (w.mode === 'compact') working = { step: useStep.getState().step, active: { ...usePhaseTools.getState().active }, selectedNode: useStore.getState().selectedNode }
+    w.setMode(to)
+    return
+  }
+  w.setMode('compact')
+  const back = working
+  working = null
+  if (!back || opts.keep) return
+  if (useStep.getState().step !== back.step) goToStep(back.step)
+  const pt = usePhaseTools.getState()
+  for (const [ph, id] of Object.entries(back.active) as [PhaseId, string][]) if (pt.active[ph] !== id) pt.setActive(ph, id)
+  if (useStore.getState().selectedNode !== back.selectedNode) useStore.setState({ selectedNode: back.selectedNode })
 }

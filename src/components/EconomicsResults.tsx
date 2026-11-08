@@ -2,7 +2,8 @@
 // value-to-land waterfall, which floors pay for the tower, and the editable assumption ledger with flags and sources.
 import { useMemo, useState } from 'react'
 import { ACC_TREATMENT_LABEL, COST_LEDGER, CORIOLIS_TDC, RISK_REGISTER, type AccTreatment, type ChargeLine } from '../engine/costCharges'
-import { money, VERDICT_LABEL, type EconPresets, type EconResult, type Row, type Verdict } from '../engine/economics'
+import { money, verdictText, type EconPresets, type EconResult, type Row, type Verdict } from '../engine/economics'
+import { modelRevision } from '../lib/workflow/phasePackage'
 import { USES, type RuleState, type UseId } from '../engine/types'
 import { useEconomics } from '../hooks/useEconomics'
 import { useEconStore, type OverrideKey } from '../lib/econStore'
@@ -24,17 +25,22 @@ export default function EconomicsResults() {
   return (
     <>
       <Section title="Results">
-        <div className={`rounded-md border p-2.5 ${r.verdict === 'works' ? 'border-success/30 bg-success-surface' : r.verdict === 'marginal' ? 'border-warning/30 bg-warning-surface' : r.verdict === 'fails' ? 'border-error/30 bg-error-surface' : 'border-line bg-pending-surface'}`}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold">{VERDICT_LABEL[r.verdict]}</span>
-            <StateChip state={STATE[r.verdict]} />
+        {/* Distinct pieces (8 Nov, UI08): the calculated number, the outcome under its assumptions, the method's status,
+            the evidence quality, and which model it was computed for. No pass / fail verdict on a preliminary estimate. */}
+        <div data-testid="value-result" data-verdict={r.verdict} className={`rounded-lg border p-3 ${r.verdict === 'works' ? 'border-success/30 bg-success-surface' : r.verdict === 'marginal' ? 'border-warning/30 bg-warning-surface' : r.verdict === 'fails' ? 'border-error/30 bg-error-surface' : 'border-line bg-pending-surface'}`}>
+          {r.verdict === 'incomplete'
+            ? <p className="text-control font-semibold text-ink" data-testid="value-outcome">{verdictText(r)}</p>
+            : <>
+              <p className="text-control text-ink">Estimated land residual</p>
+              <p className="text-section font-semibold tabular-nums text-ink" data-testid="value-number">{money(r.rlvAfter)}</p>
+              {r.land != null && <p className="text-control text-ink">{landPrice == null ? 'Estimated' : 'Assumed'} land price <b className="tabular-nums">{money(r.land)}</b></p>}
+              <p className="mt-2 border-t border-black/10 pt-2 text-control font-semibold text-ink" data-testid="value-outcome">{verdictText(r)}</p>
+            </>}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <FlagChip flag="unverified" />
+            <span className="rounded-full border border-line bg-panel px-2 py-0.5 text-meta text-ink" title="Indicative early-design estimate (Program Value Visualizer method), not a feasibility study, appraisal or compliance check. Most market values are grade C.">Preliminary estimate</span>
           </div>
-          <div className="mt-1 text-meta">
-            Left for land after costs, {Math.round(presets.profitOnCost.value * 100)}% profit and the CAC: <b className="tabular-nums">{money(r.rlvAfter)}</b>
-            {r.land != null && <> against a land price of <b className="tabular-nums">{money(r.land)}</b>{landPrice == null && ' (estimated)'}</>}.
-          </div>
-          <div className="mt-0.5 text-meta text-muted">{money(r.rlvPerM2)} per m² of gross floor area · {Math.round(r.gfa).toLocaleString()} m² gross</div>
-          <div className="mt-1.5 flex items-center gap-1"><FlagChip flag="unverified" /><span className="text-meta text-muted">Indicative early-design estimate (Program Value Visualizer method), not a feasibility study, appraisal or compliance check. Most market values are grade C.</span></div>
+          <p className="mt-1.5 text-meta text-muted" data-testid="value-freshness">Computed for the current model (revision {modelRevision(towers)}) · after costs, {Math.round(presets.profitOnCost.value * 100)}% profit and the CAC · {money(r.rlvPerM2)} per m² of {Math.round(r.gfa).toLocaleString()} m² gross</p>
         </div>
         <Waterfall r={r} />
       </Section>

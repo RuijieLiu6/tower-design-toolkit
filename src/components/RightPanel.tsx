@@ -24,14 +24,14 @@ const renderModules = import.meta.glob<{ default: ComponentType }>('./RenderTab.
 const RenderTab = renderModules['./RenderTab.tsx'] ? lazy(renderModules['./RenderTab.tsx']) : null
 const SiteInfo = lazy(() => import('./site/SiteInfo'))
 
-/** Results with the analysis switched off (process rail): nothing runs; one click turns it back on. */
+/** Results with Auto-run checks off (project bar): nothing recomputes; one click turns it back on. */
 function AnalysisOff() {
   const setAnalysis = useStore((s) => s.setAnalysis)
   return (
-    <div data-testid="analysis-off" className="m-3 rounded-lg border border-line bg-black/[0.02] p-3">
-      <p className="text-xs font-semibold text-ink">Analysis is off</p>
-      <p className="mt-1 text-meta text-muted">No check runs while you design. The checks you picked stay remembered.</p>
-      <button type="button" onClick={() => setAnalysis(true)} className="mt-2 rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Run analysis</button>
+    <div data-testid="analysis-off" className="m-3 rounded-lg border border-warning/40 bg-warning-surface p-3">
+      <p className="text-control font-semibold text-warning">Checks are paused</p>
+      <p className="mt-1 text-body text-ink">Auto-run checks is off, so no result is computed while you design. The checks you picked are kept.</p>
+      <button type="button" onClick={() => setAnalysis(true)} className="mt-2 h-8 rounded-lg bg-accent px-3 text-control font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Turn on auto-run</button>
     </div>
   )
 }
@@ -62,7 +62,7 @@ function ResultsPicker() {
     <div className="flex items-center gap-2 border-b border-line px-4 py-2">
       <label htmlFor="results-for" className="shrink-0 text-meta text-muted">Show results for</label>
       <select id="results-for" value={selectedNode ?? ''} onChange={(e) => selectNode(e.target.value || null)}
-        className="min-w-0 flex-1 rounded border border-line bg-panel px-1.5 py-1 text-xs">
+        className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-panel px-1.5 text-control">
         {!selectedNode && <option value="">Choose a check…</option>}
         {/* Grouped by category (UI review round 2, 4 Nov: a flat list of 30 checks was hard to scan; run-through F4). */}
         {[...new Set(options.map((n) => n.category))].map((c) => (
@@ -108,14 +108,14 @@ export default function RightPanel() {
   const positioning = useTowerPosition((s) => s.on) && !present
   useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
   const tabs: { id: Tab; label: string }[] = present
-    ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
-    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
+    ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
   return (
-    <aside className="glass-edge flex h-full w-[22rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
+    <aside data-panel="right" className="glass-edge flex h-full w-[var(--right-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
       <div className="flex border-b border-line">
       <div role="tablist" aria-label={present ? 'Present and results' : 'Results'} className="flex min-w-0 flex-1">
         {tabs.map((t) => (
@@ -125,7 +125,7 @@ export default function RightPanel() {
               const i = tabs.findIndex((x) => x.id === shown), next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]
               setTab(next.id); document.getElementById(`rp-tab-${next.id}`)?.focus()
             }}
-            className={`flex-1 px-3 py-2.5 text-xs font-medium ${shown === t.id ? 'border-b-2 border-accent text-ink' : 'text-muted hover:text-ink'}`}>{t.label}{t.id === 'site' && unseen && shown !== 'site' && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle" aria-label="new tower" />}</button>
+            className={`flex-1 px-2 py-2.5 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${shown === t.id ? 'border-b-2 border-accent text-ink' : 'text-muted hover:text-ink'}`}>{t.label}{t.id === 'site' && unseen && shown !== 'site' && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle" aria-label="new tower" />}</button>
         ))}
       </div>
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>

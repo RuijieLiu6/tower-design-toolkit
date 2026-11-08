@@ -377,3 +377,30 @@ body {
   .landing-atmosphere { background-size: 140% 100%; background-position: center; }
 }
 @media (prefers-contrast: more) { .landing-atmosphere { background-image: none; } .landing-atmosphere::before { display: none; } }
+
+/* The workspace shell (overnight brief, 8 Nov): the landing page's warmth, restrained. A warm ivory outer surface
+   (#fbf8f3) with faint peach at the lower left and lavender at the right edge, only around the perimeter: every reading
+   surface (panels, the model, menus) stays opaque white on top, and the model keeps its neutral palette. Present keeps
+   its darker review wall (DESIGN_SYSTEM.md §8). */
+:root {
+  --color-shell: #fbf8f3;
+  /* side panels: about 288 / 304 px at 1440 px wide, 264 / 280 px below 1400 px (the model keeps ≥ 55% of 1280 px) */
+  --left-w: 16rem;
+  --right-w: 17.5rem;
+}
+@media (min-width: 1400px) { :root { --left-w: 18rem; --right-w: 19rem; } }
+.workspace-shell {
+  background-color: var(--color-shell);
+  background-image:
+    radial-gradient(38% 34% at -4% 104%, rgb(255 196 160 / 0.30), rgb(255 196 160 / 0) 70%),
+    radial-gradient(30% 50% at 104% 60%, rgb(200 182 243 / 0.26), rgb(200 182 243 / 0) 70%),
+    radial-gradient(40% 18% at 60% -4%, rgb(253 240 225 / 0.9), rgb(253 240 225 / 0) 72%);
+}
+[data-stage="present"].workspace-shell { background-color: var(--color-paper); background-image: none; }
+@media (prefers-contrast: more) { .workspace-shell { background-image: none; } }
+
+/* Field values in the open tool's controls and the results are 14/20 (overnight brief, 8 Nov: "14/20 px for primary
+   controls … buttons, selects and field values"): whatever size a tool's own markup gave its inputs and selects. */
+:is([data-testid="phase-controls"], [data-panel="right"]) :is(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, textarea) {
+  font-size: var(--text-control); line-height: var(--text-control--line-height);
+}

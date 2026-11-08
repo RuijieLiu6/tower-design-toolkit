@@ -61,7 +61,7 @@ test('import a GeoJSON site boundary with its provenance; the envelope section r
   await page.locator('input[aria-label="Site boundary GeoJSON file"]').setInputFiles({ name: 'lot.geojson', mimeType: 'application/geo+json', buffer: Buffer.from(JSON.stringify(geo)) })
   await page.waitForTimeout(2500)
   // The Site step's start panel shows the same status (3 Nov); read the one in the Vista panel this test drives.
-  await expect(page.getByRole('tabpanel', { name: 'Results & evidence' }).getByText(/Boundary imported: [\d,]+ m²/)).toBeVisible()
+  await expect(page.getByRole('tabpanel', { name: 'Results', exact: true }).getByText(/Boundary imported: [\d,]+ m²/)).toBeVisible()
   await expect(section(page, 'Site boundary')).toContainText('GeoJSON lot.geojson (Test lot), EPSG:4326 → EPSG:26910')
   await expect(section(page, 'Exact geometry check (triangles)')).toContainText(/triangle/)
   await page.screenshot({ path: join(SHOTS, 'imported-site.png') })

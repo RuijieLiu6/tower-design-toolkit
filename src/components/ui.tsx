@@ -72,16 +72,16 @@ export function NumberField({ label, value, onChange, step = 1, min, max, unit, 
   const round = f ? 1000 : 100
   // The hint (what the field means) sits behind a "?" beside the label (Ruijie, 5 Nov); the inputs carry their own labels.
   return (
-    <div className="flex flex-col gap-1 text-xs">
-      <span className="flex items-center gap-1 text-muted">{label}{hint && <Help label={`About ${label}`}>{hint}</Help>}</span>
+    <div className="flex flex-col gap-1 text-control">
+      <span className="flex items-center gap-1 text-ink">{label}{hint && <Help label={`About ${label}`}>{hint}</Help>}</span>
       <div className="flex items-center gap-2">
         {min !== undefined && max !== undefined && (
           <input type="range" min={f ? f.toShown(min) : min} max={f ? f.toShown(max) : max} step={f ? f.toShown(step) : step} value={shown} onChange={(e) => set(Number(e.target.value))} className="w-full accent-accent" aria-label={label} />
         )}
         <div className="flex items-center rounded border border-line bg-panel">
           <input type="number" step={f ? 'any' : step} value={Number.isFinite(shown) ? Math.round(shown * round) / round : 0} onChange={(e) => set(Number(e.target.value))}
-            className="w-16 bg-transparent px-1.5 py-1 text-right tabular-nums outline-none" aria-label={`${label} value`} />
-          {unit && <span className="pr-1.5 text-muted">{f ? f.label : unit}</span>}
+            className="h-8 w-16 min-w-0 bg-transparent px-1.5 text-right tabular-nums outline-none" aria-label={`${label} value`} />
+          {unit && <span className="pr-1.5 text-meta text-muted">{f ? f.label : unit}</span>}
         </div>
       </div>
     </div>

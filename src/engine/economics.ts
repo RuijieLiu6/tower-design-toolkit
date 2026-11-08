@@ -305,12 +305,22 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
   }
 }
 
+/**
+ * The outcome in words (overnight brief, 8 Nov: "A preliminary negative residual estimate should describe the outcome
+ * under its assumptions"; no blanket "Doesn't work"). Each names what was compared; the numbers and the evidence flag are
+ * shown beside it, unchanged. The calculation and the verdict states are the same as before.
+ */
 export const VERDICT_LABEL: Record<Verdict, string> = {
-  works: 'Works',
-  marginal: 'Marginal',
-  fails: "Doesn't work",
-  'land-needed': 'Land price needed',
-  incomplete: 'Incomplete',
+  works: 'Estimated residual at or above the assumed land price',
+  marginal: 'Estimated residual within 10% below the assumed land price',
+  fails: 'Estimated residual below the assumed land price',
+  'land-needed': 'Residual estimated; no land price to compare it with',
+  incomplete: 'Not computed: the model has no floor area or value yet',
+}
+/** The outcome for a result: with no land price, a negative residual says so rather than naming a comparison. */
+export function verdictText(r: Pick<EconResult, 'verdict' | 'land' | 'rlvAfter'>): string {
+  if (r.verdict === 'fails' && r.land == null) return 'Estimated residual is negative (no land price entered)'
+  return VERDICT_LABEL[r.verdict]
 }
 
 /** Compact money: C$1.2 B, C$340 M, C$12 k. */

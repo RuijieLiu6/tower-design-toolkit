@@ -148,10 +148,10 @@ function useEditedTower() {
 /** A block inside a design tool: an optional small heading, then the controls. */
 export function ToolBlock({ title, right, help, children }: { title?: string; right?: ReactNode; help?: ReactNode; children: ReactNode }) {
   return (
-    <div className="border-b border-line px-4 py-3 last:border-b-0">
+    <div className="border-b border-line px-3 py-3 last:border-b-0">
       {(title || right) && (
         <div className="mb-2 flex items-center justify-between gap-2">
-          {title && <h4 className="flex items-center gap-1.5 text-meta font-semibold text-muted">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h4>}
+          {title && <h4 className="flex min-w-0 items-center gap-1.5 text-control font-semibold text-ink">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h4>}
           {right}
         </div>
       )}
@@ -253,19 +253,23 @@ export function ProgramTool() {
   return (
     <>
       {!t.imported && (
-        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex items-center gap-1 text-meta text-accent hover:underline"><Plus size={12} />Band</button>}>
-          <div className="grid gap-1.5">
+        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex h-7 items-center gap-1 rounded-lg px-1.5 text-control text-accent-hover hover:bg-subtle"><Plus size={14} />Band</button>}>
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
             {t.bands.map((b, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <ProgramIcon use={b.use} />
-                <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="w-32 rounded border border-line bg-panel px-1 py-0.5 text-meta" aria-label={`Band ${i + 1} use`}>
-                  {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
-                </select>
-                <input type="range" min={0} max={1} step={0.01} value={b.share} onChange={(e) => setBand(i, { share: Number(e.target.value) })} className="w-full accent-accent" aria-label={`Band ${i + 1} share`} />
-                <span className="w-9 text-right text-meta tabular-nums text-muted">{Math.round((b.share / shareTotal) * 100)}%</span>
-                <button onClick={() => moveBand(i, -1)} aria-label="Move band down" className="text-muted hover:text-ink"><ArrowDown size={12} /></button>
-                <button onClick={() => moveBand(i, 1)} aria-label="Move band up" className="text-muted hover:text-ink"><ArrowUp size={12} /></button>
-                <button onClick={() => up({ bands: t.bands.filter((_, k) => k !== i) })} aria-label="Remove band" className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
+              // Two lines (8 Nov): the use and the band's actions, then its share across the panel's width, so neither is
+              // squeezed in a narrow panel; the actions are 24 px targets.
+              <div key={i} className="grid grid-cols-[minmax(0,1fr)] gap-0.5" data-band={i}>
+                <div className="flex items-center gap-1.5">
+                  <ProgramIcon use={b.use} />
+                  <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="h-8 w-0 min-w-0 flex-1 rounded-lg border border-line bg-panel px-1.5 text-control" aria-label={`Band ${i + 1} use`}>
+                    {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
+                  </select>
+                  <span className="w-10 text-right text-control tabular-nums text-ink">{Math.round((b.share / shareTotal) * 100)}%</span>
+                  <button onClick={() => moveBand(i, -1)} aria-label="Move band down" title="Move down" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-ink"><ArrowDown size={14} /></button>
+                  <button onClick={() => moveBand(i, 1)} aria-label="Move band up" title="Move up" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-ink"><ArrowUp size={14} /></button>
+                  <button onClick={() => up({ bands: t.bands.filter((_, k) => k !== i) })} aria-label="Remove band" title="Remove" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-error"><Trash2 size={14} /></button>
+                </div>
+                <input type="range" min={0} max={1} step={0.01} value={b.share} onChange={(e) => setBand(i, { share: Number(e.target.value) })} className="ml-7 w-[calc(100%-1.75rem)] accent-accent" aria-label={`Band ${i + 1} share`} />
               </div>
             ))}
           </div>

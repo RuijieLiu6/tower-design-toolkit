@@ -6,6 +6,9 @@
 //     adds drag handles, Move up / down, Connect / loop…, Remove, Undo and Redo; Add tool and My tools are always there;
 //   the active tool: a design node opens its design tools (tools/ToolPanel.tsx), a check its settings here and its
 //     results in the right panel, so the model stays in view.
+// Space (overnight brief, 8 Nov): the panel is about 288 px wide (adjustable); the workflow sits in a bounded region
+// (about 216 px, more while editing) that scrolls on its own, so a long workflow never pushes the open tool's controls
+// out of reach; the controls have the rest of the panel and their own scroll.
 // Navigation, working order and execution stay apart: opening a tool never runs anything; editing the workflow only
 // changes the order of work (a loop is a route back, never a re-run); checks run with the model while Analysis is on.
 // The workflow is the project's, the same as the landing page's and Overview's (lib/workflow/projectWorkflow.ts).
@@ -30,11 +33,12 @@ import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
 import { NODE_CONTROLS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
 import { addNode, connect, disconnect, moveNode, removeNode, runOrder, useProjectWorkflow, wouldLoop } from '../../lib/workflow/projectWorkflow'
 import { useInfo, type Info } from './WorkflowOverview'
+import { applyToolView } from '../../lib/workflow/toolView'
 import { ExportDrawer, ImportDrawer } from './PhasePorting'
 import { AddConfirm } from './AddConfirm'
 
 export type Portion = ReturnType<typeof phasePortion>
-const TILE = 28
+const TILE = 24
 /** The return arcs' margin: 12 px, and 8 px more for each nested loop. */
 const G0 = 12, LEVEL = 8
 const BUILT = BUILT_NODES.map((n) => n.id)
@@ -63,23 +67,28 @@ export default function PhasePanel() {
   }
   const [drawer, setDrawer] = useState<'import' | 'export' | null>(null)
   useEffect(() => setDrawer(null), [phase])
-  const head = 'flex items-center gap-1 rounded-lg bg-panel px-2 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
+  // The open tool sets the View it works in (unless the View is pinned): on opening it, and on coming back to the phase.
+  useEffect(() => { applyToolView(active) }, [active, phase])
+  const head = 'flex h-8 items-center gap-1 rounded-lg bg-panel px-2 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
   return (
-    <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge panel-slide flex w-[22rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel">
-      <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-        <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[phase].accent }} />
-        <h2 className="text-section font-semibold text-ink">{PHASE_NAME[phase]}</h2>
-        <span className="ml-auto flex items-center gap-1">
-          <button type="button" onClick={() => setDrawer(drawer === 'import' ? null : 'import')} aria-expanded={drawer === 'import'} data-testid="phase-import" title={`Bring a ${PHASE_NAME[phase]} package, a project file or a model in`} className={head}><FileUp size={13} aria-hidden />Import</button>
-          <button type="button" onClick={() => setDrawer(drawer === 'export' ? null : 'export')} aria-expanded={drawer === 'export'} data-testid="phase-export" title={`Save the ${PHASE_NAME[phase]} tools and settings, the project, or the model for other software`} className={head}><FileDown size={13} aria-hidden />Export</button>
+    <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge panel-slide flex w-[var(--left-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel">
+      {/* The phase's name and Hide; then Import and Export on their own line, so nothing truncates in a narrow panel. */}
+      <div className="border-b border-line px-3 pb-2 pt-1.5">
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[phase].accent }} />
+          <h2 className="min-w-0 flex-1 truncate text-section font-semibold text-ink">{PHASE_NAME[phase]}</h2>
           <HidePanelButton side="left" />
-        </span>
+        </div>
+        <div className="mt-1 flex items-center gap-1">
+          <button type="button" onClick={() => setDrawer(drawer === 'import' ? null : 'import')} aria-expanded={drawer === 'import'} data-testid="phase-import" title={`Bring a ${PHASE_NAME[phase]} package, a project file or a model in`} className={head}><FileUp size={14} aria-hidden />Import</button>
+          <button type="button" onClick={() => setDrawer(drawer === 'export' ? null : 'export')} aria-expanded={drawer === 'export'} data-testid="phase-export" title={`Save the ${PHASE_NAME[phase]} tools and settings, the project, or the model for other software`} className={head}><FileDown size={14} aria-hidden />Export</button>
+        </div>
       </div>
       {drawer === 'export' && <ExportDrawer phase={phase} portion={portion} onClose={() => setDrawer(null)} />}
       {drawer === 'import' && <ImportDrawer phase={phase} home={home} onClose={() => setDrawer(null)} />}
-      <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-        <PhaseWorkflow phase={phase} rows={rows} design={design} portion={portion} active={active} open={open} info={info} home={home} />
+      <PhaseWorkflow phase={phase} rows={rows} design={design} portion={portion} active={active} open={open} info={info} home={home} />
+      <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
         <ActiveTool key={active} id={active} phase={phase} info={info} />
       </div>
     </aside>
@@ -178,39 +187,39 @@ function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home 
   }
   const unlink = (e: Edge, note: string) => commit(disconnect(board, edgeKey(e)), note)
 
-  const chip = 'inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-panel px-2 py-0.5 text-meta text-ink outline-none hover:border-boundary focus-visible:ring-2 focus-visible:ring-accent'
+  const chip = 'inline-flex min-h-6 max-w-full items-center gap-1 truncate rounded-full border border-line bg-panel px-2 py-0.5 text-meta text-ink outline-none hover:border-boundary focus-visible:ring-2 focus-visible:ring-accent'
   const xBtn = (label: string, onClick: () => void) => (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className="rounded-full p-0.5 text-muted outline-none hover:text-error focus-visible:ring-2 focus-visible:ring-accent"><X size={11} aria-hidden /></button>
+    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-6 w-6 items-center justify-center rounded-full text-muted outline-none hover:text-error focus-visible:ring-2 focus-visible:ring-accent"><X size={11} aria-hidden /></button>
   )
   const summary = rows.map((id) => info(id).word).join(' › ')
 
   return (
-    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" data-editing={edit ? '' : undefined} className="pb-2">
+    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" data-editing={edit ? '' : undefined} className="flex shrink-0 flex-col border-b border-line pb-2">
       <div className="flex items-center gap-1 px-3 pt-2">
         <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(!collapsed)} aria-expanded={!collapsed} data-testid="phase-collapse"
-          className="flex items-center gap-1 rounded text-meta font-semibold text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-          {collapsed ? <ChevronRight size={13} aria-hidden /> : <ChevronDown size={13} aria-hidden />}Workflow
+          className="flex h-8 items-center gap-1 rounded-lg pr-1 text-control font-semibold text-ink outline-none hover:text-accent-hover focus-visible:ring-2 focus-visible:ring-accent">
+          {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}Workflow
         </button>
         {(() => { const words = `${rows.length} tool${rows.length === 1 ? '' : 's'}${loops.length ? `, ${loops.length} return path${loops.length > 1 ? 's' : ''}` : ''}`; return (
-          <span className="truncate whitespace-nowrap text-meta text-muted" title={words} data-testid="phase-count"><span aria-hidden>· {rows.length}{loops.length ? ` · ↻ ${loops.length}` : ''}</span><span className="sr-only">{words}</span></span>
+          <span className="sr-only" data-testid="phase-count">{words}</span>
         ) })()}
         <Help label={`About the ${PHASE_NAME[phase]} workflow`}>
           The {PHASE_NAME[phase]} tools in the order you work through them: click one to open its controls below (a check's results open on the right). Edit to change the order (drag the handle, or use Move up / down or the arrow keys on the handle), connect tools, make a return path to an earlier tool, or remove one; Undo takes any change back. A return path is a route for revisiting work: it never reruns anything on its own. Tools from other phases show as links, like "Return to Form / Massing". The same workflow is on the start page and in Overview.
         </Help>
         <span className="ml-auto flex items-center gap-1">
-          {edit && <button type="button" onClick={w.undo} disabled={!w.past.length} aria-label="Undo the last workflow change" title="Undo" data-testid="phase-undo" className="rounded-lg bg-panel p-1 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Undo2 size={14} aria-hidden /></button>}
-          {edit && <button type="button" onClick={w.redo} disabled={!w.future.length} aria-label="Redo" title="Redo" className="rounded-lg bg-panel p-1 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Redo2 size={14} aria-hidden /></button>}
+          {edit && <button type="button" onClick={w.undo} disabled={!w.past.length} aria-label="Undo the last workflow change" title="Undo" data-testid="phase-undo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Undo2 size={14} aria-hidden /></button>}
+          {edit && <button type="button" onClick={w.redo} disabled={!w.future.length} aria-label="Redo" title="Redo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Redo2 size={14} aria-hidden /></button>}
           {edit
-            ? <button type="button" onClick={() => setEdit(false)} data-testid="phase-done" className="flex items-center gap-1 rounded-lg bg-accent px-2 py-1 text-meta text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Check size={13} aria-hidden />Done</button>
+            ? <button type="button" onClick={() => setEdit(false)} data-testid="phase-done" className="flex h-8 items-center gap-1 rounded-lg bg-accent px-2.5 text-control text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Check size={13} aria-hidden />Done</button>
             : <button type="button" onClick={() => { setEdit(true); usePhaseTools.getState().setCollapsed(false) }} data-testid="phase-edit" title="Change the order, connections and return paths"
-                className="flex items-center gap-1 rounded-lg bg-panel px-2 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><PencilLine size={13} aria-hidden />Edit</button>}
+                className="flex h-8 items-center gap-1 rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><PencilLine size={14} aria-hidden />Edit</button>}
         </span>
       </div>
 
       {collapsed
         ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the workflow">{summary}{loops.length ? ' ↻' : ''}</button>
         : (
-          <>
+          <div className={`mt-1 overflow-y-auto overscroll-contain ${edit ? 'max-h-[min(26rem,55vh)]' : 'max-h-[13.5rem]'}`} style={{ scrollbarWidth: 'thin' }} data-testid="phase-workflow-region">
             {ins.length > 0 && (
               <div className="flex flex-wrap items-center gap-1 px-3 pt-1.5" style={{ paddingLeft: tileX - 2 }} data-testid="phase-from">
                 {ins.map((c) => (
@@ -235,7 +244,7 @@ function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home 
                 return (
                   <li key={id} data-phase-node={id} className="relative">
                     <div className="flex items-start gap-1 pr-2" style={{ paddingLeft: G }}>
-                      <span className="mt-[13px] flex w-4 shrink-0 justify-center">
+                      <span className="mt-[10px] flex w-4 shrink-0 justify-center">
                         {edit && (
                           <button type="button" aria-label={`Move ${n.name}: drag, or press the up and down arrow keys`} title="Drag to reorder (or use the arrow keys)" data-grip={id}
                             onKeyDown={(e) => gripKey(id, e)}
@@ -251,12 +260,10 @@ function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home 
                       <button type="button" data-node={id} aria-current={isActive ? 'true' : undefined}
                         aria-label={`${n.name}${edit ? ': choose to edit' : isDesignNode(id) ? ': open its tools' : ': open its settings and results'}${isActive ? ' (open)' : ''}`}
                         onClick={() => { if (edit) { setSel(picked ? null : id); setConnecting(false) } else open(id) }}
-                        className={`node-hit flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'} ${picked ? 'outline-2 outline-dashed outline-ink' : ''} ${drag?.id === id ? 'opacity-50' : ''}`}>
+                        title={`${n.name} · ${kind}${!inBoard ? ' · joins the workflow when you edit it' : ''}`}
+                        className={`node-hit flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'} ${picked ? 'outline-2 outline-dashed outline-ink' : ''} ${drag?.id === id ? 'opacity-50' : ''}`}>
                         <NodeTile id={id} size={TILE} art={<NodeArtwork id={id} size={Math.round(TILE * 0.9)} category={n.category} />} />
-                        <span className="min-w-0 flex-1">
-                          <span className={`block truncate text-control leading-tight ${isActive ? 'font-semibold text-accent-hover' : 'font-medium text-ink'}`}>{n.name}</span>
-                          <span className="block truncate text-meta text-muted">{kind}{!inBoard ? ' · joins the workflow when you edit it' : ''}</span>
-                        </span>
+                        <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{n.word.length > 3 && n.name.length > 26 ? n.word : n.name}<span className="sr-only">, {kind}{!inBoard ? ', joins the workflow when you edit it' : ''}</span></span>
                       </button>
                     </div>
                     {(branches.length + loopsOut.length + retOut.length + retIn.length) > 0 && (
@@ -268,7 +275,7 @@ function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home 
                       </div>
                     )}
                     {picked && (
-                      <div role="group" aria-label={`Edit ${n.name}`} data-testid="phase-node-actions" className="mb-1 mr-2 flex flex-wrap items-center gap-1 rounded-lg bg-subtle px-2 py-1 text-meta" style={{ marginLeft: tileX - 4 }}>
+                      <div role="group" aria-label={`Edit ${n.name}`} data-testid="phase-node-actions" className="mb-1 mr-2 flex flex-wrap items-center gap-1 rounded-lg bg-subtle px-1.5 py-1 text-control" style={{ marginLeft: tileX - 4 }}>
                         <button type="button" disabled={i === 0} onClick={() => moveTo(id, i - 1)} className="flex items-center gap-0.5 rounded px-1 outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><ArrowUp size={12} aria-hidden />Move up</button>
                         <button type="button" disabled={i === rows.length - 1} onClick={() => moveTo(id, i + 2)} className="flex items-center gap-0.5 rounded px-1 outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><ArrowDown size={12} aria-hidden />Move down</button>
                         <button type="button" onClick={() => setConnecting((v) => !v)} aria-expanded={connecting} className="flex items-center gap-0.5 rounded px-1 outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent"><Link2 size={12} aria-hidden />Connect / loop…</button>
@@ -287,12 +294,12 @@ function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home 
                   const a = geo[id], b = geo[rows[i + 1]]
                   if (!a || !b || !board.edges.some((e) => e.a === id && e.b === rows[i + 1] && !isRet(e))) return null
                   const x = tileX + TILE / 2
-                  return <path key={id} d={`M${x},${a.top + 6 + TILE + 2} L${x},${b.top + 6 - 2}`} stroke={UI.edge} strokeWidth={1.3} fill="none" markerEnd="url(#phase-arrow)" data-wire={`${id}>${rows[i + 1]}`} />
+                  return <path key={id} d={`M${x},${a.top + 4 + TILE + 2} L${x},${b.top + 4 - 2}`} stroke={UI.edge} strokeWidth={1.3} fill="none" markerEnd="url(#phase-arrow)" data-wire={`${id}>${rows[i + 1]}`} />
                 })}
                 {loops.map((l) => {
                   const a = geo[l.e.a], b = geo[l.e.b]
                   if (!a || !b) return null
-                  const y1 = a.top + 6 + TILE / 2, y2 = b.top + 6 + TILE / 2, x0 = tileX - 2, xl = G - 8 - l.level * LEVEL, hot = edit && (sel === l.e.a || sel === l.e.b)
+                  const y1 = a.top + 4 + TILE / 2, y2 = b.top + 4 + TILE / 2, x0 = tileX - 2, xl = G - 8 - l.level * LEVEL, hot = edit && (sel === l.e.a || sel === l.e.b)
                   return <path key={edgeKey(l.e)} data-loop={edgeKey(l.e)} d={`M${x0},${y1} H${xl + 4} Q${xl},${y1} ${xl},${y1 - 4} V${y2 + 4} Q${xl},${y2} ${xl + 4},${y2} H${x0}`}
                     stroke={hot ? UI.accent : UI.edge} strokeWidth={hot ? 2 : 1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#phase-arrow)" />
                 })}
@@ -315,11 +322,11 @@ function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home 
             )}
             <div className="px-3 pt-1.5" style={{ paddingLeft: tileX - 2 }}>
               <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="phase-add"
-                className="flex items-center gap-1 rounded-lg border border-dashed border-line px-2 py-1 text-meta text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={13} aria-hidden />Add tool</button>
+                className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-line px-2.5 text-control text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={14} aria-hidden />Add tool</button>
             </div>
             {adding && <AddTool phase={phase} board={board} info={info} home={home} after={sel && rows.includes(sel) ? info(sel).name : info(rows[rows.length - 1]).name} onAdd={add} onClose={() => setAdding(false)} />}
             {edit && w.note && <p role="status" className="px-3 pt-1.5 text-meta text-muted" data-testid="phase-note">{w.note}{w.past.length ? ' · Undo is above' : ''}</p>}
-          </>
+          </div>
         )}
     </section>
   )
@@ -454,14 +461,14 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
   const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
   const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in the Library' : analysis ? 'Runs with the model; its results are on the right' : 'Analysis is off: its results wait until you switch it on'
   return (
-    <section aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id} className="border-t border-line">
+    <section aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id}>
       <div className="flex items-center gap-2 px-3 py-2">
         <NodeTile id={id} size={24} art={<NodeArtwork id={id} size={21} category={n.category} />} />
         <span className="min-w-0 flex-1">
-          <h3 className="truncate text-control font-semibold text-ink">{n.name}</h3>
+          <h3 className="truncate text-control font-semibold text-ink" data-testid="phase-active-name">{n.name}</h3>
           <span className="block truncate text-meta text-muted" title={state}>{state}</span>
         </span>
-        {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="shrink-0 rounded-lg bg-panel px-2 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
+        {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
       {d ? (phase === 'present' ? <Filmstrip tone="light" /> : <ToolPanel embedded />)
         : controls ? <ToolPanel embedded only={controls} />

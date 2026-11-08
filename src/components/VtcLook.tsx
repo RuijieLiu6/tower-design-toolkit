@@ -6,7 +6,7 @@
 //   a pale gradient behind and quiet edges. Materials is not offered here: the base model carries no materials.
 // The context drawn here comes from the entrant's own copy of the base model (lib/vtcContextSource.ts); without it only
 // the brief's site is drawn, and the legend says so.
-import { useEffect, useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
@@ -18,6 +18,7 @@ import { useShownMode } from '../lib/displayModeHooks'
 import { contextUses } from '../lib/vtcUses'
 import { useVtcSource } from '../lib/vtcContextSource'
 import { useStore } from '../store'
+import { ChevronDown, ChevronUp } from './icons'
 import Help from './Help'
 import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 
@@ -161,14 +162,19 @@ export function VtcLookBar() {
   const devFile = useVtcSource((s) => s.source === 'dev-file')
   const uses = ctx ? contextUses(ctx) : null
   const shown = uses ? BUILDING_USES.filter((u) => uses.buildings.includes(u.id)) : []
+  // The full key on request (8 Nov), shared with Real Vancouver's; an Analysis scale stays visible (units and range).
+  const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') !== '0' } catch { return true } })
+  const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   return (
     <div data-testid="vtc-look" className="glass pointer-events-auto absolute bottom-12 left-3 z-10 grid max-w-[min(46rem,calc(100%-1.5rem))] gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
       <div className="flex flex-wrap items-center gap-1.5">
         <DisplayModeSwitch project="vtc" />
         <SunChip />
+        {mode !== 'analysis' && <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} data-testid="key-toggle" title={folded ? 'Show the key' : 'Fold the key'}
+          className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink outline-none hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">Key{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>}
       </div>
-      {mode === 'massing' && <MassingKey />}
-      {mode === 'program' && <>
+      {!folded && mode === 'massing' && <MassingKey />}
+      {!folded && mode === 'program' && <>
         <div className="flex items-start gap-2">
           <KeyGroup label="Ground-level use">
             {uses?.hasPlan

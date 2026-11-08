@@ -51,7 +51,7 @@ test('Rhino import tool: upload a .3dm through the tool button and see its tower
 
   // The towers are in the results (the competition rules check each tower's height).
   // In the Site step the right panel opens on Your site (5 Nov); the towers' results are under Results & evidence.
-  await page.getByRole('tab', { name: 'Results & evidence' }).click()
+  await page.getByRole('tab', { name: 'Results', exact: true }).click()
   await openResultDetails(page) // the rule cards sit under Details below the pass/fail checklist (6 Nov)
   // The checklist's passing rows are folded too; the card under Details is the one that shows.
   await expect(page.getByText('Height band: Tower A').filter({ visible: true }).first()).toBeVisible({ timeout: 60_000 })
