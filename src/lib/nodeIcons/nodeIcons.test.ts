@@ -6,10 +6,10 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import example from '../../../skills/tower-studio-node-builder/references/example-node.json'
 import { CUES, OBJECTS, briefProblems, proposeBrief, type IconBrief } from './brief'
 import { FallbackIcon, GeneratedIcon, HAS_VARIANTS } from './generate'
-import { FIT, OCCUPANCY, PALETTE, matchStyle, placement, qualityChecks, sniff } from './image'
+import { CHECKS, FIT, OCCUPANCY, PALETTE, PALETTE_HEX, matchStyle, placement, qualityChecks, sniff } from './image'
 import { dataUrlBytes } from './fromPackage'
 import { packageIconOf, useNodeIcons, type IconRecord } from './store'
-import { agentInstructions } from './agentInstructions'
+import { PACK_FILES, agentInstructions } from './agentInstructions'
 import { validatePackage, validatePackageText } from '../nodeValidate'
 import { useCommunityStore } from '../communityStore'
 import { useStore } from '../../store'
@@ -84,6 +84,17 @@ function square(size: number, rect: [number, number, number, number] | null, rgb
   }
   return px
 }
+/** A diamond like the toolkit's ground plate: `w` of the square wide, centred, its lowest point `bottom` above the edge. */
+function plateLike(size: number, w = 0.85, bottom = 0.08, rgb: [number, number, number] = [217, 222, 228]): Uint8ClampedArray {
+  const px = new Uint8ClampedArray(size * size * 4)
+  const cx = size / 2, hw = (w * size) / 2, hh = hw * 0.58, cy = size * (1 - bottom) - hh
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if (Math.abs(x + 0.5 - cx) / hw + Math.abs(y + 0.5 - cy) / hh > 1) continue
+    const i = (y * size + x) * 4
+    px[i] = rgb[0]; px[i + 1] = rgb[1]; px[i + 2] = rgb[2]; px[i + 3] = 255
+  }
+  return px
+}
 const state = (checks: ReturnType<typeof qualityChecks>) => Object.fromEntries(checks.map((c) => [c.id, c.state]))
 
 describe('uploads', () => {
@@ -103,8 +114,14 @@ describe('uploads', () => {
     expect(placement(512, 256, { mode: 'crop', zoom: 2, dx: 0, dy: 0 }, 256).w).toBe(1024)
   })
   it('passes a well-framed drawing in the palette', () => {
-    const s = 100, m = Math.round((1 - OCCUPANCY.target) / 2 * s)
-    expect(state(qualityChecks(square(s, [m, m, s - m, s - m]), s))).toMatchObject({ framing: 'pass', clipping: 'pass', background: 'pass', palette: 'pass' })
+    const s = 200
+    expect(state(qualityChecks(plateLike(s), s))).toMatchObject({ framing: 'pass', clipping: 'pass', background: 'pass', palette: 'pass' })
+    // off centre, floating, or covering the square: warnings in words
+    const shifted = qualityChecks(plateLike(s, 0.85, 0.3), s)[0]
+    expect(shifted.state).toBe('warn')
+    expect(shifted.detail).toMatch(/above the bottom edge/)
+    const full = (m: number) => square(s, [m, m, s - m, s - m])
+    expect(qualityChecks(full(Math.round((1 - OCCUPANCY.target) / 2 * s)), s).find((c) => c.id === 'background')?.detail).toMatch(/covers 7\d% of the square/)
   })
   it('warns about a small, a clipped, an empty or an off-palette image', () => {
     const s = 100
@@ -185,6 +202,12 @@ describe('instructions for AI agents', () => {
     for (const w of [...OBJECTS, ...CUES]) expect(t).toContain(w)
     expect(t).toMatch(/no SVG/)
     expect(t).toMatch(/not enough/)
+    // Ruijie's prompt (7 Nov): honest about what exists, names missing pack files, returns meaning, source and version
+    expect(t).toContain('Do not claim to have created an image when no image file exists.')
+    expect(t).toMatch(/which of these files you could not get/)
+    expect(t).toMatch(/keep it as it is unless I explicitly choose to restyle it/)
+    for (const f of PACK_FILES) expect(t).toContain(`style-pack/node-icons/v1/${f}`)
+    for (const w of ['intended meaning', 'Its source', 'style pack version', 'standard node preview']) expect(t).toContain(w)
   })
 })
 
@@ -206,6 +229,15 @@ describe('the published style pack (public/style-pack/node-icons/v1)', () => {
       expect(r.problems.filter((p) => p.where === 'Icon'), f).toEqual([])
       expect(r.icon?.kind).toBe(f.includes('image') ? 'image' : 'brief')
     }
+  })
+  it('publishes exactly the thresholds and palette the app checks with', async () => {
+    type Warn = { id: string; occupancy?: number[]; maxOffsetX?: number; bottomMargin?: number[]; maxEdgeShare?: number; maxInkShare?: number; minDark?: number; maxBusy?: number; minPaletteShare?: number; distance?: number; palette?: string[] }
+    const tokens = (await import('../../../public/style-pack/node-icons/v1/icon-tokens.json')).default as unknown as { validation: { warn: Warn[] } }
+    const w = Object.fromEntries(tokens.validation.warn.map((x) => [x.id, x])) as Record<string, Warn>
+    expect([w.framing.occupancy, w.framing.maxOffsetX, w.framing.bottomMargin]).toEqual([CHECKS.occupancy, CHECKS.maxOffsetX, CHECKS.bottomMargin])
+    expect([w.clipping.maxEdgeShare, w.background.maxInkShare, w.legibility.minDark, w.legibility.maxBusy]).toEqual([CHECKS.maxEdgeShare, CHECKS.maxInkShare, CHECKS.minDark, CHECKS.maxBusy])
+    expect([w.palette.minPaletteShare, w.palette.distance]).toEqual([CHECKS.minPaletteShare, CHECKS.paletteDistance])
+    expect([...(w.palette.palette ?? [])].sort()).toEqual([...PALETTE_HEX].sort())
   })
   it('measures its framing from the toolkit’s own icons, and the app checks against the same band', async () => {
     const tokens = (await import('../../../public/style-pack/node-icons/v1/icon-tokens.json')).default as unknown as { export: { occupancy: { accept: [number, number]; target: number } } }

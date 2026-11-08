@@ -4,7 +4,6 @@
 // its real sizes, closeness to the toolkit palette) is checked separately and reported, never claimed. "Match toolkit
 // style" makes a second, restyled copy; the original is kept. The pixel analysis is pure (RGBA arrays) so it is tested
 // without a browser; the canvas work is a thin layer on top.
-import { PHASE_HUE } from '../phases'
 
 export const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
 export type AcceptedType = (typeof ACCEPTED_TYPES)[number]
@@ -68,36 +67,40 @@ export function renderDisplay(src: CanvasImageSource, w: number, h: number, a: A
   return cv
 }
 
-// ---------------------------------------------------------------- the toolkit palette (style pack 1)
-const hsl = (h: number, s: number, l: number): [number, number, number] => {
-  s /= 100; l /= 100
-  const k = (n: number) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l)
-  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
-  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)]
-}
+// ---------------------------------------------------------------- the toolkit palette and checks (style pack 1)
+// The same numbers as the published pack (public/style-pack/node-icons/v1/icon-tokens.json → validation), measured on
+// the toolkit's own 31 icons by tools/build_icon_pack.mjs; nodeIcons.test.ts fails if the two drift apart.
 const hex = (s: string): [number, number, number] => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]
-/** Every colour the built illustrations use (components/icons/nodeArt.tsx tones), the five phase accents in three tones. */
-export const PALETTE: [number, number, number][] = [
-  ...['#fbfbfa', '#e2e5ea', '#c3c9d2', '#eef1f3', '#d9dee4', '#c7cdd5', '#b7dd8f', '#86c06a', '#5f9a4f', '#bfe1f6', '#8cc4e8', '#5d9fcf', '#6c7686', '#4f5868', '#3a4250', '#ffffff'].map(hex),
-  ...Object.values(PHASE_HUE).flatMap((h) => [hsl(h, 82, 76), hsl(h, 68, 61), hsl(h, 58, 47)]),
-]
+/** Every colour the family uses: the materials' three tones, the five phase accents in three tones, white and the warm daylight. */
+export const PALETTE_HEX = [
+  '#fbfbfa', '#e2e5ea', '#c3c9d2', '#eef1f3', '#d9dee4', '#c7cdd5', '#b7dd8f', '#86c06a', '#5f9a4f', '#bfe1f6', '#8cc4e8', '#5d9fcf',
+  '#6c7686', '#4f5868', '#3a4250', '#90c8f4', '#58a5df', '#3281bd', '#f4a790', '#df7758', '#bd5332', '#f4e090', '#dfc458', '#bda232',
+  '#be90f4', '#9758df', '#7332bd', '#f490f4', '#df58df', '#bd32bd', '#ffffff', '#fff0b3', '#fbf4da', '#cdd2da', '#f2c14e',
+] as const
+export const PALETTE: [number, number, number][] = PALETTE_HEX.map(hex)
+/** Thresholds of the pack's warnings (icon-tokens.json → validation.warn). */
+export const CHECKS = {
+  occupancy: [0.81, 0.89] as [number, number], maxOffsetX: 0.03, bottomMargin: [0.06, 0.1] as [number, number],
+  maxEdgeShare: 0.04, maxInkShare: 0.49, minDark: 0.09, maxBusy: 0.22, minPaletteShare: 0.85, paletteDistance: 48,
+}
 const dist2 = (r: number, g: number, b: number, p: [number, number, number]) => (r - p[0]) ** 2 + (g - p[1]) ** 2 + (b - p[2]) ** 2
 const nearest = (r: number, g: number, b: number) => PALETTE.reduce((m, p) => (dist2(r, g, b, p) < dist2(r, g, b, m) ? p : m), PALETTE[0])
 const lum = (r: number, g: number, b: number) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+const pct = (x: number) => `${Math.round(x * 100)}%`
+const range = ([a, b]: [number, number]) => `${Math.round(a * 100)}–${pct(b)}`
 
 // ---------------------------------------------------------------- visual quality (pure, on RGBA)
 export interface QualityCheck { id: 'framing' | 'clipping' | 'background' | 'legibility' | 'palette'; label: string; state: 'pass' | 'warn'; detail: string }
-/** The family's framing: the drawing's longest side (alpha >= 32) as a share of its square. Style pack 1, measured on the
- *  built icons by tools/build_icon_pack.mjs (icon-tokens.json: 0.852-0.885, target 0.85, accepted 0.81-0.89). */
-export const OCCUPANCY = { min: 0.81, max: 0.89, target: 0.85 }
-/** Legible at 30 px: the share of the drawing that is not near-white. The family's lightest icon (provenance) measures
- *  0.108, so 0.09 passes all 31 of the toolkit's own icons (tools/build_icon_pack.mjs measurement). */
-export const LEGIBLE_DARK = 0.09
+/** The family's framing: the drawing's longest side (alpha >= 32) as a share of its square (family 0.852-0.883). */
+export const OCCUPANCY = { min: CHECKS.occupancy[0], max: CHECKS.occupancy[1], target: 0.85 }
+/** Legible at 30 px: the share of the drawing that is not near-white (the family's lightest icon measures 0.108). */
+export const LEGIBLE_DARK = CHECKS.minDark
 
-/** Checks an icon's pixels (a `size` × `size` RGBA square) for how it will read in a tile. */
+/** Checks an icon's pixels (a `size` × `size` RGBA square) for how it will read in a tile: the pack's five warnings. */
 export function qualityChecks(rgba: Uint8ClampedArray, size: number, small?: Uint8ClampedArray, smallSize = 30): QualityCheck[] {
   const n = size * size, A = (i: number) => rgba[i * 4 + 3]
   let x0 = size, y0 = size, x1 = -1, y1 = -1, clear = 0, opaque = 0, inPalette = 0
+  const d2 = CHECKS.paletteDistance ** 2
   for (let i = 0; i < n; i++) {
     const a = A(i)
     if (a >= 32) { const x = i % size, y = (i / size) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y) }
@@ -105,14 +108,10 @@ export function qualityChecks(rgba: Uint8ClampedArray, size: number, small?: Uin
     if (a >= 128) {
       opaque++
       const r = rgba[i * 4], g = rgba[i * 4 + 1], b = rgba[i * 4 + 2]
-      if (dist2(r, g, b, nearest(r, g, b)) < 48 * 48) inPalette++
+      if (dist2(r, g, b, nearest(r, g, b)) < d2) inPalette++
     }
   }
   const out: QualityCheck[] = []
-  // framing: the drawing's longest side against the family's
-  const occ = x1 < 0 ? 0 : Math.max(x1 - x0 + 1, y1 - y0 + 1) / size
-  out.push({ id: 'framing', label: 'Framing', state: occ >= OCCUPANCY.min && occ <= OCCUPANCY.max ? 'pass' : 'warn',
-    detail: x1 < 0 ? 'Nothing visible: the image is fully transparent.' : `The drawing fills ${Math.round(occ * 100)}% of the tile (the toolkit’s icons fill ${Math.round(OCCUPANCY.min * 100)}–${Math.round(OCCUPANCY.max * 100)}%).${occ < OCCUPANCY.min ? ' It will look small: crop in, or export it with less margin.' : occ > OCCUPANCY.max ? ' It is tight to the edges: Fit, or export it with a little margin.' : ''}` })
   // clipping: drawing on the outer 2 px ring
   let edge = 0, ring = 0
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -120,13 +119,31 @@ export function qualityChecks(rgba: Uint8ClampedArray, size: number, small?: Uin
     ring++
     if (A(y * size + x) >= 128) edge++
   }
-  const clipped = edge / ring
+  const clipped = edge / ring, ink = (n - clear) / n
   // a solid background: almost nothing transparent and the border all one colour
   const solid = clear / n < 0.04 && clipped > 0.9
-  out.push({ id: 'clipping', label: 'Clipping', state: clipped < 0.04 || solid ? 'pass' : 'warn',
-    detail: solid ? 'Not measured: the image has a solid background (see Background).' : clipped < 0.04 ? 'Clear of the edges.' : `The drawing touches the tile’s edge along ${Math.round(clipped * 100)}% of it: part of it may be cut off.` })
-  out.push({ id: 'background', label: 'Background', state: solid ? 'warn' : 'pass',
-    detail: solid ? 'It has a solid background; the toolkit’s icons are drawn on a transparent one. Match toolkit style can remove it.' : 'Transparent around the drawing.' })
+
+  // framing: size, left-right centring and the plate's height above the bottom edge, against the family's
+  if (x1 < 0) out.push({ id: 'framing', label: 'Framing', state: 'warn', detail: 'Nothing visible: the image is fully transparent.' })
+  else if (solid) out.push({ id: 'framing', label: 'Framing', state: 'warn', detail: 'Not measured: the image has a solid background (see Background).' })
+  else {
+    const occ = Math.max(x1 - x0 + 1, y1 - y0 + 1) / size
+    const offX = ((x0 + x1 + 1) / 2 - size / 2) / size
+    const bottom = (size - 1 - y1) / size
+    const notes: string[] = []
+    if (occ < CHECKS.occupancy[0]) notes.push('it will look small: crop in, or export it with less margin')
+    if (occ > CHECKS.occupancy[1]) notes.push('it is tight to the edges: Fit, or export it with a little margin')
+    if (Math.abs(offX) > CHECKS.maxOffsetX) notes.push(`it sits ${pct(Math.abs(offX))} ${offX > 0 ? 'right' : 'left'} of centre (the family: within ${pct(CHECKS.maxOffsetX)})`)
+    if (bottom < CHECKS.bottomMargin[0] || bottom > CHECKS.bottomMargin[1]) notes.push(`its lowest point is ${pct(bottom)} above the bottom edge (the family: ${range(CHECKS.bottomMargin)}, the ground plate’s near corner)`)
+    out.push({ id: 'framing', label: 'Framing', state: notes.length ? 'warn' : 'pass',
+      detail: `The drawing fills ${pct(occ)} of the tile (the toolkit’s icons fill ${range(CHECKS.occupancy)})${notes.length ? `: ${notes.join('; ')}.` : ', centred, on the same ground line.'}` })
+  }
+  out.push({ id: 'clipping', label: 'Clipping', state: clipped < CHECKS.maxEdgeShare || solid ? 'pass' : 'warn',
+    detail: solid ? 'Not measured: the image has a solid background (see Background).' : clipped < CHECKS.maxEdgeShare ? 'Clear of the edges.' : `The drawing touches the tile’s edge along ${pct(clipped)} of it: part of it may be cut off.` })
+  const bgWarn = solid || ink > CHECKS.maxInkShare
+  out.push({ id: 'background', label: 'Background', state: bgWarn ? 'warn' : 'pass',
+    detail: solid ? 'It has a solid background; the toolkit’s icons are drawn on a transparent one. Match toolkit style can remove it.'
+      : ink > CHECKS.maxInkShare ? `It covers ${pct(ink)} of the square; the toolkit’s icons cover at most ${pct(CHECKS.maxInkShare)} and leave the rest transparent.` : 'Transparent around the drawing.' })
   // legibility at the smallest size it is shown (30 px): enough contrast against the white tile, not a blur of detail
   if (small) {
     const m = smallSize * smallSize
@@ -140,12 +157,12 @@ export function qualityChecks(rgba: Uint8ClampedArray, size: number, small?: Uin
       if ((i % smallSize) < smallSize - 1 && small[j * 4 + 3] >= 128 && Math.abs(L - lum(small[j * 4], small[j * 4 + 1], small[j * 4 + 2])) > 0.25) edges++
     }
     const contrast = seen ? dark / seen : 0, busy = seen ? edges / seen : 0
-    out.push({ id: 'legibility', label: 'Legible at 30 px', state: contrast >= LEGIBLE_DARK && busy <= 0.45 ? 'pass' : 'warn',
-      detail: contrast < LEGIBLE_DARK ? 'Mostly very light: at 30 px it fades into the white tile. Use deeper colours or a darker side.' : busy > 0.45 ? 'Very busy at 30 px: simplify to one object and at most one cue.' : 'Reads at the node bar’s size.' })
+    out.push({ id: 'legibility', label: 'Legible at 30 px', state: contrast >= CHECKS.minDark && busy <= CHECKS.maxBusy ? 'pass' : 'warn',
+      detail: contrast < CHECKS.minDark ? 'Mostly very light: at 30 px it fades into the white tile. Use deeper colours or a darker side.' : busy > CHECKS.maxBusy ? 'Very busy at 30 px: simplify to one object and at most one cue.' : 'Reads at the node bar’s size.' })
   }
   const share = opaque ? inPalette / opaque : 0
-  out.push({ id: 'palette', label: 'Toolkit palette', state: share >= 0.6 ? 'pass' : 'warn',
-    detail: `${Math.round(share * 100)}% of its colours are near the toolkit’s palette${share < 0.6 ? ': it will stand apart from the other icons. Match toolkit style can bring them in.' : '.'}` })
+  out.push({ id: 'palette', label: 'Toolkit palette', state: share >= CHECKS.minPaletteShare ? 'pass' : 'warn',
+    detail: `${pct(share)} of its colours are near the toolkit’s palette${share < CHECKS.minPaletteShare ? ` (the toolkit’s icons: at least ${pct(CHECKS.minPaletteShare)}): it will stand apart from the other icons. Match toolkit style can bring them in.` : '.'}` })
   return out
 }
 

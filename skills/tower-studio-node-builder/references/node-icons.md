@@ -41,3 +41,15 @@ Only if they ask, and only if you can make a transparent PNG or WebP:
 ## What happens on import
 
 Tower Design Toolkit checks the icon itself: file type by its bytes, size, dimensions, that it decodes; then framing, clipping, background, legibility at 30 px and closeness to the family palette. It shows the icon on its tile at 52, 40 and 30 px with any warnings, and the designer keeps it or drops it. Never tell the designer an icon "passes" or "follows the style": say the platform will check it. The icon is optional: a package without one still imports.
+
+## What to hand back
+
+With the package, tell the designer:
+
+1. **The icon asset:** the image file, or the brief when no image was made. Never say an image exists when there is no file.
+2. **Its intended meaning,** in one sentence.
+3. **Its source:** the toolkit's generator (a brief), the image tool used, or the designer's own image. If you restyled their image, keep the original and give the restyled one as a separate file.
+4. **The style pack version:** `1`.
+5. **That it still needs a node preview:** Tower Design Toolkit shows it on its tile at 52, 40 and 30 px with every check in words, on import and in the node builder's Icons tab.
+
+If you cannot fetch a pack file, name the file you could not get. Never fill in the toolkit's visual rules from memory. The generator draws only `metaphor.object` and `metaphor.cue`. When the meaning needs more (a width dimension, say), draw an image instead.
