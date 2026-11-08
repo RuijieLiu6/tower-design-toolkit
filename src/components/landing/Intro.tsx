@@ -10,10 +10,14 @@
 //     joined by wires that hang like soft ropes with pulses running along them. Click a floating node (or drop it on the
 //     string) to thread it; drop it on a wire to put it there; drag a threaded node anywhere; flick it or drag it down to
 //     take it off. Then, like Grasshopper and Miro ("allow for creating loops and allow for drag and unconnect the nodes
-//     like how Grasshopper connects its nodes"): drag from a node's side handle to another node to wire them (a wire back
-//     to an earlier node is a loop; the loop's whole ring is orange); grab a wire near an end and drag to rewire it, or let it go in empty
-//     space to cut it. The workflow is what is reached from Start along the wires, in that order; a node on the board but
-//     wired to nothing shows a dashed outline and is left out until it is wired in. Loop: one click for last → first;
+//     like how Grasshopper connects its nodes"): drag (or click, or press C) from a node's connection point to another node
+//     to wire them; a wire back to a task earlier on its path is a return connection that closes a loop, found from the
+//     directed wires alone (lib/workflowGraph.ts returnEdges), never from positions or lanes. Loops are local, any number,
+//     anywhere (Ruijie, 7 Nov: no global Loop button, no permanent loop hints): guidance appears only on the connection
+//     point ("Connect nodes"), on a target that would close a loop ("Create loop"), and on a hovered, focused or selected
+//     return ("Return to …"). Select a wire to see it and remove it; Undo (Ctrl+Z) brings it back. The workflow is what is
+//     reached from Start along the wires, in that order; a node on the board but wired to nothing shows a dashed outline
+//     and is left out until it is wired in;
 //   - the box in the middle alternates between the name and "A Tower Design by [role ▾]": a role threads its starting
 //     workflow; "you, node by node" leaves an empty string to build on;
 //   - Enter (the string's end) goes into the guided app with that workflow, in that order (lib/startPreset.ts);
@@ -23,7 +27,7 @@
 // Keyboard: floating nodes are buttons (Enter threads one); threaded nodes are buttons (← → move it along the string,
 // Delete takes it off); the role menu is a listbox. Reduced motion: nothing drifts, sways or alternates; all still works.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowRight, ChevronDown, Play, RefreshCw } from '../icons'
+import { ArrowRight, ChevronDown, Play, Trash2, Undo2, X } from '../icons'
 import WorkflowAssistant from './WorkflowAssistant'
 import type { Proposal } from '../../lib/agent/workflowAssistant'
 import GlassIcon, { HUES, ICON } from '../GlassIcon'
@@ -33,7 +37,7 @@ import { PHASE_HUE, PHASES, phaseOfNode, type PhaseId } from '../../lib/phases'
 import { startPreset } from '../../lib/startPreset'
 import { enterToolkit } from '../../lib/intro'
 import { USER_TYPES, type Preset, type UserTypeId } from '../../lib/userTypes'
-import { byPhase, edgeKey, linear, phaseIndex, walk, type Edge } from '../../lib/workflowGraph'
+import { byPhase, closesLoop, edgeKey, linear, loopRing, phaseIndex, returnEdges, walk, type Edge } from '../../lib/workflowGraph'
 
 type RoleId = UserTypeId | 'custom'
 const ROLES: { id: RoleId; label: string }[] = [
@@ -79,8 +83,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // The run: what Start reaches along the wires, in that order. A wire to an earlier node (or itself) is a loop.
   const chain = useMemo(() => walk(edges), [edges])
   const chainRef = useRef(chain); chainRef.current = chain
-  const isLoop = (e: Edge) => { const r = (id: string) => (id === 'start' ? -1 : id === 'enter' ? 1e9 : chain.indexOf(id)); return r(e.a) >= 0 && r(e.b) >= -1 && r(e.b) <= r(e.a) && e.b !== 'enter' }
-  const loop = edges.some(isLoop)
+  // Return connections, from the directed wires alone (Ruijie, 7 Nov): not from positions or lanes.
+  const returns = useMemo(() => returnEdges(edges), [edges])
+  const isLoop = (e: Edge) => returns.has(key(e))
+  const loop = returns.size > 0
   const preset = presetOf(role)
   const edited = !!preset && !(sameList(chain, byPhase(preset.nodes)) && onBoard.length === preset.nodes.length && edges.length === preset.nodes.length + 1)
   const name = preset ? (edited ? `${preset.name} (edited)` : preset.name) : 'Your workflow'
@@ -145,6 +151,11 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     // Editing the string by hand while the assistant's proposal is shown keeps the proposal (as if applied), so Undo
     // still goes back to before it.
     if (assistKept.current && !assistCommitting.current) { history.current.push(assistKept.current); assistKept.current = null; setProposed(null); setCanUndo(true) }
+    // Every change the visitor makes can be undone (Ctrl+Z): the state before it is kept, once per action.
+    if (!assistCommitting.current && !kept.current && !remembered.current) {
+      remembered.current = true; history.current.push(snapshot()); setCanUndo(true)
+      queueMicrotask(() => { remembered.current = false })
+    }
     onRef.current = on; edgesRef.current = clean
     setTouched(true); setOnBoard(on); setEdges(clean)
   }
@@ -190,6 +201,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     layout(ids)
     commit(ids, linear(ids))
   }
+  const kept = useRef<{ role: RoleId; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> } | null>(null)
   // ---- the workflow assistant's proposals (Ruijie, 7 Nov): previewed on the canvas, then applied or discarded; applied
   // ones come back with Undo. A snapshot keeps the role, the board and where each node sat.
   type Snap = { role: RoleId; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> }
@@ -200,6 +212,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     setRole(k.role); assistCommitting.current = true; commit(k.on, k.edges); assistCommitting.current = false
   }
   const assistKept = useRef<Snap | null>(null)
+  const remembered = useRef(false)
   const assistCommitting = useRef(false)
   const history = useRef<Snap[]>([])
   const [canUndo, setCanUndo] = useState(false)
@@ -217,9 +230,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   }
   const applyProposal = () => { if (assistKept.current) { history.current.push(assistKept.current); setCanUndo(true) } assistKept.current = null; setProposed(null) }
   const discardProposal = () => { const k = assistKept.current; assistKept.current = null; setProposed(null); if (k) restoreSnap(k) }
-  const undoAssistant = () => { const k = history.current.pop(); setCanUndo(history.current.length > 0); if (k) restoreSnap(k) }
+  const undoAssistant = () => { const k = history.current.pop(); setCanUndo(history.current.length > 0); setSelectedWire(null); setNotice(null); if (k) restoreSnap(k) }
   useEffect(() => {
     const key = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') { if (linking.current) cancelConnecting(); setSelectedWire(null); setNotice(null); return }
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z' || e.shiftKey) return
       if ((e.target as HTMLElement)?.closest?.('textarea, input')) return
       if (assistKept.current) { e.preventDefault(); discardProposal() } else if (history.current.length) { e.preventDefault(); undoAssistant() }
@@ -231,7 +245,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // The role menu previews (Ruijie, 7 Nov: "hover over different roles … make the corresponding preset appear on screen
   // to replace the demo one"): opening it keeps the string as it is; hovering or focusing a role shows that role's
   // workflow; leaving the list, Escape or a click outside puts the kept string back; a click on a role keeps it.
-  const kept = useRef<{ role: RoleId; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> } | null>(null)
   const openMenu = () => {
     setTouched(true)
     kept.current = { role, on: [...onRef.current], edges: [...edgesRef.current], at: new Map(onRef.current.map((id) => { const b = bodies.current[idx(id)]; return [id, { x: b?.x ?? 0, y: b?.y ?? 0 }] })) }
@@ -244,7 +257,13 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     restoreSnap(k)
   }
   const closeMenu = () => { restore(); kept.current = null; setMenu(false) }
-  const pick = (r: RoleId) => { setTouched(true); kept.current = null; setMenu(false); apply(r) }
+  const pick = (r: RoleId) => {
+    setTouched(true); setMenu(false)
+    const k = kept.current
+    kept.current = null
+    if (k) { history.current.push(k); setCanUndo(true) }
+    assistCommitting.current = true; apply(r); assistCommitting.current = false
+  }
   useEffect(() => {
     if (!menu) return
     const key = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') closeMenu() }
@@ -267,17 +286,36 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // A loop's ring (Ruijie, 7 Nov: "make the loop strings a different colour from the main string, once they loop the entire
   // loop turn into 1 colour"): the wire back plus every forward wire between its two ends, all in the loop colour.
   const links = useMemo(() => {
-    const r = (id: string) => (id === 'start' ? -1 : id === 'enter' ? 1e9 : chain.indexOf(id))
-    const loops = edges.filter(isLoop)
-    return edges.map((e) => {
-      const loop = isLoop(e)
-      const ring = loop || (e.b !== 'enter' && loops.some((l) => r(l.b) <= r(e.a) && r(e.b) <= r(l.a)))
-      return { key: key(e), a: e.a, b: e.b, loop, ring }
-    })
-  }, [edges, chain]) // eslint-disable-line react-hooks/exhaustive-deps
+    const ring = new Set<string>()
+    for (const e of edges) if (returns.has(key(e))) loopRing(edges, e, returns).forEach((k) => ring.add(k))
+    return edges.map((e) => ({ key: key(e), a: e.a, b: e.b, loop: returns.has(key(e)), ring: ring.has(key(e)) }))
+  }, [edges, returns])
+  // Each wire's arrow (its direction), the passive return mark on a return, and an invisible point a keyboard can focus
+  // to select the wire; positioned every frame along the rope.
+  const arrows = useRef(new Map<string, SVGPathElement | null>())
+  const retMarks = useRef(new Map<string, SVGGElement | null>())
+  const mids = useRef(new Map<string, HTMLButtonElement | null>())
+  const midAt = useRef(new Map<string, { x: number; y: number }>())
+  // Which wire shows its label: selected, else focused, else hovered (Ruijie, 7 Nov: "Return to [node]" only then).
+  const [selectedWire, setSelectedWire] = useState<string | null>(null)
+  const [focusWire, setFocusWire] = useState<string | null>(null)
+  const [hoverWire, setHoverWire] = useState<string | null>(null)
+  const tipKey = selectedWire ?? focusWire ?? hoverWire
+  const tipKeyRef = useRef(tipKey); tipKeyRef.current = tipKey
+  const tipEl = useRef<HTMLDivElement>(null)
+  const [notice, setNotice] = useState<{ text: string; x: number; y: number } | null>(null)
+  useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(null), 8000); return () => clearTimeout(t) }, [notice])
+  const label = (id: string) => (id === 'start' ? 'Start' : id === 'enter' ? 'Enter' : NODES[idx(id)]?.name ?? id)
+  /** Remove one wire (only that one); Undo brings it back. */
+  const removeWire = (k: string) => {
+    const at = midAt.current.get(k) ?? { x: 0, y: 0 }, l = links.find((x) => x.key === k)
+    commit(onRef.current, edgesRef.current.filter((e) => key(e) !== k))
+    setSelectedWire(null); setFocusWire(null); setHoverWire(null)
+    setNotice({ text: l?.loop ? `Return to ${label(l.b)} removed` : 'Connection removed', x: at.x, y: at.y })
+  }
   const ropeHit = useRef(new Map<string, SVGPathElement | null>())
   // A wire being rewired: its loose end follows the pointer.
-  const rewiring = useRef<{ key: string; a: string; b: string; end: 'a' | 'b'; x: number; y: number } | null>(null)
+  const rewiring = useRef<{ key: string; a: string; b: string; end: 'a' | 'b'; x: number; y: number; sx: number; sy: number; moved: boolean } | null>(null)
   const linksRef = useRef(links); linksRef.current = links
 
   const centre = (id: string) => {
@@ -323,7 +361,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const seen = new Set<string>()
       for (const l of linksRef.current) {
         seen.add(l.key)
-        const rw = rewiring.current?.key === l.key ? rewiring.current : null
+        const rw = rewiring.current?.key === l.key && rewiring.current.moved ? rewiring.current : null
         const A = rw?.end === 'a' ? { x: rw.x, y: rw.y } : centre(l.a), B = rw?.end === 'b' ? { x: rw.x, y: rw.y } : centre(l.b)
         let rope = ropes.current.get(l.key)
         if (!rope) {
@@ -353,11 +391,21 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         for (let k = 1; k < SEG; k++) { const mx = (p[k].x + p[k + 1].x) / 2, my = (p[k].y + p[k + 1].y) / 2; d += ` Q${p[k].x.toFixed(1)},${p[k].y.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}` }
         ropeLine.current.get(l.key)?.setAttribute('d', d)
         ropeHit.current.get(l.key)?.setAttribute('d', d)
+        // its arrow (the direction it runs), a little past the middle
+        const ka = Math.round(SEG * 0.6), P1 = p[ka], P2 = p[ka + 1]
+        arrows.current.get(l.key)?.setAttribute('transform', `translate(${((P1.x + P2.x) / 2).toFixed(1)} ${((P1.y + P2.y) / 2).toFixed(1)}) rotate(${((Math.atan2(P2.y - P1.y, P2.x - P1.x) * 180) / Math.PI).toFixed(1)})`)
+        const M = p[SEG / 2]
+        midAt.current.set(l.key, { x: M.x, y: M.y })
+        const mb = mids.current.get(l.key)
+        if (mb) mb.style.transform = `translate3d(${(M.x - 9).toFixed(1)}px, ${(M.y - 9).toFixed(1)}px, 0)`
+        const R = p[Math.round(SEG * 0.32)]
+        retMarks.current.get(l.key)?.setAttribute('transform', `translate(${R.x.toFixed(1)} ${R.y.toFixed(1)})`)
+        if (tipKeyRef.current === l.key && tipEl.current) tipEl.current.style.transform = `translate3d(${M.x.toFixed(1)}px, ${(M.y - 14).toFixed(1)}px, 0) translate(-50%, -100%)`
         // a pulse running along it (the workflow running); slow, thin and without a white rim (Ruijie, 7 Nov)
         const c = pulses.current.get(l.key)
         if (c) {
-          // Every pulse runs the way its wire points (a loop: from its later node back to its earlier one), so around a loop
-          // the pulses go counterclockwise.
+          // Every pulse runs the way its wire points; return connections carry none (Ruijie, 7 Nov: no continuous
+          // animation on them), only their route and arrow.
           const f = still ? 0.5 : ((t / 4200 + linksRef.current.indexOf(l) * 0.22) % 1), at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
           const x = p[k].x + (p[k + 1].x - p[k].x) * u
           const y = p[k].y + (p[k + 1].y - p[k].y) * u
@@ -499,7 +547,34 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // cut it.
   type Side = 'n' | 'e' | 's' | 'w'
   const SIDE: Record<Side, [number, number]> = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] }
-  const linking = useRef<{ from: string; side: Side; sx: number; sy: number } | null>(null)
+  const linking = useRef<{ from: string; side: Side; sx: number; sy: number; moved?: boolean; pending?: boolean } | null>(null)
+  // While connecting: the node it starts from (valid targets light up) and the hint over the target under the pointer.
+  const [connecting, setConnecting] = useState<string | null>(null)
+  // A connection started by a click, a tap or the keyboard waits for its target: its guidance shows over the source.
+  const [pendingFrom, setPendingFrom] = useState<string | null>(null)
+  const pendingRef = useRef(setPendingFrom)
+  // The node whose connection points show (tapped or clicked); a tap anywhere else hides them again.
+  const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  useEffect(() => {
+    const away = (e: PointerEvent) => { const t = e.target as Element; if (!t?.closest?.('[data-cover-node], [data-testid="wire-tip"]')) setSelectedNode(null) }
+    window.addEventListener('pointerdown', away, true)
+    return () => window.removeEventListener('pointerdown', away, true)
+  }, [])
+  const [linkHint, setLinkHint] = useState<{ id: string; loop: boolean; x: number; y: number } | null>(null)
+  const hintRef = useRef((h: { id: string; loop: boolean; el: HTMLElement } | null) => {
+    if (!h) { setLinkHint(null); return }
+    const r = box.current!.getBoundingClientRect(), q = h.el.getBoundingClientRect()
+    setLinkHint((cur) => (cur && cur.id === h.id && cur.loop === h.loop ? cur : { id: h.id, loop: h.loop, x: q.left + q.width / 2 - r.left, y: q.top - r.top }))
+  })
+  const selectWireRef = useRef((k: string) => setSelectedWire(k))
+  /** Start connecting from a node without dragging (keyboard C, or a tap on a connection point). */
+  const startConnecting = (id: string) => {
+    const b = bodies.current[idx(id)]
+    if (!b) return
+    linking.current = { from: id, side: 'e', sx: b.x + b.r, sy: b.y, pending: true, moved: true }
+    setConnecting(id); setPendingFrom(id)
+  }
+  const cancelConnecting = () => { linking.current = null; linkPreview.current?.setAttribute('d', ''); setConnecting(null); setPendingFrom(null); setLinkHint(null); document.querySelectorAll('[data-link-target]').forEach((el) => el.removeAttribute('data-link-target')) }
   const linkPreview = useRef<SVGPathElement>(null)
   const connect = (from: string, to: string) => wire(from, to)
   const connectRef = useRef(connect); connectRef.current = connect
@@ -516,7 +591,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const r = box.current!.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, rope = ropes.current.get(k)
     const A = rope?.pts[0] ?? centre(a), B = rope?.pts[SEG] ?? centre(b)
     setTouched(true)
-    rewiring.current = { key: k, a, b, end: Math.hypot(x - A.x, y - A.y) < Math.hypot(x - B.x, y - B.y) ? 'a' : 'b', x, y }
+    rewiring.current = { key: k, a, b, end: Math.hypot(x - A.x, y - A.y) < Math.hypot(x - B.x, y - B.y) ? 'a' : 'b', x, y, sx: x, sy: y, moved: false }
   }
   const startLink = (id: string, side: Side, e: { clientX: number; clientY: number; stopPropagation: () => void; preventDefault: () => void }) => {
     e.stopPropagation(); e.preventDefault()
@@ -524,6 +599,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     if (!b) return
     setTouched(true)
     linking.current = { from: id, side, sx: b.x + SIDE[side][0] * b.r, sy: b.y + SIDE[side][1] * b.r }
+    setConnecting(id)
   }
   useEffect(() => {
     const targetAt = (x: number, y: number) => {
@@ -544,7 +620,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       if (rw && box.current) {
         const r = box.current.getBoundingClientRect()
         rw.x = e.clientX - r.left; rw.y = e.clientY - r.top
-        clear(); targetAt(e.clientX, e.clientY)?.el.setAttribute('data-link-target', '')
+        if (!rw.moved && Math.hypot(rw.x - rw.sx, rw.y - rw.sy) > 6) rw.moved = true
+        if (rw.moved) { clear(); targetAt(e.clientX, e.clientY)?.el.setAttribute('data-link-target', '') }
         return
       }
       const L = linking.current
@@ -552,24 +629,31 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const r = box.current.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, [dx, dy] = SIDE[L.side]
       const reach = Math.min(90, Math.hypot(x - L.sx, y - L.sy) * 0.5)
       linkPreview.current?.setAttribute('d', `M${L.sx.toFixed(1)},${L.sy.toFixed(1)} C${(L.sx + dx * reach).toFixed(1)},${(L.sy + dy * reach).toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`)
+      if (Math.hypot(x - L.sx, y - L.sy) > 8) L.moved = true
       clear()
-      targetAt(e.clientX, e.clientY)?.el.setAttribute('data-link-target', '')
+      const t = targetAt(e.clientX, e.clientY)
+      t?.el.setAttribute('data-link-target', '')
+      hintRef.current(t && t.id !== 'enter' ? { id: t.id, loop: closesLoop(edgesRef.current, L.from, t.id), el: t.el } : null)
     }
     const up = (e: PointerEvent) => {
       const rw = rewiring.current
       if (rw) {
-        const t = targetAt(e.clientX, e.clientY)
         rewiring.current = null
         clear()
+        // A click (no drag) selects the wire: its label, details and Remove show beside it.
+        if (!rw.moved) { selectWireRef.current(rw.key); return }
+        const t = targetAt(e.clientX, e.clientY)
         finishRewireRef.current(rw, t?.id ?? null)
         return
       }
       const L = linking.current
       if (!L) return
+      const t = targetAt(e.clientX, e.clientY)
+      // A click on a connection point (no drag) keeps the connector following the pointer: click a node to finish.
+      if (!L.moved && !L.pending && !t) { L.pending = true; pendingRef.current(L.from); return }
       linking.current = null
       linkPreview.current?.setAttribute('d', '')
-      clear()
-      const t = targetAt(e.clientX, e.clientY)
+      clear(); hintRef.current(null); setConnecting(null); pendingRef.current(null)
       if (t) connectRef.current(L.from, t.id)
     }
     window.addEventListener('pointermove', move)
@@ -581,6 +665,12 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const keys = (i: number, e: KeyboardEvent) => {
     const id = NODES[i].id, list = chainRef.current, at = list.indexOf(id)
     setFocusNode(id)
+    // Connecting by keyboard: C on a node on the string starts; Enter on another node finishes; Escape cancels.
+    if (connecting) {
+      if (e.key === 'Escape') { e.preventDefault(); cancelConnecting(); return }
+      if ((e.key === 'Enter' || e.key === ' ') && id !== connecting) { e.preventDefault(); const from = connecting; cancelConnecting(); wire(from, id); return }
+    }
+    if (onRef.current.includes(id) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); startConnecting(id); return }
     if (!onRef.current.includes(id)) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const sl = slotFor(id, list), b = bodies.current[i]; b.x = sl.x; b.y = sl.y; b.on = true; insertByPhase(id) } return }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); release([id]); takeOff(id) }
     if (at >= 0 && ((e.key === 'ArrowLeft' && at > 0) || (e.key === 'ArrowRight' && at < list.length - 1))) {
@@ -623,24 +713,12 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       {/* the five phase lanes along the string, in their colours; the grabbed node's lane lights up */}
       {lanes().map(({ ph, x0, x1, y0, y1 }) => {
         const Step = STEP_ICONS[ph.step], on = hot === ph.id, h = PHASE_HUE[ph.id]
-        // A loop inside this phase (Ruijie, 7 Nov: "the loops could happen in any phases of the design process"): its last
-        // node in the run back to its first. Any other loop is drawn by hand, from a node's handle to an earlier node.
-        const mine = chain.filter((id) => NODES[idx(id)].phase === ph.id), first = mine[0], last = mine[mine.length - 1]
-        const looped = mine.length > 1 && edges.some((e) => e.a === last && e.b === first)
         return (
           <div key={ph.id} data-lane={ph.id} data-hot={on ? '1' : undefined} className="pointer-events-none absolute rounded-xl transition-[background-color,box-shadow] duration-200"
             style={{ left: x0 + 4, top: y0 - 46, width: x1 - x0 - 8, height: y1 - y0 + 46, background: `hsl(${h} 85% ${on ? 78 : 88}% / ${on ? 0.42 : 0.16})`, boxShadow: on ? `0 0 0 2px hsl(${h} 80% 62% / 0.65), 0 0 36px hsl(${h} 90% 65% / 0.55)` : undefined }}>
             <span aria-hidden className="absolute left-2.5 top-2 flex items-center gap-1.5 text-meta" style={{ color: `hsl(${h} 55% 32%)`, fontWeight: on ? 600 : 500 }}>
               <Step size={15} />{ph.name}
             </span>
-            <button type="button" disabled={mine.length < 2} aria-pressed={looped} data-lane-loop={ph.id}
-              onClick={() => (looped ? commit(onRef.current, edgesRef.current.filter((e) => !(e.a === last && e.b === first))) : wire(last, first))}
-              title={mine.length < 2 ? `Two ${ph.name} nodes are needed for a loop here` : looped ? `Remove the ${ph.name} loop` : `Loop the ${ph.name} phase: its last node checks back to its first`}
-              aria-label={looped ? `Remove the ${ph.name} loop` : `Loop the ${ph.name} phase`}
-              className="pointer-events-auto absolute right-2 top-1.5 flex h-7 w-7 items-center justify-center rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-30"
-              style={{ color: `hsl(${h} 60% 35%)`, background: looped ? `hsl(${h} 85% 80% / 0.8)` : 'transparent' }}>
-              <RefreshCw size={15} aria-hidden />
-            </button>
           </div>
         )
       })}
@@ -651,22 +729,84 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           <g key={l.key}>
             {/* the wire's grab area: drag near an end to rewire or cut it */}
             <path ref={(p) => { ropeHit.current.set(l.key, p) }} fill="none" stroke="transparent" strokeWidth={18} data-wire={l.key}
-              style={{ pointerEvents: 'stroke', cursor: 'grab' }} onPointerDown={(e) => startRewire(l.key, l.a, l.b, e)} />
+              style={{ pointerEvents: 'stroke', cursor: 'pointer' }} onPointerDown={(e) => startRewire(l.key, l.a, l.b, e)}
+              onPointerEnter={() => setHoverWire(l.key)} onPointerLeave={() => setHoverWire((h) => (h === l.key ? null : h))} />
             <path ref={(p) => { ropeLine.current.set(l.key, p) }}
-              fill="none" stroke={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} strokeOpacity={0.85} strokeWidth={1.25} strokeLinecap="round" data-ring={l.ring ? '' : undefined} style={{ pointerEvents: 'none' }} />
-            {chain.length > 0 && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={2.6} fill={l.ring ? LOOP_PULSE : 'hsl(206 90% 58%)'} />}
+              fill="none" stroke={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} strokeOpacity={0.85} strokeWidth={tipKey === l.key ? 2.25 : 1.25} strokeLinecap="round" data-ring={l.ring ? '' : undefined} data-return={l.loop ? '' : undefined} style={{ pointerEvents: 'none' }} />
+            <path ref={(p) => { arrows.current.set(l.key, p) }} d="M-4.5,-3.6 L4.5,0 L-4.5,3.6 Z" fill={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} style={{ pointerEvents: 'none' }} />
+            {/* a return connection's passive mark: a small return arrow on its route */}
+            {l.loop && <g ref={(g) => { retMarks.current.set(l.key, g) }} style={{ pointerEvents: 'none' }} data-return-mark>
+              <circle r={7} fill="white" stroke={LOOP_LINE} strokeWidth={1} />
+              <path d="M2.6,-1.6 A3,3 0 1 0 2.9,1.3" fill="none" stroke={LOOP_LINE} strokeWidth={1.3} strokeLinecap="round" />
+              <path d="M1.2,-3.6 L3.1,-1.4 L0.5,-0.9 Z" fill={LOOP_LINE} />
+            </g>}
+            {chain.length > 0 && !l.loop && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={2.6} fill={l.ring ? LOOP_PULSE : 'hsl(206 90% 58%)'} />}
           </g>
         ))}
         {/* the connector being drawn from a node's handle */}
         <path ref={linkPreview} d="" fill="none" stroke="hsl(206 85% 52%)" strokeWidth={1.5} strokeDasharray="6 6" strokeLinecap="round" />
       </svg>
 
+      {/* each wire's focus point: invisible until focused; Enter selects it, Delete removes it */}
+      {links.map((l) => (
+        <button key={`m${l.key}`} ref={(d) => { mids.current.set(l.key, d) }} type="button" data-wire-point={l.key}
+          aria-label={l.loop ? `Return connection from ${label(l.a)} to ${label(l.b)}` : `Connection from ${label(l.a)} to ${label(l.b)}`}
+          onFocus={() => setFocusWire(l.key)} onBlur={() => setFocusWire((f) => (f === l.key ? null : f))}
+          onClick={() => setSelectedWire((k) => (k === l.key ? null : l.key))}
+          onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeWire(l.key) } }}
+          className="absolute left-0 top-0 h-[18px] w-[18px] rounded-full opacity-0 outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent" style={{ transform: 'translate3d(-999px,-999px,0)' }} />
+      ))}
+      {tipKey && (() => {
+        const l = links.find((x) => x.key === tipKey)
+        if (!l) return null
+        const sel = selectedWire === l.key
+        return (
+          <div ref={tipEl} role={sel ? 'group' : 'tooltip'} aria-label={sel ? 'Selected connection' : undefined} data-testid="wire-tip"
+            className={`absolute left-0 top-0 z-30 flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-2.5 py-1 text-meta text-ink shadow-[0_4px_14px_-4px_rgb(24_40_34/0.35)] ${sel ? '' : 'pointer-events-none'}`}
+            style={{ transform: (() => { const m = midAt.current.get(l.key); return m ? `translate3d(${m.x}px, ${m.y - 14}px, 0) translate(-50%, -100%)` : 'translate3d(-999px,-999px,0)' })() }}>
+            {l.loop ? <span><span className="font-semibold" style={{ color: 'hsl(26 80% 36%)' }}>Return to {label(l.b)}</span>{sel && <span className="text-muted"> · from {label(l.a)}</span>}</span>
+              : <span>{label(l.a)} <span aria-hidden>→</span> {label(l.b)}</span>}
+            {sel && <>
+              <button type="button" onClick={() => removeWire(l.key)} data-testid="wire-remove" className="ml-1 flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-meta text-[#a0322a] outline-none hover:bg-[#d0453a]/10 focus-visible:ring-2 focus-visible:ring-accent"><Trash2 size={13} aria-hidden />Remove</button>
+              <button type="button" onClick={() => setSelectedWire(null)} aria-label="Close" className="rounded-lg p-0.5 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={13} aria-hidden /></button>
+            </>}
+          </div>
+        )
+      })()}
+      {notice && (
+        <div role="status" data-testid="cover-notice" className="absolute left-0 top-0 z-30 flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-2.5 py-1 text-meta text-ink shadow-[0_4px_14px_-4px_rgb(24_40_34/0.35)]"
+          style={{ transform: `translate3d(${notice.x}px, ${notice.y - 14}px, 0) translate(-50%, -100%)` }}>
+          {notice.text}
+          <button type="button" onClick={undoAssistant} className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 font-semibold text-accent outline-none hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-accent"><Undo2 size={13} aria-hidden />Undo</button>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="rounded-lg p-0.5 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={13} aria-hidden /></button>
+        </div>
+      )}
+      {/* while connecting: the hint over the target under the pointer */}
+      {linkHint && (
+        <div aria-hidden className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-xl px-2 py-0.5 text-meta font-semibold text-white shadow"
+          style={{ transform: `translate3d(${linkHint.x}px, ${linkHint.y - 8}px, 0) translate(-50%, -100%)`, background: linkHint.loop ? 'hsl(26 85% 45%)' : 'hsl(206 70% 42%)' }}>
+          {linkHint.loop ? 'Create loop' : 'Connect'}
+        </div>
+      )}
+      {pendingFrom && (() => {
+        const b = bodies.current[idx(pendingFrom)]
+        if (!b) return null
+        return (
+          <div data-testid="connect-guide" className="absolute left-0 top-0 z-30 flex items-start gap-2 whitespace-nowrap rounded-xl bg-white px-2.5 py-1 shadow-[0_4px_14px_-4px_rgb(24_40_34/0.35)]"
+            style={{ transform: `translate3d(${b.x}px, ${b.y - b.r - 10}px, 0) translate(-50%, -100%)` }}>
+            <span><span className="block text-meta font-semibold text-ink">Connect nodes</span><span className="block text-meta text-muted">Choose a node; connect back to create a loop.</span></span>
+            <button type="button" onClick={cancelConnecting} aria-label="Cancel connecting" className="rounded-lg p-0.5 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={13} aria-hidden /></button>
+          </div>
+        )
+      })()}
+      <p role="status" aria-live="polite" className="sr-only">{connecting ? `Connecting from ${label(connecting)}: move to a node and press Enter, or Escape to cancel.` : ''}</p>
+
       {/* the string's two ends: Start, and Enter (the way into the tool with this workflow) */}
       <div aria-hidden data-cover-start className="absolute flex flex-col items-center gap-1 rounded-xl data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: start.x - tile / 2, top: start.y - tile / 2 }}>
         <GlassIcon icon={Play} hue={HUES.green} size={tile} className="gicon-solid" />
         <span className="text-meta text-muted">Start</span>
       </div>
-      <button type="button" disabled={!chain.length} onClick={(e) => enterWith(e.currentTarget)} data-testid="cover-enter" title="Enter the tool with this workflow"
+      <button type="button" disabled={!chain.length && !connecting} onClick={(e) => { if (connecting) { const from = connecting; cancelConnecting(); wire(from, 'enter'); return } enterWith(e.currentTarget) }} data-testid="cover-enter" title="Enter the tool with this workflow"
         aria-label={`Enter the tool with ${name}: ${chain.length} nodes${loop ? ', looped' : ''}`}
         className="group absolute flex flex-col items-center gap-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: enter.x - tile / 2, top: enter.y - tile / 2 }}>
         <GlassIcon icon={ArrowRight} hue={HUES.sky} size={tile} className="gicon-solid group-hover:scale-105" />
@@ -677,12 +817,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       <div className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-3 text-control">
         <span className="font-semibold text-ink" data-testid="cover-chain-name">{name}</span>
         <span className="text-meta tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not wired in` : ''}</span>
-        <button type="button" role="switch" aria-checked={loop} disabled={chain.length < 2}
-          onClick={() => { const last = chain[chain.length - 1], first = chain[0]; if (loop) commit(onRef.current, edgesRef.current.filter((e) => !isLoop(e))); else wire(last, first) }} data-testid="cover-loop"
-          title={loop ? 'Remove the loops: a straight run to Enter' : 'Add a loop: the last node checks back to the first'}
-          className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${loop ? 'bg-ink text-white' : 'bg-panel text-ink'}`}>
-          <RefreshCw size={14} aria-hidden />Loop
-        </button>
       </div>
       {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag nodes onto the string</p>}
 
@@ -690,16 +824,23 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       {NODES.map((n, i) => (
         <button key={n.id} ref={(d) => { els.current[i] = d }} type="button" data-cover-node={n.id} data-on={onBoard.includes(n.id) ? '1' : '0'} data-unwired={onBoard.includes(n.id) && !chain.includes(n.id) ? '' : undefined}
           data-proposed={proposed?.added.has(n.id) ? 'add' : proposed?.removed.has(n.id) ? 'remove' : undefined}
+          data-valid={connecting && connecting !== n.id && onBoard.includes(n.id) && !edges.some((e) => e.a === connecting && e.b === n.id) ? '' : undefined}
+          data-selected={selectedNode === n.id && onBoard.includes(n.id) ? '' : undefined}
           aria-label={onBoard.includes(n.id) ? `${n.name}, on the string${chain.includes(n.id) ? '' : ', not wired in'}: arrows move it along, Delete takes it off` : `Put ${n.name} on the string`}
-          onPointerDown={(e) => { e.preventDefault(); setFocusNode(n.id); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
-          className="group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a]"
+          onPointerDown={(e) => { e.preventDefault(); if (linking.current?.pending) return; setFocusNode(n.id); setSelectedNode(n.id); setSelectedWire(null); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
+          aria-keyshortcuts={onBoard.includes(n.id) ? 'C' : undefined}
+          className="group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a] data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
           style={{ width: size, height: size, transform: 'translate3d(-999px,-999px,0)' }}>
           <GlassIcon icon={n.icon} hue={n.hue} size={size} level={chain.includes(n.id) ? 'on' : 'soft'} />
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
-            <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)} title="Drag to connect"
-              className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex"
+            <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}
+              className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex group-focus-visible:flex group-data-[selected]:flex"
               style={{ background: `hsl(${n.hue} 85% 55%)`, ...(side === 'n' ? { left: '50%', top: -8, marginLeft: -8 } : side === 's' ? { left: '50%', bottom: -8, marginLeft: -8 } : side === 'e' ? { right: -8, top: '50%', marginTop: -8 } : { left: -8, top: '50%', marginTop: -8 }) }}>
               <span className="h-1.5 w-1.5 rounded-full bg-white" />
+              {/* the connection point's guidance, only while it is hovered */}
+              <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-xl bg-white px-2.5 py-1 text-left shadow-[0_4px_14px_-4px_rgb(24_40_34/0.35)] group-hover/h:block">
+                <span className="block text-meta font-semibold text-ink">Connect nodes</span><span className="block text-meta text-muted">Connect back to create a loop.</span>
+              </span>
               {/* the hint: a short dashed connector leaving this side */}
               <span className="pointer-events-none absolute hidden border-dashed group-hover/h:block"
                 style={{ borderColor: `hsl(${n.hue} 80% 50%)`, ...(side === 'n' ? { bottom: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 's' ? { top: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 'e' ? { left: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 } : { right: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 }) }} />

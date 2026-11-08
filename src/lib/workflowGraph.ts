@@ -24,10 +24,9 @@ export function walk(edges: Edge[]): string[] {
   return out
 }
 const rankIn = (run: string[]) => (id: string) => (id === 'start' ? -1 : id === 'enter' ? 1e9 : run.indexOf(id))
-/** Is this wire a loop (back to an earlier node of the run, or to itself)? */
-export function isLoopIn(run: string[], e: Edge): boolean {
-  const r = rankIn(run)
-  return r(e.a) >= 0 && r(e.b) >= -1 && r(e.b) <= r(e.a) && e.b !== 'enter'
+/** Is this wire a return connection (it closes a loop)? Decided from the wires alone (returnEdges below). */
+export function isLoopIn(edges: Edge[], e: Edge): boolean {
+  return returnEdges(edges).has(edgeKey(e))
 }
 const has = (es: Edge[], a: string, b: string) => es.some((e) => e.a === a && e.b === b)
 /** Only wires between things on the board, once each, never a node to itself. */
@@ -67,6 +66,59 @@ export function addLoop(board: Board, from: string, to: string): Board {
 }
 /** The board without its loops. */
 export function dropLoops(board: Board): Board {
-  const run = walk(board.edges)
-  return { nodes: board.nodes, edges: board.edges.filter((e) => !isLoopIn(run, e)) }
+  const back = returnEdges(board.edges)
+  return { nodes: board.nodes, edges: board.edges.filter((e) => !back.has(edgeKey(e))) }
+}
+
+// ---------- loops, from the directed wires alone (Ruijie, 7 Nov: "Determine whether a connection closes a loop from
+// the graph's directed connections, not from node positions or stage columns") ----------
+const outs = (edges: Edge[]) => { const m = new Map<string, Edge[]>(); for (const e of edges) m.set(e.a, [...(m.get(e.a) ?? []), e]); return m }
+
+/**
+ * The return connections: the wires that close a loop. A depth-first walk from Start (then from any node it did not
+ * reach, so loops away from Start and Enter count too) marks a wire as a return when it goes to a node still on the
+ * walk's path. Several returns may exist; a wire from a node to itself is one.
+ */
+export function returnEdges(edges: Edge[]): Set<string> {
+  const out = outs(edges), state = new Map<string, 1 | 2>(), back = new Set<string>()
+  const roots = ['start', ...new Set(edges.flatMap((e) => [e.a, e.b]))]
+  for (const root of roots) {
+    if (state.has(root)) continue
+    const stack: { id: string; i: number }[] = [{ id: root, i: 0 }]
+    state.set(root, 1)
+    while (stack.length) {
+      const top = stack[stack.length - 1], list = out.get(top.id) ?? []
+      if (top.i >= list.length) { state.set(top.id, 2); stack.pop(); continue }
+      const e = list[top.i++], s = state.get(e.b)
+      if (s === 1) back.add(edgeKey(e))
+      else if (!s) { state.set(e.b, 1); stack.push({ id: e.b, i: 0 }) }
+    }
+  }
+  return back
+}
+/** Every node reachable from `from` along the forward wires (not the returns). */
+function reach(edges: Edge[], returns: Set<string>, from: string, reverse = false): Set<string> {
+  const seen = new Set([from]), queue = [from]
+  while (queue.length) {
+    const x = queue.shift()!
+    for (const e of edges) {
+      if (returns.has(edgeKey(e))) continue
+      const [p, q] = reverse ? [e.b, e.a] : [e.a, e.b]
+      if (p === x && !seen.has(q)) { seen.add(q); queue.push(q) }
+    }
+  }
+  return seen
+}
+/** Would a new wire a → b close a loop (does b already reach a along the wires)? */
+export function closesLoop(edges: Edge[], a: string, b: string): boolean {
+  if (a === b) return true
+  const returns = new Set<string>()
+  return reach(edges, returns, b).has(a)
+}
+/** The wires one return closes: itself and every forward wire on a path from its target back to its source. */
+export function loopRing(edges: Edge[], ret: Edge, returns = returnEdges(edges)): Set<string> {
+  const inside = new Set([...reach(edges, returns, ret.b)].filter((x) => reach(edges, returns, ret.a, true).has(x)))
+  const ring = new Set([edgeKey(ret)])
+  for (const e of edges) if (!returns.has(edgeKey(e)) && inside.has(e.a) && inside.has(e.b)) ring.add(edgeKey(e))
+  return ring
 }

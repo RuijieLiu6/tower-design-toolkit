@@ -183,7 +183,7 @@ export function bestPreset(text: string, named: string[], guessed: string[], mod
 
 // ---------- helpers on the board ----------
 const diff = (from: Board, to: Board) => ({ added: to.nodes.filter((x) => !from.nodes.includes(x)), removed: from.nodes.filter((x) => !to.nodes.includes(x)) })
-const loopsOf = (b: Board) => { const run = walk(b.edges); return b.edges.filter((e) => isLoopIn(run, e)) }
+const loopsOf = (b: Board) => b.edges.filter((e) => isLoopIn(b.edges, e))
 const phaseName = (id: string) => phaseOfNode(id)?.name ?? 'Site'
 
 function proposal(capability: Proposal['capability'], from: Board, to: Board, summary: string, via: Proposal['via'], preset: Preset | null = null): Proposal {

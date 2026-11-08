@@ -48,7 +48,7 @@ describe('the workflow assistant', () => {
     expect(r.kind).toBe('proposal')
     if (r.kind !== 'proposal') return
     expect(r.loops).toEqual([{ a: 'built.core-lifts', b: 'built.sun' }])
-    expect(isLoopIn(walk(r.board.edges), r.loops[0])).toBe(true)
+    expect(isLoopIn(r.board.edges, r.loops[0])).toBe(true)
     expect(r.added).toEqual([])
   })
 
