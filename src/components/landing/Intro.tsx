@@ -29,6 +29,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { ArrowRight, ChevronDown, Play, Trash2, Undo2, X } from '../icons'
 import WorkflowAssistant from './WorkflowAssistant'
+import { NodeTile } from '../NodeTile'
+import { nodeWord } from '../../data/nodeWords'
 import type { Proposal } from '../../lib/agent/workflowAssistant'
 import GlassIcon, { HUES, ICON } from '../GlassIcon'
 import { NODE_ICONS, STEP_ICONS, TYPE_ICONS } from '../../data/icons'
@@ -133,7 +135,9 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         const body = bodies.current[idx(id)]
         if (!body) return
         body.x = lane.x0 + ((j + 1) / (mine.length + 1)) * (lane.x1 - lane.x0)
-        body.y = (lane.y0 + lane.y1) / 2 + Math.sin(idx(id) * 1.3) * (lane.y1 - lane.y0) * 0.2
+        // A crowded lane takes two rows, so the tiles and their names stay clear of each other.
+        const lift = mine.length > 2 ? (j % 2 ? 1 : -1) * Math.min(46, (lane.y1 - lane.y0) * 0.26) : Math.sin(idx(id) * 1.3) * (lane.y1 - lane.y0) * 0.2
+        body.y = (lane.y0 + lane.y1) / 2 + lift
         body.vx = body.vy = 0; body.on = true; body.held = false
       })
     })
@@ -349,7 +353,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
     const draw = () => bodies.current.forEach((b, i) => {
       const d = els.current[i]
-      if (d) d.style.transform = `translate3d(${(b.x - b.r).toFixed(1)}px, ${(b.y - b.r).toFixed(1)}px, 0) rotate(${(b.on ? 0 : b.a).toFixed(1)}deg)`
+      if (d) d.style.transform = `translate3d(${(b.x - b.r).toFixed(1)}px, ${(b.y - b.r).toFixed(1)}px, 0)` // upright, never turned (Ruijie, 7 Nov)
     })
     const pushOut = (b: Body, z: Zone, dt: number) => {
       const x0 = z.x0 - b.r, x1 = z.x1 + b.r, y0 = z.y0 - b.r, y1 = z.y1 + b.r
@@ -829,9 +833,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           aria-label={onBoard.includes(n.id) ? `${n.name}, on the string${chain.includes(n.id) ? '' : ', not wired in'}: arrows move it along, Delete takes it off` : `Put ${n.name} on the string`}
           onPointerDown={(e) => { e.preventDefault(); if (linking.current?.pending) return; setFocusNode(n.id); setSelectedNode(n.id); setSelectedWire(null); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
           aria-keyshortcuts={onBoard.includes(n.id) ? 'C' : undefined}
-          className="group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a] data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
+          className="node-hit group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a] data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
           style={{ width: size, height: size, transform: 'translate3d(-999px,-999px,0)' }}>
-          <GlassIcon icon={n.icon} hue={n.hue} size={size} level={chain.includes(n.id) ? 'on' : 'soft'} />
+          <NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} />
+          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
             <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}
               className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex group-focus-visible:flex group-data-[selected]:flex"
@@ -847,7 +852,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
             </span>
           ))}
           {proposed?.added.has(n.id) && <span aria-hidden className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#2e8b57] text-meta font-semibold text-white shadow">+</span>}
-          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full z-10 mt-2.5 -translate-x-1/2 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-node text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{n.name}</span>
+          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full z-10 mt-6 -translate-x-1/2 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-meta text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{n.name}</span>
         </button>
       ))}
 

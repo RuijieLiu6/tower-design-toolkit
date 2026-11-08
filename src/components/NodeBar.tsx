@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObjec
 import { useShallow } from 'zustand/react/shallow'
 import { NODE_ICONS, communityIcons } from '../data/icons'
 import { Glyph, nodeHue } from './GlassIcon'
+import { hasNodeArt, NodeArt } from './icons/nodeArt'
 import { BUILT_NODES, CATEGORIES, type Category, type NodeDef } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStore, type Phase } from '../store'
@@ -24,20 +25,8 @@ function barGroups(phase: Phase): { label: string; nodes: NodeDef[] }[] {
   return [{ label: 'Massing checks', nodes: of('basic') }, { label: 'Schematic checks', nodes: of('advanced') }]
 }
 
-/** The key word under each check's icon: one or two words, taken from its name where possible (voice control). */
-export const NODE_WORDS: Record<string, string> = {
-  'built.vtc-rules': 'Hard rules', 'built.fsr': 'FSR', 'built.viewcones': 'View-cone', 'built.relax-aviation': 'Aviation',
-  'built.sun': 'Shadow', 'built.core-lifts': 'Lift check', 'built.egress': 'Egress', 'built.life-safety': 'Life safety',
-  'built.sky-room': 'Sky room', 'built.economics': 'Value', 'built.culture-claims': 'Claims', 'built.model': 'Model',
-  'built.provenance': 'AI-use log', 'built.mobility': 'Parking', 'built.facade': 'Facade', 'built.interior': 'Interior',
-  'built.daylight-depth': 'Daylight', 'built.view-from': 'View from', 'built.vista': 'Vista', 'built.heights': 'Height',
-  'built.pr-streetwall': 'Streetwall', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
-  'built.city-in-nature': 'Nature', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
-  'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',
-  'built.energy-carbon': 'Energy',
-}
-/** A node without a word of its own (a community node): the first word of its name. */
-export const nodeWord = (n: { id: string; name: string }) => NODE_WORDS[n.id] ?? n.name.split(/[\s:&,(]+/).filter(Boolean)[0] ?? n.name
+export { NODE_WORDS, nodeWord } from '../data/nodeWords'
+import { nodeWord } from '../data/nodeWords'
 
 const initials = (name: string) => name.split(/[^A-Za-z0-9]+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('')
 
@@ -119,11 +108,12 @@ export default function NodeBar() {
         // colour; off: no tile, a faint icon and no bar. Selected (its results showing): an ink ring.
         className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''}`}>
         {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
-        <span className={`relative flex h-5 w-6 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
-          {Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-meta font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
+        <span className={`relative flex h-[30px] w-[30px] items-center justify-center ${usable ? '' : 'opacity-40'}`}>
+          {!isCommunity && hasNodeArt(n.id) ? <NodeArt id={n.id} size={30} muted={!on} />
+            : Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-meta font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>
-        <span aria-hidden className={`w-full truncate text-center text-meta leading-tight ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
+        <span aria-hidden className={`line-clamp-2 w-full text-center text-meta leading-[14px] ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
         {isCommunity && <span className="absolute -right-1 -top-1 rounded-sm bg-panel px-[2px] text-[7px] font-bold leading-[9px] text-ink ring-1 ring-line" aria-hidden>C</span>}
       </button>
     )

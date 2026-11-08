@@ -204,6 +204,23 @@ body::before {
 .group:hover .gicon, .gicon-lift:hover .gicon { transform: translateY(-2px); }
 /* Opaque tiles (Ruijie, 7 Nov: the cover's Start and Enter): a solid tile, nothing showing through. */
 .gicon.gicon-solid { background: linear-gradient(155deg, #ffffff, hsl(var(--gh) 70% 93%)); }
+/* Design-node tiles (components/NodeTile.tsx; Ruijie, 7 Nov): a neutral white tile, one size per place, a soft shadow,
+   never turned; the illustration carries the colour. The clickable element around it (.node-hit) gives the states:
+   hover lifts, keyboard focus rings in the accent, selected (data-selected) wears an accent ring. Soft: available, a
+   little quieter; off: not in use, the drawing desaturated. */
+.node-tile { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: var(--nt); height: var(--nt); border-radius: var(--radius-ui); background: #fff;
+  box-shadow: 0 1px 2px rgb(24 40 34 / 0.12), 0 4px 10px -4px rgb(24 40 34 / 0.2);
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms, opacity 160ms; }
+.node-tile[data-state="soft"] { background: rgb(255 255 255 / 0.86); }
+.node-tile[data-state="soft"] svg { filter: saturate(0.7); }
+.node-tile[data-state="off"] { background: rgb(255 255 255 / 0.6); box-shadow: 0 1px 2px rgb(24 40 34 / 0.08); }
+.node-tile[data-state="off"] svg { filter: saturate(0.12); opacity: 0.7; }
+.node-hit:hover .node-tile { transform: translateY(-1px); box-shadow: 0 2px 4px rgb(24 40 34 / 0.14), 0 10px 20px -8px rgb(24 40 34 / 0.34); }
+.node-hit:focus-visible .node-tile { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-accent), 0 4px 10px -4px rgb(24 40 34 / 0.2); }
+.node-hit[data-selected] .node-tile { box-shadow: 0 0 0 2px var(--color-accent), 0 6px 14px -6px rgb(24 40 34 / 0.3); }
+@media (prefers-reduced-motion: reduce) { .node-tile { transition: none; } .node-hit:hover .node-tile { transform: none; } }
+
 /* The filled icons (components/icons/filled.tsx): flat pieces in tones of the tile's hue, one accent piece in a hue of
    its own, overlaps that multiply darker. --gs drops the saturation for a node that is off. The glow becomes a soft
    coloured shadow of the shape, a little below it. */

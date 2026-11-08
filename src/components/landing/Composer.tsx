@@ -11,6 +11,9 @@ import { BUILT_NODES, CATEGORIES } from '../../data/registry'
 import { firstPhase, PHASE_HUE, PHASES } from '../../lib/phases'
 import Help from '../Help'
 import GlassIcon, { HUES, ICON, nodeHue } from '../GlassIcon'
+import { NodeTile } from '../NodeTile'
+import { hasNodeArt } from '../icons/nodeArt'
+import { nodeWord } from '../../data/nodeWords'
 
 export interface Draft { name: string; nodes: string[]; project: 'vtc' | 'city'; from: string | null }
 
@@ -66,8 +69,9 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
                   return (
                     <span key={id} className="group relative">
                       <button type="button" aria-pressed={pressed} disabled={!ok} onClick={() => toggle(id)} data-node={id} aria-label={`${n.name}${ok ? '' : ` (not on the ${draft.project === 'vtc' ? 'competition site' : 'Vancouver site'})`}`}
-                        className="gicon-lift flex rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:translate-y-0 motion-reduce:transition-none">
-                        <GlassIcon icon={NI} hue={PHASE_HUE[ph.id]} size={ICON.feature} level={pressed ? 'on' : 'off'} />
+                        className="node-hit flex w-[4.25rem] flex-col items-center gap-1 rounded-xl outline-none disabled:cursor-not-allowed disabled:opacity-40">
+                        {hasNodeArt(id) ? <NodeTile id={id} size={ICON.feature} state={pressed ? 'on' : 'off'} /> : <GlassIcon icon={NI} hue={PHASE_HUE[ph.id]} size={ICON.feature} level={pressed ? 'on' : 'off'} />}
+                        <span aria-hidden className={`max-w-full text-center text-meta leading-tight ${pressed ? 'font-medium text-ink' : 'text-muted'}`}>{nodeWord(n)}</span>
                       </button>
                       <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-meta leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
                         <b className="block font-semibold">{n.name}</b>
