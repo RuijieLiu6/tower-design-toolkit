@@ -77,6 +77,8 @@ const looksLikeContext = (j: unknown): j is VtcContext => !!j && typeof j === 'o
 
 /** public/local/vtc_context.json when this computer has it (a dev server; never on the published site). */
 async function devFile(): Promise<VtcContext | null> {
+  // The published site (vite --mode pages) never has the file: don't ask, so its console shows no 404 on every visit.
+  if (import.meta.env.MODE === 'pages') return null
   try {
     const r = await fetch('./local/vtc_context.json')
     if (!r.ok) return null
