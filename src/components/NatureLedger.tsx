@@ -105,8 +105,8 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
           <div className="mt-0.5">Targets, guidelines and comparators are shown for reference and never scored as compliance. There is no overall score: City in Nature is a judgment.</div>
           <div className="mt-1.5 flex flex-wrap gap-1" aria-label="ODP Ecology directions covered">
             {(Object.keys(DIRECTIONS) as Direction[]).map((d) => (
-              <span key={d} className={`rounded px-1.5 py-0.5 text-meta ${n.coverage[d] ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`} title={n.coverage[d] ? 'Has evidence or a written note' : 'No evidence or note yet'}>
-                {d} {DIRECTIONS[d]} {n.coverage[d] ? '✓' : '· gap'}
+              <span key={d} className={`rounded px-1.5 py-0.5 text-meta ${n.coverage[d] ? 'bg-success-surface text-success' : 'bg-pending-surface text-pending'}`} title={n.coverage[d] ? 'Has evidence or a written note' : 'No evidence or note yet'}>
+                {d} {DIRECTIONS[d]} {n.coverage[d] ? '✓ covered' : '◌ needs input'}
               </span>
             ))}
           </div>

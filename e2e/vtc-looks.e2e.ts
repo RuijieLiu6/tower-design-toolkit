@@ -1,5 +1,6 @@
-// The competition view's two looks (Ruijie, 6 Nov): Program (surrounding buildings in their ground-level use, with a
-// legend) and Plain (a white, Rhino-like shaded model), remembered in this browser. Checked without the base model (as
+// The competition view in the display modes (Ruijie, 6 Nov; design system §9, 7 Nov): Massing (the default neutral
+// model, softly shaded) and Program (surrounding buildings in their ground-level use, with a legend), remembered in this
+// browser; Materials is not offered (the base model has none) and says so. Checked without the base model (as
 // on another computer) and, where this computer has it, with the entrant's copy added. public/local is answered 404 so
 // the model comes in the way a visitor adds it. No screenshots: competition content must never land in docs.
 // Run: node node_modules/playwright/cli.js test e2e/vtc-looks.e2e.ts
@@ -35,25 +36,25 @@ const scene = (p: Page) => p.evaluate(async () => {
   }
 })
 
-const radio = (p: Page, name: string) => p.getByRole('radiogroup', { name: 'Competition view look' }).getByRole('radio', { name })
+const radio = (p: Page, name: string) => p.getByRole('radiogroup', { name: 'Display mode' }).getByRole('radio', { name, exact: true })
 
-test('without the base model: both looks, the legend says what is missing, and the choice is remembered', async ({ page: p }) => {
+test('without the base model: Massing by default, Program says what is missing, Materials is not faked, the choice is remembered', async ({ page: p }) => {
   test.setTimeout(180_000)
   await open(p)
   const bar = p.getByTestId('vtc-look')
-  await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
-  await expect(bar).toContainText('Add your copy of the base model to see the surrounding program')
-  await radio(p, 'Plain').click()
-  await expect(radio(p, 'Plain')).toHaveAttribute('aria-checked', 'true')
-  await expect(bar).not.toContainText('Ground-level use', { ignoreCase: true })
+  await expect(radio(p, 'Massing')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
   await expect.poll(() => scene(p), { timeout: 30_000 }).toMatchObject({ fill: true, gradient: true, program: false, plain: false })
+  await expect(radio(p, 'Materials')).toHaveAttribute('aria-disabled', 'true')
+  await radio(p, 'Program').click()
+  await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true')
+  await expect(bar).toContainText('Add your copy of the base model to see the surrounding program')
   // Remembered in this browser.
   await p.reload()
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click()
-  await expect(radio(p, 'Plain')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
+  await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true', { timeout: 60_000 })
 })
 
-test('with the entrant\'s copy: Program colours the buildings by use with a legend, Plain draws a white model', async ({ page: p }) => {
+test('with the entrant\'s copy: Program colours the buildings by use with a legend, Massing draws the neutral model', async ({ page: p }) => {
   test.skip(!existsSync(MODEL), 'The competition base model is not on this computer')
   test.setTimeout(240_000)
   await open(p)
@@ -62,12 +63,13 @@ test('with the entrant\'s copy: Program colours the buildings by use with a lege
   await expect(card).toBeHidden({ timeout: 60_000 })
 
   const bar = p.getByTestId('vtc-look')
+  await radio(p, 'Program').click()
   await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true')
   for (const label of ['Retail / commercial', 'Office', 'Hotel', 'Residential', 'Heritage', 'Proposed tower']) await expect(bar).toContainText(label)
-  await expect.poll(() => scene(p), { timeout: 60_000 }).toMatchObject({ program: true, plain: false, fill: false })
+  await expect.poll(() => scene(p), { timeout: 60_000 }).toMatchObject({ program: true, plain: false, fill: true })
   const uses = (await scene(p))!.uses
   for (const u of ['retail', 'office', 'hotel', 'residential', 'cultural', 'institutional']) expect(uses).toContain(u)
 
-  await radio(p, 'Plain').click()
+  await radio(p, 'Massing').click()
   await expect.poll(() => scene(p), { timeout: 30_000 }).toMatchObject({ program: false, plain: true, uses: [], fill: true, gradient: true })
 })

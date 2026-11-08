@@ -7,10 +7,11 @@ import type { Category } from '../../data/registry'
 import type { PhaseId } from '../phases'
 
 /** Style packs this platform can draw. A new pack adds a version; icons keep the one they were made with. */
-export const STYLE_VERSIONS = ['1'] as const
+export const STYLE_VERSIONS = ['1', '2'] as const
 export type StyleVersion = (typeof STYLE_VERSIONS)[number]
-export const CURRENT_STYLE: StyleVersion = '1'
-export const STYLE_PACK_URL = 'https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v1/'
+/** Style pack 2 (7 Nov): the design system's phase palette. Icons saved under 1 keep drawing as 1. */
+export const CURRENT_STYLE: StyleVersion = '2'
+export const STYLE_PACK_URL = `https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v${CURRENT_STYLE}/`
 
 /** The one main architectural object an icon shows. */
 export const OBJECTS = ['tower', 'podium', 'floor', 'core', 'stairs', 'facade', 'park', 'street', 'water', 'train', 'car', 'document', 'chart', 'coins', 'sun', 'wind', 'mountain', 'people', 'solar', 'sound', 'heat'] as const

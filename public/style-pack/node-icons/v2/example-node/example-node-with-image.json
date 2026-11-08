@@ -1,0 +1,184 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.example.tower-width",
+  "version": "0.1.0",
+  "licence": "MIT",
+  "name": "Tower width & proportion (CDDG)",
+  "author": {
+    "name": "Tower Design Toolkit team (worked example)"
+  },
+  "category": "PUBL",
+  "stage": "massing",
+  "question": "Is the tower narrow and slender enough to read as a tower rather than a slab under Vancouver's City-wide Design and Development Guidelines?",
+  "jury": [
+    "human_scale_40",
+    "design_excellence_20"
+  ],
+  "projects": [
+    "vtc",
+    "city"
+  ],
+  "inputs": [
+    "tower.maxSide",
+    "tower.height",
+    "tower.plateArea"
+  ],
+  "method": "Reads each tower's plan sides and height from Layer 0. Compares the wider plan side with the CDDG tower dimension guideline (29.0 m, or clear articulation), the height-to-width ratio with the CDDG proportion tip (6:1 to 8:1 or more), and the wider side as a share of the site frontage with the CDDG slab tip (roughly 60%). Shows plate area with no threshold until the CDDG floorplate maxima by use are extracted.",
+  "human": "Whether the tower shows clear volumetric articulation (S2.3.2 accepts a wider tower that does), how it reads on the skyline and from the street, and the City's own urban design review.",
+  "limits": "Rectangular towers from Tower Design Toolkit's massing only: no setbacks, tapers or articulation. Ignores rotation when comparing with the frontage. The CDDG text is the draft in the 15 Jul 2026 Council report (approved 28 Jul, effective 27 Oct 2026): check the final guideline. Tips are guidance, not rules, so this node never fails a tower on them; it says Check.",
+  "parameters": [
+    {
+      "id": "frontage",
+      "label": "Site frontage the tower faces",
+      "unit": "m",
+      "default": 144.8,
+      "min": 10,
+      "max": 500,
+      "step": 0.1,
+      "flag": "verified",
+      "source": {
+        "label": "Vancouver Tall Challenge brief (Buildner 2026)",
+        "page": "p.15, site \"approximately 79.2 m × 144.8 m\""
+      },
+      "note": "The long side of the competition block. In Real Vancouver, set it to your own site's frontage."
+    }
+  ],
+  "metrics": [
+    {
+      "id": "plan_dimension",
+      "label": "Widest tower plan dimension",
+      "unit": "m",
+      "per": "tower",
+      "expression": "tower.maxSide",
+      "decimals": 1,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 29,
+        "text": "at most 29.0 m, or clear volumetric articulation",
+        "flag": "verified",
+        "source": {
+          "label": "City of Vancouver, Council Report RTS 18459, Appendix A: draft City-wide Design and Development Guidelines (CDDG)",
+          "page": "S2.3.2 tower dimension, mixed-use and non-residential contexts (text read in research packet P06, rounds 1–2)",
+          "url": "https://council.vancouver.ca/20260728/documents/r2.pdf"
+        }
+      },
+      "note": "Above 29.0 m the guideline asks for clear volumetric articulation, which this node can't see, so it says Check rather than Fail."
+    },
+    {
+      "id": "height_to_width",
+      "label": "Height-to-width ratio",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.height / tower.maxSide",
+      "decimals": 1,
+      "threshold": {
+        "direction": "higher_is_better",
+        "good": 6,
+        "text": "6:1 to 8:1 or more reads proportionate (a tip, not a rule)",
+        "flag": "unverified",
+        "source": {
+          "label": "City of Vancouver, draft CDDG design tip on tower proportions, as summarised in research packet P06",
+          "page": "Clause number not recorded; wording taken from the packet's parameter notes, not re-read"
+        }
+      },
+      "note": "Uses the wider plan side, so a slab reads less slender than a square tower of the same area."
+    },
+    {
+      "id": "frontage_share",
+      "label": "Tower width as a share of the frontage",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.maxSide / params.frontage",
+      "decimals": 2,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 0.6,
+        "text": "below roughly 60% of the frontage; wider towers often read as slabs (a tip)",
+        "flag": "unverified",
+        "source": {
+          "label": "City of Vancouver, draft CDDG design tip on tower width and frontage, as summarised in research packet P06",
+          "page": "Clause number not recorded; wording taken from the packet's parameter notes, not re-read"
+        }
+      }
+    },
+    {
+      "id": "plate_area",
+      "label": "Tower floor plate area",
+      "unit": "m²",
+      "per": "tower",
+      "expression": "tower.plateArea",
+      "decimals": 0,
+      "threshold": {
+        "flag": "unresolved",
+        "source": {
+          "label": "City of Vancouver, draft CDDG average floorplate maxima by use (named in research packet P06)",
+          "page": "Values not extracted yet"
+        }
+      }
+    }
+  ],
+  "falseAssumptions": [
+    {
+      "claim": "The 18.3 m Downtown podium height (S2.2.7) applies to every tower.",
+      "correction": "S2.2.7 applies only to exclusively residential towers ('residential development' in the CDDG glossary). Mixed-use and non-residential tower podiums follow Table 2.2b (S2.2.6), which steps with street width: up to 15.2 m (streets up to 27.5 m wide), 15.2–18.3 m (up to 30.5 m) and 18.3–23.0 m (wider).",
+      "source": {
+        "label": "City of Vancouver, Council Report RTS 18459, Appendix A: draft CDDG",
+        "page": "Glossary; S2.2.6, S2.2.7, Table 2.2b (corrected in research packet P06, rounds 1–2)",
+        "url": "https://council.vancouver.ca/20260728/documents/r2.pdf"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "fixture": "vtc-default",
+      "metric": "plan_dimension",
+      "value": 46,
+      "state": "warn"
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "height_to_width",
+      "value": 6.196,
+      "state": "pass"
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "frontage_share",
+      "value": 0.318,
+      "state": "pass"
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "plate_area",
+      "value": 2116,
+      "state": "unknown"
+    },
+    {
+      "fixture": "city-study",
+      "metric": "height_to_width",
+      "value": 4,
+      "state": "warn"
+    },
+    {
+      "fixture": "vtc-two-towers",
+      "tower": 0,
+      "metric": "plan_dimension",
+      "value": 28,
+      "state": "pass"
+    },
+    {
+      "fixture": "vtc-two-towers",
+      "tower": 1,
+      "metric": "plan_dimension",
+      "value": 40,
+      "state": "warn"
+    }
+  ],
+  "createdWith": "Worked example for the tower-studio-node-builder skill, v1; icon drawn by an agent from node icon style pack v2",
+  "icon": {
+    "kind": "image",
+    "dataUrl": "data:image/png;base64,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",
+    "source": "agent",
+    "styleVersion": "2"
+  }
+}

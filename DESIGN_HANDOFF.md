@@ -2,6 +2,8 @@
 
 *Version 0.1, 22 Oct 2026. For designers and AI agents changing the interface. Every value below is taken from the code. When you change a value in code, change it here too. Project context: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md); the UI rules here are its design half.*
 
+
+> **7 Nov 2026:** colour, type, corners, glass and button rules are superseded by [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). The layout logic below still holds.
 ---
 
 ## 1. Design logic

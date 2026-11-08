@@ -3,6 +3,7 @@
 // Design source: 04 Tool Plan/research/ux-modes (U1, U2), one critique round.
 import { Blocks, Gauge, PencilRuler, Presentation, type LucideIcon } from '../components/icons'
 import type { Phase } from '../store'
+import { MODEL } from '../lib/design/tokens'
 
 export interface StageDef {
   id: Phase
@@ -52,8 +53,13 @@ export interface Look {
   /** Site-model base: the crisp line along its top edge. */
   plinthEdge: string
 }
+/**
+ * Clay is the neutral architectural model of the design system (§9, lib/design/tokens.ts MODEL): a cool light background
+ * and ground, existing buildings one grey step below the proposal, quiet block lines, the base a shade darker with a crisp
+ * edge. Water and parks keep a muted tint of their own (map information, not emphasis).
+ */
 export const LOOKS: Record<'clay' | 'xray', Look> = {
-  clay: { background: '#eef0f2', ground: '#e7e6e1', site: '#f7f3ea', context: '#f1efea', heritage: '#e9dfcd', edge: '#b9b6ae', hemi: 0.9, water: '#c4d4e1', shore: '#6f8ba1', park: '#e1efd6', older: '#ddd6ca', plinth: '#cfccc3', plinthEdge: '#7f7b72' },
+  clay: { background: MODEL.background, ground: MODEL.ground, site: '#eef1f5', context: MODEL.context, heritage: MODEL.context, edge: '#aab3bf', hemi: 0.9, water: '#c3d0dc', shore: '#6f8ba1', park: '#dce7d6', older: '#bcc3cc', plinth: '#d3d9e0', plinthEdge: MODEL.edge },
   xray: { background: '#e9eef3', ground: '#dfe6ed', site: '#eef3f8', context: '#f4f7fa', heritage: '#eef1f4', edge: '#9fb0c2', hemi: 1.25, water: '#bccee0', shore: '#7393b2', park: '#e3efe6', older: '#e2e8ee', plinth: '#c6d0db', plinthEdge: '#6f849c' },
 }
 

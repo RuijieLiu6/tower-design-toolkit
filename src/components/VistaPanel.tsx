@@ -21,7 +21,7 @@ import { requestCaptures, useVistaStore, type CaptureSpec } from '../lib/vistaSt
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { HideUnderDesignCard, useCityData, useCityObstacles, useRemoval } from './CityContext'
 import { REMOVAL_CAVEAT, removalNote } from '../lib/cityRemoval'
-import { CONE_STYLE, FlagChip, Section } from './ui'
+import { ConeChip, FlagChip, Section } from './ui'
 import EnvelopeSection from './EnvelopeSection'
 import SitePanel from './SitePanel'
 
@@ -98,7 +98,7 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
             <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-meta">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{e.cone.id} · {e.cone.name}</span>
-                <span className={`rounded border px-1.5 py-0.5 text-meta font-semibold ${CONE_STYLE[e.state].chip}`}>{STATE_LABEL[e.state]}</span>
+                <ConeChip state={e.state} label={STATE_LABEL[e.state]} />
               </div>
               <div>{e.overlapM2 > 0
                 ? <>Inside: <b>{fmt(e.overlapM2, 0)} m²</b> of the footprint <span className="text-muted">(Vista's frame would say {fmt(e.vistaFrameM2, 0)} m²)</span></>

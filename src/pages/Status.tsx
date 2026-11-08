@@ -84,7 +84,7 @@ export default function Status() {
             <div key={t.k} className="rounded-lg border border-line bg-panel p-3">
               <div className="text-2xl font-semibold tabular-nums">{t.v}</div>
               <div className="text-xs font-medium">{t.k}</div>
-              <div className="text-[10.5px] text-muted">{t.note}</div>
+              <div className="text-meta text-muted">{t.note}</div>
             </div>
           ))}
         </section>
@@ -101,7 +101,7 @@ export default function Status() {
             <h2 className="flex items-center gap-1.5 text-sm font-semibold"><CalendarDays size={14} aria-hidden />Dates</h2>
             <ol className="mt-2 space-y-1.5">
               {DATES.map((d) => (
-                <li key={d.iso} className={`flex gap-2 text-[11.5px] ${d.iso < today ? 'text-muted line-through' : ''}`}>
+                <li key={d.iso} className={`flex gap-2 text-meta ${d.iso < today ? 'text-muted line-through' : ''}`}>
                   <span className="w-20 shrink-0 font-medium tabular-nums">{d.date}</span><span>{d.label}</span>
                 </li>
               ))}
@@ -110,9 +110,9 @@ export default function Status() {
         </section>
 
         <section className="mt-5 overflow-x-auto rounded-lg border border-line bg-panel" aria-label="Nodes by category and stage">
-          <table className="w-full min-w-[760px] text-[11.5px]">
+          <table className="w-full min-w-[760px] text-meta">
             <thead>
-              <tr className="border-b border-line text-left text-[10.5px] text-muted">
+              <tr className="border-b border-line text-left text-meta text-muted">
                 <th className="px-3 py-2 font-medium">Category</th>
                 {STAGES.map((s) => <th key={s.id} className="px-3 py-2 font-medium">{s.label}</th>)}
                 <th className="px-3 py-2 text-right font-medium">Built / all</th>

@@ -41,7 +41,7 @@ async function camera(p: Page) {
 const tabs = (p: Page) => p.getByRole('toolbar', { name: 'Map mode' })
 const tab = (p: Page, name: string) => tabs(p).getByRole('button', { name, exact: true })
 
-test('the five map tabs change the view; Viewcone and Context toggle cones and the textured style', async ({ page }) => {
+test('the five map tabs change the view; Viewcone toggles the cones and Materials the textured style', async ({ page }) => {
   test.setTimeout(900_000) // SwiftShader: about 10 minutes with the cone volumes and Context
   await openCity(page)
   await expect(tab(page, 'City')).toHaveAttribute('aria-pressed', 'true')
@@ -110,19 +110,21 @@ test('the five map tabs change the view; Viewcone and Context toggle cones and t
   await cones.click()
   await expect(cones).toHaveAttribute('aria-pressed', 'true')
 
-  // Context: one toggle next to Viewcone, Vista's textured style on or off, in step with the Layers dock's Plain / Context.
-  const context = tab(page, 'Context')
-  await expect(context).toHaveAttribute('aria-pressed', 'false')
+  // Materials: the display mode that replaced the Context toggle (design system §9, 7 Nov): Vista's textured style on or
+  // off, in step with the Layers dock's Plain / Context; Massing brings the neutral model back.
+  const mode = (name: string) => page.getByRole('radiogroup', { name: 'Display mode' }).getByRole('radio', { name, exact: true })
+  const context = mode('Materials')
+  await expect(context).toHaveAttribute('aria-checked', 'false')
   await context.click()
-  await expect(context).toHaveAttribute('aria-pressed', 'true')
+  await expect(context).toHaveAttribute('aria-checked', 'true')
   await page.getByRole('button', { name: 'Layers', exact: true }).click()
   const styleCard = page.locator('#vp-dock').getByRole('button', { name: /Style & building types/ })
   if ((await styleCard.getAttribute('aria-expanded')) === 'false') await styleCard.click()
   await expect(page.locator('#vp-dock').getByRole('radio', { name: 'Context' })).toBeChecked()
   await page.waitForTimeout(4000)
   await page.screenshot({ path: join(SHOTS, '06-context-on.png') })
-  await context.click()
-  await expect(context).toHaveAttribute('aria-pressed', 'false')
+  await mode('Massing').click()
+  await expect(context).toHaveAttribute('aria-checked', 'false')
   await expect(page.locator('#vp-dock').getByRole('radio', { name: 'Plain' })).toBeChecked()
   await page.getByRole('button', { name: 'Layers', exact: true }).click()
   const after = await camera(page)

@@ -61,7 +61,7 @@ function PlatformCard({ p, model, disabled }: { p: Platform; model: boolean; dis
   const label = p.id === 'rhino' ? (model ? 'Upload a new version' : 'Upload a Rhino model') : p.id === 'other' ? 'Upload a model file' : `Upload from ${p.name} (${p.upload.accept})`
   return (
     <section aria-labelledby={`pf-${p.id}`} data-testid={`platform-${p.id}`} className="grid gap-1.5 rounded-md border border-line p-2">
-      <h3 id={`pf-${p.id}`} className="flex items-center gap-1.5 text-[11.5px] font-semibold text-ink">
+      <h3 id={`pf-${p.id}`} className="flex items-center gap-1.5 text-meta font-semibold text-ink">
         <SoftwareBadge p={p} size={18} />{p.name}<span className="font-normal text-muted">{p.versions}</span>
         {!p.tested.ok && <span className="ml-auto"><FlagChip flag="unverified" /></span>}
         <Help label={`About ${p.name}`}>{p.upload.how} {p.tested.text}</Help>
@@ -234,7 +234,7 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
             <div className="grid gap-1">
               <span>In Rhino, type this command, press Enter and pick <b>{RHINO_SCRIPT}</b>:</span>
               <span className="flex items-center gap-1.5">
-                <code className="rounded border border-line bg-black/[0.04] px-1.5 py-0.5 font-mono text-[11.5px] text-ink">{RHINO_COMMAND}</code>
+                <code className="rounded border border-line bg-black/[0.04] px-1.5 py-0.5 font-mono text-meta text-ink">{RHINO_COMMAND}</code>
                 <button type="button" onClick={copy} className={`${btn} border-line hover:border-accent`} aria-label={`Copy ${RHINO_COMMAND}`}>{copied ? <Check size={12} /> : <Copy size={12} />}{copied ? 'Copied' : 'Copy'}</button>
               </span>
               <span className="text-muted">A <i>Tower Design Toolkit</i> window opens in Rhino. Running the script again brings the window back.</span>

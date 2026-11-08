@@ -1,5 +1,6 @@
 // Lift strategy comparator in the Core & lift results (research P11-M02): direct vs sky lobby side by side from the
 // lift check, double-deck and destination control with their checks and a "not computed" badge.
+import { ResultBadge, ResultCounts } from './ResultState'
 import { useMemo } from 'react'
 import { liftStrategies } from '../engine/liftStrategy'
 import type { Tower } from '../engine/types'
@@ -21,8 +22,8 @@ export default function LiftStrategy({ t }: { t: Tower }) {
           <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium">Strategy</th><th className={cell}>Cars</th><th className={cell}>Shafts at grade</th><th className={cell}>Core</th><th className={cell}>Net-to-gross</th><th className="px-1 font-medium">Transfers</th><th className="px-1 font-medium">Lift rules</th></tr></thead>
           <tbody>
             {s.options.map((o) => (
-              <tr key={o.id} className={`border-t border-line/60 ${s.best === o.id ? 'bg-emerald-50/60' : ''}`}>
-                <td className="py-1 pr-1 font-medium">{o.name}{s.best === o.id && <span className="ml-1 rounded bg-emerald-600 px-1 text-meta font-semibold text-white">smallest core</span>}</td>
+              <tr key={o.id} className={`border-t border-line/60 ${s.best === o.id ? 'bg-subtle' : ''}`}>
+                <td className="py-1 pr-1 font-medium">{o.name}{s.best === o.id && <span className="ml-1 rounded border border-line bg-panel px-1 text-meta font-semibold text-ink">smallest core</span>}</td>
                 {o.result ? (
                   <>
                     <td className={cell}>{o.result.totalCars}</td>
@@ -30,9 +31,9 @@ export default function LiftStrategy({ t }: { t: Tower }) {
                     <td className={cell}>{Math.round(o.result.requiredMax)} m²</td>
                     <td className={cell}>{Math.round((1 - o.result.requiredMax / o.result.plate) * 100)}%</td>
                   </>
-                ) : <td colSpan={4} className="px-1 text-center"><span className="rounded bg-slate-100 px-1 text-[9.5px] text-slate-600">not computed</span></td>}
+                ) : <td colSpan={4} className="px-1 text-center"><span className="rounded bg-pending-surface px-1 text-meta text-pending">not computed</span></td>}
                 <td className="px-1">{o.transfers}</td>
-                <td className="px-1">{o.computed ? (o.fails ? <span className="text-red-700">{o.fails} fail</span> : o.warns ? <span className="text-amber-700">{o.warns} to check</span> : <span className="text-emerald-700">pass</span>) : '—'}</td>
+                <td className="px-1">{o.computed ? (o.fails || o.warns ? <ResultCounts counts={{ fail: o.fails, warn: o.warns }} /> : <ResultBadge state="pass" />) : <span className="text-pending">not run</span>}</td>
               </tr>
             ))}
           </tbody>

@@ -1,6 +1,7 @@
-// Draws an imported mass in the 3D view (research P14-M02/M04/M05). Massing: the real mesh, coloured by the program
-// of each storey band (the mesh is drawn once per band, clipped to it). Schematic: ghosted like the parametric
-// towers, with the sliced plate outlines and an assumed central core. Open edges show red, flipped faces magenta.
+// Draws an imported mass in the 3D view (research P14-M02/M04/M05). The display mode (lib/displayMode.ts) colours it
+// as the parametric towers: the neutral proposal with its edges, or (Program) the real mesh coloured by the program of
+// each storey band (drawn once per band, clipped to it). Schematic: ghosted like the parametric towers, with the sliced
+// plate outlines and an assumed central core. Open edges show red, flipped faces magenta.
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { coreSide, towerFloors } from '../engine/massing'
@@ -8,7 +9,8 @@ import { USES, type ImportedStorey, type Tower, type UseId } from '../engine/typ
 import { useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
 import { useStore } from '../store'
 import Label from './Label'
-import { PROPOSED, proposedLook } from '../lib/vistaLook'
+import { NEUTRAL_TOWER } from '../lib/displayMode'
+import { useModeColours } from '../lib/displayModeHooks'
 
 const XRAY_OPACITY = 0.18
 const CORE_COLOR = '#2b3f55'
@@ -24,7 +26,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
   const selected = useStore((s) => s.selectedTower) === t.id
   const selectTower = useStore((s) => s.selectTower)
   const schematic = useStore((s) => s.phase) === 'advanced'
-  const proposed = useStore(proposedLook)
+  const byUse = useModeColours().tower === 'use'
   const anatomy = useStore((s) => s.anatomy)
   const section = useStore((s) => s.sectionOn) && schematic
   const sectionLevel = useStore((s) => s.sectionLevel)
@@ -58,25 +60,24 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
     <group position={[t.x, t.y, baseZ]} rotation={[0, 0, (t.rotation * Math.PI) / 180]} onPointerDown={(e) => { e.stopPropagation(); selectTower(t.id) }}>
       {geom && bands.map((b, i) => {
         const clip = [new THREE.Plane(new THREE.Vector3(0, 1, 0), -(baseZ + b.z0)), new THREE.Plane(new THREE.Vector3(0, -1, 0), baseZ + b.z1), ...(section ? [sectionPlane] : [])]
-        const color = b.use === 'void' ? VOID_COLOR : USES[b.use].color
-        // Real Vancouver Massing: the proposed tower in one strong colour (lib/vistaLook.ts PROPOSED), as Viewport's towers.
-        const glow = proposed && !xray
+        const color = !byUse ? NEUTRAL_TOWER.fill : b.use === 'void' ? VOID_COLOR : USES[b.use].color
+        // Never tinted by selection: the selection is an outline (TowerGizmo), so the surface keeps the mode's colour.
         return (
-          <mesh key={`${i}-${b.use}-${glow ? 'p' : 'u'}`} geometry={geom} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
-            <meshStandardMaterial color={glow ? PROPOSED.fill : color} roughness={0.75} side={THREE.DoubleSide} clippingPlanes={clip} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} toneMapped={!glow} fog={!glow}
-              emissive={glow ? PROPOSED.fill : selected && !xray ? '#1f5f8b' : '#000000'} emissiveIntensity={glow ? 0.45 : selected && !xray ? 0.08 : 0} />
+          <mesh key={`${i}-${b.use}`} geometry={geom} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
+            <meshStandardMaterial color={color} roughness={0.9} metalness={0} side={THREE.DoubleSide} clippingPlanes={clip} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} />
           </mesh>
         )
       })}
       {slabs && (
-        <mesh key={proposed && !xray ? 'p' : 'u'} geometry={slabs} castShadow={!xray} receiveShadow>
-          <meshStandardMaterial vertexColors={!(proposed && !xray)} color={proposed && !xray ? PROPOSED.fill : '#ffffff'} toneMapped={!(proposed && !xray)} roughness={0.75} fog={!(proposed && !xray)} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} clippingPlanes={section ? [sectionPlane] : null}
-            emissive={proposed && !xray ? PROPOSED.fill : '#000000'} emissiveIntensity={proposed && !xray ? 0.45 : 0} />
+        // Separate keys: switching vertexColors on one material needs a recompile three does not do by itself.
+        <mesh key={byUse ? 'use' : 'neutral'} geometry={slabs} castShadow={!xray} receiveShadow>
+          <meshStandardMaterial vertexColors={byUse} color={byUse ? '#ffffff' : NEUTRAL_TOWER.fill} roughness={0.9} metalness={0} transparent opacity={xray ? XRAY_OPACITY : 1} depthWrite={!xray} clippingPlanes={section ? [sectionPlane] : null} />
         </mesh>
       )}
-      {edges && proposed && !xray && <lineSegments geometry={edges}><lineBasicMaterial color={PROPOSED.line} toneMapped={false} /></lineSegments>}
+      {/* Readable edges on the solid model, as the parametric towers. */}
+      {edges && !xray && <lineSegments geometry={edges}><lineBasicMaterial color={NEUTRAL_TOWER.edge} transparent opacity={0.9} clippingPlanes={section ? [sectionPlane] : null} /></lineSegments>}
       {edges && <lineSegments geometry={edges} visible={xray}><lineBasicMaterial color="#3d5a78" transparent opacity={0.6} clippingPlanes={section ? [sectionPlane] : null} /></lineSegments>}
-      <lineSegments geometry={plates} visible={xray ? anatomy.plates : selected}>
+      <lineSegments geometry={plates} visible={xray ? anatomy.plates : byUse}>
         <lineBasicMaterial color={xray ? '#4a6a8c' : '#ffffff'} transparent opacity={xray ? 0.5 : 0.6} clippingPlanes={section ? [sectionPlane] : null} />
       </lineSegments>
       {xray && anatomy.core && top > 0 && (
@@ -93,7 +94,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
       )}
       <group position={[0, 0, m.top + 10]}>
         <Label hoverKey={t.id} text={`${t.name} · ${t.height.toFixed(0)} m · imported${unresolved ? ' · north unresolved' : ''}`} position={[0, 0, 0]}
-          color={unresolved ? '#3d3200' : '#ffffff'} background={unresolved ? 'rgba(255,224,130,0.95)' : 'rgba(31,35,40,0.88)'} size={0.017} bold />
+          color={unresolved ? '#5c3d00' : '#ffffff'} background={unresolved ? '#fdf4dd' : 'rgba(32,38,48,0.9)'} size={0.017} bold />
       </group>
       {xray && <Label text="Core position assumed central (imported mass)" position={[0, 0, -4]} size={0.011} color="#2b3f55" background="rgba(244,247,250,0.9)" />}
     </group>

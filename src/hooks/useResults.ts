@@ -55,32 +55,40 @@ export function useResults() {
   const windGround = windResult ? windResult.zones.filter((z) => z.z <= 1).map((z) => z.level).join(',') : null
 
   return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound], () => {
-    const fsr = cityStudyArea ? fsrSummary(towers, cityStudyArea) : fsrSummary(towers)
-    const rules = project === 'vtc' ? vtcRules(towers, { fsrTier, transitLink }) : []
-    const cones = project === 'city'
+    // An engine that throws must not take the app down (about 16 components read these results): its check gets an
+    // empty result and the reason, and the results panel shows an error state for it (components/ResultState.tsx).
+    const errors: Record<string, string> = {}
+    const attempt = <T,>(node: string, run: () => T, fallback: T): T => {
+      try { return run() } catch (e) { errors[node] = e instanceof Error ? e.message : String(e); return fallback }
+    }
+    const fsr = attempt('built.fsr', () => (cityStudyArea ? fsrSummary(towers, cityStudyArea) : fsrSummary(towers)), fsrSummary([]))
+    const rules = attempt('built.vtc-rules', () => (project === 'vtc' ? vtcRules(towers, { fsrTier, transitLink }) : []), [])
+    const cones = attempt('built.viewcones', () => (project === 'city'
       ? towers.map((t) => {
           // Every stacked block at its own top (engine/towerCones.ts).
           const checks = checkTowerCones(t, ground, CITY_ORIGIN)
           return { tower: t, checks, overall: overall(checks), topZ: ground + t.height }
         })
-      : []
-    const lifts = towers.map((t) => ({ tower: t, ...liftCheck(t, liftPresets, egressPresets) }))
-    const egress = towers.map((t) => ({ tower: t, ...egressCheck(t, egressPresets, liftPresets) }))
-    const skyRooms = towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets) }))
+      : []), [])
+    const lifts = attempt('built.core-lifts', () => towers.map((t) => ({ tower: t, ...liftCheck(t, liftPresets, egressPresets) })), [])
+    const egress = attempt('built.egress', () => towers.map((t) => ({ tower: t, ...egressCheck(t, egressPresets, liftPresets) })), [])
+    const skyRooms = attempt('built.sky-room', () => towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets) })), [])
     // Public realm checks run on the competition block, whose streets are known (research P06).
     const vtc = project === 'vtc' && towers.length > 0
     // Real Vancouver: the study site's streets (right-of-way measured, types picked by the user) once they are found.
     const ctx = project === 'city' ? streetsCtx(citySite, streetsFound) : null
-    const streetwall = vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers, ctx, cityRing, publicRealm.openPublicShare) : null
-    const frontage = vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers, ctx) : null
+    const streetwall = attempt('built.pr-streetwall', () => (vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers, ctx, cityRing, publicRealm.openPublicShare) : null), null)
+    const frontage = attempt('built.pr-frontage', () => (vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers, ctx) : null), null)
     const cross = { solar: solarLines, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }
     // Real Vancouver: open space over the study site, sun and wind; the link, frontage runs and station lines from its streets.
-    const groundPlane = vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross, ctx) : null
+    const groundPlane = attempt('built.pr-ground', () => (vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross, ctx) : null), null)
     // Optional fields, so code that builds a results object by hand (tests, workflows) need not supply them.
     const out: {
       fsr: typeof fsr; rules: typeof rules; cones: typeof cones; lifts: typeof lifts; egress: typeof egress; skyRooms: typeof skyRooms
       streetwall?: typeof streetwall; frontage?: typeof frontage; groundPlane?: typeof groundPlane
-    } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane }
+      /** Checks whose engine threw, by node id, with the reason (not part of the digest: no line is made up for them). */
+      errors?: Record<string, string>
+    } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, ...(Object.keys(errors).length ? { errors } : {}) }
     return out
   }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound])
 }

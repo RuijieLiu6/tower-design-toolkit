@@ -48,7 +48,7 @@ export default function DaylightResults() {
   return (
     <Section title={`Daylight screen · ${t.name}`} help="Distance from the glass on each use's typical floor, against the window head height (floor-to-floor minus the head drop).">
       <p className="text-meta text-slate-600">A geometric proxy: glazing, neighbours, blinds and climate are left out, so run a daylight simulation before relying on it.</p>
-      <div className="mt-2 flex flex-wrap gap-3 text-[10.5px]" aria-label="Band key">
+      <div className="mt-2 flex flex-wrap gap-3 text-meta" aria-label="Band key">
         {(Object.keys(BAND_STYLE) as (keyof typeof BAND_STYLE)[]).map((b) => (
           <span key={b} className="inline-flex items-center gap-1"><span className="h-2.5 w-3.5 rounded-sm border border-line" style={{ background: BAND_STYLE[b].fill, opacity: 0.4 + BAND_STYLE[b].opacity }} />{b === 'marginal' ? `Marginal (≤ ${r.k} × head)` : b === 'deep' ? `Deep (beyond ${r.k} × head)` : BAND_STYLE[b].label}</span>
         ))}
@@ -61,7 +61,7 @@ export default function DaylightResults() {
             <MiniPlan u={u} />
             <div className="text-meta">
               <p>{verdict(u)}</p>
-              <table className="mt-1 w-full text-[10.5px]">
+              <table className="mt-1 w-full text-meta">
                 <tbody>
                   {(['daylit', 'marginal', 'deep'] as const).map((b) => <tr key={b}><td className="pr-2 text-muted">{b === 'daylit' ? `Daylit (≤ ${u.d1.toFixed(1)} m)` : b === 'marginal' ? `Marginal (≤ ${u.d2.toFixed(1)} m)` : `Deep (> ${u.d2.toFixed(1)} m)`}</td><td className="tabular-nums">{Math.round(u.shares[b] * 100)}%</td></tr>)}
                 </tbody>
@@ -71,7 +71,7 @@ export default function DaylightResults() {
         </div>
       ))}
       <div className="mt-3 space-y-1.5">{r.rules.map((x) => <Card key={x.id} r={x} />)}</div>
-      <p className="mt-2 text-[10.5px] text-muted">The bands also show on the typical plan in Present when this node is on.</p>
+      <p className="mt-2 text-meta text-muted">The bands also show on the typical plan in Present when this node is on.</p>
     </Section>
   )
 }

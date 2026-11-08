@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { contrast } from './buildingUse'
+import { MODEL } from './design/tokens'
 import { CHROME, MAP_MODES, MODE_HINT, VISTA, VISTA_LIGHT, VISTA_LOOK, VISTA_OVERVIEW, shadowCapturingLights, vistaShaded } from './vistaLook'
 
 describe("Vista's Plain look for Real Vancouver", () => {
@@ -26,9 +27,11 @@ describe("Vista's Plain look for Real Vancouver", () => {
     }
   })
 
-  it('takes Vista’s Plain palette and light (explorer.js COLLAGE_COLORS @ 917b28e)', () => {
-    expect(VISTA_LOOK.background).toBe('#f3f2ec')
+  it('keeps Vista’s Plain palette on record and light, on the design system’s neutral model (7 Nov)', () => {
     expect([VISTA.terrain, VISTA.water, VISTA.parks, VISTA.buildings]).toEqual(['#dedbce', '#b7c9c9', '#8c9c83', '#fafbf8'])
+    // The scene itself is the neutral model (MODEL tokens); Vista's water and parks stay as map information.
+    expect([VISTA_LOOK.background, VISTA_LOOK.ground, VISTA_LOOK.context]).toEqual([MODEL.background, MODEL.ground, MODEL.context])
+    expect([VISTA_LOOK.water, VISTA_LOOK.park]).toEqual([VISTA.water, VISTA.parks])
     expect(VISTA_LIGHT.length()).toBeCloseTo(1, 6)
     expect(VISTA_LIGHT.z).toBeGreaterThan(0.8)
     // Vista's overview (yaw 0.018, pitch 0.682, 9,710 m) looks west at 39 degrees down from the east.
@@ -93,21 +96,5 @@ describe('Plan scale and the view-cone switches', () => {
     expect(controllingCone([checks[3]])).toBe('A')
     expect(controllingCone([checks[0]])).toBeNull()
     expect(conesOverSite(checks)).toEqual(['3.2.4', '3.2.3', 'A'])
-  })
-})
-
-describe('the proposed tower colour', () => {
-  it('stands apart from the light type tints, the terrain and the water, and only in Massing and Present Clay', async () => {
-    const { PROPOSED, proposedLook } = await import('./vistaLook')
-    const { BUILDING_USES, useColor } = await import('./buildingUse')
-    for (const u of BUILDING_USES) expect(contrast(PROPOSED.fill, useColor(u.id)), u.id).toBeGreaterThanOrEqual(3.5)
-    expect(contrast(PROPOSED.fill, VISTA.terrain)).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(PROPOSED.fill, VISTA.water)).toBeGreaterThanOrEqual(3.5)
-    expect(contrast(PROPOSED.fill, VISTA.buildings)).toBeGreaterThanOrEqual(4.5)
-    expect(proposedLook({ project: 'city', phase: 'basic' })).toBe(true)
-    expect(proposedLook({ project: 'city', phase: 'present', presentRep: 'clay' })).toBe(true)
-    expect(proposedLook({ project: 'city', phase: 'present', presentRep: 'xray' })).toBe(false)
-    expect(proposedLook({ project: 'city', phase: 'advanced' })).toBe(false)
-    expect(proposedLook({ project: 'vtc', phase: 'basic' })).toBe(false)
   })
 })

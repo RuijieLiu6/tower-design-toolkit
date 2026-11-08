@@ -5,6 +5,7 @@ import type { RuleResult, RuleState } from '../engine/types'
 import { STATE_LABEL, type ConeState } from '../engine/viewCones'
 import type { useResults } from '../hooks/useResults'
 import type { Item, NodeOutput } from './workflowLogic'
+import { inputGap, type GapContext } from './missingInput'
 
 export type Results = ReturnType<typeof useResults>
 type Project = 'vtc' | 'city'
@@ -19,11 +20,23 @@ const fromRule = (r: RuleResult, tower?: { id: string; name: string }): Item => 
 const CONE_RULE: Record<ConeState, RuleState | null> = { above: 'fail', within_uncertainty: 'warn', near_edge: 'warn', limit_unknown: 'unknown', clear: 'pass', outside: null }
 
 function summarise(items: Item[], ok: string): { state: RuleState; headline: string } {
+  // No lines is no verdict: an empty list never reads as "all pass" (design system, 7 Nov).
+  if (!items.length) return { state: 'unknown', headline: 'No result lines' }
   const f = items.filter((i) => i.state === 'fail').length, w = items.filter((i) => i.state === 'warn').length, u = items.filter((i) => i.state === 'unknown').length
   if (f) return { state: 'fail', headline: `${f} fail${w ? ` · ${w} to check` : ''}` }
   if (w) return { state: 'warn', headline: `${w} to check` }
   if (u && u === items.length) return { state: 'unknown', headline: 'No estimate' }
   return { state: 'pass', headline: ok }
+}
+
+/**
+ * A built node's canvas output through the missing-input guard (lib/missingInput.ts): a check with nothing to read
+ * says what it waits for ("Needs model: …") instead of a verdict on an empty design. `compute` runs only when it can.
+ */
+export function guardOutput(nodeId: string, ctx: GapContext, compute: () => NodeOutput | null): NodeOutput | null {
+  const gap = inputGap(nodeId, ctx)
+  if (gap) return { state: 'idle', headline: `${gap.word}: ${gap.next}`, items: [], need: gap.status }
+  return compute()
 }
 
 /** Output of a built node in the current project, or null if this module has no live adapter here yet. */

@@ -19,14 +19,14 @@ export default function BasementSection({ sum, ground, f2f }: { sum: BasementSum
         {/* the ground the site model stands on, as thick as it needs to be */}
         <rect x={left - 24} y={yOf(0)} width={right - left + 48} height={yOf(ground) - yOf(0)} className="fill-[#efe9dd]" />
         <line x1={4} x2={W - 4} y1={yOf(0)} y2={yOf(0)} className="stroke-ink" strokeWidth={1.2} />
-        <text x={6} y={yOf(0) - 3} className="fill-muted text-[8px]">grade</text>
+        <text x={6} y={yOf(0) - 3} className="fill-muted text-meta">grade</text>
         {/* the tower's foot */}
         <rect x={left + 30} y={4} width={34} height={top - 4} className="fill-slate-200 stroke-slate-500" strokeWidth={0.75} />
         {/* the levels, B1 at the top */}
         {levels.map((i) => (
           <g key={i}>
             <rect x={left} y={yOf(i * f2f)} width={right - left} height={Math.max(1, f2f * k)} className="fill-[#3d5a80]/80 stroke-[#1d2b3a]" strokeWidth={0.6} />
-            {f2f * k >= 7 && <text x={left + 3} y={yOf(i * f2f) + f2f * k / 2 + 3} className="fill-white text-[7.5px] font-semibold">B{i + 1}</text>}
+            {f2f * k >= 7 && <text x={left + 3} y={yOf(i * f2f) + f2f * k / 2 + 3} className="fill-white text-meta font-semibold">B{i + 1}</text>}
           </g>
         ))}
         {/* the ramp: its run at 12.5 %, drawn from grade down to the lowest floor */}
@@ -37,8 +37,8 @@ export default function BasementSection({ sum, ground, f2f }: { sum: BasementSum
           <line x1={right + 5} x2={right + 11} y1={yOf(sum.depth)} y2={yOf(sum.depth)} />
           <line x1={right + 24} x2={right + 24} y1={yOf(0)} y2={yOf(ground)} strokeDasharray="2 2" />
         </g>
-        <text x={right + 11} y={yOf(sum.depth / 2) + 3} className="fill-ink text-[8px] font-semibold">{fmt(sum.depth, 1)} m</text>
-        <text x={right + 27} y={yOf(ground) - 2} className="fill-muted text-[7.5px]">{fmt(ground)} m</text>
+        <text x={right + 11} y={yOf(sum.depth / 2) + 3} className="fill-ink text-meta font-semibold">{fmt(sum.depth, 1)} m</text>
+        <text x={right + 27} y={yOf(ground) - 2} className="fill-muted text-meta">{fmt(ground)} m</text>
       </svg>
       <figcaption className="mt-0.5 flex flex-wrap gap-x-2 text-meta text-muted">
         <span><i aria-hidden className="mr-1 inline-block h-2 w-2 bg-[#3d5a80]" />levels</span>

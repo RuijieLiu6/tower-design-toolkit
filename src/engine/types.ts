@@ -1,16 +1,22 @@
 import type { InteriorInput } from './interior'
+import { DATA } from '../lib/design/tokens'
 // Shared types for Layer 0 and evaluation results.
 
 export type UseId = 'retail' | 'office' | 'hotel' | 'residential' | 'civic' | 'amenity' | 'mechanical'
 
+/**
+ * Building uses in the design system's categorical data palette (lib/design/tokens.ts DATA.categorical; §9: uses are
+ * kinds, labelled, never ordered), one colour per use across the 3D Program mode, plans, sections, charts and exports.
+ * Never the workflow phase colours. Each keeps its old hue family (office blue, retail orange, homes green…).
+ */
 export const USES: Record<UseId, { label: string; color: string; nonResidential: boolean }> = {
-  retail: { label: 'Retail / commercial', color: '#e3a07a', nonResidential: true },
-  office: { label: 'Office', color: '#6b8fb5', nonResidential: true },
-  hotel: { label: 'Hotel', color: '#e8b84a', nonResidential: true },
-  residential: { label: 'Residential', color: '#9bbf85', nonResidential: false },
-  civic: { label: 'Civic / cultural', color: '#b48ac4', nonResidential: true },
-  amenity: { label: 'Public amenity', color: '#6cc0b8', nonResidential: true },
-  mechanical: { label: 'Mechanical', color: '#a3a3a3', nonResidential: true },
+  retail: { label: 'Retail / commercial', color: DATA.categorical[1], nonResidential: true },
+  office: { label: 'Office', color: DATA.categorical[0], nonResidential: true },
+  hotel: { label: 'Hotel', color: DATA.categorical[5], nonResidential: true },
+  residential: { label: 'Residential', color: DATA.categorical[2], nonResidential: false },
+  civic: { label: 'Civic / cultural', color: DATA.categorical[4], nonResidential: true },
+  amenity: { label: 'Public amenity', color: DATA.categorical[6], nonResidential: true },
+  mechanical: { label: 'Mechanical', color: DATA.categorical[7], nonResidential: true },
 }
 
 /** A program band: a share of the tower's floors, stacked bottom-up in list order. */

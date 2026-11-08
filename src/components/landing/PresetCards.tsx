@@ -86,7 +86,7 @@ function NodeTile({ cat, names }: { cat: Category; names: string[] }) {
       <span tabIndex={0} role="img" aria-label={`${c.label}: ${names.join(', ')}`} className="flex rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent">
         <GlassIcon icon={Icon} hue={CATEGORY_HUE[cat]} size={ICON.feature} />
       </span>
-      {names.length > 1 && <span aria-hidden className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10.5px] font-semibold text-white">{names.length}</span>}
+      {names.length > 1 && <span aria-hidden className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-meta font-semibold text-white">{names.length}</span>}
       <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-meta leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
         <b className="block font-semibold">{c.label}</b>
         {names.map((n) => <span key={n} className="block opacity-90">{n}</span>)}

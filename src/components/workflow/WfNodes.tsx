@@ -1,28 +1,36 @@
 // Node cards for the Customize canvas: icon, typed ports, live result with its evidence flags, and group frames.
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { CircleAlert, CircleCheck, CircleDashed, CircleHelp, CircleX, FlaskConical, PlugZap, Ban, Hourglass, PowerOff } from '../icons'
+import { CircleDashed, CircleHelp, FlaskConical, PlugZap } from '../icons'
 import { createContext, memo, useContext } from 'react'
 import type { Flag, RuleState } from '../../engine/types'
 import { flagCounts, PORT_COLOR, portsFor, type NodeOutput } from '../../lib/workflowLogic'
 import { FlagChip } from '../ui'
+import { ResultBadge, RunBadge } from '../ResultState'
+import type { RunStatus } from '../../lib/status'
 import { findEntry, STATUS_LABEL } from './catalog'
 import { useEditor, type WfNodeT } from './editorStore'
 
 export const OutputsContext = createContext<Record<string, NodeOutput>>({})
 export const CommunityContext = createContext<import('../../data/registry').NodeDef[]>([])
 
-const STATE: Record<RuleState | 'idle', { icon: typeof CircleCheck; word: string; cls: string }> = {
-  pass: { icon: CircleCheck, word: 'Pass', cls: 'text-emerald-800 bg-emerald-50 border-emerald-200' },
-  warn: { icon: CircleAlert, word: 'Check', cls: 'text-amber-800 bg-amber-50 border-amber-200' },
-  fail: { icon: CircleX, word: 'Fail', cls: 'text-red-800 bg-red-50 border-red-200' },
-  unknown: { icon: CircleHelp, word: 'Info', cls: 'text-slate-700 bg-slate-50 border-slate-200' },
-  idle: { icon: CircleDashed, word: 'Waiting', cls: 'text-muted bg-paper border-line' },
+/**
+ * An assessment result on the canvas (design system, 7 Nov): the circle symbol and word of lib/status.ts. "Info" is a
+ * line reported, not judged. 'idle' (no result) never borrows a result's look: a dashed circle, "No result".
+ */
+export function StateWord({ state }: { state: RuleState | 'idle' }) {
+  if (state === 'idle') return <span className="inline-flex shrink-0 items-center gap-1 rounded border border-line px-1.5 py-0.5 text-meta font-semibold leading-none text-pending"><CircleDashed size={11} aria-hidden />No result</span>
+  return <ResultBadge state={state} word={state === 'unknown' ? 'Info' : undefined} />
 }
 
-export function StateWord({ state }: { state: RuleState | 'idle' }) {
-  const s = STATE[state]
-  const Icon = s.icon
-  return <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-meta font-semibold leading-none ${s.cls}`}><Icon size={11} aria-hidden />{s.word}</span>
+/**
+ * Execution status of a canvas node (research P15-M02; design system, 7 Nov): whether it ran, kept apart from what it
+ * found. A node that ran is "Complete" (a solid square), whatever its result; "Pass" is only ever the result's word.
+ */
+export function runStatusOf(out: NodeOutput): RunStatus | null {
+  if (out.run) return out.run.status === 'off' ? 'off' : out.run.status === 'blocked' ? 'blocked' : 'not-run'
+  if (out.need) return out.need
+  if (out.state === 'idle') return out.missing?.length ? 'waiting-input' : null
+  return 'complete'
 }
 
 const FLAG_ORDER: Flag[] = ['false_assumption', 'unresolved', 'unverified', 'team_assumption', 'verified']
@@ -66,7 +74,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-meta font-semibold leading-tight" title={data.label}>{data.label}</div>
-          <div className="flex items-center gap-1 text-[9.5px] text-muted">
+          <div className="flex items-center gap-1 text-meta text-muted">
             {researched && <FlaskConical size={10} aria-hidden />}
             {missing ? 'Missing from this library' : entry ? STATUS_LABEL[entry.status] : ''}
             {data.category && !isSource && <span className="font-mono normal-case">· {data.category}</span>}
@@ -95,21 +103,21 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
       ))}
 
       <div className="border-t border-line px-2.5 py-2">
-        {out?.run && (
-          // Run status (P15-M02): off, blocked by an upstream node that is off, or waiting in step-through.
-          <div className="mb-1 flex items-center gap-1 text-meta font-semibold" style={{ color: out.run.status === 'waiting' ? '#62666d' : '#8a4b00' }}>
-            {out.run.status === 'off' ? <><PowerOff size={11} aria-hidden />Off</> : out.run.status === 'blocked' ? <><Ban size={11} aria-hidden />Blocked</> : <><Hourglass size={11} aria-hidden />Waiting</>}
-          </div>
-        )}
+        {out && !isSource && !researched && !missing && (() => {
+          // Execution first (did it run?), then the result (what it found): two lines, two vocabularies.
+          const run = runStatusOf(out)
+          return run ? <div className="mb-1.5"><RunBadge status={run} detail={run === 'complete' && out.ms !== undefined ? `${out.ms < 1 ? '<1' : Math.round(out.ms)} ms` : undefined} /></div> : null
+        })()}
         {researched ? (
-          <div className="flex items-start gap-1.5 text-[10.5px] text-muted"><FlaskConical size={12} className="mt-0.5 shrink-0" aria-hidden />Researched, not runnable: a placeholder that passes "unknown" downstream.</div>
+          <div className="flex items-start gap-1.5 text-meta text-muted"><FlaskConical size={12} className="mt-0.5 shrink-0" aria-hidden />Researched, not runnable: a placeholder that passes "unknown" downstream.</div>
         ) : missing ? (
-          <div className="flex items-start gap-1.5 text-[10.5px] text-amber-800"><PlugZap size={12} className="mt-0.5 shrink-0" aria-hidden />Import this node (My nodes) to run it.</div>
+          <div className="flex items-start gap-1.5 text-meta text-pending"><PlugZap size={12} className="mt-0.5 shrink-0" aria-hidden />Import this node (My nodes) to run it.</div>
         ) : out ? (
           <>
             <div className="flex items-start gap-1.5">
-              {!isSource && !out.run && <StateWord state={out.state} />}
-              <span className={`min-w-0 text-meta leading-snug ${out.state === 'idle' && out.missing ? 'text-amber-800' : 'text-ink'}`}>{out.headline}</span>
+              {!isSource && !out.run && out.state !== 'idle' && <StateWord state={out.state} />}
+              {/* The run badge above already says "Needs model" / "Waiting for input": the line says what to do. */}
+              <span className={`min-w-0 text-meta leading-snug ${out.state === 'idle' && (out.missing || out.need) ? 'text-pending' : 'text-ink'}`}>{out.need ? out.headline.replace(/^(Needs model|Waiting for input): /, '') : out.headline}</span>
             </div>
             {data.ref === 'logic.score' && Number.isFinite(out.score) && (
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(out.score!)} aria-label="Weighted score">
@@ -122,7 +130,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
                   <div key={b.id} className="flex items-center gap-1.5 text-meta">
                     <span className="w-20 truncate" title={b.label}>{b.label}</span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200"><span className="block h-full bg-accent" style={{ width: `${Number.isFinite(b.score) ? b.score * 100 : 0}%` }} /></span>
-                    <span className="w-6 text-right tabular-nums">{Number.isFinite(b.score) ? Math.round(b.score * 100) : '–'}</span>
+                    <span className="w-8 text-right tabular-nums">{Number.isFinite(b.score) ? `${Math.round(b.score * 100)}%` : '–'}</span>
                   </div>
                 ))}
               </div>

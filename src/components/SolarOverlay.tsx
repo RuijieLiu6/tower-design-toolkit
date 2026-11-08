@@ -1,52 +1,33 @@
-// Ground overlay for the solar-access node: sun hours (or hours lost) as a heat map, the tested public spaces outlined
-// by result, and a screen-sized legend. Lives in the z-up scene group of the VTC scene (one hook line in Viewport.tsx).
+// Ground overlay for the solar-access node: sun hours (or hours lost) as a map, the tested public spaces outlined by
+// result. The map is an analytical colour layer, so it shows only in the Analysis display mode (lib/displayMode.ts),
+// where the key under the view names its quantity, units, range and missing data (components/DisplayMode.tsx).
+// Lives in the z-up scene group of either scene (one hook line in Viewport.tsx).
 import { Line } from '@react-three/drei'
-import { useFrame } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
-import { MAP_DATES } from '../engine/solarDates'
 import type { SolarJobOutput } from '../engine/solarJob'
 import type { SunHours } from '../engine/solarRules'
 import { useSolarAccess } from '../hooks/useSolarAccess'
+import { useAnalysisLayer } from '../lib/displayModeHooks'
+import { STATUS } from '../lib/design/tokens'
 import { useStore } from '../store'
 import Label from './Label'
 import { SolarAreaEditor } from './SolarArea'
 
-import { HOURS_RAMP, LOSS_MAX_H, LOSS_RAMP } from './solarRamps'
-
-const ramp = (stops: string[], t: number): [number, number, number] => {
-  const x = Math.max(0, Math.min(1, t)) * (stops.length - 1)
-  const i = Math.min(stops.length - 2, Math.floor(x)), f = x - i
-  const a = new THREE.Color(stops[i]), b = new THREE.Color(stops[i + 1])
-  return [a.r + (b.r - a.r) * f, a.g + (b.g - a.g) * f, a.b + (b.b - a.b) * f]
-}
+import { mapTexels } from './solarRamps'
 
 function mapTexture(m: SunHours, view: 'hours' | 'loss'): THREE.DataTexture {
-  const { nx, ny } = m.grid
-  const data = new Uint8Array(nx * ny * 4)
-  for (let k = 0; k < nx * ny; k++) {
-    if (m.covered[k]) continue
-    let rgb: [number, number, number], alpha: number
-    if (view === 'hours') {
-      rgb = ramp(HOURS_RAMP, m.possible > 0 ? m.proposal[k] / m.possible : 0)
-      alpha = 0.72
-    } else {
-      const lost = m.baseline[k] - m.proposal[k]
-      if (lost < 0.01) continue
-      rgb = ramp(LOSS_RAMP, lost / LOSS_MAX_H)
-      alpha = 0.82
-    }
-    data[k * 4] = rgb[0] * 255; data[k * 4 + 1] = rgb[1] * 255; data[k * 4 + 2] = rgb[2] * 255; data[k * 4 + 3] = alpha * 255
-  }
-  const tex = new THREE.DataTexture(data, nx, ny, THREE.RGBAFormat)
+  const tex = new THREE.DataTexture(mapTexels(m, view), m.grid.nx, m.grid.ny, THREE.RGBAFormat)
   tex.colorSpace = THREE.SRGBColorSpace
-  tex.magFilter = THREE.LinearFilter
+  // Nearest: each cell is one computed value; blending neighbours would invent values between them.
+  tex.magFilter = THREE.NearestFilter
   tex.minFilter = THREE.LinearFilter
   tex.needsUpdate = true
   return tex
 }
 
-const STATE_COLOR: Record<string, string> = { pass: '#2e8b57', fail: '#c0392b', warn: '#d98b1c', unknown: '#6b6f76' }
+/** Result outlines of the tested spaces: the status colours (always with a word on the label and in the results). */
+const STATE_COLOR: Record<string, string> = { pass: STATUS.success.fg, fail: STATUS.error.fg, warn: STATUS.warning.fg, unknown: STATUS.pending.fg }
 
 function hull(points: [number, number][]): [number, number][] {
   const p = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1])
@@ -55,44 +36,6 @@ function hull(points: [number, number][]): [number, number][] {
   for (const q of p) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop(); lower.push(q) }
   for (const q of [...p].reverse()) { while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop(); upper.push(q) }
   return [...lower.slice(0, -1), ...upper.slice(0, -1)]
-}
-
-/** A legend drawn on a canvas and shown as a screen-sized sprite (no DOM inside the 3D view). */
-function Legend({ view, title, possible, position }: { view: 'hours' | 'loss'; title: string; possible: number; position: [number, number, number] }) {
-  const tex = useMemo(() => {
-    const dpr = 2, w = 300 * dpr, h = 74 * dpr
-    const c = document.createElement('canvas')
-    c.width = w; c.height = h
-    const g = c.getContext('2d')!
-    g.fillStyle = 'rgba(255,255,255,0.92)'
-    g.beginPath(); g.roundRect(0, 0, w, h, 10 * dpr); g.fill()
-    g.fillStyle = '#1f2328'; g.font = `600 ${12 * dpr}px Inter, "Segoe UI", sans-serif`; g.textBaseline = 'top'
-    g.fillText(title, 10 * dpr, 8 * dpr)
-    const stops = view === 'hours' ? HOURS_RAMP : LOSS_RAMP
-    const grad = g.createLinearGradient(10 * dpr, 0, w - 10 * dpr, 0)
-    stops.forEach((s, i) => grad.addColorStop(i / (stops.length - 1), s))
-    g.fillStyle = grad; g.fillRect(10 * dpr, 30 * dpr, w - 20 * dpr, 14 * dpr)
-    g.fillStyle = '#4b5058'; g.font = `500 ${11 * dpr}px Inter, "Segoe UI", sans-serif`
-    const left = view === 'hours' ? '0 h' : 'under 1 h', right = view === 'hours' ? `${possible.toFixed(possible % 1 ? 1 : 0)} h (all)` : `${LOSS_MAX_H} h or more`
-    g.fillText(left, 10 * dpr, 50 * dpr)
-    g.textAlign = 'right'; g.fillText(right, w - 10 * dpr, 50 * dpr)
-    const t = new THREE.CanvasTexture(c)
-    t.colorSpace = THREE.SRGBColorSpace
-    return t
-  }, [view, title, possible])
-  useEffect(() => () => tex.dispose(), [tex])
-  const sprite = useRef<THREE.Sprite>(null)
-  const size = 0.05, aspect = 300 / 74
-  useFrame(({ camera }) => {
-    if (!sprite.current) return
-    const f = Math.tan(THREE.MathUtils.degToRad(((camera as THREE.PerspectiveCamera).fov ?? 38) / 2)) / Math.tan(THREE.MathUtils.degToRad(19))
-    sprite.current.scale.set(size * aspect * f, size * f, 1)
-  })
-  return (
-    <sprite ref={sprite} position={position} renderOrder={11}>
-      <spriteMaterial map={tex} sizeAttenuation={false} depthTest={false} transparent />
-    </sprite>
-  )
 }
 
 /** The map draped on the terrain nodes the worker sampled (Real Vancouver), 1 m above the ground. */
@@ -107,7 +50,9 @@ function terrainGeometry(t: NonNullable<SolarJobOutput['mapTerrain']>): THREE.Pl
 }
 
 export default function SolarOverlay() {
-  const { on, out, showMap, view, mapDate } = useSolarAccess()
+  const { on, out, showMap, view } = useSolarAccess()
+  // The map shows only in Analysis with sun hours as its quantity; the tested spaces' outlines stay in every mode.
+  const mapShown = useAnalysisLayer() === 'solar'
   const phase = useStore((s) => s.phase)
   const project = useStore((s) => s.project)
   const current = out && out.project === project ? out : null
@@ -119,12 +64,11 @@ export default function SolarOverlay() {
   if (!on || !current) return null
   const g = map?.grid
   const t = current.mapTerrain
-  const date = MAP_DATES.find((d) => d.id === mapDate)!
   const city = current.project === 'city'
   return (
     <group>
       <SolarAreaEditor />
-      {showMap && g && tex && (
+      {mapShown && showMap && g && tex && (
         <>
           {draped && t ? (
             <mesh geometry={draped} position={[t.x0 + ((t.nx - 1) * t.step) / 2, t.y0 + ((t.ny - 1) * t.step) / 2, 0]} renderOrder={1}>
@@ -135,11 +79,6 @@ export default function SolarOverlay() {
               <planeGeometry args={[g.nx * g.cell, g.ny * g.cell]} />
               <meshBasicMaterial map={tex} transparent depthWrite={false} polygonOffset polygonOffsetFactor={-2} />
             </mesh>
-          )}
-          {phase !== 'present' && (
-            /* In front of the site, toward the default camera (south-east in the model grid), so it is on screen. */
-            <Legend view={view} possible={map!.possible} position={[current.centre[0] + 120, current.centre[1] - 120, current.planeZ + 4]}
-              title={view === 'hours' ? `Sun hours · ${date.label}` : `Sun lost to the design · ${date.label}`} />
           )}
         </>
       )}

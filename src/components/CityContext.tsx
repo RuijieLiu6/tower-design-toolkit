@@ -28,7 +28,7 @@ import { applyBuildingForms, is2009Part, loadCityGeometry, type StreetData } fro
 import { VISTA_ATTRIBUTION, VISTA_SOURCES, chooseHeight, isEstimate, loadVistaBuildings, seatVista, type BuildingModel, type HeightBasis, type VistaBuildings } from '../lib/vistaBuildings'
 import { useCityModel, type CityModel } from '../lib/cityModel'
 import { useSceneStyle, type SceneStyle } from '../lib/sceneStyle'
-import { VISTA, VISTA_LOOK, setParkMask, setWaterMask, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { VISTA_LOOK, setParkMask, setWaterMask, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { BUILDING_USES, SWATCH_BORDER, USE_BASES, USE_BASIS_TEXT, partUse, useColor, type BuildingUse, type UseBasis } from '../lib/buildingUse'
 import { contextFacadeMaterial, contextGroundMaterial, contextPavingMaterial, contextWaterMaterial, facadeAttribute, useVistaTextures, vistaFamily, vistaSeed, type VistaTextures } from './ContextStyle'
 import CityStreets, { useStreetDisplay } from './CityStreets'
@@ -620,22 +620,22 @@ function VistaBuildingMesh({ data, look, ghost, hidden, vista: v }: { data: City
     return out
   }, [data, h, v])
   useEffect(() => () => chunks.forEach((c) => c.geom.dispose()), [chunks])
-  // Colours: the light tint of each building's type ("Colour buildings by type", on by default), or Vista's white;
-  // a building whose height is a type estimate a shade off.
+  // Colours: the light tint of each building's type (Program display mode, "Colour buildings by type"), or the neutral
+  // context grey of the look (MODEL.context); a building whose height is a type estimate a shade off.
   useEffect(() => {
     const c = new THREE.Color()
     for (const chunk of chunks) {
       const attr = chunk.geom.getAttribute('color') as THREE.BufferAttribute
       const rgb = attr.array as Uint8Array
       for (const [i, start, n] of chunk.ranges) {
-        c.set(typeColours ? useColor(partUse(v, i).use) : VISTA.buildings).multiplyScalar(isEstimate(data, i) ? 0.93 : 1)
+        c.set(typeColours ? useColor(partUse(v, i).use) : look.context).multiplyScalar(isEstimate(data, i) ? 0.93 : 1)
         const r = Math.round(c.r * 255), g = Math.round(c.g * 255), b = Math.round(c.b * 255)
         for (let k = start; k < start + n; k++) { rgb[k * 3] = r; rgb[k * 3 + 1] = g; rgb[k * 3 + 2] = b }
       }
       attr.needsUpdate = true
     }
     invalidate()
-  }, [chunks, typeColours, v, data, invalidate])
+  }, [chunks, typeColours, v, data, invalidate, look.context])
   const vistaMat = useMemo(() => (vistaLook ? vistaShaded(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }), 'buildings') : null), [vistaLook])
   useEffect(() => () => vistaMat?.dispose(), [vistaMat])
   const plainMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, color: ghost ? look.context : '#ffffff', roughness: 0.92, metalness: 0, transparent: true, opacity: ghost ? 0.45 : 1, depthWrite: !ghost }), [ghost, look.context])
@@ -1029,7 +1029,7 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
       {context && tex && <SiteSurface grids={grids} tex={tex} />}
       {context
         ? tex && <VistaStreets manifest={data.manifest} ground={surface.at} centre={[t?.x ?? 0, t?.y ?? 0]} tex={tex} />
-        : look === VISTA_LOOK ? <><VistaStreetLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} /><TrailLines manifest={data.manifest} ground={surface.at} color={VISTA.roads} /></>
+        : look === VISTA_LOOK ? <><VistaStreetLines manifest={data.manifest} ground={surface.at} color={look.edge} /><TrailLines manifest={data.manifest} ground={surface.at} color={look.edge} /></>
         : <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />}
       <Buildings data={data} look={look} ghost={xray} hidden={hidden} />
       <SelectedBuildings data={data} hidden={hidden} />

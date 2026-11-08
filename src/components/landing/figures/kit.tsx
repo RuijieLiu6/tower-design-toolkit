@@ -115,7 +115,7 @@ export function Tile({ x, y, size, icon, hue, level = 'on', word, num, wordAt = 
       {role && <span aria-hidden className="absolute -bottom-[3px] -right-[3px] h-[9px] w-[9px] rounded-full ring-[1.5px] ring-white" style={{ background: ROLES[role].color }} />}
       {wordAt !== 'none' && (
         <span aria-hidden className={`pointer-events-none absolute whitespace-nowrap leading-tight ${WORD_AT[wordAt]} ${halo} ${strong ? 'text-[12.5px] font-semibold text-ink' : 'text-meta text-muted'}`}>
-          {num && <span className="mr-1 text-[10.5px] font-normal tabular-nums text-muted">{num}</span>}{word}
+          {num && <span className="mr-1 text-meta font-normal tabular-nums text-muted">{num}</span>}{word}
         </span>
       )}
     </button>
@@ -148,7 +148,7 @@ export function Info({ part, idle }: { part: InfoPart | null; idle: string }) {
     <div className="flex min-h-[2.6rem] flex-wrap items-start gap-x-3 gap-y-1 text-meta text-muted" data-testid="figure-info">
       {part ? <>
         <p className="min-w-0 flex-1 basis-64"><b className="font-semibold text-ink">{part.title}</b>{part.text ? <> · {part.text}</> : null}</p>
-        {part.role && <span className="flex shrink-0 items-center gap-1.5 text-[11.5px]"><RoleDot role={part.role} />{ROLES[part.role].word}</span>}
+        {part.role && <span className="flex shrink-0 items-center gap-1.5 text-meta"><RoleDot role={part.role} />{ROLES[part.role].word}</span>}
       </> : (
         <p className="flex min-w-0 flex-1 items-start gap-2"><MousePointerClick size={15} aria-hidden className="mt-0.5 shrink-0" /><span>{idle} <span className="text-meta opacity-80">Hover or tap a part.</span></span></p>
       )}
@@ -161,7 +161,7 @@ export const RoleDot = ({ role }: { role: Role }) => <span aria-hidden className
 /** The research site's legend, as the dots on the tiles. */
 export function RoleLegend() {
   return (
-    <ul aria-label="Who does what" className="flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-muted">
+    <ul aria-label="Who does what" className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-muted">
       {(Object.keys(ROLES) as Role[]).map((r) => <li key={r} className="flex items-center gap-1.5"><RoleDot role={r} />{ROLES[r].word}</li>)}
     </ul>
   )

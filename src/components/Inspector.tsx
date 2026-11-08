@@ -1,4 +1,4 @@
-import { Eye, ExternalLink } from './icons'
+import { CircleX, Eye, ExternalLink, PowerOff } from './icons'
 import { CATEGORIES, JURY_LABEL, nodeById } from '../data/registry'
 import { sunPosition, vancouverTime } from '../engine/sun'
 import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from '../engine/egress'
@@ -34,17 +34,21 @@ import TripsResults from './TripsResults'
 import PublicRealmResults from './PublicRealmResults'
 import SolarResults from './SolarResults'
 import DaylightResults from './DaylightResults'
-import { CONE_STYLE, FlagChip, Section, StateChip } from './ui'
+import { CONE_STYLE, ConeChip, FlagChip, Section, StateChip } from './ui'
 import { U } from './Units'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
 import ResultChecklist, { DetailsFold } from './ResultChecklist'
+import { NeedsInput, ResultBoundary, ResultError } from './ResultState'
+import { inputGap } from '../lib/missingInput'
+import { useProjectSiteArea } from '../lib/siteArea'
+import { KIND_CLASS } from '../lib/status'
 
 function RuleCard({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
+      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} value={r.value} /></div>
+      <div className="mt-0.5 text-meta"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
       {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
         {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
@@ -177,7 +181,8 @@ function SkyLobbyCompare({ r }: { r: LiftResult }) {
   return (
     <div className="mt-3 rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">Sky lobby vs direct</span>
-        <span className={`rounded px-1.5 py-0.5 text-meta font-semibold ${saved > 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{saved > 0 ? `saves ${Math.round(saved)} m² of core` : `adds ${Math.round(-saved)} m² of core`}</span>
+        {/* A comparison of two schemes, not a pass or fail (see the note below): neutral, with its number and unit. */}
+        <span className="rounded bg-subtle px-1.5 py-0.5 text-meta font-semibold tabular-nums text-ink">{saved > 0 ? `saves ${Math.round(saved)} m² of core` : `adds ${Math.round(-saved)} m² of core`}</span>
       </div>
       <table className="mt-1 w-full text-meta">
         <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium" /><th className="text-right font-medium">Direct</th><th className="text-right font-medium">Sky lobby</th></tr></thead>
@@ -239,8 +244,8 @@ function StairPlan({ t, e }: { t: Tower; e: EgressResult }) {
         <circle cx={X(e.farCorner[0])} cy={Y(e.farCorner[1])} r="2.5" fill={travelOk ? '#1d5fa8' : '#c0392b'} />
       </svg>
       <figcaption className="grid gap-1 text-meta text-muted">
-        <span><b className={sepOk ? 'text-emerald-800' : 'text-red-700'}>Solid line: <U>{`${e.separation.toFixed(1)} m`}</U></b> between the stairs; needs <U>{`${e.separationNeeded.toFixed(1)} m`}</U>.</span>
-        <span><b className={travelOk ? 'text-accent' : 'text-red-700'}>Dashed: <U>{`${e.travel.toFixed(1)} m`}</U></b> from the farthest corner to a stair; limit <U>45 m</U>.</span>
+        <span className="flex flex-wrap items-center gap-1"><StateChip state={sepOk ? 'pass' : 'fail'} /><b className={`tabular-nums ${sepOk ? KIND_CLASS.success.fg : KIND_CLASS.error.fg}`}>Solid line: <U>{`${e.separation.toFixed(1)} m`}</U></b> between the stairs; needs <U>{`${e.separationNeeded.toFixed(1)} m`}</U>.</span>
+        <span className="flex flex-wrap items-center gap-1"><StateChip state={travelOk ? 'pass' : 'fail'} /><b className={`tabular-nums ${travelOk ? 'text-accent' : KIND_CLASS.error.fg}`}>Dashed: <U>{`${e.travel.toFixed(1)} m`}</U></b> from the farthest corner to a stair; limit <U>45 m</U>.</span>
         <span>Red = exit stairs ({PLACEMENT_LABEL[e.placement]}); dark = core. Typical tower floor, {t.width} × {t.depth} m.</span>
       </figcaption>
     </figure>
@@ -286,18 +291,18 @@ function ConeRow({ c }: { c: ConeCheck }) {
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold">{c.cone.id} · {c.cone.name}</span>
-        <span className={`rounded border px-1.5 py-0.5 text-meta font-semibold ${CONE_STYLE[c.state].chip}`}>{STATE_LABEL[c.state]}</span>
+        <ConeChip state={c.state} label={STATE_LABEL[c.state]} />
       </div>
       <div className="mt-0.5 text-meta text-muted">View to {c.cone.subject} · origin elevation <U>{`${c.cone.Lv} m`}</U></div>
       {c.limit !== null ? (
         <div className="mt-1 text-meta">
           Estimated limit <b className="tabular-nums"><U>{`${c.limit.toFixed(1)} m`}</U></b> geodetic ·
-          {c.exceed! > 0 ? <span className="text-red-700"> <U>{`${c.exceed!.toFixed(1)} m`}</U> above</span> : <span className="text-emerald-700"> <U>{`${(-c.exceed!).toFixed(1)} m`}</U> below</span>}
+          {c.exceed! > 0 ? <span className={`tabular-nums ${KIND_CLASS.error.fg}`}> <U>{`${c.exceed!.toFixed(1)} m`}</U> above</span> : <span className={`tabular-nums ${KIND_CLASS.success.fg}`}> <U>{`${(-c.exceed!).toFixed(1)} m`}</U> below</span>}
           <span className="text-muted"> (±<U>{`${c.param!.u95} m`}</U>)</span>
           <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={c.param!.flag} /><span className="text-meta text-muted">{c.param!.tier} · {c.param!.source}</span></div>
         </div>
       ) : c.state === 'limit_unknown' ? (
-        <div className="mt-1 text-meta text-slate-700">No published slope for this cone yet, so the tool stops rather than guessing. Ask the City for a View Cone Assessment (draft in <code>04 Tool Plan/city-requests/</code>).</div>
+        <div className="mt-1 text-meta text-pending">No published slope for this cone yet, so the tool stops rather than guessing. Ask the City for a View Cone Assessment (draft in <code>04 Tool Plan/city-requests/</code>).</div>
       ) : null}
       <div className="mt-1.5 flex gap-3">
         <button onClick={viewFrom} className="flex items-center gap-1 text-meta text-accent hover:underline"><Eye size={12} />View from this viewpoint</button>
@@ -310,11 +315,18 @@ function ConeRow({ c }: { c: ConeCheck }) {
 export default function Inspector() {
   const { selectedNode, project, fsrTier, sun, enabled, groundMode } = useStore(useShallow((s) => ({ selectedNode: s.selectedNode, project: s.project, fsrTier: s.fsrTier, sun: s.sun, enabled: s.enabled, groundMode: s.groundMode })))
   const n = nodeById(selectedNode)
-  const { rules, fsr, cones, lifts, egress, skyRooms } = useResults()
+  const { rules, fsr, cones, lifts, egress, skyRooms, errors } = useResults()
+  const towerCount = useStore((s) => s.towers[s.project].length)
+  const siteArea = useProjectSiteArea().area
   if (selectedNode?.startsWith('community.')) return <CommunityInspector id={selectedNode} />
   if (!n) return <div className="p-4 text-xs text-muted">Switch a check on in the bar at the bottom, or pick one above, to see its results and evidence.</div>
   const cat = CATEGORIES[n.category]
   const wrongProject = n.projects && !n.projects.includes(project)
+  // The results panel's states (design system, 7 Nov): waiting for an input (lib/missingInput.ts: no model, no site),
+  // an engine error with its reason, or the results; a panel that throws while it renders shows the error state too.
+  const live = !!enabled[n.id] && !wrongProject
+  const gap = live ? inputGap(n.id, { project, towers: towerCount, siteArea }) : null
+  const failed = live && !gap ? errors?.[n.id] ?? null : null
 
   return (
     <div>
@@ -325,13 +337,17 @@ export default function Inspector() {
         {/* The results lead (UI review, 3 Nov); what the check does sits behind a "?" beside its name (Ruijie, 5 Nov). */}
         <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{n.name}<Help label={`About ${n.name}`}>{n.question}</Help></h2>
         <div className="mt-1.5 flex flex-wrap gap-1">{n.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>
-        {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">Switched off in your workflow. Turn it on in the bar at the bottom to see live results.</div>}
-        {wrongProject && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-meta text-slate-700">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
+        {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 flex items-start gap-1.5 rounded bg-pending-surface px-2 py-1 text-meta text-pending"><PowerOff size={12} className="mt-0.5 shrink-0" aria-hidden /><span><b>Off</b>: switched off in your workflow, so it does not run. Turn it on in the bar at the bottom to see live results.</span></div>}
+        {wrongProject && <div className="mt-2 rounded bg-pending-surface px-2 py-1 text-meta text-pending">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
       </div>
 
       {/* Results at a glance (Ruijie, 6 Nov): pass or fail with what to fix; the full cards fold under Details. */}
-      {enabled[n.id] && !wrongProject && <ResultChecklist nodeId={n.id} />}
-      <DetailsFold nodeId={enabled[n.id] && !wrongProject ? n.id : ''}>
+      {gap && <NeedsInput gap={gap} name={n.name} />}
+      {gap && <RulesBehind nodeId={n.id} />}
+      {failed && <ResultError reason={failed} name={n.name} />}
+      {!gap && !failed && <ResultBoundary key={n.id} name={n.name}>
+      {live && <ResultChecklist nodeId={n.id} />}
+      <DetailsFold nodeId={live ? n.id : ''}>
       {n.id === 'built.vtc-rules' && project === 'vtc' && enabled[n.id] && (
         <Section title="Results">
           <div className="grid gap-2">
@@ -362,7 +378,7 @@ export default function Inspector() {
       {n.id === 'built.viewcones' && project === 'city' && enabled[n.id] && cones.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
           <div className={`mb-2 rounded-md border p-2 text-xs ${CONE_STYLE[r.overall].chip}`}>
-            <b>{STATE_LABEL[r.overall]}</b>: top of tower at <U>{`${r.topZ.toFixed(1)} m`}</U> geodetic (<U>{`${r.tower.height} m`}</U> above a base of <U>{`${(r.topZ - r.tower.height).toFixed(1)} m`}</U>, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}).
+            <ConeChip state={r.overall} label={STATE_LABEL[r.overall]} /> Top of tower at <U>{`${r.topZ.toFixed(1)} m`}</U> geodetic (<U>{`${r.tower.height} m`}</U> above a base of <U>{`${(r.topZ - r.tower.height).toFixed(1)} m`}</U>, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}).
           </div>
           <div className="grid gap-2">
             {r.checks.filter((c) => c.state !== 'outside').map((c) => <ConeRow key={c.cone.id} c={c} />)}
@@ -389,12 +405,12 @@ export default function Inspector() {
                   <td className="text-right tabular-nums">{x.speed} m/s</td>
                   <td className="text-right tabular-nums">{x.cars}</td>
                   <td className="text-right tabular-nums">{x.hc5.toFixed(1)}%</td>
-                  <td className={`text-right tabular-nums ${x.state === 'pass' ? '' : 'font-semibold text-red-700'}`}>{x.interval.toFixed(0)} s</td>
+                  <td className={`text-right tabular-nums ${x.state === 'pass' ? '' : `font-semibold ${KIND_CLASS.error.fg}`}`}>{x.state !== 'pass' && <CircleX size={11} className="mr-0.5 inline align-[-1px]" aria-label="Fail" />}{x.interval.toFixed(0)} s</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="mt-3 text-meta font-semibold">Core at its worst level (L{r.maxLevel ?? '—'}): {Math.round(r.requiredMax)} m² needed, {Math.round(r.modelledCore)} m² modelled{r.tower.coreAuto ? ' (sized to the lifts)' : ''}</div>
+          <div className="mt-3 text-meta font-semibold tabular-nums">Core at its worst level (L{r.maxLevel ?? '—'}): {Math.round(r.requiredMax)} m² needed, {Math.round(r.modelledCore)} m² modelled{r.tower.coreAuto ? ' (sized to the lifts)' : ''}</div>
           <CoreBar r={r} />
           <CoreProfile r={r} />
           <SkyLobbyCompare r={r} />
@@ -477,6 +493,7 @@ export default function Inspector() {
       {n.id === 'built.trips' && enabled[n.id] && <TripsResults />}
       {enabled[n.id] && <RulesBehind nodeId={n.id} />}
       </DetailsFold>
+      </ResultBoundary>}
 
       {n.human &&<Section title="What stays with people"><p className="text-xs text-slate-700">{n.human}</p></Section>}
 
@@ -490,8 +507,9 @@ export default function Inspector() {
                 {n.metrics.map((m, i) => (
                   <div key={i} className="rounded border border-line p-1.5 text-meta">
                     <div className="flex items-center justify-between gap-2"><span className="font-medium">{m.name}</span><FlagChip flag={m.status} /></div>
-                    <div className="mt-0.5 text-emerald-800">Good: {m.good}</div>
-                    <div className="text-red-800">Bad: {m.bad}</div>
+                    {/* Thresholds from research, not results: neutral, so they do not read as a pass or a fail. */}
+                    <div className="mt-0.5 text-ink"><span className="text-muted">Good:</span> {m.good}</div>
+                    <div className="text-ink"><span className="text-muted">Bad:</span> {m.bad}</div>
                   </div>
                 ))}
               </div>
@@ -503,7 +521,7 @@ export default function Inspector() {
 
       {n.research && (
         <Section title="Research record">
-          <div className="text-meta text-slate-700">Packet <b>{n.packet}</b> · {n.research.rounds.length} expert critique rounds · final gate {n.research.gate_pass ? <b className="text-emerald-700">passed</b> : <b className="text-amber-700">open conditions</b>} · {n.research.false_assumptions_in_packet} false assumptions flagged</div>
+          <div className="text-meta text-slate-700">Packet <b>{n.packet}</b> · {n.research.rounds.length} expert critique rounds · final gate {n.research.gate_pass ? <b className={KIND_CLASS.success.fg}>passed</b> : <b className={KIND_CLASS.warning.fg}>open conditions</b>} · {n.research.false_assumptions_in_packet} false assumptions flagged</div>
           <div className="mt-1 font-mono text-meta text-muted">{n.research.log}</div>
           {!!n.libs?.length && <div className="mt-1 text-meta text-muted">Libraries: {n.libs.join(', ')}</div>}
         </Section>

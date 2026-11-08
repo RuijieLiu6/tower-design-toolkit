@@ -2,7 +2,10 @@
 // timeline of iterations coloured by their worst result, the diff to the previous one, human-written decisions, and
 // the rule cards behind the checks. The tool records; people decide and write the reasons.
 import { BookOpen, ChevronDown, ChevronRight, Diamond, GitCommitHorizontal, MessageSquarePlus, RotateCcw, ScrollText } from './icons'
-import { useEffect, useMemo, useState } from 'react'
+import { Component, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { gateDigest } from '../lib/missingInput'
+import { useProjectSiteArea } from '../lib/siteArea'
+import { KIND_CLASS, RESULT_KIND } from '../lib/status'
 import { useShallow } from 'zustand/react/shallow'
 import { RULE_CARDS } from '../data/ruleCards'
 import { linesForCard, sourceIndex } from '../lib/trace/sources'
@@ -24,10 +27,26 @@ import { useLifeSafety } from './LifeSafetyPanel'
 import { useRelaxAviation } from './RelaxAviationPanel'
 import { windStudyRules } from '../engine/windStructure'
 import { FlagChip, Section, StateChip } from './ui'
+import { ResultCounts } from './ResultState'
 
-/** Keeps the trace's view of the live results current. Renders nothing; mounted once with the top bar. */
+/**
+ * Keeps the trace's view of the live results current. Renders nothing; mounted once with the top bar. An engine that
+ * throws in one of the hooks below stops the recorder only (the results panel shows that check's error state).
+ */
 export function TraceRecorder() {
+  return <RecorderGuard><Recorder /></RecorderGuard>
+}
+
+class RecorderGuard extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(error: Error) { console.warn('Decision trace: a check failed while recording the results.', error) }
+  render() { return this.state.failed ? null : this.props.children }
+}
+
+function Recorder() {
   const results = useResults()
+  const siteArea = useProjectSiteArea().area
   const runs = useCommunityResults()
   const packages = useCommunityStore((s) => s.packages)
   const design = useStore(useShallow(pickDesign))
@@ -50,16 +69,20 @@ export function TraceRecorder() {
       lifeSafety: isOn('built.life-safety') ? lifeSafety.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
       relaxAviation: isOn('built.relax-aviation') ? relaxAviation.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
     }
-    setLive(designHash(design), digestResults(all as unknown as Record<string, unknown>, on, names))
-  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation])
+    // Missing data never reads as a result (lib/missingInput.ts): checks that need a model or a site and have none
+    // leave no lines (their views say what they wait for), and no FSR is recorded without a model or a site.
+    const digest = gateDigest(digestResults(all as unknown as Record<string, unknown>, on, names), { project: design.project, towers: towers.length, siteArea })
+    setLive(designHash(design), digest)
+  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, siteArea])
   return null
 }
 
-const DOT: Record<RuleState, string> = { fail: 'bg-red-600', warn: 'bg-amber-500', unknown: 'bg-slate-400', pass: 'bg-emerald-600' }
-const DIAMOND: Record<RuleState, string> = { fail: 'text-red-600', warn: 'text-amber-500', unknown: 'text-slate-400', pass: 'text-emerald-600' }
+const DOT: Record<RuleState, string> = { fail: KIND_CLASS[RESULT_KIND.fail].dot, warn: KIND_CLASS[RESULT_KIND.warn].dot, unknown: KIND_CLASS[RESULT_KIND.unknown].dot, pass: KIND_CLASS[RESULT_KIND.pass].dot }
+const DIAMOND: Record<RuleState, string> = { fail: KIND_CLASS.error.fg, warn: KIND_CLASS.warning.fg, unknown: KIND_CLASS.pending.fg, pass: KIND_CLASS.success.fg }
 const time = (iso: string) => new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 const KIND: Record<Iteration['kind'], string> = { checkpoint: 'Recorded', saved: 'Saved', opened: 'Opened', new: 'New project', decision: 'Decision' }
-const OUTCOME: Record<Outcome, string> = { chosen: 'bg-emerald-50 text-emerald-800 border-emerald-200', rejected: 'bg-red-50 text-red-800 border-red-200', deferred: 'bg-slate-50 text-slate-700 border-slate-200' }
+// A decision's outcome is a person's choice, not a check result: the selected look (blue), never pass or fail colours.
+const OUTCOME: Record<Outcome, string> = { chosen: 'border-accent bg-selected text-accent', rejected: 'border-line bg-subtle text-ink', deferred: 'border-line bg-subtle text-muted' }
 
 function Changes({ design, results, max = 8 }: { design: string[]; results: ResultChange[]; max?: number }) {
   const [all, setAll] = useState(false)
@@ -78,7 +101,7 @@ function Changes({ design, results, max = 8 }: { design: string[]; results: Resu
           <div className="mb-0.5 font-semibold text-slate-700">Results</div>
           <ul className="grid gap-1">
             {r.map((c) => (
-              <li key={c.id} className={`rounded border-l-2 pl-1.5 ${c.kind === 'worse' ? 'border-red-400' : c.kind === 'better' ? 'border-emerald-500' : 'border-line'}`}>
+              <li key={c.id} className={`rounded border-l-2 pl-1.5 ${c.kind === 'worse' ? KIND_CLASS.error.line : c.kind === 'better' ? KIND_CLASS.success.line : 'border-line'}`}>
                 <div className="text-slate-800">{c.label} <span className="text-meta text-muted">· {c.group}</span></div>
                 <div className="flex flex-wrap items-center gap-1 text-meta text-muted">
                   {c.before ? <><span className="tabular-nums">{c.before.value}</span><StateChip state={c.before.state} /></> : <span>new</span>}
@@ -98,11 +121,8 @@ function Changes({ design, results, max = 8 }: { design: string[]; results: Resu
 function Summary({ d }: { d: Digest }) {
   const c = counts(d), flag = weakestFlag(d)
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-meta text-slate-700">
-      {c.fail > 0 && <span className="font-semibold text-red-700">{c.fail} fail</span>}
-      {c.warn > 0 && <span className="font-semibold text-amber-700">{c.warn} check</span>}
-      <span>{c.pass} pass</span>
-      {c.unknown > 0 && <span className="text-muted">{c.unknown} unknown</span>}
+    <div className="flex flex-wrap items-center gap-1.5 text-meta text-ink">
+      {d.lines.length ? <ResultCounts counts={c} /> : <span className="text-muted">No results recorded</span>}
       {flag && <span className="flex items-center gap-1 text-meta text-muted">weakest evidence <FlagChip flag={flag} /></span>}
     </div>
   )

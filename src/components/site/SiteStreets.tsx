@@ -60,7 +60,7 @@ export default function SiteStreets() {
                   {(['retail', 'arterial', 'local'] as const).map((t) => (
                     <button key={t} type="button" role="radio" aria-checked={type === t} title={STREET_TYPE_HINT[t]}
                       onClick={() => setStreetType(st.key, type === t ? null : t)}
-                      className={`flex-1 rounded-md px-1 py-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${type === t ? 'bg-accent font-semibold' : 'bg-white/45 text-muted hover:text-ink'}`}>{STREET_TYPE_LABEL[t]}</button>
+                      className={`flex-1 rounded-md px-1 py-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${type === t ? 'bg-ink font-semibold' : 'bg-white/45 text-muted hover:text-ink'}`}>{STREET_TYPE_LABEL[t]}</button>
                   ))}
                 </div>
               )}

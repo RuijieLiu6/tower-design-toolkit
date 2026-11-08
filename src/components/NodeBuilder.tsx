@@ -1,5 +1,7 @@
 // Library entries for community nodes: "My nodes", the "can't find it?" prompt when a search finds nothing, and the
 // permanent "Build your own node" entry that opens the node builder dialog.
+import { NodeTile } from './NodeTile'
+import { NodeArtwork } from './nodeIcons/NodeArtwork'
 import { FileUp, PackagePlus, SearchX } from './icons'
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { CATEGORY_ICONS } from '../data/icons'
@@ -41,17 +43,14 @@ const TONE: Record<string, string> = { ok: 'text-emerald-700', warn: 'text-amber
 
 function MyNodeRow({ p, run }: { p: NodePackage; run?: CommunityRun }) {
   const { enabled, toggleNode, selectNode, selectedNode } = useStore(useShallow((s) => ({ enabled: s.enabled, toggleNode: s.toggleNode, selectNode: s.selectNode, selectedNode: s.selectedNode })))
-  const Icon = CATEGORY_ICONS[p.category]
   const status = run?.error ? { text: 'could not run', tone: 'bad' }
     : run && !run.applies ? { text: 'other project', tone: 'warn' }
     : !enabled[p.id] ? { text: 'off', tone: 'muted' }
     : summarize(run?.results ?? [])
   return (
-    <div onClick={() => selectNode(p.id)} className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-black/5 ${selectedNode === p.id ? 'bg-accent/10' : ''}`}>
-      <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white" style={{ background: CATEGORIES[p.category].color }}>
-        <Icon size={14} />
-        <span className="absolute -bottom-1 -right-1 rounded-sm bg-panel px-[2px] text-[7px] font-bold leading-[9px] text-ink ring-1 ring-line" aria-hidden>C</span>
-      </span>
+    <div onClick={() => selectNode(p.id)} className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-black/5 ${selectedNode === p.id ? 'bg-selected' : ''}`}>
+      {/* the node's own icon in the standard tile (generated, uploaded, or the approved fallback); "Community" is in words below */}
+      <NodeTile id={p.id} size={30} state={enabled[p.id] ? 'on' : 'off'} art={<NodeArtwork id={p.id} size={27} category={p.category} />} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-medium text-ink" title={p.name}>{p.name}</div>
         <div className="truncate text-meta text-muted">Community · {STAGE_LABEL[p.stage]} · <span className={TONE[status.tone]}>{status.text}</span></div>

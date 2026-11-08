@@ -1,6 +1,10 @@
 {
-  "version": "1",
-  "path": "v1/",
-  "zip": "v1/node-icon-style-pack-v1.zip",
-  "date": "2026-11-07"
+  "version": "2",
+  "path": "v2/",
+  "zip": "v2/node-icon-style-pack-v2.zip",
+  "date": "2026-11-07",
+  "versions": [
+    "1",
+    "2"
+  ]
 }

@@ -257,7 +257,7 @@
       }
     },
     "icon": {
-      "description": "Optional: the node's icon, artwork only (the toolkit draws the tile, connection points, states, category marker and name). Either a brief the toolkit draws in its own style (preferred), or one PNG, JPEG or WebP image made to the Node Icon Style (https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v1/NODE_ICON_STYLE.md). An image is checked like any upload; claiming it follows the style is not proof. A missing or broken icon never blocks the node: it shows the standard illustration. The icon never changes what the node does.",
+      "description": "Optional: the node's icon, artwork only (the toolkit draws the tile, connection points, states, category marker and name). Either a brief the toolkit draws in its own style (preferred), or one PNG, JPEG or WebP image made to the Node Icon Style (https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v2/NODE_ICON_STYLE.md). An image is checked like any upload; claiming it follows the style is not proof. A missing or broken icon never blocks the node: it shows the standard illustration. The icon never changes what the node does.",
       "oneOf": [
         {
           "type": "object",
@@ -302,7 +302,8 @@
             },
             "styleVersion": {
               "enum": [
-                "1"
+                "1",
+                "2"
               ],
               "description": "The Node Icon Style version the image was made to."
             }
@@ -650,7 +651,8 @@
       "properties": {
         "styleVersion": {
           "enum": [
-            "1"
+            "1",
+            "2"
           ]
         },
         "name": {

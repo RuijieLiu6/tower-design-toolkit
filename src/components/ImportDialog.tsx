@@ -307,7 +307,7 @@ function ChecksList({ checks }: { checks: ModelCheck[] }) {
       <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><Info size={13} className="text-accent" />In plain words</div>
       <ul className="grid gap-1.5">
         {[...checks].sort((a, b) => order[a.severity] - order[b.severity]).map((c) => (
-          <li key={c.id} className="flex items-start gap-1.5 text-[11.5px] leading-snug">{SEVERITY_ICON[c.severity]}<span className="min-w-0 flex-1">{c.text}</span>{c.flag && <FlagChip flag={c.flag} />}</li>
+          <li key={c.id} className="flex items-start gap-1.5 text-meta leading-snug">{SEVERITY_ICON[c.severity]}<span className="min-w-0 flex-1">{c.text}</span>{c.flag && <FlagChip flag={c.flag} />}</li>
         ))}
       </ul>
     </section>

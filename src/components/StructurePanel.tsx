@@ -16,9 +16,9 @@ export function useStructures() {
 }
 
 const FIT: Record<Fit, { label: string; cls: string }> = {
-  shortlist: { label: 'Shortlist', cls: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-  check: { label: 'Check', cls: 'bg-amber-50 text-amber-800 border-amber-200' },
-  out: { label: 'Out', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+  shortlist: { label: '✓ Shortlist', cls: 'border-success/30 bg-success-surface text-success' },
+  check: { label: '! Check', cls: 'border-warning/30 bg-warning-surface text-warning' },
+  out: { label: '✕ Out', cls: 'border-line bg-pending-surface text-pending' },
 }
 
 /** Pick outrigger levels: type them, or take the suggestion at about 1/2 and 2/3 of the height. */

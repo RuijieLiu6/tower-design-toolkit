@@ -225,7 +225,7 @@ function Steps({ label, options, value, unit, onPick }: { label: string; options
     <div role="radiogroup" aria-label={label} className="flex overflow-hidden rounded border border-line">
       {options.map((o) => (
         <button key={o} type="button" role="radio" aria-checked={o === value} onClick={() => onPick(o)}
-          className={`px-1.5 py-0.5 tabular-nums ${o === value ? 'bg-accent text-white' : 'text-ink hover:bg-black/5'} ${focusRing}`}>{o}{unit}</button>
+          className={`px-1.5 py-0.5 tabular-nums ${o === value ? 'bg-ink' : 'text-ink hover:bg-black/5'} ${focusRing}`}>{o}{unit}</button>
       ))}
     </div>
   )

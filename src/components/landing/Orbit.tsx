@@ -60,7 +60,7 @@ export default function Orbit({ nodes, label }: { nodes: string[]; label: string
           return (
             <div key={c} className="absolute flex -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y) }} data-category={c} data-lit={on || undefined}>
               <GlassIcon icon={CATEGORY_ICONS[c]} hue={CATEGORY_HUE[c]} size={ICON.tool} level={on ? 'on' : 'off'} />
-              {on && n > 1 && <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10.5px] font-semibold text-white">{n}</span>}
+              {on && n > 1 && <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-meta font-semibold text-white">{n}</span>}
               <span className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-meta ${below ? 'top-full mt-1' : 'bottom-full mb-1'} ${on ? 'font-semibold text-ink' : 'text-muted'}`}>{SHORT[c] ?? CATEGORIES[c].label}</span>
             </div>
           )

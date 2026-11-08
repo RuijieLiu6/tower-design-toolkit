@@ -12,8 +12,10 @@ import { byState, coneRows, fixFor, ruleKey, STATE_WORD, type CheckRow } from '.
 import { nodeOfLine } from '../lib/options'
 import { useTrace } from '../lib/trace/trace'
 import StatusRow, { STATUS_ICON as ICON } from './StatusRow'
+import { resultClass, resultWord } from '../lib/status'
+import { RESULT_ICON } from './ResultState'
 
-const CHIP: Record<RuleState, string> = { pass: 'border-emerald-200 bg-emerald-50 text-emerald-800', fail: 'border-red-200 bg-red-50 text-red-800', warn: 'border-amber-200 bg-amber-50 text-amber-900', unknown: 'border-slate-200 bg-slate-50 text-slate-700' }
+const CHIP: Record<RuleState, string> = { pass: resultClass('pass').chip, fail: resultClass('fail').chip, warn: resultClass('warn').chip, unknown: resultClass('unknown').chip }
 const ORDER: RuleState[] = ['fail', 'warn', 'unknown', 'pass']
 
 /** The rows for a check, or null when it has no list of results to show this way. */
@@ -46,21 +48,30 @@ export default function ResultChecklist({ nodeId }: { nodeId: string }) {
   const data = useCheckRows(nodeId)
   if (!data) return null
   const { rows, extra } = data
-  const count = (s: RuleState) => rows.filter((r) => r.state === s).length
+  // Counts by the word each row shows: open lines that wait for an input count as "needs input" / "needs model".
+  const counted = new Map<string, { state: RuleState; word: string; n: number }>()
+  for (const s of ORDER) for (const r of rows) {
+    if (r.state !== s) continue
+    const word = resultWord(r.state, r.value), k = `${s}:${word}`
+    const c = counted.get(k) ?? { state: s, word, n: 0 }
+    c.n++
+    counted.set(k, c)
+  }
   const open = rows.filter((r) => r.state !== 'pass'), passed = rows.filter((r) => r.state === 'pass')
   return (
     <section aria-label="Results at a glance" data-testid="result-checklist" className="border-b border-line px-4 py-3">
       <div className="flex flex-wrap gap-1" role="list" aria-label="Counts">
-        {ORDER.filter((s) => count(s) > 0).map((s) => {
-          const Icon = ICON[s]
-          return <span key={s} role="listitem" className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-meta font-semibold ${CHIP[s]}`}><Icon size={13} aria-hidden />{count(s)} {STATE_WORD[s].toLowerCase()}</span>
+        {[...counted.values()].map(({ state: s, word, n }) => {
+          const waits = s === 'unknown' && word !== STATE_WORD.unknown
+          const Icon = waits ? RESULT_ICON.missing : ICON[s]
+          return <span key={`${s}:${word}`} role="listitem" className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-meta font-semibold ${CHIP[s]}`}><Icon size={13} aria-hidden /><span className="tabular-nums">{n}</span> {word.toLowerCase()}</span>
         })}
       </div>
-      {open.length === 0 && <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-800"><CircleCheck size={16} aria-hidden />Everything here passes.</p>}
+      {open.length === 0 && <p className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${resultClass('pass').fg}`}><CircleCheck size={16} aria-hidden />Pass: every line here meets its stated criterion.</p>}
       {open.length > 0 && <ul className="mt-1 divide-y divide-line">{open.map((r) => <Row key={r.id} r={r} />)}</ul>}
       {passed.length > 0 && (
         <details className="mt-1">
-          <summary className="cursor-pointer text-meta text-muted"><span className="font-semibold text-emerald-800">{passed.length} pass</span>{open.length ? '' : ': show them'}</summary>
+          <summary className="cursor-pointer text-meta text-muted"><span className={`font-semibold tabular-nums ${resultClass('pass').fg}`}>{passed.length} pass</span>{open.length ? '' : ': show them'}</summary>
           <ul className="divide-y divide-line">{passed.map((r) => <Row key={r.id} r={r} />)}</ul>
         </details>
       )}

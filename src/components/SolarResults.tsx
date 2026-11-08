@@ -63,7 +63,7 @@ export default function SolarResults() {
             </div>
           </div>
         </div>
-        {status === 'error' && <p className="mt-2 rounded bg-red-50 px-2 py-1 text-meta text-red-800">The solar run failed: {error}</p>}
+        {status === 'error' && <p role="alert" className="mt-2 rounded bg-error-surface px-2 py-1 text-meta text-error"><b>✕ Error</b>: the solar run stopped before it gave a result ({error}). Nothing shown here is a result.</p>}
       </Section>
 
       {out && out.spaces.length > 0 && (
@@ -85,15 +85,15 @@ export default function SolarResults() {
                   </>
                 )}
                 {!s.inTable1 && (
-                  <label className="mt-1 flex items-center gap-1.5 text-[10.5px] text-muted">Reading
+                  <label className="mt-1 flex items-center gap-1.5 text-meta text-muted">Reading
                     <select value={readings[s.id] ?? 'unresolved'} onChange={(e) => set({ readings: { ...readings, [s.id]: e.target.value as Reading } })}
-                      className="min-w-0 flex-1 rounded border border-line bg-panel px-1 py-0.5 text-[10.5px] text-ink" aria-label={`Reading of ${s.name}`}>
+                      className="min-w-0 flex-1 rounded border border-line bg-panel px-1 py-0.5 text-meta text-ink" aria-label={`Reading of ${s.name}`}>
                       {READINGS.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                     </select>
                   </label>
                 )}
                 <details className="mt-1">
-                  <summary className="cursor-pointer text-[10.5px] text-accent">Detailed study take-offs (5.2.1, 25 instants)</summary>
+                  <summary className="cursor-pointer text-meta text-accent">Detailed study take-offs (5.2.1, 25 instants)</summary>
                   <table className="mt-1 w-full text-meta tabular-nums">
                     <thead><tr className="text-muted"><th className="text-left font-normal">PT</th><th className="text-right font-normal">existing</th><th className="text-right font-normal">added</th><th className="text-right font-normal">cumulative</th></tr></thead>
                     <tbody>
@@ -112,7 +112,7 @@ export default function SolarResults() {
       {out && (
         <Section title="Evidence">
           <div className="grid gap-2">{out.lines.filter((l) => !l.id.startsWith('solar-space-')).map((l) => <Line key={l.id} r={l} />)}</div>
-          <div className="mt-2 text-[10.5px] text-muted">
+          <div className="mt-2 text-meta text-muted">
             <a href={GUIDELINE.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">Downtown Peninsula Solar Access Guidelines (PDF)<ExternalLink size={10} aria-hidden /></a>
             {' '}· July 2026 text, read 22 Oct 2026; clause transcription in <code>04 Tool Plan/research/sources/city-of-vancouver/</code>. A team member should check it before results are quoted as compliance.
           </div>

@@ -73,7 +73,7 @@ function Row({ m, data, onOpen }: { m: RegistryModule; data: Loaded; onOpen: () 
             {installed && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-meta font-medium text-emerald-800"><Check size={10} aria-hidden />Installed {installed}</span>}
           </span>
           <span className="mt-0.5 block text-meta text-muted">{m.author.name} · {v ? `v${v.version}` : 'no installable version'} · {m.licence} · {CATEGORIES[m.category].label}</span>
-          <span className="mt-1 line-clamp-2 block text-[11.5px] leading-snug text-ink/80">{m.summary}</span>
+          <span className="mt-1 line-clamp-2 block text-meta leading-snug text-ink/80">{m.summary}</span>
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <ReviewBadge review={m.review} />
             {v && <Claims v={v} />}
@@ -151,11 +151,11 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
           <CatTile cat={m.category} size="h-11 w-11" icon={22} />
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold leading-tight">{m.name}</h3>
-            <p className="mt-0.5 font-mono text-[10.5px] text-muted">{m.id}</p>
+            <p className="mt-0.5 font-mono text-meta text-muted">{m.id}</p>
             <p className="mt-0.5 text-meta text-muted">{m.author.name}{m.author.github ? ` (@${m.author.github})` : ''} · {m.licence} · {CATEGORIES[m.category].label} · {m.stage}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <ReviewBadge review={m.review} />
-              <span className="inline-flex items-center gap-1 text-[10.5px] text-muted"><Star size={11} aria-hidden />
+              <span className="inline-flex items-center gap-1 text-meta text-muted"><Star size={11} aria-hidden />
                 {rating.shown ? `${Math.round(rating.lower * 100)}% lower bound (${rating.n} ratings)` : `${rating.n ? `${rating.n} rating${rating.n > 1 ? 's' : ''}` : 'No ratings'}: shown from 5`}
                 {data.index.sample && ' · sample data'}
               </span>
@@ -176,7 +176,7 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
                     <span className={`font-medium ${x.yanked ? 'line-through text-muted' : ''}`}>v{x.version}</span>
                     <span className="text-muted"> · {x.published} · {x.tier === 'declarative' ? 'declarative formulas' : `${x.tier} sandbox`}{x.permissions.length ? ` · asks for ${x.permissions.join(', ')}` : ''}</span>
                     {x.yanked && <span className="block text-amber-800">Yanked: {x.reason}</span>}
-                    {latest && x.version === latest.version && !x.yanked && <span className="ml-1 rounded bg-slate-100 px-1 text-[9.5px] text-muted">latest</span>}
+                    {latest && x.version === latest.version && !x.yanked && <span className="ml-1 rounded bg-slate-100 px-1 text-meta text-muted">latest</span>}
                   </span>
                 </label>
               </li>
@@ -187,7 +187,7 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
         <section className="mt-3">
           <h4 className="text-meta font-semibold text-muted">Evidence the author claims</h4>
           <div className="mt-1"><Claims v={v} /></div>
-          <p className="mt-1 text-[10.5px] text-muted">Community nodes show as unverified in Tower Design Toolkit until a reviewer checks every source; an author's "verified" is a claim.</p>
+          <p className="mt-1 text-meta text-muted">Community nodes show as unverified in Tower Design Toolkit until a reviewer checks every source; an author's "verified" is a claim.</p>
         </section>
 
         {pkg && (
@@ -198,7 +198,7 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
                 <li key={x.id} className="rounded-md border border-line p-2 text-meta">
                   <div className="flex items-start justify-between gap-2"><span className="font-medium">{x.label}</span><FlagChip flag={x.threshold.flag === 'verified' ? 'unverified' : x.threshold.flag} /></div>
                   <div className="mt-0.5 font-mono text-meta text-muted">{x.expression}</div>
-                  <div className="mt-0.5 text-[10.5px] text-muted">{x.threshold.text ?? (x.threshold.good !== undefined ? `good ${x.threshold.direction === 'lower_is_better' ? '≤' : '≥'} ${String(x.threshold.good)}${x.threshold.bad !== undefined ? `, bad ${x.threshold.direction === 'lower_is_better' ? '>' : '<'} ${String(x.threshold.bad)}` : ''}` : 'no threshold')} · {x.threshold.source.label}{x.threshold.source.page ? `, ${x.threshold.source.page}` : ''}</div>
+                  <div className="mt-0.5 text-meta text-muted">{x.threshold.text ?? (x.threshold.good !== undefined ? `good ${x.threshold.direction === 'lower_is_better' ? '≤' : '≥'} ${String(x.threshold.good)}${x.threshold.bad !== undefined ? `, bad ${x.threshold.direction === 'lower_is_better' ? '>' : '<'} ${String(x.threshold.bad)}` : ''}` : 'no threshold')} · {x.threshold.source.label}{x.threshold.source.page ? `, ${x.threshold.source.page}` : ''}</div>
                 </li>
               ))}
             </ul>
@@ -277,11 +277,11 @@ function SubmitHelper() {
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-meta">
       <p className="text-ink/85">Share one of your nodes through a pull request to the community registry. Tower Design Toolkit only prepares the files: <b>nothing is uploaded or published</b>, and you open the pull request yourself.</p>
       {!packages.length ? (
-        <p className="mt-3 rounded-md border border-line bg-paper p-3 text-[11.5px] text-muted">You have no node in My nodes yet. Build one with the node-builder skill (ribbon → My nodes → Build a node), or install one from Browse.</p>
+        <p className="mt-3 rounded-md border border-line bg-paper p-3 text-meta text-muted">You have no node in My nodes yet. Build one with the node-builder skill (ribbon → My nodes → Build a node), or install one from Browse.</p>
       ) : (
         <>
-          <label className="mt-3 flex items-center gap-2 text-[11.5px]">Node
-            <select value={id} onChange={(e) => setId(e.target.value)} className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1 text-[11.5px]" aria-label="Node to submit">
+          <label className="mt-3 flex items-center gap-2 text-meta">Node
+            <select value={id} onChange={(e) => setId(e.target.value)} className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1 text-meta" aria-label="Node to submit">
               {packages.map((p) => <option key={p.id} value={p.id}>{p.name} · v{p.version}</option>)}
             </select>
           </label>
@@ -290,7 +290,7 @@ function SubmitHelper() {
               <h4 className="mt-3 text-meta font-semibold text-muted">Files for the pull request</h4>
               <ul className="mt-1 space-y-1">
                 {Object.entries(sub.files).map(([path, text]) => (
-                  <li key={path} className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 font-mono text-[10.5px]"><FileJson size={13} className="shrink-0 text-muted" aria-hidden /><span className="min-w-0 flex-1 truncate">{path}</span><span className="text-muted">{text.length.toLocaleString()} B</span></li>
+                  <li key={path} className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 font-mono text-meta"><FileJson size={13} className="shrink-0 text-muted" aria-hidden /><span className="min-w-0 flex-1 truncate">{path}</span><span className="text-muted">{text.length.toLocaleString()} B</span></li>
                 ))}
               </ul>
               <pre className="mt-1.5 overflow-x-auto rounded bg-paper p-2 font-mono text-meta leading-snug">{sub.indexLine}</pre>
@@ -300,7 +300,7 @@ function SubmitHelper() {
                   className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">{copied ? <Check size={14} aria-hidden /> : <ClipboardCopy size={14} aria-hidden />}{copied ? 'Copied' : 'Copy the PR description'}</button>
               </div>
               <h4 className="mt-4 text-meta font-semibold text-muted">Steps</h4>
-              <ol className="mt-1 list-decimal space-y-1 pl-5 text-[11.5px] text-ink/85">
+              <ol className="mt-1 list-decimal space-y-1 pl-5 text-meta text-ink/85">
                 <li>Fork the registry repository on GitHub <span className="text-muted">(not created yet: the address will appear here)</span>.</li>
                 <li>Add the two files at the paths shown (the zip keeps them), on a new branch.</li>
                 <li>Open a pull request titled <code className="rounded bg-paper px-1">{sub.prTitle}</code> and paste the description.</li>
@@ -372,7 +372,7 @@ export default function CommunityDrawer({ open, onClose, onAddToCanvas }: { open
               <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Category">
                 {(['all', ...cats] as const).map((c) => (
                   <button key={c} role="radio" aria-checked={cat === c} onClick={() => setCat(c)}
-                    className={`rounded-full border px-2 py-0.5 text-[10.5px] ${cat === c ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{c === 'all' ? 'All' : CATEGORIES[c].label}</button>
+                    className={`rounded-full border px-2 py-0.5 text-meta ${cat === c ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>{c === 'all' ? 'All' : CATEGORIES[c].label}</button>
                 ))}
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function CommunityDrawer({ open, onClose, onAddToCanvas }: { open
               {data && data.problems.length > 0 && <p className="mb-2 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{data.problems.length} entr{data.problems.length > 1 ? 'ies were' : 'y was'} left out: {data.problems.join(' ')}</p>}
               <ul className="space-y-2">{data && list.map((m) => <Row key={m.id} m={m} data={data} onOpen={() => setOpenId(m.id)} />)}</ul>
               {data && !list.length && <p className="text-xs text-muted">No community node matches.</p>}
-              {data?.index.note && <p className="mt-4 text-[10.5px] text-muted">{data.index.note}</p>}
+              {data?.index.note && <p className="mt-4 text-meta text-muted">{data.index.note}</p>}
             </div>
           </div>
         )}

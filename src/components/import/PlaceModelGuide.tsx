@@ -20,7 +20,7 @@ import StatusRow from '../StatusRow'
 import { FlagChip } from '../ui'
 import { flyToFit } from '../VistaLook'
 
-const chip = (on: boolean) => `rounded-md border px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${on ? 'border-accent bg-accent text-white' : 'border-line bg-panel text-ink hover:border-accent'}`
+const chip = (on: boolean) => `rounded-md border px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${on ? 'border-transparent bg-ink' : 'border-line bg-panel text-ink hover:border-accent'}`
 const btn = 'flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-meta font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
 const LEVELS = [0, 1, 2, 3, 4, 5, 6]
 const fmt = (v: number, d = 0) => v.toLocaleString('en-CA', { maximumFractionDigits: d, minimumFractionDigits: d })

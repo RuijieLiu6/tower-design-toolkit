@@ -1,0 +1,193 @@
+{
+  "format": "tower-studio-node@1",
+  "id": "community.example.tower-width",
+  "version": "0.1.0",
+  "licence": "MIT",
+  "name": "Tower width & proportion (CDDG)",
+  "author": {
+    "name": "Tower Design Toolkit team (worked example)"
+  },
+  "category": "PUBL",
+  "stage": "massing",
+  "question": "Is the tower narrow and slender enough to read as a tower rather than a slab under Vancouver's City-wide Design and Development Guidelines?",
+  "jury": [
+    "human_scale_40",
+    "design_excellence_20"
+  ],
+  "projects": [
+    "vtc",
+    "city"
+  ],
+  "inputs": [
+    "tower.maxSide",
+    "tower.height",
+    "tower.plateArea"
+  ],
+  "method": "Reads each tower's plan sides and height from Layer 0. Compares the wider plan side with the CDDG tower dimension guideline (29.0 m, or clear articulation), the height-to-width ratio with the CDDG proportion tip (6:1 to 8:1 or more), and the wider side as a share of the site frontage with the CDDG slab tip (roughly 60%). Shows plate area with no threshold until the CDDG floorplate maxima by use are extracted.",
+  "human": "Whether the tower shows clear volumetric articulation (S2.3.2 accepts a wider tower that does), how it reads on the skyline and from the street, and the City's own urban design review.",
+  "limits": "Rectangular towers from Tower Design Toolkit's massing only: no setbacks, tapers or articulation. Ignores rotation when comparing with the frontage. The CDDG text is the draft in the 15 Jul 2026 Council report (approved 28 Jul, effective 27 Oct 2026): check the final guideline. Tips are guidance, not rules, so this node never fails a tower on them; it says Check.",
+  "parameters": [
+    {
+      "id": "frontage",
+      "label": "Site frontage the tower faces",
+      "unit": "m",
+      "default": 144.8,
+      "min": 10,
+      "max": 500,
+      "step": 0.1,
+      "flag": "verified",
+      "source": {
+        "label": "Vancouver Tall Challenge brief (Buildner 2026)",
+        "page": "p.15, site \"approximately 79.2 m × 144.8 m\""
+      },
+      "note": "The long side of the competition block. In Real Vancouver, set it to your own site's frontage."
+    }
+  ],
+  "metrics": [
+    {
+      "id": "plan_dimension",
+      "label": "Widest tower plan dimension",
+      "unit": "m",
+      "per": "tower",
+      "expression": "tower.maxSide",
+      "decimals": 1,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 29,
+        "text": "at most 29.0 m, or clear volumetric articulation",
+        "flag": "verified",
+        "source": {
+          "label": "City of Vancouver, Council Report RTS 18459, Appendix A: draft City-wide Design and Development Guidelines (CDDG)",
+          "page": "S2.3.2 tower dimension, mixed-use and non-residential contexts (text read in research packet P06, rounds 1–2)",
+          "url": "https://council.vancouver.ca/20260728/documents/r2.pdf"
+        }
+      },
+      "note": "Above 29.0 m the guideline asks for clear volumetric articulation, which this node can't see, so it says Check rather than Fail."
+    },
+    {
+      "id": "height_to_width",
+      "label": "Height-to-width ratio",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.height / tower.maxSide",
+      "decimals": 1,
+      "threshold": {
+        "direction": "higher_is_better",
+        "good": 6,
+        "text": "6:1 to 8:1 or more reads proportionate (a tip, not a rule)",
+        "flag": "unverified",
+        "source": {
+          "label": "City of Vancouver, draft CDDG design tip on tower proportions, as summarised in research packet P06",
+          "page": "Clause number not recorded; wording taken from the packet's parameter notes, not re-read"
+        }
+      },
+      "note": "Uses the wider plan side, so a slab reads less slender than a square tower of the same area."
+    },
+    {
+      "id": "frontage_share",
+      "label": "Tower width as a share of the frontage",
+      "unit": "ratio",
+      "per": "tower",
+      "expression": "tower.maxSide / params.frontage",
+      "decimals": 2,
+      "threshold": {
+        "direction": "lower_is_better",
+        "good": 0.6,
+        "text": "below roughly 60% of the frontage; wider towers often read as slabs (a tip)",
+        "flag": "unverified",
+        "source": {
+          "label": "City of Vancouver, draft CDDG design tip on tower width and frontage, as summarised in research packet P06",
+          "page": "Clause number not recorded; wording taken from the packet's parameter notes, not re-read"
+        }
+      }
+    },
+    {
+      "id": "plate_area",
+      "label": "Tower floor plate area",
+      "unit": "m²",
+      "per": "tower",
+      "expression": "tower.plateArea",
+      "decimals": 0,
+      "threshold": {
+        "flag": "unresolved",
+        "source": {
+          "label": "City of Vancouver, draft CDDG average floorplate maxima by use (named in research packet P06)",
+          "page": "Values not extracted yet"
+        }
+      }
+    }
+  ],
+  "falseAssumptions": [
+    {
+      "claim": "The 18.3 m Downtown podium height (S2.2.7) applies to every tower.",
+      "correction": "S2.2.7 applies only to exclusively residential towers ('residential development' in the CDDG glossary). Mixed-use and non-residential tower podiums follow Table 2.2b (S2.2.6), which steps with street width: up to 15.2 m (streets up to 27.5 m wide), 15.2–18.3 m (up to 30.5 m) and 18.3–23.0 m (wider).",
+      "source": {
+        "label": "City of Vancouver, Council Report RTS 18459, Appendix A: draft CDDG",
+        "page": "Glossary; S2.2.6, S2.2.7, Table 2.2b (corrected in research packet P06, rounds 1–2)",
+        "url": "https://council.vancouver.ca/20260728/documents/r2.pdf"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "fixture": "vtc-default",
+      "metric": "plan_dimension",
+      "value": 46,
+      "state": "warn"
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "height_to_width",
+      "value": 6.196,
+      "state": "pass"
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "frontage_share",
+      "value": 0.318,
+      "state": "pass"
+    },
+    {
+      "fixture": "vtc-default",
+      "metric": "plate_area",
+      "value": 2116,
+      "state": "unknown"
+    },
+    {
+      "fixture": "city-study",
+      "metric": "height_to_width",
+      "value": 4,
+      "state": "warn"
+    },
+    {
+      "fixture": "vtc-two-towers",
+      "tower": 0,
+      "metric": "plan_dimension",
+      "value": 28,
+      "state": "pass"
+    },
+    {
+      "fixture": "vtc-two-towers",
+      "tower": 1,
+      "metric": "plan_dimension",
+      "value": 40,
+      "state": "warn"
+    }
+  ],
+  "createdWith": "Worked example for the tower-studio-node-builder skill, v1; icon brief per node icon style pack v2",
+  "icon": {
+    "kind": "brief",
+    "brief": {
+      "styleVersion": "2",
+      "name": "Tower width & proportion (CDDG)",
+      "function": "Compares each tower's widest plan side with the CDDG 29 m guideline, its height-to-width ratio with the 6:1 tip and its width with the site frontage; shows plate area for information. Says Check, never Fail, on tips.",
+      "category": "PUBL",
+      "phase": "form",
+      "metaphor": {
+        "object": "tower",
+        "cue": "none"
+      },
+      "notes": "Show the tower's width, e.g. a dimension along its base. No check mark or warning sign: the node compares with guidance and says Check, never Fail, on tips."
+    }
+  }
+}

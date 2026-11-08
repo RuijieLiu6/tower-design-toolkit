@@ -31,7 +31,7 @@ import HiResCapture from './HiResCapture'
 import SolarOverlay from './SolarOverlay'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import RelaxationMasks from './RelaxationMasks'
-import TowerGizmo, { TowerMover } from './TowerGizmo'
+import TowerGizmo, { TowerMover, outlineSegments } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
 import MassingEdit3D from './MassingEdit3D'
 import TowerPosition3D from './TowerPosition3D'
@@ -44,14 +44,18 @@ import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
 import { VtcBaseModelPanel, VtcContextCard } from './VtcBaseModel'
 import VtcBriefSite from './VtcBriefSite'
-import { PlainEnvironment, VtcContextModel, VtcLookBar, useVtcLook, vtcSceneLook } from './VtcLook'
+import { PlainEnvironment, VtcContextModel, VtcLookBar, vtcSceneLook, type VtcLookId } from './VtcLook'
 import ViewGuard from './ViewGuard'
 import { BRIEF_SITE, useVtcSource } from '../lib/vtcContextSource'
 import { MAX_POLAR, MIN_DISTANCE, polarOf, registerGround, sceneGround, sightTarget } from '../lib/cameraClamp'
 import { CITY_PLINTH, SEA_Z, plinthRing, vtcPlinth, type Plinth } from '../lib/plinth'
 import { groundThickness } from '../engine/basement'
 import BelowGrade from './BelowGrade'
-import { PROPOSED, VISTA_LOOK, VISTA_OVERVIEW, proposedLook, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { VISTA_LOOK, VISTA_OVERVIEW, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { MODEL, STATUS, UI } from '../lib/design/tokens'
+import { NEUTRAL_TOWER } from '../lib/displayMode'
+import { useModeColours } from '../lib/displayModeHooks'
+import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
@@ -96,8 +100,9 @@ function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: s
 
 function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const { ctx } = useVtcContext()
-  // Program (buildings in their ground-level use, with a legend) or Plain (a white, Rhino-like model): components/VtcLook.
-  const lookId = useVtcLook((s) => s.look)
+  // The display mode (lib/displayMode.ts): Program draws the buildings in their ground-level use (components/VtcLook),
+  // every other mode the neutral model.
+  const lookId: VtcLookId = useModeColours().context === 'use' ? 'program' : 'plain'
   const look = useMemo(() => vtcSceneLook(stageLook, lookId, xray), [stageLook, lookId, xray])
   // Without the base model (another computer, before the entrant adds their copy): the brief's block is the site.
   const site = ctx?.site ?? BRIEF_SITE
@@ -118,19 +123,21 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
             <planeGeometry args={[site.width_m, site.depth_m]} />
             <meshStandardMaterial color={look.site} />
           </mesh>
-          <Line points={[...site.outline.map(([x, y]) => [x, y, 0.1] as [number, number, number])]} color="#1f5f8b" lineWidth={2.5} />
+          {/* The site boundary: a constraint, drawn as a clear dark line (blue is kept for selection). */}
+          <Line points={[...site.outline.map(([x, y]) => [x, y, 0.1] as [number, number, number])]} color={UI.ink} lineWidth={2} transparent opacity={0.75} />
         </>
       )}
       {!ctx && <VtcBriefSite />}
       {ctx?.blocks.map((b, i) => <Line key={`b${i}`} points={b.map(([x, y]) => [x, y, 0.05] as [number, number, number])} color={look.edge} lineWidth={1} />)}
-      {ctx?.curbs.map((b, i) => <Line key={`c${i}`} points={b.map(([x, y]) => [x, y, 0.04] as [number, number, number])} color="#cfccc4" lineWidth={1} />)}
+      {ctx?.curbs.map((b, i) => <Line key={`c${i}`} points={b.map(([x, y]) => [x, y, 0.04] as [number, number, number])} color={CURB} lineWidth={1} />)}
       {ctx && <VtcContextModel ctx={ctx} look={look} id={lookId} xray={xray} />}
-      {lookId === 'plain' && !xray && <PlainEnvironment />}
+      {/* The neutral inspection light with restrained soft shadows, in every mode (the sun preview replaces its key). */}
+      {!xray && <PlainEnvironment />}
       {ctx?.future_towers.filter((f) => f.z1).map((f, i) => (
         <group key={`f${i}`}>
           <mesh position={[0, 0, 0]} {...hoverHandlers(`future-${i}`)}>
             <extrudeGeometry args={[new THREE.Shape(f.footprint.map(([x, y]) => new THREE.Vector2(x, y))), { depth: f.z1 as number, bevelEnabled: false }]} />
-            <meshStandardMaterial color="#9fb3c8" transparent opacity={0.28} depthWrite={false} />
+            <meshStandardMaterial color={FUTURE} transparent opacity={0.28} depthWrite={false} />
           </mesh>
           <Label text={`Future tower ${(f.z1 as number).toFixed(1)} m`} position={[f.footprint[0][0], f.footprint[0][1], (f.z1 as number) + 6]} size={0.015} hoverKey={`future-${i}`} />
         </group>
@@ -167,7 +174,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <CityContext look={look} xray={xray} onPick={onPick} />
       <ViewFromRig />
       <VistaRig />
-      {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} />}</TowerMover>)}
+      {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}</TowerMover>)}
       <ModelOverlay base={ground} xray={xray} />
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
@@ -183,6 +190,13 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
 const GAP = 10 // explode gap between zones (m)
 const XRAY_OPACITY = 0.18
 const CORE_COLOR = '#2b3f55'
+/** Curb lines on the competition ground: a step lighter than the block lines (the MODEL.ground family). */
+const CURB = '#cfd5dc'
+/** Approved future towers in the competition context: translucent, a cool grey a shade off the existing model. */
+const FUTURE = '#a9b4c2'
+const NO_RAYCAST = () => null
+/** Dark plate for the design towers' names (UI ink), so they stand apart from the light context labels. */
+const INK_PLATE = 'rgba(32,38,48,0.9)'
 
 let HATCH: THREE.CanvasTexture | null = null
 /** Diagonal hatch for plant floors (the drafting convention for service zones). */
@@ -204,9 +218,14 @@ function hatchTexture() {
 interface Zone { use: UseId; z0: number; z1: number; podium: boolean; levels: number[]; block: number; w: number; d: number; dx: number; dy: number; rot: number }
 type Anatomy = { plates: boolean; core: boolean; plant: boolean; shell: boolean; lifts: boolean; stairs: boolean }
 
-function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, coreRef, proposed = false }: {
-  b: Zone; t: Tower; xray: boolean; selected: boolean; anatomy: Anatomy; clip: THREE.Plane[] | null; hatch: THREE.Texture; core: number
-  shellRef: (m: THREE.MeshStandardMaterial | null) => void; coreRef: (m: THREE.Mesh | null) => void; proposed?: boolean
+function ZoneBody({ b, t, xray, floorLines, anatomy, clip, hatch, core, shellRef, coreRef, fill, vista = false }: {
+  b: Zone; t: Tower; xray: boolean; floorLines: boolean; anatomy: Anatomy; clip: THREE.Plane[] | null; hatch: THREE.Texture; core: number
+  shellRef: (m: THREE.MeshStandardMaterial | null) => void; coreRef: (m: THREE.Mesh | null) => void
+  /** The zone's surface colour from the display mode: the neutral proposal, or its use (lib/displayMode.ts). */
+  fill: string
+  /** Real Vancouver's Plain look: shaded exactly as the buildings around it (lib/vistaLook.ts), so "lighter than the
+   *  context" holds on screen and not only in the tokens (under the scene's lights and tone mapping it did not). */
+  vista?: boolean
 }) {
   const w = b.w, d = b.d, h = b.z1 - b.z0
   // The core stays on the tower centre through shifted and twisted blocks: undo the block's offset and turn.
@@ -219,31 +238,26 @@ function ZoneBody({ b, t, xray, selected, anatomy, clip, hatch, core, shellRef, 
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); return g
   }, [w, d, b])
   const coreGeom = useMemo(() => new THREE.BoxGeometry(core, core, h).translate(0, 0, h / 2), [core, h])
-  const tint = selected && !xray
-  // Real Vancouver Massing: the proposed tower in one strong colour, with a glow line around its edges (screen pixels,
-  // so it reads at any zoom). Schematic and Present keep the programme colours.
-  const glow = proposed && !xray
-  const edgePts = useMemo(() => {
-    const a = edges.getAttribute('position').array as Float32Array, out: [number, number, number][] = []
-    for (let i = 0; i < a.length; i += 3) out.push([a[i], a[i + 1], a[i + 2]])
-    return out
-  }, [edges])
+  const shaded = vista && !xray
+  const vistaMat = useMemo(() => (shaded ? vistaShaded(new THREE.MeshStandardMaterial({ color: fill, roughness: 0.9, metalness: 0, transparent: true, clippingPlanes: clip }), 'buildings') : null), [shaded, fill, clip])
+  useEffect(() => { if (vistaMat) shellRef(vistaMat); return () => vistaMat?.dispose() }, [vistaMat]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
-      <mesh key={glow ? 'proposed' : 'programme'} geometry={box} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
-        <meshStandardMaterial ref={shellRef} color={glow ? PROPOSED.fill : USES[b.use].color} roughness={0.75} transparent clippingPlanes={clip} toneMapped={!glow} fog={!glow}
-          emissive={glow ? PROPOSED.fill : tint ? '#1f5f8b' : '#000000'} emissiveIntensity={glow ? 0.45 : tint ? 0.08 : 0} />
-      </mesh>
-      {/* Both lines in the transparent pass, glow first: an opaque core would draw before the glow and sit under it. */}
-      {glow && <Line points={edgePts} segments color={PROPOSED.glow} lineWidth={5} transparent opacity={0.55} depthWrite={false} renderOrder={5} />}
-      {glow && <Line points={edgePts} segments color={PROPOSED.line} lineWidth={1.5} transparent opacity={1} renderOrder={6} />}
+      {/* Matte, and never tinted by selection: the selection is an outline (TowerGizmo), so the surface keeps the mode's
+          own colour, analytical colours included. */}
+      {/* Separate keys: switching a mesh between a material prop and a child material leaves three's default material (R3F). */}
+      {vistaMat
+        ? <mesh key="vista" geometry={box} material={vistaMat} castShadow receiveShadow />
+        : <mesh key="lit" geometry={box} castShadow={!xray} receiveShadow visible={!xray || anatomy.shell}>
+            <meshStandardMaterial ref={shellRef} color={fill} roughness={0.9} metalness={0} transparent clippingPlanes={clip} />
+          </mesh>}
       {b.use === 'mechanical' && (
         <mesh geometry={box} scale={1.004} visible={xray && anatomy.plant}>
           <meshStandardMaterial map={hatch} transparent opacity={0.95} clippingPlanes={clip} />
         </mesh>
       )}
       <lineSegments geometry={edges} visible={xray}><lineBasicMaterial color="#3d5a78" transparent opacity={0.6} clippingPlanes={clip} /></lineSegments>
-      <lineSegments geometry={plates} visible={xray ? anatomy.plates : selected}>
+      <lineSegments geometry={plates} visible={xray ? anatomy.plates : floorLines}>
         <lineBasicMaterial color={xray ? '#4a6a8c' : '#ffffff'} transparent opacity={xray ? 0.5 : 0.55} clippingPlanes={clip} />
       </lineSegments>
       <mesh ref={coreRef} geometry={coreGeom} position={[coreAt[0], coreAt[1], -h / 2]} rotation={[0, 0, ra]} visible={false}>
@@ -315,11 +329,14 @@ function LiftShafts({ t, clip, groupRef }: { t: Tower; top: number; clip: THREE.
   )
 }
 
-function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean }) {
+function TowerMesh({ t, baseZ, xray, vista = false }: { t: Tower; baseZ: number; xray: boolean; vista?: boolean }) {
   const selected = useStore((s) => s.selectedTower) === t.id
   const selectTower = useStore((s) => s.selectTower)
   const schematic = useStore((s) => s.phase) === 'advanced'
-  const proposed = useStore(proposedLook)
+  // The display mode decides the surface: one neutral proposal (Massing, Analysis, Materials) or each floor in its use.
+  const byUse = useModeColours().tower === 'use'
+  // Readable edges on the solid model: every stacked block's outline (not the use zones, which Massing does not show).
+  const massEdges = useMemo(() => outlineSegments(t), [t])
   const planMode = useVistaLook((s) => s.mode === 'plan')
   const planView = planMode && useStore.getState().project === 'city'
   // Analysis off (process rail): no verdict on the tower.
@@ -423,10 +440,11 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
     <group position={[t.x, t.y, baseZ]} rotation={[0, 0, (t.rotation * Math.PI) / 180]} onPointerDown={(e) => { e.stopPropagation(); selectTower(t.id) }}>
       {zones.map((b, i) => (
         <group key={i} ref={(g) => { groups.current[i] = g }} position={[b.dx, b.dy, (b.z0 + b.z1) / 2]} rotation={[0, 0, (b.rot * Math.PI) / 180]}>
-          <ZoneBody b={b} t={t} xray={xray} selected={selected} anatomy={anatomy} clip={clip} hatch={hatch} core={core} proposed={proposed}
+          <ZoneBody b={b} t={t} xray={xray} floorLines={byUse} anatomy={anatomy} clip={clip} hatch={hatch} core={core} fill={byUse ? USES[b.use].color : NEUTRAL_TOWER.fill} vista={vista}
             shellRef={(m) => { shells.current[i] = m }} coreRef={(m) => { cores.current[i] = m }} />
         </group>
       ))}
+      {!xray && massEdges.length > 1 && <Line points={massEdges} segments color={NEUTRAL_TOWER.edge} lineWidth={1.25} transparent opacity={0.9} clippingPlanes={clip ?? []} raycast={NO_RAYCAST} />}
       <LiftShafts t={t} top={top} clip={clip} groupRef={(g) => { shafts.current = g }} />
       <ExitStairs t={t} clip={clip} groupRef={(g) => { stairs.current = g }} />
       <OutriggerFloors t={t} floors={floors} visible={xray && !explode} clip={clip} />
@@ -451,23 +469,27 @@ function TowerMesh({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean 
           <Label text={`Section +${sectionLevel.toFixed(0)} m`} position={[cw * 0.95, 0, 4]} size={0.014} />
         </group>
       )}
-      {/* Plan (Real Vancouver Massing): a glowing ring around the proposed tower, drawn over everything, so it reads at any scale. */}
-      {planView && proposed && (
+      {/* Plan (Real Vancouver): a ring round the selected tower, drawn over everything so it is found at any scale; the
+          selection blue on its white keyline, as the 3D outline. */}
+      {planView && selected && (
         <group ref={ring} position={[0, 0, top + 2]}>
-          <Line points={ringPts} color={PROPOSED.glow} lineWidth={7} transparent opacity={0.6} depthTest={false} renderOrder={20} />
-          <Line points={ringPts} color={PROPOSED.fill} lineWidth={3} transparent opacity={1} depthTest={false} renderOrder={21} />
+          <Line points={ringPts} color={MODEL.keyline} lineWidth={6} transparent opacity={0.95} depthTest={false} renderOrder={20} />
+          <Line points={ringPts} color={MODEL.selected} lineWidth={2.5} transparent opacity={1} depthTest={false} renderOrder={21} />
         </group>
       )}
       <group ref={label} position={[0, 0, top + 10]}>
         {/* Plan: both hang below the anchor (which sits just south of the footprint), name first and the tag under it, clear of the ring. */}
-        <Label text={`${t.name} · ${t.height.toFixed(0)} m`} position={[0, 0, 0]} color="#ffffff" background="rgba(31,35,40,0.88)" size={0.017} bold hoverKey={t.id} lift={planView ? -(0.004 + 0.017) : over ? 0.021 : 0.004} />
+        <Label text={`${t.name} · ${t.height.toFixed(0)} m`} position={[0, 0, 0]} color="#ffffff" background={INK_PLATE} size={0.017} bold hoverKey={t.id} lift={planView ? -(0.004 + 0.017) : over ? 0.021 : 0.004} />
         {/* The worst view-cone overshoot, both above the tower so they never cover it (UI review, 3 Nov: the separate tag at the limit collided with the name
             and could not be read from afar; that tag now only shows up close, ConeVolumes.tsx). */}
-        {over && <Label text={over} position={[0, 0, 0]} color="#ffffff" background="rgba(178,34,34,0.92)" size={0.015} bold lift={planView ? -(0.021 + 0.002 + 0.015) : 0.004} />}
+        {over && <Label text={over} position={[0, 0, 0]} color="#ffffff" background={STATUS.error.fg} size={0.015} bold lift={planView ? -(0.021 + 0.002 + 0.015) : 0.004} />}
       </group>
     </group>
   )
 }
+
+/** Light colours and strengths: a white sky over a cool neutral bounce (no warm cast on the grey model). */
+const LIGHT = { sky: '#ffffff', bounce: '#d9dee7', inspectionLift: 0.35, inspectionKey: 1.25 } as const
 
 function Sun({ north }: { north: number }) {
   const sun = useStore((s) => s.sun)
@@ -632,6 +654,8 @@ export default function Viewport() {
   const hidden = useDock((s) => s.hidden)
   const dockOpen = useDock((s) => (project === 'city' ? s.menu : s.open))
   useOverlayShortcut()
+  // The display mode and the older switches it absorbed stay in step (components/DisplayMode.tsx).
+  useDisplaySync()
   return (
     <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'bg-paper p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
@@ -647,8 +671,10 @@ export default function Viewport() {
             <RenderPacer />
             <ShadowCache />
             <fog attach="fog" args={[look.background, 2500, 6000]} />
-            <hemisphereLight args={['#ffffff', '#d8d4cc', sunOn ? look.hemi : look.hemi + 0.7]} />
-            {sunOn ? <Sun north={north} /> : <directionalLight position={[600, 1200, 400]} intensity={1.1} />}
+            {/* Two separate lights (design system §9): the neutral inspection light (soft sky, a gentle key) by default,
+                the analytical sun at the date and hour shown beside the switch while Sun & shadow is on. */}
+            <hemisphereLight args={[LIGHT.sky, LIGHT.bounce, sunOn ? look.hemi : look.hemi + LIGHT.inspectionLift]} />
+            {sunOn ? <Sun north={north} /> : <directionalLight name="inspection-key" position={[600, 1200, 400]} intensity={LIGHT.inspectionKey} />}
             <group rotation={[-Math.PI / 2, 0, 0]}>
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
               <TowerGizmo />
@@ -756,7 +782,7 @@ function VtcDock() {
           <figure className="m-0 flex flex-col items-center gap-0.5" aria-label={`True north ${VTC_NORTH_DEG} degrees from the model grid`}>
             <svg viewBox="0 0 48 48" className="h-12 w-12" aria-hidden>
               <line x1={24} y1={40} x2={24} y2={8} className="stroke-slate-400" strokeWidth={1.5} strokeDasharray="3 2" />
-              <text x={26} y={10} className="fill-slate-500 text-[7px]">grid</text>
+              <text x={26} y={10} className="fill-slate-500 text-meta">grid</text>
               <g transform={`rotate(${VTC_NORTH_DEG} 24 40)`}>
                 <line x1={24} y1={40} x2={24} y2={8} className="stroke-accent" strokeWidth={2} />
                 <path d="M24 4 L20 12 L28 12 Z" className="fill-accent" />

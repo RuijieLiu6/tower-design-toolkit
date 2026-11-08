@@ -79,7 +79,7 @@ const DELTA: Record<Delta, { icon: typeof ArrowUp; word: string; cls: string }> 
 function DeltaChip({ d }: { d: Delta }) {
   if (d === 'n/a') return null
   const x = DELTA[d], Icon = x.icon
-  return <span className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-[9.5px] font-semibold leading-none ${x.cls}`}><Icon size={10} aria-hidden />{x.word}</span>
+  return <span className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-meta font-semibold leading-none ${x.cls}`}><Icon size={10} aria-hidden />{x.word}</span>
 }
 
 /** Grouped horizontal bars: one row per criterion, one bar per option, value labelled at the bar end. */
@@ -196,7 +196,7 @@ export default function Options() {
             {options.map((o, i) => (
               <div key={o.key} className="rounded-lg border border-line bg-panel p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0"><div className="truncate text-sm font-semibold" title={o.name}>{o.name}</div><div className="text-[10.5px] text-muted">{i === 0 ? 'Baseline · ' : ''}{new Date(o.savedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {o.design.project === 'vtc' ? 'Competition site' : 'Real Vancouver'}</div></div>
+                  <div className="min-w-0"><div className="truncate text-sm font-semibold" title={o.name}>{o.name}</div><div className="text-meta text-muted">{i === 0 ? 'Baseline · ' : ''}{new Date(o.savedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {o.design.project === 'vtc' ? 'Competition site' : 'Real Vancouver'}</div></div>
                   <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: SERIES[i] }} aria-hidden />
                 </div>
                 <div className="mt-2"><Massing o={o} color={SERIES[i]} top={top} baseline={i === 0 ? null : topOf(options[0])} /></div>
@@ -293,7 +293,7 @@ export default function Options() {
                 <p className="mt-1 text-meta text-muted">Each input that differs, with the results that moved when the decision trace saw that input change on its own. Results no single-input step explains are listed last.</p>
                 <ul className="mt-2 space-y-2">
                   {explain.inputs.map((x) => (
-                    <li key={x.change} className="rounded-md border border-line p-2 text-[11.5px]">
+                    <li key={x.change} className="rounded-md border border-line p-2 text-meta">
                       <div className="font-medium"><U>{x.change}</U></div>
                       {x.moved.length ? (
                         <ul className="mt-1 space-y-0.5 text-meta">{x.moved.slice(0, showAll.has(x.change) ? undefined : 10).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}

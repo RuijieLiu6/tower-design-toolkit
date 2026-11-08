@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v2/icon-brief.schema.json",
+  "title": "Node icon brief (node icon style pack v2)",
+  "description": "What Tower Design Toolkit needs to draw a design-node icon in the family's style. The icon shows what the node actually does: one architectural object, at most one supporting cue, nothing the node cannot do. The same definition as $defs.iconBrief in the node package schema (tower-studio-node@1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "styleVersion",
+    "name",
+    "function",
+    "category",
+    "metaphor"
+  ],
+  "properties": {
+    "styleVersion": {
+      "enum": [
+        "2"
+      ],
+      "description": "The style pack version the icon follows: \"2\" for this pack. (The platform still draws briefs saved under earlier versions in their own style.)"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "The node's name, as in its package (also the icon's accessible name). Never drawn into the icon."
+    },
+    "function": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "What the node actually does, in plain words: what it reads, what it compares or shows. Not what it might do one day."
+    },
+    "category": {
+      "enum": [
+        "SITE",
+        "PROG",
+        "CLIM",
+        "ENER",
+        "ECOL",
+        "PUBL",
+        "CULT",
+        "MOBI",
+        "STRC",
+        "SYST",
+        "SPAC",
+        "PRES",
+        "DATA"
+      ],
+      "description": "One of Tower Design Toolkit's 13 node categories."
+    },
+    "phase": {
+      "enum": [
+        "site",
+        "form",
+        "program",
+        "schematic",
+        "present"
+      ],
+      "description": "The workflow phase whose colour the accent takes. Left out, it follows the category."
+    },
+    "metaphor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object"
+      ],
+      "properties": {
+        "object": {
+          "enum": [
+            "tower",
+            "podium",
+            "floor",
+            "core",
+            "stairs",
+            "facade",
+            "park",
+            "street",
+            "water",
+            "train",
+            "car",
+            "document",
+            "chart",
+            "coins",
+            "sun",
+            "wind",
+            "mountain",
+            "people",
+            "solar",
+            "sound",
+            "heat"
+          ],
+          "description": "The one main architectural object or spatial diagram (see NODE_ICON_STYLE.md section 9 for what each word draws)."
+        },
+        "cue": {
+          "enum": [
+            "none",
+            "check",
+            "sun",
+            "drop",
+            "wind",
+            "bolt",
+            "pin",
+            "clock",
+            "warning",
+            "leaf",
+            "person",
+            "sound",
+            "eye",
+            "plus"
+          ],
+          "description": "At most one small supporting cue, upper right; none if the object says it alone."
+        }
+      },
+      "description": "The proposed picture, from the parts the platform draws with."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "What the icon must not imply, or what to show if the words above fall short."
+    }
+  }
+}

@@ -6,10 +6,11 @@
 // steps through. Versioned: a future style pack adds a drawer and leaves version 1 as it is, so no saved icon changes.
 import type { ReactNode } from 'react'
 import { box, flat, iso, line, plate, pts, tones, INK, type Ctx } from '../../components/icons/nodeArt'
-import { PHASE_HUE } from '../phases'
+import { PHASE_HUE, type PhaseId } from '../phases'
+import { PHASE_COLOR } from '../design/tokens'
 import { CATEGORY_PHASE, type IconBrief, type IconCue, type IconObject } from './brief'
 
-const A = (c: Ctx, k: 0 | 1 | 2) => tones('a', c.h)[k]
+const A = (c: Ctx, k: 0 | 1 | 2) => tones('a', c.h, c.a)[k]
 /** Small, repeatable differences between variants (heights, positions). */
 const jitter = (v: number, k: number) => { const s = Math.sin((v + 1) * 91.7 + k * 13.1) * 43758.5; return s - Math.floor(s) }
 
@@ -65,33 +66,38 @@ const CUE_ART: Record<Exclude<IconCue, 'none'>, (c: Ctx) => ReactNode> = {
   plus: (c) => <><path d="M39 3.8 l5.2 1.9 v4 c0 3.3-2.3 5.4-5.2 6.6 c-2.9-1.2-5.2-3.3-5.2-6.6 v-4z" fill={A(c, 1)} /><path d="M39 7.4 v5 M36.5 9.9 h5" stroke="#fff" strokeWidth={1.4} strokeLinecap="round" /></>,
 }
 
-/** The hue a brief's accent takes: its phase's, else its category's phase. */
-export const briefHue = (b: Pick<IconBrief, 'phase' | 'category'>) => PHASE_HUE[b.phase ?? CATEGORY_PHASE[b.category] ?? 'site']
+/** The phase a brief's accent takes: its own, else its category's. */
+export const briefPhase = (b: Pick<IconBrief, 'phase' | 'category'>): PhaseId => b.phase ?? CATEGORY_PHASE[b.category] ?? 'site'
+/** Style pack 1's phase hues and hsl tones, frozen so icons saved under it never change. */
+const V1_HUE: Record<PhaseId, number> = { site: 206, form: 14, program: 48, schematic: 268, present: 300 }
+export const briefHue = (b: Pick<IconBrief, 'phase' | 'category'>) => PHASE_HUE[briefPhase(b)]
+const ctxFor = (b: IconBrief): Ctx => b.styleVersion === '1' ? { h: V1_HUE[briefPhase(b)] } : { h: PHASE_HUE[briefPhase(b)], a: PHASE_COLOR[briefPhase(b)].tones }
 
-/** Style pack 1: the drawing for a brief (an SVG body in the 48-unit frame). */
+/** The drawing for a brief (an SVG body in the 48-unit frame). Style packs 1 and 2 share the shapes; 2 uses the design
+ *  system's phase palette. A later pack adds its own drawer and leaves these as they are. */
 function drawV1(b: IconBrief, variant: number): ReactNode {
-  const c: Ctx = { h: briefHue(b) }
+  const c: Ctx = ctxFor(b)
   const cue = b.metaphor.cue && b.metaphor.cue !== 'none' ? CUE_ART[b.metaphor.cue] : null
   // Objects that draw in the top right themselves take their cue in the top left instead, so the two never collide.
   return <>{OBJECT_ART[b.metaphor.object](c, variant)}{cue && (CUE_LEFT.has(b.metaphor.object) ? <g transform="translate(-30 0)">{cue(c)}</g> : cue(c))}</>
 }
-const DRAWERS: Record<string, (b: IconBrief, variant: number) => ReactNode> = { '1': drawV1 }
+const DRAWERS: Record<string, (b: IconBrief, variant: number) => ReactNode> = { '1': drawV1, '2': drawV1 }
 
 /** The generated icon, in the style pack the brief names (unknown packs fall back to the approved fallback drawing). */
 export function GeneratedIcon({ brief, variant = 0, size = 48 }: { brief: IconBrief; variant?: number; size?: number }) {
   const draw = DRAWERS[brief.styleVersion]
   return (
     <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden data-generated-icon={`${brief.styleVersion}:${brief.metaphor.object}:${brief.metaphor.cue ?? 'none'}:${variant}`}>
-      {draw ? draw(brief, variant) : <FallbackBody h={briefHue(brief)} />}
+      {draw ? draw(brief, variant) : <FallbackBody phase={briefPhase(brief)} />}
     </svg>
   )
 }
 
 /** The approved fallback illustration: a node module on the plate, in the category's colour (no claim about the task). */
-function FallbackBody({ h }: { h: number }) {
-  const c: Ctx = { h }
+function FallbackBody({ phase }: { phase: PhaseId }) {
+  const c: Ctx = { h: PHASE_HUE[phase], a: PHASE_COLOR[phase].tones }
   return <>{plate(c)}{box(c, 4.5, 4.5, 0.9, 7, 7, 5)}{box(c, 4.5, 4.5, 5.9, 7, 7, 1.4, 'a')}{box(c, 6.6, 6.6, 7.3, 2.8, 2.8, 1.2, 'n')}</>
 }
-export function FallbackIcon({ h, size = 48 }: { h: number; size?: number }) {
-  return <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden data-fallback-icon><FallbackBody h={h} /></svg>
+export function FallbackIcon({ phase, size = 48 }: { phase: PhaseId; size?: number }) {
+  return <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden data-fallback-icon><FallbackBody phase={phase} /></svg>
 }

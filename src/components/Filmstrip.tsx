@@ -14,7 +14,7 @@ export default function Filmstrip() {
       {shots.map((s) => (
         <figure key={s.id} className="group relative">
           <img src={s.dataUrl} alt={s.ai ? aiLabel(s.ai) : `Shot: ${STAGE_LABEL[s.stage]}, ${s.representation}`} className={`w-full rounded border ${s.ai ? 'border-fuchsia-400/70' : 'border-white/20'}`} />
-          {s.ai && <span className="absolute left-1 top-1 rounded bg-fuchsia-700 px-1 py-0.5 text-[8px] font-semibold text-white">AI-generated</span>}
+          {s.ai && <span className="absolute left-1 top-1 rounded bg-fuchsia-700 px-1 py-0.5 text-meta font-semibold text-white">AI-generated</span>}
           <figcaption className="mt-0.5 text-meta opacity-70">{s.ai ? `from ${s.ai.sourceLabel || 'unknown capture'}` : `${s.representation === 'plan' ? 'Plan' : s.representation === 'xray' ? 'X-ray' : 'Clay'} · ${new Date(s.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}</figcaption>
           <a href={s.dataUrl} download={`shot-${s.at.slice(0, 19).replace(/[:T]/g, '-')}.png`} aria-label="Download shot"
             className="absolute right-1 top-1 hidden rounded bg-black/60 p-1 group-hover:block"><Download size={12} /></a>

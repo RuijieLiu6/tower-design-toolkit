@@ -106,7 +106,7 @@ export default function CommunityInspector({ id }: { id: string }) {
         </div>
         <div className="mt-2 flex items-center gap-2 text-meta text-muted"><Toggle checked={!!enabled[p.id]} onChange={() => toggleNode(p.id)} label={`Use ${p.name}`} />{enabled[p.id] ? 'On: results update as you design' : 'Off: turn it on to see live results'}</div>
         {run && !run.applies && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-meta text-slate-700">Runs in the {p.projects?.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
-        {run?.error && <div className="mt-2 rounded bg-red-50 px-2 py-1 text-meta text-red-800">Could not run: {run.error}. Re-import the package.</div>}
+        {run?.error && <div role="alert" className="mt-2 rounded bg-error-surface px-2 py-1 text-meta text-error"><b>✕ Error</b>: could not run ({run.error}). Re-import the package.</div>}
       </div>
 
       {p.code && <CodeNodeGate p={p} />}

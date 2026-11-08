@@ -61,7 +61,7 @@ export function AlignBlock({ raw, opts, up, frame, built, picking, setPicking }:
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted">Point on the map</span>
             {u && (
-              <span role="radiogroup" aria-label="Map coordinates" className="flex overflow-hidden rounded border border-line text-[10.5px]">
+              <span role="radiogroup" aria-label="Map coordinates" className="flex overflow-hidden rounded border border-line text-meta">
                 {(['utm', 'latlon'] as const).map((g) => <button key={g} role="radio" aria-checked={geo === g} onClick={() => setGeo(g)} className={`px-1.5 py-0.5 ${geo === g ? 'bg-accent text-white' : ''}`}>{g === 'utm' ? 'UTM 10N' : 'Lat, lon'}</button>)}
               </span>
             )}

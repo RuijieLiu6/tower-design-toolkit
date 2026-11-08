@@ -261,7 +261,7 @@ export function ConeVisibilityPanel({ compact = false }: { compact?: boolean }) 
   const towers = useTowers()
   const t = towers.find((k) => k.id === sel) ?? towers[0]
   const over = conesOverSite(cones.find((c) => c.tower.id === t?.id)?.checks ?? [])
-  const btn = 'rounded-[2px] border px-2 py-0.5 text-[11.5px] hover:bg-[#dde6dc] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#426b61]'
+  const btn = 'rounded-[2px] border px-2 py-0.5 text-meta hover:bg-[#dde6dc] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#426b61]'
   const style = { borderColor: CHROME.border, color: CHROME.ink, background: '#fbfaf4' }
   return (
     <div className="space-y-1.5" role="group" aria-label="View cone layers">
@@ -275,10 +275,10 @@ export function ConeVisibilityPanel({ compact = false }: { compact?: boolean }) 
       <ul className={`${compact ? 'max-h-56' : 'max-h-72'} space-y-0.5 overflow-y-auto pr-1`}>
         {SORTED.map((c) => (
           <li key={c.id}>
-            <label className="flex items-center gap-1.5 text-[11.5px]" style={{ color: CHROME.ink }}>
+            <label className="flex items-center gap-1.5 text-meta" style={{ color: CHROME.ink }}>
               <input type="checkbox" checked={!hidden[c.id]} onChange={() => toggleCone(c.id)} />
               <span className="tabular-nums font-semibold">{c.id}</span><span className="min-w-0 flex-1 truncate">{c.name}</span>
-              <span className="shrink-0 text-[10.5px]">{hasEstimate(c.id) ? 'estimate' : 'study'}{over.includes(c.id) ? ' · over site' : ''}</span>
+              <span className="shrink-0 text-meta">{hasEstimate(c.id) ? 'estimate' : 'study'}{over.includes(c.id) ? ' · over site' : ''}</span>
             </label>
           </li>
         ))}

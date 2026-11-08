@@ -4,6 +4,8 @@ import { fieldUnit, useUnits } from '../lib/units'
 import type { Flag, RuleState } from '../engine/types'
 import type { ConeState } from '../engine/viewCones'
 import Help from './Help'
+import { ResultBadge } from './ResultState'
+import { KIND_CLASS, RESULT_WORD, resultWord } from '../lib/status'
 
 export const FLAG_META: Record<Flag, { label: string; className: string; title: string }> = {
   verified: { label: 'Verified', className: 'bg-flag-verified text-white', title: 'Backed by an opened, cited source' },
@@ -20,25 +22,31 @@ export function FlagChip({ flag }: { flag: Flag | string }) {
   return <span title={m.title} className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-meta font-medium leading-none ${m.className}`}><Icon size={11} />{m.label}</span>
 }
 
-const STATE_STYLE: Record<RuleState, string> = {
-  pass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  fail: 'bg-red-50 text-red-800 border-red-200',
-  warn: 'bg-amber-50 text-amber-800 border-amber-200',
-  unknown: 'bg-slate-50 text-slate-700 border-slate-200',
-}
-const STATE_TEXT: Record<RuleState, string> = { pass: 'Pass', fail: 'Fail', warn: 'Check', unknown: 'Unknown' }
-
-export function StateChip({ state }: { state: RuleState }) {
-  return <span className={`inline-flex rounded border px-1.5 py-0.5 text-meta font-semibold ${STATE_STYLE[state]}`}>{STATE_TEXT[state]}</span>
+/**
+ * An assessment result as a chip: its circle symbol and short word in the status colour (design system, 7 Nov;
+ * components/ResultState.tsx). `value` lets an open line say what it waits for ("Needs model", "Needs input").
+ */
+export function StateChip({ state, value }: { state: RuleState; value?: string }) {
+  const word = resultWord(state, value)
+  return <ResultBadge state={state === 'unknown' && word !== RESULT_WORD.unknown ? 'missing' : state} word={word} />
 }
 
+// The chip keeps its words (engine/viewCones.ts STATE_LABEL); its colour follows the status the digest gives each
+// outcome: above fails, within the uncertainty needs a check, no estimate is open, near the edge and clear pass.
+// `color` is the 3D scene's (left as it was).
 export const CONE_STYLE: Record<ConeState, { chip: string; color: string }> = {
-  above: { chip: 'bg-red-50 text-red-800 border-red-200', color: '#d0453a' },
-  limit_unknown: { chip: 'bg-slate-100 text-slate-800 border-slate-300', color: '#8a8f98' },
-  within_uncertainty: { chip: 'bg-amber-50 text-amber-800 border-amber-200', color: '#d98b1c' },
-  near_edge: { chip: 'bg-sky-50 text-sky-800 border-sky-200', color: '#4a90c2' },
-  clear: { chip: 'bg-emerald-50 text-emerald-800 border-emerald-200', color: '#2e8b57' },
-  outside: { chip: 'bg-white text-slate-500 border-slate-200', color: '#c9ccd1' },
+  above: { chip: KIND_CLASS.error.chip, color: '#d0453a' },
+  limit_unknown: { chip: KIND_CLASS.pending.chip, color: '#8a8f98' },
+  within_uncertainty: { chip: KIND_CLASS.warning.chip, color: '#d98b1c' },
+  near_edge: { chip: KIND_CLASS.success.chip, color: '#4a90c2' },
+  clear: { chip: KIND_CLASS.success.chip, color: '#2e8b57' },
+  outside: { chip: 'border-line bg-panel text-muted', color: '#c9ccd1' },
+}
+const CONE_RESULT: Record<ConeState, RuleState> = { above: 'fail', limit_unknown: 'unknown', within_uncertainty: 'warn', near_edge: 'pass', clear: 'pass', outside: 'pass' }
+
+/** A view-cone outcome as a chip: the result's symbol with the cone's own words ("Above estimate", "Near edge"). */
+export function ConeChip({ state, label }: { state: ConeState; label: string }) {
+  return <ResultBadge state={CONE_RESULT[state]} word={label} className={state === 'outside' ? '!border-line !bg-panel !text-muted' : ''} />
 }
 
 /** A titled block; `help` is what the block does, behind a "?" beside the title (Ruijie, 5 Nov). */

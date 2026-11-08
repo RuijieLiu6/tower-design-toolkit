@@ -5,6 +5,8 @@
 // style" makes a second, restyled copy; the original is kept. The pixel analysis is pure (RGBA arrays) so it is tested
 // without a browser; the canvas work is a thin layer on top.
 
+import { PHASE_COLOR } from '../design/tokens'
+
 export const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
 export type AcceptedType = (typeof ACCEPTED_TYPES)[number]
 export const TYPE_WORD: Record<AcceptedType, string> = { 'image/png': 'PNG', 'image/jpeg': 'JPEG', 'image/webp': 'WebP' }
@@ -68,15 +70,20 @@ export function renderDisplay(src: CanvasImageSource, w: number, h: number, a: A
 }
 
 // ---------------------------------------------------------------- the toolkit palette and checks (style pack 1)
-// The same numbers as the published pack (public/style-pack/node-icons/v1/icon-tokens.json → validation), measured on
+// The same numbers as the published packs (public/style-pack/node-icons/v<n>/icon-tokens.json → validation), measured on
 // the toolkit's own 31 icons by tools/build_icon_pack.mjs; nodeIcons.test.ts fails if the two drift apart.
 const hex = (s: string): [number, number, number] => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]
 /** Every colour the family uses: the materials' three tones, the five phase accents in three tones, white and the warm daylight. */
-export const PALETTE_HEX = [
+export const PALETTE_HEX_V1 = [
   '#fbfbfa', '#e2e5ea', '#c3c9d2', '#eef1f3', '#d9dee4', '#c7cdd5', '#b7dd8f', '#86c06a', '#5f9a4f', '#bfe1f6', '#8cc4e8', '#5d9fcf',
   '#6c7686', '#4f5868', '#3a4250', '#90c8f4', '#58a5df', '#3281bd', '#f4a790', '#df7758', '#bd5332', '#f4e090', '#dfc458', '#bda232',
   '#be90f4', '#9758df', '#7332bd', '#f490f4', '#df58df', '#bd32bd', '#ffffff', '#fff0b3', '#fbf4da', '#cdd2da', '#f2c14e',
 ] as const
+/** Style pack 2 (the current one): the same materials, the design system's phase tones (lib/design/tokens.ts). */
+export const PALETTE_HEX: string[] = [
+  ...PALETTE_HEX_V1.filter((c, i) => i < 15 || i >= 30),
+  ...Object.values(PHASE_COLOR).flatMap((p) => p.tones),
+]
 export const PALETTE: [number, number, number][] = PALETTE_HEX.map(hex)
 /** Thresholds of the pack's warnings (icon-tokens.json → validation.warn). */
 export const CHECKS = {

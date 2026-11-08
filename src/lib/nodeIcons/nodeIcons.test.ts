@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import example from '../../../skills/tower-studio-node-builder/references/example-node.json'
-import { CUES, OBJECTS, briefProblems, proposeBrief, type IconBrief } from './brief'
+import { CUES, CURRENT_STYLE, OBJECTS, briefProblems, proposeBrief, type IconBrief } from './brief'
 import { FallbackIcon, GeneratedIcon, HAS_VARIANTS } from './generate'
-import { CHECKS, FIT, OCCUPANCY, PALETTE, PALETTE_HEX, matchStyle, placement, qualityChecks, sniff } from './image'
+import { CHECKS, FIT, OCCUPANCY, PALETTE, PALETTE_HEX, PALETTE_HEX_V1, matchStyle, placement, qualityChecks, sniff } from './image'
 import { dataUrlBytes } from './fromPackage'
 import { packageIconOf, useNodeIcons, type IconRecord } from './store'
 import { PACK_FILES, agentInstructions } from './agentInstructions'
@@ -63,10 +63,17 @@ describe('the shared generator', () => {
     }
   })
   it('falls back to the approved illustration for a style pack it does not know', () => {
-    const svg = renderToStaticMarkup(createElement(GeneratedIcon, { brief: brief({ styleVersion: '2' as never }) }))
-    const fallback = renderToStaticMarkup(createElement(FallbackIcon, { h: 14 }))
+    const svg = renderToStaticMarkup(createElement(GeneratedIcon, { brief: brief({ styleVersion: '9' as never }) }))
+    const fallback = renderToStaticMarkup(createElement(FallbackIcon, { phase: 'form' }))
     const body = (s: string) => s.replace(/^<svg[^>]*>/, '')
     expect(body(svg)).toBe(body(fallback))
+  })
+  it('keeps icons saved under style pack 1 exactly as they were; style pack 2 uses the phase palette', () => {
+    const v1 = renderToStaticMarkup(createElement(GeneratedIcon, { brief: brief({ metaphor: { object: 'tower' } }) }))
+    expect(v1).toContain('hsl(14 82% 76%)') // style 1's Form tones, from its own frozen hue
+    const v2 = renderToStaticMarkup(createElement(GeneratedIcon, { brief: brief({ styleVersion: '2', metaphor: { object: 'tower' } }) }))
+    expect(v2).toContain('#ffae9b')
+    expect(v2).not.toContain('hsl(')
   })
   it('never draws text', () => {
     for (const object of OBJECTS) expect(renderToStaticMarkup(createElement(GeneratedIcon, { brief: brief({ metaphor: { object, cue: 'check' } }) }))).not.toMatch(/<text/)
@@ -196,7 +203,7 @@ describe('an icon only changes how a node looks', () => {
 describe('instructions for AI agents', () => {
   it('name the versioned style pack, both routes and every brief word', () => {
     const t = agentInstructions({ name: 'Balcony noise', category: 'CLIM' })
-    expect(t).toContain('style-pack/node-icons/v1/NODE_ICON_STYLE.md')
+    expect(t).toContain(`style-pack/node-icons/v${CURRENT_STYLE}/NODE_ICON_STYLE.md`)
     expect(t).toContain('"kind": "brief"')
     expect(t).toContain('"kind": "image"')
     for (const w of [...OBJECTS, ...CUES]) expect(t).toContain(w)
@@ -206,7 +213,7 @@ describe('instructions for AI agents', () => {
     expect(t).toContain('Do not claim to have created an image when no image file exists.')
     expect(t).toMatch(/which of these files you could not get/)
     expect(t).toMatch(/keep it as it is unless I explicitly choose to restyle it/)
-    for (const f of PACK_FILES) expect(t).toContain(`style-pack/node-icons/v1/${f}`)
+    for (const f of PACK_FILES) expect(t).toContain(`style-pack/node-icons/v${CURRENT_STYLE}/${f}`)
     for (const w of ['intended meaning', 'Its source', 'style pack version', 'standard node preview']) expect(t).toContain(w)
   })
 })
@@ -237,11 +244,37 @@ describe('the published style pack (public/style-pack/node-icons/v1)', () => {
     expect([w.framing.occupancy, w.framing.maxOffsetX, w.framing.bottomMargin]).toEqual([CHECKS.occupancy, CHECKS.maxOffsetX, CHECKS.bottomMargin])
     expect([w.clipping.maxEdgeShare, w.background.maxInkShare, w.legibility.minDark, w.legibility.maxBusy]).toEqual([CHECKS.maxEdgeShare, CHECKS.maxInkShare, CHECKS.minDark, CHECKS.maxBusy])
     expect([w.palette.minPaletteShare, w.palette.distance]).toEqual([CHECKS.minPaletteShare, CHECKS.paletteDistance])
-    expect([...(w.palette.palette ?? [])].sort()).toEqual([...PALETTE_HEX].sort())
+    expect([...(w.palette.palette ?? [])].sort()).toEqual([...PALETTE_HEX_V1].sort())
   })
   it('measures its framing from the toolkit’s own icons, and the app checks against the same band', async () => {
     const tokens = (await import('../../../public/style-pack/node-icons/v1/icon-tokens.json')).default as unknown as { export: { occupancy: { accept: [number, number]; target: number } } }
     expect([OCCUPANCY.min, OCCUPANCY.max]).toEqual(tokens.export.occupancy.accept)
     expect(OCCUPANCY.target).toBe(tokens.export.occupancy.target)
+  })
+})
+
+describe('the current style pack (public/style-pack/node-icons/v2)', () => {
+  it('uses the generator’s words, the app’s palette and thresholds, and ships examples that import with their icon', async () => {
+    const pack = (await import('../../../public/style-pack/node-icons/v2/icon-brief.schema.json')).default as unknown as { properties: { styleVersion: { const?: string; enum?: string[] }; metaphor: { properties: { object: { enum: string[] }; cue: { enum: string[] } } } } }
+    expect(pack.properties.metaphor.properties.object.enum).toEqual([...OBJECTS])
+    expect(pack.properties.metaphor.properties.cue.enum).toEqual([...CUES])
+    type Warn = { id: string; occupancy?: number[]; maxOffsetX?: number; bottomMargin?: number[]; maxEdgeShare?: number; maxInkShare?: number; minDark?: number; maxBusy?: number; minPaletteShare?: number; distance?: number; palette?: string[] }
+    const tokens = (await import('../../../public/style-pack/node-icons/v2/icon-tokens.json')).default as unknown as { validation: { warn: Warn[] } }
+    const w = Object.fromEntries(tokens.validation.warn.map((x) => [x.id, x])) as Record<string, Warn>
+    expect([w.framing.occupancy, w.framing.maxOffsetX, w.framing.bottomMargin]).toEqual([CHECKS.occupancy, CHECKS.maxOffsetX, CHECKS.bottomMargin])
+    expect([w.clipping.maxEdgeShare, w.background.maxInkShare, w.legibility.minDark, w.legibility.maxBusy, w.palette.minPaletteShare]).toEqual([CHECKS.maxEdgeShare, CHECKS.maxInkShare, CHECKS.minDark, CHECKS.maxBusy, CHECKS.minPaletteShare])
+    expect([...(w.palette.palette ?? [])].sort()).toEqual([...PALETTE_HEX].sort())
+    const files = { brief: await import('../../../public/style-pack/node-icons/v2/example-node/example-node.json'), image: await import('../../../public/style-pack/node-icons/v2/example-node/example-node-with-image.json') }
+    for (const [k, mod] of Object.entries(files)) {
+      const r = validatePackage(mod.default)
+      expect(r.ok, k).toBe(true)
+      expect(r.problems.filter((p) => p.where === 'Icon'), k).toEqual([])
+      expect(r.icon?.kind).toBe(k)
+      expect(r.icon && (r.icon.kind === 'brief' ? r.icon.brief.styleVersion : r.icon.styleVersion)).toBe(CURRENT_STYLE)
+    }
+  })
+  it('is the version latest.json names', async () => {
+    const latest = (await import('../../../public/style-pack/node-icons/latest.json')).default as { version: string }
+    expect(latest.version).toBe(CURRENT_STYLE)
   })
 })

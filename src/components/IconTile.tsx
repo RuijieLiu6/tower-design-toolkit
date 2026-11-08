@@ -81,7 +81,7 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
       {hint && <span id={tipId} hidden>{hint}</span>}
       {tip && createPortal(
         <div ref={panel} role="tooltip" style={{ position: 'fixed', left: at?.left ?? -9999, top: at?.top ?? -9999, width: TIP_W, zIndex: 1000 }}
-          className="glass pointer-events-none rounded-xl bg-glass-1 px-3 py-2 text-left text-[11.5px] leading-snug text-ink shadow-lg">
+          className="glass pointer-events-none rounded-xl bg-glass-1 px-3 py-2 text-left text-meta leading-snug text-ink shadow-lg">
           <div className="font-semibold">{label}</div>
           {hint && <div className="mt-0.5 text-muted">{hint}</div>}
         </div>, document.body)}

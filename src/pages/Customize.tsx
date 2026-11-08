@@ -1,6 +1,7 @@
 // Customize: an immersive workflow builder. Icon nodes from every category, typed wires, workflow logic,
 // live results from the same engines as the guided app, local save/load, JSON export/import, and
 // "Run in the guided app", which switches on exactly this workflow's checks there.
+import Help from '../components/Help'
 import {
   Background, BackgroundVariant, Controls, MiniMap, Panel, ReactFlow, ReactFlowProvider, SelectionMode, useReactFlow,
   type Edge, type FinalConnectionState, type OnBeforeDelete,
@@ -28,7 +29,8 @@ import { extraOutput } from '../lib/extraLive'
 import { SOLAR_NODE, useSolarAccess } from '../hooks/useSolarAccess'
 import { startPersistence, whenRestored } from '../lib/project/session'
 import { navigate } from '../lib/route'
-import { builtOutput } from '../lib/workflowLive'
+import { builtOutput, guardOutput } from '../lib/workflowLive'
+import { useProjectSiteArea } from '../lib/siteArea'
 import { canConnect, evaluateGraph, isLogic, runSchedule, SOURCES, type GraphNode, type NodeOutput } from '../lib/workflowLogic'
 import { makeRunRecord, type RunMode } from '../lib/runRecord'
 import RunBar from '../components/workflow/RunBar'
@@ -72,6 +74,7 @@ function Builder() {
   const towers = useTowers()
   const model = useStore((s) => s.models[s.project])
   const results = useResults()
+  const siteArea = useProjectSiteArea().area
   // Nodes whose results live outside useResults (import session: economics, parking, facade, claims guard, provenance).
   const econ = useEconomics().result, mobility = useMobility(), facade = useFacade(), culture = useCultureGate(), provenance = useProvenanceIssues()
   const community = useCommunityNodes()
@@ -137,10 +140,12 @@ function Builder() {
       if (!e?.def) return { state: 'idle', headline: 'Not in this library', items: [] }
       if (e.status === 'researched') return { state: 'idle', headline: 'Researched, not runnable', items: [] }
       if (e.status === 'community') return communityOutput(e.def) ?? { state: 'idle', headline: 'Imported node: no result yet', items: [] }
-      return builtOutput(e.def, results, project, solarLines) ?? extraOutput(e.def.id, { econ, mobility, facade, culture, provenance, model: { model, towers } }) ?? { state: 'idle', headline: 'Built: open it in the guided app for results', items: [] }
+      // A check with nothing to read (no building model, no study site) waits instead of judging an empty design.
+      return guardOutput(e.def.id, { project, towers: towers.length, siteArea }, () => builtOutput(e.def!, results, project, solarLines) ?? extraOutput(e.def!.id, { econ, mobility, facade, culture, provenance, model: { model, towers } }))
+        ?? { state: 'idle', headline: 'Built: open it in the guided app for results', items: [] }
     }
     return evaluateGraph(graph, edges, { evalNode, sourceHeadline, towers: towers.map((t) => ({ id: t.id, name: t.name })) }, { until: runMode === 'step' ? step : undefined })
-  }, [graph, edgeKey, results, project, towers, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance, runMode, step]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [graph, edgeKey, results, project, towers, siteArea, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance, runMode, step]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const schedule = useMemo(() => runSchedule(graph, edges), [graph, edgeKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const notRun = useMemo<Record<string, NodeOutput>>(() => Object.fromEntries(graph.map((n) => [n.id, { state: 'idle', headline: 'Not run yet: press Run all', items: [] } as NodeOutput])), [graph])
@@ -291,7 +296,8 @@ function Builder() {
           <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
           <span className="hidden whitespace-nowrap text-sm font-semibold 2xl:inline">Tower Design Toolkit</span>
         </button>
-        <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-meta font-semibold text-accent"><Workflow size={13} aria-hidden />Customize</span>
+        <span className="flex items-center gap-1 rounded-full bg-selected px-2 py-0.5 text-meta font-semibold text-accent-hover"><Workflow size={13} aria-hidden />Data connections</span>
+        <Help label="What this canvas shows">This canvas is the data graph: a wire means a node reads another node's output (site, massing, program or a result), and the colours say which. It cannot loop, because a result can't feed itself. The workflow on the start page is different: it is the order you work in, and its return connections are steps you repeat.</Help>
         <input value={name} onChange={(e) => ed().setMeta({ name: e.target.value })} aria-label="Workflow name"
           className="w-32 min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium xl:w-56 outline-none hover:border-line focus:border-accent focus:bg-panel" />
         {dirty && <span className="text-meta text-muted" title="Changes since the last save (the canvas itself is kept automatically)">unsaved</span>}
@@ -306,7 +312,7 @@ function Builder() {
           <Menu label="New" icon={<FilePlus2 size={15} aria-hidden />} open={menu === 'new'} setOpen={(o) => setMenu(o ? 'new' : null)}>
             {TEMPLATES.map((t) => (
               <button key={t.id} role="menuitem" onClick={() => { ed().load(t.make(Object.keys(enabled).filter((k) => enabled[k]))); setMenu(null); setFit((x) => x + 1) }}
-                className="block w-full rounded-md px-2.5 py-1.5 text-left hover:bg-black/5"><span className="block text-xs font-medium">{t.name}</span><span className="block text-[10.5px] text-muted">{t.hint}</span></button>
+                className="block w-full rounded-md px-2.5 py-1.5 text-left hover:bg-black/5"><span className="block text-xs font-medium">{t.name}</span><span className="block text-meta text-muted">{t.hint}</span></button>
             ))}
             <p className="border-t border-line px-2.5 pt-1.5 text-meta text-muted">Starting new replaces the canvas; Ctrl+Z will not bring it back, so save first.</p>
           </Menu>
@@ -316,7 +322,7 @@ function Builder() {
             {saved.map((s) => (
               <div key={s.id} className="flex items-center gap-1 rounded-md hover:bg-black/5">
                 <button role="menuitem" onClick={() => { const wf = loadWorkflow(kv, s.id); if (wf) { ed().load(wf); setFit((x) => x + 1) } else ed().say('That saved workflow could not be read.'); setMenu(null) }}
-                  className="min-w-0 flex-1 px-2.5 py-1.5 text-left"><span className="block truncate text-xs font-medium">{s.name}</span><span className="block text-[10.5px] text-muted">{s.nodes} nodes · {new Date(s.updatedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</span></button>
+                  className="min-w-0 flex-1 px-2.5 py-1.5 text-left"><span className="block truncate text-xs font-medium">{s.name}</span><span className="block text-meta text-muted">{s.nodes} nodes · {new Date(s.updatedAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</span></button>
                 <button aria-label={`Delete ${s.name}`} title="Delete from this browser" onClick={() => { if (window.confirm(`Delete the saved workflow "${s.name}" from this browser?`)) { deleteWorkflow(kv, s.id); setSaved(listWorkflows(kv)) } }}
                   className="mr-1 rounded p-1 text-muted hover:text-red-700"><Trash size={13} /></button>
               </div>
@@ -355,7 +361,7 @@ function Builder() {
                 // Grasshopper navigation: left-drag on the canvas box-selects; right or middle drag (or Space + drag) pans.
                 selectionOnDrag panOnDrag={[1, 2]} selectionMode={SelectionMode.Partial} onPaneContextMenu={(e) => e.preventDefault()}
                 zoomOnDoubleClick={false} minZoom={0.15} maxZoom={2} connectionRadius={28}
-                connectionLineStyle={{ stroke: '#2a9d8f', strokeWidth: 2 }}
+                connectionLineStyle={{ stroke: 'var(--color-accent)', strokeWidth: 2 }}
                 defaultEdgeOptions={{ interactionWidth: 18 }}
                 ariaLabelConfig={{ 'node.a11yDescription.default': 'Press Enter to select this node, arrow keys to move it, Delete to remove it.' }}
               >

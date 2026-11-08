@@ -47,7 +47,7 @@ export default function ModelPanel() {
           </div>
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          {roles.map(([r, n]) => <span key={r} className="flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-[10.5px]"><span aria-hidden className="h-2 w-2 rounded-sm" style={{ background: ROLE_COLOR[r as keyof typeof ROLE_COLOR] }} />{ROLE_LABEL[r as keyof typeof ROLE_LABEL]} {n}</span>)}
+          {roles.map(([r, n]) => <span key={r} className="flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-meta"><span aria-hidden className="h-2 w-2 rounded-sm" style={{ background: ROLE_COLOR[r as keyof typeof ROLE_COLOR] }} />{ROLE_LABEL[r as keyof typeof ROLE_LABEL]} {n}</span>)}
         </div>
         <dl className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 text-meta">
           <dt className="text-muted">Units</dt><dd>{f.fileUnit} → metres ({f.unitSource === 'file' ? 'from the file' : f.unitSource === 'confirmed' ? 'confirmed by you' : 'chosen'})</dd><FlagChip flag={f.unitSource === 'file' ? 'unverified' : 'team_assumption'} />

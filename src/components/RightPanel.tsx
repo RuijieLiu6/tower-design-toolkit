@@ -11,6 +11,8 @@ import { useTowerAdds, watchTowerAdds } from '../lib/towerAdds'
 import { useTowerPosition } from '../lib/towerPosition'
 const TowerProperties = lazy(() => import('./TowerProperties'))
 import { useStore } from '../store'
+import { NEEDS_MODEL, NEEDS_MODEL_WORD, NEXT_MODEL } from '../lib/missingInput'
+import { CircleDashed } from './icons'
 import Inspector from './Inspector'
 import { HidePanelButton } from './PanelToggle'
 import PresentPanel from './PresentPanel'
@@ -34,9 +36,17 @@ function AnalysisOff() {
   )
 }
 
-/** Results before any tower: the checks read the towers, so say what to do first. */
+/**
+ * Results before any tower: most checks read the towers, so say what to do first. Shown above checks that run without
+ * a model (and with none picked); a check that needs one shows its own "Needs model" state (ResultState.tsx).
+ */
 function NothingToAnalyse() {
-  return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-meta text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Form step, or import a model on the Site step.</p>
+  return (
+    <p data-testid="nothing-to-analyse" className="mx-3 mt-3 flex items-start gap-1.5 rounded-md bg-pending-surface px-3 py-2 text-meta text-pending">
+      <CircleDashed size={14} className="mt-px shrink-0" aria-hidden />
+      <span><b>{NEEDS_MODEL_WORD}</b>: most checks read the tower. {NEXT_MODEL}</span>
+    </p>
+  )
 }
 
 type Tab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
@@ -101,7 +111,8 @@ export default function RightPanel() {
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
     : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results & evidence' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
-  const noTower = useStore((s) => s.towers[s.project].length === 0)
+  // No tower: the banner, unless the picked check already says it needs a model (no message twice).
+  const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
   return (
     <aside className="glass-edge flex h-full w-[22rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>

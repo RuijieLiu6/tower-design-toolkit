@@ -5,6 +5,8 @@
 // a threshold, and the rule, its source and its evidence flag stay one click away under Details.
 import type { RuleState } from '../engine/types'
 import type { ConeCheck } from '../engine/viewCones'
+import { NEXT_MODEL } from './missingInput'
+import { RESULT_WORD } from './status'
 
 export interface CheckRow {
   id: string
@@ -165,6 +167,8 @@ export function fixFor(key: string, state: RuleState, value: string, threshold?:
   // node had computed but cannot judge; and "Needs <threshold>; now <value>" read as broken English whenever the
   // threshold is a phrase ("Needs over 150 m above ground is an obstacle"). Rule and design, side by side, read right.
   if (state === 'unknown') {
+    // A line that reads the building model while the project has none (lib/missingInput.ts).
+    if (/^needs model\b/i.test(value)) return NEXT_MODEL
     if (/needs a site area/i.test(value)) return 'Choose a study site in the Site step: the share needs a site area.'
     if (/\bnot assessed\b/i.test(value)) return 'The Toolkit does not assess this: the code consultant or engineer confirms it (see Details).'
     if (/^(not entered|not answered|needs (a|the) |not in the model|not modelled)|not (entered|answered)$/i.test(value)) return 'Enter it under Details, sources and settings (below): it is an input, not a result.'
@@ -203,6 +207,7 @@ export function coneRows(towerId: string, towerName: string, checks: ConeCheck[]
   return { rows, outside }
 }
 
-export const STATE_WORD: Record<RuleState, string> = { pass: 'Pass', fail: 'Fail', warn: 'Check', unknown: 'Unknown' }
+/** The short word of each state (lib/status.ts holds the vocabulary). */
+export const STATE_WORD: Record<RuleState, string> = { pass: RESULT_WORD.pass, fail: RESULT_WORD.fail, warn: RESULT_WORD.warn, unknown: RESULT_WORD.unknown }
 const RANK: Record<RuleState, number> = { fail: 0, warn: 1, unknown: 2, pass: 3 }
 export const byState = (a: CheckRow, b: CheckRow) => RANK[a.state] - RANK[b.state]

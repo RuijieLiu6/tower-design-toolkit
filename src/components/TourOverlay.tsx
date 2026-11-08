@@ -62,7 +62,7 @@ export default function TourOverlay() {
         className="glass pointer-events-auto absolute bottom-6 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10.5px] font-semibold text-accent">Tour · {step + 1} of {TOUR.length}</p>
+            <p className="text-meta font-semibold text-accent">Tour · {step + 1} of {TOUR.length}</p>
             <h2 id="tour-title" className="mt-0.5 text-sm font-semibold">{s.title}</h2>
           </div>
           <button onClick={stop} aria-label="End the tour" className="rounded p-1 text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={16} /></button>

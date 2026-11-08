@@ -7,7 +7,6 @@ import { NodeArt, hasNodeArt } from '../icons/nodeArt'
 import { FallbackIcon, GeneratedIcon } from '../../lib/nodeIcons/generate'
 import { useNodeIcons, type IconRecord } from '../../lib/nodeIcons/store'
 import { CATEGORY_PHASE } from '../../lib/nodeIcons/brief'
-import { PHASE_HUE } from '../../lib/phases'
 import type { Category } from '../../data/registry'
 
 /** Artwork for a record (used by the editor's preview before the record is saved too). */
@@ -21,5 +20,5 @@ export function NodeArtwork({ id, size, category, muted = false }: { id: string;
   const icon = useNodeIcons((s) => s.icons[id])
   if (hasNodeArt(id)) return <NodeArt id={id} size={size} muted={muted} />
   if (icon) return <IconRecordArt icon={icon} size={size} muted={muted} />
-  return <span style={muted ? { filter: 'saturate(0.45)', opacity: 0.9 } : undefined} className="inline-flex"><FallbackIcon h={PHASE_HUE[CATEGORY_PHASE[category ?? 'DATA']]} size={size} /></span>
+  return <span style={muted ? { filter: 'saturate(0.45)', opacity: 0.9 } : undefined} className="inline-flex"><FallbackIcon phase={CATEGORY_PHASE[category ?? 'DATA']} size={size} /></span>
 }

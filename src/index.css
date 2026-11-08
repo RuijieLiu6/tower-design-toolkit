@@ -30,6 +30,11 @@
   --text-node--font-weight: 500;
   --text-meta: 12px;
   --text-meta--line-height: 16px;
+  /* Workspace page heading (design system §3): 24/32 600. */
+  --text-page: 24px;
+  --text-page--line-height: 32px;
+  --text-page--font-weight: 600;
+  /* Spacing: Tailwind's 4 px step gives the shared scale 4, 8, 12, 16, 24, 32, 48 (p-1, 2, 3, 4, 6, 8, 12). */
   /* Tailwind's own steps on the same scale: xs = metadata, sm = controls, base = body, lg = section heading. */
   --text-xs: 12px;
   --text-xs--line-height: 16px;
@@ -39,37 +44,86 @@
   --text-base--line-height: 24px;
   --text-lg: 18px;
   --text-lg--line-height: 26px;
-  /* Glass UI (Ruijie, 7 Nov: "all of my button transparent and all windows with rounded edge, prioritize information
-     through different gradient of transparency"). Surfaces are translucent white over a soft Vancouver backdrop
-     (forest, sea, mist; see body); the more important a surface, the more opaque it is: glass-1 key windows, glass-2
-     supporting bars, glass-3 context. Text stays dark on light glass. */
-  --color-ink: #1f2328;
-  --color-paper: rgb(30 60 50 / 0.035);
-  --color-panel: rgb(255 255 255 / 0.74);
-  --color-line: rgb(31 45 40 / 0.11);
-  /* Darker than the old #62666d, so small grey text stays at 4.5:1 or more on glass over the tinted backdrop. */
-  --color-muted: #4d5259;
-  --color-accent: #1f5f8b;
-  --color-chrome: rgb(255 255 255 / 0.76);
-  --color-chrome-ink: #1f2328;
-  --color-glass-1: rgb(255 255 255 / 0.82);
-  --color-glass-2: rgb(255 255 255 / 0.6);
-  --color-glass-3: rgb(255 255 255 / 0.38);
+  /* ---- Colour by meaning (Ruijie, 7 Nov, design system §4). Four separate roles that share one character:
+     1 interface (surfaces, text, action, selection), 2 workflow phases, 3 status, 4 building objects and data
+     (3D and charts: see DESIGN_SYSTEM.md, lib/design/tokens.ts). Blue is only for interaction and selection. */
+  --color-canvas: #f7f8fa;      /* page and workspace background */
+  --color-paper: #f7f8fa;       /* older name for the canvas */
+  --color-panel: #ffffff;       /* cards, inspectors, menus, input areas: opaque reading surfaces */
+  --color-subtle: #f0f2f5;      /* secondary groups and quiet containers */
+  --color-ink: #202630;         /* headings, labels, important values */
+  --color-muted: #5f6875;       /* supporting information and metadata (5.6:1 on white) */
+  --color-accent: #2563eb;      /* the main action in the active context; selected edge; focus */
+  --color-accent-hover: #1d4ed8;
+  --color-selected: #eaf1ff;    /* selected rows, options and bounded highlights */
+  --color-line: #d9dee7;        /* decorative dividers */
+  --color-boundary: #778294;     /* boundaries needed to recognise an input or control (3:1+) */
+  --color-edge: #66758a;        /* ordinary workflow connections */
+  --color-focus: #2563eb;
+  --color-chrome: #ffffff;
+  --color-chrome-ink: #202630;
+  --color-glass-1: #ffffff;     /* older glass names, now opaque surfaces */
+  --color-glass-2: #ffffff;
+  --color-glass-3: #f0f2f5;
+  /* AI suggestions: a restrained pale cyan container and a small indicator, never the colour of applied work */
+  --color-ai: #0e7490;
+  --color-ai-surface: #ecfafd;
+  --color-ai-line: #9bdcea;
 
-  /* One roundness across the whole tool (Ruijie, 7 Nov: "the rounded edge uses the same roundness … not too rounded but
-     more consistent"): every rounded-* class is the same 12 px, windows, cards, buttons and icon tiles alike (a small
-     chip simply reads as a pill, because a corner can't be rounder than half its height). rounded-full stays for
-     circles (dots, badges). */
-  --radius-ui: 0.75rem;
-  --radius: var(--radius-ui);
-  --radius-xs: var(--radius-ui);
-  --radius-sm: var(--radius-ui);
-  --radius-md: var(--radius-ui);
-  --radius-lg: var(--radius-ui);
-  --radius-xl: var(--radius-ui);
-  --radius-2xl: var(--radius-ui);
-  --radius-3xl: var(--radius-ui);
-  --radius-4xl: var(--radius-ui);
+  /* Workflow phases: bright accent for artwork and bounded highlights, light surface, dark companion for small text */
+  --color-site: #00a9d6;      --color-site-surface: #e7f7fc;      --color-site-ink: #006b85;
+  --color-form: #ff6b4a;      --color-form-surface: #fff0eb;      --color-form-ink: #a93920;
+  --color-program: #f4c430;   --color-program-surface: #fff8dd;   --color-program-ink: #785a00;
+  --color-schematic: #8b5cf6; --color-schematic-surface: #f3eeff; --color-schematic-ink: #5b21b6;
+  --color-present: #e145c2;   --color-present-surface: #fdecf8;   --color-present-ink: #9b227c;
+
+  /* Status (always with a symbol and a short word). Execution status (Complete, Running, Waiting for input) and
+     assessment results (Pass, Check, Fail) are different things; both use this family. */
+  --color-success: #147d50;   --color-success-surface: #e7f4ed;
+  --color-warning: #946200;   --color-warning-surface: #fdf4dd;
+  --color-error: #c9363e;     --color-error-surface: #fdecec;
+  --color-pending: #5f6875;   --color-pending-surface: #f0f2f5;
+
+  /* Tailwind's stock palettes, folded into the roles above, so the ~800 older uses (text-red-800, bg-emerald-50,
+     text-slate-600 …) follow the tokens without editing each call site: red/rose = error, emerald/green = success,
+     amber/yellow = warning, slate/gray = the neutral scale, blue/sky = interaction. */
+  --color-red-50: var(--color-error-surface); --color-red-100: var(--color-error-surface); --color-red-200: #f3c6c8; --color-red-300: #e9a0a4;
+  --color-red-400: var(--color-error); --color-red-500: var(--color-error); --color-red-600: var(--color-error); --color-red-700: #a92b32; --color-red-800: #8f242a; --color-red-900: #741d22; --color-red-950: #5c171b;
+  --color-rose-50: var(--color-error-surface); --color-rose-100: var(--color-error-surface); --color-rose-600: var(--color-error); --color-rose-700: #a92b32; --color-rose-800: #8f242a;
+  --color-emerald-50: var(--color-success-surface); --color-emerald-100: var(--color-success-surface); --color-emerald-200: #b9dfcb; --color-emerald-300: #8ccaaa;
+  --color-emerald-400: var(--color-success); --color-emerald-500: var(--color-success); --color-emerald-600: var(--color-success); --color-emerald-700: #106742; --color-emerald-800: #0d5536; --color-emerald-900: #0a432b; --color-emerald-950: #07321f;
+  --color-green-50: var(--color-success-surface); --color-green-100: var(--color-success-surface); --color-green-600: var(--color-success); --color-green-700: #106742; --color-green-800: #0d5536;
+  --color-amber-50: var(--color-warning-surface); --color-amber-100: var(--color-warning-surface); --color-amber-200: #f1dca2; --color-amber-300: #e8c46e;
+  --color-amber-400: #c99a2e; --color-amber-500: #b07f12; --color-amber-600: var(--color-warning); --color-amber-700: #7c5200; --color-amber-800: #6b4700; --color-amber-900: #573a00; --color-amber-950: #432c00;
+  --color-yellow-50: var(--color-warning-surface); --color-yellow-100: var(--color-warning-surface); --color-yellow-700: #7c5200; --color-yellow-800: #6b4700;
+  --color-slate-50: #f7f8fa; --color-slate-100: #f0f2f5; --color-slate-200: #d9dee7; --color-slate-300: #b8c0cc; --color-slate-400: #8d96a3;
+  --color-slate-500: #5f6875; --color-slate-600: #5f6875; --color-slate-700: #434b57; --color-slate-800: #2e3540; --color-slate-900: #202630; --color-slate-950: #161a21;
+  --color-gray-50: #f7f8fa; --color-gray-100: #f0f2f5; --color-gray-200: #d9dee7; --color-gray-500: #5f6875; --color-gray-600: #5f6875; --color-gray-700: #434b57;
+  --color-blue-50: var(--color-selected); --color-blue-100: var(--color-selected); --color-blue-600: var(--color-accent); --color-blue-700: var(--color-accent-hover);
+  --color-sky-50: var(--color-selected); --color-sky-100: var(--color-selected); --color-sky-700: var(--color-accent-hover);
+
+  /* Corners: 8 px controls, 12 px panels and tiles, 16 px floating dialogs. rounded-full stays round. */
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-float: 16px;
+  --radius-ui: var(--radius-panel);
+  --radius: var(--radius-control);
+  --radius-xs: 4px;
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-panel);
+  --radius-xl: var(--radius-panel);
+  --radius-2xl: var(--radius-float);
+  --radius-3xl: var(--radius-float);
+  --radius-4xl: var(--radius-float);
+
+  /* Shadows only for what floats: menus, dialogs, raised node tiles. Panels use a border and spacing. */
+  --shadow-tile: 0 1px 2px rgb(32 38 48 / 0.12), 0 4px 10px -4px rgb(32 38 48 / 0.2);
+  --shadow-float: 0 2px 6px rgb(32 38 48 / 0.08), 0 16px 36px -14px rgb(32 38 48 / 0.3);
+
+  /* Motion: short and explanatory; none under reduced motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Evidence flags, used everywhere (always with an icon and a word) */
   --color-flag-verified: #1f6b42;
@@ -79,99 +133,76 @@
   --color-flag-false: #b8137a;
 }
 
-/* Stage palettes: Massing = tracing paper, Schematic = drafting table, Present = review wall. */
-[data-stage="advanced"] {
-  --color-paper: rgb(40 90 150 / 0.07);
-  --color-panel: rgb(246 249 252 / 0.78);
-  --color-line: rgb(30 60 100 / 0.14);
-  --color-muted: #4b5664;
-  --color-accent: #1d5fa8;
-  --color-chrome: rgb(246 249 252 / 0.78);
-}
+/* One interface palette in every stage. Present keeps its darker review wall around the A2 board: a deliberate exception
+   (DESIGN_SYSTEM.md, "Intentional differences"), so the board reads as a print on a wall. */
 [data-stage="present"] {
-  --color-paper: #b8b8b8;
-  --color-muted: #43474d; /* readable on the grey review wall */
-  --color-chrome: #2b2e33;
-  --color-chrome-ink: #e8eaed;
+  --color-paper: #b8bcc4;
+  --color-muted: #434a55; /* readable on the review wall */
+  --color-chrome: #262b33;
+  --color-chrome-ink: #e8ebf0;
 }
 
 html, body, #root { height: 100%; }
-/* The backdrop every glass surface frosts: mist-white light from the top right, sea blue on the right, new leaf in the
-   middle, forest low on the left; kept light enough for dark and muted text. */
+/* The page: the cool neutral canvas with the faintest light from the top right; subtle and still (design system §3). */
 body {
   color: var(--color-ink); -webkit-font-smoothing: antialiased;
   font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; letter-spacing: normal; font-optical-sizing: auto;
-  background-color: #e9f0e8;
-  background-image:
-    radial-gradient(55% 50% at 82% 4%, rgb(255 255 255 / 0.95), transparent 70%),
-    radial-gradient(50% 60% at 100% 58%, rgb(150 190 222 / 0.55), transparent 72%),
-    radial-gradient(45% 45% at 46% 72%, rgb(212 232 168 / 0.55), transparent 70%),
-    radial-gradient(60% 55% at 0% 100%, rgb(110 160 104 / 0.34), transparent 72%),
-    radial-gradient(45% 45% at 0% 18%, rgb(186 212 228 / 0.5), transparent 70%),
-    linear-gradient(160deg, #f3f6f1, #e1ebdf);
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(70% 55% at 88% 0%, rgb(255 255 255 / 0.9), transparent 70%), linear-gradient(180deg, #f7f8fa, #f2f4f7);
   background-attachment: fixed;
 }
-/* Fine grain over the backdrop, so the soft gradients don't band. */
-body::before {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.05; mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+/* Keyboard focus: one blue ring everywhere (controls that draw their own ring keep it). */
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+:is(.outline-none, [class*="focus-visible:ring"]):focus-visible { outline: none; }
 
-/* A glass window: frost, a lit rim and a soft float. The fill comes from bg-panel / bg-glass-1..3 / bg-chrome, so a
-   window's importance is its opacity. Only top-level windows carry it (each one blurs what is behind it). */
+/* Windows (the older .glass / .glass-edge names): opaque white reading surfaces separated by a hairline border. Things
+   over the 3D view (.glass) get a faint lift; true floating elements (menus, popovers, dialogs) get --shadow-float. */
 @layer components {
-  /* glass-edge: the rim and float alone, for windows over the soft backdrop (blurring a soft gradient changes nothing
-     you can see, and costs frames). glass: the same plus frost, for anything that floats over the 3D view or text. */
-  .glass-edge, .glass {
-    border: 1px solid rgb(255 255 255 / 0.7);
-    box-shadow: 0 12px 32px -16px rgb(28 58 48 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.75);
-  }
-  .glass {
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
-    backdrop-filter: blur(18px) saturate(160%);
-  }
-  /* The cover's name box matches its node tiles (Ruijie, 7 Nov): no white outline, a clear drop shadow outside. */
-  .glass.glass-tile { border-color: transparent; box-shadow: 0 1px 2px rgb(24 40 34 / 0.12), 0 6px 14px -4px rgb(24 40 34 / 0.18), 0 18px 36px -18px rgb(28 58 48 / 0.35); }
+  .glass-edge, .glass { border: 1px solid var(--color-line); box-shadow: none; }
+  .glass { box-shadow: 0 1px 2px rgb(32 38 48 / 0.06), 0 6px 16px -10px rgb(32 38 48 / 0.18); }
+  :is([role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"]):is(.glass, .glass-edge, .bg-panel, .bg-white) { box-shadow: var(--shadow-float); }
+  .glass.glass-tile { border-color: transparent; box-shadow: var(--shadow-tile); }
   [data-stage="present"] :is(.glass, .glass-edge).bg-chrome { border-color: rgb(255 255 255 / 0.12); box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.5); }
 }
+/* A modal dialog: opaque, 16 px corners, the float shadow. */
+[role="dialog"][aria-modal="true"]:is(.bg-panel, .bg-white) { background-color: var(--color-panel); border-radius: var(--radius-float); box-shadow: var(--shadow-float); }
 
-/* A modal dialog is the one thing to read, so it is the most opaque glass, frosted: the map, its controls and the
-   panels behind never show through its text (importance = opacity, 7 Nov). Same colour as the stage's panels. */
-[role="dialog"][aria-modal="true"].bg-panel {
-  background-color: rgb(from var(--color-panel) r g b / 0.95);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  backdrop-filter: blur(24px) saturate(150%);
-}
-
-/* Every button is glass (unlayered, so it wins over the Tailwind utilities a button was written with). The more it
-   matters, the more opaque: the main action (bg-accent) is accent-tinted glass with accent text; a chosen option
-   (bg-ink) is the most opaque white pill; ordinary buttons (bg-panel / bg-white) are light glass. Focus rings stay:
-   Tailwind's ring variables are part of the shadow. */
+/* Buttons by meaning (design system §4). The main action (bg-accent): solid blue, white text. A chosen option (bg-ink):
+   the pale selected surface with blue text and a blue keyline, so "selected" never looks like "press me". Ordinary
+   buttons (bg-panel / bg-white): white with a hairline that darkens on hover. Unlayered, so it wins over utilities. */
 :is(button, a, label, [role="button"]).bg-accent {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.26)), color-mix(in srgb, var(--color-accent) 17%, transparent);
-  color: color-mix(in srgb, var(--color-accent) 78%, black);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
-  backdrop-filter: blur(10px) saturate(150%);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.9),
-    0 6px 16px -8px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  background: var(--color-accent); color: #fff;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 0 1px 2px rgb(32 38 48 / 0.12);
 }
-:is(button, a, label, [role="button"]).bg-accent:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.2)), color-mix(in srgb, var(--color-accent) 26%, transparent);
-}
+:is(button, a, label, [role="button"]).bg-accent:hover:not(:disabled) { background: var(--color-accent-hover); }
 :is(button, a, label, [role="button"]).bg-ink {
-  background: rgb(255 255 255 / 0.9);
-  color: var(--color-ink);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), inset 0 0 0 1px rgb(255 255 255 / 0.9), 0 4px 12px -6px rgb(28 58 48 / 0.4);
+  background: var(--color-selected); color: var(--color-accent-hover);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), inset 0 0 0 1px rgb(37 99 235 / 0.45);
 }
-:is(button, a).bg-white, :is(button, a).bg-panel { background-color: rgb(255 255 255 / 0.5); }
-:is(button, a).bg-white:hover:not(:disabled), :is(button, a).bg-panel:hover:not(:disabled) { background-color: rgb(255 255 255 / 0.72); }
-:is(button, a, label, [role="button"]):is(.bg-accent, .bg-ink) .text-white { color: inherit; }
-[data-stage="present"] .bg-chrome :is(button, a).bg-ink { background: rgb(255 255 255 / 0.18); color: var(--color-chrome-ink); }
+:is(button, a).bg-white, :is(button, a).bg-panel {
+  background-color: #fff;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), inset 0 0 0 1px var(--color-line);
+}
+:is(button, a).bg-white:hover:not(:disabled), :is(button, a).bg-panel:hover:not(:disabled) {
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), inset 0 0 0 1px var(--color-boundary);
+}
+:is(button, a, label, [role="button"]).bg-ink .text-white { color: inherit; }
+/* A chosen option is never drawn as an action: a selected tab, checked radio or pressed toggle written with the accent
+   fill takes the selected look instead (pale fill, blue text, blue keyline). */
+:is([aria-selected="true"], [aria-checked="true"], [aria-pressed="true"]).bg-accent {
+  background: var(--color-selected); color: var(--color-accent-hover);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), inset 0 0 0 1px rgb(37 99 235 / 0.45);
+}
+:is([aria-selected="true"], [aria-checked="true"], [aria-pressed="true"]).bg-accent :is(.text-white, svg) { color: inherit; }
+[data-stage="present"] .bg-chrome :is(button, a).bg-ink { background: rgb(255 255 255 / 0.18); color: var(--color-chrome-ink); box-shadow: none; }
 
-/* rounded-full takes the one roundness too: dots, badges, switch knobs and thin bars stay round or pill-shaped (12 px is
-   at least half their height), and larger pills and circles become the same rounded rectangle as everything else. */
-.rounded-full { border-radius: var(--radius-ui); }
+/* Corners by role: controls 8 px whatever class they were written with; dialogs 16 px. */
+:is(button, input, select, textarea, summary, [role="button"], [role="tab"], [role="radio"], [role="switch"], [role="option"])[class*="rounded"]:not(.rounded-full, .node-hit) { border-radius: var(--radius-control); }
+/* Inputs show their boundary at 3:1 (WCAG 1.4.11); the blue ring marks focus. */
+:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), select, textarea).border { border-color: var(--color-boundary); }
+:is(input, select, textarea):focus-visible { border-color: var(--color-focus); }
+
+/* rounded-full stays round: dots, badges, switch knobs and progress bars. */
 
 /* No frame on what can't be clicked (Ruijie, 7 Nov: "get rid of the frame for any unclickable component … check this
    across site to keep it consistent"). A box drawn with a neutral full border (border border-line) that holds nothing
@@ -196,29 +227,28 @@ body::before {
    glow behind it (a blurred copy, not backdrop-filter, so dozens stay cheap). Hue in --gh, size in --gi. */
 .gicon { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: var(--gi); height: var(--gi); border-radius: var(--radius-ui); color: hsl(var(--gh) 80% 52%);
-  background: linear-gradient(155deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.55) 55%, hsl(var(--gh) 95% 88% / 0.55));
-  /* Ruijie, 7 Nov: no white outline; a clear drop shadow outside the tile; the glow turned well down. */
-  box-shadow: inset 0 -5px 12px hsl(var(--gh) 70% 55% / 0.12),
-    0 1px 2px rgb(24 40 34 / 0.14), 0 4px 10px -2px rgb(24 40 34 / 0.2), 0 12px 24px -10px hsl(var(--gh) 40% 30% / 0.45);
+  /* An opaque white tile with the tile shadow; the colour lives in the glyph (design system §8: no decorative glow). */
+  background: #fff;
+  box-shadow: var(--shadow-tile);
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms, box-shadow 200ms, color 200ms; }
 .gicon-glow { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  color: hsl(var(--gh) 95% 62%); filter: blur(calc(var(--gi) * 0.085)); opacity: 0.25; transition: opacity 200ms; }
+  color: hsl(var(--gh) 95% 62%); filter: blur(calc(var(--gi) * 0.085)); opacity: 0; transition: opacity 200ms; display: none; }
 .gicon-glyph { position: relative; display: flex; }
-.gicon[data-level="soft"] { background: linear-gradient(155deg, rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.5) 55%, hsl(var(--gh) 90% 90% / 0.35)); }
+.gicon[data-level="soft"] { background: #fff; }
 .gicon[data-level="soft"] .gicon-glow { opacity: 0.12; }
 .gicon[data-level="off"] { color: hsl(var(--gh) 18% 58%);
-  background: linear-gradient(155deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.22));
-  box-shadow: inset 0 -3px 8px rgb(30 50 40 / 0.05), 0 1px 2px rgb(24 40 34 / 0.1), 0 4px 10px -3px rgb(24 40 34 / 0.12); }
+  background: var(--color-subtle);
+  box-shadow: 0 1px 2px rgb(32 38 48 / 0.08); }
 .group:hover .gicon, .gicon-lift:hover .gicon { transform: translateY(-2px); }
 /* Opaque tiles (Ruijie, 7 Nov: the cover's Start and Enter): a solid tile, nothing showing through. */
-.gicon.gicon-solid { background: linear-gradient(155deg, #ffffff, hsl(var(--gh) 70% 93%)); }
+.gicon.gicon-solid { background: #fff; }
 /* Design-node tiles (components/NodeTile.tsx; Ruijie, 7 Nov): a neutral white tile, one size per place, a soft shadow,
    never turned; the illustration carries the colour. The clickable element around it (.node-hit) gives the states:
    hover lifts, keyboard focus rings in the accent, selected (data-selected) wears an accent ring. Soft: available, a
    little quieter; off: not in use, the drawing desaturated. */
 .node-tile { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: var(--nt); height: var(--nt); border-radius: var(--radius-ui); background: #fff;
-  box-shadow: 0 1px 2px rgb(24 40 34 / 0.12), 0 4px 10px -4px rgb(24 40 34 / 0.2);
+  width: var(--nt); height: var(--nt); border-radius: var(--radius-panel); background: #fff;
+  box-shadow: var(--shadow-tile);
   transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms, opacity 160ms; }
 .node-tile[data-state="soft"] { background: rgb(255 255 255 / 0.86); }
 .node-tile[data-state="soft"] svg { filter: saturate(0.7); }
@@ -227,7 +257,8 @@ body::before {
 .node-tile[data-state="soft"] img { filter: saturate(0.7); }
 .node-tile[data-state="off"] img { filter: saturate(0.12); opacity: 0.7; }
 .node-hit:hover .node-tile { transform: translateY(-1px); box-shadow: 0 2px 4px rgb(24 40 34 / 0.14), 0 10px 20px -8px rgb(24 40 34 / 0.34); }
-.node-hit:focus-visible .node-tile { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-accent), 0 4px 10px -4px rgb(24 40 34 / 0.2); }
+.node-hit { outline: none; }
+.node-hit:focus-visible .node-tile { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-focus), var(--shadow-tile); }
 .node-hit[data-selected] .node-tile { box-shadow: 0 0 0 2px var(--color-accent), 0 6px 14px -6px rgb(24 40 34 / 0.3); }
 @media (prefers-reduced-motion: reduce) { .node-tile { transition: none; } .node-hit:hover .node-tile { transform: none; } }
 
@@ -248,16 +279,6 @@ body::before {
 .tdt-fill .sc { stroke: var(--f3, hsl(194 72% 38%)); } .tdt-fill .sd { stroke: var(--fa, hsl(348 88% 57%)); } .tdt-fill .sw { stroke: #fff; }
 @media (prefers-reduced-motion: reduce) { .gicon, .gicon-glow { transition: none; } .group:hover .gicon, .gicon-lift:hover .gicon { transform: none; } }
 @media (prefers-reduced-transparency: reduce) { .gicon { background: #fff; } .gicon[data-level="off"] { background: #f4f6f3; } }
-
-/* Less transparency when the viewer asks for it, or when the browser can't frost. */
-@media (prefers-reduced-transparency: reduce) {
-  :root, [data-stage="advanced"] { --color-panel: #ffffff; --color-glass-1: #ffffff; --color-glass-2: #f8f9f7; --color-glass-3: #f2f4f1; --color-chrome: #ffffff; --color-paper: #eef2ee; }
-  .glass, :is(button, a, label, [role="button"]).bg-accent { -webkit-backdrop-filter: none; backdrop-filter: none; }
-  body::before { display: none; }
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --color-panel: rgb(255 255 255 / 0.94); --color-glass-1: rgb(255 255 255 / 0.95); --color-glass-2: rgb(255 255 255 / 0.85); --color-glass-3: rgb(255 255 255 / 0.7); --color-chrome: rgb(255 255 255 / 0.94); }
-}
 
 /* Chrome cross-fades between stages (disabled under reduced motion). */
 .stage-fade { transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1), color 200ms, border-color 200ms; }
@@ -312,3 +333,47 @@ body::before {
 :where(td, th, input[type="number"], output, [data-num]) { font-variant-numeric: tabular-nums; }
 /* Form controls take the page's font (browsers give them their own). */
 :where(button, input, select, textarea) { font-family: inherit; }
+
+/* The data graph (Customize, React Flow): a wire keeps its data colour; the selected or focused wire turns the
+   interaction blue (design system §4, §10). */
+.react-flow__edge.selected .react-flow__edge-path, .react-flow__edge:focus-visible .react-flow__edge-path { stroke: var(--color-accent) !important; stroke-width: 2.5px !important; }
+
+/* ---- landing.atmosphere (Ruijie, 7 Nov): the landing page's warm, luminous light. Mood only: these values never mark
+   a phase, an action, a selection, a status, a model material or a data scale (those keep their own roles). One static,
+   responsive composition of large soft colour fields: ivory and cream in the middle where people read, peach and coral
+   at the lower left and along the bottom, rose through the lower centre, lavender and soft blue on the right, a little
+   pale sky along the top. Stronger at the edges, softened behind the heading, workflow and assistant. Mirrored in
+   lib/design/tokens.ts LANDING. */
+:root {
+  --atmo-ivory: #fffaf2;
+  --atmo-cream: #fdf0e1;
+  --atmo-peach: #ffc4a0;
+  --atmo-coral: #ff9473;
+  --atmo-rose: #f3a3c4;
+  --atmo-lavender: #c8b6f3;
+  --atmo-blue: #a6bdf6;
+  --atmo-sky: #cde6fb;
+  --atmo-surface: #fffdf9; /* the stable ivory reading surface on the landing page */
+}
+.landing-atmosphere {
+  background-color: var(--atmo-ivory);
+  background-image:
+    radial-gradient(42% 46% at 50% 44%, rgb(255 250 242 / 0.92), rgb(255 250 242 / 0) 72%),
+    radial-gradient(55% 60% at -4% 108%, var(--atmo-coral), rgb(255 148 115 / 0) 70%),
+    radial-gradient(48% 42% at 20% 100%, var(--atmo-peach), rgb(255 196 160 / 0) 72%),
+    radial-gradient(46% 40% at 52% 112%, var(--atmo-rose), rgb(243 163 196 / 0) 70%),
+    radial-gradient(40% 70% at 104% 62%, var(--atmo-lavender), rgb(200 182 243 / 0) 70%),
+    radial-gradient(38% 46% at 106% 102%, var(--atmo-blue), rgb(166 189 246 / 0) 70%),
+    radial-gradient(46% 26% at 66% -6%, var(--atmo-sky), rgb(205 230 251 / 0) 72%),
+    linear-gradient(180deg, var(--atmo-ivory), var(--atmo-cream));
+}
+/* A very fine, low-contrast grain so the large gradients don't band; static. */
+.landing-atmosphere::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.035; mix-blend-mode: multiply; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (max-width: 640px) {
+  /* narrow screens: the fields move closer, so the colour still frames the reading area */
+  .landing-atmosphere { background-size: 140% 100%; background-position: center; }
+}
+@media (prefers-contrast: more) { .landing-atmosphere { background-image: none; } .landing-atmosphere::before { display: none; } }

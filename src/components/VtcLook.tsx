@@ -1,47 +1,42 @@
-// Two looks for the competition view (Ruijie, 6 Nov: "one with the surround program and the legend and one with the gray
-// or white model and refer to Rhino's default rendering shade"), remembered in this browser.
-// - Program: each existing building in its ground-level use (lib/vtcUses.ts), in Real Vancouver's colours
-//   (lib/buildingUse.ts), with a legend in the same visual language as Real Vancouver's.
-// - Plain: a white model in the manner of Rhino's Rendered display: light grey surfaces, soft shadows on a light ground,
-//   a pale gradient behind, subtle dark edges.
+// The competition view's model in the display modes (lib/displayMode.ts; Ruijie, 6 Nov: "one with the surround
+// program and the legend and one with the gray or white model"; design system §9, 7 Nov):
+// - Program: each existing building in its ground-level use (lib/vtcUses.ts), in the same palette as Real Vancouver's
+//   types (lib/buildingUse.ts), with a labelled legend.
+// - Massing and Analysis: the neutral model (MODEL tokens), matte, under a soft inspection light with restrained shadows,
+//   a pale gradient behind and quiet edges. Materials is not offered here: the base model carries no materials.
 // The context drawn here comes from the entrant's own copy of the base model (lib/vtcContextSource.ts); without it only
 // the brief's site is drawn, and the legend says so.
-import { useEffect, useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, type CSSProperties } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { create } from 'zustand'
 import { isExtruded, type ContextItem, type VtcContext } from '../context'
 import type { Look } from '../data/stages'
-import { USES } from '../engine/types'
 import { BUILDING_USES, SWATCH_BORDER, useColor, type BuildingUse } from '../lib/buildingUse'
-import { CHROME } from '../lib/vistaLook'
+import { MODEL } from '../lib/design/tokens'
+import { useShownMode } from '../lib/displayModeHooks'
 import { contextUses } from '../lib/vtcUses'
 import { useVtcSource } from '../lib/vtcContextSource'
-import { useStore, useTowers } from '../store'
+import { useStore } from '../store'
 import Help from './Help'
+import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 
-// ---------------------------------------------------------------- the choice (this browser)
+/** Which context colouring the scene draws: by ground-level use (Program) or the neutral model (every other mode). */
 export type VtcLookId = 'program' | 'plain'
-const KEY = 'ts.vtc.look'
-const saved = (): VtcLookId => { try { return localStorage.getItem(KEY) === 'plain' ? 'plain' : 'program' } catch { return 'program' } }
-export const useVtcLook = create<{ look: VtcLookId; setLook: (l: VtcLookId) => void }>((set) => ({
-  look: saved(),
-  setLook: (look) => { set({ look }); try { localStorage.setItem(KEY, look) } catch { /* this visit only */ } },
-}))
 
-/** Rhino's Rendered display, approximately: white materials under a soft light, a light ground, a pale gradient. */
+/** The neutral model (MODEL tokens): grey context a step darker than the proposal, light ground, a pale gradient. */
 export const PLAIN = {
-  building: '#f3f3f2', heritage: '#ebe7df', edge: '#4b4f55', ground: '#ededeb', site: '#fbfbfa', plinth: '#d6d6d4', plinthEdge: '#8d8d8a', block: '#a7a7a3',
-  sky: ['#fbfbfc', '#d9dbde'] as [string, string],
+  building: MODEL.context, heritage: MODEL.context, edge: MODEL.edge, ground: MODEL.ground, site: '#eef1f5', plinth: '#d3d9e0', plinthEdge: MODEL.edge, block: '#aab3bf',
+  sky: ['#f7f8fa', MODEL.ground] as [string, string],
 }
 /** Heritage keeps its own tone in Program: one heritage building is many stacked pieces, mostly with no use in the plan. */
 const HERITAGE = '#e6d8bf'
 
-/** The stage look with the competition look's ground, site and base colours. */
+/** The stage look with the neutral model's ground, site and base colours. */
 export function vtcSceneLook(look: Look, id: VtcLookId, xray: boolean): Look {
-  if (xray || id !== 'plain') return look
-  return { ...look, ground: PLAIN.ground, site: PLAIN.site, context: PLAIN.building, heritage: PLAIN.heritage, edge: PLAIN.block, plinth: PLAIN.plinth, plinthEdge: PLAIN.plinthEdge }
+  if (xray) return look
+  const base = { ...look, ground: PLAIN.ground, site: PLAIN.site, edge: PLAIN.block, plinth: PLAIN.plinth, plinthEdge: PLAIN.plinthEdge }
+  return id === 'plain' ? { ...base, context: PLAIN.building, heritage: PLAIN.heritage } : base
 }
 
 // ---------------------------------------------------------------- geometry
@@ -68,7 +63,7 @@ export function mergeContext(items: ContextItem[]): THREE.BufferGeometry | null 
   return geoms.length ? mergeGeometries(geoms) : null
 }
 
-/** Solid in Massing, see-through in x-ray so it never hides the tower being studied; edges optional. */
+/** Solid and matte in Massing, see-through in x-ray so it never hides the tower being studied; edges optional. */
 function Solid({ items, color, ghost, edges, name }: { items: ContextItem[]; color: string; ghost: boolean; edges?: { color: string; opacity: number }; name?: string }) {
   const geom = useMemo(() => mergeContext(items), [items])
   const lines = useMemo(() => (geom && edges ? new THREE.EdgesGeometry(geom, 25) : null), [geom, edges])
@@ -84,8 +79,9 @@ function Solid({ items, color, ghost, edges, name }: { items: ContextItem[]; col
   )
 }
 
-const EDGE_PLAIN = { color: PLAIN.edge, opacity: 0.32 }
-const EDGE_PROGRAM = { color: '#3d434b', opacity: 0.22 }
+// The context's edges sit at lower emphasis than the proposal's (which are full strength, Viewport.tsx).
+const EDGE_PLAIN = { color: PLAIN.edge, opacity: 0.38 }
+const EDGE_PROGRAM = { color: MODEL.edge, opacity: 0.3 }
 const EDGE_HERITAGE = { color: '#6b5a3c', opacity: 0.45 }
 
 /** The context buildings, heritage and plazas in the chosen look. */
@@ -125,8 +121,10 @@ function skyTexture(): THREE.CanvasTexture | null {
 }
 
 /**
- * The pale gradient behind the model and, while the Sun check is off (it casts its own), one soft shadow-casting light
- * from the same direction as the view's default light (three [600, 1200, 400], here in the model frame).
+ * The neutral inspection light of the competition view: the pale gradient behind the model, a soft fill and, while the
+ * Sun & shadow preview is off (it casts its own, at the hour shown beside the switch), one soft shadow-casting light from
+ * the view's default light direction (three [600, 1200, 400], here in the model frame), weak enough that its shadows
+ * only seat the volumes on the ground.
  */
 export function PlainEnvironment() {
   const scene = useThree((s) => s.scene)
@@ -145,7 +143,7 @@ export function PlainEnvironment() {
       {/* Rhino's white model keeps its faces in shade light: a soft fill from all around. */}
       <hemisphereLight name="vtc-plain-fill" args={['#ffffff', '#e4e4e2', 0.6]} />
       {!sunOn && (
-        <directionalLight name="vtc-plain-light" castShadow position={[600, -400, 1200]} intensity={0.55}
+        <directionalLight name="vtc-plain-light" castShadow position={[600, -400, 1200]} intensity={0.65}
           shadow-mapSize={[2048, 2048]} shadow-radius={5} shadow-bias={-0.0005} shadow-normalBias={0.5}
           shadow-camera-left={-450} shadow-camera-right={450} shadow-camera-top={450} shadow-camera-bottom={-450} shadow-camera-near={100} shadow-camera-far={3200} />
       )}
@@ -153,70 +151,41 @@ export function PlainEnvironment() {
   )
 }
 
-// ---------------------------------------------------------------- switch + legend (over the view)
-const box: CSSProperties = { background: CHROME.box, border: `1px solid ${CHROME.border}`, color: CHROME.ink, boxShadow: CHROME.shadow, borderRadius: 2, letterSpacing: '0.15px' }
-const focusRing = 'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#426b61]'
-function Swatch({ color, border = SWATCH_BORDER, style }: { color: string; border?: string; style?: CSSProperties }) {
-  return <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: `1px solid ${border}`, ...style }} />
-}
-const item = (key: string, sw: ReactNode, text: ReactNode, title?: string) => <span role="listitem" key={key} title={title} className="flex items-center gap-1.5">{sw}<span className="sr-only group-hover/legend:not-sr-only group-focus-within/legend:not-sr-only">{text}</span></span>
-const group = (label: string) => <span aria-hidden className="mr-0.5 hidden text-meta font-semibold group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }}>{label}</span>
+// ---------------------------------------------------------------- the mode switch and its key (over the view)
+const sw = (color: string, border = SWATCH_BORDER, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: `1px solid ${border}`, ...extra }} />
 
-function LookSwitch() {
-  const { look, setLook } = useVtcLook()
-  const opt = (id: VtcLookId, label: string, title: string) => (
-    <button type="button" role="radio" aria-checked={look === id} title={title} onClick={() => setLook(id)}
-      className={`rounded-[2px] px-2 py-[1px] text-meta font-medium ${focusRing}`}
-      style={look === id ? { background: CHROME.active, color: CHROME.activeInk } : { color: CHROME.tabInk }}>{label}</button>
-  )
-  return (
-    <div role="radiogroup" aria-label="Competition view look" className="flex items-center gap-0.5">
-      {opt('program', 'Program', 'Surrounding buildings in their ground-level use, with a legend')}
-      {opt('plain', 'Plain', 'A white model, shaded like Rhino’s Rendered display')}
-    </div>
-  )
-}
-
-/** The proposed tower's swatch: its programme colours, as in Real Vancouver's legend. */
-function TowerSwatch() {
-  const towers = useTowers()
-  const sel = useStore((s) => s.selectedTower)
-  const t = towers.find((k) => k.id === sel) ?? towers[0]
-  const uses = [...new Set((t?.bands ?? []).filter((b) => b.share > 0).map((b) => b.use))].slice(0, 3)
-  if (!uses.length) return <Swatch color={USES.residential.color} />
-  return <i aria-hidden className="inline-flex h-[9px] w-[9px] shrink-0 overflow-hidden rounded-[2px]" style={{ border: `1px solid ${SWATCH_BORDER}` }}>{uses.map((u) => <i key={u} className="h-full flex-1" style={{ background: USES[u]?.color }} />)}</i>
-}
-
-/** Bottom left of the competition view, above the north arrow: the look switch, and in Program the legend. */
+/** Bottom left of the competition view, above the north arrow: the display-mode switch and the key of the shown mode. */
 export function VtcLookBar() {
-  const look = useVtcLook((s) => s.look)
+  const mode = useShownMode()
   const ctx = useVtcSource((s) => s.ctx)
   const devFile = useVtcSource((s) => s.source === 'dev-file')
   const uses = ctx ? contextUses(ctx) : null
   const shown = uses ? BUILDING_USES.filter((u) => uses.buildings.includes(u.id)) : []
   return (
-    <div data-testid="vtc-look" className="group/legend pointer-events-auto absolute bottom-12 left-3 z-10 max-w-[min(46rem,calc(100%-1.5rem))] px-2 py-[5px] text-meta" style={box} title="Legend: point at it for the names">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <LookSwitch />
-        {look === 'program' && (
-          <div role="list" aria-label="Ground-level use" className="flex flex-wrap items-center gap-x-2 gap-y-[3px]">
-            {group('Ground-level use')}
+    <div data-testid="vtc-look" className="glass pointer-events-auto absolute bottom-12 left-3 z-10 grid max-w-[min(46rem,calc(100%-1.5rem))] gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <DisplayModeSwitch project="vtc" />
+        <SunChip />
+      </div>
+      {mode === 'massing' && <MassingKey />}
+      {mode === 'program' && <>
+        <div className="flex items-start gap-2">
+          <KeyGroup label="Ground-level use">
             {uses?.hasPlan
               ? <>
-                  {shown.map((u) => item(u.id, <Swatch color={useColor(u.id)} />, u.id === 'other' ? 'Other / unknown' : u.label.replace(/ \(.*\)$/, '')))}
-                  {item('heritage', <Swatch color={HERITAGE} border={EDGE_HERITAGE.color} />, 'Heritage')}
+                  {shown.map((u) => <KeyItem key={u.id} sw={sw(useColor(u.id))}>{u.id === 'other' ? 'Unknown' : u.label.replace(/ \(.*\)$/, '')}</KeyItem>)}
+                  <KeyItem sw={sw(HERITAGE, EDGE_HERITAGE.color)}>Heritage</KeyItem>
                 </>
-              : <span role="listitem">{!ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'}</span>}
-            {item('proposal', <TowerSwatch />, <b className="font-semibold">Proposed tower</b>, 'Your design tower, in its programme colours')}
-          </div>
-        )}
-        {look === 'program' && (
+              : <span role="listitem" className="text-muted">{!ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'}</span>}
+          </KeyGroup>
           <Help label="How the uses are read">
-            <p>From the competition's Ground Level Use Plan (in Buildner's base model). A building standing on the ground takes the use covering most of its footprint. A tower on a podium takes the lobby use beneath it (office, hotel, residential…). Otherwise it is Other / unknown, never guessed.</p>
+            <p>From the competition's Ground Level Use Plan (in Buildner's base model). A building standing on the ground takes the use covering most of its footprint. A tower on a podium takes the lobby use beneath it (office, hotel, residential…). Otherwise it is Unknown, never guessed.</p>
             <p className="mt-1.5">The plan shows the ground floor only. Heritage buildings keep one heritage tone.</p>
           </Help>
-        )}
-      </div>
+        </div>
+        <TowerUseKey />
+      </>}
+      {mode === 'analysis' && <AnalysisLegend project="vtc" />}
     </div>
   )
 }

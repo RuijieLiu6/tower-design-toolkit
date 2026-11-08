@@ -31,7 +31,7 @@ export default function EvalCasesSection() {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-meta">
           <thead>
-            <tr className="border-b border-line text-left text-[10.5px] text-muted">
+            <tr className="border-b border-line text-left text-meta text-muted">
               <th className="px-3 py-1.5 font-medium">Case</th><th className="px-3 py-1.5 font-medium">Type</th><th className="px-3 py-1.5 font-medium">Expected</th><th className="px-3 py-1.5 font-medium">Basis</th><th className="px-3 py-1.5 font-medium">Last run</th>
             </tr>
           </thead>

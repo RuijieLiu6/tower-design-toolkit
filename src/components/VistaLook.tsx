@@ -12,19 +12,20 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { ChevronDown, ChevronUp, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import * as THREE from 'three'
-import { USES } from '../engine/types'
 import { pickAt } from '../engine/viewFrom'
 import { CONES, pointInRing } from '../engine/viewCones'
 import { useResults } from '../hooks/useResults'
 import { BUILDING_USES, SWATCH_BORDER, useColor } from '../lib/buildingUse'
+import { MODEL } from '../lib/design/tokens'
+import { useShownMode } from '../lib/displayModeHooks'
+import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 import { sampleTerrain, type Manifest } from '../lib/cityLayers'
 import { fitPoints } from '../lib/fitView'
-import { useSceneStyle } from '../lib/sceneStyle'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
-import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, PROPOSED, VISTA, VISTA_OVERVIEW, planCamera, proposedLook, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
+import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -113,8 +114,8 @@ export function PlaceLabels({ extra, pick, active = null }: { extra?: readonly P
         return (
           <div key={l.text} ref={(el) => { if (el) live.labels.set(l.text, el); else live.labels.delete(l.text) }}
             data-x={l.x} data-y={l.y} data-z={l.z} data-ext={l.ext ? 1 : 0} data-place={l.text} data-active={picked ? '' : undefined}
-            className="absolute whitespace-nowrap rounded-[3px] border px-1.5 leading-[16px]"
-            style={{ display: 'none', transform: 'translate(-50%, -100%)', letterSpacing: '0.15px', fontSize: l.ext ? 10.5 : 11, boxShadow: '0 1px 3px rgba(43,60,48,0.125)',
+            className="absolute whitespace-nowrap rounded-[4px] border px-1.5 leading-[16px]"
+            style={{ display: 'none', transform: 'translate(-50%, -100%)', letterSpacing: '0.15px', fontSize: 12, fontWeight: l.ext ? 400 : 500, boxShadow: '0 1px 3px rgba(43,60,48,0.125)',
               ...(picked ? { background: CHROME.active, color: CHROME.activeInk, borderColor: CHROME.active } : { background: l.ext ? CHROME.labelExtBg : CHROME.labelBg, color: l.ext ? CHROME.labelExtInk : CHROME.labelInk, borderColor: CHROME.labelBorder }) }}>
             {l.text}
           </div>
@@ -334,19 +335,8 @@ function ModeTabs() {
   const someHidden = Object.values(hidden).some(Boolean), allHidden = CONES.every((c) => hidden[c.id])
   const conesOn: boolean | 'mixed' = !someHidden ? true : allHidden ? false : 'mixed'
   const defaultCone = useDefaultCone()
-  // Context (Ruijie, 3 Nov: "when they click on the context it will render the context. unclick it will bring back to
-  // normal"): Vista's textured style on or off. Same store as Present's Plain / Context picker and the Layers dock.
-  const contextOn = useSceneStyle((s) => s.style === 'context')
-  const lamp = (on: boolean) => (
-    <i aria-hidden className="inline-flex h-2.5 w-2.5 overflow-hidden rounded-full" style={{ border: `1.5px solid ${VISTA.cone}`, background: on ? VISTA.cone : 'transparent' }} />
-  )
-  const contextToggle = (
-    <button key="context" type="button" aria-pressed={contextOn} onClick={() => useSceneStyle.setState({ style: contextOn ? 'plain' : 'context' })}
-      title={contextOn ? 'Context render on (Vista’s textures): press for the Plain look' : 'Context render off: press for Vista’s textured Context look'}
-      className={`flex h-[30px] items-center gap-1.5 rounded-[2px] px-2 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`} style={{ color: CHROME.tabInk }}>
-      {lamp(contextOn)}Context<span aria-hidden className="text-meta font-semibold" style={{ color: VISTA.cone }}>{contextOn ? 'on' : 'off'}</span>
-    </button>
-  )
+  // The Context toggle that sat here (Vista's textured style) is now the Materials display mode, in the switch over the
+  // legend (components/DisplayMode.tsx), with the Layers dock and Present's picker in step.
   return (
     <div role="toolbar" aria-label="Map mode" className="flex gap-[2px] p-[3px]" style={box}>
       {MAP_MODES.flatMap((m) => {
@@ -355,7 +345,7 @@ function ModeTabs() {
           return [
             <button key={m.id} type="button" aria-pressed={conesOn} onClick={() => chooseMode(m.id, defaultCone)}
               title={conesOn === true ? 'View cones on: press to hide them all' : 'View cones off: press to show them all'}
-              className={`flex h-[30px] items-center gap-1.5 rounded-[2px] px-2 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`} style={{ color: CHROME.tabInk }}>
+              className={`flex h-[30px] items-center gap-1.5 rounded-[2px] px-2 text-meta hover:bg-[#dde6dc] ${focusRing}`} style={{ color: CHROME.tabInk }}>
               {/* The lamp: full when every cone shows, its left half when some do, empty when none (two halves, no gradient). */}
               <i aria-hidden className="inline-flex h-2.5 w-2.5 overflow-hidden rounded-full" style={{ border: `1.5px solid ${VISTA.cone}` }}>
                 <i className="h-full w-1/2" style={{ background: conesOn === false ? 'transparent' : VISTA.cone }} />
@@ -363,13 +353,12 @@ function ModeTabs() {
               </i>
               {m.label}<span aria-hidden className="text-meta font-semibold" style={{ color: VISTA.cone }}>{conesOn === true ? 'on' : conesOn === 'mixed' ? 'some' : 'off'}</span>
             </button>,
-            contextToggle,
           ]
         }
         const on = m.id === active
         return (
           <button key={m.id} type="button" aria-pressed={on} title={m.title} onClick={() => chooseMode(m.id, defaultCone)}
-            className={`h-[30px] rounded-[2px] px-2 text-[11.5px] ${on ? '' : 'hover:bg-[#dde6dc]'} ${focusRing}`}
+            className={`h-[30px] rounded-[2px] px-2 text-meta ${on ? '' : 'hover:bg-[#dde6dc]'} ${focusRing}`}
             style={on ? { background: CHROME.active, color: CHROME.activeInk } : { color: CHROME.tabInk }}>{m.label}</button>
         )
       })}
@@ -442,71 +431,58 @@ function Utilities() {
 }
 
 // ---------- legend ----------
-function Swatch({ color, border = CHROME.swatchBorder, style }: { color: string; border?: string; style?: CSSProperties }) {
-  return <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: `1px solid ${border}`, ...style }} />
-}
-
 function Legend() {
-  const typeColours = useVistaLook((s) => s.typeColours)
-  const style = useSceneStyle((s) => s.style)
-  const towers = useTowers()
-  const sel = useStore((s) => s.selectedTower)
-  const t = towers.find((k) => k.id === sel) ?? towers[0]
-  const uses = useMemo(() => [...new Set((t?.bands ?? []).filter((b) => b.share > 0).map((b) => b.use))].slice(0, 3), [t])
-  const plain = style === 'plain'
-  const strong = useStore(proposedLook)
+  const mode = useShownMode()
   const coneHidden = useConeVisibility((s) => s.hidden)
-  const item = (key: string, sw: ReactNode, text: ReactNode, title?: string) => <span key={key} title={title} className="flex items-center gap-1.5">{sw}<span className="sr-only group-hover/legend:not-sr-only group-focus-within/legend:not-sr-only">{text}</span></span>
-  const proposal = strong
-    ? <i aria-hidden className="inline-block h-[10px] w-[10px] shrink-0 rounded-[2px]" style={{ background: PROPOSED.fill, border: `1.5px solid ${PROPOSED.line}`, boxShadow: `0 0 0 2px ${PROPOSED.glow}88` }} />
-    : uses.length
-    ? <i aria-hidden className="inline-flex h-[9px] w-[9px] shrink-0 overflow-hidden rounded-[2px]" style={{ border: `1px solid ${SWATCH_BORDER}` }}>{uses.map((u) => <i key={u} className="h-full flex-1" style={{ background: USES[u]?.color ?? VISTA.proposal }} />)}</i>
-    : <Swatch color={VISTA.proposal} border={SWATCH_BORDER} />
-  // UI review (3 Nov): two labelled groups instead of one long run, the map group lists only what is on the map, the
-  // type-source note is a tooltip, and the legend folds to one line (remembered in this browser). Still in colour.
+  // UI review (3 Nov): the legend folds to one line (remembered in this browser); folded, the mode switch stays.
   const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') === '1' } catch { return false } })
   const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   const conesShown = !CONES.every((c) => coneHidden[c.id])
-  const proposalItem = <span role="listitem">{item('proposal', proposal, <b className="font-semibold">Proposed tower</b>, strong ? 'Your design tower(s), in one strong colour so they stand out' : 'Your design tower, in its programme colours')}</span>
-  const group = (label: string, title?: string) => <span aria-hidden className="mr-0.5 hidden text-meta font-semibold group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }} title={title}>{label}</span>
   const foldButton = (
-    <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to one line'} title={folded ? 'Show the legend' : 'Fold the legend'}
-      className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-[2px] hover:bg-[#dde6dc] ${focusRing}`}>{folded ? <ChevronUp size={13} aria-hidden /> : <ChevronDown size={13} aria-hidden />}</button>
+    <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to the mode switch'} title={folded ? 'Show the legend' : 'Fold the legend'}
+      className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-muted hover:bg-subtle hover:text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>
   )
-  if (folded) return (
-    <div className="flex items-center gap-2 px-2 py-[4px] text-meta" style={box}>
-      <span className="font-medium">Legend</span>
-      <span role="list" aria-label="Legend (folded)" className="flex items-center gap-2">{proposalItem}</span>
-      {foldButton}
-    </div>
-  )
+  const sw = (color: string, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: '1px solid rgb(32 38 48 / 0.18)', ...extra }} />
   return (
-    <div className="group/legend flex max-w-full items-start gap-2 px-2 py-[5px] text-meta" style={box} title="Legend: point at it for the names">
-      <div className="grid min-w-0 gap-y-[3px]">
-        <div role="list" aria-label="Buildings" className="flex flex-wrap items-center gap-x-2 gap-y-[3px]">
-          {group('Buildings', plain && typeColours ? 'Each building’s type: its own OpenStreetMap tag, else a point of interest inside it, else Other / unknown; never guessed' : undefined)}
-          {plain && typeColours
-            ? BUILDING_USES.map((u) => <span role="listitem" key={u.id}>{item(u.id, <Swatch color={useColor(u.id)} border={SWATCH_BORDER} />, u.id === 'other' ? 'Other / unknown' : u.label.replace(/ \(.*\)$/, ''))}</span>)
-            : <span role="listitem">{item('existing', <Swatch color={plain ? VISTA.buildings : '#dde1db'} />, 'Existing')}</span>}
-        </div>
-        <div role="list" aria-label="On the map" className="flex flex-wrap items-center gap-x-2 gap-y-[3px]">
-          {group('Map')}
-          {proposalItem}
-          {conesShown && <>
-            <span role="listitem">{item('cone', <Swatch color={CONE_BLUE.edge} />, 'View cone', 'Protected view cones (City ViewCone polygons), drawn as Vista draws them: a volume standing on each cone’s ceiling')}</span>
-            <span role="listitem">{item('ceiling', <Swatch color={CONE_BLUE.surface} />, 'Study ceiling', 'Each cone’s ceiling: the City-sourced estimate for 8 cones (solid edges), else Vista’s study surface, fainter with dashed edges (an assumption)')}</span>
-            <span role="listitem">{item('above', <Swatch color={VISTA_INTRUSION} />, 'Above the limit', 'Where a design tower rises above a City-sourced cone estimate (Vista’s red)')}</span>
-            <span role="listitem">{item('observer', <Swatch color={VISTA.observer} />, 'Observer · ray', 'Where the eye stands (protected viewpoint or View from here) and the line to the tower')}</span>
-            <span role="listitem">{item('wedge', <Swatch color={VISTA.wedge} />, 'Viewing angle', 'What the eye-level view takes in')}</span>
-          </>}
-          {plain && <>
-            <span role="listitem">{item('park', <Swatch color={VISTA.parks} />, 'Park')}</span>
-            <span role="listitem">{item('water', <Swatch color={VISTA.water} />, 'Water')}</span>
-            <span role="listitem">{item('terrain', <Swatch color={VISTA.terrain} />, 'Terrain')}</span>
-          </>}
-        </div>
+    <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <DisplayModeSwitch project="city" />
+        <SunChip />
+        {foldButton}
       </div>
-      {foldButton}
+      {!folded && <>
+        {mode === 'massing' && <MassingKey />}
+        {mode === 'program' && <>
+          <TowerUseKey />
+          <KeyGroup label="Existing buildings">
+            {BUILDING_USES.map((u) => (
+              <KeyItem key={u.id} sw={sw(useColor(u.id), { borderColor: SWATCH_BORDER })}
+                title={u.id === 'other' ? 'No use in OpenStreetMap: shown as unknown, never guessed from height or shape' : 'Each building’s own OpenStreetMap tag, else a point of interest inside it'}>
+                {u.id === 'other' ? 'Unknown' : u.label.replace(/ \(.*\)$/, '').replace(/ \/ .*$/, '').replace(/ & .*$/, '')}
+              </KeyItem>
+            ))}
+          </KeyGroup>
+        </>}
+        {mode === 'analysis' && <AnalysisLegend project="city" />}
+        {mode === 'materials' && <>
+          <MassingKey existing={false} />
+          <p className="max-w-[30rem] text-muted">Vista’s Context textures: facades by building family, paving, asphalt, parks and water. Illustrative, never surveyed.</p>
+        </>}
+        {(conesShown || mode !== 'materials') && <KeyGroup label="Map">
+          {conesShown && <>
+            <KeyItem sw={sw(CONE_BLUE.edge)} title="Protected view cones (City ViewCone polygons), drawn as Vista draws them: a volume standing on each cone’s ceiling">View cone</KeyItem>
+            <KeyItem sw={sw(CONE_BLUE.surface)} title="Each cone’s ceiling: the City-sourced estimate for 8 cones (solid edges), else Vista’s study surface, fainter with dashed edges (an assumption)">Ceiling</KeyItem>
+            <KeyItem sw={sw(VISTA_INTRUSION)} title="Where a design tower rises above a City-sourced cone estimate">Above limit</KeyItem>
+            <KeyItem sw={sw(VISTA.observer)} title="Where the eye stands (protected viewpoint or View from here) and the line to the tower">Observer</KeyItem>
+            <KeyItem sw={sw(VISTA.wedge)} title="What the eye-level view takes in">View angle</KeyItem>
+          </>}
+          {mode !== 'materials' && <>
+            <KeyItem sw={sw(VISTA.parks)}>Park</KeyItem>
+            <KeyItem sw={sw(VISTA.water)}>Water</KeyItem>
+            <KeyItem sw={sw(MODEL.ground)}>Ground</KeyItem>
+          </>}
+        </KeyGroup>}
+      </>}
     </div>
   )
 }
@@ -540,7 +516,7 @@ function ConePicker() {
   const current = looking && vp?.kind === 'cone' ? vp.coneId ?? '' : ''
   const cone = CONES.find((c) => c.id === current)
   const at = CONES.findIndex((c) => c.id === current)
-  const navBtn = `rounded-[2px] border px-2 py-0.5 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`
+  const navBtn = `rounded-[2px] border px-2 py-0.5 text-meta hover:bg-[#dde6dc] ${focusRing}`
   return (
     <div className="max-w-[22rem] space-y-1 px-2 py-1.5 text-meta" style={box}>
       <label className="flex items-center gap-1.5">
@@ -563,7 +539,7 @@ function ConePicker() {
       {cone && <p className="text-meta leading-snug">Eye at the City's viewpoint elevation Lv {cone.Lv} m (ViewCone service), looking along the cone's axis. Esc or City to leave.</p>}
       {!cone && looking && <p className="text-meta leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
       <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
-        className={`rounded-[2px] border px-2 py-0.5 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>
+        className={`rounded-[2px] border px-2 py-0.5 text-meta hover:bg-[#dde6dc] ${focusRing}`} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>
         Or stand on a street or roof (View from here)
       </button>
     </div>
@@ -604,10 +580,10 @@ export function VistaChrome() {
         {(note || viewNote) && <div role="status" className="max-w-[30rem] px-2 py-[3px] text-meta" style={{ ...box, background: '#f3e9dbee', color: '#684838' }}>{note ?? viewNote}</div>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-[3px] text-meta leading-[1.45]" style={box} title={MODE_HINT[mode]} data-testid="mode-gestures">
           <b className="font-semibold">{MAP_MODES.find((m) => m.id === mode)?.label ?? mode}</b>
-          {MODE_GESTURES[mode].map(([g, w]) => <span key={g} className="flex items-center gap-1"><kbd className="rounded border border-current/30 px-1 font-sans text-[10.5px] opacity-80">{g}</kbd>{w}</span>)}
+          {MODE_GESTURES[mode].map(([g, w]) => <span key={g} className="flex items-center gap-1"><kbd className="rounded border border-current/30 px-1 font-sans text-meta opacity-80">{g}</kbd>{w}</span>)}
           <span className="sr-only">{MODE_HINT[mode]}</span>
         </div>
-        {!looking && <Legend />}
+        <Legend />
       </div>
     </>
   )
@@ -709,7 +685,8 @@ export function VistaLookRig() {
       live.compass.style.transform = `rotate(${deg.toFixed(1)}deg)`
     }
     // Labels: 40 m above the anchor (Vista's anchor height or the ground, the higher), hidden when behind the camera or off screen; a place
-    // label that overlaps one already placed is hidden (Vista: half width = 2.9 px per character + 8 px, 22 px tall).
+    // label that overlaps one already placed is hidden (Vista's rule, half width = 2.9 px per character + 8 px at 11 px type;
+    // 3.3 px per character at the 12 px type floor), 22 px tall.
     if (!live.labels.size || !data) return
     const placed: [number, number, number, number][] = []
     // The design towers' name and over-limit labels (Viewport.tsx) come first: a place label never covers them.
@@ -728,7 +705,7 @@ export function VistaLookRig() {
       const g = Math.max(0, Number(el.dataset.z) || 0, sampleTerrain(data.grids, x, y) ?? 0)
       const q = toThree(x, y, g + 40).project(cam)
       if (q.z > 1 || q.z < -1 || q.x < -1.05 || q.x > 1.05 || q.y < -1.05 || q.y > 1.05) { el.style.display = 'none'; continue }
-      const px = ((q.x + 1) / 2) * size.width, py = ((1 - q.y) / 2) * size.height, half = (el.textContent?.length ?? 0) * 2.9 + 8
+      const px = ((q.x + 1) / 2) * size.width, py = ((1 - q.y) / 2) * size.height, half = (el.textContent?.length ?? 0) * 3.3 + 8
       // UI review (3 Nov): a label the view's edge would cut ("North Vanc…") is hidden rather than shown in part.
       if (px - half < 4 || px + half > size.width - 4 || py - 22 < 4 || py > size.height - 4) { el.style.display = 'none'; continue }
       if (placed.some((b) => px + half > b[0] && px - half < b[2] && py > b[1] && py - 22 < b[3])) { el.style.display = 'none'; continue }

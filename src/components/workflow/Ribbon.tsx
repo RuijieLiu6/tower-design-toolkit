@@ -45,7 +45,7 @@ function Panel({ title, entries, onAdd, names, onHover }: { title: string; entri
       <div className={`flex-1 px-1.5 pt-1 ${names ? 'flex items-start gap-0.5' : 'grid grid-flow-col grid-rows-2 content-start justify-start gap-0.5'}`}>
         {entries.map((e) => <Tile key={e.ref} e={e} onAdd={onAdd} names={names} onHover={onHover} />)}
       </div>
-      <div className="flex items-center justify-center gap-1 whitespace-nowrap border-t border-line/70 px-2 py-0.5 text-[9.5px] text-muted">
+      <div className="flex items-center justify-center gap-1 whitespace-nowrap border-t border-line/70 px-2 py-0.5 text-meta text-muted">
         {title.startsWith('Researched') && <FlaskConical size={10} aria-hidden />}{title} · {entries.length}
       </div>
     </div>
@@ -102,7 +102,7 @@ export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNode
             <>
               <span className="line-clamp-2 text-meta font-semibold leading-tight">{hover.name}</span>
               <span className="flex items-center gap-1 text-meta text-muted">{hover.status === 'researched' && <FlaskConical size={10} aria-hidden />}{STATUS_LABEL[hover.status]}</span>
-              <span className="text-[9.5px] text-muted">Drag onto the canvas, or click</span>
+              <span className="text-meta text-muted">Drag onto the canvas, or click</span>
             </>
           ) : (
             <>
@@ -141,7 +141,7 @@ export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNode
         ) : (
           <>
             {tab !== 'L0' && tab !== 'LOGIC' && !here.some((e) => e.status !== 'researched') && (
-              <div className="flex w-36 shrink-0 items-center border-r border-line px-3 text-[10.5px] text-muted">No built node here yet: the researched ones are placeholders.</div>
+              <div className="flex w-36 shrink-0 items-center border-r border-line px-3 text-meta text-muted">No built node here yet: the researched ones are placeholders.</div>
             )}
             <Panel title={tab === 'L0' ? 'Sources' : tab === 'LOGIC' ? 'Logic' : 'Built'} entries={here.filter((e) => e.status !== 'researched')} {...panel} />
             <Panel title="Researched · core" entries={byPriority('core')} {...panel} />

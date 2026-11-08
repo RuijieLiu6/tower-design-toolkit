@@ -125,7 +125,7 @@ export function VtcContextCard() {
           <figcaption className="text-meta tabular-nums">{BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m</figcaption>
         </figure>
         <div className="grid gap-1">
-          <span className="text-[10.5px] text-muted">The base model adds:</span>
+          <span className="text-meta text-muted">The base model adds:</span>
           <ul className="flex flex-wrap gap-1" aria-label="What the base model adds">
             {[[Building2, 'Neighbours'], [Landmark, 'Heritage'], [TowerOnSite, 'Future towers']].map(([I, w]) => {
               const Icon = I as typeof Building2

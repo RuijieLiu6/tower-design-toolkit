@@ -10,7 +10,9 @@ export type Params = Record<string, number | string | Record<string, number>>
 
 export interface PortDef { id: string; label: string; type: PortType; multi?: boolean }
 
-export const PORT_COLOR: Record<PortType, string> = { site: '#1f5f8b', massing: '#1f2328', program: '#b5651d', result: '#2a9d8f' }
+/** Wire colours by the data they carry (design system §4, 7 Nov): the dark companion of the matching phase (site → Site,
+ *  massing → Form, program → Program), results in ink. Never the interaction blue, which marks the selected wire. */
+export const PORT_COLOR: Record<PortType, string> = { site: '#006b85', massing: '#a93920', program: '#785a00', result: '#202630' }
 export const PORT_LABEL: Record<PortType, string> = { site: 'Site', massing: 'Massing', program: 'Program', result: 'Result' }
 
 export const SOURCES = [
@@ -94,6 +96,8 @@ export interface NodeOutput {
   breakdown?: { id: string; label: string; score: number; weight?: number; scored: number; unscored: number }[]
   /** Run status other than "ran" (P15-M02): switched off, blocked by an upstream node that is off, or waiting in step-through. */
   run?: { status: 'off' | 'blocked' | 'waiting'; by?: string }
+  /** Not run because an input the check reads is missing (lib/missingInput.ts): no building model, or another input. */
+  need?: 'needs-model' | 'waiting-input'
   /** Time this node took to compute (ms). */
   ms?: number
 }
@@ -298,7 +302,14 @@ export function evaluateGraph(nodes: GraphNode[], edges: GraphEdge[], ctx: EvalC
     }
     // Logic: gather the upstream lines, tagged with where they came from.
     const ups = incoming.filter((e) => e.targetHandle === 'in').map((e) => byId.get(e.source)!)
-    const inputs = ups.map((u) => ({ id: u.id, label: u.label, items: (res[u.id]?.items ?? []).map((i) => ({ ...i, from: i.from ?? u.label })) }))
+    // A check upstream that waits for an input (no building model, no site: lib/missingInput.ts) holds the logic back
+    // too: a score or "all pass" over the checks that happened to run would read as a verdict on missing data.
+    const waiting = ups.filter((u) => res[u.id]?.need)
+    if (waiting.length) {
+      res[id] = { state: 'idle', headline: `Waiting for input: ${plural(waiting.length, 'connected check')} ${waiting.length === 1 ? 'needs' : 'need'} ${waiting.every((u) => res[u.id]?.need === 'needs-model') ? 'a building model' : 'an input'}`, items: [], need: 'waiting-input', ms: now() - t0 }
+      continue
+    }
+    const inputs =ups.map((u) => ({ id: u.id, label: u.label, items: (res[u.id]?.items ?? []).map((i) => ({ ...i, from: i.from ?? u.label })) }))
     const flat = inputs.flatMap((i) => i.items)
     // A connected node with nothing to say still counts: an unconnected or placeholder node is an unknown, not a pass.
     const withGaps = inputs.flatMap((i) => (i.items.length ? i.items : [{ id: `${i.id}-none`, label: `${i.label}: no result`, state: 'unknown' as RuleState, flag: 'unresolved' as Flag, from: i.label }]))

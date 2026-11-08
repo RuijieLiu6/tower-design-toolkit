@@ -12,6 +12,8 @@ import { NodeArtwork } from './nodeIcons/NodeArtwork'
 import { BUILT_NODES, CATEGORIES, type Category, type NodeDef } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStore, type Phase } from '../store'
+import { inputGap } from '../lib/missingInput'
+import { useProjectSiteArea } from '../lib/siteArea'
 import NodeLibrary, { stageOf } from './NodeLibrary'
 
 const CAT_ORDER = Object.keys(CATEGORIES) as Category[]
@@ -72,6 +74,9 @@ export default function NodeBar() {
   const libButton = useRef<HTMLButtonElement>(null)
   const stop = active && all.some((n) => n.id === active) ? active : all[0]?.id
   const onCount = all.filter((n) => enabled[n.id]).length
+  // A check that is on but has nothing to read says so in its tip (lib/missingInput.ts): on is not the same as ran.
+  const towerCount = useStore((s) => s.towers[s.project].length)
+  const siteArea = useProjectSiteArea().area
 
   const showTip = (n: NodeDef, el: HTMLElement) => {
     const r = el.getBoundingClientRect()
@@ -107,7 +112,7 @@ export default function NodeBar() {
         onFocus={(e) => { setActive(n.id); showTip(n, e.currentTarget) }} onBlur={() => setTip(null)}
         // UI review (3 Nov): colour belongs on the data, not the chrome. On: a white tile in ink with a bar in its category
         // colour; off: no tile, a faint icon and no bar. Selected (its results showing): an ink ring.
-        className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''}`}>
+        className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : ''}`}>
         {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
         <span className={`relative flex h-10 w-10 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
           {!isCommunity && hasNodeArt(n.id) ? <NodeArt id={n.id} size={40} muted={!on} />
@@ -117,7 +122,6 @@ export default function NodeBar() {
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>
         <span aria-hidden className={`line-clamp-2 w-full text-center text-meta leading-[14px] ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
-        {isCommunity && <span className="absolute -right-1 -top-1 rounded-sm bg-panel px-[2px] text-[7px] font-bold leading-[9px] text-ink ring-1 ring-line" aria-hidden>C</span>}
       </button>
     )
   }
@@ -159,7 +163,7 @@ export default function NodeBar() {
           <div className="font-semibold">{t.name}</div>
           {t.question && <div className="mb-0.5 text-white/90">{t.question}</div>}
           <div className="text-white/80">
-            {tOn ? 'On' : 'Off'} · {CATEGORIES[t.category].label}{(t.status as string) === 'community' ? ' · Community' : ` · ${STAGE_NAME[stageOf(t)] ?? ''}`}
+            {tOn ? 'On' : 'Off'}{tOn && inputGap(t.id, { project, towers: towerCount, siteArea }) ? ` · ${inputGap(t.id, { project, towers: towerCount, siteArea })!.word}` : ''} · {CATEGORIES[t.category].label}{(t.status as string) === 'community' ? ' · Community' : ` · ${STAGE_NAME[stageOf(t)] ?? ''}`}
             {t.status === 'preview' ? ' · preview' : ''}{t.projects && !t.projects.includes(project) ? ` · runs in ${t.projects.includes('city') ? 'Real Vancouver' : 'Competition site'}` : ''}
           </div>
           <div className="text-white/70">{tOn ? 'Click to switch off' : 'Click to switch on and see its results'}</div>

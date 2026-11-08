@@ -8,8 +8,16 @@ import { navigate } from './route'
 
 export const useIntro = create<{ show: boolean; focus: 'composer' | null }>(() => ({ show: true, focus: null }))
 
-/** Past the intro, on to the agent. */
-export const enterToolkit = () => useIntro.setState({ show: false })
+/**
+ * Past the intro, on to the agent. The cover is the welcome (design system §5, 7 Nov: "consolidate overlapping welcome
+ * and entry experiences"), so coming in through it also marks the guided app's first-visit welcome dialog as seen: one
+ * welcome, not two in a row. The guide and the tour stay one click away (top bar).
+ */
+export const enterToolkit = () => {
+  useIntro.setState({ show: false })
+  try { window.localStorage.setItem('ts.onboarding.seen', '1') } catch { /* private mode: the dialog may show once */ }
+  void import('../store').then((m) => m.useStore.setState({ showOnboarding: false }))
+}
 
 /**
  * "Build my workflow", from inside the tool (Ruijie, 7 Nov: "if they enter the tool and find that this is not their

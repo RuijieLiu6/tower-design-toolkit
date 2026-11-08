@@ -24,7 +24,7 @@ export default function EconomicsResults() {
   return (
     <>
       <Section title="Results">
-        <div className={`rounded-md border p-2.5 ${r.verdict === 'works' ? 'border-emerald-200 bg-emerald-50/60' : r.verdict === 'marginal' ? 'border-amber-200 bg-amber-50/60' : r.verdict === 'fails' ? 'border-red-200 bg-red-50/60' : 'border-line bg-black/[0.02]'}`}>
+        <div className={`rounded-md border p-2.5 ${r.verdict === 'works' ? 'border-success/30 bg-success-surface' : r.verdict === 'marginal' ? 'border-warning/30 bg-warning-surface' : r.verdict === 'fails' ? 'border-error/30 bg-error-surface' : 'border-line bg-pending-surface'}`}>
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold">{VERDICT_LABEL[r.verdict]}</span>
             <StateChip state={STATE[r.verdict]} />
@@ -260,7 +260,7 @@ function CostSection({ r }: { r: EconResult }) {
       </div>
       <details className="mt-2 rounded-md border border-line">
         <summary className="cursor-pointer px-2 py-1 text-meta text-muted hover:text-ink">Supertall risk register: {RISK_REGISTER.length} blank lines outside the elasticity</summary>
-        <ul className="grid gap-0.5 border-t border-line p-2 text-[10.5px]">
+        <ul className="grid gap-0.5 border-t border-line p-2 text-meta">
           {RISK_REGISTER.map((x) => <li key={x} className="flex items-center gap-1.5"><FlagChip flag="unresolved" />{x}: no sourced allowance; widens the high side once a person fills it</li>)}
         </ul>
       </details>
@@ -299,7 +299,7 @@ function ChargesSection({ r }: { r: EconResult }) {
               <b className="shrink-0 tabular-nums">{l.total == null ? 'blank' : money(l.total)}</b>
             </div>
             <div className="text-meta text-muted">{l.rate} · {l.basis} · effective {l.effective}</div>
-            <div className="mt-0.5 flex items-start gap-1"><FlagChip flag={l.flag} /><span className={`rounded px-1 text-[9.5px] font-medium ${STATUS_CLASS[l.status]}`}>{l.status}</span><span className="text-meta text-muted">{l.source}</span></div>
+            <div className="mt-0.5 flex items-start gap-1"><FlagChip flag={l.flag} /><span className={`rounded px-1 text-meta font-medium ${STATUS_CLASS[l.status]}`}>{l.status}</span><span className="text-meta text-muted">{l.source}</span></div>
           </li>
         ))}
       </ul>

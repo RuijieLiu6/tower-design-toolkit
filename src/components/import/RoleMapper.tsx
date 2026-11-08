@@ -51,7 +51,7 @@ export default function RoleMapper({ raw, mapping, onChange, shapes, recalled }:
             {(['layer', 'name', 'userString'] as MapBy[]).map((b) => (
               <button key={b} role="radio" aria-checked={mapping.by === b} disabled={b === 'userString' && !keys.length} title={b === 'userString' && !keys.length ? 'The file has no user strings' : undefined}
                 onClick={() => onChange({ ...mapping, by: b, key: b === 'userString' ? (keys.includes(mapping.key) ? mapping.key : keys[0]) : mapping.key, rules: autoRules(raw, b, b === 'userString' ? (keys.includes(mapping.key) ? mapping.key : keys[0]) : mapping.key, mapping), confirmed: [] })}
-                className={`px-2.5 py-1 text-meta disabled:opacity-40 ${mapping.by === b ? 'bg-accent text-white' : 'hover:bg-black/5'}`}>{BY_LABEL[b]}</button>
+                className={`px-2.5 py-1 text-meta disabled:opacity-40 ${mapping.by === b ? 'bg-ink' : 'hover:bg-black/5'}`}>{BY_LABEL[b]}</button>
             ))}
           </div>
           {mapping.by === 'userString' && (
@@ -77,7 +77,7 @@ export default function RoleMapper({ raw, mapping, onChange, shapes, recalled }:
                       <span className="flex items-center gap-1.5">
                         <span aria-hidden className="h-3 w-3 shrink-0 rounded-sm border border-black/10" style={{ background: r.color ?? '#ddd' }} />
                         <span className="min-w-0 break-words leading-tight" title={r.key}>{r.key.split('::').map((part, i, all) => <span key={i} className={i < all.length - 1 ? 'text-muted' : ''}>{part}{i < all.length - 1 ? ' › ' : ''}</span>)}</span>
-                        {r.roleString && <span title={`Most objects carry the user string role=${r.roleString}`} className="shrink-0 rounded bg-black/5 px-1 text-[9.5px] text-muted">role={r.roleString}</span>}
+                        {r.roleString && <span title={`Most objects carry the user string role=${r.roleString}`} className="shrink-0 rounded bg-black/5 px-1 text-meta text-muted">role={r.roleString}</span>}
                       </span>
                     </td>
                     <td className="px-2 leading-tight text-muted">{[r.objects ? `${r.objects} obj · ${Math.round(r.triangles).toLocaleString('en-CA')} tri` : '', r.curves ? `${r.curves} curve${r.curves > 1 ? 's' : ''}${r.closedCurves ? ` (${r.closedCurves} closed)` : ''}` : ''].filter(Boolean).join(' · ')}</td>
@@ -99,9 +99,9 @@ export default function RoleMapper({ raw, mapping, onChange, shapes, recalled }:
               })}
             </tbody>
           </table>
-          {rows.length > MAX_ROWS && <p className="border-t border-line px-2 py-1.5 text-[10.5px] text-muted">Showing {MAX_ROWS} of {rows.length} rows; the rest are ignored. Map by layer for a file this size.</p>}
+          {rows.length > MAX_ROWS && <p className="border-t border-line px-2 py-1.5 text-meta text-muted">Showing {MAX_ROWS} of {rows.length} rows; the rest are ignored. Map by layer for a file this size.</p>}
         </div>
-        <p className="flex gap-1.5 text-[10.5px] leading-snug text-muted"><Info size={12} className="mt-0.5 shrink-0" aria-hidden /><span>Roles are guessed from names and the <code>role</code> and <code>use</code> user strings (team assumption): check every row. An object's own <code>use</code> user string beats its row's use. Tower and program volumes that overlap in plan become one tower; separate ones become separate towers.</span></p>
+        <p className="flex gap-1.5 text-meta leading-snug text-muted"><Info size={12} className="mt-0.5 shrink-0" aria-hidden /><span>Roles are guessed from names and the <code>role</code> and <code>use</code> user strings (team assumption): check every row. An object's own <code>use</code> user string beats its row's use. Tower and program volumes that overlap in plan become one tower; separate ones become separate towers.</span></p>
       </div>
       <div className="grid content-start gap-3 bg-black/[0.015] p-5">
         <Preview shapes={shapes} mapping={mapping} />

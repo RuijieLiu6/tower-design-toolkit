@@ -1,6 +1,6 @@
 // Present's panel (Ruijie, 6 Nov: tools as icons with a key word, long text behind "?"): the board (3D view or floor
 // plan), the representation, camera presets and capture, each an icon tile with its full name on hover (IconTile.tsx).
-import { Box, Building, Building2, Camera, Cuboid, Download, FileDown, Globe, Layers, LayoutPanelTop, Mountain, PersonStanding, ScanEye, Square, type LucideIcon } from './icons'
+import { Box, Building, Building2, Camera, Cuboid, Download, FileDown, Globe, LayoutPanelTop, Mountain, PersonStanding, ScanEye, type LucideIcon } from './icons'
 import { VTC_NORTH_DEG } from '../context'
 import { captureShot, downloadPlanSvg } from '../lib/capture'
 import { towerFloors } from '../engine/massing'
@@ -12,7 +12,7 @@ import BoardsSection from './BoardsSection'
 import { captureHiResShot } from '../lib/hiresCapture'
 import { Section } from './ui'
 import { useShallow } from 'zustand/react/shallow'
-import { useSceneStyle, type SceneStyle } from '../lib/sceneStyle'
+import { DisplayModeSwitch } from './DisplayModeSwitch'
 import Help from './Help'
 import IconTile from './IconTile'
 
@@ -96,8 +96,10 @@ export default function PresentPanel() {
           {REPS.map(({ id, label, icon, hint }) => (
             <IconTile key={id} size="sm" role="radio" aria-checked={presentRep === id} active={presentRep === id} icon={icon} word={label} label={label} hint={hint} onClick={() => set({ presentRep: id })} />
           ))}
-          {project === 'city' && <CityStyle />}
         </div>
+        {/* The display mode the board shows (Massing, Program, Analysis, Materials): the same switch as over the view,
+            which Present hides. Real Vancouver's Plain / Context picker that sat here is its Massing / Materials. */}
+        <div className="mt-1.5"><DisplayModeSwitch project={project} /></div>
       </Section>
       <Section title="Camera" help={project === 'city' ? 'For a protected viewpoint, use "View from this viewpoint" in the view-cone results.' : undefined}>
         <div className={row}>
@@ -116,20 +118,6 @@ export default function PresentPanel() {
       </Section>
       <DrawingsSection />
       <BoardsSection />
-    </div>
-  )
-}
-
-/** Real Vancouver's style for the board: Plain (pure tints by building type) or Context (Vista's textures). */
-function CityStyle() {
-  const style = useSceneStyle((s) => s.style)
-  const opt = (id: SceneStyle, label: string, icon: LucideIcon, hint: string) => (
-    <IconTile key={id} size="sm" role="radio" aria-checked={style === id} active={style === id} icon={icon} word={label} label={`${label} style`} hint={hint} onClick={() => useSceneStyle.setState({ style: id })} />
-  )
-  return (
-    <div role="radiogroup" aria-label="Style" className="ml-1 flex gap-0.5 border-l border-line pl-1">
-      {opt('plain', 'Plain', Square, 'Pure colours: existing buildings tinted by type.')}
-      {opt('context', 'Context', Layers, "Vista's textures: facades, paving, asphalt, grass and water.")}
     </div>
   )
 }

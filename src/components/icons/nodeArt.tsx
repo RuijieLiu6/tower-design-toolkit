@@ -5,11 +5,13 @@
 //
 // One family: the same isometric view (30°) on a 48-unit grid, the same small ground plate under every subject, light
 // from the upper left (top face lightest, left face middle, right face darkest), neutral warm-grey massing, and the
-// node's task in its phase colour (lib/phases.ts PHASE_HUE) in three tones. Our own drawings; one per built node.
-// The primitives are exported: the icon generator for user-created nodes (lib/nodeIcons/generate.tsx) draws with them,
-// so its icons sit in the same family (style pack v1, public/style-pack/node-icons/v1/).
+// node's task in its phase colour in three tones (lib/design/tokens.ts PHASE_COLOR, the design system's phase palette,
+// 7 Nov). Our own drawings; one per built node. The primitives are exported: the icon generator for user-created nodes
+// (lib/nodeIcons/generate.tsx) draws with them, so its icons sit in the same family. Style pack 1 drew the accent from a
+// hue (hsl tones); it is kept for icons saved under it (a drawing context without `a` uses it).
 import type { ReactNode } from 'react'
-import { phaseHue } from '../../lib/phases'
+import { phaseOfNode, PHASE_HUE } from '../../lib/phases'
+import { PHASE_COLOR } from '../../lib/design/tokens'
 
 // ---------- the isometric frame: plan units 0..16 on the plate, z up ----------
 export type P3 = [number, number, number]
@@ -17,22 +19,24 @@ export const iso = (x: number, y: number, z = 0): [number, number] => [24 + (x -
 export const pts = (...ps: P3[]) => ps.map((q) => iso(...q).map((v) => v.toFixed(2)).join(',')).join(' ')
 
 export type Tone = 'n' | 'a' | 'g' | 'w' | 'k' | 'p'
-/** Three tones per material: top, left face, right face. `a` is the node's phase colour. */
-export function tones(t: Tone, h: number): [string, string, string] {
+/** Three tones per material: top, left face, right face. `a` is the node's phase colour: the given tones (style pack 2),
+ *  else style pack 1's tones from the hue. */
+export function tones(t: Tone, h: number, a?: [string, string, string]): [string, string, string] {
   switch (t) {
     case 'n': return ['#fbfbfa', '#e2e5ea', '#c3c9d2'] // massing
     case 'p': return ['#eef1f3', '#d9dee4', '#c7cdd5'] // ground plate
     case 'g': return ['#b7dd8f', '#86c06a', '#5f9a4f'] // planting
     case 'w': return ['#bfe1f6', '#8cc4e8', '#5d9fcf'] // water and sky glass
     case 'k': return ['#6c7686', '#4f5868', '#3a4250'] // dark detail
-    case 'a': return [`hsl(${h} 82% 76%)`, `hsl(${h} 68% 61%)`, `hsl(${h} 58% 47%)`]
+    case 'a': return a ?? [`hsl(${h} 82% 76%)`, `hsl(${h} 68% 61%)`, `hsl(${h} 58% 47%)`]
   }
 }
 
-export interface Ctx { h: number }
+/** A drawing context: the phase hue, and (style pack 2) the accent's three tones. */
+export interface Ctx { h: number; a?: [string, string, string] }
 /** A box: top, the face toward the lower left and the face toward the lower right. */
 export const box = (c: Ctx, x: number, y: number, z: number, w: number, d: number, hh: number, t: Tone = 'n', o = 1): ReactNode => {
-  const [top, left, right] = tones(t, c.h)
+  const [top, left, right] = tones(t, c.h, c.a)
   return (
     <g opacity={o}>
       <polygon points={pts([x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + hh], [x, y + d, z + hh])} fill={left} />
@@ -45,7 +49,7 @@ export const box = (c: Ctx, x: number, y: number, z: number, w: number, d: numbe
 export const flat = (fill: string, z: number, ...ps: [number, number][]): ReactNode => <polygon points={pts(...ps.map(([x, y]) => [x, y, z] as P3))} fill={fill} />
 export const plate = (c: Ctx) => box(c, 0.6, 0.6, 0, 14.8, 14.8, 0.9, 'p')
 const tower = (c: Ctx, hh: number, x = 5.5, y = 5.5, w = 5, d = 5) => box(c, x, y, 0.9, w, d, hh)
-const A = (c: Ctx, k: 0 | 1 | 2) => tones('a', c.h)[k]
+const A = (c: Ctx, k: 0 | 1 | 2) => tones('a', c.h, c.a)[k]
 export const line = (a: [number, number], b: [number, number], stroke: string, w = 1.1, dash?: string) => <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={stroke} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash} />
 export const INK = '#3a4250'
 
@@ -171,6 +175,8 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
 }
 
 export const hasNodeArt = (id: string) => id in ART
+/** The current drawing context for a phase (style pack 2 tones). */
+export const phaseCtx = (phase: keyof typeof PHASE_COLOR): Ctx => ({ h: PHASE_HUE[phase], a: PHASE_COLOR[phase].tones })
 
 /** A built node's illustration (48-unit isometric drawing), in its phase colour. */
 export function NodeArt({ id, size = 48, className = '', muted = false }: { id: string; size?: number; className?: string; muted?: boolean }) {
@@ -178,7 +184,7 @@ export function NodeArt({ id, size = 48, className = '', muted = false }: { id: 
   if (!draw) return null
   return (
     <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden className={className} style={muted ? { filter: 'saturate(0.45)', opacity: 0.9 } : undefined} data-node-art={id}>
-      {draw({ h: phaseHue(id) })}
+      {draw(phaseCtx(phaseOfNode(id)?.id ?? 'site'))}
     </svg>
   )
 }

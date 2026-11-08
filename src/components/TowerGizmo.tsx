@@ -22,6 +22,7 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { useStore, useTowers } from '../store'
 import { useCityData } from './CityContext'
 import { useDock } from './ViewportDock'
+import { MODEL } from '../lib/design/tokens'
 
 const DEG = Math.PI / 180
 /** Gizmo size and line width on screen (px; the arrows' hit radius grows with the width), and its lift above the
@@ -31,8 +32,8 @@ const GIZMO_LINE = 4
 const LIFT = 0.5
 /** A press that travels further than this (px) before release is an orbit, not a click. */
 const CLICK_PX = 5
-/** Selection outline and ghost: the stage's accent (index.css --color-accent). */
-const ACCENT = { basic: '#1f5f8b', advanced: '#1d5fa8' } as const
+/** The ghost of a pending move: the interaction blue (design tokens: blue is only for interaction and selection). */
+const ACCENT = { basic: MODEL.selected, advanced: MODEL.selected } as const
 /** x arrow, y arrow, plane handle + turn arc; hover and snapped lines in the icon's sky-room amber. */
 const GIZMO_COLORS: [string, string, string] = ['#c8372d', '#23824a', '#1f5f8b']
 const GIZMO_HOVER = '#eda100'
@@ -88,8 +89,9 @@ function prisms(t: Tower): { ring: Ring; z0: number; z1: number }[] {
   return towerMasses({ ...t, x: 0, y: 0, rotation: 0 }).map((m) => ({ ring: m.ring, z0: m.z0, z1: Math.max(m.z0 + 1, m.z1) }))
 }
 
-/** Edges of the prisms (at most 8 verticals each, so a curved hull stays readable), as line-segment pairs. */
-function outlineSegments(t: Tower): [number, number, number][] {
+/** Edges of the prisms (at most 8 verticals each, so a curved hull stays readable), as line-segment pairs. Also the
+ * model's own edges in the solid views (Viewport.tsx), so the outline lies exactly on them. */
+export function outlineSegments(t: Tower): [number, number, number][] {
   const out: [number, number, number][] = []
   for (const { ring, z0, z1 } of prisms(t)) {
     const a = Math.max(0.3, z0), n = ring.length
@@ -103,6 +105,11 @@ function outlineSegments(t: Tower): [number, number, number][] {
   return out
 }
 
+/**
+ * The picked tower's selection (design system §9): an outline in the selection blue on a wider white keyline, drawn
+ * apart from the surface, so the tower's colours (neutral, uses or an analysis) stay exactly as the mode draws them,
+ * and the outline reads on light ground, dark x-ray cores and the dark end of a data scale alike.
+ */
 function SelectionOutline({ t, baseZ }: { t: Tower; baseZ: number }) {
   const picked = useTowerEdit((s) => s.picked === t.id)
   const phase = useStore((s) => s.phase)
@@ -112,12 +119,13 @@ function SelectionOutline({ t, baseZ }: { t: Tower; baseZ: number }) {
   const root = useEditorRoot()
   // Present has no outline: the board is the capture.
   if (!picked || phase === 'present' || hidden || viewing || segs.length < 2) return null
-  const color = ACCENT[phase]
   return (
     <group ref={root} position={[t.x, t.y, baseZ]} rotation={[0, 0, t.rotation * DEG]}>
-      <Line points={segs} segments color={color} lineWidth={2.5} fog={false} raycast={NO_RAYCAST} />
+      {/* Keyline first, then the outline on it (equal depth: the later draw wins). */}
+      <Line points={segs} segments color={MODEL.keyline} lineWidth={5} fog={false} toneMapped={false} renderOrder={1} raycast={NO_RAYCAST} />
+      <Line points={segs} segments color={MODEL.selected} lineWidth={2.5} fog={false} toneMapped={false} renderOrder={2} raycast={NO_RAYCAST} />
       {/* Faint copy through everything, so the outline reads behind context buildings and inside the x-ray shell. */}
-      <Line points={segs} segments color={color} lineWidth={1.5} transparent opacity={0.35} depthTest={false} depthWrite={false} renderOrder={20} fog={false} raycast={NO_RAYCAST} />
+      <Line points={segs} segments color={MODEL.selected} lineWidth={1.5} transparent opacity={0.35} depthTest={false} depthWrite={false} renderOrder={20} fog={false} toneMapped={false} raycast={NO_RAYCAST} />
     </group>
   )
 }

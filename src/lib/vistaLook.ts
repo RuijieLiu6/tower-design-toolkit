@@ -6,6 +6,7 @@
 import * as THREE from 'three'
 import { create } from 'zustand'
 import { LOOKS, type Look } from '../data/stages'
+import { MODEL } from './design/tokens'
 
 /** Vista's Plain ("collage") palette, sRGB. */
 export const VISTA = {
@@ -14,28 +15,24 @@ export const VISTA = {
   plane: '#926574', studyBoundary: '#526e5b', backdrop: '#b8bcb0',
 } as const
 
-/** Vista's fog colour in the Plain look (shader: vec3(0.96, 0.96, 0.93)). */
-export const VISTA_FOG = [0.96, 0.96, 0.93] as const
-
-/** Real Vancouver's clay look in Vista's palette (the plinth sides take Vista's extent and backdrop greys). */
-export const VISTA_LOOK: Look = {
-  ...LOOKS.clay,
-  background: VISTA.background, ground: VISTA.terrain, water: VISTA.water, park: VISTA.parks, context: VISTA.buildings,
-  shore: VISTA.shoreline, plinth: '#d2cfc1', plinthEdge: VISTA.extent, older: '#ece9e0', edge: '#b9b6a8', hemi: 0.9,
-}
+/**
+ * The haze far context fades into: the model background (MODEL.background #f2f4f7 as linear 0-1 sRGB), so the horizon
+ * meets the sky without a warm band. Vista's own was vec3(0.96, 0.96, 0.93).
+ */
+export const VISTA_FOG = [0.949, 0.957, 0.969] as const
 
 /**
- * The proposed tower in Real Vancouver's Massing view (Ruijie, 3 Nov: "use a stronger high contrast or glowing colour and
- * in the legend, label the proposed tower"): an electric ultramarine body with a glow line and a dark core line, so it
- * stands out at any zoom. At least 3.5:1 against every light type tint, 4.8:1 against the terrain, 3.9:1 against the
- * water; a different hue from the red overshoot, the blue existing-building tint and the purple cones. Schematic,
- * x-ray (Present X-ray included) and the programme panels keep the programme colours.
+ * Real Vancouver's clay look: Vista's flat shading and water and parks, on the design system's neutral model (MODEL:
+ * background, terrain as the ground, buildings one grey step below the proposal), so both projects read as one product.
  */
-export const PROPOSED = { fill: '#1a3cff', glow: '#7f97ff', line: '#0a1c80' } as const
-/** Massing, and Present in Clay: in Present the programme colours sank among the type tints (checked 3 Nov), so the
- *  board keeps the strong colour too; Present X-ray and Schematic keep the programme colours. */
-export const proposedLook = (s: { project: string; phase: string; presentRep?: string }) =>
-  s.project === 'city' && (s.phase === 'basic' || (s.phase === 'present' && s.presentRep === 'clay'))
+export const VISTA_LOOK: Look = {
+  ...LOOKS.clay,
+  background: MODEL.background, ground: MODEL.ground, water: VISTA.water, park: VISTA.parks, context: MODEL.context,
+  shore: VISTA.shoreline, plinth: '#d3d9e0', plinthEdge: MODEL.edge, older: '#bcc3cc', edge: '#aab3bf', hemi: 0.9,
+}
+
+// The electric-blue proposed tower of 3 Nov (PROPOSED, proposedLook) gave way to the design system's display modes
+// (7 Nov, lib/displayMode.ts): the proposal is picked out by form, edges and contrast, and the selection by an outline.
 
 /** Chrome tokens: computed styles of Vista's live City overview (3 Nov), Plain style. */
 export const CHROME = {

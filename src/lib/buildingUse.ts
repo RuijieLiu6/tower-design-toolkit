@@ -3,6 +3,7 @@
 // drawn at full colour with its outline, stays the strongest thing in view. A type comes from OpenStreetMap; an unknown
 // type stays "other" (never guessed from height or shape).
 import { USES } from '../engine/types'
+import { DATA } from './design/tokens'
 
 export type BuildingUse = 'residential' | 'retail' | 'office' | 'hotel' | 'cultural' | 'institutional' | 'transit' | 'other'
 
@@ -13,8 +14,9 @@ export const BUILDING_USES: { id: BuildingUse; label: string; base: string }[] =
   { id: 'hotel', label: 'Hotel', base: USES.hotel.color },
   { id: 'cultural', label: 'Cultural & religious', base: USES.civic.color },
   { id: 'institutional', label: 'Institutional (schools, health, civic)', base: USES.amenity.color },
-  { id: 'transit', label: 'Transit station', base: '#c8707a' },
-  { id: 'other', label: 'Other / type unknown', base: '#a9a69f' },
+  { id: 'transit', label: 'Transit station', base: DATA.categorical[3] },
+  // Unknown is missing data, not a kind: the missing-data grey, whose tint is close to the neutral context.
+  { id: 'other', label: 'Other / type unknown', base: DATA.missing },
 ]
 
 /**

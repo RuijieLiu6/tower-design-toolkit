@@ -50,7 +50,7 @@ export default function TopBar() {
           const on = phase === s.id
           return (
             <button key={s.id} role="tab" aria-selected={on} onClick={() => setPhase(s.id)} title={`${s.purpose} (key ${s.key})`}
-              className={`stage-fade flex items-center gap-2 rounded-lg border px-3 py-1 text-left ${on ? (present ? 'border-white/40 bg-white/15 font-semibold' : 'border-transparent bg-accent text-white') : 'border-transparent opacity-80 hover:opacity-100'}`}>
+              className={`stage-fade flex items-center gap-2 rounded-lg border px-3 py-1 text-left ${on ? (present ? 'border-white/40 bg-white/15 font-semibold' : 'border-transparent bg-ink') : 'border-transparent text-muted hover:bg-subtle hover:text-ink'}`}>
               <Icon size={18} className={on && !present ? 'text-accent' : ''} />
               <span className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold">{s.label}</span>

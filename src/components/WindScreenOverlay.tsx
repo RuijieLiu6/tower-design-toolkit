@@ -1,18 +1,21 @@
 // Ground overlay of the pedestrian wind screen (research P03-M03 visualisation): indicative risk zones coloured Low /
-// Medium / High (downwash bands, corner wedges, aligned gaps) and an arrow per strong-wind direction. Shown while the
-// node is selected. Zone sizes are drawing rules (team assumption), not predicted extents.
+// Medium / High (downwash bands, corner wedges, aligned gaps) and an arrow per strong-wind direction. An analytical
+// colour layer: shown in the Analysis display mode with "Wind risk" as its quantity (picking the node opens it), with
+// the levels in the key under the view. Zone sizes are drawing rules (team assumption), not predicted extents.
 import { Line } from '@react-three/drei'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { upwind } from '../engine/windScreen'
 import { VTC_NORTH_DEG } from '../context'
-import { WIND_SCREEN_NODE, useWindScreen } from '../hooks/useWindScreen'
+import { useWindScreen } from '../hooks/useWindScreen'
+import { useAnalysisLayer } from '../lib/displayModeHooks'
+import { STATUS } from '../lib/design/tokens'
 import { useStore } from '../store'
 import Label from './Label'
 import { LEVEL_COLOR } from './WindScreenResults'
 
 export default function WindScreenOverlay({ base = 0 }: { base?: number }) {
-  const selected = useStore((s) => s.selectedNode)
+  const shown = useAnalysisLayer() === 'wind'
   const project = useStore((s) => s.project)
   const res = useWindScreen()
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
@@ -41,7 +44,7 @@ export default function WindScreenOverlay({ base = 0 }: { base?: number }) {
       return { s, from, dir, len, label: new THREE.Vector3(tw.x + u[0] * (reach + 14), tw.y + u[1] * (reach + 14), 4) }
     })
   }, [res, project, north])
-  if (selected !== WIND_SCREEN_NODE || !res) return null
+  if (!shown || !res) return null
   return (
     <group position={[0, 0, base]}>
       {meshes.map(({ z, g, edge, lift }) => (
@@ -58,7 +61,7 @@ export default function WindScreenOverlay({ base = 0 }: { base?: number }) {
           <Label text={`Wind from ${a.s.name} · ${Math.round(a.s.share * 100)}% of strong hours`} position={[a.label.x, a.label.y, a.label.z]} size={0.013} />
         </group>
       ))}
-      <Label text="Wind screening, not CFD: indicative zones" position={[arrows[0]?.from.x ?? 0, (arrows[0]?.from.y ?? 0) - 30, 4]} size={0.013} color="#7a4b00" background="rgba(255,243,205,0.95)" />
+      <Label text="Wind screening, not CFD: indicative zones" position={[arrows[0]?.from.x ?? 0, (arrows[0]?.from.y ?? 0) - 30, 4]} size={0.013} color={STATUS.warning.fg} background={STATUS.warning.surface} />
     </group>
   )
 }

@@ -10,7 +10,8 @@ import { FlagChip, Kbd } from '../ui'
 import { findEntry, STATUS_LABEL, type Entry } from './catalog'
 import { useCommunityNodes } from './community'
 import { GROUP_COLORS, useEditor, type WfNodeT } from './editorStore'
-import { StateWord } from './WfNodes'
+import { StateWord, runStatusOf } from './WfNodes'
+import { RunBadge } from '../ResultState'
 import Help from '../Help'
 import Fold from '../Fold'
 
@@ -30,7 +31,7 @@ export function ItemList({ items }: { items: Item[] }) {
       {items.map((i) => (
         <li key={`${i.from ?? ''}${i.id}`} className={`rounded-md border p-2 ${i.flag === 'false_assumption' ? 'border-flag-false/50' : 'border-line'}`}>
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[11.5px] font-medium leading-snug">{i.label}{i.towerName && <span className="font-normal text-muted"> · {i.towerName}</span>}</span>
+            <span className="text-meta font-medium leading-snug">{i.label}{i.towerName && <span className="font-normal text-muted"> · {i.towerName}</span>}</span>
             <StateWord state={i.state} />
           </div>
           {i.value && <div className="mt-0.5 text-meta tabular-nums">{i.value}{i.threshold && <span className="text-muted"> · {i.threshold}</span>}</div>}
@@ -84,11 +85,11 @@ function Overview() {
         <ul className="grid grid-cols-2 gap-1 text-meta">
           {(Object.keys(PORT_COLOR) as PortType[]).map((t) => <li key={t} className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PORT_COLOR[t] }} />{PORT_LABEL[t]}</li>)}
         </ul>
-        <p className="mt-1.5 flex items-center gap-1 text-[10.5px] text-muted">Sources feed checks; checks feed logic<Help label="About ports">Layer 0 sources feed checks; checks feed logic, and logic can feed more logic. A wire joins an output to an input of the same colour.</Help></p>
+        <p className="mt-1.5 flex items-center gap-1 text-meta text-muted">Sources feed checks; checks feed logic<Help label="About ports">Layer 0 sources feed checks; checks feed logic, and logic can feed more logic. A wire joins an output to an input of the same colour.</Help></p>
       </Block>
       <Block title="Evidence">
         <div className="flex flex-wrap gap-1">{FLAGS.map((f) => <FlagChip key={f} flag={f} />)}</div>
-        <p className="mt-1.5 text-[10.5px] text-muted">Logic shows the weakest flag that flows in, so a false assumption upstream stays magenta.</p>
+        <p className="mt-1.5 text-meta text-muted">Logic shows the weakest flag that flows in, so a false assumption upstream stays magenta.</p>
       </Block>
     </>
   )
@@ -123,7 +124,7 @@ function ScoreSettings({ node }: { node: WfNodeT }) {
         })}
       </ul>
       <div className="mt-2 space-y-1">{mark('passMark', 'Pass mark (0–100)', 70)}{mark('failMark', 'Fail below (0–100)', 40)}</div>
-      <p className="mt-1.5 text-[10.5px] text-muted">Each check scores pass 1, check 0.5, fail 0; unknown is left out. Weights and marks are your team's choice, not a sourced standard.</p>
+      <p className="mt-1.5 text-meta text-muted">Each check scores pass 1, check 0.5, fail 0; unknown is left out. Weights and marks are your team's choice, not a sourced standard.</p>
     </Block>
   )
 }
@@ -149,7 +150,7 @@ function CompareSettings({ node }: { node: WfNodeT }) {
           <button onClick={() => addTower()} className="mt-1.5 flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-accent"><Plus size={12} aria-hidden />Add a second tower as option B</button>
         </>
       ) : <div className="space-y-1">{pick('a', 0)}{pick('b', 1)}</div>}
-      <p className="mt-1.5 text-[10.5px] text-muted">Tower-specific lines go to their tower; project-wide lines (such as FSR) count for both. Edit the towers in the guided app.</p>
+      <p className="mt-1.5 text-meta text-muted">Tower-specific lines go to their tower; project-wide lines (such as FSR) count for both. Edit the towers in the guided app.</p>
     </Block>
   )
 }
@@ -162,7 +163,7 @@ function Researched({ e }: { e: Entry }) {
       {d.method && <Block title="Method (planned)"><p className="text-meta leading-relaxed text-ink/80">{d.method}</p></Block>}
       {d.metrics?.length ? (
         <Block title="Metrics">
-          <ul className="space-y-1.5">{d.metrics.map((m) => <li key={m.name} className="text-meta"><div className="flex items-center justify-between gap-2"><span className="font-medium">{m.name}</span><FlagChip flag={m.status} /></div><div className="text-[10.5px] text-muted">good {m.good} · bad {m.bad} {m.unit && `(${m.unit})`}</div></li>)}</ul>
+          <ul className="space-y-1.5">{d.metrics.map((m) => <li key={m.name} className="text-meta"><div className="flex items-center justify-between gap-2"><span className="font-medium">{m.name}</span><FlagChip flag={m.status} /></div><div className="text-meta text-muted">good {m.good} · bad {m.bad} {m.unit && `(${m.unit})`}</div></li>)}</ul>
         </Block>
       ) : null}
       {d.human && <Block title="Stays a human judgement"><p className="text-meta text-ink/80">{d.human}</p></Block>}
@@ -210,18 +211,18 @@ export default function WfInspector({ outputs, onClose }: { outputs: Record<stri
                 <div className="min-w-0 flex-1">
                   <input value={node.data.label} onChange={(e) => updateData(node.id, { label: e.target.value })} aria-label="Node label"
                     className="w-full rounded border border-transparent px-1 py-0.5 text-sm font-semibold outline-none hover:border-line focus:border-accent" />
-                  <div className="flex items-center gap-1 px-1 text-[10.5px] text-muted">{entry?.category ? CATEGORIES[entry.category].label : entry?.status === 'logic' ? 'Workflow logic' : 'Layer 0'} · <span className="font-mono">{node.data.ref}</span>
+                  <div className="flex items-center gap-1 px-1 text-meta text-muted">{entry?.category ? CATEGORIES[entry.category].label : entry?.status === 'logic' ? 'Workflow logic' : 'Layer 0'} · <span className="font-mono">{node.data.ref}</span>
                     <Help label="About this node">{entry?.def?.question ?? entry?.blurb ?? 'This node is not in the library on this computer. Import its package under My nodes.'}</Help></div>
                 </div>
               </div>
               {entry?.def?.jury?.length ? <div className="mt-1.5 flex flex-wrap gap-1">{entry.def.jury.map((j) => <span key={j} className="rounded-full border border-line px-1.5 py-0.5 text-meta text-muted">{JURY_LABEL[j] ?? j}</span>)}</div> : null}
               <div className="mt-2 flex gap-1.5">
                 <button onClick={() => duplicateSelected()} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-accent"><Copy size={12} aria-hidden />Duplicate</button>
-                <button onClick={() => deleteElements({ nodes: [{ id: node.id }] })} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-red-400 hover:text-red-700"><Trash size={12} aria-hidden />Remove</button>
+                <button onClick={() => deleteElements({ nodes: [{ id: node.id }] })} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-error hover:text-error"><Trash size={12} aria-hidden />Remove</button>
                 {node.data.kind !== 'source' && (
                   <button onClick={() => updateData(node.id, { off: !node.data.off })} aria-pressed={!!node.data.off}
                     title={node.data.off ? 'Switch this node back on' : 'Switch this node off: it gives no verdict and the checks after it are blocked (never computed on missing data)'}
-                    className={`flex items-center gap-1 rounded-md border px-2 py-1 text-meta ${node.data.off ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-line hover:border-accent'}`}>
+                    className={`flex items-center gap-1 rounded-md border px-2 py-1 text-meta ${node.data.off ? 'border-warning bg-warning-surface text-warning' : 'border-line hover:border-accent'}`}>
                     {node.data.off ? <><Power size={12} aria-hidden />Switch on</> : <><PowerOff size={12} aria-hidden />Switch off</>}
                   </button>
                 )}
@@ -230,16 +231,16 @@ export default function WfInspector({ outputs, onClose }: { outputs: Record<stri
             {node.data.ref === 'logic.score' && <ScoreSettings node={node} />}
             {node.data.ref === 'logic.compare' && <CompareSettings node={node} />}
             {entry?.status === 'researched' ? <Researched e={entry} /> : out && node.data.kind !== 'source' && (
-              <Block title={out.run?.status === 'waiting' ? 'Not run yet' : out.run ? 'Run status' : 'Live result'} right={out.run ? <span className="text-meta font-semibold text-amber-800">{out.run.status === 'off' ? 'Off' : out.run.status === 'blocked' ? 'Blocked' : 'Waiting'}</span> : <StateWord state={out.state} />}>
-                <p className="mb-2 text-[11.5px]">{out.headline}</p>
+              <Block title={out.run?.status === 'waiting' ? 'Not run yet' : out.run ? 'Run status' : 'Live result'} right={<span className="flex items-center gap-2">{runStatusOf(out) && <RunBadge status={runStatusOf(out)!} />}{!out.run && out.state !== 'idle' && <StateWord state={out.state} />}</span>}>
+                <p className="mb-2 text-meta">{out.headline}</p>
                 {out.ms !== undefined && !out.run && <p className="-mt-1 mb-2 text-meta text-muted">Computed in {out.ms < 1 ? 'under 1' : out.ms.toFixed(0)} ms</p>}
                 {out.breakdown && node.data.ref === 'logic.score' && (
-                  <ul className="mb-2 space-y-0.5 text-[10.5px] text-muted">{out.breakdown.map((b) => <li key={b.id} className="flex justify-between gap-2"><span className="truncate">{b.label} × {b.weight}</span><span className="tabular-nums">{Number.isFinite(b.score) ? `${Math.round(b.score * 100)} / 100` : 'not scored'} ({b.scored} scored{b.unscored ? `, ${b.unscored} unknown` : ''})</span></li>)}</ul>
+                  <ul className="mb-2 space-y-0.5 text-meta text-muted">{out.breakdown.map((b) => <li key={b.id} className="flex justify-between gap-2"><span className="truncate">{b.label} × {b.weight}</span><span className="tabular-nums">{Number.isFinite(b.score) ? `${Math.round(b.score * 100)} / 100` : 'not scored'} ({b.scored} scored{b.unscored ? `, ${b.unscored} unknown` : ''})</span></li>)}</ul>
                 )}
                 <ItemList items={out.items} />
               </Block>
             )}
-            {node.data.kind === 'source' && out && <Block title="Carries"><p className="text-[11.5px]">{out.headline}</p><p className="mt-1 text-[10.5px] text-muted">Edit the design itself in the guided app (Massing and Schematic). Every check on this canvas reads the same design.</p></Block>}
+            {node.data.kind === 'source' && out && <Block title="Carries"><p className="text-meta">{out.headline}</p><p className="mt-1 text-meta text-muted">Edit the design itself in the guided app (Massing and Schematic). Every check on this canvas reads the same design.</p></Block>}
             {entry?.def?.limits && entry.status !== 'researched' && <Block title="Limits"><p className="text-meta text-ink/80">{entry.def.limits}</p></Block>}
           </>
         )}

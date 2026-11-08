@@ -49,7 +49,7 @@ export default function SitePlan({ ring, towers, northDeg = 0, selected, size = 
       {fps.map((f) => <path key={f.id} d={path(f.ring)} className={f.id === selected ? 'fill-accent stroke-accent' : 'fill-slate-400 stroke-slate-600'} strokeWidth={0.6} />)}
       <g transform={`translate(${size - 11} 12) rotate(${northDeg})`} aria-hidden>
         <path d="M0 -8 L3.5 3 L0 1 L-3.5 3 Z" className="fill-ink" />
-        <text y={-9.5} textAnchor="middle" className="fill-ink text-[7px] font-semibold">N</text>
+        <text y={-9.5} textAnchor="middle" className="fill-ink text-meta font-semibold">N</text>
       </g>
     </svg>
   )

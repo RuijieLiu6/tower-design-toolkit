@@ -36,8 +36,10 @@ import GlassIcon, { HUES, ICON } from '../GlassIcon'
 import { NODE_ICONS, PRESET_ICONS, STEP_ICONS, TYPE_ICONS } from '../../data/icons'
 import { BUILT_NODES } from '../../data/registry'
 import { PHASE_HUE, PHASES, phaseOfNode, type PhaseId } from '../../lib/phases'
+import { PHASE_COLOR, UI } from '../../lib/design/tokens'
 import { startPreset } from '../../lib/startPreset'
 import { enterToolkit } from '../../lib/intro'
+import Help from '../Help'
 import { USER_TYPES, presetById, type Preset, type UserTypeId } from '../../lib/userTypes'
 import { restoreCoverWorkflow, saveCoverWorkflow } from '../../lib/coverWorkflow'
 import { navigate } from '../../lib/route'
@@ -51,6 +53,11 @@ const ROLES: { id: RoleId; label: string }[] = [
   { id: 'planner', label: 'planners and city reviewers' },
   { id: 'engineer', label: 'engineers and consultants' },
   { id: 'custom', label: 'you, node by node' },
+]
+/** The compact preset line under the assistant: each starts that user type's first preset (Undo brings the board back). */
+const QUICK: { id: RoleId; label: string }[] = [
+  { id: 'designer', label: 'Student' }, { id: 'practitioner', label: 'Architect' }, { id: 'planner', label: 'Planner' },
+  { id: 'engineer', label: 'Engineer' }, { id: 'custom', label: 'Build your own' },
 ]
 const roleIcon = (r: RoleId) => (r === 'custom' ? TYPE_ICONS.explore : TYPE_ICONS[r])
 const presetOf = (r: RoleId): Preset | null => (r === 'custom' ? null : USER_TYPES.find((t) => t.id === r)?.presets[0] ?? null)
@@ -73,7 +80,10 @@ const SEG = 14 // points per rope
 /** The travelling dots: a wave every 10 s; each wire takes 0.9 s and starts 0.3 s after the one before it. */
 const WAVE_EVERY = 10_000, WAVE_STEP = 300, WAVE_WIRE = 900
 /** The loop colour (one for the wire back and the forward wires it closes): orange, the complement of the run's blue (206° + 180°; Ruijie, 7 Nov). */
-const LOOP_LINE = 'hsl(26 92% 54%)', LOOP_PULSE = 'hsl(26 96% 56%)'
+// Wires by meaning (design system §4, §7, 7 Nov): every connection, return connections included, is the neutral edge
+// colour by default; a return connection is told apart by its dashed line, its return mark and its arrow, not by colour.
+// The selected or hovered wire turns the interaction blue. The travelling dots show the run in the same blue.
+const EDGE = UI.edge, EDGE_ACTIVE = UI.accent, PULSE = UI.accent
 
 export default function Intro({ onEnter, reduced = false }: { onEnter: () => void; reduced?: boolean }) {
   const [still] = useState(() => reduced || (typeof window !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches))
@@ -127,7 +137,14 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     return { cell, cap, h: rows * cell + 10 }
   }
   /** Where nodes on the board sit: below the lane headers, above the shelves. */
-  const nodeArea = () => { const b = band(); return { y0: b.y0 + 112, y1: b.y1 - 14 - shelfGeom().h } }
+  const nodeArea = () => { const b = band(); return { y0: b.y0 + 140, y1: b.y1 - 14 - shelfGeom().h } }
+  /** The workflow card (Ruijie, 7 Nov, landing atmosphere): the stable ivory surface around Start, the lanes and Enter. */
+  const cardBox = () => {
+    if (narrow()) return { L: 12, R: dims.current.W - 12, T: 50, B: 50 + 196 }
+    const s = span(), b = band(), t = ICON.feature + 8; return { L: s.sx - t / 2 - 18, R: s.ex + t / 2 + 18, T: 54, B: b.y1 + 4 }
+  }
+  /** Phones: the draggable canvas can't stay readable, so the card shows the workflow as a compact strip instead. */
+  const narrow = () => dims.current.W < 640
   const ends = () => { const s = span(), a = nodeArea(), mid = (a.y0 + a.y1) / 2 + 6; return { start: { x: s.sx, y: mid }, enter: { x: s.ex, y: mid } } }
   /** The five phase lanes along the string, Start to Enter, each with its shelf at the foot. */
   const lanes = () => {
@@ -794,15 +811,17 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     try { const v = JSON.parse(localStorage.getItem('ts.tools.active') ?? '{}'); localStorage.setItem('ts.tools.active', JSON.stringify({ ...v, 'basic:site': 'rhino-import' })) } catch { /* the Site step still opens */ }
     enterToolkit(); navigate('guided'); goToStep('site')
   }
+  /** Browse every node (the library in Customize). */
+  const exploreNodes = () => { enterToolkit(); navigate('customize') }
   const openNodeBuilder = () => { enterToolkit(); navigate('customize'); void import('../../lib/communityStore').then((m) => m.useCommunityStore.getState().openDialog('build')) }
   const presetsControl = (
-    <div className="relative ml-auto" data-presets>
+    <div className="relative" data-presets>
       <button type="button" onClick={() => (presetsOpen ? closePresets() : openPresets())} aria-haspopup="listbox" aria-expanded={presetsOpen} data-testid="cover-presets"
-        className="flex items-center gap-1.5 rounded-xl bg-white/60 px-2.5 py-1 text-control text-ink outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent">
+        className="flex items-center gap-1.5 rounded-lg bg-panel px-2.5 py-1 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">
         <Tags size={15} className="text-accent" aria-hidden />Presets<ChevronDown size={14} aria-hidden />
       </button>
       {presetsOpen && (
-        <div className="glass absolute right-0 top-full z-40 mt-1.5 w-[22rem] rounded-xl bg-glass-1 p-1.5" data-testid="presets-panel">
+        <div className="absolute left-1/2 top-full z-40 mt-1.5 w-[22rem] -translate-x-1/2 rounded-xl border border-line bg-panel p-1.5 shadow-float" data-testid="presets-panel">
           <div role="listbox" aria-label="Preset workflows" onMouseLeave={restore} className="max-h-[16rem] overflow-y-auto">
             {USER_TYPES.map((t) => (
               <div key={t.id} role="group" aria-label={t.name}>
@@ -812,7 +831,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
                   return (
                     <button key={p.id} type="button" role="option" aria-selected={presetId === p.id} data-preset={p.id}
                       onMouseEnter={() => previewPreset(p)} onFocus={() => previewPreset(p)} onClick={() => pickPreset(p)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-control outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-accent ${presetId === p.id ? 'bg-white/70' : ''}`}>
+                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent ${presetId === p.id ? 'bg-selected text-accent-hover' : ''}`}>
                       {I && <I size={16} className="shrink-0 text-accent" aria-hidden />}<span className="min-w-0 flex-1 truncate">{p.name}</span><span className="text-meta tabular-nums text-muted">{p.nodes.length}</span>
                     </button>
                   )
@@ -828,19 +847,24 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const tile = ICON.feature + 8
 
   return (
-    <section ref={box} aria-labelledby="intro-title" data-testid="landing-intro" className="relative h-full min-h-[38rem] select-none overflow-hidden"
+    <section ref={box} aria-labelledby="intro-title" data-testid="landing-intro" className="landing-atmosphere relative h-full min-h-[38rem] select-none overflow-hidden"
       style={leaving ? { transformOrigin: `${leaving.x}px ${leaving.y}px`, transform: 'scale(6)', opacity: 0, transition: 'transform 800ms cubic-bezier(0.7, 0, 0.84, 0), opacity 420ms ease-in 340ms', pointerEvents: 'none' } : undefined}>
 
-      {/* the five phase lanes along the string, in their colours; the grabbed node's lane lights up */}
+      {/* the workflow card: a stable ivory surface for the editable workflow; the gradient stays visible around it */}
+      {(() => { const c = cardBox(); return <div aria-hidden data-testid="cover-card" className="pointer-events-none absolute rounded-2xl border border-white/80 shadow-float" style={{ left: c.L, top: c.T, width: c.R - c.L, height: c.B - c.T, background: 'var(--atmo-surface)' }} /> })()}
+
+      <div style={{ display: 'contents' }} className={narrow() ? 'invisible' : undefined} aria-hidden={narrow() || undefined} data-testid="cover-canvas">
+      {/* the five phase lanes along the string: a small marker in the phase colour (the node artwork carries the rest); the
+          lane a grabbed node can drop into shows its pale surface */}
       {lanes().map(({ ph, x0, x1, y0, shelfTop, shelfBottom }) => {
-        const Step = STEP_ICONS[ph.step], on = hot === ph.id, h = PHASE_HUE[ph.id]
+        const on = hot === ph.id, c = PHASE_COLOR[ph.id]
         return (
           <div key={ph.id} data-lane={ph.id} data-hot={on ? '1' : undefined} className="pointer-events-none absolute rounded-xl transition-[background-color,box-shadow] duration-200"
-            style={{ left: x0 + 4, top: y0 - 46, width: x1 - x0 - 8, height: shelfBottom - y0 + 46, background: `hsl(${h} 85% ${on ? 78 : 88}% / ${on ? 0.42 : 0.16})`, boxShadow: on ? `0 0 0 2px hsl(${h} 80% 62% / 0.65), 0 0 36px hsl(${h} 90% 65% / 0.55)` : undefined }}>
+            style={{ left: x0 + 4, top: y0 - 46, width: x1 - x0 - 8, height: shelfBottom - y0 + 46, background: on ? c.surface : 'transparent', boxShadow: on ? `inset 0 0 0 1.5px ${c.accent}` : undefined }}>
             {/* the lane's shelf: its unused nodes wait here */}
-            <span aria-hidden className="absolute inset-x-1.5 bottom-1.5 rounded-lg" style={{ top: shelfTop - (y0 - 46), background: `hsl(${h} 40% 96% / 0.7)` }} />
-            <span aria-hidden className="absolute left-2.5 top-2 flex items-center gap-1.5 text-meta" style={{ color: `hsl(${h} 55% 32%)`, fontWeight: on ? 600 : 500 }}>
-              <Step size={15} />{ph.name}
+            <span aria-hidden className="absolute inset-x-1.5 bottom-1.5 rounded-lg" style={{ top: shelfTop - (y0 - 46), background: 'rgb(32 38 48 / 0.035)' }} />
+            <span aria-hidden className="absolute left-2.5 top-2 flex items-center gap-1.5 text-meta" style={{ color: c.ink, fontWeight: on ? 600 : 500 }}>
+              <span className="h-2 w-2 rounded-full" style={{ background: c.accent }} />{ph.name}
             </span>
           </div>
         )
@@ -855,21 +879,21 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
               style={{ pointerEvents: 'stroke', cursor: 'pointer' }} onPointerDown={(e) => startRewire(l.key, l.a, l.b, e)}
               onPointerEnter={() => setHoverWire(l.key)} onPointerLeave={() => setHoverWire((h) => (h === l.key ? null : h))} />
             <path ref={(p) => { ropeLine.current.set(l.key, p) }}
-              fill="none" stroke={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} strokeOpacity={0.85} strokeWidth={tipKey === l.key ? 2.25 : 1.25} strokeLinecap="round" data-ring={l.ring ? '' : undefined} data-return={l.loop ? '' : undefined} style={{ pointerEvents: 'none' }} />
-            {/* its direction: a quiet, see-through arrow (Ruijie, 7 Nov: "bring the arrows back but make them transparent");
-                with reduced motion it is the only cue, so it stays stronger */}
-            <path ref={(p) => { arrows.current.set(l.key, p) }} d="M-4.5,-3.6 L4.5,0 L-4.5,3.6 Z" fill={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} opacity={still ? 0.85 : 0.35} style={{ pointerEvents: 'none' }} data-arrow />
+              fill="none" stroke={tipKey === l.key ? EDGE_ACTIVE : EDGE} strokeOpacity={0.9} strokeWidth={tipKey === l.key ? 2.25 : 1.4} strokeDasharray={l.loop ? '5 4' : undefined} strokeLinecap="round" data-ring={l.ring ? '' : undefined} data-return={l.loop ? '' : undefined} style={{ pointerEvents: 'none' }} />
+            {/* No direction arrows on the cover's wires (Ruijie, 7 Nov: "get rid of the arrows in the landing page"): the line
+                runs Start → Enter, the travelling dots show the way, and a return connection keeps its dashed line and
+                return mark. */}
             {/* a return connection's passive mark: a small return arrow on its route */}
             {l.loop && <g ref={(g) => { retMarks.current.set(l.key, g) }} style={{ pointerEvents: 'none' }} data-return-mark>
-              <circle r={7} fill="white" stroke={LOOP_LINE} strokeWidth={1} />
-              <path d="M2.6,-1.6 A3,3 0 1 0 2.9,1.3" fill="none" stroke={LOOP_LINE} strokeWidth={1.3} strokeLinecap="round" />
-              <path d="M1.2,-3.6 L3.1,-1.4 L0.5,-0.9 Z" fill={LOOP_LINE} />
+              <circle r={7} fill="white" stroke={tipKey === l.key ? EDGE_ACTIVE : EDGE} strokeWidth={1} />
+              <path d="M2.6,-1.6 A3,3 0 1 0 2.9,1.3" fill="none" stroke={tipKey === l.key ? EDGE_ACTIVE : EDGE} strokeWidth={1.3} strokeLinecap="round" />
+              <path d="M1.2,-3.6 L3.1,-1.4 L0.5,-0.9 Z" fill={tipKey === l.key ? EDGE_ACTIVE : EDGE} />
             </g>}
-            {!still && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={3} opacity={0} fill={l.ring ? LOOP_PULSE : 'hsl(206 90% 58%)'} />}
+            {!still && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={3} opacity={0} fill={PULSE} />}
           </g>
         ))}
         {/* the connector being drawn from a node's handle */}
-        <path ref={linkPreview} d="" fill="none" stroke="hsl(206 85% 52%)" strokeWidth={1.5} strokeDasharray="6 6" strokeLinecap="round" />
+        <path ref={linkPreview} d="" fill="none" stroke={EDGE_ACTIVE} strokeWidth={1.5} strokeDasharray="6 6" strokeLinecap="round" />
       </svg>
 
       {/* each wire's focus point: invisible until focused; Enter selects it, Delete removes it */}
@@ -889,10 +913,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           <div ref={tipEl} role={sel ? 'group' : 'tooltip'} aria-label={sel ? 'Selected connection' : undefined} data-testid="wire-tip"
             className={`absolute left-0 top-0 z-30 flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-2.5 py-1 text-meta text-ink shadow-[0_4px_14px_-4px_rgb(24_40_34/0.35)] ${sel ? '' : 'pointer-events-none'}`}
             style={{ transform: (() => { const m = midAt.current.get(l.key); return m ? `translate3d(${m.x}px, ${m.y - 14}px, 0) translate(-50%, -100%)` : 'translate3d(-999px,-999px,0)' })() }}>
-            {l.loop ? <span><span className="font-semibold" style={{ color: 'hsl(26 80% 36%)' }}>Return to {label(l.b)}</span>{sel && <span className="text-muted"> · from {label(l.a)}</span>}</span>
+            {l.loop ? <span><span className="font-semibold text-ink"><span aria-hidden>↻ </span>Return to {label(l.b)}</span>{sel && <span className="text-muted"> · from {label(l.a)}</span>}</span>
               : <span>{label(l.a)} <span aria-hidden>→</span> {label(l.b)}</span>}
             {sel && <>
-              <button type="button" onClick={() => removeWire(l.key)} data-testid="wire-remove" className="ml-1 flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-meta text-[#a0322a] outline-none hover:bg-[#d0453a]/10 focus-visible:ring-2 focus-visible:ring-accent"><Trash2 size={13} aria-hidden />Remove</button>
+              <button type="button" onClick={() => removeWire(l.key)} data-testid="wire-remove" className="ml-1 flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-meta text-error outline-none hover:bg-error-surface focus-visible:ring-2 focus-visible:ring-accent"><Trash2 size={13} aria-hidden />Remove</button>
               <button type="button" onClick={() => setSelectedWire(null)} aria-label="Close" className="rounded-lg p-0.5 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={13} aria-hidden /></button>
             </>}
           </div>
@@ -909,8 +933,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       {/* while connecting: the hint over the target under the pointer */}
       {linkHint && (
         <div aria-hidden className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-xl px-2 py-0.5 text-meta font-semibold text-white shadow"
-          style={{ transform: `translate3d(${linkHint.x}px, ${linkHint.y - 8}px, 0) translate(-50%, -100%)`, background: linkHint.loop ? 'hsl(26 85% 45%)' : 'hsl(206 70% 42%)' }}>
-          {linkHint.loop ? 'Create loop' : 'Connect'}
+          style={{ transform: `translate3d(${linkHint.x}px, ${linkHint.y - 8}px, 0) translate(-50%, -100%)`, background: UI.ink }}>
+          {linkHint.loop ? '↻ Create loop' : 'Connect'}
         </div>
       )}
       {pendingFrom && (() => {
@@ -939,11 +963,14 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       </button>
 
       {/* what is on the string, and the loop switch */}
-      <div className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-3 text-control">
+      <div className="absolute flex items-center gap-3 text-control" style={(() => { const c = cardBox(); return { left: c.L + 20, top: c.T + 12 } })()}>
+        <span className="text-meta text-muted">Your workflow</span>
         <span className="font-semibold text-ink" data-testid="cover-chain-name">{name}</span>
         <span className="text-meta tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not wired in` : ''}</span>
+        {presetsControl}
+        <Help label="What this workflow shows">This is your workflow: the order you work in, from Start to Enter. Nodes sit in their phase's lane and keep its colour wherever you move them. Drag a node from a lane's shelf onto the line to add it; drag from a node's edge to connect it; connect back to an earlier node to create a loop, a step you repeat (dashed, with a return mark). Select a connection to remove it; Undo brings it back. The data each node reads is wired separately, in Customize.</Help>
         <button type="button" onClick={newWorkflow} data-testid="cover-new" title="Start a new workflow from the default starting preset (Undo brings this one back)"
-          className="flex items-center gap-1 rounded-xl px-2 py-1 text-control text-muted outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FilePlus size={15} aria-hidden />New</button>
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-control text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FilePlus size={15} aria-hidden />New</button>
       </div>
       {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag nodes up from the shelves</p>}
 
@@ -956,7 +983,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           aria-label={onBoard.includes(n.id) ? `${n.name}, on the string${chain.includes(n.id) ? '' : ', not wired in'}: arrows move it along, Delete takes it off` : `Put ${n.name} on the string`}
           onPointerDown={(e) => { e.preventDefault(); if (linking.current?.pending) return; setFocusNode(n.id); setSelectedNode(n.id); setSelectedWire(null); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
           aria-keyshortcuts={onBoard.includes(n.id) ? 'C' : undefined}
-          className="node-hit group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a] data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
+          className="node-hit group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-ai data-[proposed=remove]:opacity-50 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-ai data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
           onPointerEnter={() => setHoverNode(n.id)} onPointerLeave={() => setHoverNode((h) => (h === n.id ? null : h))} onFocus={() => setHoverNode(n.id)} onBlur={() => setHoverNode((h) => (h === n.id ? null : h))}
           style={{ width: size, height: size, transformOrigin: '50% 50%', transform: 'translate3d(-999px,-999px,0)' }}>
           <NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} />
@@ -964,7 +991,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
             <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}
               className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex group-focus-visible:flex group-data-[selected]:flex"
-              style={{ background: `hsl(${n.hue} 85% 55%)`, ...(side === 'n' ? { left: '50%', top: -8, marginLeft: -8 } : side === 's' ? { left: '50%', bottom: -8, marginLeft: -8 } : side === 'e' ? { right: -8, top: '50%', marginTop: -8 } : { left: -8, top: '50%', marginTop: -8 }) }}>
+              style={{ background: UI.accent, ...(side === 'n' ? { left: '50%', top: -8, marginLeft: -8 } : side === 's' ? { left: '50%', bottom: -8, marginLeft: -8 } : side === 'e' ? { right: -8, top: '50%', marginTop: -8 } : { left: -8, top: '50%', marginTop: -8 }) }}>
               <span className="h-1.5 w-1.5 rounded-full bg-white" />
               {/* the connection point's guidance, only while it is hovered */}
               <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-xl bg-white px-2.5 py-1 text-left shadow-[0_4px_14px_-4px_rgb(24_40_34/0.35)] group-hover/h:block">
@@ -972,10 +999,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
               </span>
               {/* the hint: a short dashed connector leaving this side */}
               <span className="pointer-events-none absolute hidden border-dashed group-hover/h:block"
-                style={{ borderColor: `hsl(${n.hue} 80% 50%)`, ...(side === 'n' ? { bottom: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 's' ? { top: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 'e' ? { left: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 } : { right: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 }) }} />
+                style={{ borderColor: UI.accent, ...(side === 'n' ? { bottom: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 's' ? { top: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 'e' ? { left: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 } : { right: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 }) }} />
             </span>
           ))}
-          {proposed?.added.has(n.id) && <span aria-hidden className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#2e8b57] text-meta font-semibold text-white shadow">+</span>}
+          {proposed?.added.has(n.id) && <span aria-hidden className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ai text-meta font-semibold text-white shadow">+</span>}
         </button>
       ))}
 
@@ -987,23 +1014,54 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           style={{ transform: `translate3d(${b.tx || b.x}px, ${(b.on ? b.ty : b.y) + b.r * (b.on ? 1 : SHELF_S) + (b.on ? 22 : 6)}px, 0) translate(-50%, 0)` }}>{NODES[idx(hoverNode)].name}</div>
       })()}
 
-      {/* who it is for: a quiet line at the top left (Ruijie, 7 Nov: the audience less prominent than the task) */}
-      <div ref={sentenceEl} className="absolute left-4 top-2.5 z-20 text-ink" data-testid="cover-box">
-        <h1 id="intro-title" className="text-section text-ink">Tower Design Toolkit</h1>
-        <p className="flex items-center gap-1 text-meta text-muted">A tower design by
+      </div>
+
+      {/* phones: the workflow as a readable strip, in order, with its phase dots; Enter opens it */}
+      {narrow() && (() => {
+        const c = cardBox()
+        return (
+          <div className="absolute flex flex-col gap-2 px-4 py-3" style={{ left: c.L, top: c.T, width: c.R - c.L, height: c.B - c.T }} data-testid="cover-compact">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-control">
+              <span className="text-meta text-muted">Your workflow</span>
+              <span className="font-semibold text-ink">{name}</span>
+              <span className="text-meta tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}</span>
+            </div>
+            <ol className="flex items-start gap-3 overflow-x-auto pb-1" aria-label="Your workflow, in order">
+              {chain.map((id) => {
+                const n = NODES[idx(id)]
+                return (
+                  <li key={id} className="flex w-16 shrink-0 flex-col items-center gap-1 text-center">
+                    <NodeTile id={id} size={44} />
+                    <span className="flex items-center gap-1 text-meta text-ink"><span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[n.phase].accent }} />{nodeWord(n)}</span>
+                  </li>
+                )
+              })}
+            </ol>
+            <div className="mt-auto flex items-center gap-2">
+              <span className="text-meta text-muted">Rearrange it on a larger screen, or ask the assistant.</span>
+              <button type="button" disabled={!chain.length} onClick={(e) => enterWith(e.currentTarget)} className="ml-auto shrink-0 rounded-lg bg-accent px-3 py-1.5 text-control text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-40">Enter</button>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* the top bar: the name at the left; who it is for, compact and editable, at the right (Ruijie, 7 Nov) */}
+      <div aria-hidden className="absolute left-5 top-3.5 z-20 text-control font-semibold text-ink">Tower Design Toolkit</div>
+      <div ref={sentenceEl} className="absolute right-5 top-2.5 z-20 text-ink" data-testid="cover-box">
+        <p className="flex items-center gap-1 text-meta text-muted"><span className="hidden sm:inline">A tower design by</span>
           <button type="button" data-role-menu onClick={() => (menu ? closeMenu() : openMenu())} aria-haspopup="listbox" aria-expanded={menu} data-testid="cover-role"
             className="inline-flex items-center gap-1 rounded-lg px-1 py-0.5 text-meta text-ink outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent">
             <RoleIcon size={13} className="text-accent" aria-hidden />{roleLabel}<ChevronDown size={12} aria-hidden />
           </button>
         </p>
         {menu && (
-          <ul role="listbox" data-role-menu aria-label="A tower design by" onMouseLeave={restore} className="glass absolute left-0 top-full z-30 mt-1 w-max min-w-[16rem] rounded-xl bg-glass-1 p-1.5 text-control">
+          <ul role="listbox" data-role-menu aria-label="A tower design by" onMouseLeave={restore} className="absolute right-0 top-full z-30 mt-1 w-max min-w-[16rem] rounded-xl border border-line bg-panel p-1.5 text-control shadow-float">
             {ROLES.map((r) => {
               const I = roleIcon(r.id)
               return (
                 <li key={r.id} role="none">
                   <button type="button" role="option" aria-selected={role === r.id} onClick={() => pick(r.id)} onMouseEnter={() => preview(r.id)} onFocus={() => preview(r.id)} data-role={r.id}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-1.5 text-left outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent ${role === r.id ? 'font-semibold' : ''}`}>
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent ${role === r.id ? 'bg-selected font-semibold text-accent-hover' : ''}`}>
                     <I size={16} className="text-accent" aria-hidden />{r.label}
                     {r.id === 'custom' && <span className="ml-auto pl-4 text-meta text-muted">build your own</span>}
                   </button>
@@ -1014,13 +1072,22 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         )}
       </div>
 
-      {/* the task: the workflow assistant, under the canvas */}
-      <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4" style={{ top: band().y1 + 14 }}>
-        <div ref={assistantEl}>
+      {/* the name, then the task: the workflow assistant under the workflow, then the presets in one compact line */}
+      <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center" style={{ top: cardBox().B + 18 }}>
+        <h1 id="intro-title" className="text-display-sm text-ink sm:text-display">Tower Design Toolkit</h1>
+        <p className="mt-1 text-body text-muted [@media(max-height:780px)]:hidden">A starting point for your next tower.</p>
+        <div ref={assistantEl} className="mt-4 text-left">
           <WorkflowAssistant board={{ nodes: onBoard, edges }} focus={focusNode} previewing={!!proposed} canUndo={canUndo}
-            onPreview={previewProposal} onApply={applyProposal} onDiscard={discardProposal} onUndo={undoAssistant}
-            onOpenWorkspace={enterWith} canOpen={chain.length > 0} headerRight={presetsControl} />
+            onPreview={previewProposal} onApply={applyProposal} onDiscard={discardProposal} onUndo={undoAssistant} />
         </div>
+        <div className="pointer-events-auto mt-3 flex flex-wrap items-center justify-center gap-1 text-control" data-testid="cover-quick-presets" role="group" aria-label="Start with a preset">
+          <span className="mr-1 text-muted">Start with a preset</span>
+          {QUICK.map((q) => (
+            <button key={q.id} type="button" aria-pressed={role === q.id} onClick={() => pick(q.id)} data-quick={q.id}
+              className={`rounded-lg px-2.5 py-1 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent ${role === q.id ? 'bg-ink' : 'hover:bg-white/70'}`}>{q.label}</button>
+          ))}
+        </div>
+        <button type="button" onClick={exploreNodes} className="pointer-events-auto mt-2 flex items-center gap-1 rounded-lg px-2 py-1 text-control text-ink outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-accent">Explore nodes<ArrowRight size={14} aria-hidden /></button>
       </div>
 
       {/* elsewhere: the research, importing a model, making a node of your own */}
