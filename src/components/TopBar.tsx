@@ -107,7 +107,7 @@ export default function TopBar() {
       <div role="tablist" aria-label="Project" className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bg-white/10' : 'bg-subtle'}`}>
         {PROJECTS.map((p) => (
           <button key={p.id} role="tab" aria-selected={project === p.id} title={p.hint} onClick={() => (p.id === 'city' && project !== 'city' ? openCity() : setProject(p.id))}
-            className={`h-7 whitespace-nowrap rounded-md px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${project === p.id ? (present ? 'bg-white/90 text-ink' : 'bg-panel text-ink shadow-sm') : 'text-muted hover:text-ink'}`}>{p.label}</button>
+            className={`h-7 whitespace-nowrap rounded-md px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${project === p.id ? (present ? 'bg-white/90 text-ink' : 'bg-panel text-ink shadow-sm') : present ? 'text-chrome-ink hover:bg-white/10' : 'text-muted hover:text-ink'}`}>{p.label}</button>
         ))}
       </div>
       <ProjectMenu />
@@ -122,7 +122,7 @@ export default function TopBar() {
       <div className="flex items-center gap-0.5" role="group" aria-label="View">
         {VIEWS.map(({ id, icon: Icon, label }) => (
           <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
-            className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
+            className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : present ? 'text-chrome-ink opacity-80 hover:opacity-100' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
         ))}
       </div>
       <AutoRun />

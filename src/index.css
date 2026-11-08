@@ -312,7 +312,7 @@ body {
    but the picked one) and the mouse hints show while the pointer is over the view (lib/hoverLabels.ts sets
    data-view-hover), or when one takes keyboard focus. */
 [data-place], [data-testid="mode-gestures"] > span { transition: opacity 200ms; }
-:root:not([data-view-hover]) :is([data-place]:not([data-active]):not(:focus-visible), [data-testid="mode-gestures"] > span:not(.sr-only)) { opacity: 0; }
+:root:not([data-view-hover]) :is([data-place]:not([data-active]):not(:focus-visible), [data-testid="mode-gestures"] > span:not(.sr-only)) { opacity: 0; visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { [data-place], [data-testid="mode-gestures"] > span { transition: none; } }
 
 /* Arriving in the site after flying through the intro's name (components/landing/Intro.tsx). */

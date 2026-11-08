@@ -78,12 +78,14 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(panel(p).getByTestId('phase-active').getByText('Month')).toBeVisible()
   await expect(p.getByLabel('Show results for')).toHaveValue('built.sun')
 
-  // 4 · the whole workflow along the bottom: Expand, then drag to reorder and drag or click to add (each add confirmed);
-  // Form's panel on the left follows at once
-  const dock = p.getByTestId('workflow-dock')
-  await expect(dock.getByTestId('dock-row').locator('[data-dock-id="built.wind-screen"]')).toBeVisible()
-  await dock.getByTestId('dock-overview').click()
+  // 4 · Overview, on demand (8 Nov): closed on entry, no strip under the workspace; open it, drag to reorder and drag or
+  // click to add (each add confirmed); Form's panel follows at once; Return to design restores the open tool
+  await expect(p.getByTestId('workflow-dock')).toHaveCount(0)
+  await expect(p.getByTestId('workflow-overview')).toHaveCount(0)
+  const dock = p.getByTestId('workflow-overview')
+  await p.getByTestId('phase-overview').click()
   const overview = dock.getByTestId('dock-expanded')
+  await expect(dock.locator('[data-lane]')).toHaveCount(5)
   await expect(overview.locator(`[data-dock-edge="${LOOP}"]`)).toHaveCount(1)
   const canvas = overview.getByTestId('dock-canvas')
   const center = async (l: ReturnType<Page['locator']>) => { const b = (await l.boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 } }
@@ -125,8 +127,20 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await overview.getByRole('button', { name: 'Undo the last workflow change' }).click()
   await expect.poll(() => rows(p)).toEqual(FORM)
   await dock.getByTestId('dock-done').click()
-  await dock.getByTestId('dock-collapse').click()
-  await expect(overview).toHaveCount(0)
+  // selecting a tool here doesn't open it; Return to design puts the working state back (Sun & shadow open in Form)
+  await overview.locator('[data-dock-node="design.massing"]').click()
+  await expect(overview.getByTestId('overview-open')).toBeVisible()
+  await dock.getByTestId('overview-close').click()
+  await expect(dock).toHaveCount(0)
+  await expect(panel(p).getByTestId('phase-active')).toHaveAttribute('data-active', 'built.sun')
+  await expect(p.getByLabel('Show results for')).toHaveValue('built.sun')
+  // Open in workspace, from Overview, goes to the chosen tool
+  await p.getByTestId('phase-overview').click()
+  await dock.locator('[data-dock-node="built.wind-screen"]').click()
+  await dock.getByTestId('overview-open').click()
+  await expect(dock).toHaveCount(0)
+  await expect(panel(p).getByTestId('phase-active')).toHaveAttribute('data-active', 'built.wind-screen')
+  await row(p, 'built.sun').click()
 
   // 5 · phase switching and state preservation: Program and back to Form; then a reload
   await rail(p).locator('[data-phase="program"]').click()

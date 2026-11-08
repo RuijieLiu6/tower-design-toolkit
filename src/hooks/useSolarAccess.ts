@@ -11,6 +11,8 @@ import { loadVtcContext, useVtcSource } from '../lib/vtcContextSource'
 import { useStore, useTowers } from '../store'
 import { nodeOn } from '../lib/analysis'
 
+import { modelRevision } from '../lib/workflow/phasePackage'
+
 export const SOLAR_NODE = 'built.solar-access'
 
 interface SolarState {
@@ -30,12 +32,15 @@ interface SolarState {
   status: 'idle' | 'running' | 'ready' | 'error'
   error: string
   out: SolarJobOutput | null
+  /** The model revision (lib/workflow/phasePackage.ts modelRevision) of the job running, and of the result shown (8 Nov). */
+  runRev: string | null
+  outRev: string | null
   key: string
   set: (p: Partial<Pick<SolarState, 'mapDate' | 'view' | 'showMap' | 'readings' | 'areas' | 'editing'>>) => void
 }
 
 export const useSolar = create<SolarState>((set) => ({
-  mapDate: 'equinox', view: 'hours', showMap: true, readings: {}, areas: {}, editing: false, status: 'idle', error: '', out: null, key: '',
+  mapDate: 'equinox', view: 'hours', showMap: true, readings: {}, areas: {}, editing: false, status: 'idle', error: '', out: null, key: '', runRev: null, outRev: null,
   set: (p) => set(p),
 }))
 
@@ -50,7 +55,7 @@ function getWorker(): Worker {
     worker.onmessage = (e: MessageEvent<{ id: number; out?: SolarJobOutput; error?: string }>) => {
       if (e.data.id !== seq) return // a newer run is on its way
       if (e.data.error) useSolar.setState({ status: 'error', error: e.data.error })
-      else useSolar.setState({ status: 'ready', out: e.data.out!, error: '' })
+      else useSolar.setState((s) => ({ status: 'ready', out: e.data.out!, error: '', outRev: s.runRev }))
     }
     worker.onerror = (e) => useSolar.setState({ status: 'error', error: e.message || 'The solar worker failed to start' })
   }
@@ -63,7 +68,7 @@ function run(input: Omit<SolarJobInput, 'ctx' | 'city'>, ctx: VtcContext | null,
   // The worker fetches the Real Vancouver layers itself, relative to the app (base "./"), for the buildings model shown.
   if (input.project === 'city') { msg.cityBase = new URL('./', document.baseURI).href; msg.cityModel = cityModel }
   if (ctx !== sentCtx) { msg.ctx = ctx; sentCtx = ctx }
-  useSolar.setState({ status: 'running' })
+  useSolar.setState({ status: 'running', runRev: modelRevision(input.towers) })
   w.postMessage(msg)
 }
 

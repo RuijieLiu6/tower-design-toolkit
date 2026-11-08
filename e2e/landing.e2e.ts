@@ -36,12 +36,16 @@ test('the landing page: say who you are, get starting workflows, start one', asy
   await page.getByTestId('composer-start').click()
   await expect(page).toHaveURL(/#\/guided/, { timeout: 30_000 })
   await expect(page.getByTestId('phase-panel')).toBeVisible({ timeout: 60_000 })
-  // The top bar's role follows the choice.
+  // The role follows the choice (project bar › More, 8 Nov).
+  await page.getByTestId('more-menu').click()
   await expect(page.getByRole('combobox', { name: 'Role' })).toHaveValue('designer')
-  // Step to step: the rail counts the workflow's checks per step, and Next goes on.
+  await page.keyboard.press('Escape')
+  // Phase to phase (8 Nov: no counts or Next in the phase row): Program's panel lists the workflow's four Program checks
+  // (fsr, streetwall, frontage, open space; the sky room was switched off), and the arrow keys move along the row.
   const rail = page.getByRole('navigation', { name: 'Design process' })
   await expect(rail.locator('[data-step="site"]')).toHaveAttribute('aria-current', 'step')
-  await expect(page.getByTestId('step-count-program')).toHaveText('4') // fsr, streetwall, frontage, open space (sky room off)
-  await page.getByTestId('rail-next').click()
+  await rail.locator('[data-phase="program"]').click()
+  await expect(page.getByTestId('phase-rows').locator('[data-phase-node^="built."]')).toHaveCount(4)
+  await rail.locator('[data-phase="program"]').press('ArrowLeft')
   await expect(rail.locator('[data-step="volume"]')).toHaveAttribute('aria-current', 'step')
 })

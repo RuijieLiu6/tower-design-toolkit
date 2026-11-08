@@ -585,7 +585,7 @@ export function VistaChrome() {
         {(note || viewNote) && <div role="status" className="max-w-[30rem] px-2 py-[3px] text-meta" style={{ ...box, background: '#f3e9dbee', color: '#684838' }}>{note ?? viewNote}</div>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-[3px] text-meta leading-[1.45]" style={box} title={MODE_HINT[mode]} data-testid="mode-gestures">
           <b className="font-semibold">{MAP_MODES.find((m) => m.id === mode)?.label ?? mode}</b>
-          {MODE_GESTURES[mode].map(([g, w]) => <span key={g} className="flex items-center gap-1"><kbd className="rounded border border-current/30 px-1 font-sans text-meta opacity-80">{g}</kbd>{w}</span>)}
+          {MODE_GESTURES[mode].map(([g, w]) => <span key={g} className="flex items-center gap-1"><kbd className="rounded border border-current/30 px-1 font-sans text-meta">{g}</kbd>{w}</span>)}
           <span className="sr-only">{MODE_HINT[mode]}</span>
         </div>
         <Legend />

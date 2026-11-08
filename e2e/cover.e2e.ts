@@ -17,7 +17,7 @@ test('the cover: preview a role, keep one, thread a node, enter with the workflo
   // A click keeps it.
   await page.locator('[data-role="practitioner"]').click()
   await expect(name).toHaveText('Rezoning feasibility')
-  const on = page.locator('[data-cover-node][data-on="1"]')
+  const on = page.locator('[data-cover-node][data-on="1"]:not([data-cover-node^="design."])')
   const before = await on.count()
   // A floating node, clicked, is threaded onto the string.
   await page.locator('[data-cover-node][data-on="0"]').first().focus()
@@ -28,6 +28,7 @@ test('the cover: preview a role, keep one, thread a node, enter with the workflo
   await page.getByTestId('cover-enter').click()
   await expect(page).toHaveURL(/#\/guided/, { timeout: 30_000 })
   await expect(page.getByTestId('phase-panel')).toBeVisible({ timeout: 60_000 })
+  await page.getByTestId('more-menu').click() // the role is in the project bar's More menu (8 Nov)
   await expect(page.getByRole('combobox', { name: 'Role' })).toHaveValue('practitioner')
 })
 
@@ -39,7 +40,7 @@ test('the workflow assistant: suggest, preview, apply, undo, clarify', async ({ 
   await page.route('**/huggingface.co/**', (r) => r.abort())
   await page.addInitScript(() => { try { localStorage.setItem('ts.onboarding.seen', '1') } catch { /* private mode */ } })
   await page.goto('/')
-  const on = page.locator('[data-cover-node][data-on="1"]')
+  const on = page.locator('[data-cover-node][data-on="1"]:not([data-cover-node^="design."])')
   await expect(on).toHaveCount(10)
   const input = page.getByTestId('assistant-input')
   await input.fill('Help me explore a mixed-use tower with a public ground floor.')
@@ -76,7 +77,7 @@ test('loops: connect back by keyboard, select, remove, undo', async ({ page }) =
   await page.route('**/huggingface.co/**', (r) => r.abort())
   await page.addInitScript(() => { try { localStorage.setItem('ts.onboarding.seen', '1') } catch { /* private mode */ } })
   await page.goto('/')
-  await expect(page.locator('[data-cover-node][data-on="1"]')).toHaveCount(10)
+  await expect(page.locator('[data-cover-node][data-on="1"]:not([data-cover-node^="design."])')).toHaveCount(10)
   await expect(page.getByTestId('cover-loop')).toHaveCount(0)
   await expect(page.locator('[data-lane-loop]')).toHaveCount(0)
   await expect(page.getByTestId('wire-tip')).toHaveCount(0)
@@ -110,7 +111,7 @@ test('the cover keeps its workflow: back from the app, after a reload; New start
   await page.addInitScript(() => { try { localStorage.setItem('ts.onboarding.seen', '1') } catch { /* private mode */ } })
   await page.goto('/')
   const name = page.getByTestId('cover-chain-name')
-  const on = page.locator('[data-cover-node][data-on="1"]')
+  const on = page.locator('[data-cover-node][data-on="1"]:not([data-cover-node^="design."])')
   await expect(on).toHaveCount(10)
   // From the shelf: a click adds it; C then Enter on an earlier node makes a local loop.
   await page.locator('[data-cover-node="built.core-lifts"]').click()

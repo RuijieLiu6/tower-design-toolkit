@@ -118,12 +118,19 @@ function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePac
   const [takeModel, setTakeModel] = useState(false)
   useEffect(() => { setTakeSettings(mode === 'replace'); setTakeModel(mode === 'replace') }, [mode])
   const portion = useMemo(() => phasePortion(w.wf, pkg.phase, home), [w.wf, pkg.phase, home])
-  const plan = useMemo(() => planImport(w.wf, portion.nodes, pkg, mode, knownNode), [w.wf, portion.nodes, pkg, mode])
+  // A custom tool counts only when its package is installed in this browser (8 Nov, F04): an id alone is not a tool.
+  const installed = useCommunityStore((s) => s.packages)
+  const available = useMemo(() => (id: string) => (id.startsWith('community.') ? installed.some((p) => p.id === id) : knownNode(id)), [installed])
+  const plan = useMemo(() => planImport(w.wf, portion.nodes, pkg, mode, available), [w.wf, portion.nodes, pkg, mode, available])
   const allowed = PHASE_SLICES[pkg.phase].filter((k) => k in pkg.settings)
   const settingKeys = allowed.filter((k) => k !== 'towers')
   const towers = Array.isArray(pkg.settings.towers) ? (pkg.settings.towers as unknown[]) : null
   const revNow = modelRevision(towersNow)
   const lines = pkg.results.digest?.lines.length ?? 0
+  // what the package refers to that this project or browser doesn't have (8 Nov, F04)
+  const missingLinks = pkg.workflow.links.filter((l) => !w.wf.nodes.includes(l.other) && !pkg.workflow.nodes.includes(l.other) && l.other !== 'start' && l.other !== 'enter')
+  const meshes = useImportStore((s) => s.meshes)
+  const missingMeshes = (towers ?? []).filter((t) => { const m = (t as { imported?: { meshId?: string } }).imported?.meshId; return !!m && !meshes[m] }).map((t) => (t as { name?: string }).name ?? 'a tower')
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => { box.current?.querySelector<HTMLElement>('input')?.focus() }, [])
 
@@ -137,7 +144,7 @@ function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePac
     if (pkg.phase !== current) goToStep(PHASE_STEP[pkg.phase])
     onDone(`${PHASE_NAME[pkg.phase]} package ${mode === 'merge' ? 'merged' : 'applied (replace)'}: ${plan.added.length} tool${plan.added.length === 1 ? '' : 's'} added${plan.removed.length ? `, ${plan.removed.length} taken off` : ''}, ${plan.wires} connection${plan.wires === 1 ? '' : 's'}${Object.keys(patch).length ? `, ${Object.keys(patch).length} setting${Object.keys(patch).length === 1 ? '' : 's'} taken` : ''}. Undo is in Edit (workflow) and Ctrl+Z (settings).`)
   }
-  const state = (id: string) => (!knownNode(id) ? 'not in this app: skipped' : plan.added.includes(id) ? 'new' : 'already here')
+  const state = (id: string) => (!available(id) ? 'not in this app: skipped' : plan.added.includes(id) ? 'new' : 'already here')
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -166,9 +173,10 @@ function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePac
           <section aria-label="Tools">
             <h3 className="text-meta font-semibold text-muted">Tools</h3>
             <ul className="mt-1 space-y-0.5" data-testid="pp-tools">
-              {pkg.workflow.nodes.map((id) => <li key={id} className="flex items-center gap-2" data-pp-node={id} data-state={state(id)}><span className="min-w-0 flex-1 truncate text-ink">{knownNode(id) ? info(id).name : id}</span><span className={`text-meta ${state(id) === 'new' ? 'font-semibold text-success' : 'text-muted'}`}>{state(id)}{pkg.tools[id] ? ` · v${pkg.tools[id]}` : ''}</span></li>)}
+              {pkg.workflow.nodes.map((id) => <li key={id} className="flex items-center gap-2" data-pp-node={id} data-state={state(id)}><span className="min-w-0 flex-1 truncate text-ink">{available(id) ? info(id).name : id}</span><span className={`text-meta ${state(id) === 'new' ? 'font-semibold text-success' : 'text-muted'}`}>{state(id)}{pkg.tools[id] ? ` · v${pkg.tools[id]}` : ''}</span></li>)}
               {plan.removed.map((id) => <li key={id} className="flex items-center gap-2" data-pp-node={id} data-state="taken off"><span className="min-w-0 flex-1 truncate text-ink">{info(id).name}</span><span className="text-meta font-semibold text-error">taken off (its results and your model stay)</span></li>)}
             </ul>
+            {missingLinks.length > 0 && <p className="mt-1 text-meta text-warning" data-testid="pp-missing-links">Links to tools not in this project, not added: {missingLinks.map((l) => `${l.out ? 'to' : 'from'} ${knownNode(l.other) ? info(l.other).name : l.other}`).join(', ')}.</p>}
             <p className="mt-1 text-meta text-muted">{plan.wires} new connection{plan.wires === 1 ? '' : 's'}{pkg.workflow.edges.some((e) => pkg.workflow.nodes.indexOf(e.b) >= 0 && pkg.workflow.nodes.indexOf(e.b) < pkg.workflow.nodes.indexOf(e.a)) ? ', return paths included' : ''}{mode === 'replace' ? `; ${PHASE_NAME[pkg.phase]}'s own connections are replaced` : ''}.{pkg.workflow.links.length ? ` ${pkg.workflow.links.length} link${pkg.workflow.links.length === 1 ? '' : 's'} to other phases are kept as they are here.` : ''}</p>
           </section>
           <section aria-label="Settings and model">
@@ -178,6 +186,7 @@ function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePac
             {towers && <label className="mt-1 flex items-start gap-2"><input type="checkbox" checked={takeModel} onChange={(e) => setTakeModel(e.target.checked)} className="mt-1" data-testid="pp-model" />
               <span className="text-ink">Take its model: {towers.length} tower{towers.length === 1 ? '' : 's'} in place of your {towersNow.length} on the {PROJECT_NAME[project]}</span></label>}
             {!settingKeys.length && !towers && <p className="text-meta text-muted">No settings in this package.</p>}
+            {missingMeshes.length > 0 && <p className="mt-1 text-meta text-warning" data-testid="pp-missing-assets">Imported model files not in this browser: {missingMeshes.join(', ')} would draw as stacked plates until the file is imported again.</p>}
             <p className="mt-1 text-meta text-muted">Units {pkg.frame.units}; origin {pkg.frame.origin}; north {pkg.frame.north}; datum {pkg.frame.datum}.</p>
           </section>
           <section aria-label="Results">

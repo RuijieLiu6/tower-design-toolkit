@@ -67,8 +67,12 @@ export default function PhasePanel() {
   }
   const [drawer, setDrawer] = useState<'import' | 'export' | null>(null)
   useEffect(() => setDrawer(null), [phase])
-  // The open tool sets the View it works in (unless the View is pinned): on opening it, and on coming back to the phase.
-  useEffect(() => { applyToolView(active) }, [active, phase])
+  // The open tool sets the View it works in (unless the View is pinned), and a check's results show on the right: on
+  // opening it, and on coming back to the phase (so the panel and the results never show two different tools).
+  useEffect(() => {
+    applyToolView(active)
+    if (!isDesignNode(active) && useStore.getState().selectedNode !== active) useStore.getState().selectNode(active)
+  }, [active, phase])
   const head = 'flex h-8 items-center gap-1 rounded-lg bg-panel px-2 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
   return (

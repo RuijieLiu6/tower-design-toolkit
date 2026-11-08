@@ -127,7 +127,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const isLoop = (e: Edge) => returns.has(key(e))
   const loop = returns.size > 0
   const preset = presetId ? presetById(presetId) ?? null : null
-  const edited = !!preset && !(sameList(chain, byPhase(preset.nodes)) && onBoard.length === preset.nodes.length && edges.length === preset.nodes.length + 1)
+  // A preset as it starts: its checks with the design step in front of each phase (designed), so the design steps alone
+  // never make it "(edited)" (8 Nov).
+  const presetRun = useMemo(() => (preset ? designed(byPhase(preset.nodes)) : []), [preset])
+  const edited = !!preset && !(sameList(chain, presetRun) && onBoard.length === presetRun.length && edges.length === presetRun.length + 1)
   const name = preset ? (edited ? `${preset.name} (edited)` : preset.name) : customName ?? 'Your workflow'
 
   const [menu, setMenu] = useState(false)

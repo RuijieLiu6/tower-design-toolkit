@@ -14,6 +14,7 @@ import { create } from 'zustand'
 import { useStore } from '../../store'
 import { loadCoverWorkflow, restoreCoverWorkflow, saveCoverWorkflow, type CoverRole } from '../coverWorkflow'
 import { WORKFLOW_KEY } from '../startPreset'
+import { breakStep, withoutHistory } from '../project/history'
 import { presetById } from '../userTypes'
 import { addLoop, clean, edgeKey, insertAfter, insertOn, linear, returnEdges, takeOff, walk, type Board, type Edge } from '../workflowGraph'
 import { BUILT_NODES } from '../../data/registry'
@@ -81,7 +82,10 @@ function syncChecks(before: string[], after: string[]) {
   const on = analysisOnly(after.filter((id) => !before.includes(id)))
   const off = analysisOnly(before.filter((id) => !after.includes(id)))
   if (!on.length && !off.length) return
-  useStore.setState((s) => ({ enabled: { ...s.enabled, ...Object.fromEntries(on.map((id) => [id, true])), ...Object.fromEntries(off.map((id) => [id, false])) } }))
+  // Not a design-undo step (8 Nov, F05): the workflow has its own Undo, which switches the check back; recorded in the
+  // design history, a quick design edit after adding a tool merged with it and one design Undo switched the tool off.
+  withoutHistory(() => useStore.setState((s) => ({ enabled: { ...s.enabled, ...Object.fromEntries(on.map((id) => [id, true])), ...Object.fromEntries(off.map((id) => [id, false])) } })))
+  breakStep()
 }
 
 const LIMIT = 80

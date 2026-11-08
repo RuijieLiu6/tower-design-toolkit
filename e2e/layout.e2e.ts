@@ -51,7 +51,8 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
   await expect(tools.getByRole('tab', { name: 'Massing', exact: true })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Results', exact: true })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Design' })).toHaveCount(0)
-  await expect(p.getByTestId('workflow-dock')).toBeVisible() // the whole workflow along the bottom
+  await expect(p.getByTestId('workflow-dock')).toHaveCount(0) // no permanent workflow strip (8 Nov): Overview on demand
+  await expect(p.getByTestId('workflow-overview')).toHaveCount(0)
   const lib = await openLibrary(p)
   expect(await lib.getByRole('switch').count()).toBeGreaterThanOrEqual(17)
   await expect(lib.getByRole('switch', { name: 'Use VTC hard rules', exact: true })).toBeVisible()
