@@ -70,6 +70,8 @@ interface Rope { pts: Pt[]; slack: number }
 /** Tiles in a lane's shelf are this much of their size on the board. */
 const SHELF_S = 0.62
 const SEG = 14 // points per rope
+/** The travelling dots: a wave every 10 s; each wire takes 0.9 s and starts 0.3 s after the one before it. */
+const WAVE_EVERY = 10_000, WAVE_STEP = 300, WAVE_WIRE = 900
 /** The loop colour (one for the wire back and the forward wires it closes): orange, the complement of the run's blue (206° + 180°; Ruijie, 7 Nov). */
 const LOOP_LINE = 'hsl(26 92% 54%)', LOOP_PULSE = 'hsl(26 96% 56%)'
 
@@ -192,7 +194,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       queueMicrotask(() => { remembered.current = false })
     }
     onRef.current = on; edgesRef.current = clean
-    if (!assistCommitting.current) flow()
     setOnBoard(on); setEdges(clean)
   }
   const has = (es: Edge[], a: string, b: string) => es.some((e) => e.a === a && e.b === b)
@@ -267,9 +268,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     else p.added.forEach((id) => { const sl = slotFor(id, run.filter((x) => x !== id)); place(id, sl.x, sl.y) })
     assistCommitting.current = true; commit(ids, p.board.edges); assistCommitting.current = false
     setProposed({ added: new Set(p.added), removed: new Set(p.removed) })
-    flow()
   }
-  const applyProposal = () => { if (assistKept.current) { history.current.push(assistKept.current); setCanUndo(true) } assistKept.current = null; setProposed(null); flow() }
+  const applyProposal = () => { if (assistKept.current) { history.current.push(assistKept.current); setCanUndo(true) } assistKept.current = null; setProposed(null) }
   const discardProposal = () => { const k = assistKept.current; assistKept.current = null; setProposed(null); if (k) restoreSnap(k) }
   const undoAssistant = () => { const k = history.current.pop(); setCanUndo(history.current.length > 0); setSelectedWire(null); setNotice(null); if (k) restoreSnap(k) }
   useEffect(() => {
@@ -326,7 +326,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     kept.current = null
     if (k) { history.current.push(k); setCanUndo(true) }
     assistCommitting.current = true; applyBoard(p.type, p); assistCommitting.current = false
-    flow()
   }
   useEffect(() => {
     if (!presetsOpen) return
@@ -340,7 +339,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const newWorkflow = () => {
     history.current.push(snapshot()); setCanUndo(true)
     assistCommitting.current = true; apply('designer'); assistCommitting.current = false
-    flow()
   }
 
   // ---- keep the workflow (lib/coverWorkflow.ts): as it changes, when the cover closes, and when the page goes away. A
@@ -408,10 +406,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     setNotice({ text: l?.loop ? `Return to ${label(l.b)} removed` : 'Connection removed', x: at.x, y: at.y })
   }
   const ropeHit = useRef(new Map<string, SVGPathElement | null>())
-  // Movement explains an action (Ruijie, 7 Nov): after a change, one pulse runs along the workflow from Start to Enter,
-  // and a new wire draws itself in; then everything rests.
-  const flowAt = useRef(-1e9)
-  const flow = () => { if (!still) flowAt.current = performance.now() + 120 }
+  // Movement explains an action (Ruijie, 7 Nov): a new wire draws itself in. Each wire's direction: a see-through arrow,
+  // and dots travelling along it in a wave every 10 s (with reduced motion, the arrow alone).
   const prevKeys = useRef<Set<string> | null>(null)
   // A wire being rewired: its loose end follows the pointer.
   const rewiring = useRef<{ key: string; a: string; b: string; end: 'a' | 'b'; x: number; y: number; sx: number; sy: number; moved: boolean } | null>(null)
@@ -504,16 +500,18 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         const R = p[Math.round(SEG * 0.32)]
         retMarks.current.get(l.key)?.setAttribute('transform', `translate(${R.x.toFixed(1)} ${R.y.toFixed(1)})`)
         if (tipKeyRef.current === l.key && tipEl.current) tipEl.current.style.transform = `translate3d(${M.x.toFixed(1)}px, ${(M.y - 14).toFixed(1)}px, 0) translate(-50%, -100%)`
-        // a pulse running along it (the workflow running); slow, thin and without a white rim (Ruijie, 7 Nov)
+        // the dot travelling along it, the way the wire runs (its direction; a return's runs back). Every 10 s one wave
+        // runs the workflow from Start to Enter at a normal pace, each wire just after the one before it; then the dots
+        // rest until the next wave (Ruijie, 7 Nov: "make the node travel simulation normal speed and make it travel every
+        // other 10 seconds").
         const c = pulses.current.get(l.key)
-        if (c) {
-          // After a change one pulse runs along the run, wire by wire from Start, then the string rests (Ruijie, 7 Nov:
-          // "Use animation to communicate a deliberate action … Let the interface settle"). Returns carry none.
+        if (c && !still) {
           const order = l.a === 'start' ? 0 : chainRef.current.indexOf(l.a) + 1
-          const f = (t - flowAt.current - order * 150) / 650
+          const f = ((t % WAVE_EVERY) - order * WAVE_STEP) / WAVE_WIRE
           if (f >= 0 && f <= 1) {
             const at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
-            c.setAttribute('cx', (p[k].x + (p[k + 1].x - p[k].x) * u).toFixed(1)); c.setAttribute('cy', (p[k].y + (p[k + 1].y - p[k].y) * u).toFixed(1)); c.setAttribute('opacity', '1')
+            c.setAttribute('cx', (p[k].x + (p[k + 1].x - p[k].x) * u).toFixed(1)); c.setAttribute('cy', (p[k].y + (p[k + 1].y - p[k].y) * u).toFixed(1))
+            c.setAttribute('opacity', Math.min(1, f * 8, (1 - f) * 8).toFixed(2)) // fades in and out at the wire's ends
           } else c.setAttribute('opacity', '0')
         }
       }
@@ -858,14 +856,16 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
               onPointerEnter={() => setHoverWire(l.key)} onPointerLeave={() => setHoverWire((h) => (h === l.key ? null : h))} />
             <path ref={(p) => { ropeLine.current.set(l.key, p) }}
               fill="none" stroke={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} strokeOpacity={0.85} strokeWidth={tipKey === l.key ? 2.25 : 1.25} strokeLinecap="round" data-ring={l.ring ? '' : undefined} data-return={l.loop ? '' : undefined} style={{ pointerEvents: 'none' }} />
-            <path ref={(p) => { arrows.current.set(l.key, p) }} d="M-4.5,-3.6 L4.5,0 L-4.5,3.6 Z" fill={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} style={{ pointerEvents: 'none' }} />
+            {/* its direction: a quiet, see-through arrow (Ruijie, 7 Nov: "bring the arrows back but make them transparent");
+                with reduced motion it is the only cue, so it stays stronger */}
+            <path ref={(p) => { arrows.current.set(l.key, p) }} d="M-4.5,-3.6 L4.5,0 L-4.5,3.6 Z" fill={l.ring ? LOOP_LINE : 'hsl(206 75% 52%)'} opacity={still ? 0.85 : 0.35} style={{ pointerEvents: 'none' }} data-arrow />
             {/* a return connection's passive mark: a small return arrow on its route */}
             {l.loop && <g ref={(g) => { retMarks.current.set(l.key, g) }} style={{ pointerEvents: 'none' }} data-return-mark>
               <circle r={7} fill="white" stroke={LOOP_LINE} strokeWidth={1} />
               <path d="M2.6,-1.6 A3,3 0 1 0 2.9,1.3" fill="none" stroke={LOOP_LINE} strokeWidth={1.3} strokeLinecap="round" />
               <path d="M1.2,-3.6 L3.1,-1.4 L0.5,-0.9 Z" fill={LOOP_LINE} />
             </g>}
-            {chain.length > 0 && !l.loop && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={2.6} fill={l.ring ? LOOP_PULSE : 'hsl(206 90% 58%)'} />}
+            {!still && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={3} opacity={0} fill={l.ring ? LOOP_PULSE : 'hsl(206 90% 58%)'} />}
           </g>
         ))}
         {/* the connector being drawn from a node's handle */}
