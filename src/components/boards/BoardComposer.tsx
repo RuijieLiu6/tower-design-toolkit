@@ -91,7 +91,7 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
             onDragOver={(e) => { if (f.role === 'body') { e.preventDefault(); setOver(f.id) } }} onDragLeave={() => setOver(null)}
             onDrop={(e) => { e.preventDefault(); setOver(null); onFrame(index, f.id, e) }}
             className={`absolute rounded-[2px] outline-none transition-shadow ${sel ? 'ring-2 ring-sky-500' : over === f.id ? 'ring-2 ring-emerald-500' : 'hover:ring-1 hover:ring-sky-400/70 focus-visible:ring-2 focus-visible:ring-sky-500'}`}>
-            {tag && <span className="pointer-events-none absolute left-1 top-1 rounded bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-medium text-white">{tag.label}</span>}
+            {tag && <span className="pointer-events-none absolute left-1 top-1 rounded bg-slate-900/75 px-1.5 py-0.5 text-meta font-medium text-white">{tag.label}</span>}
           </button>
         )
       })}
@@ -112,7 +112,7 @@ function Thumb({ index, evidence, active, onClick }: { index: number; evidence: 
     if (ctx) drawBoard(ctx, board, { pxPerMm: 220 / BOARD_W, images, loaded, evidence, editing: true, index, total: 4 })
   }, [board, images, loaded, evidence, index])
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} className={`flex flex-col items-center gap-1 rounded p-1 text-[10px] ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
+    <button type="button" onClick={onClick} aria-pressed={active} className={`flex flex-col items-center gap-1 rounded p-1 text-meta ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
       <canvas ref={ref} className={`h-[52px] w-[74px] rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
       Board {index + 1}
     </button>
@@ -151,18 +151,18 @@ function Library({ onPick }: { onPick: (imageId: string) => void }) {
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 text-slate-200">
       <div>
-        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Add</div>
+        <div className="mb-1.5 text-meta font-semibold text-slate-400">Add</div>
         <div className="grid gap-1.5">
           <button type="button" onClick={add3d} title="Re-renders the current Present camera at about 3500 px wide" className="flex items-center gap-2 rounded border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400"><Camera size={13} />Current 3D view, print size</button>
           <button type="button" onClick={addPlan} className="flex items-center gap-2 rounded border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400"><LayoutPanelTop size={13} />Floor plan (vector, stays sharp)</button>
           <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-2 rounded border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400"><ImagePlus size={13} />Image file (render, drawing, photo)</button>
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { if (e.target.files) await importFiles(e.target.files); e.target.value = '' }} />
         </div>
-        {msg && <p className="mt-1 text-[10px] text-amber-300">{msg}</p>}
+        {msg && <p className="mt-1 text-meta text-amber-300">{msg}</p>}
       </div>
       <div>
-        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Shots from Present ({shots.length})</div>
-        {shots.length === 0 && <p className="text-[10px] text-slate-400">Capture views with the camera presets; they appear here.</p>}
+        <div className="mb-1.5 text-meta font-semibold text-slate-400">Shots from Present ({shots.length})</div>
+        {shots.length === 0 && <p className="text-meta text-slate-400">Capture views with the camera presets; they appear here.</p>}
         <div className="grid grid-cols-2 gap-1.5">
           {shots.map((s) => (
             <button key={s.id} type="button" draggable onDragStart={(e) => drag(e, { shot: s.id })} onClick={async () => onPick(await importShot(s))}
@@ -173,7 +173,7 @@ function Library({ onPick }: { onPick: (imageId: string) => void }) {
         </div>
       </div>
       <div>
-        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">On the boards ({lib.length})</div>
+        <div className="mb-1.5 text-meta font-semibold text-slate-400">On the boards ({lib.length})</div>
         <div className="grid gap-1.5">
           {lib.map((img) => <LibraryItem key={img.id} img={img} onPick={() => onPick(img.id)} onDrag={(e) => drag(e, { image: img.id })} onRemove={() => removeImage(img.id)} />)}
         </div>
@@ -189,8 +189,8 @@ function LibraryItem({ img, onPick, onDrag, onRemove }: { img: BoardImage; onPic
         <img src={img.dataUrl} alt="" className="h-9 w-12 rounded-[2px] bg-white object-cover" draggable={false} />
       </button>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[11px]">{img.label}</div>
-        <div className={`text-[10px] ${imageSource(img) === 'ai' ? 'text-fuchsia-300' : 'text-slate-400'}`}>{img.vector ? 'Vector · ' : `${img.w} × ${img.h} px · `}{SOURCE_LABEL[imageSource(img) ?? img.source]}</div>
+        <div className="truncate text-meta">{img.label}</div>
+        <div className={`text-meta ${imageSource(img) === 'ai' ? 'text-fuchsia-300' : 'text-slate-400'}`}>{img.vector ? 'Vector · ' : `${img.w} × ${img.h} px · `}{SOURCE_LABEL[imageSource(img) ?? img.source]}</div>
       </div>
       <button type="button" onClick={onRemove} aria-label={`Remove ${img.label}`} className="p-1 text-slate-400 hover:text-red-300"><Trash2 size={12} /></button>
     </div>
@@ -207,7 +207,7 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
   return (
     <div className="grid gap-4 p-3 text-slate-200">
       <div>
-        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Board {selected.board + 1} layout</div>
+        <div className="mb-1.5 text-meta font-semibold text-slate-400">Board {selected.board + 1} layout</div>
         <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Board template">
           {(Object.keys(TEMPLATES) as TemplateId[]).map((t) => (
             <button key={t} type="button" role="radio" aria-checked={b.template === t} title={TEMPLATES[t].hint} onClick={() => setTemplate(selected.board, t)}
@@ -215,7 +215,7 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
           ))}
         </div>
         {parked.length > 0 && (
-          <div className="mt-2 rounded border border-amber-400/40 p-2 text-[11px]">
+          <div className="mt-2 rounded border border-amber-400/40 p-2 text-meta">
             <div className="mb-1 text-amber-200">{parked.length} item{parked.length > 1 ? 's' : ''} moved off a board by a layout change. Select an empty frame, then put one back:</div>
             {parked.map((p, i) => (
               <button key={i} type="button" disabled={!f || f.role === 'title'} onClick={() => f && unpark(i, selected.board, f.id)} className="mr-1 mt-1 rounded border border-white/20 px-1.5 py-0.5 disabled:opacity-40">
@@ -228,29 +228,29 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
       {!f && <p className="text-xs text-slate-400">Select a frame on the board to fill it.</p>}
       {f && (
         <div className="grid gap-3">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{f.role === 'title' ? 'Title band' : 'Frame'} · {Math.round(f.w)} × {Math.round(f.h)} mm</div>
+          <div className="text-meta font-semibold text-slate-400">{f.role === 'title' ? 'Title band' : 'Frame'} · {Math.round(f.w)} × {Math.round(f.h)} mm</div>
           {f.role === 'body' && (
             <div className="grid grid-cols-4 gap-1" role="radiogroup" aria-label="Frame content">
               {([['image', 'Image'], ['text', 'Text'], ['evidence', 'Evidence'], ['empty', 'Empty']] as const).map(([k, l]) => (
                 <button key={k} type="button" role="radio" aria-checked={f.content.kind === k}
                   onClick={() => set({ content: k === 'text' ? { kind: 'text', text: '', sizeMm: 4.5 } : k === 'evidence' ? { kind: 'evidence', nodeId: Object.keys(evidence)[0] ?? '' } : k === 'image' ? (f.content.kind === 'image' ? f.content : { kind: 'empty' }) : { kind: 'empty' } })}
-                  className={`rounded border px-1 py-1 text-[11px] ${f.content.kind === k ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15 hover:border-sky-400'}`}>{l}</button>
+                  className={`rounded border px-1 py-1 text-meta ${f.content.kind === k ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15 hover:border-sky-400'}`}>{l}</button>
               ))}
             </div>
           )}
-          {f.content.kind === 'empty' && f.role === 'body' && <p className="text-[11px] text-slate-400">Click a shot or image on the left, or drag it onto this frame.</p>}
+          {f.content.kind === 'empty' && f.role === 'body' && <p className="text-meta text-slate-400">Click a shot or image on the left, or drag it onto this frame.</p>}
           {f.content.kind === 'image' && (() => {
             const c = f.content, img = images[c.imageId]
             return (
               <>
-                <div className="text-[11px]">{img?.label ?? 'Image missing'}{img?.vector && <span className="text-slate-400"> · the plan's written scale holds only at full board size; its scale bar stays true</span>}</div>
+                <div className="text-meta">{img?.label ?? 'Image missing'}{img?.vector && <span className="text-slate-400"> · the plan's written scale holds only at full board size; its scale bar stays true</span>}</div>
                 <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label="Image fit">
                   {(['cover', 'contain'] as const).map((fit) => (
                     <button key={fit} type="button" role="radio" aria-checked={c.fit === fit} onClick={() => set({ content: { ...c, fit } })}
-                      className={`rounded border px-2 py-1 text-[11px] ${c.fit === fit ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15'}`}>{fit === 'cover' ? 'Fill (crop)' : 'Fit (whole image)'}</button>
+                      className={`rounded border px-2 py-1 text-meta ${c.fit === fit ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15'}`}>{fit === 'cover' ? 'Fill (crop)' : 'Fit (whole image)'}</button>
                   ))}
                 </div>
-                {img?.ai && <p className="text-[11px] text-fuchsia-200">AI render{img.ai.model ? ` (${img.ai.model})` : ''} from {img.ai.sourceLabel || 'an unknown capture'}. Its AI label cannot be removed.</p>}
+                {img?.ai && <p className="text-meta text-fuchsia-200">AI render{img.ai.model ? ` (${img.ai.model})` : ''} from {img.ai.sourceLabel || 'an unknown capture'}. Its AI label cannot be removed.</p>}
                 {img && !img.ai && (
                   <label className={label}><span className="text-slate-400">Made by</span>
                     <select value={img.source} className={input} onChange={(e) => addImage({ ...img, source: e.target.value as ImageSource })}>
@@ -258,7 +258,7 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
                     </select>
                   </label>
                 )}
-                {imageSource(img) === 'ai' && <p className="flex items-start gap-1.5 text-[11px] text-fuchsia-200"><Sparkles size={12} className="mt-0.5 shrink-0" />"AI-generated image" is printed under it (team rule; it cannot be removed).</p>}
+                {imageSource(img) === 'ai' && <p className="flex items-start gap-1.5 text-meta text-fuchsia-200"><Sparkles size={12} className="mt-0.5 shrink-0" />"AI-generated image" is printed under it (team rule; it cannot be removed).</p>}
                 <label className={label}><span className="text-slate-400">Caption</span>
                   <input value={f.caption ?? ''} onChange={(e) => set({ caption: e.target.value })} className={input} placeholder="What it shows (printed at 3.5 mm)" />
                 </label>
@@ -290,7 +290,7 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
                     {Object.values(evidence).map((s) => <option key={s.id} value={s.id}>{s.name} ({s.rules.length})</option>)}
                   </select>
                 </label>
-                <p className="text-[11px] text-slate-400">Each line keeps its state, threshold, evidence flag and source, so the jury sees what is checked and what is assumed. Fails and checks come first.</p>
+                <p className="text-meta text-slate-400">Each line keeps its state, threshold, evidence flag and source, so the jury sees what is checked and what is assumed. Fails and checks come first.</p>
               </>
             )
           })()}
@@ -362,7 +362,7 @@ function ComposerBody() {
         <FileImage size={16} className="text-sky-400" />
         <div className="mr-2">
           <div className="text-sm font-semibold">Boards</div>
-          <div className="text-[10px] text-slate-400">Four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
+          <div className="text-meta text-slate-400">Four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
         </div>
         <nav aria-label="Boards" className="flex gap-1">
           {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} />)}

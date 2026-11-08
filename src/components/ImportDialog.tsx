@@ -200,18 +200,18 @@ export default function ImportDialog() {
                     {built && <ChecksList checks={built.model.checks} />}
                     {built && built.towers.length > 1 && (
                       <div role="tablist" aria-label="Towers found" className="flex flex-wrap gap-1">
-                        {built.towers.map((t, n) => <button key={t.key} role="tab" aria-selected={one === t} onClick={() => setShown(n)} className={`rounded-md border px-2 py-1 text-[11px] ${one === t ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>{t.tower.name}</button>)}
+                        {built.towers.map((t, n) => <button key={t.key} role="tab" aria-selected={one === t} onClick={() => setShown(n)} className={`rounded-md border px-2 py-1 text-meta ${one === t ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>{t.tower.name}</button>)}
                       </div>
                     )}
                     {one && <PreviewBlock storeys={one.tower.imported!.storeys} top={one.tower.imported!.top} volume={one.tower.imported!.volume} hull={built!.placed!.local} rotation={built!.placed!.rotation} northDeg={frame.northDeg} fileNorth={built!.placed!.fileNorthDeg} />}
                     {one && <HealthList items={one.health} />}
                     {built && built.model.ignored.length > 0 && (
-                      <details className="rounded-md border border-line bg-panel p-2 text-[11px]">
+                      <details className="rounded-md border border-line bg-panel p-2 text-meta">
                         <summary className="cursor-pointer text-muted hover:text-ink">{built.model.ignored.length} item{built.model.ignored.length === 1 ? '' : 's'} left out, and why</summary>
                         <ul className="mt-1 grid max-h-40 gap-1 overflow-y-auto">{built.model.ignored.map((s, i) => <li key={i}><b>{s.name}</b> <span className="text-muted">({s.kind}{s.layer ? `, ${s.layer}` : ''})</span>: {s.reason}</li>)}</ul>
                       </details>
                     )}
-                    {raw.notes.length > 0 && <div className="rounded-md border border-line bg-panel p-2 text-[11px] text-muted">{raw.notes.map((n, i) => <p key={i}>{n}</p>)}</div>}
+                    {raw.notes.length > 0 && <div className="rounded-md border border-line bg-panel p-2 text-meta text-muted">{raw.notes.map((n, i) => <p key={i}>{n}</p>)}</div>}
                   </div>
                 </div>
               )}
@@ -222,7 +222,7 @@ export default function ImportDialog() {
 
         {raw && opts && mapping && (
           <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
-            <div className="mr-auto flex items-center gap-1.5 text-[11px] text-muted">
+            <div className="mr-auto flex items-center gap-1.5 text-meta text-muted">
               {step === 'map' ? <><Lock size={12} aria-hidden />Read in this browser; nothing is uploaded to a server.</>
                 : needsUnit ? <span className="font-medium text-[#8a5a00]">Confirm the units first (the file does not say).</span>
                 : blocked ? <span className="font-medium text-red-700">{built?.blocked}</span>
@@ -261,8 +261,8 @@ export default function ImportDialog() {
 // ---------- pieces ----------
 
 function Steps({ step }: { step: 'map' | 'check' }) {
-  const s = (n: number, label: string, on: boolean) => <li className={`flex items-center gap-1.5 ${on ? 'font-semibold text-accent' : 'text-muted'}`} aria-current={on ? 'step' : undefined}><span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${on ? 'bg-accent text-white' : 'border border-line'}`}>{n}</span>{label}</li>
-  return <ol className="ml-auto hidden items-center gap-3 self-center text-[11px] md:flex" aria-label="Steps">{s(1, 'Map layers to roles', step === 'map')}{s(2, 'Check and use', step === 'check')}</ol>
+  const s = (n: number, label: string, on: boolean) => <li className={`flex items-center gap-1.5 ${on ? 'font-semibold text-accent' : 'text-muted'}`} aria-current={on ? 'step' : undefined}><span className={`flex h-4 w-4 items-center justify-center rounded-full text-meta ${on ? 'bg-accent text-white' : 'border border-line'}`}>{n}</span>{label}</li>
+  return <ol className="ml-auto hidden items-center gap-3 self-center text-meta md:flex" aria-label="Steps">{s(1, 'Map layers to roles', step === 'map')}{s(2, 'Check and use', step === 'check')}</ol>
 }
 
 function DropZone({ loading, file, onFile, inputRef, onCancel, onLink }: { loading: { phase: string; done: number; total: number } | null; file: { name: string; size: number } | null; onFile: (f: File) => void; inputRef: RefObject<HTMLInputElement | null>; onCancel: () => void; onLink?: () => void }) {
@@ -277,7 +277,7 @@ function DropZone({ loading, file, onFile, inputRef, onCancel, onLink }: { loadi
           <Loader2 size={22} className="animate-spin text-accent" aria-hidden />
           <span className="text-sm" role="status">{file?.name}: {loading.phase.toLowerCase()}{pct != null ? ` (${loading.done.toLocaleString('en-CA')} of ${loading.total.toLocaleString('en-CA')} objects)` : '…'}</span>
           {pct != null && <div className="h-1.5 w-64 overflow-hidden rounded-full bg-black/10" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Reading the file"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>}
-          <span className="text-[11px] text-muted">{file && file.size > LARGE_BYTES ? `A large file (${(file.size / 1048576).toFixed(0)} MB): reading may take a minute; the page stays usable. ` : ''}Rhino and IFC files load a WebAssembly reader the first time (about 3 MB and 5 MB, then cached). It all runs on this device.</span>
+          <span className="text-meta text-muted">{file && file.size > LARGE_BYTES ? `A large file (${(file.size / 1048576).toFixed(0)} MB): reading may take a minute; the page stays usable. ` : ''}Rhino and IFC files load a WebAssembly reader the first time (about 3 MB and 5 MB, then cached). It all runs on this device.</span>
           <button onClick={onCancel} className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent">Cancel</button>
         </>
       ) : (
@@ -288,8 +288,8 @@ function DropZone({ loading, file, onFile, inputRef, onCancel, onLink }: { loadi
             <button data-autofocus onClick={() => inputRef.current?.click()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white">Choose a file</button>
             {onLink && <button onClick={onLink} title="The model then updates by itself each time you save the file in Rhino, while this tab is open (Chrome and Edge)" className="rounded-md border border-accent px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10">Link a file: update on each save</button>}
           </span>
-          <span className="text-[11px] text-muted">.3dm · .obj · .glb / .gltf · .ifc</span>
-          <span className="flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />Read in this browser; nothing is uploaded to a server.</span>
+          <span className="text-meta text-muted">.3dm · .obj · .glb / .gltf · .ifc</span>
+          <span className="flex items-center gap-1 text-meta text-muted"><Lock size={11} aria-hidden />Read in this browser; nothing is uploaded to a server.</span>
         </>
       )}
       <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
@@ -318,8 +318,8 @@ function ProjectBlock({ project, onPick }: { project: 'vtc' | 'city'; onPick: (p
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2 text-xs">
       <span className="font-semibold">Place it in</span>
-      {(['vtc', 'city'] as const).map((p) => <button key={p} onClick={() => onPick(p)} aria-pressed={project === p} className={`rounded border px-2 py-0.5 text-[11px] ${project === p ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>{p === 'vtc' ? 'Competition site' : 'Real Vancouver'}</button>)}
-      <span className="text-[10px] text-muted">north, datum and placement follow the project</span>
+      {(['vtc', 'city'] as const).map((p) => <button key={p} onClick={() => onPick(p)} aria-pressed={project === p} className={`rounded border px-2 py-0.5 text-meta ${project === p ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>{p === 'vtc' ? 'Competition site' : 'Real Vancouver'}</button>)}
+      <span className="text-meta text-muted">north, datum and placement follow the project</span>
     </div>
   )
 }
@@ -327,12 +327,12 @@ function ProjectBlock({ project, onPick }: { project: 'vtc' | 'city'; onPick: (p
 function FormatsTable() {
   return (
     <div>
-      <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Supported formats (22 Oct 2026) <FlagChip flag="team_assumption" /></div>
-      <table className="w-full text-left text-[11px]">
+      <div className="mb-1 flex items-center gap-2 text-meta font-semibold text-muted">Supported formats (22 Oct 2026) <FlagChip flag="team_assumption" /></div>
+      <table className="w-full text-left text-meta">
         <thead className="text-muted"><tr><th className="py-1 pr-2 font-medium">File</th><th className="pr-2 font-medium">How to get it</th><th className="pr-2 font-medium">Keeps</th><th className="font-medium">Loses</th></tr></thead>
         <tbody>{FORMATS.map((f) => <tr key={f.ext} className="border-t border-line align-top"><td className="py-1 pr-2 font-mono">{f.ext}</td><td className="pr-2">{f.route}</td><td className="pr-2 text-muted">{f.keeps}</td><td className="text-muted">{f.loses}</td></tr>)}</tbody>
       </table>
-      <p className="mt-1 text-[10px] text-muted">Routes from research P14-M02 (rhino3dm, web-ifc and three.js readers; SketchUp and Revit need an export first).</p>
+      <p className="mt-1 text-meta text-muted">Routes from research P14-M02 (rhino3dm, web-ifc and three.js readers; SketchUp and Revit need an export first).</p>
     </div>
   )
 }
@@ -365,10 +365,10 @@ function FileSummary({ raw, size, onOther, linked }: { raw: LoadedImport; size: 
     <div className="flex flex-wrap items-center gap-2 border-b border-line bg-black/[0.03] px-5 py-2 text-xs">
       <FileUp size={14} className="text-accent" aria-hidden />
       <span className="truncate font-medium">{raw.fileName}</span>
-      {linked && <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">linked: updates on each save</span>}
+      {linked && <span className="rounded bg-accent/10 px-1.5 py-0.5 text-meta font-medium text-accent">linked: updates on each save</span>}
       <span className="text-muted">{FORMAT_LABEL[raw.format]}{size != null ? ` · ${size >= 1048576 ? `${(size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`}` : ''} · {raw.objects.length} volume{raw.objects.length === 1 ? '' : 's'}{curves ? ` · ${curves} curve${curves === 1 ? '' : 's'}` : ''} · {raw.objects.reduce((s, o) => s + o.mesh.indices.length / 3, 0).toLocaleString('en-CA')} triangles{raw.skipped.length ? ` · ${raw.skipped.length} unreadable` : ''}</span>
-      <span className="flex items-center gap-1 text-[11px] text-muted"><Lock size={11} aria-hidden />stays in this browser</span>
-      <button onClick={onOther} className="ml-auto shrink-0 text-[11px] text-accent hover:underline">Other file</button>
+      <span className="flex items-center gap-1 text-meta text-muted"><Lock size={11} aria-hidden />stays in this browser</span>
+      <button onClick={onOther} className="ml-auto shrink-0 text-meta text-accent hover:underline">Other file</button>
     </div>
   )
 }
@@ -382,28 +382,28 @@ function UnitsBlock({ raw, objects, opts, up }: { raw: LoadedImport; objects: { 
   const fromFile = raw.unit != null && raw.unit === opts.unit
   return (
     <Block icon={<Ruler size={14} className="text-accent" />} title="Units and up axis"
-      right={fromFile ? <span className="flex items-center gap-1 text-[10px] font-normal text-muted">From the file</span> : opts.unitConfirmed ? <FlagChip flag="team_assumption" /> : <FlagChip flag="unresolved" />}>
-      <p className="mb-1.5 text-[11px] text-muted">{raw.unitNote}.</p>
+      right={fromFile ? <span className="flex items-center gap-1 text-meta font-normal text-muted">From the file</span> : opts.unitConfirmed ? <FlagChip flag="team_assumption" /> : <FlagChip flag="unresolved" />}>
+      <p className="mb-1.5 text-meta text-muted">{raw.unitNote}.</p>
       <div className="grid grid-cols-5 gap-1">
         {cands.map((c) => (
           <button key={c.unit} onClick={() => up({ unit: c.unit, unitConfirmed: true })} aria-pressed={opts.unit === c.unit}
-            className={`rounded-md border px-1 py-1 text-center text-[11px] ${opts.unit === c.unit ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>
+            className={`rounded-md border px-1 py-1 text-center text-meta ${opts.unit === c.unit ? 'border-accent bg-accent/10 font-semibold text-accent' : 'border-line hover:border-accent'}`}>
             <div>{c.unit}</div>
-            <div className={`text-[10px] tabular-nums ${c.fitsBrief ? 'text-emerald-700' : c.plausible ? 'text-muted' : 'text-red-700'}`}>{fmtLen(c.height)}</div>
+            <div className={`text-meta tabular-nums ${c.fitsBrief ? 'text-emerald-700' : c.plausible ? 'text-muted' : 'text-red-700'}`}>{fmtLen(c.height)}</div>
           </button>
         ))}
       </div>
-      <p className="mt-1 text-[10px] text-muted">Tower height under each unit; green fits the 244-305 m brief range (unverified), red is not a tower.</p>
+      <p className="mt-1 text-meta text-muted">Tower height under each unit; green fits the 244-305 m brief range (unverified), red is not a tower.</p>
       {!fromFile && !opts.unitConfirmed && (
-        <button onClick={() => up({ unitConfirmed: true })} className="mt-1.5 rounded-md bg-[#8a5a00] px-2 py-1 text-[11px] font-semibold text-white">Confirm {UNIT_LABEL[opts.unit]} ({fmtLen(ext.height * UNIT_SCALE[opts.unit])} tall)</button>
+        <button onClick={() => up({ unitConfirmed: true })} className="mt-1.5 rounded-md bg-[#8a5a00] px-2 py-1 text-meta font-semibold text-white">Confirm {UNIT_LABEL[opts.unit]} ({fmtLen(ext.height * UNIT_SCALE[opts.unit])} tall)</button>
       )}
       {raw.format === 'obj' && (
         <div className="mt-2 flex items-center gap-2 text-xs">
           <span className="text-muted">Up axis</span>
           {(['z', 'y'] as const).map((a) => (
-            <button key={a} onClick={() => up({ upAxis: a })} aria-pressed={opts.upAxis === a} className={`rounded border px-2 py-0.5 text-[11px] ${opts.upAxis === a ? 'border-accent bg-accent/10 text-accent' : 'border-line'}`}>{a.toUpperCase()} up</button>
+            <button key={a} onClick={() => up({ upAxis: a })} aria-pressed={opts.upAxis === a} className={`rounded border px-2 py-0.5 text-meta ${opts.upAxis === a ? 'border-accent bg-accent/10 text-accent' : 'border-line'}`}>{a.toUpperCase()} up</button>
           ))}
-          <span className="text-[10px] text-muted">{raw.upNote}; guessed from the tall axis.</span>
+          <span className="text-meta text-muted">{raw.upNote}; guessed from the tall axis.</span>
         </div>
       )}
     </Block>
@@ -425,7 +425,7 @@ function PlaceBlock({ opts, up, frame, rawCentre, minZ, earth, centre }: { opts:
           {opts.placement === 'custom' && (
             <span className="mt-1 flex gap-2">
               {(['x', 'y'] as const).map((k, i) => (
-                <label key={k} className="flex items-center gap-1 text-[11px] text-muted">d{k}
+                <label key={k} className="flex items-center gap-1 text-meta text-muted">d{k}
                   <input type="number" value={opts.offset[i]} onChange={(e) => up({ offset: (i === 0 ? [Number(e.target.value), opts.offset[1]] : [opts.offset[0], Number(e.target.value)]) as [number, number] })} className="w-20 rounded border border-line px-1 py-0.5 text-right tabular-nums text-ink" />m
                 </label>
               ))}
@@ -434,14 +434,14 @@ function PlaceBlock({ opts, up, frame, rawCentre, minZ, earth, centre }: { opts:
         </Radio>
       </div>
       <div className="mt-2 border-t border-line pt-2">
-        <div className="mb-1 text-[11px] text-muted">Zero level: the lowest point is at {minZ.toFixed(2)} m in the file.</div>
+        <div className="mb-1 text-meta text-muted">Zero level: the lowest point is at {minZ.toFixed(2)} m in the file.</div>
         {(['zero', 'lowest', 'geodetic', 'custom'] as DatumMode[]).map((d) => (
           <Radio key={d} name="datum" value={d} current={opts.datum} onPick={(v: DatumMode) => up({ datum: v })}>
             {DATUM_LABEL[d]}{d === 'geodetic' && <span className="text-muted"> (subtracts the project ground, {frame.groundElevation} m)</span>}
             {d === 'custom' && opts.datum === 'custom' && <input type="number" value={opts.dz} onChange={(e) => up({ dz: Number(e.target.value) })} className="ml-2 w-20 rounded border border-line px-1 py-0.5 text-right tabular-nums" aria-label="Height to subtract" />}
           </Radio>
         ))}
-        <p className="mt-1 text-[10px] text-muted">Storeys count up from the entrance floor (CTBUH counts from the lowest significant open-air entrance).</p>
+        <p className="mt-1 text-meta text-muted">Storeys count up from the entrance floor (CTBUH counts from the lowest significant open-air entrance).</p>
       </div>
     </Block>
   )
@@ -452,7 +452,7 @@ function NorthBlock({ raw, opts, up, frame, rotation }: { raw: LoadedImport; opt
   return (
     <Block icon={<Compass size={14} className="text-accent" />} title="Which way is north in this file?"
       right={opts.north === 'unresolved' ? <FlagChip flag="unresolved" /> : opts.north === 'file' || opts.north === 'street' || opts.north === 'magnetic' ? <FlagChip flag="unverified" /> : <FlagChip flag="team_assumption" />}>
-      <p className="mb-1.5 text-[11px] text-muted">{raw.northNote}. Sun, shadow and view results turn with this angle; it is never assumed.</p>
+      <p className="mb-1.5 text-meta text-muted">{raw.northNote}. Sun, shadow and view results turn with this angle; it is never assumed.</p>
       <div className="grid gap-0.5">
         {modes.map((m) => (
           <Radio key={m} name="north" value={m} current={opts.north} onPick={(v: NorthMode) => up({ north: v })}>
@@ -464,7 +464,7 @@ function NorthBlock({ raw, opts, up, frame, rotation }: { raw: LoadedImport; opt
               {m === 'magnetic' && ` (true north ${MAGNETIC_DECLINATION}° counter-clockwise: declination east, WMM2025 for Oct 2026, unverified)`}
             </span>
             {m === 'custom' && opts.north === 'custom' && (
-              <span className="mt-1 flex items-center gap-1 text-[11px] text-muted">True north is
+              <span className="mt-1 flex items-center gap-1 text-meta text-muted">True north is
                 <input type="number" value={opts.northDeg} step={0.5} onChange={(e) => up({ northDeg: Number(e.target.value) })} className="w-16 rounded border border-line px-1 py-0.5 text-right tabular-nums text-ink" aria-label="North angle" />
                 ° clockwise from the file's +Y
               </span>
@@ -472,8 +472,8 @@ function NorthBlock({ raw, opts, up, frame, rotation }: { raw: LoadedImport; opt
           </Radio>
         ))}
       </div>
-      {opts.north !== 'unresolved' && <p className="mt-1.5 text-[11px]">The model turns <b>{Math.abs(rotation).toFixed(1)}° {rotation >= 0 ? 'counter-clockwise' : 'clockwise'}</b> to line its north up with the project's.</p>}
-      <p className="mt-1 text-[10px] text-muted">Research P14-M03: true, magnetic (about 15.4° east here), UTM grid (about 0.09°) and street-grid north (about 44.7°) differ. A site plan's arrow does not say which it is: check.</p>
+      {opts.north !== 'unresolved' && <p className="mt-1.5 text-meta">The model turns <b>{Math.abs(rotation).toFixed(1)}° {rotation >= 0 ? 'counter-clockwise' : 'clockwise'}</b> to line its north up with the project's.</p>}
+      <p className="mt-1 text-meta text-muted">Research P14-M03: true, magnetic (about 15.4° east here), UTM grid (about 0.09°) and street-grid north (about 44.7°) differ. A site plan's arrow does not say which it is: check.</p>
     </Block>
   )
 }
@@ -492,7 +492,7 @@ function StoreyBlock({ opts, up, detected, defaultF2F }: { opts: ImportOptions; 
           <span className="flex items-center gap-1"><input type="number" step={0.1} min={2.5} value={opts.podiumF2F} onChange={(e) => up({ podiumF2F: Math.max(2.5, Number(e.target.value)) })} className="w-16 rounded border border-line px-1 py-0.5 text-right tabular-nums" />m</span>
         </label>
       </div>
-      <p className="mt-1.5 text-[10px] text-muted">
+      <p className="mt-1.5 text-meta text-muted">
         Default floor-to-floor {defaultF2F} m from the selected tower. The podium is found where the plate shrinks by 30% or more (heuristic){opts.podiumTop != null && <> · <button onClick={() => up({ podiumTop: null })} className="text-accent hover:underline">find it again</button></>}.
         Each storey is cut at mid-height (exact for straight walls, close for tapers). Program follows the selected tower's bands; change it per storey after import.
       </p>
@@ -510,7 +510,7 @@ function PreviewBlock({ storeys, top, volume, hull, rotation, northDeg, fileNort
   const scale = H / Math.max(1, top)
   return (
     <section className="rounded-lg border border-line bg-panel p-3">
-      <div className="mb-2 flex items-center text-xs font-semibold">Storeys and plates<span className="ml-auto text-[10px] font-normal text-muted">gross, mid-height cut</span></div>
+      <div className="mb-2 flex items-center text-xs font-semibold">Storeys and plates<span className="ml-auto text-meta font-normal text-muted">gross, mid-height cut</span></div>
       <div className="flex gap-3">
         <svg width={W} height={H + 4} role="img" aria-label="Storey plates by height, coloured by program">
           {storeys.map((s) => {
@@ -524,7 +524,7 @@ function PreviewBlock({ storeys, top, volume, hull, rotation, northDeg, fileNort
           })}
           {[0, 0.5, 1].map((k) => <text key={k} x={0} y={H - k * top * scale + 6} fontSize={9} fill="#6b6f76">{Math.round(k * top)}</text>)}
         </svg>
-        <div className="grid min-w-0 flex-1 content-start gap-2 text-[11px]">
+        <div className="grid min-w-0 flex-1 content-start gap-2 text-meta">
           <Stat label="Height (entrance to top)" value={`${top.toFixed(1)} m`} />
           <Stat label="Storeys with floor" value={`${floored.length}${storeys.length > floored.length ? ` (+${storeys.length - floored.length} without)` : ''}`} />
           <Stat label="Gross floor area" value={`${Math.round(gfa).toLocaleString()} m²`} />
@@ -532,7 +532,7 @@ function PreviewBlock({ storeys, top, volume, hull, rotation, northDeg, fileNort
           <PlanNorth hull={hull} rotation={rotation} northDeg={northDeg} resolved={fileNorth != null} />
         </div>
       </div>
-      <p className="mt-1 text-[10px] text-muted">Plate-sum check (P14-M04): plates × storey height against the mesh volume; ≤ 0.5% good, &gt; 2% poor (team presets).</p>
+      <p className="mt-1 text-meta text-muted">Plate-sum check (P14-M04): plates × storey height against the mesh volume; ≤ 0.5% good, &gt; 2% poor (team presets).</p>
     </section>
   )
 }
@@ -561,7 +561,7 @@ function PlanNorth({ hull, rotation, northDeg, resolved }: { hull: { positions: 
         <polygon points={hullPts} fill="#1f5f8b22" stroke="#1f5f8b" strokeWidth={1} />
         <g transform={`rotate(${northDeg})`}><path d="M0 -38 L4 -28 L0 -30 L-4 -28 Z" fill={resolved ? '#1f5f8b' : '#6e5800'} /><text y={-22} fontSize={8} textAnchor="middle" fill={resolved ? '#1f5f8b' : '#6e5800'}>N</text></g>
       </svg>
-      <span className="text-[10px] text-muted">{resolved ? 'Plan as placed: model grid up, true north arrow.' : 'North unresolved: placed without turning.'}</span>
+      <span className="text-meta text-muted">{resolved ? 'Plan as placed: model grid up, true north arrow.' : 'North unresolved: placed without turning.'}</span>
     </div>
   )
 }

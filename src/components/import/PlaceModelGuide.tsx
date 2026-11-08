@@ -20,8 +20,8 @@ import StatusRow from '../StatusRow'
 import { FlagChip } from '../ui'
 import { flyToFit } from '../VistaLook'
 
-const chip = (on: boolean) => `rounded-md border px-2 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${on ? 'border-accent bg-accent text-white' : 'border-line bg-panel text-ink hover:border-accent'}`
-const btn = 'flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
+const chip = (on: boolean) => `rounded-md border px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${on ? 'border-accent bg-accent text-white' : 'border-line bg-panel text-ink hover:border-accent'}`
+const btn = 'flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-meta font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
 const LEVELS = [0, 1, 2, 3, 4, 5, 6]
 const fmt = (v: number, d = 0) => v.toLocaleString('en-CA', { maximumFractionDigits: d, minimumFractionDigits: d })
 
@@ -36,7 +36,7 @@ export default function PlaceModelGuide() {
   if (!open) {
     const c = model.frame.placement.confirmed
     return (
-      <div data-testid="place-status" className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 text-[11px]">
+      <div data-testid="place-status" className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 text-meta">
         {c ? <><Check size={13} className="shrink-0 text-emerald-700" aria-hidden /><span className="min-w-0 flex-1">Placed on {c.site}</span></>
           : <><MapPin size={13} className="shrink-0 text-amber-700" aria-hidden /><span className="min-w-0 flex-1">Not placed on the site yet</span></>}
         <button type="button" onClick={() => startPlaceGuide(project, model.id)} data-testid="place-again" className="shrink-0 text-accent hover:underline">{c ? 'Move again' : 'Place on site'}</button>
@@ -67,15 +67,15 @@ function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower;
     <section data-testid="place-guide" aria-labelledby="place-guide-head" className="rounded-lg border border-accent/40 bg-accent/[0.06] p-2.5">
       <div className="flex items-center gap-2">
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-white"><MapPin size={13} aria-hidden /></span>
-        <h3 id="place-guide-head" className="flex-1 text-[12px] font-semibold text-ink">Place your model on the site</h3>
+        <h3 id="place-guide-head" className="flex-1 text-meta font-semibold text-ink">Place your model on the site</h3>
         <Help label="About placing the model">
           {fileName} came in {project === 'city' ? 'centred on your study site' : 'on the competition block'}, unless the file had map coordinates. Put the building where it stands and give it its basement: every change applies at once (Ctrl+Z undoes it). Done closes the guide.
           The whole model moves as one piece.{linked ? " The Rhino link keeps this placement: Rhino's next changes land where you put the building." : ''} The placement is yours (team assumption) and is saved with the project.
         </Help>
-        <button type="button" onClick={endPlaceGuide} className="text-[11px] text-muted hover:text-ink hover:underline" title="Close the guide; the model stays where it is. Place on site in this tool opens it again.">Later</button>
+        <button type="button" onClick={endPlaceGuide} className="text-meta text-muted hover:text-ink hover:underline" title="Close the guide; the model stays where it is. Place on site in this tool opens it again.">Later</button>
       </div>
 
-      <ol className="mt-2 grid gap-1.5 text-[11px]">
+      <ol className="mt-2 grid gap-1.5 text-meta">
         <li className="flex items-start gap-2">
           <Num n={1} done={!!site} />
           <div className="min-w-0 flex-1">
@@ -126,7 +126,7 @@ function Guide({ lead, towers, step, placing, linked, fileName }: { lead: Tower;
 
 function Num({ n, done, current }: { n: number; done: boolean; current?: boolean }) {
   return (
-    <span aria-hidden className={`mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${done ? 'bg-emerald-700 text-white' : current ? 'bg-accent text-white' : 'border border-line text-muted'}`}>
+    <span aria-hidden className={`mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-meta ${done ? 'bg-emerald-700 text-white' : current ? 'bg-accent text-white' : 'border border-line text-muted'}`}>
       {done ? <Check size={10} /> : n}
     </span>
   )

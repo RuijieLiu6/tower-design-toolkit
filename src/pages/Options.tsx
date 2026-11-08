@@ -120,7 +120,7 @@ function CriterionChart({ options, weights }: { options: OptionRecord[]; weights
           )
         })}
       </svg>
-      <figcaption className="mt-1 flex flex-wrap gap-3 text-[11px]">
+      <figcaption className="mt-1 flex flex-wrap gap-3 text-meta">
         {options.map((o, i) => <span key={o.key} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: SERIES[i] }} />{o.name}</span>)}
       </figcaption>
     </figure>
@@ -171,8 +171,8 @@ export default function Options() {
       <div className="mx-auto max-w-6xl px-6 py-6 md:px-10">
         <header className="flex flex-wrap items-center gap-3">
           <button onClick={() => navigate('start')} className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><ArrowLeft size={14} aria-hidden />Start</button>
-          <h1 className="text-xl font-semibold tracking-tight">Design options</h1>
-          <span className="text-[11px] text-muted">Save up to {MAX_OPTIONS} versions of the design and compare what the checks say about each</span>
+          <h1 className="text-display-sm md:text-display">Design options</h1>
+          <span className="text-meta text-muted">Save up to {MAX_OPTIONS} versions of the design and compare what the checks say about each</span>
           <span className="ml-auto flex gap-1.5">
             <button onClick={() => navigate('guided')} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><RouteIcon size={14} aria-hidden />Guided process</button>
             <button onClick={() => navigate('customize')} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><Workflow size={14} aria-hidden />Customize</button>
@@ -185,8 +185,8 @@ export default function Options() {
               className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1 text-xs outline-none focus:border-accent" onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
           </label>
           <button onClick={save} disabled={options.length >= MAX_OPTIONS} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white outline-none hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Save size={14} aria-hidden />Save option</button>
-          <span role="status" className="w-full text-[11px] text-muted">{msg || 'Saves the design and every result as they are now. Change the design, then save the next one.'}</span>
-          {error && <span className="w-full text-[11px] text-red-800">{error}</span>}
+          <span role="status" className="w-full text-meta text-muted">{msg || 'Saves the design and every result as they are now. Change the design, then save the next one.'}</span>
+          {error && <span className="w-full text-meta text-red-800">{error}</span>}
         </section>
 
         {loaded && options.length === 0 && <p className="mt-6 text-sm text-muted">No options yet. Save the current design, change it (height, program, core…), and save again to compare.</p>}
@@ -200,15 +200,15 @@ export default function Options() {
                   <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: SERIES[i] }} aria-hidden />
                 </div>
                 <div className="mt-2"><Massing o={o} color={SERIES[i]} top={top} baseline={i === 0 ? null : topOf(options[0])} /></div>
-                <div className="mt-2 text-[11px]">Weighted study score <b className="tabular-nums">{Number.isFinite(totals[i]) ? Math.round(totals[i]) : '—'}</b> / 100</div>
+                <div className="mt-2 text-meta">Weighted study score <b className="tabular-nums">{Number.isFinite(totals[i]) ? Math.round(totals[i]) : '—'}</b> / 100</div>
                 <div className="mt-2 flex gap-1.5">
-                  <button onClick={async () => { await openOption(o); navigate('guided') }} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><FolderOpen size={12} aria-hidden />Open in the guided app</button>
+                  <button onClick={async () => { await openOption(o); navigate('guided') }} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><FolderOpen size={12} aria-hidden />Open in the guided app</button>
                   {deleting === o.key ? (
-                    <span className="flex items-center gap-1 text-[11px]">Delete?
+                    <span className="flex items-center gap-1 text-meta">Delete?
                       <button onClick={() => { setDeleting(null); deleteOption(o.key) }} className="rounded-md border border-red-300 bg-red-50 px-2 py-1 font-medium text-red-800 outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-accent">Delete</button>
                       <button onClick={() => setDeleting(null)} className="rounded-md border border-line px-2 py-1 outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">Keep</button>
                     </span>
-                  ) : <button onClick={() => setDeleting(o.key)} aria-label={`Delete ${o.name}`} className="rounded-md border border-line px-2 py-1 text-[11px] text-muted outline-none hover:border-red-400 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-accent"><Trash size={12} /></button>}
+                  ) : <button onClick={() => setDeleting(o.key)} aria-label={`Delete ${o.name}`} className="rounded-md border border-line px-2 py-1 text-meta text-muted outline-none hover:border-red-400 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-accent"><Trash size={12} /></button>}
                 </div>
               </div>
             ))}
@@ -220,9 +220,9 @@ export default function Options() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold">By jury criterion</h2>
-                <p className="mt-0.5 max-w-2xl text-[11px] text-amber-900"><b>Not the jury's score.</b> A study aid from this tool's checks: each node counts towards the criteria its jury tags name; pass 1, check 0.5, fail 0, unknown left out; nodes without recorded results do not count.</p>
+                <p className="mt-0.5 max-w-2xl text-meta text-amber-900"><b>Not the jury's score.</b> A study aid from this tool's checks: each node counts towards the criteria its jury tags name; pass 1, check 0.5, fail 0, unknown left out; nodes without recorded results do not count.</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <div className="flex flex-wrap items-center gap-2 text-meta">
                 {CRITERIA.map((c) => (
                   <label key={c} className="flex items-center gap-1">{criterionLabel(c).split(' ')[0]}
                     <input type="number" min={0} max={100} value={weights[c]} onChange={(e) => setWeights({ ...weights, [c]: Math.max(0, Number(e.target.value) || 0) })} aria-label={`Weight for ${criterionLabel(c)}`}
@@ -234,7 +234,7 @@ export default function Options() {
               </div>
             </div>
             <div className="mt-3"><CriterionChart options={options} weights={weights} /></div>
-            <table className="mt-3 w-full text-[11px]">
+            <table className="mt-3 w-full text-meta">
               <thead><tr className="text-left text-muted"><th className="py-1 font-medium">Criterion</th>{options.map((o) => <th key={o.key} className="py-1 font-medium">{o.name}</th>)}</tr></thead>
               <tbody>
                 {CRITERIA.map((c) => (
@@ -255,8 +255,8 @@ export default function Options() {
         {options.length > 0 && (
           <section className="mt-5 overflow-x-auto rounded-lg border border-line bg-panel" aria-label="Node results by option">
             <h2 className="px-4 pt-3 text-sm font-semibold">Every switched-on node</h2>
-            <p className="px-4 text-[11px] text-muted">Worst state, counts and weakest evidence flag per node; deltas are against the baseline (the first option).</p>
-            <table className="mt-2 w-full min-w-[720px] text-[11px]">
+            <p className="px-4 text-meta text-muted">Worst state, counts and weakest evidence flag per node; deltas are against the baseline (the first option).</p>
+            <table className="mt-2 w-full min-w-[720px] text-meta">
               <thead><tr className="border-y border-line text-left text-muted"><th className="px-4 py-1.5 font-medium">Node</th>{options.map((o) => <th key={o.key} className="px-3 py-1.5 font-medium">{o.name}</th>)}</tr></thead>
               <tbody>
                 {nodes.map(([id, nm]) => (
@@ -288,27 +288,27 @@ export default function Options() {
               <span className="text-xs text-muted">→</span>
               <select value={ib} onChange={(e) => setPair([ia, Number(e.target.value)])} aria-label="To option" className="rounded border border-line bg-panel px-1.5 py-0.5 text-xs">{options.map((o, i) => <option key={o.key} value={i}>{o.name}</option>)}</select>
             </div>
-            {!explain ? <p className="mt-2 text-[11px] text-muted">Pick two different options.</p> : (
+            {!explain ? <p className="mt-2 text-meta text-muted">Pick two different options.</p> : (
               <>
-                <p className="mt-1 text-[11px] text-muted">Each input that differs, with the results that moved when the decision trace saw that input change on its own. Results no single-input step explains are listed last.</p>
+                <p className="mt-1 text-meta text-muted">Each input that differs, with the results that moved when the decision trace saw that input change on its own. Results no single-input step explains are listed last.</p>
                 <ul className="mt-2 space-y-2">
                   {explain.inputs.map((x) => (
                     <li key={x.change} className="rounded-md border border-line p-2 text-[11.5px]">
                       <div className="font-medium"><U>{x.change}</U></div>
                       {x.moved.length ? (
-                        <ul className="mt-1 space-y-0.5 text-[11px]">{x.moved.slice(0, showAll.has(x.change) ? undefined : 10).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}
+                        <ul className="mt-1 space-y-0.5 text-meta">{x.moved.slice(0, showAll.has(x.change) ? undefined : 10).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}
                           {x.moved.length > 10 && !showAll.has(x.change) && <li><button onClick={() => setShowAll(new Set([...showAll, x.change]))} className="text-accent hover:underline">Show all {x.moved.length} results it moved</button></li>}</ul>
-                      ) : <p className="mt-0.5 text-[11px] text-muted">{x.steps ? 'Changed on its own in the trace, but none of those results differ between these options.' : 'Not seen changing on its own in the trace yet: change only this input in the guided app to see what it moves.'}</p>}
+                      ) : <p className="mt-0.5 text-meta text-muted">{x.steps ? 'Changed on its own in the trace, but none of those results differ between these options.' : 'Not seen changing on its own in the trace yet: change only this input in the guided app to see what it moves.'}</p>}
                     </li>
                   ))}
                 </ul>
                 {explain.unexplained.length > 0 && (
                   <div className="mt-3">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Results that differ, not yet attributed ({explain.unexplained.length})</h3>
-                    <ul className="mt-1 space-y-0.5 text-[11px]">{explain.unexplained.slice(0, 20).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}</ul>
+                    <h3 className="text-meta font-semibold text-muted">Results that differ, not yet attributed ({explain.unexplained.length})</h3>
+                    <ul className="mt-1 space-y-0.5 text-meta">{explain.unexplained.slice(0, 20).map((m) => <li key={m.id} className="flex flex-wrap items-center gap-1.5"><DeltaChip d={m.kind === 'worse' || m.kind === 'better' ? m.kind : 'changed'} /><span>{m.label}</span><span className="text-muted"><U>{`${m.before?.value ?? '—'} → ${m.after?.value ?? '—'}`}</U></span></li>)}</ul>
                   </div>
                 )}
-                {!explain.inputs.length && <p className="mt-2 text-[11px] text-muted">The two options have the same design inputs.</p>}
+                {!explain.inputs.length && <p className="mt-2 text-meta text-muted">The two options have the same design inputs.</p>}
               </>
             )}
           </section>

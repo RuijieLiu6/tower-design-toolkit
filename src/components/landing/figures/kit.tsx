@@ -114,7 +114,7 @@ export function Tile({ x, y, size, icon, hue, level = 'on', word, num, wordAt = 
       <GlassIcon icon={icon} hue={hue} size={size} level={level} />
       {role && <span aria-hidden className="absolute -bottom-[3px] -right-[3px] h-[9px] w-[9px] rounded-full ring-[1.5px] ring-white" style={{ background: ROLES[role].color }} />}
       {wordAt !== 'none' && (
-        <span aria-hidden className={`pointer-events-none absolute whitespace-nowrap leading-tight ${WORD_AT[wordAt]} ${halo} ${strong ? 'text-[12.5px] font-semibold text-ink' : 'text-[11px] text-muted'}`}>
+        <span aria-hidden className={`pointer-events-none absolute whitespace-nowrap leading-tight ${WORD_AT[wordAt]} ${halo} ${strong ? 'text-[12.5px] font-semibold text-ink' : 'text-meta text-muted'}`}>
           {num && <span className="mr-1 text-[10.5px] font-normal tabular-nums text-muted">{num}</span>}{word}
         </span>
       )}
@@ -129,7 +129,7 @@ export function Ghost({ x, y, size, icon: Icon, word, label, dim, bind }: { x: n
       className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-dashed border-[hsl(206_20%_50%/0.5)] text-[hsl(206_12%_58%)] outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${fade} ${dim ? 'opacity-25' : ''}`}
       style={{ left: x, top: y, width: size, height: size }}>
       <Icon size={Math.round(size * 0.46)} aria-hidden />
-      <span aria-hidden className={`pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[11px] italic leading-tight text-muted ${halo}`}>{word}</span>
+      <span aria-hidden className={`pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta italic leading-tight text-muted ${halo}`}>{word}</span>
     </button>
   )
 }
@@ -137,7 +137,7 @@ export function Ghost({ x, y, size, icon: Icon, word, label, dim, bind }: { x: n
 /** A short note on a wire (2–4 words), in the wire's colour. */
 export function WireNote({ x, y, children, color = ACCENT, anchor = 'middle', dim }: { x: number; y: number; children: ReactNode; color?: string; anchor?: 'start' | 'middle' | 'end'; dim?: boolean }) {
   const tx = anchor === 'middle' ? '-translate-x-1/2' : anchor === 'end' ? '-translate-x-full' : ''
-  return <span aria-hidden className={`pointer-events-none absolute -translate-y-1/2 whitespace-nowrap text-[11px] font-medium ${tx} ${halo} ${fade} ${dim ? 'opacity-25' : ''}`} style={{ left: x, top: y, color }}>{children}</span>
+  return <span aria-hidden className={`pointer-events-none absolute -translate-y-1/2 whitespace-nowrap text-meta font-medium ${tx} ${halo} ${fade} ${dim ? 'opacity-25' : ''}`} style={{ left: x, top: y, color }}>{children}</span>
 }
 
 export interface InfoPart { title: string; text?: string; role?: Role }
@@ -145,12 +145,12 @@ export interface InfoPart { title: string; text?: string; role?: Role }
 /** The figure's one quiet line: what the part in focus does, or the figure's point when nothing is. */
 export function Info({ part, idle }: { part: InfoPart | null; idle: string }) {
   return (
-    <div className="flex min-h-[2.6rem] flex-wrap items-start gap-x-3 gap-y-1 text-[13px] leading-snug text-muted" data-testid="figure-info">
+    <div className="flex min-h-[2.6rem] flex-wrap items-start gap-x-3 gap-y-1 text-meta text-muted" data-testid="figure-info">
       {part ? <>
         <p className="min-w-0 flex-1 basis-64"><b className="font-semibold text-ink">{part.title}</b>{part.text ? <> · {part.text}</> : null}</p>
         {part.role && <span className="flex shrink-0 items-center gap-1.5 text-[11.5px]"><RoleDot role={part.role} />{ROLES[part.role].word}</span>}
       </> : (
-        <p className="flex min-w-0 flex-1 items-start gap-2"><MousePointerClick size={15} aria-hidden className="mt-0.5 shrink-0" /><span>{idle} <span className="text-[12px] opacity-80">Hover or tap a part.</span></span></p>
+        <p className="flex min-w-0 flex-1 items-start gap-2"><MousePointerClick size={15} aria-hidden className="mt-0.5 shrink-0" /><span>{idle} <span className="text-meta opacity-80">Hover or tap a part.</span></span></p>
       )}
     </div>
   )

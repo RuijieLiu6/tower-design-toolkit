@@ -54,7 +54,7 @@ function LiftPresetFields({ presets, onChange }: { presets: LiftPresets; onChang
             value={presets[f.key] * (f.scale ?? 1)} onChange={(v) => onChange({ [f.key]: Math.max(f.key === 'wallAllowance' ? 0 : f.key === 'utilisation' ? 0.05 : 0.1, v / (f.scale ?? 1)) })} />
         ))}
         <div className="col-span-2 flex items-center gap-1"><FlagChip flag="team_assumption" />
-          <button onClick={() => onChange(DEFAULT_LIFT_PRESETS)} className="ml-auto text-[11px] text-accent hover:underline">Reset presets</button>
+          <button onClick={() => onChange(DEFAULT_LIFT_PRESETS)} className="ml-auto text-meta text-accent hover:underline">Reset presets</button>
         </div>
       </div>
     </details>
@@ -83,10 +83,10 @@ function EgressPresetFields({ presets, onChange }: { presets: EgressPresets; onC
         <NumberField label="Riser" unit="mm" value={Math.round(presets.riser * 1000)} onChange={(v) => onChange({ riser: Math.max(100, v) / 1000 })} step={5} hint="At most 180 mm keeps the 8 mm per person rate" />
         <NumberField label="Tread" unit="mm" value={Math.round(presets.tread * 1000)} onChange={(v) => onChange({ tread: Math.max(200, v) / 1000 })} step={5} hint="At least 280 mm keeps the 8 mm per person rate" />
         <NumberField label="Amenity floors, m² per person" value={presets.amenityFactor} onChange={(v) => onChange({ amenityFactor: Math.max(0.3, v) })} step={0.1} hint="4.6 personal services until programmed; 1.2 dining; 0.4 standing (VBBL Table 3.1.17.1)" />
-        <span className="self-end pb-1 text-[11px] text-muted">4.6 until programmed · 1.2 dining · 0.4 standing</span>
+        <span className="self-end pb-1 text-meta text-muted">4.6 until programmed · 1.2 dining · 0.4 standing</span>
         <label className="col-span-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={presets.officeCorridor} onChange={() => onChange({ officeCorridor: !presets.officeCorridor })} />Office floors have a public corridor (exits then need only be 9 m apart)</label>
         <div className="col-span-2 flex items-center gap-1"><FlagChip flag="team_assumption" />
-          <button onClick={() => onChange(DEFAULT_EGRESS_PRESETS)} className="ml-auto text-[11px] text-accent hover:underline">Reset presets</button>
+          <button onClick={() => onChange(DEFAULT_EGRESS_PRESETS)} className="ml-auto text-meta text-accent hover:underline">Reset presets</button>
         </div>
       </div>
     </details>
@@ -95,7 +95,7 @@ function EgressPresetFields({ presets, onChange }: { presets: EgressPresets; onC
 
 /** Settings of the public sky room; every one is a team assumption (research P06-M07, P11-M02). */
 function SkyRoomFields({ room, onChange, suggested }: { room: SkyRoom; onChange: (patch: Partial<SkyRoom>) => void; suggested: { limit: number; widthMm: number } | null }) {
-  const seg = (on: boolean) => `flex-1 rounded px-2 py-1 text-[11px] ${on ? 'bg-panel font-semibold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'}`
+  const seg = (on: boolean) => `flex-1 rounded px-2 py-1 text-meta ${on ? 'bg-panel font-semibold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'}`
   return (
     <div className="mt-1.5 grid gap-2 rounded-md border border-[#8e5ba8]/40 bg-[#8e5ba8]/[0.05] p-2">
       <div className="flex items-center gap-1.5 text-xs font-medium text-[#6d3f8a]"><Sparkles size={13} />Public sky room at level {room.level}</div>
@@ -124,13 +124,13 @@ function SkyRoomFields({ room, onChange, suggested }: { room: SkyRoom; onChange:
         )}
         {suggested && (room.postedLimit == null || Math.abs(room.postedLimit - suggested.limit) > 1) && (
           suggested.limit > 0
-            ? <button onClick={() => onChange({ postedLimit: suggested.limit })} className="justify-self-start text-left text-[11px] text-accent hover:underline">
+            ? <button onClick={() => onChange({ postedLimit: suggested.limit })} className="justify-self-start text-left text-meta text-accent hover:underline">
                 Post {suggested.limit} visitors: the room then needs no wider stairs than the other floors ({Math.round(suggested.widthMm)} mm)
               </button>
-            : <span className="text-[11px] text-muted">The rest of this floor alone needs wider stairs than the other floors: give the room a larger share of the floor.</span>
+            : <span className="text-meta text-muted">The rest of this floor alone needs wider stairs than the other floors: give the room a larger share of the floor.</span>
         )}
       </div>
-      <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">The 1997 Higher Buildings Policy asks for a public deck or amenity where possible; sizes, hours and visitor numbers are team presets.</span></div>
+      <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">The 1997 Higher Buildings Policy asks for a public deck or amenity where possible; sizes, hours and visitor numbers are team presets.</span></div>
     </div>
   )
 }
@@ -151,7 +151,7 @@ export function ToolBlock({ title, right, help, children }: { title?: string; ri
     <div className="border-b border-line px-4 py-3 last:border-b-0">
       {(title || right) && (
         <div className="mb-2 flex items-center justify-between gap-2">
-          {title && <h4 className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h4>}
+          {title && <h4 className="flex items-center gap-1.5 text-meta font-semibold text-muted">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h4>}
           {right}
         </div>
       )}
@@ -162,7 +162,7 @@ export function ToolBlock({ title, right, help, children }: { title?: string; ri
 
 /** Which tower the other tools are editing (they all follow the Place towers selection). */
 function EditingTag({ name }: { name: string }) {
-  return <p className="mb-2 text-[11px] text-muted">Editing <span className="font-semibold text-ink">{name}</span> · pick another tower under Place</p>
+  return <p className="mb-2 text-meta text-muted">Editing <span className="font-semibold text-ink">{name}</span> · pick another tower under Place</p>
 }
 
 /** Towers: pick, add, place and remove towers; the site's ground level in Real Vancouver. Importing is on the Site step. */
@@ -227,7 +227,7 @@ export function MassingTool() {
           </select>
         </label>
         {/* The tower in figures, as icon stats (Ruijie, 6 Nov: information as graphics and icons, not a sentence). */}
-        <dl className="grid grid-cols-2 gap-1 text-[11px]" aria-label="The tower in figures" data-testid="massing-stats">
+        <dl className="grid grid-cols-2 gap-1 text-meta" aria-label="The tower in figures" data-testid="massing-stats">
           <Stat icon={Layers} label="Floors" value={String(floors.length)} />
           <Stat icon={Building2} label="Gross area" value={`${Math.round(floors.reduce((a, f) => a + f.area, 0)).toLocaleString('en-CA')} m²`} />
           <Stat icon={Square} label="Typical plate" value={`${(t.width * t.depth).toFixed(0)} m²`} />
@@ -253,16 +253,16 @@ export function ProgramTool() {
   return (
     <>
       {!t.imported && (
-        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Band</button>}>
+        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex items-center gap-1 text-meta text-accent hover:underline"><Plus size={12} />Band</button>}>
           <div className="grid gap-1.5">
             {t.bands.map((b, i) => (
               <div key={i} className="flex items-center gap-1.5">
                 <ProgramIcon use={b.use} />
-                <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="w-32 rounded border border-line bg-panel px-1 py-0.5 text-[11px]" aria-label={`Band ${i + 1} use`}>
+                <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="w-32 rounded border border-line bg-panel px-1 py-0.5 text-meta" aria-label={`Band ${i + 1} use`}>
                   {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
                 </select>
                 <input type="range" min={0} max={1} step={0.01} value={b.share} onChange={(e) => setBand(i, { share: Number(e.target.value) })} className="w-full accent-accent" aria-label={`Band ${i + 1} share`} />
-                <span className="w-9 text-right text-[11px] tabular-nums text-muted">{Math.round((b.share / shareTotal) * 100)}%</span>
+                <span className="w-9 text-right text-meta tabular-nums text-muted">{Math.round((b.share / shareTotal) * 100)}%</span>
                 <button onClick={() => moveBand(i, -1)} aria-label="Move band down" className="text-muted hover:text-ink"><ArrowDown size={12} /></button>
                 <button onClick={() => moveBand(i, 1)} aria-label="Move band up" className="text-muted hover:text-ink"><ArrowUp size={12} /></button>
                 <button onClick={() => up({ bands: t.bands.filter((_, k) => k !== i) })} aria-label="Remove band" className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
@@ -274,7 +274,7 @@ export function ProgramTool() {
       <Section title="Floor area (all towers, gross)">
         <div className="grid gap-1">
           {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (
-            <div key={u} className="flex items-center gap-2 text-[11px]">
+            <div key={u} className="flex items-center gap-2 text-meta">
               <ProgramIcon use={u as UseId} small />
               <span className="w-24 truncate text-muted">{USES[u as UseId].label}</span>
               <div className="h-2 flex-1 rounded bg-slate-100"><div className="h-2 rounded" style={{ width: `${(v / maxGfa) * 100}%`, background: USES[u as UseId].color }} /></div>
@@ -324,7 +324,7 @@ export function SunTool() {
         <input type="range" min={5} max={21} step={0.25} value={sun.hour} onChange={(e) => set({ sun: { ...sun, hour: Number(e.target.value) } })} className="col-span-3 accent-accent" aria-label="Time of day" />
       </div>
       {!enabled['built.sun'] && (
-        <button onClick={() => toggleNode('built.sun')} className="mt-2 text-left text-[11px] text-accent hover:underline">Show the shadows: switch on “Sun &amp; shadow preview”</button>
+        <button onClick={() => toggleNode('built.sun')} className="mt-2 text-left text-meta text-accent hover:underline">Show the shadows: switch on “Sun &amp; shadow preview”</button>
       )}
     </ToolBlock>
   )
@@ -357,7 +357,7 @@ export function CoreTool() {
         <div>
           <div className="mb-1 flex items-center justify-between text-xs">
             <span className="font-medium">Core</span>
-            <span className="flex items-center gap-1.5 text-[11px] text-muted"><Toggle checked={!!t.coreAuto} onChange={() => up({ coreAuto: !t.coreAuto })} label="Size the core to the lifts" />Size to the lifts</span>
+            <span className="flex items-center gap-1.5 text-meta text-muted"><Toggle checked={!!t.coreAuto} onChange={() => up({ coreAuto: !t.coreAuto })} label="Size the core to the lifts" />Size to the lifts</span>
           </div>
           <NumberField label={t.coreAuto ? 'Share of the tower plate: follows the lifts (drag to set by hand)' : 'Share of the tower plate: set by hand'} value={Math.round(t.coreShare * 1000) / 10}
             onChange={(v) => up({ coreShare: Math.min(0.6, Math.max(0.05, v / 100)) })} min={5} max={60} step={0.5} unit="%" />
@@ -366,27 +366,27 @@ export function CoreTool() {
         <div>
           <div className="mb-1 flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 font-medium">Sky lobbies<Help label="About sky lobbies">A sky lobby puts the upper rises on shuttles, so their shafts stop running through the floors below.</Help></span>
-            {suggestion !== null && <button onClick={() => up({ skyLobbies: [...sky, suggestion].sort((a, b) => a - b) })} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add at level {suggestion}</button>}
+            {suggestion !== null && <button onClick={() => up({ skyLobbies: [...sky, suggestion].sort((a, b) => a - b) })} className="flex items-center gap-1 text-meta text-accent hover:underline"><Plus size={12} />Add at level {suggestion}</button>}
           </div>
-          {sky.length === 0 && <p className="text-[11px] text-muted">None: every rise runs from the ground lobby.</p>}
+          {sky.length === 0 && <p className="text-meta text-muted">None: every rise runs from the ground lobby.</p>}
           <div className="grid gap-1">
             {sky.map((lv, i) => (
               <div key={`${i}-${lv}`} className="flex items-center gap-2 text-xs">
-                <span className="rounded bg-[#6cc0b8] px-1.5 py-0.5 text-[11px] font-semibold text-white">S{i + 1}</span>
+                <span className="rounded bg-[#6cc0b8] px-1.5 py-0.5 text-meta font-semibold text-white">S{i + 1}</span>
                 <label className="flex items-center gap-1 text-muted">Level
                   <input type="number" defaultValue={lv} min={minSky} max={maxSky} onBlur={(e) => setSky(i, Number(e.target.value))} onKeyDown={(e) => { if (e.key === 'Enter') setSky(i, Number((e.target as HTMLInputElement).value)) }}
                     className="w-14 rounded border border-line bg-panel px-1.5 py-0.5 text-ink tabular-nums" aria-label={`Sky lobby ${i + 1} level`} />
                 </label>
-                <span className="text-[11px] text-muted">+{Math.round(floors.find((f) => f.level === lv)?.z0 ?? 0)} m</span>
-                <span className="ml-auto flex items-center gap-1 text-[11px] text-muted"><Toggle checked={t.skyRoom?.level === lv} onChange={() => togglePublic(lv)} label={`Public sky room at level ${lv}`} />Public</span>
+                <span className="text-meta text-muted">+{Math.round(floors.find((f) => f.level === lv)?.z0 ?? 0)} m</span>
+                <span className="ml-auto flex items-center gap-1 text-meta text-muted"><Toggle checked={t.skyRoom?.level === lv} onChange={() => togglePublic(lv)} label={`Public sky room at level ${lv}`} />Public</span>
                 <button onClick={() => up({ skyLobbies: sky.filter((_, k) => k !== i) })} aria-label={`Remove sky lobby at level ${lv}`} className="text-muted hover:text-red-700"><Trash2 size={12} /></button>
               </div>
             ))}
           </div>
           {t.skyRoom && <SkyRoomFields room={t.skyRoom} onChange={(patch) => up({ skyRoom: { ...t.skyRoom!, ...patch } })} suggested={stablePostedLimit(t, liftPresets, egressPresets)} />}
-          {sky.length > 0 && <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">The sky lobby floor counts as public amenity; people above it change lifts once.{!t.skyRoom ? ' Switch one to Public to open it as a sky room.' : ''}</span></div>}
+          {sky.length > 0 && <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">The sky lobby floor counts as public amenity; people above it change lifts once.{!t.skyRoom ? ' Switch one to Public to open it as a sky room.' : ''}</span></div>}
         </div>
-        <div className="grid grid-cols-2 gap-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
+        <div className="grid grid-cols-2 gap-2 rounded-md bg-black/[0.03] p-2 text-meta">
           <div><div className="text-muted">Core modelled</div><div className="font-semibold tabular-nums">{Math.round(t.coreShare * t.width * t.depth)} m² · {coreSide(t).toFixed(1)} m sq</div></div>
           {lift && <div><div className="text-muted">Lifts and stairs need</div><div className={`font-semibold tabular-nums ${lift.requiredMax > lift.modelledCore + 0.5 ? 'text-red-700' : ''}`}>{Math.round(lift.requiredMax)} m² · {lift.totalCars} cars</div></div>}
           {lift && <div><div className="text-muted">Net-to-gross</div><div className="font-semibold tabular-nums">{Math.round(lift.ntg * 100)}%</div></div>}
@@ -400,7 +400,7 @@ export function CoreTool() {
               const on = (t.stairPlacement ?? 'core') === k
               return (
                 <button key={k} role="radio" aria-checked={on} title={PLACEMENT_LABEL[k]} onClick={() => up({ stairPlacement: k })}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-[11px] ${on ? 'bg-panel font-semibold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'}`}>
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-meta ${on ? 'bg-panel font-semibold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'}`}>
                   <StairGlyph placement={k} />{k === 'core' ? 'In the core' : k === 'mixed' ? 'Core + edge' : 'At the edges'}
                 </button>
               )
@@ -427,7 +427,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Layers; label: string
   return (
     <div className="flex items-center gap-1.5 rounded-md border border-line px-1.5 py-1">
       <Icon size={14} className="shrink-0 text-accent" aria-hidden />
-      <div className="flex min-w-0 flex-col-reverse leading-tight"><dt className="text-[10px] text-muted">{label}</dt><dd className="font-semibold tabular-nums text-ink">{value}</dd></div>
+      <div className="flex min-w-0 flex-col-reverse leading-tight"><dt className="text-meta text-muted">{label}</dt><dd className="font-semibold tabular-nums text-ink">{value}</dd></div>
     </div>
   )
 }

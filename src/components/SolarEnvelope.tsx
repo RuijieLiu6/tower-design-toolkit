@@ -59,16 +59,16 @@ export function SolarEnvelopePanel() {
   const r = useSolarEnvelope()
   if (project !== 'city') return null
   return (
-    <Section title="Solar envelope" right={r ? <span className="text-[10px] text-muted">{r.ms} ms</span> : null}>
-      <label className="flex items-center justify-between gap-2 text-[11px]"><span>Show the envelope over this tower's site</span><Toggle checked={show} onChange={() => set(!show)} label="Show the solar envelope" /></label>
+    <Section title="Solar envelope" right={r ? <span className="text-meta text-muted">{r.ms} ms</span> : null}>
+      <label className="flex items-center justify-between gap-2 text-meta"><span>Show the envelope over this tower's site</span><Toggle checked={show} onChange={() => set(!show)} label="Show the solar envelope" /></label>
       {r && (
-        <div className="mt-2 grid gap-1 text-[11px]">
+        <div className="mt-2 grid gap-1 text-meta">
           <div><b>{r.under.min >= CAP ? `above ${CAP} m` : `${Math.round(r.under.min)} m`}</b> is the tallest the tower footprint can rise without shadowing a protected space{r.under.by ? ` (set by ${r.under.by})` : ''}.</div>
           <div className={r.under.share > 0 ? 'text-red-700' : 'text-emerald-700'}>{r.under.share > 0 ? `${r.tower.name} (${Math.round(r.tower.height)} m) rises through the envelope over ${Math.round(r.under.share * 100)}% of its footprint.` : `${r.tower.name} (${Math.round(r.tower.height)} m) stays inside the envelope.`}</div>
           <div className="text-muted">{r.env.spaces.length} protected spaces within reach: {r.env.spaces.map((s) => s.name).join(', ') || 'none'}.</div>
         </div>
       )}
-      <div className="mt-1.5 flex items-center gap-1"><Help label="How the envelope is tested">Each column is tested every 15 minutes in each space's window (22 Sep 10:00–16:00 PT; Robson Village until 15:00). Conservative: shadow the existing city already casts is not subtracted, so the true "no new shadow" envelope is at least this high. Plazas and miniparks (minimise only, 3.2.1) and the cenotaph (clock unresolved) are left out. {r && !r.terrainKnown ? 'Spaces not yet tested by the solar run are taken at the tower base.' : 'Spaces sit at their terrain elevation where the solar run measured it.'}</Help><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Envelope method (column test, 4 m cells) is a team construction from clauses 3.1.1, 3.3.1, 4.1.1 and 5.2.1.</span></div>
+      <div className="mt-1.5 flex items-center gap-1"><Help label="How the envelope is tested">Each column is tested every 15 minutes in each space's window (22 Sep 10:00–16:00 PT; Robson Village until 15:00). Conservative: shadow the existing city already casts is not subtracted, so the true "no new shadow" envelope is at least this high. Plazas and miniparks (minimise only, 3.2.1) and the cenotaph (clock unresolved) are left out. {r && !r.terrainKnown ? 'Spaces not yet tested by the solar run are taken at the tower base.' : 'Spaces sit at their terrain elevation where the solar run measured it.'}</Help><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Envelope method (column test, 4 m cells) is a team construction from clauses 3.1.1, 3.3.1, 4.1.1 and 5.2.1.</span></div>
     </Section>
   )
 }

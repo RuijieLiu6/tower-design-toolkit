@@ -29,7 +29,7 @@ export const NODE_WORDS: Record<string, string> = {
   'built.vtc-rules': 'Hard rules', 'built.fsr': 'FSR', 'built.viewcones': 'View-cone', 'built.relax-aviation': 'Aviation',
   'built.sun': 'Shadow', 'built.core-lifts': 'Lift check', 'built.egress': 'Egress', 'built.life-safety': 'Life safety',
   'built.sky-room': 'Sky room', 'built.economics': 'Value', 'built.culture-claims': 'Claims', 'built.model': 'Model',
-  'built.provenance': 'AI use', 'built.mobility': 'Parking', 'built.facade': 'Facade', 'built.interior': 'Interior',
+  'built.provenance': 'AI-use log', 'built.mobility': 'Parking', 'built.facade': 'Facade', 'built.interior': 'Interior',
   'built.daylight-depth': 'Daylight', 'built.view-from': 'View from', 'built.vista': 'Vista', 'built.heights': 'Height',
   'built.pr-streetwall': 'Streetwall', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
   'built.city-in-nature': 'Nature', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
@@ -120,10 +120,10 @@ export default function NodeBar() {
         className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''}`}>
         {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
         <span className={`relative flex h-5 w-6 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
-          {Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-[11px] font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
+          {Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-meta font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>
-        <span aria-hidden className={`w-full truncate text-center text-[10px] leading-tight ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
+        <span aria-hidden className={`w-full truncate text-center text-meta leading-tight ${!usable ? 'text-muted' : on ? 'font-medium' : ''}`}>{nodeWord(n)}</span>
         {isCommunity && <span className="absolute -right-1 -top-1 rounded-sm bg-panel px-[2px] text-[7px] font-bold leading-[9px] text-ink ring-1 ring-line" aria-hidden>C</span>}
       </button>
     )
@@ -134,15 +134,15 @@ export default function NodeBar() {
   return (
     <div className="glass-edge relative z-20 flex h-14 shrink-0 items-center gap-2 rounded-2xl bg-glass-2 px-2">
       <button ref={libButton} type="button" onClick={() => setLib((o) => !o)} aria-expanded={lib} aria-controls={lib ? 'node-library-pop' : undefined}
-        className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${lib ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>
+        className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-meta font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${lib ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent'}`}>
         <Library size={14} />Library
       </button>
       {lib && <LibraryPopover onClose={() => setLib(false)} anchor={libButton} />}
       {/* Analysis off (process rail switch): the checks don't run, so their switches give way to one way back on. */}
       {!analysis && (
-        <p data-testid="analysis-off-bar" className="flex min-w-0 flex-1 items-center gap-2 text-[11px] text-muted">
+        <p data-testid="analysis-off-bar" className="flex min-w-0 flex-1 items-center gap-2 text-meta text-muted">
           Analysis is off: no check runs.
-          <button type="button" onClick={() => setAnalysis(true)} className="rounded-md border border-line px-2 py-0.5 text-[11px] text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">Run analysis</button>
+          <button type="button" onClick={() => setAnalysis(true)} className="rounded-md border border-line px-2 py-0.5 text-meta text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">Run analysis</button>
         </p>
       )}
       {analysis && <div role="toolbar" aria-label="Checks: switch each on or off" onKeyDown={onKey} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1" onScroll={() => setTip(null)}>
@@ -159,9 +159,9 @@ export default function NodeBar() {
           </div>
         )}
       </div>}
-      {analysis && <span className="shrink-0 text-[11px] tabular-nums text-muted">{onCount} of {all.length} on</span>}
+      {analysis && <span className="shrink-0 text-meta tabular-nums text-muted">{onCount} of {all.length} on</span>}
       {t && (
-        <div id="node-bar-tip" role="tooltip" className="pointer-events-none fixed z-50 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md bg-ink px-2 py-1.5 text-[11px] leading-snug text-white shadow-lg"
+        <div id="node-bar-tip" role="tooltip" className="pointer-events-none fixed z-50 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md bg-ink px-2 py-1.5 text-meta leading-snug text-white shadow-lg"
           style={{ left: tip!.x, top: tip!.y - 6 }}>
           <div className="font-semibold">{t.name}</div>
           {t.question && <div className="mb-0.5 text-white/90">{t.question}</div>}

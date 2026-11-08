@@ -19,8 +19,8 @@ const SECTIONS = [
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-4 border-t border-line pt-5">
-      <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-      <div className="mt-2 space-y-2 text-[13px] leading-relaxed text-ink/90">{children}</div>
+      <h2 className="text-section">{title}</h2>
+      <div className="mt-2 space-y-2 text-body text-ink/90">{children}</div>
     </section>
   )
 }
@@ -28,17 +28,17 @@ function Section({ id, title, children }: { id: string; title: string; children:
 const Go = ({ to, children }: { to: Route; children: ReactNode }) => (
   <button onClick={() => navigate(to)} className="font-medium text-accent underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">{children}</button>
 )
-const Key = ({ children }: { children: ReactNode }) => <kbd className="rounded border border-line bg-panel px-1.5 py-0.5 font-mono text-[11px]">{children}</kbd>
+const Key = ({ children }: { children: ReactNode }) => <kbd className="rounded border border-line bg-panel px-1.5 py-0.5 font-mono text-meta">{children}</kbd>
 
 function Install() {
   const { offer, installed, offlineReady } = useOffline()
   const [msg, setMsg] = useState('')
-  if (installed) return <p className="text-[12px] text-muted">Running as an installed app.</p>
+  if (installed) return <p className="text-meta text-muted">Running as an installed app.</p>
   return (
     <div className="flex flex-wrap items-center gap-2">
       {offer && <button onClick={async () => setMsg((await installApp()) ? 'Installed.' : 'Not installed.')} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Download size={14} aria-hidden />Install app</button>}
-      <span className="text-[12px] text-muted">{msg || (offer ? 'Or use the browser menu.' : installHint())}</span>
-      <span className="w-full text-[12px] text-muted">{offlineReady ? 'This copy works offline: it is saved in this browser.' : import.meta.env.PROD ? 'Getting the offline copy ready…' : 'The development server has no offline copy: build it (npm run build, then npm run preview) to try installing.'}</span>
+      <span className="text-meta text-muted">{msg || (offer ? 'Or use the browser menu.' : installHint())}</span>
+      <span className="w-full text-meta text-muted">{offlineReady ? 'This copy works offline: it is saved in this browser.' : import.meta.env.PROD ? 'Getting the offline copy ready…' : 'The development server has no offline copy: build it (npm run build, then npm run preview) to try installing.'}</span>
     </div>
   )
 }
@@ -52,20 +52,20 @@ export default function Guide() {
     <div data-stage="basic" data-reduced={reduced} className="h-full overflow-y-auto bg-paper text-ink">
       <div className="mx-auto flex max-w-5xl gap-8 px-6 py-6 md:px-10">
         <nav aria-label="Guide sections" className="sticky top-6 hidden h-fit w-44 shrink-0 md:block">
-          <ul className="space-y-1 text-[12px]">
+          <ul className="space-y-1 text-meta">
             {SECTIONS.map(([id, t]) => <li key={id}><button onClick={() => jump(id)} className="text-left text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{t}</button></li>)}
           </ul>
         </nav>
         <main className="min-w-0 flex-1 space-y-5 pb-16">
           <header className="flex flex-wrap items-center gap-3">
             <button onClick={() => navigate('start')} className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><ArrowLeft size={14} aria-hidden />Start</button>
-            <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight"><BookOpen size={20} aria-hidden />User guide</h1>
+            <h1 className="flex items-center gap-2 text-display-sm md:text-display"><BookOpen size={28} aria-hidden />User guide</h1>
             <span className="ml-auto flex gap-1.5">
               <button onClick={() => navigate('guided')} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><RouteIcon size={14} aria-hidden />Guided process</button>
               <button onClick={() => navigate('customize')} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><Workflow size={14} aria-hidden />Customize</button>
             </span>
           </header>
-          <p className="text-[13px] text-muted">Tower Design Toolkit helps you design a tall building for Vancouver and shows the evidence behind every result. It is a study tool for early design: it does <b className="text-ink">not</b> determine compliance. View-cone heights are estimates; the City of Vancouver's assessment governs.</p>
+          <p className="text-body text-muted">Tower Design Toolkit helps you design a tall building for Vancouver and shows the evidence behind every result. It is a study tool for early design: it does <b className="text-ink">not</b> determine compliance. View-cone heights are estimates; the City of Vancouver's assessment governs.</p>
 
           <Section id="start" title="Getting started">
             <p>The <Go to="start">start page</Go> offers two ways in. <b>Guided process</b> takes you through the design stages with the checks already switched on. <b>Customize</b> lets you build your own workflow from the node library. You can ask the start page to open your choice directly next time.</p>
@@ -127,7 +127,7 @@ export default function Guide() {
             <div className="flex flex-wrap items-center gap-2"><span>Show lengths, heights and areas in</span><UnitSelect /><span className="text-muted">(also in the top bar; remembered in this browser)</span></div>
             <p><b>Metres</b> show the app as written. <b>Feet</b> are decimal feet (984.25 ft, not 984′ 3″), with areas in ft². <b>Millimetres</b> show lengths in mm and keep areas in m², as Canadian drawings do. On drawings the scale bar is in feet when feet are shown, otherwise in metres.</p>
             <p>Only what you see and type changes. Every calculation, the saved project, the decision trace and every export stay in metres, and a value shown in feet and typed back returns the same metres. Rates per area (such as $/m²), speeds (m/s), volumes (m³) and kilometres are left as written.</p>
-            <p className="text-[12px] text-muted">Conversion follows Ruijie Liu's Vista (explorer/units.js, github.com/RuijieLiu6/vancouver-tall-view-tool).</p>
+            <p className="text-meta text-muted">Conversion follows Ruijie Liu's Vista (explorer/units.js, github.com/RuijieLiu6/vancouver-tall-view-tool).</p>
           </Section>
 
           <Section id="keys" title="Keyboard">

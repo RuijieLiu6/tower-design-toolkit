@@ -46,7 +46,7 @@ export default function ProcessRail() {
     useStore.setState({ announce: `${next.label}: ${nodes.length ? `${nodes.length} check${nodes.length === 1 ? '' : 's'} in your workflow` : 'no checks of your workflow here'}` })
   }
   return (
-    <nav aria-label="Design process" className="glass-edge stage-fade flex h-10 shrink-0 items-center gap-1 rounded-2xl bg-glass-2 px-3 text-[11px]">
+    <nav aria-label="Design process" className="glass-edge stage-fade flex h-10 shrink-0 items-center gap-1 rounded-2xl bg-glass-2 px-3 text-meta">
       <span data-testid="mode-indicator" title={`${mode.label} mode: ${mode.purpose}`} className="flex shrink-0 items-center gap-1.5 pr-1 text-[12.5px] font-semibold text-accent">
         <ModeIcon size={16} aria-hidden />{mode.label}<span className="sr-only"> mode</span>
       </span>
@@ -59,7 +59,7 @@ export default function ProcessRail() {
             <button onClick={() => goToStep(s.id as StepId)} aria-current={lit ? 'step' : undefined} data-step={s.id}
               className={`stage-fade flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${lit ? 'border-accent/50 bg-panel font-semibold text-ink' : `border-transparent text-muted hover:text-ink ${other ? '' : 'bg-white/45'}`}`}>
               <Icon size={13} className={lit ? 'text-accent' : ''} />{s.label}
-              {analysis && onIn(s.id).length > 0 && <span className="rounded-full bg-accent/15 px-1.5 text-[10px] font-semibold tabular-nums text-accent" title={`${onIn(s.id).length} check${onIn(s.id).length === 1 ? '' : 's'} of your workflow at this step`} data-testid={`step-count-${s.id}`}>{onIn(s.id).length}</span>}
+              {analysis && onIn(s.id).length > 0 && <span className="rounded-full bg-accent/15 px-1.5 text-meta font-semibold tabular-nums text-accent" title={`${onIn(s.id).length} check${onIn(s.id).length === 1 ? '' : 's'} of your workflow at this step`} data-testid={`step-count-${s.id}`}>{onIn(s.id).length}</span>}
             </button>
             {i < PROCESS.length - 1 && <ChevronRight size={12} className="text-muted/60" aria-hidden />}
           </span>
@@ -80,7 +80,7 @@ export default function ProcessRail() {
         <button type="button" role="switch" aria-checked={analysis} onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
           className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent ${analysis ? 'border-accent/50 bg-panel text-ink' : 'border-line text-muted hover:text-ink'}`}>
           <Gauge size={13} className={analysis ? 'text-accent' : ''} />Analysis
-          <span className={`rounded-full px-1.5 text-[10px] font-semibold ${analysis ? 'bg-accent text-white' : 'bg-black/[0.06] text-muted'}`}>{analysis ? 'On' : 'Off'}</span>
+          <span className={`rounded-full px-1.5 text-meta font-semibold ${analysis ? 'bg-accent text-white' : 'bg-black/[0.06] text-muted'}`}>{analysis ? 'On' : 'Off'}</span>
         </button>
         <Help label="About the analysis switch">
           On: the checks switched on in the bottom bar run on every step, and their results show under Results &amp; evidence. Off: you design without checks; the ones you picked stay remembered for when you turn it back on.

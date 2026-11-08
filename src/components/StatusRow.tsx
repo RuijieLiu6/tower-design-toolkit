@@ -27,7 +27,7 @@ export default function StatusRow({ state, title, value, detail, fix, flag, size
   testId?: string
 }) {
   const Icon = STATUS_ICON[state]
-  const text = size === 'md' ? 'text-xs' : 'text-[11px]'
+  const text = size === 'md' ? 'text-xs' : 'text-meta'
   return (
     <li className="grid grid-cols-[1.25rem_1fr] gap-x-1.5 py-1" data-testid={testId} data-state={state}>
       <Icon size={size === 'md' ? 18 : 16} className={`mt-px ${STATUS_TONE[state]}`} aria-hidden />
@@ -38,7 +38,7 @@ export default function StatusRow({ state, title, value, detail, fix, flag, size
           {value != null && value !== '' && <span className="text-muted">· {value}</span>}
           {detail && <Help label="Details">{detail}</Help>}
         </p>
-        {fix && <p className="mt-0.5 flex items-start gap-1 text-[11px] leading-snug text-ink"><Wrench size={12} className="mt-px shrink-0 text-accent" aria-hidden /><span><span className="sr-only">How to fix: </span>{fix}</span></p>}
+        {fix && <p className="mt-0.5 flex items-start gap-1 text-meta leading-snug text-ink"><Wrench size={12} className="mt-px shrink-0 text-accent" aria-hidden /><span><span className="sr-only">How to fix: </span>{fix}</span></p>}
         {state !== 'pass' && flag && LOUD.has(flag) && <span className="mt-0.5 inline-flex"><FlagChip flag={flag as Flag} /></span>}
       </div>
     </li>

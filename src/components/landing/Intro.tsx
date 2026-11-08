@@ -17,11 +17,15 @@
 //   - the box in the middle alternates between the name and "A Tower Design by [role ▾]": a role threads its starting
 //     workflow; "you, node by node" leaves an empty string to build on;
 //   - Enter (the string's end) goes into the guided app with that workflow, in that order (lib/startPreset.ts);
-//     "describe your concept" goes to the agent page. Making a node of one's own waits inside the platform (Customize).
+//     the workflow assistant below the canvas suggests, modifies and explains the workflow (previewed on the canvas,
+//     applied or discarded, undoable); its "Other ways in" goes to the agent page. Making a node of one's own waits inside
+//     the platform (Customize).
 // Keyboard: floating nodes are buttons (Enter threads one); threaded nodes are buttons (← → move it along the string,
 // Delete takes it off); the role menu is a listbox. Reduced motion: nothing drifts, sways or alternates; all still works.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowRight, ChevronDown, MessageSquare, Play, RefreshCw } from '../icons'
+import { ArrowRight, ChevronDown, Play, RefreshCw } from '../icons'
+import WorkflowAssistant from './WorkflowAssistant'
+import type { Proposal } from '../../lib/agent/workflowAssistant'
 import GlassIcon, { HUES, ICON } from '../GlassIcon'
 import { NODE_ICONS, STEP_ICONS, TYPE_ICONS } from '../../data/icons'
 import { BUILT_NODES } from '../../data/registry'
@@ -29,6 +33,7 @@ import { PHASE_HUE, PHASES, phaseOfNode, type PhaseId } from '../../lib/phases'
 import { startPreset } from '../../lib/startPreset'
 import { enterToolkit } from '../../lib/intro'
 import { USER_TYPES, type Preset, type UserTypeId } from '../../lib/userTypes'
+import { byPhase, edgeKey, linear, phaseIndex, walk, type Edge } from '../../lib/workflowGraph'
 
 type RoleId = UserTypeId | 'custom'
 const ROLES: { id: RoleId; label: string }[] = [
@@ -43,22 +48,8 @@ const presetOf = (r: RoleId): Preset | null => (r === 'custom' ? null : USER_TYP
 // Each node wears its phase's colour, so it is plain which lane of the string it belongs in.
 const NODES = BUILT_NODES.map((n) => { const phase: PhaseId = phaseOfNode(n.id)?.id ?? 'site'; return { id: n.id, name: n.name, icon: NODE_ICONS[n.id], phase, hue: PHASE_HUE[phase], projects: n.projects ?? (['vtc', 'city'] as ('vtc' | 'city')[]) } })
 const idx = (id: string) => NODES.findIndex((n) => n.id === id)
-const phaseIndex = (id: string) => Math.max(0, PHASES.findIndex((p) => p.nodes.includes(id)))
-const byPhase = (ids: string[]) => [...ids].sort((a, b) => phaseIndex(a) - phaseIndex(b))
 const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => b[i] === x)
-type Edge = { a: string; b: string }
-const key = (e: Edge) => `${e.a}>${e.b}`
-/** Start → each node in turn → Enter. */
-const linear = (ids: string[]): Edge[] => { const seq = ['start', ...ids, 'enter']; return seq.slice(0, -1).map((a, k) => ({ a, b: seq[k + 1] })) }
-/** The nodes Start reaches along the wires, in the order it reaches them. */
-const walk = (edges: Edge[]) => {
-  const out: string[] = [], seen = new Set(['start']), queue = ['start']
-  while (queue.length) {
-    const a = queue.shift()!
-    for (const e of edges) if (e.a === a && !seen.has(e.b)) { seen.add(e.b); if (e.b !== 'enter') out.push(e.b); queue.push(e.b) }
-  }
-  return out
-}
+const key = edgeKey
 
 interface Body { x: number; y: number; vx: number; vy: number; r: number; a: number; va: number; held: boolean; on: boolean }
 interface Pt { x: number; y: number; px: number; py: number }
@@ -74,6 +65,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const [still] = useState(() => reduced || (typeof window !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches))
   const box = useRef<HTMLElement>(null)
   const sentenceEl = useRef<HTMLDivElement>(null)
+  const assistantEl = useRef<HTMLDivElement>(null)
   const els = useRef<(HTMLButtonElement | null)[]>([])
   const bodies = useRef<Body[]>([])
   const [size] = useState(() => Math.round(ICON.feature * Math.max(0.72, Math.min(1, (typeof window === 'undefined' ? 1200 : window.innerWidth) / 1200))))
@@ -106,7 +98,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // ---- layout: the string's band across the top, its two ends, the room below
   const dims = useRef({ W: typeof window === 'undefined' ? 1200 : window.innerWidth, H: typeof window === 'undefined' ? 800 : window.innerHeight })
   const [, relayout] = useState(0)
-  const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(220, H * 0.44) } }
+  const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(220, H * 0.36) } }
   const ends = () => {
     const { W } = dims.current, b = band(), mid = (b.y0 + b.y1) / 2 + 10
     return { start: { x: Math.max(48, W * 0.05), y: mid }, enter: { x: W - Math.max(56, W * 0.055), y: mid } }
@@ -150,6 +142,9 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // ---- editing the board: every change sets the nodes and the wires together
   const commit = (on: string[], es: Edge[]) => {
     const seen = new Set<string>(), clean = es.filter((e) => e.a !== e.b && on.concat('start', 'enter').includes(e.a) && on.concat('start', 'enter').includes(e.b) && !seen.has(key(e)) && seen.add(key(e)))
+    // Editing the string by hand while the assistant's proposal is shown keeps the proposal (as if applied), so Undo
+    // still goes back to before it.
+    if (assistKept.current && !assistCommitting.current) { history.current.push(assistKept.current); assistKept.current = null; setProposed(null); setCanUndo(true) }
     onRef.current = on; edgesRef.current = clean
     setTouched(true); setOnBoard(on); setEdges(clean)
   }
@@ -195,6 +190,44 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     layout(ids)
     commit(ids, linear(ids))
   }
+  // ---- the workflow assistant's proposals (Ruijie, 7 Nov): previewed on the canvas, then applied or discarded; applied
+  // ones come back with Undo. A snapshot keeps the role, the board and where each node sat.
+  type Snap = { role: RoleId; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> }
+  const snapshot = (): Snap => ({ role, on: [...onRef.current], edges: [...edgesRef.current], at: new Map(onRef.current.map((id) => { const b = bodies.current[idx(id)]; return [id, { x: b?.x ?? 0, y: b?.y ?? 0 }] })) })
+  const restoreSnap = (k: Snap) => {
+    release(onRef.current.filter((id) => !k.on.includes(id)))
+    k.on.forEach((id) => { const b = bodies.current[idx(id)], p = k.at.get(id); if (b && p) { b.x = p.x; b.y = p.y; b.vx = b.vy = 0; b.on = true; b.held = false } })
+    setRole(k.role); assistCommitting.current = true; commit(k.on, k.edges); assistCommitting.current = false
+  }
+  const assistKept = useRef<Snap | null>(null)
+  const assistCommitting = useRef(false)
+  const history = useRef<Snap[]>([])
+  const [canUndo, setCanUndo] = useState(false)
+  const [proposed, setProposed] = useState<{ added: Set<string>; removed: Set<string> } | null>(null)
+  const [focusNode, setFocusNode] = useState<string | null>(null)
+  const previewProposal = (p: Proposal) => {
+    if (assistKept.current) restoreSnap(assistKept.current)
+    else assistKept.current = snapshot()
+    const ids = p.board.nodes, run = walk(p.board.edges)
+    release(onRef.current.filter((id) => !ids.includes(id)))
+    if (p.capability === 'suggest') { layout(run); setRole('custom') }
+    else p.added.forEach((id) => { const b = bodies.current[idx(id)], sl = slotFor(id, run.filter((x) => x !== id)); if (b) { b.x = sl.x; b.y = sl.y; b.vx = b.vy = 0; b.on = true; b.held = false } })
+    assistCommitting.current = true; commit(ids, p.board.edges); assistCommitting.current = false
+    setProposed({ added: new Set(p.added), removed: new Set(p.removed) })
+  }
+  const applyProposal = () => { if (assistKept.current) { history.current.push(assistKept.current); setCanUndo(true) } assistKept.current = null; setProposed(null) }
+  const discardProposal = () => { const k = assistKept.current; assistKept.current = null; setProposed(null); if (k) restoreSnap(k) }
+  const undoAssistant = () => { const k = history.current.pop(); setCanUndo(history.current.length > 0); if (k) restoreSnap(k) }
+  useEffect(() => {
+    const key = (e: globalThis.KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z' || e.shiftKey) return
+      if ((e.target as HTMLElement)?.closest?.('textarea, input')) return
+      if (assistKept.current) { e.preventDefault(); discardProposal() } else if (history.current.length) { e.preventDefault(); undoAssistant() }
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }) // eslint-disable-line react-hooks/exhaustive-deps
+
   // The role menu previews (Ruijie, 7 Nov: "hover over different roles … make the corresponding preset appear on screen
   // to replace the demo one"): opening it keeps the string as it is; hovering or focusing a role shows that role's
   // workflow; leaving the list, Escape or a click outside puts the kept string back; a click on a role keeps it.
@@ -208,9 +241,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const restore = () => {
     const k = kept.current
     if (!k) return
-    release(onRef.current.filter((id) => !k.on.includes(id)))
-    k.on.forEach((id) => { const b = bodies.current[idx(id)], p = k.at.get(id); if (b && p) { b.x = p.x; b.y = p.y; b.vx = b.vy = 0; b.on = true; b.held = false } })
-    setRole(k.role); commit(k.on, k.edges)
+    restoreSnap(k)
   }
   const closeMenu = () => { restore(); kept.current = null; setMenu(false) }
   const pick = (r: RoleId) => { setTouched(true); kept.current = null; setMenu(false); apply(r) }
@@ -264,8 +295,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const r = el.getBoundingClientRect()
       const next = { W: el.clientWidth, H: el.clientHeight }
       if (next.W !== dims.current.W || next.H !== dims.current.H) { dims.current = next; relayout((n) => n + 1) }
-      const s = sentenceEl.current?.getBoundingClientRect()
-      zones.current = [band(), ...(s ? [{ x0: s.left - r.left, y0: s.top - r.top, x1: s.right - r.left, y1: s.bottom - r.top }] : [])]
+      const zs = [sentenceEl.current, assistantEl.current].map((x) => x?.getBoundingClientRect()).filter((q): q is DOMRect => !!q)
+      zones.current = [band(), ...zs.map((q) => ({ x0: q.left - r.left - 8, y0: q.top - r.top - 8, x1: q.right - r.left + 8, y1: q.bottom - r.top + 8 }))]
     }
     measure()
     const { W, H } = dims.current, bnd = band()
@@ -373,7 +404,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const seen = new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { threshold: 0.05 })
     seen.observe(el)
     const ro = new ResizeObserver(() => { measure(); frame() })
-    ;[el, sentenceEl.current].forEach((x) => x && ro.observe(x))
+    // The assistant grows with its reply: the floating nodes keep clear of it.
+    ;[el, sentenceEl.current, assistantEl.current].forEach((x) => x && ro.observe(x))
     frame()
 
     // ---- dragging: pick up, carry, drop (thread / reorder / take off) or throw
@@ -548,6 +580,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
   const keys = (i: number, e: KeyboardEvent) => {
     const id = NODES[i].id, list = chainRef.current, at = list.indexOf(id)
+    setFocusNode(id)
     if (!onRef.current.includes(id)) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const sl = slotFor(id, list), b = bodies.current[i]; b.x = sl.x; b.y = sl.y; b.on = true; insertByPhase(id) } return }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); release([id]); takeOff(id) }
     if (at >= 0 && ((e.key === 'ArrowLeft' && at > 0) || (e.key === 'ArrowRight' && at < list.length - 1))) {
@@ -578,7 +611,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
   const roleLabel = ROLES.find((r) => r.id === role)!.label
   const RoleIcon = roleIcon(role)
-  const type = 'text-[clamp(1.6rem,3.6vw,3.1rem)] font-medium leading-tight tracking-[-0.02em]'
+  const type = 'text-display-sm md:text-display'
   const { start, enter } = ends()
   const tile = ICON.feature + 8
 
@@ -597,7 +630,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         return (
           <div key={ph.id} data-lane={ph.id} data-hot={on ? '1' : undefined} className="pointer-events-none absolute rounded-xl transition-[background-color,box-shadow] duration-200"
             style={{ left: x0 + 4, top: y0 - 46, width: x1 - x0 - 8, height: y1 - y0 + 46, background: `hsl(${h} 85% ${on ? 78 : 88}% / ${on ? 0.42 : 0.16})`, boxShadow: on ? `0 0 0 2px hsl(${h} 80% 62% / 0.65), 0 0 36px hsl(${h} 90% 65% / 0.55)` : undefined }}>
-            <span aria-hidden className="absolute left-2.5 top-2 flex items-center gap-1.5 text-[12px]" style={{ color: `hsl(${h} 55% 32%)`, fontWeight: on ? 600 : 500 }}>
+            <span aria-hidden className="absolute left-2.5 top-2 flex items-center gap-1.5 text-meta" style={{ color: `hsl(${h} 55% 32%)`, fontWeight: on ? 600 : 500 }}>
               <Step size={15} />{ph.name}
             </span>
             <button type="button" disabled={mine.length < 2} aria-pressed={looped} data-lane-loop={ph.id}
@@ -631,34 +664,35 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       {/* the string's two ends: Start, and Enter (the way into the tool with this workflow) */}
       <div aria-hidden data-cover-start className="absolute flex flex-col items-center gap-1 rounded-xl data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: start.x - tile / 2, top: start.y - tile / 2 }}>
         <GlassIcon icon={Play} hue={HUES.green} size={tile} className="gicon-solid" />
-        <span className="text-[12px] text-muted">Start</span>
+        <span className="text-meta text-muted">Start</span>
       </div>
       <button type="button" disabled={!chain.length} onClick={(e) => enterWith(e.currentTarget)} data-testid="cover-enter" title="Enter the tool with this workflow"
         aria-label={`Enter the tool with ${name}: ${chain.length} nodes${loop ? ', looped' : ''}`}
         className="group absolute flex flex-col items-center gap-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: enter.x - tile / 2, top: enter.y - tile / 2 }}>
         <GlassIcon icon={ArrowRight} hue={HUES.sky} size={tile} className="gicon-solid group-hover:scale-105" />
-        <span className="text-[12px] font-semibold text-accent">Enter</span>
+        <span className="text-meta font-semibold text-accent">Enter</span>
       </button>
 
       {/* what is on the string, and the loop switch */}
-      <div className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-3 text-[13px]">
+      <div className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-3 text-control">
         <span className="font-semibold text-ink" data-testid="cover-chain-name">{name}</span>
-        <span className="tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not wired in` : ''}</span>
+        <span className="text-meta tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not wired in` : ''}</span>
         <button type="button" role="switch" aria-checked={loop} disabled={chain.length < 2}
           onClick={() => { const last = chain[chain.length - 1], first = chain[0]; if (loop) commit(onRef.current, edgesRef.current.filter((e) => !isLoop(e))); else wire(last, first) }} data-testid="cover-loop"
           title={loop ? 'Remove the loops: a straight run to Enter' : 'Add a loop: the last node checks back to the first'}
-          className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${loop ? 'bg-ink text-white' : 'bg-panel text-ink'}`}>
+          className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${loop ? 'bg-ink text-white' : 'bg-panel text-ink'}`}>
           <RefreshCw size={14} aria-hidden />Loop
         </button>
       </div>
-      {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-[14px] text-muted" style={{ top: start.y + 40 }}>Drag nodes onto the string</p>}
+      {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag nodes onto the string</p>}
 
       {/* every built node: on the string (lit) or in the room (soft) */}
       {NODES.map((n, i) => (
         <button key={n.id} ref={(d) => { els.current[i] = d }} type="button" data-cover-node={n.id} data-on={onBoard.includes(n.id) ? '1' : '0'} data-unwired={onBoard.includes(n.id) && !chain.includes(n.id) ? '' : undefined}
+          data-proposed={proposed?.added.has(n.id) ? 'add' : proposed?.removed.has(n.id) ? 'remove' : undefined}
           aria-label={onBoard.includes(n.id) ? `${n.name}, on the string${chain.includes(n.id) ? '' : ', not wired in'}: arrows move it along, Delete takes it off` : `Put ${n.name} on the string`}
-          onPointerDown={(e) => { e.preventDefault(); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
-          className="group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40"
+          onPointerDown={(e) => { e.preventDefault(); setFocusNode(n.id); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
+          className="group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a]"
           style={{ width: size, height: size, transform: 'translate3d(-999px,-999px,0)' }}>
           <GlassIcon icon={n.icon} hue={n.hue} size={size} level={chain.includes(n.id) ? 'on' : 'soft'} />
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
@@ -671,13 +705,14 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
                 style={{ borderColor: `hsl(${n.hue} 80% 50%)`, ...(side === 'n' ? { bottom: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 's' ? { top: '100%', left: '50%', height: 22, borderLeftWidth: 2, marginLeft: -1 } : side === 'e' ? { left: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 } : { right: '100%', top: '50%', width: 22, borderTopWidth: 2, marginTop: -1 }) }} />
             </span>
           ))}
-          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full z-10 mt-2.5 -translate-x-1/2 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{n.name}</span>
+          {proposed?.added.has(n.id) && <span aria-hidden className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#2e8b57] text-meta font-semibold text-white shadow">+</span>}
+          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full z-10 mt-2.5 -translate-x-1/2 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-node text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{n.name}</span>
         </button>
       ))}
 
       {/* the box: the name, and the sentence with its role */}
-      <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4" style={{ top: band().y1 + 40 }}>
-        <div ref={sentenceEl} className="glass glass-tile pointer-events-auto relative rounded-xl bg-glass-1 px-7 py-4 text-ink" data-testid="cover-box">
+      <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4" style={{ top: band().y1 + 20 }}>
+        <div ref={sentenceEl} className="glass glass-tile pointer-events-auto relative z-20 rounded-xl bg-glass-1 px-7 py-4 text-ink" data-testid="cover-box">
           <div className="relative overflow-hidden">
             <p aria-hidden={!showName} className={`${type} whitespace-nowrap transition-all duration-500 ${showName ? 'translate-y-0 opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 -translate-y-full opacity-0'}`}>Tower Design Toolkit</p>
             <p aria-hidden={showName} className={`${type} flex flex-wrap items-baseline justify-center gap-x-3 whitespace-nowrap transition-all duration-500 ${showName ? 'pointer-events-none absolute inset-x-0 top-0 translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
@@ -689,7 +724,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
             </p>
           </div>
           {menu && (
-            <ul role="listbox" data-role-menu aria-label="A tower design by" onMouseLeave={restore} className="glass absolute left-1/2 top-full z-20 mt-2 w-max min-w-[18rem] -translate-x-1/2 rounded-xl bg-glass-1 p-1.5 text-[15px]">
+            <ul role="listbox" data-role-menu aria-label="A tower design by" onMouseLeave={restore} className="glass absolute left-1/2 top-full z-30 mt-2 w-max min-w-[18rem] -translate-x-1/2 rounded-xl bg-glass-1 p-1.5 text-control">
               {ROLES.map((r) => {
                 const I = roleIcon(r.id)
                 return (
@@ -697,7 +732,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
                     <button type="button" role="option" aria-selected={role === r.id} onClick={() => pick(r.id)} onMouseEnter={() => preview(r.id)} onFocus={() => preview(r.id)} data-role={r.id}
                       className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent ${role === r.id ? 'font-semibold' : ''}`}>
                       <I size={18} className="text-accent" aria-hidden />{r.label}
-                      {r.id === 'custom' && <span className="ml-auto pl-4 text-[12px] text-muted">build your own</span>}
+                      {r.id === 'custom' && <span className="ml-auto pl-4 text-meta text-muted">build your own</span>}
                     </button>
                   </li>
                 )
@@ -705,10 +740,11 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
             </ul>
           )}
         </div>
-        <button type="button" onClick={onEnter} data-testid="intro-enter"
-          className="pointer-events-auto mt-4 flex items-center gap-1.5 rounded-xl px-2 py-1 text-[13px] text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-          <MessageSquare size={15} aria-hidden />or describe your concept
-        </button>
+        <div ref={assistantEl} className="mt-4">
+          <WorkflowAssistant board={{ nodes: onBoard, edges }} focus={focusNode} previewing={!!proposed} canUndo={canUndo}
+            onPreview={previewProposal} onApply={applyProposal} onDiscard={discardProposal} onUndo={undoAssistant}
+            onOpenWorkspace={enterWith} canOpen={chain.length > 0} onOtherWays={onEnter} />
+        </div>
       </div>
     </section>
   )

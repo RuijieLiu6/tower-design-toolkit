@@ -54,19 +54,19 @@ export default function Orbit({ nodes, label }: { nodes: string[]; label: string
             <path d="M-12 -100 L-12 -30" stroke="#fff" strokeOpacity={0.9} strokeWidth={2} />
           </g>
         </svg>
-        <span className="absolute left-1/2 -translate-x-1/2 text-[12px] font-semibold text-ink" style={{ top: pct(C + 78) }}>One shared model</span>
+        <span className="absolute left-1/2 -translate-x-1/2 text-meta font-semibold text-ink" style={{ top: pct(C + 78) }}>One shared model</span>
         {RING.map((c, i) => {
           const [x, y] = at(i), on = lit.has(c), n = lit.get(c) ?? 0, below = y > C - 20
           return (
             <div key={c} className="absolute flex -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y) }} data-category={c} data-lit={on || undefined}>
               <GlassIcon icon={CATEGORY_ICONS[c]} hue={CATEGORY_HUE[c]} size={ICON.tool} level={on ? 'on' : 'off'} />
               {on && n > 1 && <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10.5px] font-semibold text-white">{n}</span>}
-              <span className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] ${below ? 'top-full mt-1' : 'bottom-full mb-1'} ${on ? 'font-semibold text-ink' : 'text-muted'}`}>{SHORT[c] ?? CATEGORIES[c].label}</span>
+              <span className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-meta ${below ? 'top-full mt-1' : 'bottom-full mb-1'} ${on ? 'font-semibold text-ink' : 'text-muted'}`}>{SHORT[c] ?? CATEGORIES[c].label}</span>
             </div>
           )
         })}
       </div>
-      <figcaption className="mt-1 text-center text-[13px] text-muted">{label ? <>Lit: the nodes in <b className="font-semibold text-ink">{label}</b></> : 'Every analysis is a node that reads the same model'}</figcaption>
+      <figcaption className="mt-1 text-center text-meta text-muted">{label ? <>Lit: the nodes in <b className="font-semibold text-ink">{label}</b></> : 'Every analysis is a node that reads the same model'}</figcaption>
     </figure>
   )
 }

@@ -273,7 +273,7 @@ function Readout() {
       ) : mode !== 'cones' ? <div className="text-slate-500">Loading the zoning references…</div> : null}
       {answer.cones.length ? answer.cones.map((h) => <ConeLine key={h.surface.cone.id} s={h.surface} z={h.z} ground={ground} />) : <div><b className="text-ink">No view-cone limit</b> here. Other height rules still apply.</div>}
       {answer.notes.filter((n) => !/^The lowest cone|is an estimate/.test(n)).map((n) => <div key={n} className="text-flag-unresolved">{n}</div>)}
-      <div className="text-[11px] text-slate-500">{where} · study tool after Vista (Ruijie Liu); the City's View Cone Assessment and by-laws govern</div>
+      <div className="text-meta text-slate-500">{where} · study tool after Vista (Ruijie Liu); the City's View Cone Assessment and by-laws govern</div>
     </div>
   )
 }
@@ -320,7 +320,7 @@ const MODE_LABEL: Record<SurfaceMode, string> = { cones: 'View cones', zoning: '
 function Legend({ mode }: { mode: SurfaceMode }) {
   if (mode === 'cones') return (
     <div className="space-y-0.5">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500">Lowest cone surface, geodetic (CGVD28 assumed)</div>
+      <div className="text-meta text-slate-500">Lowest cone surface, geodetic (CGVD28 assumed)</div>
       {LIMIT_BANDS.map((b) => <div key={b.label} className="flex items-center gap-1.5"><Swatch color={b.color} />{b.label}</div>)}
       <div className="flex items-center gap-1.5"><Swatch color={LIMIT_BANDS[2].color} stripes />White stripes: a Vista study surface is lowest (assumption, not a City ceiling)</div>
       <div className="flex items-center gap-1.5"><Swatch color="#ffffff" />No fill: no view cone (other rules apply)</div>
@@ -328,7 +328,7 @@ function Legend({ mode }: { mode: SurfaceMode }) {
   )
   return (
     <div className="space-y-0.5">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500">{mode === 'zoning' ? 'Basic zoning height, above the by-law grade' : 'Suggested height above the ground (lowest of zoning and cones, 0.1 m clearance)'}</div>
+      <div className="text-meta text-slate-500">{mode === 'zoning' ? 'Basic zoning height, above the by-law grade' : 'Suggested height above the ground (lowest of zoning and cones, 0.1 m clearance)'}</div>
       {HEIGHT_BANDS.map((b) => <div key={b.label} className="flex items-center gap-1.5"><Swatch color={b.color} />{b.label}</div>)}
       {mode === 'suggestion' && <div className="flex items-center gap-1.5"><Swatch color={HEIGHT_BANDS[3].color} stripes />Stripes: a study surface controls (assumption)</div>}
       {mode === 'suggestion' && <div className="flex items-center gap-1.5"><Swatch color={HEIGHT_BANDS[3].color} pale />Pale, dotted: zoning has no number here; cones only</div>}
@@ -351,12 +351,12 @@ export function HeightSurfacePanel({ bare = false }: { bare?: boolean }) {
       className={`rounded border px-1.5 py-0.5 ${active ? 'border-accent bg-accent/10 font-medium text-ink' : 'border-line bg-white text-ink hover:bg-slate-50'}`}>{label}</button>
   )
   return (
-    <div className={bare ? 'space-y-1.5 text-[11px] text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
+    <div className={bare ? 'space-y-1.5 text-meta text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-meta text-slate-600 shadow-sm'}>
       <div className="flex items-center justify-between gap-2">
         <label className="flex items-center gap-1.5 font-semibold text-ink">
           <input type="checkbox" checked={on} onChange={(e) => set({ on: e.target.checked, hover: null })} /> Height limit surface
         </label>
-        <span className="text-[11px] text-slate-500">zoning + view cones, after Vista</span>
+        <span className="text-meta text-slate-500">zoning + view cones, after Vista</span>
       </div>
       {on && (
         <>

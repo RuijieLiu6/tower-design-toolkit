@@ -87,7 +87,7 @@ function ProblemCard({ problem, onRestart }: { problem: Problem; onRestart: () =
         ) : (
           <p className="mt-1.5">Your design is not affected. Restart the view; if it happens again, the message below helps us find the cause.</p>
         )}
-        {problem.kind === 'error' && <p className="mt-1.5 break-words font-mono text-[11px] text-ink">{problem.message}</p>}
+        {problem.kind === 'error' && <p className="mt-1.5 break-words font-mono text-meta text-ink">{problem.message}</p>}
         <button type="button" onClick={onRestart}
           className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
           <RefreshCw size={14} aria-hidden />{webgl ? 'Try again' : 'Restart the 3D view'}

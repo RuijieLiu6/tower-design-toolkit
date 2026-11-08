@@ -120,7 +120,7 @@ export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
         <FileImage size={16} className="text-sky-400" />
         <div>
           <div className="text-sm font-semibold">Drawings · {t.name}</div>
-          <div className="text-[10px] text-slate-400">Generated from the massing at a standard scale on A2 · LOD 100, a schematic space reservation</div>
+          <div className="text-meta text-slate-400">Generated from the massing at a standard scale on A2 · LOD 100, a schematic space reservation</div>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <button type="button" onClick={saveSvg} className="flex items-center gap-1.5 rounded border border-white/15 px-2.5 py-1.5 text-xs hover:border-sky-400"><Download size={13} />SVG, to scale</button>
@@ -130,19 +130,19 @@ export default function DrawingsViewer({ onClose }: { onClose: () => void }) {
           <button type="button" onClick={onClose} aria-label="Close drawings (Esc)" className="rounded p-1.5 text-slate-300 hover:bg-white/10"><X size={16} /></button>
         </div>
       </header>
-      {msg && <div className="border-b border-white/10 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">{msg}</div>}
+      {msg && <div className="border-b border-white/10 bg-emerald-500/10 px-3 py-1 text-meta text-emerald-200">{msg}</div>}
       <div className="flex min-h-0 flex-1">
         <nav aria-label="Drawing list" className="w-60 shrink-0 overflow-y-auto border-r border-white/10 p-3">
-          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Floor plans</div>
+          <div className="mb-1.5 text-meta font-semibold text-slate-400">Floor plans</div>
           {plans.map((p) => <button key={p.level} type="button" onClick={() => setChoice({ kind: 'plan', ...p })} className={item(choice.kind === 'plan' && choice.level === p.level)}>{p.label} · L{p.level}</button>)}
-          <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Sections</div>
+          <div className="mb-1.5 mt-3 text-meta font-semibold text-slate-400">Sections</div>
           <button type="button" onClick={() => setChoice({ kind: 'section', cut: 'A' })} className={item(choice.kind === 'section' && choice.cut === 'A')}>Section A–A, through the core</button>
           <button type="button" onClick={() => setChoice({ kind: 'section', cut: 'B' })} className={item(choice.kind === 'section' && choice.cut === 'B')}>Section B–B, at right angles</button>
-          <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Diagrams</div>
+          <div className="mb-1.5 mt-3 text-meta font-semibold text-slate-400">Diagrams</div>
           <button type="button" onClick={() => setChoice({ kind: 'stacking' })} className={item(choice.kind === 'stacking')}>Programme stacking</button>
-          <div className="mb-1.5 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Elevations</div>
+          <div className="mb-1.5 mt-3 text-meta font-semibold text-slate-400">Elevations</div>
           {facesList.map((f, i) => <button key={f.index} type="button" onClick={() => setChoice({ kind: 'elevation', face: i })} className={item(choice.kind === 'elevation' && choice.face === i)}>{f.name}</button>)}
-          <p className="mt-4 text-[10px] leading-snug text-slate-400">Every drawing carries the LOD 100 note: floors, core and plant come from the massing and team presets, and the structure is not sized. SVG files print at the stated scale; on a board, the scale bar stays true.</p>
+          <p className="mt-4 text-meta leading-snug text-slate-400">Every drawing carries the LOD 100 note: floors, core and plant come from the massing and team presets, and the structure is not sized. SVG files print at the stated scale; on a board, the scale bar stays true.</p>
         </nav>
         <main className="flex min-w-0 flex-1 items-center justify-center overflow-auto bg-[#2a2e34] p-6">
           <div className="aspect-[594/420] w-full max-w-[min(100%,calc((100vh-9rem)*1.414))] bg-white shadow-2xl">

@@ -30,7 +30,7 @@ function BuiltRow({ n }: { n: NodeDef }) {
       <CategoryBadge cat={n.category} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-medium text-ink">{n.name}</div>
-        <div className="text-[10px] text-muted">{CATEGORIES[n.category].label}{!usable && <span className="text-amber-700"> · other project</span>}{n.status === 'preview' && ' · preview'}</div>
+        <div className="text-meta text-muted">{CATEGORIES[n.category].label}{!usable && <span className="text-amber-700"> · other project</span>}{n.status === 'preview' && ' · preview'}</div>
       </div>
       <div onClick={(e) => e.stopPropagation()}><Toggle checked={on} onChange={() => toggleNode(n.id)} label={`Use ${n.name}`} /></div>
     </div>
@@ -71,20 +71,20 @@ export default function NodeLibrary() {
         </label>
         {phase === 'basic' && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {WORKFLOWS.map((w) => <button key={w.id} onClick={() => setEnabled(w.nodes)} className="rounded-full border border-line px-2 py-0.5 text-[10px] text-muted hover:border-accent hover:text-accent">{w.name}</button>)}
+            {WORKFLOWS.map((w) => <button key={w.id} onClick={() => setEnabled(w.nodes)} className="rounded-full border border-line px-2 py-0.5 text-meta text-muted hover:border-accent hover:text-accent">{w.name}</button>)}
           </div>
         )}
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {nothingFound && <NoMatch query={libraryQuery} />}
-        <h3 className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{phase === 'advanced' ? 'New in Schematic' : 'Checks'}</h3>
+        <h3 className="px-2 pb-1 pt-1 text-meta font-semibold text-muted">{phase === 'advanced' ? 'New in Schematic' : 'Checks'}</h3>
         {builtHere.map((n) => <BuiltRow key={n.id} n={n} />)}
         {phase === 'advanced' && builtHere.length === 0 && (
-          <p className="px-2 pb-2 text-[11px] text-muted">The plates, core and plant shown in the model are drawn from your inputs. Their evaluation nodes (lifts, core share, plant, facade) are researched and next to build.</p>
+          <p className="px-2 pb-2 text-meta text-muted">The plates, core and plant shown in the model are drawn from your inputs. Their evaluation nodes (lifts, core share, plant, facade) are researched and next to build.</p>
         )}
         {carried.length > 0 && (
           <div className="mt-1">
-            <button onClick={() => setCarriedOpen((o) => !o)} aria-expanded={carriedOpen} className="flex w-full items-center gap-1.5 px-2 py-1 text-[11px] text-muted hover:text-ink">
+            <button onClick={() => setCarriedOpen((o) => !o)} aria-expanded={carriedOpen} className="flex w-full items-center gap-1.5 px-2 py-1 text-meta text-muted hover:text-ink">
               {carriedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}Carried from Massing · {carried.length} checks still running
             </button>
             {carriedOpen && carried.map((n) => <BuiltRow key={n.id} n={n} />)}
@@ -94,12 +94,12 @@ export default function NodeLibrary() {
         <MyNodes q={q} />
 
         <div className="mt-3 border-t border-line pt-2">
-          <button onClick={() => setRoadmapOpen((o) => !o)} aria-expanded={showRoadmap} className="flex w-full items-center gap-1.5 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted hover:text-ink">
+          <button onClick={() => setRoadmapOpen((o) => !o)} aria-expanded={showRoadmap} className="flex w-full items-center gap-1.5 px-2 py-1 text-meta font-semibold text-muted hover:text-ink">
             {showRoadmap ? <ChevronDown size={12} /> : <ChevronRight size={12} />}<FlaskConical size={13} />Roadmap · {researchedCount} researched
           </button>
           {showRoadmap && (
             <>
-              <label className="flex items-center gap-1.5 px-2 py-1 text-[10px] text-muted" title="Data, storage, licences and other platform plumbing">
+              <label className="flex items-center gap-1.5 px-2 py-1 text-meta text-muted" title="Data, storage, licences and other platform plumbing">
                 <input type="checkbox" checked={platform} onChange={(e) => setPlatform(e.target.checked)} /> Include platform and data modules
               </label>
               {groups.map(([cat, nodes]) => (
@@ -107,15 +107,15 @@ export default function NodeLibrary() {
                   <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-black/5" onClick={() => setOpen((o) => ({ ...o, [cat]: !o[cat] }))} aria-expanded={!!open[cat]}>
                     <CategoryBadge cat={cat} size={12} />
                     <span className="flex-1 text-xs">{CATEGORIES[cat].label}</span>
-                    <span className="font-mono text-[10px] text-muted">{nodes.length}</span>
+                    <span className="font-mono text-meta text-muted">{nodes.length}</span>
                   </button>
                   {open[cat] && nodes.map((n) => (
                     <div key={n.id} onClick={() => selectNode(n.id)} aria-disabled="true" title="Researched, not runnable yet"
                       className={`flex cursor-pointer items-start gap-2 rounded-md py-1 pl-10 pr-2 hover:bg-black/5 ${selectedNode === n.id ? 'bg-accent/10' : ''}`}>
                       <FlaskConical size={12} className="mt-0.5 shrink-0 text-muted" />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[11px] text-ink/80" title={n.name}>{n.name}</div>
-                        <div className="text-[9px] uppercase text-muted">{n.priority}</div>
+                        <div className="truncate text-meta text-ink/80" title={n.name}>{n.name}</div>
+                        <div className="text-meta uppercase text-muted">{n.priority}</div>
                       </div>
                     </div>
                   ))}

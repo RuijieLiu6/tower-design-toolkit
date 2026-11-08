@@ -250,9 +250,9 @@ function MenuAt({ data }: { data: CityData }) {
     <Html position={[menu.at[0], menu.at[1], menu.z + 2]} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto' }}>
       <div data-testid="site-map-menu" onKeyDown={onKey} onPointerDown={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}
         style={{ transform: `translate(${menu.place?.left ? 'calc(-100% - 8px)' : '8px'}, ${menu.place?.up ? 'calc(-100% - 8px)' : '8px'})`, maxHeight: menu.place?.maxH }}
-        className={`${card} w-[17rem] overflow-y-auto p-1 text-[12px]`}>
+        className={`${card} w-[17rem] overflow-y-auto p-1 text-meta`}>
         <div className="flex items-start gap-1 px-2 pb-1 pt-1.5">
-          <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted">
+          <div className="min-w-0 flex-1 text-meta leading-snug text-muted">
             <div className="truncate" title={menu.buildingLabel ?? undefined}>{menu.buildingLabel ?? 'No building here'}</div>
             <div className="truncate" title={menu.lotLabel ?? undefined}>{menu.lot !== null ? `Lot at ${menu.lotLabel}` : layer ? 'No City lot here' : layerError ? `City lots did not load: ${layerError}` : 'Loading the City lots…'}</div>
           </div>
@@ -286,7 +286,7 @@ function MultiBar({ data }: { data: CityData }) {
   const cancel = () => { useSiteStore.getState().set({ tool: null, picked: [] }); useSiteStep.setState({ multi: false }); tell('Selection cancelled; nothing replaced.') }
   return (
     <Html calculatePosition={topCentre} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto', transform: 'translateX(-50%)' }}>
-      <div role="toolbar" aria-label="Select buildings to replace" data-testid="site-multi-bar" className={`${card} flex items-center gap-2 whitespace-nowrap px-3 py-1.5 text-[12px]`} onPointerDown={(e) => e.stopPropagation()}>
+      <div role="toolbar" aria-label="Select buildings to replace" data-testid="site-multi-bar" className={`${card} flex items-center gap-2 whitespace-nowrap px-3 py-1.5 text-meta`} onPointerDown={(e) => e.stopPropagation()}>
         <MousePointerClick size={14} className="text-accent" aria-hidden />
         <span role="status"><b>{ids.size}</b> building{ids.size === 1 ? '' : 's'} selected</span>
         <Help label="How to select">Click (or Shift-click) more buildings to add them, or a selected one to drop it. Done replaces them: they are shown as demolished, and Undo brings them back.</Help>
@@ -310,7 +310,7 @@ function BoxDraft({ data }: { data: CityData }) {
     <>
       {pts && <Line points={pts} color={COLORS.box} lineWidth={2.5} dashed dashSize={4} gapSize={2} depthTest={false} renderOrder={22} userData={{ siteOverlay: true }} />}
       <Html calculatePosition={topCentre} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto', transform: 'translateX(-50%)' }}>
-        <div data-testid="site-box-hint" className={`${card} flex items-center gap-2 whitespace-nowrap px-3 py-1.5 text-[12px]`} onPointerDown={(e) => e.stopPropagation()}>
+        <div data-testid="site-box-hint" className={`${card} flex items-center gap-2 whitespace-nowrap px-3 py-1.5 text-meta`} onPointerDown={(e) => e.stopPropagation()}>
           <Combine size={14} className="text-accent" aria-hidden />Drag a box across the lots to combine · Esc cancels
           <button type="button" onClick={() => useSiteStep.setState({ box: false, boxDraft: null })} className="rounded-md border border-line px-2 py-0.5">Cancel</button>
         </div>
@@ -387,7 +387,7 @@ function ToastAt() {
   if (!toast) return null
   const body = (
     <div data-testid="site-toast" onPointerDown={(e) => e.stopPropagation()}
-      className={`${card} flex w-80 items-start gap-2 px-3 py-2 text-[12px] ${toast.kind === 'error' ? 'border-red-300 text-red-900' : ''}`}>
+      className={`${card} flex w-80 items-start gap-2 px-3 py-2 text-meta ${toast.kind === 'error' ? 'border-red-300 text-red-900' : ''}`}>
       <span className="min-w-0 flex-1 leading-snug">{toast.text}</span>
       {toast.undoable && <button type="button" onClick={() => { useSiteStep.setState({ toast: null }); undoLast() }} className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-0.5 hover:border-accent"><Undo2 size={12} />Undo</button>}
       <button type="button" aria-label="Dismiss" onClick={() => useSiteStep.setState({ toast: null })} className="shrink-0 rounded p-0.5 text-muted hover:text-ink"><X size={13} /></button>

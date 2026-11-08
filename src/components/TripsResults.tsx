@@ -12,11 +12,11 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-[10px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
+        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
+          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
       </div>
     </div>
   )
@@ -34,16 +34,16 @@ export default function TripsResults() {
   return (
     <>
       <Section title="Results">
-        <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-950">Trip rates and peak-hour shares are unsourced presets; the mode split for trips into the tower is the 2008 Trip Diary row for trips ending downtown (context, not a target); residents’ split is an <b>unsourced scenario</b>. The station check is comfort only, not egress.</div>
+        <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-meta text-amber-950">Trip rates and peak-hour shares are unsourced presets; the mode split for trips into the tower is the 2008 Trip Diary row for trips ending downtown (context, not a target); residents’ split is an <b>unsourced scenario</b>. The station check is comfort only, not egress.</div>
         <div className="overflow-x-auto">
           {/* Node audit (7 Nov): the upper-case, letter-spaced headers crowded into each other ("PEOPLETRANSIT") and pushed
               "Other" out of the 22rem panel; sentence-case headers with a gutter fit, "Car" says "car drivers" on hover. */}
-          <table className="w-full text-[11px] [&_td+td]:pl-2 [&_th+th]:pl-2">
-            <thead><tr className="text-left text-[10px] text-muted"><th className="py-0.5 font-medium">AM peak hour</th><th className="text-right font-medium">People</th><th className="text-right font-medium">Transit</th><th className="text-right font-medium"><abbr title="Car drivers" className="no-underline">Car</abbr></th><th className="text-right font-medium">Other</th></tr></thead>
+          <table className="w-full text-meta [&_td+td]:pl-2 [&_th+th]:pl-2">
+            <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium">AM peak hour</th><th className="text-right font-medium">People</th><th className="text-right font-medium">Transit</th><th className="text-right font-medium"><abbr title="Car drivers" className="no-underline">Car</abbr></th><th className="text-right font-medium">Other</th></tr></thead>
             <tbody>
               {r.uses.map((u) => (
                 <tr key={u.use} className="border-t border-line/60">
-                  <td className="py-0.5">{u.use} <span className={`rounded px-1 text-[9px] ${u.basis === 'unsourced scenario' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>{u.basis}</span></td>
+                  <td className="py-0.5">{u.use} <span className={`rounded px-1 text-meta ${u.basis === 'unsourced scenario' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>{u.basis}</span></td>
                   <td className="text-right tabular-nums">{n(u.persons)}</td><td className="text-right tabular-nums">{n(u.transit)}</td><td className="text-right tabular-nums">{n(u.autoDriver)}</td><td className="text-right tabular-nums">{n(u.other)}</td>
                 </tr>
               ))}
@@ -54,18 +54,18 @@ export default function TripsResults() {
       </Section>
 
       <Section title="Station entrance (tier 0)">
-        <div className="flex items-start gap-2 text-[11px]">
+        <div className="flex items-start gap-2 text-meta">
           <TrainFront size={16} className="mt-0.5 shrink-0 text-slate-500" />
           <div>
             <div><b>{n(s.linkIn + s.stationIn)}</b> people in the AM peak hour use the below-grade link: {n(s.linkIn)} from the tower, {n(s.stationIn)} station riders at the proxy station ({s.name}).</div>
             <div className="mt-0.5">One train every {presets.headwayMin} min brings {n(s.perTrain)}; passing in {presets.dispersalS} s they need <b>{s.required.toFixed(1)} m</b> of clear width at {presets.bandM2} m² per person ({presets.clearWidth.toFixed(1)} m given{s.ratio > 1 ? ', too narrow for comfort' : ''}).</div>
-            <div className="mt-1 text-[10px] text-muted">No width is ever shown green: the walkway boundaries are unverified (TCQSM ch. 10 unread) and egress (NFPA 130) may govern.</div>
+            <div className="mt-1 text-meta text-muted">No width is ever shown green: the walkway boundaries are unverified (TCQSM ch. 10 unread) and egress (NFPA 130) may govern.</div>
           </div>
         </div>
       </Section>
 
       <Section title="Feeds">
-        <ul className="grid gap-1 text-[11px]">
+        <ul className="grid gap-1 text-meta">
           <li><b>Parking, loading & bikes:</b> {n(r.parking.arrivals)} car drivers arrive in the AM peak hour{r.parking.maxStalls !== null ? ` against a downtown maximum of ${n(r.parking.maxStalls)} stalls (unverified)` : ''}.</li>
           <li><b>Core & lifts:</b> {n(r.transitLevel.persons)} of the arrivals ({Math.round(r.transitLevel.share * 100)}%) come up from the station link, so the lifts should also serve that level.</li>
         </ul>
@@ -75,7 +75,7 @@ export default function TripsResults() {
         <div className="grid gap-2">{r.rules.map((x) => <Card key={x.id} r={x} />)}</div>
       </Section>
 
-      <Section title="Presets (team assumptions and your inputs)" right={edited.length ? <button type="button" onClick={reset} className="flex items-center gap-1 text-[10px] text-muted hover:text-ink"><RotateCcw size={11} />Reset</button> : undefined}>
+      <Section title="Presets (team assumptions and your inputs)" right={edited.length ? <button type="button" onClick={reset} className="flex items-center gap-1 text-meta text-muted hover:text-ink"><RotateCcw size={11} />Reset</button> : undefined}>
         <div className="grid grid-cols-2 gap-2">
           <label className="col-span-2 flex flex-col gap-1 text-xs"><span className="text-muted">Proxy station (2025 weekday 8–9 AM alightings)</span>
             <select className={sel} value={presets.station} onChange={(e) => set({ station: e.target.value })}>{STATIONS.map((x) => <option key={x.name} value={x.name}>{x.name} · {n(x.alightAm)}</option>)}</select></label>
@@ -89,7 +89,7 @@ export default function TripsResults() {
           <NumberField label="Residents driving" value={presets.residentShares.autoDriver * 100} unit="%" step={5} onChange={(v) => { const a = Math.min(1 - presets.residentShares.transit, Math.max(0, v / 100)); set({ residentShares: { ...presets.residentShares, autoDriver: a, other: 1 - presets.residentShares.transit - a } }) }} />
           <NumberField label="Line capacity (optional)" value={presets.lineCapacity} unit="/h/dir" step={1000} onChange={(v) => set({ lineCapacity: Math.max(0, v) })} />
         </div>
-        {edited.length > 0 && <p className="mt-1 text-[10px] text-amber-800">Edited: {edited.join(', ')} (your own assumption; station flows you enter stay team assumptions).</p>}
+        {edited.length > 0 && <p className="mt-1 text-meta text-amber-800">Edited: {edited.join(', ')} (your own assumption; station flows you enter stay team assumptions).</p>}
       </Section>
     </>
   )

@@ -6,7 +6,7 @@ import { ChevronRight } from './icons'
 
 export default function Fold({ summary, children, className = '', testId }: { summary: ReactNode; children: ReactNode; className?: string; testId?: string }) {
   return (
-    <details className={`group text-[11px] ${className}`} data-testid={testId}>
+    <details className={`group text-meta ${className}`} data-testid={testId}>
       <summary className="flex cursor-pointer list-none items-start gap-1 rounded text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent [&::-webkit-details-marker]:hidden">
         <ChevronRight size={12} aria-hidden className="mt-[1px] shrink-0 transition-transform group-open:rotate-90" />
         <span>{summary}</span>

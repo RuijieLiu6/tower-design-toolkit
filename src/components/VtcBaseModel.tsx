@@ -122,14 +122,14 @@ export function VtcContextCard() {
           <svg viewBox="0 0 64 40" className="h-10 w-16" aria-hidden>
             <rect x={4} y={10} width={56} height={22} className="fill-accent/15 stroke-accent" strokeWidth={1.2} />
           </svg>
-          <figcaption className="text-[10px] tabular-nums">{BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m</figcaption>
+          <figcaption className="text-meta tabular-nums">{BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m</figcaption>
         </figure>
         <div className="grid gap-1">
           <span className="text-[10.5px] text-muted">The base model adds:</span>
           <ul className="flex flex-wrap gap-1" aria-label="What the base model adds">
             {[[Building2, 'Neighbours'], [Landmark, 'Heritage'], [TowerOnSite, 'Future towers']].map(([I, w]) => {
               const Icon = I as typeof Building2
-              return <li key={w as string} className="flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-[11px] text-ink"><Icon size={12} className="text-accent" aria-hidden />{w as string}</li>
+              return <li key={w as string} className="flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-meta text-ink"><Icon size={12} className="text-accent" aria-hidden />{w as string}</li>
             })}
           </ul>
         </div>
@@ -137,7 +137,7 @@ export function VtcContextCard() {
       <div className="mt-2.5 space-y-2">
         <ErrorLine announce />
         <AddButton open={pick.open}>Add your copy of the base model (.3dm)</AddButton>
-        <p className="flex items-center gap-1.5 text-[11px] text-muted"><LockKeyhole size={12} className="shrink-0" aria-hidden />{NOTE} Or drop the .3dm on this card.</p>
+        <p className="flex items-center gap-1.5 text-meta text-muted"><LockKeyhole size={12} className="shrink-0" aria-hidden />{NOTE} Or drop the .3dm on this card.</p>
       </div>
     </section>
   )

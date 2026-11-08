@@ -48,8 +48,8 @@ export function AlignBlock({ raw, opts, up, frame, built, picking, setPicking }:
     <section className="rounded-lg border border-line bg-panel p-3 text-xs" aria-label="Align to the map">
       <div className="mb-2 flex items-center gap-2 font-semibold"><MapPinned size={14} className="text-accent" />Align to the map<span className="ml-auto"><FlagChip flag={opts.placement === 'earth' ? 'unverified' : 'team_assumption'} /></span></div>
       {opts.placement === 'earth' ? (
-        ea ? <p className="text-[11px] text-muted">The file's Earth anchor puts its base point ({raw.earthAnchor!.lat.toFixed(5)}, {raw.earthAnchor!.lon.toFixed(5)}) at E {ea.utm[0].toFixed(1)}, N {ea.utm[1].toFixed(1)} (EPSG:26910, Krüger series; NAD83 and WGS84 taken as equal, about 1 m). Check it on the preview; turn it below if the file's north is off.</p>
-          : <p className="text-[11px] text-red-800">The file has no Earth anchor location{u ? '' : ', and this project has no map frame'}. Choose another placement.</p>
+        ea ? <p className="text-meta text-muted">The file's Earth anchor puts its base point ({raw.earthAnchor!.lat.toFixed(5)}, {raw.earthAnchor!.lon.toFixed(5)}) at E {ea.utm[0].toFixed(1)}, N {ea.utm[1].toFixed(1)} (EPSG:26910, Krüger series; NAD83 and WGS84 taken as equal, about 1 m). Check it on the preview; turn it below if the file's north is off.</p>
+          : <p className="text-meta text-red-800">The file has no Earth anchor location{u ? '' : ', and this project has no map frame'}. Choose another placement.</p>
       ) : (
         <div className="grid gap-2">
           <label className="grid gap-1"><span className="text-muted">Point on the model</span>
@@ -65,22 +65,22 @@ export function AlignBlock({ raw, opts, up, frame, built, picking, setPicking }:
                 {(['utm', 'latlon'] as const).map((g) => <button key={g} role="radio" aria-checked={geo === g} onClick={() => setGeo(g)} className={`px-1.5 py-0.5 ${geo === g ? 'bg-accent text-white' : ''}`}>{g === 'utm' ? 'UTM 10N' : 'Lat, lon'}</button>)}
               </span>
             )}
-            <button onClick={() => setPicking(!picking)} aria-pressed={picking} className={`ml-auto flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] ${picking ? 'border-accent bg-accent/10 text-accent' : 'border-line hover:border-accent'}`}><Crosshair size={12} />{picking ? 'Click the preview…' : 'Pick on the preview'}</button>
+            <button onClick={() => setPicking(!picking)} aria-pressed={picking} className={`ml-auto flex items-center gap-1 rounded border px-1.5 py-0.5 text-meta ${picking ? 'border-accent bg-accent/10 text-accent' : 'border-line hover:border-accent'}`}><Crosshair size={12} />{picking ? 'Click the preview…' : 'Pick on the preview'}</button>
           </div>
           {u && geo === 'latlon' ? (
             <div className="flex items-center gap-1.5">
               {(['Latitude', 'Longitude'] as const).map((k, i) => <input key={k} aria-label={k} placeholder={i ? '-123.1207' : '49.2827'} value={ll[i]} onChange={(e) => setLl(i ? [ll[0], e.target.value] : [e.target.value, ll[1]])} className="w-28 rounded border border-line px-1 py-0.5 tabular-nums" />)}
-              <button onClick={() => { const lat = num(ll[0]), lon = num(ll[1]); if (lat == null || lon == null || lat < 0 || lat > 84 || lon < -126 || lon > -120) return; const [E, N] = toUtm10(lat, lon); set({ city: [E - u[0], N - u[1]] }) }} className="rounded border border-line px-1.5 py-0.5 text-[11px] hover:border-accent">Use</button>
-              <span className="text-[10px] text-muted">degrees, UTM zone 10 only</span>
+              <button onClick={() => { const lat = num(ll[0]), lon = num(ll[1]); if (lat == null || lon == null || lat < 0 || lat > 84 || lon < -126 || lon > -120) return; const [E, N] = toUtm10(lat, lon); set({ city: [E - u[0], N - u[1]] }) }} className="rounded border border-line px-1.5 py-0.5 text-meta hover:border-accent">Use</button>
+              <span className="text-meta text-muted">degrees, UTM zone 10 only</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
               {([0, 1] as const).map((i) => (
-                <label key={i} className="flex items-center gap-1 text-[11px] text-muted">{u ? (i ? 'N' : 'E') : i ? 'y' : 'x'}
+                <label key={i} className="flex items-center gap-1 text-meta text-muted">{u ? (i ? 'N' : 'E') : i ? 'y' : 'x'}
                   <input type="number" step={0.5} value={Number(((a.city[i] + (u ? u[i] : 0))).toFixed(2))} onChange={(e) => { const v = num(e.target.value); if (v == null) return; const c: Pt = [...a.city] as Pt; c[i] = v - (u ? u[i] : 0); set({ city: c }) }} className="w-28 rounded border border-line px-1 py-0.5 text-right tabular-nums text-ink" />
                 </label>
               ))}
-              <span className="text-[10px] text-muted">{u ? 'EPSG:26910 m' : 'm on the site'}</span>
+              <span className="text-meta text-muted">{u ? 'EPSG:26910 m' : 'm on the site'}</span>
             </div>
           )}
         </div>
@@ -119,9 +119,9 @@ export function AlignPreview({ built, onPick, picking, keep, setKeep, demolish }
   }
   return (
     <section className="rounded-lg border border-line bg-panel p-3 text-xs">
-      <div className="mb-1 flex items-center font-semibold">Preview on the City footprints<span className="ml-auto text-[10px] font-normal text-muted">{(2 * half).toFixed(0)} m across · north up</span></div>
-      {error && <p className="text-[11px] text-red-800">The City layers could not be loaded: {error}</p>}
-      {!data && !error && <p className="text-[11px] text-muted">Loading the City footprints…</p>}
+      <div className="mb-1 flex items-center font-semibold">Preview on the City footprints<span className="ml-auto text-meta font-normal text-muted">{(2 * half).toFixed(0)} m across · north up</span></div>
+      {error && <p className="text-meta text-red-800">The City layers could not be loaded: {error}</p>}
+      {!data && !error && <p className="text-meta text-muted">Loading the City footprints…</p>}
       <svg viewBox={`0 0 ${W} ${W}`} className={`w-full rounded border border-line bg-[#f1efea] ${picking ? 'cursor-crosshair' : ''}`} onClick={click} role="img" aria-label={`Plan: the uploaded model on the City footprints; ${demolish.count} existing footprints under it ${keep ? 'kept' : 'shown as demolished'}`}>
         <defs><pattern id="demolish" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fde2e0" /><line x1="0" y1="0" x2="0" y2="6" stroke="#c0392b" strokeWidth="1.4" /></pattern></defs>
         {nearIdx.map(([f, i]) => <path key={i} d={path(f.outer)} fill={gone.has(i) ? (keep ? '#cfcac0' : 'url(#demolish)') : '#d9d5cc'} stroke={gone.has(i) ? '#c0392b' : '#b9b4aa'} strokeWidth={gone.has(i) ? 1 : 0.5} strokeDasharray={gone.has(i) && !keep ? '3 2' : undefined} />)}
@@ -131,13 +131,13 @@ export function AlignPreview({ built, onPick, picking, keep, setKeep, demolish }
         <g transform={`translate(${W - 18} 22)`}><path d="M0 -12 L5 4 L0 0 L-5 4 Z" fill="#1f2328" /><text y={14} fontSize={9} textAnchor="middle" fill="#1f2328">N</text></g>
         <g transform={`translate(10 ${W - 12})`}><line x1={0} x2={50 * k} y1={0} y2={0} stroke="#1f2328" strokeWidth={1.5} /><text x={50 * k + 4} y={3} fontSize={9} fill="#1f2328">50 m</text></g>
       </svg>
-      {nearIdx.length === 0 && data && <p className="mt-1 text-[11px] text-muted">No City footprints here: the model may be outside the downtown data. Check the anchor.</p>}
+      {nearIdx.length === 0 && data && <p className="mt-1 text-meta text-muted">No City footprints here: the model may be outside the downtown data. Check the anchor.</p>}
       <label className="mt-2 flex items-start gap-2">
         <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="mt-0.5 accent-accent" disabled={!demolish.count} />
         <span><b>Keep the {demolish.count} existing building{demolish.count === 1 ? '' : 's'} under the model</b>{demolish.count ? ' (otherwise they are shown as demolished and leave the views, shadows and roofs)' : ' (none under it)'}.</span>
         <span className="ml-auto"><FlagChip flag={REMOVAL_FLAG} /></span>
       </label>
-      <p className="mt-1 text-[10px] text-muted">{REMOVAL_CAVEAT} Hatched red: demolished. Blue: your towers; dashed teal: your lot line; dark grey: your context.</p>
+      <p className="mt-1 text-meta text-muted">{REMOVAL_CAVEAT} Hatched red: demolished. Blue: your towers; dashed teal: your lot line; dark grey: your context.</p>
     </section>
   )
 }

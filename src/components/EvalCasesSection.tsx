@@ -22,16 +22,16 @@ export default function EvalCasesSection() {
     <section className="mt-5 rounded-lg border border-line bg-panel" aria-labelledby="eval-title">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <h2 id="eval-title" className="flex items-center gap-1.5 text-sm font-semibold"><ClipboardCheck size={14} aria-hidden />Evaluation cases</h2>
-        <span className="text-[11px] text-muted">{CASES.length} cases: typical, boundary, out of scope, repeated</span>
-        <span className="ml-auto text-[11px]">
-          {state === 'ok' && run ? <><b className={run.failed.length || run.uiRunFailed ? 'text-red-700' : 'text-emerald-800'}>{run.passed} of {run.total} pass</b>{run.uiRunFailed && <b className="text-red-700"> · UI run incomplete</b>} · last run {run.date} {run.time} · report <code className="text-[10px]">{run.report}</code></>
+        <span className="text-meta text-muted">{CASES.length} cases: typical, boundary, out of scope, repeated</span>
+        <span className="ml-auto text-meta">
+          {state === 'ok' && run ? <><b className={run.failed.length || run.uiRunFailed ? 'text-red-700' : 'text-emerald-800'}>{run.passed} of {run.total} pass</b>{run.uiRunFailed && <b className="text-red-700"> · UI run incomplete</b>} · last run {run.date} {run.time} · report <code className="text-meta">{run.report}</code></>
             : state === 'loading' ? 'Loading the last run…' : 'Not run yet: npm run eval'}
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-[11px]">
+        <table className="w-full min-w-[760px] text-meta">
           <thead>
-            <tr className="border-b border-line text-left text-[10.5px] uppercase tracking-wider text-muted">
+            <tr className="border-b border-line text-left text-[10.5px] text-muted">
               <th className="px-3 py-1.5 font-medium">Case</th><th className="px-3 py-1.5 font-medium">Type</th><th className="px-3 py-1.5 font-medium">Expected</th><th className="px-3 py-1.5 font-medium">Basis</th><th className="px-3 py-1.5 font-medium">Last run</th>
             </tr>
           </thead>
@@ -40,12 +40,12 @@ export default function EvalCasesSection() {
               const r = byId.get(c.id)
               return (
                 <tr key={c.id} className="border-b border-line/70 align-top">
-                  <td className="px-3 py-1.5"><b>{c.id}</b> <U>{c.title}</U><div className="text-[10px] text-muted">{c.node}{c.ui ? ' · also run through the UI' : ''}</div></td>
+                  <td className="px-3 py-1.5"><b>{c.id}</b> <U>{c.title}</U><div className="text-meta text-muted">{c.node}{c.ui ? ' · also run through the UI' : ''}</div></td>
                   <td className="px-3 py-1.5">{TYPE_LABEL[c.type]}</td>
                   <td className="px-3 py-1.5"><U>{c.expected}</U></td>
                   <td className="px-3 py-1.5 text-muted">{c.basis}{c.basisFlag === 'team_assumption' ? ' (team reasoning)' : ''}</td>
                   <td className="px-3 py-1.5">{!r ? <span className="text-muted">not run</span> : r.pass ? <span className="font-semibold text-emerald-800">Pass</span> : <span className="font-semibold text-red-700">Fail</span>}
-                    {r && <div className="text-[10px] text-muted"><U>{r.observed}</U></div>}</td>
+                    {r && <div className="text-meta text-muted"><U>{r.observed}</U></div>}</td>
                 </tr>
               )
             })}

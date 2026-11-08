@@ -20,7 +20,7 @@ export default function CodeNodeGate({ p }: { p: NodePackage }) {
   const o = run?.outcome
   return (
     <Section title="This node runs code">
-      <div className={`rounded-md border p-2 text-[11px] ${allowed ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+      <div className={`rounded-md border p-2 text-meta ${allowed ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
         <div className="flex items-start gap-1.5">
           {allowed ? <ShieldCheck size={14} className="mt-px shrink-0" /> : <ShieldAlert size={14} className="mt-px shrink-0" />}
           <span>
@@ -30,9 +30,9 @@ export default function CodeNodeGate({ p }: { p: NodePackage }) {
           </span>
         </div>
       </div>
-      <button onClick={() => setShowCode((v) => !v)} aria-expanded={showCode} className="mt-2 flex items-center gap-1 text-[11px] text-accent hover:underline"><Code2 size={12} />{showCode ? 'Hide the code' : `Read the code first (${p.code.source.length.toLocaleString()} characters)`}</button>
-      {showCode && <pre className="mt-1 max-h-60 overflow-auto rounded bg-slate-900 p-2 text-[10px] leading-snug text-slate-100"><code>{p.code.source}</code></pre>}
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+      <button onClick={() => setShowCode((v) => !v)} aria-expanded={showCode} className="mt-2 flex items-center gap-1 text-meta text-accent hover:underline"><Code2 size={12} />{showCode ? 'Hide the code' : `Read the code first (${p.code.source.length.toLocaleString()} characters)`}</button>
+      {showCode && <pre className="mt-1 max-h-60 overflow-auto rounded bg-slate-900 p-2 text-meta leading-snug text-slate-100"><code>{p.code.source}</code></pre>}
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-meta">
         {allowed ? (
           <button onClick={() => revokeCode(p.id)} className="rounded border border-line px-2 py-1 hover:border-red-300 hover:text-red-800">Stop allowing this node</button>
         ) : (
@@ -43,14 +43,14 @@ export default function CodeNodeGate({ p }: { p: NodePackage }) {
         )}
       </div>
       {allowed && run && (
-        <div className="mt-2 text-[11px]" aria-live="polite">
+        <div className="mt-2 text-meta" aria-live="polite">
           {run.status === 'running' && <span className="text-muted">Running in the sandbox…</span>}
           {o?.ok && <span className="text-emerald-800">Ran in {o.ms} ms in the sandbox; results below.</span>}
           {o && !o.ok && <div className="rounded border border-red-200 bg-red-50 px-2 py-1 text-red-900"><b>{REASON[o.reason] ?? 'Stopped'}.</b> {o.message}</div>}
           {!!o?.denied.length && <div className="mt-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-red-900"><b>Blocked:</b> the code tried to use {[...new Set(o.denied)].join(', ')}. The sandbox has no network.</div>}
         </div>
       )}
-      <p className="mt-2 text-[10px] text-muted">A changed version or changed code asks again. Declarative formula nodes never need this.</p>
+      <p className="mt-2 text-meta text-muted">A changed version or changed code asks again. Declarative formula nodes never need this.</p>
     </Section>
   )
 }

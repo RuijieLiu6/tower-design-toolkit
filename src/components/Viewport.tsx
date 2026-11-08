@@ -677,7 +677,7 @@ export default function Viewport() {
       {project === 'vtc' && !present && !hidden && <VtcContextCard />}
       {project === 'vtc' && !present && !hidden && <VtcLookBar />}
       {project === 'city' && !present && !hidden && <VistaInset />}
-      {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
+      {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
       {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
@@ -706,8 +706,8 @@ function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
   ]
   return (
     // At most 17.5 rem wide, so Real Vancouver's legend (which leaves 19 rem in Schematic, VistaLook.tsx) never runs under it.
-    <div className={`pointer-events-none absolute bottom-3 ${clear} max-w-[17.5rem] border border-[#2b3f55]/40 bg-panel/75 font-mono text-[10px] text-[#2b3f55] backdrop-blur-md ${fade}`}>
-      <div className="border-b border-[#2b3f55]/30 px-2 py-1 font-semibold uppercase tracking-wider">Schematic · x-ray axonometric</div>
+    <div className={`pointer-events-none absolute bottom-3 ${clear} max-w-[17.5rem] border border-[#2b3f55]/40 bg-panel/75 font-mono text-meta text-[#2b3f55] backdrop-blur-md ${fade}`}>
+      <div className="border-b border-[#2b3f55]/30 px-2 py-1 font-semibold">Schematic · x-ray axonometric</div>
       <div className="grid grid-cols-[auto_auto] gap-x-3 px-2 py-1">
         {rows.flatMap(([k, v]) => [<span key={`${k}k`} className="uppercase opacity-70">{k}</span>, <span key={`${k}v`} className="truncate" title={v}>{v}</span>])}
       </div>
@@ -733,7 +733,7 @@ function NorthCompass({ north }: { north: number }) {
   return (
     <button type="button" onClick={() => faceNorth(north)} data-testid="north-arrow"
       aria-label={`Turn the view to face north. ${label}${north ? ". False assumption corrected: the file's saved north is the grid." : '.'}`} title={`Face north · ${label}`}
-      className={`pointer-events-auto absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-line/70 py-0.5 pl-0.5 pr-2 text-[10px] text-slate-700 shadow-sm hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}>
+      className={`pointer-events-auto absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-line/70 py-0.5 pl-0.5 pr-2 text-meta text-slate-700 shadow-sm hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}>
       <svg ref={arrow} width="22" height="22" viewBox="-14 -14 28 28" style={{ transform: `rotate(${north}deg)` }} aria-hidden>
         <circle r="12" fill="none" stroke="#9aa0a6" />
         <path d="M0 -11 L4 4 L0 1 L-4 4 Z" fill="#1f5f8b" />
@@ -763,7 +763,7 @@ function VtcDock() {
               </g>
               <path d={`M24 26 A14 14 0 0 1 ${24 + 14 * Math.sin((VTC_NORTH_DEG * Math.PI) / 180)} ${40 - 14 * Math.cos((VTC_NORTH_DEG * Math.PI) / 180)}`} fill="none" className="stroke-accent" strokeWidth={0.8} />
             </svg>
-            <figcaption className="text-[10px]"><b className="text-ink">N {VTC_NORTH_DEG}°</b> <span className="text-flag-false">corrected</span></figcaption>
+            <figcaption className="text-meta"><b className="text-ink">N {VTC_NORTH_DEG}°</b> <span className="text-flag-false">corrected</span></figcaption>
           </figure>
           <figure className="m-0 flex flex-col items-center gap-0.5" aria-label="Zero level: 0 m is the site grade">
             <svg viewBox="0 0 48 48" className="h-12 w-12" aria-hidden>
@@ -771,7 +771,7 @@ function VtcDock() {
               <line x1={4} x2={44} y1={34} y2={34} className="stroke-ink" strokeWidth={1.5} />
               <path d="M8 34 L4 40 M14 34 L10 40 M20 34 L16 40 M26 34 L22 40 M32 34 L28 40 M38 34 L34 40 M44 34 L40 40" className="stroke-slate-400" strokeWidth={0.8} />
             </svg>
-            <figcaption className="text-[10px]"><b className="text-ink">0 m</b> = grade</figcaption>
+            <figcaption className="text-meta"><b className="text-ink">0 m</b> = grade</figcaption>
           </figure>
           <Help label="About north and the datum">
             True north is {VTC_NORTH_DEG}° from the model grid, read from the competition model's drawn north arrow. False assumption

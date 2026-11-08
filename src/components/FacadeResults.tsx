@@ -14,10 +14,10 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}</a> : <span className="text-[10px] text-muted">{r.source.label}</span>}
+        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}</a> : <span className="text-meta text-muted">{r.source.label}</span>}
       </div>
     </div>
   )
@@ -25,7 +25,7 @@ function Card({ r }: { r: RuleResult }) {
 
 function Pct({ label, value, onChange, placeholder }: { label: string; value: number | null; onChange: (v: number | null) => void; placeholder?: string }) {
   return (
-    <label className="grid gap-0.5 text-[11px]"><span className="text-muted">{label}</span>
+    <label className="grid gap-0.5 text-meta"><span className="text-muted">{label}</span>
       <span className="flex items-center gap-1"><input type="number" min={0} max={100} step={1} value={value == null ? '' : Math.round(value * 100)} placeholder={placeholder ?? '–'}
         onChange={(e) => onChange(e.target.value === '' ? null : Math.min(100, Math.max(0, Number(e.target.value))) / 100)}
         className="w-16 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={label} />%</span>
@@ -44,21 +44,21 @@ export default function FacadeResults() {
     <>
       <Section title="Facade system and glazing" right={<FlagChip flag="team_assumption" />}>
         <label className="flex items-center justify-between gap-2 text-xs"><span className="text-muted">System</span>
-          <select value={f.system} onChange={(e) => f.set({ system: e.target.value as FacadeSystem })} className="rounded border border-line bg-panel px-1.5 py-0.5 text-[11px]">
+          <select value={f.system} onChange={(e) => f.set({ system: e.target.value as FacadeSystem })} className="rounded border border-line bg-panel px-1.5 py-0.5 text-meta">
             {(Object.keys(SYSTEMS) as FacadeSystem[]).map((k) => <option key={k} value={k}>{SYSTEMS[k].label}</option>)}
           </select>
         </label>
-        <p className="mt-0.5 text-[10px] text-muted">{SYSTEMS[f.system].note}. Preset window-to-wall ratio {Math.round(preset * 100)}% (team preset).</p>
+        <p className="mt-0.5 text-meta text-muted">{SYSTEMS[f.system].note}. Preset window-to-wall ratio {Math.round(preset * 100)}% (team preset).</p>
         <div className="mt-2 grid grid-cols-4 gap-2">
           {(['N', 'E', 'S', 'W'] as Quadrant[]).map((q) => <Pct key={q} label={`WWR facing ${q}`} value={f.wwr[q]} placeholder={String(Math.round(preset * 100))} onChange={(v) => f.set({ wwr: { ...f.wwr, [q]: v } })} />)}
         </div>
         <div className="mt-2 grid grid-cols-4 gap-2">
           <Pct label="Treated glass in bird zone" value={f.treated} onChange={(v) => f.set({ treated: v })} />
-          <label className="grid gap-0.5 text-[11px]"><span className="text-muted">Tallest vegetation</span>
+          <label className="grid gap-0.5 text-meta"><span className="text-muted">Tallest vegetation</span>
             <span className="flex items-center gap-1"><input type="number" min={0} step={1} value={f.vegetation} onChange={(e) => f.set({ vegetation: Math.max(0, Number(e.target.value)) })} className="w-14 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Tallest vegetation" />m</span>
           </label>
           <Pct label="Glass VLT" value={f.vlt} onChange={(v) => f.set({ vlt: v })} />
-          <label className="grid gap-0.5 text-[11px]"><span className="text-muted">Glass SHGC</span>
+          <label className="grid gap-0.5 text-meta"><span className="text-muted">Glass SHGC</span>
             <input type="number" min={0} max={1} step={0.01} value={f.shgc ?? ''} placeholder="–" onChange={(e) => f.set({ shgc: e.target.value === '' ? null : Math.min(1, Math.max(0, Number(e.target.value))) })} className="w-16 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Glass SHGC" />
           </label>
         </div>
@@ -104,7 +104,7 @@ function Unrolled({ faces, floors, top, treated }: { faces: Face[]; floors: Retu
         <line x1={3} x2={W - 3} y1={y(top)} y2={y(top)} stroke="#d0453a" strokeWidth={0.8} strokeDasharray="3 2" />
         <text x={W - 4} y={y(top) - 2} fontSize={6.5} textAnchor="end" fill="#a3322a">bird zone {top} m</text>
       </svg>
-      <p className="text-[10px] text-muted">Blue: vision glass; grey: spandrel and opaque wall; red hatch: glass in the bird zone while less than 90% is treated. "±" marks faces whose facing changes within ±5°. Storeys from the tower's floors.</p>
+      <p className="text-meta text-muted">Blue: vision glass; grey: spandrel and opaque wall; red hatch: glass in the bird zone while less than 90% is treated. "±" marks faces whose facing changes within ±5°. Storeys from the tower's floors.</p>
     </div>
   )
 }
@@ -113,7 +113,7 @@ function ByBin({ byBin }: { byBin: Record<string, { wall: number; glass: number 
   const bins = Object.entries(byBin).filter(([, v]) => v.wall > 0)
   const max = Math.max(1, ...bins.map(([, v]) => v.wall))
   return (
-    <div className="grid gap-1 text-[11px]">
+    <div className="grid gap-1 text-meta">
       {bins.map(([b, v]) => (
         <div key={b} className="grid grid-cols-[28px_1fr_90px] items-center gap-2">
           <span className="font-semibold">{b}</span>
@@ -121,7 +121,7 @@ function ByBin({ byBin }: { byBin: Record<string, { wall: number; glass: number 
           <span className="text-right tabular-nums">{Math.round((v.glass / v.wall) * 100)}% · {Math.round(v.glass).toLocaleString()} m²</span>
         </div>
       ))}
-      <p className="text-[10px] text-muted">Bar: glass area against the wall area facing that way (8 bins from true north).</p>
+      <p className="text-meta text-muted">Bar: glass area against the wall area facing that way (8 bins from true north).</p>
     </div>
   )
 }

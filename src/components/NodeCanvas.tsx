@@ -38,10 +38,10 @@ function Card({ data, selected }: NodeProps<Node<CardData>>) {
       <div className="px-2.5 py-2">
         <div className="flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1.5"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-white" style={{ background: color }}><Icon size={12} /></span><span className="truncate text-xs font-semibold">{data.title}</span></span>
-          <span className="font-mono text-[9px] text-muted">{data.category === 'L0' ? 'LAYER 0' : data.category}</span>
+          <span className="font-mono text-meta text-muted">{data.category === 'L0' ? 'LAYER 0' : data.category}</span>
         </div>
-        <div className="mt-0.5 text-[10px] text-muted">{data.subtitle}</div>
-        {data.status && <div className={`mt-1 text-[11px] font-medium ${TONE[data.tone ?? 'muted']}`}>{data.status}</div>}
+        <div className="mt-0.5 text-meta text-muted">{data.subtitle}</div>
+        {data.status && <div className={`mt-1 text-meta font-medium ${TONE[data.tone ?? 'muted']}`}>{data.status}</div>}
       </div>
       {data.outputs && <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-accent" />}
     </div>

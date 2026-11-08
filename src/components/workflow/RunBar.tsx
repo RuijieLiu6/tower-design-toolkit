@@ -28,9 +28,9 @@ export interface RunBarProps {
 }
 
 export default function RunBar(p: RunBarProps) {
-  const seg = 'flex items-center gap-1 rounded px-2 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent'
+  const seg = 'flex items-center gap-1 rounded px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent'
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel px-2 py-1.5 text-[11px] text-ink shadow-sm" aria-label="Run">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel px-2 py-1.5 text-meta text-ink shadow-sm" aria-label="Run">
       <div role="radiogroup" aria-label="Run mode" className="flex rounded-md bg-black/5 p-0.5">
         {MODES.map((m) => (
           <button key={m.id} role="radio" aria-checked={p.mode === m.id} title={m.title} onClick={() => p.setMode(m.id)}
@@ -41,7 +41,7 @@ export default function RunBar(p: RunBarProps) {
       </div>
       {p.mode === 'manual' && (
         <>
-          <button onClick={p.onRunAll} className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[11px] font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1">
+          <button onClick={p.onRunAll} className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-meta font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1">
             <Play size={12} aria-hidden />Run all
           </button>
           <span role="status" className={p.stale ? 'font-medium text-amber-800' : 'text-muted'}>
@@ -62,7 +62,7 @@ export default function RunBar(p: RunBarProps) {
       )}
       {p.offCount > 0 && <span className="text-amber-800" title="Switched-off nodes block the checks after them; no verdict is computed on missing data">{p.offCount} off</span>}
       <button onClick={p.onRecord} title="Download a run record: the graph, the design and every node's result, with a SHA-256 fingerprint"
-        className="ml-auto flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+        className="ml-auto flex items-center gap-1 rounded px-1.5 py-1 text-meta text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
         <FileJson size={13} aria-hidden />Run record
       </button>
     </div>

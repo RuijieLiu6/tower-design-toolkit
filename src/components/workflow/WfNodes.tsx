@@ -22,7 +22,7 @@ const STATE: Record<RuleState | 'idle', { icon: typeof CircleCheck; word: string
 export function StateWord({ state }: { state: RuleState | 'idle' }) {
   const s = STATE[state]
   const Icon = s.icon
-  return <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${s.cls}`}><Icon size={11} aria-hidden />{s.word}</span>
+  return <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-meta font-semibold leading-none ${s.cls}`}><Icon size={11} aria-hidden />{s.word}</span>
 }
 
 const FLAG_ORDER: Flag[] = ['false_assumption', 'unresolved', 'unverified', 'team_assumption', 'verified']
@@ -34,8 +34,8 @@ export function FlagSummary({ out, max = 3 }: { out: NodeOutput; max?: number })
   if (!flags.length) return null
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-1">
-      {flags.slice(0, max).map((f) => <span key={f} className="inline-flex items-center gap-0.5"><FlagChip flag={f} />{c[f]! > 1 && <span className="text-[9px] tabular-nums text-muted">×{c[f]}</span>}</span>)}
-      {flags.length > max && <span className="text-[9px] text-muted">+{flags.length - max}</span>}
+      {flags.slice(0, max).map((f) => <span key={f} className="inline-flex items-center gap-0.5"><FlagChip flag={f} />{c[f]! > 1 && <span className="text-meta tabular-nums text-muted">×{c[f]}</span>}</span>)}
+      {flags.length > max && <span className="text-meta text-muted">+{flags.length - max}</span>}
     </div>
   )
 }
@@ -65,8 +65,8 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
           <Icon size={17} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[12px] font-semibold leading-tight" title={data.label}>{data.label}</div>
-          <div className="flex items-center gap-1 text-[9.5px] uppercase tracking-wide text-muted">
+          <div className="truncate text-meta font-semibold leading-tight" title={data.label}>{data.label}</div>
+          <div className="flex items-center gap-1 text-[9.5px] text-muted">
             {researched && <FlaskConical size={10} aria-hidden />}
             {missing ? 'Missing from this library' : entry ? STATUS_LABEL[entry.status] : ''}
             {data.category && !isSource && <span className="font-mono normal-case">· {data.category}</span>}
@@ -77,12 +77,12 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
       {/* Port labels; the handles sit on the card edge at the same heights. */}
       <div className="relative px-2.5" style={{ height: rows * ROW }}>
         {inputs.map((p, i) => (
-          <span key={p.id} className="absolute left-2.5 flex items-center gap-1 text-[10px] text-muted" style={{ top: i * ROW + 3 }}>
+          <span key={p.id} className="absolute left-2.5 flex items-center gap-1 text-meta text-muted" style={{ top: i * ROW + 3 }}>
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: PORT_COLOR[p.type] }} />{p.label}{p.multi ? ' (many)' : ''}
           </span>
         ))}
         {outputs.map((p, i) => (
-          <span key={p.id} className="absolute right-2.5 flex items-center gap-1 text-[10px] text-muted" style={{ top: i * ROW + 3 }}>{p.label}<span className="h-1.5 w-1.5 rounded-full" style={{ background: PORT_COLOR[p.type] }} /></span>
+          <span key={p.id} className="absolute right-2.5 flex items-center gap-1 text-meta text-muted" style={{ top: i * ROW + 3 }}>{p.label}<span className="h-1.5 w-1.5 rounded-full" style={{ background: PORT_COLOR[p.type] }} /></span>
         ))}
       </div>
       {inputs.map((p, i) => (
@@ -97,7 +97,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
       <div className="border-t border-line px-2.5 py-2">
         {out?.run && (
           // Run status (P15-M02): off, blocked by an upstream node that is off, or waiting in step-through.
-          <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: out.run.status === 'waiting' ? '#62666d' : '#8a4b00' }}>
+          <div className="mb-1 flex items-center gap-1 text-meta font-semibold" style={{ color: out.run.status === 'waiting' ? '#62666d' : '#8a4b00' }}>
             {out.run.status === 'off' ? <><PowerOff size={11} aria-hidden />Off</> : out.run.status === 'blocked' ? <><Ban size={11} aria-hidden />Blocked</> : <><Hourglass size={11} aria-hidden />Waiting</>}
           </div>
         )}
@@ -109,7 +109,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
           <>
             <div className="flex items-start gap-1.5">
               {!isSource && !out.run && <StateWord state={out.state} />}
-              <span className={`min-w-0 text-[11px] leading-snug ${out.state === 'idle' && out.missing ? 'text-amber-800' : 'text-ink'}`}>{out.headline}</span>
+              <span className={`min-w-0 text-meta leading-snug ${out.state === 'idle' && out.missing ? 'text-amber-800' : 'text-ink'}`}>{out.headline}</span>
             </div>
             {data.ref === 'logic.score' && Number.isFinite(out.score) && (
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(out.score!)} aria-label="Weighted score">
@@ -119,7 +119,7 @@ function WfCardImpl({ id, data, selected }: NodeProps<WfNodeT>) {
             {data.ref === 'logic.compare' && out.breakdown && (
               <div className="mt-1.5 space-y-1">
                 {out.breakdown.map((b) => (
-                  <div key={b.id} className="flex items-center gap-1.5 text-[10px]">
+                  <div key={b.id} className="flex items-center gap-1.5 text-meta">
                     <span className="w-20 truncate" title={b.label}>{b.label}</span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200"><span className="block h-full bg-accent" style={{ width: `${Number.isFinite(b.score) ? b.score * 100 : 0}%` }} /></span>
                     <span className="w-6 text-right tabular-nums">{Number.isFinite(b.score) ? Math.round(b.score * 100) : '–'}</span>

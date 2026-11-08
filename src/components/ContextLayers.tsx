@@ -281,7 +281,7 @@ function Legend({ id, entry }: { id: ContextLayerId; entry: LayerEntry }) {
     const edges = [0, ...breaks]
     return (
       <div className="ml-5 space-y-0.5">
-        <div className="text-[11px] uppercase tracking-wider text-slate-500">Land value per m² (quintiles)</div>
+        <div className="text-meta text-slate-500">Land value per m² (quintiles)</div>
         {VALUE_RAMP.map((c, i) => (
           <div key={c} className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-4 rounded-sm border border-black/10" style={{ background: c }} />
@@ -314,7 +314,7 @@ function ReadoutBox() {
     <div className="rounded border border-line bg-slate-50 px-1.5 py-1">
       <div className="flex items-center justify-between gap-2">
         <b className="text-ink">{r.title}</b>
-        {pinned && !hover && <button type="button" className="text-[11px] text-slate-500 underline" onClick={() => useContextLayers.setState({ pinned: null })}>clear</button>}
+        {pinned && !hover && <button type="button" className="text-meta text-slate-500 underline" onClick={() => useContextLayers.setState({ pinned: null })}>clear</button>}
       </div>
       {r.lines.filter(Boolean).map((l) => <div key={l}>{l}</div>)}
       {r.link && <a className="text-ink underline" href={r.link} target="_blank" rel="noreferrer">City count sheet</a>}
@@ -326,8 +326,8 @@ function ReadoutBox() {
 export function ContextLayersPanel({ manifest, bare = false }: { manifest: Manifest; bare?: boolean }) {
   const { on, status } = useContextLayers()
   return (
-    <div className={bare ? 'space-y-1.5 text-[11px] text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
-      {!bare && <div className="flex items-center justify-between"><b className="text-ink">More layers</b><span className="text-[11px] text-slate-500">load when switched on</span></div>}
+    <div className={bare ? 'space-y-1.5 text-meta text-slate-600' : 'w-80 shrink-0 space-y-1.5 rounded-md border border-line bg-white/95 px-2 py-1.5 text-meta text-slate-600 shadow-sm'}>
+      {!bare && <div className="flex items-center justify-between"><b className="text-ink">More layers</b><span className="text-meta text-slate-500">load when switched on</span></div>}
       {CONTEXT_LAYER_IDS.map((id) => {
         const entry = manifest.layers.find((l) => l.id === id)
         return (
@@ -343,7 +343,7 @@ export function ContextLayersPanel({ manifest, bare = false }: { manifest: Manif
               </label>
               {entry && <FlagChip flag={entry.flag} />}
             </div>
-            <div className="ml-5 text-[11px] text-slate-500">
+            <div className="ml-5 text-meta text-slate-500">
               {entry ? <>{entry.source.publisher} · {entry.licence.name} · retrieved {entry.source.retrieved}</> : 'Not downloaded yet (City of Vancouver open data)'}
             </div>
             {entry && on[id] && <Legend id={id} entry={entry} />}

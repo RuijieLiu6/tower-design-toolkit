@@ -25,9 +25,9 @@ export default function ImagineSection() {
   const { data } = useCityData()
   const im = useImagine()
   const surfaces = useMemo(() => (data ? surfacesFor(data.grids) : null), [data])
-  if (!data || !surfaces) return <Section title="Imagine Vancouver"><p className="text-[11px] text-muted" role="status">Loading the city model…</p></Section>
+  if (!data || !surfaces) return <Section title="Imagine Vancouver"><p className="text-meta text-muted" role="status">Loading the city model…</p></Section>
   if (data.model !== 'vista' || !data.vista) {
-    return <Section title="Imagine Vancouver"><p className="text-[11px] text-muted">Imagine runs on Vista's city model (its buildings carry Vista's zoning table). Switch the buildings to Vista's model in Layers &amp; context.</p></Section>
+    return <Section title="Imagine Vancouver"><p className="text-meta text-muted">Imagine runs on Vista's city model (its buildings carry Vista's zoning table). Switch the buildings to Vista's model in Layers &amp; context.</p></Section>
   }
   const model = { model: data.model, footprints: data.footprints, vista: data.vista }
   const go = (s: Scenario) => void runImagine({ footprints: data.footprints, heights: data.heights }, surfaces, s)
@@ -55,7 +55,7 @@ export default function ImagineSection() {
 
   return (
     <Section title="Imagine Vancouver" help="Vista's comparison of every building in the model: Existing, Height references (the basic zoning height over the whole footprint) and With view cones (also below every cone surface, 0.1 m clearance). Connected parts scale together.">
-      <div className="space-y-1.5 text-[11px]">
+      <div className="space-y-1.5 text-meta">
         {im.status === 'idle' || (im.status === 'error' && !im.prep) ? (
           <>
             <button type="button" onClick={() => go(im.scenario)} className="rounded border border-accent bg-accent/10 px-2 py-1 font-medium text-ink hover:bg-accent/20">Calculate every building</button>
@@ -83,7 +83,7 @@ export default function ImagineSection() {
             )}
             <label className="flex items-center gap-1.5"><input type="checkbox" checked={im.show} onChange={(e) => im.set({ show: e.target.checked })} /> Show on the model (caps at the scenario roof; click one for its calculation)</label>
             {im.show && im.scenario !== 'existing' && (
-              <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-muted">
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-meta text-muted">
                 {([['grown', 'higher'], ['zoning', 'lower: zoning'], ['estimate', 'lower: City-sourced estimate'], ['study', 'lower: study surface (assumption)']] as const).map(([k, l]) => (
                   <span key={k} className="flex items-center gap-1"><span className="inline-block h-2.5 w-3 rounded-sm" style={{ background: IMAGINE_COLORS[k] }} />{l}</span>
                 ))}
@@ -102,7 +102,7 @@ export default function ImagineSection() {
             <button type="button" onClick={exportCsv} className="rounded border border-line bg-white px-1.5 py-0.5 text-ink hover:bg-slate-50">Export CSV (all three scenarios)</button>
           </>
         )}
-        <p className="text-[10px] text-muted">{VISTA_ATTRIBUTION}; zoning: City of Vancouver (OGL-Vancouver) via Vista. Study heights, not legal maximums or a City assessment.</p>
+        <p className="text-meta text-muted">{VISTA_ATTRIBUTION}; zoning: City of Vancouver (OGL-Vancouver) via Vista. Study heights, not legal maximums or a City assessment.</p>
       </div>
     </Section>
   )

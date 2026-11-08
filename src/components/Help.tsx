@@ -47,7 +47,7 @@ export default function Help({ children, label = 'What this does', className = '
       <button ref={btn} type="button" aria-label={label} aria-describedby={id} aria-expanded={open} data-help=""
         onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
         onClick={(e) => { e.stopPropagation(); if (pinned) close(); else { setPinned(true); setOpen(true) } }}
-        className={`relative inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold leading-none outline-none before:absolute before:-inset-1 before:content-[''] focus-visible:ring-2 focus-visible:ring-accent ${open ? 'border-accent bg-accent text-white' : 'border-line bg-white text-muted hover:border-accent hover:text-accent'} ${className}`}>?</button>
+        className={`relative inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-meta font-semibold leading-none outline-none before:absolute before:-inset-1 before:content-[''] focus-visible:ring-2 focus-visible:ring-accent ${open ? 'border-accent bg-accent text-white' : 'border-line bg-white text-muted hover:border-accent hover:text-accent'} ${className}`}>?</button>
       <span id={id} hidden>{children}</span>
       {open && createPortal(
         <div ref={panel} role="tooltip" onMouseEnter={() => clearTimeout(timer.current)} onMouseLeave={hide}

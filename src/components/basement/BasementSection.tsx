@@ -40,7 +40,7 @@ export default function BasementSection({ sum, ground, f2f }: { sum: BasementSum
         <text x={right + 11} y={yOf(sum.depth / 2) + 3} className="fill-ink text-[8px] font-semibold">{fmt(sum.depth, 1)} m</text>
         <text x={right + 27} y={yOf(ground) - 2} className="fill-muted text-[7.5px]">{fmt(ground)} m</text>
       </svg>
-      <figcaption className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-muted">
+      <figcaption className="mt-0.5 flex flex-wrap gap-x-2 text-meta text-muted">
         <span><i aria-hidden className="mr-1 inline-block h-2 w-2 bg-[#3d5a80]" />levels</span>
         <span><i aria-hidden className="mr-1 inline-block h-0.5 w-3 bg-[#c9822b] align-middle" />ramp {fmt(sum.rampLength, 1)} m</span>
         <span><i aria-hidden className="mr-1 inline-block h-2 w-2 bg-[#efe9dd]" />ground {fmt(ground)} m thick</span>

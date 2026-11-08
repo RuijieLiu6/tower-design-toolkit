@@ -8,7 +8,7 @@ import { FlagChip, NumberField, Section, Toggle } from './ui'
 import Help from './Help'
 import SiteStreets from './site/SiteStreets'
 
-const cell = 'w-full rounded border border-line bg-panel px-1 py-0.5 text-right text-[11px] tabular-nums'
+const cell = 'w-full rounded border border-line bg-panel px-1 py-0.5 text-right text-meta tabular-nums'
 
 export default function PublicRealmPanel() {
   const project = useStore((s) => s.project)
@@ -41,8 +41,8 @@ function CityPublicRealmPanel() {
         {streets.length > 0 && (
           <div>
             <div className="mb-1 font-medium">Street frontage at grade</div>
-            <table className="w-full text-[11px]">
-              <thead><tr className="text-left text-[10px] uppercase tracking-wider text-muted">
+            <table className="w-full text-meta">
+              <thead><tr className="text-left text-meta text-muted">
                 <th className="py-0.5 font-medium">Street</th><th className="w-12 text-right font-medium">Active %</th><th className="w-12 text-right font-medium">Doors</th><th className="w-12 text-right font-medium">Canopy %</th><th className="w-12 text-right font-medium">Drive-ways</th>
               </tr></thead>
               <tbody>
@@ -61,7 +61,7 @@ function CityPublicRealmPanel() {
                 })}
               </tbody>
             </table>
-            <p className="mt-1 flex items-center gap-1 text-[10px] text-muted">Shares of each street's building frontage<Help label="About frontage shares">Starting values follow the street's type (the competition's, scaled to this frontage); picking a type resets them. Hotel lobbies and transit entrances count as active; office and residential lobbies as semi-active.</Help></p>
+            <p className="mt-1 flex items-center gap-1 text-meta text-muted">Shares of each street's building frontage<Help label="About frontage shares">Starting values follow the street's type (the competition's, scaled to this frontage); picking a type resets them. Hotel lobbies and transit entrances count as active; office and residential lobbies as semi-active.</Help></p>
           </div>
         )}
 
@@ -71,14 +71,14 @@ function CityPublicRealmPanel() {
         <div>
           <div className="mb-1 flex items-center justify-between">
             <span className="font-medium">Mid-block connection</span>
-            <span className="flex items-center gap-1.5 text-[11px] text-muted"><Toggle checked={L.enabled} onChange={() => setCityLink({ enabled: !L.enabled })} label="Mid-block connection" />{L.enabled ? 'On' : 'Off'}</span>
+            <span className="flex items-center gap-1.5 text-meta text-muted"><Toggle checked={L.enabled} onChange={() => setCityLink({ enabled: !L.enabled })} label="Mid-block connection" />{L.enabled ? 'On' : 'Off'}</span>
           </div>
           {L.enabled && (
             <div className="grid gap-2">
               <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label="Link direction">
                 {([false, true] as const).map((a) => (
                   <button key={String(a)} type="button" role="radio" aria-checked={L.along === a} onClick={() => setCityLink({ along: a, offset: 0 })}
-                    className={`flex-1 rounded px-2 py-1 text-[11px] ${L.along === a ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{a ? 'Along the site' : 'Across the site'}</button>
+                    className={`flex-1 rounded px-2 py-1 text-meta ${L.along === a ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{a ? 'Along the site' : 'Across the site'}</button>
                 ))}
               </div>
               <NumberField label={L.along ? 'Position from the site centre, across its long side' : 'Position from the site centre, along its long side'} unit="m" value={L.offset}
@@ -109,7 +109,7 @@ function CityPublicRealmPanel() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Starting values for a first design: replace them with yours.</span></div>
+        <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Starting values for a first design: replace them with yours.</span></div>
       </div>
     </Section>
   )
@@ -128,8 +128,8 @@ function VtcPublicRealmPanel() {
       <div className="grid gap-3 text-xs">
         <div>
           <div className="mb-1 font-medium">Street frontage at grade</div>
-          <table className="w-full text-[11px]">
-            <thead><tr className="text-left text-[10px] uppercase tracking-wider text-muted">
+          <table className="w-full text-meta">
+            <thead><tr className="text-left text-meta text-muted">
               <th className="py-0.5 font-medium">Street</th><th className="w-12 text-right font-medium">Active %</th><th className="w-12 text-right font-medium">Doors</th><th className="w-12 text-right font-medium">Canopy %</th><th className="w-12 text-right font-medium">Drive-ways</th>
             </tr></thead>
             <tbody>
@@ -147,7 +147,7 @@ function VtcPublicRealmPanel() {
               })}
             </tbody>
           </table>
-          <p className="mt-1 flex items-center gap-1 text-[10px] text-muted">Shares of each street's building frontage<Help label="About frontage shares">Hotel lobbies and transit entrances count as active; office and residential lobbies as semi-active.</Help></p>
+          <p className="mt-1 flex items-center gap-1 text-meta text-muted">Shares of each street's building frontage<Help label="About frontage shares">Hotel lobbies and transit entrances count as active; office and residential lobbies as semi-active.</Help></p>
         </div>
 
         <NumberField label="Unbuilt site that is public (secured by right-of-way)" unit="%" value={Math.round(input.openPublicShare * 100)} onChange={(v) => up({ openPublicShare: Math.min(1, Math.max(0, v / 100)) })} min={0} max={100} step={5}
@@ -156,14 +156,14 @@ function VtcPublicRealmPanel() {
         <div>
           <div className="mb-1 flex items-center justify-between">
             <span className="font-medium">Mid-block connection</span>
-            <span className="flex items-center gap-1.5 text-[11px] text-muted"><Toggle checked={L.enabled} onChange={() => up({ link: { ...L, enabled: !L.enabled } })} label="Mid-block connection" />{L.enabled ? 'On' : 'Off'}</span>
+            <span className="flex items-center gap-1.5 text-meta text-muted"><Toggle checked={L.enabled} onChange={() => up({ link: { ...L, enabled: !L.enabled } })} label="Mid-block connection" />{L.enabled ? 'On' : 'Off'}</span>
           </div>
           {L.enabled && (
             <div className="grid gap-2">
               <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label="Link direction">
                 {(['ns', 'ew'] as const).map((a) => (
                   <button key={a} role="radio" aria-checked={L.axis === a} onClick={() => up({ link: { ...L, axis: a, offset: 0 } })}
-                    className={`flex-1 rounded px-2 py-1 text-[11px] ${L.axis === a ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{a === 'ns' ? 'North–south (retail street to north)' : 'East–west (arterial to east)'}</button>
+                    className={`flex-1 rounded px-2 py-1 text-meta ${L.axis === a ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{a === 'ns' ? 'North–south (retail street to north)' : 'East–west (arterial to east)'}</button>
                 ))}
               </div>
               <NumberField label={L.axis === 'ns' ? 'Position east of the block centre' : 'Position north of the block centre'} unit="m" value={L.offset}
@@ -184,8 +184,8 @@ function VtcPublicRealmPanel() {
           <label className="mt-1 flex items-center gap-2"><input type="checkbox" checked={input.station.activeEdges} onChange={() => up({ station: { ...input.station, activeEdges: !input.station.activeEdges } })} />Active uses and a view to the concourse</label>
         </div>
 
-        <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Starting values for a first design: replace them with yours.</span>
-          <button onClick={() => set({ publicRealm: DEFAULT_PUBLIC_REALM })} className="ml-auto text-[10px] text-accent hover:underline">Reset</button>
+        <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Starting values for a first design: replace them with yours.</span>
+          <button onClick={() => set({ publicRealm: DEFAULT_PUBLIC_REALM })} className="ml-auto text-meta text-accent hover:underline">Reset</button>
         </div>
       </div>
     </Section>

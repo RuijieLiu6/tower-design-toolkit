@@ -17,7 +17,7 @@ export default function FsrSiteLine({ totalFsr, siteArea, tiers }: { totalFsr: n
   if (project !== 'city') {
     const v = tiers ? tiers[tier - 1] : totalFsr
     return (
-      <div className="mt-1.5 grid gap-1 text-[11px]" data-testid="fsr-gauge">
+      <div className="mt-1.5 grid gap-1 text-meta" data-testid="fsr-gauge">
         <div className="flex items-baseline gap-1.5">
           <span className="text-muted">FSR total</span><b className="tabular-nums text-ink">{totalFsr.toFixed(2)}</b>
           <span className="flex items-center gap-1 rounded border border-line px-1 text-muted" title="Over the competition block"><LandPlot size={11} className="text-accent" aria-hidden />{Math.round(SITE.area).toLocaleString('en-CA')} m²</span>
@@ -28,14 +28,14 @@ export default function FsrSiteLine({ totalFsr, siteArea, tiers }: { totalFsr: n
   }
   if (!study) {
     return (
-      <ul className="mt-1.5 text-[11px]">
+      <ul className="mt-1.5 text-meta">
         <StatusRow size="sm" state="warn" title="FSR" value={`${totalFsr.toFixed(2)} · no study site yet`}
           detail={`Shown over the competition block (${SITE.area.toFixed(0)} m²) until you choose a study site in the Site step.`} />
       </ul>
     )
   }
   return (
-    <div className="mt-1.5 flex flex-wrap items-baseline gap-1.5 text-[11px]">
+    <div className="mt-1.5 flex flex-wrap items-baseline gap-1.5 text-meta">
       <span className="text-muted">FSR total</span><b className="tabular-nums text-ink">{totalFsr.toFixed(2)}</b>
       <span className="flex items-center gap-1 rounded border border-line px-1 text-muted" title={study.basis === 'parcels' ? 'Over the joined City parcels' : 'Over the site boundary'}>
         <LandPlot size={11} className="text-accent" aria-hidden />{Math.round(siteArea).toLocaleString('en-CA')} m² · {study.basis === 'parcels' ? 'lots' : 'boundary'}</span>
@@ -57,7 +57,7 @@ function FsrGauge({ value, min, tiers, tier }: { value: number; min: number; tie
         <div className="absolute -top-1 bottom-[-4px] w-px bg-ink" style={{ left: pct(min) }} aria-hidden />
         {tiers.map((t, i) => <div key={i} title={`Tier ${i + 1}: ${t.toFixed(2)}`} className={`absolute top-0 h-3 w-[2px] ${i + 1 === tier ? 'bg-white' : 'bg-white/60'}`} style={{ left: pct(t) }} aria-hidden />)}
       </div>
-      <figcaption className="flex justify-between text-[10px] text-muted">
+      <figcaption className="flex justify-between text-meta text-muted">
         <span><b className={ok ? 'text-emerald-800' : 'text-red-700'}>{value.toFixed(2)}</b> non-residential · tier {tier}</span>
         <span>min <b className="text-ink">{min.toFixed(1)}</b></span>
       </figcaption>

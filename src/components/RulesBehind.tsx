@@ -17,7 +17,7 @@ export default function RulesBehind({ nodeId }: { nodeId: string }) {
   if (!HAS_RULES.has(nodeId) || (!r.cards.length && !r.other.length)) return null
   return (
     <Section title="Rules behind this node">
-      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center gap-1 text-left text-[11px] text-slate-700 hover:text-ink">
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center gap-1 text-left text-meta text-slate-700 hover:text-ink">
         {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}<ScrollText size={12} />
         {r.cards.length} rule card{r.cards.length === 1 ? '' : 's'}{r.other.length ? `, ${r.other.length} other source${r.other.length === 1 ? '' : 's'} cited` : ''}
       </button>
@@ -26,12 +26,12 @@ export default function RulesBehind({ nodeId }: { nodeId: string }) {
           {r.cards.map(({ card, lines }) => <RuleCardView key={card.id} card={card} lines={lines} />)}
           {r.other.length > 0 && (
             <>
-              <h4 className="mt-1 text-[11px] font-semibold text-slate-700">Other sources these results cite (no card yet)</h4>
+              <h4 className="mt-1 text-meta font-semibold text-slate-700">Other sources these results cite (no card yet)</h4>
               <SourceList entries={r.other} />
             </>
           )}
-          {r.uncited.length > 0 && <p className="text-[10px] text-muted">{r.uncited.length} result{r.uncited.length === 1 ? '' : 's'} cite no document: derived values or team presets.</p>}
-          <p className="text-[10px] text-muted">A card counts as reviewed once a person reads the source blind and agrees (Review blind). The Trace tab lists every source in use.</p>
+          {r.uncited.length > 0 && <p className="text-meta text-muted">{r.uncited.length} result{r.uncited.length === 1 ? '' : 's'} cite no document: derived values or team presets.</p>}
+          <p className="text-meta text-muted">A card counts as reviewed once a person reads the source blind and agrees (Review blind). The Trace tab lists every source in use.</p>
         </div>
       )}
     </Section>

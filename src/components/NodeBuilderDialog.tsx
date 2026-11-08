@@ -104,10 +104,10 @@ function BuildTab({ seed, onImport }: { seed: string; onImport: () => void }) {
         {STEPS.map((s, i) => (
           <li key={s.title} className="relative">
             {i < STEPS.length - 1 && <span aria-hidden className="absolute left-7 right-0 top-3 hidden h-px bg-line sm:block" />}
-            <span className="relative flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-white">{i + 1}</span>
+            <span className="relative flex h-6 w-6 items-center justify-center rounded-full bg-accent text-meta font-semibold text-white">{i + 1}</span>
             <div className="mt-1.5 text-xs font-semibold">{s.title}</div>
-            <div className="text-[11px] leading-snug text-muted">{s.text}</div>
-            {i === 3 && <button onClick={onImport} className="mt-1 flex items-center gap-1 text-[11px] font-medium text-accent hover:underline">Import a node<ArrowRight size={12} /></button>}
+            <div className="text-meta leading-snug text-muted">{s.text}</div>
+            {i === 3 && <button onClick={onImport} className="mt-1 flex items-center gap-1 text-meta font-medium text-accent hover:underline">Import a node<ArrowRight size={12} /></button>}
           </li>
         ))}
       </ol>
@@ -115,22 +115,22 @@ function BuildTab({ seed, onImport }: { seed: string; onImport: () => void }) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <Card icon={<Copy size={16} />} title="Copy skill" tone="primary">
           <p>Paste it into ChatGPT, Gemini, Claude, Copilot or any chat, then say what you want to check. For Codex and other coding agents, save it as <code className="rounded bg-black/5 px-1">AGENTS.md</code>.</p>
-          {seed.trim() && <p className="mt-1 text-[11px] text-accent">Includes your search “{seed.trim()}” as the starting point.</p>}
+          {seed.trim() && <p className="mt-1 text-meta text-accent">Includes your search “{seed.trim()}” as the starting point.</p>}
           <button data-autofocus onClick={copy} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-medium text-white hover:opacity-90">
             {copied === 'ok' ? <><Check size={14} />Copied: now paste it into your AI</> : <><ClipboardCopy size={14} />Copy skill prompt</>}
           </button>
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted">
+          <div className="mt-1.5 flex items-center justify-between text-meta text-muted">
             <span>{Math.round(text.length / 1000)}k characters · works in any chat</span>
             <button onClick={() => setShowPrompt((v) => !v)} className="text-accent hover:underline" aria-expanded={showPrompt}>{showPrompt ? 'Hide prompt' : 'Show prompt'}</button>
           </div>
-          {copied === 'fail' && <p className="mt-1 text-[11px] text-amber-800">Couldn't reach the clipboard. Select the text below and copy it.</p>}
+          {copied === 'fail' && <p className="mt-1 text-meta text-amber-800">Couldn't reach the clipboard. Select the text below and copy it.</p>}
         </Card>
         <Card icon={<FolderDown size={16} />} title="Download skill">
           <p>The skill folder for assistants that load skills: upload the .zip as a skill in Claude, or unzip it into <code className="rounded bg-black/5 px-1">~/.claude/skills/</code> for Claude Code. It adds the full reference files and a checker script.</p>
           <button onClick={() => saveFile(`${SKILL_NAME}.zip`, skillZip())} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md border border-accent px-3 py-2 text-xs font-medium text-accent hover:bg-accent/[0.06]">
             <FileDown size={14} />Download skill (.zip)
           </button>
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted">
+          <div className="mt-1.5 flex items-center justify-between text-meta text-muted">
             <span>{SKILL_FILES.length} files · {Math.round(total / 1000)} kB</span>
             <button onClick={() => setShowFiles((v) => !v)} className="text-accent hover:underline" aria-expanded={showFiles}>{showFiles ? 'Hide files' : 'Or single files'}</button>
           </div>
@@ -139,12 +139,12 @@ function BuildTab({ seed, onImport }: { seed: string; onImport: () => void }) {
 
       {showPrompt && (
         <textarea readOnly value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Skill prompt"
-          className="mt-3 h-48 w-full resize-y rounded-md border border-line bg-black/[0.02] p-2 font-mono text-[10px] leading-snug outline-none focus:border-accent" />
+          className="mt-3 h-48 w-full resize-y rounded-md border border-line bg-black/[0.02] p-2 font-mono text-meta leading-snug outline-none focus:border-accent" />
       )}
       {showFiles && (
         <ul className="mt-3 divide-y divide-line rounded-md border border-line" aria-label="Skill files">
           {SKILL_FILES.map((f) => (
-            <li key={f.path} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]">
+            <li key={f.path} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-meta">
               <span className="truncate font-mono">{SKILL_NAME}/{f.path}</span>
               <span className="flex shrink-0 items-center gap-2 text-muted">{sizeLabel(f.text)}
                 <button onClick={() => saveFile(f.path.split('/').pop()!, f.text)} aria-label={`Download ${f.path}`} className="rounded p-0.5 text-accent hover:bg-accent/10"><FileDown size={13} /></button>
@@ -154,8 +154,8 @@ function BuildTab({ seed, onImport }: { seed: string; onImport: () => void }) {
         </ul>
       )}
 
-      <h3 className="mt-5 text-[11px] font-semibold uppercase tracking-wider text-muted">What your AI will do</h3>
-      <ul className="mt-2 grid gap-2 text-[11px] leading-snug text-slate-700 sm:grid-cols-2">
+      <h3 className="mt-5 text-meta font-semibold text-muted">What your AI will do</h3>
+      <ul className="mt-2 grid gap-2 text-meta leading-snug text-slate-700 sm:grid-cols-2">
         <Point icon={<MessagesSquare size={14} />}>Interview you one question at a time: the question, category, stage, inputs, method, and good / bad values.</Point>
         <Point icon={<BadgeCheck size={14} />}>Tie every threshold to a source with a flag, never invent one, and keep false assumptions visible.</Point>
         <Point icon={<CircleCheckBig size={14} />}>Show you a spec and wait for your yes before writing anything.</Point>
@@ -185,10 +185,10 @@ function ComingSoon() {
     <div className="mt-5 flex items-start gap-2.5 rounded-lg bg-black/[0.03] p-3">
       <GitPullRequest size={16} className="mt-0.5 shrink-0 text-muted" />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 text-xs font-semibold">Share with everyone <span className="rounded-full border border-line px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-muted">Coming</span></div>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted">A shared registry is planned: submit a node by GitHub pull request, automatic checks run, a reviewer opens every verified source, and each node gets a comment thread. Today your nodes stay in this browser and nothing is uploaded. To share one, send its .json file.</p>
+        <div className="flex items-center gap-2 text-xs font-semibold">Share with everyone <span className="rounded-full border border-line px-1.5 py-px text-meta font-medium text-muted">Coming</span></div>
+        <p className="mt-0.5 text-meta leading-snug text-muted">A shared registry is planned: submit a node by GitHub pull request, automatic checks run, a reviewer opens every verified source, and each node gets a comment thread. Today your nodes stay in this browser and nothing is uploaded. To share one, send its .json file.</p>
       </div>
-      <button disabled className="shrink-0 cursor-not-allowed rounded-md border border-line px-2 py-1 text-[11px] text-muted opacity-60" title="Not open yet">Submit</button>
+      <button disabled className="shrink-0 cursor-not-allowed rounded-md border border-line px-2 py-1 text-meta text-muted opacity-60" title="Not open yet">Submit</button>
     </div>
   )
 }
@@ -238,12 +238,12 @@ function ImportTab() {
         className={`mt-3 flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-3 py-4 text-center text-xs ${drag ? 'border-accent bg-accent/[0.06]' : 'border-line'}`}>
         <FileUp size={20} className="text-muted" />
         <div className="mt-1">Drop a node package here, or <button data-autofocus onClick={() => fileInput.current?.click()} className="font-medium text-accent hover:underline">choose a file</button></div>
-        {fileName && <div className="mt-1 font-mono text-[10px] text-muted">{fileName}</div>}
+        {fileName && <div className="mt-1 font-mono text-meta text-muted">{fileName}</div>}
         <input ref={fileInput} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readFile(f); e.target.value = '' }} />
       </div>
-      <label className="mt-3 block text-[11px] text-muted" htmlFor="nb-paste">Or paste the package (a ```json block is fine)</label>
+      <label className="mt-3 block text-meta text-muted" htmlFor="nb-paste">Or paste the package (a ```json block is fine)</label>
       <textarea id="nb-paste" value={text} onChange={(e) => { setText(e.target.value); setFileName(null) }} spellCheck={false} placeholder='{ "format": "tower-studio-node@1", … }'
-        className="mt-1 h-28 w-full resize-y rounded-md border border-line bg-panel p-2 font-mono text-[10px] leading-snug outline-none focus:border-accent" />
+        className="mt-1 h-28 w-full resize-y rounded-md border border-line bg-panel p-2 font-mono text-meta leading-snug outline-none focus:border-accent" />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button onClick={() => check(text)} disabled={!text.trim()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">Check package</button>
         <button onClick={tryExample} className="rounded-md border border-line px-3 py-1.5 text-xs text-ink hover:border-accent hover:text-accent">Try the worked example</button>
@@ -257,7 +257,7 @@ function ImportTab() {
               {pkg ? (
                 <>
                   <div className="text-sm font-semibold text-emerald-900">Ready to add: {pkg.name} <span className="font-normal text-emerald-800">v{pkg.version}</span></div>
-                  <div className="text-[11px] text-emerald-900/80">{CATEGORIES[pkg.category].label} · {STAGE_LABEL[pkg.stage]} · {pkg.metrics.length} metric{pkg.metrics.length === 1 ? '' : 's'} · by {pkg.author.name} · {pkg.licence}</div>
+                  <div className="text-meta text-emerald-900/80">{CATEGORIES[pkg.category].label} · {STAGE_LABEL[pkg.stage]} · {pkg.metrics.length} metric{pkg.metrics.length === 1 ? '' : 's'} · by {pkg.author.name} · {pkg.licence}</div>
                 </>
               ) : (
                 <div className="text-sm font-semibold text-red-900">{errors.length} problem{errors.length === 1 ? '' : 's'} to fix before this node can be added</div>
@@ -268,19 +268,19 @@ function ImportTab() {
             {errors.length > 0 && <ProblemList title="Problems to fix" tone="error" items={errors} />}
             {warnings.length > 0 && <ProblemList title="Worth a look" tone="warning" items={warnings} />}
             {problems.length > 0 && (
-              <button onClick={copyProblems} className="flex w-fit items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] hover:border-accent hover:text-accent">
+              <button onClick={copyProblems} className="flex w-fit items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-meta hover:border-accent hover:text-accent">
                 {copied ? <><Check size={13} />Copied: paste it to your AI</> : <><ClipboardCopy size={13} />Copy problems for your AI</>}
               </button>
             )}
             {pkg && report.tests.length > 0 && (
-              <div className="text-[11px] text-slate-700">
+              <div className="text-meta text-slate-700">
                 <b>Package tests:</b> {report.tests.filter((t) => t.ok).length} of {report.tests.length} match what Tower Design Toolkit computes.
               </div>
             )}
             {pkg && <Preview report={report} />}
             {pkg && (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-                <div className="flex min-w-0 flex-1 items-start gap-1.5 text-[11px] text-muted">
+                <div className="flex min-w-0 flex-1 items-start gap-1.5 text-meta text-muted">
                   <ShieldQuestionMark size={14} className="mt-px shrink-0" />
                   <span>Added as <b className="text-ink">Community · Unverified until reviewed</b>, stored only in this browser.{existing ? ` Replaces version ${existing.version} in My nodes.` : ''}</span>
                 </div>
@@ -300,10 +300,10 @@ function ProblemList({ title, tone, items }: { title: string; tone: 'error' | 'w
   const Icon = tone === 'error' ? OctagonX : TriangleAlert
   return (
     <div>
-      <div className={`mb-1 flex items-center gap-1 text-[11px] font-semibold ${tone === 'error' ? 'text-red-800' : 'text-amber-800'}`}><Icon size={13} />{title}</div>
+      <div className={`mb-1 flex items-center gap-1 text-meta font-semibold ${tone === 'error' ? 'text-red-800' : 'text-amber-800'}`}><Icon size={13} />{title}</div>
       <ul className="grid gap-1">
         {items.map((p, i) => (
-          <li key={i} className={`rounded border-l-2 py-0.5 pl-2 text-[11px] leading-snug ${tone === 'error' ? 'border-red-400 text-red-950' : 'border-amber-400 text-amber-950'}`}>
+          <li key={i} className={`rounded border-l-2 py-0.5 pl-2 text-meta leading-snug ${tone === 'error' ? 'border-red-400 text-red-950' : 'border-amber-400 text-amber-950'}`}>
             <span className="font-medium">{p.where}</span> {p.message}
           </li>
         ))}
@@ -317,11 +317,11 @@ function Preview({ report }: { report: Report }) {
   const pkg = report.pkg!
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold text-slate-700">Preview on the sample designs</div>
+      <div className="mb-1 text-meta font-semibold text-slate-700">Preview on the sample designs</div>
       <div className="overflow-x-auto">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-meta">
           <thead>
-            <tr className="border-b border-line text-left text-[10px] uppercase tracking-wider text-muted">
+            <tr className="border-b border-line text-left text-meta text-muted">
               <th className="py-1 pr-2 font-medium">Metric</th>
               {report.preview.map((p) => <th key={p.fixture.id} className="py-1 pr-2 font-medium" title={p.fixture.label}>{FIXTURE_LABEL[p.fixture.id] ?? p.fixture.id}</th>)}
             </tr>
@@ -339,7 +339,7 @@ function Preview({ report }: { report: Report }) {
                     <td key={p.fixture.id} className="py-1.5 pr-2">
                       {rs.map((r) => (
                         <div key={r.id} className="flex flex-wrap items-center gap-1 pb-0.5">
-                          {rs.length > 1 && <span className="text-[10px] text-muted">{r.towerName}:</span>}
+                          {rs.length > 1 && <span className="text-meta text-muted">{r.towerName}:</span>}
                           <span className="tabular-nums">{r.value}</span>
                           <ResultChip r={r} />
                         </div>

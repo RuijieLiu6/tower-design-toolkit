@@ -34,18 +34,18 @@ export default function RhinoImportPanel() {
   return (
     <div className="grid gap-2 px-4 pb-3 pt-1 text-xs">
       {model && (
-        <div className="rounded-md border border-line bg-black/[0.02] px-2 py-1.5 text-[11px]">
+        <div className="rounded-md border border-line bg-black/[0.02] px-2 py-1.5 text-meta">
           <div className="flex items-center gap-1.5"><FileUp size={12} className="shrink-0 text-accent" aria-hidden /><b className="truncate">{model.source.fileName}</b></div>
           <div className="mt-0.5 text-muted">{ours} tower{ours === 1 ? '' : 's'}{site ? ' · lot line' : ''}{context ? ` · ${context} context` : ''}</div>
           {live.status !== 'off' && <div className="mt-0.5 flex items-center gap-1 text-accent"><Link2 size={11} aria-hidden />{live.status === 'error' ? 'Link problem: see the details' : live.name?.endsWith('(live link)') ? `Live from ${live.name.replace(' (live link)', '')}` : 'Linked: updates on each save'}</div>}
-          <button type="button" onClick={details} className="mt-1 text-[11px] text-accent hover:underline">Details and provenance</button>
+          <button type="button" onClick={details} className="mt-1 text-meta text-accent hover:underline">Details and provenance</button>
         </div>
       )}
       {model && !present && <PlaceModelGuide />}
       <div role="radiogroup" aria-label="Where the model comes from" className="grid grid-cols-3 gap-1">
         {PLATFORMS.map((x) => (
           <button key={x.id} type="button" role="radio" aria-checked={x.id === pid} onClick={() => pick(x.id)} data-platform={x.id} title={`${x.name}: ${x.versions}`}
-            className={`flex flex-col items-center gap-1 rounded-md border px-1 py-1.5 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent ${x.id === pid ? 'border-accent bg-accent/[0.07] font-semibold text-ink' : 'border-line text-muted hover:border-accent hover:text-ink'}`}>
+            className={`flex flex-col items-center gap-1 rounded-md border px-1 py-1.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${x.id === pid ? 'border-accent bg-accent/[0.07] font-semibold text-ink' : 'border-line text-muted hover:border-accent hover:text-ink'}`}>
             <SoftwareBadge p={x} />{x.name}
           </button>
         ))}
@@ -70,7 +70,7 @@ function PlatformCard({ p, model, disabled }: { p: Platform; model: boolean; dis
         className="flex items-center justify-center gap-2 rounded-md border border-accent bg-panel px-3 py-1.5 font-semibold text-accent outline-none hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40">
         <FileUp size={14} aria-hidden />{label}
       </button>
-      <p className="text-[11px] leading-snug text-muted">{p.upload.how} Read in this browser; nothing is uploaded.</p>
+      <p className="text-meta leading-snug text-muted">{p.upload.how} Read in this browser; nothing is uploaded.</p>
       {p.id === 'rhino' ? <RhinoLive disabled={disabled} /> : p.link?.kind === 'server' ? <ServerLive p={p} disabled={disabled} /> : p.link?.kind === 'file' ? <FileLive p={p} disabled={disabled} /> : null}
     </section>
   )
@@ -130,7 +130,7 @@ function LiveBox({ p, linked, note, children }: { p: Platform; linked: boolean; 
   const live = useLiveLink()
   const state = linked ? (live.status === 'error' ? { dot: 'bg-amber-500', word: 'Link problem' } : { dot: 'bg-green-600', word: 'Live' }) : { dot: 'bg-slate-300', word: 'Off' }
   return (
-    <section aria-labelledby={`live-${p.id}`} data-testid={`${p.id}-live`} className="mt-1 rounded-md border border-line px-2.5 py-2 text-[11px]">
+    <section aria-labelledby={`live-${p.id}`} data-testid={`${p.id}-live`} className="mt-1 rounded-md border border-line px-2.5 py-2 text-meta">
       <h4 id={`live-${p.id}`} className="flex items-center gap-1.5 font-semibold text-ink">
         <Plug size={12} className="text-accent" aria-hidden />Link {p.name} live
         <Help label={`About the ${p.name} link`}>
@@ -172,14 +172,14 @@ function CodeLine({ code }: { code: string }) {
   const copy = async () => { try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* the text is there to type */ } }
   return (
     <span className="flex min-w-0 items-center gap-1.5">
-      <code className="min-w-0 break-all rounded border border-line bg-black/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-ink">{code}</code>
+      <code className="min-w-0 break-all rounded border border-line bg-black/[0.04] px-1.5 py-0.5 font-mono text-meta text-ink">{code}</code>
       <button type="button" onClick={copy} className={`${btn} shrink-0 border-line hover:border-accent`} aria-label={`Copy ${code}`}>{copied ? <Check size={12} /> : <Copy size={12} />}{copied ? 'Copied' : 'Copy'}</button>
     </span>
   )
 }
 
 const RHINO_LINK_NAME = 'Rhino (live link)'
-const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
+const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
 
 /** What Rhino's window is set to (link 2): instant sync, or changes held until Send now; the ground and basements it sends. */
 function RhinoSyncLine() {
@@ -207,7 +207,7 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
   const state = linked ? (live.status === 'error' ? { dot: 'bg-amber-500', word: 'Link problem' } : { dot: 'bg-green-600', word: 'Live' }) : { dot: 'bg-slate-300', word: 'Off' }
   return (
     <section aria-labelledby="rhino-live-title" data-testid="rhino-live" className="mt-1 rounded-md border border-line px-2.5 py-2">
-      <h4 id="rhino-live-title" className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
+      <h4 id="rhino-live-title" className="flex items-center gap-1.5 text-meta font-semibold text-ink">
         <Plug size={12} className="text-accent" aria-hidden />Link Rhino live
         <Help label="About the Rhino live link">
           <span className="block">A small script for Rhino 7 and 8 serves the model open in Rhino to this page, on your own computer (http://127.0.0.1:8798), and opens a Tower Design Toolkit window in Rhino. The first time, you map its layers and place it, as with an upload; after that it updates a second or two after each change you make in Rhino, with the same mapping.</span>
@@ -217,13 +217,13 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
         <span className="ml-auto flex items-center gap-1 font-normal text-muted" role="status"><i aria-hidden className={`h-2 w-2 rounded-full ${state.dot}`} />{state.word}</span>
       </h4>
       {linked ? (
-        <div className="mt-1.5 grid gap-1.5 text-[11px]">
+        <div className="mt-1.5 grid gap-1.5 text-meta">
           <p className={live.status === 'error' ? 'text-amber-900' : 'text-ink'}>{live.message}</p>
           <RhinoSyncLine />
           <button type="button" onClick={() => { stopLink(); setNote('Link stopped here. To stop it in Rhino too, press Stop link in Rhino\'s Tower Design Toolkit window.') }} className={`${btn} w-fit border-line hover:border-accent`}><Unplug size={12} />Stop the link</button>
         </div>
       ) : (
-        <ol className="mt-1.5 grid list-none gap-2 text-[11px]">
+        <ol className="mt-1.5 grid list-none gap-2 text-meta">
           <li className="flex gap-1.5"><Num n={1} />
             <div className="grid gap-1">
               <span>Download the link script for Rhino 7 or 8 (one file, nothing to install).</span>
@@ -248,8 +248,8 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
           </li>
         </ol>
       )}
-      {note && <p className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900" role="status">{note}</p>}
-      <details className="mt-1.5 text-[11px] text-muted">
+      {note && <p className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900" role="status">{note}</p>}
+      <details className="mt-1.5 text-meta text-muted">
         <summary className="cursor-pointer hover:text-ink">Stop, or make it a one-word command</summary>
         <div className="mt-1 grid gap-1">
           <span>To stop the link, press Stop link in Rhino's Tower Design Toolkit window (or close Rhino). Closing the window keeps the link running; run {RHINO_SCRIPT} again to open it.</span>
@@ -262,5 +262,5 @@ function RhinoLive({ disabled }: { disabled: boolean }) {
 }
 
 function Num({ n }: { n: number }) {
-  return <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-semibold text-accent">{n}</span>
+  return <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent/15 text-meta font-semibold text-accent">{n}</span>
 }

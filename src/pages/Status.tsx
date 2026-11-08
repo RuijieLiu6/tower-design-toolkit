@@ -65,8 +65,8 @@ export default function Status() {
       <div className="mx-auto max-w-6xl px-6 py-6 md:px-10">
         <header className="flex flex-wrap items-center gap-3">
           <button onClick={() => navigate('start')} className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><ArrowLeft size={14} aria-hidden />Start</button>
-          <h1 className="text-xl font-semibold tracking-tight">Build status</h1>
-          <span className="text-[11px] text-muted">Live from the node registry · every node is either built (runs) or researched (method and sources, not runnable yet)</span>
+          <h1 className="text-display-sm md:text-display">Build status</h1>
+          <span className="text-meta text-muted">Live from the node registry · every node is either built (runs) or researched (method and sources, not runnable yet)</span>
           <span className="ml-auto flex gap-1.5">
             <button onClick={() => navigate('guided')} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><RouteIcon size={14} aria-hidden />Guided process</button>
             <button onClick={() => navigate('customize')} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><Workflow size={14} aria-hidden />Customize</button>
@@ -92,7 +92,7 @@ export default function Status() {
         <section className="mt-5 grid gap-5 md:grid-cols-[1fr_300px]">
           <div className="rounded-lg border border-line bg-panel p-4">
             <h2 className="text-sm font-semibold">By milestone</h2>
-            <p className="mt-0.5 text-[11px] text-muted">Each researched module carries the plan priority it was given: core for the 13 Nov working core, v1 for 10 Dec, or roadmap.</p>
+            <p className="mt-0.5 text-meta text-muted">Each researched module carries the plan priority it was given: core for the 13 Nov working core, v1 for 10 Dec, or roadmap.</p>
             <div className="mt-3 space-y-3">
               {byPriority.map(({ p, built, total }) => <Bar key={p} built={built} total={total} label={`${MILESTONE[p].label} · ${MILESTONE[p].date}`} />)}
             </div>
@@ -112,7 +112,7 @@ export default function Status() {
         <section className="mt-5 overflow-x-auto rounded-lg border border-line bg-panel" aria-label="Nodes by category and stage">
           <table className="w-full min-w-[760px] text-[11.5px]">
             <thead>
-              <tr className="border-b border-line text-left text-[10.5px] uppercase tracking-wider text-muted">
+              <tr className="border-b border-line text-left text-[10.5px] text-muted">
                 <th className="px-3 py-2 font-medium">Category</th>
                 {STAGES.map((s) => <th key={s.id} className="px-3 py-2 font-medium">{s.label}</th>)}
                 <th className="px-3 py-2 text-right font-medium">Built / all</th>
@@ -139,8 +139,8 @@ export default function Status() {
                           <td key={s.id} className="px-3 py-2">
                             {here.length ? (
                               <span className="flex flex-wrap items-center gap-1">
-                                {b > 0 && <span className="inline-flex items-center gap-0.5 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white"><Check size={10} aria-hidden />{b} built</span>}
-                                {r > 0 && <span className="inline-flex items-center gap-0.5 rounded border border-dashed border-slate-400 px-1.5 py-0.5 text-[10px] text-muted"><FlaskConical size={10} aria-hidden />{r}</span>}
+                                {b > 0 && <span className="inline-flex items-center gap-0.5 rounded bg-accent px-1.5 py-0.5 text-meta font-semibold text-white"><Check size={10} aria-hidden />{b} built</span>}
+                                {r > 0 && <span className="inline-flex items-center gap-0.5 rounded border border-dashed border-slate-400 px-1.5 py-0.5 text-meta text-muted"><FlaskConical size={10} aria-hidden />{r}</span>}
                               </span>
                             ) : <span className="text-muted">·</span>}
                           </td>
@@ -153,10 +153,10 @@ export default function Status() {
                         <td colSpan={STAGES.length + 2} className="px-3 py-2">
                           <ul className="grid gap-x-6 gap-y-1 md:grid-cols-2">
                             {[...list].sort((a, b) => Number(isBuilt(b)) - Number(isBuilt(a)) || ['core', 'v1', 'roadmap'].indexOf(a.priority) - ['core', 'v1', 'roadmap'].indexOf(b.priority)).map((n) => (
-                              <li key={n.id} className="flex items-start gap-1.5 text-[11px]">
+                              <li key={n.id} className="flex items-start gap-1.5 text-meta">
                                 {isBuilt(n) ? <Check size={12} className="mt-0.5 shrink-0 text-accent" aria-label="Built" /> : <FlaskConical size={12} className="mt-0.5 shrink-0 text-muted" aria-label="Researched, not runnable" />}
                                 <span className={isBuilt(n) ? 'font-medium' : 'text-ink/75'}>{n.name}</span>
-                                <span className="shrink-0 text-[10px] text-muted">{STAGES.find((s) => s.id === stageOf(n))?.label} · {MILESTONE[n.priority].label}{n.status === 'preview' ? ' · preview' : ''}</span>
+                                <span className="shrink-0 text-meta text-muted">{STAGES.find((s) => s.id === stageOf(n))?.label} · {MILESTONE[n.priority].label}{n.status === 'preview' ? ' · preview' : ''}</span>
                               </li>
                             ))}
                           </ul>
@@ -170,7 +170,7 @@ export default function Status() {
           </table>
         </section>
         <EvalCasesSection />
-        <p className="mt-3 flex items-start gap-1.5 text-[11px] text-muted"><Package size={13} className="mt-0.5 shrink-0" aria-hidden />Some built nodes cover parts of a researched module, so a module can appear as both. Present-stage tools (A2 frame, captures, boards, drawings) are features of the stage, not registry nodes, so Presentation reads 0 built here. Detailed notes on what each build covers and lacks are in the plan's tracker (04 Tool Plan/PLAN.md §3).</p>
+        <p className="mt-3 flex items-start gap-1.5 text-meta text-muted"><Package size={13} className="mt-0.5 shrink-0" aria-hidden />Some built nodes cover parts of a researched module, so a module can appear as both. Present-stage tools (A2 frame, captures, boards, drawings) are features of the stage, not registry nodes, so Presentation reads 0 built here. Detailed notes on what each build covers and lacks are in the plan's tracker (04 Tool Plan/PLAN.md §3).</p>
       </div>
     </div>
   )

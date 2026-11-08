@@ -19,11 +19,11 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-[10px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
+        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
+          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
       </div>
     </div>
   )
@@ -32,8 +32,8 @@ function Card({ r }: { r: RuleResult }) {
 function Tile({ label, value, unit, state }: { label: string; value: string; unit: string; state: RuleState }) {
   return (
     <div className="rounded-md border border-line p-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted">{label}</div>
-      <div className="mt-0.5 flex items-baseline gap-1"><span className="text-lg font-semibold tabular-nums" style={{ color: STATE_COLOR[state] }}>{value}</span><span className="text-[10px] text-muted">{unit}</span></div>
+      <div className="text-meta text-muted">{label}</div>
+      <div className="mt-0.5 flex items-baseline gap-1"><span className="text-lg font-semibold tabular-nums" style={{ color: STATE_COLOR[state] }}>{value}</span><span className="text-meta text-muted">{unit}</span></div>
     </div>
   )
 }
@@ -143,7 +143,7 @@ function Inputs({ r }: { r: EnergyCarbonResult }) {
   const setMan = (k: 'teui' | 'tedi' | 'ghgi', v: number) => set({ manual: { teui: man?.teui ?? null, tedi: man?.tedi ?? null, ghgi: man?.ghgi ?? null, [k]: v } })
   return (
     <div className="grid gap-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Operational</div>
+      <div className="text-meta font-semibold text-muted">Operational</div>
       <Field label="Regime">
         <select className={select} value={input.regime} onChange={(e) => set({ regime: e.target.value as typeof input.regime })}>
           <option value="both">Rezoning and permit: stricter of HBP and VBBL (default)</option>
@@ -183,7 +183,7 @@ function Inputs({ r }: { r: EnergyCarbonResult }) {
           ))}
         </div>
       )}
-      <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-muted">Embodied carbon</div>
+      <div className="mt-1 text-meta font-semibold text-muted">Embodied carbon</div>
       <Field label="Structure system">
         <select className={select} value={input.system ?? ''} onChange={(e) => set({ system: (e.target.value || null) as SystemId | null })}>
           <option value="">From the structure shortlist ({SYSTEMS[r.embodied.system].label.toLowerCase()})</option>
@@ -207,7 +207,7 @@ function Inputs({ r }: { r: EnergyCarbonResult }) {
         <NumberField label="Parkade levels" value={input.parkadeLevels} onChange={(v) => set({ parkadeLevels: Math.max(0, Math.min(10, Math.round(v))) })} step={1} />
         <NumberField label="Leadership credits" value={input.ilc * 100} onChange={(v) => set({ ilc: Math.max(0, Math.min(5, v)) / 100 })} step={1} unit="%" hint="Industry Leadership Credits, at most 5% (City Addendum Appendix I)" />
       </div>
-      <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-muted">Solar PV</div>
+      <div className="mt-1 text-meta font-semibold text-muted">Solar PV</div>
       <div className="flex flex-wrap gap-3 text-xs">
         {([['roof', 'Tower roof'], ['podium', 'Podium roof'], ['facade', 'Facades']] as const).map(([k, l]) => (
           <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={input.pv[k]} onChange={() => setPv({ [k]: !input.pv[k] })} />{l}</label>
@@ -222,7 +222,7 @@ function Inputs({ r }: { r: EnergyCarbonResult }) {
         <NumberField label="Module carbon" value={input.pv.ecPerKwp} onChange={(v) => setPv({ ecPerKwp: Math.max(0, v) })} step={50} unit="kg/kWp" hint="Embodied carbon per kWp: enter the EPD value when you have one" />
         <NumberField label="Module life" value={input.pv.life} onChange={(v) => setPv({ life: Math.max(5, Math.min(60, v)) })} step={1} unit="yr" />
       </div>
-      <div className="flex items-center gap-2"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Every preset here is a team assumption until an energy model, an LCA tool or an EPD replaces it.</span></div>
+      <div className="flex items-center gap-2"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Every preset here is a team assumption until an energy model, an LCA tool or an EPD replaces it.</span></div>
       <button type="button" onClick={reset} className="flex w-fit items-center gap-1.5 rounded border border-line px-2 py-1 text-xs hover:border-accent"><RotateCcw size={12} />Reset energy inputs</button>
     </div>
   )
@@ -240,30 +240,30 @@ export default function EnergyCarbonResults() {
           <Tile label="GHGI net" value={r.net.ghgi.toFixed(2)} unit={`/ ${r.limits.effective.ghgi.toFixed(2)}`} state={st('en-ghgi', r.operational)} />
           <Tile label="Embodied" value={String(Math.round(r.embodied.band[1]))} unit={`/ ${Math.round(r.embodied.limit)}`} state={st('ec-limit', r.carbon)} />
         </div>
-        <p className="mt-2 text-[10px] text-muted">Screening only. Energy and GHG need an Energy Modelling Guidelines v3.0 model; embodied carbon needs a City-listed LCA tool. Units: kWh/m²·yr, kgCO₂e/m²·yr and kgCO₂e/m² on {Math.round(r.areas.mfa).toLocaleString('en-CA')} m² modelled floor area.</p>
+        <p className="mt-2 text-meta text-muted">Screening only. Energy and GHG need an Energy Modelling Guidelines v3.0 model; embodied carbon needs a City-listed LCA tool. Units: kWh/m²·yr, kgCO₂e/m²·yr and kgCO₂e/m² on {Math.round(r.areas.mfa).toLocaleString('en-CA')} m² modelled floor area.</p>
       </Section>
       <Section title="Operational energy and carbon">
         <LimitsChart r={r} />
-        <p className="mb-2 text-[10px] text-muted">Bars: this design (net of PV). Solid tick: Higher Buildings Policy s2.2; dashed: VBBL Table 10.2.2.5.A. The stricter governs by default.</p>
+        <p className="mb-2 text-meta text-muted">Bars: this design (net of PV). Solid tick: Higher Buildings Policy s2.2; dashed: VBBL Table 10.2.2.5.A. The stricter governs by default.</p>
         <div className="grid gap-2">{r.operational.map((x) => <Card key={x.id} r={x} />)}</div>
       </Section>
       <Section title="Embodied carbon">
         <EmbodiedChart r={r} />
-        <p className="mb-2 text-[10px] text-muted">Bar: likely range for this structure, dot: middle. Grey band: the 30-storey archetype's 25th–50th percentile (179–260). Magenta: a corrected false assumption.</p>
+        <p className="mb-2 text-meta text-muted">Bar: likely range for this structure, dot: middle. Grey band: the 30-storey archetype's 25th–50th percentile (179–260). Magenta: a corrected false assumption.</p>
         <div className="grid gap-2">{r.carbon.map((x) => <Card key={x.id} r={x} />)}</div>
       </Section>
       <Section title="Solar PV potential">
         <PvChart r={r} />
-        <p className="mb-2 text-[10px] text-muted">Yield (kWh/kWp·yr) by surface after shading, coloured as in the 3D view. Dashed: Canadian averages (IEA PVPS), not Vancouver values.</p>
+        <p className="mb-2 text-meta text-muted">Yield (kWh/kWp·yr) by surface after shading, coloured as in the 3D view. Dashed: Canadian averages (IEA PVPS), not Vancouver values.</p>
         <div className="grid gap-2">{r.solar.map((x) => <Card key={x.id} r={x} />)}</div>
       </Section>
       <Section title="False assumptions, kept visible">
         <div className="grid gap-2">
           {ENERGY_FALSE_ASSUMPTIONS.map((f) => (
-            <div key={f.claim} className="rounded-md border p-2 text-[11px]" style={{ borderColor: MAGENTA }}>
+            <div key={f.claim} className="rounded-md border p-2 text-meta" style={{ borderColor: MAGENTA }}>
               <div className="font-semibold" style={{ color: MAGENTA }}>■ FALSE ASSUMPTION: {f.claim}</div>
               <div className="mt-0.5 text-slate-700">{f.correction}</div>
-              <div className="mt-0.5 text-[10px] text-muted">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</div>
+              <div className="mt-0.5 text-meta text-muted">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</div>
             </div>
           ))}
         </div>

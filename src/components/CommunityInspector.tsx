@@ -17,7 +17,7 @@ import Help from './Help'
 
 /** State chip, or "Info" for a value the node shows on purpose with no good or bad. */
 export function ResultChip({ r }: { r: CommunityResult }) {
-  return r.info ? <span className="inline-flex rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-600" title="Shown for information; no good or bad on purpose">Info</span> : <StateChip state={r.state} />
+  return r.info ? <span className="inline-flex rounded border border-slate-200 bg-white px-1.5 py-0.5 text-meta font-semibold text-slate-600" title="Shown for information; no good or bad on purpose">Info</span> : <StateChip state={r.state} />
 }
 
 function ResultCard({ r }: { r: CommunityResult }) {
@@ -25,14 +25,14 @@ function ResultCard({ r }: { r: CommunityResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><ResultChip r={r} /></div>
-      <div className="mt-0.5 text-[11px]"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1">
         <FlagChip flag={r.flag} />
-        {r.claimed === 'verified' && <span className="inline-flex items-center gap-0.5 text-[10px] text-muted" title="Flag set by the node's author; a reviewer hasn't opened the source yet"><ClaimIcon size={11} />author: verified</span>}
+        {r.claimed === 'verified' && <span className="inline-flex items-center gap-0.5 text-meta text-muted" title="Flag set by the node's author; a reviewer hasn't opened the source yet"><ClaimIcon size={11} />author: verified</span>}
         {r.source.url
-          ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-[10px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
+          ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
+          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
       </div>
     </div>
   )
@@ -44,7 +44,7 @@ function Parameters({ p }: { p: NodePackage }) {
   const values = paramValues(p, overrides)
   const changed = Object.keys(overrides).length > 0
   return (
-    <Section title="Parameters" right={changed ? <button onClick={() => p.parameters!.forEach((x) => setParam(p.id, x.id, null))} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><RotateCcw size={11} />Defaults</button> : undefined}>
+    <Section title="Parameters" right={changed ? <button onClick={() => p.parameters!.forEach((x) => setParam(p.id, x.id, null))} className="flex items-center gap-1 text-meta text-accent hover:underline"><RotateCcw size={11} />Defaults</button> : undefined}>
       <div className="grid gap-3">
         {p.parameters!.map((x) => (
           <div key={x.id}>
@@ -52,9 +52,9 @@ function Parameters({ p }: { p: NodePackage }) {
               onChange={(v) => setParam(p.id, x.id, Number.isFinite(v) && v !== x.default ? v : null)} />
             <div className="mt-1 flex flex-wrap items-center gap-1">
               <FlagChip flag={overrides[x.id] !== undefined ? 'team_assumption' : x.flag === 'verified' ? 'unverified' : x.flag} />
-              <span className="text-[10px] text-muted">{overrides[x.id] !== undefined ? `Your value (default ${x.default} ${x.unit}: ${x.source.label})` : `${x.source.label}${x.source.page ? `, ${x.source.page}` : ''}`}</span>
+              <span className="text-meta text-muted">{overrides[x.id] !== undefined ? `Your value (default ${x.default} ${x.unit}: ${x.source.label})` : `${x.source.label}${x.source.page ? `, ${x.source.page}` : ''}`}</span>
             </div>
-            {x.note && <div className="mt-0.5 text-[10px] text-muted"><U>{x.note}</U></div>}
+            {x.note && <div className="mt-0.5 text-meta text-muted"><U>{x.note}</U></div>}
           </div>
         ))}
       </div>
@@ -81,18 +81,18 @@ export default function CommunityInspector({ id }: { id: string }) {
   return (
     <div>
       <div className="border-b border-line px-4 py-3">
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
+        <div className="flex items-center gap-2 text-meta text-muted">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: cat.color }} />{cat.label} · {STAGE_LABEL[p.stage]} · community
         </div>
         <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{p.name}<Help label={`About ${p.name}`}>{p.question}</Help></h2>
-        {!!p.jury?.length && <div className="mt-1.5 flex flex-wrap gap-1">{p.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>}
-        <div className="mt-2 flex items-start gap-1.5 rounded bg-black/[0.03] px-2 py-1.5 text-[11px] text-slate-700">
+        {!!p.jury?.length && <div className="mt-1.5 flex flex-wrap gap-1">{p.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>}
+        <div className="mt-2 flex items-start gap-1.5 rounded bg-black/[0.03] px-2 py-1.5 text-meta text-slate-700">
           <ShieldQuestionMark size={14} className="mt-px shrink-0 text-muted" />
           <span><b>Community node, unverified until reviewed.</b> By {p.author.name} · v{p.version} · {p.licence}. Its flags are the author's; an author's "verified" shows as unverified until a reviewer opens the source.</span>
         </div>
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-muted"><Toggle checked={!!enabled[p.id]} onChange={() => toggleNode(p.id)} label={`Use ${p.name}`} />{enabled[p.id] ? 'On: results update as you design' : 'Off: turn it on to see live results'}</div>
-        {run && !run.applies && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-[11px] text-slate-700">Runs in the {p.projects?.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
-        {run?.error && <div className="mt-2 rounded bg-red-50 px-2 py-1 text-[11px] text-red-800">Could not run: {run.error}. Re-import the package.</div>}
+        <div className="mt-2 flex items-center gap-2 text-meta text-muted"><Toggle checked={!!enabled[p.id]} onChange={() => toggleNode(p.id)} label={`Use ${p.name}`} />{enabled[p.id] ? 'On: results update as you design' : 'Off: turn it on to see live results'}</div>
+        {run && !run.applies && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-meta text-slate-700">Runs in the {p.projects?.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
+        {run?.error && <div className="mt-2 rounded bg-red-50 px-2 py-1 text-meta text-red-800">Could not run: {run.error}. Re-import the package.</div>}
       </div>
 
       {p.code && <CodeNodeGate p={p} />}
@@ -116,12 +116,12 @@ export default function CommunityInspector({ id }: { id: string }) {
         <Section title="False assumptions kept visible">
           <div className="grid gap-2">
             {p.falseAssumptions.map((f, i) => (
-              <div key={i} className="rounded-md border border-flag-false/40 bg-flag-false/[0.04] p-2 text-[11px]">
+              <div key={i} className="rounded-md border border-flag-false/40 bg-flag-false/[0.04] p-2 text-meta">
                 <div className="flex items-start gap-1.5 font-medium text-flag-false"><OctagonX size={13} className="mt-px shrink-0" /><span className="line-through decoration-1">{f.claim}</span></div>
                 <div className="mt-1 text-slate-800">{f.correction}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag="false_assumption" />
-                  {f.source.url ? <a href={f.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</a>
-                    : <span className="text-[10px] text-muted">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</span>}
+                  {f.source.url ? <a href={f.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</a>
+                    : <span className="text-meta text-muted">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</span>}
                 </div>
               </div>
             ))}
@@ -133,23 +133,23 @@ export default function CommunityInspector({ id }: { id: string }) {
       <Section title="Method"><p className="text-xs leading-relaxed text-slate-700">{p.method}</p></Section>
       <Section title="Limits"><p className="text-xs text-slate-700">{p.limits}</p></Section>
       <Section title="Reads from the design">
-        <div className="flex flex-wrap gap-1">{p.inputs.map((x) => <code key={x} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700">{x}</code>)}</div>
+        <div className="flex flex-wrap gap-1">{p.inputs.map((x) => <code key={x} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-700">{x}</code>)}</div>
         <details className="mt-2">
-          <summary className="cursor-pointer text-[11px] text-muted hover:text-ink">Formulas</summary>
-          <div className="mt-1 grid gap-1">{p.metrics.map((m) => <div key={m.id} className="text-[10px]"><span className="text-muted">{m.label}:</span> <code className="text-slate-700">{m.expression}</code></div>)}</div>
+          <summary className="cursor-pointer text-meta text-muted hover:text-ink">Formulas</summary>
+          <div className="mt-1 grid gap-1">{p.metrics.map((m) => <div key={m.id} className="text-meta"><span className="text-muted">{m.label}:</span> <code className="text-slate-700">{m.expression}</code></div>)}</div>
         </details>
       </Section>
       <Section title="Package">
-        <div className="font-mono text-[10px] text-muted">{p.id}</div>
-        {p.createdWith && <div className="mt-0.5 text-[10px] text-muted">Created with: {p.createdWith}</div>}
+        <div className="font-mono text-meta text-muted">{p.id}</div>
+        {p.createdWith && <div className="mt-0.5 text-meta text-muted">Created with: {p.createdWith}</div>}
         <div className="mt-2 flex flex-wrap gap-2">
-          <button onClick={download} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent hover:text-accent"><FileDown size={12} />Download .json</button>
+          <button onClick={download} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-accent hover:text-accent"><FileDown size={12} />Download .json</button>
           <button onClick={() => (confirmRemove ? removePackage(p.id) : setConfirmRemove(true))} onBlur={() => setConfirmRemove(false)}
-            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] ${confirmRemove ? 'border-red-300 bg-red-50 text-red-800' : 'border-line hover:border-red-300 hover:text-red-800'}`}>
+            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-meta ${confirmRemove ? 'border-red-300 bg-red-50 text-red-800' : 'border-line hover:border-red-300 hover:text-red-800'}`}>
             <Trash size={12} />{confirmRemove ? 'Click again to remove' : 'Remove from My nodes'}
           </button>
         </div>
-        <p className="mt-2 text-[10px] text-muted">Stored in this browser only. Share it by sending the .json file; a shared registry with review and comments is coming.</p>
+        <p className="mt-2 text-meta text-muted">Stored in this browser only. Share it by sending the .json file; a shared registry with review and comments is coming.</p>
       </Section>
     </div>
   )

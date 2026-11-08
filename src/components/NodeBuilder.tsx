@@ -54,7 +54,7 @@ function MyNodeRow({ p, run }: { p: NodePackage; run?: CommunityRun }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-medium text-ink" title={p.name}>{p.name}</div>
-        <div className="truncate text-[10px] text-muted">Community · {STAGE_LABEL[p.stage]} · <span className={TONE[status.tone]}>{status.text}</span></div>
+        <div className="truncate text-meta text-muted">Community · {STAGE_LABEL[p.stage]} · <span className={TONE[status.tone]}>{status.text}</span></div>
       </div>
       <div onClick={(e) => e.stopPropagation()}><Toggle checked={!!enabled[p.id]} onChange={() => toggleNode(p.id)} label={`Use ${p.name}`} /></div>
     </div>
@@ -71,11 +71,11 @@ export function MyNodes({ q }: { q: string }) {
   return (
     <div className="mt-3 border-t border-line pt-2">
       <div className="flex items-center justify-between px-2 pb-1">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted">My nodes{packages.length ? ` · ${packages.length}` : ''}</h3>
-        <button onClick={() => openDialog('import')} className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-accent hover:bg-accent/10"><FileUp size={12} />Import node</button>
+        <h3 className="text-meta font-semibold text-muted">My nodes{packages.length ? ` · ${packages.length}` : ''}</h3>
+        <button onClick={() => openDialog('import')} className="flex items-center gap-1 rounded px-1.5 py-0.5 text-meta text-accent hover:bg-accent/10"><FileUp size={12} />Import node</button>
       </div>
       {list.map((p) => <MyNodeRow key={p.id} p={p} run={runs.get(p.id)} />)}
-      {!packages.length && <p className="px-2 pb-1 text-[11px] text-muted">Nodes you build with your AI and import appear here. They stay in this browser.</p>}
+      {!packages.length && <p className="px-2 pb-1 text-meta text-muted">Nodes you build with your AI and import appear here. They stay in this browser.</p>}
     </div>
   )
 }
@@ -86,10 +86,10 @@ export function NoMatch({ query }: { query: string }) {
   return (
     <div className="mx-1 mb-2 rounded-lg border border-dashed border-accent/40 bg-accent/[0.04] p-3" role="status">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink"><SearchX size={14} className="text-muted" />No node matches “{query.trim()}”</div>
-      <p className="mt-1 text-[11px] leading-snug text-slate-700"><b>Can't find the tool you need?</b> Copy the node builder skill to your AI, describe what you want to check, and import the node it helps you make.</p>
+      <p className="mt-1 text-meta leading-snug text-slate-700"><b>Can't find the tool you need?</b> Copy the node builder skill to your AI, describe what you want to check, and import the node it helps you make.</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <button onClick={() => openDialog('build', query)} className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[11px] font-medium text-white hover:opacity-90"><PackagePlus size={13} />Build your own node</button>
-        <button onClick={() => openDialog('import')} className="flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-[11px] text-ink hover:border-accent hover:text-accent"><FileUp size={13} />Import node</button>
+        <button onClick={() => openDialog('build', query)} className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-meta font-medium text-white hover:opacity-90"><PackagePlus size={13} />Build your own node</button>
+        <button onClick={() => openDialog('import')} className="flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-meta text-ink hover:border-accent hover:text-accent"><FileUp size={13} />Import node</button>
       </div>
     </div>
   )
@@ -103,7 +103,7 @@ export function BuildYourOwn() {
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white"><PackagePlus size={15} /></span>
       <span className="min-w-0">
         <span className="block text-xs font-semibold text-ink">Build your own node</span>
-        <span className="block text-[10px] leading-snug text-muted">Can't find the tool you need? Copy the skill to your AI and develop your own node to add here.</span>
+        <span className="block text-meta leading-snug text-muted">Can't find the tool you need? Copy the skill to your AI and develop your own node to add here.</span>
       </span>
     </button>
   )

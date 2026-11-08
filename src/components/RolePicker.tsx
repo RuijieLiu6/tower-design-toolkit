@@ -27,7 +27,7 @@ export function RoleSelect({ className = '' }: { className?: string }) {
   return (
     <select aria-label="Role" title="Who is designing: a starting preset for the site and the checks (your design is never changed)" value={role ?? ''}
       onChange={(e) => { if (e.target.value) pick(e.target.value as Role, false) }}
-      className={`rounded-md border border-line bg-panel px-1.5 py-1 text-[11px] ${className}`}>
+      className={`rounded-md border border-line bg-panel px-1.5 py-1 text-meta ${className}`}>
       {!role && <option value="">Role…</option>}
       {ORDER.map((r) => <option key={r} value={r}>{ROLE_PRESETS[r].short}</option>)}
     </select>

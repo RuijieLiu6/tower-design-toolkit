@@ -344,7 +344,7 @@ function ModeTabs() {
     <button key="context" type="button" aria-pressed={contextOn} onClick={() => useSceneStyle.setState({ style: contextOn ? 'plain' : 'context' })}
       title={contextOn ? 'Context render on (Vista’s textures): press for the Plain look' : 'Context render off: press for Vista’s textured Context look'}
       className={`flex h-[30px] items-center gap-1.5 rounded-[2px] px-2 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`} style={{ color: CHROME.tabInk }}>
-      {lamp(contextOn)}Context<span aria-hidden className="text-[11px] font-semibold" style={{ color: VISTA.cone }}>{contextOn ? 'on' : 'off'}</span>
+      {lamp(contextOn)}Context<span aria-hidden className="text-meta font-semibold" style={{ color: VISTA.cone }}>{contextOn ? 'on' : 'off'}</span>
     </button>
   )
   return (
@@ -361,7 +361,7 @@ function ModeTabs() {
                 <i className="h-full w-1/2" style={{ background: conesOn === false ? 'transparent' : VISTA.cone }} />
                 <i className="h-full w-1/2" style={{ background: conesOn === true ? VISTA.cone : 'transparent' }} />
               </i>
-              {m.label}<span aria-hidden className="text-[11px] font-semibold" style={{ color: VISTA.cone }}>{conesOn === true ? 'on' : conesOn === 'mixed' ? 'some' : 'off'}</span>
+              {m.label}<span aria-hidden className="text-meta font-semibold" style={{ color: VISTA.cone }}>{conesOn === true ? 'on' : conesOn === 'mixed' ? 'some' : 'off'}</span>
             </button>,
             contextToggle,
           ]
@@ -382,7 +382,7 @@ function Compass() {
   return (
     <button type="button" data-testid="north-arrow" onClick={() => { flight.to = null; faceNorth(0) }}
       aria-label="Turn the view to face north. The arrow points to true north on screen." title="Face north (grid north = true north here, UTM 10N)"
-      className={`flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-[11px] font-semibold leading-[16px] hover:bg-[#dde6dc] ${focusRing}`} style={box}>
+      className={`flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-meta font-semibold leading-[16px] hover:bg-[#dde6dc] ${focusRing}`} style={box}>
       <span>N</span>
       <span ref={(el) => { live.compass = el }} className="text-[22px] font-normal leading-[20px]" style={{ transform: 'rotate(0deg)' }} aria-hidden>↑</span>
     </button>
@@ -434,8 +434,8 @@ function Utilities() {
       {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">+</span>Zoom in</span>, 'Zoom in', () => zoom(-0.35), 'px-2.5', 'Zoom in')}
       {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">−</span>Zoom out</span>, 'Zoom out', () => zoom(0.35), 'px-2.5', 'Zoom out')}
       <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" onClick={() => useDock.setState({ menu: !dockOpen })}
-        className={`flex h-[33px] items-center gap-1.5 rounded-[2px] px-2.5 text-[12px] font-medium hover:bg-[#dde6dc] ${focusRing}`} style={box}>
-        <span aria-hidden className="text-[9px]">{dockOpen ? '▼' : '▶'}</span>Layers
+        className={`flex h-[33px] items-center gap-1.5 rounded-[2px] px-2.5 text-meta font-medium hover:bg-[#dde6dc] ${focusRing}`} style={box}>
+        <span aria-hidden className="text-meta">{dockOpen ? '▼' : '▶'}</span>Layers
       </button>
     </div>
   )
@@ -468,20 +468,20 @@ function Legend() {
   const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   const conesShown = !CONES.every((c) => coneHidden[c.id])
   const proposalItem = <span role="listitem">{item('proposal', proposal, <b className="font-semibold">Proposed tower</b>, strong ? 'Your design tower(s), in one strong colour so they stand out' : 'Your design tower, in its programme colours')}</span>
-  const group = (label: string, title?: string) => <span aria-hidden className="mr-0.5 hidden text-[11px] font-semibold uppercase tracking-wide group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }} title={title}>{label}</span>
+  const group = (label: string, title?: string) => <span aria-hidden className="mr-0.5 hidden text-meta font-semibold group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }} title={title}>{label}</span>
   const foldButton = (
     <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to one line'} title={folded ? 'Show the legend' : 'Fold the legend'}
       className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-[2px] hover:bg-[#dde6dc] ${focusRing}`}>{folded ? <ChevronUp size={13} aria-hidden /> : <ChevronDown size={13} aria-hidden />}</button>
   )
   if (folded) return (
-    <div className="flex items-center gap-2 px-2 py-[4px] text-[12px]" style={box}>
+    <div className="flex items-center gap-2 px-2 py-[4px] text-meta" style={box}>
       <span className="font-medium">Legend</span>
       <span role="list" aria-label="Legend (folded)" className="flex items-center gap-2">{proposalItem}</span>
       {foldButton}
     </div>
   )
   return (
-    <div className="group/legend flex max-w-full items-start gap-2 px-2 py-[5px] text-[12px]" style={box} title="Legend: point at it for the names">
+    <div className="group/legend flex max-w-full items-start gap-2 px-2 py-[5px] text-meta" style={box} title="Legend: point at it for the names">
       <div className="grid min-w-0 gap-y-[3px]">
         <div role="list" aria-label="Buildings" className="flex flex-wrap items-center gap-x-2 gap-y-[3px]">
           {group('Buildings', plain && typeColours ? 'Each building’s type: its own OpenStreetMap tag, else a point of interest inside it, else Other / unknown; never guessed' : undefined)}
@@ -518,13 +518,13 @@ function InspectCard() {
   if (!p || !data) return null
   const est = isEstimate(data, p.index)
   return (
-    <div role="status" aria-live="polite" className="max-w-[26rem] px-2 py-1.5 text-[12px] leading-snug" style={box}>
+    <div role="status" aria-live="polite" className="max-w-[26rem] px-2 py-1.5 text-meta leading-snug" style={box}>
       <div className="flex items-start gap-2">
         <b className="font-semibold">{buildingLabel(data, p.index)}</b>
         <button type="button" aria-label="Close the building details" title="Close" onClick={() => useVistaLook.setState({ inspected: null })} className={`ml-auto flex h-5 w-5 items-center justify-center rounded-[2px] hover:bg-[#dde6dc] ${focusRing}`}><X size={13} aria-hidden /></button>
       </div>
       <div>Height <b className="tabular-nums">{(p.roof - p.ground).toFixed(1)} m</b> · roof {p.roof.toFixed(1)} m CGVD28 · base {p.ground.toFixed(1)} m</div>
-      <div className="text-[11px]">{buildingSource(data, p.index)}{est ? ' · an estimate, not measured' : ''}</div>
+      <div className="text-meta">{buildingSource(data, p.index)}{est ? ' · an estimate, not measured' : ''}</div>
     </div>
   )
 }
@@ -542,11 +542,11 @@ function ConePicker() {
   const at = CONES.findIndex((c) => c.id === current)
   const navBtn = `rounded-[2px] border px-2 py-0.5 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`
   return (
-    <div className="max-w-[22rem] space-y-1 px-2 py-1.5 text-[12px]" style={box}>
+    <div className="max-w-[22rem] space-y-1 px-2 py-1.5 text-meta" style={box}>
       <label className="flex items-center gap-1.5">
         <span className="font-medium">View cone</span>
         <select aria-label="Protected view to look from" value={current} onChange={(e) => { if (e.target.value) goToCone(e.target.value) }}
-          className={`min-w-0 flex-1 rounded-[2px] border bg-[#fffcf5] px-1 py-0.5 text-[12px] ${focusRing}`} style={{ borderColor: CHROME.border, color: CHROME.ink }}>
+          className={`min-w-0 flex-1 rounded-[2px] border bg-[#fffcf5] px-1 py-0.5 text-meta ${focusRing}`} style={{ borderColor: CHROME.border, color: CHROME.ink }}>
           {!current && <option value="">Choose a protected view…</option>}
           {CONES.map((c) => <option key={c.id} value={c.id}>{c.id} · {c.name}{hasEstimate(c.id) ? '' : ' (no City estimate)'}</option>)}
         </select>
@@ -554,14 +554,14 @@ function ConePicker() {
       <nav aria-label="Protected view navigation" data-testid="cone-nav" className="flex items-center gap-1.5">
         <button type="button" onClick={() => goToCone(stepConeId(current, -1))} aria-label="Previous protected view" aria-describedby="cone-position"
           className={navBtn} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>← Previous</button>
-        <span id="cone-position" role="status" aria-live="polite" aria-atomic="true" className="flex-1 text-center text-[11px] tabular-nums">
+        <span id="cone-position" role="status" aria-live="polite" aria-atomic="true" className="flex-1 text-center text-meta tabular-nums">
           Protected views · {at < 0 ? `${CONES.length} available` : `${at + 1} / ${CONES.length}`}
         </span>
         <button type="button" onClick={() => goToCone(stepConeId(current, 1))} aria-label="Next protected view" aria-describedby="cone-position"
           className={navBtn} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>Next →</button>
       </nav>
-      {cone && <p className="text-[11px] leading-snug">Eye at the City's viewpoint elevation Lv {cone.Lv} m (ViewCone service), looking along the cone's axis. Esc or City to leave.</p>}
-      {!cone && looking && <p className="text-[11px] leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
+      {cone && <p className="text-meta leading-snug">Eye at the City's viewpoint elevation Lv {cone.Lv} m (ViewCone service), looking along the cone's axis. Esc or City to leave.</p>}
+      {!cone && looking && <p className="text-meta leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
       <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
         className={`rounded-[2px] border px-2 py-0.5 text-[11.5px] hover:bg-[#dde6dc] ${focusRing}`} style={{ borderColor: CHROME.border, background: '#fbfaf4' }}>
         Or stand on a street or roof (View from here)
@@ -595,14 +595,14 @@ export function VistaChrome() {
     <>
       <div data-vista-overlay="top" className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-2 [&>*]:pointer-events-auto">
         <ModeTabs />
-        <div className="px-2 py-[3px] text-[11px]" style={box} title="The Real Vancouver model with your design towers">Study scene</div>
+        <div className="px-2 py-[3px] text-meta" style={box} title="The Real Vancouver model with your design towers">Study scene</div>
         {mode === 'observer' && <ConePicker />}
       </div>
       <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 [&>*]:pointer-events-auto"><Utilities /></div>
       <div data-vista-overlay="bottom" className={`pointer-events-none absolute bottom-2.5 left-2.5 z-10 flex ${looking ? 'max-w-[calc(100%-15.5rem)]' : schematic ? 'max-w-[calc(100%-19rem)]' : 'max-w-[calc(100%-1.25rem)]'} flex-col items-start gap-1.5 [&>*]:pointer-events-auto`}>
         {mode === 'inspect' && <InspectCard />}
-        {(note || viewNote) && <div role="status" className="max-w-[30rem] px-2 py-[3px] text-[12px]" style={{ ...box, background: '#f3e9dbee', color: '#684838' }}>{note ?? viewNote}</div>}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-[3px] text-[12px] leading-[1.45]" style={box} title={MODE_HINT[mode]} data-testid="mode-gestures">
+        {(note || viewNote) && <div role="status" className="max-w-[30rem] px-2 py-[3px] text-meta" style={{ ...box, background: '#f3e9dbee', color: '#684838' }}>{note ?? viewNote}</div>}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-[3px] text-meta leading-[1.45]" style={box} title={MODE_HINT[mode]} data-testid="mode-gestures">
           <b className="font-semibold">{MAP_MODES.find((m) => m.id === mode)?.label ?? mode}</b>
           {MODE_GESTURES[mode].map(([g, w]) => <span key={g} className="flex items-center gap-1"><kbd className="rounded border border-current/30 px-1 font-sans text-[10.5px] opacity-80">{g}</kbd>{w}</span>)}
           <span className="sr-only">{MODE_HINT[mode]}</span>

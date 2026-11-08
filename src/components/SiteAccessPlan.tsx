@@ -78,7 +78,7 @@ export default function SiteAccessPlan({ bays }: { bays: number }) {
           onDown={(ev) => { ev.stopPropagation(); drag.current = a.id; set({ selected: a.id }); (ev.target as Element).setPointerCapture?.(ev.pointerId) }} />)}
         <text x={xMax + PAD - 2} y={-yMax - PAD + 5} fontSize={3.4} textAnchor="end" fill="#6b6f76">Plan, model grid up · no lane on this block</text>
       </svg>
-      <div className="mt-1 flex flex-wrap gap-3 text-[10px] text-muted">
+      <div className="mt-1 flex flex-wrap gap-3 text-meta text-muted">
         <span><i className="mr-1 inline-block h-2 w-3 align-middle" style={{ background: STREET_FILL.retail }} />Retail high street: no access</span>
         <span><i className="mr-1 inline-block h-2 w-3 align-middle" style={{ background: STREET_FILL.arterial }} />Arterial: avoid</span>
         <span><i className="mr-1 inline-block h-2 w-3 align-middle" style={{ background: STREET_FILL.local }} />Local street: preferred</span>

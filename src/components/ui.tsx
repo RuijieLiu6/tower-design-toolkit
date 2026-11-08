@@ -17,7 +17,7 @@ export function FlagChip({ flag }: { flag: Flag | string }) {
   const f = (flag === 'false_assumption_corrected' ? 'false_assumption' : flag) as Flag
   const m = FLAG_META[f] ?? FLAG_META.unverified
   const Icon = FLAG_ICONS[f] ?? FLAG_ICONS.unverified
-  return <span title={m.title} className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${m.className}`}><Icon size={11} />{m.label}</span>
+  return <span title={m.title} className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-meta font-medium leading-none ${m.className}`}><Icon size={11} />{m.label}</span>
 }
 
 const STATE_STYLE: Record<RuleState, string> = {
@@ -29,7 +29,7 @@ const STATE_STYLE: Record<RuleState, string> = {
 const STATE_TEXT: Record<RuleState, string> = { pass: 'Pass', fail: 'Fail', warn: 'Check', unknown: 'Unknown' }
 
 export function StateChip({ state }: { state: RuleState }) {
-  return <span className={`inline-flex rounded border px-1.5 py-0.5 text-[11px] font-semibold ${STATE_STYLE[state]}`}>{STATE_TEXT[state]}</span>
+  return <span className={`inline-flex rounded border px-1.5 py-0.5 text-meta font-semibold ${STATE_STYLE[state]}`}>{STATE_TEXT[state]}</span>
 }
 
 export const CONE_STYLE: Record<ConeState, { chip: string; color: string }> = {
@@ -46,7 +46,7 @@ export function Section({ title, children, right, help }: { title: string; child
   return (
     <section className="border-b border-line px-4 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h3>
+        <h3 className="flex items-center gap-1.5 text-section text-ink">{title}{help && <Help label={`About ${title}`}>{help}</Help>}</h3>
         {right}
       </div>
       {children}
@@ -90,5 +90,5 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[10px] text-muted">{children}</kbd>
+  return <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-meta text-muted">{children}</kbd>
 }

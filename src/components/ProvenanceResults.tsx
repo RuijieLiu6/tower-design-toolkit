@@ -18,14 +18,14 @@ export default function ProvenanceResults() {
   const [copied, setCopied] = useState(false)
   return (
     <>
-      <Section title="Elements" right={<button onClick={addProv} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Plus size={12} />Add element</button>}>
-        {!prov.length && <p className="text-[11px] text-muted">List each board image, drawing and text block, and how it was made. Kept in this browser; names and reviewers never reach an export.</p>}
+      <Section title="Elements" right={<button onClick={addProv} className="flex items-center gap-1 text-meta text-accent hover:underline"><Plus size={12} />Add element</button>}>
+        {!prov.length && <p className="text-meta text-muted">List each board image, drawing and text block, and how it was made. Kept in this browser; names and reviewers never reach an export.</p>}
         <div className="grid gap-2">
           {prov.map((e) => {
             const lvl = IPTC[e.involvement]
             const mine = issues.filter((i) => i.entry === e.id)
             return (
-              <div key={e.id} className={`rounded-md border p-2 text-[11px] ${mine.length ? 'border-amber-300' : 'border-line'}`}>
+              <div key={e.id} className={`rounded-md border p-2 text-meta ${mine.length ? 'border-amber-300' : 'border-line'}`}>
                 <div className="flex items-center gap-1.5">
                   <input value={e.element} onChange={(x) => updateProv(e.id, { element: x.target.value })} placeholder="Element, e.g. Board 2 hero render" className="min-w-0 flex-1 rounded border border-line bg-panel px-1.5 py-0.5 font-medium" aria-label="Element" />
                   <select value={e.kind} onChange={(x) => updateProv(e.id, { kind: x.target.value as ElementKind })} className="rounded border border-line bg-panel px-1 py-0.5" aria-label="Kind">
@@ -38,7 +38,7 @@ export default function ProvenanceResults() {
                     {(Object.keys(IPTC) as Involvement[]).map((k) => <option key={k} value={k}>{IPTC[k].label}</option>)}
                   </select>
                 </label>
-                {e.kind === 'image' && <div className="mt-0.5 text-[10px] text-muted">Label: <b className="text-ink">{lvl.visible}</b> · IPTC <a className="text-accent hover:underline" href={IPTC_BASE + lvl.term} target="_blank" rel="noreferrer">{lvl.term}</a></div>}
+                {e.kind === 'image' && <div className="mt-0.5 text-meta text-muted">Label: <b className="text-ink">{lvl.visible}</b> · IPTC <a className="text-accent hover:underline" href={IPTC_BASE + lvl.term} target="_blank" rel="noreferrer">{lvl.term}</a></div>}
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <label className="grid gap-0.5"><span className="text-muted">Tool and version</span><input value={e.tool} onChange={(x) => updateProv(e.id, { tool: x.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" /></label>
                   <label className="grid gap-0.5"><span className="text-muted">Date</span><input type="date" value={e.date} onChange={(x) => updateProv(e.id, { date: x.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" /></label>
@@ -61,17 +61,17 @@ export default function ProvenanceResults() {
                     {e.cultural && <label className="grid gap-0.5"><span className="text-muted">Human reviewer (kept off exports)</span><input value={e.reviewer} onChange={(x) => updateProv(e.id, { reviewer: x.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" /></label>}
                   </div>
                 )}
-                {mine.length > 0 && <ul className="mt-1.5 list-disc pl-4 text-[10px] text-amber-900">{mine.map((i, k) => <li key={k}>{i.text}</li>)}</ul>}
+                {mine.length > 0 && <ul className="mt-1.5 list-disc pl-4 text-meta text-amber-900">{mine.map((i, k) => <li key={k}>{i.text}</li>)}</ul>}
               </div>
             )
           })}
         </div>
-        <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">IPTC terms by level are the team's mapping of IPTC's own definitions (P07-M07 r4). When unsure, declare more AI use.</span></div>
+        <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">IPTC terms by level are the team's mapping of IPTC's own definitions (P07-M07 r4). When unsure, declare more AI use.</span></div>
       </Section>
 
-      <Section title="Board appendix" right={<button onClick={() => { void navigator.clipboard?.writeText(appendix); setCopied(true); setTimeout(() => setCopied(false), 1200) }} className="flex items-center gap-1 text-[11px] text-accent hover:underline">{copied ? <Check size={12} /> : <Copy size={12} />}Copy</button>}>
-        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md bg-black/[0.03] p-2 text-[10px]">{appendix}</pre>
-        <p className="mt-1 text-[10px] text-muted">AI use, sources, module names and licences only: no people, handles or reviewers. Removing names and metadata from the exported PDF and images is part of the board export check (backlog item 5).</p>
+      <Section title="Board appendix" right={<button onClick={() => { void navigator.clipboard?.writeText(appendix); setCopied(true); setTimeout(() => setCopied(false), 1200) }} className="flex items-center gap-1 text-meta text-accent hover:underline">{copied ? <Check size={12} /> : <Copy size={12} />}Copy</button>}>
+        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md bg-black/[0.03] p-2 text-meta">{appendix}</pre>
+        <p className="mt-1 text-meta text-muted">AI use, sources, module names and licences only: no people, handles or reviewers. Removing names and metadata from the exported PDF and images is part of the board export check (backlog item 5).</p>
       </Section>
     </>
   )

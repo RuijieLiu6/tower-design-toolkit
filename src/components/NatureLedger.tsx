@@ -43,7 +43,7 @@ const RING: Record<Force, string> = {
 
 function NumberInput({ label, value, unit, onChange }: { label: string; value: number | null; unit: string; onChange: (v: number | null) => void }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px] text-muted">
+    <label className="flex items-center gap-1.5 text-meta text-muted">
       {label}
       <span className="flex items-center rounded border border-line bg-panel">
         <input type="number" min={0} value={value ?? ''} placeholder="—" aria-label={label}
@@ -58,7 +58,7 @@ function NumberInput({ label, value, unit, onChange }: { label: string; value: n
 function YesNo({ label, value, onChange }: { label: string; value: boolean | null; onChange: (v: boolean | null) => void }) {
   const opts: [boolean | null, string][] = [[null, 'Not answered'], [true, 'Yes'], [false, 'No']]
   return (
-    <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted" role="radiogroup" aria-label={label}>
+    <div className="flex flex-wrap items-center gap-1 text-meta text-muted" role="radiogroup" aria-label={label}>
       {label}
       {opts.map(([v, t]) => (
         <button key={t} role="radio" aria-checked={value === v} onClick={() => onChange(v)}
@@ -73,16 +73,16 @@ function Row({ r, children }: { r: NatureRow; children?: ReactNode }) {
     <div className={`rounded-md border-2 p-2 ${RING[r.force]}`}>
       <div className="flex items-start justify-between gap-2">
         <span className="text-xs font-semibold">{r.name}</span>
-        {r.entered === null && r.state === 'unknown' ? <span className="rounded border border-slate-200 px-1.5 py-0.5 text-[10px] text-muted">Not entered</span> : <StateChip state={r.state} />}
+        {r.entered === null && r.state === 'unknown' ? <span className="rounded border border-slate-200 px-1.5 py-0.5 text-meta text-muted">Not entered</span> : <StateChip state={r.state} />}
       </div>
-      <div className="mt-0.5 text-[11px]"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
+      <div className="mt-0.5 text-meta"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
       {children && <div className="mt-1.5">{children}</div>}
-      {r.note && <div className="mt-1 text-[10px] text-slate-600"><U>{r.note}</U></div>}
+      {r.note && <div className="mt-1 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1">
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700" title={isBinding(r.force) ? 'Binding: can pass or fail' : 'Reference line: shown, never scored as compliance'}>{FORCE_LABEL[r.force]}</span>
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-meta font-medium text-slate-700" title={isBinding(r.force) ? 'Binding: can pass or fail' : 'Reference line: shown, never scored as compliance'}>{FORCE_LABEL[r.force]}</span>
         <FlagChip flag={r.flag} />
-        <span className="text-[10px] text-muted">ODP {r.direction}</span>
-        <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
+        <span className="text-meta text-muted">ODP {r.direction}</span>
+        <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
         <CardChip ruleId={r.id} />
       </div>
     </div>
@@ -100,25 +100,25 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
   return (
     <>
       <Section title="Results">
-        <div className="mb-2 rounded-md bg-black/[0.03] p-2 text-[11px] text-slate-700">
+        <div className="mb-2 rounded-md bg-black/[0.03] p-2 text-meta text-slate-700">
           <div><b>Binding requirements:</b> {n.binding.passed} of {n.binding.total} met{n.binding.failed ? `, ${n.binding.failed} not met` : ''}{n.binding.open ? `, ${n.binding.open} not answered` : ''}.</div>
           <div className="mt-0.5">Targets, guidelines and comparators are shown for reference and never scored as compliance. There is no overall score: City in Nature is a judgment.</div>
           <div className="mt-1.5 flex flex-wrap gap-1" aria-label="ODP Ecology directions covered">
             {(Object.keys(DIRECTIONS) as Direction[]).map((d) => (
-              <span key={d} className={`rounded px-1.5 py-0.5 text-[10px] ${n.coverage[d] ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`} title={n.coverage[d] ? 'Has evidence or a written note' : 'No evidence or note yet'}>
+              <span key={d} className={`rounded px-1.5 py-0.5 text-meta ${n.coverage[d] ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`} title={n.coverage[d] ? 'Has evidence or a written note' : 'No evidence or note yet'}>
                 {d} {DIRECTIONS[d]} {n.coverage[d] ? '✓' : '· gap'}
               </span>
             ))}
           </div>
         </div>
-        <label className="mb-2 flex items-center gap-1.5 text-[11px] text-muted">R019 site type
+        <label className="mb-2 flex items-center gap-1.5 text-meta text-muted">R019 site type
           <select value={input.siteType} onChange={(e) => set({ siteType: e.target.value as SiteType })} className="rounded border border-line bg-panel px-1 py-0.5 text-ink">
             <option value="A">A</option><option value="B">B</option><option value="C">C</option>
           </select>
           <FlagChip flag="team_assumption" />
         </label>
 
-        <h4 className="mb-1 mt-3 text-[11px] font-semibold text-slate-700">(a) Space for nature</h4>
+        <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700">(a) Space for nature</h4>
         <div className="grid gap-2">
           <Row r={row('canopy')}><NumberInput label="Mature canopy" value={input.canopyM2} unit="m²" onChange={(v) => set({ canopyM2: v })} /></Row>
           <Row r={row('cover')}><NumberInput label="Vegetated area" value={input.vegetatedM2} unit="m²" onChange={(v) => set({ vegetatedM2: v })} /></Row>
@@ -135,28 +135,28 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
           <Row r={row('bird-lighting')} />
         </div>
 
-        <h4 className="mb-1 mt-3 text-[11px] font-semibold text-slate-700">(b) Views and connections</h4>
+        <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700">(b) Views and connections</h4>
         <div className="grid gap-2">
           <Row r={row('views')} />
           <Row r={row('qe-view')}><YesNo label="Enters view 3?" value={input.entersQEView} onChange={(v) => set({ entersQEView: v })} /></Row>
           <Row r={row('eds-eligible')} />
           <Row r={row('eds-criteria')}>
-            <div className="grid gap-0.5 text-[11px]">
+            <div className="grid gap-0.5 text-meta">
               {([['lions', '3.4.3 Lions views kept'], ['openSpaceCanopy', '3.4.6 Open space and canopy strategy'], ['undrip', '3.4.8 UNDRIP strategy']] as const).map(([k, t]) => (
                 <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={input.pvg34[k]} onChange={(e) => set({ pvg34: { ...input.pvg34, [k]: e.target.checked } })} />{t} <span className="text-muted">(answered in writing)</span></label>
               ))}
             </div>
           </Row>
         </div>
-        <p className="mt-2 text-[10px] text-muted" data-testid="nature-site-area">{siteAreaNote(site)}</p>
+        <p className="mt-2 text-meta text-muted" data-testid="nature-site-area">{siteAreaNote(site)}</p>
       </Section>
 
       <Section title="False assumptions kept visible">
         {n.falseAssumptions.map((f, i) => (
-          <div key={i} className="rounded-md border border-flag-false/40 bg-flag-false/[0.04] p-2 text-[11px]">
+          <div key={i} className="rounded-md border border-flag-false/40 bg-flag-false/[0.04] p-2 text-meta">
             <div className="flex items-start gap-1.5 font-medium text-flag-false"><OctagonX size={13} className="mt-px shrink-0" /><span className="line-through decoration-1">{f.claim}</span></div>
             <div className="mt-1 text-slate-800">{f.correction}</div>
-            <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag="false_assumption" /><a href={f.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{f.source.label}, {f.source.page}</a></div>
+            <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag="false_assumption" /><a href={f.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{f.source.label}, {f.source.page}</a></div>
           </div>
         ))}
       </Section>
@@ -164,7 +164,7 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
       <Section title="Your judgment, by ODP Ecology direction" help="Where the ledger has no evidence, write what the design does and why. These notes are yours; the tool never fills them in.">
         <div className="grid gap-2">
           {(Object.keys(DIRECTIONS) as Direction[]).map((d) => (
-            <label key={d} className="grid gap-0.5 text-[11px] text-muted">{d} {DIRECTIONS[d]}
+            <label key={d} className="grid gap-0.5 text-meta text-muted">{d} {DIRECTIONS[d]}
               <textarea value={input.notes[d] ?? ''} maxLength={1000} onChange={(e) => set({ notes: { ...input.notes, [d]: e.target.value } })}
                 className="h-12 resize-y rounded border border-line bg-panel px-2 py-1 text-xs text-ink outline-none focus:border-accent" />
             </label>

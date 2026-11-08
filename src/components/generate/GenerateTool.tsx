@@ -56,7 +56,7 @@ export default function GenerateTool() {
 
   return (
     <div className="space-y-3 px-3 py-3 text-xs" data-testid="generate-tool">
-      <p className="flex items-center gap-1.5 text-[11px] text-muted">
+      <p className="flex items-center gap-1.5 text-meta text-muted">
         <Sparkles size={13} className="shrink-0 text-accent" />
         <span>Sinnie Choi's massing generator, from her <a href="https://github.com/xubynii/dtmass" target="_blank" rel="noreferrer" className="text-accent underline">Downtown Massing Tool</a></span>
         <Help label="About Generate">
@@ -67,12 +67,12 @@ export default function GenerateTool() {
       {!f ? (
         <div className="rounded-lg border border-line bg-black/[0.02] p-3">
           <p className="font-semibold text-ink">Choose a site first</p>
-          <p className="mt-1 text-[11px] text-muted">The generator fills the site you pick on the Site step.</p>
+          <p className="mt-1 text-meta text-muted">The generator fills the site you pick on the Site step.</p>
           <button type="button" onClick={() => goToStep('site')} className={`${btn} mt-2 flex items-center gap-1.5 border-line hover:border-accent`}><ArrowLeft size={13} />Go to Site</button>
         </div>
       ) : (
         <>
-          <p className="text-[11px] text-muted" data-testid="generate-site">On <b className="text-ink">{f.label}</b>{project === 'city' && <> · fills its {fmt(f.w, 1)} × {fmt(f.d, 1)} m rectangle</>}</p>
+          <p className="text-meta text-muted" data-testid="generate-site">On <b className="text-ink">{f.label}</b>{project === 'city' && <> · fills its {fmt(f.w, 1)} × {fmt(f.d, 1)} m rectangle</>}</p>
 
           {/* Typologies: her four presets as picture tiles. */}
           <div role="radiogroup" aria-label="Typology" className="grid grid-cols-2 gap-1.5">
@@ -80,7 +80,7 @@ export default function GenerateTool() {
               <button key={k} type="button" role="radio" aria-checked={g.key === k} onClick={() => { g.set({ key: k, seed: 0, placed: null }); setVariations(null) }} title={GEN_TYPES[k].blurb}
                 className={`flex flex-col items-center gap-0.5 rounded-md border p-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${g.key === k ? 'border-accent bg-accent/[0.07]' : 'border-line hover:border-accent'}`}>
                 <GenAxon blocks={previews[k]} site={PREVIEW_SITE} width={120} height={78} />
-                <span className={`text-center text-[11px] leading-tight ${g.key === k ? 'font-semibold text-ink' : 'text-muted'}`}>{GEN_TYPES[k].name}</span>
+                <span className={`text-center text-meta leading-tight ${g.key === k ? 'font-semibold text-ink' : 'text-muted'}`}>{GEN_TYPES[k].name}</span>
               </button>
             ))}
           </div>
@@ -88,12 +88,12 @@ export default function GenerateTool() {
           <details open className="rounded-md border border-line">
             <summary className="cursor-pointer px-2 py-1.5 font-semibold text-ink">Brief · {fmt(brief.gfa)} m², {fmt(brief.plate)} m² plate{brief.heightTarget ? `, ${fmt(brief.heightTarget)} m target` : ''}</summary>
             <div className="grid gap-2 border-t border-line px-2 py-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted"><FlagChip flag="team_assumption" />Starting values; enter your brief.</div>
+              <div className="flex items-center gap-1.5 text-meta text-muted"><FlagChip flag="team_assumption" />Starting values; enter your brief.</div>
               <NumberField label="Target floor area above grade" value={brief.gfa} onChange={(v) => setBrief({ gfa: Math.max(500, v) })} step={500} unit="m²" />
               <NumberField label="Preferred tower floorplate" value={brief.plate} onChange={(v) => setBrief({ plate: Math.max(100, v) })} step={10} unit="m²" />
               <NumberField label="Height target (0 = none)" value={brief.heightTarget ?? 0} onChange={(v) => setBrief({ heightTarget: v > 0 ? v : null })} step={1} unit="m" />
               <fieldset className="grid gap-1">
-                <legend className="mb-1 flex w-full items-center justify-between text-[11px] text-muted">
+                <legend className="mb-1 flex w-full items-center justify-between text-meta text-muted">
                   <span>Program mix, share of floor area</span>
                   <span className={Math.abs(total - 100) > 0.05 ? 'font-semibold text-amber-800' : ''}>{fmt(total, 1)}%</span>
                 </legend>
@@ -107,10 +107,10 @@ export default function GenerateTool() {
                 {Math.abs(total - 100) > 0.05 && <button type="button" onClick={normalize} className={`${btn} justify-self-start border-line hover:border-accent`}>Normalize to 100%</button>}
               </fieldset>
               <details>
-                <summary className="cursor-pointer text-[11px] text-muted">Floor-to-floor by use</summary>
+                <summary className="cursor-pointer text-meta text-muted">Floor-to-floor by use</summary>
                 <div className="mt-1 grid grid-cols-2 gap-1">
                   {GEN_USES.map((u) => (
-                    <label key={u} className="flex items-center justify-between gap-1 text-[11px]"><span>{GEN_LABEL[u]}</span>
+                    <label key={u} className="flex items-center justify-between gap-1 text-meta"><span>{GEN_LABEL[u]}</span>
                       <input type="number" min={2.6} max={8} step={0.1} value={brief.f2f[u]} aria-label={`${GEN_LABEL[u]} floor-to-floor`}
                         onChange={(e) => setBrief({ f2f: { ...brief.f2f, [u]: Math.max(2.6, Number(e.target.value) || brief.f2f[u]) } })} className="w-14 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" /></label>
                   ))}
@@ -155,16 +155,16 @@ export default function GenerateTool() {
                 </div>
               ))}
               <details>
-                <summary className="cursor-pointer text-[11px] font-semibold text-ink">Requested against generated</summary>
-                <table className="mt-1 w-full text-[11px] tabular-nums">
+                <summary className="cursor-pointer text-meta font-semibold text-ink">Requested against generated</summary>
+                <table className="mt-1 w-full text-meta tabular-nums">
                   <thead><tr className="text-muted"><th className="text-left font-normal">Use</th><th className="text-right font-normal">Requested</th><th className="text-right font-normal">Generated</th></tr></thead>
                   <tbody>{r.rows.map((x) => <tr key={x.use}><td>{GEN_LABEL[x.use]}</td><td className="text-right">{fmt(x.target)} m²</td><td className={`text-right ${Math.abs(x.gen - x.target) > Math.max(60, x.target * 0.08) ? 'font-semibold text-amber-800' : ''}`}>{fmt(x.gen)} m²</td></tr>)}</tbody>
                 </table>
               </details>
               {r.notes.length > 0 && (
                 <details>
-                  <summary className="cursor-pointer text-[11px] font-semibold text-ink">Why the numbers differ ({r.notes.length})</summary>
-                  <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-muted">{r.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+                  <summary className="cursor-pointer text-meta font-semibold text-ink">Why the numbers differ ({r.notes.length})</summary>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4 text-meta text-muted">{r.notes.map((n) => <li key={n}>{n}</li>)}</ul>
                 </details>
               )}
               <div className="flex flex-wrap gap-1.5">
@@ -174,14 +174,14 @@ export default function GenerateTool() {
                 <button type="button" onClick={() => setVariations(variations ? null : [1, 2, 3])} aria-expanded={!!variations} className={`${btn} border-line hover:border-accent`}>Variations</button>
                 {g.seed > 0 && <button type="button" onClick={() => g.set({ seed: 0, placed: null })} className={`${btn} border-line hover:border-accent`}>Back to the brief's answer</button>}
               </div>
-              {hasTowers && <p className="text-[11px] text-muted">Replaces this site's towers; Undo brings them back.</p>}
+              {hasTowers && <p className="text-meta text-muted">Replaces this site's towers; Undo brings them back.</p>}
               {variations && (
                 <div className="grid grid-cols-3 gap-1" aria-label="Variations of the same brief">
                   {variations.map((sd) => {
                     const v = runGenerator(f, project, g, sd)
                     return (
                       <button key={sd} type="button" onClick={() => { g.set({ seed: sd, placed: null }); setVariations(null) }} aria-pressed={g.seed === sd} aria-label={`${v.label}: ${fmt(v.height, 0)} m, ${v.storeys} storeys`}
-                        className={`flex flex-col items-center rounded-md border p-0.5 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-accent ${g.seed === sd ? 'border-accent' : 'border-line hover:border-accent'}`}>
+                        className={`flex flex-col items-center rounded-md border p-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${g.seed === sd ? 'border-accent' : 'border-line hover:border-accent'}`}>
                         <GenAxon blocks={v.blocks} site={{ w: f.w, d: f.d }} width={84} height={64} />
                         <span className="tabular-nums">{fmt(v.height, 0)} m · {v.storeys} st</span>
                       </button>
@@ -192,7 +192,7 @@ export default function GenerateTool() {
               {g.placed && (
                 <div role="status" className="rounded-md bg-accent/[0.07] px-2 py-1.5">
                   <p className="font-semibold text-ink">Placed {g.placed.label}: {g.placed.towers} tower{g.placed.towers === 1 ? '' : 's'}.</p>
-                  {g.placed.notes.map((n) => <p key={n} className="mt-0.5 text-[11px] text-muted">{n}</p>)}
+                  {g.placed.notes.map((n) => <p key={n} className="mt-0.5 text-meta text-muted">{n}</p>)}
                 </div>
               )}
             </section>

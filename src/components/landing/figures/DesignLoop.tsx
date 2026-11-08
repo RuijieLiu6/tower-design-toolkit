@@ -110,7 +110,7 @@ export default function DesignLoop() {
         <button type="button" aria-label="One model: the massing engine every stage reads and writes" {...bind('hub')}
           className="absolute flex -translate-x-1/2 flex-col items-center justify-end rounded-xl pb-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent"
           style={{ left: cx, top: cy - 84 * s, width: 110 * s, height: 84 * s + 60 * s + 22 }}>
-          <span aria-hidden className="whitespace-nowrap text-[12px] font-semibold text-ink [text-shadow:0_0_6px_#fff]">One model</span>
+          <span aria-hidden className="whitespace-nowrap text-meta font-semibold text-ink [text-shadow:0_0_6px_#fff]">One model</span>
         </button>
 
         {nodes.map((n) => (

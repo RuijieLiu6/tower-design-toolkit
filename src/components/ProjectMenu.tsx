@@ -90,9 +90,9 @@ export default function ProjectMenu() {
         </button>
         {open && (
           <div role="menu" aria-label="Project file" className="glass absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-panel p-1.5 text-ink shadow-xl">
-            <div className="flex items-center gap-1.5 px-2 pb-1.5 pt-1 text-[11px] text-muted"><HardDrive size={12} aria-hidden />{status}</div>
+            <div className="flex items-center gap-1.5 px-2 pb-1.5 pt-1 text-meta text-muted"><HardDrive size={12} aria-hidden />{status}</div>
             {meta.message && (
-              <div className={`mx-1 mb-1.5 rounded-md px-2 py-1.5 text-[11px] ${meta.message.tone === 'ok' ? 'bg-emerald-50 text-emerald-900' : meta.message.tone === 'warn' ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-900'}`} role="status">
+              <div className={`mx-1 mb-1.5 rounded-md px-2 py-1.5 text-meta ${meta.message.tone === 'ok' ? 'bg-emerald-50 text-emerald-900' : meta.message.tone === 'warn' ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-900'}`} role="status">
                 {meta.message.text}
                 {meta.message.details && <ul className="mt-1 list-disc pl-4">{meta.message.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
               </div>
@@ -101,15 +101,15 @@ export default function ProjectMenu() {
             <Item icon={<FolderOpen size={14} />} onClick={() => (panel === 'open' ? setPanel('none') : openMenu('open'))} disabled={present} hint={locked} expanded={panel === 'open'}>Open…</Item>
             {panel === 'open' && (
               <div className="mx-1 mb-1 max-h-56 overflow-y-auto rounded-md border border-line">
-                {meta.saved.length === 0 && <p className="px-2 py-2 text-[11px] text-muted">No saved projects in this browser yet. Use Save as…, or Import a .json.</p>}
+                {meta.saved.length === 0 && <p className="px-2 py-2 text-meta text-muted">No saved projects in this browser yet. Use Save as…, or Import a .json.</p>}
                 {meta.saved.map((p) => (
                   <div key={p.key} className="flex items-center gap-1 border-b border-line/60 px-2 py-1 last:border-0">
                     <button onClick={() => { void openStored(p.key); setPanel('none') }} className="min-w-0 flex-1 text-left hover:text-accent">
                       <div className="truncate text-xs font-medium">{p.name}</div>
-                      <div className="text-[10px] text-muted">{time(p.savedAt)}</div>
+                      <div className="text-meta text-muted">{time(p.savedAt)}</div>
                     </button>
                     <button onClick={() => (confirmKey === p.key ? void removeStored(p.key) : setConfirmKey(p.key))} title="Remove from this browser"
-                      className={`rounded px-1.5 py-1 text-[10px] ${confirmKey === p.key ? 'bg-red-50 text-red-800' : 'text-muted hover:text-red-800'}`}>
+                      className={`rounded px-1.5 py-1 text-meta ${confirmKey === p.key ? 'bg-red-50 text-red-800' : 'text-muted hover:text-red-800'}`}>
                       {confirmKey === p.key ? 'Remove?' : <Trash size={12} aria-label="Remove" />}
                     </button>
                   </div>
@@ -128,7 +128,7 @@ export default function ProjectMenu() {
             <Item icon={<FileDown size={14} />} onClick={async () => { saveFile(exportName(), await currentText()); useStore.setState({ announce: 'Project exported' }) }}>Export .json</Item>
             <Item icon={<FileUp size={14} />} onClick={() => fileInput.current?.click()} disabled={present} hint={locked}>Import .json…</Item>
             <input ref={fileInput} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readFile(f); e.target.value = '' }} />
-            <p className="px-2 pb-1 pt-1.5 text-[10px] leading-snug text-muted">Projects stay in this browser. Export a .json to keep a copy or share it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
+            <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export a .json to keep a copy or share it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
           </div>
         )}
       </div>

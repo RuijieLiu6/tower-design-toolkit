@@ -32,7 +32,7 @@ export default function TopBar() {
     <header className="glass-edge stage-fade flex h-14 shrink-0 items-center gap-3 rounded-2xl bg-chrome px-3 text-chrome-ink 2xl:gap-4">
       <button onClick={showIntro} aria-label="Tower Design Toolkit" title="Back to the start" className="flex items-center gap-2 rounded-md px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
-        <span className="hidden whitespace-nowrap text-sm font-semibold tracking-tight min-[1500px]:inline">Tower Design Toolkit</span>
+        <span className="hidden whitespace-nowrap text-sm font-semibold min-[1500px]:inline">Tower Design Toolkit</span>
       </button>
       <div role="tablist" aria-label="Project" className={`flex rounded-md p-0.5 ${present ? 'bg-white/10' : 'bg-black/5'}`}>
         {PROJECTS.map((p) => (
@@ -54,7 +54,7 @@ export default function TopBar() {
               <Icon size={18} className={on && !present ? 'text-accent' : ''} />
               <span className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold">{s.label}</span>
-                <span className="hidden whitespace-nowrap text-[10px] min-[1800px]:block">{s.subtitle}</span>
+                <span className="hidden whitespace-nowrap text-meta min-[1800px]:block">{s.subtitle}</span>
               </span>
             </button>
           )
@@ -64,7 +64,7 @@ export default function TopBar() {
       <div className="flex items-center gap-1" role="group" aria-label="View">
         {present && (
           <>
-            <span title="Model locked: go back to Massing or Schematic to change it" className="mr-1 flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-[11px]"><LockKeyhole size={13} /><span className="hidden min-[1800px]:inline">Model locked</span><span className="sr-only min-[1800px]:hidden">Model locked</span></span>
+            <span title="Model locked: go back to Massing or Schematic to change it" className="mr-1 flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-meta"><LockKeyhole size={13} /><span className="hidden min-[1800px]:inline">Model locked</span><span className="sr-only min-[1800px]:hidden">Model locked</span></span>
             <button onClick={() => captureShot(false)} aria-label="Capture" className="mr-2 flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden /><span className="hidden min-[1440px]:inline">Capture</span></button>
           </>
         )}

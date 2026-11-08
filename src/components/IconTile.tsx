@@ -75,7 +75,7 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
         <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}
           className={`group flex ${size === 'md' ? 'w-[4.25rem]' : 'w-[3.75rem]'} flex-col items-center gap-1 rounded-md px-1 pb-1 pt-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40  ${className}`}>
           <GlassIcon icon={Icon} hue={hueFor(word)} size={ICON.tool} level={lit ? 'on' : 'soft'} />
-          <span aria-hidden className={`w-full truncate text-center text-[11px] leading-tight ${active || primary ? 'font-semibold text-ink' : 'text-muted group-hover:text-ink'}`}>{word}</span>
+          <span aria-hidden className={`w-full truncate text-center text-meta leading-tight ${active || primary ? 'font-semibold text-ink' : 'text-muted group-hover:text-ink'}`}>{word}</span>
         </button>
       )}
       {hint && <span id={tipId} hidden>{hint}</span>}

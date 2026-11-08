@@ -96,7 +96,7 @@ export default function NodeAuthor() {
 
   const send = () => { setDraft(JSON.stringify(pkg, null, 2)); openDialog('import') }
   const field = 'w-full rounded-md border border-line bg-panel px-2 py-1 text-xs outline-none focus:border-accent'
-  const lab = 'mb-0.5 block text-[11px] font-medium text-ink'
+  const lab = 'mb-0.5 block text-meta font-medium text-ink'
 
   return (
     <div className="grid gap-3 text-xs">
@@ -111,14 +111,14 @@ export default function NodeAuthor() {
 
       {metrics.map((m, i) => (
         <fieldset key={i} className="rounded-lg border border-line p-2.5" onFocus={() => setFocus(i)}>
-          <legend className="px-1 text-[11px] font-semibold">Metric {i + 1}</legend>
+          <legend className="px-1 text-meta font-semibold">Metric {i + 1}</legend>
           <div className="grid grid-cols-6 gap-2">
             <label className="col-span-3"><span className={lab}>Label</span><input className={field} value={m.label} onChange={(e) => setM(i, { label: e.target.value })} placeholder="Facade-to-core depth" /></label>
             <label className="col-span-1"><span className={lab}>Unit</span><input className={field} value={m.unit} onChange={(e) => setM(i, { unit: e.target.value })} /></label>
             <label className="col-span-2"><span className={lab}>One result per</span><select className={field} value={m.per} onChange={(e) => setM(i, { per: e.target.value as 'tower' | 'project' })}><option value="tower">tower</option><option value="project">project</option></select></label>
             <label className="col-span-6"><span className={lab}>Formula</span>
               <input className={`${field} font-mono`} value={m.expression} onChange={(e) => setM(i, { expression: e.target.value })} placeholder="(tower.minSide - sqrt(tower.coreArea)) / 2" aria-invalid={!!m.expression && !parsed[i].ok} />
-              <span role="status" className={`mt-0.5 block text-[11px] ${parsed[i].ok ? 'text-emerald-800' : 'text-muted'}`}>{parsed[i].ok ? `Reads ${[...variablesOf(parse(m.expression))].join(', ') || 'no design values'}` : parsed[i].msg}</span>
+              <span role="status" className={`mt-0.5 block text-meta ${parsed[i].ok ? 'text-emerald-800' : 'text-muted'}`}>{parsed[i].ok ? `Reads ${[...variablesOf(parse(m.expression))].join(', ') || 'no design values'}` : parsed[i].msg}</span>
             </label>
             <label className="col-span-3"><span className={lab}>Good and bad</span><select className={field} value={m.direction} onChange={(e) => setM(i, { direction: e.target.value as Direction })}>{DIRECTIONS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
             {m.direction !== 'info' && <>
@@ -131,21 +131,21 @@ export default function NodeAuthor() {
             <label className="col-span-2"><span className={lab}>Page or clause</span><input className={field} value={m.page} onChange={(e) => setM(i, { page: e.target.value })} /></label>
             <label className="col-span-4"><span className={lab}>Link (https://…)</span><input className={field} value={m.url} onChange={(e) => setM(i, { url: e.target.value })} /></label>
           </div>
-          {metrics.length > 1 && <button onClick={() => setMetrics((ms) => ms.filter((_, j) => j !== i))} className="mt-2 flex items-center gap-1 text-[11px] text-muted hover:text-red-700"><Trash2 size={12} aria-hidden />Remove this metric</button>}
+          {metrics.length > 1 && <button onClick={() => setMetrics((ms) => ms.filter((_, j) => j !== i))} className="mt-2 flex items-center gap-1 text-meta text-muted hover:text-red-700"><Trash2 size={12} aria-hidden />Remove this metric</button>}
         </fieldset>
       ))}
-      {metrics.length < 3 && <button onClick={() => setMetrics((ms) => [...ms, blankMetric()])} className="flex w-fit items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent"><Plus size={12} aria-hidden />Add a metric</button>}
+      {metrics.length < 3 && <button onClick={() => setMetrics((ms) => [...ms, blankMetric()])} className="flex w-fit items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-accent"><Plus size={12} aria-hidden />Add a metric</button>}
 
       <div className="rounded-lg border border-line p-2.5">
-        <div className="flex items-center gap-2"><span className="text-[11px] font-semibold">Design values a formula can read</span>
+        <div className="flex items-center gap-2"><span className="text-meta font-semibold">Design values a formula can read</span>
           <input className={`${field} ml-auto w-44`} value={varQuery} onChange={(e) => setVarQuery(e.target.value)} placeholder="Search, e.g. core, office" aria-label="Search design values" /></div>
         <div className="mt-1.5 grid gap-0.5">
           {vars.map((v) => (
             <button key={v.name} onClick={() => setM(focus, { expression: `${metrics[focus]?.expression ?? ''}${metrics[focus]?.expression ? ' ' : ''}${v.name}` })} title={`Add to metric ${focus + 1}'s formula`}
-              className="flex items-baseline gap-2 rounded px-1 py-0.5 text-left hover:bg-black/5"><span className="font-mono text-[11px] text-accent">{v.name}</span><span className="text-[11px] text-muted">{v.label} ({v.unit})</span></button>
+              className="flex items-baseline gap-2 rounded px-1 py-0.5 text-left hover:bg-black/5"><span className="font-mono text-meta text-accent">{v.name}</span><span className="text-meta text-muted">{v.label} ({v.unit})</span></button>
           ))}
         </div>
-        <p className="mt-1 text-[11px] text-muted">Also + − × ÷, min, max, sqrt, abs, round and NA (not available). No code runs: formulas are read by the app's own parser.</p>
+        <p className="mt-1 text-meta text-muted">Also + − × ÷, min, max, sqrt, abs, round and NA (not available). No code runs: formulas are read by the app's own parser.</p>
       </div>
 
       <div className="grid gap-2">
@@ -153,15 +153,15 @@ export default function NodeAuthor() {
         <label><span className={lab}>What stays a human judgement</span><textarea className={`${field} h-12`} value={human} onChange={(e) => setHuman(e.target.value)} /></label>
         <label><span className={lab}>Limits: what this check does not cover</span><textarea className={`${field} h-12`} value={limits} onChange={(e) => setLimits(e.target.value)} /></label>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-1.5"><span className="text-[11px]">Licence</span><select className={`${field} w-auto`} value={licence} onChange={(e) => setLicence(e.target.value)}><option>CC-BY-4.0</option><option>MIT</option></select></label>
-          <label className="flex items-center gap-1.5 text-[11px]"><input type="checkbox" checked={tests} onChange={(e) => setTests(e.target.checked)} />Add tests from the sample designs (today's values, so later edits that change a result show up)</label>
+          <label className="flex items-center gap-1.5"><span className="text-meta">Licence</span><select className={`${field} w-auto`} value={licence} onChange={(e) => setLicence(e.target.value)}><option>CC-BY-4.0</option><option>MIT</option></select></label>
+          <label className="flex items-center gap-1.5 text-meta"><input type="checkbox" checked={tests} onChange={(e) => setTests(e.target.checked)} />Add tests from the sample designs (today's values, so later edits that change a result show up)</label>
         </div>
       </div>
 
       {preview.length > 0 && (
         <div className="rounded-lg border border-line p-2.5" aria-live="polite">
-          <div className="text-[11px] font-semibold">On the sample designs</div>
-          <table className="mt-1 w-full text-[11px]"><tbody>
+          <div className="text-meta font-semibold">On the sample designs</div>
+          <table className="mt-1 w-full text-meta"><tbody>
             {preview.flatMap(({ fx, res }) => res.slice(0, 4).map((r) => (
               <tr key={`${fx.id}-${r.id}`} className="border-t border-line/60"><td className="py-0.5 pr-2 text-muted">{fx.label}{r.towerName ? ` · ${r.towerName}` : ''}</td><td className="pr-2">{r.label}</td><td className="tabular-nums">{r.value}</td><td className="pl-2 text-muted">{r.info ? 'information' : r.state}</td></tr>
             )))}
@@ -171,7 +171,7 @@ export default function NodeAuthor() {
 
       <div className="flex items-center gap-2">
         <button onClick={send} disabled={missing.length > 0} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"><Wand2 size={13} aria-hidden />Check and add</button>
-        <span className="text-[11px] text-muted" role="status">{missing.length ? `Still needed: ${missing.slice(0, 4).join(', ')}${missing.length > 4 ? ` and ${missing.length - 4} more` : ''}` : 'Ready: the next screen checks the package and runs its tests.'}</span>
+        <span className="text-meta text-muted" role="status">{missing.length ? `Still needed: ${missing.slice(0, 4).join(', ')}${missing.length > 4 ? ` and ${missing.length - 4} more` : ''}` : 'Ready: the next screen checks the package and runs its tests.'}</span>
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ import { addReview, useTrace } from '../lib/trace/trace'
 
 const DEONTIC_OPTIONS: [Deontic, string][] = [['obligation', 'Obligation (must)'], ['prohibition', 'Prohibition (must not)'], ['permission', 'Permission (may)'], ['recommendation', 'Guidance only (binds no one)']]
 const STRENGTH_OPTIONS: [Strength, string][] = [['strict', 'Strict: no exceptions in the text'], ['defeasible', 'Defeasible: exceptions or departures allowed']]
-const input = 'w-full rounded border border-line bg-panel px-1.5 py-1 text-[11px] outline-none focus:border-accent'
+const input = 'w-full rounded border border-line bg-panel px-1.5 py-1 text-meta outline-none focus:border-accent'
 const DEONTIC_WORD = Object.fromEntries(DEONTIC_OPTIONS) as Record<Deontic, string>
 
 function Mark({ ok }: { ok: boolean }) {
@@ -32,9 +32,9 @@ export default function CardReviewForm({ card: c, onDone }: { card: RuleCard; on
   }
 
   return (
-    <div className="mt-2 rounded-md border border-accent/40 bg-accent/[0.03] p-2 text-[11px]">
+    <div className="mt-2 rounded-md border border-accent/40 bg-accent/[0.03] p-2 text-meta">
       <div className="font-semibold">Blind-first review</div>
-      <p className="mt-0.5 text-[10px] text-slate-600">
+      <p className="mt-0.5 text-meta text-slate-600">
         Open the source and read the clause yourself:{' '}
         {c.source.url ? <a href={c.source.url} target="_blank" rel="noreferrer" className="text-accent underline">{c.source.label}</a> : <b>{c.source.label}</b>}
         {c.source.page ? <>, <b>{c.source.page}</b></> : null}. Type what it says before you see the card.
@@ -54,29 +54,29 @@ export default function CardReviewForm({ card: c, onDone }: { card: RuleCard; on
               <select className={input} aria-label="Strength" value={reading.strength} onChange={(e) => set({ strength: e.target.value as Strength })}><option value="">Choose…</option>{STRENGTH_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           </div>
           <div className="flex items-center gap-2">
-            <button disabled={!ready} onClick={() => setShown(true)} className="rounded bg-ink px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40">Show the card</button>
-            <button onClick={onDone} className="text-[11px] text-muted hover:underline">Cancel</button>
-            {!ready && <span className="text-[10px] text-muted">Name, your reading, type and strength first.</span>}
+            <button disabled={!ready} onClick={() => setShown(true)} className="rounded bg-ink px-2 py-1 text-meta font-semibold text-white disabled:opacity-40">Show the card</button>
+            <button onClick={onDone} className="text-meta text-muted hover:underline">Cancel</button>
+            {!ready && <span className="text-meta text-muted">Name, your reading, type and strength first.</span>}
           </div>
         </div>
       ) : (
         <div className="mt-2 grid gap-2">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded border border-line p-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Your reading</div>
+              <div className="text-meta font-semibold text-muted">Your reading</div>
               <div className="mt-0.5 text-slate-800">{reading.requires || '—'}</div>
               {(reading.parameter || reading.rule) && <div className="mt-0.5 text-slate-700">{reading.parameter || '—'}: <b>{reading.rule || '—'}</b></div>}
               <div className="mt-0.5">{reading.deontic && DEONTIC_WORD[reading.deontic]} · {reading.strength}</div>
             </div>
             <div className="rounded border border-line p-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">The card</div>
+              <div className="text-meta font-semibold text-muted">The card</div>
               <div className="mt-0.5 text-slate-800">{c.summary}</div>
               <div className="mt-0.5 text-slate-700">{c.parameter}: <b>{c.rule}</b></div>
               <div className="mt-0.5">{DEONTIC_WORD[c.deontic]} <Mark ok={reading.deontic === c.deontic} /> · {c.strength} <Mark ok={reading.strength === c.strength} /></div>
             </div>
           </div>
           {(reading.deontic !== c.deontic || reading.strength !== c.strength) && (
-            <p className="rounded bg-amber-50 px-2 py-1 text-[10px] text-amber-900">Your reading differs on {[reading.deontic !== c.deontic && 'type', reading.strength !== c.strength && 'strength'].filter(Boolean).join(' and ')}. Even if you agree now, the card is marked disputed until whoever drafted it and you settle the difference.</p>
+            <p className="rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">Your reading differs on {[reading.deontic !== c.deontic && 'type', reading.strength !== c.strength && 'strength'].filter(Boolean).join(' and ')}. Even if you agree now, the card is marked disputed until whoever drafted it and you settle the difference.</p>
           )}
           <fieldset className="flex flex-wrap items-center gap-3">
             <legend className="sr-only">Verdict</legend>
@@ -86,10 +86,10 @@ export default function CardReviewForm({ card: c, onDone }: { card: RuleCard; on
           </fieldset>
           <label className="grid gap-0.5"><span className="text-muted">Note{verdict === 'disagree' ? ' (required: what is wrong?)' : ' (optional)'}</span><textarea className={input} aria-label="Note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} /></label>
           <div className="flex items-center gap-2">
-            <button disabled={!verdict || (verdict === 'disagree' && !note.trim())} onClick={save} className="rounded bg-ink px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40">Save review</button>
-            <button onClick={onDone} className="text-[11px] text-muted hover:underline">Cancel</button>
+            <button disabled={!verdict || (verdict === 'disagree' && !note.trim())} onClick={save} className="rounded bg-ink px-2 py-1 text-meta font-semibold text-white disabled:opacity-40">Save review</button>
+            <button onClick={onDone} className="text-meta text-muted hover:underline">Cancel</button>
           </div>
-          <p className="text-[10px] text-muted">Saved in the project's trace with your name, the time you took and the card version. Editing the card later makes this review stale.</p>
+          <p className="text-meta text-muted">Saved in the project's trace with your name, the time you took and the card version. Editing the card later makes this review stale.</p>
         </div>
       )}
     </div>

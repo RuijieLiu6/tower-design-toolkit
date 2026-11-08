@@ -41,7 +41,7 @@ export default function Onboarding() {
           ))}
         </ol>
         <div className="mt-5 flex items-center justify-between">
-          <span className="text-[11px] text-muted"><Kbd>P</Kbd> place tower · <Kbd>M</Kbd><Kbd>R</Kbd> move, rotate · <Kbd>Esc</Kbd> stop · <Kbd>1</Kbd><Kbd>2</Kbd><Kbd>3</Kbd> stages · <Kbd>H</Kbd> hide overlays</span>
+          <span className="text-meta text-muted"><Kbd>P</Kbd> place tower · <Kbd>M</Kbd><Kbd>R</Kbd> move, rotate · <Kbd>Esc</Kbd> stop · <Kbd>1</Kbd><Kbd>2</Kbd><Kbd>3</Kbd> stages · <Kbd>H</Kbd> hide overlays</span>
           <span className="flex items-center gap-3">
             <button onClick={() => { set({ showOnboarding: false }); navigate('guide') }} className="text-xs font-medium text-accent hover:underline">Read the user guide</button>
             <button onClick={() => set({ showOnboarding: false })} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90">Start designing</button>

@@ -42,14 +42,14 @@ export default function QuickSearch({ at, entries, onPick, onClose }: {
                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${researched ? 'border border-dashed border-slate-400 text-slate-500' : 'text-white'}`} style={researched ? undefined : { background: e.color }}><Icon size={15} aria-hidden /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-xs font-medium">{e.name}</span>
-                  <span className="flex items-center gap-1 text-[10px] text-muted">{researched && <FlaskConical size={10} aria-hidden />}{STATUS_LABEL[e.status]}{e.category ? ` · ${e.category}` : ''}</span>
+                  <span className="flex items-center gap-1 text-meta text-muted">{researched && <FlaskConical size={10} aria-hidden />}{STATUS_LABEL[e.status]}{e.category ? ` · ${e.category}` : ''}</span>
                 </span>
               </li>
             )
           })}
           {!list.length && <li className="px-3 py-3 text-xs text-muted">No node matches "{q}".</li>}
         </ul>
-        <div className="border-t border-line px-3 py-1.5 text-[10px] text-muted">↑ ↓ choose · Enter place · Esc close</div>
+        <div className="border-t border-line px-3 py-1.5 text-meta text-muted">↑ ↓ choose · Enter place · Esc close</div>
       </div>
     </div>
   )

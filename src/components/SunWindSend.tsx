@@ -141,7 +141,7 @@ export default function SunWindSend({ item }: { item: string }) {
       <div className="relative">
         <button role="menuitem" type="button" disabled={busy} onClick={sendToSunWind} className={`${item} pr-7`} data-testid="sunwind-send">
           {busy ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Sun size={13} className="mt-0.5" />}
-          <span><b>Send to Sun &amp; Wind Studio</b><br /><span className="text-[10px] text-muted">Sinnie Choi's sun, shadow, wind, daylight and energy studies; opens in a new window{project === 'city' ? `, with the buildings within ${SW_CONTEXT_RADIUS} m` : ', on its competition block'}</span></span>
+          <span><b>Send to Sun &amp; Wind Studio</b><br /><span className="text-meta text-muted">Sinnie Choi's sun, shadow, wind, daylight and energy studies; opens in a new window{project === 'city' ? `, with the buildings within ${SW_CONTEXT_RADIUS} m` : ', on its competition block'}</span></span>
         </button>
         <span className="absolute right-1.5 top-1.5"><Help label="How the Sun & Wind Studio link works">
           <p>The selected tower goes over as one solid per storey with its program (Toolkit uses mapped to Sun &amp; Wind Studio's list, a team assumption); the other design towers go as context.{project === 'city' ? ` In Real Vancouver the buildings within ${SW_CONTEXT_RADIUS} m (heights by source, seated on flat ground) replace its competition site.` : ' Both tools share the competition block frame, so the tower lands where it is here.'}</p>
@@ -149,16 +149,16 @@ export default function SunWindSend({ item }: { item: string }) {
           <p className="mt-1">One click needs the receiver on Sinnie's branch {SW_BRANCH} (not yet on her live page). The downloads work with her live page today.</p>
         </Help></span>
       </div>
-      {message && <p role="status" aria-live="polite" data-testid="sunwind-status" className={`px-2 pb-1 text-[10px] ${status === 'error' || status === 'noanswer' ? 'text-flag-false' : status === 'sent' ? 'text-ink' : 'text-muted'}`}>{message}</p>}
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 px-2 pb-1 text-[10px]">
+      {message && <p role="status" aria-live="polite" data-testid="sunwind-status" className={`px-2 pb-1 text-meta ${status === 'error' || status === 'noanswer' ? 'text-flag-false' : status === 'sent' ? 'text-ink' : 'text-muted'}`}>{message}</p>}
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 px-2 pb-1 text-meta">
         <button type="button" onClick={() => downloadForSunWind('model')} className="inline-flex items-center gap-1 text-accent hover:underline" data-testid="sunwind-download"><Download size={11} />Model for Sun &amp; Wind Studio (.json)</button>
         {project === 'city' && <button type="button" onClick={() => downloadForSunWind('site')} className="inline-flex items-center gap-1 text-accent hover:underline"><Download size={11} />Surroundings as its site (.json)</button>}
         <a href={SW_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline"><ExternalLink size={11} />Open it</a>
       </div>
-      <details className="px-2 pb-1 text-[10px] text-muted">
+      <details className="px-2 pb-1 text-meta text-muted">
         <summary className="cursor-pointer">Address</summary>
         <label className="mt-1 grid gap-0.5"><span>Sun &amp; Wind Studio page (a local copy of the branch for testing)</span>
-          <input value={address} onChange={(e) => setAddress(e.target.value)} spellCheck={false} className="rounded border border-line bg-white px-1 py-0.5 font-mono text-[10px] text-ink" aria-label="Sun & Wind Studio address" />
+          <input value={address} onChange={(e) => setAddress(e.target.value)} spellCheck={false} className="rounded border border-line bg-white px-1 py-0.5 font-mono text-meta text-ink" aria-label="Sun & Wind Studio address" />
         </label>
         {address.trim() !== SW_URL && <button type="button" onClick={() => setAddress(SW_URL)} className="mt-0.5 text-accent hover:underline">Back to Sinnie's live page</button>}
       </details>

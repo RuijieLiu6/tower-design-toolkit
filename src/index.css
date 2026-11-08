@@ -1,7 +1,44 @@
 @import "tailwindcss";
+/* Inter Variable, self-hosted (npm @fontsource-variable/inter, OFL-1.1) with the optical-size axis, so the offline app
+   keeps it and large headings get Inter's display cut. The single font of the landing page and the app (Ruijie, 7 Nov). */
+@import "@fontsource-variable/inter/opsz.css";
 
 @theme {
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Typography (Ruijie, 7 Nov), one size per role:
+       main heading 42/48 600 (32/38 on narrow screens), the only text with tighter letter spacing;
+       section heading 18/26 600; AI input and body 16/24 400; buttons, preset controls and node names 14/20 500;
+       secondary metadata 12/16 400. Body text keeps normal letter spacing; quantities use tabular numerals. */
+  --text-display: 42px;
+  --text-display--line-height: 48px;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.02em;
+  --text-display-sm: 32px;
+  --text-display-sm--line-height: 38px;
+  --text-display-sm--font-weight: 600;
+  --text-display-sm--letter-spacing: -0.015em;
+  --text-section: 18px;
+  --text-section--line-height: 26px;
+  --text-section--font-weight: 600;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-control: 14px;
+  --text-control--line-height: 20px;
+  --text-control--font-weight: 500;
+  --text-node: 14px;
+  --text-node--line-height: 20px;
+  --text-node--font-weight: 500;
+  --text-meta: 12px;
+  --text-meta--line-height: 16px;
+  /* Tailwind's own steps on the same scale: xs = metadata, sm = controls, base = body, lg = section heading. */
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 26px;
   /* Glass UI (Ruijie, 7 Nov: "all of my button transparent and all windows with rounded edge, prioritize information
      through different gradient of transparency"). Surfaces are translucent white over a soft Vancouver backdrop
      (forest, sea, mist; see body); the more important a surface, the more opaque it is: glass-1 key windows, glass-2
@@ -63,6 +100,7 @@ html, body, #root { height: 100%; }
    middle, forest low on the left; kept light enough for dark and muted text. */
 body {
   color: var(--color-ink); -webkit-font-smoothing: antialiased;
+  font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; letter-spacing: normal; font-optical-sizing: auto;
   background-color: #e9f0e8;
   background-image:
     radial-gradient(55% 50% at 82% 4%, rgb(255 255 255 / 0.95), transparent 70%),
@@ -241,3 +279,9 @@ body::before {
 
 /* The Toolkit icon set (components/icons): its stroke keeps the same width on screen at any icon size. */
 .tdt-icon * { vector-effect: non-scaling-stroke; }
+
+/* Aligned quantities and measurements read in tabular numerals (Ruijie, 7 Nov): table cells, number inputs and the
+   value spans already marked tabular-nums. */
+:where(td, th, input[type="number"], output, [data-num]) { font-variant-numeric: tabular-nums; }
+/* Form controls take the page's font (browsers give them their own). */
+:where(button, input, select, textarea) { font-family: inherit; }

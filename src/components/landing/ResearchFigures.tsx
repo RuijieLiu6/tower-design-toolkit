@@ -32,18 +32,18 @@ export default function ResearchFigures() {
   return (
     <section aria-labelledby="research-title" data-testid="landing-research" className="glass-edge grid gap-4 rounded-3xl bg-glass-3 p-4 md:p-5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <h2 id="research-title" className="text-[22px] font-semibold tracking-[-0.01em] text-ink">How the toolkit runs</h2>
+        <h2 id="research-title" className="text-section text-ink">How the toolkit runs</h2>
         <div role="tablist" aria-label="Figures" className="flex flex-wrap gap-1" onKeyDown={onKey}>
           {FIGS.map((f) => (
             <button key={f.id} id={`research-tab-${f.id}`} type="button" role="tab" aria-selected={shown === f.id} aria-controls="research-figure" tabIndex={shown === f.id ? 0 : -1}
               onClick={() => setShown(f.id)}
-              className={`rounded-full px-3 py-1.5 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-accent ${shown === f.id ? 'bg-ink font-semibold text-white' : 'text-muted hover:bg-white/50 hover:text-ink'}`}>
+              className={`rounded-full px-3 py-1.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${shown === f.id ? 'bg-ink font-semibold text-white' : 'text-muted hover:bg-white/50 hover:text-ink'}`}>
               {f.title}
             </button>
           ))}
         </div>
         <a href={RESEARCH} target="_blank" rel="noreferrer" title="The figures come from the research site, by the same team"
-          className="ml-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">
+          className="ml-auto flex items-center gap-1.5 rounded-full px-2 py-1 text-control text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">
           Read the full research<ExternalLink size={14} aria-hidden />
         </a>
       </div>

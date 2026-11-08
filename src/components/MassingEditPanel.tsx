@@ -50,7 +50,7 @@ export function MassingEditCard({ t }: { t: Tower }) {
   if (phase !== 'basic') return null
   return (
     <section aria-labelledby="massing-edit-head" data-testid="massing-edit" className="grid gap-1.5 rounded-md border border-accent/30 bg-accent/[0.04] p-2">
-      <h4 id="massing-edit-head" className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
+      <h4 id="massing-edit-head" className="flex items-center gap-1.5 text-meta font-semibold text-ink">
         Edit on the model
         <Help label="About editing on the model">
           After Sinnie Choi's Downtown Massing Tool. The view stays framed on the tower at one scale (zoom and pan locked;
@@ -105,7 +105,7 @@ function BlockStack({ t, picked, label }: { t: Tower; picked: string | null; lab
           )
         })}
       </svg>
-      <figcaption className="text-[11px] text-muted">{picked && spans.some((s) => s.block.id === picked) ? <><b className="text-ink">{label(spans.findIndex((s) => s.block.id === picked))}</b> picked</> : 'Click a block, here or on the model'}</figcaption>
+      <figcaption className="text-meta text-muted">{picked && spans.some((s) => s.block.id === picked) ? <><b className="text-ink">{label(spans.findIndex((s) => s.block.id === picked))}</b> picked</> : 'Click a block, here or on the model'}</figcaption>
     </figure>
   )
 }
@@ -117,11 +117,11 @@ export function GenerateFold() {
   useEffect(() => { if (placed) setOpen(true) }, [placed])
   return (
     <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)} className="group border-b border-line px-4 py-3 last:border-b-0" data-testid="massing-generate">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-semibold text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-meta font-semibold text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent [&::-webkit-details-marker]:hidden">
         <Sparkles size={13} aria-hidden className="text-accent" />Generate a massing from a brief
         <span className="font-normal">· Sinnie Choi's Downtown Massing Tool</span>
       </summary>
-      <Suspense fallback={<p className="py-2 text-[11px] text-muted">Loading the generator…</p>}>
+      <Suspense fallback={<p className="py-2 text-meta text-muted">Loading the generator…</p>}>
         <div className="-mx-3"><GenerateTool /></div>
       </Suspense>
     </details>

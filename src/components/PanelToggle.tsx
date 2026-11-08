@@ -14,7 +14,7 @@ export function PanelRail({ side, label }: { side: Side; label: string }) {
         className="flex h-7 w-7 items-center justify-center rounded text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
         <Icon size={15} aria-hidden />
       </button>
-      <span aria-hidden className="select-none text-[11px] text-muted [writing-mode:vertical-rl]">{label}</span>
+      <span aria-hidden className="select-none text-meta text-muted [writing-mode:vertical-rl]">{label}</span>
     </div>
   )
 }

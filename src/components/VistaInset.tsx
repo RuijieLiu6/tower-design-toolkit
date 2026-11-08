@@ -54,7 +54,7 @@ export default function VistaInset() {
   const towerWord = t ? word(tx, ty, t.name, towerUp) : null
   const [x0, y0, x1, y1] = BOUNDS
   return (
-    <div data-testid="vista-inset" className="pointer-events-none absolute bottom-3 right-3 rounded-md border border-line bg-white/85 p-1.5 text-[10px] text-slate-700 shadow-sm backdrop-blur-md">
+    <div data-testid="vista-inset" className="pointer-events-none absolute bottom-3 right-3 rounded-md border border-line bg-white/85 p-1.5 text-meta text-slate-700 shadow-sm backdrop-blur-md">
       <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="img"
         aria-label={`Location map, north up: you at ${vp.label}${t ? `, ${t.name} ${km(dist)} away` : ''}, looking ${compass(v.bearing)} with a ${Math.round(v.hfov)}° field${frame.extentExceeded ? '. The model ends at the outlined edge.' : ''}`}>
         <defs><clipPath id="vista-inset-clip"><rect x={0} y={0} width={S} height={S} rx={4} /></clipPath></defs>

@@ -27,7 +27,7 @@ const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
 function Step({ n, title, help, children }: { n: string; title: string; help?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="border-t border-line px-3 py-2.5 first:border-t-0">
-      <h4 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-ink"><span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent">{n}</span>{title}{help && <Help label={`How to: ${title}`}>{help}</Help>}</h4>
+      <h4 className="mb-1.5 flex items-center gap-1.5 text-meta font-semibold text-ink"><span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent/15 text-meta text-accent">{n}</span>{title}{help && <Help label={`How to: ${title}`}>{help}</Help>}</h4>
       {children}
     </div>
   )
@@ -36,7 +36,7 @@ function Step({ n, title, help, children }: { n: string; title: string; help?: R
 export default function SiteStart() {
   const project = useStore((s) => s.project)
   return (
-    <div className="text-[11px]" data-testid="site-start">
+    <div className="text-meta" data-testid="site-start">
       {project === 'city' ? <CityStart /> : <VtcSite />}
     </div>
   )

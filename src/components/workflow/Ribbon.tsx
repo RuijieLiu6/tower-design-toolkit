@@ -28,7 +28,7 @@ function Tile({ e, onAdd, names, onHover }: { e: Entry; onAdd: (e: Entry) => voi
       title={`${e.name} · ${STATUS_LABEL[e.status]}`} aria-label={`Add ${e.name} (${STATUS_LABEL[e.status]})`}
       className={`gicon-lift flex shrink-0 cursor-grab items-center rounded-xl outline-none hover:bg-white/40 focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing ${names ? 'w-[76px] flex-col gap-1 px-1 py-1 text-center' : 'p-0.5'}`}>
       {glyph}
-      {names && <span className={`line-clamp-2 text-[10px] leading-tight ${researched ? 'text-muted' : 'text-ink'}`}>{e.name}</span>}
+      {names && <span className={`line-clamp-2 text-meta leading-tight ${researched ? 'text-muted' : 'text-ink'}`}>{e.name}</span>}
     </button>
   )
 }
@@ -40,7 +40,7 @@ function Panel({ title, entries, onAdd, names, onHover }: { title: string; entri
       <div className={`flex-1 px-1.5 pt-1 ${names ? 'flex items-start gap-0.5' : 'grid grid-flow-col grid-rows-2 content-start justify-start gap-0.5'}`}>
         {entries.map((e) => <Tile key={e.ref} e={e} onAdd={onAdd} names={names} onHover={onHover} />)}
       </div>
-      <div className="flex items-center justify-center gap-1 whitespace-nowrap border-t border-line/70 px-2 py-0.5 text-[9.5px] uppercase tracking-wider text-muted">
+      <div className="flex items-center justify-center gap-1 whitespace-nowrap border-t border-line/70 px-2 py-0.5 text-[9.5px] text-muted">
         {title.startsWith('Researched') && <FlaskConical size={10} aria-hidden />}{title} · {entries.length}
       </div>
     </div>
@@ -73,20 +73,20 @@ export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNode
             const on = t.id === tab
             return (
               <button key={t.id} role="tab" aria-selected={on} aria-controls="ribbon-panel" onClick={() => setTab(t.id)} title={t.label}
-                className={`flex shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 px-2 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${on ? 'border-line bg-paper font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
+                className={`flex shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${on ? 'border-line bg-paper font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
                 <span className="flex h-4 w-4 items-center justify-center rounded-sm text-white" style={{ background: t.color }}><Icon size={10} aria-hidden /></span>
-                {t.short}<span className="hidden font-mono text-[9px] opacity-60 2xl:inline">{counts[t.id] ?? 0}</span>
+                {t.short}<span className="hidden font-mono text-meta opacity-60 2xl:inline">{counts[t.id] ?? 0}</span>
               </button>
             )
           })}
         </div>
         <div className="flex shrink-0 items-center gap-1 pb-1">
           <button onClick={toggleNames} aria-pressed={names} title={names ? 'Icons only (Grasshopper style)' : 'Show node names under the icons'}
-            className={`flex items-center gap-1 rounded-md border px-1.5 py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent ${names ? 'border-accent/50 bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>
+            className={`flex items-center gap-1 rounded-md border px-1.5 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${names ? 'border-accent/50 bg-accent/10 text-accent' : 'border-line text-muted hover:text-ink'}`}>
             <Type size={12} aria-hidden /><span className="hidden lg:inline">Names</span>
           </button>
-          <button onClick={onSearch} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 text-[11px] text-muted outline-none hover:border-accent hover:text-ink focus-visible:ring-2 focus-visible:ring-accent" title="Search all nodes (/ or double-click the canvas)">
-            <Search size={12} aria-hidden /><span className="hidden lg:inline">Find a node</span><kbd className="rounded border border-line px-1 font-mono text-[9px]">/</kbd>
+          <button onClick={onSearch} className="flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 text-meta text-muted outline-none hover:border-accent hover:text-ink focus-visible:ring-2 focus-visible:ring-accent" title="Search all nodes (/ or double-click the canvas)">
+            <Search size={12} aria-hidden /><span className="hidden lg:inline">Find a node</span><kbd className="rounded border border-line px-1 font-mono text-meta">/</kbd>
           </button>
         </div>
       </div>
@@ -95,21 +95,21 @@ export default function Ribbon({ tab, setTab, onAdd, onSearch, community, onNode
         <div className="flex w-44 shrink-0 flex-col justify-center gap-0.5 border-r border-line px-3">
           {hover ? (
             <>
-              <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{hover.name}</span>
-              <span className="flex items-center gap-1 text-[10px] text-muted">{hover.status === 'researched' && <FlaskConical size={10} aria-hidden />}{STATUS_LABEL[hover.status]}</span>
+              <span className="line-clamp-2 text-meta font-semibold leading-tight">{hover.name}</span>
+              <span className="flex items-center gap-1 text-meta text-muted">{hover.status === 'researched' && <FlaskConical size={10} aria-hidden />}{STATUS_LABEL[hover.status]}</span>
               <span className="text-[9.5px] text-muted">Drag onto the canvas, or click</span>
             </>
           ) : (
             <>
-              <span className="text-[11px] font-semibold leading-tight">{tabDef.label}</span>
-              <span className="text-[10px] text-muted">{here.length} node{here.length === 1 ? '' : 's'} · drag or click to add</span>
+              <span className="text-meta font-semibold leading-tight">{tabDef.label}</span>
+              <span className="text-meta text-muted">{here.length} node{here.length === 1 ? '' : 's'} · drag or click to add</span>
             </>
           )}
         </div>
         {tab === 'MINE' ? (
           <>
             <Panel title="My nodes" entries={here} {...panel} />
-            <div className="flex max-w-md flex-col justify-center gap-1.5 px-4 text-[11px] text-muted">
+            <div className="flex max-w-md flex-col justify-center gap-1.5 px-4 text-meta text-muted">
               {!here.length && <p>No imported nodes yet. A community node is a small JSON package (tower-studio-node@1) with formulas, thresholds and their sources.</p>}
               <div className="flex flex-wrap gap-1.5">
                 <button onClick={() => onNodeBuilder('build')} title="Copy the node-builder skill to your AI, then paste the package it writes"

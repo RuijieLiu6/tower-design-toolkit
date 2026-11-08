@@ -76,7 +76,7 @@ export default function TowerToolbar() {
         <button type="button" onClick={clearPick} aria-label="Deselect the tower" aria-keyshortcuts="Escape" title="Deselect (Esc)"
           className={`ml-auto rounded p-1 text-slate-600 hover:bg-black/5 hover:text-ink ${focusRing}`}><X size={14} aria-hidden /></button>
       </div>
-      {placing && !locked && <p data-testid="toolbar-placing" className="rounded bg-ink/85 px-1.5 py-0.5 text-[11px] text-white">Click the ground where it should stand · Esc keeps it where it is</p>}
+      {placing && !locked && <p data-testid="toolbar-placing" className="rounded bg-ink/85 px-1.5 py-0.5 text-meta text-white">Click the ground where it should stand · Esc keeps it where it is</p>}
       {locked ? (
         <p className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
           <LockKeyhole size={13} aria-hidden />Locked in Present
@@ -148,11 +148,11 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <b className="font-semibold">Moving {t.name}</b>
         <span className="tabular-nums text-slate-600">{dist >= 0.005 ? formatLength(dist, unit) : ''}{dist >= 0.005 && Math.abs(turn) >= 0.005 ? ' · ' : ''}{Math.abs(turn) >= 0.005 ? `${turn > 0 ? '+' : ''}${fmt(turn)}°` : ''}</span>
-        {snapped && <span className="flex items-center gap-1 rounded bg-[#fff3d6] px-1 text-[11px] text-[#6e4a00]"><Magnet size={11} aria-hidden />{snapped}</span>}
+        {snapped && <span className="flex items-center gap-1 rounded bg-[#fff3d6] px-1 text-meta text-[#6e4a00]"><Magnet size={11} aria-hidden />{snapped}</span>}
       </div>
       {align && (
         // What the placement lined the tower up with (lib/lotAlign.ts); the lot lines it used are amber in 3D.
-        <p className="mt-0.5 flex items-start gap-1 rounded bg-[#fff3d6] px-1 py-0.5 text-[11px] text-[#6e4a00]" data-testid="align-hint"
+        <p className="mt-0.5 flex items-start gap-1 rounded bg-[#fff3d6] px-1 py-0.5 text-meta text-[#6e4a00]" data-testid="align-hint"
           title={align.how === 'lot' || align.how === 'nearby' ? 'City of Vancouver, Property parcel polygons (OGL-Vancouver, retrieved 2026-10-27)' : undefined}>
           <LandPlot size={12} aria-hidden className="mt-px shrink-0" /><span className="line-clamp-2">{tx(align.text)}</span>
         </p>
@@ -168,14 +168,14 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
         {openCones.map((r) => <StatusRow key={r.id} size="sm" state={r.state} title={r.title} value={tx(r.value)} fix={r.fix} flag={r.flag} />)}
         {cones && clear > 0 && <StatusRow size="sm" state="pass" title={openCones.length ? `${clear} more cone${clear === 1 ? '' : 's'}` : 'View cones'} value={openCones.length ? 'clear' : `clear in ${clear}`} />}
       </ul>
-      {wasCones && <p className="pl-[1.6rem] text-[11px] text-slate-600">Where it stands now: {wasCones.toLowerCase()}</p>}
+      {wasCones && <p className="pl-[1.6rem] text-meta text-slate-600">Where it stands now: {wasCones.toLowerCase()}</p>}
       {project === 'city' && (
-        <p className="flex items-center gap-1 pl-[1.6rem] text-[11px] text-slate-600">
+        <p className="flex items-center gap-1 pl-[1.6rem] text-meta text-slate-600">
           Base {formatLength(report.base, unit, 1)} · top {formatLength(top, unit, 1)}
           <Help label="About the base">{tx(report.baseNote)}. Geodetic heights (CGVD28).</Help>
         </p>
       )}
-      <p className="mt-0.5 text-[11px] text-slate-600">Release to place it here (Ctrl+Z undoes it) · Esc keeps it where it was</p>
+      <p className="mt-0.5 text-meta text-slate-600">Release to place it here (Ctrl+Z undoes it) · Esc keeps it where it was</p>
     </section>
   )
 }
@@ -189,7 +189,7 @@ function AppliedNote({ id }: { id: string }) {
   const text = a.align ? convertText(a.align.text, unit) : snapped
   if (!text) return null
   return (
-    <p className="flex items-start gap-1 rounded bg-[#fff3d6] px-1 py-0.5 text-[11px] text-[#6e4a00]" data-testid="align-hint">
+    <p className="flex items-start gap-1 rounded bg-[#fff3d6] px-1 py-0.5 text-meta text-[#6e4a00]" data-testid="align-hint">
       {a.align ? <LandPlot size={12} aria-hidden className="mt-px shrink-0" /> : <Magnet size={12} aria-hidden className="mt-px shrink-0" />}<span className="line-clamp-2">{text}</span>
     </p>
   )

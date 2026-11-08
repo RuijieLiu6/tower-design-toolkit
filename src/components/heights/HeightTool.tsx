@@ -20,9 +20,9 @@ export default function HeightTool() {
   const { heights, error, loading } = useTowerHeights(t)
   const [dismissed, setDismissed] = useState<string | null>(null)
   const [undo, setUndo] = useState<{ id: string; blocks: Block[]; from: number; to: number } | null>(null)
-  if (!t) return <p className="text-[11px] text-muted">Add a tower to see its height suggestion.</p>
-  if (error) return <p className="text-[11px] text-flag-unresolved">Height references did not load: {error}</p>
-  if (loading || !heights) return <p className="text-[11px] text-muted">Loading the zoning references and cone surfaces…</p>
+  if (!t) return <p className="text-meta text-muted">Add a tower to see its height suggestion.</p>
+  if (error) return <p className="text-meta text-flag-unresolved">Height references did not load: {error}</p>
+  if (loading || !heights) return <p className="text-meta text-muted">Loading the zoning references and cone surfaces…</p>
   const s = heights.stack
   const key = `${t.id}:${s?.maxHeightM?.toFixed(2)}:${s?.currentHeightM.toFixed(2)}`
   const details = () => useStore.getState().selectNode('built.heights')
@@ -41,7 +41,7 @@ export default function HeightTool() {
   }
 
   return (
-    <div className="space-y-1.5 text-[11px] text-slate-600">
+    <div className="space-y-1.5 text-meta text-slate-600">
       {/* The banner goes once the app's own undo (Ctrl+Z) or an edit has moved the tower off the adjusted height. */}
       {undo && undo.id === t.id && s && Math.abs(s.currentHeightM - undo.to) < 0.01 && (
         <div className="flex items-center justify-between gap-2 rounded border border-line bg-slate-50 px-1.5 py-1">

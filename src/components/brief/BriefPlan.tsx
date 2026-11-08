@@ -38,23 +38,23 @@ export default function BriefPlan() {
   return (
     <div className="grid gap-3 px-4 pb-3 pt-1 text-xs">
       <div>
-        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted"><CalendarClock size={13} aria-hidden />Key dates · brief p.25</div>
+        <div className="mb-1 flex items-center gap-1.5 text-meta font-semibold text-muted"><CalendarClock size={13} aria-hidden />Key dates · brief p.25</div>
         <ul className="grid gap-0.5">
           {MILESTONES.map((m) => (
             <li key={m.date} className={`flex justify-between gap-2 ${m.date < today ? 'text-muted line-through decoration-muted/50' : ''}`}><span>{m.label}</span><span className="tabular-nums">{new Date(`${m.date}T12:00:00`).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}</span></li>
           ))}
         </ul>
-        <p className="mt-1 text-[11px] text-muted" role="status">{d.closed ? 'Upload has closed.' : <>Upload closes in <b className="text-ink tabular-nums">{Math.floor(d.days)}</b> days: {d.vancouver} in Vancouver.</>}</p>
+        <p className="mt-1 text-meta text-muted" role="status">{d.closed ? 'Upload has closed.' : <>Upload closes in <b className="text-ink tabular-nums">{Math.floor(d.days)}</b> days: {d.vancouver} in Vancouver.</>}</p>
       </div>
 
       <div>
         <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Suggested deliverables · p.30<Help label="About the deliverables list">The brief calls this list "a suggestion only". Each line says where the tool makes it; amber is what is not built yet.</Help></span>
-          <span className="tabular-nums text-[11px] text-muted">{met} of {DELIVERABLES.length} on the boards</span>
+          <span className="flex items-center gap-1.5 text-meta font-semibold text-muted">Suggested deliverables · p.30<Help label="About the deliverables list">The brief calls this list "a suggestion only". Each line says where the tool makes it; amber is what is not built yet.</Help></span>
+          <span className="tabular-nums text-meta text-muted">{met} of {DELIVERABLES.length} on the boards</span>
         </div>
         {groups.map((g) => (
           <div key={g} className="mb-1.5">
-            <div className="text-[11px] font-semibold">{g}</div>
+            <div className="text-meta font-semibold">{g}</div>
             <ul className="grid gap-1">
               {DELIVERABLES.filter((x) => x.group === g).map((x) => {
                 const w = WHERE[x.id], done = cov[x.id] >= x.min
@@ -63,8 +63,8 @@ export default function BriefPlan() {
                     {done ? <CircleCheck size={13} className="mt-0.5 shrink-0 text-emerald-700" aria-label="On the boards" /> : <CircleDashed size={13} className="mt-0.5 shrink-0 text-muted" aria-label="Not on the boards yet" />}
                     <span className="min-w-0">
                       <span className="font-medium">{x.label}</span>{x.min > 1 ? <span className="text-muted"> ({cov[x.id]} of {x.min})</span> : null}
-                      <span className="block text-[11px] text-muted">{w.how}</span>
-                      {w.gap && <span className="block text-[11px] text-amber-800">Not built yet: {w.gap}</span>}
+                      <span className="block text-meta text-muted">{w.how}</span>
+                      {w.gap && <span className="block text-meta text-amber-800">Not built yet: {w.gap}</span>}
                     </span>
                   </li>
                 )

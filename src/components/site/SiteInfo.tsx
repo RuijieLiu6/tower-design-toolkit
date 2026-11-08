@@ -32,7 +32,7 @@ import { placeFirstTower } from '../tools/NoTower'
 
 const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent'
 const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
-const card = 'm-3 rounded-lg border border-accent/35 bg-accent/[0.05] px-3 py-2.5 text-[11px] shadow-sm'
+const card = 'm-3 rounded-lg border border-accent/35 bg-accent/[0.05] px-3 py-2.5 text-meta shadow-sm'
 
 export default function SiteInfo() {
   const project = useStore((s) => s.project)
@@ -57,7 +57,7 @@ function TowerList() {
     setEditing(null); setGone(name)
   }
   return (
-    <section aria-labelledby="site-towers-title" data-testid="site-towers" className="mx-3 mb-3 rounded-lg border border-line bg-white px-3 py-2.5 text-[11px]">
+    <section aria-labelledby="site-towers-title" data-testid="site-towers" className="mx-3 mb-3 rounded-lg border border-line bg-white px-3 py-2.5 text-meta">
       <h3 id="site-towers-title" className="flex items-center gap-1.5 text-xs font-semibold text-ink">
         <Building2 size={14} className="text-accent" aria-hidden />Towers on this site<span className="font-normal text-muted">({towers.length})</span>
         <Help label="About the towers list">Every tower or volume you add (Form step, an upload, a Rhino link) shows here, marked New at first. Click a tower to select it; the pencil on the right opens its name and Delete. Undo brings a deleted tower back. Deleting the last one leaves the site empty again, ready to place a new tower.</Help>
@@ -77,7 +77,7 @@ function TowerList() {
               <div className="flex items-center gap-1.5 px-2 py-1.5">
                 <TowerGlyph t={t} max={Math.max(...all.map((x) => x.height))} />
                 <button type="button" onClick={() => { useStore.getState().selectTower(t.id); seenTower(t.id) }} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-current={t.id === selected ? 'true' : undefined}>
-                  <span className="flex items-center gap-1.5"><b className="truncate text-ink">{t.name}</b>{isNew && <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-900">New</span>}</span>
+                  <span className="flex items-center gap-1.5"><b className="truncate text-ink">{t.name}</b>{isNew && <span className="rounded bg-amber-100 px-1 text-meta font-semibold text-amber-900">New</span>}</span>
                   <span className="flex items-center gap-1 text-muted"><U>{`${Math.round(t.height)} m`}</U> · {floors} floor{floors === 1 ? '' : 's'}
                     {t.imported && <span className="ml-0.5 flex items-center gap-0.5" title={t.imported.format === 'generated' ? 'Generated from a brief' : 'From your model'}>{t.imported.format === 'generated' ? <Sparkles size={11} aria-hidden /> : <FileUp size={11} aria-hidden />}{t.imported.format === 'generated' ? 'generated' : 'your model'}</span>}</span>
                 </button>

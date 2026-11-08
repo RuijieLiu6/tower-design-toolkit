@@ -914,7 +914,7 @@ function GroundCard({ data, bare = false }: { data: CityData; bare?: boolean }) 
   const following = mode === 'terrain' && terrain !== null
   const btn = 'rounded border border-line bg-white px-1.5 py-0.5 font-medium text-ink hover:bg-slate-50'
   return (
-    <div className={bare ? 'text-[11px] text-slate-600' : 'w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'} data-testid="ground-card">
+    <div className={bare ? 'text-meta text-slate-600' : 'w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-meta text-slate-600 shadow-sm'} data-testid="ground-card">
       <div className="flex items-center justify-between gap-2">
         <b className="text-ink">Tower base {base.toFixed(1)} m</b>
         <FlagChip flag={following ? 'unverified' : 'team_assumption'} />
@@ -934,7 +934,7 @@ function GroundCard({ data, bare = false }: { data: CityData; bare?: boolean }) 
           ? <button type="button" className={btn} onClick={() => useStore.getState().set({ groundMode: 'manual' })}>Set the base by hand</button>
           : terrain !== null && <button type="button" className={btn} onClick={() => useStore.getState().set({ groundMode: 'terrain', groundElevation: terrain })}>Follow the terrain ({terrain.toFixed(1)} m)</button>}
       </div>
-      <div className="mt-1 text-[10px] text-slate-500">The base moves every view-cone result (top = base + height). One base for all towers in this project; edit it in Design.</div>
+      <div className="mt-1 text-meta text-slate-500">The base moves every view-cone result (top = base + height). One base for all towers in this project; edit it in Design.</div>
     </div>
   )
 }
@@ -960,7 +960,7 @@ export function HideUnderDesignCard({ inline = false, bare = false }: { inline?:
   const where = [underTowers.length ? `under ${underTowers.map((b) => b.name).join(', ')}` : '', bySite ? `${bySite.toLocaleString()} replaced by the study site` : ''].filter(Boolean).join('; ')
   const btn = 'mt-1 rounded border border-line bg-white px-2 py-0.5 font-medium text-ink hover:bg-slate-50'
   return (
-    <div className={bare ? 'text-[11px] text-slate-600' : inline ? 'mt-2 rounded-md border border-line p-2 text-[11px]' : 'w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-[11px] text-slate-600 shadow-sm'}>
+    <div className={bare ? 'text-meta text-slate-600' : inline ? 'mt-2 rounded-md border border-line p-2 text-meta' : 'w-80 shrink-0 rounded-md border border-line bg-white/95 px-2 py-1.5 text-meta text-slate-600 shadow-sm'}>
       {inline && <div className="font-medium text-ink">Existing buildings under the design</div>}
       <div aria-live="polite">
         {on
@@ -974,7 +974,7 @@ export function HideUnderDesignCard({ inline = false, bare = false }: { inline?:
         : <button type="button" className={btn} onClick={() => useHideUnderDesign.setState({ on: true })}>Hide the existing buildings under the design</button>}
       <div className="mt-1 flex items-start gap-1.5">
         <span className="shrink-0"><FlagChip flag={REMOVAL_FLAG} /></span>
-        <span className="text-[10px] leading-snug text-slate-500">{REMOVAL_CAVEAT} {REMOVAL_RULE} Hidden buildings leave the drawing, View from here and Vista's rooftop views; the view-study PDF states them. On by default (rule from Vista's automatic demolition); your choice is remembered in this browser.</span>
+        <span className="text-meta leading-snug text-slate-500">{REMOVAL_CAVEAT} {REMOVAL_RULE} Hidden buildings leave the drawing, View from here and Vista's rooftop views; the view-study PDF states them. On by default (rule from Vista's automatic demolition); your choice is remembered in this browser.</span>
       </div>
     </div>
   )
@@ -1078,7 +1078,7 @@ function ConeLayersInfo({ data }: { data: CityData }) {
           </li>
         ))}
       </ul>
-      <p className="text-[10px]">
+      <p className="text-meta">
         Existing buildings are tinted blue inside the view with a dark blue line where the estimate crosses them; the design tower is red.
         Many existing buildings predate the protected views or were approved under them: this is a geometric reading of an estimate, not a finding.
         Hiding a cone hides its drawing only; checks and results are unchanged. The City View Cone Assessment governs.
@@ -1170,7 +1170,7 @@ function VistaBuildingsNote({ data }: { data: CityData }) {
         {n('type-estimate')} {VISTA_SOURCES[2]} (a shade off; e.g. a house 8 m, an office 15 m). Picking a roof names its source.
         {check?.towers_over_60m_by_lidar ? <> Vista's own heights are within 10% of LiDAR for only {check.towers_within_10pct} of {check.towers_over_60m_by_lidar} parts over 60 m, which is why measured heights come first.</> : null}
       </p>
-      <p className="text-[10px] text-slate-500">{VISTA_ATTRIBUTION}. The building layer, and the per-building height table combining it with City heights, are derivative databases of OpenStreetMap, offered under the Open Database License 1.0.</p>
+      <p className="text-meta text-slate-500">{VISTA_ATTRIBUTION}. The building layer, and the per-building height table combining it with City heights, are derivative databases of OpenStreetMap, offered under the Open Database License 1.0.</p>
     </div>
   )
 }
@@ -1251,7 +1251,7 @@ export function CityLegend() {
               <span className="font-semibold text-flag-false">False assumption: </span>{f.claim}. <span className="text-slate-500">{f.correction}</span>
             </p>
           ))}
-          <p className="text-[10px] text-slate-500">{[...new Set(manifest.layers.map((l) => l.attribution))].join(' ')}</p>
+          <p className="text-meta text-slate-500">{[...new Set(manifest.layers.map((l) => l.attribution))].join(' ')}</p>
         </div>
       ) },
       { id: 'style', title: 'Style & building types', defaultOpen: true, summary: style === 'context' ? 'Context (Vista textures)' : 'Plain', children: <StyleCard data={data} /> },

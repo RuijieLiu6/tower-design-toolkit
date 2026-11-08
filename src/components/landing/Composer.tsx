@@ -27,7 +27,7 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
   return (
     <section aria-labelledby="composer-title" data-testid="landing-composer" className="glass-edge grid gap-4 rounded-3xl bg-glass-3 p-4 md:p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 id="composer-title" className="flex items-center gap-2 text-[22px] font-semibold tracking-[-0.01em] text-ink">
+        <h2 id="composer-title" className="flex items-center gap-2 text-section text-ink">
           Design your workflow
           <Help label="About designing a workflow">Every phase has its design tools; switch on the analysis nodes you want at each one. They all read the same tower model. Start opens the guided app on your first phase, and Next takes you through the rest. Nothing is fixed: change the nodes at any time.</Help>
         </h2>
@@ -35,7 +35,7 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
         <div role="radiogroup" aria-label="Site" className="ml-auto flex gap-1">
           {([['vtc', Trophy, 'Competition'], ['city', MapPin, 'Vancouver']] as const).map(([id, I, word]) => (
             <button key={id} type="button" role="radio" aria-checked={draft.project === id} onClick={() => setProject(id)} title={id === 'vtc' ? 'The competition block' : 'A real Vancouver site (the default block until you choose one)'}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-accent ${draft.project === id ? 'bg-ink font-semibold text-white' : 'text-muted hover:bg-white/50 hover:text-ink'}`}>
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${draft.project === id ? 'bg-ink font-semibold text-white' : 'text-muted hover:bg-white/50 hover:text-ink'}`}>
               <I size={16} aria-hidden />{word}
             </button>
           ))}
@@ -50,8 +50,8 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
               <div className="flex items-center gap-2">
                 <GlassIcon icon={Icon} hue={PHASE_HUE[ph.id]} size={ICON.feature} level={lit ? 'on' : 'soft'} />
                 <span className="min-w-0">
-                  <span className="block text-[11px] tabular-nums text-muted">Step {i + 1}</span>
-                  <span className="block text-[15px] font-semibold leading-tight text-ink">{ph.name}</span>
+                  <span className="block text-meta tabular-nums text-muted">Step {i + 1}</span>
+                  <span className="block text-node font-semibold text-ink">{ph.name}</span>
                 </span>
                 <span className="ml-auto"><Help label={`About ${ph.name}`}>{ph.about}</Help></span>
               </div>
@@ -69,7 +69,7 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
                         className="gicon-lift flex rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:translate-y-0 motion-reduce:transition-none">
                         <GlassIcon icon={NI} hue={PHASE_HUE[ph.id]} size={ICON.feature} level={pressed ? 'on' : 'off'} />
                       </button>
-                      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
+                      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-meta leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
                         <b className="block font-semibold">{n.name}</b>
                         <span className="block opacity-80">{n.question}</span>
                         {!ok && <span className="block text-amber-200">Runs on the {draft.project === 'vtc' ? 'Vancouver' : 'competition'} site only</span>}
@@ -86,7 +86,7 @@ export default function Composer({ draft, onChange, onStart, onGraph, onSave }: 
 
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={onStart} disabled={!count} data-testid="composer-start"
-          className="flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[15px] font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-40">
+          className="flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-control font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-40">
           Start at {start.name}<ArrowRight size={18} aria-hidden />
         </button>
         <ActionTile icon={Workflow} label="See it as a node graph in Customize" onClick={onGraph} disabled={!count} />

@@ -17,11 +17,11 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-[10px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
+        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
+          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
       </div>
     </div>
   )
@@ -78,14 +78,14 @@ export default function PublicRealmResults({ id }: { id: string }) {
   if (project !== 'vtc' && (id === 'built.pr-streetwall' || id === 'built.pr-frontage' || id === 'built.pr-ground')) {
     return <CityResults id={id} towers={towers} ring={citySite?.ring as [number, number][] | undefined} streetwall={streetwall} frontage={frontage} groundPlane={groundPlane} settings={citySite?.streets ?? {}} />
   }
-  if (project !== 'vtc') return <Section title="Results"><p className="text-[11px] text-muted">Runs on the competition site, whose streets are known. Switch to "Competition site".</p></Section>
+  if (project !== 'vtc') return <Section title="Results"><p className="text-meta text-muted">Runs on the competition site, whose streets are known. Switch to "Competition site".</p></Section>
 
   if (id === 'built.pr-streetwall' && streetwall) {
     const edgeState = Object.fromEntries(streetwall.edges.map((w) => [w.edge.id, w.state])) as Partial<Record<EdgeId, RuleState>>
     return (
       <Section title="Results">
         <SitePlan edgeState={edgeState} />
-        <p className="mb-2 mt-1 text-[10px] text-muted">Street edges coloured by streetwall height against Table 2.2b for that street's width.</p>
+        <p className="mb-2 mt-1 text-meta text-muted">Street edges coloured by streetwall height against Table 2.2b for that street's width.</p>
         <div className="grid gap-2">{streetwall.rules.map((r) => <Card key={r.id} r={r} />)}</div>
       </Section>
     )
@@ -95,8 +95,8 @@ export default function PublicRealmResults({ id }: { id: string }) {
     return (
       <Section title="Results">
         <SitePlan edgeState={edgeState} />
-        <table className="mb-2 mt-1 w-full text-[11px]">
-          <thead><tr className="text-left text-[10px] uppercase tracking-wider text-muted"><th className="py-0.5 font-medium">Street</th><th className="text-right font-medium">Frontage</th><th className="text-right font-medium">Active</th><th className="text-right font-medium">Entrance every</th></tr></thead>
+        <table className="mb-2 mt-1 w-full text-meta">
+          <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium">Street</th><th className="text-right font-medium">Frontage</th><th className="text-right font-medium">Active</th><th className="text-right font-medium">Entrance every</th></tr></thead>
           <tbody>{frontage.edges.map((x) => (
             <tr key={x.edge.id} className="border-t border-line/60">
               <td className="py-0.5"><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: STATE_COLOR[x.state] }} />{x.edge.street.replace(' (local)', '')}</td>
@@ -124,7 +124,7 @@ export default function PublicRealmResults({ id }: { id: string }) {
             <rect x={X(STATION_CORNER[0])} y={Y(STATION_CORNER[1] + 6.1)} width={6.1 * k} height={6.1 * k} fill={os.transitPlaza ? '#2a8f86' : '#d0453a'} fillOpacity="0.6" />
           </SitePlan>
         </div>
-        <p className="mb-2 mt-1 text-[10px] text-muted">Green: the largest clear rectangle of open ground (the POPS candidate). Blue dashed: the mid-block link. Teal square: room for a 6.1 m transit plaza by the station corner.</p>
+        <p className="mb-2 mt-1 text-meta text-muted">Green: the largest clear rectangle of open ground (the POPS candidate). Blue dashed: the mid-block link. Teal square: room for a 6.1 m transit plaza by the station corner.</p>
         <div className="grid gap-2">{groundPlane.rules.map((r) => <Card key={r.id} r={r} />)}</div>
       </Section>
     )
@@ -167,7 +167,7 @@ function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, sett
   return (
     <Section title="Results">
       {ring && <div className="mb-1 flex justify-center"><StudyPlan ring={ring} towers={towers} size={240} streets={plan} marks={marks} label={`Plan of the study site with its streets and towers: ${caption}`} /></div>}
-      <p className="mb-2 text-[10px] text-muted">{status === 'loading' ? 'Finding the streets along the site…' : caption} Types are picked in Your site or Ground & public realm.</p>
+      <p className="mb-2 text-meta text-muted">{status === 'loading' ? 'Finding the streets along the site…' : caption} Types are picked in Your site or Ground & public realm.</p>
       <div className="grid gap-2">{rules.map((r) => <Card key={r.id} r={r} />)}</div>
     </Section>
   )

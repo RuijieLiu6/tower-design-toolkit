@@ -28,7 +28,7 @@ function AnalysisOff() {
   return (
     <div data-testid="analysis-off" className="m-3 rounded-lg border border-line bg-black/[0.02] p-3">
       <p className="text-xs font-semibold text-ink">Analysis is off</p>
-      <p className="mt-1 text-[11px] text-muted">No check runs while you design. The checks you picked stay remembered.</p>
+      <p className="mt-1 text-meta text-muted">No check runs while you design. The checks you picked stay remembered.</p>
       <button type="button" onClick={() => setAnalysis(true)} className="mt-2 rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Run analysis</button>
     </div>
   )
@@ -36,7 +36,7 @@ function AnalysisOff() {
 
 /** Results before any tower: the checks read the towers, so say what to do first. */
 function NothingToAnalyse() {
-  return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-[11px] text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Form step, or import a model on the Site step.</p>
+  return <p data-testid="nothing-to-analyse" className="mx-3 mt-3 rounded-md bg-black/[0.03] px-3 py-2 text-meta text-muted">No tower yet, so most checks have nothing to read. Place a tower on the Form step, or import a model on the Site step.</p>
 }
 
 type Tab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
@@ -50,7 +50,7 @@ function ResultsPicker() {
   const options = current ? [current, ...on] : on
   return (
     <div className="flex items-center gap-2 border-b border-line px-4 py-2">
-      <label htmlFor="results-for" className="shrink-0 text-[11px] text-muted">Show results for</label>
+      <label htmlFor="results-for" className="shrink-0 text-meta text-muted">Show results for</label>
       <select id="results-for" value={selectedNode ?? ''} onChange={(e) => selectNode(e.target.value || null)}
         className="min-w-0 flex-1 rounded border border-line bg-panel px-1.5 py-1 text-xs">
         {!selectedNode && <option value="">Choose a check…</option>}

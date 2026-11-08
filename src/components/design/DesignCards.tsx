@@ -14,7 +14,7 @@ function Card({ id, title, help, children }: { id: DesignToolId; title: string; 
   const { open, set } = useDesignTool()
   const Editor = id === 'plan' ? PlanTool : SectionTool
   return (
-    <div className="grid gap-1.5 px-4 pb-3 pt-1 text-[11px]">
+    <div className="grid gap-1.5 px-4 pb-3 pt-1 text-meta">
       <div className="flex items-start gap-1.5"><div className="min-w-0 flex-1">{children}</div><Help label={`How the ${title.toLowerCase()} editor works`}>{help}</Help></div>
       <button type="button" data-testid={`open-${id}-tool`} aria-pressed={open === id} onClick={() => set(open === id ? null : id)}
         className={`rounded-md border px-2 py-1 text-xs font-medium ${open === id ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>

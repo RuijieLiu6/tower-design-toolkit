@@ -160,13 +160,13 @@ function Swatch({ color, border = SWATCH_BORDER, style }: { color: string; borde
   return <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: `1px solid ${border}`, ...style }} />
 }
 const item = (key: string, sw: ReactNode, text: ReactNode, title?: string) => <span role="listitem" key={key} title={title} className="flex items-center gap-1.5">{sw}<span className="sr-only group-hover/legend:not-sr-only group-focus-within/legend:not-sr-only">{text}</span></span>
-const group = (label: string) => <span aria-hidden className="mr-0.5 hidden text-[11px] font-semibold uppercase tracking-wide group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }}>{label}</span>
+const group = (label: string) => <span aria-hidden className="mr-0.5 hidden text-meta font-semibold group-hover/legend:inline group-focus-within/legend:inline" style={{ color: CHROME.tabInk }}>{label}</span>
 
 function LookSwitch() {
   const { look, setLook } = useVtcLook()
   const opt = (id: VtcLookId, label: string, title: string) => (
     <button type="button" role="radio" aria-checked={look === id} title={title} onClick={() => setLook(id)}
-      className={`rounded-[2px] px-2 py-[1px] text-[12px] font-medium ${focusRing}`}
+      className={`rounded-[2px] px-2 py-[1px] text-meta font-medium ${focusRing}`}
       style={look === id ? { background: CHROME.active, color: CHROME.activeInk } : { color: CHROME.tabInk }}>{label}</button>
   )
   return (
@@ -195,7 +195,7 @@ export function VtcLookBar() {
   const uses = ctx ? contextUses(ctx) : null
   const shown = uses ? BUILDING_USES.filter((u) => uses.buildings.includes(u.id)) : []
   return (
-    <div data-testid="vtc-look" className="group/legend pointer-events-auto absolute bottom-12 left-3 z-10 max-w-[min(46rem,calc(100%-1.5rem))] px-2 py-[5px] text-[12px]" style={box} title="Legend: point at it for the names">
+    <div data-testid="vtc-look" className="group/legend pointer-events-auto absolute bottom-12 left-3 z-10 max-w-[min(46rem,calc(100%-1.5rem))] px-2 py-[5px] text-meta" style={box} title="Legend: point at it for the names">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <LookSwitch />
         {look === 'program' && (

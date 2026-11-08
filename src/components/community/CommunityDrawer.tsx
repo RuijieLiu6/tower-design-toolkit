@@ -43,14 +43,14 @@ function CatTile({ cat, size = 'h-9 w-9', icon = 18 }: { cat: Category; size?: s
 
 function ReviewBadge({ review }: { review: RegistryModule['review'] }) {
   const cls = review === 'expert' ? 'border-flag-verified/40 text-flag-verified' : review === 'community' ? 'border-accent/40 text-accent' : 'border-line text-muted'
-  return <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${cls}`}>{review === 'unreviewed' ? <ShieldAlert size={10} aria-hidden /> : <BadgeCheck size={10} aria-hidden />}{REVIEW_LABEL[review]}</span>
+  return <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-meta font-medium ${cls}`}>{review === 'unreviewed' ? <ShieldAlert size={10} aria-hidden /> : <BadgeCheck size={10} aria-hidden />}{REVIEW_LABEL[review]}</span>
 }
 
 /** Thresholds by the flag the author claims. Community claims display as unverified in the app until reviewed. */
 function Claims({ v }: { v: RegistryVersion }) {
   const flags = FLAG_ORDER.filter((f) => v.evidence[f])
   if (!flags.length) return null
-  return <span className="flex flex-wrap items-center gap-1">{flags.map((f) => <span key={f} className="inline-flex items-center gap-0.5"><FlagChip flag={f} /><span className="text-[9px] tabular-nums text-muted">×{v.evidence[f]}</span></span>)}</span>
+  return <span className="flex flex-wrap items-center gap-1">{flags.map((f) => <span key={f} className="inline-flex items-center gap-0.5"><FlagChip flag={f} /><span className="text-meta tabular-nums text-muted">×{v.evidence[f]}</span></span>)}</span>
 }
 
 function useInstalled() {
@@ -68,16 +68,16 @@ function Row({ m, data, onOpen }: { m: RegistryModule; data: Loaded; onOpen: () 
         <CatTile cat={m.category} />
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[13px] font-semibold">{m.name}</span>
-            {m.kind === 'code' && <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-400 px-1.5 py-0.5 text-[10px] text-muted"><FlaskConical size={10} aria-hidden />Code module · no bundle yet</span>}
-            {installed && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"><Check size={10} aria-hidden />Installed {installed}</span>}
+            <span className="text-node font-semibold">{m.name}</span>
+            {m.kind === 'code' && <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-400 px-1.5 py-0.5 text-meta text-muted"><FlaskConical size={10} aria-hidden />Code module · no bundle yet</span>}
+            {installed && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-meta font-medium text-emerald-800"><Check size={10} aria-hidden />Installed {installed}</span>}
           </span>
-          <span className="mt-0.5 block text-[11px] text-muted">{m.author.name} · {v ? `v${v.version}` : 'no installable version'} · {m.licence} · {CATEGORIES[m.category].label}</span>
+          <span className="mt-0.5 block text-meta text-muted">{m.author.name} · {v ? `v${v.version}` : 'no installable version'} · {m.licence} · {CATEGORIES[m.category].label}</span>
           <span className="mt-1 line-clamp-2 block text-[11.5px] leading-snug text-ink/80">{m.summary}</span>
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <ReviewBadge review={m.review} />
             {v && <Claims v={v} />}
-            {flags.length > 0 && <span className="inline-flex items-center gap-1 text-[10px] text-flag-false"><ShieldAlert size={10} aria-hidden />{flags.length} flag{flags.length > 1 ? 's' : ''}</span>}
+            {flags.length > 0 && <span className="inline-flex items-center gap-1 text-meta text-flag-false"><ShieldAlert size={10} aria-hidden />{flags.length} flag{flags.length > 1 ? 's' : ''}</span>}
           </span>
         </span>
       </button>
@@ -88,14 +88,14 @@ function Row({ m, data, onOpen }: { m: RegistryModule; data: Loaded; onOpen: () 
 function FlagItem({ f }: { f: FlagRecord }) {
   const shown = flagShownStatus(f)
   return (
-    <li className={`rounded-md border p-2 text-[11px] ${shown === 'false_assumption' ? 'border-flag-false/50' : 'border-line'}`}>
+    <li className={`rounded-md border p-2 text-meta ${shown === 'false_assumption' ? 'border-flag-false/50' : 'border-line'}`}>
       <div className="flex flex-wrap items-center gap-1.5">
-        {shown === 'disputed' ? <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">Disputed (no evidence yet)</span> : <FlagChip flag={shown} />}
-        <span className="text-[10px] text-muted">{f.threshold ? `threshold ${f.threshold}` : 'whole package'} · versions {f.versions} · {f.state}</span>
+        {shown === 'disputed' ? <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-meta font-medium text-amber-900">Disputed (no evidence yet)</span> : <FlagChip flag={shown} />}
+        <span className="text-meta text-muted">{f.threshold ? `threshold ${f.threshold}` : 'whole package'} · versions {f.versions} · {f.state}</span>
       </div>
       <p className={`mt-1 ${shown === 'false_assumption' ? 'line-through decoration-flag-false/60' : ''}`}>{f.claim}</p>
       {f.correctedValue && <p className="mt-0.5 text-ink"><b>Correction:</b> {f.correctedValue}</p>}
-      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted">
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-meta text-muted">
         {f.evidenceUrl && <a href={f.evidenceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-accent">Evidence<ExternalLink size={9} aria-hidden /></a>}
         {f.history.length > 0 && <span className="inline-flex items-center gap-0.5" title={f.history.map((h) => `${h.date}: ${h.status} (${h.note})`).join('\n')}><History size={10} aria-hidden />{f.history.length} change{f.history.length > 1 ? 's' : ''}</span>}
       </div>
@@ -149,7 +149,7 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold leading-tight">{m.name}</h3>
             <p className="mt-0.5 font-mono text-[10.5px] text-muted">{m.id}</p>
-            <p className="mt-0.5 text-[11px] text-muted">{m.author.name}{m.author.github ? ` (@${m.author.github})` : ''} · {m.licence} · {CATEGORIES[m.category].label} · {m.stage}</p>
+            <p className="mt-0.5 text-meta text-muted">{m.author.name}{m.author.github ? ` (@${m.author.github})` : ''} · {m.licence} · {CATEGORIES[m.category].label} · {m.stage}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <ReviewBadge review={m.review} />
               <span className="inline-flex items-center gap-1 text-[10.5px] text-muted"><Star size={11} aria-hidden />
@@ -160,14 +160,14 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
           </div>
         </div>
 
-        <p className="mt-3 text-[12px] leading-relaxed text-ink/85">{pkg?.json.question ?? m.summary}</p>
+        <p className="mt-3 text-meta leading-relaxed text-ink/85">{pkg?.json.question ?? m.summary}</p>
 
         <section className="mt-3">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Versions</h4>
+          <h4 className="text-meta font-semibold text-muted">Versions</h4>
           <ul className="mt-1 space-y-1">
             {m.versions.map((x) => (
               <li key={x.version}>
-                <label className={`flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-[11px] ${x.version === v.version ? 'border-accent/50 bg-accent/5' : 'border-line'}`}>
+                <label className={`flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-meta ${x.version === v.version ? 'border-accent/50 bg-accent/5' : 'border-line'}`}>
                   <input type="radio" name="version" checked={x.version === v.version} onChange={() => setVer(x.version)} className="mt-0.5 accent-accent" />
                   <span className="min-w-0 flex-1">
                     <span className={`font-medium ${x.yanked ? 'line-through text-muted' : ''}`}>v{x.version}</span>
@@ -182,24 +182,24 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
         </section>
 
         <section className="mt-3">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Evidence the author claims</h4>
+          <h4 className="text-meta font-semibold text-muted">Evidence the author claims</h4>
           <div className="mt-1"><Claims v={v} /></div>
           <p className="mt-1 text-[10.5px] text-muted">Community nodes show as unverified in Tower Design Toolkit until a reviewer checks every source; an author's "verified" is a claim.</p>
         </section>
 
         {pkg && (
           <section className="mt-3">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted">What it measures</h4>
+            <h4 className="text-meta font-semibold text-muted">What it measures</h4>
             <ul className="mt-1 space-y-1">
               {pkg.json.metrics.map((x) => (
-                <li key={x.id} className="rounded-md border border-line p-2 text-[11px]">
+                <li key={x.id} className="rounded-md border border-line p-2 text-meta">
                   <div className="flex items-start justify-between gap-2"><span className="font-medium">{x.label}</span><FlagChip flag={x.threshold.flag === 'verified' ? 'unverified' : x.threshold.flag} /></div>
-                  <div className="mt-0.5 font-mono text-[10px] text-muted">{x.expression}</div>
+                  <div className="mt-0.5 font-mono text-meta text-muted">{x.expression}</div>
                   <div className="mt-0.5 text-[10.5px] text-muted">{x.threshold.text ?? (x.threshold.good !== undefined ? `good ${x.threshold.direction === 'lower_is_better' ? '≤' : '≥'} ${String(x.threshold.good)}${x.threshold.bad !== undefined ? `, bad ${x.threshold.direction === 'lower_is_better' ? '>' : '<'} ${String(x.threshold.bad)}` : ''}` : 'no threshold')} · {x.threshold.source.label}{x.threshold.source.page ? `, ${x.threshold.source.page}` : ''}</div>
                 </li>
               ))}
             </ul>
-            <details className="mt-1.5 text-[11px]">
+            <details className="mt-1.5 text-meta">
               <summary className="cursor-pointer text-accent">Method, human judgement and limits</summary>
               <p className="mt-1 text-ink/80"><b>Method.</b> {pkg.json.method}</p>
               <p className="mt-1 text-ink/80"><b>Stays with people.</b> {pkg.json.human}</p>
@@ -210,12 +210,12 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
 
         {flags.length > 0 && (
           <section className="mt-3">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Flags on this version</h4>
+            <h4 className="text-meta font-semibold text-muted">Flags on this version</h4>
             <ul className="mt-1 space-y-1.5">{flags.map((f, k) => <FlagItem key={k} f={f} />)}</ul>
           </section>
         )}
 
-        <section className="mt-3 rounded-md border border-line bg-paper p-2.5 text-[11px]">
+        <section className="mt-3 rounded-md border border-line bg-paper p-2.5 text-meta">
           <div className="flex items-center gap-1.5 font-medium"><PackageCheck size={13} aria-hidden />How it runs</div>
           <p className="mt-0.5 text-muted">{m.kind === 'declarative'
             ? 'Declarative formulas over the Layer 0 summary, read by Tower Design Toolkit\'s own parser: no third-party code runs, and the package is checked against the registry\'s SHA-256 before install.'
@@ -231,19 +231,19 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
           {installed && (
             <button onClick={() => onAddToCanvas(m.id)} className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">Add to the canvas</button>
           )}
-          {!can.ok && <span className="text-[11px] text-muted">{can.reason}</span>}
+          {!can.ok && <span className="text-meta text-muted">{can.reason}</span>}
         </div>
         {status.kind !== 'idle' && status.kind !== 'busy' && (
-          <p role="status" className={`mt-2 rounded px-2 py-1 text-[11px] ${status.kind === 'ok' ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-800'}`}>{status.msg}</p>
+          <p role="status" className={`mt-2 rounded px-2 py-1 text-meta ${status.kind === 'ok' ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-800'}`}>{status.msg}</p>
         )}
 
-        <section className="mt-4 rounded-md border border-dashed border-line p-2.5 text-[11px]">
+        <section className="mt-4 rounded-md border border-dashed border-line p-2.5 text-meta">
           <div className="flex items-center gap-1.5 font-medium"><MessagesSquare size={13} aria-hidden />Comments and reviews: coming</div>
           <p className="mt-0.5 text-muted">Each node will get one public discussion thread (giscus, GitHub Discussions), and structured reviews will count one vote per account per major version. Nothing is loaded yet: no script, no network call.</p>
           <p className="mt-1 text-amber-900">When it opens: please don't discuss your own competition scheme there before the results (VTC anonymity).</p>
           <details className="mt-1">
             <summary className="cursor-pointer text-accent">Planned thread settings</summary>
-            <pre className="mt-1 overflow-x-auto rounded bg-panel p-2 font-mono text-[10px] leading-snug">{JSON.stringify(giscusConfig(m.id, data.index.repo), null, 2)}</pre>
+            <pre className="mt-1 overflow-x-auto rounded bg-panel p-2 font-mono text-meta leading-snug">{JSON.stringify(giscusConfig(m.id, data.index.repo), null, 2)}</pre>
           </details>
         </section>
       </div>
@@ -271,7 +271,7 @@ function SubmitHelper() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-[12px]">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-meta">
       <p className="text-ink/85">Share one of your nodes through a pull request to the community registry. Tower Design Toolkit only prepares the files: <b>nothing is uploaded or published</b>, and you open the pull request yourself.</p>
       {!packages.length ? (
         <p className="mt-3 rounded-md border border-line bg-paper p-3 text-[11.5px] text-muted">You have no node in My nodes yet. Build one with the node-builder skill (ribbon → My nodes → Build a node), or install one from Browse.</p>
@@ -284,19 +284,19 @@ function SubmitHelper() {
           </label>
           {sub && (
             <>
-              <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted">Files for the pull request</h4>
+              <h4 className="mt-3 text-meta font-semibold text-muted">Files for the pull request</h4>
               <ul className="mt-1 space-y-1">
                 {Object.entries(sub.files).map(([path, text]) => (
                   <li key={path} className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 font-mono text-[10.5px]"><FileJson size={13} className="shrink-0 text-muted" aria-hidden /><span className="min-w-0 flex-1 truncate">{path}</span><span className="text-muted">{text.length.toLocaleString()} B</span></li>
                 ))}
               </ul>
-              <pre className="mt-1.5 overflow-x-auto rounded bg-paper p-2 font-mono text-[10px] leading-snug">{sub.indexLine}</pre>
+              <pre className="mt-1.5 overflow-x-auto rounded bg-paper p-2 font-mono text-meta leading-snug">{sub.indexLine}</pre>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button onClick={download} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Download size={14} aria-hidden />Download the PR files (.zip)</button>
                 <button onClick={async () => { try { await navigator.clipboard.writeText(`${sub.prTitle}\n\n${sub.prBody}`); setCopied(true) } catch { setCopied(false) } }}
                   className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-medium outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">{copied ? <Check size={14} aria-hidden /> : <ClipboardCopy size={14} aria-hidden />}{copied ? 'Copied' : 'Copy the PR description'}</button>
               </div>
-              <h4 className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-muted">Steps</h4>
+              <h4 className="mt-4 text-meta font-semibold text-muted">Steps</h4>
               <ol className="mt-1 list-decimal space-y-1 pl-5 text-[11.5px] text-ink/85">
                 <li>Fork the registry repository on GitHub <span className="text-muted">(not created yet: the address will appear here)</span>.</li>
                 <li>Add the two files at the paths shown (the zip keeps them), on a new branch.</li>
@@ -304,7 +304,7 @@ function SubmitHelper() {
                 <li>Automated checks run the same import check as Tower Design Toolkit, verify the SHA-256 and the licence; a maintainer reviews the sources.</li>
                 <li>Once merged it appears under Browse as <b>Unreviewed</b>; a reviewer can later mark it community- or expert-reviewed.</li>
               </ol>
-              <p className="mt-3 flex items-start gap-1.5 text-[11px] text-muted"><GitPullRequest size={13} className="mt-0.5 shrink-0" aria-hidden />Only declarative packages (formulas and sources) are accepted for now. Code modules wait for the sandbox (research P15-M04).</p>
+              <p className="mt-3 flex items-start gap-1.5 text-meta text-muted"><GitPullRequest size={13} className="mt-0.5 shrink-0" aria-hidden />Only declarative packages (formulas and sources) are accepted for now. Code modules wait for the sandbox (research P15-M04).</p>
             </>
           )}
         </>
@@ -347,7 +347,7 @@ export default function CommunityDrawer({ open, onClose, onAddToCanvas }: { open
         <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
           <Users size={17} className="text-accent" aria-hidden />
           <h2 className="text-sm font-semibold">Community</h2>
-          {data?.index.sample && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-900" title={data.index.note}>Sample registry · local, not real submissions</span>}
+          {data?.index.sample && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-meta font-medium text-amber-900" title={data.index.note}>Sample registry · local, not real submissions</span>}
           <button onClick={onClose} aria-label="Close the community panel" className="ml-auto rounded p-1 text-muted hover:bg-black/5 hover:text-ink"><X size={16} /></button>
         </div>
         <div role="tablist" aria-label="Community" className="flex gap-1 border-b border-line px-3 pt-1.5">
@@ -376,7 +376,7 @@ export default function CommunityDrawer({ open, onClose, onAddToCanvas }: { open
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
               {!data && !error && <p className="flex items-center gap-1.5 text-xs text-muted"><Loader2 size={13} className="animate-spin" aria-hidden />Reading the registry…</p>}
               {error && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-800">The registry could not be read: {error}</p>}
-              {data && data.problems.length > 0 && <p className="mb-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">{data.problems.length} entr{data.problems.length > 1 ? 'ies were' : 'y was'} left out: {data.problems.join(' ')}</p>}
+              {data && data.problems.length > 0 && <p className="mb-2 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{data.problems.length} entr{data.problems.length > 1 ? 'ies were' : 'y was'} left out: {data.problems.join(' ')}</p>}
               <ul className="space-y-2">{data && list.map((m) => <Row key={m.id} m={m} data={data} onOpen={() => setOpenId(m.id)} />)}</ul>
               {data && !list.length && <p className="text-xs text-muted">No community node matches.</p>}
               {data?.index.note && <p className="mt-4 text-[10.5px] text-muted">{data.index.note}</p>}

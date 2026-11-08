@@ -90,14 +90,14 @@ export default function Agent({ onResult }: { onResult: (r: AgentResult | null) 
 
   return (
     <section aria-labelledby="agent-title" className="grid w-full max-w-[44rem] justify-items-center gap-4" data-testid="landing-agent">
-      <h2 id="agent-title" className="text-center text-[17px] font-medium text-ink">What is the concept of your design?</h2>
+      <h2 id="agent-title" className="text-center text-section text-ink">What is the concept of your design?</h2>
 
       <form onSubmit={(e) => { e.preventDefault(); void ask(text) }} className="glass flex w-full items-end gap-2 rounded-xl bg-glass-1 p-2.5 focus-within:ring-2 focus-within:ring-accent/40">
         <label htmlFor="agent-input" className="sr-only">Describe the concept of your design</label>
         <textarea id="agent-input" name="concept" autoComplete="off" data-testid="agent-input" rows={3} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => { void warm() }}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void ask(text) } }}
           placeholder="A slender tower that keeps the mountain views and gives its ground floor back to the street…"
-          className="min-h-[4.5rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-[16px] leading-snug text-ink outline-none placeholder:text-muted/80" />
+          className="min-h-[4.5rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-body text-ink outline-none placeholder:text-muted/80" />
         <button type="submit" disabled={busy || !text.trim()} data-testid="agent-send" aria-label="Suggest workflows for this concept" title="Suggest workflows (Enter)"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-white outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40">
           {busy ? <Loader2 size={20} className="animate-spin" aria-hidden /> : <ArrowUp size={20} aria-hidden />}
@@ -106,20 +106,20 @@ export default function Agent({ onResult }: { onResult: (r: AgentResult | null) 
 
       {/* Or pick a role: chips under the box, who each one is on hover. */}
       <div role="group" aria-label="Or start as" className="flex flex-wrap items-center justify-center gap-2" data-testid="agent-types">
-        <span className="text-[13px] text-muted">Or start as</span>
+        <span className="text-meta text-muted">Or start as</span>
         {USER_TYPES.map((t) => { const Icon = ROLE_ICON[t.id]; return (
           <button key={t.id} type="button" onClick={() => pick(t.id)} title={t.who} aria-label={`${t.name}: ${t.who}`} aria-pressed={picked === t.id} data-type={t.id}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${picked === t.id ? 'border-white/90 bg-white/90 font-semibold text-ink shadow-sm' : 'border-white/70 bg-white/35 text-ink hover:bg-white/70'}`}>
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-control outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${picked === t.id ? 'border-white/90 bg-white/90 font-semibold text-ink shadow-sm' : 'border-white/70 bg-white/35 text-ink hover:bg-white/70'}`}>
             <Icon size={16} className="text-accent" aria-hidden />{t.name}
           </button>
         ) })}
       </div>
 
-      <div role="status" aria-live="polite" data-testid="agent-reply" className="min-h-[1.5rem] max-w-[40rem] text-center text-[15px] leading-relaxed text-ink">
+      <div role="status" aria-live="polite" data-testid="agent-reply" className="min-h-[1.5rem] max-w-[40rem] text-center text-body text-ink">
         {busy ? <span className="text-muted"><Loader2 size={14} className="mr-1 inline animate-spin" aria-hidden />Reading{status === 'loading' ? `, loading the language model: ${Math.round(pct * 100)}%` : '…'}</span> : reply}
       </div>
 
-      <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[12px] text-muted" data-testid="agent-model-status">
+      <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-meta text-muted" data-testid="agent-model-status">
         {status === 'ready' ? <Sparkles size={14} className="text-accent" aria-hidden /> : <Lock size={14} aria-hidden />}
         <span>{status === 'ready' ? 'Language model ready, in this browser' : status === 'failed' ? 'Matching by keywords' : 'Runs in this browser'}</span>
         {status === 'loading' && <span className="h-1.5 w-28 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Loading the language model" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)}><span className="block h-full bg-accent" style={{ width: `${Math.round(pct * 100)}%` }} /></span>}

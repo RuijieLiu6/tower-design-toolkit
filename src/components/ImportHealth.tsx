@@ -16,14 +16,14 @@ export function HealthList({ items, compact = false }: { items: HealthItem[]; co
       {!compact && <div className="mb-2 text-xs font-semibold">Geometry health</div>}
       <ul className="grid gap-1.5">
         {sorted.map((h) => (
-          <li key={h.id} className="text-[11px]">
+          <li key={h.id} className="text-meta">
             <div className="flex items-start gap-1.5">
-              <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${SEV[h.severity].cls}`}>{SEV[h.severity].label}</span>
+              <span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold ${SEV[h.severity].cls}`}>{SEV[h.severity].label}</span>
               <span className="min-w-0 flex-1"><b>{h.title}</b>{(!compact || h.severity !== 'pass') && <span className="text-muted"> — {h.detail}</span>}
                 {h.fix && h.severity !== 'pass' && <span className="block text-ink">Fix: {h.fix}</span>}
               </span>
             </div>
-            {(!compact || h.severity !== 'pass') && <div className="ml-[52px] mt-0.5 flex items-center gap-1"><FlagChip flag={h.flag} /><span className="text-[10px] text-muted">{h.source}</span></div>}
+            {(!compact || h.severity !== 'pass') && <div className="ml-[52px] mt-0.5 flex items-center gap-1"><FlagChip flag={h.flag} /><span className="text-meta text-muted">{h.source}</span></div>}
           </li>
         ))}
       </ul>

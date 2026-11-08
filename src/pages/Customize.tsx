@@ -289,16 +289,16 @@ function Builder() {
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-chrome px-3 text-chrome-ink">
         <button onClick={showIntro} title="Back to the start" aria-label="Tower Design Toolkit home" className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent">
           <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
-          <span className="hidden whitespace-nowrap text-sm font-semibold tracking-tight 2xl:inline">Tower Design Toolkit</span>
+          <span className="hidden whitespace-nowrap text-sm font-semibold 2xl:inline">Tower Design Toolkit</span>
         </button>
-        <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent"><Workflow size={13} aria-hidden />Customize</span>
+        <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-meta font-semibold text-accent"><Workflow size={13} aria-hidden />Customize</span>
         <input value={name} onChange={(e) => ed().setMeta({ name: e.target.value })} aria-label="Workflow name"
           className="w-32 min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium xl:w-56 outline-none hover:border-line focus:border-accent focus:bg-panel" />
-        {dirty && <span className="text-[10px] text-muted" title="Changes since the last save (the canvas itself is kept automatically)">unsaved</span>}
+        {dirty && <span className="text-meta text-muted" title="Changes since the last save (the canvas itself is kept automatically)">unsaved</span>}
         <div role="tablist" aria-label="Project" className="ml-1 hidden rounded-md bg-black/5 p-0.5 md:flex">
           {PROJECTS.map((p) => (
             <button key={p.id} role="tab" aria-selected={project === p.id} onClick={() => setProject(p.id)}
-              className={`whitespace-nowrap rounded px-2 py-0.5 text-[11px] font-medium ${project === p.id ? 'bg-white text-ink shadow-sm' : 'opacity-70 hover:opacity-100'}`}>{p.label}</button>
+              className={`whitespace-nowrap rounded px-2 py-0.5 text-meta font-medium ${project === p.id ? 'bg-white text-ink shadow-sm' : 'opacity-70 hover:opacity-100'}`}>{p.label}</button>
           ))}
         </div>
 
@@ -308,11 +308,11 @@ function Builder() {
               <button key={t.id} role="menuitem" onClick={() => { ed().load(t.make(Object.keys(enabled).filter((k) => enabled[k]))); setMenu(null); setFit((x) => x + 1) }}
                 className="block w-full rounded-md px-2.5 py-1.5 text-left hover:bg-black/5"><span className="block text-xs font-medium">{t.name}</span><span className="block text-[10.5px] text-muted">{t.hint}</span></button>
             ))}
-            <p className="border-t border-line px-2.5 pt-1.5 text-[10px] text-muted">Starting new replaces the canvas; Ctrl+Z will not bring it back, so save first.</p>
+            <p className="border-t border-line px-2.5 pt-1.5 text-meta text-muted">Starting new replaces the canvas; Ctrl+Z will not bring it back, so save first.</p>
           </Menu>
           <Menu label="Open" icon={<FolderOpen size={15} aria-hidden />} open={menu === 'open'} setOpen={(o) => { setMenu(o ? 'open' : null); if (o) setSaved(listWorkflows(kv)) }}>
-            {!kv && <p className="px-2.5 py-2 text-[11px] text-muted">Browser storage is off here. Use Import instead.</p>}
-            {kv && !saved.length && <p className="px-2.5 py-2 text-[11px] text-muted">No saved workflows yet. Save one with Ctrl+S.</p>}
+            {!kv && <p className="px-2.5 py-2 text-meta text-muted">Browser storage is off here. Use Import instead.</p>}
+            {kv && !saved.length && <p className="px-2.5 py-2 text-meta text-muted">No saved workflows yet. Save one with Ctrl+S.</p>}
             {saved.map((s) => (
               <div key={s.id} className="flex items-center gap-1 rounded-md hover:bg-black/5">
                 <button role="menuitem" onClick={() => { const wf = loadWorkflow(kv, s.id); if (wf) { ed().load(wf); setFit((x) => x + 1) } else ed().say('That saved workflow could not be read.'); setMenu(null) }}
@@ -376,7 +376,7 @@ function Builder() {
                       <h2 className="mt-2 text-sm font-semibold">An empty canvas</h2>
                       <p className="mt-1 text-xs text-muted">Drag icons from the ribbon above, double-click here, or press <kbd className="rounded border border-line px-1 font-mono">/</kbd> to find a node. Or start from a template:</p>
                       <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                        {TEMPLATES.filter((t) => t.id !== 'blank').map((t) => <button key={t.id} onClick={() => { ed().load(t.make(Object.keys(enabled).filter((k) => enabled[k]))); setFit((x) => x + 1) }} className="rounded-full border border-line px-2.5 py-1 text-[11px] hover:border-accent hover:text-accent">{t.name}</button>)}
+                        {TEMPLATES.filter((t) => t.id !== 'blank').map((t) => <button key={t.id} onClick={() => { ed().load(t.make(Object.keys(enabled).filter((k) => enabled[k]))); setFit((x) => x + 1) }} className="rounded-full border border-line px-2.5 py-1 text-meta hover:border-accent hover:text-accent">{t.name}</button>)}
                       </div>
                     </div>
                   </Panel>
@@ -385,7 +385,7 @@ function Builder() {
             </OutputsContext.Provider>
           </CommunityContext.Provider>
           {!inspector && (
-            <button onClick={() => setInspector(true)} className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 text-[11px] shadow-sm hover:border-accent" aria-label="Show details panel">
+            <button onClick={() => setInspector(true)} className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-md border border-line bg-panel px-2 py-1 text-meta shadow-sm hover:border-accent" aria-label="Show details panel">
               <PanelRightOpen size={14} aria-hidden />Details
             </button>
           )}
@@ -393,7 +393,7 @@ function Builder() {
         {inspector && <WfInspector outputs={shown} onClose={() => setInspector(false)} />}
       </div>
 
-      <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-chrome px-3 text-[11px] text-muted">
+      <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-chrome px-3 text-meta text-muted">
         <span aria-live="polite" className={`min-w-0 flex-1 truncate ${message.startsWith("Can't") || message.startsWith('Could not') ? 'text-amber-800' : ''}`}>{message || 'Double-click or / to find a node · drag to select · right-drag to pan · F to fit'}</span>
         <span className="whitespace-nowrap">{nodes.filter((n) => n.type !== 'wfgroup').length} nodes · {edges.length} wires · {runnable}/{evalCount} checks runnable</span>
       </footer>

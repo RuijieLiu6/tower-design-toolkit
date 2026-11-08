@@ -265,7 +265,7 @@ export function ConeVisibilityPanel({ compact = false }: { compact?: boolean }) 
   const style = { borderColor: CHROME.border, color: CHROME.ink, background: '#fbfaf4' }
   return (
     <div className="space-y-1.5" role="group" aria-label="View cone layers">
-      <p className="text-[11px]" style={{ color: CHROME.ink }}>{shownSummary(hidden)} · solid: City-sourced estimate; dashed: Vista study surface (assumption)</p>
+      <p className="text-meta" style={{ color: CHROME.ink }}>{shownSummary(hidden)} · solid: City-sourced estimate; dashed: Vista study surface (assumption)</p>
       <div className="flex flex-wrap gap-1">
         <button type="button" className={btn} style={style} onClick={() => showAllCones(true)}>All on</button>
         <button type="button" className={btn} style={style} onClick={() => showAllCones(false)}>All off</button>

@@ -51,20 +51,20 @@ export default function RoleMapper({ raw, mapping, onChange, shapes, recalled }:
             {(['layer', 'name', 'userString'] as MapBy[]).map((b) => (
               <button key={b} role="radio" aria-checked={mapping.by === b} disabled={b === 'userString' && !keys.length} title={b === 'userString' && !keys.length ? 'The file has no user strings' : undefined}
                 onClick={() => onChange({ ...mapping, by: b, key: b === 'userString' ? (keys.includes(mapping.key) ? mapping.key : keys[0]) : mapping.key, rules: autoRules(raw, b, b === 'userString' ? (keys.includes(mapping.key) ? mapping.key : keys[0]) : mapping.key, mapping), confirmed: [] })}
-                className={`px-2.5 py-1 text-[11px] disabled:opacity-40 ${mapping.by === b ? 'bg-accent text-white' : 'hover:bg-black/5'}`}>{BY_LABEL[b]}</button>
+                className={`px-2.5 py-1 text-meta disabled:opacity-40 ${mapping.by === b ? 'bg-accent text-white' : 'hover:bg-black/5'}`}>{BY_LABEL[b]}</button>
             ))}
           </div>
           {mapping.by === 'userString' && (
-            <label className="flex items-center gap-1 text-[11px] text-muted">key
+            <label className="flex items-center gap-1 text-meta text-muted">key
               <select value={mapping.key} onChange={(e) => onChange({ ...mapping, key: e.target.value, rules: autoRules(raw, 'userString', e.target.value, mapping), confirmed: [] })} className="rounded border border-line bg-panel px-1 py-0.5 text-ink">
                 {keys.map((k) => <option key={k}>{k}</option>)}
               </select>
             </label>
           )}
-          {recalled && <span className="ml-auto inline-flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent"><Tags size={11} />Mapping remembered for this file</span>}
+          {recalled && <span className="ml-auto inline-flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 text-meta text-accent"><Tags size={11} />Mapping remembered for this file</span>}
         </div>
         <div className="max-h-[46vh] overflow-y-auto rounded-lg border border-line">
-          <table className="w-full table-fixed text-left text-[11px]">
+          <table className="w-full table-fixed text-left text-meta">
             <colgroup><col className="w-[33%]" /><col className="w-[16%]" /><col className="w-[30%]" /><col className="w-[21%]" /></colgroup>
             <thead className="sticky top-0 bg-panel text-muted"><tr><th className="px-2 py-1.5 font-medium">{BY_LABEL[mapping.by]}{mapping.by === 'userString' ? ` "${mapping.key}"` : ''}</th><th className="px-2 font-medium">Contents</th><th className="px-2 font-medium">Role</th><th className="px-2 font-medium">Use</th></tr></thead>
             <tbody>
@@ -83,13 +83,13 @@ export default function RoleMapper({ raw, mapping, onChange, shapes, recalled }:
                     <td className="px-2 leading-tight text-muted">{[r.objects ? `${r.objects} obj · ${Math.round(r.triangles).toLocaleString('en-CA')} tri` : '', r.curves ? `${r.curves} curve${r.curves > 1 ? 's' : ''}${r.closedCurves ? ` (${r.closedCurves} closed)` : ''}` : ''].filter(Boolean).join(' · ')}</td>
                     <td className="px-2">
                       <select aria-label={`Role for ${r.key}`} value={rule.role} onChange={(e) => setRule(r.key, e.target.value as Role)} disabled={!usable && rule.role === 'ignore'}
-                        className="w-full rounded border border-line bg-panel px-1 py-0.5 text-[11px]" style={{ borderLeft: `4px solid ${ROLE_COLOR[rule.role]}` }}>
+                        className="w-full rounded border border-line bg-panel px-1 py-0.5 text-meta" style={{ borderLeft: `4px solid ${ROLE_COLOR[rule.role]}` }}>
                         {ROLES.filter((x) => r.objects > 0 || x.id === 'site' || x.id === 'ignore').map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
                       </select>
                     </td>
                     <td className="px-2">
                       {(rule.role === 'program' || rule.role === 'podium') && (
-                        <select aria-label={`Use for ${r.key}`} value={rule.use ?? ''} onChange={(e) => setRule(r.key, rule.role, e.target.value as UseId)} className="w-full rounded border border-line bg-panel px-1 py-0.5 text-[11px]">
+                        <select aria-label={`Use for ${r.key}`} value={rule.use ?? ''} onChange={(e) => setRule(r.key, rule.role, e.target.value as UseId)} className="w-full rounded border border-line bg-panel px-1 py-0.5 text-meta">
                           {(Object.keys(USES) as UseId[]).map((u) => <option key={u} value={u}>{USES[u].label}</option>)}
                         </select>
                       )}
@@ -105,13 +105,13 @@ export default function RoleMapper({ raw, mapping, onChange, shapes, recalled }:
       </div>
       <div className="grid content-start gap-3 bg-black/[0.015] p-5">
         <Preview shapes={shapes} mapping={mapping} />
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]" aria-label="Objects per role">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-meta" aria-label="Objects per role">
           {ROLES.map((r) => (
             <li key={r.id} className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm" style={{ background: r.color }} /><span className={counts[r.id] ? '' : 'text-muted'}>{r.label}</span><span className="ml-auto tabular-nums text-muted">{counts[r.id] ?? 0}</span></li>
           ))}
         </ul>
         {raw.skipped.length > 0 && (
-          <details className="rounded-md border border-line bg-panel p-2 text-[11px]">
+          <details className="rounded-md border border-line bg-panel p-2 text-meta">
             <summary className="cursor-pointer text-muted hover:text-ink">{raw.skipped.length} object{raw.skipped.length === 1 ? '' : 's'} could not be read, and why</summary>
             <ul className="mt-1 grid max-h-32 gap-1 overflow-y-auto">{raw.skipped.map((s, i) => <li key={i}><b>{s.name}</b> <span className="text-muted">({s.kind}{s.layer ? `, ${s.layer}` : ''})</span>: {s.reason}</li>)}</ul>
           </details>
@@ -151,7 +151,7 @@ function Preview({ shapes, mapping }: { shapes: Shape[]; mapping: Mapping }) {
   const fill = (d: (typeof drawn)[number]) => (d.role === 'program' && d.use ? USES[d.use].color : ROLE_COLOR[d.role])
   return (
     <section className="rounded-lg border border-line bg-panel p-3">
-      <div className="mb-1 flex items-center text-xs font-semibold">Live preview<span className="ml-auto text-[10px] font-normal text-muted">file coordinates, before north and placement</span></div>
+      <div className="mb-1 flex items-center text-xs font-semibold">Live preview<span className="ml-auto text-meta font-normal text-muted">file coordinates, before north and placement</span></div>
       <div className="grid gap-2">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`Plan of the file coloured by role: ${ROLES.map((r) => `${drawn.filter((d) => d.role === r.id).length} ${ROLE_LABEL[r.id].toLowerCase()}`).join(', ')}`}>
           {drawn.map((d, i) => d.line

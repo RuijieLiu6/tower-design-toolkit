@@ -13,10 +13,10 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[10px] text-muted hover:text-accent">{r.source.label}</a> : <span className="text-[10px] text-muted">{r.source.label}</span>}
+        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}</a> : <span className="text-meta text-muted">{r.source.label}</span>}
       </div>
     </div>
   )
@@ -47,7 +47,7 @@ export default function DaylightResults() {
   if (!t || !r) return null
   return (
     <Section title={`Daylight screen · ${t.name}`} help="Distance from the glass on each use's typical floor, against the window head height (floor-to-floor minus the head drop).">
-      <p className="text-[11px] text-slate-600">A geometric proxy: glazing, neighbours, blinds and climate are left out, so run a daylight simulation before relying on it.</p>
+      <p className="text-meta text-slate-600">A geometric proxy: glazing, neighbours, blinds and climate are left out, so run a daylight simulation before relying on it.</p>
       <div className="mt-2 flex flex-wrap gap-3 text-[10.5px]" aria-label="Band key">
         {(Object.keys(BAND_STYLE) as (keyof typeof BAND_STYLE)[]).map((b) => (
           <span key={b} className="inline-flex items-center gap-1"><span className="h-2.5 w-3.5 rounded-sm border border-line" style={{ background: BAND_STYLE[b].fill, opacity: 0.4 + BAND_STYLE[b].opacity }} />{b === 'marginal' ? `Marginal (≤ ${r.k} × head)` : b === 'deep' ? `Deep (beyond ${r.k} × head)` : BAND_STYLE[b].label}</span>
@@ -59,7 +59,7 @@ export default function DaylightResults() {
           <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{USE_LABEL[u.use]} · level {u.level}</span><StateChip state={u.state} /></div>
           <div className="mt-1 space-y-1.5">
             <MiniPlan u={u} />
-            <div className="text-[11px]">
+            <div className="text-meta">
               <p>{verdict(u)}</p>
               <table className="mt-1 w-full text-[10.5px]">
                 <tbody>

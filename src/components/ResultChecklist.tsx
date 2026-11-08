@@ -53,18 +53,18 @@ export default function ResultChecklist({ nodeId }: { nodeId: string }) {
       <div className="flex flex-wrap gap-1" role="list" aria-label="Counts">
         {ORDER.filter((s) => count(s) > 0).map((s) => {
           const Icon = ICON[s]
-          return <span key={s} role="listitem" className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${CHIP[s]}`}><Icon size={13} aria-hidden />{count(s)} {STATE_WORD[s].toLowerCase()}</span>
+          return <span key={s} role="listitem" className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-meta font-semibold ${CHIP[s]}`}><Icon size={13} aria-hidden />{count(s)} {STATE_WORD[s].toLowerCase()}</span>
         })}
       </div>
       {open.length === 0 && <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-800"><CircleCheck size={16} aria-hidden />Everything here passes.</p>}
       {open.length > 0 && <ul className="mt-1 divide-y divide-line">{open.map((r) => <Row key={r.id} r={r} />)}</ul>}
       {passed.length > 0 && (
         <details className="mt-1">
-          <summary className="cursor-pointer text-[11px] text-muted"><span className="font-semibold text-emerald-800">{passed.length} pass</span>{open.length ? '' : ': show them'}</summary>
+          <summary className="cursor-pointer text-meta text-muted"><span className="font-semibold text-emerald-800">{passed.length} pass</span>{open.length ? '' : ': show them'}</summary>
           <ul className="divide-y divide-line">{passed.map((r) => <Row key={r.id} r={r} />)}</ul>
         </details>
       )}
-      {extra && <p className="mt-1 text-[11px] text-muted">{extra}.</p>}
+      {extra && <p className="mt-1 text-meta text-muted">{extra}.</p>}
     </section>
   )
 }
@@ -75,7 +75,7 @@ export function DetailsFold({ nodeId, children }: { nodeId: string; children: Re
   if (!lead) return <>{children}</>
   return (
     <details key={nodeId} className="group border-b border-line" data-testid="result-details">
-      <summary className="cursor-pointer px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted hover:text-ink">Details, sources and settings</summary>
+      <summary className="cursor-pointer px-4 py-2 text-meta font-semibold text-muted hover:text-ink">Details, sources and settings</summary>
       <div>{children}</div>
     </details>
   )

@@ -22,9 +22,9 @@ function Card({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b>{r.threshold && <span className="text-muted"> · <U>{r.threshold}</U></span>}</div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} /><span className="text-[10px] text-muted">{r.source.label}</span></div>
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b>{r.threshold && <span className="text-muted"> · <U>{r.threshold}</U></span>}</div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} /><span className="text-meta text-muted">{r.source.label}</span></div>
     </div>
   )
 }
@@ -47,8 +47,8 @@ export default function ViewFromPanel() {
   const now = useMemo(() => (input ? castRay(input, v.bearing) : null), [input, v.bearing])
   const crossed = useMemo(() => (vp ? conesCrossed([vp.x, vp.y], v.bearing, 6000, CONES.map((c) => ({ id: c.id, name: c.name, ring: c.ring.map(([x, y]) => [x - CITY_ORIGIN[0], y - CITY_ORIGIN[1]] as [number, number]) }))) : []), [vp, v.bearing])
 
-  if (project !== 'city') return <Section title="View from here"><p className="text-[11px] text-muted">Runs in the Real Vancouver project, where City roofs and terrain are loaded.</p></Section>
-  if (error) return <Section title="View from here"><p className="text-[11px] text-red-700">Context layers did not load: {error}</p></Section>
+  if (project !== 'city') return <Section title="View from here"><p className="text-meta text-muted">Runs in the Real Vancouver project, where City roofs and terrain are loaded.</p></Section>
+  if (error) return <Section title="View from here"><p className="text-meta text-red-700">Context layers did not load: {error}</p></Section>
 
   const withHeight = heights ? Array.from(heights.roof).filter((r, i) => Number.isFinite(r) && r > heights.ground[i]).length : 0
   const pickTower = (id: string, level: number | 'top') => {
@@ -82,18 +82,18 @@ export default function ViewFromPanel() {
             </select>
           )}
         </div>
-        {v.note && <p role="status" className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">{v.note}</p>}
-        <p className="mt-1.5 text-[10px] text-muted">{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a height ({data ? standableNote(data) : '…'}); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p>
+        {v.note && <p role="status" className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{v.note}</p>}
+        <p className="mt-1.5 text-meta text-muted">{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a height ({data ? standableNote(data) : '…'}); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p>
         {vp && (
-          <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
+          <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta">
             <div className="font-semibold">{vp.label}</div>
             {vp.eyeAbs !== undefined
               ? <div>Eye at <b>{vp.eyeAbs.toFixed(2)} m</b> geodetic = the City's viewpoint elevation (Lv) at this origin; the eye-height setting does not move it</div>
               : <div>Eye at <b>{eyeZ(vp, v.eye).toFixed(1)} m</b> geodetic = standing surface {vp.stand.toFixed(1)} m + eye {v.eye} m</div>}
             <div className="text-muted">{vp.basis}</div>
             {vp.eyeAbs !== undefined
-              ? <div className="mt-1 flex items-center gap-1"><FlagChip flag="verified" /><span className="text-[10px] text-muted">City ViewCone service VIEWPOINT_ELEVATION_M (research C04 r3: Lv is already an eye elevation). Heights CGVD28.</span></div>
-              : <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[10px] text-muted">Eye height 1.6 m, editable (research C04: ground + 1.6 m where no City Lv exists). Heights CGVD28.</span></div>}
+              ? <div className="mt-1 flex items-center gap-1"><FlagChip flag="verified" /><span className="text-meta text-muted">City ViewCone service VIEWPOINT_ELEVATION_M (research C04 r3: Lv is already an eye elevation). Heights CGVD28.</span></div>
+              : <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Eye height 1.6 m, editable (research C04: ground + 1.6 m where no City Lv exists). Heights CGVD28.</span></div>}
           </div>
         )}
       </Section>
@@ -104,16 +104,16 @@ export default function ViewFromPanel() {
             <button onClick={() => v.set({ looking: !v.looking })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${v.looking ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>{v.looking ? <EyeOff size={13} /> : <Eye size={13} />}{v.looking ? 'Back to the map' : 'Look from here'}</button>
             <button onClick={() => v.set({ captureReq: v.captureReq + 1 })} disabled={v.capturing} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs hover:border-accent disabled:opacity-50"><Camera size={13} />Capture 360° strip</button>
           </div>
-          <label className="mt-2 grid gap-0.5 text-[11px]"><span className="text-muted">Looking {compass(v.bearing)} ({Math.round(v.bearing)}° from grid north)</span>
+          <label className="mt-2 grid gap-0.5 text-meta"><span className="text-muted">Looking {compass(v.bearing)} ({Math.round(v.bearing)}° from grid north)</span>
             <input type="range" min={0} max={359} step={1} value={v.bearing} onChange={(e) => v.set({ bearing: Number(e.target.value) })} className="accent-accent" aria-label="Bearing" />
           </label>
-          <div className="grid grid-cols-3 gap-2 text-[11px]">
+          <div className="grid grid-cols-3 gap-2 text-meta">
             <label className="grid gap-0.5"><span className="text-muted">Tilt</span><input type="number" min={-30} max={30} value={v.pitch} onChange={(e) => v.set({ pitch: Math.max(-30, Math.min(30, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Tilt" /></label>
             <label className="grid gap-0.5"><span className="text-muted">Field of view</span><input type="number" min={20} max={110} value={v.hfov} onChange={(e) => v.set({ hfov: Math.max(20, Math.min(110, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Field of view" /></label>
             <label className="grid gap-0.5"><span className="text-muted">Eye height</span><input type="number" min={0} max={3} step={0.1} value={v.eye} onChange={(e) => v.set({ eye: Math.max(0, Math.min(3, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Eye height" /></label>
           </div>
-          <label className="mt-1.5 flex items-center gap-2 text-[11px]"><input type="checkbox" checked={v.overlays} onChange={() => v.set({ overlays: !v.overlays, looking: false })} />Keep map overlays (cone sheets, tints) in the view</label>
-          <p className="mt-1 text-[10px] text-muted">The strip is eight 45° frames from north, clockwise, saved to the filmstrip (Present stage).</p>
+          <label className="mt-1.5 flex items-center gap-2 text-meta"><input type="checkbox" checked={v.overlays} onChange={() => v.set({ overlays: !v.overlays, looking: false })} />Keep map overlays (cone sheets, tints) in the view</label>
+          <p className="mt-1 text-meta text-muted">The strip is eight 45° frames from north, clockwise, saved to the filmstrip (Present stage).</p>
         </Section>
       )}
 

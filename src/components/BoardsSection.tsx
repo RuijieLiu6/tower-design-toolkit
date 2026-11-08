@@ -16,14 +16,14 @@ export default function BoardsSection() {
   return (
     <Section title="Boards (VTC submission)">
       <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-medium text-white hover:opacity-90"><LayoutGrid size={14} />Open the board composer</button>
-      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-meta">
         <dt className="text-muted">Boards with content</dt><dd className="text-right tabular-nums">{used} / 4</dd>
         <dt className="text-muted">Suggested items placed</dt><dd className="text-right tabular-nums">{met} / {DELIVERABLES.length}</dd>
         <dt className="text-muted">Checks failing</dt><dd className={`text-right tabular-nums ${fails ? 'text-red-700' : ''}`}>{fails}</dd>
         <dt className="text-muted">JPEGs exported</dt><dd className="text-right tabular-nums">{exported} / {used}</dd>
         <dt className="text-muted">Upload closes</dt><dd className="text-right tabular-nums">{d.closed ? 'closed' : `${Math.floor(d.days)} days`}</dd>
       </dl>
-      <div className="mt-2 flex flex-wrap items-center gap-1"><FlagChip flag="verified" /><span className="text-[10px] text-muted">Four A2 landscape boards, ≤ 10 MB each, English, no identity (brief p.27); 30 Nov, 11:59 PM London (p.25)</span></div>
+      <div className="mt-2 flex flex-wrap items-center gap-1"><FlagChip flag="verified" /><span className="text-meta text-muted">Four A2 landscape boards, ≤ 10 MB each, English, no identity (brief p.27); 30 Nov, 11:59 PM London (p.25)</span></div>
       <BoardComposer />
     </Section>
   )

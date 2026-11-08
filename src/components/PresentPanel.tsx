@@ -86,7 +86,7 @@ export default function PresentPanel() {
               <IconTile size="sm" primary icon={Download} word="PNG" label="Download the plan as PNG" hint="The board frame as an image." onClick={() => captureShot(true)} />
               <IconTile size="sm" icon={FileDown} word="SVG" label="Download the plan as SVG, to scale" hint="Prints at the drawing's standard scale." onClick={() => downloadPlanSvg()} />
             </div>
-            <p className="text-[10px] text-muted">No names or logos on the boards (brief p.27).</p>
+            <p className="text-meta text-muted">No names or logos on the boards (brief p.27).</p>
           </div>
         )}
       </Section>

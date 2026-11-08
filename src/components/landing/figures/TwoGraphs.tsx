@@ -144,8 +144,8 @@ export default function TwoGraphs() {
               <button type="button" {...bind(G.id)} aria-label={`${G.title}: show this graph`}
                 className={`absolute rounded-xl px-1.5 py-0.5 text-left outline-none transition-opacity duration-200 focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none ${dim(G.id) ? 'opacity-25' : ''}`}
                 style={{ left: o.x + 8, top: o.y + 2 }}>
-                <span aria-hidden className="block text-[13px] font-semibold text-ink hover:text-accent">{G.title}</span>
-                <span aria-hidden className="block text-[11px] text-muted">Massing engine · {G.mode}</span>
+                <span aria-hidden className="block text-node font-semibold text-ink hover:text-accent">{G.title}</span>
+                <span aria-hidden className="block text-meta text-muted">Massing engine · {G.mode}</span>
               </button>
               {G.nodes.map((n) => {
                 const p = pos(G, n.col, n.row), an = isAnalysis(n.k)

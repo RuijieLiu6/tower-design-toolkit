@@ -34,7 +34,7 @@ class ToolBoundary extends Component<{ label: string; children: ReactNode }, { e
   render() {
     if (!this.state.error) return this.props.children
     return (
-      <div role="alert" className="flex items-start gap-2 px-4 py-3 text-[11px] text-red-800">
+      <div role="alert" className="flex items-start gap-2 px-4 py-3 text-meta text-red-800">
         <TriangleAlert size={14} className="mt-0.5 shrink-0" />
         <span>{this.props.label} could not open: {this.state.error.message}</span>
       </div>
@@ -90,8 +90,8 @@ export default function ToolPanel() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-line px-3 py-2">
         <span className="flex min-w-0 items-baseline gap-1.5">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Design tools</h2>
-          {stepLabel && <span className="truncate text-[11px] text-muted" data-testid="tools-step">· {stepLabel} step</span>}
+          <h2 className="text-meta font-semibold text-muted">Design tools</h2>
+          {stepLabel && <span className="truncate text-meta text-muted" data-testid="tools-step">· {stepLabel} step</span>}
         </span>
         <HidePanelButton side="left" />
       </div>
@@ -106,7 +106,7 @@ export default function ToolPanel() {
         {active && Body && (
           <div id="tool-panel" role="tabpanel" aria-labelledby={`tool-${active.id}-head`} data-tool-body={active.id} className="pb-1">
             <ToolBoundary key={active.id} label={active.label}>
-              <Suspense fallback={<p className="px-4 py-3 text-[11px] text-muted">Loading {active.label}…</p>}><Body /></Suspense>
+              <Suspense fallback={<p className="px-4 py-3 text-meta text-muted">Loading {active.label}…</p>}><Body /></Suspense>
             </ToolBoundary>
           </div>
         )}

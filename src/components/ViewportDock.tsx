@@ -80,11 +80,11 @@ function Section({ s }: { s: DockSection }) {
   return (
     <section className="border-t border-line/70 first:border-t-0">
       <button type="button" aria-expanded={open} aria-controls={id}
-        className="flex w-full items-center gap-1.5 px-2.5 py-2 text-left text-[11px] hover:bg-black/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className="flex w-full items-center gap-1.5 px-2.5 py-2 text-left text-meta hover:bg-black/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         onClick={() => useDock.setState((d) => ({ sections: { ...d.sections, [s.id]: !open } }))}>
         {open ? <ChevronDown size={13} aria-hidden className="shrink-0" /> : <ChevronRight size={13} aria-hidden className="shrink-0" />}
         <span className="font-semibold text-ink">{s.title}</span>
-        {s.summary && <span className="ml-auto truncate pl-2 text-[11px] text-slate-600">{s.summary}</span>}
+        {s.summary && <span className="ml-auto truncate pl-2 text-meta text-slate-600">{s.summary}</span>}
       </button>
       <div id={id} hidden={!open} className="px-2.5 pb-2.5">{s.children}</div>
     </section>
@@ -105,7 +105,7 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
   if (!open) {
     return (
       <button type="button" aria-expanded={false} aria-controls="vp-dock" onClick={() => useDock.setState({ open: true })}
-        className={`glass absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-md border border-r-0 border-line px-1.5 py-2.5 text-[11px] font-medium text-ink shadow-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}
+        className={`glass absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-md border border-r-0 border-line px-1.5 py-2.5 text-meta font-medium text-ink shadow-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}
         title="Show the layers panel">
         <Layers size={15} aria-hidden />
         <span style={{ writingMode: 'vertical-rl' }}>Layers</span>
@@ -115,12 +115,12 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
   // Over the city the backdrop can be as dark as #e5e6e7: slate-500 and muted grey text (~3.8:1 there) read as slate-600 (>= 6:1).
   return (
     <aside id="vp-dock" aria-label={label}
-      className={`vp-dock absolute ${anchored ? 'right-2.5 top-[14rem] max-h-[calc(100%-14.75rem)]' : 'right-3 top-3 max-h-[calc(100%-1.5rem)]'} z-10 flex w-80 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-md border border-line/80 text-[11px] text-slate-600 shadow-sm [&_.text-muted]:text-slate-600 [&_.text-slate-500]:text-slate-600 ${look}`}>
+      className={`vp-dock absolute ${anchored ? 'right-2.5 top-[14rem] max-h-[calc(100%-14.75rem)]' : 'right-3 top-3 max-h-[calc(100%-1.5rem)]'} z-10 flex w-80 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-md border border-line/80 text-meta text-slate-600 shadow-sm [&_.text-muted]:text-slate-600 [&_.text-slate-500]:text-slate-600 ${look}`}>
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line/80 px-2.5 py-1.5">
         <Layers size={14} aria-hidden className="text-ink" />
         <b className="text-ink">{label}</b>
         <button type="button" onClick={toggleOverlays} title="Hide every overlay for a clean view (H)"
-          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-meta text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <EyeOff size={12} aria-hidden />Hide overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
         </button>
         <button type="button" aria-expanded={true} aria-controls="vp-dock" aria-label="Collapse the layers panel" title="Collapse"
@@ -152,7 +152,7 @@ export function ShowOverlaysButton() {
   if (!hidden) return null
   return (
     <button type="button" onClick={toggleOverlays} title="Show the overlays again (H)"
-      className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-1 text-[11px] text-slate-700 opacity-70 backdrop-blur-md hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+      className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-1 text-meta text-slate-700 opacity-70 backdrop-blur-md hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
       <Eye size={12} aria-hidden />Show overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
     </button>
   )

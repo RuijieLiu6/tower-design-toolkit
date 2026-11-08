@@ -129,7 +129,7 @@ export function SolarAreaEditor() {
       })}
       {/* The live size, over the north side. */}
       <Html position={[(x0 + x1) / 2, y1, zAt((x0 + x1) / 2, y1)]} center zIndexRange={[24, 0]} style={{ pointerEvents: 'none', transform: 'translateY(-22px)' }}>
-        <div className="whitespace-nowrap rounded bg-[#ea580c] px-1.5 py-0.5 text-[11px] font-semibold text-white shadow"><U>{`${fmt(x1 - x0)} m × ${fmt(y1 - y0)} m`}</U></div>
+        <div className="whitespace-nowrap rounded bg-[#ea580c] px-1.5 py-0.5 text-meta font-semibold text-white shadow"><U>{`${fmt(x1 - x0)} m × ${fmt(y1 - y0)} m`}</U></div>
       </Html>
     </group>
   )
@@ -145,7 +145,7 @@ export function SolarAreaControls() {
   const { b, custom } = useArea()
   const cell = useSolar((s) => s.out?.map?.grid.cell ?? null)
   return (
-    <div className="grid gap-1 text-[11px]" data-testid="solar-area">
+    <div className="grid gap-1 text-meta" data-testid="solar-area">
       <div className="flex flex-wrap items-center gap-x-1">
         <b className="text-ink">Simulation area</b>
         <Help label="About the simulation area">

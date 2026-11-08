@@ -121,12 +121,12 @@ export default function SectionTool({ onClose }: { onClose?: () => void }) {
           })}
           <text x={minX + fs} y={-H - fs * 1.5} fontSize={fs} fill="#5b6068">Section along the tower’s width, looking along its depth · LOD 100</text>
         </svg>
-        <div className="absolute bottom-2 left-3 flex items-center gap-1 text-[11px] text-muted"><Help label="How to edit the section">Drag a block’s top or sides · tops snap to floor lines, sides to 0.5 m (Shift for free) · Esc cancels · clicks place floors in the chosen mode</Help>How to edit</div>
+        <div className="absolute bottom-2 left-3 flex items-center gap-1 text-meta text-muted"><Help label="How to edit the section">Drag a block’s top or sides · tops snap to floor lines, sides to 0.5 m (Shift for free) · Esc cancels · clicks place floors in the chosen mode</Help>How to edit</div>
       </div>
       <aside aria-label="Section checks" className="max-h-[42%] w-full shrink-0 overflow-y-auto border-t border-line bg-panel p-3 @min-[720px]:max-h-none @min-[720px]:w-72 @min-[720px]:border-l @min-[720px]:border-t-0">
         <div className="flex items-center gap-1.5 text-xs font-semibold">Live checks{drag ? ' (preview)' : ''}<Help label="About the section checks">Floor heights, plant and outrigger positions are design inputs (team assumptions); the checks are the same engines as the Inspector.</Help></div>
-        {checks && <div className="mt-1 text-[11px] text-slate-700">{checks.floors} floors · {checks.height.toFixed(1)} m · {Math.round(checks.gfa).toLocaleString('en-CA')} m² gross</div>}
-        <div className="mt-2 text-[11px] font-semibold">Floor-to-floor by band</div>
+        {checks && <div className="mt-1 text-meta text-slate-700">{checks.floors} floors · {checks.height.toFixed(1)} m · {Math.round(checks.gfa).toLocaleString('en-CA')} m² gross</div>}
+        <div className="mt-2 text-meta font-semibold">Floor-to-floor by band</div>
         <div className="mt-1 grid gap-1.5">
           {t.bands.map((b, i) => (
             <div key={i} className="flex items-end gap-2">
@@ -137,10 +137,10 @@ export default function SectionTool({ onClose }: { onClose?: () => void }) {
         </div>
         <div className="mt-3 grid gap-2">
           {checks?.rules.map((r) => (
-            <div key={r.id} className="rounded-md border border-line p-2 text-[11px]">
+            <div key={r.id} className="rounded-md border border-line p-2 text-meta">
               <div className="flex items-center justify-between gap-2"><span className="font-semibold">{r.label}</span><StateChip state={r.state} /></div>
               <div><b>{r.value}</b> <span className="text-muted">· {r.threshold}</span></div>
-              <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} /><span className="text-[11px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span></div>
+              <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} /><span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span></div>
             </div>
           ))}
         </div>

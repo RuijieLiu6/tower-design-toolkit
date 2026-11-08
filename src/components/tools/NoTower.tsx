@@ -39,7 +39,7 @@ export function PlaceFirstTower({ onGenerate }: { onGenerate?: () => void } = {}
           Shape it afterwards in Massing: height, blocks, rotation and floor-to-floor.
         </Help>
       </h3>
-      <p className="mt-1.5 text-[11px] text-muted">{where ? `No tower yet. It goes ${where}; then click where it should stand.` : 'No site chosen yet: the tower would start downtown.'}</p>
+      <p className="mt-1.5 text-meta text-muted">{where ? `No tower yet. It goes ${where}; then click where it should stand.` : 'No site chosen yet: the tower would start downtown.'}</p>
       <button type="button" onClick={placeFirstTower} data-testid="place-tower"
         className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
         <Crosshair size={14} />Place a tower
@@ -64,7 +64,7 @@ export function NoTowerYet() {
   return (
     <section data-testid="no-tower-yet" className="m-3 rounded-lg border border-line bg-black/[0.02] p-3">
       <p className="text-xs font-semibold text-ink">No tower yet</p>
-      <p className="mt-1 text-[11px] text-muted">These tools shape a tower. Place one first.</p>
+      <p className="mt-1 text-meta text-muted">These tools shape a tower. Place one first.</p>
       <button type="button" onClick={() => goToStep('volume')}
         className="mt-2 flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
         <ArrowLeft size={13} />Go to Form

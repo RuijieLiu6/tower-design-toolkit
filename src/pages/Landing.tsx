@@ -25,7 +25,7 @@ import { USER_TYPES, type Preset } from '../lib/userTypes'
 import { useStore } from '../store'
 
 const RESEARCH = 'https://ruijieliu6.github.io/vancouver-tower-toolbench/#research'
-const quiet = 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
+const quiet = 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-control text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 
 export default function Landing() {
   const reduced = useStore((s) => s.reducedMotion)
@@ -87,7 +87,7 @@ export default function Landing() {
           <button type="button" onClick={showIntro} title="Back to the start" aria-label="Tower Design Toolkit: back to the start" data-testid="brand-home"
             className="flex items-center gap-2 rounded-xl px-1 py-0.5 text-ink outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
             <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
-            <span className="text-[15px] font-semibold tracking-tight">Tower Design Toolkit</span>
+            <span className="text-control font-semibold">Tower Design Toolkit</span>
           </button>
           <nav aria-label="About the toolkit" className="glass-edge flex flex-wrap items-center gap-0.5 rounded-full bg-glass-2 px-1.5 py-1">
             <a href={RESEARCH} target="_blank" rel="noreferrer" className={quiet}><ExternalLink size={14} aria-hidden />Research</a>
@@ -96,13 +96,13 @@ export default function Landing() {
             {!installed && <button type="button" onClick={install} className={`${quiet} ${offer ? 'text-accent' : ''}`} title={offer ? 'Install as an app: its own window, works offline' : 'How to install it as an app'}><Download size={14} aria-hidden />Install app</button>}
           </nav>
         </header>
-        {hint && <p role="status" className="mt-2 self-end rounded-md border border-line bg-panel px-3 py-1.5 text-[12px] text-muted">{hint} After the first visit it also works offline. <button type="button" onClick={() => setHint('')} className="ml-1 text-accent hover:underline">OK</button></p>}
+        {hint && <p role="status" className="mt-2 self-end rounded-md border border-line bg-panel px-3 py-1.5 text-meta text-muted">{hint} After the first visit it also works offline. <button type="button" onClick={() => setHint('')} className="ml-1 text-accent hover:underline">OK</button></p>}
 
         {/* The first screen is the agent alone (Ruijie, 7 Nov): the idea in one line, then its one open question. */}
         <main className="flex min-h-[calc(100svh-6rem)] flex-col items-center justify-center gap-9 py-10">
           <div className="grid justify-items-center gap-3 text-center">
-            <h2 className="max-w-[20ch] text-balance text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.025em] md:text-[3.1rem]">One tower model. Every analysis a node. You decide.</h2>
-            <p className="max-w-[36rem] text-pretty text-[16px] leading-[1.6] text-muted">For anyone shaping a tall building in Vancouver: students and curious citizens, architects, planners and engineers.</p>
+            <h2 className="max-w-[20ch] text-balance text-display-sm md:text-display">One tower model. Every analysis a node. You decide.</h2>
+            <p className="max-w-[36rem] text-pretty text-body text-muted">For anyone shaping a tall building in Vancouver: students and curious citizens, architects, planners and engineers.</p>
           </div>
           <Agent onResult={(r) => {
             setResult(r); setActive(null)
@@ -115,11 +115,11 @@ export default function Landing() {
 
         <section aria-labelledby="ways-title" className="mt-14 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_440px]">
           <div className="grid gap-5">
-            <h2 id="ways-title" className="text-[22px] font-semibold tracking-[-0.01em] text-ink">Design your workflow your way</h2>
+            <h2 id="ways-title" className="text-section text-ink">Design your workflow your way</h2>
             <nav aria-label="Ways to design your workflow" className="grid grid-cols-3 gap-x-2 gap-y-5" data-testid="landing-ways">
               {WAYS.map((w) => (
                 <button key={w.word} type="button" onClick={w.go} title={w.hint} aria-label={`${w.word}: ${w.hint}`}
-                  className="group flex flex-col items-center gap-2 rounded-xl px-2 py-2 text-[13px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                  className="group flex flex-col items-center gap-2 rounded-xl px-2 py-2 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">
                   <GlassIcon icon={w.icon} hue={w.hue} size={ICON.feature} />
                   <span className="group-hover:text-accent">{w.word}</span>
                 </button>
@@ -136,7 +136,7 @@ export default function Landing() {
         <div className="mt-14"><ResearchFigures /></div>
 
         <section aria-labelledby="other-title" className="glass-edge mt-12 rounded-3xl bg-glass-3 px-5 py-4">
-          <h2 id="other-title" className="text-[13px] font-semibold text-ink">Other ways in</h2>
+          <h2 id="other-title" className="text-section text-ink">Other ways in</h2>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
             <button type="button" onClick={async () => { setDemo('loading'); const ok = await openDemo(); setDemo(ok ? 'idle' : 'error') }} disabled={demo === 'loading'} className={quiet}><Box size={14} aria-hidden />Open the demo project</button>
             <button type="button" onClick={() => { setDemo('loading'); useTour.getState().start({ demo: true }).finally(() => setDemo('idle')) }} disabled={demo === 'loading'} className={quiet}><PlayCircle size={14} aria-hidden />Take the tour</button>
@@ -144,10 +144,10 @@ export default function Landing() {
             <a href="#/guided" className={quiet}><RouteIcon size={14} aria-hidden />Guided process</a>
             <a href="#/customize" className={quiet}><Workflow size={14} aria-hidden />Customize from scratch</a>
           </div>
-          {demo === 'error' && <p role="status" className="mt-1 text-[12px] text-red-800">The demo project could not be opened. Reload the page and try again, or start from a workflow above.</p>}
+          {demo === 'error' && <p role="status" className="mt-1 text-meta text-red-800">The demo project could not be opened. Reload the page and try again, or start from a workflow above.</p>}
         </section>
 
-        <footer className="mt-auto pt-10 text-[12px] leading-relaxed text-muted">
+        <footer className="mt-auto pt-10 text-meta leading-relaxed text-muted">
           UBC SALA ARCH 540, Ruijie Liu and Sinnie Choi, instructor Xun Liu. Generate uses the massing generator from Sinnie Choi's <a href="https://github.com/xubynii/dtmass" target="_blank" rel="noreferrer" className="underline">Downtown Massing Tool</a>, with her permission. Open source (MIT). A study tool: the City and the competition rules govern.
         </footer>
       </div>

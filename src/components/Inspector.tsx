@@ -44,11 +44,11 @@ function RuleCard({ r }: { r: RuleResult }) {
   return (
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-[11px]"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-[11px] text-slate-600"><U>{r.note}</U></div>}
+      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
+      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
       <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-[11px] text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-[11px] text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
+        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
+          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
         <CardChip ruleId={r.id} />
       </div>
     </div>
@@ -104,7 +104,7 @@ function RiseDiagram({ t, r }: { t: Tower; r: LiftResult }) {
           )
         })}
       </svg>
-      <figcaption className="text-[11px] text-muted">Number above a column = cars. Black = the group's lobby (grade or sky lobby); hatched = passed express; grey = plant floor not served.{r.skyLobbies.length ? ' S columns are shuttles to a sky lobby.' : ''}</figcaption>
+      <figcaption className="text-meta text-muted">Number above a column = cars. Black = the group's lobby (grade or sky lobby); hatched = passed express; grey = plant floor not served.{r.skyLobbies.length ? ' S columns are shuttles to a sky lobby.' : ''}</figcaption>
     </figure>
   )
 }
@@ -126,7 +126,7 @@ function CoreBar({ r }: { r: LiftResult }) {
         <div className="flex h-4 overflow-hidden rounded">{parts.map((p) => <div key={p.label} title={`${p.label}: ${Math.round(p.v)} m²`} style={{ width: `${(p.v / max) * 100}%`, background: p.c }} />)}</div>
         <div className="absolute -top-1 h-6 w-0.5 bg-ink" style={{ left: `${(r.modelledCore / max) * 100}%` }} title="Modelled core" />
       </div>
-      <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted">
+      <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-meta text-muted">
         {parts.map((p) => <span key={p.label} className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-sm" style={{ background: p.c }} />{p.label} {Math.round(p.v)}</span>)}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-0.5 bg-ink" />Modelled core {Math.round(r.modelledCore)} m²</span>
       </div>
@@ -156,7 +156,7 @@ function CoreProfile({ r }: { r: LiftResult }) {
         <line x1={x(r.modelledCore)} y1={T} x2={x(r.modelledCore)} y2={H - B} stroke="#1f2328" strokeWidth="1.2" />
         <text x={x(r.modelledCore) + 3} y={T + 8} fontSize="8" fill="#1f2328">modelled</text>
       </svg>
-      <figcaption className="text-[11px] text-muted">Core needed by level, m² (blue){r.direct ? '; dashed = the same tower with no sky lobby' : ''}. Black line = the modelled core, one size top to bottom.</figcaption>
+      <figcaption className="text-meta text-muted">Core needed by level, m² (blue){r.direct ? '; dashed = the same tower with no sky lobby' : ''}. Black line = the modelled core, one size top to bottom.</figcaption>
     </figure>
   )
 }
@@ -177,13 +177,13 @@ function SkyLobbyCompare({ r }: { r: LiftResult }) {
   return (
     <div className="mt-3 rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">Sky lobby vs direct</span>
-        <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${saved > 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{saved > 0 ? `saves ${Math.round(saved)} m² of core` : `adds ${Math.round(-saved)} m² of core`}</span>
+        <span className={`rounded px-1.5 py-0.5 text-meta font-semibold ${saved > 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{saved > 0 ? `saves ${Math.round(saved)} m² of core` : `adds ${Math.round(-saved)} m² of core`}</span>
       </div>
-      <table className="mt-1 w-full text-[11px]">
-        <thead><tr className="text-left text-[11px] uppercase tracking-wider text-muted"><th className="py-0.5 font-medium" /><th className="text-right font-medium">Direct</th><th className="text-right font-medium">Sky lobby</th></tr></thead>
+      <table className="mt-1 w-full text-meta">
+        <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium" /><th className="text-right font-medium">Direct</th><th className="text-right font-medium">Sky lobby</th></tr></thead>
         <tbody>{rows.map(([k, a, b]) => <tr key={k} className="border-t border-line/60"><td className="py-0.5">{k}</td><td className="text-right tabular-nums text-muted">{a}</td><td className="text-right font-medium tabular-nums">{b}</td></tr>)}</tbody>
       </table>
-      <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">One transfer is a design choice, not a pass/fail: London tenants asked for direct travel (Stopes), while a public sky room can make the sky lobby a destination. Double-deck and destination control are roadmap.</span></div>
+      <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">One transfer is a design choice, not a pass/fail: London tenants asked for direct travel (Stopes), while a public sky room can make the sky lobby a destination. Double-deck and destination control are roadmap.</span></div>
     </div>
   )
 }
@@ -210,7 +210,7 @@ function StairChart({ e }: { e: EgressResult }) {
         <text x={L - 4} y={T + 7} textAnchor="end" fontSize="8" fill="#6b6f76">L{st[st.length - 1].level}</text>
         {[0, 0.5, 1].map((f) => <text key={f} x={x(xMax * f * 0.9)} y={H - 4} textAnchor="middle" fontSize="8" fill="#6b6f76">{Math.round(xMax * f * 0.9)}</text>)}
       </svg>
-      <figcaption className="text-[11px] text-muted">Width each storey needs alone, mm (bars; purple = public sky room); red = the stair width there, which keeps the widest need of the storeys above.</figcaption>
+      <figcaption className="text-meta text-muted">Width each storey needs alone, mm (bars; purple = public sky room); red = the stair width there, which keeps the widest need of the storeys above.</figcaption>
     </figure>
   )
 }
@@ -238,7 +238,7 @@ function StairPlan({ t, e }: { t: Tower; e: EgressResult }) {
         {near && <line x1={X(e.farCorner[0])} y1={Y(e.farCorner[1])} x2={X(near.x)} y2={Y(near.y)} stroke={travelOk ? '#1d5fa8' : '#c0392b'} strokeWidth="1.2" strokeDasharray="3 2" />}
         <circle cx={X(e.farCorner[0])} cy={Y(e.farCorner[1])} r="2.5" fill={travelOk ? '#1d5fa8' : '#c0392b'} />
       </svg>
-      <figcaption className="grid gap-1 text-[11px] text-muted">
+      <figcaption className="grid gap-1 text-meta text-muted">
         <span><b className={sepOk ? 'text-emerald-800' : 'text-red-700'}>Solid line: <U>{`${e.separation.toFixed(1)} m`}</U></b> between the stairs; needs <U>{`${e.separationNeeded.toFixed(1)} m`}</U>.</span>
         <span><b className={travelOk ? 'text-accent' : 'text-red-700'}>Dashed: <U>{`${e.travel.toFixed(1)} m`}</U></b> from the farthest corner to a stair; limit <U>45 m</U>.</span>
         <span>Red = exit stairs ({PLACEMENT_LABEL[e.placement]}); dark = core. Typical tower floor, {t.width} × {t.depth} m.</span>
@@ -250,26 +250,26 @@ function StairPlan({ t, e }: { t: Tower; e: EgressResult }) {
 /** All 24 cones at a glance: which have a height estimate, and which stop at "no estimate" until the City answers. */
 function ConeCoverage() {
   const known = CONES.filter((c) => CONE_PARAMS[c.id]), unknown = CONES.filter((c) => !CONE_PARAMS[c.id])
-  const chip = 'rounded border px-1 py-px text-[11px] tabular-nums'
+  const chip = 'rounded border px-1 py-px text-meta tabular-nums'
   return (
-    <Section title="Cone coverage" right={<span className="text-[11px] text-muted">{known.length} of {CONES.length} with an estimate</span>}>
+    <Section title="Cone coverage" right={<span className="text-meta text-muted">{known.length} of {CONES.length} with an estimate</span>}>
       <div className="mb-2 flex h-2 overflow-hidden rounded-sm border border-line" aria-hidden>
         <div style={{ width: `${(known.length / CONES.length) * 100}%`, background: '#4f7fae' }} />
         <div className="hatch flex-1" />
       </div>
-      <p className="text-[11px]">
+      <p className="text-meta">
         <b>{unknown.length} of {CONES.length} cones have no height estimate.</b> No opened City sheet or Council report gives their slope, so the tool says
         "no estimate" instead of guessing. They wait on City Request 0 (draft in <code>docs/city-requests/</code>). In 3D they are the dashed grey outlines.
       </p>
-      <div className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">With an estimate (blue sheets)</div>
+      <div className="mt-2 text-meta font-semibold text-muted">With an estimate (blue sheets)</div>
       <div className="mt-1 flex flex-wrap gap-1">
         {known.map((c) => <span key={c.id} title={`${c.name}: ${CONE_PARAMS[c.id].source}`} className={`${chip} border-[#4f7fae] text-[#2f5578]`}>{c.id}</span>)}
       </div>
-      <div className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">No estimate (dashed)</div>
+      <div className="mt-2 text-meta font-semibold text-muted">No estimate (dashed)</div>
       <div className="mt-1 flex flex-wrap gap-1">
         {unknown.map((c) => <span key={c.id} title={`${c.name}: no slope in any opened City source`} className={`${chip} border-dashed border-slate-400 text-slate-700`}>{c.id}</span>)}
       </div>
-      <div className="mt-2 flex items-center gap-1"><FlagChip flag="unresolved" /><span className="text-[11px] text-muted">Limit unknown for these cones; the City View Cone Assessment governs.</span></div>
+      <div className="mt-2 flex items-center gap-1"><FlagChip flag="unresolved" /><span className="text-meta text-muted">Limit unknown for these cones; the City View Cone Assessment governs.</span></div>
     </Section>
   )
 }
@@ -286,22 +286,22 @@ function ConeRow({ c }: { c: ConeCheck }) {
     <div className="rounded-md border border-line p-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold">{c.cone.id} · {c.cone.name}</span>
-        <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${CONE_STYLE[c.state].chip}`}>{STATE_LABEL[c.state]}</span>
+        <span className={`rounded border px-1.5 py-0.5 text-meta font-semibold ${CONE_STYLE[c.state].chip}`}>{STATE_LABEL[c.state]}</span>
       </div>
-      <div className="mt-0.5 text-[11px] text-muted">View to {c.cone.subject} · origin elevation <U>{`${c.cone.Lv} m`}</U></div>
+      <div className="mt-0.5 text-meta text-muted">View to {c.cone.subject} · origin elevation <U>{`${c.cone.Lv} m`}</U></div>
       {c.limit !== null ? (
-        <div className="mt-1 text-[11px]">
+        <div className="mt-1 text-meta">
           Estimated limit <b className="tabular-nums"><U>{`${c.limit.toFixed(1)} m`}</U></b> geodetic ·
           {c.exceed! > 0 ? <span className="text-red-700"> <U>{`${c.exceed!.toFixed(1)} m`}</U> above</span> : <span className="text-emerald-700"> <U>{`${(-c.exceed!).toFixed(1)} m`}</U> below</span>}
           <span className="text-muted"> (±<U>{`${c.param!.u95} m`}</U>)</span>
-          <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={c.param!.flag} /><span className="text-[11px] text-muted">{c.param!.tier} · {c.param!.source}</span></div>
+          <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={c.param!.flag} /><span className="text-meta text-muted">{c.param!.tier} · {c.param!.source}</span></div>
         </div>
       ) : c.state === 'limit_unknown' ? (
-        <div className="mt-1 text-[11px] text-slate-700">No published slope for this cone yet, so the tool stops rather than guessing. Ask the City for a View Cone Assessment (draft in <code>04 Tool Plan/city-requests/</code>).</div>
+        <div className="mt-1 text-meta text-slate-700">No published slope for this cone yet, so the tool stops rather than guessing. Ask the City for a View Cone Assessment (draft in <code>04 Tool Plan/city-requests/</code>).</div>
       ) : null}
       <div className="mt-1.5 flex gap-3">
-        <button onClick={viewFrom} className="flex items-center gap-1 text-[11px] text-accent hover:underline"><Eye size={12} />View from this viewpoint</button>
-        <a href={c.cone.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-muted hover:text-accent"><ExternalLink size={12} />City page</a>
+        <button onClick={viewFrom} className="flex items-center gap-1 text-meta text-accent hover:underline"><Eye size={12} />View from this viewpoint</button>
+        <a href={c.cone.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-meta text-muted hover:text-accent"><ExternalLink size={12} />City page</a>
       </div>
     </div>
   )
@@ -319,14 +319,14 @@ export default function Inspector() {
   return (
     <div>
       <div className="border-b border-line px-4 py-3">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
+        <div className="flex items-center gap-2 text-meta text-muted">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: cat.color }} />{cat.label} · {n.phase} · {n.priority}
         </div>
         {/* The results lead (UI review, 3 Nov); what the check does sits behind a "?" beside its name (Ruijie, 5 Nov). */}
         <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{n.name}<Help label={`About ${n.name}`}>{n.question}</Help></h2>
-        <div className="mt-1.5 flex flex-wrap gap-1">{n.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>
-        {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">Switched off in your workflow. Turn it on in the bar at the bottom to see live results.</div>}
-        {wrongProject && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-[11px] text-slate-700">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
+        <div className="mt-1.5 flex flex-wrap gap-1">{n.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>
+        {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">Switched off in your workflow. Turn it on in the bar at the bottom to see live results.</div>}
+        {wrongProject && <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-meta text-slate-700">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
       </div>
 
       {/* Results at a glance (Ruijie, 6 Nov): pass or fail with what to fix; the full cards fold under Details. */}
@@ -342,7 +342,7 @@ export default function Inspector() {
 
       {n.id === 'built.fsr' && enabled[n.id] && (
         <Section title="Results">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-meta">
             <tbody>
               {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (
                 <tr key={u} className="border-b border-line/60"><td className="py-1"><span className="mr-1.5 inline-block h-2 w-2 rounded-sm" style={{ background: USES[u as UseId].color }} />{USES[u as UseId].label}</td><td className="text-right tabular-nums">{Math.round(v).toLocaleString()} m²</td></tr>
@@ -350,12 +350,12 @@ export default function Inspector() {
               <tr><td className="pt-1.5 font-semibold">Total gross</td><td className="pt-1.5 text-right font-semibold tabular-nums">{Math.round(fsr.total).toLocaleString()} m²</td></tr>
             </tbody>
           </table>
-          <div className="mt-2 grid gap-1 text-[11px]">
+          <div className="mt-2 grid gap-1 text-meta">
             {([1, 2, 3] as const).map((k) => (
               <div key={k} className={`flex justify-between ${k === fsrTier ? 'font-semibold' : 'text-muted'}`}><span>{TIER_LABEL[k]}</span><span className="tabular-nums">{fsr[`tier${k}` as 'tier1'].toFixed(2)}</span></div>
             ))}
           </div>
-          <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">Gross area, no exclusions; Vancouver's FSR exclusions come with the policy register (P01-M07).</span></div>
+          <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Gross area, no exclusions; Vancouver's FSR exclusions come with the policy register (P01-M07).</span></div>
         </Section>
       )}
 
@@ -366,9 +366,9 @@ export default function Inspector() {
           </div>
           <div className="grid gap-2">
             {r.checks.filter((c) => c.state !== 'outside').map((c) => <ConeRow key={c.cone.id} c={c} />)}
-            {r.checks.every((c) => c.state === 'outside') && <div className="text-[11px] text-muted">Outside every protected view cone. Click "Place on map" and try a site near Robson & Cambie.</div>}
+            {r.checks.every((c) => c.state === 'outside') && <div className="text-meta text-muted">Outside every protected view cone. Click "Place on map" and try a site near Robson & Cambie.</div>}
           </div>
-          <div className="mt-2 rounded bg-slate-50 p-2 text-[11px] text-slate-600">
+          <div className="mt-2 rounded bg-slate-50 p-2 text-meta text-slate-600">
             Estimate only: Z = Lv + k·D along the cone axis. Public Views Guidelines (Feb 2026) cl. 3.1.1: no part of a building should encroach into the relevant view cones. Relaxations (Higher Buildings, Exceptional Downtown Sites 3.4) are your call. The City View Cone Assessment governs. {CONE_ATTRIBUTION}
           </div>
         </Section>
@@ -379,8 +379,8 @@ export default function Inspector() {
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
           <div className="mb-2 text-xs"><b>{r.totalCars} passenger cars</b> in {r.rises.length} group{r.rises.length === 1 ? '' : 's'}{r.skyLobbies.length ? <>, with {r.skyLobbies.length === 1 ? 'a sky lobby' : `${r.skyLobbies.length} sky lobbies`} at {r.skyLobbies.map((f) => `L${f.level}`).join(', ')}</> : null}, plus service and firefighter lifts.</div>
           <RiseDiagram t={r.tower} r={r} />
-          <table className="mt-2 w-full text-[11px]">
-            <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted"><th className="py-1 font-medium">Rise</th><th className="font-medium">Levels</th><th className="text-right font-medium">Speed</th><th className="text-right font-medium">Cars</th><th className="text-right font-medium">HC5</th><th className="text-right font-medium">Interval</th></tr></thead>
+          <table className="mt-2 w-full text-meta">
+            <thead><tr className="border-b border-line text-left text-meta text-muted"><th className="py-1 font-medium">Rise</th><th className="font-medium">Levels</th><th className="text-right font-medium">Speed</th><th className="text-right font-medium">Cars</th><th className="text-right font-medium">HC5</th><th className="text-right font-medium">Interval</th></tr></thead>
             <tbody>
               {r.rises.map((x) => (
                 <tr key={x.id} className="border-b border-line/60">
@@ -394,17 +394,17 @@ export default function Inspector() {
               ))}
             </tbody>
           </table>
-          <div className="mt-3 text-[11px] font-semibold">Core at its worst level (L{r.maxLevel ?? '—'}): {Math.round(r.requiredMax)} m² needed, {Math.round(r.modelledCore)} m² modelled{r.tower.coreAuto ? ' (sized to the lifts)' : ''}</div>
+          <div className="mt-3 text-meta font-semibold">Core at its worst level (L{r.maxLevel ?? '—'}): {Math.round(r.requiredMax)} m² needed, {Math.round(r.modelledCore)} m² modelled{r.tower.coreAuto ? ' (sized to the lifts)' : ''}</div>
           <CoreBar r={r} />
           <CoreProfile r={r} />
           <SkyLobbyCompare r={r} />
           <LiftStrategy t={r.tower} />
           <div className="mt-3 grid gap-2">{r.rules.filter((x) => !x.id.startsWith('rise-') || x.id.startsWith('rise-floors')).map((x) => <RuleCard key={x.id} r={x} />)}</div>
           <details className="mt-2">
-            <summary className="cursor-pointer text-[11px] text-muted hover:text-ink">Each rise, with its evidence</summary>
+            <summary className="cursor-pointer text-meta text-muted hover:text-ink">Each rise, with its evidence</summary>
             <div className="mt-2 grid gap-2">{r.rules.filter((x) => x.id.startsWith('rise-') && !x.id.startsWith('rise-floors')).map((x) => <RuleCard key={x.id} r={x} />)}</div>
           </details>
-          <div className="mt-2 rounded bg-black/[0.03] p-2 text-[11px] text-slate-600">
+          <div className="mt-2 rounded bg-black/[0.03] p-2 text-meta text-slate-600">
             Up-peak estimate: round trip by the classic formula with an express run and kinematic stop losses (team derivation; the Peters 2000 general analysis is unread). Handling capacity at 80% car load; interval at the design demand. Waiting and destination times need simulation (roadmap). Presets are editable in Design, Schematic.
           </div>
         </Section>
@@ -416,7 +416,7 @@ export default function Inspector() {
           <StairPlan t={e.tower} e={e} />
           <StairChart e={e} />
           <div className="mt-3 grid gap-2">{e.rules.map((x) => <RuleCard key={x.id} r={x} />)}</div>
-          <div className="mt-2 rounded bg-black/[0.03] p-2 text-[11px] text-slate-600">
+          <div className="mt-2 rounded bg-black/[0.03] p-2 text-meta text-slate-600">
             Sized storey by storey from VBBL 2019 Part 3 (equal to VBBL 2007). The stair area feeds the core &amp; lift check, so a wider stair grows the core. Evacuation time, smoke control and stair pressurisation are not modelled (P11-M08).
           </div>
         </Section>
@@ -425,7 +425,7 @@ export default function Inspector() {
       {n.id === 'built.sky-room' && enabled[n.id] && skyRooms.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
           {r.room ? (
-            <div className="mb-2 rounded-md border border-[#8e5ba8]/40 bg-[#8e5ba8]/[0.05] p-2 text-[11px]">
+            <div className="mb-2 rounded-md border border-[#8e5ba8]/40 bg-[#8e5ba8]/[0.05] p-2 text-meta">
               <div className="text-xs font-semibold text-[#6d3f8a]">Public sky room, level {r.room.level} (+{Math.round(r.room.z0)} m)</div>
               <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
                 <span className="text-muted">Open to visitors</span><span className="tabular-nums">{Math.round(r.visitorArea).toLocaleString()} m²</span>
@@ -436,7 +436,7 @@ export default function Inspector() {
                 <span className="text-muted">Lifts from the street</span><span>{r.group ? `${r.group.id}, ${r.group.cars} cars` : 'none'}</span>
               </div>
             </div>
-          ) : <p className="mb-2 text-[11px] text-muted">No public sky room yet. In Design, Schematic, add a sky lobby and switch it to Public.</p>}
+          ) : <p className="mb-2 text-meta text-muted">No public sky room yet. In Design, Schematic, add a sky lobby and switch it to Public.</p>}
           <div className="grid gap-2">{r.rules.map((x) => <RuleCard key={x.id} r={x} />)}</div>
         </Section>
       ))}
@@ -460,8 +460,8 @@ export default function Inspector() {
         return (
           <Section title="Results">
             <div className="text-xs">Sun at {sun.month}/{sun.day}, {Math.floor(sun.hour)}:{String(Math.round((sun.hour % 1) * 60)).padStart(2, '0')}: azimuth <b>{p.azimuth.toFixed(1)}°</b>, altitude <b>{p.altitude.toFixed(1)}°</b>.</div>
-            <div className="mt-2 flex items-center gap-1"><FlagChip flag="verified" /><span className="text-[11px] text-muted">NOAA solar equations, matching the research reference within 0.2°; BC clock UTC-7 all year since 8 Mar 2026. Visual preview of one moment only.</span></div>
-            <div className="mt-1 text-[11px] text-slate-700">The City test (Downtown Peninsula Solar Access Guidelines, 22 Sep, 10:00–16:00 PT, no new shadow on listed parks) runs in the "Solar access & sun hours" node.</div>
+            <div className="mt-2 flex items-center gap-1"><FlagChip flag="verified" /><span className="text-meta text-muted">NOAA solar equations, matching the research reference within 0.2°; BC clock UTC-7 all year since 8 Mar 2026. Visual preview of one moment only.</span></div>
+            <div className="mt-1 text-meta text-slate-700">The City test (Downtown Peninsula Solar Access Guidelines, 22 Sep, 10:00–16:00 PT, no new shadow on listed parks) runs in the "Solar access & sun hours" node.</div>
           </Section>
         )
       })()}
@@ -488,7 +488,7 @@ export default function Inspector() {
             <Section title="Metrics and thresholds">
               <div className="grid gap-1.5">
                 {n.metrics.map((m, i) => (
-                  <div key={i} className="rounded border border-line p-1.5 text-[11px]">
+                  <div key={i} className="rounded border border-line p-1.5 text-meta">
                     <div className="flex items-center justify-between gap-2"><span className="font-medium">{m.name}</span><FlagChip flag={m.status} /></div>
                     <div className="mt-0.5 text-emerald-800">Good: {m.good}</div>
                     <div className="text-red-800">Bad: {m.bad}</div>
@@ -503,9 +503,9 @@ export default function Inspector() {
 
       {n.research && (
         <Section title="Research record">
-          <div className="text-[11px] text-slate-700">Packet <b>{n.packet}</b> · {n.research.rounds.length} expert critique rounds · final gate {n.research.gate_pass ? <b className="text-emerald-700">passed</b> : <b className="text-amber-700">open conditions</b>} · {n.research.false_assumptions_in_packet} false assumptions flagged</div>
-          <div className="mt-1 font-mono text-[11px] text-muted">{n.research.log}</div>
-          {!!n.libs?.length && <div className="mt-1 text-[11px] text-muted">Libraries: {n.libs.join(', ')}</div>}
+          <div className="text-meta text-slate-700">Packet <b>{n.packet}</b> · {n.research.rounds.length} expert critique rounds · final gate {n.research.gate_pass ? <b className="text-emerald-700">passed</b> : <b className="text-amber-700">open conditions</b>} · {n.research.false_assumptions_in_packet} false assumptions flagged</div>
+          <div className="mt-1 font-mono text-meta text-muted">{n.research.log}</div>
+          {!!n.libs?.length && <div className="mt-1 text-meta text-muted">Libraries: {n.libs.join(', ')}</div>}
         </Section>
       )}
     </div>

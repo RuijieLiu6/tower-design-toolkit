@@ -29,7 +29,7 @@ function OutriggerPicker({ t, placed }: { t: Tower; placed: number[] }) {
   const suggestion = suggestOutriggers(t)
   const set = (l: number[]) => updateTower(t.id, { outriggerFloors: [...new Set(l)].filter((x) => levels.includes(x)).sort((a, b) => a - b) })
   return (
-    <div className="mt-2 rounded-md border border-line p-2 text-[11px]">
+    <div className="mt-2 rounded-md border border-line p-2 text-meta">
       <div className="font-semibold">Outrigger floors</div>
       <div className="mt-1 flex flex-wrap items-center gap-1">
         {placed.length === 0 && <span className="text-muted">None placed.</span>}
@@ -47,7 +47,7 @@ function OutriggerPicker({ t, placed }: { t: Tower; placed: number[] }) {
           </button>
         )}
       </form>
-      <div className="mt-1 flex items-center gap-1 text-[10px] text-muted"><FlagChip flag="team_assumption" />Suggestion at about 1/2 and 2/3 of the height is precedent practice, not a rule. Shown in Schematic as red truss bands; the floor keeps its use.</div>
+      <div className="mt-1 flex items-center gap-1 text-meta text-muted"><FlagChip flag="team_assumption" />Suggestion at about 1/2 and 2/3 of the height is precedent practice, not a rule. Shown in Schematic as red truss bands; the floor keeps its use.</div>
     </div>
   )
 }
@@ -63,23 +63,23 @@ export default function StructurePanel() {
           </div>
           <div className="grid gap-2">{r.rules.map((x) => <Card key={x.id} r={x} />)}</div>
           <OutriggerPicker t={r.tower} placed={r.outriggers} />
-          <h4 className="mb-1 mt-3 text-[11px] font-semibold text-slate-700">Lateral systems at SC4 (a shortlist, never a single best)</h4>
+          <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700">Lateral systems at SC4 (a shortlist, never a single best)</h4>
           <div className="grid gap-1.5">
             {r.systems.map((s) => (
-              <div key={s.id} className="rounded-md border border-line p-2 text-[11px]">
-                <div className="flex items-start justify-between gap-2"><span className="font-semibold">{s.name}</span><span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${FIT[s.fit].cls}`}>{FIT[s.fit].label}</span></div>
+              <div key={s.id} className="rounded-md border border-line p-2 text-meta">
+                <div className="flex items-start justify-between gap-2"><span className="font-semibold">{s.name}</span><span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold ${FIT[s.fit].cls}`}>{FIT[s.fit].label}</span></div>
                 <div className="text-slate-700">{s.reason}</div>
-                <div className="mt-0.5 text-[10px] text-muted">Code route: {s.route}</div>
-                <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={s.flag} /><span className="text-[10px] text-muted">{s.source.label}{s.source.page ? `, ${s.source.page}` : ''}</span></div>
+                <div className="mt-0.5 text-meta text-muted">Code route: {s.route}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={s.flag} /><span className="text-meta text-muted">{s.source.label}{s.source.page ? `, ${s.source.page}` : ''}</span></div>
               </div>
             ))}
           </div>
-          <div className="mt-2 rounded bg-black/[0.03] p-2 text-[10px] text-slate-600">{CONTINUITY_RULE}</div>
+          <div className="mt-2 rounded bg-black/[0.03] p-2 text-meta text-slate-600">{CONTINUITY_RULE}</div>
         </Section>
       ))}
       <FalseAssumptions items={SEISMIC_FALSE_ASSUMPTIONS} />
       <Section title="Read with care">
-        <p className="text-[11px] text-slate-700">Screening only: no member sizing, forces or drifts as design values. Research packet P10 had two critique rounds and no final gate, so code readings it corrected are shown as unverified. Slenderness and the wind procedure are in the node Wind procedure (slenderness).</p>
+        <p className="text-meta text-slate-700">Screening only: no member sizing, forces or drifts as design values. Research packet P10 had two critique rounds and no final gate, so code readings it corrected are shown as unverified. Slenderness and the wind procedure are in the node Wind procedure (slenderness).</p>
       </Section>
     </>
   )

@@ -76,7 +76,7 @@ export async function placeSiteAt(p: Pt, label: string, source: string, footprin
 
 export default function SitePanel() {
   const project = useStore((s) => s.project)
-  if (project !== 'city') return <Section title="Study site"><p className="text-[11px] text-muted">The competition site is fixed by the brief. Study sites are for the Real Vancouver project.</p></Section>
+  if (project !== 'city') return <Section title="Study site"><p className="text-meta text-muted">The competition site is fixed by the brief. Study sites are for the Real Vancouver project.</p></Section>
   return <CitySite />
 }
 
@@ -89,8 +89,8 @@ function CitySite() {
   return (
     <>
       <Section title="Study site (after Vista)" help="Find a place, then set the site: the City parcel at an address or coordinate, a boundary you draw, existing buildings you replace, or a GeoJSON file. Vista's site step (Ruijie Liu), on City parcels and footprints in EPSG:26910.">
-        {s.message && <p className={`mt-1.5 rounded px-2 py-1 text-[11px] ${s.message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{s.message.text}</p>}
-        {error && <p role="alert" className="mt-1 text-[11px] text-red-700">Parcel layer did not load: {error}</p>}
+        {s.message && <p className={`mt-1.5 rounded px-2 py-1 text-meta ${s.message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{s.message.text}</p>}
+        {error && <p role="alert" className="mt-1 text-meta text-red-700">Parcel layer did not load: {error}</p>}
       </Section>
       <AddressSearch onPlace={siteAt} />
       <Coordinates onPlace={siteAt} />
@@ -98,17 +98,17 @@ function CitySite() {
       {site && <Parcels site={site} layer={layer} match={match} stale={staleChoices} />}
       {site && area && (
         <Section title="Site area for FSR">
-          <div className="text-[11px]"><b>{fmt(area.area)} m²</b> from the {area.basis === 'parcels' ? 'joined City parcels' : 'site boundary'} · FSR <b>{fmt(fsr.total / area.area, 2)}</b> ({fmt(fsr.total)} m² gross floor area, all towers)</div>
-          <div className="mt-1 flex items-start gap-1.5"><FlagChip flag={area.flag} /><span className="text-[11px] text-muted">{area.source}</span></div>
+          <div className="text-meta"><b>{fmt(area.area)} m²</b> from the {area.basis === 'parcels' ? 'joined City parcels' : 'site boundary'} · FSR <b>{fmt(fsr.total / area.area, 2)}</b> ({fmt(fsr.total)} m² gross floor area, all towers)</div>
+          <div className="mt-1 flex items-start gap-1.5"><FlagChip flag={area.flag} /><span className="text-meta text-muted">{area.source}</span></div>
           {area.parcelArea !== null && (
-            <div className="mt-1.5 flex gap-3 text-[11px]">
+            <div className="mt-1.5 flex gap-3 text-meta">
               {(['parcels', 'boundary'] as const).map((b) => (
                 <label key={b} className="flex items-center gap-1"><input type="radio" name="area-basis" checked={site.areaBasis === b} onChange={() => useSiteStore.getState().setSite({ ...site, areaBasis: b })} />
                   {b === 'parcels' ? `Parcels ${fmt(area.parcelArea)} m²` : `Boundary ${fmt(area.boundaryArea)} m²`}</label>
               ))}
             </div>
           )}
-          <p className="mt-1 text-[11px] text-muted">The Design tab's FSR line still divides by the competition site until this site joins the project file (Needed: shared edit).</p>
+          <p className="mt-1 text-meta text-muted">The Design tab's FSR line still divides by the competition site until this site joins the project file (Needed: shared edit).</p>
         </Section>
       )}
     </>
@@ -176,7 +176,7 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
       {!consent ? (
         // The consent point stays readable in the fold's title (Ruijie, 6 Nov: long texts behind a summary title); the
         // services, what is sent, the licences and the offline note are one click away.
-        <div className="rounded-md border border-line bg-black/[0.02] p-2 text-[11px]" data-testid="search-consent">
+        <div className="rounded-md border border-line bg-black/[0.02] p-2 text-meta" data-testid="search-consent">
           <Fold summary={<span className="text-ink">Online search: <b>what you type is sent to the BC Address Geocoder</b>.</span>}>
             <p>The Province of British Columbia's BC Address Geocoder gives the live suggestions. City of Vancouver civic address points and local areas are downloaded once from the <b>City open-data portal</b> (no typed text). Nothing else leaves this browser. It works only online; drawing, picking and coordinates work offline.</p>
             <p>Geocoder <a className="underline" href={PRIVACY.geocoderPrivacy} target="_blank" rel="noreferrer">privacy statement</a> and <a className="underline" href={PRIVACY.geocoderLicence} target="_blank" rel="noreferrer">licence</a> · City data under the <a className="underline" href={PRIVACY.cityLicence} target="_blank" rel="noreferrer">Open Government Licence - Vancouver</a>.</p>
@@ -184,22 +184,22 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
           <button type="button" className={`${btn} mt-1.5 border-accent bg-accent text-white`} onClick={() => { setConsent(true); setC(true) }}><Search size={12} />Search online</button>
         </div>
       ) : !online ? (
-        <p className="flex items-center gap-1 text-[11px] text-amber-900"><WifiOff size={12} />You are offline. Address search needs the network; type coordinates, draw the site or pick buildings instead.</p>
+        <p className="flex items-center gap-1 text-meta text-amber-900"><WifiOff size={12} />You are offline. Address search needs the network; type coordinates, draw the site or pick buildings instead.</p>
       ) : (
         <div className="relative">
           <input type="search" value={q} onChange={(e) => onType(e.target.value)} onFocus={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' && merged[0]) choose(merged[0]); if (e.key === 'Escape') setOpen(false) }}
             placeholder="e.g. 1128 W Georgia, or West End" role="combobox" aria-expanded={open && merged.length > 0} aria-controls={listId} aria-autocomplete="list" aria-label="Address or neighbourhood"
             className="w-full rounded border border-line bg-panel px-2 py-1 text-xs" />
           {open && merged.length > 0 && (
-            <ul id={listId} role="listbox" className="absolute z-20 mt-0.5 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-white text-[11px] shadow-lg">
+            <ul id={listId} role="listbox" className="absolute z-20 mt-0.5 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-white text-meta shadow-lg">
               {merged.map((i, k) => (
                 <li key={`${i.label}-${k}`} role="option" aria-selected={false} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(i)} className="cursor-pointer px-2 py-1 hover:bg-accent/10">
-                  <span className="text-ink">{i.label}</span> <span className="text-[11px] text-muted">· {i.note}</span>
+                  <span className="text-ink">{i.label}</span> <span className="text-meta text-muted">· {i.note}</span>
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-1 text-[11px] text-muted" role="status">{records === null ? 'Loading City addresses…' : remote.state === 'loading' ? 'Asking the BC Address Geocoder…' : remote.state === 'error' ? (remote.reason === 'offline' ? 'Offline: City list only.' : `Geocoder did not answer (${remote.reason}); City list only.`) : `${records.length.toLocaleString('en-CA')} City addresses in the downtown box${areas ? `, ${areas.length} local areas` : ''}.`}</p>
+          <p className="mt-1 text-meta text-muted" role="status">{records === null ? 'Loading City addresses…' : remote.state === 'loading' ? 'Asking the BC Address Geocoder…' : remote.state === 'error' ? (remote.reason === 'offline' ? 'Offline: City list only.' : `Geocoder did not answer (${remote.reason}); City list only.`) : `${records.length.toLocaleString('en-CA')} City addresses in the downtown box${areas ? `, ${areas.length} local areas` : ''}.`}</p>
           {chosen && chosen.kind === 'address' && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               <button type="button" className={`${btn} border-line hover:border-accent`} onClick={() => zoomTo(local_(chosen))}><MapPin size={12} />Zoom to address</button>
@@ -207,7 +207,7 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
               <MoveTowerButton at={local_(chosen)} />
             </div>
           )}
-          {chosen?.approximate && <p className="mt-1 text-[11px] text-amber-900">A similar address, not the one typed: check it before using it.</p>}
+          {chosen?.approximate && <p className="mt-1 text-meta text-amber-900">A similar address, not the one typed: check it before using it.</p>}
         </div>
       )}
       <PendingConfirm onPlace={onPlace} />
@@ -230,7 +230,7 @@ function PendingConfirm({ onPlace }: { onPlace: (p: Pt, label: string, source: s
   const pending = useSiteStore((s) => s.pending)
   if (!pending) return null
   return (
-    <div role="dialog" aria-label="Replace the study site" className="mt-2 rounded-md border border-accent bg-accent/5 p-2 text-[11px]">
+    <div role="dialog" aria-label="Replace the study site" className="mt-2 rounded-md border border-accent bg-accent/5 p-2 text-meta">
       <p>Use the City parcel at <b>{pending.label}</b> as the study site? This replaces your current site.</p>
       <div className="mt-1.5 flex gap-1.5">
         <button type="button" className={`${btn} border-accent bg-accent text-white`} onClick={() => onPlace(pending.at, pending.label, pending.source)}>Use as study site</button>
@@ -264,26 +264,26 @@ function Coordinates({ onPlace }: { onPlace: (p: Pt, label: string, source: stri
   const ll = fromCity([cp[0] + CITY_ORIGIN[0], cp[1] + CITY_ORIGIN[1]], 'EPSG:4326')
   return (
     <Section title="Geographic location">
-      <div className="text-[11px]"><b>{role}</b>: {ll[1].toFixed(6)}° N, {(-ll[0]).toFixed(6)}° W · UTM 10N {fmt(cp[0] + CITY_ORIGIN[0], 2)} E, {fmt(cp[1] + CITY_ORIGIN[1], 2)} N</div>
+      <div className="text-meta"><b>{role}</b>: {ll[1].toFixed(6)}° N, {(-ll[0]).toFixed(6)}° W · UTM 10N {fmt(cp[0] + CITY_ORIGIN[0], 2)} E, {fmt(cp[1] + CITY_ORIGIN[1], 2)} N</div>
       <form className="mt-1.5 grid gap-1.5" onSubmit={(e) => { e.preventDefault(); try { const p = read(); useSiteStore.getState().set({ marker: { at: p, label: 'Coordinate location', kind: 'coordinate', source: crs } }); zoomTo(p); setNote('Located on the plan. Your study site has not moved.') } catch (err) { setNote((err as Error).message) } }}>
-        <label className="grid gap-0.5 text-[11px]"><span className="text-muted">Input coordinates</span>
+        <label className="grid gap-0.5 text-meta"><span className="text-muted">Input coordinates</span>
           <select value={crs} onChange={(e) => { const c = e.target.value as InputCrs; try { if (x && y) { const p = toCity(Number(x), Number(y), crs), q = fromCity(p, c), d = INPUT_CRS.find((k) => k.id === c)!.digits; setX(q[0].toFixed(d)); setY(q[1].toFixed(d)) } } catch { /* leave the fields */ } setCrs(c) }} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
             {INPUT_CRS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </label>
         <div className="grid grid-cols-2 gap-1.5">
-          <label className="grid gap-0.5 text-[11px]"><span className="text-muted">{def.x}</span><input type="number" step="any" value={x} onChange={(e) => setX(e.target.value)} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={def.x} /></label>
-          <label className="grid gap-0.5 text-[11px]"><span className="text-muted">{def.y}</span><input type="number" step="any" value={y} onChange={(e) => setY(e.target.value)} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={def.y} /></label>
+          <label className="grid gap-0.5 text-meta"><span className="text-muted">{def.x}</span><input type="number" step="any" value={x} onChange={(e) => setX(e.target.value)} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={def.x} /></label>
+          <label className="grid gap-0.5 text-meta"><span className="text-muted">{def.y}</span><input type="number" step="any" value={y} onChange={(e) => setY(e.target.value)} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={def.y} /></label>
         </div>
-        <input type="text" value={paste} placeholder='Paste "49.2857° N, 123.1236° W" or "E 491636 N 5458756"' onChange={(e) => { setPaste(e.target.value); const r = parsePasted(e.target.value); if (r) { setCrs(r.crs); setX(String(r.x)); setY(String(r.y)); setNote(r.note) } }} className="rounded border border-line bg-panel px-1.5 py-0.5 text-[11px]" aria-label="Paste coordinates" />
+        <input type="text" value={paste} placeholder='Paste "49.2857° N, 123.1236° W" or "E 491636 N 5458756"' onChange={(e) => { setPaste(e.target.value); const r = parsePasted(e.target.value); if (r) { setCrs(r.crs); setX(String(r.x)); setY(String(r.y)); setNote(r.note) } }} className="rounded border border-line bg-panel px-1.5 py-0.5 text-meta" aria-label="Paste coordinates" />
         <div className="flex flex-wrap gap-1.5">
           <button type="submit" className={`${btn} border-line hover:border-accent`}><MapPin size={12} />Show on model</button>
           <button type="button" className={`${btn} border-line hover:border-accent`} onClick={() => { try { const p = read(); if (site) useSiteStore.getState().set({ pending: { at: p, label: `${x}, ${y} (${crs})`, source: `typed ${crs} coordinates` } }); else onPlace(p, `${x}, ${y} (${crs})`, `typed ${crs} coordinates`) } catch (err) { setNote((err as Error).message) } }}><Crosshair size={12} />Use as study site</button>
           <button type="button" className={`${btn} border-line hover:border-accent`} onClick={() => fill()}>Use current position</button>
         </div>
       </form>
-      {note && <p role="status" className="mt-1 text-[11px] text-ink">{note}</p>}
-      <div className="mt-1 flex items-start gap-1.5"><FlagChip flag={crs === 'EPSG:26910' ? 'verified' : 'unverified'} /><span className="text-[11px] text-muted">{crs === 'EPSG:26910' ? 'UTM 10N is the City data\'s own frame here.' : 'Longitude/latitude is taken as NAD83(CSRS); WGS84 differs by about 1–2 m in Vancouver.'} Plan position only: no vertical datum is implied.</span></div>
+      {note && <p role="status" className="mt-1 text-meta text-ink">{note}</p>}
+      <div className="mt-1 flex items-start gap-1.5"><FlagChip flag={crs === 'EPSG:26910' ? 'verified' : 'unverified'} /><span className="text-meta text-muted">{crs === 'EPSG:26910' ? 'UTM 10N is the City data\'s own frame here.' : 'Longitude/latitude is taken as NAD83(CSRS); WGS84 differs by about 1–2 m in Vancouver.'} Plan position only: no vertical datum is implied.</span></div>
     </Section>
   )
 }
@@ -344,14 +344,14 @@ function Boundary({ site, analysis }: { site: StudySite | null; analysis: Pick<R
         {site && <button type="button" className={`${btn} border-line text-muted hover:text-red-700`} onClick={() => { s.setSite(null); s.set({ message: { text: 'Study site cleared.', kind: 'info' } }) }}><Trash2 size={12} />Clear</button>}
       </div>
       {s.tool === 'pick' && (
-        <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+        <div className="mt-1.5 flex items-center gap-2 text-meta">
           <span>{s.picked.length} picked</span>
           <button type="button" disabled={!s.picked.length} className={`${btn} border-accent bg-accent text-white disabled:opacity-50`} onClick={usePicked}>Use as site</button>
         </div>
       )}
       {s.tool === 'draw' && s.draft.length >= 3 && <button type="button" className={`${btn} mt-1.5 border-accent bg-accent text-white`} onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))}>Close the boundary</button>}
       {site && m && (
-        <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
+        <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta">
           <div><b>{fmt(m.area)} m²</b> · perimeter {fmt(m.perimeter, 1)} m · {site.ring.length} corners</div>
           <div className="text-muted">{site.note}</div>
           {site.label && <div className="text-muted">Placed from {site.label}</div>}
@@ -360,9 +360,9 @@ function Boundary({ site, analysis }: { site: StudySite | null; analysis: Pick<R
               Keep the {site.replaced.length} replaced building{site.replaced.length === 1 ? '' : 's'} (otherwise shown as demolished)</label>
           )}
           {site.source !== 'buildings' && inside.length > 0 && site.replaced.length === 0 && (
-            <button type="button" className="mt-1 text-[11px] text-accent underline" onClick={() => data && s.setSite({ ...site, replaced: [...new Set(inside.map((i) => data.footprints[i].id))], keepReplaced: false })}>Replace the {inside.length} existing building{inside.length === 1 ? '' : 's'} on the site</button>
+            <button type="button" className="mt-1 text-meta text-accent underline" onClick={() => data && s.setSite({ ...site, replaced: [...new Set(inside.map((i) => data.footprints[i].id))], keepReplaced: false })}>Replace the {inside.length} existing building{inside.length === 1 ? '' : 's'} on the site</button>
           )}
-          {site.replaced.length > 0 && <div className="mt-1 flex items-start gap-1.5"><FlagChip flag="team_assumption" /><span className="text-[11px] text-muted">Hypothetical removal; not evidence of vacancy or redevelopment eligibility. Demolished outlines are drawn in red.</span></div>}
+          {site.replaced.length > 0 && <div className="mt-1 flex items-start gap-1.5"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Hypothetical removal; not evidence of vacancy or redevelopment eligibility. Demolished outlines are drawn in red.</span></div>}
         </div>
       )}
     </Section>
@@ -371,8 +371,8 @@ function Boundary({ site, analysis }: { site: StudySite | null; analysis: Pick<R
 
 // ---------------------------------------------------------------- parcels under the site (Vista import-parcels.js)
 function Parcels({ site, layer, match, stale }: { site: StudySite; layer: ParcelLayer | null; match: ReturnType<typeof useSiteAnalysis>['match']; stale: boolean }) {
-  if (!layer) return <Section title="Parcels under the site"><p className="text-[11px] text-muted">Loading the City parcel layer…</p></Section>
-  if (!match) return <Section title="Parcels under the site"><p className="text-[11px] text-muted">The boundary is not a simple polygon, so no parcels can be matched.</p></Section>
+  if (!layer) return <Section title="Parcels under the site"><p className="text-meta text-muted">Loading the City parcel layer…</p></Section>
+  if (!match) return <Section title="Parcels under the site"><p className="text-meta text-muted">The boundary is not a simple polygon, so no parcels can be matched.</p></Section>
   const toggle = (i: number, kind: string) => {
     const add = new Set(site.parcelsAdd), skip = new Set(site.parcelsSkip)
     if (kind === 'inside') { if (skip.has(i)) skip.delete(i); else skip.add(i) } else { if (add.has(i)) add.delete(i); else add.add(i) }
@@ -382,21 +382,21 @@ function Parcels({ site, layer, match, stale }: { site: StudySite; layer: Parcel
   const touching = match.hits.length - shown.length
   return (
     <Section title="Parcels under the site">
-      {stale && <p className="mb-1 text-[11px] text-amber-900">Your parcel choices were made on another version of the parcel layer and are not applied.</p>}
+      {stale && <p className="mb-1 text-meta text-amber-900">Your parcel choices were made on another version of the parcel layer and are not applied.</p>}
       <div className="grid gap-1">
         {shown.map((h) => (
-          <label key={h.index} className="flex items-center gap-1.5 text-[11px]">
+          <label key={h.index} className="flex items-center gap-1.5 text-meta">
             <input type="checkbox" checked={match.included.includes(h.index)} onChange={() => toggle(h.index, h.kind)} />
             <span className="min-w-0 flex-1 truncate">{parcelLabel(layer, h.index)}</span>
             <span className="tabular-nums text-muted">{fmt(h.area)} m² · {Math.round(h.share * 100)}% in</span>
-            <span className={`rounded px-1 text-[11px] ${h.kind === 'inside' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>{h.kind}</span>
+            <span className={`rounded px-1 text-meta ${h.kind === 'inside' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>{h.kind}</span>
           </label>
         ))}
-        {!shown.length && <p className="text-[11px] text-muted">No parcel lies mostly in the site.</p>}
+        {!shown.length && <p className="text-meta text-muted">No parcel lies mostly in the site.</p>}
       </div>
-      {touching > 0 && <p className="mt-1 text-[11px] text-muted">{touching} neighbouring parcel{touching === 1 ? '' : 's'} only touch the boundary (under 5%) and are left out.</p>}
-      <p className={`mt-1.5 text-[11px] ${match.join.status === 'review' ? 'text-amber-900' : ''}`}>{match.join.reason}{match.join.status === 'joined' ? ` ${fmt(match.join.area)} m².` : ''}</p>
-      <div className="mt-1 flex items-start gap-1.5"><FlagChip flag="unverified" /><span className="text-[11px] text-muted">City Property parcel polygons (OGL-Vancouver, 2026-10-27 snapshot), a dated approximate cadastral layer, not a survey. "Inside" ≥ 95% in the site, "partial" ≥ 5% (team presets); joined only along exactly shared lot lines, never snapped (Vista).</span></div>
+      {touching > 0 && <p className="mt-1 text-meta text-muted">{touching} neighbouring parcel{touching === 1 ? '' : 's'} only touch the boundary (under 5%) and are left out.</p>}
+      <p className={`mt-1.5 text-meta ${match.join.status === 'review' ? 'text-amber-900' : ''}`}>{match.join.reason}{match.join.status === 'joined' ? ` ${fmt(match.join.area)} m².` : ''}</p>
+      <div className="mt-1 flex items-start gap-1.5"><FlagChip flag="unverified" /><span className="text-meta text-muted">City Property parcel polygons (OGL-Vancouver, 2026-10-27 snapshot), a dated approximate cadastral layer, not a survey. "Inside" ≥ 95% in the site, "partial" ≥ 5% (team presets); joined only along exactly shared lot lines, never snapped (Vista).</span></div>
     </Section>
   )
 }

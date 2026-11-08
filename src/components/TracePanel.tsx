@@ -64,9 +64,9 @@ const OUTCOME: Record<Outcome, string> = { chosen: 'bg-emerald-50 text-emerald-8
 function Changes({ design, results, max = 8 }: { design: string[]; results: ResultChange[]; max?: number }) {
   const [all, setAll] = useState(false)
   const r = all ? results : results.slice(0, max), d = all ? design : design.slice(0, max)
-  if (!design.length && !results.length) return <p className="text-[11px] text-muted">No changes.</p>
+  if (!design.length && !results.length) return <p className="text-meta text-muted">No changes.</p>
   return (
-    <div className="grid gap-2 text-[11px]">
+    <div className="grid gap-2 text-meta">
       {d.length > 0 && (
         <div>
           <div className="mb-0.5 font-semibold text-slate-700">Design</div>
@@ -79,8 +79,8 @@ function Changes({ design, results, max = 8 }: { design: string[]; results: Resu
           <ul className="grid gap-1">
             {r.map((c) => (
               <li key={c.id} className={`rounded border-l-2 pl-1.5 ${c.kind === 'worse' ? 'border-red-400' : c.kind === 'better' ? 'border-emerald-500' : 'border-line'}`}>
-                <div className="text-slate-800">{c.label} <span className="text-[10px] text-muted">· {c.group}</span></div>
-                <div className="flex flex-wrap items-center gap-1 text-[10px] text-muted">
+                <div className="text-slate-800">{c.label} <span className="text-meta text-muted">· {c.group}</span></div>
+                <div className="flex flex-wrap items-center gap-1 text-meta text-muted">
                   {c.before ? <><span className="tabular-nums">{c.before.value}</span><StateChip state={c.before.state} /></> : <span>new</span>}
                   <span>→</span>
                   {c.after ? <><span className="tabular-nums">{c.after.value}</span><StateChip state={c.after.state} /></> : <span>no longer checked</span>}
@@ -90,7 +90,7 @@ function Changes({ design, results, max = 8 }: { design: string[]; results: Resu
           </ul>
         </div>
       )}
-      {(results.length > max || design.length > max) && <button onClick={() => setAll((v) => !v)} className="w-fit text-[11px] text-accent hover:underline">{all ? 'Show fewer' : 'Show all changes'}</button>}
+      {(results.length > max || design.length > max) && <button onClick={() => setAll((v) => !v)} className="w-fit text-meta text-accent hover:underline">{all ? 'Show fewer' : 'Show all changes'}</button>}
     </div>
   )
 }
@@ -98,12 +98,12 @@ function Changes({ design, results, max = 8 }: { design: string[]; results: Resu
 function Summary({ d }: { d: Digest }) {
   const c = counts(d), flag = weakestFlag(d)
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-700">
+    <div className="flex flex-wrap items-center gap-1.5 text-meta text-slate-700">
       {c.fail > 0 && <span className="font-semibold text-red-700">{c.fail} fail</span>}
       {c.warn > 0 && <span className="font-semibold text-amber-700">{c.warn} check</span>}
       <span>{c.pass} pass</span>
       {c.unknown > 0 && <span className="text-muted">{c.unknown} unknown</span>}
-      {flag && <span className="flex items-center gap-1 text-[10px] text-muted">weakest evidence <FlagChip flag={flag} /></span>}
+      {flag && <span className="flex items-center gap-1 text-meta text-muted">weakest evidence <FlagChip flag={flag} /></span>}
     </div>
   )
 }
@@ -116,9 +116,9 @@ function DecisionForm({ onDone }: { onDone: () => void }) {
   const field = 'w-full rounded border border-line bg-panel px-2 py-1 text-xs outline-none focus:border-accent'
   return (
     <form className="grid gap-2 rounded-md border border-accent/40 bg-accent/[0.03] p-2" onSubmit={(e) => { e.preventDefault(); if (addDecision({ issue, option, outcome, rationale, author })) onDone() }}>
-      <label className="grid gap-0.5 text-[11px] text-muted">Question you were deciding<input value={issue} onChange={(e) => setIssue(e.target.value)} className={field} placeholder="e.g. Keep the tower at 285 m or lower it?" maxLength={500} required /></label>
-      <label className="grid gap-0.5 text-[11px] text-muted">Option<input value={option} onChange={(e) => setOption(e.target.value)} className={field} placeholder="e.g. Lower to 250 m" maxLength={500} /></label>
-      <fieldset className="flex gap-1 text-[11px]">
+      <label className="grid gap-0.5 text-meta text-muted">Question you were deciding<input value={issue} onChange={(e) => setIssue(e.target.value)} className={field} placeholder="e.g. Keep the tower at 285 m or lower it?" maxLength={500} required /></label>
+      <label className="grid gap-0.5 text-meta text-muted">Option<input value={option} onChange={(e) => setOption(e.target.value)} className={field} placeholder="e.g. Lower to 250 m" maxLength={500} /></label>
+      <fieldset className="flex gap-1 text-meta">
         <legend className="sr-only">Outcome</legend>
         {(['chosen', 'rejected', 'deferred'] as const).map((o) => (
           <label key={o} className={`flex cursor-pointer items-center gap-1 rounded border px-2 py-0.5 capitalize ${outcome === o ? OUTCOME[o] : 'border-line text-muted'}`}>
@@ -126,9 +126,9 @@ function DecisionForm({ onDone }: { onDone: () => void }) {
           </label>
         ))}
       </fieldset>
-      <label className="grid gap-0.5 text-[11px] text-muted">Why (in your own words)<textarea value={rationale} onChange={(e) => setRationale(e.target.value)} className={`${field} h-16 resize-y`} maxLength={2000} required /></label>
-      <label className="grid gap-0.5 text-[11px] text-muted">Your name<input value={author} onChange={(e) => setAuthor(e.target.value)} className={field} maxLength={80} /></label>
-      <p className="text-[10px] text-muted">The current design and its results are recorded with the decision. Rationales are always written by people; the tool never drafts one.</p>
+      <label className="grid gap-0.5 text-meta text-muted">Why (in your own words)<textarea value={rationale} onChange={(e) => setRationale(e.target.value)} className={`${field} h-16 resize-y`} maxLength={2000} required /></label>
+      <label className="grid gap-0.5 text-meta text-muted">Your name<input value={author} onChange={(e) => setAuthor(e.target.value)} className={field} maxLength={80} /></label>
+      <p className="text-meta text-muted">The current design and its results are recorded with the decision. Rationales are always written by people; the tool never drafts one.</p>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onDone} className="rounded border border-line px-2.5 py-1 text-xs">Cancel</button>
         <button type="submit" disabled={!ok} className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-40">Record decision</button>
@@ -174,7 +174,7 @@ export default function TracePanel() {
 
       {(pending || !last) && (
         <Section title={last ? 'Since the last iteration' : 'Nothing recorded yet'}>
-          {pending ? <Changes design={pending.design} results={pending.results} max={5} /> : <p className="text-[11px] text-muted">Record the current design to start the trace. Saving, opening and decisions record iterations too.</p>}
+          {pending ? <Changes design={pending.design} results={pending.results} max={5} /> : <p className="text-meta text-muted">Record the current design to start the trace. Saving, opening and decisions record iterations too.</p>}
         </Section>
       )}
 
@@ -188,7 +188,7 @@ export default function TracePanel() {
                 <button key={it.id} role="option" aria-selected={on} onClick={() => setSelected(it.id)} title={`${it.label} · ${time(it.at)}`}
                   className={`flex shrink-0 flex-col items-center gap-0.5 rounded px-1 py-1 ${on ? 'bg-accent/10' : 'hover:bg-black/5'}`}>
                   {decided ? <Diamond size={12} className={`${DIAMOND[worstState(it.digest)]} fill-current`} /> : <span className={`h-3 w-3 rounded-full ${DOT[worstState(it.digest)]}`} />}
-                  <span className="text-[9px] tabular-nums text-muted">{i + 1}</span>
+                  <span className="text-meta tabular-nums text-muted">{i + 1}</span>
                 </button>
               )
             })}
@@ -197,15 +197,15 @@ export default function TracePanel() {
             <div className="mt-2 grid gap-2">
               <div>
                 <div className="text-xs font-semibold">{sel.label}</div>
-                <div className="text-[10px] text-muted">{KIND[sel.kind]} · {time(sel.at)}</div>
+                <div className="text-meta text-muted">{KIND[sel.kind]} · {time(sel.at)}</div>
                 <div className="mt-1"><Summary d={sel.digest} /></div>
               </div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">{prev ? `Compared with ${selIndex}. ${prev.label}` : 'First iteration'}</div>
+              <div className="text-meta font-semibold text-muted">{prev ? `Compared with ${selIndex}. ${prev.label}` : 'First iteration'}</div>
               {prev && <Changes design={diffDesign(prev.design, sel.design)} results={diffResults(prev.digest, sel.digest)} />}
               <div className="flex flex-wrap gap-2">
                 <button disabled={present || sel.hash === live?.hash} onClick={() => restoreIteration(sel.id)} title={present ? 'The model is locked in Present' : sel.hash === live?.hash ? 'This is the current design' : 'Put this design back (Ctrl+Z undoes it)'}
-                  className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent hover:text-accent disabled:opacity-40"><RotateCcw size={12} />Restore this design</button>
-                <button onClick={() => setDeciding(true)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent hover:text-accent"><MessageSquarePlus size={12} />Record a decision</button>
+                  className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-accent hover:text-accent disabled:opacity-40"><RotateCcw size={12} />Restore this design</button>
+                <button onClick={() => setDeciding(true)} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta hover:border-accent hover:text-accent"><MessageSquarePlus size={12} />Record a decision</button>
               </div>
             </div>
           )}
@@ -213,20 +213,20 @@ export default function TracePanel() {
       )}
 
       {(deciding || decisions.length > 0) && (
-        <Section title={`Decisions · ${decisions.length}`} right={!deciding ? <button onClick={() => setDeciding(true)} className="text-[11px] text-accent hover:underline">Add</button> : undefined}>
+        <Section title={`Decisions · ${decisions.length}`} right={!deciding ? <button onClick={() => setDeciding(true)} className="text-meta text-accent hover:underline">Add</button> : undefined}>
           {deciding && <DecisionForm onDone={() => setDeciding(false)} />}
           <div className="mt-2 grid gap-2">
             {[...decisions].reverse().map((d) => {
               const it = iterations.findIndex((x) => x.id === d.iterationId)
               return (
-                <div key={d.id} className="rounded-md border border-line p-2 text-[11px]">
+                <div key={d.id} className="rounded-md border border-line p-2 text-meta">
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-semibold text-ink">{d.issue}</span>
-                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold capitalize ${OUTCOME[d.outcome]}`}>{d.outcome}</span>
+                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold capitalize ${OUTCOME[d.outcome]}`}>{d.outcome}</span>
                   </div>
                   {d.option && <div className="text-slate-700">Option: {d.option}</div>}
                   <blockquote className="mt-1 border-l-2 border-line pl-2 text-slate-800">{d.rationale}</blockquote>
-                  <div className="mt-1 text-[10px] text-muted">{d.author} · {time(d.at)} · written by a person{it >= 0 && <> · <button className="text-accent hover:underline" onClick={() => setSelected(d.iterationId)}>iteration {it + 1}</button></>}</div>
+                  <div className="mt-1 text-meta text-muted">{d.author} · {time(d.at)} · written by a person{it >= 0 && <> · <button className="text-accent hover:underline" onClick={() => setSelected(d.iterationId)}>iteration {it + 1}</button></>}</div>
                 </div>
               )
             })}
@@ -235,22 +235,22 @@ export default function TracePanel() {
       )}
 
       <Section title="Rule cards">
-        <button onClick={() => setCardsOpen((v) => !v)} aria-expanded={cardsOpen} className="flex w-full items-center gap-1 text-left text-[11px] text-slate-700 hover:text-ink">
+        <button onClick={() => setCardsOpen((v) => !v)} aria-expanded={cardsOpen} className="flex w-full items-center gap-1 text-left text-meta text-slate-700 hover:text-ink">
           {cardsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}<ScrollText size={12} />The {RULE_CARDS.length} clauses the built checks apply · {reviewedCount} reviewed
         </button>
         {cardsOpen && (
           <div className="mt-2 grid gap-2">
             {RULE_CARDS.map((c) => <RuleCardView key={c.id} card={c} lines={linesForCard(c, live?.digest.lines ?? [])} />)}
-            <p className="text-[10px] text-muted">Review blind (research P16-M02): a person who did not draft the card opens the source, types their own reading with the card hidden, then compares and gives a verdict. It counts only if the blind reading also gave the same type and strength. Reviews are saved in this project's trace. Drill cards and the second-model agreement check are roadmap.</p>
+            <p className="text-meta text-muted">Review blind (research P16-M02): a person who did not draft the card opens the source, types their own reading with the card hidden, then compares and gives a verdict. It counts only if the blind reading also gave the same type and strength. Reviews are saved in this project's trace. Drill cards and the second-model agreement check are roadmap.</p>
           </div>
         )}
-        <button onClick={() => setSourcesOpen((v) => !v)} aria-expanded={sourcesOpen} className="mt-2 flex w-full items-center gap-1 text-left text-[11px] text-slate-700 hover:text-ink">
+        <button onClick={() => setSourcesOpen((v) => !v)} aria-expanded={sourcesOpen} className="mt-2 flex w-full items-center gap-1 text-left text-meta text-slate-700 hover:text-ink">
           {sourcesOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}<BookOpen size={12} />All sources in use · {sources.length} ({sources.filter((e) => !e.cards.length).length} without a card)
         </button>
         {sourcesOpen && (
           <div className="mt-2">
             <SourceList entries={sources} />
-            <p className="mt-1 text-[10px] text-muted">Every document and clause the live results cite, by document, each with its worst result and weakest evidence. A source without a card is cited by a check but not yet summarised for review.</p>
+            <p className="mt-1 text-meta text-muted">Every document and clause the live results cite, by document, each with its worst result and weakest evidence. A source without a card is cited by a check but not yet summarised for review.</p>
           </div>
         )}
       </Section>

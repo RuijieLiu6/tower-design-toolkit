@@ -48,7 +48,7 @@ export default function BlockEditor({ t }: { t: Tower }) {
       </div>
       <div className="flex flex-wrap gap-1">
         {(['setback', 'shift', 'twist'] as const).map((k) => (
-          <button key={k} type="button" onClick={() => add(k)} title="Splits the top third of the top block into a new block; the height stays" className="flex items-center gap-1 rounded-md border border-line px-2 py-0.5 text-[11px] hover:border-accent"><Plus size={11} />{k === 'setback' ? 'Set back the top' : k === 'shift' ? 'Shift the top' : 'Twist the top'}</button>
+          <button key={k} type="button" onClick={() => add(k)} title="Splits the top third of the top block into a new block; the height stays" className="flex items-center gap-1 rounded-md border border-line px-2 py-0.5 text-meta hover:border-accent"><Plus size={11} />{k === 'setback' ? 'Set back the top' : k === 'shift' ? 'Shift the top' : 'Twist the top'}</button>
         ))}
       </div>
       {[...blocks.keys()].reverse().map((i) => {
@@ -60,7 +60,7 @@ export default function BlockEditor({ t }: { t: Tower }) {
             <div className="flex items-center gap-1">
               <input aria-label="Block name" value={b.name ?? ''} placeholder={b.podium ? 'Podium' : `Block ${i + 1}`} onChange={(e) => edit(i, { name: e.target.value || undefined })}
                 className="w-24 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-xs font-semibold hover:border-line focus:border-accent focus:outline-none" />
-              <span className="whitespace-nowrap text-[10px] text-muted">+{s.z0.toFixed(0)}–{s.z1.toFixed(0)} m · {n} fl · {(b.width * b.depth).toFixed(0)} m²</span>
+              <span className="whitespace-nowrap text-meta text-muted">+{s.z0.toFixed(0)}–{s.z1.toFixed(0)} m · {n} fl · {(b.width * b.depth).toFixed(0)} m²</span>
               <button type="button" className={btn} onClick={() => move(i, 1)} disabled={i === blocks.length - 1} title="Move up" aria-label="Move block up"><ArrowUp size={12} /></button>
               <button type="button" className={btn} onClick={() => move(i, -1)} disabled={i === 0} title="Move down" aria-label="Move block down"><ArrowDown size={12} /></button>
               <button type="button" className={btn} onClick={() => add('copy', i)} title="Duplicate above" aria-label="Duplicate block"><Copy size={12} /></button>
@@ -74,7 +74,7 @@ export default function BlockEditor({ t }: { t: Tower }) {
               <NumberField label="Offset y" value={b.dy} unit="m" onChange={(v) => edit(i, { dy: v })} />
               <NumberField label="Twist" value={b.rotation} unit="°" onChange={(v) => edit(i, { rotation: v })} />
             </div>
-            <label className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+            <label className="mt-1 flex items-center gap-1.5 text-meta text-muted">
               <input type="checkbox" checked={!!b.podium} onChange={(e) => edit(i, { podium: e.target.checked })} />Podium block (podium floor-to-floor and use)
               {podiumIgnored && <span className="text-amber-800">· only blocks at the bottom count as podium</span>}
             </label>

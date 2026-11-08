@@ -40,7 +40,7 @@ export default function BasementTool() {
   const thick = groundThickness(towers)
   return (
     <div className="grid gap-2.5 px-4 py-3 text-xs" data-testid="basement-tool">
-      <p className="flex items-center gap-1.5 text-[11px] text-muted">
+      <p className="flex items-center gap-1.5 text-meta text-muted">
         <span>Editing <b className="text-ink">{t.name}</b> · ground {fmt(thick)} m thick</span>
         <Help label="About Below grade">
           Basement levels are dug into a ground that is always thick enough to hold them: at least 30 m, and 10 m deeper than the deepest basement. They never count as floor area above grade. The parking estimate, the ramp and the ground thickness are team assumptions (ramp after Sinnie Choi's Downtown Massing Tool); a parking or structural consultant settles them. Turn on the dig view to see the levels through the ground; on the competition block the ramp starts at the parking node's ramp pin.
@@ -82,7 +82,7 @@ export default function BasementTool() {
               </div>
               <ul>{sum.rules.map((r) => <StatusRow key={r.id} size="sm" state={r.state === 'pass' ? 'pass' : r.state === 'fail' ? 'fail' : r.state === 'warn' ? 'warn' : 'unknown'} title={r.label} value={r.state === 'pass' ? 'fits' : 'check'} detail={r.note} />)}</ul>
               <div className="flex flex-wrap items-center gap-1.5"><FlagChip flag="team_assumption" />
-                <button type="button" onClick={() => useMobilityStore.getState().set({ carStalls: sum.stalls })} className="rounded border border-line px-1.5 py-0.5 text-[11px] hover:border-accent" title="Fill Parking, loading & bikes with this number">Use {fmt(sum.stalls)} as stalls provided</button>
+                <button type="button" onClick={() => useMobilityStore.getState().set({ carStalls: sum.stalls })} className="rounded border border-line px-1.5 py-0.5 text-meta hover:border-accent" title="Fill Parking, loading & bikes with this number">Use {fmt(sum.stalls)} as stalls provided</button>
               </div>
             </section>
           )}

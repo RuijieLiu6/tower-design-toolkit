@@ -33,7 +33,7 @@ const abs = (p: Pt): Pt => [p[0] + CITY_ORIGIN[0], p[1] + CITY_ORIGIN[1]]
 const loc = (p: Pt): Pt => [p[0] - CITY_ORIGIN[0], p[1] - CITY_ORIGIN[1]]
 
 function Note({ flag, children }: { flag: Flag; children: React.ReactNode }) {
-  return <div className="mt-1 flex items-start gap-1.5"><span className="shrink-0"><FlagChip flag={flag} /></span><span className="text-[11px] leading-snug text-muted">{children}</span></div>
+  return <div className="mt-1 flex items-start gap-1.5"><span className="shrink-0"><FlagChip flag={flag} /></span><span className="text-meta leading-snug text-muted">{children}</span></div>
 }
 
 /** Camera at a protected origin with Vista's cone-fit field and pitch, through the View from here rig. */
@@ -50,7 +50,7 @@ export function lookFromCone(cone: Cone, target: { x: number; y: number; top: nu
 
 export default function VistaPanel() {
   const project = useStore((s) => s.project)
-  if (project !== 'city') return <Section title="Vista view studies"><p className="text-[11px] text-muted">Runs in the Real Vancouver project, where the City cones, roofs and terrain are loaded.</p></Section>
+  if (project !== 'city') return <Section title="Vista view studies"><p className="text-meta text-muted">Runs in the Real Vancouver project, where the City cones, roofs and terrain are loaded.</p></Section>
   return <VistaCity />
 }
 
@@ -62,14 +62,14 @@ function VistaCity() {
   const fp = useMemo(() => (t ? towerFootprint(t).map(abs) : null), [t])
   const top = ground + (t?.height ?? 0)
   const exact = useMemo(() => (fp ? exactCones(fp, top) : []), [fp, top])
-  if (!t || !fp) return <Section title="Vista view studies"><p className="text-[11px] text-muted">Add a tower to study its protected views.</p></Section>
+  if (!t || !fp) return <Section title="Vista view studies"><p className="text-meta text-muted">Add a tower to study its protected views.</p></Section>
   const inside = exact.filter((e) => e.overlapM2 > 0)
   return (
     <>
       <Section title="Vista view study">
-        <p className="text-[11px] leading-snug text-ink">{studySentence(t.name, t.height, exact)}</p>
+        <p className="text-meta leading-snug text-ink">{studySentence(t.name, t.height, exact)}</p>
         <Note flag="verified">Plan relations from the City ViewCone polygons (OGL-Vancouver, retrieved 2026-10-21), clipped exactly with Vista's kernel. Heights: the View-cone height check's estimates; the City View Cone Assessment governs.</Note>
-        <p className="mt-1.5 text-[11px] text-muted">Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, Vista's own OpenStreetMap buildings on the City ground, at City LiDAR 2022 or 2009 heights where measured (the City LiDAR model is one switch away in the Layers dock), and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</p>
+        <p className="mt-1.5 text-meta text-muted">Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, Vista's own OpenStreetMap buildings on the City ground, at City LiDAR 2022 or 2009 heights where measured (the City LiDAR model is one switch away in the Layers dock), and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</p>
       </Section>
       <SitePanel />
       <OverlapTable exact={exact} top={top} />
@@ -89,16 +89,16 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
   const rows = exact.filter((e) => e.overlapM2 > 0 || (e.gapM ?? Infinity) <= 60)
   return (
     <Section title="Plan overlap, exact (Vista kernel)">
-      {!rows.length && <p className="text-[11px] text-muted">No protected view within 60 m of this footprint. Outside the cones does not mean unlimited height.</p>}
+      {!rows.length && <p className="text-meta text-muted">No protected view within 60 m of this footprint. Outside the cones does not mean unlimited height.</p>}
       <div className="grid gap-1.5">
         {rows.map((e) => {
           const prm = CONE_PARAMS[e.cone.id]
           const sliver = e.overlapM2 > 0 && (e.state === 'near_edge' || e.state === 'outside')
           return (
-            <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-[11px]">
+            <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-meta">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{e.cone.id} · {e.cone.name}</span>
-                <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${CONE_STYLE[e.state].chip}`}>{STATE_LABEL[e.state]}</span>
+                <span className={`rounded border px-1.5 py-0.5 text-meta font-semibold ${CONE_STYLE[e.state].chip}`}>{STATE_LABEL[e.state]}</span>
               </div>
               <div>{e.overlapM2 > 0
                 ? <>Inside: <b>{fmt(e.overlapM2, 0)} m²</b> of the footprint <span className="text-muted">(Vista's frame would say {fmt(e.vistaFrameM2, 0)} m²)</span></>
@@ -112,7 +112,7 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
           )
         })}
       </div>
-      <p className="mt-1.5 text-[11px] text-muted">A plane is lowest at a corner of the overlap, so the exact limit is the lowest value at the clipped vertices; the sampled check can only read the same or higher.</p>
+      <p className="mt-1.5 text-meta text-muted">A plane is lowest at a corner of the overlap, so the exact limit is the lowest value at the clipped vertices; the sampled check can only read the same or higher.</p>
     </Section>
   )
 }
@@ -127,16 +127,16 @@ function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower
   const active = v.viewpoint?.kind === 'cone' ? CONES.find((c) => c.id === v.viewpoint?.coneId) ?? null : null
   const target = { x: tower.x, y: tower.y, top: ground + tower.height }
   return (
-    <Section title="From the protected viewpoints" right={<button type="button" onClick={() => setAll(!all)} className="text-[11px] text-accent underline">{all ? 'Fewer' : 'All 24 views'}</button>}>
+    <Section title="From the protected viewpoints" right={<button type="button" onClick={() => setAll(!all)} className="text-meta text-accent underline">{all ? 'Fewer' : 'All 24 views'}</button>}>
       <div className="grid gap-1">
         {list.map((c) => {
           const cam = coneCamera(c)
           const on = active?.id === c.id && v.looking
           return (
-            <div key={c.id} className="flex items-center justify-between gap-2 text-[11px]">
+            <div key={c.id} className="flex items-center justify-between gap-2 text-meta">
               <span className="min-w-0 truncate"><b>{c.id}</b> {c.name} <span className="text-muted">· {c.subject}</span></span>
               <button type="button" onClick={() => (on ? v.set({ looking: false }) : lookFromCone(c, target))} aria-pressed={on}
-                className={`flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] ${on ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>
+                className={`flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-meta ${on ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>
                 <Eye size={12} />{on ? 'Back to map' : `Look (${Math.round(cam.hfov)}°)`}
               </button>
             </div>
@@ -144,8 +144,8 @@ function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower
         })}
       </div>
       {active && <ConeCompare cone={active} />}
-      <label className="mt-2 flex items-center gap-2 text-[11px]"><input type="checkbox" checked={haze} onChange={() => useVistaStore.getState().set({ haze: !haze })} />Light haze in eye-level views (visual only; off = evidence view)</label>
-      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted"><Mountain size={11} />Mountains: NRCan MRDEM-30 to 25 km, CGVD28; far plane 60 km while looking, so no peak is clipped.</p>
+      <label className="mt-2 flex items-center gap-2 text-meta"><input type="checkbox" checked={haze} onChange={() => useVistaStore.getState().set({ haze: !haze })} />Light haze in eye-level views (visual only; off = evidence view)</label>
+      <p className="mt-1 flex items-center gap-1 text-meta text-muted"><Mountain size={11} />Mountains: NRCan MRDEM-30 to 25 km, CGVD28; far plane 60 km while looking, so no peak is clipped.</p>
     </Section>
   )
 }
@@ -156,7 +156,7 @@ function ConeCompare({ cone }: { cone: Cone }) {
   const ve = ORIGINS[cone.id]?.vistaEye ?? null
   const vs = vistaFrameSpread(cone)
   return (
-    <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
+    <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta">
       <div className="font-semibold">View {cone.id}: Tower Design Toolkit vs Vista</div>
       <div>Eye <b>{fmt(cone.Lv, 2)} m</b> (City Lv) · Vista {fmt(ve, 1)} m{ve != null && <span className="text-muted"> (Δ {ve - cone.Lv >= 0 ? '+' : ''}{fmt(ve - cone.Lv, 1)} m)</span>}</div>
       <Note flag="verified">Lv: City ViewCone service VIEWPOINT_ELEVATION_M, already an eye elevation (research C04 r3).</Note>
@@ -193,11 +193,11 @@ function RoofViews({ tower, ground }: { tower: Tower; ground: number }) {
   }
   return (
     <Section title="Rooftop views of the tower">
-      {!data && <p className="text-[11px] text-muted">Loading City roofs…</p>}
-      {data && !roofs.length && <p className="text-[11px] text-muted">No roof with a height within 1.5 km of this tower. View from here can still stand on the street.</p>}
+      {!data && <p className="text-meta text-muted">Loading City roofs…</p>}
+      {data && !roofs.length && <p className="text-meta text-muted">No roof with a height within 1.5 km of this tower. View from here can still stand on the street.</p>}
       <div className="grid gap-1">
         {roofs.map((r) => (
-          <div key={r.index} className="flex items-center justify-between gap-2 text-[11px]">
+          <div key={r.index} className="flex items-center justify-between gap-2 text-meta">
             <span className="min-w-0"><b>{fmt(r.distance, 0)} m {compass((r.bearing + 180) % 360)}</b> · roof {fmt(r.roof, 1)} m · {r.visibleM > 0 ? <>sees the upper <b>{fmt(r.visibleM, 0)} m</b></> : <span className="text-muted">tower hidden behind {r.blockedBy}</span>}</span>
             <button type="button" onClick={() => stand(r)} className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-0.5 hover:border-accent"><MapPin size={12} />Stand here</button>
           </div>
@@ -218,16 +218,16 @@ function WhatIf({ exact, fp, ground, top }: { exact: ExactCone[]; fp: Pt[]; grou
   if (!exact.length) return null
   const num = (s: string) => (s.trim() === '' || !Number.isFinite(Number(s)) ? null : Number(s))
   return (
-    <Section title="What-if study planes (Vista v10)" help="Enter a lower boundary you want to test for a view this footprint is in: its elevation at the City origin, its slope and the bearing of the slope. Blank = no plane (the view then stays unknown)." right={<label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={showPlanes} onChange={() => useVistaStore.getState().set({ showPlanes: !showPlanes })} /><Layers size={11} />3D</label>}>
+    <Section title="What-if study planes (Vista v10)" help="Enter a lower boundary you want to test for a view this footprint is in: its elevation at the City origin, its slope and the bearing of the slope. Blank = no plane (the view then stays unknown)." right={<label className="flex items-center gap-1 text-meta"><input type="checkbox" checked={showPlanes} onChange={() => useVistaStore.getState().set({ showPlanes: !showPlanes })} /><Layers size={11} />3D</label>}>
       <div className="grid gap-2">
         {exact.map((e) => {
           const p = planes[e.cone.id]
           const prm = CONE_PARAMS[e.cone.id]
           return (
-            <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-[11px]">
+            <div key={e.cone.id} className="rounded-md border border-line p-1.5 text-meta">
               <div className="flex items-center justify-between"><b>{e.cone.id} · {e.cone.name}</b>
-                <span className="flex gap-2">{prm && <button type="button" className="text-[11px] text-accent underline" onClick={() => setPlane(e.cone.id, { elevation: e.cone.Lv, pitch: Math.round((Math.atan(prm.k) * 180) / Math.PI * 10000) / 10000, bearing: Math.round(axisBearing(e.cone) * 100) / 100, note: `Start from Tower Design Toolkit's estimate (${prm.source})` })}>Start from the estimate</button>}
-                  {p && <button type="button" className="text-[11px] text-muted underline" onClick={() => setPlane(e.cone.id, null)}>Clear</button>}</span>
+                <span className="flex gap-2">{prm && <button type="button" className="text-meta text-accent underline" onClick={() => setPlane(e.cone.id, { elevation: e.cone.Lv, pitch: Math.round((Math.atan(prm.k) * 180) / Math.PI * 10000) / 10000, bearing: Math.round(axisBearing(e.cone) * 100) / 100, note: `Start from Tower Design Toolkit's estimate (${prm.source})` })}>Start from the estimate</button>}
+                  {p && <button type="button" className="text-meta text-muted underline" onClick={() => setPlane(e.cone.id, null)}>Clear</button>}</span>
               </div>
               <div className="mt-1 grid grid-cols-3 gap-1.5">
                 <label className="grid gap-0.5"><span className="text-muted">At origin (m)</span><input type="number" step={0.1} value={p?.elevation ?? ''} placeholder={String(e.cone.Lv)} onChange={(ev) => setPlane(e.cone.id, { elevation: num(ev.target.value) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={`What-if elevation at origin, view ${e.cone.id}`} /></label>
@@ -239,7 +239,7 @@ function WhatIf({ exact, fp, ground, top }: { exact: ExactCone[]; fp: Pt[]; grou
           )
         })}
       </div>
-      <div className="mt-2 rounded-md border border-orange-300 bg-orange-50 p-2 text-[11px]">
+      <div className="mt-2 rounded-md border border-orange-300 bg-orange-50 p-2 text-meta">
         {res.status === 'ready' || res.status === 'partial'
           ? <>Lowest plane <b>{fmt(res.ceilingElevationM, 2)} m</b> CGVD28 (view {res.limitingView}) · <b>{fmt(res.maxHeightM, 1)} m</b> above the base · clearance <b className={res.clearanceM != null && res.clearanceM < 0 ? 'text-red-700' : ''}>{fmt(res.clearanceM, 1)} m</b>{res.missingViews.length ? <span> · no plane for {res.missingViews.join(', ')}: partial</span> : null}</>
           : res.status === 'unknown' ? <>No plane entered for {res.missingViews.join(', ')}: unknown. A missing plane never means unlimited height.</> : <>Outside every view.</>}
@@ -307,7 +307,7 @@ function Studies() {
     <Section title="Vista examples and studies">
       <div className="grid gap-1">
         {VISTA_EXAMPLES.map((ex) => (
-          <div key={ex.key} className="flex items-center justify-between gap-2 text-[11px]">
+          <div key={ex.key} className="flex items-center justify-between gap-2 text-meta">
             <span className="min-w-0"><b>{ex.name}</b> <span className="text-muted">· {ex.address} · {ex.facts}</span></span>
             <button type="button" onClick={() => open(parseVistaHash(ex.hash), ex.name)} className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-0.5 hover:border-accent"><Plus size={12} />Add</button>
           </div>
@@ -315,9 +315,9 @@ function Studies() {
       </div>
       <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs hover:border-accent"><FileUp size={13} />Open a Vista study (.json)</button>
       <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} aria-label="Vista study file" />
-      {error && <p role="alert" className="mt-1 text-[11px] text-red-700">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-meta text-red-700">{error}</p>}
       {last && (
-        <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-[11px]">
+        <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta">
           <div className="font-semibold">{last.name} added</div>
           {last.blocks.map((b, i) => (
             <div key={i}>{b.block.name}: Vista drew {b.block.w} × {b.block.d} m in its short frame, which covers <b>{fmt(b.gridArea, 1)} m²</b> of real ground (what Vista's overlap test used). Tower Design Toolkit keeps the {b.block.w} × {b.block.d} m you typed ({fmt(b.vistaArea, 0)} m²) on the converted site point; rotation {b.block.rotation}° → {fmt(b.rotation, 3)}° (grid convergence).</div>
@@ -326,7 +326,7 @@ function Studies() {
           <Note flag="false_assumption">Vista's frame shortens metres (0.58% north–south); each corner was converted through latitude/longitude into EPSG:26910. Heights are the published tower heights; the base is the project base.</Note>
         </div>
       )}
-      <p className="mt-1.5 text-[11px] text-muted">Only the site point, block sizes, observer and study planes are read; Vista's context model, building ids and imported models are not. Nothing leaves this browser.</p>
+      <p className="mt-1.5 text-meta text-muted">Only the site point, block sizes, observer and study planes are read; Vista's context model, building ids and imported models are not. Nothing leaves this browser.</p>
       <HideUnderDesignCard inline />
     </Section>
   )
@@ -338,7 +338,7 @@ function FrameRule({ tower, exact }: { tower: Tower; exact: ExactCone[] }) {
   const d = frameDistances(c.ring[0], abs([tower.x, tower.y]))
   return (
     <Section title="Frame rule">
-      <div className="rounded-md border-l-2 border-flag-false bg-[#fdf0f7] p-2 text-[11px]">
+      <div className="rounded-md border-l-2 border-flag-false bg-[#fdf0f7] p-2 text-meta">
         <span className="font-semibold text-flag-false">False assumption: </span>{VISTA_FALSE_ASSUMPTIONS[0].claim}.
         <div className="mt-0.5">At 49.28 N it reads north–south <b>{fmt(-fe.northSouth * 100, 2)}%</b> short and east–west <b>{fmt(-fe.eastWest * 100, 2)}%</b> short. Here: {c.id} origin to {tower.name} is <b>{fmt(d.grid, 1)} m</b> in the grid, {fmt(d.vista, 1)} m in Vista's frame ({fmt(d.grid - d.vista, 1)} m short).</div>
         <div className="mt-0.5 text-muted">Corrected: Vista coordinates go through latitude/longitude into EPSG:26910; nothing is computed in the legacy frame. (Research C04; C04 printed 0.198% east–west, which GRS80 puts at {fmt(-fe.eastWest * 100, 3)}%.)</div>
@@ -402,13 +402,13 @@ function Report({ tower, fp, ground, exact }: { tower: Tower; fp: Pt[]; ground: 
       <div className="flex flex-wrap gap-1">
         {candidates.map((id) => {
           const on = ids.includes(id)
-          return <button key={id} type="button" aria-pressed={on} onClick={() => setPicked(on ? ids.filter((k) => k !== id) : [...ids, id].slice(0, 8))} className={`rounded border px-1.5 py-0.5 text-[11px] ${on ? 'border-accent bg-accent/10 text-ink' : 'border-line text-muted'}`}>{id}</button>
+          return <button key={id} type="button" aria-pressed={on} onClick={() => setPicked(on ? ids.filter((k) => k !== id) : [...ids, id].slice(0, 8))} className={`rounded border px-1.5 py-0.5 text-meta ${on ? 'border-accent bg-accent/10 text-ink' : 'border-line text-muted'}`}>{id}</button>
         })}
-        {!candidates.length && <span className="text-[11px] text-muted">Pages for the two nearest views: {ids.join(', ')}</span>}
+        {!candidates.length && <span className="text-meta text-muted">Pages for the two nearest views: {ids.join(', ')}</span>}
       </div>
       <button type="button" disabled={!!busy && busy.endsWith('…')} onClick={run} className="mt-2 flex items-center gap-1 rounded-md border border-accent bg-accent px-2 py-1 text-xs font-medium text-white disabled:opacity-60"><FileDown size={13} />Export view study PDF</button>
-      {busy && <p role="status" className="mt-1 text-[11px] text-muted"><Camera size={11} className="mr-1 inline" />{busy}</p>}
-      <p className="mt-1 text-[11px] text-muted">Renders need the 3D view on screen. The PDF is made in this browser; nothing is uploaded.</p>
+      {busy && <p role="status" className="mt-1 text-meta text-muted"><Camera size={11} className="mr-1 inline" />{busy}</p>}
+      <p className="mt-1 text-meta text-muted">Renders need the 3D view on screen. The PDF is made in this browser; nothing is uploaded.</p>
       {hidden.size > 0 && <Note flag="team_assumption">The renders leave out the {hidden.size} existing building footprint{hidden.size === 1 ? '' : 's'} hidden under the design; the PDF states it on every view page and in its sources. {REMOVAL_CAVEAT} For the existing-context view, choose "Show the existing buildings again" before exporting.</Note>}
     </Section>
   )

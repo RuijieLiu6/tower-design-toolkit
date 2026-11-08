@@ -18,16 +18,16 @@ export default function CultureResults() {
   const { findings, gate } = useCultureGate()
   return (
     <>
-      <div className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-[11px] text-slate-700">
-        <span className="shrink-0 rounded bg-slate-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Unreviewed beta</span>
+      <div className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-meta text-slate-700">
+        <span className="shrink-0 rounded bg-slate-500 px-1.5 py-0.5 text-meta font-semibold uppercase text-white">Unreviewed beta</span>
         <span>The ladder, phrase list and statements are team designs awaiting paid Indigenous review (P07-M01). The tool restricts claims; it never scores culture and never contacts anyone.</span>
       </div>
 
       <Section title="Contact guard">
-        <div className="rounded-md border-2 border-red-300 bg-red-50/50 p-2.5 text-[11px]">
+        <div className="rounded-md border-2 border-red-300 bg-red-50/50 p-2.5 text-meta">
           <div className="mb-1 flex items-center gap-1.5 font-semibold text-red-800"><ShieldAlert size={14} />No contact about the entry</div>
           <p>{CONTACT_RULE}</p>
-          <div className="mt-1.5 flex items-center gap-1"><FlagChip flag="unverified" /><span className="text-[10px] text-muted">Generic rule only. Names, clause numbers and dates stay hidden until a person checks the Terms and the jury page in a browser (they came from fetch summaries; the organizer's site was unreachable in research rounds 3 and 4).</span></div>
+          <div className="mt-1.5 flex items-center gap-1"><FlagChip flag="unverified" /><span className="text-meta text-muted">Generic rule only. Names, clause numbers and dates stay hidden until a person checks the Terms and the jury page in a browser (they came from fetch summaries; the organizer's site was unreachable in research rounds 3 and 4).</span></div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="grid gap-0.5"><span className="text-muted">Checked by</span><input value={s.verifiedBy} onChange={(e) => s.set({ verifiedBy: e.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" placeholder="name (kept in this browser)" /></label>
             <label className="grid gap-0.5"><span className="text-muted">On</span><input type="date" value={s.verifiedOn} onChange={(e) => s.set({ verifiedOn: e.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" /></label>
@@ -37,7 +37,7 @@ export default function CultureResults() {
       </Section>
 
       <Section title="Engagement ledger, per Nation" right={<FlagChip flag="team_assumption" />}>
-        <p className="mb-2 text-[10px] text-muted">One Nation's status says nothing about the other two. N0 is the standing default: whether any sanctioned channel to the Nations exists for this competition is unresolved.</p>
+        <p className="mb-2 text-meta text-muted">One Nation's status says nothing about the other two. N0 is the standing default: whether any sanctioned channel to the Nations exists for this competition is unresolved.</p>
         <div className="grid gap-2.5">{NATIONS.map((n) => <NationRow key={n} n={n} />)}</div>
       </Section>
 
@@ -47,21 +47,21 @@ export default function CultureResults() {
         {s.claimsText.trim() && <Highlighted text={s.claimsText} findings={findings} />}
         <ul className="mt-2 grid gap-1.5">
           {findings.map((f, i) => (
-            <li key={i} className={`rounded border px-2 py-1 text-[11px] ${f.pass ? 'border-emerald-200 bg-emerald-50/60' : 'border-red-200 bg-red-50/60'}`}>
-              <div className="flex items-center gap-1.5"><b>"{f.phrase}"</b><span className="text-muted">· {f.rule.label} · {f.general ? 'Nations in general' : f.nations.join(', ')}</span><span className={`ml-auto text-[10px] font-semibold ${f.pass ? 'text-emerald-800' : 'text-red-800'}`}>{f.pass ? 'Allowed' : 'Not allowed'}</span></div>
-              <div className="text-[10px] text-slate-700">{f.reason}</div>
+            <li key={i} className={`rounded border px-2 py-1 text-meta ${f.pass ? 'border-emerald-200 bg-emerald-50/60' : 'border-red-200 bg-red-50/60'}`}>
+              <div className="flex items-center gap-1.5"><b>"{f.phrase}"</b><span className="text-muted">· {f.rule.label} · {f.general ? 'Nations in general' : f.nations.join(', ')}</span><span className={`ml-auto text-meta font-semibold ${f.pass ? 'text-emerald-800' : 'text-red-800'}`}>{f.pass ? 'Allowed' : 'Not allowed'}</span></div>
+              <div className="text-meta text-slate-700">{f.reason}</div>
             </li>
           ))}
-          {s.claimsText.trim() && !findings.length && <li className="text-[11px] text-emerald-800">No claim wording found. This is a phrase check, not a review of meaning.</li>}
+          {s.claimsText.trim() && !findings.length && <li className="text-meta text-emerald-800">No claim wording found. This is a phrase check, not a review of meaning.</li>}
         </ul>
-        <details className="mt-2 text-[10px] text-muted"><summary className="cursor-pointer hover:text-ink">The {CLAIM_RULES.length} stage A rules</summary>
+        <details className="mt-2 text-meta text-muted"><summary className="cursor-pointer hover:text-ink">The {CLAIM_RULES.length} stage A rules</summary>
           <ul className="mt-1 grid gap-1">{CLAIM_RULES.map((r) => <li key={r.id}><b className="text-ink">{r.label}</b> ({r.need === 'banned' ? 'never in a competition entry' : `needs N${r.need}`}): {r.why}</li>)}</ul>
         </details>
       </Section>
 
       <Section title="Eligibility (private)">
-        <p className="mb-1.5 text-[10px] text-muted">Kept in this browser only and never exported. Uncertain cases go to the organizer's staff through the portal, never to a juror.</p>
-        <div className="grid gap-1 text-[11px]">
+        <p className="mb-1.5 text-meta text-muted">Kept in this browser only and never exported. Uncertain cases go to the organizer's staff through the portal, never to a juror.</p>
+        <div className="grid gap-1 text-meta">
           {([['authors', 'Each author has recorded their own eligibility status'], ['associate', 'The question about UBC SALA associates is logged (asked of organizer staff, without describing the entry)'], ['instructor', 'The instructor confirmed in writing that no juror reviews competition-specific work in the course']] as const).map(([k, label]) => (
             <label key={k} className="flex items-start gap-2"><input type="checkbox" className="mt-0.5" checked={s.eligibility[k]} onChange={() => s.set({ eligibility: { ...s.eligibility, [k]: !s.eligibility[k] } })} />{label}</label>
           ))}
@@ -69,10 +69,10 @@ export default function CultureResults() {
       </Section>
 
       <Section title="Before any board export">
-        <ul className="grid gap-1 text-[11px]">
+        <ul className="grid gap-1 text-meta">
           {gate.map((g) => <li key={g.id} className="flex items-center gap-1.5"><span className={`flex h-4 w-4 items-center justify-center rounded-full text-white ${g.ok ? 'bg-emerald-600' : 'bg-red-600'}`}>{g.ok ? <Check size={10} /> : '!'}</span>{g.label}</li>)}
         </ul>
-        <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-[10px] text-muted">
+        <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta text-muted">
           <div className="mb-0.5 flex items-center gap-1"><FlagChip flag="team_assumption" /><span>Non-endorsement line (wording needs the instructor's agreement; kept off boards to protect anonymity):</span></div>
           <p className="text-slate-700">{NON_ENDORSEMENT}</p>
         </div>
@@ -89,15 +89,15 @@ function NationRow({ n }: { n: Nation }) {
   const statement = statementFor(n, r)
   const [copied, setCopied] = useState(false)
   return (
-    <div className="rounded-md border border-line p-2 text-[11px]">
-      <div className="mb-1.5 flex items-center justify-between"><b className="text-xs">{n}</b><span className="text-[10px] text-muted">{LADDER[r.status].allows}</span></div>
+    <div className="rounded-md border border-line p-2 text-meta">
+      <div className="mb-1.5 flex items-center justify-between"><b className="text-xs">{n}</b><span className="text-meta text-muted">{LADDER[r.status].allows}</span></div>
       <div className="flex rounded-md bg-black/5 p-0.5" role="radiogroup" aria-label={`${n} engagement status`}>
         {LADDER.map((l) => (
           <button key={l.level} role="radio" aria-checked={r.status === l.level} title={`${l.name}: ${l.detail}`} onClick={() => up({ status: l.level })}
-            className={`flex-1 rounded px-1 py-0.5 text-[10px] ${r.status === l.level ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>N{l.level}</button>
+            className={`flex-1 rounded px-1 py-0.5 text-meta ${r.status === l.level ? 'bg-panel font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>N{l.level}</button>
         ))}
       </div>
-      <div className="mt-1 text-[10px] text-muted">{LADDER[r.status].name}: {LADDER[r.status].detail}</div>
+      <div className="mt-1 text-meta text-muted">{LADDER[r.status].name}: {LADDER[r.status].detail}</div>
       {r.status >= 1 && (
         <div className="mt-1.5 grid gap-1.5">
           <label className="grid gap-0.5"><span className="text-muted">{r.status === 1 ? 'Documents read' : 'Evidence note'}</span><input value={r.evidence} onChange={(e) => up({ evidence: e.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" /></label>
@@ -116,9 +116,9 @@ function NationRow({ n }: { n: Nation }) {
           )}
         </div>
       )}
-      {issues.length > 0 && <ul className="mt-1.5 list-disc pl-4 text-[10px] text-red-800">{issues.map((x) => <li key={x}>{x}</li>)}</ul>}
+      {issues.length > 0 && <ul className="mt-1.5 list-disc pl-4 text-meta text-red-800">{issues.map((x) => <li key={x}>{x}</li>)}</ul>}
       <div className="mt-1.5 rounded bg-black/[0.03] p-1.5">
-        <div className="flex items-start gap-1.5"><span className="flex-1 text-[11px] text-slate-700">{statement}</span>
+        <div className="flex items-start gap-1.5"><span className="flex-1 text-meta text-slate-700">{statement}</span>
           <button onClick={() => { void navigator.clipboard?.writeText(statement); setCopied(true); setTimeout(() => setCopied(false), 1200) }} aria-label={`Copy the ${n} statement`} className="shrink-0 text-muted hover:text-accent">{copied ? <Check size={12} /> : <Copy size={12} />}</button>
         </div>
       </div>
@@ -137,7 +137,7 @@ function Highlighted({ text, findings }: { text: string; findings: ClaimFinding[
   }
   parts.push({ t: text.slice(at) })
   return (
-    <div className="mt-1.5 whitespace-pre-wrap rounded-md border border-line bg-black/[0.02] p-2 text-[11px] leading-relaxed">
+    <div className="mt-1.5 whitespace-pre-wrap rounded-md border border-line bg-black/[0.02] p-2 text-meta leading-relaxed">
       {parts.map((p, i) => p.f ? <mark key={i} title={p.f.reason} className={p.f.pass ? 'rounded bg-emerald-100 px-0.5' : 'rounded bg-red-200 px-0.5'}>{p.t}</mark> : <span key={i}>{p.t}</span>)}
     </div>
   )

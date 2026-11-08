@@ -32,7 +32,7 @@ export default function PresetCards({ title, presets, onActive, onEdit }: { titl
   const [going, setGoing] = useState<string | null>(null)
   return (
     <section aria-labelledby="presets-title" data-testid="landing-presets" className="grid gap-3">
-      <h2 id="presets-title" className="scroll-mt-6 text-[22px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+      <h2 id="presets-title" className="scroll-mt-6 text-section text-ink">{title}</h2>
       <ul className={`grid gap-3 sm:grid-cols-2 ${presets.length >= 4 ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`} onMouseLeave={() => onActive(null)}>
         {presets.map((p, i) => {
           const Icon = PRESET_ICONS[p.id] ?? Workflow, Step = STEP_ICON[p.step]
@@ -45,8 +45,8 @@ export default function PresetCards({ title, presets, onActive, onEdit }: { titl
                 <GlassIcon icon={Icon} hue={hue} size={ICON.feature} />
                 <Help label={`About ${p.name}`}>{p.goal}</Help>
               </div>
-              <h3 className="text-pretty text-[15px] font-semibold leading-snug text-ink">{p.name}</h3>
-              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-ink" aria-label="Where it opens">
+              <h3 className="text-pretty text-node font-semibold text-ink">{p.name}</h3>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-meta text-ink" aria-label="Where it opens">
                 <span className="flex items-center gap-1 py-0.5" title={p.project === 'vtc' ? 'The competition block' : 'A real Vancouver site'}>
                   {p.project === 'vtc' ? <Trophy size={14} className="text-accent" aria-hidden /> : <MapPin size={14} className="text-accent" aria-hidden />}{p.project === 'vtc' ? 'Competition' : 'Vancouver'}
                 </span>
@@ -57,7 +57,7 @@ export default function PresetCards({ title, presets, onActive, onEdit }: { titl
               </ul>
               <div className="mt-auto flex items-center gap-2 pt-1">
                 <button type="button" disabled={!!going} data-testid={`start-${p.id}`} onClick={() => { setGoing(p.id); void startPreset(p).catch(() => setGoing(null)) }}
-                  className="flex-1 rounded-full bg-accent px-3.5 py-2 text-[14px] font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-50">
+                  className="flex-1 rounded-full bg-accent px-3.5 py-2 text-control font-semibold text-white outline-none hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-50">
                   {going === p.id ? <Loader2 size={14} className="mr-1 inline animate-spin" aria-hidden /> : null}Start
                 </button>
                 <button type="button" onClick={() => onEdit(p)} title="Change its nodes on the phase board below" aria-label={`Change ${p.name} on the phase board`} data-testid={`edit-${p.id}`}
@@ -87,7 +87,7 @@ function NodeTile({ cat, names }: { cat: Category; names: string[] }) {
         <GlassIcon icon={Icon} hue={CATEGORY_HUE[cat]} size={ICON.feature} />
       </span>
       {names.length > 1 && <span aria-hidden className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10.5px] font-semibold text-white">{names.length}</span>}
-      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
+      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-ink px-2.5 py-1.5 text-meta leading-snug text-white shadow-lg group-focus-within:block group-hover:block">
         <b className="block font-semibold">{c.label}</b>
         {names.map((n) => <span key={n} className="block opacity-90">{n}</span>)}
       </span>
