@@ -27,18 +27,21 @@
 // Keyboard: floating nodes are buttons (Enter threads one); threaded nodes are buttons (← → move it along the string,
 // Delete takes it off); the role menu is a listbox. Reduced motion: nothing drifts, sways or alternates; all still works.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowRight, ChevronDown, Play, Trash2, Undo2, X } from '../icons'
+import { ArrowRight, BookOpen, ChevronDown, FilePlus, FileUp, PackagePlus, Play, Tags, Trash2, Undo2, X } from '../icons'
 import WorkflowAssistant from './WorkflowAssistant'
 import { NodeTile } from '../NodeTile'
 import { nodeWord } from '../../data/nodeWords'
 import type { Proposal } from '../../lib/agent/workflowAssistant'
 import GlassIcon, { HUES, ICON } from '../GlassIcon'
-import { NODE_ICONS, STEP_ICONS, TYPE_ICONS } from '../../data/icons'
+import { NODE_ICONS, PRESET_ICONS, STEP_ICONS, TYPE_ICONS } from '../../data/icons'
 import { BUILT_NODES } from '../../data/registry'
 import { PHASE_HUE, PHASES, phaseOfNode, type PhaseId } from '../../lib/phases'
 import { startPreset } from '../../lib/startPreset'
 import { enterToolkit } from '../../lib/intro'
-import { USER_TYPES, type Preset, type UserTypeId } from '../../lib/userTypes'
+import { USER_TYPES, presetById, type Preset, type UserTypeId } from '../../lib/userTypes'
+import { restoreCoverWorkflow, saveCoverWorkflow } from '../../lib/coverWorkflow'
+import { navigate } from '../../lib/route'
+import { goToStep } from '../../lib/step'
 import { byPhase, closesLoop, edgeKey, linear, loopRing, phaseIndex, returnEdges, walk, type Edge } from '../../lib/workflowGraph'
 
 type RoleId = UserTypeId | 'custom'
@@ -57,12 +60,15 @@ const idx = (id: string) => NODES.findIndex((n) => n.id === id)
 const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => b[i] === x)
 const key = edgeKey
 
-interface Body { x: number; y: number; vx: number; vy: number; r: number; a: number; va: number; held: boolean; on: boolean }
+/**
+ * A node tile: where it is, where it is going (on the board: where it was put; off it: its slot in its lane's shelf) and
+ * its scale (full on the board, small in the shelf). It glides there and stops: nothing drifts while the visitor reads.
+ */
+interface Body { x: number; y: number; tx: number; ty: number; s: number; vx: number; vy: number; r: number; held: boolean; on: boolean; pop: boolean }
 interface Pt { x: number; y: number; px: number; py: number }
 interface Rope { pts: Pt[]; slack: number }
-type Zone = { x0: number; y0: number; x1: number; y1: number }
-/** A repeatable scatter (no Math.random at render, so the first frame is the same every visit). */
-const rand = (i: number, k: number) => { const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return s - Math.floor(s) }
+/** Tiles in a lane's shelf are this much of their size on the board. */
+const SHELF_S = 0.62
 const SEG = 14 // points per rope
 /** The loop colour (one for the wire back and the forward wires it closes): orange, the complement of the run's blue (206° + 180°; Ruijie, 7 Nov). */
 const LOOP_LINE = 'hsl(26 92% 54%)', LOOP_PULSE = 'hsl(26 96% 56%)'
@@ -77,9 +83,19 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const [size] = useState(() => Math.round(ICON.feature * Math.max(0.72, Math.min(1, (typeof window === 'undefined' ? 1200 : window.innerWidth) / 1200))))
 
   // ---- the workflow: the nodes on the board, the wires between them, and where it came from
-  const [role, setRole] = useState<RoleId>('designer')
-  const [onBoard, setOnBoard] = useState<string[]>(() => byPhase(presetOf('designer')?.nodes ?? []))
-  const [edges, setEdges] = useState<Edge[]>(() => linear(byPhase(presetOf('designer')?.nodes ?? [])))
+  // Ruijie, 7 Nov: "Returning to the landing page must restore the active workflow, including its nodes, connections,
+  // local loops, name, and selected starting preset. A fresh default workflow should appear only when the user explicitly
+  // starts a new workflow" (lib/coverWorkflow.ts; the default only on a first visit, or New / a role / a preset).
+  const [init] = useState(() => restoreCoverWorkflow((id) => idx(id) >= 0))
+  const startIds = byPhase(presetOf('designer')?.nodes ?? [])
+  const [role, setRole] = useState<RoleId>(init?.role ?? 'designer')
+  const [presetId, setPresetId] = useState<string | null>(init ? init.presetId : presetOf('designer')?.id ?? null)
+  const [customName, setCustomName] = useState<string | null>(init?.customName ?? null)
+  const [onBoard, setOnBoard] = useState<string[]>(() => init?.nodes ?? startIds)
+  const [edges, setEdges] = useState<Edge[]>(() => init?.edges ?? linear(startIds))
+  const roleRef = useRef(role); roleRef.current = role
+  const presetIdRef = useRef(presetId); presetIdRef.current = presetId
+  const customNameRef = useRef(customName); customNameRef.current = customName
   const onRef = useRef(onBoard); onRef.current = onBoard
   const edgesRef = useRef(edges); edgesRef.current = edges
   // The run: what Start reaches along the wires, in that order. A wire to an earlier node (or itself) is a loop.
@@ -89,33 +105,50 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const returns = useMemo(() => returnEdges(edges), [edges])
   const isLoop = (e: Edge) => returns.has(key(e))
   const loop = returns.size > 0
-  const preset = presetOf(role)
+  const preset = presetId ? presetById(presetId) ?? null : null
   const edited = !!preset && !(sameList(chain, byPhase(preset.nodes)) && onBoard.length === preset.nodes.length && edges.length === preset.nodes.length + 1)
-  const name = preset ? (edited ? `${preset.name} (edited)` : preset.name) : 'Your workflow'
+  const name = preset ? (edited ? `${preset.name} (edited)` : preset.name) : customName ?? 'Your workflow'
 
-  // ---- the box: the name, then the sentence, in turn, until the visitor picks a role or plays with the string
-  const [showName, setShowName] = useState(!still)
-  const [touched, setTouched] = useState(false)
   const [menu, setMenu] = useState(false)
-  useEffect(() => {
-    if (still || touched) { setShowName(false); return }
-    const t = setInterval(() => setShowName((v) => !v), 3400)
-    return () => clearInterval(t)
-  }, [still, touched])
 
   // ---- layout: the string's band across the top, its two ends, the room below
   const dims = useRef({ W: typeof window === 'undefined' ? 1200 : window.innerWidth, H: typeof window === 'undefined' ? 800 : window.innerHeight })
   const [, relayout] = useState(0)
-  const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(220, H * 0.36) } }
-  const ends = () => {
-    const { W } = dims.current, b = band(), mid = (b.y0 + b.y1) / 2 + 10
-    return { start: { x: Math.max(48, W * 0.05), y: mid }, enter: { x: W - Math.max(56, W * 0.055), y: mid } }
+  // Ruijie, 7 Nov: "Keep the editable workflow at the top. Put unused nodes in a stable, compact library tray … Prevent
+  // interactive tiles from appearing behind the assistant or title." The band holds the five lanes; the foot of each lane
+  // is its shelf, where its unused nodes wait in a fixed order (its height fits all of that phase, so it never jumps).
+  const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(340, H * 0.46) } }
+  const span = () => { const { W } = dims.current, sx = Math.max(48, W * 0.05), ex = W - Math.max(56, W * 0.055); return { sx, ex, x0: sx + 44, x1: ex - 44 } }
+  const shelfGeom = () => {
+    const { x0, x1 } = span(), w = (x1 - x0) / PHASES.length, cell = Math.round(size * SHELF_S) + 8, cap = Math.max(1, Math.floor((w - 16) / cell))
+    const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(ph.nodes.filter((id) => idx(id) >= 0).length / cap)))
+    return { cell, cap, h: rows * cell + 10 }
   }
-  const zones = useRef<Zone[]>([])
-  /** The five phase lanes along the string, Start to Enter. */
+  /** Where nodes on the board sit: below the lane headers, above the shelves. */
+  const nodeArea = () => { const b = band(); return { y0: b.y0 + 112, y1: b.y1 - 14 - shelfGeom().h } }
+  const ends = () => { const s = span(), a = nodeArea(), mid = (a.y0 + a.y1) / 2 + 6; return { start: { x: s.sx, y: mid }, enter: { x: s.ex, y: mid } } }
+  /** The five phase lanes along the string, Start to Enter, each with its shelf at the foot. */
   const lanes = () => {
-    const { start, enter } = ends(), b = band(), x0 = start.x + 44, x1 = enter.x - 44, w = (x1 - x0) / PHASES.length
-    return PHASES.map((ph, k) => ({ ph, x0: x0 + k * w, x1: x0 + (k + 1) * w, y0: b.y0 + 96, y1: b.y1 - 6 }))
+    const s = span(), a = nodeArea(), b = band(), w = (s.x1 - s.x0) / PHASES.length
+    return PHASES.map((ph, k) => ({ ph, x0: s.x0 + k * w, x1: s.x0 + (k + 1) * w, y0: a.y0, y1: a.y1, shelfTop: a.y1 + 8, shelfBottom: b.y1 - 6 }))
+  }
+  /** Each unused node's slot in its lane's shelf, in the registry's order. */
+  const shelfSlots = (on: string[]) => {
+    const g = shelfGeom(), out = new Map<string, { x: number; y: number }>()
+    for (const lane of lanes()) {
+      NODES.filter((n) => n.phase === lane.ph.id && !on.includes(n.id)).forEach((n, j) => {
+        out.set(n.id, { x: lane.x0 + 8 + g.cell / 2 + (j % g.cap) * g.cell, y: lane.shelfTop + 5 + g.cell / 2 + Math.floor(j / g.cap) * g.cell })
+      })
+    }
+    return out
+  }
+  const shelfRef = useRef(new Map<string, { x: number; y: number }>())
+  /** Put a node on the board at (x, y): it glides there from wherever it is, and lands with a small pop. */
+  const place = (id: string, x: number, y: number, pop = true) => {
+    const b = bodies.current[idx(id)]
+    if (!b) return
+    if (!b.on && pop) b.pop = true
+    b.tx = x; b.ty = y; b.on = true; b.held = false
   }
   /** Where a node goes in its own lane, and where in the string's order (after the nodes of its phase and earlier). */
   const slotFor = (id: string, list: string[]) => {
@@ -134,19 +167,17 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       mine.forEach((id, j) => {
         const body = bodies.current[idx(id)]
         if (!body) return
-        body.x = lane.x0 + ((j + 1) / (mine.length + 1)) * (lane.x1 - lane.x0)
         // A crowded lane takes two rows, so the tiles and their names stay clear of each other.
         const lift = mine.length > 2 ? (j % 2 ? 1 : -1) * Math.min(46, (lane.y1 - lane.y0) * 0.26) : Math.sin(idx(id) * 1.3) * (lane.y1 - lane.y0) * 0.2
-        body.y = (lane.y0 + lane.y1) / 2 + lift
-        body.vx = body.vy = 0; body.on = true; body.held = false
+        place(id, lane.x0 + ((j + 1) / (mine.length + 1)) * (lane.x1 - lane.x0), (lane.y0 + lane.y1) / 2 + lift)
       })
     })
   }
-  /** Taken off the string: back into the room, falling from where it was. */
-  const release = (ids: string[], vx = 0, vy = 80) => ids.forEach((id) => {
+  /** Taken off the string: it glides back to its slot in its lane's shelf. */
+  const release = (ids: string[]) => ids.forEach((id) => {
     const body = bodies.current[idx(id)]
     if (!body) return
-    body.on = false; body.held = false; body.vx = vx + (rand(idx(id), 8) - 0.5) * 40; body.vy = vy
+    body.on = false; body.held = false; body.pop = false
   })
 
   // ---- editing the board: every change sets the nodes and the wires together
@@ -161,7 +192,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       queueMicrotask(() => { remembered.current = false })
     }
     onRef.current = on; edgesRef.current = clean
-    setTouched(true); setOnBoard(on); setEdges(clean)
+    if (!assistCommitting.current) flow()
+    setOnBoard(on); setEdges(clean)
   }
   const has = (es: Edge[], a: string, b: string) => es.some((e) => e.a === a && e.b === b)
   /** Put `id` on the wire a → b (or after a, when there is no such wire). */
@@ -190,30 +222,33 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     if (a === b || a === 'enter' || b === 'start' || has(edgesRef.current, a, b)) return
     let on = onRef.current
     if (b !== 'enter' && !on.includes(b)) {
-      const body = bodies.current[idx(b)], sl = slotFor(b, chainRef.current)
-      if (body) { body.x = sl.x; body.y = sl.y; body.vx = body.vy = 0; body.on = true; body.held = false }
+      const sl = slotFor(b, chainRef.current)
+      place(b, sl.x, sl.y)
       on = [...on, b]
     }
     commit(on, [...edgesRef.current, { a, b }])
   }
 
   /** Put a role's starting workflow on the string (the nodes not in it fall back into the room). */
-  const apply = (r: RoleId) => {
-    setRole(r)
-    const p = presetOf(r), ids = p ? byPhase(p.nodes) : []
+  const applyBoard = (r: RoleId, p: Preset | null) => {
+    setRole(r); setPresetId(p?.id ?? null); setCustomName(null)
+    const ids = p ? byPhase(p.nodes) : []
     release(onRef.current.filter((id) => !ids.includes(id)))
     layout(ids)
     commit(ids, linear(ids))
   }
-  const kept = useRef<{ role: RoleId; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> } | null>(null)
+  const apply = (r: RoleId) => applyBoard(r, presetOf(r))
+  const kept = useRef<Snap | null>(null)
   // ---- the workflow assistant's proposals (Ruijie, 7 Nov): previewed on the canvas, then applied or discarded; applied
   // ones come back with Undo. A snapshot keeps the role, the board and where each node sat.
-  type Snap = { role: RoleId; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> }
-  const snapshot = (): Snap => ({ role, on: [...onRef.current], edges: [...edgesRef.current], at: new Map(onRef.current.map((id) => { const b = bodies.current[idx(id)]; return [id, { x: b?.x ?? 0, y: b?.y ?? 0 }] })) })
+  type Snap = { role: RoleId; presetId: string | null; customName: string | null; on: string[]; edges: Edge[]; at: Map<string, { x: number; y: number }> }
+  const snapshot = (): Snap => ({ role: roleRef.current, presetId: presetIdRef.current, customName: customNameRef.current, on: [...onRef.current], edges: [...edgesRef.current],
+    at: new Map(onRef.current.map((id) => { const b = bodies.current[idx(id)]; return [id, { x: b?.tx ?? 0, y: b?.ty ?? 0 }] })) })
   const restoreSnap = (k: Snap) => {
     release(onRef.current.filter((id) => !k.on.includes(id)))
-    k.on.forEach((id) => { const b = bodies.current[idx(id)], p = k.at.get(id); if (b && p) { b.x = p.x; b.y = p.y; b.vx = b.vy = 0; b.on = true; b.held = false } })
-    setRole(k.role); assistCommitting.current = true; commit(k.on, k.edges); assistCommitting.current = false
+    k.on.forEach((id) => { const p = k.at.get(id); if (p) place(id, p.x, p.y) })
+    setRole(k.role); setPresetId(k.presetId); setCustomName(k.customName)
+    assistCommitting.current = true; commit(k.on, k.edges); assistCommitting.current = false
   }
   const assistKept = useRef<Snap | null>(null)
   const remembered = useRef(false)
@@ -222,17 +257,19 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const [canUndo, setCanUndo] = useState(false)
   const [proposed, setProposed] = useState<{ added: Set<string>; removed: Set<string> } | null>(null)
   const [focusNode, setFocusNode] = useState<string | null>(null)
+  const [hoverNode, setHoverNode] = useState<string | null>(null)
   const previewProposal = (p: Proposal) => {
     if (assistKept.current) restoreSnap(assistKept.current)
     else assistKept.current = snapshot()
     const ids = p.board.nodes, run = walk(p.board.edges)
     release(onRef.current.filter((id) => !ids.includes(id)))
-    if (p.capability === 'suggest') { layout(run); setRole('custom') }
-    else p.added.forEach((id) => { const b = bodies.current[idx(id)], sl = slotFor(id, run.filter((x) => x !== id)); if (b) { b.x = sl.x; b.y = sl.y; b.vx = b.vy = 0; b.on = true; b.held = false } })
+    if (p.capability === 'suggest') { layout(run); setRole(p.preset?.type ?? 'custom'); setPresetId(p.preset?.id ?? null); setCustomName(p.preset ? null : 'Your workflow') }
+    else p.added.forEach((id) => { const sl = slotFor(id, run.filter((x) => x !== id)); place(id, sl.x, sl.y) })
     assistCommitting.current = true; commit(ids, p.board.edges); assistCommitting.current = false
     setProposed({ added: new Set(p.added), removed: new Set(p.removed) })
+    flow()
   }
-  const applyProposal = () => { if (assistKept.current) { history.current.push(assistKept.current); setCanUndo(true) } assistKept.current = null; setProposed(null) }
+  const applyProposal = () => { if (assistKept.current) { history.current.push(assistKept.current); setCanUndo(true) } assistKept.current = null; setProposed(null); flow() }
   const discardProposal = () => { const k = assistKept.current; assistKept.current = null; setProposed(null); if (k) restoreSnap(k) }
   const undoAssistant = () => { const k = history.current.pop(); setCanUndo(history.current.length > 0); setSelectedWire(null); setNotice(null); if (k) restoreSnap(k) }
   useEffect(() => {
@@ -250,8 +287,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // to replace the demo one"): opening it keeps the string as it is; hovering or focusing a role shows that role's
   // workflow; leaving the list, Escape or a click outside puts the kept string back; a click on a role keeps it.
   const openMenu = () => {
-    setTouched(true)
-    kept.current = { role, on: [...onRef.current], edges: [...edgesRef.current], at: new Map(onRef.current.map((id) => { const b = bodies.current[idx(id)]; return [id, { x: b?.x ?? 0, y: b?.y ?? 0 }] })) }
+    kept.current = snapshot()
     setMenu(true)
   }
   const preview = (r: RoleId) => { if (kept.current) apply(r) }
@@ -262,7 +298,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   }
   const closeMenu = () => { restore(); kept.current = null; setMenu(false) }
   const pick = (r: RoleId) => {
-    setTouched(true); setMenu(false)
+    setMenu(false)
     const k = kept.current
     kept.current = null
     if (k) { history.current.push(k); setCanUndo(true) }
@@ -277,11 +313,65 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('pointerdown', outside, true) }
   }, [menu]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Presets (Ruijie, 7 Nov: "a clearer Presets control that opens a compact panel while keeping the current workflow
+  // visible. Choosing a preset should update the same canvas"): hover or focus previews it on the canvas, leaving puts the
+  // current workflow back, a click keeps it (Undo brings the previous one back).
+  const [presetsOpen, setPresetsOpen] = useState(false)
+  const openPresets = () => { kept.current = snapshot(); setPresetsOpen(true) }
+  const previewPreset = (p: Preset) => { if (kept.current) applyBoard(p.type, p) }
+  const closePresets = () => { restore(); kept.current = null; setPresetsOpen(false) }
+  const pickPreset = (p: Preset) => {
+    setPresetsOpen(false)
+    const k = kept.current
+    kept.current = null
+    if (k) { history.current.push(k); setCanUndo(true) }
+    assistCommitting.current = true; applyBoard(p.type, p); assistCommitting.current = false
+    flow()
+  }
+  useEffect(() => {
+    if (!presetsOpen) return
+    const key = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') closePresets() }
+    const outside = (e: PointerEvent) => { if (!(e.target as Element)?.closest?.('[data-presets]')) closePresets() }
+    window.addEventListener('keydown', key)
+    window.addEventListener('pointerdown', outside, true)
+    return () => { window.removeEventListener('keydown', key); window.removeEventListener('pointerdown', outside, true) }
+  }, [presetsOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  /** A new workflow, only on request: the default starting preset (Undo brings this one back). */
+  const newWorkflow = () => {
+    history.current.push(snapshot()); setCanUndo(true)
+    assistCommitting.current = true; apply('designer'); assistCommitting.current = false
+    flow()
+  }
+
+  // ---- keep the workflow (lib/coverWorkflow.ts): as it changes, when the cover closes, and when the page goes away. A
+  // preview still showing is not saved: what was there before it is.
+  const persistNow = () => {
+    const k = assistKept.current ?? kept.current, { W, H } = dims.current
+    const nodes = k ? k.on : onRef.current
+    const pos = (id: string) => { if (k) return k.at.get(id); const b = bodies.current[idx(id)]; return b ? { x: b.tx, y: b.ty } : undefined }
+    const at: Record<string, [number, number]> = {}
+    for (const id of nodes) { const q = pos(id); if (q && W > 0 && H > 0) at[id] = [q.x / W, q.y / H] }
+    saveCoverWorkflow({ role: k ? k.role : roleRef.current, presetId: k ? k.presetId : presetIdRef.current, customName: k ? k.customName : customNameRef.current, nodes, edges: k ? k.edges : edgesRef.current, at })
+  }
+  const persistRef = useRef(persistNow); persistRef.current = persistNow
+  useEffect(() => { const t = setTimeout(() => persistRef.current(), 250); return () => clearTimeout(t) }, [onBoard, edges, role, presetId, customName])
+  useEffect(() => {
+    const bye = () => persistRef.current()
+    window.addEventListener('pagehide', bye)
+    return () => { window.removeEventListener('pagehide', bye); persistRef.current() }
+  }, [])
+
   // Keep the tiles in step with the board: on it they stay put (lit when wired in), the rest float.
   useEffect(() => {
     const on = new Set(onBoard)
-    NODES.forEach((n, i) => { const b = bodies.current[i]; if (b) b.on = on.has(n.id); els.current[i]?.setAttribute('data-on', on.has(n.id) ? '1' : '0') })
-  }, [onBoard])
+    NODES.forEach((n, i) => {
+      const b = bodies.current[i]
+      if (b && on.has(n.id) && !b.on) { const sl = slotFor(n.id, chainRef.current.filter((x) => x !== n.id)); b.tx = sl.x; b.ty = sl.y; b.pop = true }
+      if (b) b.on = on.has(n.id)
+      els.current[i]?.setAttribute('data-on', on.has(n.id) ? '1' : '0')
+    })
+    shelfRef.current = shelfSlots(onBoard)
+  }, [onBoard]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- the ropes (verlet), keyed by link, and the frame loop that moves everything
   const ropes = useRef(new Map<string, Rope>())
@@ -318,9 +408,20 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     setNotice({ text: l?.loop ? `Return to ${label(l.b)} removed` : 'Connection removed', x: at.x, y: at.y })
   }
   const ropeHit = useRef(new Map<string, SVGPathElement | null>())
+  // Movement explains an action (Ruijie, 7 Nov): after a change, one pulse runs along the workflow from Start to Enter,
+  // and a new wire draws itself in; then everything rests.
+  const flowAt = useRef(-1e9)
+  const flow = () => { if (!still) flowAt.current = performance.now() + 120 }
+  const prevKeys = useRef<Set<string> | null>(null)
   // A wire being rewired: its loose end follows the pointer.
   const rewiring = useRef<{ key: string; a: string; b: string; end: 'a' | 'b'; x: number; y: number; sx: number; sy: number; moved: boolean } | null>(null)
   const linksRef = useRef(links); linksRef.current = links
+  useEffect(() => {
+    const now = new Set(links.map((l) => l.key)), prev = prevKeys.current
+    prevKeys.current = now
+    if (!prev || still) return
+    for (const k of now) if (!prev.has(k)) ropeLine.current.get(k)?.animate([{ strokeDasharray: '900', strokeDashoffset: '900' }, { strokeDasharray: '900', strokeDashoffset: '0' }], { duration: 560, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)' })
+  }, [links, still])
 
   const centre = (id: string) => {
     if (id === 'start' || id === 'enter') return ends()[id]
@@ -337,30 +438,28 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const r = el.getBoundingClientRect()
       const next = { W: el.clientWidth, H: el.clientHeight }
       if (next.W !== dims.current.W || next.H !== dims.current.H) { dims.current = next; relayout((n) => n + 1) }
-      const zs = [sentenceEl.current, assistantEl.current].map((x) => x?.getBoundingClientRect()).filter((q): q is DOMRect => !!q)
-      zones.current = [band(), ...zs.map((q) => ({ x0: q.left - r.left - 8, y0: q.top - r.top - 8, x1: q.right - r.left + 8, y1: q.bottom - r.top + 8 }))]
+      void r
+      shelfRef.current = shelfSlots(onRef.current)
     }
     measure()
-    const { W, H } = dims.current, bnd = band()
-    bodies.current = NODES.map((_, i) => {
-      const r = size / 2
-      return {
-        x: r + rand(i, 2) * (W - 2 * r), y: Math.min(H - r, bnd.y1 + r + 20 + rand(i, 3) * (H - bnd.y1 - 2 * r - 30)),
-        vx: (rand(i, 4) - 0.5) * 24, vy: (rand(i, 5) - 0.5) * 24, r, a: (rand(i, 6) - 0.5) * 16, va: (rand(i, 7) - 0.5) * 4, held: false, on: false,
-      }
+    const { W, H } = dims.current
+    const slots = shelfSlots(onRef.current)
+    bodies.current = NODES.map((n) => {
+      const r = size / 2, sl = slots.get(n.id) ?? { x: -200, y: -200 }
+      return { x: sl.x, y: sl.y, tx: sl.x, ty: sl.y, s: SHELF_S, vx: 0, vy: 0, r, held: false, on: false, pop: false }
     })
-    layout(chainRef.current)
+    // The board as it was left (restored positions), else laid out along the lanes; no gliding on arrival.
+    const at = init?.at ?? {}, area = nodeArea()
+    if (onRef.current.length && onRef.current.every((id) => at[id])) {
+      for (const id of onRef.current) { const [fx, fy] = at[id]; place(id, Math.max(30, Math.min(W - 30, fx * W)), Math.max(area.y0 - 20, Math.min(area.y1, fy * H)), false) }
+    } else layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
+    for (const b of bodies.current) if (b.on) { b.x = b.tx; b.y = b.ty; b.s = 1; b.pop = false }
 
     const draw = () => bodies.current.forEach((b, i) => {
       const d = els.current[i]
-      if (d) d.style.transform = `translate3d(${(b.x - b.r).toFixed(1)}px, ${(b.y - b.r).toFixed(1)}px, 0)` // upright, never turned (Ruijie, 7 Nov)
+      if (d) d.style.transform = `translate3d(${(b.x - b.r).toFixed(1)}px, ${(b.y - b.r).toFixed(1)}px, 0) scale(${b.s.toFixed(3)})` // upright, never turned (Ruijie, 7 Nov)
     })
-    const pushOut = (b: Body, z: Zone, dt: number) => {
-      const x0 = z.x0 - b.r, x1 = z.x1 + b.r, y0 = z.y0 - b.r, y1 = z.y1 + b.r
-      if (b.x < x0 || b.x > x1 || b.y < y0 || b.y > y1) return
-      const d = [b.x - x0, x1 - b.x, b.y - y0, y1 - b.y], m = Math.min(...d), k = 280 * dt
-      if (m === d[0]) b.vx -= k; else if (m === d[1]) b.vx += k; else if (m === d[2]) b.vy -= k; else b.vy += k
-    }
+    const pop = (i: number) => { if (!still) els.current[i]?.querySelector('.node-tile')?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.14)' }, { transform: 'scale(1)' }], { duration: 340, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' }) }
     const ropeStep = (dt: number, t: number) => {
       const seen = new Set<string>()
       for (const l of linksRef.current) {
@@ -408,12 +507,14 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         // a pulse running along it (the workflow running); slow, thin and without a white rim (Ruijie, 7 Nov)
         const c = pulses.current.get(l.key)
         if (c) {
-          // Every pulse runs the way its wire points; return connections carry none (Ruijie, 7 Nov: no continuous
-          // animation on them), only their route and arrow.
-          const f = still ? 0.5 : ((t / 4200 + linksRef.current.indexOf(l) * 0.22) % 1), at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
-          const x = p[k].x + (p[k + 1].x - p[k].x) * u
-          const y = p[k].y + (p[k + 1].y - p[k].y) * u
-          c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1))
+          // After a change one pulse runs along the run, wire by wire from Start, then the string rests (Ruijie, 7 Nov:
+          // "Use animation to communicate a deliberate action … Let the interface settle"). Returns carry none.
+          const order = l.a === 'start' ? 0 : chainRef.current.indexOf(l.a) + 1
+          const f = (t - flowAt.current - order * 150) / 650
+          if (f >= 0 && f <= 1) {
+            const at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
+            c.setAttribute('cx', (p[k].x + (p[k + 1].x - p[k].x) * u).toFixed(1)); c.setAttribute('cy', (p[k].y + (p[k + 1].y - p[k].y) * u).toFixed(1)); c.setAttribute('opacity', '1')
+          } else c.setAttribute('opacity', '0')
         }
       }
       for (const key of [...ropes.current.keys()]) if (!seen.has(key)) ropes.current.delete(key)
@@ -422,39 +523,30 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     let raf = 0, last = performance.now(), on = true
     const step = (t: number) => {
       const dt = Math.min(0.033, (t - last) / 1000); last = t
-      const { W: w, H: h } = dims.current, bs = bodies.current
+      const bs = bodies.current, k = 1 - Math.exp(-dt * 11)
       for (let i = 0; i < bs.length; i++) {
         const b = bs[i]
-        if (b.held) continue
-        if (b.on) { b.x += b.vx * dt; b.y += b.vy * dt; b.vx *= 0.8; b.vy *= 0.8; continue } // threaded: stays where it was put
-        b.vx += Math.sin(t * 0.00041 + i * 1.7) * 5 * dt
-        b.vy += Math.cos(t * 0.00037 + i * 2.3) * 5 * dt
-        const bz = zones.current[0]
-        if (bz && b.y < bz.y1 + b.r) b.vy += 320 * dt // the string's band: always down into the room
-        for (const z of zones.current.slice(1)) pushOut(b, z, dt)
-        const sp = Math.hypot(b.vx, b.vy)
-        if (sp > 20) { const k = Math.max(0, 1 - 1.4 * dt); b.vx *= k; b.vy *= k }
-        b.va *= sp > 20 ? Math.max(0, 1 - 1.2 * dt) : 1
-        b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.va * dt
-        if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.85 } else if (b.x > w - b.r) { b.x = w - b.r; b.vx = -Math.abs(b.vx) * 0.85 }
-        if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.85 } else if (b.y > h - b.r) { b.y = h - b.r; b.vy = -Math.abs(b.vy) * 0.85 }
-      }
-      for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
-        const a = bs[i], b = bs[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, min = (a.r + b.r) * 0.95
-        if (d >= min) continue
-        const push = (min - d) * 0.5, nx = dx / d, ny = dy / d
-        if (!a.held) { a.x -= nx * push; a.y -= ny * push; if (!a.on) { a.vx -= nx * push * 2; a.vy -= ny * push * 2 } }
-        if (!b.held) { b.x += nx * push; b.y += ny * push; if (!b.on) { b.vx += nx * push * 2; b.vy += ny * push * 2 } }
+        // Lifted, it grows to full size; otherwise it glides to its place (board or shelf) and stops there.
+        if (b.held) { b.s += (1 - b.s) * k; continue }
+        const tg = b.on ? { x: b.tx, y: b.ty } : shelfRef.current.get(NODES[i].id) ?? { x: b.tx, y: b.ty }
+        b.x += (tg.x - b.x) * k; b.y += (tg.y - b.y) * k; b.s += ((b.on ? 1 : SHELF_S) - b.s) * k
+        if (Math.abs(tg.x - b.x) < 0.2 && Math.abs(tg.y - b.y) < 0.2) { b.x = tg.x; b.y = tg.y }
+        if (b.pop && Math.hypot(tg.x - b.x, tg.y - b.y) < 3) { b.pop = false; pop(i) }
       }
       ropeStep(dt, t)
       draw()
       if (on) raf = requestAnimationFrame(step)
     }
-    const frame = () => { ropeStep(1 / 60, performance.now()); draw() }
+    const frame = () => {
+      // Reduced motion: everything is where it belongs at once.
+      for (const [i, b] of bodies.current.entries()) { if (b.held) continue; const tg = b.on ? { x: b.tx, y: b.ty } : shelfRef.current.get(NODES[i].id) ?? { x: b.tx, y: b.ty }; b.x = tg.x; b.y = tg.y; b.s = b.on ? 1 : SHELF_S }
+      ropeStep(1 / 60, performance.now()); draw()
+    }
     const start = () => { if (raf) return; if (still) { frame(); return } on = true; last = performance.now(); raf = requestAnimationFrame(step) }
     const stop = () => { on = false; cancelAnimationFrame(raf); raf = 0 }
     const seen = new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { threshold: 0.05 })
     seen.observe(el)
+    const persistLater = () => setTimeout(() => persistRef.current(), 50)
     const ro = new ResizeObserver(() => { measure(); frame() })
     // The assistant grows with its reply: the floating nodes keep clear of it.
     ;[el, sentenceEl.current, assistantEl.current].forEach((x) => x && ro.observe(x))
@@ -497,37 +589,34 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       if (!g) return
       drag.current = null
       setHot(null)
-      const b = bodies.current[g.i], id = NODES[g.i].id, bnd = band()
+      const b = bodies.current[g.i], id = NODES[g.i].id, area = nodeArea()
       b.held = false
       const fling = Math.hypot(b.vx, b.vy) > 1300
+      persistLater()
       if (b.on) {
-        // On the board: flicked or dragged below the string, it comes off; dropped on another wire, it moves onto it.
-        if (fling || b.y > bnd.y1 + 30) { release([id], b.vx * 0.5, b.vy * 0.5); takeOff(id); return }
+        // On the board: flicked or dragged down into the shelves, it comes off (back to its shelf); dropped on another
+        // wire, it moves onto it; anywhere else on the board it stays where it was put (layout only).
+        if (fling || b.y > area.y1 + 10) { release([id]); takeOff(id); return }
         const near = nearestLink(b.x, b.y, id)
-        if (g.moved && near && near.d < 40) {
-          takeOff(id)
-          insertOn(id, near.a, near.b)
-        }
-        b.vx = b.vy = 0; b.on = true
+        b.tx = b.x; b.ty = b.y
+        if (g.moved && near && near.d < 40) { takeOff(id); place(id, b.x, b.y, false); insertOn(id, near.a, near.b) }
         if (still) frame()
         return
       }
-      // Floating: a click threads it in phase order; dropped on the string, it is threaded onto the nearest wire.
+      // In its shelf: a click threads it in phase order (it glides to its place); dropped on the board, it goes there.
       if (!g.moved) {
         const sl = slotFor(id, chainRef.current)
-        b.x = sl.x; b.y = sl.y; b.vx = b.vy = 0; b.on = true
+        place(id, sl.x, sl.y)
         insertByPhase(id)
         return
       }
-      if (b.y < bnd.y1 + 20) {
+      if (b.y < area.y1 + 6) {
         const near = nearestLink(b.x, b.y)
-        b.on = true; b.vx = b.vy = 0
+        place(id, b.x, b.y, false); pop(g.i)
         if (near && near.d < 90) insertOn(id, near.a, near.b); else insertByPhase(id)
         return
       }
-      const sp = Math.hypot(b.vx, b.vy), max = 1600
-      if (sp > max) { b.vx *= max / sp; b.vy *= max / sp }
-      b.va = b.vx * 0.03
+      // Let go anywhere else: it glides back to its shelf.
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -538,7 +627,6 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const grab = (i: number, cx: number, cy: number) => {
     const el = box.current!, b = bodies.current[i], r = el.getBoundingClientRect()
     if (!b) return
-    setTouched(true)
     setHot(NODES[i].phase)
     b.held = true
     drag.current = { i, ox: cx - r.left - b.x, oy: cy - r.top - b.y, sx: cx, sy: cy, px: cx, py: cy, pt: performance.now(), moved: false }
@@ -594,14 +682,12 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     e.stopPropagation(); e.preventDefault()
     const r = box.current!.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, rope = ropes.current.get(k)
     const A = rope?.pts[0] ?? centre(a), B = rope?.pts[SEG] ?? centre(b)
-    setTouched(true)
     rewiring.current = { key: k, a, b, end: Math.hypot(x - A.x, y - A.y) < Math.hypot(x - B.x, y - B.y) ? 'a' : 'b', x, y, sx: x, sy: y, moved: false }
   }
   const startLink = (id: string, side: Side, e: { clientX: number; clientY: number; stopPropagation: () => void; preventDefault: () => void }) => {
     e.stopPropagation(); e.preventDefault()
     const b = bodies.current[idx(id)]
     if (!b) return
-    setTouched(true)
     linking.current = { from: id, side, sx: b.x + SIDE[side][0] * b.r, sy: b.y + SIDE[side][1] * b.r }
     setConnecting(id)
   }
@@ -675,7 +761,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       if ((e.key === 'Enter' || e.key === ' ') && id !== connecting) { e.preventDefault(); const from = connecting; cancelConnecting(); wire(from, id); return }
     }
     if (onRef.current.includes(id) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); startConnecting(id); return }
-    if (!onRef.current.includes(id)) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const sl = slotFor(id, list), b = bodies.current[i]; b.x = sl.x; b.y = sl.y; b.on = true; insertByPhase(id) } return }
+    if (!onRef.current.includes(id)) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const sl = slotFor(id, list); place(id, sl.x, sl.y); insertByPhase(id) } return }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); release([id]); takeOff(id) }
     if (at >= 0 && ((e.key === 'ArrowLeft' && at > 0) || (e.key === 'ArrowRight' && at < list.length - 1))) {
       // Move it along the run: the run is rewired in the new order; loops between nodes that stay are kept.
@@ -683,7 +769,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const next = [...list], j = e.key === 'ArrowLeft' ? at - 1 : at + 1
       ;[next[at], next[j]] = [next[j], next[at]]
       const a = bodies.current[idx(next[at])], b = bodies.current[idx(next[j])]
-      ;[a.x, b.x, a.y, b.y] = [b.x, a.x, b.y, a.y]
+      ;[a.tx, b.tx, a.ty, b.ty] = [b.tx, a.tx, b.ty, a.ty]
       commit(onRef.current, [...linear(next), ...edgesRef.current.filter((x) => links.find((l) => l.key === key(x))?.loop)])
     }
   }
@@ -705,21 +791,56 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
   const roleLabel = ROLES.find((r) => r.id === role)!.label
   const RoleIcon = roleIcon(role)
-  const type = 'text-display-sm md:text-display'
+  /** Secondary destinations: the Site step's model import, and the node builder in Customize. */
+  const openImport = () => {
+    try { const v = JSON.parse(localStorage.getItem('ts.tools.active') ?? '{}'); localStorage.setItem('ts.tools.active', JSON.stringify({ ...v, 'basic:site': 'rhino-import' })) } catch { /* the Site step still opens */ }
+    enterToolkit(); navigate('guided'); goToStep('site')
+  }
+  const openNodeBuilder = () => { enterToolkit(); navigate('customize'); void import('../../lib/communityStore').then((m) => m.useCommunityStore.getState().openDialog('build')) }
+  const presetsControl = (
+    <div className="relative ml-auto" data-presets>
+      <button type="button" onClick={() => (presetsOpen ? closePresets() : openPresets())} aria-haspopup="listbox" aria-expanded={presetsOpen} data-testid="cover-presets"
+        className="flex items-center gap-1.5 rounded-xl bg-white/60 px-2.5 py-1 text-control text-ink outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent">
+        <Tags size={15} className="text-accent" aria-hidden />Presets<ChevronDown size={14} aria-hidden />
+      </button>
+      {presetsOpen && (
+        <div className="glass absolute right-0 top-full z-40 mt-1.5 w-[22rem] rounded-xl bg-glass-1 p-1.5" data-testid="presets-panel">
+          <div role="listbox" aria-label="Preset workflows" onMouseLeave={restore} className="max-h-[16rem] overflow-y-auto">
+            {USER_TYPES.map((t) => (
+              <div key={t.id} role="group" aria-label={t.name}>
+                <div aria-hidden className="px-2 pb-0.5 pt-1.5 text-meta text-muted">{t.name}</div>
+                {t.presets.map((p) => {
+                  const I = PRESET_ICONS[p.id]
+                  return (
+                    <button key={p.id} type="button" role="option" aria-selected={presetId === p.id} data-preset={p.id}
+                      onMouseEnter={() => previewPreset(p)} onFocus={() => previewPreset(p)} onClick={() => pickPreset(p)}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-control outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-accent ${presetId === p.id ? 'bg-white/70' : ''}`}>
+                      {I && <I size={16} className="shrink-0 text-accent" aria-hidden />}<span className="min-w-0 flex-1 truncate">{p.name}</span><span className="text-meta tabular-nums text-muted">{p.nodes.length}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
   const { start, enter } = ends()
   const tile = ICON.feature + 8
 
   return (
     <section ref={box} aria-labelledby="intro-title" data-testid="landing-intro" className="relative h-full min-h-[38rem] select-none overflow-hidden"
       style={leaving ? { transformOrigin: `${leaving.x}px ${leaving.y}px`, transform: 'scale(6)', opacity: 0, transition: 'transform 800ms cubic-bezier(0.7, 0, 0.84, 0), opacity 420ms ease-in 340ms', pointerEvents: 'none' } : undefined}>
-      <h1 id="intro-title" className="sr-only">Tower Design Toolkit</h1>
 
       {/* the five phase lanes along the string, in their colours; the grabbed node's lane lights up */}
-      {lanes().map(({ ph, x0, x1, y0, y1 }) => {
+      {lanes().map(({ ph, x0, x1, y0, shelfTop, shelfBottom }) => {
         const Step = STEP_ICONS[ph.step], on = hot === ph.id, h = PHASE_HUE[ph.id]
         return (
           <div key={ph.id} data-lane={ph.id} data-hot={on ? '1' : undefined} className="pointer-events-none absolute rounded-xl transition-[background-color,box-shadow] duration-200"
-            style={{ left: x0 + 4, top: y0 - 46, width: x1 - x0 - 8, height: y1 - y0 + 46, background: `hsl(${h} 85% ${on ? 78 : 88}% / ${on ? 0.42 : 0.16})`, boxShadow: on ? `0 0 0 2px hsl(${h} 80% 62% / 0.65), 0 0 36px hsl(${h} 90% 65% / 0.55)` : undefined }}>
+            style={{ left: x0 + 4, top: y0 - 46, width: x1 - x0 - 8, height: shelfBottom - y0 + 46, background: `hsl(${h} 85% ${on ? 78 : 88}% / ${on ? 0.42 : 0.16})`, boxShadow: on ? `0 0 0 2px hsl(${h} 80% 62% / 0.65), 0 0 36px hsl(${h} 90% 65% / 0.55)` : undefined }}>
+            {/* the lane's shelf: its unused nodes wait here */}
+            <span aria-hidden className="absolute inset-x-1.5 bottom-1.5 rounded-lg" style={{ top: shelfTop - (y0 - 46), background: `hsl(${h} 40% 96% / 0.7)` }} />
             <span aria-hidden className="absolute left-2.5 top-2 flex items-center gap-1.5 text-meta" style={{ color: `hsl(${h} 55% 32%)`, fontWeight: on ? 600 : 500 }}>
               <Step size={15} />{ph.name}
             </span>
@@ -821,8 +942,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       <div className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-3 text-control">
         <span className="font-semibold text-ink" data-testid="cover-chain-name">{name}</span>
         <span className="text-meta tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not wired in` : ''}</span>
+        <button type="button" onClick={newWorkflow} data-testid="cover-new" title="Start a new workflow from the default starting preset (Undo brings this one back)"
+          className="flex items-center gap-1 rounded-xl px-2 py-1 text-control text-muted outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FilePlus size={15} aria-hidden />New</button>
       </div>
-      {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag nodes onto the string</p>}
+      {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag nodes up from the shelves</p>}
 
       {/* every built node: on the string (lit) or in the room (soft) */}
       {NODES.map((n, i) => (
@@ -834,9 +957,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           onPointerDown={(e) => { e.preventDefault(); if (linking.current?.pending) return; setFocusNode(n.id); setSelectedNode(n.id); setSelectedWire(null); grab(i, e.clientX, e.clientY) }} onKeyDown={(e) => keys(i, e)}
           aria-keyshortcuts={onBoard.includes(n.id) ? 'C' : undefined}
           className="node-hit group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-[#2e8b57] data-[proposed=remove]:opacity-60 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-[#d0453a] data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
-          style={{ width: size, height: size, transform: 'translate3d(-999px,-999px,0)' }}>
+          onPointerEnter={() => setHoverNode(n.id)} onPointerLeave={() => setHoverNode((h) => (h === n.id ? null : h))} onFocus={() => setHoverNode(n.id)} onBlur={() => setHoverNode((h) => (h === n.id ? null : h))}
+          style={{ width: size, height: size, transformOrigin: '50% 50%', transform: 'translate3d(-999px,-999px,0)' }}>
           <NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} />
-          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>
+          {onBoard.includes(n.id) && <span aria-hidden className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>}
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
             <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}
               className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex group-focus-visible:flex group-data-[selected]:flex"
@@ -852,46 +976,59 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
             </span>
           ))}
           {proposed?.added.has(n.id) && <span aria-hidden className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#2e8b57] text-meta font-semibold text-white shadow">+</span>}
-          <span aria-hidden className="pointer-events-none absolute left-1/2 top-full z-10 mt-6 -translate-x-1/2 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-meta text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{n.name}</span>
         </button>
       ))}
 
-      {/* the box: the name, and the sentence with its role */}
-      <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4" style={{ top: band().y1 + 20 }}>
-        <div ref={sentenceEl} className="glass glass-tile pointer-events-auto relative z-20 rounded-xl bg-glass-1 px-7 py-4 text-ink" data-testid="cover-box">
-          <div className="relative overflow-hidden">
-            <p aria-hidden={!showName} className={`${type} whitespace-nowrap transition-all duration-500 ${showName ? 'translate-y-0 opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 -translate-y-full opacity-0'}`}>Tower Design Toolkit</p>
-            <p aria-hidden={showName} className={`${type} flex flex-wrap items-baseline justify-center gap-x-3 whitespace-nowrap transition-all duration-500 ${showName ? 'pointer-events-none absolute inset-x-0 top-0 translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
-              <span>A Tower Design by</span>
-              <button type="button" data-role-menu onClick={() => (menu ? closeMenu() : openMenu())} aria-haspopup="listbox" aria-expanded={menu} data-testid="cover-role" tabIndex={showName ? -1 : 0}
-                className="inline-flex items-center gap-1.5 rounded-xl px-1.5 outline-none hover:bg-white/50 focus-visible:ring-2 focus-visible:ring-accent">
-                <RoleIcon size={28} className="text-accent" aria-hidden />{roleLabel}<ChevronDown size={24} aria-hidden />
-              </button>
-            </p>
-          </div>
-          {menu && (
-            <ul role="listbox" data-role-menu aria-label="A tower design by" onMouseLeave={restore} className="glass absolute left-1/2 top-full z-30 mt-2 w-max min-w-[18rem] -translate-x-1/2 rounded-xl bg-glass-1 p-1.5 text-control">
-              {ROLES.map((r) => {
-                const I = roleIcon(r.id)
-                return (
-                  <li key={r.id} role="none">
-                    <button type="button" role="option" aria-selected={role === r.id} onClick={() => pick(r.id)} onMouseEnter={() => preview(r.id)} onFocus={() => preview(r.id)} data-role={r.id}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent ${role === r.id ? 'font-semibold' : ''}`}>
-                      <I size={18} className="text-accent" aria-hidden />{r.label}
-                      {r.id === 'custom' && <span className="ml-auto pl-4 text-meta text-muted">build your own</span>}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
-        <div ref={assistantEl} className="mt-4">
+      {/* a node's full name, while it is hovered or focused (shelf tiles are small) */}
+      {hoverNode && (() => {
+        const b = bodies.current[idx(hoverNode)]
+        if (!b) return null
+        return <div aria-hidden className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-meta text-white"
+          style={{ transform: `translate3d(${b.tx || b.x}px, ${(b.on ? b.ty : b.y) + b.r * (b.on ? 1 : SHELF_S) + (b.on ? 22 : 6)}px, 0) translate(-50%, 0)` }}>{NODES[idx(hoverNode)].name}</div>
+      })()}
+
+      {/* who it is for: a quiet line at the top left (Ruijie, 7 Nov: the audience less prominent than the task) */}
+      <div ref={sentenceEl} className="absolute left-4 top-2.5 z-20 text-ink" data-testid="cover-box">
+        <h1 id="intro-title" className="text-section text-ink">Tower Design Toolkit</h1>
+        <p className="flex items-center gap-1 text-meta text-muted">A tower design by
+          <button type="button" data-role-menu onClick={() => (menu ? closeMenu() : openMenu())} aria-haspopup="listbox" aria-expanded={menu} data-testid="cover-role"
+            className="inline-flex items-center gap-1 rounded-lg px-1 py-0.5 text-meta text-ink outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent">
+            <RoleIcon size={13} className="text-accent" aria-hidden />{roleLabel}<ChevronDown size={12} aria-hidden />
+          </button>
+        </p>
+        {menu && (
+          <ul role="listbox" data-role-menu aria-label="A tower design by" onMouseLeave={restore} className="glass absolute left-0 top-full z-30 mt-1 w-max min-w-[16rem] rounded-xl bg-glass-1 p-1.5 text-control">
+            {ROLES.map((r) => {
+              const I = roleIcon(r.id)
+              return (
+                <li key={r.id} role="none">
+                  <button type="button" role="option" aria-selected={role === r.id} onClick={() => pick(r.id)} onMouseEnter={() => preview(r.id)} onFocus={() => preview(r.id)} data-role={r.id}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-1.5 text-left outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent ${role === r.id ? 'font-semibold' : ''}`}>
+                    <I size={16} className="text-accent" aria-hidden />{r.label}
+                    {r.id === 'custom' && <span className="ml-auto pl-4 text-meta text-muted">build your own</span>}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* the task: the workflow assistant, under the canvas */}
+      <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4" style={{ top: band().y1 + 14 }}>
+        <div ref={assistantEl}>
           <WorkflowAssistant board={{ nodes: onBoard, edges }} focus={focusNode} previewing={!!proposed} canUndo={canUndo}
             onPreview={previewProposal} onApply={applyProposal} onDiscard={discardProposal} onUndo={undoAssistant}
-            onOpenWorkspace={enterWith} canOpen={chain.length > 0} onOtherWays={onEnter} />
+            onOpenWorkspace={enterWith} canOpen={chain.length > 0} headerRight={presetsControl} />
         </div>
       </div>
+
+      {/* elsewhere: the research, importing a model, making a node of your own */}
+      <nav aria-label="More" className="absolute bottom-3 right-4 z-10 flex items-center gap-1 text-meta text-muted">
+        <button type="button" onClick={onEnter} data-testid="intro-enter" className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><BookOpen size={13} aria-hidden />Research</button>
+        <button type="button" onClick={openImport} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FileUp size={13} aria-hidden />Import a model</button>
+        <button type="button" onClick={openNodeBuilder} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><PackagePlus size={13} aria-hidden />Build a node</button>
+      </nav>
     </section>
   )
 }

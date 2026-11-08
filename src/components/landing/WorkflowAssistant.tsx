@@ -5,7 +5,7 @@
 // visitor applies or discards it; applied changes come back with Undo. It can also explain a node (what it answers,
 // what it reads, what it asks for) and asks one focused question when a request can't be placed. It only arranges the
 // built nodes; Open workspace opens whatever the canvas shows.
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ArrowRight, Check, Loader2, Lock, Sparkles, Undo2, X } from '../icons'
 import Help from '../Help'
 import { buildIndex } from '../../lib/agent/match'
@@ -39,8 +39,8 @@ export interface AssistantProps {
   onUndo: () => void
   onOpenWorkspace: (from: HTMLElement) => void
   canOpen: boolean
-  /** The other ways in (the concept page with roles, presets and research). */
-  onOtherWays: () => void
+  /** The Presets control, at the right of the assistant's header (Ruijie, 7 Nov: it replaces "Other ways in"). */
+  headerRight?: ReactNode
 }
 
 export default function WorkflowAssistant(p: AssistantProps) {
@@ -91,8 +91,7 @@ export default function WorkflowAssistant(p: AssistantProps) {
           {status === 'ready' ? 'Model ready' : status === 'loading' ? `Loading ${Math.round(pct * 100)}%` : status === 'failed' ? 'Keywords' : 'In this browser'}
           <Help label="About the workflow assistant">It arranges the built analysis nodes into a workflow you can edit: it suggests, modifies, explains and asks; it never writes analysis or invents a node. A small language model (minishlab/potion-base-8M, MIT, {Math.round(MODEL_BYTES / 1e6)}&nbsp;MB, loaded once from Hugging Face and cached) reads your words in this browser; nothing you type leaves it. Until it has loaded, or if it can't, it matches words.</Help>
         </span>
-        <button type="button" onClick={p.onOtherWays} data-testid="intro-enter" title="Roles, preset workflows and the research behind the toolkit"
-          className="ml-auto text-meta text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-accent">Other ways in</button>
+        {p.headerRight}
       </div>
       <h2 id="assistant-title" className="mt-1.5 text-section text-ink">What would you like to explore?</h2>
       <p className="text-meta text-muted">Describe your project and goals. The assistant will suggest nodes and connect an editable workflow.</p>

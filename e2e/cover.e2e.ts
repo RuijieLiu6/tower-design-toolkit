@@ -100,3 +100,48 @@ test('loops: connect back by keyboard, select, remove, undo', async ({ page }) =
   await page.getByTestId('cover-notice').getByRole('button', { name: 'Undo' }).click()
   await expect(page.locator('[data-return]')).toHaveCount(1)
 })
+
+// Ruijie, 7 Nov: returning to the landing page restores the active workflow (nodes, connections, local loops, name,
+// starting preset); the default appears only on New. Unused nodes wait in their lane's shelf; Presets previews on the
+// same canvas.
+test('the cover keeps its workflow: back from the app, after a reload; New starts over', async ({ page }) => {
+  test.setTimeout(240_000)
+  await page.route('**/huggingface.co/**', (r) => r.abort())
+  await page.addInitScript(() => { try { localStorage.setItem('ts.onboarding.seen', '1') } catch { /* private mode */ } })
+  await page.goto('/')
+  const name = page.getByTestId('cover-chain-name')
+  const on = page.locator('[data-cover-node][data-on="1"]')
+  await expect(on).toHaveCount(10)
+  // From the shelf: a click adds it; C then Enter on an earlier node makes a local loop.
+  await page.locator('[data-cover-node="built.core-lifts"]').click()
+  await expect(on).toHaveCount(11)
+  await page.locator('[data-cover-node="built.core-lifts"]').focus()
+  await page.keyboard.press('c')
+  await page.locator('[data-cover-node="built.sun"]').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('[data-return]')).toHaveCount(1)
+  await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)')
+  // Presets: hovering previews on the same canvas, Escape puts this workflow back.
+  await page.getByTestId('cover-presets').click()
+  await page.locator('[data-preset="eng-structure-wind"], [data-preset]').filter({ hasText: 'Structure and wind' }).first().hover()
+  await expect(name).toHaveText('Structure and wind')
+  await page.keyboard.press('Escape')
+  await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)')
+  // Into the app and back by the logo: the same workflow, loop included.
+  await page.getByTestId('cover-enter').click()
+  await expect(page.getByRole('heading', { name: 'Design tools' })).toBeVisible({ timeout: 90_000 })
+  await page.getByRole('banner').getByRole('button').first().click()
+  await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)', { timeout: 30_000 })
+  await expect(on).toHaveCount(11)
+  await expect(page.locator('[data-return]')).toHaveCount(1)
+  // After a reload too.
+  await page.reload()
+  await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)', { timeout: 60_000 })
+  await expect(page.locator('[data-return]')).toHaveCount(1)
+  // Only New brings the default back; Undo returns the edited one.
+  await page.getByTestId('cover-new').click()
+  await expect(name).toHaveText('Enter the Vancouver Tall Challenge')
+  await expect(on).toHaveCount(10)
+  await page.keyboard.press('Control+z')
+  await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)')
+})
