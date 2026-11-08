@@ -54,6 +54,7 @@ Ask in this order. Skip anything already answered.
 9. **Limits.** "When would this node be misleading?"
 10. **False assumptions.** "Is there something people often get wrong about this?"
 11. **Credits.** Their name (and contact, if they want), a short handle for the id, and the licence (MIT unless they prefer CC-BY-4.0).
+12. **Icon (optional).** "What should the node's icon show?" One architectural object and at most one cue, taken from what the node actually does. Write it as an icon brief; see [The node's icon](#the-nodes-icon).
 
 ### Step 2: Evidence check
 
@@ -104,6 +105,10 @@ Tower Design Toolkit re-runs these tests when the package is imported, and shows
 2. Walk them through importing it: [references/upload-steps.md](references/upload-steps.md).
 3. Say what happens next: the node appears under **My nodes**, marked *Community · Unverified* until reviewed. It lives in their browser only. To share it, they send the file. The shared registry is coming but not open yet.
 
+## The node's icon
+
+A package may carry an icon in the optional `icon` field, following the node icon style pack v1 (https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v1/). Prefer a **brief** (`"icon": { "kind": "brief", "brief": { … } }`): the name, what the node actually does, its category, one object and at most one cue (words from fixed lists), and `"styleVersion": "1"`. Tower Design Toolkit draws it in the family's style. Draw an image yourself only if the designer asks: read the pack's rules, tokens and references first, and attach a transparent PNG or WebP (256 px is best) as a data URL. The icon must never suggest something the node can't do, and Tower Design Toolkit checks and previews every image itself. Details: [references/node-icons.md](references/node-icons.md).
+
 ## When a node can't do it
 
 Format v1 is deliberately simple: formulas over a fixed summary, so anyone can read and review a node. A package can carry code only as a sandboxed code node, which the user must allow before it runs. If the designer needs:
@@ -127,5 +132,6 @@ Format v1 is deliberately simple: formulas over a fixed summary, so anyone can r
 | [references/tool-to-node.md](references/tool-to-node.md) | Bringing an existing design tool in: licence, the four kinds, input mapping, testing against the tool, port requests |
 | [references/code-nodes.md](references/code-nodes.md) | Code nodes: when to use one, the run(input) contract, what the sandbox blocks, how users allow them |
 | [references/example-code-node.json](references/example-code-node.json) | A worked code node (core-to-facade depth) |
+| [references/node-icons.md](references/node-icons.md) | The node's icon: the style pack, the icon brief, the image route and how Tower Design Toolkit checks it |
 | [scripts/check_node.mjs](scripts/check_node.mjs) | `node scripts/check_node.mjs my-node.json`: checks and test-runs a package (Node 18+, no installs) |
 | [PROMPT.md](PROMPT.md) | The same skill as one paste-in prompt, for assistants that don't load skill folders |

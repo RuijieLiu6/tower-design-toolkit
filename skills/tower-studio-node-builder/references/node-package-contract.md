@@ -30,6 +30,7 @@ Format v1 is **declarative**: formulas over a fixed summary of the design, read 
 | `falseAssumptions` | no | Wrong beliefs kept visible, each with `claim`, `correction` and `source`. Tower Design Toolkit shows them in magenta. |
 | `tests` | no, but ask for them | Expected results on the sample fixtures (see below). |
 | `createdWith` | no | Which assistant and skill version helped. |
+| `icon` | no | The node's icon, artwork only: a brief the toolkit draws (`{"kind": "brief", "brief": {…}}`, preferred) or one PNG, JPEG or WebP image as a data URL (`{"kind": "image", "dataUrl": …, "source": "agent", "styleVersion": "1"}`). A broken icon is a warning, never a reason to refuse the node. See [node-icons.md](node-icons.md). |
 
 No other fields are allowed. Names are case-sensitive.
 

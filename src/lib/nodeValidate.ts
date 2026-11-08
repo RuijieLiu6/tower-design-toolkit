@@ -8,9 +8,14 @@ import { ExprError, parse, suggest, variablesOf } from './nodeExpr'
 import { VARIABLE_NAMES } from './layer0Summary'
 import { isCodeMetric, runPackage, runTests, type CommunityResult, type Fixture, type NodePackage, type TestOutcome, type ThresholdDef } from './nodePackages'
 import { checkCode } from './sandbox/sandbox'
+import { briefProblems } from './nodeIcons/brief'
+import type { PackageIcon } from './nodeIcons/fromPackage'
 
 export const FIXTURES = (fixturesFile as unknown as { fixtures: Fixture[] }).fixtures
 export const MAX_CHARS = 200_000
+/** An embedded icon image may add up to this many characters (a 5 MB file in base64). */
+export const MAX_ICON_CHARS = 7_100_000
+const ICON_DATA = /"dataUrl"\s*:\s*"data:image\/[a-z]+;base64,[A-Za-z0-9+/=]*"/g
 
 export interface Problem { level: 'error' | 'warning'; where: string; message: string }
 export interface Report {
@@ -19,14 +24,20 @@ export interface Report {
   problems: Problem[]
   tests: TestOutcome[]
   preview: { fixture: Fixture; results: CommunityResult[] }[]
+  /** The package's icon when it is well-formed; the package itself (pkg) never carries it (nodeIcons/fromPackage.ts). */
+  icon?: PackageIcon
 }
 
 const ajv = new Ajv2020({ allErrors: true, verbose: true, strict: true, strictTypes: false, strictRequired: false })
 const validateSchema = ajv.compile(schema)
+// The icon is checked on its own: a broken icon is a warning (the node shows the standard illustration), never a reason
+// to refuse the node.
+const validateIcon = ajv.compile({ $defs: schema.$defs, ...schema.properties.icon })
 
 /** Read pasted text or a file's contents: tolerate a BOM and a ```json fence around the package. */
 export function parsePackageText(text: string): { data?: unknown; problem?: Problem } {
-  if (text.length > MAX_CHARS) return { problem: { level: 'error', where: 'The file', message: `is ${Math.round(text.length / 1000)} kB; a node package should be well under ${MAX_CHARS / 1000} kB. Is this the right file?` } }
+  const withoutIcon = text.length > MAX_CHARS ? text.replace(ICON_DATA, '""').length : text.length
+  if (withoutIcon > MAX_CHARS || text.length > MAX_CHARS + MAX_ICON_CHARS) return { problem: { level: 'error', where: 'The file', message: `is ${Math.round(text.length / 1000)} kB; a node package should be well under ${MAX_CHARS / 1000} kB (plus one icon image up to 5 MB). Is this the right file?` } }
   let t = text.replace(/^﻿/, '').trim()
   const fence = /```(?:json)?\s*([\s\S]*?)```/.exec(t)
   if (fence) t = fence[1].trim()
@@ -57,7 +68,19 @@ export function validatePackage(data: unknown): Report {
     return { ok: false, problems: [{ level: 'error', where: 'The package', message: 'should be one JSON object { … }, not a list or a single value.' }], tests: [], preview: [] }
   }
   const problems: Problem[] = []
-  const pkg = data as NodePackage
+  const { icon: rawIcon, ...rest } = data as NodePackage
+  data = rest
+  const pkg = rest as NodePackage
+  let icon: PackageIcon | undefined
+  if (rawIcon !== undefined) {
+    if (validateIcon(rawIcon)) {
+      const p = rawIcon.kind === 'brief' ? briefProblems(rawIcon.brief) : []
+      if (p.length) problems.push(...p.map((m) => ({ level: 'warning' as const, where: 'Icon', message: `${m} The node will show the standard illustration until it has an icon.` })))
+      else icon = rawIcon
+    } else {
+      problems.push({ level: 'warning', where: 'Icon', message: `isn't in the icon format (${iconShape(rawIcon)}). The node will show the standard illustration; you can give it an icon in the Icons tab.` })
+    }
+  }
   if (!validateSchema(data)) {
     const errors = validateSchema.errors ?? []
     problems.push(...explain(errors, data))
@@ -76,7 +99,15 @@ export function validatePackage(data: unknown): Report {
   for (const t of tests) if (!t.ok) problems.push({ level: 'warning', where: 'Test', message: t.message })
   if (!pkg.tests?.length) problems.push({ level: 'warning', where: 'Tests', message: 'none yet. Ask your AI to add a few tests on the sample fixtures, so a later change that breaks a formula shows up.' })
   const preview = FIXTURES.filter((f) => !pkg.projects || pkg.projects.includes(f.design.project)).map((fixture) => ({ fixture, results: runPackage(pkg, fixture.summary) }))
-  return { ok: true, pkg, problems, tests, preview }
+  return { ok: true, pkg, problems, tests, preview, icon }
+}
+
+function iconShape(x: unknown): string {
+  const i = x as { kind?: unknown; dataUrl?: unknown } | null
+  if (!i || typeof i !== 'object') return 'it should be an object'
+  if (i.kind === 'image') return typeof i.dataUrl === 'string' && /^data:image\/svg/.test(i.dataUrl) ? 'SVG images are not accepted yet; use PNG, JPEG or WebP' : 'an image needs "dataUrl" as a PNG, JPEG or WebP base64 data URL and "styleVersion": "1"'
+  if (i.kind === 'brief') return 'a brief needs styleVersion, name, function, category and metaphor.object from the listed words'
+  return '"kind" should be "brief" or "image"'
 }
 
 // --- Plain words for schema errors ------------------------------------------------------------------------------

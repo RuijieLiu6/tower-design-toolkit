@@ -1,0 +1,145 @@
+{
+  "name": "Tower Design Toolkit node icon style pack",
+  "version": "1",
+  "date": "2026-11-07",
+  "url": "https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v1/",
+  "zip": "node-icon-style-pack-v1.zip",
+  "note": "sha256 and bytes of every file in the pack; the zip holds all of them plus this manifest.",
+  "files": [
+    {
+      "path": "NODE_ICON_STYLE.md",
+      "bytes": 17463,
+      "sha256": "fd70f2bbbb7a406c30f199eda753b70f16521f7bf2652c06432fca26364d9151"
+    },
+    {
+      "path": "example-node/README.md",
+      "bytes": 1482,
+      "sha256": "c9df222c0cf503ed7ed9a5bc845fc4b6c89791d6278d0e39d73bc9ce1d6c0609"
+    },
+    {
+      "path": "example-node/example-node-with-image.json",
+      "bytes": 18089,
+      "sha256": "5f312e5e790f2e1837cfd50298cc76db334542eb132ba0aa89c5079267ab1d37"
+    },
+    {
+      "path": "example-node/example-node.json",
+      "bytes": 7404,
+      "sha256": "4a9f0bf1533677cad362df10afb088a04221387f672c78b1a3092f80170147f8"
+    },
+    {
+      "path": "example-node/icon.png",
+      "bytes": 17456,
+      "sha256": "e56cc6fee4ea2b9ea9e7d66921a590db348b008bdb15abb811bb3c2d7abbb37a"
+    },
+    {
+      "path": "example-node/icon.svg",
+      "bytes": 1034,
+      "sha256": "68fe078e7f750d60b974e119b55a334e8a29bdf5652f8f7a8efee859a6ed0f3a"
+    },
+    {
+      "path": "icon-brief.schema.json",
+      "bytes": 3391,
+      "sha256": "4aeeaf8bda799a1b1f4756b3e7a0e8eddbed67596f8100963ce076bedd67e22e"
+    },
+    {
+      "path": "icon-tokens.json",
+      "bytes": 31274,
+      "sha256": "e3a6f0d816919ccf4797c7cdfe9d11aad06d2fee275ebcec4e28cfb26744987f"
+    },
+    {
+      "path": "previews/family-52px.png",
+      "bytes": 104308,
+      "sha256": "7909d827af5b2bfab7ae46cab56b4cf9da4de67501400830cdaf4256bac19b8b"
+    },
+    {
+      "path": "previews/size-check.png",
+      "bytes": 62370,
+      "sha256": "38a2686a58a2c8d61ab2c8b2c8ace04031600e22e7a4250ff214db4d3d00b74a"
+    },
+    {
+      "path": "references/README.md",
+      "bytes": 1636,
+      "sha256": "8941e8762a8e8fa91f4eee6ab01c3fa15c35858e5ea348a55bc3fd3c70a7ce35"
+    },
+    {
+      "path": "references/built.core-lifts.png",
+      "bytes": 25410,
+      "sha256": "d091f15497a1f192576acddc0faf8a6a869b95da693437b8f2108e3bb7bdd255"
+    },
+    {
+      "path": "references/built.core-lifts.svg",
+      "bytes": 1892,
+      "sha256": "68d7a15cae1e3e1e885c46ae773467c63351d60dc9ec7ca82c29737f3c84d1d0"
+    },
+    {
+      "path": "references/built.daylight-depth.png",
+      "bytes": 36873,
+      "sha256": "9fc21c05914aaa3f12ceeeb54d77bdfa04adf3f83bc17cac8f1ccd8d74c6f480"
+    },
+    {
+      "path": "references/built.daylight-depth.svg",
+      "bytes": 2110,
+      "sha256": "e7ca7c8bf610b5cdc96f63b77d5276cacbab3ab5ae95c19aa2f4a6e7e1f7b27c"
+    },
+    {
+      "path": "references/built.energy-carbon.png",
+      "bytes": 22512,
+      "sha256": "9a900edb6fb49868aa2edf5a3eff7f3562939676b6d2b4052f2051db6aa14758"
+    },
+    {
+      "path": "references/built.energy-carbon.svg",
+      "bytes": 999,
+      "sha256": "bbfad98061b4f5a938b750b70ba482e583c65a266e9d381faf93eb8c506d4708"
+    },
+    {
+      "path": "references/built.pr-frontage.png",
+      "bytes": 22729,
+      "sha256": "4d479451f93971370d9919eed24cce3a0654e19db968e110a23170d174cad16e"
+    },
+    {
+      "path": "references/built.pr-frontage.svg",
+      "bytes": 1912,
+      "sha256": "71316d355ef2e2cf7b921577ee39e7a3af1cfe50d02c04b8053aee74e10624e7"
+    },
+    {
+      "path": "references/built.provenance.png",
+      "bytes": 23819,
+      "sha256": "30bb7819ef4f2e691ce4037f52a4b7caf9554dd85cd445d2ac35603d842dd010"
+    },
+    {
+      "path": "references/built.provenance.svg",
+      "bytes": 1408,
+      "sha256": "0b2f1f83685543e78690a70c286fb2fd19ccaea9bcaee5430527a64fbad36213"
+    },
+    {
+      "path": "references/built.sun.png",
+      "bytes": 19778,
+      "sha256": "44c508876bd2a2488af35ca53380805986a9f869226ee2e64864f2c3ff4aea9e"
+    },
+    {
+      "path": "references/built.sun.svg",
+      "bytes": 907,
+      "sha256": "9317138c7c66511190140a18480f5644f1d43e9e472d9dfea778d958316601c7"
+    },
+    {
+      "path": "references/built.viewcones.png",
+      "bytes": 23737,
+      "sha256": "1a6523ab8e0d39d777cc234678392e0e5917b3d14679332be10aec3164ef4c37"
+    },
+    {
+      "path": "references/built.viewcones.svg",
+      "bytes": 1277,
+      "sha256": "50298b84e6e3637c1cc46d4e891fa17ad299c9bbacc8239f1ef545dcfe8b3233"
+    },
+    {
+      "path": "references/built.wind-screen.png",
+      "bytes": 20415,
+      "sha256": "806cc91fef21ed3de4176a56bfa6d7b0f4403e1e40895673b1ffe133c18ea5cd"
+    },
+    {
+      "path": "references/built.wind-screen.svg",
+      "bytes": 1034,
+      "sha256": "e27c2342a5c5267535c6dce5547f25b26ef3573e651e34f4ce873bd677dbcdfc"
+    }
+  ]
+}

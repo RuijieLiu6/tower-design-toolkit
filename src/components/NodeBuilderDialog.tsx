@@ -2,7 +2,7 @@
 // package it produces. Loaded on demand (it bundles the skill files, the zip writer and the validator).
 import {
   ArrowRight, BadgeCheck, Check, CircleCheckBig, ClipboardCopy, Copy, FileDown, FileUp, FlaskConical, FolderDown, GitPullRequest,
-  MessagesSquare, OctagonX, PackagePlus, ShieldQuestionMark, TriangleAlert, X,
+  MessagesSquare, OctagonX, PackagePlus, Palette, ShieldQuestionMark, TriangleAlert, X,
 } from './icons'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -14,6 +14,13 @@ import { validatePackageText, type Report } from '../lib/nodeValidate'
 import { SKILL_FILES, SKILL_NAME, promptText, saveFile, sizeLabel, skillZip } from '../lib/skillFiles'
 import { ResultChip } from './CommunityInspector'
 import { FlagChip } from './ui'
+import { NodeTile } from './NodeTile'
+import IconEditor from './nodeIcons/IconEditor'
+import { IconRecordArt, NodeArtwork } from './nodeIcons/NodeArtwork'
+import { agentInstructions } from '../lib/nodeIcons/agentInstructions'
+import { CURRENT_STYLE } from '../lib/nodeIcons/brief'
+import { applyPackageIcon, iconFromPackage, type PreparedIcon } from '../lib/nodeIcons/fromPackage'
+import { useNodeIcons } from '../lib/nodeIcons/store'
 // The "Make it here" form loads only when its tab opens.
 const NodeAuthor = lazy(() => import('./NodeAuthor'))
 
@@ -60,13 +67,13 @@ export default function NodeBuilderDialog() {
           <button aria-label="Close" onClick={close} className="rounded p-1 text-muted hover:bg-black/5"><X size={18} /></button>
         </div>
         <div role="tablist" aria-label="Node builder" className="mx-5 mt-4 flex gap-1 rounded-lg bg-black/[0.04] p-1">
-          {([['build', 'Build with your AI'], ['make', 'Make it here'], ['import', 'Import a node']] as const).map(([id, label]) => (
+          {([['build', 'Build with your AI'], ['make', 'Make it here'], ['import', 'Import a node'], ['icon', 'Icons']] as const).map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => openDialog(id, seed)}
               className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${tab === id ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{label}</button>
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-4">
-          {tab === 'build' ? <BuildTab seed={seed} onImport={() => openDialog('import', seed)} /> : tab === 'make' ? <Suspense fallback={<p className="text-xs text-muted">Loading the form…</p>}><NodeAuthor /></Suspense> : <ImportTab />}
+          {tab === 'build' ? <BuildTab seed={seed} onImport={() => openDialog('import', seed)} /> : tab === 'make' ? <Suspense fallback={<p className="text-xs text-muted">Loading the form…</p>}><NodeAuthor /></Suspense> : tab === 'icon' ? <IconsTab /> : <ImportTab />}
         </div>
       </div>
     </div>,
@@ -137,6 +144,8 @@ function BuildTab({ seed, onImport }: { seed: string; onImport: () => void }) {
         </Card>
       </div>
 
+      <IconInstructions />
+
       {showPrompt && (
         <textarea readOnly value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Skill prompt"
           className="mt-3 h-48 w-full resize-y rounded-md border border-line bg-black/[0.02] p-2 font-mono text-meta leading-snug outline-none focus:border-accent" />
@@ -164,6 +173,100 @@ function BuildTab({ seed, onImport }: { seed: string; onImport: () => void }) {
 
       <ComingSoon />
     </>
+  )
+}
+
+// Node icons for agents (Ruijie, 7 Nov): the versioned instructions to paste, and the style pack to download.
+const STYLE_PACK_ZIP = `${import.meta.env.BASE_URL}style-pack/node-icons/v${CURRENT_STYLE}/node-icon-style-pack-v${CURRENT_STYLE}.zip`
+function IconInstructions() {
+  const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
+  const [show, setShow] = useState(false)
+  const text = useMemo(() => agentInstructions(), [])
+  const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied('ok') } catch { setCopied('fail'); setShow(true) } }
+  return (
+    <section className="mt-3 rounded-lg border border-line p-3 text-xs text-slate-700" aria-labelledby="nb-icon-title" data-testid="icon-instructions">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/10 text-accent"><Palette size={16} aria-hidden /></span>
+        <h3 id="nb-icon-title" className="text-sm font-semibold text-ink">The node’s icon</h3>
+        <span className="text-meta text-muted">Style pack v{CURRENT_STYLE}</span>
+      </div>
+      <p className="mt-1.5 leading-snug">Your AI can describe the icon in a short brief that the toolkit draws in its own style, or make an image to the style pack. Either way it is only artwork: it never changes what the node does.</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button onClick={copy} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          {copied === 'ok' ? <><Check size={14} aria-hidden />Copied: paste it to your agent</> : <><ClipboardCopy size={14} aria-hidden />Copy instructions for my AI agent</>}
+        </button>
+        <a href={STYLE_PACK_ZIP} download className="flex items-center gap-1.5 rounded-md border border-accent px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/[0.06]"><FileDown size={14} aria-hidden />Download style pack (.zip)</a>
+        <button onClick={() => setShow((v) => !v)} aria-expanded={show} className="text-meta text-accent hover:underline">{show ? 'Hide instructions' : 'Show instructions'}</button>
+      </div>
+      {copied === 'fail' && <p className="mt-1 text-meta text-amber-800">Couldn't reach the clipboard. Select the text below and copy it.</p>}
+      {show && <textarea readOnly value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Icon instructions for an AI agent" className="mt-2 h-40 w-full resize-y rounded-md border border-line bg-black/[0.02] p-2 font-mono text-meta leading-snug outline-none focus:border-accent" />}
+    </section>
+  )
+}
+
+// --- Icons ------------------------------------------------------------------------------------------------------------
+
+function IconsTab() {
+  const packages = useCommunityStore((s) => s.packages)
+  const iconFor = useCommunityStore((s) => s.iconFor)
+  const editIcon = useCommunityStore((s) => s.editIcon)
+  const openDialog = useCommunityStore((s) => s.openDialog)
+  const current = packages.find((p) => p.id === iconFor) ?? packages[0]
+  if (!current) return (
+    <div className="grid justify-items-start gap-2 text-sm" data-testid="icons-empty">
+      <p>Icons are for the nodes you make or import. Add one first; the toolkit’s own nodes keep their icons.</p>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => openDialog('make')} className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">Make a node here</button>
+        <button onClick={() => openDialog('import')} className="rounded-md border border-line px-3 py-1.5 text-xs text-ink hover:border-accent hover:text-accent">Import a node</button>
+      </div>
+    </div>
+  )
+  return (
+    <div className="grid gap-4">
+      <div role="radiogroup" aria-label="Which node" className="flex gap-1.5 overflow-x-auto pb-1">
+        {packages.map((p) => (
+          <button key={p.id} type="button" role="radio" aria-checked={p.id === current.id} data-selected={p.id === current.id ? '' : undefined} onClick={() => editIcon(p.id)}
+            className="node-hit flex w-[84px] shrink-0 flex-col items-center gap-1 rounded-xl p-1.5 text-center outline-none">
+            <NodeTile id={p.id} size={40} art={<NodeArtwork id={p.id} size={36} category={p.category} />} />
+            <span className="line-clamp-2 text-meta leading-tight text-ink">{p.name}</span>
+          </button>
+        ))}
+      </div>
+      <IconEditor key={current.id} node={{ id: current.id, name: current.name, question: current.question, method: current.method, category: current.category }} />
+    </div>
+  )
+}
+
+/** A package's own icon in the import preview: how it reads in the tile, and whether to use it. */
+function PackageIconPreview({ report, use, setUse }: { report: Report; use: boolean; setUse: (v: boolean) => void }) {
+  const pkg = report.pkg!
+  const [prepared, setPrepared] = useState<PreparedIcon | null>(null)
+  const has = useNodeIcons((s) => !!s.icons[pkg.id])
+  useEffect(() => {
+    let live = true
+    setPrepared(null)
+    if (report.icon) void iconFromPackage(report.icon, pkg.name).then((p) => { if (live) setPrepared(p) }, () => { if (live) setPrepared({ record: null, problems: ['The icon could not be read.'] }) })
+    return () => { live = false }
+  }, [report, pkg.name])
+  if (!report.icon) return null
+  const warn = prepared?.record?.kind === 'image' ? prepared.record.checks.filter((c) => c.state === 'warn') : []
+  return (
+    <div className="flex items-start gap-3 rounded-md bg-black/[0.03] p-2.5" data-testid="package-icon">
+      {prepared?.record ? <NodeTile id={pkg.id} size={44} art={<IconRecordArt icon={prepared.record} size={40} />} /> : <NodeTile id={pkg.id} size={44} art={<NodeArtwork id={pkg.id} size={40} category={pkg.category} />} />}
+      <div className="min-w-0 flex-1 text-meta leading-snug text-slate-700">
+        <div className="font-semibold text-ink">{report.icon.kind === 'brief' ? 'Icon brief, drawn by the toolkit' : 'Icon image from the package'}</div>
+        {!prepared ? <p>Checking the icon…</p>
+          : !prepared.record ? <p className="text-amber-900">Can’t be used: {prepared.problems.join(' ')} The node will show the standard illustration.</p>
+          : warn.length ? <p className="text-amber-900">Usable, with {warn.length} note{warn.length > 1 ? 's' : ''}: {warn.map((c) => c.label.toLowerCase()).join(', ')}. You can crop or restyle it in the Icons tab.</p>
+          : <p>Checked: it reads at the node’s sizes.</p>}
+        {prepared?.record && (
+          <label className="mt-1 flex items-center gap-1.5">
+            <input type="checkbox" checked={use} onChange={(e) => setUse(e.target.checked)} />
+            {has ? 'Replace the icon you already gave this node' : 'Use this icon'}
+          </label>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -204,6 +307,7 @@ function ImportTab() {
   const [drag, setDrag] = useState(false)
   const [copied, setCopied] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const [useIcon, setUseIcon] = useState(true)
   const packages = useCommunityStore((s) => s.packages)
   const addPackage = useCommunityStore((s) => s.addPackage)
   const close = useCommunityStore((s) => s.closeDialog)
@@ -222,6 +326,15 @@ function ImportTab() {
   const errors = problems.filter((p) => p.level === 'error'), warnings = problems.filter((p) => p.level === 'warning')
   const pkg = report?.ok ? report.pkg! : null
   const existing = pkg ? packages.find((p) => p.id === pkg.id) : undefined
+  // An icon the user already gave this node is kept unless they tick "Replace".
+  const hadIcon = useNodeIcons((s) => (pkg ? !!s.icons[pkg.id] : false))
+  useEffect(() => setUseIcon(!hadIcon), [report, hadIcon])
+  const add = async () => {
+    if (!pkg) return
+    addPackage(pkg)
+    if (report?.icon && useIcon) await applyPackageIcon(pkg.id, pkg.name, report.icon, true).catch(() => null)
+    close()
+  }
 
   const copyProblems = async () => {
     const msg = `Tower Design Toolkit checked the node package and found these problems. Please fix them and send the whole corrected package as one JSON block.\n\n${problems.map((p) => `- ${p.level === 'error' ? 'Must fix' : 'Check'}: ${p.where} ${p.message}`).join('\n')}`
@@ -277,6 +390,7 @@ function ImportTab() {
                 <b>Package tests:</b> {report.tests.filter((t) => t.ok).length} of {report.tests.length} match what Tower Design Toolkit computes.
               </div>
             )}
+            {pkg && <PackageIconPreview report={report} use={useIcon} setUse={setUseIcon} />}
             {pkg && <Preview report={report} />}
             {pkg && (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
@@ -284,7 +398,7 @@ function ImportTab() {
                   <ShieldQuestionMark size={14} className="mt-px shrink-0" />
                   <span>Added as <b className="text-ink">Community · Unverified until reviewed</b>, stored only in this browser.{existing ? ` Replaces version ${existing.version} in My nodes.` : ''}</span>
                 </div>
-                <button onClick={() => { addPackage(pkg); close() }} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+                <button onClick={() => void add()} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
                   <PackagePlus size={14} />{existing ? `Replace v${existing.version} with v${pkg.version}` : 'Add to My nodes'}
                 </button>
               </div>

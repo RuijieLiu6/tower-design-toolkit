@@ -6,6 +6,7 @@ import type { NodeDef } from '../../data/registry'
 import GlassIcon, { hueFor, ICON, monogram, nodeHue } from '../GlassIcon'
 import { NodeTile } from '../NodeTile'
 import { hasNodeArt } from '../icons/nodeArt'
+import { NodeArtwork } from '../nodeIcons/NodeArtwork'
 import { catalog, STATUS_LABEL, TABS, type Entry, type TabId } from './catalog'
 
 export const DRAG_MIME = 'application/x-tower-studio-node'
@@ -22,6 +23,7 @@ function Tile({ e, onAdd, names, onHover }: { e: Entry; onAdd: (e: Entry) => voi
   const glyph = (
     <span className="relative flex shrink-0">
       {!researched && hasNodeArt(e.ref) ? <NodeTile id={e.ref} size={ICON.tool} />
+        : e.status === 'community' ? <NodeTile id={e.ref} size={ICON.tool} art={<NodeArtwork id={e.ref} size={Math.round(ICON.tool * 0.9)} category={e.category} />} />
         : <GlassIcon icon={researched ? undefined : Icon} mono={researched ? monogram(e.name) : undefined} hue={e.category ? nodeHue(e.ref, e.category) : hueFor(e.name)} size={ICON.tool} level={researched ? 'off' : 'on'} />}
       {researched && <FlaskConical size={11} className="absolute -bottom-0.5 -right-0.5 rounded-full bg-white/90 p-px text-slate-600" aria-hidden />}
     </span>

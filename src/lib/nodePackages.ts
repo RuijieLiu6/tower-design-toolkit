@@ -5,6 +5,7 @@ import type { Category, NodeDef, NodeStatus } from '../data/registry'
 import type { Flag, RuleResult, RuleState, Source } from '../engine/types'
 import { evaluate, parse, type Ast } from './nodeExpr'
 import { scopeVars, type Layer0Input, type Layer0Summary } from './layer0Summary'
+import type { PackageIcon } from './nodeIcons/fromPackage'
 
 export const FORMAT = 'tower-studio-node@1'
 export type Stage = 'massing' | 'schematic' | 'present'
@@ -48,6 +49,9 @@ export interface NodePackage {
   /** Code node (research P15-M04): JavaScript that runs only in the sandbox, after the user allows it. Metrics whose
    *  expression is "code" take their value from run(input). */
   code?: { language: 'javascript'; source: string }
+  /** Optional icon (artwork only; nodeIcons/fromPackage.ts). Taken out on import into the icon store, so a package in
+   *  My nodes never carries it: how a node looks is kept apart from what it does. */
+  icon?: PackageIcon
 }
 
 /** A metric whose value comes from the package's code (expression "code"), not a formula. */

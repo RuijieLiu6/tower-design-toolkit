@@ -134,8 +134,11 @@ function Detail({ m, data, onBack, onAddToCanvas }: { m: RegistryModule; data: L
     const errors = report.problems.filter((p) => p.level === 'error')
     if (!report.ok || !report.pkg || errors.length) { setStatus({ kind: 'error', msg: `The import check refused it: ${errors.map((e) => `${e.where} ${e.message}`).join(' ')}` }); return }
     addPackage(report.pkg)
+    // The icon goes to the icon store, apart from the node (lib/nodeIcons); an icon you already chose is kept.
+    const { applyPackageIcon } = await import('../../lib/nodeIcons/fromPackage')
+    const iconNote = await applyPackageIcon(report.pkg.id, report.pkg.name, report.icon).catch(() => null)
     const warn = report.problems.length ? ` ${report.problems.length} note${report.problems.length > 1 ? 's' : ''} from the import check (see My nodes).` : ''
-    setStatus({ kind: 'ok', msg: `Installed ${m.id}@${v.version} in My nodes, switched on in the guided app. It shows as Community · Unverified until reviewed.${warn}` })
+    setStatus({ kind: 'ok', msg: `Installed ${m.id}@${v.version} in My nodes, switched on in the guided app. It shows as Community · Unverified until reviewed.${warn}${iconNote ? ` ${iconNote}` : ''}` })
   }
 
   return (

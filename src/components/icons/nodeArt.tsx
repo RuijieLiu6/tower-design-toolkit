@@ -6,17 +6,19 @@
 // One family: the same isometric view (30°) on a 48-unit grid, the same small ground plate under every subject, light
 // from the upper left (top face lightest, left face middle, right face darkest), neutral warm-grey massing, and the
 // node's task in its phase colour (lib/phases.ts PHASE_HUE) in three tones. Our own drawings; one per built node.
+// The primitives are exported: the icon generator for user-created nodes (lib/nodeIcons/generate.tsx) draws with them,
+// so its icons sit in the same family (style pack v1, public/style-pack/node-icons/v1/).
 import type { ReactNode } from 'react'
 import { phaseHue } from '../../lib/phases'
 
 // ---------- the isometric frame: plan units 0..16 on the plate, z up ----------
-type P3 = [number, number, number]
-const iso = (x: number, y: number, z = 0): [number, number] => [24 + (x - y) * 1.38, 19.5 + (x + y) * 0.8 - z * 1.62]
-const pts = (...ps: P3[]) => ps.map((q) => iso(...q).map((v) => v.toFixed(2)).join(',')).join(' ')
+export type P3 = [number, number, number]
+export const iso = (x: number, y: number, z = 0): [number, number] => [24 + (x - y) * 1.38, 19.5 + (x + y) * 0.8 - z * 1.62]
+export const pts = (...ps: P3[]) => ps.map((q) => iso(...q).map((v) => v.toFixed(2)).join(',')).join(' ')
 
-type Tone = 'n' | 'a' | 'g' | 'w' | 'k' | 'p'
+export type Tone = 'n' | 'a' | 'g' | 'w' | 'k' | 'p'
 /** Three tones per material: top, left face, right face. `a` is the node's phase colour. */
-function tones(t: Tone, h: number): [string, string, string] {
+export function tones(t: Tone, h: number): [string, string, string] {
   switch (t) {
     case 'n': return ['#fbfbfa', '#e2e5ea', '#c3c9d2'] // massing
     case 'p': return ['#eef1f3', '#d9dee4', '#c7cdd5'] // ground plate
@@ -27,9 +29,9 @@ function tones(t: Tone, h: number): [string, string, string] {
   }
 }
 
-interface Ctx { h: number }
+export interface Ctx { h: number }
 /** A box: top, the face toward the lower left and the face toward the lower right. */
-const box = (c: Ctx, x: number, y: number, z: number, w: number, d: number, hh: number, t: Tone = 'n', o = 1): ReactNode => {
+export const box = (c: Ctx, x: number, y: number, z: number, w: number, d: number, hh: number, t: Tone = 'n', o = 1): ReactNode => {
   const [top, left, right] = tones(t, c.h)
   return (
     <g opacity={o}>
@@ -40,12 +42,12 @@ const box = (c: Ctx, x: number, y: number, z: number, w: number, d: number, hh: 
   )
 }
 /** Something lying on the ground (or on a roof at height z). */
-const flat = (fill: string, z: number, ...ps: [number, number][]): ReactNode => <polygon points={pts(...ps.map(([x, y]) => [x, y, z] as P3))} fill={fill} />
-const plate = (c: Ctx) => box(c, 0.6, 0.6, 0, 14.8, 14.8, 0.9, 'p')
+export const flat = (fill: string, z: number, ...ps: [number, number][]): ReactNode => <polygon points={pts(...ps.map(([x, y]) => [x, y, z] as P3))} fill={fill} />
+export const plate = (c: Ctx) => box(c, 0.6, 0.6, 0, 14.8, 14.8, 0.9, 'p')
 const tower = (c: Ctx, hh: number, x = 5.5, y = 5.5, w = 5, d = 5) => box(c, x, y, 0.9, w, d, hh)
 const A = (c: Ctx, k: 0 | 1 | 2) => tones('a', c.h)[k]
-const line = (a: [number, number], b: [number, number], stroke: string, w = 1.1, dash?: string) => <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={stroke} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash} />
-const INK = '#3a4250'
+export const line = (a: [number, number], b: [number, number], stroke: string, w = 1.1, dash?: string) => <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={stroke} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash} />
+export const INK = '#3a4250'
 
 // ---------- one drawing per built node ----------
 const ART: Record<string, (c: Ctx) => ReactNode> = {

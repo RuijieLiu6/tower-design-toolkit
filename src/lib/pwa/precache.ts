@@ -5,8 +5,9 @@
 /** Never cached and never published: the private competition model (public/local/) and the live evaluation run. */
 export const NEVER_CACHE: RegExp[] = [/^local\//, /^eval\//]
 
-/** Kept offline once used, not downloaded up front: the massing importers (IFC and Rhino readers, several MB). */
-export const ON_DEMAND: RegExp[] = [/web-ifc/i, /rhino3dm/i, /\.wasm$/i]
+/** Kept offline once used, not downloaded up front: the massing importers (IFC and Rhino readers, several MB) and the
+ *  node icon style pack (about 1 MB, for people and their AI agents making icons). */
+export const ON_DEMAND: RegExp[] = [/web-ifc/i, /rhino3dm/i, /\.wasm$/i, /^style-pack\//]
 
 /** Build files that are not part of the app itself. */
 const SKIP: RegExp[] = [/\.map$/i, /^sw\.js$/, /^404\.html$/, /^\.nojekyll$/, /(^|\/)\.[^/]+$/]

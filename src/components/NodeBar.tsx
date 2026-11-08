@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { NODE_ICONS, communityIcons } from '../data/icons'
 import { Glyph, nodeHue } from './GlassIcon'
 import { hasNodeArt, NodeArt } from './icons/nodeArt'
+import { NodeArtwork } from './nodeIcons/NodeArtwork'
 import { BUILT_NODES, CATEGORIES, type Category, type NodeDef } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStore, type Phase } from '../store'
@@ -110,6 +111,8 @@ export default function NodeBar() {
         {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
         <span className={`relative flex h-10 w-10 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
           {!isCommunity && hasNodeArt(n.id) ? <NodeArt id={n.id} size={40} muted={!on} />
+            // A node you made or imported: its own icon (Icons tab), else the standard illustration in its category's colour.
+            : isCommunity ? <NodeArtwork id={n.id} size={40} category={n.category} muted={!on} />
             : Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-meta font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>

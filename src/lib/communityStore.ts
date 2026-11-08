@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { useMemo } from 'react'
 import { toNodeDef, type NodePackage } from './nodePackages'
 
-export type BuilderTab = 'build' | 'make' | 'import'
+export type BuilderTab = 'build' | 'make' | 'import' | 'icon'
 
 interface CommunityState {
   packages: NodePackage[]
@@ -22,6 +22,9 @@ interface CommunityState {
   setParam: (nodeId: string, paramId: string, value: number | null) => void
   openDialog: (tab: BuilderTab, seed?: string) => void
   closeDialog: () => void
+  /** The Icons tab's node (null: the first of My nodes). */
+  iconFor: string | null
+  editIcon: (nodeId: string) => void
 }
 
 /** localStorage can be missing or throw (private windows, blocked site data): fall back to memory. */
@@ -70,6 +73,8 @@ export const useCommunityStore = create<CommunityState>()(persist((set) => ({
   setDraft: (draft) => set({ draft }),
   openDialog: (dialog, seed = '') => set({ dialog, seed }),
   closeDialog: () => set({ dialog: null }),
+  iconFor: null,
+  editIcon: (iconFor) => set({ dialog: 'icon', iconFor }),
 }), {
   name: 'tower-studio.my-nodes',
   version: 1,

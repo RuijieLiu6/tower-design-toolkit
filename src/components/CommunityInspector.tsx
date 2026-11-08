@@ -14,6 +14,9 @@ import CodeNodeGate from './CodeNodeGate'
 import { U } from './Units'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
+import { NodeTile } from './NodeTile'
+import { NodeArtwork } from './nodeIcons/NodeArtwork'
+import { packageIconOf, useNodeIcons } from '../lib/nodeIcons/store'
 
 /** State chip, or "Info" for a value the node shows on purpose with no good or bad. */
 export function ResultChip({ r }: { r: CommunityResult }) {
@@ -74,8 +77,12 @@ export default function CommunityInspector({ id }: { id: string }) {
   const results = run?.results ?? []
   const towerNames = [...new Set(results.filter((r) => r.per === 'tower').map((r) => r.towerName!))]
   const projectResults = results.filter((r) => r.per === 'project')
+  const editIcon = useCommunityStore((s) => s.editIcon)
+  const icon = useNodeIcons((s) => s.icons[p.id])
+  // The shared file carries the icon too (a brief, or the fitted 256 px image), so whoever imports it sees the same node.
   const download = () => {
-    saveFile(`${p.id.split('.').pop()}.json`, JSON.stringify(p, null, 2) + '\n')
+    const out = icon ? { ...p, icon: packageIconOf(icon) } : p
+    saveFile(`${p.id.split('.').pop()}.json`, JSON.stringify(out, null, 2) + '\n')
   }
 
   return (
@@ -84,7 +91,14 @@ export default function CommunityInspector({ id }: { id: string }) {
         <div className="flex items-center gap-2 text-meta text-muted">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: cat.color }} />{cat.label} · {STAGE_LABEL[p.stage]} · community
         </div>
-        <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{p.name}<Help label={`About ${p.name}`}>{p.question}</Help></h2>
+        <div className="mt-1.5 flex items-center gap-2.5">
+          {/* The icon is artwork only; changing it never changes what the node does (Icons tab of the node builder). */}
+          <button type="button" onClick={() => editIcon(p.id)} title={icon ? 'Change the icon' : 'Give it an icon'} aria-label={`${icon ? 'Change the icon of' : 'Give an icon to'} ${p.name}`}
+            className="node-hit shrink-0 rounded-xl outline-none" data-testid="inspector-icon">
+            <NodeTile id={p.id} size={44} art={<NodeArtwork id={p.id} size={40} category={p.category} />} />
+          </button>
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">{p.name}<Help label={`About ${p.name}`}>{p.question}</Help></h2>
+        </div>
         {!!p.jury?.length && <div className="mt-1.5 flex flex-wrap gap-1">{p.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>}
         <div className="mt-2 flex items-start gap-1.5 rounded bg-black/[0.03] px-2 py-1.5 text-meta text-slate-700">
           <ShieldQuestionMark size={14} className="mt-px shrink-0 text-muted" />

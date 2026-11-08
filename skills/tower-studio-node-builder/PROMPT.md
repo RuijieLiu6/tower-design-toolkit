@@ -34,6 +34,7 @@ A node (format v1) reads values from a fixed summary of the design (Layer 0), co
 9. **Limits:** "When would it mislead?"
 10. **False assumptions:** "Is there something people often get wrong about this?"
 11. **Credits:** name (contact optional), a short handle for the id, licence (MIT unless they prefer CC-BY-4.0).
+12. **Icon (optional):** "What should the node's icon show?" One architectural object, at most one cue, from what the node actually does (see "The node's icon" below).
 
 ## Step 2: Evidence flags (check every threshold and parameter, then read the list back for confirmation)
 
@@ -89,6 +90,7 @@ One JSON object with exactly these fields (names are case-sensitive; no others a
 - `falseAssumptions` (optional): `{ "claim", "correction", "source" }`
 - `tests` (please add): `{ "fixture", "tower"?, "metric", "value"?, "state"?, "tolerance"? }`; `value` may be `null` (not available); `state` is `pass`, `warn` (Check), `fail` or `unknown`
 - `createdWith` (optional): e.g. `"ChatGPT with the Tower Design Toolkit node builder prompt v1"`
+- `icon` (optional): `{ "kind": "brief", "brief": { … } }` (preferred) or `{ "kind": "image", "dataUrl": "data:image/png;base64,…", "source": "agent", "styleVersion": "1" }`; see "The node's icon" below
 
 Example (shortened):
 
@@ -216,6 +218,15 @@ Compute each metric on at least two of these designs, show your working, and add
 1. Give the package as a file named `<node-name>.json` if you can; otherwise as one JSON code block, and tell the designer to save it with a `.json` ending.
 2. Import: in Tower Design Toolkit's node library (left panel), scroll to **My nodes** → **Import node** (or **Build your own node** → **Import a node**). Choose, drop or paste the file → **Check package**. Fix anything under "Problems to fix" (the **Copy problems for your AI** button gives you text to paste back here) → **Add to My nodes**. Results appear in **Results & evidence**, marked *Community · Unverified until reviewed*.
 3. It lives in their browser only; to share, they send the `.json` file. A shared registry (pull request on GitHub, automatic checks, a reviewer who opens every verified source, a comment thread per node) is **coming but not open yet**.
+
+## The node's icon (optional)
+
+Design nodes wear small illustrated icons from one family. The rules are the **node icon style pack v1**: https://ruijieliu6.github.io/tower-design-toolkit/style-pack/node-icons/v1/ (`NODE_ICON_STYLE.md`, `icon-tokens.json`, `icon-brief.schema.json`, reference images, an example package; all in `node-icon-style-pack-v1.zip`).
+
+- **Prefer a brief.** `"icon": { "kind": "brief", "brief": { "styleVersion": "1", "name": "<node name>", "function": "<what the node actually does, ≤ 300 characters>", "category": "<the package's category>", "metaphor": { "object": "<one word>", "cue": "<one word>" } } }`. Object: tower, podium, floor, core, stairs, facade, park, street, water, train, car, document, chart, coins, sun, wind, mountain, people, solar, sound, heat. Cue (optional): none, check, sun, drop, wind, bolt, pin, clock, warning, leaf, person, sound, eye, plus. Optional `phase` (site, form, program, schematic, present) picks the accent colour; optional `notes` says what the icon must not imply. Tower Design Toolkit draws it in the family's style.
+- **The icon shows what the node does, nothing more:** `check` or `warning` only for a node that really checks a rule, `bolt` only if it computes energy; no text.
+- **An image only if the designer asks** and you can make a transparent PNG or WebP. Read the pack's rules, tokens and references first: isometric 30° view, the same pale ground plate spanning 85% of the width with its near corner 8% above the bottom, light from the upper left (top lightest, left face middle, right face darkest), neutral grey massing, the task in the phase colour, flat fills, no outlines, no background. Attach it as `"dataUrl"` (PNG, JPEG or WebP, up to 5 MB; a 256 × 256 copy under 60 KB is best), with `"source": "agent"` and `"styleVersion": "1"`. No SVG yet.
+- Tower Design Toolkit checks every image itself (type, size, framing, clipping, legibility, palette) and previews it before it is used. Never tell the designer an icon passes: say it will be checked.
 
 ## When a node can't do it
 
