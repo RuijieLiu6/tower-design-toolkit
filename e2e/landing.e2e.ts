@@ -35,7 +35,7 @@ test('the landing page: say who you are, get starting workflows, start one', asy
   await expect(page.getByTestId('composer-summary')).toContainText('(edited)')
   await page.getByTestId('composer-start').click()
   await expect(page).toHaveURL(/#\/guided/, { timeout: 30_000 })
-  await expect(page.getByRole('heading', { name: 'Design tools' })).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByTestId('phase-panel')).toBeVisible({ timeout: 60_000 })
   // The top bar's role follows the choice.
   await expect(page.getByRole('combobox', { name: 'Role' })).toHaveValue('designer')
   // Step to step: the rail counts the workflow's checks per step, and Next goes on.

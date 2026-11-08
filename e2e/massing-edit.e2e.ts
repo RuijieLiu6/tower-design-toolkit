@@ -108,7 +108,7 @@ test('Massing: edit the blocks on the model, one undo step per drag', async ({ p
 
   // Mass (F): the top block moves on its floor.
   await p.keyboard.press('f')
-  await expect(p.getByRole('radio', { name: /Mass/ })).toHaveAttribute('aria-checked', 'true')
+  await expect(p.getByRole('radio', { name: /^Mass: / })).toHaveAttribute('aria-checked', 'true')
   const mid = await faceAt(p, top, 'top')
   await drag(p, mid, 60, 20)
   await expect.poll(async () => { const b = (await state(p)).blocks[top]; return Math.hypot(b.dx - s2.blocks[top].dx, b.dy - s2.blocks[top].dy) }).toBeGreaterThan(0.4)

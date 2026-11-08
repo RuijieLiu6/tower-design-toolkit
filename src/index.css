@@ -236,7 +236,7 @@ body {
 .gicon-glyph { position: relative; display: flex; }
 .gicon[data-level="soft"] { background: #fff; }
 .gicon[data-level="soft"] .gicon-glow { opacity: 0.12; }
-.gicon[data-level="off"] { color: hsl(var(--gh) 18% 58%);
+.gicon[data-level="off"] { color: hsl(var(--gh) 14% 38%); /* 4.5:1+ on the subtle tile (WCAG AA) */
   background: var(--color-subtle);
   box-shadow: 0 1px 2px rgb(32 38 48 / 0.08); }
 .group:hover .gicon, .gicon-lift:hover .gicon { transform: translateY(-2px); }

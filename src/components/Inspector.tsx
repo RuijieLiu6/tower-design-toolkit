@@ -1,4 +1,7 @@
 import { CircleX, Eye, ExternalLink, PowerOff } from './icons'
+import { useStep } from '../lib/step'
+import { addNode, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
+import { designForStep } from '../lib/workflow/designNodes'
 import { CATEGORIES, JURY_LABEL, nodeById } from '../data/registry'
 import { sunPosition, vancouverTime } from '../engine/sun'
 import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from '../engine/egress'
@@ -336,6 +339,7 @@ export default function Inspector() {
         </div>
         {/* The results lead (UI review, 3 Nov); what the check does sits behind a "?" beside its name (Ruijie, 5 Nov). */}
         <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{n.name}<Help label={`About ${n.name}`}>{n.question}</Help></h2>
+        <AddToWorkflow id={n.id} name={n.name} />
         <div className="mt-1.5 flex flex-wrap gap-1">{n.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>
         {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 flex items-start gap-1.5 rounded bg-pending-surface px-2 py-1 text-meta text-pending"><PowerOff size={12} className="mt-0.5 shrink-0" aria-hidden /><span><b>Off</b>: switched off in your workflow, so it does not run. Turn it on in the bar at the bottom to see live results.</span></div>}
         {wrongProject && <div className="mt-2 rounded bg-pending-surface px-2 py-1 text-meta text-pending">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
@@ -528,4 +532,17 @@ export default function Inspector() {
       )}
     </div>
   )
+}
+
+/** A check you are looking at that isn't in your workflow: add it after the current step (Ruijie, 7 Nov). */
+function AddToWorkflow({ id, name }: { id: string; name: string }) {
+  const inWorkflow = useProjectWorkflow((s) => s.wf.nodes.includes(id))
+  const step = useStep((s) => s.step)
+  if (inWorkflow) return null
+  const add = () => {
+    const w = useProjectWorkflow.getState()
+    const after = designForStep(step)?.id
+    w.commit(addNode(w.wf, id, after && w.wf.nodes.includes(after) ? after : null), `${name} added to the workflow`)
+  }
+  return <button type="button" onClick={add} data-testid="add-to-workflow" className="mt-1.5 flex items-center gap-1 rounded-lg bg-panel px-2.5 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">+ Add to workflow</button>
 }

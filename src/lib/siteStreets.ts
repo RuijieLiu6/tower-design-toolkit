@@ -2,6 +2,7 @@
 // City street centrelines (public/data/city_streets.json, the layer the 3D view draws) and the parcel layer once, finds
 // the streets along the site (engine/siteStreets.ts) once per site outline, and keeps the answer in a small store that
 // useResults reads. The user's per-street settings live in the study site itself (saved and undone with the design).
+import { dataFetch } from './loadProgress'
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { validateRing, type Pt, type StudySite } from '../engine/site'
@@ -15,7 +16,7 @@ export const STREETS_SOURCE = 'City of Vancouver street and lane centrelines (OG
 let linesP: Promise<StreetLineLike[]> | null = null
 export function loadStreetLines(): Promise<StreetLineLike[]> {
   linesP ??= (async () => {
-    const r = await fetch('./data/city_streets.json')
+    const r = await dataFetch('city_streets.json', 'street names and widths')
     if (!r.ok) throw new Error(`city_streets.json: HTTP ${r.status}`)
     const d = await r.json() as { version: number; origin: number[]; lines: StreetLineLike[] }
     if (d.version !== 1 || d.origin?.[0] !== 491300 || d.origin?.[1] !== 5458600) throw new Error('city_streets.json: unsupported frame')

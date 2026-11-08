@@ -1,6 +1,7 @@
 // Real Vancouver context layers v1 (Context Model spec, layer table): street trees, parcels with land value, zoning,
 // heritage and traffic count locations. Each loads only when switched on (not part of the first load), cites its
 // source from layers.json, ghosts in x-ray, and reads out under the cursor. Packed by tools/build_city_layers.py.
+import { dataFetch } from '../lib/loadProgress'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -35,7 +36,7 @@ type LayerData = TreesData | ParcelsData | ZoningData | HeritageData | TrafficDa
 const cache: Partial<Record<ContextLayerId, Promise<LayerData>>> = {}
 
 async function get(file: string, kind: 'bin' | 'json') {
-  const r = await fetch(`./data/${file}`)
+  const r = await dataFetch(file)
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`)
   return kind === 'bin' ? r.arrayBuffer() : r.json()
 }

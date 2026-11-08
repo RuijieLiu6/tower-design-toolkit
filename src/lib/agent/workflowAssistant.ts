@@ -15,6 +15,7 @@ import { PHASES, phaseOfNode, type PhaseId } from '../phases'
 import { USER_TYPES, type Preset } from '../userTypes'
 import { addLoop, byPhase, dropLoops, insertAfter, insertByPhase, isLoopIn, linear, phaseIndex, takeOff, walk, type Board, type Edge } from '../workflowGraph'
 import type { Index } from './match'
+import { designNode, withDesignSteps } from '../workflow/designNodes'
 import type { Embedder } from './model2vec'
 
 export type Model = { e: Embedder; index: Index } | null
@@ -37,7 +38,7 @@ export interface Clarification { kind: 'clarify'; question: string; options: { l
 export type Reply = Proposal | Explanation | Clarification
 
 const NODE = new Map(BUILT_NODES.map((n) => [n.id, n]))
-export const nodeName = (id: string) => NODE.get(id)?.name ?? id
+export const nodeName = (id: string) => NODE.get(id)?.name ?? designNode(id)?.name ?? id
 const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`)
 
 // ---------- the words people use ----------
@@ -184,7 +185,7 @@ export function bestPreset(text: string, named: string[], guessed: string[], mod
 // ---------- helpers on the board ----------
 const diff = (from: Board, to: Board) => ({ added: to.nodes.filter((x) => !from.nodes.includes(x)), removed: from.nodes.filter((x) => !to.nodes.includes(x)) })
 const loopsOf = (b: Board) => b.edges.filter((e) => isLoopIn(b.edges, e))
-const phaseName = (id: string) => phaseOfNode(id)?.name ?? 'Site'
+const phaseName = (id: string) => phaseOfNode(id)?.name ?? PHASES.find((p) => p.id === designNode(id)?.phase)?.name ?? 'Site'
 
 function proposal(capability: Proposal['capability'], from: Board, to: Board, summary: string, via: Proposal['via'], preset: Preset | null = null): Proposal {
   const { added, removed } = diff(from, to)
@@ -324,7 +325,7 @@ export function interpret(text: string, board: Board, model: Model = null, focus
   const picks = [...new Set([...named, ...topicPicks, ...nearest])]
   const preset = bestPreset(t, [...named, ...topicPicks], nearest, model)
   if (!picks.length && !preset) return { kind: 'clarify', question: 'What should the workflow look at first?', options: FOCUS.map((f) => ({ label: f.label, text: `${t.replace(/[.\s]+$/, '')}; ${f.add}` })) }
-  const nodes = byPhase([...new Set([...(preset?.preset.nodes ?? []), ...picks])]).slice(0, 12)
+  const nodes = byPhase(withDesignSteps(byPhase([...new Set([...(preset?.preset.nodes ?? []), ...picks])]).slice(0, 12), (id) => phaseOfNode(id)?.id))
   let to: Board = { nodes, edges: linear(nodes) }
   if (LOOP.test(low) && nodes.length > 1) to = addLoop(to, nodes[nodes.length - 1], nodes[0])
   const extra = picks.filter((id) => !(preset?.preset.nodes ?? []).includes(id))

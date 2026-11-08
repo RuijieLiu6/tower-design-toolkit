@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openResultDetails, placeStartingTower } from './helpers'
+import { openResultDetails, placeStartingTower, showCheck } from './helpers'
 
 const OUT = process.env.EVAL_OUT ?? join(process.cwd(), 'test-results', 'eval')
 const SHOTS = join(OUT, 'shots')
@@ -49,14 +49,7 @@ async function dismiss(p: Page) {
  * in the results panel's "Show results for" list (clicking its icon would switch it off).
  */
 async function showNode(p: Page, name: string) {
-  const sw = p.getByRole('switch', { name: `Use ${name}`, exact: true })
-  await sw.waitFor({ timeout: 20_000 })
-  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
-  else {
-    await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
-    await p.getByLabel('Show results for').selectOption({ label: name })
-  }
-  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await showCheck(p, name)
 }
 
 /** Switches a node on in the bottom bar if needed and shows its results tab. */

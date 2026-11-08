@@ -4,7 +4,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openDesignTool, placeStartingTower } from './helpers'
+import { openDesignTool, placeStartingTower, showCheck } from './helpers'
 
 const SHOTS = join(process.cwd(), 'test-results', 'heights')
 mkdirSync(SHOTS, { recursive: true })
@@ -37,8 +37,8 @@ test('height suggestion, results and the map layer in Real Vancouver', async ({ 
   // 2. The node's results ("Show results for" in the right panel).
   await page.getByRole('tab', { name: /Results/ }).click().catch(() => {})
   await page.locator('#results-for').selectOption('built.heights')
-  const sw = page.getByRole('switch', { name: 'Use Height references & suggestion' })
-  if (await sw.count() && (await sw.first().getAttribute('aria-checked')) === 'false') await sw.first().click()
+  await showCheck(page, 'Height references & suggestion')
+  await page.locator('#results-for').selectOption('built.heights')
   await expect(section(page, 'Zoning height reference')).toBeVisible({ timeout: 60_000 })
   await expect(section(page, 'View cones over the tower')).toBeVisible()
   await page.screenshot({ path: join(SHOTS, '02-results.png') })

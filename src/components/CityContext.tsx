@@ -1,5 +1,6 @@
 // Real Vancouver context: City footprints (LiDAR heights where processed, "height unknown" outlines elsewhere) and the
 // MRDEM terrain rings out to the North Shore mountains. Data: public/data/ (layers.json), built by tools/build_city_*.py.
+import { dataFetch, noteManifest, trackedFetch } from '../lib/loadProgress'
 import { Line } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -56,7 +57,7 @@ interface CityData extends BuildingModel {
 }
 
 const read = async (file: string) => {
-  const r = await fetch(`./data/${file}`)
+  const r = await dataFetch(file)
   if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`)
   return r.arrayBuffer()
 }
@@ -65,9 +66,10 @@ const cache: Partial<Record<CityModel, Promise<CityData>>> = {}
 /** The first stage: terrain (and, for the City model, its footprints with LiDAR heights). Once per session and model. */
 function loadCity(model: CityModel): Promise<CityData> {
   const p = cache[model] ??= (async () => {
-    const r = await fetch('./data/layers.json')
+    const r = await trackedFetch('./data/layers.json', 'the list of layers')
     if (!r.ok) throw new Error(`layers.json: HTTP ${r.status}`)
     const manifest = (await r.json()) as Manifest
+    noteManifest(manifest.layers)
     const layer = (id: string) => manifest.layers.find((l) => l.id === id)
     const fp = model === 'city' ? layer('footprints') : undefined, h = model === 'city' ? layer('footprint_heights') : undefined
     const t1 = layer('terrain_r1'), t2 = layer('terrain_r2')
@@ -323,7 +325,7 @@ function useFinish(manifest: Manifest): Finish {
     const get = async (id: string) => {
       const e = manifest.layers.find((l) => l.id === id)
       if (!e) return null
-      const r = await fetch(`./data/${e.file}`)
+      const r = await dataFetch(e.file)
       return r.ok ? r.json() : null
     }
     // The City's parks and OpenStreetMap's green space (5 Nov: regional parks such as Pacific Spirit, golf courses and
@@ -373,7 +375,7 @@ function loadWater(manifest: Manifest): Promise<number[][][] | null> {
   waterCache ??= (async () => {
     const layer = manifest.layers.find((l) => l.id === 'water')
     if (!layer) return null
-    const r = await fetch(`./data/${layer.file}`)
+    const r = await dataFetch(layer.file)
     if (!r.ok) throw new Error(`${layer.file}: HTTP ${r.status}`)
     const j = (await r.json()) as { version: number; origin: number[]; polygons: number[][][] }
     if (j.version !== 1 || j.origin[0] !== 491300 || j.origin[1] !== 5458600) throw new Error('water: unsupported frame')

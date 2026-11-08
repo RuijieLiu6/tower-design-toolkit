@@ -39,6 +39,8 @@ import { PHASE_HUE, PHASES, phaseOfNode, type PhaseId } from '../../lib/phases'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
 import { startPreset } from '../../lib/startPreset'
 import { enterToolkit } from '../../lib/intro'
+import { dotRoute } from '../../lib/coverRun'
+import { DESIGN_NODES, designNode, withDesignSteps } from '../../lib/workflow/designNodes'
 import Help from '../Help'
 import { USER_TYPES, presetById, type Preset, type UserTypeId } from '../../lib/userTypes'
 import { restoreCoverWorkflow, saveCoverWorkflow } from '../../lib/coverWorkflow'
@@ -62,7 +64,13 @@ const QUICK: { id: RoleId; label: string }[] = [
 const roleIcon = (r: RoleId) => (r === 'custom' ? TYPE_ICONS.explore : TYPE_ICONS[r])
 const presetOf = (r: RoleId): Preset | null => (r === 'custom' ? null : USER_TYPES.find((t) => t.id === r)?.presets[0] ?? null)
 // Each node wears its phase's colour, so it is plain which lane of the string it belongs in.
-const NODES = BUILT_NODES.map((n) => { const phase: PhaseId = phaseOfNode(n.id)?.id ?? 'site'; return { id: n.id, name: n.name, icon: NODE_ICONS[n.id], phase, hue: PHASE_HUE[phase], projects: n.projects ?? (['vtc', 'city'] as ('vtc' | 'city')[]) } })
+// Every node the board can hold: the checks, and the design steps (lib/workflow/designNodes.ts) that lead each phase.
+const NODES = [
+  ...BUILT_NODES.map((n) => { const phase: PhaseId = phaseOfNode(n.id)?.id ?? 'site'; return { id: n.id, name: n.name, icon: NODE_ICONS[n.id], phase, hue: PHASE_HUE[phase], projects: n.projects ?? (['vtc', 'city'] as ('vtc' | 'city')[]) } }),
+  ...DESIGN_NODES.map((d) => ({ id: d.id, name: d.name, icon: STEP_ICONS[d.step], phase: d.phase, hue: PHASE_HUE[d.phase], projects: ['vtc', 'city'] as ('vtc' | 'city')[] })),
+]
+/** A preset's checks as a design process: the design step of each phase they use goes in front of that phase. */
+const designed = (ids: string[]) => withDesignSteps(ids, (id) => phaseOfNode(id)?.id)
 const idx = (id: string) => NODES.findIndex((n) => n.id === id)
 const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => b[i] === x)
 const key = edgeKey
@@ -77,8 +85,9 @@ interface Rope { pts: Pt[]; slack: number }
 /** Tiles in a lane's shelf are this much of their size on the board. */
 const SHELF_S = 0.62
 const SEG = 14 // points per rope
-/** The travelling dots: a wave every 10 s; each wire takes 0.9 s and starts 0.3 s after the one before it. */
-const WAVE_EVERY = 10_000, WAVE_STEP = 300, WAVE_WIRE = 900
+/** The travelling dots: a wave every 10 s (longer when the route is longer); each step of the route takes 0.9 s and
+ *  starts 0.3 s after the one before it. The route goes round each loop twice before moving on (lib/coverRun.ts). */
+const WAVE_EVERY = 10_000, WAVE_STEP = 300, WAVE_WIRE = 900, WAVE_REST = 2_000
 /** The loop colour (one for the wire back and the forward wires it closes): orange, the complement of the run's blue (206° + 180°; Ruijie, 7 Nov). */
 // Wires by meaning (design system §4, §7, 7 Nov): every connection, return connections included, is the neutral edge
 // colour by default; a return connection is told apart by its dashed line, its return mark and its arrow, not by colour.
@@ -99,7 +108,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // local loops, name, and selected starting preset. A fresh default workflow should appear only when the user explicitly
   // starts a new workflow" (lib/coverWorkflow.ts; the default only on a first visit, or New / a role / a preset).
   const [init] = useState(() => restoreCoverWorkflow((id) => idx(id) >= 0))
-  const startIds = byPhase(presetOf('designer')?.nodes ?? [])
+  const startIds = byPhase(designed(presetOf('designer')?.nodes ?? []))
   const [role, setRole] = useState<RoleId>(init?.role ?? 'designer')
   const [presetId, setPresetId] = useState<string | null>(init ? init.presetId : presetOf('designer')?.id ?? null)
   const [customName, setCustomName] = useState<string | null>(init?.customName ?? null)
@@ -133,7 +142,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const span = () => { const { W } = dims.current, sx = Math.max(48, W * 0.05), ex = W - Math.max(56, W * 0.055); return { sx, ex, x0: sx + 44, x1: ex - 44 } }
   const shelfGeom = () => {
     const { x0, x1 } = span(), w = (x1 - x0) / PHASES.length, cell = Math.round(size * SHELF_S) + 8, cap = Math.max(1, Math.floor((w - 16) / cell))
-    const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(ph.nodes.filter((id) => idx(id) >= 0).length / cap)))
+    const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(NODES.filter((n) => n.phase === ph.id).length / cap)))
     return { cell, cap, h: rows * cell + 10 }
   }
   /** Where nodes on the board sit: below the lane headers, above the shelves. */
@@ -250,7 +259,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   /** Put a role's starting workflow on the string (the nodes not in it fall back into the room). */
   const applyBoard = (r: RoleId, p: Preset | null) => {
     setRole(r); setPresetId(p?.id ?? null); setCustomName(null)
-    const ids = p ? byPhase(p.nodes) : []
+    const ids = p ? byPhase(designed(p.nodes)) : []
     release(onRef.current.filter((id) => !ids.includes(id)))
     layout(ids)
     commit(ids, linear(ids))
@@ -391,7 +400,20 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // ---- the ropes (verlet), keyed by link, and the frame loop that moves everything
   const ropes = useRef(new Map<string, Rope>())
   const ropeLine = useRef(new Map<string, SVGPathElement | null>())
-  const pulses = useRef(new Map<string, SVGCircleElement | null>())
+  // Enter's hint (Ruijie, 7 Nov: "give the visual hint by popping the Enter button … so that users know where to click
+  // once they set up the nodes"): the tile pops and a ring ripples out once, never while the visitor is mid-drag.
+  const enterTile = useRef<HTMLSpanElement>(null)
+  const enterRing = useRef<HTMLSpanElement>(null)
+  const popEnter = () => {
+    if (still || !chainRef.current.length || bodies.current.some((b) => b.held)) return
+    enterTile.current?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.16)' }, { transform: 'scale(0.97)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 640, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' })
+    enterRing.current?.animate([{ opacity: 0.7, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45)' }], { duration: 760, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' })
+  }
+  const popEnterRef = useRef(popEnter); popEnterRef.current = popEnter
+  const lastRunPop = useRef(-1)
+  // One dot per step of the route (a wire inside a loop is travelled more than once), and each wire's current points.
+  const routeDots = useRef<(SVGCircleElement | null)[]>([])
+  const wirePts = useRef(new Map<string, { x: number; y: number }[]>())
   // A loop's ring (Ruijie, 7 Nov: "make the loop strings a different colour from the main string, once they loop the entire
   // loop turn into 1 colour"): the wire back plus every forward wire between its two ends, all in the loop colour.
   const links = useMemo(() => {
@@ -399,6 +421,16 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     for (const e of edges) if (returns.has(key(e))) loopRing(edges, e, returns).forEach((k) => ring.add(k))
     return edges.map((e) => ({ key: key(e), a: e.a, b: e.b, loop: returns.has(key(e)), ring: ring.has(key(e)) }))
   }, [edges, returns])
+  // Enter pops once the workflow has settled after an edit (not when the page first opens).
+  const editsSeen = useRef(false)
+  useEffect(() => {
+    if (!editsSeen.current) { editsSeen.current = true; return }
+    const id = setTimeout(() => popEnterRef.current(), 900)
+    return () => clearTimeout(id)
+  }, [edges])
+  // The dots' route: the workflow in order, twice round each loop before the next step (Ruijie, 7 Nov).
+  const route = useMemo(() => dotRoute(edges, returns), [edges, returns])
+  const routeRef = useRef(route); routeRef.current = route
   // Each wire's arrow (its direction), the passive return mark on a return, and an invisible point a keyboard can focus
   // to select the wire; positioned every frame along the rope.
   const arrows = useRef(new Map<string, SVGPathElement | null>())
@@ -517,21 +549,26 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         const R = p[Math.round(SEG * 0.32)]
         retMarks.current.get(l.key)?.setAttribute('transform', `translate(${R.x.toFixed(1)} ${R.y.toFixed(1)})`)
         if (tipKeyRef.current === l.key && tipEl.current) tipEl.current.style.transform = `translate3d(${M.x.toFixed(1)}px, ${(M.y - 14).toFixed(1)}px, 0) translate(-50%, -100%)`
-        // the dot travelling along it, the way the wire runs (its direction; a return's runs back). Every 10 s one wave
-        // runs the workflow from Start to Enter at a normal pace, each wire just after the one before it; then the dots
-        // rest until the next wave (Ruijie, 7 Nov: "make the node travel simulation normal speed and make it travel every
-        // other 10 seconds").
-        const c = pulses.current.get(l.key)
-        if (c && !still) {
-          const order = l.a === 'start' ? 0 : chainRef.current.indexOf(l.a) + 1
-          const f = ((t % WAVE_EVERY) - order * WAVE_STEP) / WAVE_WIRE
-          if (f >= 0 && f <= 1) {
-            const at = f * SEG, k = Math.min(SEG - 1, Math.floor(at)), u = at - k
-            c.setAttribute('cx', (p[k].x + (p[k + 1].x - p[k].x) * u).toFixed(1)); c.setAttribute('cy', (p[k].y + (p[k + 1].y - p[k].y) * u).toFixed(1))
-            c.setAttribute('opacity', Math.min(1, f * 8, (1 - f) * 8).toFixed(2)) // fades in and out at the wire's ends
-          } else c.setAttribute('opacity', '0')
-        }
+        wirePts.current.set(l.key, p)
       }
+      // The travelling dots, the way each wire runs (a return's runs back): every 10 s one run goes from Start to Enter at a
+      // normal pace, each step just after the one before it, twice round each loop before moving on; then the dots rest
+      // until the next run (Ruijie, 7 Nov).
+      if (!still) {
+        const R = routeRef.current, cycle = Math.max(WAVE_EVERY, (R.length - 1) * WAVE_STEP + WAVE_WIRE + WAVE_REST), tt = t % cycle
+        const runEnd = (R.length - 1) * WAVE_STEP + WAVE_WIRE, n = Math.floor(t / cycle)
+        if (R.length && tt >= runEnd && lastRunPop.current !== n) { lastRunPop.current = n; popEnterRef.current() }
+        R.forEach((k, i) => {
+          const c = routeDots.current[i], q = wirePts.current.get(k)
+          if (!c) return
+          const f = (tt - i * WAVE_STEP) / WAVE_WIRE
+          if (!q || f < 0 || f > 1) { c.setAttribute('opacity', '0'); return }
+          const at = f * SEG, j = Math.min(SEG - 1, Math.floor(at)), u = at - j
+          c.setAttribute('cx', (q[j].x + (q[j + 1].x - q[j].x) * u).toFixed(1)); c.setAttribute('cy', (q[j].y + (q[j + 1].y - q[j].y) * u).toFixed(1))
+          c.setAttribute('opacity', Math.min(1, f * 8, (1 - f) * 8).toFixed(2)) // fades in and out at the wire's ends
+        })
+      }
+      for (const k of [...wirePts.current.keys()]) if (!seen.has(k)) wirePts.current.delete(k)
       for (const key of [...ropes.current.keys()]) if (!seen.has(key)) ropes.current.delete(key)
     }
 
@@ -796,7 +833,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const nodes = [...chain]
     const vtc = nodes.filter((id) => NODES[idx(id)].projects.includes('vtc')).length, city = nodes.filter((id) => NODES[idx(id)].projects.includes('city')).length
     const project = preset && !edited ? preset.project : vtc >= city ? 'vtc' : 'city'
-    const step = (phaseOfNode(nodes[0]) ?? PHASES[0]).step
+    const step = designNode(nodes[0])?.step ?? (phaseOfNode(nodes[0]) ?? PHASES[0]).step
     const run = () => { enterToolkit(); void startPreset({ id: preset && !edited ? preset.id : null, type: role === 'custom' ? null : role, name: loop ? `${name} · with a loop` : name, goal: preset?.goal, project, step, nodes }) }
     if (still) { run(); return }
     const q = from.getBoundingClientRect(), r = box.current!.getBoundingClientRect()
@@ -889,9 +926,10 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
               <path d="M2.6,-1.6 A3,3 0 1 0 2.9,1.3" fill="none" stroke={tipKey === l.key ? EDGE_ACTIVE : EDGE} strokeWidth={1.3} strokeLinecap="round" />
               <path d="M1.2,-3.6 L3.1,-1.4 L0.5,-0.9 Z" fill={tipKey === l.key ? EDGE_ACTIVE : EDGE} />
             </g>}
-            {!still && <circle style={{ pointerEvents: 'none' }} ref={(c) => { pulses.current.set(l.key, c) }} r={3} opacity={0} fill={PULSE} />}
           </g>
         ))}
+        {/* the travelling dots, one per step of the route */}
+        {!still && route.map((k, i) => <circle key={`${i}:${k}`} style={{ pointerEvents: 'none' }} ref={(c) => { routeDots.current[i] = c }} r={3} opacity={0} fill={PULSE} data-route-dot={k} />)}
         {/* the connector being drawn from a node's handle */}
         <path ref={linkPreview} d="" fill="none" stroke={EDGE_ACTIVE} strokeWidth={1.5} strokeDasharray="6 6" strokeLinecap="round" />
       </svg>
@@ -958,7 +996,12 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       <button type="button" disabled={!chain.length && !connecting} onClick={(e) => { if (connecting) { const from = connecting; cancelConnecting(); wire(from, 'enter'); return } enterWith(e.currentTarget) }} data-testid="cover-enter" title="Enter the tool with this workflow"
         aria-label={`Enter the tool with ${name}: ${chain.length} nodes${loop ? ', looped' : ''}`}
         className="group absolute flex flex-col items-center gap-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 data-[link-target]:ring-4 data-[link-target]:ring-accent/60" style={{ left: enter.x - tile / 2, top: enter.y - tile / 2 }}>
-        <GlassIcon icon={ArrowRight} hue={HUES.sky} size={tile} className="gicon-solid group-hover:scale-105" />
+        {/* the "go here next" hint: the tile pops after you set the workflow up and when each run of dots arrives;
+            with reduced motion a steady ring says the same */}
+        <span ref={enterTile} className="relative inline-flex" data-enter-ready={chain.length > 0 ? '' : undefined}>
+          <span ref={enterRing} aria-hidden className={`pointer-events-none absolute -inset-1 rounded-2xl border-2 border-accent ${still && chain.length > 0 ? 'opacity-60' : 'opacity-0'}`} />
+          <GlassIcon icon={ArrowRight} hue={HUES.sky} size={tile} className="gicon-solid group-hover:scale-105" />
+        </span>
         <span className="text-meta font-semibold text-accent">Enter</span>
       </button>
 

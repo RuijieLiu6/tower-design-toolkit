@@ -4,7 +4,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openDesignTool, placeStartingTower } from './helpers'
+import { openDesignTool, placeStartingTower, showCheck } from './helpers'
 
 const SHOTS = join(process.cwd(), 'test-results', 'vista-site')
 mkdirSync(SHOTS, { recursive: true })
@@ -20,10 +20,7 @@ async function openVista(p: Page) {
   // A project opens with no tower (6 Nov): place the study tower first, as a user does (a reload keeps it: autosave).
   await placeStartingTower(p)
   // Switching a node on in the bottom bar selects it; one already on is picked in "Show results for".
-  const sw = p.getByRole('switch', { name: 'Use Vista view studies', exact: true })
-  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
-  else { await p.getByRole('tab', { name: /Results/ }).click().catch(() => {}); await p.getByLabel('Show results for').selectOption({ label: 'Vista view studies' }) }
-  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await showCheck(p, 'Vista view studies')
   await p.waitForTimeout(1500)
 }
 

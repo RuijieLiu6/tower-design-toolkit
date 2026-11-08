@@ -1,6 +1,7 @@
 // Interface layout (3 Nov): design tools on the left, analysis results on the right, the node switches as an icon bar
 // at the bottom. Checks the structure on the demo project and saves one 1440 × 900 screenshot per stage to
 // 04 Tool Plan/overnight/layout-2026-11-03/. Run: node node_modules/playwright/cli.js test e2e/layout.e2e.ts
+import { openLibrary } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -41,29 +42,34 @@ test('Massing, Schematic and Present at 1440 × 900', async ({ page: p }) => {
   await demo(p)
   const tools = p.getByRole('complementary', { name: 'Design tools' })
   const results = p.getByRole('complementary', { name: 'Results and evidence' })
-  const bar = p.getByRole('toolbar', { name: 'Checks: switch each on or off' })
 
-  // Massing: tools left (the Form step's icons, 6 Nov), results right, every Massing check as an icon switch at the bottom.
-  await expect(tools.getByRole('heading', { name: 'Design tools' })).toBeVisible()
+  // Form (8 Nov): the phase panel left (its workflow, then the open tool's controls), results right, the whole workflow
+  // along the bottom; every check's switch is in the Library beside the phase row.
+  await expect(tools).toHaveAttribute('data-testid', 'phase-panel')
   await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="volume"]').click()
+  await expect(tools.getByRole('heading', { name: 'Form', exact: true })).toBeVisible()
   await expect(tools.getByRole('tab', { name: 'Massing', exact: true })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Results & evidence' })).toBeVisible()
   await expect(results.getByRole('tab', { name: 'Design' })).toHaveCount(0)
-  expect(await bar.getByRole('switch').count()).toBeGreaterThanOrEqual(17)
-  await bar.getByRole('switch', { name: 'Use VTC hard rules', exact: true }).hover()
-  await expect(p.getByRole('tooltip')).toContainText('VTC hard rules')
+  await expect(p.getByTestId('workflow-dock')).toBeVisible() // the whole workflow along the bottom
+  const lib = await openLibrary(p)
+  expect(await lib.getByRole('switch').count()).toBeGreaterThanOrEqual(17)
+  await expect(lib.getByRole('switch', { name: 'Use VTC hard rules', exact: true })).toBeVisible()
+  await lib.getByRole('button', { name: 'Close the node library' }).click()
   await p.screenshot({ path: join(OUT, 'massing-1440x900.png') })
 
   // Schematic: Core & floors leads the tools; the bar adds the Schematic checks.
   await stage(p, '2')
   await expect(tools.getByRole('tab', { name: 'Core & floors', exact: true })).toBeVisible()
-  await expect(bar.getByRole('switch', { name: 'Use Core & lift check', exact: true })).toBeVisible()
-  await bar.getByRole('switch', { name: 'Use Core & lift check', exact: true }).hover()
+  const lib2 = await openLibrary(p)
+  await expect(lib2.getByRole('switch', { name: 'Use Core & lift check', exact: true })).toBeVisible()
+  await lib2.getByRole('button', { name: 'Close the node library' }).click()
   await p.screenshot({ path: join(OUT, 'schematic-1440x900.png') })
 
-  // Present: the shot strip stays on the left; the right panel has Present (and Render once it exists) before the results.
+  // Present: the phase panel holds the shots (Frame and capture); the right panel has Present and Render before the results.
   await stage(p, '3')
-  await expect(p.getByRole('complementary', { name: 'Captured shots' })).toBeVisible()
+  await expect(tools).toHaveAttribute('data-phase', 'present')
+  await expect(tools.getByTestId('filmstrip')).toBeVisible()
   const present = p.getByRole('complementary', { name: 'Present and results' })
   await expect(present.getByRole('tab', { name: 'Present' })).toHaveAttribute('aria-selected', 'true')
   await expect(present.getByRole('tab', { name: 'Results & evidence' })).toBeVisible()

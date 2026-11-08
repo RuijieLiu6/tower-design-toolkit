@@ -1,7 +1,6 @@
 import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, ListChecks, LockKeyhole, Network, PlayCircle, Scale, Waves, Workflow } from './icons'
 import { showIntro } from '../lib/intro'
 import { openCity } from '../lib/openCity'
-import { STAGES } from '../data/stages'
 import { captureShot } from '../lib/capture'
 import { navigate } from '../lib/route'
 import { useTour } from '../lib/tour'
@@ -23,7 +22,7 @@ const VIEWS: { id: ViewMode; icon: typeof Axis3d; label: string }[] = [
 ]
 
 export default function TopBar() {
-  const { project, phase, view, setProject, setPhase, setView, set, reducedMotion } = useStore(useShallow((s) => ({ project: s.project, phase: s.phase, view: s.view, setProject: s.setProject, setPhase: s.setPhase, setView: s.setView, set: s.set, reducedMotion: s.reducedMotion })))
+  const { project, phase, view, setProject, setView, set, reducedMotion } = useStore(useShallow((s) => ({ project: s.project, phase: s.phase, view: s.view, setProject: s.setProject, setView: s.setView, set: s.set, reducedMotion: s.reducedMotion })))
   const present = phase === 'present'
   // The bar is about 1,580 px wide with every label (1,780 px in Present): below that, labels give way to icons
   // (names kept for screen readers) so no control is pushed off screen on a 1,366–1,600 px laptop.
@@ -43,24 +42,9 @@ export default function TopBar() {
       <ProjectMenu />
       <ExportMenu />
 
-      {/* Stage tabs: icon + label + subtitle, keys 1-3 */}
-      <div role="tablist" aria-label="Design stage" className="mx-auto flex items-stretch gap-1">
-        {STAGES.map((s) => {
-          const Icon = s.icon
-          const on = phase === s.id
-          return (
-            <button key={s.id} role="tab" aria-selected={on} onClick={() => setPhase(s.id)} title={`${s.purpose} (key ${s.key})`}
-              className={`stage-fade flex items-center gap-2 rounded-lg border px-3 py-1 text-left ${on ? (present ? 'border-white/40 bg-white/15 font-semibold' : 'border-transparent bg-ink') : 'border-transparent text-muted hover:bg-subtle hover:text-ink'}`}>
-              <Icon size={18} className={on && !present ? 'text-accent' : ''} />
-              <span className="flex flex-col leading-tight">
-                <span className="text-xs font-semibold">{s.label}</span>
-                <span className="hidden whitespace-nowrap text-meta min-[1800px]:block">{s.subtitle}</span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
+      {/* The phase row under this bar chooses the phase (Site, Form, Program, Schematic, Present: 8 Nov); the stage
+          (Massing, Schematic, Present) follows it, and keys 1–3 still jump to a stage. */}
+      <span className="mx-auto" />
       <div className="flex items-center gap-1" role="group" aria-label="View">
         {present && (
           <>

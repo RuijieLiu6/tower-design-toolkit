@@ -65,7 +65,8 @@ test('with the entrant\'s copy: Program colours the buildings by use with a lege
   const bar = p.getByTestId('vtc-look')
   await radio(p, 'Program').click()
   await expect(radio(p, 'Program')).toHaveAttribute('aria-checked', 'true')
-  for (const label of ['Retail / commercial', 'Office', 'Hotel', 'Residential', 'Heritage', 'Proposed tower']) await expect(bar).toContainText(label)
+  // the legend names the uses around the site (the design system's Program mode, 7 Nov); the proposal wears its own program colours
+  for (const label of ['Retail / commercial', 'Office', 'Hotel', 'Residential', 'Heritage']) await expect(bar).toContainText(label)
   await expect.poll(() => scene(p), { timeout: 60_000 }).toMatchObject({ program: true, plain: false, fill: true })
   const uses = (await scene(p))!.uses
   for (const u of ['retail', 'office', 'hotel', 'residential', 'cultural', 'institutional']) expect(uses).toContain(u)

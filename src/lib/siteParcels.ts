@@ -2,6 +2,7 @@
 // once (public/data/parcels.bin + parcels.json, OGL-Vancouver, 2026-10-27 snapshot), matches it under the site with
 // engine/site.ts, and says which area FSR should use, with its source and flag. Also hands the boundary and the
 // matched parcels to the tower tools (lib/siteGeometry.ts: confirm-before-placing and edge snapping read them).
+import { dataFetch } from './loadProgress'
 import { useEffect, useMemo, useState } from 'react'
 import type { Flag } from '../engine/types'
 import { matchParcels, ringMetrics, validateRing, type ParcelMatch, type Pt } from '../engine/site'
@@ -15,7 +16,7 @@ export interface ParcelLayer { polys: Footprint[]; attrs: ParcelAttrs; sha: stri
 let cache: Promise<ParcelLayer> | null = null
 export function loadParcelLayer(): Promise<ParcelLayer> {
   cache ??= (async () => {
-    const get = async (f: string) => { const r = await fetch(`./data/${f}`); if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`); return r }
+    const get = async (f: string) => { const r = await dataFetch(f, f.startsWith('layers') ? 'the list of layers' : 'lots'); if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`); return r }
     const [b, j, m] = await Promise.all([get('parcels.bin').then((r) => r.arrayBuffer()), get('parcels.json').then((r) => r.json()), get('layers.json').then((r) => r.json()).catch(() => null)])
     const entry = (m as { layers?: { id: string; sha256?: string }[] } | null)?.layers?.find((l) => l.id === 'parcels')
     return { polys: decodeFootprints(b), attrs: j as ParcelAttrs, sha: entry?.sha256 ?? null }

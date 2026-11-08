@@ -8,6 +8,7 @@
 // tower; Viewcone is one toggle, all view cones on or all off (Ruijie, 3 Nov: "a single tab could turn on all and turn
 // off all"), in step with the Layers dock (lib/coneVisibility.ts).
 // VistaLookRig runs inside the canvas (model frame x east, y north, z up); the rest is DOM over the view.
+import { dataFetch } from '../lib/loadProgress'
 import { useFrame, useThree } from '@react-three/fiber'
 import { ChevronDown, ChevronUp, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
@@ -59,7 +60,7 @@ function loadLabels(manifest: Manifest): Promise<PlaceLabel[]> {
   labelsCache ??= (async () => {
     const layer = manifest.layers.find((l) => l.id === 'vista_labels')
     if (!layer) return []
-    const r = await fetch(`./data/${layer.file}`)
+    const r = await dataFetch(layer.file, 'place names')
     if (!r.ok) throw new Error(`${layer.file}: HTTP ${r.status}`)
     const j = (await r.json()) as { version: number; origin: number[]; labels: PlaceLabel[] }
     if (j.version !== 1 || j.origin[0] !== 491300 || j.origin[1] !== 5458600) throw new Error('Vista labels: unsupported frame')
@@ -203,6 +204,8 @@ type CamReq = { position: [number, number, number]; target: [number, number, num
 /** A smooth camera move run by VistaLookRig (ease in-out, about 0.9 s); grabbing the view stops it. */
 const flight = { from: null as CamReq | null, to: null as CamReq | null, start: 0, dur: 900 }
 const toModel = (p: THREE.Vector3): [number, number, number] => [p.x, -p.z, p.y]
+/** A camera request (a preset, "view from", a test) wins over a smooth move still on its way: the move stops. */
+export const cancelFlight = () => { flight.to = null }
 
 /** Moves the orbit camera to `to`: smoothly, or at once under reduced motion. */
 export function flyTo(to: CamReq) {

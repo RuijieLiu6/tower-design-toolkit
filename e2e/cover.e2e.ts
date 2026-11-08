@@ -27,7 +27,7 @@ test('the cover: preview a role, keep one, thread a node, enter with the workflo
   // Enter goes in with that workflow.
   await page.getByTestId('cover-enter').click()
   await expect(page).toHaveURL(/#\/guided/, { timeout: 30_000 })
-  await expect(page.getByRole('heading', { name: 'Design tools' })).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByTestId('phase-panel')).toBeVisible({ timeout: 60_000 })
   await expect(page.getByRole('combobox', { name: 'Role' })).toHaveValue('practitioner')
 })
 
@@ -129,7 +129,7 @@ test('the cover keeps its workflow: back from the app, after a reload; New start
   await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)')
   // Into the app and back by the logo: the same workflow, loop included.
   await page.getByTestId('cover-enter').click()
-  await expect(page.getByRole('heading', { name: 'Design tools' })).toBeVisible({ timeout: 90_000 })
+  await expect(page.getByTestId('phase-panel')).toBeVisible({ timeout: 90_000 })
   await page.getByRole('banner').getByRole('button').first().click()
   await expect(name).toHaveText('Enter the Vancouver Tall Challenge (edited)', { timeout: 30_000 })
   await expect(on).toHaveCount(11)

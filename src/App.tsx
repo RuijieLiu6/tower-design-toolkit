@@ -1,16 +1,15 @@
 import { lazy, Suspense, useEffect } from 'react'
-import Filmstrip from './components/Filmstrip'
 import { togglePanel, usePanels } from './lib/panels'
 import { PanelRail } from './components/PanelToggle'
 import ImportHost from './components/ImportHost'
 import { NodeBuilderHost } from './components/NodeBuilder'
-import NodeBar from './components/NodeBar'
+import PhasePanel from './components/workflow/PhasePanel'
+import WorkflowDock from './components/workflow/WorkflowOverview'
 import Onboarding from './components/Onboarding'
 import ProcessRail from './components/ProcessRail'
 import RightPanel from './components/RightPanel'
 import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
-import ToolPanel from './components/tools/ToolPanel'
 import { stageDef } from './data/stages'
 import { useStore } from './store'
 
@@ -54,13 +53,8 @@ export default function App() {
       <TopBar />
       <ProcessRail />
       <div className="flex min-h-0 flex-1 gap-1.5">
-        {/* Left: the design tools in Massing and Schematic (tools/registry.ts), the shot strip in Present. */}
-        {panels.left
-          ? <aside aria-label={present ? 'Captured shots' : 'Design tools'}
-              className={`glass-edge panel-slide stage-fade flex shrink-0 flex-col overflow-hidden rounded-2xl ${present ? 'w-32 bg-chrome' : 'w-[22rem] bg-panel'}`}>
-              {present ? <Filmstrip /> : <ToolPanel />}
-            </aside>
-          : <PanelRail side="left" label={present ? 'Shots' : 'Design tools'} />}
+        {/* Left: the phase panel (Ruijie, 8 Nov): the phase's own workflow, then the open tool's controls. */}
+        {panels.left ? <PhasePanel /> : <PanelRail side="left" label="Phase tools" />}
         <main className="flex min-w-0 flex-1 gap-1.5">
           {(view === '3d' || view === 'split') && (
             <div className={`overflow-hidden rounded-2xl border border-white/70 shadow-[0_12px_32px_-16px_rgb(28_58_48/0.3)] ${view === 'split' ? 'w-1/2' : 'w-full'}`}>
@@ -76,8 +70,8 @@ export default function App() {
         {/* Right: the analysis results (and Present's own tabs). */}
         {panels.right ? <RightPanel /> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
       </div>
-      {/* Bottom: every evaluation node as an icon switch; the library popover holds search, presets and the roadmap. */}
-      <NodeBar />
+      {/* The whole-project workflow along the bottom (8 Nov): compact, expandable, editable; the phase panels follow it. */}
+      <WorkflowDock />
       <StatusBar />
       <div aria-live="polite" className="sr-only">{announce}</div>
       <Onboarding />

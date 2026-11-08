@@ -12,6 +12,8 @@ export const NODE_WORDS: Record<string, string> = {
   'built.city-in-nature': 'Nature', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
   'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',
   'built.energy-carbon': 'Energy',
+  // design nodes (lib/workflow/designNodes.ts)
+  'design.site': 'Site', 'design.massing': 'Massing', 'design.program': 'Program', 'design.plates': 'Core & plates', 'design.frame': 'Frame',
 }
 /** A node without a word of its own (a community node): the first word of its name. */
 export const nodeWord = (n: { id: string; name: string }) => NODE_WORDS[n.id] ?? n.name.split(/[\s:&,(]+/).filter(Boolean)[0] ?? n.name

@@ -133,9 +133,19 @@ export default function TowerPosition3D() {
 
   // ---- The locked view: the site and the selected tower framed at a fixed scale, zoom and pan off, orbit free.
   const flight = useRef<{ p0: THREE.Vector3; p1: THREE.Vector3; c0: THREE.Vector3; c1: THREE.Vector3; t0: number } | null>(null)
+  // A view chosen since the tool framed the site (a preset, a camera request, Focus site) is not taken away by a passive
+  // re-run (data arriving, the same site again): only opening the tool, locking it, Frame and a new project frame again.
+  const asked = useRef({ live: false, locked, frameReq, project })
+  const chosenView = useRef(false)
+  useEffect(() => useStore.subscribe((st, prev) => { if (st.cameraRequest !== prev.cameraRequest) { chosenView.current = true; flight.current = null } }), [])
   useEffect(() => {
     const c = get().controls as unknown as Controls | null
+    const a = asked.current
+    const deliberate = (live && !a.live) || locked !== a.locked || frameReq !== a.frameReq || project !== a.project
+    asked.current = { live, locked, frameReq, project }
     if (!live || !locked || !c) return
+    if (!deliberate && chosenView.current) return
+    chosenView.current = false
     if (project === 'city') { const v = useVistaLook.getState(); if (v.mode !== 'city' && v.mode !== 'viewcone') useVistaLook.setState({ mode: 'city', inspected: null, note: null }) }
     const s = useStore.getState()
     const t = s.towers[s.project].find((x) => x.id === s.selectedTower) ?? null

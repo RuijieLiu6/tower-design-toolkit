@@ -25,8 +25,8 @@ test('a community node gets a generated icon, then an uploaded one, and SVG is r
   // the agent instructions live in the Build tab
   await expect(dialog.getByTestId('icon-instructions')).toBeVisible()
   await dialog.getByRole('button', { name: 'Show instructions' }).click()
-  await expect(dialog.getByLabel('Icon instructions for an AI agent')).toHaveValue(/style-pack\/node-icons\/v1\/NODE_ICON_STYLE\.md/)
-  await expect(dialog.getByRole('link', { name: /Download style pack/ })).toHaveAttribute('href', /node-icon-style-pack-v1\.zip$/)
+  await expect(dialog.getByLabel('Icon instructions for an AI agent')).toHaveValue(/style-pack\/node-icons\/v\d+\/NODE_ICON_STYLE\.md/)
+  await expect(dialog.getByRole('link', { name: /Download style pack/ })).toHaveAttribute('href', /node-icon-style-pack-v\d+\.zip$/)
 
   // no nodes yet: the Icons tab says how to get one
   await dialog.getByRole('tab', { name: 'Icons' }).click()

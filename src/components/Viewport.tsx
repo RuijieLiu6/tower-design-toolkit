@@ -1,4 +1,5 @@
 import { Line, OrbitControls } from '@react-three/drei'
+import LoadingBar from './LoadingBar'
 import { hoverHandlers, useHoverLabels } from '../lib/hoverLabels'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
@@ -59,7 +60,7 @@ import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
-import { VistaChrome, VistaLookRig } from './VistaLook'
+import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView } from '../lib/northView'
@@ -611,6 +612,7 @@ function CameraRig() {
   useEffect(() => {
     if (!req) return
     lens.tween = null
+    cancelFlight()
     // A target inside the ground (behind a hill) slides back along the line of sight: same eye, same view.
     const aim = sightTarget(req.position, req.target, sceneGround.at)
     const p = toThree(...req.position), t = toThree(...aim)
@@ -697,6 +699,8 @@ export default function Viewport() {
           {phase === 'advanced' && sel && !hidden && !looking && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : project === 'city' ? 'right-3' : 'right-12'} />}
         </div>
       </div>
+      {/* While the Real Vancouver map is still downloading: how much has arrived (Ruijie, 7 Nov). */}
+      {project === 'city' && <LoadingBar />}
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
       {project === 'city' && !present && <CityLegend />}
       {project === 'vtc' && !present && <VtcDock />}

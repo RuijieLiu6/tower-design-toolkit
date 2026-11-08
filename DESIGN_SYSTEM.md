@@ -179,7 +179,7 @@ States: default, hover, keyboard focus, selected, disabled, loading, empty, erro
 - **Connections and loops** (cover workflow):
   - Connection handles appear when a node is engaged, with "Connect nodes" and "Connect back to create a loop."
   - "Create loop" appears on a valid return target.
-  - Return connections are neutral and dashed, with a return mark. On the cover the wires carry no arrowheads (Ruijie, 7 Nov): direction reads from Start to Enter, the run dots and the return mark. Customize's data wires keep their arrows.
+  - Return connections are neutral and dashed, with a return mark. On the cover the wires carry no arrowheads (Ruijie, 7 Nov): direction reads from Start to Enter, the run dots and the return mark. Every 10 s a run of dots travels Start → Enter at a normal pace and goes round each loop twice before moving on (`lib/coverRun.ts`). When it arrives, and about a second after each edit to the workflow, the Enter tile pops with one ring ripple, so people see where to click next. With reduced motion there are no dots and Enter shows a steady ring. Customize's data wires keep their arrows.
   - The selected wire turns blue and offers Remove, with Undo.
   - There is no global Loop action.
 - **Two graphs, stated.**
@@ -187,6 +187,66 @@ States: default, hover, keyboard focus, selected, disabled, loading, empty, erro
   - Customize is the **data graph** ("Data connections"): a wire means a node reads another node's output. Its wires are coloured by data type, and it cannot loop.
 - **Continuity.** Returning to the start page restores the active workflow: nodes, connections, return connections, name and preset (`lib/coverWorkflow.ts`). A fresh default appears only after "New".
 - **One welcome.** The cover is the welcome. Entering through it marks the workspace's first-visit dialog as seen. The guide and the tour stay in the top bar.
+
+### 5.1 The workspace: five phases, two levels (8 Nov)
+
+The workspace follows the start page's five phases. It has two levels, with the whole workflow along the bottom. Only the phase row selects a phase:
+
+| Level | Where | Shows |
+|---|---|---|
+| Phase | The **phase row** under the top bar (`components/ProcessRail.tsx`) | Site, Form, Program, Schematic, Present, each with its colour dot and the number of its checks that are on; Next; **Library** (every check's switch); Analysis on/off |
+| Phase workflow and tool | The **phase panel** on the left (`components/workflow/PhasePanel.tsx`) | The phase's own part of the project workflow, top to bottom in working order; below it, the open tool's controls |
+| Whole workflow | The **workflow strip** along the bottom (`components/workflow/WorkflowOverview.tsx`) | Every phase's tools in one row (the current phase underlined in its colour, the open tool in blue); **Expand** and **Edit** |
+
+- The stage tabs (Massing, Schematic, Present) are gone. The stage follows the phase; keys 1–3 still jump to a stage.
+- **The phase panel.**
+  - Header: the phase name, **Import**, **Export**, Hide.
+  - Workflow: one row per tool (artwork, name, kind). Forward wires are short arrows between rows. Return paths are dashed arcs in the left margin, nested by span. Links to other phases are chips: "From Site / Site", "Then Program / FSR", "↻ Return to Form / Massing".
+  - The phase's design node (Site, Massing, Program, Core & plates, Frame) always leads the list. If it is not in the workflow yet, it joins at the first edit.
+  - **Add tool**: this phase's tools first, "Available in other phases" on request, and **My tools**. A custom tool shows what it declares: inputs, outputs (metrics), parameters, version and licence. Build your own tool and Import a tool file sit there too. A tool added to another phase is shown where it was put (`usePhaseTools.placed`).
+  - **Edit**:
+    - Drag handle, which also accepts the arrow keys. Move up / down. Connect / loop… (a list: this phase, other phases, the end; an earlier tool makes a return path). Remove.
+    - × on any connection chip. Undo / Redo. Done.
+  - The open tool:
+    - A design node opens its design tools (`ToolPanel embedded`).
+    - A check opens its own settings here (`NODE_CONTROLS`) and its results in the right panel.
+    - A custom tool opens what it declares.
+    - Present's Frame shows the captured shots.
+- **The workflow strip** (`components/workflow/WorkflowOverview.tsx`, Ruijie 8 Nov: "still have the overview workflow underneath with option to expand and rearrange the node order"):
+  - Compact: one row of every tool.
+  - **Expand** opens it upward with the model still in view: the main line, branches, return paths arcing above, and Fit. It edits directly:
+    - drag a tool to a gap to move it (the gaps light up; Undo takes it back);
+    - the **Add tools** row under it lists every tool not in the workflow, one phase at a time (the current phase first; a search looks through all). Drag one up into a gap, or click it.
+  - **Adding asks first** (Ruijie, 8 Nov). A card (`AddConfirm.tsx`) names the tool, where it goes (a "Goes after" list to change it, with the spot pulsing in the workflow) and which phase panel it will show in. It says its check switches on, then offers Add to workflow or Cancel. The phase panel's Add tool uses the same card. Moving, connecting and removing still apply at once, with Undo.
+  - **Edit** adds Move before / after, Connect to…, Remove, Reconnect, the assistant's proposals, Redo and Save as preset.
+  - A tool rearranged here moves in its phase panel at once, and the other way round.
+  - Outside Edit, a click opens the tool in its phase.
+- **One workflow.** The start page, the phase panel and Overview all read and edit the same project workflow (`lib/workflow/projectWorkflow.ts`), each in its own layout.
+- **Navigation, working order and execution stay apart.**
+  - Opening a tool runs nothing.
+  - A loop is a route for revisiting work and never reruns anything.
+  - Checks run with the model while Analysis is on.
+  - Adding a check to the workflow switches it on. Taking it off switches it off, and its results, model and inputs stay.
+- **Import / Export, per phase** (`components/workflow/PhasePorting.tsx`):
+  - **Phase package** (`tower-studio-phase@1`, `lib/workflow/phasePackage.ts`) carries:
+    - the phase's tools, connections and return paths, and its links to other phases;
+    - its settings and geometry;
+    - units, origin, north and datum;
+    - the results with the model revision they belong to;
+    - tool versions.
+
+    Importing opens a preview first. It lists every tool as new, already here, taken off, or not in this app; the connections; the settings and model it would take; and whether its results belong to the same model. Then **Merge** (adds; settings and model only if ticked) or **Replace** (this phase only; settings and model ticked by default).
+  - **Model snapshot**: the whole project file.
+  - **External format**: .3dm, OBJ, glTF out; .3dm, OBJ, glTF, IFC in through the model import.
+
+### 5.2 Loading and moving in the 3D view
+
+- **Map loading:**
+  - While the Real Vancouver map downloads, a bar below the map tabs shows how much has arrived and what is loading, in plain words. One load is one climb from 0 to 100%.
+  - Bytes are counted against the manifest's file sizes (`lib/loadProgress.ts`).
+  - The bar fades out when done, and says so if a part could not load.
+- **Moving a tower:** the move card shrinks to one line: the name, the distance, any snap, and the checks as ✓ ! ✕ ? counts. The rows open on request after release, and the full results stay in the right panel.
+- **A chosen view is kept:** a camera request or preset stops any camera flight still on its way. Data arriving later never re-frames the view you chose; only opening the Position tool, locking it, or Frame does.
 
 ## 6. 3D building and site
 
@@ -262,6 +322,7 @@ Style versions never change saved icons: style 1 icons keep drawing with style 1
 | Landing (cover) | Done | Atmosphere; ivory workflow card; phase dots instead of tinted lanes; heading; compact assistant with two examples; one-line presets; no arrowheads; phone strip under 640 px |
 | Workflow assistant | Done | AI tag, cyan container, scope line, "why" on demand, Apply / Discard / Undo |
 | Workflow editor (cover) | Done | Neutral wires, dashed returns, blue when selected, blue handles, AI-proposed nodes in cyan |
+| Workspace phases (8 Nov) | Form done, pattern in every phase | Phase row, phase panel, workflow strip, per-phase Import / Export (§5.1). Form's example (Massing, Sun & shadow, Wind screen, return to Massing) is tested end to end (`e2e/phase-panel.e2e.ts`); the other phases use the same panel, untested beyond layout |
 | Data graph (Customize) | Done | "Data connections" with its purpose behind "?"; wires by data type; selected wire blue |
 | Results and status | Done | `lib/status.ts`, `lib/missingInput.ts`, `ResultState.tsx`: symbol + word, Complete ≠ Pass, Needs model / Waiting for input (no-tower test), an error card and error boundary |
 | Node library and custom icons | Done | Icons tab, style pack v2 (`COMPONENTS.md`, `ui-tokens.json`), own nodes show their icon in the bar, ribbon, library and inspector |

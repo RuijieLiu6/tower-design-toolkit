@@ -80,7 +80,7 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(page.getByRole('tablist', { name: 'Project' }).getByRole('tab', { name: 'Real Vancouver' })).toHaveAttribute('aria-selected', 'true')
   // 5 Nov (Ruijie): no Real Vancouver / Competition choice inside the Site tool; the project is the top bar's switch.
   await expect(page.getByRole('radiogroup', { name: 'Where the site is' })).toHaveCount(0)
-  await expect(page.getByTestId('tools-step')).toHaveText('· Site step')
+  await expect(page.getByTestId('phase-panel')).toHaveAttribute('data-phase', 'site')
   // 6 Nov (Ruijie): the Site step shows only its own tools, Site and Rhino import, as icons with key words.
   const toolTabs = page.getByRole('tablist', { name: 'Design tools' }).getByRole('tab')
   await expect(toolTabs).toHaveCount(2)

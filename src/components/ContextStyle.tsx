@@ -2,6 +2,7 @@
 // 917b28e, explorer/building-materials.js and the Context branch of explorer.js), ported to three.js materials. Textures
 // in public/textures/vista/ (sources.json: Poly Haven and ProcTexture CC0, Ruijie's own paving and asphalt, a generated
 // grass watercolour). Illustrative surfaces only: facade families, window rhythms and paving are not surveyed.
+import { trackJob } from '../lib/loadProgress'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
@@ -13,7 +14,7 @@ function loadTextures(): Promise<VistaTextures> {
   loading ??= (async () => {
     const loader = new THREE.TextureLoader()
     const get = async (file: string) => {
-      const t = await loader.loadAsync(`./textures/vista/${file}`)
+      const t = await trackJob('textures', loader.loadAsync(`./textures/vista/${file}`))
       t.wrapS = t.wrapT = THREE.RepeatWrapping
       // Read as plain numbers: albedos stay in sRGB, as Vista mixes them with its own colours (the shaders convert once
       // at the end), and the water normal map is linear data.

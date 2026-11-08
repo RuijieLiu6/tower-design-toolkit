@@ -133,6 +133,7 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
   const from = useMemo(() => start ?? poseOf(t), [start, t])
   const report = useProposalReport(t, pose)
   const now = useProposalReport(t, from)
+  const [details, setDetails] = useState(false)
   if (!report) return null
   const dist = Math.hypot(pose.x - from.x, pose.y - from.y), turn = pose.rotation - from.rotation
   const snapped = !align && hit && hit.kind !== 'grid' ? SNAP_TEXT[`${hit.kind}:${hit.how}`] : null
@@ -143,12 +144,22 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
   const openCones = coneList.filter((r) => r.state !== 'pass').slice(0, 3)
   const clear = coneList.length - openCones.length
   const wasCones = now?.overall && report.overall && now.overall !== report.overall ? STATE_LABEL[now.overall] : null
+  // One line while the tower moves (Ruijie, 7 Nov: the full card "totally blocked my view" while dragging): the checks as a
+  // count per state; the rows open on request once it is released.
+  const states = [...report.fit.map((f) => f.state), ...openCones.map((r) => r.state), ...(cones && clear > 0 ? Array(clear).fill('pass') : []), ...(cones && coneList.length === 0 ? ['pass'] : [])] as string[]
+  const count = (k: string) => states.filter((x) => x === k).length
+  const tally = ([['pass', '✓', 'text-success', 'pass'], ['warn', '!', 'text-warning', 'to check'], ['fail', '✕', 'text-error', 'fail'], ['unknown', '?', 'text-pending', 'unknown']] as const).filter(([k]) => count(k) > 0)
+  const showRows = details && !dragging
   return (
-    <section aria-label="Proposed position" className="rounded border border-accent/40 bg-accent/5 px-1.5 py-1">
+    <section aria-label="Proposed position" className="rounded-lg border border-accent/40 bg-panel px-2 py-1 shadow-tile">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <b className="font-semibold">Moving {t.name}</b>
-        <span className="tabular-nums text-slate-600">{dist >= 0.005 ? formatLength(dist, unit) : ''}{dist >= 0.005 && Math.abs(turn) >= 0.005 ? ' · ' : ''}{Math.abs(turn) >= 0.005 ? `${turn > 0 ? '+' : ''}${fmt(turn)}°` : ''}</span>
-        {snapped && <span className="flex items-center gap-1 rounded bg-[#fff3d6] px-1 text-meta text-[#6e4a00]"><Magnet size={11} aria-hidden />{snapped}</span>}
+        <span className="tabular-nums text-muted">{dist >= 0.005 ? formatLength(dist, unit) : ''}{dist >= 0.005 && Math.abs(turn) >= 0.005 ? ' · ' : ''}{Math.abs(turn) >= 0.005 ? `${turn > 0 ? '+' : ''}${fmt(turn)}°` : ''}</span>
+        {snapped && <span className="flex items-center gap-1 rounded bg-warning-surface px-1 text-meta text-warning"><Magnet size={11} aria-hidden />{snapped}</span>}
+        <span className="flex items-center gap-1.5 text-meta" aria-label={tally.map(([k, , , w]) => `${count(k)} ${w}`).join(', ')} data-testid="move-tally">
+          {tally.map(([k, sym, cls]) => <span key={k} aria-hidden className={`tabular-nums font-semibold ${cls}`}>{sym} {count(k)}</span>)}
+        </span>
+        {!dragging && <button type="button" onClick={() => setDetails((v) => !v)} aria-expanded={details} className="ml-auto rounded px-1 text-meta text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">{details ? 'Hide details' : 'Details'}</button>}
       </div>
       {align && (
         // What the placement lined the tower up with (lib/lotAlign.ts); the lot lines it used are amber in 3D.
@@ -157,7 +168,7 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
           <LandPlot size={12} aria-hidden className="mt-px shrink-0" /><span className="line-clamp-2">{tx(align.text)}</span>
         </p>
       )}
-      <ul className="mt-0.5" aria-label="What this position means">
+      {showRows && <ul className="mt-0.5" aria-label="What this position means">
         {report.fit.map((f) => {
           const was = now?.fit.find((x) => x.id === f.id)
           const changed = was && was.state !== f.state ? ` (now ${STATE_WORD[was.state].toLowerCase()})` : ''
@@ -167,15 +178,15 @@ function ProposalCard({ t, pose, start, dragging }: { t: Tower; pose: Pose; star
         {cones && coneList.length === 0 && <StatusRow size="sm" state="pass" title="View cones" value="outside every protected view" />}
         {openCones.map((r) => <StatusRow key={r.id} size="sm" state={r.state} title={r.title} value={tx(r.value)} fix={r.fix} flag={r.flag} />)}
         {cones && clear > 0 && <StatusRow size="sm" state="pass" title={openCones.length ? `${clear} more cone${clear === 1 ? '' : 's'}` : 'View cones'} value={openCones.length ? 'clear' : `clear in ${clear}`} />}
-      </ul>
-      {wasCones && <p className="pl-[1.6rem] text-meta text-slate-600">Where it stands now: {wasCones.toLowerCase()}</p>}
-      {project === 'city' && (
+      </ul>}
+      {showRows && wasCones && <p className="pl-[1.6rem] text-meta text-slate-600">Where it stands now: {wasCones.toLowerCase()}</p>}
+      {showRows && project === 'city' && (
         <p className="flex items-center gap-1 pl-[1.6rem] text-meta text-slate-600">
           Base {formatLength(report.base, unit, 1)} · top {formatLength(top, unit, 1)}
           <Help label="About the base">{tx(report.baseNote)}. Geodetic heights (CGVD28).</Help>
         </p>
       )}
-      <p className="mt-0.5 text-meta text-slate-600">Release to place it here (Ctrl+Z undoes it) · Esc keeps it where it was</p>
+      {dragging && <p className="mt-0.5 text-meta text-muted">Release to place it · Esc keeps it where it was</p>}
     </section>
   )
 }

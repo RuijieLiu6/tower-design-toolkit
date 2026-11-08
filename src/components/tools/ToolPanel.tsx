@@ -52,7 +52,11 @@ function ToolTile({ tool, active, tabStop, panelOpen, onPick, onKey }: { tool: D
   )
 }
 
-export default function ToolPanel() {
+/**
+ * `embedded`: inside the phase panel (components/workflow/PhasePanel.tsx), which has its own header. `only`: the design
+ * controls an analysis tool opens with (lib/workflow/phaseTools.ts NODE_CONTROLS), whatever their step.
+ */
+export default function ToolPanel({ embedded = false, only }: { embedded?: boolean; only?: string[] } = {}) {
   const phase = useStore((s) => s.phase)
   const project = useStore((s) => s.project)
   const step = useStep((s) => s.step)
@@ -60,14 +64,14 @@ export default function ToolPanel() {
   const tools = useMemo(() => toolsFor(DESIGN_TOOLS, phase, useStore.getState()), [phase, project])
   const noTower = useTowers().length === 0
   // Massing has three steps (Site, Form, Program), each with only its own tools.
-  const stepTools = useMemo(() => (phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step])
+  const stepTools = useMemo(() => (only ? DESIGN_TOOLS.filter((t) => only.includes(t.id)) : phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step, only])
   // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
   const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
   // No tower on Volume: only the tools that make towers stay (Generate), and none opens until it is picked.
   // With a tower, a tool that only leads an empty site (Generate) moves inside another one (Massing).
   const shown = empty === 'place' ? stepTools.filter((t) => t.worksWithoutTower) : empty ? [] : stepTools.filter((t) => !t.emptyOnly)
   // The open tool, per step (Massing) or stage: the one picked here before, else the first that opens by default.
-  const where = phase === 'basic' ? `basic:${step}` : phase
+  const where = only ? `node:${only.join(',')}` : phase === 'basic' ? `basic:${step}` : phase
   const [picked, setPicked] = useState<Record<string, string>>(readActive)
   const heldIn = stepTools.find((t) => t.id === picked[where])?.opensIn
   const activeId = shown.find((t) => t.id === picked[where] || t.id === heldIn)?.id ?? (empty ? undefined : (shown.find((t) => t.defaultOpen) ?? shown[0])?.id)
@@ -87,20 +91,23 @@ export default function ToolPanel() {
   const Body = active?.component
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-line px-3 py-2">
-        <span className="flex min-w-0 items-baseline gap-1.5">
-          <h2 className="text-meta font-semibold text-muted">Design tools</h2>
-          {stepLabel && <span className="truncate text-meta text-muted" data-testid="tools-step">· {stepLabel} step</span>}
-        </span>
-        <HidePanelButton side="left" />
-      </div>
-      {shown.length > 0 && (
+    <div className={embedded ? 'flex flex-col' : 'flex min-h-0 flex-1 flex-col'}>
+      {!embedded && (
+        <div className="flex items-center justify-between border-b border-line px-3 py-2">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <h2 className="text-meta font-semibold text-muted">Design tools</h2>
+            {stepLabel && <span className="truncate text-meta text-muted" data-testid="tools-step">· {stepLabel} step</span>}
+          </span>
+          <HidePanelButton side="left" />
+        </div>
+      )}
+      {/* a check that opens with one control set shows it directly (its name is in the phase panel's header) */}
+      {shown.length > 0 && !(only && shown.length === 1) && (
         <div role="tablist" aria-label="Design tools" className="flex flex-wrap gap-0.5 border-b border-line px-2 py-1.5">
           {shown.map((t, i) => <ToolTile key={t.id} tool={t} active={t.id === activeId} tabStop={activeId ? t.id === activeId : i === 0} panelOpen={!!activeId} onPick={() => pick(t.id)} onKey={onKey} />)}
         </div>
       )}
-      <div className="flex-1 overflow-y-auto">
+      <div className={embedded ? '' : 'flex-1 overflow-y-auto'}>
         {empty === 'place' && <PlaceFirstTower onGenerate={shown.some((t) => t.id === 'generate') && activeId !== 'generate' ? () => pick('generate') : undefined} />}
         {empty === 'none' && <NoTowerYet />}
         {active && Body && (

@@ -1,5 +1,6 @@
 // axe-core WCAG 2.1 A/AA checks on every screen (backlog item 16). Fails on serious or critical violations; minor and
 // moderate ones are written to the report for follow-up. The 3D canvas itself is not checkable by axe.
+import { showCheck } from './helpers'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -56,14 +57,7 @@ async function guided(p: Page, stage: '1' | '2' | '3' = '1') {
  * in the results panel's "Show results for" list (clicking its icon would switch it off).
  */
 async function showNode(p: Page, name: string) {
-  const sw = p.getByRole('switch', { name: `Use ${name}`, exact: true })
-  await sw.waitFor({ timeout: 20_000 })
-  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
-  else {
-    await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
-    await p.getByLabel('Show results for').selectOption({ label: name })
-  }
-  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await showCheck(p, name)
 }
 
 /** Opens the guided app and shows a node's results. */

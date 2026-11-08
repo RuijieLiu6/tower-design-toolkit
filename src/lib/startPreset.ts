@@ -8,6 +8,7 @@ import { goToStep, type StepId } from './step'
 import { presetById, rememberUserType, type UserTypeId } from './userTypes'
 import { useRole } from './role'
 import { useStore } from '../store'
+import { analysisOnly } from './workflow/designNodes'
 
 export interface Runnable {
   id?: string | null
@@ -47,8 +48,10 @@ export async function startPreset(p: Runnable): Promise<void> {
   const s = useStore.getState()
   if (s.project !== p.project) s.setProject(p.project)
   const st = useStore.getState()
-  st.setEnabled(p.nodes)
-  if (p.nodes[0]) st.selectNode(p.nodes[0])
+  // Design nodes (lib/workflow/designNodes.ts) are steps, not checks: only the checks are switched on.
+  const checks = analysisOnly(p.nodes)
+  st.setEnabled(checks)
+  if (checks[0]) st.selectNode(checks[0])
   st.set({ showOnboarding: false })
   remember(p)
   navigate('guided')

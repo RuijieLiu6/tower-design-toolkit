@@ -1,6 +1,7 @@
 // Mid-review screenshots (backlog item 34): one consistent 1600 × 1000 set on the demo project (item 24), written to
 // 04 Tool Plan/mid-review/screens/. Run: node node_modules/playwright/cli.js test e2e/screens.e2e.ts
 // Each group is its own test on a fresh page, so one slow panel (Energy & carbon under SwiftShader) can't block the rest.
+import { showCheck } from './helpers'
 import { test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -27,14 +28,7 @@ async function stage(p: Page, key: '1' | '2' | '3') { await dismiss(p); await p.
  * in the results panel's "Show results for" list (clicking its icon would switch it off).
  */
 async function showNode(p: Page, name: string) {
-  const sw = p.getByRole('switch', { name: `Use ${name}`, exact: true })
-  await sw.waitFor({ timeout: 20_000 })
-  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
-  else {
-    await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
-    await p.getByLabel('Show results for').selectOption({ label: name })
-  }
-  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await showCheck(p, name)
 }
 async function node(p: Page, name: string) {
   await dismiss(p)

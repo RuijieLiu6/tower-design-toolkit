@@ -1,6 +1,7 @@
 // Context style roads: Vista's OpenStreetMap street network (public/data/vista_streets.json, tools/build_vista_streets.py;
 // (c) OpenStreetMap contributors, ODbL) as asphalt carriageways with centre dashes, paving sidewalks and illustrative
 // bridge decks, after Vista's streetscape.js and traffic-network.js. Widths, sidewalks and deck heights are estimates.
+import { dataFetch } from '../lib/loadProgress'
 import { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import type { Manifest } from '../lib/cityLayers'
@@ -18,7 +19,7 @@ export function loadStreets(manifest: Manifest): Promise<Streets | null> {
   cache ??= (async () => {
     const layer = manifest.layers.find((l) => l.id === 'vista_streets')
     if (!layer) return null
-    const r = await fetch(`./data/${layer.file}`)
+    const r = await dataFetch(layer.file, 'streets')
     if (!r.ok) throw new Error(`${layer.file}: HTTP ${r.status}`)
     const j = (await r.json()) as { version: number; origin: number[]; segments: number[][] }
     if (j.version !== 1 || j.origin[0] !== 491300 || j.origin[1] !== 5458600) throw new Error('Vista streets: unsupported frame')
@@ -166,7 +167,7 @@ export function TrailLines({ manifest, ground, color }: { manifest: Manifest; gr
     let live = true
     const layer = manifest.layers.find((l) => l.id === 'trails')
     if (!layer) return
-    fetch(`./data/${layer.file}`).then((r) => (r.ok ? r.json() : null)).then((j: { version: number; origin: number[]; segments: number[][] } | null) => {
+    dataFetch(layer.file, 'trails').then((r) => (r.ok ? r.json() : null)).then((j: { version: number; origin: number[]; segments: number[][] } | null) => {
       if (!live || !j || j.version !== 1 || j.origin[0] !== 491300 || j.origin[1] !== 5458600) return
       const a = new Int32Array(j.segments.length * 4)
       j.segments.forEach((s, i) => a.set([s[0], s[1], s[2], s[3]], i * 4))

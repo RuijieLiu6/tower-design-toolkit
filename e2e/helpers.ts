@@ -19,9 +19,16 @@ export async function placeStartingTower(p: Page, { stay = false } = {}) {
   if (!stay && step && step !== 'volume') await rail.locator(`[data-step="${step}"]`).click()
 }
 
-/** Opens a design tool in the left panel: its icon is a tab, and its controls show below the row of icons. */
+/**
+ * Opens a design tool in the left panel: its icon is a tab under the phase's design node, and its controls show below
+ * the row of icons. When the phase panel has a check open instead, its design node (the first row) is opened first.
+ */
 export async function openDesignTool(p: Page, id: string) {
   const tile = p.locator(`[role="tab"][data-tool="${id}"]`).first()
+  if (!(await tile.isVisible().catch(() => false))) {
+    const design = p.getByTestId('phase-rows').locator('[data-phase-node^="design."] [data-node]').first()
+    if (await design.isVisible({ timeout: 30_000 }).catch(() => false)) await design.click()
+  }
   await tile.waitFor({ timeout: 60_000 })
   if ((await tile.getAttribute('aria-selected')) !== 'true') await tile.click()
   await p.locator(`[data-tool-body="${id}"]`).waitFor({ timeout: 60_000 })
@@ -35,4 +42,26 @@ export async function openResultDetails(p: Page) {
   const fold = p.getByTestId('result-details').first()
   if (!(await fold.count())) return
   if (!(await fold.evaluate((e) => (e as HTMLDetailsElement).open))) await fold.locator('summary').first().click()
+}
+
+/**
+ * Switches a check on (every check's switch is in the node library, which opens from Library in the phase row, 8 Nov)
+ * and shows its results ("Show results for" in the right panel).
+ */
+export async function showCheck(p: Page, name: string) {
+  const lib = p.getByRole('dialog', { name: 'Node library' })
+  if (!(await lib.isVisible().catch(() => false))) await p.getByTestId('library-button').click({ timeout: 120_000 })
+  const sw = lib.getByRole('switch', { name: `Use ${name}`, exact: true })
+  await sw.waitFor({ timeout: 30_000 })
+  if ((await sw.getAttribute('aria-checked')) === 'false') await sw.click()
+  await lib.getByRole('button', { name: 'Close the node library' }).click()
+  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+  await p.getByLabel('Show results for').selectOption({ label: name }).catch(() => {})
+  await p.getByRole('tab', { name: /Results/ }).click().catch(() => {})
+}
+/** The library's switches (for counting them), with the library open. */
+export async function openLibrary(p: Page) {
+  const lib = p.getByRole('dialog', { name: 'Node library' })
+  if (!(await lib.isVisible().catch(() => false))) await p.getByTestId('library-button').click({ timeout: 120_000 })
+  return lib
 }

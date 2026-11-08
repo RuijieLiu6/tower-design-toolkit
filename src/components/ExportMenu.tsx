@@ -22,10 +22,37 @@ function save(data: BlobPart, name: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
+export type ModelFormat = '3dm' | 'obj' | 'glb'
+/** The massing as a file for other software (.3dm, OBJ + MTL zip, .glb), made in this browser; the outcome in words. */
+export async function exportModel(kind: ModelFormat): Promise<string> {
+  const s = useStore.getState()
+  const towers = s.towers[s.project]
+  const meshes = useImportStore.getState().meshes
+  // Roles, uses, levels and provenance travel as user strings, so uploading the export reads back the same model.
+  const sc = toExportScene(towers, s.models[s.project], { project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0, groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null, meshOf: (id) => meshes[id] })
+  const base = `massing-${s.project}-${new Date().toISOString().slice(0, 10)}`
+  const north = s.project === 'vtc' ? VTC_NORTH_DEG : 0
+  try {
+    if (kind === '3dm') {
+      const [rh, { to3dm }] = await Promise.all([loadRhino(), import('../lib/export/writers')])
+      // Approximate downtown location, only so Rhino reads the model north vector (not a survey position).
+      save(to3dm(rh, sc, { northDeg: north, lat: 49.2827, lon: -123.1207 }) as BlobPart, `${base}.3dm`, 'application/octet-stream')
+    } else if (kind === 'obj') {
+      const [{ toObj }, { zipSync, strToU8 }] = await Promise.all([import('../lib/export/writers'), import('fflate')])
+      const { obj, mtl } = toObj(sc, `${base}.mtl`)
+      save(zipSync({ [`${base}.obj`]: strToU8(obj), [`${base}.mtl`]: strToU8(mtl) }) as BlobPart, `${base}-obj.zip`, 'application/zip')
+    } else {
+      const { toGlb } = await import('../lib/export/gltf')
+      save(await toGlb(sc), `${base}.glb`, 'model/gltf-binary')
+    }
+    return `${sc.solids.length} objects on ${sc.layers.length} layers.`
+  } catch (e) { return `Export failed: ${(e as Error).message}` }
+}
+
 export default function ExportMenu() {
   const unit = useUnits((st) => st.unit)
   const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState<string | null>(null)
+  const [busy, setBusy] = useState<ModelFormat | null>(null)
   const [msg, setMsg] = useState('')
   const box = useRef<HTMLDivElement>(null)
   const present = useStore((s) => s.phase === 'present')
@@ -36,35 +63,9 @@ export default function ExportMenu() {
     return () => document.removeEventListener('mousedown', close)
   }, [open])
 
-  const scene = () => {
-    const s = useStore.getState()
-    const towers = s.towers[s.project]
-    const meshes = useImportStore.getState().meshes
-    return {
-      // Roles, uses, levels and provenance travel as user strings, so uploading the export reads back the same model.
-      scene: toExportScene(towers, s.models[s.project], { project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0, groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null, meshOf: (id) => meshes[id] }),
-      base: `massing-${s.project}-${new Date().toISOString().slice(0, 10)}`,
-      north: s.project === 'vtc' ? VTC_NORTH_DEG : 0,
-    }
-  }
-  const run = async (kind: '3dm' | 'obj' | 'glb') => {
+  const run = async (kind: ModelFormat) => {
     setBusy(kind); setMsg('')
-    try {
-      const { scene: sc, base, north } = scene()
-      if (kind === '3dm') {
-        const [rh, { to3dm }] = await Promise.all([loadRhino(), import('../lib/export/writers')])
-        // Approximate downtown location, only so Rhino reads the model north vector (not a survey position).
-        save(to3dm(rh, sc, { northDeg: north, lat: 49.2827, lon: -123.1207 }) as BlobPart, `${base}.3dm`, 'application/octet-stream')
-      } else if (kind === 'obj') {
-        const [{ toObj }, { zipSync, strToU8 }] = await Promise.all([import('../lib/export/writers'), import('fflate')])
-        const { obj, mtl } = toObj(sc, `${base}.mtl`)
-        save(zipSync({ [`${base}.obj`]: strToU8(obj), [`${base}.mtl`]: strToU8(mtl) }) as BlobPart, `${base}-obj.zip`, 'application/zip')
-      } else {
-        const { toGlb } = await import('../lib/export/gltf')
-        save(await toGlb(sc), `${base}.glb`, 'model/gltf-binary')
-      }
-      setMsg(`${sc.solids.length} objects on ${sc.layers.length} layers.`)
-    } catch (e) { setMsg(`Export failed: ${(e as Error).message}`) }
+    setMsg(await exportModel(kind))
     setBusy(null)
   }
 

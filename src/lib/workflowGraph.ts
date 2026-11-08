@@ -2,6 +2,7 @@
 // assistant (lib/agent/workflowAssistant.ts). Pure functions: the board is the nodes put down plus the wires between
 // them, from Start to Enter; the run is what Start reaches along the wires, in that order; a wire back to an earlier node
 // (or to itself) is a loop.
+import { designNode } from './workflow/designNodes'
 import { PHASES } from './phases'
 
 export type Edge = { a: string; b: string }
@@ -9,7 +10,7 @@ export interface Board { nodes: string[]; edges: Edge[] }
 
 export const edgeKey = (e: Edge) => `${e.a}>${e.b}`
 /** A node's phase position (Site 0 … Present 4). */
-export const phaseIndex = (id: string) => Math.max(0, PHASES.findIndex((p) => p.nodes.includes(id)))
+export const phaseIndex = (id: string) => { const d = designNode(id); return Math.max(0, d ? PHASES.findIndex((p) => p.id === d.phase) : PHASES.findIndex((p) => p.nodes.includes(id))) }
 /** Nodes in phase order (stable within a phase). */
 export const byPhase = (ids: string[]) => [...ids].sort((a, b) => phaseIndex(a) - phaseIndex(b))
 /** Start → each node in turn → Enter. */

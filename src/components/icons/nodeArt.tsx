@@ -12,6 +12,8 @@
 import type { ReactNode } from 'react'
 import { phaseOfNode, PHASE_HUE } from '../../lib/phases'
 import { PHASE_COLOR } from '../../lib/design/tokens'
+import { designNode } from '../../lib/workflow/designNodes'
+import { DESIGN_ART } from './designArt'
 
 // ---------- the isometric frame: plan units 0..16 on the plate, z up ----------
 export type P3 = [number, number, number]
@@ -174,17 +176,17 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
     <path d="M39 4 l-5.5 9 h4 l-2 8 6.5-10 h-4.2z" fill={A(c, 1)} /></>,
 }
 
-export const hasNodeArt = (id: string) => id in ART
+export const hasNodeArt = (id: string) => id in ART || id in DESIGN_ART
 /** The current drawing context for a phase (style pack 2 tones). */
 export const phaseCtx = (phase: keyof typeof PHASE_COLOR): Ctx => ({ h: PHASE_HUE[phase], a: PHASE_COLOR[phase].tones })
 
 /** A built node's illustration (48-unit isometric drawing), in its phase colour. */
 export function NodeArt({ id, size = 48, className = '', muted = false }: { id: string; size?: number; className?: string; muted?: boolean }) {
-  const draw = ART[id]
+  const draw = ART[id] ?? DESIGN_ART[id]
   if (!draw) return null
   return (
     <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden className={className} style={muted ? { filter: 'saturate(0.45)', opacity: 0.9 } : undefined} data-node-art={id}>
-      {draw(phaseCtx(phaseOfNode(id)?.id ?? 'site'))}
+      {draw(phaseCtx(designNode(id)?.phase ?? phaseOfNode(id)?.id ?? 'site'))}
     </svg>
   )
 }
