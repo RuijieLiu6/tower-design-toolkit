@@ -108,8 +108,8 @@ export default function NodeBar() {
         // colour; off: no tile, a faint icon and no bar. Selected (its results showing): an ink ring.
         className={`relative flex w-[3.9rem] shrink-0 flex-col items-center gap-[3px] rounded-md border px-0.5 pb-0.5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-line bg-panel text-ink' : 'border-transparent bg-transparent text-muted hover:border-line hover:text-ink'} ${selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-panel' : ''}`}>
         {/* A check that runs only in the other project: its icon is faded; its word stays readable (contrast), in grey. */}
-        <span className={`relative flex h-[30px] w-[30px] items-center justify-center ${usable ? '' : 'opacity-40'}`}>
-          {!isCommunity && hasNodeArt(n.id) ? <NodeArt id={n.id} size={30} muted={!on} />
+        <span className={`relative flex h-10 w-10 items-center justify-center ${usable ? '' : 'opacity-40'}`}>
+          {!isCommunity && hasNodeArt(n.id) ? <NodeArt id={n.id} size={40} muted={!on} />
             : Icon ? <Glyph icon={Icon} hue={nodeHue(n.id, n.category)} size={20} off={!on} /> : <span className="text-meta font-bold leading-none" aria-hidden>{initials(n.name)}</span>}
           {on && <span className="absolute inset-x-0 -bottom-[3px] h-[3px] rounded-full" style={{ background: color }} aria-hidden />}
         </span>

@@ -175,7 +175,7 @@ export function NodeArt({ id, size = 48, className = '', muted = false }: { id: 
   const draw = ART[id]
   if (!draw) return null
   return (
-    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden className={className} style={muted ? { filter: 'saturate(0.25)', opacity: 0.8 } : undefined} data-node-art={id}>
+    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden className={className} style={muted ? { filter: 'saturate(0.45)', opacity: 0.9 } : undefined} data-node-art={id}>
       {draw({ h: phaseHue(id) })}
     </svg>
   )
