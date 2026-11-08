@@ -91,7 +91,7 @@ export default function IconEditor({ node }: { node: IconNode }) {
             </figure>
           ))}
         </div>
-        <div className="flex items-end gap-2 border-l border-line/70 pl-4" aria-label="The toolkit's own icons, for comparison">
+        <div role="group" className="flex items-end gap-2 border-l border-line/70 pl-4" aria-label="The toolkit's own icons, for comparison">
           {REFERENCES.map((r) => <NodeTile key={r} id={r} size={52} />)}
         </div>
       </div>

@@ -135,6 +135,14 @@ body::before {
   [data-stage="present"] :is(.glass, .glass-edge).bg-chrome { border-color: rgb(255 255 255 / 0.12); box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.5); }
 }
 
+/* A modal dialog is the one thing to read, so it is the most opaque glass, frosted: the map, its controls and the
+   panels behind never show through its text (importance = opacity, 7 Nov). Same colour as the stage's panels. */
+[role="dialog"][aria-modal="true"].bg-panel {
+  background-color: rgb(from var(--color-panel) r g b / 0.95);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+
 /* Every button is glass (unlayered, so it wins over the Tailwind utilities a button was written with). The more it
    matters, the more opaque: the main action (bg-accent) is accent-tinted glass with accent text; a chosen option
    (bg-ink) is the most opaque white pill; ordinary buttons (bg-panel / bg-white) are light glass. Focus rings stay:
