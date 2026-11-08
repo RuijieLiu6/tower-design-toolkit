@@ -105,13 +105,23 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
     {[1, 2, 3].map((i) => <g key={i}>{line(iso(5 + i * 1.5, 11, 0.9), iso(5 + i * 1.5, 11, 13.9), '#fff', 0.7)}</g>)}
     {[1, 2, 3, 4].map((i) => <g key={`h${i}`}>{line(iso(5, 11, 0.9 + i * 2.6), iso(11, 11, 0.9 + i * 2.6), '#fff', 0.7)}</g>)}
     <path d="M33 31 q2.5-2.6 5 0 q2.5-2.6 5 0" fill="none" stroke={A(c, 2)} strokeWidth={1.7} strokeLinecap="round" /></>,
-  // Interior & activity programme: a floor divided into homes.
-  'built.interior': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.9)}{box(c, 2, 7.6, 1.8, 12, 0.6, 3, 'a')}{box(c, 7.6, 2, 1.8, 0.6, 12, 3, 'a')}
-    {box(c, 2, 13.4, 1.8, 12, 0.6, 3, 'n')}{box(c, 13.4, 2, 1.8, 0.6, 12, 3, 'n')}</>,
-  // Daylight screen: light reaching into the floor from its edge, and the deep middle.
-  'built.daylight-depth': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.9)}
-    {flat(A(c, 0), 1.85, [2, 2], [14, 2], [14, 5.5], [2, 5.5])}{flat(A(c, 0), 1.85, [2, 2], [5.5, 2], [5.5, 14], [2, 14])}{box(c, 7, 7, 1.8, 2.5, 2.5, 3, 'k', 0.85)}
-    {[0, 1, 2].map((i) => <g key={i}>{line([6 + i * 4, 4 + i * 1.2], [12 + i * 4, 13 + i * 1.2], A(c, 1), 1.1)}</g>)}</>,
+  // Interior & activity programme: a home cut open: a bed with its pillow and blanket, a sofa, a table and a plant.
+  'built.interior': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.8)}
+    {box(c, 2, 2, 1.7, 0.6, 12, 3.6)}{box(c, 2.6, 2, 1.7, 11.4, 0.6, 3.6)}
+    {box(c, 3.2, 2.6, 1.7, 4.4, 0.5, 3.2, 'a')}{box(c, 3.2, 3.1, 1.7, 4.4, 6, 1, 'a')}{box(c, 3.2, 3.1, 2.7, 4.4, 6, 0.35)}
+    {box(c, 3.6, 3.4, 3.05, 3.6, 1.6, 0.5)}{box(c, 3.2, 5.6, 3.05, 4.4, 3.5, 0.45, 'a')}
+    {box(c, 9.6, 2.6, 1.7, 4, 1, 2.6, 'k')}{box(c, 9.6, 3.6, 1.7, 4, 2.2, 1.1, 'k')}{box(c, 10.2, 7.4, 1.7, 2.6, 2.6, 0.9)}
+    {box(c, 12.4, 11.6, 1.7, 1, 1, 1, 'k')}<circle cx={iso(12.9, 12.1, 4.3)[0]} cy={iso(12.9, 12.1, 4.3)[1]} r={2.4} fill={tones('g', c.h)[1]} /></>,
+  // Daylight screen: a window wall, warm light on the floor beside it, the deep middle in grey, the reach dashed.
+  'built.daylight-depth': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.8)}
+    {flat('#fff0b3', 1.72, [2, 2.6], [14, 2.6], [14, 6.4], [2, 6.4])}{flat('#fbf4da', 1.72, [2, 6.4], [14, 6.4], [14, 10], [2, 10])}{flat('#cdd2da', 1.72, [2, 10], [14, 10], [14, 14], [2, 14])}
+    {box(c, 2, 2, 1.7, 12, 0.6, 8)}
+    <polygon points={pts([3.4, 2.6, 2.6], [12.6, 2.6, 2.6], [12.6, 2.6, 8.8], [3.4, 2.6, 8.8])} fill={tones('w', c.h)[0]} />
+    {[6.5, 9.5].map((x, i) => <g key={i}>{line(iso(x, 2.6, 2.6), iso(x, 2.6, 8.8), '#fff', 0.9)}</g>)}
+    <polyline points={pts([3.4, 2.6, 2.6], [3.4, 2.6, 8.8], [12.6, 2.6, 8.8], [12.6, 2.6, 2.6], [3.4, 2.6, 2.6])} fill="none" stroke={A(c, 2)} strokeWidth={0.9} strokeLinejoin="round" />
+    <polygon points={pts([3.4, 2.6, 2.6], [12.6, 2.6, 2.6], [12.6, 7, 1.74], [3.4, 7, 1.74])} fill="rgb(255 214 102 / 0.34)" />
+    {line(iso(2, 10, 1.74), iso(14, 10, 1.74), A(c, 2), 1.2, '1.8 1.5')}
+    <circle cx={40.5} cy={7.5} r={3.6} fill="#f2c14e" /></>,
   // View from here: a roof, an eye, the mountains across the water.
   'built.view-from': (c) => <>{plate(c)}<path d="M2 20 l7-9 5 5 6-8 9 12z" fill={tones('k', c.h)[0]} opacity={0.55} /><path d="M17 12 l3-4 3 4z" fill="#fff" opacity={0.8} />
     {box(c, 8, 7, 0.9, 6, 6, 7)}<circle cx={iso(10, 9, 8.6)[0]} cy={iso(10, 9, 8.6)[1]} r={1.9} fill={A(c, 2)} />
