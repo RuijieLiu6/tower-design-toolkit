@@ -69,8 +69,12 @@ export default function PhasePanel() {
   useEffect(() => setDrawer(null), [phase])
   // The open tool sets the View it works in (unless the View is pinned), and a check's results show on the right: on
   // opening it, and on coming back to the phase (so the panel and the results never show two different tools).
+  // Not on the first render: a reload keeps the View the user last chose (it is remembered in this browser).
+  const lastTool = useRef<string | null>(null)
   useEffect(() => {
-    applyToolView(active)
+    const key = `${phase}:${active}`
+    if (lastTool.current !== null && lastTool.current !== key) applyToolView(active)
+    lastTool.current = key
     if (!isDesignNode(active) && useStore.getState().selectedNode !== active) useStore.getState().selectNode(active)
   }, [active, phase])
   const head = 'flex h-8 items-center gap-1 rounded-lg bg-panel px-2 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
@@ -465,7 +469,7 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
   const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
   const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in the Library' : analysis ? 'Runs with the model; its results are on the right' : 'Analysis is off: its results wait until you switch it on'
   return (
-    <section aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id}>
+    <div role="region" aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id}>
       <div className="flex items-center gap-2 px-3 py-2">
         <NodeTile id={id} size={24} art={<NodeArtwork id={id} size={21} category={n.category} />} />
         <span className="min-w-0 flex-1">
@@ -478,6 +482,6 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}
-    </section>
+    </div>
   )
 }

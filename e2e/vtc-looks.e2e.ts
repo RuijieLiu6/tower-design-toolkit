@@ -66,6 +66,8 @@ test('with the entrant\'s copy: Program colours the buildings by use with a lege
   await radio(p, 'Building use').click()
   await expect(radio(p, 'Building use')).toHaveAttribute('aria-checked', 'true')
   // the legend names the uses around the site (the design system's Program mode, 7 Nov); the proposal wears its own program colours
+  // the full key is on request (8 Nov): open it
+  if ((await p.getByTestId('key-toggle').getAttribute('aria-expanded')) === 'false') await p.getByTestId('key-toggle').click()
   for (const label of ['Retail / commercial', 'Office', 'Hotel', 'Residential', 'Heritage']) await expect(bar).toContainText(label)
   await expect.poll(() => scene(p), { timeout: 60_000 }).toMatchObject({ program: true, plain: false, fill: true })
   const uses = (await scene(p))!.uses

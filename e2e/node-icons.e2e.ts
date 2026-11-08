@@ -13,10 +13,11 @@ test('a community node gets a generated icon, then an uploaded one, and SVG is r
   await p.addInitScript(() => { try { localStorage.setItem('ts.landing.skip', '0'); localStorage.setItem('ts.onboarding.seen', '1') } catch { /* ignore */ } })
   await p.goto('/#/guided')
   const dialog = p.getByRole('dialog', { name: 'Build your own node' })
-  // the builder opens from the end of the node library
+  // the builder opens from the end of the check library (project bar › More › Check library, 8 Nov)
   // (it loads on demand: the first open can take a while on the dev server)
   const openBuilder = async () => {
-    await p.getByRole('button', { name: /^Library$/ }).click({ timeout: 120_000 })
+    await p.getByTestId('more-menu').click({ timeout: 120_000 })
+    await p.getByTestId('library-button').click()
     await p.getByRole('dialog', { name: 'Node library' }).getByRole('button', { name: /Build your own node/ }).click()
     await expect(dialog).toBeVisible({ timeout: 60_000 })
   }
@@ -38,8 +39,15 @@ test('a community node gets a generated icon, then an uploaded one, and SVG is r
   await dialog.getByRole('button', { name: /Add to My nodes/ }).click()
   await expect(dialog).toBeHidden()
 
-  // in the node bar it shows the standard illustration; the Icons tab opens on it
-  const tileButton = p.locator('[data-node="community.example.tower-width"]')
+  // added to the workflow (phase panel › Add tool › My tools, confirmed), its row shows the standard illustration;
+  // the Icons tab opens on it
+  await p.getByTestId('phase-add').click()
+  const add = p.getByTestId('phase-add-list')
+  await add.getByRole('tab', { name: /My tools/ }).click()
+  await expect(add.locator('[data-my-tool="community.example.tower-width"] [data-fallback-icon]')).toBeVisible({ timeout: 30_000 })
+  await add.locator('[data-add="community.example.tower-width"]').click()
+  await add.getByTestId('add-confirm-yes').click()
+  const tileButton = p.getByTestId('phase-rows').locator('[data-node="community.example.tower-width"]')
   await expect(tileButton.locator('[data-fallback-icon]')).toBeVisible({ timeout: 30_000 })
   await openBuilder()
   await dialog.getByRole('tab', { name: 'Icons' }).click()
@@ -60,7 +68,7 @@ test('a community node gets a generated icon, then an uploaded one, and SVG is r
   await editor.getByTestId('icon-regenerate').click()
   await editor.getByTestId('icon-use').click()
   await expect(editor.getByRole('status')).toHaveText(/Icon saved/)
-  await expect(tileButton.locator('[data-generated-icon^="1:tower:check:1"]')).toBeVisible()
+  await expect(tileButton.locator('[data-generated-icon$=":tower:check:1"]')).toBeVisible()
 
   // upload: an SVG is refused by its contents, a PNG is checked and fitted in the same tile
   await editor.getByRole('tab', { name: 'Upload' }).click()

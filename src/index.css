@@ -311,7 +311,8 @@ body {
 /* Text over the 3D view waits for the pointer (Ruijie, 7 Nov: "hide as much text as possible"): map place names (all
    but the picked one) and the mouse hints show while the pointer is over the view (lib/hoverLabels.ts sets
    data-view-hover), or when one takes keyboard focus. */
-[data-place], [data-testid="mode-gestures"] > span { transition: opacity 200ms; }
+/* The gesture hints appear at once (no fade), so they are never read half-transparent. */
+[data-place] { transition: opacity 200ms; }
 :root:not([data-view-hover]) :is([data-place]:not([data-active]):not(:focus-visible), [data-testid="mode-gestures"] > span:not(.sr-only)) { opacity: 0; visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { [data-place], [data-testid="mode-gestures"] > span { transition: none; } }
 

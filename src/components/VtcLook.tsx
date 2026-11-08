@@ -173,6 +173,8 @@ export function VtcLookBar() {
         {mode !== 'analysis' && <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} data-testid="key-toggle" title={folded ? 'Show the key' : 'Fold the key'}
           className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink outline-none hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">Key{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>}
       </div>
+      {/* a missing input stays visible with the key folded (8 Nov): what to add to see the surrounding program */}
+      {folded && mode === 'program' && !uses?.hasPlan && <p role="status" className="text-meta text-muted">{!ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'}</p>}
       {!folded && mode === 'massing' && <MassingKey />}
       {!folded && mode === 'program' && <>
         <div className="flex items-start gap-2">

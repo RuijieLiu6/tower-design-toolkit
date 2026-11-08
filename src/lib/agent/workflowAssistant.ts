@@ -259,7 +259,7 @@ export function interpret(text: string, board: Board, model: Model = null, focus
       const all = setOf((specific[0] ?? groups[0])!).sort((a, b) => rank(a) - rank(b))
       if (all.length < 2) {
         const r = specific[0]
-        return { kind: 'clarify', question: `A loop needs two nodes to run between; ${r && r.kind === 'phase' ? `the ${PHASES.find((p) => p.id === r.id)!.name} phase has ${all.length} on the workflow` : 'only one matches'}. Loop the whole workflow instead?`, options: [{ label: 'Loop the whole workflow', text: 'Add a loop over the whole workflow' }] }
+        return { kind: 'clarify', question: `A loop needs two nodes to run between; ${r && r.kind === 'phase' ? `the ${PHASES.find((p) => p.id === r.id)!.name} phase has ${all.length} on the workflow` : 'only one matches'}. Name the two tools it should run between, or loop one phase.`, options: PHASES.filter((p) => run.filter((x) => phaseOfNode(x)?.id === p.id).length >= 2).map((p) => ({ label: `Loop the ${p.name} phase`, text: `Loop the ${p.name} phase` })) }
       }
       to = all[0]; from = all[all.length - 1]; about = specific[0]?.kind === 'phase' ? `over the ${PHASES.find((p) => p.id === (specific[0] as { id: PhaseId }).id)!.name} phase` : 'over the checks'
     } else { to = run[0]; from = run[run.length - 1] }
