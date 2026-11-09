@@ -45,7 +45,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
           inter: document.fonts.check('14px "Inter Variable"') && [...document.fonts].some((f) => /Inter/.test(f.family) && f.status === 'loaded'),
           family: getComputedStyle(document.body).fontFamily.split(',')[0],
           phaseTab: cs('nav[aria-label="Design process"] [data-phase]'), overview: cs('[data-testid="phase-overview"]'),
-          heading: cs('[data-testid="phase-panel"] h2'), importBtn: cs('[data-testid="phase-import"]'), edit: cs('[data-testid="phase-edit"]'),
+          heading: cs('[data-testid="phase-panel"] h2'), importBtn: cs('[data-testid="transfer-import"]'), edit: cs('[data-testid="phase-edit"]'),
           toolName: cs('[data-testid="phase-rows"] [data-node] > span:last-child'), view: cs('[role="radiogroup"][aria-label="View"] [role="radio"]'),
           resultsTab: cs('[data-panel="right"] [role="tab"]'), autoRun: cs('[data-testid="analysis-switch"]'),
         }

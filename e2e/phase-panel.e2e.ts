@@ -17,7 +17,9 @@ const towerCount = async (p: Page) => {
   await p.getByRole('tab', { name: 'Your site' }).click().catch(() => {})
   return p.getByText(/Towers on this site/).first()
 }
-const openImport = async (p: Page) => { if ((await p.getByTestId('phase-import').getAttribute('aria-expanded')) !== 'true') await p.getByTestId('phase-import').click() }
+// Import and Export are the project bar's transfer centre (9 Nov): purpose first, the file, then the named action.
+const openImport = async (p: Page) => { await p.getByTestId('transfer-import').click(); await p.getByTestId('purpose-package').click() }
+const importFile = async (p: Page, file: string) => { await openImport(p); await p.getByTestId('transfer-file').setInputFiles(file); await p.getByTestId('transfer-action').click() }
 const FORM = ['design.massing', 'built.sun', 'built.wind-screen']
 const LOOP = 'built.wind-screen>design.massing'
 
@@ -160,8 +162,9 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
 
   // 6 · export the Form package
-  await p.getByTestId('phase-export').click()
-  const [dl] = await Promise.all([p.waitForEvent('download'), p.getByTestId('export-phase-package').click()])
+  await p.getByTestId('transfer-export').click()
+  await p.getByTestId('purpose-workflow').click()
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.getByTestId('transfer-action').click()])
   const pkg = JSON.parse(readFileSync((await dl.path())!, 'utf8'))
   expect(pkg.format).toBe('tower-studio-phase@1')
   expect(pkg.phase).toBe('form')
@@ -170,7 +173,8 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   expect(Object.keys(pkg.settings)).toEqual(expect.arrayContaining(['towers', 'sun']))
   expect(pkg.settings.towers).toHaveLength(1)
   expect(pkg.results.modelRevision).toMatch(/^[0-9a-f]{8}$/)
-  await expect(p.getByTestId('export-status')).toContainText('3 tools')
+  await expect(p.getByTestId('transfer-status')).toContainText('3 tools')
+  await p.keyboard.press('Escape')
   const file = (await dl.path())!
 
   // 7 · import by Merge: Wind screen taken off, then brought back with its return path, after a preview
@@ -180,8 +184,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.sun'])
   await overview.getByTestId('overview-close').click() // Confirm workflow
   await expect(dock).toHaveCount(0)
-  await openImport(p)
-  await p.getByTestId('phase-package-file').setInputFiles(file)
+  await importFile(p, file)
   const preview = p.getByTestId('phase-package-preview')
   await expect(preview).toBeVisible()
   await expect(preview.locator('[data-pp-node="built.wind-screen"]')).toHaveAttribute('data-state', 'new')
@@ -197,8 +200,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await p.getByTestId('phase-add-list').locator('[data-add="built.solar-access"]').click()
   await p.getByTestId('phase-add-list').getByTestId('add-confirm-yes').click()
   await expect.poll(() => rows(p)).toContain('built.solar-access')
-  await openImport(p)
-  await p.getByTestId('phase-package-file').setInputFiles(file)
+  await importFile(p, file)
   await preview.locator('input[data-mode="replace"]').check()
   await expect(preview.locator('[data-pp-node="built.solar-access"]')).toHaveAttribute('data-state', 'taken off')
   await expect(preview.getByTestId('pp-model')).toBeChecked()

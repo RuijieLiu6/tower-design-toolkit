@@ -3,7 +3,8 @@
 // it with the area FSR uses. Every number carries its source and flag; the site is a study boundary, not a legal one.
 import { Crosshair, Download, FileUp, MapPin, MousePointerClick, PencilLine, Search, Trash2, WifiOff } from './icons'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { fromCity, INPUT_CRS, parsePasted, siteFromGeoJson, siteToGeoJson, toCity, type InputCrs } from '../engine/geoLocate'
+import { fromCity, INPUT_CRS, parsePasted, siteToGeoJson, toCity, type InputCrs } from '../engine/geoLocate'
+import { readSiteBoundary, setSiteBoundary } from '../lib/siteImport'
 import { overlapArea, pointInRing, polyArea, ringMetrics, siteFromFootprints, validateRing, type Pt } from '../engine/site'
 import {
   PRIVACY, addressLabel, cityPlace, createLookup, hasConsent, isOnline, loadCityRecords, loadLocalAreas, matchAreas, setConsent, suggest, titleStreet,
@@ -317,11 +318,7 @@ function Boundary({ site, analysis }: { site: StudySite | null; analysis: Pick<R
   const onFile = async (f: File | undefined) => {
     if (!f) return
     try {
-      if (f.size > 2_000_000) throw new Error('The file is larger than a site boundary (2 MB).')
-      const r = siteFromGeoJson(JSON.parse(await f.text()), CITY_ORIGIN)
-      s.setSite(newSite(r.ring, 'geojson', `GeoJSON ${f.name.slice(0, 60)}${r.name ? ` (${r.name.slice(0, 40)})` : ''}, ${r.crs} → EPSG:26910`, { label: r.name }))
-      s.set({ tool: null, message: { text: [`Boundary imported: ${fmt(ringMetrics(r.ring).area)} m². ${r.provenance.operation} ${r.provenance.accuracy}`, ...r.notes].join(' '), kind: 'info' } })
-      zoomTo(ringMetrics(r.ring).centre)
+      zoomTo(setSiteBoundary(f.name, await readSiteBoundary(f)))
     } catch (err) { say(`Could not import the boundary: ${(err as Error).message}`, 'error') }
     if (fileRef.current) fileRef.current.value = ''
   }

@@ -1,5 +1,6 @@
-// Import and Export in each phase header (Ruijie, 8 Nov: "Place Import and Export consistently in each phase header …
-// Preview imports and distinguish merging from replacing phase content"). Three kinds of file, never mixed up:
+// Phase packages (Ruijie, 8 Nov: "Preview imports and distinguish merging from replacing phase content"), since 9 Nov
+// reached through the transfer centre (components/porting/TransferDialog.tsx): the package of one phase, and the preview
+// of what importing one would do. Three kinds of file, never mixed up:
 //   Phase package (.json, tower-studio-phase@1): this phase's tools, their connections and the links to other phases,
 //     its settings and geometry, the units / origin / north / datum, the results with the model revision they belong
 //     to, and tool versions (lib/workflow/phasePackage.ts). Importing shows what it would do first; Merge adds, Replace
@@ -10,10 +11,8 @@
 // Files are made and read in this browser; nothing is uploaded.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Box, FileDown, FileUp, Loader2, X } from '../icons'
-import { exportModel, type ModelFormat } from '../ExportMenu'
+import { X } from '../icons'
 import { APP_LABEL } from '../../lib/project/appLabel'
-import { currentText, exportName, openText } from '../../lib/project/session'
 import { useImportStore } from '../../lib/import/store'
 import { useCommunityStore } from '../../lib/communityStore'
 import { useTrace } from '../../lib/trace/trace'
@@ -29,11 +28,6 @@ import type { Portion } from './PhasePanel'
 const APP_VERSION = APP_LABEL.split(' ').pop() ?? '0'
 const PROJECT_NAME = { vtc: 'Competition site', city: 'Real Vancouver' } as const
 
-function download(text: string, name: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }))
-  const a = document.createElement('a'); a.href = url; a.download = name; a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 4000)
-}
 const item = 'flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 const Drawer = ({ label, onClose, children }: { label: string; onClose: () => void; children: React.ReactNode }) => (
   <div role="region" aria-label={label} className="border-b border-line bg-canvas px-2 py-1.5 text-control" onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
@@ -54,62 +48,6 @@ export function phasePackageOf(phase: PhaseId, portion: Portion = phasePortion(u
   })
 }
 export const phasePackageName = (phase: PhaseId) => `${phase}-phase-${useStore.getState().project}-${new Date().toISOString().slice(0, 10)}.json`
-
-export function ExportDrawer({ phase, portion, onClose }: { phase: PhaseId; portion: Portion; onClose: () => void }) {
-  const [msg, setMsg] = useState('')
-  const [busy, setBusy] = useState<ModelFormat | null>(null)
-  const phasePackage = () => {
-    const pkg = phasePackageOf(phase, portion)
-    download(JSON.stringify(pkg, null, 2), phasePackageName(phase), 'application/json')
-    setMsg(`Saved the ${PHASE_NAME[phase]} package: ${pkg.workflow.nodes.length} tools, ${pkg.workflow.edges.length} connections, ${Object.keys(pkg.settings).length} settings, results for model ${pkg.results.modelRevision}.`)
-  }
-  const model = async (kind: ModelFormat) => { setBusy(kind); setMsg(await exportModel(kind)); setBusy(null) }
-  return (
-    <Drawer label={`Export from ${PHASE_NAME[phase]}`} onClose={onClose}>
-      <button type="button" onClick={phasePackage} className={item} data-testid="export-phase-package"><FileDown size={14} className="mt-0.5 shrink-0" aria-hidden />
-        <Line title={`${PHASE_NAME[phase]} package (.json)`} note="This phase's tools, connections and return paths, its settings and geometry, units, origin and north, the results with the model they belong to, and tool versions" /></button>
-      <button type="button" onClick={async () => { download(await currentText(), exportName(), 'application/json'); setMsg('Saved the model snapshot (the whole project).') }} className={item} data-testid="export-snapshot"><FileDown size={14} className="mt-0.5 shrink-0" aria-hidden />
-        <Line title="Model snapshot (project .json)" note="The whole project as it is now: every phase's settings, the towers and imported meshes, the decision trace" /></button>
-      <p className="px-2 pt-1 text-meta font-semibold text-muted">External format (the massing only, in metres)</p>
-      {([['3dm', 'Rhino (.3dm)'], ['obj', 'SketchUp and others (OBJ + MTL, .zip)'], ['glb', 'glTF (.glb)']] as const).map(([k, label]) => (
-        <button key={k} type="button" disabled={!!busy} onClick={() => void model(k)} className={item} data-testid={`export-${k}`}>
-          {busy === k ? <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" aria-hidden /> : <Box size={14} className="mt-0.5 shrink-0" aria-hidden />}<span className="text-ink">{label}</span></button>
-      ))}
-      {msg && <p role="status" className="px-2 pb-1 pt-0.5 text-meta text-muted" data-testid="export-status">{msg}</p>}
-    </Drawer>
-  )
-}
-
-export function ImportDrawer({ phase, home, onClose }: { phase: PhaseId; home: (id: string) => PhaseId; onClose: () => void }) {
-  const pkgInput = useRef<HTMLInputElement>(null), projInput = useRef<HTMLInputElement>(null)
-  const [msg, setMsg] = useState('')
-  const [problems, setProblems] = useState<string[]>([])
-  const [pkg, setPkg] = useState<PhasePackage | null>(null)
-  const readPkg = async (f: File) => {
-    const r = readPhasePackage(await f.text())
-    setProblems(r.problems); setMsg('')
-    if (r.pkg) setPkg(r.pkg)
-  }
-  const readProject = async (f: File) => {
-    const ok = await openText(await f.text(), f.name.replace(/\.json$/i, ''))
-    setMsg(ok ? `Opened ${f.name}. Ctrl+Z takes it back.` : `${f.name} could not be opened (see the Project menu for the reason).`)
-  }
-  return (
-    <Drawer label={`Import into ${PHASE_NAME[phase]}`} onClose={onClose}>
-      <button type="button" onClick={() => pkgInput.current?.click()} className={item} data-testid="import-phase-package"><FileUp size={14} className="mt-0.5 shrink-0" aria-hidden />
-        <Line title="Phase package (.json)" note="Shows what it would add, replace or remove before anything changes; merge or replace" /></button>
-      <input ref={pkgInput} type="file" accept=".json,application/json" className="hidden" data-testid="phase-package-file" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readPkg(f); e.target.value = '' }} />
-      <button type="button" onClick={() => projInput.current?.click()} className={item}><FileUp size={14} className="mt-0.5 shrink-0" aria-hidden />
-        <Line title="Model snapshot (project .json)" note="Opens a whole project in place of this one; Ctrl+Z takes it back" /></button>
-      <input ref={projInput} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readProject(f); e.target.value = '' }} />
-      <button type="button" onClick={() => { useImportStore.getState().openDialog(); onClose() }} className={item}><Box size={14} className="mt-0.5 shrink-0" aria-hidden />
-        <Line title="External model (.3dm, OBJ, glTF, IFC)" note="A massing from other software: units, placement, north and storeys are confirmed in the import dialog" /></button>
-      {problems.length > 0 && <ul role="alert" className="px-2 pb-1 text-meta text-error">{problems.map((p) => <li key={p}>{p}</li>)}</ul>}
-      {msg && <p role="status" className="px-2 pb-1 text-meta text-muted">{msg}</p>}
-      {pkg && createPortal(<PackagePreview pkg={pkg} current={phase} home={home} onClose={() => setPkg(null)} onDone={(m) => { setPkg(null); setMsg(m) }} />, document.body)}
-    </Drawer>
-  )
-}
 
 /** What a package would do, before it does it: tools added or taken off, connections, settings, model, results. */
 export function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePackage; current: PhaseId; home: (id: string) => PhaseId; onClose: () => void; onDone: (msg: string) => void }) {

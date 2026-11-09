@@ -14,10 +14,16 @@ Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-imp
   builder's Import tab, `exportModel` (its scene build is now `exportScene`, so the dialog shows the solid and layer
   counts before writing), `currentText`, `traceToProv`, Sun & Wind Studio (`SunWindSend` inside Export › results).
   The old "Export model" menu is gone (`ExportMenu.tsx` keeps only the writers' entry point).
-- **Not yet (step 2):** the phase panel's Import/Export drawers and the Project menu's Export/Import items still exist
-  as duplicates; the GeoJSON site boundary still imports in the Site panel (the dialog takes you there); drag-and-drop
-  does not yet enter the dialog; alignment is still the model import dialog's own screen; export scope (phases, objects)
-  and representation presets are not offered because no converter supports them (that would be Result C).
+- **Step 2 (same day):** the phase panel's Import/Export drawers and the Project menu's Upload / Export .json / Import
+  .json items are deleted; the menu keeps New, Open, Save as, autosave and one "Import or export a file…" that opens the
+  centre. A file dropped anywhere opens the centre on Import with the purpose read from its contents
+  (`lib/porting/sniff.ts`: models by extension; .json by its `format` field or GeoJSON shape; else the centre opens with
+  no purpose). The site boundary is read and previewed in the centre (`lib/siteImport.ts`, shared with the Site panel)
+  and set only on "Set as the study site"; a chosen tool package goes to the node builder's Import as its draft (checked
+  there, never run). A package import closes the centre once the preview applies it. Tests updated: `phase-panel`,
+  `journeys`, `rhino-import`, `workspace-gate`; `transfer-centre` adds the drop. All five pass in Edge; unit 1,225.
+- **Not yet:** alignment is still the model import dialog's own screen; export scope (phases, objects) and
+  representation presets are not offered because no converter supports them (that would be Result C).
 - **Tests run:** `npx tsc -b` PASS · `npx vitest run` 1,224 pass (+1 registry test; the same 2 CRLF data-file checks fail
   in this worktree only) · `e2e/transfer-centre.e2e.ts` in Edge PASS (opens without download, Cancel/Esc clean with
   focus returned, glTF export is a real `massing-vtc-<date>.glb` after a counts preview, the tower list unchanged, works
@@ -25,8 +31,8 @@ Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-imp
   page in `../sun-wind-studio` never reports "Imported"; an environment problem, not this change; its entry point is
   updated to Export › Export results). Reopening the exported .glb in an independent reader: NOT RUN.
 - **Evidence:** `04 Tool Plan/workflow-builder/after/after-<size>-transfer-import.png` and `-transfer-export-geometry.png`.
-- **Next small increment (step 2):** route the phase-panel drawers and the Project menu's file items through the
-  centre and delete the duplicates; drop a file anywhere → the dialog with the purpose guessed from its contents.
+- **Next small increment (step 3):** the model import's alignment step inside the centre (units, up axis, north, origin,
+  placement, layer roles as one screen) and "Frame imported content" after it.
 
 ---
 

@@ -27,6 +27,9 @@ import SunWindSend from '../SunWindSend'
 import { PackagePreview, phasePackageName, phasePackageOf } from '../workflow/PhasePorting'
 import { homeOf } from '../workflow/WorkflowOverview'
 import { openToolInWorkspace } from '../builder/openTool'
+import { readSiteBoundary, setSiteBoundary } from '../../lib/siteImport'
+import { ringMetrics } from '../../engine/site'
+import type { ImportedBoundary } from '../../engine/geoLocate'
 
 const PROJECT_NAME = { vtc: 'Competition site', city: 'Real Vancouver' } as const
 const btn = 'flex h-8 items-center gap-1 rounded-lg px-3 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
@@ -35,11 +38,12 @@ const quiet = `${btn} bg-panel text-ink hover:bg-subtle`
 
 export default function TransferDialog() {
   const tab = useTransfer((s) => s.tab)
+  const init = useTransfer((s) => s.init)
   const close = useTransfer((s) => s.close)
   const project = useStore((s) => s.project)
   const box = useRef<HTMLDivElement>(null)
   const [purpose, setPurpose] = useState<string | null>(null)
-  useEffect(() => { setPurpose(null) }, [tab])
+  useEffect(() => { setPurpose(init.purpose ?? null) }, [tab, init])
   // focus moves in when it opens; Tab wraps inside (the dialog is modal)
   useEffect(() => { if (tab) requestAnimationFrame(() => box.current?.querySelector<HTMLElement>('[role="radio"]')?.focus()) }, [tab])
   // Esc from anywhere while open: after an action the focused button may be disabled, and focus falls to the body
@@ -83,7 +87,7 @@ export default function TransferDialog() {
           </div>
           <div className="min-w-0 flex-1 rounded-xl border border-line bg-canvas p-3" data-testid="transfer-body">
             {!chosen ? <p className="text-control text-muted">Choose what you want to {tab === 'import' ? 'bring in' : 'take out'}. Nothing happens until the action at the bottom.</p>
-              : tab === 'import' ? <ImportPane c={chosen} purpose={chosen.key as ImportPurpose} /> : <ExportPane c={chosen} purpose={chosen.key as ExportPurpose} />}
+              : tab === 'import' ? <ImportPane c={chosen} purpose={chosen.key as ImportPurpose} initial={init.file ?? null} /> : <ExportPane c={chosen} purpose={chosen.key as ExportPurpose} initialPhase={init.phase ?? null} />}
           </div>
         </div>
       </div>
@@ -113,14 +117,17 @@ const Pick = ({ c, file, onFile, testId = 'transfer-file' }: { c: Capability; fi
   </label>
 )
 
-function ImportPane({ c, purpose }: { c: Capability; purpose: ImportPurpose }) {
+function ImportPane({ c, purpose, initial }: { c: Capability; purpose: ImportPurpose; initial: File | null }) {
   const close = useTransfer((s) => s.close)
-  const [file, setFile] = useState<File | null>(null)
+  const [file, setFile] = useState<File | null>(initial)
   const [text, setText] = useState('')
   const [status, setStatus] = useState('')
   const [pkg, setPkg] = useState<PhasePackage | null>(null)
+  const [site, setSite] = useState<{ r: ImportedBoundary; words: string } | { error: string } | null>(null)
   const phase = STEP_PHASE[useStep((s) => s.step)]
-  useEffect(() => { setFile(null); setText(''); setStatus(''); setPkg(null) }, [purpose])
+  // a boundary is read and checked when chosen; it becomes the site only on the action
+  useEffect(() => { if (purpose === 'site' && file) readSiteBoundary(file).then((r) => setSite({ r, words: `${r.name ?? file.name}: ${r.ring.length} corners, ${Math.round(ringMetrics(r.ring).area).toLocaleString('en-CA')} m², ${r.crs} → EPSG:26910. ${r.notes.join(' ')}` }), (e: Error) => setSite({ error: e.message })) }, [purpose, file])
+  useEffect(() => { setFile(initial); setText(''); setStatus(''); setPkg(null); setSite(null) }, [purpose, initial])
   useEffect(() => { if (file && purpose !== 'model') void file.text().then(setText) }, [file, purpose])
   // the file is inspected, not trusted by its extension: a .json is one of three things
   const read = useMemo(() => {
@@ -142,25 +149,27 @@ function ImportPane({ c, purpose }: { c: Capability; purpose: ImportPurpose }) {
     <div>{head}<Pick c={c} file={file} onFile={setFile} />
       {read && (read.ok ? <p className="mt-2 text-control text-ink" data-testid="transfer-preview">{read.words} The next screen lists what it would add, replace or take off; Merge or Replace there applies it.</p> : <ul role="alert" className="mt-2 text-meta text-error">{read.problems.map((p) => <li key={p}>{p}</li>)}</ul>)}
       <Footer action="Preview the changes" disabled={!read?.ok} status={status} onAction={() => setPkg((read as { pkg?: PhasePackage })?.pkg ?? null)} />
-      {pkg && <PackagePreview pkg={pkg} current={phase} home={homeOf} onClose={() => setPkg(null)} onDone={(m) => { setPkg(null); setStatus(m) }} />}</div>)
+      {pkg && <PackagePreview pkg={pkg} current={phase} home={homeOf} onClose={() => setPkg(null)} onDone={(m) => { setPkg(null); useStore.setState({ announce: m }); close() }} />}</div>)
   if (purpose === 'site') return (
-    <div>{head}<p className="mt-2 text-control text-ink">The boundary is read in the Site step: Site boundary › Import GeoJSON, where the map shows it at once and the parcels under it are matched. Units and datum come from the file's CRS; nothing is assumed from the project.</p>
-      <Footer action="Go to the Site step" status={status} onAction={() => { openToolInWorkspace('design.site'); close() }} /></div>)
+    <div>{head}<Pick c={c} file={file} onFile={setFile} />
+      {site && ('error' in site ? <p role="alert" className="mt-2 text-meta text-error">{site.error}</p> : <p className="mt-2 text-control text-ink" data-testid="transfer-preview">{site.words} Positions come from the file's CRS; nothing is assumed from the project.</p>)}
+      <Footer action="Set as the study site" disabled={!site || 'error' in site} status={status} onAction={() => { if (site && 'r' in site) { setSiteBoundary(file!.name, site.r); openToolInWorkspace('design.site'); close() } }} /></div>)
   return (
     <div>{head}<p className="mt-2 text-control text-ink">Packages are checked (schema, formulas, tests, icon) and shown before you install; a package's code never runs on selection. It then appears under My tools, and adding it to the workflow is your next step.</p>
-      <Footer action="Open the node builder's Import" status={status} onAction={() => { useCommunityStore.getState().openDialog('import'); close() }} /></div>)
+      <Pick c={c} file={file} onFile={setFile} />
+      <Footer action={file ? 'Check this package in the node builder' : "Open the node builder's Import"} status={status} onAction={() => { const cs = useCommunityStore.getState(); cs.setDraft(text || null); cs.openDialog('import'); close() }} /></div>)
 }
 
-function ExportPane({ c, purpose }: { c: Capability; purpose: ExportPurpose }) {
+function ExportPane({ c, purpose, initialPhase }: { c: Capability; purpose: ExportPurpose; initialPhase: PhaseId | null }) {
   const [kind, setKind] = useState<ModelFormat>('3dm')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const current = STEP_PHASE[useStep((s) => s.step)]
-  const [phase, setPhase] = useState<PhaseId>(current)
+  const [phase, setPhase] = useState<PhaseId>(initialPhase ?? current)
   const meta = useProjectMeta()
   const towers = useStore((s) => s.towers[s.project])
   const trace = useTrace()
-  useEffect(() => { setStatus(''); setPhase(current) }, [purpose, current])
+  useEffect(() => { setStatus(''); setPhase(initialPhase ?? current) }, [purpose, current, initialPhase])
   const scene = useMemo(() => (purpose === 'geometry' ? exportScene() : null), [purpose, towers])
   const pkg = useMemo(() => (purpose === 'workflow' ? phasePackageOf(phase) : null), [purpose, phase])
   const head = <><h3 className="text-control font-semibold text-ink">{c.title}</h3><p className="text-control text-muted">{c.purpose}</p><Route c={c} /></>
@@ -192,7 +201,7 @@ function ExportPane({ c, purpose }: { c: Capability; purpose: ExportPurpose }) {
         {row('Content', `${pkg?.workflow.nodes.length ?? 0} tools, ${pkg?.workflow.edges.length ?? 0} connections, ${Object.keys(pkg?.settings ?? {}).length} settings, results for model ${pkg?.results.modelRevision ?? '—'}`)}
         {row('Not included', 'Other phases, the city context, imported meshes')}
       </dl>
-      <Footer action="Export package" disabled={!pkg?.workflow.nodes.length} status={status} note={!pkg?.workflow.nodes.length ? 'This phase has no tool in the workflow.' : undefined} onAction={() => { saveFile(phasePackageName(phase), JSON.stringify(pkg, null, 2)); setStatus('Saved.') }} /></div>)
+      <Footer action="Export package" disabled={!pkg?.workflow.nodes.length} status={status} note={!pkg?.workflow.nodes.length ? 'This phase has no tool in the workflow.' : undefined} onAction={() => { saveFile(phasePackageName(phase), JSON.stringify(pkg, null, 2)); setStatus(`Saved the ${PHASE_NAME[phase]} package: ${pkg!.workflow.nodes.length} tools, ${pkg!.workflow.edges.length} connections, ${Object.keys(pkg!.settings).length} settings, results for model ${pkg!.results.modelRevision}.`) }} /></div>)
   if (purpose === 'results') return (
     <div>{head}
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5" data-testid="transfer-preview">

@@ -2,6 +2,7 @@
 // the same dialog without downloading anything; Cancel and Esc change nothing and give focus back; a geometry export
 // previews its counts and writes a .glb only on "Export file"; the model stays as it was; it works from the builder too.
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { placeStartingTower } from './helpers'
 
 test('Import and Export open the centre; Cancel is clean; a glTF export is a real file; focus returns', async ({ page: p }) => {
@@ -56,4 +57,20 @@ test('Import and Export open the centre; Cancel is clean; a glTF export is a rea
   await expect(dialog).toHaveCount(0)
   await expect(p.getByTestId('workflow-builder')).toBeVisible()
   await expect(p.getByTestId('transfer-export')).toBeFocused()
+  await p.getByTestId('builder-continue').click()
+
+  // drag-and-drop: a project backup dropped anywhere opens the centre on Import with the purpose read from the file
+  await p.getByTestId('transfer-export').click()
+  await dialog.getByTestId('purpose-backup').click()
+  const [pkg] = await Promise.all([p.waitForEvent('download', { timeout: 60_000 }), dialog.getByTestId('transfer-action').click()])
+  const text = readFileSync((await pkg.path())!, 'utf8')
+  await p.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  const dt = await p.evaluateHandle((t) => { const d = new DataTransfer(); d.items.add(new File([t], 'backup.json', { type: 'application/json' })); return d }, text)
+  await p.dispatchEvent('[data-model-region]', 'drop', { dataTransfer: dt })
+  await expect(dialog).toHaveAttribute('data-tab', 'import')
+  await expect(dialog.getByTestId('purpose-project')).toHaveAttribute('aria-checked', 'true')
+  await expect(dialog.getByTestId('transfer-preview')).toContainText(/Competition site, 1 towers/)
+  await expect(p.getByText(/Towers on this site/).first()).toContainText('(1)') // the drop changed nothing
+  await p.keyboard.press('Escape')
 })

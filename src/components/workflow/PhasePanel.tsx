@@ -1,6 +1,6 @@
 // The left panel, one per phase (Ruijie, 8 Nov: "The left panel should show the selected phase's local tool workflow and,
 // below it, the active tool's parameters, controls and results"). Three parts:
-//   the phase header: its name, Import and Export (phase package, model snapshot, external formats) and Hide;
+//   the phase header: its name and Hide (Import and Export are the project bar's, Result B, 9 Nov);
 //   the phase workflow (9 Nov): the Workflow header opens the editor in the centre view (WorkflowOverview.tsx); under it a
 //     map of the whole workflow (every tool as a dot in working order, the current phase tinted, loops as arcs) and this
 //     phase's tools, which open on a click; Add tool (asks first);
@@ -13,7 +13,7 @@
 // changes the order of work (a loop is a route back, never a re-run); checks run with the model while Analysis is on.
 // The workflow is the project's, the same as the landing page's and Overview's (lib/workflow/projectWorkflow.ts).
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, FileDown, FileUp, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
+import { ChevronDown, ChevronRight, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
 import { NodeTile } from '../NodeTile'
 import { NodeArtwork } from '../nodeIcons/NodeArtwork'
 import Help from '../Help'
@@ -34,7 +34,6 @@ import { NODE_CONTROLS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase,
 import { addNode, openOverview, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
-import { ExportDrawer, ImportDrawer } from './PhasePorting'
 import { AddConfirm } from './AddConfirm'
 
 export type Portion = ReturnType<typeof phasePortion>
@@ -63,8 +62,6 @@ export default function PhasePanel() {
     usePhaseTools.getState().setActive(phase, id)
     if (!isDesignNode(id)) useStore.getState().selectNode(id)
   }
-  const [drawer, setDrawer] = useState<'import' | 'export' | null>(null)
-  useEffect(() => setDrawer(null), [phase])
   // The open tool sets the View it works in (unless the View is pinned), and a check's results show on the right: on
   // opening it, and on coming back to the phase (so the panel and the results never show two different tools).
   // Not on the first render: a reload keeps the View the user last chose (it is remembered in this browser).
@@ -79,20 +76,14 @@ export default function PhasePanel() {
 
   return (
     <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge panel-slide flex w-[var(--left-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel">
-      {/* The phase's name and Hide; then Import and Export on their own line, so nothing truncates in a narrow panel. */}
+      {/* The phase's name and Hide. */}
       <div className="border-b border-line px-3 pb-2 pt-1.5">
         <div className="flex items-center gap-2">
           <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[phase].accent }} />
           <h2 className="min-w-0 flex-1 truncate text-section font-semibold text-ink">{PHASE_NAME[phase]}</h2>
           <HidePanelButton side="left" />
         </div>
-        <div className="mt-1 flex items-center gap-1">
-          <button type="button" onClick={() => setDrawer(drawer === 'import' ? null : 'import')} aria-expanded={drawer === 'import'} data-testid="phase-import" title={`Bring a ${PHASE_NAME[phase]} package, a project file or a model in`} className={head}><FileUp size={14} aria-hidden />Import</button>
-          <button type="button" onClick={() => setDrawer(drawer === 'export' ? null : 'export')} aria-expanded={drawer === 'export'} data-testid="phase-export" title={`Save the ${PHASE_NAME[phase]} tools and settings, the project, or the model for other software`} className={head}><FileDown size={14} aria-hidden />Export</button>
-        </div>
       </div>
-      {drawer === 'export' && <ExportDrawer phase={phase} portion={portion} onClose={() => setDrawer(null)} />}
-      {drawer === 'import' && <ImportDrawer phase={phase} home={home} onClose={() => setDrawer(null)} />}
       <PhaseWorkflow phase={phase} rows={rows} design={design} active={active} open={open} info={info} home={home} />
       <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
         <ActiveTool key={active} id={active} phase={phase} info={info} />
