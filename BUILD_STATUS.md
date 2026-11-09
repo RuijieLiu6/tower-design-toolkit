@@ -1,4 +1,4 @@
-# Build status by phase (8 Nov 2026, branch `workspace-ui-correction`)
+# Build status by phase (8 Nov 2026, `workspace-ui-correction`, merged into main and live)
 
 Each phase is described on four separate measures. A screen opening is not the same as a working function, and a working function is not a validated method.
 

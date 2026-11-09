@@ -1,7 +1,7 @@
 # CHECKPOINT: workspace interface correction (overnight brief, 8 Nov 2026)
 
 Brief: `Tower_Design_Workspace_Audit_and_Overnight_Brief.docx` (project folder), plus Ruijie's pasted task.
-Branch: `workspace-ui-correction`, from `main` 757b9b3. Nothing has been merged or deployed from this branch.
+Branch: `workspace-ui-correction`, from `main` 757b9b3. Merged into `main` (fast-forward to 06673ed) and deployed to GitHub Pages on 8 Nov 2026 at Ruijie's request.
 Budget: 8 h maximum, started about 01:20 local (8 Nov).
 Evidence folder (local only, never committed: the competition context is Buildner's):
 `04 Tool Plan/workspace-correction/before|after/`.
@@ -167,8 +167,8 @@ Evidence folder (local only, never committed: the competition context is Buildne
 - Deep design undo, past the point where a tool was added, can leave that tool in the workflow with its check off; the freshness line then says "this check is off".
 - Help text is 16/24 by class; its computed size was not asserted. 3D labels are textures: not measured.
 - Not tested tonight: Site, Schematic and Present journeys (see BUILD_STATUS.md).
-- Nothing merged or deployed.
+- Merged into main (fast-forward, 06673ed) and deployed on 8 Nov at Ruijie's request; the Pages run succeeded and the live site serves this version.
 
 ## Next exact action
 
-Ruijie reviews the branch, the before/after views and BUILD_STATUS.md, then decides whether to merge and deploy. If work continues first, the next action is the Site journey test (BUILD_STATUS.md, Site): it is the first phase without a tested handoff, and it feeds Form.
+Merged and live. The next action is the Site journey test (BUILD_STATUS.md, Site): it is the first phase without a tested handoff, and it feeds Form.
