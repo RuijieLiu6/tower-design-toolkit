@@ -65,7 +65,7 @@ export function withBuildings(areas: readonly Neighbourhood[], footprints: reado
 }
 
 /** No other map tool is taking clicks: placing a tower, drawing or picking a site, a box over lots, an eye-level view, drawing a height-surface area, editing the sun-hours area. */
-function idle(): boolean {
+export function idle(): boolean {
   const st = useStore.getState(), vf = useViewFromStore.getState()
   return st.project === 'city' && !st.placing && !vf.picking && !vf.looking && !useHeightSurface.getState().drawing && !useSiteStore.getState().tool && !useSiteStep.getState().box && !useSolar.getState().editing
 }

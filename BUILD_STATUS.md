@@ -19,6 +19,7 @@ Each phase is described on four separate measures. A screen opening is not the s
 | Validation limits | Only 8 of 24 view cones have a City height estimate; the rest are "no estimate". LiDAR roof heights cover 1 of 4 downtown tiles. The vertical datum is CGVD28, assumed. The 27 evaluation cases (`npm run eval`) were last run 22 Oct and are **NOT RUN tonight**. |
 | Import / export | Phase package (site, ground mode, ground elevation, transit link); project file; model import; site GeoJSON (Vista panel). |
 | Next deliverable | Rerun `site-step` and `vista-site`, and write a Site journey test that ends in Form with the site and the model kept. |
+| Planning layer (branch `higher-buildings-map`, 9 Nov, **not merged**) | Higher Buildings in Layers › Planning and the address search: the City's current policy area digitized from the review exhibit's p.40 map (14 parts, map registration 1.2 m RMS over 246 street crossings; drawn edge 3.0 m median, 8.3 m p90 from City lines), hover preview, inspector, Frame / Back, Pin and Label as separate settings, site relationship Within / Outside / Overlapping / Uncertain. The adopted policy PDF (Figure 1) was not readable (HTTP 403). Tests: `engine/policyArea.test.ts`, `lib/higherBuildings.test.ts`, `e2e/higher-buildings.e2e.ts` (4 journeys, Edge). |
 
 ## Form
 

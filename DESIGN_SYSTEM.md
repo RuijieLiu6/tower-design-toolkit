@@ -283,6 +283,12 @@ Built on 7 Nov:
   - Each legend gives the quantity, units, range and a fixed scale.
 - **Lighting:** a neutral inspection light; with Sun & shadow on, a chip beside the switch shows the date, time and sun angle.
 - **Labels:** every scene label has a compact backing plate.
+- **Planning overlays** (9 Nov, Higher Buildings, `components/HigherBuildings.tsx`):
+  - Colour: the source legend's own orange (fill `#F68D1E` at 15%, 26% when highlighted; line `#B05400`), so the overlay compares with the City's map at a glance. Not blue (interaction), not a status or phase colour.
+  - Line style carries status as well as the words: solid for published, in-force policy; dashed for review or reference material. The status is always written in the inspector.
+  - Display only: draped just above the terrain, no depth writes, never picked (`raycast` null), no extrusion and no height. The see-through edge pass sits under the scene labels (render order below 10).
+  - One label in the Planning style, kept apart from place names; it claims its box before the place names are placed and moves clear of the study site's label; quieter within about 900 m.
+  - A site relationship is geographic only (Within, Outside, Overlapping, Uncertain) with neutral glyphs, never pass/fail symbols or status colours, and always the line "Membership is not approval".
 
 Still to do:
 - **Results-panel colours:** the wind level colours, which should use one ordered scale, and the solar loss legend's "0 h" start.

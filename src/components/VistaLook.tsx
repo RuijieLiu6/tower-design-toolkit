@@ -34,6 +34,7 @@ import { lookFromCone } from './VistaPanel'
 import Label from './Label'
 import { useDock } from './ViewportDock'
 import { CONE_BLUE } from './VistaCones'
+import { HigherBuildingsCard } from './HigherBuildings'
 import { VISTA_INTRUSION } from './ConeVolumes'
 
 /** Model frame (x, y, z-up) to three.js world (y-up). */
@@ -206,6 +207,19 @@ const flight = { from: null as CamReq | null, to: null as CamReq | null, start: 
 const toModel = (p: THREE.Vector3): [number, number, number] => [p.x, -p.z, p.y]
 /** A camera request (a preset, "view from", a test) wins over a smooth move still on its way: the move stops. */
 export const cancelFlight = () => { flight.to = null }
+
+/** A smooth camera move is on its way (Esc or grabbing the view stops it). */
+export const isFlying = () => !!flight.to
+/** The orbit camera now, in the model frame (for a later "Back"); null before the view exists. */
+export function currentView(): CamReq | null {
+  const cam = live.camera, ctl = live.ctl
+  return cam && ctl ? { position: toModel(cam.position), target: toModel(ctl.target), fov: cam.fov } : null
+}
+/**
+ * Screen boxes other map labels claim before the place names are placed (the Higher Buildings label,
+ * components/HigherBuildings.tsx), so a place name never covers them: [left, top, right, bottom] in pixels, or null.
+ */
+export const labelReservations = new Set<(cam: THREE.Camera, size: { width: number; height: number }) => [number, number, number, number] | null>()
 
 /** Moves the orbit camera to `to`: smoothly, or at once under reduced motion. */
 export function flyTo(to: CamReq) {
@@ -586,6 +600,7 @@ export function VistaChrome() {
         <ModeTabs />
         <div className="px-2 py-[3px] text-meta" style={box} title="The Real Vancouver model with your design towers">Study scene</div>
         {mode === 'observer' && <ConePicker />}
+        <HigherBuildingsCard />
       </div>
       <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 [&>*]:pointer-events-auto"><Utilities /></div>
       <div data-vista-overlay="bottom" className={`pointer-events-none absolute bottom-2.5 left-2.5 z-10 flex ${looking ? 'max-w-[calc(100%-15.5rem)]' : schematic ? 'max-w-[calc(100%-19rem)]' : 'max-w-[calc(100%-1.25rem)]'} flex-col items-start gap-1.5 [&>*]:pointer-events-auto`}>
@@ -711,6 +726,7 @@ export function VistaLookRig() {
       // In Plan the tower's labels hang below their anchor (Viewport.tsx), elsewhere they stand above it.
       placed.push(planLabels ? [px - 125, py - 4, px + 125, py + 40] : [px - 125, py - 40, px + 125, py + 4])
     }
+    for (const reserve of labelReservations) { const b = reserve(cam, size); if (b) placed.push(b) }
     for (const key of live.labelOrder) {
       const el = live.labels.get(key)
       if (!el) continue

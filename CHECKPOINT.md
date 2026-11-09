@@ -1,3 +1,17 @@
+# CHECKPOINT: Milestone A, Higher Buildings policy geography (9 Nov 2026)
+
+Brief: "Tower Design Toolkit: Policy Map and Unified Import/Export", Milestone A only (Milestone B not started).
+Branch: `higher-buildings-map`, from `origin/main` 880643d. **Not merged, not deployed: stopped for review.**
+Evidence (local only): `04 Tool Plan/higher-buildings/` (METHOD.md, `evidence/app`, `evidence/e2e`, georeferencing work).
+
+- **Sources:** the adopted policy PDF (`guidelines.vancouver.ca`, Figure 1 p.5) answered HTTP 403 and was not bypassed. The City's review exhibit boards (48 pp., file date 14 May 2026) came through ShapeYourCity's own download link; p.40 carries the legend "Current Higher Buildings Policy Area". No official GIS polygon on opendata.vancouver.ca (whole catalogue checked, 200 datasets).
+- **Geometry:** the 14 orange vector paths of p.40, taken exactly from the PDF and georeferenced by an affine fit to 246 street crossings (City street centre lines; leave-one-out 1.2 m RMS, 90% within 2.3 m). The drawn edge is generalised (3.0 m median, 8.3 m p90 from a City lot line or street centre line; small parts up to 42 m off), so each part has its own tolerance band (10–40 m). Data: `src/data/higherBuildings.json` (EPSG:26910, stable ids `hbp-current-01…14`).
+- **App:** `lib/higherBuildings.ts` (data, state), `engine/policyArea.ts` (site relationship), `components/HigherBuildings.tsx` (overlay, label, card, dock items); Layers › Planning in both projects; search entry; small exports in `VistaLook.tsx` (currentView, isFlying, labelReservations).
+- **Findings:** the Bay Parkade block is outside and the block across Seymour St is 96% inside (City FAQ and exhibit p.13 agree). The Toolkit's default Real Vancouver site lies **outside**, about 25 m from the area.
+- **Tests:** unit 35 new (all pass); e2e 4 new (all pass, Edge, local config against this worktree's server). Full vitest: 1184 pass; 2 fail on byte-size checks of unchanged data files (this worktree checks files out with CRLF, `core.autocrlf=true`).
+
+---
+
 # CHECKPOINT: workspace interface correction (overnight brief, 8 Nov 2026)
 
 Brief: `Tower_Design_Workspace_Audit_and_Overnight_Brief.docx` (project folder), plus Ruijie's pasted task.

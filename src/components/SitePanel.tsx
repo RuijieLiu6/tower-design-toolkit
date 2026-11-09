@@ -17,6 +17,7 @@ import { breakStep } from '../lib/project/history'
 import { useResults } from '../hooks/useResults'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData } from './CityContext'
+import { HB_SEARCH_NOTE, matchesHb, selectHb } from '../lib/higherBuildings'
 import { FlagChip, Section } from './ui'
 import Fold from './Fold'
 
@@ -116,7 +117,7 @@ function CitySite() {
 }
 
 // ---------------------------------------------------------------- address and neighbourhood search (online only)
-type Item = { label: string; note: string; place?: Place; street?: string; approximate?: boolean }
+type Item = { label: string; note: string; place?: Place; street?: string; approximate?: boolean; planning?: boolean }
 /** Address and neighbourhood search; `bare` drops the section frame (the Site step's palette has its own heading). */
 export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, label: string, source: string) => void; bare?: boolean }) {
   const listId = `site-address-list-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
@@ -142,6 +143,8 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
   }, [consent, online])
   const localItems = useMemo(() => {
     const items: Item[] = []
+    // Planning layers first, as their own group (kept apart from place names; nothing is sent for them).
+    if (matchesHb(q)) items.push({ label: 'Higher Buildings', note: HB_SEARCH_NOTE, planning: true })
     if (records && q.trim()) {
       const r = suggest(records, q)
       if (r.kind === 'streets') r.items.forEach((x) => items.push({ label: x.label, note: r.approximate ? 'Similar street · add a number' : 'Street · add a number', street: x.street, approximate: r.approximate }))
@@ -162,6 +165,8 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
   }
   const choose = (i: (typeof merged)[number]) => {
     setOpen(false)
+    // A planning layer: highlight it and open its details. The site, the marker and the view stay as they are.
+    if (i.planning) { setQ(''); selectHb(); say('Higher Buildings is highlighted on the map and its details are open. Your site has not moved.'); return }
     if (i.street) { setQ(`${titleStreet(i.street)} `); say(`Add a street number before ${titleStreet(i.street)}, or keep typing.`); return }
     if (!i.place) return
     const p = local_(i.place)

@@ -324,6 +324,10 @@ body {
 
 /* Map place names that answer a click (components/VistaLook.tsx usePlacePicks): a pointer, and the name outlined. */
 [data-place-hover] { cursor: pointer !important; }
+/* Higher Buildings' map label (components/HigherBuildings.tsx): a pointer over it; quieter at close range (never under 12 px). */
+[data-hb-hover] { cursor: pointer !important; }
+.hb-label[data-near="1"] { opacity: 0.72; }
+.hb-label[data-near="1"] .hb-label-sub { display: none; }
 [data-place][data-hover] { outline: 2px solid #426b61; outline-offset: 0; }
 
 /* The Toolkit icon set (components/icons): its stroke keeps the same width on screen at any icon size. */

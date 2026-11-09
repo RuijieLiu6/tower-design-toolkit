@@ -41,6 +41,7 @@ import HeightSurfaceLayer, { HeightSurfacePanel, drawClick, useHeightSurface } f
 import Label from './Label'
 import { CONE_STYLE, FlagChip } from './ui'
 import { ViewportDock, useDock } from './ViewportDock'
+import { HigherBuildingsDockItem, HigherBuildingsSummary } from './HigherBuildings'
 import { ExistingConeCrossings, coneCrossingsFor } from './ConeVolumes'
 import VistaCones, { ConeVisibilityPanel } from './VistaCones'
 import { earClip } from '../lib/coneVolume'
@@ -1206,6 +1207,8 @@ export function CityLegend() {
   const fas = manifest.layers.flatMap((l) => l.false_assumptions ?? [])
   return (
     <ViewportDock anchored hint={hint} sections={[
+      // Policy geography, apart from the place names (Milestone A, 9 Nov).
+      { id: 'planning', title: 'Planning', defaultOpen: true, summary: <HigherBuildingsSummary />, children: <HigherBuildingsDockItem /> },
       { id: 'sources', title: sources, summary: `${firstLoad.length} · ${mb(total)}${onDemand ? ` · ${onDemand} on demand` : ''}`, children: (
         <div className="space-y-2">
           <p role="status">

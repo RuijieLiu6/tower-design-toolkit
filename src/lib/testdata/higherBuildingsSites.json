@@ -1,0 +1,250 @@
+{
+ "note": "Local frame (EPSG:26910 minus 491300, 5458600). Expected results computed with shapely (04 Tool Plan/higher-buildings/work/checks.py): band = buffer of each part boundary by its tolerance. Blocks are the street-centre blocks shrunk 10 m.",
+ "sites": [
+  {
+   "name": "inside",
+   "ring": [
+    [
+     -81.9,
+     604.78
+    ],
+    [
+     -41.9,
+     604.78
+    ],
+    [
+     -41.9,
+     644.78
+    ],
+    [
+     -81.9,
+     644.78
+    ]
+   ],
+   "relation": "within",
+   "share": 1.0,
+   "siteM2": 1600.0
+  },
+  {
+   "name": "outside",
+   "ring": [
+    [
+     -920,
+     380
+    ],
+    [
+     -880,
+     380
+    ],
+    [
+     -880,
+     420
+    ],
+    [
+     -920,
+     420
+    ]
+   ],
+   "relation": "outside",
+   "share": 0.0,
+   "siteM2": 1600.0
+  },
+  {
+   "name": "crossing",
+   "ring": [
+    [
+     251.75,
+     139.6
+    ],
+    [
+     123.48,
+     266.87
+    ],
+    [
+     233.86,
+     378.07
+    ],
+    [
+     362.16,
+     250.83
+    ]
+   ],
+   "relation": "overlapping",
+   "share": 0.4445,
+   "siteM2": 28315.5
+  },
+  {
+   "name": "near_edge_inside",
+   "ring": [
+    [
+     233.39,
+     276.81
+    ],
+    [
+     224.89,
+     268.34
+    ],
+    [
+     233.36,
+     259.84
+    ],
+    [
+     241.86,
+     268.31
+    ]
+   ],
+   "relation": "uncertain",
+   "share": 1.0,
+   "siteM2": 144.0
+  },
+  {
+   "name": "near_edge_outside",
+   "ring": [
+    [
+     243.27,
+     266.89
+    ],
+    [
+     234.77,
+     258.42
+    ],
+    [
+     243.24,
+     249.92
+    ],
+    [
+     251.74,
+     258.4
+    ]
+   ],
+   "relation": "uncertain",
+   "share": 0.0,
+   "siteM2": 144.0
+  },
+  {
+   "name": "bay_parkade_block",
+   "ring": [
+    [
+     251.75,
+     139.6
+    ],
+    [
+     195.49,
+     195.45
+    ],
+    [
+     305.87,
+     306.63
+    ],
+    [
+     362.16,
+     250.83
+    ]
+   ],
+   "relation": "outside",
+   "share": 0.0,
+   "siteM2": 12421.0
+  },
+  {
+   "name": "across_seymour (Seymour-Granville, W Georgia-Dunsmuir)",
+   "ring": [
+    [
+     181.29,
+     209.54
+    ],
+    [
+     123.48,
+     266.87
+    ],
+    [
+     233.86,
+     378.07
+    ],
+    [
+     291.67,
+     320.72
+    ]
+   ],
+   "relation": "uncertain",
+   "share": 0.957,
+   "siteM2": 12757.2
+  },
+  {
+   "name": "across_georgia (Richards-Seymour, W Georgia-Robson)",
+   "ring": [
+    [
+     237.66,
+     125.4
+    ],
+    [
+     127.37,
+     14.15
+    ],
+    [
+     71.1,
+     70.01
+    ],
+    [
+     181.41,
+     181.25
+    ]
+   ],
+   "relation": "outside",
+   "share": 0.0,
+   "siteM2": 12420.4
+  },
+  {
+   "name": "across_dunsmuir (Richards-Seymour, Dunsmuir-W Pender)",
+   "ring": [
+    [
+     376.25,
+     265.03
+    ],
+    [
+     319.95,
+     320.83
+    ],
+    [
+     384.85,
+     386.26
+    ],
+    [
+     441.13,
+     330.41
+    ]
+   ],
+   "relation": "outside",
+   "share": 0.0,
+   "siteM2": 7303.7
+  },
+  {
+   "name": "across_richards (Homer-Richards, W Georgia-Dunsmuir)",
+   "ring": [
+    [
+     322.3,
+     69.65
+    ],
+    [
+     265.95,
+     125.52
+    ],
+    [
+     376.36,
+     236.75
+    ],
+    [
+     432.69,
+     180.84
+    ]
+   ],
+   "relation": "outside",
+   "share": 0.0,
+   "siteM2": 12436.0
+  }
+ ],
+ "defaultSite": {
+  "relation": "outside",
+  "share": 0.0,
+  "distanceM": 25.1
+ }
+}

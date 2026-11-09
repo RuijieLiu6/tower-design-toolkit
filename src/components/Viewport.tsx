@@ -62,6 +62,7 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
 import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
+import { HigherBuildingsLabel, HigherBuildingsLayer, HigherBuildingsVtcItem } from './HigherBuildings'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView } from '../lib/northView'
@@ -184,6 +185,8 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <SolarOverlay />
       <SolarEnvelopeOverlay />
       <RelaxationMasks />
+      {/* Planning: the City's Higher Buildings policy area (display only: no picking, no depth writes). */}
+      <HigherBuildingsLayer />
     </>
   )
 }
@@ -695,7 +698,7 @@ export default function Viewport() {
           </ViewGuard>
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
-          {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
+          {project === 'city' && !present && !hidden && <><SitePlaceLabels /><HigherBuildingsLabel /><VistaChrome /></>}
           {/* Not at eye level (Observer: its corner map takes the bottom right, and the view is not an axonometric). */}
           {phase === 'advanced' && sel && !hidden && !looking && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : project === 'city' ? 'right-3' : 'right-12'} />}
         </div>
@@ -813,6 +816,7 @@ function VtcDock() {
           </Help>
         </div>
       ) },
+      { id: 'planning', title: 'Planning', summary: 'Higher Buildings · Real Vancouver only', children: <HigherBuildingsVtcItem /> },
       { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )

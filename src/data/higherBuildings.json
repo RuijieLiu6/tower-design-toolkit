@@ -1,0 +1,921 @@
+{
+ "schema": "tower-studio-policy-area@1",
+ "id": "higher-buildings",
+ "name": "Higher Buildings",
+ "group": "Planning",
+ "crs": {
+  "horizontal": "EPSG:26910",
+  "name": "NAD83 / UTM zone 10N",
+  "units": "m",
+  "vertical": null,
+  "note": "Plan boundaries only: no height, no vertical datum. The app subtracts CITY_ORIGIN (491300, 5458600) to reach its local frame."
+ },
+ "policy": {
+  "name": "General Policy for Higher Buildings",
+  "adopted": "1997",
+  "adoptedSource": "City of Vancouver, Higher Buildings Policy Review exhibit boards, p.11 timeline; ShapeYourCity review page",
+  "status": "in-force",
+  "statusText": "In force (adopted 1997, amended); under review",
+  "amendments": [
+   {
+    "year": "2011",
+    "text": "Downtown Capacity Study: policy amended, gateway markers at the Granville and Burrard bridges (exhibit p.11 timeline)."
+   },
+   {
+    "year": "2013",
+    "text": "West End Plan adds sites along Burrard (exhibit p.11 timeline)."
+   },
+   {
+    "year": "2018",
+    "text": "Northeast False Creek Plan adds a Georgia Gateway (exhibit p.11 timeline)."
+   }
+  ],
+  "pdf": {
+   "title": "Higher Buildings Policy (policy document, Figure 1 p.5)",
+   "url": "https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf",
+   "amendment": "31 Mar 2026 according to the brief; not verified here",
+   "inspected": false,
+   "reason": "HTTP 403 to automated requests on 8 Nov 2026 (Pacific); not bypassed"
+  }
+ },
+ "review": {
+  "name": "Higher Buildings Policy Review",
+  "url": "https://www.shapeyourcity.ca/higher-buildings",
+  "faq": "https://www.shapeyourcity.ca/higher-buildings/widgets/224666/faqs",
+  "phase": "Phase 2 · Draft policies",
+  "window": "Fall 2026 – Winter 2027",
+  "next": "Phase 3 final updated policy (Winter–Spring 2027); Phase 4 public hearing and adoption (Spring 2027)",
+  "pageUpdated": "2026-10-22",
+  "retrieved": "2026-11-08"
+ },
+ "layers": [
+  {
+   "id": "current",
+   "title": "Current policy area",
+   "status": "published",
+   "statusText": "Published City map of the policy in force; boundary digitized by the Toolkit",
+   "source": {
+    "title": "Higher Buildings Policy Review: exhibit boards",
+    "publisher": "City of Vancouver",
+    "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+    "via": "https://www.shapeyourcity.ca/51604/widgets/218772/documents/168887/download",
+    "page": 40,
+    "figure": "Map with the legend \"Current Higher Buildings Policy Area\" (orange)",
+    "documentDate": "2026-05-14",
+    "documentDateBasis": "PDF creation and modification date (14 May 2026, Pacific)",
+    "retrieved": "2026-11-08",
+    "retrievedUtc": "2026-11-09T07:19Z",
+    "sha256": "17b6ea224cceb57c6da8f9db68d4a54018433757879056d417481098443aab2f"
+   },
+   "geometryBasis": "Digitized: the 14 orange vector paths of exhibit p.40, taken exactly from the PDF and georeferenced with an affine fit to 246 street-intersection control points (City street centre lines).",
+   "accuracy": {
+    "georeferenceRmsM": 1.2,
+    "georeferenceP90M": 2.32,
+    "georeferenceMaxM": 3.89,
+    "controlPoints": 246,
+    "edgeAgreement": {
+     "median": 3.0,
+     "p75": 4.9,
+     "p90": 8.3,
+     "p95": 13.1,
+     "max": 42.1
+    },
+    "text": "Map registration 1.2 m RMS (leave-one-out over 246 street crossings, 90% within 2.32 m). The drawn boundary is generalised: half of its length lies within 3.0 m of a City lot line or street centre line, 90% within 8.3 m; small parts near Northeast False Creek and the Granville Bridge are up to 42.1 m off. Each part carries its own tolerance band."
+   },
+   "labelAt": [
+    491234.89,
+    5459223.75
+   ],
+   "labelCandidates": [
+    [
+     491234.89,
+     5459223.75
+    ],
+    [
+     491348.0,
+     5458736.0
+    ],
+    [
+     490918.0,
+     5459336.0
+    ],
+    [
+     491458.0,
+     5459416.0
+    ],
+    [
+     491438.0,
+     5459006.0
+    ],
+    [
+     491198.0,
+     5459016.0
+    ]
+   ],
+   "areaM2": 427244,
+   "parts": [
+    {
+     "id": "hbp-current-01",
+     "label": "Central core (Central Business District)",
+     "sizeClass": "area",
+     "areaM2": 230872,
+     "toleranceM": 10,
+     "sourcePath": 6507,
+     "edgeAgreementM": {
+      "median": 2.5,
+      "p90": 5.7,
+      "max": 27.3
+     },
+     "ring": [
+      [
+       490934.63,
+       5459412.29
+      ],
+      [
+       490857.69,
+       5459336.12
+      ],
+      [
+       491063.52,
+       5459126.06
+      ],
+      [
+       491090.3,
+       5459152.38
+      ],
+      [
+       491103.42,
+       5459165.83
+      ],
+      [
+       491105.13,
+       5459167.51
+      ],
+      [
+       491107.39,
+       5459168.05
+      ],
+      [
+       491109.65,
+       5459168.6
+      ],
+      [
+       491111.9,
+       5459168.57
+      ],
+      [
+       491114.14,
+       5459167.42
+      ],
+      [
+       491115.81,
+       5459166.28
+      ],
+      [
+       491196.47,
+       5459083.51
+      ],
+      [
+       491198.14,
+       5459081.8
+      ],
+      [
+       491198.67,
+       5459079.53
+      ],
+      [
+       491199.22,
+       5459077.83
+      ],
+      [
+       491198.63,
+       5459075.57
+      ],
+      [
+       491198.03,
+       5459073.32
+      ],
+      [
+       491196.33,
+       5459071.64
+      ],
+      [
+       491133.06,
+       5459008.35
+      ],
+      [
+       491165.33,
+       5458975.8
+      ],
+      [
+       491167.0,
+       5458974.09
+      ],
+      [
+       491167.53,
+       5458971.82
+      ],
+      [
+       491168.07,
+       5458969.56
+      ],
+      [
+       491167.48,
+       5458967.3
+      ],
+      [
+       491166.89,
+       5458965.61
+      ],
+      [
+       491165.19,
+       5458963.93
+      ],
+      [
+       491116.16,
+       5458914.64
+      ],
+      [
+       491138.97,
+       5458891.23
+      ],
+      [
+       491258.09,
+       5459009.97
+      ],
+      [
+       491259.8,
+       5459011.09
+      ],
+      [
+       491262.06,
+       5459012.2
+      ],
+      [
+       491263.75,
+       5459012.18
+      ],
+      [
+       491266.0,
+       5459012.16
+      ],
+      [
+       491268.25,
+       5459011.58
+      ],
+      [
+       491269.92,
+       5459009.86
+      ],
+      [
+       491340.59,
+       5458939.64
+      ],
+      [
+       491341.69,
+       5458937.36
+      ],
+      [
+       491342.8,
+       5458935.66
+      ],
+      [
+       491342.77,
+       5458933.39
+      ],
+      [
+       491342.74,
+       5458931.13
+      ],
+      [
+       491341.59,
+       5458928.88
+      ],
+      [
+       491340.44,
+       5458927.2
+      ],
+      [
+       491221.3,
+       5458807.32
+      ],
+      [
+       491350.37,
+       5458676.03
+      ],
+      [
+       491588.62,
+       5458913.51
+      ],
+      [
+       491348.29,
+       5459157.83
+      ],
+      [
+       491347.18,
+       5459159.54
+      ],
+      [
+       491346.08,
+       5459161.81
+      ],
+      [
+       491346.11,
+       5459164.07
+      ],
+      [
+       491346.13,
+       5459166.34
+      ],
+      [
+       491347.28,
+       5459168.02
+      ],
+      [
+       491348.43,
+       5459169.7
+      ],
+      [
+       491384.91,
+       5459206.11
+      ],
+      [
+       491429.34,
+       5459248.1
+      ],
+      [
+       491431.61,
+       5459249.2
+      ],
+      [
+       491433.87,
+       5459250.32
+      ],
+      [
+       491436.69,
+       5459250.29
+      ],
+      [
+       491438.93,
+       5459249.13
+      ],
+      [
+       491441.16,
+       5459247.42
+      ],
+      [
+       491468.41,
+       5459219.45
+      ],
+      [
+       491491.78,
+       5459242.98
+      ],
+      [
+       491425.03,
+       5459310.91
+      ],
+      [
+       491423.36,
+       5459312.62
+      ],
+      [
+       491422.82,
+       5459314.89
+      ],
+      [
+       491422.28,
+       5459317.15
+      ],
+      [
+       491422.88,
+       5459319.4
+      ],
+      [
+       491423.46,
+       5459321.1
+      ],
+      [
+       491425.17,
+       5459322.78
+      ],
+      [
+       491531.77,
+       5459430.33
+      ],
+      [
+       491340.64,
+       5459505.1
+      ],
+      [
+       491094.99,
+       5459260.9
+      ],
+      [
+       491093.28,
+       5459259.79
+      ],
+      [
+       491091.58,
+       5459258.67
+      ],
+      [
+       491089.33,
+       5459258.7
+      ],
+      [
+       491087.08,
+       5459258.72
+      ],
+      [
+       491084.84,
+       5459259.87
+      ],
+      [
+       491083.16,
+       5459261.02
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-02",
+     "label": "Area along Thurlow St, Burrard St, Comox St",
+     "sizeClass": "area",
+     "areaM2": 72493,
+     "toleranceM": 10,
+     "sourcePath": 6508,
+     "edgeAgreementM": {
+      "median": 4.3,
+      "p90": 7.1,
+      "max": 7.5
+     },
+     "ring": [
+      [
+       490754.84,
+       5458651.76
+      ],
+      [
+       491019.88,
+       5458915.56
+      ],
+      [
+       490883.57,
+       5459053.71
+      ],
+      [
+       490619.11,
+       5458790.47
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-03",
+     "label": "Area along Alberni St, Burrard St, Bute St",
+     "sizeClass": "area",
+     "areaM2": 18232,
+     "toleranceM": 10,
+     "sourcePath": 6508,
+     "edgeAgreementM": {
+      "median": 2.2,
+      "p90": 4.8,
+      "max": 6.6
+     },
+     "ring": [
+      [
+       491105.37,
+       5459000.69
+      ],
+      [
+       491136.72,
+       5459032.06
+      ],
+      [
+       490845.76,
+       5459327.76
+      ],
+      [
+       490814.98,
+       5459296.95
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-04",
+     "label": "Area along W Pender St, Melville St, Thurlow St",
+     "sizeClass": "area",
+     "areaM2": 35050,
+     "toleranceM": 10,
+     "sourcePath": 6508,
+     "edgeAgreementM": {
+      "median": 2.5,
+      "p90": 5.7,
+      "max": 7.5
+     },
+     "ring": [
+      [
+       491089.53,
+       5459275.1
+      ],
+      [
+       491236.01,
+       5459420.72
+      ],
+      [
+       491033.29,
+       5459514.83
+      ],
+      [
+       490942.67,
+       5459424.66
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-05",
+     "label": "Area along W Georgia St, Cardero St, Bute St",
+     "sizeClass": "area",
+     "areaM2": 54626,
+     "toleranceM": 15,
+     "sourcePath": 6509,
+     "edgeAgreementM": {
+      "median": 3.0,
+      "p90": 12.2,
+      "max": 14.0
+     },
+     "ring": [
+      [
+       490506.26,
+       5459754.53
+      ],
+      [
+       490446.41,
+       5459695.16
+      ],
+      [
+       490435.01,
+       5459683.39
+      ],
+      [
+       490435.56,
+       5459682.83
+      ],
+      [
+       490814.97,
+       5459313.94
+      ],
+      [
+       490836.83,
+       5459334.62
+      ],
+      [
+       490872.74,
+       5459370.47
+      ],
+      [
+       490884.14,
+       5459381.67
+      ],
+      [
+       490883.58,
+       5459382.24
+      ],
+      [
+       490518.08,
+       5459754.42
+      ],
+      [
+       490511.95,
+       5459760.13
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-06",
+     "label": "Small part near Burnaby St & Burrard St",
+     "sizeClass": "small",
+     "areaM2": 701,
+     "toleranceM": 20,
+     "sourcePath": 6510,
+     "edgeAgreementM": {
+      "median": 3.2,
+      "p90": 14.7,
+      "max": 19.5
+     },
+     "ring": [
+      [
+       490595.97,
+       5458506.25
+      ],
+      [
+       490623.91,
+       5458534.26
+      ],
+      [
+       490599.44,
+       5458559.94
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-07",
+     "label": "Small part near Nicola St & W Pender St",
+     "sizeClass": "small",
+     "areaM2": 1684,
+     "toleranceM": 10,
+     "sourcePath": 6511,
+     "edgeAgreementM": {
+      "median": 3.7,
+      "p90": 5.2,
+      "max": 6.7
+     },
+     "ring": [
+      [
+       490614.68,
+       5459685.64
+      ],
+      [
+       490656.4,
+       5459642.83
+      ],
+      [
+       490670.66,
+       5459657.39
+      ],
+      [
+       490683.19,
+       5459669.15
+      ],
+      [
+       490684.9,
+       5459670.83
+      ],
+      [
+       490674.81,
+       5459675.45
+      ],
+      [
+       490673.11,
+       5459673.77
+      ],
+      [
+       490663.58,
+       5459678.39
+      ],
+      [
+       490665.29,
+       5459680.06
+      ],
+      [
+       490655.78,
+       5459684.68
+      ],
+      [
+       490645.69,
+       5459688.73
+      ],
+      [
+       490636.73,
+       5459693.34
+      ],
+      [
+       490626.65,
+       5459697.97
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-08",
+     "label": "Small part near Alberni St & Burrard St",
+     "sizeClass": "small",
+     "areaM2": 2299,
+     "toleranceM": 15,
+     "sourcePath": 6512,
+     "edgeAgreementM": {
+      "median": 2.6,
+      "p90": 11.5,
+      "max": 19.6
+     },
+     "ring": [
+      [
+       491070.78,
+       5459120.9
+      ],
+      [
+       491121.97,
+       5459069.52
+      ],
+      [
+       491128.77,
+       5459119.22
+      ],
+      [
+       491099.28,
+       5459149.47
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-09",
+     "label": "Small part near Burnaby St & Burrard St",
+     "sizeClass": "small",
+     "areaM2": 2469,
+     "toleranceM": 10,
+     "sourcePath": 6513,
+     "edgeAgreementM": {
+      "median": 4.5,
+      "p90": 7.6,
+      "max": 18.1
+     },
+     "ring": [
+      [
+       490529.75,
+       5458338.38
+      ],
+      [
+       490555.34,
+       5458312.13
+      ],
+      [
+       490603.23,
+       5458360.3
+      ],
+      [
+       490577.63,
+       5458385.99
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-10",
+     "label": "Small part near Continental St & Granville St",
+     "sizeClass": "small",
+     "areaM2": 2455,
+     "toleranceM": 25,
+     "sourcePath": 6514,
+     "edgeAgreementM": {
+      "median": 3.5,
+      "p90": 18.4,
+      "max": 22.6
+     },
+     "ring": [
+      [
+       490416.5,
+       5458005.84
+      ],
+      [
+       490442.09,
+       5457979.58
+      ],
+      [
+       490489.98,
+       5458027.76
+      ],
+      [
+       490463.81,
+       5458052.88
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-11",
+     "label": "Small part near Continental St & Granville St",
+     "sizeClass": "small",
+     "areaM2": 3214,
+     "toleranceM": 20,
+     "sourcePath": 6515,
+     "edgeAgreementM": {
+      "median": 6.6,
+      "p90": 15.1,
+      "max": 20.7
+     },
+     "ring": [
+      [
+       490521.09,
+       5457899.09
+      ],
+      [
+       490550.57,
+       5457869.41
+      ],
+      [
+       490605.86,
+       5457924.29
+      ],
+      [
+       490578.05,
+       5457953.4
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-12",
+     "label": "Small part near Griffiths Way & Pacific Boulevard",
+     "sizeClass": "small",
+     "areaM2": 902,
+     "toleranceM": 40,
+     "sourcePath": 6516,
+     "edgeAgreementM": {
+      "median": 12.6,
+      "p90": 37.2,
+      "max": 42.1
+     },
+     "ring": [
+      [
+       492005.71,
+       5458195.35
+      ],
+      [
+       492038.67,
+       5458219.91
+      ],
+      [
+       492008.08,
+       5458251.87
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-13",
+     "label": "Small part near Griffiths Way & Pacific Boulevard",
+     "sizeClass": "small",
+     "areaM2": 1263,
+     "toleranceM": 35,
+     "sourcePath": 6517,
+     "edgeAgreementM": {
+      "median": 15.3,
+      "p90": 28.5,
+      "max": 34.5
+     },
+     "ring": [
+      [
+       492031.2,
+       5458161.17
+      ],
+      [
+       492046.67,
+       5458136.71
+      ],
+      [
+       492080.79,
+       5458164.09
+      ],
+      [
+       492062.5,
+       5458188.58
+      ]
+     ]
+    },
+    {
+     "id": "hbp-current-14",
+     "label": "Small part near Pacific Boulevard & Pat Quinn Way",
+     "sizeClass": "small",
+     "areaM2": 982,
+     "toleranceM": 25,
+     "sourcePath": 6518,
+     "edgeAgreementM": {
+      "median": 10.3,
+      "p90": 19.7,
+      "max": 22.8
+     },
+     "ring": [
+      [
+       492117.4,
+       5458211.24
+      ],
+      [
+       492129.53,
+       5458190.2
+      ],
+      [
+       492164.7,
+       5458211.35
+      ],
+      [
+       492154.82,
+       5458231.8
+      ]
+     ]
+    }
+   ]
+  }
+ ],
+ "reviewReferences": [
+  {
+   "id": "outside-public-views",
+   "title": "Areas downtown outside Public Views (not including the Queen Elizabeth Park view)",
+   "source": "Higher Buildings Policy Review exhibit boards, p.12",
+   "url": "https://syc.vancouver.ca/projects/higher-buildings/higher-buildings-policy-review.pdf",
+   "drawn": false,
+   "why": "A different concept (where the 2024 Public Views update leaves room outside protected views), not a policy area. No City GIS layer was found; a layer derived from the view-cone data would be a separate study to verify against this map."
+  }
+ ],
+ "conflicts": [
+  "The City FAQ says the policy was last updated in 2011; the exhibit timeline (p.11) shows sites added through the West End Plan (2013) and the Northeast False Creek Plan (2018); the brief reports a 31 Mar 2026 amendment on the policy PDF, which could not be opened (HTTP 403).",
+  "Resolution: the layer draws the City's May 2026 exhibit map of the current policy area. Whether it matches the amended policy's Figure 1 is unverified until that PDF is read."
+ ],
+ "notes": [
+  "Membership is not approval: being inside says nothing about the height, form or outcome of a rezoning.",
+  "No height is drawn: heights differ between parts and are set by the policy and site-specific review, not by this boundary.",
+  "Exhibit p.13 places the Bay Parkade (501–525 W Georgia St) just outside the boundary; the City FAQ says sites immediately across the street are within it. The digitized parts agree."
+ ]
+}
