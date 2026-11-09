@@ -723,5 +723,5 @@ export function VistaLookRig() {
   const inspected = useVistaLook((s) => s.inspected)
   // The building picked in Inspect, marked above its roof (Vista colours its selection; one mesh here, so a marker).
   if (mode !== 'inspect' || !inspected) return null
-  return <Label text="▼ inspected" position={[inspected.x, inspected.y, inspected.roof + 14]} size={0.016} color={CHROME.activeInk} background="rgba(66,107,97,0.92)" bold />
+  return <Label text="▼ inspected" position={[inspected.x, inspected.y, inspected.roof + 14]} size={0.016} color={CHROME.plateInk} background="rgba(66,107,97,0.92)" bold />
 }

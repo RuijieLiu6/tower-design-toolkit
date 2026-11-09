@@ -186,7 +186,7 @@ function ZoningLayer({ data, grids, xray }: { data: ZoningData; grids: HeightGri
     <>
       <lineSegments geometry={geom}><lineBasicMaterial color={ZONING} transparent opacity={xray ? 0.35 : 0.8} /></lineSegments>
       {labels.length <= 200 && labels.map((l) => (
-        <Label key={l.text} text={l.text} position={[l.at[0], l.at[1], groundAt(grids, l.at[0], l.at[1]) + 8]} size={0.012} color={ZONING} background="rgba(255,255,255,0.75)" />
+        <Label key={l.text} text={l.text} position={[l.at[0], l.at[1], groundAt(grids, l.at[0], l.at[1]) + 8]} size={0.012} color={ZONING} background="rgba(255,255,255,0.9)" />
       ))}
     </>
   )

@@ -164,7 +164,7 @@ export default function ViewFromRig() {
     <group ref={marker}>
       <mesh position={[vp.x, vp.y, z]}><sphereGeometry args={[6, 16, 16]} /><meshBasicMaterial color="#d97706" /></mesh>
       <mesh position={[vp.x, vp.y, z / 2]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[1.2, 1.2, z, 8]} /><meshBasicMaterial color="#d97706" transparent opacity={0.6} /></mesh>
-      <Label text={`Viewpoint · eye ${z.toFixed(1)} m`} position={[vp.x, vp.y, z + 30]} size={0.015} color="#ffffff" background="rgba(180,83,9,0.92)" bold />
+      <Label text={`Viewpoint · eye ${z.toFixed(1)} m`} position={[vp.x, vp.y, z + 30]} size={0.015} color="#ffffff" background="rgba(173,80,9,0.92)" bold />
     </group>
   )
 }

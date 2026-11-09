@@ -456,7 +456,7 @@ function TowerMesh({ t, baseZ, xray, vista = false }: { t: Tower; baseZ: number;
         return (
           <group key={`sky${f.level}`} position={[sb?.dx ?? 0, sb?.dy ?? 0, f.z0 + 0.1]} rotation={[0, 0, ((sb?.rotation ?? 0) * Math.PI) / 180]}>
             <mesh><planeGeometry args={[(sb?.width ?? t.width) + 4, (sb?.depth ?? t.depth) + 4]} /><meshBasicMaterial color={isPublic ? SHAFT_COLOR.public : SHUTTLE_COLOR} transparent opacity={isPublic ? 0.45 : 0.35} side={THREE.DoubleSide} depthWrite={false} clippingPlanes={clip} /></mesh>
-            <Label text={isPublic ? `Public sky room L${f.level}` : `Sky lobby L${f.level}`} position={[(sb?.width ?? t.width) / 2 + 8, 0, 2]} size={0.014} color="#ffffff" background={isPublic ? 'rgba(142,91,168,0.94)' : 'rgba(42,143,134,0.92)'} bold />
+            <Label text={isPublic ? `Public sky room L${f.level}` : `Sky lobby L${f.level}`} position={[(sb?.width ?? t.width) / 2 + 8, 0, 2]} size={0.014} color="#ffffff" background={isPublic ? 'rgba(142,91,168,0.94)' : 'rgba(34,117,110,0.92)'} bold />
           </group>
         )
       })}

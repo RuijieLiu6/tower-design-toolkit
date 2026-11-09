@@ -112,7 +112,7 @@ export default function PublicRealmOverlay() {
         {os.largest && (
           <group>
             <Rect {...os.largest} color="#3c8d5a" opacity={0.3} />
-            <Label text={`Largest open space ${Math.round(os.largest.area).toLocaleString()} m²`} position={[(os.largest.x0 + os.largest.x1) / 2, (os.largest.y0 + os.largest.y1) / 2, 4]} size={0.016} color="#ffffff" background="rgba(60,141,90,0.92)" />
+            <Label text={`Largest open space ${Math.round(os.largest.area).toLocaleString()} m²`} position={[(os.largest.x0 + os.largest.x1) / 2, (os.largest.y0 + os.largest.y1) / 2, 4]} size={0.016} color="#ffffff" background="rgba(50,118,76,0.92)" />
           </group>
         )}
         <Rect x0={STATION_CORNER[0]} x1={STATION_CORNER[0] + 6.1} y0={STATION_CORNER[1]} y1={STATION_CORNER[1] + 6.1} color={os.transitPlaza ? '#2a8f86' : '#d0453a'} opacity={0.6} z={0.35} />

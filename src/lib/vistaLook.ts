@@ -44,6 +44,9 @@ export const CHROME = {
   box: '#ffffff', border: '#d9dee7', ink: '#202630', tabInk: '#5f6875', active: '#eaf1ff', activeInk: '#1d4ed8',
   shadow: '0 1px 2px rgba(32,38,48,0.06), 0 6px 16px -10px rgba(32,38,48,0.18)', labelBg: 'rgba(255,255,255,0.92)', labelInk: '#202630', labelBorder: '#d9dee7',
   labelExtBg: 'rgba(255,255,255,0.78)', labelExtInk: '#5f6875', swatchBorder: 'rgba(0,0,0,0.15)',
+  /** Text on the dark, filled 3D labels (featured cone, inspected building). Not activeInk: that is the selected tab's
+   *  blue on a light tint and is unreadable on a dark plate (fixed 9 Nov after the 8 Nov token remap). */
+  plateInk: '#ffffff',
 } as const
 
 /** Vista's City overview camera (Ruijie's link: cam=0.018,0.682,9710.399,2440.256,-534.808,20) in the Toolkit frame. */

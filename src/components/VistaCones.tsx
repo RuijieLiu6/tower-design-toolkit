@@ -154,7 +154,7 @@ function FeaturedCone({ cone, surface, ground, cut }: { cone: Cone; surface: Con
       {/* Origin marker: a 2.4 m box at the ground and a 70 m line (Vista); the City's eye Lv is the cone's apex height. */}
       <mesh position={[ax, ay, g.g0 + 1.5]} raycast={() => null}><boxGeometry args={[2.4 * 4, 2.4 * 4, 3 * 4]} /><meshBasicMaterial color={COLOR.origin} toneMapped={false} /></mesh>
       <Line points={[[ax, ay, g.g0], [ax, ay, g.g0 + 70]]} color={COLOR.origin} lineWidth={2} />
-      <Label text={text} position={[ax, ay, Math.max(g.g0 + 75, cone.Lv + 20)]} size={0.015} color={CHROME.activeInk} background="rgba(25,105,174,0.94)" keepInView />
+      <Label text={text} position={[ax, ay, Math.max(g.g0 + 75, cone.Lv + 20)]} size={0.015} color={CHROME.plateInk} background="rgba(25,105,174,0.94)" bold keepInView />
     </group>
   )
 }

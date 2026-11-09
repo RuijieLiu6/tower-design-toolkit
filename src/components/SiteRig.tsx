@@ -142,7 +142,7 @@ function SiteLayer({ data }: { data: CityData }) {
       {/* Plain: a light wash. Context draws the lot in Vista's paving itself (CityContext SiteSurface, real-vancouver-finish). */}
       {ringOk && !context && <SiteSurface grids={grids} ring={site!.ring} />}
       {ringOk && L(drape(grids, site!.ring, 1.2), COLORS.site, 3.5)}
-      {ringOk && centre && area && <Label text={`Study site · ${Math.round(area.area).toLocaleString('en-CA')} m² (${area.basis === 'parcels' ? 'parcels' : 'boundary'})`} position={[centre[0], centre[1], (sampleTerrain(grids, centre[0], centre[1]) ?? 0) + 18]} size={0.016} color="#ffffff" background="rgba(234,88,12,0.92)" bold />}
+      {ringOk && centre && area && <Label text={`Study site · ${Math.round(area.area).toLocaleString('en-CA')} m² (${area.basis === 'parcels' ? 'parcels' : 'boundary'})`} position={[centre[0], centre[1], (sampleTerrain(grids, centre[0], centre[1]) ?? 0) + 18]} size={0.016} color="#ffffff" background="rgba(185,70,9,0.92)" bold />}
       {match && layer && match.hits.filter((h) => h.kind !== 'touching').map((h) => (
         <group key={h.index}>{L(drape(grids, layer.polys[h.index].outer as Pt[], 0.9), match.included.includes(h.index) ? COLORS.inside : COLORS.partial, match.included.includes(h.index) ? 2 : 1.5, !match.included.includes(h.index))}</group>
       ))}
