@@ -235,12 +235,13 @@ test('Site step: address, neighbourhood, map menu actions, combining two lots', 
   await expect(page.locator('[role="tab"][data-tool="site"], [role="tab"][data-tool="rhino-import"]')).toHaveCount(0)
   await page.screenshot({ path: join(SHOTS, '09-volume-step.png'), ...SHOT })
 
-  // 6. Context on (Ruijie, 3 Nov): Vista's textured render; the combined site is paved and the replaced buildings stay gone.
-  const contextButton = page.getByRole('toolbar', { name: 'Map mode' }).getByRole('button', { name: /^Context/ })
-  await contextButton.click()
-  await expect(contextButton).toHaveAttribute('aria-pressed', 'true')
+  // 6. Vista's textured render (Ruijie, 3 Nov), the Materials View since 7 Nov (it replaced the map bar's Context toggle):
+  // the combined site is paved and the replaced buildings stay gone; Geometry brings the plain model back.
+  const view = (name: string) => page.getByRole('radiogroup', { name: 'View' }).getByRole('radio', { name, exact: true })
+  await view('Materials').click()
+  await expect(view('Materials')).toHaveAttribute('aria-checked', 'true')
   await page.waitForTimeout(4000)
   await page.screenshot({ path: join(SHOTS, '10-context-on.png'), ...SHOT })
-  await contextButton.click()
-  await expect(contextButton).toHaveAttribute('aria-pressed', 'false')
+  await view('Geometry').click()
+  await expect(view('Geometry')).toHaveAttribute('aria-checked', 'true')
 })

@@ -166,7 +166,7 @@ export function VtcLookBar() {
   const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') !== '0' } catch { return true } })
   const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   return (
-    <div data-testid="vtc-look" className="glass pointer-events-auto absolute bottom-12 left-3 z-10 grid max-w-[min(46rem,calc(100%-1.5rem))] gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
+    <div data-testid="vtc-look" data-nav-occlude="bottom" className="glass pointer-events-auto absolute bottom-12 left-3 z-10 grid max-w-[min(46rem,calc(100%-1.5rem))] gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
       <div className="flex flex-wrap items-center gap-1.5">
         <DisplayModeSwitch project="vtc" />
         <SunChip />

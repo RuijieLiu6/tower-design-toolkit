@@ -1,4 +1,69 @@
-# CHECKPOINT: workspace interface correction (overnight brief, 8 Nov 2026)
+# CHECKPOINT: Site experience, Milestone 1 (viewport navigation and site orientation, 9 Nov 2026)
+
+Brief: Ruijie's "Tower Design Toolkit: Site Experience & Viewport Navigation" (9 Nov). One milestone at a time; stop for
+review after each; separate branch; no merge or deploy until reviewed.
+- **Branch:** `site-viewport-navigation`, from `origin/main` 880643d (one commit after the brief's reference d231d0e: the
+  workflow-map fix). Not merged, not deployed.
+- **Evidence (local only):** `04 Tool Plan/site-navigation/before|after/` (the same journey at 1440 × 900 and 1280 × 800,
+  screenshots and `*-journey.json` measurements); the run-through of the whole app: `04 Tool Plan/app-run-through-2026-11-09.md`.
+
+## What was done
+- **Camera audit:** how the target is set, framing, the map modes, site selection, no tower, the clamps, kept views, data
+  loading, flights, selection state and keys (the findings are in the commit message and DESIGN_SYSTEM.md §5.3).
+- **One navigation module for both projects** (`src/lib/viewNav.ts`, `src/components/NavRig.tsx`, `src/components/ViewNav.tsx`):
+  - Frame site, Frame selection, Frame tower, Neighbourhood, City (Context) overview, Plan ⇄ 3D view, Home and
+    Set this view as Home;
+  - each frames real geometry, keeps the bearing, and fits into the part of the view the overlays leave free
+    (`data-nav-occlude`, MapLibre-style padding) with about 15% of breathing room.
+- **Orientation feedback:** the View button names the scale (City, Neighbourhood, Site, Tower, Close-up, Plan, Viewpoint),
+  its menu says it in a sentence with the width, and an off-screen pointer leads back to the site.
+- **Keyboard:** the model is a focus stop (arrows pan, Shift or Ctrl + arrows orbit, + / − zoom), with S . T N C 7 and Home.
+- **Separated controls:** the map bar groups where you look (City, Observer, Inspect, Plan) apart from what is shown
+  (Show: Viewcone, Names).
+- **Fixed:**
+  - Plan centred 2.8 km from the site with no tower; pressing Plan again did not refit.
+  - Esc in Plan left a top-down view with rotate on; Esc did not leave Observer.
+  - A camera request was replayed after a project switch.
+  - The zoom buttons did not stop a flight.
+  - The delayed framing when Real Vancouver opens could override a view the user chose.
+  - The Inspect card could crash the page on a stale building index after the city's second loading stage.
+
+## Measured before / after (Real Vancouver, no tower, site at 1128 W Georgia; 1440 × 900, 1280 × 800 the same)
+| Step | Before | After |
+|---|---|---|
+| Frame site (no tower) | "Focus site" did nothing | the site in view, 288 m across, target 13 m from the site |
+| Plan | centred 2.8 km away, site off screen (0/4 corners) | over the site, 444 m across, 4/4 corners |
+| Back to 3D | only City: 8.9 km across, the site 1% of the view | a 50° view of the site, 288 m across |
+| After orbit, pan, zoom | target 3.0 km from the site | target 60–74 m from the site |
+| Frame selection | no command | the clicked building framed (100 m across), still picked; a pointer to the site |
+| Form and back | view kept | view kept |
+
+## Tests run
+- `npx tsc -p . --noEmit`: clean.
+- `npx vitest run`: 149 files, 1165 tests pass, including the new `lib/viewNav.test.ts` (11).
+- `e2e/site-navigation.e2e.ts` (new, Edge): the acceptance journey at both sizes, 2 passed.
+- Regression batch: workspace-gate (2 sizes), layout, phase-panel, journeys, a11y (16 screens), vista-site, align-lot and
+  hide-under: 25 passed. site-step failed at its last step, a stale "Context" button (the Materials View since 7 Nov), and
+  the step was updated; the rerun passed (site-step and a11y again: 17 passed).
+- **Not run:** `e2e/vista-tabs.e2e.ts`. Its Plan expectation was updated; the test still stops at its first wait under
+  software WebGL (no place name shows), as on main.
+
+## Limitations
+- Frame selection of a city building needs an Inspect pick on a building in the City footprint layer; some roofs answer
+  "No building there".
+- Parcels are not selectable on their own yet, so selection is building, tower or address.
+- Tool-specific framing (Tower position, Dig, Import) still moves the camera when those tools open.
+- Home is saved per project and site in this browser.
+- The competition site has no Plan mode of its own: Plan is a top view there and the orbit stays free.
+
+## Next exact action
+Ruijie reviews the branch and the before/after views. If accepted, the smallest next milestone is Tool A (Site & Boundary):
+parcel hover and selection with separate visual states (source parcel, selected site, editable boundary, analysis area),
+retention kept as the default, and the right-panel site summary with Undo.
+
+---
+
+# Earlier: workspace interface correction (overnight brief, 8 Nov 2026)
 
 Brief: `Tower_Design_Workspace_Audit_and_Overnight_Brief.docx` (project folder), plus Ruijie's pasted task.
 Branch: `workspace-ui-correction`, from `main` 757b9b3. Merged into `main` (fast-forward to 06673ed) and deployed to GitHub Pages on 8 Nov 2026 at Ruijie's request.

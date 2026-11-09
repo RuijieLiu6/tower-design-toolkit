@@ -94,7 +94,7 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 ┌ Viewport ──────────────────────────────────────────────────────────────────┐
 │ [City|Observer|Inspect|Plan|Viewcone]                              ( N ) │
 │ [Study scene]                                                      ( → ) │
-│ [tower toolbar, when a tower is picked]                       [Focus site] │
+│ [tower toolbar, when a tower is picked]                     [View ▾ Site] │
 │                 Kitsilano   West End   (place labels)                [+] │
 │                                                                      [−] │
 │                                                               [▸ Layers] │
@@ -107,7 +107,7 @@ The interface asks a designer to do two things at once: **shape a tower** and **
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Boxes**: `rgba(250,248,241,.93)` with a 1 px `#aab8ad` border, 2 px corners, shadow `0 2px 8px rgba(43,60,48,.125)`, ink `#2d4035`, Inter with 0.15 px tracking. Mode tabs 11.5 px, 30 px tall, 3 px padding around the group and 2 px between tabs; the active tab is `#426b61` with `#fffdf7` text (6.0:1). "Study scene" 11 px. Focus site and + / − 12.5 px, 30 px tall (+ / − 34 px wide). Layers 12 px, 500 weight, ▶ / ▼. Caption 13 px. Legend 12 px with 9 × 9 swatches; the type swatches keep the dock's dark `#3d434b` border so they read on the paper box. Focus rings 2 px `#426b61`.
+- **Boxes**: `rgba(250,248,241,.93)` with a 1 px `#aab8ad` border, 2 px corners, shadow `0 2px 8px rgba(43,60,48,.125)`, ink `#2d4035`, Inter with 0.15 px tracking. Mode tabs 11.5 px, 30 px tall, 3 px padding around the group and 2 px between tabs; the active tab is `#426b61` with `#fffdf7` text (6.0:1). "Study scene" 11 px. The View button (9 Nov: it replaced Focus site; DESIGN_SYSTEM.md §5.3) and + / − 12.5 px, 30–33 px tall. Layers 12 px, 500 weight, ▶ / ▼. Caption 13 px. Legend 12 px with 9 × 9 swatches; the type swatches keep the dock's dark `#3d434b` border so they read on the paper box. Focus rings 2 px `#426b61`.
 - **Compass**: a 40 × 48 pill (20 px corners) at top right, "N" over an arrow that turns with the view (where north is on screen, recomputed each frame the view draws).
 - **Tabs** (reworked 3 Nov evening; Ruijie: "make sure that it changes the view accordingly"):
   - **City**: every press flies back to the large Vancouver context (Vista's overview camera), about 0.9 s ease in-out, at once under reduced motion; grabbing the view stops the move.

@@ -11,7 +11,7 @@
 import { dataFetch } from '../lib/loadProgress'
 import { useFrame, useThree } from '@react-three/fiber'
 import { ChevronDown, ChevronUp, X } from './icons'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import * as THREE from 'three'
 import { pickAt } from '../engine/viewFrom'
 import { CONES, pointInRing } from '../engine/viewCones'
@@ -22,11 +22,13 @@ import { useShownMode } from '../lib/displayModeHooks'
 import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 import { sampleTerrain, type Manifest } from '../lib/cityLayers'
 import { fitPoints } from '../lib/fitView'
+import { flight, flyTo, nav, runNav, toModel, viewInsets, type Pose } from '../lib/viewNav'
+import { ViewMenu, ZoomButtons } from './ViewNav'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
-import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
+import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -200,27 +202,9 @@ export function useActiveMode(): MapMode {
 }
 
 // ---------- camera moves ----------
-type CamReq = { position: [number, number, number]; target: [number, number, number]; fov: number }
-/** A smooth camera move run by VistaLookRig (ease in-out, about 0.9 s); grabbing the view stops it. */
-const flight = { from: null as CamReq | null, to: null as CamReq | null, start: 0, dur: 900 }
-const toModel = (p: THREE.Vector3): [number, number, number] => [p.x, -p.z, p.y]
-/** A camera request (a preset, "view from", a test) wins over a smooth move still on its way: the move stops. */
-export const cancelFlight = () => { flight.to = null }
-
-/** Moves the orbit camera to `to`: smoothly, or at once under reduced motion. */
-export function flyTo(to: CamReq) {
-  const cam = live.camera, ctl = live.ctl
-  if (useStore.getState().reducedMotion || !cam || !ctl) { flight.to = null; useStore.getState().set({ cameraRequest: to }); return }
-  flight.from = { position: toModel(cam.position), target: toModel(ctl.target), fov: cam.fov }
-  flight.to = to
-  flight.start = performance.now()
-  live.invalidate?.()
-}
-
-function studyCentre(): [number, number, number] {
-  const s = useStore.getState(), t = s.towers.city.find((k) => k.id === s.selectedTower) ?? s.towers.city[0]
-  return t ? [t.x, t.y, s.groundElevation] : [...VISTA_OVERVIEW.target]
-}
+// The smooth move (flyTo) and its stop (cancelFlight) live in lib/viewNav.ts since 9 Nov, for both projects.
+type CamReq = Pose
+export { cancelFlight, flyTo } from '../lib/viewNav'
 
 /**
  * Inspect: a near-parallel axonometric of the proposed tower (Present's isometric direction, 6° lens), fitted closely
@@ -253,8 +237,9 @@ export function flyToFit(points: [number, number, number][], minSpan = 300) {
   leaveEyeLevel()
   const mode = useVistaLook.getState().mode
   if (mode === 'inspect' || mode === 'observer') useVistaLook.setState({ mode: 'city', inspected: null, note: null })
-  const insets = overlayInsets()
-  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : 60, azimuthDeg: 180, minSpan }))
+  const ins = viewInsets()
+  nav.userAt = performance.now()
+  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { top: ins.top, bottom: ins.bottom, left: Math.max(0.03, ins.left), right: Math.max(0.03, ins.right) }, elevationDeg: mode === 'plan' ? 90 : 60, azimuthDeg: 180, minSpan }))
 }
 
 /** Observer: the eye at a protected viewpoint (the City's Lv), looking along the cone's axis; the tower framed if inside. */
@@ -285,10 +270,12 @@ function chooseMode(m: MapMode, defaultCone: string | null) {
     goToCone(useConeVisibility.getState().picked ?? defaultCone ?? CONES[0].id)
     return
   }
+  // City and Plan are the view commands (lib/viewNav.ts): City every press back to the large Vancouver context, Plan north
+  // up over the site or the selection (pressed again, it fits again).
+  if (m === 'city') { set({ inspected: null }); runNav('city'); return }
+  if (m === 'plan') { runNav('plan'); return }
   leaveEyeLevel()
   set((s) => ({ mode: m, note: null, inspected: m === 'inspect' ? s.inspected : null }))
-  // City: every press goes back to the large Vancouver context (Vista's overview camera).
-  if (m === 'city') flyTo({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target], fov: VISTA_OVERVIEW.fov })
   // Inspect: every press frames the proposed tower in axonometric, inside the part of the view the overlays leave free.
   if (m === 'inspect') { const axo = towerAxo(viewAspect(), overlayInsets()); if (axo) flyTo(axo) }
 }
@@ -345,8 +332,11 @@ function ModeTabs() {
     <div role="toolbar" aria-label="Map mode" className="flex gap-[2px] p-[3px]" style={box}>
       {MAP_MODES.flatMap((m) => {
         if (m.id === 'viewcone') {
-          // A toggle, not a mode: its own on / off look (a lamp and the word), so it never reads as the active view.
+          // A toggle, not a mode: its own on / off look (a lamp and the word), so it never reads as the active view; and it
+          // starts a separate group, "Show", with Names (9 Nov: where you look and what is shown are separate controls).
           return [
+            <span key="show-sep" aria-hidden className="mx-1 my-1.5 w-px self-stretch bg-current opacity-20" />,
+            <span key="show" className="flex items-center px-1 text-meta" style={{ color: CHROME.tabInk }}>Show</span>,
             <button key={m.id} type="button" aria-pressed={conesOn} onClick={() => chooseMode(m.id, defaultCone)}
               title={conesOn === true ? 'View cones on: press to hide them all' : 'View cones off: press to show them all'}
               className={`flex h-[30px] items-center gap-1.5 rounded-lg px-2 text-control hover:bg-subtle ${focusRing}`} style={{ color: CHROME.tabInk }}>
@@ -389,50 +379,16 @@ function Compass() {
   )
 }
 
-function utilityButton(label: ReactNode, title: string, onClick: () => void, extra: string, aria?: string, pressed?: boolean) {
-  return (
-    <button type="button" onClick={onClick} title={title} aria-label={aria} aria-pressed={pressed}
-      className={`h-[30px] rounded-lg text-control hover:bg-subtle ${extra} ${focusRing}`} style={box}>{label}</button>
-  )
-}
-
-/** Vista's zoomBy: the orbit distance (or, at eye level, the field of view) times e^±0.35. */
-function zoom(f: number) {
-  const v = useViewFromStore.getState()
-  if (v.looking) { v.set({ hfov: Math.round(THREE.MathUtils.clamp(v.hfov * Math.exp(f), 20, 110) * 10) / 10 }); return }
-  const ctl = live.ctl, cam = live.camera
-  if (!ctl || !cam) return
-  const off = cam.position.clone().sub(ctl.target)
-  const d = THREE.MathUtils.clamp(off.length() * Math.exp(f), ctl.minDistance, ctl.maxDistance)
-  cam.position.copy(ctl.target).addScaledVector(off.normalize(), d)
-  ctl.update()
-  live.invalidate?.()
-}
-
-function focusSite() {
-  const s = useStore.getState()
-  const t = s.towers.city.find((k) => k.id === s.selectedTower) ?? s.towers.city[0]
-  const cam = live.camera, ctl = live.ctl
-  if (!t || !cam || !ctl) return
-  const target: [number, number, number] = [t.x, t.y, s.groundElevation + t.height / 2]
-  const d = THREE.MathUtils.clamp(t.height * 3.2 + 250, 350, 3000)
-  if (useVistaLook.getState().mode === 'plan') { s.set({ cameraRequest: { position: [t.x, t.y - 0.01, s.groundElevation + d * 2.4], target, fov: 20 } }); return }
-  // Keep the bearing and the tilt of the current view.
-  const off = cam.position.clone().sub(ctl.target).normalize()
-  const dir = new THREE.Vector3(off.x, -off.z, off.y) // three -> model
-  s.set({ cameraRequest: { position: [target[0] + dir.x * d, target[1] + dir.y * d, target[2] + Math.max(0.35, dir.z) * d], target, fov: 45 } })
-}
-
 function Utilities() {
   const dockOpen = useDock((s) => s.menu)
   return (
     <div className="flex flex-col items-end gap-[5px]">
       <Compass />
       <div className="h-3" />
-      {utilityButton('Focus site', 'Frame the selected tower', focusSite, 'px-2.5')}
+      {/* Where you are looking, and the view commands (Milestone 1, 9 Nov; it replaces "Focus site", which framed the tower). */}
+      <ViewMenu box={box} />
       {/* The sign and the word (Ruijie, 6 Nov: "a zoom in and zoom out button with the + and - sign with words written"). */}
-      {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">+</span>Zoom in</span>, 'Zoom in', () => zoom(-0.35), 'px-2.5', 'Zoom in')}
-      {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">−</span>Zoom out</span>, 'Zoom out', () => zoom(0.35), 'px-2.5', 'Zoom out')}
+      <ZoomButtons box={box} />
       <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" onClick={() => useDock.setState({ menu: !dockOpen })}
         className={`flex h-[33px] items-center gap-1.5 rounded-lg px-2.5 text-control font-medium hover:bg-subtle ${focusRing}`} style={box}>
         <span aria-hidden className="text-meta">{dockOpen ? '▼' : '▶'}</span>Layers
@@ -504,7 +460,11 @@ function Legend() {
 function InspectCard() {
   const p = useVistaLook((s) => s.inspected)
   const { data } = useCityObstacles()
-  if (!p || !data) return null
+  // The city loads in two stages (base, then detailed) with different building lists: a pick from one list may not exist
+  // in the other (9 Nov: the card crashed the page). Then there is no card; the pick is cleared below.
+  const valid = !!p && !!data && !!data.footprints[p.index]
+  useEffect(() => { if (p && data && !valid) useVistaLook.setState({ inspected: null }) }, [p, data, valid])
+  if (!p || !data || !valid) return null
   const est = isEstimate(data, p.index)
   return (
     <div role="status" aria-live="polite" className="max-w-[26rem] px-2 py-1.5 text-meta leading-snug" style={box}>
@@ -569,26 +529,28 @@ export function VistaChrome() {
   const looking = useViewFromStore((s) => s.looking)
   // Schematic's title block takes the bottom right: the caption and legend wrap short of it.
   const schematic = useStore((s) => s.phase === 'advanced')
-  // Esc leaves Inspect and Plan (View from here handles its own Esc).
+  // Esc leaves Inspect, Plan (to a 3D view of the same place) and Observer (back to the orbit view you had).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (e.key !== 'Escape' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       const m = useVistaLook.getState().mode
-      if (m === 'inspect' || m === 'plan') useVistaLook.setState({ mode: 'city', inspected: null })
+      if (useViewFromStore.getState().looking) { useViewFromStore.getState().set({ looking: false, picking: false }); return }
+      if (m === 'plan') { runNav('3d'); return }
+      if (m === 'inspect') useVistaLook.setState({ mode: 'city', inspected: null })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
   return (
     <>
-      <div data-vista-overlay="top" className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-2 [&>*]:pointer-events-auto">
+      <div data-vista-overlay="top" data-nav-occlude="top" className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-2 [&>*]:pointer-events-auto">
         <ModeTabs />
         <div className="px-2 py-[3px] text-meta" style={box} title="The Real Vancouver model with your design towers">Study scene</div>
         {mode === 'observer' && <ConePicker />}
       </div>
       <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 [&>*]:pointer-events-auto"><Utilities /></div>
-      <div data-vista-overlay="bottom" className={`pointer-events-none absolute bottom-2.5 left-2.5 z-10 flex ${looking ? 'max-w-[calc(100%-15.5rem)]' : schematic ? 'max-w-[calc(100%-19rem)]' : 'max-w-[calc(100%-1.25rem)]'} flex-col items-start gap-1.5 [&>*]:pointer-events-auto`}>
+      <div data-vista-overlay="bottom" data-nav-occlude="bottom" className={`pointer-events-none absolute bottom-2.5 left-2.5 z-10 flex ${looking ? 'max-w-[calc(100%-15.5rem)]' : schematic ? 'max-w-[calc(100%-19rem)]' : 'max-w-[calc(100%-1.25rem)]'} flex-col items-start gap-1.5 [&>*]:pointer-events-auto`}>
         {mode === 'inspect' && <InspectCard />}
         {(note || viewNote) && <div role="status" className="max-w-[30rem] px-2 py-[3px] text-meta" style={{ ...box, background: '#f3e9dbee', color: '#684838' }}>{note ?? viewNote}</div>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-[3px] text-meta leading-[1.45]" style={box} title={MODE_HINT[mode]} data-testid="mode-gestures">
@@ -630,7 +592,8 @@ export function VistaLookRig() {
     const ctl = controls, cam = camera as THREE.PerspectiveCamera
     if (!ctl || mode !== 'plan') return
     saved.current = { position: toModel(cam.position), target: toModel(ctl.target), fov: cam.fov }
-    flyTo(planCamera(studyCentre(), gl.domElement.clientWidth / Math.max(1, gl.domElement.clientHeight)))
+    // The Plan command flies (lib/viewNav.ts); a Plan entered any other way gets the same view.
+    if (!flight.to) runNav('plan')
     const buttons = { ...ctl.mouseButtons }, touches = { ...ctl.touches }
     ctl.enableRotate = false
     ctl.mouseButtons = { ...ctl.mouseButtons, LEFT: THREE.MOUSE.PAN }
@@ -643,13 +606,18 @@ export function VistaLookRig() {
     }
   }, [mode, controls, camera, gl])
 
-  // Grabbing the view stops a camera move.
+  // City buildings for Frame selection: outline, ground and roof (a roof not measured yet stands 20 m, as drawn).
   useEffect(() => {
-    const ctl = controls as unknown as { addEventListener?: (t: string, f: () => void) => void; removeEventListener?: (t: string, f: () => void) => void } | null
-    const stop = () => { flight.to = null }
-    ctl?.addEventListener?.('start', stop)
-    return () => ctl?.removeEventListener?.('start', stop)
-  }, [controls])
+    if (!data) return
+    nav.building = (i) => {
+      const f = data.footprints[i]
+      if (!f) return null
+      const g = heights?.ground[i], r = heights?.roof[i]
+      const ground = g !== undefined && Number.isFinite(g) ? g : sampleTerrain(data.grids, f.outer[0][0], f.outer[0][1]) ?? 0
+      return { ring: f.outer, ground, roof: r !== undefined && Number.isFinite(r) && r > ground ? r : ground + 20 }
+    }
+    return () => { nav.building = null }
+  }, [data, heights])
 
   // Inspect: a click (not a drag) on a building shows its height, type and sources.
   useEffect(() => {
@@ -678,18 +646,7 @@ export function VistaLookRig() {
   useFrame(({ size }) => {
     const ctl = controls, cam = camera as THREE.PerspectiveCamera
     if (!ctl) return
-    // A camera move in progress (flyTo): ease in-out on the clock, so a slow machine takes fewer, larger steps, not longer.
-    if (flight.to && flight.from) {
-      const x = Math.min(1, (performance.now() - flight.start) / flight.dur), e = x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
-      const lerp = (a: [number, number, number], b: [number, number, number]) => a.map((v, i) => v + (b[i] - v) * e) as [number, number, number]
-      const p = lerp(flight.from.position, flight.to.position), t = lerp(flight.from.target, flight.to.target)
-      cam.position.copy(toThree(...p)); ctl.target.copy(toThree(...t))
-      cam.fov = flight.from.fov + (flight.to.fov - flight.from.fov) * e
-      cam.near = Math.max(1, cam.position.distanceTo(ctl.target) / 300)
-      cam.updateProjectionMatrix(); ctl.update()
-      if (x >= 1) flight.to = null
-      invalidate()
-    }
+    // Camera moves are stepped by NavRig (lib/viewNav.ts), in both projects.
     setVistaFog(cam.position.distanceTo(ctl.target))
     // Compass: where north points on screen, from the target's screen position and a point 100 m north of it.
     if (live.compass) {

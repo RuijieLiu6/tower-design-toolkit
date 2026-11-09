@@ -16,8 +16,9 @@ export interface FitOptions {
   elevationDeg?: number
   /** Bearing from the target to the camera, degrees clockwise from north (180: camera south, north up). */
   azimuthDeg?: number
-  /** Fractions of the view covered by overlays: top and bottom of the height, each side of the width. */
-  insets?: { top: number; bottom: number; side?: number }
+  /** Fractions of the view covered by overlays: top and bottom of the height; each side of the width (`side`), or the
+   *  left and right separately (a panel or dock open on one side; 9 Nov, the viewport navigation). */
+  insets?: { top: number; bottom: number; side?: number; left?: number; right?: number }
   /** Share of the free band the outline fills (0.9). */
   fill?: number
   /** The smallest ground span shown, metres (300), so a tiny outline is not filled edge to edge. */
@@ -52,14 +53,15 @@ export function project(p: V3, cam: V3, b: { f: V3; r: V3; u: V3 }, tanHalf: num
 export function fitPoints(points: readonly V3[], o: FitOptions): CamFit {
   const fov = o.fov ?? 35, tanHalf = Math.tan((fov * Math.PI) / 360), aspect = Math.max(0.2, o.aspect)
   const top = o.insets?.top ?? 0, bottom = o.insets?.bottom ?? 0, side = o.insets?.side ?? 0, fill = o.fill ?? 0.9
+  const left = o.insets?.left ?? side, right = o.insets?.right ?? side
   const b = viewBasis(o.elevationDeg ?? 60, o.azimuthDeg ?? 180)
   const pts = points.length ? points : [[0, 0, 0] as V3]
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, zs = 0
   for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); zs += p[2] }
   const z = zs / pts.length
   // The free band in screen units, and where its middle is.
-  const availX = Math.max(0.2, 2 - 4 * side) * fill, availY = Math.max(0.2, 2 - 2 * top - 2 * bottom) * fill
-  const midY = bottom - top
+  const availX = Math.max(0.2, 2 - 2 * left - 2 * right) * fill, availY = Math.max(0.2, 2 - 2 * top - 2 * bottom) * fill
+  const midY = bottom - top, midX = left - right
   const minSpan = o.minSpan ?? 300
   let t: V3 = [(x0 + x1) / 2, (y0 + y1) / 2, z]
   let d = Math.max(minSpan, x1 - x0, y1 - y0) / (2 * tanHalf) // a first guess, refined below
@@ -77,7 +79,7 @@ export function fitPoints(points: readonly V3[], o: FitOptions): CamFit {
     // Zoom: the extent shrinks about in proportion to the distance.
     const k = Math.max((sx1 - sx0) / availX, (sy1 - sy0) / availY)
     // Pan: slide the target so the extent's middle sits in the band's middle (screen units -> metres at the target).
-    const cx = (sx0 + sx1) / 2, cy = (sy0 + sy1) / 2 - midY
+    const cx = (sx0 + sx1) / 2 - midX, cy = (sy0 + sy1) / 2 - midY
     const mx = cx * d * tanHalf * aspect, my = (cy * d * tanHalf) / gu
     t = [t[0] + b.r[0] * mx + g[0] * my, t[1] + b.r[1] * mx + g[1] * my, z]
     d = Math.max(minSpan / (2 * tanHalf), d * (0.25 + 0.75 * k)) // damped: perspective makes k approximate

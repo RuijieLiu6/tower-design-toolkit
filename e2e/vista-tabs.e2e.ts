@@ -47,14 +47,15 @@ test('the five map tabs change the view; Viewcone toggles the cones and Material
   await expect(tab(page, 'City')).toHaveAttribute('aria-pressed', 'true')
   const box = (await page.locator('[data-viewport] canvas').first().boundingBox())!
 
-  // Plan: straight down, north up, centred on the proposed tower, 1 km across (Ruijie, 6 Nov: closer to the tower).
+  // Plan: straight down, north up, over the site or the selection (here the proposed tower), fitted to it with its streets:
+  // at least about 400 m across (9 Nov, Milestone 1: Plan frames the relevant place instead of a fixed 1 km).
   await tab(page, 'Plan').click()
   await expect(tab(page, 'Plan')).toHaveAttribute('aria-pressed', 'true')
   await expect.poll(async () => (await camera(page)).fov, { timeout: 30_000 }).toBeCloseTo(20, 0)
   await page.waitForTimeout(1500)
   const plan = await camera(page)
   const width = 2 * (plan.pos[2] - plan.target[2]) * Math.tan((plan.fov / 2) * Math.PI / 180) * (box.width / box.height)
-  expect(width).toBeGreaterThan(850); expect(width).toBeLessThan(1150)
+  expect(width).toBeGreaterThan(380); expect(width).toBeLessThan(1500)
   expect(Math.hypot(plan.pos[0] - plan.target[0], plan.pos[1] - plan.target[1])).toBeLessThan(1)
   await page.screenshot({ path: join(SHOTS, '01-plan.png') })
 

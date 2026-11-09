@@ -61,7 +61,10 @@ import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
-import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
+import { VistaChrome, VistaLookRig } from './VistaLook'
+import { cancelFlight } from '../lib/viewNav'
+import NavRig from './NavRig'
+import { SitePointer, ViewMenu, ZoomButtons } from './ViewNav'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView } from '../lib/northView'
@@ -606,12 +609,15 @@ function ShadowCache() {
   return null
 }
 
+/** The last request applied: a canvas opened again (a project switch) never replays an old one (Milestone 1, 9 Nov). */
+let appliedRequest: unknown = null
 /** Applies camera requests from the store (presets, "view from protected viewpoint"). */
 function CameraRig() {
   const req = useStore((s) => s.cameraRequest)
   const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: Ctl | null }
   useEffect(() => {
-    if (!req) return
+    if (!req || req === appliedRequest) return
+    appliedRequest = req
     lens.tween = null
     cancelFlight()
     // A target inside the ground (behind a hill) slides back along the line of sight: same eye, same view.
@@ -688,6 +694,7 @@ export default function Viewport() {
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
             <CameraRig />
+            <NavRig />
             <NorthTurnRig />
             <Lens focus={focus} fit={(sel?.height ?? 200) * 1.5} fog={fog} />
             <CameraClamp />
@@ -707,6 +714,14 @@ export default function Viewport() {
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
       {project === 'city' && !present && <CityLegend />}
       {project === 'vtc' && !present && <VtcDock />}
+      {/* The view navigation (Milestone 1): the same View button and zoom as Real Vancouver's column, top right. */}
+      {project === 'vtc' && !present && !hidden && (
+        <div data-nav-occlude="right" className="pointer-events-none absolute right-3 top-3 z-10 flex flex-col items-end gap-1.5 [&>*]:pointer-events-auto">
+          <ViewMenu box={{ background: 'var(--color-panel)', border: '1px solid var(--color-line)' }} />
+          <div className="flex gap-1"><ZoomButtons words={false} box={{ background: 'var(--color-panel)', border: '1px solid var(--color-line)' }} /></div>
+        </div>
+      )}
+      {!present && !hidden && !looking && <SitePointer />}
       {project === 'vtc' && !present && !hidden && <VtcContextCard />}
       {project === 'vtc' && !present && !hidden && <VtcLookBar />}
       {project === 'city' && !present && !hidden && <VistaInset />}

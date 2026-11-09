@@ -405,3 +405,6 @@ body {
 :is([data-testid="phase-controls"], [data-panel="right"]) :is(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, textarea) {
   font-size: var(--text-control); line-height: var(--text-control--line-height);
 }
+
+/* The 3D view takes keyboard focus (arrow keys pan, + / − zoom; Milestone 1, 9 Nov): a visible ring inside its edge. */
+[data-viewport] canvas:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -3px; }

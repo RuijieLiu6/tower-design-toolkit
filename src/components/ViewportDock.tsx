@@ -114,8 +114,8 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
   }
   // Over the city the backdrop can be as dark as #e5e6e7: slate-500 and muted grey text (~3.8:1 there) read as slate-600 (>= 6:1).
   return (
-    <aside id="vp-dock" aria-label={label}
-      className={`vp-dock absolute ${anchored ? 'right-2.5 top-[14rem] max-h-[calc(100%-14.75rem)]' : 'right-3 top-3 max-h-[calc(100%-1.5rem)]'} z-10 flex w-80 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-md border border-line/80 text-meta text-slate-600 shadow-sm [&_.text-muted]:text-slate-600 [&_.text-slate-500]:text-slate-600 ${look}`}>
+    <aside id="vp-dock" aria-label={label} data-nav-occlude="right"
+      className={`vp-dock absolute ${anchored ? 'right-2.5 top-[14rem] max-h-[calc(100%-14.75rem)]' : 'right-3 top-[5rem] max-h-[calc(100%-5.75rem)]'} z-10 flex w-80 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-md border border-line/80 text-meta text-slate-600 shadow-sm [&_.text-muted]:text-slate-600 [&_.text-slate-500]:text-slate-600 ${look}`}>
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line/80 px-2.5 py-1.5">
         <Layers size={14} aria-hidden className="text-ink" />
         <b className="text-ink">{label}</b>

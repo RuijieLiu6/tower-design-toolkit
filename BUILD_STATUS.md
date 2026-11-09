@@ -13,7 +13,7 @@ Each phase is described on four separate measures. A screen opening is not the s
 
 | Measure | Status |
 |---|---|
-| Interface | Shared panel, phase row and Overview pass the gate. No Site-specific interface check was run tonight. |
+| Interface | Shared panel, phase row and Overview pass the gate. **9 Nov, Milestone 1:** viewport navigation (View menu: Frame site / selection / tower, Neighbourhood, overview, Plan ⇄ 3D, Home; scale read-out; off-screen site pointer; keys) passes `e2e/site-navigation.e2e.ts` at 1440 × 900 and 1280 × 800 (branch `site-viewport-navigation`, not merged). |
 | Usable functions | Competition block or Real Vancouver; address search (with the privacy note) and city parcels, plus a drawn boundary (Real Vancouver); model import (.3dm, OBJ, glTF, IFC) with units, placement, north and datum confirmed by the user; VTC hard rules; view-cone height check; height-limit surface; Vista view studies; view from here. |
 | Unfinished | A Site journey test (site choice → import → units and orientation → into Form). |
 | Validation limits | Only 8 of 24 view cones have a City height estimate; the rest are "no estimate". LiDAR roof heights cover 1 of 4 downtown tiles. The vertical datum is CGVD28, assumed. The 27 evaluation cases (`npm run eval`) were last run 22 Oct and are **NOT RUN tonight**. |

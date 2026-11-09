@@ -35,7 +35,7 @@ export default function ContextPins({ project, top }: { project: ProjectKind; to
   if (project === 'city' && surfaceOn && !CONE_TOOLS.includes(active)) items.push({ key: 'surface', label: 'Height-limit surface', why: 'a context layer you switched on', hide: () => useHeightSurface.setState({ on: false }) })
   const view = TOOL_VIEW[active]
   return (
-    <div className={`pointer-events-none absolute left-3 ${top} z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1`} data-testid="context-pins" data-active={active}>
+    <div className={`pointer-events-none absolute left-3 ${top} z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1`} data-testid="context-pins" data-active={active} data-nav-occlude="top">
       <span className="pointer-events-auto rounded-lg border border-line bg-panel/95 px-2 py-0.5 text-meta text-ink" title={view ? 'The view this tool works in; Pin view keeps a View while you switch tools' : 'This tool has no view of its own'}>
         Working view: <b className="font-semibold">{nameOf(active)}</b>{!analysis && <span className="text-warning"> · checks paused</span>}
       </span>

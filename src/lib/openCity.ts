@@ -10,10 +10,13 @@ export function openCity(frameDelays = [1500, 3500]) {
     const r = openInRealVancouver()
     if (!r.site && !r.towers) return
     // The city view opens on its overview first; frame the site once it has (and again, in case it was still loading).
-    void Promise.all([import('../components/VistaLook'), import('./towerPosition')]).then(([{ flyToFit }, { useTowerPosition }]) => {
+    const opened = performance.now()
+    void Promise.all([import('../components/VistaLook'), import('./towerPosition'), import('./viewNav')]).then(([{ flyToFit }, { useTowerPosition }, { nav }]) => {
       const frame = () => {
         const st = useStore.getState(), ring = st.citySite?.ring ?? [], g = st.groundElevation
         if (st.project !== 'city' || !ring.length) return
+        // The map may still be loading; the user may already have chosen a view: theirs stays (Milestone 1, 9 Nov).
+        if (nav.userAt > opened) return
         if (useTowerPosition.getState().on) { useTowerPosition.setState((p) => ({ frame: p.frame + 1, locked: true })); return }
         const top = Math.max(0, ...st.towers.city.map((t) => t.height))
         flyToFit([...ring.map(([x, y]) => [x, y, g] as [number, number, number]), [ring[0][0], ring[0][1], g + top]], 300)

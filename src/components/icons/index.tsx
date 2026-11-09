@@ -135,6 +135,12 @@ export const MessageSquarePlus = make('MessageSquarePlus', p('M4 4.5H20V16H11L8 
 export const Minus = make('Minus', p('M5 12H19'))
 export const MoreHorizontal = make('MoreHorizontal', '<circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/>')
 export const Mountain = make('Mountain', p('M2.5 19.5L9 8.5L13 15L15.5 11.5L21.5 19.5Z'))
+// The viewport's view commands (9 Nov): Home (the working view), Locate (the neighbourhood around a point), Maximize (frame
+// what is selected) and Navigation (the View button: where you are looking).
+export const Home = make('Home', p('M3.5 11.5L12 4L20.5 11.5M6 9.5V20H18V9.5M10 20V14H14V20'))
+export const Locate = make('Locate', '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.5"/>' + p('M12 1.5V4M12 20V22.5M1.5 12H4M20 12H22.5'))
+export const Maximize = make('Maximize', p('M4 9V4H9M15 4H20V9M20 15V20H15M9 20H4V15M9.5 9.5H14.5V14.5H9.5Z'))
+export const Navigation = make('Navigation', p('M12 3L19.5 20.5L12 16.5L4.5 20.5Z'))
 export const MousePointerClick = make('MousePointerClick', p('M9.5 9.5L20 13.3L15.4 14.8L19.3 18.7L17.7 20.3L13.8 16.4L12.3 21ZM4 4L6 6M9.5 2.5V5M2.5 9.5H5M13.5 5L15.3 3.2M5 13.5L3.2 15.3'))
 export const Move = make('Move', p('M12 2.5V21.5M2.5 12H21.5M9.5 5L12 2.5L14.5 5M9.5 19L12 21.5L14.5 19M5 9.5L2.5 12L5 14.5M19 9.5L21.5 12L19 14.5'))
 export const Network = make('Network', p('M9 3.5H15V8.5H9ZM3 15.5H9V20.5H3ZM15 15.5H21V20.5H15ZM12 8.5V12M6 15.5V12H18V15.5'))

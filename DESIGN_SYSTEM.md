@@ -253,6 +253,29 @@ This section replaces the 8 Nov layout that kept a permanent whole-workflow stri
 - **Moving a tower:** the move card shrinks to one line: the name, the distance, any snap, and the checks as ✓ ! ✕ ? counts. The rows open on request after release, and the full results stay in the right panel.
 - **A chosen view is kept:** a camera request or preset stops any camera flight still on its way. Data arriving later never re-frames the view you chose; only opening the Position tool, locking it, or Frame does.
 
+### 5.3 Navigating the model (Milestone 1, 9 Nov)
+
+Camera, display and layers are three separate controls: **where you look** (the View menu, the map tabs City / Observer / Inspect / Plan, the compass), **how the model is drawn** (View: Geometry / Building use / Analysis / Materials) and **what is shown** (Show: Viewcone, Names; Layers).
+
+- **The View button** (top right in both projects, under the compass in Real Vancouver) names what the view shows: City (Context on the competition site), Neighbourhood, Site, Tower, Close-up, Plan or Viewpoint, from the ground width at the orbit target and what is near it. Its menu repeats it in a sentence with the width ("Your site and its streets, about 290 m across").
+- **Commands** (`lib/viewNav.ts`), each framing real geometry, keeping the current bearing and a tilt between 35° and 72°:
+
+| Command | Key | Frames |
+|---|---|---|
+| Frame site | S | the study boundary and any tower on it; at least about 260 m across, so the streets show; works with no tower |
+| Frame selection | . | the inspected building, the buildings picked on the map, the picked tower, or the address marker |
+| Frame tower | T | the selected tower; unavailable with no tower, or with several and none selected (the reason shows under the item) |
+| Neighbourhood | N | about 900 m around the site or the selection, at 45° |
+| City overview | C | Vista's Vancouver overview (the competition site: its context overview) |
+| Plan view / 3D view | 7 | north up, straight down over the selection or the site (at least 400 m across); and back to a 50° view of the same place |
+| Home | Home | the view set as Home for this site (Set this view as Home), else the site from the south at 40° |
+
+- **Fit:** the subject fills 70% of the part of the view the overlays leave free (about 15% of breathing room each side), with the overlays marked `data-nav-occlude` (map tabs and working-view chip at the top, the View and legend bar at the bottom, an open Layers dock on the right) taken out first.
+- **Moves:** 0.7 s ease in-out (0.8–0.9 s for the overview and Home), instant under reduced motion. Grabbing, scrolling or a key on the view stops a move. The zoom buttons and + / − zoom about the orbit target.
+- **Keyboard:** the model is a focus stop: arrows pan, Shift or Ctrl + arrows orbit, + / − zoom (the arrows stay the tower gizmo's while it moves or turns a tower). The command keys work while the focus is on the page or the model, never in a field, a menu or a dialog.
+- **Off-screen site:** when the site is out of view, a small "Site" pointer on the view's edge points to it (never under the controls); a click frames it.
+- **Kept views:** the view stays through phase changes; each project keeps its last view while you switch projects; a camera request is never replayed after a switch; the delayed framing when Real Vancouver opens never overrides a view you chose meanwhile. Esc leaves Plan (to the 3D view of the same place), Inspect and Observer.
+
 ## 6. 3D building and site
 
 Starting values (`MODEL` in `tokens.ts`), checked under the scene's light:
