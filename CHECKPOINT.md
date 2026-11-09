@@ -5,7 +5,7 @@ Brief: Ruijie's "START HERE: Tower Design Toolkit UI Implementation" + Block 2 (
 (BLOCK2-workflow-builder.md, BLOCK3-import-export.md, DECISIONS-result-a.md, architecture-map-2026-11-09.md).
 - **Branch:** `designer-workflow-builder`, from `origin/main` 880643d (the reviewed reference commit; main had not moved).
   Worktree `tower-studio-ui`. Not merged, not deployed, not pushed (the brief asks for permission first).
-- **Commits:** 488367a (the builder), then the fix and write-up commit after it.
+- **Commits:** 488367a (the builder), dce84c1 (the library fix and this write-up).
 - **Evidence (local only):** `04 Tool Plan/workflow-builder/before|after/`: before = main's workspace, centre editor and
   Customize data graph at 1440 × 900 and 1280 × 800; after = the workspace, the builder, a selected card and a pending
   insertion at both sizes, plus the library after an Add.
