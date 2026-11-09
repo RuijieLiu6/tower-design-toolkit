@@ -506,6 +506,7 @@ function InspectCard() {
   const { data } = useCityObstacles()
   if (!p || !data) return null
   const est = isEstimate(data, p.index)
+  const from = data.heights?.restedFrom?.[p.index], rested = from !== undefined && Number.isFinite(from) ? from : null
   return (
     <div role="status" aria-live="polite" className="max-w-[26rem] px-2 py-1.5 text-meta leading-snug" style={box}>
       <div className="flex items-start gap-2">
@@ -514,6 +515,7 @@ function InspectCard() {
       </div>
       <div>Height <b className="tabular-nums">{(p.roof - p.ground).toFixed(1)} m</b> · roof {p.roof.toFixed(1)} m CGVD28 · base {p.ground.toFixed(1)} m</div>
       <div className="text-meta">{buildingSource(data, p.index)}{est ? ' · an estimate, not measured' : ''}</div>
+      {rested !== null && <div className="text-meta">Rests on {(data.heights?.clearance?.[p.index] ?? 0) > 0 ? 'the part under it' : 'the ground'}: OpenStreetMap starts it {rested.toFixed(1)} m up, with nothing mapped under most of it.</div>}
     </div>
   )
 }

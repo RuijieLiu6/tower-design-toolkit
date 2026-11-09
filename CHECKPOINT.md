@@ -1,3 +1,38 @@
+# CHECKPOINT: Materials floating building parts (9 Nov 2026)
+
+Ruijie's screenshot, near the default site in the Materials view: building masses hanging in the air on a tower ("these masses are floating in the air").
+- **Branch:** `materials-floating-parts`, stacked on `materials-road-surface` (afe4849), so the review preview keeps the road fixes. Not merged, not deployed.
+- **Cause:** OpenStreetMap starts some building parts above the ground (`min_height`): a tower above its podium, an overhang, a skybridge. Vista's model draws each part from that underside.
+  - Where the part under one is missing from the map, the part hangs in the air. Often the podium is mapped only as the building outline, which the parts replace.
+  - The same happens where the part underneath is lower than mapped.
+  - Of the model's 562 elevated parts, 205 had nothing under at least half their footprint, from 3 to 140 m up. Most are typed only `yes`.
+  - The three in the screenshot: w987528301 (70.4 to 81 m) and w363385365/6 (50 to 56 m), about 100 m north-east of the inspected building.
+- **Fix (`restElevated` in `lib/vistaBuildings.ts`, run by `seatVista`):**
+  - Each elevated part is sampled over its footprint (up to 8 × 8 points).
+  - At each point, the support is the highest roof of another part that starts below it, else the part's own ground.
+  - Held under at least half its footprint (within 0.5 m): kept as mapped, an overhang.
+  - Otherwise it rests on the level under most of it (the median support): the ground, or the roof of a lower part. Its roof is unchanged.
+  - Skybridges, corridors, canopies and carports (by OSM type) stay elevated, and so do thin low slabs (at most 6 m deep, 8 m wide, starting within 15 m of the ground).
+- **Result:** 179 parts rest (89 on the ground, 90 on a lower part), dropping by up to 140 m.
+  - Seating the whole model, resting included, takes 0.15 s in Node.
+- **Everything reads the seated value:** the city mesh, the selection highlight and the City model all draw from it.
+  - The Sun & Wind Studio feed gets the seated clearance (`heights.clearance`).
+  - View rays, shadows and picking use the seated `ground`, so a rested part blocks from where it now starts.
+  - The Inspect card says when a part rests, and how high OpenStreetMap starts it.
+- **Tests:** 5 new tests in `vistaBuildings.test.ts`.
+  - Real model: 562 elevated parts; only rested ones change; each is lowered, never raised, its roof unchanged; the three screenshot parts rest on the ground.
+  - Synthetic cases: no podium, a holding podium, a lower podium, an overhang, a crown on a rested part, skybridge, corridor, canopy, and thin slabs low and high.
+- **Evidence (local only):** `04 Tool Plan/floating-parts/before|after/`, seven matched views at 1440 × 900.
+  - Views: the screenshot corner from the north and east, plus a plan; the Georgia towers; a Coal Harbour crown; a slab north of downtown; a part by False Creek.
+  - Before is commit afe4849 (the road branch), after is this branch.
+
+## Limitations
+- A real skybridge tagged only `yes` that is deeper than 6 m, wider than 8 m, or starts more than 15 m up would now stand on the ground. None was seen in the views checked.
+- A part resting on the ground stands where OpenStreetMap is missing the podium. It shows the building's mass, not its actual podium shape.
+- The 2015 City model and the LiDAR roof parts are unchanged: only Vista's model has mapped clearances.
+
+---
+
 # CHECKPOINT: Materials road-surface defect (9 Nov 2026)
 
 Brief: Ruijie's "Resolve the broken road-surface appearance" (one reviewable milestone; separate branch; no merge or deploy).

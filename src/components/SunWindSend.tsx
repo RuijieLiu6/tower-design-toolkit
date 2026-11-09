@@ -122,7 +122,7 @@ function CityFeed() {
   const { data, hidden } = useCityObstacles()
   useEffect(() => {
     if (!data?.heights) { cityFeed = null; return }
-    const clearance = data.vista?.clearance ?? null
+    const clearance = data.heights?.clearance ?? data.vista?.clearance ?? null
     cityFeed = (centre) => nearbyBuildings(data.footprints, data.heights, centre, SW_CONTEXT_RADIUS, { hidden, clearance, placeholders: data.placeholders, source: (i) => buildingSource(data, i) })
     return () => { cityFeed = null }
   }, [data, hidden])

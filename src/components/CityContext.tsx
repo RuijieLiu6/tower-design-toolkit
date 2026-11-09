@@ -131,6 +131,8 @@ export function useCityData() {
 }
 
 const hasHeight = (h: FootprintHeights | null, i: number) => !!h && Number.isFinite(h.ground[i]) && Number.isFinite(h.roof[i]) && h.roof[i] > h.ground[i]
+/** A part drawn from its underside without sinking: elevated as seated (a part that hung in the air rests; seatVista). */
+const elevated = (h: FootprintHeights | null, v: VistaBuildings | null, i: number) => (h?.clearance ? h.clearance[i] > 0 : !!v && v.clearance[i] > 0)
 
 // ---------- existing buildings under the design (after Vista's automatic demolition; lib/cityRemoval.ts) ----------
 // The switch lives in lib/hideUnderDesign.ts: on by default since 3 Nov (Ruijie), the person's choice remembered in this
@@ -642,7 +644,7 @@ function VistaBuildingMesh({ data, look, ghost, hidden, vista: v }: { data: City
   const h = data.heights
   const chunks = useMemo(() => {
     const at = citySurface(data).at
-    const base = (i: number) => (v.clearance[i] > 0 ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
+    const base = (i: number) => (elevated(h, v, i) ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
     const out: { geom: THREE.BufferGeometry; ranges: [number, number, number][] }[] = []
     for (let lo = 0; lo < data.footprints.length; lo += CHUNK_PARTS) {
       const hi = lo + CHUNK_PARTS
@@ -717,7 +719,7 @@ function SelectedBuildings({ data, hidden }: { data: CityData; hidden: ReadonlyS
     if (!key) return null
     const ids = new Set(key.split(',').map(Number)), h = data.heights, v = data.vista, at = citySurface(data).at
     // The same base as the city mesh (VistaBuildingMesh), so the highlight sits exactly on the building.
-    const base = (i: number) => (v && v.clearance[i] > 0 ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
+    const base = (i: number) => (elevated(h, v, i) ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
     const { geom } = prisms(data, (i) => ids.has(i) && hasHeight(h, i), base, (i) => h!.roof[i])
     if (!geom) return null
     const e = new THREE.EdgesGeometry(geom, 25), p = e.getAttribute('position')
@@ -754,7 +756,7 @@ function CityBuildings({ data, look, ghost, hidden }: { data: CityData; look: Lo
     // Drawn from just below the lowest ground at the corners (heights unchanged), so no base floats where the ground falls;
     // elevated parts (bridges, overhangs) keep their clearance.
     const at = citySurface(data).at
-    const base = (i: number) => (data.vista && data.vista.clearance[i] > 0 ? h!.ground[i]
+    const base = (i: number) => (elevated(h, data.vista, i) ? h!.ground[i]
       : data.footprints[i].outer.reduce((m, [x, y]) => Math.min(m, at(x, y)), h!.ground[i]) - BASE_SINK)
     return [false, true].map((older) => prisms(data, (i) => hasHeight(h, i) && isEstimate(data, i) === older, base, (i) => h!.roof[i]))
   }, [data, h])

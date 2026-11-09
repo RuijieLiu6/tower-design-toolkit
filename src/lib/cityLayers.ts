@@ -113,7 +113,13 @@ export function groundUnder(grids: HeightGrid[], corners: [number, number][]): {
   return { value: hs.slice(0, corners.length).reduce((s, h) => s + h, 0) / corners.length, min: Math.min(...hs), max: Math.max(...hs) }
 }
 
-export interface FootprintHeights { ground: Float32Array; roof: Float32Array; max: Float32Array; points: Uint16Array }
+export interface FootprintHeights {
+  ground: Float32Array; roof: Float32Array; max: Float32Array; points: Uint16Array
+  /** Vista's model: each part's underside above its own ground (> 0: elevated, drawn from `ground` without sinking). */
+  clearance?: Float32Array
+  /** Vista's model: a part that hung in the air rests on what is under it; its underside as mapped (m), NaN for the rest. */
+  restedFrom?: Float32Array
+}
 
 /** TSH1: per footprint (same order) int16 ground, roof P90, roof max in decimetres (-32768 = unknown), uint16 points. */
 export function decodeHeights(buf: ArrayBuffer, count: number): FootprintHeights {

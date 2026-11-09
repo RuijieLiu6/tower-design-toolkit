@@ -97,19 +97,114 @@ export function chooseHeight(v: VistaBuildings, i: number, mode: HeightMode = HE
 /**
  * Seats every part on the Toolkit's ground at its footprint's bounding-box centre (as Vista seats its own): ground =
  * terrain + clearance (the solid's underside), roof = terrain + height. Parts with no terrain under them stay unknown.
+ * Elevated parts that nothing holds up rest on what is under them (restElevated).
  */
 export function seatVista(footprints: Footprint[], v: VistaBuildings, grids: HeightGrid[], mode: HeightMode = HEIGHT_MODE): FootprintHeights {
   const n = footprints.length
-  const ground = new Float32Array(n).fill(NaN), roof = new Float32Array(n).fill(NaN), max = new Float32Array(n).fill(NaN)
+  const ground = new Float32Array(n).fill(NaN), roof = new Float32Array(n).fill(NaN), max = new Float32Array(n).fill(NaN), terrain = new Float32Array(n).fill(NaN)
   footprints.forEach((f, i) => {
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
     for (const [x, y] of f.outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y) }
     const g = sampleTerrain(grids, (x0 + x1) / 2, (y0 + y1) / 2)
     if (g === null) return
     const h = chooseHeight(v, i, mode)
-    ground[i] = g + v.clearance[i]; roof[i] = g + h.height; max[i] = g + h.max
+    terrain[i] = g; ground[i] = g + v.clearance[i]; roof[i] = g + h.height; max[i] = g + h.max
   })
-  return { ground, roof, max, points: new Uint16Array(n) }
+  const { clearance, restedFrom } = restElevated(footprints, v, terrain, ground, roof)
+  return { ground, roof, max, points: new Uint16Array(n), clearance, restedFrom }
+}
+
+/** Building types that stand clear of the ground on purpose (skybridges, covered walkways, canopies): never rested. */
+export const ELEVATED_TYPES: ReadonlySet<string> = new Set(['bridge', 'skybridge', 'corridor', 'roof', 'canopy', 'carport'])
+/**
+ * A thin slab low down is taken for a skybridge or a canopy and stays elevated too: at most `depth` m from underside to
+ * roof, its underside within `under` m of the ground, at most `width` m across.
+ */
+export const ELEVATED_SLAB = { depth: 6, under: 15, width: 8 }
+/** An underside within this much (m) above what is under it rests on it. */
+const HELD = 0.5
+
+/**
+ * Elevated parts that nothing holds up (9 Nov, Ruijie: "these masses are floating in the air"). OpenStreetMap starts
+ * some building parts above the ground (min_height: a tower above its podium, an overhang, a skybridge). Where the part
+ * under one is missing from the map (often the podium, mapped only as the building outline the parts replace) or
+ * lower, the part hung in the air: 205 of the model's 562 elevated parts had nothing under half their footprint, from
+ * 3 to 140 m up. Each elevated part is sampled over its footprint (up to 8 × 8 points). At each point, the support is
+ * the highest roof of another part that starts below it (else the part's own ground). Where at least half the points
+ * hold it (a roof within HELD of its underside) the part stays as mapped: an overhang. Otherwise it rests on the level
+ * under the majority of it (the median support), the ground where nothing is there. Skybridges, corridors and canopies
+ * (ELEVATED_TYPES) and thin low slabs (ELEVATED_SLAB) stay elevated.
+ * Lowers `ground` in place; returns each part's underside above its own ground (`terrain`) and, for a rested part, its
+ * underside as mapped (m above its ground; NaN for the rest).
+ */
+export function restElevated(footprints: Footprint[], v: VistaBuildings, terrain: Float32Array, ground: Float32Array, roof: Float32Array): { clearance: Float32Array; restedFrom: Float32Array } {
+  const n = footprints.length
+  const clearance = new Float32Array(n), restedFrom = new Float32Array(n).fill(NaN)
+  const known = (i: number) => Number.isFinite(ground[i]) && Number.isFinite(roof[i])
+  const candidates: number[] = []
+  for (let i = 0; i < n; i++) {
+    if (!(v.clearance[i] > 0) || !known(i)) continue
+    clearance[i] = v.clearance[i]
+    if (ELEVATED_TYPES.has(v.osmType[i])) continue
+    const pts = footprints[i].outer
+    let area = 0, perim = 0
+    for (let k = 0; k < pts.length; k++) { const [ax, ay] = pts[k], [bx, by] = pts[(k + 1) % pts.length]; area += ax * by - bx * ay; perim += Math.hypot(bx - ax, by - ay) }
+    area = Math.abs(area) / 2
+    // the width of the rectangle with this area and perimeter (exact for a rectangle)
+    const width = (perim - Math.sqrt(Math.max(0, perim * perim - 16 * area))) / 4
+    if (roof[i] - ground[i] <= ELEVATED_SLAB.depth && v.clearance[i] <= ELEVATED_SLAB.under && width <= ELEVATED_SLAB.width) continue
+    candidates.push(i)
+  }
+  if (!candidates.length) return { clearance, restedFrom }
+  // every part with a height, by 40 m cell: the parts that could hold one up
+  const CELL = 40, cells = new Map<string, number[]>(), boxes: number[][] = []
+  for (let j = 0; j < n; j++) {
+    if (!known(j)) continue
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    for (const [x, y] of footprints[j].outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y) }
+    boxes[j] = [x0, y0, x1, y1]
+    for (let cx = Math.floor(x0 / CELL); cx <= Math.floor(x1 / CELL); cx++) for (let cy = Math.floor(y0 / CELL); cy <= Math.floor(y1 / CELL); cy++) {
+      const k = `${cx},${cy}`, l = cells.get(k)
+      if (l) l.push(j); else cells.set(k, [j])
+    }
+  }
+  const under0 = ground.slice()
+  for (const i of candidates) {
+    const [x0, y0, x1, y1] = boxes[i], under = under0[i]
+    const step = Math.max(0.25, Math.min(x1 - x0, y1 - y0) / 8)
+    const tops: number[] = []
+    let held = 0
+    const sample = (x: number, y: number) => {
+      let top = terrain[i]
+      for (const j of cells.get(`${Math.floor(x / CELL)},${Math.floor(y / CELL)}`) ?? []) {
+        if (j === i || !(under0[j] < under) || roof[j] <= top) continue
+        const b = boxes[j]
+        if (x < b[0] || x > b[2] || y < b[1] || y > b[3] || !inRing(x, y, footprints[j].outer)) continue
+        top = Math.min(roof[j], under)
+      }
+      tops.push(top)
+      if (top >= under - HELD) held++
+    }
+    for (let x = x0 + step / 2; x < x1; x += step) for (let y = y0 + step / 2; y < y1; y += step) if (inRing(x, y, footprints[i].outer)) sample(x, y)
+    if (!tops.length) sample((x0 + x1) / 2, (y0 + y1) / 2)
+    if (held * 2 >= tops.length) continue
+    tops.sort((a, b) => a - b)
+    const rest = Math.max(terrain[i], tops[Math.floor((tops.length - 1) / 2)])
+    restedFrom[i] = under - terrain[i]
+    ground[i] = rest
+    clearance[i] = rest - terrain[i] < 0.01 ? 0 : rest - terrain[i]
+  }
+  return { clearance, restedFrom }
+}
+
+/** Is (x, y) inside the ring (even-odd)? */
+function inRing(x: number, y: number, ring: [number, number][]): boolean {
+  let inside = false
+  for (let i = 0, k = ring.length - 1; i < ring.length; k = i++) {
+    const [xi, yi] = ring[i], [xk, yk] = ring[k]
+    if ((yi > y) !== (yk > y) && x < ((xk - xi) * (y - yi)) / (yk - yi) + xi) inside = !inside
+  }
+  return inside
 }
 
 /** Vista's parts by OSM id (a multipart building has several). */
