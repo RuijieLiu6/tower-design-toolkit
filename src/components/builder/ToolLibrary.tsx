@@ -126,7 +126,7 @@ export default function ToolLibrary() {
         {PHASE_IDS.map((p) => <PhaseButton key={p} id={p} on={phase === p} onClick={() => setPhase(phase === p ? null : p)} dot={PHASE_COLOR[p].accent}>{phaseName(p)}</PhaseButton>)}
       </div>
 
-      <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-3" style={{ scrollbarWidth: 'thin' }}>
+      <div className="mt-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-3" style={{ scrollbarWidth: 'thin' }}>
         <Section testId="library-available" title="Available" count={shown.available.length} of={library.available.length}>
           {shown.available.map((e) => <Entry key={e.id} e={e} {...entryProps} />)}
           {!shown.available.length && <Empty filtering={filtering} what="available tool" />}
@@ -158,7 +158,7 @@ function Section({ testId, title, count, of, foot, children }: { testId: string;
   return (
     <section data-testid={testId} aria-labelledby={hid} className="mb-3">
       <h3 id={hid} className="flex items-baseline gap-1.5 px-1 pb-1 text-control text-ink">{title}<span className="text-meta font-normal tabular-nums text-muted" aria-label={count === of ? `${of} tools` : `${count} of ${of} tools shown`}>{count === of ? of : `${count} / ${of}`}</span></h3>
-      <ul className="grid gap-1">{children}</ul>
+      <ul className="grid grid-cols-1 gap-1">{children}</ul>
       {foot && <div className="px-1 pt-2">{foot}</div>}
     </section>
   )
@@ -184,7 +184,7 @@ function ResearchSection({ entries, total, filtering, ...rest }: { entries: Tool
       </summary>
       <p className="px-2 pb-1 text-meta text-muted">Not runnable: for reading what is planned, never a step of the workflow.</p>
       {open && (
-        <ul className="grid gap-1 px-1 pb-1">
+        <ul className="grid grid-cols-1 gap-1 px-1 pb-1">
           {entries.map((e) => <Entry key={e.id} e={e} {...rest} />)}
           {!entries.length && <Empty filtering={filtering} what="planned tool" />}
         </ul>

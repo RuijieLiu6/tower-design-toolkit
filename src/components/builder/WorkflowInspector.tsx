@@ -108,7 +108,7 @@ function ToolView({ id }: { id: string }) {
     select(null)
   }
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="flex items-start gap-3">
         <NodeTile id={id} size={48} state={missing ? 'off' : 'on'} art={<NodeArtwork id={id} size={43} category={entry.category} muted={missing} />} />
         <div className="min-w-0">
@@ -116,7 +116,7 @@ function ToolView({ id }: { id: string }) {
           <p className="text-control font-normal text-muted">{entry.purpose}</p>
         </div>
       </div>
-      <dl className="grid gap-3">
+      <dl className="grid grid-cols-1 gap-3">
         <Row label="Phase" testId="inspector-phase">
           <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: PHASE_COLOR[phase].accent }} />{PHASE_NAME[phase]}</span>
         </Row>
@@ -181,12 +181,12 @@ function WorkflowView() {
   const returns = useMemo(() => sequenceModel(w.wf, homeOf).returns.length, [w.wf, placed]) // eslint-disable-line react-hooks/exhaustive-deps
   const tools = w.wf.nodes.length
   return (
-    <div data-testid="inspector-workflow" className="grid gap-4">
+    <div data-testid="inspector-workflow" className="grid grid-cols-1 gap-4">
       <div>
         <h3 className="text-section font-semibold text-ink">{name}</h3>
         <p className="text-control font-normal text-muted" data-testid="inspector-started">{started}</p>
       </div>
-      <dl className="grid gap-3">
+      <dl className="grid grid-cols-1 gap-3">
         <Row label="Phases" testId="inspector-phases">
           {phases.length ? (
             <ul className="flex flex-wrap gap-1">
