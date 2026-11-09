@@ -452,7 +452,7 @@ function Legend() {
   const conesShown = !CONES.every((c) => coneHidden[c.id])
   const foldButton = (
     <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to the mode switch'} title={folded ? 'Show the legend' : 'Fold the legend'}
-      data-testid="key-toggle" className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink hover:bg-subtle outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">Key{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>
+      data-testid="key-toggle" className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink hover:bg-subtle outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">{mode === 'program' ? 'Program legend' : 'Legend'}{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>
   )
   const sw = (color: string, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: '1px solid rgb(32 38 48 / 0.18)', ...extra }} />
   return (
