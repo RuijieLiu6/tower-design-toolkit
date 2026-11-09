@@ -94,6 +94,13 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.wind-screen', 'built.sun'])
   await undo()
   await expect.poll(() => rows(p)).toEqual(FORM)
+  // Confirm workflow keeps the loop and returns to the design; then the editor opens again with it
+  await expect(overview.getByTestId('overview-close')).toHaveText(/Confirm workflow/)
+  await overview.getByTestId('overview-close').click()
+  await expect(dock).toHaveCount(0)
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
+  await p.getByTestId('phase-edit').click()
+  await expect(canvas.locator(`[data-dock-edge="${LOOP}"]`)).toHaveCount(1)
 
   // 4 · adding from the shelf: a drag lights up the best place (after the last Form tool) and a drop puts it where it is
   // dropped; a click puts it in the best place; Discard changes puts back the workflow the editor opened with
@@ -114,7 +121,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await overview.getByTestId('overview-discard').click()
   await expect(dock).toHaveCount(0)
   await expect.poll(() => rows(p)).toEqual(FORM)
-  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1) // the loop was there when the editor opened
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1) // confirmed before this editor session opened
 
   // 3 · a tool opens its controls here and its results on the right; nothing else changes
   await row(p, 'built.sun').click()

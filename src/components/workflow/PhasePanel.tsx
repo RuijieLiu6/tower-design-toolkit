@@ -147,7 +147,7 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
           <span className="ml-auto flex items-center gap-1 rounded-lg border border-line bg-panel px-2 py-0.5 text-control text-ink group-hover:border-accent group-hover:text-accent-hover"><PencilLine size={13} aria-hidden />Edit</span>
         </button>
         <Help label={`About the ${PHASE_NAME[phase]} workflow`}>
-          The dots are your whole workflow in working order, coloured by phase; the tinted ones are {PHASE_NAME[phase]}, where you are, and an arc is a loop back to an earlier tool. Click a dot to open that tool. Under them are the {PHASE_NAME[phase]} tools: click one to open its controls below (a check's results open on the right). Workflow (or Edit) opens the editor in the centre view, where you add tools from the shelf, drag them, connect them and make loops, then Confirm to come back here. A loop is a route for revisiting work: it never reruns anything on its own.
+          The dots are your whole workflow in working order, coloured by phase; the tinted ones are {PHASE_NAME[phase]}, where you are, and an arc is a loop back to an earlier tool (hover a dot for its name). Under them are the {PHASE_NAME[phase]} tools: click one to open its controls below (a check's results open on the right). Workflow (or Edit) opens the editor in the centre view, where you add tools from the shelf, drag them, connect them and make loops, then Confirm to come back here. A loop is a route for revisiting work: it never reruns anything on its own.
         </Help>
       </div>
 
@@ -191,7 +191,8 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
 /**
  * The whole workflow at a glance: every tool as a dot in working order, coloured by its phase, on one line from start to
  * end; the dots of the phase you are in sit on a tint, the open tool is ringed, and each loop is an arc back over the
- * line. A dot opens its tool (in its phase).
+ * line. A picture, not a row of buttons: with many tools the dots are far smaller than a 24 px target (interface gate,
+ * UI07), so tools open from the list under it and the editor; each dot names its tool on hover and to screen readers.
  */
 function PhaseMap({ board, phase, active, info, home }: { board: Board; phase: PhaseId; active: string; info: (id: string) => Info; home: (id: string) => PhaseId }) {
   const order = useMemo(() => runOrder(board), [board])
@@ -201,12 +202,6 @@ function PhaseMap({ board, phase, active, info, home }: { board: Board; phase: P
   const n = order.length, x = (id: string) => ((order.indexOf(id) + 0.5) / n) * 100
   const loops = board.edges.filter((e) => back.has(edgeKey(e)) && order.includes(e.a) && order.includes(e.b))
   const here = order.filter((id) => phaseOf(id) === phase).length
-  const goTo = (id: string) => {
-    const p = phaseOf(id)
-    goToStep(PHASE_STEP[p])
-    usePhaseTools.getState().setActive(p, id)
-    if (!isDesignNode(id)) useStore.getState().selectNode(id)
-  }
   return (
     <div className="mx-3 mt-0.5" data-testid="phase-map">
       <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="block h-2.5 w-full overflow-visible" aria-hidden>
@@ -220,12 +215,12 @@ function PhaseMap({ board, phase, active, info, home }: { board: Board; phase: P
             const prevOn = i > 0 && phaseOf(order[i - 1]) === phase, nextOn = i < n - 1 && phaseOf(order[i + 1]) === phase
             return (
               <li key={id} className="min-w-0 flex-1">
-                <button type="button" data-map-node={id} data-here={on ? '' : undefined} onClick={() => goTo(id)}
-                  aria-label={`${i + 1} of ${n}: ${PHASE_NAME[ph]} / ${info(id).name}${open ? ' (open)' : ''}`} title={`${i + 1}. ${PHASE_NAME[ph]} / ${info(id).name}`}
-                  className={`flex h-6 w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-accent ${on && !prevOn ? 'rounded-l-full' : ''} ${on && !nextOn ? 'rounded-r-full' : ''}`}
+                <span data-map-node={id} data-here={on ? '' : undefined} title={`${i + 1}. ${PHASE_NAME[ph]} / ${info(id).name}`}
+                  className={`flex h-6 w-full items-center justify-center ${on && !prevOn ? 'rounded-l-full' : ''} ${on && !nextOn ? 'rounded-r-full' : ''}`}
                   style={{ background: on ? PHASE_COLOR[ph].surface : undefined }}>
-                  <span className="block rounded-full" style={{ width: open ? 10 : 7, height: open ? 10 : 7, background: PHASE_COLOR[ph].accent, boxShadow: open ? `0 0 0 2px #fff, 0 0 0 3.5px ${PHASE_COLOR[ph].ink}` : undefined }} />
-                </button>
+                  <span aria-hidden className="block rounded-full" style={{ width: open ? 10 : 7, height: open ? 10 : 7, background: PHASE_COLOR[ph].accent, boxShadow: open ? `0 0 0 2px #fff, 0 0 0 3.5px ${PHASE_COLOR[ph].ink}` : undefined }} />
+                  <span className="sr-only">{i + 1} of {n}: {PHASE_NAME[ph]} / {info(id).name}{open ? ' (open)' : ''}</span>
+                </span>
               </li>
             )
           })}
