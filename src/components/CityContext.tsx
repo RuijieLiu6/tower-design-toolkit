@@ -44,6 +44,7 @@ import HeightSurfaceLayer, { HeightSurfacePanel, drawClick, useHeightSurface } f
 import Label from './Label'
 import { CONE_STYLE, FlagChip } from './ui'
 import { ViewportDock, useDock } from './ViewportDock'
+import { HigherBuildingsDockItem, HigherBuildingsSummary } from './HigherBuildings'
 import { ExistingConeCrossings, coneCrossingsFor } from './ConeVolumes'
 import VistaCones, { ConeVisibilityPanel } from './VistaCones'
 import { earClip } from '../lib/coneVolume'
@@ -1222,6 +1223,8 @@ export function CityLegend() {
     <ViewportDock anchored sections={[
       // Simplified (12 Nov: "simplify this panel, and merge the view cone and names with it"): the switches people use
       // first, then the extra layers, then every setting and source folded into one section (nothing removed).
+      // Policy geography, apart from the place names (Milestone A, 9 Nov).
+      { id: 'planning', title: 'Planning', defaultOpen: true, summary: <HigherBuildingsSummary />, children: <HigherBuildingsDockItem /> },
       { id: 'show', title: 'Show', defaultOpen: true, children: <LayerTiles manifest={manifest} /> },
       { id: 'settings', title: 'Settings & sources', children: (
         <div className="space-y-4">

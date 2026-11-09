@@ -76,6 +76,7 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
 import { cancelFlight, PlanRig, VistaChrome, VistaLookRig } from './VistaLook'
+import { HigherBuildingsLabel, HigherBuildingsLayer, HigherBuildingsVtcItem } from './HigherBuildings'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView, orientReq, upNorthDeg, useNorthMode } from '../lib/northView'
@@ -215,6 +216,8 @@ function CityScene({ onPick, look, xray, facade = false, north = 0 }: { onPick: 
       <SolarOverlay />
       <SolarEnvelopeOverlay />
       <RelaxationMasks />
+      {/* Planning: the City's Higher Buildings policy area (display only: no picking, no depth writes). */}
+      <HigherBuildingsLayer />
     </>
   )
 }
@@ -734,7 +737,7 @@ export default function Viewport() {
           {present && <div data-testid="board-size-caption" className="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap text-meta text-muted">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
-          {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
+          {project === 'city' && !present && !hidden && <><SitePlaceLabels /><HigherBuildingsLabel /><VistaChrome /></>}
           {/* Not at eye level (Observer: its corner map takes the bottom right, and the view is not an axonometric). */}
           {phase === 'advanced' && sel && !hidden && !looking && <TitleBlock t={sel} facade={facadeView} clear={dockOpen ? 'right-[21.5rem]' : project === 'city' ? 'right-3' : 'right-12'} />}
         </div>
@@ -860,6 +863,7 @@ function VtcDock() {
         </div>
       ) },
       { id: 'vtc-sun', title: 'Sun', defaultOpen: true, summary: <VtcSunSummary />, children: <VtcSun /> },
+      { id: 'planning', title: 'Planning', summary: 'Higher Buildings · Real Vancouver only', children: <HigherBuildingsVtcItem /> },
       { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? (own === 'model' ? 'your model · this browser' : 'your copy · this browser') : source === 'included' ? 'included' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )
