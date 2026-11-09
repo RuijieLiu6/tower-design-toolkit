@@ -140,7 +140,12 @@ interface DisplayState {
   /** Pinned (8 Nov): the View stays as it is when another tool opens (lib/workflow/toolView.ts); this visit only. */
   pinned: boolean
   setPinned: (v: boolean) => void
+  /** The surrounding buildings of the competition context, shown or hidden (Ruijie, 9 Nov: see the model better while
+   *  modelling). Display only: the checks still count the context. Remembered in this browser. */
+  context: boolean
+  setContext: (v: boolean) => void
 }
+const CONTEXT_KEY = 'ts.context.shown'
 export const useDisplayMode = create<DisplayState>((set) => ({
   mode: saved(),
   layer: null,
@@ -148,6 +153,8 @@ export const useDisplayMode = create<DisplayState>((set) => ({
   showLayer: (layer) => { set({ mode: 'analysis', layer }); try { localStorage.setItem(KEY, 'analysis') } catch { /* this visit only */ } },
   pinned: false,
   setPinned: (pinned) => set({ pinned }),
+  context: (() => { try { return localStorage.getItem(CONTEXT_KEY) !== '0' } catch { return true } })(),
+  setContext: (context) => { set({ context }); try { localStorage.setItem(CONTEXT_KEY, context ? '1' : '0') } catch { /* this visit only */ } },
 }))
 
 /**

@@ -18,8 +18,9 @@ import { useShownMode } from '../lib/displayModeHooks'
 import { contextUses } from '../lib/vtcUses'
 import { useVtcSource } from '../lib/vtcContextSource'
 import { useStore } from '../store'
-import { ChevronDown, ChevronUp } from './icons'
+import { Building2, ChevronDown, ChevronUp, EyeOff } from './icons'
 import Help from './Help'
+import { useDisplayMode } from '../lib/displayMode'
 import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 
 /** Which context colouring the scene draws: by ground-level use (Program) or the neutral model (every other mode). */
@@ -155,6 +156,18 @@ export function PlainEnvironment() {
 // ---------------------------------------------------------------- the mode switch and its key (over the view)
 const sw = (color: string, border = SWATCH_BORDER, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: `1px solid ${border}`, ...extra }} />
 
+/** Show or hide the surrounding buildings (the site, its lines and labels stay): a view choice, never a change to the checks. */
+function ContextToggle() {
+  const on = useDisplayMode((s) => s.context)
+  const set = useDisplayMode((s) => s.setContext)
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={() => set(!on)} data-testid="context-toggle" aria-label="Surrounding buildings"
+      title={on ? 'Hide the surrounding buildings to see your model; the checks still count them' : 'Show the surrounding buildings'}
+      className={`flex h-7 items-center gap-1 rounded-[6px] px-2 text-control outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${on ? 'text-ink hover:bg-subtle' : 'bg-selected text-accent-hover'}`}>
+      {on ? <Building2 size={14} aria-hidden /> : <EyeOff size={14} aria-hidden />}Context{on ? '' : ' off'}</button>
+  )
+}
+
 /** Bottom left of the competition view, above the north arrow: the display-mode switch and the key of the shown mode. */
 export function VtcLookBar() {
   const mode = useShownMode()
@@ -170,6 +183,7 @@ export function VtcLookBar() {
       <div className="flex flex-wrap items-center gap-1.5">
         <DisplayModeSwitch project="vtc" />
         <SunChip />
+        {ctx && <ContextToggle />}
         {mode !== 'analysis' && <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} data-testid="key-toggle" title={folded ? 'Show the legend' : 'Fold the legend'}
           className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink outline-none hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">{mode === 'program' ? 'Program legend' : 'Legend'}{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>}
       </div>

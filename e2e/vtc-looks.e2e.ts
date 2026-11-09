@@ -69,6 +69,12 @@ test('with the entrant\'s copy: Program colours the buildings by use with a lege
   // the full key is on request (8 Nov): open it
   if ((await p.getByTestId('key-toggle').getAttribute('aria-expanded')) === 'false') await p.getByTestId('key-toggle').click()
   for (const label of ['Retail / commercial', 'Office', 'Hotel', 'Residential', 'Heritage']) await expect(bar).toContainText(label)
+  // Context off (Ruijie, 9 Nov): the surrounding buildings leave the scene, the site stays; on again brings them back
+  await p.getByTestId('context-toggle').click()
+  await expect(p.getByTestId('context-toggle')).toHaveAttribute('aria-checked', 'false')
+  await expect.poll(() => scene(p), { timeout: 30_000 }).toMatchObject({ program: false, plain: false })
+  await p.getByTestId('context-toggle').click()
+  await expect.poll(() => scene(p), { timeout: 30_000 }).toMatchObject({ program: true })
   await expect.poll(() => scene(p), { timeout: 60_000 }).toMatchObject({ program: true, plain: false, fill: true })
   const uses = (await scene(p))!.uses
   for (const u of ['retail', 'office', 'hotel', 'residential', 'cultural', 'institutional']) expect(uses).toContain(u)
