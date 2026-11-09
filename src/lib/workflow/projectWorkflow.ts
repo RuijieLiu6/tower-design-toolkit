@@ -44,6 +44,8 @@ interface WorkflowState {
   proposal: Board | null
   /** The last change, in words, for the status line and screen readers. */
   note: string | null
+  /** The workflow as it was when the editor opened (Ruijie, 9 Nov: edit, then Confirm, or Discard to go back to this). */
+  base: ProjectWorkflow | null
   load: () => void
   setMode: (m: DockMode) => void
   setEditing: (id: string | null) => void
@@ -90,7 +92,7 @@ function syncChecks(before: string[], after: string[]) {
 
 const LIMIT = 80
 export const useProjectWorkflow = create<WorkflowState>()((set, get) => ({
-  wf: EMPTY, past: [], future: [], mode: 'compact', editing: null, edge: null, proposal: null, note: null,
+  wf: EMPTY, past: [], future: [], mode: 'compact', editing: null, edge: null, proposal: null, note: null, base: null,
   load: () => set({ wf: readWorkflow(), proposal: null }),
   setMode: (mode) => set({ mode, editing: mode === 'edit' ? get().editing : null, edge: mode === 'compact' ? null : get().edge, proposal: mode === 'compact' ? null : get().proposal }),
   setEditing: (editing) => set({ editing, edge: null }),
@@ -197,11 +199,15 @@ let working: WorkingState | null = null
 export function openOverview(to: 'overview' | 'edit' | 'close', opts: { keep?: boolean } = {}) {
   const w = useProjectWorkflow.getState()
   if (to !== 'close') {
-    if (w.mode === 'compact') working = { step: useStep.getState().step, active: { ...usePhaseTools.getState().active }, selectedNode: useStore.getState().selectedNode }
+    if (w.mode === 'compact') {
+      working = { step: useStep.getState().step, active: { ...usePhaseTools.getState().active }, selectedNode: useStore.getState().selectedNode }
+      useProjectWorkflow.setState({ base: w.wf, note: null })
+    }
     w.setMode(to)
     return
   }
   w.setMode('compact')
+  useProjectWorkflow.setState({ base: null })
   const back = working
   working = null
   if (!back || opts.keep) return
@@ -209,4 +215,17 @@ export function openOverview(to: 'overview' | 'edit' | 'close', opts: { keep?: b
   const pt = usePhaseTools.getState()
   for (const [ph, id] of Object.entries(back.active) as [PhaseId, string][]) if (pt.active[ph] !== id) pt.setActive(ph, id)
   if (useStore.getState().selectedNode !== back.selectedNode) useStore.setState({ selectedNode: back.selectedNode })
+}
+
+/** Has the workflow changed since the editor opened? (Confirm keeps the changes; Discard puts the opening one back.) */
+export function changedSinceOpen(): boolean {
+  const { wf, base } = useProjectWorkflow.getState()
+  if (!base) return false
+  return wf.nodes.join('|') !== base.nodes.join('|') || edgeDiff(base.edges, wf.edges).added.length + edgeDiff(base.edges, wf.edges).removed.length > 0
+}
+
+/** Discard changes: the workflow goes back to how it was when the editor opened, as one step that Undo can take back. */
+export function discardSinceOpen() {
+  const { base, commit } = useProjectWorkflow.getState()
+  if (base && changedSinceOpen()) commit(base, 'Changes discarded: the workflow is back to how it was when you opened the editor')
 }

@@ -1,7 +1,8 @@
 // The five-phase workspace (Ruijie, 8 Nov), the Form example: "Massing, Sun & shadow and Wind screen, including a return
 // path to Massing. Test design editing, rearrangement, phase switching, state preservation and phase-package
-// export/import." The phase row picks Form; the left panel shows Form's own workflow, then the open tool's controls; the
-// whole workflow runs along the bottom and can be expanded and rearranged there, with the left panel following.
+// export/import." The phase row picks Form; the left panel shows Form's tools and a map of the whole workflow, then the
+// open tool's controls; its Workflow header opens the editor in the centre view (9 Nov), where tools are added from the
+// shelf (the best place lights up), connected from their connection points, moved, and confirmed or discarded.
 // The model (a placed tower) and the open tool stay through every edit, phase switch and reload; a phase package saves
 // Form and brings it back by Merge and by Replace, after a preview.
 import { expect, test, type Page } from '@playwright/test'
@@ -42,35 +43,78 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
     await expect(panel(p).getByTestId('phase-active')).toHaveAttribute('data-active', id) // a new tool opens
   }
   expect(await rows(p)).toEqual(FORM)
-  await p.getByTestId('phase-edit').click()
-  await row(p, 'built.wind-screen').click()
-  await p.getByTestId('phase-node-actions').getByRole('button', { name: /Connect \/ loop/ }).click()
-  await expect(p.getByTestId('phase-connect-list').locator('[data-connect="design.massing"]')).toContainText('return path')
-  await p.getByTestId('phase-connect-list').locator('[data-connect="design.massing"]').click()
-  await expect(panel(p).locator(`[data-loop="${LOOP}"]`)).toHaveCount(1)
-  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toContainText('Return to Massing')
-  await expect(p.getByTestId('phase-note')).toContainText('Return path created')
 
-  // 2 · rearrangement, three ways: Move up, the handle's arrow keys, and dragging the handle; Undo and Redo
-  await row(p, 'built.wind-screen').click() // pick it again (the connect list closed)
-  if (!(await p.getByTestId('phase-node-actions').isVisible())) await row(p, 'built.wind-screen').click()
-  await p.getByTestId('phase-node-actions').getByRole('button', { name: 'Move up' }).click()
+  // The workflow editor, in the centre view (9 Nov): the panel's Workflow header opens it; the panel stays beside it.
+  const dock = p.getByTestId('workflow-overview')
+  const overview = dock.getByTestId('dock-expanded')
+  const canvas = overview.getByTestId('dock-canvas')
+  const center = async (l: ReturnType<Page['locator']>) => { const b = (await l.boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 } }
+  const gapBetween = async (a: string, b: string) => {
+    const A = await center(canvas.locator(`[data-dock-node="${a}"]`)), B = await center(canvas.locator(`[data-dock-node="${b}"]`))
+    return { x: (A.x + B.x) / 2, y: A.y }
+  }
+  const dragTo = async (from: { x: number; y: number }, to: { x: number; y: number }, hold?: () => Promise<void>) => {
+    await p.mouse.move(from.x, from.y); await p.mouse.down()
+    for (let k = 1; k <= 10; k++) await p.mouse.move(from.x + ((to.x - from.x) * k) / 10, from.y + ((to.y - from.y) * k) / 10)
+    if (hold) await hold()
+    await p.mouse.up()
+  }
+  const undo = () => overview.getByRole('button', { name: 'Undo the last workflow change' }).click()
+  await expect(dock).toHaveCount(0)
+  await p.getByTestId('phase-edit').click()
+  await expect(dock).toBeVisible()
+  await expect(panel(p)).toBeVisible() // the editor takes the centre view only
+  const main = (await p.locator('main').boundingBox())!, ed = (await dock.boundingBox())!
+  expect(Math.abs(ed.x - main.x)).toBeLessThan(2); expect(Math.abs(ed.width - main.width)).toBeLessThan(2)
+  await expect(dock.locator('[data-lane]')).toHaveCount(5)
+  await expect(dock.locator('[data-here]')).toContainText('Form')
+
+  // 1b · a return path, drawn as on the landing page: hover Wind screen, drag from a connection point to Massing
+  const wind = canvas.locator('[data-dock-node="built.wind-screen"]')
+  await wind.hover()
+  const handle = canvas.locator('span.group:has([data-dock-node="built.wind-screen"]) [data-handle="w"]')
+  await expect(handle).toBeVisible()
+  await dragTo(await center(handle), await center(canvas.locator('[data-dock-node="design.massing"]')), async () => {
+    await expect(canvas.getByRole('status').filter({ hasText: 'Create loop' })).toBeVisible()
+  })
+  await expect(canvas.locator(`[data-dock-edge="${LOOP}"]`)).toHaveCount(1)
+  await expect(overview.getByTestId('dock-note')).toContainText('Loop created')
+  // the panel follows at once: a ↻ on Wind screen and an arc on the map of the whole workflow
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
+  await expect(panel(p).locator(`[data-map-loop="${LOOP}"]`)).toHaveCount(1)
+
+  // 2 · rearrangement: Move before, a drag to a gap, Undo; the return path survives
+  await wind.click()
+  await overview.getByTestId('dock-node-actions').getByRole('button', { name: 'Move before' }).click()
   await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.wind-screen', 'built.sun'])
-  await expect(panel(p).locator(`[data-loop="${LOOP}"]`)).toHaveCount(1) // the return path survives the move
-  await panel(p).locator('[data-grip="built.wind-screen"]').focus()
-  await p.keyboard.press('ArrowDown')
+  await expect(canvas.locator(`[data-dock-edge="${LOOP}"]`)).toHaveCount(1)
+  await undo()
   await expect.poll(() => rows(p)).toEqual(FORM)
-  const grip = await panel(p).locator('[data-grip="built.wind-screen"]').boundingBox()
-  const sun = await panel(p).locator('[data-phase-node="built.sun"]').boundingBox()
-  await p.mouse.move(grip!.x + grip!.width / 2, grip!.y + grip!.height / 2)
-  await p.mouse.down()
-  for (let k = 1; k <= 6; k++) await p.mouse.move(grip!.x + grip!.width / 2, grip!.y + (sun!.y + 4 - grip!.y) * (k / 6))
-  await p.mouse.up()
+  await dragTo(await center(wind), await gapBetween('design.massing', 'built.sun'))
   await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.wind-screen', 'built.sun'])
-  await p.getByTestId('phase-undo').click()
+  await undo()
   await expect.poll(() => rows(p)).toEqual(FORM)
-  await expect(panel(p).locator(`[data-loop="${LOOP}"]`)).toHaveCount(1)
-  await p.getByTestId('phase-done').click()
+
+  // 4 · adding from the shelf: a drag lights up the best place (after the last Form tool) and a drop puts it where it is
+  // dropped; a click puts it in the best place; Discard changes puts back the workflow the editor opened with
+  const tray = overview.getByTestId('dock-tray')
+  await tray.locator('[data-tray-phase="form"]').click()
+  await dragTo(await center(tray.locator('[data-tray="built.solar-access"]')), await gapBetween('built.sun', 'built.wind-screen'), async () => {
+    await expect(canvas.locator('[data-ideal-slot]')).toBeVisible()
+    await expect(canvas.locator('[data-ideal-slot]')).toContainText('Best place')
+    await expect(canvas.locator('[data-ideal-slot]')).toHaveAttribute('data-ideal-slot', /^form:/)
+  })
+  await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.sun', 'built.solar-access', 'built.wind-screen'])
+  await expect(tray.locator('[data-tray="built.solar-access"]')).toHaveCount(0)
+  await undo()
+  await expect.poll(() => rows(p)).toEqual(FORM)
+  await tray.locator('[data-tray="built.solar-access"]').click()
+  await expect.poll(() => rows(p)).toEqual([...FORM, 'built.solar-access']) // the best place: after Wind screen
+  await expect(overview.getByTestId('overview-close')).toHaveText(/Confirm workflow/)
+  await overview.getByTestId('overview-discard').click()
+  await expect(dock).toHaveCount(0)
+  await expect.poll(() => rows(p)).toEqual(FORM)
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1) // the loop was there when the editor opened
 
   // 3 · a tool opens its controls here and its results on the right; nothing else changes
   await row(p, 'built.sun').click()
@@ -78,63 +122,16 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(panel(p).getByTestId('phase-active').getByText('Month')).toBeVisible()
   await expect(p.getByLabel('Show results for')).toHaveValue('built.sun')
 
-  // 4 · Overview, on demand (8 Nov): closed on entry, no strip under the workspace; open it, drag to reorder and drag or
-  // click to add (each add confirmed); Form's panel follows at once; Return to design restores the open tool
-  await expect(p.getByTestId('workflow-dock')).toHaveCount(0)
-  await expect(p.getByTestId('workflow-overview')).toHaveCount(0)
-  const dock = p.getByTestId('workflow-overview')
+  // Overview (phase row) opens the same editor; selecting a tool doesn't open it; Return to design puts the working state
+  // back (Sun & shadow open in Form); Open in workspace goes to the chosen tool
   await p.getByTestId('phase-overview').click()
-  const overview = dock.getByTestId('dock-expanded')
-  await expect(dock.locator('[data-lane]')).toHaveCount(5)
-  await expect(overview.locator(`[data-dock-edge="${LOOP}"]`)).toHaveCount(1)
-  const canvas = overview.getByTestId('dock-canvas')
-  const center = async (l: ReturnType<Page['locator']>) => { const b = (await l.boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 } }
-  const gapBetween = async (a: string, b: string) => {
-    const A = await center(canvas.locator(`[data-dock-node="${a}"]`)), B = await center(canvas.locator(`[data-dock-node="${b}"]`))
-    return { x: (A.x + B.x) / 2, y: A.y }
-  }
-  const dragTo = async (from: { x: number; y: number }, to: { x: number; y: number }) => {
-    await p.mouse.move(from.x, from.y); await p.mouse.down()
-    for (let k = 1; k <= 10; k++) await p.mouse.move(from.x + ((to.x - from.x) * k) / 10, from.y + ((to.y - from.y) * k) / 10)
-    await p.mouse.up()
-  }
-  const undo = () => overview.getByRole('button', { name: 'Undo the last workflow change' }).click()
-  // a tool dragged to a gap moves there, without entering Edit; Undo takes it back
-  await dragTo(await center(canvas.locator('[data-dock-node="built.wind-screen"]')), await gapBetween('design.massing', 'built.sun'))
-  await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.wind-screen', 'built.sun'])
-  await undo()
-  await expect.poll(() => rows(p)).toEqual(FORM)
-  // a click on a tool in the tray asks first; Cancel leaves the workflow as it was
-  const tray = overview.getByTestId('dock-tray')
-  await tray.locator('[data-tray="built.solar-access"]').click()
-  await expect(overview.getByTestId('add-confirm')).toContainText('Solar access')
-  await overview.getByTestId('add-confirm-no').click()
-  await expect(overview.getByTestId('add-confirm')).toHaveCount(0)
-  expect(await rows(p)).toEqual(FORM)
-  // dragged into the gap after Sun & shadow: the confirmation names that place; Add puts it there and in the Form panel
-  await dragTo(await center(tray.locator('[data-tray="built.solar-access"]')), await gapBetween('built.sun', 'built.wind-screen'))
-  await expect(overview.getByTestId('add-after')).toHaveValue('built.sun')
-  await overview.getByTestId('add-confirm-yes').click()
-  await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.sun', 'built.solar-access', 'built.wind-screen'])
-  await expect(dock.getByTestId('dock-tray').locator('[data-tray="built.solar-access"]')).toHaveCount(0)
-  await undo()
-  await expect.poll(() => rows(p)).toEqual(FORM)
-  // Edit adds Move before / after (and connections, Remove, the assistant)
-  await dock.getByTestId('dock-edit').click()
-  await overview.locator('[data-dock-node="built.wind-screen"]').click()
-  await overview.getByTestId('dock-node-actions').getByRole('button', { name: 'Move before' }).click()
-  await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.wind-screen', 'built.sun'])
-  await overview.getByRole('button', { name: 'Undo the last workflow change' }).click()
-  await expect.poll(() => rows(p)).toEqual(FORM)
-  await dock.getByTestId('dock-done').click()
-  // selecting a tool here doesn't open it; Return to design puts the working state back (Sun & shadow open in Form)
   await overview.locator('[data-dock-node="design.massing"]').click()
   await expect(overview.getByTestId('overview-open')).toBeVisible()
-  await dock.getByTestId('overview-close').click()
+  await expect(overview.getByTestId('overview-close')).toHaveText(/Return to design/) // nothing changed
+  await overview.getByTestId('overview-close').click()
   await expect(dock).toHaveCount(0)
   await expect(panel(p).getByTestId('phase-active')).toHaveAttribute('data-active', 'built.sun')
   await expect(p.getByLabel('Show results for')).toHaveValue('built.sun')
-  // Open in workspace, from Overview, goes to the chosen tool
   await p.getByTestId('phase-overview').click()
   await dock.locator('[data-dock-node="built.wind-screen"]').click()
   await dock.getByTestId('overview-open').click()
@@ -153,7 +150,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await p.reload()
   await expect(panel(p)).toHaveAttribute('data-phase', 'form', { timeout: 120_000 })
   await expect.poll(() => rows(p), { timeout: 60_000 }).toEqual(FORM)
-  await expect(panel(p).locator(`[data-loop="${LOOP}"]`)).toHaveCount(1)
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
 
   // 6 · export the Form package
   await p.getByTestId('phase-export').click()
@@ -171,10 +168,11 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
 
   // 7 · import by Merge: Wind screen taken off, then brought back with its return path, after a preview
   await p.getByTestId('phase-edit').click()
-  await row(p, 'built.wind-screen').click()
-  await p.getByTestId('phase-remove').click()
+  await canvas.locator('[data-dock-node="built.wind-screen"]').click()
+  await overview.getByTestId('dock-remove').click()
   await expect.poll(() => rows(p)).toEqual(['design.massing', 'built.sun'])
-  await p.getByTestId('phase-done').click()
+  await overview.getByTestId('overview-close').click() // Confirm workflow
+  await expect(dock).toHaveCount(0)
   await openImport(p)
   await p.getByTestId('phase-package-file').setInputFiles(file)
   const preview = p.getByTestId('phase-package-preview')
@@ -185,7 +183,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await preview.getByTestId('pp-apply').click()
   await expect(preview).toHaveCount(0)
   await expect.poll(() => rows(p)).toEqual(FORM)
-  await expect(panel(p).locator(`[data-loop="${LOOP}"]`)).toHaveCount(1)
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
 
   // 8 · import by Replace: an extra Form tool is taken off; the model stays one tower
   await p.getByTestId('phase-add').click()
@@ -199,7 +197,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(preview.getByTestId('pp-model')).toBeChecked()
   await preview.getByTestId('pp-apply').click()
   await expect.poll(() => rows(p)).toEqual(FORM)
-  await expect(panel(p).locator(`[data-loop="${LOOP}"]`)).toHaveCount(1)
+  await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
   await expect(await towerCount(p)).toContainText('(1)')
   await p.screenshot({ path: 'test-results/phase-panel.png' })
 })

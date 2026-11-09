@@ -29,7 +29,7 @@ import { applyBuildingForms, is2009Part, loadCityGeometry, type StreetData } fro
 import { VISTA_ATTRIBUTION, VISTA_SOURCES, chooseHeight, isEstimate, loadVistaBuildings, seatVista, type BuildingModel, type HeightBasis, type VistaBuildings } from '../lib/vistaBuildings'
 import { useCityModel, type CityModel } from '../lib/cityModel'
 import { useSceneStyle, type SceneStyle } from '../lib/sceneStyle'
-import { VISTA_LOOK, setParkMask, setWaterMask, useVistaLook, vistaShaded } from '../lib/vistaLook'
+import { VISTA_LOOK, setParkMask, setWaterMask, setPlaceNames, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { BUILDING_USES, SWATCH_BORDER, USE_BASES, USE_BASIS_TEXT, partUse, useColor, type BuildingUse, type UseBasis } from '../lib/buildingUse'
 import { contextFacadeMaterial, contextGroundMaterial, contextPavingMaterial, contextWaterMaterial, facadeAttribute, useVistaTextures, vistaFamily, vistaSeed, type VistaTextures } from './ContextStyle'
 import CityStreets, { useStreetDisplay } from './CityStreets'
@@ -1109,7 +1109,7 @@ function StyleCard({ data }: { data: CityData }) {
   return (
     <div className="space-y-2">
       <div role="radiogroup" aria-label="Style" className="flex gap-3">{opt('plain', 'Plain')}{opt('context', 'Context')}</div>
-      <label className="flex items-center gap-1"><input type="checkbox" checked={labels} onChange={(e) => useVistaLook.setState({ labels: e.target.checked })} /> Place labels (Vista's neighbourhood names)</label>
+      <label className="flex items-center gap-1"><input type="checkbox" checked={labels} onChange={(e) => setPlaceNames(e.target.checked)} /> Place labels (Vista's neighbourhood names)</label>
       {style === 'plain' && v && <label className="flex items-center gap-1"><input type="checkbox" checked={typeColours} onChange={(e) => useVistaLook.setState({ typeColours: e.target.checked })} /> Colour buildings by type</label>}
       {style === 'plain' && <p>Plain is Vista's Plain look (City overview, Vista @ 917b28e): paper background, warm-grey terrain, blue-grey water, muted parks and white buildings with soft shading; with <b>Colour buildings by type</b> each building takes a light tint of its type instead of white.</p>}
       {style === 'plain' ? (v ? typeColours && <>

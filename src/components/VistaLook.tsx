@@ -26,7 +26,7 @@ import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings
 import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
-import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
+import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -338,6 +338,7 @@ function ModeTabs() {
   const someHidden = Object.values(hidden).some(Boolean), allHidden = CONES.every((c) => hidden[c.id])
   const conesOn: boolean | 'mixed' = !someHidden ? true : allHidden ? false : 'mixed'
   const defaultCone = useDefaultCone()
+  const names = useVistaLook((s) => s.labels)
   // The Context toggle that sat here (Vista's textured style) is now the Materials display mode, in the switch over the
   // legend (components/DisplayMode.tsx), with the Layers dock and Present's picker in step.
   return (
@@ -365,6 +366,13 @@ function ModeTabs() {
             style={on ? { background: CHROME.active, color: CHROME.activeInk } : { color: CHROME.tabInk }}>{m.label}</button>
         )
       })}
+      {/* Names: a toggle like Viewcone (Ruijie, 9 Nov: the neighbourhood names on and off from the view itself). */}
+      <button type="button" aria-pressed={names} onClick={() => setPlaceNames(!names)} data-testid="names-toggle"
+        title={names ? 'Neighbourhood names on: press to hide them' : 'Neighbourhood names off: press to show them'}
+        className={`flex h-[30px] items-center gap-1.5 rounded-lg px-2 text-control hover:bg-subtle ${focusRing}`} style={{ color: CHROME.tabInk }}>
+        <i aria-hidden className="inline-flex h-2.5 w-2.5 rounded-full" style={{ border: `1.5px solid ${CHROME.ink}`, background: names ? CHROME.ink : 'transparent' }} />
+        Names<span aria-hidden className="text-meta font-semibold" style={{ color: CHROME.ink }}>{names ? 'on' : 'off'}</span>
+      </button>
     </div>
   )
 }

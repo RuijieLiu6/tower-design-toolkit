@@ -12,12 +12,15 @@ interface ConeVisibility {
   picked: string | null
 }
 
-export const useConeVisibility = create<ConeVisibility>(() => ({ hidden: {}, picked: null }))
+/** Every cone starts hidden (Ruijie, 9 Nov: "make the default that the view cones are off" for a quieter Site view). The
+ *  Viewcone toggle shows them; opening a tool that works with the views shows them too (lib/workflow/toolView.ts). */
+export const allConesHidden = (): Record<string, boolean> => Object.fromEntries(CONES.map((c) => [c.id, true]))
+export const useConeVisibility = create<ConeVisibility>(() => ({ hidden: allConesHidden(), picked: null }))
 
 export const isConeShown = (hidden: Record<string, boolean>, id: string) => !hidden[id]
 
 export function showAllCones(on: boolean) {
-  useConeVisibility.setState({ hidden: on ? {} : Object.fromEntries(CONES.map((c) => [c.id, true])) })
+  useConeVisibility.setState({ hidden: on ? {} : allConesHidden() })
 }
 
 /** Only the given cones (the ones over the study site), the rest hidden. */

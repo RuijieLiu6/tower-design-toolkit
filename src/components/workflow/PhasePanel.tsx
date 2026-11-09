@@ -1,9 +1,9 @@
 // The left panel, one per phase (Ruijie, 8 Nov: "The left panel should show the selected phase's local tool workflow and,
 // below it, the active tool's parameters, controls and results"). Three parts:
 //   the phase header: its name, Import and Export (phase package, model snapshot, external formats) and Hide;
-//   the phase workflow: the phase's own part of the project workflow, top to bottom in working order, with its
-//     connections, return paths (arcs in the left margin) and links to other phases ("Return to Form / Massing"). Edit
-//     adds drag handles, Move up / down, Connect / loop…, Remove, Undo and Redo; Add tool and My tools are always there;
+//   the phase workflow (9 Nov): the Workflow header opens the editor in the centre view (WorkflowOverview.tsx); under it a
+//     map of the whole workflow (every tool as a dot in working order, the current phase tinted, loops as arcs) and this
+//     phase's tools, which open on a click; Add tool (asks first);
 //   the active tool: a design node opens its design tools (tools/ToolPanel.tsx), a check its settings here and its
 //     results in the right panel, so the model stays in view.
 // Space (overnight brief, 8 Nov): the panel is about 288 px wide (adjustable); the workflow sits in a bounded region
@@ -12,8 +12,8 @@
 // Navigation, working order and execution stay apart: opening a tool never runs anything; editing the workflow only
 // changes the order of work (a loop is a route back, never a re-run); checks run with the model while Analysis is on.
 // The workflow is the project's, the same as the landing page's and Overview's (lib/workflow/projectWorkflow.ts).
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as RKeyboardEvent } from 'react'
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, FileDown, FileUp, Link2, PackagePlus, PencilLine, Plus, Redo2, Search, Trash2, Undo2, Upload, X } from '../icons'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight, FileDown, FileUp, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
 import { NodeTile } from '../NodeTile'
 import { NodeArtwork } from '../nodeIcons/NodeArtwork'
 import Help from '../Help'
@@ -28,10 +28,10 @@ import type { NodePackage } from '../../lib/nodePackages'
 import { togglePanel, usePanels } from '../../lib/panels'
 import { goToStep, useStep } from '../../lib/step'
 import { useStore } from '../../store'
-import { edgeKey, insertByPhase, returnEdges, type Board, type Edge } from '../../lib/workflowGraph'
+import { edgeKey, insertByPhase, returnEdges, type Board } from '../../lib/workflowGraph'
 import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
 import { NODE_CONTROLS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
-import { addNode, connect, disconnect, moveNode, removeNode, runOrder, useProjectWorkflow, wouldLoop } from '../../lib/workflow/projectWorkflow'
+import { addNode, openOverview, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
 import { ExportDrawer, ImportDrawer } from './PhasePorting'
@@ -39,8 +39,6 @@ import { AddConfirm } from './AddConfirm'
 
 export type Portion = ReturnType<typeof phasePortion>
 const TILE = 24
-/** The return arcs' margin: 12 px, and 8 px more for each nested loop. */
-const G0 = 12, LEVEL = 8
 const BUILT = BUILT_NODES.map((n) => n.id)
 
 export default function PhasePanel() {
@@ -95,7 +93,7 @@ export default function PhasePanel() {
       </div>
       {drawer === 'export' && <ExportDrawer phase={phase} portion={portion} onClose={() => setDrawer(null)} />}
       {drawer === 'import' && <ImportDrawer phase={phase} home={home} onClose={() => setDrawer(null)} />}
-      <PhaseWorkflow phase={phase} rows={rows} design={design} portion={portion} active={active} open={open} info={info} home={home} />
+      <PhaseWorkflow phase={phase} rows={rows} design={design} active={active} open={open} info={info} home={home} />
       <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
         <ActiveTool key={active} id={active} phase={phase} info={info} />
       </div>
@@ -103,269 +101,137 @@ export default function PhasePanel() {
   )
 }
 
-/** The phase's part of the workflow, top to bottom, with its editing. */
-function PhaseWorkflow({ phase, rows, design, portion, active, open, info, home }: {
-  phase: PhaseId; rows: string[]; design: string; portion: Portion; active: string; open: (id: string) => void
+/**
+ * The phase's part of the workflow (Ruijie, 9 Nov: "Turn the left side upper corner of the workflow section into a button
+ * which you could click in to add, drag and iterate the workflow … under the workflow, … a very overview of … the orders of
+ * the workflow. And it will show the user which phases they're on"). The Workflow header opens the editor in the centre
+ * view; under it, the whole workflow at a glance (PhaseMap) and this phase's tools, which open on a click. Add tool stays
+ * here for a quick addition (it asks first); arranging, connecting and loops happen in the editor.
+ */
+function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
+  phase: PhaseId; rows: string[]; design: string; active: string; open: (id: string) => void
   info: (id: string) => Info; home: (id: string) => PhaseId
 }) {
   const w = useProjectWorkflow()
   const board = w.wf
   const collapsed = usePhaseTools((s) => s.collapsed)
-  const [edit, setEdit] = useState(false)
-  const [sel, setSel] = useState<string | null>(null)
-  const [connecting, setConnecting] = useState(false)
   const [adding, setAdding] = useState(false)
-  useEffect(() => { setSel(null); setConnecting(false); setAdding(false) }, [phase])
-  useEffect(() => { if (!edit) { setSel(null); setConnecting(false) } }, [edit])
-
+  useEffect(() => setAdding(false), [phase])
   const back = useMemo(() => returnEdges(board.edges), [board.edges])
-  const isRet = (e: Edge) => back.has(edgeKey(e))
-  const at = (id: string) => rows.indexOf(id)
-  // The phase's design node joins the workflow the first time the phase's own workflow is edited.
+  // The phase's design node joins the workflow the first time a tool is added to the phase.
   const ensure = (b: Board): Board => (b.nodes.includes(design) ? b : insertByPhase(b, design))
-  const commit = (next: Board, note: string) => w.commit(next, note)
-  const name = (id: string) => (id === 'enter' ? 'the end' : info(id).name)
-  const where = (id: string) => { const p = home(id); return p === phase ? info(id).name : `${PHASE_NAME[p]} / ${info(id).name}` }
-
-  // Loops inside the phase, nested by span: each takes the first free level of the margin.
-  const loops = useMemo(() => {
-    const ls = portion.internal.filter((e) => back.has(edgeKey(e))).map((e) => ({ e, a: rows.indexOf(e.a), b: rows.indexOf(e.b) })).filter((l) => l.a >= 0 && l.b >= 0)
-      .sort((x, y) => Math.abs(x.a - x.b) - Math.abs(y.a - y.b))
-    const taken: { lo: number; hi: number; level: number }[] = []
-    return ls.map((l) => {
-      const lo = Math.min(l.a, l.b), hi = Math.max(l.a, l.b)
-      let level = 0
-      while (taken.some((t) => t.level === level && !(t.hi < lo || t.lo > hi))) level++
-      taken.push({ lo, hi, level })
-      return { ...l, level }
-    })
-  }, [portion, rows, back])
-  const levels = loops.reduce((m, l) => Math.max(m, l.level + 1), 0)
-  const G = G0 + levels * LEVEL
-  const tileX = G + 26 // the margin, the 16 px handle slot, the 4 px gap and the row's 6 px padding
-
-  // Each row's top and height (rows grow when they show links or the edit actions), for the lines and the drop point.
-  const list = useRef<HTMLDivElement>(null)
-  const [geo, setGeo] = useState<Record<string, { top: number; h: number }>>({})
-  useLayoutEffect(() => {
-    const el = list.current
-    if (!el) return
-    const g: Record<string, { top: number; h: number }> = {}
-    el.querySelectorAll<HTMLElement>('[data-phase-node]').forEach((li) => { g[li.dataset.phaseNode!] = { top: li.offsetTop, h: li.offsetHeight } })
-    setGeo((old) => (JSON.stringify(old) === JSON.stringify(g) ? old : g))
-  })
-
-  const moveTo = (id: string, t: number) => {
-    const i = at(id)
-    if (i < 0 || t === i || t === i + 1 || t < 0 || t > rows.length) return
-    const b = ensure(board)
-    const target = t < rows.length ? rows[t] : rows[rows.length - 1]
-    commit(t < rows.length ? moveNode(b, id, target, 'before') : moveNode(b, id, target, 'after'),
-      t < rows.length ? `${info(id).name} moved before ${info(target).name}` : `${info(id).name} moved to the end of ${PHASE_NAME[phase]}`)
-  }
-  const [drag, setDrag] = useState<{ id: string; to: number } | null>(null)
-  const dropAt = (clientY: number) => {
-    const el = list.current!
-    const y = clientY - el.getBoundingClientRect().top
-    const t = rows.findIndex((id) => { const g = geo[id]; return g ? y < g.top + g.h / 2 : false })
-    return t < 0 ? rows.length : t
-  }
-  const gripKey = (id: string, e: RKeyboardEvent) => {
-    if (e.key === 'ArrowUp') { e.preventDefault(); moveTo(id, at(id) - 1) }
-    if (e.key === 'ArrowDown') { e.preventDefault(); moveTo(id, at(id) + 2) }
-  }
-
   const add = (id: string) => {
     const b = ensure(board)
-    const after = sel && b.nodes.includes(sel) ? sel : [...rows].reverse().find((x) => b.nodes.includes(x)) ?? design
+    const after = [...rows].reverse().find((x) => b.nodes.includes(x)) ?? design
     usePhaseTools.getState().place(id, phase)
-    commit(addNode(b, id, after), `${info(id).name} added to ${PHASE_NAME[phase]}${isDesignNode(id) ? '' : '; its check is on'}`)
+    w.commit(addNode(b, id, after), `${info(id).name} added to ${PHASE_NAME[phase]}${isDesignNode(id) ? '' : '; its check is on'}`)
     setAdding(false)
     open(id)
   }
-
-  // Links to other phases: the way in and out at the ends of the list, return paths on their rows.
-  const cross = portion.crossing.map((c) => ({ ...c, ret: isRet(c.edge) }))
-  const ins = cross.filter((c) => !c.out && !c.ret), outs = cross.filter((c) => c.out && !c.ret)
-  const goTo = (id: string) => {
-    const p = home(id)
-    goToStep(PHASE_STEP[p])
-    usePhaseTools.getState().setActive(p, id)
-    if (!isDesignNode(id)) useStore.getState().selectNode(id)
-  }
-  const unlink = (e: Edge, note: string) => commit(disconnect(board, edgeKey(e)), note)
-
-  const chip = 'inline-flex min-h-6 max-w-full items-center gap-1 truncate rounded-full border border-line bg-panel px-2 py-0.5 text-meta text-ink outline-none hover:border-boundary focus-visible:ring-2 focus-visible:ring-accent'
-  const xBtn = (label: string, onClick: () => void) => (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-6 w-6 items-center justify-center rounded-full text-muted outline-none hover:text-error focus-visible:ring-2 focus-visible:ring-accent"><X size={11} aria-hidden /></button>
-  )
+  const returnsFrom = (id: string) => board.edges.filter((e) => e.a === id && back.has(edgeKey(e)))
+  const loops = board.edges.filter((e) => back.has(edgeKey(e)) && (rows.includes(e.a) || rows.includes(e.b))).length
   const summary = rows.map((id) => info(id).word).join(' › ')
 
   return (
-    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" data-editing={edit ? '' : undefined} className="flex shrink-0 flex-col border-b border-line pb-2">
-      <div className="flex items-center gap-1 px-3 pt-2">
-        <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(!collapsed)} aria-expanded={!collapsed} data-testid="phase-collapse"
-          className="flex h-8 items-center gap-1 rounded-lg pr-1 text-control font-semibold text-ink outline-none hover:text-accent-hover focus-visible:ring-2 focus-visible:ring-accent">
-          {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}Workflow
+    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="flex shrink-0 flex-col border-b border-line pb-2">
+      <div className="flex items-center gap-0.5 px-2 pt-2">
+        <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(!collapsed)} aria-expanded={!collapsed} data-testid="phase-collapse" aria-label={collapsed ? 'Show the workflow' : 'Hide the workflow'}
+          className="flex h-8 w-6 shrink-0 items-center justify-center rounded-lg text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+          {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
         </button>
-        {(() => { const words = `${rows.length} tool${rows.length === 1 ? '' : 's'}${loops.length ? `, ${loops.length} return path${loops.length > 1 ? 's' : ''}` : ''}`; return (
-          <span className="sr-only" data-testid="phase-count">{words}</span>
-        ) })()}
+        {/* The header is the way into the editor: the whole row is one button */}
+        <button type="button" onClick={() => openOverview('edit')} data-testid="phase-edit" title="Edit the workflow in the centre view: add tools from the shelf, drag, connect and loop them, then Confirm"
+          className="group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
+          <span className="text-control font-semibold text-ink">Workflow</span>
+          <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
+          <span className="ml-auto flex items-center gap-1 rounded-lg border border-line bg-panel px-2 py-0.5 text-control text-ink group-hover:border-accent group-hover:text-accent-hover"><PencilLine size={13} aria-hidden />Edit</span>
+        </button>
         <Help label={`About the ${PHASE_NAME[phase]} workflow`}>
-          The {PHASE_NAME[phase]} tools in the order you work through them: click one to open its controls below (a check's results open on the right). Edit to change the order (drag the handle, or use Move up / down or the arrow keys on the handle), connect tools, make a return path to an earlier tool, or remove one; Undo takes any change back. A return path is a route for revisiting work: it never reruns anything on its own. Tools from other phases show as links, like "Return to Form / Massing". The same workflow is on the start page and in Overview.
+          The dots are your whole workflow in working order, coloured by phase; the tinted ones are {PHASE_NAME[phase]}, where you are, and an arc is a loop back to an earlier tool. Click a dot to open that tool. Under them are the {PHASE_NAME[phase]} tools: click one to open its controls below (a check's results open on the right). Workflow (or Edit) opens the editor in the centre view, where you add tools from the shelf, drag them, connect them and make loops, then Confirm to come back here. A loop is a route for revisiting work: it never reruns anything on its own.
         </Help>
-        <span className="ml-auto flex items-center gap-1">
-          {edit && <button type="button" onClick={w.undo} disabled={!w.past.length} aria-label="Undo the last workflow change" title="Undo" data-testid="phase-undo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Undo2 size={14} aria-hidden /></button>}
-          {edit && <button type="button" onClick={w.redo} disabled={!w.future.length} aria-label="Redo" title="Redo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Redo2 size={14} aria-hidden /></button>}
-          {edit
-            ? <button type="button" onClick={() => setEdit(false)} data-testid="phase-done" className="flex h-8 items-center gap-1 rounded-lg bg-accent px-2.5 text-control text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Check size={13} aria-hidden />Done</button>
-            : <button type="button" onClick={() => { setEdit(true); usePhaseTools.getState().setCollapsed(false) }} data-testid="phase-edit" title="Change the order, connections and return paths"
-                className="flex h-8 items-center gap-1 rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><PencilLine size={14} aria-hidden />Edit</button>}
-        </span>
       </div>
 
       {collapsed
-        ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the workflow">{summary}{loops.length ? ' ↻' : ''}</button>
+        ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the workflow">{summary}{loops ? ' ↻' : ''}</button>
         : (
-          <div className={`mt-1 overflow-y-auto overscroll-contain ${edit ? 'max-h-[min(26rem,55vh)]' : 'max-h-[13.5rem]'}`} style={{ scrollbarWidth: 'thin' }} data-testid="phase-workflow-region">
-            {ins.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1 px-3 pt-1.5" style={{ paddingLeft: tileX - 2 }} data-testid="phase-from">
-                {ins.map((c) => (
-                  <span key={edgeKey(c.edge)} className="inline-flex items-center">
-                    <button type="button" onClick={() => goTo(c.other)} className={chip} title={`Comes from ${where(c.other)}: open it`}><ArrowDown size={11} aria-hidden />From {c.other === 'start' ? 'the start' : where(c.other)}</button>
-                    {edit && xBtn(`Remove the connection from ${where(c.other)}`, () => unlink(c.edge, 'Connection removed'))}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div ref={list} className="relative mt-1">
-            <ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows">
-              {rows.map((id, i) => {
-                const n = info(id), isActive = active === id, picked = edit && sel === id
-                const inBoard = board.nodes.includes(id)
-                const mine = board.edges.filter((e) => e.a === id)
-                const branches = mine.filter((e) => !isRet(e) && rows.includes(e.b) && e.b !== rows[i + 1])
-                const loopsOut = mine.filter((e) => isRet(e) && rows.includes(e.b))
-                const retOut = cross.filter((c) => c.ret && c.out && c.inside === id)
-                const retIn = cross.filter((c) => c.ret && !c.out && c.inside === id)
-                const kind = isDesignNode(id) ? 'Design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check'
-                return (
-                  <li key={id} data-phase-node={id} className="relative">
-                    <div className="flex items-start gap-1 pr-2" style={{ paddingLeft: G }}>
-                      <span className="mt-[10px] flex w-4 shrink-0 justify-center">
-                        {edit && (
-                          <button type="button" aria-label={`Move ${n.name}: drag, or press the up and down arrow keys`} title="Drag to reorder (or use the arrow keys)" data-grip={id}
-                            onKeyDown={(e) => gripKey(id, e)}
-                            onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setDrag({ id, to: i }) }}
-                            onPointerMove={(e) => { if (drag?.id === id) setDrag({ id, to: dropAt(e.clientY) }) }}
-                            onPointerUp={() => { if (drag) { const d = drag; setDrag(null); moveTo(d.id, d.to) } }}
-                            onPointerCancel={() => setDrag(null)}
-                            className="flex h-5 w-4 cursor-grab touch-none items-center justify-center rounded text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing">
-                            <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden fill="currentColor">{[2, 7, 12].flatMap((y) => [<circle key={`a${y}`} cx="2" cy={y} r="1.3" />, <circle key={`b${y}`} cx="6" cy={y} r="1.3" />])}</svg>
-                          </button>
-                        )}
-                      </span>
+          <>
+            <PhaseMap board={board} phase={phase} active={active} info={info} home={home} />
+            <div className="mt-1 max-h-[13.5rem] overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'thin' }} data-testid="phase-workflow-region">
+              <ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
+                {rows.map((id) => {
+                  const n = info(id), isActive = active === id, inBoard = board.nodes.includes(id)
+                  const kind = isDesignNode(id) ? 'Design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check'
+                  const rets = returnsFrom(id)
+                  return (
+                    <li key={id} data-phase-node={id}>
                       <button type="button" data-node={id} aria-current={isActive ? 'true' : undefined}
-                        aria-label={`${n.name}${edit ? ': choose to edit' : isDesignNode(id) ? ': open its tools' : ': open its settings and results'}${isActive ? ' (open)' : ''}`}
-                        onClick={() => { if (edit) { setSel(picked ? null : id); setConnecting(false) } else open(id) }}
-                        title={`${n.name} · ${kind}${!inBoard ? ' · joins the workflow when you edit it' : ''}`}
-                        className={`node-hit flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'} ${picked ? 'outline-2 outline-dashed outline-ink' : ''} ${drag?.id === id ? 'opacity-50' : ''}`}>
+                        aria-label={`${n.name}${isDesignNode(id) ? ': open its tools' : ': open its settings and results'}${isActive ? ' (open)' : ''}${rets.length ? `; returns to ${rets.map((e) => info(e.b).name).join(', ')}` : ''}`}
+                        onClick={() => open(id)} title={`${n.name} · ${kind}${!inBoard ? ' · joins the workflow when you add a tool here' : ''}`}
+                        className={`node-hit flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'}`}>
                         <NodeTile id={id} size={TILE} art={<NodeArtwork id={id} size={Math.round(TILE * 0.9)} category={n.category} />} />
-                        <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{n.word.length > 3 && n.name.length > 26 ? n.word : n.name}<span className="sr-only">, {kind}{!inBoard ? ', joins the workflow when you edit it' : ''}</span></span>
+                        <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{n.word.length > 3 && n.name.length > 26 ? n.word : n.name}<span className="sr-only">, {kind}</span></span>
+                        {rets.map((e) => <span key={edgeKey(e)} aria-hidden data-return={edgeKey(e)} title={`Loops back to ${info(e.b).name}`} className="shrink-0 text-meta text-muted">↻</span>)}
                       </button>
-                    </div>
-                    {(branches.length + loopsOut.length + retOut.length + retIn.length) > 0 && (
-                      <div className="flex flex-wrap gap-1 pb-1 pr-2" style={{ paddingLeft: tileX + TILE + 8 }}>
-                        {branches.map((e) => <span key={edgeKey(e)} className="inline-flex items-center"><button type="button" onClick={() => open(e.b)} className={chip} title="A branch: this tool also leads to another">⑂ Also to {info(e.b).name}</button>{edit && xBtn(`Remove the connection to ${info(e.b).name}`, () => unlink(e, 'Connection removed'))}</span>)}
-                        {loopsOut.map((e) => <span key={edgeKey(e)} className="inline-flex items-center" data-return={edgeKey(e)}><button type="button" onClick={() => open(e.b)} className={chip} title="A return path: after this tool, go back and revise">↻ Return to {info(e.b).name}</button>{edit && xBtn(`Remove the return path to ${info(e.b).name}`, () => unlink(e, `Return path removed: ${n.name} no longer returns to ${info(e.b).name}`))}</span>)}
-                        {retOut.map((c) => <span key={edgeKey(c.edge)} className="inline-flex items-center" data-return={edgeKey(c.edge)}><button type="button" onClick={() => goTo(c.other)} className={chip} title={`A return path to ${PHASE_NAME[home(c.other)]}: open it`}>↻ Return to {where(c.other)}</button>{edit && xBtn(`Remove the return path to ${where(c.other)}`, () => unlink(c.edge, 'Return path removed'))}</span>)}
-                        {retIn.map((c) => <span key={edgeKey(c.edge)} className="inline-flex items-center" data-return={edgeKey(c.edge)}><button type="button" onClick={() => goTo(c.other)} className={chip} title={`${where(c.other)} returns here for revision`}>↻ Back here from {where(c.other)}</button>{edit && xBtn(`Remove the return path from ${where(c.other)}`, () => unlink(c.edge, 'Return path removed'))}</span>)}
-                      </div>
-                    )}
-                    {picked && (
-                      <div role="group" aria-label={`Edit ${n.name}`} data-testid="phase-node-actions" className="mb-1 mr-2 flex flex-wrap items-center gap-1 rounded-lg bg-subtle px-1.5 py-1 text-control" style={{ marginLeft: tileX - 4 }}>
-                        <button type="button" disabled={i === 0} onClick={() => moveTo(id, i - 1)} className="flex items-center gap-0.5 rounded px-1 outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><ArrowUp size={12} aria-hidden />Move up</button>
-                        <button type="button" disabled={i === rows.length - 1} onClick={() => moveTo(id, i + 2)} className="flex items-center gap-0.5 rounded px-1 outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><ArrowDown size={12} aria-hidden />Move down</button>
-                        <button type="button" onClick={() => setConnecting((v) => !v)} aria-expanded={connecting} className="flex items-center gap-0.5 rounded px-1 outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent"><Link2 size={12} aria-hidden />Connect / loop…</button>
-                        {inBoard && <button type="button" onClick={() => { commit(removeNode(board, id), `${n.name} taken off the workflow (its results and your model stay)`); setSel(null) }} data-testid="phase-remove" className="flex items-center gap-0.5 rounded px-1 text-error outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent"><Trash2 size={12} aria-hidden />Remove</button>}
-                        {connecting && <ConnectList from={id} board={ensure(board)} rows={rows} phase={phase} info={info} home={home}
-                          onPick={(to) => { const b = ensure(board); commit(connect(b, id, to), wouldLoop(b, id, to) ? `Return path created: ${n.name} returns to ${name(to)}` : `Connected ${n.name} to ${name(to)}`); setConnecting(false) }} />}
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ol>
-              <svg className="pointer-events-none absolute inset-0 z-[1] h-full w-full overflow-visible" aria-hidden>
-                <defs><marker id="phase-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill={UI.edge} /></marker></defs>
-                {rows.slice(0, -1).map((id, i) => {
-                  const a = geo[id], b = geo[rows[i + 1]]
-                  if (!a || !b || !board.edges.some((e) => e.a === id && e.b === rows[i + 1] && !isRet(e))) return null
-                  const x = tileX + TILE / 2
-                  return <path key={id} d={`M${x},${a.top + 4 + TILE + 2} L${x},${b.top + 4 - 2}`} stroke={UI.edge} strokeWidth={1.3} fill="none" markerEnd="url(#phase-arrow)" data-wire={`${id}>${rows[i + 1]}`} />
+                    </li>
+                  )
                 })}
-                {loops.map((l) => {
-                  const a = geo[l.e.a], b = geo[l.e.b]
-                  if (!a || !b) return null
-                  const y1 = a.top + 4 + TILE / 2, y2 = b.top + 4 + TILE / 2, x0 = tileX - 2, xl = G - 8 - l.level * LEVEL, hot = edit && (sel === l.e.a || sel === l.e.b)
-                  return <path key={edgeKey(l.e)} data-loop={edgeKey(l.e)} d={`M${x0},${y1} H${xl + 4} Q${xl},${y1} ${xl},${y1 - 4} V${y2 + 4} Q${xl},${y2} ${xl + 4},${y2} H${x0}`}
-                    stroke={hot ? UI.accent : UI.edge} strokeWidth={hot ? 2 : 1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#phase-arrow)" />
-                })}
-              </svg>
-              {drag && (() => {
-                const t = drag.to, g = t < rows.length ? geo[rows[t]] : geo[rows[rows.length - 1]]
-                const y = g ? (t < rows.length ? g.top : g.top + g.h) : 0
-                return <span aria-hidden className="absolute right-2 z-[2] h-0.5 rounded-full bg-accent" style={{ left: tileX - 4, top: y - 1 }} />
-              })()}
-            </div>
-            {outs.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1 px-3 pt-1" style={{ paddingLeft: tileX - 2 }} data-testid="phase-to">
-                {outs.map((c) => (
-                  <span key={edgeKey(c.edge)} className="inline-flex items-center">
-                    <button type="button" onClick={() => goTo(c.other)} className={chip} title={`Then ${where(c.other)}: open it`}><ArrowDown size={11} aria-hidden />Then {where(c.other)}</button>
-                    {edit && xBtn(`Remove the connection to ${where(c.other)}`, () => unlink(c.edge, 'Connection removed'))}
-                  </span>
-                ))}
+              </ol>
+              <div className="px-3 pt-1.5">
+                <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="phase-add"
+                  className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-line px-2.5 text-control text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={14} aria-hidden />Add tool</button>
               </div>
-            )}
-            <div className="px-3 pt-1.5" style={{ paddingLeft: tileX - 2 }}>
-              <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="phase-add"
-                className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-line px-2.5 text-control text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={14} aria-hidden />Add tool</button>
+              {adding && <AddTool phase={phase} board={board} info={info} home={home} after={info(rows[rows.length - 1]).name} onAdd={add} onClose={() => setAdding(false)} />}
             </div>
-            {adding && <AddTool phase={phase} board={board} info={info} home={home} after={sel && rows.includes(sel) ? info(sel).name : info(rows[rows.length - 1]).name} onAdd={add} onClose={() => setAdding(false)} />}
-            {edit && w.note && <p role="status" className="px-3 pt-1.5 text-meta text-muted" data-testid="phase-note">{w.note}{w.past.length ? ' · Undo is above' : ''}</p>}
-          </div>
+          </>
         )}
     </section>
   )
 }
 
-/** Connect / loop…: every other tool in the workflow (this phase first) and the end; an earlier one makes a return path. */
-function ConnectList({ from, board, rows, phase, info, home, onPick }: {
-  from: string; board: Board; rows: string[]; phase: PhaseId; info: (id: string) => Info; home: (id: string) => PhaseId; onPick: (to: string) => void
-}) {
-  const others = runOrder(board).filter((id) => id !== from && !rows.includes(id))
-  const here = rows.filter((id) => id !== from)
-  const has = (to: string) => board.edges.some((e) => e.a === from && e.b === to)
-  const item = (to: string, label: string) => {
-    const loop = wouldLoop(board, from, to)
-    return (
-      <li key={to}><button type="button" data-connect={to} disabled={has(to)} onClick={() => onPick(to)}
-        className="flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-meta text-ink outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40">
-        <span className="min-w-0 flex-1 truncate">{label}</span>
-        {has(to) ? <span className="text-muted">connected</span> : loop ? <span className="text-accent-hover">↻ return path</span> : null}
-      </button></li>
-    )
+/**
+ * The whole workflow at a glance: every tool as a dot in working order, coloured by its phase, on one line from start to
+ * end; the dots of the phase you are in sit on a tint, the open tool is ringed, and each loop is an arc back over the
+ * line. A dot opens its tool (in its phase).
+ */
+function PhaseMap({ board, phase, active, info, home }: { board: Board; phase: PhaseId; active: string; info: (id: string) => Info; home: (id: string) => PhaseId }) {
+  const order = useMemo(() => runOrder(board), [board])
+  const back = useMemo(() => returnEdges(board.edges), [board.edges])
+  const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
+  if (!order.length) return <p className="px-3 pt-1 text-meta text-muted" data-testid="phase-map">No tools in the workflow yet: Workflow opens the editor to add some.</p>
+  const n = order.length, x = (id: string) => ((order.indexOf(id) + 0.5) / n) * 100
+  const loops = board.edges.filter((e) => back.has(edgeKey(e)) && order.includes(e.a) && order.includes(e.b))
+  const here = order.filter((id) => phaseOf(id) === phase).length
+  const goTo = (id: string) => {
+    const p = phaseOf(id)
+    goToStep(PHASE_STEP[p])
+    usePhaseTools.getState().setActive(p, id)
+    if (!isDesignNode(id)) useStore.getState().selectNode(id)
   }
   return (
-    <div className="basis-full" data-testid="phase-connect-list">
-      <p className="px-1.5 pt-1 text-meta text-muted">Connect {info(from).name} to (an earlier tool makes a return path):</p>
-      <ul className="max-h-48 overflow-y-auto">
-        {here.map((id) => item(id, info(id).name))}
-        {others.map((id) => item(id, `${PHASE_NAME[home(id)]} / ${info(id).name}`))}
-        {item('enter', 'The end of the workflow')}
-      </ul>
-      <span className="sr-only">{PHASE_NAME[phase]}</span>
+    <div className="mx-3 mt-0.5" data-testid="phase-map">
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="block h-2.5 w-full overflow-visible" aria-hidden>
+        {loops.map((e) => <path key={edgeKey(e)} data-map-loop={edgeKey(e)} d={`M${x(e.a)},10 C${x(e.a)},0 ${x(e.b)},0 ${x(e.b)},10`} fill="none" stroke={UI.edge} strokeWidth={1.2} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />)}
+      </svg>
+      <div className="relative">
+        <span aria-hidden className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-boundary" />
+        <ol className="relative flex" aria-label="The whole workflow, in working order">
+          {order.map((id, i) => {
+            const ph = phaseOf(id), on = ph === phase, open = id === active
+            const prevOn = i > 0 && phaseOf(order[i - 1]) === phase, nextOn = i < n - 1 && phaseOf(order[i + 1]) === phase
+            return (
+              <li key={id} className="min-w-0 flex-1">
+                <button type="button" data-map-node={id} data-here={on ? '' : undefined} onClick={() => goTo(id)}
+                  aria-label={`${i + 1} of ${n}: ${PHASE_NAME[ph]} / ${info(id).name}${open ? ' (open)' : ''}`} title={`${i + 1}. ${PHASE_NAME[ph]} / ${info(id).name}`}
+                  className={`flex h-6 w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-accent ${on && !prevOn ? 'rounded-l-full' : ''} ${on && !nextOn ? 'rounded-r-full' : ''}`}
+                  style={{ background: on ? PHASE_COLOR[ph].surface : undefined }}>
+                  <span className="block rounded-full" style={{ width: open ? 10 : 7, height: open ? 10 : 7, background: PHASE_COLOR[ph].accent, boxShadow: open ? `0 0 0 2px #fff, 0 0 0 3.5px ${PHASE_COLOR[ph].ink}` : undefined }} />
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+      <p className="mt-0.5 text-meta text-muted">You are in <span className="font-semibold" style={{ color: PHASE_COLOR[phase].ink }}>{PHASE_NAME[phase]}</span>: {here} of {n} tools{loops.length ? ` · ${loops.length} loop${loops.length > 1 ? 's' : ''}` : ''}</p>
     </div>
   )
 }

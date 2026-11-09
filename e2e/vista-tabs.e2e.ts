@@ -97,18 +97,29 @@ test('the five map tabs change the view; Viewcone toggles the cones and Material
   // Let City's camera move finish before measuring that Viewcone does not move the camera.
   await expect.poll(async () => { const c = await camera(page); return Math.hypot(c.pos[0] - 9914.4, c.pos[1] + 118.2, c.pos[2] - 6160.9) }, { timeout: 30_000 }).toBeLessThan(5)
 
-  // Viewcone: one toggle, all cones off then all on; no camera move; the Layers dock says the same.
+  // Viewcone: one toggle; the cones start hidden (Ruijie, 9 Nov: a quiet Site view), then all on, then all off again;
+  // no camera move; the Layers dock says the same.
   const before = await camera(page)
   const cones = tab(page, 'Viewcone')
+  await expect(cones).toHaveAttribute('aria-pressed', 'false')
+  await cones.click()
   await expect(cones).toHaveAttribute('aria-pressed', 'true')
+  await page.screenshot({ path: join(SHOTS, '05-viewcone-on.png') })
   await cones.click()
   await expect(cones).toHaveAttribute('aria-pressed', 'false')
   await page.getByRole('button', { name: 'Layers', exact: true }).click()
   await expect(page.locator('#vp-dock').getByRole('button', { name: /View cone layers/ })).toContainText('all hidden')
-  await page.screenshot({ path: join(SHOTS, '05-viewcone-off.png') })
   await page.getByRole('button', { name: 'Layers', exact: true }).click()
-  await cones.click()
-  await expect(cones).toHaveAttribute('aria-pressed', 'true')
+
+  // Names: the neighbourhood names on and off from the map bar (9 Nov), remembered in this browser.
+  const names = page.getByTestId('names-toggle')
+  await expect(names).toHaveAttribute('aria-pressed', 'true')
+  await names.click()
+  await expect(names).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('[data-viewport] [data-place]')).toHaveCount(0)
+  expect(await page.evaluate(() => localStorage.getItem('ts.map.names'))).toBe('0')
+  await names.click()
+  await expect(names).toHaveAttribute('aria-pressed', 'true')
 
   // Materials: the display mode that replaced the Context toggle (design system §9, 7 Nov): Vista's textured style on or
   // off, in step with the Layers dock's Plain / Context; Massing brings the neutral model back.

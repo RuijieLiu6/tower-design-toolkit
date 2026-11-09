@@ -104,7 +104,15 @@ interface LookState {
   /** A short note under the view (why a mode could not start, or what a click found). */
   note: string | null
 }
-export const useVistaLook = create<LookState>(() => ({ mode: 'city', typeColours: true, labels: true, inspected: null, note: null }))
+/** Neighbourhood names on or off, remembered in this browser (Ruijie, 9 Nov: "make the neighborhood names turn on and off
+ *  with buttons" over a quieter Site view). On by default: the names are how the Site step picks a neighbourhood. */
+const NAMES_KEY = 'ts.map.names'
+const namesOn = () => { try { return localStorage.getItem(NAMES_KEY) !== '0' } catch { return true } }
+export const useVistaLook = create<LookState>(() => ({ mode: 'city', typeColours: true, labels: namesOn(), inspected: null, note: null }))
+export function setPlaceNames(on: boolean) {
+  useVistaLook.setState({ labels: on })
+  try { localStorage.setItem(NAMES_KEY, on ? '1' : '0') } catch { /* private window: this session only */ }
+}
 
 // ---------- shading ----------
 

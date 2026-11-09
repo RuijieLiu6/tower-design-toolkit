@@ -60,7 +60,7 @@ export default function App() {
       <div className="relative flex min-h-0 flex-1 gap-2" data-workspace>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
-        <main className="flex min-w-0 flex-1 gap-2">
+        <main className="relative flex min-w-0 flex-1 gap-2">
           {(view === '3d' || view === 'split') && (
             <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
               <Suspense fallback={<Loading what="3D view" />}><Viewport /></Suspense>
@@ -71,11 +71,12 @@ export default function App() {
               <Suspense fallback={<Loading what="node canvas" />}><NodeCanvas /></Suspense>
             </div>
           )}
+          {/* The workflow editor takes the centre view when asked for (Ruijie, 9 Nov: "the central viewport will turn into
+              the workflow edit"); the phase panel and the results stay beside it and follow every change. Confirm returns. */}
+          <WorkflowOverview />
         </main>
         {/* Right: the analysis results (and Present's own tabs). */}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
-        {/* Overview: the whole project workflow, only when asked for (phase row); closing it restores the working state. */}
-        <WorkflowOverview />
       </div>
       <StatusBar />
       <div aria-live="polite" className="sr-only">{announce}</div>

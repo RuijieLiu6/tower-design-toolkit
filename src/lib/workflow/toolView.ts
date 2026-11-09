@@ -5,6 +5,7 @@
 // Analysis for the solar, wind and surface-sun studies. A View the user pinned stays as it is. Opening a tool never
 // switches a check on or runs one (lib/displayMode.ts: showing a layer is separate from computing it).
 import { useDisplayMode, type AnalysisLayerId, type DisplayMode } from '../displayMode'
+import { showAllCones, useConeVisibility } from '../coneVisibility'
 
 export interface ToolView { mode: DisplayMode; layer?: AnalysisLayerId }
 export const TOOL_VIEW: Record<string, ToolView> = {
@@ -22,8 +23,16 @@ export const TOOL_VIEW: Record<string, ToolView> = {
 export const LAYER_TOOLS: Record<AnalysisLayerId, string[]> = { solar: ['built.solar-access'], wind: ['built.wind-screen', 'built.wind-study'], 'surface-sun': ['built.energy-carbon'] }
 export const CONE_TOOLS = ['design.site', 'built.viewcones', 'built.heights', 'built.vista', 'built.relax-aviation']
 
+/** The tools whose working view includes the cones themselves: opening one shows them when they are all hidden (cones
+ *  start hidden, 9 Nov). The Site tool is not one: Site opens on the quiet view, and the Viewcone toggle is there. */
+export const CONE_VIEW_TOOLS = ['built.viewcones', 'built.heights', 'built.vista', 'built.relax-aviation']
+
 /** Set the open tool's working view, unless the user pinned the View. Returns whether anything changed. */
 export function applyToolView(id: string): boolean {
+  if (CONE_VIEW_TOOLS.includes(id) && !useDisplayMode.getState().pinned) {
+    const hidden = useConeVisibility.getState().hidden
+    if (Object.keys(hidden).length && Object.values(hidden).every(Boolean)) showAllCones(true)
+  }
   const v = TOOL_VIEW[id]
   const d = useDisplayMode.getState()
   if (!v || d.pinned) return false

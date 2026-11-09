@@ -3,9 +3,9 @@
 // selector here"). 52 px tall, every control 14/20 px. Left: the toolkit's name, the project (Competition site / Real
 // Vancouver), the project file menu with Undo / Redo, Export model. Right: the view (model, model + data graph, data
 // graph), Auto-run checks (what the old "Analysis On/Off" really controls: checks recompute with the model, or pause),
-// the Assistant, and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
+// Edit workflow (the workflow editor, 9 Nov; it was "Assistant"), and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
 // sources). Present adds Model locked and Capture. The phase row under this bar is the only phase selector.
-import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, LockKeyhole, MoreHorizontal, Network, PlayCircle, Scale, Sparkles, Waves, Workflow, X } from './icons'
+import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, LockKeyhole, MoreHorizontal, Network, PlayCircle, Scale, Waves, Workflow, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { showIntro } from '../lib/intro'
 import { openCity } from '../lib/openCity'
@@ -126,8 +126,10 @@ export default function TopBar() {
         ))}
       </div>
       <AutoRun />
-      <button type="button" onClick={() => { openOverview('edit'); setTimeout(() => document.getElementById('dock-ask-input')?.focus(), 60) }} data-testid="assistant-button" title="Ask the workflow assistant to change the workflow (its suggestion is shown before anything changes)"
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-ai-line bg-ai-surface px-2.5 font-medium text-ai outline-none focus-visible:ring-2 focus-visible:ring-accent"><Sparkles size={15} aria-hidden />Assistant</button>
+      {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project
+          workflow. So definitely rename it"): opens the workflow editor in the centre view; its Suggest field takes words. */}
+      <button type="button" onClick={() => openOverview('edit')} data-testid="edit-workflow-button" title="Edit the project workflow: add, connect, loop and reorder tools in the centre view"
+        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button>
       <MoreMenu />
     </header>
   )

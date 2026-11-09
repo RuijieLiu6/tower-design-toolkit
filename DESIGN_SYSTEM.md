@@ -194,10 +194,10 @@ This section replaces the 8 Nov layout that kept a permanent whole-workflow stri
 
 | Area | Where | Holds |
 |---|---|---|
-| Project bar (52 px) | `components/TopBar.tsx` | The name, the project (Competition site / Real Vancouver), the project file with Undo / Redo, Export model. On the right: the view (model, model + data graph, data graph), **Auto-run checks**, **Assistant** and **More**. More holds the check library, role, units, reduce motion, Customize, Options, How it works, the tour, Build status and Sources. It is never another phase selector. |
+| Project bar (52 px) | `components/TopBar.tsx` | The name, the project (Competition site / Real Vancouver), the project file with Undo / Redo, Export model. On the right: the view (model, model + data graph, data graph), **Auto-run checks**, **Edit workflow** (the workflow editor; it was "Assistant") and **More**. More holds the check library, role, units, reduce motion, Customize, Options, How it works, the tour, Build status and Sources. It is never another phase selector. |
 | Phase row (44 px) | `components/ProcessRail.tsx` | Site, Form, Program, Schematic, Present, once each, with their colour dots; the arrow keys move between them. **Overview** sits at the right edge. There are no counts and no second "Next" control. |
-| Left panel (about 288 px, adjustable 240–440 px) | `components/workflow/PhasePanel.tsx` | Header: the phase name, Import, Export, Hide. Then the phase's local workflow in a **bounded region** (about 216 px; larger while editing) that scrolls on its own. Then the open tool's controls, in their own scroll area. A long workflow never pushes the controls out of reach. |
-| Centre | the 3D view | The shared model. Top left: the open tool's **working view** and any **pinned context** (`components/ContextPins.tsx`). |
+| Left panel (about 288 px, adjustable 240–440 px) | `components/workflow/PhasePanel.tsx` | Header: the phase name, Import, Export, Hide. Then **Workflow** (the header is the button into the editor), a **map of the whole workflow** (every tool as a dot in working order, coloured by phase, the current phase tinted, loops as arcs; a dot opens its tool) and this phase's tools in a **bounded region** (about 216 px) that scrolls on its own. Then the open tool's controls, in their own scroll area. A long workflow never pushes the controls out of reach. |
+| Centre | the 3D view | The shared model. Top left: the open tool's **working view** and any **pinned context** (`components/ContextPins.tsx`). In Real Vancouver the map bar has **Viewcone** (cones start hidden: a quiet Site view; a view tool shows them) and **Names** (neighbourhood names, remembered). The workflow editor takes this place while it is open. |
 | Right panel (about 304 px, adjustable) | `components/RightPanel.tsx` | The open tool's results and evidence, Your site, Trace. |
 | Status line | `components/StatusBar.tsx` | The data attribution (always visible) and an **Evidence key** button. The full key is disclosed on request. |
 
@@ -206,13 +206,14 @@ This section replaces the 8 Nov layout that kept a permanent whole-workflow stri
 - Gaps are 8 px.
 - Drag the edge between a panel and the model, or focus it and use the arrow keys (Home / End for the limits, double-click or Enter to reset). The width is remembered.
 
-**Overview.**
-- It is closed on entry and opens from the phase row (or the Assistant), over the workspace. The model is not resized, so the camera never moves.
-- It shows the same **five phase lanes** as the landing page: each tool sits in its phase's lane, in working order from left to right, with return paths as dashed arcs.
-- Click a tool to select it, and **Open in workspace** to go there.
-- Drag a tool to a gap to move it. Drag a tool from **Add tools** into a lane and gap, or click it; every add asks first (`AddConfirm.tsx`).
-- **Edit** adds Move before / after, Connect to… (an earlier target makes a return path, and "Create loop" shows on valid targets), Remove, Reconnect, the assistant's previewed proposals, Save as preset, Undo / Redo.
-- **Return to design** (or Esc) closes it and restores the phase, each phase's open tool and the results shown (`openOverview` in `lib/workflow/projectWorkflow.ts`).
+**The workflow editor** (9 Nov, replacing the 8 Nov Overview over the whole workspace).
+- It is closed on entry. It opens from the panel's **Workflow** header, the phase row's **Overview** and the bar's **Edit workflow** (formerly "Assistant"), and takes the **centre view only**: the phase panel and the results stay beside it and follow every change.
+- It shows the same **five phase lanes** as the landing page, the phase you are in tinted ("You are here"): each tool in its phase's lane, in working order from left to right, return paths as dashed arcs.
+- **Add**: drag a tool up from the shelf under the lanes. The **best place** lights up at once (after the last tool of its phase, or of an earlier one), and a drop anywhere in the lanes puts it there. A click on a shelf tool puts it in the best place.
+- **Connect**: hover a tool for its **four connection points** (as on the landing page, with the "Connect nodes" tip). Drag from one to another tool; dragging back to an earlier one shows "Create loop". Click a point (or press Enter on it) to choose the target instead; select a wire to remove or reconnect it.
+- **Arrange**: drag a tool to a gap; ← / → move a focused tool, Delete takes it off; click a tool for Open in workspace, Move before / after, Connect to…, Remove.
+- Every change applies at once, with Undo / Redo. **Confirm workflow** (also Esc, or **Enter** at the end of the lanes) returns to the design and restores the phase, each phase's open tool and the results shown; **Discard changes** puts back the workflow the editor opened with. Inside the editor an add needs no separate confirmation: Confirm or Discard settles every change at the end. The panel's quick **Add tool** still asks first (`AddConfirm.tsx`).
+- **Suggest** opens the word field: its proposal is previewed on the lanes (AI tag, cyan) and applied or discarded.
 
 **One workflow.** The landing page, the phase panels and Overview all edit the same project workflow, with stable node ids, phase placement (`usePhaseTools.placed`) and links. Each view keeps its own layout.
 

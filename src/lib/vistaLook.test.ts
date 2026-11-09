@@ -80,6 +80,8 @@ describe('Plan scale and the view-cone switches', () => {
     const { PLAN_WIDTH_M } = await import('./vistaLook')
     expect(PLAN_WIDTH_M).toBe(1000)
     const { CONES } = await import('../engine/viewCones')
+    // Cones start hidden (Ruijie, 9 Nov: a quiet Site view; the Viewcone toggle or a view tool shows them).
+    expect(shownSummary(useConeVisibility.getState().hidden)).toBe('all hidden')
     showAllCones(false); expect(shownSummary(useConeVisibility.getState().hidden)).toBe('all hidden')
     showAllCones(true); expect(shownSummary(useConeVisibility.getState().hidden)).toBe(`all ${CONES.length} shown`)
     showOnlyCones(['3.2.3', 'E']); expect(shownSummary(useConeVisibility.getState().hidden)).toBe(`2 of ${CONES.length} shown`)
