@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { facadeAttribute, vistaFamily, vistaSeed } from './ContextStyle'
 import { DECK, LEFT, MAJOR, RIGHT, deckHeights, streetGeometry, type Streets } from './VistaStreets'
+import { gridSurface } from '../lib/terrainDrape'
 
 describe("Vista's Context facades", () => {
   it('seeds each building from its OSM id, as Vista does (FNV-1a)', () => {
@@ -41,14 +42,22 @@ describe('Context streets', () => {
   })
 
   it('draws asphalt everywhere but sidewalks and dashes only near the site, and slab sides under decks', () => {
-    const near = streetGeometry(chain(), () => 0, [20, 0], 100), far = streetGeometry(chain(), () => 0, [5000, 0], 100)
+    // flat ground drawn as a 30 m grid (the 30 m top); no 1 m patches
+    const flat = { cols: 6, rows: 4, step: 30, x0: -30, y0: -45, z: new Float32Array(24) }
+    const none = { query() {} }
+    const drape = { outside: gridSurface(flat), near: none, far: none, ground: { near: () => 0, far: () => 0 } }
+    const near = streetGeometry(chain(), drape, [20, 0], 100), far = streetGeometry(chain(), drape, [5000, 0], 100)
     const tris = (g: { getAttribute: (n: string) => { count: number } }) => g.getAttribute('position').count / 3
-    expect(tris(near.asphalt)).toBe(tris(far.asphalt))
-    expect(tris(near.sidewalk)).toBe(2 * 2 + 2) // both sides of segment 0, the left of segment 3 (one 10 m patch each)
-    expect(tris(far.sidewalk)).toBe(0)
-    expect(tris(near.marking)).toBeGreaterThan(0) // the major road, 8 m wide
-    expect(tris(far.marking)).toBe(0)
-    expect(tris(near.sides)).toBe(2 * 2 * 2) // two deck segments, two sides, two triangles
+    expect(tris(near.outside.asphalt)).toBe(tris(far.outside.asphalt))
+    expect(tris(near.outside.asphalt)).toBeGreaterThan(0)
+    expect(tris(near.outside.sidewalk)).toBeGreaterThan(0) // both sides of segment 0, the left of segment 3
+    expect(tris(far.outside.sidewalk)).toBe(0)
+    expect(tris(near.outside.marking)).toBeGreaterThan(0) // the major road, 8 m wide
+    expect(tris(far.outside.marking)).toBe(0)
+    // decks are never draped: their slabs (two 10 m deck segments in 2 m pieces, two sides, two triangles) at each detail
+    expect(tris(near.near.sides)).toBe(2 * 5 * 2 * 2)
+    expect(tris(near.far.sides)).toBe(2 * 5 * 2 * 2)
+    expect(tris(near.outside.sides)).toBe(0)
     expect(near.decks).toBe(2)
   })
 })

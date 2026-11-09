@@ -18,6 +18,7 @@ import {
 import { REMOVAL_CAVEAT, REMOVAL_FLAG, REMOVAL_RULE, maskHeights, maskIndex, removalCounts, removalUnder, visibleIndex, type Removal } from '../lib/cityRemoval'
 import { useHideUnderDesign } from '../lib/hideUnderDesign'
 import { rtinIndices } from '../lib/terrainMesh'
+import { drapePolygon, drawnHeight, gridSurface, meshSurface, unionSurface, type DrawnSurface } from '../lib/terrainDrape'
 import { registerGround } from '../lib/cameraClamp'
 import { footprintBounds, registerViewLimit } from '../lib/viewLimit'
 import { CITY_PLINTH, SEA_Z, insidePlinth, plinthRing, plinthTopGrid, sampleDrawn, skirtPositions, type Side } from '../lib/plinth'
@@ -33,7 +34,7 @@ import { VISTA_LOOK, setParkMask, setWaterMask, setPlaceNames, useVistaLook, vis
 import { BUILDING_USES, SWATCH_BORDER, USE_BASES, USE_BASIS_TEXT, partUse, useColor, type BuildingUse, type UseBasis } from '../lib/buildingUse'
 import { contextFacadeMaterial, contextGroundMaterial, contextPavingMaterial, contextWaterMaterial, facadeAttribute, useVistaTextures, vistaFamily, vistaSeed, type VistaTextures } from './ContextStyle'
 import CityStreets, { useStreetDisplay } from './CityStreets'
-import VistaStreets, { TrailLines, VistaStreetLines } from './VistaStreets'
+import VistaStreets, { TrailLines, VistaStreetLines, type StreetDrape } from './VistaStreets'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { demolishedIndices, useSiteStore } from '../lib/siteStore'
 import ContextLayersScene, { ContextLayersPanel, useContextLayers } from './ContextLayers'
@@ -246,7 +247,9 @@ function terrainGeometry(g: HeightGrid, look: Look, opt: { patches?: HeightGrid[
     }
   }
   let index: Uint32Array
-  if (stitch || adaptive) {
+  if (adaptive && !stitch) {
+    index = patchIndex(g)
+  } else if (stitch || adaptive) {
     index = rtinIndices(shown, cols, rows, { tile: 64, maxError: adaptive ? 0.15 : R2_MAX_ERROR })
   } else {
     const idx = new Uint32Array((cols - 1) * (rows - 1) * 6)
@@ -272,6 +275,43 @@ function terrainGeometry(g: HeightGrid, look: Look, opt: { patches?: HeightGrid[
   geom.setIndex(new THREE.BufferAttribute(index, 1))
   geom.computeVertexNormals()
   return geom
+}
+
+/** The 1 m patches' RTIN triangles (within 0.15 m of the grid), once per grid: the terrain draws them and the roads drape on them. */
+const PATCH_ERROR = 0.15
+const patchIndices = new WeakMap<HeightGrid, Uint32Array>()
+function patchIndex(g: HeightGrid): Uint32Array {
+  let i = patchIndices.get(g)
+  if (!i) { i = rtinIndices(g.z, g.cols, g.rows, { tile: 64, maxError: PATCH_ERROR }); patchIndices.set(g, i) }
+  return i
+}
+
+/**
+ * The terrain as drawn, for draping display surfaces on it (roads, the site paving; lib/terrainDrape.ts), at both details:
+ * outside the 1 m patches the 30 m top (its cells split as drawn, the sea floor at SEA_Z); where the patches are, their
+ * RTIN triangles up close and the 30 m top from afar (Terrain's detail switch). Display only: built from the same grids
+ * the terrain is drawn from, never changing them.
+ */
+const drapes = new WeakMap<CitySurface, StreetDrape & { onTop: (x0: number, y0: number, x1: number, y1: number) => boolean }>()
+function drapeFor(surface: CitySurface) {
+  let d = drapes.get(surface)
+  if (d) return d
+  const { top, patches } = surface
+  // the 30 m cells the patches replace up close (the holes terrainGeometry leaves in the top)
+  const hole = new Uint8Array((top.cols - 1) * (top.rows - 1))
+  for (let r = 0; r < top.rows - 1; r++) for (let c = 0; c < top.cols - 1; c++) {
+    const x = top.x0 + c * top.step, y = top.y0 + r * top.step
+    if (patches.some((p) => cellInside(p, x, y, top.step))) hole[r * (top.cols - 1) + c] = 1
+  }
+  const isHole = (x: number, y: number) => hole[Math.round((y - top.y0) / top.step) * (top.cols - 1) + Math.round((x - top.x0) / top.step)] === 1
+  const outside = gridSurface(top, { floor: SEA_Z, skip: isHole })
+  const near: DrawnSurface = unionSurface(...patches.map((g) => meshSurface(g, patchIndex(g))))
+  const far = gridSurface(top, { floor: SEA_Z, skip: (x, y) => !isHole(x, y) })
+  const at = (s: DrawnSurface) => { const both = unionSurface(outside, s); return (x: number, y: number) => drawnHeight(both, x, y) ?? surface.at(x, y) }
+  const x1 = top.x0 + (top.cols - 1) * top.step, y1 = top.y0 + (top.rows - 1) * top.step
+  d = { outside, near, far, ground: { near: at(near), far: at(far) }, onTop: (a, b, c, e) => a >= top.x0 && b >= top.y0 && c <= x1 && e <= y1 }
+  drapes.set(surface, d)
+  return d
 }
 
 /**
@@ -441,6 +481,7 @@ function Shoreline({ lines, grids, color }: { lines: number[][]; grids: HeightGr
  * test is the size of one metre on screen at the patches' centre, so the narrow-lens Inspect view stays detailed.
  * Hysteresis (3.3 / 2.7 m per pixel) keeps it from flickering at the threshold.
  */
+const NO_PATCHES: HeightGrid[] = []
 function useFarFromPatches(patches: HeightGrid[]): boolean {
   const centre = useMemo(() => {
     if (!patches.length) return null
@@ -460,7 +501,7 @@ function useFarFromPatches(patches: HeightGrid[]): boolean {
   return far
 }
 
-function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (x: number, y: number) => void }) {
+function Terrain({ data, look, onPick, far: farAway }: { data: CityData; look: Look; onPick: (x: number, y: number) => void; far: boolean }) {
   const finish = useFinish(data.manifest)
   const surface = citySurface(data)
   const detailed = useMemo(() => surface.patches.map((g) => terrainGeometry(g, look, { adaptive: true })), [surface, look])
@@ -468,7 +509,7 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   // Far away: the 30 m top in one piece, no holes for the 1 m patches (useFarFromPatches).
   const r1Whole = useMemo(() => (surface.patches.length ? terrainGeometry(surface.top, look) : null), [surface, look])
   useEffect(() => () => r1Whole?.dispose(), [r1Whole])
-  const far = useFarFromPatches(surface.patches) && !!r1Whole
+  const far = farAway && !!r1Whole
   const top = far ? r1Whole! : r1
   const r2 = useMemo(() => terrainGeometry(backdropGrid(data.r2, CITY_PLINTH.y1), look, { stitch: surface.top }), [data, surface, look])
   const front = useMemo(() => backdropFront(data.r2, surface.top), [data, surface])
@@ -497,16 +538,16 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   const pick = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); if (!drawClick(e.point.x, -e.point.z)) onPick(e.point.x, -e.point.z) }
   return (
     <>
-      {ground ? <mesh key={groundKey} geometry={top} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key="plain" geometry={top} receiveShadow onPointerDown={pick}>
+      {ground ? <mesh name="terrain:top" key={groundKey} geometry={top} material={ground} receiveShadow onPointerDown={pick} /> : <mesh name="terrain:top" key="plain" geometry={top} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>}
-      {!far && detailed.map((geometry, i) => ground ? <mesh key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
+      {!far && detailed.map((geometry, i) => ground ? <mesh name="terrain:patch" key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh name="terrain:patch" key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>)}
       {tex && <ContextWater tex={tex} />}
       {finish.shoreline && <Shoreline lines={finish.shoreline.lines} grids={data.grids} color={look.shore} />}
       <PlinthBase plinth={CITY_PLINTH} ring={ring} look={look} pad={1} edges={CITY_EDGES} />
-      {vistaGround ? <mesh key="vista-r2" geometry={r2} material={vistaGround} receiveShadow /> : <mesh key="plain-r2" geometry={r2} receiveShadow>
+      {vistaGround ? <mesh name="terrain:backdrop" key="vista-r2" geometry={r2} material={vistaGround} receiveShadow /> : <mesh name="terrain:backdrop" key="plain-r2" geometry={r2} receiveShadow>
         <meshStandardMaterial vertexColors roughness={1} metalness={0} />
       </mesh>}
       <mesh geometry={front}>
@@ -989,22 +1030,30 @@ export function HideUnderDesignCard({ inline = false, bare = false }: { inline?:
  * already gone from the drawing (useRemoval, a hypothetical removal), and SiteRig draws the boundary in both styles.
  * Display only.
  */
-function SiteSurface({ grids, tex }: { grids: HeightGrid[]; tex: VistaTextures }) {
+function SiteSurface({ surface, tex, far }: { surface: CitySurface; tex: VistaTextures; far: boolean }) {
   const site = useSiteStore((s) => s.site)
-  const geom = useMemo(() => {
+  // Draped on the terrain as drawn (9 Nov: one flat polygon through the corners, 0.25 m up, floated over or sank into a
+  // sloping block), at both details; a little above the asphalt and its markings, inside the site only.
+  const geoms = useMemo(() => {
     if (!site || site.ring.length < 3) return null
-    const ring = site.ring as [number, number][], pos: number[] = []
-    for (const [a, b, c] of earClip(ring)) for (const k of [a, b, c]) { const [x, y] = ring[k]; pos.push(x, y, Math.max(0, sampleTerrain(grids, x, y) ?? 0) + 0.25) }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
-    g.computeVertexNormals()
-    return g
-  }, [site, grids])
-  const mat = useMemo(() => { const m = contextPavingMaterial(tex, false); m.color.set('#f2dfc4'); m.polygonOffsetFactor = -4; m.polygonOffsetUnits = -4; return m }, [tex])
-  useEffect(() => () => { geom?.dispose(); mat.dispose() }, [geom, mat])
-  if (!geom) return null
-  return <mesh geometry={geom} material={mat} receiveShadow raycast={() => null} renderOrder={1} />
+    const ring = site.ring as [number, number][], drape = drapeFor(surface)
+    const build = (s: DrawnSurface) => {
+      const pos: number[] = []
+      for (const [a, b, c] of earClip(ring)) drapePolygon([...ring[a], ...ring[b], ...ring[c]], s, SITE_PAVING_LIFT, pos)
+      const g = new THREE.BufferGeometry()
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+      g.computeBoundingSphere()
+      return g
+    }
+    return { near: build(unionSurface(drape.outside, drape.near)), far: build(unionSurface(drape.outside, drape.far)) }
+  }, [site, surface])
+  const mat = useMemo(() => { const m = contextPavingMaterial(tex, false); m.color.set('#f2dfc4'); m.polygonOffsetFactor = -4; m.polygonOffsetUnits = -4; m.flatShading = true; return m }, [tex])
+  useEffect(() => () => { geoms?.near.dispose(); geoms?.far.dispose(); mat.dispose() }, [geoms, mat])
+  if (!geoms) return null
+  return <mesh name="site:paving" geometry={far ? geoms.far : geoms.near} material={mat} receiveShadow raycast={() => null} renderOrder={1} />
 }
+/** The site paving sits this far above the drawn ground: over the asphalt (0.035 m) and its markings (0.065 m). */
+const SITE_PAVING_LIFT = 0.08
 
 /** Everything the Real Vancouver scene draws from public/data. Rendered inside CityScene's z-up group. */
 export default function CityContext({ look, xray, onPick }: { look: Look; xray: boolean; onPick: (x: number, y: number) => void }) {
@@ -1022,15 +1071,19 @@ export default function CityContext({ look, xray, onPick }: { look: Look; xray: 
   const towers = useTowers()
   const sel = useStore((s) => s.selectedTower)
   const t = towers.find((k) => k.id === sel) ?? towers[0]
+  // One detail switch for the ground, the roads and the site paving, so they always change together.
+  const far = useFarFromPatches(surface?.patches ?? NO_PATCHES) && !!surface?.patches.length
+  // The draped roads' terrain, only once the Context style needs it (it buckets about 2 million patch triangles).
+  const drape = useMemo(() => (context && surface ? drapeFor(surface) : null), [context, surface])
   if (!data || !surface) return null
   return (
     <>
-      <Terrain data={data} look={look} onPick={onPick} />
+      <Terrain data={data} look={look} onPick={onPick} far={far} />
       <TowerFootings at={surface.at} look={look} />
       {/* Context: Vista's street surfaces; Vista's Plain look: its street lines; x-ray and the City model: City streets. */}
-      {context && tex && <SiteSurface grids={grids} tex={tex} />}
+      {context && tex && <SiteSurface surface={surface} tex={tex} far={far} />}
       {context
-        ? tex && <VistaStreets manifest={data.manifest} ground={surface.at} centre={[t?.x ?? 0, t?.y ?? 0]} tex={tex} />
+        ? tex && <VistaStreets manifest={data.manifest} drape={drape} centre={[t?.x ?? 0, t?.y ?? 0]} tex={tex} far={far} />
         : look === VISTA_LOOK ? <><VistaStreetLines manifest={data.manifest} ground={surface.at} color={look.edge} /><TrailLines manifest={data.manifest} ground={surface.at} color={look.edge} /></>
         : <CityStreets streets={data.streets} ground={data.ground} coarse={data.r1} />}
       <Buildings data={data} look={look} ghost={xray} hidden={hidden} />

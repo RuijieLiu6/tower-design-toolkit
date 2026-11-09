@@ -1,3 +1,61 @@
+# CHECKPOINT: Materials road-surface defect (9 Nov 2026)
+
+Brief: Ruijie's "Resolve the broken road-surface appearance" (one reviewable milestone; separate branch; no merge or deploy).
+- **Branch:** `materials-road-surface`, from `origin/main` 880643d (the inspected version). Not merged, not deployed.
+- **Evidence (local only):** `04 Tool Plan/road-surface/before|after/`:
+  - the reproduction and the isolation screenshots;
+  - matched views at 1440 × 900 and 1280 × 800;
+  - the diagnosis JSON (setup, cuts, cost);
+  - orbit and zoom recordings.
+- **Reproduction:** Real Vancouver, default study site, Materials, 22 Sep 12:00 PT, canvas 814 × 734 (1440 × 900).
+  - Camera at (158, 280.2, 60.5) looking at (254, 486.1, 24.5), field of view 45°.
+  - Data: manifest v1 with four 1 m LiDAR ground tiles, r1, r2 and vista_streets (checksums in the JSON).
+
+## Confirmed cause
+The road builder set each 12 m road patch at the ground height of its four corners (bilinear on the 1 m grid) plus 3.5 cm. The ground drawn between those corners differed:
+- the 1 m LiDAR patches are an RTIN mesh within 0.15 m of the grid, with curbs, crowns and ramps;
+- the 30 m top is split along its cell diagonals.
+
+Near the site, 27% of road sample points (5,805 of 21,644; corners, edge midpoints, centres) lay below the drawn ground, by 5.8 cm on average and up to 2.26 m.
+
+There was a second mechanism. From afar, the terrain switches to the 30 m top, but the roads kept their 1 m heights: 28% of points were cut and others floated, by up to 4.02 m.
+
+Shadows and texture played no part: the cuts show in flat unlit colours, and the measurement is geometric. The site paving, one flat polygon through its corners at +0.25 m, had the same weakness.
+
+## Fix
+- **`lib/terrainDrape.ts`:** strips on the ground are cut along the drawn terrain's own triangles. Each piece lies on its triangle's plane plus the lift (exact to float32, about 1 mm). Pieces face up and share consistent edges.
+- **Two detail sets plus a shared one:**
+  - near: the patches' RTIN triangles, shared with the terrain mesh;
+  - far: the 30 m top where the patches are;
+  - outside: the 30 m top elsewhere, shared by both.
+
+  CityContext computes one detail switch for the ground, the roads and the site paving, so they always change together.
+- **Bridge decks are never draped.** Their ends sit on the ground as drawn at each detail. Between nodes they run straight but rise over ground that would come within 0.5 m (ramped from 0 at a junction to the full 0.5 m 5 m away), drawn in 2 m pieces with their slab sides.
+- **Off the model's top** (the fogged backdrop), roads keep the corner-sampled strips. Zero-length and non-finite segments are skipped.
+- **Site paving** is draped the same way at +0.08 m.
+- **Display only:** the terrain data, surface.at and every calculation are unchanged.
+
+## Result (same camera and script on main and on the branch)
+| | Main | Branch |
+|---|---|---|
+| Near: road points under the drawn ground | 5,805 / 21,644 (27%), max 2.26 m | 5 / 414,722, all at one footway deck junction |
+| Far | 6,100 / 21,644 (28%), max 4.02 m | 2 / 33,236 (the same junction) |
+| Asphalt triangles | 698k | 1.30M |
+| Frame time median / P90 (headless Edge, this view) | 25.0 / 39.9 ms | 29.3 / 37.0 ms |
+| Main-thread long tasks when switching to Materials | 4.4 s | 5.3 s |
+
+## Tests
+- `src/lib/terrainDrape.test.ts`: 12 tests covering flat, slope, a crest between road vertices (the old method dips 0.2 m+ under it), a junction and bend, a detail boundary at both details, a bridge and its approach, deck clearance, invalid and zero-length segments, and no ground. Tolerance: 1 mm (double), 2 mm (float32).
+- `src/components/ContextStyle.test.ts` updated to the new API.
+
+## Limitations
+- **One footway deck** (way 6186, at about (492, 817) by the waterfront) still meets a 2.4 m ground step at its junction corner. A level deck must meet its approach there.
+- **Partial cells** along the edge of the 1 m area (a band of under 30 m): both details are drawn and the roads are draped on both (the higher wins).
+- **Areas checked:** around the default site and the waterfront clusters only. Not inspected elsewhere in the 2 km × 2 km LiDAR area, nor on the North Shore backdrop (unchanged method).
+- **Cost:** more triangles (+86% asphalt) and about 1 s more main-thread work when Materials turns on.
+
+---
+
 # CHECKPOINT: workspace interface correction (overnight brief, 8 Nov 2026)
 
 Brief: `Tower_Design_Workspace_Audit_and_Overnight_Brief.docx` (project folder), plus Ruijie's pasted task.
