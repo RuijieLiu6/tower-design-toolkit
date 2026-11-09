@@ -2,7 +2,8 @@
 // (c) OpenStreetMap contributors, ODbL) as asphalt carriageways with centre dashes, paving sidewalks and illustrative
 // bridge decks, after Vista's streetscape.js and traffic-network.js. Widths, sidewalks and deck heights are estimates.
 // Since 9 Nov the strips on the ground are draped on the terrain as drawn (lib/terrainDrape.ts): before, 12 m patches
-// set at their corners' ground let the drawn ground show through the asphalt.
+// set at their corners' ground let the drawn ground show through the asphalt. Round joins fill the outside of every bend
+// and corner (streetJoins).
 import { dataFetch } from '../lib/loadProgress'
 import { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
@@ -133,6 +134,80 @@ type Layers = { asphalt: Builder; sidewalk: Builder; marking: Builder; sides: Bu
 const layers = (): Layers => ({ asphalt: [], sidewalk: [], marking: [], sides: [] })
 export type StreetSet = Record<keyof Layers, THREE.BufferGeometry>
 
+/** A round join is fanned in pieces at most this wide (radians); wedges narrower than JOIN_MIN are left (under 2 cm at 5 m). */
+const JOIN_STEP = Math.PI / 12, JOIN_MIN = (0.2 * Math.PI) / 180, SAME_WAY = 0.01
+
+/**
+ * Round joins where street pieces meet at an angle. Every piece is a rectangle cut square at its ends, so at a bend or a
+ * corner the outside of the turn was left open: a wedge of ground showed between the two pieces' asphalt and sidewalks
+ * (9 Nov: light teeth along curves, V notches where streets end at a park; 43,000 of the 87,000 two-piece joints in the
+ * network bend 2 degrees or more). At each shared end, for every pair of neighbouring pieces (counter-clockwise) more than
+ * a half turn apart, this fans the open wedge from one piece's edge to the next about the shared end (the radius going
+ * from one half width to the other), and the sidewalk wedge too where both pieces have a sidewalk on that side. Inside
+ * a turn the rectangles already overlap, so nothing is added there. Dead ends stay square. Only pieces `use` accepts
+ * (the draped ones; decks keep their own heights) and sidewalks only of pieces `detailed` accepts. Returns flat polygons
+ * (x, y lists, counter-clockwise), each convex.
+ */
+export function streetJoins(s: Streets, use: (i: number) => boolean, detailed: (i: number) => boolean) {
+  const at = new Map<string, number[]>()
+  for (let i = 0; i < s.count; i++) {
+    if (!use(i)) continue
+    for (const e of [0, 1]) {
+      const k = key(s.seg[i * 4 + e * 2], s.seg[i * 4 + e * 2 + 1])
+      let l = at.get(k)
+      if (!l) at.set(k, (l = []))
+      l.push(i * 2 + e)
+    }
+  }
+  const asphalt: number[][] = [], sidewalk: number[][] = []
+  for (const ends of at.values()) {
+    if (ends.length < 2) continue
+    type Arm = { x: number; y: number; a: number; half: number; left: boolean; right: boolean }
+    const all: Arm[] = ends.map((code) => {
+      const i = code >> 1, e = code & 1, o = 1 - e
+      const x = s.seg[i * 4 + e * 2], y = s.seg[i * 4 + e * 2 + 1], d = detailed(i)
+      // an arm points away from the shared end: a piece that ends here runs backwards, so its sides swap
+      const left = e === 0 ? LEFT : RIGHT, right = e === 0 ? RIGHT : LEFT
+      return { x, y, a: Math.atan2(s.seg[i * 4 + o * 2 + 1] - y, s.seg[i * 4 + o * 2] - x), half: s.width[i] / 2, left: d && (s.bits[i] & left) !== 0, right: d && (s.bits[i] & right) !== 0 }
+    }).sort((p, q) => p.a - q.a)
+    // pieces drawn twice (or nearly on top of each other) are one arm: the wider, with either one's sidewalks
+    const arms: Arm[] = []
+    for (const r of all) {
+      const last = arms[arms.length - 1]
+      if (last && r.a - last.a < SAME_WAY) { last.half = Math.max(last.half, r.half); last.left ||= r.left; last.right ||= r.right } else arms.push({ ...r })
+    }
+    if (arms.length > 1 && arms[0].a + 2 * Math.PI - arms[arms.length - 1].a < SAME_WAY) {
+      const f = arms.shift()!, l = arms[arms.length - 1]
+      l.half = Math.max(l.half, f.half); l.left ||= f.left; l.right ||= f.right
+    }
+    if (arms.length < 2) continue
+    for (let k = 0; k < arms.length; k++) {
+      const p = arms[k], q = arms[(k + 1) % arms.length]
+      const sweep = q.a - p.a + (k === arms.length - 1 ? 2 * Math.PI : 0) - Math.PI
+      if (sweep <= JOIN_MIN) continue
+      fan(asphalt, p.x, p.y, p.a + Math.PI / 2, sweep, p.half, q.half)
+      if (p.left && q.right) fan(sidewalk, p.x, p.y, p.a + Math.PI / 2, sweep, p.half + SIDEWALK, q.half + SIDEWALK)
+    }
+  }
+  return { asphalt, sidewalk }
+}
+/**
+ * The wedge about (x, y) from angle a0 through `sweep`, the radius going from r0 to r1: one convex polygon (the centre
+ * and its arc) when the radius stays the same (pieces of one width; under a half turn), else one triangle per step.
+ */
+function fan(out: number[][], x: number, y: number, a0: number, sweep: number, r0: number, r1: number) {
+  const n = Math.max(1, Math.ceil(sweep / JOIN_STEP))
+  const at = (k: number) => { const t = k / n, a = a0 + sweep * t, r = r0 + (r1 - r0) * t; return [x + Math.cos(a) * r, y + Math.sin(a) * r] }
+  if (Math.abs(r1 - r0) < 1e-6) {
+    const poly = [x, y]
+    for (let k = 0; k <= n; k++) poly.push(...at(k))
+    out.push(poly)
+    return
+  }
+  let prev = at(0)
+  for (let k = 1; k <= n; k++) { const cur = at(k); out.push([x, y, ...prev, ...cur]); prev = cur }
+}
+
 /**
  * Carriageways everywhere; sidewalks and centre dashes only within `detail` metres of `centre` (Vista draws its detail
  * around the viewpoint too). Every strip on the ground is draped on the drawn terrain (exact to its triangles, plus LIFT);
@@ -142,7 +217,9 @@ export type StreetSet = Record<keyof Layers, THREE.BufferGeometry>
 export function streetGeometry(s: Streets, drape: StreetDrape, centre: [number, number], detail: number) {
   const decks = { near: deckHeights(s, drape.ground.near), far: deckHeights(s, drape.ground.far) }
   const out = { outside: layers(), near: layers(), far: layers() }
-  const stats = { segments: 0, skipped: 0, pieces: 0, triangles: 0 }
+  const stats = { segments: 0, skipped: 0, joins: 0, pieces: 0, triangles: 0 }
+  // which pieces are draped on the ground (and which with sidewalks), for the round joins between them
+  const draped = new Uint8Array(s.count), near = new Uint8Array(s.count)
   const st: DrapeStats = { pieces: 0, triangles: 0 }
   const onGround = (poly: number[], lift: number, layer: Exclude<keyof Layers, 'sides'>) => {
     drapePolygon(poly, drape.outside, lift, out.outside[layer], st)
@@ -175,6 +252,7 @@ export function streetGeometry(s: Streets, drape: StreetDrape, centre: [number, 
       continue
     }
     if (!deck) {
+      draped[i] = 1; near[i] = detailed ? 1 : 0
       onGround(stripPolygon(ax, ay, ux, uy, len, 0, 1, -half, half), LIFT.asphalt, 'asphalt')
       if (detailed && s.bits[i] & LEFT) onGround(stripPolygon(ax, ay, ux, uy, len, 0, 1, half, half + SIDEWALK), LIFT.sidewalk, 'sidewalk')
       if (detailed && s.bits[i] & RIGHT) onGround(stripPolygon(ax, ay, ux, uy, len, 0, 1, -half - SIDEWALK, -half), LIFT.sidewalk, 'sidewalk')
@@ -211,6 +289,10 @@ export function streetGeometry(s: Streets, drape: StreetDrape, centre: [number, 
       }
     }
   }
+  const joins = streetJoins(s, (i) => draped[i] === 1, (i) => near[i] === 1)
+  for (const p of joins.asphalt) onGround(p, LIFT.asphalt, 'asphalt')
+  for (const p of joins.sidewalk) onGround(p, LIFT.sidewalk, 'sidewalk')
+  stats.joins = joins.asphalt.length + joins.sidewalk.length
   stats.pieces = st.pieces; stats.triangles = st.triangles
   const geo = (L: Layers): StreetSet => ({ asphalt: geometry(L.asphalt), sidewalk: geometry(L.sidewalk), marking: geometry(L.marking), sides: geometry(L.sides) })
   return { outside: geo(out.outside), near: geo(out.near), far: geo(out.far), decks: s.bits.reduce((c, b) => c + (b & DECK ? 1 : 0), 0), stats }

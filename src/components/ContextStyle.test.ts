@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { facadeAttribute, vistaFamily, vistaSeed } from './ContextStyle'
-import { DECK, LEFT, MAJOR, RIGHT, deckHeights, streetGeometry, type Streets } from './VistaStreets'
+import { DECK, LEFT, MAJOR, RIGHT, deckHeights, streetGeometry, streetJoins, type Streets } from './VistaStreets'
 import { gridSurface } from '../lib/terrainDrape'
 
 describe("Vista's Context facades", () => {
@@ -59,5 +59,77 @@ describe('Context streets', () => {
     expect(tris(near.far.sides)).toBe(2 * 5 * 2 * 2)
     expect(tris(near.outside.sides)).toBe(0)
     expect(near.decks).toBe(2)
+  })
+})
+
+/** Streets from [ax, ay, bx, by] pieces, all 8 m wide with sidewalks on both sides. */
+const net = (...p: number[][]): Streets => ({
+  seg: Float32Array.from(p.flat()), width: new Float32Array(p.length).fill(8), bits: new Uint8Array(p.length).fill(LEFT | RIGHT),
+  way: new Uint32Array(p.length), count: p.length,
+})
+/** Is (x, y) inside any of these convex polygons (flat x, y lists), or triangles (x y z positions with stride 3)? */
+function covered(tris: number[][] | ArrayLike<number>, x: number, y: number, stride = 2): boolean {
+  const list: number[][] = Array.isArray(tris) ? tris : []
+  if (!Array.isArray(tris)) for (let i = 0; i < tris.length; i += stride * 3) list.push([tris[i], tris[i + 1], tris[i + stride], tris[i + stride + 1], tris[i + 2 * stride], tris[i + 2 * stride + 1]])
+  // convex polygons: inside when on the same side of every edge
+  return list.some((t) => {
+    let pos = true, neg = true
+    for (let i = 0; i < t.length; i += 2) {
+      const ax = t[i], ay = t[i + 1], bx = t[(i + 2) % t.length], by = t[(i + 3) % t.length], c = (bx - ax) * (y - ay) - (by - ay) * (x - ax)
+      if (c < 0) pos = false
+      if (c > 0) neg = false
+    }
+    return pos || neg
+  })
+}
+const all = () => true
+
+describe('Context street joins', () => {
+  it('fills the outside of a right-angle bend with a quarter round of asphalt and of sidewalk, and nothing inside it', () => {
+    // east along y = 0, then north along x = 10: the outside of the turn is south-east of (10, 0)
+    const j = streetJoins(net([0, 0, 10, 0], [10, 0, 10, 10]), all, all)
+    // one wedge each (pieces of one width): the centre and a 90 degree arc in 15 degree steps
+    expect(j.asphalt.map((p) => p.length / 2)).toEqual([8])
+    expect(j.sidewalk.map((p) => p.length / 2)).toEqual([8])
+    expect(covered(j.asphalt, 12, -2)).toBe(true) // the corner the two rectangles left open
+    expect(covered(j.asphalt, 14.5, -1)).toBe(false) // beyond the 4 m half width: sidewalk
+    expect(covered(j.sidewalk, 14.5, -1)).toBe(true)
+    expect(covered(j.asphalt, 8, 2)).toBe(false) // the inside of the turn: the rectangles already overlap there
+    // the same bend drawn with the second piece reversed (north to south) joins the same way
+    const r = streetJoins(net([0, 0, 10, 0], [10, 10, 10, 0]), all, all)
+    expect(r.asphalt.length).toBe(1)
+    expect(covered(r.asphalt, 12, -2)).toBe(true)
+  })
+
+  it('adds a sidewalk wedge only where both pieces have a sidewalk on the outside, and only near the site', () => {
+    const s = net([0, 0, 10, 0], [10, 0, 10, 10])
+    s.bits[0] = LEFT // the first piece has no sidewalk on its right (the outside of this turn)
+    expect(streetJoins(s, all, all).sidewalk.length).toBe(0)
+    expect(streetJoins(net([0, 0, 10, 0], [10, 0, 10, 10]), all, () => false).sidewalk.length).toBe(0)
+    expect(streetJoins(net([0, 0, 10, 0], [10, 0, 10, 10]), all, () => false).asphalt.length).toBe(1)
+  })
+
+  it('closes a gentle curve with one thin wedge per joint, and leaves straight runs, T junctions, dead ends and doubled pieces alone', () => {
+    const a = (5 * Math.PI) / 180 // a 5 degree bend
+    const bend = streetJoins(net([0, 0, 10, 0], [10, 0, 10 + 10 * Math.cos(a), 10 * Math.sin(a)]), all, all)
+    expect(bend.asphalt.length).toBe(1)
+    expect(covered(bend.asphalt, 10.15, -3.9)).toBe(true) // the 35 cm wedge at the outer edge
+    expect(streetJoins(net([0, 0, 10, 0], [10, 0, 20, 0]), all, all).asphalt.length).toBe(0)
+    expect(streetJoins(net([0, 0, 10, 0], [10, 0, 20, 0], [10, 0, 10, 10]), all, all).asphalt.length).toBe(0)
+    expect(streetJoins(net([0, 0, 10, 0]), all, all).asphalt.length).toBe(0)
+    expect(streetJoins(net([0, 0, 10, 0], [0, 0, 10, 0]), all, all).asphalt.length).toBe(0)
+    // pieces left out (decks, or off the drawn top) take no part
+    expect(streetJoins(net([0, 0, 10, 0], [10, 0, 10, 10]), (i) => i === 0, all).asphalt.length).toBe(0)
+  })
+
+  it('drapes the joins with the streets, so the corner is asphalt on the drawn ground', () => {
+    const flat = { cols: 6, rows: 6, step: 30, x0: -60, y0: -60, z: new Float32Array(36) }
+    const none = { query() {} }
+    const drape = { outside: gridSurface(flat), near: none, far: none, ground: { near: () => 0, far: () => 0 } }
+    const g = streetGeometry(net([0, 0, 10, 0], [10, 0, 10, 10]), drape, [0, 0], 100)
+    const pos = g.outside.asphalt.getAttribute('position').array as ArrayLike<number>
+    expect(covered(pos, 12, -2, 3)).toBe(true)
+    expect(covered(g.outside.sidewalk.getAttribute('position').array as ArrayLike<number>, 14.5, -1, 3)).toBe(true)
+    expect(g.stats.joins).toBe(2)
   })
 })

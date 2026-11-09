@@ -48,7 +48,33 @@ Shadows and texture played no part: the cuts show in flat unlit colours, and the
 - `src/lib/terrainDrape.test.ts`: 12 tests covering flat, slope, a crest between road vertices (the old method dips 0.2 m+ under it), a junction and bend, a detail boundary at both details, a bridge and its approach, deck clearance, invalid and zero-length segments, and no ground. Tolerance: 1 mm (double), 2 mm (float32).
 - `src/components/ContextStyle.test.ts` updated to the new API.
 
+## Follow-up: curb edges at bends and street ends (Ruijie's review, 9 Nov)
+Ruijie's screenshot showed jagged edges where streets end at a park: light teeth along a curve, and V notches and steps at street ends.
+- **Cause:** every street piece is a rectangle cut square at its ends. Where two pieces meet at an angle, the outside of the turn was left open, and the ground showed through as a wedge between their asphalt and sidewalks.
+  - Of 87,448 two-piece joints in the network, 42,847 bend 2° or more, and 2,635 bend 60° or more.
+  - Turnaround loops made of short pieces (Charleson Park, False Creek South) became a sawtooth.
+- **Fix (`streetJoins` in `VistaStreets.tsx`):**
+  - At each shared end, each pair of neighbouring pieces more than a half turn apart gets its open wedge filled with a round join about the shared end, its arc in 15° steps. The radius goes from one piece's half width to the other's.
+  - A wedge between pieces of one width is one convex polygon; otherwise it is one triangle per step.
+  - The sidewalk wedge is filled too, where both pieces have a sidewalk on that side.
+  - The fills are draped like the strips. Inside a turn the rectangles already overlap, so nothing is added there.
+  - Left as before: dead ends stay square; pieces drawn twice count once; decks and off-top pieces are left out.
+- **Evidence (local only):** `04 Tool Plan/road-surface/curbs/before|after/`, plus `compare-materials.png` and `compare-flat.png`.
+  - Eight matched views at 1440 × 900: Charleson Park oblique, plan, loop and joint; Helmcken corner; Roundhouse; Pacific curve; Strathcona.
+  - Before is commit 14e41ea, after is the working tree. Same script and camera, with a tower moved to (-330, -1000) so sidewalks are drawn there.
+- **Counts:**
+  - Whole network: 83,045 asphalt wedges and 8,448 sidewalk wedges (all sidewalks counted), filling about 50,000 m² of open asphalt.
+  - Finding the joins takes 0.16 s in Node.
+  - Draped triangles in the test view: asphalt 1.30M → 1.46M (+13%); sidewalk 3.5k → 4.3k.
+- **Cost:** headless Edge, 1440 × 900, two runs each.
+  - Switching to Materials: longest main-thread task 3.94 / 3.97 s before, 3.77 / 3.72 s after. No measurable change.
+  - Moving the tower 800 m (the whole street set rebuilds for the new detail area): 3.60 / 3.32 s before, 5.22 / 4.49 s after. About 1 s more, and noisy.
+- **Tests:** 4 new tests in `ContextStyle.test.ts`: right-angle bend inside and outside, reversed piece, sidewalk rules, gentle curve, straight run, T junction, dead end, doubled piece, and draped coverage.
+
 ## Limitations
+- **Dead ends** stay square: a street that ends at a park ends flat. 102 dead ends lie within 1.5 m of another street end (gaps in the data) and are not snapped.
+- **Rebuild cost:** when the tower moves to a new 400 m detail cell, the whole street set rebuilds, joins included (about 1 s more than before).
+  - A later step could build the asphalt once and rebuild only the sidewalks and dashes.
 - **One footway deck** (way 6186, at about (492, 817) by the waterfront) still meets a 2.4 m ground step at its junction corner. A level deck must meet its approach there.
 - **Partial cells** along the edge of the 1 m area (a band of under 30 m): both details are drawn and the roads are draped on both (the higher wins).
 - **Areas checked:** around the default site and the waterfront clusters only. Not inspected elsewhere in the 2 km × 2 km LiDAR area, nor on the North Shore backdrop (unchanged method).
