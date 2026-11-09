@@ -14,7 +14,9 @@ import { navigate } from '../lib/route'
 import { useTour } from '../lib/tour'
 import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import ProjectMenu from './ProjectMenu'
-import ExportMenu from './ExportMenu'
+import TransferDialog from './porting/TransferDialog'
+import { useTransfer } from '../lib/porting/transfer'
+import { FileDown, FileUp } from './icons'
 import NodeLibrary from './NodeLibrary'
 import { UnitSelect } from './Units'
 import { RoleSelect } from './RolePicker'
@@ -115,7 +117,13 @@ export default function TopBar() {
         ))}
       </div>
       <ProjectMenu />
-      <ExportMenu />
+      {/* One Import and one Export (Result B, 9 Nov): both open the transfer centre on their tab; nothing is downloaded by the click. */}
+      {(['import', 'export'] as const).map((t) => (
+        <button key={t} type="button" onClick={(e) => useTransfer.getState().open(t, e.currentTarget)} data-testid={`transfer-${t}`} title={t === 'import' ? 'Bring in a model, a project, a workflow package, a site boundary or a custom tool' : 'Take out geometry, a project backup, a workflow package or results'}
+          className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}>
+          {t === 'import' ? <FileUp size={13} aria-hidden /> : <FileDown size={13} aria-hidden />}{t === 'import' ? 'Import' : 'Export'}</button>
+      ))}
+      <TransferDialog />
       <span className="mx-auto" />
       {present && (
         <>

@@ -23,7 +23,7 @@ import { useStore } from '../../store'
 import { buildPhasePackage, modelRevision, PHASE_SLICES, planImport, readPhasePackage, SLICE_WORDS, type ImportMode, type PhasePackage } from '../../lib/workflow/phasePackage'
 import { PHASE_NAME, PHASE_STEP, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
 import { knownNode, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
-import { useInfo } from './WorkflowOverview'
+import { homeOf, useInfo } from './WorkflowOverview'
 import type { Portion } from './PhasePanel'
 
 const APP_VERSION = APP_LABEL.split(' ').pop() ?? '0'
@@ -44,19 +44,23 @@ const Drawer = ({ label, onClose, children }: { label: string; onClose: () => vo
 )
 const Line = ({ title, note }: { title: string; note: string }) => <span className="min-w-0"><span className="block font-semibold text-ink">{title}</span><span className="block text-meta text-muted">{note}</span></span>
 
+/** One phase of the open project as a package (what Export from the phase header and the transfer centre write). */
+export function phasePackageOf(phase: PhaseId, portion: Portion = phasePortion(useProjectWorkflow.getState().wf, phase, homeOf)): PhasePackage {
+  const s = useStore.getState()
+  return buildPhasePackage({
+    phase, project: s.project, units: 'metres', nodes: portion.nodes, internal: portion.internal, crossing: portion.crossing,
+    state: s as unknown as Record<string, unknown>, digest: useTrace.getState().live?.digest ?? null,
+    versions: Object.fromEntries(useCommunityStore.getState().packages.map((p) => [p.id, p.version])), appVersion: APP_VERSION,
+  })
+}
+export const phasePackageName = (phase: PhaseId) => `${phase}-phase-${useStore.getState().project}-${new Date().toISOString().slice(0, 10)}.json`
+
 export function ExportDrawer({ phase, portion, onClose }: { phase: PhaseId; portion: Portion; onClose: () => void }) {
-  const packages = useCommunityStore((s) => s.packages)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState<ModelFormat | null>(null)
-  const date = new Date().toISOString().slice(0, 10)
   const phasePackage = () => {
-    const s = useStore.getState()
-    const pkg = buildPhasePackage({
-      phase, project: s.project, units: 'metres', nodes: portion.nodes, internal: portion.internal, crossing: portion.crossing,
-      state: s as unknown as Record<string, unknown>, digest: useTrace.getState().live?.digest ?? null,
-      versions: Object.fromEntries(packages.map((p) => [p.id, p.version])), appVersion: APP_VERSION,
-    })
-    download(JSON.stringify(pkg, null, 2), `${phase}-phase-${s.project}-${date}.json`, 'application/json')
+    const pkg = phasePackageOf(phase, portion)
+    download(JSON.stringify(pkg, null, 2), phasePackageName(phase), 'application/json')
     setMsg(`Saved the ${PHASE_NAME[phase]} package: ${pkg.workflow.nodes.length} tools, ${pkg.workflow.edges.length} connections, ${Object.keys(pkg.settings).length} settings, results for model ${pkg.results.modelRevision}.`)
   }
   const model = async (kind: ModelFormat) => { setBusy(kind); setMsg(await exportModel(kind)); setBusy(null) }
@@ -108,7 +112,7 @@ export function ImportDrawer({ phase, home, onClose }: { phase: PhaseId; home: (
 }
 
 /** What a package would do, before it does it: tools added or taken off, connections, settings, model, results. */
-function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePackage; current: PhaseId; home: (id: string) => PhaseId; onClose: () => void; onDone: (msg: string) => void }) {
+export function PackagePreview({ pkg, current, home, onClose, onDone }: { pkg: PhasePackage; current: PhaseId; home: (id: string) => PhaseId; onClose: () => void; onDone: (msg: string) => void }) {
   const w = useProjectWorkflow()
   const info = useInfo()
   const project = useStore((s) => s.project)

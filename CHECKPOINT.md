@@ -1,3 +1,35 @@
+# CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
+
+Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A
+(`designer-workflow-builder`), after Ruijie approved Result A and asked for Result B step 1. Not merged, not deployed.
+- **What it is:** one Import and one Export button in the project bar (`TopBar.tsx`), both opening the same dialog on
+  the matching tab (`components/porting/TransferDialog.tsx`, state in `lib/porting/transfer.ts`). The dialog starts with
+  the person's purpose, enabled by a capability registry (`lib/porting/capabilities.ts`: each purpose names its reader
+  or writer and whether a person has verified it; "Package my tool" is listed disabled because no writer exists; "Add a
+  site boundary" is Real Vancouver only). Choosing a purpose shows what it needs and what it will do; only the footer's
+  named action does it (Continue to the model import · Open project · Preview the changes · Export file · Save backup ·
+  Export package · Export PROV). Esc and Cancel change nothing and give focus back to the opener.
+- **Routes reused, nothing new:** the model import dialog (`ImportDialog.tsx`), `readProject` + `openText`, the phase
+  package reader and its preview (`PhasePorting.tsx` `PackagePreview`, now exported, and `phasePackageOf`), the node
+  builder's Import tab, `exportModel` (its scene build is now `exportScene`, so the dialog shows the solid and layer
+  counts before writing), `currentText`, `traceToProv`, Sun & Wind Studio (`SunWindSend` inside Export › results).
+  The old "Export model" menu is gone (`ExportMenu.tsx` keeps only the writers' entry point).
+- **Not yet (step 2):** the phase panel's Import/Export drawers and the Project menu's Export/Import items still exist
+  as duplicates; the GeoJSON site boundary still imports in the Site panel (the dialog takes you there); drag-and-drop
+  does not yet enter the dialog; alignment is still the model import dialog's own screen; export scope (phases, objects)
+  and representation presets are not offered because no converter supports them (that would be Result C).
+- **Tests run:** `npx tsc -b` PASS · `npx vitest run` 1,224 pass (+1 registry test; the same 2 CRLF data-file checks fail
+  in this worktree only) · `e2e/transfer-centre.e2e.ts` in Edge PASS (opens without download, Cancel/Esc clean with
+  focus returned, glTF export is a real `massing-vtc-<date>.glb` after a counts preview, the tower list unchanged, works
+  over the workflow builder) · `e2e/sun-wind-link.e2e.ts` FAIL on this branch and the same way on main (the receiver
+  page in `../sun-wind-studio` never reports "Imported"; an environment problem, not this change; its entry point is
+  updated to Export › Export results). Reopening the exported .glb in an independent reader: NOT RUN.
+- **Evidence:** `04 Tool Plan/workflow-builder/after/after-<size>-transfer-import.png` and `-transfer-export-geometry.png`.
+- **Next small increment (step 2):** route the phase-panel drawers and the Project menu's file items through the
+  centre and delete the duplicates; drop a file anywhere → the dialog with the purpose guessed from its contents.
+
+---
+
 # CHECKPOINT: Result A, the designer-friendly workflow builder (9 Nov 2026)
 
 Brief: Ruijie's "START HERE: Tower Design Toolkit UI Implementation" + Block 2 (Workflow Builder Specification); Block 3
