@@ -73,7 +73,7 @@ export default function WorkflowOverview() {
     w.load()
     return useIntro.subscribe((s, p) => { if (p.show && !s.show) useProjectWorkflow.getState().load() })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  const shown = w.mode !== 'compact'
+  const shown = w.mode !== 'compact' && w.mode !== 'builder'
   // focus moves into the editor when it opens, and back to what opened it when it closes
   useEffect(() => {
     if (shown) box.current?.querySelector<HTMLElement>('[data-testid="overview-close"]')?.focus()

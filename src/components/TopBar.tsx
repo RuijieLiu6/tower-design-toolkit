@@ -12,7 +12,7 @@ import { openCity } from '../lib/openCity'
 import { captureShot } from '../lib/capture'
 import { navigate } from '../lib/route'
 import { useTour } from '../lib/tour'
-import { openOverview } from '../lib/workflow/projectWorkflow'
+import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import ProjectMenu from './ProjectMenu'
 import ExportMenu from './ExportMenu'
 import NodeLibrary from './NodeLibrary'
@@ -75,7 +75,8 @@ function MoreMenu() {
           <div className="flex items-center justify-between gap-2 px-2.5 py-1"><span className="text-control text-ink">Units</span><UnitSelect /></div>
           <button role="menuitemcheckbox" aria-checked={reducedMotion} type="button" onClick={() => set({ reducedMotion: !reducedMotion })} className={item}><Waves size={15} aria-hidden />Reduce motion<span className="ml-auto text-meta text-muted">{reducedMotion ? 'On' : 'Off'}</span></button>
           <div className="my-1 border-t border-line" />
-          <button role="menuitem" type="button" onClick={go(() => navigate('customize'))} className={item} aria-label="Customize"><Workflow size={15} aria-hidden />Customize<span className="ml-auto text-meta text-muted">data graph builder</span></button>
+          <button role="menuitem" type="button" onClick={go(() => openBuilder())} className={item} aria-label="Workflow builder"><Workflow size={15} aria-hidden />Workflow builder<span className="ml-auto text-meta text-muted">arrange your process</span></button>
+          <button role="menuitem" type="button" onClick={go(() => navigate('customize'))} className={item} aria-label="Advanced: data graph"><Network size={15} aria-hidden />Advanced: data graph<span className="ml-auto text-meta text-muted">ports and wires</span></button>
           <button role="menuitem" type="button" onClick={go(() => navigate('options'))} className={item} aria-label="Options"><Scale size={15} aria-hidden />Options<span className="ml-auto text-meta text-muted">compare designs</span></button>
           <div className="my-1 border-t border-line" />
           <button role="menuitem" type="button" onClick={go(() => set({ showOnboarding: true }))} className={item} aria-label="How it works"><CircleQuestionMark size={15} aria-hidden />How it works</button>
@@ -98,6 +99,9 @@ function MoreMenu() {
 export default function TopBar() {
   const { project, phase, view, setProject, setView } = useStore(useShallow((s) => ({ project: s.project, phase: s.phase, view: s.view, setProject: s.setProject, setView: s.setView })))
   const present = phase === 'present'
+  // While the workflow builder covers the workspace, the view switch and the editor button step aside; the project,
+  // its file menu, Export and Auto-run (the evaluation mode the builder must keep) stay (Result A brief §3).
+  const building = useProjectWorkflow((s) => s.mode === 'builder')
   return (
     <header className="glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl bg-chrome px-3 text-control text-chrome-ink">
       <button onClick={showIntro} aria-label="Tower Design Toolkit" title="Back to the start" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
@@ -119,17 +123,17 @@ export default function TopBar() {
           <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden />Capture</button>
         </>
       )}
-      <div className="flex items-center gap-0.5" role="group" aria-label="View">
+      {!building && <div className="flex items-center gap-0.5" role="group" aria-label="View">
         {VIEWS.map(({ id, icon: Icon, label }) => (
           <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
             className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : present ? 'text-chrome-ink opacity-80 hover:opacity-100' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
         ))}
-      </div>
+      </div>}
       <AutoRun />
       {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project
           workflow. So definitely rename it"): opens the workflow editor in the centre view; its Suggest field takes words. */}
-      <button type="button" onClick={() => openOverview('edit')} data-testid="edit-workflow-button" title="Edit the project workflow: add, connect, loop and reorder tools in the centre view"
-        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button>
+      {!building && <button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
+        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button>}
       <MoreMenu />
     </header>
   )

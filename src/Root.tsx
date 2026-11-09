@@ -21,7 +21,7 @@ const loading = (what: string) => <div className="flex h-full items-center justi
 
 function Page(): ReactNode {
   const route = useRoute()
-  if (route === 'guided') return <Suspense fallback={loading('the design stages')}><App /></Suspense>
+  if (route === 'guided' || route === 'workflow') return <Suspense fallback={loading('the design stages')}><App /></Suspense>
   if (route === 'status') return <Suspense fallback={loading('the build status')}><Status /></Suspense>
   if (route === 'options') return <Suspense fallback={loading('the design options')}><Options /></Suspense>
   if (route === 'sources') return <Suspense fallback={loading('sources and assumptions')}><Sources /></Suspense>

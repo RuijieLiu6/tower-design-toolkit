@@ -5,6 +5,9 @@ import ImportHost from './components/ImportHost'
 import { NodeBuilderHost } from './components/NodeBuilder'
 import PhasePanel from './components/workflow/PhasePanel'
 import WorkflowOverview from './components/workflow/WorkflowOverview'
+import WorkflowBuilder from './components/builder/WorkflowBuilder'
+import { useRoute } from './lib/route'
+import { openBuilder, useProjectWorkflow } from './lib/workflow/projectWorkflow'
 import Onboarding from './components/Onboarding'
 import ProcessRail from './components/ProcessRail'
 import RightPanel from './components/RightPanel'
@@ -30,6 +33,9 @@ export default function App() {
   const present = phase === 'present'
   const panels = usePanels()
   const widths = usePanelWidths()
+  // #/workflow: the guided app with the workflow builder open (Result A, 9 Nov); it closes to the design as usual.
+  const route = useRoute()
+  useEffect(() => { if (route === 'workflow' && useProjectWorkflow.getState().mode !== 'builder') openBuilder() }, [route])
 
   useEffect(() => { document.title = `${stageDef(phase).label} · Tower Design Toolkit` }, [phase])
   useEffect(() => {
@@ -37,6 +43,8 @@ export default function App() {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       const s = useStore.getState()
+      // The builder covers the workspace: its own keys apply there, not the workspace's (the phase keys would move the step under it).
+      if (useProjectWorkflow.getState().mode === 'builder') return
       if (e.key === 'Escape') set({ placing: false, showOnboarding: false })
       if ((e.key === '[' || e.key === ']') && !e.ctrlKey && !e.metaKey && !e.altKey) { togglePanel(e.key === '[' ? 'left' : 'right'); return }
       // Present locks the model, so placing is off there.
@@ -56,6 +64,9 @@ export default function App() {
     <div data-stage={phase} data-reduced={reduced} className="workspace-shell stage-fade relative flex h-full flex-col gap-2 p-2 text-ink"
       style={{ ...(widths.left ? { '--left-w': `${widths.left}px` } : {}), ...(widths.right ? { '--right-w': `${widths.right}px` } : {}) } as CSSProperties}>
       <TopBar />
+      {/* The phase row and the three columns together: the workflow builder (Result A, 9 Nov) covers both, so only the
+          project bar stays in reach while it is open (the phase row would move the step under it). */}
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2">
       <ProcessRail />
       <div className="relative flex min-h-0 flex-1 gap-2" data-workspace>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}
@@ -77,6 +88,8 @@ export default function App() {
         </main>
         {/* Right: the analysis results (and Present's own tabs). */}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
+      </div>
+      <WorkflowBuilder />
       </div>
       <StatusBar />
       <div aria-live="polite" className="sr-only">{announce}</div>

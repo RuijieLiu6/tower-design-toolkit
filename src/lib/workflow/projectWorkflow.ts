@@ -29,7 +29,8 @@ export interface ProjectWorkflow extends Board {
   customName: string | null
 }
 
-export type DockMode = 'compact' | 'overview' | 'edit'
+/** 'builder': the designer-friendly workflow builder over the whole workspace (components/builder/WorkflowBuilder.tsx, 9 Nov). */
+export type DockMode = 'compact' | 'overview' | 'edit' | 'builder'
 
 interface WorkflowState {
   wf: ProjectWorkflow
@@ -56,6 +57,10 @@ interface WorkflowState {
   redo: () => void
   preview: (b: Board | null) => void
   applyProposal: (note: string) => void
+  /** Rename the workflow (its own name; the preset it started from is never renamed). */
+  rename: (name: string) => void
+  /** Start again from a preset or a saved copy: the board is replaced (one undo step) and the starting preset noted. */
+  replaceWith: (next: Board, meta: { presetId: string | null; customName: string | null; role?: CoverRole }, note: string) => void
 }
 
 const KNOWN = new Set(BUILT_NODES.map((n) => n.id))
@@ -127,6 +132,23 @@ export const useProjectWorkflow = create<WorkflowState>()((set, get) => ({
   },
   preview: (proposal) => set({ proposal }),
   applyProposal: (note) => { const p = get().proposal; if (p) get().commit(p, note) },
+  rename: (name) => {
+    const { wf, past } = get()
+    const customName = name.trim() || null
+    if (customName === wf.customName) return
+    const nw = { ...wf, customName }
+    save(nw)
+    set({ wf: nw, past: [...past, wf].slice(-LIMIT), future: [], note: customName ? `Renamed to ${customName}` : 'Name cleared' })
+  },
+  replaceWith: (next, meta, note) => {
+    const { wf, past } = get()
+    const b = clean(next)
+    const nw: ProjectWorkflow = { ...wf, ...b, presetId: meta.presetId, customName: meta.customName, role: meta.role ?? wf.role }
+    syncChecks(wf.nodes, nw.nodes)
+    save(nw)
+    set({ wf: nw, past: [...past, wf].slice(-LIMIT), future: [], note, proposal: null })
+    useStore.setState({ announce: note })
+  },
 }))
 
 // ---------- the edits, as pure functions of the board (tested in projectWorkflow.test.ts) ----------
@@ -138,7 +160,8 @@ export const runOrder = (b: Board) => { const r = walk(b.edges); return [...r, .
 export function addNode(b: Board, id: string, after?: string | null): Board {
   if (b.nodes.includes(id)) return b
   const run = walk(b.edges)
-  const at = after && run.includes(after) ? after : run[run.length - 1] ?? 'start'
+  // 'start' puts it first (the builder's front slot); null or an unknown node, at the end of the run.
+  const at = after && (after === 'start' || run.includes(after)) ? after : run[run.length - 1] ?? 'start'
   return insertAfter({ nodes: b.nodes, edges: b.edges.length ? b.edges : linear([]) }, id, at)
 }
 
@@ -196,7 +219,7 @@ export function edgeDiff(before: Edge[], after: Edge[]) {
 // the model, so the camera is never moved by opening or closing it.
 interface WorkingState { step: StepId; active: Partial<Record<PhaseId, string>>; selectedNode: string | null }
 let working: WorkingState | null = null
-export function openOverview(to: 'overview' | 'edit' | 'close', opts: { keep?: boolean } = {}) {
+export function openOverview(to: 'overview' | 'edit' | 'builder' | 'close', opts: { keep?: boolean } = {}) {
   const w = useProjectWorkflow.getState()
   if (to !== 'close') {
     if (w.mode === 'compact') {
@@ -228,4 +251,14 @@ export function changedSinceOpen(): boolean {
 export function discardSinceOpen() {
   const { base, commit } = useProjectWorkflow.getState()
   if (base && changedSinceOpen()) commit(base, 'Changes discarded: the workflow is back to how it was when you opened the editor')
+}
+
+// ---------- the workflow builder (Result A, 9 Nov): the same editing session as the centre editor, over the whole
+// workspace. Opening notes where the user is and the workflow as it stands (`base`); Apply keeps the changes and puts the
+// working state back; Discard puts the opening workflow back first. The model, site, camera and results are never
+// touched: the builder is drawn over the workspace, which stays mounted under it.
+export const openBuilder = () => openOverview('builder')
+export function closeBuilder(how: 'apply' | 'discard', opts: { keep?: boolean } = {}) {
+  if (how === 'discard') discardSinceOpen()
+  openOverview('close', opts)
 }
