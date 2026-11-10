@@ -131,9 +131,9 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(panel(p).getByTestId('phase-active').getByText('Month')).toBeVisible()
   await expect(p.getByLabel('Show results for')).toHaveValue('built.sun')
 
-  // Overview (phase row) opens the same editor; selecting a tool doesn't open it; Return to design puts the working state
+  // The panel's Edit opens the same editor; selecting a tool doesn't open it; Return to design puts the working state
   // back (Sun & shadow open in Form); Open in workspace goes to the chosen tool
-  await p.getByTestId('phase-overview').click()
+  await p.getByTestId('phase-edit').click()
   await overview.locator('[data-dock-node="design.massing"]').click()
   await expect(overview.getByTestId('overview-open')).toBeVisible()
   await expect(overview.getByTestId('overview-close')).toHaveText(/Return to design/) // nothing changed
@@ -141,7 +141,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(dock).toHaveCount(0)
   await expect(panel(p).getByTestId('phase-active')).toHaveAttribute('data-active', 'built.sun')
   await expect(p.getByLabel('Show results for')).toHaveValue('built.sun')
-  await p.getByTestId('phase-overview').click()
+  await p.getByTestId('phase-edit').click()
   await dock.locator('[data-dock-node="built.wind-screen"]').click()
   await dock.getByTestId('overview-open').click()
   await expect(dock).toHaveCount(0)

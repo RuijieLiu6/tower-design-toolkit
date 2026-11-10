@@ -1,16 +1,14 @@
 // The phase row (overnight brief, 8 Nov: "Keep exactly one permanent phase-navigation row: Site / Form / Program /
-// Schematic / Present … Put Overview at its right edge. Remove nonessential counts"). The same five phases as the landing
+// Schematic / Present … Remove nonessential counts"; Overview went on 9 Nov: Edit workflow does the same). The same five phases as the landing
 // page, each with its colour dot; the chosen one in the selected look. A phase is always revisitable: switching keeps
 // every setting, the model and each phase's open tool. Overview opens the whole project workflow on demand; it is
 // closed on entry, and closing it restores the working state (workflow/WorkflowOverview.tsx). Project-wide controls
 // (Auto-run checks, the check library, units, role, help) live in the project bar, not here.
-import { Workflow } from './icons'
 import { useEffect, type KeyboardEvent } from 'react'
 import { whenRestored } from '../lib/project/session'
 import { goToStep, startOnSite, startStepFollow, useStep } from '../lib/step'
 import { PHASE_COLOR } from '../lib/design/tokens'
 import { PHASE_IDS, PHASE_NAME, PHASE_STEP, STEP_PHASE } from '../lib/workflow/phaseTools'
-import { openOverview, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import Help from './Help'
 
 export default function ProcessRail() {
@@ -21,7 +19,6 @@ export default function ProcessRail() {
     return stop
   }, [])
   const phase = STEP_PHASE[step]
-  const open = useProjectWorkflow((s) => s.mode !== 'compact')
   // Arrow keys move along the phases (one tab stop for the row), Home / End to the ends.
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
     const i = PHASE_IDS.indexOf(phase)
@@ -50,11 +47,8 @@ export default function ProcessRail() {
           )
         })}
       </div>
-      <button type="button" onClick={() => openOverview(open ? 'close' : 'overview')} aria-expanded={open} aria-haspopup="dialog" data-testid="phase-overview"
-        title="The whole project workflow: every phase, its tools, connections and return paths (Esc closes)"
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-panel px-3 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><Workflow size={15} aria-hidden />Overview</button>
       <Help label="About the phases">
-        The five phases of the design, the same as on the start page; the arrow keys move between them. Each phase's tools and their order are in the left panel, with the open tool's controls under them. Overview shows the whole project workflow, to rearrange it or add tools; closing it brings you back to where you were. Switching phase keeps your model, every setting and each phase's open tool.
+        The five phases of the design, the same as on the start page; the arrow keys move between them. Each phase's tools and their order are in the left panel, with the open tool's controls under them. Edit workflow (project bar) shows the whole project workflow, to rearrange it or add tools; closing it brings you back to where you were. Switching phase keeps your model, every setting and each phase's open tool.
       </Help>
     </nav>
   )
