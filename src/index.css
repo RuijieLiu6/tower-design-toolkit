@@ -247,7 +247,7 @@ body {
    hover lifts, keyboard focus rings in the accent, selected (data-selected) wears an accent ring. Soft: available, a
    little quieter; off: not in use, the drawing desaturated. */
 .node-tile { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: var(--nt); height: var(--nt); border-radius: var(--radius-panel); background: #fff;
+  width: var(--nt); height: var(--nt); border-radius: min(var(--radius-panel), calc(var(--nt) * 0.3)); background: #fff;
   box-shadow: var(--shadow-tile);
   transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms, opacity 160ms; }
 .node-tile[data-state="soft"] { background: rgb(255 255 255 / 0.86); }
