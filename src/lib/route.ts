@@ -1,10 +1,11 @@
-// Hash routes: #/start (landing), #/guided (the staged app), #/customize (workflow builder), #/status (build status),
+// Hash routes: #/start (landing), #/guided (the staged app), #/workflow (the guided app with the workflow builder open,
+// 9 Nov), #/customize (the advanced data graph), #/status (build status),
 // #/options (design options compared), #/sources (sources & assumptions hub), #/guide (user guide).
 // Hash routing keeps links and the back button working on a static host with no server rewrites.
 import { useSyncExternalStore } from 'react'
 
-export type Route = 'start' | 'guided' | 'customize' | 'status' | 'options' | 'sources' | 'guide'
-const ROUTES: Route[] = ['start', 'guided', 'customize', 'status', 'options', 'sources', 'guide']
+export type Route = 'start' | 'guided' | 'workflow' | 'customize' | 'status' | 'options' | 'sources' | 'guide'
+const ROUTES: Route[] = ['start', 'guided', 'workflow', 'customize', 'status', 'options', 'sources', 'guide']
 const SKIP_KEY = 'ts.landing.skip'
 
 export function parseHash(hash: string): Route | null {

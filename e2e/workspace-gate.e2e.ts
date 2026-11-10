@@ -34,7 +34,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
       expect(await rail(p).locator('[data-phase]').count()).toBe(5)
       await expect(p.getByTestId('workflow-overview')).toHaveCount(0)
       await expect(p.getByTestId('workflow-dock')).toHaveCount(0)
-      await expect(p.getByTestId('phase-overview')).toHaveAttribute('aria-expanded', 'false')
+      await expect(p.getByTestId('phase-overview')).toHaveCount(0) // Overview went on 9 Nov: Edit workflow does the same
 
       // UI03: Inter loads; type roles compute
       await placeStartingTower(p, { stay: true })
@@ -44,8 +44,8 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
         return {
           inter: document.fonts.check('14px "Inter Variable"') && [...document.fonts].some((f) => /Inter/.test(f.family) && f.status === 'loaded'),
           family: getComputedStyle(document.body).fontFamily.split(',')[0],
-          phaseTab: cs('nav[aria-label="Design process"] [data-phase]'), overview: cs('[data-testid="phase-overview"]'),
-          heading: cs('[data-testid="phase-panel"] h2'), importBtn: cs('[data-testid="phase-import"]'), edit: cs('[data-testid="phase-edit"]'),
+          phaseTab: cs('nav[aria-label="Design process"] [data-phase]'), overview: cs('[data-testid="edit-workflow-button"]'),
+          heading: cs('[data-testid="phase-panel"] h2'), importBtn: cs('[data-testid="transfer-import"]'), edit: cs('[data-testid="phase-edit"]'),
           toolName: cs('[data-testid="phase-rows"] [data-node] > span:last-child'), view: cs('[role="radiogroup"][aria-label="View"] [role="radio"]'),
           resultsTab: cs('[data-panel="right"] [role="tab"]'), autoRun: cs('[data-testid="analysis-switch"]'),
         }
@@ -133,8 +133,8 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
       await p.getByTestId('context-pins').getByRole('button', { name: /Hide Wind risk/ }).click()
       await expect(viewRadio(p, 'Building use')).toHaveAttribute('aria-checked', 'true')
 
-      // UI02: Overview over the workspace, and back: the phase, the open tool and the results shown are restored
-      await p.getByTestId('phase-overview').click()
+      // UI02: the editor over the workspace, and back: the phase, the open tool and the results shown are restored
+      await p.getByTestId('phase-edit').click()
       const ov = p.getByTestId('workflow-overview')
       await expect(ov.locator('[data-lane]')).toHaveCount(5)
       await ov.locator('[data-dock-node="design.massing"]').click() // selecting there opens nothing

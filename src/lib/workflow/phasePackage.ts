@@ -5,7 +5,7 @@
 //   the phase's settings and geometry from the shared project (PHASE_SLICES), with the units, origin, north and datum;
 //   the results as they stood, with the model revision that produced them;
 //   the tool versions and where its numbers come from (each result keeps its source and evidence flag).
-// It is not a geometry exchange: "Model snapshot" (Rhino .3dm, OBJ, glTF, from Export model) moves the model to other
+// It is not a geometry exchange: "Model snapshot" (Rhino .3dm, OBJ, glTF, from Export › Continue modelling elsewhere) moves the model to other
 // software and keeps no tool settings or connections. Inside the project, phases share data on their own; packages are for
 // saved hand-offs.
 import { edgeKey, type Board, type Edge } from '../workflowGraph'
@@ -73,7 +73,7 @@ export function buildPhasePackage(i: PackageInput): PhasePackage {
     tools: Object.fromEntries(i.nodes.map((id) => [id, i.versions[id] ?? i.appVersion])),
     settings,
     results: { modelRevision: modelRevision(settings.towers ?? i.state.towers), digest: i.digest },
-    notes: ['Results are as computed for the model revision above; reopening recomputes them from the settings.', 'Geometry exchange (Rhino, OBJ, glTF) is under Export model and keeps no tool settings or connections.'],
+    notes: ['Results are as computed for the model revision above; reopening recomputes them from the settings.', 'Geometry exchange (Rhino, OBJ, glTF) is under Export › Continue modelling elsewhere and keeps no tool settings or connections.'],
   }
 }
 

@@ -1,3 +1,113 @@
+# CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
+
+Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A
+(`designer-workflow-builder`), after Ruijie approved Result A and asked for Result B step 1. Not merged, not deployed.
+- **What it is:** one Import and one Export button in the project bar (`TopBar.tsx`), both opening the same dialog on
+  the matching tab (`components/porting/TransferDialog.tsx`, state in `lib/porting/transfer.ts`). The dialog starts with
+  the person's purpose, enabled by a capability registry (`lib/porting/capabilities.ts`: each purpose names its reader
+  or writer and whether a person has verified it; "Package my tool" is listed disabled because no writer exists; "Add a
+  site boundary" is Real Vancouver only). Choosing a purpose shows what it needs and what it will do; only the footer's
+  named action does it (Continue to the model import · Open project · Preview the changes · Export file · Save backup ·
+  Export package · Export PROV). Esc and Cancel change nothing and give focus back to the opener.
+- **Routes reused, nothing new:** the model import dialog (`ImportDialog.tsx`), `readProject` + `openText`, the phase
+  package reader and its preview (`PhasePorting.tsx` `PackagePreview`, now exported, and `phasePackageOf`), the node
+  builder's Import tab, `exportModel` (its scene build is now `exportScene`, so the dialog shows the solid and layer
+  counts before writing), `currentText`, `traceToProv`, Sun & Wind Studio (`SunWindSend` inside Export › results).
+  The old "Export model" menu is gone (`ExportMenu.tsx` keeps only the writers' entry point).
+- **Step 2 (same day):** the phase panel's Import/Export drawers and the Project menu's Upload / Export .json / Import
+  .json items are deleted; the menu keeps New, Open, Save as, autosave and one "Import or export a file…" that opens the
+  centre. A file dropped anywhere opens the centre on Import with the purpose read from its contents
+  (`lib/porting/sniff.ts`: models by extension; .json by its `format` field or GeoJSON shape; else the centre opens with
+  no purpose). The site boundary is read and previewed in the centre (`lib/siteImport.ts`, shared with the Site panel)
+  and set only on "Set as the study site"; a chosen tool package goes to the node builder's Import as its draft (checked
+  there, never run). A package import closes the centre once the preview applies it. Tests updated: `phase-panel`,
+  `journeys`, `rhino-import`, `workspace-gate`; `transfer-centre` adds the drop. All five pass in Edge; unit 1,225.
+- **Not yet:** alignment is still the model import dialog's own screen; export scope (phases, objects) and
+  representation presets are not offered because no converter supports them (that would be Result C).
+- **Tests run:** `npx tsc -b` PASS · `npx vitest run` 1,224 pass (+1 registry test; the same 2 CRLF data-file checks fail
+  in this worktree only) · `e2e/transfer-centre.e2e.ts` in Edge PASS (opens without download, Cancel/Esc clean with
+  focus returned, glTF export is a real `massing-vtc-<date>.glb` after a counts preview, the tower list unchanged, works
+  over the workflow builder) · `e2e/sun-wind-link.e2e.ts` FAIL on this branch and the same way on main (the receiver
+  page in `../sun-wind-studio` never reports "Imported"; an environment problem, not this change; its entry point is
+  updated to Export › Export results). Reopening the exported .glb in an independent reader: NOT RUN.
+- **Evidence:** `04 Tool Plan/workflow-builder/after/after-<size>-transfer-import.png` and `-transfer-export-geometry.png`.
+- **Next small increment (step 3):** the model import's alignment step inside the centre (units, up axis, north, origin,
+  placement, layer roles as one screen) and "Frame imported content" after it.
+
+---
+
+# CHECKPOINT: Result A, the designer-friendly workflow builder (9 Nov 2026)
+
+Brief: Ruijie's "START HERE: Tower Design Toolkit UI Implementation" + Block 2 (Workflow Builder Specification); Block 3
+(Import/Export Centre) is Result B and waits for the review of this. Copies and the working notes: `04 Tool Plan/workflow-builder/`
+(BLOCK2-workflow-builder.md, BLOCK3-import-export.md, DECISIONS-result-a.md, architecture-map-2026-11-09.md).
+- **Branch:** `designer-workflow-builder`, from `origin/main` 880643d (the reviewed reference commit; main had not moved).
+  Worktree `tower-studio-ui`. Not merged, not deployed, not pushed (the brief asks for permission first).
+- **Commits:** 488367a (the builder), dce84c1 (the library fix and this write-up).
+- **Evidence (local only):** `04 Tool Plan/workflow-builder/before|after/`: before = main's workspace, centre editor and
+  Customize data graph at 1440 × 900 and 1280 × 800; after = the workspace, the builder, a selected card and a pending
+  insertion at both sizes, plus the library after an Add.
+
+## What it is
+The project workflow as a readable sequence of illustrated tool cards, over the whole workspace (`components/builder/*`).
+- **One workflow, no third store.** The builder reads and edits `lib/workflow/projectWorkflow.ts` (`useProjectWorkflow`)
+  only, through its `commit` (Undo/Redo, save, `syncChecks`). New in the store: mode `'builder'`, `openBuilder` /
+  `closeBuilder('apply' | 'discard')` (the same working-state record as the centre editor), `rename`, `replaceWith`
+  (Start from preset, one undo step), and `addNode(b, id, 'start')` now means "first". The landing cover, the centre
+  editor and the phase panel show the same applied process.
+- **View model, pure and tested:** `lib/workflow/builderModel.ts`: library entries (available / my tools incl. missing
+  references / research-only), the sequence (main cards in Start's order, branch cards under their column, return paths,
+  unconnected cards; every wire shown once), state words kept apart (Design step · Ready · Needs model · Waiting for
+  input · Paused · Missing tool · Competition project only), design summaries ("1 tower", "4 program bands"), previews of
+  an add / move / remove ("connects …, removes …"), and plain Uses / You enter / Produces from `data/nodeNeeds.ts`.
+- **Result summaries** (`hooks/useNodeSummaries.ts`): only from the decision trace's live digest, only for the design on
+  screen (hash-matched), only for checks that are on: "2 pass · 1 check". Nothing is invented.
+- **Layout:** header (name, project, Start from preset, one dismissible line, Undo/Redo, Apply/Discard or Continue
+  designing, Advanced: data graph) · library 256 px · cards 208 px wide · inspector 280 px (collapsible). Under 1180 px
+  the library and inspector become drawers. The row of cards scrolls on its own; the app never scrolls sideways.
+- **Entry points:** project bar "Edit workflow"; More › "Workflow builder"; route `#/workflow`; the landing page's "Open
+  the workflow builder". The legacy data graph stays at `#/customize` (More › "Advanced: data graph" and the header
+  link); it is not translated into the process view and nothing of it is discarded.
+- **Interactions (Block 2 §7):** click selects (nothing else); Add from the library (click, Enter, or drag onto a slot)
+  shows the insertion as a card with its position changeable before Yes; a tool already present is shown, never added
+  twice; move by handle drag, by Move before / after, or Alt+←/→ with a preview of the connections that change; Remove
+  keeps results and the model and says Undo is there; Return to… lists the earlier steps and draws a dashed arc and a
+  chip; Open tool closes the builder keeping its changes and opens that tool in its phase.
+
+## Acceptance checks (Block 2 §12), `e2e/workflow-builder.e2e.ts` in Edge
+1 open an existing workflow · 2 add Sun & shadow · 3 reorder by dragging the handle to a slot · 4 reorder by the menu and
+Alt+→ · 5 return path to Massing · 6 Undo / Redo · 7 Apply (the phase panel shows the tool and the return) · 8 Open tool
+(the phase panel's active tool) · 9 a real design change (tower height +12 m in the Massing tool) · 10 back to the builder,
+rename · 11 reload: process, return path and name kept · 12 a second session, Remove, Discard brings the card back ·
+13 no tower: Program & FSR says "Needs model" (no zero) · 14 a saved workflow with `community.ghost` keeps it as a
+"Missing tool" card and a library reference. Also: no model mutation (a snapshot of the towers is equal before and after
+every builder session), no keyboard trap (Tab ×30 stays inside; Esc closes popovers, not the builder), 1280 × 800: the
+primary actions are in the viewport and nothing scrolls sideways.
+
+## Tests actually run
+| | Result |
+|---|---|
+| `npx tsc -b` | PASS |
+| `npx vitest run` (whole suite) | PASS: 1,223 tests, 2 fail that are byte-size checks of data files with CRLF checkout in this worktree (not this change; they pass in the main checkout) |
+| New unit tests: builderModel (59), WorkflowSequence helpers (9), ToolLibrary helpers (3), useNodeSummaries (3) | PASS |
+| `e2e/workflow-builder.e2e.ts` (5 tests, Edge, `playwright.edge.config.ts` on port 5399) | PASS (5 / 5) |
+| Existing e2e suite | NOT RUN (the `site-step` test is already stale on main; nothing else touches the builder) |
+| Independent code review pass | NOT RUN (started, stopped for the usage limit) |
+
+## Known limitations
+- A tool appears once in a workflow (the data model has no instances), so Add on a present tool shows its card.
+- Branch groups and the "Not connected" group are drawn from the model and unit-tested, but no saved workflow in the
+  presets has a branch, so they are not in the screenshots.
+- The workflow is still saved in `localStorage` (`ts.coverWorkflow` + `ts.workflowRun`), not in the project file; that
+  is the existing design, left as is (Block 2 §8 asks only for one canonical record).
+- Choosing a preset for the other project replaces the workflow but does not switch the project (each option says its project).
+- The "Advanced: data graph" link closes the builder keeping its changes, then opens `#/customize`.
+- `aria-current` marks the selected card (an `article` cannot carry `aria-selected`).
+
+## Recommended next small task
+Result B's first step: the capability registry (which readers/writers exist and are verified) and the one Import /
+Export entry in the project bar, before any dialog, so the duplicate phase-panel Import/Export can be routed through it.
+
 # CHECKPOINT: Materials floating building parts (9 Nov 2026)
 
 Ruijie's screenshot, near the default site in the Materials view: building masses hanging in the air on a tower ("these masses are floating in the air").

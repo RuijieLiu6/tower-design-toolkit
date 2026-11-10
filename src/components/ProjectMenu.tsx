@@ -1,11 +1,10 @@
-// Project menu in the top bar: undo / redo, New, Open, Save as, Export, Import, and the autosave status.
-// Projects live in this browser (IndexedDB); Export writes a deterministic .json to keep or share.
-import { Box, ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
+// Project menu in the top bar: undo / redo, New, Open, Save as, and the autosave status. Projects live in this browser
+// (IndexedDB); files come and go through the transfer centre (the bar's Import and Export, Result B, 9 Nov).
+import { ChevronDown, FilePlus, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { saveFile } from '../lib/download'
-import { useImportStore } from '../lib/import/store'
+import { useTransfer } from '../lib/porting/transfer'
 import { redo, startHistory, undo, useHistory } from '../lib/project/history'
-import { currentText, exportName, newProject, openStored, openText, refreshList, removeStored, saveAs, startPersistence, useProjectMeta } from '../lib/project/session'
+import { newProject, openStored, refreshList, removeStored, saveAs, startPersistence, useProjectMeta } from '../lib/project/session'
 import { useStore } from '../store'
 import { TraceRecorder } from './TracePanel'
 
@@ -24,7 +23,6 @@ export default function ProjectMenu() {
   const [name, setName] = useState('')
   const [confirmKey, setConfirmKey] = useState<string | null>(null)
   const box = useRef<HTMLDivElement>(null)
-  const fileInput = useRef<HTMLInputElement>(null)
 
   // Undo history and autosave run while the design view is open.
   useEffect(() => {
@@ -66,11 +64,6 @@ export default function ProjectMenu() {
     if (p === 'open') void refreshList()
   }
 
-  const readFile = async (f: File) => {
-    const ok = await openText(await f.text(), f.name.replace(/\.json$/i, ''))
-    if (ok) setPanel('none')
-  }
-
   const locked = present ? 'The model is locked in Present' : undefined
   const btn = `rounded p-1.5 disabled:opacity-30 ${present ? 'hover:bg-white/10' : 'hover:bg-black/5'}`
   const status = meta.storage === 'unavailable' ? 'This browser blocks storage: Export to keep your work'
@@ -101,7 +94,7 @@ export default function ProjectMenu() {
             <Item icon={<FolderOpen size={14} />} onClick={() => (panel === 'open' ? setPanel('none') : openMenu('open'))} disabled={present} hint={locked} expanded={panel === 'open'}>Open…</Item>
             {panel === 'open' && (
               <div className="mx-1 mb-1 max-h-56 overflow-y-auto rounded-md border border-line">
-                {meta.saved.length === 0 && <p className="px-2 py-2 text-meta text-muted">No saved projects in this browser yet. Use Save as…, or Import a .json.</p>}
+                {meta.saved.length === 0 && <p className="px-2 py-2 text-meta text-muted">No saved projects in this browser yet. Use Save as…, or Import › Open a saved project.</p>}
                 {meta.saved.map((p) => (
                   <div key={p.key} className="flex items-center gap-1 border-b border-line/60 px-2 py-1 last:border-0">
                     <button onClick={() => { void openStored(p.key); setPanel('none') }} className="min-w-0 flex-1 text-left hover:text-accent">
@@ -124,11 +117,8 @@ export default function ProjectMenu() {
                 <button type="submit" className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:opacity-90">Save</button>
               </form>
             )}
-            <Item icon={<Box size={14} />} onClick={() => { setOpen(false); useImportStore.getState().openDialog() }} disabled={present} hint={locked ?? 'Rhino .3dm, OBJ, glTF or IFC: map its layers, check units and north; read in this browser only'}>Upload a Rhino model…</Item>
-            <Item icon={<FileDown size={14} />} onClick={async () => { saveFile(exportName(), await currentText()); useStore.setState({ announce: 'Project exported' }) }}>Export .json</Item>
-            <Item icon={<FileUp size={14} />} onClick={() => fileInput.current?.click()} disabled={present} hint={locked}>Import .json…</Item>
-            <input ref={fileInput} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readFile(f); e.target.value = '' }} />
-            <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export a .json to keep a copy or share it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
+            <Item icon={<FolderOpen size={14} />} onClick={() => { setOpen(false); useTransfer.getState().open('export', box.current?.querySelector('button')) }} hint="Backups, geometry, workflow packages, models and tools: the Import and Export buttons beside this menu">Import or export a file…</Item>
+            <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export › Back up this project keeps a copy or shares it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
           </div>
         )}
       </div>

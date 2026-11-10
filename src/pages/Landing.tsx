@@ -142,7 +142,7 @@ export default function Landing() {
             <button type="button" onClick={() => { setDemo('loading'); useTour.getState().start({ demo: true }).finally(() => setDemo('idle')) }} disabled={demo === 'loading'} className={quiet}><PlayCircle size={14} aria-hidden />Take the tour</button>
             <UploadButton />
             <a href="#/guided" className={quiet}><RouteIcon size={14} aria-hidden />Guided process</a>
-            <a href="#/customize" className={quiet}><Workflow size={14} aria-hidden />Customize from scratch</a>
+            <a href="#/workflow" className={quiet}><Workflow size={14} aria-hidden />Open the workflow builder</a>
           </div>
           {demo === 'error' && <p role="status" className="mt-1 text-meta text-red-800">The demo project could not be opened. Reload the page and try again, or start from a workflow above.</p>}
         </section>

@@ -1,11 +1,14 @@
-// Mounts the upload dialog on demand and lets a model file be dropped anywhere on the app (research P14-M02).
+// Mounts the upload dialog on demand and lets a file be dropped anywhere on the app (research P14-M02): it opens the
+// transfer centre with the purpose read from the file (lib/porting/sniff.ts), so a drop goes through the same preview
+// and confirmation as a chosen file. Nothing is read into the model by the drop itself.
 import { FileUp } from './icons'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useImportStore } from '../lib/import/store'
 import { BASE_MODEL_NAME, addVtcModel, useVtcSource } from '../lib/vtcContextSource'
+import { sniff } from '../lib/porting/sniff'
+import { useTransfer } from '../lib/porting/transfer'
 
 const ImportDialog = lazy(() => import('./ImportDialog'))
-const MODEL = /\.(3dm|obj|glb|gltf|ifc|skp|rvt)$/i
 
 export default function ImportHost() {
   const open = useImportStore((s) => s.dialogOpen)
@@ -21,12 +24,12 @@ export default function ImportHost() {
     const drop = (e: DragEvent) => {
       depth = 0; setDragging(false)
       if (e.defaultPrevented || otherDialog()) return
-      const f = [...(e.dataTransfer?.files ?? [])].find((x) => MODEL.test(x.name))
+      const f = e.dataTransfer?.files?.[0]
       if (!f) return
       e.preventDefault()
       // The competition base model, dropped while its context is missing: it is the context, not a massing upload.
       if (BASE_MODEL_NAME.test(f.name) && !useVtcSource.getState().ctx) { void addVtcModel(f); return }
-      useImportStore.getState().openDialog(f)
+      void sniff(f).then((purpose) => useTransfer.getState().open('import', null, purpose ? { purpose, file: f } : { file: f }))
     }
     window.addEventListener('dragenter', enter)
     window.addEventListener('dragleave', leave)
@@ -39,7 +42,7 @@ export default function ImportHost() {
       {dragging && !open && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-accent/10 p-6">
           <div className="flex items-center gap-2 rounded-xl border-2 border-dashed border-accent bg-panel px-6 py-4 text-sm font-medium text-accent shadow-lg">
-            <FileUp size={18} />Drop a Rhino (.3dm), OBJ, glTF or IFC model to upload it: read in this browser, nothing leaves it
+            <FileUp size={18} />Drop a model (.3dm, OBJ, glTF, IFC), a project, a phase package, a site boundary or a tool package: it is read in this browser and shown before anything changes
           </div>
         </div>
       )}

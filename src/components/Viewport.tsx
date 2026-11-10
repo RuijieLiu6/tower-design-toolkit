@@ -55,7 +55,7 @@ import { groundThickness } from '../engine/basement'
 import BelowGrade from './BelowGrade'
 import { VISTA_LOOK, VISTA_OVERVIEW, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { MODEL, STATUS, UI } from '../lib/design/tokens'
-import { NEUTRAL_TOWER } from '../lib/displayMode'
+import { NEUTRAL_TOWER, useDisplayMode } from '../lib/displayMode'
 import { useModeColours } from '../lib/displayModeHooks'
 import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
@@ -114,6 +114,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   const thickness = useMemo(() => groundThickness(towers), [towers])
   const plinth = useMemo(() => vtcPlinth(ctx, 20, thickness), [ctx, thickness])
   const ring = useMemo(() => plinthRing(plinth, () => SEA_Z), [plinth])
+  const contextShown = useDisplayMode((s) => s.context)
   useEffect(() => registerGround({ at: () => 0, plinth }), [plinth])
   return (
     <>
@@ -132,10 +133,10 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
       {!ctx && <VtcBriefSite />}
       {ctx?.blocks.map((b, i) => <Line key={`b${i}`} points={b.map(([x, y]) => [x, y, 0.05] as [number, number, number])} color={look.edge} lineWidth={1} />)}
       {ctx?.curbs.map((b, i) => <Line key={`c${i}`} points={b.map(([x, y]) => [x, y, 0.04] as [number, number, number])} color={CURB} lineWidth={1} />)}
-      {ctx && <VtcContextModel ctx={ctx} look={look} id={lookId} xray={xray} />}
+      {ctx && contextShown && <VtcContextModel ctx={ctx} look={look} id={lookId} xray={xray} />}
       {/* The neutral inspection light with restrained soft shadows, in every mode (the sun preview replaces its key). */}
       {!xray && <PlainEnvironment />}
-      {ctx?.future_towers.filter((f) => f.z1).map((f, i) => (
+      {contextShown && ctx?.future_towers.filter((f) => f.z1).map((f, i) => (
         <group key={`f${i}`}>
           <mesh position={[0, 0, 0]} {...hoverHandlers(`future-${i}`)}>
             <extrudeGeometry args={[new THREE.Shape(f.footprint.map(([x, y]) => new THREE.Vector2(x, y))), { depth: f.z1 as number, bevelEnabled: false }]} />

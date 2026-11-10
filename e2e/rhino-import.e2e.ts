@@ -73,11 +73,12 @@ test('the uploaded lot line and context buildings are drawn in the 3D view', asy
   await page.waitForSelector('#root > *', { timeout: 60_000 })
   await page.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
   await page.getByRole('tab', { name: 'Competition site' }).or(page.getByRole('button', { name: 'Competition site' })).first().click()
-  // Through the Project menu this time (the same dialog).
-  await page.getByRole('button', { name: /^Project file/ }).click()
-  await page.getByRole('menuitem', { name: /Upload a Rhino model/ }).click()
+  // Through the transfer centre this time (Import › Bring in a 3D model; the same model dialog follows).
+  await page.getByTestId('transfer-import').click()
+  await page.getByTestId('purpose-model').click()
+  await page.getByTestId('transfer-file').setInputFiles(FIXTURE)
+  await page.getByTestId('transfer-action').click()
   const dialog = page.getByRole('dialog', { name: 'Import a model' })
-  await dialog.locator('input[type="file"]').setInputFiles(FIXTURE)
   await dialog.getByRole('button', { name: /Check units, north and datum/ }).click({ timeout: 120_000 })
   await expect(dialog.getByText('In plain words')).toBeVisible({ timeout: 120_000 })
   await dialog.getByRole('button', { name: /^Use this model|^Update / }).click()

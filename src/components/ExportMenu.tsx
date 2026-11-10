@@ -1,13 +1,10 @@
-// "Export model" next to the project menu (backlog item 32): Layer 0 out to Rhino (.3dm), SketchUp and most tools
-// (OBJ + MTL), glTF (.glb); IFC is on the roadmap. Files are made in the browser; nothing is uploaded.
-import { Download, Loader2 } from './icons'
-import { useEffect, useRef, useState } from 'react'
+// The massing out to Rhino (.3dm), SketchUp and most tools (OBJ + MTL), glTF (.glb); IFC has no writer yet. Files are
+// made in the browser; nothing is uploaded. The project bar's Export opens the transfer centre (components/porting/
+// TransferDialog.tsx), which calls exportModel after showing what the file will hold.
 import { VTC_NORTH_DEG } from '../context'
 import { toExportScene } from '../lib/interchange/converters'
 import { useImportStore } from '../lib/import/store'
 import { CITY_ORIGIN, useStore } from '../store'
-import { useUnits } from '../lib/units'
-import SunWindSend from './SunWindSend'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let rhino: Promise<any> | null = null
@@ -23,13 +20,17 @@ function save(data: BlobPart, name: string, type: string) {
 }
 
 export type ModelFormat = '3dm' | 'obj' | 'glb'
+/** The massing as the writers take it (the transfer centre shows its counts before anything is written). */
+export function exportScene() {
+  const s = useStore.getState()
+  const meshes = useImportStore.getState().meshes
+  // Roles, uses, levels and provenance travel as user strings, so uploading the export reads back the same model.
+  return toExportScene(s.towers[s.project], s.models[s.project], { project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0, groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null, meshOf: (id) => meshes[id] })
+}
 /** The massing as a file for other software (.3dm, OBJ + MTL zip, .glb), made in this browser; the outcome in words. */
 export async function exportModel(kind: ModelFormat): Promise<string> {
   const s = useStore.getState()
-  const towers = s.towers[s.project]
-  const meshes = useImportStore.getState().meshes
-  // Roles, uses, levels and provenance travel as user strings, so uploading the export reads back the same model.
-  const sc = toExportScene(towers, s.models[s.project], { project: s.project, northDeg: s.project === 'vtc' ? VTC_NORTH_DEG : 0, groundElevation: s.groundElevation, utmOrigin: s.project === 'city' ? CITY_ORIGIN : null, meshOf: (id) => meshes[id] })
+  const sc = exportScene()
   const base = `massing-${s.project}-${new Date().toISOString().slice(0, 10)}`
   const north = s.project === 'vtc' ? VTC_NORTH_DEG : 0
   try {
@@ -47,44 +48,4 @@ export async function exportModel(kind: ModelFormat): Promise<string> {
     }
     return `${sc.solids.length} objects on ${sc.layers.length} layers.`
   } catch (e) { return `Export failed: ${(e as Error).message}` }
-}
-
-export default function ExportMenu() {
-  const unit = useUnits((st) => st.unit)
-  const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState<ModelFormat | null>(null)
-  const [msg, setMsg] = useState('')
-  const box = useRef<HTMLDivElement>(null)
-  const present = useStore((s) => s.phase === 'present')
-  useEffect(() => {
-    if (!open) return
-    const close = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [open])
-
-  const run = async (kind: ModelFormat) => {
-    setBusy(kind); setMsg('')
-    setMsg(await exportModel(kind))
-    setBusy(null)
-  }
-
-  const item = 'flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-black/5 disabled:opacity-50'
-  return (
-    <div ref={box} className="relative">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" title="Export the massing to Rhino, SketchUp and other tools"
-        className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-control font-medium ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}><Download size={13} />Export model</button>
-      {open && (
-        <div role="menu" className="glass absolute left-0 top-full z-50 mt-1 w-80 rounded-md border border-line bg-panel p-1.5 text-ink shadow-lg">
-          <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('3dm')} className={item}>{busy === '3dm' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>Rhino (.3dm)</b><br /><span className="text-meta text-muted">Layer per use with its colour; role, use, level and provenance as user text, so it uploads back as the same model; site curve and context; north on the Earth anchor</span></span></button>
-          <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('obj')} className={item}>{busy === 'obj' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>SketchUp and others (OBJ + MTL, .zip)</b><br /><span className="text-meta text-muted">Metres, Y up; one material per layer. In SketchUp Pro: File › Import, units metres</span></span></button>
-          <button role="menuitem" type="button" disabled={!!busy} onClick={() => run('glb')} className={item}>{busy === 'glb' ? <Loader2 size={13} className="mt-0.5 animate-spin" /> : <Download size={13} className="mt-0.5" />}<span><b>glTF (.glb)</b><br /><span className="text-meta text-muted">For Blender, web viewers and render tools; user text in extras</span></span></button>
-          <button role="menuitem" type="button" disabled className={item}><Download size={13} className="mt-0.5" /><span><b>IFC (roadmap)</b><br /><span className="text-meta text-muted">Storeys and spaces with use for Revit. Until then: link the .3dm (newer Revit versions, unverified) or convert the OBJ</span></span></button>
-          {msg && <p className="px-2 pb-1 pt-0.5 text-meta text-muted">{msg}</p>}
-          <SunWindSend item={item} />
-          <p className="border-t border-line px-2 pt-1 text-meta text-muted">One closed solid per storey, LOD 100. Files are always in metres{unit !== 'm' ? ` (you are viewing ${unit === 'ft' ? 'feet' : 'millimetres'})` : ''}. Made in this browser; nothing is uploaded.</p>
-        </div>
-      )}
-    </div>
-  )
 }
