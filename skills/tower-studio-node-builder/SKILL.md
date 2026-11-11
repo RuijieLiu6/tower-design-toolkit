@@ -131,6 +131,7 @@ Format v1 is deliberately simple: formulas over a fixed summary, so anyone can r
 | [references/fixtures.json](references/fixtures.json) | Sample designs with every Layer 0 value, for tests |
 | [references/tool-to-node.md](references/tool-to-node.md) | Bringing an existing design tool in: licence, the four kinds, input mapping, testing against the tool, port requests |
 | [references/code-nodes.md](references/code-nodes.md) | Code nodes: when to use one, the run(input) contract, what the sandbox blocks, how users allow them |
+| [references/design-tool-contract.md](references/design-tool-contract.md) | Design tools (`tower-studio-design-tool@1`): a web tool that proposes geometry changes to one tower, with the definition, snapshot, proposal, checks and a copyable bridge |
 | [references/example-code-node.json](references/example-code-node.json) | A worked code node (core-to-facade depth) |
 | [references/node-icons.md](references/node-icons.md) | The node's icon: the style pack, the icon brief, the image route and how Tower Design Toolkit checks it |
 | [scripts/check_node.mjs](scripts/check_node.mjs) | `node scripts/check_node.mjs my-node.json`: checks and test-runs a package (Node 18+, no installs) |

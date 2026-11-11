@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test tool (demonstration harness)</title>
+  <style>
+    :root { color-scheme: light; --ink: #202630; --muted: #5F6875; --line: #D9DEE7; --panel: #fff; --canvas: #F7F8FA; --accent: #2563EB; --warn: #B45309; font: 14px/1.45 Inter, system-ui, sans-serif; color: var(--ink); background: var(--canvas); }
+    body { margin: 0; padding: 24px; max-width: 720px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .tag { display: inline-block; border: 1px solid var(--warn); color: var(--warn); border-radius: 999px; padding: 2px 10px; font-size: 12px; margin-bottom: 16px; }
+    p { margin: 0 0 12px; max-width: 64ch; color: var(--muted); }
+    section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+    dt { color: var(--muted); } dd { margin: 0; font-variant-numeric: tabular-nums; }
+    button { font: inherit; font-weight: 500; border-radius: 8px; border: 1px solid #778294; background: var(--panel); color: var(--ink); padding: 8px 14px; cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    #status { margin-top: 12px; }
+    pre { background: var(--canvas); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 12px; max-height: 200px; overflow: auto; margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>Test tool (demonstration harness, not a real design tool)</h1>
+  <span class="tag">Demonstration only</span>
+  <p>This page exercises the connected design tool protocol (<code>tdt-design-tool@1</code>). It receives one tower from the Tower Design Toolkit and returns a deterministic change: every tower floor 4 m wider, tapering to 97 % at the top. It is not a design tool and makes no design judgement.</p>
+
+  <section aria-labelledby="inputs-h">
+    <h2 id="inputs-h" style="font-size:15px;margin:0 0 8px">Received inputs</h2>
+    <dl id="inputs"><dt>State</dt><dd id="conn">Not connected (open this page from the Toolkit).</dd></dl>
+  </section>
+
+  <section aria-labelledby="actions-h">
+    <h2 id="actions-h" style="font-size:15px;margin:0 0 8px">Return a change</h2>
+    <div class="row">
+      <button type="button" id="widen" class="primary" data-testid="test-tool-widen" disabled>Widen by 4 m, 3 % taper</button>
+      <button type="button" id="cancel" data-testid="test-tool-cancel" disabled>Cancel</button>
+    </div>
+    <div id="status" role="status" aria-live="polite" data-testid="test-tool-status"></div>
+  </section>
+
+  <section aria-labelledby="log-h">
+    <h2 id="log-h" style="font-size:15px;margin:0 0 8px">Last message</h2>
+    <pre id="log" data-testid="test-tool-log">—</pre>
+  </section>
+
+  <script>
+    (function () {
+      var PROTOCOL = 'tdt-design-tool@1', TOOL_ID = 'tool.test-tool', TOOL_VERSION = '0.1.0', PODIUM_F2F = 4.5;
+      var $ = function (id) { return document.getElementById(id); };
+      function allowedOrigin(value) {
+        var url; try { url = new URL(value); } catch (e) { return null; }
+        if (url.origin === 'https://ruijieliu6.github.io') return url.origin;
+        var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname) && /^https?:$/.test(url.protocol);
+        return local ? url.origin : null;
+      }
+      var hostOrigin = allowedOrigin(new URLSearchParams(location.search).get('host') || '');
+      var embedded = window.parent && window.parent !== window;
+      var session = null;
+      var r3 = function (v) { return Math.round(v * 1000) / 1000; };
+      var rect = function (w, d) { return [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(function (p) { return [r3(p[0]), r3(p[1])]; }); };
+      var status = function (text) { $('status').textContent = text; };
+      var log = function (obj) { $('log').textContent = JSON.stringify(obj, null, 1).slice(0, 4000); };
+
+      if (!hostOrigin || !embedded) { status(hostOrigin ? 'Not embedded: nothing is sent.' : 'No allowed host origin in the URL: nothing is sent.'); return; }
+
+      function post(msg) { window.parent.postMessage(msg, hostOrigin); }
+
+      function storeysFor(t) {
+        var podiumHeight = (t.podium && t.podium.height) || 0;
+        var podiumStoreys = Math.max(0, Math.round(podiumHeight / PODIUM_F2F));
+        var towerStoreys = Math.max(1, (t.storeys || 1) - podiumStoreys);
+        var f2f = t.f2f > 0 ? t.f2f : 3.5;
+        var out = [];
+        var z = 0;
+        if (podiumStoreys > 0) {
+          var ph = podiumHeight / podiumStoreys, pw = t.podium.width || t.width, pd = t.podium.depth || t.depth;
+          for (var i = 0; i < podiumStoreys; i++) { out.push({ z0: r3(z), z1: r3(z + ph), loops: [rect(pw, pd)], podium: true, use: 'retail' }); z += ph; }
+        }
+        var w0 = t.width + 4, d0 = t.depth;
+        for (var k = 0; k < towerStoreys; k++) {
+          var s = towerStoreys > 1 ? 1 - 0.03 * (k / (towerStoreys - 1)) : 1;
+          out.push({ z0: r3(z), z1: r3(z + f2f), loops: [rect(w0 * s, d0 * s)], podium: false, use: 'residential' });
+          z += f2f;
+        }
+        return out;
+      }
+
+      window.addEventListener('message', function (e) {
+        if (e.origin !== hostOrigin || e.source !== window.parent) return;
+        var msg = e.data;
+        if (!msg || msg.protocol !== PROTOCOL || msg.type !== 'tdt:inputs') return;
+        var t = Array.isArray(msg.targets) ? msg.targets[0] : null;
+        log(msg);
+        if (!t) { status('No tower in the inputs.'); return; }
+        session = { sessionId: msg.sessionId, runId: msg.runId, projectId: msg.projectId, baseRevision: msg.baseRevision, target: t };
+        $('inputs').innerHTML = '';
+        var rows = [['State', 'Connected'], ['Run', String(msg.runId).slice(0, 8)], ['Tower', t.name + ' (' + t.id + ')'], ['Size', t.width + ' × ' + t.depth + ' m, ' + t.height + ' m high'], ['Storeys', t.storeys + ' at ' + t.f2f + ' m'], ['Podium', (t.podium.height || 0) + ' m high, ' + t.podium.width + ' × ' + t.podium.depth + ' m']];
+        rows.forEach(function (r) { var dt = document.createElement('dt'); dt.textContent = r[0]; var dd = document.createElement('dd'); dd.textContent = r[1]; $('inputs').append(dt, dd); });
+        $('inputs').querySelector('dd').id = 'conn';
+        $('widen').disabled = false; $('cancel').disabled = false;
+        status('Inputs received. Press a button to answer this run.');
+      });
+
+      $('widen').addEventListener('click', function () {
+        if (!session) return;
+        var t = session.target;
+        var proposal = {
+          protocol: PROTOCOL, type: 'tdt:proposal', toolId: TOOL_ID, toolVersion: TOOL_VERSION,
+          sessionId: session.sessionId, runId: session.runId, projectId: session.projectId, baseRevision: session.baseRevision,
+          units: { length: 'm', frame: 'tower-local', up: 'z' },
+          operations: [{ op: 'replace-geometry', target: t.id, storeys: storeysFor(t), keep: ['name', 'bands'] }],
+          parameters: { schema: 'test-tool/1', widen: 4, taper: 0.03 },
+          assumptions: ['Rectangular plates centred on the tower; the Toolkit keeps the tower\'s position and rotation', 'Podium storeys are 4.5 m each at the podium footprint'],
+          warnings: []
+        };
+        post(proposal);
+        log(proposal);
+        status('Proposal sent: ' + proposal.operations[0].storeys.length + ' storeys. Review it in the Toolkit.');
+      });
+
+      $('cancel').addEventListener('click', function () {
+        if (!session) return;
+        post({ protocol: PROTOCOL, type: 'tdt:cancel', toolId: TOOL_ID, sessionId: session.sessionId, runId: session.runId });
+        status('Run cancelled: nothing will be applied.');
+        $('widen').disabled = true; $('cancel').disabled = true;
+        session = null;
+      });
+
+      post({ protocol: PROTOCOL, type: 'tdt:ready', toolId: TOOL_ID, toolVersion: TOOL_VERSION });
+      status('Ready. Waiting for the Toolkit to send a tower.');
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "format": "tower-studio-design-tool@1",
+  "id": "tool.test-tool",
+  "version": "0.1.0",
+  "name": "Test tool",
+  "purpose": "Demonstration harness for the connected design tool protocol, not a real design tool: returns the selected tower 4 m wider with a 3 % taper.",
+  "author": { "name": "Tower Design Toolkit team" },
+  "licence": "part of the Toolkit (demonstration page)",
+  "phases": ["form"],
+  "connection": {
+    "method": "web",
+    "url": "http://localhost:5499/tools/test-tool.html",
+    "origin": "http://localhost:5499",
+    "protocol": "tdt-design-tool@1"
+  },
+  "runtime": { "browser": true, "network": ["http://localhost:5499"] },
+  "inputs": ["tower.selected"],
+  "outputs": ["geometry.storeys", "parameters"],
+  "operations": ["replace-geometry"],
+  "units": { "length": "m", "frame": "tower-local", "up": "z" },
+  "destination": {
+    "sends": ["the selected tower: name, size, storeys, podium, footprint"],
+    "to": "the Toolkit's own test page, served from this computer (localhost:5499)",
+    "stores": "nothing: the page keeps the inputs in memory until it is closed"
+  },
+  "limits": [
+    "Demonstration only: the change is fixed (4 m wider, 3 % taper), not a design",
+    "Returns rectangular plates; the tower keeps its Toolkit position and rotation"
+  ],
+  "editability": "externally-generated"
+}

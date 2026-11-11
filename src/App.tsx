@@ -5,6 +5,7 @@ import ImportHost from './components/ImportHost'
 import { NodeBuilderHost } from './components/NodeBuilder'
 import PhasePanel from './components/workflow/PhasePanel'
 import WorkflowOverview from './components/workflow/WorkflowOverview'
+import ToolWorkspace from './components/designTools/ToolWorkspace'
 import WorkflowBuilder from './components/builder/WorkflowBuilder'
 import { useRoute } from './lib/route'
 import { openBuilder, useProjectWorkflow } from './lib/workflow/projectWorkflow'
@@ -85,6 +86,9 @@ export default function App() {
           {/* The workflow editor takes the centre view when asked for (Ruijie, 9 Nov: "the central viewport will turn into
               the workflow edit"); the phase panel and the results stay beside it and follow every change. Confirm returns. */}
           <WorkflowOverview />
+          {/* A connected design tool's workspace covers the centre the same way (brief §6): the viewport stays mounted
+              underneath, the phase panel and the Proposal tab stay beside it. */}
+          <ToolWorkspace />
         </main>
         {/* Right: the analysis results (and Present's own tabs). */}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}

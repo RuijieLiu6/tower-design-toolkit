@@ -149,6 +149,8 @@ export interface ImportedMass {
   health: { block: number; warn: number }
   /** The uploaded model this tower came from (lib/interchange): model id, the tower's key in it and its element ids. */
   source?: { modelId: string; towerKey: string; elementIds: string[] }
+  /** Returned by a connected design tool (lib/designTools): which tool, version and run, with the parameters that made it, for regeneration. */
+  tool?: { toolId: string; version: string; runId: string; at: string; parameters: Record<string, unknown> | null }
 }
 
 /**

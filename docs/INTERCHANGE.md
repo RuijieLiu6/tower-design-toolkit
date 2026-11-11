@@ -162,7 +162,7 @@ The check screen shows a **preview on the City footprints** (north up, 50 m scal
 - Curved faces saved without render meshes cannot be meshed in the browser; they are counted, never faked. SubD is skipped with its fix.
 - Setbacks and street lines are read as curves but no tool uses them yet.
 - Context roofs are flat; overhangs are not modelled.
-- No Rhino plugin or Rhino.Compute link: the live link re-reads the saved file; it does not see unsaved edits in Rhino.
+- A Rhino link exists since 5 Nov 2026: `public/rhino/tdt_link.py` runs inside Rhino 7/8 and serves the open document to the Toolkit over `127.0.0.1:8798` (one way, Rhino → Toolkit, pull only; `src/lib/interchange/rhinoLink.ts`), so unsaved edits are seen; there is still no Rhino.Compute link and nothing is sent back to Rhino.
 
 ## 10. Fixtures, tests and evaluation
 
@@ -179,3 +179,7 @@ The check screen shows a **preview on the City footprints** (north up, 50 m scal
 - **Your model node** (`components/import/ModelPanel.tsx`): file line, role chips, units/north/zero level with flags, "What each tool reads from it", floor area by use, elements with provenance (collapsed).
 - **Align to the map** (Real Vancouver): a block under *Placement* (model point select, map point as UTM or lat/lon, "Pick on the preview" crosshair toggle, turn slider) and, on the right, the preview: footprints `#d9d5cc` on `#f1efea`, demolished ones hatched red (`#c0392b` lines on `#fde2e0`, dashed outline), towers in the tower role colour, the lot line dashed teal, north arrow and 50 m bar, then the keep checkbox with the team-assumption chip and the removal caveat.
 - **Reading a file**: a progress bar per 25 objects and a Cancel button under it.
+
+## 12. Connected design tools (11 Nov 2026)
+
+An independently developed web tool can join the Toolkit as a workflow node that **proposes** a change to one selected tower: the Toolkit sends a scoped input snapshot over `postMessage` to a pinned origin, the tool returns a Design Change Proposal (`replace-geometry` as per-storey loops in the tower-local frame, or `set-parameter`), the Toolkit validates it, previews it as a ghost and applies it as one Undo step with provenance (`imported.tool`). Returned geometry is an imported mass like an upload (externally generated: the Massing sliders do not reshape it). The contract `tower-studio-design-tool@1` / `tdt-design-tool@1`, the Form Studio definition, the schemas, the lifecycle, the security rules, a worked example and a copyable bridge are in [DESIGN_TOOLS.md](DESIGN_TOOLS.md); code in `src/lib/designTools/`.

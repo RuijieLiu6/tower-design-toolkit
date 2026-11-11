@@ -35,22 +35,42 @@ import { addNode, openOverview, runOrder, useProjectWorkflow } from '../../lib/w
 import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
+import DesignToolControls from '../designTools/DesignToolControls'
+import { TOOL_PREFIX, type ToolDefinition } from '../../lib/designTools/contract'
+import { useDesignTools } from '../../lib/designTools/store'
+import { PHASE_CATEGORY, toolState } from '../../lib/workflow/builderModel'
+import { useTransfer } from '../../lib/porting/transfer'
 
 export type Portion = ReturnType<typeof phasePortion>
 const TILE = 24
 const BUILT = BUILT_NODES.map((n) => n.id)
+const isTool = (id: string) => id.startsWith(TOOL_PREFIX)
+const kindOf = (id: string) => (isDesignNode(id) ? 'Design tool' : isTool(id) ? 'Connected design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check')
+
+/** The workflow's names (WorkflowOverview.useInfo) with the installed design tools' own names and phases over their ids. */
+function useToolInfo(): (id: string) => Info {
+  const base = useInfo()
+  const defs = useDesignTools((s) => s.definitions)
+  return useMemo(() => (id: string): Info => {
+    const def = isTool(id) ? defs[id] : undefined
+    if (!def) return base(id)
+    const phase = def.phases[0] ?? 'form'
+    return { id, name: def.name, word: def.name.split(/[\s:&,(]+/)[0] || def.name, phase, design: false, category: PHASE_CATEGORY[phase] }
+  }, [base, defs])
+}
 
 export default function PhasePanel() {
   const step = useStep((s) => s.step)
   const phase = STEP_PHASE[step]
   const wf = useProjectWorkflow((s) => s.wf)
-  const info = useInfo()
+  const info = useToolInfo()
   const placed = usePhaseTools((s) => s.placed)
   const packages = useCommunityStore((s) => s.packages)
+  const tools = useDesignTools((s) => s.definitions) // a design tool's home is its definition's first phase
   const home = useMemo(() => {
     const cat = new Map(packages.map((p) => [p.id, p.category]))
     return (id: string): PhaseId => placed[id] ?? homePhase(id, (x) => cat.get(x))
-  }, [placed, packages])
+  }, [placed, packages, tools]) // eslint-disable-line react-hooks/exhaustive-deps
   const portion = useMemo(() => phasePortion(wf, phase, home), [wf, phase, home])
   const design = designOf(phase).id
   const inFlow = portion.nodes.includes(design)
@@ -115,7 +135,7 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
     const b = ensure(board)
     const after = [...rows].reverse().find((x) => b.nodes.includes(x)) ?? design
     usePhaseTools.getState().place(id, phase)
-    w.commit(addNode(b, id, after), `${info(id).name} added to ${PHASE_NAME[phase]}${isDesignNode(id) ? '' : '; its check is on'}`)
+    w.commit(addNode(b, id, after), `${info(id).name} added to ${PHASE_NAME[phase]}${isDesignNode(id) ? '' : isTool(id) ? '; nothing is sent until you open it' : '; its check is on'}`)
     setAdding(false)
     open(id)
   }
@@ -151,12 +171,12 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
               <ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
                 {rows.map((id) => {
                   const n = info(id), isActive = active === id, inBoard = board.nodes.includes(id)
-                  const kind = isDesignNode(id) ? 'Design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check'
+                  const kind = kindOf(id)
                   const rets = returnsFrom(id)
                   return (
                     <li key={id} data-phase-node={id}>
                       <button type="button" data-node={id} aria-current={isActive ? 'true' : undefined}
-                        aria-label={`${n.name}${isDesignNode(id) ? ': open its tools' : ': open its settings and results'}${isActive ? ' (open)' : ''}${rets.length ? `; returns to ${rets.map((e) => info(e.b).name).join(', ')}` : ''}`}
+                        aria-label={`${n.name}${isDesignNode(id) ? ': open its tools' : isTool(id) ? ': open its controls (nothing is sent)' : ': open its settings and results'}${isActive ? ' (open)' : ''}${rets.length ? `; returns to ${rets.map((e) => info(e.b).name).join(', ')}` : ''}`}
                         onClick={() => open(id)} title={`${n.name} · ${kind}${!inBoard ? ' · joins the workflow when you add a tool here' : ''}`}
                         className={`node-hit flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'}`}>
                         <NodeTile id={id} size={TILE} art={<NodeArtwork id={id} size={Math.round(TILE * 0.9)} category={n.category} />} />
@@ -228,6 +248,8 @@ function AddTool({ phase, board, info, home, after, onAdd, onClose }: {
 }) {
   const packages = useCommunityStore((s) => s.packages)
   const openDialog = useCommunityStore((s) => s.openDialog)
+  const tools = useDesignTools((s) => s.definitions)
+  const toolList = useMemo(() => Object.values(tools), [tools])
   const [tab, setTab] = useState<'tools' | 'mine'>('tools')
   const [q, setQ] = useState('')
   const [more, setMore] = useState(false)
@@ -248,7 +270,7 @@ function AddTool({ phase, board, info, home, after, onAdd, onClose }: {
     <div role="region" aria-label="Add a tool" data-testid="phase-add-list" className="mx-3 mt-1.5 rounded-xl border border-line bg-panel p-2">
       <div className="flex items-center gap-1">
         <div role="tablist" aria-label="Kind of tool" className="flex gap-0.5">
-          {(['tools', 'mine'] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-lg px-2 py-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${tab === t ? 'bg-ink' : 'text-muted hover:text-ink'}`}>{t === 'tools' ? 'Tools' : `My tools (${packages.length})`}</button>)}
+          {(['tools', 'mine'] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-lg px-2 py-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${tab === t ? 'bg-ink' : 'text-muted hover:text-ink'}`}>{t === 'tools' ? 'Tools' : `My tools (${packages.length + toolList.length})`}</button>)}
         </div>
         <button type="button" onClick={onClose} aria-label="Close Add tool" className="ml-auto rounded p-0.5 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={13} aria-hidden /></button>
       </div>
@@ -272,11 +294,12 @@ function AddTool({ phase, board, info, home, after, onAdd, onClose }: {
         <>
           <ul className="mt-1 max-h-56 space-y-1 overflow-y-auto">
             {packages.map((p) => <MyTool key={p.id} pkg={p} inFlow={board.nodes.includes(p.id)} onAdd={() => setAsk(p.id)} />)}
-            {!packages.length && <li className="px-1.5 py-1 text-meta text-muted">No custom tools yet. Build one with your AI, or import a tool file.</li>}
+            {toolList.map((d) => <MyDesignTool key={d.id} def={d} inFlow={board.nodes.includes(d.id)} onAdd={() => setAsk(d.id)} />)}
+            {!packages.length && !toolList.length && <li className="px-1.5 py-1 text-meta text-muted">No custom tools yet. Build one with your AI, or import a tool file.</li>}
           </ul>
           <div className="mt-1.5 flex flex-wrap gap-1">
             <button type="button" onClick={() => openDialog('build')} className="flex items-center gap-1 rounded-lg bg-panel px-2 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><PackagePlus size={13} aria-hidden />Build your own tool</button>
-            <button type="button" onClick={() => openDialog('import')} className="flex items-center gap-1 rounded-lg bg-panel px-2 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><Upload size={13} aria-hidden />Import a tool file</button>
+            <button type="button" onClick={(e) => useTransfer.getState().open('import', e.currentTarget, { purpose: 'tool' })} title="A check package or a connected design tool's definition, through Import" className="flex items-center gap-1 rounded-lg bg-panel px-2 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent"><Upload size={13} aria-hidden />Import a tool file</button>
           </div>
         </>
       )}
@@ -295,6 +318,26 @@ function MyTool({ pkg, inFlow, onAdd }: { pkg: NodePackage; inFlow: boolean; onA
           : <button type="button" onClick={onAdd} data-add={pkg.id} className="rounded-lg bg-panel px-2 py-0.5 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Add</button>}
       </div>
       <ToolFacts pkg={pkg} />
+    </li>
+  )
+}
+/** A connected design tool in My tools: its state word (builderModel.toolState), what it reads and may change, and Add. */
+function MyDesignTool({ def, inFlow, onAdd }: { def: ToolDefinition; inFlow: boolean; onAdd: () => void }) {
+  const phase = def.phases[0] ?? 'form'
+  const state = toolState(def)
+  return (
+    <li className="rounded-lg border border-line p-1.5" data-my-tool={def.id}>
+      <div className="flex items-center gap-2">
+        <NodeTile id={def.id} size={24} art={<NodeArtwork id={def.id} size={21} category={PHASE_CATEGORY[phase]} />} />
+        <span className="min-w-0 flex-1"><span className="block truncate text-control text-ink">{def.name}</span><span className="block text-meta text-muted">v{def.version} · {def.author.name} · {state}</span></span>
+        {inFlow ? <span className="text-meta text-muted">In the workflow</span>
+          : <button type="button" onClick={onAdd} data-add={def.id} className="rounded-lg bg-panel px-2 py-0.5 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Add</button>}
+      </div>
+      <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 text-meta">
+        <dt className="text-muted">Reads</dt><dd className="truncate text-ink" title={def.destination.sends.join(', ')}>{def.destination.sends.join(', ')}</dd>
+        <dt className="text-muted">May change</dt><dd className="truncate text-ink">{def.operations.map((op) => op.replace(/-/g, ' ')).join(', ')} (you apply)</dd>
+        <dt className="text-muted">Phase</dt><dd className="text-ink">{PHASE_NAME[phase]}</dd>
+      </dl>
     </li>
   )
 }
@@ -319,7 +362,9 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
   const pkg = useCommunityStore((s) => s.packages.find((p) => p.id === id))
   const controls = NODE_CONTROLS[id]
   const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
-  const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in the Library' : analysis ? 'Runs with the model; its results are on the right' : 'Analysis is off: its results wait until you switch it on'
+  const tool = isTool(id)
+  // a connected design tool never runs on its own: opening it sends nothing (brief §5); its words come from its controls
+  const state = d ? d.about : tool ? 'Opens its workspace; proposes changes you apply' : !on ? 'Switched off: add it to the workflow or switch it on in the Library' : analysis ? 'Runs with the model; its results are on the right' : 'Analysis is off: its results wait until you switch it on'
   return (
     <div role="region" aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id}>
       <div className="flex items-center gap-2 px-3 py-2">
@@ -328,9 +373,10 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
           <h3 className="truncate text-control font-semibold text-ink" data-testid="phase-active-name">{n.name}</h3>
           <span className="block truncate text-meta text-muted" title={state}>{state}</span>
         </span>
-        {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
+        {!d && !tool && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
       {d ? (phase === 'present' ? <Filmstrip tone="light" /> : <ToolPanel embedded />)
+        : tool ? <DesignToolControls id={id} />
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}

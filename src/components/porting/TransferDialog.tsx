@@ -30,6 +30,12 @@ import { openToolInWorkspace } from '../builder/openTool'
 import { readSiteBoundary, setSiteBoundary } from '../../lib/siteImport'
 import { ringMetrics } from '../../engine/site'
 import type { ImportedBoundary } from '../../engine/geoLocate'
+import { NodeTile } from '../NodeTile'
+import { NodeArtwork } from '../nodeIcons/NodeArtwork'
+import { DESIGN_TOOL_FORMAT, type ToolDefinition } from '../../lib/designTools/contract'
+import { checkDefinition } from '../../lib/designTools/validate'
+import { useDesignTools } from '../../lib/designTools/store'
+import { PHASE_CATEGORY, toolState } from '../../lib/workflow/builderModel'
 
 const PROJECT_NAME = { vtc: 'Competition site', city: 'Real Vancouver' } as const
 const btn = 'flex h-8 items-center gap-1 rounded-lg px-3 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
@@ -136,6 +142,8 @@ function ImportPane({ c, purpose, initial }: { c: Capability; purpose: ImportPur
     if (purpose === 'package') { const r = readPhasePackage(text); return r.pkg ? { ok: true, words: `${PHASE_NAME[r.pkg.phase]} package from ${PROJECT_NAME[r.pkg.project]}: ${r.pkg.workflow.nodes.length} tools, ${r.pkg.workflow.edges.length} connections, ${Object.keys(r.pkg.settings).length} settings.`, problems: r.problems, pkg: r.pkg } : { ok: false, words: '', problems: r.problems } }
     return null
   }, [text, purpose])
+  // a tool file is one of two kinds: a connected design tool's definition (registered here, brief §5) or a check package (the node builder's)
+  const toolFile = useMemo(() => (purpose === 'tool' ? readToolFile(text) : null), [text, purpose])
   const head = <><h3 className="text-control font-semibold text-ink">{c.title}</h3><p className="text-control text-muted">{c.purpose}</p><Route c={c} /></>
   if (purpose === 'model') return (
     <div>{head}<Pick c={c} file={file} onFile={setFile} />
@@ -154,10 +162,78 @@ function ImportPane({ c, purpose, initial }: { c: Capability; purpose: ImportPur
     <div>{head}<Pick c={c} file={file} onFile={setFile} />
       {site && ('error' in site ? <p role="alert" className="mt-2 text-meta text-error">{site.error}</p> : <p className="mt-2 text-control text-ink" data-testid="transfer-preview">{site.words} Positions come from the file's CRS; nothing is assumed from the project.</p>)}
       <Footer action="Set as the study site" disabled={!site || 'error' in site} status={status} onAction={() => { if (site && 'r' in site) { setSiteBoundary(file!.name, site.r); openToolInWorkspace('design.site'); close() } }} /></div>)
+  if (toolFile?.kind === 'design-tool') return (
+    <div>{head}<p className="mt-2 text-control text-ink">A connected design tool is registered from its definition: who made it, how it connects, what it reads and may change. Nothing connects or runs now; it opens only from a workflow, and every send asks you first.</p>
+      <Pick c={c} file={file} onFile={setFile} />
+      <ToolRegistration r={toolFile} />
+      <Footer action="Add to My tools" disabled={!toolFile.def} status={status}
+        note={toolFile.def && useDesignTools.getState().definitions[toolFile.def.id] ? `Replaces the installed ${toolFile.def.name} ${useDesignTools.getState().definitions[toolFile.def.id].version}; its runs and your towers stay.` : undefined}
+        onAction={() => { const def = toolFile.def!; useDesignTools.getState().install(def); useStore.setState({ announce: `${def.name} ${def.version} added to My tools. Add it to a workflow to use it; nothing is sent until you open it there.` }); setStatus('Added to My tools.'); close() }} /></div>)
   return (
     <div>{head}<p className="mt-2 text-control text-ink">Packages are checked (schema, formulas, tests, icon) and shown before you install; a package's code never runs on selection. It then appears under My tools, and adding it to the workflow is your next step.</p>
       <Pick c={c} file={file} onFile={setFile} />
+      {toolFile?.kind === 'unknown' && <p role="alert" className="mt-2 text-meta text-error">{toolFile.words}</p>}
       <Footer action={file ? 'Check this package in the node builder' : "Open the node builder's Import"} status={status} onAction={() => { const cs = useCommunityStore.getState(); cs.setDraft(text || null); cs.openDialog('import'); close() }} /></div>)
+}
+
+type ToolFile = { kind: 'design-tool'; def?: ToolDefinition; raw: Record<string, unknown>; problems: string[]; warnings: string[] } | { kind: 'node' } | { kind: 'unknown'; words: string } | null
+/** What a chosen tool file is, by its `format` (lib/porting/sniff.ts does the same for a dropped file). */
+function readToolFile(text: string): ToolFile {
+  if (!text.trim()) return null
+  let j: unknown
+  try { j = JSON.parse(text.replace(/^﻿/, '').replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, '')) } catch { return { kind: 'unknown', words: 'Not a JSON file: a tool file is a .json with a "format" field.' } }
+  const o = j && typeof j === 'object' && !Array.isArray(j) ? (j as Record<string, unknown>) : null
+  if (!o) return { kind: 'unknown', words: 'Not a tool file: the JSON is not an object with a "format" field.' }
+  if (o.format === DESIGN_TOOL_FORMAT) { const r = checkDefinition(o); return { kind: 'design-tool', def: r.def, raw: o, problems: r.problems, warnings: r.warnings } }
+  if (o.format === 'tower-studio-node@1') return { kind: 'node' }
+  return { kind: 'unknown', words: `Its format is ${JSON.stringify(o.format ?? 'missing')}: a tool file is a check package (tower-studio-node@1) or a design tool definition (${DESIGN_TOOL_FORMAT}).` }
+}
+
+const str = (v: unknown) => (typeof v === 'string' ? v : '')
+const list = (v: unknown) => (Array.isArray(v) ? v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))) : [])
+const obj = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {})
+
+/**
+ * The registration preview (brief §5): identify, the connection, what it reads and may change, the destination and
+ * permissions, limits, problems. Read from the raw file so a definition with problems still shows what it claims; the
+ * icon is the platform's fallback tile in the tool's phase colour (the tool's own icon is a later step).
+ */
+function ToolRegistration({ r }: { r: Extract<ToolFile, { kind: 'design-tool' }> }) {
+  const o = r.raw, author = obj(o.author), conn = obj(o.connection), runtime = obj(o.runtime), dest = obj(o.destination), units = obj(o.units)
+  const phases = list(o.phases), ops = list(o.operations), inputs = list(o.inputs), outputs = list(o.outputs), sends = list(dest.sends), limits = list(o.limits), network = list(runtime.network)
+  const phase = (PHASE_IDS as string[]).includes(phases[0]) ? (phases[0] as PhaseId) : 'form'
+  const id = str(o.id) || 'tool.unnamed'
+  const state = r.def ? toolState(r.def) : null
+  const row = (k: string, v: ReactNode) => <div className="contents"><dt className="text-meta text-muted">{k}</dt><dd className="min-w-0 break-words text-control text-ink">{v}</dd></div>
+  const words = (xs: string[], none = 'none') => (xs.length ? xs.join(', ') : none)
+  const op = (x: string) => x.replace(/-/g, ' ')
+  return (
+    <div className="mt-2 grid gap-2" data-testid="transfer-preview" data-tool-id={id} data-tool-state={state ?? 'problems'}>
+      <div className="flex items-start gap-3 rounded-lg border border-line bg-panel p-2">
+        <NodeTile id={id} size={48} state={r.def ? 'soft' : 'off'} art={<NodeArtwork id={id} size={43} category={PHASE_CATEGORY[phase]} muted={!r.def} />} />
+        <div className="min-w-0 flex-1">
+          <p className="text-control font-semibold text-ink">{str(o.name) || 'Unnamed tool'} <span className="font-normal text-muted">{str(o.version) ? `v${str(o.version)}` : 'no version'}</span></p>
+          <p className="text-meta text-muted">{str(author.name) ? `by ${str(author.name)}` : 'no author'}{str(author.url) ? ` (${str(author.url)})` : ''} · {str(o.licence) || 'no licence'} · {id}</p>
+          <p className="mt-0.5 text-meta text-ink">{str(o.purpose)}</p>
+          <p className="mt-0.5 text-meta text-muted">Entry: as the tile at left, in My tools and on its workflow card; the tool's own icon can be added later.</p>
+        </div>
+        {state && <span className={`shrink-0 rounded-full px-1.5 text-meta ${state === 'Connected' ? 'bg-subtle text-muted' : 'bg-warning-surface text-warning'}`} data-testid="transfer-tool-state">{state}</span>}
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+        {row('Connection', <>{str(conn.method) === 'web' ? 'A web page in the centre view (iframe), talking postMessage with its origin pinned both ways' : str(conn.method) ? `${str(conn.method)} (not a method this build can open)` : 'none'}{str(conn.url) ? <>: <span className="break-all">{str(conn.url)}</span></> : null}</>)}
+        {row('Runtime', `${runtime.browser === true ? 'Runs in this browser' : 'Needs a runtime this browser does not provide'}; network: ${words(network, 'none declared')}`)}
+        {row('Reads', `${words(inputs.map((i) => (i === 'tower.selected' ? 'the selected tower' : i === 'site.outline' ? 'the site outline' : i)))}. Sends: ${words(sends, 'nothing declared')}`)}
+        {row('May change', `${words(ops.map(op))} (you preview and apply); returns ${words(outputs.map(op))}; geometry is ${str(o.editability) === 'externally-generated' ? 'externally generated (regenerate in the tool; the Massing sliders do not reshape it)' : str(o.editability) === 'native-parameters' ? 'native parameters you keep editing here' : 'of an undeclared kind'}`)}
+        {row('Phases', words(phases.map((p) => PHASE_NAME[p as PhaseId] ?? p)))}
+        {row('Units', `${str(units.length) || '?'}, ${str(units.frame) || '?'} frame, ${str(units.up) || '?'} up`)}
+        {row('Destination', `To ${str(dest.to) || 'undeclared'}; stored: ${str(dest.stores) || 'undeclared'}. Every send asks you first and goes only when you press send.`)}
+        {row('Limits', words(limits, 'none declared'))}
+      </dl>
+      {r.problems.length > 0 && <ul role="alert" data-testid="transfer-tool-problems" className="grid gap-0.5 text-meta text-error">{r.problems.map((p) => <li key={p}>✕ {p}</li>)}</ul>}
+      {r.warnings.length > 0 && <ul data-testid="transfer-tool-warnings" className="grid gap-0.5 text-meta text-warning">{r.warnings.map((w) => <li key={w}>! {w}</li>)}</ul>}
+      {r.def && !r.problems.length && <p className="text-meta text-success">✓ The definition is complete; its connection is pinned to {str(conn.origin)}.</p>}
+    </div>
+  )
 }
 
 function ExportPane({ c, purpose, initialPhase }: { c: Capability; purpose: ExportPurpose; initialPhase: PhaseId | null }) {

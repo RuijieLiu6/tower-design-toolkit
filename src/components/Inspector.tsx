@@ -13,6 +13,8 @@ import { TIER_LABEL } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { CITY_ORIGIN, useStore } from '../store'
 import CommunityInspector from './CommunityInspector'
+import { DesignToolCard } from './designTools/DesignToolControls'
+import { TOOL_PREFIX } from '../lib/designTools/contract'
 import NatureLedger from './NatureLedger'
 import { WindProcedurePanel, WindStudyPanel } from './WindStructurePanel'
 import StructurePanel from './StructurePanel'
@@ -322,6 +324,8 @@ export default function Inspector() {
   const towerCount = useStore((s) => s.towers[s.project].length)
   const siteArea = useProjectSiteArea().area
   if (selectedNode?.startsWith('community.')) return <CommunityInspector id={selectedNode} />
+  // a connected design tool has no results: a short card (its controls are in the left panel, its proposal in the Proposal tab)
+  if (selectedNode?.startsWith(TOOL_PREFIX)) return <DesignToolCard id={selectedNode} />
   if (!n) return <div className="p-4 text-xs text-muted">Switch a check on in the bar at the bottom, or pick one above, to see its results and evidence.</div>
   const cat = CATEGORIES[n.category]
   const wrongProject = n.projects && !n.projects.includes(project)

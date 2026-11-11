@@ -1,3 +1,91 @@
+# CHECKPOINT: Connected design tools, first real integration (11 Nov 2026)
+
+Brief: Ruijie's "Connected Design Tools — First Real Design Integration" (`04 Tool Plan/connected-tools/BRIEF.md`; plan in
+`PLAN-2026-11-11.md`). Baseline `origin/main` f42466f = the reference commit. Branch `connected-design-tools`, worktree
+`tower-studio-ct`. Not pushed, not merged, not deployed (the brief asks for permission first). Evidence:
+`04 Tool Plan/connected-tools/evidence/design-tool-{before,proposed,after}.png` (Form Studio) and `-harness-*.png`.
+
+## The pilot tool
+- **Form Studio** (Ruijie's own `RuijieLiu6/form-studio` @ 71a58d1, a static ES-module app; vendored three r128,
+  rhino3dm 8.17; **no LICENSE file** in the repository yet). Runtime: any static server. Interface added: one file,
+  `toolkit-bridge.js` (+ one script tag in `index.html`, `TOOLKIT.md`), on a local branch `toolkit-bridge` of the clone
+  `form-studio-ro`, **uncommitted and not pushed**: the brief says no push without permission. Until it is on GitHub
+  Pages, the Toolkit registers the copy served from this computer on `localhost:5577`, so the Form Studio test is a
+  **demonstration of the real code**, not the deployed tool.
+- **Connection method:** connected web interface (the tool in an iframe in the centre view, `postMessage`, origins pinned
+  both ways, never `*`). Embedding is unverified against GitHub Pages headers (not tested; no CSP in `index.html`).
+- **The change demonstrated:** replace the selected tower's geometry with Form Studio's floor plates (taper, twist,
+  plan shape, podium retreat) at a new height; the tower keeps its position, rotation, id, name and program bands.
+- **Also:** a test harness (`public/tools/test-tool.html`, titled a demonstration harness) that answers with a fixed,
+  hand-checkable change (4 m wider, 3 % taper) for the §14 journey and the docs' worked example.
+
+## The contract (`src/lib/designTools/`)
+- `tower-studio-design-tool@1` tool definition (`contract.ts`): id `tool.<handle>`, version, name, purpose, author,
+  licence, phases, connection { web, url, origin, protocol }, runtime, inputs, outputs, operations (`replace-geometry`,
+  `set-parameter`; deletion refused), units (m, tower-local, z up), destination (sends / to / stores), limits, editability.
+  `checkDefinition` (`validate.ts`) refuses `*` origins, mismatched url/origin, unknown operations.
+- Project instance (`store.ts`, localStorage `tower-studio.design-tools`): targets, the tool's parameters, runs (run id,
+  sent at, base revision, status), mappings. Session id per visit. Consent per tool per browser.
+- Input snapshot `tdt:inputs` (`snapshot.ts`): only the selected tower (box, storeys, f2f, podium, footprint), the frame,
+  the tool's last parameters, session/run/project ids and the model revision. Nothing else leaves.
+- Design Change Proposal `tdt:proposal`: checked by `checkProposal` (identity, run, project, units, allowed operations,
+  targets among those sent, finite points, open rings, rising storeys, plate ≤ 12 000 m², height ≤ 600 m, ≤ 8 MB, not
+  applied before); **stale** when the model revision moved since the send. No auto-repair.
+- Host (`host.ts`): accepts a message only from the iframe's window at the pinned origin with the protocol; sends only
+  after consent and a chosen target; 10 s ready timeout ("The tool did not answer"); cancel drops a late answer.
+- Apply (`apply.ts`): one history step (`breakStep` either side), `updateTower` keeps id/name/bands, the mass goes to the
+  import store, provenance `imported.tool = { toolId, version, runId, at, parameters }`, trace iteration recorded, run
+  marked applied (a second Apply of the same run is refused). Discard changes nothing.
+- The evaluation package format `tower-studio-node@1`, its validation and sandbox are untouched (tested).
+
+## UI
+- Register: Import › Add my tool with a definition file → preview (identity, connection, reads, may change, destination,
+  limits, state) → "Add to My tools". Library: My tools shows the tool with its state (Connected / Connection required /
+  Missing runtime / Unsupported version / External reference; reachability is not probed at library time).
+- Workflow: a card like any node (`tool.form-studio`); Open tool. Phase panel: target select, the permission statement
+  ("I understand, send"), Open tool / Update preview / Apply / Discard, status words. Centre: the tool's page in an iframe
+  (`ToolWorkspace`) with a Current vs Proposed strip; right panel: a Proposal tab (summary, changes, validation lines,
+  impacts, Apply / Discard); viewport: a translucent ghost of the proposed tower.
+
+## Acceptance journey §14 (`e2e/design-tool.e2e.ts`, Edge, PASS 2/2)
+Harness: 1 register · 2 add to Form · 3–4 target + consent (nothing loaded or sent before consent, asserted) · 5–7
+proposal, Proposal tab, ghost in the scene · 8–9 Apply: the target changed, the second tower deep-equal, count 2 ·
+10 provenance and results read the new model · 11 Ctrl+Z restores · 12 Ctrl+Y, autosave · 13 reload: geometry,
+parameters, provenance, the definition and the run status · 14 rerun: same tower, new run id, no duplicates · 15 cancel:
+no change · 16 stale: a model edit after the send blocks Apply · 17 a crafted proposal in mm from the page itself is
+ignored (wrong source) · 18 a tool at an address that does not answer → error within 10 s · an evaluation package still
+installs through the same Import route. Form Studio: served copy with the bridge, +20 m height in its own UI → Send →
+proposal → Apply → the tower's top is the new height.
+
+## Tests actually run
+| | |
+|---|---|
+| `npx tsc -b` | PASS |
+| `npx vitest run` | 1,332 pass; the same 2 CRLF data-file checks fail in this worktree only |
+| New unit tests (`src/lib/designTools/*.test.ts`, 104) | PASS |
+| `e2e/design-tool.e2e.ts` (Edge) | PASS 2/2 |
+| `transfer-centre`, `workflow-builder`, `phase-panel`, `node-icons` e2e (Edge) | PASS 8/8 |
+| Deployed Form Studio on GitHub Pages; Pages frame headers; a desktop/API connector | NOT RUN (not built) |
+
+## Supported edits and information loss
+Returned geometry is **externally generated**: the storey schedule and a prism mesh per floor; the Massing sliders do not
+reshape it; regenerate from the kept parameters in the tool. Not returned: Form Studio's core, columns, structure,
+terraces as objects (floor polygons only). The tower's position and rotation are the Toolkit's. Exported projects carry
+`imported.tool` on each such tower; the tool definition itself is in this browser's storage, not in the project file.
+
+## Limitations
+- One instance per tool per project; one target per run; web connection only.
+- Form Studio clamps storeys to 12–100 and height to 48–400 m, so a smaller Toolkit tower comes back larger (its
+  parameters carry the real values; the Changes list shows the storey count).
+- The ghost is a plain translucent mass; no before/after toggle in the viewport.
+- `uninstall` keeps towers and run history (brief §10) but the library then shows the node as missing.
+
+## Smallest recommended next integration
+Commit the bridge to `RuijieLiu6/form-studio` with a LICENSE and deploy to Pages, then point the definition at the
+Pages origin: the same journey against the deployed tool (the one NOT RUN line above).
+
+---
+
 # CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
 
 Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A

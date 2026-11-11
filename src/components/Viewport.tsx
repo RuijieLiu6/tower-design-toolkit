@@ -65,9 +65,62 @@ import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView } from '../lib/northView'
+import { useDesignTools } from '../lib/designTools/store'
+import { proposedTowers } from '../lib/designTools/apply'
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()
+
+const GHOST_COLOR = UI.accent
+
+/**
+ * A connected design tool's proposal as ghost geometry (brief §8): the towers as the proposal would leave them, drawn
+ * translucent in the selection blue over the model, placed and turned as the target tower is (ImportedMass). Only while a
+ * checked proposal waits; nothing else is dimmed, nothing is captured.
+ */
+function ProposalGhost({ baseZ }: { baseZ: number }) {
+  const pending = useDesignTools((s) => s.pending)
+  const def = useDesignTools((s) => (s.pending ? s.definitions[s.pending.proposal.toolId] : undefined))
+  const towers = useTowers()
+  const ghosts = useMemo(() => {
+    if (!pending || !def || !pending.check.ok) return null
+    try {
+      const { towers: next, meshes } = proposedTowers(towers, pending.proposal, def)
+      return next.map((t, i) => ({ t, before: towers[i], mesh: t.imported ? meshes[t.imported.meshId] : undefined })).filter((g) => g.t !== g.before)
+    } catch { return null }
+  }, [pending, def, towers])
+  // one geometry per changed tower: the returned mesh, or the box of the set parameters; disposed when the proposal goes
+  const geoms = useMemo(() => (ghosts ?? []).map((g) => {
+    if (g.mesh) {
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.BufferAttribute(g.mesh.positions, 3))
+      geo.setIndex(new THREE.BufferAttribute(g.mesh.indices, 1))
+      geo.computeVertexNormals()
+      return { geo, at: [0, 0, 0] as [number, number, number] }
+    }
+    const { t } = g
+    return { geo: new THREE.BoxGeometry(t.width, t.depth, Math.max(0.1, t.height)), at: [0, 0, t.height / 2] as [number, number, number] }
+  }), [ghosts])
+  useEffect(() => () => geoms.forEach(({ geo }) => geo.dispose()), [geoms])
+  if (!ghosts?.length) return null
+  return (
+    <group name="tool-proposal-ghost">
+      {ghosts.map((g, i) => (
+        <group key={g.t.id} position={[g.t.x, g.t.y, baseZ]} rotation={[0, 0, (g.t.rotation * Math.PI) / 180]}>
+          <mesh geometry={geoms[i].geo} position={geoms[i].at} renderOrder={2}>
+            <meshStandardMaterial color={GHOST_COLOR} transparent opacity={0.35} depthWrite={false} side={THREE.DoubleSide} roughness={0.9} metalness={0} />
+          </mesh>
+          {!g.mesh && g.t.podiumHeight > 0 && (
+            <mesh position={[0, 0, g.t.podiumHeight / 2]} renderOrder={2}>
+              <boxGeometry args={[g.t.podiumWidth, g.t.podiumDepth, g.t.podiumHeight]} />
+              <meshStandardMaterial color={GHOST_COLOR} transparent opacity={0.35} depthWrite={false} roughness={0.9} metalness={0} />
+            </mesh>
+          )}
+        </group>
+      ))}
+    </group>
+  )
+}
 
 /** Model frame (x, y, z-up) to three.js (y-up). */
 const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, -y)
@@ -685,6 +738,7 @@ export default function Viewport() {
               <MassingEdit3D />
               <TowerPosition3D />
               <BelowGrade />
+              <ProposalGhost baseZ={baseZ} />
             </group>
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />

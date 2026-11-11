@@ -9,7 +9,9 @@ import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStep } from '../lib/step'
 import { useTowerAdds, watchTowerAdds } from '../lib/towerAdds'
 import { useTowerPosition } from '../lib/towerPosition'
+import { useDesignTools } from '../lib/designTools/store'
 const TowerProperties = lazy(() => import('./TowerProperties'))
+const ProposalPanel = lazy(() => import('./designTools/ProposalPanel'))
 import { useStore } from '../store'
 import { NEEDS_MODEL, NEEDS_MODEL_WORD, NEXT_MODEL } from '../lib/missingInput'
 import { CircleDashed } from './icons'
@@ -50,7 +52,7 @@ function NothingToAnalyse() {
   )
 }
 
-type Tab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
+type Tab = 'proposal' | 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
 function ResultsPicker() {
@@ -108,9 +110,14 @@ export default function RightPanel() {
   // Tower position open (Form step): its Properties tab comes first and opens; closing the tool goes back to the results.
   const positioning = useTowerPosition((s) => s.on) && !present
   useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
+  // A connected design tool's proposal (lib/designTools/store.ts pending): its Proposal tab comes first and opens when the
+  // proposal arrives; Apply or Discard clears it and goes back to the results.
+  const proposal = useDesignTools((s) => !!s.pending)
+  useEffect(() => { setTab((cur) => (proposal ? 'proposal' : cur === 'proposal' ? 'results' : cur)) }, [proposal])
+  const proposalTab = proposal ? [{ id: 'proposal' as Tab, label: 'Proposal' }] : []
   const tabs: { id: Tab; label: string }[] = present
-    ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
-    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+    ? [...proposalTab, { id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+    : [...proposalTab, ...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
@@ -132,6 +139,7 @@ export default function RightPanel() {
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
+        {shown === 'proposal' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading the proposal…</p>}><ProposalPanel /></Suspense>}
         {shown === 'properties' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}

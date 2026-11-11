@@ -30,7 +30,7 @@ import { useBuilderUi } from './builderState'
 const STATE_CLASS: Record<CardStateKind, string> = {
   design: 'border-line bg-subtle text-ink', available: 'border-line bg-subtle text-ink', ready: 'border-line bg-subtle text-ink',
   'needs-model': KIND_CLASS.pending.chip, 'waiting-input': KIND_CLASS.pending.chip, paused: KIND_CLASS.pending.chip,
-  missing: KIND_CLASS.error.chip, 'other-project': KIND_CLASS.warning.chip,
+  missing: KIND_CLASS.error.chip, 'other-project': KIND_CLASS.warning.chip, tool: 'border-line bg-subtle text-ink',
 }
 
 export default function WorkflowInspector() {

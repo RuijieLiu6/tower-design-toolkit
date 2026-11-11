@@ -22,6 +22,7 @@ import { analysisOnly, isDesignNode } from './designNodes'
 import { goToStep, useStep, type StepId } from '../step'
 import { usePhaseTools } from './phaseTools'
 import type { PhaseId } from '../phases'
+import { TOOL_PREFIX } from '../designTools/contract'
 
 export interface ProjectWorkflow extends Board {
   role: CoverRole
@@ -64,7 +65,9 @@ interface WorkflowState {
 }
 
 const KNOWN = new Set(BUILT_NODES.map((n) => n.id))
-export const knownNode = (id: string) => KNOWN.has(id) || isDesignNode(id) || id.startsWith('community.')
+// A connected design tool (lib/designTools, ids `tool.<handle>`) is kept like a custom check: installed or not, the
+// workflow holds its place (the library shows it as missing until its definition is registered again).
+export const knownNode = (id: string) => KNOWN.has(id) || isDesignNode(id) || id.startsWith('community.') || id.startsWith(TOOL_PREFIX)
 const EMPTY: ProjectWorkflow = { role: 'custom', presetId: null, customName: null, nodes: [], edges: [] }
 
 /** The workflow as the landing page last saved it (or the running one), cleaned of unknown nodes. */

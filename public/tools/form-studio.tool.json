@@ -1,0 +1,31 @@
+{
+  "format": "tower-studio-design-tool@1",
+  "id": "tool.form-studio",
+  "version": "0.1.0",
+  "name": "Form Studio",
+  "purpose": "Shape the selected tower's floor plates with taper, twist, plan shape and podium retreat, and return them as new geometry.",
+  "author": { "name": "Ruijie Liu", "url": "https://github.com/RuijieLiu6/form-studio" },
+  "licence": "no licence file yet (author's own repository)",
+  "phases": ["form"],
+  "connection": {
+    "method": "web",
+    "url": "http://localhost:5577/index.html",
+    "origin": "http://localhost:5577",
+    "protocol": "tdt-design-tool@1"
+  },
+  "runtime": { "browser": true, "network": ["http://localhost:5577"] },
+  "inputs": ["tower.selected"],
+  "outputs": ["geometry.storeys", "parameters"],
+  "operations": ["replace-geometry"],
+  "units": { "length": "m", "frame": "tower-local", "up": "z" },
+  "destination": {
+    "sends": ["the selected tower: name, size, storeys, podium, footprint"],
+    "to": "Form Studio, served from this computer (localhost:5577)",
+    "stores": "Form Studio keeps its own state in its page storage"
+  },
+  "limits": [
+    "Returns floor polygons only: core, columns and structure stay in Form Studio",
+    "The tower keeps its Toolkit position and rotation"
+  ],
+  "editability": "externally-generated"
+}

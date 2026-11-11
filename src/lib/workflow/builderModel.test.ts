@@ -5,8 +5,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   addPreview, applicability, bestAfter, cardState, designSummary, entryFor, filterEntries, libraryEntries, movePreview, phaseName,
-  plainWords, previewWords, purposeOf, removePreview, runsInProject, sequenceModel, type StateContext,
+  plainWords, previewWords, purposeOf, removePreview, runsInProject, sequenceModel, TOOL_STATE_DETAIL, toolState, type StateContext,
 } from './builderModel'
+import type { ToolDefinition } from '../designTools/contract'
 import { ALL_NODES, BUILT_NODES } from '../../data/registry'
 import { NODE_NEEDS } from '../../data/nodeNeeds'
 import { DESIGN_NODES } from './designNodes'
@@ -86,9 +87,49 @@ describe('entryFor', () => {
   })
 })
 
+/** A connected design tool, as its definition registers it (lib/designTools/contract.ts): Form phase, replace-geometry. */
+const TOOL: ToolDefinition = {
+  format: 'tower-studio-design-tool@1', id: 'tool.form-studio', version: '0.1.0', name: 'Form Studio', purpose: 'Shape a tapered, twisted tower and send it back.',
+  author: { name: 'Ruijie' }, licence: 'MIT', phases: ['form'],
+  connection: { method: 'web', url: 'http://localhost:5577/index.html', origin: 'http://localhost:5577', protocol: 'tdt-design-tool@1' },
+  runtime: { browser: true, network: ['http://localhost:5577'] }, inputs: ['tower.selected'], outputs: ['geometry.storeys'], operations: ['replace-geometry'],
+  units: { length: 'm', frame: 'tower-local', up: 'z' }, destination: { sends: ['the selected tower’s footprint and height'], to: 'http://localhost:5577', stores: 'the tool’s localStorage' },
+  limits: [], editability: 'externally-generated',
+}
+
+describe('connected design tools in the library', () => {
+  const b = board(['design.massing', TOOL.id])
+  it('describes an installed design tool from its definition: kind tool, its first phase, its state word, after the packages under My tools', () => {
+    const e = entryFor(TOOL.id, { board: b, packages: [], tools: { [TOOL.id]: TOOL } })
+    expect(e).toMatchObject({ id: TOOL.id, name: 'Form Studio', word: 'Form', purpose: TOOL.purpose, phase: 'form', kind: 'tool', availability: 'tool', category: 'CLIM', inWorkflow: true, toolState: 'Connected' })
+    expect(entryFor(TOOL.id, { board: b, packages: [], tools: { [TOOL.id]: TOOL }, placed: { [TOOL.id]: 'program' } }).phase).toBe('program')
+    const lib = libraryEntries({ board: b, packages: [PKG], tools: { [TOOL.id]: TOOL } })
+    expect(lib.mine.map((e) => [e.id, e.kind, e.inWorkflow])).toEqual([[PKG.id, 'custom', false], [TOOL.id, 'tool', true]])
+    expect(lib.available.some((e) => e.id === TOOL.id)).toBe(false)
+    expect(cardState(TOOL.id, { project: 'vtc', towers: 1, siteArea: 1000, analysis: true, installed: new Set(), tools: { [TOOL.id]: TOOL } })).toEqual({ kind: 'tool', word: 'Design tool', detail: 'Opens its workspace; proposes changes you apply.' })
+  })
+  it('keeps a design tool the workflow refers to but which is not installed, as a missing reference in Form', () => {
+    const e = entryFor(TOOL.id, { board: b, packages: [], tools: {} })
+    expect(e).toMatchObject({ id: TOOL.id, name: 'form-studio', word: 'Missing', kind: 'missing', availability: 'missing', phase: 'form', inWorkflow: true })
+    expect(e.purpose).toBe('A connected design tool that is not installed in this browser.')
+    const lib = libraryEntries({ board: b, packages: [], tools: {} })
+    expect(lib.mine.map((e) => [e.id, e.availability])).toEqual([[TOOL.id, 'missing']])
+    expect(cardState(TOOL.id, { project: 'vtc', towers: 1, siteArea: 1000, analysis: true, installed: new Set(), tools: {} }).kind).toBe('missing')
+    expect(cardState(TOOL.id, { project: 'vtc', towers: 1, siteArea: 1000, analysis: true, installed: new Set([TOOL.id]), tools: {} }).kind).toBe('tool')
+  })
+  it('names the five states from the definition alone, never from the network', () => {
+    expect(toolState(TOOL)).toBe('Connected')
+    expect(toolState({ ...TOOL, format: 'tower-studio-design-tool@2' as typeof TOOL.format })).toBe('Unsupported version')
+    expect(toolState({ ...TOOL, operations: [] })).toBe('External reference')
+    expect(toolState({ ...TOOL, runtime: { browser: false as unknown as true, network: [] } })).toBe('Missing runtime')
+    expect(toolState({ ...TOOL, connection: { ...TOOL.connection, method: 'desktop' as unknown as 'web' } })).toBe('Connection required')
+    expect(Object.keys(TOOL_STATE_DETAIL).sort()).toEqual(['Connected', 'Connection required', 'External reference', 'Missing runtime', 'Unsupported version'])
+  })
+})
+
 describe('libraryEntries', () => {
   const b: Board = { nodes: ['design.site', 'built.fsr', 'community.x'], edges: linear(['design.site', 'built.fsr', 'community.x']) }
-  const lib = libraryEntries({ board: b, packages: [PKG], research: ALL_NODES })
+  const lib = libraryEntries({ board: b, packages: [PKG], research: ALL_NODES, tools: {} })
 
   it('offers the design steps and every built check as available, previews marked', () => {
     expect(lib.available.map((e) => e.id)).toEqual([...DESIGN_NODES.map((d) => d.id), ...BUILT_NODES.map((n) => n.id)])

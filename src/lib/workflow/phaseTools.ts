@@ -11,6 +11,8 @@ import { PHASES, phaseOfNode, type PhaseId } from '../phases'
 import type { StepId } from '../step'
 import { edgeKey, walk, type Board, type Edge } from '../workflowGraph'
 import { designNode, DESIGN_NODES } from './designNodes'
+import { TOOL_PREFIX } from '../designTools/contract'
+import { useDesignTools } from '../designTools/store'
 
 export const PHASE_IDS: PhaseId[] = ['site', 'form', 'program', 'schematic', 'present']
 export const PHASE_NAME: Record<PhaseId, string> = { site: 'Site', form: 'Form', program: 'Program', schematic: 'Schematic', present: 'Present' }
@@ -20,10 +22,14 @@ export const PHASE_STEP: Record<PhaseId, StepId> = { site: 'site', form: 'volume
 const CAT_PHASE: Partial<Record<Category, PhaseId>> = { SITE: 'site', DATA: 'site', CLIM: 'form', ECOL: 'form', PROG: 'program', PUBL: 'program', MOBI: 'program', STRC: 'schematic', SYST: 'schematic', SPAC: 'schematic', ENER: 'schematic', CULT: 'present', PRES: 'present' }
 const BUILT = new Map(BUILT_NODES.map((n) => [n.id, n]))
 
-/** A node's home phase: a design node's, a built check's phase list, a custom tool's by its category. */
+/**
+ * A node's home phase: a design node's, a built check's phase list, a custom tool's by its category, a connected
+ * design tool's by the first phase its definition names (Form when it is not installed: the only place it makes sense).
+ */
 export function homePhase(id: string, communityCategory?: (id: string) => Category | undefined): PhaseId {
   const d = designNode(id)
   if (d) return d.phase
+  if (id.startsWith(TOOL_PREFIX)) return useDesignTools.getState().definitions[id]?.phases[0] ?? 'form'
   const p = phaseOfNode(id)?.id
   if (p) return p
   const c = BUILT.get(id)?.category ?? communityCategory?.(id)
@@ -81,6 +87,7 @@ export const usePhaseTools = create<ActiveState>((set, get) => ({
   place: (id, p) => {
     const placed = { ...get().placed }
     // a custom tool's home comes from its category, which this store doesn't read: its placement is always kept
+    // (a design tool's home is read from its definition, so only a placement away from it is kept)
     if (p && (id.startsWith('community.') || p !== homePhase(id))) placed[id] = p; else delete placed[id]
     set({ placed }); write(PLACED, placed)
   },

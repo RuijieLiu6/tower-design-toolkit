@@ -17,20 +17,24 @@ import { ALL_NODES, type Category } from '../../data/registry'
 import { useCommunityStore } from '../../lib/communityStore'
 import { PHASE_COLOR } from '../../lib/design/tokens'
 import type { PhaseId } from '../../lib/phases'
-import { addPreview, applicability, bestAfter, entryFor, filterEntries, libraryEntries, phaseName, previewWords, runsInProject, type ToolEntry } from '../../lib/workflow/builderModel'
+import { addPreview, applicability, bestAfter, entryFor, filterEntries, libraryEntries, phaseName, previewWords, runsInProject, TOOL_STATE_DETAIL, type ToolEntry } from '../../lib/workflow/builderModel'
 import { PHASE_IDS, usePhaseTools } from '../../lib/workflow/phaseTools'
 import { useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import type { Board } from '../../lib/workflowGraph'
 import { useStore } from '../../store'
+import { useDesignTools } from '../../lib/designTools/store'
+import { useTransfer } from '../../lib/porting/transfer'
 import { homeOf } from '../workflow/WorkflowOverview'
 import { slotAt, useBuilderUi } from './builderState'
 
 /** The one word for an entry's availability (brief §6: availability is not result quality). */
-export function availabilityWords(e: Pick<ToolEntry, 'availability'>): { word: string; detail: string } {
+export function availabilityWords(e: Pick<ToolEntry, 'availability' | 'toolState'>): { word: string; detail: string } {
   switch (e.availability) {
     case 'available': return { word: 'Available', detail: 'Implemented; whether it can run depends on its inputs.' }
     case 'preview': return { word: 'Preview', detail: 'Implemented and still being checked; read its results with care.' }
     case 'custom': return { word: 'Installed custom tool', detail: 'A package imported into this browser.' }
+    // a connected design tool's word is its state (Connected and compatible … External reference), never a result
+    case 'tool': return { word: e.toolState ?? 'Connected', detail: TOOL_STATE_DETAIL[e.toolState ?? 'Connected'] }
     case 'missing': return { word: 'Missing tool', detail: 'Not installed in this browser. Import its package under My tools to use it; the workflow keeps its place.' }
     case 'research': return { word: 'Not runnable', detail: 'Planned or research only: nothing is implemented for it yet.' }
   }
@@ -46,6 +50,7 @@ const ctl = 'rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-acc
 export default function ToolLibrary() {
   const wf = useProjectWorkflow((s) => s.wf)
   const packages = useCommunityStore((s) => s.packages)
+  const tools = useDesignTools((s) => s.definitions)
   const placed = usePhaseTools((s) => s.placed)
   const project = useStore((s) => s.project)
   const { query, phase, selected, drag, setQuery, setPhase, select, setDrag, setPending } = useBuilderUi(useShallow((s) => ({
@@ -53,7 +58,7 @@ export default function ToolLibrary() {
   })))
 
   // The catalogue once per workflow change; the filters narrow it without rebuilding it.
-  const library = useMemo(() => libraryEntries({ board: wf, packages, placed, research: ALL_NODES }), [wf, packages, placed])
+  const library = useMemo(() => libraryEntries({ board: wf, packages, placed, tools, research: ALL_NODES }), [wf, packages, placed, tools])
   const shown = useMemo(() => ({
     available: filterEntries(library.available, { query, phase }),
     mine: filterEntries(library.mine, { query, phase }),
@@ -62,8 +67,8 @@ export default function ToolLibrary() {
   const filtering = !!query.trim() || !!phase
   const entryOf = useMemo(() => {
     const all = new Map([...library.available, ...library.mine, ...library.research].map((e) => [e.id, e]))
-    return (id: string): ToolEntry => all.get(id) ?? entryFor(id, { board: wf, packages, placed })
-  }, [library, wf, packages, placed])
+    return (id: string): ToolEntry => all.get(id) ?? entryFor(id, { board: wf, packages, placed, tools })
+  }, [library, wf, packages, placed, tools])
 
   // Show: a tool that is already in the workflow is never added twice; its card is selected and brought into view.
   const show = (id: string) => {
@@ -102,9 +107,15 @@ export default function ToolLibrary() {
 
   const entryProps = { project, selected, dragging: drag?.kind === 'add' ? drag.id : null, onAdd: add, onDrag: startDrag }
   const create = (
-    <button type="button" data-testid="library-create" onClick={() => useCommunityStore.getState().openDialog('build')}
-      title="Build a custom tool here, or import a package someone shared"
-      className={`${ctl} flex items-center gap-1.5 bg-panel px-2 py-1 text-control text-ink hover:border-boundary`}><PackagePlus size={14} aria-hidden />Add or create a custom tool</button>
+    <span className="flex flex-wrap gap-1.5">
+      <button type="button" data-testid="library-create" onClick={() => useCommunityStore.getState().openDialog('build')}
+        title="Build a custom tool here, or import a package someone shared"
+        className={`${ctl} flex items-center gap-1.5 bg-panel px-2 py-1 text-control text-ink hover:border-boundary`}><PackagePlus size={14} aria-hidden />Add or create a custom tool</button>
+      {/* a connected design tool registers through Import (brief §5): identify, check, explain, confirm, then it lands here */}
+      <button type="button" data-testid="library-add-tool" onClick={(e) => useTransfer.getState().open('import', e.currentTarget, { purpose: 'tool' })}
+        title="Register a connected design tool from its definition file; nothing connects until you open it in a workflow"
+        className={`${ctl} flex items-center gap-1.5 bg-panel px-2 py-1 text-control text-ink hover:border-boundary`}><Plus size={14} aria-hidden />Add tool</button>
+    </span>
   )
 
   return (
@@ -209,6 +220,8 @@ function Entry({ e, project, selected, dragging, onAdd, onDrag }: { e: ToolEntry
   if (where) chips.push({ text: where, tone: 'subtle' })
   if (missing) chips.push({ text: 'Missing tool', tone: 'warning' })
   if (research) chips.push({ text: 'Not runnable', tone: 'pending' })
+  // a connected design tool wears its state word (brief §5); only Connected is a plain chip, the rest ask for attention
+  const toolChip = e.kind === 'tool' ? { text: avail.word, tone: (e.toolState === 'Connected' ? 'subtle' : 'warning') as 'subtle' | 'warning' } : null
   const tone = { subtle: 'bg-subtle text-muted', warning: 'bg-warning-surface text-warning', pending: 'bg-pending-surface text-pending' }
   const handleLabel = e.inWorkflow ? `${e.name} is in the workflow: show its card` : research ? `${e.name}: not runnable` : `Drag to add ${e.name} to the workflow, or press Enter to add it in the best place`
   return (
@@ -227,8 +240,11 @@ function Entry({ e, project, selected, dragging, onAdd, onDrag }: { e: ToolEntry
             <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[e.phase].accent }} title={phaseName(e.phase)} />
           </span>
           <span className="block truncate text-meta text-muted" title={e.purpose}>{e.purpose}</span>
-          {chips.length > 0 && (
-            <span className="mt-0.5 flex flex-wrap gap-1">{chips.map((c) => <span key={c.text} className={`rounded-full px-1.5 text-meta ${tone[c.tone]}`}>{c.text}</span>)}</span>
+          {(chips.length > 0 || toolChip) && (
+            <span className="mt-0.5 flex flex-wrap gap-1">
+              {toolChip && <span data-testid={`tool-state-${e.id}`} title={avail.detail} className={`rounded-full px-1.5 text-meta ${tone[toolChip.tone]}`}>{toolChip.text}</span>}
+              {chips.map((c) => <span key={c.text} className={`rounded-full px-1.5 text-meta ${tone[c.tone]}`}>{c.text}</span>)}
+            </span>
           )}
         </span>
         <span className="flex shrink-0 flex-col items-stretch gap-0.5">
