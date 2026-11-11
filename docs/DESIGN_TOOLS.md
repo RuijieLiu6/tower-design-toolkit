@@ -4,7 +4,9 @@
 
 A **connected design tool** is a web page someone else wrote (Form Studio, a terrace generator, a façade tool) that joins the Toolkit as an ordinary workflow node. The person picks one tower, agrees to what is sent, works in the tool inside the Toolkit's central workspace, and the tool **proposes** a change. The Toolkit checks the proposal, shows it as a ghost next to the current tower, and only **Apply** changes the model: one coherent change, one Undo step, provenance kept. The tool never touches the model, the store or the page.
 
-**Walkthrough (53 s):** [docs/media/add-my-tool.mp4](media/add-my-tool.mp4), recorded by `e2e/record/add-my-tool.record.ts` (Edge, the served copy of Form Studio with its bridge, the real competition context) and converted by `tools/record_to_mp4.mjs`. Twelve captions: Import › Add my tool, the preview, My tools (Connected), the Form phase, the tower to send, the permission statement, the tool in the centre, the change made there, Send, the Proposal tab with the ghost, Apply, Ctrl+Z.
+![Adding your own design tool: the 53-second walkthrough](media/add-my-tool.gif)
+
+**Walkthrough (53 s):** the GIF above (5 fps) or [docs/media/add-my-tool.mp4](media/add-my-tool.mp4) in full, recorded by `e2e/record/add-my-tool.record.ts` (Edge, the served copy of Form Studio with its bridge, the real competition context) and converted by `tools/record_to_mp4.mjs`. Twelve captions: Import › Add my tool, the preview, My tools (Connected), the Form phase, the tower to send, the permission statement, the tool in the centre, the change made there, Send, the Proposal tab with the ghost, Apply, Ctrl+Z.
 
 Three records, kept apart (`src/lib/designTools/contract.ts`):
 
