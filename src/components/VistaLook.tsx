@@ -495,7 +495,7 @@ function Legend() {
     <ViewModeMenu project="city" angles={<AngleButtons />} onFrame={focusSite}>
       <div className="flex flex-wrap items-center gap-1.5"><SunChip /></div>
       {<>
-        {mode === 'massing' && <MassingKey />}
+        {(mode === 'massing' || mode === 'mono') && <MassingKey />}
         {mode === 'program' && <>
           <TowerUseKey />
           <KeyGroup label="Existing buildings">

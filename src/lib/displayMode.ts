@@ -7,12 +7,14 @@
 import { create } from 'zustand'
 import { DATA, MODEL } from './design/tokens'
 
-export type DisplayMode = 'massing' | 'program' | 'analysis' | 'materials'
+export type DisplayMode = 'mono' | 'massing' | 'program' | 'analysis' | 'materials'
 export type ProjectKind = 'vtc' | 'city'
 
 // Labels (overnight brief, 8 Nov): "View: Geometry / Building use / Analysis / Materials", so a view never shares a name
 // with the Program phase. The ids (massing, program, analysis, materials) are what is stored, and stay.
 export const DISPLAY_MODES: { id: DisplayMode; word: string; hint: string }[] = [
+  // 13 Nov (Sinnie): "a default black, white, grey mode for the model render": the Geometry model shown in greys only.
+  { id: 'mono', word: 'Black & white', hint: 'The model in black, white and grey only: Geometry without colour (the default)' },
   { id: 'massing', word: 'Geometry', hint: 'Geometry, height and proportion: a neutral model, your towers lighter than the context, with edges' },
   { id: 'program', word: 'Building use', hint: 'Building uses in one labelled palette: your towers by floor, the context by type' },
   { id: 'analysis', word: 'Analysis', hint: 'One measured or calculated quantity on a neutral model, with its units, range and legend' },
@@ -38,7 +40,7 @@ export function modeColours(mode: DisplayMode): ModeColours {
   if (mode === 'program') return { tower: 'use', context: 'use', analysis: false }
   if (mode === 'analysis') return { tower: 'neutral', context: 'neutral', analysis: true }
   if (mode === 'materials') return { tower: 'neutral', context: 'materials', analysis: false }
-  return { tower: 'neutral', context: 'neutral', analysis: false }
+  return { tower: 'neutral', context: 'neutral', analysis: false } // Geometry and Black & white
 }
 
 /** The proposal's neutral body and edges in Massing, Analysis and Materials (design tokens, MODEL). */
@@ -54,9 +56,9 @@ export function cityStyleFor(mode: DisplayMode): { style: 'plain' | 'context'; t
 }
 export function modeFromCityStyle(prev: DisplayMode, style: 'plain' | 'context', typeColours: boolean): DisplayMode {
   if (style === 'context') return 'materials'
-  if (prev === 'materials') return typeColours ? 'program' : 'massing'
-  if (typeColours && prev === 'massing') return 'program'
-  if (!typeColours && prev === 'program') return 'massing'
+  if (prev === 'materials') return typeColours ? 'program' : 'mono'
+  if (typeColours && (prev === 'massing' || prev === 'mono')) return 'program'
+  if (!typeColours && prev === 'program') return 'mono'
   return prev
 }
 
@@ -128,7 +130,7 @@ export function ticks(lo: number, hi: number, max = 5): number[] {
 // ---------------------------------------------------------------- the choice (this browser)
 const KEY = 'ts.display.mode'
 const MODES = DISPLAY_MODES.map((m) => m.id)
-const saved = (): DisplayMode => { try { const v = localStorage.getItem(KEY) as DisplayMode | null; return v && MODES.includes(v) ? v : 'massing' } catch { return 'massing' } }
+const saved = (): DisplayMode => { try { const v = localStorage.getItem(KEY) as DisplayMode | null; return v && MODES.includes(v) ? v : 'mono' } catch { return 'mono' } }
 
 interface DisplayState {
   mode: DisplayMode

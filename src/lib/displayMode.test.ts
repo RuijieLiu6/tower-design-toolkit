@@ -13,8 +13,8 @@ import {
 const MODES = DISPLAY_MODES.map((m) => m.id)
 
 describe('display modes (design system §9)', () => {
-  it('offers Massing, Program, Analysis and Materials, each saying what it shows', () => {
-    expect(MODES).toEqual(['massing', 'program', 'analysis', 'materials'])
+  it('offers Black & white (the default), Massing, Program, Analysis and Materials, each saying what it shows', () => {
+    expect(MODES).toEqual(['mono', 'massing', 'program', 'analysis', 'materials'])
     for (const m of DISPLAY_MODES) expect(m.hint.length).toBeGreaterThan(20)
   })
 
@@ -42,10 +42,11 @@ describe('display modes (design system §9)', () => {
       expect(modeFromCityStyle(m, style, typeColours)).toBe(m)
     }
     expect(modeFromCityStyle('massing', 'context', false)).toBe('materials')
-    expect(modeFromCityStyle('materials', 'plain', false)).toBe('massing')
+    expect(modeFromCityStyle('materials', 'plain', false)).toBe('mono')
     expect(modeFromCityStyle('materials', 'plain', true)).toBe('program')
     expect(modeFromCityStyle('massing', 'plain', true)).toBe('program')
-    expect(modeFromCityStyle('program', 'plain', false)).toBe('massing')
+    expect(modeFromCityStyle('program', 'plain', false)).toBe('mono')
+    expect(modeFromCityStyle('mono', 'plain', true)).toBe('program')
     expect(modeFromCityStyle('analysis', 'plain', false)).toBe('analysis')
   })
 
