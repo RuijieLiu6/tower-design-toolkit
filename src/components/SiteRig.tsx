@@ -17,6 +17,10 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { useStore } from '../store'
 import { useCityData } from './CityContext'
 import Label from './Label'
+import { buildingsOn, idsOf } from '../lib/siteActions'
+
+/** Site rings already cleared this session (by their corners, to the metre). */
+const CLEARED = new Set<string>()
 
 const COLORS = { site: '#ea580c', draft: '#c2410c', picked: '#2563eb', demolished: '#dc2626', inside: '#16a34a', partial: '#d97706', marker: '#7c3aed' }
 
@@ -140,6 +144,18 @@ function SiteLayer({ data }: { data: CityData }) {
     const keep = new Set(idx.filter((i) => touches(data.footprints[i].outer as Pt[])).map((i) => data.footprints[i].id))
     const next = site.replaced.filter((id) => keep.has(id) || !idx.some((i) => data.footprints[i].id === id))
     if (next.length !== site.replaced.length) useStore.getState().set({ citySite: { ...site, replaced: next } })
+  }, [site, data])
+  // A site just chosen comes clear (13 Nov, Sinnie: "after selecting a site, i dont want it to generate a mass, can it
+  // clear the site for me"): the buildings standing on it are shown as demolished, once per site in this session, so
+  // one brought back by hand stays. "Keep the replaced buildings standing" still shows them all.
+  useEffect(() => {
+    if (!site || validateRing(site.ring)) return
+    const sig = site.ring.map((q) => `${Math.round(q[0])},${Math.round(q[1])}`).join(';')
+    if (CLEARED.has(sig)) return
+    CLEARED.add(sig)
+    const fresh = idsOf(data.footprints, buildingsOn(site.ring as Pt[], data.footprints)).filter((id) => !site.replaced.includes(id))
+    if (!fresh.length) return
+    useStore.getState().set({ citySite: { ...site, replaced: [...site.replaced, ...fresh] }, announce: `Site cleared: ${fresh.length} existing building${fresh.length === 1 ? '' : 's'} on it shown as demolished (a team assumption).` })
   }, [site, data])
   const preview = useMemo(() => (s.tool === 'pick' && s.picked.length ? siteFromFootprints(s.picked.map((i) => data.footprints[i])) : null), [s.tool, s.picked, data])
   const ringOk = !!site && !validateRing(site.ring)
