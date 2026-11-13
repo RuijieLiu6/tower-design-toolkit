@@ -3,15 +3,14 @@
 // the map (place names that fly to their neighbourhood, PlaceNames.tsx, and the click menu in SiteMapMenu.tsx); the
 // way on to Volume. The site as it stands is the right panel's Your site tab (SiteInfo.tsx). Site actions: lib/siteActions.ts.
 // 4 Nov (Ruijie): the neighbourhood list ("Or start from a neighbourhood") is gone; the names on the map do its job.
-// 6 Nov (Ruijie): the actions are icons with a key word under each (Replace, Combine, Upload, Next), the full name and
+// 6 Nov (Ruijie): the actions are icons with a key word under each (Replace, Combine, Next), the full name and
 // what each does on hover (components/IconTile.tsx), like the design tools.
-import { ArrowRight, Combine, Crosshair, FileUp, MousePointerClick } from '../icons'
+import { ArrowRight, Combine, Crosshair, MousePointerClick } from '../icons'
 import type { Pt } from '../../engine/site'
 import { tell, useSiteStep } from '../../lib/siteActions'
 import { useEffect } from 'react'
 import { useSiteStore } from '../../lib/siteStore'
 import { useImportStore } from '../../lib/import/store'
-import { useTransfer } from '../../lib/porting/transfer'
 import { goToStep } from '../../lib/step'
 import { useStore } from '../../store'
 import { useCityData } from '../CityContext'
@@ -57,12 +56,10 @@ function VtcSite() {
   )
 }
 
-/** The way on from the Site tool: a massing made elsewhere (the import dialog, as the Import tool), or the Form step. */
+/** The way on from the Site tool: the Form step. (13 Nov: its Upload tile went; it repeated the Import tool above.) */
 function SiteFooter() {
   return (
     <div className="mt-1 flex flex-wrap items-start gap-1 border-t border-line px-2 py-2">
-      <IconTile size="sm" icon={FileUp} word="Upload" label="Upload a massing model" onClick={(e) => useTransfer.getState().open('import', e.currentTarget, { purpose: 'model' })}
-        hint="Start from a massing made elsewhere (Rhino, SketchUp, Revit…): 3DM, OBJ, glTF or IFC. Read in this browser; nothing is uploaded to a server." />
       <IconTile size="sm" icon={ArrowRight} word="Next" label="Next: Form" primary className="ml-auto" onClick={() => goToStep('volume')}
         hint="On to the Form step: place your tower and shape it." />
     </div>
