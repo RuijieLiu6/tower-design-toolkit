@@ -181,7 +181,7 @@ export const snapOptions = (): SnapOptions => {
 
 /** Present locks the model: nothing here edits it there. */
 export const locked = () => app().phase === 'present'
-const LOCKED = 'The model is locked in Present. Move and rotate in Massing or Schematic.'
+const LOCKED = 'The model is locked in Present. Move and rotate in Form or Schematic.'
 
 export function pickTower(id: string) {
   const t = towerOf(id)

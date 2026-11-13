@@ -83,15 +83,14 @@ export default function PresentPanel() {
             </label>
             <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={planGrid} onChange={() => set({ planGrid: !planGrid })} />Indicative structural grid</label>
             <div className={row}>
-              <IconTile size="sm" primary icon={Download} word="PNG" label="Download the plan as PNG" hint="The board frame as an image." onClick={() => captureShot(true)} />
               <IconTile size="sm" icon={FileDown} word="SVG" label="Download the plan as SVG, to scale" hint="Prints at the drawing's standard scale." onClick={() => downloadPlanSvg()} />
             </div>
-            <p className="text-meta text-muted">No names or logos on the boards (brief p.27).</p>
+            <p className="text-meta text-muted">The plan as an image: PNG under Capture below. No names or logos on the boards (brief p.27).</p>
           </div>
         )}
       </Section>
       {boardView === '3d' && <>
-      <Section title="Representation" help="The model is locked in Present: change it in Massing or Schematic.">
+      <Section title="Representation" help="The model is locked in Present: change it in Form or Schematic.">
         <div role="radiogroup" aria-label="Representation" className={row}>
           {REPS.map(({ id, label, icon, hint }) => (
             <IconTile key={id} size="sm" role="radio" aria-checked={presentRep === id} active={presentRep === id} icon={icon} word={label} label={label} hint={hint} onClick={() => set({ presentRep: id })} />
@@ -112,7 +111,7 @@ export default function PresentPanel() {
       </>}
       <Section title="Capture" help="The capture is the board frame (A2 landscape, 1.414:1), and each shot also collects in the strip on the left. A screen capture is about 1,000–1,500 px: use print size for images that fill a board.">
         <div className={row}>
-          <IconTile size="sm" primary icon={Download} word="PNG" label="Capture and download (PNG)" hint="Saves the board frame as it is on screen." onClick={() => captureShot(true)} />
+          <IconTile size="sm" primary icon={Download} word="PNG" label={boardView === '3d' ? 'Capture and download (PNG)' : 'Download the plan as PNG'} hint={boardView === '3d' ? 'Saves the board frame as it is on screen.' : 'The board frame, with the plan, as an image.'} onClick={() => captureShot(true)} />
           {boardView === '3d' && <IconTile size="sm" icon={Camera} word="Print" label="Capture at print size (3508 px)" hint="Re-renders this camera at about 3500 px wide, enough for a full A2 board at 150 dpi." onClick={() => captureHiResShot()} />}
         </div>
       </Section>

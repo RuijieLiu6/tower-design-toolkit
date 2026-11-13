@@ -160,6 +160,15 @@ States: default, hover, keyboard focus, selected, disabled, loading, empty, erro
 
 ## 5. Patterns
 
+- **One home per control (12 Nov).** Every action is set in one place. Any other button for it is a shortcut that opens that place, with the same behaviour:
+  - Import and Export: the project bar dialogs (transfer centre). The project menu, the Site panel's Upload, the Results model panel, the Rhino tool and a file dropped on the start page open the same Import, on the model step. Re-import of one massing and the Rhino live re-read keep their direct path.
+  - Workflow editing: the workflow builder (Edit workflow). The Workflow list's Edit opens it too; the centre editor is its Quick edit.
+  - Phases: the phase row. Keys 1 to 5 move along it.
+  - Capture: Present › Capture (PNG, Print). The project bar and phase panel Capture add to the strip.
+  - Display mode: the View bar over the model. Present repeats it. The project bar's 3D / graph switch is "Screen".
+  - Undo: the project bar undoes design changes and the builder undoes workflow changes; each says so.
+  - Adding a tool always asks first (AddConfirm), from the phase panel and from Results.
+
 - **Minimal text, help on demand.** Visible:
   - the current task or view;
   - the selected preset or workflow;

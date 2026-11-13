@@ -18,7 +18,7 @@ import { runningWorkflow } from '../lib/startPreset'
 import PresetCards from '../components/landing/PresetCards'
 import ResearchFigures from '../components/landing/ResearchFigures'
 import { installApp, installHint, useOffline } from '../lib/pwa/install'
-import { useImportStore } from '../lib/import/store'
+import { useTransfer } from '../lib/porting/transfer'
 import { navigate } from '../lib/route'
 import { openDemo, useTour } from '../lib/tour'
 import { USER_TYPES, type Preset } from '../lib/userTypes'
@@ -69,7 +69,7 @@ export default function Landing() {
     { icon: WAY_ICONS.presets, hue: HUES.green, word: 'Presets', hint: 'Start from a ready-made workflow for your kind of work, then change it.', go: () => { if (!result) setResult({ type: 'designer', presets: [...USER_TYPES[0].presets], via: 'picked', title: 'Starting workflows for a passionate designer' }); setTimeout(() => scrollTo('presets-title'), 50) } },
     { icon: WAY_ICONS.phases, hue: HUES.orange, word: 'Phases', hint: 'Pick the analysis nodes phase by phase, from Site to Present.', go: () => scrollTo('composer-title') },
     { icon: WAY_ICONS.graph, hue: HUES.violet, word: 'Graph', hint: 'Wire nodes and logic on an open canvas, like Grasshopper.', go: () => navigate('customize') },
-    { icon: WAY_ICONS.import, hue: HUES.teal, word: 'Import', hint: 'Open a workflow file someone shared (Customize › Open).', go: () => navigate('customize') },
+    { icon: WAY_ICONS.import, hue: HUES.teal, word: 'Import', hint: 'Open a workflow file someone shared (Customize › Import).', go: () => navigate('customize') },
     { icon: WAY_ICONS.node, hue: HUES.pink, word: 'Your node', hint: 'Turn your own method into a node with the node-builder skill, then wire it in.', go: () => navigate('customize') },
   ]
 
@@ -159,9 +159,10 @@ const MODEL_FILE = /\.(3dm|obj|glb|gltf|ifc)$/i
 
 /** Opens the guided app with the upload dialog reading this file. */
 function uploadModel(f: File) {
-  useImportStore.getState().openDialog(f)
   useStore.setState({ showOnboarding: false })
   navigate('guided')
+  // the same Import dialog as the project bar, on its model step, with this file
+  useTransfer.getState().open('import', null, { purpose: 'model', file: f })
 }
 
 /** "Bring your model": choose a file, or drop one anywhere on this page. */

@@ -2,6 +2,9 @@ import { CircleX, Eye, ExternalLink, PowerOff } from './icons'
 import { useStep } from '../lib/step'
 import { addNode, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import { designForStep } from '../lib/workflow/designNodes'
+import { useState } from 'react'
+import { useInfo } from './workflow/WorkflowOverview'
+import { AddConfirm } from './workflow/AddConfirm'
 import { CATEGORIES, JURY_LABEL, nodeById } from '../data/registry'
 import { sunPosition, vancouverTime } from '../engine/sun'
 import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from '../engine/egress'
@@ -322,7 +325,7 @@ export default function Inspector() {
   const towerCount = useStore((s) => s.towers[s.project].length)
   const siteArea = useProjectSiteArea().area
   if (selectedNode?.startsWith('community.')) return <CommunityInspector id={selectedNode} />
-  if (!n) return <div className="p-4 text-xs text-muted">Switch a check on in the bar at the bottom, or pick one above, to see its results and evidence.</div>
+  if (!n) return <div className="p-4 text-xs text-muted">Add a check with Add tool in the Workflow list (left panel) or More › Check library, or pick one above, to see its results and evidence.</div>
   const cat = CATEGORIES[n.category]
   const wrongProject = n.projects && !n.projects.includes(project)
   // The results panel's states (design system, 7 Nov): waiting for an input (lib/missingInput.ts: no model, no site),
@@ -341,7 +344,7 @@ export default function Inspector() {
         <h2 className="mt-1 flex items-center gap-1.5 text-sm font-semibold">{n.name}<Help label={`About ${n.name}`}>{n.question}</Help></h2>
         <AddToWorkflow id={n.id} name={n.name} />
         <div className="mt-1.5 flex flex-wrap gap-1">{n.jury.map((j) => <span key={j} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-600">{JURY_LABEL[j] ?? j}</span>)}</div>
-        {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 flex items-start gap-1.5 rounded bg-pending-surface px-2 py-1 text-meta text-pending"><PowerOff size={12} className="mt-0.5 shrink-0" aria-hidden /><span><b>Off</b>: switched off in your workflow, so it does not run. Turn it on in the bar at the bottom to see live results.</span></div>}
+        {n.status !== 'researched' && !enabled[n.id] && <div className="mt-2 flex items-start gap-1.5 rounded bg-pending-surface px-2 py-1 text-meta text-pending"><PowerOff size={12} className="mt-0.5 shrink-0" aria-hidden /><span><b>Off</b>: switched off in your workflow, so it does not run. Add it to the workflow (the button below), or switch it on in More › Check library, to see live results.</span></div>}
         {wrongProject && <div className="mt-2 rounded bg-pending-surface px-2 py-1 text-meta text-pending">Runs in the {n.projects!.includes('city') ? '"Real Vancouver"' : '"Competition site"'} project.</div>}
       </div>
 
@@ -538,11 +541,18 @@ export default function Inspector() {
 function AddToWorkflow({ id, name }: { id: string; name: string }) {
   const inWorkflow = useProjectWorkflow((s) => s.wf.nodes.includes(id))
   const step = useStep((s) => s.step)
+  const info = useInfo()
+  const [ask, setAsk] = useState(false)
   if (inWorkflow) return null
+  const after = designForStep(step)?.id
+  const at = after && useProjectWorkflow.getState().wf.nodes.includes(after) ? after : null
   const add = () => {
     const w = useProjectWorkflow.getState()
-    const after = designForStep(step)?.id
-    w.commit(addNode(w.wf, id, after && w.wf.nodes.includes(after) ? after : null), `${name} added to the workflow`)
+    w.commit(addNode(w.wf, id, at), `${name} added to the workflow`)
+    setAsk(false)
   }
-  return <button type="button" onClick={add} data-testid="add-to-workflow" className="mt-1.5 flex items-center gap-1 rounded-lg bg-panel px-2.5 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">+ Add to workflow</button>
+  // the same confirmation card as Add tool in the phase panel: nothing changes until Add to workflow
+  if (ask) return <AddConfirm info={info(id)} className="mt-1.5" onConfirm={add} onCancel={() => setAsk(false)}
+    placement={at ? <>Goes after {info(at).name}</> : <>Goes where it fits in the workflow</>} />
+  return <button type="button" onClick={() => setAsk(true)} data-testid="add-to-workflow" className="mt-1.5 flex items-center gap-1 rounded-lg bg-panel px-2.5 py-1 text-meta text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">+ Add to workflow</button>
 }

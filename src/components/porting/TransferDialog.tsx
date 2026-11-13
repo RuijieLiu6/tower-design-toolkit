@@ -170,6 +170,7 @@ function ExportPane({ c, purpose, initialPhase }: { c: Capability; purpose: Expo
   const towers = useStore((s) => s.towers[s.project])
   const trace = useTrace()
   useEffect(() => { setStatus(''); setPhase(initialPhase ?? current) }, [purpose, current, initialPhase])
+  const [anon, setAnon] = useState(true)
   const scene = useMemo(() => (purpose === 'geometry' ? exportScene() : null), [purpose, towers])
   const pkg = useMemo(() => (purpose === 'workflow' ? phasePackageOf(phase) : null), [purpose, phase])
   const head = <><h3 className="text-control font-semibold text-ink">{c.title}</h3><p className="text-control text-muted">{c.purpose}</p><Route c={c} /></>
@@ -209,7 +210,8 @@ function ExportPane({ c, purpose, initialPhase }: { c: Capability; purpose: Expo
         {row('Boards, drawings', 'From the Present phase (Boards › Export, Drawings › SVG), where their layout is')}
       </dl>
       <div className="mt-2 rounded-lg border border-line bg-panel px-1 pb-1"><SunWindSend item="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-control hover:bg-subtle disabled:opacity-50" /></div>
-      <Footer action="Export PROV (.jsonld)" disabled={!trace.iterations.length} status={status} note={!trace.iterations.length ? 'No trace entry yet.' : undefined}
-        onAction={() => { saveFile('tower-studio-trace.jsonld', JSON.stringify(traceToProv({ iterations: trace.iterations, decisions: trace.decisions, reviews: trace.reviews }, { anonymise: false, app: APP_LABEL, cards: RULE_CARDS, exportedAt: new Date().toISOString() }), null, 2)); setStatus('Saved.') }} /></div>)
+      <label className="mt-2 flex items-center gap-1.5 text-control text-ink"><input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)} data-testid="transfer-anonymise" />Replace names with Person 1, 2… (as in the Trace tab)</label>
+      <Footer action="Export PROV (.jsonld)" disabled={!(trace.iterations.length || trace.decisions.length || trace.reviews.length)} status={status} note={!(trace.iterations.length || trace.decisions.length || trace.reviews.length) ? 'No trace entry yet.' : undefined}
+        onAction={() => { saveFile(`tower-studio-trace${anon ? '-anonymised' : ''}.jsonld`, JSON.stringify(traceToProv({ iterations: trace.iterations, decisions: trace.decisions, reviews: trace.reviews }, { anonymise: anon, app: APP_LABEL, cards: RULE_CARDS, exportedAt: new Date().toISOString() }), null, 2)); setStatus('Saved.') }} /></div>)
   return <div>{head}<p className="mt-2 text-control text-ink">Not available yet.</p></div>
 }

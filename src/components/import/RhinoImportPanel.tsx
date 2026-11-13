@@ -7,6 +7,7 @@
 import { Check, Copy, Download, FileUp, Link2, Loader2, Plug, Unplug } from '../icons'
 import { useState, type ReactNode } from 'react'
 import { useImportStore } from '../../lib/import/store'
+import { useTransfer } from '../../lib/porting/transfer'
 import { canLink, pickLinkedFile, stopLink, useLiveLink } from '../../lib/interchange/live'
 import { PLATFORMS, platformById, type Platform, type PlatformId } from '../../lib/interchange/platforms'
 import { connectRhino, RHINO_COMMAND, RHINO_SCRIPT, useRhinoState } from '../../lib/interchange/rhinoLink'
@@ -57,7 +58,7 @@ export default function RhinoImportPanel() {
 
 /** One platform: Upload (what it exports), then its live link and whether it has been run inside the app. */
 function PlatformCard({ p, model, disabled }: { p: Platform; model: boolean; disabled: boolean }) {
-  const open = () => useImportStore.getState().openDialog()
+  const open = () => useTransfer.getState().open('import', null, { purpose: 'model' })
   const label = p.id === 'rhino' ? (model ? 'Upload a new version' : 'Upload a Rhino model') : p.id === 'other' ? 'Upload a model file' : `Upload from ${p.name} (${p.upload.accept})`
   return (
     <section aria-labelledby={`pf-${p.id}`} data-testid={`platform-${p.id}`} className="grid gap-1.5 rounded-md border border-line p-2">

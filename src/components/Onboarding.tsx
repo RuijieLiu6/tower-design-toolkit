@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 const STEPS = [
   { n: 1, title: 'Site, Form, Program', text: 'Massing runs in three steps, shown in the bar under the top bar. Site: type an address, pick a neighbourhood or click the map (build here, replace buildings, combine lots); the competition block is one click. Form: place the tower, its height, blocks and podium. Program: uses by floor band. The left panel shows each step\'s tools first.' },
-  { n: 2, title: 'Switch on the nodes you need', text: 'Each evaluation is an icon in the bar at the bottom: hover to read its name, click to switch it on. Library (bottom left) searches every node, including researched ones with their method and thresholds.' },
+  { n: 2, title: 'Switch on the nodes you need', text: 'Each check is a tool in your workflow: the Workflow list in the left panel shows the ones in this phase, and Add tool adds more. More › Check library searches every node, including researched ones with their method and thresholds.' },
   { n: 3, title: 'Read results with their evidence', text: 'Every number shows where it comes from: verified, team assumption, unverified, unresolved, or a false assumption kept visible.' },
   { n: 4, title: 'Schematic, then Present', text: 'Schematic (key 2) turns the clay into an x-ray axonometric: floor plates, core and plant floors, with a section cut and an exploded view. Present (key 3) locks the model and frames an A2 board for captures.' },
   { n: 5, title: 'Try the real city', text: 'In "Real Vancouver" the tower lines up with the lot you place it on and the buildings under it are hidden. The view-cone node estimates how high each protected view allows, or stops and says "no estimate".' },

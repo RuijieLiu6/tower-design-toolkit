@@ -1,6 +1,6 @@
 // Project menu in the top bar: undo / redo, New, Open, Save as, and the autosave status. Projects live in this browser
 // (IndexedDB); files come and go through the transfer centre (the bar's Import and Export, Result B, 9 Nov).
-import { ChevronDown, FilePlus, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
+import { ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTransfer } from '../lib/porting/transfer'
 import { redo, startHistory, undo, useHistory } from '../lib/project/history'
@@ -72,10 +72,10 @@ export default function ProjectMenu() {
   return (
     <div className="flex items-center gap-0.5">
       <TraceRecorder />
-      <button className={btn} onClick={() => undo()} disabled={!canUndo || present} title={locked ?? 'Undo (Ctrl+Z)'} aria-label="Undo"><Undo2 size={16} /></button>
-      <button className={btn} onClick={() => redo()} disabled={!canRedo || present} title={locked ?? 'Redo (Ctrl+Shift+Z)'} aria-label="Redo"><Redo2 size={16} /></button>
+      <button className={btn} onClick={() => undo()} disabled={!canUndo || present} title={locked ?? 'Undo a design change (Ctrl+Z). Workflow changes undo in the workflow builder.'} aria-label="Undo"><Undo2 size={16} /></button>
+      <button className={btn} onClick={() => redo()} disabled={!canRedo || present} title={locked ?? 'Redo a design change (Ctrl+Shift+Z)'} aria-label="Redo"><Redo2 size={16} /></button>
       <div ref={box} className="relative">
-        <button onClick={() => (open ? setOpen(false) : openMenu())} aria-haspopup="menu" aria-expanded={open} aria-label={`Project file: ${meta.name ?? 'Untitled project'}`} title="Project file: new, open, save, export, import"
+        <button onClick={() => (open ? setOpen(false) : openMenu())} aria-haspopup="menu" aria-expanded={open} aria-label={`Project file: ${meta.name ?? 'Untitled project'}`} title="Project file: new, open, save, import, export"
           className={`ml-0.5 flex h-8 max-w-[12rem] items-center gap-1.5 rounded-lg border px-2 text-control font-medium ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}>
           <FolderOpen size={14} aria-hidden />
           <span className="truncate">{meta.name ?? 'Untitled project'}</span>
@@ -117,7 +117,8 @@ export default function ProjectMenu() {
                 <button type="submit" className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:opacity-90">Save</button>
               </form>
             )}
-            <Item icon={<FolderOpen size={14} />} onClick={() => { setOpen(false); useTransfer.getState().open('export', box.current?.querySelector('button')) }} hint="Backups, geometry, workflow packages, models and tools: the Import and Export buttons beside this menu">Import or export a file…</Item>
+            <Item icon={<FileUp size={14} />} onClick={() => { setOpen(false); useTransfer.getState().open('import', box.current?.querySelector('button')) }} hint="The same as Import beside this menu: a model, a project, a workflow package, a site boundary or a custom tool">Import…</Item>
+            <Item icon={<FileDown size={14} />} onClick={() => { setOpen(false); useTransfer.getState().open('export', box.current?.querySelector('button')) }} hint="The same as Export beside this menu: geometry, a project backup, a workflow package or results">Export…</Item>
             <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export › Back up this project keeps a copy or shares it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
           </div>
         )}

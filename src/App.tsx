@@ -15,6 +15,7 @@ import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
 import { stageDef } from './data/stages'
 import { useStore } from './store'
+import { goToStep } from './lib/step'
 
 const Viewport = lazy(() => import('./components/Viewport'))
 const NodeCanvas = lazy(() => import('./components/NodeCanvas'))
@@ -49,9 +50,9 @@ export default function App() {
       if ((e.key === '[' || e.key === ']') && !e.ctrlKey && !e.metaKey && !e.altKey) { togglePanel(e.key === '[' ? 'left' : 'right'); return }
       // Present locks the model, so placing is off there.
       if ((e.key === 'p' || e.key === 'P') && s.phase !== 'present') set({ placing: !s.placing })
-      if (e.key === '1') setPhase('basic')
-      if (e.key === '2') setPhase('advanced')
-      if (e.key === '3') setPhase('present')
+      // 1-5 move along the phase row (Site, Form, Program, Schematic, Present), like clicking it.
+      const k = ['1', '2', '3', '4', '5'].indexOf(e.key)
+      if (k >= 0 && !e.ctrlKey && !e.metaKey && !e.altKey) goToStep((['site', 'volume', 'program', 'plates', 'frame'] as const)[k])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -60,7 +61,7 @@ export default function App() {
   return (
     // One hierarchy in every phase (overnight brief, 8 Nov; DESIGN_SYSTEM.md §5.1): the project bar, the one phase row,
     // then the phase panel (its local workflow and the open tool), the shared model, and the results and evidence.
-    // The whole workflow is not a permanent strip: Overview (phase row) opens it on demand over the model.
+    // The whole workflow is not a permanent strip: Edit workflow (project bar) or the Workflow list's Edit opens it on demand.
     <div data-stage={phase} data-reduced={reduced} className="workspace-shell stage-fade relative flex h-full flex-col gap-2 p-2 text-ink"
       style={{ ...(widths.left ? { '--left-w': `${widths.left}px` } : {}), ...(widths.right ? { '--right-w': `${widths.right}px` } : {}) } as CSSProperties}>
       <TopBar />

@@ -9,6 +9,7 @@ import { checkLinkNow, stopLink, useLiveLink } from '../../lib/interchange/live'
 import { toCustomize, toFloorAreas, toNodeTowers, toPresent, toPublicRealm, toShadowCasters, toViewConeInputs } from '../../lib/interchange/converters'
 import { ROLE_COLOR, ROLE_LABEL } from '../../lib/interchange/model'
 import { useImportStore } from '../../lib/import/store'
+import { useTransfer } from '../../lib/porting/transfer'
 import { useStore, useTowers } from '../../store'
 import { FlagChip, Section } from '../ui'
 
@@ -22,7 +23,7 @@ export default function ModelPanel() {
     nodes: toNodeTowers(model, towers), cones: toViewConeInputs(model, towers, ground), shadow: toShadowCasters(model, towers),
     realm: toPublicRealm(model, towers, north), floors: toFloorAreas(model, towers), present: toPresent(model, towers), canvas: toCustomize(model, towers),
   } : null), [model, towers, ground, north])
-  const upload = () => useImportStore.getState().openDialog()
+  const upload = () => useTransfer.getState().open('import', null, { purpose: 'model' })
   const live = useLiveLink()
 
   if (!model || !c) {

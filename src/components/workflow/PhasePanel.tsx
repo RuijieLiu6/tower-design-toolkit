@@ -31,7 +31,7 @@ import { useStore } from '../../store'
 import { edgeKey, insertByPhase, returnEdges, type Board } from '../../lib/workflowGraph'
 import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
 import { NODE_CONTROLS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
-import { addNode, openOverview, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
+import { addNode, openBuilder, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
@@ -131,7 +131,7 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
           {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
         </button>
         {/* The header is the way into the editor: the whole row is one button */}
-        <button type="button" onClick={() => openOverview('edit')} data-testid="phase-edit" title="Edit the workflow in the centre view: add tools from the shelf, drag, connect and loop them, then Confirm"
+        <button type="button" onClick={() => openBuilder()} data-testid="phase-edit" title="Edit the workflow in the workflow builder (the same as Edit workflow in the project bar). Its Quick edit opens the centre editor."
           className="group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
           <span className="text-control font-semibold text-ink">Workflow</span>
           <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
@@ -319,7 +319,7 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
   const pkg = useCommunityStore((s) => s.packages.find((p) => p.id === id))
   const controls = NODE_CONTROLS[id]
   const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
-  const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in the Library' : analysis ? 'Runs with the model; its results are on the right' : 'Analysis is off: its results wait until you switch it on'
+  const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in More › Check library' : analysis ? 'Runs with the model; its results are on the right' : 'Auto-run checks is off: its results wait until you turn it on in the project bar'
   return (
     <div role="region" aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id}>
       <div className="flex items-center gap-2 px-3 py-2">

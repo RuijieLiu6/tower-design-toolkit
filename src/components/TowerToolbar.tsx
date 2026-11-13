@@ -80,7 +80,7 @@ export default function TowerToolbar() {
       {locked ? (
         <p className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
           <LockKeyhole size={13} aria-hidden />Locked in Present
-          <Help label="Why the model is locked">The board shows the model as captured. Move and rotate it in Massing <Kbd>1</Kbd> or Schematic <Kbd>2</Kbd>.</Help>
+          <Help label="Why the model is locked">The board shows the model as captured. Move and rotate it in Form <Kbd>2</Kbd> or Schematic <Kbd>4</Kbd>.</Help>
         </p>
       ) : (
         <div className="flex flex-wrap gap-0.5">

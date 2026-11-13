@@ -67,7 +67,7 @@ function MoreMenu() {
   const go = (f: () => void) => () => { setOpen(false); f() }
   return (
     <div ref={box} className="relative">
-      <button type="button" onClick={() => { setOpen((v) => !v); setLib(false) }} aria-expanded={open} aria-haspopup="menu" data-testid="more-menu" aria-label="More: library, settings and help" title="More: check library, role, units, motion, Customize, Options, help"
+      <button type="button" onClick={() => { setOpen((v) => !v); setLib(false) }} aria-expanded={open} aria-haspopup="menu" data-testid="more-menu" aria-label="More: library, settings and help" title="More: check library, role, units, motion, workflow builder, data graph editor, Options, how it works, tour, status, sources"
         className={`${icon} bg-panel text-ink`}><MoreHorizontal size={16} aria-hidden /></button>
       {open && (
         <div role="menu" aria-label="More" className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-line bg-panel p-1.5 text-ink shadow-float">
@@ -78,7 +78,7 @@ function MoreMenu() {
           <button role="menuitemcheckbox" aria-checked={reducedMotion} type="button" onClick={() => set({ reducedMotion: !reducedMotion })} className={item}><Waves size={15} aria-hidden />Reduce motion<span className="ml-auto text-meta text-muted">{reducedMotion ? 'On' : 'Off'}</span></button>
           <div className="my-1 border-t border-line" />
           <button role="menuitem" type="button" onClick={go(() => openBuilder())} className={item} aria-label="Workflow builder"><Workflow size={15} aria-hidden />Workflow builder<span className="ml-auto text-meta text-muted">arrange your process</span></button>
-          <button role="menuitem" type="button" onClick={go(() => navigate('customize'))} className={item} aria-label="Advanced: data graph"><Network size={15} aria-hidden />Advanced: data graph<span className="ml-auto text-meta text-muted">ports and wires</span></button>
+          <button role="menuitem" type="button" onClick={go(() => navigate('customize'))} className={item} aria-label="Data graph editor"><Network size={15} aria-hidden />Data graph editor<span className="ml-auto text-meta text-muted">full page, ports and wires</span></button>
           <button role="menuitem" type="button" onClick={go(() => navigate('options'))} className={item} aria-label="Options"><Scale size={15} aria-hidden />Options<span className="ml-auto text-meta text-muted">compare designs</span></button>
           <div className="my-1 border-t border-line" />
           <button role="menuitem" type="button" onClick={go(() => set({ showOnboarding: true }))} className={item} aria-label="How it works"><CircleQuestionMark size={15} aria-hidden />How it works</button>
@@ -131,7 +131,7 @@ export default function TopBar() {
           <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden />Capture</button>
         </>
       )}
-      {!building && <div className="flex items-center gap-0.5" role="group" aria-label="View">
+      {!building && <div className="flex items-center gap-0.5" role="group" aria-label="Screen: model, data graph or both" title="Screen: what fills the middle (the model, the data graph, or both). The display of the model itself is the View bar under it.">
         {VIEWS.map(({ id, icon: Icon, label }) => (
           <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
             className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : present ? 'text-chrome-ink opacity-80 hover:opacity-100' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>

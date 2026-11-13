@@ -12,7 +12,7 @@ import { presetById, USER_TYPES, type Preset } from '../../lib/userTypes'
 import { listMyPresets, type MyPreset } from '../../lib/workflow/myPresets'
 import { withDesignSteps } from '../../lib/workflow/designNodes'
 import { linear } from '../../lib/workflowGraph'
-import { changedSinceOpen, closeBuilder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
+import { changedSinceOpen, closeBuilder, openOverview, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import { homeOf } from '../workflow/WorkflowOverview'
 import { useBuilderUi } from './builderState'
 
@@ -40,8 +40,8 @@ export default function BuilderHeader() {
         </div>
         <PresetPicker />
         <div className="ml-auto flex flex-wrap items-center gap-1">
-          <button type="button" onClick={w.undo} disabled={!w.past.length} data-testid="builder-undo" aria-label="Undo the last workflow change" title="Undo" className={iconBtn}><Undo2 size={15} aria-hidden /></button>
-          <button type="button" onClick={w.redo} disabled={!w.future.length} data-testid="builder-redo" aria-label="Redo" title="Redo" className={iconBtn}><Redo2 size={15} aria-hidden /></button>
+          <button type="button" onClick={w.undo} disabled={!w.past.length} data-testid="builder-undo" aria-label="Undo the last workflow change" title="Undo a workflow change (design changes have their own undo in the project bar)" className={iconBtn}><Undo2 size={15} aria-hidden /></button>
+          <button type="button" onClick={w.redo} disabled={!w.future.length} data-testid="builder-redo" aria-label="Redo" title="Redo a workflow change" className={iconBtn}><Redo2 size={15} aria-hidden /></button>
           {dirty ? (
             <>
               <button type="button" onClick={() => closeBuilder('discard')} data-testid="builder-discard" title="Put back the workflow you had when you opened the builder, and return to the design"
@@ -53,6 +53,8 @@ export default function BuilderHeader() {
             <button type="button" onClick={() => closeBuilder('apply')} data-testid="builder-continue" title="Back to the design, where you were"
               className="flex h-8 items-center gap-1 rounded-lg bg-accent px-3 text-control text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><Check size={14} aria-hidden />Continue designing</button>
           )}
+          <button type="button" onClick={() => openOverview('edit')} data-testid="builder-quick-edit" title="The smaller centre editor over the model: add tools from the shelf, drag, connect and loop them, then Confirm"
+            className="ml-1 rounded-lg px-1.5 py-1 text-meta text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-accent">Quick edit</button>
           <button type="button" onClick={() => { closeBuilder('apply', { keep: true }); navigate('customize') }} data-testid="builder-advanced" title="The data graph: which node reads which node's output (for advanced use)"
             className="ml-1 rounded-lg px-1.5 py-1 text-meta text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-accent">Advanced: data graph</button>
         </div>
