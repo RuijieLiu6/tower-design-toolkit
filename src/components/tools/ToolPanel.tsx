@@ -48,7 +48,7 @@ function ToolTile({ tool, active, tabStop, panelOpen, onPick, onKey }: { tool: D
   return (
     <IconTile icon={tool.icon} word={shortName(tool)} label={tool.label} hint={hint} active={active}
       role="tab" id={`tool-${tool.id}-head`} data-tool={tool.id} aria-selected={active} aria-controls={panelOpen ? 'tool-panel' : undefined} tabIndex={tabStop ? 0 : -1}
-      onClick={onPick} onKeyDown={onKey} />
+      onClick={onPick} onKeyDown={onKey} className="w-full! min-w-0" />
   )
 }
 
@@ -105,7 +105,9 @@ export default function ToolPanel({ embedded = false, only, step: forStep }: { e
       )}
       {/* a check that opens with one control set shows it directly (its name is in the phase panel's header) */}
       {shown.length > 0 && !(only && shown.length === 1) && (
-        <div role="tablist" aria-label="Design tools" className="flex flex-wrap gap-0.5 border-b border-line px-2 py-1.5">
+        <div role="tablist" aria-label="Design tools" data-testid="tool-row"
+          // One row (Sinnie, 13 Nov: "fit this into one row"): equal columns that share the panel's width.
+          className="grid auto-cols-fr grid-flow-col gap-0.5 border-b border-line px-2 py-1.5">
           {shown.map((t, i) => <ToolTile key={t.id} tool={t} active={t.id === activeId} tabStop={activeId ? t.id === activeId : i === 0} panelOpen={!!activeId} onPick={() => pick(t.id)} onKey={onKey} />)}
         </div>
       )}
