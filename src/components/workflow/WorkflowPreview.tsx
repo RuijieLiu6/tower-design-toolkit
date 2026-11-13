@@ -123,13 +123,15 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
 
       {!collapsed && (
         <>
-          <p className="mt-1.5 px-0.5 text-meta leading-snug">
-            <b className="text-ink">{pi + 1} · {PHASE_NAME[phase]}</b> <span className="text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ''}</span>
-          </p>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <button type="button" onClick={() => openOverview('edit')} className="flex h-7 items-center rounded-lg bg-accent px-2.5 text-meta font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
+          {/* the same type as the rest of the app: a 14 px title over a 12 px description, 14 px buttons 32 px tall */}
+          <div className="mt-2 px-0.5">
+            <h3 className="text-control font-semibold text-ink">{pi + 1} · {PHASE_NAME[phase]}</h3>
+            <p className="text-meta text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ''}</p>
+          </div>
+          <div className="mt-2 flex items-center gap-1.5">
+            <button type="button" onClick={() => openOverview('edit')} className="flex h-8 items-center rounded-lg bg-accent px-2.5 text-control font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
             <button type="button" onClick={() => next && goToStep(PHASE_STEP[next])} disabled={!next} data-testid="workflow-next"
-              className="flex h-7 items-center rounded-lg border border-line bg-panel px-2.5 text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">{next ? `Next: ${PHASE_NAME[next]} ›` : 'Last phase'}</button>
+              className="flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">{next ? `Next: ${PHASE_NAME[next]} ›` : 'Last phase'}</button>
           </div>
         </>
       )}
