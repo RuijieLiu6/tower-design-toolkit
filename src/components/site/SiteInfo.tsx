@@ -162,12 +162,12 @@ function VtcSite() {
     <section aria-labelledby="vtc-site-title" data-testid="vtc-site" className={card}>
       <h3 id="vtc-site-title" className="flex items-center gap-1.5 text-xs font-semibold text-accent"><MapPin size={14} aria-hidden />Your site
         <Help label="About the competition site">The competition site is the VTC block, fixed by the brief: the tower stands inside it and the competition rules (Results) read it. To study a site of your own, switch the project to Real Vancouver in the top bar.</Help></h3>
-      <div className="mt-1 flex items-start gap-2.5">
-        <SitePlan ring={VTC_SITE.ring as [number, number][]} towers={towers} selected={selected} northDeg={VTC_NORTH_DEG} label={`Plan of the competition block with ${towers.length} tower${towers.length === 1 ? '' : 's'}; true north ${VTC_NORTH_DEG} degrees from the grid`} />
-        <div className="grid gap-1">
+      <div className="mt-1 grid gap-2">
+        <div className="flex justify-center rounded-md bg-white/60"><SitePlan size={176} ring={VTC_SITE.ring as [number, number][]} towers={towers} selected={selected} northDeg={VTC_NORTH_DEG} label={`Plan of the competition block with ${towers.length} tower${towers.length === 1 ? '' : 's'}; true north ${VTC_NORTH_DEG} degrees from the grid`} /></div>
+        <div className="grid min-w-0 gap-1">
           <div className="text-sm font-semibold text-ink">The VTC block, fixed by the brief</div>
           <span className="text-muted">144.8 × 79.2 m</span>
-          <div className="flex items-center gap-1"><span className="flex items-center gap-1 rounded border border-line px-1 py-0.5" title="Set by the brief: nothing to choose"><Lock size={11} className="text-accent" aria-hidden />fixed</span><FlagChip flag="verified" />
+          <div className="flex flex-wrap items-center gap-1"><span className="flex items-center gap-1 rounded border border-line px-1 py-0.5" title="Set by the brief: nothing to choose"><Lock size={11} className="text-accent" aria-hidden />fixed</span><FlagChip flag="verified" />
             <Help label="Source of the competition site">Vancouver Tall Competition brief (the block and its rules: engine/vtcRules).</Help></div>
         </div>
       </div>

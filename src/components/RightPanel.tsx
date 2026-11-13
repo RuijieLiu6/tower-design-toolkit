@@ -178,7 +178,9 @@ function Properties({ positioning }: { positioning: boolean }) {
       <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>
     </div>
   )
-  if (siteFocus) return (
+  // The Site step's own tools (address, map picks, upload) live in the left panel's Site tab (12 Nov, "remove this from
+  // properties"): here, the site as it stands.
+  if (siteFocus || (phase === 'site' && active === designOf('site').id)) return (
     <div data-testid="rp-properties" data-focus="site">
       <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteInfo /></Suspense>
     </div>
