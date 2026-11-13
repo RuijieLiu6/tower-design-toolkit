@@ -14,7 +14,7 @@ import IconTile from '../IconTile'
 import { DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
 import { toolsForStep, useStep, type StepId } from '../../lib/step'
-import { NoTowerYet, PlaceFirstTower } from './NoTower'
+import { MassingStart, NoTowerYet } from './NoTower'
 
 const KEY = 'ts.tools.active'
 /** Steps whose tools work without a tower (choosing the site, importing a model). */
@@ -71,7 +71,8 @@ export default function ToolPanel({ embedded = false, only, step: forStep }: { e
   const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
   // No tower on Volume: only the tools that make towers stay (Generate), and none opens until it is picked.
   // With a tower, a tool that only leads an empty site (Generate) moves inside another one (Massing).
-  const shown = empty === 'place' ? stepTools.filter((t) => t.worksWithoutTower) : empty ? [] : stepTools.filter((t) => !t.emptyOnly)
+  // 13 Nov (Sinnie): before any tower, the Massing tool offers only its three starts (MassingStart); no other tool shows.
+  const shown = empty ? [] : stepTools.filter((t) => !t.emptyOnly)
   // The open tool, per step (Massing) or stage: the one picked here before, else the first that opens by default.
   const where = only ? `node:${only.join(',')}` : phase === 'basic' ? `basic:${step}` : phase
   const [picked, setPicked] = useState<Record<string, string>>(readActive)
@@ -112,7 +113,7 @@ export default function ToolPanel({ embedded = false, only, step: forStep }: { e
         </div>
       )}
       <div className={embedded ? '' : 'flex-1 overflow-y-auto'}>
-        {empty === 'place' && <PlaceFirstTower onGenerate={shown.some((t) => t.id === 'generate') && activeId !== 'generate' ? () => pick('generate') : undefined} />}
+        {empty === 'place' && <MassingStart />}
         {empty === 'none' && <NoTowerYet />}
         {active && Body && (
           <div id="tool-panel" role="tabpanel" aria-labelledby={`tool-${active.id}-head`} data-tool-body={active.id} className="pb-1">
