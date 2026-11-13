@@ -86,13 +86,12 @@ export const USER_TYPES: UserType[] = [
         // (lib/workflow/designNodes.ts withDesignSteps). Floor area brings the Program step, the board record the Frame step
         // with the presentation sheet.
         // 13 Nov: the Sun & Wind Studio tools in place of the old sun, wind and energy checks, and its rain tools added.
-        // 13 Nov, revised after the review of tools that could be combined (Sinnie: "revise my demo workflow set"): one tool
-        // per topic instead of every Sun & Wind Studio tool, so the demo reads as the combined list would. Sun, wind, rain
-        // and form on the massing; façade, daylight, ventilation, indoor temperature and energy on the floors.
+        // 13 Nov (Sinnie: "can you include those into the demo workflow"): all sixteen Sun & Wind Studio tools again, now
+        // that each has the Studio's level of drawings, in the order of the design.
         nodes: ['built.viewcones',
-          'built.sw-shadow', 'built.sw-wind-comfort', 'built.sw-rain-water', 'built.sw-form',
+          'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form',
           'built.fsr',
-          'built.sw-glazing', 'built.sw-daylight', 'built.sw-natvent', 'built.sw-indoor-temp', 'built.sw-energy',
+          'built.sw-glazing', 'built.sw-daylight', 'built.sw-daylight-factor', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv',
           'built.provenance'],
         says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
       },
