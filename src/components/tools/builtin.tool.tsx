@@ -23,7 +23,9 @@ const tools: DesignTool[] = [
   { id: 'ground', label: 'Ground & public realm', short: 'Ground', icon: TOOL_ICONS['ground'], stages: ['basic'], order: 40,
     hint: 'Streetwall, frontage, open space, transit link', component: GroundTool },
   { id: 'sun', label: 'Sun & time', short: 'Sun', icon: TOOL_ICONS['sun'], stages: ['basic', 'advanced'], order: { basic: 14, advanced: 150 },
-    hint: 'Date and hour for shadows and sun views', component: SunTool },
+    // Moved to the Layers panel (Sinnie, 13 Nov: "remove the sun from the massing panel"; components/SunTime.tsx): kept
+    // registered so saved workflows still name it, never shown as a tool.
+    hint: 'Date and hour for shadows and sun views', component: SunTool, when: () => false },
 ]
 
 export default tools
