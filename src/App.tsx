@@ -77,7 +77,7 @@ export default function App() {
         <main className="relative flex min-w-0 flex-1 gap-2">
           {(view === '3d' || view === 'split') && (
             <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
-              <Suspense fallback={<Loading what="3D view" />}><Viewport /></Suspense>
+              <Suspense fallback={<div aria-busy="true" aria-label="Loading the 3D view" className="h-full w-full" />}><Viewport /></Suspense>
             </div>
           )}
           {(view === 'canvas' || view === 'split') && (

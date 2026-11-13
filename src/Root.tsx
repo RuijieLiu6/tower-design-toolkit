@@ -17,6 +17,14 @@ const TourOverlay = lazy(() => import('./components/TourOverlay'))
 // Offline app: the service worker of a production build, and the browser's install offer (lib/pwa/install.ts).
 startOffline()
 
+// Fetch the workspace and its 3D view in the background while the start page is open, so Enter goes straight in
+// instead of showing a loading message for the workspace and then a second one for the 3D view (12 Nov).
+const warm = () => { void import('./App'); void import('./components/Viewport') }
+if (typeof window !== 'undefined') {
+  const idle = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback
+  if (idle) idle(warm); else setTimeout(warm, 1200)
+}
+
 const loading = (what: string) => <div className="flex h-full items-center justify-center bg-paper text-xs text-muted">Loading {what}…</div>
 
 function Page(): ReactNode {

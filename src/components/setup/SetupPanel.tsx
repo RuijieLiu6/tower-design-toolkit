@@ -44,7 +44,7 @@ export default function SetupPanel({ phase }: { phase: PhaseId }) {
         ))}
       </div>
       <div id="setup-body" role="tabpanel" aria-labelledby={`setup-tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-        {tab === 'site' && <Suspense fallback={<p className="p-4 text-meta text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
+        {tab === 'site' && <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteInfo /></Suspense>}
         {tab === 'form' && <FormTab />}
         {tab === 'program' && <ProgramTab />}
         {tab === 'material' && <MaterialTab />}

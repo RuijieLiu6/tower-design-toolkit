@@ -113,7 +113,7 @@ export default function ToolPanel({ embedded = false, only }: { embedded?: boole
         {active && Body && (
           <div id="tool-panel" role="tabpanel" aria-labelledby={`tool-${active.id}-head`} data-tool-body={active.id} className="pb-1">
             <ToolBoundary key={active.id} label={active.label}>
-              <Suspense fallback={<p className="px-4 py-3 text-meta text-muted">Loading {active.label}…</p>}><Body /></Suspense>
+              <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><Body /></Suspense>
             </ToolBoundary>
           </div>
         )}
