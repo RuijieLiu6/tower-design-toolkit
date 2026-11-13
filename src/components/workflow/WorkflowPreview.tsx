@@ -87,6 +87,8 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
         </span>
         <button type="button" onClick={() => openOverview('edit')} data-testid="phase-edit" title="Edit the workflow in the centre view: add tools from the shelf, drag, connect and loop them, then Confirm" aria-label="Edit the workflow"
           className="ml-auto flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><ExternalLink size={14} aria-hidden /></button>
+        <button type="button" onClick={onFold} data-testid="phase-collapse" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the guide and the tools' : 'Fold the guide and the tools'}
+                  className="flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{collapsed ? '›' : '‹'}</button>
         {headerExtra}
       </div>
 
@@ -123,23 +125,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
         })}
       </svg>
 
-      <div className="mt-1.5 flex items-center gap-1">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1" role="group" aria-label="Tools, in working order" data-testid="tool-dots">
-          {tools.map((id, i) => {
-            const on = id === active, ph = phaseOf(id), newPhase = i > 0 && phaseOf(tools[i - 1]) !== ph
-            return (
-              <button key={id} type="button" onClick={() => goTool(id)} data-tool={id} aria-label={`${i + 1}. ${info(id).name} (${PHASE_NAME[ph]})`} aria-current={on ? 'step' : undefined}
-                title={`${i + 1}. ${info(id).name} · ${PHASE_NAME[ph]}`}
-                style={on ? { background: 'var(--color-ink)', borderColor: 'var(--color-ink)' } : undefined}
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-accent ${newPhase ? 'ml-1.5' : ''} ${on ? '' : 'border-line bg-panel hover:border-boundary'}`}>
-                <i aria-hidden className="block h-2 w-2 rounded-full" style={{ background: on ? '#fff' : PHASE_COLOR[ph].accent, opacity: i <= ti ? 1 : 0.6 }} />
-              </button>
-            )
-          })}
-        </div>
-        <button type="button" onClick={onFold} data-testid="phase-collapse" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the guide and the tools' : 'Fold the guide and the tools'}
-          className="ml-auto flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{collapsed ? '›' : '‹'}</button>
-      </div>
+      {/* the row of tool dots is gone (12 Nov: "remove this"); Back / Next and the mini graph move between tools */}
 
       {!collapsed && (
         <>

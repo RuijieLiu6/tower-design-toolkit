@@ -1,5 +1,7 @@
 // Real Vancouver context: City footprints (LiDAR heights where processed, "height unknown" outlines elsewhere) and the
 // MRDEM terrain rings out to the North Shore mountains. Data: public/data/ (layers.json), built by tools/build_city_*.py.
+import { Cone, EyeOff, Landmark, LandPlot, Map as MapIcon, Mountain, Route, TreePine, Type } from './icons'
+import type { ContextLayerId } from '../lib/contextLayers'
 import { dataFetch, noteManifest, trackedFetch } from '../lib/loadProgress'
 import { Line } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
@@ -1192,11 +1194,11 @@ export function CityLegend() {
   const hint = { id: 'city-cones', content: <><b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b className="text-ink">{estimates} have an estimated height limit</b> (solid outline, ceiling drawn in Vista's study-ceiling colour); the other <b className="text-ink">{CONES.length - estimates} are dashed: no City estimate</b> until the City answers Request 0, so their ceiling is Vista's study surface (an assumption). Show or hide them with View cones under Show. Ground, buildings and mountains are real data: see Data sources below.</> }
   const sources = 'Data sources & context layers'
   if (error) {
-    return <ViewportDock anchored hint={hint} sections={[{ id: 'sources', title: sources, defaultOpen: true, children: (
+    return <ViewportDock anchored sections={[{ id: 'sources', title: sources, defaultOpen: true, children: (
       <p role="alert"><b className="text-ink">Context layers not loaded.</b> {error}. Build them with the scripts in <code>tools/</code> (see README).</p>
     ) }]} />
   }
-  if (!data) return <ViewportDock anchored hint={hint} sections={[{ id: 'sources', title: sources, summary: 'loading…', defaultOpen: true, children: <p role="status">Loading Vancouver context…</p> }]} />
+  if (!data) return <ViewportDock anchored sections={[{ id: 'sources', title: sources, summary: 'loading…', defaultOpen: true, children: <p role="status">Loading Vancouver context…</p> }]} />
   const { manifest, footprints, heights } = data
   const withHeight = footprints.filter((_, i) => hasHeight(heights, i)).length
   const older = data.model === 'city' ? footprints.filter((f) => is2009Part(f.id)).length : 0
@@ -1205,18 +1207,18 @@ export function CityLegend() {
   const onDemand = manifest.layers.filter((l) => l.lazy && !isTerrainDetail(l) && !['building_forms', 'building_forms_2009', 'city_streets', 'shoreline', 'parks'].includes(l.id)).length
   const fas = manifest.layers.flatMap((l) => l.false_assumptions ?? [])
   return (
-    <ViewportDock anchored hint={hint} sections={[
+    <ViewportDock anchored sections={[
       // Simplified (12 Nov: "simplify this panel, and merge the view cone and names with it"): the switches people use
       // first, then the extra layers, then every setting and source folded into one section (nothing removed).
-      { id: 'show', title: 'Show', defaultOpen: true, children: <QuickLayers /> },
-      { id: 'more', title: 'More layers', summary: layersOn ? `${layersOn} on` : 'load when switched on', children: <ContextLayersPanel manifest={manifest} bare /> },
+      { id: 'show', title: 'Show', defaultOpen: true, children: <LayerTiles manifest={manifest} /> },
       { id: 'settings', title: 'Settings & sources', summary: `style, ground, cones · ${firstLoad.length} sources`, children: (
         <div className="space-y-4">
           <SettingsPart title="Style & building types"><StyleCard data={data} /></SettingsPart>
           <SettingsPart title={`Ground & tower base · ${base.toFixed(1)} m, ${mode === 'terrain' ? 'from the terrain' : 'set by hand'}`}><GroundCard data={data} bare /></SettingsPart>
           <SettingsPart title={`Existing buildings under the design · ${hideOn ? (hiddenCount ? `${hiddenCount.toLocaleString()} hidden` : 'none under the design') : 'all drawn'}`}><HideUnderDesignCard bare /></SettingsPart>
           <SettingsPart title="Height-limit surface & cone parameters"><HeightSurfacePanel bare /></SettingsPart>
-          <SettingsPart title="View cone layers"><ConeLayersInfo data={data} /></SettingsPart>
+          <SettingsPart title="View cone layers"><p className="mb-1 text-meta text-muted">{hint.content}</p><ConeLayersInfo data={data} /></SettingsPart>
+          <SettingsPart title={`More layers · ${layersOn ? `${layersOn} on` : 'load when switched on'}`}><ContextLayersPanel manifest={manifest} bare /></SettingsPart>
           <SettingsPart title={`${sources} · ${firstLoad.length} · ${mb(total)}${onDemand ? ` · ${onDemand} on demand` : ''}`}>
         <div className="space-y-2">
           <p role="status">
@@ -1278,30 +1280,49 @@ function SettingsPart({ title, children }: { title: string; children: ReactNode 
   return <div><h4 className="mb-1 text-meta font-semibold text-ink">{title}</h4>{children}</div>
 }
 
-/** The Layers panel's first section: the switches people reach for, view cones and place names included (they were tabs
- * over the view until 12 Nov). */
-function QuickLayers() {
+/** The Layers panel (12 Nov: "minimal text and more visual with icons"): one grid of switches, an icon and a word each,
+ * what it shows on hover. The four view switches first, then the extra City layers (they load when switched on); their
+ * sources, legends and the cone details are under Settings & sources. */
+function LayerTiles({ manifest }: { manifest: Manifest }) {
   const conesShown = useConeVisibility((s) => CONES.some((c) => !s.hidden[c.id]))
   const names = useVistaLook((s) => s.labels)
   const surface = useHeightSurface((s) => s.on)
   const hideUnder = useHideUnderDesign((s) => s.on)
-  const rows: { id: string; label: string; hint: string; on: boolean; set: (v: boolean) => void }[] = [
-    { id: 'cones', label: 'View cones', hint: 'The City’s protected public views, all on or all off (pick single cones in Settings › View cone layers)', on: conesShown, set: (v) => showAllCones(v) },
-    { id: 'names', label: 'Place names', hint: 'Neighbourhood and street names over the city', on: names, set: (v) => setPlaceNames(v) },
-    { id: 'surface', label: 'Height-limit surface', hint: 'The estimated limit under the view cones, drawn as a surface', on: surface, set: (v) => useHeightSurface.setState({ on: v }) },
-    { id: 'under', label: 'Hide buildings under the design', hint: 'Existing buildings where your towers and site stand (hypothetical)', on: hideUnder, set: (v) => useHideUnderDesign.setState({ on: v }) },
+  const { on, status } = useContextLayers()
+  type Tile = { id: string; icon: typeof Cone; word: string; hint: string; on: boolean; set: (v: boolean) => void; busy?: boolean; off?: boolean }
+  const view: Tile[] = [
+    { id: 'cones', icon: Cone, word: 'View cones', hint: 'The City’s protected public views, all on or all off', on: conesShown, set: (v) => showAllCones(v) },
+    { id: 'names', icon: Type, word: 'Names', hint: 'Neighbourhood and street names', on: names, set: (v) => setPlaceNames(v) },
+    { id: 'surface', icon: Mountain, word: 'Height limit', hint: 'The estimated height limit under the view cones, as a surface', on: surface, set: (v) => useHeightSurface.setState({ on: v }) },
+    { id: 'under', icon: EyeOff, word: 'Hide under', hint: 'Hide the existing buildings where your towers and site stand (hypothetical)', on: hideUnder, set: (v) => useHideUnderDesign.setState({ on: v }) },
   ]
+  const EXTRA: { id: ContextLayerId; icon: typeof Cone; word: string }[] = [
+    { id: 'trees', icon: TreePine, word: 'Trees' }, { id: 'parcels', icon: LandPlot, word: 'Parcels' }, { id: 'zoning', icon: MapIcon, word: 'Zoning' },
+    { id: 'heritage', icon: Landmark, word: 'Heritage' }, { id: 'traffic', icon: Route, word: 'Traffic' },
+  ]
+  const extra: Tile[] = EXTRA.map((x) => {
+    const entry = manifest.layers.find((l) => l.id === x.id)
+    return {
+      id: x.id, icon: x.icon, word: x.word, hint: `${entry?.title ?? x.word}${entry ? ` · ${entry.source.publisher}` : ' · not downloaded'} (loads when switched on)`,
+      on: !!on[x.id], busy: status[x.id] === 'loading' && !!on[x.id], off: !entry,
+      set: (v) => useContextLayers.setState((s) => ({ on: { ...s.on, [x.id]: v }, hover: null })),
+    }
+  })
+  const tile = (t: Tile) => {
+    const I = t.icon
+    return (
+      <button key={t.id} type="button" aria-pressed={t.on} aria-label={t.word} title={t.hint} disabled={t.off} onClick={() => t.set(!t.on)} data-layer={t.id}
+        className={`relative flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-meta outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${t.on ? 'border-accent/50 bg-selected text-accent-hover' : 'border-line bg-panel text-muted hover:border-boundary hover:text-ink'}`}>
+        <I size={20} aria-hidden />
+        <span className="leading-tight">{t.word}</span>
+        {t.busy && <span aria-label="loading" className="absolute right-1.5 top-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />}
+      </button>
+    )
+  }
   return (
-    <ul className="space-y-1" data-testid="quick-layers">
-      {rows.map((r) => (
-        <li key={r.id} className="flex items-center justify-between gap-2">
-          <span className="min-w-0"><span className="block text-control text-ink">{r.label}</span><span className="block text-meta text-muted">{r.hint}</span></span>
-          <button type="button" role="switch" aria-checked={r.on} aria-label={r.label} onClick={() => r.set(!r.on)} data-layer={r.id}
-            className="relative h-5 w-9 shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent" style={{ background: r.on ? 'var(--color-accent)' : 'var(--color-boundary)' }}>
-            <span aria-hidden className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${r.on ? 'left-[1.125rem]' : 'left-0.5'}`} />
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div data-testid="quick-layers" className="space-y-2">
+      <div className="grid grid-cols-4 gap-1.5">{view.map(tile)}</div>
+      <div className="grid grid-cols-5 gap-1.5">{extra.map(tile)}</div>
+    </div>
   )
 }
