@@ -11,7 +11,7 @@
 import { ViewModeMenu } from './DisplayModeSwitch'
 import { dataFetch } from '../lib/loadProgress'
 import { useFrame, useThree } from '@react-three/fiber'
-import { ChevronDown, ChevronUp, X } from './icons'
+import { ChevronDown, ChevronUp, Crosshair, Layers, Minus, Plus, X } from './icons'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { pickAt } from '../engine/viewFrom'
@@ -435,19 +435,20 @@ function focusSite() {
   s.set({ cameraRequest: { position: [target[0] + dir.x * d, target[1] + dir.y * d, target[2] + Math.max(0.35, dir.z) * d], target, fov: 45 } })
 }
 
+const iconSq = 'flex h-[30px] w-[30px] items-center justify-center'
 function Utilities() {
   const dockOpen = useDock((s) => s.menu)
   return (
     <div className="flex flex-col items-end gap-[5px]">
       <Compass />
       <div className="h-3" />
-      {utilityButton('Focus site', 'Frame the selected tower', focusSite, 'px-2.5')}
-      {/* The sign and the word (Ruijie, 6 Nov: "a zoom in and zoom out button with the + and - sign with words written"). */}
-      {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">+</span>Zoom in</span>, 'Zoom in', () => zoom(-0.35), 'px-2.5', 'Zoom in')}
-      {utilityButton(<span className="flex items-center gap-1.5"><span aria-hidden className="w-3 text-center text-[15px] leading-none">−</span>Zoom out</span>, 'Zoom out', () => zoom(0.35), 'px-2.5', 'Zoom out')}
-      <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" onClick={() => useDock.setState({ menu: !dockOpen })}
-        className={`flex h-[33px] items-center gap-1.5 rounded-lg px-2.5 text-control font-medium hover:bg-subtle ${focusRing}`} style={box}>
-        <span aria-hidden className="text-meta">{dockOpen ? '▼' : '▶'}</span>Layers
+      {/* 12 Nov (Sinnie: "change this to icons instead of words"): icon buttons, the words on hover and for screen readers. */}
+      {utilityButton(<Crosshair size={17} aria-hidden />, 'Focus site: frame the selected tower', focusSite, iconSq, 'Focus site')}
+      {utilityButton(<Plus size={17} aria-hidden />, 'Zoom in', () => zoom(-0.35), iconSq, 'Zoom in')}
+      {utilityButton(<Minus size={17} aria-hidden />, 'Zoom out', () => zoom(0.35), iconSq, 'Zoom out')}
+      <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" aria-label="Layers" title="Layers" onClick={() => useDock.setState({ menu: !dockOpen })}
+        className={`${iconSq} rounded-lg hover:bg-subtle ${dockOpen ? 'text-accent' : ''} ${focusRing}`} style={box}>
+        <Layers size={17} aria-hidden />
       </button>
     </div>
   )
