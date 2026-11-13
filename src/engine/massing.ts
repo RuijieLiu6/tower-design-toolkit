@@ -53,7 +53,14 @@ export function floorRing(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): [number, numbe
 /** Floors of one tower: podium floors first, then tower floors allocated to program bands bottom-up. */
 export function towerFloors(t: Tower): Floor[] {
   // Imported massing: floors come from slicing the model (engine/imported.ts).
-  if (t.imported) return importedFloors(t)
+  const floors = t.imported ? importedFloors(t) : parametricFloors(t)
+  // Floors given a use one by one in Program (Sinnie, 13 Nov: "select floors and adjust the programming type").
+  const own = t.floorUses
+  if (!own) return floors
+  return floors.map((f) => { const u = own[f.level]; return u && !f.skyLobby && u !== f.use ? { ...f, use: u } : f })
+}
+
+function parametricFloors(t: Tower): Floor[] {
   const spans = blockSpans(t)
   const podium = spans.filter((s) => s.podium)
   const podiumTop = podium.length ? podium[podium.length - 1].z1 : 0

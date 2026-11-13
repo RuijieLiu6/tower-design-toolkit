@@ -17,6 +17,7 @@ import FsrSiteLine from './FsrSiteLine'
 import ImportedPanel from './ImportedPanel'
 import PublicRealmPanel from './PublicRealmPanel'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
+import FloorStack from './FloorStack'
 import Fold from './Fold'
 import IconTile from './IconTile'
 import { useShallow } from 'zustand/react/shallow'
@@ -275,6 +276,9 @@ export function ProgramTool() {
           </div>
         </ToolBlock>
       )}
+      <ToolBlock title={`Floors and programme · ${t.name}`}>
+        <FloorStack t={t} />
+      </ToolBlock>
       <Section title="Floor area (all towers, gross)">
         <div className="grid gap-1">
           {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (

@@ -1,4 +1,5 @@
 import { Sun as SunIcon } from './icons'
+import FloorPicker3D from './FloorPicker3D'
 import { setSunOn, SunTimeFields, useSunOn } from './SunTime'
 import { Line, OrbitControls } from '@react-three/drei'
 import LoadingBar from './LoadingBar'
@@ -695,6 +696,7 @@ export default function Viewport() {
               <MassingEdit3D />
               <TowerPosition3D />
               <BelowGrade />
+              <FloorPicker3D />
             </group>
             <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />

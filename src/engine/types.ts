@@ -52,6 +52,8 @@ export interface Tower {
   plantEvery: number
   /** Schematic: tower levels made plant (mechanical) floors one by one (Section tool), on top of `plantEvery`. */
   plantLevels?: number[]
+  /** Program: a use set floor by floor (level → use), over the bands, the podium use and plant floors; sky lobbies keep theirs. */
+  floorUses?: Partial<Record<number, UseId>>
   /** Facade material (illustrative; components/setup/SetupPanel.tsx). No check reads it yet. */
   material?: string
   /** Schematic: core share follows what the lifts, stairs and risers need (default on). */
