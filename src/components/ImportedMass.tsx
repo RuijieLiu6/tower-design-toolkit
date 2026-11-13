@@ -93,7 +93,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
         </>
       )}
       <group position={[0, 0, m.top + 10]}>
-        <Label hoverKey={t.id} text={`${t.name} · ${t.height.toFixed(0)} m · imported${unresolved ? ' · north unresolved' : ''}`} position={[0, 0, 0]}
+        <Label hoverKey={t.id} text={`${t.name} · ${t.height.toFixed(0)} m${t.drawn ? "" : " · imported"}${unresolved ? ' · north unresolved' : ''}`} position={[0, 0, 0]}
           color={unresolved ? '#5c3d00' : '#ffffff'} background={unresolved ? '#fdf4dd' : 'rgba(32,38,48,0.9)'} size={0.017} bold />
       </group>
       {xray && <Label text="Core position assumed central (imported mass)" position={[0, 0, -4]} size={0.011} color="#2b3f55" background="rgba(244,247,250,0.9)" />}

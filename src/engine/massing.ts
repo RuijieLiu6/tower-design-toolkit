@@ -39,6 +39,7 @@ export function applyTowerPatch(t: Tower, patch: Partial<Tower>): Tower {
 /** One prism per block (an imported tower: its hull over its full height), for shadows, cones, containment and export. */
 export interface Mass { ring: [number, number][]; z0: number; z1: number; podium: boolean; blockId: string }
 export function towerMasses(t: Tower): Mass[] {
+  if (t.drawn && t.imported) return [{ ring: towerFootprint(t), z0: t.drawn.base, z1: t.height, podium: false, blockId: 'drawn' }]
   if (t.imported) return [{ ring: towerFootprint(t), z0: 0, z1: t.height, podium: false, blockId: 'imported' }]
   return blockSpans(t).filter((s) => s.z1 > s.z0).map((s) => ({ ring: s.ring, z0: s.z0, z1: s.z1, podium: s.podium, blockId: s.block.id }))
 }

@@ -21,6 +21,8 @@ import TracePanel from './TracePanel'
 import TowerRail from './TowerRail'
 import { ActiveTool, usePhaseActive } from './workflow/PhasePanel'
 import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
+import { useDraw } from '../lib/drawTools'
+import DrawToolPanel from './draw/ToolPanel'
 import { designOf } from '../lib/workflow/phaseTools'
 import { toggleOverlays, useDock } from './ViewportDock'
 import { useTowerEdit } from '../lib/towerEdit'
@@ -119,6 +121,8 @@ export default function RightPanel() {
   useEffect(() => { if (positioning) setTab('properties') }, [positioning])
   // A site just set: Properties shows it (lib/siteFocus.ts) until a tower or a tool is picked.
   useEffect(() => watchSiteFocus(), [])
+  const drawReset = useDraw((s) => s.reset)
+  useEffect(() => { if (drawReset && useDraw.getState().tool !== 'select') setTab('properties') }, [drawReset])
   const siteSeq = useSiteFocus((s) => s.seq)
   useEffect(() => { if (siteSeq && !useStore.getState().phase.startsWith('present')) setTab('properties') }, [siteSeq])
   const tabs: { id: Tab; label: string }[] = present
@@ -165,6 +169,9 @@ export default function RightPanel() {
 function Properties({ positioning }: { positioning: boolean }) {
   const { phase, info, active } = usePhaseActive()
   const siteFocus = useSiteFocus((s) => s.on)
+  // A design tool other than Select is on: Properties is that tool (the workspace's toolPanel + snapping).
+  const drawTool = useDraw((s) => s.tool)
+  if (drawTool !== 'select') return <div data-testid="rp-properties" data-focus="tool"><DrawToolPanel /></div>
   // The Form step's own tools live in the left panel's Massing tab (12 Nov): here, the picked tower's properties.
   if (!siteFocus && phase === 'form' && active === designOf('form').id) return (
     <div data-testid="rp-properties" data-focus="tower">

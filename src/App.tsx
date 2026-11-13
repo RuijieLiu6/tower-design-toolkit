@@ -53,8 +53,8 @@ export default function App() {
       if (useProjectWorkflow.getState().mode === 'builder') return
       if (e.key === 'Escape') set({ placing: false, showOnboarding: false })
       if ((e.key === '[' || e.key === ']') && !e.ctrlKey && !e.metaKey && !e.altKey) { togglePanel(e.key === '[' ? 'left' : 'right'); return }
-      // Present locks the model, so placing is off there.
-      if ((e.key === 'p' || e.key === 'P') && s.phase !== 'present') set({ placing: !s.placing })
+      // P is Push / pull now (the design tools, components/draw/DrawTools.tsx); Place a tower is A.
+      void s
       // 1-5 move along the phase row (Site, Form, Program, Schematic, Present), like clicking it.
       const k = ['1', '2', '3', '4', '5'].indexOf(e.key)
       if (k >= 0 && !e.ctrlKey && !e.metaKey && !e.altKey) goToStep((['site', 'volume', 'program', 'plates', 'frame'] as const)[k])

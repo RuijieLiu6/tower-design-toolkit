@@ -24,6 +24,8 @@ import { useResults } from '../hooks/useResults'
 import ViewFromRig from './ViewFromRig'
 import VistaRig from './VistaRig'
 import VistaInset from './VistaInset'
+import DrawTools from './draw/DrawTools'
+import { DrawChrome } from './draw/ToolPanel'
 import { useHiddenTowers } from '../lib/hiddenTowers'
 import OutriggerFloors from './OutriggerFloors'
 import PlanDrawing from './PlanDrawing'
@@ -151,6 +153,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
       {ctx?.labels.filter((l) => !['N', 'SITE'].includes(l.text)).map((l, i) => (
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold quiet />
       ))}
+      <DrawTools baseZ={0} />
       {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
       <ModelOverlay base={0} xray={xray} />
       <PublicRealmOverlay />
@@ -181,6 +184,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <CityContext look={look} xray={xray} onPick={onPick} />
       <ViewFromRig />
       <VistaRig />
+      <DrawTools baseZ={ground} />
       {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}</TowerMover>)}
       <ModelOverlay base={ground} xray={xray} />
       <ConeOverlays base={ground} xray={xray} />
@@ -717,6 +721,7 @@ export default function Viewport() {
       {/* The view bar (DisplayModeSwitch.tsx ViewModeMenu): Capture, Frame, the view angles and the View mode, bottom centre. */}
       {!present && !hidden && <div className="pointer-events-none absolute left-3 top-3 z-20 flex [&>*]:pointer-events-auto"><ViewMenuSlot /></div>}
       {project === 'city' && !present && !hidden && <VistaInset />}
+      {!present && <DrawChrome />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
       {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}

@@ -58,7 +58,7 @@ export function useEditorRoot() {
 // Tower wrappers by group, so a click is traced to its tower through R3F's own hits for the press. A handler on the
 // wrapper would have R3F raycast every tower a second time on each press, click and wheel step.
 const wrappers = new WeakMap<THREE.Object3D, string>()
-function towerOf(hit: THREE.Object3D | undefined): string | null {
+export function towerOf(hit: THREE.Object3D | undefined): string | null {
   for (let o: THREE.Object3D | null = hit ?? null; o; o = o.parent) {
     const id = wrappers.get(o)
     if (id) return id
@@ -333,7 +333,8 @@ export default function TowerGizmo() {
         return
       }
       const k = e.key.toLowerCase()
-      if (k === 'm' || k === 'r' || k === 'l') {
+      // M / R / L are the design tools' Move, Rectangle and Line now (components/draw/DrawTools.tsx).
+      if (false && (k === 'm' || k === 'r' || k === 'l')) {
         if (!s.picked) {
           const sel = useStore.getState().selectedTower
           if (!sel) return

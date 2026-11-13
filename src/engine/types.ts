@@ -66,6 +66,8 @@ export interface Tower {
   stairPlacement?: StairPlacement
   /** Imported massing (research P14-M02/M04): floors come from slicing the model instead of the parametric box. */
   imported?: ImportedMass
+  /** A mass drawn with the shape tools (engine/drawn.ts); `imported` is built from it. */
+  drawn?: import('./drawn').DrawnMass
   /** Basement levels dug under the podium or the tower (engine/basement.ts); never floor area above grade. */
   basement?: import('./basement').Basement
   /** Schematic: interior layout (unit mix, hotel keys, activities). When set, lifts, egress and economics use its counts (engine/interior.ts). */

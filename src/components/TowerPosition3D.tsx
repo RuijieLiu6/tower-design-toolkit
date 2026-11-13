@@ -10,6 +10,7 @@ import type { Tower } from '../engine/types'
 import type { Ray3 } from '../lib/blockEdit'
 import { planeHit } from '../lib/blockEdit'
 import { siteFrame, towerUnderRay, useTowerPosition } from '../lib/towerPosition'
+import { useDraw } from '../lib/drawTools'
 import { beginDrag, cancelDrag, dragTo, endDrag, moveSnapped, noteGizmoPress, pickTower, poseOf, proposePlace, snapOptions, useTowerEdit } from '../lib/towerEdit'
 import { VTC_SITE } from '../lib/siteGeometry'
 import { useViewFromStore } from '../lib/viewFromStore'
@@ -70,6 +71,8 @@ export default function TowerPosition3D() {
     const drop = () => { if (press?.started) cancelDrag(); press = null; release(); el.style.cursor = '' }
     const onDown = (e: PointerEvent) => {
       if (e.target !== el || e.button !== 0 || e.ctrlKey || e.metaKey) return
+      // A design tool (components/draw/DrawTools.tsx) has the press: the Position drag stays out of it.
+      if (useDraw.getState().tool !== 'select') return
       // The gizmo's arrows and ring have seen the press first: their drag wins.
       if (useTowerEdit.getState().drag) return
       const ray = rayAt(e.clientX, e.clientY)

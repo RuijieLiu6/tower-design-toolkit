@@ -991,6 +991,10 @@
             }
           }
         },
+        "drawn": {
+          "type": "object",
+          "description": "A mass drawn with the shape tools: footprint, holes, base, storeys, floor height, core, part, seams."
+        },
         "material": {
           "type": "string",
           "maxLength": 40,
