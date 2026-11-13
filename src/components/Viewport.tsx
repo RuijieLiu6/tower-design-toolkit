@@ -46,6 +46,7 @@ import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
 import { VtcBaseModelPanel, VtcContextCard } from './VtcBaseModel'
 import VtcBriefSite from './VtcBriefSite'
+import { ViewMenuSlot } from './DisplayModeSwitch'
 import { PlainEnvironment, VtcContextModel, VtcLookBar, vtcSceneLook, type VtcLookId } from './VtcLook'
 import ViewGuard from './ViewGuard'
 import { BRIEF_SITE, useVtcSource } from '../lib/vtcContextSource'
@@ -710,6 +711,8 @@ export default function Viewport() {
       {project === 'vtc' && !present && <VtcDock />}
       {project === 'vtc' && !present && !hidden && <VtcContextCard />}
       {project === 'vtc' && !present && !hidden && <VtcLookBar />}
+      {/* The view bar (DisplayModeSwitch.tsx ViewModeMenu): Capture, Frame, the view angles and the View mode, bottom centre. */}
+      {!present && !hidden && <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 [&>*]:pointer-events-auto"><ViewMenuSlot /></div>}
       {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}

@@ -67,7 +67,9 @@ function PinView() {
 import { createPortal } from 'react-dom'
 import { create } from 'zustand'
 import { useRef, type ReactNode } from 'react'
-import { ChevronDown } from './icons'
+import { Camera, ChevronDown, ScanLine } from './icons'
+import { captureShot } from '../lib/capture'
+import { useTowerPosition } from '../lib/towerPosition'
 
 /** Where the View menu goes: the row with Working view (ContextPins) registers its slot here. */
 export const useViewMenuSlot = create<{ el: HTMLElement | null }>(() => ({ el: null }))
@@ -76,13 +78,21 @@ export function ViewMenuSlot() {
 }
 
 /** The View menu, rendered into the slot when there is one. */
-export function ViewModeMenu({ project, children }: { project: ProjectKind; children?: ReactNode }) {
+export function ViewModeMenu({ project, angles, onFrame, children }: { project: ProjectKind; angles?: ReactNode; onFrame?: () => void; children?: ReactNode }) {
   const slot = useViewMenuSlot((s) => s.el)
   if (!slot) return null
-  return createPortal(<ViewMenu project={project}>{children}</ViewMenu>, slot)
+  return createPortal(<ViewMenu project={project} angles={angles} onFrame={onFrame}>{children}</ViewMenu>, slot)
 }
 
-function ViewMenu({ project, children }: { project: ProjectKind; children?: ReactNode }) {
+const barBtn = 'flex h-8 items-center justify-center rounded-lg px-2 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent'
+
+// The view bar (12 Nov, after the Tower Workspace's bottom bar: "for the mode i want it to look like this, view angles
+// should also be part of this bar"): one pill along the bottom of the view with Capture, Frame, the view angles where
+// the site has them (Real Vancouver: City, Observer, Inspect, Plan) and the View mode with its menu (modes, Pin view,
+// the sun and the legend), which opens upward.
+function ViewMenu({ project, angles, onFrame, children }: { project: ProjectKind; angles?: ReactNode; onFrame?: () => void; children?: ReactNode }) {
+  const [shot, setShot] = useState(false)
+  useEffect(() => { if (!shot) return; const t = setTimeout(() => setShot(false), 1600); return () => clearTimeout(t) }, [shot])
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const shown = useShownMode()
@@ -100,15 +110,25 @@ function ViewMenu({ project, children }: { project: ProjectKind; children?: Reac
   const CurIcon = ICON[cur.id]
   return (
     <div ref={box} className="pointer-events-auto relative" data-testid="view-menu">
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={open} data-testid="view-menu-button"
-        title="View mode: how the model and its surroundings are drawn"
-        className={`flex items-center gap-1.5 rounded-lg border border-line bg-panel/95 px-2 py-0.5 text-meta text-ink ${focusRing} hover:border-boundary`}>
-        <CurIcon size={13} aria-hidden className="text-accent" />View: <b className="font-semibold">{cur.word}</b>{pinned && <Pin size={11} aria-label="pinned" className="text-accent" />}
-        <ChevronDown size={13} aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
+      <div role="toolbar" aria-label="View" data-testid="view-bar" className="flex items-center gap-0.5 rounded-2xl border border-line bg-panel p-1">
+        <button type="button" onClick={() => { if (captureShot(false)) setShot(true) }} aria-label="Capture the view" title="Capture the view: it joins your shots (Present shows them)" data-testid="view-capture" className={barBtn}>
+          <Camera size={18} aria-hidden />
+        </button>
+        <button type="button" onClick={() => (onFrame ? onFrame() : useTowerPosition.setState((s) => ({ frame: s.frame + 1 })))} aria-label="Frame the site and the tower" title="Frame the site and the tower" data-testid="view-frame" className={barBtn}>
+          <ScanLine size={18} aria-hidden />
+        </button>
+        {angles && <><span aria-hidden className="mx-0.5 h-5 w-px bg-line" /><div className="flex items-center gap-0.5" data-testid="view-angles">{angles}</div></>}
+        <span aria-hidden className="mx-0.5 h-5 w-px bg-line" />
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={open} data-testid="view-menu-button"
+          title="View mode: how the model and its surroundings are drawn" className={`${barBtn} gap-1.5 font-medium`}>
+          <CurIcon size={16} aria-hidden className="text-accent" />{cur.word}{pinned && <Pin size={12} aria-label="pinned" className="text-accent" />}
+          <ChevronDown size={14} aria-hidden className={`transition-transform ${open ? '' : 'rotate-180'}`} />
+        </button>
+        {shot && <span role="status" className="px-1.5 text-meta text-muted">Captured</span>}
+      </div>
       {open && (
         <div role="dialog" aria-label="View mode" data-testid="view-menu-panel"
-          className="absolute left-0 top-full z-30 mt-1.5 grid max-h-[min(36rem,70vh)] w-[min(26rem,calc(100vw-2rem))] gap-2 overflow-y-auto rounded-xl border border-line bg-panel p-2 text-meta text-ink shadow-float">
+          className="absolute bottom-full left-1/2 z-30 mb-2 grid -translate-x-1/2 max-h-[min(36rem,70vh)] w-[min(26rem,calc(100vw-2rem))] gap-2 overflow-y-auto rounded-xl border border-line bg-panel p-2 text-meta text-ink shadow-float">
           <div role="radiogroup" aria-label="View" data-testid="display-mode" className="grid gap-0.5">
             {DISPLAY_MODES.map((m) => {
               const Icon = ICON[m.id]

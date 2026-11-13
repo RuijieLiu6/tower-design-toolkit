@@ -3,7 +3,6 @@
 // the view works for, then one chip per layer it doesn't own: an analysis quantity kept by a pinned View, Real
 // Vancouver's protected view cones (always drawn as context), the height-limit surface. Each chip can be hidden in one
 // click; hiding never switches a check off or changes a result. Inside the 3D view's chunk (it reads the 3D stores).
-import { ViewMenuSlot } from './DisplayModeSwitch'
 import { Pin, X } from './icons'
 import { useStep } from '../lib/step'
 import { useStore, type ProjectKind } from '../store'
@@ -40,8 +39,6 @@ export default function ContextPins({ project, top }: { project: ProjectKind; to
       <span className="pointer-events-auto rounded-lg border border-line bg-panel/95 px-2 py-0.5 text-meta text-ink" title={view ? 'The view this tool works in; Pin view keeps a View while you switch tools' : 'This tool has no view of its own'}>
         Working view: <b className="font-semibold">{nameOf(active)}</b>{!analysis && <span className="text-warning"> · checks paused</span>}
       </span>
-      {/* the View menu sits here, beside the working view (DisplayModeSwitch.tsx ViewModeMenu) */}
-      <ViewMenuSlot />
       {items.map((i) => (
         <span key={i.key} data-pin={i.key} className="pointer-events-auto flex items-center gap-1 rounded-full border border-boundary bg-panel/95 py-0.5 pl-2 pr-0.5 text-meta text-ink" title={`Pinned context: ${i.label}, ${i.why}. Not part of ${nameOf(active)}.`}>
           <Pin size={12} aria-hidden className="text-muted" />Pinned context: {i.label}

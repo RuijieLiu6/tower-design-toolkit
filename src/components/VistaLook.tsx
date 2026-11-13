@@ -333,6 +333,21 @@ function useDefaultCone(): string | null {
   return controllingCone(cones.find((c) => c.tower.id === t.id)?.checks ?? []) ?? nearestCone(t.x, t.y)
 }
 
+/** The view angles (City, Observer, Inspect, Plan), drawn in the view bar at the bottom of the view (12 Nov). */
+function AngleButtons() {
+  const active = useActiveMode()
+  const defaultCone = useDefaultCone()
+  return <>
+    {MAP_MODES.filter((m) => m.id !== 'viewcone').map((m) => {
+      const on = m.id === active
+      return (
+        <button key={m.id} type="button" aria-pressed={on} title={m.title} onClick={() => chooseMode(m.id, defaultCone)} data-angle={m.id}
+          className={`flex h-8 items-center rounded-lg px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-subtle font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{m.label}</button>
+      )
+    })}
+  </>
+}
+
 function ModeTabs() {
   const active = useActiveMode()
   const hidden = useConeVisibility((s) => s.hidden)
@@ -360,12 +375,8 @@ function ModeTabs() {
             </button>,
           ]
         }
-        const on = m.id === active
-        return (
-          <button key={m.id} type="button" aria-pressed={on} title={m.title} onClick={() => chooseMode(m.id, defaultCone)}
-            className={`h-[30px] rounded-lg px-2 text-control ${on ? '' : 'hover:bg-subtle'} ${focusRing}`}
-            style={on ? { background: CHROME.active, color: CHROME.activeInk } : { color: CHROME.tabInk }}>{m.label}</button>
-        )
+        // City, Observer, Inspect and Plan are view angles: they live in the view bar at the bottom (AngleButtons, 12 Nov).
+        return []
       })}
       {/* Names: a toggle like Viewcone (Ruijie, 9 Nov: the neighbourhood names on and off from the view itself). */}
       <button type="button" aria-pressed={names} onClick={() => setPlaceNames(!names)} data-testid="names-toggle"
@@ -453,7 +464,7 @@ function Legend() {
     {/* The View menu at the top of the view (12 Nov): mode, Pin view, the sun and the key of the shown mode. Only an
         Analysis scale stays down here, since the colours can't be read without it. */}
     {mode === 'analysis' && <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink"><AnalysisLegend project="city" /></div>}
-    <ViewModeMenu project="city">
+    <ViewModeMenu project="city" angles={<AngleButtons />} onFrame={focusSite}>
       <div className="flex flex-wrap items-center gap-1.5"><SunChip /></div>
       {<>
         {mode === 'massing' && <MassingKey />}
