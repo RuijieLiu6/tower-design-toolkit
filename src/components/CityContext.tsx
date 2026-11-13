@@ -49,6 +49,7 @@ import { earClip } from '../lib/coneVolume'
 import { showAllCones, shownSummary, useConeVisibility } from '../lib/coneVisibility'
 import { SKYLINE_CAP_DEG } from '../engine/coneSection'
 import { useSiteStep } from '../lib/siteActions'
+import { buildingGroup } from '../lib/buildingGroup'
 
 
 interface CityData extends BuildingModel {
@@ -124,6 +125,7 @@ export function useCityData() {
       if (!detailedCache[model]) followTerrain(base)
       const data = await loadDetailedCity(base)
       followTerrain(data)
+      if (import.meta.env.DEV) (window as unknown as { __tdtCity: unknown }).__tdtCity = data
       if (live) setState({ data, error: null })
     }, (e: Error) => live && setState({ data: null, error: e.message }))
     return () => { live = false }
@@ -676,7 +678,8 @@ function SelectedBuildings({ data, hidden }: { data: CityData; hidden: ReadonlyS
     .filter((i): i is number => i !== null && !hidden.has(i)).sort((a, b) => a - b).join(',')
   const sel = useMemo(() => {
     if (!key) return null
-    const ids = new Set(key.split(',').map(Number)), h = data.heights, v = data.vista, at = citySurface(data).at
+    // Each click marks its whole building, not only the roof part under it (lib/buildingGroup.ts).
+    const ids = new Set(key.split(',').map(Number).flatMap((i) => buildingGroup(data.footprints, data.heights, data.vista?.osmId ?? null, i))), h = data.heights, v = data.vista, at = citySurface(data).at
     // The same base as the city mesh (VistaBuildingMesh), so the highlight sits exactly on the building.
     const base = (i: number) => (v && v.clearance[i] > 0 ? h!.ground[i] : data.footprints[i].outer.reduce((k, [x, y]) => Math.min(k, at(x, y)), h!.ground[i]) - BASE_SINK)
     const { geom } = prisms(data, (i) => ids.has(i) && hasHeight(h, i), base, (i) => h!.roof[i])

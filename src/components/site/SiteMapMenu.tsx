@@ -8,6 +8,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Box, Building2, Check, Combine, Hammer, MousePointerClick, Square, SquareMinus, SquarePlus, Undo2, X } from '../icons'
 import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useContextCard } from '../../lib/contextCard'
+import { buildingGroup } from '../../lib/buildingGroup'
 import { breakStep } from '../../lib/project/history'
 import * as THREE from 'three'
 import { footprintAt } from '../../engine/viewFrom'
@@ -244,7 +245,7 @@ function MenuAt({ data }: { data: CityData }) {
       place()
     } })
   if (menu.building !== null) {
-    items.push({ key: 'replace', icon: Hammer, word: 'Replace', label: 'Replace this building', hint: 'Your design replaces it: shown as demolished. Undo brings it back.', run: () => { close(); replaceBuildings([menu.building!], data.footprints, where, 'this building') } })
+    items.push({ key: 'replace', icon: Hammer, word: 'Replace', label: 'Replace this building', hint: 'Your design replaces it: shown as demolished. Undo brings it back.', run: () => { close(); replaceBuildings(buildingGroup(data.footprints, data.heights, data.vista?.osmId ?? null, menu.building!), data.footprints, where, 'this building') } })
     items.push({ key: 'multi', icon: MousePointerClick, word: 'Select', label: 'Select several buildings to replace', hint: 'Click more buildings (or Shift-click), then Done at the top of the view.', run: () => {
       close()
       useSiteStore.getState().set({ tool: 'pick', picked: [menu.building!], draft: [], message: null })
@@ -305,7 +306,7 @@ function MultiBar({ data }: { data: CityData }) {
     const list = [...picked]
     useSiteStore.getState().set({ tool: null, picked: [] })
     useSiteStep.setState({ multi: false })
-    if (list.length) replaceBuildings(list, data.footprints, undefined, `${ids.size} building${ids.size === 1 ? '' : 's'}`)
+    if (list.length) replaceBuildings([...new Set(list.flatMap((i) => buildingGroup(data.footprints, data.heights, data.vista?.osmId ?? null, i)))], data.footprints, undefined, `${ids.size} building${ids.size === 1 ? '' : 's'}`)
   }
   const cancel = () => { useSiteStore.getState().set({ tool: null, picked: [] }); useSiteStep.setState({ multi: false }); tell('Selection cancelled; nothing replaced.') }
   return (
