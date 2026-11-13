@@ -24,7 +24,8 @@ import { useDock } from './ViewportDock'
 const fmt = (v: number) => String(Math.round(v * 100) / 100)
 const focusRing = 'outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
-export default function TowerToolbar() {
+/** `docked`: drawn at the top of the right panel's Properties (12 Nov, "stuff like this should show up on the right panel"). */
+export default function TowerToolbar({ docked = false }: { docked?: boolean } = {}) {
   const picked = useTowerEdit((s) => s.picked)
   const move = useTowerEdit((s) => s.move)
   const rotate = useTowerEdit((s) => s.rotate)
@@ -69,11 +70,12 @@ export default function TowerToolbar() {
 
   return (
     <div role="toolbar" aria-label={`Selected tower: ${t.name}`}
-      className={`glass absolute left-3 ${top} z-10 flex ${width} flex-col gap-1 rounded-md border border-line bg-panel p-1 text-xs text-ink shadow-sm ${reduced ? '' : 'transition-opacity duration-200'} ${fade}`}>
+      data-testid="tower-card"
+      className={docked ? 'm-2 flex flex-col gap-1 rounded-lg border border-line bg-panel p-1 text-xs text-ink' : `glass absolute left-3 ${top} z-10 flex ${width} flex-col gap-1 rounded-md border border-line bg-panel p-1 text-xs text-ink shadow-sm ${reduced ? '' : 'transition-opacity duration-200'} ${fade}`}>
       <div className="flex items-center gap-1.5 px-1.5 pt-0.5">
         <Building2 size={14} aria-hidden className="shrink-0 text-accent" />
         <b className="truncate font-semibold">{t.name}</b>
-        <span className="shrink-0 tabular-nums text-slate-600">{formatLength(t.height, unit, 0)}{t.imported ? ' · imported' : ''}</span>
+        <span className="shrink-0 tabular-nums text-slate-600">{formatLength(t.height, unit, 0)}{t.drawn ? ' · drawn' : t.imported ? ' · imported' : ''}</span>
         <button type="button" onClick={clearPick} aria-label="Deselect the tower" aria-keyshortcuts="Escape" title="Deselect (Esc)"
           className={`ml-auto rounded p-1 text-slate-600 hover:bg-black/5 hover:text-ink ${focusRing}`}><X size={14} aria-hidden /></button>
       </div>

@@ -726,7 +726,7 @@ export default function Viewport() {
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
       {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
-      <TowerToolbar />
+      {/* The selected tower's card is at the top of the right panel's Properties now (RightPanel.tsx). */}
       <MassingEditReadout />
     </div>
   )

@@ -6,7 +6,9 @@
 import { Html, Line } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Box, Building2, Check, Combine, Hammer, MousePointerClick, Square, SquareMinus, SquarePlus, Undo2, X } from '../icons'
-import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { useContextCard } from '../../lib/contextCard'
+import { breakStep } from '../../lib/project/history'
 import * as THREE from 'three'
 import { footprintAt } from '../../engine/viewFrom'
 import { pointInRing, type Pt } from '../../engine/site'
@@ -205,6 +207,9 @@ function MenuAt({ data }: { data: CityData }) {
   const list = useRef<HTMLDivElement>(null)
   useEffect(() => { if (menu) requestAnimationFrame(() => list.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not([disabled])')?.focus()) }, [menu?.at[0], menu?.at[1]]) // eslint-disable-line react-hooks/exhaustive-deps
   const siteLots = useMemo(() => lotsOfSite(site, match?.included), [site, match])
+  // The card shows in the right panel (lib/contextCard.ts): cleared when the menu closes or this goes.
+  useEffect(() => { if (!menu) useContextCard.setState({ card: null }) }, [menu])
+  useEffect(() => () => useContextCard.setState({ card: null }), [])
   if (!menu) return null
   const t = towers.find((k) => k.id === sel) ?? towers[0]
   const where = { at: menu.at, z: menu.z, place: menu.place }
@@ -220,8 +225,17 @@ function MenuAt({ data }: { data: CityData }) {
       close()
       let k: typeof t | undefined = towers.length ? t : undefined
       if (!k) { useStore.getState().addTower(); const st = useStore.getState(); k = st.towers[st.project].find((x) => x.id === st.selectedTower) }
+      // Building on a lot outside the study site makes that lot the site (Sinnie, 12 Nov: "that's not my site, why is it
+      // still highlighted"): the site, its checks and its outline follow where the design is.
+      const lot = menu.lot, at = menu.at
+      const place = () => { if (k && proposePlace(k.id, at[0], at[1])) tell(`${k.name} moved here. Ctrl+Z undoes it.`, { ...where, panel: false }) }
+      if (lot !== null && !lotIn) {
+        const go = (l: ParcelLayer) => { breakStep(); siteFromLots([lot], lotLayerOf(l), data.footprints, 'use', where); place(); breakStep() }
+        if (layer) go(layer); else loadParcelLayer().then(go, () => place())
+        return
+      }
       // A note on the map only (no second note in Your site); moves apply at once since 6 Nov.
-      if (k && proposePlace(k.id, menu.at[0], menu.at[1])) tell(`${k.name} moved here. Ctrl+Z undoes it.`, { ...where, panel: false })
+      place()
     } })
   if (menu.building !== null) {
     items.push({ key: 'replace', icon: Hammer, word: 'Replace', label: 'Replace this building', hint: 'Your design replaces it: shown as demolished. Undo brings it back.', run: () => { close(); replaceBuildings([menu.building!], data.footprints, where, 'this building') } })
@@ -247,10 +261,9 @@ function MenuAt({ data }: { data: CityData }) {
     else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
   }
   return (
-    <Html position={[menu.at[0], menu.at[1], menu.z + 2]} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto' }}>
-      <div data-testid="site-map-menu" onKeyDown={onKey} onPointerDown={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}
-        style={{ transform: `translate(${menu.place?.left ? 'calc(-100% - 8px)' : '8px'}, ${menu.place?.up ? 'calc(-100% - 8px)' : '8px'})`, maxHeight: menu.place?.maxH }}
-        className={`${card} w-[17rem] overflow-y-auto p-1 text-meta`}>
+    <PublishCard key={`${menu.at[0]},${menu.at[1]}`} el={
+      <div data-testid="site-map-menu" onKeyDown={onKey}
+        className="rounded-lg border border-line bg-panel p-1 text-meta text-ink">
         <div className="flex items-start gap-1 px-2 pb-1 pt-1.5">
           <div className="min-w-0 flex-1 text-meta leading-snug text-muted">
             <div className="truncate" title={menu.buildingLabel ?? undefined}>{menu.buildingLabel ?? 'No building here'}</div>
@@ -263,9 +276,14 @@ function MenuAt({ data }: { data: CityData }) {
           <IconTile key={it.key} size="sm" role="menuitem" icon={it.icon} word={it.word} label={it.label} hint={it.hint} disabled={it.disabled} onClick={it.run} data-action={it.key} />
         ))}
         </div>
-      </div>
-    </Html>
+      </div>} />
   )
+}
+
+/** Hands the menu to the right panel each time it changes. */
+function PublishCard({ el }: { el: ReactNode }) {
+  useEffect(() => { useContextCard.setState((s) => ({ card: el, seq: s.seq + 1 })) })
+  return null
 }
 
 // ---------------------------------------------------------------- select several buildings: count and Done

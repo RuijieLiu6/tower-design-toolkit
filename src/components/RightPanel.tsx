@@ -23,9 +23,11 @@ import { ActiveTool, usePhaseActive } from './workflow/PhasePanel'
 import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
 import { useDraw } from '../lib/drawTools'
 import DrawToolPanel from './draw/ToolPanel'
+import TowerToolbar from './TowerToolbar'
+import { useContextCard } from '../lib/contextCard'
+import { useTowerEdit } from '../lib/towerEdit'
 import { designOf } from '../lib/workflow/phaseTools'
 import { toggleOverlays, useDock } from './ViewportDock'
-import { useTowerEdit } from '../lib/towerEdit'
 import { Eye, EyeOff, Layers, Magnet } from './icons'
 
 // The main session builds components/RenderTab.tsx (default export, no props). The glob finds it when it exists;
@@ -121,6 +123,10 @@ export default function RightPanel() {
   useEffect(() => { if (positioning) setTab('properties') }, [positioning])
   // A site just set: Properties shows it (lib/siteFocus.ts) until a tower or a tool is picked.
   useEffect(() => watchSiteFocus(), [])
+  // A card from the view (the map's lot menu, a picked tower) opens Properties.
+  const cardSeq = useContextCard((s) => s.seq)
+  const picked = useTowerEdit((s) => s.picked)
+  useEffect(() => { if ((cardSeq || picked) && !useStore.getState().phase.startsWith('present')) setTab('properties') }, [cardSeq, picked])
   const drawReset = useDraw((s) => s.reset)
   useEffect(() => { if (drawReset && useDraw.getState().tool !== 'select') setTab('properties') }, [drawReset])
   const siteSeq = useSiteFocus((s) => s.seq)
@@ -151,7 +157,7 @@ export default function RightPanel() {
       <div className="flex min-h-0 flex-1">
       {!present && <TowerRail />}
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="min-w-0 flex-1 overflow-y-auto">
-        {shown === 'properties' && <Properties positioning={positioning} />}
+        {shown === 'properties' && <><ContextCards /><Properties positioning={positioning} /></>}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
         {shown === 'present' && <PresentPanel />}
@@ -161,6 +167,17 @@ export default function RightPanel() {
       </div>
       {!present && <PanelFooter />}
     </aside>
+  )
+}
+
+/** Cards the 3D view hands over (lib/contextCard.ts): the map's click menu and the picked tower's tools. */
+function ContextCards() {
+  const card = useContextCard((s) => s.card)
+  return (
+    <>
+      {card && <div className="m-2" data-testid="rp-context-card">{card}</div>}
+      <TowerToolbar docked />
+    </>
   )
 }
 
