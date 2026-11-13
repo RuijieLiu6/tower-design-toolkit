@@ -16,7 +16,10 @@ import { useResults } from '../../hooks/useResults'
 import { digestResults } from '../../lib/trace/digest'
 import type { Info } from './WorkflowOverview'
 
-const W = 240, TOP = 2, BAND = 19, H = TOP + 5 * BAND + 1, GUT = 12, TILE = 9
+// Present is left out of the card (Sinnie, 12 Nov: "remove present from the node panel"): the card covers the design
+// work, Site to Schematic; the phase row and the editor still show Present.
+const LANES: PhaseId[] = PHASE_IDS.filter((p) => p !== 'present')
+const W = 240, TOP = 2, BAND = 22, H = TOP + LANES.length * BAND + 1, GUT = 12, TILE = 9
 
 export default function WorkflowPreview({ board, phase, active, info, home, collapsed, onFold, onOpen }: {
   board: Board; phase: PhaseId; active: string; info: (id: string) => Info; home: (id: string) => PhaseId
@@ -28,32 +31,40 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
     return { pass: lines.filter((l) => l.state === 'pass').length, warn: lines.filter((l) => l.state === 'warn').length, fail: lines.filter((l) => l.state === 'fail').length }
   }, [results])
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
-  const gi = PHASE_IDS.indexOf(phase)
+  const gi = LANES.indexOf(phase), pi = PHASE_IDS.indexOf(phase)
 
   // The editor's own layout (lib/workflow/dockLayout.ts, as in WorkflowOverview), drawn small: one band per phase, every
   // tool in its column in working order on its phase's band, Start before the first and Enter after the last.
   const pic = useMemo(() => {
     const layout = dockLayout(board)
     const order = runOrder(board)
+    const shown = (id: string) => id === 'start' || id === 'enter' || LANES.includes(phaseOf(id))
+    const kept = order.filter(shown)
     const laneOf = (id: string): number => {
-      if (id === 'start') return order.length ? PHASE_IDS.indexOf(phaseOf(order[0])) : 0
-      if (id === 'enter') return order.length ? PHASE_IDS.indexOf(phaseOf(order[order.length - 1])) : PHASE_IDS.length - 1
-      return PHASE_IDS.indexOf(phaseOf(id))
+      if (id === 'start') return kept.length ? LANES.indexOf(phaseOf(kept[0])) : 0
+      if (id === 'enter') return kept.length ? LANES.indexOf(phaseOf(kept[kept.length - 1])) : LANES.length - 1
+      return LANES.indexOf(phaseOf(id))
     }
-    const col = (W - GUT - 4) / Math.max(1, layout.cols)
+    // columns in the editor's order, without the Present tools
+    const ids = [...layout.at.entries()].filter(([id]) => shown(id)).sort((x, y) => x[1].col - y[1].col).map(([id]) => id)
+    const col = (W - GUT - 4) / Math.max(1, ids.length)
     const pos = new Map<string, [number, number]>()
-    for (const [id, p] of layout.at) pos.set(id, [GUT + p.col * col + col / 2, TOP + laneOf(id) * BAND + BAND / 2])
-    const rest = order.filter((id) => !isDesignNode(id))
-    return { pos, edges: layout.edges, nodes: [...layout.at.keys()].filter((id) => id !== 'start' && id !== 'enter'), rest, col }
+    ids.forEach((id, c) => pos.set(id, [GUT + c * col + col / 2, TOP + laneOf(id) * BAND + BAND / 2]))
+    const edges = layout.edges.filter((e) => shown(e.a) && shown(e.b))
+    // the path that went on into Present now ends at Enter
+    const last = kept[kept.length - 1]
+    if (last && !edges.some((e) => e.b === 'enter')) edges.push({ key: `${last}>enter`, a: last, b: 'enter', kind: 'main', level: 0 })
+    const rest = kept.filter((id) => !isDesignNode(id))
+    return { pos, edges, nodes: ids.filter((id) => id !== 'start' && id !== 'enter'), rest, col }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, phase, home])
 
-  const next = PHASE_IDS[gi + 1]
+  const next = PHASE_IDS[pi + 1]
   const d = designOf(phase)
   const here = pic.rest.filter((id) => phaseOf(id) === phase).length
 
   return (
-    <div data-testid="workflow-preview" className="mx-3 mt-2 rounded-xl border border-line bg-panel p-2">
+    <div data-testid="workflow-preview" className="glass-edge shrink-0 rounded-2xl bg-panel p-3">
       <div className="flex items-center gap-2 px-0.5">
         <span className="flex items-center gap-2 text-meta text-muted" title="Rules that pass, are near a limit, or need a look, across the checks that ran">
           <span className="flex items-center gap-1"><i aria-hidden className="block h-2 w-2 rounded-full" style={{ background: '#2e8b57' }} />{counts.pass}<span className="sr-only"> pass</span></span>
@@ -65,9 +76,9 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 block w-full cursor-pointer" role="img" data-testid="phase-map" onClick={() => openOverview('edit')}
-        aria-label={`The workflow: ${pic.rest.length + PHASE_IDS.length} tools; ${PHASE_NAME[phase]} and what it feeds are lit. Click to edit the workflow.`}>
+        aria-label={`The workflow: ${pic.rest.length + LANES.length} tools, Site to Schematic; ${PHASE_NAME[phase]} and what it feeds are lit. Click to edit the workflow.`}>
         <defs><marker id="wp-arrow" viewBox="0 0 6 6" refX={5} refY={3} markerWidth={4} markerHeight={4} orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={UI.edge} /></marker></defs>
-        {PHASE_IDS.map((p, i) => (
+        {LANES.map((p, i) => (
           <g key={p} data-lane={p}>
             <rect x={0} y={TOP + i * BAND + 0.5} width={W} height={BAND - 1} rx={4} fill={p === phase ? PHASE_COLOR[p].surface : i % 2 ? 'transparent' : UI.canvas} />
             <circle cx={6} cy={TOP + i * BAND + BAND / 2} r={2.6} fill={PHASE_COLOR[p].accent} onClick={(ev) => { ev.stopPropagation(); goToStep(PHASE_STEP[p]) }}><title>{PHASE_NAME[p]}</title></circle>
@@ -98,7 +109,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
       </svg>
 
       <div className="mt-1.5 flex items-center gap-1" role="group" aria-label="Phases">
-        {PHASE_IDS.map((p, i) => (
+        {LANES.map((p, i) => (
           <button key={p} type="button" onClick={() => goToStep(PHASE_STEP[p])} aria-label={PHASE_NAME[p]} aria-current={i === gi ? 'step' : undefined} title={PHASE_NAME[p]}
             style={i === gi ? { background: 'var(--color-ink)', borderColor: 'var(--color-ink)' } : undefined}
             className={`flex h-6 w-6 items-center justify-center rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-accent ${i === gi ? '' : 'border-line bg-panel hover:border-boundary'}`}>
@@ -112,7 +123,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
       {!collapsed && (
         <>
           <p className="mt-1.5 px-0.5 text-meta leading-snug">
-            <b className="text-ink">{gi + 1} · {PHASE_NAME[phase]}</b> <span className="text-muted">{d.about} {here} tool{here === 1 ? '' : 's'} here, of {pic.rest.length}.</span>
+            <b className="text-ink">{pi + 1} · {PHASE_NAME[phase]}</b> <span className="text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ' Its tools are in the panel below.'}</span>
           </p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <button type="button" onClick={() => openOverview('edit')} className="flex h-7 items-center rounded-lg bg-accent px-2.5 text-meta font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>

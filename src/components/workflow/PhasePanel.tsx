@@ -65,7 +65,8 @@ export function usePhaseActive() {
 }
 
 export default function PhasePanel() {
-  const { phase, info, home, design, rows, active } = usePhaseActive()
+  const { phase, wf, info, home, design, rows, active } = usePhaseActive()
+  const collapsed = usePhaseTools((s) => s.collapsed)
   const open = (id: string) => {
     usePhaseTools.getState().setActive(phase, id)
     if (!isDesignNode(id)) useStore.getState().selectNode(id)
@@ -83,7 +84,10 @@ export default function PhasePanel() {
   const head = 'flex h-8 items-center gap-1 rounded-lg bg-panel px-2 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
   return (
-    <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge panel-slide flex w-[var(--left-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel">
+    <div className="panel-slide flex w-[var(--left-w)] min-h-0 shrink-0 flex-col gap-2" data-testid="left-column">
+    {/* The workflow card on its own, as the Tower Workspace's node preview card: a separate panel above the phase panel. */}
+    <WorkflowPreview board={wf} phase={phase} active={active} info={info} home={home} collapsed={collapsed} onFold={() => usePhaseTools.getState().setCollapsed(!collapsed)} onOpen={open} />
+    <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-panel">
       {/* The phase's name and Hide. */}
       <div className="border-b border-line px-3 pb-2 pt-1.5">
         <div className="flex items-center gap-2">
@@ -99,6 +103,7 @@ export default function PhasePanel() {
         ? <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls"><ActiveTool key={active} id={active} phase={phase} info={info} /></div>
         : <SetupPanel phase={phase} />}
     </aside>
+    </div>
   )
 }
 
@@ -135,7 +140,6 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
 
   return (
     <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="flex shrink-0 flex-col border-b border-line pb-2">
-      <WorkflowPreview board={board} phase={phase} active={active} info={info} home={home} collapsed={collapsed} onFold={() => usePhaseTools.getState().setCollapsed(!collapsed)} onOpen={open} />
       <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
       {collapsed
         ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the tools">{summary}{loops ? ' ↻' : ''}</button>
