@@ -1,7 +1,7 @@
 // The workflow preview card (Sinnie, 12 Nov: "replace the workflow tab with what it looks like in the tower workspace"),
 // after the Tower Workspace's node preview card: a header with how the checks stand (pass / near a limit / to look at)
 // and an open icon, the whole workflow drawn small as the workflow editor draws it (a band per phase, the current one
-// tinted, every tool in working order on its phase's band, right-angle wires, Start and Enter), then a row of phase dots and a one-line guide with Next. The phase's tool list and Add tool stay under it (PhasePanel).
+// tinted, every tool in working order on its phase's band, right-angle wires, Start and Enter), then the guide: one dot per tool in working order (12 Nov: "node preview should go through every single tool, not just the phase"), the open tool's name and question, and Back / Next from tool to tool, across phases. The phase's tool list and Add tool stay under it (PhasePanel).
 import { useMemo, type ReactNode } from 'react'
 import { ExternalLink } from '../icons'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
@@ -10,11 +10,13 @@ import type { PhaseId } from '../../lib/phases'
 import { goToStep } from '../../lib/step'
 import type { Board } from '../../lib/workflowGraph'
 import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
-import { PHASE_IDS, PHASE_NAME, PHASE_STEP, designOf } from '../../lib/workflow/phaseTools'
+import { PHASE_IDS, PHASE_NAME, PHASE_STEP, designOf, usePhaseTools } from '../../lib/workflow/phaseTools'
 import { openOverview, runOrder } from '../../lib/workflow/projectWorkflow'
 import { useResults } from '../../hooks/useResults'
 import { digestResults } from '../../lib/trace/digest'
 import type { Info } from './WorkflowOverview'
+import { nodeById } from '../../data/registry'
+import { useStore } from '../../store'
 
 // All five phases, Present included (Sinnie, 12 Nov: "add present back to the node preview"); the phase row is gone, so
 // the card is where you move between them.
@@ -59,9 +61,21 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, phase, home])
 
-  const next = PHASE_IDS[pi + 1], prev = pi > 0 ? PHASE_IDS[pi - 1] : undefined
-  const d = designOf(phase)
-  const here = pic.rest.filter((id) => phaseOf(id) === phase).length
+  // The guide walks every tool of the workflow in working order; Back / Next and the dots open a tool (going to its phase).
+  const tools = useMemo(() => runOrder(board), [board])
+  const ti = tools.indexOf(active)
+  const pIdx = (id: string) => PHASE_IDS.indexOf(phaseOf(id))
+  const next = ti >= 0 ? tools[ti + 1] : tools.find((t) => pIdx(t) > pi)
+  const prev = ti >= 0 ? tools[ti - 1] : [...tools].reverse().find((t) => pIdx(t) < pi)
+  const goTool = (id: string) => {
+    const ph = phaseOf(id)
+    usePhaseTools.getState().setActive(ph, id)
+    if (!isDesignNode(id)) useStore.getState().selectNode(id)
+    if (ph !== phase) goToStep(PHASE_STEP[ph])
+  }
+  const curName = info(active).name
+  const about = designNode(active)?.about ?? nodeById(active)?.question ?? designOf(phase).about
+  void gi
 
   return (
     <div data-testid="workflow-preview" className="glass-edge shrink-0 rounded-2xl bg-panel p-3">
@@ -109,14 +123,20 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
         })}
       </svg>
 
-      <div className="mt-1.5 flex items-center gap-1" role="group" aria-label="Phases">
-        {LANES.map((p, i) => (
-          <button key={p} type="button" onClick={() => goToStep(PHASE_STEP[p])} aria-label={PHASE_NAME[p]} aria-current={i === gi ? 'step' : undefined} title={PHASE_NAME[p]}
-            style={i === gi ? { background: 'var(--color-ink)', borderColor: 'var(--color-ink)' } : undefined}
-            className={`flex h-6 w-6 items-center justify-center rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-accent ${i === gi ? '' : 'border-line bg-panel hover:border-boundary'}`}>
-            <i aria-hidden className="block h-2 w-2 rounded-full" style={{ background: i === gi ? '#fff' : PHASE_COLOR[p].accent, opacity: i < gi || i === gi ? 1 : 0.6 }} />
-          </button>
-        ))}
+      <div className="mt-1.5 flex items-center gap-1">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1" role="group" aria-label="Tools, in working order" data-testid="tool-dots">
+          {tools.map((id, i) => {
+            const on = id === active, ph = phaseOf(id), newPhase = i > 0 && phaseOf(tools[i - 1]) !== ph
+            return (
+              <button key={id} type="button" onClick={() => goTool(id)} data-tool={id} aria-label={`${i + 1}. ${info(id).name} (${PHASE_NAME[ph]})`} aria-current={on ? 'step' : undefined}
+                title={`${i + 1}. ${info(id).name} · ${PHASE_NAME[ph]}`}
+                style={on ? { background: 'var(--color-ink)', borderColor: 'var(--color-ink)' } : undefined}
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-accent ${newPhase ? 'ml-1.5' : ''} ${on ? '' : 'border-line bg-panel hover:border-boundary'}`}>
+                <i aria-hidden className="block h-2 w-2 rounded-full" style={{ background: on ? '#fff' : PHASE_COLOR[ph].accent, opacity: i <= ti ? 1 : 0.6 }} />
+              </button>
+            )
+          })}
+        </div>
         <button type="button" onClick={onFold} data-testid="phase-collapse" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the guide and the tools' : 'Fold the guide and the tools'}
           className="ml-auto flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{collapsed ? '›' : '‹'}</button>
       </div>
@@ -125,18 +145,18 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
         <>
           {/* the same type as the rest of the app: a 14 px title over a 12 px description, 14 px buttons 32 px tall */}
           <div className="mt-2 px-0.5">
-            <h3 className="text-control font-semibold text-ink">{pi + 1} · {PHASE_NAME[phase]}</h3>
-            <p className="text-meta text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ''}</p>
+            <h3 className="text-control font-semibold text-ink" data-testid="guide-title">{ti >= 0 ? `${ti + 1} of ${tools.length} · ` : ''}{curName}</h3>
+            <p className="text-meta text-muted"><span style={{ color: PHASE_COLOR[phase].ink }}>{PHASE_NAME[phase]}</span> · {about}</p>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <button type="button" onClick={() => openOverview('edit')} className="flex h-8 items-center rounded-lg bg-accent px-2.5 text-control font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
-            {/* Back and Next step along the phases (12 Nov: "give me the option to go back"); their phase is on hover */}
+            {/* Back and Next step from tool to tool (12 Nov), into the next phase when a phase's tools end; the tool is on hover */}
             <span className="ml-auto flex items-center gap-1.5">
-              <button type="button" onClick={() => prev && goToStep(PHASE_STEP[prev])} disabled={!prev} data-testid="workflow-back"
-                aria-label={prev ? `Back to ${PHASE_NAME[prev]}` : 'Back: this is the first phase'} title={prev ? `Back to ${PHASE_NAME[prev]}` : 'This is the first phase'}
+              <button type="button" onClick={() => prev && goTool(prev)} disabled={!prev} data-testid="workflow-back"
+                aria-label={prev ? `Back to ${info(prev).name}` : 'Back: this is the first tool'} title={prev ? `Back to ${info(prev).name} (${PHASE_NAME[phaseOf(prev)]})` : 'This is the first tool'}
                 className="flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">‹ Back</button>
-              <button type="button" onClick={() => next && goToStep(PHASE_STEP[next])} disabled={!next} data-testid="workflow-next"
-                aria-label={next ? `Next: ${PHASE_NAME[next]}` : 'Next: this is the last phase'} title={next ? `Next: ${PHASE_NAME[next]}` : 'This is the last phase'}
+              <button type="button" onClick={() => next && goTool(next)} disabled={!next} data-testid="workflow-next"
+                aria-label={next ? `Next: ${info(next).name}` : 'Next: this is the last tool'} title={next ? `Next: ${info(next).name} (${PHASE_NAME[phaseOf(next)]})` : 'This is the last tool'}
                 className="flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">Next ›</button>
             </span>
           </div>
