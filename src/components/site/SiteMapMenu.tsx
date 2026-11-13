@@ -270,9 +270,11 @@ function MenuAt({ data }: { data: CityData }) {
     else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
   }
   return (
-    <PublishCard key={`${menu.at[0]},${menu.at[1]}`} el={
-      <div data-testid="site-map-menu" onKeyDown={onKey}
-        className="rounded-lg border border-line bg-panel p-1 text-meta text-ink">
+    // Floating at the click again (12 Nov, Sinnie: "can you revert back to a floating panel").
+    <Html position={[menu.at[0], menu.at[1], menu.z + 2]} zIndexRange={[40, 30]} style={{ pointerEvents: 'auto' }}>
+      <div data-testid="site-map-menu" onKeyDown={onKey} onPointerDown={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}
+        style={{ transform: `translate(${menu.place?.left ? 'calc(-100% - 8px)' : '8px'}, ${menu.place?.up ? 'calc(-100% - 8px)' : '8px'})`, maxHeight: menu.place?.maxH }}
+        className={`${card} w-[17rem] overflow-y-auto p-1 text-meta`}>
         <div className="flex items-start gap-1 px-2 pb-1 pt-1.5">
           <div className="min-w-0 flex-1 text-meta leading-snug text-muted">
             <div className="truncate" title={menu.buildingLabel ?? undefined}>{menu.buildingLabel ?? 'No building here'}</div>
@@ -285,7 +287,8 @@ function MenuAt({ data }: { data: CityData }) {
           <IconTile key={it.key} size="sm" role="menuitem" icon={it.icon} word={it.word} label={it.label} hint={it.hint} disabled={it.disabled} onClick={it.run} data-action={it.key} />
         ))}
         </div>
-      </div>} />
+      </div>
+    </Html>
   )
 }
 
