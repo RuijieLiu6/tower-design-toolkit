@@ -8,6 +8,7 @@
 import { ArrowRight, Combine, Crosshair, FileUp, MousePointerClick } from '../icons'
 import type { Pt } from '../../engine/site'
 import { tell, useSiteStep } from '../../lib/siteActions'
+import { useEffect } from 'react'
 import { useSiteStore } from '../../lib/siteStore'
 import { useImportStore } from '../../lib/import/store'
 import { useTransfer } from '../../lib/porting/transfer'
@@ -73,11 +74,26 @@ function CityStart() {
   const onPlace = (p: Pt, label: string, source: string) => placeSiteAt(p, label, source, data?.footprints)
   // The tools only: the site as it stands is the right panel's Your site tab (Ruijie, 5 Nov: "keep the left side only
   // things"; site/SiteInfo.tsx).
+  // A set site is locked (12-13 Nov, Sinnie): another one only after "Select another site"; a new site locks it again.
+  const site = useStore((s) => s.citySite)
+  const reselect = useSiteStep((s) => s.reselect)
+  const open = !site || reselect
+  useEffect(() => () => useSiteStep.setState({ reselect: false }), [])
   return (
     <>
-      <Step n="1" title="Type an address" help="Type a street address or a neighbourhood. Place site here takes the City parcel at the address; Move Study tower here moves the tower without changing the site."><AddressSearch onPlace={onPlace} bare /></Step>
-      <Step n="2" title="Or pick on the map" help={<PickOnMapHelp />}><PickOnMap /></Step>
-      <DefaultSite />
+      {site && (
+        <div className="flex items-center gap-2 border-b border-line px-3 py-2.5" data-testid="site-current-row">
+          <span className="min-w-0 flex-1 truncate text-meta text-muted" title={site.label ?? undefined}>Site: <span className="text-ink">{site.label ?? 'Study site'}</span></span>
+          <button type="button" data-testid="site-reselect" aria-pressed={reselect} onClick={() => useSiteStep.setState({ reselect: !reselect })}
+            className={`shrink-0 rounded-lg border px-2 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${reselect ? 'border-accent bg-selected text-accent-hover' : 'border-line bg-panel text-ink hover:border-boundary'}`}>
+            {reselect ? 'Cancel' : 'Select another site'}</button>
+        </div>
+      )}
+      {open && <>
+        <Step n="1" title="Type an address" help="Type a street address or a neighbourhood. Place site here takes the City parcel at the address; Move Study tower here moves the tower without changing the site."><AddressSearch onPlace={onPlace} bare /></Step>
+        <Step n="2" title="Or pick on the map" help={<PickOnMapHelp />}><PickOnMap /></Step>
+        <DefaultSite />
+      </>}
       <SunArea />
       <SiteFooter />
     </>

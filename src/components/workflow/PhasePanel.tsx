@@ -36,7 +36,6 @@ import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
 import WorkflowPreview from './WorkflowPreview'
-import SetupPanel from '../setup/SetupPanel'
 
 export type Portion = ReturnType<typeof phasePortion>
 const TILE = 24
@@ -96,9 +95,9 @@ export default function PhasePanel() {
     <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-panel">
       {/* Present keeps its strip of shots here; the other phases show the set-up tabs (the open tool's controls are in
           the right panel's Properties tab, as in the Tower Workspace). */}
-      {phase === 'present'
-        ? <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls"><ActiveTool key={active} id={active} phase={phase} info={info} /></div>
-        : <SetupPanel phase={phase} />}
+      {/* 13 Nov (Sinnie: "revert it back to this version of the left panel, but keep the node preview"): the open tool's
+          controls again, in every phase; the Site / Massing / Material / Program tabs (setup/SetupPanel.tsx) are off. */}
+      <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls"><ActiveTool key={active} id={active} phase={phase} info={info} /></div>
     </aside>
     </div>
   )

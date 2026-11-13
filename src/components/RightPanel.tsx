@@ -186,6 +186,8 @@ function ContextCards() {
 function Properties({ positioning }: { positioning: boolean }) {
   const { phase, info, active } = usePhaseActive()
   const siteFocus = useSiteFocus((s) => s.on)
+  const hasTower = useStore((s) => s.towers[s.project].length > 0)
+  void info
   // A design tool other than Select is on: Properties is that tool (the workspace's toolPanel + snapping).
   const drawTool = useDraw((s) => s.tool)
   if (drawTool !== 'select') return <div data-testid="rp-properties" data-focus="tool"><DrawToolPanel /></div>
@@ -202,10 +204,10 @@ function Properties({ positioning }: { positioning: boolean }) {
       <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteInfo /></Suspense>
     </div>
   )
+  // The open tool is in the left panel again (13 Nov): here, the selected tower, or the site when there is none.
   return (
-    <div data-testid="rp-properties">
-      {positioning && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
-      <ActiveTool key={active} id={active} phase={phase} info={info} />
+    <div data-testid="rp-properties" data-focus={hasTower ? 'tower' : 'site'}>
+      <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}>{hasTower ? <TowerProperties /> : <SiteInfo />}</Suspense>
     </div>
   )
 }
