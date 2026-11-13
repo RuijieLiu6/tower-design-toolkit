@@ -1,14 +1,14 @@
 // The workflow preview card (Sinnie, 12 Nov: "replace the workflow tab with what it looks like in the tower workspace"),
 // after the Tower Workspace's node preview card: a header with how the checks stand (pass / near a limit / to look at)
-// and an open icon, the whole workflow drawn small (one coloured square per phase on the left, every other tool as a dot
-// in working order on its phase's lane, wires between them), the current phase and everything it feeds lit, then a row
-// of phase dots and a one-line guide with Next. The phase's tool list and Add tool stay under it (PhasePanel).
+// and an open icon, the whole workflow drawn small as the workflow editor draws it (a band per phase, the current one
+// tinted, every tool in working order on its phase's band, right-angle wires, Start and Enter), then a row of phase dots and a one-line guide with Next. The phase's tool list and Add tool stay under it (PhasePanel).
 import { useMemo } from 'react'
 import { ExternalLink } from '../icons'
-import { PHASE_COLOR } from '../../lib/design/tokens'
+import { PHASE_COLOR, UI } from '../../lib/design/tokens'
+import { dockLayout } from '../../lib/workflow/dockLayout'
 import type { PhaseId } from '../../lib/phases'
 import { goToStep } from '../../lib/step'
-import { returnEdges, edgeKey, type Board } from '../../lib/workflowGraph'
+import type { Board } from '../../lib/workflowGraph'
 import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
 import { PHASE_IDS, PHASE_NAME, PHASE_STEP, designOf } from '../../lib/workflow/phaseTools'
 import { openOverview, runOrder } from '../../lib/workflow/projectWorkflow'
@@ -16,8 +16,7 @@ import { useResults } from '../../hooks/useResults'
 import { digestResults } from '../../lib/trace/digest'
 import type { Info } from './WorkflowOverview'
 
-const W = 240, H = 100, LANE = (i: number) => 12 + i * 19
-const LIT = '#6f8576', CHECK = '#5f7f9c'
+const W = 240, TOP = 2, BAND = 19, H = TOP + 5 * BAND + 1, GUT = 12, TILE = 9
 
 export default function WorkflowPreview({ board, phase, active, info, home, collapsed, onFold, onOpen }: {
   board: Board; phase: PhaseId; active: string; info: (id: string) => Info; home: (id: string) => PhaseId
@@ -31,32 +30,24 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
   const gi = PHASE_IDS.indexOf(phase)
 
+  // The editor's own layout (lib/workflow/dockLayout.ts, as in WorkflowOverview), drawn small: one band per phase, every
+  // tool in its column in working order on its phase's band, Start before the first and Enter after the last.
   const pic = useMemo(() => {
+    const layout = dockLayout(board)
     const order = runOrder(board)
-    const back = returnEdges(board.edges)
-    const rest = order.filter((id) => !isDesignNode(id))
+    const laneOf = (id: string): number => {
+      if (id === 'start') return order.length ? PHASE_IDS.indexOf(phaseOf(order[0])) : 0
+      if (id === 'enter') return order.length ? PHASE_IDS.indexOf(phaseOf(order[order.length - 1])) : PHASE_IDS.length - 1
+      return PHASE_IDS.indexOf(phaseOf(id))
+    }
+    const col = (W - GUT - 4) / Math.max(1, layout.cols)
     const pos = new Map<string, [number, number]>()
-    PHASE_IDS.forEach((p, i) => pos.set(designOf(p).id, [14, LANE(i)]))
-    rest.forEach((id, i) => {
-      const lane = PHASE_IDS.indexOf(phaseOf(id))
-      pos.set(id, [44 + (rest.length > 1 ? i / (rest.length - 1) : 0.5) * (W - 58), LANE(lane) + (i % 2 ? 4 : -4)])
-    })
-    // the current phase and everything it feeds (forward wires only: a loop back does not light the earlier work)
-    const lit = new Set(order.filter((id) => phaseOf(id) === phase))
-    lit.add(designOf(phase).id)
-    let grew = true
-    while (grew) { grew = false; for (const e of board.edges) if (!back.has(edgeKey(e)) && lit.has(e.a) && !lit.has(e.b)) { lit.add(e.b); grew = true } }
-    return { pos, rest, lit, back }
+    for (const [id, p] of layout.at) pos.set(id, [GUT + p.col * col + col / 2, TOP + laneOf(id) * BAND + BAND / 2])
+    const rest = order.filter((id) => !isDesignNode(id))
+    return { pos, edges: layout.edges, nodes: [...layout.at.keys()].filter((id) => id !== 'start' && id !== 'enter'), rest, col }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, phase, home])
 
-  const wire = (a: string, b: string, on: boolean, loop: boolean) => {
-    const A = pic.pos.get(a), B = pic.pos.get(b)
-    if (!A || !B) return null
-    const mx = (A[0] + B[0]) / 2
-    return <path key={`${a}>${b}`} d={`M${A[0]} ${A[1]}C${mx} ${A[1]} ${mx} ${B[1]} ${B[0]} ${B[1]}`} fill="none" stroke={on ? LIT : 'var(--color-line, #d9dee7)'} strokeWidth={on ? 1.3 : 1} strokeDasharray={loop ? '3 2' : undefined} />
-  }
-  const edgeOn = (a: string) => pic.lit.has(a)
   const next = PHASE_IDS[gi + 1]
   const d = designOf(phase)
   const here = pic.rest.filter((id) => phaseOf(id) === phase).length
@@ -75,24 +66,32 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
 
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 block w-full cursor-pointer" role="img" data-testid="phase-map" onClick={() => openOverview('edit')}
         aria-label={`The workflow: ${pic.rest.length + PHASE_IDS.length} tools; ${PHASE_NAME[phase]} and what it feeds are lit. Click to edit the workflow.`}>
-        {board.edges.filter((e) => !edgeOn(e.a)).map((e) => wire(e.a, e.b, false, pic.back.has(edgeKey(e))))}
-        {board.edges.filter((e) => edgeOn(e.a)).map((e) => wire(e.a, e.b, true, pic.back.has(edgeKey(e))))}
-        {pic.rest.map((id) => {
-          const [x, y] = pic.pos.get(id)!, l = pic.lit.has(id), open = id === active
-          return (
-            <g key={id} data-map-node={id} data-here={phaseOf(id) === phase ? '' : undefined}
-              onClick={(ev) => { ev.stopPropagation(); if (phaseOf(id) === phase) onOpen(id); else goToStep(PHASE_STEP[phaseOf(id)]) }}>
-              {(l || open) && <circle cx={x} cy={y} r={open ? 7.2 : 6.4} fill="var(--color-panel, #fff)" stroke={open ? PHASE_COLOR[phase].ink : LIT} strokeWidth={1.2} />}
-              <circle cx={x} cy={y} r={4} fill={id.startsWith('community.') ? '#c9a227' : CHECK} opacity={l ? 1 : 0.28}><title>{`${PHASE_NAME[phaseOf(id)]} / ${info(id).name}`}</title></circle>
-            </g>
-          )
+        <defs><marker id="wp-arrow" viewBox="0 0 6 6" refX={5} refY={3} markerWidth={4} markerHeight={4} orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={UI.edge} /></marker></defs>
+        {PHASE_IDS.map((p, i) => (
+          <g key={p} data-lane={p}>
+            <rect x={0} y={TOP + i * BAND + 0.5} width={W} height={BAND - 1} rx={4} fill={p === phase ? PHASE_COLOR[p].surface : i % 2 ? 'transparent' : UI.canvas} />
+            <circle cx={6} cy={TOP + i * BAND + BAND / 2} r={2.6} fill={PHASE_COLOR[p].accent} onClick={(ev) => { ev.stopPropagation(); goToStep(PHASE_STEP[p]) }}><title>{PHASE_NAME[p]}</title></circle>
+          </g>
+        ))}
+        {pic.edges.map((e) => {
+          const A = pic.pos.get(e.a), B = pic.pos.get(e.b)
+          if (!A || !B) return null
+          const r = TILE / 2 + 1.5
+          let d: string
+          if (e.kind === 'return') { const y0 = Math.min(A[1], B[1]) - r - 2 - e.level * 3; d = `M${A[0]},${A[1] - r} C${A[0]},${y0} ${B[0]},${y0} ${B[0]},${B[1] - r}` }
+          else if (A[1] === B[1]) d = `M${A[0] + r},${A[1]} L${B[0] - r},${B[1]}`
+          else { const mx = A[0] + pic.col / 2; d = `M${A[0] + r},${A[1]} L${mx},${A[1]} L${mx},${B[1]} L${B[0] - r},${B[1]}` }
+          return <path key={e.key} d={d} fill="none" stroke={UI.edge} strokeWidth={0.8} strokeDasharray={e.kind === 'return' ? '2 1.5' : undefined} markerEnd="url(#wp-arrow)" />
         })}
-        {PHASE_IDS.map((p, i) => {
-          const on = p === phase, [x, y] = [14, LANE(i)]
+        {(() => { const S = pic.pos.get('start'); return S ? <path d={`M${S[0] - 2.5},${S[1] - 3.2} L${S[0] + 3},${S[1]} L${S[0] - 2.5},${S[1] + 3.2} Z`} fill="none" stroke={UI.control} strokeWidth={0.9}><title>Start</title></path> : null })()}
+        {(() => { const E = pic.pos.get('enter'); return E ? <g><circle cx={E[0]} cy={E[1]} r={TILE / 2 + 0.5} fill={UI.accent} /><path d={`M${E[0] - 2.4},${E[1]} L${E[0] + 2.4},${E[1]} M${E[0] + 0.6},${E[1] - 1.8} L${E[0] + 2.4},${E[1]} L${E[0] + 0.6},${E[1] + 1.8}`} stroke="#fff" strokeWidth={0.9} fill="none" /><title>Enter</title></g> : null })()}
+        {pic.nodes.map((id) => {
+          const [x, y] = pic.pos.get(id)!, ph = phaseOf(id), open = id === active
           return (
-            <g key={p} data-src={p} onClick={(ev) => { ev.stopPropagation(); goToStep(PHASE_STEP[p]) }}>
-              {on && <rect x={x - 9.5} y={y - 9.5} width={19} height={19} rx={5} fill="var(--color-panel, #fff)" stroke={LIT} strokeWidth={1.4} />}
-              <rect x={x - 5.5} y={y - 5.5} width={11} height={11} rx={2.5} fill={PHASE_COLOR[p].accent} opacity={on || pic.lit.has(designOf(p).id) ? 1 : 0.55}><title>{PHASE_NAME[p]}</title></rect>
+            <g key={id} data-map-node={id} data-here={ph === phase ? '' : undefined}
+              onClick={(ev) => { ev.stopPropagation(); if (ph === phase) onOpen(id); else goToStep(PHASE_STEP[ph]) }}>
+              <rect x={x - TILE / 2} y={y - TILE / 2} width={TILE} height={TILE} rx={2.5} fill="#fff" stroke={open ? UI.accent : UI.line} strokeWidth={open ? 1.2 : 0.7} />
+              <rect x={x - 2.2} y={y - 2.2} width={4.4} height={4.4} rx={1} fill={id.startsWith('community.') ? '#c9a227' : PHASE_COLOR[ph].accent}><title>{`${PHASE_NAME[ph]} / ${info(id).name}`}</title></rect>
             </g>
           )
         })}
