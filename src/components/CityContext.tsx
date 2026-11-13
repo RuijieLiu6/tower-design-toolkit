@@ -3,7 +3,7 @@
 import { dataFetch, noteManifest, trackedFetch } from '../lib/loadProgress'
 import { Line } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { LOOKS, type Look } from '../data/stages'
@@ -44,7 +44,7 @@ import { ViewportDock, useDock } from './ViewportDock'
 import { ExistingConeCrossings, coneCrossingsFor } from './ConeVolumes'
 import VistaCones, { ConeVisibilityPanel } from './VistaCones'
 import { earClip } from '../lib/coneVolume'
-import { shownSummary, useConeVisibility } from '../lib/coneVisibility'
+import { showAllCones, shownSummary, useConeVisibility } from '../lib/coneVisibility'
 import { SKYLINE_CAP_DEG } from '../engine/coneSection'
 import { useSiteStep } from '../lib/siteActions'
 
@@ -1189,7 +1189,7 @@ export function CityLegend() {
   const layersOn = useContextLayers((s) => Object.values(s.on).filter(Boolean).length)
   const estimates = CONES.filter((c) => CONE_PARAMS[c.id]).length
   // Was a permanent box over the top-left of the view; now a note that stays dismissed once dismissed.
-  const hint = { id: 'city-cones', content: <><b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b className="text-ink">{estimates} have an estimated height limit</b> (solid outline, ceiling drawn in Vista's study-ceiling colour); the other <b className="text-ink">{CONES.length - estimates} are dashed: no City estimate</b> until the City answers Request 0, so their ceiling is Vista's study surface (an assumption). Show or hide them with the Viewcone tab. Ground, buildings and mountains are real data: see Data sources below.</> }
+  const hint = { id: 'city-cones', content: <><b className="text-ink">{CONES.length} protected view cones</b> (City open data). <b className="text-ink">{estimates} have an estimated height limit</b> (solid outline, ceiling drawn in Vista's study-ceiling colour); the other <b className="text-ink">{CONES.length - estimates} are dashed: no City estimate</b> until the City answers Request 0, so their ceiling is Vista's study surface (an assumption). Show or hide them with View cones under Show. Ground, buildings and mountains are real data: see Data sources below.</> }
   const sources = 'Data sources & context layers'
   if (error) {
     return <ViewportDock anchored hint={hint} sections={[{ id: 'sources', title: sources, defaultOpen: true, children: (
@@ -1206,7 +1206,18 @@ export function CityLegend() {
   const fas = manifest.layers.flatMap((l) => l.false_assumptions ?? [])
   return (
     <ViewportDock anchored hint={hint} sections={[
-      { id: 'sources', title: sources, summary: `${firstLoad.length} · ${mb(total)}${onDemand ? ` · ${onDemand} on demand` : ''}`, children: (
+      // Simplified (12 Nov: "simplify this panel, and merge the view cone and names with it"): the switches people use
+      // first, then the extra layers, then every setting and source folded into one section (nothing removed).
+      { id: 'show', title: 'Show', defaultOpen: true, children: <QuickLayers /> },
+      { id: 'more', title: 'More layers', summary: layersOn ? `${layersOn} on` : 'load when switched on', children: <ContextLayersPanel manifest={manifest} bare /> },
+      { id: 'settings', title: 'Settings & sources', summary: `style, ground, cones · ${firstLoad.length} sources`, children: (
+        <div className="space-y-4">
+          <SettingsPart title="Style & building types"><StyleCard data={data} /></SettingsPart>
+          <SettingsPart title={`Ground & tower base · ${base.toFixed(1)} m, ${mode === 'terrain' ? 'from the terrain' : 'set by hand'}`}><GroundCard data={data} bare /></SettingsPart>
+          <SettingsPart title={`Existing buildings under the design · ${hideOn ? (hiddenCount ? `${hiddenCount.toLocaleString()} hidden` : 'none under the design') : 'all drawn'}`}><HideUnderDesignCard bare /></SettingsPart>
+          <SettingsPart title="Height-limit surface & cone parameters"><HeightSurfacePanel bare /></SettingsPart>
+          <SettingsPart title="View cone layers"><ConeLayersInfo data={data} /></SettingsPart>
+          <SettingsPart title={`${sources} · ${firstLoad.length} · ${mb(total)}${onDemand ? ` · ${onDemand} on demand` : ''}`}>
         <div className="space-y-2">
           <p role="status">
             {data.detailStatus === 'loading' ? 'Loading buildings, streets and terrain…' : `Ground: ${data.ground.length ? 'City LiDAR 1 m where covered' : 'MRDEM 30 m'} · Mountains: ${data.r2.step} m`}
@@ -1255,13 +1266,42 @@ export function CityLegend() {
           ))}
           <p className="text-meta text-slate-500">{[...new Set(manifest.layers.map((l) => l.attribution))].join(' ')}</p>
         </div>
+</SettingsPart>
+        </div>
       ) },
-      { id: 'style', title: 'Style & building types', defaultOpen: true, summary: style === 'context' ? 'Context (Vista textures)' : 'Plain', children: <StyleCard data={data} /> },
-      { id: 'ground', title: 'Ground & tower base', defaultOpen: true, summary: `${base.toFixed(1)} m · ${mode === 'terrain' ? 'from the terrain' : 'set by hand'}`, children: <GroundCard data={data} bare /> },
-      { id: 'existing', title: 'Existing buildings under the design', summary: hideOn ? (hiddenCount ? `${hiddenCount.toLocaleString()} hidden (hypothetical)` : 'none under the design') : 'all drawn', children: <HideUnderDesignCard bare /> },
-      { id: 'height', title: 'Height-limit surface & cone parameters', summary: surfaceOn ? 'surface on' : 'off', children: <HeightSurfacePanel bare /> },
-      { id: 'cones', title: 'View cone layers', summary: <ConeSummary />, children: <ConeLayersInfo data={data} /> },
-      { id: 'more', title: 'More layers', summary: layersOn ? `${layersOn} on` : 'load when switched on', children: <ContextLayersPanel manifest={manifest} bare /> },
     ]} />
+  )
+}
+
+/** One part of Settings & sources: a small heading over the card it used to be a section of. */
+function SettingsPart({ title, children }: { title: string; children: ReactNode }) {
+  return <div><h4 className="mb-1 text-meta font-semibold text-ink">{title}</h4>{children}</div>
+}
+
+/** The Layers panel's first section: the switches people reach for, view cones and place names included (they were tabs
+ * over the view until 12 Nov). */
+function QuickLayers() {
+  const conesShown = useConeVisibility((s) => CONES.some((c) => !s.hidden[c.id]))
+  const names = useVistaLook((s) => s.labels)
+  const surface = useHeightSurface((s) => s.on)
+  const hideUnder = useHideUnderDesign((s) => s.on)
+  const rows: { id: string; label: string; hint: string; on: boolean; set: (v: boolean) => void }[] = [
+    { id: 'cones', label: 'View cones', hint: 'The City’s protected public views, all on or all off (pick single cones in Settings › View cone layers)', on: conesShown, set: (v) => showAllCones(v) },
+    { id: 'names', label: 'Place names', hint: 'Neighbourhood and street names over the city', on: names, set: (v) => setPlaceNames(v) },
+    { id: 'surface', label: 'Height-limit surface', hint: 'The estimated limit under the view cones, drawn as a surface', on: surface, set: (v) => useHeightSurface.setState({ on: v }) },
+    { id: 'under', label: 'Hide buildings under the design', hint: 'Existing buildings where your towers and site stand (hypothetical)', on: hideUnder, set: (v) => useHideUnderDesign.setState({ on: v }) },
+  ]
+  return (
+    <ul className="space-y-1" data-testid="quick-layers">
+      {rows.map((r) => (
+        <li key={r.id} className="flex items-center justify-between gap-2">
+          <span className="min-w-0"><span className="block text-control text-ink">{r.label}</span><span className="block text-meta text-muted">{r.hint}</span></span>
+          <button type="button" role="switch" aria-checked={r.on} aria-label={r.label} onClick={() => r.set(!r.on)} data-layer={r.id}
+            className="relative h-5 w-9 shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent" style={{ background: r.on ? 'var(--color-accent)' : 'var(--color-boundary)' }}>
+            <span aria-hidden className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${r.on ? 'left-[1.125rem]' : 'left-0.5'}`} />
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }

@@ -36,9 +36,8 @@ export default function ContextPins({ project, top }: { project: ProjectKind; to
   const view = TOOL_VIEW[active]
   return (
     <div className={`pointer-events-none absolute left-3 ${top} z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1`} data-testid="context-pins" data-active={active}>
-      <span className="pointer-events-auto rounded-lg border border-line bg-panel/95 px-2 py-0.5 text-meta text-ink" title={view ? 'The view this tool works in; Pin view keeps a View while you switch tools' : 'This tool has no view of its own'}>
-        Working view: <b className="font-semibold">{nameOf(active)}</b>{!analysis && <span className="text-warning"> · checks paused</span>}
-      </span>
+      {/* "Working view: …" is gone (12 Nov); the View button in the view bar shows the mode. Paused checks still say so. */}
+      {!analysis && <span className="pointer-events-auto rounded-lg border border-line bg-panel/95 px-2 py-0.5 text-meta text-warning">Checks paused</span>}
       {items.map((i) => (
         <span key={i.key} data-pin={i.key} className="pointer-events-auto flex items-center gap-1 rounded-full border border-boundary bg-panel/95 py-0.5 pl-2 pr-0.5 text-meta text-ink" title={`Pinned context: ${i.label}, ${i.why}. Not part of ${nameOf(active)}.`}>
           <Pin size={12} aria-hidden className="text-muted" />Pinned context: {i.label}
