@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, type ComponentType, type CSSProperties } from 'react'
 import SwRunner from './components/sw/SwRunner'
 import { startPresentSync } from './lib/presentPage'
+import { startSiteView } from './lib/siteView'
 const BoardComposer = lazy(() => import('./components/boards/BoardComposer'))
 import { togglePanel, usePanels, usePanelWidths } from './lib/panels'
 import { PanelRail, PanelResizer } from './components/PanelToggle'
@@ -52,7 +53,7 @@ export default function App() {
   useEffect(() => { if (route === 'workflow' && useProjectWorkflow.getState().mode !== 'builder') openBuilder() }, [route])
 
   // Step following and the first step, which the phase row used to start (the row is gone; the Workflow card has the phases).
-  useEffect(() => { const stop = startStepFollow(); startOnSite(whenRestored()); const stop2 = startPresentSync(); return () => { stop(); stop2() } }, [])
+  useEffect(() => { const stop = startStepFollow(); startOnSite(whenRestored()); const stop2 = startPresentSync(); const stop3 = startSiteView(); return () => { stop(); stop2(); stop3() } }, [])
   useEffect(() => { document.title = `${stageDef(phase).label} · Tower Design Toolkit` }, [phase])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
