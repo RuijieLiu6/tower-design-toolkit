@@ -11,7 +11,7 @@ import { goToStep } from '../../lib/step'
 import { returnEdges, edgeKey, type Board } from '../../lib/workflowGraph'
 import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
 import { PHASE_IDS, PHASE_NAME, PHASE_STEP, designOf } from '../../lib/workflow/phaseTools'
-import { openBuilder, runOrder } from '../../lib/workflow/projectWorkflow'
+import { openOverview, runOrder } from '../../lib/workflow/projectWorkflow'
 import { useResults } from '../../hooks/useResults'
 import { digestResults } from '../../lib/trace/digest'
 import type { Info } from './WorkflowOverview'
@@ -69,12 +69,12 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
           <span className="flex items-center gap-1"><i aria-hidden className="block h-2 w-2 rounded-full" style={{ background: '#d98b1c' }} />{counts.warn}<span className="sr-only"> near a limit</span></span>
           <span className="flex items-center gap-1"><i aria-hidden className="block h-2 w-2 rounded-full" style={{ background: '#d0453a' }} />{counts.fail}<span className="sr-only"> to look at</span></span>
         </span>
-        <button type="button" onClick={() => openBuilder()} data-testid="phase-edit" title="Open the workflow builder (the same as Edit workflow in the project bar)" aria-label="Open the workflow builder"
+        <button type="button" onClick={() => openOverview('edit')} data-testid="phase-edit" title="Edit the workflow in the centre view: add tools from the shelf, drag, connect and loop them, then Confirm" aria-label="Edit the workflow"
           className="ml-auto flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><ExternalLink size={14} aria-hidden /></button>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 block w-full cursor-pointer" role="img" data-testid="phase-map" onClick={() => openBuilder()}
-        aria-label={`The workflow: ${pic.rest.length + PHASE_IDS.length} tools; ${PHASE_NAME[phase]} and what it feeds are lit. Click to open the workflow builder.`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 block w-full cursor-pointer" role="img" data-testid="phase-map" onClick={() => openOverview('edit')}
+        aria-label={`The workflow: ${pic.rest.length + PHASE_IDS.length} tools; ${PHASE_NAME[phase]} and what it feeds are lit. Click to edit the workflow.`}>
         {board.edges.filter((e) => !edgeOn(e.a)).map((e) => wire(e.a, e.b, false, pic.back.has(edgeKey(e))))}
         {board.edges.filter((e) => edgeOn(e.a)).map((e) => wire(e.a, e.b, true, pic.back.has(edgeKey(e))))}
         {pic.rest.map((id) => {
@@ -116,7 +116,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
             <b className="text-ink">{gi + 1} · {PHASE_NAME[phase]}</b> <span className="text-muted">{d.about} {here} tool{here === 1 ? '' : 's'} here, of {pic.rest.length}.</span>
           </p>
           <div className="mt-1.5 flex items-center gap-1.5">
-            <button type="button" onClick={() => openBuilder()} className="flex h-7 items-center rounded-lg bg-accent px-2.5 text-meta font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
+            <button type="button" onClick={() => openOverview('edit')} className="flex h-7 items-center rounded-lg bg-accent px-2.5 text-meta font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
             <button type="button" onClick={() => next && goToStep(PHASE_STEP[next])} disabled={!next} data-testid="workflow-next"
               className="flex h-7 items-center rounded-lg border border-line bg-panel px-2.5 text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">{next ? `Next: ${PHASE_NAME[next]} ›` : 'Last phase'}</button>
           </div>

@@ -162,7 +162,7 @@ States: default, hover, keyboard focus, selected, disabled, loading, empty, erro
 
 - **One home per control (12 Nov).** Every action is set in one place. Any other button for it is a shortcut that opens that place, with the same behaviour:
   - Import and Export: the project bar dialogs (transfer centre). The project menu, the Site panel's Upload, the Results model panel, the Rhino tool and a file dropped on the start page open the same Import, on the model step. Re-import of one massing and the Rhino live re-read keep their direct path.
-  - Workflow editing: the workflow builder (Edit workflow). The Workflow list's Edit opens it too; the centre editor is its Quick edit.
+  - Workflow editing: the project bar's Edit workflow opens the full builder; the Workflow card in the phase panel opens the centre editor (as before). The builder's Quick edit also opens the centre editor.
   - Phases: the phase row. Keys 1 to 5 move along it.
   - Capture: Present › Capture (PNG, Print). The project bar and phase panel Capture add to the strip.
   - Display mode: the View bar over the model. Present repeats it. The project bar's 3D / graph switch is "Screen".
