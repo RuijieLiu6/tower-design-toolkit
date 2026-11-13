@@ -74,7 +74,7 @@ export interface Board { id: string; template: TemplateId; frames: Frame[]; /** 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
 export const SHEET_SIZES = { A3: { label: 'A3 landscape', k: 420 / 594 }, A2: { label: 'A2 landscape (competition)', k: 1 }, A1: { label: 'A1 landscape', k: 841 / 594 } } as const
 export type SheetSize = keyof typeof SHEET_SIZES
-export const MAX_SHEETS = 8
+export const MAX_SHEETS = 40
 
 /** A sheet's name: the one given, else the first line of its title, else its place. */
 export function sheetName(b: Board, i: number): string {

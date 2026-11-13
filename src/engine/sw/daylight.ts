@@ -135,11 +135,11 @@ function inFloor(f: SwFloor, G: DlGrid) {
 const faceIdx: Record<Face, number> = { N: 0, E: 1, S: 2, W: 3 }
 
 /* ---------- sky component and split-flux IRC (daylightFloor, first half) ---------- */
-interface SkyPart {
+export interface SkyPart {
   G: DlGrid; sc: Float32Array; df: Float32Array; cellList: number[]; Wg: Record<Face, number>; ircDF: number; fo: Record<Face, number>
   Rfw: number; Rcw: number; Rm: number; Atot: number; kI: number; sum: number; n: number; step: number
 }
-function skyPart(f: SwFloor, zones: FacadeZone[], o: DaylightOptions, step: number, sub: number): SkyPart {
+export function skyPart(f: SwFloor, zones: FacadeZone[], o: DaylightOptions, step: number, sub: number): SkyPart {
   const noDev = !!o.noDev, hh = f.h - GAP, tau = (o.vt ?? GLASS_VT) * DL_R.maint, lvl = f.level
   const obs = obstructionAngles(f, o.ctx ?? [])
   const NR = DL_R.rays, dphi = (2 * Math.PI) / NR, dirs: [number, number][] = []

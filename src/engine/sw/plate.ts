@@ -222,7 +222,8 @@ export function swFloors(t: Tower, northDeg: number, cell = 1): SwFloor[] {
   const coreHalf = Math.sqrt(Math.max(0, (t.coreShare ?? 0.25) * towerPlate)) / 2
   const memo = new Map<string, Pick<SwFloor, 'rings' | 'mask' | 'edges'>>()
   return plates.map(({ f, rings }, i): SwFloor => {
-    const local = rings.map((r) => { const q = r.map(toLocal); return ringArea(q) < 0 ? q.reverse() : q })
+    // counter-clockwise, so each edge's outward normal (uy, -ux) points out of the plate (this sum is negative for a counter-clockwise ring)
+    const local = rings.map((r) => { const q = r.map(toLocal); return ringArea(q) > 0 ? q.reverse() : q })
     const key = JSON.stringify(local.map((r) => r.map((p) => [Math.round(p[0] * 10), Math.round(p[1] * 10)])))
     let g = memo.get(key)
     if (!g) {

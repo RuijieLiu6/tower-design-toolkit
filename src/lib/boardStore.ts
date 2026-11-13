@@ -7,6 +7,9 @@ import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, newBoard, type Sh
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
 
+/** The drawings of one workflow phase for the Architectural set (lib/boardCapture.ts). */
+export interface ArchGroup { title: string; items: { imageId: string; caption: string }[] }
+
 export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[] }
 
 interface BoardState {
@@ -32,6 +35,8 @@ interface BoardState {
   renameBoard: (i: number, name: string) => void
   /** Makes the five sheets of the drawing set (site plan, floor plans, elevations, section, axonometric and analysis); what was on them is kept aside. */
   makeDrawingSet: (typicalLevel: number, topLevel: number) => void
+  /** The Architectural set: the drawing set's sheets, then analysis sheets (six drawings each) for every workflow phase. */
+  makeArchSet: (typicalLevel: number, topLevel: number, groups: ArchGroup[]) => void
   setOpen: (open: boolean) => void
   select: (board: number, frame?: string | null) => void
   setTemplate: (board: number, t: TemplateId) => void
@@ -76,7 +81,7 @@ async function loadImages(): Promise<BoardImage[]> {
 }
 
 // ---------------------------------------------------------------- store
-export const useBoardStore = create<BoardState>()(persist((set) => ({
+export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   open: false,
   boards: freshBoards(),
   images: {},
@@ -125,6 +130,27 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
     fill(4, 'grid', 'Axonometric and analysis', [null, null, null, null])
     return { boards, parked: [...s.parked, ...kept], exports: {}, selected: { board: 0, frame: null } }
   }),
+  makeArchSet: (typ, top, groups) => {
+    get().makeDrawingSet(typ, top)
+    set((s) => {
+      // The fifth sheet of the drawing set (left for analysis) and any earlier analysis sheets give way to the new ones.
+      const base = s.boards.slice(0, 4)
+      const later = s.boards.slice(5).filter((b) => !b.id.startsWith('arch-'))
+      const M = 12, G = 6, TITLE_H = 20, W = 594, H = 420, y0 = M + TITLE_H + G, cols = 3, rows = 2
+      const fw = (W - 2 * M - (cols - 1) * G) / cols, fh = (H - y0 - M - (rows - 1) * G) / rows
+      const sheets: Board[] = []
+      for (const g of groups) {
+        const pages = Math.ceil(g.items.length / (cols * rows))
+        for (let p = 0; p < pages; p++) {
+          const name = `${g.title} analysis${pages > 1 ? ` ${p + 1} of ${pages}` : ''}`
+          const frames: Frame[] = [{ id: 'f0', x: M, y: M, w: W - 2 * M, h: TITLE_H, role: 'title', content: { kind: 'text', text: name, sizeMm: 9, bold: true }, tag: null }]
+          g.items.slice(p * cols * rows, (p + 1) * cols * rows).forEach((it, k) => frames.push({ id: `f${k + 1}`, x: M + (k % cols) * (fw + G), y: y0 + Math.floor(k / cols) * (fh + G), w: fw, h: fh, role: 'body', content: { kind: 'image', imageId: it.imageId, fit: 'contain' }, caption: it.caption, tag: null }))
+          sheets.push({ id: `arch-${sheets.length + 1}-${Date.now().toString(36)}`, template: 'grid', name, frames })
+        }
+      }
+      return { boards: [...base, ...sheets, ...later].slice(0, MAX_SHEETS), exports: {}, selected: { board: 0, frame: null } }
+    })
+  },
   setOpen: (open) => set({ open }),
   select: (board, frame = null) => set({ selected: { board, frame } }),
   setTemplate: (i, t) => set((s) => {

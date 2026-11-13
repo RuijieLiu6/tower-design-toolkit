@@ -11,7 +11,7 @@ import { LAWSON_BANDS, type WindStudy } from '../../engine/sw/wind'
 import type { Grid } from '../../engine/shadow'
 import type { Tower } from '../../engine/types'
 import { useSwOut, type SwId } from '../../lib/swRun'
-import { DaylightPlanFig, LightHourBody } from './SwResults'
+import DaylightStudio from './DaylightStudio'
 import { InteriorDrawings } from './SwInteriorResults'
 
 export type SwView = 'ground' | 'faces' | 'zones' | 'plan'
@@ -124,13 +124,12 @@ export function SwKey({ id, towers }: { id: SwId; towers: Tower[] }) {
 /** The interior studies: the floor plan of the level studied, drawn large. */
 export function SwPlanView({ id }: { id: SwId }) {
   const out = useSwOut((s) => s.out[id])
+  // The daylight tools share one viewer: the plan of the level with one layer at a time, as Sun & Wind Studio's plan view.
+  if (id === 'built.sw-daylight' || id === 'built.sw-daylight-factor' || id === 'built.sw-light-hour') return <DaylightStudio id={id} />
   if (!out) return <p className="p-4 text-meta text-muted" role="status">Working…</p>
   return (
     <div className="h-full overflow-auto p-4" data-testid="sw-plan-view">
       <div className="mx-auto grid max-w-[44rem] gap-3 [&_[data-testid=floor-plan]]:!max-w-none">
-        {id === 'built.sw-daylight' && <DaylightPlanFig layer="da" />}
-        {id === 'built.sw-daylight-factor' && <DaylightPlanFig layer="df" />}
-        {id === 'built.sw-light-hour' && <LightHourBody />}
         {(id === 'built.sw-natvent' || id === 'built.sw-airflow' || id === 'built.sw-indoor-temp') && <InteriorDrawings id={id} />}
       </div>
     </div>

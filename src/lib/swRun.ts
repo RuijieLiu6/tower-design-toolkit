@@ -4,7 +4,8 @@
 // analysis view and the checklists read one run.
 import { create } from 'zustand'
 import { towerOccluders } from '../engine/solarRules'
-import { aseTower, daylightTower, lightAtHour, type DaylightTower, type AseTower, type LightAtHour } from '../engine/sw/daylight'
+import { aseTower, daylightTower, type DaylightTower, type AseTower } from '../engine/sw/daylight'
+import { hourBase, hourLight, type HourLight } from '../engine/sw/hourLight'
 import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult } from '../engine/sw/energy'
 import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type Face, type SwFloor } from '../engine/sw/plate'
 import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainTower, type RoofWater } from '../engine/sw/rain'
@@ -22,14 +23,16 @@ export const SW_IDS = ['built.sw-shadow', 'built.sw-sun-faces', 'built.sw-pv', '
 export type SwId = (typeof SW_IDS)[number]
 export const isSw = (id: string | null | undefined): id is SwId => !!id && (SW_IDS as readonly string[]).includes(id)
 
-export interface SwOut { rules: RuleResult[]; data: Record<string, unknown>; ms: number; key: string; /** The key readings as visual rows (the Studio's keyItems). */ keys?: KeySpec[] }
+export interface SwOut { rules: RuleResult[]; data: Record<string, unknown>; ms: number; key: string; /** The key readings as visual rows (the Studio's keyItems). */ keys?: SwKey[] }
+/** A key reading with the Studio's badge wording ("3 pts", "glare", "medium"). */
+export type SwKey = KeySpec & { badge?: string }
 
 /** The Studio's colours for the Lawson bands, the indoor temperature bins and the heat-loss paths. */
 export const BAND_COL = ['#3E8E7E', '#8FC17A', '#E3C25C', '#E08A3C', '#B8362B'], BAND_NAME = ['sitting', 'standing', 'strolling', 'walking', 'uncomfortable']
 export const T_COL = ['#3E6FB0', '#9CC3E4', '#86BE7E', '#F0B357', '#D2493A'], T_NAME = ['Under 18 °C', '18–20', '20–26', '26–28', 'Over 28 °C']
 export const LOSS_COL = { glass: '#5B8FC9', wall: '#A0857A', roof: '#7C6A8E', vent: '#3FA7A0', infil: '#B7C3CE' }
 /** One key reading (study.js KR). */
-export const key = (id: string, label: string, std: string, value: string, state: RuleState, tip: string, more: Partial<KeySpec> = {}): KeySpec => ({ id, label, std, value, state, tip, ...more })
+export const key = (id: string, label: string, std: string, value: string, state: RuleState, tip: string, more: Partial<SwKey> = {}): SwKey => ({ id, label, std, value, state, tip, ...more })
 /** The tallest tower's floors (the one the interior studies draw) and every block around, in the north frame. */
 export function mainTower(inp: SwInputs) {
   const t = [...inp.towers].sort((a, b) => b.height - a.height)[0]
@@ -225,9 +228,9 @@ const RUNS: Partial<Record<SwId, Run>> = {
     return {
       data: { per, sda, ase, pts },
       keys: [
-        key('sw-sda', 'Daylight autonomy', 'LEED', pc(sda), pts >= 2 ? 'pass' : pts === 1 ? 'warn' : 'fail', `LEED v4.1 EQ Daylight, option 1: sDA${s.dlTarget}/50%, the share of the floor that reaches ${s.dlTarget} lux from daylight for at least half the occupied hours. 40 / 55 / 75% earn 1 / 2 / 3 points (${pts} now). Blinds ${s.blinds ? 'come down as in IES LM-83' : 'are taken as up all year'}.`, { bar: { max: 1, v: sda, zone: [0.4, 1], ticks: [[0.4, '40'], [0.55, '55'], [0.75, '75%']] } }),
-        key('sw-ase', 'Sunlight exposure', 'LEED', pc(ase), ase <= 0.1 ? 'pass' : 'warn', 'ASE1000/250h: the share of the floor in direct sun over 1,000 lux for more than 250 hours a year. At most 10%, or show glare control.', { bar: { max: 0.3, v: Math.min(0.3, ase), zone: [0, 0.1], ticks: [[0.1, '10% max']] } }),
-        ...(D0 && D0.enMin != null ? [key('sw-en', 'Daylight provision', 'EN 17037', pc(D0.enMin), D0.enMin >= 0.75 ? 'pass' : D0.enMin >= 0.5 ? 'warn' : 'fail', `Share of floor area that meets the EN 17037 minimum level (300 lux on half a floor and 100 lux on 95% of it, in half the daylight hours); ${pc(D0.enMed ?? 0)} reach medium and ${pc(D0.enHigh ?? 0)} high.`, { bar: { max: 1, v: D0.enMin, zone: [0.75, 1], ticks: [[0.5, '50'], [0.75, '75%']] } })] : []),
+        key('sw-sda', 'Daylight autonomy', 'LEED', pc(sda), pts >= 2 ? 'pass' : pts === 1 ? 'warn' : 'fail', `LEED v4.1 EQ Daylight, option 1: sDA${s.dlTarget}/50%, the share of the floor that reaches ${s.dlTarget} lux from daylight for at least half the occupied hours. 40 / 55 / 75% earn 1 / 2 / 3 points (${pts} now). Blinds ${s.blinds ? 'come down as in IES LM-83' : 'are taken as up all year'}.`, { badge: `${pts} pt${pts === 1 ? '' : 's'}`, bar: { max: 1, v: sda, zone: [0.4, 1], ticks: [[0.4, '40'], [0.55, '55'], [0.75, '75%']] } }),
+        key('sw-ase', 'Sunlight exposure', 'LEED', pc(ase), ase <= 0.1 ? 'pass' : 'warn', 'ASE1000/250h: the share of the floor in direct sun over 1,000 lux for more than 250 hours a year. At most 10%, or show glare control.', { badge: ase <= 0.1 ? 'meets' : 'glare', bar: { max: 0.3, v: Math.min(0.3, ase), zone: [0, 0.1], ticks: [[0.1, '10% max']] } }),
+        ...(D0 && D0.enMin != null ? [key('sw-en', 'Daylight provision', 'EN 17037', pc(D0.enMin), D0.enMin >= 0.75 ? 'pass' : D0.enMin >= 0.5 ? 'warn' : 'fail', `Share of floor area that meets the EN 17037 minimum level (300 lux on half a floor and 100 lux on 95% of it, in half the daylight hours); ${pc(D0.enMed ?? 0)} reach medium and ${pc(D0.enHigh ?? 0)} high.`, { badge: (D0.enHigh ?? 0) >= 0.5 ? 'high' : (D0.enMed ?? 0) >= 0.5 ? 'medium' : D0.enMin >= 0.5 ? 'minimum' : 'not met', bar: { max: 1, v: D0.enMin, zone: [0.75, 1], ticks: [[0.5, '50'], [0.75, '75%']] } })] : []),
       ],
       rules: [
         rule('sw-sda', `Daylight autonomy (sDA${s.dlTarget}/50%, LEED)`, pc(sda), '40 / 55 / 75% for 1 / 2 / 3 points', pts >= 2 ? 'pass' : pts === 1 ? 'warn' : 'fail', `${pts} LEED point${pts === 1 ? '' : 's'}; blinds ${s.blinds ? 'operated as LM-83' : 'up'}.`, { label: 'LEED v4.1 EQ Daylight option 1; IES LM-83' }),
@@ -245,8 +248,8 @@ const RUNS: Partial<Record<SwId, Run>> = {
     return {
       data: { per, mean, enMin, enMed },
       keys: [
-        key('sw-df', 'Daylight factor', 'mean', `${(mean * 100).toFixed(1)}%`, mean >= 0.02 ? 'pass' : mean >= 0.01 ? 'warn' : 'fail', 'Mean daylight factor under an overcast sky. 2% reads as well daylit; under 1% needs electric light most of the day.', { bar: { max: 0.05, v: Math.min(0.05, mean), zone: [0.02, 0.05], ticks: [[0.01, '1'], [0.02, '2%']] } }),
-        ...(enMin != null ? [key('sw-en17037', 'Daylight provision', 'EN 17037', pc(enMin), enMin >= 0.75 ? 'pass' : enMin >= 0.5 ? 'warn' : 'fail', `Share of floor area that meets the EN 17037 minimum level${enMed != null ? `; ${pc(enMed)} reach the medium level` : ''}.`, { bar: { max: 1, v: enMin, zone: [0.75, 1], ticks: [[0.5, '50'], [0.75, '75%']] } })] : []),
+        key('sw-df', 'Daylight factor', 'mean', `${(mean * 100).toFixed(1)}%`, mean >= 0.02 ? 'pass' : mean >= 0.01 ? 'warn' : 'fail', 'Mean daylight factor under an overcast sky. 2% reads as well daylit; under 1% needs electric light most of the day.', { badge: mean >= 0.02 ? 'well daylit' : mean >= 0.01 ? 'fair' : 'dim', bar: { max: 0.05, v: Math.min(0.05, mean), zone: [0.02, 0.05], ticks: [[0.01, '1'], [0.02, '2%']] } }),
+        ...(enMin != null ? [key('sw-en17037', 'Daylight provision', 'EN 17037', pc(enMin), enMin >= 0.75 ? 'pass' : enMin >= 0.5 ? 'warn' : 'fail', `Share of floor area that meets the EN 17037 minimum level${enMed != null ? `; ${pc(enMed)} reach the medium level` : ''}.`, { badge: (enMed ?? 0) >= 0.5 ? 'medium' : enMin >= 0.5 ? 'minimum' : 'not met', bar: { max: 1, v: enMin, zone: [0.75, 1], ticks: [[0.5, '50'], [0.75, '75%']] } })] : []),
         key('sw-udi', 'Useful daylight', 'UDI', pc(udi[1]), 'unknown', 'Share of occupied hours, averaged over the floors: too dark for daylight alone, useful, or so bright that blinds come down.', { stack: { parts: udi, colors: ['#cfd4da', '#E09A2C', '#B8362B'], names: ['under 100 lux', 'useful 100–3,000', 'over 3,000 lux'] } }),
       ],
       rules: [
@@ -256,17 +259,19 @@ const RUNS: Partial<Record<SwId, Run>> = {
     }
   },
   'built.sw-light-hour': (inp, s) => {
-    const pf = planFloor(inp, s, 0.5)
+    const pf = planFloor(inp, s, 1)
     if (!pf) return { data: {}, rules: [] }
-    const L: LightAtHour = lightAtHour(pf.f, zonesOf(pf.t), inp.C, { doy: doyOf(s.month, s.day), hour: s.hour }, { ctx: inp.ctxBlocks, blinds: s.blinds })
+    // The sun patch traced through the openings as built (mullions, fins, slats) on the fine grid, as the viewer draws it.
+    const zones = zonesOf(pf.t), opts = { ctx: inp.ctxBlocks, blinds: s.blinds }, doy = doyOf(s.month, s.day)
+    const L: HourLight = hourLight(pf.f, zones, inp.C, { doy, hour: s.hour }, opts)
     // The same floor through the day on a coarser grid (the Studio's time bar): share over 300 lux at each clock hour.
-    const pc2 = planFloor(inp, s, 2)
-    const day = pc2 ? Array.from({ length: 15 }, (_, i) => { const h = 6 + i; const x = lightAtHour(pc2.f, zonesOf(pc2.t), inp.C, { doy: doyOf(s.month, s.day), hour: h }, { ctx: inp.ctxBlocks, blinds: s.blinds }); return { h, over300: x.sunUp || x.over300 > 0 ? x.over300 : 0, over3000: x.over3000, sun: x.sunShare } }) : []
+    const coarse = { ...opts, fineH: 0.25 }, cb = hourBase(pf.f, zones, coarse)
+    const day = Array.from({ length: 15 }, (_, i) => { const h = 6 + i; const x = hourLight(pf.f, zones, inp.C, { doy, hour: h }, coarse, cb); return { h, over300: x.sunUp || x.over300 > 0 ? x.over300 : 0, over3000: x.over3000, sun: x.sunShare } })
     return {
       data: { L, pf, day },
       keys: [
-        key('sw-lux300', 'Floor over 300 lux', `L${pf.f.level} · ${s.hour}:00`, L.sunUp || L.over300 > 0 ? pc(L.over300) : 'dark', L.over300 >= 0.5 ? 'pass' : L.over300 >= 0.25 ? 'warn' : 'fail', `Share of level ${pf.f.level} with enough daylight to work by at ${s.hour}:00 on ${s.day}/${s.month + 1}.${L.blindsDown.length ? ` Blinds down on the ${L.blindsDown.join(', ')} faces.` : ''}`, { bar: { max: 1, v: L.over300, zone: [0.5, 1], ticks: [[0.5, '50%']] } }),
-        key('sw-lux3000', 'Over 3,000 lux', 'glare', pc(L.over3000), L.over3000 <= 0.1 ? 'pass' : 'warn', 'So bright that blinds would come down.', { bar: { max: 1, v: L.over3000, zone: [0, 0.1], ticks: [[0.1, '10%']] } }),
+        key('sw-lux300', 'Floor over 300 lux', `L${pf.f.level} · ${s.hour}:00`, L.sunUp || L.over300 > 0 ? pc(L.over300) : 'dark', L.over300 >= 0.5 ? 'pass' : L.over300 >= 0.25 ? 'warn' : 'fail', `Share of level ${pf.f.level} with enough daylight to work by at ${s.hour}:00 on ${s.day}/${s.month + 1}.${L.blindsDown.length ? ` Blinds down on the ${L.blindsDown.join(', ')} faces.` : ''}`, { badge: L.over300 >= 0.5 ? 'enough' : 'dim', bar: { max: 1, v: L.over300, zone: [0.5, 1], ticks: [[0.5, '50%']] } }),
+        key('sw-lux3000', 'Over 3,000 lux', 'glare', pc(L.over3000), L.over3000 <= 0.1 ? 'pass' : 'warn', 'So bright that blinds would come down.', { badge: L.over3000 <= 0.1 ? 'meets' : 'glare', bar: { max: 1, v: L.over3000, zone: [0, 0.1], ticks: [[0.1, '10%']] } }),
         key('sw-luxsun', 'In direct sun', L.sunUp ? `${Math.round(L.alt)}° high` : 'sun down', pc(L.sunShare), 'unknown', `Sun ${Math.round(L.alt)}° high at ${Math.round(L.az)}° from north.`, { bar: { max: 1, v: L.sunShare } }),
       ],
       rules: [rule('sw-lux300', `Floor over 300 lux (level ${pf.f.level}, ${s.day}/${s.month + 1} ${s.hour}:00)`, L.sunUp || L.over300 > 0 ? pc(L.over300) : 'dark', 'at least half the floor', L.over300 >= 0.5 ? 'pass' : L.over300 >= 0.25 ? 'warn' : 'fail', L.blindsDown.length ? `Blinds down on the ${L.blindsDown.join(', ')} faces.` : undefined)],
@@ -322,8 +327,12 @@ const NO_CLIMATE: SwId[] = ['built.sw-form', 'built.sw-natvent', 'built.sw-airfl
 interface SwState { out: Partial<Record<SwId, SwOut>>; busy: Partial<Record<SwId, boolean>>; errors: Partial<Record<SwId, string>> }
 export const useSwOut = create<SwState>(() => ({ out: {}, busy: {}, errors: {} }))
 
+/** Tools that read the month, day and hour, and tools that read the level drawn; the others do not re-run when those move. */
+const TIME_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp'], LEVEL_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp', 'built.sw-airflow', 'built.sw-natvent']
 export function inputKey(inp: SwInputs, s: SwStudySettings, id: SwId): string {
-  return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, s])
+  // Dragging the hour slider of the daylight viewer must not start the shadow, wind or energy studies again.
+  const mine = { ...s, ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
+  return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine])
 }
 
 let queue: Promise<void> = Promise.resolve()

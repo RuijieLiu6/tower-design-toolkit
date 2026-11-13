@@ -2,18 +2,20 @@
 // a bar against the passing range, the detail in the hover text), then the tool's main drawings, then the secondary
 // figures in folded sections. Sinnie finds the Studio text-heavy, so captions stay to one line.
 import { useMemo, useRef, type ReactNode } from 'react'
-import { aseFloor, daylightFloor, type AseTower, type DaylightFloor, type DaylightTower } from '../../engine/sw/daylight'
+import type { AseTower, DaylightTower } from '../../engine/sw/daylight'
 import { temporalMaps } from '../../engine/sw/detail'
-import { floorSig, zonesOf } from '../../engine/sw/plate'
 import type { RuleResult } from '../../engine/types'
 import { svgImage } from '../../lib/sheetAdd'
-import { useSwInputs, type SwInputs } from '../../lib/swInputs'
-import { isSw, planFloor, useSwOut, type SwId } from '../../lib/swRun'
+import { isSw, useSwOut, type SwId } from '../../lib/swRun'
 import { useSwStudy } from '../../lib/swStudy'
 import { useStore, useTowers } from '../../store'
 import { KeyList, ruleKey } from '../ResultViz'
 import SheetButton from '../SheetButton'
-import FloorPlan, { RAMPS, RampKey } from './FloorPlan'
+import { ContinuousKey, MON3, SunChip } from './DaylightStudio'
+import { STUDIO_RAMPS } from './planRaster'
+import StudioPlan from './StudioPlan'
+import { BigKeyList, BigReadings } from './SwKeyBig'
+import { hourRaster, planDaylight, useAnnualLayer, useHourLight, usePlanFloor, useSize } from './useDaylight'
 import { Chips, FloorStack, Fold, Gauge, GRID, HeatMap, INK, MonthStack, OK_C, RAMP, StackRows, SUN_C, Tx } from './SwCharts'
 import { ExteriorDrawings } from './SwExterior'
 import { InteriorDrawings, InteriorMore } from './SwInteriorResults'
@@ -66,45 +68,32 @@ export function FloorBars({ rows, max = 1, mark, color, fmt, label }: { rows: { 
   )
 }
 
-// One full-resolution daylight run of the floor shown, shared by the plan and the maps of the year.
-let dlMemo: { key: string; C: unknown; val: DaylightFloor } | null = null
-function planDaylight(pf: NonNullable<ReturnType<typeof planFloor>>, inp: SwInputs, target: number, blinds: boolean): DaylightFloor {
-  const zones = zonesOf(pf.t), key = floorSig(pf.f, zones, `${pf.f.level}|${target}|${blinds}|${inp.ctxBlocks.length}`)
-  if (dlMemo && dlMemo.key === key && dlMemo.C === inp.C) return dlMemo.val
-  const val = daylightFloor(pf.f, zones, inp.C, { step: 1, hs: 2, target, blinds, ctx: inp.ctxBlocks })
-  dlMemo = { key, C: inp.C, val }
-  return val
+/** The small plan of the results panel: the Studio-quality plan without grids and dimensions, as wide as the panel. */
+function SmallPlan({ pf, raster, sun, closed, label }: { pf: NonNullable<ReturnType<typeof usePlanFloor>['pf']>; raster: Parameters<typeof StudioPlan>[0]['raster']; sun?: { az: number; alt: number } | null; closed?: Parameters<typeof StudioPlan>[0]['closed']; label: string }) {
+  const [ref, size] = useSize<HTMLDivElement>()
+  const h = Math.round(Math.min(340, Math.max(200, size.w * 0.82)))
+  return <div ref={ref} className="w-full overflow-hidden rounded-lg border border-line bg-[#FBFBF9]" style={{ height: h }}>{size.w > 80 && <StudioPlan f={pf.f} t={pf.t} zones={pf.zones} w={size.w} h={h} raster={raster} grids={false} sun={sun} closed={closed} label={label} />}</div>
 }
 
 /** Daylight plans of one floor at full resolution (sDA, DF or ASE), computed for the level shown. */
 export function DaylightPlanFig({ layer }: { layer: 'da' | 'df' | 'ase' }) {
-  const inp = useSwInputs()
-  const s = useSwStudy()
-  const pf = useMemo(() => planFloor(inp, s), [inp, s.level]) // eslint-disable-line react-hooks/exhaustive-deps
-  const res = useMemo(() => {
-    if (!pf) return null
-    const zones = zonesOf(pf.t)
-    if (layer === 'ase') { const a = aseFloor(pf.f, zones, inp.C, undefined, { ctx: inp.ctxBlocks }); return { grid: a.grid, values: a.hrs, read: `${Math.round(a.pctOver * 100)}% over 250 h` } }
-    const d = planDaylight(pf, inp, s.dlTarget, s.blinds)
-    return layer === 'da' ? { grid: d.grid, values: d.da, read: `sDA ${Math.round(d.pctLit * 100)}%` } : { grid: d.grid, values: d.df, read: `mean DF ${(d.mean * 100).toFixed(1)}%` }
-  }, [pf, inp, s.dlTarget, s.blinds, layer])
-  if (!pf || !res) return null
-  const ramp = RAMPS[layer]
-  const zones = zonesOf(pf.t)
+  const { pf, inp } = usePlanFloor()
+  const { A, busy } = useAnnualLayer(pf, inp, layer)
+  if (!pf) return null
+  const ramp = STUDIO_RAMPS[layer]
   return (
-    <SwFig title={`L${pf.f.level} · ${layer === 'da' ? 'daylight autonomy' : layer === 'df' ? 'daylight factor' : 'sun exposure'}`} caption={`${res.read}. Solid edge: operable.`} tip="Edge colour: the face it looks to. Solid edge: operable windows; dashed: fixed.">
+    <SwFig title={`L${pf.f.level} · ${layer === 'da' ? 'daylight autonomy' : layer === 'df' ? 'daylight factor' : 'sun exposure'}`} caption={busy ? 'Working through the year…' : `${A?.read ?? ''}.`} tip="The floor cut at 1.2 m: façade, core, lifts and stairs, with the result under it. Solid glass line: windows open; dashed: fixed.">
       <LevelPick levels={pf.levels} />
-      <FloorPlan f={pf.f} zones={zones} grid={res.grid} values={res.values} ramp={ramp} label={`Level ${pf.f.level} plan`} />
-      <RampKey ramp={ramp} />
+      <SmallPlan pf={pf} raster={A?.raster ?? null} label={`Level ${pf.f.level} plan, ${ramp.name.toLowerCase()}`} />
+      <ContinuousKey ramp={ramp} compact />
     </SwFig>
   )
 }
 
 /** The floor shown through the year (study.js temporalSVG): one map each for daylight, direct sun and blinds. */
 function DaylightYear() {
-  const inp = useSwInputs()
+  const { pf, inp } = usePlanFloor()
   const s = useSwStudy()
-  const pf = useMemo(() => planFloor(inp, s), [inp, s.level]) // eslint-disable-line react-hooks/exhaustive-deps
   const M = useMemo(() => {
     if (!pf || !inp.C) return null
     const d = planDaylight(pf, inp, s.dlTarget, s.blinds)
@@ -214,16 +203,22 @@ function DaylightBody({ id }: { id: SwId }) {
 }
 
 export function LightHourBody() {
-  const out = useSwOut((s) => s.out['built.sw-light-hour'])
+  const { pf, inp } = usePlanFloor()
   const s = useSwStudy()
-  type L = { lux: Float32Array; grid: { x0: number; y0: number; h: number; nx: number; ny: number }; alt: number; az: number; sunUp: boolean; over300: number; over3000: number }
-  const d = out?.data as { L?: L; pf?: { t: Parameters<typeof zonesOf>[0]; f: Parameters<typeof FloorPlan>[0]['f']; levels: number } } | undefined
-  if (!d?.L || !d.pf) return null
+  const { L } = useHourLight(pf, inp)
+  if (!pf) return null
+  const pc = (v: number) => `${Math.round(v * 100)}%`
   return (
-    <SwFig title={`L${d.pf.f.level} · light at ${s.hour}:00, ${s.day}/${s.month + 1}`} caption={d.L.sunUp ? `Sun ${Math.round(d.L.alt)}° high, ${Math.round(d.L.az)}° from north.` : 'The sun is down.'}>
-      <LevelPick levels={d.pf.levels} />
-      <FloorPlan f={d.pf.f} zones={zonesOf(d.pf.t)} grid={d.L.grid} values={d.L.lux} ramp={RAMPS.lux} label="Lux plan" />
-      <RampKey ramp={RAMPS.lux} />
+    <SwFig title={`L${pf.f.level} · light at ${String(s.hour).padStart(2, '0')}:00, ${s.day} ${MON3[s.month]}`} tip="Light on the 0.8 m work plane on a typical day of the month. The sun is traced on a 0.1 m grid through the openings as built: glass band, mullions every 1.5 m and the zone's device.">
+      <div className="flex flex-wrap items-center gap-2"><div className="min-w-[10rem] flex-1"><LevelPick levels={pf.levels} /></div>{L && <SunChip sun={{ az: L.az, alt: L.alt, up: L.sunUp }} />}</div>
+      <SmallPlan pf={pf} raster={hourRaster(L)} sun={L && L.sunUp ? { az: L.az, alt: L.alt } : null} closed={L?.closed} label="Light on the floor at this hour" />
+      <ContinuousKey ramp={STUDIO_RAMPS.lux} compact />
+      {L && <BigReadings items={[
+        { value: L.sunUp || L.over300 > 0 ? pc(L.over300) : 'dark', words: 'of the floor, enough to work by', label: 'Over 300 lux' },
+        { value: pc(L.over3000), words: 'glare risk, mostly the sun patch', label: 'Over 3,000 lux' },
+        { value: pc(L.sunShare), words: 'through the openings, mullions and devices', label: 'Sun on the floor' },
+        { value: L.blindsDown.length ? 'down' : 'up', words: L.blindsDown.length ? `on the ${L.blindsDown.join(', ')} faces` : s.blinds ? 'under 2% of the floor in direct sun' : 'assumed up all year', label: 'Blinds' },
+      ]} />}
     </SwFig>
   )
 }
@@ -265,7 +260,7 @@ export default function SwResults() {
       <h3 className="flex items-center justify-between text-control font-semibold text-ink">Key results {busy && <span className="text-meta font-normal text-muted" role="status">Running…</span>}</h3>
       {!towers ? <p className="text-meta text-muted">Place or draw a tower first.</p>
         : err ? <p className="text-meta text-red-700">This study stopped: {err}</p>
-          : out ? (keys.length ? <div data-testid="sw-key"><KeyList keys={keys.map((k) => ({ ...k, reading: true }))} /></div> : <p className="text-meta text-muted">Nothing to read yet.</p>)
+          : out ? (keys.length ? <div data-testid="sw-key">{node === 'built.sw-daylight' || node === 'built.sw-daylight-factor' || node === 'built.sw-light-hour' ? <BigKeyList keys={keys} /> : <KeyList keys={keys.map((k) => ({ ...k, reading: true }))} />}</div> : <p className="text-meta text-muted">Nothing to read yet.</p>)
             : <p className="text-meta text-muted" role="status">Working…</p>}
       {out && !err && towers > 0 && <>
         {(node === 'built.sw-daylight' || node === 'built.sw-daylight-factor') && <DaylightBody id={node} />}

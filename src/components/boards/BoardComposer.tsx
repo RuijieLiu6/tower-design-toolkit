@@ -1,6 +1,9 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
+import { captureWorkflowDrawings, workflowChecks } from '../../lib/boardCapture'
+import { lazy, Suspense } from 'react'
+const CaptureHost = lazy(() => import('./CaptureHost'))
 import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
 import { useEffect, useRef, useState, type ReactNode, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -357,7 +360,7 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
 // The Tower Workspace's "Drawing space" panel (Sinnie, 13 Nov: "add this tab to the current set"): Sheets = the drawing
 // set (style, sheet size), the sheet list (number, name, remove, blank sheet) and Create drawing set; Add = what goes on
 // a sheet (a drawing, the results table, text, an image from the library).
-function SheetsPanel({ levels, onPick, onCreate, msg }: { levels: number; onPick: (imageId: string) => void; onCreate: () => void; msg: string }) {
+function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }: { levels: number; onPick: (imageId: string) => void; onCreate: () => void; msg: string; preset: 'drawings' | 'arch'; setPreset: (p: 'drawings' | 'arch') => void; busy: boolean }) {
   const [tab, setTab] = useState<'sheets' | 'add'>('sheets')
   const boards = useBoardStore((s) => s.boards)
   const selected = useBoardStore((s) => s.selected)
@@ -420,9 +423,15 @@ function SheetsPanel({ levels, onPick, onCreate, msg }: { levels: number; onPick
             </details>
             {msg && <p role="status" className="p-3 text-meta text-emerald-300">{msg}</p>}
           </div>
-          <div className="border-t border-white/10 p-2">
-            <button type="button" onClick={onCreate} data-testid="drawing-set" title="Site plan, floor plans, elevations, section, and a sheet for the axonometric and analysis: five sheets drawn from the model in this style"
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-medium hover:bg-white/15"><LayoutPanelTop size={13} />Create drawing set</button>
+          <div className="grid gap-1.5 border-t border-white/10 p-2">
+            <label className="grid gap-1 text-meta text-slate-400">Preset
+              <select value={preset} onChange={(e) => setPreset(e.target.value as 'drawings' | 'arch')} data-testid="set-preset" className={sel}>
+                <option value="drawings">Drawing set · five sheets</option>
+                <option value="arch">Architectural set · drawings and every workflow tool</option>
+              </select>
+            </label>
+            <button type="button" onClick={onCreate} disabled={busy} data-testid="drawing-set" title="Site plan, floor plans, elevations, section, and a sheet for the axonometric and analysis: five sheets drawn from the model in this style"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-medium hover:bg-white/15"><LayoutPanelTop size={13} />{busy ? 'Working…' : preset === 'arch' ? 'Create architectural set' : 'Create drawing set'}</button>
           </div>
         </div>
       ) : (
@@ -462,7 +471,25 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
   const makeDrawingSet = useBoardStore((s) => s.makeDrawingSet)
   const levels = Math.max(1, ...draw.towers.map((t) => t.floors.length))
   const [setMsg, setSetMsg] = useState('')
+  // Presets (13 Nov): the five-sheet drawing set, or the Architectural set with every workflow tool's drawings.
+  const [preset, setPreset] = useState<'drawings' | 'arch'>('drawings')
+  const [capturing, setCapturing] = useState(false)
+  const host = useRef<HTMLDivElement>(null)
+  const createArch = async () => {
+    if (capturing) return
+    setCapturing(true); setSetMsg('Collecting the drawings…')
+    await new Promise((r) => setTimeout(r, 300))
+    try {
+      const groups = host.current ? await captureWorkflowDrawings(host.current, (t) => setSetMsg(`Drawing ${t}`)) : []
+      useBoardStore.getState().makeArchSet(Math.max(2, Math.round(levels / 2)), levels, groups)
+      const n = groups.reduce((a, g) => a + g.items.length, 0)
+      setSetMsg(n ? `Architectural set: ${useBoardStore.getState().boards.length} sheets with ${n} analysis drawings from ${workflowChecks().length} tools.` : 'Architectural set: the four drawing sheets. No workflow tool has a drawing yet (place a tower and switch tools on).')
+    } catch (e) { setSetMsg(`The set stopped: ${e instanceof Error ? e.message : String(e)}`) }
+    setCapturing(false)
+    setTimeout(() => setSetMsg(''), 9000)
+  }
   const createSet = () => {
+    if (preset === 'arch') { void createArch(); return }
     const used = boards.slice(0, 5).some((b) => b.frames.some((f) => f.role === 'body' && f.content.kind !== 'empty'))
     makeDrawingSet(Math.max(2, Math.round(levels / 2)), levels)
     setSetMsg(used ? 'Five sheets now hold the drawing set; what was on them is kept aside.' : 'Drawing set created: five sheets.')
@@ -496,25 +523,27 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
     <div role="region" aria-label="Presentation" data-testid="present-page" className="flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl bg-[#15181c] text-slate-100">
       <header className="flex items-center gap-3 border-b border-white/10 px-3 py-2">
         <FileImage size={16} className="text-sky-400" />
-        <div className="mr-2">
-          <div className="text-sm font-semibold">Boards</div>
-          <div className="text-meta text-slate-400">The competition asks for four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
+        <div className="mr-2 shrink-0" title="The competition asks for four A2 landscape boards, ≤ 10 MB each (brief p.27)">
+          <div className="text-sm font-semibold">Sheets</div>
+          {boards.length <= 5 && <div className="whitespace-nowrap text-meta text-slate-400">Competition: four A2 boards, ≤ 10 MB each</div>}
         </div>
-        <nav aria-label="Boards" className="flex gap-1">
+        <nav aria-label="Boards" className="flex min-w-0 gap-1 overflow-x-auto">
           {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} rev={draw} />)}
         </nav>
         <span className="mx-auto" />
-        <div className="flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Centre view">
+        <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Centre view">
           {([['sheet', 'Sheet'], ['3d', '3D view']] as const).map(([k, w]) => <button key={k} type="button" role="tab" aria-selected={centre === k} onClick={() => setCentre(k)} data-testid={`centre-${k}`} title={k === '3d' ? 'Frame the model and capture shots for the sheets' : 'The sheet being composed'} className={`rounded px-2 py-1 text-xs ${centre === k ? 'bg-white/15' : 'text-slate-300'}`}>{w}</button>)}
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
+        <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
           <button type="button" role="tab" aria-selected={tab === 'frame'} onClick={() => setTab('frame')} className={`rounded px-2 py-1 text-xs ${tab === 'frame' ? 'bg-white/15' : 'text-slate-300'}`}>Compose</button>
           <button type="button" role="tab" aria-selected={tab === 'submit'} onClick={() => setTab('submit')} className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === 'submit' ? 'bg-white/15' : 'text-slate-300'}`}><ListChecks size={12} />Check and export</button>
           <button type="button" role="tab" aria-selected={tab === 'tools'} onClick={() => setTab('tools')} data-testid="present-tools" title="Camera presets, shots, drawings, render, results and trace" className={`rounded px-2 py-1 text-xs ${tab === 'tools' ? 'bg-white/15' : 'text-slate-300'}`}>Views and results</button>
         </div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <SheetsPanel levels={levels} onPick={pick} onCreate={createSet} msg={setMsg} />
+        <SheetsPanel levels={levels} onPick={pick} onCreate={createSet} msg={setMsg} preset={preset} setPreset={setPreset} busy={capturing} />
+        {/* While the Architectural set is made, the results of each workflow tool are drawn here, out of sight. */}
+        {capturing && <div ref={host} aria-hidden data-testid="capture-host" className="text-ink" style={{ position: 'fixed', left: -10000, top: 0, width: 340, height: 900, overflow: 'auto', background: '#fff' }}><Suspense fallback={null}><CaptureHost /></Suspense></div>}
         {centre === '3d' && viewport
           ? <main className="min-w-0 flex-1 overflow-hidden bg-panel text-ink" data-testid="present-3d">{viewport}</main>
           : <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
