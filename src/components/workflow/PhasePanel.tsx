@@ -86,17 +86,14 @@ export default function PhasePanel() {
   return (
     <div className="panel-slide flex w-[var(--left-w)] min-h-0 shrink-0 flex-col gap-2" data-testid="left-column">
     {/* The workflow card on its own, as the Tower Workspace's node preview card: a separate panel above the phase panel. */}
-    <WorkflowPreview board={wf} phase={phase} active={active} info={info} home={home} collapsed={collapsed} onFold={() => usePhaseTools.getState().setCollapsed(!collapsed)} onOpen={open} />
-    <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-panel">
-      {/* The phase's name and Hide. */}
-      <div className="border-b border-line px-3 pb-2 pt-1.5">
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[phase].accent }} />
-          <h2 className="min-w-0 flex-1 truncate text-section font-semibold text-ink">{PHASE_NAME[phase]}</h2>
-          <HidePanelButton side="left" />
-        </div>
-      </div>
+    {/* The phases and their tools show only here (Sinnie, 12 Nov: "remove these labels, should only show up in the node
+        panel"): the card holds the phase dots, Next, this phase's tools and Add tool; the phase row and the panel heading
+        are gone. */}
+    <WorkflowPreview board={wf} phase={phase} active={active} info={info} home={home} collapsed={collapsed} onFold={() => usePhaseTools.getState().setCollapsed(!collapsed)} onOpen={open}
+      headerExtra={<HidePanelButton side="left" />}>
       <PhaseWorkflow phase={phase} rows={rows} design={design} active={active} open={open} info={info} home={home} />
+    </WorkflowPreview>
+    <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-panel">
       {/* Present keeps its strip of shots here; the other phases show the set-up tabs (the open tool's controls are in
           the right panel's Properties tab, as in the Tower Workspace). */}
       {phase === 'present'
@@ -139,7 +136,7 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
   const summary = rows.map((id) => info(id).word).join(' › ')
 
   return (
-    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="flex shrink-0 flex-col border-b border-line pb-2">
+    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="-mx-3 mt-2 flex shrink-0 flex-col border-t border-line pt-1">
       <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
       {collapsed
         ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the tools">{summary}{loops ? ' ↻' : ''}</button>

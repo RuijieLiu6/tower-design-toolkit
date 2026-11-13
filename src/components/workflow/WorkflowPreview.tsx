@@ -2,7 +2,7 @@
 // after the Tower Workspace's node preview card: a header with how the checks stand (pass / near a limit / to look at)
 // and an open icon, the whole workflow drawn small as the workflow editor draws it (a band per phase, the current one
 // tinted, every tool in working order on its phase's band, right-angle wires, Start and Enter), then a row of phase dots and a one-line guide with Next. The phase's tool list and Add tool stay under it (PhasePanel).
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { ExternalLink } from '../icons'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
 import { dockLayout } from '../../lib/workflow/dockLayout'
@@ -21,9 +21,9 @@ import type { Info } from './WorkflowOverview'
 const LANES: PhaseId[] = PHASE_IDS.filter((p) => p !== 'present')
 const W = 240, TOP = 2, BAND = 22, H = TOP + LANES.length * BAND + 1, GUT = 12, TILE = 9
 
-export default function WorkflowPreview({ board, phase, active, info, home, collapsed, onFold, onOpen }: {
+export default function WorkflowPreview({ board, phase, active, info, home, collapsed, onFold, onOpen, headerExtra, children }: {
   board: Board; phase: PhaseId; active: string; info: (id: string) => Info; home: (id: string) => PhaseId
-  collapsed: boolean; onFold: () => void; onOpen: (id: string) => void
+  collapsed: boolean; onFold: () => void; onOpen: (id: string) => void; headerExtra?: ReactNode; children?: ReactNode
 }) {
   const results = useResults()
   const counts = useMemo(() => {
@@ -73,6 +73,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
         </span>
         <button type="button" onClick={() => openOverview('edit')} data-testid="phase-edit" title="Edit the workflow in the centre view: add tools from the shelf, drag, connect and loop them, then Confirm" aria-label="Edit the workflow"
           className="ml-auto flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><ExternalLink size={14} aria-hidden /></button>
+        {headerExtra}
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 block w-full cursor-pointer" role="img" data-testid="phase-map" onClick={() => openOverview('edit')}
@@ -123,7 +124,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
       {!collapsed && (
         <>
           <p className="mt-1.5 px-0.5 text-meta leading-snug">
-            <b className="text-ink">{pi + 1} · {PHASE_NAME[phase]}</b> <span className="text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ' Its tools are in the panel below.'}</span>
+            <b className="text-ink">{pi + 1} · {PHASE_NAME[phase]}</b> <span className="text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ' Its tools are listed below.'}</span>
           </p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <button type="button" onClick={() => openOverview('edit')} className="flex h-7 items-center rounded-lg bg-accent px-2.5 text-meta font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
@@ -132,6 +133,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
           </div>
         </>
       )}
+      {children}
     </div>
   )
 }

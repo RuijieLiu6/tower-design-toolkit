@@ -9,13 +9,13 @@ import WorkflowBuilder from './components/builder/WorkflowBuilder'
 import { useRoute } from './lib/route'
 import { openBuilder, useProjectWorkflow } from './lib/workflow/projectWorkflow'
 import Onboarding from './components/Onboarding'
-import ProcessRail from './components/ProcessRail'
 import RightPanel from './components/RightPanel'
 import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
 import { stageDef } from './data/stages'
 import { useStore } from './store'
-import { goToStep } from './lib/step'
+import { goToStep, startOnSite, startStepFollow } from './lib/step'
+import { whenRestored } from './lib/project/session'
 
 const Viewport = lazy(() => import('./components/Viewport'))
 const NodeCanvas = lazy(() => import('./components/NodeCanvas'))
@@ -38,6 +38,8 @@ export default function App() {
   const route = useRoute()
   useEffect(() => { if (route === 'workflow' && useProjectWorkflow.getState().mode !== 'builder') openBuilder() }, [route])
 
+  // Step following and the first step, which the phase row used to start (the row is gone; the Workflow card has the phases).
+  useEffect(() => { const stop = startStepFollow(); startOnSite(whenRestored()); return stop }, [])
   useEffect(() => { document.title = `${stageDef(phase).label} · Tower Design Toolkit` }, [phase])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -68,7 +70,7 @@ export default function App() {
       {/* The phase row and the three columns together: the workflow builder (Result A, 9 Nov) covers both, so only the
           project bar stays in reach while it is open (the phase row would move the step under it). */}
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">
-      <ProcessRail />
+      {/* The phase row is gone: the phases are in the Workflow card (phase dots, Next). Keys 1-5 still move between them. */}
       <div className="relative flex min-h-0 flex-1 gap-2" data-workspace>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
