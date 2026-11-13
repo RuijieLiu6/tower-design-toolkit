@@ -69,7 +69,31 @@ export type FrameContent =
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 
 export type TemplateId = 'hero' | 'grid' | 'plans' | 'story'
-export interface Board { id: string; template: TemplateId; frames: Frame[] }
+export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The sheet's name in the sheet list (else its title text). */ name?: string }
+
+/** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
+export const SHEET_SIZES = { A3: { label: 'A3 landscape', k: 420 / 594 }, A2: { label: 'A2 landscape (competition)', k: 1 }, A1: { label: 'A1 landscape', k: 841 / 594 } } as const
+export type SheetSize = keyof typeof SHEET_SIZES
+export const MAX_SHEETS = 8
+
+/** A sheet's name: the one given, else the first line of its title, else its place. */
+export function sheetName(b: Board, i: number): string {
+  if (b.name?.trim()) return b.name.trim()
+  const t = b.frames.find((f) => f.role === 'title' && f.content.kind === 'text')
+  const line = t && t.content.kind === 'text' ? t.content.text.trim().split(String.fromCharCode(10))[0] : ''
+  return line || `Sheet ${i + 1}`
+}
+/** Sheet numbers as a drawing set has them: A-0xx site, A-1xx plans, A-2xx elevations, A-3xx sections, A-9xx everything else. */
+export function sheetNumbers(boards: Board[]): string[] {
+  const seen: Record<number, number> = {}
+  return boards.map((b) => {
+    const d = b.frames.find((f) => f.content.kind === 'drawing')
+    const vt = d && d.content.kind === 'drawing' ? d.content.vt : null
+    const series = vt === 'site' ? 0 : vt === 'plan' ? 1 : vt === 'elev' ? 2 : vt === 'section' ? 3 : 9
+    seen[series] = (seen[series] ?? 0) + 1
+    return `A-${series}${String(seen[series]).padStart(2, '0')}`
+  })
+}
 
 export const TEMPLATES: Record<TemplateId, { label: string; hint: string }> = {
   hero: { label: 'Hero + two', hint: 'One large view, two smaller, a text block' },

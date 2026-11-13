@@ -12,6 +12,7 @@ import { useImportStore } from '../../lib/import/store'
 import { useTransfer } from '../../lib/porting/transfer'
 import { useStore, useTowers } from '../../store'
 import { FlagChip, Section } from '../ui'
+import { Donut } from '../ResultViz'
 
 export default function ModelPanel() {
   const model = useStore((s) => s.models[s.project])
@@ -67,7 +68,7 @@ export default function ModelPanel() {
         {removed.length > 0 && <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{removed.map((t) => t.name).join(', ')} {removed.length === 1 ? 'was' : 'were'} removed from the project after upload; the checks below leave {removed.length === 1 ? 'it' : 'them'} out.</p>}
       </Section>
 
-      <Section title="What each tool reads from it">
+      <Section title="What each tool reads from it" folded>
         <ul className="grid gap-1.5 text-meta">
           <Line tool="Evaluation nodes" what={c.nodes.map((t) => `${t.name}: ${t.floors.length} floors, ${Math.round(t.gfa).toLocaleString('en-CA')} m², core ${(t.core.share * 100).toFixed(1)}% (${t.core.source.split(' (')[0].toLowerCase()})`).join(' · ') || 'no tower left'} />
           <Line tool="View cones and height surface" what={c.cones.map((v) => `${v.name}: top ${v.topZ.toFixed(1)} m${project === 'city' ? ' CGVD28' : ' above grade'}, outline of the whole mass`).join(' · ')} />
@@ -82,14 +83,15 @@ export default function ModelPanel() {
 
       {c.floors.length > 0 && (
         <Section title="Floor area by use (from the model)">
-          <table className="w-full text-meta tabular-nums">
-            <thead className="text-left text-muted"><tr><th className="font-medium">Use</th>{c.floors.map((t) => <th key={t.towerId} className="text-right font-medium">{t.name}</th>)}</tr></thead>
-            <tbody>
-              {(Object.keys(USES) as UseId[]).filter((u) => c.floors.some((t) => t.byUse[u])).map((u) => (
-                <tr key={u} className="border-t border-line"><td className="py-0.5"><span aria-hidden className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: USES[u].color }} />{USES[u].label}</td>{c.floors.map((t) => <td key={t.towerId} className="text-right">{t.byUse[u] ? `${Math.round(t.byUse[u]!).toLocaleString('en-CA')} m²` : '–'}</td>)}</tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid min-w-0 gap-3">
+            {c.floors.map((t) => (
+              <div key={t.towerId} className="grid min-w-0 gap-1">
+                {c.floors.length > 1 && <div className="text-meta font-semibold">{t.name}</div>}
+                <Donut label={`Floor area by use, ${t.name}`} unit="m²" center={Math.round((Object.keys(USES) as UseId[]).reduce((sum, u) => sum + (t.byUse[u] ?? 0), 0)).toLocaleString('en-CA')} sub="m²"
+                  parts={(Object.keys(USES) as UseId[]).filter((u) => t.byUse[u]).map((u) => ({ label: USES[u].label, v: t.byUse[u]!, color: USES[u].color }))} />
+              </div>
+            ))}
+          </div>
         </Section>
       )}
 

@@ -1,76 +1,111 @@
 // Drawings of the interior Sun & Wind Studio tools (ventilation, air flow, indoor temperature, form, glazing, PV).
-import { useMemo } from 'react'
-import { RATE_COL, type FormStudy } from '../../engine/sw/form'
+// InteriorDrawings are each tool's main figures (also shown beside the analysis view); InteriorMore are the secondary
+// ones, folded, for the results panel.
+import { useMemo, useState } from 'react'
+import { RATE_COL, RATE_L, type FormStudy } from '../../engine/sw/form'
 import type { GlazingStudy } from '../../engine/sw/glazing'
-import { zonesOf, type SwFloor } from '../../engine/sw/plate'
+import { ORI, zonesOf, type Face, type SwFloor } from '../../engine/sw/plate'
 import type { PvStudy } from '../../engine/sw/pv'
-import type { ThermalFloor } from '../../engine/sw/thermal'
+import { THERM_SYS, type ThermalFloor, type ThermSys } from '../../engine/sw/thermal'
 import { ventFloor, type AirFlow, type VentHours, type VentTower } from '../../engine/sw/vent'
 import type { Tower } from '../../engine/types'
 import { useSwInputs } from '../../lib/swInputs'
-import { planFloor, useSwOut, type SwId } from '../../lib/swRun'
+import { LOSS_COL, planFloor, T_COL, T_NAME, useSwOut, type SwId } from '../../lib/swRun'
 import { useSwStudy } from '../../lib/swStudy'
 import FloorPlan, { RAMPS, RampKey } from './FloorPlan'
+import { BarRows, Chips, FACE_C, fmtI, Fold, Gauge, HeatMap, MONTH_L, MONTH_N, MonthRange, MonthStack, PV_C, Radar, RAMP, StackRows, SUN_C, WIND_C, YearMap } from './SwCharts'
 import { FloorBars, LevelPick, SwFig } from './SwResults'
 
-const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-
-function HBar({ rows, unit }: { rows: { label: string; v: number; v2?: number; color: string; text: string }[]; unit: string }) {
-  const max = Math.max(1e-9, ...rows.map((r) => Math.max(r.v, r.v2 ?? 0)))
-  const W = 300, rh = 16, L = 92
-  return (
-    <svg viewBox={`0 0 ${W} ${rows.length * rh + 4}`} width="100%" role="img" aria-label={unit}>
-      {rows.map((r, i) => (
-        <g key={i} transform={`translate(0 ${i * rh + 2})`}>
-          <text x={L - 4} y={10} fontSize={8.5} textAnchor="end" fill="#1f2328">{r.label}</text>
-          {r.v2 != null && <rect x={L} y={2} width={((W - L - 52) * r.v2) / max} height={9} fill="none" stroke={r.color} strokeDasharray="2 1.5" />}
-          <rect x={L} y={2} width={((W - L - 52) * r.v) / max} height={9} rx={1.5} fill={r.color}><title>{r.text}</title></rect>
-          <text x={W - 2} y={10} fontSize={8.5} textAnchor="end" fill="#6b7280">{r.text}</text>
-        </g>
-      ))}
-    </svg>
-  )
-}
-
-function MonthBars({ a, b, label, colA, colB }: { a: number[]; b?: number[]; label: string; colA: string; colB?: string }) {
-  const W = 300, H = 80, max = Math.max(1, ...a, ...(b ?? [])), bw = (W - 8) / 12
-  return (
-    <svg viewBox={`0 0 ${W} ${H + 12}`} width="100%" role="img" aria-label={label}>
-      {a.map((v, m) => <g key={m}>
-        {b && <rect x={4 + m * bw + 2} y={H - (H * b[m]) / max} width={bw - 4} height={(H * b[m]) / max} fill={colB} />}
-        <rect x={4 + m * bw + 2} y={H - (H * v) / max} width={bw - 4} height={(H * v) / max} fill={colA}><title>{`${MONTHS[m]}: ${Math.round(v)} h`}</title></rect>
-        <text x={4 + m * bw + bw / 2} y={H + 10} fontSize={8} textAnchor="middle" fill="#6b7280">{MONTHS[m]}</text>
-      </g>)}
-    </svg>
-  )
-}
+const FACE_W: Record<Face, string> = { N: 'North', E: 'East', S: 'South', W: 'West' }
+const SHORT: Record<string, string> = { 'Compactness vs square prism': 'Compactness', 'Exposed roofs and soffits': 'Roofs, soffits', 'Solar-facing façade': 'Solar-facing', 'North-facing façade': 'North-facing', 'Daylit floor area': 'Daylit area', 'Surface-to-volume': 'Surface / volume' }
+const short = (k: string) => SHORT[k] ?? k
 
 function FormBody({ F }: { F: FormStudy }) {
   return (
-    <SwFig title={`Form rating ${F.letter}`} caption="Each measure against the supertall bands; colour A (green) to E (red).">
-      <HBar unit="Form measures" rows={F.metrics.map((m) => ({ label: m.k, v: 5 - m.r, color: RATE_COL[m.r], text: `${m.fmt} · ${'ABCDE'[m.r]}` }))} />
-    </SwFig>
-  )
-}
-
-function GlazingBody({ G, wwr }: { G: GlazingStudy; wwr: number }) {
-  return (
     <>
-      <SwFig title="Heat through the glass by zone" caption={`Beam solar gain a year with the devices (solid) and without (dashed). Tower WWR ${Math.round(wwr * 100)}%.`}>
-        <HBar unit="kWh a year" rows={G.zones.map((z) => ({ label: z.label, v: z.sh, v2: z.un, color: '#d08b2c', text: `${Math.round(z.sh / 1000)} MWh` }))} />
+      <SwFig title={`Form profile · rating ${F.letter}`} caption="Eight measures, A to E; the rim is an A." tip="Eight form measures rated A to E; the rim is an A.">
+        <Radar label="Form profile: eight measures rated A to E" color={RATE_COL[F.overall]} items={F.metrics.map((m) => ({ label: short(m.k), t: (4 - m.r) / 4, color: RATE_COL[m.r], text: `${m.fmt} · ${RATE_L[m.r]}` }))} />
       </SwFig>
-      <SwFig title="Low-sun glare hours by zone" caption="Hours a year the sun is under 25° in front of the face and gets past the device.">
-        <HBar unit="hours" rows={G.zones.map((z) => ({ label: z.label, v: z.glare, color: z.glare > 400 ? '#c53030' : z.glare > 200 ? '#e08a3c' : '#86b86a', text: `${Math.round(z.glare)} h` }))} />
+      <SwFig title="Form measures" caption="Bar: rating, A longest. Hover: benchmark." tip="Bar length is the rating, A longest; the benchmark is in the hover text.">
+        <BarRows label="Form measures rated A to E" labelW={84} textW={96} max={4.3} rows={F.metrics.map((m) => ({ label: short(m.k), v: 4.3 - m.r, color: RATE_COL[m.r], text: `${m.fmt.split(' · ')[0]} · ${RATE_L[m.r]}`, tip: `${m.k}: ${m.fmt} (${RATE_L[m.r]}). Benchmark: ${m.bench}. ${m.why}` }))} />
       </SwFig>
     </>
   )
 }
-
-function PvBody({ P, share }: { P: PvStudy; share: number | null }) {
+function FormMore({ F }: { F: FormStudy }) {
   return (
-    <SwFig title="PV yield by surface" caption={`${Math.round(P.pvTot / 1000)} MWh a year${share != null ? `, ${Math.round(share * 100)}% of the building's electricity` : ''}.`}>
-      <HBar unit="kWh a year" rows={P.rows.map((r) => ({ label: r.name, v: r.kwh, color: '#2f855a', text: `${Math.round(r.kwh / 1000)} MWh · ${Math.round(r.perM2)} kWh/m²` }))} />
+    <>
+      <Fold title="Against a square shaft">
+        <SwFig title="Against a square shaft" caption={`Tick: a ${F.side.toFixed(0)} m square shaft, same volume.`}>
+          <BarRows label="Envelope and heat loss against a square prism" labelW={70} max={Math.max(1.6, F.relEnv, F.relHeat) * 1.05} rows={[
+            { label: 'Envelope', v: F.relEnv, mark: 1, color: F.relEnv <= 1.1 ? RATE_COL[0] : F.relEnv <= 1.3 ? RATE_COL[2] : RATE_COL[4], text: `${Math.round(F.relEnv * 100)}% · ${fmtI(F.env)} m²` },
+            { label: 'Heat loss', v: F.relHeat, mark: 1, color: F.relHeat <= 1.1 ? RATE_COL[0] : F.relHeat <= 1.3 ? RATE_COL[2] : RATE_COL[4], text: `${Math.round(F.relHeat * 100)}%` },
+          ]} />
+        </SwFig>
+      </Fold>
+      <Fold title="Façade by orientation">
+        <SwFig title="Façade by orientation · m²" caption={`Solar-facing ${Math.round(F.south * 100)}%, north ${Math.round(F.north * 100)}%.`} tip="Solar-facing: south plus half of east and west. 40–55% is balanced; north at most 25%.">
+          <BarRows label="Façade area by orientation" labelW={44} textW={84} rows={ORI.map((o) => ({ label: FACE_W[o], v: F.fac[o], color: FACE_C[o], text: `${fmtI(F.fac[o])} · ${Math.round((F.fac[o] / Math.max(1, F.facTot)) * 100)}%` }))} />
+        </SwFig>
+        <SwFig title="Envelope by kind · m²" caption="Area of each kind of envelope." tip="Walls, roofs and terraces, soffits, the ground slab.">
+          <BarRows label="Envelope area by kind" labelW={84} rows={[{ label: 'Walls', v: F.facTot, color: '#A0857A', text: fmtI(F.facTot) }, { label: 'Roofs, terraces', v: F.roof, color: '#7C6A8E', text: fmtI(F.roof) }, { label: 'Soffits', v: F.soffit, color: '#B7C3CE', text: fmtI(F.soffit) }, { label: 'Ground slab', v: F.slab, color: '#cfd4da', text: fmtI(F.slab) }]} />
+        </SwFig>
+      </Fold>
+    </>
+  )
+}
+
+const zl = (s: string) => s.replace('North', 'N').replace('East', 'E').replace('South', 'S').replace('West', 'W')
+function GlazingBody({ G }: { G: GlazingStudy }) {
+  return (
+    <>
+      <SwFig title="Heat through glass · MWh" caption="Solid: with shading. Dashed: without." tip="Solid: with the zone's shading; dashed: the same glass unshaded.">
+        <BarRows label="Beam solar gain by façade zone, with and without devices" labelW={92} textW={64} rows={G.zones.map((z) => ({ label: zl(z.label), v: z.sh / 1000, v2: z.un / 1000, color: SUN_C, text: `${Math.round(z.sh / 1000)} / ${Math.round(z.un / 1000)}`, tip: `${z.label} · ${z.stratName}: ${fmtI(z.sh)} kWh with the device, ${fmtI(z.un)} without (${Math.round((1 - z.sh / Math.max(1, z.un)) * 100)}% blocked)` }))} />
+      </SwFig>
+      <SwFig title="Low-sun glare hours" caption="Sun under 25° past the device. Tick: 200 h." tip="Hours a year the sun is under 25° in front of the face and gets past the device.">
+        <BarRows label="Low-sun glare hours by façade zone" labelW={92} textW={44} rows={G.zones.map((z) => ({ label: zl(z.label), v: z.glare, mark: 200, color: z.glare > 400 ? '#c53030' : z.glare > 200 ? '#e08a3c' : '#86b86a', text: `${Math.round(z.glare)} h` }))} />
+      </SwFig>
+    </>
+  )
+}
+function GlazingMore({ G }: { G: GlazingStudy }) {
+  const n = G.zones.length
+  const vals = useMemo(() => { const v = new Float32Array(12 * n); G.zones.forEach((z, i) => z.monSh.forEach((x, m) => { v[i * 12 + m] = z.areaGl > 0 ? x / z.areaGl : 0 })); return v }, [G, n])
+  const mx = Math.max(1, ...Array.from(vals))
+  return (
+    <>
+      <Fold title="Heat by month">
+        <SwFig title="Heat through glass by month" caption="kWh per m² of glass. Row: façade zone." tip="kWh per m² of glass after the devices; each row a façade zone.">
+          <HeatMap cols={12} rows={n} values={vals} color={(v) => RAMP.kwh(v / mx)} label="Solar heat through the glass by zone and month" months={false} left={74} height={Math.max(24, n * 13)}
+            rowTicks={G.zones.map((z, i) => [i, zl(z.label)] as [number, string])} colTicks={MONTH_L.map((m, i) => [i, m] as [number, string])} cell={(c, r) => `${zl(G.zones[r].label)} · ${MONTH_N[c]}`} legend={[[0, '0'], [mx, `${Math.round(mx)}`]]} read={(v) => `${v.toFixed(1)} kWh/m²`} />
+        </SwFig>
+      </Fold>
+      <Fold title="By face">
+        <SwFig title="Glazing by face" caption="Window-to-wall ratio. Tick: 40%." tip="Window-to-wall ratio; tick: the ASHRAE 90.1 prescriptive 40%.">
+          <BarRows label="Window-to-wall ratio by face" labelW={44} max={1} rows={ORI.map((o) => ({ label: FACE_W[o], v: G.wwrByFace[o], mark: 0.4, color: '#78A6CC', text: `${Math.round(G.wwrByFace[o] * 100)}%` }))} />
+        </SwFig>
+        <SwFig title="Heat by face · MWh" caption="Solid: with devices. Dashed: without." tip="Solid: with devices; dashed: without.">
+          <BarRows label="Beam solar gain by face" labelW={44} rows={ORI.map((o) => ({ label: FACE_W[o], v: G.byFace[o].sh / 1000, v2: G.byFace[o].un / 1000, color: FACE_C[o], text: `${Math.round(G.byFace[o].sh / 1000)} / ${Math.round(G.byFace[o].un / 1000)}` }))} />
+        </SwFig>
+      </Fold>
+    </>
+  )
+}
+
+function PvBody({ P }: { P: PvStudy }) {
+  return (
+    <SwFig title="PV yield · MWh a year" caption={`${P.kwpTot.toFixed(0)} kWp; roof sun ${Math.round(P.roofIrr)} kWh/m².`}>
+      <BarRows label="PV yield by surface" labelW={92} textW={84} rows={P.rows.map((r) => ({ label: zl(r.name), v: r.kwh / 1000, color: r.zone === 'roof' ? PV_C : '#4C7FB8', text: `${Math.round(r.kwh / 1000)} · ${Math.round(r.perM2)} kWh/m²`, tip: `${r.name}: ${fmtI(r.kwh)} kWh a year from ${fmtI(r.area)} m² of panel (${r.kwp.toFixed(0)} kWp)` }))} />
     </SwFig>
+  )
+}
+function PvMore({ P }: { P: PvStudy }) {
+  return (
+    <Fold title="Roof and faces">
+      <SwFig title="PV by roof and face · MWh" caption="Roof panels and spandrels by face." tip="Spandrel panels by the face they sit on.">
+        <BarRows label="PV yield by roof and face" labelW={44} rows={[{ label: 'Roof', v: P.roofKwh / 1000, color: PV_C, text: `${Math.round(P.roofKwh / 1000)} MWh` }, ...ORI.map((o) => ({ label: FACE_W[o], v: P.byFace[o] / 1000, color: FACE_C[o], text: `${Math.round(P.byFace[o] / 1000)} MWh` }))]} />
+      </SwFig>
+    </Fold>
   )
 }
 
@@ -82,17 +117,43 @@ function NatVentBody({ V, H }: { V: VentTower; H: VentHours | null }) {
   const reach = useMemo(() => (vf ? Float32Array.from(vf.near, (d) => (d < 0 ? 99 : d * vf.cell)) : null), [vf])
   return (
     <>
-      <SwFig title="Openable area and reach by floor" caption="Share of each floor within 8 m of an openable window; dashed: all of it.">
+      {H && <SwFig title="Window hours by month" caption="Bars: windows open. Line: hours in month." tip="Bars: hours the windows keep the floor comfortable. Line: hours in the month.">
+        <MonthStack label="Ventilation hours by month" unit="h" series={[{ name: 'windows open', color: WIND_C, values: H.rows.map((r) => r.vent ?? 0) }]} need={{ name: 'hours in the month', color: '#9aa1aa', values: H.rows.map((r) => r.hours) }} />
+      </SwFig>}
+      <SwFig title="Floor within 8 m of a window" caption="Share of each floor. Dashed: all of it." tip="Share of each floor within 8 m of an openable window; dashed: all of it.">
         <FloorBars label="Within 8 m by floor" rows={V.rows.map((r) => ({ level: r.level, v: r.within8 }))} mark={1} color="#2a9fc4" fmt={(v) => `${Math.round(v * 100)}%`} />
       </SwFig>
-      {H && <SwFig title="Natural ventilation by month" caption="Hours opening the windows keeps the floor comfortable (dark) out of the comfortable-outside hours (light).">
-        <MonthBars label="Ventilation hours by month" a={H.rows.map((r) => r.vent ?? 0)} b={H.rows.map((r) => r.comfort ?? 0)} colA="#2a9fc4" colB="#cfe8f0" />
-      </SwFig>}
-      {pf && vf && reach && <SwFig title={`Level ${pf.f.level} · reach of the openings`} caption={`${Math.round(vf.within8 * 100)}% within 8 m; ${vf.freePct.toFixed(1)}% of the floor openable.`}>
+      {pf && vf && reach && <SwFig title={`L${pf.f.level} · reach of the openings`} caption={`${Math.round(vf.within8 * 100)}% within 8 m; ${vf.freePct.toFixed(1)}% openable.`}>
         <LevelPick levels={pf.levels} />
         <FloorPlan f={pf.f} zones={zonesOf(pf.t)} grid={{ x0: vf.x0, y0: vf.y0, h: vf.cell, nx: vf.nx, ny: vf.ny }} values={reach} ramp={RAMPS.reach} label="Reach plan" />
         <RampKey ramp={RAMPS.reach} />
       </SwFig>}
+    </>
+  )
+}
+function NatVentMore({ V, H }: { V: VentTower; H: VentHours | null }) {
+  const amax = H ? Math.max(1, H.reqACH, ...H.floors.map((f) => f.achMed)) : 1
+  return (
+    <>
+      {H && <Fold title="Through the year">
+        <SwFig title="Windows open · day × hour" caption="Share of floors with windows open." tip="Share of operable floors with windows open: comfortable, not gusty, no heavy rain.">
+          <YearMap hourly={H.grid} color={RAMP.open} label="Share of operable floors with windows open by day and hour" legend={[[0, 'none'], [1, 'all']]} read={(v) => `${Math.round(v * 100)}% of floors open`} />
+        </SwFig>
+      </Fold>}
+      {H && H.floors.length > 0 && <Fold title="By floor">
+        <SwFig title="Window hours by floor" caption="Share of the year, falling with height." tip="Falls with height as the wind strengthens.">
+          <FloorBars label="Share of hours with windows open by floor" rows={H.floors.map((f) => ({ level: f.level, v: f.share }))} max={Math.max(0.1, ...H.floors.map((f) => f.share))} color={WIND_C} fmt={(v) => `${Math.round(v * 100)}%`} />
+        </SwFig>
+        <SwFig title="Air changes by floor" caption="Median per hour. Dashed: fresh-air rate." tip="Median air changes an hour; dashed: the outdoor-air rate.">
+          <FloorBars label="Median air changes an hour by floor" rows={H.floors.map((f) => ({ level: f.level, v: f.achMed, tip: `L${f.level}: ${f.achMed.toFixed(1)} /h, fresh air met ${Math.round(f.fresh * 100)}% of open hours` }))} max={amax} mark={H.reqACH} color="#5FB7BE" fmt={(v) => v.toFixed(1)} />
+        </SwFig>
+      </Fold>}
+      {V.operable > 0 && <Fold title="ASHRAE 62.1 openable area">
+        <SwFig title="Openable area" caption={`${V.meet4} of ${V.operable} floors meet the 4% rule.`} tip="Free opening area as a share of the floor served, on a scale to 10%. ASHRAE 62.1 asks at least 4%.">
+          <Gauge v={Math.min(1, V.freePct / 10)} good="high" label="Openable area against the 4% rule" read={`${V.freePct.toFixed(1)}% of the floor`} marks={[{ v: 0.4, label: 'rule · 4% of floor' }]} />
+          <FloorBars label="Openable area by floor" rows={V.rows.map((r) => ({ level: r.level, v: r.freePct }))} max={Math.max(8, ...V.rows.map((r) => r.freePct))} mark={4} color="#2a9fc4" fmt={(v) => `${v.toFixed(0)}%`} />
+        </SwFig>
+      </Fold>}
     </>
   )
 }
@@ -105,10 +166,67 @@ export function AirFlowPlan({ A, f, t }: { A: AirFlow; f: SwFloor; t: Tower }) {
     </FloorPlan>
   )
 }
+function AirFlowMore({ A }: { A: AirFlow }) {
+  const inQ = { N: 0, E: 0, S: 0, W: 0 }, outQ = { N: 0, E: 0, S: 0, W: 0 }
+  for (const l of A.links) { if (l.kind !== 'win' || !l.o || !l.q) continue; if (l.q > 0) inQ[l.o] += l.q; else outQ[l.o] -= l.q }
+  const tot = ORI.reduce((a, o) => a + inQ[o], 0) || 1
+  if (!A.on || !ORI.some((o) => inQ[o] + outQ[o] > 0)) return null
+  return (
+    <Fold title="Air in and out">
+      <SwFig title="Air in by face" caption="Share of the air coming in." tip="Share of the air that comes in through each face's windows.">
+        <BarRows label="Air in by face" labelW={44} max={1} rows={ORI.map((o) => ({ label: FACE_W[o], v: inQ[o] / tot, color: '#1F7FA6', text: `${Math.round((inQ[o] / tot) * 100)}%` }))} />
+      </SwFig>
+      <SwFig title="Air out by face" caption="Share of the air going out." tip="Share of the air that leaves through each face's windows.">
+        <BarRows label="Air out by face" labelW={44} max={1} rows={ORI.map((o) => ({ label: FACE_W[o], v: outQ[o] / tot, color: '#E07A2E', text: `${Math.round((outQ[o] / tot) * 100)}%` }))} />
+      </SwFig>
+    </Fold>
+  )
+}
 
 export function TempPlan({ T, f, t }: { T: ThermalFloor; f: SwFloor; t: Tower }) {
   const values = useMemo(() => Float32Array.from(T.zid, (z) => (z < 0 ? NaN : T.zones.find((q) => q.idx === z)?.Tk ?? NaN)), [T])
   return <FloorPlan f={f} zones={zonesOf(t)} grid={{ x0: T.x0, y0: T.y0, h: T.cell, nx: T.nx, ny: T.ny }} values={values} ramp={RAMPS.temp} label="Indoor temperature plan" />
+}
+type SysRow = { sys: ThermSys; label: string; parts: number[]; heat: number; cool: number }
+function TempMore({ T, level, sysRows }: { T: ThermalFloor; level: number; sysRows: SysRow[] }) {
+  const hot = T.zones.reduce((a, z) => (z.overShare > a.overShare ? z : a), T.zones[0])
+  const [pick, setPick] = useState<string | null>(null)
+  const zone = T.zones.find((z) => z.key === pick) ?? hot
+  const L = T.loss
+  return (
+    <>
+      {sysRows?.length > 0 && <Fold title="Each heating and cooling option">
+        <SwFig title={`L${level} · with each option`} caption="Occupied hours by temperature." tip="Occupied hours by temperature; heating and cooling in the hover text.">
+          <StackRows label="Comfort with each heating and cooling option" labelW={104} colors={T_COL} names={T_NAME} rows={sysRows.map((r) => ({ label: r.label.replace('No heating or cooling', 'Nothing').replace('Heating and ', 'Heating + '), parts: r.parts, text: `heating ${r.heat.toFixed(0)}${r.cool > 0.5 ? `, cooling ${r.cool.toFixed(0)}` : ''} kWh/m²` }))} />
+          <Chips items={T_NAME.map((n, i) => ({ name: n, color: T_COL[i] }))} />
+        </SwFig>
+        <SwFig title="Heating, cooling · kWh/m²" caption="Solid: heating. Dashed: cooling." tip="Solid: heating; dashed: cooling.">
+          <BarRows label="Heating and cooling by option" labelW={104} textW={50} rows={sysRows.map((r) => ({ label: r.label.replace('No heating or cooling', 'Nothing').replace('Heating and ', 'Heating + '), v: r.heat, v2: r.cool, color: '#c2410c', text: `${r.heat.toFixed(0)} / ${r.cool.toFixed(0)}` }))} />
+        </SwFig>
+      </Fold>}
+      <Fold title="By month">
+        {T.zones.map((z) => <SwFig key={z.key} title={`${z.name} · indoor °C by month`} caption="Bar: low to high. Dot: mean. Green: 20–26°." tip="Bar: lowest to highest; dot: mean; green: 20–26 °C.">
+          <MonthRange label={`${z.name} zone: monthly lowest, mean and highest indoor temperature`} unit="°C" min={z.mon.min} mean={z.mon.mean} max={z.mon.max} band={[20, 26]} color={z.key === 'C' ? '#64748b' : FACE_C[z.key as Face]} />
+        </SwFig>)}
+      </Fold>
+      <Fold title="The year in one zone">
+        <label className="flex items-center gap-2 text-meta text-muted">Zone
+          <select value={zone.key} onChange={(e) => setPick(e.target.value)} className="h-7 flex-1 rounded border border-line bg-panel px-1 text-meta text-ink" aria-label="Zone shown" data-testid="sw-zone-pick">{T.zones.map((z) => <option key={z.key} value={z.key}>{z.name}{z.key === hot.key ? ' (warmest)' : ''}</option>)}</select>
+        </label>
+        <SwFig title={`${zone.name} · °C, day × hour`} caption="Each hour of the year in this zone." tip="Cold mornings low in winter, warm afternoons high in summer.">
+          <YearMap hourly={zone.To} color={RAMP.temp} label={`Indoor temperature of the ${zone.name} zone by day and hour`} legend={[[14, '14°'], [22, '22°'], [30, '30°']]} read={(v) => `${v.toFixed(1)} °C`} />
+        </SwFig>
+      </Fold>
+      <Fold title="Heat loss">
+        <SwFig title={`L${level} · heat lost by path`} caption="kWh a year while warmer inside than out." tip="Summed over the hours the inside is warmer than the outside.">
+          <BarRows label="Heat lost by path on this floor" labelW={84} rows={([['Glass', L.glass, LOSS_COL.glass], ['Walls', L.wall, LOSS_COL.wall], ['Roofs, soffits', L.roof, LOSS_COL.roof], ['Ventilation', L.vent, LOSS_COL.vent], ['Leaks', L.infil, LOSS_COL.infil]] as [string, number, string][]).filter((x) => x[1] > 0).map(([label, v, color]) => ({ label, v, color, text: `${fmtI(v)} · ${Math.round((v / (L.total || 1)) * 100)}%` }))} />
+        </SwFig>
+        <SwFig title="Heating by zone · kWh/m²" caption="Solid: heating. Dashed: cooling." tip="Solid: heating; dashed: cooling.">
+          <BarRows label="Heating and cooling by zone" labelW={84} textW={50} rows={T.zones.map((z) => ({ label: z.name, v: z.heat / Math.max(1, z.area), v2: z.cool / Math.max(1, z.area), color: z.key === 'C' ? '#64748b' : FACE_C[z.key as Face], text: `${(z.heat / Math.max(1, z.area)).toFixed(0)} / ${(z.cool / Math.max(1, z.area)).toFixed(0)}` }))} />
+        </SwFig>
+      </Fold>
+    </>
+  )
 }
 
 export function InteriorDrawings({ id }: { id: SwId }) {
@@ -117,13 +235,13 @@ export function InteriorDrawings({ id }: { id: SwId }) {
   if (!out) return null
   const d = out.data as Record<string, unknown>
   if (id === 'built.sw-form' && d.F) return <FormBody F={d.F as FormStudy} />
-  if (id === 'built.sw-glazing' && d.per) { const p = (d.per as { G: GlazingStudy }[])[0]; return p ? <GlazingBody G={p.G} wwr={d.wwr as number} /> : null }
-  if (id === 'built.sw-pv' && d.per) { const p = (d.per as { P: PvStudy }[])[0]; return p ? <PvBody P={p.P} share={d.share as number | null} /> : null }
+  if (id === 'built.sw-glazing' && d.per) { const p = (d.per as { G: GlazingStudy }[])[0]; return p ? <GlazingBody G={p.G} /> : null }
+  if (id === 'built.sw-pv' && d.per) { const p = (d.per as { P: PvStudy }[])[0]; return p ? <PvBody P={p.P} /> : null }
   if (id === 'built.sw-natvent' && d.per) { const p = (d.per as { V: VentTower; H: VentHours | null }[])[0]; return p ? <NatVentBody V={p.V} H={p.H} /> : null }
   if (id === 'built.sw-airflow' && d.A) {
     const pf = d.pf as { t: Tower; f: SwFloor; levels: number }, A = d.A as AirFlow
     return (
-      <SwFig title={`Level ${pf.f.level} · air flow`} caption={A.on ? `Mean ${A.mean.toFixed(2)} m/s, ${Math.round(A.still * 100)}% still; ${A.ach.toFixed(1)} air changes an hour.` : A.why}>
+      <SwFig title={`L${pf.f.level} · air flow`} caption={A.on ? `Mean ${A.mean.toFixed(2)} m/s, ${Math.round(A.still * 100)}% still.` : 'Windows shut at this height.'} tip={A.on ? undefined : A.why}>
         <LevelPick levels={pf.levels} /><AirFlowPlan A={A} f={pf.f} t={pf.t} /><RampKey ramp={RAMPS.speed} />
       </SwFig>
     )
@@ -132,14 +250,29 @@ export function InteriorDrawings({ id }: { id: SwId }) {
     const pf = d.pf as { t: Tower; f: SwFloor; levels: number }, T = d.T as ThermalFloor
     return (
       <>
-        <SwFig title={`Level ${pf.f.level} · ${s.hour}:00, ${s.day}/${s.month + 1}`} caption="Operative temperature of each 5 m perimeter zone and the interior at that hour.">
+        <SwFig title={`L${pf.f.level} · °C at ${s.hour}:00, ${s.day}/${s.month + 1}`} caption="Each perimeter zone and the interior." tip="Operative temperature of each 5 m perimeter zone and the interior at that hour.">
           <LevelPick levels={pf.levels} /><TempPlan T={T} f={pf.f} t={pf.t} /><RampKey ramp={RAMPS.temp} />
         </SwFig>
-        <SwFig title="Hours over 26 °C by zone" caption="Occupied hours a year each zone overheats.">
-          <HBar unit="hours" rows={T.zones.map((z) => ({ label: z.name, v: z.over26, color: z.overShare > 0.1 ? '#c53030' : z.overShare > 0.05 ? '#e08a3c' : '#86b86a', text: `${Math.round(z.over26)} h · ${z.tMin.toFixed(0)}–${z.tMax.toFixed(0)} °C` }))} />
+        <SwFig title="Occupied hours by temperature" caption="Each zone, by operative temperature." tip="Each zone's occupied hours by operative temperature.">
+          <StackRows label="Occupied hours by indoor temperature for each zone" labelW={64} colors={T_COL} names={T_NAME} rows={T.zones.map((z) => ({ label: z.name, parts: z.bins, text: `${Math.round(z.over26)} h over 26 °C, ${z.tMin.toFixed(0)}–${z.tMax.toFixed(0)} °C` }))} />
+          <Chips items={T_NAME.map((n, i) => ({ name: n, color: T_COL[i] }))} />
         </SwFig>
       </>
     )
   }
+  return null
+}
+
+/** The secondary figures of the interior tools, folded (results panel only). */
+export function InteriorMore({ id }: { id: SwId }) {
+  const out = useSwOut((s) => s.out[id])
+  if (!out) return null
+  const d = out.data as Record<string, unknown>
+  if (id === 'built.sw-form' && d.F) return <FormMore F={d.F as FormStudy} />
+  if (id === 'built.sw-glazing' && d.per) { const p = (d.per as { G: GlazingStudy }[])[0]; return p ? <GlazingMore G={p.G} /> : null }
+  if (id === 'built.sw-pv' && d.per) { const p = (d.per as { P: PvStudy }[])[0]; return p ? <PvMore P={p.P} /> : null }
+  if (id === 'built.sw-natvent' && d.per) { const p = (d.per as { V: VentTower; H: VentHours | null }[])[0]; return p ? <NatVentMore V={p.V} H={p.H} /> : null }
+  if (id === 'built.sw-airflow' && d.A) return <AirFlowMore A={d.A as AirFlow} />
+  if (id === 'built.sw-indoor-temp' && d.T) return <TempMore T={d.T as ThermalFloor} level={(d.pf as { f: SwFloor }).f.level} sysRows={(d.sysRows as SysRow[]) ?? []} />
   return null
 }

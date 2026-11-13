@@ -7,8 +7,9 @@ import type { RuleResult, Tower } from '../engine/types'
 import { toggleInstrument, useRelax } from '../lib/relaxStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { ROUTE_STYLE } from './RelaxationMasks'
-import { Card, FalseAssumptions } from './WindStructurePanel'
+import { FalseAssumptions } from './WindStructurePanel'
 import { NumberField, Section, Toggle } from './ui'
+import { Caveat, MethodFold, RuleRows } from './ResultViz'
 import { useProjectSiteArea } from '../lib/siteArea'
 
 export interface RelaxAviationResult { tower: Tower; relax: RuleResult[]; aviation: RuleResult[]; rules: RuleResult[] }
@@ -38,7 +39,7 @@ export default function RelaxAviationPanel() {
   const study = useProjectSiteArea()
   return (
     <>
-      <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-meta text-amber-900">{NOT_A_DETERMINATION}</div>
+      <div className="mx-4 mt-3"><Caveat lead="Screening, not a permit or determination">{NOT_A_DETERMINATION}</Caveat></div>
       <Section title="Relaxations">
         {project === 'city' ? (
           <div className="grid gap-2 text-meta">
@@ -46,24 +47,30 @@ export default function RelaxAviationPanel() {
             {(Object.keys(RELAXATIONS) as Instrument[]).map((k) => (
               <label key={k} className="flex items-start gap-1.5">
                 <input type="checkbox" checked={on.includes(k)} onChange={() => toggleInstrument(k)} aria-label={`Switch on ${RELAXATIONS[k].label}`} className="mt-0.5" />
-                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm align-middle" style={{ background: ROUTE_STYLE[k].color }} /><b>{RELAXATIONS[k].label}</b> ({RELAXATIONS[k].clause}): may enter {RELAXATIONS[k].cones.join(', ')}. <span className="text-muted">{RELAXATIONS[k].eligibility}</span></span>
+                <span className="min-w-0" title={`${RELAXATIONS[k].label} (${RELAXATIONS[k].clause}): may enter ${RELAXATIONS[k].cones.join(', ')}. ${RELAXATIONS[k].eligibility}`}><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm align-middle" style={{ background: ROUTE_STYLE[k].color }} /><b>{RELAXATIONS[k].label}</b> <span className="text-muted">({RELAXATIONS[k].clause}) · cones {RELAXATIONS[k].cones.join(', ')}</span></span>
               </label>
             ))}
             <NumberField label="Site area for the Exceptional Downtown Site test" unit="m²" value={siteArea ?? 0} min={0} step={100} onChange={(v) => useRelax.setState({ siteArea: v > 0 ? v : null })} hint={study.area !== null ? `0 = the study site's ${Math.round(study.area).toLocaleString('en-CA')} m²` : '0 = not known yet'} />
             <div className="flex flex-wrap gap-2 text-meta text-muted">
               {(['none', 'unlisted'] as const).map((r) => <span key={r} className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm border-2" style={{ borderColor: ROUTE_STYLE[r].color }} />{ROUTE_STYLE[r].label}</span>)}
             </div>
-            <p className="text-meta text-muted">Routes are off by default and only relax their own cones; the limit shown with a route on is what the remaining cones allow. An Exceptional Downtown Site is a higher building too: switch both on.</p>
+            <MethodFold title="How the routes work">
+              <p>Routes are off by default and only relax their own cones; the limit shown with a route on is what the remaining cones allow. An Exceptional Downtown Site is a higher building too: switch both on.</p>
+              {(Object.keys(RELAXATIONS) as Instrument[]).map((k) => <p key={k}><b>{RELAXATIONS[k].label}</b> ({RELAXATIONS[k].clause}): may enter {RELAXATIONS[k].cones.join(', ')}. {RELAXATIONS[k].eligibility}</p>)}
+            </MethodFold>
           </div>
         ) : (
-          <p className="text-meta text-slate-700">The competition site is hypothetical, so no view cone is modelled on it. Its 11,468 m² block is over the 8,000 m² Exceptional Downtown Site size (team reading, research C01); the views A, E, 9.x and J1 would still bind. Switch to Real Vancouver to see the masks.</p>
+          <>
+            <p className="text-meta text-slate-700">No view cone is modelled on the competition site.</p>
+            <MethodFold title="Why"><p>The competition site is hypothetical, so no view cone is modelled on it. Its 11,468 m² block is over the 8,000 m² Exceptional Downtown Site size (team reading, research C01); the views A, E, 9.x and J1 would still bind. Switch to Real Vancouver to see the masks.</p></MethodFold>
+          </>
         )}
       </Section>
       {results.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
-          {r.relax.length > 0 && <><h4 className="mb-1 text-meta font-semibold text-slate-700">View relaxations</h4><div className="mb-3 grid gap-2">{r.relax.map((x) => <Card key={x.id} r={x} />)}</div></>}
+          {r.relax.length > 0 && <><h4 className="mb-1 text-meta font-semibold text-slate-700">View relaxations</h4><div className="mb-3"><RuleRows rules={r.relax} /></div></>}
           <h4 className="mb-1 text-meta font-semibold text-slate-700">Aviation obligations</h4>
-          <div className="grid gap-2">{r.aviation.map((x) => <Card key={x.id} r={x} />)}</div>
+          <RuleRows rules={r.aviation} />
         </Section>
       ))}
       <FalseAssumptions items={RELAX_AVIATION_FALSE_ASSUMPTIONS} />

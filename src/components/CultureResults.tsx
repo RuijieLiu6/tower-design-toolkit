@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { CLAIM_RULES, CONTACT_RULE, COUNTERPART_LABEL, exportGate, LADDER, lintClaims, NATIONS, NON_ENDORSEMENT, recordIssues, statementFor, type ClaimFinding, type Counterpart, type Nation } from '../engine/culture'
 import { useCultureStore } from '../lib/cultureStore'
 import { FlagChip, Section } from './ui'
+import { Caveat, MethodFold } from './ResultViz'
 
 export function useCultureGate() {
   const { records, claimsText, contactAck, eligibility } = useCultureStore()
@@ -18,16 +19,13 @@ export default function CultureResults() {
   const { findings, gate } = useCultureGate()
   return (
     <>
-      <div className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-meta text-slate-700">
-        <span className="shrink-0 rounded bg-slate-500 px-1.5 py-0.5 text-meta font-semibold uppercase text-white">Unreviewed beta</span>
-        <span>The ladder, phrase list and statements are team designs awaiting paid Indigenous review (P07-M01). The tool restricts claims; it never scores culture and never contacts anyone.</span>
-      </div>
+      <div className="mx-4 mt-3"><Caveat tone="info" lead="Unreviewed beta: restricts claims, never scores culture">The ladder, phrase list and statements are team designs awaiting paid Indigenous review (P07-M01). The tool restricts claims; it never scores culture and never contacts anyone.</Caveat></div>
 
       <Section title="Contact guard">
         <div className="rounded-md border-2 border-red-300 bg-red-50/50 p-2.5 text-meta">
           <div className="mb-1 flex items-center gap-1.5 font-semibold text-red-800"><ShieldAlert size={14} />No contact about the entry</div>
           <p>{CONTACT_RULE}</p>
-          <div className="mt-1.5 flex items-center gap-1"><FlagChip flag="unverified" /><span className="text-meta text-muted">Generic rule only. Names, clause numbers and dates stay hidden until a person checks the Terms and the jury page in a browser (they came from fetch summaries; the organizer's site was unreachable in research rounds 3 and 4).</span></div>
+          <MethodFold title="Generic rule only"><div className="flex items-start gap-1"><FlagChip flag="unverified" /><span>Generic rule only. Names, clause numbers and dates stay hidden until a person checks the Terms and the jury page in a browser (they came from fetch summaries; the organizer's site was unreachable in research rounds 3 and 4).</span></div></MethodFold>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="grid gap-0.5"><span className="text-muted">Checked by</span><input value={s.verifiedBy} onChange={(e) => s.set({ verifiedBy: e.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" placeholder="name (kept in this browser)" /></label>
             <label className="grid gap-0.5"><span className="text-muted">On</span><input type="date" value={s.verifiedOn} onChange={(e) => s.set({ verifiedOn: e.target.value })} className="rounded border border-line bg-panel px-1.5 py-0.5" /></label>
@@ -37,7 +35,7 @@ export default function CultureResults() {
       </Section>
 
       <Section title="Engagement ledger, per Nation" right={<FlagChip flag="team_assumption" />}>
-        <p className="mb-2 text-meta text-muted">One Nation's status says nothing about the other two. N0 is the standing default: whether any sanctioned channel to the Nations exists for this competition is unresolved.</p>
+        <p className="mb-2 truncate text-meta text-muted" title="One Nation's status says nothing about the other two. N0 is the standing default: whether any sanctioned channel to the Nations exists for this competition is unresolved.">Each Nation on its own · N0 is the default</p>
         <div className="grid gap-2.5">{NATIONS.map((n) => <NationRow key={n} n={n} />)}</div>
       </Section>
 

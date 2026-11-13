@@ -10,7 +10,7 @@ import { sunPosition, vancouverTime } from '../engine/sun'
 import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from '../engine/egress'
 import { CLASS_LABEL, type LiftResult } from '../engine/lifts'
 import { coreSide, towerFloors } from '../engine/massing'
-import { USES, type RuleResult, type Tower, type UseId } from '../engine/types'
+import { USES, type Tower, type UseId } from '../engine/types'
 import { CONES, CONE_ATTRIBUTION, CONE_PARAMS, STATE_LABEL, bisector, type ConeCheck } from '../engine/viewCones'
 import { TIER_LABEL } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
@@ -23,7 +23,6 @@ import LifeSafetyPanel from './LifeSafetyPanel'
 import RelaxAviationPanel from './RelaxAviationPanel'
 import EnergyCarbonResults from './EnergyCarbonResults'
 import RulesBehind from './RulesBehind'
-import { CardChip } from './RuleCardView'
 import EconomicsResults from './EconomicsResults'
 import MobilityResults from './MobilityResults'
 import FacadeResults from './FacadeResults'
@@ -41,6 +40,7 @@ import PublicRealmResults from './PublicRealmResults'
 import SolarResults from './SolarResults'
 import DaylightResults from './DaylightResults'
 import { CONE_STYLE, ConeChip, FlagChip, Section, StateChip } from './ui'
+import { Donut, Evidence, FlagDot, Fold, HBars, Legend, MethodFold, PairBars, RuleRows, Stack, Stat, Stats } from './ResultViz'
 import { U } from './Units'
 import { useShallow } from 'zustand/react/shallow'
 import Help from './Help'
@@ -50,18 +50,20 @@ import { inputGap } from '../lib/missingInput'
 import { useProjectSiteArea } from '../lib/siteArea'
 import { KIND_CLASS } from '../lib/status'
 
-function RuleCard({ r }: { r: RuleResult }) {
+/** Where the sun is in the sky at the chosen moment: north up, the horizon is the ring, the centre is overhead. */
+function SunDial({ azimuth, altitude }: { azimuth: number; altitude: number }) {
+  const R = 44, up = altitude > 0
+  const r = R * (1 - Math.max(0, Math.min(90, altitude)) / 90), a = (azimuth * Math.PI) / 180
+  const x = r * Math.sin(a), y = -r * Math.cos(a)
   return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} value={r.value} /></div>
-      <div className="mt-0.5 text-meta"><b className="tabular-nums"><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
-        <CardChip ruleId={r.id} />
-      </div>
-    </div>
+    <svg viewBox="-60 -60 120 120" className="mx-auto h-36 w-36" role="img" aria-label={`Sun at azimuth ${azimuth.toFixed(1)}° and altitude ${altitude.toFixed(1)}°${up ? '' : ', below the horizon'}`}>
+      <circle r={R} fill="#f4f7fa" stroke="#8d96a3" strokeWidth="1" />
+      {[30, 60].map((alt) => <circle key={alt} r={R * (1 - alt / 90)} fill="none" stroke="#d9dee7" strokeWidth="0.6"><title>{`${alt}° altitude`}</title></circle>)}
+      <line x1={-R} x2={R} y1="0" y2="0" stroke="#d9dee7" strokeWidth="0.6" /><line y1={-R} y2={R} x1="0" x2="0" stroke="#d9dee7" strokeWidth="0.6" />
+      {['N', 'E', 'S', 'W'].map((n, i) => <text key={n} x={53 * Math.sin((i * Math.PI) / 2)} y={-53 * Math.cos((i * Math.PI) / 2) + 3} fontSize="8" fontWeight="600" textAnchor="middle" fill="#43474d">{n}</text>)}
+      <line x1="0" y1="0" x2={R * Math.sin(a)} y2={-R * Math.cos(a)} stroke="#e08a00" strokeWidth="1" strokeDasharray="3 2" />
+      <circle cx={x} cy={y} r="5.5" fill={up ? '#f5a300' : '#8d96a3'} stroke="#fff" strokeWidth="1.2"><title>{`Azimuth ${azimuth.toFixed(1)}°, altitude ${altitude.toFixed(1)}°`}</title></circle>
+    </svg>
   )
 }
 
@@ -114,7 +116,7 @@ function RiseDiagram({ t, r }: { t: Tower; r: LiftResult }) {
           )
         })}
       </svg>
-      <figcaption className="text-meta text-muted">Number above a column = cars. Black = the group's lobby (grade or sky lobby); hatched = passed express; grey = plant floor not served.{r.skyLobbies.length ? ' S columns are shuttles to a sky lobby.' : ''}</figcaption>
+      <Legend items={[{ label: 'cars (number on top)', color: '#1f2328', tip: 'The number above a column is its cars' }, { label: 'lobby', color: '#1f2328', tip: "Black: the group's lobby, at grade or a sky lobby" }, { label: 'express', hatch: true, color: '#7d8794', tip: 'Hatched: floors passed express' }, { label: 'plant', color: '#e3e1dc', tip: 'Grey: plant floor, not served' }, ...(r.skyLobbies.length ? [{ label: 'S = shuttle', color: SHUTTLE_COLOR, tip: 'S columns are shuttles to a sky lobby' }] : [])]} />
     </figure>
   )
 }
@@ -164,9 +166,9 @@ function CoreProfile({ r }: { r: LiftResult }) {
         {r.direct && <path d={path(r.direct.profile)} fill="none" stroke="#9aa3ad" strokeWidth="1.2" strokeDasharray="3 2" />}
         <path d={path(levels)} fill="none" stroke="#1d5fa8" strokeWidth="1.8" />
         <line x1={x(r.modelledCore)} y1={T} x2={x(r.modelledCore)} y2={H - B} stroke="#1f2328" strokeWidth="1.2" />
-        <text x={x(r.modelledCore) + 3} y={T + 8} fontSize="8" fill="#1f2328">modelled</text>
+        <text x={x(r.modelledCore) + (x(r.modelledCore) > W - 44 ? -3 : 3)} y={T + 8} fontSize="8" fill="#1f2328" textAnchor={x(r.modelledCore) > W - 44 ? 'end' : 'start'}>modelled</text>
       </svg>
-      <figcaption className="text-meta text-muted">Core needed by level, m² (blue){r.direct ? '; dashed = the same tower with no sky lobby' : ''}. Black line = the modelled core, one size top to bottom.</figcaption>
+      <Legend items={[{ label: 'core needed, m²', color: '#1d5fa8', line: true }, ...(r.direct ? [{ label: 'no sky lobby', color: '#9aa3ad', line: true, dashed: true, tip: 'The same tower with no sky lobby' }] : []), { label: 'modelled core', color: '#1f2328', line: true, tip: 'The modelled core, one size top to bottom' }]} />
     </figure>
   )
 }
@@ -176,25 +178,22 @@ function SkyLobbyCompare({ r }: { r: LiftResult }) {
   if (!r.direct) return null
   const d = r.direct
   const above = r.skyLobbies[0]?.level
-  const rows: [string, string, string][] = [
-    ['Passenger cars', `${d.totalCars}`, `${r.totalCars}`],
-    ['Shafts at grade (incl. 2 service)', `${d.shaftsAtGrade}`, `${r.shaftsAtGrade}`],
-    ['Core needed, worst level', `${Math.round(d.requiredMax)} m²`, `${Math.round(r.requiredMax)} m²`],
-    ['Net-to-gross with that core', `${Math.round((1 - d.requiredMax / d.plate) * 100)}%`, `${Math.round((1 - r.requiredMax / r.plate) * 100)}%`],
-    ['Lift changes per trip', '0', `1 above L${above}`],
-  ]
+  const ntg = (x: { requiredMax: number; plate: number }) => Math.round((1 - x.requiredMax / x.plate) * 100)
   const saved = d.requiredMax - r.requiredMax
   return (
-    <div className="mt-3 rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">Sky lobby vs direct</span>
+    <div className="mt-3 min-w-0 rounded-md border border-line p-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2"><span className="text-xs font-semibold">Sky lobby vs direct</span>
         {/* A comparison of two schemes, not a pass or fail (see the note below): neutral, with its number and unit. */}
         <span className="rounded bg-subtle px-1.5 py-0.5 text-meta font-semibold tabular-nums text-ink">{saved > 0 ? `saves ${Math.round(saved)} m² of core` : `adds ${Math.round(-saved)} m² of core`}</span>
       </div>
-      <table className="mt-1 w-full text-meta">
-        <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium" /><th className="text-right font-medium">Direct</th><th className="text-right font-medium">Sky lobby</th></tr></thead>
-        <tbody>{rows.map(([k, a, b]) => <tr key={k} className="border-t border-line/60"><td className="py-0.5">{k}</td><td className="text-right tabular-nums text-muted">{a}</td><td className="text-right font-medium tabular-nums">{b}</td></tr>)}</tbody>
-      </table>
-      <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">One transfer is a design choice, not a pass/fail: London tenants asked for direct travel (Stopes), while a public sky room can make the sky lobby a destination. Double-deck and destination control are roadmap.</span></div>
+      <PairBars label="Sky lobby against direct service" a="Direct" b="Sky lobby" rows={[
+        { label: 'Passenger cars', a: d.totalCars, b: r.totalCars, aText: `${d.totalCars}`, bText: `${r.totalCars}` },
+        { label: 'Shafts at grade (incl. 2 service)', a: d.shaftsAtGrade, b: r.shaftsAtGrade, aText: `${d.shaftsAtGrade}`, bText: `${r.shaftsAtGrade}` },
+        { label: 'Core needed, worst level', a: d.requiredMax, b: r.requiredMax, aText: `${Math.round(d.requiredMax)} m²`, bText: `${Math.round(r.requiredMax)} m²` },
+        { label: 'Net-to-gross with that core', a: ntg(d), b: ntg(r), aText: `${ntg(d)}%`, bText: `${ntg(r)}%` },
+        { label: 'Lift changes per trip', a: 0, b: 1, aText: '0', bText: `1 above L${above}` },
+      ]} />
+      <MethodFold title="Why this is not a pass or fail"><div className="flex items-start gap-1"><FlagChip flag="team_assumption" /><span>One transfer is a design choice, not a pass/fail: London tenants asked for direct travel (Stopes), while a public sky room can make the sky lobby a destination. Double-deck and destination control are roadmap.</span></div></MethodFold>
     </div>
   )
 }
@@ -221,7 +220,7 @@ function StairChart({ e }: { e: EgressResult }) {
         <text x={L - 4} y={T + 7} textAnchor="end" fontSize="8" fill="#6b6f76">L{st[st.length - 1].level}</text>
         {[0, 0.5, 1].map((f) => <text key={f} x={x(xMax * f * 0.9)} y={H - 4} textAnchor="middle" fontSize="8" fill="#6b6f76">{Math.round(xMax * f * 0.9)}</text>)}
       </svg>
-      <figcaption className="text-meta text-muted">Width each storey needs alone, mm (bars; purple = public sky room); red = the stair width there, which keeps the widest need of the storeys above.</figcaption>
+      <Legend items={[{ label: 'need of each storey, mm', color: '#c9ced4' }, { label: 'public sky room', color: '#8e5ba8' }, { label: 'stair width there', color: '#c0504d', line: true, tip: 'The stair keeps the widest need of the storeys above' }, { label: '1100 mm minimum', color: '#1f2328', line: true, dashed: true }]} />
     </figure>
   )
 }
@@ -249,10 +248,11 @@ function StairPlan({ t, e }: { t: Tower; e: EgressResult }) {
         {near && <line x1={X(e.farCorner[0])} y1={Y(e.farCorner[1])} x2={X(near.x)} y2={Y(near.y)} stroke={travelOk ? '#1d5fa8' : '#c0392b'} strokeWidth="1.2" strokeDasharray="3 2" />}
         <circle cx={X(e.farCorner[0])} cy={Y(e.farCorner[1])} r="2.5" fill={travelOk ? '#1d5fa8' : '#c0392b'} />
       </svg>
-      <figcaption className="grid gap-1 text-meta text-muted">
-        <span className="flex flex-wrap items-center gap-1"><StateChip state={sepOk ? 'pass' : 'fail'} /><b className={`tabular-nums ${sepOk ? KIND_CLASS.success.fg : KIND_CLASS.error.fg}`}>Solid line: <U>{`${e.separation.toFixed(1)} m`}</U></b> between the stairs; needs <U>{`${e.separationNeeded.toFixed(1)} m`}</U>.</span>
-        <span className="flex flex-wrap items-center gap-1"><StateChip state={travelOk ? 'pass' : 'fail'} /><b className={`tabular-nums ${travelOk ? 'text-accent' : KIND_CLASS.error.fg}`}>Dashed: <U>{`${e.travel.toFixed(1)} m`}</U></b> from the farthest corner to a stair; limit <U>45 m</U>.</span>
-        <span>Red = exit stairs ({PLACEMENT_LABEL[e.placement]}); dark = core. Typical tower floor, {t.width} × {t.depth} m.</span>
+      <figcaption className="grid min-w-0 gap-1 text-meta text-muted">
+        <span className="flex flex-wrap items-center gap-1" title={`Solid line: the distance between the stairs; needs ${e.separationNeeded.toFixed(1)} m`}><StateChip state={sepOk ? 'pass' : 'fail'} /><b className={`tabular-nums ${sepOk ? KIND_CLASS.success.fg : KIND_CLASS.error.fg}`}><U>{`${e.separation.toFixed(1)} m`}</U></b> apart · needs <U>{`${e.separationNeeded.toFixed(1)} m`}</U></span>
+        <span className="flex flex-wrap items-center gap-1" title="Dashed line: from the farthest corner to a stair; limit 45 m"><StateChip state={travelOk ? 'pass' : 'fail'} /><b className={`tabular-nums ${travelOk ? 'text-accent' : KIND_CLASS.error.fg}`}><U>{`${e.travel.toFixed(1)} m`}</U></b> travel · limit <U>45 m</U></span>
+        <Legend items={[{ label: 'exit stairs', color: '#c0504d', tip: `Exit stairs (${PLACEMENT_LABEL[e.placement]})` }, { label: 'core', color: '#b9c1cb' }, { label: 'apart', color: sepOk ? '#1f6b42' : '#c0392b', line: true }, { label: 'travel', color: travelOk ? '#1d5fa8' : '#c0392b', line: true, dashed: true }]} />
+        <span className="truncate" title={`Typical tower floor, ${t.width} × ${t.depth} m; stairs ${PLACEMENT_LABEL[e.placement]}`}>{t.width} × {t.depth} m · {PLACEMENT_LABEL[e.placement]}</span>
       </figcaption>
     </figure>
   )
@@ -264,28 +264,43 @@ function ConeCoverage() {
   const chip = 'rounded border px-1 py-px text-meta tabular-nums'
   return (
     <Section title="Cone coverage" right={<span className="text-meta text-muted">{known.length} of {CONES.length} with an estimate</span>}>
-      <div className="mb-2 flex h-2 overflow-hidden rounded-sm border border-line" aria-hidden>
-        <div style={{ width: `${(known.length / CONES.length) * 100}%`, background: '#4f7fae' }} />
-        <div className="hatch flex-1" />
-      </div>
-      <p className="text-meta">
-        <b>{unknown.length} of {CONES.length} cones have no height estimate.</b> No opened City sheet or Council report gives their slope, so the tool says
-        "no estimate" instead of guessing. They wait on City Request 0 (draft in <code>docs/city-requests/</code>). In 3D they are the dashed grey outlines.
-      </p>
-      <div className="mt-2 text-meta font-semibold text-muted">With an estimate (blue sheets)</div>
-      <div className="mt-1 flex flex-wrap gap-1">
+      <Stack label="View cones with a height estimate" share={false} parts={[{ label: 'with an estimate', v: known.length, color: '#4f7fae' }, { label: 'no estimate', v: unknown.length, color: '#b8c0cc' }]} />
+      <div className="mt-2 flex flex-wrap gap-1" aria-label="Cones with an estimate">
         {known.map((c) => <span key={c.id} title={`${c.name}: ${CONE_PARAMS[c.id].source}`} className={`${chip} border-[#4f7fae] text-[#2f5578]`}>{c.id}</span>)}
-      </div>
-      <div className="mt-2 text-meta font-semibold text-muted">No estimate (dashed)</div>
-      <div className="mt-1 flex flex-wrap gap-1">
         {unknown.map((c) => <span key={c.id} title={`${c.name}: no slope in any opened City source`} className={`${chip} border-dashed border-slate-400 text-slate-700`}>{c.id}</span>)}
       </div>
-      <div className="mt-2 flex items-center gap-1"><FlagChip flag="unresolved" /><span className="text-meta text-muted">Limit unknown for these cones; the City View Cone Assessment governs.</span></div>
+      <MethodFold title="Why some cones have no estimate">
+        <p><b>{unknown.length} of {CONES.length} cones have no height estimate.</b> No opened City sheet or Council report gives their slope, so the tool says
+          "no estimate" instead of guessing. They wait on City Request 0 (draft in <code>docs/city-requests/</code>). In 3D they are the dashed grey outlines; cones with an estimate are the blue sheets.</p>
+        <div className="flex items-start gap-1"><FlagChip flag="unresolved" /><span>Limit unknown for these cones; the City View Cone Assessment governs.</span></div>
+      </MethodFold>
     </Section>
   )
 }
 
-function ConeRow({ c }: { c: ConeCheck }) {
+/** A cone's estimated limit as a scale: the bar is the tower top, the tick the limit, the band its uncertainty. */
+function ConeScale({ c, topZ }: { c: ConeCheck; topZ: number }) {
+  if (c.limit === null) return null
+  const u = c.param?.u95 ?? 0, max = Math.max(topZ, c.limit + u) * 1.12 || 1
+  const x = (v: number) => Math.max(0, Math.min(100, (v / max) * 100))
+  const over = (c.exceed ?? 0) > 0
+  return (
+    <div className="mt-1 grid gap-0.5">
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="h-2.5 w-full" role="img" aria-label={`Tower top ${topZ.toFixed(1)} m against the estimated limit ${c.limit.toFixed(1)} m, plus or minus ${u} m`}>
+        <rect y="2" width="100" height="6" rx="1" fill="#eef0f3" />
+        <rect x={x(c.limit - u)} width={Math.max(0.5, x(c.limit + u) - x(c.limit - u))} height="10" fill="#d98b1c" opacity="0.28"><title>{`Uncertainty ±${u} m`}</title></rect>
+        <rect y="2" width={x(topZ)} height="6" rx="1" fill={CONE_STYLE[c.state].color}><title>{`Top of tower ${topZ.toFixed(1)} m geodetic`}</title></rect>
+        <rect x={x(c.limit) - 0.5} width="1" height="10" fill="#1f2328"><title>{`Estimated limit ${c.limit.toFixed(1)} m geodetic`}</title></rect>
+      </svg>
+      <div className="flex justify-between gap-2 text-[11px] leading-4 text-muted">
+        <span className={`tabular-nums font-semibold ${over ? KIND_CLASS.error.fg : KIND_CLASS.success.fg}`}><U>{`${Math.abs(c.exceed!).toFixed(1)} m`}</U> {over ? 'above' : 'below'}</span>
+        <span className="tabular-nums">limit <U>{`${c.limit.toFixed(1)} m`}</U> ±<U>{`${u} m`}</U></span>
+      </div>
+    </div>
+  )
+}
+
+function ConeRow({ c, topZ }: { c: ConeCheck; topZ: number }) {
   const set = useStore((s) => s.set)
   const viewFrom = () => {
     const O = c.cone.ring[0], u = bisector(c.cone)
@@ -294,24 +309,16 @@ function ConeRow({ c }: { c: ConeCheck }) {
     set({ cameraRequest: { position: [O[0] - CITY_ORIGIN[0], O[1] - CITY_ORIGIN[1], c.cone.Lv], target: [O[0] - CITY_ORIGIN[0] + u[0] * 2000, O[1] - CITY_ORIGIN[1] + u[1] * 2000, c.cone.Lv + 40], fov: Math.min(70, Math.max(20, spread * 1.4)) } })
   }
   return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold">{c.cone.id} · {c.cone.name}</span>
+    <div className="min-w-0 rounded-md border border-line p-2" title={`View to ${c.cone.subject} · origin elevation ${c.cone.Lv} m${c.param ? ` · ${c.param.tier} · ${c.param.source}` : ''}`}>
+      <div className="flex min-w-0 items-center justify-between gap-1.5">
+        <span className="min-w-0 flex-1 truncate text-xs font-semibold">{c.cone.id} · {c.cone.name}</span>
+        {c.param && <FlagDot flag={c.param.flag} />}
         <ConeChip state={c.state} label={STATE_LABEL[c.state]} />
       </div>
-      <div className="mt-0.5 text-meta text-muted">View to {c.cone.subject} · origin elevation <U>{`${c.cone.Lv} m`}</U></div>
-      {c.limit !== null ? (
-        <div className="mt-1 text-meta">
-          Estimated limit <b className="tabular-nums"><U>{`${c.limit.toFixed(1)} m`}</U></b> geodetic ·
-          {c.exceed! > 0 ? <span className={`tabular-nums ${KIND_CLASS.error.fg}`}> <U>{`${c.exceed!.toFixed(1)} m`}</U> above</span> : <span className={`tabular-nums ${KIND_CLASS.success.fg}`}> <U>{`${(-c.exceed!).toFixed(1)} m`}</U> below</span>}
-          <span className="text-muted"> (±<U>{`${c.param!.u95} m`}</U>)</span>
-          <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={c.param!.flag} /><span className="text-meta text-muted">{c.param!.tier} · {c.param!.source}</span></div>
-        </div>
-      ) : c.state === 'limit_unknown' ? (
-        <div className="mt-1 text-meta text-pending">No published slope for this cone yet, so the tool stops rather than guessing. Ask the City for a View Cone Assessment (draft in <code>04 Tool Plan/city-requests/</code>).</div>
-      ) : null}
+      <ConeScale c={c} topZ={topZ} />
+      {c.limit === null && c.state === 'limit_unknown' && <div className="mt-1 truncate text-meta text-pending" title="No published slope for this cone yet, so the tool stops rather than guessing. Ask the City for a View Cone Assessment (draft in 04 Tool Plan/city-requests/).">No published slope: ask the City</div>}
       <div className="mt-1.5 flex gap-3">
-        <button onClick={viewFrom} className="flex items-center gap-1 text-meta text-accent hover:underline"><Eye size={12} />View from this viewpoint</button>
+        <button onClick={viewFrom} className="flex items-center gap-1 text-meta text-accent hover:underline" title="View from this viewpoint"><Eye size={12} />View from here</button>
         <a href={c.cone.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-meta text-muted hover:text-accent"><ExternalLink size={12} />City page</a>
       </div>
     </div>
@@ -356,111 +363,121 @@ export default function Inspector() {
       {live && <ResultChecklist nodeId={n.id} />}
       <DetailsFold nodeId={live ? n.id : ''}>
       {n.id === 'built.vtc-rules' && project === 'vtc' && enabled[n.id] && (
-        <Section title="Results">
-          <div className="grid gap-2">
-            {rules.map((r) => <RuleCard key={r.id} r={r} />)}
-          </div>
-        </Section>
+        <Section title="Results"><RuleRows rules={rules} /></Section>
       )}
 
       {n.id === 'built.fsr' && enabled[n.id] && (
         <Section title="Results">
-          <table className="w-full text-meta">
-            <tbody>
-              {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (
-                <tr key={u} className="border-b border-line/60"><td className="py-1"><span className="mr-1.5 inline-block h-2 w-2 rounded-sm" style={{ background: USES[u as UseId].color }} />{USES[u as UseId].label}</td><td className="text-right tabular-nums">{Math.round(v).toLocaleString()} m²</td></tr>
-              ))}
-              <tr><td className="pt-1.5 font-semibold">Total gross</td><td className="pt-1.5 text-right font-semibold tabular-nums">{Math.round(fsr.total).toLocaleString()} m²</td></tr>
-            </tbody>
-          </table>
-          <div className="mt-2 grid gap-1 text-meta">
-            {([1, 2, 3] as const).map((k) => (
-              <div key={k} className={`flex justify-between ${k === fsrTier ? 'font-semibold' : 'text-muted'}`}><span>{TIER_LABEL[k]}</span><span className="tabular-nums">{fsr[`tier${k}` as 'tier1'].toFixed(2)}</span></div>
-            ))}
+          <Donut label="Gross floor area by use" unit="m²" center={Math.round(fsr.total).toLocaleString()} sub="m² total gross"
+            parts={Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => ({ label: USES[u as UseId].label, v, color: USES[u as UseId].color }))} />
+          <div className="mt-3">
+            <HBars label="FSR by tier" stacked fmt={(v) => v.toFixed(2)}
+              rows={([1, 2, 3] as const).map((k) => ({ label: TIER_LABEL[k], v: fsr[`tier${k}` as 'tier1'], bold: k === fsrTier, muted: k !== fsrTier, color: k === fsrTier ? '#2563eb' : '#b8c0cc', tip: `${TIER_LABEL[k]}: FSR ${fsr[`tier${k}` as 'tier1'].toFixed(2)}${k === fsrTier ? ' (the tier in use)' : ''}` }))} />
           </div>
-          <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Gross area, no exclusions; Vancouver's FSR exclusions come with the policy register (P01-M07).</span></div>
+          <MethodFold><div className="flex items-start gap-1"><FlagChip flag="team_assumption" /><span>Gross area, no exclusions; Vancouver's FSR exclusions come with the policy register (P01-M07).</span></div></MethodFold>
         </Section>
       )}
 
       {n.id === 'built.viewcones' && project === 'city' && enabled[n.id] && cones.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
-          <div className={`mb-2 rounded-md border p-2 text-xs ${CONE_STYLE[r.overall].chip}`}>
-            <ConeChip state={r.overall} label={STATE_LABEL[r.overall]} /> Top of tower at <U>{`${r.topZ.toFixed(1)} m`}</U> geodetic (<U>{`${r.tower.height} m`}</U> above a base of <U>{`${(r.topZ - r.tower.height).toFixed(1)} m`}</U>, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}).
+          <div className={`mb-2 flex min-w-0 flex-wrap items-center gap-1.5 rounded-md border p-2 text-xs ${CONE_STYLE[r.overall].chip}`} title={`Top of tower: ${r.tower.height} m above a base of ${(r.topZ - r.tower.height).toFixed(1)} m, ${groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}`}>
+            <ConeChip state={r.overall} label={STATE_LABEL[r.overall]} /><span>Top <b className="tabular-nums"><U>{`${r.topZ.toFixed(1)} m`}</U></b> geodetic</span>
           </div>
-          <div className="grid gap-2">
-            {r.checks.filter((c) => c.state !== 'outside').map((c) => <ConeRow key={c.cone.id} c={c} />)}
-            {r.checks.every((c) => c.state === 'outside') && <div className="text-meta text-muted">Outside every protected view cone. Click "Place on map" and try a site near Robson & Cambie.</div>}
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
+            {r.checks.filter((c) => c.state !== 'outside').map((c) => <ConeRow key={c.cone.id} c={c} topZ={r.topZ} />)}
+            {r.checks.every((c) => c.state === 'outside') && <div className="text-meta text-muted" title='Click "Place on map" and try a site near Robson & Cambie.'>Outside every protected view cone.</div>}
           </div>
-          <div className="mt-2 rounded bg-slate-50 p-2 text-meta text-slate-600">
-            Estimate only: Z = Lv + k·D along the cone axis. Public Views Guidelines (Feb 2026) cl. 3.1.1: no part of a building should encroach into the relevant view cones. Relaxations (Higher Buildings, Exceptional Downtown Sites 3.4) are your call. The City View Cone Assessment governs. {CONE_ATTRIBUTION}
-          </div>
+          <div className="mt-2"><Evidence items={r.checks.filter((c) => c.param).map((c) => ({ id: `cone-${c.cone.id}`, label: `${c.cone.id} · ${c.cone.name}`, flag: c.param!.flag, note: `View to ${c.cone.subject} · origin elevation ${c.cone.Lv} m · ${c.param!.tier}`, source: { label: c.param!.source, url: c.cone.url }, card: false }))} /></div>
+          <MethodFold>
+            <p>Estimate only: Z = Lv + k·D along the cone axis. Public Views Guidelines (Feb 2026) cl. 3.1.1: no part of a building should encroach into the relevant view cones. Relaxations (Higher Buildings, Exceptional Downtown Sites 3.4) are your call. The City View Cone Assessment governs. {CONE_ATTRIBUTION}</p>
+            <p>Top of tower at {r.topZ.toFixed(1)} m geodetic: {r.tower.height} m above a base of {(r.topZ - r.tower.height).toFixed(1)} m, {groundMode === 'terrain' ? 'from the terrain, unverified' : 'set by hand'}.</p>
+          </MethodFold>
         </Section>
       ))}
       {n.id === 'built.viewcones' && project === 'city' && enabled[n.id] && <ConeCoverage />}
 
-      {n.id === 'built.core-lifts' && enabled[n.id] && lifts.map((r) => (
+      {n.id === 'built.core-lifts' && enabled[n.id] && lifts.map((r) => {
+        const riseColor = (x: (typeof r.rises)[number]) => (x.cls === 'public' ? CLASS_COLOR.public : x.kind === 'shuttle' ? SHUTTLE_COLOR : CLASS_COLOR[x.cls])
+        const riseName = (x: (typeof r.rises)[number]) => `${x.id} ${x.cls === 'public' ? 'Public' : x.kind === 'shuttle' ? 'Shuttle' : CLASS_LABEL[x.cls]}`
+        const riseTip = (x: (typeof r.rises)[number]) => `${riseName(x)}: levels ${x.kind === 'shuttle' ? `${x.baseLevel} → ${x.floors[0].level}` : `${x.floors[0].level}–${x.floors[x.floors.length - 1].level}`}, ${x.speed} m/s, ${x.cars} cars, HC5 ${x.hc5.toFixed(1)}%, interval ${x.interval.toFixed(0)} s`
+        return (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
-          <div className="mb-2 text-xs"><b>{r.totalCars} passenger cars</b> in {r.rises.length} group{r.rises.length === 1 ? '' : 's'}{r.skyLobbies.length ? <>, with {r.skyLobbies.length === 1 ? 'a sky lobby' : `${r.skyLobbies.length} sky lobbies`} at {r.skyLobbies.map((f) => `L${f.level}`).join(', ')}</> : null}, plus service and firefighter lifts.</div>
-          <RiseDiagram t={r.tower} r={r} />
-          <table className="mt-2 w-full text-meta">
-            <thead><tr className="border-b border-line text-left text-meta text-muted"><th className="py-1 font-medium">Rise</th><th className="font-medium">Levels</th><th className="text-right font-medium">Speed</th><th className="text-right font-medium">Cars</th><th className="text-right font-medium">HC5</th><th className="text-right font-medium">Interval</th></tr></thead>
-            <tbody>
-              {r.rises.map((x) => (
-                <tr key={x.id} className="border-b border-line/60">
-                  <td className="py-1"><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: x.cls === 'public' ? CLASS_COLOR.public : x.kind === 'shuttle' ? SHUTTLE_COLOR : CLASS_COLOR[x.cls] }} />{x.id} {x.cls === 'public' ? 'Public' : x.kind === 'shuttle' ? 'Shuttle' : CLASS_LABEL[x.cls]}</td>
-                  <td className="tabular-nums">{x.kind === 'shuttle' ? `${x.baseLevel} → ${x.floors[0].level}` : `${x.floors[0].level}–${x.floors[x.floors.length - 1].level}`}</td>
-                  <td className="text-right tabular-nums">{x.speed} m/s</td>
-                  <td className="text-right tabular-nums">{x.cars}</td>
-                  <td className="text-right tabular-nums">{x.hc5.toFixed(1)}%</td>
-                  <td className={`text-right tabular-nums ${x.state === 'pass' ? '' : `font-semibold ${KIND_CLASS.error.fg}`}`}>{x.state !== 'pass' && <CircleX size={11} className="mr-0.5 inline align-[-1px]" aria-label="Fail" />}{x.interval.toFixed(0)} s</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="mt-3 text-meta font-semibold tabular-nums">Core at its worst level (L{r.maxLevel ?? '—'}): {Math.round(r.requiredMax)} m² needed, {Math.round(r.modelledCore)} m² modelled{r.tower.coreAuto ? ' (sized to the lifts)' : ''}</div>
+          <Stats>
+            <Stat label="Passenger cars" value={`${r.totalCars}`} tip="Plus service and firefighter lifts" />
+            <Stat label="Lift groups" value={`${r.rises.length}`} />
+            <Stat label="Sky lobbies" value={r.skyLobbies.length ? r.skyLobbies.map((f) => `L${f.level}`).join(', ') : '0'} />
+          </Stats>
+          <div className="mt-2"><RiseDiagram t={r.tower} r={r} /></div>
+          <div className="mt-3 text-meta font-semibold">Interval by rise</div>
+          <div className="mt-1"><HBars label="Up-peak interval by rise" unit="s" rows={r.rises.map((x) => ({ label: riseName(x), swatch: riseColor(x), v: x.interval, color: x.state === 'pass' ? riseColor(x) : '#c53030', tip: riseTip(x), chip: x.state !== 'pass' ? <CircleX size={11} className={KIND_CLASS.error.fg} aria-label="Fail" /> : undefined }))} /></div>
+          <div className="mt-2 text-meta font-semibold">Handling capacity in 5 minutes</div>
+          <div className="mt-1"><HBars label="Handling capacity in five minutes by rise" fmt={(v) => `${v.toFixed(1)}%`} rows={r.rises.map((x) => ({ label: riseName(x), swatch: riseColor(x), v: x.hc5, color: riseColor(x), tip: riseTip(x) }))} /></div>
+          <div className="mt-2"><Fold title="Rise table: levels, speed, cars">
+            <table className="w-full text-meta">
+              <thead><tr className="border-b border-line text-left text-meta text-muted"><th className="py-1 font-medium">Rise</th><th className="font-medium">Levels</th><th className="text-right font-medium">m/s</th><th className="text-right font-medium">Cars</th><th className="text-right font-medium">HC5</th><th className="text-right font-medium">Int.</th></tr></thead>
+              <tbody>
+                {r.rises.map((x) => (
+                  <tr key={x.id} className="border-b border-line/60" title={riseTip(x)}>
+                    <td className="py-1"><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: riseColor(x) }} />{x.id}</td>
+                    <td className="tabular-nums">{x.kind === 'shuttle' ? `${x.baseLevel} → ${x.floors[0].level}` : `${x.floors[0].level}–${x.floors[x.floors.length - 1].level}`}</td>
+                    <td className="text-right tabular-nums">{x.speed}</td>
+                    <td className="text-right tabular-nums">{x.cars}</td>
+                    <td className="text-right tabular-nums">{x.hc5.toFixed(1)}%</td>
+                    <td className={`text-right tabular-nums ${x.state === 'pass' ? '' : `font-semibold ${KIND_CLASS.error.fg}`}`}>{x.interval.toFixed(0)} s</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Fold></div>
+          <div className="mt-3 text-meta font-semibold tabular-nums" title={`Core at its worst level (L${r.maxLevel ?? '—'}): ${Math.round(r.requiredMax)} m² needed, ${Math.round(r.modelledCore)} m² modelled${r.tower.coreAuto ? ' (sized to the lifts)' : ''}`}>Core at L{r.maxLevel ?? '—'}: {Math.round(r.requiredMax)} m² needed · {Math.round(r.modelledCore)} m² modelled</div>
           <CoreBar r={r} />
           <CoreProfile r={r} />
           <SkyLobbyCompare r={r} />
           <LiftStrategy t={r.tower} />
-          <div className="mt-3 grid gap-2">{r.rules.filter((x) => !x.id.startsWith('rise-') || x.id.startsWith('rise-floors')).map((x) => <RuleCard key={x.id} r={x} />)}</div>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-meta text-muted hover:text-ink">Each rise, with its evidence</summary>
-            <div className="mt-2 grid gap-2">{r.rules.filter((x) => x.id.startsWith('rise-') && !x.id.startsWith('rise-floors')).map((x) => <RuleCard key={x.id} r={x} />)}</div>
-          </details>
-          <div className="mt-2 rounded bg-black/[0.03] p-2 text-meta text-slate-600">
-            Up-peak estimate: round trip by the classic formula with an express run and kinematic stop losses (team derivation; the Peters 2000 general analysis is unread). Handling capacity at 80% car load; interval at the design demand. Waiting and destination times need simulation (roadmap). Presets are editable in Design, Schematic.
-          </div>
+          <div className="mt-3"><RuleRows rules={r.rules.filter((x) => !x.id.startsWith('rise-') || x.id.startsWith('rise-floors'))} /></div>
+          <div className="mt-2"><Fold title="Each rise, with its evidence"><RuleRows rules={r.rules.filter((x) => x.id.startsWith('rise-') && !x.id.startsWith('rise-floors'))} /></Fold></div>
+          <MethodFold>
+            <p>Up-peak estimate: round trip by the classic formula with an express run and kinematic stop losses (team derivation; the Peters 2000 general analysis is unread). Handling capacity at 80% car load; interval at the design demand. Waiting and destination times need simulation (roadmap). Presets are editable in Design, Schematic.</p>
+            <p>{r.totalCars} passenger cars in {r.rises.length} group{r.rises.length === 1 ? '' : 's'}{r.skyLobbies.length ? `, with ${r.skyLobbies.length === 1 ? 'a sky lobby' : `${r.skyLobbies.length} sky lobbies`} at ${r.skyLobbies.map((f) => `L${f.level}`).join(', ')}` : ''}, plus service and firefighter lifts.</p>
+          </MethodFold>
         </Section>
-      ))}
+      )})}
 
       {n.id === 'built.egress' && enabled[n.id] && egress.map((e) => (
         <Section key={e.tower.id} title={`Results: ${e.tower.name}`}>
-          <div className="mb-1 text-xs"><b>{e.stairs} exit stairs × {Math.round(e.widthMm).toLocaleString()} mm</b>{e.governing ? <>, set by level {e.governing.level} ({Math.round(e.governing.load).toLocaleString()} people)</> : null}. One stair enclosure is about {e.enclosure.a.toFixed(1)} × {e.enclosure.b.toFixed(1)} m ({Math.round(e.enclosure.area)} m²).</div>
+          <Stats>
+            <Stat label="Exit stairs" value={`${e.stairs}`} />
+            <Stat label="Stair width" value={Math.round(e.widthMm).toLocaleString()} unit="mm" tip={e.governing ? `Set by level ${e.governing.level} (${Math.round(e.governing.load).toLocaleString()} people)` : undefined} />
+            <Stat label="One enclosure" value={`${Math.round(e.enclosure.area)}`} unit="m²" tip={`About ${e.enclosure.a.toFixed(1)} × ${e.enclosure.b.toFixed(1)} m`} />
+          </Stats>
           <StairPlan t={e.tower} e={e} />
           <StairChart e={e} />
-          <div className="mt-3 grid gap-2">{e.rules.map((x) => <RuleCard key={x.id} r={x} />)}</div>
-          <div className="mt-2 rounded bg-black/[0.03] p-2 text-meta text-slate-600">
-            Sized storey by storey from VBBL 2019 Part 3 (equal to VBBL 2007). The stair area feeds the core &amp; lift check, so a wider stair grows the core. Evacuation time, smoke control and stair pressurisation are not modelled (P11-M08).
-          </div>
+          <div className="mt-3"><RuleRows rules={e.rules} /></div>
+          <MethodFold>
+            <p>Sized storey by storey from VBBL 2019 Part 3 (equal to VBBL 2007). The stair area feeds the core &amp; lift check, so a wider stair grows the core. Evacuation time, smoke control and stair pressurisation are not modelled (P11-M08).</p>
+            <p>{e.stairs} exit stairs × {Math.round(e.widthMm).toLocaleString()} mm{e.governing ? `, set by level ${e.governing.level} (${Math.round(e.governing.load).toLocaleString()} people)` : ''}. One stair enclosure is about {e.enclosure.a.toFixed(1)} × {e.enclosure.b.toFixed(1)} m ({Math.round(e.enclosure.area)} m²).</p>
+          </MethodFold>
         </Section>
       ))}
 
       {n.id === 'built.sky-room' && enabled[n.id] && skyRooms.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
           {r.room ? (
-            <div className="mb-2 rounded-md border border-[#8e5ba8]/40 bg-[#8e5ba8]/[0.05] p-2 text-meta">
-              <div className="text-xs font-semibold text-[#6d3f8a]">Public sky room, level {r.room.level} (+{Math.round(r.room.z0)} m)</div>
-              <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                <span className="text-muted">Open to visitors</span><span className="tabular-nums">{Math.round(r.visitorArea).toLocaleString()} m²</span>
-                <span className="text-muted">{r.capacity < r.tableLoad - 0.5 ? 'Posted limit' : 'Capacity (table load)'}</span><span className="tabular-nums">{Math.round(r.capacity).toLocaleString()} people{r.capacity < r.tableLoad - 0.5 ? ` (table ${Math.round(r.tableLoad).toLocaleString()})` : ''}</span>
-                {r.suggestedLimit && <><span className="text-muted">Stops widening the stairs</span><span className="tabular-nums">at {r.suggestedLimit.limit.toLocaleString()} visitors or fewer</span></>}
-                <span className="text-muted">Visitors per hour</span><span className="tabular-nums">about {Math.round(r.visitorsPerHour).toLocaleString()}</span>
-                <span className="text-muted">Peak 5 minutes</span><span className="tabular-nums">about {Math.round(r.peak5).toLocaleString()}</span>
-                <span className="text-muted">Lifts from the street</span><span>{r.group ? `${r.group.id}, ${r.group.cars} cars` : 'none'}</span>
-              </div>
+            <div className="mb-2 min-w-0 rounded-md border border-[#8e5ba8]/40 bg-[#8e5ba8]/[0.05] p-2 text-meta">
+              <div className="mb-1.5 text-xs font-semibold text-[#6d3f8a]">Public sky room, level {r.room.level} (+{Math.round(r.room.z0)} m)</div>
+              <Stats cols={2}>
+                <Stat label="Open to visitors" value={Math.round(r.visitorArea).toLocaleString()} unit="m²" />
+                <Stat label="Lifts from the street" value={r.group ? `${r.group.id} · ${r.group.cars} cars` : 'none'} />
+              </Stats>
+              <div className="mt-2"><HBars label="People in the sky room" color="#8e5ba8" labelWidth="7rem" rows={[
+                { label: r.capacity < r.tableLoad - 0.5 ? 'Posted limit' : 'Capacity', v: r.capacity, mark: r.tableLoad, markTip: `Table load ${Math.round(r.tableLoad).toLocaleString()} people`, bold: true, tip: `${r.capacity < r.tableLoad - 0.5 ? 'Posted limit' : 'Capacity (table load)'}: ${Math.round(r.capacity).toLocaleString()} people${r.capacity < r.tableLoad - 0.5 ? ` (table ${Math.round(r.tableLoad).toLocaleString()})` : ''}` },
+                ...(r.suggestedLimit ? [{ label: 'Stair-neutral', v: r.suggestedLimit.limit, color: '#b79ac8', tip: `Stops widening the stairs at ${r.suggestedLimit.limit.toLocaleString()} visitors or fewer` }] : []),
+                { label: 'Visitors per hour', v: r.visitorsPerHour, color: '#b79ac8', tip: `About ${Math.round(r.visitorsPerHour).toLocaleString()} visitors per hour` },
+                { label: 'Peak 5 minutes', v: r.peak5, color: '#b79ac8', tip: `About ${Math.round(r.peak5).toLocaleString()} in the peak 5 minutes` },
+              ]} /></div>
             </div>
-          ) : <p className="mb-2 text-meta text-muted">No public sky room yet. In Design, Schematic, add a sky lobby and switch it to Public.</p>}
-          <div className="grid gap-2">{r.rules.map((x) => <RuleCard key={x.id} r={x} />)}</div>
+          ) : <p className="mb-2 truncate text-meta text-muted" title="In Design, Schematic, add a sky lobby and switch it to Public.">No public sky room yet.</p>}
+          <RuleRows rules={r.rules} />
         </Section>
       ))}
 
@@ -482,9 +499,16 @@ export default function Inspector() {
         const p = sunPosition(vancouverTime(sun.month, sun.day, sun.hour))
         return (
           <Section title="Results">
-            <div className="text-xs">Sun at {sun.month}/{sun.day}, {Math.floor(sun.hour)}:{String(Math.round((sun.hour % 1) * 60)).padStart(2, '0')}: azimuth <b>{p.azimuth.toFixed(1)}°</b>, altitude <b>{p.altitude.toFixed(1)}°</b>.</div>
-            <div className="mt-2 flex items-center gap-1"><FlagChip flag="verified" /><span className="text-meta text-muted">NOAA solar equations, matching the research reference within 0.2°; BC clock UTC-7 all year since 8 Mar 2026. Visual preview of one moment only.</span></div>
-            <div className="mt-1 text-meta text-slate-700">The City test (Downtown Peninsula Solar Access Guidelines, 22 Sep, 10:00–16:00 PT, no new shadow on listed parks) runs in the "Solar access & sun hours" node.</div>
+            <SunDial azimuth={p.azimuth} altitude={p.altitude} />
+            <div className="mt-2"><Stats>
+              <Stat label="Moment" value={`${sun.month}/${sun.day}`} unit={`${Math.floor(sun.hour)}:${String(Math.round((sun.hour % 1) * 60)).padStart(2, '0')}`} />
+              <Stat label="Azimuth" value={`${p.azimuth.toFixed(1)}°`} />
+              <Stat label="Altitude" value={`${p.altitude.toFixed(1)}°`} />
+            </Stats></div>
+            <MethodFold>
+              <div className="flex items-start gap-1"><FlagChip flag="verified" /><span>NOAA solar equations, matching the research reference within 0.2°; BC clock UTC-7 all year since 8 Mar 2026. Visual preview of one moment only.</span></div>
+              <p>The City test (Downtown Peninsula Solar Access Guidelines, 22 Sep, 10:00–16:00 PT, no new shadow on listed parks) runs in the "Solar access & sun hours" node.</p>
+            </MethodFold>
           </Section>
         )
       })()}

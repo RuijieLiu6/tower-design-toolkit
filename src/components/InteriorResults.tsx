@@ -8,27 +8,15 @@ import { egressCheck } from '../engine/egress'
 import { DEFAULT_INTERIOR, UNIT_LABEL, UNIT_TYPES, interiorCheck, type Activity, type InteriorInput } from '../engine/interior'
 import { liftCheck } from '../engine/lifts'
 import { towerFloors } from '../engine/massing'
-import type { RuleResult, Tower } from '../engine/types'
+import type { Tower } from '../engine/types'
 import { useEconomics } from '../hooks/useEconomics'
 import { useEconStore } from '../lib/econStore'
 import { useStore, useTowers } from '../store'
 import PlanDrawing from './PlanDrawing'
-import { FlagChip, NumberField, Section, StateChip, Toggle } from './ui'
-import { U } from './Units'
+import { FlagChip, NumberField, Section, Toggle } from './ui'
+import { MethodFold, PairBars, RuleRows } from './ResultViz'
 import { useShallow } from 'zustand/react/shallow'
 
-function Card({ r }: { r: RuleResult }) {
-  return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}</a> : <span className="text-meta text-muted">{r.source.label}</span>}
-      </div>
-    </div>
-  )
-}
 
 function ActivityRows({ list, onChange }: { list: Activity[]; onChange: (l: Activity[]) => void }) {
   const set = (i: number, patch: Partial<Activity>) => onChange(list.map((a, j) => (j === i ? { ...a, ...patch } : a)))
@@ -79,43 +67,39 @@ export default function InteriorResults() {
   const level = levelFor(view)
   const views = (['residential', 'hotel', 'office', 'amenity'] as const).filter((v) => levelFor(v) !== null)
   const share = (u: (typeof UNIT_TYPES)[number]) => Math.round((input.mix[u] / Math.max(1e-9, UNIT_TYPES.reduce((s, x) => s + input.mix[x], 0))) * 100)
-  const row = (k: string, a: string, b: string) => <tr className="border-t border-line/60"><td className="py-0.5 text-muted">{k}</td><td className="text-right tabular-nums">{a}</td><td className="text-right font-medium tabular-nums">{b}</td></tr>
   const maxStair = (e: typeof effect.ea) => e.widthMm
   return (
     <>
       <Section title="Layout">
         <label className="flex items-center gap-2 text-xs"><Toggle checked={!!t.interior} onChange={() => updateTower(t.id, { interior: t.interior ? undefined : DEFAULT_INTERIOR })} label="Use this layout for lifts, egress and economics" />Use this layout for lifts, egress and economics</label>
-        <p className="mt-1 text-meta text-muted">{t.interior ? 'Homes, bedrooms and hotel keys now come from the layout below; amenity floors from their activities.' : 'Off: the lift check, egress and economics use area proxies (75 m² a home, 40 m² a key, 1.5 bedrooms a home).'}</p>
+        <p className="mt-1 truncate text-meta text-muted" title={t.interior ? 'Homes, bedrooms and hotel keys now come from the layout below; amenity floors from their activities.' : 'Off: the lift check, egress and economics use area proxies (75 m² a home, 40 m² a key, 1.5 bedrooms a home).'}>{t.interior ? 'On: counts come from the layout' : 'Off: counts come from area proxies'}</p>
         {views.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1" role="radiogroup" aria-label="Floor to show">
             {views.map((v) => <button key={v} type="button" role="radio" aria-checked={view === v} onClick={() => setView(v)} className={`rounded border px-2 py-0.5 text-meta ${view === v ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>{v === 'amenity' ? 'Public floor' : v[0].toUpperCase() + v.slice(1)}</button>)}
           </div>
         )}
         {level !== null && <div className="mt-2 aspect-[594/420] w-full overflow-hidden rounded border border-line bg-white"><PlanDrawing level={level} standalone /></div>}
-        {!t.interior && <p className="mt-1 text-meta text-amber-700">The plan shows the layout only once it is switched on.</p>}
+        {!t.interior && <p className="mt-1 truncate text-meta text-amber-700">Switch it on to see the layout on the plan.</p>}
       </Section>
       <Section title="What the layout changes">
-        <table className="w-full text-meta">
-          <thead><tr className="text-meta text-muted"><th className="text-left font-medium">&nbsp;</th><th className="text-right font-medium">Area proxy</th><th className="text-right font-medium">Layout</th></tr></thead>
-          <tbody>
-            {r.home && row('Homes in the tower', `about ${Math.round(r.homeFloors * (r.home.net / liftPresets.homeM2)).toLocaleString('en-CA')}`, r.totals.homes.toLocaleString('en-CA'))}
-            {r.hotel && row('Hotel keys', `about ${Math.round(r.hotelFloors * (r.hotel.net / liftPresets.hotelM2PerKey)).toLocaleString('en-CA')}`, r.totals.keys.toLocaleString('en-CA'))}
-            {row('Lift cars', String(effect.la.totalCars), String(effect.lb.totalCars))}
-            {row('Core needed (worst level)', `${Math.round(effect.la.requiredMax)} m²`, `${Math.round(effect.lb.requiredMax)} m²`)}
-            {row('Exit stair width', `${Math.round(maxStair(effect.ea))} mm`, `${Math.round(maxStair(effect.eb))} mm`)}
-            {row('Hard cost incl. hotel furniture', money(effect.ca.hard), money(effect.cb.hard))}
-            {row('Land residual after charges', money(effect.ca.rlvAfter), money(effect.cb.rlvAfter))}
-          </tbody>
-        </table>
-        <p className="mt-1 text-meta text-muted">Both columns use the same massing and presets; only the counts differ. {t.interior ? 'The layout column is what the lift, egress and economics nodes show now.' : 'Switch the layout on to make the right column live.'}</p>
+        <PairBars label="What the layout changes against the area proxies" a="Area proxy" b="Layout" rows={[
+          ...(r.home ? [{ label: 'Homes in the tower', a: Math.round(r.homeFloors * (r.home.net / liftPresets.homeM2)), b: r.totals.homes, aText: `about ${Math.round(r.homeFloors * (r.home.net / liftPresets.homeM2)).toLocaleString('en-CA')}`, bText: r.totals.homes.toLocaleString('en-CA') }] : []),
+          ...(r.hotel ? [{ label: 'Hotel keys', a: Math.round(r.hotelFloors * (r.hotel.net / liftPresets.hotelM2PerKey)), b: r.totals.keys, aText: `about ${Math.round(r.hotelFloors * (r.hotel.net / liftPresets.hotelM2PerKey)).toLocaleString('en-CA')}`, bText: r.totals.keys.toLocaleString('en-CA') }] : []),
+          { label: 'Lift cars', a: effect.la.totalCars, b: effect.lb.totalCars, aText: String(effect.la.totalCars), bText: String(effect.lb.totalCars) },
+          { label: 'Core needed (worst level)', a: effect.la.requiredMax, b: effect.lb.requiredMax, aText: `${Math.round(effect.la.requiredMax)} m²`, bText: `${Math.round(effect.lb.requiredMax)} m²` },
+          { label: 'Exit stair width', a: maxStair(effect.ea), b: maxStair(effect.eb), aText: `${Math.round(maxStair(effect.ea))} mm`, bText: `${Math.round(maxStair(effect.eb))} mm` },
+          { label: 'Hard cost incl. hotel furniture', a: effect.ca.hard, b: effect.cb.hard, aText: money(effect.ca.hard), bText: money(effect.cb.hard) },
+          { label: 'Land residual after charges', a: effect.ca.rlvAfter, b: effect.cb.rlvAfter, aText: money(effect.ca.rlvAfter), bText: money(effect.cb.rlvAfter) },
+        ]} />
+        <MethodFold title="How to read this"><p>Both columns use the same massing and presets; only the counts differ. {t.interior ? 'The layout column is what the lift, egress and economics nodes show now.' : 'Switch the layout on to make the right column live.'}</p></MethodFold>
       </Section>
       <Section title="Checks">
-        <div className="grid gap-2">{r.rules.map((x) => <Card key={x.id} r={x} />)}</div>
+        <RuleRows rules={r.rules} />
       </Section>
-      <Section title="Unit mix and sizes" right={<button type="button" onClick={() => updateTower(t.id, { interior: t.interior ? DEFAULT_INTERIOR : undefined })} className="flex items-center gap-1 text-meta text-muted hover:text-accent"><RotateCcw size={11} />Defaults</button>}>
+      <Section folded title="Unit mix and sizes" right={<button type="button" onClick={() => updateTower(t.id, { interior: t.interior ? DEFAULT_INTERIOR : undefined })} className="flex items-center gap-1 text-meta text-muted hover:text-accent"><RotateCcw size={11} />Defaults</button>}>
         <div className="grid gap-2">
           {UNIT_TYPES.map((u) => (
-            <div key={u} className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <div key={u} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
               <NumberField label={`${UNIT_LABEL[u]}: share of homes (${share(u)}%)`} value={input.mix[u] * 100} onChange={(v) => setI({ mix: { ...input.mix, [u]: Math.max(0, v) / 100 } })} min={0} max={100} step={5} unit="%" />
               <NumberField label="Size" value={input.sizes[u]} onChange={(v) => setI({ sizes: { ...input.sizes, [u]: Math.max(20, Math.min(250, v)) } })} step={5} unit="m²" />
             </div>
@@ -127,7 +111,7 @@ export default function InteriorResults() {
           <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Mix, sizes, corridor and room width are team presets; edit them to your scheme.</span></div>
         </div>
       </Section>
-      <Section title="Activity programme (public floors)">
+      <Section folded title="Activity programme (public floors)">
         <div className="text-meta font-medium">Amenity floors and sky lobbies</div>
         <ActivityRows list={input.amenity} onChange={(amenity) => setI({ amenity })} />
         {t.skyRoom && <>

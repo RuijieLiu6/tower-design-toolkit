@@ -261,6 +261,8 @@ export interface WindStudy {
   rose: Rose
   /** Downwash amplification used for each tower. */
   amps: { amp: number; amp0: number; hn: number }[]
+  /** Each wind sector's share of the hours, 10 m speed, the mean it gives over the study ground and the ground it makes a band windier. */
+  sectors: { name: string; dir: number; f: number; s: number; groundMean: number; worse: number }[]
   runs: number
 }
 
@@ -311,6 +313,7 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
   const mean = new Float32Array(N), meanB = new Float32Array(N), pOver6 = new Float32Array(N), pOver6B = new Float32Array(N)
   const over15 = new Float32Array(N)
   let runs = 0
+  const sectors: WindStudy['sectors'] = []
   const hasContext = solidB.some((v) => v)
   for (const r of rose.sectors) {
     if (!(r.f > 0)) continue
@@ -334,10 +337,12 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
     })
     // the season's hours in this sector over the safety speed: ratio · k · ws > 15 ⇔ ws > 15 / (ratio · k) (ws sorted)
     const ws = r.ws, nws = ws.length
+    let gs = 0, gn = 0, gw = 0
     for (let k = 0; k < N; k++) {
       if (solid[k]) continue
       const sa = ratio[k] * r.s * kRef, sb = solidB[k] ? sa : ratioB[k] * r.s * kRef
       mean[k] += r.f * sa; meanB[k] += r.f * sb
+      if (study[k]) { gs += sa; gn++; if (lawsonClass(sa) > lawsonClass(sb)) gw += cellA }
       if (sa * GUST > 6) pOver6[k] += r.f
       if (sb * GUST > 6) pOver6B[k] += r.f
       if (study[k] && ratio[k] > 0 && nws && ws[nws - 1] * ratio[k] * kSite > SAFETY.speed) {
@@ -347,6 +352,7 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
         over15[k] += nws - lo
       }
     }
+    sectors.push({ name: r.name, dir: r.dir, f: r.f, s: r.s, groundMean: gn ? gs / gn : 0, worse: gw })
   }
 
   const cats = [0, 0, 0, 0, 0], catsB = [0, 0, 0, 0, 0]
@@ -371,6 +377,6 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
   return {
     grid, mean, meanB, solid, study, studyR, studyArea, cats, catsB, worse, better, maxS,
     sitePeak: siteN ? sitePeak : null, sitePeakMean: siteN ? siteSum / siteN : null,
-    gusty, gustyB, unsafe, unsafeWorst, rose, amps, runs,
+    gusty, gustyB, unsafe, unsafeWorst, rose, amps, runs, sectors,
   }
 }

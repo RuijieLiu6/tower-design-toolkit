@@ -3,7 +3,7 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, newBoard, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, newBoard, type SheetSize, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
 
@@ -24,7 +24,13 @@ interface BoardState {
   /** The sheet style (the Tower Workspace's four architectural styles). */
   style: StyleId
   setStyle: (s: StyleId) => void
-  /** Fills boards 1-3 with the drawing set (site plan + table, three floor plans, elevations + section); what was there is kept aside. */
+  /** Sheet size for export (the layout is drawn on A2; A3 and A1 print it to scale). */
+  sheet: SheetSize
+  setSheet: (s: SheetSize) => void
+  addBoard: () => void
+  removeBoard: (i: number) => void
+  renameBoard: (i: number, name: string) => void
+  /** Makes the five sheets of the drawing set (site plan, floor plans, elevations, section, axonometric and analysis); what was on them is kept aside. */
   makeDrawingSet: (typicalLevel: number, topLevel: number) => void
   setOpen: (open: boolean) => void
   select: (board: number, frame?: string | null) => void
@@ -82,22 +88,41 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
   parked: [],
   style: 'competition',
   setStyle: (style) => set({ style, exports: {} }),
+  sheet: 'A2',
+  setSheet: (sheet) => set({ sheet, exports: {} }),
+  addBoard: () => set((s) => {
+    if (s.boards.length >= MAX_SHEETS) return {}
+    const b = { ...newBoard(s.boards.length, 'grid'), id: `board-${Date.now().toString(36)}`, name: 'New sheet' }
+    return { boards: [...s.boards, b], selected: { board: s.boards.length, frame: null } }
+  }),
+  removeBoard: (i) => set((s) => {
+    if (s.boards.length <= 1 || !s.boards[i]) return {}
+    const kept = s.boards[i].frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty')
+    const boards = s.boards.filter((_, k) => k !== i)
+    const ex = { ...s.exports }; delete ex[s.boards[i].id]
+    return { boards, parked: [...s.parked, ...kept], exports: ex, selected: { board: Math.min(s.selected.board > i ? s.selected.board - 1 : s.selected.board, boards.length - 1), frame: null } }
+  }),
+  renameBoard: (i, name) => set((s) => ({ boards: s.boards.map((b, k) => (k === i ? { ...b, name } : b)) })),
   makeDrawingSet: (typ, top) => set((s) => {
     const boards = s.boards.slice()
+    while (boards.length < 5) boards.push({ ...newBoard(boards.length, 'grid'), id: `board-${Date.now().toString(36)}${boards.length}` })
     const kept: Frame[] = []
     const fill = (i: number, t: TemplateId, title: string, contents: (FrameContent | null)[]) => {
       const { board } = applyTemplate({ ...boards[i], frames: boards[i].frames.filter((f) => f.role === 'title') }, t)
       kept.push(...boards[i].frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty'))
       let n = 0
-      boards[i] = { ...board, frames: board.frames.map((f) => {
-        if (f.role === 'title') return { ...f, content: f.content.kind === 'text' && f.content.text.trim() ? f.content : { kind: 'text', text: title, sizeMm: 9, bold: true } }
+      boards[i] = { ...board, name: title, frames: board.frames.map((f) => {
+        if (f.role === 'title') return { ...f, content: { kind: 'text', text: title, sizeMm: 9, bold: true } }
         const c = contents[n++]
         return c ? { ...f, content: c } : f
       }) }
     }
-    fill(0, 'hero', 'Site and massing', [{ kind: 'drawing', vt: 'site' }, { kind: 'table' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, null])
+    fill(0, 'hero', 'Site plan', [{ kind: 'drawing', vt: 'site' }, { kind: 'table' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, null])
     fill(1, 'plans', 'Floor plans', [{ kind: 'drawing', vt: 'plan', level: 1 }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'drawing', vt: 'plan', level: top }, null])
-    fill(2, 'plans', 'Elevations and section', [{ kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' }, { kind: 'drawing', vt: 'section' }, null])
+    fill(2, 'grid', 'Elevations', [{ kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, { kind: 'drawing', vt: 'elev', dir: 'W' }])
+    fill(3, 'hero', 'Section', [{ kind: 'drawing', vt: 'section' }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'table' }, null])
+    // The last sheet is left for the 3D view and the analysis drawings (Add to sheet fills its frames).
+    fill(4, 'grid', 'Axonometric and analysis', [null, null, null, null])
     return { boards, parked: [...s.parked, ...kept], exports: {}, selected: { board: 0, frame: null } }
   }),
   setOpen: (open) => set({ open }),
@@ -138,7 +163,7 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, ticks: s.ticks, parked: s.parked, style: s.style }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, ticks: s.ticks, parked: s.parked, style: s.style, sheet: s.sheet }),
 }))
 
 let hydrated = false

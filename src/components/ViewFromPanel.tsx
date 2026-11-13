@@ -12,22 +12,12 @@ import { eyeZ, useViewFromStore, type Viewpoint } from '../lib/viewFromStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityObstacles } from './CityContext'
 import { rayBuildingsLabel, standableNote } from '../lib/vistaBuildings'
-import { FlagChip, Section, StateChip } from './ui'
-import { U } from './Units'
+import { FlagChip, Section } from './ui'
+import { Legend, MethodFold, RuleRows } from './ResultViz'
 
 /** Terrain at or above this height counts as the mountains (team preset; downtown sits below 60 m, the North Shore rises to about 1,400 m). */
 const FAR_MIN = 200
 
-function Card({ r }: { r: RuleResult }) {
-  return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b>{r.threshold && <span className="text-muted"> · <U>{r.threshold}</U></span>}</div>
-      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} /><span className="text-meta text-muted">{r.source.label}</span></div>
-    </div>
-  )
-}
 
 export default function ViewFromPanel() {
   const project = useStore((s) => s.project)
@@ -83,7 +73,7 @@ export default function ViewFromPanel() {
           )}
         </div>
         {v.note && <p role="status" className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{v.note}</p>}
-        <p className="mt-1.5 text-meta text-muted">{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a height ({data ? standableNote(data) : '…'}); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p>
+        <MethodFold title="What can be stood on or block a view"><p>{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a height ({data ? standableNote(data) : '…'}); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p></MethodFold>
         {vp && (
           <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta">
             <div className="font-semibold">{vp.label}</div>
@@ -120,9 +110,10 @@ export default function ViewFromPanel() {
       {vp && now && (
         <Section title="What this sightline sees">
           <Skyline rays={rays} bearing={v.bearing} onPick={(b) => v.set({ bearing: b })} />
-          <div className="mt-2 grid gap-2">
-            <Card r={mountainRule(now, visibleDirs.length, rays.length, hidden.size, data ? rayBuildingsLabel(data) : undefined)} />
-            <Card r={{ id: 'vf-cones', label: 'Protected view cones on this sightline', value: crossed.length ? crossed.map((c) => `${c.id} ${c.name}${c.inside ? ' (you stand inside it)' : ` from ${(c.from / 1000).toFixed(1)} km`}`).join('; ') : 'None within 6 km', threshold: `looking ${compass(v.bearing)}, first 6 km`, state: 'unknown', flag: 'verified', source: { label: 'City of Vancouver ViewCone layer (OGL-Vancouver, retrieved 2026-10-21), plan polygons' }, note: 'Plan crossing only: whether the design breaks a cone is the View-cone height check.' }} />
+          <div className="mt-1"><Legend items={[{ label: 'nearer buildings, terrain', color: '#b9c2cc' }, { label: 'mountains visible', color: '#2e8b57' }, { label: 'hidden', color: '#94a3b8' }, { label: 'this sightline', color: '#d97706', line: true, tip: 'Click the profile to turn the sightline' }]} /></div>
+          <div className="mt-2">
+            <RuleRows rules={[mountainRule(now, visibleDirs.length, rays.length, hidden.size, data ? rayBuildingsLabel(data) : undefined),
+              { id: 'vf-cones', label: 'Protected view cones on this sightline', value: crossed.length ? crossed.map((c) => `${c.id} ${c.name}${c.inside ? ' (you stand inside it)' : ` from ${(c.from / 1000).toFixed(1)} km`}`).join('; ') : 'None within 6 km', threshold: `looking ${compass(v.bearing)}, first 6 km`, state: 'unknown', flag: 'verified', source: { label: 'City of Vancouver ViewCone layer (OGL-Vancouver, retrieved 2026-10-21), plan polygons' }, note: 'Plan crossing only: whether the design breaks a cone is the View-cone height check.' }]} />
           </div>
         </Section>
       )}

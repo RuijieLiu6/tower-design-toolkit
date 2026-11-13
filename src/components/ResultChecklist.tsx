@@ -17,6 +17,8 @@ import { RESULT_ICON } from './ResultState'
 
 const CHIP: Record<RuleState, string> = { pass: resultClass('pass').chip, fail: resultClass('fail').chip, warn: resultClass('warn').chip, unknown: resultClass('unknown').chip }
 const ORDER: RuleState[] = ['fail', 'warn', 'unknown', 'pass']
+/** Open lines shown before the fold. */
+const LEAD = 3
 
 /** The rows for a check, or null when it has no list of results to show this way. */
 export function useCheckRows(nodeId: string): { rows: CheckRow[]; extra: string | null } | null {
@@ -68,7 +70,14 @@ export default function ResultChecklist({ nodeId }: { nodeId: string }) {
         })}
       </div>
       {open.length === 0 && <p className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${resultClass('pass').fg}`}><CircleCheck size={16} aria-hidden />Pass: every line here meets its stated criterion.</p>}
-      {open.length > 0 && <ul className="mt-1 divide-y divide-line">{open.map((r) => <Row key={r.id} r={r} />)}</ul>}
+      {/* 13 Nov (Sinnie: graphs, not text): the three most pressing lines lead; the rest open on demand, and the graphs follow below. */}
+      {open.length > 0 && <ul className="mt-1 divide-y divide-line">{open.slice(0, LEAD).map((r) => <Row key={r.id} r={r} />)}</ul>}
+      {open.length > LEAD && (
+        <details className="mt-1" data-testid="checklist-more">
+          <summary className="cursor-pointer text-meta font-semibold text-muted hover:text-ink">{open.length - LEAD} more to resolve</summary>
+          <ul className="divide-y divide-line">{open.slice(LEAD).map((r) => <Row key={r.id} r={r} />)}</ul>
+        </details>
+      )}
       {passed.length > 0 && (
         <details className="mt-1">
           <summary className="cursor-pointer text-meta text-muted"><span className={`font-semibold tabular-nums ${resultClass('pass').fg}`}>{passed.length} pass</span>{open.length ? '' : ': show them'}</summary>
@@ -85,7 +94,7 @@ export function DetailsFold({ nodeId, children }: { nodeId: string; children: Re
   const lead = useCheckRows(nodeId)
   if (!lead) return <>{children}</>
   return (
-    <details key={nodeId} className="group border-b border-line" data-testid="result-details">
+    <details key={nodeId} open className="border-b border-line" data-testid="result-details">
       <summary className="cursor-pointer px-4 py-2 text-meta font-semibold text-muted hover:text-ink">Details, sources and settings</summary>
       <div>{children}</div>
     </details>

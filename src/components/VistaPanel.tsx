@@ -22,6 +22,7 @@ import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { HideUnderDesignCard, useCityData, useCityObstacles, useRemoval } from './CityContext'
 import { REMOVAL_CAVEAT, removalNote } from '../lib/cityRemoval'
 import { ConeChip, FlagChip, Section } from './ui'
+import { HBars } from './ResultViz'
 import EnvelopeSection from './EnvelopeSection'
 import SitePanel from './SitePanel'
 
@@ -32,8 +33,23 @@ const fmt = (v: number | null | undefined, d = 1) => (v == null || !Number.isFin
 const abs = (p: Pt): Pt => [p[0] + CITY_ORIGIN[0], p[1] + CITY_ORIGIN[1]]
 const loc = (p: Pt): Pt => [p[0] - CITY_ORIGIN[0], p[1] - CITY_ORIGIN[1]]
 
+/** An evidence note cut to one line: the flag stays in view, the sentence opens on click (13 Nov: fewer words on the page). */
 function Note({ flag, children }: { flag: Flag; children: React.ReactNode }) {
-  return <div className="mt-1 flex items-start gap-1.5"><span className="shrink-0"><FlagChip flag={flag} /></span><span className="text-meta leading-snug text-muted">{children}</span></div>
+  return (
+    <details className="group/note mt-1 min-w-0" data-testid="vista-note">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden"><span className="shrink-0"><FlagChip flag={flag} /></span><span className="min-w-0 flex-1 truncate text-meta leading-snug text-muted group-open/note:hidden">{children}</span></summary>
+      <div className="mt-0.5 break-words text-meta leading-snug text-muted">{children}</div>
+    </details>
+  )
+}
+/** A method sentence cut to one line; it opens on click. */
+function Fine({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="group/fine mt-1.5 min-w-0" data-testid="vista-fine">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-1 text-meta text-muted [&::-webkit-details-marker]:hidden"><span aria-hidden className="inline-block transition-transform group-open/fine:rotate-90">›</span><span className="min-w-0 flex-1 truncate group-open/fine:hidden">{children}</span></summary>
+      <div className="break-words text-meta text-muted">{children}</div>
+    </details>
+  )
 }
 
 /** Camera at a protected origin with Vista's cone-fit field and pitch, through the View from here rig. */
@@ -69,7 +85,7 @@ function VistaCity() {
       <Section title="Vista view study">
         <p className="text-meta leading-snug text-ink">{studySentence(t.name, t.height, exact)}</p>
         <Note flag="verified">Plan relations from the City ViewCone polygons (OGL-Vancouver, retrieved 2026-10-21), clipped exactly with Vista's kernel. Heights: the View-cone height check's estimates; the City View Cone Assessment governs.</Note>
-        <p className="mt-1.5 text-meta text-muted">Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, Vista's own OpenStreetMap buildings on the City ground, at City LiDAR 2022 or 2009 heights where measured (the City LiDAR model is one switch away in the Layers dock), and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</p>
+        <Fine>Vista (Ruijie Liu, v10.1) rebuilt on Real Vancouver data: City origins and Lv, Vista's own OpenStreetMap buildings on the City ground, at City LiDAR 2022 or 2009 heights where measured (the City LiDAR model is one switch away in the Layers dock), and the MRDEM-30 North Shore mountains instead of Vista's SRTM backdrop. Audit: <code>04 Tool Plan/research/vista-audit-2026-10-22.md</code>.</Fine>
       </Section>
       <SitePanel />
       <OverlapTable exact={exact} top={top} />
@@ -90,7 +106,7 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
   return (
     <Section title="Plan overlap, exact (Vista kernel)">
       {!rows.length && <p className="text-meta text-muted">No protected view within 60 m of this footprint. Outside the cones does not mean unlimited height.</p>}
-      <div className="grid gap-1.5">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
         {rows.map((e) => {
           const prm = CONE_PARAMS[e.cone.id]
           const sliver = e.overlapM2 > 0 && (e.state === 'near_edge' || e.state === 'outside')
@@ -106,13 +122,14 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
               {e.overlapM2 > 0 && (prm
                 ? <div>Limit: exact <b>{fmt(e.exactLimit, 2)} m</b> · sampled {fmt(e.sampledLimit, 2)} m{e.difference != null && e.difference >= 0.005 ? <span className="text-muted"> (the 2 m / 5 m samples miss the lowest corner by {fmt(e.difference, 2)} m)</span> : <span className="text-muted"> (agree)</span>} · top {top - (e.exactLimit ?? 0) >= 0 ? '+' : ''}{fmt(top - (e.exactLimit ?? 0), 1)} m</div>
                 : <div className="text-muted">No height estimate for this view: no number is given.</div>)}
+              {e.overlapM2 > 0 && prm && e.exactLimit != null && <div className="my-1"><HBars label={`${e.cone.id}: tower top against the exact limit`} fmt={(v) => `${fmt(v, 1)} m`} labelWidth="3rem" rows={[{ label: 'Top', v: top, mark: e.exactLimit, markTip: `Exact limit ${fmt(e.exactLimit, 2)} m`, color: top > e.exactLimit ? '#c53030' : '#2f855a', bold: true }, { label: 'Limit', v: e.exactLimit, color: '#b8c0cc' }]} /></div>}
               {sliver && <div className="mt-0.5 text-amber-800">The exact clip finds {fmt(e.overlapM2, 1)} m² inside; the sampled check reads "{STATE_LABEL[e.state]}". Treat the footprint as inside.</div>}
               {e.overlapM2 > 0 && <Note flag={prm ? prm.flag : 'unresolved'}>{prm ? `${prm.source}; ±${prm.u95} m (95%)` : 'Slope not found in any opened City source (City Request 0)'}</Note>}
             </div>
           )
         })}
       </div>
-      <p className="mt-1.5 text-meta text-muted">A plane is lowest at a corner of the overlap, so the exact limit is the lowest value at the clipped vertices; the sampled check can only read the same or higher.</p>
+      <Fine>A plane is lowest at a corner of the overlap, so the exact limit is the lowest value at the clipped vertices; the sampled check can only read the same or higher.</Fine>
     </Section>
   )
 }
@@ -128,12 +145,12 @@ function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower
   const target = { x: tower.x, y: tower.y, top: ground + tower.height }
   return (
     <Section title="From the protected viewpoints" right={<button type="button" onClick={() => setAll(!all)} className="text-meta text-accent underline">{all ? 'Fewer' : 'All 24 views'}</button>}>
-      <div className="grid gap-1">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1">
         {list.map((c) => {
           const cam = coneCamera(c)
           const on = active?.id === c.id && v.looking
           return (
-            <div key={c.id} className="flex items-center justify-between gap-2 text-meta">
+            <div key={c.id} className="flex min-w-0 items-center justify-between gap-2 text-meta">
               <span className="min-w-0 truncate"><b>{c.id}</b> {c.name} <span className="text-muted">· {c.subject}</span></span>
               <button type="button" onClick={() => (on ? v.set({ looking: false }) : lookFromCone(c, target))} aria-pressed={on}
                 className={`flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-meta ${on ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>
@@ -195,9 +212,9 @@ function RoofViews({ tower, ground }: { tower: Tower; ground: number }) {
     <Section title="Rooftop views of the tower">
       {!data && <p className="text-meta text-muted">Loading City roofs…</p>}
       {data && !roofs.length && <p className="text-meta text-muted">No roof with a height within 1.5 km of this tower. View from here can still stand on the street.</p>}
-      <div className="grid gap-1">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1">
         {roofs.map((r) => (
-          <div key={r.index} className="flex items-center justify-between gap-2 text-meta">
+          <div key={r.index} className="flex min-w-0 items-center justify-between gap-2 text-meta">
             <span className="min-w-0"><b>{fmt(r.distance, 0)} m {compass((r.bearing + 180) % 360)}</b> · roof {fmt(r.roof, 1)} m · {r.visibleM > 0 ? <>sees the upper <b>{fmt(r.visibleM, 0)} m</b></> : <span className="text-muted">tower hidden behind {r.blockedBy}</span>}</span>
             <button type="button" onClick={() => stand(r)} className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-0.5 hover:border-accent"><MapPin size={12} />Stand here</button>
           </div>
@@ -229,7 +246,7 @@ function WhatIf({ exact, fp, ground, top }: { exact: ExactCone[]; fp: Pt[]; grou
                 <span className="flex gap-2">{prm && <button type="button" className="text-meta text-accent underline" onClick={() => setPlane(e.cone.id, { elevation: e.cone.Lv, pitch: Math.round((Math.atan(prm.k) * 180) / Math.PI * 10000) / 10000, bearing: Math.round(axisBearing(e.cone) * 100) / 100, note: `Start from Tower Design Toolkit's estimate (${prm.source})` })}>Start from the estimate</button>}
                   {p && <button type="button" className="text-meta text-muted underline" onClick={() => setPlane(e.cone.id, null)}>Clear</button>}</span>
               </div>
-              <div className="mt-1 grid grid-cols-3 gap-1.5">
+              <div className="mt-1 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-1.5 [&_input]:w-full [&_input]:min-w-0 [&_label]:min-w-0">
                 <label className="grid gap-0.5"><span className="text-muted">At origin (m)</span><input type="number" step={0.1} value={p?.elevation ?? ''} placeholder={String(e.cone.Lv)} onChange={(ev) => setPlane(e.cone.id, { elevation: num(ev.target.value) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={`What-if elevation at origin, view ${e.cone.id}`} /></label>
                 <label className="grid gap-0.5"><span className="text-muted">Slope (°)</span><input type="number" step={0.01} value={p?.pitch ?? ''} placeholder="0" onChange={(ev) => setPlane(e.cone.id, { pitch: num(ev.target.value) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={`What-if slope, view ${e.cone.id}`} /></label>
                 <label className="grid gap-0.5"><span className="text-muted">Bearing (°)</span><input type="number" step={0.1} value={p?.bearing ?? ''} placeholder={axisBearing(e.cone).toFixed(1)} onChange={(ev) => setPlane(e.cone.id, { bearing: num(ev.target.value) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={`What-if bearing, view ${e.cone.id}`} /></label>
@@ -305,9 +322,9 @@ function Studies() {
   }
   return (
     <Section title="Vista examples and studies">
-      <div className="grid gap-1">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1">
         {VISTA_EXAMPLES.map((ex) => (
-          <div key={ex.key} className="flex items-center justify-between gap-2 text-meta">
+          <div key={ex.key} className="flex min-w-0 items-center justify-between gap-2 text-meta">
             <span className="min-w-0"><b>{ex.name}</b> <span className="text-muted">· {ex.address} · {ex.facts}</span></span>
             <button type="button" onClick={() => open(parseVistaHash(ex.hash), ex.name)} className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-0.5 hover:border-accent"><Plus size={12} />Add</button>
           </div>
@@ -326,7 +343,7 @@ function Studies() {
           <Note flag="false_assumption">Vista's frame shortens metres (0.58% north–south); each corner was converted through latitude/longitude into EPSG:26910. Heights are the published tower heights; the base is the project base.</Note>
         </div>
       )}
-      <p className="mt-1.5 text-meta text-muted">Only the site point, block sizes, observer and study planes are read; Vista's context model, building ids and imported models are not. Nothing leaves this browser.</p>
+      <Fine>Only the site point, block sizes, observer and study planes are read; Vista's context model, building ids and imported models are not. Nothing leaves this browser.</Fine>
       <HideUnderDesignCard inline />
     </Section>
   )

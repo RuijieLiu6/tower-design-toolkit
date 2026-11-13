@@ -6,8 +6,9 @@ import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructur
 import { towerFloors } from '../engine/massing'
 import type { Tower } from '../engine/types'
 import { useStore, useTowers } from '../store'
-import { Card, FalseAssumptions } from './WindStructurePanel'
+import { FalseAssumptions } from './WindStructurePanel'
 import { FlagChip, Section } from './ui'
+import { Evidence, FlagDot, MethodFold, RuleRows, Stat, Stats } from './ResultViz'
 
 export function useStructures() {
   const towers = useTowers()
@@ -47,7 +48,7 @@ function OutriggerPicker({ t, placed }: { t: Tower; placed: number[] }) {
           </button>
         )}
       </form>
-      <div className="mt-1 flex items-center gap-1 text-meta text-muted"><FlagChip flag="team_assumption" />Suggestion at about 1/2 and 2/3 of the height is precedent practice, not a rule. Shown in Schematic as red truss bands; the floor keeps its use.</div>
+      <MethodFold title="About the suggestion"><div className="flex items-start gap-1"><FlagChip flag="team_assumption" /><span>Suggestion at about 1/2 and 2/3 of the height is precedent practice, not a rule. Shown in Schematic as red truss bands; the floor keeps its use.</span></div></MethodFold>
     </div>
   )
 }
@@ -58,27 +59,27 @@ export default function StructurePanel() {
     <>
       {results.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
-          <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
-            <b>Seismic Category {r.seismicCategory}</b>: dynamic analysis required; core walls continuous to the foundation; Ta ≈ {r.Ta.toFixed(2)} s (seismic only).
-          </div>
-          <div className="grid gap-2">{r.rules.map((x) => <Card key={x.id} r={x} />)}</div>
+          <div className="mb-2"><Stats cols={2}>
+            <Stat label="Seismic Category" value={`${r.seismicCategory}`} color="#946200" tip="Dynamic analysis required; core walls continuous to the foundation" />
+            <Stat label="Period Ta (seismic only)" value={`≈ ${r.Ta.toFixed(2)}`} unit="s" />
+          </Stats></div>
+          <RuleRows rules={r.rules} />
           <OutriggerPicker t={r.tower} placed={r.outriggers} />
-          <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700">Lateral systems at SC4 (a shortlist, never a single best)</h4>
-          <div className="grid gap-1.5">
+          <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700" title="A shortlist, never a single best">Lateral systems at SC4 (shortlist)</h4>
+          <ul className="grid min-w-0 gap-1">
             {r.systems.map((s) => (
-              <div key={s.id} className="rounded-md border border-line p-2 text-meta">
-                <div className="flex items-start justify-between gap-2"><span className="font-semibold">{s.name}</span><span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold ${FIT[s.fit].cls}`}>{FIT[s.fit].label}</span></div>
-                <div className="text-slate-700">{s.reason}</div>
-                <div className="mt-0.5 text-meta text-muted">Code route: {s.route}</div>
-                <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={s.flag} /><span className="text-meta text-muted">{s.source.label}{s.source.page ? `, ${s.source.page}` : ''}</span></div>
-              </div>
+              <li key={s.id} className="flex min-w-0 items-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-meta" title={`${s.name}: ${s.reason}\nCode route: ${s.route}\nSource: ${s.source.label}${s.source.page ? `, ${s.source.page}` : ''}`}>
+                <span className="min-w-0 flex-1 truncate">{s.name}</span><FlagDot flag={s.flag} />
+                <span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold ${FIT[s.fit].cls}`}>{FIT[s.fit].label}</span>
+              </li>
             ))}
-          </div>
-          <div className="mt-2 rounded bg-black/[0.03] p-2 text-meta text-slate-600">{CONTINUITY_RULE}</div>
+          </ul>
+          <div className="mt-1.5"><Evidence title="Why each system fits or not" items={r.systems.map((s) => ({ id: s.id, label: s.name, flag: s.flag, value: s.reason, note: `Code route: ${s.route}`, source: s.source, card: false }))} /></div>
+          <MethodFold><p>{CONTINUITY_RULE}</p><p>Seismic Category {r.seismicCategory}: dynamic analysis required; core walls continuous to the foundation; Ta ≈ {r.Ta.toFixed(2)} s (seismic only).</p></MethodFold>
         </Section>
       ))}
       <FalseAssumptions items={SEISMIC_FALSE_ASSUMPTIONS} />
-      <Section title="Read with care">
+      <Section title="Read with care" folded>
         <p className="text-meta text-slate-700">Screening only: no member sizing, forces or drifts as design values. Research packet P10 had two critique rounds and no final gate, so code readings it corrected are shown as unverified. Slenderness and the wind procedure are in the node Wind procedure (slenderness).</p>
       </Section>
     </>

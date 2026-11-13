@@ -1,10 +1,11 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
+import PageToggle from '../PageToggle'
 import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
 import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
+import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
 import { hydrateBoardImages, useBoardStore } from '../../lib/boardStore'
 import { planSvgText } from '../../lib/capture'
@@ -354,6 +355,93 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
   )
 }
 
+// The Tower Workspace's "Drawing space" panel (Sinnie, 13 Nov: "add this tab to the current set"): Sheets = the drawing
+// set (style, sheet size), the sheet list (number, name, remove, blank sheet) and Create drawing set; Add = what goes on
+// a sheet (a drawing, the results table, text, an image from the library).
+function SheetsPanel({ levels, onPick, onCreate, msg }: { levels: number; onPick: (imageId: string) => void; onCreate: () => void; msg: string }) {
+  const [tab, setTab] = useState<'sheets' | 'add'>('sheets')
+  const boards = useBoardStore((s) => s.boards)
+  const selected = useBoardStore((s) => s.selected)
+  const select = useBoardStore((s) => s.select)
+  const style = useBoardStore((s) => s.style)
+  const setStyle = useBoardStore((s) => s.setStyle)
+  const sheet = useBoardStore((s) => s.sheet)
+  const setSheet = useBoardStore((s) => s.setSheet)
+  const addBoard = useBoardStore((s) => s.addBoard)
+  const removeBoard = useBoardStore((s) => s.removeBoard)
+  const renameBoard = useBoardStore((s) => s.renameBoard)
+  const updateFrame = useBoardStore((s) => s.updateFrame)
+  const nos = sheetNumbers(boards)
+  const [note, setNote] = useState('')
+  const sel = 'w-full rounded-lg border border-white/15 bg-slate-900 px-2 py-1.5 text-xs text-slate-100'
+  // Put a drawing, the table or text in the selected frame, else in the sheet's first empty frame.
+  const put = (content: FrameContent, word: string) => {
+    const b = boards[selected.board]
+    const f = b.frames.find((x) => x.id === selected.frame && x.role === 'body') ?? b.frames.find((x) => x.role === 'body' && x.content.kind === 'empty')
+    if (!f) { setNote('This sheet has no empty frame: select a frame to replace, or add a blank sheet.'); return }
+    updateFrame(selected.board, f.id, { content })
+    setNote(`${word} added to ${nos[selected.board]}.`)
+  }
+  const ADD: [string, FrameContent][] = [
+    ['Site plan', { kind: 'drawing', vt: 'site' }], ['Floor plan', { kind: 'drawing', vt: 'plan', level: Math.max(1, Math.round(levels / 2)) }],
+    ['Elevation', { kind: 'drawing', vt: 'elev', dir: 'S' }], ['Section', { kind: 'drawing', vt: 'section' }],
+    ['Results table', { kind: 'table' }], ['Text', { kind: 'text', text: '', sizeMm: 4.5 }],
+  ]
+  return (
+    <aside className="flex w-64 shrink-0 flex-col border-r border-white/10" aria-label="Drawing space" data-testid="drawing-space">
+      <div className="flex gap-1 border-b border-white/10 p-2" role="tablist" aria-label="Drawing space">
+        {(['sheets', 'add'] as const).map((k) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} data-testid={`space-${k}`} className={`rounded-md px-2.5 py-1 text-xs ${tab === k ? 'bg-white/15' : 'text-slate-300 hover:bg-white/5'}`}>{k === 'sheets' ? 'Sheets' : 'Add'}</button>)}
+      </div>
+      {tab === 'sheets' ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <details open className="border-b border-white/10 p-3">
+              <summary className="cursor-pointer text-xs font-semibold">Drawing set</summary>
+              <label className="mt-2 grid gap-1 text-meta text-slate-400">Architectural style
+                <select value={style} onChange={(e) => setStyle(e.target.value as StyleId)} data-testid="board-style" className={sel}>{(Object.keys(BOARD_STYLES) as StyleId[]).map((k) => <option key={k} value={k}>{BOARD_STYLES[k].name}</option>)}</select>
+              </label>
+              <label className="mt-2 grid gap-1 text-meta text-slate-400">Sheet size
+                <select value={sheet} onChange={(e) => setSheet(e.target.value as SheetSize)} data-testid="sheet-size" className={sel}>{(Object.keys(SHEET_SIZES) as SheetSize[]).map((k) => <option key={k} value={k}>{SHEET_SIZES[k].label}</option>)}</select>
+              </label>
+              {sheet !== 'A2' && <p className="mt-1 text-meta text-amber-300">The competition takes A2 only; this size is for your own prints.</p>}
+            </details>
+            <details open className="border-b border-white/10 p-3">
+              <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold"><span>Sheets</span><span className="font-normal text-slate-400" data-testid="sheet-count">{boards.length}</span></summary>
+              <ul className="mt-2 grid gap-0.5" data-testid="sheet-list">
+                {boards.map((b, i) => (
+                  <li key={b.id} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${selected.board === i ? 'bg-white/10 ring-1 ring-white/20' : 'hover:bg-white/5'}`} data-sheet={i}>
+                    <button type="button" onClick={() => select(i, null)} className="shrink-0 font-mono text-meta text-slate-400" aria-label={`Open sheet ${nos[i]}`}>{nos[i]}</button>
+                    <input value={sheetName(b, i)} onFocus={() => select(i, null)} onChange={(e) => renameBoard(i, e.target.value)} aria-label={`Name of sheet ${nos[i]}`} className="min-w-0 flex-1 truncate bg-transparent text-xs text-slate-100 outline-none focus:underline" />
+                    <button type="button" onClick={() => removeBoard(i)} disabled={boards.length <= 1} aria-label={`Remove sheet ${nos[i]}`} title="Remove the sheet (its contents are kept aside)" className="shrink-0 rounded px-1 text-slate-400 hover:bg-white/10 hover:text-slate-100 disabled:opacity-30">×</button>
+                  </li>
+                ))}
+              </ul>
+              <button type="button" onClick={addBoard} disabled={boards.length >= MAX_SHEETS} data-testid="sheet-add" className="mt-2 w-full rounded-lg border border-white/15 py-1.5 text-xs hover:border-sky-400 disabled:opacity-40">+ Blank sheet</button>
+              {boards.length !== 4 && <p className="mt-1 text-meta text-amber-300">The competition asks for four boards; you have {boards.length}.</p>}
+            </details>
+            {msg && <p role="status" className="p-3 text-meta text-emerald-300">{msg}</p>}
+          </div>
+          <div className="border-t border-white/10 p-2">
+            <button type="button" onClick={onCreate} data-testid="drawing-set" title="Site plan, floor plans, elevations, section, and a sheet for the axonometric and analysis: five sheets drawn from the model in this style"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-medium hover:bg-white/15"><LayoutPanelTop size={13} />Create drawing set</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="border-b border-white/10 p-3">
+            <div className="text-xs font-semibold">On {nos[selected.board]}</div>
+            <div className="mt-2 grid grid-cols-2 gap-1" data-testid="space-add-list">
+              {ADD.map(([word, c]) => <button key={word} type="button" onClick={() => put(c, word)} data-add={word} className="rounded-lg border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400">{word}</button>)}
+            </div>
+            {note && <p role="status" className="mt-2 text-meta text-emerald-300">{note}</p>}
+          </div>
+          <div className="min-h-0 flex-1"><Library onPick={onPick} /></div>
+        </div>
+      )}
+    </aside>
+  )
+}
+
 export default function BoardComposer() {
   const open = useBoardStore((s) => s.open)
   // The body (and its results) only runs while the composer is open.
@@ -371,15 +459,13 @@ function ComposerBody() {
   const evidence = useEvidence()
   const overflow = useOverflow(boards, images, evidence)
   const draw = useDrawData()
-  const style = useBoardStore((s) => s.style)
-  const setStyle = useBoardStore((s) => s.setStyle)
   const makeDrawingSet = useBoardStore((s) => s.makeDrawingSet)
   const levels = Math.max(1, ...draw.towers.map((t) => t.floors.length))
   const [setMsg, setSetMsg] = useState('')
   const createSet = () => {
-    const used = boards.slice(0, 3).some((b) => b.frames.some((f) => f.role === 'body' && f.content.kind !== 'empty'))
+    const used = boards.slice(0, 5).some((b) => b.frames.some((f) => f.role === 'body' && f.content.kind !== 'empty'))
     makeDrawingSet(Math.max(2, Math.round(levels / 2)), levels)
-    setSetMsg(used ? 'Boards 1-3 now hold the drawing set; what was on them is kept aside (Compose, layout).' : 'Drawing set created on boards 1-3.')
+    setSetMsg(used ? 'Five sheets now hold the drawing set; what was on them is kept aside.' : 'Drawing set created: five sheets.')
     setTimeout(() => setSetMsg(''), 5000)
   }
   const [tab, setTab] = useState<'frame' | 'submit'>('frame')
@@ -418,28 +504,20 @@ function ComposerBody() {
         <FileImage size={16} className="text-sky-400" />
         <div className="mr-2">
           <div className="text-sm font-semibold">Boards</div>
-          <div className="text-meta text-slate-400">Four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
+          <div className="text-meta text-slate-400">The competition asks for four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
         </div>
         <nav aria-label="Boards" className="flex gap-1">
           {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} rev={draw} />)}
         </nav>
-        {/* From the Tower Workspace's Presentation page: the sheet style and the drawing set. */}
-        <label className="ml-3 flex items-center gap-1.5 text-xs text-slate-300">Style
-          <select value={style} onChange={(e) => setStyle(e.target.value as StyleId)} data-testid="board-style" className="rounded border border-white/15 bg-slate-900 px-1.5 py-1 text-xs text-slate-100">
-            {(Object.keys(BOARD_STYLES) as StyleId[]).map((k) => <option key={k} value={k}>{BOARD_STYLES[k].name}</option>)}
-          </select>
-        </label>
-        <button type="button" onClick={createSet} data-testid="drawing-set" title="Site plan and results, three floor plans, elevations and a section, drawn from the design at true scale on boards 1-3"
-          className="flex items-center gap-1.5 rounded border border-white/15 px-2 py-1 text-xs hover:border-sky-400"><LayoutPanelTop size={13} />Create drawing set</button>
-        {setMsg && <span role="status" className="max-w-[16rem] text-meta text-emerald-300">{setMsg}</span>}
-        <div className="ml-auto flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
+        <span className="mx-auto" /><PageToggle dark /><span className="mx-auto" />
+        <div className="flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
           <button type="button" role="tab" aria-selected={tab === 'frame'} onClick={() => setTab('frame')} className={`rounded px-2 py-1 text-xs ${tab === 'frame' ? 'bg-white/15' : 'text-slate-300'}`}>Compose</button>
           <button type="button" role="tab" aria-selected={tab === 'submit'} onClick={() => setTab('submit')} className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === 'submit' ? 'bg-white/15' : 'text-slate-300'}`}><ListChecks size={12} />Check and export</button>
         </div>
         <button type="button" onClick={() => setOpen(false)} aria-label="Close the board composer (Esc)" className="rounded p-1.5 text-slate-300 hover:bg-white/10"><X size={16} /></button>
       </header>
       <div className="flex min-h-0 flex-1">
-        <aside className="w-60 shrink-0 border-r border-white/10" aria-label="Images"><Library onPick={pick} /></aside>
+        <SheetsPanel levels={levels} onPick={pick} onCreate={createSet} msg={setMsg} />
         <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
           <div className="flex h-full w-full items-center justify-center">
             <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />

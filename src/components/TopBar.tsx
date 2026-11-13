@@ -5,6 +5,7 @@
 // graph), Auto-run checks (what the old "Analysis On/Off" really controls: checks recompute with the model, or pause),
 // Edit workflow (the workflow editor, 9 Nov; it was "Assistant"), and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
 // sources). Present adds Model locked and Capture. The phase row under this bar is the only phase selector.
+import PageToggle from './PageToggle'
 import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, LockKeyhole, MoreHorizontal, Network, PlayCircle, Scale, Waves, Workflow, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { showIntro } from '../lib/intro'
@@ -124,6 +125,8 @@ export default function TopBar() {
           {t === 'import' ? <FileUp size={13} aria-hidden /> : <FileDown size={13} aria-hidden />}{t === 'import' ? 'Import' : 'Export'}</button>
       ))}
       <TransferDialog />
+      <span className="mx-auto" />
+      {!building && <PageToggle dark={present} />}
       <span className="mx-auto" />
       {present && (
         <>

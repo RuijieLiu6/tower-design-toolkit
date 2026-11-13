@@ -144,7 +144,7 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
             <option value={150}>150 dpi (3508 × 2480 px)</option>
             <option value={200}>200 dpi (4677 × 3307 px)</option>
           </select>
-          <button type="button" disabled={!!busy || used === 0} onClick={() => runExport([0, 1, 2, 3])} className="flex flex-1 items-center justify-center gap-1.5 rounded bg-sky-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50">
+          <button type="button" disabled={!!busy || used === 0} onClick={() => runExport(boards.map((_, i) => i))} className="flex flex-1 items-center justify-center gap-1.5 rounded bg-sky-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50">
             {busy ? <><Loader2 size={13} className="animate-spin" />{busy}…</> : <><Download size={13} />Export {used} JPEG{used === 1 ? '' : 's'}</>}
           </button>
         </div>

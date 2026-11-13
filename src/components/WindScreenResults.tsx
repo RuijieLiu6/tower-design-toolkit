@@ -1,30 +1,16 @@
 // Results of the pedestrian wind screen (research P03-M03 with a reduced M01 wind climate and the M02 triggers): the
 // study verdict, the airport wind rose, per-tower risk by strong-wind sector, the rules with their sources, and presets.
-import { RotateCcw, Wind } from './icons'
+import { RotateCcw } from './icons'
 import { ENGINE_NOTE, SCREEN_LABEL, DEFAULT_WIND_SCREEN, YVR_ROSE, type Level, type SectorStat, type WindScreenPresets } from '../engine/windScreen'
-import type { RuleResult } from '../engine/types'
 import { ANALOG_LABEL } from '../engine/windStructure'
 import { useWindScreen } from '../hooks/useWindScreen'
 import { useWindScreenStore } from '../lib/windScreenStore'
-import { FlagChip, NumberField, Section, StateChip } from './ui'
-import { U } from './Units'
+import { FlagChip, NumberField, Section } from './ui'
+import { Caveat, Fold, HBars, Legend, MethodFold, RuleRows } from './ResultViz'
 
 export const LEVEL_COLOR: Record<Level, string> = { low: '#3b82f6', medium: '#e08a00', high: '#d0453a' }
 const LEVEL_LABEL: Record<Level, string> = { low: 'Low', medium: 'Medium', high: 'High' }
 
-function Card({ r }: { r: RuleResult }) {
-  return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
-      </div>
-    </div>
-  )
-}
 
 /** Wind rose: petal length = share of comfort-window hours from that sector; the dark part = strong-wind hours (scaled up). */
 function Rose({ stats, strong }: { stats: SectorStat[]; strong: Set<string> }) {
@@ -54,28 +40,44 @@ export default function WindScreenResults() {
   return (
     <>
       <Section title="Results">
-        <div className="mb-2 flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2 text-meta text-amber-950"><Wind size={14} className="mt-0.5 shrink-0" /><span><b>{SCREEN_LABEL}</b> {ANALOG_LABEL}</span></div>
-        <div className={`rounded-md border p-2 ${r.study.required ? 'border-red-200 bg-red-50' : 'border-line'}`}>
-          <div className="text-meta text-muted">Pedestrian wind study</div>
+        <div className="mb-2"><Caveat lead="Screening, not CFD"><b>{SCREEN_LABEL}</b> {ANALOG_LABEL}</Caveat></div>
+        <div className={`min-w-0 rounded-md border p-2 ${r.study.required ? 'border-red-200 bg-red-50' : 'border-line'}`} title={`${verdict.value}\nToronto ToR Table 1 · Hamilton rules 1–3 · City of London height bands · Vancouver unresolved`}>
+          <div className="flex items-center justify-between gap-2 text-meta text-muted"><span>Pedestrian wind study</span><FlagChip flag={verdict.flag} /></div>
           <div className="text-sm font-semibold">{r.study.required ? 'Required: plan a wind-tunnel study' : 'Not triggered by every analog rule'}</div>
-          <div className="text-meta text-slate-700">{verdict.value}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={verdict.flag} /><span className="text-meta text-muted">Toronto ToR Table 1 · Hamilton rules 1–3 · City of London height bands · Vancouver unresolved</span></div>
+          <div className="line-clamp-2 text-meta text-slate-700">{verdict.value}</div>
         </div>
-        {!r.contextLoaded && <p className="mt-2 rounded border border-line bg-slate-50 p-1.5 text-meta text-slate-700">Context buildings not loaded here: upwind exposure counts only this project’s towers, otherwise open ground (worst case).</p>}
+        {!r.contextLoaded && <p className="mt-2 truncate rounded border border-line bg-slate-50 p-1.5 text-meta text-slate-700" title="Context buildings not loaded here: upwind exposure counts only this project’s towers, otherwise open ground (worst case).">Context not loaded: open ground assumed (worst case)</p>}
       </Section>
 
       <Section title="Wind climate (airport, regional pattern)">
         <Rose stats={r.stats} strong={strong} />
-        <p className="text-meta text-slate-700">Strong winds (≥ {presets.strongKmh} km/h, {YVR_ROSE.comfortWindow}) come mostly from <b>{r.sectors.map((s) => `${s.name} (${Math.round(s.share * 100)}%)`).join(', ') || '—'}</b>; light petals are all hours by direction, dark petals strong-wind hours (scaled).</p>
-        <p className="mt-1 text-meta text-muted">ECCC Vancouver Intl A, {YVR_ROSE.years[0]}–{YVR_ROSE.years[1]}, 10 m airport anemometer; calms kept in the totals. No exposure transfer to the site (research P03-M01 roadmap) and fewer than the 30 years the analog guides ask for: directions only, no site speeds.</p>
+        <Legend className="justify-center" items={[{ label: 'all hours', color: '#c7d7ee' }, { label: `strong (≥ ${presets.strongKmh} km/h)`, color: '#1f4e8c', tip: 'Dark petals: strong-wind hours, scaled up' }]} />
+        <div className="mb-1 mt-2 text-meta font-semibold">Share of strong-wind hours</div>
+        <HBars label="Share of strong-wind hours by direction" max={100} fmt={(v) => `${Math.round(v)}%`} labelWidth="2.5rem" color="#1f4e8c" rows={r.sectors.map((s) => ({ label: s.name, bold: true, v: s.share * 100 }))} />
+        <MethodFold>
+          <p>Strong winds (≥ {presets.strongKmh} km/h, {YVR_ROSE.comfortWindow}) come mostly from <b>{r.sectors.map((s) => `${s.name} (${Math.round(s.share * 100)}%)`).join(', ') || '—'}</b>; light petals are all hours by direction, dark petals strong-wind hours (scaled).</p>
+          <p>ECCC Vancouver Intl A, {YVR_ROSE.years[0]}–{YVR_ROSE.years[1]}, 10 m airport anemometer; calms kept in the totals. No exposure transfer to the site (research P03-M01 roadmap) and fewer than the 30 years the analog guides ask for: directions only, no site speeds.</p>
+        </MethodFold>
       </Section>
 
       <Section title="Risk by strong-wind direction">
         {r.towers.map((t) => (
-          <div key={t.tower} className="mb-2 overflow-x-auto">
+          <div key={t.tower} className="mb-2 min-w-0">
             <div className="text-meta font-semibold">{t.name} · {t.height.toFixed(0)} m</div>
-            <table className="mt-0.5 w-full min-w-[330px] text-meta">
-              <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium">From</th><th className="text-right font-medium">Share</th><th className="text-right font-medium">Face</th><th className="text-right font-medium">H ÷ upwind</th><th className="px-1 font-medium">Downwash</th><th className="px-1 font-medium">At grade</th><th className="px-1 font-medium">Corners</th></tr></thead>
+            <div className="mt-1 grid min-w-0 grid-cols-[2.2rem_minmax(0,1fr)_repeat(3,3.1rem)] items-center gap-x-1 gap-y-1 text-meta" role="img" aria-label={`Wind risk by strong-wind direction for ${t.name}: ${t.sectors.map((s) => `${s.sector} downwash ${s.downwash}, at grade ${s.base}, corners ${s.corner}`).join('; ')}`}>
+              <span className="text-[10px] text-muted">From</span><span className="truncate text-[10px] text-muted">Strong hours</span>
+              {['Downwash', 'At grade', 'Corners'].map((h) => <span key={h} className="text-center text-[10px] text-muted">{h}</span>)}
+              {t.sectors.map((s) => (
+                <div key={s.sector} className="contents" title={`From ${s.sector}: ${Math.round(s.share * 100)}% of strong-wind hours, face ${s.width.toFixed(0)} m, H ÷ upwind ${s.ratio === null ? 'open' : s.ratio === Infinity ? '—' : `${s.ratio.toFixed(1)}×`}`}>
+                  <span className="font-semibold">{s.sector}</span>
+                  <span className="flex min-w-0 items-center gap-1"><svg viewBox="0 0 100 8" preserveAspectRatio="none" className="h-2 min-w-0 flex-1"><rect width="100" height="8" rx="1" fill="#eef0f3" /><rect width={Math.min(100, s.share * 100)} height="8" rx="1" fill="#1f4e8c"><title>{`${Math.round(s.share * 100)}% of strong-wind hours`}</title></rect></svg><span className="shrink-0 tabular-nums text-muted">{Math.round(s.share * 100)}%</span></span>
+                  {[s.downwash, s.base, s.corner].map((l, i) => <span key={i} className="rounded py-0.5 text-center text-[10px] font-semibold text-white" style={{ background: LEVEL_COLOR[l] }}>{LEVEL_LABEL[l]}</span>)}
+                </div>
+              ))}
+            </div>
+            <div className="mt-1.5"><Fold title="Table: face width and height ÷ upwind"><div className="overflow-x-auto">
+            <table className="mt-0.5 w-full text-meta">
+              <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium">From</th><th className="text-right font-medium">Share</th><th className="text-right font-medium">Face</th><th className="text-right font-medium">H ÷ upwind</th></tr></thead>
               <tbody>
                 {t.sectors.map((s) => (
                   <tr key={s.sector} className="border-t border-line/60">
@@ -83,22 +85,22 @@ export default function WindScreenResults() {
                     <td className="text-right tabular-nums">{Math.round(s.share * 100)}%</td>
                     <td className="text-right tabular-nums">{s.width.toFixed(0)} m</td>
                     <td className="text-right tabular-nums">{s.ratio === null ? 'open' : s.ratio === Infinity ? '—' : `${s.ratio.toFixed(1)}×`}</td>
-                    {[s.downwash, s.base, s.corner].map((l, i) => <td key={i} className="px-1"><span className="inline-block rounded px-1 text-meta font-semibold text-white" style={{ background: LEVEL_COLOR[l] }}>{LEVEL_LABEL[l]}</span></td>)}
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div></Fold></div>
           </div>
         ))}
-        <p className="text-meta text-muted">“At grade” is downwash after the podium step: a podium projecting at least {presets.podiumStepMin} m toward the wind takes it one level lower at the street (direction sourced, size unverified). In 3D, select this node to see the zones: bands in front of windward faces, wedges off windward corners and aligned gaps, in blue, amber and red; their sizes are indicative drawing rules, not predicted extents.</p>
+        <MethodFold title="How to read the levels"><p>“At grade” is downwash after the podium step: a podium projecting at least {presets.podiumStepMin} m toward the wind takes it one level lower at the street (direction sourced, size unverified). In 3D, select this node to see the zones: bands in front of windward faces, wedges off windward corners and aligned gaps, in blue, amber and red; their sizes are indicative drawing rules, not predicted extents.</p></MethodFold>
       </Section>
 
       <Section title="Rules">
-        <div className="grid gap-2">{r.rules.map((x) => <Card key={x.id} r={x} />)}</div>
+        <RuleRows rules={r.rules} />
       </Section>
 
-      <Section title="Presets (team assumptions)" right={edited.length ? <button type="button" onClick={reset} className="flex items-center gap-1 text-meta text-muted hover:text-ink"><RotateCcw size={11} />Reset</button> : undefined}>
-        <div className="grid grid-cols-2 gap-2">
+      <Section folded title="Presets (team assumptions)" right={edited.length ? <button type="button" onClick={reset} className="flex items-center gap-1 text-meta text-muted hover:text-ink"><RotateCcw size={11} />Reset</button> : undefined}>
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
           <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Strong wind from</span>
             <select className={sel} value={presets.strongKmh} onChange={(e) => set({ strongKmh: Number(e.target.value) as WindScreenPresets['strongKmh'] })}>{[20, 30, 40].map((v) => <option key={v} value={v}>{v} km/h (airport)</option>)}</select></label>
           <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Season</span>
@@ -112,7 +114,7 @@ export default function WindScreenResults() {
         {edited.length > 0 && <p className="mt-1 text-meta text-amber-800">Edited: {edited.join(', ')} (your own team assumption).</p>}
       </Section>
 
-      <Section title="Why there is no comfort map">
+      <Section title="Why there is no comfort map" folded>
         <p className="text-meta leading-relaxed text-slate-700">{ENGINE_NOTE} Comfort classes need speed factors at probes from a tunnel or CFD (research P03-M04); this node only names the class each zone needs.</p>
       </Section>
     </>

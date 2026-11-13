@@ -22,14 +22,13 @@ import { SEASONS, windRose, type Season } from '../engine/sw/wind'
 import type { Tower } from '../engine/types'
 import { floorPlates } from '../lib/floorPick'
 import { useStore, useTowers } from '../store'
+import { BarRows } from './sw/SwCharts'
 
 type Kind = 'sun' | 'wind' | 'rain' | 'energy'
 const KIND: Record<string, Kind> = {
   'built.sun': 'sun', 'built.solar-access': 'sun', 'built.wind-screen': 'wind', 'built.wind-study': 'wind',
   'built.city-in-nature': 'rain', 'built.energy-carbon': 'energy',
-  // Sun & Wind Studio tools (13 Nov) show the same drawings under their key results.
-  'built.sw-shadow': 'sun', 'built.sw-sun-faces': 'sun', 'built.sw-wind-comfort': 'wind', 'built.sw-wind-height': 'wind',
-  'built.sw-rain-faces': 'rain', 'built.sw-rain-water': 'rain', 'built.sw-energy': 'energy',
+  // The Sun & Wind Studio tools draw their own figures from their runs (components/sw), with this file's figure kit.
 }
 export const climateKind = (node: string | null) => (node ? KIND[node] ?? null : null)
 
@@ -53,7 +52,7 @@ const T = ({ x, y, children, anchor = 'start', k = false, size = 9 }: { x: numbe
   <text x={x} y={y} textAnchor={anchor} fontSize={size} fill={k ? INK : MUTED} fontFamily="ui-monospace, monospace">{children}</text>
 
 /** Polar rose: petal length = share, depth of colour = mean speed (viz.js rose). */
-function Rose({ sectors, color, size = 200, label, sUnit = 'm/s' }: { sectors: { name: string; dir: number; f: number; s?: number; text?: string }[]; color: string; size?: number; label: string; sUnit?: string }) {
+export function Rose({ sectors, color, size = 200, label, sUnit = 'm/s' }: { sectors: { name: string; dir: number; f: number; s?: number; text?: string }[]; color: string; size?: number; label: string; sUnit?: string }) {
   const cx = size / 2, cy = size / 2, R = size / 2 - 22
   const maxf = Math.max(1e-9, ...sectors.map((r) => r.f)), sMax = Math.max(1e-9, ...sectors.map((r) => r.s ?? 0))
   const half = ((360 / sectors.length / 2) * Math.PI) / 180 * 0.85
@@ -80,7 +79,7 @@ function Rose({ sectors, color, size = 200, label, sUnit = 'm/s' }: { sectors: {
 }
 
 /** Four bars from a centre, N E S W (viz.js compass). */
-function Compass({ faces, label, size = 200 }: { faces: Partial<Record<'N' | 'E' | 'S' | 'W', { v: number; color: string; text: string }>>; label: string; size?: number }) {
+export function Compass({ faces, label, size = 200 }: { faces: Partial<Record<'N' | 'E' | 'S' | 'W', { v: number; color: string; text: string }>>; label: string; size?: number }) {
   const cx = size / 2, cy = size / 2, R = size / 2 - 40, bw = 22
   const max = Math.max(1e-9, ...Object.values(faces).map((f) => f!.v))
   const dirs = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] } as const
@@ -104,7 +103,7 @@ function Compass({ faces, label, size = 200 }: { faces: Partial<Record<'N' | 'E'
 }
 
 /** Horizontal bars with a target tick (viz.js hbars). */
-function HBars({ rows, label, unit }: { rows: { label: string; v: number; mark?: number; color: string; text: string }[]; label: string; unit?: string }) {
+export function HBars({ rows, label, unit }: { rows: { label: string; v: number; mark?: number; color: string; text: string }[]; label: string; unit?: string }) {
   const W = 260, L = 40, Rr = 92, rh = 24, H = rows.length * rh + 6, pw = W - L - Rr
   const max = Math.max(1e-9, ...rows.map((r) => Math.max(r.v, r.mark ?? 0))) * 1.08
   return (
@@ -126,7 +125,7 @@ function HBars({ rows, label, unit }: { rows: { label: string; v: number; mark?:
 }
 
 /** One 100 % bar split into parts, with a key under it (viz.js stack). */
-function Stack({ parts, label }: { parts: { name: string; v: number; color: string }[]; label: string }) {
+export function Stack({ parts, label }: { parts: { name: string; v: number; color: string }[]; label: string }) {
   const tot = parts.reduce((s, p) => s + p.v, 0) || 1
   return (
     <div className="grid gap-1.5">
@@ -145,7 +144,7 @@ function Stack({ parts, label }: { parts: { name: string; v: number; color: stri
 }
 
 /** Sun paths at the solstices and equinox, altitude inward, with the sun at the date and hour shown (study.js sunPathSVG). */
-function SunPath({ month, day, hour }: { month: number; day: number; hour: number }) {
+export function SunPath({ month, day, hour }: { month: number; day: number; hour: number }) {
   const R = 84, cx = 100, cy = 100
   const pt = (alt: number, az: number) => { const r = R * (1 - alt / 90), a = (az * Math.PI) / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)] }
   const path = (m: number, d: number) => {
@@ -170,7 +169,7 @@ function SunPath({ month, day, hour }: { month: number; day: number; hour: numbe
 }
 
 /** Twelve dials: where most of each month's rain comes from, and the month's rain under it (rain.js monthsSVG). */
-function RainMonths({ months }: { months: { n: string; mm: number; top: { name: string; dir: number; f: number } | null }[] }) {
+export function RainMonths({ months }: { months: { n: string; mm: number; top: { name: string; dir: number; f: number } | null }[] }) {
   const W = 290, cw = W / 12, r = 9, cy = 25, bar0 = cy + r + 16, bh = 30, H = bar0 + bh + 12
   const max = Math.max(1, ...months.map((m) => m.mm))
   return (
@@ -209,18 +208,18 @@ function byFace(faces: { az: number; area: number; value: number }[]) {
 const prismsOf = (t: Tower) => towerOccluders([t]).prisms as Prism[]
 const ramp = (stops: string[], t: number) => stops[Math.max(0, Math.min(stops.length - 1, Math.round(t * (stops.length - 1))))]
 
-function Fig({ title, caption, children, sheet = true }: { title: string; caption: string; children: ReactNode; sheet?: boolean }) {
+function Fig({ title, caption, tip, children, sheet = true }: { title: string; caption: string; /** the longer explanation, on hover */ tip?: string; children: ReactNode; sheet?: boolean }) {
   const ref = useRef<HTMLElement>(null)
   return (
-    <figure ref={ref} className="m-0 grid gap-1">
-      <figcaption className="flex items-center justify-between gap-2 text-meta font-semibold text-ink">{title}
+    <figure ref={ref} className="m-0 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1">
+      <figcaption className="flex items-center justify-between gap-2 text-meta font-semibold text-ink"><span className="min-w-0 truncate" title={tip ?? title}>{title}</span>
         {sheet && <SheetButton compact label={title} make={async () => {
           const svgs = Array.from(ref.current?.querySelectorAll('svg') ?? []).filter((s) => s.viewBox.baseVal?.width && !s.closest('button')) as SVGSVGElement[]
-          return svgs.length ? svgImage(svgs, title, caption) : null
+          return svgs.length ? svgImage(svgs, title, tip ?? caption) : null
         }} />}
       </figcaption>
       {children}
-      <p className="text-meta leading-snug text-muted">{caption}</p>
+      <p className="truncate text-meta leading-snug text-muted" title={tip ?? caption}>{caption}</p>
     </figure>
   )
 }
@@ -241,11 +240,11 @@ function SunDrawings({ C, towers, north }: { C: ClimatePayload; towers: Tower[];
   const STOPS = ['#d9e2ec', '#f1dca7', '#e9b562', '#c9822b']
   return (
     <>
-      <Fig title="Sun path" caption={`Paths at the solstices and equinox (grey), the day shown in amber, altitude inward. At ${Math.floor(sun.hour)}:${String(Math.round((sun.hour % 1) * 60)).padStart(2, '0')} the sun is ${now.altitude > 0 ? `${now.altitude.toFixed(0)}° high, ${now.azimuth.toFixed(0)}° from north` : 'below the horizon'}.`}>
+      <Fig title="Sun path" tip="Paths at the solstices and equinox (grey), the day shown in amber, altitude inward." caption={`${Math.floor(sun.hour)}:${String(Math.round((sun.hour % 1) * 60)).padStart(2, '0')} · ${now.altitude > 0 ? `sun ${now.altitude.toFixed(0)}° high, ${now.azimuth.toFixed(0)}° from north` : 'sun below the horizon'}`}>
         <div className="mx-auto w-full max-w-[15rem]"><SunPath month={sun.month} day={sun.day} hour={sun.hour} /></div>
       </Fig>
       {towers.length > 0 && (
-        <Fig title="Sun on each face · kWh/m² a year" caption="Annual sun on the towers' faces (Perez sky, beam shaded by the towers' own blocks; neighbours not counted). Bar length and colour: the area-weighted mean of each compass face.">
+        <Fig title="Sun on each face · kWh/m²" caption="Mean of each compass face over the year." tip="Annual sun on the towers' faces (Perez sky, beam shaded by the towers' own blocks; neighbours not counted). Bar length and colour: the area-weighted mean of each compass face.">
           {faces ? <div className="mx-auto w-full max-w-[15rem]"><Compass label="Annual sun on each face" faces={Object.fromEntries(Object.entries(faces).map(([o, v]) => [o, { v: v!, color: ramp(STOPS, (v! - 200) / 600), text: `${Math.round(v!)}` }]))} /></div> : <p className="text-meta text-muted">Working…</p>}
         </Fig>
       )}
@@ -260,10 +259,10 @@ function WindDrawings({ C }: { C: ClimatePayload }) {
   const top = [...year.sectors].sort((a, b) => b.f - a.f).slice(0, 2)
   return (
     <>
-      <Fig title="Wind rose · the year" caption={`Petal length: share of the hours from each direction; depth of colour: mean speed at 10 m. Mostly ${top.map((r) => `${r.name} ${Math.round(r.f * 100)}%`).join(', ')}; ${Math.round((year.calm / Math.max(1, year.hours)) * 100)}% calm.`}>
+      <Fig title="Wind rose · the year" tip="Petal length: share of the hours from each direction; depth of colour: mean speed at 10 m." caption={`Mostly ${top.map((r) => `${r.name} ${Math.round(r.f * 100)}%`).join(', ')}; ${Math.round((year.calm / Math.max(1, year.hours)) * 100)}% calm.`}>
         <div className="mx-auto w-full max-w-[15rem]"><Rose label="Wind rose for the year" color={WIND} sectors={year.sectors.map((r) => ({ name: r.name, dir: r.dir, f: r.f, s: r.s }))} /></div>
       </Fig>
-      <Fig title="By season" caption="The same rose for each season (CWEC 2020, Vancouver Intl AP).">
+      <Fig title="By season" caption="The same rose for each season.">
         <div className="grid grid-cols-2 gap-1">
           {each.map(({ s, r }) => (
             <div key={s} className="text-center"><Rose size={150} label={`Wind rose, ${SEASONS[s].label}`} color={WIND} sectors={r.sectors.map((x) => ({ name: x.name, dir: x.dir, f: x.f, s: x.s }))} /><span className="text-meta text-muted">{SEASONS[s].label}</span></div>
@@ -288,20 +287,20 @@ function RainDrawings({ C, towers, north }: { C: ClimatePayload; towers: Tower[]
   const BAND = ['#dfe9f1', '#a9c6dc', '#6f9cc0', '#3f6f98']
   return (
     <>
-      <Fig title="Where the rain comes from" caption={`Petal length: share of the year's rain arriving on winds from each direction; colour: mean wind while it rains. Mostly ${a.name} ${Math.round(a.f * 100)}%, then ${b.name} ${Math.round(b.f * 100)}%. ${Math.round(A.tot)} mm a year.`}>
+      <Fig title="Where the rain comes from" tip="Petal length: share of the year's rain arriving on winds from each direction; colour: mean wind while it rains." caption={`Mostly ${a.name} ${Math.round(a.f * 100)}%, ${b.name} ${Math.round(b.f * 100)}%. ${Math.round(A.tot)} mm a year.`}>
         <div className="mx-auto w-full max-w-[15rem]"><Rose label="Rain by wind direction" color={RAIN} sectors={A.sec.map((x) => ({ name: x.dir % 45 ? '' : x.name, dir: x.dir, f: x.f, s: x.s, text: `${x.name} · ${Math.round(x.f * 100)}% of the rain (${Math.round(x.mm)} mm)` }))} /></div>
       </Fig>
-      <Fig title="By month" caption="Arrow: where most of each month's rain comes from. Bar: the month's rain in mm.">
+      <Fig title="By month" caption="Arrow: main direction. Bar: mm." tip="Arrow: where most of each month's rain comes from. Bar: the month's rain in mm.">
         <RainMonths months={months} />
       </Fig>
       {towers.length > 0 && (
-        <Fig title="Driving rain on each face · airfield index" caption="Annual wind-driven rain index of each compass face (BS 8104 bands: sheltered, moderate, severe, very severe), area-weighted.">
+        <Fig title="Driving rain on each face" caption="Bar: annual index. Colour: BS 8104 band." tip="Annual wind-driven rain index of each compass face (BS 8104 bands: sheltered, moderate, severe, very severe), area-weighted.">
           <div className="mx-auto w-full max-w-[15rem]"><Compass label="Driving rain by face" faces={Object.fromEntries(Object.entries(faces).map(([o, v]) => [o, { v: v!, color: BAND[Math.min(3, Math.floor(v! / 4 / 33))] ?? BAND[0], text: `${Math.round(v!)}` }]))} /></div>
         </Fig>
       )}
       {roof && roof.area > 0 && (
-        <Fig sheet={false} title="Roof water" caption="Collected = roof and terrace area × the year's rain × 80% run-off (Sun & Wind Studio's rule).">
-          <p className="text-control text-ink"><b>{Math.round(roof.annual).toLocaleString()} m³</b> a year from {Math.round(roof.area).toLocaleString()} m² of roof and terraces</p>
+        <Fig title="Roof water · m³ a year" caption={`${Math.round(roof.annual).toLocaleString()} m³ from ${Math.round(roof.area).toLocaleString()} m² of roofs.`} tip="Collected = roof and terrace area × the year's rain × 80% run-off (Sun & Wind Studio's rule).">
+          <BarRows label="Rain collected by roof surface" labelW={98} textW={84} rows={roof.surfaces.slice(0, 8).map((x) => ({ label: x.name.replace('Terrace at', 'Terrace').replace('Podium roof at', 'Podium'), v: x.m3, color: x.name === 'Main roof' ? RAIN : '#6FA3CF', text: `${Math.round(x.m3).toLocaleString()} · ${Math.round(x.area).toLocaleString()} m²` }))} />
         </Fig>
       )}
     </>
@@ -324,14 +323,14 @@ function EnergyDrawings({ C, towers, north }: { C: ClimatePayload; towers: Tower
   const sum = (k: 'heat' | 'cool' | 'light' | 'equip' | 'dhw' | 'aux') => r.zones.reduce((s, z) => s + z[k], 0)
   return (
     <>
-      <Fig title="Against the Vancouver targets" caption="The ISO 13790 hourly model of Sun & Wind Studio (5R1C per zone, its default envelope and systems: a team assumption). Tick: the program-weighted target.">
+      <Fig title="Against the Vancouver targets" caption="Tick: the program-weighted target." tip="The ISO 13790 hourly model of Sun & Wind Studio (5R1C per zone, its default envelope and systems: a team assumption). Tick: the program-weighted target.">
         <HBars label="TEUI, TEDI and GHGI against targets" rows={[
           { label: 'TEUI', v: r.teui, mark: r.tgt.teui, color: ok(r.teui, r.tgt.teui), text: `${Math.round(r.teui)} / ${Math.round(r.tgt.teui)} kWh/m²` },
           { label: 'TEDI', v: r.tedi, mark: r.tgt.tedi, color: ok(r.tedi, r.tgt.tedi), text: `${Math.round(r.tedi)} / ${Math.round(r.tgt.tedi)} kWh/m²` },
           { label: 'GHGI', v: r.ghgi, mark: r.tgt.ghgi, color: ok(r.ghgi, r.tgt.ghgi), text: `${r.ghgi.toFixed(1)} / ${r.tgt.ghgi.toFixed(1)} kg/m²` },
         ]} />
       </Fig>
-      <Fig sheet={false} title="Where the energy goes" caption={`${Math.round(r.total / 1000).toLocaleString()} MWh a year over ${Math.round(r.gfa).toLocaleString()} m²; peaks ${Math.round(r.peakH)} W/m² heating, ${Math.round(r.peakC)} W/m² cooling.`}>
+      <Fig sheet={false} title="Where the energy goes" tip={`Peaks: ${Math.round(r.peakH)} W/m² heating, ${Math.round(r.peakC)} W/m² cooling.`} caption={`${Math.round(r.total / 1000).toLocaleString()} MWh a year over ${Math.round(r.gfa).toLocaleString()} m².`}>
         <Stack label="Energy by end use" parts={[
           { name: 'Heating', v: sum('heat'), color: '#c2410c' }, { name: 'Cooling', v: sum('cool'), color: '#2563eb' }, { name: 'Lighting', v: sum('light'), color: '#eab308' },
           { name: 'Equipment', v: sum('equip'), color: '#64748b' }, { name: 'Hot water', v: sum('dhw'), color: '#db2777' }, { name: 'Fans, pumps', v: sum('aux'), color: '#0d9488' },

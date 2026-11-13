@@ -5,38 +5,16 @@ import type { ReactNode } from 'react'
 import {
   ENERGY_FALSE_ASSUMPTIONS, ENVELOPE_LABEL, HEATING_LABEL, IEA_YIELD, SYSTEMS, type EnergyCarbonResult, type Envelope, type Heating, type Metric, type SystemId,
 } from '../engine/energyCarbon'
-import type { RuleResult, RuleState } from '../engine/types'
+import type { RuleResult } from '../engine/types'
 import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useEnergyStore } from '../lib/energyStore'
 import { POA_RANGE, RAMP } from './energyRamp'
-import { FlagChip, NumberField, Section, StateChip, Toggle } from './ui'
-import { U } from './Units'
+import { FlagChip, NumberField, Section, Toggle } from './ui'
+import { FalseList, KeyList, Legend, MethodFold, RuleRows } from './ResultViz'
 
-const STATE_COLOR: Record<RuleState, string> = { pass: '#2e8b57', warn: '#d98b1c', fail: '#d0453a', unknown: '#8a8f98' }
 const MAGENTA = '#d4148c'
 
-function Card({ r }: { r: RuleResult }) {
-  return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
-      </div>
-    </div>
-  )
-}
 
-function Tile({ label, value, unit, state }: { label: string; value: string; unit: string; state: RuleState }) {
-  return (
-    <div className="rounded-md border border-line p-2">
-      <div className="text-meta text-muted">{label}</div>
-      <div className="mt-0.5 flex items-baseline gap-1"><span className="text-lg font-semibold tabular-nums" style={{ color: STATE_COLOR[state] }}>{value}</span><span className="text-meta text-muted">{unit}</span></div>
-    </div>
-  )
-}
 
 /** Estimate bars against the HBP and VBBL limits for each metric (each row on its own scale). */
 function LimitsChart({ r }: { r: EnergyCarbonResult }) {
@@ -90,7 +68,7 @@ function EmbodiedChart({ r }: { r: EnergyCarbonResult }) {
       {tick(r.embodied.limit, `limit ${Math.round(r.embodied.limit)}`, '#1f2328')}
       {tick(360, 'proposed 360', '#6b7280', '3 2', true)}
       {tick(311, 'archetype 311', '#64748b', '1 1.5')}
-      {tick(240, '240 (not a City target)', MAGENTA, '2 2', true)}
+      {tick(240, '240', MAGENTA, '2 2', true)}
       <text x={6} y={10} fontSize="6" fill="#6b7280">kgCO₂e/m² GFA</text>
     </svg>
   )
@@ -133,16 +111,16 @@ function PvChart({ r }: { r: EnergyCarbonResult }) {
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="flex flex-col gap-1 text-xs"><span className="text-muted">{label}</span>{children}</label>
+  return <label className="flex min-w-0 flex-col gap-1 text-xs"><span className="text-muted">{label}</span>{children}</label>
 }
-const select = 'rounded border border-line bg-panel px-1.5 py-1 text-xs'
+const select = 'min-w-0 max-w-full rounded border border-line bg-panel px-1.5 py-1 text-xs'
 
 function Inputs({ r }: { r: EnergyCarbonResult }) {
   const { input, set, setPv, reset } = useEnergyStore()
   const man = input.manual
   const setMan = (k: 'teui' | 'tedi' | 'ghgi', v: number) => set({ manual: { teui: man?.teui ?? null, tedi: man?.tedi ?? null, ghgi: man?.ghgi ?? null, [k]: v } })
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
       <div className="text-meta font-semibold text-muted">Operational</div>
       <Field label="Regime">
         <select className={select} value={input.regime} onChange={(e) => set({ regime: e.target.value as typeof input.regime })}>
@@ -213,7 +191,7 @@ function Inputs({ r }: { r: EnergyCarbonResult }) {
           <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={input.pv[k]} onChange={() => setPv({ [k]: !input.pv[k] })} />{l}</label>
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
         <NumberField label="Roof usable" value={input.pv.roofUsable * 100} onChange={(v) => setPv({ roofUsable: Math.max(0, Math.min(100, v)) / 100 })} step={5} unit="%" />
         <NumberField label="Podium usable" value={input.pv.podiumUsable * 100} onChange={(v) => setPv({ podiumUsable: Math.max(0, Math.min(100, v)) / 100 })} step={5} unit="%" />
         <NumberField label="Facade usable" value={input.pv.facadeUsable * 100} onChange={(v) => setPv({ facadeUsable: Math.max(0, Math.min(100, v)) / 100 })} step={5} unit="%" />
@@ -235,40 +213,32 @@ export default function EnergyCarbonResults() {
   return (
     <>
       <Section title="Results">
-        <div className="grid grid-cols-3 gap-2">
-          <Tile label="TEUI net" value={r.net.teui.toFixed(0)} unit={`/ ${r.limits.effective.teui.toFixed(0)}`} state={st('en-teui', r.operational)} />
-          <Tile label="GHGI net" value={r.net.ghgi.toFixed(2)} unit={`/ ${r.limits.effective.ghgi.toFixed(2)}`} state={st('en-ghgi', r.operational)} />
-          <Tile label="Embodied" value={String(Math.round(r.embodied.band[1]))} unit={`/ ${Math.round(r.embodied.limit)}`} state={st('ec-limit', r.carbon)} />
-        </div>
-        <p className="mt-2 text-meta text-muted">Screening only. Energy and GHG need an Energy Modelling Guidelines v3.0 model; embodied carbon needs a City-listed LCA tool. Units: kWh/m²·yr, kgCO₂e/m²·yr and kgCO₂e/m² on {Math.round(r.areas.mfa).toLocaleString('en-CA')} m² modelled floor area.</p>
+        <KeyList keys={([
+          ['teui', 'TEUI net', r.net.teui, r.limits.effective.teui, 0, 'kWh/m²·yr', st('en-teui', r.operational)],
+          ['ghgi', 'GHGI net', r.net.ghgi, r.limits.effective.ghgi, 2, 'kgCO₂e/m²·yr', st('en-ghgi', r.operational)],
+          ['embodied', 'Embodied carbon', r.embodied.band[1], r.embodied.limit, 0, 'kgCO₂e/m²', st('ec-limit', r.carbon)],
+        ] as const).map(([id, label, v, lim, d, unit, state]) => ({ id, label, value: v.toFixed(d), unit: `/ ${lim.toFixed(d)}`, state, tip: `${label}: ${v.toFixed(d)} ${unit} against a limit of ${lim.toFixed(d)}`, bar: { max: Math.max(v, lim) * 1.3 || 1, v, zone: [0, lim] as [number, number], ticks: [[lim, 'limit']] as [number, string][] } }))} />
+        <MethodFold><p>Screening only. Energy and GHG need an Energy Modelling Guidelines v3.0 model; embodied carbon needs a City-listed LCA tool. Units: kWh/m²·yr, kgCO₂e/m²·yr and kgCO₂e/m² on {Math.round(r.areas.mfa).toLocaleString('en-CA')} m² modelled floor area.</p></MethodFold>
       </Section>
       <Section title="Operational energy and carbon">
         <LimitsChart r={r} />
-        <p className="mb-2 text-meta text-muted">Bars: this design (net of PV). Solid tick: Higher Buildings Policy s2.2; dashed: VBBL Table 10.2.2.5.A. The stricter governs by default.</p>
-        <div className="grid gap-2">{r.operational.map((x) => <Card key={x.id} r={x} />)}</div>
+        <Legend className="mb-2" items={[{ label: 'this design, net of PV', color: '#2e8b57' }, { label: 'HBP s2.2', color: '#1f2328', line: true, tip: 'Higher Buildings Policy s2.2' }, { label: 'VBBL', color: '#1f2328', line: true, dashed: true, tip: 'VBBL Table 10.2.2.5.A. The stricter governs by default.' }]} />
+        <RuleRows rules={r.operational} />
       </Section>
       <Section title="Embodied carbon">
         <EmbodiedChart r={r} />
-        <p className="mb-2 text-meta text-muted">Bar: likely range for this structure, dot: middle. Grey band: the 30-storey archetype's 25th–50th percentile (179–260). Magenta: a corrected false assumption.</p>
-        <div className="grid gap-2">{r.carbon.map((x) => <Card key={x.id} r={x} />)}</div>
+        <Legend className="mb-2" items={[{ label: 'likely range (dot: middle)', color: '#2e8b57' }, { label: 'archetype 179–260', color: '#cbd5e1', tip: "The 30-storey archetype's 25th–50th percentile" }, { label: 'corrected false assumption', color: MAGENTA, line: true, dashed: true }]} />
+        <RuleRows rules={r.carbon} />
       </Section>
       <Section title="Solar PV potential">
         <PvChart r={r} />
-        <p className="mb-2 text-meta text-muted">Yield (kWh/kWp·yr) by surface after shading, coloured as in the 3D view. Dashed: Canadian averages (IEA PVPS), not Vancouver values.</p>
-        <div className="grid gap-2">{r.solar.map((x) => <Card key={x.id} r={x} />)}</div>
+        <Legend className="mb-2" items={[{ label: 'yield, kWh/kWp·yr after shading', color: '#e0a13a', tip: 'By surface, coloured as in the 3D view' }, { label: 'Canadian averages', color: '#6b7280', line: true, dashed: true, tip: 'IEA PVPS averages for Canada, not Vancouver values' }]} />
+        <RuleRows rules={r.solar} />
       </Section>
       <Section title="False assumptions, kept visible">
-        <div className="grid gap-2">
-          {ENERGY_FALSE_ASSUMPTIONS.map((f) => (
-            <div key={f.claim} className="rounded-md border p-2 text-meta" style={{ borderColor: MAGENTA }}>
-              <div className="font-semibold" style={{ color: MAGENTA }}>■ FALSE ASSUMPTION: {f.claim}</div>
-              <div className="mt-0.5 text-slate-700">{f.correction}</div>
-              <div className="mt-0.5 text-meta text-muted">{f.source.label}{f.source.page ? `, ${f.source.page}` : ''}</div>
-            </div>
-          ))}
-        </div>
+        <FalseList items={ENERGY_FALSE_ASSUMPTIONS} />
       </Section>
-      <Section title="Inputs and presets"><Inputs r={r} /></Section>
+      <Section title="Inputs and presets" folded><Inputs r={r} /></Section>
     </>
   )
 }

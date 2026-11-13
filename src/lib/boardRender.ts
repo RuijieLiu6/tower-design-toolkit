@@ -1,6 +1,6 @@
 // Draws an A2 board on a 2D canvas (the same code for the on-screen preview and the exported JPEG, so what you see is
 // what is uploaded) and encodes it as JPEG under the size limit (research P13-M06b, browser route).
-import { BOARD_H, BOARD_W, CAPTION_BAND, CAPTION_MM, TARGET_BYTES, imagePlacement, printedCaption, pxForDpi, searchQuality, type Board, type BoardImage, type Frame } from '../engine/boards'
+import { SHEET_SIZES, sheetNumbers, BOARD_H, BOARD_W, CAPTION_BAND, CAPTION_MM, TARGET_BYTES, imagePlacement, printedCaption, pxForDpi, searchQuality, type Board, type BoardImage, type Frame } from '../engine/boards'
 import type { Flag, RuleResult, RuleState } from '../engine/types'
 import { unitText } from './units'
 import { BOARD_STYLES, drawData, drawDrawing, drawTable, drawTitleBlock, type StyleId } from './boardDrawings'
@@ -114,7 +114,7 @@ export function drawBoard(ctx: CanvasRenderingContext2D, board: Board, o: DrawOp
   ctx.fillStyle = st.paper
   ctx.fillRect(0, 0, BOARD_W * k, BOARD_H * k)
   const titleText = board.frames.find((f) => f.role === 'title' && f.content.kind === 'text')
-  drawTitleBlock(ctx, k, BOARD_W, BOARD_H, st, [['Board', titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : `Board ${o.index + 1}`], ['Sheet', `${o.index + 1} of ${o.total}`], ['Style', st.name], ['Date', new Date().toISOString().slice(0, 10)]], `A-${String(o.index + 1).padStart(2, '0')}`)
+  drawTitleBlock(ctx, k, BOARD_W, BOARD_H, st, [['Board', titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : `Board ${o.index + 1}`], ['Sheet', `${o.index + 1} of ${o.total}`], ['Style', st.name], ['Date', new Date().toISOString().slice(0, 10)]], sheetNumbers(useBoardStore.getState().boards)[useBoardStore.getState().boards.findIndex((b) => b.id === board.id)] ?? `A-${String(o.index + 1).padStart(2, '0')}`)
   let drawingNo = 0
   for (const f of board.frames) {
     const c = f.content
@@ -184,7 +184,7 @@ export async function exportBoardJpeg(board: Board, o: Omit<DrawOptions, 'pxPerM
   const loaded = await loadBoardImages([board], o.images)
   let scale = 1
   for (let tries = 0; tries < 6; tries++) {
-    const { w, h } = pxForDpi(dpi * scale)
+    const { w, h } = pxForDpi(dpi * scale * SHEET_SIZES[useBoardStore.getState().sheet ?? 'A2'].k)
     const canvas = document.createElement('canvas')
     canvas.width = w; canvas.height = h
     const ctx = canvas.getContext('2d')

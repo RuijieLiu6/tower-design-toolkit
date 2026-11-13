@@ -279,13 +279,13 @@ function Coordinates({ onPlace }: { onPlace: (p: Pt, label: string, source: stri
   return (
     <Section title="Geographic location">
       <div className="text-meta"><b>{role}</b>: {ll[1].toFixed(6)}° N, {(-ll[0]).toFixed(6)}° W · UTM 10N {fmt(cp[0] + CITY_ORIGIN[0], 2)} E, {fmt(cp[1] + CITY_ORIGIN[1], 2)} N</div>
-      <form className="mt-1.5 grid gap-1.5" onSubmit={(e) => { e.preventDefault(); try { const p = read(); useSiteStore.getState().set({ marker: { at: p, label: 'Coordinate location', kind: 'coordinate', source: crs } }); zoomTo(p); setNote('Located on the plan. Your study site has not moved.') } catch (err) { setNote((err as Error).message) } }}>
-        <label className="grid gap-0.5 text-meta"><span className="text-muted">Input coordinates</span>
+      <form className="mt-1.5 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5 [&_select]:min-w-0 [&_select]:w-full [&_input]:min-w-0" onSubmit={(e) => { e.preventDefault(); try { const p = read(); useSiteStore.getState().set({ marker: { at: p, label: 'Coordinate location', kind: 'coordinate', source: crs } }); zoomTo(p); setNote('Located on the plan. Your study site has not moved.') } catch (err) { setNote((err as Error).message) } }}>
+        <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-0.5 text-meta"><span className="text-muted">Input coordinates</span>
           <select value={crs} onChange={(e) => { const c = e.target.value as InputCrs; try { if (x && y) { const p = toCity(Number(x), Number(y), crs), q = fromCity(p, c), d = INPUT_CRS.find((k) => k.id === c)!.digits; setX(q[0].toFixed(d)); setY(q[1].toFixed(d)) } } catch { /* leave the fields */ } setCrs(c) }} className="rounded border border-line bg-panel px-1.5 py-1 text-xs">
             {INPUT_CRS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </label>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-1.5 [&_select]:min-w-0 [&_select]:w-full [&_input]:min-w-0 [&_input]:w-full [&_label]:min-w-0">
           <label className="grid gap-0.5 text-meta"><span className="text-muted">{def.x}</span><input type="number" step="any" value={x} onChange={(e) => setX(e.target.value)} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={def.x} /></label>
           <label className="grid gap-0.5 text-meta"><span className="text-muted">{def.y}</span><input type="number" step="any" value={y} onChange={(e) => setY(e.target.value)} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={def.y} /></label>
         </div>

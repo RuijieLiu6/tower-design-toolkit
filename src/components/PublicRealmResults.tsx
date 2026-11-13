@@ -3,29 +3,17 @@ import type { ReactNode } from 'react'
 import { STATION_CORNER, VTC_EDGES, VTC_SITE, type CityFrontage, type CityWall, type EdgeId } from '../engine/publicRealm'
 import { towerFootprint } from '../engine/massing'
 import type { RuleResult, RuleState } from '../engine/types'
+const STATE_KEY = [{ label: 'pass', color: '#2e8b57' }, { label: 'check', color: '#d98b1c' }, { label: 'fail', color: '#d0453a' }, { label: 'open', color: '#8a8f98' }]
 import { useResults } from '../hooks/useResults'
 import { useStore, useTowers } from '../store'
-import { FlagChip, Section, StateChip } from './ui'
+import { Section } from './ui'
+import { HBars, Legend, RuleRows } from './ResultViz'
 import StudyPlan, { type PlanStreet } from './site/SitePlan'
 import { planStreets } from './site/SiteStreets'
 import { useSiteStreets } from '../lib/siteStreets'
-import { U } from './Units'
 
 const STATE_COLOR: Record<RuleState, string> = { pass: '#2e8b57', warn: '#d98b1c', fail: '#d0453a', unknown: '#8a8f98' }
 
-function Card({ r }: { r: RuleResult }) {
-  return (
-    <div className="rounded-md border border-line p-2">
-      <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold">{r.label}</span><StateChip state={r.state} /></div>
-      <div className="mt-0.5 text-meta"><b><U>{r.value}</U></b> <span className="text-muted">· needs <U>{r.threshold}</U></span></div>
-      {r.note && <div className="mt-0.5 text-meta text-slate-600"><U>{r.note}</U></div>}
-      <div className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={r.flag} />
-        {r.source.url ? <a href={r.source.url} target="_blank" rel="noreferrer" className="text-meta text-muted hover:text-accent">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</a>
-          : <span className="text-meta text-muted">{r.source.label}{r.source.page ? `, ${r.source.page}` : ''}</span>}
-      </div>
-    </div>
-  )
-}
 
 /** Plan of the block with its four streets (drawn to right-of-way width), the massing and the selected check. */
 function SitePlan({ edgeState, children }: { edgeState: Partial<Record<EdgeId, RuleState>>; children?: ReactNode }) {
@@ -85,8 +73,8 @@ export default function PublicRealmResults({ id }: { id: string }) {
     return (
       <Section title="Results">
         <SitePlan edgeState={edgeState} />
-        <p className="mb-2 mt-1 text-meta text-muted">Street edges coloured by streetwall height against Table 2.2b for that street's width.</p>
-        <div className="grid gap-2">{streetwall.rules.map((r) => <Card key={r.id} r={r} />)}</div>
+        <Legend className="mb-2 mt-1" items={STATE_KEY.map((k) => ({ ...k, line: true, tip: "Street edges coloured by streetwall height against Table 2.2b for that street's width" }))} />
+        <RuleRows rules={streetwall.rules} />
       </Section>
     )
   }
@@ -95,18 +83,11 @@ export default function PublicRealmResults({ id }: { id: string }) {
     return (
       <Section title="Results">
         <SitePlan edgeState={edgeState} />
-        <table className="mb-2 mt-1 w-full text-meta">
-          <thead><tr className="text-left text-meta text-muted"><th className="py-0.5 font-medium">Street</th><th className="text-right font-medium">Frontage</th><th className="text-right font-medium">Active</th><th className="text-right font-medium">Entrance every</th></tr></thead>
-          <tbody>{frontage.edges.map((x) => (
-            <tr key={x.edge.id} className="border-t border-line/60">
-              <td className="py-0.5"><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: STATE_COLOR[x.state] }} />{x.edge.street.replace(' (local)', '')}</td>
-              <td className="text-right tabular-nums">{x.length.toFixed(0)} m</td>
-              <td className="text-right tabular-nums">{Math.round(input.frontage[x.edge.id].active * 100)}%</td>
-              <td className="text-right tabular-nums">{x.spacing === null ? '—' : `${x.spacing.toFixed(0)} m`}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-        <div className="grid gap-2">{frontage.rules.map((r) => <Card key={r.id} r={r} />)}</div>
+        <Legend className="mb-2 mt-1" items={STATE_KEY.map((k) => ({ ...k, line: true }))} />
+        <div className="mb-2"><HBars label="Active frontage by street" max={100} fmt={(v) => `${Math.round(v)}%`} labelWidth="6.5rem"
+          rows={frontage.edges.map((x) => ({ label: x.edge.street.replace(' (local)', ''), swatch: STATE_COLOR[x.state], color: STATE_COLOR[x.state], v: input.frontage[x.edge.id].active * 100,
+            tip: `${x.edge.street}: ${x.length.toFixed(0)} m of frontage, ${Math.round(input.frontage[x.edge.id].active * 100)}% active, an entrance every ${x.spacing === null ? '—' : `${x.spacing.toFixed(0)} m`}` }))} /></div>
+        <RuleRows rules={frontage.rules} />
       </Section>
     )
   }
@@ -124,8 +105,8 @@ export default function PublicRealmResults({ id }: { id: string }) {
             <rect x={X(STATION_CORNER[0])} y={Y(STATION_CORNER[1] + 6.1)} width={6.1 * k} height={6.1 * k} fill={os.transitPlaza ? '#2a8f86' : '#d0453a'} fillOpacity="0.6" />
           </SitePlan>
         </div>
-        <p className="mb-2 mt-1 text-meta text-muted">Green: the largest clear rectangle of open ground (the POPS candidate). Blue dashed: the mid-block link. Teal square: room for a 6.1 m transit plaza by the station corner.</p>
-        <div className="grid gap-2">{groundPlane.rules.map((r) => <Card key={r.id} r={r} />)}</div>
+        <Legend className="mb-2 mt-1" items={[{ label: 'POPS candidate', color: '#3c8d5a', tip: 'The largest clear rectangle of open ground' }, { label: 'mid-block link', color: '#1d5fa8', line: true, dashed: true }, { label: 'transit plaza', color: '#2a8f86', tip: 'Room for a 6.1 m transit plaza by the station corner' }]} />
+        <RuleRows rules={groundPlane.rules} />
       </Section>
     )
   }
@@ -141,6 +122,7 @@ function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, sett
   const byType = planStreets(streets, settings)
   let plan: PlanStreet[] = byType
   let caption = 'Streets drawn to their measured right-of-way, coloured by the type you picked (grey dashed: not picked yet).'
+  let key: { label: string; color: string; line?: boolean; dashed?: boolean }[] = [{ label: 'street type', color: '#4a6a8c', line: true }, { label: 'not picked', color: '#8a8f98', line: true, dashed: true }]
   let rules = [] as RuleResult[]
   const marks: { ring: [number, number][]; fill: string; stroke: string }[] = []
   if (id === 'built.pr-streetwall' && streetwall) {
@@ -149,6 +131,7 @@ function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, sett
     if (walls.length) {
       plan = byType.map((p, i) => { const w = walls.find((x) => x.street.key === streets[i]?.key); return w ? { ...p, color: STATE_COLOR[w.state], dashed: false } : p })
       caption = 'Streets drawn to their measured right-of-way; each property line coloured by its streetwall height against Table 2.2b for that width.'
+      key = STATE_KEY.map((k) => ({ ...k, line: true }))
     }
   } else if (id === 'built.pr-frontage' && frontage) {
     rules = frontage.rules
@@ -156,6 +139,7 @@ function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, sett
     if (rows.length) {
       plan = byType.map((p, i) => { const x = rows.find((r) => r.street.key === streets[i]?.key); return x ? { ...p, color: STATE_COLOR[x.state], dashed: x.state === 'unknown' } : p })
       caption = 'Each street coloured by its active frontage against the target for its type (grey dashed: type not picked).'
+      key = STATE_KEY.map((k) => ({ ...k, line: true }))
     }
   } else if (id === 'built.pr-ground' && groundPlane) {
     rules = groundPlane.rules
@@ -163,12 +147,14 @@ function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, sett
     if ('linkRing' in groundPlane && groundPlane.linkRing) marks.push({ ring: groundPlane.linkRing, fill: groundPlane.linkThrough === 'tower' ? 'rgb(208 69 58 / 0.25)' : groundPlane.linkThrough === 'podium' ? 'rgb(217 139 28 / 0.25)' : 'rgb(29 95 168 / 0.2)', stroke: '#1d5fa8' })
     if ('plaza' in groundPlane && groundPlane.plaza) marks.push({ ring: groundPlane.plaza, fill: 'rgb(42 143 134 / 0.6)', stroke: '#2a8f86' })
     caption = 'Green: the largest clear rectangle of open ground (the POPS candidate). Blue: the mid-block link. Teal: room for a 6.1 m transit plaza by the station street. Sun and wind come from their nodes.'
+    key = [{ label: 'POPS candidate', color: '#3c8d5a' }, { label: 'mid-block link', color: '#1d5fa8' }, { label: 'transit plaza', color: '#2a8f86' }]
   }
   return (
     <Section title="Results">
       {ring && <div className="mb-1 flex justify-center"><StudyPlan ring={ring} towers={towers} size={240} streets={plan} marks={marks} label={`Plan of the study site with its streets and towers: ${caption}`} /></div>}
-      <p className="mb-2 text-meta text-muted">{status === 'loading' ? 'Finding the streets along the site…' : caption} Types are picked in Your site or Ground & public realm.</p>
-      <div className="grid gap-2">{rules.map((r) => <Card key={r.id} r={r} />)}</div>
+      {status === 'loading' ? <p className="mb-2 text-meta text-muted">Finding the streets along the site…</p>
+        : <div className="mb-2" title={`${caption} Types are picked in Your site or Ground & public realm.`}><Legend items={key} /></div>}
+      <RuleRows rules={rules} />
     </Section>
   )
 }

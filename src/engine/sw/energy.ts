@@ -125,7 +125,19 @@ export interface EnergyResult {
   solarScale: number
   /** Share of glazed area whose solar gains were scaled by the façade field (0 when no field). */
   fieldCover: number
+  /** Energy by end use and month (kWh), as the Studio's monthly chart. */
+  mon: Record<EndUse, number[]>
+  /** Heating and cooling demand per hour of the year (kW, the whole building), for the load carpet. */
+  hourly: { heat: Float32Array; cool: Float32Array }
+  /** Heat lost by path over the hours the inside is warmer than the outside (kWh a year), with what offsets it. */
+  loss: { glass: Record<Ori, number>; wall: Record<Ori, number>; roof: number; vent: number; infil: number; recov: number; solar: number; internal: number }
+  /** Envelope areas (m²): glass and opaque wall by face, roofs and soffits. */
+  env: { glass: Record<Ori, number>; wall: Record<Ori, number>; roof: number }
+  /** People in the building (floor area over the program's m² per person). */
+  people: number
 }
+export type EndUse = 'heat' | 'cool' | 'light' | 'equip' | 'dhw' | 'aux'
+export const END_USES: EndUse[] = ['heat', 'cool', 'light', 'equip', 'dhw', 'aux']
 
 const ORI = ['N', 'E', 'S', 'W'] as const
 type Ori = (typeof ORI)[number]
@@ -225,6 +237,11 @@ export function energyModel(floors: EnergyFloor[], C: ClimatePayload, s: EnergyS
   const hH = new Float64Array(n), hC = new Float64Array(n)
   const out: ZoneResult[] = []
   let gasK = 0, elecK = 0, tediK = 0, totalK = 0, solarK = 0
+  const mon = Object.fromEntries(END_USES.map((u) => [u, new Array(12).fill(0)])) as Record<EndUse, number[]>
+  const z4 = (): Record<Ori, number> => ({ N: 0, E: 0, S: 0, W: 0 })
+  const loss = { glass: z4(), wall: z4(), roof: 0, vent: 0, infil: 0, recov: 0, solar: 0, internal: 0 }
+  const env = { glass: z4(), wall: z4(), roof: 0 }
+  let people = 0
   for (const z of zones.values()) {
     const p = z.p, ops = OPS[p], sch = schedOf(p), cond = !z.open, Af = z.area
     const Hw = ORI.reduce((t, o) => t + z.Agl[o] * s.glazU, 0)
@@ -243,6 +260,9 @@ export function energyModel(floors: EnergyFloor[], C: ClimatePayload, s: EnergyS
     const lightOn = s.lpd * ops.lightF * 0.75 * Af
     const allDay = p === 'resi' || p === 'hotel'
     const occAirFix = s.vent / 1000 * Af * (1 - s.hr), infAir = s.infil * z.vol / 3600
+    for (const o of ORI) { env.glass[o] += z.Agl[o]; env.wall[o] += z.Aop[o] }
+    env.roof += z.roof
+    if (cond) people += Af / ops.occ
     for (let k = 0; k < n; k++) {
       const Te = P.T[k], occ = occupied(sch, k, P), ck = clock[k], so = sol[k]
       const dim = 0 // no daylight run in the toolkit: S&W credits no dimming without it
@@ -278,8 +298,19 @@ export function energyModel(floors: EnergyFloor[], C: ClimatePayload, s: EnergyS
       const aux = (occ ? SFP * s.vent * Af / 1000 : 0) + 0.02 * (qh + qc) + 4 * Af / 8760
       r.heat += qh / copH(Te); r.cool += qc / copC(Te); r.light += lightW / 1000; r.equip += equipW / 1000; r.aux += aux
       r.tedi += qh; r.solar += so / 1000; r.internal += phiInt / 1000
+      const m = P.mon[k]
+      mon.heat[m] += qh / copH(Te); mon.cool[m] += qc / copC(Te); mon.light[m] += lightW / 1000; mon.equip[m] += equipW / 1000; mon.aux[m] += aux
+      const dT = res.Ta - Te
+      if (cond && dT > 0) {
+        const kd = dT / 1000
+        for (const o of ORI) { loss.glass[o] += z.Agl[o] * s.glazU * kd; loss.wall[o] += z.Aop[o] * s.wallU * kd }
+        loss.roof += z.roof * s.roofU * kd; loss.infil += 1200 * infAir * kd
+        if (occ) { loss.vent += 1200 * occAirFix * kd; loss.recov += 1200 * (s.vent / 1000 * Af * s.hr) * kd }
+        loss.solar += so / 1000; loss.internal += phiInt / 1000
+      }
     }
     r.dhw = ops.dhw * Af / effW
+    for (let m = 0; m < 12; m++) mon.dhw[m] += r.dhw * C.days[m] / 365
     r.total = r.heat + r.cool + r.light + r.equip + r.dhw + r.aux
     r.teui = r.total / Af
     const gas = gasHeat ? r.heat + r.dhw : 0, elec = r.total - gas
@@ -300,5 +331,6 @@ export function energyModel(floors: EnergyFloor[], C: ClimatePayload, s: EnergyS
     gfa, teui: totalK / g, tedi: tediK / g, ghgi: (gasK * EF.gas + elecK * EF.elec) / g, total: totalK, gas: gasK, elec: elecK, solar: solarK,
     peakH: pkH * 1000 / g, peakC: pkC * 1000 / g, tgt, zones: out, glazing, wall,
     solarScale: scaleA ? scaleW / scaleA : s.shade, fieldCover: scaleA ? fieldA / scaleA : 0,
+    mon, hourly: { heat: Float32Array.from(hH), cool: Float32Array.from(hC) }, loss, env, people,
   }
 }

@@ -12,6 +12,7 @@ import { useStore } from '../store'
 import { CardChip } from './RuleCardView'
 import { FalseAssumptions } from './WindStructurePanel'
 import { FlagChip, NumberField, Section, StateChip } from './ui'
+import { Caveat, FlagDot, HBars, MethodFold, Stat, StateStack, Stats } from './ResultViz'
 import { U } from './Units'
 
 export function useLifeSafety(): LifeSafetyResult[] {
@@ -35,9 +36,9 @@ function Row({ r }: { r: ChecklistItem | RuleResult }) {
           {open ? <ChevronDown size={12} className="mt-0.5 shrink-0" /> : <ChevronRight size={12} className="mt-0.5 shrink-0" />}
           <span><span className="font-semibold">{r.label}</span>{c.clause && c.clause !== 'team' && c.clause !== '—' && <span className="text-muted"> · {c.clause}</span>}</span>
         </span>
-        <StateChip state={r.state} />
+        <span className="flex shrink-0 items-center gap-1"><FlagDot flag={r.flag} /><StateChip state={r.state} /></span>
       </button>
-      <div className="ml-4 mt-0.5 text-slate-700"><U>{r.value}</U></div>
+      <div className={`ml-4 mt-0.5 break-words text-slate-700 ${open ? '' : 'line-clamp-1'}`} title={r.value}><U>{r.value}</U></div>
       {open && (
         <div className="ml-4 mt-1 grid gap-1">
           <div className="text-meta text-muted">Needs: <U>{r.threshold}</U></div>
@@ -62,7 +63,7 @@ const COUNT_ORDER = ['fail', 'warn', 'unknown', 'pass'] as const
 const COUNT_LABEL = { fail: 'fail', warn: 'to show or confirm', unknown: 'not assessed', pass: 'pass' }
 function Counts({ items }: { items: RuleResult[] }) {
   const n = (s: string) => items.filter((x) => x.state === s).length
-  return <div className="mb-1.5 text-meta text-muted">{COUNT_ORDER.filter((s) => n(s) > 0).map((s) => `${n(s)} ${COUNT_LABEL[s]}`).join(' · ')}</div>
+  return <div className="mb-2"><StateStack label="Checklist items by result" counts={Object.fromEntries(COUNT_ORDER.map((s) => [s, n(s)]))} names={COUNT_LABEL} /></div>
 }
 
 function Systems({ r }: { r: LifeSafetyResult }) {
@@ -88,29 +89,14 @@ function Systems({ r }: { r: LifeSafetyResult }) {
       <details className="text-meta">
         <summary className="cursor-pointer text-slate-700">Pressure zones, risers and emergency loads</summary>
         <div className="mt-1.5 grid gap-2">
-          <table className="w-full text-meta">
-            <caption className="text-left font-semibold text-slate-700">Domestic water zones (PRV station at the top of each)</caption>
-            <thead><tr className="text-muted"><th className="text-left font-normal">Zone</th><th className="text-left font-normal">Levels</th><th className="text-right font-normal">Top (m)</th><th className="text-right font-normal">Static head (kPa)</th></tr></thead>
-            <tbody>{sys.water.map((z) => <tr key={z.zone}><td>{z.zone}</td><td>L{z.fromLevel}–L{z.toLevel}</td><td className="text-right tabular-nums">{z.topZ}</td><td className="text-right tabular-nums">{z.headKpa}</td></tr>)}</tbody>
-          </table>
-          <table className="w-full text-meta">
-            <caption className="text-left font-semibold text-slate-700">Heating and chilled water zones</caption>
-            <tbody>{sys.hydronic.map((z) => <tr key={z.zone}><td>{z.zone}</td><td>L{z.fromLevel}–L{z.toLevel}</td><td className="text-right tabular-nums">{z.headKpa} kPa</td></tr>)}</tbody>
-          </table>
-          <table className="w-full text-meta">
-            <caption className="text-left font-semibold text-slate-700">Risers per floor (m²)</caption>
-            <tbody>
-              {sys.risers.map((x) => <tr key={x.id}><td>{x.label}</td><td className="text-right tabular-nums">{x.m2}</td></tr>)}
-              <tr className="font-semibold"><td>Risers in total</td><td className="text-right tabular-nums">{Math.round(sys.riserTotal * 10) / 10}</td></tr>
-            </tbody>
-          </table>
-          <table className="w-full text-meta">
-            <caption className="text-left font-semibold text-slate-700">Emergency generator loads (3.2.7.9)</caption>
-            <tbody>
-              {sys.emergency.map((x) => <tr key={x.id}><td>{x.label}</td><td className="text-right tabular-nums">{x.kw} kW</td></tr>)}
-              <tr className="font-semibold"><td>Generator, {Math.round(sys.generatorM2)} m² room</td><td className="text-right tabular-nums">{sys.generatorKw} kW</td></tr>
-            </tbody>
-          </table>
+          <div className="grid gap-1"><div className="font-semibold text-slate-700" title="A PRV station at the top of each zone">Domestic water zones, static head</div>
+            <HBars label="Domestic water zones by static head" unit="kPa" labelWidth="6rem" color="#3b82c4" rows={sys.water.map((z) => ({ label: `${z.zone} · L${z.fromLevel}–${z.toLevel}`, v: z.headKpa, tip: `Zone ${z.zone}: L${z.fromLevel}–L${z.toLevel}, top ${z.topZ} m, static head ${z.headKpa} kPa` }))} /></div>
+          <div className="grid gap-1"><div className="font-semibold text-slate-700">Heating and chilled water zones</div>
+            <HBars label="Heating and chilled water zones by head" unit="kPa" labelWidth="6rem" color="#c0504d" rows={sys.hydronic.map((z) => ({ label: `${z.zone} · L${z.fromLevel}–${z.toLevel}`, v: z.headKpa }))} /></div>
+          <div className="grid gap-1"><div className="flex justify-between font-semibold text-slate-700"><span>Risers per floor</span><span className="tabular-nums">{Math.round(sys.riserTotal * 10) / 10} m² in total</span></div>
+            <HBars label="Risers per floor" unit="m²" fmt={(v) => String(Math.round(v * 10) / 10)} labelWidth="8rem" color="#7f8c8d" rows={sys.risers.map((x) => ({ label: x.label, v: x.m2 }))} /></div>
+          <div className="grid gap-1"><div className="flex justify-between font-semibold text-slate-700"><span title="3.2.7.9">Emergency generator loads</span><span className="tabular-nums" title={`Generator room about ${Math.round(sys.generatorM2)} m²`}>{sys.generatorKw} kW · {Math.round(sys.generatorM2)} m² room</span></div>
+            <HBars label="Emergency generator loads (3.2.7.9)" unit="kW" labelWidth="8rem" color="#d98b1c" rows={sys.emergency.map((x) => ({ label: x.label, v: x.kw }))} /></div>
           <p className="text-meta text-muted">Plant floors elsewhere take about 7–26% of floors ({MECH_FLOOR_SOURCE.label}): information only, no pass or fail.</p>
         </div>
       </details>
@@ -135,7 +121,7 @@ function Presets() {
   const presets = useStore((s) => s.systemsPresets) ?? DEFAULT_SYSTEMS_PRESETS
   const set = (patch: Partial<SystemsPresets>) => useStore.setState((s) => ({ systemsPresets: { ...(s.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS), ...patch } }))
   return (
-    <Section title="Presets (team assumptions)">
+    <Section title="Presets (team assumptions)" folded>
       <div className="grid gap-1.5">
         {PRESET_FIELDS.map((f) => <NumberField key={f.key} label={f.label} unit={f.unit} step={f.step} min={0} value={presets[f.key] as number} onChange={(v) => set({ [f.key]: Math.max(0, v) } as Partial<SystemsPresets>)} />)}
         <label className="flex items-center gap-1.5 text-meta"><input type="checkbox" checked={presets.firePump} onChange={(e) => set({ firePump: e.target.checked })} />Firefighting water depends on a fire pump</label>
@@ -149,14 +135,17 @@ export default function LifeSafetyPanel() {
   const results = useLifeSafety()
   return (
     <>
-      <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-meta text-amber-900">{NOT_CERTIFICATION}</div>
+      <div className="mx-4 mt-3"><Caveat lead="Early checklist, not code certification">{NOT_CERTIFICATION}</Caveat></div>
       {results.map((r) => (
         <div key={r.tower.id}>
           <Section title={`Life-safety checklist: ${r.tower.name}`}>
-            <div className="mb-2 text-meta text-slate-700">
-              {r.highBuilding ? <b>High building</b> : 'Not a high building'}: top storey floor {r.topStorey} m above grade. Sprinklers required throughout (locked).
-              <div className="mt-1 flex flex-wrap gap-1">{r.occupancy.map((o) => <span key={o.label} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-700" title={o.label}>{o.group === 'service' ? 'Service' : o.group} · {o.storeys} storey{o.storeys === 1 ? '' : 's'}</span>)}</div>
-              <div className="mt-0.5 flex items-center gap-1 text-meta text-muted"><FlagChip flag="team_assumption" />Occupancy groups mapped from the program bands (research P11-M09); the code consultant classifies.</div>
+            <div className="mb-2 grid min-w-0 gap-1.5 text-meta text-slate-700">
+              <Stats cols={2}>
+                <Stat label="High building" value={r.highBuilding ? 'Yes' : 'No'} tip="Sprinklers required throughout (locked)" />
+                <Stat label="Top storey floor" value={`${r.topStorey}`} unit="m above grade" />
+              </Stats>
+              <div className="flex flex-wrap gap-1">{r.occupancy.map((o) => <span key={o.label} className="rounded bg-slate-100 px-1.5 py-0.5 text-meta text-slate-700" title={o.label}>{o.group === 'service' ? 'Service' : o.group} · {o.storeys} storey{o.storeys === 1 ? '' : 's'}</span>)}</div>
+              <MethodFold title="About the occupancy groups"><div className="flex items-start gap-1"><FlagChip flag="team_assumption" /><span>Occupancy groups mapped from the program bands (research P11-M09); the code consultant classifies. Sprinklers required throughout (locked).</span></div></MethodFold>
             </div>
             <Counts items={r.checklist} />
             <div className="grid gap-1.5">{r.checklist.map((x) => <Row key={x.id} r={x} />)}</div>

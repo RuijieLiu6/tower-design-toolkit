@@ -10,6 +10,7 @@ import { useEconStore, type OverrideKey } from '../lib/econStore'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, StateChip } from './ui'
 import Help from './Help'
+import { Fold, HBars, MethodFold, PairBars } from './ResultViz'
 
 const STATE: Record<Verdict, RuleState> = { works: 'pass', marginal: 'warn', fails: 'fail', 'land-needed': 'unknown', incomplete: 'unknown' }
 
@@ -40,7 +41,7 @@ export default function EconomicsResults() {
             <FlagChip flag="unverified" />
             <span className="rounded-full border border-line bg-panel px-2 py-0.5 text-meta text-ink" title="Indicative early-design estimate (Program Value Visualizer method), not a feasibility study, appraisal or compliance check. Most market values are grade C.">Preliminary estimate</span>
           </div>
-          <p className="mt-1.5 text-meta text-muted" data-testid="value-freshness">Computed for the current model (revision {modelRevision(towers)}) · after costs, {Math.round(presets.profitOnCost.value * 100)}% profit and the CAC · {money(r.rlvPerM2)} per m² of {Math.round(r.gfa).toLocaleString()} m² gross</p>
+          <p className="mt-1.5 truncate text-meta text-muted" data-testid="value-freshness" title={`Computed for the current model (revision ${modelRevision(towers)}) · after costs, ${Math.round(presets.profitOnCost.value * 100)}% profit and the CAC · ${money(r.rlvPerM2)} per m² of ${Math.round(r.gfa).toLocaleString()} m² gross`}>Computed for the current model (revision {modelRevision(towers)}) · after costs, {Math.round(presets.profitOnCost.value * 100)}% profit and the CAC · {money(r.rlvPerM2)} per m² of {Math.round(r.gfa).toLocaleString()} m² gross</p>
         </div>
         <Waterfall r={r} />
       </Section>
@@ -68,9 +69,9 @@ export default function EconomicsResults() {
               onChange={(e) => set({ landPrice: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} className="w-28 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Land price" /></span>
           </label>
           {landPrice == null && (r.landCurrent != null
-            ? <p className="text-meta text-muted">Estimate: current-zoning FSR {presets.currentZoningFsr.value} × {money(presets.landRate.value)}/buildable m² × site {Math.round(siteArea ?? 0).toLocaleString()} m² = {money(r.landCurrent)} (PVV pack, grades B and C).</p>
+            ? <p className="truncate text-meta text-muted" title={`Estimate: current-zoning FSR ${presets.currentZoningFsr.value} × ${money(presets.landRate.value)}/buildable m² × site ${Math.round(siteArea ?? 0).toLocaleString()} m² = ${money(r.landCurrent)} (PVV pack, grades B and C).`}>Estimate: current-zoning FSR {presets.currentZoningFsr.value} × {money(presets.landRate.value)}/buildable m² × site {Math.round(siteArea ?? 0).toLocaleString()} m² = {money(r.landCurrent)} (PVV pack, grades B and C).</p>
             : <p className="text-meta text-muted">No study site yet, so no land estimate: choose one in the Site step, or enter a land price to get a verdict.</p>)}
-          <label className="flex items-center gap-2"><input type="checkbox" checked={includeRegional} onChange={() => set({ includeRegional: !includeRegional })} />Include Metro Vancouver and TransLink charges (not in the PVV pack)</label>
+          <label className="flex items-center gap-2" title="Not in the PVV pack"><input type="checkbox" checked={includeRegional} onChange={() => set({ includeRegional: !includeRegional })} />Include Metro Vancouver and TransLink charges</label>
         </div>
       </Section>
 
@@ -97,16 +98,18 @@ function Waterfall({ r }: { r: ReturnType<typeof useEconomics>['result'] }) {
   return (
     <div className="mt-2 grid gap-1 text-meta">
       {rows.map(([label, v, c]) => (
-        <div key={label} className="grid grid-cols-[1fr_88px] items-center gap-2">
-          <div>
-            <div className="flex justify-between"><span className={label.startsWith('Left') ? 'font-semibold' : 'text-muted'}>{label}</span></div>
+        <div key={label} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" title={`${label}: ${money(v)}`}>
+          <div className="min-w-0">
+            <div className={`truncate ${label.startsWith('Left') ? 'font-semibold' : 'text-muted'}`}>{label}</div>
             <div className="h-1.5 rounded bg-slate-100"><div className="h-1.5 rounded" style={{ width: `${(Math.abs(v) / max) * 100}%`, background: c }} /></div>
           </div>
           <span className={`text-right tabular-nums ${label.startsWith('Left') ? 'font-semibold' : ''}`}>{money(v)}</span>
         </div>
       ))}
-      {r.employmentOnly && <p className="text-meta text-muted">No CAC: a 100% employment rezoning is excluded from CAC negotiation (City, 14 Jul 2026).</p>}
-      {r.averaged > 0 && <p className="text-meta text-muted">{r.averaged} floor{r.averaged === 1 ? '' : 's'} have no sourced cost line and use the project average (flagged; see Construction cost).</p>}
+      {(r.employmentOnly || r.averaged > 0) && <MethodFold title="Notes on this estimate">
+        {r.employmentOnly && <p>No CAC: a 100% employment rezoning is excluded from CAC negotiation (City, 14 Jul 2026).</p>}
+        {r.averaged > 0 && <p>{r.averaged} floor{r.averaged === 1 ? '' : 's'} have no sourced cost line and use the project average (flagged; see Construction cost).</p>}
+      </MethodFold>}
     </div>
   )
 }
@@ -132,26 +135,17 @@ function FloorChart({ floors }: { floors: ReturnType<typeof useEconomics>['resul
           )
         })}
       </svg>
-      <div className="flex items-center justify-between gap-2 text-meta text-muted"><span className="flex items-center gap-1"><Help label="About the floor chart">Each floor's value against its hard and soft cost, charges, finance and profit (PVV floor chart). Hover a bar for numbers.</Help>costs more than it earns: {money(neg)}</span><span>earns more: {money(pos)}</span></div>
+      <div className="flex min-w-0 items-center justify-between gap-2 text-meta text-muted"><span className="flex min-w-0 items-center gap-1"><Help label="About the floor chart">Each floor's value against its hard and soft cost, charges, finance and profit (PVV floor chart). Hover a bar for numbers.</Help><i className="inline-block h-2 w-2 shrink-0 rounded-sm bg-[#d0453a]" /><span className="truncate" title="Floors that cost more than they earn">loses {money(neg)}</span></span><span className="flex shrink-0 items-center gap-1" title="Floors that earn more than they cost"><i className="inline-block h-2 w-2 rounded-sm bg-[#2e8b57]" />earns {money(pos)}</span></div>
     </div>
   )
 }
 
 function ByUse({ r }: { r: ReturnType<typeof useEconomics>['result'] }) {
   return (
-    <table className="mt-2 w-full text-meta">
-      <thead className="text-muted"><tr><th className="text-left font-medium">Use</th><th className="text-right font-medium">Gross m²</th><th className="text-right font-medium">Value</th><th className="text-right font-medium">Cost</th></tr></thead>
-      <tbody>
-        {(Object.entries(r.byUse) as [UseId, { gfa: number; value: number; cost: number }][]).filter(([, v]) => v.gfa > 0).map(([u, v]) => (
-          <tr key={u} className="border-t border-line/60">
-            <td className="py-0.5"><span className="mr-1.5 inline-block h-2 w-2 rounded-sm" style={{ background: USES[u].color }} />{USES[u].label}</td>
-            <td className="text-right tabular-nums">{Math.round(v.gfa).toLocaleString()}</td>
-            <td className="text-right tabular-nums">{money(v.value)}</td>
-            <td className="text-right tabular-nums">{money(v.cost)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="mt-3">
+      <PairBars label="Value against cost by use" a="Value" b="Cost" aColor="#2e8b57" bColor="#8a9096"
+        rows={(Object.entries(r.byUse) as [UseId, { gfa: number; value: number; cost: number }][]).filter(([, v]) => v.gfa > 0).map(([u, v]) => ({ label: `${USES[u].label} · ${Math.round(v.gfa).toLocaleString()} m²`, a: v.value, b: v.cost, aText: money(v.value), bText: money(v.cost), tip: `${USES[u].label}: ${Math.round(v.gfa).toLocaleString()} m² gross, value ${money(v.value)}, cost ${money(v.cost)}` }))} />
+    </div>
   )
 }
 
@@ -179,21 +173,21 @@ function Ledger({ presets }: { presets: EconPresets }) {
     <Section title="Assumption ledger" right={n ? <button onClick={reset} className="text-meta text-accent hover:underline">Reset {n} edit{n === 1 ? '' : 's'}</button> : undefined}>
       <details className="rounded-md border border-line">
         <summary className="cursor-pointer px-2 py-1.5 text-xs text-muted hover:text-ink">{LEDGER.length} numbers, each with its flag and source (research P08-M00)</summary>
-        <ul className="grid gap-1.5 border-t border-line p-2">
+        <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5 border-t border-line p-2">
           {LEDGER.map(([k, label]) => {
             const r = rowOf(presets, k)
             if (!r) return null
             const pct = !r.unit.includes('C$') && r.unit !== 'FSR' && r.unit !== 'years'
             const shown = pct ? Math.round(r.value * 10000) / 100 : Math.round(r.value * 100) / 100
             return (
-              <li key={k} className="text-meta">
+              <li key={k} className="min-w-0 text-meta">
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate">{label}</span>
                   <input type="number" value={shown} step={pct ? 0.1 : 1} onChange={(e) => setRow(k as OverrideKey, e.target.value === '' ? null : Number(e.target.value) / (pct ? 100 : 1))}
-                    className="w-20 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={label} />
-                  <span className="w-24 shrink-0 truncate text-meta text-muted" title={r.unit}>{pct ? `% ${r.unit}` : r.unit}</span>
+                    className="w-16 shrink-0 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label={label} />
+                  <span className="w-16 shrink-0 truncate text-meta text-muted" title={r.unit}>{pct ? `% ${r.unit}` : r.unit}</span>
                 </div>
-                <div className="mt-0.5 flex items-start gap-1"><FlagChip flag={r.flag} /><span className="text-meta text-muted">{r.source}{r.low != null && r.high != null ? ` · range ${pct ? `${r.low * 100}-${r.high * 100}%` : `${r.low.toLocaleString()}-${r.high.toLocaleString()}`}` : ''}{r.note ? ` · ${r.note}` : ''}</span></div>
+                <div className="mt-0.5 flex items-start gap-1"><FlagChip flag={r.flag} /><span className="min-w-0 break-words text-meta text-muted">{r.source}{r.low != null && r.high != null ? ` · range ${pct ? `${r.low * 100}-${r.high * 100}%` : `${r.low.toLocaleString()}-${r.high.toLocaleString()}`}` : ''}{r.note ? ` · ${r.note}` : ''}</span></div>
               </li>
             )
           })}
@@ -226,55 +220,59 @@ function CostSection({ r }: { r: EconResult }) {
             <option value="altus">Altus 2025 band top, $455/ft²</option>
           </select>
         </label>}
-        <label className="flex items-center justify-between gap-2"><span className="text-muted">Contingency (no default: the range shows once it is set)</span>
+        <label className="flex items-center justify-between gap-2"><span className="text-muted" title="No default: the range shows once it is set">Contingency</span>
           <span className="flex items-center gap-1"><input type="number" min={0} max={50} step={1} value={Math.round(contingency * 100)} onChange={(e) => set({ contingency: Math.max(0, Math.min(0.5, Number(e.target.value) / 100 || 0)) })}
             className="w-14 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Contingency percent" />%</span>
         </label>
       </div>
 
       {research && (
-        <table className="mt-2 w-full text-meta">
-          <thead className="text-muted"><tr><th className="text-left font-medium">Tower</th><th className="text-right font-medium">Storeys</th><th className="text-right font-medium">Above 39</th><th className="text-right font-medium">ε blend</th><th className="text-right font-medium">Premium</th></tr></thead>
-          <tbody>
-            {k.towers.map((t) => (
-              <tr key={t.id} className="border-t border-line/60">
-                <td className="py-0.5">{t.name}</td>
-                <td className="text-right tabular-nums">{t.premium.storeys}</td>
-                <td className={`text-right tabular-nums ${t.premium.above ? 'font-semibold text-amber-800' : ''}`}>{t.premium.above ? `${t.premium.above} extrapolated` : '0'}</td>
-                <td className="text-right tabular-nums">{t.premium.eps.toFixed(2)}</td>
-                <td className="text-right tabular-nums">×{t.premium.factor.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mt-3">
+          <div className="mb-1 text-meta font-semibold">Height premium on hard cost</div>
+          <HBars label="Height premium on hard cost by tower" max={Math.max(1.5, ...k.towers.map((t) => t.premium.factor)) * 1.05} fmt={(v) => `×${v.toFixed(2)}`} labelWidth="5rem"
+            rows={k.towers.map((t) => ({ label: t.name, v: t.premium.factor, mark: 1, markTip: '×1.00 at the 39-storey anchor', color: t.premium.above ? '#c27c0e' : '#4a6a8c', text: `×${t.premium.factor.toFixed(2)}${t.premium.above ? ' · extrapolated' : ''}`,
+              tip: `${t.name}: ${t.premium.storeys} storeys, ${t.premium.above ? `${t.premium.above} above 39 (extrapolated)` : 'none above 39'}, ε blend ${t.premium.eps.toFixed(2)}, premium ×${t.premium.factor.toFixed(2)}` }))} />
+        </div>
       )}
-      {research && k.towers.some((t) => t.premium.above) && (() => {
-        const t = k.towers.reduce((a, b) => (b.premium.storeys > a.premium.storeys ? b : a))
-        return <p className="mt-1 text-meta text-muted">Comparison lines for {t.name} (all lower bounds at this height, none rated good): ε 0.26 ×{t.premium.lines.commercial.toFixed(2)} · ε 0.56 ×{t.premium.lines.residential.toFixed(2)} · 2%/floor linear ×{t.premium.lines.linear.toFixed(2)} · compound ×{t.premium.lines.compound.toFixed(2)}. The premium is applied once to the building, anchored at 39 storeys so the sourced Altus band stays intact.</p>
-      })()}
-
-      <div className="mt-2 grid gap-1 text-meta">
-        <div className="flex items-center justify-between gap-2"><span>Share of GFA with a sourced base cost</span><b className={`tabular-nums ${k.sourcedShare < 0.5 ? 'text-red-700' : ''}`}>{pct(k.sourcedShare)}</b></div>
-        {unsourced.length > 0 && <div className="flex items-start gap-1"><FlagChip flag="unresolved" /><span className="text-meta text-muted">No sourced base for {unsourced.map((u) => USES[u].label.toLowerCase()).join(', ')}: priced at the average of the sourced uses (research P08-M03 limits).</span></div>}
-        <div className="flex items-center justify-between gap-2"><span>Hard cost + contingency (P50)</span><b className="tabular-nums">{money(k.estimate)}</b></div>
-        {k.range
-          ? <div className="flex items-center justify-between gap-2"><span>AACE Class 5 range (P10-P90){k.range.multiplier > 1 ? `, high side ×${k.range.multiplier} above the band` : ''}</span><b className="tabular-nums">{money(k.range.p10)} – {money(k.range.p90)}</b></div>
-          : <p className="text-meta text-muted">No range yet: AACE ranges sit around an estimate that already includes contingency, so set a contingency above 0 first (RP 56R-08).</p>}
-        <div className="flex items-center justify-between gap-2"><span>Total cost excl. land and profit, per gross ft²</span><b className="tabular-nums">${Math.round(k.tdcPerSf)}</b></div>
-        <p className="text-meta text-muted">Beside Coriolis 2026 cases (mid and high-rise, not supertall): office ${CORIOLIS_TDC.office.join('-')}, downtown strata ${CORIOLIS_TDC.strata.join('-')} per ft². Shown for scale, not as a test.</p>
-        <div className="flex items-start gap-1"><FlagChip flag={COST_LEDGER.escalation.flag} /><span className="text-meta text-muted">Escalation from the cost vintage (late 2024 to early 2026) to the valuation date: 0 until the Statistics Canada index is read.</span></div>
+      <div className="mt-3 grid min-w-0 gap-2">
+        <HBars label="Share of GFA with a sourced base cost" max={100} fmt={(v) => `${Math.round(v * 10) / 10}%`} labelWidth="7rem" rows={[{ label: 'Sourced base cost', v: k.sourcedShare * 100, color: k.sourcedShare < 0.5 ? '#c53030' : '#2f855a', tip: `Share of GFA with a sourced base cost: ${pct(k.sourcedShare)}` }]} />
+        <HBars label="Hard cost plus contingency, with the AACE Class 5 range" fmt={money} labelWidth="7rem" rows={[{ label: 'Hard + contingency', v: k.estimate, range: k.range ? [k.range.p10, k.range.p90] : undefined, color: '#8a9096', bold: true,
+          tip: `Hard cost + contingency (P50): ${money(k.estimate)}${k.range ? `; AACE Class 5 range (P10–P90) ${money(k.range.p10)} – ${money(k.range.p90)}${k.range.multiplier > 1 ? `, high side ×${k.range.multiplier} above the band` : ''}` : '; no range until a contingency is set'}` }]} />
+        {k.range && <div className="-mt-1 text-right text-[11px] leading-4 text-muted tabular-nums">P10–P90 {money(k.range.p10)} – {money(k.range.p90)}</div>}
+        <div>
+          <div className="mb-1 text-meta font-semibold" title="Total cost excl. land and profit, per gross ft²; Coriolis 2026 cases shown for scale, not as a test">Total cost per gross ft²</div>
+          <HBars label="Total cost excluding land and profit per gross square foot, beside the Coriolis 2026 cases" fmt={(v) => `$${Math.round(v)}`} labelWidth="7rem" rows={[
+            { label: 'This design', v: k.tdcPerSf, bold: true, color: '#2563eb' },
+            { label: 'Coriolis office', v: CORIOLIS_TDC.office[0], range: [CORIOLIS_TDC.office[0], CORIOLIS_TDC.office[CORIOLIS_TDC.office.length - 1]], text: `$${CORIOLIS_TDC.office.join('-')}`, color: '#b8c0cc', muted: true, tip: 'Coriolis 2026 office cases (mid and high-rise, not supertall)' },
+            { label: 'Coriolis strata', v: CORIOLIS_TDC.strata[0], range: [CORIOLIS_TDC.strata[0], CORIOLIS_TDC.strata[CORIOLIS_TDC.strata.length - 1]], text: `$${CORIOLIS_TDC.strata.join('-')}`, color: '#b8c0cc', muted: true, tip: 'Coriolis 2026 downtown strata cases (mid and high-rise, not supertall)' },
+          ]} />
+        </div>
       </div>
+      <MethodFold>
+        {research && k.towers.some((t) => t.premium.above) && (() => {
+          const t = k.towers.reduce((a, b) => (b.premium.storeys > a.premium.storeys ? b : a))
+          return <p>Comparison lines for {t.name} (all lower bounds at this height, none rated good): ε 0.26 ×{t.premium.lines.commercial.toFixed(2)} · ε 0.56 ×{t.premium.lines.residential.toFixed(2)} · 2%/floor linear ×{t.premium.lines.linear.toFixed(2)} · compound ×{t.premium.lines.compound.toFixed(2)}. The premium is applied once to the building, anchored at 39 storeys so the sourced Altus band stays intact.</p>
+        })()}
+        {research && <p>Towers: {k.towers.map((t) => `${t.name} ${t.premium.storeys} storeys, ${t.premium.above ? `${t.premium.above} extrapolated above 39` : '0 above 39'}, ε blend ${t.premium.eps.toFixed(2)}, premium ×${t.premium.factor.toFixed(2)}`).join('; ')}.</p>}
+        <p>Share of GFA with a sourced base cost: {pct(k.sourcedShare)}. Hard cost + contingency (P50): {money(k.estimate)}. Total cost excl. land and profit, per gross ft²: ${Math.round(k.tdcPerSf)}.</p>
+        {unsourced.length > 0 && <div className="flex items-start gap-1"><FlagChip flag="unresolved" /><span>No sourced base for {unsourced.map((u) => USES[u].label.toLowerCase()).join(', ')}: priced at the average of the sourced uses (research P08-M03 limits).</span></div>}
+        {k.range
+          ? <p>AACE Class 5 range (P10-P90){k.range.multiplier > 1 ? `, high side ×${k.range.multiplier} above the band` : ''}: {money(k.range.p10)} – {money(k.range.p90)}.</p>
+          : <p>No range yet: AACE ranges sit around an estimate that already includes contingency, so set a contingency above 0 first (RP 56R-08).</p>}
+        <p>Beside Coriolis 2026 cases (mid and high-rise, not supertall): office ${CORIOLIS_TDC.office.join('-')}, downtown strata ${CORIOLIS_TDC.strata.join('-')} per ft². Shown for scale, not as a test.</p>
+        <div className="flex items-start gap-1"><FlagChip flag={COST_LEDGER.escalation.flag} /><span>Escalation from the cost vintage (late 2024 to early 2026) to the valuation date: 0 until the Statistics Canada index is read.</span></div>
+      </MethodFold>
       <details className="mt-2 rounded-md border border-line">
         <summary className="cursor-pointer px-2 py-1 text-meta text-muted hover:text-ink">Supertall risk register: {RISK_REGISTER.length} blank lines outside the elasticity</summary>
         <ul className="grid gap-0.5 border-t border-line p-2 text-meta">
           {RISK_REGISTER.map((x) => <li key={x} className="flex items-center gap-1.5"><FlagChip flag="unresolved" />{x}: no sourced allowance; widens the high side once a person fills it</li>)}
         </ul>
       </details>
-      <ul className="mt-2 grid gap-1">
+      <div className="mt-2"><Fold title="Cost sources, with flags"><ul className="grid min-w-0 gap-1 break-words">
         {[COST_LEDGER.base.residential!, COST_LEDGER.base.office!, ...(residentialBase === 'altus' ? [COST_LEDGER.altusResidential] : []), COST_LEDGER.epsCommercial, COST_LEDGER.epsResidential, COST_LEDGER.anchorStoreys, COST_LEDGER.aaceHigh, COST_LEDGER.highSide].map((row) => (
-          <li key={row.label} className="flex items-start gap-1 text-meta text-muted"><FlagChip flag={row.flag} /><span><span className="text-ink">{row.label}</span>: {row.source}</span></li>
+          <li key={row.label} className="flex items-start gap-1 text-meta text-muted"><FlagChip flag={row.flag} /><span className="min-w-0"><span className="text-ink">{row.label}</span>: {row.source}</span></li>
         ))}
-      </ul>
+      </ul></Fold></div>
     </Section>
   )
 }
@@ -297,7 +295,9 @@ function ChargesSection({ r }: { r: EconResult }) {
           </select>
         </label>
       </div>
-      <ul className="mt-2 grid gap-1.5">
+      <div className="mt-2"><HBars label="Statutory charges by line" fmt={money} labelWidth="7.5rem" color="#b48ac4"
+        rows={c.lines.map((l) => ({ label: l.item, v: l.total ?? 0, text: l.total == null ? 'blank' : money(l.total), muted: l.total == null || l.status === 'false assumption', color: l.status === 'approved' ? '#7fb3d5' : l.status === 'false assumption' ? '#d4148c' : '#b48ac4', tip: `${l.item}: ${l.total == null ? 'blank' : money(l.total)} · ${l.status} · ${l.rate} · ${l.basis} · effective ${l.effective}` }))} /></div>
+      <div className="mt-2"><Fold title="Each charge: rate, basis, date and source"><ul className="grid min-w-0 gap-1.5 break-words">
         {c.lines.map((l) => (
           <li key={l.id} className="rounded-md border border-line/70 px-2 py-1 text-meta">
             <div className="flex items-start justify-between gap-2">
@@ -308,12 +308,16 @@ function ChargesSection({ r }: { r: EconResult }) {
             <div className="mt-0.5 flex items-start gap-1"><FlagChip flag={l.flag} /><span className={`rounded px-1 text-meta font-medium ${STATUS_CLASS[l.status]}`}>{l.status}</span><span className="text-meta text-muted">{l.source}</span></div>
           </li>
         ))}
-      </ul>
+      </ul></Fold></div>
       <div className="mt-2 grid gap-0.5 text-meta">
         <div className="flex justify-between"><span>Total charges{c.complete ? '' : ' (incomplete: blank lines above)'}</span><b className="tabular-nums">{money(c.total)}</b></div>
         <div className="flex justify-between text-muted"><span>Per m² of gross floor area</span><span className="tabular-nums">C${Math.round(c.perM2)} (${(c.perM2 / 10.7639).toFixed(2)}/ft²)</span></div>
-        {c.deferral && <p className="text-meta text-muted">Deferral (DCLs of $500,000 or more): {money(c.deferral.atPermit)} at building permit, {money(c.deferral.deferred)} secured and due before occupancy or within four years, plus a ${c.deferral.fee.toLocaleString()} fee. The residual doesn't model this timing yet.</p>}
       </div>
+      {c.deferral && <>
+        <div className="mb-1 mt-2 text-meta font-semibold">DCL deferral</div>
+        <HBars label="DCL deferral: paid at permit against deferred" fmt={money} labelWidth="6rem" rows={[{ label: 'At permit', v: c.deferral.atPermit, color: '#b48ac4' }, { label: 'Deferred', v: c.deferral.deferred, color: '#d9c5e3', tip: `${money(c.deferral.deferred)} secured and due before occupancy or within four years, plus a $${c.deferral.fee.toLocaleString()} fee` }]} />
+        <MethodFold title="About the deferral"><p>Deferral (DCLs of $500,000 or more): {money(c.deferral.atPermit)} at building permit, {money(c.deferral.deferred)} secured and due before occupancy or within four years, plus a ${c.deferral.fee.toLocaleString()} fee. The residual doesn't model this timing yet.</p></MethodFold>
+      </>}
     </Section>
   )
 }

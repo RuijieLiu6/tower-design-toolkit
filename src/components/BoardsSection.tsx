@@ -2,7 +2,6 @@
 import { LayoutGrid } from './icons'
 import { DELIVERABLES, boardChecks, coverage, deadlineInfo, isBoardUsed } from '../engine/boards'
 import { useBoardStore } from '../lib/boardStore'
-import BoardComposer from './boards/BoardComposer'
 import { FlagChip, Section } from './ui'
 
 export default function BoardsSection() {
@@ -24,7 +23,6 @@ export default function BoardsSection() {
         <dt className="text-muted">Upload closes</dt><dd className="text-right tabular-nums">{d.closed ? 'closed' : `${Math.floor(d.days)} days`}</dd>
       </dl>
       <div className="mt-2 flex flex-wrap items-center gap-1"><FlagChip flag="verified" /><span className="text-meta text-muted">Four A2 landscape boards, ≤ 10 MB each, English, no identity (brief p.27); 30 Nov, 11:59 PM London (p.25)</span></div>
-      <BoardComposer />
     </Section>
   )
 }
