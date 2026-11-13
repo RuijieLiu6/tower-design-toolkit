@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, type ComponentType, type CSSProperties } from 'react'
 import { togglePanel, usePanels, usePanelWidths } from './lib/panels'
 import { PanelRail, PanelResizer } from './components/PanelToggle'
 import ImportHost from './components/ImportHost'
@@ -17,7 +17,10 @@ import { useStore } from './store'
 import { goToStep, startOnSite, startStepFollow } from './lib/step'
 import { whenRestored } from './lib/project/session'
 
-const Viewport = lazy(() => import('./components/Viewport'))
+// The 3D view: fetched as soon as this module loads (the start page warms both), and rendered directly once it is here.
+let LoadedViewport: ComponentType | null = null
+const viewportReady = import('./components/Viewport').then((m) => { LoadedViewport = m.default; return m })
+const Viewport = lazy(() => viewportReady)
 const NodeCanvas = lazy(() => import('./components/NodeCanvas'))
 
 function Loading({ what }: { what: string }) {
@@ -77,7 +80,7 @@ export default function App() {
         <main className="relative flex min-w-0 flex-1 gap-2">
           {(view === '3d' || view === 'split') && (
             <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
-              <Suspense fallback={<div aria-busy="true" aria-label="Loading the 3D view" className="h-full w-full" />}><Viewport /></Suspense>
+              {LoadedViewport ? <LoadedViewport /> : <Suspense fallback={<div aria-busy="true" aria-label="Loading the 3D view" className="h-full w-full" />}><Viewport /></Suspense>}
             </div>
           )}
           {(view === 'canvas' || view === 'split') && (
