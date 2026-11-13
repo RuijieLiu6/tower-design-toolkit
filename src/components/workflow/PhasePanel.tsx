@@ -14,7 +14,7 @@
 // The workflow is the project's, the same as the landing page's and Overview's (lib/workflow/projectWorkflow.ts).
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Expand, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
-import { toggleAnalysis, useAnalysisView } from '../../lib/analysisView'
+import { canExpand, toggleAnalysis, useAnalysisView } from '../../lib/analysisView'
 import { NodeTile } from '../NodeTile'
 import { NodeArtwork } from '../nodeIcons/NodeArtwork'
 import Help from '../Help'
@@ -158,7 +158,7 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
                         <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{n.word.length > 3 && n.name.length > 26 ? n.word : n.name}<span className="sr-only">, {kind}</span></span>
                         {rets.map((e) => <span key={edgeKey(e)} aria-hidden data-return={edgeKey(e)} title={`Loops back to ${info(e.b).name}`} className="shrink-0 text-meta text-muted">↻</span>)}
                       </button>
-                      {!isDesignNode(id) && <ExpandAnalysis id={id} name={n.name} />}
+                      {!isDesignNode(id) && canExpand(id) && <ExpandAnalysis id={id} name={n.name} />}
                     </li>
                   )
                 })}
@@ -324,7 +324,7 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
           <h3 className="truncate text-control font-semibold text-ink" data-testid="phase-active-name">{n.name}</h3>
           <span className="block truncate text-meta text-muted" title={state}>{state}</span>
         </span>
-        {!d && <ExpandAnalysis id={id} name={n.name} className="h-8 w-8 shrink-0" />}
+        {!d && canExpand(id) && <ExpandAnalysis id={id} name={n.name} className="h-8 w-8 shrink-0" />}
         {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
       {d ? (phase === 'present' ? <Filmstrip tone="light" /> : <ToolPanel embedded />)

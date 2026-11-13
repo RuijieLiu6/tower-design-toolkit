@@ -2,7 +2,7 @@ import { Background, Controls, Handle, Position, ReactFlow, type Edge, type Node
 import '@xyflow/react/dist/style.css'
 import { useMemo } from 'react'
 import { Box, Expand } from './icons'
-import { toggleAnalysis, useAnalysisView } from '../lib/analysisView'
+import { canExpand, toggleAnalysis, useAnalysisView } from '../lib/analysisView'
 import { CATEGORY_ICONS } from '../data/icons'
 import { BUILT_NODES, CATEGORIES, nodeById, type Category } from '../data/registry'
 import { STATE_LABEL } from '../engine/viewCones'
@@ -43,7 +43,7 @@ function Card({ data, selected }: NodeProps<Node<CardData>>) {
         </div>
         <div className="mt-0.5 text-meta text-muted">{data.subtitle}</div>
         {data.status && <div className={`mt-1 text-meta font-medium ${TONE[data.tone ?? 'muted']}`}>{data.status}</div>}
-        {data.node && <CardExpand id={data.node} name={data.title} />}
+        {data.node && canExpand(data.node) && <CardExpand id={data.node} name={data.title} />}
       </div>
       {data.outputs && <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-accent" />}
     </div>

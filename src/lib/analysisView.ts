@@ -25,6 +25,10 @@ const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
 const USES = { kind: 'uses' as const, plan: false, about: 'The towers floor by floor, coloured by use.' }
 /** The drawing for a check: its own where it has one, otherwise the towers by use. */
 export const analysisFor = (node: string) => VIEWS[node] ?? USES
+/** Checks that take no analysis view (Sinnie, 13 Nov: "view cone doesnt need an expandable screen"): the main view
+ * already draws the cones and the parts above them. */
+const NO_VIEW = new Set(['built.viewcones'])
+export const canExpand = (node: string) => !NO_VIEW.has(node)
 /** Checks with a drawing of their own (the rest show the towers by use). */
 export const hasOwnAnalysis = (node: string) => node in VIEWS
 
@@ -33,6 +37,7 @@ export const useAnalysisView = create<AnalysisViewState>(() => ({ node: null, pl
 
 /** Opens a check's analysis beside the model (the node view gives way to the model, which is what it compares with). */
 export function openAnalysis(node: string) {
+  if (!canExpand(node)) return
   const s = useStore.getState()
   if (s.view === 'canvas') s.set({ view: '3d' })
   useAnalysisView.setState({ node, plan: analysisFor(node).plan })
