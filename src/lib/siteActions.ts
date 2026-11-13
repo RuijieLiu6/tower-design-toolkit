@@ -7,7 +7,7 @@
 // exact union along shared lot lines (engine/site.ts exactUnion, Vista import-parcels.js): never snapped or guessed.
 // A site made of lots replaces the existing buildings standing mostly on it (shown as demolished, team assumption).
 import { create } from 'zustand'
-import { exactUnion, normalizeRing, outlineKey, overlapArea, PARCEL_MIN_M2, polyArea, ringMetrics, signedArea, siteFromFootprints, validateRing, type Poly, type Pt } from '../engine/site'
+import { exactUnion, normalizeRing, outlineKey, overlapArea, PARCEL_MIN_M2, pointInRing, polyArea, ringMetrics, signedArea, siteFromFootprints, validateRing, type Poly, type Pt } from '../engine/site'
 import { breakStep, undo } from './project/history'
 import { newSite, useSiteStore, type StudySite } from './siteStore'
 
@@ -90,6 +90,8 @@ export function lotsTouching(rect: [number, number, number, number], lots: reado
 export function replacedFor(next: Pt[], prev: StudySite | null, footprints: readonly Outline[]): number[] {
   const on = idsOf(footprints, buildingsOn(next, footprints))
   if (!prev) return on
+  // A site somewhere else: what was replaced by hand on the old one stays standing (12 Nov: old red outlines lingered).
+  if (validateRing(prev.ring) || !(prev.ring.some((p) => pointInRing(p, next)) || next.some((p) => pointInRing(p, prev.ring)))) return on
   const onPrev = new Set(validateRing(prev.ring) ? [] : idsOf(footprints, buildingsOn(prev.ring, footprints)))
   const byHand = prev.replaced.filter((id) => !onPrev.has(id))
   return [...new Set([...on, ...byHand])]
@@ -120,6 +122,8 @@ interface SiteStepState {
   menu: SiteMenu | null
   /** Select several buildings to replace (the clicks go to SiteRig's pick tool; this flag shows the Done bar). */
   multi: boolean
+  /** The left panel's Select site is open (12 Nov): only then may the map choose a site other than the current one. */
+  reselect: boolean
   /** Draw a box over lots: the corners in plan while dragging. */
   box: boolean
   boxDraft: [Pt, Pt] | null
@@ -127,7 +131,7 @@ interface SiteStepState {
   /** Neighbourhood picked from the list (its outline is drawn on the map). */
   area: string | null
 }
-export const useSiteStep = create<SiteStepState>(() => ({ menu: null, multi: false, box: false, boxDraft: null, toast: null, area: null }))
+export const useSiteStep = create<SiteStepState>(() => ({ menu: null, multi: false, box: false, boxDraft: null, toast: null, area: null, reselect: false }))
 
 let toastId = 0
 /** Say what an action did, near where it happened; also announced to screen readers. */

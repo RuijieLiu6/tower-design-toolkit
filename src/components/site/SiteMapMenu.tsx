@@ -115,6 +115,7 @@ export default function SiteMapMenu() {
       down.current = null
       useSiteStep.setState({ boxDraft: null, box: false })
       const [a, b] = d
+      if (locked(a) && locked(b)) { lockedNote(a); return }
       if (Math.abs(a[0] - b[0]) < 2 || Math.abs(a[1] - b[1]) < 2) { tell('Box too small: drag across the lots you want.', { kind: 'error', at: a, z: groundAt(a) }); return }
       e.stopPropagation()
       let layer: ParcelLayer
@@ -125,6 +126,10 @@ export default function SiteMapMenu() {
       const ring: Pt[] = [[Math.min(a[0], b[0]), Math.min(a[1], b[1])], [Math.max(a[0], b[0]), Math.min(a[1], b[1])], [Math.max(a[0], b[0]), Math.max(a[1], b[1])], [Math.min(a[0], b[0]), Math.max(a[1], b[1])]]
       siteFromLots(lots, lotLayerOf(layer), data.footprints, 'box', { at: c, z: groundAt(c) }, ring)
     }
+  // With a site set, the map keeps it: another site only through the left panel's Select site (12 Nov, Sinnie: "once I
+  // selected a site, I shouldn't be able to select other sites, unless I choose to reselect from the left panel").
+  const locked = (p: Pt) => { const c = useStore.getState().citySite; return !!c && c.ring.length > 2 && !useSiteStep.getState().reselect && !pointInRing(p, c.ring as Pt[]) }
+  const lockedNote = (p: Pt) => tell('Your site is set. To choose another, open Select site in the Site tab on the left.', { at: p, z: groundAt(p), panel: false })
     const onClick = (e: MouseEvent) => {
       const start = down.current
       down.current = null
@@ -136,6 +141,7 @@ export default function SiteMapMenu() {
       setTimeout(async () => {
         const te = useTowerEdit.getState()
         if (!start.proposal && te.picked && !useTowerEdit.getState().proposal) return
+        if (locked(p)) { useSiteStep.setState({ menu: null }); lockedNote(p); return }
         const i = footprintAt(idx, p[0], p[1])
         // Shift-click on a building: straight into "select several to replace".
         if (shift && i !== null) {

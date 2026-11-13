@@ -1,14 +1,14 @@
 // The Site tab of the set-up panel (Sinnie, 12 Nov: "in the site left panel, users should have options to: select site or
 // import site"; the Your site card is gone from here). Two choices: Select site (an address, the map, or the default
 // block: the Site step's own tools, SiteStart.tsx) and Import site (a boundary file: GeoJSON, as Results › Study site).
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FileUp } from '../icons'
 import { TOOL_ICONS } from '../../data/icons'
 import IconTile from '../IconTile'
 import type { Pt } from '../../engine/site'
 import { ringMetrics, validateRing } from '../../engine/site'
 import { readSiteBoundary, setSiteBoundary } from '../../lib/siteImport'
-import { tell } from '../../lib/siteActions'
+import { tell, useSiteStep } from '../../lib/siteActions'
 import { useStore } from '../../store'
 import { useCityData } from '../CityContext'
 import { AddressSearch, placeSiteAt, zoomTo } from '../SitePanel'
@@ -23,6 +23,11 @@ export default function SiteChoose() {
   const { data } = useCityData()
   const [choice, setChoice] = useState<Choice>(site ? null : 'select')
   const fileRef = useRef<HTMLInputElement>(null)
+  // Select site open = the map may choose another site; a new site closes it and locks the map again.
+  useEffect(() => { useSiteStep.setState({ reselect: choice === 'select' }) }, [choice])
+  useEffect(() => () => useSiteStep.setState({ reselect: false }), [])
+  const first = useRef(true)
+  useEffect(() => { if (first.current) { first.current = false; return } if (site) setChoice(null) }, [site])
   if (project !== 'city') return <p className="px-3 py-3 text-meta text-muted">The competition block is fixed by the brief: nothing to select or import.</p>
   const onPlace = (p: Pt, label: string, source: string) => placeSiteAt(p, label, source, data?.footprints)
   const onFile = async (f: File | undefined) => {
