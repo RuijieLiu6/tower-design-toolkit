@@ -108,7 +108,7 @@ export function VtcContextCard() {
   if (hasCtx || closed || placing || status === 'idle' || status === 'loading') return null
   return (
     <section aria-labelledby="vtc-card-title" {...pick.drop}
-      className={`absolute left-3 top-3 z-20 w-[min(23rem,calc(100%-1.5rem))] rounded-lg border bg-panel/95 p-3 text-xs text-muted shadow-lg backdrop-blur-md ${pick.over ? 'border-2 border-dashed border-accent' : 'border-line'}`}>
+      className={`absolute left-3 top-16 z-20 w-[min(23rem,calc(100%-1.5rem))] rounded-lg border bg-panel/95 p-3 text-xs text-muted shadow-lg backdrop-blur-md ${pick.over ? 'border-2 border-dashed border-accent' : 'border-line'}`}>
       {pick.field}
       <div className="flex items-start gap-2">
         <h2 id="vtc-card-title" className="flex-1 text-sm font-semibold text-ink">Competition context not loaded</h2>

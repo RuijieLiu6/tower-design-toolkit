@@ -122,13 +122,13 @@ function ViewMenu({ project, angles, onFrame, children }: { project: ProjectKind
         <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={open} data-testid="view-menu-button"
           title="View mode: how the model and its surroundings are drawn" className={`${barBtn} gap-1.5 font-medium`}>
           <CurIcon size={16} aria-hidden className="text-accent" />{cur.word}{pinned && <Pin size={12} aria-label="pinned" className="text-accent" />}
-          <ChevronDown size={14} aria-hidden className={`transition-transform ${open ? '' : 'rotate-180'}`} />
+          <ChevronDown size={14} aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
         {shot && <span role="status" className="px-1.5 text-meta text-muted">Captured</span>}
       </div>
       {open && (
         <div role="dialog" aria-label="View mode" data-testid="view-menu-panel"
-          className="absolute bottom-full left-1/2 z-30 mb-2 grid -translate-x-1/2 max-h-[min(36rem,70vh)] w-[min(26rem,calc(100vw-2rem))] gap-2 overflow-y-auto rounded-xl border border-line bg-panel p-2 text-meta text-ink shadow-float">
+          className="absolute left-0 top-full z-30 mt-2 grid max-h-[min(36rem,70vh)] w-[min(26rem,calc(100vw-2rem))] gap-2 overflow-y-auto rounded-xl border border-line bg-panel p-2 text-meta text-ink shadow-float">
           <div role="radiogroup" aria-label="View" data-testid="display-mode" className="grid gap-0.5">
             {DISPLAY_MODES.map((m) => {
               const Icon = ICON[m.id]

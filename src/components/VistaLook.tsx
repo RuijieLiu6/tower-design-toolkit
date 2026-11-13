@@ -588,7 +588,6 @@ export function VistaChrome() {
     <>
       <div data-vista-overlay="top" className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-2 [&>*]:pointer-events-auto">
         {/* Viewcone and Names moved into Layers › Show (12 Nov); the view angles are in the view bar at the bottom. */}
-        <div className="px-2 py-[3px] text-meta" style={box} title="The Real Vancouver model with your design towers">Study scene</div>
         {mode === 'observer' && <ConePicker />}
       </div>
       <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 [&>*]:pointer-events-auto"><Utilities /></div>

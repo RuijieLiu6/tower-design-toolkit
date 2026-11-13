@@ -705,14 +705,14 @@ export default function Viewport() {
       {/* While the Real Vancouver map is still downloading: how much has arrived (Ruijie, 7 Nov). */}
       {project === 'city' && <LoadingBar />}
       {/* The open tool's working view, and anything else drawn as pinned context (8 Nov). */}
-      {!present && !hidden && !looking && <ContextPins project={project} top={project === 'city' ? 'top-14' : 'top-3'} />}
+      {!present && !hidden && !looking && <ContextPins project={project} top="top-16" />}
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
       {project === 'city' && !present && <CityLegend />}
       {project === 'vtc' && !present && <VtcDock />}
       {project === 'vtc' && !present && !hidden && <VtcContextCard />}
       {project === 'vtc' && !present && !hidden && <VtcLookBar />}
       {/* The view bar (DisplayModeSwitch.tsx ViewModeMenu): Capture, Frame, the view angles and the View mode, bottom centre. */}
-      {!present && !hidden && <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 [&>*]:pointer-events-auto"><ViewMenuSlot /></div>}
+      {!present && !hidden && <div className="pointer-events-none absolute left-3 top-3 z-20 flex [&>*]:pointer-events-auto"><ViewMenuSlot /></div>}
       {project === 'city' && !present && !hidden && <VistaInset />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}

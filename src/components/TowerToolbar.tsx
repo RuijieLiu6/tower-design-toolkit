@@ -59,7 +59,8 @@ export default function TowerToolbar() {
   // instead); faded like the other overlays while the camera orbits, not while dragging.
   const width = !locked && dockOpen ? 'max-w-[max(17rem,calc(100%-22.5rem))]' : 'max-w-[calc(100%-1.5rem)]'
   // Real Vancouver's Vista layout (components/VistaLook.tsx): under the mode tabs and "Study scene", clear of both.
-  const top = project === 'city' && !locked ? 'top-[5.5rem]' : 'top-3'
+  // below the view bar (top left, 12 Nov) and the paused-checks note
+  const top = 'top-[6.5rem]'
   const fade = orbiting && !dragging ? 'opacity-35' : 'opacity-100'
   const tools = move || rotate || !!live
   const snapHint = snap
