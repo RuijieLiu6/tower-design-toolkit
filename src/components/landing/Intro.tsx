@@ -79,7 +79,7 @@ const key = edgeKey
  * A node tile: where it is, where it is going (on the board: where it was put; off it: its slot in its lane's shelf) and
  * its scale (full on the board, small in the shelf). It glides there and stops: nothing drifts while the visitor reads.
  */
-interface Body { x: number; y: number; tx: number; ty: number; s: number; vx: number; vy: number; r: number; held: boolean; on: boolean; pop: boolean }
+interface Body { x: number; y: number; tx: number; ty: number; s: number; vx: number; vy: number; r: number; held: boolean; on: boolean; pop: boolean; k: number }
 interface Pt { x: number; y: number; px: number; py: number }
 interface Rope { pts: Pt[]; slack: number }
 /** Tiles in a lane's shelf are this much of their size on the board. */
@@ -143,10 +143,19 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // is its shelf, where its unused nodes wait in a fixed order (its height fits all of that phase, so it never jumps).
   const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(340, H * 0.46) } }
   const span = () => { const { W } = dims.current, sx = Math.max(48, W * 0.05), ex = W - Math.max(56, W * 0.055); return { sx, ex, x0: sx + 44, x1: ex - 44 } }
+  const shelfK = useRef(SHELF_S)
   const shelfGeom = () => {
-    const { x0, x1 } = span(), w = (x1 - x0) / PHASES.length, cell = Math.round(size * SHELF_S) + 8, cap = Math.max(1, Math.floor((w - 16) / cell))
-    const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(NODES.filter((n) => n.phase === ph.id).length / cap)))
-    return { cell, cap, h: rows * cell + 10 }
+    // Shelf tiles get smaller (to 0.4) when the shelves would leave less than one named row for the workflow (13 Nov).
+    const { x0, x1 } = span(), w = (x1 - x0) / PHASES.length, b = band(), room = b.y1 - 14 - (b.y0 + 140) - (size + 24)
+    const geom = (k: number) => {
+      const cell = Math.round(size * k) + 8, cap = Math.max(1, Math.floor((w - 16) / cell))
+      const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(NODES.filter((n) => n.phase === ph.id && !onRef.current.includes(n.id)).length / cap)))
+      return { cell, cap, h: rows * cell + 10, k }
+    }
+    let g = geom(SHELF_S)
+    for (let k = SHELF_S - 0.04; g.h > room && k >= 0.4; k -= 0.04) g = geom(k)
+    shelfK.current = g.k
+    return g
   }
   /** Where nodes on the board sit: below the lane headers, above the shelves. */
   const nodeArea = () => { const b = band(); return { y0: b.y0 + 140, y1: b.y1 - 14 - shelfGeom().h } }
@@ -174,12 +183,15 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     return out
   }
   const shelfRef = useRef(new Map<string, { x: number; y: number }>())
+  /** Nodes on the board shown without their name (a crowded lane): the name shows on hover. */
+  const bare = useRef(new Set<string>())
   /** Put a node on the board at (x, y): it glides there from wherever it is, and lands with a small pop. */
-  const place = (id: string, x: number, y: number, pop = true) => {
+  const place = (id: string, x: number, y: number, pop = true, k = 1, named = true) => {
     const b = bodies.current[idx(id)]
     if (!b) return
     if (!b.on && pop) b.pop = true
-    b.tx = x; b.ty = y; b.on = true; b.held = false
+    b.tx = x; b.ty = y; b.on = true; b.held = false; b.k = k
+    if (named ? bare.current.delete(id) : !bare.current.has(id) && !!bare.current.add(id)) relayout((n) => n + 1)
   }
   /** Where a node goes in its own lane, and where in the string's order (after the nodes of its phase and earlier). */
   const slotFor = (id: string, list: string[]) => {
@@ -191,19 +203,50 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   }
   const [hot, setHot] = useState<PhaseId | null>(null)
 
-  /** Thread nodes along the string, evenly between its ends, in a gentle wave. */
-  const layout = (ids: string[]) => {
-    lanes().forEach((lane) => {
-      const mine = ids.filter((id) => NODES[idx(id)].phase === lane.ph.id)
-      mine.forEach((id, j) => {
-        const body = bodies.current[idx(id)]
-        if (!body) return
-        // A crowded lane takes two rows, so the tiles and their names stay clear of each other.
-        const lift = mine.length > 2 ? (j % 2 ? 1 : -1) * Math.min(46, (lane.y1 - lane.y0) * 0.26) : Math.sin(idx(id) * 1.3) * (lane.y1 - lane.y0) * 0.2
-        place(id, lane.x0 + ((j + 1) / (mine.length + 1)) * (lane.x1 - lane.x0), (lane.y0 + lane.y1) / 2 + lift)
-      })
+  /** One lane's nodes, in order, fitted to the lane: a named row; two named rows; or, crowded, a grid of smaller tiles
+   *  without names that snakes down and up (13 Nov: nothing overlaps, whatever the window or the workflow). */
+  const layoutLane = (lane: ReturnType<typeof lanes>[number], mine: string[]) => {
+    const n = mine.length
+    if (!n) return
+    const Lw = lane.x1 - lane.x0 - 12, L = lane.x0 + 6, T = lane.y0 - size / 2, E = lane.y1 + 2 - T, lab = 20
+    if (Lw / n >= 92 && E >= size + lab) {
+      const room = (E - size - lab) / 2
+      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, T + size / 2 + room + Math.sin(idx(id) * 1.3) * Math.min(room, 30)))
+      return
+    }
+    if ((2 * Lw) / n >= 96 && E >= 2 * (size + lab) + 4) {
+      const rowH = E / 2
+      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, T + (j % 2) * rowH + (rowH - size - lab) / 2 + size / 2))
+      return
+    }
+    let best = { r: 1, k: 0 }
+    for (let r = 1; r <= 4; r++) {
+      const cols = Math.ceil(n / r), k = Math.min(1, (Lw / cols - 6) / size, (E / r - 6) / size)
+      if (k > best.k + 0.02) best = { r, k }
+    }
+    const r = best.r, cols = Math.ceil(n / r), k = Math.max(0.4, best.k)
+    mine.forEach((id, j) => {
+      const col = Math.floor(j / r), row = col % 2 ? r - 1 - (j % r) : j % r
+      place(id, L + ((col + 0.5) * Lw) / cols, T + ((row + 0.5) * E) / r, true, k, false)
     })
   }
+  /** Thread nodes along the string, lane by lane. */
+  const layout = (ids: string[]) => lanes().forEach((lane) => layoutLane(lane, ids.filter((id) => NODES[idx(id)].phase === lane.ph.id)))
+  /** Lanes whose nodes sit on each other or outside the board are laid out again (a restored board, a node added to a
+   *  full lane, a smaller window); the rest stay where the visitor put them. */
+  const tidy = () => {
+    const order = [...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))]
+    for (const lane of lanes()) {
+      const mine = order.filter((id) => NODES[idx(id)].phase === lane.ph.id && bodies.current[idx(id)]?.on)
+      const box = (id: string) => { const b = bodies.current[idx(id)], named = !bare.current.has(id), w = named ? Math.max(size, 84) : size * b.k, h = size * b.k; return { x: b.tx - w / 2, y: b.ty - h / 2, w, h: h + (named ? 20 : 0) } }
+      const bs = mine.map(box)
+      const out = bs.some((a) => a.y < lane.y0 - size / 2 - 6 || a.y + a.h > lane.y1 + 12)
+      const hit = bs.some((a, i) => bs.some((b, j) => j > i && a.x < b.x + b.w - 3 && b.x < a.x + a.w - 3 && a.y < b.y + b.h - 3 && b.y < a.y + a.h - 3))
+      if (out || hit) layoutLane(lane, mine)
+    }
+  }
+  const tidyRef = useRef(tidy); tidyRef.current = tidy
+  const layoutRef = useRef(layout); layoutRef.current = layout
   /** Taken off the string: it glides back to its slot in its lane's shelf. */
   const release = (ids: string[]) => ids.forEach((id) => {
     const body = bodies.current[idx(id)]
@@ -398,6 +441,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       els.current[i]?.setAttribute('data-on', on.has(n.id) ? '1' : '0')
     })
     shelfRef.current = shelfSlots(onBoard)
+    if (bodies.current.length) tidy()
   }, [onBoard]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- the ropes (verlet), keyed by link, and the frame loop that moves everything
@@ -485,7 +529,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const measure = () => {
       const r = el.getBoundingClientRect()
       const next = { W: el.clientWidth, H: el.clientHeight }
-      if (next.W !== dims.current.W || next.H !== dims.current.H) { dims.current = next; relayout((n) => n + 1) }
+      if (next.W !== dims.current.W || next.H !== dims.current.H) { const had = bodies.current.length > 0; dims.current = next; relayout((n) => n + 1); if (had) layoutRef.current([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))]) }
       void r
       shelfRef.current = shelfSlots(onRef.current)
     }
@@ -494,14 +538,15 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const slots = shelfSlots(onRef.current)
     bodies.current = NODES.map((n) => {
       const r = size / 2, sl = slots.get(n.id) ?? { x: -200, y: -200 }
-      return { x: sl.x, y: sl.y, tx: sl.x, ty: sl.y, s: SHELF_S, vx: 0, vy: 0, r, held: false, on: false, pop: false }
+      return { x: sl.x, y: sl.y, tx: sl.x, ty: sl.y, s: shelfK.current, vx: 0, vy: 0, r, held: false, on: false, pop: false, k: 1 }
     })
     // The board as it was left (restored positions), else laid out along the lanes; no gliding on arrival.
     const at = init?.at ?? {}, area = nodeArea()
     if (onRef.current.length && onRef.current.every((id) => at[id])) {
       for (const id of onRef.current) { const [fx, fy] = at[id]; place(id, Math.max(30, Math.min(W - 30, fx * W)), Math.max(area.y0 - 20, Math.min(area.y1, fy * H)), false) }
     } else layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
-    for (const b of bodies.current) if (b.on) { b.x = b.tx; b.y = b.ty; b.s = 1; b.pop = false }
+    tidyRef.current()
+    for (const b of bodies.current) if (b.on) { b.x = b.tx; b.y = b.ty; b.s = b.k; b.pop = false }
 
     const draw = () => bodies.current.forEach((b, i) => {
       const d = els.current[i]
@@ -584,7 +629,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         // Lifted, it grows to full size; otherwise it glides to its place (board or shelf) and stops there.
         if (b.held) { b.s += (1 - b.s) * k; continue }
         const tg = b.on ? { x: b.tx, y: b.ty } : shelfRef.current.get(NODES[i].id) ?? { x: b.tx, y: b.ty }
-        b.x += (tg.x - b.x) * k; b.y += (tg.y - b.y) * k; b.s += ((b.on ? 1 : SHELF_S) - b.s) * k
+        b.x += (tg.x - b.x) * k; b.y += (tg.y - b.y) * k; b.s += ((b.on ? b.k : shelfK.current) - b.s) * k
         if (Math.abs(tg.x - b.x) < 0.2 && Math.abs(tg.y - b.y) < 0.2) { b.x = tg.x; b.y = tg.y }
         if (b.pop && Math.hypot(tg.x - b.x, tg.y - b.y) < 3) { b.pop = false; pop(i) }
       }
@@ -594,7 +639,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     }
     const frame = () => {
       // Reduced motion: everything is where it belongs at once.
-      for (const [i, b] of bodies.current.entries()) { if (b.held) continue; const tg = b.on ? { x: b.tx, y: b.ty } : shelfRef.current.get(NODES[i].id) ?? { x: b.tx, y: b.ty }; b.x = tg.x; b.y = tg.y; b.s = b.on ? 1 : SHELF_S }
+      for (const [i, b] of bodies.current.entries()) { if (b.held) continue; const tg = b.on ? { x: b.tx, y: b.ty } : shelfRef.current.get(NODES[i].id) ?? { x: b.tx, y: b.ty }; b.x = tg.x; b.y = tg.y; b.s = b.on ? b.k : shelfK.current }
       ropeStep(1 / 60, performance.now()); draw()
     }
     const start = () => { if (raf) return; if (still) { frame(); return } on = true; last = performance.now(); raf = requestAnimationFrame(step) }
@@ -1033,7 +1078,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           onPointerEnter={() => setHoverNode(n.id)} onPointerLeave={() => setHoverNode((h) => (h === n.id ? null : h))} onFocus={() => setHoverNode(n.id)} onBlur={() => setHoverNode((h) => (h === n.id ? null : h))}
           style={{ width: size, height: size, transformOrigin: '50% 50%', transform: 'translate3d(-999px,-999px,0)' }}>
           <NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} />
-          {onBoard.includes(n.id) && <span aria-hidden className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>}
+          {onBoard.includes(n.id) && !bare.current.has(n.id) && <span aria-hidden data-node-name className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>}
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
             <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}
               className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex group-focus-visible:flex group-data-[selected]:flex"
@@ -1057,7 +1102,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         const b = bodies.current[idx(hoverNode)]
         if (!b) return null
         return <div aria-hidden className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-xl bg-ink/85 px-2 py-0.5 text-meta text-white"
-          style={{ transform: `translate3d(${b.tx || b.x}px, ${(b.on ? b.ty : b.y) + b.r * (b.on ? 1 : SHELF_S) + (b.on ? 22 : 6)}px, 0) translate(-50%, 0)` }}>{NODES[idx(hoverNode)].name}</div>
+          style={{ transform: `translate3d(${b.tx || b.x}px, ${(b.on ? b.ty : b.y) + b.r * (b.on ? b.k : shelfK.current) + (b.on && !bare.current.has(hoverNode) ? 22 : 6)}px, 0) translate(-50%, 0)` }}>{NODES[idx(hoverNode)].name}</div>
       })()}
 
       </div>
