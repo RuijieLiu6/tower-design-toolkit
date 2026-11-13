@@ -1,9 +1,8 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import PageToggle from '../PageToggle'
 import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
-import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
@@ -442,15 +441,16 @@ function SheetsPanel({ levels, onPick, onCreate, msg }: { levels: number; onPick
   )
 }
 
-export default function BoardComposer() {
-  const open = useBoardStore((s) => s.open)
-  // The body (and its results) only runs while the composer is open.
-  return open ? <ComposerBody /> : null
+// One Present page (Sinnie, 13 Nov: "merge the presentation layout into the old toolkit present page, i dont want two
+// separate one"): the sheets ARE the Present page, inside the workspace under the top bar. The old page's 3D view is
+// the centre's second view (to frame and capture shots) and its Present / Render / Results / Trace panel is the right
+// side's third tab.
+export default function BoardComposer({ viewport, tools }: { viewport?: ReactNode; tools?: ReactNode }) {
+  return <ComposerBody viewport={viewport} tools={tools} />
 }
 
-function ComposerBody() {
+function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: ReactNode }) {
   const open = true
-  const setOpen = useBoardStore((s) => s.setOpen)
   const boards = useBoardStore((s) => s.boards)
   const images = useBoardStore((s) => s.images)
   const selected = useBoardStore((s) => s.selected)
@@ -468,16 +468,10 @@ function ComposerBody() {
     setSetMsg(used ? 'Five sheets now hold the drawing set; what was on them is kept aside.' : 'Drawing set created: five sheets.')
     setTimeout(() => setSetMsg(''), 5000)
   }
-  const [tab, setTab] = useState<'frame' | 'submit'>('frame')
+  const [tab, setTab] = useState<'frame' | 'submit' | 'tools'>('frame')
+  const [centre, setCentre] = useState<'sheet' | '3d'>('sheet')
 
   useEffect(() => { if (open) void hydrateBoardImages() }, [open])
-  // While open, keys stay in the composer (the app's 1/2/3 and P shortcuts would change stage underneath).
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); e.stopPropagation() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, setOpen])
 
   const place = (board: number, frame: string, imageId: string) => {
     const f = boards[board].frames.find((x) => x.id === frame)
@@ -498,8 +492,8 @@ function ComposerBody() {
   }
   const pick = (imageId: string) => { if (selected.frame) place(selected.board, selected.frame, imageId) }
 
-  return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Board composer" className="fixed inset-0 z-[80] flex flex-col bg-[#15181c] text-slate-100">
+  return (
+    <div role="region" aria-label="Presentation" data-testid="present-page" className="flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl bg-[#15181c] text-slate-100">
       <header className="flex items-center gap-3 border-b border-white/10 px-3 py-2">
         <FileImage size={16} className="text-sky-400" />
         <div className="mr-2">
@@ -509,25 +503,31 @@ function ComposerBody() {
         <nav aria-label="Boards" className="flex gap-1">
           {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} rev={draw} />)}
         </nav>
-        <span className="mx-auto" /><PageToggle dark /><span className="mx-auto" />
+        <span className="mx-auto" />
+        <div className="flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Centre view">
+          {([['sheet', 'Sheet'], ['3d', '3D view']] as const).map(([k, w]) => <button key={k} type="button" role="tab" aria-selected={centre === k} onClick={() => setCentre(k)} data-testid={`centre-${k}`} title={k === '3d' ? 'Frame the model and capture shots for the sheets' : 'The sheet being composed'} className={`rounded px-2 py-1 text-xs ${centre === k ? 'bg-white/15' : 'text-slate-300'}`}>{w}</button>)}
+        </div>
         <div className="flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
           <button type="button" role="tab" aria-selected={tab === 'frame'} onClick={() => setTab('frame')} className={`rounded px-2 py-1 text-xs ${tab === 'frame' ? 'bg-white/15' : 'text-slate-300'}`}>Compose</button>
           <button type="button" role="tab" aria-selected={tab === 'submit'} onClick={() => setTab('submit')} className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === 'submit' ? 'bg-white/15' : 'text-slate-300'}`}><ListChecks size={12} />Check and export</button>
+          <button type="button" role="tab" aria-selected={tab === 'tools'} onClick={() => setTab('tools')} data-testid="present-tools" title="Camera presets, shots, drawings, render, results and trace" className={`rounded px-2 py-1 text-xs ${tab === 'tools' ? 'bg-white/15' : 'text-slate-300'}`}>Views and results</button>
         </div>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Close the board composer (Esc)" className="rounded p-1.5 text-slate-300 hover:bg-white/10"><X size={16} /></button>
       </header>
       <div className="flex min-h-0 flex-1">
         <SheetsPanel levels={levels} onPick={pick} onCreate={createSet} msg={setMsg} />
-        <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
+        {centre === '3d' && viewport
+          ? <main className="min-w-0 flex-1 overflow-hidden bg-panel text-ink" data-testid="present-3d">{viewport}</main>
+          : <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
           <div className="flex h-full w-full items-center justify-center">
             <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />
           </div>
-        </main>
+        </main>}
+        {tab === 'tools' && tools ? <div className="flex shrink-0 text-ink" data-testid="present-tools-panel">{tools}</div> : (
         <aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={tab === 'frame' ? 'Frame' : 'Check and export'}>
           {tab === 'frame' ? <FrameInspector evidence={evidence} levels={levels} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
         </aside>
+        )}
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }

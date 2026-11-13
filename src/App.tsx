@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, type ComponentType, type CSSProperties } from 'react'
 import SwRunner from './components/sw/SwRunner'
+import { startPresentSync } from './lib/presentPage'
 const BoardComposer = lazy(() => import('./components/boards/BoardComposer'))
 import { togglePanel, usePanels, usePanelWidths } from './lib/panels'
 import { PanelRail, PanelResizer } from './components/PanelToggle'
@@ -51,7 +52,7 @@ export default function App() {
   useEffect(() => { if (route === 'workflow' && useProjectWorkflow.getState().mode !== 'builder') openBuilder() }, [route])
 
   // Step following and the first step, which the phase row used to start (the row is gone; the Workflow card has the phases).
-  useEffect(() => { const stop = startStepFollow(); startOnSite(whenRestored()); return stop }, [])
+  useEffect(() => { const stop = startStepFollow(); startOnSite(whenRestored()); const stop2 = startPresentSync(); return () => { stop(); stop2() } }, [])
   useEffect(() => { document.title = `${stageDef(phase).label} · Tower Design Toolkit` }, [phase])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -80,13 +81,17 @@ export default function App() {
       style={{ ...(widths.left ? { '--left-w': `${widths.left}px` } : {}), ...(widths.right ? { '--right-w': `${widths.right}px` } : {}) } as CSSProperties}>
       <TopBar />
       <SwRunner />
-      {/* The presentation sheets open from any phase (the Model | Presentation switch in the top bar). */}
-      <Suspense fallback={null}><BoardComposer /></Suspense>
       {/* The phase row and the three columns together: the workflow builder (Result A, 9 Nov) covers both, so only the
           project bar stays in reach while it is open (the phase row would move the step under it). */}
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">
       {/* The phase row is gone: the phases are in the Workflow card (phase dots, Next). Keys 1-5 still move between them. */}
       <div className="relative flex min-h-0 flex-1 gap-2" data-workspace>
+        {/* Present is one page: the sheets, with the 3D view and the old Present panel inside it (BoardComposer). */}
+        {present ? (
+          <Suspense fallback={<div aria-busy="true" aria-label="Loading the presentation" className="h-full w-full" />}>
+            <BoardComposer viewport={LoadedViewport ? <LoadedViewport /> : <Suspense fallback={null}><Viewport /></Suspense>} tools={<RightPanel />} />
+          </Suspense>
+        ) : (<>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
         <main className="relative flex min-w-0 flex-1 gap-2">
@@ -113,6 +118,7 @@ export default function App() {
         {/* The design tool rail stands on its own beside the right panel (13 Nov, Sinnie: "should be on the side"). */}
         {!present && (view === '3d' || view === 'split') && <TowerRail />}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
+        </>)}
       </div>
       <WorkflowBuilder />
       </div>

@@ -14,7 +14,6 @@ export default function BoardsSection() {
   const d = deadlineInfo(Date.now())
   return (
     <Section title="Boards (VTC submission)">
-      <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-medium text-white hover:opacity-90"><LayoutGrid size={14} />Open the board composer</button>
       <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-meta">
         <dt className="text-muted">Boards with content</dt><dd className="text-right tabular-nums">{used} / 4</dd>
         <dt className="text-muted">Suggested items placed</dt><dd className="text-right tabular-nums">{met} / {DELIVERABLES.length}</dd>
