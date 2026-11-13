@@ -80,13 +80,20 @@ export const USER_TYPES: UserType[] = [
         // Sinnie, 13 Nov: "a preset workflow named demo: site, massing, program, sun/wind/rain/energy related nodes, and
         // view cone, and final presentation sheet". Real Vancouver, since the view-cone check runs only there.
         id: 'designer.demo', type: 'designer', name: 'Demo',
-        goal: 'The whole run in one go: site and view cones, massing with sun and wind, program, energy, then the presentation sheet.',
+        goal: 'The whole run in one go: site and view cones, massing with sun, wind and rain, program, then facade, daylight, air and energy, and the presentation sheet.',
         project: 'city', step: 'site',
         // Checks only: the Site, Massing, Program, Core and Frame steps go in front of each phase's first check by themselves
         // (lib/workflow/designNodes.ts withDesignSteps). Floor area brings the Program step, the board record the Frame step
         // with the presentation sheet.
         // 13 Nov: the Sun & Wind Studio tools in place of the old sun, wind and energy checks, and its rain tools added.
-        nodes: ['built.viewcones', 'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.fsr', 'built.sw-energy', 'built.sw-pv', 'built.provenance'],
+        // 13 Nov (Sinnie: "revise the demo workflow to include related tools"): every Sun & Wind Studio tool, in the order
+        // of the design: site and view cones; massing with sun, wind, rain and form; program; then the façade, daylight,
+        // air and energy of the floors; the board record last.
+        nodes: ['built.viewcones',
+          'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form',
+          'built.fsr',
+          'built.sw-glazing', 'built.sw-daylight', 'built.sw-daylight-factor', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv',
+          'built.provenance'],
         says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
       },
     ],
