@@ -10,6 +10,7 @@ import {
   PRIVACY, addressLabel, cityPlace, createLookup, hasConsent, isOnline, loadCityRecords, loadLocalAreas, matchAreas, setConsent, suggest, titleStreet,
   type CityRecord, type LocalArea, type Place,
 } from '../lib/addressSearch'
+import { bundledAreas, bundledRecords } from '../lib/bundledAddresses'
 import { saveFile } from '../lib/download'
 import { loadParcelLayer, parcelLabel, useSiteAnalysis, type ParcelLayer } from '../lib/siteParcels'
 import { idsToIndices, newSite, useSiteStore, type StudySite } from '../lib/siteStore'
@@ -136,19 +137,26 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
     window.addEventListener('online', on); window.addEventListener('offline', on)
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', on); lookup.current.cancel() }
   }, [])
+  // The City addresses and local areas the app ships (lib/bundledAddresses.ts): no network, no consent needed. With
+  // consent and a network, the City's live list joins them where the page may fetch it (not in a published artifact).
+  useEffect(() => {
+    bundledRecords().then(setRecords, () => setRecords([]))
+    bundledAreas().then(setAreas, () => setAreas([]))
+  }, [])
   useEffect(() => {
     if (!consent || !online) return
-    loadCityRecords().then(setRecords, () => setRecords([]))
-    loadLocalAreas().then(setAreas, () => setAreas([]))
+    loadCityRecords().then((live) => { if (live.length) setRecords((cur) => [...live, ...(cur ?? [])]) }, () => undefined)
+    loadLocalAreas().then((live) => { if (live.length) setAreas(live) }, () => undefined)
   }, [consent, online])
   const localItems = useMemo(() => {
     const items: Item[] = []
+    // A neighbourhood that matches the text comes first (12 Nov: "West End" was under fuzzy street guesses).
+    if (areas) matchAreas(areas, q).forEach((a) => items.push({ label: a.name, note: 'City local area', place: { label: a.name, utm: toCity(a.lon, a.lat, 'EPSG:4326'), lon: a.lon, lat: a.lat, kind: 'neighbourhood', source: 'local-area' } }))
     if (records && q.trim()) {
       const r = suggest(records, q)
       if (r.kind === 'streets') r.items.forEach((x) => items.push({ label: x.label, note: r.approximate ? 'Similar street · add a number' : 'Street · add a number', street: x.street, approximate: r.approximate }))
       if (r.kind === 'match' || r.kind === 'guess') r.items.forEach((x) => items.push({ label: addressLabel(x), note: r.kind === 'guess' ? 'Similar City address (check it)' : 'City civic address point', place: cityPlace(x, r.kind === 'guess') }))
     }
-    if (areas) matchAreas(areas, q).forEach((a) => items.push({ label: a.name, note: 'City local area', place: { label: a.name, utm: toCity(a.lon, a.lat, 'EPSG:4326'), lon: a.lon, lat: a.lat, kind: 'neighbourhood', source: 'local-area' } }))
     return items
   }, [records, areas, q])
   const merged = useMemo(() => {
@@ -174,6 +182,8 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
   }
   const body = (
     <>
+      {/* The search box always (built-in City addresses); the online geocoder is an extra, behind its consent. */}
+      {searchBox()}
       {!consent ? (
         // The consent point stays readable in the fold's title (Ruijie, 6 Nov: long texts behind a summary title); the
         // services, what is sent, the licences and the offline note are one click away.
@@ -182,12 +192,17 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
             <p>The Province of British Columbia's BC Address Geocoder gives the live suggestions. City of Vancouver civic address points and local areas are downloaded once from the <b>City open-data portal</b> (no typed text). Nothing else leaves this browser. It works only online; drawing, picking and coordinates work offline.</p>
             <p>Geocoder <a className="underline" href={PRIVACY.geocoderPrivacy} target="_blank" rel="noreferrer">privacy statement</a> and <a className="underline" href={PRIVACY.geocoderLicence} target="_blank" rel="noreferrer">licence</a> · City data under the <a className="underline" href={PRIVACY.cityLicence} target="_blank" rel="noreferrer">Open Government Licence - Vancouver</a>.</p>
           </Fold>
-          <button type="button" className={`${btn} mt-1.5 border-accent bg-accent text-white`} onClick={() => { setConsent(true); setC(true) }}><Search size={12} />Search online</button>
+          <button type="button" className={`${btn} mt-1.5 border-line hover:border-accent`} onClick={() => { setConsent(true); setC(true) }}><Search size={12} />Also search online</button>
         </div>
       ) : !online ? (
-        <p className="flex items-center gap-1 text-meta text-amber-900"><WifiOff size={12} />You are offline. Address search needs the network; type coordinates, draw the site or pick buildings instead.</p>
-      ) : (
-        <div className="relative">
+        <p className="flex items-center gap-1 text-meta text-muted"><WifiOff size={12} />Offline: the built-in City addresses only.</p>
+      ) : null}
+      <PendingConfirm onPlace={onPlace} />
+    </>
+  )
+  function searchBox() {
+    return (
+        <div className="relative mb-1.5">
           <input type="search" value={q} onChange={(e) => onType(e.target.value)} onFocus={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' && merged[0]) choose(merged[0]); if (e.key === 'Escape') setOpen(false) }}
             placeholder="e.g. 1128 W Georgia, or West End" role="combobox" aria-expanded={open && merged.length > 0} aria-controls={listId} aria-autocomplete="list" aria-label="Address or neighbourhood"
             className="w-full rounded border border-line bg-panel px-2 py-1 text-xs" />
@@ -200,7 +215,7 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
               ))}
             </ul>
           )}
-          <p className="mt-1 text-meta text-muted" role="status">{records === null ? 'Loading City addresses…' : remote.state === 'loading' ? 'Asking the BC Address Geocoder…' : remote.state === 'error' ? (remote.reason === 'offline' ? 'Offline: City list only.' : `Geocoder did not answer (${remote.reason}); City list only.`) : `${records.length.toLocaleString('en-CA')} City addresses in the downtown box${areas ? `, ${areas.length} local areas` : ''}.`}</p>
+          <p className="mt-1 text-meta text-muted" role="status">{records === null ? 'Loading City addresses…' : remote.state === 'loading' ? 'Asking the BC Address Geocoder…' : remote.state === 'error' ? (remote.reason === 'offline' ? 'Offline: City list only.' : `Geocoder did not answer (${remote.reason}); City list only.`) : `${records.length.toLocaleString('en-CA')} City addresses${areas ? `, ${areas.length} local areas` : ''} (built in).`}</p>
           {chosen && chosen.kind === 'address' && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               <button type="button" className={`${btn} border-line hover:border-accent`} onClick={() => zoomTo(local_(chosen))}><MapPin size={12} />Zoom to address</button>
@@ -210,10 +225,8 @@ export function AddressSearch({ onPlace, bare = false }: { onPlace: (p: Pt, labe
           )}
           {chosen?.approximate && <p className="mt-1 text-meta text-amber-900">A similar address, not the one typed: check it before using it.</p>}
         </div>
-      )}
-      <PendingConfirm onPlace={onPlace} />
-    </>
-  )
+    )
+  }
   return bare ? <div>{body}</div> : <Section title="Find an address or neighbourhood">{body}</Section>
 }
 const local_ = (p: Place) => local(p.utm)
