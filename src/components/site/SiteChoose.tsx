@@ -2,7 +2,9 @@
 // import site"; the Your site card is gone from here). Two choices: Select site (an address, the map, or the default
 // block: the Site step's own tools, SiteStart.tsx) and Import site (a boundary file: GeoJSON, as Results › Study site).
 import { useRef, useState } from 'react'
-import { FileUp, MousePointerClick } from '../icons'
+import { FileUp } from '../icons'
+import { TOOL_ICONS } from '../../data/icons'
+import IconTile from '../IconTile'
 import type { Pt } from '../../engine/site'
 import { ringMetrics, validateRing } from '../../engine/site'
 import { readSiteBoundary, setSiteBoundary } from '../../lib/siteImport'
@@ -30,18 +32,14 @@ export default function SiteChoose() {
     if (fileRef.current) fileRef.current.value = ''
   }
   const area = site && !validateRing(site.ring) ? ringMetrics(site.ring).area : null
-  const tile = (on: boolean) => `flex flex-1 flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-control font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-accent/50 bg-selected text-accent-hover' : 'border-line bg-panel text-ink hover:border-boundary'}`
   return (
     <div data-testid="site-choose" className="text-meta">
+      {/* The toolkit's own tool icons (IconTile: GlassIcon with the filled drawing, hue from the word), as the Site step. */}
       <div className="flex gap-2 px-3 pt-3">
-        <button type="button" data-testid="site-select" aria-expanded={choice === 'select'} onClick={() => setChoice(choice === 'select' ? null : 'select')} className={tile(choice === 'select')}
-          title="Select the site: type an address, click a lot or buildings on the map, or take the default block">
-          <MousePointerClick size={22} aria-hidden />Select site
-        </button>
-        <button type="button" data-testid="site-import" onClick={() => fileRef.current?.click()} className={tile(false)}
-          title="Import the site boundary from a GeoJSON file (EPSG:26910 or WGS84). Read in this browser; nothing is uploaded.">
-          <FileUp size={22} aria-hidden />Import site
-        </button>
+        <IconTile icon={TOOL_ICONS['site']} word="Site" label="Select site" data-testid="site-select" aria-expanded={choice === 'select'} active={choice === 'select'}
+          onClick={() => setChoice(choice === 'select' ? null : 'select')} hint="Type an address, click a lot or buildings on the map, or take the default block." />
+        <IconTile icon={FileUp} word="Import" label="Import site" data-testid="site-import" onClick={() => fileRef.current?.click()}
+          hint="The site boundary from a GeoJSON file (EPSG:26910 or WGS84). Read in this browser; nothing is uploaded." />
         <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} aria-label="Site boundary GeoJSON file" />
       </div>
       {site && area != null && <p data-testid="site-current" className="truncate px-3 pt-2 text-muted" title={site.label ?? undefined}>Current: <span className="text-ink">{site.label ?? 'Study site'}</span> · {fmt(area)} m²</p>}

@@ -24,6 +24,7 @@ import { useResults } from '../hooks/useResults'
 import ViewFromRig from './ViewFromRig'
 import VistaRig from './VistaRig'
 import VistaInset from './VistaInset'
+import { useHiddenTowers } from '../lib/hiddenTowers'
 import OutriggerFloors from './OutriggerFloors'
 import PlanDrawing from './PlanDrawing'
 import PublicRealmOverlay from './PublicRealmOverlay'
@@ -110,6 +111,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   // Without the base model (another computer, before the entrant adds their copy): the brief's block is the site.
   const site = ctx?.site ?? BRIEF_SITE
   const towers = useTowers()
+  const hiddenTowers = useHiddenTowers((s) => s.hidden)
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
   // A thick ground (at least 30 m, 10 m under the deepest basement) that basements are dug into (engine/basement.ts).
   const thickness = useMemo(() => groundThickness(towers), [towers])
@@ -149,7 +151,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
       {ctx?.labels.filter((l) => !['N', 'SITE'].includes(l.text)).map((l, i) => (
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold quiet />
       ))}
-      {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
+      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
       <ModelOverlay base={0} xray={xray} />
       <PublicRealmOverlay />
       <EnergyOverlay />
@@ -161,6 +163,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
 
 function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const towers = useTowers()
+  const hiddenTowers = useHiddenTowers((s) => s.hidden)
   const ground = useStore((s) => s.groundElevation)
   const grid = useMemo(() => {
     const pts: number[] = []
@@ -178,7 +181,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <CityContext look={look} xray={xray} onPick={onPick} />
       <ViewFromRig />
       <VistaRig />
-      {towers.map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}</TowerMover>)}
+      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}</TowerMover>)}
       <ModelOverlay base={ground} xray={xray} />
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
