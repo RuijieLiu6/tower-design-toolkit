@@ -71,7 +71,7 @@ import { useSceneStyle } from '../lib/sceneStyle'
 import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
-import { faceNorth, northView, upNorthDeg, useNorthMode } from '../lib/northView'
+import { faceNorth, northView, orientReq, upNorthDeg, useNorthMode } from '../lib/northView'
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()
@@ -679,7 +679,7 @@ export default function Viewport() {
           <ViewGuard>
           <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
             onCreated={({ gl }) => { gl.localClippingEnabled = true }}
-            camera={{ position: project === 'vtc' ? [520, 430, 640] : toThree(...VISTA_OVERVIEW.position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
+            camera={{ position: project === 'vtc' ? toThree(...orientReq({ position: [520, -640, 430], target: [0, 0, 60] }).position).toArray() : toThree(...orientReq({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target] }).position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
             <color attach="background" args={[look.background]} />
             <HiResCapture />
             <BvhWarmup />

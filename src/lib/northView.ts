@@ -86,3 +86,18 @@ export function setNorthMode(mode: NorthMode) {
   try { localStorage.setItem(NORTH_KEY, mode) } catch { /* this visit only */ }
   faceNorth(upNorthDeg())
 }
+
+/** Whether a north has been chosen in this browser (Your site); until then the camera presets stay as they were. */
+export const northChosen = () => { try { return localStorage.getItem(NORTH_KEY) != null } catch { return false } }
+
+/**
+ * A camera preset (model frame, z up) seen with the chosen north up: the camera moved round its target to bearing
+ * 180° + that north, keeping its distance and height (13 Nov: "it should remember what i've set it as" through 2D, 3D
+ * and a reload). Unchanged until a north has been chosen.
+ */
+export function orientReq<T extends { position: [number, number, number]; target: [number, number, number] }>(req: T): T {
+  if (!northChosen()) return req
+  const b = ((180 + upNorthDeg()) * Math.PI) / 180, [tx, ty] = req.target
+  const r = Math.max(0.01, Math.hypot(req.position[0] - tx, req.position[1] - ty))
+  return { ...req, position: [tx + r * Math.sin(b), ty + r * Math.cos(b), req.position[2]] }
+}

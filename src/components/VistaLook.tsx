@@ -25,7 +25,7 @@ import { sampleTerrain, type Manifest } from '../lib/cityLayers'
 import { fitPoints } from '../lib/fitView'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
-import { faceNorth, northView, upNorthDeg } from '../lib/northView'
+import { faceNorth, northView, orientReq, upNorthDeg } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
 import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
@@ -210,6 +210,17 @@ const toModel = (p: THREE.Vector3): [number, number, number] => [p.x, -p.z, p.y]
 export const cancelFlight = () => { flight.to = null }
 
 /** Moves the orbit camera to `to`: smoothly, or at once under reduced motion. */
+/**
+ * A camera preset turned about its target by `deg` clockwise in plan (13 Nov: the presets put true north up; turned by
+ * the chosen north, they keep true north or project north up as set in Your site, through 2D and 3D).
+ */
+export function turnReq(req: CamReq, deg: number): CamReq {
+  if (!deg) return req
+  const a = (deg * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a), [tx, ty] = req.target
+  const x = req.position[0] - tx, y = req.position[1] - ty
+  return { ...req, position: [tx + x * c + y * sn, ty - x * sn + y * c, req.position[2]] }
+}
+
 export function flyTo(to: CamReq) {
   const cam = live.camera, ctl = live.ctl
   if (useStore.getState().reducedMotion || !cam || !ctl) { flight.to = null; useStore.getState().set({ cameraRequest: to }); return }
@@ -291,9 +302,9 @@ function chooseMode(m: MapMode, defaultCone: string | null) {
   leaveEyeLevel()
   set((s) => ({ mode: m, note: null, inspected: m === 'inspect' ? s.inspected : null }))
   // City: every press goes back to the large Vancouver context (Vista's overview camera).
-  if (m === 'city') flyTo({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target], fov: VISTA_OVERVIEW.fov })
+  if (m === 'city') flyTo(orientReq({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target], fov: VISTA_OVERVIEW.fov }))
   // Inspect: every press frames the proposed tower in axonometric, inside the part of the view the overlays leave free.
-  if (m === 'inspect') { const axo = towerAxo(viewAspect(), overlayInsets()); if (axo) flyTo(axo) }
+  if (m === 'inspect') { const axo = towerAxo(viewAspect(), overlayInsets()); if (axo) flyTo(orientReq(axo)) }
 }
 
 /**
@@ -639,6 +650,7 @@ export function VistaLookRig() {
   const mode = useActiveMode()
   const phase = useStore((s) => s.phase)
   const saved = useRef<{ position: [number, number, number]; target: [number, number, number]; fov: number } | null>(null)
+  const savedUp = useRef(0)
   // Present has no map modes: back to the orbit (and out of Plan's pan-only controls).
   useEffect(() => { if (phase === 'present') useVistaLook.setState({ mode: 'city', inspected: null, note: null }) }, [phase])
 
@@ -653,7 +665,9 @@ export function VistaLookRig() {
     const ctl = controls, cam = camera as THREE.PerspectiveCamera
     if (!ctl || mode !== 'plan') return
     saved.current = { position: toModel(cam.position), target: toModel(ctl.target), fov: cam.fov }
-    flyTo(planCamera(studyCentre(), gl.domElement.clientWidth / Math.max(1, gl.domElement.clientHeight)))
+    savedUp.current = upNorthDeg()
+    // The plan with the chosen north up (true north or project north, Your site).
+    flyTo(orientReq(planCamera(studyCentre(), gl.domElement.clientWidth / Math.max(1, gl.domElement.clientHeight))))
     const buttons = { ...ctl.mouseButtons }, touches = { ...ctl.touches }
     ctl.enableRotate = false
     ctl.mouseButtons = { ...ctl.mouseButtons, LEFT: THREE.MOUSE.PAN }
@@ -661,7 +675,8 @@ export function VistaLookRig() {
     return () => {
       ctl.enableRotate = true; ctl.mouseButtons = buttons; ctl.touches = touches
       const back = saved.current, st = useStore.getState()
-      if (back && !flight.to && st.project === 'city' && st.phase !== 'present' && useVistaLook.getState().mode === 'inspect') flyTo(back)
+      // Back in 3D as it was, turned by any change of north made meanwhile.
+      if (back && !flight.to && st.project === 'city' && st.phase !== 'present' && useVistaLook.getState().mode === 'inspect') flyTo(turnReq(back, upNorthDeg() - savedUp.current))
       saved.current = null
     }
   }, [mode, controls, camera, gl])
