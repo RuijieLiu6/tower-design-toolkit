@@ -25,6 +25,7 @@ import { useStore } from '../../store'
 import { placeFirstTower } from '../tools/NoTower'
 
 const SiteChoose = lazy(() => import('../site/SiteChoose'))
+const ToolPanel = lazy(() => import('../tools/ToolPanel'))
 type SetupTab = 'site' | 'massing' | 'material' | 'program'
 const TABS: { id: SetupTab; label: string }[] = [{ id: 'site', label: 'Site' }, { id: 'massing', label: 'Massing' }, { id: 'material', label: 'Material' }, { id: 'program', label: 'Program' }]
 const FOLLOW: Partial<Record<PhaseId, SetupTab>> = { site: 'site', form: 'massing', program: 'program' }
@@ -116,7 +117,10 @@ function MassingTab() {
   const btn = 'flex h-10 flex-1 items-center justify-center rounded-xl border border-line bg-panel text-control outline-none hover:border-boundary focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
   return (
     <>
-      <Section title="Masses" note={`${towers.length} · tallest first`} testId="setup-masses">
+      {/* 12 Nov ("this should show up under massing in the left panel not right"): the Form step's tools (Generate,
+          Place your tower, the massing tools) sit here; the right panel's Properties shows the picked tower. */}
+      <div className="border-b border-line" data-testid="setup-form-tools"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><ToolPanel embedded step="volume" /></Suspense></div>
+      {towers.length > 0 && <Section title="Masses" note={`${towers.length} · tallest first`} testId="setup-masses">
         {towers.length ? (
           <ul className="space-y-0.5" data-testid="setup-towers">
             {towers.map((t) => (
@@ -128,8 +132,8 @@ function MassingTab() {
               </MassRow>
             ))}
           </ul>
-        ) : <NoTower />}
-      </Section>
+        ) : null}
+      </Section>}
       <div className={section}>
         <dl className="grid grid-cols-[1fr_auto] gap-y-1.5 text-control" data-testid="setup-massing-stats">
           <dt className="text-muted">Floor area</dt><dd className="text-right tabular-nums text-ink">{fmt(gfa)} m²</dd>

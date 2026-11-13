@@ -21,6 +21,7 @@ import TracePanel from './TracePanel'
 import TowerRail from './TowerRail'
 import { ActiveTool, usePhaseActive } from './workflow/PhasePanel'
 import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
+import { designOf } from '../lib/workflow/phaseTools'
 import { toggleOverlays, useDock } from './ViewportDock'
 import { useTowerEdit } from '../lib/towerEdit'
 import { Eye, EyeOff, Layers, Magnet } from './icons'
@@ -164,6 +165,12 @@ export default function RightPanel() {
 function Properties({ positioning }: { positioning: boolean }) {
   const { phase, info, active } = usePhaseActive()
   const siteFocus = useSiteFocus((s) => s.on)
+  // The Form step's own tools live in the left panel's Massing tab (12 Nov): here, the picked tower's properties.
+  if (!siteFocus && phase === 'form' && active === designOf('form').id) return (
+    <div data-testid="rp-properties" data-focus="tower">
+      <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>
+    </div>
+  )
   if (siteFocus) return (
     <div data-testid="rp-properties" data-focus="site">
       <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteInfo /></Suspense>

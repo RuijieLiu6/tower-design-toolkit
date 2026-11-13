@@ -13,7 +13,7 @@ import { HidePanelButton } from '../PanelToggle'
 import IconTile from '../IconTile'
 import { DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
-import { toolsForStep, useStep } from '../../lib/step'
+import { toolsForStep, useStep, type StepId } from '../../lib/step'
 import { NoTowerYet, PlaceFirstTower } from './NoTower'
 
 const KEY = 'ts.tools.active'
@@ -56,10 +56,12 @@ function ToolTile({ tool, active, tabStop, panelOpen, onPick, onKey }: { tool: D
  * `embedded`: inside the phase panel (components/workflow/PhasePanel.tsx), which has its own header. `only`: the design
  * controls an analysis tool opens with (lib/workflow/phaseTools.ts NODE_CONTROLS), whatever their step.
  */
-export default function ToolPanel({ embedded = false, only }: { embedded?: boolean; only?: string[] } = {}) {
+export default function ToolPanel({ embedded = false, only, step: forStep }: { embedded?: boolean; only?: string[]; step?: StepId } = {}) {
   const phase = useStore((s) => s.phase)
   const project = useStore((s) => s.project)
-  const step = useStep((s) => s.step)
+  // `step`: a fixed step's tools (the set-up panel's Massing tab shows the Form step's tools whatever step is open).
+  const openStep = useStep((s) => s.step)
+  const step = forStep ?? openStep
   // `when` conditions read the store; the list follows the stage and the project.
   const tools = useMemo(() => toolsFor(DESIGN_TOOLS, phase, useStore.getState()), [phase, project])
   const noTower = useTowers().length === 0

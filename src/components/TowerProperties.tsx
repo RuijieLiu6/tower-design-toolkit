@@ -28,7 +28,7 @@ export default function TowerProperties() {
   const { project, selected, selectTower, ground } = useStore(useShallow((s) => ({ project: s.project, selected: s.selectedTower, selectTower: s.selectTower, ground: s.groundElevation })))
   const t = towers.find((x) => x.id === selected) ?? towers[0]
   useEffect(() => { if (project === 'city') void loadLots() }, [project])
-  if (!t) return <p className="p-4 text-xs text-muted">No tower yet. Place one in the Form step.</p>
+  if (!t) return <p className="p-4 text-xs text-muted">No tower yet: place one under Massing in the left panel (Place a tower or Draw a mass).</p>
   return (
     <div className="grid gap-3 p-3 text-xs" data-testid="tower-properties">
       {towers.length > 1 && (
