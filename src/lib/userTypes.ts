@@ -76,6 +76,18 @@ export const USER_TYPES: UserType[] = [
         nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.solar-access', 'built.culture-claims', 'built.provenance'],
         says: ['community workshop with residents', 'co-design session', 'public space and ground floor with the community'],
       },
+      {
+        // Sinnie, 13 Nov: "a preset workflow named demo: site, massing, program, sun/wind/rain/energy related nodes, and
+        // view cone, and final presentation sheet". Real Vancouver, since the view-cone check runs only there.
+        id: 'designer.demo', type: 'designer', name: 'Demo',
+        goal: 'The whole run in one go: site and view cones, massing with sun, wind and rain, program, energy, then the presentation sheet.',
+        project: 'city', step: 'site',
+        // Checks only: the Site, Massing, Program, Core and Frame steps go in front of each phase's first check by themselves
+        // (lib/workflow/designNodes.ts withDesignSteps). Floor area brings the Program step, the board record the Frame step
+        // with the presentation sheet. Rain is the rainwater line of the City in Nature ledger.
+        nodes: ['built.viewcones', 'built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature', 'built.fsr', 'built.energy-carbon', 'built.provenance'],
+        says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
+      },
     ],
   },
   {

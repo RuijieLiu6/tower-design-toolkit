@@ -15,7 +15,7 @@ import {
   Aperture, BelowGrade, Building as BuildingIcon, Camera, ChartColumn, ClipboardList, Cloud, Columns3, CorePlan, Cuboid, FileCheck2, FileImage,
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
-  Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
+  PlayCircle, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
@@ -75,7 +75,7 @@ export const WAY_ICONS = { ask: MessageSquare, presets: Tags, phases: GitCommitH
 
 /** The preset workflows (lib/userTypes.ts), each its own picture. */
 export const PRESET_ICONS: Record<string, LucideIcon> = {
-  'designer.competition': Trophy, 'designer.neighbourhood': MapPinned, 'designer.form': PenTool, 'designer.codesign': MessagesSquare,
+  'designer.competition': Trophy, 'designer.neighbourhood': MapPinned, 'designer.form': PenTool, 'designer.codesign': MessagesSquare, 'designer.demo': PlayCircle,
   'practitioner.rezoning': Scale, 'practitioner.schematic': BuildingIcon, 'practitioner.permit': FileCheck2,
   'planner.views': Telescope, 'planner.public': Sun, 'planner.growth': Building2,
   'engineer.structure': Hammer, 'engineer.vertical': Layers, 'engineer.sustainability': Recycle,
