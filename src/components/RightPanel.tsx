@@ -169,13 +169,12 @@ function Properties({ positioning }: { positioning: boolean }) {
 /** The footer, as the Tower Workspace's Fit · Snap · Grid: Snap for moving towers, Layers & context, and overlays. */
 function PanelFooter() {
   const snap = useTowerEdit((s) => s.snap)
-  const project = useStore((s) => s.project)
-  const layersOpen = useDock((d) => (project === 'city' ? d.menu : d.open))
   const hidden = useDock((d) => d.hidden)
   const btn = (on: boolean) => `flex h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-selected text-accent-hover' : 'bg-subtle text-ink hover:bg-line'}`
   return (
     <div data-testid="rp-footer" className="flex items-center gap-1.5 border-t border-line p-2">
-      <button type="button" onClick={() => useDock.setState((d) => (project === 'city' ? { menu: !d.menu } : { open: !d.open }))} aria-pressed={layersOpen} className={`${btn(layersOpen)} flex-1`} title="Layers and context over the view"><Layers size={14} aria-hidden />Layers</button>
+      {/* 12 Nov: Layers left the footer (the view's own Layers button, top right, opens the same panel). */}
+      <span className="flex-1" />
       <button type="button" onClick={() => useTowerEdit.setState({ snap: !snap })} aria-pressed={snap} className={btn(snap)} title="Snap a moved tower to edges and steps"><Magnet size={14} aria-hidden />Snap</button>
       <button type="button" onClick={toggleOverlays} aria-pressed={!hidden} aria-label={hidden ? 'Show overlays (H)' : 'Hide overlays (H)'} title={hidden ? 'Show overlays (H)' : 'Hide overlays (H)'} className={btn(!hidden)}>{hidden ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}</button>
     </div>

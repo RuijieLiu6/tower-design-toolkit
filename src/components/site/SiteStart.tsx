@@ -89,14 +89,15 @@ function CityStart() {
  * Real Vancouver with no site, and the default site only came with the switch from the competition site, so every
  * check that needs a site area stayed open). The same action as that switch: one undo step.
  */
-function DefaultSite() {
+export function DefaultSite({ bare = false }: { bare?: boolean }) {
   const site = useStore((s) => s.citySite)
   if (site) return null
+  const Wrap = bare ? ({ children }: { children: React.ReactNode }) => <div><h4 className="mb-1 font-semibold text-ink">Or the default block</h4>{children}</div> : ({ children }: { children: React.ReactNode }) => <Step n="3" title="Or start from the default site">{children}</Step>
   return (
-    <Step n="3" title="Or start from the default site">
+    <Wrap>
       <IconTile size="sm" icon={Crosshair} word="Default" label="Use the default site" data-testid="use-default-site" onClick={() => openCity([600, 2000])}
         hint="The Granville / W Pender / Howe / Dunsmuir block, chosen by the 6 Nov research for the Higher Buildings Policy route (whether it lies inside the policy's Figure 1 area is unresolved). With no tower here yet, the competition design comes along, turned to the street grid. Ctrl+Z undoes it." />
-    </Step>
+    </Wrap>
   )
 }
 
@@ -111,7 +112,7 @@ function PickOnMapHelp() {
   )
 }
 
-function PickOnMap() {
+export function PickOnMap() {
   const { box, multi } = useSiteStep()
   return (
     <div className="flex flex-wrap gap-1">

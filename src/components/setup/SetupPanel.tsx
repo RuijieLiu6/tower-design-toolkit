@@ -1,7 +1,7 @@
 // The set-up panel under the Workflow card (Sinnie, 12 Nov: "implement these two panels, maintain the toolkit UI only,
 // learn how the tower design tool lays out information"): like the Tower Workspace's set-up column, one tab per thing the
 // model is made of, Site · Form · Program · Material. Each tab is what the model holds for it, in the toolkit's own
-// components and tokens: Site is Your site (SiteInfo); Form lists the towers tallest first (pick, delete, place one);
+// components and tokens: Site is Select site · Import site (SiteChoose; 12 Nov, the Your site card left this panel); Form lists the towers tallest first (pick, delete, place one);
 // Program shows each tower's stack of uses and the project mix; Material gives each tower a facade material.
 // The tab follows the phase (Site, Form, Program) and stays where the user puts it otherwise.
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
@@ -12,7 +12,7 @@ import type { PhaseId } from '../../lib/phases'
 import { pickTower } from '../../lib/towerEdit'
 import { useStore } from '../../store'
 
-const SiteInfo = lazy(() => import('../site/SiteInfo'))
+const SiteChoose = lazy(() => import('../site/SiteChoose'))
 type SetupTab = 'site' | 'form' | 'program' | 'material'
 const TABS: { id: SetupTab; label: string }[] = [{ id: 'site', label: 'Site' }, { id: 'form', label: 'Form' }, { id: 'program', label: 'Program' }, { id: 'material', label: 'Material' }]
 const FOLLOW: Partial<Record<PhaseId, SetupTab>> = { site: 'site', form: 'form', program: 'program' }
@@ -44,7 +44,7 @@ export default function SetupPanel({ phase }: { phase: PhaseId }) {
         ))}
       </div>
       <div id="setup-body" role="tabpanel" aria-labelledby={`setup-tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-        {tab === 'site' && <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteInfo /></Suspense>}
+        {tab === 'site' && <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteChoose /></Suspense>}
         {tab === 'form' && <FormTab />}
         {tab === 'program' && <ProgramTab />}
         {tab === 'material' && <MaterialTab />}

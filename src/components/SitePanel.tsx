@@ -32,7 +32,7 @@ const say = (text: string, kind: 'info' | 'error' = 'info') => useSiteStore.getS
  * specific site"): north up, about one block around the point (a 180 m square), inside the part of the view the
  * overlays leave free, as a picked neighbourhood flies (VistaLook flyToFit).
  */
-function zoomTo(p: Pt, half = 90) {
+export function zoomTo(p: Pt, half = 90) {
   const g = useStore.getState().groundElevation
   const pts: [number, number, number][] = [[p[0] - half, p[1] - half, g], [p[0] + half, p[1] + half, g]]
   void import('./VistaLook').then((m) => m.flyToFit(pts, 2 * half))
