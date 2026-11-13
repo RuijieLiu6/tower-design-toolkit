@@ -338,13 +338,27 @@ function AngleButtons() {
   const active = useActiveMode()
   const defaultCone = useDefaultCone()
   return <>
-    {MAP_MODES.filter((m) => m.id !== 'viewcone').map((m) => {
+    {MAP_MODES.filter((m) => m.id !== 'viewcone' && m.id !== 'plan').map((m) => {
       const on = m.id === active
       return (
         <button key={m.id} type="button" aria-pressed={on} title={m.title} onClick={() => chooseMode(m.id, defaultCone)} data-angle={m.id}
           className={`flex h-8 items-center rounded-lg px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-subtle font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{m.label}</button>
       )
     })}
+    {/* Plan is a 2D / 3D switch (12 Nov, Sinnie: "for plan, can you change it to a 2D/3D"): 2D = the plan view, 3D = back
+        to the city view. */}
+    <span aria-hidden className="mx-0.5 h-5 w-px bg-line" />
+    <div role="group" aria-label="2D or 3D" data-testid="view-2d3d" className="flex rounded-lg bg-subtle p-0.5">
+      {(['2D', '3D'] as const).map((d) => {
+        const on = d === '2D' ? active === 'plan' : active !== 'plan'
+        return (
+          <button key={d} type="button" aria-pressed={on} data-angle={d === '2D' ? 'plan' : '3d'}
+            title={d === '2D' ? (MAP_MODES.find((m) => m.id === 'plan')?.title ?? 'Plan view') : 'The 3D view'}
+            onClick={() => { if (d === '2D' && active !== 'plan') chooseMode('plan', defaultCone); else if (d === '3D' && active === 'plan') chooseMode('city', defaultCone) }}
+            className={`flex h-7 items-center rounded-md px-2 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-panel font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{d}</button>
+        )
+      })}
+    </div>
   </>
 }
 
