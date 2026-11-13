@@ -527,7 +527,9 @@ function InspectCard() {
  * Protected views by number and name; the eye at the City's viewpoint elevation Lv, looking along the cone's axis.
  * Previous / Next step through them in order (Ruijie, 6 Nov, after Vista's "← Previous · Protected views 3 / 27 · Next →").
  */
-function ConePicker() {
+// 12 Nov ("move the function where you can select view cone to the one on the bottom right"): drawn inside the
+// location-map card (VistaInset), on top of the map, at the map's width.
+export function ConePicker() {
   const vp = useViewFromStore((s) => s.viewpoint)
   const looking = useViewFromStore((s) => s.looking)
   const current = looking && vp?.kind === 'cone' ? vp.coneId ?? '' : ''
@@ -535,29 +537,30 @@ function ConePicker() {
   const at = CONES.findIndex((c) => c.id === current)
   const navBtn = `rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`
   return (
-    <div className="max-w-[22rem] space-y-1 px-2 py-1.5 text-meta" style={box}>
-      <label className="flex items-center gap-1.5">
-        <span className="font-medium">View cone</span>
+    <div data-testid="cone-picker" className="w-[196px] space-y-1 text-meta" style={{ color: CHROME.ink }}>
+      <label className="grid gap-0.5">
+        <span className="font-semibold">View cone</span>
         <select aria-label="Protected view to look from" value={current} onChange={(e) => { if (e.target.value) goToCone(e.target.value) }}
-          className={`min-w-0 flex-1 rounded-lg border bg-panel px-1 py-0.5 text-meta ${focusRing}`} style={{ borderColor: CHROME.border, color: CHROME.ink }}>
+          className={`w-full min-w-0 rounded-lg border bg-panel px-1 py-0.5 text-meta ${focusRing}`} style={{ borderColor: CHROME.border, color: CHROME.ink }}>
           {!current && <option value="">Choose a protected view…</option>}
           {CONES.map((c) => <option key={c.id} value={c.id}>{c.id} · {c.name}{hasEstimate(c.id) ? '' : ' (no City estimate)'}</option>)}
         </select>
       </label>
       <nav aria-label="Protected view navigation" data-testid="cone-nav" className="flex items-center gap-1.5">
         <button type="button" onClick={() => goToCone(stepConeId(current, -1))} aria-label="Previous protected view" aria-describedby="cone-position"
-          className={navBtn} style={{ borderColor: CHROME.border, background: '#ffffff' }}>← Previous</button>
+          className={navBtn} style={{ borderColor: CHROME.border, background: '#ffffff' }}>←</button>
         <span id="cone-position" role="status" aria-live="polite" aria-atomic="true" className="flex-1 text-center text-meta tabular-nums">
-          Protected views · {at < 0 ? `${CONES.length} available` : `${at + 1} / ${CONES.length}`}
+          {at < 0 ? `${CONES.length} views` : `${at + 1} / ${CONES.length}`}
         </span>
         <button type="button" onClick={() => goToCone(stepConeId(current, 1))} aria-label="Next protected view" aria-describedby="cone-position"
-          className={navBtn} style={{ borderColor: CHROME.border, background: '#ffffff' }}>Next →</button>
+          className={navBtn} style={{ borderColor: CHROME.border, background: '#ffffff' }}>→</button>
       </nav>
-      {cone && <p className="text-meta leading-snug">Eye at the City's viewpoint elevation Lv {cone.Lv} m (ViewCone service), looking along the cone's axis. Esc or City to leave.</p>}
+      {cone && <p className="text-meta leading-snug" title="Eye at the City's viewpoint elevation Lv (ViewCone service), looking along the cone's axis. Esc or City to leave.">Eye at Lv {cone.Lv} m, along the cone's axis</p>}
       {!cone && looking && <p className="text-meta leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
       <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
-        className={`rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`} style={{ borderColor: CHROME.border, background: '#ffffff' }}>
-        Or stand on a street or roof (View from here)
+        title="Or stand on a street or roof (View from here)"
+        className={`w-full rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`} style={{ borderColor: CHROME.border, background: '#ffffff' }}>
+        Stand on a street or roof
       </button>
     </div>
   )
@@ -570,7 +573,7 @@ export function VistaChrome() {
   const note = useVistaLook((s) => s.note)
   const viewNote = useViewFromStore((s) => s.note)
   // At eye level the location map takes the bottom-right corner and, as in Vista, the legend steps aside.
-  const looking = useViewFromStore((s) => s.looking)
+  const looking = useViewFromStore((s) => s.looking || s.picking)
   // Schematic's title block takes the bottom right: the caption and legend wrap short of it.
   const schematic = useStore((s) => s.phase === 'advanced')
   // Esc leaves Inspect and Plan (View from here handles its own Esc).
@@ -587,8 +590,8 @@ export function VistaChrome() {
   return (
     <>
       <div data-vista-overlay="top" className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-2 [&>*]:pointer-events-auto">
-        {/* Viewcone and Names moved into Layers › Show (12 Nov); the view angles are in the view bar at the bottom. */}
-        {mode === 'observer' && <ConePicker />}
+        {/* Viewcone and Names moved into Layers › Show (12 Nov); the view angles are in the view bar; the cone picker is in
+            the bottom-right location-map card (VistaInset). */}
       </div>
       <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 [&>*]:pointer-events-auto"><Utilities /></div>
       <div data-vista-overlay="bottom" className={`pointer-events-none absolute bottom-2.5 left-2.5 z-10 flex ${looking ? 'max-w-[calc(100%-15.5rem)]' : schematic ? 'max-w-[calc(100%-19rem)]' : 'max-w-[calc(100%-1.25rem)]'} flex-col items-start gap-1.5 [&>*]:pointer-events-auto`}>

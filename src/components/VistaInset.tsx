@@ -13,6 +13,7 @@ import { fitInset } from '../lib/insetFit'
 import { CITY_PLINTH } from '../lib/plinth'
 import { eyeZ, useViewFromStore } from '../lib/viewFromStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
+import { ConePicker } from './VistaLook'
 
 const S = 196
 /** Room for the markers and their words at the frame's edge (px). */
@@ -29,7 +30,10 @@ export default function VistaInset() {
   const sel = useStore((s) => s.selectedTower)
   const vp = v.viewpoint
   const local = useMemo(() => CONES.map((c) => ({ id: c.id, est: !!CONE_PARAMS[c.id], ring: c.ring.map(([x, y]) => [x - CITY_ORIGIN[0], y - CITY_ORIGIN[1]] as [number, number]) })), [])
-  if (!v.looking || !vp) return null
+  // Observer (looking or picking a spot): the card holds the cone picker; the map joins it once there is a viewpoint.
+  if (!v.looking && !v.picking) return null
+  const card = 'pointer-events-auto absolute bottom-3 right-3 rounded-md border border-line bg-white/85 p-1.5 text-meta text-slate-700 shadow-sm backdrop-blur-md'
+  if (!v.looking || !vp) return <div data-testid="vista-inset" className={card}><ConePicker /></div>
   const t = towers.find((k) => k.id === sel) ?? towers[0]
   const eye: [number, number] = [vp.x, vp.y]
   const fp = t ? towerFootprint(t) : []
@@ -54,7 +58,8 @@ export default function VistaInset() {
   const towerWord = t ? word(tx, ty, t.name, towerUp) : null
   const [x0, y0, x1, y1] = BOUNDS
   return (
-    <div data-testid="vista-inset" className="pointer-events-none absolute bottom-3 right-3 rounded-md border border-line bg-white/85 p-1.5 text-meta text-slate-700 shadow-sm backdrop-blur-md">
+    <div data-testid="vista-inset" className={card}>
+      <div className="mb-1.5 border-b border-line pb-1.5"><ConePicker /></div>
       <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="img"
         aria-label={`Location map, north up: you at ${vp.label}${t ? `, ${t.name} ${km(dist)} away` : ''}, looking ${compass(v.bearing)} with a ${Math.round(v.hfov)}° field${frame.extentExceeded ? '. The model ends at the outlined edge.' : ''}`}>
         <defs><clipPath id="vista-inset-clip"><rect x={0} y={0} width={S} height={S} rx={4} /></clipPath></defs>
