@@ -1181,6 +1181,9 @@ function VistaBuildingsNote({ data }: { data: CityData }) {
 
 export function CityLegend() {
   const { data, error } = useCityData()
+  // Settings & sources starts folded every time the Layers panel opens (12 Nov: "sources should be minimized the entire time").
+  const menuOpen = useDock((d) => d.menu)
+  useEffect(() => { if (menuOpen) useDock.setState((d) => ({ sections: { ...d.sections, settings: false } })) }, [menuOpen])
   const streetDisplay = useStreetDisplay()
   const style = useSceneStyle((s) => s.style)
   const base = useStore((s) => s.groundElevation)
@@ -1211,7 +1214,7 @@ export function CityLegend() {
       // Simplified (12 Nov: "simplify this panel, and merge the view cone and names with it"): the switches people use
       // first, then the extra layers, then every setting and source folded into one section (nothing removed).
       { id: 'show', title: 'Show', defaultOpen: true, children: <LayerTiles manifest={manifest} /> },
-      { id: 'settings', title: 'Settings & sources', summary: `style, ground, cones · ${firstLoad.length} sources`, children: (
+      { id: 'settings', title: 'Settings & sources', children: (
         <div className="space-y-4">
           <SettingsPart title="Style & building types"><StyleCard data={data} /></SettingsPart>
           <SettingsPart title={`Ground & tower base · ${base.toFixed(1)} m, ${mode === 'terrain' ? 'from the terrain' : 'set by hand'}`}><GroundCard data={data} bare /></SettingsPart>

@@ -34,16 +34,16 @@ export default function SiteStreets() {
   const site = useStore((s) => s.citySite)
   const { result, status, error } = useSiteStreets()
   if (!site) return null
+  const open = result ? result.streets.filter((s) => s.kind === 'street' && !site.streets?.[s.key]?.type).length : 0
   const head = (
     <div className="mb-1 flex items-center gap-1.5 text-meta font-semibold text-ink">
-      <Route size={13} className="text-accent" aria-hidden />Streets
+      <Route size={13} className="text-accent" aria-hidden />Streets{open > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-meta font-medium text-amber-900" title={`${open === 1 ? 'One street has' : `${open} streets have`} no type yet: the street rules that depend on it stay open`}>{open} to set</span>}
       <Help label="About the streets">Names from the City street centrelines. Each width is measured across the street to the lots facing the site, along lines every 4 m. The Toolkit has no City street classification, so you pick each type: the public realm checks read it. Source: {STREETS_SOURCE}.</Help>
     </div>
   )
   if (status === 'error') return <div data-testid="site-streets" className="mt-2">{head}<p className="text-red-800">The street layer did not load ({error}).</p></div>
   if (!result) return <div data-testid="site-streets" className="mt-2">{head}<p className="text-muted">Finding the streets along the site…</p></div>
   if (!result.streets.length) return <div data-testid="site-streets" className="mt-2">{head}<p className="text-muted">No street along this site (shared lot lines or open ground all round).</p></div>
-  const open = result.streets.filter((s) => s.kind === 'street' && !site.streets?.[s.key]?.type).length
   return (
     <div data-testid="site-streets" className="mt-2">
       {head}
@@ -51,16 +51,18 @@ export default function SiteStreets() {
         {result.streets.map((st) => {
           const type = site.streets?.[st.key]?.type ?? null
           return (
-            <li key={st.key} data-street={st.key} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <li key={st.key} data-street={st.key} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-1.5 gap-y-1 rounded-md bg-white/50 px-1.5 py-1">
               <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: STREET_TYPE_COLOR[st.kind === 'lane' ? 'lane' : type ?? 'none'] }} />
               <span className="min-w-0 flex-1 truncate font-medium text-ink" title={`${st.name}: the site has ${Math.round(st.frontage)} m of frontage on it`}>{st.name}</span>
               <span className="tabular-nums text-muted" title={rowHint(st)}><U>{`${st.row.toFixed(1)} m`}</U></span>
-              {st.kind === 'lane' ? <span className="w-[150px] text-center text-muted" title="A lane: no streetwall or frontage rules; access and loading belong here">Lane</span> : (
-                <div role="radiogroup" aria-label={`${st.name} street type`} className="flex w-[150px] gap-0.5">
+              {st.kind === 'lane' ? <span className="col-span-3 text-meta text-muted" title="A lane: no streetwall or frontage rules; access and loading belong here">Lane</span> : (
+                <div role="radiogroup" aria-label={`${st.name} street type`} className="col-span-3 flex gap-1">
                   {(['retail', 'arterial', 'local'] as const).map((t) => (
                     <button key={t} type="button" role="radio" aria-checked={type === t} title={STREET_TYPE_HINT[t]}
                       onClick={() => setStreetType(st.key, type === t ? null : t)}
-                      className={`flex-1 rounded-md px-1 py-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${type === t ? 'bg-ink font-semibold' : 'bg-white/45 text-muted hover:text-ink'}`}>{STREET_TYPE_LABEL[t]}</button>
+                      style={type === t ? { background: STREET_TYPE_COLOR[t], borderColor: STREET_TYPE_COLOR[t], color: '#fff' } : undefined}
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-full border px-1 py-0.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${type === t ? 'font-semibold' : 'border-line bg-white text-muted hover:text-ink'}`}>
+                      {type !== t && <i aria-hidden className="block h-1.5 w-1.5 rounded-full" style={{ background: STREET_TYPE_COLOR[t] }} />}{STREET_TYPE_LABEL[t]}</button>
                   ))}
                 </div>
               )}
@@ -68,7 +70,6 @@ export default function SiteStreets() {
           )
         })}
       </ul>
-      {open > 0 && <p className="mt-1 text-meta text-muted">{open === 1 ? 'One street has' : `${open} streets have`} no type yet: the street rules that depend on it stay open.</p>}
     </div>
   )
 }

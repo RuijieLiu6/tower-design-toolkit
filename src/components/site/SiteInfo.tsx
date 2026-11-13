@@ -117,33 +117,39 @@ function SiteNow() {
   // The site's note once: the area's source line often repeats it word for word, with its flag.
   const note = site?.note && !(area?.source ?? '').includes(site.note) ? site.note : null
   const streets = useSiteStreets().result?.streets ?? []
+  const iconBtn = 'flex h-7 w-7 items-center justify-center rounded-lg text-muted outline-none hover:bg-white hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
+  // 12 Nov ("simplify site information so its more visual or less text, but the same amount of information"): the plan
+  // large on top, the area big, the address on one line (all of it on hover), the basis / replaced / flag as chips, and
+  // Undo / Show / Clear as icons in the header; the source note stays behind "?".
   return (
     <section aria-labelledby="your-site-title" aria-live="polite" data-testid="site-info" className={card}>
-      <h3 id="your-site-title" className="flex items-center gap-1.5 text-xs font-semibold text-accent"><MapPin size={14} aria-hidden />Your site</h3>
+      <div className="flex items-center gap-1">
+        <h3 id="your-site-title" className="flex flex-1 items-center gap-1.5 text-xs font-semibold text-accent"><MapPin size={14} aria-hidden />Your site</h3>
+        <button type="button" disabled={!canUndo} onClick={() => { if (undo()) tell('Undone.') }} aria-label="Undo" title="Undo the last site change" className={iconBtn}><Undo2 size={14} aria-hidden /></button>
+        {ok && m && <button type="button" onClick={() => flyToFit(onGround([site!.ring], data?.grids))} aria-label="Show the site" title="Show the site: frame it in the view" className={iconBtn}><Compass size={14} aria-hidden /></button>}
+        {ok && <button type="button" onClick={() => { const s = useSiteStore.getState(); breakStep(); s.setSite(null); breakStep(); tell('Study site cleared (Undo brings it back).', { undoable: true }) }} aria-label="Clear site" title="Clear the study site (Undo brings it back)" className={`${iconBtn} hover:text-red-700`}><Trash2 size={14} aria-hidden /></button>}
+      </div>
       {ok && m ? (
-        <div data-testid="site-summary" className="mt-1 flex items-start gap-2.5">
-          <SitePlan ring={site!.ring as [number, number][]} towers={towers} selected={selected} streets={planStreets(streets, site!.streets ?? {}).map((p) => ({ ...p, label: undefined }))}
-            label={`Plan of the study site with ${towers.length} tower${towers.length === 1 ? '' : 's'}${streets.length ? ` and its ${streets.length} street${streets.length === 1 ? '' : 's'}` : ''}`} />
-          <div className="grid min-w-0 gap-1">
+        <div data-testid="site-summary" className="mt-1.5 grid gap-1.5">
+          <div className="flex justify-center rounded-md bg-white/60">
+            <SitePlan size={176} ring={site!.ring as [number, number][]} towers={towers} selected={selected} streets={planStreets(streets, site!.streets ?? {}).map((p) => ({ ...p, label: undefined }))}
+              label={`Plan of the study site with ${towers.length} tower${towers.length === 1 ? '' : 's'}${streets.length ? ` and its ${streets.length} street${streets.length === 1 ? '' : 's'}` : ''}`} />
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
             <span className="text-lg font-semibold leading-tight tabular-nums text-ink">{fmt(area?.area ?? m.area)} m²</span>
-            {site!.label && <div className="text-xs font-medium text-ink">{site!.label}</div>}
-            <div className="flex flex-wrap items-center gap-1">
-              {area && <span className="flex items-center gap-1 rounded border border-line px-1 py-0.5" title={area.basis === 'parcels' ? 'Area from the City lots joined under the site' : 'Area from the drawn boundary'}><LandPlot size={11} className="text-accent" aria-hidden />{area.basis === 'parcels' ? `${lots} lot${lots === 1 ? '' : 's'}` : 'boundary'}</span>}
-              {site!.replaced.length > 0 && <span className="flex items-center gap-1 rounded border border-line px-1 py-0.5" title={`${site!.replaced.length} existing building${site!.replaced.length === 1 ? '' : 's'} ${site!.keepReplaced ? 'kept standing' : 'shown as demolished'} (team assumption)`}><Building2 size={11} className={site!.keepReplaced ? 'text-muted' : 'text-red-700'} aria-hidden />{site!.replaced.length} {site!.keepReplaced ? 'kept' : 'replaced'}</span>}
-              {area && <FlagChip flag={area.flag} />}
-              {(note || area) && <Help label="About the site's area and source">{note && <span className="block">{note}</span>}{area && <span className="block">{area.source}</span>}</Help>}
-            </div>
+            {(note || area) && <Help label="About the site's area and source">{note && <span className="block">{note}</span>}{area && <span className="block">{area.source}</span>}</Help>}
+          </div>
+          {site!.label && <div className="truncate text-xs font-medium text-ink" title={site!.label}>{site!.label}</div>}
+          <div className="flex flex-wrap items-center gap-1">
+            {area && <span className="flex items-center gap-1 rounded border border-line bg-white/60 px-1 py-0.5" title={area.basis === 'parcels' ? 'Area from the City lots joined under the site' : 'Area from the drawn boundary'}><LandPlot size={11} className="text-accent" aria-hidden />{area.basis === 'parcels' ? `${lots} lot${lots === 1 ? '' : 's'}` : 'boundary'}</span>}
+            {site!.replaced.length > 0 && <span className="flex items-center gap-1 rounded border border-line bg-white/60 px-1 py-0.5" title={`${site!.replaced.length} existing building${site!.replaced.length === 1 ? '' : 's'} ${site!.keepReplaced ? 'kept standing' : 'shown as demolished'} (team assumption)`}><Building2 size={11} className={site!.keepReplaced ? 'text-muted' : 'text-red-700'} aria-hidden />{site!.replaced.length} {site!.keepReplaced ? 'kept' : 'replaced'}</span>}
+            {area && <FlagChip flag={area.flag} />}
           </div>
         </div>
       ) : null}
       {ok && <SiteStreets />}
       {ok ? null : <p className="mt-1 flex items-center gap-1 text-xs text-ink">No site yet: choose one in the Site step.<Help label="About the study site">Type an address or click the map in the Site step's Site tool, or take the default site there (Default: the Granville / W Pender / Howe / Dunsmuir block). The tower can still be placed anywhere (Form step); the site checks wait for a site.</Help></p>}
       {message && <p data-testid="site-message" className={`mt-1.5 rounded px-2 py-1 ${message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{message.text}</p>}
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        <button type="button" disabled={!canUndo} onClick={() => { if (undo()) tell('Undone.') }} className={`${btn} border-line hover:border-accent disabled:opacity-50`}><Undo2 size={12} />Undo</button>
-        {ok && <button type="button" onClick={() => { const s = useSiteStore.getState(); breakStep(); s.setSite(null); breakStep(); tell('Study site cleared (Undo brings it back).', { undoable: true }) }} className={`${btn} border-line text-muted hover:text-red-700`}><Trash2 size={12} />Clear site</button>}
-        {ok && m && <button type="button" onClick={() => flyToFit(onGround([site!.ring], data?.grids))} className={`${btn} border-line hover:border-accent`}><Compass size={12} />Show the site</button>}
-      </div>
     </section>
   )
 }
