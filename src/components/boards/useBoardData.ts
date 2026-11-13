@@ -29,11 +29,17 @@ export function useEvidence(): Record<string, EvidenceSet> {
 /** Load every image placed on the boards; re-renders when they arrive. */
 export function useLoadedImages(boards: Board[], images: Record<string, BoardImage>) {
   const [loaded, setLoaded] = useState<Map<string, HTMLImageElement>>(() => new Map())
+  // Keyed by the images placed, not the boards array: callers pass a fresh [board] each render, which used to reload,
+  // set state and render again without end (13 Nov: it kept the composer redrawing; with drawings it never settled).
+  const key = boards.flatMap((b) => b.frames.flatMap((f) => (f.content.kind === 'image' ? [f.content.imageId] : []))).join('|')
   useEffect(() => {
     let live = true
-    void loadBoardImages(boards, images).then((m) => { if (live) setLoaded(m) })
+    void loadBoardImages(boards, images).then((m) => {
+      if (!live) return
+      setLoaded((prev) => (prev.size === m.size && [...m.keys()].every((k) => prev.get(k) === m.get(k)) ? prev : m))
+    })
     return () => { live = false }
-  }, [boards, images])
+  }, [key, images]) // eslint-disable-line react-hooks/exhaustive-deps
   return loaded
 }
 
@@ -51,4 +57,55 @@ export function useOverflow(boards: Board[], images: Record<string, BoardImage>,
     boards.forEach((b, i) => { const r = drawBoard(ctx, b, { pxPerMm: k, images, loaded: new Map(), evidence, editing: false, index: i, total: boards.length }); if (r.overflow.length) out[b.id] = r.overflow })
     return out
   }, [boards, images, evidence])
+}
+
+// ---- the design as the board drawings read it (lib/boardDrawings.ts) ----
+import { VTC_NORTH_DEG, useVtcContext } from '../../context'
+import { towerOccluders, vtcOccluders } from '../../engine/solarRules'
+import { floorPlates } from '../../lib/floorPick'
+import { setDrawData, type DrawData } from '../../lib/boardDrawings'
+import { BRIEF_SITE } from '../../lib/vtcContextSource'
+import { cityDataLoaded } from '../CityContext'
+import { useCityModel } from '../../lib/cityModel'
+import { useStore } from '../../store'
+
+type P2 = [number, number]
+const inside = (p: P2, r: P2[]) => { let o = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) o = !o } return o }
+/** Keeps the drawing data current while the composer is open; returns it so the previews redraw when it changes. */
+export function useDrawData(): DrawData {
+  const towers = useTowers()
+  const project = useStore((s) => s.project)
+  const cityRing = useStore((s) => s.citySite?.ring ?? null) as P2[] | null
+  const { ctx } = useVtcContext()
+  // The city data the main view already loaded (no second load, no second demolition pass: buildings whose centre is
+  // inside the study site or a tower are left out, as the main view hides them).
+  const model = useCityModel((s) => s.model)
+  const [data, setData] = useState<Awaited<ReturnType<typeof cityDataLoaded>> | null>(null)
+  useEffect(() => { let live = true; void cityDataLoaded(model)?.then((d) => live && setData(d)); return () => { live = false } }, [model, project])
+  const d = useMemo<DrawData>(() => {
+    const site = project === 'city' ? cityRing : (((ctx?.site ?? BRIEF_SITE)?.outline as P2[] | undefined) ?? null)
+    const ts = towers.map((t) => ({
+      id: t.id, name: t.name,
+      prisms: (towerOccluders([t]).prisms as { ring: P2[]; z0: number; z1: number }[]),
+      floors: floorPlates(t).map(({ f, rings }) => ({ level: f.level, z0: f.z0, z1: f.z1, use: f.use, area: f.area, rings })),
+    }))
+    const pts = [...(site ?? []), ...ts.flatMap((t) => t.prisms.flatMap((p) => p.ring))]
+    const c: P2 = pts.length ? [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length] : [0, 0]
+    const near = (r: P2[]) => r.some(([x, y]) => Math.abs(x - c[0]) < 260 && Math.abs(y - c[1]) < 260)
+    let context: DrawData['context'] = []
+    if (project === 'city' && data?.heights) {
+      const h = data.heights
+      data.footprints.forEach((f, i) => {
+        if (!near(f.outer as P2[])) return
+        const q = f.outer.reduce<P2>((a, p) => [a[0] + p[0] / f.outer.length, a[1] + p[1] / f.outer.length], [0, 0])
+        if ((site && inside(q, site)) || ts.some((t) => t.prisms.some((p) => inside(q, p.ring)))) return
+        const z = h.roof[i] - h.ground[i]
+        if (Number.isFinite(z) && z > 0) context.push({ ring: f.outer as P2[], z1: z })
+      })
+    } else if (project === 'vtc' && ctx) context = vtcOccluders(ctx).prisms.filter((p) => near(p.ring as P2[])).map((p) => ({ ring: p.ring as P2[], z1: p.z1 }))
+    return { site, towers: ts, context, north: project === 'vtc' ? VTC_NORTH_DEG : 0 }
+  }, [towers, project, cityRing, ctx, data])
+  setDrawData(d)
+  useEffect(() => () => setDrawData(null), [])
+  return d
 }

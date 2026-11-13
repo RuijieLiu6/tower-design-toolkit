@@ -3,6 +3,8 @@
 import { BOARD_H, BOARD_W, CAPTION_BAND, CAPTION_MM, TARGET_BYTES, imagePlacement, printedCaption, pxForDpi, searchQuality, type Board, type BoardImage, type Frame } from '../engine/boards'
 import type { Flag, RuleResult, RuleState } from '../engine/types'
 import { unitText } from './units'
+import { BOARD_STYLES, drawData, drawDrawing, drawTable, drawTitleBlock, type StyleId } from './boardDrawings'
+import { useBoardStore } from './boardStore'
 
 const FONT = '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif'
 const INK = '#1f2328', MUTED = '#6b7280'
@@ -100,17 +102,31 @@ function evidenceBox(ctx: CanvasRenderingContext2D, k: number, f: Frame, set: Ev
   }
 }
 
-export interface DrawOptions { pxPerMm: number; images: Record<string, BoardImage>; loaded: Map<string, HTMLImageElement>; evidence: Record<string, EvidenceSet>; editing: boolean; index: number; total: number }
+export interface DrawOptions { style?: StyleId; pxPerMm: number; images: Record<string, BoardImage>; loaded: Map<string, HTMLImageElement>; evidence: Record<string, EvidenceSet>; editing: boolean; index: number; total: number }
 
 /** Draw one board; returns the ids of frames whose text was cut off. */
 export function drawBoard(ctx: CanvasRenderingContext2D, board: Board, o: DrawOptions): { overflow: string[] } {
   const k = o.pxPerMm
   const overflow: string[] = []
   ctx.save()
-  ctx.fillStyle = '#ffffff'
+  // The sheet style (the Tower Workspace's): paper, ink, border and title block.
+  const st = BOARD_STYLES[o.style ?? useBoardStore.getState().style] ?? BOARD_STYLES.competition
+  ctx.fillStyle = st.paper
   ctx.fillRect(0, 0, BOARD_W * k, BOARD_H * k)
+  const titleText = board.frames.find((f) => f.role === 'title' && f.content.kind === 'text')
+  drawTitleBlock(ctx, k, BOARD_W, BOARD_H, st, [['Board', titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : `Board ${o.index + 1}`], ['Sheet', `${o.index + 1} of ${o.total}`], ['Style', st.name], ['Date', new Date().toISOString().slice(0, 10)]], `A-${String(o.index + 1).padStart(2, '0')}`)
+  let drawingNo = 0
   for (const f of board.frames) {
     const c = f.content
+    if (c.kind === 'drawing') { drawDrawing(ctx, k, f, c, drawData(), st, ++drawingNo); continue }
+    if (c.kind === 'table') {
+      const rows = Object.values(o.evidence).map((s) => {
+        const n = (st2: string) => s.rules.filter((r) => r.state === st2).length
+        const worst = n('fail') ? 'fail' : n('warn') ? 'warn' : n('pass') ? 'pass' : 'unknown'
+        return [s.name, `${n('pass')} pass${n('fail') ? ` · ${n('fail')} to check` : ''}${n('warn') ? ` · ${n('warn')} near` : ''}`, worst] as [string, string, 'pass' | 'fail' | 'warn' | 'unknown']
+      })
+      drawTable(ctx, k, f, rows, st); continue
+    }
     if (c.kind === 'image') {
       const meta = o.images[c.imageId], el = meta && o.loaded.get(meta.id)
       if (!meta || !el) { if (o.editing) placeholder(ctx, k, f, meta ? 'Loading image…' : 'Image missing'); continue }
@@ -124,7 +140,7 @@ export function drawBoard(ctx: CanvasRenderingContext2D, board: Board, o: DrawOp
     } else if (c.kind === 'text') {
       if (!c.text.trim()) { if (o.editing) placeholder(ctx, k, f, f.role === 'title' ? 'Board title' : 'Text: type it in the panel'); continue }
       const box = f.role === 'title' ? { x: f.x, y: f.y + (f.h - c.sizeMm * 1.3) / 2, w: f.w - 30, h: c.sizeMm * 1.35 } : f
-      if (!textBox(ctx, k, c.text, box, c.sizeMm, { bold: c.bold })) overflow.push(f.id)
+      if (!textBox(ctx, k, c.text, box, c.sizeMm, { bold: c.bold, color: st.ink })) overflow.push(f.id)
     } else if (c.kind === 'evidence') {
       evidenceBox(ctx, k, f, o.evidence[c.nodeId])
     } else if (o.editing) placeholder(ctx, k, f, 'Drop a shot here, or select and pick one')

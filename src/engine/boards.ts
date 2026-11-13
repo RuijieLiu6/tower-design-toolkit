@@ -61,6 +61,10 @@ export type FrameContent =
   | { kind: 'image'; imageId: string; fit: 'cover' | 'contain' }
   | { kind: 'text'; text: string; sizeMm: number; bold?: boolean }
   | { kind: 'evidence'; nodeId: string }
+  /** A vector drawing of the design at true scale (lib/boardDrawings.ts, from the Tower Workspace's Presentation page). */
+  | { kind: 'drawing'; vt: 'site' | 'plan' | 'elev' | 'section'; level?: number; dir?: 'N' | 'E' | 'S' | 'W'; scale?: number }
+  /** The analysis summary table: one line per check. */
+  | { kind: 'table' }
 
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 

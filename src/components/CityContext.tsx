@@ -89,6 +89,8 @@ function loadCity(model: CityModel): Promise<CityData> {
 }
 
 const detailedCache: Partial<Record<CityModel, Promise<CityData>>> = {}
+/** The detailed city data once it is loaded, without starting a load (the board drawings read it). */
+export function cityDataLoaded(model: CityModel): Promise<CityData> | null { return detailedCache[model] ?? null }
 /** The second stage: detailed ground, streets and the buildings (Vista's model, or the City roof forms). */
 function loadDetailedCity(base: CityData): Promise<CityData> {
   return detailedCache[base.model] ??= (async () => {

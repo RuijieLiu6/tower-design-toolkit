@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, newBoard, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
+import type { StyleId } from './boardDrawings'
 
 export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[] }
 
@@ -20,6 +21,11 @@ interface BoardState {
   selected: { board: number; frame: string | null }
   /** Contents that no longer fit after a template change, kept so nothing is lost silently. */
   parked: Frame[]
+  /** The sheet style (the Tower Workspace's four architectural styles). */
+  style: StyleId
+  setStyle: (s: StyleId) => void
+  /** Fills boards 1-3 with the drawing set (site plan + table, three floor plans, elevations + section); what was there is kept aside. */
+  makeDrawingSet: (typicalLevel: number, topLevel: number) => void
   setOpen: (open: boolean) => void
   select: (board: number, frame?: string | null) => void
   setTemplate: (board: number, t: TemplateId) => void
@@ -74,6 +80,26 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
   exports: {},
   selected: { board: 0, frame: null },
   parked: [],
+  style: 'competition',
+  setStyle: (style) => set({ style, exports: {} }),
+  makeDrawingSet: (typ, top) => set((s) => {
+    const boards = s.boards.slice()
+    const kept: Frame[] = []
+    const fill = (i: number, t: TemplateId, title: string, contents: (FrameContent | null)[]) => {
+      const { board } = applyTemplate({ ...boards[i], frames: boards[i].frames.filter((f) => f.role === 'title') }, t)
+      kept.push(...boards[i].frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty'))
+      let n = 0
+      boards[i] = { ...board, frames: board.frames.map((f) => {
+        if (f.role === 'title') return { ...f, content: f.content.kind === 'text' && f.content.text.trim() ? f.content : { kind: 'text', text: title, sizeMm: 9, bold: true } }
+        const c = contents[n++]
+        return c ? { ...f, content: c } : f
+      }) }
+    }
+    fill(0, 'hero', 'Site and massing', [{ kind: 'drawing', vt: 'site' }, { kind: 'table' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, null])
+    fill(1, 'plans', 'Floor plans', [{ kind: 'drawing', vt: 'plan', level: 1 }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'drawing', vt: 'plan', level: top }, null])
+    fill(2, 'plans', 'Elevations and section', [{ kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' }, { kind: 'drawing', vt: 'section' }, null])
+    return { boards, parked: [...s.parked, ...kept], exports: {}, selected: { board: 0, frame: null } }
+  }),
   setOpen: (open) => set({ open }),
   select: (board, frame = null) => set({ selected: { board, frame } }),
   setTemplate: (i, t) => set((s) => {
@@ -112,7 +138,7 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, ticks: s.ticks, parked: s.parked }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, ticks: s.ticks, parked: s.parked, style: s.style }),
 }))
 
 let hydrated = false

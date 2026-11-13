@@ -2,7 +2,7 @@
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
 import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
-import { useEffect, useRef, useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
@@ -11,7 +11,8 @@ import { planSvgText } from '../../lib/capture'
 import { captureHiRes } from '../../lib/hiresCapture'
 import { useStore, type Shot } from '../../store'
 import SubmissionPanel from './SubmissionPanel'
-import { useEvidence, useLoadedImages, useOverflow } from './useBoardData'
+import { useDrawData, useEvidence, useLoadedImages, useOverflow } from './useBoardData'
+import { BOARD_STYLES, SCALES, type DrawData, type StyleId } from '../../lib/boardDrawings'
 
 const DRAG = 'application/x-board-image'
 const AI_NAME = /render|gpt|dall|midjourney|firefly|imagen|stable.?diffusion|\bai\b/i
@@ -46,7 +47,10 @@ async function importFiles(files: FileList | File[]): Promise<string[]> {
   return ids
 }
 
-function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Record<string, EvidenceSet>; onFrame?: (board: number, frame: string, e?: DragEvent) => void }) {
+function BoardCanvas({ index, evidence, onFrame, rev }: { index: number; evidence: Record<string, EvidenceSet>; onFrame?: (board: number, frame: string, e?: DragEvent) => void; rev?: DrawData }) {
+  const style = useBoardStore((s) => s.style)
+  const updateFrame = useBoardStore((s) => s.updateFrame)
+  const drag = useRef<{ id: string; x: number; y: number; f: Frame; resize: boolean; moved: boolean } | null>(null)
   const board = useBoardStore((s) => s.boards[index])
   const images = useBoardStore((s) => s.images)
   const selected = useBoardStore((s) => s.selected)
@@ -77,7 +81,19 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
     c.width = Math.round(width * dpr); c.height = Math.round((width / A2_RATIO) * dpr)
     const ctx = c.getContext('2d')
     if (ctx) drawBoard(ctx, board, { pxPerMm: c.width / BOARD_W, images, loaded, evidence, editing: true, index, total })
-  }, [board, images, loaded, evidence, width, index, total])
+  }, [board, images, loaded, evidence, width, index, total, style, rev])
+  // Drag a selected frame to move it, its corner to resize it (the Workspace's sheet editing), in whole millimetres.
+  const mmPerPx = BOARD_W / Math.max(1, width)
+  const move = (e: ReactPointerEvent) => {
+    const d = drag.current
+    if (!d) return
+    const dx = (e.clientX - d.x) * mmPerPx, dy = (e.clientY - d.y) * mmPerPx
+    if (!d.moved && Math.hypot(dx, dy) < 1) return
+    d.moved = true
+    const f = d.f
+    if (d.resize) updateFrame(index, f.id, { w: Math.round(Math.max(30, Math.min(BOARD_W - 6 - f.x, f.w + dx))), h: Math.round(Math.max(25, Math.min(BOARD_H - 12 - f.y, f.h + dy))) })
+    else updateFrame(index, f.id, { x: Math.round(Math.max(6, Math.min(BOARD_W - 6 - f.w, f.x + dx))), y: Math.round(Math.max(6, Math.min(BOARD_H - 12 - f.h, f.y + dy))) })
+  }
   const pct = (f: Frame) => ({ left: `${(f.x / BOARD_W) * 100}%`, top: `${(f.y / BOARD_H) * 100}%`, width: `${(f.w / BOARD_W) * 100}%`, height: `${(f.h / BOARD_H) * 100}%` })
   return (
     <div ref={wrap} className="relative shadow-2xl" style={{ width, height: width / A2_RATIO }}>
@@ -87,11 +103,14 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
         const tag = f.tag ? DELIVERABLES.find((d) => d.id === f.tag) : null
         return (
           <button key={f.id} type="button" style={pct(f)} aria-label={`Frame ${f.id}${tag ? `, ${tag.label}` : ''}`} aria-pressed={sel}
-            onClick={() => onFrame(index, f.id)}
+            onClick={() => { if (drag.current?.moved) { drag.current = null; return } onFrame(index, f.id) }}
+            onPointerDown={(e) => { if (!sel || f.role !== 'body') return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { id: f.id, x: e.clientX, y: e.clientY, f, resize: !!(e.target as HTMLElement).dataset.resize, moved: false } }}
+            onPointerMove={move} onPointerUp={() => { if (drag.current && !drag.current.moved) drag.current = null }}
             onDragOver={(e) => { if (f.role === 'body') { e.preventDefault(); setOver(f.id) } }} onDragLeave={() => setOver(null)}
             onDrop={(e) => { e.preventDefault(); setOver(null); onFrame(index, f.id, e) }}
-            className={`absolute rounded-[2px] outline-none transition-shadow ${sel ? 'ring-2 ring-sky-500' : over === f.id ? 'ring-2 ring-emerald-500' : 'hover:ring-1 hover:ring-sky-400/70 focus-visible:ring-2 focus-visible:ring-sky-500'}`}>
+            className={`absolute rounded-[2px] outline-none transition-shadow ${sel && f.role === 'body' ? 'cursor-move ' : ''}${sel ? 'ring-2 ring-sky-500' : over === f.id ? 'ring-2 ring-emerald-500' : 'hover:ring-1 hover:ring-sky-400/70 focus-visible:ring-2 focus-visible:ring-sky-500'}`}>
             {tag && <span className="pointer-events-none absolute left-1 top-1 rounded bg-slate-900/75 px-1.5 py-0.5 text-meta font-medium text-white">{tag.label}</span>}
+            {sel && f.role === 'body' && <span data-resize="1" title="Drag to resize" className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm bg-sky-500" />}
           </button>
         )
       })}
@@ -99,7 +118,8 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
   )
 }
 
-function Thumb({ index, evidence, active, onClick }: { index: number; evidence: Record<string, EvidenceSet>; active: boolean; onClick: () => void }) {
+function Thumb({ index, evidence, active, onClick, rev }: { index: number; evidence: Record<string, EvidenceSet>; active: boolean; onClick: () => void; rev?: DrawData }) {
+  const style = useBoardStore((s) => s.style)
   const board = useBoardStore((s) => s.boards[index])
   const images = useBoardStore((s) => s.images)
   const loaded = useLoadedImages([board], images)
@@ -110,7 +130,7 @@ function Thumb({ index, evidence, active, onClick }: { index: number; evidence: 
     c.width = 220; c.height = Math.round(220 / A2_RATIO)
     const ctx = c.getContext('2d')
     if (ctx) drawBoard(ctx, board, { pxPerMm: 220 / BOARD_W, images, loaded, evidence, editing: true, index, total: 4 })
-  }, [board, images, loaded, evidence, index])
+  }, [board, images, loaded, evidence, index, style, rev])
   return (
     <button type="button" onClick={onClick} aria-pressed={active} className={`flex flex-col items-center gap-1 rounded p-1 text-meta ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
       <canvas ref={ref} className={`h-[52px] w-[74px] rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
@@ -197,7 +217,7 @@ function LibraryItem({ img, onPick, onDrag, onRemove }: { img: BoardImage; onPic
   )
 }
 
-function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> }) {
+function FrameInspector({ evidence, levels }: { evidence: Record<string, EvidenceSet>; levels: number }) {
   const { boards, selected, images, updateFrame, addImage, setTemplate, parked, unpark } = useBoardStore()
   const b: Board = boards[selected.board]
   const f = b.frames.find((x) => x.id === selected.frame)
@@ -230,14 +250,38 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
         <div className="grid gap-3">
           <div className="text-meta font-semibold text-slate-400">{f.role === 'title' ? 'Title band' : 'Frame'} · {Math.round(f.w)} × {Math.round(f.h)} mm</div>
           {f.role === 'body' && (
-            <div className="grid grid-cols-4 gap-1" role="radiogroup" aria-label="Frame content">
-              {([['image', 'Image'], ['text', 'Text'], ['evidence', 'Evidence'], ['empty', 'Empty']] as const).map(([k, l]) => (
-                <button key={k} type="button" role="radio" aria-checked={f.content.kind === k}
-                  onClick={() => set({ content: k === 'text' ? { kind: 'text', text: '', sizeMm: 4.5 } : k === 'evidence' ? { kind: 'evidence', nodeId: Object.keys(evidence)[0] ?? '' } : k === 'image' ? (f.content.kind === 'image' ? f.content : { kind: 'empty' }) : { kind: 'empty' } })}
-                  className={`rounded border px-1 py-1 text-meta ${f.content.kind === k ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15 hover:border-sky-400'}`}>{l}</button>
+            <div className="grid grid-cols-3 gap-1" role="radiogroup" aria-label="Frame content">
+              {([['image', 'Image'], ['drawing', 'Drawing'], ['text', 'Text'], ['table', 'Table'], ['evidence', 'Evidence'], ['empty', 'Empty']] as const).map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={f.content.kind === k} data-content={k}
+                  onClick={() => set({ content: k === 'text' ? { kind: 'text', text: '', sizeMm: 4.5 } : k === 'evidence' ? { kind: 'evidence', nodeId: Object.keys(evidence)[0] ?? '' } : k === 'drawing' ? (f.content.kind === 'drawing' ? f.content : { kind: 'drawing', vt: 'plan', level: 1 }) : k === 'table' ? { kind: 'table' } : k === 'image' ? (f.content.kind === 'image' ? f.content : { kind: 'empty' }) : { kind: 'empty' } })}
+                  className={`min-w-0 truncate rounded border px-1 py-1 text-meta ${f.content.kind === k ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15 hover:border-sky-400'}`}>{l}</button>
               ))}
             </div>
           )}
+          {f.content.kind === 'drawing' && (() => {
+            const c = f.content
+            return (
+              <div className="grid gap-2">
+                <label className={label}><span className="text-slate-400">Drawing</span>
+                  <select value={c.vt} data-testid="drawing-kind" onChange={(e) => set({ content: { ...c, vt: e.target.value as typeof c.vt } })} className={input}>
+                    <option value="site">Site plan</option><option value="plan">Floor plan</option><option value="elev">Elevation</option><option value="section">Section</option>
+                  </select>
+                </label>
+                {c.vt === 'plan' && <label className={label}><span className="text-slate-400">Level (1 to {levels})</span>
+                  <input type="number" min={1} max={levels} value={c.level ?? 1} onChange={(e) => set({ content: { ...c, level: Math.max(1, Math.min(levels, Math.round(Number(e.target.value) || 1))) } })} className={`${input} w-24`} /></label>}
+                {c.vt === 'elev' && <label className={label}><span className="text-slate-400">Seen from</span>
+                  <select value={c.dir ?? 'N'} onChange={(e) => set({ content: { ...c, dir: e.target.value as 'N' | 'E' | 'S' | 'W' } })} className={input}>
+                    <option value="N">North</option><option value="E">East</option><option value="S">South</option><option value="W">West</option>
+                  </select></label>}
+                <label className={label}><span className="text-slate-400">Scale at A2</span>
+                  <select value={c.scale ?? ''} onChange={(e) => set({ content: { ...c, scale: e.target.value ? Number(e.target.value) : undefined } })} className={input}>
+                    <option value="">Fit the frame</option>{SCALES.map((s) => <option key={s} value={s}>1:{s}</option>)}
+                  </select></label>
+                <p className="text-meta text-slate-400">Drawn from the design as it is now, in the board's style; it follows every change. Drag the frame to move it, its corner to resize it.</p>
+              </div>
+            )
+          })()}
+          {f.content.kind === 'table' && <p className="text-meta text-slate-400">One line per check with its reading and PASS / CHECK / NEAR, from the checks that are on.</p>}
           {f.content.kind === 'empty' && f.role === 'body' && <p className="text-meta text-slate-400">Click a shot or image on the left, or drag it onto this frame.</p>}
           {f.content.kind === 'image' && (() => {
             const c = f.content, img = images[c.imageId]
@@ -326,6 +370,18 @@ function ComposerBody() {
   const updateFrame = useBoardStore((s) => s.updateFrame)
   const evidence = useEvidence()
   const overflow = useOverflow(boards, images, evidence)
+  const draw = useDrawData()
+  const style = useBoardStore((s) => s.style)
+  const setStyle = useBoardStore((s) => s.setStyle)
+  const makeDrawingSet = useBoardStore((s) => s.makeDrawingSet)
+  const levels = Math.max(1, ...draw.towers.map((t) => t.floors.length))
+  const [setMsg, setSetMsg] = useState('')
+  const createSet = () => {
+    const used = boards.slice(0, 3).some((b) => b.frames.some((f) => f.role === 'body' && f.content.kind !== 'empty'))
+    makeDrawingSet(Math.max(2, Math.round(levels / 2)), levels)
+    setSetMsg(used ? 'Boards 1-3 now hold the drawing set; what was on them is kept aside (Compose, layout).' : 'Drawing set created on boards 1-3.')
+    setTimeout(() => setSetMsg(''), 5000)
+  }
   const [tab, setTab] = useState<'frame' | 'submit'>('frame')
 
   useEffect(() => { if (open) void hydrateBoardImages() }, [open])
@@ -365,8 +421,17 @@ function ComposerBody() {
           <div className="text-meta text-slate-400">Four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
         </div>
         <nav aria-label="Boards" className="flex gap-1">
-          {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} />)}
+          {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} rev={draw} />)}
         </nav>
+        {/* From the Tower Workspace's Presentation page: the sheet style and the drawing set. */}
+        <label className="ml-3 flex items-center gap-1.5 text-xs text-slate-300">Style
+          <select value={style} onChange={(e) => setStyle(e.target.value as StyleId)} data-testid="board-style" className="rounded border border-white/15 bg-slate-900 px-1.5 py-1 text-xs text-slate-100">
+            {(Object.keys(BOARD_STYLES) as StyleId[]).map((k) => <option key={k} value={k}>{BOARD_STYLES[k].name}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={createSet} data-testid="drawing-set" title="Site plan and results, three floor plans, elevations and a section, drawn from the design at true scale on boards 1-3"
+          className="flex items-center gap-1.5 rounded border border-white/15 px-2 py-1 text-xs hover:border-sky-400"><LayoutPanelTop size={13} />Create drawing set</button>
+        {setMsg && <span role="status" className="max-w-[16rem] text-meta text-emerald-300">{setMsg}</span>}
         <div className="ml-auto flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
           <button type="button" role="tab" aria-selected={tab === 'frame'} onClick={() => setTab('frame')} className={`rounded px-2 py-1 text-xs ${tab === 'frame' ? 'bg-white/15' : 'text-slate-300'}`}>Compose</button>
           <button type="button" role="tab" aria-selected={tab === 'submit'} onClick={() => setTab('submit')} className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === 'submit' ? 'bg-white/15' : 'text-slate-300'}`}><ListChecks size={12} />Check and export</button>
@@ -377,11 +442,11 @@ function ComposerBody() {
         <aside className="w-60 shrink-0 border-r border-white/10" aria-label="Images"><Library onPick={pick} /></aside>
         <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
           <div className="flex h-full w-full items-center justify-center">
-            <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} />
+            <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />
           </div>
         </main>
         <aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={tab === 'frame' ? 'Frame' : 'Check and export'}>
-          {tab === 'frame' ? <FrameInspector evidence={evidence} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
+          {tab === 'frame' ? <FrameInspector evidence={evidence} levels={levels} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
         </aside>
       </div>
     </div>,
