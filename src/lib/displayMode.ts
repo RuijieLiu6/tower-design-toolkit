@@ -13,8 +13,8 @@ export type ProjectKind = 'vtc' | 'city'
 // Labels (overnight brief, 8 Nov): "View: Geometry / Building use / Analysis / Materials", so a view never shares a name
 // with the Program phase. The ids (massing, program, analysis, materials) are what is stored, and stay.
 export const DISPLAY_MODES: { id: DisplayMode; word: string; hint: string }[] = [
-  // 13 Nov (Sinnie): "a default black, white, grey mode for the model render": the Geometry model shown in greys only.
-  { id: 'mono', word: 'Black & white', hint: 'The model in black, white and grey only: Geometry without colour (the default)' },
+  // 13 Nov (Sinnie): "a default black, white, grey mode for the model render", then "purely linework and no render stuff".
+  { id: 'mono', word: 'Black & white', hint: 'Pure linework: white faces and black edges, no shading, textures or shadows (the default)' },
   { id: 'massing', word: 'Geometry', hint: 'Geometry, height and proportion: a neutral model, your towers lighter than the context, with edges' },
   { id: 'program', word: 'Building use', hint: 'Building uses in one labelled palette: your towers by floor, the context by type' },
   { id: 'analysis', word: 'Analysis', hint: 'One measured or calculated quantity on a neutral model, with its units, range and legend' },
