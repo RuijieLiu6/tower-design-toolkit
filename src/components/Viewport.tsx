@@ -1,3 +1,5 @@
+import { Sun as SunIcon } from './icons'
+import { setSunOn, SunTimeFields, useSunOn } from './SunTime'
 import { Line, OrbitControls } from '@react-three/drei'
 import LoadingBar from './LoadingBar'
 import ContextPins from './ContextPins'
@@ -825,7 +827,23 @@ function VtcDock() {
           </Help>
         </div>
       ) },
+      { id: 'vtc-sun', title: 'Sun', defaultOpen: true, summary: <VtcSunSummary />, children: <VtcSun /> },
       { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )
 }
+
+/** The Sun tile and its date and hour on the competition site's layers panel (components/SunTime.tsx). */
+function VtcSun() {
+  const on = useSunOn()
+  return (
+    <div className="space-y-2">
+      <button type="button" aria-pressed={on} aria-label="Sun" data-layer="sun" title="Sun and shadows, with the date and hour" onClick={() => setSunOn(!on)}
+        className={`flex w-20 flex-col items-center gap-1 rounded-xl border px-1 py-2 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'border-accent/50 bg-selected text-accent-hover' : 'border-line bg-panel text-muted hover:border-boundary hover:text-ink'}`}>
+        <SunIcon size={20} aria-hidden /><span className="leading-tight">Sun</span>
+      </button>
+      {on && <SunTimeFields />}
+    </div>
+  )
+}
+function VtcSunSummary() { return <>{useSunOn() ? 'shadows on' : 'off'}</> }

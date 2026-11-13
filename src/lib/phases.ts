@@ -27,7 +27,7 @@ export const PHASES: Phase[] = [
   },
   {
     id: 'form', name: 'Form', step: 'volume', about: 'Place and shape the tower; read sun, shadow and wind as it changes.',
-    tools: ['towers', 'height-suggestion', 'generate', 'massing', 'sun', 'basement'],
+    tools: ['towers', 'height-suggestion', 'generate', 'massing', 'basement'],
     nodes: ['built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature'],
   },
   {

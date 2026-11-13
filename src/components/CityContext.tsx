@@ -1,6 +1,7 @@
 // Real Vancouver context: City footprints (LiDAR heights where processed, "height unknown" outlines elsewhere) and the
 // MRDEM terrain rings out to the North Shore mountains. Data: public/data/ (layers.json), built by tools/build_city_*.py.
-import { Cone, EyeOff, Landmark, LandPlot, Map as MapIcon, Mountain, Route, TreePine, Type } from './icons'
+import { Cone, EyeOff, Landmark, LandPlot, Map as MapIcon, Mountain, Route, Sun, TreePine, Type } from './icons'
+import { setSunOn, SunTimeFields, useSunOn } from './SunTime'
 import type { ContextLayerId } from '../lib/contextLayers'
 import { dataFetch, noteManifest, trackedFetch } from '../lib/loadProgress'
 import { Line } from '@react-three/drei'
@@ -1294,6 +1295,7 @@ function LayerTiles({ manifest }: { manifest: Manifest }) {
   const names = useVistaLook((s) => s.labels)
   const surface = useHeightSurface((s) => s.on)
   const hideUnder = useHideUnderDesign((s) => s.on)
+  const sunOn = useSunOn()
   const { on, status } = useContextLayers()
   type Tile = { id: string; icon: typeof Cone; word: string; hint: string; on: boolean; set: (v: boolean) => void; busy?: boolean; off?: boolean }
   const view: Tile[] = [
@@ -1301,6 +1303,7 @@ function LayerTiles({ manifest }: { manifest: Manifest }) {
     { id: 'names', icon: Type, word: 'Names', hint: 'Neighbourhood and street names', on: names, set: (v) => setPlaceNames(v) },
     { id: 'surface', icon: Mountain, word: 'Height limit', hint: 'The estimated height limit under the view cones, as a surface', on: surface, set: (v) => useHeightSurface.setState({ on: v }) },
     { id: 'under', icon: EyeOff, word: 'Hide under', hint: 'Hide the existing buildings where your towers and site stand (hypothetical)', on: hideUnder, set: (v) => useHideUnderDesign.setState({ on: v }) },
+    { id: 'sun', icon: Sun, word: 'Sun', hint: 'Sun and shadows, with the date and hour', on: sunOn, set: setSunOn },
   ]
   const EXTRA: { id: ContextLayerId; icon: typeof Cone; word: string }[] = [
     { id: 'trees', icon: TreePine, word: 'Trees' }, { id: 'parcels', icon: LandPlot, word: 'Parcels' }, { id: 'zoning', icon: MapIcon, word: 'Zoning' },
@@ -1327,8 +1330,9 @@ function LayerTiles({ manifest }: { manifest: Manifest }) {
   }
   return (
     <div data-testid="quick-layers" className="space-y-2">
-      <div className="grid grid-cols-4 gap-1.5">{view.map(tile)}</div>
+      <div className="grid grid-cols-5 gap-1.5">{view.map(tile)}</div>
       <div className="grid grid-cols-5 gap-1.5">{extra.map(tile)}</div>
+      {sunOn && <div className="border-t border-line pt-2"><SunTimeFields /></div>}
     </div>
   )
 }
