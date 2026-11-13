@@ -41,6 +41,8 @@ export function openAnalysis(node: string) {
   const s = useStore.getState()
   if (s.view === 'canvas') s.set({ view: '3d' })
   useAnalysisView.setState({ node, plan: analysisFor(node).plan })
+  // The results follow the analysis open (Sinnie, 13 Nov): the right panel shows this check's results and drawings.
+  s.selectNode(node)
 }
 export const closeAnalysis = () => useAnalysisView.setState({ node: null })
 export function toggleAnalysis(node: string) {

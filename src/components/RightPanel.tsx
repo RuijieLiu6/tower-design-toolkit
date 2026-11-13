@@ -3,6 +3,7 @@
 // Your site (Ruijie, 5 Nov: "move the property and information tab on the right side … keep the left side only things")
 // opens by itself in the Site step.
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react'
+import ClimateDrawings from './ClimateDrawings'
 import { useShallow } from 'zustand/react/shallow'
 import { ALL_NODES, BUILT_NODES, CATEGORIES } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
@@ -143,7 +144,7 @@ export default function RightPanel() {
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
         {shown === 'properties' && (drawing ? <DrawToolPanel /> : <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>)}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
-        {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
+        {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><ClimateDrawings /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
         {shown === 'present' && <PresentPanel />}
         {shown === 'render' && RenderTab && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Render…</p>}><RenderTab /></Suspense>}
         {shown === 'trace' && <TracePanel />}
