@@ -252,13 +252,15 @@ function MenuAt({ data }: { data: CityData }) {
       useSiteStep.setState({ multi: true })
     } })
   }
-  if (menu.lot !== null) {
+  // Changing the site (other lots, several lots, a box) only through Select site in the left panel (12 Nov).
+  const reselect = useSiteStep.getState().reselect || !site
+  if (menu.lot !== null && reselect) {
     const lot = menu.lot
     if (siteLots.length && !lotIn) items.push({ key: 'add', icon: SquarePlus, word: 'Add lot', label: 'Add this lot to the site', hint: `Joins the ${siteLots.length} lot${siteLots.length === 1 ? '' : 's'} of the site (lots that share a lot line).`, run: withLayer((l) => siteFromLots([...siteLots, lot], lotLayerOf(l), data.footprints, 'add', where)) })
     if (lotIn && siteLots.length > 1) items.push({ key: 'remove', icon: SquareMinus, word: 'Remove lot', label: 'Remove this lot from the site', hint: 'The other lots stay joined.', run: withLayer((l) => siteFromLots(siteLots.filter((k) => k !== lot), lotLayerOf(l), data.footprints, 'remove', where)) })
     if (!lotIn || siteLots.length > 1) items.push({ key: 'use', icon: Square, word: 'Use lot', label: site ? 'Use this lot alone as the site' : 'Use this lot as the site', hint: site ? 'This City lot becomes the site, in place of the current one.' : 'This City lot becomes the site; buildings on it are shown as demolished.', run: withLayer((l) => siteFromLots([lot], lotLayerOf(l), data.footprints, 'use', where)) })
   }
-  items.push({ key: 'box', icon: Combine, word: 'Combine', label: 'Combine lots: draw a box over them', hint: 'Drag a box across City lots: every lot it touches joins into one site (one block at a time).', run: () => { close(); useSiteStep.setState({ box: true, boxDraft: null }); tell('Drag a box across the lots to combine (the view holds still while you drag). Esc cancels.', where) } })
+  if (reselect) items.push({ key: 'box', icon: Combine, word: 'Combine', label: 'Combine lots: draw a box over them', hint: 'Drag a box across City lots: every lot it touches joins into one site (one block at a time).', run: () => { close(); useSiteStep.setState({ box: true, boxDraft: null }); tell('Drag a box across the lots to combine (the view holds still while you drag). Esc cancels.', where) } })
 
   const onKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const btns = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]:not([disabled])')]

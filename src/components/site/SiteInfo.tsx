@@ -127,7 +127,7 @@ function SiteNow() {
         <h3 id="your-site-title" className="flex flex-1 items-center gap-1.5 text-xs font-semibold text-accent"><MapPin size={14} aria-hidden />Your site</h3>
         <button type="button" disabled={!canUndo} onClick={() => { if (undo()) tell('Undone.') }} aria-label="Undo" title="Undo the last site change" className={iconBtn}><Undo2 size={14} aria-hidden /></button>
         {ok && m && <button type="button" onClick={() => flyToFit(onGround([site!.ring], data?.grids))} aria-label="Show the site" title="Show the site: frame it in the view" className={iconBtn}><Compass size={14} aria-hidden /></button>}
-        {ok && <button type="button" onClick={() => { const s = useSiteStore.getState(); breakStep(); s.setSite(null); breakStep(); tell('Study site cleared (Undo brings it back).', { undoable: true }) }} aria-label="Clear site" title="Clear the study site (Undo brings it back)" className={`${iconBtn} hover:text-red-700`}><Trash2 size={14} aria-hidden /></button>}
+        {/* No Clear site (12 Nov, Sinnie: "you cannot delete this"): another site comes only from Select site in the left panel. */}
       </div>
       {ok && m ? (
         <div data-testid="site-summary" className="mt-1.5 grid gap-1.5">
