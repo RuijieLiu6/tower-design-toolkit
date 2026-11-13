@@ -6,6 +6,7 @@
 // the guided app or as a graph in Customize. The agent (lib/agent) matches what a visitor types to these words.
 import { create } from 'zustand'
 import type { StepId } from './step'
+import { canonicalNodes } from '../data/registry'
 
 export type UserTypeId = 'designer' | 'practitioner' | 'planner' | 'engineer'
 
@@ -147,7 +148,7 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.views', type: 'planner', name: 'Views and the Higher Buildings Policy',
         goal: 'Which protected views the proposal enters, how far, and which relaxation routes could apply.',
         project: 'city', step: 'site',
-        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights'],
+        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access'],
         says: ['protected view cones', 'Higher Buildings Policy', 'height review', 'skyline and mountain views'],
       },
       {
@@ -184,9 +185,9 @@ export const USER_TYPES: UserType[] = [
     presets: [
       {
         id: 'engineer.structure', type: 'engineer', name: 'Structure and wind',
-        goal: 'Slenderness and the wind procedure, the lateral system and seismic category, pedestrian wind.',
+        goal: 'Slenderness and the wind procedure, the lateral system and seismic category, pedestrian wind, the core and life safety.',
         project: 'vtc', step: 'plates',
-        nodes: ['built.structure', 'built.wind-procedure', 'built.wind-study', 'built.wind-screen'],
+        nodes: ['built.structure', 'built.wind-procedure', 'built.wind-study', 'built.wind-screen', 'built.core-lifts', 'built.life-safety'],
         says: ['structural system and seismic', 'wind tunnel and slenderness', 'lateral system'],
       },
       {
@@ -217,7 +218,8 @@ export const SW_REPLACES: Record<string, string[]> = {
   'built.energy-carbon': ['built.sw-energy', 'built.sw-pv'],
   'built.daylight-depth': ['built.sw-daylight', 'built.sw-daylight-factor'],
 }
-for (const t of USER_TYPES) for (const p of t.presets) p.nodes = [...new Set(p.nodes.flatMap((n) => SW_REPLACES[n] ?? [n]))]
+// …and every merged tool's part by its lead (data/registry.ts MERGES).
+for (const t of USER_TYPES) for (const p of t.presets) p.nodes = canonicalNodes(p.nodes.flatMap((n) => SW_REPLACES[n] ?? [n]))
 
 export const userType = (id: UserTypeId) => USER_TYPES.find((t) => t.id === id)!
 /** "a passionate designer", "an engineer or consultant", "a planner or City reviewer": the name inside a sentence. */

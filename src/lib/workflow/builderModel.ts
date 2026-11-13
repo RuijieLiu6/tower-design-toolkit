@@ -7,7 +7,7 @@
 // Kept apart (brief §6): Available = the tool is implemented; Ready = its inputs are present; Complete and Pass come
 // from live results (hooks/useNodeSummaries.ts, from the decision trace's digest); the evidence flag describes a claim's
 // basis. They are never merged into one badge.
-import { BUILT_NODES, nodeById, type Category, type NodeDef } from '../../data/registry'
+import { ALL_BUILT_NODES, BUILT_NODES, nodeById, type Category, type NodeDef } from '../../data/registry'
 import { nodeWord } from '../../data/nodeWords'
 import { NODE_NEEDS } from '../../data/nodeNeeds'
 import type { NodePackage } from '../nodePackages'
@@ -44,7 +44,8 @@ export interface ToolEntry {
   inWorkflow: boolean
 }
 
-const BUILT = new Map(BUILT_NODES.map((n) => [n.id, n]))
+// Parts of merged tools are described too (an old saved board may still name one); the library offers leads only.
+const BUILT = new Map(ALL_BUILT_NODES.map((n) => [n.id, n]))
 const CAT_PHASE: Partial<Record<Category, PhaseId>> = { SITE: 'site', DATA: 'site', CLIM: 'form', ECOL: 'form', PROG: 'program', PUBL: 'program', MOBI: 'program', STRC: 'schematic', SYST: 'schematic', SPAC: 'schematic', ENER: 'schematic', CULT: 'present', PRES: 'present' }
 
 /** The sentence a check answers, as its one-line purpose (the registry's `question`), trimmed to one clause. */

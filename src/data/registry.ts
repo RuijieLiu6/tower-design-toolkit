@@ -47,7 +47,8 @@ export interface NodeDef {
   defaultOff?: boolean
 }
 
-export const BUILT_NODES: NodeDef[] = [
+/** Every built node, the parts of merged tools included (see MERGES below). */
+export const ALL_BUILT_NODES: NodeDef[] = [
   { id: 'built.vtc-rules', name: 'VTC hard rules', category: 'SITE', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc'],
     question: 'Does the massing meet the competition rules: height band, 9.0 non-residential FSR, block, transit link?', jury: ['urban_integration_10'],
     human: 'Interpreting the brief where it is ambiguous (height measure, which uses count toward 9.0 FSR). Ask Buildner before 3 Nov.', packet: 'P01' },
@@ -245,7 +246,56 @@ export const BUILT_NODES: NodeDef[] = [
     packet: 'P04' },
 ]
 
-export const DEFAULT_ON = BUILT_NODES.filter((n) => !n.defaultOff).map((n) => n.id)
+/**
+ * Merged tools (13 Nov 2026, "combine any repeating uses"): each lead node absorbs the nodes that answered the same
+ * question. The parts keep their ids, engines and results; they leave every list a person sees, switch on and off with
+ * their lead, and show as tabs in the lead's results. Old ids in saved workflows and presets map to the lead.
+ */
+export interface Merge { name: string; question: string; parts: { id: string; tab: string }[]; tab: string }
+export const MERGES: Record<string, Merge> = {
+  'built.sw-shadow': { name: 'Sun and shadow', tab: 'Shadow on the ground', question: 'Where and for how long does the tower shade the ground, how much sun reaches each face, and what does the sun do at a chosen hour?',
+    parts: [{ id: 'built.sw-sun-faces', tab: 'Sun on the faces' }, { id: 'built.sun', tab: 'Sun at an hour' }] },
+  'built.sw-wind-comfort': { name: 'Pedestrian wind', tab: 'Comfort on the ground', question: 'Is it too windy for people around the tower and on its terraces and roofs, and does the massing call for a wind study?',
+    parts: [{ id: 'built.sw-wind-height', tab: 'Terraces and roofs' }, { id: 'built.wind-screen', tab: 'Massing screen' }, { id: 'built.wind-study', tab: 'Study trigger' }] },
+  'built.sw-daylight': { name: 'Daylight: sDA and ASE (LEED)', tab: 'sDA and ASE', question: 'How much of each floor gets useful daylight (sDA 300/50%) without too much direct sun (ASE 1000/250), against LEED EQ Daylight, and how deep can the plates be?',
+    parts: [{ id: 'built.daylight-depth', tab: 'Plate depth' }] },
+  'built.sw-energy': { name: 'Energy and carbon', tab: 'Energy use', question: 'What are the TEUI, TEDI and GHGI against the Higher Buildings Policy and VBBL Part 10, how much embodied carbon does the structure carry, and where is PV worth placing?',
+    parts: [{ id: 'built.energy-carbon', tab: 'Limits and carbon' }, { id: 'built.sw-pv', tab: 'Photovoltaics' }] },
+  'built.sw-glazing': { name: 'Façade: glazing and bird safety', tab: 'Glazing by zone', question: 'How much glass does each façade zone carry, how does it shade, and is the glazing bird-safe?',
+    parts: [{ id: 'built.facade', tab: 'Bird safety' }] },
+  'built.sw-natvent': { name: 'Natural ventilation', tab: 'Ventilation', question: 'Can the floors be ventilated through opening windows, and how does the air move across the plan?',
+    parts: [{ id: 'built.sw-airflow', tab: 'Air flow inside' }] },
+  'built.sw-rain-water': { name: 'Rain', tab: 'Rainwater and shelter', question: 'How much rain can the roofs collect, where is the ground sheltered, and how hard does wind-driven rain hit each face?',
+    parts: [{ id: 'built.sw-rain-faces', tab: 'Driving rain on the faces' }] },
+  'built.pr-streetwall': { name: 'Public realm', tab: 'Streetwall', question: 'Does the base meet the street with the right streetwall and tower form, active frontage and open space and links?',
+    parts: [{ id: 'built.pr-frontage', tab: 'Active frontage' }, { id: 'built.pr-ground', tab: 'Open space and links' }] },
+  'built.core-lifts': { name: 'Core, lifts and stairs', tab: 'Core and lifts', question: 'Is the core big enough for the lifts and the exit stairs this tower needs?',
+    parts: [{ id: 'built.egress', tab: 'Egress and stairs' }] },
+  'built.structure': { name: 'Structure', tab: 'System and seismic', question: 'Which structural system suits this height and slenderness, and what do seismic and wind procedures ask of it?',
+    parts: [{ id: 'built.wind-procedure', tab: 'Wind procedure' }] },
+  'built.mobility': { name: 'Mobility', tab: 'Parking, loading and bikes', question: 'How do people and vehicles arrive: parking, loading, bikes, trips and the station entrance?',
+    parts: [{ id: 'built.trips', tab: 'Trips and station' }] },
+  'built.view-from': { name: 'Views', tab: 'View from here', question: 'What is seen from a point on the tower, and how does the tower sit in the protected vista views?',
+    parts: [{ id: 'built.vista', tab: 'Vista studies' }] },
+  'built.viewcones': { name: 'Height limits', tab: 'View cones', question: 'Which view cones and height references cap this site, and what height do they suggest?',
+    parts: [{ id: 'built.heights', tab: 'Height references' }] },
+}
+export const PART_OF: Record<string, string> = Object.fromEntries(Object.entries(MERGES).flatMap(([lead, m]) => m.parts.map((p) => [p.id, lead])))
+/** A part's lead (a merged tool), or the id itself. */
+export const canonicalNode = (id: string) => PART_OF[id] ?? id
+export const partsOf = (id: string) => MERGES[id]?.parts.map((p) => p.id) ?? []
+/** Ids as a person sees them: parts replaced by their lead, each once, in order. */
+export const canonicalNodes = (ids: string[]) => [...new Set(ids.map(canonicalNode))]
+/** Ids with each lead's parts after it (what switches on together). */
+export const withParts = (ids: string[]) => [...new Set(canonicalNodes(ids).flatMap((id) => [id, ...partsOf(id)]))]
+for (const n of ALL_BUILT_NODES) { const m = MERGES[n.id]; if (m) { n.name = m.name; n.question = m.question } }
+
+/** The built nodes a person sees and picks: merged tools once, under their lead's id. */
+export const BUILT_NODES: NodeDef[] = ALL_BUILT_NODES.filter((n) => !PART_OF[n.id])
+
+// On at first: the leads that are on by default with their parts; the sun preview also stays on by itself (it is the
+// 3D view's sun as well as a part of Sun and shadow).
+export const DEFAULT_ON = [...withParts(BUILT_NODES.filter((n) => !n.defaultOff).map((n) => n.id)), 'built.sun']
 
 const researched: NodeDef[] = (research as unknown as NodeDef[] & { id: string }[]).map((m: any) => ({
   id: m.id,
@@ -266,7 +316,7 @@ const researched: NodeDef[] = (research as unknown as NodeDef[] & { id: string }
   research: m.research,
 }))
 
-export const ALL_NODES: NodeDef[] = [...BUILT_NODES, ...researched]
+export const ALL_NODES: NodeDef[] = [...ALL_BUILT_NODES, ...researched]
 export const nodeById = (id: string | null) => ALL_NODES.find((n) => n.id === id) ?? null
 
 export const JURY_LABEL: Record<string, string> = {
@@ -282,3 +332,5 @@ export const WORKFLOWS: { id: string; name: string; nodes: string[] }[] = [
   { id: 'wf.public', name: 'Public realm (40%)', nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.vtc-rules'] },
   { id: 'wf.all', name: 'Everything built', nodes: BUILT_NODES.map((n) => n.id) },
 ]
+// Merged tools appear once, under their lead.
+for (const w of WORKFLOWS) w.nodes = canonicalNodes(w.nodes)

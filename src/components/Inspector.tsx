@@ -5,7 +5,7 @@ import { designForStep } from '../lib/workflow/designNodes'
 import { useState } from 'react'
 import { useInfo } from './workflow/WorkflowOverview'
 import { AddConfirm } from './workflow/AddConfirm'
-import { CATEGORIES, JURY_LABEL, nodeById } from '../data/registry'
+import { CATEGORIES, JURY_LABEL, canonicalNode, nodeById } from '../data/registry'
 import { sunPosition, vancouverTime } from '../engine/sun'
 import { PLACEMENT_LABEL, STAIR_MIN_MM, type EgressResult, type StairSpot } from '../engine/egress'
 import { CLASS_LABEL, type LiftResult } from '../engine/lifts'
@@ -562,7 +562,9 @@ export default function Inspector() {
 }
 
 /** A check you are looking at that isn't in your workflow: add it after the current step (Ruijie, 7 Nov). */
-function AddToWorkflow({ id, name }: { id: string; name: string }) {
+function AddToWorkflow({ id: shown, name: shownName }: { id: string; name: string }) {
+  // A merged tool's part is added (and counted as in the workflow) through its lead (data/registry.ts MERGES).
+  const id = canonicalNode(shown), name = id === shown ? shownName : nodeById(id)?.name ?? shownName
   const inWorkflow = useProjectWorkflow((s) => s.wf.nodes.includes(id))
   const step = useStep((s) => s.step)
   const info = useInfo()

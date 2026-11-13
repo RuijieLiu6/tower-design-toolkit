@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { FsrTier } from './engine/vtcRules'
 import type { Band, Tower } from './engine/types'
-import { BUILT_NODES, DEFAULT_ON } from './data/registry'
+import { BUILT_NODES, DEFAULT_ON, partsOf, withParts } from './data/registry'
 import { DEFAULT_LIFT_PRESETS, withAutoCore, type LiftPresets } from './engine/lifts'
 import { applyTowerPatch, migrateTower } from './engine/massing'
 import { DEFAULT_EGRESS_PRESETS, type EgressPresets } from './engine/egress'
@@ -245,8 +245,9 @@ export const useStore = create<State>((set, get) => ({
     return { towers: { ...s.towers, [s.project]: list }, selectedTower: list[0]?.id ?? '', placing: list.length ? s.placing : false }
   }),
   selectTower: (selectedTower) => set({ selectedTower }),
-  toggleNode: (id) => set((s) => ({ enabled: { ...s.enabled, [id]: !s.enabled[id] } })),
-  setEnabled: (ids) => set({ enabled: Object.fromEntries(ids.map((id) => [id, true])) }),
+  // A merged tool's parts switch with it (data/registry.ts MERGES); a part switched by itself (the 3D view's sun) stays alone.
+  toggleNode: (id) => set((s) => { const v = !s.enabled[id]; return { enabled: { ...s.enabled, [id]: v, ...Object.fromEntries(partsOf(id).map((p) => [p, v])) } } }),
+  setEnabled: (ids) => set({ enabled: Object.fromEntries(withParts(ids).map((id) => [id, true])) }),
   selectNode: (selectedNode) => set((s) => ({ selectedNode, resultsSeq: s.resultsSeq + 1 })),
   resultsSeq: 0,
   addShot: (shot) => set((s) => ({ shots: [shot, ...s.shots].slice(0, 12) })),

@@ -6,7 +6,7 @@
 // A node belongs to one phase for display (its home), but any tool can be added to any phase's workflow when a process
 // needs it: a node's place in the run decides where it shows, not a fixed list.
 import { create } from 'zustand'
-import { BUILT_NODES, type Category } from '../../data/registry'
+import { BUILT_NODES, MERGES, type Category } from '../../data/registry'
 import { PHASES, phaseOfNode, type PhaseId } from '../phases'
 import type { StepId } from '../step'
 import { edgeKey, walk, type Board, type Edge } from '../workflowGraph'
@@ -65,6 +65,11 @@ export const NODE_CONTROLS: Record<string, string[]> = {
   'built.sw-glazing': ['facade-zones'], 'built.sw-daylight': ['sw-dl-set', 'facade-zones'], 'built.sw-daylight-factor': ['sw-dl-set', 'facade-zones'],
   'built.sw-light-hour': ['sw-hour-set', 'facade-zones'], 'built.sw-natvent': ['sw-vent-set', 'facade-zones'], 'built.sw-airflow': ['sw-vent-set', 'facade-zones'],
   'built.sw-energy': ['facade-zones'], 'built.sw-indoor-temp': ['sw-temp-set', 'facade-zones'],
+}
+// A merged tool opens its parts' controls too (data/registry.ts MERGES).
+for (const [lead, m] of Object.entries(MERGES)) {
+  const all = [...new Set([lead, ...m.parts.map((p) => p.id)].flatMap((id) => NODE_CONTROLS[id] ?? []))]
+  if (all.length) NODE_CONTROLS[lead] = all
 }
 
 /**

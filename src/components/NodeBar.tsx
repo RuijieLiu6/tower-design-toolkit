@@ -9,7 +9,7 @@ import { NODE_ICONS, communityIcons } from '../data/icons'
 import { Glyph, nodeHue } from './GlassIcon'
 import { hasNodeArt, NodeArt } from './icons/nodeArt'
 import { NodeArtwork } from './nodeIcons/NodeArtwork'
-import { BUILT_NODES, CATEGORIES, type Category, type NodeDef } from '../data/registry'
+import { BUILT_NODES, CATEGORIES, canonicalNode, type Category, type NodeDef } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStore, type Phase } from '../store'
 import { inputGap } from '../lib/missingInput'
@@ -101,7 +101,7 @@ export default function NodeBar() {
 
   const button = (n: NodeDef, isCommunity: boolean) => {
     const on = !!enabled[n.id]
-    const selected = selectedNode === n.id
+    const selected = !!selectedNode && canonicalNode(selectedNode) === n.id
     const usable = !n.projects || n.projects.includes(project)
     const color = CATEGORIES[n.category].color
     const Icon = isCommunity ? cIcons.get(n.id) ?? null : NODE_ICONS[n.id] ?? null

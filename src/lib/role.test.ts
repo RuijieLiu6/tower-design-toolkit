@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BUILT_NODES } from '../data/registry'
+import { BUILT_NODES, withParts } from '../data/registry'
 import { useStore } from '../store'
 import { chooseRole, ROLE_PRESETS, useRole } from './role'
 
@@ -17,7 +17,7 @@ describe('role presets (workflow study §7, approved 4 Nov)', () => {
     chooseRole('designer')
     expect(useRole.getState().role).toBe('designer')
     expect(useStore.getState().project).toBe('vtc')
-    expect(Object.keys(useStore.getState().enabled).filter((k) => useStore.getState().enabled[k]).sort()).toEqual([...ROLE_PRESETS.designer.nodes].sort())
+    expect(Object.keys(useStore.getState().enabled).filter((k) => useStore.getState().enabled[k]).sort()).toEqual(withParts(ROLE_PRESETS.designer.nodes).sort())
     chooseRole('practitioner')
     expect(useStore.getState().project).toBe('city')
     expect(useStore.getState().enabled['built.heights']).toBe(true) // its first workflow: rezoning feasibility

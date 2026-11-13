@@ -7,6 +7,7 @@ import type { UserTypeId } from './userTypes'
 import { presetById } from './userTypes'
 import { linear, returnEdges, edgeKey, walk, type Edge } from './workflowGraph'
 import { runningWorkflow } from './startPreset'
+import { canonicalNode, canonicalNodes } from '../data/registry'
 
 export type CoverRole = UserTypeId | 'custom'
 export interface CoverWorkflow {
@@ -47,13 +48,15 @@ export function saveCoverWorkflow(w: Omit<CoverWorkflow, 'v' | 'savedAt'>) {
 export function restoreCoverWorkflow(known: (id: string) => boolean): Omit<CoverWorkflow, 'v' | 'savedAt'> | null {
   const saved = loadCoverWorkflow(), run = runningWorkflow()
   const clean = (w: CoverWorkflow) => {
-    const nodes = w.nodes.filter(known), ok = new Set([...nodes, 'start', 'enter'])
-    return { ...w, nodes, edges: w.edges.filter((e) => ok.has(e.a) && ok.has(e.b)) }
+    // A merged tool's old part ids become its lead (data/registry.ts MERGES); wires that now join a node to itself go.
+    const nodes = canonicalNodes(w.nodes).filter(known), ok = new Set([...nodes, 'start', 'enter']), seen = new Set<string>()
+    const edges = w.edges.map((e) => ({ a: canonicalNode(e.a), b: canonicalNode(e.b) })).filter((e) => e.a !== e.b && ok.has(e.a) && ok.has(e.b) && !seen.has(edgeKey(e)) && !!seen.add(edgeKey(e)))
+    return { ...w, nodes, edges }
   }
   const sameRun = (w: CoverWorkflow, nodes: string[]) => { const r = walk(w.edges); return r.length === nodes.length && r.every((x, i) => x === nodes[i]) }
   if (saved && (!run || sameRun(saved, run.nodes) || (run.at ?? '') <= saved.savedAt)) return clean(saved)
   if (run && run.nodes.length) {
-    const nodes = run.nodes.filter(known)
+    const nodes = canonicalNodes(run.nodes).filter(known)
     const loops = saved ? saved.edges.filter((e) => returnEdges(saved.edges).has(edgeKey(e)) && nodes.includes(e.a) && nodes.includes(e.b)) : []
     const presetId = run.id && presetById(run.id) ? run.id : null
     return { role: (run.type as CoverRole) ?? saved?.role ?? 'custom', presetId, customName: presetId ? null : run.name.replace(/ · with a loop$/, ''), nodes, edges: [...linear(nodes), ...loops], at: {} }

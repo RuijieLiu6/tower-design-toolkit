@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BUILT_NODES } from '../data/registry'
+import { ALL_BUILT_NODES as BUILT_NODES } from '../data/registry'
 import { egressCheck } from '../engine/egress'
 import { liftCheck, withAutoCore } from '../engine/lifts'
 import { skyRoomCheck } from '../engine/skyRoom'

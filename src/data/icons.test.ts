@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { COMMUNITY_ICON_POOL, NODE_ICONS, communityIcons } from './icons'
-import { BUILT_NODES } from './registry'
+import { ALL_BUILT_NODES, BUILT_NODES } from './registry'
 
 // The node bar shows icons only (names on hover), so no two nodes may share an icon.
 describe('node icons', () => {
@@ -13,7 +13,7 @@ describe('node icons', () => {
   })
 
   it('has no icon entries for nodes that are not built', () => {
-    const built = new Set(BUILT_NODES.map((n) => n.id))
+    const built = new Set(ALL_BUILT_NODES.map((n) => n.id)) // merged tools' parts keep their icons
     expect(Object.keys(NODE_ICONS).filter((id) => !built.has(id))).toEqual([])
   })
 

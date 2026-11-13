@@ -1,6 +1,6 @@
 // The landing page's user types and their starting workflows (6 Nov).
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BUILT_NODES } from '../data/registry'
+import { BUILT_NODES, withParts } from '../data/registry'
 import { useStore } from '../store'
 import { startPreset } from './startPreset'
 import { aType, presetById, USER_TYPES, useUserType } from './userTypes'
@@ -40,7 +40,7 @@ describe('user types and starting workflows', () => {
     await startPreset(p)
     const s = useStore.getState()
     expect(s.project).toBe('city')
-    expect(Object.keys(s.enabled).filter((k) => s.enabled[k]).sort()).toEqual([...p.nodes].sort())
+    expect(Object.keys(s.enabled).filter((k) => s.enabled[k]).sort()).toEqual(withParts(p.nodes).sort())
     expect(s.citySite?.label).toMatch(/Granville/)
     expect(s.towers).toBe(towers) // the design is untouched
     expect(useUserType.getState()).toEqual({ type: 'planner', preset: 'planner.views' })

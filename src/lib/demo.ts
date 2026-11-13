@@ -1,7 +1,7 @@
 // The demo project for the mid review (Fri 23 Oct): the competition site with two towers, a public sky room and
 // every built node switched on. Saved as public/demo/demo-project.json in the project file format
 // (tower-studio-project@1, lib/project/projectFile.ts); demo.test.ts keeps the saved file equal to this.
-import { BUILT_NODES } from '../data/registry'
+import { ALL_BUILT_NODES } from '../data/registry'
 import { suggestSkyLobby, withAutoCore } from '../engine/lifts'
 import type { Tower } from '../engine/types'
 import { DEFAULT_SKY_ROOM, defaultTower, useStore } from '../store'
@@ -31,7 +31,7 @@ export function demoDesign(): Design {
     project: 'vtc',
     towers: { vtc: [main, second], city: [defaultTower('city')] },
     selectedTower: main.id,
-    enabled: Object.fromEntries(BUILT_NODES.map((n) => [n.id, true])),
+    enabled: Object.fromEntries(ALL_BUILT_NODES.map((n) => [n.id, true])),
     sun: { month: 9, day: 22, hour: 15 },
   }
 }

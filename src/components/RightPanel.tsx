@@ -6,7 +6,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 
 import ClimateDrawings from './ClimateDrawings'
 import SwResults from './sw/SwResults'
 import { useShallow } from 'zustand/react/shallow'
-import { ALL_NODES, BUILT_NODES, CATEGORIES } from '../data/registry'
+import { ALL_NODES, BUILT_NODES, CATEGORIES, MERGES, canonicalNode } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStep } from '../lib/step'
 import { useTowerAdds, watchTowerAdds } from '../lib/towerAdds'
@@ -62,12 +62,16 @@ function ResultsPicker() {
   const { enabled, selectedNode, selectNode } = useStore(useShallow((s) => ({ enabled: s.enabled, selectedNode: s.selectedNode, selectNode: s.selectNode })))
   const community = useCommunityNodeDefs()
   const on = [...BUILT_NODES, ...community].filter((n) => enabled[n.id])
-  const current = selectedNode && !on.some((n) => n.id === selectedNode) ? [...ALL_NODES, ...community].find((n) => n.id === selectedNode) : undefined
+  // A merged tool's part is read under its lead (data/registry.ts MERGES); the strip below picks the part.
+  const lead = selectedNode ? canonicalNode(selectedNode) : null
+  const current = lead && !on.some((n) => n.id === lead) ? [...ALL_NODES, ...community].find((n) => n.id === lead) : undefined
   const options = current ? [current, ...on] : on
+  const merge = lead ? MERGES[lead] : undefined
   return (
-    <div className="flex items-center gap-2 border-b border-line px-4 py-2">
+    <div className="border-b border-line px-4 py-2">
+    <div className="flex items-center gap-2">
       <label htmlFor="results-for" className="shrink-0 text-meta text-muted">Show results for</label>
-      <select id="results-for" value={selectedNode ?? ''} onChange={(e) => selectNode(e.target.value || null)}
+      <select id="results-for" value={lead ?? ''} onChange={(e) => selectNode(e.target.value || null)}
         className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-panel px-1.5 text-control">
         {!selectedNode && <option value="">Choose a check…</option>}
         {/* Grouped by category (UI review round 2, 4 Nov: a flat list of 30 checks was hard to scan; run-through F4). */}
@@ -77,6 +81,15 @@ function ResultsPicker() {
           </optgroup>
         ))}
       </select>
+    </div>
+    {merge && lead && (
+      <div role="tablist" aria-label={`${merge.name}: parts`} data-testid="merge-parts" className="mt-2 flex flex-wrap gap-1">
+        {[{ id: lead, tab: merge.tab }, ...merge.parts].map((p) => (
+          <button key={p.id} type="button" role="tab" aria-selected={selectedNode === p.id} data-part={p.id} onClick={() => selectNode(p.id)}
+            className={`rounded-full px-2.5 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${selectedNode === p.id ? 'bg-selected font-semibold text-accent-hover' : 'bg-subtle text-muted hover:text-ink'}`}>{p.tab}</button>
+        ))}
+      </div>
+    )}
     </div>
   )
 }

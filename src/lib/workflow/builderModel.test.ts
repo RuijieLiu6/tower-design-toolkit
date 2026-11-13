@@ -7,7 +7,7 @@ import {
   addPreview, applicability, bestAfter, cardState, designSummary, entryFor, filterEntries, libraryEntries, movePreview, phaseName,
   plainWords, previewWords, purposeOf, removePreview, runsInProject, sequenceModel, type StateContext,
 } from './builderModel'
-import { ALL_NODES, BUILT_NODES } from '../../data/registry'
+import { ALL_BUILT_NODES, ALL_NODES, BUILT_NODES } from '../../data/registry'
 import { NODE_NEEDS } from '../../data/nodeNeeds'
 import { DESIGN_NODES } from './designNodes'
 import { homePhase } from './phaseTools'
@@ -53,11 +53,11 @@ describe('entryFor', () => {
     const e = entryFor('built.fsr', { board: b, packages: [] })
     expect(e).toMatchObject({ name: 'Program & FSR accounting', word: 'FSR', phase: 'program', kind: 'check', availability: 'available', category: 'PROG', projects: ['vtc', 'city'], inWorkflow: true })
     expect(e.purpose).toBe('How much floor area does each use get, and what FSR results')
-    expect(entryFor('built.wind-screen', { board: b, packages: [] })).toMatchObject({ phase: 'form', kind: 'check', availability: 'available', inWorkflow: false })
+    expect(entryFor('built.sw-wind-comfort', { board: b, packages: [] })).toMatchObject({ name: 'Pedestrian wind', phase: 'form', kind: 'check', availability: 'available', inWorkflow: false })
     expect(entryFor('built.vtc-rules', { board: b, packages: [] })).toMatchObject({ phase: 'site', projects: ['vtc'] })
   })
   it('marks a preview check as a preview, not as available', () => {
-    expect(BUILT_NODES.find((n) => n.id === 'built.sun')!.status).toBe('preview')
+    expect(ALL_BUILT_NODES.find((n) => n.id === 'built.sun')!.status).toBe('preview')
     expect(entryFor('built.sun', { board: b, packages: [] })).toMatchObject({ name: 'Sun & shadow preview', word: 'Shadow', phase: 'form', kind: 'check', availability: 'preview' })
   })
   it('shows a check where the user placed it, over its home phase', () => {
@@ -93,11 +93,11 @@ describe('libraryEntries', () => {
   it('offers the design steps and every built check as available, previews marked', () => {
     expect(lib.available.map((e) => e.id)).toEqual([...DESIGN_NODES.map((d) => d.id), ...BUILT_NODES.map((n) => n.id)])
     expect(lib.available.filter((e) => e.kind === 'design')).toHaveLength(5)
-    expect(lib.available.find((e) => e.id === 'built.sun')!.availability).toBe('preview')
+    expect(lib.available.find((e) => e.id === 'built.sun')).toBeUndefined() // a merged tool's part (Sun and shadow), not offered alone
     expect(lib.available.find((e) => e.id === 'built.fsr')!.availability).toBe('available')
     expect(lib.available.every((e) => e.availability === 'available' || e.availability === 'preview')).toBe(true)
     expect(lib.available.find((e) => e.id === 'built.fsr')!.inWorkflow).toBe(true)
-    expect(lib.available.find((e) => e.id === 'built.sun')!.inWorkflow).toBe(false)
+    expect(lib.available.find((e) => e.id === 'built.sw-shadow')!.inWorkflow).toBe(false)
   })
   it('puts installed packages under My tools, then the missing references the workflow still holds', () => {
     expect(lib.mine.map((e) => [e.id, e.availability, e.inWorkflow])).toEqual([[PKG.id, 'custom', false], ['community.x', 'missing', true]])
@@ -145,21 +145,21 @@ describe('filterEntries', () => {
     expect(filterEntries(list, { query: 'fsr' }).map((e) => e.id)).toContain('built.fsr')
     expect(filterEntries(list, { query: '  FSR ' }).map((e) => e.id)).toContain('built.fsr')
     expect(filterEntries(list, { query: 'shape the towers' }).map((e) => e.id)).toEqual(['design.massing']) // a purpose
-    expect(filterEntries(list, { query: 'CLIM' }).map((e) => e.id)).toContain('built.wind-screen') // a category
+    expect(filterEntries(list, { query: 'CLIM' }).map((e) => e.id)).toContain('built.sw-wind-comfort') // a category
     expect(filterEntries(list, { query: 'plate depth' }).map((e) => e.id)).toContain(PKG.id)
     expect(filterEntries(list, { query: 'zzz-nothing' })).toEqual([])
   })
   it('filters by phase, and passes everything through with no query and no phase', () => {
     const form = filterEntries(list, { phase: 'form' })
     expect(form.every((e) => e.phase === 'form')).toBe(true)
-    expect(form.map((e) => e.id)).toEqual(expect.arrayContaining(['design.massing', 'built.sun', 'built.wind-screen']))
+    expect(form.map((e) => e.id)).toEqual(expect.arrayContaining(['design.massing', 'built.sw-shadow', 'built.sw-wind-comfort']))
     expect(form.map((e) => e.id)).not.toContain('built.fsr')
     expect(filterEntries(list, { phase: 'schematic' }).map((e) => e.id)).toContain(PKG.id)
     expect(filterEntries(list, {})).toHaveLength(list.length)
     expect(filterEntries(list, { query: '', phase: null })).toHaveLength(list.length)
   })
   it('combines the query and the phase', () => {
-    expect(filterEntries(list, { query: 'wind', phase: 'form' }).map((e) => e.id).sort()).toEqual(['built.sw-rain-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.wind-screen', 'built.wind-study'])
+    expect(filterEntries(list, { query: 'wind', phase: 'form' }).map((e) => e.id).sort()).toEqual(['built.sw-rain-water', 'built.sw-wind-comfort'])
     expect(filterEntries(list, { query: 'wind', phase: 'program' })).toEqual([])
   })
 })

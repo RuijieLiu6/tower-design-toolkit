@@ -13,7 +13,7 @@ import { DEFAULT_NATURE } from '../../engine/cityInNature'
 import { DEFAULT_WIND_PRESETS } from '../../engine/windStructure'
 import { DEFAULT_SYSTEMS_PRESETS } from '../../engine/lifeSafety'
 import type { Tower } from '../../engine/types'
-import { DEFAULT_ON } from '../../data/registry'
+import { DEFAULT_ON, PART_OF, withParts } from '../../data/registry'
 import type { NodePackage } from '../nodePackages'
 import type { Trace } from '../trace/trace'
 import type { InterchangeModel } from '../interchange/model'
@@ -167,7 +167,11 @@ export function toDesign(file: ProjectFile): Design {
     citySite: file.citySite ?? null,
     selectedTower: t[file.project].some((x) => x.id === file.selectedTower) ? file.selectedTower : t[file.project][0]?.id ?? '',
     // Built nodes added after the file was saved start switched on, like in a new project.
-    enabled: Object.fromEntries([...file.nodes.enabled, ...(file.nodes.known ? DEFAULT_ON.filter((id) => !file.nodes.known!.includes(id)) : [])].map((id) => [id, true])),
+    enabled: (() => {
+      const ids = [...file.nodes.enabled, ...(file.nodes.known ? DEFAULT_ON.filter((id) => !file.nodes.known!.includes(id)) : [])]
+      // A merged tool's parts follow its lead (data/registry.ts MERGES); the sun preview keeps its own switch.
+      return Object.fromEntries([...withParts(ids.filter((id) => !PART_OF[id])), ...(ids.includes('built.sun') ? ['built.sun'] : [])].map((id) => [id, true]))
+    })(),
     fsrTier: file.rules.fsrTier,
     transitLink: file.rules.transitLink,
     groundElevation: file.site.city.datum.groundElevation ?? 15,
