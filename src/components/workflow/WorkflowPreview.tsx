@@ -59,7 +59,7 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, phase, home])
 
-  const next = PHASE_IDS[pi + 1]
+  const next = PHASE_IDS[pi + 1], prev = pi > 0 ? PHASE_IDS[pi - 1] : undefined
   const d = designOf(phase)
   const here = pic.rest.filter((id) => phaseOf(id) === phase).length
 
@@ -128,10 +128,17 @@ export default function WorkflowPreview({ board, phase, active, info, home, coll
             <h3 className="text-control font-semibold text-ink">{pi + 1} · {PHASE_NAME[phase]}</h3>
             <p className="text-meta text-muted">{d.about}{gi >= 0 ? ` ${here} tool${here === 1 ? '' : 's'} here, of ${pic.rest.length}.` : ''}</p>
           </div>
-          <div className="mt-2 flex items-center gap-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <button type="button" onClick={() => openOverview('edit')} className="flex h-8 items-center rounded-lg bg-accent px-2.5 text-control font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">Edit workflow</button>
-            <button type="button" onClick={() => next && goToStep(PHASE_STEP[next])} disabled={!next} data-testid="workflow-next"
-              className="flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">{next ? `Next: ${PHASE_NAME[next]} ›` : 'Last phase'}</button>
+            {/* Back and Next step along the phases (12 Nov: "give me the option to go back"); their phase is on hover */}
+            <span className="ml-auto flex items-center gap-1.5">
+              <button type="button" onClick={() => prev && goToStep(PHASE_STEP[prev])} disabled={!prev} data-testid="workflow-back"
+                aria-label={prev ? `Back to ${PHASE_NAME[prev]}` : 'Back: this is the first phase'} title={prev ? `Back to ${PHASE_NAME[prev]}` : 'This is the first phase'}
+                className="flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">‹ Back</button>
+              <button type="button" onClick={() => next && goToStep(PHASE_STEP[next])} disabled={!next} data-testid="workflow-next"
+                aria-label={next ? `Next: ${PHASE_NAME[next]}` : 'Next: this is the last phase'} title={next ? `Next: ${PHASE_NAME[next]}` : 'This is the last phase'}
+                className="flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50">Next ›</button>
+            </span>
           </div>
         </>
       )}
