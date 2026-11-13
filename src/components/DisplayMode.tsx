@@ -157,7 +157,7 @@ function ScaleBar({ title, unit, stops, lo, hi, last, missing, note }: { title: 
   )
 }
 
-function SolarScale({ project }: { project: ProjectKind }) {
+export function SolarScale({ project }: { project: ProjectKind }) {
   const out = useSolar((s) => (s.out?.project === project ? s.out : null))
   const status = useSolar((s) => s.status)
   const view = useSolar((s) => s.view)
@@ -175,7 +175,7 @@ function SolarScale({ project }: { project: ProjectKind }) {
   )
 }
 
-function WindKey() {
+export function WindKey() {
   return (
     <figure className="m-0 grid gap-1" aria-label="Pedestrian wind risk, indicative levels">
       <figcaption className="text-meta"><b className="font-semibold text-ink">Pedestrian wind risk</b> <span className="text-muted">· level, screening only (not CFD)</span></figcaption>
@@ -232,4 +232,10 @@ export function AnalysisLegend({ project }: { project: ProjectKind }) {
       {layer === 'wind' && <WindKey />}
     </div>
   )
+}
+
+/** The Sun on surfaces scale on its own (the analysis view, components/AnalysisViewport.tsx). */
+export function SurfaceSunScale() {
+  return <ScaleBar title="Sun on surfaces · modelled, per year" unit="kWh/m²·yr, roofs and facade bands" stops={SEQUENTIAL} lo={POA_RANGE[0]} hi={POA_RANGE[1]}
+    note="Fixed scale for every option; values beyond it take the end colour." />
 }

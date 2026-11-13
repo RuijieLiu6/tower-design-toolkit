@@ -1,5 +1,7 @@
 // React hooks over the display mode (lib/displayMode.ts) for the 3D scene and the chrome over it.
+import { useContext } from 'react'
 import { useStore } from '../store'
+import { ForcedLayer } from './analysisView'
 import { nodeOn } from './analysis'
 import { activeLayer, modeColours, shownMode, useDisplayMode, type AnalysisLayerId, type DisplayMode, type ModeColours } from './displayMode'
 
@@ -17,5 +19,9 @@ export const useModeColours = (): ModeColours => modeColours(useShownMode())
 export function useAnalysisLayer(): AnalysisLayerId | null {
   const analysis = useModeColours().analysis
   const preferred = useDisplayMode((s) => s.layer)
-  return useStore((s) => (analysis ? activeLayer(preferred, (node) => nodeOn(s, node)) : null))
+  const main = useStore((s) => (analysis ? activeLayer(preferred, (node) => nodeOn(s, node)) : null))
+  // The analysis view (components/AnalysisViewport.tsx) draws its own check's layer, in any display mode.
+  const forced = useContext(ForcedLayer)
+  const forcedRuns = useStore((s) => (forced ? activeLayer(forced, (node) => nodeOn(s, node)) : null))
+  return forced === undefined ? main : forcedRuns
 }

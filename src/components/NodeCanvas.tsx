@@ -1,7 +1,8 @@
 import { Background, Controls, Handle, Position, ReactFlow, type Edge, type Node, type NodeProps } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useMemo } from 'react'
-import { Box } from './icons'
+import { Box, Expand } from './icons'
+import { toggleAnalysis, useAnalysisView } from '../lib/analysisView'
 import { CATEGORY_ICONS } from '../data/icons'
 import { BUILT_NODES, CATEGORIES, nodeById, type Category } from '../data/registry'
 import { STATE_LABEL } from '../engine/viewCones'
@@ -24,7 +25,7 @@ import { towerFloors } from '../engine/massing'
 import { communityCanvas } from './communityCanvas'
 import { useShallow } from 'zustand/react/shallow'
 
-type CardData = { title: string; category: Category | 'L0'; subtitle: string; status?: string; tone?: 'ok' | 'warn' | 'bad' | 'muted'; inputs?: boolean; outputs?: boolean }
+type CardData = { node?: string; title: string; category: Category | 'L0'; subtitle: string; status?: string; tone?: 'ok' | 'warn' | 'bad' | 'muted'; inputs?: boolean; outputs?: boolean }
 
 const TONE: Record<string, string> = { ok: 'text-emerald-700', warn: 'text-amber-700', bad: 'text-red-700', muted: 'text-slate-500' }
 
@@ -42,9 +43,22 @@ function Card({ data, selected }: NodeProps<Node<CardData>>) {
         </div>
         <div className="mt-0.5 text-meta text-muted">{data.subtitle}</div>
         {data.status && <div className={`mt-1 text-meta font-medium ${TONE[data.tone ?? 'muted']}`}>{data.status}</div>}
+        {data.node && <CardExpand id={data.node} name={data.title} />}
       </div>
       {data.outputs && <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-accent" />}
     </div>
+  )
+}
+
+/** The node view's way into a check's analysis view (lib/analysisView.ts): opens it beside the model. */
+function CardExpand({ id, name }: { id: string; name: string }) {
+  const open = useAnalysisView((s) => s.node === id)
+  return (
+    <button type="button" onClick={(e) => { e.stopPropagation(); toggleAnalysis(id) }} data-expand={id} aria-pressed={open}
+      aria-label={`${open ? 'Close' : 'Open'} the analysis view of ${name}`} title="Open the analysis view beside the model"
+      className={`nodrag mt-1.5 flex h-7 w-full items-center justify-center gap-1 rounded border text-meta font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${open ? 'border-accent bg-accent text-white' : 'border-line text-ink hover:border-accent hover:text-accent'}`}>
+      <Expand size={12} aria-hidden />{open ? 'Analysis open' : 'Expand analysis'}
+    </button>
   )
 }
 
@@ -150,7 +164,7 @@ export default function NodeCanvas() {
         status = !res ? '—' : fails ? `${fails} fail · ${warns} to check` : warns ? `${warns} to check` : 'All pass'
         tone = !res ? 'muted' : fails ? 'bad' : warns ? 'warn' : 'ok'
       }
-      evals.push({ id: n.id, type: 'card', position: { x: 320, y: i * 120 }, selected: selectedNode === n.id, data: { title: n.name, category: n.category, subtitle: n.status === 'preview' ? 'Built · preview' : 'Built · deterministic', status, tone, inputs: true, outputs: true } })
+      evals.push({ id: n.id, type: 'card', position: { x: 320, y: i * 120 }, selected: selectedNode === n.id, data: { node: n.id, title: n.name, category: n.category, subtitle: n.status === 'preview' ? 'Built · preview' : 'Built · deterministic', status, tone, inputs: true, outputs: true } })
       const ins = n.id === 'built.fsr' || n.id === 'built.core-lifts' || n.id === 'built.egress' || n.id === 'built.sky-room' ? ['l0.program', 'l0.massing'] : n.id === 'built.sun' ? ['l0.site', 'l0.massing'] : ['l0.site', 'l0.massing', 'l0.program']
       ins.forEach((src) => e.push({ id: `${src}-${n.id}`, source: src, target: n.id, animated: false, style: { stroke: '#9aa3ad' } }))
       e.push({ id: `${n.id}-report`, source: n.id, target: 'report', style: { stroke: '#1f5f8b' } })

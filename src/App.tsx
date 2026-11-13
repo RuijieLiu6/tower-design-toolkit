@@ -17,12 +17,14 @@ import { stageDef } from './data/stages'
 import { useStore } from './store'
 import { goToStep, startOnSite, startStepFollow } from './lib/step'
 import { whenRestored } from './lib/project/session'
+import { useAnalysisView } from './lib/analysisView'
 
 // The 3D view: fetched as soon as this module loads (the start page warms both), and rendered directly once it is here.
 let LoadedViewport: ComponentType | null = null
 const viewportReady = import('./components/Viewport').then((m) => { LoadedViewport = m.default; return m })
 const Viewport = lazy(() => viewportReady)
 const NodeCanvas = lazy(() => import('./components/NodeCanvas'))
+const AnalysisViewport = lazy(() => import('./components/AnalysisViewport'))
 
 function Loading({ what }: { what: string }) {
   return <div className="flex h-full items-center justify-center text-xs text-muted">Loading {what}…</div>
@@ -36,6 +38,10 @@ export default function App() {
   const set = useStore((s) => s.set)
   const setPhase = useStore((s) => s.setPhase)
   const present = phase === 'present'
+  // A check's analysis view (lib/analysisView.ts) takes the second half of the centre, beside the model.
+  const analysisNode = useAnalysisView((s) => s.node)
+  const analysisOpen = !!analysisNode && !present && (view === '3d' || view === 'split')
+  const half = view === 'split' || analysisOpen
   const panels = usePanels()
   const widths = usePanelWidths()
   // #/workflow: the guided app with the workflow builder open (Result A, 9 Nov); it closes to the design as usual.
@@ -80,11 +86,16 @@ export default function App() {
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
         <main className="relative flex min-w-0 flex-1 gap-2">
           {(view === '3d' || view === 'split') && (
-            <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
+            <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${half ? 'w-1/2' : 'w-full'}`} data-model-region>
               {LoadedViewport ? <LoadedViewport /> : <Suspense fallback={<div aria-busy="true" aria-label="Loading the 3D view" className="h-full w-full" />}><Viewport /></Suspense>}
             </div>
           )}
-          {(view === 'canvas' || view === 'split') && (
+          {analysisOpen && (
+            <div className="w-1/2 overflow-hidden rounded-2xl border border-line bg-panel" data-analysis-region>
+              <Suspense fallback={<Loading what="analysis view" />}><AnalysisViewport /></Suspense>
+            </div>
+          )}
+          {(view === 'canvas' || view === 'split') && !analysisOpen && (
             <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`}>
               <Suspense fallback={<Loading what="node canvas" />}><NodeCanvas /></Suspense>
             </div>

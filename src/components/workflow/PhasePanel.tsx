@@ -13,7 +13,8 @@
 // changes the order of work (a loop is a route back, never a re-run); checks run with the model while Analysis is on.
 // The workflow is the project's, the same as the landing page's and Overview's (lib/workflow/projectWorkflow.ts).
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
+import { ChevronDown, ChevronRight, Expand, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
+import { toggleAnalysis, useAnalysisView } from '../../lib/analysisView'
 import { NodeTile } from '../NodeTile'
 import { NodeArtwork } from '../nodeIcons/NodeArtwork'
 import Help from '../Help'
@@ -148,15 +149,16 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
                   const kind = isDesignNode(id) ? 'Design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check'
                   const rets = returnsFrom(id)
                   return (
-                    <li key={id} data-phase-node={id}>
+                    <li key={id} data-phase-node={id} className="group relative">
                       <button type="button" data-node={id} aria-current={isActive ? 'true' : undefined}
                         aria-label={`${n.name}${isDesignNode(id) ? ': open its tools' : ': open its settings and results'}${isActive ? ' (open)' : ''}${rets.length ? `; returns to ${rets.map((e) => info(e.b).name).join(', ')}` : ''}`}
                         onClick={() => open(id)} title={`${n.name} · ${kind}${!inBoard ? ' · joins the workflow when you add a tool here' : ''}`}
-                        className={`node-hit flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'}`}>
+                        className={`node-hit flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg py-1 pl-1.5 pr-9 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'}`}>
                         <NodeTile id={id} size={TILE} art={<NodeArtwork id={id} size={Math.round(TILE * 0.9)} category={n.category} />} />
                         <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{n.word.length > 3 && n.name.length > 26 ? n.word : n.name}<span className="sr-only">, {kind}</span></span>
                         {rets.map((e) => <span key={edgeKey(e)} aria-hidden data-return={edgeKey(e)} title={`Loops back to ${info(e.b).name}`} className="shrink-0 text-meta text-muted">↻</span>)}
                       </button>
+                      {!isDesignNode(id) && <ExpandAnalysis id={id} name={n.name} />}
                     </li>
                   )
                 })}
@@ -322,6 +324,7 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
           <h3 className="truncate text-control font-semibold text-ink" data-testid="phase-active-name">{n.name}</h3>
           <span className="block truncate text-meta text-muted" title={state}>{state}</span>
         </span>
+        {!d && <ExpandAnalysis id={id} name={n.name} className="h-8 w-8 shrink-0" />}
         {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
       {d ? (phase === 'present' ? <Filmstrip tone="light" /> : <ToolPanel embedded />)
@@ -329,5 +332,18 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}
     </div>
+  )
+}
+
+/** Opens (or closes) the check's analysis view beside the model (lib/analysisView.ts). */
+export function ExpandAnalysis({ id, name, className = 'absolute right-1 top-1/2 -translate-y-1/2' }: { id: string; name: string; className?: string }) {
+  const open = useAnalysisView((s) => s.node === id)
+  return (
+    <button type="button" onClick={(e) => { e.stopPropagation(); toggleAnalysis(id) }} data-expand={id} aria-pressed={open}
+      aria-label={open ? `Close the analysis view of ${name}` : `Open the analysis view of ${name} beside the model`}
+      title={open ? 'Close the analysis view' : 'Open the analysis view beside the model'}
+      className={`${className} flex h-7 w-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent ${open ? 'bg-accent text-white' : 'text-muted hover:bg-panel hover:text-ink'}`}>
+      <Expand size={14} aria-hidden />
+    </button>
   )
 }
