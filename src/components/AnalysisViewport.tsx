@@ -8,6 +8,8 @@
 //   - every other check: the towers floor by floor, coloured by use.
 // The towers are drawn as plain prisms (the solar engine's own casters, engine/solarRules.ts towerOccluders), so drawn,
 // imported and parametric towers all read the same.
+import { SW_VIEW, SwFaces, SwGround, SwKey, SwPlanView, SwZones } from './sw/SwAnalysis'
+import { isSw } from '../lib/swRun'
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import polygonClipping, { type MultiPolygon, type Polygon } from 'polygon-clipping'
@@ -309,6 +311,9 @@ export default function AnalysisViewport() {
 
   const layer: AnalysisLayerId | null = def.kind === 'layer' ? def.layer : null
   const needsOn = def.kind !== 'uses' && !on
+  const swView = isSw(node) ? SW_VIEW[node] : undefined
+  // The interior studies are a floor plan (2D drawing), not a 3D scene.
+  const swPlan = swView === 'plan'
   return (
     <section aria-label={`${name}: analysis view`} data-testid="analysis-view" data-analysis={node} className="relative flex h-full w-full flex-col bg-panel">
       <header className="flex items-center gap-2 border-b border-line px-3 py-2">
@@ -320,21 +325,21 @@ export default function AnalysisViewport() {
           const c = document.querySelector<HTMLCanvasElement>('[data-testid="analysis-view"] canvas')
           return c ? canvasImage(c, name, def.about) : null
         }} />
-        <div role="radiogroup" aria-label="Camera" className="flex rounded-lg bg-subtle p-0.5">
+        {!swPlan && <div role="radiogroup" aria-label="Camera" className="flex rounded-lg bg-subtle p-0.5">
           {([[true, 'Plan', MapIcon], [false, '3D', Box]] as const).map(([v, word, I]) => (
             <button key={word} type="button" role="radio" aria-checked={plan === v} onClick={() => useAnalysisView.setState({ plan: v })} data-testid={`analysis-${word.toLowerCase()}`}
               className={`flex h-7 items-center gap-1 rounded-md px-2 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${plan === v ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
               <I size={13} aria-hidden />{word}
             </button>
           ))}
-        </div>
+        </div>}
         <button type="button" onClick={closeAnalysis} aria-label="Close the analysis view" title="Close the analysis view" data-testid="analysis-close"
           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={16} aria-hidden /></button>
       </header>
       <div className="relative min-h-0 flex-1">
         {/* Plan is a true plan: an orthographic camera straight down, north up, pan and zoom only (the canvas is rebuilt with
             the other camera when Plan / 3D changes, so the controls always drive the camera in use). */}
-        <Canvas key={plan ? 'plan' : 'axo'} orthographic={plan} camera={plan ? { position: [0, 3000, 0], zoom: 1, near: 1, far: 20000 } : { fov: 30, position: [0, 800, 1], near: 1, far: 40000 }} frameloop="demand" dpr={[1, 2]} gl={{ antialias: true, preserveDrawingBuffer: true }}>
+        {swPlan && isSw(node) ? <SwPlanView id={node} /> : <Canvas key={plan ? 'plan' : 'axo'} orthographic={plan} camera={plan ? { position: [0, 3000, 0], zoom: 1, near: 1, far: 20000 } : { fov: 30, position: [0, 800, 1], near: 1, far: 40000 }} frameloop="demand" dpr={[1, 2]} gl={{ antialias: true, preserveDrawingBuffer: true }}>
           <ForcedLayer.Provider value={layer}>
             <color attach="background" args={['#f4f5f7']} />
             <hemisphereLight args={['#ffffff', '#c9ced6', 1.6]} />
@@ -351,11 +356,14 @@ export default function AnalysisViewport() {
               {layer === 'wind' && <WindScreenOverlay base={base} />}
               {layer === 'surface-sun' && <EnergyOverlay base={base} />}
               {def.kind === 'cones' && project === 'city' && <ConeOverlays base={base} xray={false} />}
+              {isSw(node) && swView === 'ground' && <SwGround id={node} base={base} />}
+              {isSw(node) && swView === 'faces' && <SwFaces id={node} base={base} />}
+              {isSw(node) && swView === 'zones' && <SwZones towers={towers} base={base} north={north} />}
             </group>
             <OrbitControls makeDefault enableDamping={false} enableRotate={!plan} screenSpacePanning />
             <Frame centre={centre} extent={plan ? extent : Math.max(extent, tall * 0.75)} base={base} lift={tall * 0.45} plan={plan} frameKey={`${node}:${plan}:${project}`} />
           </ForcedLayer.Provider>
-        </Canvas>
+        </Canvas>}
 
         {needsOn && (
           <p role="status" data-testid="analysis-off" className="absolute inset-x-3 top-3 flex flex-wrap items-center gap-2 rounded-lg bg-pending-surface px-3 py-2 text-meta text-pending">
@@ -367,7 +375,7 @@ export default function AnalysisViewport() {
         {!towers.length && <p role="status" className="absolute inset-x-3 top-3 rounded-lg bg-pending-surface px-3 py-2 text-meta text-pending">No tower yet: place one in the model and its analysis appears here.</p>}
 
         {/* the key and, for the sun, the day and hour (changing them here moves the main view's sun too) */}
-        <div className="glass absolute bottom-3 left-3 max-w-[min(22rem,calc(100%-1.5rem))] space-y-2 rounded-xl bg-glass-1 p-3 text-meta shadow-float" data-testid="analysis-key">
+        {!swPlan && <div className="glass absolute bottom-3 left-3 max-w-[min(22rem,calc(100%-1.5rem))] space-y-2 rounded-xl bg-glass-1 p-3 text-meta shadow-float" data-testid="analysis-key">
           {def.kind === 'shadows' && (
             <>
               <div>
@@ -386,9 +394,10 @@ export default function AnalysisViewport() {
           {layer === 'surface-sun' && <SurfaceSunScale />}
           {def.kind === 'cones' && <p className="text-ink">{project === 'city' ? 'Highlighted: the parts of each tower above a protected view-cone limit. The tower is drawn see-through.' : 'View cones apply in Real Vancouver only.'}</p>}
           {def.kind === 'uses' && <TowerUseKey />}
+          {isSw(node) && <SwKey id={node} towers={towers} />}
           <label className="flex items-center gap-1.5 text-ink"><input type="checkbox" checked={nearby} onChange={(e) => setNearby(e.target.checked)} data-testid="analysis-nearby" className="accent-accent" />Nearby buildings</label>
           <p className="text-muted">Change the design in the main view; this view follows.</p>
-        </div>
+        </div>}
       </div>
     </section>
   )

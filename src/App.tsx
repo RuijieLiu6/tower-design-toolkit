@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType, type CSSProperties } from 'react'
+import SwRunner from './components/sw/SwRunner'
 import { togglePanel, usePanels, usePanelWidths } from './lib/panels'
 import { PanelRail, PanelResizer } from './components/PanelToggle'
 import ImportHost from './components/ImportHost'
@@ -77,6 +78,7 @@ export default function App() {
     <div data-stage={phase} data-reduced={reduced} className="workspace-shell stage-fade relative flex h-full flex-col gap-2 p-2 text-ink"
       style={{ ...(widths.left ? { '--left-w': `${widths.left}px` } : {}), ...(widths.right ? { '--right-w': `${widths.right}px` } : {}) } as CSSProperties}>
       <TopBar />
+      <SwRunner />
       {/* The phase row and the three columns together: the workflow builder (Result A, 9 Nov) covers both, so only the
           project bar stays in reach while it is open (the phase row would move the step under it). */}
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">

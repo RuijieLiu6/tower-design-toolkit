@@ -15,6 +15,7 @@ export const NEEDS_MODEL: ReadonlySet<string> = new Set([
   'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground',
   'built.wind-procedure', 'built.structure', 'built.wind-study', 'built.life-safety', 'built.relax-aviation',
   'built.mobility', 'built.facade', 'built.economics', 'built.interior', 'built.daylight-depth',
+  'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-pv', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form', 'built.sw-glazing', 'built.sw-daylight', 'built.sw-daylight-factor', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-energy', 'built.sw-indoor-temp',
   'built.energy-carbon', 'built.wind-screen', 'built.trips', 'built.solar-access', 'built.heights', 'built.vista',
 ])
 

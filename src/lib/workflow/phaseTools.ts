@@ -59,6 +59,12 @@ export const NODE_CONTROLS: Record<string, string[]> = {
   'built.fsr': ['program'], 'built.economics': ['program'], 'built.interior': ['program'],
   'built.pr-streetwall': ['ground'], 'built.pr-frontage': ['ground'], 'built.pr-ground': ['ground'], 'built.sky-room': ['ground'],
   'built.core-lifts': ['core'], 'built.egress': ['core'], 'built.life-safety': ['core'], 'built.structure': ['anatomy'],
+  // Sun & Wind Studio tools (components/sw/sw.tool.tsx): their settings and the towers' façade zones.
+  'built.sw-shadow': ['sw-sun-set'], 'built.sw-sun-faces': ['sw-hour-set'], 'built.sw-pv': ['sw-pv-set', 'facade-zones'],
+  'built.sw-wind-comfort': ['sw-wind-set'], 'built.sw-wind-height': ['sw-wind-set'], 'built.sw-rain-water': ['sw-rain-set'],
+  'built.sw-glazing': ['facade-zones'], 'built.sw-daylight': ['sw-dl-set', 'facade-zones'], 'built.sw-daylight-factor': ['sw-dl-set', 'facade-zones'],
+  'built.sw-light-hour': ['sw-hour-set', 'facade-zones'], 'built.sw-natvent': ['sw-vent-set', 'facade-zones'], 'built.sw-airflow': ['sw-vent-set', 'facade-zones'],
+  'built.sw-energy': ['facade-zones'], 'built.sw-indoor-temp': ['sw-temp-set', 'facade-zones'],
 }
 
 /**

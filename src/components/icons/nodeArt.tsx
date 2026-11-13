@@ -176,6 +176,10 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
     <path d="M39 4 l-5.5 9 h4 l-2 8 6.5-10 h-4.2z" fill={A(c, 1)} /></>,
 }
 
+// Sun & Wind Studio tools (13 Nov) share the drawing of the check they grew from.
+const SW_ART: Record<string, string> = { 'built.sw-shadow': 'built.sun', 'built.sw-sun-faces': 'built.solar-access', 'built.sw-pv': 'built.energy-carbon', 'built.sw-wind-comfort': 'built.wind-screen', 'built.sw-wind-height': 'built.wind-study', 'built.sw-rain-faces': 'built.city-in-nature', 'built.sw-rain-water': 'built.city-in-nature', 'built.sw-form': 'built.fsr', 'built.sw-glazing': 'built.facade', 'built.sw-daylight': 'built.daylight-depth', 'built.sw-daylight-factor': 'built.daylight-depth', 'built.sw-light-hour': 'built.daylight-depth', 'built.sw-natvent': 'built.interior', 'built.sw-airflow': 'built.interior', 'built.sw-energy': 'built.energy-carbon', 'built.sw-indoor-temp': 'built.energy-carbon' }
+for (const [k, v] of Object.entries(SW_ART)) if (ART[v]) ART[k] = ART[v]
+
 export const hasNodeArt = (id: string) => id in ART || id in DESIGN_ART
 /** The current drawing context for a phase (style pack 2 tones). */
 export const phaseCtx = (phase: keyof typeof PHASE_COLOR): Ctx => ({ h: PHASE_HUE[phase], a: PHASE_COLOR[phase].tones })

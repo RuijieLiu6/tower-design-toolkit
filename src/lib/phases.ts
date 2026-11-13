@@ -28,7 +28,7 @@ export const PHASES: Phase[] = [
   {
     id: 'form', name: 'Form', step: 'volume', about: 'Place and shape the tower; read sun, shadow and wind as it changes.',
     tools: ['towers', 'height-suggestion', 'generate', 'massing', 'basement'],
-    nodes: ['built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature'],
+    nodes: ['built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature', 'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form'],
   },
   {
     id: 'program', name: 'Program', step: 'program', about: 'Stack the uses, test floor area and value, shape the ground and public space.',
@@ -38,7 +38,7 @@ export const PHASES: Phase[] = [
   {
     id: 'schematic', name: 'Schematic', step: 'plates', about: 'Core, lifts, stairs, structure, facade and energy: can it be built?',
     tools: ['core', 'anatomy', 'plan', 'section'],
-    nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', 'built.interior', 'built.daylight-depth', 'built.facade', 'built.energy-carbon'],
+    nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', 'built.interior', 'built.daylight-depth', 'built.facade', 'built.energy-carbon', 'built.sw-glazing', 'built.sw-daylight', 'built.sw-daylight-factor', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-energy', 'built.sw-indoor-temp', 'built.sw-pv'],
   },
   {
     id: 'present', name: 'Present', step: 'frame', about: 'Frame views, capture and compose the boards, with the claims and AI use on record.',

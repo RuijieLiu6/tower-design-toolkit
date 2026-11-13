@@ -13,6 +13,7 @@ export type AnalysisKind =
   | { kind: 'layer'; layer: AnalysisLayerId } // one of the analytical colour layers, forced on in this view only
   | { kind: 'cones' } // the parts of the towers above the view-cone limits
   | { kind: 'uses' } // the towers' floors coloured by use (program, floor area, value)
+  | { kind: 'sw' } // a Sun & Wind Studio tool (components/sw/SwAnalysis.tsx: ground map, faces, façade zones or floor plan)
 
 const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
   'built.sun': { kind: 'shadows', plan: true, about: 'Shadows of the design hour by hour for the chosen day; the hour shown is drawn dark.' },
@@ -21,6 +22,22 @@ const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
   'built.wind-study': { kind: 'layer', layer: 'wind', plan: true, about: 'Indicative pedestrian wind risk zones (screening, not CFD).' },
   'built.energy-carbon': { kind: 'layer', layer: 'surface-sun', plan: false, about: 'Modelled annual sun on roofs and facades, kWh/m²·yr.' },
   'built.viewcones': { kind: 'cones', plan: false, about: 'Parts of the towers above the protected view-cone limits.' },
+  // Sun & Wind Studio tools (13 Nov)
+  'built.sw-shadow': { kind: 'sw', plan: true, about: 'Hours of new shadow on the ground for the study day or season.' },
+  'built.sw-wind-comfort': { kind: 'sw', plan: true, about: 'Mean pedestrian wind in Lawson comfort bands, with the towers.' },
+  'built.sw-rain-water': { kind: 'sw', plan: true, about: 'Ground the towers keep dry: share of the year\'s rain each spot is sheltered from.' },
+  'built.sw-sun-faces': { kind: 'sw', plan: false, about: 'Annual sun on every face of the towers.' },
+  'built.sw-rain-faces': { kind: 'sw', plan: false, about: 'Wind-driven rain on every face of the towers.' },
+  'built.sw-glazing': { kind: 'sw', plan: false, about: 'The façade zones on the tower: glass band by strategy.' },
+  'built.sw-pv': { kind: 'sw', plan: false, about: 'The façade zones on the tower, PV spandrels among them.' },
+  'built.sw-energy': { kind: 'sw', plan: false, about: 'The façade zones that set the envelope of the energy model.' },
+  'built.sw-form': { kind: 'sw', plan: false, about: 'The tower\'s form and its façade zones.' },
+  'built.sw-daylight': { kind: 'sw', plan: true, about: 'Daylight autonomy on the floor plan of the level studied.' },
+  'built.sw-daylight-factor': { kind: 'sw', plan: true, about: 'Daylight factor on the floor plan of the level studied.' },
+  'built.sw-light-hour': { kind: 'sw', plan: true, about: 'Light on the floor at the hour chosen.' },
+  'built.sw-natvent': { kind: 'sw', plan: true, about: 'Reach of the openable windows on the level studied.' },
+  'built.sw-airflow': { kind: 'sw', plan: true, about: 'Air moving across the level studied with the windows open.' },
+  'built.sw-indoor-temp': { kind: 'sw', plan: true, about: 'Temperature of each zone of the level studied at the hour chosen.' },
 }
 const USES = { kind: 'uses' as const, plan: false, about: 'The towers floor by floor, coloured by use.' }
 /** The drawing for a check: its own where it has one, otherwise the towers by use. */
@@ -55,3 +72,5 @@ export function toggleAnalysis(node: string) {
  * (lib/displayModeHooks.ts useAnalysisLayer reads it); undefined everywhere else.
  */
 export const ForcedLayer = createContext<AnalysisLayerId | null | undefined>(undefined)
+
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __tdtAv: unknown }).__tdtAv = { openAnalysis, useAnalysisView }

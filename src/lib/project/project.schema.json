@@ -995,6 +995,12 @@
           "type": "object",
           "description": "A mass drawn with the shape tools: footprint, holes, base, storeys, floor height, core, part, seams."
         },
+        "facadeZones": {
+          "type": "array",
+          "maxItems": 40,
+          "description": "Facade zones: strategy, glazing ratio, glass, device depth, PV and operable windows by face and level (Sun & Wind Studio's Facade model).",
+          "items": { "type": "object" }
+        },
         "material": {
           "type": "string",
           "maxLength": 40,

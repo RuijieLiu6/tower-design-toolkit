@@ -85,7 +85,8 @@ export const USER_TYPES: UserType[] = [
         // Checks only: the Site, Massing, Program, Core and Frame steps go in front of each phase's first check by themselves
         // (lib/workflow/designNodes.ts withDesignSteps). Floor area brings the Program step, the board record the Frame step
         // with the presentation sheet.
-        nodes: ['built.viewcones', 'built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.fsr', 'built.energy-carbon', 'built.provenance'],
+        // 13 Nov: the Sun & Wind Studio tools in place of the old sun, wind and energy checks, and its rain tools added.
+        nodes: ['built.viewcones', 'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.fsr', 'built.sw-energy', 'built.sw-pv', 'built.provenance'],
         says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
       },
     ],
@@ -199,6 +200,18 @@ export const USER_TYPES: UserType[] = [
     ],
   },
 ]
+
+// Sinnie, 13 Nov ("replace in presets"): the Sun & Wind Studio tools take the place of the checks they overlap in every
+// preset; the old checks stay in the library. City in Nature stays (it is more than rain: canopy, birds, the ledger).
+export const SW_REPLACES: Record<string, string[]> = {
+  'built.sun': ['built.sw-shadow', 'built.sw-sun-faces'],
+  'built.solar-access': ['built.sw-shadow'],
+  'built.wind-screen': ['built.sw-wind-comfort'],
+  'built.wind-study': ['built.sw-wind-height'],
+  'built.energy-carbon': ['built.sw-energy', 'built.sw-pv'],
+  'built.daylight-depth': ['built.sw-daylight', 'built.sw-daylight-factor'],
+}
+for (const t of USER_TYPES) for (const p of t.presets) p.nodes = [...new Set(p.nodes.flatMap((n) => SW_REPLACES[n] ?? [n]))]
 
 export const userType = (id: UserTypeId) => USER_TYPES.find((t) => t.id === id)!
 /** "a passionate designer", "an engineer or consultant", "a planner or City reviewer": the name inside a sentence. */

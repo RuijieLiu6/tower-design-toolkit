@@ -27,6 +27,9 @@ type Kind = 'sun' | 'wind' | 'rain' | 'energy'
 const KIND: Record<string, Kind> = {
   'built.sun': 'sun', 'built.solar-access': 'sun', 'built.wind-screen': 'wind', 'built.wind-study': 'wind',
   'built.city-in-nature': 'rain', 'built.energy-carbon': 'energy',
+  // Sun & Wind Studio tools (13 Nov) show the same drawings under their key results.
+  'built.sw-shadow': 'sun', 'built.sw-sun-faces': 'sun', 'built.sw-wind-comfort': 'wind', 'built.sw-wind-height': 'wind',
+  'built.sw-rain-faces': 'rain', 'built.sw-rain-water': 'rain', 'built.sw-energy': 'energy',
 }
 export const climateKind = (node: string | null) => (node ? KIND[node] ?? null : null)
 

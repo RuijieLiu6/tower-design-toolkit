@@ -14,6 +14,8 @@ import { nodeOn } from '../lib/analysis'
 import { useWindScreen } from './useWindScreen'
 import { SCREEN_LABEL } from '../engine/windScreen'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
+import { SW_IDS, useSwOut } from '../lib/swRun'
+import { nodeById } from '../data/registry'
 
 // One shared result for identical inputs. About 16 components call useResults(); each used to keep its own memo,
 // so every component that mounted (e.g. when a node switch reveals a panel or overlay) re-ran all checks,
@@ -53,8 +55,12 @@ export function useResults() {
   // shared cache): the levels of the zones that reach the ground.
   const windResult = useWindScreen()
   const windGround = windResult ? windResult.zones.filter((z) => z.z <= 1).map((z) => z.level).join(',') : null
+  // The Sun & Wind Studio tools (lib/swRun.ts): each tool's key readings, by its name, while it is on.
+  const swOut = useSwOut((s) => s.out)
+  const swOn = useStore((s) => SW_IDS.filter((id) => s.analysis && s.enabled[id]).join(','))
+  const swRules = useMemo(() => Object.fromEntries(swOn.split(',').filter(Boolean).map((id) => [nodeById(id)?.name ?? id, swOut[id as (typeof SW_IDS)[number]]?.rules ?? []]).filter(([, r]) => (r as unknown[]).length)), [swOut, swOn])
 
-  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound], () => {
+  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules], () => {
     // An engine that throws must not take the app down (about 16 components read these results): its check gets an
     // empty result and the reason, and the results panel shows an error state for it (components/ResultState.tsx).
     const errors: Record<string, string> = {}
@@ -88,7 +94,7 @@ export function useResults() {
       streetwall?: typeof streetwall; frontage?: typeof frontage; groundPlane?: typeof groundPlane
       /** Checks whose engine threw, by node id, with the reason (not part of the digest: no line is made up for them). */
       errors?: Record<string, string>
-    } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, ...(Object.keys(errors).length ? { errors } : {}) }
+    } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, ...swRules, ...(Object.keys(errors).length ? { errors } : {}) }
     return out
-  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound])
+  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules])
 }

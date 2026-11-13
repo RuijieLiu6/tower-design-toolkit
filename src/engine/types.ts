@@ -54,6 +54,8 @@ export interface Tower {
   plantLevels?: number[]
   /** Program: a use set floor by floor (level → use), over the bands, the podium use and plant floors; sky lobbies keep theirs. */
   floorUses?: Partial<Record<number, UseId>>
+  /** Facade zones (engine/sw/plate.ts): strategy, glazing, device and operable windows by face and level, as Sun & Wind Studio's Facade tab; unset = the Studio's defaults. */
+  facadeZones?: import('./sw/plate').FacadeZone[]
   /** Facade material (illustrative; components/setup/SetupPanel.tsx). No check reads it yet. */
   material?: string
   /** Schematic: core share follows what the lifts, stairs and risers need (default on). */

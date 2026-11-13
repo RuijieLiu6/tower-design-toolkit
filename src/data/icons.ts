@@ -15,7 +15,7 @@ import {
   Aperture, BelowGrade, Building as BuildingIcon, Camera, ChartColumn, ClipboardList, Cloud, Columns3, CorePlan, Cuboid, FileCheck2, FileImage,
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
-  PlayCircle, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
+  PlayCircle, Droplets, Waves, Thermometer, Gauge, Spline, CalendarClock, SolarPanel, CloudRain, WindPerson, AirVent, Blinds, DaylightGrid, WindowSky, FormBox, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
@@ -137,6 +137,23 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.wind-screen': Wind,
   'built.trips': Waypoints,
   'built.energy-carbon': PlugZap,
+  // Sun & Wind Studio tools (13 Nov)
+  'built.sw-shadow': SunDim,
+  'built.sw-sun-faces': SunMedium,
+  'built.sw-pv': SolarPanel,
+  'built.sw-wind-comfort': WindPerson,
+  'built.sw-wind-height': Waves,
+  'built.sw-rain-faces': CloudRain,
+  'built.sw-rain-water': Droplets,
+  'built.sw-form': FormBox,
+  'built.sw-glazing': Blinds,
+  'built.sw-daylight': DaylightGrid,
+  'built.sw-daylight-factor': WindowSky,
+  'built.sw-light-hour': CalendarClock,
+  'built.sw-natvent': AirVent,
+  'built.sw-airflow': Spline,
+  'built.sw-energy': Gauge,
+  'built.sw-indoor-temp': Thermometer,
 }
 
 /** Icons for My / Community nodes, none of them used by a built node. */
