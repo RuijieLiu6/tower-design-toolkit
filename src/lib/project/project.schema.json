@@ -991,6 +991,11 @@
             }
           }
         },
+        "material": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Facade material (illustrative; set in the Material tab)."
+        },
         "plantLevels": {
           "type": "array",
           "maxItems": 20,

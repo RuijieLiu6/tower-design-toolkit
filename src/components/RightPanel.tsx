@@ -18,6 +18,11 @@ import ResultFreshness from './ResultFreshness'
 import { HidePanelButton } from './PanelToggle'
 import PresentPanel from './PresentPanel'
 import TracePanel from './TracePanel'
+import TowerRail from './TowerRail'
+import { ActiveTool, usePhaseActive } from './workflow/PhasePanel'
+import { toggleOverlays, useDock } from './ViewportDock'
+import { useTowerEdit } from '../lib/towerEdit'
+import { Eye, EyeOff, Layers, Magnet } from './icons'
 
 // The main session builds components/RenderTab.tsx (default export, no props). The glob finds it when it exists;
 // until then Present has no Render tab and nothing breaks.
@@ -81,10 +86,12 @@ export default function RightPanel() {
   const step = useStep((s) => s.step)
   const present = phase === 'present'
   const siteStep = phase === 'basic' && step === 'site'
-  const [tab, setTab] = useState<Tab>(present ? 'present' : siteStep ? 'site' : 'results')
-  useEffect(() => { setTab(phase === 'present' ? 'present' : phase === 'basic' && useStep.getState().step === 'site' ? 'site' : 'results') }, [phase])
-  // Entering the Site step shows the site; the other steps keep the tab the user chose.
-  useEffect(() => { if (siteStep) setTab('site') }, [siteStep])
+  // Properties first, as in the Tower Workspace: the open tool's controls. Your site is the left panel's Site tab now.
+  const [tab, setTab] = useState<Tab>(present ? 'present' : 'properties')
+  useEffect(() => { setTab(phase === 'present' ? 'present' : 'properties') }, [phase])
+  // Entering a step shows its tool's controls.
+  useEffect(() => { if (!present) setTab('properties') }, [step, present])
+  void siteStep
   // Picking a node (selectNode: the bottom bar, the library, the canvas, a role) shows its results; switching stage alone
   // does not, nor does opening Real Vancouver or restoring a project, which set the node directly (Your site stays in view).
   // A tower added in Massing (Form step, an upload, a Rhino link): Your site opens and marks it New (lib/towerAdds.ts).
@@ -95,7 +102,7 @@ export default function RightPanel() {
   useEffect(() => {
     if (addSeq === seenAdd.current) return
     seenAdd.current = addSeq
-    if (useStore.getState().phase === 'basic') setTab('site')
+    if (useStore.getState().phase === 'basic') setTab('properties')
   }, [addSeq])
   // Compared with the last count seen, not a first-run flag: React runs mount effects twice in development.
   const resultsSeq = useStore((s) => s.resultsSeq)
@@ -107,10 +114,10 @@ export default function RightPanel() {
   }, [resultsSeq])
   // Tower position open (Form step): its Properties tab comes first and opens; closing the tool goes back to the results.
   const positioning = useTowerPosition((s) => s.on) && !present
-  useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
+  useEffect(() => { if (positioning) setTab('properties') }, [positioning])
   const tabs: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
-    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+    : [{ id: 'properties', label: 'Properties' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
@@ -131,14 +138,46 @@ export default function RightPanel() {
       </div>
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
-      <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
-        {shown === 'properties' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
+      <div className="flex min-h-0 flex-1">
+      {!present && <TowerRail />}
+      <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="min-w-0 flex-1 overflow-y-auto">
+        {shown === 'properties' && <Properties positioning={positioning} />}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
         {shown === 'present' && <PresentPanel />}
         {shown === 'render' && RenderTab && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Render…</p>}><RenderTab /></Suspense>}
         {shown === 'trace' && <TracePanel />}
       </div>
+      </div>
+      {!present && <PanelFooter />}
     </aside>
+  )
+}
+
+/** Properties, as in the Tower Workspace: the open tool's controls (the tool picked in the left panel's Workflow list),
+ * and the tower position fields while that tool is on. */
+function Properties({ positioning }: { positioning: boolean }) {
+  const { phase, info, active } = usePhaseActive()
+  return (
+    <div data-testid="rp-properties">
+      {positioning && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
+      <ActiveTool key={active} id={active} phase={phase} info={info} />
+    </div>
+  )
+}
+
+/** The footer, as the Tower Workspace's Fit · Snap · Grid: Snap for moving towers, Layers & context, and overlays. */
+function PanelFooter() {
+  const snap = useTowerEdit((s) => s.snap)
+  const project = useStore((s) => s.project)
+  const layersOpen = useDock((d) => (project === 'city' ? d.menu : d.open))
+  const hidden = useDock((d) => d.hidden)
+  const btn = (on: boolean) => `flex h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-selected text-accent-hover' : 'bg-subtle text-ink hover:bg-line'}`
+  return (
+    <div data-testid="rp-footer" className="flex items-center gap-1.5 border-t border-line p-2">
+      <button type="button" onClick={() => useDock.setState((d) => (project === 'city' ? { menu: !d.menu } : { open: !d.open }))} aria-pressed={layersOpen} className={`${btn(layersOpen)} flex-1`} title="Layers and context over the view"><Layers size={14} aria-hidden />Layers</button>
+      <button type="button" onClick={() => useTowerEdit.setState({ snap: !snap })} aria-pressed={snap} className={btn(snap)} title="Snap a moved tower to edges and steps"><Magnet size={14} aria-hidden />Snap</button>
+      <button type="button" onClick={toggleOverlays} aria-pressed={!hidden} aria-label={hidden ? 'Show overlays (H)' : 'Hide overlays (H)'} title={hidden ? 'Show overlays (H)' : 'Hide overlays (H)'} className={btn(!hidden)}>{hidden ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}</button>
+    </div>
   )
 }

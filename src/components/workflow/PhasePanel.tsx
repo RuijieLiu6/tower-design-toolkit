@@ -36,12 +36,14 @@ import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
 import WorkflowPreview from './WorkflowPreview'
+import SetupPanel from '../setup/SetupPanel'
 
 export type Portion = ReturnType<typeof phasePortion>
 const TILE = 24
 const BUILT = BUILT_NODES.map((n) => n.id)
 
-export default function PhasePanel() {
+/** The phase, its tools in order and the open one: shared by the left panel and the right panel's Properties tab. */
+export function usePhaseActive() {
   const step = useStep((s) => s.step)
   const phase = STEP_PHASE[step]
   const wf = useProjectWorkflow((s) => s.wf)
@@ -59,6 +61,11 @@ export default function PhasePanel() {
   const rows = useMemo(() => (inFlow ? portion.nodes : [design, ...portion.nodes]), [inFlow, portion.nodes, design])
   const picked = usePhaseTools((s) => s.active[phase])
   const active = picked && rows.includes(picked) ? picked : design
+  return { phase, wf, info, home, design, rows, active }
+}
+
+export default function PhasePanel() {
+  const { phase, info, home, design, rows, active } = usePhaseActive()
   const open = (id: string) => {
     usePhaseTools.getState().setActive(phase, id)
     if (!isDesignNode(id)) useStore.getState().selectNode(id)
@@ -86,9 +93,11 @@ export default function PhasePanel() {
         </div>
       </div>
       <PhaseWorkflow phase={phase} rows={rows} design={design} active={active} open={open} info={info} home={home} />
-      <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
-        <ActiveTool key={active} id={active} phase={phase} info={info} />
-      </div>
+      {/* Present keeps its strip of shots here; the other phases show the set-up tabs (the open tool's controls are in
+          the right panel's Properties tab, as in the Tower Workspace). */}
+      {phase === 'present'
+        ? <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls"><ActiveTool key={active} id={active} phase={phase} info={info} /></div>
+        : <SetupPanel phase={phase} />}
     </aside>
   )
 }
@@ -296,7 +305,7 @@ function ToolFacts({ pkg }: { pkg: NodePackage }) {
 }
 
 /** The open tool: a design node's tools, or a check's settings with its results on the right. */
-function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id: string) => Info }) {
+export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id: string) => Info }) {
   const n = info(id), d = designNode(id)
   const on = useStore((s) => !!s.enabled[id])
   const analysis = useStore((s) => s.analysis)
