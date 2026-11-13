@@ -7,7 +7,7 @@ import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { earTriangles, ringMetrics, siteFromFootprints, validateRing, normalizeRing, type Pt } from '../engine/site'
+import { earTriangles, overlapArea, pointInRing, ringMetrics, siteFromFootprints, validateRing, normalizeRing, type Pt } from '../engine/site'
 import { footprintAt, indexFootprints } from '../engine/viewFrom'
 import { sampleTerrain } from '../lib/cityLayers'
 import { useSceneStyle } from '../lib/sceneStyle'
@@ -131,6 +131,16 @@ function SiteLayer({ data }: { data: CityData }) {
   const context = useSceneStyle((st) => st.style) === 'context'
   const grids = data.grids
   const replaced = useMemo(() => (site && !site.keepReplaced ? idsToIndices(data.footprints, site.replaced) : []), [site, data])
+  // Replaced buildings that no longer touch the site (left from an earlier site, 12 Nov: "why is there the red dotted
+  // line"): dropped from the site, so they stand again and their red outline goes.
+  useEffect(() => {
+    if (!site || validateRing(site.ring) || !site.replaced.length) return
+    const ring = site.ring as Pt[], idx = idsToIndices(data.footprints, site.replaced)
+    const touches = (o: Pt[]) => overlapArea(ring, [o]) > 0.5 || o.some((q) => pointInRing(q, ring)) || ring.some((q) => pointInRing(q, o))
+    const keep = new Set(idx.filter((i) => touches(data.footprints[i].outer as Pt[])).map((i) => data.footprints[i].id))
+    const next = site.replaced.filter((id) => keep.has(id) || !idx.some((i) => data.footprints[i].id === id))
+    if (next.length !== site.replaced.length) useStore.getState().set({ citySite: { ...site, replaced: next } })
+  }, [site, data])
   const preview = useMemo(() => (s.tool === 'pick' && s.picked.length ? siteFromFootprints(s.picked.map((i) => data.footprints[i])) : null), [s.tool, s.picked, data])
   const ringOk = !!site && !validateRing(site.ring)
   const centre = ringOk ? ringMetrics(site!.ring).centre : null
