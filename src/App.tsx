@@ -10,6 +10,7 @@ import { useRoute } from './lib/route'
 import { openBuilder, useProjectWorkflow } from './lib/workflow/projectWorkflow'
 import Onboarding from './components/Onboarding'
 import RightPanel from './components/RightPanel'
+import TowerRail from './components/TowerRail'
 import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
 import { stageDef } from './data/stages'
@@ -93,6 +94,8 @@ export default function App() {
           <WorkflowOverview />
         </main>
         {/* Right: the analysis results (and Present's own tabs). */}
+        {/* The design tool rail stands on its own beside the right panel (13 Nov, Sinnie: "should be on the side"). */}
+        {!present && (view === '3d' || view === 'split') && <TowerRail />}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
       </div>
       <WorkflowBuilder />

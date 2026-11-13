@@ -21,7 +21,7 @@ export default function TowerRail() {
     setTool(id)
   }
   return (
-    <nav aria-label="Design tools" data-testid="tower-rail" className="flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-line py-2" style={{ scrollbarWidth: 'none' }}>
+    <nav aria-label="Design tools" data-testid="tower-rail" className="glass-edge flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto rounded-2xl bg-panel py-2" style={{ scrollbarWidth: 'none' }}>
       {TOOLS.map((t, i) => (t ? (
         <button key={t.id} type="button" data-tool={t.id} onClick={() => pick(t.id)} disabled={present && t.id !== 'select'}
           aria-label={t.label} aria-pressed={tool === t.id} aria-keyshortcuts={t.key || undefined} title={t.label + (t.key ? ` (${t.key})` : '')}
