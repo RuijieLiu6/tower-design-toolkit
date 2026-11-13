@@ -263,7 +263,9 @@ export default function AnalysisViewport() {
             <hemisphereLight args={['#ffffff', '#c9ced6', 1.6]} />
             <directionalLight position={[400, 900, 300]} intensity={1.1} />
             <group rotation={[-Math.PI / 2, 0, 0]}>
-              <mesh position={[centre[0], centre[1], base - 0.05]}><planeGeometry args={[extent * 8, extent * 8]} /><meshBasicMaterial color="#eceef1" /></mesh>
+              {/* A backdrop, drawn first and never in front of anything: the sun-hours map lies on the real terrain, which
+                  drops below the site's ground towards the water, where a solid plane at the site level hid it. */}
+              <mesh position={[centre[0], centre[1], base - 0.05]} renderOrder={-10}><planeGeometry args={[extent * 8, extent * 8]} /><meshBasicMaterial color="#eceef1" depthWrite={false} depthTest={false} /></mesh>
               {ring && <SiteLine ring={ring} z={base + 0.15} />}
               {def.kind === 'uses' ? <UseStack towers={towers} base={base} /> : <Prisms prisms={prisms} base={base} opacity={def.kind === 'cones' ? 0.55 : 1} />}
               {def.kind === 'shadows' && on && <ShadowFan prisms={prisms} base={base} />}
