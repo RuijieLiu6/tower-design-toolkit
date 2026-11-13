@@ -814,7 +814,7 @@ function VtcDock() {
           </Help>
         </div>
       ) },
-      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
+      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : source === 'included' ? 'included' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )
 }

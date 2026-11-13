@@ -45,7 +45,7 @@ function build(rh: Rh, doc: Rh): VtcContext {
   }
   const out: VtcContext = {
     meta: {
-      source: 'Vancouver Tall Challenge base model (Buildner). Not for redistribution.',
+      source: 'Derived from the Vancouver Tall Challenge base model (Buildner): outlines, heights and simplified meshes, not the model file.',
       true_north_deg_clockwise_from_plus_y: 45.0,
       north_note: 'Read from the drawn north arrow. FALSE ASSUMPTION in the file: its saved north is +Y and its saved location is 49.16 N, -123.07 W (Richmond).',
     },

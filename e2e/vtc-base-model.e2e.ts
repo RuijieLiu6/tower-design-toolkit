@@ -1,8 +1,9 @@
-// Ruijie, 6 Nov: "when I open this website on a different computer the context doesn't show up". The competition context
-// comes from Buildner's base model, which is never published, so the live site has no copy. Here the dev server's
-// public/local/vtc_context.json is answered with a 404, as on GitHub Pages; the entrant adds their own .3dm, it is read
-// in the browser, kept in IndexedDB across a reload, and removed again. Skips where the model is absent (CI). No
-// screenshots: the competition content must never land in docs or reports.
+// Ruijie, 6 Nov: "when I open this website on a different computer the context doesn't show up"; 13 Nov: "users turn
+// on the competition site directly instead of uploading, but keep the upload as an option". The derived context is
+// included with the app (public/context/vtc/context.json), so the competition view opens with it and no card asks for
+// a file. The dev server's public/local/vtc_context.json is answered with a 404, as on GitHub Pages. The entrant's own
+// .3dm stays an option: added from the dock, read in the browser, kept in IndexedDB across a reload, and removed again,
+// which goes back to the included context. Skips where the model is absent (CI). No screenshots of the context.
 // Run: node node_modules/playwright/cli.js test e2e/vtc-base-model.e2e.ts
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -28,15 +29,24 @@ test('the website reads the entrant\'s own copy of the base model and keeps it i
   await p.goto('/#/guided')
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click()
 
-  // Without the model: the card on the view says what is missing and how to add it.
+  // The included context loads by itself: no card, 99 buildings and the three future towers.
   const card = p.getByRole('region', { name: 'Competition context not loaded' })
-  await expect(card).toBeVisible({ timeout: 60_000 })
-  await expect(card).toContainText('kept on this computer only')
-  expect((await source(p)).status).toBe('missing')
+  await p.waitForFunction(() => performance.getEntriesByType('resource').some((e) => /vtcContextSource\.ts/.test(e.name)))
+  await expect.poll(async () => (await source(p)).status, { timeout: 60_000 }).toBe('ready')
+  expect(await source(p)).toMatchObject({ source: 'included', buildings: 99 })
+  await expect(card).toHaveCount(0)
 
-  // Add the model: read here, the context appears, the card goes.
-  await card.locator('input[type=file]').setInputFiles(MODEL)
-  await expect(card).toBeHidden({ timeout: 60_000 })
+  // Your own copy stays an option: the dock's section says the context is included and offers "Use your own copy instead".
+  await p.getByTitle('Show the layers panel').click()
+  const section = p.getByRole('button', { name: /^Competition context model/ })
+  await expect(section).toContainText('included')
+  if ((await section.getAttribute('aria-expanded')) !== 'true') await section.click()
+  await expect(section).toHaveAttribute('aria-expanded', 'true')
+  const useOwn = p.getByRole('button', { name: 'Use your own copy instead (.3dm)' })
+  await expect(useOwn).toBeVisible()
+  await expect(p.getByText(/Included with the app/)).toBeVisible()
+  await useOwn.locator('xpath=ancestor::div[1]').locator('input[type=file]').setInputFiles(MODEL)
+  await expect.poll(async () => (await source(p)).source, { timeout: 60_000 }).toBe('browser')
   const added = await source(p)
   expect(added).toMatchObject({ status: 'ready', source: 'browser', buildings: 99 })
   expect(added.future).toEqual([185.5, 243.84, 304.8])
@@ -48,11 +58,16 @@ test('the website reads the entrant\'s own copy of the base model and keeps it i
   expect(await source(p)).toMatchObject({ source: 'browser', buildings: 99 })
   await expect(card).toBeHidden()
 
-  // Remove it from this browser: the card is back.
-  await p.getByTitle('Show the layers panel').click()
-  const section = p.getByText('Competition context model', { exact: true })
-  if (!(await p.getByRole('button', { name: 'Remove from this browser' }).isVisible())) await section.click()
-  await p.getByRole('button', { name: 'Remove from this browser' }).click()
-  await expect(card).toBeVisible()
-  expect(await source(p)).toMatchObject({ status: 'missing', source: null, buildings: 0 })
+  // Remove it from this browser: back to the included context, still no card.
+  const show = p.getByTitle('Show the layers panel') // the panel stays open across the reload when it was open
+  if (await show.isVisible().catch(() => false)) await show.click()
+  await expect(section).toContainText('your copy')
+  if ((await section.getAttribute('aria-expanded')) !== 'true') await section.click()
+  await expect(section).toHaveAttribute('aria-expanded', 'true')
+  const remove = p.getByRole('button', { name: 'Remove from this browser' })
+  await remove.click()
+  await expect(section).toContainText('included')
+  await expect.poll(async () => (await source(p)).source, { timeout: 30_000 }).toBe('included')
+  expect(await source(p)).toMatchObject({ status: 'ready', buildings: 99 })
+  await expect(card).toHaveCount(0)
 })

@@ -1,5 +1,5 @@
 // How the app opens on another computer (Ruijie, 6 Nov: "now the competition site is missing on the other computer").
-// 1. No base model (public/local answered 404, a fresh browser): the competition view still draws the brief's
+// 1. No context at all (public/local and the included context answered 404, a fresh browser): the view still draws the brief's
 //    144.8 x 79.2 m site and its streets, and the card offers "Add your copy of the base model".
 // 2. No WebGL at all: a card says the 3D view couldn't start, and the rest of the app keeps working.
 // Needs no competition files, so it runs anywhere. No screenshots.
@@ -8,6 +8,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function open(p: Page) {
   await p.route('**/local/vtc_context.json', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' }))
+  await p.route('**/context/vtc/context.json', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' })) // the included context withheld: the no-context case
   await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0') } catch { /* ignore */ } })
   await p.addLocatorHandler(p.getByRole('dialog').filter({ has: p.locator('#ob-title') }), async (d) => { await d.getByRole('button', { name: 'Start designing' }).click() })
   await p.goto('/#/guided')

@@ -1,5 +1,5 @@
 // The status line under the workspace. The data attribution stays visible (licences: OGL-Vancouver, OSM ODbL; the
-// competition context is Buildner's and local only). The full evidence key (verified, team assumption, unverified,
+// competition context is Buildner's, derived from the brief download). The full evidence key (verified, team assumption, unverified,
 // unresolved, false assumption) opens on request (overnight brief, 8 Nov: "Show the current result's status; disclose
 // the full key when requested"): each result shows its own flag where it is.
 import { useEffect, useRef, useState } from 'react'
@@ -46,7 +46,7 @@ export default function StatusBar() {
         )}
       </div>
       <span className="mx-auto" />
-      <span className="min-w-0 truncate" title="Data sources and licences">{project === 'vtc' ? 'Competition context © Buildner (local only, not published) · metres · true north 45° from grid' : `City of Vancouver open data (OGL-Vancouver)${vista ? ' · buildings © OpenStreetMap contributors (ODbL), via Vista' : ''} · EPSG:26910 · heights geodetic, CGVD28 assumed`}</span>
+      <span className="min-w-0 truncate" title="Data sources and licences">{project === 'vtc' ? 'Competition context © Buildner (derived from the brief download) · metres · true north 45° from grid' : `City of Vancouver open data (OGL-Vancouver)${vista ? ' · buildings © OpenStreetMap contributors (ODbL), via Vista' : ''} · EPSG:26910 · heights geodetic, CGVD28 assumed`}</span>
       <span className="shrink-0">Study tool, not a compliance determination</span>
     </footer>
   )

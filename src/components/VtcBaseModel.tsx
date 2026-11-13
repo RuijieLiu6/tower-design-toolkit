@@ -1,7 +1,8 @@
-// "Add your copy of the base model": the competition context on the live website. Buildner's model can't be published
-// with the app, so each entrant adds the "Vancouver Tall Base Model.3dm" from their competition download. It is read in
-// this browser and kept on this computer (lib/vtcContextSource.ts). Two places use it: the card on the competition view
-// while the context is missing, and the "Competition context model" section of the view's dock.
+// The competition context on the live website. The derived context (outlines, heights, simplified meshes) is included
+// with the app, so the competition site opens with it (Ruijie, 13 Nov). Adding your own copy of "Vancouver Tall Base
+// Model.3dm" from the competition download stays an option: it is read in this browser, kept on this computer
+// (lib/vtcContextSource.ts) and replaces the included context here. Two places: the card on the competition view while
+// the context is missing (the included file failed to load), and the "Competition context model" section of the dock.
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Building2, CircleAlert, FileUp, Landmark, Loader2, LockKeyhole, TowerOnSite, Trash2, X } from './icons'
 import Help from './Help'
@@ -9,13 +10,15 @@ import { BRIEF_SITE, addVtcModel, removeVtcModel, useVtcSource } from '../lib/vt
 import { useStore } from '../store'
 
 const NOTE = 'Read in this browser and kept on this computer only. Never uploaded. Context © Buildner.'
+const INCLUDED_NOTE = 'Derived from the brief download (outlines, heights, simplified massing). Context © Buildner, Vancouver Tall Challenge.'
 
 function HelpText() {
   return (
     <Help label="About the competition base model">
       <p>The competition's 3D context (neighbouring buildings, heritage, plazas, curbs and the three future towers) comes from Buildner's <b>Vancouver Tall Base Model.3dm</b>, part of the brief download every entrant receives.</p>
-      <p className="mt-1.5">Buildner owns the model, so this website can't include it. Add your own copy once: the app reads it here with rhino3dm and keeps the result in this browser's own storage. It is not sent anywhere, and other people who open the site don't see it.</p>
-      <p className="mt-1.5">The site, north arrow and every check still work without it. With it, the separation, PV shading, wind screen and sun-hours checks count the context and future towers.</p>
+      <p className="mt-1.5">The app includes a derived copy of that context (building outlines, heights and simplified massing, not the model file), so the competition site opens with it. The brief gives its materials for an academic exercise, to be used at the participant's discretion; the model itself is Buildner's and is not shipped.</p>
+      <p className="mt-1.5">Prefer your own copy, or a newer download? Add the .3dm once: the app reads it here with rhino3dm and keeps the result in this browser's own storage. It is not sent anywhere, and other people who open the site don't see it.</p>
+      <p className="mt-1.5">The site, north arrow and every check still work without any context. With it, the separation, PV shading, wind screen and sun-hours checks count the context and future towers.</p>
     </Help>
   )
 }
@@ -69,23 +72,33 @@ export function VtcBaseModelPanel() {
       {pick.field}
       {source === 'browser' ? (
         <>
-          <p>Your copy of the base model{fileName ? <> (<span className="break-all">{fileName}</span>)</> : null}{addedAt ? `, added ${new Date(addedAt).toLocaleDateString()}` : ''}. Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p>
+          <p>Your copy of the base model{fileName ? <> (<span className="break-all">{fileName}</span>)</> : null}{addedAt ? `, added ${new Date(addedAt).toLocaleDateString()}` : ''}, in place of the included context. Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p>
           <Privacy />
           <ErrorLine />
           <div className="flex flex-wrap items-center gap-2">
             <AddButton open={pick.open}>Replace</AddButton>
-            <button type="button" onClick={() => void removeVtcModel()}
+            <button type="button" onClick={() => void removeVtcModel()} data-testid="vtc-remove-copy"
               className="inline-flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-paper">
               <Trash2 size={14} aria-hidden />Remove from this browser
             </button>
           </div>
+        </>
+      ) : source === 'included' ? (
+        <>
+          <div className="flex items-start gap-1">
+            <p className="flex-1">Included with the app: neighbours, heritage, plazas, curbs and the three future towers. Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p>
+            <HelpText />
+          </div>
+          <p className="flex gap-1.5 text-muted"><LockKeyhole size={13} className="mt-0.5 shrink-0" aria-hidden />{INCLUDED_NOTE}</p>
+          <ErrorLine />
+          <AddButton open={pick.open}>Use your own copy instead (.3dm)</AddButton>
         </>
       ) : status === 'idle' || status === 'loading' ? (
         <p>Looking for the context model…</p>
       ) : (
         <>
           <div className="flex items-start gap-1">
-            <p className="flex-1">Not loaded. Add your copy of the base model (<b className="text-ink">.3dm</b>) from the competition download, or drop it here.</p>
+            <p className="flex-1">The included context could not be loaded. Add your copy of the base model (<b className="text-ink">.3dm</b>) from the competition download, or drop it here.</p>
             <HelpText />
           </div>
           <ErrorLine />
