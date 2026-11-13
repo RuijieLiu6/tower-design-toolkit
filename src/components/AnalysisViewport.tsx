@@ -35,6 +35,8 @@ import EnergyOverlay from './EnergyOverlay'
 import { Box, Map as MapIcon, X } from './icons'
 import Label from './Label'
 import SolarOverlay from './SolarOverlay'
+import SheetButton from './SheetButton'
+import { canvasImage } from '../lib/sheetAdd'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import { SunTimeFields } from './SunTime'
 import WindScreenOverlay from './WindScreenOverlay'
@@ -314,6 +316,10 @@ export default function AnalysisViewport() {
           <h2 className="truncate text-control font-semibold text-ink" data-testid="analysis-title">{name}</h2>
           <p className="truncate text-meta text-muted" title={def.about}>{hasOwnAnalysis(node) ? def.about : `${def.about} This check has no drawing of its own yet; its numbers are in the right panel.`}</p>
         </span>
+        <SheetButton label={`${name} · analysis`} make={async () => {
+          const c = document.querySelector<HTMLCanvasElement>('[data-testid="analysis-view"] canvas')
+          return c ? canvasImage(c, name, def.about) : null
+        }} />
         <div role="radiogroup" aria-label="Camera" className="flex rounded-lg bg-subtle p-0.5">
           {([[true, 'Plan', MapIcon], [false, '3D', Box]] as const).map(([v, word, I]) => (
             <button key={word} type="button" role="radio" aria-checked={plan === v} onClick={() => useAnalysisView.setState({ plan: v })} data-testid={`analysis-${word.toLowerCase()}`}

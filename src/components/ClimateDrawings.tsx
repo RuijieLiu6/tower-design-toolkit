@@ -7,7 +7,9 @@
 //   Wind screen, Wind study    → wind roses for the year and each season
 //   City in Nature (rainwater) → rain rose, rain by month, driving rain on each face, roof water
 //   Energy & carbon            → TEUI / TEDI / GHGI against the Vancouver targets, energy by end use
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import SheetButton from './SheetButton'
+import { svgImage } from '../lib/sheetAdd'
 import { useShallow } from 'zustand/react/shallow'
 import { VTC_NORTH_DEG } from '../context'
 import { towerOccluders } from '../engine/solarRules'
@@ -204,10 +206,16 @@ function byFace(faces: { az: number; area: number; value: number }[]) {
 const prismsOf = (t: Tower) => towerOccluders([t]).prisms as Prism[]
 const ramp = (stops: string[], t: number) => stops[Math.max(0, Math.min(stops.length - 1, Math.round(t * (stops.length - 1))))]
 
-function Fig({ title, caption, children }: { title: string; caption: string; children: ReactNode }) {
+function Fig({ title, caption, children, sheet = true }: { title: string; caption: string; children: ReactNode; sheet?: boolean }) {
+  const ref = useRef<HTMLElement>(null)
   return (
-    <figure className="m-0 grid gap-1">
-      <figcaption className="text-meta font-semibold text-ink">{title}</figcaption>
+    <figure ref={ref} className="m-0 grid gap-1">
+      <figcaption className="flex items-center justify-between gap-2 text-meta font-semibold text-ink">{title}
+        {sheet && <SheetButton compact label={title} make={async () => {
+          const svgs = Array.from(ref.current?.querySelectorAll('svg') ?? []).filter((s) => s.viewBox.baseVal?.width && !s.closest('button')) as SVGSVGElement[]
+          return svgs.length ? svgImage(svgs, title, caption) : null
+        }} />}
+      </figcaption>
       {children}
       <p className="text-meta leading-snug text-muted">{caption}</p>
     </figure>
@@ -289,7 +297,7 @@ function RainDrawings({ C, towers, north }: { C: ClimatePayload; towers: Tower[]
         </Fig>
       )}
       {roof && roof.area > 0 && (
-        <Fig title="Roof water" caption="Collected = roof and terrace area × the year's rain × 80% run-off (Sun & Wind Studio's rule).">
+        <Fig sheet={false} title="Roof water" caption="Collected = roof and terrace area × the year's rain × 80% run-off (Sun & Wind Studio's rule).">
           <p className="text-control text-ink"><b>{Math.round(roof.annual).toLocaleString()} m³</b> a year from {Math.round(roof.area).toLocaleString()} m² of roof and terraces</p>
         </Fig>
       )}
@@ -320,7 +328,7 @@ function EnergyDrawings({ C, towers, north }: { C: ClimatePayload; towers: Tower
           { label: 'GHGI', v: r.ghgi, mark: r.tgt.ghgi, color: ok(r.ghgi, r.tgt.ghgi), text: `${r.ghgi.toFixed(1)} / ${r.tgt.ghgi.toFixed(1)} kg/m²` },
         ]} />
       </Fig>
-      <Fig title="Where the energy goes" caption={`${Math.round(r.total / 1000).toLocaleString()} MWh a year over ${Math.round(r.gfa).toLocaleString()} m²; peaks ${Math.round(r.peakH)} W/m² heating, ${Math.round(r.peakC)} W/m² cooling.`}>
+      <Fig sheet={false} title="Where the energy goes" caption={`${Math.round(r.total / 1000).toLocaleString()} MWh a year over ${Math.round(r.gfa).toLocaleString()} m²; peaks ${Math.round(r.peakH)} W/m² heating, ${Math.round(r.peakC)} W/m² cooling.`}>
         <Stack label="Energy by end use" parts={[
           { name: 'Heating', v: sum('heat'), color: '#c2410c' }, { name: 'Cooling', v: sum('cool'), color: '#2563eb' }, { name: 'Lighting', v: sum('light'), color: '#eab308' },
           { name: 'Equipment', v: sum('equip'), color: '#64748b' }, { name: 'Hot water', v: sum('dhw'), color: '#db2777' }, { name: 'Fans, pumps', v: sum('aux'), color: '#0d9488' },
