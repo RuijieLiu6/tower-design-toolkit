@@ -27,7 +27,7 @@
 // Keyboard: floating nodes are buttons (Enter threads one); threaded nodes are buttons (← → move it along the string,
 // Delete takes it off); the role menu is a listbox. Reduced motion: nothing drifts, sways or alternates; all still works.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowRight, BookOpen, ChevronDown, FilePlus, FileUp, Network, PackagePlus, Play, Tags, Trash2, Undo2, X } from '../icons'
+import { ArrowRight, BookOpen, ChevronDown, FilePlus, FileUp, PackagePlus, Play, Tags, Trash2, Undo2, X } from '../icons'
 import WorkflowAssistant from './WorkflowAssistant'
 import { NodeTile } from '../NodeTile'
 import { nodeWord } from '../../data/nodeWords'
@@ -858,7 +858,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     <div className="relative" data-presets>
       <button type="button" onClick={() => (presetsOpen ? closePresets() : openPresets())} aria-haspopup="listbox" aria-expanded={presetsOpen} data-testid="cover-presets"
         className="flex items-center gap-1.5 rounded-lg bg-panel px-2.5 py-1 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">
-        <Tags size={15} className="text-accent" aria-hidden />Change preset<ChevronDown size={14} aria-hidden />
+        <Tags size={15} className="text-accent" aria-hidden />Presets<ChevronDown size={14} aria-hidden />
       </button>
       {presetsOpen && (
         <div className="absolute left-1/2 top-full z-40 mt-1.5 w-[22rem] -translate-x-1/2 rounded-xl border border-line bg-panel p-1.5 shadow-float" data-testid="presets-panel">
@@ -1011,16 +1011,14 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       {/* what is on the string, and the loop switch */}
       <div className="absolute flex items-center gap-3 text-control" style={(() => { const c = cardBox(); return { left: c.L + 20, top: c.T + 12 } })()}>
         <span className="text-meta text-muted">Your workflow</span>
-        <span className="text-section font-semibold leading-none text-ink" data-testid="cover-chain-name">{name}</span>
-        <span className="text-meta tabular-nums text-muted">{chain.length} step{chain.length === 1 ? '' : 's'}, Start to Enter{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not connected` : ''}</span>
+        <span className="font-semibold text-ink" data-testid="cover-chain-name">{name}</span>
+        <span className="text-meta tabular-nums text-muted">{chain.length} node{chain.length === 1 ? '' : 's'}{onBoard.length > chain.length ? ` · ${onBoard.length - chain.length} not wired in` : ''}</span>
         {presetsControl}
         <Help label="What this workflow shows">This is your workflow: the order you work in, from Start to Enter. Nodes sit in their phase's lane and keep its colour wherever you move them. Drag a node from a lane's shelf onto the line to add it; drag from a node's edge to connect it; connect back to an earlier node to create a loop, a step you repeat (dashed, with a return mark). Select a connection to remove it; Undo brings it back. The data each node reads is wired separately, in Customize.</Help>
         <button type="button" onClick={newWorkflow} data-testid="cover-new" title="Start a new workflow from the default starting preset (Undo brings this one back)"
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-control text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FilePlus size={15} aria-hidden />Start over</button>
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-control text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FilePlus size={15} aria-hidden />New</button>
       </div>
-      {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag tools up from the trays below to build your workflow</p>}
-      {/* what the trays are, once, over the first one */}
-      {!narrow() && (() => { const l = lanes()[0]; return <p className="pointer-events-none absolute text-meta text-muted" style={{ left: l.x0 + 8, top: l.shelfTop - 18 }}>Not in your workflow yet: drag a tool up to add it</p> })()}
+      {!chain.length && <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm text-muted" style={{ top: start.y + 40 }}>Drag nodes up from the shelves</p>}
 
       {/* every built node: on the string (lit) or in the room (soft) */}
       {NODES.map((n, i) => (
@@ -1096,7 +1094,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       {/* the top bar: the name at the left; who it is for, compact and editable, at the right (Ruijie, 7 Nov) */}
       <div aria-hidden className="absolute left-5 top-3.5 z-20 text-control font-semibold text-ink">Tower Design Toolkit</div>
       <div ref={sentenceEl} className="absolute right-5 top-2.5 z-20 text-ink" data-testid="cover-box">
-        <p className="flex items-center gap-1 text-meta text-muted"><span className="hidden sm:inline">Set up for</span>
+        <p className="flex items-center gap-1 text-meta text-muted"><span className="hidden sm:inline">A tower design by</span>
           <button type="button" data-role-menu onClick={() => (menu ? closeMenu() : openMenu())} aria-haspopup="listbox" aria-expanded={menu} data-testid="cover-role"
             className="inline-flex items-center gap-1 rounded-lg px-1 py-0.5 text-meta text-ink outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-accent">
             <RoleIcon size={13} className="text-accent" aria-hidden />{roleLabel}<ChevronDown size={12} aria-hidden />
@@ -1122,33 +1120,27 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
 
       {/* the name, then the task: the workflow assistant under the workflow, then the presets in one compact line */}
       <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center" style={{ top: cardBox().B + 18 }}>
-        <h1 id="intro-title" className="text-display-sm text-ink">Plan the workflow, then design the tower</h1>
-        <p className="mt-1 max-w-xl text-body text-muted [@media(max-height:780px)]:hidden">The workflow above is the order you will work in, from Start to Enter. Keep it, change it, or start from another one below.</p>
-        <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-2" data-testid="cover-primary">
-          <button type="button" disabled={!chain.length} onClick={(e) => enterWith(e.currentTarget)} data-testid="cover-open"
-            className="flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-control font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-40">Open the workspace<ArrowRight size={16} aria-hidden /></button>
-          <span className="text-meta text-muted">with <b className="font-semibold text-ink">{name}</b></span>
+        <h1 id="intro-title" className="text-display-sm text-ink sm:text-display">Tower Design Toolkit</h1>
+        <p className="mt-1 text-body text-muted [@media(max-height:780px)]:hidden">A starting point for your next tower.</p>
+        <div ref={assistantEl} className="mt-4 text-left">
+          <WorkflowAssistant board={{ nodes: onBoard, edges }} focus={focusNode} previewing={!!proposed} canUndo={canUndo}
+            onPreview={previewProposal} onApply={applyProposal} onDiscard={discardProposal} onUndo={undoAssistant} />
         </div>
-        <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-1 text-control" data-testid="cover-quick-presets" role="group" aria-label="Or start from a preset">
-          <span className="mr-1 text-muted">Or start from a preset:</span>
+        <div className="pointer-events-auto mt-3 flex flex-wrap items-center justify-center gap-1 text-control" data-testid="cover-quick-presets" role="group" aria-label="Start with a preset">
+          <span className="mr-1 text-muted">Start with a preset</span>
           {QUICK.map((q) => (
             <button key={q.id} type="button" aria-pressed={role === q.id} onClick={() => pick(q.id)} data-quick={q.id}
               className={`rounded-lg px-2.5 py-1 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent ${role === q.id ? 'bg-ink' : 'hover:bg-white/70'}`}>{q.label}</button>
           ))}
         </div>
-        <p className="mt-3 text-meta text-muted">Or describe your tower, and the assistant suggests a workflow:</p>
-        <div ref={assistantEl} className="mt-1.5 text-left">
-          <WorkflowAssistant board={{ nodes: onBoard, edges }} focus={focusNode} previewing={!!proposed} canUndo={canUndo}
-            onPreview={previewProposal} onApply={applyProposal} onDiscard={discardProposal} onUndo={undoAssistant} />
-        </div>
+        <button type="button" onClick={exploreNodes} className="pointer-events-auto mt-2 flex items-center gap-1 rounded-lg px-2 py-1 text-control text-ink outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-accent">Explore nodes<ArrowRight size={14} aria-hidden /></button>
       </div>
 
       {/* elsewhere: the research, importing a model, making a node of your own */}
       <nav aria-label="More" className="absolute bottom-3 right-4 z-10 flex items-center gap-1 text-meta text-muted">
-        <button type="button" onClick={onEnter} data-testid="intro-enter" className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><BookOpen size={13} aria-hidden />The research behind it</button>
-        <button type="button" onClick={exploreNodes} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><Network size={13} aria-hidden />Browse all tools</button>
+        <button type="button" onClick={onEnter} data-testid="intro-enter" className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><BookOpen size={13} aria-hidden />Research</button>
         <button type="button" onClick={openImport} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FileUp size={13} aria-hidden />Import a model</button>
-        <button type="button" onClick={openNodeBuilder} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><PackagePlus size={13} aria-hidden />Make your own tool</button>
+        <button type="button" onClick={openNodeBuilder} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><PackagePlus size={13} aria-hidden />Build a node</button>
       </nav>
     </section>
   )
