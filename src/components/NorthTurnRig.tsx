@@ -38,6 +38,10 @@ export default function NorthTurnRig() {
       invalidate()
     }
     if (northView.want != null) {
+      // A drag's leftover glide (damping; the canvas renders on demand, so it waits for frames) would run on during the
+      // turn and push the view off north: settle it first.
+      const d = ctl as unknown as { enableDamping?: boolean }
+      if (d.enableDamping) { d.enableDamping = false; ctl.update(); d.enableDamping = true }
       const off = camera.position.clone().sub(ctl.target)
       const from = Math.atan2(off.x, off.z), turn = shortestTurn(from, northTheta(northView.want))
       northView.want = null

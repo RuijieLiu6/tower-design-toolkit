@@ -29,6 +29,38 @@ import { flyToFit } from '../VistaLook'
 import { onGround } from './PlaceNames'
 import { goToStep } from '../../lib/step'
 import { placeFirstTower } from '../tools/NoTower'
+import { projectNorthDeg, setNorthMode, trueNorthDeg, useNorthMode, type NorthMode } from '../../lib/northView'
+
+/**
+ * True north or project north up the view (13 Nov, Sinnie: "toggle between true north and project north … in site
+ * properties on the right panel"). Project north is the site's own grid; the small dial shows the angle between them.
+ */
+function NorthSwitch({ ring }: { ring: readonly (readonly [number, number])[] | null }) {
+  const project = useStore((s) => s.project)
+  const mode = useNorthMode((s) => s.mode)
+  const tn = trueNorthDeg(project), pn = projectNorthDeg(project, ring)
+  const diff = pn == null ? null : Math.round(((((tn - pn) % 360) + 540) % 360 - 180) * 10) / 10
+  const opt = (m: NorthMode, word: string, hint: string) => (
+    <button key={m} type="button" role="radio" aria-checked={mode === m} data-north={m} title={hint} disabled={m === 'project' && pn == null}
+      onClick={() => setNorthMode(m)}
+      className={`flex-1 whitespace-nowrap rounded-md px-1.5 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${mode === m ? 'bg-white font-semibold text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{word}</button>
+  )
+  return (
+    <div className="flex items-center gap-2" data-testid="north-switch">
+      <svg viewBox="-12 -12 24 24" className="h-6 w-6 shrink-0" aria-hidden>
+        <circle r="10.5" fill="white" stroke="#c9cdd2" />
+        {/* project north (grid) dashed, true north solid, as they stand with the chosen one up */}
+        <g transform={`rotate(${mode === 'project' ? 0 : -(diff ?? 0)})`}><line y1="2" y2="-9" stroke="#9aa0a6" strokeWidth="1.4" strokeDasharray="2 1.5" /></g>
+        <g transform={`rotate(${mode === 'project' ? diff ?? 0 : 0})`}><path d="M0 -9 L3 2 L0 0 L-3 2 Z" fill="#1f5f8b" /></g>
+      </svg>
+      <div role="radiogroup" aria-label="North up the view" className="flex flex-1 rounded-lg bg-black/[0.05] p-0.5">
+        {opt('true', 'True north', 'Turn the view so true north points up')}
+        {opt('project', 'Project north', pn == null ? 'Choose a site first' : "Turn the view so the site's grid points up")}
+      </div>
+      {diff != null && <span className="shrink-0 tabular-nums text-muted" title="Angle between project north and true north">{Math.abs(diff)}°</span>}
+    </div>
+  )
+}
 
 const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent'
 const fmt = (v: number) => Math.round(v).toLocaleString('en-CA')
@@ -145,6 +177,7 @@ function SiteNow() {
             {site!.replaced.length > 0 && <span className="flex items-center gap-1 rounded border border-line bg-white/60 px-1 py-0.5" title={`${site!.replaced.length} existing building${site!.replaced.length === 1 ? '' : 's'} ${site!.keepReplaced ? 'kept standing' : 'shown as demolished'} (team assumption)`}><Building2 size={11} className={site!.keepReplaced ? 'text-muted' : 'text-red-700'} aria-hidden />{site!.replaced.length} {site!.keepReplaced ? 'kept' : 'replaced'}</span>}
             {area && <FlagChip flag={area.flag} />}
           </div>
+          <NorthSwitch ring={site!.ring as [number, number][]} />
         </div>
       ) : null}
       {ok && <SiteStreets />}
@@ -170,6 +203,7 @@ function VtcSite() {
           <div className="flex flex-wrap items-center gap-1"><span className="flex items-center gap-1 rounded border border-line px-1 py-0.5" title="Set by the brief: nothing to choose"><Lock size={11} className="text-accent" aria-hidden />fixed</span><FlagChip flag="verified" />
             <Help label="Source of the competition site">Vancouver Tall Competition brief (the block and its rules: engine/vtcRules).</Help></div>
         </div>
+        <NorthSwitch ring={null} />
       </div>
     </section>
   )

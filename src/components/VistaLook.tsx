@@ -25,7 +25,7 @@ import { sampleTerrain, type Manifest } from '../lib/cityLayers'
 import { fitPoints } from '../lib/fitView'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
 import { useViewFromStore } from '../lib/viewFromStore'
-import { faceNorth } from '../lib/northView'
+import { faceNorth, northView, upNorthDeg } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
 import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
@@ -204,6 +204,7 @@ export function useActiveMode(): MapMode {
 type CamReq = { position: [number, number, number]; target: [number, number, number]; fov: number }
 /** A smooth camera move run by VistaLookRig (ease in-out, about 0.9 s); grabbing the view stops it. */
 const flight = { from: null as CamReq | null, to: null as CamReq | null, start: 0, dur: 900 }
+northView.stopFlight = () => { flight.to = null }
 const toModel = (p: THREE.Vector3): [number, number, number] => [p.x, -p.z, p.y]
 /** A camera request (a preset, "view from", a test) wins over a smooth move still on its way: the move stops. */
 export const cancelFlight = () => { flight.to = null }
@@ -255,7 +256,8 @@ export function flyToFit(points: [number, number, number][], minSpan = 300) {
   const mode = useVistaLook.getState().mode
   if (mode === 'inspect' || mode === 'observer') useVistaLook.setState({ mode: 'city', inspected: null, note: null })
   const insets = overlayInsets()
-  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : 60, azimuthDeg: 180, minSpan }))
+  // The chosen north up (Your site: true north or project north, lib/northView.ts).
+  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : 60, azimuthDeg: 180 + upNorthDeg(), minSpan }))
 }
 
 /** Observer: the eye at a protected viewpoint (the City's Lv), looking along the cone's axis; the tower framed if inside. */
@@ -406,8 +408,8 @@ function ModeTabs() {
 /** North on screen; turned each frame by VistaLookRig. A click turns the view to face north (Ruijie, 6 Nov). */
 function Compass() {
   return (
-    <button type="button" data-testid="north-arrow" onClick={() => { flight.to = null; faceNorth(0) }}
-      aria-label="Turn the view to face north. The arrow points to true north on screen." title="Face north (grid north = true north here, UTM 10N)"
+    <button type="button" data-testid="north-arrow" onClick={() => { flight.to = null; faceNorth(upNorthDeg()) }}
+      aria-label="Turn the view to face north. The arrow points to true north on screen." title="Face north: true north or project north, as chosen in Your site (grid north = true north here, UTM 10N)"
       className={`flex h-12 w-10 flex-col items-center justify-center rounded-[20px] text-meta font-semibold leading-[16px] hover:bg-subtle ${focusRing}`} style={box}>
       <span>N</span>
       <span ref={(el) => { live.compass = el }} className="text-[22px] font-normal leading-[20px]" style={{ transform: 'rotate(0deg)' }} aria-hidden>↑</span>

@@ -71,7 +71,7 @@ import { useSceneStyle } from '../lib/sceneStyle'
 import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
-import { faceNorth, northView } from '../lib/northView'
+import { faceNorth, northView, upNorthDeg, useNorthMode } from '../lib/northView'
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()
@@ -771,6 +771,7 @@ function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
 function NorthCompass({ north }: { north: number }) {
   const look = useOverlayLook()
   const label = `True north ${north ? `${north}° from the model grid` : '(grid north)'}`
+  const projectUp = useNorthMode((s) => s.mode === 'project')
   const arrow = useRef<SVGSVGElement>(null)
   useEffect(() => {
     const el = arrow.current as unknown as HTMLElement | null
@@ -780,14 +781,14 @@ function NorthCompass({ north }: { north: number }) {
     return () => { northView.arrows.delete(el) }
   }, [north])
   return (
-    <button type="button" onClick={() => faceNorth(north)} data-testid="north-arrow"
+    <button type="button" onClick={() => faceNorth(upNorthDeg())} data-testid="north-arrow"
       aria-label={`Turn the view to face north. ${label}${north ? ". False assumption corrected: the file's saved north is the grid." : '.'}`} title={`Face north · ${label}`}
       className={`pointer-events-auto absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-line/70 py-0.5 pl-0.5 pr-2 text-meta text-slate-700 shadow-sm hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}>
       <svg ref={arrow} width="22" height="22" viewBox="-14 -14 28 28" style={{ transform: `rotate(${north}deg)` }} aria-hidden>
         <circle r="12" fill="none" stroke="#9aa0a6" />
         <path d="M0 -11 L4 4 L0 1 L-4 4 Z" fill="#1f5f8b" />
       </svg>
-      <span className="font-semibold">N</span>
+      <span className="font-semibold">N</span>{projectUp && <span className="text-muted" title="Project north is up (Your site)">· project</span>}
       {north !== 0 && <span className="font-semibold text-flag-false">{north}° · corrected</span>}
     </button>
   )
