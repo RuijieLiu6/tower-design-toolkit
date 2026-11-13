@@ -35,6 +35,7 @@ import { addNode, openBuilder, runOrder, useProjectWorkflow } from '../../lib/wo
 import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
+import WorkflowPreview from './WorkflowPreview'
 
 export type Portion = ReturnType<typeof phasePortion>
 const TILE = 24
@@ -125,28 +126,12 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
 
   return (
     <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="flex shrink-0 flex-col border-b border-line pb-2">
-      <div className="flex items-center gap-0.5 px-2 pt-2">
-        <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(!collapsed)} aria-expanded={!collapsed} data-testid="phase-collapse" aria-label={collapsed ? 'Show the workflow' : 'Hide the workflow'}
-          className="flex h-8 w-6 shrink-0 items-center justify-center rounded-lg text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-          {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
-        </button>
-        {/* The header is the way into the editor: the whole row is one button */}
-        <button type="button" onClick={() => openBuilder()} data-testid="phase-edit" title="Edit the workflow in the workflow builder (the same as Edit workflow in the project bar). Its Quick edit opens the centre editor."
-          className="group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
-          <span className="text-control font-semibold text-ink">Workflow</span>
-          <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
-          <span className="ml-auto flex items-center gap-1 rounded-lg border border-line bg-panel px-2 py-0.5 text-control text-ink group-hover:border-accent group-hover:text-accent-hover"><PencilLine size={13} aria-hidden />Edit</span>
-        </button>
-        <Help label={`About the ${PHASE_NAME[phase]} workflow`}>
-          The dots are your whole workflow in working order, coloured by phase; the tinted ones are {PHASE_NAME[phase]}, where you are, and an arc is a loop back to an earlier tool (hover a dot for its name). Under them are the {PHASE_NAME[phase]} tools: click one to open its controls below (a check's results open on the right). Workflow (or Edit) opens the editor in the centre view, where you add tools from the shelf, drag them, connect them and make loops, then Confirm to come back here. A loop is a route for revisiting work: it never reruns anything on its own.
-        </Help>
-      </div>
-
+      <WorkflowPreview board={board} phase={phase} active={active} info={info} home={home} collapsed={collapsed} onFold={() => usePhaseTools.getState().setCollapsed(!collapsed)} onOpen={open} />
+      <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
       {collapsed
-        ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the workflow">{summary}{loops ? ' ↻' : ''}</button>
+        ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the tools">{summary}{loops ? ' ↻' : ''}</button>
         : (
           <>
-            <PhaseMap board={board} phase={phase} active={active} info={info} home={home} />
             <div className="mt-1 max-h-[13.5rem] overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'thin' }} data-testid="phase-workflow-region">
               <ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
                 {rows.map((id) => {
