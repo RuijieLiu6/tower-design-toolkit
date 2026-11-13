@@ -23,7 +23,7 @@ export function DisplayModeSwitch({ project }: { project: ProjectKind }) {
     <div className="flex flex-col items-start gap-1">
       <div role="radiogroup" aria-label="View" data-testid="display-mode" className="flex max-w-full flex-wrap items-center gap-0.5 rounded-[8px] border border-line bg-subtle p-0.5">
         <span aria-hidden className="px-1.5 text-control font-medium text-muted">View</span>
-        {DISPLAY_MODES.map((m) => {
+        {DISPLAY_MODES.filter((m) => m.id !== 'analysis').map((m) => {
           const Icon = ICON[m.id]
           const ok = modeSupport(m.id, project)
           const on = shown === m.id
@@ -130,7 +130,7 @@ function ViewMenu({ project, angles, onFrame, children }: { project: ProjectKind
         <div role="dialog" aria-label="View mode" data-testid="view-menu-panel"
           className="absolute left-0 top-full z-30 mt-2 grid max-h-[min(36rem,70vh)] w-[min(26rem,calc(100vw-2rem))] gap-2 overflow-y-auto rounded-xl border border-line bg-panel p-2 text-meta text-ink shadow-float">
           <div role="radiogroup" aria-label="View" data-testid="display-mode" className="grid gap-0.5">
-            {DISPLAY_MODES.map((m) => {
+            {DISPLAY_MODES.filter((m) => m.id !== 'analysis').map((m) => {
               const Icon = ICON[m.id]
               const ok = modeSupport(m.id, project)
               const on = shown === m.id

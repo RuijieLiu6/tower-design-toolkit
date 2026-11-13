@@ -50,7 +50,18 @@ export function ConeChip({ state, label }: { state: ConeState; label: string }) 
 }
 
 /** A titled block; `help` is what the block does, behind a "?" beside the title (Ruijie, 5 Nov). */
-export function Section({ title, children, right, help }: { title: string; children: ReactNode; right?: ReactNode; help?: ReactNode }) {
+export function Section({ title, children, right, help, folded = false }: { title: string; children: ReactNode; right?: ReactNode; help?: ReactNode; folded?: boolean }) {
+  // Folded: a closed section the reader opens when they want the detail (Sinnie, 13 Nov: "put them into a minimized
+  // tab I dont want to see all this").
+  if (folded) return (
+    <details className="group border-b border-line px-4 py-3" data-folded={title}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-section text-ink [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-1.5"><span aria-hidden className="inline-block text-muted transition-transform group-open:rotate-90">›</span>{title}</span>
+        {right}
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  )
   return (
     <section className="border-b border-line px-4 py-3">
       <div className="mb-2 flex items-center justify-between">

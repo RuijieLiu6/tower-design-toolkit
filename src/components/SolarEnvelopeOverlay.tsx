@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import Label from './Label'
 import { useSolarEnvelope } from './SolarEnvelope'
+import { useInAnalysisView } from '../lib/displayModeHooks'
 
 /** Translucent columns, amber where the tower fits under them, red where it pokes through. */
 export default function SolarEnvelopeOverlay() {
   const r = useSolarEnvelope()
+  const inView = useInAnalysisView()
   const ref = useRef<THREE.InstancedMesh>(null)
   const cells = useMemo(() => {
     if (!r) return []
@@ -32,7 +34,8 @@ export default function SolarEnvelopeOverlay() {
     m.instanceMatrix.needsUpdate = true
     if (m.instanceColor) m.instanceColor.needsUpdate = true
   }, [cells, r])
-  if (!r || !cells.length) return null
+  // In the analysis view only (Sinnie, 13 Nov).
+  if (!inView || !r || !cells.length) return null
   const top = r.under.min < r.env.cap ? r.under.min : null
   return (
     <group>

@@ -67,7 +67,7 @@ export default function SolarResults() {
       </Section>
 
       {out && out.spaces.length > 0 && (
-        <Section title="Public spaces · 22 Sep, 10–16 PT">
+        <Section title="Public spaces · 22 Sep, 10–16 PT" folded right={<span className="text-meta text-muted" data-testid="spaces-summary">{out.spaces.filter((x) => x.state === 'pass').length} of {out.spaces.length} pass</span>}>
           <div className="grid gap-2">
             {out.spaces.map((s) => {
               const line = out.lines.find((l) => l.id === `solar-space-${s.id}`)
@@ -110,7 +110,7 @@ export default function SolarResults() {
       )}
 
       {out && (
-        <Section title="Evidence">
+        <Section title="Evidence" folded>
           <div className="grid gap-2">{out.lines.filter((l) => !l.id.startsWith('solar-space-')).map((l) => <Line key={l.id} r={l} />)}</div>
           <div className="mt-2 text-meta text-muted">
             <a href={GUIDELINE.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">Downtown Peninsula Solar Access Guidelines (PDF)<ExternalLink size={10} aria-hidden /></a>

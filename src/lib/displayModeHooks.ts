@@ -9,7 +9,9 @@ import { activeLayer, modeColours, shownMode, useDisplayMode, type AnalysisLayer
 export function useShownMode(): DisplayMode {
   const mode = useDisplayMode((s) => s.mode)
   const project = useStore((s) => s.project)
-  return shownMode(mode, project)
+  // Analysis colours live in the analysis view only (Sinnie, 13 Nov): the main view shows Analysis as Geometry.
+  const m = shownMode(mode, project)
+  return m === 'analysis' ? 'massing' : m
 }
 
 /** What the shown mode colours (tower, context, analytical layers). */
@@ -23,5 +25,10 @@ export function useAnalysisLayer(): AnalysisLayerId | null {
   // The analysis view (components/AnalysisViewport.tsx) draws its own check's layer, in any display mode.
   const forced = useContext(ForcedLayer)
   const forcedRuns = useStore((s) => (forced ? activeLayer(forced, (node) => nodeOn(s, node)) : null))
-  return forced === undefined ? main : forcedRuns
+  // The main view never draws an analytical layer (Sinnie, 13 Nov: "analysis stuff only shows up in the analysis view").
+  void main
+  return forced === undefined ? null : forcedRuns
 }
+
+/** Inside the analysis view (components/AnalysisViewport.tsx). */
+export const useInAnalysisView = () => useContext(ForcedLayer) !== undefined

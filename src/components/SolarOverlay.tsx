@@ -8,7 +8,7 @@ import * as THREE from 'three'
 import type { SolarJobOutput } from '../engine/solarJob'
 import type { SunHours } from '../engine/solarRules'
 import { useSolarAccess } from '../hooks/useSolarAccess'
-import { useAnalysisLayer } from '../lib/displayModeHooks'
+import { useAnalysisLayer, useInAnalysisView } from '../lib/displayModeHooks'
 import { STATUS } from '../lib/design/tokens'
 import { useStore } from '../store'
 import Label from './Label'
@@ -53,6 +53,7 @@ export default function SolarOverlay() {
   const { on, out, showMap, view } = useSolarAccess()
   // The map shows only in Analysis with sun hours as its quantity; the tested spaces' outlines stay in every mode.
   const mapShown = useAnalysisLayer() === 'solar'
+  const inView = useInAnalysisView()
   const phase = useStore((s) => s.phase)
   const project = useStore((s) => s.project)
   const current = out && out.project === project ? out : null
@@ -61,7 +62,8 @@ export default function SolarOverlay() {
   const draped = useMemo(() => (current?.mapTerrain ? terrainGeometry(current.mapTerrain) : null), [current?.mapTerrain])
   useEffect(() => () => tex?.dispose(), [tex])
   useEffect(() => () => draped?.dispose(), [draped])
-  if (!on || !current) return null
+  // The tested spaces, their labels and the map: in the analysis view only.
+  if (!inView || !on || !current) return null
   const g = map?.grid
   const t = current.mapTerrain
   const city = current.project === 'city'

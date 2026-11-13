@@ -35,6 +35,7 @@ import EnergyOverlay from './EnergyOverlay'
 import { Box, Map as MapIcon, X } from './icons'
 import Label from './Label'
 import SolarOverlay from './SolarOverlay'
+import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import { SunTimeFields } from './SunTime'
 import WindScreenOverlay from './WindScreenOverlay'
 
@@ -238,18 +239,32 @@ function NearbyBuildings({ centre, reach }: { centre: Pt; reach: number }) {
 
 /** Frames the site and the towers when the view opens or the check or Plan / 3D changes (not on every edit). */
 function Frame({ centre, extent, base, lift, plan, frameKey }: { centre: Pt; extent: number; base: number; lift: number; plan: boolean; frameKey: string }) {
-  const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: OrbitImpl | null }
+  const { camera, controls, size, invalidate } = useThree() as unknown as { camera: THREE.Camera; controls: OrbitImpl | null; size: { width: number; height: number }; invalidate: () => void }
   const last = useRef('')
   useEffect(() => {
-    if (!controls || last.current === frameKey) return
-    last.current = frameKey
+    if (!controls) return
+    const key = `${frameKey}:${camera.uuid}`
+    if (last.current === key) return
+    last.current = key
     const target = new THREE.Vector3(...toThree(centre[0], centre[1], base + (plan ? 0 : lift)))
-    const dist = extent / Math.tan(((camera.fov / 2) * Math.PI) / 180)
-    const off = plan ? new THREE.Vector3(0, dist, 0.001) : new THREE.Vector3(dist * 0.55, dist * 0.6, dist * 0.55)
-    camera.position.copy(target.clone().add(off))
-    camera.near = Math.max(0.5, dist / 500); camera.far = dist * 20; camera.updateProjectionMatrix()
-    controls.target.copy(target); controls.update()
-  }, [controls, camera, centre, extent, base, lift, plan, frameKey])
+    if (plan && (camera as THREE.OrthographicCamera).isOrthographicCamera) {
+      const c = camera as THREE.OrthographicCamera
+      // Straight down, north (model +y, three -z) at the top of the view.
+      c.up.set(0, 0, -1)
+      c.position.set(target.x, target.y + 3000, target.z)
+      c.zoom = Math.min(size.width, size.height) / (2.2 * extent)
+      c.near = 1; c.far = 20000
+      c.lookAt(target)
+      c.updateProjectionMatrix()
+    } else {
+      const c = camera as THREE.PerspectiveCamera
+      c.up.set(0, 1, 0)
+      const dist = extent / Math.tan(((c.fov / 2) * Math.PI) / 180)
+      c.position.copy(target.clone().add(new THREE.Vector3(dist * 0.55, dist * 0.6, dist * 0.55)))
+      c.near = Math.max(0.5, dist / 500); c.far = dist * 20; c.updateProjectionMatrix()
+    }
+    controls.target.copy(target); controls.update(); invalidate()
+  }, [controls, camera, centre, extent, base, lift, plan, frameKey, size.width, size.height, invalidate])
   return null
 }
 
@@ -311,7 +326,9 @@ export default function AnalysisViewport() {
           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={16} aria-hidden /></button>
       </header>
       <div className="relative min-h-0 flex-1">
-        <Canvas frameloop="demand" dpr={[1, 2]} camera={{ fov: 30, position: [0, 800, 1], near: 1, far: 40000 }} gl={{ antialias: true, preserveDrawingBuffer: true }}>
+        {/* Plan is a true plan: an orthographic camera straight down, north up, pan and zoom only (the canvas is rebuilt with
+            the other camera when Plan / 3D changes, so the controls always drive the camera in use). */}
+        <Canvas key={plan ? 'plan' : 'axo'} orthographic={plan} camera={plan ? { position: [0, 3000, 0], zoom: 1, near: 1, far: 20000 } : { fov: 30, position: [0, 800, 1], near: 1, far: 40000 }} frameloop="demand" dpr={[1, 2]} gl={{ antialias: true, preserveDrawingBuffer: true }}>
           <ForcedLayer.Provider value={layer}>
             <color attach="background" args={['#f4f5f7']} />
             <hemisphereLight args={['#ffffff', '#c9ced6', 1.6]} />
@@ -324,12 +341,12 @@ export default function AnalysisViewport() {
               {nearby && <NearbyBuildings centre={centre} reach={Math.max(300, extent * 2.5)} />}
               {def.kind === 'uses' ? <UseStack towers={towers} base={base} /> : <Prisms prisms={prisms} base={base} opacity={def.kind === 'cones' ? 0.55 : 1} />}
               {def.kind === 'shadows' && on && <ShadowFan prisms={prisms} base={base} />}
-              {layer === 'solar' && <SolarOverlay />}
+              {layer === 'solar' && <><SolarOverlay /><SolarEnvelopeOverlay /></>}
               {layer === 'wind' && <WindScreenOverlay base={base} />}
               {layer === 'surface-sun' && <EnergyOverlay base={base} />}
               {def.kind === 'cones' && project === 'city' && <ConeOverlays base={base} xray={false} />}
             </group>
-            <OrbitControls makeDefault enableDamping={false} />
+            <OrbitControls makeDefault enableDamping={false} enableRotate={!plan} screenSpacePanning />
             <Frame centre={centre} extent={plan ? extent : Math.max(extent, tall * 0.75)} base={base} lift={tall * 0.45} plan={plan} frameKey={`${node}:${plan}:${project}`} />
           </ForcedLayer.Provider>
         </Canvas>
