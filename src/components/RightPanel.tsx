@@ -20,6 +20,7 @@ import PresentPanel from './PresentPanel'
 import TracePanel from './TracePanel'
 import TowerRail from './TowerRail'
 import { ActiveTool, usePhaseActive } from './workflow/PhasePanel'
+import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
 import { toggleOverlays, useDock } from './ViewportDock'
 import { useTowerEdit } from '../lib/towerEdit'
 import { Eye, EyeOff, Layers, Magnet } from './icons'
@@ -115,6 +116,10 @@ export default function RightPanel() {
   // Tower position open (Form step): its Properties tab comes first and opens; closing the tool goes back to the results.
   const positioning = useTowerPosition((s) => s.on) && !present
   useEffect(() => { if (positioning) setTab('properties') }, [positioning])
+  // A site just set: Properties shows it (lib/siteFocus.ts) until a tower or a tool is picked.
+  useEffect(() => watchSiteFocus(), [])
+  const siteSeq = useSiteFocus((s) => s.seq)
+  useEffect(() => { if (siteSeq && !useStore.getState().phase.startsWith('present')) setTab('properties') }, [siteSeq])
   const tabs: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
     : [{ id: 'properties', label: 'Properties' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
@@ -158,6 +163,12 @@ export default function RightPanel() {
  * and the tower position fields while that tool is on. */
 function Properties({ positioning }: { positioning: boolean }) {
   const { phase, info, active } = usePhaseActive()
+  const siteFocus = useSiteFocus((s) => s.on)
+  if (siteFocus) return (
+    <div data-testid="rp-properties" data-focus="site">
+      <Suspense fallback={<div aria-busy="true" className="min-h-16" />}><SiteInfo /></Suspense>
+    </div>
+  )
   return (
     <div data-testid="rp-properties">
       {positioning && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
