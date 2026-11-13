@@ -11,14 +11,15 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import polygonClipping, { type MultiPolygon, type Polygon } from 'polygon-clipping'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitImpl } from 'three-stdlib'
 import { useShallow } from 'zustand/react/shallow'
 import { VTC_NORTH_DEG, useVtcContext } from '../context'
 import { nodeById } from '../data/registry'
 import { towerFloors } from '../engine/massing'
-import { towerOccluders } from '../engine/solarRules'
+import { towerOccluders, vtcOccluders } from '../engine/solarRules'
 import { sunPosition, sunVector, vancouverTime } from '../engine/sun'
 import { USES, type Tower } from '../engine/types'
 import { nodeOn } from '../lib/analysis'
@@ -27,6 +28,7 @@ import { DATA, MODEL, UI } from '../lib/design/tokens'
 import { rampColour, rampCss, type AnalysisLayerId } from '../lib/displayMode'
 import { BRIEF_SITE } from '../lib/vtcContextSource'
 import { useStore, useTowers } from '../store'
+import { useCityData, useRemoval } from './CityContext'
 import { ConeOverlays } from './ConeVolumes'
 import { clock, SolarScale, SurfaceSunScale, TowerUseKey, WindKey } from './DisplayMode'
 import EnergyOverlay from './EnergyOverlay'
@@ -98,7 +100,7 @@ function Prisms({ prisms, base, color = MODEL.proposed, opacity = 1 }: { prisms:
       {geoms.map((g, i) => (
         <group key={i}>
           <mesh geometry={g}><meshStandardMaterial color={color} transparent={opacity < 1} opacity={opacity} depthWrite={opacity >= 1} /></mesh>
-          <lineSegments><edgesGeometry args={[g, 30]} /><lineBasicMaterial color={MODEL.edge} transparent opacity={0.6} /></lineSegments>
+          <lineSegments><edgesGeometry args={[g, 30]} /><lineBasicMaterial color={UI.ink} transparent opacity={0.85} /></lineSegments>
         </group>
       ))}
     </group>
@@ -183,6 +185,57 @@ function UseStack({ towers, base }: { towers: Tower[]; base: number }) {
   )
 }
 
+/** The existing buildings around the site (Sinnie, 13 Nov: "include nearby building in the analysis viewport"): Real
+ * Vancouver's measured buildings (the ones the main view hides under the design stay hidden), or the competition
+ * context model, within reach of the site, as one quiet mesh. */
+function NearbyBuildings({ centre, reach }: { centre: Pt; reach: number }) {
+  const project = useStore((s) => s.project)
+  const { data } = useCityData()
+  const removal = useRemoval(project === 'city' ? data : null)
+  const { ctx } = useVtcContext()
+  const geom = useMemo(() => {
+    const parts: THREE.BufferGeometry[] = []
+    const near = (r: Pt[]) => r.some(([x, y]) => Math.abs(x - centre[0]) < reach && Math.abs(y - centre[1]) < reach)
+    const prism = (ring: Pt[], z0: number, z1: number) => {
+      if (ring.length < 3 || !(z1 > z0)) return
+      const g = new THREE.ExtrudeGeometry(new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x, y))), { depth: z1 - z0, bevelEnabled: false })
+      g.translate(0, 0, z0)
+      parts.push(g.index ? g.toNonIndexed() : g)
+    }
+    if (project === 'city' && data?.heights) {
+      const h = data.heights
+      data.footprints.forEach((f, i) => {
+        if (removal.hidden.has(i) || !near(f.outer)) return
+        const g0 = h.ground[i], r = h.roof[i]
+        if (Number.isFinite(g0) && Number.isFinite(r) && r > g0) prism(f.outer as Pt[], g0, r)
+      })
+    } else if (project === 'vtc' && ctx) {
+      const occ = vtcOccluders(ctx)
+      for (const p of occ.prisms) if (near(p.ring as Pt[])) prism(p.ring as Pt[], p.z0, p.z1)
+      const pos: number[] = []
+      for (let i = 0; i + 8 < occ.tris.length; i += 9) {
+        const t = occ.tris
+        if (near([[t[i], t[i + 1]], [t[i + 3], t[i + 4]], [t[i + 6], t[i + 7]]])) pos.push(...t.slice(i, i + 9))
+      }
+      if (pos.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); parts.push(g) }
+    }
+    if (!parts.length) return null
+    for (const g of parts) { for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k) }
+    const merged = mergeGeometries(parts, false)
+    parts.forEach((g) => g.dispose())
+    return merged
+  }, [project, data, removal.hidden, ctx, centre[0], centre[1], reach]) // eslint-disable-line react-hooks/exhaustive-deps
+  const edges = useMemo(() => (geom ? new THREE.EdgesGeometry(geom, 30) : null), [geom])
+  useEffect(() => () => { geom?.dispose(); edges?.dispose() }, [geom, edges])
+  if (!geom) return null
+  return (
+    <group>
+      <mesh geometry={geom}><meshStandardMaterial color={MODEL.context} /></mesh>
+      {edges && <lineSegments geometry={edges}><lineBasicMaterial color="#9aa3ad" transparent opacity={0.35} /></lineSegments>}
+    </group>
+  )
+}
+
 /** Frames the site and the towers when the view opens or the check or Plan / 3D changes (not on every edit). */
 function Frame({ centre, extent, base, lift, plan, frameKey }: { centre: Pt; extent: number; base: number; lift: number; plan: boolean; frameKey: string }) {
   const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: OrbitImpl | null }
@@ -212,6 +265,7 @@ export default function AnalysisViewport() {
   const sun = useStore((s) => s.sun)
   const north = useNorth()
   const prisms = useMemo(() => towerOccluders(towers).prisms as Prism[], [towers])
+  const [nearby, setNearby] = useState(true)
   if (!node) return null
   const def = analysisFor(node)
   const n = nodeById(node)
@@ -267,6 +321,7 @@ export default function AnalysisViewport() {
                   drops below the site's ground towards the water, where a solid plane at the site level hid it. */}
               <mesh position={[centre[0], centre[1], base - 0.05]} renderOrder={-10}><planeGeometry args={[extent * 8, extent * 8]} /><meshBasicMaterial color="#eceef1" depthWrite={false} depthTest={false} /></mesh>
               {ring && <SiteLine ring={ring} z={base + 0.15} />}
+              {nearby && <NearbyBuildings centre={centre} reach={Math.max(300, extent * 2.5)} />}
               {def.kind === 'uses' ? <UseStack towers={towers} base={base} /> : <Prisms prisms={prisms} base={base} opacity={def.kind === 'cones' ? 0.55 : 1} />}
               {def.kind === 'shadows' && on && <ShadowFan prisms={prisms} base={base} />}
               {layer === 'solar' && <SolarOverlay />}
@@ -308,6 +363,7 @@ export default function AnalysisViewport() {
           {layer === 'surface-sun' && <SurfaceSunScale />}
           {def.kind === 'cones' && <p className="text-ink">{project === 'city' ? 'Highlighted: the parts of each tower above a protected view-cone limit. The tower is drawn see-through.' : 'View cones apply in Real Vancouver only.'}</p>}
           {def.kind === 'uses' && <TowerUseKey />}
+          <label className="flex items-center gap-1.5 text-ink"><input type="checkbox" checked={nearby} onChange={(e) => setNearby(e.target.checked)} data-testid="analysis-nearby" className="accent-accent" />Nearby buildings</label>
           <p className="text-muted">Change the design in the main view; this view follows.</p>
         </div>
       </div>
