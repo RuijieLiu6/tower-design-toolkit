@@ -6,6 +6,7 @@
 //   a pale gradient behind and quiet edges. Materials is not offered here: the base model carries no materials.
 // The context drawn here comes from the entrant's own copy of the base model (lib/vtcContextSource.ts); without it only
 // the brief's site is drawn, and the legend says so.
+import { ViewModeMenu } from './DisplayModeSwitch'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -18,10 +19,10 @@ import { useShownMode } from '../lib/displayModeHooks'
 import { contextUses } from '../lib/vtcUses'
 import { useVtcSource } from '../lib/vtcContextSource'
 import { useStore } from '../store'
-import { Building2, ChevronDown, ChevronUp, EyeOff } from './icons'
+import { Building2, EyeOff } from './icons'
 import Help from './Help'
 import { useDisplayMode } from '../lib/displayMode'
-import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
+import { AnalysisLegend, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 
 /** Which context colouring the scene draws: by ground-level use (Program) or the neutral model (every other mode). */
 export type VtcLookId = 'program' | 'plain'
@@ -175,39 +176,38 @@ export function VtcLookBar() {
   const devFile = useVtcSource((s) => s.source === 'dev-file')
   const uses = ctx ? contextUses(ctx) : null
   const shown = uses ? BUILDING_USES.filter((u) => uses.buildings.includes(u.id)) : []
-  // The full key on request (8 Nov), shared with Real Vancouver's; an Analysis scale stays visible (units and range).
-  const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') !== '0' } catch { return true } })
-  const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
+  // The View menu at the top of the view (12 Nov) holds the mode, Pin view, the sun, the context switch and the key of
+  // the shown mode; only an Analysis scale stays at the bottom, since the colours can't be read without it.
+  const missing = !ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'
   return (
-    <div data-testid="vtc-look" className="glass pointer-events-auto absolute bottom-12 left-3 z-10 grid max-w-[min(46rem,calc(100%-1.5rem))] gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <DisplayModeSwitch project="vtc" />
-        <SunChip />
-        {ctx && <ContextToggle />}
-        {mode !== 'analysis' && <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} data-testid="key-toggle" title={folded ? 'Show the legend' : 'Fold the legend'}
-          className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink outline-none hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">{mode === 'program' ? 'Program legend' : 'Legend'}{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>}
-      </div>
-      {/* a missing input stays visible with the key folded (8 Nov): what to add to see the surrounding program */}
-      {folded && mode === 'program' && !uses?.hasPlan && <p role="status" className="text-meta text-muted">{!ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'}</p>}
-      {!folded && mode === 'massing' && <MassingKey />}
-      {!folded && mode === 'program' && <>
-        <div className="flex items-start gap-2">
-          <KeyGroup label="Ground-level use">
-            {uses?.hasPlan
-              ? <>
-                  {shown.map((u) => <KeyItem key={u.id} sw={sw(useColor(u.id))}>{u.id === 'other' ? 'Unknown' : u.label.replace(/ \(.*\)$/, '')}</KeyItem>)}
-                  <KeyItem sw={sw(HERITAGE, EDGE_HERITAGE.color)}>Heritage</KeyItem>
-                </>
-              : <span role="listitem" className="text-muted">{!ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'}</span>}
-          </KeyGroup>
-          <Help label="How the uses are read">
-            <p>From the competition's Ground Level Use Plan (in Buildner's base model). A building standing on the ground takes the use covering most of its footprint. A tower on a podium takes the lobby use beneath it (office, hotel, residential…). Otherwise it is Unknown, never guessed.</p>
-            <p className="mt-1.5">The plan shows the ground floor only. Heritage buildings keep one heritage tone.</p>
-          </Help>
+    <>
+      <ViewModeMenu project="vtc">
+        <div className="flex flex-wrap items-center gap-1.5"><SunChip />{ctx && <ContextToggle />}</div>
+        {mode === 'massing' && <MassingKey />}
+        {mode === 'program' && <>
+          <div className="flex items-start gap-2">
+            <KeyGroup label="Ground-level use">
+              {uses?.hasPlan
+                ? <>
+                    {shown.map((u) => <KeyItem key={u.id} sw={sw(useColor(u.id))}>{u.id === 'other' ? 'Unknown' : u.label.replace(/ \(.*\)$/, '')}</KeyItem>)}
+                    <KeyItem sw={sw(HERITAGE, EDGE_HERITAGE.color)}>Heritage</KeyItem>
+                  </>
+                : <span role="listitem" className="text-muted">{missing}</span>}
+            </KeyGroup>
+            <Help label="How the uses are read">
+              <p>From the competition's Ground Level Use Plan (in Buildner's base model). A building standing on the ground takes the use covering most of its footprint. A tower on a podium takes the lobby use beneath it (office, hotel, residential…). Otherwise it is Unknown, never guessed.</p>
+              <p className="mt-1.5">The plan shows the ground floor only. Heritage buildings keep one heritage tone.</p>
+            </Help>
+          </div>
+          <TowerUseKey />
+        </>}
+        {mode === 'analysis' && <AnalysisLegend project="vtc" />}
+      </ViewModeMenu>
+      {mode === 'analysis' && (
+        <div data-testid="vtc-look" className="glass pointer-events-auto absolute bottom-12 left-3 z-10 max-w-[min(46rem,calc(100%-1.5rem))] rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
+          <AnalysisLegend project="vtc" />
         </div>
-        <TowerUseKey />
-      </>}
-      {mode === 'analysis' && <AnalysisLegend project="vtc" />}
-    </div>
+      )}
+    </>
   )
 }

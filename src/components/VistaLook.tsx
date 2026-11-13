@@ -8,6 +8,7 @@
 // tower; Viewcone is one toggle, all view cones on or all off (Ruijie, 3 Nov: "a single tab could turn on all and turn
 // off all"), in step with the Layers dock (lib/coneVisibility.ts).
 // VistaLookRig runs inside the canvas (model frame x east, y north, z up); the rest is DOM over the view.
+import { ViewModeMenu } from './DisplayModeSwitch'
 import { dataFetch } from '../lib/loadProgress'
 import { useFrame, useThree } from '@react-three/fiber'
 import { ChevronDown, ChevronUp, X } from './icons'
@@ -19,7 +20,7 @@ import { useResults } from '../hooks/useResults'
 import { BUILDING_USES, SWATCH_BORDER, useColor } from '../lib/buildingUse'
 import { MODEL } from '../lib/design/tokens'
 import { useShownMode } from '../lib/displayModeHooks'
-import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
+import { AnalysisLegend, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 import { sampleTerrain, type Manifest } from '../lib/cityLayers'
 import { fitPoints } from '../lib/fitView'
 import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings'
@@ -445,25 +446,16 @@ function Utilities() {
 function Legend() {
   const mode = useShownMode()
   const coneHidden = useConeVisibility((s) => s.hidden)
-  // UI review (3 Nov): the legend folds to one line (remembered in this browser); folded, the mode switch stays.
-  // Folded by default since 8 Nov (full keys on request); an Analysis scale stays visible folded (units and range).
-  const [folded, setFolded] = useState(() => { try { return localStorage.getItem('ts.legend.folded') !== '0' } catch { return true } })
-  const fold = (v: boolean) => { setFolded(v); try { localStorage.setItem('ts.legend.folded', v ? '1' : '0') } catch { /* this session only */ } }
   const conesShown = !CONES.every((c) => coneHidden[c.id])
-  const foldButton = (
-    <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} aria-label={folded ? 'Show the legend' : 'Fold the legend to the mode switch'} title={folded ? 'Show the legend' : 'Fold the legend'}
-      data-testid="key-toggle" className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-2 text-control text-ink hover:bg-subtle outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">{mode === 'program' ? 'Program legend' : 'Legend'}{folded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}</button>
-  )
   const sw = (color: string, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: '1px solid rgb(32 38 48 / 0.18)', ...extra }} />
   return (
-    <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <DisplayModeSwitch project="city" />
-        <SunChip />
-        {foldButton}
-      </div>
-      {folded && mode === 'analysis' && <AnalysisLegend project="city" />}
-      {!folded && <>
+    <>
+    {/* The View menu at the top of the view (12 Nov): mode, Pin view, the sun and the key of the shown mode. Only an
+        Analysis scale stays down here, since the colours can't be read without it. */}
+    {mode === 'analysis' && <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink"><AnalysisLegend project="city" /></div>}
+    <ViewModeMenu project="city">
+      <div className="flex flex-wrap items-center gap-1.5"><SunChip /></div>
+      {<>
         {mode === 'massing' && <MassingKey />}
         {mode === 'program' && <>
           <TowerUseKey />
@@ -496,7 +488,8 @@ function Legend() {
           </>}
         </KeyGroup>}
       </>}
-    </div>
+    </ViewModeMenu>
+    </>
   )
 }
 

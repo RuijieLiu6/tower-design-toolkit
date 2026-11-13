@@ -57,3 +57,81 @@ function PinView() {
     </button>
   )
 }
+
+// ---------- the View menu (Sinnie, 12 Nov: "make this into a view mode and place it on the top where you can drop down
+// to see which mode you want it to be") ----------
+// One pill in the view's top row ("View: Geometry ▾"), next to Working view. It opens a menu with the four modes (each
+// with what it shows, or why this project can't show it), Pin view, and below them whatever the site adds: its
+// switches and the legend of the shown mode. The bar that sat at the bottom of the view is gone; an Analysis scale still
+// shows at the bottom while Analysis is on, since the colours can't be read without it.
+import { createPortal } from 'react-dom'
+import { create } from 'zustand'
+import { useRef, type ReactNode } from 'react'
+import { ChevronDown } from './icons'
+
+/** Where the View menu goes: the row with Working view (ContextPins) registers its slot here. */
+export const useViewMenuSlot = create<{ el: HTMLElement | null }>(() => ({ el: null }))
+export function ViewMenuSlot() {
+  return <span ref={(el) => { if (useViewMenuSlot.getState().el !== el) useViewMenuSlot.setState({ el }) }} data-testid="view-menu-slot" className="pointer-events-auto contents" />
+}
+
+/** The View menu, rendered into the slot when there is one. */
+export function ViewModeMenu({ project, children }: { project: ProjectKind; children?: ReactNode }) {
+  const slot = useViewMenuSlot((s) => s.el)
+  if (!slot) return null
+  return createPortal(<ViewMenu project={project}>{children}</ViewMenu>, slot)
+}
+
+function ViewMenu({ project, children }: { project: ProjectKind; children?: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const shown = useShownMode()
+  const setMode = useDisplayMode((s) => s.setMode)
+  const pinned = useDisplayMode((s) => s.pinned)
+  const [why, setWhy] = useState<string | null>(null)
+  useEffect(() => {
+    if (!open) return
+    const away = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('pointerdown', away, true); window.addEventListener('keydown', key)
+    return () => { window.removeEventListener('pointerdown', away, true); window.removeEventListener('keydown', key) }
+  }, [open])
+  const cur = DISPLAY_MODES.find((m) => m.id === shown) ?? DISPLAY_MODES[0]
+  const CurIcon = ICON[cur.id]
+  return (
+    <div ref={box} className="pointer-events-auto relative" data-testid="view-menu">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={open} data-testid="view-menu-button"
+        title="View mode: how the model and its surroundings are drawn"
+        className={`flex items-center gap-1.5 rounded-lg border border-line bg-panel/95 px-2 py-0.5 text-meta text-ink ${focusRing} hover:border-boundary`}>
+        <CurIcon size={13} aria-hidden className="text-accent" />View: <b className="font-semibold">{cur.word}</b>{pinned && <Pin size={11} aria-label="pinned" className="text-accent" />}
+        <ChevronDown size={13} aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div role="dialog" aria-label="View mode" data-testid="view-menu-panel"
+          className="absolute left-0 top-full z-30 mt-1.5 grid max-h-[min(36rem,70vh)] w-[min(26rem,calc(100vw-2rem))] gap-2 overflow-y-auto rounded-xl border border-line bg-panel p-2 text-meta text-ink shadow-float">
+          <div role="radiogroup" aria-label="View" data-testid="display-mode" className="grid gap-0.5">
+            {DISPLAY_MODES.map((m) => {
+              const Icon = ICON[m.id]
+              const ok = modeSupport(m.id, project)
+              const on = shown === m.id
+              return (
+                <button key={m.id} type="button" role="radio" aria-checked={on} aria-disabled={!ok.ok} data-mode={m.id}
+                  onClick={() => { if (ok.ok) { setMode(m.id); setWhy(null) } else setWhy(why === ok.why ? null : ok.why) }}
+                  className={`flex items-start gap-2 rounded-lg px-2 py-1.5 text-left ${focusRing} ${on ? 'bg-selected' : ok.ok ? 'hover:bg-subtle' : 'cursor-not-allowed opacity-60'}`}>
+                  <Icon size={16} aria-hidden className={`mt-0.5 shrink-0 ${on ? 'text-accent' : 'text-muted'}`} />
+                  <span className="min-w-0">
+                    <span className={`block text-control font-medium ${on ? 'text-accent-hover' : 'text-ink'}`}>{m.word}</span>
+                    <span className="block text-meta text-muted">{ok.ok ? m.hint : ok.why}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {why && <p role="status" className="px-2 text-meta text-muted">{why}</p>}
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-1 pt-2"><PinView /></div>
+          {children && <div className="grid gap-1.5 border-t border-line px-1 pt-2" data-testid="view-menu-legend">{children}</div>}
+        </div>
+      )}
+    </div>
+  )
+}
