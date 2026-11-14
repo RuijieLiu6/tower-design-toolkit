@@ -8,6 +8,10 @@ import * as THREE from 'three'
 
 const INK = new THREE.Color('#151515')
 const EDGE_DEG = 28
+/** Meshes above this many vertices get no outline (the simplified view keeps the frame rate). */
+const MAX_EDGE_VERTS = 400_000
+/** How often new or re-made objects are caught, ms. */
+const SCAN_MS = 1200
 
 type Swap = { material: THREE.Material | THREE.Material[]; castShadow: boolean; receiveShadow: boolean }
 
@@ -52,12 +56,14 @@ export default function Linework() {
         // A material (re)made since the last pass: remember it, then swap.
         const prev = swaps.get(mesh)
         swaps.set(mesh, { material: mesh.material, castShadow: prev?.castShadow ?? mesh.castShadow, receiveShadow: prev?.receiveShadow ?? mesh.receiveShadow })
-        const clear = seeThrough(mesh.material)
+        // Ground is white on the white background: not drawn at all (it still takes clicks for placing a tower).
+        const clear = seeThrough(mesh.material) || !!o.userData.noEdges
         mesh.material = clear ? hidden : white
         mesh.castShadow = false; mesh.receiveShadow = false
         changed = true
         // Edges for solids (not instanced: their copies share one geometry placed many times).
-        if (!clear && !(mesh as THREE.InstancedMesh).isInstancedMesh && mesh.geometry && !edges.has(mesh)) {
+        // Not for ground (terrain slopes would draw every triangle) or huge meshes: the simplified view stays light.
+        if (!clear && !o.userData.noEdges && !(mesh as THREE.InstancedMesh).isInstancedMesh && mesh.geometry && (mesh.geometry.attributes.position?.count ?? 0) < MAX_EDGE_VERTS && !edges.has(mesh)) {
           let g = edgeGeom.get(mesh.geometry)
           if (!g) { g = new THREE.EdgesGeometry(mesh.geometry, EDGE_DEG); edgeGeom.set(mesh.geometry, g) }
           const ls = new THREE.LineSegments(g, ink)
@@ -76,7 +82,7 @@ export default function Linework() {
       if (changed) invalidate()
     }
     apply()
-    const timer = window.setInterval(apply, 500)
+    const timer = window.setInterval(apply, SCAN_MS)
     return () => {
       window.clearInterval(timer)
       for (const [o, s] of swaps) { const m = o as THREE.Mesh; if (m.material === white || m.material === hidden) m.material = s.material; m.castShadow = s.castShadow; m.receiveShadow = s.receiveShadow }

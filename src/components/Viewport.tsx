@@ -680,7 +680,7 @@ export default function Viewport() {
         <div data-viewport onPointerEnter={() => useHoverLabels.getState().setInView(true)} onPointerLeave={() => useHoverLabels.getState().setInView(false)} className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
           <ViewGuard>
-          <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
+          <Canvas key={project} shadows={!monoView} gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={monoView ? 1 : [1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
             onCreated={({ gl }) => { gl.localClippingEnabled = true }}
             camera={{ position: project === 'vtc' ? toThree(...orientReq({ position: [520, -640, 430], target: [0, 0, 60] }).position).toArray() : toThree(...orientReq({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target] }).position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
             <color attach="background" args={[look.background]} />
