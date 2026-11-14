@@ -7,7 +7,7 @@ import { useShownMode } from '../lib/displayModeHooks'
 import type { ProjectKind } from '../store'
 import { BrickWall, Contrast, Cuboid, Gauge, Pin, Rows3, type LucideIcon } from './icons'
 
-const ICON: Record<DisplayMode, LucideIcon> = { mono: Contrast, massing: Cuboid, program: Rows3, analysis: Gauge, materials: BrickWall }
+const ICON: Record<DisplayMode, LucideIcon> = { plain: Contrast, massing: Cuboid, program: Rows3, analysis: Gauge, materials: BrickWall }
 const focusRing = 'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent'
 
 export function DisplayModeSwitch({ project }: { project: ProjectKind }) {

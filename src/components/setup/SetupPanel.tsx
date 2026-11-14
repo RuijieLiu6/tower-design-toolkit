@@ -262,7 +262,7 @@ function ProgramTab() {
           </div>
           <div className="mt-3 flex items-center justify-between text-control text-muted">
             <span id="colour-by-program">Colour the model by program</span>
-            <button type="button" role="switch" aria-checked={colour} aria-labelledby="colour-by-program" onClick={() => setMode(colour ? 'mono' : 'program')}
+            <button type="button" role="switch" aria-checked={colour} aria-labelledby="colour-by-program" onClick={() => setMode(colour ? 'massing' : 'program')}
               className={`relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${colour ? 'bg-accent' : 'bg-line'}`}>
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${colour ? 'left-[22px]' : 'left-0.5'}`} />
             </button>

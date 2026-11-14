@@ -39,7 +39,7 @@ export function applyToolView(id: string): boolean {
   const d = useDisplayMode.getState()
   if (!v || d.pinned) return false
   if (v.layer) { if (d.mode === 'analysis' && d.layer === v.layer) return false; d.showLayer(v.layer); return true }
-  if (d.mode === v.mode || (v.mode === 'massing' && d.mode === 'mono')) return false
+  if (d.mode === v.mode || (v.mode === 'massing' && d.mode === 'plain')) return false
   d.setMode(v.mode)
   return true
 }

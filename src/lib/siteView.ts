@@ -15,8 +15,8 @@ export async function quietSiteView() {
   useVistaLook.setState({ labels: false })
   const d = useDisplayMode.getState()
   d.setPinned(false)
-  // Black & white is the default Geometry view; Geometry in colour stays as it is.
-  if (d.mode !== 'massing' && d.mode !== 'mono') d.setMode('mono')
+  // Geometry, or its No render version, as chosen.
+  if (d.mode !== 'massing' && d.mode !== 'plain') d.setMode('massing')
   if (useStore.getState().enabled['built.sun']) useStore.getState().toggleNode('built.sun')
   // Loaded on demand (three.js scene modules): only when they are already in use.
   const [{ useContextLayers }, { useHeightSurface }] = await Promise.all([import('../components/ContextLayers'), import('../components/HeightSurface')])

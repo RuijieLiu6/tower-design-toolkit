@@ -183,7 +183,7 @@ export function VtcLookBar() {
     <>
       <ViewModeMenu project="vtc">
         <div className="flex flex-wrap items-center gap-1.5"><SunChip />{ctx && <ContextToggle />}</div>
-        {(mode === 'massing' || mode === 'mono') && <MassingKey />}
+        {(mode === 'massing' || mode === 'plain') && <MassingKey />}
         {mode === 'program' && <>
           <div className="flex items-start gap-2">
             <KeyGroup label="Ground-level use">

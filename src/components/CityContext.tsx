@@ -467,9 +467,6 @@ function useFarFromPatches(patches: HeightGrid[]): boolean {
   return far
 }
 
-/** Ground meshes: plain white with no outlines in the Black & white linework view (components/Linework.tsx). */
-const NO_EDGES = { noEdges: true }
-
 function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (x: number, y: number) => void }) {
   const finish = useFinish(data.manifest)
   const surface = citySurface(data)
@@ -507,16 +504,16 @@ function Terrain({ data, look, onPick }: { data: CityData; look: Look; onPick: (
   const pick = (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); if (!drawClick(e.point.x, -e.point.z)) onPick(e.point.x, -e.point.z) }
   return (
     <>
-      {ground ? <mesh userData={NO_EDGES} key={groundKey} geometry={top} material={ground} receiveShadow onPointerDown={pick} /> : <mesh userData={NO_EDGES} key="plain" geometry={top} receiveShadow onPointerDown={pick}>
+      {ground ? <mesh key={groundKey} geometry={top} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key="plain" geometry={top} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>}
-      {!far && detailed.map((geometry, i) => ground ? <mesh userData={NO_EDGES} key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh userData={NO_EDGES} key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
+      {!far && detailed.map((geometry, i) => ground ? <mesh key={`${groundKey}${i}`} geometry={geometry} material={ground} receiveShadow onPointerDown={pick} /> : <mesh key={`p${i}`} geometry={geometry} receiveShadow onPointerDown={pick}>
         <meshStandardMaterial key={parks ? 'p' : 'n'} vertexColors map={parks} roughness={1} metalness={0} />
       </mesh>)}
       {tex && <ContextWater tex={tex} />}
       {finish.shoreline && <Shoreline lines={finish.shoreline.lines} grids={data.grids} color={look.shore} />}
       <PlinthBase plinth={CITY_PLINTH} ring={ring} look={look} pad={1} edges={CITY_EDGES} />
-      {vistaGround ? <mesh userData={NO_EDGES} key="vista-r2" geometry={r2} material={vistaGround} receiveShadow /> : <mesh userData={NO_EDGES} key="plain-r2" geometry={r2} receiveShadow>
+      {vistaGround ? <mesh key="vista-r2" geometry={r2} material={vistaGround} receiveShadow /> : <mesh key="plain-r2" geometry={r2} receiveShadow>
         <meshStandardMaterial vertexColors roughness={1} metalness={0} />
       </mesh>}
       <mesh geometry={front}>
