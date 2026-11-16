@@ -3,7 +3,6 @@
 // their footprints as the site; shows the boundary, the parcels under it, the buildings it replaces (demolished
 // unless kept) and the address or coordinate marker. Clicks are taken only while a site tool is on, so tower
 // placing and the tower gizmo keep their clicks otherwise.
-import { withoutHistory } from '../lib/project/history'
 import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
@@ -156,8 +155,7 @@ function SiteLayer({ data }: { data: CityData }) {
     CLEARED.add(sig)
     const fresh = idsOf(data.footprints, buildingsOn(site.ring as Pt[], data.footprints)).filter((id) => !site.replaced.includes(id))
     if (!fresh.length) return
-    // Automatic, so not an Undo step of its own (Undo goes to what the user did).
-    withoutHistory(() => useStore.getState().set({ citySite: { ...site, replaced: [...site.replaced, ...fresh] }, announce: `Site cleared: ${fresh.length} existing building${fresh.length === 1 ? '' : 's'} on it shown as demolished (a team assumption).` }))
+    useStore.getState().set({ citySite: { ...site, replaced: [...site.replaced, ...fresh] }, announce: `Site cleared: ${fresh.length} existing building${fresh.length === 1 ? '' : 's'} on it shown as demolished (a team assumption).` })
   }, [site, data])
   const preview = useMemo(() => (s.tool === 'pick' && s.picked.length ? siteFromFootprints(s.picked.map((i) => data.footprints[i])) : null), [s.tool, s.picked, data])
   const ringOk = !!site && !validateRing(site.ring)

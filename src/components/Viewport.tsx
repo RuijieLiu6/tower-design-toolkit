@@ -63,7 +63,7 @@ import BelowGrade from './BelowGrade'
 import { VISTA_LOOK, VISTA_OVERVIEW, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { MODEL, STATUS, UI } from '../lib/design/tokens'
 import { NEUTRAL_TOWER, useDisplayMode } from '../lib/displayMode'
-import { useModeColours, useShownMode } from '../lib/displayModeHooks'
+import { useModeColours } from '../lib/displayModeHooks'
 import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
@@ -71,7 +71,6 @@ import { useSceneStyle } from '../lib/sceneStyle'
 import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
-import NoRender from './NoRender'
 import { faceNorth, northView, orientReq, upNorthDeg, useNorthMode } from '../lib/northView'
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
@@ -657,8 +656,6 @@ export default function Viewport() {
   // Real Vancouver in clay and the Plain style takes Vista's Plain look (lib/vistaLook.ts); x-ray and Context keep theirs.
   const style = useSceneStyle((s) => s.style)
   const look = project === 'city' && rep === 'clay' && style === 'plain' ? VISTA_LOOK : LOOKS[rep]
-  // No render (13 Nov): Geometry's colours with the rendering taken out, the light view (components/NoRender.tsx).
-  const plainView = useShownMode() === 'plain'
   const xray = rep === 'xray'
   const present = phase === 'present'
   const boardView = useStore((s) => s.boardView)
@@ -680,12 +677,11 @@ export default function Viewport() {
         <div data-viewport onPointerEnter={() => useHoverLabels.getState().setInView(true)} onPointerLeave={() => useHoverLabels.getState().setInView(false)} className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
           <ViewGuard>
-          <Canvas key={project} shadows={!plainView} gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={plainView ? 1 : [1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
+          <Canvas key={project} shadows gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={[1, 2]} resize={{ offsetSize: true }} events={eventsWithoutWheel} frameloop={canvasFrameloop()}
             onCreated={({ gl }) => { gl.localClippingEnabled = true }}
             camera={{ position: project === 'vtc' ? toThree(...orientReq({ position: [520, -640, 430], target: [0, 0, 60] }).position).toArray() : toThree(...orientReq({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target] }).position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
             <color attach="background" args={[look.background]} />
             <HiResCapture />
-            {plainView && <NoRender />}
             <BvhWarmup />
             <RenderPacer />
             <ShadowCache />

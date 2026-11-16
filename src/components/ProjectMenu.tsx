@@ -1,6 +1,5 @@
 // Project menu in the top bar: undo / redo, New, Open, Save as, and the autosave status. Projects live in this browser
 // (IndexedDB); files come and go through the transfer centre (the bar's Import and Export, Result B, 9 Nov).
-import { historyStarted, historyStopped } from '../lib/firstEntry'
 import { ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTransfer } from '../lib/porting/transfer'
@@ -29,8 +28,7 @@ export default function ProjectMenu() {
   useEffect(() => {
     const stopHistory = startHistory()
     const stopSaving = startPersistence()
-    historyStarted() // a first entry's empty site (lib/firstEntry.ts) is one undoable step
-    return () => { historyStopped(); stopHistory(); stopSaving() }
+    return () => { stopHistory(); stopSaving() }
   }, [])
 
   // Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl+Y redo, Ctrl/Cmd+S save as. Text fields keep their own undo.

@@ -268,7 +268,6 @@ export const Map = make('Map', p('M3.5 5.5L9 3.5L15 5.5L20.5 3.5V18.5L15 20.5L9 
 export const MessageSquare = make('MessageSquare', p('M4 4.5H20V16H11L8 19.5V16H4Z'))
 export const MessagesSquare = make('MessagesSquare', p('M3.5 3.5H15V12H8.5L6 14.5V12H3.5ZM17.5 8H20.5V17H18V19.5L15.5 17H9.5V14.5'))
 export const Microscope = make('Microscope', p('M6 20.5H19M9 20.5C13.5 20.5 17 17 17 12.5C17 10 15.8 7.9 14 6.6M8.5 3.5L12.5 3L13.8 11L9.8 11.6ZM10 14.5H14M12 11.4V14.5M7 17.5H12'))
-export const Contrast = make('Contrast', '<circle cx="12" cy="12" r="8.5"/>' + p('M12 3.5V20.5C16.7 20.5 20.5 16.7 20.5 12C20.5 7.3 16.7 3.5 12 3.5Z'))
 export const Moon = make('Moon', p('M20 14.5C19 15 17.9 15.2 16.8 15.2C12.6 15.2 9.2 11.8 9.2 7.6C9.2 6.1 9.6 4.8 10.4 3.6C6.4 4.4 3.5 7.9 3.5 12.1C3.5 16.8 7.3 20.6 12 20.6C15.6 20.6 18.7 18.2 20 14.5Z'))
 export const MountainSnow = make('MountainSnow', p('M2.5 19.5L9.5 7.5L14 15L16 12L21.5 19.5ZM6.5 12.5L8 13.5L9.5 12L11 13.5L12.3 12.6'))
 export const Octagon = make('Octagon', p('M8.3 3.5H15.7L20.5 8.3V15.7L15.7 20.5H8.3L3.5 15.7V8.3Z'))

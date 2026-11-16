@@ -38,9 +38,8 @@ import { useWindScreenStore } from './windScreenStore'
 
 /** After input or a state change, keep drawing for this long (a few frames; animations then ask for their own). */
 export const ACTIVE_MS = 200
-/** When idle, still draw this often: a safety net only (16 Nov: at 250 ms an idle Real Vancouver kept the GPU busy about
- *  13% of the time redrawing an unchanged city, and clicks queued behind those frames; real changes wake the view above). */
-export const IDLE_FRAME_MS = 1000
+/** When idle, still draw this often. */
+export const IDLE_FRAME_MS = 250
 
 export const alwaysRender = (): boolean => typeof location !== 'undefined' && /[?&]alwaysrender\b/.test(location.search)
 

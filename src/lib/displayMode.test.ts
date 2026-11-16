@@ -13,8 +13,8 @@ import {
 const MODES = DISPLAY_MODES.map((m) => m.id)
 
 describe('display modes (design system §9)', () => {
-  it('offers Massing, No render, Program, Analysis and Materials, each saying what it shows', () => {
-    expect(MODES).toEqual(['massing', 'plain', 'program', 'analysis', 'materials'])
+  it('offers Massing, Program, Analysis and Materials, each saying what it shows', () => {
+    expect(MODES).toEqual(['massing', 'program', 'analysis', 'materials'])
     for (const m of DISPLAY_MODES) expect(m.hint.length).toBeGreaterThan(20)
   })
 
@@ -46,7 +46,6 @@ describe('display modes (design system §9)', () => {
     expect(modeFromCityStyle('materials', 'plain', true)).toBe('program')
     expect(modeFromCityStyle('massing', 'plain', true)).toBe('program')
     expect(modeFromCityStyle('program', 'plain', false)).toBe('massing')
-    expect(modeFromCityStyle('plain', 'plain', true)).toBe('program')
     expect(modeFromCityStyle('analysis', 'plain', false)).toBe('analysis')
   })
 

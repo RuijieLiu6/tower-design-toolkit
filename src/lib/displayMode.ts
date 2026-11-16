@@ -7,15 +7,13 @@
 import { create } from 'zustand'
 import { DATA, MODEL } from './design/tokens'
 
-export type DisplayMode = 'massing' | 'plain' | 'program' | 'analysis' | 'materials'
+export type DisplayMode = 'massing' | 'program' | 'analysis' | 'materials'
 export type ProjectKind = 'vtc' | 'city'
 
 // Labels (overnight brief, 8 Nov): "View: Geometry / Building use / Analysis / Materials", so a view never shares a name
 // with the Program phase. The ids (massing, program, analysis, materials) are what is stored, and stay.
 export const DISPLAY_MODES: { id: DisplayMode; word: string; hint: string }[] = [
   { id: 'massing', word: 'Geometry', hint: 'Geometry, height and proportion: a neutral model, your towers lighter than the context, with edges' },
-  // 13 Nov (Sinnie): "a version with no rendering": Geometry's colours with the rendering taken out, the light view.
-  { id: 'plain', word: 'No render', hint: 'Geometry with no rendering: plain matte colours, no textures, shadows or effects (lighter to run)' },
   { id: 'program', word: 'Building use', hint: 'Building uses in one labelled palette: your towers by floor, the context by type' },
   { id: 'analysis', word: 'Analysis', hint: 'One measured or calculated quantity on a neutral model, with its units, range and legend' },
   { id: 'materials', word: 'Materials', hint: 'Illustrative material textures, where the model has them' },
@@ -40,7 +38,7 @@ export function modeColours(mode: DisplayMode): ModeColours {
   if (mode === 'program') return { tower: 'use', context: 'use', analysis: false }
   if (mode === 'analysis') return { tower: 'neutral', context: 'neutral', analysis: true }
   if (mode === 'materials') return { tower: 'neutral', context: 'materials', analysis: false }
-  return { tower: 'neutral', context: 'neutral', analysis: false } // Geometry and No render
+  return { tower: 'neutral', context: 'neutral', analysis: false }
 }
 
 /** The proposal's neutral body and edges in Massing, Analysis and Materials (design tokens, MODEL). */
@@ -57,7 +55,7 @@ export function cityStyleFor(mode: DisplayMode): { style: 'plain' | 'context'; t
 export function modeFromCityStyle(prev: DisplayMode, style: 'plain' | 'context', typeColours: boolean): DisplayMode {
   if (style === 'context') return 'materials'
   if (prev === 'materials') return typeColours ? 'program' : 'massing'
-  if (typeColours && (prev === 'massing' || prev === 'plain')) return 'program'
+  if (typeColours && prev === 'massing') return 'program'
   if (!typeColours && prev === 'program') return 'massing'
   return prev
 }

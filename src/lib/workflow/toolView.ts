@@ -6,7 +6,6 @@
 // switches a check on or runs one (lib/displayMode.ts: showing a layer is separate from computing it).
 import { useDisplayMode, type AnalysisLayerId, type DisplayMode } from '../displayMode'
 import { showAllCones, useConeVisibility } from '../coneVisibility'
-import { useStep } from '../step'
 
 export interface ToolView { mode: DisplayMode; layer?: AnalysisLayerId }
 export const TOOL_VIEW: Record<string, ToolView> = {
@@ -30,8 +29,7 @@ export const CONE_VIEW_TOOLS = ['built.viewcones', 'built.heights', 'built.vista
 
 /** Set the open tool's working view, unless the user pinned the View. Returns whether anything changed. */
 export function applyToolView(id: string): boolean {
-  // Not on the Site step (13 Nov, Sinnie: the view cones stay off there until switched on in the Layers or Viewcone).
-  if (CONE_VIEW_TOOLS.includes(id) && !useDisplayMode.getState().pinned && useStep.getState().step !== 'site') {
+  if (CONE_VIEW_TOOLS.includes(id) && !useDisplayMode.getState().pinned) {
     const hidden = useConeVisibility.getState().hidden
     if (Object.keys(hidden).length && Object.values(hidden).every(Boolean)) showAllCones(true)
   }
@@ -39,7 +37,7 @@ export function applyToolView(id: string): boolean {
   const d = useDisplayMode.getState()
   if (!v || d.pinned) return false
   if (v.layer) { if (d.mode === 'analysis' && d.layer === v.layer) return false; d.showLayer(v.layer); return true }
-  if (d.mode === v.mode || (v.mode === 'massing' && d.mode === 'plain')) return false
+  if (d.mode === v.mode) return false
   d.setMode(v.mode)
   return true
 }

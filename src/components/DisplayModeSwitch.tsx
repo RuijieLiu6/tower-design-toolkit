@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react'
 import { DISPLAY_MODES, modeSupport, useDisplayMode, type DisplayMode } from '../lib/displayMode'
 import { useShownMode } from '../lib/displayModeHooks'
 import type { ProjectKind } from '../store'
-import { BrickWall, Contrast, Cuboid, Gauge, Pin, Rows3, type LucideIcon } from './icons'
+import { BrickWall, Cuboid, Gauge, Pin, Rows3, type LucideIcon } from './icons'
 
-const ICON: Record<DisplayMode, LucideIcon> = { plain: Contrast, massing: Cuboid, program: Rows3, analysis: Gauge, materials: BrickWall }
+const ICON: Record<DisplayMode, LucideIcon> = { massing: Cuboid, program: Rows3, analysis: Gauge, materials: BrickWall }
 const focusRing = 'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent'
 
 export function DisplayModeSwitch({ project }: { project: ProjectKind }) {

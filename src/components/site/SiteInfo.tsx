@@ -189,9 +189,6 @@ function SiteNow() {
 
 /** The competition: the VTC block, fixed by the brief; nothing to choose. */
 function VtcSite() {
-  // The last site note (e.g. the first entry's empty site, lib/firstEntry.ts), with Undo.
-  const message = useSiteStore((s) => s.message)
-  const { canUndo } = useHistory()
   const towers = useTowers()
   const selected = useStore((s) => s.selectedTower)
   return (
@@ -207,10 +204,6 @@ function VtcSite() {
             <Help label="Source of the competition site">Vancouver Tall Competition brief (the block and its rules: engine/vtcRules).</Help></div>
         </div>
         <NorthSwitch ring={null} />
-        {message && <p data-testid="site-message" className={`flex items-center gap-1.5 rounded px-2 py-1 ${message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>
-          <span className="min-w-0 flex-1">{message.text}</span>
-          {canUndo && <button type="button" onClick={() => { if (undo()) useSiteStore.getState().set({ message: null }) }} className="flex shrink-0 items-center gap-1 rounded border border-amber-300 px-1.5 py-0.5 hover:bg-amber-100"><Undo2 size={11} aria-hidden />Undo</button>}
-        </p>}
       </div>
     </section>
   )
