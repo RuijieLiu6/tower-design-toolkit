@@ -27,6 +27,7 @@ import { buildingLabel, buildingSource, isEstimate } from '../lib/vistaBuildings
 import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth, northView, orientReq, upNorthDeg } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
+import { startPlanOrtho } from '../lib/planOrtho'
 import { CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
@@ -232,7 +233,11 @@ export function flyTo(to: CamReq) {
 
 function studyCentre(): [number, number, number] {
   const s = useStore.getState(), t = s.towers.city.find((k) => k.id === s.selectedTower) ?? s.towers.city[0]
-  return t ? [t.x, t.y, s.groundElevation] : [...VISTA_OVERVIEW.target]
+  if (t) return [t.x, t.y, s.groundElevation]
+  // No tower yet: the site's centre (Massing starts on a cleared site), else the overview.
+  const ring = s.citySite?.ring
+  if (ring?.length) return [ring.reduce((a, p) => a + p[0], 0) / ring.length, ring.reduce((a, p) => a + p[1], 0) / ring.length, s.groundElevation]
+  return [...VISTA_OVERVIEW.target]
 }
 
 /**
@@ -683,6 +688,12 @@ export function VistaLookRig() {
       saved.current = null
     }
   }, [mode, controls, camera, gl])
+
+  // 2D is a true plan: a parallel projection straight down (lib/planOrtho.ts), so no building leans.
+  useEffect(() => {
+    if (mode !== 'plan' || !controls) return
+    return startPlanOrtho(camera, scene, controls as unknown as { target: THREE.Vector3 }, invalidate)
+  }, [mode, controls, camera, scene, invalidate])
 
   // Grabbing the view stops a camera move.
   useEffect(() => {
