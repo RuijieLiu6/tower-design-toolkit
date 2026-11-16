@@ -271,8 +271,9 @@ function ZoneBody({ b, t, xray, floorLines, anatomy, clip, hatch, core, shellRef
         </mesh>
       )}
       <lineSegments geometry={edges} visible={xray}><lineBasicMaterial color="#3d5a78" transparent opacity={0.6} clippingPlanes={clip} /></lineSegments>
-      <lineSegments geometry={plates} visible={xray ? anatomy.plates : floorLines}>
-        <lineBasicMaterial color={xray ? '#4a6a8c' : '#ffffff'} transparent opacity={xray ? 0.5 : 0.55} clippingPlanes={clip} />
+      {/* Floor lines in every View (16 Nov, Sinnie): white over the use colours, the edge ink over the neutral massing. */}
+      <lineSegments geometry={plates} visible={xray ? anatomy.plates : true}>
+        <lineBasicMaterial color={xray ? '#4a6a8c' : floorLines ? '#ffffff' : NEUTRAL_TOWER.edge} transparent opacity={xray ? 0.5 : floorLines ? 0.55 : 0.35} clippingPlanes={clip} />
       </lineSegments>
       <mesh ref={coreRef} geometry={coreGeom} position={[coreAt[0], coreAt[1], -h / 2]} rotation={[0, 0, ra]} visible={false}>
         <meshStandardMaterial color={CORE_COLOR} roughness={0.6} transparent opacity={xray && anatomy.lifts ? 0.32 : 0.88} depthWrite={!(xray && anatomy.lifts)} clippingPlanes={clip} />

@@ -77,8 +77,10 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
       {/* Readable edges on the solid model, as the parametric towers. */}
       {edges && !xray && <lineSegments geometry={edges}><lineBasicMaterial color={NEUTRAL_TOWER.edge} transparent opacity={0.9} clippingPlanes={section ? [sectionPlane] : null} /></lineSegments>}
       {edges && <lineSegments geometry={edges} visible={xray}><lineBasicMaterial color="#3d5a78" transparent opacity={0.6} clippingPlanes={section ? [sectionPlane] : null} /></lineSegments>}
-      <lineSegments geometry={plates} visible={xray ? anatomy.plates : byUse}>
-        <lineBasicMaterial color={xray ? '#4a6a8c' : '#ffffff'} transparent opacity={xray ? 0.5 : 0.6} clippingPlanes={section ? [sectionPlane] : null} />
+      {/* Floor lines in every View (16 Nov, Sinnie: "i want to be able to see floor division lines"): white over the use
+          colours, the edge ink over the neutral massing. */}
+      <lineSegments geometry={plates} visible={xray ? anatomy.plates : true}>
+        <lineBasicMaterial color={xray ? '#4a6a8c' : byUse ? '#ffffff' : NEUTRAL_TOWER.edge} transparent opacity={xray ? 0.5 : byUse ? 0.6 : 0.35} clippingPlanes={section ? [sectionPlane] : null} />
       </lineSegments>
       {xray && anatomy.core && top > 0 && (
         <mesh position={[0, 0, top / 2]}>
