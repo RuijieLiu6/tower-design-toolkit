@@ -6,6 +6,7 @@
 // switches a check on or runs one (lib/displayMode.ts: showing a layer is separate from computing it).
 import { useDisplayMode, type AnalysisLayerId, type DisplayMode } from '../displayMode'
 import { showAllCones, useConeVisibility } from '../coneVisibility'
+import { useRelax } from '../relaxStore'
 
 export interface ToolView { mode: DisplayMode; layer?: AnalysisLayerId }
 export const TOOL_VIEW: Record<string, ToolView> = {
@@ -40,4 +41,37 @@ export function applyToolView(id: string): boolean {
   if (d.mode === v.mode) return false
   d.setMode(v.mode)
   return true
+}
+
+/** What each tool puts on the model besides its View: leaving the tool takes it off again (16 Nov, Sinnie: "after i pass
+ *  the tool, the corresponding view should turn off (e.g. height limit stuff should turn off when i move to the next
+ *  step)"). The view cones belong to every cone tool, the height-limit surface to Heights, the masks to Relaxation. */
+type Overlay = 'cones' | 'surface' | 'relax'
+const OVERLAYS: Record<string, Overlay[]> = {
+  // Merged tools (data/registry.ts MERGES): Height limits holds View cones + Heights, Views holds Vista studies.
+  'design.site': ['cones'], 'built.viewcones': ['cones', 'surface'], 'built.heights': ['cones', 'surface'],
+  'built.view-from': ['cones'], 'built.vista': ['cones'], 'built.relax-aviation': ['cones', 'relax'],
+}
+
+/** Called when the open tool changes (another tool, or the next step): what the old tool showed and the new one does
+ *  not use goes off; on a new step, all of them. A pinned View keeps everything. Nothing is computed or switched off as a check. */
+export async function leaveToolView(prev: string, next: string, newStep = false) {
+  const d = useDisplayMode.getState()
+  if (d.pinned || prev === next) return
+  const keep = new Set(OVERLAYS[next] ?? [])
+  // Moving to another step clears every one of them, however it was switched on (a tool, the Layers dock, Viewcone).
+  const from: Overlay[] = newStep ? ['cones', 'surface', 'relax'] : OVERLAYS[prev] ?? []
+  const drop = from.filter((o) => !keep.has(o))
+  if (drop.includes('cones')) showAllCones(false)
+  if (drop.includes('relax')) useRelax.setState({ show: false })
+  if (drop.includes('surface')) { const { useHeightSurface } = await import('../../components/HeightSurface'); useHeightSurface.setState({ on: false, hover: null }) }
+  // The old tool's analysis colours: the next tool's own View replaces them (applyToolView); a tool without one goes
+  // back to Geometry rather than keeping another tool's results on the model.
+  const owned = TOOL_VIEW[prev]?.layer
+  if (owned && !TOOL_VIEW[next] && d.mode === 'analysis' && d.layer === owned) d.setMode('massing')
+}
+
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __tdtTv: unknown }).__tdtTv = {
+  useDisplayMode, useConeVisibility, showAllCones, useRelax, leaveToolView,
+  load: async () => ({ hs: await import('../../components/HeightSurface'), pt: await import('./phaseTools'), st: await import('../step') }),
 }

@@ -34,7 +34,7 @@ import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
 import { NODE_CONTROLS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
 import { addNode, openBuilder, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import { useInfo, type Info } from './WorkflowOverview'
-import { applyToolView } from '../../lib/workflow/toolView'
+import { applyToolView, leaveToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
 import WorkflowPreview from './WorkflowPreview'
 
@@ -77,7 +77,11 @@ export default function PhasePanel() {
   const lastTool = useRef<string | null>(null)
   useEffect(() => {
     const key = `${phase}:${active}`
-    if (lastTool.current !== null && lastTool.current !== key) applyToolView(active)
+    if (lastTool.current !== null && lastTool.current !== key) {
+      const cut = lastTool.current.indexOf(':')
+      const prev = lastTool.current.slice(cut + 1), newStep = lastTool.current.slice(0, cut) !== phase
+      void leaveToolView(prev, active, newStep).then(() => applyToolView(active))
+    }
     lastTool.current = key
     if (!isDesignNode(active) && useStore.getState().selectedNode !== active) useStore.getState().selectNode(active)
   }, [active, phase])
