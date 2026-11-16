@@ -452,7 +452,10 @@ function focusSite() {
   const s = useStore.getState()
   const t = s.towers.city.find((k) => k.id === s.selectedTower) ?? s.towers.city[0]
   const cam = live.camera, ctl = live.ctl
-  if (!t || !cam || !ctl) return
+  // No tower yet (Massing starts on a cleared site): frame the site instead of doing nothing (16 Nov, Sinnie: "the zoom
+  // button on the right is not working").
+  if (!t) { void import('../lib/siteFit').then((m) => m.fitSite()); return }
+  if (!cam || !ctl) return
   const target: [number, number, number] = [t.x, t.y, s.groundElevation + t.height / 2]
   const d = THREE.MathUtils.clamp(t.height * 3.2 + 250, 350, 3000)
   if (useVistaLook.getState().mode === 'plan') { s.set({ cameraRequest: { position: [t.x, t.y - 0.01, s.groundElevation + d * 2.4], target, fov: 20 } }); return }
@@ -470,7 +473,7 @@ function Utilities() {
       <Compass />
       <div className="h-3" />
       {/* 12 Nov (Sinnie: "change this to icons instead of words"): icon buttons, the words on hover and for screen readers. */}
-      {utilityButton(<Crosshair size={17} aria-hidden />, 'Focus site: frame the selected tower', focusSite, iconSq, 'Focus site')}
+      {utilityButton(<Crosshair size={17} aria-hidden />, 'Focus site: frame the selected tower, or the site when there is none', focusSite, iconSq, 'Focus site')}
       {utilityButton(<Plus size={17} aria-hidden />, 'Zoom in', () => zoom(-0.35), iconSq, 'Zoom in')}
       {utilityButton(<Minus size={17} aria-hidden />, 'Zoom out', () => zoom(0.35), iconSq, 'Zoom out')}
       <button type="button" aria-expanded={dockOpen} aria-controls="vp-dock" aria-label="Layers" title="Layers" onClick={() => useDock.setState({ menu: !dockOpen })}
