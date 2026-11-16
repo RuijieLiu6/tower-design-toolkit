@@ -10,6 +10,7 @@ import { useRole } from './role'
 import { useStore } from '../store'
 import { analysisOnly } from './workflow/designNodes'
 import { canonicalNode } from '../data/registry'
+import { askFirstEntryClear } from './firstEntry'
 
 export interface Runnable {
   id?: string | null
@@ -57,7 +58,9 @@ export async function startPreset(p: Runnable): Promise<void> {
   remember(p)
   navigate('guided')
   goToStep(p.step)
-  useStore.setState({ announce: `${p.name}: ${p.nodes.length} checks switched on${p.project === 'city' ? ' in Real Vancouver' : ' on the competition site'}. Your design is unchanged.` })
+  useStore.setState({ announce: `${p.name}: ${p.nodes.length} checks switched on${p.project === 'city' ? ' in Real Vancouver' : ' on the competition site'}.` })
+  // The first entry of a visit starts on an empty site, as one undoable step (lib/firstEntry.ts).
+  askFirstEntryClear()
 }
 
 async function asWorkflow(p: Runnable) {
