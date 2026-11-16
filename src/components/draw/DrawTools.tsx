@@ -676,7 +676,16 @@ export default function DrawTools({ baseZ }: { baseZ: number }) {
       if (e.ctrlKey || e.metaKey || e.altKey) return
       const typed = tools().typed
       if (e.key === 'Backspace' && typed) { useDraw.setState({ typed: typed.slice(0, -1) }); hintTyped(); return }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && tool !== 'select') { const sel = useStore.getState().selectedTower; if (sel) { commitStart(); removeTowers([sel]); commit('Deleted') } return }
+      // Delete / Backspace removes the selected mass with any tool, Select included (16 Nov, Sinnie: "i should be able
+      // to select and delete the mass with delete button"); only from the 3D view (or nothing focused), so a key in a
+      // panel, list or the workflow canvas keeps its own meaning. One Undo step.
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const at = e.target as HTMLElement | null
+        if (at && at !== document.body && !at.closest?.('[data-viewport]')) return
+        const sel = useStore.getState().selectedTower
+        if (sel) { e.preventDefault(); commitStart(); removeTowers([sel]); commit('Deleted') }
+        return
+      }
       if (['pull', 'off', 'len', 'copy'].includes(tool)) {
         if (/^[0-9.-]$/.test(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); useDraw.setState({ typed: typed + e.key }); hintTyped(); return }
         if (e.key === 'Enter' && typed) { applyTyped(); return }
