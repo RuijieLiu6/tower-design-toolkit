@@ -52,6 +52,8 @@ import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
 import PlinthBase from './Plinth'
 import { VtcBaseModelPanel, VtcContextCard } from './VtcBaseModel'
 import VtcBriefSite from './VtcBriefSite'
+import VtcStreets from './VtcStreets'
+import { useStep } from '../lib/step'
 import { ViewMenuSlot } from './DisplayModeSwitch'
 import { PlainEnvironment, VtcContextModel, VtcLookBar, vtcSceneLook, type VtcLookId } from './VtcLook'
 import ViewGuard from './ViewGuard'
@@ -107,6 +109,9 @@ function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: s
   )
 }
 
+/** Massing's lot highlight (the site orange of components/SiteRig.tsx). */
+const LOT_EDGE = '#ea580c', LOT_TINT = '#f6d9c4'
+
 function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
   const { ctx } = useVtcContext()
   // The display mode (lib/displayMode.ts): Program draws the buildings in their ground-level use (components/VtcLook),
@@ -123,6 +128,8 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   const plinth = useMemo(() => vtcPlinth(ctx, 20, thickness), [ctx, thickness])
   const ring = useMemo(() => plinthRing(plinth, () => SEA_Z), [plinth])
   const contextShown = useDisplayMode((s) => s.context)
+  // Massing (the Form step): no names on the ground, the whole lot highlighted (16 Nov, Sinnie).
+  const massing = useStep((s) => s.step) === 'volume'
   useEffect(() => registerGround({ at: () => 0, plinth }), [plinth])
   return (
     <>
@@ -132,13 +139,15 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
         <>
           <mesh name="vtc-site" position={[0, 0, 0.02]} receiveShadow onPointerDown={(e) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
             <planeGeometry args={[site.width_m, site.depth_m]} />
-            <meshStandardMaterial color={look.site} />
+            <meshStandardMaterial color={massing ? LOT_TINT : look.site} />
           </mesh>
-          {/* The site boundary: a constraint, drawn as a clear dark line (blue is kept for selection). */}
-          <Line points={[...site.outline.map(([x, y]) => [x, y, 0.1] as [number, number, number])]} color={UI.ink} lineWidth={2} transparent opacity={0.75} />
+          {/* The site boundary: a constraint, drawn as a clear dark line (blue is kept for selection); in Massing the whole
+              lot is highlighted in the site orange, as Real Vancouver draws its lot. */}
+          <Line points={[...site.outline.map(([x, y]) => [x, y, 0.1] as [number, number, number])]} color={massing ? LOT_EDGE : UI.ink} lineWidth={massing ? 3.5 : 2} transparent opacity={massing ? 0.95 : 0.75} />
         </>
       )}
-      {!ctx && <VtcBriefSite />}
+      <VtcStreets />
+      {!ctx && <VtcBriefSite names={!massing} />}
       {ctx?.blocks.map((b, i) => <Line key={`b${i}`} points={b.map(([x, y]) => [x, y, 0.05] as [number, number, number])} color={look.edge} lineWidth={1} />)}
       {ctx?.curbs.map((b, i) => <Line key={`c${i}`} points={b.map(([x, y]) => [x, y, 0.04] as [number, number, number])} color={CURB} lineWidth={1} />)}
       {ctx && contextShown && <VtcContextModel ctx={ctx} look={look} id={lookId} xray={xray} />}
@@ -150,10 +159,10 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
             <extrudeGeometry args={[new THREE.Shape(f.footprint.map(([x, y]) => new THREE.Vector2(x, y))), { depth: f.z1 as number, bevelEnabled: false }]} />
             <meshStandardMaterial color={FUTURE} transparent opacity={0.28} depthWrite={false} />
           </mesh>
-          <Label text={`Future tower ${(f.z1 as number).toFixed(1)} m`} position={[f.footprint[0][0], f.footprint[0][1], (f.z1 as number) + 6]} size={0.015} hoverKey={`future-${i}`} />
+          {!massing && <Label text={`Future tower ${(f.z1 as number).toFixed(1)} m`} position={[f.footprint[0][0], f.footprint[0][1], (f.z1 as number) + 6]} size={0.015} hoverKey={`future-${i}`} />}
         </group>
       ))}
-      {ctx?.labels.filter((l) => !['N', 'SITE'].includes(l.text)).map((l, i) => (
+      {!massing && ctx?.labels.filter((l) => !['N', 'SITE'].includes(l.text)).map((l, i) => (
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold quiet />
       ))}
       <DrawTools baseZ={0} />

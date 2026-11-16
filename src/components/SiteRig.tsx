@@ -3,6 +3,7 @@
 // their footprints as the site; shows the boundary, the parcels under it, the buildings it replaces (demolished
 // unless kept) and the address or coordinate marker. Clicks are taken only while a site tool is on, so tower
 // placing and the tower gizmo keep their clicks otherwise.
+import { useStep } from '../lib/step'
 import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
@@ -159,6 +160,8 @@ function SiteLayer({ data }: { data: CityData }) {
   }, [site, data])
   const preview = useMemo(() => (s.tool === 'pick' && s.picked.length ? siteFromFootprints(s.picked.map((i) => data.footprints[i])) : null), [s.tool, s.picked, data])
   const ringOk = !!site && !validateRing(site.ring)
+  // Massing (the Form step): no name on the lot (16 Nov, Sinnie: "when im in massing, i dont want to be able to see the text").
+  const massing = useStep((st) => st.step) === 'volume'
   const centre = ringOk ? ringMetrics(site!.ring).centre : null
   const L = (pts: [number, number, number][], color: string, width: number, dashed = false) => (
     <Line points={pts} color={color} lineWidth={width} dashed={dashed} dashSize={3} gapSize={2} depthTest={false} renderOrder={20} transparent opacity={0.95} userData={{ siteOverlay: true }} />
@@ -168,7 +171,7 @@ function SiteLayer({ data }: { data: CityData }) {
       {/* Plain: a light wash. Context draws the lot in Vista's paving itself (CityContext SiteSurface, real-vancouver-finish). */}
       {ringOk && !context && <SiteSurface grids={grids} ring={site!.ring} />}
       {ringOk && L(drape(grids, site!.ring, 1.2), COLORS.site, 3.5)}
-      {ringOk && centre && area && <Label text={`Study site · ${Math.round(area.area).toLocaleString('en-CA')} m² (${area.basis === 'parcels' ? 'parcels' : 'boundary'})`} position={[centre[0], centre[1], (sampleTerrain(grids, centre[0], centre[1]) ?? 0) + 18]} size={0.016} color="#ffffff" background="rgba(185,70,9,0.92)" bold />}
+      {ringOk && centre && area && !massing && <Label text={`Study site · ${Math.round(area.area).toLocaleString('en-CA')} m² (${area.basis === 'parcels' ? 'parcels' : 'boundary'})`} position={[centre[0], centre[1], (sampleTerrain(grids, centre[0], centre[1]) ?? 0) + 18]} size={0.016} color="#ffffff" background="rgba(185,70,9,0.92)" bold />}
       {match && layer && match.hits.filter((h) => h.kind !== 'touching').map((h) => (
         <group key={h.index}>{L(drape(grids, layer.polys[h.index].outer as Pt[], 0.9), match.included.includes(h.index) ? COLORS.inside : COLORS.partial, match.included.includes(h.index) ? 2 : 1.5, !match.included.includes(h.index))}</group>
       ))}

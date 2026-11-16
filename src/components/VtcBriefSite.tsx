@@ -14,7 +14,8 @@ const FRAME = { position: [190, -240, 165] as [number, number, number], target: 
 /** The competition view's opening camera (Viewport: three [520, 430, 640] looking at [0, 60, 0]), in the model frame. */
 const OVERVIEW = { position: [520, -640, 430] as [number, number, number], target: [0, 0, 60] as [number, number, number] }
 
-export default function VtcBriefSite() {
+/** `names`: the street names on the ground (off in Massing, 16 Nov). */
+export default function VtcBriefSite({ names = true }: { names?: boolean } = {}) {
   const missing = useVtcSource((s) => s.status === 'missing' || s.status === 'error')
   useEffect(() => { if (missing) useStore.getState().set({ cameraRequest: { ...FRAME } }) }, [missing])
   // Unmounted because the model has just been added (the context arrived): back to the overview of the whole context.
@@ -22,7 +23,7 @@ export default function VtcBriefSite() {
   const w = BRIEF_SITE.width_m / 2, d = BRIEF_SITE.depth_m / 2
   return (
     <group name="vtc-brief-site">
-      {VTC_EDGES.map((e) => (
+      {names && VTC_EDGES.map((e) => (
         <Label quiet key={e.id} text={e.street.toUpperCase()} position={[e.out[0] * (w + e.row / 2), e.out[1] * (d + e.row / 2), 1]} size={0.013} background={null} color="#6b6f76" bold />
       ))}
     </group>
