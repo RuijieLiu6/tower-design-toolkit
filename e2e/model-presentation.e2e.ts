@@ -56,6 +56,9 @@ test('Model | Presentation: the switch replaces the phase row; the phases list i
   await p.screenshot({ path: join(SHOTS, '01-model.png') })
 
   // A phase dot navigates; Back and Next walk the phases; the arrow keys move along the list.
+  // No phase-name rows (17 Nov): the hooks are the line's coloured segments, which carry no visible text.
+  expect(await nav(p).locator('[data-phase]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').trim()))).toEqual(['', '', '', ''])
+  await expect(nav(p).locator('[data-phase="site"]')).toHaveAttribute('aria-label', /^Site: /)
   await nav(p).locator('[data-phase="program"]').click()
   await expect(panel(p)).toHaveAttribute('data-phase', 'program')
   await expect(nav(p).locator('[data-phase="program"]')).toHaveAttribute('aria-current', 'step')
@@ -66,10 +69,17 @@ test('Model | Presentation: the switch replaces the phase row; the phases list i
   await p.keyboard.press('ArrowDown')
   await expect(panel(p)).toHaveAttribute('data-phase', 'program')
   await expect(nav(p).locator('[data-phase="program"]')).toBeFocused()
+  await expect(p.getByTestId('phase-next')).toHaveAccessibleName('Next phase: Schematic')
   await p.getByTestId('phase-next').click()
   await expect(panel(p)).toHaveAttribute('data-phase', 'schematic')
-  // Next from Schematic is Presentation: the switch follows.
-  await p.getByTestId('phase-next').click()
+  // The arrows stop at the ends (Site and Schematic) and never wrap; Presentation is the switch.
+  await expect(p.getByTestId('phase-next')).toBeDisabled()
+  await expect(p.getByTestId('phase-back')).toHaveAccessibleName('Previous phase: Program')
+  await nav(p).locator('[data-phase="site"]').click()
+  await expect(p.getByTestId('phase-back')).toBeDisabled()
+  await expect(p.getByTestId('phase-next')).toHaveAccessibleName('Next phase: Form')
+  await nav(p).locator('[data-phase="schematic"]').click()
+  await radio(p, 'Presentation').click()
   await expect(radio(p, 'Presentation')).toHaveAttribute('aria-checked', 'true')
   await expect(panel(p)).toHaveAttribute('data-phase', 'present')
 
@@ -79,7 +89,7 @@ test('Model | Presentation: the switch replaces the phase row; the phases list i
   await expect(panel(p).getByTestId('filmstrip')).toBeVisible()
   await expect(p.getByRole('complementary', { name: 'Present and results' }).getByRole('tab', { name: 'Present' })).toHaveAttribute('aria-selected', 'true')
   expect(await phases(p)).toEqual(['present'])
-  await expect(nav(p).locator('[data-phase="present"]')).toContainText('Presentation')
+  await expect(nav(p).locator('[data-phase="present"]')).toHaveAttribute('aria-label', /^Presentation: /)
   await expect(rail(p).locator('[data-tool="boards"]')).toBeVisible()
   await expect(rail(p).locator('[data-tool="capture"]')).toBeVisible()
   await expect(rail(p).locator('[data-mode]')).toHaveCount(0)

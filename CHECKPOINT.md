@@ -1,3 +1,21 @@
+# CHECKPOINT: the phase rows go; the line's segments and the arrows are the phase navigation (17 Nov 2026)
+
+Ruijie, 17 Nov: "remove all the Site / Form / Program / Schematic text … the left and right arrows can be the buttons
+for changing which phase you are in." Branch `phase-dots` from the `board-fonts` tip. Not merged, not deployed.
+- `PhasePanel.tsx` `PhaseLine` replaces `PhaseList` + `PhaseMap`: one coloured segment per phase of the mode (as wide as
+  its share of tools, at least one share, the current one tinted), each a 24 px button carrying the `data-phase` /
+  `data-step` / `aria-current="step"` hooks and the name with its counts as its accessible name ("Form: 3 tools, 2 fail,
+  1 check"), the arrow keys moving along it; the tools as dots inside the segment (hover: phase / tool · its pass /
+  check / fail words from the live digest; a click on a dot is a click on the phase), the open tool ringed, loop arcs
+  above; a screen-reader list of each phase's tools beside it. The `nav[aria-label="Design process"]` landmark stays,
+  so every e2e helper works unchanged. The ‹ › arrows ("Previous phase: Form", "Next phase: Program") step the design
+  phases only, disabled at Site and Schematic, never wrapping; Presentation stays on the top bar's switch. The panel
+  header keeps the phase name and its totals; Edit and Add tool stay.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass (the same 2 CRLF data-file checks fail in this worktree only) ·
+  Edge e2e: `model-presentation` (extended: no phase-name text in the landmark, the arrows' names and their disabled
+  ends) PASS · `phase-panel` PASS · `journeys` PASS · `tool-rail` PASS. Screenshot:
+  `docs/evaluation/2026-11-17-model-presentation/01-model.png`.
+
 # CHECKPOINT: board fonts in Presentation (17 Nov 2026)
 
 Brief (Ruijie, 17 Nov): "On the presentation layout, I'd like an option to change the font, and users can also download
