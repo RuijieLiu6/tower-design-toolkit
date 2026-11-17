@@ -6,10 +6,10 @@ import { Kbd } from './ui'
 import { useShallow } from 'zustand/react/shallow'
 
 const STEPS = [
-  { n: 1, title: 'Site, Form, Program', text: 'Massing runs in three steps, shown in the bar under the top bar. Site: type an address, pick a neighbourhood or click the map (build here, replace buildings, combine lots); the competition block is one click. Form: place the tower, its height, blocks and podium. Program: uses by floor band. The left panel shows each step\'s tools first.' },
+  { n: 1, title: 'Site, Form, Program', text: 'Massing runs in three steps, listed under Workflow in the left panel. Site: type an address, pick a neighbourhood or click the map (build here, replace buildings, combine lots); the competition block is one click. Form: place the tower, its height, blocks and podium. Program: uses by floor band. The left panel shows each step\'s tools first.' },
   { n: 2, title: 'Switch on the nodes you need', text: 'Each evaluation is an icon in the bar at the bottom: hover to read its name, click to switch it on. Library (bottom left) searches every node, including researched ones with their method and thresholds.' },
   { n: 3, title: 'Read results with their evidence', text: 'Every number shows where it comes from: verified, team assumption, unverified, unresolved, or a false assumption kept visible.' },
-  { n: 4, title: 'Schematic, then Present', text: 'Schematic (key 2) turns the clay into an x-ray axonometric: floor plates, core and plant floors, with a section cut and an exploded view. Present (key 3) locks the model and frames an A2 board for captures.' },
+  { n: 4, title: 'Schematic, then Presentation', text: 'Schematic (key 2) turns the clay into an x-ray axonometric: floor plates, core and plant floors, with a section cut and an exploded view. Presentation (the Model / Presentation switch in the top bar, key V) locks the model and frames an A2 board for captures.' },
   { n: 5, title: 'Try the real city', text: 'In "Real Vancouver" the tower lines up with the lot you place it on and the buildings under it are hidden. The view-cone node estimates how high each protected view allows, or stops and says "no estimate".' },
 ]
 
@@ -41,7 +41,7 @@ export default function Onboarding() {
           ))}
         </ol>
         <div className="mt-5 flex items-center justify-between">
-          <span className="text-meta text-muted"><Kbd>P</Kbd> place tower · <Kbd>M</Kbd><Kbd>R</Kbd> move, rotate · <Kbd>Esc</Kbd> stop · <Kbd>1</Kbd><Kbd>2</Kbd><Kbd>3</Kbd> stages · <Kbd>H</Kbd> hide tool rail · <Kbd>O</Kbd> hide overlays</span>
+          <span className="text-meta text-muted"><Kbd>P</Kbd> place tower · <Kbd>M</Kbd><Kbd>R</Kbd> move, rotate · <Kbd>Esc</Kbd> stop · <Kbd>V</Kbd> Model / Presentation · <Kbd>1</Kbd><Kbd>2</Kbd><Kbd>3</Kbd> Massing, Schematic, Presentation · <Kbd>H</Kbd> hide tool rail · <Kbd>O</Kbd> hide overlays</span>
           <span className="flex items-center gap-3">
             <button onClick={() => { set({ showOnboarding: false }); navigate('guide') }} className="text-xs font-medium text-accent hover:underline">Read the user guide</button>
             <button onClick={() => set({ showOnboarding: false })} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90">Start designing</button>

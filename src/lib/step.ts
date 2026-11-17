@@ -1,7 +1,8 @@
 // The design steps inside the stages (Ruijie, 3 Nov: "anyone open the website would start with pick the site"):
 // Site, Volume and Program are separate steps of Massing; Plates, core, plant is Schematic; Frame and capture is
-// Present. The step decides which design tools lead the left panel and which step the process rail lights. A stage
-// change (keys 1–3, the top bar) moves to that stage's step; Massing returns to the last Massing step used.
+// Present. The step decides which design tools lead the left panel and which phase the left panel's phase list lights.
+// A stage change (keys 1–3) moves to that stage's step; Massing returns to the last Massing step used. The Model /
+// Presentation switch (lib/mode.ts) moves between Frame and the last Model step used.
 //
 // Kept for the browser session (sessionStorage), not in the project file: a step is where you are, not part of the
 // design. A first open of the guided app starts on Site; with no saved project it also opens Real Vancouver, where an
@@ -36,33 +37,38 @@ export const TOOL_STEPS: Record<string, StepId[]> = {
 export const DEFAULT_TOOL_STEP: StepId = 'volume'
 
 const KEY = 'ts.step'
-function readSession(): { step: StepId; lastBasic: StepId } | null {
+function readSession(): { step: StepId; lastBasic: StepId; lastModel: StepId } | null {
   try {
-    const v = JSON.parse(sessionStorage.getItem(KEY) ?? 'null') as { step?: unknown; lastBasic?: unknown } | null
-    return v && isStep(v.step) ? { step: v.step, lastBasic: isStep(v.lastBasic) && stageOf(v.lastBasic) === 'basic' ? v.lastBasic : 'site' } : null
+    const v = JSON.parse(sessionStorage.getItem(KEY) ?? 'null') as { step?: unknown; lastBasic?: unknown; lastModel?: unknown } | null
+    if (!v || !isStep(v.step)) return null
+    const lastBasic = isStep(v.lastBasic) && stageOf(v.lastBasic) === 'basic' ? v.lastBasic : 'site'
+    return { step: v.step, lastBasic, lastModel: isStep(v.lastModel) && v.lastModel !== 'frame' ? v.lastModel : lastBasic }
   } catch { return null }
 }
-function writeSession(step: StepId, lastBasic: StepId) {
-  try { sessionStorage.setItem(KEY, JSON.stringify({ step, lastBasic })) } catch { /* storage blocked: the step is still kept in memory */ }
+function writeSession(step: StepId, lastBasic: StepId, lastModel: StepId) {
+  try { sessionStorage.setItem(KEY, JSON.stringify({ step, lastBasic, lastModel })) } catch { /* storage blocked: the step is still kept in memory */ }
 }
 
 interface StepState {
   step: StepId
-  /** The Massing step to return to when Massing is chosen again (from the top bar or key 1). */
+  /** The Massing step to return to when Massing is chosen again (key 1). */
   lastBasic: StepId
+  /** The Model step (any but Frame) to return to when Model is chosen again (the Model / Presentation switch, lib/mode.ts). */
+  lastModel: StepId
   /** True when this page load started the session (no step kept yet): the guided app opens on Site. */
   firstOpen: boolean
 }
 const saved = typeof window !== 'undefined' ? readSession() : null
-export const useStep = create<StepState>(() => ({ step: saved?.step ?? 'site', lastBasic: saved?.lastBasic ?? 'site', firstOpen: !saved }))
+export const useStep = create<StepState>(() => ({ step: saved?.step ?? 'site', lastBasic: saved?.lastBasic ?? 'site', lastModel: saved?.lastModel ?? 'site', firstOpen: !saved }))
 
 /** Go to a step: its stage too (Massing, Schematic or Present). */
 export function goToStep(step: StepId) {
   const s = useStep.getState()
   const stage = stageOf(step)
-  useStep.setState({ step, lastBasic: stage === 'basic' ? step : s.lastBasic })
+  const lastBasic = stage === 'basic' ? step : s.lastBasic, lastModel = step !== 'frame' ? step : s.lastModel
+  useStep.setState({ step, lastBasic, lastModel })
   if (useStore.getState().phase !== stage) useStore.getState().setPhase(stage)
-  writeSession(step, stage === 'basic' ? step : s.lastBasic)
+  writeSession(step, lastBasic, lastModel)
   const label = PROCESS.find((p) => p.id === step)?.label ?? step
   useStore.getState().set({ announce: `${label} step` })
 }
@@ -72,8 +78,9 @@ export function followStage(phase: Phase) {
   const s = useStep.getState()
   if (stageOf(s.step) === phase) return
   const step: StepId = phase === 'basic' ? s.lastBasic : phase === 'advanced' ? 'plates' : 'frame'
-  useStep.setState({ step })
-  writeSession(step, s.lastBasic)
+  const lastModel = step !== 'frame' ? step : s.lastModel
+  useStep.setState({ step, lastModel })
+  writeSession(step, s.lastBasic, lastModel)
 }
 
 let following: (() => void) | null = null

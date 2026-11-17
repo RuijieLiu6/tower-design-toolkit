@@ -177,11 +177,13 @@ test('Tool rail: the step\'s tools beside the model, the same as the panel; H hi
   expect(await p.evaluate(() => localStorage.getItem('ts.toolRail.side'))).toBe('left')
   await expect(p.locator('[aria-live="polite"]')).toContainText('Tool rail on the left')
 
-  // Present has no rail (the model is locked there); Massing again does.
-  await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="frame"]').click()
-  await expect(rail(p)).toHaveCount(0)
-  await expect(p.getByRole('button', { name: 'Show the tool rail (H)' })).toHaveCount(0)
-  await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="volume"]').click()
+  // Presentation (17 Nov): the rail shows that mode's own tools and no edit modes (the model is locked); Model brings the design tools back.
+  await p.getByRole('radio', { name: 'Presentation' }).click()
   await expect(rail(p)).toBeVisible()
+  await expect(rail(p).locator('[data-tool="boards"]')).toBeVisible()
+  await expect(rail(p).locator('[data-mode]')).toHaveCount(0)
+  await p.getByRole('radio', { name: 'Model' }).click()
+  await expect(rail(p).locator('[data-tool="boards"]')).toHaveCount(0)
+  await expect(rail(p).locator('[data-mode="place"]')).toBeVisible()
   expect(errors).toEqual([])
 })

@@ -17,7 +17,7 @@ export interface StageDef {
 export const STAGES: StageDef[] = [
   { id: 'basic', label: 'Massing', subtitle: 'Basic model', key: '1', icon: Blocks, purpose: 'Find a defensible volume and program mix fast.' },
   { id: 'advanced', label: 'Schematic', subtitle: 'Advanced model', key: '2', icon: PencilRuler, purpose: 'Test that the massing can be built: plates, core, plant.' },
-  { id: 'present', label: 'Present', subtitle: 'Frame and compose', key: '3', icon: Presentation, purpose: 'Compose evidence-labelled shots for the boards.' },
+  { id: 'present', label: 'Presentation', subtitle: 'Frame and compose', key: '3', icon: Presentation, purpose: 'Compose evidence-labelled shots for the boards.' },
 ]
 export const stageDef = (p: Phase) => STAGES.find((s) => s.id === p)!
 export const EVALUATE = { label: 'Evaluate', icon: Gauge }

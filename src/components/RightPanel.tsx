@@ -2,7 +2,7 @@
 // tabs (Present, and Render once components/RenderTab.tsx exists). The design tools are in the left panel (tools/ToolPanel).
 // Your site (Ruijie, 5 Nov: "move the property and information tab on the right side … keep the left side only things")
 // opens by itself in the Site step.
-import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react'
+import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ALL_NODES, BUILT_NODES, CATEGORIES } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
@@ -50,7 +50,8 @@ function NothingToAnalyse() {
   )
 }
 
-type Tab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
+import { setRightTab, useRightTab, type RightTab } from '../lib/rightTab'
+type Tab = RightTab
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
 function ResultsPicker() {
@@ -81,7 +82,8 @@ export default function RightPanel() {
   const step = useStep((s) => s.step)
   const present = phase === 'present'
   const siteStep = phase === 'basic' && step === 'site'
-  const [tab, setTab] = useState<Tab>(present ? 'present' : siteStep ? 'site' : 'results')
+  const tab = useRightTab((s) => s.tab)
+  const setTab = setRightTab
   useEffect(() => { setTab(phase === 'present' ? 'present' : phase === 'basic' && useStep.getState().step === 'site' ? 'site' : 'results') }, [phase])
   // Entering the Site step shows the site; the other steps keep the tab the user chose.
   useEffect(() => { if (siteStep) setTab('site') }, [siteStep])

@@ -1,3 +1,48 @@
+# CHECKPOINT: Model | Presentation, the phase row folded into the left panel (17 Nov 2026)
+
+Brief (Ruijie, 17 Nov, with the reference build's screenshot): "At the very top of the page there is a Model /
+Presentation switch; one click takes you from design to layout … keep the phase colours and their categories, but make
+it simpler and save more space … the clickable Site / Form / Program / Schematic / Present row at the top should
+probably go … can all the presentation-related nodes be removed, or put entirely inside Presentation?" Decision
+(approved): nothing is deleted; the presentation tools are the competition deliverables and move entirely into
+Presentation. Branch `model-presentation` from the `tool-rail` tip, same worktree. Not merged, not deployed.
+- **The switch** (`TopBar.tsx` `ModeSwitch`, `lib/mode.ts`): a segmented Model | Presentation radiogroup in the centre
+  of the top bar. Model is Site, Form, Program and Schematic as one continuous run; Presentation is the Present stage
+  (model locked, A2 frame, boards, drawings, render, shot strip). Presentation goes to the Frame step; Model returns to
+  the design step last used (`lib/step.ts` `lastModel`, kept for the session beside `lastBasic`). It changes the view,
+  never the design (nothing to undo). **Key: V** toggles it (free of P, M, R, H, O, F, L, Esc, [ ]); the old 1 / 2 / 3
+  keys stay as jumps to Massing, Schematic and Presentation (3 now lands in Presentation mode), so no test or hint
+  that used them broke.
+- **The phase row under the top bar is gone** (`ProcessRail.tsx` deleted; its step follow and first-open start moved to
+  `App.tsx`): its 44 px and gap go to the model region. The phases are a compact list in the left panel's Workflow
+  block (`PhasePanel.tsx` `PhaseList`): one 28 px row per phase of the mode, with its colour dot, its name and its fail
+  / check counts (`lib/workflow/phaseCounts.ts`, summed from the trace's live digest per home phase, the same source as
+  the builder's card summaries); the one you are in lit; a click or the arrow keys (Up / Down / Left / Right, Home, End)
+  go there. The list keeps the `nav[aria-label="Design process"]` landmark and the `data-step` / `data-phase` /
+  `aria-current="step"` buttons, so every existing e2e helper and test that drove the old row works unchanged. Back and
+  Next (`PhaseNav`, beside the "You are in Form: 2 of 14 tools" line) walk the phases; Next from Schematic is
+  Presentation and Back from Presentation is Schematic. The panel header keeps the phase name (h2) and adds the mode's
+  fail / check totals. The Schematic x-ray lens still follows the Schematic phase through the step → stage follow.
+- **Presentation's tools only in Presentation:** the dots line (`PhaseMap`), Add tool's "other phases" list and the
+  tool rail show only the mode's phases; in Presentation the phase list is that one phase and the rail shows the five
+  presentation tools (camera, capture, drawings, boards, AI render: `ToolRail.tsx` `PRESENT_TOOLS`, opening the Present
+  or Render tab on the right through the new `lib/rightTab.ts`, or capturing). The present phase stays in every saved
+  workflow and project file (nothing changed in the formats); the landing page and the workflow editor keep their
+  present lane, now labelled **Presentation** (`PHASE_NAME`, `PHASES`, `STAGES`, the stage announcements).
+- **Updated references:** the onboarding card (phase list, the switch, keys V / 1 2 3 / H / O), the user guide's stages
+  section, `lib/step.ts` and `WorkflowOverview.tsx` comments; `e2e/tool-rail.e2e.ts` (Presentation via the switch),
+  `e2e/workspace-gate.e2e.ts` (Model's four phases), `lib/workflow/builderModel.test.ts` (the Presentation label).
+- **Both projects:** the new e2e drives the switch and the list on the competition site and on Real Vancouver.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,234 pass, 3 skipped (+5: `lib/mode.test.ts`, `lib/workflow/phaseCounts.test.ts`;
+  the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/model-presentation.e2e.ts` (new: the
+  switch in the top bar, no phase row and the model region right under the top bar, four phases listed in Model and
+  only Presentation in Presentation, present nodes absent from the dots line, the rail and Add tool in Model and
+  present in Presentation, a phase dot navigates, Back / Next and the arrow keys, Next from Schematic lands in
+  Presentation, Render from the rail opens the Render tab, Model returns to the last design step, V and 1 / 3 keys,
+  Real Vancouver) PASS · `tool-rail` PASS · `phase-panel` PASS · `massing-edit` PASS · `journeys` PASS · `layout`
+  (Massing, Schematic and Present at 1440 × 900, the boards / present check) PASS. Screenshots:
+  `docs/evaluation/2026-11-17-model-presentation/01-model.png` and `02-presentation.png`.
+
 # CHECKPOINT: the tool rail moves to either side of the model (17 Nov 2026)
 
 Brief (Ruijie, 17 Nov, with a screenshot circling the rail): "I want to be able to control where it is placed with the

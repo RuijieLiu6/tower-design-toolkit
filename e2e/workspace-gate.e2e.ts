@@ -31,7 +31,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
 
       // UI01: one permanent phase row; Overview closed on entry; no whole-workflow strip underneath
       await expect(p.getByRole('navigation', { name: 'Design process' })).toHaveCount(1)
-      expect(await rail(p).locator('[data-phase]').count()).toBe(5)
+      expect(await rail(p).locator('[data-phase]').count()).toBe(4) // Model's four phases (17 Nov): Presentation is the top bar's switch
       await expect(p.getByTestId('workflow-overview')).toHaveCount(0)
       await expect(p.getByTestId('workflow-dock')).toHaveCount(0)
       await expect(p.getByTestId('phase-overview')).toHaveCount(0) // Overview went on 9 Nov: Edit workflow does the same

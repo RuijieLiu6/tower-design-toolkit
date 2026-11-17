@@ -4,7 +4,8 @@
 // Vancouver), the project file menu with Undo / Redo, Export model. Right: the view (model, model + data graph, data
 // graph), Auto-run checks (what the old "Analysis On/Off" really controls: checks recompute with the model, or pause),
 // Edit workflow (the workflow editor, 9 Nov; it was "Assistant"), and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
-// sources). Present adds Model locked and Capture. The phase row under this bar is the only phase selector.
+// sources). Present adds Model locked and Capture. In the centre, the Model | Presentation switch (Ruijie, 17 Nov): one
+// click from the design to the layout and back (key V); the phases themselves are listed in the left panel.
 import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, LockKeyhole, MoreHorizontal, Network, PlayCircle, Scale, Waves, Workflow, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { showIntro } from '../lib/intro'
@@ -21,6 +22,8 @@ import NodeLibrary from './NodeLibrary'
 import { UnitSelect } from './Units'
 import { RoleSelect } from './RolePicker'
 import { useStore, type ProjectKind, type ViewMode } from '../store'
+import { MODE_NAME, setMode, type Mode } from '../lib/mode'
+import { useStep } from '../lib/step'
 import { useShallow } from 'zustand/react/shallow'
 
 const PROJECTS: { id: ProjectKind; label: string; hint: string }[] = [
@@ -33,6 +36,33 @@ const VIEWS: { id: ViewMode; icon: typeof Axis3d; label: string }[] = [
   { id: 'canvas', icon: Network, label: 'Data graph' },
 ]
 const icon = 'flex h-8 w-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent'
+
+/**
+ * Model | Presentation (Ruijie, 17 Nov): Model is the design (Site, Form, Program, Schematic as one run); Presentation is
+ * the Present stage (the model locked, the A2 frame, boards, drawings, render). It changes the view, never the design.
+ */
+function ModeSwitch() {
+  const mode: Mode = useStep((s) => (s.step === 'frame' ? 'presentation' : 'model'))
+  const present = mode === 'presentation'
+  const onKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    e.preventDefault()
+    const to: Mode = e.key === 'ArrowLeft' ? 'model' : 'presentation'
+    setMode(to)
+    document.querySelector<HTMLElement>(`[data-testid="mode-switch"] [data-mode-option="${to}"]`)?.focus()
+  }
+  return (
+    <div role="radiogroup" aria-label="Model or Presentation" data-testid="mode-switch" data-mode={mode} className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bg-white/10' : 'bg-subtle'}`}>
+      {(['model', 'presentation'] as const).map((m) => (
+        <button key={m} type="button" role="radio" aria-checked={mode === m} tabIndex={mode === m ? 0 : -1} data-mode-option={m} aria-keyshortcuts="V" onClick={() => setMode(m)} onKeyDown={onKey}
+          title={m === 'model' ? 'Model: design the site, form, program and schematic. V switches.' : 'Presentation: the model locked, the A2 board frame, boards, drawings and render. V switches.'}
+          className={`h-7 whitespace-nowrap rounded-md px-3 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${mode === m ? (present ? 'bg-white/90 text-ink' : 'bg-panel text-ink shadow-sm') : present ? 'text-chrome-ink hover:bg-white/10' : 'text-muted hover:text-ink'}`}>
+          {MODE_NAME[m]}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 /** Auto-run checks: on, checks recompute whenever the model changes; off, they pause (choices and results kept). */
 function AutoRun() {
@@ -124,6 +154,8 @@ export default function TopBar() {
           {t === 'import' ? <FileUp size={13} aria-hidden /> : <FileDown size={13} aria-hidden />}{t === 'import' ? 'Import' : 'Export'}</button>
       ))}
       <TransferDialog />
+      <span className="mx-auto" />
+      <ModeSwitch />
       <span className="mx-auto" />
       {present && (
         <>

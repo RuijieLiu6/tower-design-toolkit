@@ -7,9 +7,11 @@ import PhasePanel from './components/workflow/PhasePanel'
 import WorkflowOverview from './components/workflow/WorkflowOverview'
 import WorkflowBuilder from './components/builder/WorkflowBuilder'
 import { useRoute } from './lib/route'
+import { toggleMode } from './lib/mode'
+import { whenRestored } from './lib/project/session'
+import { startOnSite, startStepFollow } from './lib/step'
 import { openBuilder, useProjectWorkflow } from './lib/workflow/projectWorkflow'
 import Onboarding from './components/Onboarding'
-import ProcessRail from './components/ProcessRail'
 import RightPanel from './components/RightPanel'
 import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
@@ -40,6 +42,8 @@ export default function App() {
   useEffect(() => { if (route === 'workflow' && useProjectWorkflow.getState().mode !== 'builder') openBuilder() }, [route])
 
   useEffect(() => { document.title = `${stageDef(phase).label} · Tower Design Toolkit` }, [phase])
+  // The step follows the stage and a first open starts on Site (lib/step.ts; the phase row used to start this, 17 Nov).
+  useEffect(() => { const stop = startStepFollow(); startOnSite(whenRestored()); return stop }, [])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
@@ -50,7 +54,9 @@ export default function App() {
       if (e.key === 'Escape') set({ placing: false, showOnboarding: false })
       if ((e.key === '[' || e.key === ']') && !e.ctrlKey && !e.metaKey && !e.altKey) { togglePanel(e.key === '[' ? 'left' : 'right'); return }
       // H hides and shows the tool rail beside the model (components/ToolRail.tsx), where the rail is offered.
-      if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && route === 'guided' && s.phase !== 'present') { toggleToolRail(); return }
+      if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && route === 'guided') { toggleToolRail(); return }
+      // V: Model / Presentation (the top bar's switch, lib/mode.ts); 1-3 still jump to Massing, Schematic and Presentation.
+      if ((e.key === 'v' || e.key === 'V') && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleMode(); return }
       // Present locks the model, so placing is off there.
       if ((e.key === 'p' || e.key === 'P') && s.phase !== 'present') set({ placing: !s.placing })
       if (e.key === '1') setPhase('basic')
@@ -68,16 +74,16 @@ export default function App() {
     <div data-stage={phase} data-reduced={reduced} className="workspace-shell stage-fade relative flex h-full flex-col gap-2 p-2 text-ink"
       style={{ ...(widths.left ? { '--left-w': `${widths.left}px` } : {}), ...(widths.right ? { '--right-w': `${widths.right}px` } : {}) } as CSSProperties}>
       <TopBar />
-      {/* The phase row and the three columns together: the workflow builder (Result A, 9 Nov) covers both, so only the
-          project bar stays in reach while it is open (the phase row would move the step under it). */}
+      {/* The three columns: the workflow builder (Result A, 9 Nov) covers them, so only the project bar stays in reach while
+          it is open. The phase row that sat here went on 17 Nov: the phases are listed in the left panel, and the top bar's
+          Model / Presentation switch is the mode selector. */}
       <div className="relative flex min-h-0 flex-1 flex-col gap-2">
-      <ProcessRail />
       <div className="relative flex min-h-0 flex-1 gap-2" data-workspace>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
         <main className="relative flex min-w-0 flex-1 gap-2">
-          {/* The tool rail (16 Nov): the step's tools as icons beside the model, in Massing and Schematic on the guided route. */}
-          {route === 'guided' && !present && <ToolRail />}
+          {/* The tool rail (16 Nov): the step's tools as icons beside the model, on the guided route; in Presentation, that mode's tools. */}
+          {route === 'guided' && <ToolRail />}
           {(view === '3d' || view === 'split') && (
             <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
               <Suspense fallback={<Loading what="3D view" />}><Viewport /></Suspense>

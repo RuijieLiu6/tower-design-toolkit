@@ -15,7 +15,8 @@
 // remembered (lib/toolRail.ts); H hides and shows the rail; hidden, a small button on the remembered side brings it back.
 // It has a column of its own beside the model region, so nothing drawn over the model (the tower's toolbar, the view
 // strip, the north chip, the Layers tab) is ever under it, on either side. Massing and Schematic only (Present locks
-// the model), on the guided route (App.tsx).
+// the model), on the guided route (App.tsx). In Presentation (17 Nov, lib/mode.ts) the rail shows that mode's own tools
+// instead (camera, capture, drawings, boards, render) and no edit modes, since the model is locked there.
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Crosshair, Cuboid, GripVertical, Move, RotateCw, type LucideIcon } from './icons'
@@ -31,6 +32,10 @@ import { setToolRailSide, toggleToolRail, useToolRail, type RailSide } from '../
 import { pickTower, toggleMode, useTowerEdit } from '../lib/towerEdit'
 import { STEP_PHASE, designOf, usePhaseTools } from '../lib/workflow/phaseTools'
 import { useStore, useTowers } from '../store'
+import { TOOL_ICONS, TOOL_WORDS } from '../data/icons'
+import { captureShot } from '../lib/capture'
+import { togglePanel, usePanels } from '../lib/panels'
+import { setRightTab, useRightTab, type RightTab } from '../lib/rightTab'
 
 interface RailItem {
   key: string
@@ -60,6 +65,16 @@ const SLIDE_MS = 160
 const railId = (key: string) => `tool-rail-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 const nearer = (d: Pick<Drag, 'box'>, x: number): RailSide => (x < (d.box.left + d.box.right) / 2 ? 'left' : 'right')
 
+/** Presentation's own tools (17 Nov): the rail's list in that mode, where the model is locked and the design tools rest. */
+const PRESENT_TOOLS: { id: 'camera' | 'capture' | 'drawings' | 'boards' | 'render'; label: string; hint: string; tab?: RightTab; act?: () => void }[] = [
+  { id: 'camera', label: 'Camera: frame the view', hint: 'The view\'s height and angle and the board frame, in the Present tab on the right.', tab: 'present' },
+  { id: 'capture', label: 'Capture the board frame', hint: 'A capture of the A2 board frame; each shot joins the strip in the left panel.', act: () => captureShot(false) },
+  { id: 'drawings', label: 'Drawings', hint: 'Plans and sections drawn to a standard scale, in the Present tab.', tab: 'present' },
+  { id: 'boards', label: 'Boards', hint: 'Compose the competition boards from the shots and drawings, in the Present tab.', tab: 'present' },
+  { id: 'render', label: 'AI render', hint: 'An AI render from a shot, with its AI use on record, in the Render tab.', tab: 'render' },
+]
+const openRight = (tab: RightTab) => { setRightTab(tab); if (!usePanels.getState().right) togglePanel('right') }
+
 /** One tile: the icon alone, the name and what it does beside it on hover or focus (IconTile.tsx). */
 function RailTile({ item, side, tabStop, onFocus }: { item: RailItem; side: RailSide; tabStop: boolean; onFocus: () => void }) {
   const hint = useStore((s) => (typeof item.hint === 'function' ? item.hint(s) : item.hint))
@@ -80,6 +95,8 @@ export default function ToolRail() {
   const rotate = useTowerEdit((s) => s.rotate)
   const blockOn = useBlockEdit((s) => s.on)
   const blockMode = useBlockEdit((s) => s.mode)
+  const rightTab = useRightTab((s) => s.tab)
+  const presentation = phase === 'present'
   const [focusAt, setFocusAt] = useState<string | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
   const rail = useRef<HTMLDivElement>(null)
@@ -100,7 +117,7 @@ export default function ToolRail() {
   }
 
   // The ways of editing on the model, past the Site step (the site tools are not edits of a tower).
-  const modes: RailItem[] = step === 'site' ? [] : [
+  const modes: RailItem[] = step === 'site' || presentation ? [] : [
     { key: 'mode:place', icon: Crosshair, word: 'Place', label: noTower ? 'Place a tower' : 'Place the tower', active: placing, data: { 'data-mode': 'place' },
       hint: noTower ? 'A starting tower on the site; then click the ground where it should stand.' : 'Then click the ground in the 3D view where it should stand; it moves there at once. Key: P.',
       onPick: () => { if (noTower) placeFirstTower(); else useStore.getState().set({ placing: !placing }) } },
@@ -117,9 +134,14 @@ export default function ToolRail() {
       onPick: () => { useBlockEdit.setState({ mode: m.id, hover: null }); if (activeId !== 'massing') open('massing') },
     })) : []),
   ]
-  const tools: RailItem[] = shown.map((t) => ({
-    key: `tool:${t.id}`, icon: t.icon, word: shortName(t), label: t.label, hint: t.hint, active: t.id === activeId, data: { 'data-tool': t.id }, onPick: () => open(t.id),
-  }))
+  const tools: RailItem[] = presentation
+    ? PRESENT_TOOLS.map((t) => ({
+      key: `tool:${t.id}`, icon: TOOL_ICONS[t.id], word: TOOL_WORDS[t.id], label: t.label, hint: t.hint, data: { 'data-tool': t.id },
+      active: (t.id === 'boards' || t.id === 'render') && rightTab === t.tab, onPick: () => (t.act ? t.act() : openRight(t.tab!)),
+    }))
+    : shown.map((t) => ({
+      key: `tool:${t.id}`, icon: t.icon, word: shortName(t), label: t.label, hint: t.hint, active: t.id === activeId, data: { 'data-tool': t.id }, onPick: () => open(t.id),
+    }))
   const groups = [modes, tools].filter((g) => g.length)
   const items = groups.flat()
   // Roving tabindex: the control last focused, else the open tool, else the grip; Up and Down (Home, End) move along the rail.
