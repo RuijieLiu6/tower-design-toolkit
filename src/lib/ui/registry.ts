@@ -48,7 +48,7 @@ export const STATIC_ITEMS: UiItem[] = [
 
   S('left', 'Left panel', null, { order: 20, hint: 'The phase panel: its workflow, its tools, the open tool' }),
   S('left.workflow', 'Workflow block', 'left', { hint: 'The Workflow header with Edit, the phases line and Add tool' }),
-  S('left.workflow.line', 'Phases line (the dots)', 'left.workflow'),
+  S('left.workflow.line', 'Phases line (the dots)', 'left.workflow', { locked: true, hint: 'The only way between the phases inside Model (its segments and arrows), so it stays' }),
   S('left.workflow.rows', 'Tools of the phase, in working order', 'left.workflow'),
   S('left.workflow.add', 'Add tool', 'left.workflow'),
   S('left.tool', 'The open tool’s controls', 'left'),

@@ -54,11 +54,12 @@ function Body() {
   const linked = live.status !== 'off'
   const state = !linked ? { dot: 'bg-slate-300', word: 'Not connected' } : live.status === 'error' ? { dot: 'bg-amber-500', word: 'Link problem' } : live.status === 'reading' ? { dot: 'bg-accent', word: 'Reading' } : { dot: 'bg-green-600', word: 'Watching' }
   const onKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    const i = PLATFORMS.findIndex((x) => x.id === platform)
-    const j = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? PLATFORMS.length - 1 : null
-    if (j === null) return
+    // Among the platforms on show (a link hidden in the Interface drawer is not walked).
+    const i = Math.max(0, platforms.findIndex((x) => x.id === platform))
+    const j = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? platforms.length - 1 : null
+    if (j === null || !platforms.length) return
     e.preventDefault()
-    const next = PLATFORMS[(j + PLATFORMS.length) % PLATFORMS.length].id
+    const next = platforms[(j + platforms.length) % platforms.length].id
     useSyncDialog.setState({ platform: next })
     box.current?.querySelector<HTMLElement>(`[data-sync-platform="${next}"]`)?.focus()
   }

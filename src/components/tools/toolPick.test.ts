@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveTools } from './toolPick'
+import { afterHiding, resolveTools } from './toolPick'
 import type { DesignTool } from './registry'
 
 const tool = (id: string, extra: Partial<DesignTool> = {}): DesignTool =>
@@ -9,6 +9,14 @@ const VOLUME = [tool('towers', { defaultOpen: true }), tool('massing', { default
 
 // The left panel and the tool rail beside the model read the same choice (ToolPanel.tsx, ToolRail.tsx): one rule here.
 describe('the tools a step offers and the open one', () => {
+  it('a tool hidden in the Interface drawer leaves the row; an empty step with nothing open stays closed', () => {
+    const c = resolveTools(VOLUME, { phase: 'basic', step: 'volume', noTower: true, picked: {} })
+    expect(afterHiding(c, () => true).activeId).toBeUndefined()
+    const withTower = resolveTools(VOLUME, { phase: 'basic', step: 'volume', noTower: false, picked: {} })
+    const h = afterHiding(withTower, (id) => id !== 'towers')
+    expect(h.shown.map((t) => t.id)).toEqual(['massing'])
+    expect(h.activeId).toBe('massing')
+  })
   it('no tower on Volume: only the tools that make towers, none open until picked', () => {
     const c = resolveTools(VOLUME, { phase: 'basic', step: 'volume', noTower: true, picked: {} })
     expect(c.empty).toBe('place')

@@ -11,7 +11,16 @@ import { PLATFORMS } from '../interchange/platforms'
 import { registerUiItems, type UiItem } from './registry'
 
 const LAYER_LABEL: Record<string, string> = { trees: 'Street trees', parcels: 'Parcels and land value', zoning: 'Zoning districts', heritage: 'Heritage buildings', traffic: 'Traffic counts' }
-const wasOn: Record<string, boolean | undefined> = {}
+/** What each hidden layer was before it was hidden, kept in this browser so a reload still brings it back as it was. */
+const WAS_KEY = 'ts.ui.layersWere'
+export function layersWere(): Record<string, boolean> {
+  try { const v = JSON.parse(localStorage.getItem(WAS_KEY) ?? 'null'); return v && typeof v === 'object' ? v : {} } catch { return {} }
+}
+export function rememberLayer(id: string, on: boolean | undefined) {
+  const w = layersWere()
+  if (on === undefined) delete w[id]; else w[id] = on
+  try { localStorage.setItem(WAS_KEY, JSON.stringify(w)) } catch { /* this visit only */ }
+}
 
 let started = false
 /** Start the registrations once (the drawer calls it; idempotent). */
@@ -27,8 +36,8 @@ export function startUiAddons() {
     id: `viewport.layers.${id}`, label: LAYER_LABEL[id], parent: 'viewport.layers', icon: Layers, mode: 'model',
     apply: (visible) => {
       const on = useContextLayers.getState().on as Record<string, boolean | undefined>
-      if (!visible) { wasOn[id] = on[id]; if (on[id]) useContextLayers.setState({ on: { ...on, [id]: false } }) }
-      else if (wasOn[id]) useContextLayers.setState({ on: { ...on, [id]: true } })
+      if (!visible) { rememberLayer(id, !!on[id]); if (on[id]) useContextLayers.setState({ on: { ...on, [id]: false } }) }
+      else { if (layersWere()[id]) useContextLayers.setState({ on: { ...on, [id]: true } }); rememberLayer(id, undefined) }
     },
   })))
 }
