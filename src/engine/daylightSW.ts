@@ -72,6 +72,8 @@ const DIF = { a: [97.24, 107.22, 104.97, 102.39, 100.71, 106.42, 141.88, 152.23]
 const DIR = { a: [57.20, 98.99, 109.83, 110.34, 106.36, 107.19, 105.75, 101.18], b: [-4.55, -3.46, -4.90, -5.84, -3.97, -1.25, 0.77, 1.58], c: [-2.98, -1.21, -1.71, -1.99, -1.75, -1.51, -1.26, -1.10], d: [117.12, 12.38, -8.81, -4.56, -6.16, -26.73, -34.44, -8.29] }
 const EXT_ILL = [131153, 130613, 128992, 126816, 124731, 123240, 122652, 123120, 124576, 126658, 128814, 130471]
 export const ALBEDO = 0.2
+/** Faces kept per prepared year (an LRU). */
+export const FACE_CACHE = 36
 
 /** NOAA solar position (physics.js sunAt): altitude, azimuth from north clockwise, cosine of the zenith. */
 export function sunAt(lat: number, lon: number, doy: number, hour: number, tz: number) {
@@ -119,7 +121,9 @@ export function prep(C: HourlyClimate): SkyPrep {
 }
 /** Irradiance (W/m²) and illuminance (lux) on a vertical face of compass azimuth az (deg) for every hour, Perez 1990 (physics.js face). */
 export function face(P: SkyPrep, az: number): FaceSky {
-  const key = Math.round(((az % 360) + 360) % 360); const hit = P.faces.get(key); if (hit) return hit
+  // An LRU of 36 faces (17 Nov review, 12): each holds six 8,760-hour arrays (~210 KB), so a long session stays bounded.
+  const key = Math.round(((az % 360) + 360) % 360); const hit = P.faces.get(key); if (hit) { P.faces.delete(key); P.faces.set(key, hit); return hit }
+  if (P.faces.size >= FACE_CACHE) { const oldest = P.faces.keys().next().value; if (oldest !== undefined) P.faces.delete(oldest) }
   const n = P.n, a0 = (key * Math.PI) / 180, b85 = Math.cos((85 * Math.PI) / 180)
   const sky = new Float32Array(n), gnd = new Float32Array(n), beam = new Float32Array(n), skyL = new Float32Array(n), gndL = new Float32Array(n), beamL = new Float32Array(n)
   for (let k = 0; k < n; k++) {

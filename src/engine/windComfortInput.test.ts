@@ -69,8 +69,11 @@ describe('wind comfort input', () => {
     const cells = towerRaster(w, WIND_GRID.cs, WIND_GRID.nx, WIND_GRID.ny).reduce((a, b) => a + b, 0)
     expect(cells).toBeCloseTo((46 * 46) / 16, -1)
     const others = towerObstacles([{ ...tower, id: 't2', x: 80, y: 0 }], [0, 0])
-    expect(others).toHaveLength(1)
-    expect(others[0]).toMatchObject({ layer: 'design', top: 285 })
+    // 17 Nov review (7): the podium to its own height, the tower to full height, not the podium outline at 285 m
+    expect(others.map((m) => m.top)).toEqual([18, 285])
+    expect(others.every((m) => m.layer === 'design')).toBe(true)
+    // 17 Nov review (6): an imported mass gets no second, uniform podium
+    expect(strategyOf({ ...tower, imported: { hull: [[-23, -23], [23, -23], [23, 23], [-23, 23]] } } as never, DEFAULT_WIND_PRESETS)).toBeNull()
   })
 
   it('maps the Toolkit podium to her uniform podium reach, and the presets to the rest', () => {
@@ -96,5 +99,15 @@ describe('wind comfort input', () => {
     // the raw flow agrees with itself: summarise of the same fields is the study's summary
     const a = runWind(sr, w, true, 270, strategyOf(tower, DEFAULT_WIND_PRESETS), plaza), b = runWind(sr, null, false, 270, null, plaza)
     expect(summarise(a, b, 4.5, plaza).cats.reduce((p, c) => p + c, 0)).toBe(r.cats.reduce((p, c) => p + c, 0))
+  }, 60_000)
+  it('review fix 1: a bearing from true north is solved 45° round on the competition grid, and the lines say which north', () => {
+    const plaza = plazaMask([]), sr = siteRaster([], null), t = windTowerOf({ ...tower, rotation: 20 }, [0, 0])
+    const asTrue = windStudy(sr, t, plaza, { annual: false, dir: 225, speed: 4.5, period: DEFAULT_WIND_PRESETS.period, strat: null, north: 45 })
+    const asGrid = windStudy(sr, t, plaza, { annual: false, dir: 270, speed: 4.5, period: DEFAULT_WIND_PRESETS.period, strat: null })
+    expect(asTrue.cats).toEqual(asGrid.cats)
+    const r = readingsOf(asTrue, 0)
+    const lines = (north: 'true' | 'model') => windRules({ readings: r, result: asTrue, obstacles: { loaded: true, unknownHeights: 0, source: SRC.vtc }, presets: { ...DEFAULT_WIND_PRESETS, dir: 225, north }, towerName: 'T' })
+    expect(lines('true').find((x) => x.id === 'calm-ground')!.note).toMatch(/true north/)
+    expect(lines('model').find((x) => x.id === 'calm-ground')!.note).toMatch(/grid north/)
   }, 60_000)
 })
