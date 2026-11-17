@@ -1,5 +1,6 @@
 // Results of the economics node (research P08-M01/M03/M04/M05a; Program Value Visualizer method): verdict, the
 // value-to-land waterfall, which floors pay for the tower, and the editable assumption ledger with flags and sources.
+import SheetFrame from './SheetFrame'
 import { useMemo, useState } from 'react'
 import { ACC_TREATMENT_LABEL, COST_LEDGER, CORIOLIS_TDC, RISK_REGISTER, type AccTreatment, type ChargeLine } from '../engine/costCharges'
 import { money, verdictText, type EconPresets, type EconResult, type Row, type Verdict } from '../engine/economics'
@@ -114,7 +115,7 @@ function Waterfall({ r }: { r: ReturnType<typeof useEconomics>['result'] }) {
   )
 }
 
-function FloorChart({ floors }: { floors: ReturnType<typeof useEconomics>['result']['floors'] }) {
+function FloorChartDrawing({ floors }: { floors: ReturnType<typeof useEconomics>['result']['floors'] }) {
   if (!floors.length) return <p className="text-meta text-muted">No floors.</p>
   const max = Math.max(1, ...floors.map((f) => Math.abs(f.residual)))
   const W = 300, rowH = Math.max(1.2, Math.min(5, 260 / floors.length)), H = floors.length * rowH + 4, mid = W / 2 + 20
@@ -321,3 +322,6 @@ function ChargesSection({ r }: { r: EconResult }) {
     </Section>
   )
 }
+
+/** Residual per floor, with its Sheet button (components/SheetFrame). */
+function FloorChart(p: Parameters<typeof FloorChartDrawing>[0]) { return <SheetFrame title="Residual per floor"><FloorChartDrawing {...p} /></SheetFrame> }

@@ -1,6 +1,7 @@
 // Inspector for the Interior & activity programme node (research P12-M04, M03): unit mix, hotel keys, office lease
 // depth and the activities on public floors, drawn on the typical plan, with what the layout changes in the lift
 // check, egress and economics compared with the area proxies.
+import SheetFrame from './SheetFrame'
 import { RotateCcw } from './icons'
 import { useMemo, useState } from 'react'
 import { economics, money } from '../engine/economics'
@@ -78,7 +79,7 @@ export default function InteriorResults() {
             {views.map((v) => <button key={v} type="button" role="radio" aria-checked={view === v} onClick={() => setView(v)} className={`rounded border px-2 py-0.5 text-meta ${view === v ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>{v === 'amenity' ? 'Public floor' : v[0].toUpperCase() + v.slice(1)}</button>)}
           </div>
         )}
-        {level !== null && <div className="mt-2 aspect-[594/420] w-full overflow-hidden rounded border border-line bg-white"><PlanDrawing level={level} standalone /></div>}
+        {level !== null && <SheetFrame title={`Interior plan · level ${level}`} className="mt-2"><div className="aspect-[594/420] w-full overflow-hidden rounded border border-line bg-white"><PlanDrawing level={level} standalone /></div></SheetFrame>}
         {!t.interior && <p className="mt-1 truncate text-meta text-amber-700">Switch it on to see the layout on the plan.</p>}
       </Section>
       <Section title="What the layout changes">

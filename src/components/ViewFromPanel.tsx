@@ -1,6 +1,7 @@
 // "View from here" panel (Real Vancouver; Context Model "views from cones and rooftops", research C02 and C04):
 // pick a LiDAR roof, a street point or a floor of a design tower, look at eye height, capture a 360° strip, and read
 // what the sightline sees: the North Shore terrain over the skyline, and the protected cones it crosses.
+import SheetFrame from './SheetFrame'
 import { Camera, Eye, EyeOff, MousePointerClick } from './icons'
 import { useMemo } from 'react'
 import { sampleTerrain } from '../lib/cityLayers'
@@ -135,7 +136,7 @@ function mountainRule(r: Ray, visible: number, total: number, hidden = 0, buildi
 }
 
 /** Skyline profile round the circle: grey = nearer buildings and terrain, green = the mountains where they clear it. */
-function Skyline({ rays, bearing, onPick }: { rays: Ray[]; bearing: number; onPick: (b: number) => void }) {
+function SkylineDrawing({ rays, bearing, onPick }: { rays: Ray[]; bearing: number; onPick: (b: number) => void }) {
   const W = 340, H = 110, lo = -4, hi = 14
   const X = (b: number) => (b / 360) * W, Y = (a: number) => H - 14 - ((Math.max(lo, Math.min(hi, a)) - lo) / (hi - lo)) * (H - 20)
   if (!rays.length) return null
@@ -151,3 +152,6 @@ function Skyline({ rays, bearing, onPick }: { rays: Ray[]; bearing: number; onPi
     </svg>
   )
 }
+
+/** The skyline profile, with its Sheet button (components/SheetFrame). */
+function Skyline(p: Parameters<typeof SkylineDrawing>[0]) { return <SheetFrame title="Skyline from here"><SkylineDrawing {...p} /></SheetFrame> }

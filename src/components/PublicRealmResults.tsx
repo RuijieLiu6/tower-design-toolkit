@@ -1,4 +1,5 @@
 // Results for the three public realm nodes (research P06): a site plan coloured by the check, then rule cards.
+import SheetFrame from './SheetFrame'
 import type { ReactNode } from 'react'
 import { STATION_CORNER, VTC_EDGES, VTC_SITE, type CityFrontage, type CityWall, type EdgeId } from '../engine/publicRealm'
 import { towerFootprint } from '../engine/massing'
@@ -16,7 +17,7 @@ const STATE_COLOR: Record<RuleState, string> = { pass: '#2e8b57', warn: '#d98b1c
 
 
 /** Plan of the block with its four streets (drawn to right-of-way width), the massing and the selected check. */
-function SitePlan({ edgeState, children }: { edgeState: Partial<Record<EdgeId, RuleState>>; children?: ReactNode }) {
+function SitePlanDrawing({ edgeState, children }: { edgeState: Partial<Record<EdgeId, RuleState>>; children?: ReactNode }) {
   const towers = useTowers()
   const pad = 34, W = VTC_SITE.xMax - VTC_SITE.xMin, D = VTC_SITE.yMax - VTC_SITE.yMin
   const k = 260 / (W + 2 * pad)
@@ -151,10 +152,13 @@ function CityResults({ id, towers, ring, streetwall, frontage, groundPlane, sett
   }
   return (
     <Section title="Results">
-      {ring && <div className="mb-1 flex justify-center"><StudyPlan ring={ring} towers={towers} size={240} streets={plan} marks={marks} label={`Plan of the study site with its streets and towers: ${caption}`} /></div>}
+      {ring && <SheetFrame title="Public realm plan" className="mb-1"><div className="flex justify-center"><StudyPlan ring={ring} towers={towers} size={240} streets={plan} marks={marks} label={`Plan of the study site with its streets and towers: ${caption}`} /></div></SheetFrame>}
       {status === 'loading' ? <p className="mb-2 text-meta text-muted">Finding the streets along the site…</p>
         : <div className="mb-2" title={`${caption} Types are picked in Your site or Ground & public realm.`}><Legend items={key} /></div>}
       <RuleRows rules={rules} />
     </Section>
   )
 }
+
+/** Public realm site plan, with its Sheet button (components/SheetFrame). */
+function SitePlan(p: Parameters<typeof SitePlanDrawing>[0]) { return <SheetFrame title="Public realm site plan"><SitePlanDrawing {...p} /></SheetFrame> }

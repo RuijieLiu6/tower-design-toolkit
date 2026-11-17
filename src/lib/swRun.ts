@@ -11,6 +11,7 @@ import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type F
 import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainTower, type RoofWater } from '../engine/sw/rain'
 import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
 import { periodLabel, periodRange } from './sunPeriod'
+import { sunImpact } from '../engine/sw/sunImpact'
 import type { FacadeFace, Prism } from '../engine/sw/types'
 import { ALPHA, lawsonClass, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
 import type { RuleResult, RuleState, Tower } from '../engine/types'
@@ -96,12 +97,14 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const siteSun = sunN ? sunSum / sunN / span : null
     const siteRing = inp.site ? prismsToNorth([{ ring: inp.site, z0: 0, z1: 0 }], inp.north)[0].ring : null
     const unit = s.sunScope === 'date' ? 'h' : 'h in the period'
+    // Direct sun on the tower's faces and what its neighbours lose, on a clear day of the study date (the Studio's r.heat, r.lostKWh).
+    const impact = sunImpact(own, prismsToNorth(inp.context, inp.north), C, D.doy)
     return {
-      data: { g, when, range, days, siteRing, dateLabel: D.label },
+      data: { g, when, range, days, siteRing, dateLabel: D.label, impact, siteSun, at: Date.now() },
       keys: [
         ...(plazaShare != null ? [key('sw-shadow-site', 'Site in new shadow', 'aim 25%', pc(plazaShare), plazaShare <= 0.25 ? 'pass' : plazaShare <= 0.4 ? 'warn' : 'fail', `Share of the open site with at least ${g.th[0]} ${unit} of new shadow (${when}). Aim to stay under a quarter.`, { bar: { max: 1, v: plazaShare, zone: [0, 0.25], ticks: [[0.25, '25% aim']] } })] : []),
         key('sw-shadow-ground', 'New shadow', 'ground', fmt(g.a[0]), 'unknown', `Ground with at least ${g.th[0]} ${unit} of new shadow; ${fmt(g.a[1])} m² gets ${g.th[1]} or more and ${fmt(g.a[2])} m² gets ${g.th[2]} or more.`, { unit: 'm²', ...(g.a[0] > 0 ? { stack: { parts: [g.a[2] / g.a[0], (g.a[1] - g.a[2]) / g.a[0], (g.a[0] - g.a[1]) / g.a[0]], colors: ['#7a2e8e', '#e09a2c', '#f2cd78'], names: [`${g.th[2]} ${unit} or more`, `${g.th[1]}–${g.th[2]} ${unit}`, `${g.th[0]}–${g.th[1]} ${unit}`] } } : {}) }),
-        ...(siteSun != null ? [key('sw-shadow-sun', 'Site in the sun', 'study hours', pc(siteSun), 'unknown', 'Mean share of the study hours the open site gets direct sun, after the towers and the buildings around.', { bar: { max: 1, v: siteSun } })] : []),
+        key('sw-shadow-lost', 'Sunlight lost by neighbours', 'solar access', fmt(impact.lostKWh), 'unknown', `Direct sun the buildings around lose to the towers on a clear ${D.label.split(' · ')[1]}, on their walls and roofs; the towers receive ${fmt(impact.towerKWh)} kWh.`, { unit: 'kWh' }),
       ],
       rules: [
         ...(plazaShare != null ? [rule('sw-shadow-site', 'Open site in new shadow', pc(plazaShare), 'aim at most 25% of the open site', plazaShare <= 0.25 ? 'pass' : plazaShare <= 0.4 ? 'warn' : 'fail', `${when}; ground with at least ${g.th[0]} h of new shadow.`)] : []),

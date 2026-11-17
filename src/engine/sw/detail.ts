@@ -65,14 +65,14 @@ function rayHit(px: number, py: number, dx: number, dy: number, ring: Pt[]): num
   return best
 }
 const inside = (x: number, y: number, r: Pt[]) => { let o = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) o = !o } return o }
-interface Boxed { ring: Pt[]; z0: number; z1: number; cx: number; cy: number; r: number }
-const boxed = (ps: Prism[]): Boxed[] => ps.map((p) => {
+export interface Boxed { ring: Pt[]; z0: number; z1: number; cx: number; cy: number; r: number }
+export const boxed = (ps: Prism[]): Boxed[] => ps.map((p) => {
   const ring = p.ring as Pt[]
   const cx = ring.reduce((s, q) => s + q[0], 0) / ring.length, cy = ring.reduce((s, q) => s + q[1], 0) / ring.length
   return { ring, z0: p.z0, z1: p.z1, cx, cy, r: Math.max(...ring.map((q) => Math.hypot(q[0] - cx, q[1] - cy))) }
 })
 /** True when a ray from (x, y, z) along the plan direction (dx, dy), rising tanAlt per metre, meets a block. */
-function blocked(x: number, y: number, z: number, dx: number, dy: number, tanAlt: number, obs: Boxed[]): boolean {
+export function blocked(x: number, y: number, z: number, dx: number, dy: number, tanAlt: number, obs: Boxed[]): boolean {
   for (const p of obs) {
     if (p.z1 <= z) continue
     // the block's centre must lie near the ray

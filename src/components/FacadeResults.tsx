@@ -1,5 +1,6 @@
 // Facade node results (research P12-M06a/b): inputs, an unrolled elevation of the selected tower (the facade pattern
 // study), WWR by facing, and the glazing checks with flags and sources.
+import SheetFrame from './SheetFrame'
 import { useMemo } from 'react'
 import { SYSTEMS, zoneTop, type Face, type FacadeSystem, type Quadrant } from '../engine/facade'
 import { towerFloors } from '../engine/massing'
@@ -58,7 +59,7 @@ export default function FacadeResults() {
 }
 
 /** The facade unrolled around the plan: vision glass and spandrel per storey, bird-zone line, facing under each face. */
-function Unrolled({ faces, floors, top, treated }: { faces: Face[]; floors: ReturnType<typeof towerFloors>; top: number; treated: number | null }) {
+function UnrolledDrawing({ faces, floors, top, treated }: { faces: Face[]; floors: ReturnType<typeof towerFloors>; top: number; treated: number | null }) {
   const W = 340, H = 200
   const total = faces.reduce((s, f) => s + f.length, 0) || 1
   const zMax = Math.max(1, ...faces.map((f) => f.z1))
@@ -107,3 +108,6 @@ function ByBin({ byBin }: { byBin: Record<string, { wall: number; glass: number 
     </div>
   )
 }
+
+/** Unrolled façade, with its Sheet button (components/SheetFrame). */
+function Unrolled(p: Parameters<typeof UnrolledDrawing>[0]) { return <SheetFrame title="Unrolled façade"><UnrolledDrawing {...p} /></SheetFrame> }

@@ -1,7 +1,7 @@
 // Results of the Sun & Wind Studio tools: the key readings first, as a visual row each (the Studio's Key results panel:
 // a bar against the passing range, the detail in the hover text), then the tool's main drawings, then the secondary
 // figures in folded sections. Sinnie finds the Studio text-heavy, so captions stay to one line.
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AseTower, DaylightTower } from '../../engine/sw/daylight'
 import { temporalMaps } from '../../engine/sw/detail'
 import type { RuleResult } from '../../engine/types'
@@ -26,8 +26,9 @@ export function KeyRows({ rules }: { rules: RuleResult[] }) {
 }
 
 /** A figure: a short title, the drawing, a caption of one line at most; `tip` is the longer explanation, on hover. */
-export function SwFig({ title, caption, tip, children, sheet = true }: { title: string; caption?: string; tip?: string; children: ReactNode; sheet?: boolean }) {
+export function SwFig({ title, caption, tip, children, sheet = true, explain = false }: { title: string; caption?: string; tip?: string; children: ReactNode; sheet?: boolean; /** An Explain link that opens `tip` under the figure (the Studio's figures). */ explain?: boolean }) {
   const ref = useRef<HTMLElement>(null)
+  const [open, setOpen] = useState(false)
   return (
     <figure ref={ref} className="m-0 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1" data-fig={title}>
       <figcaption className="flex items-center justify-between gap-2 text-meta font-semibold text-ink"><span className="min-w-0 truncate" title={tip ?? title}>{title}</span>
@@ -38,6 +39,8 @@ export function SwFig({ title, caption, tip, children, sheet = true }: { title: 
       </figcaption>
       {children}
       {caption && <p className="truncate text-meta leading-snug text-muted" title={tip ?? caption}>{caption}</p>}
+      {explain && tip && <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-explain className="justify-self-end text-meta font-semibold text-[#a16207] hover:underline">{open ? 'Hide' : 'Explain'}</button>}
+      {explain && tip && open && <p className="text-meta leading-snug text-ink">{tip}</p>}
     </figure>
   )
 }

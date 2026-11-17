@@ -1,11 +1,14 @@
 // Figures of the outdoor Sun & Wind Studio tools (shadow, sun on the faces, wind, rain) and of Energy use, after the
 // Studio's renderSun, renderWind, rain.js and energy.js: the main drawing first, the rest in folded sections.
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { prismsToNorth, type FaceSunHours, type ProfilePoint, type RoofYear, type ShadowRange, type StormFaces } from '../../engine/sw/detail'
 import { END_USES, TARGETS, type EndUse, type EnergyResult } from '../../engine/sw/energy'
 import { ORI, type Face } from '../../engine/sw/plate'
 import { keepFor, monthOfHour, rainBySector, type FaceRain, type GroundShelter, type RainBySector, type RoofWater } from '../../engine/sw/rain'
 import type { SunGround } from '../../engine/sw/sun'
+import type { SunFace, SunImpact } from '../../engine/sw/sunImpact'
+import { towerFloors } from '../../engine/massing'
+import { useStore } from '../../store'
 import type { ClimatePayload, FacadeFace, Prism } from '../../engine/sw/types'
 import { ALPHA, lawsonClass, SEASONS, windRose, type Season, type WindStudy } from '../../engine/sw/wind'
 import type { Pt } from '../../engine/shadow'
@@ -54,38 +57,85 @@ function ShadowFan({ range, site, context, box, small = false, label }: { range:
   )
 }
 
+const SUN_FACE_NAME: Record<SunFace, string> = { N: 'North', E: 'East', S: 'South', W: 'West', roof: 'Roofs' }
+const SUN_FACE_C: Record<SunFace, string> = { ...FACE_C, roof: '#64748b' }
+/** The Studio's headline (study.js sunReadings[0]): the face that takes most of the direct sun, and what shades it. */
+function sunHeadline(H: SunImpact): ReactNode {
+  const walls = ORI as Face[], h = walls.reduce((a, o) => (H.by[o] > H.by[a] ? o : a), 'S' as Face), share = H.by[h] / Math.max(1, H.towerKWh)
+  const how = h === 'E' || h === 'W' ? 'Low sun there means vertical fins, egg-crates or deep reveals work; overhangs do little.'
+    : h === 'S' ? 'High sun there means an overhang, louvres or a light shelf work well and keep the view.' : 'North sun is low and brief; shading matters less than glazing area.'
+  return <>The <b>{FACE_W[h].toLowerCase()}</b> face takes {Math.round(share * 100)}% of the direct sun ({H.intensity[h].toFixed(1)} kWh/m² on a clear day): the first face to shade. {how}</>
+}
+function Tile({ name, value, unit, sub, over }: { name: string; value: string; unit?: string; sub: string; over?: boolean }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-line bg-white p-2.5" data-tile={name}>
+      <p className="text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-muted">{name}</p>
+      <p className={`mt-1 font-mono text-lg font-semibold leading-tight tabular-nums ${over ? 'text-[#b3362b]' : 'text-ink'}`}>{value}{unit && <span className="ml-0.5 text-xs font-normal">{unit}</span>}</p>
+      <p className="mt-0.5 text-meta leading-snug text-muted">{sub}</p>
+    </div>
+  )
+}
+
 function ShadowBody() {
   const out = useSwOut((s) => s.out['built.sw-shadow'])
   const inp = useSwInputs()
   const s = useSwStudy()
+  const sun = useStore((x) => x.sun)
   const ctx = useMemo(() => prismsToNorth(inp.context, inp.north), [inp.context, inp.north])
-  const d = out?.data as { g: SunGround; when: string; range: ShadowRange; days: { k: string; label: string; range: ShadowRange }[]; siteRing: Pt[] | null; dateLabel: string } | undefined
+  const d = out?.data as { g: SunGround; when: string; range: ShadowRange; days: { k: string; label: string; range: ShadowRange }[]; siteRing: Pt[] | null; dateLabel: string; impact?: SunImpact; at?: number } | undefined
   if (!d?.range) return null
-  const g = d.g, unit = s.sunScope === 'date' ? 'h' : 'h in the period'
+  const g = d.g, H = d.impact, period = s.sunScope === 'period', unit = period ? 'h in the period' : 'h', u = period ? 'h' : 'h'
   const all = d.days.flatMap((x) => (Number.isFinite(x.range.box[0]) ? [x.range.box] : []))
   const box = all.length ? all.reduce((a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])] as [number, number, number, number]) : undefined
-  const mid = Math.round((s.h0 + s.h1) / 2), mo = { equinox: 3, summer: 6, autumn: 9, winter: 12 }[s.sunDate]
+  const mo = { equinox: 3, summer: 6, autumn: 9, winter: 12 }[s.sunDate]
+  const t = [...inp.towers].sort((a, b) => b.height - a.height)[0]
+  const floors = t ? towerFloors(t).length : 0
+  const run = d.at ? new Date(d.at).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false }) : null
+  const share = g.siteOpen ? g.siteInShadow / g.siteOpen : null
+  const day = d.dateLabel.split(' · ')[1]
   return (
     <>
-      <SwFig title={`Shadow range · ${d.dateLabel.split(' · ')[1]}`} caption={`Hourly, ${s.h0}:00–${s.h1}:00. Dashed: the site.`}>
-        <ShadowFan range={d.range} site={d.siteRing} context={ctx} label="Shadow range through the study day" />
+      <div className="rounded-lg border border-line bg-white px-3 py-2.5" data-testid="sun-impact-head">
+        <h4 className="text-control font-semibold text-[#a16207]">Site impact · Sun and shadow</h4>
+        <p className="mt-0.5 text-meta text-muted">{t ? `${t.name} · ${Math.round(t.height)} m · ${floors} floors` : 'No tower'}{run ? ` · run ${run}` : ''}</p>
+      </div>
+      {H && H.towerKWh > 0 && <p className="border-l-[3px] border-[#d9a441] bg-white py-1.5 pl-2.5 pr-2 text-xs leading-snug text-ink" data-testid="sun-headline">{sunHeadline(H)}</p>}
+      <div className="@container"><div className="grid grid-cols-1 gap-1.5 @[26rem]:grid-cols-3" data-testid="sun-tiles">
+        <Tile name={`New shadow ≥ ${g.th[0]} ${u}`} value={fmtI(g.a[0])} unit="m²" sub={`${fmtI(g.a[1])} m² ≥ ${g.th[1]} · ${fmtI(g.a[2])} m² ≥ ${g.th[2]}`} />
+        <Tile name="Open site shaded" value={share != null ? `${Math.round(share * 100)}%` : '–'} sub={share != null ? `${fmtI(g.siteInShadow)} of ${fmtI(g.siteOpen)} m² ≥ ${g.th[0]} ${u}` : 'no site boundary'} over={share != null && share > 0.25} />
+        <Tile name="Sunlight lost by neighbours" value={H ? fmtI(H.lostKWh) : '–'} sub={H ? `kWh, clear day · tower receives ${fmtI(H.towerKWh)}` : 'run again'} />
+      </div></div>
+      <div className="@container">
+        <div className="grid grid-cols-1 gap-3 @[34rem]:grid-cols-2">
+          <SwFig explain title={`Shadow range · ${day}`} caption={`${s.h0}:00–${s.h1}:00, hourly. Dashed: the site.`} tip={`The towers' shadow at each clock hour of ${d.dateLabel}, ${s.h0}:00 to ${s.h1}:00, in plan with north up. Each fan is one hour, labelled at its tip; the darker the overlap, the longer the ground stays in shadow. Grey: the buildings around. Dashed blue: the site.`}>
+            <ShadowFan range={d.range} site={d.siteRing} context={ctx} label="Shadow range through the study day" />
+          </SwFig>
+          <SwFig explain title="Sun paths" caption="Solstices and equinox; the current sun marked." tip="The sun's path across the sky on the solstices and the equinox, seen from above: north up, altitude rising towards the centre. Amber: the study date, with the sun at the hour the viewport shows.">
+            <div className="mx-auto w-full max-w-[15rem]"><SunPath month={mo} day={21} hour={Math.round(sun.hour)} /></div>
+          </SwFig>
+        </div>
+      </div>
+      <SwFig explain title={`Ground newly shaded${period ? ` · ${d.when}` : ''}`} caption="By threshold and on the site; footprints left out." tip={`Ground that the towers newly shade, by how long the new shadow lasts (${d.when}), and the part of it on the open site. "New" shadow is shadow the buildings around do not already cast; the towers' own footprints are left out.`}>
+        <BarRows label="Ground newly shaded by threshold" labelW={70} textW={84} rows={[
+          ...g.th.map((th, i) => ({ label: `≥ ${th} ${u}`, v: g.a[i], color: SUN_C, text: `${fmtI(g.a[i])} m²`, tip: `${fmtI(g.a[i])} m² of ground gets ${th} ${unit} or more of new shadow.` })),
+          { label: 'On the site', v: g.siteInShadow, color: SUN_C, text: g.siteOpen ? `${fmtI(g.siteInShadow)} of ${fmtI(g.siteOpen)}` : '–' },
+        ]} />
       </SwFig>
+      {H && H.towerKWh > 0 && (
+        <div className="@container">
+          <div className="grid grid-cols-1 gap-3 @[34rem]:grid-cols-2">
+            <SwFig explain title="Sun hours by face · clear day" caption="After the neighbours and the tower's own form." tip={`Hours each face of the towers sees the sun on a clear ${day}, averaged over the face, after the buildings around and the towers' own blocks. Roofs include terraces.`}>
+              <BarRows label="Sun hours by face on a clear day" labelW={46} textW={44} rows={(['N', 'E', 'S', 'W', 'roof'] as SunFace[]).map((o) => ({ label: SUN_FACE_NAME[o], v: H.sunH[o], color: SUN_FACE_C[o], text: `${H.sunH[o].toFixed(1)} h` }))} />
+            </SwFig>
+            <SwFig explain title="Direct sun per m² · clear day" caption="Beam per m² of face; the brightest is the first to shade." tip={`Beam irradiation per m² of each face on a clear ${day} (clear-sky direct sun, kWh/m²), and in total on the face. The brightest face is the first to shade.`}>
+              <BarRows label="Direct sun per square metre by face on a clear day" labelW={46} textW={96} rows={(['N', 'E', 'S', 'W', 'roof'] as SunFace[]).map((o) => ({ label: SUN_FACE_NAME[o], v: H.intensity[o], color: SUN_FACE_C[o], text: `${H.intensity[o].toFixed(1)} kWh/m²`, tip: `${SUN_FACE_NAME[o]}: ${H.intensity[o].toFixed(1)} kWh/m², ${fmtI(H.by[o])} kWh over ${fmtI(H.area[o])} m².` }))} />
+            </SwFig>
+          </div>
+        </div>
+      )}
       <Fold title="Sample days">
         <SwFig title="Three days · 9:00–16:00" caption="Same scale; hourly outlines." tip="Same scale on each; hourly outlines.">
           <Multiples cols={3}>{d.days.map((x) => <Panel key={x.k} name={x.label}><ShadowFan small range={x.range} site={d.siteRing} context={ctx} box={box} label={`Shadows on ${x.label}`} /></Panel>)}</Multiples>
-        </SwFig>
-      </Fold>
-      <Fold title="Ground newly shaded">
-        <SwFig title="New shadow on the ground" caption="By how long the new shadow lasts." tip="By how long it lasts; the towers' footprints are left out.">
-          <BarRows label="Ground newly shaded by threshold" labelW={96} rows={[
-            ...g.th.map((t, i) => ({ label: `${t} ${unit} or more`, v: g.a[i], color: ['#f2cd78', SUN_C, '#7a2e8e'][i], text: `${fmtI(g.a[i])} m²` })),
-            ...(g.siteOpen ? [{ label: 'On the open site', v: g.siteInShadow, color: '#2563eb', text: `${fmtI(g.siteInShadow)} of ${fmtI(g.siteOpen)} m²` }] : []),
-          ]} />
-        </SwFig>
-      </Fold>
-      <Fold title="Sun path">
-        <SwFig title="Sun path" caption={`Amber: study day, sun at ${mid}:00.`} tip="Amber: the study day. Grey: the solstices and the equinox. Altitude runs inward.">
-          <div className="mx-auto w-full max-w-[15rem]"><SunPath month={mo} day={21} hour={mid} /></div>
         </SwFig>
       </Fold>
     </>

@@ -1,5 +1,6 @@
 // What the Sun & Wind Studio tools read from the toolkit: the towers, true north, the site, the buildings around and the
 // typical-year climate. One hook so every tool, its results and its analysis view read the same thing.
+import { useSiteGeometry } from './siteGeometry'
 import { useEffect, useMemo, useState } from 'react'
 import { useCityData, useRemoval } from '../components/CityContext'
 import { useVtcContext, VTC_NORTH_DEG } from '../context'
@@ -39,7 +40,9 @@ const REACH = 260
 export function useSwInputs(): SwInputs {
   const project = useStore((s) => s.project)
   const towers = useTowers()
-  const site = useStore((s) => (s.project === 'city' ? (s.citySite?.ring as Pt[] | undefined) ?? null : null))
+  // The competition block counts as the site too (16 Nov: the sun study's open site and the shaded share read it).
+  const vtcSite = useSiteGeometry((s) => s.site.vtc?.ring as Pt[] | undefined)
+  const site = useStore((s) => (s.project === 'city' ? (s.citySite?.ring as Pt[] | undefined) ?? null : vtcSite ?? null))
   const { data } = useCityData()
   const removal = useRemoval(project === 'city' ? data : null)
   const { ctx } = useVtcContext()

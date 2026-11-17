@@ -1,5 +1,6 @@
 // Inspector for the Energy & carbon node (research P04-M01/M02/M05/M07, P11-M04): charts against the by-law and
 // policy limits, rule cards with their sources and flags, and the inputs (every preset says what it is).
+import SheetFrame from './SheetFrame'
 import { RotateCcw } from './icons'
 import type { ReactNode } from 'react'
 import {
@@ -17,7 +18,7 @@ const MAGENTA = '#d4148c'
 
 
 /** Estimate bars against the HBP and VBBL limits for each metric (each row on its own scale). */
-function LimitsChart({ r }: { r: EnergyCarbonResult }) {
+function LimitsChartDrawing({ r }: { r: EnergyCarbonResult }) {
   const rows: { m: Metric; label: string; est: number; unit: string }[] = [
     { m: 'teui', label: 'TEUI', est: r.net.teui, unit: 'kWh/m²' },
     { m: 'tedi', label: 'TEDI', est: r.estimate.tedi, unit: 'kWh/m²' },
@@ -50,7 +51,7 @@ function LimitsChart({ r }: { r: EnergyCarbonResult }) {
 }
 
 /** Embodied carbon range on a 0–900 kgCO₂e/m² scale with the limit, proposals and the archetype band. */
-function EmbodiedChart({ r }: { r: EnergyCarbonResult }) {
+function EmbodiedChartDrawing({ r }: { r: EnergyCarbonResult }) {
   const W = 260, max = 900, x = (v: number) => 6 + (v / max) * (W - 12)
   const [lo, mid, hi] = r.embodied.band
   const tick = (v: number, label: string, color: string, dash?: string, up = false) => (
@@ -75,7 +76,7 @@ function EmbodiedChart({ r }: { r: EnergyCarbonResult }) {
 }
 
 /** Yield by surface group against the IEA rooftop and facade averages for Canada. */
-function PvChart({ r }: { r: EnergyCarbonResult }) {
+function PvChartDrawing({ r }: { r: EnergyCarbonResult }) {
   const groups = new Map<string, { area: number; kwh: number; kwp: number; poa: number; n: number; shaded: number }>()
   for (const s of r.pv.surfaces) {
     const key = s.kind === 'facade' ? `${s.label.split(': ')[1].split(' face')[0]} face` : s.kind === 'roof' ? 'Roof' : 'Podium roof'
@@ -242,3 +243,12 @@ export default function EnergyCarbonResults() {
     </>
   )
 }
+
+/** Energy against the limits, with its Sheet button (components/SheetFrame). */
+function LimitsChart(p: Parameters<typeof LimitsChartDrawing>[0]) { return <SheetFrame title="Energy against the limits"><LimitsChartDrawing {...p} /></SheetFrame> }
+
+/** Embodied carbon, with its Sheet button (components/SheetFrame). */
+function EmbodiedChart(p: Parameters<typeof EmbodiedChartDrawing>[0]) { return <SheetFrame title="Embodied carbon"><EmbodiedChartDrawing {...p} /></SheetFrame> }
+
+/** PV yield by surface, with its Sheet button (components/SheetFrame). */
+function PvChart(p: Parameters<typeof PvChartDrawing>[0]) { return <SheetFrame title="PV yield by surface"><PvChartDrawing {...p} /></SheetFrame> }

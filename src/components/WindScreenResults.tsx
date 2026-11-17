@@ -1,5 +1,6 @@
 // Results of the pedestrian wind screen (research P03-M03 with a reduced M01 wind climate and the M02 triggers): the
 // study verdict, the airport wind rose, per-tower risk by strong-wind sector, the rules with their sources, and presets.
+import SheetFrame from './SheetFrame'
 import { RotateCcw } from './icons'
 import { ENGINE_NOTE, SCREEN_LABEL, DEFAULT_WIND_SCREEN, YVR_ROSE, type Level, type SectorStat, type WindScreenPresets } from '../engine/windScreen'
 import { ANALOG_LABEL } from '../engine/windStructure'
@@ -13,7 +14,7 @@ const LEVEL_LABEL: Record<Level, string> = { low: 'Low', medium: 'Medium', high:
 
 
 /** Wind rose: petal length = share of comfort-window hours from that sector; the dark part = strong-wind hours (scaled up). */
-function Rose({ stats, strong }: { stats: SectorStat[]; strong: Set<string> }) {
+function RoseDrawing({ stats, strong }: { stats: SectorStat[]; strong: Set<string> }) {
   const R = 70, maxAll = Math.max(...stats.map((s) => s.all)), maxStrong = Math.max(...stats.map((s) => s.strong)) || 1
   const petal = (k: number, r: number) => {
     const a0 = ((k * 22.5 - 9) * Math.PI) / 180, a1 = ((k * 22.5 + 9) * Math.PI) / 180
@@ -120,3 +121,6 @@ export default function WindScreenResults() {
     </>
   )
 }
+
+/** Wind rose, YVR, with its Sheet button (components/SheetFrame). */
+function Rose(p: Parameters<typeof RoseDrawing>[0]) { return <SheetFrame title="Wind rose, YVR"><RoseDrawing {...p} /></SheetFrame> }

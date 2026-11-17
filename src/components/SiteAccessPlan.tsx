@@ -1,6 +1,7 @@
 // Site-access sketch for the competition block (research P09-M05 viz): streets coloured by class, the massing at
 // grade, the station corner, and draggable pins for loading, the parking ramp and drop-off. Loading bays are dashed
 // outlines "pending Section 5": the by-law bay sizes were not opened, so no dimension is claimed.
+import SheetFrame from './SheetFrame'
 import { useRef, type PointerEvent } from 'react'
 import { accessXY, STREET_STATE, type AccessPoint } from '../engine/mobility'
 import { masses, STATION_CORNER, VTC_EDGES, VTC_SITE, type EdgeId } from '../engine/publicRealm'
@@ -26,7 +27,7 @@ function snap(x: number, y: number): { edge: EdgeId; at: number } {
   return { edge: c[0][0], at: Math.max(0.03, Math.min(0.97, c[0][2])) }
 }
 
-export default function SiteAccessPlan({ bays }: { bays: number }) {
+function SiteAccessPlanDrawing({ bays }: { bays: number }) {
   const towers = useTowers()
   const { access, selected, set, moveAccess } = useMobilityStore()
   const svg = useRef<SVGSVGElement>(null)
@@ -110,3 +111,6 @@ function Pin({ a, bays, selected, onDown }: { a: AccessPoint; bays: number; sele
     </g>
   )
 }
+
+/** The site access plan, with its Sheet button (components/SheetFrame). */
+export default function SiteAccessPlan(p: Parameters<typeof SiteAccessPlanDrawing>[0]) { return <SheetFrame title="Site access plan"><SiteAccessPlanDrawing {...p} /></SheetFrame> }

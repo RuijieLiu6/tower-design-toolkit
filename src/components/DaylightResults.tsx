@@ -1,5 +1,6 @@
 // Inspector for the Daylight screen node (backlog item 36, research P02-M06): for each occupied use, its typical plan
 // with the daylit / marginal / deep bands, a one-line verdict, and every rule with its source and evidence flag.
+import SheetFrame from './SheetFrame'
 import { useMemo } from 'react'
 import { daylightScreen, verdict, type UseScreen } from '../engine/daylightDepth'
 import { towerFloors } from '../engine/massing'
@@ -10,7 +11,7 @@ import { Fold, Legend, MethodFold, RuleRows, Stack } from './ResultViz'
 
 
 /** The typical plate at a fixed size, with the bands. */
-function MiniPlan({ u }: { u: UseScreen }) {
+function MiniPlanDrawing({ u }: { u: UseScreen }) {
   const { W, D } = u.plate
   const box = 120, pad = 4, k = Math.min((box - 2 * pad) / W, (box * 0.8 - 2 * pad) / D)
   const h = D * k + 2 * pad
@@ -59,3 +60,6 @@ export default function DaylightResults() {
     </Section>
   )
 }
+
+/** Daylight: floor plate, with its Sheet button (components/SheetFrame). */
+function MiniPlan(p: Parameters<typeof MiniPlanDrawing>[0]) { return <SheetFrame title="Daylight: floor plate"><MiniPlanDrawing {...p} /></SheetFrame> }
